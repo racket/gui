@@ -67,7 +67,7 @@
        (dynamic-wind
 	(lambda () 
 	  (wx:in-atomic-region monitor-sema)
-	  
+
 	  (set! monitor-owner (current-thread))
 	  (enter-paramz)
 	  (current-exception-handler
@@ -473,13 +473,13 @@
 	  (lambda ()
 	    (send (get-top-level) set-focus-window this)
 	    (set! focus? #t)
-	    (super-on-set-focus)))]
+	    (as-exit super-on-set-focus)))]
 	[on-kill-focus
 	 (entry-point
 	  (lambda ()
 	    (send (get-top-level) set-focus-window #f)
 	    (set! focus? #f)
-	    (super-on-kill-focus)))])
+	    (as-exit super-on-kill-focus)))])
       (public
 	[has-focus? (lambda () focus?)])
       (sequence 
@@ -1176,19 +1176,19 @@
 			      (as-exit (lambda () (send mred on-move x y)))))))))))]
       [on-set-focus (entry-point
 		     (lambda ()
-		       (super-on-set-focus)
 		       ; Windows circumvents the event queue to call on-focus
 		       ;  when you click on the window's icon in the task bar.
 		       (queue-window-callback
 			this 
-			(lambda () (send (get-proxy) on-focus #t)))))]
+			(lambda () (send (get-proxy) on-focus #t)))
+		       (as-exit super-on-set-focus)))]
       [on-kill-focus (entry-point
 		      (lambda ()
-			(super-on-kill-focus)
 			; see on-set-focus:
 			(queue-window-callback
 			 this
-			 (lambda () (send (get-proxy) on-focus #f)))))]
+			 (lambda () (send (get-proxy) on-focus #f)))
+			(as-exit super-on-kill-focus)))]
       [pre-on-char (entry-point-2
 		    (lambda (w e)
 		      (pre-wx->proxy w (lambda (m)
@@ -1278,11 +1278,13 @@
 			(set! act-date/seconds (current-seconds))
 			(set! act-date/milliseconds (current-milliseconds))
 			(set! active-frame this))
-		      (super-on-activate on?)
-		      ;; Delay callback to handle Windows bug
+		      ;; Delay callback to handle Windows bug:
 		      (queue-window-callback
 		       this
-		       (lambda () (send (get-mred) on-activate on?)))))])
+		       (lambda () (send (get-mred) on-activate on?)))
+		      (as-exit
+		       (lambda ()
+			 (super-on-activate on?)))))])
     (sequence (apply super-init mred proxy args))))
 
 (define (make-canvas-glue% %) ; implies make-window-glue%
@@ -1564,7 +1566,7 @@
       [on-set-focus
        (entry-point
 	(lambda ()
-	  (super-on-set-focus)
+	  (as-exit super-on-set-focus)
 	  (let ([m (get-editor)])
 	    (when m 
 	      (let ([mred (wx->mred this)])
