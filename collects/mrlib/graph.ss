@@ -380,7 +380,7 @@
       ;; on-paint : ... -> void
       ;; see docs, same as super
       ;; draws all of the lines and then draws all of the arrow heads
-      (define/override (on-paint before? dc left top right bottom dx dy draw-caret)
+      (define/private (old-on-paint before? dc left top right bottom dx dy draw-caret)
         (let ()
           ;; draw-connection : link snip boolean boolean -> void
           ;; sets the drawing context (pen and brush)
@@ -538,6 +538,188 @@
               (send dc set-brush old-brush)))
           
           (super on-paint before? dc left top right bottom dx dy draw-caret)))
+      
+      (define/override (on-paint before? dc left top right bottom dx dy draw-caret)
+        (let ()
+          ;; draw-connection : link snip boolean boolean -> void
+          ;; sets the drawing context (pen and brush)
+          ;; determines if the connection is between a snip and itself or two different snips
+          ;;  and calls draw-self-connection or draw-non-self-connection
+          (define (draw-connection from-link to dark-lines?)
+            (let ([from (link-snip from-link)])
+              (when (send from get-admin)
+                (let ([dx (+ dx (link-dx from-link))]
+                      [dy (+ dy (link-dy from-link))])
+                  (cond
+                    [(eq? from to)
+                     (set-pen/brush from-link dark-lines?)
+                     (draw-self-connection dx dy (link-snip from-link))]
+                    [else
+                     (draw-non-self-connection dx dy from-link dark-lines? to)])))))
+          
+          (define (draw-self-connection dx dy snip)
+            (let*-values ([(sx sy sw sh) (get-position snip)]
+                          [(s1x s1y) (values (+ sx sw) (+ sy (* sh 1/2)))]
+                          [(s2x s2y) (values (+ sx sw self-offset) (+ sy (* 3/4 sh) (* 1/2 self-offset)))]
+                          [(s3x s3y) (values (+ sx sw) (+ sy sh self-offset))]
+                          [(b12x b12y) (values s2x s1y)]
+                          [(b23x b23y) (values s2x s3y)]
+                          
+                          [(s4x s4y) (values (- sx arrowhead-short-side)
+                                             (+ sy (* sh 1/2)))]
+                          [(s5x s5y) (values (- sx arrowhead-short-side self-offset)
+                                             (+ sy (* 3/4 sh) (* 1/2 self-offset)))]
+                          [(s6x s6y) (values (- sx arrowhead-short-side)
+                                             (+ sy sh self-offset))]
+                          [(b45x b45y) (values s5x s4y)]
+                          [(b56x b56y) (values s5x s6y)])
+              
+              (update-polygon s4x s4y sx s4y)
+              (send dc draw-spline (+ dx s1x) (+ dy s1y) (+ dx b12x) (+ dy b12y) (+ dx s2x) (+ dy s2y))
+              (send dc draw-spline (+ dx s2x) (+ dy s2y) (+ dx b23x) (+ dy b23y) (+ dx s3x) (+ dy s3y))
+              (send dc draw-line (+ dx s3x) (+ dy s3y) (+ dx s6x) (+ dy s6y))
+              (send dc draw-spline (+ dx s4x) (+ dy s4y) (+ dx b45x) (+ dy b45y) (+ dx s5x) (+ dy s5y))
+              (send dc draw-spline (+ dx s5x) (+ dy s5y) (+ dx b56x) (+ dy b56y) (+ dx s6x) (+ dy s6y))
+              (send dc draw-polygon points dx dy)))
+          
+          (define (draw-non-self-connection dx dy from-link dark-lines? to)
+            (let ([from (link-snip from-link)])
+              (let*-values ([(xf yf wf hf) (get-position from)]
+                            [(xt yt wt ht) (get-position to)]
+                            [(lf tf rf bf) (values xf yf (+ xf wf) (+ yf hf))]
+                            [(lt tt rt bt) (values xt yt (+ xt wt) (+ yt ht))])
+                (let ([x1 (+ xf (/ wf 2))]
+                      [y1 (+ yf (/ hf 2))]
+                      [x2 (+ xt (/ wt 2))]
+                      [y2 (+ yt (/ ht 2))])
+                  
+                  (set-pen/brush from-link dark-lines?)
+                  (let-values ([(from-x from-y)
+                                (or-2v (find-intersection x1 y1 x2 y2 
+                                                          lf tf rf tf)
+                                       (find-intersection x1 y1 x2 y2 
+                                                          lf bf rf bf)
+                                       (find-intersection x1 y1 x2 y2 
+                                                          lf tf lf bf)
+                                       (find-intersection x1 y1 x2 y2 
+                                                          rf tf rf bf))]
+                               [(to-x to-y)
+                                (or-2v (find-intersection x1 y1 x2 y2 
+                                                          lt tt rt tt)
+                                       (find-intersection x1 y1 x2 y2 
+                                                          lt bt rt bt)
+                                       (find-intersection x1 y1 x2 y2 
+                                                          lt tt lt bt)
+                                       (find-intersection x1 y1 x2 y2 
+                                                          rt tt rt bt))])
+                    (when (and from-x from-y to-x to-y)
+                      (let ()
+                        (define (arrow-point-ok? point-x point-y)
+                          (and (in-rectangle? point-x point-y
+                                              (min lt rt lf rf) (min tt bt tf bf)
+                                              (max lt rt lf rf) (max tt bt tf bf))
+                               (not (strict-in-rectangle? point-x point-y 
+                                                          (min lt rt) (min tt bt) 
+                                                          (max lt rt) (max tt bt)))
+                               (not (strict-in-rectangle? point-x point-y
+                                                          (min lf rf) (min tf bf)
+                                                          (max lf rf) (max tf bf)))))
+                        (cond
+                          [(or (in-rectangle? from-x from-y lt tt rt bt)
+                               (in-rectangle? to-x to-y lf tf rf bf))
+                           ;; the snips overlap, draw nothing
+                           (void)]
+                          [else
+                           (send dc draw-line
+                                 (+ dx from-x) (+ dy from-y) 
+                                 (+ dx to-x) (+ dy to-y))
+                           (update-polygon from-x from-y to-x to-y)
+                           (when (and (arrow-point-ok? (send point1 get-x) (send point1 get-y))
+                                      (arrow-point-ok? (send point2 get-x) (send point2 get-y))
+                                      (arrow-point-ok? (send point3 get-x) (send point3 get-y))
+                                      (arrow-point-ok? (send point4 get-x) (send point4 get-y)))
+                             ;; the arrowhead is not overlapping the snips, so draw it
+                             ;; (this is only an approximate test, but probably good enough)
+                             (send dc draw-polygon points dx dy))]))))))))
+          
+          (define (set-pen/brush from-link dark-lines?)
+            (send dc set-brush 
+                  (if dark-lines?
+                      (link-dark-brush from-link)
+                      (link-light-brush from-link)))
+            (send dc set-pen
+                  (if dark-lines?
+                      (link-dark-pen from-link)
+                      (link-light-pen from-link))))
+          
+          ;;; body of on-paint
+          (when before?
+            (let ([old-pen (send dc get-pen)]
+                  [old-brush (send dc get-brush)]
+                  [os (send dc get-smoothing)])
+              (send dc set-smoothing 'aligned)
+              
+              (let ([pairs '()])
+                (for-each-to-redraw 
+                 left top right bottom 
+                 (lambda (from-link to)
+                   (let ([from (link-snip from-link)])
+                     (cond
+                       [(or (memq from currently-overs)
+                            (memq to currently-overs))
+                        (set! pairs (cons (cons from-link to) pairs))]
+                       [else
+                        (draw-connection from-link to #f)]))))
+                (for-each (lambda (pr)
+                            (draw-connection (car pr) (cdr pr) #t))
+                          pairs))
+              
+              (send dc set-smoothing os)
+              (send dc set-pen old-pen)
+              (send dc set-brush old-brush)))
+          
+          (super on-paint before? dc left top right bottom dx dy draw-caret)))
+      
+        ;; for-each-to-redraw : number number number number (link snip -> void)
+      (define/private (for-each-to-redraw left top right bottom f)
+        (let ()
+          ;; draw-connection : link snip boolean boolean -> void
+          ;; sets the drawing context (pen and brush)
+          ;; determines if the connection is between a snip and itself or two different snips
+          ;;  and calls draw-self-connection or draw-non-self-connection
+          (define (maybe-call-f from-link to)
+            (let ([from (link-snip from-link)])
+              (when (send from get-admin)
+                (cond
+                  [(eq? from to)
+                   (f from-link to)]
+                  [else
+                   (let*-values ([(xf yf wf hf) (get-position from)]
+                                 [(xt yt wt ht) (get-position to)]
+                                 [(lf tf rf bf) (values xf yf (+ xf wf) (+ yf hf))]
+                                 [(lt tt rt bt) (values xt yt (+ xt wt) (+ yt ht))])
+                     (let ([x1 (+ xf (/ wf 2))]
+                           [y1 (+ yf (/ hf 2))]
+                           [x2 (+ xt (/ wt 2))]
+                           [y2 (+ yt (/ ht 2))])
+                       
+                       (unless (or (and (x1 . <= . left)
+                                        (x2 . <= . left))
+                                   (and (x1 . >= . right)
+                                        (x2 . >= . right))
+                                   (and (y1 . <= . top)
+                                        (y2 . <= . top))
+                                   (and (y1 . >= . bottom)
+                                        (y2 . >= . bottom)))
+                         (f from-link to))))]))))
+          
+          (let loop ([snip (find-first-snip)])
+            (when snip
+              (when (and (send snip get-admin)
+                         (is-a? snip graph-snip<%>))
+                (for-each (lambda (parent-link) (maybe-call-f parent-link snip))
+                          (send snip get-parent-links)))
+              (loop (send snip next))))))
       
       
       (field 
