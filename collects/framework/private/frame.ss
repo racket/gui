@@ -129,6 +129,12 @@
       (define basic-mixin
         (mixin ((class->interface frame%)) (basic<%>)
         
+          (rename [super-show show])
+          (define/override (show on?)
+            (when on?
+              (send (group:get-the-frame-group) insert-frame this))
+            (super-show on?))
+          
           (define/override (can-exit?)
             (exit:set-exiting #t)
             (let ([res (exit:can-exit?)])
@@ -200,7 +206,6 @@
                        "do not add children directly to a frame:basic (unless using make-root-area-container); use the get-area-container method instead"
                        )))]
           
-          (inherit show)
           (public get-area-container% get-menu-bar% make-root-area-container close)
           [define get-area-container% (lambda () vertical-panel%)]
           [define get-menu-bar% (lambda () menu-bar%)]

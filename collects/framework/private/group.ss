@@ -222,15 +222,17 @@
                 (set! most-recent-window-box (make-weak-box active-frame)))
               (set! active-frame f))]
           [define insert-frame
-            (lambda (f)
-              (set! frame-counter (add1 frame-counter))
-              (let ([new-frames (cons (make-frame f frame-counter)
-                                      frames)])
-                (set! frames new-frames)
-                (update-close-menu-item-state)
-                (insert-windows-menu f)
-                (update-windows-menus))
-              (todo-to-new-frames f))]
+            (lambda (new-frame)
+              (unless (memf (lambda (fr) (eq? (frame-frame fr) new-frame))
+                            frames)
+                (set! frame-counter (add1 frame-counter))
+                (let ([new-frames (cons (make-frame new-frame frame-counter)
+                                        frames)])
+                  (set! frames new-frames)
+                  (update-close-menu-item-state)
+                  (insert-windows-menu new-frame)
+                  (update-windows-menus))
+                (todo-to-new-frames new-frame)))]
           
           [define remove-frame
             (lambda (f)
