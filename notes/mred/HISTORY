@@ -9,7 +9,8 @@ Version 103.1:
    large messages. (PR 1416)
 
  * Changed methods in dc<%> classes to raise an exception if the
-   DC is not ok (except for the `ok?' method). (PR 1014)
+   DC is not ok (except for the `ok?' method). Notably, a bitmap-dc%
+   without a bitmap is not ok. (PR 1014)
 
  * Changed dc<%>'s `draw-bitmap' and `draw-bitmap-section' to
    scale the bitmap if the dc<%> has a scale. (PR 1185)
@@ -41,7 +42,7 @@ Version 103.1:
 
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-Version 104: August 28, 2000
+Version 104: ???
 
 Added popup-menu to window<%>
 Added a popup menu to the message-box dialog that copies the contained
