@@ -378,6 +378,7 @@
       
       (define delegate<%> (interface (basic<%>) 
                             get-delegate
+			    set-delegate
                             get-delegate-style-delta
                             set-delegate-style-delta))
       (define small-style-delta (make-object style-delta% 'change-size 2))
