@@ -206,11 +206,10 @@
     
     (when label
       (send dc set-font button-label-font)
-      (let-values ([(tw th _2 _3) (send dc get-text-extent label)])
-        
-        ;; 1 is for the outer drop shadow box
-        (send dc draw-text label
-              (+ button-label-inset
-                 (if inverted? drop-shadow-size 1))
-              (+ button-label-inset
-                 (if inverted? drop-shadow-size 1)))))))
+
+      ;; 1 is for the outer drop shadow box
+      (send dc draw-text label
+	    (+ button-label-inset
+	       (if inverted? drop-shadow-size 1))
+	    (+ button-label-inset
+	       (if inverted? drop-shadow-size 1))))))
