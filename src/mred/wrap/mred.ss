@@ -543,7 +543,7 @@
 	 [force-redraw
 	  (lambda ()
 	    (let ([parent (area-parent)])
-	      (unless parent
+	      (when parent
 		(send parent child-redraw-request this))))]
 	 
 	 [on-container-resize void] ; This object doesn't contain anything
@@ -3137,10 +3137,13 @@
 
   ;; GUI creation
   (define frame (make-object (class frame% args
-			       (override [on-close (lambda () 
-						     (custodian-shutdown-all user-custodian)
-						     (semaphore-post waiting))])
-			       (sequence (apply super-init args)))
+			       (inherit accept-drop-files)
+			       (override
+				 [on-close (lambda () 
+					     (custodian-shutdown-all user-custodian)
+					     (semaphore-post waiting))]
+				 [on-drop-file (lambda (f) (evaluate `(load ,f)))])
+			       (sequence (apply super-init args) (accept-drop-files #t)))
 			     "MrEd REPL" #f 500 400))
   (define repl-buffer (make-object esq:text%))
   (define repl-display-canvas (make-object editor-canvas% frame))

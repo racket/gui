@@ -49,6 +49,9 @@
 		 (send dc draw-line 0 3 20 3)
 		 (send dc set-bitmap #f)
 		 bm)]
+       [clock-start #f]
+       [clock-end #f]
+       [clock-clip? #f]
        [use-bitmap? #f]
        [depth-one? #f]
        [cyan? #f]
@@ -272,8 +275,16 @@
 
 			    
 			    (when last?
-			      (send dc set-pen pen0s)
-			      (send dc draw-polygon octagon))
+			      (let ([p (send dc get-pen)])
+				(send dc set-pen (make-object pen% "BLACK" 1 'xor))
+				(send dc draw-polygon octagon)
+				(send dc set-pen p))
+
+			      (when clock-start
+				(let ([b (send dc get-brush)])
+				  (send dc set-brush (make-object brush% "ORANGE" 'solid))
+				  (send dc draw-arc 0. 60. 180. 180. clock-start clock-end)
+				  (send dc set-brush b))))
 
 			    (when last?
 			      ; Splines
@@ -324,7 +335,7 @@
 			    
 			    (when (and (not no-bitmaps?) last?)
 			      (let ([x 5] [y 165])
-				(send dc draw-bitmap (get-icon) x y)
+				(send dc draw-bitmap (get-icon) x y 'xor)
 				(set! x (+ x (send (get-icon) get-width)))
 				(let ([black (send the-color-database find-color "BLACK")]
 				      [red (send the-color-database find-color "RED")]
@@ -348,7 +359,7 @@
 				    (let ([end x]
 					  [b (send dc get-brush)])
 				      (send dc set-brush (make-object brush% "BLUE" 'solid))
-				      (send dc draw-rectangle (- start 5) (+ y 15) (- end start) 15)
+				      (send dc draw-rounded-rectangle (- start 5) (+ y 15) (- end start) 15 -0.2)
 				      (send dc set-brush b)
 				      (set! x start)
 				      (set! y (+ y 18))
@@ -416,13 +427,13 @@
 				    (send pens set-style 'solid)
 				    (loop (cdr s) (+ y 8))))))
 
-			    (if (not (or ps? (eq? dc can-dc)))
-				(send can-dc draw-bitmap (send mem-dc get-bitmap) 0 0)))
+			    (when (and last? (not (or ps? (eq? dc can-dc))))
+			      (send can-dc draw-bitmap (send mem-dc get-bitmap) 0 0 'opaque)))
 
 			  'done)])
 
-		  (send (get-dc) set-user-scale 1 1)
-		  (send (get-dc) set-device-origin 0 0)
+		  (send (get-dc) set-scale 1 1)
+		  (send (get-dc) set-origin 0 0)
 
 		  (let ([dc (if ps?
 				(let ([dc (make-object post-script-dc%)])
@@ -436,8 +447,8 @@
 		      (send dc start-doc "Draw Test")
 		      (send dc start-page)
 
-		      (send dc set-user-scale scale scale)
-		      (send dc set-device-origin offset offset)
+		      (send dc set-scale scale scale)
+		      (send dc set-origin offset offset)
 		      
 		      (send dc set-background
 			    (if cyan?
@@ -447,32 +458,58 @@
 		      (send dc set-clipping-region #f)
 		      (send dc clear)
 
-		      (let ([mk-poly (lambda ()
-				       (let ([r (make-object region% dc)])
-					 (send r set-polygon octagon) r))]
-			    [mk-circle (lambda ()
-				         (let ([r (make-object region% dc)])
-					   (send r set-ellipse 0. 60. 180. 180.) r))]
-			    [mk-rect (lambda ()
-				       (let ([r (make-object region% dc)])
-					 (send r set-rectangle 100 -25 10 400) r))])
-			(case clip
-			  [(none) (void)]
-			  [(rect) (send dc set-clipping-rect 100 -25 10 400)]
-			  [(poly) (send dc set-clipping-region (mk-poly))]
-			  [(circle) (send dc set-clipping-region (mk-circle))]
-			  [(rect+poly) (let ([r (mk-poly)])
-					 (send r union (mk-rect))
-					 (send dc set-clipping-region r))]
-			  [(rect+circle) (let ([r (mk-circle)])
-					   (send r union (mk-rect))
-					   (send dc set-clipping-region r))]
-			  [(poly-rect) (let ([r (mk-poly)])
-					 (send r subtract (mk-rect))
-					 (send dc set-clipping-region r))]
-			  [(poly&rect) (let ([r (mk-poly)])
-					 (send r intersect (mk-rect))
-					 (send dc set-clipping-region r))]))
+		      (if clock-clip?
+			  (let ([r (make-object  region% dc)])
+			    (send r set-arc 0. 60. 180. 180. clock-start clock-end)
+			       (send dc set-clipping-region r))
+			  (let ([mk-poly (lambda ()
+					   (let ([r (make-object region% dc)])
+					     (send r set-polygon octagon) r))]
+				[mk-circle (lambda ()
+					     (let ([r (make-object region% dc)])
+					       (send r set-ellipse 0. 60. 180. 180.) r))]
+				[mk-rect (lambda ()
+					   (let ([r (make-object region% dc)])
+					     (send r set-rectangle 100 -25 10 400) r))])
+			    (case clip
+			      [(none) (void)]
+			      [(rect) (send dc set-clipping-rect 100 -25 10 400)]
+			      [(poly) (send dc set-clipping-region (mk-poly))]
+			      [(circle) (send dc set-clipping-region (mk-circle))]
+			      [(rect+poly) (let ([r (mk-poly)])
+					     (send r union (mk-rect))
+						(send dc set-clipping-region r))]
+			      [(rect+circle) (let ([r (mk-circle)])
+					       (send r union (mk-rect))
+						  (send dc set-clipping-region r))]
+			      [(poly-rect) (let ([r (mk-poly)])
+					     (send r subtract (mk-rect))
+						(send dc set-clipping-region r))]
+			      [(poly&rect) (let ([r (mk-poly)])
+					     (send r intersect (mk-rect))
+						(send dc set-clipping-region r))]
+			      [(roundrect) (let ([r (make-object region% dc)])
+					     (send r set-rounded-rectangle 80 200 125 40 -0.25)
+					     (send dc set-clipping-region r))]
+			      [(polka) 
+			       (let ([c (send dc get-background)])
+				 (send dc set-background (send the-color-database find-color "PURPLE"))
+				 (send dc clear)
+				 (send dc set-background c))
+			       (let ([r (make-object region% dc)]
+				     [w 30]
+				     [s 10])
+				 (let xloop ([x 0])
+				   (if (> x 300)
+				       (send dc set-clipping-region r)
+				       (let yloop ([y 0])
+					 (if (> y 500)
+					     (xloop (+ x w s))
+					     (let ([r2 (make-object region% dc)])
+					       (send r2 set-ellipse x y w w)
+					       (send r union r2)
+					       (yloop (+ y w s))))))))
+			       (send dc clear)])))
 		      
 		      ; check default pen/brush:
 		      (send dc draw-rectangle 0 0 5 5)
@@ -484,19 +521,22 @@
 		      
 		      (draw-series dc pen2s pen2t "2 x 2" 135 0 2 #t)
 
-		      (let ([r (send dc get-clipping-region)])
-			(if (eq? clip 'none)
-			    (when r
-			      (error 'draw-test "shouldn't have been a clipping region"))
-			    (let*-values ([(x y w h) (send r get-bounding-box)]
-					  [(l) (list x y w h)])
-			      (unless (equal? l
-					      (case clip
-						[(rect) '(100. -25. 10. 400.)]
-						[(poly circle poly-rect) '(0. 60. 180. 180.)]
-						[(rect+poly rect+circle) '(0. -25. 180. 400.)]
-						[(poly&rect) '(100. 60. 10. 180.)]))
-				(error 'draw-test "clipping region changed badly: ~a" l)))))
+		      (unless clock-clip?
+			(let ([r (send dc get-clipping-region)])
+			  (if (eq? clip 'none)
+			      (when r
+				(error 'draw-test "shouldn't have been a clipping region"))
+			      (let*-values ([(x y w h) (send r get-bounding-box)]
+					    [(l) (list x y w h)])
+				(unless (equal? l
+						(case clip
+						  [(rect) '(100. -25. 10. 400.)]
+						  [(poly circle poly-rect) '(0. 60. 180. 180.)]
+						  [(rect+poly rect+circle) '(0. -25. 180. 400.)]
+						  [(poly&rect) '(100. 60. 10. 180.)]
+						  [(roundrect) '(80. 200. 125. 40.)]
+						  [(polka) '(0. 0. 310. 510.)]))
+				  (error 'draw-test "clipping region changed badly: ~a" l))))))
 
 		      (let ([w (box 0)]
 			    [h (box 0)])
@@ -509,6 +549,8 @@
 				   [else (= w (send this get-width)) (= h (send this get-height))])
 			    (error 'x "wrong size reported by get-size: ~a ~a; w & h is ~a ~a" 
 				   w h (send this get-width) (send this get-height)))))
+
+		      (send dc set-clipping-region #f)
 
 		      (send dc end-page)
 		      (send dc end-doc)))
@@ -546,15 +588,36 @@
 			 (send canvas set-stipples (send self get-value))))
 	  set-value #t)
     (make-object choice% "Clip" 
-		 '("None" "Rectangle" "Octagon" "Circle"
+		 '("None" "Rectangle" "Octagon" "Circle" "Round Rectangle"
 		   "Rectangle + Octagon" "Rectangle + Circle" 
-		   "Octagon - Rectangle" "Rectangle & Octagon")
+		   "Octagon - Rectangle" "Rectangle & Octagon" "Polka")
 		 hp3
 		 (lambda (self event)
 		   (set! clip (list-ref
-		               '(none rect poly circle rect+poly rect+circle poly-rect poly&rect)
+		               '(none rect poly circle roundrect rect+poly rect+circle poly-rect poly&rect polka)
 		               (send self get-selection)))
-		   (send canvas on-paint))))
+		   (send canvas on-paint)))
+    (let ([clock (lambda (clip?)
+		   (thread (lambda ()
+			     (set! clock-clip? clip?)
+			     (let loop ([c 0][swapped? #f][start 0.][end 0.])
+			       (if (= c 32)
+				   (if swapped?
+				       (void)
+				       (loop 0 #t 0. 0.))
+				   (begin
+				     (set! clock-start (if swapped? end start))
+				     (set! clock-end (if swapped? start end))
+				     (send canvas on-paint)
+				     (sleep 0.25)
+				     (loop (add1 c) swapped? (+ start (/ pi 8)) (+ end (/ pi 16))))))
+			     (set! clock-clip? #f)
+			     (set! clock-start #f)
+			     (set! clock-end #f)
+			     (send canvas on-paint))))])
+      (make-object button% "Clock" hp3 (lambda (b e) (clock #f)))
+      (make-object button% "Clip Clock" hp3 (lambda (b e) (clock #t)))))
+
   (send f show #t))
 
 ; Canvas, Pixmaps, and Bitmaps:
