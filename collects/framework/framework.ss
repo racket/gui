@@ -151,7 +151,7 @@
     "\\var{symbol} to \\var{value}. This should be called when the"
     "users requests a change to a preference.")
    (preferences:set-default
-    (symbol? any? (any? . -> . any?) . -> . void?)
+    (symbol? any? (any? . -> . any) . -> . void?)
     (symbol value test)
     "This function must be called every time your application starts up, before any call to"
     "@flink preferences:get %"
