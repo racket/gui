@@ -422,6 +422,7 @@
               (send ec min-width 400)
               (send ec min-height 200)
               (send t insert message)
+	      (send t set-position 0)
               (send t auto-wrap #t)
               (send t lock #t)))
         
