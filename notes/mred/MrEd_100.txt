@@ -190,6 +190,8 @@ notes for an average MrEd release).
    few methods, since the old information can be extracted from the
    control.
 
+ * Keyboard navigation (in a frame or dialog) works on all platforms.
+
  * Some methods have been renamed to be either more (accurately)
    descriptive or more consistent with other method names.
 
@@ -229,7 +231,7 @@ notes for an average MrEd release).
    set of methods, anyway).
 
  * American spelling is used everywhere: colour -> color, centre
-   -> center.
+   -> center, grey -> gray.
 
 ======================================================================
 1. Interface/Class Type Hierarchy (Selected Excerpts)
@@ -505,6 +507,7 @@ labelled-menu-item<%>
    enable is-enabled?
 
 shortcut-menu-item<%>
+   command
    get-shortcut set-shortcut
    get-x-shortcut-prefix set-x-shortcut-prefix
 
