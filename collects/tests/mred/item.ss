@@ -1,8 +1,10 @@
 
+(require-library "core.ss")
+
 (define my-txt #f)
 (define my-lb #f)
 
-(define special-font (send wx:the-font-list find-or-create-font
+(define special-font (send the-font-list find-or-create-font
 			   20 'decorative 
 			   'normal 'bold
 			   #f))
@@ -41,7 +43,7 @@
   (define m (make-object message% "focus: ??????????????????????????????" panel))
   (send
    (make-object
-    (class-asi wx:timer%
+    (class-asi timer%
       (inherit start)
       (public
 	[notify
@@ -59,7 +61,7 @@
   (define cm (make-object check-box% "Drop Mouse Events" panel void))
   (define ck (make-object check-box% "Drop Key Events" panel void))
   (lambda (win e)
-    (let ([m? (is-a? e wx:mouse-event%)])
+    (let ([m? (is-a? e mouse-event%)])
       (send m set-label
 	    (format "pre: ~a ~a"
 		    (if m? "mouse" "key")
@@ -74,8 +76,8 @@
 (define (add-cursors frame panel ctls)
   (let ([old #f]
 	[f-old #f]
-	[bc (make-object wx:cursor% 'bullseye)]
-	[cc (make-object wx:cursor% 'cross)])
+	[bc (make-object cursor% 'bullseye)]
+	[cc (make-object cursor% 'cross)])
     (make-object check-box% "Control Bullseye Cursors" panel
 		 (lambda (c e)
 		   (if (send c get-value)
@@ -97,8 +99,8 @@
     (make-object check-box% "Busy Cursor" panel
 		 (lambda (c e)
 		   (if (send c get-value)
-		       (wx:begin-busy-cursor)
-		       (wx:end-busy-cursor))))))
+		       (begin-busy-cursor)
+		       (end-busy-cursor))))))
 		       
 (define OTHER-LABEL "XXXXXXXXXXXXXXXXXXXXXX")
 
@@ -160,7 +162,7 @@
 (define prev-frame #f)
 
 (define bitmap%
-  (class wx:bitmap% args
+  (class bitmap% args
     (inherit ok?)
     (sequence
       (apply super-init args)
@@ -414,15 +416,6 @@
 			    (if null-label? #f "V Ga&uge") ip2
 			    10 '(vertical)))
     
-#|
-    (define cmt (make-object canvas-message% ip2
-			     "Howdy"))
-    
-    (define cmi (make-object mred:canvas-message% ip2
-			     (make-object bitmap% (icons-path "bb.gif")
-					  wx:const-bitmap-type-gif)))
-|#  
-
     (define txt (make-object multi-text% 
 			     (if null-label? #f "T&ext") ip2 void 
 			     "initial & starting"))
@@ -537,7 +530,7 @@
 		  (send menu append-check-set
 			(list "Astros" "Braves" "Cardinals")
 			(lambda (which)
-			  (wx:message-box (format "~s Checked" which)))))
+			  (message-box "Test" (format "~s Checked" which)))))
 	   (sep)
 	   '(set! hockey-ids
 		  (send menu append-check-set
@@ -545,7 +538,7 @@
 			  ("Bruins" . Boston)
 			  ("Capitols" . Washington))
 			(lambda (which)
-			  (wx:message-box (format "~s Checked" which)))))
+			  (message-box "Test" (format "~s Checked" which)))))
 	   
 	   (let ([make-menu
 		  (opt-lambda (title parent help-string)
@@ -611,11 +604,11 @@
 	   (make-object button%
 			(format "Test ~a" name) pnl 
 			(lambda (b e)
-			  (wx:message-box
+			  (message-box
+			   "Checked?"
 			   (if (send id is-checked?)
 			       "yes"
-			       "no")
-			   "Checked?"))))]
+			       "no")))))]
 	[compare
 	 (lambda (expect v kind)
 	   (unless (or (and (string? expect) (string? v)
@@ -706,13 +699,13 @@
 	(make-object button%
 		     "Counts" sbp
 		     (lambda args
-		       (wx:message-box
+		       (message-box
+			"Counts"
 			(format "MB: ~a; T: ~a; A: ~a; B: ~a"
 				(length (send menu-bar get-items))
 				(length (send main-menu get-items))
 				(length (send apple-menu get-items))
-				(length (send banana-menu get-items)))
-			"Counts")))
+				(length (send banana-menu get-items))))))
 
 	'(make-test-button "Aeros" mfbp main-menu (list-ref hockey-ids 0))
 	'(make-test-button "Bruins" mfbp main-menu (list-ref hockey-ids 1))
@@ -786,7 +779,7 @@
 (define (check-callback-event orig got e types silent?)
   (unless (eq? orig got)
     (error "object not the same"))
-  (unless (is-a? e wx:control-event%)
+  (unless (is-a? e control-event%)
     (error "bad event object"))
   (let ([type (send e get-event-type)])
     (unless (memq type types)
@@ -832,7 +825,7 @@
 			   (let ([sema (make-semaphore)])
 			     (send b enable #f)
 			     (thread (lambda () (sleep 0.5) (semaphore-post sema)))
-			     (wx:yield sema)
+			     (yield sema)
 			     (when hit?
 			       (printf "un-oh~n"))
 			     (send b enable #t)))))
@@ -858,7 +851,7 @@
 			  "Simulation Toggle" p
 			  (lambda (t e)
 			    (let ([on? (send cb get-value)]
-				  [e (make-object wx:control-event% 'check-box)])
+				  [e (make-object control-event% 'check-box)])
 			      (send cb set-value (not on?))
 			      (send cb command e)))))
   (define c (make-object button%
@@ -893,7 +886,7 @@
   (define rbls (list rb1-l rb2-l rb3-l))
   (define normal-sel (lambda (rb p) (send rb set-selection p)))
   (define simulate-sel (lambda (rb p)
-			 (let ([e (make-object wx:control-event% 'radio-box)])
+			 (let ([e (make-object control-event% 'radio-box)])
 			   (send rb set-selection p)
 			   (send rb command e))))
 
@@ -943,11 +936,11 @@
 		(list null null null))))
   (define commands 
     (if list?
-	(list wx:const-event-type-listbox-command)
-	(list wx:const-event-type-choice-command)))
+	(list 'list-box 'list-box-dclick)
+	(list 'choice)))
   (define old-list null)
-  (define multi? (or (= list-style wx:const-multiple)
-		     (= list-style wx:const-extended)))
+  (define multi? (or (memq 'multiple list-style)
+		     (memq 'extended list-style)))
   (define callback
     (lambda (cx e)
       (when (zero? (send c get-number))
@@ -1117,7 +1110,7 @@
 				  " by Name"
 				  #f))
   (define dummy-3 (make-selectors (lambda (p)
-				    (let ([e (make-object wx:command-event%
+				    (let ([e (make-object command-event%
 							  (if list?
 							      wx:const-event-type-listbox-command
 							      wx:const-event-type-choice-command))])
@@ -1179,7 +1172,7 @@
   (define f (make-object mred:frame% null "Slider Test"))
   (define p (make-object mred:vertical-panel% f))
   (define old-list null)
-  (define commands (list wx:const-event-type-slider-command))
+  (define commands (list 'slider))
   (define s (make-object mred:slider% p
 			 (lambda (sl e)
 			   (unless (= (send s get-value) (send e get-selection))
@@ -1196,7 +1189,7 @@
 			   (printf "All Ok~n"))
 			 "Check"))
   (define (simulate v)
-    (let ([e (make-object wx:command-event% wx:const-event-type-slider-command)])
+    (let ([e (make-object command-event% 'slider)])
       (send e set-command-int v)
       (send e set-event-object s)
       (send s command e)))
@@ -1368,7 +1361,7 @@
   (make-object vertical-panel% clockp) ; filler
   (let ([time (make-object message% "XX:XX:XX" clockp)])
     (make-object
-     (class wx:timer% ()
+     (class timer% ()
 	    (inherit start)
 	    (public
 	     [notify
@@ -1515,7 +1508,3 @@
 (make-selector-and-runner mp1 mp2 #f "Medium" med-frame)
 
 (send selector show #t)
-
-; (define e (make-object wx:key-event% wx:const-event-type-char))
-; (send e set-key-code 65)
-; (send e set-shift-down #t)
