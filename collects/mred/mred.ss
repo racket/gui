@@ -5938,11 +5938,18 @@
   (define user-custodian (make-custodian))
   
   (define user-output-port
-    (let ([lock (make-semaphore 1)])
+    (let ([leftover #""]
+	  [cvt (bytes-open-converter "UTF-8-permissive" "UTF-8")])
       (make-custom-output-port
        #f      ; always ready for a non-blocking write
        (lambda (s start end flush?) 
-	 (queue-output (lambda () (send repl-buffer output (substring s start end))))
+	 (queue-output (lambda () 
+			 ;; s might end in the middle of a UTF-8 encoding.
+			 ;;  Get a complete prefix, and save the rest.
+			 (let ([s (bytes-append leftover (subbytes s start end))])
+			   (let-values ([(res used status) (bytes-convert cvt s)])
+			     (send repl-buffer output (bytes->string/utf-8 res))
+			     (set! leftover (subbytes s used))))))
 	 (- end start))
        void    ; no flush action
        void))) ; no close action
@@ -6402,14 +6409,14 @@
 (define last-visted-directory #f)
 
 (define (files->list s)
-  (let ([s (open-input-string s)])
+  (let ([s (open-input-bytes s)])
     (let loop ()
       (let ([n (read s)])
 	(if (eof-object? n)
 	    null
 	    (begin
-	      (read-char s) ; drop space
-	      (cons (read-string n s)
+	      (read-byte s) ; drop space
+	      (cons (read-bytes n s)
 		    (loop))))))))
 
 (define (mk-file-selector who put? multi? dir? force-unix?)
@@ -6420,7 +6427,7 @@
 
     (check-label-string/false who message)
     (check-top-level-parent/false who parent)
-    (check-string/false who directory) (check-string/false who filename) (check-string/false who extension)
+    (check-path/false who directory) (check-path/false who filename) (check-string/false who extension)
     (check-style who #f (cond
 			 [put? null]
 			 [dir? '(enter-packages)]
@@ -6451,18 +6458,22 @@
 				   ;; parent:
 				   (and parent (mred->wx parent)))])
 	  (if (and multi? s)
-	      (files->list s)
+	      (map bytes->path (files->list (path->bytes s)))
 	      s))
 	(letrec ([ok? #f]
 		 [typed-name #f]
-		 [dir (or directory last-visted-directory (current-directory))]
+		 [dir (or (and directory (if (string? directory)
+					     (string->path directory)
+					     directory))
+			  last-visted-directory 
+			  (current-directory))]
 		 [f (make-object dialog% (if dir? "Select Directory" (if put? "Save" "Open")) parent 500 300)]
 		 [__ (when message
 		       (let ([p (make-object vertical-pane% f)])
 			 (send p stretchable-height #f)
 			 (make-object message% (protect& message) p)))]
                  [dir-pane (instantiate horizontal-pane% (f) (stretchable-height #f))]
-		 [m (make-object message% (protect& dir) dir-pane)]
+		 [m (make-object message% (protect& (path->string dir)) dir-pane)]
                  [lp (make-object horizontal-pane% f)]
                  [change-dir (lambda (d) (let ([sd (send d get-string-selection)])
                                            (set! dir (simplify-path (build-path dir sd)))
@@ -6485,11 +6496,13 @@
                                       (update-ok)
                                       (when (eq? (send e get-event-type) 'list-box-dclick)
                                         (change-dir d))))]
+		 [dir-paths null]
 		 [files (make-object list-box% #f null lp (lambda (d e)
 							    (update-ok)
 							    (when (eq? (send e get-event-type) 'list-box-dclick)
 							      (done)))
 				     (if multi? '(multiple) '(single)))]
+		 [file-paths null]
 		 [do-text-name (lambda ()
 				 (let ([v (send dir-text get-value)])
 				   (if (or dir? (directory-exists? v))
@@ -6515,7 +6528,7 @@
 					       (set! typed-name file)
 					       (done))
 					     (begin
-					       (set! dir v)
+					       (set! dir (string->path v))
 					       (reset-directory)))))))]
 		 [dir-text (make-object text-field% #f f (lambda (t e)
 							   (if (eq? (send e get-event-type) 'text-field-enter)
@@ -6558,33 +6571,40 @@
 						    (lambda (b e)
 						      (send f show #f)
 						      (done))))]
+		 [path-string-locale<? (lambda (p)
+					 (string-locale<? (path->string p)))]
 		 [reset-directory (lambda ()
 				    (wx:begin-busy-cursor)
                                     (let ([dir-exists? (directory-exists? dir)])
-                                      (send m set-label (if dir-exists?
-                                                            (begin
-                                                              (unless directory
-                                                                (set! last-visted-directory dir))
-                                                              (protect& dir))
-                                                            (string-append "BAD DIRECTORY: " dir)))
+                                      (send m set-label (protect&
+							 (if dir-exists?
+							     (begin
+							       (unless directory
+								 (set! last-visted-directory dir))
+                                                               (path->string dir))
+							     (string-append "BAD DIRECTORY: " (path->string dir)))))
                                       (when select-this-dir
                                         (send select-this-dir enable dir-exists?))
 				      (when create-button
 					(send create-button enable (not dir-exists?))))
-				    (send dir-text set-value dir)
+				    (send dir-text set-value (path->string dir))
 				    (let ([l (with-handlers ([void (lambda (x) null)])
 					       (directory-list dir))]
 					  [dot? (send dot-check get-value)])
 				      (let-values ([(ds fs)
 						    (let loop ([l l][ds null][fs null])
 						      (cond
-						       [(null? l) (values (cons ".." (quicksort ds string-locale<?)) 
-									  (quicksort fs string-locale<?))]
-						       [(and (not dot?) (char=? (string-ref (car l) 0) #\.)) (loop (cdr l) ds fs)]
+						       [(null? l) (values (cons ".." (quicksort ds path-string-locale<?)) 
+									  (quicksort fs path-string-locale<?))]
+						       [(and (not dot?) 
+							     (char=? (string-ref (path->string (car l)) 0) #\.)) 
+							(loop (cdr l) ds fs)]
 						       [(file-exists? (build-path dir (car l))) (loop (cdr l) ds (cons (car l) fs))]
 						       [else (loop (cdr l) (cons (car l) ds) fs)]))])
-					(send dirs set ds)
-					(send files set fs)
+					(set! dir-paths ds)
+					(send dirs set (map path->string ds))
+					(set! file-paths ds)
+					(send files set (map path->string fs))
 					(send dirs enable #t)
 					(unless dir?
 					  (send files enable #t))
@@ -6596,13 +6616,16 @@
                                      (let ([mk (lambda (f) (simplify-path (build-path dir f)))])
                                        (let ([l (map mk (if typed-name
                                                             (list typed-name)
-                                                            (map (lambda (p) (send (if dir? dirs files) get-string p))
+                                                            (map (lambda (p) (list-ref (if dir? dir-paths file-paths) p))
                                                                  (send (if dir? dirs files) get-selections))))])
                                          (if multi? l (car l))))))]
 		 [done (lambda ()
 			 (let ([name (get-filename)])
                            (unless (and put? (file-exists? name)
-                                        (eq? (message-box "Warning" (format "Replace ~s?" name) f '(yes-no)) 'no)
+                                        (eq? (message-box "Warning" 
+							  (format "Replace ~s?" (path->string name) )
+							  f '(yes-no)) 
+					     'no)
                                         (set! typed-name #f))
 			     (set! ok? #t)
 			     (send f show #f))))])
@@ -6610,8 +6633,10 @@
 	  (send m stretchable-width #t)
 	  (reset-directory)
 	  (when filename
+	    (when (string? filename)
+	      (set! filename (string->path filename)))
 	    (let ([d (send dir-text get-value)])
-	      (send dir-text set-value (build-path d filename))
+	      (send dir-text set-value (path->string (build-path d filename)))
 	      (set! typed-name filename)
 	      (send ok-button enable #t)))
 	  (when put?
@@ -6746,15 +6771,19 @@
 	     [p (make-object horizontal-pane% f)]
 	     [face (make-object list-box% #f
 				(let ([l (wx:get-face-list)]
-				      [re:ugly-start #rx"^[^a-zA-Z0-9\200-\377]"])
+				      [ugly? (lambda (a)
+					       (and (positive? (string-length a))
+						    (not (or (char-alphabetic? (string-ref a 0))
+							     (char-numeric? (string-ref a 0))
+							     (char=? #\- (string-ref a))))))])
 				  ;; Sort space-starting first (for Xft), and
 				  ;;  otherwise push names that start with an
-				  ;;  ASCII non-letterdigit to the end
+				  ;;  ASCII non-letter/digit/hyphen to the end
 				  (quicksort l (lambda (a b)
 						 (let ([a-sp? (char=? #\space (string-ref a 0))]
 						       [b-sp? (char=? #\space (string-ref b 0))]
-						       [a-ugly? (and (regexp-match re:ugly-start a) #t)]
-						       [b-ugly? (and (regexp-match re:ugly-start b) #t)])
+						       [a-ugly? (ugly? a)]
+						       [b-ugly? (ugly? b)])
 						   (cond
 						    [(eq? a-sp? b-sp?)
 						     (cond
@@ -7121,7 +7150,7 @@
 
 (define (label-string? s)
   (and (string? s) 
-       (let ([l (string-unicode-length s)])
+       (let ([l (string-length s)])
 	 (and l
 	      (<= 0 l 200)))))
 
@@ -7132,6 +7161,10 @@
 (define (check-string/false who str)
   (unless (or (not str) (string? str))
     (raise-type-error (who->name who) "string or #f" str)))
+
+(define (check-path/false who str)
+  (unless (or (not str) (path-string? str))
+    (raise-type-error (who->name who) "path, string, or #f" str)))
 
 (define (check-string who str)
   (unless (string? str)
@@ -7476,7 +7509,7 @@
 			  (set! next? #t)
 			  (let ([c (min (send-generic snip get-count-generic) (- end snip-start))])
 			    (display (send-generic snip get-text-generic 0 c) pipe-w)
-			    (read-string-avail!* to-str pipe-r))]
+			    (read-bytes-avail!* to-str pipe-r))]
 			 [else
 			  (set! next? #f)
 			  0]))
@@ -7524,7 +7557,7 @@
 	       [port (make-custom-input-port 
 		      (lambda (s)
 			(if (char-ready? pipe-r)
-			    (read-string-avail!* s pipe-r)
+			    (read-bytes-avail!* s pipe-r)
 			    (parameterize ([break-enabled #f])
 			      (if (semaphore-try-wait? lock-semaphore)
 				  ;; If there's an error here, the
@@ -7552,10 +7585,8 @@
    [(text) (open-input-text-editor text 0 'end)]))
 
 (define (text-editor-load-handler filename expected-module)
-  (unless (and (string? filename)
-	       (or (relative-path? filename)
-		   (absolute-path? filename)))
-    (raise-type-error 'text-editor-load-handler "path string" filename))
+  (unless (path? filename)
+    (raise-type-error 'text-editor-load-handler "path" filename))
   (let-values ([(in-port src) (build-input-port filename)])
     (dynamic-wind
 	(lambda () (void))
@@ -7592,7 +7623,7 @@
   (let ([p (open-input-file filename)])
     (port-count-lines! p)
     (let ([p (cond
-	      [(regexp-match-peek #rx"^WXME01[0-9][0-9] ## " p)
+	      [(regexp-match-peek #rx#"^WXME01[0-9][0-9] ## " p)
 	       (let ([t (make-object text%)])
 		 (send t insert-file p 'standard)
 		 (close-input-port p)
@@ -7707,10 +7738,10 @@
 	   editor-snip-editor-admin<%>
 	   editor-stream-in%
 	   editor-stream-in-base%
-	   editor-stream-in-string-base%
+	   editor-stream-in-bytes-base%
 	   editor-stream-out%
 	   editor-stream-out-base%
-	   editor-stream-out-string-base%
+	   editor-stream-out-bytes-base%
 	   editor-wordbreak-map%
 	   mouse-event%
 	   mult-color<%>

@@ -609,7 +609,6 @@
   (define-function end-busy-cursor)
   (define-function is-busy?)
   (define-function begin-busy-cursor)
-  (define-function make-meta-file-placeable)
   (define-function get-display-depth)
   (define-function is-color-display?)
   (define-function file-selector)
@@ -767,7 +766,6 @@
     write-to-file
     read-from-file
     get-character
-    get-unicode
     get-text
     get-snip-position
     get-snip-position-and-location
@@ -905,8 +903,8 @@
     bad?
     seek
     tell)
-  (define-class editor-stream-in-string-base% editor-stream-in-base% #f)
-  (define-class editor-stream-out-string-base% editor-stream-out-base% #f
+  (define-class editor-stream-in-bytes-base% editor-stream-in-base% #f)
+  (define-class editor-stream-out-bytes-base% editor-stream-out-base% #f
     get-string)
   (define-class editor-stream-in% object% #f
     ok?
@@ -915,17 +913,15 @@
     skip
     remove-boundary
     set-boundary
-    >>
     get-inexact
     get-exact
     get-fixed
-    get-string
+    get-bytes
     get)
   (define-class editor-stream-out% object% #f
     ok?
     jump-to
     tell
-    <<
     put-fixed
     put)
   (define-class timer% object% ()
@@ -937,8 +933,8 @@
     get-clipboard-bitmap
     set-clipboard-bitmap
     get-clipboard-data
-    get-clipboard-string
-    set-clipboard-string
+    get-clipboard-bytes
+    set-clipboard-bytes
     set-clipboard-client)
   (define-function get-the-clipboard)
   (define-class clipboard-client% object% ()
@@ -1156,6 +1152,7 @@
     on-event
     size-cache-invalid
     copy
+    get-text!
     get-text
     merge-with
     split
@@ -1193,6 +1190,7 @@
     on-event
     size-cache-invalid
     copy
+    get-text!
     get-text
     merge-with
     split
@@ -1217,6 +1215,7 @@
     on-event
     size-cache-invalid
     copy
+    get-text!
     get-text
     merge-with
     split
@@ -1248,6 +1247,7 @@
     on-event
     size-cache-invalid
     copy
+    get-text!
     get-text
     merge-with
     split
@@ -1290,6 +1290,7 @@
     on-event
     size-cache-invalid
     copy
+    get-text!
     get-text
     merge-with
     split
