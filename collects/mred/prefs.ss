@@ -286,7 +286,7 @@
 			(lambda (x) (eq? x 'std)))
 
 	    ;; sleep is not effecient, so we wait for the next release to turn this on.
-	    '(make-check 'mred:status-line "Show clock?" id id)
+	    (make-check 'mred:show-status-line "Show status-line?" id id)
 
 	    (make-check 'mred:verify-exit "Verify exit?" id id)
 	    (make-check 'mred:verify-change-format "Ask before changing save format?" id id)

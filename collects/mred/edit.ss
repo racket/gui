@@ -624,11 +624,25 @@
 		  [super-on-edit-sequence on-edit-sequence]
 		  [super-after-insert after-insert]
 		  [super-after-delete after-delete]
-		  [super-lock lock])
+		  [super-lock lock]
+		  [super-set-overwrite-mode set-overwrite-mode]
+		  [super-set-anchor set-anchor])
 	  (private
 	    [edit-sequence-depth 0]
 	    [position-needs-updating #f]
 	    [lock-needs-updating #f]
+	    [anchor-needs-updating #f]
+	    [overwrite-needs-updating #f]
+	    [maybe-update-anchor
+	     (lambda ()
+	       (if (= edit-sequence-depth 0)
+		   (send (get-frame) anchor-status-changed)
+		   (set! anchor-needs-updating #t)))]
+	    [maybe-update-overwrite
+	     (lambda ()
+	       (if (= edit-sequence-depth 0)
+		   (send (get-frame) overwrite-status-changed)
+		   (set! overwrite-needs-updating #t)))]
 	    [maybe-update-lock-icon
 	     (lambda ()
 	       (if (= edit-sequence-depth 0)
@@ -644,6 +658,14 @@
 	       (send (get-frame) edit-position-changed))])
 			       
 	  (public
+	    [set-anchor
+	     (lambda (x)
+	       (super-set-anchor x)
+	       (maybe-update-anchor))]
+	    [set-overwrite-mode
+	     (lambda (x)
+	       (super-set-overwrite-mode x)
+	       (maybe-update-overwrite))]
 	    [lock
 	     (lambda (x)
 	       (super-lock x)
@@ -664,6 +686,12 @@
 	     (lambda ()
 	       (set! edit-sequence-depth (sub1 edit-sequence-depth))
 	       (when (= 0 edit-sequence-depth)
+		 (when anchor-needs-updating
+		   (set! anchor-needs-updating #f)
+		   (send (get-frame) overwrite-status-changed))
+		 (when lock-needs-updating
+		   (set! lock-needs-updating #f)
+		   (send (get-frame) anchor-status-changed))
 		 (when position-needs-updating
 		   (set! position-needs-updating #f)
 		   (update-position-edit))
