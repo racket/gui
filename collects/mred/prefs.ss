@@ -157,7 +157,11 @@
 	      'replace)	  
 	  (mred:debug:printf 'prefs "saved user preferences"))))
     
-    (mred:exit:insert-exit-callback save-user-preferences)
+    (mred:exit:insert-exit-callback 
+     (lambda ()
+       (with-handlers ((void (lambda (exn)
+			       (wx:message-box (exn-message exn)))))
+	 (save-user-preferences))))
 
     (define read-user-preferences 
       (let ([parse-pref
