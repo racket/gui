@@ -5995,6 +5995,27 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+;; Timers:
+
+(define timer%
+  (class wx:timer%
+    (init [notify-callback void]
+	  [interval #f]
+	  [just-once? #f])
+    
+    (inherit start)
+    
+    (define -notify-callback notify-callback)
+    
+    (define/override (notify) (-notify-callback))
+    
+    (super-make-object)
+
+    (when interval
+      (start interval just-once?))))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 ;; Initialize AFM path:
 (with-handlers ([not-break-exn? void])
   (let ([pss (wx:current-ps-setup)])
@@ -6097,7 +6118,6 @@
 	   style-delta%
 	   style-list%
 	   tab-snip%
-	   timer%
 	   write-editor-global-footer
 	   write-editor-global-header
 	   write-resource
@@ -6194,7 +6214,8 @@
 	the-font-name-directory
 	the-pen-list
 	the-font-list
-	the-style-list)
+	the-style-list
+	timer%)
 
 
 ) ;; end of module
