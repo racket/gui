@@ -271,8 +271,10 @@
 	       [make-insert-brace-pair
 		(lambda (brace-pair-str) ; this string must be two characters long!
 		  (lambda (edit event)
+		    (send edit begin-edit-sequence)
 		    (send edit insert brace-pair-str)
-		    (send edit set-position (max 0 (- (send edit get-start-position) 1)))))]
+		    (send edit set-position (max 0 (- (send edit get-start-position) 1)))
+		    (send edit end-edit-sequence)))]
 
 	       [collapse-variable-space
                 ;; As per emacs: collapse tabs & spaces around the point,
@@ -870,6 +872,8 @@
 	      (add "insert-[]-pair" (make-insert-brace-pair "[]"))
 	      (add "insert-{}-pair" (make-insert-brace-pair "{}"))
 	      (add "insert-\"\"-pair" (make-insert-brace-pair "\"\""))
+	      (add "insert-||-pair" (make-insert-brace-pair "||"))
+	      (add "insert-##-pair" (make-insert-brace-pair "##"))
 	     
 	      (add "toggle-anchor" toggle-anchor)
 	      (add "center-view-on-line" center-view-on-line)
@@ -939,6 +943,8 @@
 	      (map-meta "[" "insert-[]-pair")
 	      (map-meta "{" "insert-{}-pair")
 	      (map-meta "\"" "insert-\"\"-pair")
+	      (map-meta "|" "insert-||-pair")
+	      (map-meta "#" "insert-##-pair")
 	      
 	      (map "c:p" "previous-line")
 	      (map "up" "previous-line")
