@@ -270,23 +270,26 @@
 	     (lambda ()
 	       (send outer-info-panel stretchable-height #f)
 	       info-panel)))])
+      (public
+	[update-memory-text
+	 (lambda ()
+	   (when show-memory-text?
+	     (send memory-text begin-edit-sequence)
+	     (send memory-text erase)
+	     (send memory-text insert (number->string (current-memory-use)))
+	     (send memory-text end-edit-sequence)))])
+	 
       (sequence
         ;; only for CVSers
-        (when (directory-exists? (build-path (collection-path "framework") "CVS"))
+        (when show-memory-text?
           (let* ([panel (make-object horizontal-panel% (get-info-panel) '(border))]
-                 [update-text
-                  (lambda ()
-                    (send memory-text begin-edit-sequence)
-                    (send memory-text erase)
-                    (send memory-text insert (number->string (current-memory-use)))
-                    (send memory-text end-edit-sequence))]
                  [button (make-object button% "Collect" panel 
                            (lambda x
                              (collect-garbage)
-                             (update-text)))]
+                             (update-memory-text)))]
                  [ec (make-object editor-canvas% panel memory-text '(no-hscroll no-vscroll))])
             (determine-width "000000000" ec memory-text)
-            (update-text)
+            (update-memory-text)
 	    (set! memory-cleanup
 		  (lambda ()
 		    (send memory-text remove-canvas ec)
@@ -1355,6 +1358,7 @@
 	(hide-search #t))))
   
   (define memory-text (make-object text%))
+  (define show-memory-text? (directory-exists? (build-path (collection-path "framework") "CVS")))
 
   (define file<%> (interface (-editor<%>)))
   (define file-mixin
