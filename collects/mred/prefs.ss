@@ -233,8 +233,16 @@
 	  (let/ec k
 	    (when (file-exists? preferences-filename)
 	      (let ([err
-		     (lambda (input)
-		       (wx:message-box (format "found bad pref: ~n~a" input)
+		     (lambda (input msg)
+		       (wx:message-box (let* ([max-len 150]
+					      [s1 (format "~s" input)]
+					      [ell "..."]
+					      [s2 (if (<= (string-length s1) max-len)
+						      s1
+						      (string-append (substring s1 0 (- max-len
+											(string-length ell)))
+								     ell))])
+					 (format "found bad pref: ~a~n~a" msg s2))
 				       "Preferences"))])
 		(let loop ([input (with-handlers
 				      ([(lambda (exn) #t)
@@ -249,21 +257,26 @@
 				      'text))])
 		  (cond
 		   [(pair? input)
-		    (let/ec k
-		      (let ([first (car input)])
-			(when (pair? first)
-			  (let ([arg1 (car first)]
-				[t1 (cdr first)])
-			    (when (pair? t1)
-			      (let ([arg2 (car t1)]
-				    [t2 (cdr t1)])
-				(when (null? t2)
-				  (parse-pref arg1 arg2)
-				  (k #t)))))))
-		      (err input))
+		    (let ([err-msg
+			   (let/ec k
+			     (let ([first (car input)])
+			       (unless (pair? first)
+				 (k "expected pair of pair"))
+			       (let ([arg1 (car first)]
+				     [t1 (cdr first)])
+				 (unless (pair? t1)
+				   (k "expected pair of two pairs"))
+				 (let ([arg2 (car t1)]
+				       [t2 (cdr t1)])
+				   (unless (null? t2)
+				     (k "expected null after two pairs"))
+				   (parse-pref arg1 arg2)
+				   (k #f)))))])
+		      (when err-msg
+			(err input err-msg)))
 		    (loop (cdr input))]
 		   [(null? input) (void)]
-		   [else (err input)])))))
+		   [else (err input "expected a pair")])))))
 	  (mred:debug:printf 'prefs "read user preferences"))))
     
     (define-struct ppanel (title container panel))
