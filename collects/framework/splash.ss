@@ -24,11 +24,8 @@
 	      (no-splash)))]
 
 	 [(splash-width-resource) (format "~a-splash-max-width" title)]
-	 [(splash-depth-resource) (format "~a-splash-max-depth" title)]
 	 [(splash-max-width) (max 1 (splash-get-resource splash-width-resource width-default))]
-	 [(splash-max-depth) (splash-get-resource splash-depth-resource depth-default)]
 	 
-	 [(splash-sofar-depth) 0]
 	 [(splash-current-width) 0]
 
 	 [(splitup-path)
@@ -81,38 +78,17 @@
 		(send (get-dc) draw-bitmap bitmap 0 0))])
 	    (sequence
 	      (apply super-init args)))]
-	 [(show-messages?) (let ([b (box 0)])
-			     (if (get-resource "mred" "splashMessages" b)
-				 (not (zero? (unbox b)))
-				 #f))]
 	 [(panel) (make-object vertical-pane% frame)]
 	 [(logo-canvas) (make-object splash-canvas% panel)]
-	 [(h-panel) (make-object (if show-messages? horizontal-pane% vertical-pane%)
-		      panel)]
+	 [(h-panel) (make-object vertical-pane% panel)]
 	 [(gauge) (make-object gauge% #f splash-max-width h-panel
-			       (if show-messages?
-				   '(vertical)
-				   '(horizontal)))]
-	 [(v-panel) (make-object vertical-pane% h-panel)]
+			       '(horizontal))]
 	 [(spacer) (make-object grow-box-spacer-pane% h-panel)]
-	 [(splash-messages)
-	  (and show-messages?
-	       (let ([msgs
-		      (let loop ([n (max 1 splash-max-depth)])
-			(cond
-			  [(zero? n) null]
-			  [else (cons (let ([msg (make-object message% "" v-panel)])
-					(send msg stretchable-width #t)
-					msg)
-				      (loop (sub1 n)))]))])
-		 (send (car msgs) set-label (format "Welcome to ~a" title))
-		 msgs))]
 	 [(_3) (begin
 		(send frame set-alignment 'center 'center)
-		(send panel stretchable-width show-messages?)
+		(send panel stretchable-width #f)
 		(send panel stretchable-height #f)
 		(send h-panel set-alignment 'center 'top)
-		(send v-panel set-alignment 'left 'center)
 		(send logo-canvas min-width (send bitmap get-width))
 		(send logo-canvas min-height (send bitmap get-height))
 		(send logo-canvas stretchable-width #f)
@@ -121,27 +97,6 @@
 		(send frame show #t)
 		(flush-display) (yield) (sleep)
 		(flush-display) (yield) (sleep))]
-	 [(change-splash-message)
-	  (letrec ([change-splash-message
-		    (case-lambda 
-		     [(s) (change-splash-message s 0 #f)]
-		     [(s depth clear-after)
-		      (if splash-messages
-			  (unless (null? splash-messages)
-			    (if (< depth splash-max-depth)
-				(begin '(printf "setting depth ~a (of ~a) to ~s~n" depth splash-max-depth s)
-				       (send (list-ref splash-messages depth) set-label s)
-				       (when (and clear-after
-						  (< (+ depth 1) splash-max-depth))
-					 (let ([next-message (list-ref splash-messages (+ depth 1))])
-					   (unless (string=? "" (send next-message get-label))
-					     '(printf "clearing depth ~a (of ~a)~n"
-						      (+ depth 1) current-splash-max-depth)
-					     (send next-message set-label ""))))
-				       #t)
-				#f))
-			  #t)])])
-	    change-splash-message)]
 	 [(splash-load-handler)
 	  (let ([depth 0])
 	    (lambda (old-load f)
@@ -150,11 +105,9 @@
 		(dynamic-wind
 		 (lambda () (void))
 		 (lambda ()
-		   (set! splash-sofar-depth (max (+ depth 1) splash-sofar-depth))
 		   (set! splash-current-width (+ splash-current-width 1))
-		   (when (change-splash-message (format "Loading ~a..." finalf) depth #f)
-		     (when (<= splash-current-width splash-max-width)
-		       (send gauge set-value splash-current-width)))
+		   (when (<= splash-current-width splash-max-width)
+		     (send gauge set-value splash-current-width))
 		   (set! depth (+ depth 1))
 		   (begin0 (old-load f)
 			   (set! error? #f)))
@@ -162,8 +115,7 @@
 		   (if error?
 		       (shutdown-splash)
 		       (begin (set! depth (- depth 1))
-			      (change-splash-message (format "Loading ~a...done." finalf)
-						     depth #t))))))))]
+			      #t)))))))]
 	 [(_4) (current-load
 	       (let ([old-load (current-load)])
 		 (lambda (f)
@@ -172,14 +124,11 @@
 	  (lambda ()
 	    (set! splash-load-handler (lambda (old-load f) (old-load f)))
 	    (unless (= splash-max-width splash-current-width)
-	      (set-resource splash-width-resource (max 1 splash-current-width)))
-	    (unless (= splash-max-depth splash-sofar-depth)
-	      (set-resource splash-depth-resource splash-sofar-depth)))]
+	      (set-resource splash-width-resource (max 1 splash-current-width))))]
 	 [(close-splash)
 	  (lambda ()
 	    (set! quit-on-close? #f)
 	    (send frame show #f))])
       (values
-       change-splash-message
        shutdown-splash
        close-splash))))
