@@ -74,11 +74,6 @@ signal failures when there aren't any.
   | make sure that mred:the-frame-group records frames correctly.
   | fake user input expected.
 
-- parenthesis toolkit: |# paren-test.ss #|
-
-  | Test to be sure that parenthesis matching engine works
-  | No fake user input expected.
-
 - scheme mode |# scheme.ss #|
 
   | Make sure that Scheme things work in scheme mode.
