@@ -64,22 +64,7 @@
 	  
 	  (semaphore-post monitor-sema)))))]))
 
-(define (entry-point f)
-  (lambda () (as-entry f)))
-(define (entry-point-1 f)
-  (lambda (x) (as-entry (lambda () (f x)))))
-(define (entry-point-2 f)
-  (lambda (x y) (as-entry (lambda () (f x y)))))
-(define (entry-point-3 f)
-  (lambda (x y z) (as-entry (lambda () (f x y z)))))
-(define (entry-point-0-1 f)
-  (case-lambda
-   [() (as-entry f)]
-   [(x) (as-entry (lambda () (f x)))]))
-(define (entry-point-1-2 f)
-  (case-lambda
-   [(x) (as-entry (lambda () (f x)))]
-   [(x y) (as-entry (lambda () (f x y)))]))
+; entry-point macros in macros.ss
 
 (define (as-exit f)
   ; (unless (eq? monitor-owner (current-thread)) (error 'monitor-exit "not in monitored area"))
@@ -161,6 +146,9 @@
 (define top-y 1)
 
 (define top-level-windows (make-hash-table-weak))
+
+(define (key-regexp c)
+  (regexp (format "(^|[^&])&[~a~a]" (char-downcase c) (char-upcase c))))
 
 ;;;;;;;;;;;;;;; Focus-tabbing helpers ;;;;;;;;;;;;;;;;;;;;
 
@@ -706,7 +694,12 @@
 				     (when o
 				       (if (is-a? o wx:radio-box%)
 					   (send o button-focus (if forward? 0 (sub1 (send o number))))
-					   (send o set-focus)))))])
+					   (begin
+					     (send o set-focus)
+					     (when (and (is-a? o wx-text-editor-canvas%)
+							(send o is-single-line?))
+					       (let ([e (send o get-editor)])
+						 (send e set-position 0 (send e last-position) #f #t 'local))))))))])
 			   (if (is-a? o wx:radio-box%)
 			       (let ([n (send o number)]
 				     [s (send o button-focus -1)]
@@ -738,7 +731,7 @@
 				  #f
 				  ;; Move selection/hit control based on & shortcuts
 				  (let* ([objs (container->children panel #f)]
-					 [re (regexp (format "(^|[^&])&~a" code))])
+					 [re (key-regexp code)])
 				    (ormap
 				     (lambda (o)
 				       (let* ([win (wx->proxy o)]
@@ -1432,6 +1425,7 @@
 	   [else (not meta?)]))])
     (public
       [set-single-line (lambda () (set! single-line-canvas? #t))]
+      [is-single-line? (lambda () single-line-canvas?)]
       [set-line-count (lambda (n)
 			(if n
 			    (begin
@@ -3218,6 +3212,7 @@
 
 (define canvas%
   (class basic-canvas% (parent [style null])
+    (inherit get-client-size)
     (sequence 
       (check-container-parent 'canvas parent)
       (check-style '(constructor canvas) #f '(border hscroll vscroll) style))
@@ -3236,24 +3231,44 @@
 				   (lambda (x y) (send wx view-start x y)))))]
 
       [scroll (entry-point-2 (lambda (x y) 
-			       (check-dimension '(method canvas% scroll) x)
-			       (check-dimension '(method canvas% scroll) y)
+			       (when x (check-fraction '(method canvas% scroll) x))
+			       (when y (check-fraction '(method canvas% scroll) y))
 			       (send wx scroll (or x -1) (or y -1))))]
 
-      [set-scrollbars (letrec ([set-scrollbars
-				(case-lambda 
-				 [(h-pixels v-pixels x-len y-len x-page y-page x-val y-val)
-				  (set-scrollbars h-pixels v-pixels x-len y-len x-page y-page x-val y-val #t)]
-				 [(h-pixels v-pixels x-len y-len x-page y-page x-val y-val man?)
-				  (as-entry
-				   (lambda ()
-				     (let ([rc (lambda (x)
-						 (when x (check-gauge-integer '(method canvas% set-scrollbars) x)))])
-				       (rc h-pixels)
-				       (rc v-pixels)
-				       (send wx set-scrollbars (or h-pixels 0) (or v-pixels 0)
-					     x-len y-len x-page y-page x-val y-val man?))))])])
-			set-scrollbars)]
+      [init-auto-scrollbars
+       (lambda (w h x y)
+	 (when w (check-gauge-integer '(method canvas% init-auto-scrollbars) w))
+	 (when h (check-gauge-integer '(method canvas% init-auto-scrollbars) h))
+	 (check-fraction '(method canvas% init-auto-scrollbars) x)
+	 (check-fraction '(method canvas% init-auto-scrollbars) y)
+	 (let-values ([(cw ch) (get-client-size)])
+	   (send wx set-scrollbars (if w 1 0) (if h 1 0)
+		 (or w 0) (or h 0) 1 1
+		 (if w (inexact->exact (floor (* x (max 0 (- w cw))))) 0)
+		 (if h (inexact->exact (floor (* y (max 0 (- h ch))))) 0)
+		 #t)))]
+	 
+      [init-manual-scrollbars 
+       (lambda (x-len y-len x-page y-page x-val y-val)
+	 (let ([who '(method canvas% init-auto-scrollbars)])
+	   (when x-len (check-range-integer who x-len))
+	   (when y-len (check-range-integer who y-len))
+	   (check-gauge-integer who x-page)
+	   (check-gauge-integer who y-page)
+	   (check-range-integer who x-val)
+	   (check-range-integer who y-val)
+	   (when (and x-len (< x-len x-val))
+	     (raise-mismatch-error (who->name who)
+				   (format "horizontal value: ~e larger than the horizontal range: "
+					   x-val)
+				   x-len))
+	   (when (and y-len (< y-len y-val))
+	     (raise-mismatch-error (who->name who)
+				   (format "vertical value: ~e larger than the vertical range: "
+					   y-val)
+				   y-len)))
+	 (send wx set-scrollbars (if x-len 1 0) (if y-len 1 0)
+	       (or x-len 0) (or y-len 0) x-page y-page x-val y-val #f))]
 
       [get-scroll-pos (entry-point-1 (lambda (d) (send wx get-scroll-pos d)))]
       [set-scroll-pos (entry-point-2 (lambda (d v) (send wx set-scroll-pos d v)))]
@@ -3406,7 +3421,7 @@
     (raise-mismatch-error (constructor-name 'menu-bar) "the specified frame already has a menu bar: " p)))
 
 (define wx-menu-item%
-  (class* wx:menu-item% (wx<%>) (mred)
+  (class* wx:menu-item% (wx<%>) (mred menu-data)
     (private 
       [keymap #f])
     (public
@@ -3415,7 +3430,8 @@
       [swap-keymap (lambda (parent k) 
 		     (send (mred->wx parent) swap-item-keymap keymap k) 
 		     (set-keymap k))]
-      [get-mred (lambda () mred)])
+      [get-mred (lambda () mred)]
+      [get-menu-data (lambda () menu-data)])  ; for meta-shortcuts
     (sequence
       (super-init))))
 
@@ -3430,7 +3446,28 @@
       [disabled? #f]
       [keymap (make-object wx:keymap%)])
     (public
-      [handle-key (lambda (event) (as-exit (lambda () (send keymap handle-key-event this event))))]
+      [handle-key (lambda (event) 
+		    (as-exit 
+		     (lambda () 
+		       (or (send keymap handle-key-event this event)
+			   (and (wx:shortcut-visible-in-label? #t)
+				(send event get-meta-down)
+				(char? (send event get-key-code))
+				(let ([c (send event get-key-code)])
+				  (and (or (char-alphabetic? c)
+					   (char-numeric? c))
+				       (let ([re (key-regexp c)])
+					 (ormap
+					  (lambda (i)
+					    (let* ([data (send (mred->wx i) get-menu-data)]
+						   [label (car data)]
+						   [menu (cdr data)])
+					      (if (regexp-match re label)
+						  (begin
+						    (send menu select)
+						    #t)
+						  #f)))
+					  items)))))))))]
       [get-mred (lambda () mred)]
       [get-items (lambda () items)]
       [append-item (lambda (item menu title)
@@ -3554,7 +3591,7 @@
     (sequence
       (as-entry
        (lambda ()
-	 (set! wx (make-object wx-menu-item% this))
+	 (set! wx (make-object wx-menu-item% this #f))
 	 (set! wx-parent (mred->wx parent))
 	 (super-init wx)))
       (restore))))
@@ -3583,6 +3620,7 @@
 		  (lambda (l)
 		    (check-string '(method labelled-menu-item<%> set-label) l)
 		    (set! label l)
+		    (set-car! (send wx get-menu-data) l)  ; for meta-shortcuts
 		    (set! plain-label (wx:label->plain-label l))
 		    (when shown?
 		      (if in-menu?
@@ -3621,7 +3659,7 @@
     (sequence
       (as-entry
        (lambda ()
-	 (set! wx (set-wx (make-object wx-menu-item% this)))
+	 (set! wx (set-wx (make-object wx-menu-item% this (cons label #f))))
 	 (set! wx-parent (mred->wx parent))
 	 (super-init wx)
 	 (when keymap (send wx set-keymap keymap))))
@@ -3769,7 +3807,8 @@
       (as-entry
        (lambda () 
 	 (super-init #f void)
-	 (set! item (make-object sub-menu-item% this label parent help-string)))))))
+	 (set! item (make-object sub-menu-item% this label parent help-string))
+	 (set-cdr! (send (mred->wx item) get-menu-data) (mred->wx this))))))) ; for meta-shortcuts
 
 (define popup-menu%
   (class basic-menu% ([title #f])
@@ -4160,22 +4199,22 @@
 	(send f show #t)
 	(and ok? (send t get-value))))]))
 
-(define get-choice-from-user
+(define get-choices-from-user
   (case-lambda
-   [(title message choices) (get-choice-from-user title message choices #f null '(single))]
-   [(title message choices parent) (get-choice-from-user title message choices parent null '(single))]
-   [(title message choices parent init-vals) (get-choice-from-user title message choices parent init-vals '(single))]
+   [(title message choices) (get-choices-from-user title message choices #f null '(single))]
+   [(title message choices parent) (get-choices-from-user title message choices parent null '(single))]
+   [(title message choices parent init-vals) (get-choices-from-user title message choices parent init-vals '(single))]
    [(title message choices parent init-vals style)
-    (check-string 'get-choice-from-user title)
-    (check-string/false 'get-choice-from-user message)
+    (check-string 'get-choices-from-user title)
+    (check-string/false 'get-choices-from-user message)
     (unless (andmap string? choices)
-      (raise-type-error 'get-choice-from-user parent "list of strings" choices))
-    (check-top-level-parent/false 'get-choice-from-user parent)
+      (raise-type-error 'get-choices-from-user parent "list of strings" choices))
+    (check-top-level-parent/false 'get-choices-from-user parent)
     (unless (and (list? init-vals) (andmap (lambda (x) (integer? x) (exact? x) (not (negative? x))) init-vals))
-      (raise-type-error 'get-choice-from-user "list of exact non-negative integers" init-vals))
-    (check-style 'get-choice-from-user '(single multiple extended) null style)
+      (raise-type-error 'get-choices-from-user "list of exact non-negative integers" init-vals))
+    (check-style 'get-choices-from-user '(single multiple extended) null style)
     (when (and (memq 'single style) (> (length init-vals) 1))
-      (raise-mismatch-error 'get-choice-from-user 
+      (raise-mismatch-error 'get-choices-from-user 
 			    (format "multiple initial-selection indices provided with ~e style: " 'single)
 			    init-vals))
     (let* ([f (make-object dialog% title parent box-width)]
@@ -4194,7 +4233,7 @@
 	(for-each (lambda (i) 
 		    (when (>= i (send l get-number))
 		      (raise-mismatch-error 
-		       'get-choice-from-user 
+		       'get-choices-from-user 
 		       (format "inital-selection list specifies an out-of-range index (~e choices provided): "
 			       (send l get-number))
 		       i))
@@ -4667,6 +4706,12 @@
 (define check-margin-integer (check-bounded-integer 0 1000 #f))
 
 (define check-gauge-integer (check-bounded-integer 1 10000 #f))
+
+(define (check-fraction who x)
+  (unless (and (real? x) (<= 0.0 x 1.0))
+    (raise-type-error (who->name who) 
+		      "real number in [0.0, 1.0]"
+		      x)))
 
 (define (check-non-negative-integer who i)
   (unless (and (integer? i) (exact? i) (not (negative? i)))
