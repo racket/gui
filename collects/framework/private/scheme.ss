@@ -98,8 +98,8 @@
               (saved-snips saved-snips)))
           
           (define/override (write stream-out)
-            (send stream-out put (string left-bracket))
-            (send stream-out put (string right-bracket))
+            (send stream-out put (bytes (char->integer left-bracket)))
+            (send stream-out put (bytes (char->integer right-bracket)))
             (send stream-out put (length saved-snips))
             (let loop ([snips saved-snips])
               (cond
@@ -107,7 +107,7 @@
                 [else
                  (let* ([snip (car snips)]
                         [snipclass (send snip get-snipclass)])
-                   (send stream-out put (send snipclass get-classname))
+                   (send stream-out put (string->bytes/utf-8 (send snipclass get-classname)))
                    (send snip write stream-out))
                  (loop (cdr snips))])))
           
@@ -252,7 +252,7 @@
                                 (right-bracket right-bracket)
                                 (saved-snips snips))
                   left-pos left-pos)
-            (send text end-edit-sequence)))) 
+            (send text end-edit-sequence))))
       
 
                                                                              
