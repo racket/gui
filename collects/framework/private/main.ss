@@ -241,6 +241,10 @@
                 (scheme:get-color-prefs-table))
       (preferences:set-default 'framework:coloring-active #t boolean?)
 
+      (color-prefs:register-color-pref 'framework:default-text-color 
+                                       "Basic" 
+                                       (send the-color-database find-color "black"))
+      
       ;; groups
       
       (preferences:set-default 'framework:exit-when-no-frames #t boolean?)

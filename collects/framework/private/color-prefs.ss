@@ -1,3 +1,4 @@
+
 (module color-prefs mzscheme
   (require (lib "class.ss")
            (lib "unitsig.ss")
@@ -193,37 +194,47 @@
          (list (string-constant preferences-colors)
                (string-constant background-color))
          (lambda (parent)
-           (letrec ([panel (new vertical-panel% (parent parent))]
-                    [hp (new horizontal-panel% (parent panel))]
-                    [canvas
-                     (new canvas%
-                          (parent hp)
-                          (paint-callback
-                           (lambda (c dc)
-                             (draw (preferences:get 'framework:basic-canvas-background)))))]
-                    [draw
-                     (lambda (clr)
-                       (let ([dc (send canvas get-dc)])
-                         (let-values ([(w h) (send canvas get-client-size)])
-                           (send dc set-brush (send the-brush-list find-or-create-brush clr 'solid))
-                           (send dc set-pen (send the-pen-list find-or-create-pen clr 1 'solid))
-                           (send dc draw-rectangle 0 0 w h))))]
-                    [button
-                     (new button% 
-                          (label (string-constant cs-change-color))
-                          (parent hp)
-                          (callback
-                           (lambda (x y)
-                             (let ([color (get-color-from-user
-                                           (string-constant choose-a-background-color)
-                                           (send hp get-top-level-window)
-                                           (preferences:get 'framework:basic-canvas-background))])
-                               (when color
-                                 (preferences:set 'framework:basic-canvas-background color))))))])
-             (preferences:add-callback
-              'framework:basic-canvas-background
-              (lambda (p v) (draw v)))
-             panel))))
+           (add-solid-color-config (string-constant background-color)
+                                   parent
+                                   'framework:basic-canvas-background)
+           (build-color-selection-panel parent
+                                        'framework:default-text-color 
+                                        "Basic"
+                                        (string-constant default-text-color)))))
+      
+      (define (add-solid-color-config label parent pref-id)
+        (letrec ([panel (new vertical-panel% (parent parent))]
+                 [hp (new horizontal-panel% (parent panel) (stretchable-height #f))]
+                 [msg (new message% (parent hp) (label label))]
+                 [canvas
+                  (new canvas%
+                       (parent hp)
+                       (paint-callback
+                        (lambda (c dc)
+                          (draw (preferences:get pref-id)))))]
+                 [draw
+                  (lambda (clr)
+                    (let ([dc (send canvas get-dc)])
+                      (let-values ([(w h) (send canvas get-client-size)])
+                        (send dc set-brush (send the-brush-list find-or-create-brush clr 'solid))
+                        (send dc set-pen (send the-pen-list find-or-create-pen clr 1 'solid))
+                        (send dc draw-rectangle 0 0 w h))))]
+                 [button
+                  (new button% 
+                       (label (string-constant cs-change-color))
+                       (parent hp)
+                       (callback
+                        (lambda (x y)
+                          (let ([color (get-color-from-user
+                                        (string-constant choose-a-background-color)
+                                        (send hp get-top-level-window)
+                                        (preferences:get 'framework:basic-canvas-background))])
+                            (when color
+                              (preferences:set pref-id color))))))])
+          (preferences:add-callback
+           pref-id
+           (lambda (p v) (draw v)))
+          panel))
       
       ;; add-to-preferences-panel : string (vertical-panel -> void) -> void
       (define (add-to-preferences-panel panel-name func)
@@ -244,4 +255,5 @@
                                   (lambda (sym v)
                                     (editor:set-standard-style-list-delta style-name v)))
         (editor:set-standard-style-list-delta style-name (preferences:get pref-name))))))
+
 
