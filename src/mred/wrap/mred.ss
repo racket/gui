@@ -4332,21 +4332,22 @@
 			 [else (void)])
 			(send edit paste)))]
        [mouse-popup-menu (lambda (edit event)
-			   (let ([a (send edit get-admin)])
-			     (when a
-			       (let ([m (make-object popup-menu%)])
-				 (append-editor-operation-menu-items m)
-				 ;; Remove shortcut indicators (because they might not be correct)
-				 (for-each
-				  (lambda (i)
-				    (when (is-a? i selectable-menu-item<%>)
-				      (send i set-shortcut #f)))
-				  (send m get-items))
-				 (let-values ([(x y) (send edit
-							   dc-location-to-editor-location
-							   (send event get-x)
-							   (send event get-y))])
-				   (send a popup-menu m (+ x 5) (+ y 5)))))))])
+			   (when (send event button-up?)
+			     (let ([a (send edit get-admin)])
+			       (when a
+				 (let ([m (make-object popup-menu%)])
+				   (append-editor-operation-menu-items m)
+				   ;; Remove shortcut indicators (because they might not be correct)
+				   (for-each
+				    (lambda (i)
+				      (when (is-a? i selectable-menu-item<%>)
+					(send i set-shortcut #f)))
+				    (send m get-items))
+				   (let-values ([(x y) (send edit
+							     dc-location-to-editor-location
+							     (send event get-x)
+							     (send event get-y))])
+				     (send a popup-menu m (+ x 5) (+ y 5))))))))])
   (wx:add-text-keymap-functions k)
   (send k add-function "mouse-paste" mouse-paste)
   (send k add-function "mouse-popup-menu" mouse-popup-menu)
@@ -4360,7 +4361,7 @@
     '(":middlebutton"))
    '("copy-clipboard" "cut-clipboard" "paste-clipboard" "delete-to-end-of-line" 
 		      "undo" "select-all" "mouse-paste"))
-  (send k map-function ":rightbutton" "mouse-popup-menu")
+  (send k map-function ":rightbuttonseq" "mouse-popup-menu")
   (when (eq? (system-type) 'unix)
     (send k map-function ":c:a" "beginning-of-line")
     (send k map-function ":c:e" "end-of-line")))
