@@ -1591,7 +1591,15 @@
 	 (case x
 	   [(#\tab #\return escape) (and (not tabable?)
 					 (not single-line-canvas?))]
-	   [else (not meta?)]))])
+	   [else (not meta?)]))]
+
+
+      [popup-for-editor (entry-point-2
+			 (lambda (e m)
+			   (let ([mwx (mred->wx m)])
+			     (and (send mwx popup-grab e)
+				  (as-exit (lambda () (send m on-demand) #t))
+				  mwx))))])
     (public
       [set-tabable (lambda (on?) (set! tabable? on?))]
       [is-tabable? (lambda () tabable?)]
@@ -2448,7 +2456,7 @@
 ;-------------------- Text control simulation -------------------------
 
 (define text-field-text% 
-  (class text% (cb return-cb control)
+  (class text% (cb return-cb control set-cb-mgrs!)
       (rename [super-after-insert after-insert]
 	      [super-after-delete after-delete]
 	      [super-on-char on-char])
@@ -2481,17 +2489,15 @@
 	    (lambda ()
 	      (as-exit (lambda () (apply super-after-delete args)))
 	      (callback 'text-field))))])
-      (public
-	[callback-ready
-	 (lambda () 
-	   (set! block-callback 0))]
-	[without-callback
+      (sequence
+	(set-cb-mgrs!
 	 (lambda (thunk)
 	   (dynamic-wind
 	    (lambda () (set! block-callback (add1 block-callback)))
 	    thunk
-	    (lambda () (set! block-callback (sub1 block-callback)))))])
-      (sequence
+	    (lambda () (set! block-callback (sub1 block-callback)))))
+	 (lambda () 
+	   (set! block-callback 0)))
 	(super-init))))
   
 (define wx-text-editor-canvas% 
@@ -2517,13 +2523,18 @@
     ; Make text field first because we'll have to exit
     ;  for keymap initializer
     (private
+      [without-callback #f]
+      [callback-ready #f]
       [e (make-object text-field-text%
 		      func
 		      (lambda (do-cb)
 			(if multi?
 			    #f
 			    (do-cb)))
-		      this)])
+		      this
+		      (lambda (wc cr)
+			(set! without-callback wc)
+			(set! callback-ready cr)))])
     (sequence
       (as-exit
        (lambda ()
@@ -2540,8 +2551,8 @@
       [get-editor (lambda () e)]
       
       [get-value (lambda () (send e get-text))]
-      [set-value (lambda (v) (send e without-callback
-				   (lambda () (send e insert v 0 (send e last-position)))))]
+      [set-value (lambda (v) (without-callback
+			      (lambda () (send e insert v 0 (send e last-position)))))]
 
       [set-label (lambda (str) (when l (send l set-label str)))])
     (override
@@ -2639,7 +2650,7 @@
       (let ([min-size (get-min-size)])
 	(set-min-width (car min-size))
 	(set-min-height (cadr min-size)))
-      (send e callback-ready))))
+      (callback-ready))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;; mred Class Construction ;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -3539,10 +3550,11 @@
 		   (lambda (m x y) 
 		     (check-instance '(method canvas<%> popup-menu) popup-menu% 'popup-menu% #f m)
 		     (let ([mwx (mred->wx m)])
-		       (as-exit
-			(lambda ()
-			  (send m on-demand)
-			  (send wx popup-menu mwx x y))))))]
+		       (and (send mwx popup-grab this)
+			    (as-exit
+			     (lambda ()
+			       (send m on-demand)
+			       (send wx popup-menu mwx x y)))))))]
       [warp-pointer (entry-point-2 (lambda (x y) (send wx warp-pointer x y)))]
 
       [get-dc (entry-point (lambda () (send wx get-dc)))])
@@ -3899,7 +3911,8 @@
   (class* wx:menu% (wx<%>) (mred popup-label popup-callback)
     (private
       [items null]
-      [keymap (make-object wx:keymap%)])
+      [keymap (make-object wx:keymap%)]
+      [popup-grabber #f])
     (inherit delete-by-position)
     (rename [super-delete delete]
 	    [super-enable enable])
@@ -3920,7 +3933,16 @@
 		    (set! items (remq i items)))]
       [swap-item-keymap (lambda (old-k new-k)
 			  (when old-k (send keymap remove-chained-keymap old-k))
-			  (when new-k (send keymap chain-to-keymap new-k #f)))])
+			  (when new-k (send keymap chain-to-keymap new-k #f)))]
+
+      [popup-grab (lambda (c)
+		    (if popup-grabber
+			#f
+			(begin
+			  (set! popup-grabber c)
+			  #t)))]
+      [popup-release (lambda () (set! popup-grabber #f))]
+      [get-popup-grabber (lambda () popup-grabber)])
     (override
       [delete (lambda (id i) 
 		(super-delete id) 
@@ -4196,22 +4218,6 @@
 (define menu-item-container<%> (interface () get-items on-demand))
 (define internal-menu<%> (interface ()))
 
-(define basic-menu%
-  (class* mred% (menu-item-container<%> internal-menu<%>) (popup-label callback)
-    (public
-      [get-items (entry-point (lambda () (send wx get-items)))]
-      [on-demand (lambda ()
-		   (for-each
-		    (lambda (i) 
-		      (when (is-a? i labelled-menu-item<%>)
-			(send i on-demand)))
-		    (send wx get-items)))])
-    (private
-      [wx #f])
-    (sequence 
-      (set! wx (make-object wx-menu% this popup-label callback))
-      (super-init wx))))
-
 (define menu%
   (class* basic-labelled-menu-item% (menu-item-container<%> internal-menu<%>) (label parent [help-string #f])
     (sequence 
@@ -4239,21 +4245,39 @@
 	   (send wx-item set-wx-menu wx-menu)))))))
 
 (define popup-menu%
-  (class basic-menu% ([title #f][popdown-callback void])
+  (class* mred% (menu-item-container<%> internal-menu<%>) ([title #f][popdown-callback void])
+    (public
+      [get-popup-target
+       (lambda ()
+	 (send wx get-popup-grabber))]
+      [get-items (entry-point (lambda () (send wx get-items)))]
+      [on-demand (lambda ()
+		   (for-each
+		    (lambda (i) 
+		      (when (is-a? i labelled-menu-item<%>)
+			(send i on-demand)))
+		    (send wx get-items)))])
+    (private
+      [wx #f])
     (sequence
       (check-string/false '(constructor popup-menu) title)
       (check-callback '(constructor popup-menu) popdown-callback)
       (as-entry 
        (lambda ()
-	 (super-init title
-		     (lambda (m e)
-		       (let ([wx (wx:id-to-menu-item (send e get-menu-id))])
-			 (when wx
-			   (send (wx->mred wx) command (make-object wx:control-event% 'menu)))
-			 (popdown-callback this (make-object wx:control-event% 
-							     (if wx 
-								 'menu-popdown
-								 'menu-popdown-none)))))))))))
+	 (set! wx (make-object wx-menu% this title
+			       (lambda (mwx e)
+				 (let ([wx (wx:id-to-menu-item (send e get-menu-id))])
+				   (when wx
+				     (send (wx->mred wx) command (make-object wx:control-event% 'menu)))
+				   (dynamic-wind
+				       void
+				       (lambda ()
+					 (popdown-callback this (make-object wx:control-event% 
+									     (if wx 
+										 'menu-popdown
+										 'menu-popdown-none))))
+				       (lambda () (send mwx popup-release)))))))
+	 (super-init wx))))))
 
 (define menu-bar%
   (class* mred% (menu-item-container<%>) (parent)
@@ -4280,6 +4304,8 @@
 	 (send wx-parent set-menu-bar wx)
 	 (send wx-parent self-redraw-request))))))
 
+(wx:set-menu-tester (lambda (m) (is-a? m popup-menu%)))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;; END SECURE LEVEL ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;; Everything past this point is written at the user's level, so there
@@ -4304,9 +4330,26 @@
 						   eol-box)])
 			      (send edit set-position click-pos)))]
 			 [else (void)])
-			(send edit paste)))])
+			(send edit paste)))]
+       [mouse-popup-menu (lambda (edit event)
+			   (let ([a (send edit get-admin)])
+			     (when a
+			       (let ([m (make-object popup-menu% "Edit")])
+				 (append-editor-operation-menu-items m)
+				 ;; Remove shortcut indicators (because they might not be correct)
+				 (for-each
+				  (lambda (i)
+				    (when (is-a? i selectable-menu-item<%>)
+				      (send i set-shortcut #f)))
+				  (send m get-items))
+				 (let-values ([(x y) (send edit
+							   dc-location-to-editor-location
+							   (send event get-x)
+							   (send event get-y))])
+				   (send a popup-menu m x y))))))])
   (wx:add-text-keymap-functions k)
   (send k add-function "mouse-paste" mouse-paste)
+  (send k add-function "mouse-popup-menu" mouse-popup-menu)
   (map
    (lambda (key func) (send k map-function key func))
    (append
@@ -4317,6 +4360,7 @@
     '(":middlebutton"))
    '("copy-clipboard" "cut-clipboard" "paste-clipboard" "delete-to-end-of-line" 
 		      "undo" "select-all" "mouse-paste"))
+  (send k map-function ":rightbutton" "mouse-popup-menu")
   (when (eq? (system-type) 'unix)
     (send k map-function ":c:a" "beginning-of-line")
     (send k map-function ":c:e" "end-of-line")))
@@ -4334,7 +4378,10 @@
   (make-parameter (let ([default-text-keymap-initializer
 			  (lambda (k)
 			    (check-instance 'default-text-keymap-initializer wx:keymap% 'keymap% #f k)
-			    (send k chain-to-keymap std-keymap #f))])
+			    ;; Level of indirection to protect std-keymap:
+			    (let ([naya (make-object wx:keymap%)])
+			      (send naya chain-to-keymap std-keymap #f)
+			      (send k chain-to-keymap naya #f)))])
 		    default-text-keymap-initializer)
 		  (check-installer 'default-text-keymap-initializer)))
 
@@ -4540,16 +4587,17 @@
    [(message parent pss-in style)
     (define _
       (begin
+	;; Calls from C++ have wrong kind of window:
+	(when (is-a? parent wx:window%)
+	  (set! parent (as-entry (lambda () (wx->mred parent)))))
+
 	(check-string/false 'get-ps-setup-from-user message)
-	(unless (is-a? parent wx:window%)
-	  (check-top-level-parent/false 'get-ps-setup-from-user parent))
+	(check-top-level-parent/false 'get-ps-setup-from-user parent)
 	(check-instance 'get-ps-setup-from-user wx:ps-setup% 'ps-setup% #t pss-in)
 	(check-style 'get-ps-setup-from-user #f null style)))
     
     (define pss (or pss-in (wx:current-ps-setup)))
-    (define f (make-object dialog% "PostScript Setup" (if (is-a? parent wx:window%)
-							  (wx->mred parent)
-							  parent)))
+    (define f (make-object dialog% "PostScript Setup" parent))
     (define papers 
       '("A4 210 x 297 mm" "A3 297 x 420 mm" "Letter 8 1/2 x 11 in" "Legal 8 1/2 x 14 in"))
     (define p (make-object horizontal-pane% f))
@@ -4732,6 +4780,10 @@
 
 (define (mk-file-selector who put? multi?)
   (lambda (message parent directory filename extension style)
+    ;; Calls from C++ have wrong kind of window:
+    (when (is-a? parent wx:window%)
+      (set! parent (as-entry (lambda () (wx->mred parent)))))
+
     (check-string/false who message)
     (check-top-level-parent/false who parent)
     (check-string/false who directory) (check-string/false who filename) (check-string/false who extension)
@@ -5073,28 +5125,46 @@
 	 (let ([p (and parent (mred->wx parent))])
 	   (as-exit (lambda () (super-init p)))))))))
 
-(define (find-item-frame item)
-  (let loop ([i item])
-    (let ([p (send i get-parent)])
-      (cond
-       [(not p) #f]
-       [(is-a? p menu%) (loop p)]
-       [else (send p get-frame)]))))
+(define (find-item-editor item)
+  (let ([o (let loop ([i item])
+	     (let ([p (send i get-parent)])
+	       (cond
+		[(not p) #f]
+		[(is-a? p popup-menu%)
+		 (let ([p (send p get-popup-target)])
+		   (if (is-a? p window<%>)
+		       (let ([f (send p get-top-level-window)])
+			 (and f (send f get-edit-target-object)))
+		       p))]
+		[(is-a? p menu%) (loop p)]
+		[else (let ([f (send p get-frame)])
+			(and f (send f get-edit-target-object)))])))])
+    (and (is-a? o wx:editor<%>)
+	 o)))
 
 (define append-editor-operation-menu-items
   (case-lambda
    [(m) (append-editor-operation-menu-items m #t)]
    [(m text-only?)
-    (check-instance 'append-editor-operation-menu-items menu% 'menu% #f m)
-    (let ([mk (lambda (name key op)
-		(make-object menu-item% name m
-			     (lambda (i e)
-			       (let* ([f (find-item-frame i)]
-				      [o (and f (send f get-edit-target-object))])
-				 (and o (is-a? o wx:editor<%>)
-				      (send o do-edit-operation op))))
-			     key))]
-	  [mk-sep (lambda () (make-object separator-menu-item% m))])
+    (menu-parent-only 'append-editor-operation-menu-items m)
+    (let* ([mk (lambda (name key op)
+		 (make-object (class menu-item% ()
+				(inherit enable)
+				(override
+				  [on-demand
+				   (lambda ()
+				     (let ([o (find-item-editor this)])
+				       (enable (and o
+						    (send o can-do-edit-operation? op)))))])
+				(sequence
+				  (super-init
+				   name m
+				   (lambda (i e)
+				     (let* ([o (find-item-editor i)])
+				       (and o
+					    (send o do-edit-operation op))))
+				   key)))))]
+	   [mk-sep (lambda () (make-object separator-menu-item% m))])
       (mk "&Undo" #\z 'undo)
       (mk "Redo" #f 'redo)
       (mk-sep)
@@ -5113,14 +5183,12 @@
       (void))]))
 
 (define (append-editor-font-menu-items m)
-  (check-instance 'append-editor-font-menu-items menu% 'menu% #f m)
+  (menu-parent-only 'append-editor-font-menu-items m)
   (let ([mk (lambda (name m cb)
 	      (make-object menu-item% name m
 			   (lambda (i e)
-			     (let* ([f (find-item-frame i)]
-				    [o (and f (send f get-edit-target-object))])
-			       (and o (is-a? o wx:editor<%>)
-				    (cb o))))))]
+			     (let* ([o (find-item-editor i)])
+			       (and o (cb o))))))]
 	[mk-sep (lambda (m) (make-object separator-menu-item% m))]
 	[mk-menu (lambda (name) (make-object menu% name m))])
     (let ([family (mk-menu "Font")]
