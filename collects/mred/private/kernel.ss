@@ -431,20 +431,6 @@
     swap-buffers
     ok?)
   (define-class gl-config% object% #f
-    sizeof-bitfield
-    sizeof-enum
-    sizeof-clampd
-    sizeof-clampf
-    sizeof-sizei
-    sizeof-boolean
-    sizeof-double
-    sizeof-float
-    sizeof-uint
-    sizeof-int
-    sizeof-ushort
-    sizeof-short
-    sizeof-ubyte
-    sizeof-byte
     get-double-buffered
     set-double-buffered
     get-stereo
