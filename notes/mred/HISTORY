@@ -1,4 +1,10 @@
 
+Version 203.8
+Changed dialog%'s show method when given #f so that it asks
+ a waiting show #t call to hide the dialog, instead of
+ immediately hiding the dialog
+
+
 Version 203.5
 
 Mac OS X: tab-panel% draws a border around its content by default
