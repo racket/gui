@@ -234,14 +234,14 @@
 			(check-char/false '(method selectable-menu-item<%> set-shortcut) c)
 			(unless (equal? shortcut c)
 			  (set! shortcut c) 
-			  (do-set-label (super-get-label))))]
+			  (do-set-label label)))]
 	[get-shortcut (lambda () shortcut)]
 	[get-x-shortcut-prefix (lambda () x-prefix)]
 	[set-x-shortcut-prefix (lambda (p) 
 				 (unless (memq p '(meta alt ctl-m ctl))
 				   (raise-type-error (who->name '(method selectable-menu-item<%> set-x-shortcut-prefix))
 						     "symbol: meta, alt, ctl-m, or ctl" p))
-				 (set! x-prefix p) (do-set-label (super-get-label)))])
+				 (set! x-prefix p) (do-set-label label))])
       (sequence
 	(set! label (string->immutable-string label))
 	(let-values ([(new-label keymap) (calc-labels label)])
