@@ -845,6 +845,7 @@ WARNING: printf is rebound in the body of the unit to always
           submit-to-port?
           on-submit
           send-eof-to-in-port
+          flush-output-ports
           get-in-port
           get-out-port
           get-err-port
@@ -904,6 +905,26 @@ WARNING: printf is rebound in the body of the unit to always
           
           (define/public (send-eof-to-in-port) (channel-put read-chan eof))
           
+          (define/public (flush-output-ports)
+            (let ([c (make-channel)])
+              (channel-put this-eventspace-flush-chan c)
+              (let ([viable-bytes (channel-get c)])
+                (do-insertion viable-bytes))))
+
+          (define/public (get-in-port)
+            (unless in-port (error 'get-in-port "not ready"))
+            in-port)
+          (define/public (get-out-port)
+            (unless out-port (error 'get-out-port "not ready"))
+            out-port)
+          (define/public (get-err-port)
+            (unless err-port (error 'get-err-port "not ready"))
+            err-port)
+          (define/public (get-value-port)
+            (unless err-port (error 'get-value-port "not ready"))
+            value-port)
+          
+  
           ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
           ;;
           ;;  specialization interface
@@ -941,6 +962,7 @@ WARNING: printf is rebound in the body of the unit to always
                       (= start end)
                       (submit-to-port? key))
                  (let ([snips/chars (extract-snips/chars unread-start-point (last-position))])
+                   (printf "sending over ~s ~s\n" unread-start-point snips/chars)
                    (for-each (lambda (s/c) 
                                (cond
                                  [(is-a? s/c snip%)
@@ -976,6 +998,11 @@ WARNING: printf is rebound in the body of the unit to always
           ;; the waitable inside is waited on to indicate the flush has occurred
           (define flush-chan (make-channel))
           
+          ;; this-eventspace-flush-chan : (channel (channel viable-bytes))
+          ;; used to do syncs on the main eventspace
+          (define this-eventspace-flush-chan (make-channel))
+          
+          
           ;; write-chan : (channel (cons bytes style))
           ;; send output to the editor
           (define write-chan (make-channel))
@@ -1002,6 +1029,7 @@ WARNING: printf is rebound in the body of the unit to always
           ;; do-insertion : (listof (cons (union string snip) style-delta)) -> void
           ;; thread: eventspace main thread
           (define/private (do-insertion txts)
+            (printf "do-insertion.1 ~s\n" txts)
             (let ([locked? (is-locked?)])
               (begin-edit-sequence)
               (lock #f)
@@ -1027,6 +1055,7 @@ WARNING: printf is rebound in the body of the unit to always
                        (set! unread-start-point (+ unread-start-point inserted-count))))
                    (loop (cdr txts))]))
               (lock locked?)
+              (printf "do-insertion.2 ip ~s usp ~s\n" insertion-point unread-start-point)
               (end-edit-sequence)))
           
           (define input-buffer-thread
@@ -1094,6 +1123,12 @@ WARNING: printf is rebound in the body of the unit to always
                          (queue-insertion viable-bytes return-waitable)
                          (loop remaining-queue))))
                     (make-wrapped-waitable
+                     this-eventspace-flush-chan
+                     (lambda (return)
+                       (let-values ([(viable-bytes remaining-queue) (split-queue converter text-to-insert)])
+                         (channel-put return viable-bytes)
+                         (loop remaining-queue))))
+                    (make-wrapped-waitable
                      write-chan
                      (lambda (pr)
                        (cond
@@ -1110,19 +1145,6 @@ WARNING: printf is rebound in the body of the unit to always
                  [out-port #f]
                  [err-port #f]
                  [value-port #f])
-          (define/public (get-in-port)
-            (unless in-port (error 'get-in-port "not ready"))
-            in-port)
-          (define/public (get-out-port)
-            (unless out-port (error 'get-out-port "not ready"))
-            out-port)
-          (define/public (get-err-port)
-            (unless err-port (error 'get-err-port "not ready"))
-            err-port)
-          (define/public (get-value-port)
-            (unless err-port (error 'get-value-port "not ready"))
-            value-port)
-          
           (let ()
             
             ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -1152,10 +1174,7 @@ WARNING: printf is rebound in the body of the unit to always
                    (lambda (src line column position)
                      (values s/c 1))])))
             
-            (define (in-close-proc)
-              (printf "closed port\n")
-              (car)
-              (void))
+            (define (in-close-proc) (void))
             
             (define (make-write-bytes-proc style)
               (lambda (to-write start end block/buffer?)
@@ -1236,37 +1255,40 @@ WARNING: printf is rebound in the body of the unit to always
           ;; extracts the viable bytes (and other stuff) from the front of the queue
           ;; and returns them as strings (and other stuff).
           (define/private (split-queue converter q)
-            (let loop ([lst (queue->list q)]
-                       [acc null])
-              (let-values ([(front rest) (peel lst)])
-                (cond
-                  [(not front) (values (reverse acc)
-                                       (empty-queue))]
-                  [(bytes? (car front))
-                   (let ([the-bytes (car front)]
-                         [key (cdr front)])
-                     (if (null? rest)
-                         (let-values ([(converted-bytes src-read-k termination)
-                                       (bytes-convert converter the-bytes)])
-                           (if (eq? termination 'aborts)
-                               (values (reverse (cons (cons (bytes->string/utf-8 converted-bytes) key) acc))
-                                       (enqueue 
-                                        (cons (subbytes the-bytes
-                                                        (- (bytes-length the-bytes) src-read-k) 
-                                                        (bytes-length the-bytes))
-                                              key)
-                                        (empty-queue)))
-                               (values (reverse (cons (cons (bytes->string/utf-8 converted-bytes) key) acc))
-                                       (empty-queue))))
-                         (let-values ([(converted-bytes src-read-k termination)
-                                       (bytes-convert converter the-bytes)]
-                                      [(more-bytes more-termination) (bytes-convert-end converter)])
-                           (loop rest
-                                 (cons (cons (bytes->string/utf-8 (bytes-append converted-bytes more-bytes))
-                                             key)
-                                       acc)))))]
-                  [else (loop rest
-                              (cons front acc))]))))
+            (let ([lst (queue->list q)])
+              (if (null? lst)
+                  (values null (empty-queue))
+                  (let loop ([lst lst]
+                             [acc null])
+                    (let-values ([(front rest) (peel lst)])
+                      (cond
+                        [(not front) (values (reverse acc)
+                                             (empty-queue))]
+                        [(bytes? (car front))
+                         (let ([the-bytes (car front)]
+                               [key (cdr front)])
+                           (if (null? rest)
+                               (let-values ([(converted-bytes src-read-k termination)
+                                             (bytes-convert converter the-bytes)])
+                                 (if (eq? termination 'aborts)
+                                     (values (reverse (cons (cons (bytes->string/utf-8 converted-bytes) key) acc))
+                                             (enqueue 
+                                              (cons (subbytes the-bytes
+                                                              (- (bytes-length the-bytes) src-read-k) 
+                                                              (bytes-length the-bytes))
+                                                    key)
+                                              (empty-queue)))
+                                     (values (reverse (cons (cons (bytes->string/utf-8 converted-bytes) key) acc))
+                                             (empty-queue))))
+                               (let-values ([(converted-bytes src-read-k termination)
+                                             (bytes-convert converter the-bytes)]
+                                            [(more-bytes more-termination) (bytes-convert-end converter)])
+                                 (loop rest
+                                       (cons (cons (bytes->string/utf-8 (bytes-append converted-bytes more-bytes))
+                                                   key)
+                                             acc)))))]
+                        [else (loop rest
+                                    (cons front acc))]))))))
           
           ;; peel : (listof (cons (union snip bytes) X)
           ;;     -> (values (cons (union snip bytes) X) (listof (cons (union snip bytes) X)
