@@ -2509,9 +2509,9 @@
 (define (constructor-name who)
   (string->symbol (format "initialization for ~a%" who)))
 
-(define (check-container-parent cwho p)
+(define (check-container-parent who p)
   (unless (is-a? p internal-container<%>)
-    (raise-type-error cwho "built-in container<%> object" p)))
+    (raise-type-error (who->name who) "built-in container<%> object" p)))
 
 (define (check-top-level-parent/false who p)
   (unless (or (not p) (is-a? p frame%) (is-a? p dialog%))
