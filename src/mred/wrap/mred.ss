@@ -68,7 +68,7 @@
     ((let/ec k
        (dynamic-wind
 	(lambda () 
-	  (semaphore-wait monitor-sema)
+	  (wx:in-atomic-region monitor-sema)
 	  
 	  (set! monitor-owner (current-thread))
 	  (setup-entered-paramz)
@@ -83,7 +83,8 @@
 	  (set! monitor-owner #f)
 	  (current-parameterization old-paramz)
 	  
-	  (semaphore-post monitor-sema)))))]))
+	  (semaphore-post monitor-sema)
+	  (wx:in-atomic-region #f)))))]))
 
 ; entry-point macros in macros.ss
 
@@ -96,10 +97,11 @@
        (set! monitor-owner #f)
        (current-parameterization old-paramz)
        
-       (semaphore-post monitor-sema))
+       (semaphore-post monitor-sema)
+       (wx:in-atomic-region #f))
      f
      (lambda ()
-       (semaphore-wait monitor-sema)
+       (wx:in-atomic-region monitor-sema)
 
        (set! monitor-owner (current-thread))
        (setup-entered-paramz)
@@ -3965,7 +3967,7 @@
 	  (let ([e (last-position)])
 	    (insert #\newline)
 	    (change-style (send (make-object wx:style-delta% 'change-bold) set-delta-foreground "BLUE") s e)))
-	(output (format "Copyright (c) 1995-98 PLT (Matthew Flatt and Robby Findler)~n"))
+	(output (format "Copyright (c) 1995-99 PLT (Matthew Flatt and Robby Findler)~n"))
 	(insert "This is a simple window for evaluating MrEd Scheme expressions.") (insert #\newline)
 	(let ([s (last-position)])
 	  (insert "Quit now and run DrScheme to get a better window.")

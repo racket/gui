@@ -9,6 +9,7 @@
 ;;;;;; Undo tests
 
 (define e (make-object text%))
+
 (stv e insert "Hello")
 (st #t e is-modified?)
 (stv e undo)
@@ -61,6 +62,5 @@
 (stv e undo)
 (test #t 'undone? undone?)
 (st "Hello" e get-text)
-
 
 (report-errs)
