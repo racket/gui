@@ -225,12 +225,18 @@
       (define (open-recent-list-item recent-list-item)
         (let* ([filename (car recent-list-item)]
                [start (cadr recent-list-item)]
-               [end (caddr recent-list-item)]
-               [fr (edit-file filename)])
-          (when (is-a? fr frame:open-here<%>)
-            (let ([ed (send fr get-open-here-editor)])
-              (when (equal? (send ed get-filename) filename)
-                (send ed set-position start end))))))
+               [end (caddr recent-list-item)])
+          (cond
+            [(file-exists? filename)
+             (let ([fr (edit-file filename)])
+               (when (is-a? fr frame:open-here<%>)
+                 (let ([ed (send fr get-open-here-editor)])
+                   (when (equal? (send ed get-filename) filename)
+                     (send ed set-position start end)))))]
+            [else
+             (message-box (string-constant error)
+                          (format (string-constant cannot-open-because-dne)
+                                  filename))])))
       
       ;; show-recent-items-window : -> void
       (define (show-recent-items-window)
