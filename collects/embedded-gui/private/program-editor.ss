@@ -25,9 +25,11 @@ is being reset.
    (lib "mred.ss" "mred")
    (lib "etc.ss")
    (lib "class.ss")
+   (lib "framework.ss" "framework")
    "snip-lib.ss")
   
-  (provide program-editor-mixin)
+  (provide program-editor-mixin
+           program-editor%)
   
   (define (program-editor-mixin %)
     (class %
@@ -83,4 +85,7 @@ is being reset.
         (alert-of-modify)
         (super-after-delete start len))
       (super-new)))
+  
+  (define program-editor%
+    (program-editor-mixin color:text%))
   )

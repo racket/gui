@@ -19,14 +19,15 @@
   (define (vert/horiz-alignment type)
     (class* object% (alignment<%>)
       
-      (init-field (parent false))
+      (init-field
+       [parent false]
+       [show? true])
       
       (field
        [pasteboard false]
        [children empty]
        [min-width 0]
-       [min-height 0]
-       [show? true])
+       [min-height 0])
       
       ;; need base class for this method
       (define (show/hide-child child show?)
