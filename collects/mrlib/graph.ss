@@ -263,13 +263,12 @@
                  [union (union-rects rects)]
                  [invalidate-rect
                   (lambda (rect)
-                    (time
-                     (invalidate-bitmap-cache (rect-left rect)
-                                              (rect-top rect)
-                                              (- (rect-right rect)
-                                                 (rect-left rect))
-                                              (- (rect-bottom rect)
-                                                 (rect-top rect)))))])
+                    (invalidate-bitmap-cache (rect-left rect)
+                                             (rect-top rect)
+                                             (- (rect-right rect)
+                                                (rect-left rect))
+                                             (- (rect-bottom rect)
+                                                (rect-top rect))))])
             (cond
               [(< (rect-area union)
                   (apply + (map (lambda (x) (rect-area x)) rects)))
