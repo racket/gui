@@ -940,11 +940,11 @@
 		(error "string selection not null"))))]
        [(send e is-double-click?)
 	; double-click
+	(printf "Double-click~n")
 	(unless (= -1 (send e get-command-int))
 	  (error "selection index is not -1"))
 	(unless (null? (send e get-command-string))
-	  (error "string selection not null:" (send e get-command-string)))
-	(printf "Double-click~n")]
+	  (error "string selection not null:" (send e get-command-string)))]
        [else
 	; misc multi-selection
 	(printf "Changed~n")
