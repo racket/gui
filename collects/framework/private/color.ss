@@ -52,7 +52,7 @@
         (mixin (text:basic<%>) (-text<%>)
 
           ;; For profiling
-          (define time #f)
+          (define timer #f)
           
           ;; ---------------------- Coloring modes ----------------------------
           
@@ -299,7 +299,7 @@
 						       (lambda (x) #f))
 			       current-pos))
                 (set! up-to-date? #t)
-                ;(printf "~a~n" (- (current-milliseconds) time))
+                ;(printf "~a~n" (- (current-milliseconds) timer))
                 (semaphore-post mutex-lock)
                 (thread-suspend (current-thread))))
             (background-colorer))
@@ -326,7 +326,7 @@
 		(parameterize-break #f
 		  (set! background-thread
 			(thread (lambda () (background-colorer-entry))))))
-              ;(set! time (current-milliseconds))
+              ;(set! timer (current-milliseconds))
               (do-insert/delete start-pos 0)))
             
           ;; See docs
@@ -436,34 +436,40 @@
           (define/private (f-match-false-error start end error)
             (and error (<= (+ start-pos error) current-pos) (not up-to-date?)))
           
-          ;; If there is no match because the buffer isn't lexed yet, this will
-          ;; do nothing, but the edit sequence for changing color the colors 
+            
+          ;; If there is no match because the buffer isn't lexed far enough yet,
+          ;; this will do nothing, but the edit sequence for changing the colors 
           ;; will trigger a callback that will call this to try and match again.
           ;; This edit sequence is used even if the coloring is disabled in
           ;; the preferences, although nothing is actually colored during it.
-          ;; This leads to the nice bahavior that we don't have to block to
+          ;; This leads to the nice behavior that we don't have to block to
           ;; highlight parens, and the parens will be highlighted as soon as
           ;; possible.
           (define/private match-parens
             (opt-lambda ([just-clear? #f])
-              (unless in-match-parens?
+              (when (and (not in-match-parens?)
+                         ;; Trying to match open parens while the
+                         ;; background thread is going slows it down.
+                         ;; The random number slows down how often it
+                         ;; tries.
+                         (or just-clear? up-to-date? (= 0 (random 5))))
                 (set! in-match-parens? #t)
                 (begin-edit-sequence #f #f)
                 (clear-old-locations)
                 (set! clear-old-locations void)
-                (when (preferences:get 'framework:highlight-parens)
-                  (unless just-clear?
-                    (let* ((here (get-start-position)))
-                      (when (= here (get-end-position))
-                        (let-values (((start-f end-f error-f)
-                                      (send parens match-forward (- here start-pos)))
-                                     ((start-b end-b error-b)
-                                      (send parens match-backward (- here start-pos))))
-                          (when (and start-f end-f 
-                                     (not (f-match-false-error start-f end-f error-f)))
-                            (highlight start-f end-f here error-f))
-                          (when (and start-b end-b)
-                            (highlight start-b end-b here error-b)))))))
+                (when (and (preferences:get 'framework:highlight-parens)
+                           (not just-clear?))
+                  (let* ((here (get-start-position)))
+                    (when (= here (get-end-position))
+                      (let-values (((start-f end-f error-f)
+                                    (send parens match-forward (- here start-pos))))
+                        (when (and (not (f-match-false-error start-f end-f error-f))
+                                   start-f end-f)
+                          (highlight start-f end-f here error-f)))
+                      (let-values  (((start-b end-b error-b)
+                                     (send parens match-backward (- here start-pos))))
+                        (when (and start-b end-b)
+                          (highlight start-b end-b here error-b))))))
                 (end-edit-sequence)
                 (set! in-match-parens? #f))))
                     
