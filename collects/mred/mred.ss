@@ -202,7 +202,7 @@
 (define top-x 1)
 (define top-y 1)
 
-(define top-level-windows (make-hash-table-weak))
+(define top-level-windows (make-hash-table 'weak))
 
 (define (key-regexp c)
   (regexp (format "(^|[^&])&[~a~a]" (char-downcase c) (char-upcase c))))
@@ -2827,7 +2827,7 @@
       (f x y)
       (values (unbox x) (unbox y)))))
 
-(define widget-table (make-hash-table-weak))
+(define widget-table (make-hash-table 'weak))
 
 (define mred%
   (class100 object% (wx)
@@ -2879,7 +2879,10 @@
       [(minh min-height) (param get-wx-panel min-height)]
       [(sw stretchable-width) (param get-wx-panel stretchable-in-x)]
       [(sh stretchable-height) (param get-wx-panel stretchable-in-y)]
-      [get-graphical-min-size (entry-point (lambda () (apply values (send wx get-graphical-min-size))))])
+      [get-graphical-min-size (entry-point (lambda () 
+					     (if (wx . is-a? . wx-basic-panel<%>)
+						 (apply values (send wx get-graphical-min-size))
+						 (send wx get-hard-minimum-size))))])
     (private-field
       [wx (mk-wx)])
     (sequence
