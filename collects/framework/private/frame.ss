@@ -1000,7 +1000,7 @@
                               this)])
                    (case save
                      [(continue) #f]
-                     [(save) (not (send editor save-file/gui-errors))]
+                     [(save) (not (send editor save-file/gui-error))]
                      [(cancel) #t]))))
           
           ;; ask-about-new-here : -> (union 'cancel boolean?)
