@@ -124,6 +124,7 @@
 	     [no-bitmaps? #f]
 	     [no-stipples? #f]
 	     [pixel-copy? #f]
+	     [kern? #f]
 	     [mask-ex-mode 'mred]
 	     [xscale 1]
 	     [yscale 1]
@@ -132,6 +133,7 @@
 	     [set-bitmaps (lambda (on?) (set! no-bitmaps? (not on?)) (on-paint))]
 	     [set-stipples (lambda (on?) (set! no-stipples? (not on?)) (on-paint))]
 	     [set-pixel-copy (lambda (on?) (set! pixel-copy? on?) (on-paint))]
+	     [set-kern (lambda (on?) (set! kern? on?) (on-paint))]
 	     [set-mask-ex-mode (lambda (mode) (set! mask-ex-mode mode) (on-paint))]
 	     [set-scale (lambda (xs ys) (set! xscale xs) (set! yscale ys) (on-paint))]
 	     [set-offset (lambda (o) (set! offset o) (on-paint))])
@@ -501,11 +503,11 @@
 					   [chinese? #t])
 				  (unless (null? fam)
 				    (let ([fnt (make-object font% (car sze) (car fam) (car stl) (car wgt))]
-					  [s "AgMh"])
+					  [s "AvgflfiMh"])
 				      (send dc set-font fnt)
-				      (send dc draw-text s x y)
+				      (send dc draw-text s x y kern?)
 				      (send dc set-font save-fnt)
-				      (let-values ([(w h d a) (send dc get-text-extent s fnt)])
+				      (let-values ([(w h d a) (send dc get-text-extent s fnt kern?)])
 					(send dc draw-rectangle x y w h)
 					(send dc draw-line x (+ y (- h d)) (+ x w) (+ y (- h d)))
 					(when chinese?
@@ -516,9 +518,9 @@
 							  (make-object font% 12 "MOESung-Regular" 'default)
 							  fnt)])
 					    (send dc set-font cfnt)
-					    (send dc draw-text s x y)
+					    (send dc draw-text s x y kern?)
 					    (send dc set-font fnt)
-					    (let-values ([(w h d a) (send dc get-text-extent s cfnt)])
+					    (let-values ([(w h d a) (send dc get-text-extent s cfnt kern?)])
 					      (send dc draw-rectangle x y w h)
 					      (send dc draw-line x (+ y (- h d)) (+ x w) (+ y (- h d))))))
 					(loop (cdr fam) (cdr stl) (cdr wgt) (cdr sze) x (+ y h) #f)))))
@@ -907,6 +909,9 @@
     (make-object check-box% "Pixset" hp2
 		 (lambda (self event)
 		   (send canvas set-pixel-copy (send self get-value))))
+    (make-object check-box% "Kern" hp2
+		 (lambda (self event)
+		   (send canvas set-kern (send self get-value))))
     (make-object choice% "Clip" 
 		 '("None" "Rectangle" "Rectangle2" "Octagon" "Circle" "Round Rectangle"
 		   "Rectangle + Octagon" "Rectangle + Circle" 
