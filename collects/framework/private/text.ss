@@ -1024,10 +1024,6 @@ WARNING: printf is rebound in the body of the unit to always
           ;; send output to the editor
           (define write-chan (make-channel))
           
-          ;; read-chan : (channel (union byte snip eof))
-          ;; send input from the editor
-          (define read-chan (make-channel))
-          
           ;; readers-chan : (channel (list (channel (union byte snip))
           ;;                               (channel ...)))
           (define readers-chan (make-channel))
@@ -1182,6 +1178,10 @@ WARNING: printf is rebound in the body of the unit to always
           ;;  input port sync code
           ;;
           
+          ;; read-chan : (channel (union byte snip eof))
+          ;; send input from the editor
+          (define read-chan (make-channel))
+          
           ;; progress-event-chan : (channel (cons (channel event) nack-evt)))
           (define progress-event-chan (make-channel))
 
@@ -1222,6 +1222,11 @@ WARNING: printf is rebound in the body of the unit to always
                                                new-peek-response-evts
                                                new-commit-response-evts))
                    (sync
+                    (handle-evt
+                     read-chan
+                     (lambda (ent)
+                       (set! data (enqueue ent data))
+                       (loop)))
                     (handle-evt
                      clear-input-chan
                      (lambda (_)
@@ -1286,6 +1291,7 @@ WARNING: printf is rebound in the body of the unit to always
                     (apply choice-evt 
                            (map (lambda (resp-evt)
                                   (handle-evt
+                                   resp-evt
                                    (lambda (_)
                                      (set! response-evts (remq resp-evt response-evts))
                                      (loop))))

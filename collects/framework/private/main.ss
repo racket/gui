@@ -138,7 +138,6 @@
 	(for-each (lambda (x) 
 		    (hash-table-put! hash-table x 'define))
 		  '(define defmacro define-macro
-                     match-lambda match-lambda*
                      define-syntax-set
 		     define-values
                      define/public define/override define/private define/field
@@ -149,8 +148,9 @@
                      define-schema define/contract))
 	(for-each (lambda (x) 
 		    (hash-table-put! hash-table x 'begin))
-		  '(case-lambda case-lambda*
-		    cond
+		  '(case-lambda
+		    match-lambda match-lambda*
+                    cond
 		    begin begin0 delay
 		    unit compound-unit compound-unit/sig
 		    public private override
