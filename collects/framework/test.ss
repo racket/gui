@@ -5,8 +5,8 @@
  (require-library "invoke.ss"))
 
 (define-values/invoke-unit/sig ((open mred-interfaces^)
-				(open framework:keys^)
-				(open framework:test^))
+				(unit keys : framework:keys^)
+				(unit test : framework:test^))
   (compound-unit/sig
    (import)
    (link [mred : mred-interfaces^ (mred-interfaces@)]
