@@ -1,4 +1,4 @@
-.\" dummy line
+\" dummy line
 .TH MRED 1 "8 June 1996"
 .UC 4
 .SH NAME
@@ -12,6 +12,7 @@ mred \- The Rice PLT GUI engine
 .I image-filename
 .I splash-title
 ]
+[-b ]
 [-q | --no-init-file]
 [-nu ]
 [-f
@@ -44,6 +45,8 @@ The -p flag specifies a splash screen filename. The splash screen must be
 an image file supported by wx:bitmap% objects. See the mred manual for more
 information on what image types are supported by wx:bitmap% objects. The
 second argument to -p names the splash screen
+.PP
+The -b flags supresses the splash screen.
 .PP
 The -q or --no-init-file flag prevents 
 .I MrEd
