@@ -145,7 +145,9 @@
       (sequence
 	(alignment 'left 'top)
 	(unless horiz? (send p alignment 'left 'top))
-	(unless multi? (stretchable-in-y #f)))
+	(unless multi? (stretchable-in-y #f))
+	;; For Windows:
+	(wx:set-combo-box-font font))
       (private-field
        [l (and label
 	       (make-object wx-message% #f proxy p label -1 -1 null font))]

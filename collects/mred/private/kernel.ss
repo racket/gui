@@ -330,6 +330,7 @@
     on-size
     on-set-focus
     on-kill-focus)
+  (define-function set-combo-box-font)
   (define-class check-box% item% #f
     set-label
     set-value
