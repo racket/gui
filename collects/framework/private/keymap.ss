@@ -200,6 +200,7 @@
 		    (make-meta-prefix-list key))))
       
       (define add-to-right-button-menu (make-parameter void))
+      (define add-to-right-button-menu/before (make-parameter void))
 
       (define setup-global
 					; Define some useful keyboard functions
@@ -213,6 +214,9 @@
 		    (let ([a (send edit get-admin)])
 		      (when a
 			(let ([m (make-object popup-menu%)])
+
+                          ((add-to-right-button-menu/before) m edit event)
+
 			  (append-editor-operation-menu-items m)
 			  (for-each
 			   (lambda (i)

@@ -270,6 +270,7 @@
      canonicalize-keybinding-string
 
      add-to-right-button-menu
+     add-to-right-button-menu/before
 
      setup-global
      setup-search
