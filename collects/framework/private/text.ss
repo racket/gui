@@ -888,9 +888,7 @@ WARNING: printf is rebound in the body of the unit to always
           ;; inserts something between the insertion point and the unread region
           (define/public-final (insert-between str)
             (insert str unread-start-point unread-start-point)
-            (set! unread-start-point (+ unread-start-point
-                                        ;; string-length is bad here
-                                        (string-length str))))
+            (set! unread-start-point (+ unread-start-point (string-length str))))
           
           ;; has-between? : -> boolean
           ;; indicates if there is currently some text after the insertion
@@ -1035,6 +1033,7 @@ WARNING: printf is rebound in the body of the unit to always
             (let ([locked? (is-locked?)])
               (begin-edit-sequence)
               (lock #f)
+              (set! allow-edits? #t)
               (let loop ([txts txts])
                 (cond
                   [(null? txts) (void)]
@@ -1042,20 +1041,25 @@ WARNING: printf is rebound in the body of the unit to always
                    (let* ([fst (car txts)]
                           [str/snp (car fst)]
                           [sd (cdr fst)])
-                     (insert (if (is-a? str/snp snip%)
-                                 (send str/snp copy)
-                                 str/snp)
-                             insertion-point
-                             insertion-point
-                             #f)
+                     
                      (let ([inserted-count
                             (if (is-a? str/snp snip%)
                                 1
-                                (string-length str/snp))])
-                       (change-style sd insertion-point (+ insertion-point inserted-count))
+                                (string-length str/snp))]
+                           [old-insertion-point insertion-point])
                        (set! insertion-point (+ insertion-point inserted-count))
-                       (set! unread-start-point (+ unread-start-point inserted-count))))
+                       (set! unread-start-point (+ unread-start-point inserted-count))
+                       (printf "inc'd unread-start-position to ~s\n" unread-start-point)
+                       
+                       (insert (if (is-a? str/snp snip%)
+                                   (send str/snp copy)
+                                   str/snp)
+                               old-insertion-point
+                               old-insertion-point
+                               #f)
+                       (change-style sd old-insertion-point insertion-point)))
                    (loop (cdr txts))]))
+              (set! allow-edits? #f)
               (lock locked?)
               (end-edit-sequence)))
           
