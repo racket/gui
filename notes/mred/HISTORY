@@ -10,6 +10,9 @@
  * Fixed set-max-undo-history; it wasn't actually resizing the undo
    history buffer.
 
+ * Windows, MacOS: Fixed location of "[Exited]" in stdio window. (PR
+   1600)
+
 103/2:
 
  * Fixed unreliable menu keybindings, especially cut-and-paste. More
