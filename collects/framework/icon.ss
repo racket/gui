@@ -60,6 +60,7 @@
 	      icon)))))
   
   (define gc-on-bitmap #f)
+
   (define (fetch)
     (unless gc-on-bitmap
       (set! gc-on-bitmap ((load-icon "recycle.gif" 'gif)))))
