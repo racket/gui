@@ -45,12 +45,31 @@
 		 [parent ppng]
 		 [stretchable-width #t]
 		 [stretchable-height #t]))
+(define png-canvas (new canvas%
+			[parent ppng]
+			[stretchable-width #t]
+			[stretchable-height #t]
+			[paint-callback (lambda (c dc)
+					  (send dc set-brush 
+						(send the-brush-list find-or-create-brush "GREEN" 'solid))
+					  (send dc draw-rectangle -1 -1 500 500)
+					  (send dc draw-bitmap
+						last-bm 0 0
+						'solid 
+						(send the-color-database find-color "BLACK")
+						(send last-bm get-loaded-mask)))]))
+(define ppng-mono (make-object vertical-panel% ppng))
 (define mono? (new message%
 		   [label "mono"]
-		   [parent ppng]))
+		   [parent ppng-mono]))
+(define mono-mask? (new message%
+			[label "mono mask"]
+			[parent ppng-mono]))
 (unless (= 1 (send last-bm get-depth))
-  (send mono? show #t))
-	       
+  (send mono? show #f))
+(unless (and (send last-bm get-loaded-mask)
+	     (= 1 (send (send last-bm get-loaded-mask) get-depth)))
+  (send mono-mask? show #f))
 
 (define gif (new message%
 		 [label (make-object bitmap% (png->gif (car l)))]
@@ -71,7 +90,9 @@
 		       (send ld-pngm set-label (or (send bm get-loaded-mask)
 						   no-mask-bm))
 		       (send ld-mono? show (and (send bm ok?)
-						(= 1 (send bm get-depth)))))
+						(= 1 (send bm get-depth))))
+		       (send ld-mono-mask? show (and (send bm get-loaded-mask)
+						     (= 1 (send (send bm get-loaded-mask) get-depth)))))
 		     (error "write failed!")))])
 (define ppld (make-object horizontal-panel% pld))
 (define ld-png (new message%
@@ -84,10 +105,15 @@
 		     [parent ppld]
 		     [stretchable-width #t]
 		     [stretchable-height #t]))
+(define ppld-mono (make-object vertical-panel% ppld))
 (define ld-mono? (new message%
 		      [label "mono"]
-		      [parent ppld]))
+		      [parent ppld-mono]))
+(define ld-mono-mask? (new message%
+			   [label "mono mask"]
+			   [parent ppld-mono]))
 (send ld-mono? show #f)
+(send ld-mono-mask? show #f)
 
 (define mask (new choice%
 		  [label "Alpha"]
@@ -126,7 +152,10 @@
       (send pngm set-label (or (send bm get-loaded-mask)
 			       no-mask-bm)))
     (send gif set-label (make-object bitmap% (png->gif n)))
-    (send mono? show (= 1 (send last-bm get-depth)))))
+    (send mono? show (= 1 (send last-bm get-depth)))
+    (send mono-mask? show (and (send last-bm get-loaded-mask)
+			       (= 1 (send (send last-bm get-loaded-mask) get-depth))))
+    (send png-canvas refresh)))
 
 (define (get-mask-mode)
   (case (send mask get-selection)
