@@ -12,10 +12,12 @@
            "framework-unit.ss"
 	   "framework-sig.ss"
            
-           "macro.ss")
+           "macro.ss"
+           "specs.ss")
   
   (provide-signature-elements framework^)
   (provide (all-from "macro.ss"))
+  (provide (all-from "specs.ss"))
    
   (define-values/invoke-unit/sig 
    frameworkc^ 

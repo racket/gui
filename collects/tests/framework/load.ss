@@ -1,7 +1,7 @@
 (module load mzscheme
   (require "test-suite-utils.ss")
 
-  (define old-load-framework-automatically? (load-framework-automatically))
+  (load-framework-automatically #f)
 
   (define (test/load file exp)
     (test
@@ -23,11 +23,8 @@
             (eval ',exp)
             (void))))))
 
-  (load-framework-automatically #f)
-
-  (test/load "prefs-file-unit.ss" 'framework:prefs-file@)
-  (test/load "prefs-file.ss" 'prefs-file:get-preferences-filename)
-
+  (test/load "specs.ss" '(contract (lambda (x) #t) 1 'pos 'neg))
+  
   (test/load "gui-utils-unit.ss" 'framework:gui-utils@)
   (test/load "gui-utils.ss" 'gui-utils:next-untitled-name)
 
@@ -36,10 +33,9 @@
 
   (test/load "macro.ss" '(mixin () () ()))
 
-  (test/load "framework-unit.ss" '(list framework@ framework-no-prefs@ frameworkc@))
-  (test/load "framework.ss" '(list prefs-file:get-preferences-filename
-				   test:button-push
+  (test/load "framework-unit.ss" '(list framework@ frameworkc@))
+  (test/load "framework.ss" '(list test:button-push
 				   gui-utils:next-untitled-name
-				   frame:basic-mixin))
-
-  (load-framework-automatically old-load-framework-automatically?))
+				   frame:basic-mixin
+                                   (mixin () () ())
+                                   (contract (lambda (x) #t) 1 'pos 'neg))))

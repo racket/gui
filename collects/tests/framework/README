@@ -34,6 +34,11 @@ test as last time, or `all' to run all of the tests.
   | This tests that preferences are saved and restored correctly, both
   | immediately and across reboots of mred.
 
+
+- specs |# spec-test.ss #|
+
+  | this tests that the specs are compiled properly.
+  
 - individual object tests:
 
   | These tests are simple object creation and basic operations.

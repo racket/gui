@@ -74,6 +74,7 @@
      (lambda (x)
        (when (member x all-files)
 	 (shutdown-mred)
+         (load-framework-automatically #t)
 	 (let/ec k
 	   (dynamic-wind
 	    (lambda ()
