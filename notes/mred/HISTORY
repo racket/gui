@@ -1,4 +1,10 @@
 
+Version 299.12
+Added 'transparent style to editor-canvas%
+Added background-color argument to editor<%>'s refresh
+Added set-canvas-background and get-canvas-background to
+ canvas<%>
+
 Version 299.10
 Flattened text from an editor<%> always uses #\newline,
  not a platform-specific line separator
