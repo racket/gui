@@ -135,21 +135,22 @@
           (ormap
            (lambda (comment-start)
              (let loop ([f (find-string comment-start 'backward position)])
-               (if f
-                   (cond
-                     [(= (position-line f) line)
-                      (let ([f-1 (- f 2)]) ;; -1 to go back one, -1 to be before char
-                        (cond
-                          [(< f-1 0)
-                           #t]
-                          [(and (= (position-line f-1) line)
-                                (not (char=? (get-character f-1) #\\ )))
-                           #t]
-                          [else 
-                           (loop (find-string comment-start 'backward f-1))]))]
-                     [else 
-                      #f])
-                   #f)))
+               (cond
+                 [(not f)
+                  #f]
+                 [(= (position-line f) line)
+                  (let ([f-1 (- f 2)]) ;; -1 to go back one, -1 to be before char
+                    (cond
+                      [(< f-1 0)
+                       #t]
+                      [(not (= (position-line f-1) line))
+                       #t]
+                      [(not (char=? (get-character f-1) #\\ ))
+                       #t]
+                      [else 
+                       (loop (find-string comment-start 'backward f-1))]))]
+                 [else 
+                  #f])))
            (scheme-paren:get-comments))))
 
 
@@ -247,8 +248,7 @@
                (let ([semi-pos (find-string ";" 'backward paren-pos)])
                  (cond
                    [(or (not semi-pos)
-                        (< semi-pos (paragraph-start-position
-                                     (position-paragraph paren-pos))))
+                        (semi-pos . < . (paragraph-start-position (position-paragraph paren-pos))))
                     paren-pos]
                    [else (loop (- semi-pos 1))]))]))))
 
