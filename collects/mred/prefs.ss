@@ -216,14 +216,11 @@
 			    [h (make-object mred:horizontal-panel% main)]
 			    [c (make-object mred:check-box% h callback title)]
 			    [p (make-object mred:horizontal-panel% h)])
-		      (send* h (spacing 1) (border 1))
-		      (send* p (spacing 1) (border 1))
 		      (send c set-value initial-value)
 		      (add-preference-callback pref
 					       (lambda (p v)
 						 (send c set-value (pref->bool v))))))]
 		 [id (lambda (x) x)])
-	    (send main spacing 1)
 	    (make-check 'mred:highlight-parens "Highlight between matching parens?" id id)
 	    (make-check 'mred:paren-match/fixup-parens
 			"Flash paren match and correct parens?" id id)

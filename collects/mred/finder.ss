@@ -326,10 +326,7 @@
 			 "Show files and directories that begin with a period")
 	    (send period-panel stretchable-in-y #f))
 
-	  (send* directory-panel 
-	    (stretchable-in-y #f)
-	    (border 0)
-	    (spacing 0))
+	  (send directory-panel stretchable-in-y #f)
 	  (let ([canvas (make-object mred:canvas:one-line-canvas% directory-panel -1 -1 -1 20 ""
 			      (+ wx:const-mcanvas-hide-h-scroll
 				 wx:const-mcanvas-hide-v-scroll))])
@@ -341,7 +338,6 @@
 		       (lambda (button evt) (do-go))
 		       "Go")
 
-	  (send main-panel spacing 1)
 	  (when multi-mode?
 	    (send add-panel stretchable-in-y #f)
 	    (send remove-panel stretchable-in-y #f)
