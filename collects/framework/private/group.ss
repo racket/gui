@@ -33,6 +33,8 @@
           [define frame-counter 0]
           [define frames null]
           [define todo-to-new-frames void]
+
+          (define ignore-empty-test? #f)
           [define empty-close-down (lambda () (void))]
           [define empty-test (lambda () #t)]
           
@@ -166,8 +168,6 @@
                                 (set-close-menu-item-state! a-frame #t))
                               frames))))]
           
-          
-          
           (field [open-here-frame #f])
           (define/public (set-open-here-frame fr) (set! open-here-frame fr))
           (define/public (get-open-here-frame)
@@ -200,6 +200,9 @@
             (lambda (test close-down) 
               (set! empty-test test)
               (set! empty-close-down close-down))]
+          (define/public (set-ignore-empty-test b)
+            (set! ignore-empty-test? b))
+
           [define get-frames (lambda () (map frame-frame frames))]
           
           [define frame-label-changed
@@ -247,7 +250,8 @@
                       f frames
                       (lambda (f fr) (eq? f (frame-frame fr))))])
                 (if (null? new-frames)
-                    (empty-test)
+		    (or ignore-empty-test?
+			(empty-test))
                     #t)))]
           [define remove-frame
             (lambda (f)
@@ -262,7 +266,8 @@
                 (remove-windows-menu f)
                 (update-windows-menus)
                 (when (null? frames)
-                  (empty-close-down))))]
+                  (unless ignore-empty-test?
+                    (empty-close-down)))))]
           [define clear
             (lambda ()
               (and (empty-test)
