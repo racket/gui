@@ -7,11 +7,7 @@
 
   (define argv (current-command-line-arguments))
 
-  (define preferences-file (build-path (find-system-path 'pref-dir)
-				       (case (system-type)
-					 [(macos) "MrEd Preferences"]
-					 [(windows) "mred.pre"]
-					 [(unix) ".mred.prefs"])))
+  (define preferences-file (find-system-path 'pref-file))
 
   (define old-preferences-file (let-values ([(base name _2) (split-path preferences-file)])
 				 (build-path base (string-append name ".save"))))

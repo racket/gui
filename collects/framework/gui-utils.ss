@@ -1,3 +1,4 @@
+
 (module gui-utils mzscheme
   (require (lib "class.ss")
 	   (lib "mred.ss" "mred")
@@ -213,6 +214,309 @@
     "@flink gui-utils:get-clicked-clickback-delta %"
     "."))
   
+  (provide gui-utils:choices-canvas%)
+
+(define gui-utils:choices-canvas%
+  (class canvas%
+    (init-field choices callback)
+
+    (field 
+     ;; selection : number
+     [selection 0]
+
+     ;; button-down/over : (union #f number)
+     [button-down/over #f])
+    
+    (define/public (get-selection) selection)
+    (define/public (set-selection _selection)
+      (set! selection _selection)
+      (on-paint))
+
+    (inherit get-dc)
+    (define/override (on-paint)
+      (let ([dc (get-dc)])
+        (let loop ([names choices]
+                   [n 0]
+                   [x (get-initial-x dc)])
+          (cond
+            [(null? names) (void)]
+            [else (let* ([name (car names)]
+                         [width (get-width dc name)])
+                    (draw-name dc name x (cond
+                                           [(and button-down/over (= n button-down/over))
+					    'button-down/over]
+                                           [(= n selection) 'selected]
+                                           [else 'unselected]))
+                                             
+                    (loop (cdr names)
+                          (+ n 1)
+                          (+ x
+                             width 
+                             (- hang-over)
+                             name-gap)))]))))
+    
+    ;; on-event : .. same as super
+    ;; tracks clicks and drags for new selections
+    (rename [super-on-event on-event])
+    (define/override (on-event evt)
+      (let ([dc (get-dc)])
+        (cond
+          [(send evt button-down? 'left)
+           (let ([number (find-item evt dc)])
+             (if number
+                 (begin (set! clicking number)
+                        (set! last-over number)
+                        (set! button-down/over number)
+                        (on-paint))
+                 (super-on-event evt)))]
+          [(and clicking
+                (send evt button-up? 'left))
+           (let ([number (find-item evt dc)])
+             (when (and number
+                        (equal? number clicking))
+               (set! selection number)
+               (callback this number))
+             (set! last-over #f)
+             (set! button-down/over #f)
+             (set! clicking #f)
+             (on-paint))]
+          [(and clicking
+                (send evt moving?))
+           (let ([number (find-item evt dc)])
+             (unless (equal? last-over number)
+               (set! last-over number)
+               (if (and number
+                        (equal? clicking number))
+                   (set! button-down/over number)
+                   (set! button-down/over #f))
+               (on-paint)))]
+          [else (super-on-event evt)])))
+
+    (field 
+     ;; clicking : (union #f number)
+     ;; this is the number that is currently being clicked on
+     ;; (and may become the new selection) or #f if nothing
+     ;; is being clicked on.
+     [clicking #f]
+     
+     ;; last-over : (union #f number)
+     ;; while clicking is a number, this holds the number 
+     ;; that the mouse was last over to avoid extra redrawing
+     ;; during on-event.
+     [last-over #f])
+    
+    ;; find-item : mouse-event dc -> (union #f number)
+    ;; if the mouse event's coordinates are in one of the tabs,
+    ;; return that tab's number, otherwise return #f
+    (define/private (find-item evt dc)
+      (let loop ([names choices]
+                 [n 0]
+                 [x (get-initial-x dc)])
+        (cond
+          [(null? names) #f]
+          [else (let* ([name (car names)]
+                       [width (get-width dc name)])
+                  (if (point-in-name? dc x name (send evt get-x) (send evt get-y))
+                      n
+                      (loop (cdr names)
+                            (+ n 1)
+                            (+ x
+                               width 
+                               (- hang-over)
+                               name-gap))))])))
+
+    ;; point-in-name? : dc number string number number -> boolean
+    (define (point-in-name? dc x name px py)
+      (update-points dc name x)
+      (send region set-polygon points)
+      (begin0 (point-in-region? px py)
+              (send region set-rectangle 0 0 0 0)))
+    
+    ;; get-initial-x : dc -> number
+    (inherit get-client-size)
+    (define (get-initial-x dc)
+      (let-values ([(w h) (get-client-size)])
+        (- (/ w 2)
+           (/ (get-total-width dc) 2))))
+    
+    ;; get-width : dc string -> number
+    ;; returns the width of a single name's entry,
+    ;; not counting the hangover space
+    (define/private (get-width dc name)
+      (let-values ([(w h a d) (send dc get-text-extent name label-font)])
+        (+ w hang-over hang-over)))
+
+    ;; get-total-width : dc -> number
+    (define (get-total-width dc)
+      (let loop ([names choices])
+        (cond
+          [(null? names) (- hang-over name-gap)]
+          [else
+           (+ (get-width dc (car names))
+              name-gap
+              (- hang-over)
+              (loop (cdr names)))])))
+    
+    ;; get-height : dc -> number
+    (define (get-height dc)
+      (let-values ([(w h a d) (send dc get-text-extent "Xy" label-font)])
+        (+ h top-space bottom-space)))
+    
+    ;; draw-name : dc string number (symbols selected button-down/over unselected) -> void
+    ;; draws the name and the little box around it
+    ;; at `x'
+    (define (draw-name dc name x state)
+      (update-points dc name x)
+      (send region set-polygon points)
+      (send dc set-brush 
+            (case state
+              [(selected) selected-brush]
+              [(button-down/over) button-down/over-brush]
+              [(unselected) unselected-brush]
+              [else (error 'draw-name "unknown state: ~s\n" state)]))
+      (send dc set-clipping-region region)
+      (send dc draw-rectangle 
+            (bz (min (send p1 get-x)
+		     (send p2 get-x)
+		     (send p3 get-x)
+		     (send p4 get-x)))
+            (bz (min (send p1 get-y)
+		     (send p2 get-y)
+		     (send p3 get-y)
+		     (send p4 get-y)))
+            (bz (max (send p1 get-x)
+		     (send p2 get-x)
+		     (send p3 get-x)
+		     (send p4 get-x)))
+            (bz (max (send p1 get-y)
+		     (send p2 get-y)
+		     (send p3 get-y)
+		     (send p4 get-y))))
+      (send dc set-clipping-region #f)
+      (send region set-polygon null)          
+      
+      (send dc draw-line 
+            (bz (send p1 get-x))
+            (bz (send p1 get-y))
+            (bz (send p2 get-x))
+            (bz (send p2 get-y)))
+      (send dc draw-line 
+            (bz (send p2 get-x))
+            (bz (send p2 get-y))
+            (bz (send p3 get-x))
+            (bz (send p3 get-y)))
+      (send dc draw-line 
+            (bz (send p3 get-x))
+            (bz (send p3 get-y))
+            (bz (send p4 get-x))
+            (bz (send p4 get-y)))
+      
+      (let-values ([(w h a d) (send dc get-text-extent name label-font)])
+        (let ([wid (get-width dc name)])
+          (send dc set-text-foreground 
+                (case state
+                  [(selected) selected-text-color]
+                  [(button-down/over) selected-text-color]
+                  [(unselected) unselected-text-color]))
+	  (send dc set-font label-font)
+          (send dc draw-text name
+		(bz (+ x (- (/ wid 2) (/ w 2))))
+		(bz top-space)))))
+
+    ;; update-points : dc name number -> void
+    ;; updates p1, p2, p3, and p4 with the points around 
+    ;; the name `name', starting at `x'
+    (define/private (update-points dc name x)
+      (let-values ([(w h a d) (send dc get-text-extent name label-font)])
+        (let ([wid (get-width dc name)])
+          (let ([x1 x]
+                [y1 (+ top-space h bottom-space)]
+                [x2 (+ x hang-over)]
+                [y2 1]
+                [x3 (+ x hang-over w hang-over)]
+                [y3 1]
+                [x4 (+ x hang-over w)]
+                [y4 (+ top-space h bottom-space)])
+            (send p1 set-x (bz x1))
+            (send p1 set-y (bz y1))
+            (send p2 set-x (bz x2))
+            (send p2 set-y (bz y2))
+            (send p3 set-x (bz x3))
+            (send p3 set-y (bz y3))
+            (send p4 set-x (bz x4))
+            (send p4 set-y (bz y4))))))
+    
+    (define/private (bz n) (max 0 n))
+
+    ;; point-in-region? : number number -> boolean
+    ;; returns #t if the point specified by `x' and `y' is
+    ;; in `region'.
+    (define (point-in-region? x y)
+      (send tmp-region set-rectangle x y 1 1)
+      (send tmp-region intersect region)
+      (not (send tmp-region is-empty?)))
+    
+    (super-instantiate ())
+    
+    ;; for use with point-in-region?
+    (field [tmp-region (instantiate region% () (dc (get-dc)))])
+    
+    (field [region (instantiate region% () (dc (get-dc)))]
+           [p1 (make-object point% 0 0)]
+           [p2 (make-object point% 0 0)]
+           [p3 (make-object point% 0 0)]
+           [p4 (make-object point% 0 0)]
+           [points (list p1 p2 p3 p4)])
+    
+    (inherit min-height stretchable-height
+             min-width stretchable-width)
+    (stretchable-height #f)
+    (min-height (floor (inexact->exact (get-height (get-dc)))))
+    (stretchable-width #t)
+    (min-width (floor (inexact->exact (get-total-width (get-dc)))))))
+
+;; selected-text-color : color
+(define selected-text-color (make-object color% "black"))
+
+;; unselected-text-color : color
+(define unselected-text-color (make-object color% "light gray"))
+
+;; selected-brush : brush
+(define selected-brush (send the-brush-list find-or-create-brush (get-panel-background) 'solid))
+
+;; unselected-brush : brush
+(define unselected-brush (send the-brush-list find-or-create-brush "white" 'solid))
+
+;; button-down/over-brush : brush
+(define button-down/over-brush (send the-brush-list find-or-create-brush
+				     (make-object color% 225 225 255)
+				     'solid))
+
+;; label-font : font
+(define label-font (send the-font-list find-or-create-font
+			 12
+			 'system 'normal
+			 (if (eq? (system-type) 'macosx) 'bold 'normal)
+			 #f))
+
+;; name-gap : number
+;; the space between each name
+(define name-gap 4)
+
+;; hang-over : number
+;; the amount of space a single entry "slants" over
+(define hang-over 8)
+
+;; top-space : number
+;; the gap at the top of the canvas, above all the choices
+(define top-space 4)
+
+;; bottom-space : number
+;; the extra space below the words
+(define bottom-space 2)
+
+;; end choices-canvas%
+
   (define (cancel-on-right?) (eq? (system-type) 'windows))
   
   (define ok/cancel-buttons
