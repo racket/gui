@@ -442,10 +442,10 @@
 				    [tan (make-object color% "TAN")])
 				(send dc set-background tan)
 				(let* ([bits "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789/+"]
-				       [bm (make-object bitmap% bits 8 8)])
+				       [bm (make-object bitmap% bits 64 8)])
 				  (send dc draw-bitmap bm 306 164 'opaque))
 				(let* ([bits "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz01234567"]
-				       [bm (make-object bitmap% bits 6 10)])
+				       [bm (make-object bitmap% bits 48 10)])
 				  (send dc draw-bitmap bm 306 184 'opaque))
 				(send dc set-background obg)))
 
