@@ -1,6 +1,12 @@
 
 Version 199.18:
 
+ * Changed mouse-event% and key-event% positions (x and y) to be
+   inexact integers. For a scrollable, scalable canvas, mouse clicks
+   are now reported in client pixels (as the documentation has always
+   claimed!) instead of DC coordinates (or some random combination of
+   client and DC coordinates, depending on the platform).
+
  * Added `container-flow-modified' method to area-container<%>, which
    notifies the geometry manager that the result of `place-children',
    etc.  has changed.
@@ -10,6 +16,15 @@ Version 199.18:
 
  * Added colors to `the-color-database' so that all 140 "standard"
    HTML colors are in the databse.
+
+ * Added 'wheel-up and 'wheel-down "key" events.
+
+ * X: Added Motif-style behavior for the middle button in scroll bars
+   and sliders.
+
+ * Windows: Implemented mouse-wheel scrolling in editor-canvas%.
+   The canvas intercepts 'wheel-up and 'wheel-down events instead of
+   passing them on to a displayed editor.
 
 Version 199.17:
 
@@ -136,6 +151,8 @@ Version 103.1:
 
 Version 200: ???
 
+Changed mouse-event% and key-event% positions (x and y) to be
+ inexact integers
 Added popup-menu to window<%>
 Added a popup menu to the message-box dialog that copies the contained
  message to the clipboard
@@ -153,6 +170,7 @@ Added a 'gl style flag to canvas%, and with-gl-context and
  swap-gl-buffers methods; supported for Windows, only
 Added container-flow-modified method to area-container<%>
 Added "standard" HTML colors to the-color-database
+Added 'size-n/s, 'size-e/w, 'size-ne/sw, and 'size-nw/se icons
 Windows: removed special handling of Ctl-m, Ctl-i, and Ctl-h
 X: Default keymap double-click time determined via the standard Xt
  function

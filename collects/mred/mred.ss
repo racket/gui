@@ -4843,8 +4843,8 @@
 										  message
 										  (send e get-time-stamp))))
 							     m)
-							   (inexact->exact (send e get-x))
-							   (inexact->exact (send e get-y)))
+							   (send e get-x)
+							   (send e get-y))
 						     #t)
 						   #f))
 					   #f))])
