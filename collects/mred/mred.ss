@@ -5448,15 +5448,20 @@
 		   "play ~s"]
 		  [(regexp-match (make-pattern "solaris") subpath)
 		   "audioplay ~s"]
+		  [(regexp-match (make-pattern "ppc-macosx") subpath)
+		   'use-play-sound]
 		  [else
 		   (raise-mismatch-error
 		    'play-sound
 		    "Don't know how to play sounds on architecture"
 		    subpath)]))])
-          ; see if user has overridden defaults 		  
-	  (wx:get-resource "mred" "playcmd" b)
-	  ((if async? (lambda (x) (process x) #t) system)
-	   (format (unbox b) (expand-path f)))))))
+	  (if (eq? (unbox b) 'use-play-sound)
+	      (wx:play-sound f async?)
+	      (begin
+		; see if user has overridden defaults 		  
+		(wx:get-resource "mred" "playcmd" b)
+		((if async? (lambda (x) (process x) #t) system)
+		 (format (unbox b) (expand-path f)))))))))
 
 (define (get-display-size)
   (let ([xb (box 0)]
