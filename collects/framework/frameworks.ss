@@ -101,6 +101,7 @@
 
 (define-signature framework:pasteboard^
   (basic%
+   keymap%
    file%
    backup-autosave%
    info%))
@@ -119,6 +120,7 @@
    clever-file-format-mixin
    
    basic% 
+   keymap%
    return%
    file%
    clever-file-format%

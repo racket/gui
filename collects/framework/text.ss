@@ -13,7 +13,7 @@
   ;; unless matthew makes it primitive
 
   (define basic<%>
-    (interface (editor:keymap<%> text<%>)
+    (interface (text<%>)
       highlight-range      
       get-styles-fixed
       set-styles-fixed
@@ -21,7 +21,7 @@
       initial-autowrap-bitmap))
 
   (define basic-mixin
-    (mixin (editor:keymap<%> text<%>) (basic<%>) args
+    (mixin (editor:basic<%> text<%>) (basic<%>) args
       (inherit get-canvases get-admin split-snip get-snip-position
 	       delete find-snip invalidate-bitmap-cache
 	       set-autowrap-bitmap
@@ -297,12 +297,6 @@
       (public
 	[initial-autowrap-bitmap (lambda () #f)])
 
-      (rename [super-get-keymaps get-keymaps])
-      (override
-       [get-keymaps
-	(lambda ()
-	  (cons (keymap:get-global) (super-get-keymaps)))])
-
       (sequence
 	(apply super-init args)
 	(set-autowrap-bitmap (initial-autowrap-bitmap)))))
@@ -311,7 +305,7 @@
     (interface ()
       find-string-embedded))
   (define searching-mixin
-    (mixin (basic<%>) (searching<%>) args
+    (mixin (editor:keymap<%> basic<%>) (searching<%>) args
       (inherit get-end-position get-start-position last-position 
 	       find-string get-snip-position get-admin find-snip)
       (public
@@ -424,7 +418,7 @@
   (define info<%> (interface (editor:basic<%> text<%>)))
 
   (define info-mixin
-    (mixin (editor:basic<%> text<%>) (info<%>) args
+    (mixin (editor:keymap<%> text<%>) (info<%>) args
       (inherit get-start-position get-end-position get-canvas
 	       run-after-edit-sequence)
       (rename [super-after-set-position after-set-position]
@@ -521,9 +515,10 @@
 		   #f))))])
       (sequence (apply super-init args))))
 
-  (define basic% (basic-mixin (editor:keymap-mixin (editor:basic-mixin text%))))
-  (define return% (return-mixin basic%))
-  (define file% (editor:file-mixin basic%))
+  (define basic% (basic-mixin (editor:basic-mixin text%)))
+  (define keymap% (editor:keymap-mixin basic))
+  (define return% (return-mixin keymap%))
+  (define file% (editor:file-mixin keymap%))
   (define clever-file-format% (clever-file-format-mixin file%))
   (define backup-autosave% (editor:backup-autosave-mixin clever-file-format%))
   (define searching% (searching-mixin backup-autosave%))
