@@ -132,14 +132,10 @@
 
       (inherit get-styles-fixed)
       (rename [super-on-focus on-focus]
-	      [super-on-change-style on-change-style]
 	      [super-after-change-style after-change-style]
 	      [super-after-edit-sequence after-edit-sequence]
-	      [super-on-insert on-insert]
 	      [super-after-insert after-insert]
-	      [super-on-delete on-delete]
 	      [super-after-delete after-delete]
-	      [super-on-set-size-constraint on-set-size-constraint]
 	      [super-after-set-size-constraint after-set-size-constraint]
 	      [super-after-set-position after-set-position])
       (override
@@ -147,14 +143,8 @@
 	(lambda (on?)
 	  (super-on-focus on?)
 	  (highlight-parens (not on?)))]
-       [on-change-style
-	(lambda (start len)
-	  (begin-edit-sequence)
-	  (super-on-change-style start len)
-	  #t)]
        [after-change-style
 	(lambda (start len)
-	  (end-edit-sequence)
 	  (unless (get-styles-fixed)
 	    (highlight-parens))
 	  (super-after-change-style start len))]
@@ -163,38 +153,19 @@
 	  (unless in-highlight-parens?
 	    (highlight-parens))
 	  (super-after-edit-sequence))]
-       [on-insert
-	(lambda (start size)
-	  (begin-edit-sequence)
-	  (super-on-insert start size))]
        [after-insert
 	(lambda (start size)
 	  (send backward-cache invalidate start)
-	  (send forward-cache forward-invalidate start size)
-	  (end-edit-sequence)
 	  (highlight-parens)
 	  (super-after-insert start size))]
-       [on-delete
-	(lambda (start size)
-	  (and (super-on-delete start size)
-	       (begin
-		 (send backward-cache invalidate start)
-		 (send forward-cache forward-invalidate (+ start size) (- size))
-		 (begin-edit-sequence)
-		 #t)))]
        [after-delete
 	(lambda (start size)
 	  (super-after-delete start size)
-	  (end-edit-sequence)
+	  (send backward-cache invalidate start)
+	  (send forward-cache forward-invalidate (+ start size) (- size))
 	  (highlight-parens))]
-       [on-set-size-constraint
-	(lambda ()
-	  (and (super-on-set-size-constraint)
-	       (begin (begin-edit-sequence)
-		      #t)))]
        [after-set-size-constraint
 	(lambda ()
-	  (end-edit-sequence)
 	  (highlight-parens)
 	  (super-after-set-size-constraint))]
        [after-set-position 
@@ -212,13 +183,15 @@
 	[find-enclosing-paren
 	 (lambda (pos)
 	   (let loop ([pos pos])
-	     (let ([paren-pos (apply max (map (lambda (pair) (find-string
-							      (car pair)
-							      'backward
-							      pos
-							      'eof
-							      #f))
-					      (scheme-paren:get-paren-pairs)))])
+	     (let ([paren-pos 
+		    (apply max (map (lambda (pair)
+				      (find-string
+				       (car pair)
+				       'backward
+				       pos
+				       'eof
+				       #f))
+				    (scheme-paren:get-paren-pairs)))])
 	       (cond
 		 [(= -1 paren-pos) #f]
 		 [else

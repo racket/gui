@@ -26,7 +26,7 @@
 		    [bottomm (box 0)]
 		    [left-edge-box (box 0)]
 		    [top-edge-box (box 0)]
-		    [snip-media (send s get-this-media)]
+		    [snip-media (send s get-editor)]
 		    [edit (get-editor)])
 	       (when edit
 		 (send edit
@@ -48,8 +48,8 @@
 			     (cond
 			       [(not width?) (fallback)]
 			       [(let ([prev (send s previous)])
-				  (and (not prev
-					    (member 'hard-newline (send prev get-flags)))))
+				  (and (not prev)
+				       (member 'hard-newline (send prev get-flags))))
 				(set-box! left-edge-box 0)]
 			       [else (fallback)]))
 
