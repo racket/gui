@@ -109,8 +109,9 @@
                 (send dc draw-rectangle dt2x dty 2 2)
                 (send dc draw-rectangle dt3x dty 2 2))))
 
+          (inherit get-style)
           (define/override (get-extent dc x y wb hb descentb spaceb lspaceb rspaceb)
-            (let-values ([(w h d a) (send dc get-text-extent sizing-text)])
+            (let-values ([(w h d a) (send dc get-text-extent sizing-text (send (get-style) get-font))])
               (set-box/f! wb w)
               (set-box/f! hb h)
               (set-box/f! descentb d)
@@ -229,7 +230,7 @@
                             null]
                            [else (cons (send snip copy) (loop (send snip next)))]))])
             (send text delete left-pos right-pos)
-            (send text insert (instantiate sexp-snipclass% () 
+            (send text insert (instantiate sexp-snip% () 
                                 (left-bracket left-bracket)
                                 (right-bracket right-bracket)
                                 (saved-snips snips))
@@ -349,7 +350,6 @@
                    last-position
                    paragraph-start-position
                    paragraph-end-position
-                   position-line
                    position-paragraph
                    set-keymap
                    set-load-overwrites-styles
@@ -362,19 +362,19 @@
           (rename [super-on-char on-char])
           
           (define (in-single-line-comment? position)
-            (let ([line (position-line position)])
+            (let ([para (position-paragraph position)])
               (ormap
                (lambda (comment-start)
                  (let loop ([f (find-string comment-start 'backward position)])
                    (cond
                      [(not f)
                       #f]
-                     [(= (position-line f) line)
+                     [(= (position-paragraph f) para)
                       (let ([f-1 (- f 2)]) ;; -1 to go back one, -1 to be before char
                         (cond
                           [(< f-1 0)
                            #t]
-                          [(not (= (position-line f-1) line))
+                          [(not (= (position-paragraph f-1) para))
                            #t]
                           [(not (char=? (get-character f-1) #\\ ))
                            #t]
