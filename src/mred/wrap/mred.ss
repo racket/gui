@@ -54,7 +54,7 @@
 (define identity (lambda (x) x))
 
 (define (check-reasonable-min who v)
-  (unless (<= 1 v max-min)
+  (unless (<= 0 v max-min)
     (error who "not a reasaonable minimum width: ~a" v)))
 
 (define (check-reasonable-margin who v)
@@ -981,7 +981,7 @@
 (define (wx-make-basic-panel% wx:panel%)
   (class (make-container% (make-item% wx:panel% 0 0 #t #t)) (parent style)
     (inherit get-x get-y get-width get-height
-	     min-width min-height
+	     min-width min-height set-min-width set-min-height
 	     x-margin y-margin
 	     get-client-size area-parent)
     
@@ -1263,7 +1263,8 @@
 	  child-infos
 	  placements))])
     (sequence
-      (super-init parent -1 -1 -1 -1 style))))
+      (super-init parent -1 -1 0 0 style)
+      (set-min-width 0) (set-min-height 0))))
 
 (define (wx-make-pane% wx:panel%)
   (class (make-container-glue% (make-glue% (wx-make-basic-panel% wx:panel%))) args
@@ -1523,10 +1524,7 @@
 	 (lambda (type str?)
 	   (when (zero? block-callback)
 	     (let ([str (if str? (get-text 0 (last-position)) #f)]
-		   [e (make-object wx:command-event% type)])
-	       (send e set-event-object control)
-	       (when str
-		 (send e set-command-string str))
+		   [e (make-object wx:control-event% type)])
 	       (cb control e))))])
       (public
 	[on-char
@@ -1572,7 +1570,7 @@
     (sequence
       (super-init #f proxy parent null))
     (private
-      [horiz? (eq? (send parent get-label-position) 'horizontal)]
+      [horiz? (eq? (send (send parent get-window) get-label-position) 'horizontal)]
       [p (if horiz?
 	     this
 	     (make-object wx-vertical-pane% #f proxy this null))]
@@ -1844,8 +1842,8 @@
       
       [get-width (lambda () (send wx get-width))]
       [get-height (lambda () (send wx get-height))]
-      [get-x (lambda () (- (send wx get-x) (send wx dx))]
-      [get-y (lambda () (- (send wx get-y) (send wx dy))]
+      [get-x (lambda () (- (send wx get-x) (send wx dx)))]
+      [get-y (lambda () (- (send wx get-y) (send wx dy)))]
 
       [get-text-extent (letrec ([l (case-lambda 
 				    [(s w h) (l s w h #f #f #f)]
@@ -1983,7 +1981,7 @@
     (sequence
       (super-init (lambda (finish) (finish (make-object wx-dialog-box% this this
 							(and parent (mred->wx parent)) label modal?
-							(or x -1) (or y -1) (or width -1) (or height -1)
+							(or x -1) (or y -1) (or width 0) (or height 0)
 							style)))
 		  label parent))))
 
@@ -2326,10 +2324,10 @@
 
 ;;;;;;;;;;;;;;;;;;;;;; Menu classes ;;;;;;;;;;;;;;;;;;;;;;
 
-(define (find-pos l i)
+(define (find-pos l i eq?)
   (let loop ([l l][n 0])
     (cond
-     [(null? l) n]
+     [(null? l) #f]
      [(eq? (car l) i) n]
      [else (loop (cdr l) (add1 n))])))
 
@@ -2372,7 +2370,7 @@
 		     (let ([p (position-of i)])
 		       (set! items (remq i items))
 		       (delete #f p)))]
-      [position-of (lambda (i) (find-pos items i))])
+      [position-of (lambda (i) (find-pos items i eq?))])
     (sequence
       (super-init null null))))
 
@@ -2387,7 +2385,7 @@
       [get-items (lambda () items)]
       [append-item (lambda (i) (set! items (append items (list i))))]
       [delete (lambda (id i) (super-delete id) (set! items (remq i items)))]
-      [delete-sep (lambda (i) (delete-by-position (find-pos items i)) (set! items (remq i items)))])
+      [delete-sep (lambda (i) (delete-by-position (find-pos items i eq?)) (set! items (remq i items)))])
     (sequence
       (super-init popup-label popup-callback))))
 
@@ -2679,3 +2677,75 @@
   (send frame show #t)
 
   (send repl-display-canvas focus))
+
+(define (get-ps-setup-from-user)
+  (define pss (wx:current-ps-setup))
+  (define f (make-object dialog-box% "PostScript Setup" #t))
+  (define papers 
+    '("A4 210 x 297 mm" "A3 297 x 420 mm" "Letter 8 1/2 x 11 in" "Legal 8 1/2 x 14 in"))
+  (define p (make-object horizontal-pane% f))
+  (define paper (make-object choice% #f papers p void))
+  (define _0 (make-object vertical-pane% p))
+  (define ok (make-object button% "Ok" p (lambda (b e) (done #t)) '(default)))
+  (define cancel (make-object button% "Cancel" p (lambda (b e) (done #f))))
+  (define unix? (eq? (system-type) 'unix))
+  (define dp (make-object horizontal-pane% f))
+  (define orientation (make-object radio-box% "Orientation:" '("Portrait" "Landscape") dp void))
+  (define destination (and unix? (make-object radio-box% "Destination:" 
+					      '("Printer" "Preview" "File") dp void)))
+  (define cp (and unix? (make-object horizontal-pane% f)))
+  (define command (and unix? (make-object text% "Printer Command:" cp void)))
+  (define options (and unix? (make-object text% "Printer Options:" cp void)))
+
+  (define ssp (make-object horizontal-pane% f))
+  (define sp (make-object vertical-pane% ssp))
+  (define def-scale "100.00")
+  (define def-offset "0000.00")
+  (define xscale (make-object text% "Horizontal Scale:" sp void def-scale))
+  (define xoffset (make-object text% "Horizontal Translation:" sp void def-offset))
+  (define sp2 (make-object vertical-pane% ssp))
+  (define yscale (make-object text% "Vertical Scale:" sp2 void def-scale))
+  (define yoffset (make-object text% "Vertical Translation:" sp2 void def-offset))
+
+  (define l2 (make-object check-box% "PostScript Level 2" f void))
+
+  (define (done ok?)
+    (send f show #f))
+
+  (define (no-stretch a) 
+    (send a stretchable-width #f) (send a stretchable-height #f))
+
+  (define-values (xb yb) (values (box 0) (box 0)))
+
+  (send paper set-selection (or (find-pos papers (send pss get-paper-name) equal?) 0))
+  (send orientation set-selection (if (eq? (send pss get-orientation) 'vertical) 1 0))
+  (when unix?
+    (send destination set-selection (case (send pss get-mode)
+				      [(printer) 0] [(preview) 1] [(file) 2]))
+
+    (send command set-value (send pss get-command))
+    (send options set-value (send pss get-options)))
+
+  (send sp set-alignment 'right 'top)
+  (send sp2 set-alignment 'right 'top)
+  (send pss get-scaling xb yb)
+  (send xscale set-value (number->string (unbox xb)))
+  (send yscale set-value (number->string (unbox yb)))
+  (send pss get-translation xb yb)
+  (send xoffset set-value (number->string (unbox xb)))
+  (send yoffset set-value (number->string (unbox yb)))
+  (send xscale stretchable-width #f)
+  (send yscale stretchable-width #f)
+  (send xoffset stretchable-width #f)
+  (send yoffset stretchable-width #f)
+
+  (send l2 set-value (send pss get-level-2))
+
+  (send f set-alignment 'center 'top)
+
+  (map no-stretch (list f xscale yscale xoffset yoffset dp))
+
+  (send f show #t)
+
+  (printf "~a~n" (send orientation get-selection)))
+
