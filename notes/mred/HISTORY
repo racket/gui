@@ -1,221 +1,9 @@
 
-Version 199.27:
-
- * X: when an external program is executed for PS printing or preview,
-   command-line flags can be supplied, and the stdout/stderr output of
-   the program is directed to MrEd's original stderr.
-
-Version 199.26:
-
- * Added a `use-paper-bbox?' initialization argument to
-   post-script-dc%. When it's #t (the default is #f), the bounding box
-   for the PostScript output is determined by the paper size (from
-   `current-ps-setup'), instead of from the history of drawing
-   commands.
-
- * `play-sound' in Linux now uses the `play' function, and under
-   Solaris it uses the `audioplay' function. Default commands for
-   other OSes are welcome.
-
-Version 199.25:
-
- * Restricted all label string arguments to <= 200 characters (so that
-   MrEd doesn't trip over label size constraints in the underlying GUI
-   toolbox).
-
- * X: changed the default "forceFocus" resource value back to 0.
-   Making sawfish 0.37 work the way I expect looks hopeless, and
-   forcing the focus interacted badly with other window managers.
-
-Version 199.24:
-
- * Added a `wheel-step' instantiation keyword and method to
-   editor-canvas%; #f turns off wheel event handling, and the default
-   is 3 (or a value specified through a "mred.wheelStep" resource).
-
- * Added "wheelup" and "wheeldown" event names to keymap%.
-
- * Added a `scroll-to' method to editor-canvas%.
-
- * X: 'no-resize-border works for frame% with many window managers.
-
- * X: too-long menus now scroll.
-
- * X: changed `show' method of a top-level window to try harder to set
-   the focus to the shown (or raised) window. This seems to work
-   better for Gnome, and doesn't seem to have any affect on other
-   window managers that I tried.
-
-   This change can be disabled through a ~/.mred.resources setting:
-
-          mred.forceFocus : 0
-
- * The set of resources that MrEd reads is now documented.
-
-Version 199.23:
-
- * X: mouse wheel events are now reported to `on-char'.
-
-Version 199.22:
-
- * Removed the cursor% constructor that takes a filename (it never
-   worked on any platform), and added a constrcutor that takes image
-   and mask bitmaps, 16x16 monochrome.
-
-Version 199.18:
-
- * Changed mouse-event% and key-event% positions (x and y) to be
-   exact integers. For a scrollable, scalable canvas, mouse clicks
-   are now reported in client pixels (as the documentation has always
-   claimed!) instead of DC coordinates (or some random combination of
-   client and DC coordinates, depending on the platform).
-
- * Added `container-flow-modified' method to area-container<%>, which
-   notifies the geometry manager that the result of `place-children',
-   etc.  has changed.
-
- * Added 'size-n/s, 'size-e/w, 'size-ne/sw, and 'size-nw/se built-in
-   icons.
-
- * Added colors to `the-color-database' so that all 140 "standard"
-   HTML colors are in the databse.
-
- * Added 'wheel-up and 'wheel-down "key" events.
-
- * X: Added Motif-style behavior for the middle button in scroll bars
-   and sliders.
-
- * Windows: Implemented mouse-wheel scrolling in editor-canvas%.
-   The canvas intercepts 'wheel-up and 'wheel-down events instead of
-   passing them on to a displayed editor.
-
-Version 199.17:
-
- * Changed menu-item% and checkable-menu-item%'s `menu' initialization
-   argument to `parent' (to match the docs and the rest of the
-   toolbox).
-
- * Corrected the documentation, changing `help' initialization
-   arguments for menus and menu items to `help-string'.
-
- * Added an optional argument to text%'s get-visible-line-range and
-   get-visible-position-range to control whetherthe computed range is
-   for all displays (the default) or only the current one.
-
- * Added `label' initialization argument to canvas% and editor-canvas%
-   (since they implement window<%>).
-
-Version 199.16:
-
- * Changed `demand-callback' to take a self argument.
-
-Version 199.15:
-
- * Added initialization arguments for all fields of all event%
-   subclasses.
-
- * Added a `demand-callback' initialization argument to all
-   menu-item-conatainer<%> and labelled-menu-item<%> classes.
-
-Version 199.14:
-
- * Converted many classes to have by-name initialization
-   arguments. The order is unchanged from previous versions of MrEd,
-   but arguments have been added. For example, the complete list of
-   frame% argument is now: `label', `parent', `width', `height', `x',
-   `y', `style', `enabled', `border', `spacing', `alignment',
-   `min-width', `min-height', `stretchable-width', and
-   `stretchable-height'.
-
-Version 199.7:
-
- * Added a 'gl style flag to canvas%, for use with extensions that
-   draw to the current OpenGL context. The canvas% class also has two
-   new methods: `with-gl-context' and `swap-gl-buffers'. The 'gl style
-   is only supported in Windows for now.
-
-Version 199.1:
-
- * MacOS: play-sound now plays virtually any kind of sound, including
-   .wav files. QuickTime 3.0 or higher is required.
-
-Version 103.5:
-
- * Added `get-origin' and `get-scale' to dc<%>.
-
-Version 103.4:
-
- * Changed text% so that later-installed clickbacks take precedence
-   over earlier-installed clickbacks.
-
- * Fixed several problems with regions, especially arc regions.
-   Documented the fact that regions created with the `subtract'
-   method are not reliable for post-script-dc% use.
-
- * Removed ps-setup%'s get-options and set-options. (Wasn't needed,
-   since the command string can contain option flags.)
-
- * X: changed default preview command from "ghostview" to "gv".
-
-Version 103.3:
-
- * Windows: fixed editor scrolling so that it updates the text while
-   a user drags the scrollbar.
-
- * Windows: fixed refresh bug (Win2k-specific?) exposed by
-   103.2 threading changes.
-
-Version 103.2:
-
- * Windows: fixed dialog% bugs introduced in 103.1.
-
-Version 103.1:
-
- * Added `popup-menu' to window<%>.
-
- * Added a popup menu to the `message-box' dialog (pops up with any
-   click not on a button) that copies the contained message to the
-   clipboard. Also, disabled the caret of the text box used for
-   large messages. (PR 1416)
-
- * Changed methods in dc<%> classes to raise an exception if the
-   DC is not ok (except for the `ok?' method). Notably, a bitmap-dc%
-   without a bitmap is not ok. (PR 1014)
-
- * Changed dc<%>'s `draw-bitmap' and `draw-bitmap-section' to
-   scale the bitmap if the dc<%> has a scale. (PR 1185)
-
- * Changed text% undo to restore the pre-modification selection.
-   (Previously, undo would move the caret to the end of the
-   restored area.) (PR 778)
-
- * Added optional filters argument to `get-file', `put-file',
-   and `get-file-list' (used by Windows, only). (PR 1501)
-
- * Fixed internal lock handling on focus and activation events. (PR
-   1624, hopefully)
-
- * Windows: removed special handling of Ctl-m, Ctl-i, and Ctl-h
-   (which produced return, tab, and backspace instead of the
-   control characters). (PR 1382)
-
- * Fixed click-handling in text% with embedded editors, when the
-   click is on the embedded editor's line but above or below the
-   embedded editor. (PR 1303)
-
- * Changed selection extension via the keyboard to maintain its state
-   across focus changes and mouse clicks that do not move the
-   selection. (PR 1586)
-
- * X: Default keymap double-click time determined via the standard Xt
-   function. (PR 1580)
-
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
-Version 200: ???
+Version 200alpha1: November 9, 2001
 
 Changed mouse-event% and key-event% positions (x and y) to be
  exact integers
+Added 'wheel-up and 'wheel-down "key" events
 Added popup-menu to window<%>
 Added a popup menu to the message-box dialog that copies the contained
  message to the clipboard
@@ -227,20 +15,25 @@ Changed text% undo to restore the pre-modification selection
 Changed text% so that later-installed clickbacks take precedence
 Changed cursor% constructor to take image and mask bitmaps instead of
  a filename
+Restricted all label string arguments to <= 200 characters
 Added optional filters argument to get-file, put-file, and
  get-file-list (used by Windows, only)
 Fixed internal lock handling on focus and activation events
 Removed ps-setup%'s get-options and set-options
+Added a use-paper-bbox? initialization argument to post-script-dc%
 Added a 'gl style flag to canvas%, and with-gl-context and
  swap-gl-buffers methods; supported for Windows, only
 Added container-flow-modified method to area-container<%>
 Added "standard" HTML colors to the-color-database
 Added 'size-n/s, 'size-e/w, 'size-ne/sw, and 'size-nw/se icons
 Windows: removed special handling of Ctl-m, Ctl-i, and Ctl-h
+X: play-sound in Linux uses the "play" program, and under
+   Solaris, it uses the "audioplay" program
 X: Default keymap double-click time determined via the standard Xt
  function
-X: 'no-resize-border works for frame% with many window managers
-X: too-long menus now scroll
+X: 'no-resize-border and 'no-caption work for frame% with many window
+ managers
+X: too-long menus can scroll
 X: changed default preview command from "ghostview" to "gv"
 MacOS: play-sound plays virtually any kind of sound, including
  .wav files; QuickTime 3.0 or higher is required
