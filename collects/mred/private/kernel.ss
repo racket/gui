@@ -763,6 +763,7 @@
     read-from-file
     get-character
     get-text
+    find-next-non-string-snip
     get-snip-position
     get-snip-position-and-location
     find-snip

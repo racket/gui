@@ -7,6 +7,7 @@
 	   (lib "etc.ss")
 	   (lib "list.ss")
 	   (lib "process.ss")
+	   (lib "port.ss")
 	   (lib "moddep.ss" "syntax")
            "private/seqcontract.ss"
 	   "afm.ss")
@@ -1446,7 +1447,7 @@
 		 (set! t (current-thread))
 		 (semaphore-post done))
 	       #t)
-	      (if (object-wait-multiple 1.0 done)
+	      (if (sync/timeout 1.0 done)
 		  t
 		  ;; Weird - no response after 1 second.  Maybe
 		  ;; someone killed the handler thread before it could
@@ -5973,8 +5974,9 @@
   (define user-output-port
     (let ([leftover #""]
 	  [cvt (bytes-open-converter "UTF-8-permissive" "UTF-8")])
-      (make-custom-output-port
-       #f      ; always ready for a non-blocking write
+      (make-output-port
+       'console
+       always-evt
        (lambda (s start end flush?) 
 	 (queue-output (lambda () 
 			 ;; s might end in the middle of a UTF-8 encoding.
@@ -5984,7 +5986,6 @@
 			     (send repl-buffer output (bytes->string/utf-8 res))
 			     (set! leftover (subbytes s used))))))
 	 (- end start))
-       void    ; no flush action
        void))) ; no close action
    
   (define user-eventspace
@@ -6038,7 +6039,7 @@
        (lambda ()
 	 (current-output-port user-output-port)
 	 (current-error-port user-output-port)
-	 (current-input-port (make-custom-input-port (lambda (s) eof) #f void)))
+	 (current-input-port (open-input-bytes #"")))
        #t)))
 
   (send repl-display-canvas set-editor repl-buffer)
@@ -7495,7 +7496,7 @@
   (interface ()
     read-one-special))
 
-(define empty-string (make-string 0))
+(define empty-string (make-bytes 0))
       
 ;; open-input-text-editor : (instanceof text%) num num -> input-port
 ;; creates a user port whose input is taken from the text%,
@@ -7503,7 +7504,7 @@
 ;; and ending at position `end'.
 (define open-input-text-editor 
   (case-lambda
-   [(text start end snip-filter)
+   [(text start end snip-filter port-name)
     ;; Check arguments:
     (unless (text . is-a? . text%)
       (raise-type-error 'open-input-text-editor "text% object" text))
@@ -7521,102 +7522,119 @@
 	  (raise-mismatch-error 'open-input-text-editor
 				(format "end index outside the range [~a,~a]: " start last)
 				end))))
-    ;; Create the port:
-    (with-method ([gsp (text get-snip-position)])
-      (let-values ([(pipe-r pipe-w) (make-pipe)])
-	(let* ([get-text-generic (generic wx:snip% get-text)]
-	       [get-count-generic (generic wx:snip% get-count)]
-	       [next-generic (generic wx:snip% next)]
-	       [end (if (eq? end 'end) (send text last-position) end)]
-	       [snip (send text find-snip start 'after-or-none)]
-	       [next? #f]
-	       [pos 0]
-	       [lock-semaphore (make-semaphore 1)]
-	       [update-str-to-snip
-		(lambda (to-str)
-		  (if snip
-		      (let ([snip-start (gsp snip)])
-			(cond
-			 [(snip-start . >= . end)
-			  (set! snip #f)
-			  (set! next? #f)
-			  0]
-			 [(is-a? snip wx:string-snip%)
-			  (set! next? #t)
-			  (let ([c (min (send-generic snip get-count-generic) (- end snip-start))])
-			    (display (send-generic snip get-text-generic 0 c) pipe-w)
-			    (read-bytes-avail!* to-str pipe-r))]
-			 [else
-			  (set! next? #f)
-			  0]))
-		      (begin
-			(set! next? #f)
-			0)))]
-	       [next-snip
-		(lambda (to-str)
-		  (set! snip (send-generic snip next-generic))
-		  (set! pos 0)
-		  (update-str-to-snip to-str))]
-	       [read-chars (lambda (to-str)
-			     (cond
-			      [next?
-			       (next-snip to-str)]
-			      [snip
-			       (let-values ([(the-snip alt-size) (snip-filter snip)])
-				 (lambda (file line col ppos)
-				   (if (is-a? the-snip wx:snip%)
-				       (if (is-a? the-snip readable-snip<%>)
-					   (with-handlers ([special-comment?
-							    (lambda (exn)
-							      ;; implies "done"
-							      (next-snip empty-string)
-							      (raise exn))]
-							   [void
-							    (lambda (exn)
-							      ;; Give up after an exception
-							      (next-snip empty-string)
-							      (raise exn))])
-					     (let-values ([(val size done?)
-							   (send the-snip read-one-special pos file line col ppos)])
-					       (if done?
-						   (next-snip empty-string)
-						   (set! pos (add1 pos)))
-					       (values val size)))
-					   (begin
-					     (next-snip empty-string)
-					     (values (send the-snip copy) alt-size)))
-				       (begin
-					 (next-snip empty-string)
-					 (values the-snip alt-size)))))]
-			      [else eof]))]
-	       [close (lambda () (void))]
-	       [port (make-custom-input-port 
-		      (lambda (s)
-			(if (char-ready? pipe-r)
-			    (read-bytes-avail!* s pipe-r)
-			    (parameterize ([break-enabled #f])
-			      (if (semaphore-try-wait? lock-semaphore)
-				  ;; If there's an error here, the
-				  ;; port will remain locked.
-				  (let ([v (read-chars s)])
-				    (semaphore-post lock-semaphore)
-				    v)
-				  (make-semaphore-peek lock-semaphore)))))
-		      #f ; no peek
-		      close
-                      text)])
-	  (if (is-a? snip wx:string-snip%)
-	      ;; Specilal handling for initial snip string in case
-	      ;;  it starts too early:
-	      (let* ([snip-start (gsp snip)]
-		     [skip (- start snip-start)]
-		     [c (min (- (send-generic snip get-count-generic) skip)
-			     (- end snip-start))])
-		(set! next? #t)
-		(display (send-generic snip get-text-generic skip c) pipe-w))
-	      (update-str-to-snip empty-string))
-	  (port-count-lines! port)
-	  port)))]
+    (let ([end (if (eq? end 'end) (send text last-position) end)]
+	  [snip (send text find-snip start 'after-or-none)])
+      (if (and (is-a? snip wx:string-snip%)
+	       (let ([s (send text find-next-non-string-snip snip)])
+		 (or (not s)
+		     ((send text get-snip-position s) . >= . end))))
+	  ;; It's all text --- just read it into a string
+	  (let ([port (open-input-string (send text get-text start end))])
+	    (port-count-lines! port)
+	    port)
+	  ;; Create the port:
+	  (with-method ([gsp (text get-snip-position)])
+	    (let-values ([(pipe-r pipe-w) (make-pipe)])
+	      (let* ([get-text-generic (generic wx:snip% get-text)]
+		     [get-count-generic (generic wx:snip% get-count)]
+		     [next-generic (generic wx:snip% next)]
+		     [next? #f]
+		     [pos 0]
+		     [lock-semaphore (make-semaphore 1)]
+		     [update-str-to-snip
+		      (lambda (to-str)
+			(if snip
+			    (let ([snip-start (gsp snip)])
+			      (cond
+			       [(snip-start . >= . end)
+				(set! snip #f)
+				(set! next? #f)
+				0]
+			       [(is-a? snip wx:string-snip%)
+				(set! next? #t)
+				(let ([c (min (send-generic snip get-count-generic) (- end snip-start))])
+				  (write-string (send-generic snip get-text-generic 0 c) pipe-w)
+				  (read-bytes-avail!* to-str pipe-r))]
+			       [else
+				(set! next? #f)
+				0]))
+			    (begin
+			      (set! next? #f)
+			      0)))]
+		     [next-snip
+		      (lambda (to-str)
+			(set! snip (send-generic snip next-generic))
+			(set! pos 0)
+			(update-str-to-snip to-str))]
+		     [read-chars (lambda (to-str)
+				   (cond
+				    [next?
+				     (next-snip to-str)]
+				    [snip
+				     (let-values ([(the-snip alt-size) (snip-filter snip)])
+				       (cons
+					alt-size
+					(lambda (file line col ppos)
+					  (if (is-a? the-snip wx:snip%)
+					      (if (is-a? the-snip readable-snip<%>)
+						  (with-handlers ([special-comment?
+								   (lambda (exn)
+								     ;; implies "done"
+								     (next-snip empty-string)
+								     (raise exn))]
+								  [void
+								   (lambda (exn)
+								     ;; Give up after an exception
+								     (next-snip empty-string)
+								     (raise exn))])
+						    (let-values ([(val size done?)
+								  (send the-snip read-one-special pos file line col ppos)])
+						      (if done?
+							  (next-snip empty-string)
+							  (set! pos (add1 pos)))
+						      val))
+						  (begin
+						    (next-snip empty-string)
+						    (send the-snip copy)))
+					      (begin
+						(next-snip empty-string)
+						the-snip)))))]
+				    [else eof]))]
+		     [close (lambda () (void))]
+		     [port (make-input-port/read-to-peek
+			    port-name
+			    (lambda (s)
+			      (if (char-ready? pipe-r)
+				  (read-bytes-avail!* s pipe-r)
+				  (parameterize ([break-enabled #f])
+				    (if (semaphore-try-wait? lock-semaphore)
+					;; If there's an error here, the
+					;; port will remain locked.
+					(let ([v (read-chars s)])
+					  (semaphore-post lock-semaphore)
+					  v)
+					(wrap-evt
+					 (semaphore-peek-evt lock-semaphore)
+					 (lambda (x) 0))))))
+			    (lambda (s skip general-peek)
+			      (let ([v (peek-bytes-avail!* s skip pipe-r)])
+				(if (zero? v)
+				    (general-peek s skip)
+				    v)))
+			    close)])
+		(if (is-a? snip wx:string-snip%)
+		    ;; Special handling for initial snip string in
+		    ;; case it starts too early:
+		    (let* ([snip-start (gsp snip)]
+			   [skip (- start snip-start)]
+			   [c (min (- (send-generic snip get-count-generic) skip)
+				   (- end snip-start))])
+		      (set! next? #t)
+		      (display (send-generic snip get-text-generic skip c) pipe-w))
+		    (update-str-to-snip empty-string))
+		(port-count-lines! port)
+		port)))))]
+   [(text start end filter) (open-input-text-editor text start end filter text)]
    [(text start end) (open-input-text-editor text start end (lambda (x) (values x 1)))]
    [(text start) (open-input-text-editor text start 'end)]
    [(text) (open-input-text-editor text 0 'end)]))

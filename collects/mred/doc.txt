@@ -24,3 +24,6 @@ The edit.ss module exports the following function.
 
 > (new-pasteboard-frame file)
   Like `new-text-frame', but for a pasteboard editor.
+
+> (new-frame editor% file)
+  Takes the editor class.

@@ -7,7 +7,8 @@
 	   (lib "mred.ss" "mred"))
 
   (provide new-text-frame
-	   new-pasteboard-frame)
+	   new-pasteboard-frame
+	   new-frame)
 
   (define (new-text-frame file) (new-frame text% file))
   (define (new-pasteboard-frame file) (new-frame pasteboard% file))
