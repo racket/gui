@@ -314,10 +314,11 @@ If the executable name has the form scheme-\|\c
 -qAerC '(require (lib "init.ss" "script-lang" "\|\c
 .I dialect\|\c
 "))'
-so that the first actual command-line argument is the name of a file
-to load; the file should define `main', which is called with the 
-remaining arguments in a list.
-
+In addition, the first command-line argument is duplicated, so that it
+serves as both the name of a file and  the first argument to that file;
+the file should define
+.BR main ,
+which is called with the arguments in a list.
 
 .SH FILES
 The file "~/.mredrc" is loaded before any provided
