@@ -2639,9 +2639,10 @@
 		    (send wx set-title (if l (wx:label->plain-label l) ""))
 		    (super-set-label l)))])
     (public
-      [on-traverse-char (lambda (e)
-			  (check-instance '(method top-level-window<%> on-traverse-char) wx:key-event% 'key-event% #f e)
-			  (send wx handle-traverse-key e))]
+      [on-traverse-char (entry-point-1
+			 (lambda (e)
+			   (check-instance '(method top-level-window<%> on-traverse-char) wx:key-event% 'key-event% #f e)
+			   (send wx handle-traverse-key e)))]
       [get-eventspace (entry-point (lambda () (ivar wx eventspace)))]
       [can-close? (lambda () #t)]
       [can-exit? (lambda () (can-close?))]
@@ -2728,15 +2729,15 @@
       [wx #f]
       [status-line? #f])
     (override
-      [on-subwindow-char (entry-point-2
-			  (lambda (w event)
-			    (super-on-subwindow-char w event)
-			    (or (on-menu-char event)
-				(on-traverse-char event))))])
+      [on-subwindow-char (lambda (w event)
+			   (super-on-subwindow-char w event)
+			   (or (on-menu-char event)
+			       (on-traverse-char event)))])
     (public
-      [on-menu-char (lambda (e)
-		      (check-instance '(method frame% on-menu-char) wx:key-event% 'key-event% #f e)
-		      (send wx handle-menu-key e))]
+      [on-menu-char (entry-point-1
+		     (lambda (e)
+		       (check-instance '(method frame% on-menu-char) wx:key-event% 'key-event% #f e)
+		       (send wx handle-menu-key e)))]
       [create-status-line (entry-point (lambda () (unless status-line? (send wx create-status-line) (set! status-line? #t))))]
       [set-status-text (entry-point-1 (lambda (s) (send wx set-status-text s)))]
       [has-status-line? (lambda () status-line?)]
@@ -2769,9 +2770,9 @@
     (rename [super-on-subwindow-char on-subwindow-char])
     (private [wx #f])
     (override
-      [on-subwindow-char (entry-point-2 (lambda (w event)
-					  (super-on-subwindow-char w event)
-					  (on-traverse-char event)))])
+      [on-subwindow-char (lambda (w event)
+			   (super-on-subwindow-char w event)
+			   (on-traverse-char event))])
     (sequence
       (as-entry
        (lambda ()
@@ -3373,7 +3374,7 @@
       [disabled? #f]
       [keymap (make-object wx:keymap%)])
     (public
-      [handle-key (lambda (event) (send keymap handle-key-event this event))]
+      [handle-key (lambda (event) (as-exit (lambda () (send keymap handle-key-event this event))))]
       [get-mred (lambda () mred)]
       [get-items (lambda () items)]
       [append-item (lambda (item menu title)
@@ -3618,6 +3619,7 @@
 			    [keymap (and key-binding
 					 (let ([keymap (make-object wx:keymap%)])
 					   (send keymap add-key-function "menu-item" 
+						 ;; keymap function callback already in exit mode:
 						 (lambda (edit event) 
 						   (callback this (make-object wx:control-event% 'menu))))
 					   (send keymap map-function key-binding "menu-item")
