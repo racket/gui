@@ -57,7 +57,7 @@
       (sequence
 	(apply super-init args))))
 
-  (define single-window<%> (interface (single<%>)))
+  (define single-window<%> (interface (single<%> window<%>)))
   (define single-window-mixin
     (mixin (single<%> window<%>) (single-window<%>) args
       (inherit get-client-size get-size)

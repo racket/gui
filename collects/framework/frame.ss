@@ -142,6 +142,400 @@
       (sequence
 	(set! after-init? #t))))
 
+  (define info<%> (interface (basic<%>)
+		    determine-width
+		    lock-status-changed
+		    update-info
+		    set-info-canvas
+		    get-info-canvas
+		    get-info-editor
+		    get-info-panel))
+
+  (define info-mixin
+    (mixin (basic<%>) (info<%>) args
+      (rename [super-make-root-area-container make-root-area-container])
+      (private
+	[rest-panel 'uninitialized-root]
+	[super-root 'uninitialized-super-root])
+      (override
+	[make-root-area-container
+	 (lambda (% parent)
+	   (let* ([s-root (super-make-root-area-container
+			   vertical-panel%
+			   parent)]
+		  [r-root (make-object % s-root)])
+	     (set! super-root s-root)
+	     (set! rest-panel r-root)
+	     r-root))])
+
+      (private
+	[info-canvas #f])
+      (public
+        [get-info-canvas
+	 (lambda ()
+	   info-canvas)]
+	[set-info-canvas
+	 (lambda (c)
+	   (set! info-canvas c))]
+	[get-info-editor
+	 (lambda ()
+	   (and info-canvas
+		(send info-canvas get-editor)))])
+
+      (public
+	[determine-width
+	 (let ([magic-space 25])
+	   (lambda (string canvas edit)
+	     (send edit set-autowrap-bitmap #f)
+	     (send canvas call-as-primary-owner
+		   (lambda ()
+		     (let ([lb (box 0)]
+			   [rb (box 0)])
+		       (send edit erase)
+		       (send edit insert string)
+		       (send edit position-location 
+			     (send edit last-position)
+			     rb)
+		       (send edit position-location 0 lb)
+		       (send canvas min-width 
+			     (+ magic-space (- (inexact->exact (floor (unbox rb)))
+					       (inexact->exact (floor (unbox lb)))))))))))])
+      
+      (rename [super-on-close on-close])
+      (private
+	[outer-info-panel 'top-info-panel-uninitialized]
+	[close-panel-callback
+	 (preferences:add-callback
+	  'framework:show-status-line
+	  (lambda (p v)
+	    (if v 
+		(register-gc-blit)
+		(unregister-collecting-blit gc-canvas))
+	    (send super-root change-children
+		  (lambda (l)
+		    (if v
+			(list rest-panel outer-info-panel)
+			(list rest-panel))))))])
+      (private
+	[memory-cleanup void]) ;; only for CVSers; used with memory-text
+      (override
+	[on-close
+	 (lambda ()
+	   (super-on-close)
+	   (unregister-collecting-blit gc-canvas)
+	   (close-panel-callback)
+	   (memory-cleanup))])
+      
+      (public
+	[lock-status-changed
+	 (let ([icon-currently-locked? #f])
+	   (lambda ()
+	     (let ([info-edit (get-info-editor)])
+	       (cond
+		[(not (object? lock-message))
+		 (void)]
+		[info-edit
+		 (unless (send lock-message is-shown?)
+			 (send lock-message show #t))
+		 (let ([locked-now? (ivar info-edit locked?)])
+		   (unless (eq? locked-now? icon-currently-locked?)
+		     (set! icon-currently-locked? locked-now?)
+		     (let ([label
+			    (if locked-now?
+				(icon:get-lock-bitmap)
+				(icon:get-unlock-bitmap))])
+		       (when (object? lock-message)
+			 (send lock-message
+			       set-label
+			       (if (send label ok?)
+				   label
+				   (if locked-now? "Locked" "Unlocked")))))))]
+		[else
+		 (when (send lock-message is-shown?)
+		       (send lock-message show #f))]))))])
+      (public
+	[update-info
+	 (lambda ()
+	   (lock-status-changed))])
+      (sequence 
+	(apply super-init args))
+
+      (public
+	[get-info-panel
+	 (begin
+	   (set! outer-info-panel (make-object horizontal-panel% super-root))
+	   (let ([info-panel (make-object horizontal-panel% outer-info-panel)]
+		 [spacer (make-object grow-box-spacer-pane% outer-info-panel)])
+	     (lambda ()
+	       (send outer-info-panel stretchable-height #f)
+	       info-panel)))])
+      (sequence
+        ;; only for CVSers
+        (when (directory-exists? (build-path (collection-path "framework") "CVS"))
+          (let* ([panel (make-object horizontal-panel% (get-info-panel) '(border))]
+                 [update-text
+                  (lambda ()
+                    (send memory-text begin-edit-sequence)
+                    (send memory-text erase)
+                    (send memory-text insert (number->string (current-memory-use)))
+                    (send memory-text end-edit-sequence))]
+                 [button (make-object button% "Collect" panel 
+                           (lambda x
+                             (collect-garbage)
+                             (update-text)))]
+                 [ec (make-object editor-canvas% panel memory-text '(no-hscroll no-vscroll))])
+            (determine-width "000000000" ec memory-text)
+            (update-text)
+	    (set! memory-cleanup
+		  (lambda ()
+		    (send memory-text remove-canvas ec)
+		    (send ec set-editor #f)))
+            (send panel stretchable-width #f))))
+      (private
+	[lock-message (make-object message%
+			(let ([b (icon:get-unlock-bitmap)])
+			  (if (and #f (send b ok?))
+			      b
+			      "Unlocked"))
+			(get-info-panel))]
+	[gc-canvas (make-object canvas% (get-info-panel) '(border))]
+	[register-gc-blit
+	 (lambda ()
+	   (let ([onb (icon:get-gc-on-bitmap)]
+		 [offb (icon:get-gc-off-bitmap)])
+	     (when (and (send onb ok?)
+			(send offb ok?))
+	       (register-collecting-blit gc-canvas 
+					 0 0
+					 (send onb get-width)
+					 (send onb get-height)
+					 onb offb))))])
+      
+      (sequence
+	(unless (preferences:get 'framework:show-status-line)
+	  (send super-root change-children
+		(lambda (l)
+		  (list rest-panel))))
+	(register-gc-blit)
+	
+	(let* ([gcb (icon:get-gc-on-bitmap)]
+	       [gc-width (if (send gcb ok?)
+			     (send gcb get-width)
+			     10)]
+	       [gc-height (if (send gcb ok?)
+			      (send gcb get-height)
+			      10)])
+	  (send* gc-canvas
+		  (min-client-width (max (send gc-canvas min-width) gc-width))
+		  (min-client-height (max (send gc-canvas min-height) gc-height))
+		  (stretchable-width #f)
+		  (stretchable-height #f)))
+	(send* (get-info-panel) 
+	       (set-alignment 'right 'center)
+	       (stretchable-height #f)
+	       (spacing 3)
+	       (border 3)))))
+
+  (define text-info<%> (interface (info<%>)
+			   overwrite-status-changed
+			   anchor-status-changed
+			   editor-position-changed))
+  (define text-info-mixin
+    (mixin (info<%>) (text-info<%>) args
+      (inherit get-info-editor)
+      (rename [super-on-close on-close])
+      (private
+	[remove-pref-callback
+	 (let ([one
+		(preferences:add-callback
+		 'framework:line-offsets
+		 (lambda (p v)
+		   (editor-position-changed-offset/numbers
+		    v
+		    (preferences:get 'framework:display-line-numbers))
+		   #t))]
+	       [two
+		(preferences:add-callback
+		 'framework:display-line-numbers
+		 (lambda (p v)
+		   (editor-position-changed-offset/numbers
+		    (preferences:get 'framework:line-offsets)
+		    v)
+		   #t))])
+	   (lambda ()
+	     (one)
+	     (two)))])
+
+      (override
+	[on-close
+	 (lambda ()
+	   (super-on-close)
+	   (remove-pref-callback))])
+      
+      (private
+	[editor-position-changed-offset/numbers
+	 (let ([last-start #f]
+	       [last-end #f]
+               [last-params #f])
+	   (lambda (offset? line-numbers?)
+	     (let* ([edit (get-info-editor)]
+		    [make-one
+		     (lambda (pos)
+		       (let* ([line (send edit position-line pos)]
+			      [line-start (send edit line-start-position line)]
+			      [char (- pos line-start)])
+			 (if line-numbers?
+			     (format "~a:~a"
+				     (if offset?
+					 (add1 line)
+					 line)
+				     (if offset?
+					 (add1 char)
+					 char))
+			     (format "~a"
+				     (if offset?
+					 (+ pos 1)
+					 pos)))))])
+	       (cond
+		[(not (object? position-canvas))
+		 (void)]
+		[edit
+		 (unless (send position-canvas is-shown?)
+			 (send position-canvas show #t))
+		 (let ([start (send edit get-start-position)]
+		       [end (send edit get-end-position)])
+		   (unless (and last-start
+                                (equal? last-params (list offset? line-numbers?))
+				(= last-start start)
+				(= last-end end))
+                     (set! last-params (list offset? line-numbers?))
+		     (set! last-start start)
+		     (set! last-end end)
+		     (when (object? position-edit)
+		       (send* position-edit
+			      (lock #f)
+			      (erase)
+			      (insert 
+			       (if (= start end)
+				   (make-one start)
+				   (string-append (make-one start)
+						  "-"
+						  (make-one end))))
+			      (lock #t)))))]
+		[else
+		 (when (send position-canvas is-shown?)
+		       (send position-canvas show #f))]))))])
+      (public
+	[anchor-status-changed
+	 (let ([last-state? #f])
+	   (lambda ()
+	     (let ([info-edit (get-info-editor)]
+		   [failed
+		    (lambda ()
+		      (unless (eq? last-state? #f)
+			(set! last-state? #f)
+			(send anchor-message show #f)))])
+	       (cond
+		[info-edit
+		 (let ([anchor-now? (send info-edit get-anchor)])
+		   (unless (eq? anchor-now? last-state?)
+		     (cond
+		      [(object? anchor-message)
+		       (send anchor-message
+			     show
+			     anchor-now?)
+		       (set! last-state? anchor-now?)]
+		      [else (failed)])))]
+		[else
+		 (failed)]))))]
+	[editor-position-changed
+	 (lambda ()
+	   (editor-position-changed-offset/numbers
+	    (preferences:get 'framework:line-offsets)
+	    (preferences:get 'framework:display-line-numbers)))]
+	[overwrite-status-changed
+	 (let ([last-state? #f])
+	   (lambda ()
+	     (let ([info-edit (get-info-editor)]
+		   [failed
+		    (lambda ()
+		      (set! last-state? #f)
+		      (send overwrite-message show #f))])
+	       (cond
+		[info-edit
+		 (let ([overwrite-now? (send info-edit get-overwrite-mode)])
+		   (unless (eq? overwrite-now? last-state?)
+		     (cond
+		      [(object? overwrite-message)
+		       (send overwrite-message
+			     show
+			     overwrite-now?)
+		       (set! last-state? overwrite-now?)]
+		      [else
+		       (failed)])))]
+		[else
+		 (failed)]))))])
+      (rename [super-update-info update-info])
+      (override
+	[update-info
+	 (lambda ()
+	   (super-update-info)
+	   (overwrite-status-changed)
+	   (anchor-status-changed)
+	   (editor-position-changed))])
+      (sequence 
+	(apply super-init args))
+      
+      (inherit get-info-panel)
+      (private
+	[anchor-message
+	 (make-object message%
+	   (let ([b (icon:get-anchor-bitmap)])
+	     (if (and #f (send b ok?))
+		 b
+		 "Auto-extend Selection"))
+	   (get-info-panel))]
+	[overwrite-message 
+	 (make-object message%
+	   "Overwrite"
+	   (get-info-panel))]
+	[position-canvas (make-object editor-canvas% (get-info-panel) #f '(no-hscroll no-vscroll))]
+	[position-edit (make-object text%)])
+      
+      (inherit determine-width)
+      (sequence
+	(let ([move-front
+	       (lambda (x l)
+		 (cons x (mzlib:function:remq x l)))])
+	  (send (get-info-panel) change-children
+		(lambda (l)
+		  (move-front
+		   anchor-message
+		   (move-front
+		    overwrite-message
+		    (move-front
+		     position-canvas
+		     l))))))
+	(send anchor-message show #f)
+	(send overwrite-message show #f)
+	(send* position-canvas
+	       (set-line-count 1)
+	       (set-editor position-edit)
+	       (stretchable-width #f)
+	       (stretchable-height #f))
+	(determine-width "0000:000-0000:000"
+			 position-canvas
+			 position-edit)
+	(editor-position-changed)
+	(send position-edit hide-caret #t)
+	(send position-edit lock #t))))
+  
+  (define pasteboard-info<%> (interface (info<%>)))
+  (define pasteboard-info-mixin
+    (mixin (basic<%>) (pasteboard-info<%>) args
+      (sequence
+	(apply super-init args))))
+
   (include "standard-menus.ss")
 
   (define -editor<%> (interface (standard-menus<%>)
@@ -160,12 +554,13 @@
 		       get-editor))
 
   (define editor-mixin
-    (mixin (standard-menus<%>) (-editor<%>) (file-name
-					     [parent #f]
-					     [width frame-width]
-					     [height frame-height]
-					     .
-					     args)
+    (mixin (standard-menus<%>) (-editor<%>)
+	   (file-name
+	    [parent #f]
+	    [width frame-width]
+	    [height frame-height]
+	    .
+	    args)
       (inherit get-area-container get-client-size 
 	       show get-edit-target-window get-edit-target-object)
       (rename [super-on-close on-close]
@@ -935,413 +1330,7 @@
 	(send replace-edit add-canvas replace-canvas)
 	(hide-search #t))))
   
-  (define info<%> (interface (-editor<%>)
-		    determine-width
-		    lock-status-changed
-		    update-info
-		    set-info-canvas
-		    get-info-canvas
-		    get-info-editor
-		    get-info-panel))
-
   (define memory-text (make-object text%))
-
-  (define info-mixin
-    (mixin (-editor<%>) (info<%>) args
-      (rename [super-make-root-area-container make-root-area-container])
-      (private
-	[rest-panel 'uninitialized-root]
-	[super-root 'uninitialized-super-root])
-      (override
-	[make-root-area-container
-	 (lambda (% parent)
-	   (let* ([s-root (super-make-root-area-container
-			   vertical-panel%
-			   parent)]
-		  [r-root (make-object % s-root)])
-	     (set! super-root s-root)
-	     (set! rest-panel r-root)
-	     r-root))])
-      
-      (override
-       [get-canvas<%>
-	(lambda () canvas:info<%>)]
-       [get-canvas%
-	(lambda () canvas:info%)])
-
-      (private
-       [info-canvas #f])
-      (public
-        [get-info-canvas
-	 (lambda ()
-	   info-canvas)]
-	[set-info-canvas
-	 (lambda (c)
-	   (set! info-canvas c))]
-	[get-info-editor
-	 (lambda ()
-	   (and info-canvas
-		(send info-canvas get-editor)))])
-
-      (public
-	[determine-width
-	 (let ([magic-space 25])
-	   (lambda (string canvas edit)
-	     (send edit set-autowrap-bitmap #f)
-	     (send canvas call-as-primary-owner
-		   (lambda ()
-		     (let ([lb (box 0)]
-			   [rb (box 0)])
-		       (send edit erase)
-		       (send edit insert string)
-		       (send edit position-location 
-			     (send edit last-position)
-			     rb)
-		       (send edit position-location 0 lb)
-		       (send canvas min-width 
-			     (+ magic-space (- (inexact->exact (floor (unbox rb)))
-					       (inexact->exact (floor (unbox lb)))))))))))])
-      
-      (rename [super-on-close on-close])
-      (private
-	[outer-info-panel 'top-info-panel-uninitialized]
-	[close-panel-callback
-	 (preferences:add-callback
-	  'framework:show-status-line
-	  (lambda (p v)
-	    (if v 
-		(register-gc-blit)
-		(unregister-collecting-blit gc-canvas))
-	    (send super-root change-children
-		  (lambda (l)
-		    (if v
-			(list rest-panel outer-info-panel)
-			(list rest-panel))))))])
-      (private
-	[memory-cleanup void]) ;; only for PLTers; used with memory-text
-      (override
-	[on-close
-	 (lambda ()
-	   (super-on-close)
-	   (unregister-collecting-blit gc-canvas)
-	   (close-panel-callback)
-	   (memory-cleanup))])
-      
-      (public
-	[lock-status-changed
-	 (let ([icon-currently-locked? #f])
-	   (lambda ()
-	     (let ([info-edit (get-info-editor)])
-	       (cond
-		[(not (object? lock-message))
-		 (void)]
-		[info-edit
-		 (unless (send lock-message is-shown?)
-			 (send lock-message show #t))
-		 (let ([locked-now? (ivar info-edit locked?)])
-		   (unless (eq? locked-now? icon-currently-locked?)
-		     (set! icon-currently-locked? locked-now?)
-		     (let ([label
-			    (if locked-now?
-				(icon:get-lock-bitmap)
-				(icon:get-unlock-bitmap))])
-		       (when (object? lock-message)
-			 (send lock-message
-			       set-label
-			       (if (send label ok?)
-				   label
-				   (if locked-now? "Locked" "Unlocked")))))))]
-		[else
-		 (when (send lock-message is-shown?)
-		       (send lock-message show #f))]))))])
-      (public
-	[update-info
-	 (lambda ()
-	   (lock-status-changed))])
-      (sequence 
-	(apply super-init args))
-
-      (public
-	[get-info-panel
-	 (begin
-	   (set! outer-info-panel (make-object horizontal-panel% super-root))
-	   (let ([info-panel (make-object horizontal-panel% outer-info-panel)]
-		 [spacer (make-object grow-box-spacer-pane% outer-info-panel)])
-	     (lambda ()
-	       (send outer-info-panel stretchable-height #f)
-	       info-panel)))])
-      (sequence
-        ;; only for PLTers
-        (when (directory-exists? (build-path (collection-path "framework") "CVS"))
-          (let* ([panel (make-object horizontal-panel% (get-info-panel) '(border))]
-                 [update-text
-                  (lambda ()
-                    (send memory-text begin-edit-sequence)
-                    (send memory-text erase)
-                    (send memory-text insert (number->string (current-memory-use)))
-                    (send memory-text end-edit-sequence))]
-                 [button (make-object button% "Collect" panel 
-                           (lambda x
-                             (collect-garbage)
-                             (update-text)))]
-                 [ec (make-object editor-canvas% panel memory-text '(no-hscroll no-vscroll))])
-            (determine-width "000000000" ec memory-text)
-            (update-text)
-	    (set! memory-cleanup
-		  (lambda ()
-		    (send memory-text remove-canvas ec)
-		    (send ec set-editor #f)))
-            (send panel stretchable-width #f))))
-      (private
-	[lock-message (make-object message%
-			(let ([b (icon:get-unlock-bitmap)])
-			  (if (and #f (send b ok?))
-			      b
-			      "Unlocked"))
-			(get-info-panel))]
-	[gc-canvas (make-object canvas% (get-info-panel) '(border))]
-	[register-gc-blit
-	 (lambda ()
-	   (let ([onb (icon:get-gc-on-bitmap)]
-		 [offb (icon:get-gc-off-bitmap)])
-	     (when (and (send onb ok?)
-			(send offb ok?))
-	       (register-collecting-blit gc-canvas 
-					 0 0
-					 (send onb get-width)
-					 (send onb get-height)
-					 onb offb))))])
-      
-      (sequence
-	(unless (preferences:get 'framework:show-status-line)
-	  (send super-root change-children
-		(lambda (l)
-		  (list rest-panel))))
-	(register-gc-blit)
-	
-	(let* ([gcb (icon:get-gc-on-bitmap)]
-	       [gc-width (if (send gcb ok?)
-			     (send gcb get-width)
-			     10)]
-	       [gc-height (if (send gcb ok?)
-			      (send gcb get-height)
-			      10)])
-	  (send* gc-canvas
-		  (min-client-width (max (send gc-canvas min-width) gc-width))
-		  (min-client-height (max (send gc-canvas min-height) gc-height))
-		  (stretchable-width #f)
-		  (stretchable-height #f)))
-	(send* (get-info-panel) 
-	       (set-alignment 'right 'center)
-	       (stretchable-height #f)
-	       (spacing 3)
-	       (border 3)))))
-
-  (define text-info<%> (interface (info<%>)
-			   overwrite-status-changed
-			   anchor-status-changed
-			   editor-position-changed))
-  (define text-info-mixin
-    (mixin (info<%>) (text-info<%>) args
-      (inherit get-info-editor)
-      (rename [super-on-close on-close])
-      (private
-	[remove-pref-callback
-	 (let ([one
-		(preferences:add-callback
-		 'framework:line-offsets
-		 (lambda (p v)
-		   (editor-position-changed-offset/numbers
-		    v
-		    (preferences:get 'framework:display-line-numbers))
-		   #t))]
-	       [two
-		(preferences:add-callback
-		 'framework:display-line-numbers
-		 (lambda (p v)
-		   (editor-position-changed-offset/numbers
-		    (preferences:get 'framework:line-offsets)
-		    v)
-		   #t))])
-	   (lambda ()
-	     (one)
-	     (two)))])
-      
-      (override
-        [get-editor<%> (lambda () editor:info<%>)]
-        [get-editor% (lambda () text:info%)])
-
-      (override
-	[on-close
-	 (lambda ()
-	   (super-on-close)
-	   (remove-pref-callback))])
-      
-      (private
-	[editor-position-changed-offset/numbers
-	 (let ([last-start #f]
-	       [last-end #f]
-               [last-params #f])
-	   (lambda (offset? line-numbers?)
-	     (let* ([edit (get-info-editor)]
-		    [make-one
-		     (lambda (pos)
-		       (let* ([line (send edit position-line pos)]
-			      [line-start (send edit line-start-position line)]
-			      [char (- pos line-start)])
-			 (if line-numbers?
-			     (format "~a:~a"
-				     (if offset?
-					 (add1 line)
-					 line)
-				     (if offset?
-					 (add1 char)
-					 char))
-			     (format "~a"
-				     (if offset?
-					 (+ pos 1)
-					 pos)))))])
-	       (cond
-		[(not (object? position-canvas))
-		 (void)]
-		[edit
-		 (unless (send position-canvas is-shown?)
-			 (send position-canvas show #t))
-		 (let ([start (send edit get-start-position)]
-		       [end (send edit get-end-position)])
-		   (unless (and last-start
-                                (equal? last-params (list offset? line-numbers?))
-				(= last-start start)
-				(= last-end end))
-                     (set! last-params (list offset? line-numbers?))
-		     (set! last-start start)
-		     (set! last-end end)
-		     (when (object? position-edit)
-		       (send* position-edit
-			      (lock #f)
-			      (erase)
-			      (insert 
-			       (if (= start end)
-				   (make-one start)
-				   (string-append (make-one start)
-						  "-"
-						  (make-one end))))
-			      (lock #t)))))]
-		[else
-		 (when (send position-canvas is-shown?)
-		       (send position-canvas show #f))]))))])
-      (public
-	[anchor-status-changed
-	 (let ([last-state? #f])
-	   (lambda ()
-	     (let ([info-edit (get-info-editor)]
-		   [failed
-		    (lambda ()
-		      (unless (eq? last-state? #f)
-			(set! last-state? #f)
-			(send anchor-message show #f)))])
-	       (cond
-		[info-edit
-		 (let ([anchor-now? (send info-edit get-anchor)])
-		   (unless (eq? anchor-now? last-state?)
-		     (cond
-		      [(object? anchor-message)
-		       (send anchor-message
-			     show
-			     anchor-now?)
-		       (set! last-state? anchor-now?)]
-		      [else (failed)])))]
-		[else
-		 (failed)]))))]
-	[editor-position-changed
-	 (lambda ()
-	   (editor-position-changed-offset/numbers
-	    (preferences:get 'framework:line-offsets)
-	    (preferences:get 'framework:display-line-numbers)))]
-	[overwrite-status-changed
-	 (let ([last-state? #f])
-	   (lambda ()
-	     (let ([info-edit (get-info-editor)]
-		   [failed
-		    (lambda ()
-		      (set! last-state? #f)
-		      (send overwrite-message show #f))])
-	       (cond
-		[info-edit
-		 (let ([overwrite-now? (send info-edit get-overwrite-mode)])
-		   (unless (eq? overwrite-now? last-state?)
-		     (cond
-		      [(object? overwrite-message)
-		       (send overwrite-message
-			     show
-			     overwrite-now?)
-		       (set! last-state? overwrite-now?)]
-		      [else
-		       (failed)])))]
-		[else
-		 (failed)]))))])
-      (rename [super-update-info update-info])
-      (override
-	[update-info
-	 (lambda ()
-	   (super-update-info)
-	   (overwrite-status-changed)
-	   (anchor-status-changed)
-	   (editor-position-changed))])
-      (sequence 
-	(apply super-init args))
-      
-      (inherit get-info-panel)
-      (private
-	[anchor-message 
-	 (make-object message%
-	   (let ([b (icon:get-anchor-bitmap)])
-	     (if (and #f (send b ok?))
-		 b
-		 "Auto-extend Selection"))
-	   (get-info-panel))]
-	[overwrite-message 
-	 (make-object message%
-	   "Overwrite"
-	   (get-info-panel))]
-	[position-canvas (make-object editor-canvas% (get-info-panel) #f '(no-hscroll no-vscroll))]
-	[position-edit (make-object text%)])
-      
-      (inherit determine-width)
-      (sequence
-	(let ([move-front
-	       (lambda (x l)
-		 (cons x (mzlib:function:remq x l)))])
-	  (send (get-info-panel) change-children
-		(lambda (l)
-		  (move-front
-		   anchor-message
-		   (move-front
-		    overwrite-message
-		    (move-front
-		     position-canvas
-		     l))))))
-	(send anchor-message show #f)
-	(send overwrite-message show #f)
-	(send* position-canvas
-	       (set-line-count 1)
-	       (set-editor position-edit)
-	       (stretchable-width #f)
-	       (stretchable-height #f))
-	(determine-width "0000:000-0000:000"
-			 position-canvas
-			 position-edit)
-	(editor-position-changed)
-	(send position-edit hide-caret #t)
-	(send position-edit lock #t))))
-  
-  (define pasteboard-info<%> (interface (info<%>)))
-  (define pasteboard-info-mixin
-    (mixin (info<%>) (pasteboard-info<%>) args
-      (override
-        [get-editor% (lambda () pasteboard:info%)])
-      (sequence
-	(apply super-init args))))
 
   (define file<%> (interface (-editor<%>)))
   (define file-mixin
@@ -1369,16 +1358,17 @@
       (sequence (apply super-init args))))
 
   (define basic% (basic-mixin frame%))
-  (define standard-menus% (standard-menus-mixin basic%))
+  (define info% (info-mixin basic%))
+  (define text-info% (text-info-mixin info%))
+  (define pasteboard-info% (pasteboard-info-mixin text-info%))
+  (define standard-menus% (standard-menus-mixin pasteboard-info%))
   (define editor% (editor-mixin standard-menus%))
 
   (define -text% (text-mixin editor%))
-  (define searchable% (searchable-mixin -text%))
-  (define text-info% (text-info-mixin (info-mixin searchable%)))
-  (define text-info-file% (file-mixin text-info%))
+  (define text-info-file% (file-mixin -text%))
+  (define searchable% (searchable-mixin text-info-file%))
 
   (define -pasteboard% (pasteboard-mixin editor%))
-  (define pasteboard-info% (pasteboard-info-mixin (info-mixin -pasteboard%)))
-  (define pasteboard-info-file% (file-mixin pasteboard-info%))
+  (define pasteboard-info-file% (file-mixin -pasteboard%))
   
   )

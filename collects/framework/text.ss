@@ -6,6 +6,7 @@
 	  [keymap : framework:keymap^]
           [gui-utils : framework:gui-utils^]
 	  [color-model : framework:color-model^]
+	  [frame : framework:frame^]
 	  [mzlib:function : mzlib:function^])
   
   (rename [-keymap% keymap%])
@@ -361,10 +362,10 @@
 	   (sequence
 	     (apply super-init args))))
   
-  (define info<%> (interface (editor:basic<%> (class->interface text%))))
+  (define info<%> (interface (basic<%>)))
   
   (define info-mixin
-    (mixin (editor:keymap<%> (class->interface text%)) (info<%>) args
+    (mixin (editor:keymap<%> basic<%>) (info<%>) args
 	   (inherit get-start-position get-end-position get-canvas
 		    run-after-edit-sequence)
 	   (rename [super-after-set-position after-set-position]
@@ -382,7 +383,9 @@
 		      (lambda ()
 			(let ([canvas (get-canvas)])
 			  (when canvas
-			    ((ivar/proc (send canvas get-top-level-window) ivar-sym))))))
+			    (let ([frame (send canvas get-top-level-window)])
+			      (when (is-a? frame frame:text-info<%>)
+				((ivar/proc frame ivar-sym))))))))
 		 tag))])
 	   (override
 	    [set-anchor

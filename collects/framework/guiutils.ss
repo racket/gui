@@ -1,6 +1,13 @@
 (unit/sig framework:gui-utils^
   (import mred^)
 
+  (define clickback-delta (make-object style-delta% 'change-underline #t))
+  (send clickback-delta set-delta-foreground "BLUE")
+  (define (get-clickback-delta) clickback-delta)
+  (define clicked-clickback-delta (make-object style-delta%))
+  (send clicked-clickback-delta set-delta-background "BLACK")
+  (define (get-clicked-clickback-delta) clicked-clickback-delta)
+
   (define next-untitled-name
     (let ([n 1])
       (lambda ()

@@ -66,7 +66,9 @@
    unsaved-warning
    read-snips/chars-from-text
    get-choice
-   open-input-buffer))
+   open-input-buffer
+   get-clicked-clickback-delta
+   get-clickback-delta))
 
 (define-signature framework:path-utils^
   (generate-autosave-name 
@@ -177,15 +179,16 @@
    file-mixin
 
    basic%
+   info%
+   text-info%
+   pasteboard-info%
    standard-menus%
    editor%
 
    text%
-   searchable%
-   text-info%
    text-info-file%
+   searchable%
    pasteboard%
-   pasteboard-info%
    pasteboard-info-file%))
 
 (define-signature framework:group^

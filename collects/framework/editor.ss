@@ -399,7 +399,7 @@
 	    (rec send-frame-update-lock-icon
 		 (lambda ()
 		   (let ([frame (get-top-level-window)])
-		     (when frame
+		     (when (is-a? frame frame:info<%>)
 		       (send frame lock-status-changed)))))
 	    'framework:update-lock-icon))])
       (sequence (apply super-init args)))))
