@@ -31,7 +31,6 @@
 	    [auto-save-error? #f])
 	  (public
 	    [get-file (lambda (d) 
-			'(printf "d: ~aget-filename:~a ~n" d (send this get-filename))
 			(let ([v (mred:finder:get-file d)])
 			  (if v
 			      v
@@ -188,6 +187,7 @@
 		  [super-after-delete after-delete]
 		  [super-after-set-size-constraint after-set-size-constraint])
 	  (public
+	    [autowrap-bitmap mred:icon:autowrap-bitmap]
 	    [after-load-file
 	     (lambda (sucessful?)
 	       (when sucessful?
@@ -400,7 +400,7 @@
 			   range-rectangles)))])
 	  (sequence
 	    (apply super-init args)
-	    (set-autowrap-bitmap mred:icon:autowrap-bitmap)
+	    (set-autowrap-bitmap autowrap-bitmap)
 	    (let ([keymap (get-keymap)])
 	      (mred:keymap:set-keymap-error-handler keymap)
 	      (mred:keymap:set-keymap-implied-shifts keymap)
