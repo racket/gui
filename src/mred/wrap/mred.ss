@@ -4691,18 +4691,18 @@
     ((mk-file-selector 'put-file #t) message parent directory filename extension style)]))
 
 (define get-color-from-user 
-  (if (not (eq? (system-type) 'unix))
-      wx:get-color-from-user
-      (case-lambda
-       [() (get-color-from-user #f #f #f null)]
-       [(message) (get-color-from-user message #f #f null)]
-       [(message parent) (get-color-from-user message parent #f null)]
-       [(message parent color) (get-color-from-user message parent color null)]
-       [(message parent color style)
-	(check-string/false 'get-color-from-user message)
-	(check-top-level-parent/false 'get-color-from-user parent)
-	(check-instance 'get-color-from-user wx:color% 'color% #t color)
-	(check-style 'get-color-from-user #f null style)
+  (case-lambda
+   [() (get-color-from-user #f #f #f null)]
+   [(message) (get-color-from-user message #f #f null)]
+   [(message parent) (get-color-from-user message parent #f null)]
+   [(message parent color) (get-color-from-user message parent color null)]
+   [(message parent color style)
+    (check-string/false 'get-color-from-user message)
+    (check-top-level-parent/false 'get-color-from-user parent)
+    (check-instance 'get-color-from-user wx:color% 'color% #t color)
+    (check-style 'get-color-from-user #f null style)
+    (if (not (eq? (system-type) 'unix))
+	(wx:get-color-from-user message (and parent (mred->wx parent)) color)
 	(letrec ([ok? #f]
 		 [f (make-object dialog% "Choose Color" parent)]
 		 [done (lambda (ok) (lambda (b e) (set! ok? ok) (send f show #f)))]
@@ -4738,7 +4738,7 @@
 	       (make-object wx:color% 
                             (send red get-value)
                             (send green get-value)
-			    (send blue get-value))))])))
+			    (send blue get-value)))))]))
 
 (define get-font-from-user 
   (if (eq? (system-type) 'windows)
