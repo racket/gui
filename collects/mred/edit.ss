@@ -22,6 +22,49 @@
 
     (mred:preferences:set-preference-default 'mred:auto-set-wrap? #f)
 
+    (define make-media-snip%
+      (lambda (snip%)
+	(class snip% args
+	  (inherit set-flags get-flags set-min-width set-max-width get-admin)
+	  (rename [super-get-extent get-extent])
+	  (public
+	    [auto-set-wrap? (mred:preferences:get-preference 'mred:auto-set-wrap?)]
+	    [set-auto-set-wrap
+	     (lambda (v)
+	       (set! auto-set-wrap? v)
+	       (set-flags 
+		(let ([flags (get-flags)])
+		  (if v 
+		      (bitwise-ior flags wx:const-snip-width-depends-on-x)
+		      (- flags (bitwise-and
+				flags
+				wx:const-snip-width-depends-on-x)))))
+	       (let ([admin (get-admin)])
+		 (unless (null? admin)
+		   (let ([e (send admin get-media)])
+		     (unless (equal? (not v) (not (ivar e auto-set-wrap?)))
+		       (send e set-auto-set-wrap v))))))]
+	    [get-extent
+	     (lambda (dc x y wbox hbox
+		      descentbox spacebox
+		      lspacebox rspacebox)
+	       (let ([w-box (box 0)])
+		 (let ([a (get-admin)])
+		   (unless (null? a)
+		     (send a get-view-size w-box null)
+		     (set-min-width (- (unbox w-box) x))
+		     (set-max-width (- (unbox w-box) x)))))
+	       (super-get-extent dc x y wbox hbox descentbox spacebox
+				 lspacebox rspacebox))]
+	    [copy
+	     (lambda ()
+	       (make-object (object-class this)))])
+	  (sequence
+	    (apply super-init args)
+	    (set-auto-set-wrap auto-set-wrap?)))))
+    
+    (define media-snip% (make-media-snip% wx:media-snip%))
+
     (define make-std-buffer%
       (lambda (buffer%)
 	(class buffer% args
@@ -184,12 +227,12 @@
       (lambda (super%)
 	(class (make-std-buffer% super%) args
 	  (inherit mode set-mode-direct canvases get-file-format 
-		   set-filename
+		   set-filename find-string
 		   change-style save-file
 		   invalidate-bitmap-cache
 		   begin-edit-sequence end-edit-sequence
 		   flash-on get-keymap get-start-position
-		   get-end-position
+		   get-end-position last-position
 		   on-default-char on-default-event 
 		   set-file-format get-style-list
 		   set-autowrap-bitmap
@@ -214,6 +257,7 @@
 		  [super-on-set-size-constraint on-set-size-constraint]
 		  
 		  [super-after-load-file after-load-file]
+		  [super-load-file load-file]
 
 		  [super-after-edit-sequence after-edit-sequence]
 		  [super-after-change-style after-change-style]
@@ -260,8 +304,12 @@
 	       (super-after-save-file success)
 	       (restore-file-format))]
 
-
 	    [autowrap-bitmap mred:icon:autowrap-bitmap]
+	    [load-file
+	     (opt-lambda ([filename null] [format wx:const-media-ff-guess])
+	       (if (file-exists? filename)
+		   (super-load-file filename format)
+		   (set-filename filename)))]
 	    [after-load-file
 	     (lambda (sucessful?)
 	       (when sucessful?
@@ -496,6 +544,67 @@
 		      (send dc set-pen old-pen)
 		      (send dc set-brush old-brush))))
 		range-rectangles))])
+	  (public
+	    [find-string-embedded
+	     (opt-lambda (str [direction 1] [start -1]
+			      [end -1] [get-start #t]
+			      [case-sensitive? #t])
+	       (let/ec k
+		 (let*-values
+		     ([(end) (if (= -1 end)
+				 (if (= direction 1)
+				     (last-position)
+				     0))]
+		      [(flat) (find-string str direction
+					   start end get-start
+					   case-sensitive?)]
+		      [(increment end-test)
+		       (if (= direction 1)
+			   (values add1 (lambda (x) 
+					  (cond
+					    [#t flat]
+					    [(and (not (= -1 flat))
+						  (<= flat x))
+					     flat]
+					    [(<= end x) -1]
+					    [else #f])))
+			   (values sub1 (lambda (x)
+					  (cond
+					    [#t flat]
+					    [(and (not (= -1 flat))
+						  (<= x flat))
+					     flat]
+					    [(<= start x) -1]
+					    [else #f]))))]
+		      [(check-snip)
+		       (opt-lambda (p)
+			 (let* ([b (box 0)]
+				[s (find-snip p wx:const-snip-after b)])
+			   (and (is-a? s wx:media-snip%)
+				(= p (unbox b))
+				s)))])			       
+		   (let loop ([current-pos (if (< start 0)
+					       (get-start-position)
+					       start)])
+		     (cond
+		       [(end-test current-pos) => (lambda (x) (values this x))]
+		       [(check-snip current-pos) =>
+			(lambda (snip)
+			  (let-values ([(embedded embedded-pos)
+					(let ([media (send snip get-this-media)])
+					  (and (not (null? media))
+					       (send media find-string-embedded str
+						     direction
+						     (if (= 1 direction)
+							 0
+							 (send media last-position))
+						     -1
+						     get-start case-sensitive?)))])
+			    (if (= -1 embedded-pos)
+				(loop (increment current-pos))
+				(values embedded embedded-pos))))]
+		       [else 
+			(loop (increment current-pos))])))))])
 	  (sequence
 	    (apply super-init args)
 	    (set-autowrap-bitmap autowrap-bitmap)
