@@ -8,8 +8,11 @@
 
 (require-relative-library "test.ss")
 
-(invoke-open-unit/sig
- (compound-unit/sig
+(begin-elaboration-time
+ (require-library "invoke.ss"))
+
+(define-values/invoke-unit/sig frameworkc^
+  (compound-unit/sig
    (import [core:string : mzlib:string^]
 	   [core:function : mzlib:function^]
 	   [core:pretty-print : mzlib:pretty-print^]
@@ -28,12 +31,13 @@
 			   framework:keys
 			   framework:test)])
    (export (open f)))
- #f
- mzlib:string^
- mzlib:function^
- mzlib:pretty-print^
- mzlib:file^
- mzlib:thread^
- (keys : framework:keys^)
- (test : framework:test^)
- mred-interfaces^)
+  #f
+  mzlib:string^
+  mzlib:function^
+  mzlib:pretty-print^
+  mzlib:file^
+  mzlib:thread^
+  (keys : framework:keys^)
+  (test : framework:test^)
+  mred-interfaces^)
+

@@ -1,6 +1,12 @@
 (require-library "hierlists.ss" "hierlist")
 
-(invoke-open-unit/sig (require-library "hierlistr.ss" "hierlist") #f mred^)
+(begin-elaboration-time
+  (require-library "invoke.ss"))
+
+(define-values/invoke-unit/sig hierlist^
+  (require-library "hierlistr.ss" "hierlist")
+  #f
+  mred^)
 
 #|
 
