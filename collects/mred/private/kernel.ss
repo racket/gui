@@ -11,20 +11,10 @@
     (dynamic-require '#%mred-kernel 'initialize-primitive-object))
   (define kernel:find-in-primitive-class
     (dynamic-require '#%mred-kernel 'find-in-primitive-class))
-  (define kernel:primitive-class->method-name-list
-    (dynamic-require '#%mred-kernel 'primitive-class->method-name-list))
-  (define kernel:primitive-class->method-vector
-    (dynamic-require '#%mred-kernel 'primitive-class->method-vector))
+  (define kernel:primitive-class-find-method
+    (dynamic-require '#%mred-kernel 'primitive-class-find-method))
   (define kernel:primitive-class-prepare-struct-type!
     (dynamic-require '#%mred-kernel 'primitive-class-prepare-struct-type!))
-
-  ;; (require (prefix kernel: #%mred-kernel))
-
-  (define (find-method class name)
-    (let loop ([l (kernel:primitive-class->method-name-list class)][p 0])
-      (if (eq? name (car l))
-	  (vector-ref (kernel:primitive-class->method-vector class) p)
-	  (loop (cdr l) (add1 p)))))
 
   (define-syntax define-constant
     (lambda (stx)
@@ -90,16 +80,17 @@
 		    (define name (let ([c (dynamic-require '#%mred-kernel 'name)])
 				   (make-primitive-class
 				    (lambda (class prop:object dispatcher)
-				      (kernel:primitive-class-prepare-struct-type! c prop:object class dispatcher))
+				      (kernel:primitive-class-prepare-struct-type! 
+				       c prop:object class dispatcher))
 				    kernel:initialize-primitive-object
 				    'name super
 				    '(old ...)
 				    '(new ...)
 				    (list
-				     (find-method c 'old)
+				     (kernel:primitive-class-find-method c 'old)
 				     ...)
 				    (list
-				     (find-method c 'new)
+				     (kernel:primitive-class-find-method c 'new)
 				     ...)))))))))]))))
 
   (define-syntax define-class
