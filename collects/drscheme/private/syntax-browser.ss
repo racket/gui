@@ -25,9 +25,7 @@ needed to really make this work:
       (define t (make-object text%))
       (define ec (make-object editor-canvas% f t))
       (append-editor-operation-menu-items edit-menu)
-      (send t insert "ac")
       (send t insert es)
-      (send t insert "#<syntax>")
       (send f show #t)))
 
   (define (render-syntax/snip stx) (make-object syntax-snip% stx))
@@ -44,6 +42,8 @@ needed to really make this work:
   (send syntax-snipclass set-classname "drscheme:syntax-snipclass%")
   (send (get-the-snip-class-list) add syntax-snipclass)
   
+  (define-struct range (obj start end))
+
   (define syntax-snip%
     (class editor-snip%
       (init-field main-stx)
@@ -66,18 +66,24 @@ needed to really make this work:
       
       ;; assume that there aren't any eq? sub structures, only eq? flat stuff (symbols, etc)
       ;; this is guaranteed by syntax-object->datum/ht
+      
+      ;; range-start-ht : hash-table[obj -o> number]
       (define range-start-ht (make-hash-table))
+
+      ;; range-ht : hash-table[obj -o> (listof (cons number number))]
       (define range-ht (make-hash-table))
       (define original-output-port (current-output-port))
       (define (range-pretty-print-pre-hook x v)
         (hash-table-put! range-start-ht x (send output-text last-position)))
-      (define (range-pretty-print-post-hook x v)
-        (hash-table-put! range-ht x 
-                         (cons
-                          (cons
-                           (hash-table-get range-start-ht x)
-                           (send output-text last-position))
-                          (hash-table-get range-ht x (lambda () null)))))
+      (define (range-pretty-print-post-hook x port)
+        (let ([range-start (hash-table-get range-start-ht x (lambda () #f))])
+          (when range-start
+            (hash-table-put! range-ht x 
+                             (cons
+                              (cons
+                               range-start
+                               (send output-text last-position))
+                              (hash-table-get range-ht x (lambda () null)))))))
       
       (define (make-modern text)
         (send text change-style
@@ -95,10 +101,16 @@ needed to really make this work:
       
       (define ranges 
         (quicksort 
-         (apply append (hash-table-map range-ht (lambda (k vs) (map (lambda (v) (cons k v)) vs))))
+         (apply append 
+                (hash-table-map
+                 range-ht
+                 (lambda (k vs)
+                   (map 
+                    (lambda (v) (make-range k (car v) (cdr v)))
+                    vs))))
          (lambda (x y)
-           (<= (- (car (cdr x)) (cdr (cdr x)))
-               (- (car (cdr y)) (cdr (cdr y)))))))
+           (<= (- (range-end x) (range-start x))
+               (- (range-end y) (range-start y))))))
       
       (define (show-info stx)
         (insert/big "General Info\n")
@@ -248,10 +260,10 @@ needed to really make this work:
       
       (for-each
        (lambda (range)
-         (let* ([obj (car range)]
-                [stx (hash-table-get stx-ht obj)]
-                [start (cadr range)]
-                [end (cddr range)])
+         (let* ([obj (range-obj range)]
+                [stx (hash-table-get stx-ht obj (lambda () #f))]
+                [start (range-start range)]
+                [end (range-end range)])
            (when (syntax? stx)
              (send output-text set-clickback start end 
                    (lambda (_1 _2 _3)
@@ -279,10 +291,14 @@ needed to really make this work:
       
       (send info-text auto-wrap #t)
       (send info-text set-styles-sticky #f)
-      (let ([rng (car ranges)])
-        (show-range (hash-table-get stx-ht (car rng))
-                    (cadr rng)
-                    (cddr rng)))
+      (let/ec k
+        (when (null? ranges)
+          (k (void)))
+        (let* ([rng (car ranges)]
+               [obj (hash-table-get stx-ht (range-obj rng) 
+                                    (lambda ()
+                                      (k (void))))])
+          (show-range obj (range-start rng) (range-end rng))))
       
       (send output-text hide-caret #t)
       (send info-text hide-caret #t)
