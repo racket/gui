@@ -99,6 +99,7 @@ Drawing:
  Removed get-afm-path and set-afm-path from ps-setup%;
   use the PLTAFMDIR environment variable or the
   current-ps-afm-file-paths parameter, instead
+ Added can-show-native? and show-native to ps-setup%
  Changed default 'default PostScript font to Helvetica
  Changed default 'decorative PostScript font to Helvetica
  Changed gl-context% swap-buffers to use the call-as-current lock,
