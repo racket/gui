@@ -96,6 +96,11 @@
 		(send frame show #t)
 		(flush-display) (yield) (sleep)
 		(flush-display) (yield) (sleep))]
+	 [(inc-splash)
+	  (lambda ()
+	    (set! splash-current-width (+ splash-current-width 1))
+	    (when (<= splash-current-width splash-max-width)
+	      (send gauge set-value splash-current-width)))]
 	 [(splash-load-handler)
 	  (let ([depth 0])
 	    (lambda (old-load f)
@@ -104,9 +109,7 @@
 		(dynamic-wind
 		 (lambda () (void))
 		 (lambda ()
-		   (set! splash-current-width (+ splash-current-width 1))
-		   (when (<= splash-current-width splash-max-width)
-		     (send gauge set-value splash-current-width))
+		   (inc-splash)
 		   (set! depth (+ depth 1))
 		   (begin0 (old-load f)
 			   (set! error? #f)))
@@ -116,16 +119,17 @@
 		       (begin (set! depth (- depth 1))
 			      #t)))))))]
 	 [(_4) (current-load
-	       (let ([old-load (current-load)])
-		 (lambda (f)
-		   (splash-load-handler old-load f))))]
+		(let ([old-load (current-load)])
+		  (lambda (f)
+		    (splash-load-handler old-load f))))]
 	 [(shutdown-splash)
 	  (lambda ()
-	    (set! splash-load-handler (lambda (old-load f) (old-load f)))
-	    (unless (= splash-max-width splash-current-width)
-	      (set-resource splash-width-resource (max 1 splash-current-width))))]
+	    (set! splash-load-handler (lambda (old-load f) (old-load f))))]
 	 [(close-splash)
 	  (lambda ()
+	    (inc-splash)
+	    (unless (= splash-max-width splash-current-width)
+	      (set-resource splash-width-resource (max 1 splash-current-width)))
 	    (set! quit-on-close? #f)
 	    (send frame show #f))])
       (values

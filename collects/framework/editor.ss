@@ -236,9 +236,11 @@
 	       get-top-level-window)
       (rename [super-after-save-file after-save-file]
 	      [super-after-load-file after-load-file]
-	      [super-get-keymaps get-keymaps])
+	      [super-get-keymaps get-keymaps]
+	      [super-set-filename set-filename])
       
-      (override [editing-this-file? (lambda () #t)])
+      (override
+       [editing-this-file? (lambda () #t)])
 
       (inherit get-canvases)
       (private
@@ -253,28 +255,37 @@
 				     filename))))])
 	     (lock lock?)))]
 	[update-filename
-	 (lambda ()
-	   (for-each (lambda (canvas)
-		       (let ([tlw (send canvas get-top-level-window)])
-			 (when (is-a? tlw frame:editor<%>)
-			   (let ([filename (mzlib:file:normalize-path (get-filename))])
-			     (let-values ([(base name dir) (split-path filename)])
-			       (send tlw set-label name))))))
-		     (get-canvases)))])
+	 (lambda (name)
+	   (let ([filename (if name
+			       (let-values ([(base name dir) (split-path (mzlib:file:normalize-path name))])
+				 name)
+			       "")])
+	     (for-each (lambda (canvas)
+			 (let ([tlw (send canvas get-top-level-window)])
+			   (when (is-a? tlw frame:editor<%>)
+			     (send tlw set-label name))))
+		       (get-canvases))))])
       (override
 	[after-save-file
 	 (lambda (success)
 	   (when success
-	     (check-lock)
-	     (update-filename))
+	     (check-lock))
 	   (super-after-save-file success))]
 	
 	[after-load-file
 	 (lambda (sucessful?)
 	   (when sucessful?
-	     (check-lock)
-	     (update-filename))
+	     (check-lock))
 	   (super-after-load-file sucessful?))]
+
+	[set-filename
+	 (case-lambda
+	  [(name) (set-filename name #f)]
+	  [(name temp?)
+	   (super-set-filename name temp?)
+	   (unless temp?
+	     (update-filename name))])]
+
 	[get-keymaps
 	 (lambda ()
 	   (cons (keymap:get-file) (super-get-keymaps)))])
