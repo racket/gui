@@ -9,7 +9,8 @@
 	   "../macro.ss"
            (lib "etc.ss")
 	   (lib "mred-sig.ss" "mred")
-	   (lib "file.ss"))
+	   (lib "file.ss")
+           (lib "list.ss"))
 
   (provide editor@)
 
@@ -375,7 +376,7 @@
           [(eq? (system-type) 'unix) 
            (lambda () (get-face-list))]
           [else
-           (let ([compute-ans
+           (let ([compute-fixed-faces
                   (lambda ()
                     (let* ([canvas (make-object canvas% (make-object frame% "bogus"))]
                            [dc (send canvas get-dc)])
@@ -393,7 +394,9 @@
                  [ans #f])
              (lambda ()
                (unless ans
-                 (set! ans (compute-ans)))
+                 (set! ans (compute-fixed-faces))
+                 (set! ans (cons (get-family-builtin-face 'modern)
+                                 (remove (get-family-builtin-face 'modern) ans))))
                ans))]))
       
       (define -keymap<%> (interface (basic<%>) get-keymaps))

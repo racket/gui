@@ -140,7 +140,14 @@
           (hash-table-get defaults p (lambda () (k #f)))
           #t))
 
+      ;; set : symbol any -> void
+      ;; updates the preference `p' and records it as changed
       (define (set p value)
+        (raw-set p value))
+      
+      ;; raw-set : symbol any -> void
+      ;; updates the preference, but without recording it as changed
+      (define (raw-set p value)
         (let* ([pref (hash-table-get preferences p (lambda () #f))])
           (unless (default-set? p)
             (error 'preferences:set "tried to set a preference but no default set for ~e, with ~e"
