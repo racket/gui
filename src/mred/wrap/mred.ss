@@ -1859,7 +1859,8 @@
   (interface ()
     get-parent get-top-level-window
     min-width min-height
-    stretchable-width stretchable-height))
+    stretchable-width stretchable-height
+    get-low-level-window))
 
 (define area%
   (class* mred% (area<%>) (mk-wx get-wx-panel parent)
@@ -1915,7 +1916,7 @@
 
 (define window<%>
   (interface (area<%>)
-    on-focus focus
+    on-focus focus has-focus?
     on-size on-move
     accept-drop-files on-drop-file
     on-subwindow-char on-subwindow-event
@@ -2528,9 +2529,12 @@
 		  (lambda () wx) parent))))
 
 (define basic-pane% (make-subarea% (make-container% area%)))
-(define pane% (make-pane% 'pane basic-pane% wx-pane%))
-(define vertical-pane% (make-pane% 'vertical-pane basic-pane% wx-vertical-pane%))
-(define horizontal-pane% (make-pane% 'horizontal-pane basic-pane% wx-horizontal-pane%))
+(define pane% (class (make-pane% 'pane basic-pane% wx-pane%) args
+		      (sequence (apply super-init args))))
+(define vertical-pane% (class (make-pane% 'vertical-pane basic-pane% wx-vertical-pane%) args
+		      (sequence (apply super-init args))))
+(define horizontal-pane% (class (make-pane% 'horizontal-pane basic-pane% wx-horizontal-pane%) args
+		      (sequence (apply super-init args))))
 
 (define (make-panel% who panel% wx-panel%)
   (class panel% (parent [style null])
@@ -2543,9 +2547,12 @@
 
 
 (define basic-panel% (make-area-container-window% (make-window% #f (make-subarea% (make-container% area%)))))
-(define panel% (make-panel% 'panel basic-panel% wx-panel%))
-(define vertical-panel% (make-panel% 'vertical-panel basic-panel% wx-vertical-panel%))
-(define horizontal-panel% (make-panel% 'horizontal-panel basic-panel% wx-horizontal-panel%))
+(define panel% (class (make-panel% 'panel basic-panel% wx-panel%)  args
+		      (sequence (apply super-init args))))
+(define vertical-panel% (class (make-panel% 'vertical-panel basic-panel% wx-vertical-panel%) args
+		      (sequence (apply super-init args))))
+(define horizontal-panel% (class (make-panel% 'horizontal-panel basic-panel% wx-horizontal-panel%) args
+		      (sequence (apply super-init args))))
 
 ;;;;;;;;;;;;;;;;;;;;;; Menu classes ;;;;;;;;;;;;;;;;;;;;;;
 
@@ -2656,7 +2663,8 @@
 (define menu-item<%>
   (interface ()
     get-parent
-    delete restore is-deleted?))
+    delete restore is-deleted?
+    get-low-level-window))
 
 (define labelled-menu-item<%>
   (interface (menu-item<%>)
@@ -2754,6 +2762,7 @@
 
 (define shortcut-menu-item<%>
   (interface (labelled-menu-item<%>)
+    go
     get-shortcut set-shortcut
     get-x-shortcut-prefix set-x-shortcut-prefix))
 
@@ -2764,7 +2773,7 @@
     (private
       [wx #f])
     (public
-      [go (lambda () (callback this (make-object wx:control-event% 'menu)))])
+      [go (lambda () (void (callback this (make-object wx:control-event% 'menu))))])
     (private
       [x-prefix 'meta]
       [calc-labels (lambda (label)
@@ -2855,7 +2864,7 @@
     (sequence
       (super-init parent label help-string menu #f (send (mred->wx menu) get-keymap) (lambda (x) x)))))
 
-(define menu-item-container<%> (interface () get-items))
+(define menu-item-container<%> (interface () get-items get-low-level-window))
 (define internal-menu<%> (interface ()))
 
 (define basic-menu%
@@ -3003,7 +3012,7 @@
     (let ([m (make-object menu% "File" mb)])
       (make-object menu-item% "Quit" m (lambda (i e) (send frame on-close) (send frame show #f)) #\q))
     (let ([m (make-object menu% "Edit" mb)])
-      (append-edit-operation-menu-items m)))
+      (append-editor-operation-menu-items m)))
 
   ;; Just a few extra key bindings:
   (let* ([k (send repl-buffer get-keymap)]
@@ -3501,8 +3510,8 @@
        [(is-a? p menu%) (loop (send p get-item))]
        [else (send p get-frame)]))))
 
-(define (append-edit-operation-menu-items m)
-  (check-instance 'append-edit-operation-menu-items menu% 'menu #f m)
+(define (append-editor-operation-menu-items m)
+  (check-instance 'append-editor-operation-menu-items menu% 'menu #f m)
   (let ([mk (lambda (name key op)
 	      (make-object menu-item% name m
 			   (lambda (i e)
@@ -3525,8 +3534,8 @@
     (mk "Insert Image..." #f 'insert-image)
     (void)))
 
-(define (append-edit-font-menu-items m)
-  (check-instance 'append-edit-font-menu-items menu% 'menu #f m)
+(define (append-editor-font-menu-items m)
+  (check-instance 'append-editor-font-menu-items menu% 'menu #f m)
   (let ([mk (lambda (name m cb)
 	      (make-object menu-item% name m
 			   (lambda (i e)
