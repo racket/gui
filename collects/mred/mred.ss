@@ -6821,11 +6821,12 @@
 	  ((if async? (lambda (x) (process x) #t) system)
 	   (format (unbox b) (expand-path f)))))))
 
-(define (get-display-size)
-  (let ([xb (box 0)]
-	[yb (box 0)])
-    (wx:display-size xb yb)
-    (values (unbox xb) (unbox yb))))
+(define get-display-size
+  (opt-lambda ([full-screen? #f])
+    (let ([xb (box 0)]
+	  [yb (box 0)])
+      (wx:display-size xb yb (if full-screen? 1 0))
+      (values (unbox xb) (unbox yb)))))
 
 ;; Currently only used for PS print and preview
 (wx:set-executer
@@ -7241,7 +7242,7 @@
 
 (define (get-family-builtin-face family)
   (unless (memq family '(default decorative roman script swiss modern system symbol))
-    (raise-type-error 'get-default-face "family symbol" family))
+    (raise-type-error 'get-family-builtin-face "family symbol" family))
   (case (system-type)
     [(unix)
      ;; Detect Xft by looking for a font with a space in front of its name:
