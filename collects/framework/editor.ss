@@ -194,7 +194,7 @@
       (public
 	[get-keymaps
 	 (lambda ()
-	   (list (keymap:get-global)))])
+           (list (keymap:get-global)))])
       (inherit set-keymap)
       (sequence
 	(apply super-init args)
