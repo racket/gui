@@ -5336,6 +5336,26 @@
    [(message parent directory filename extension style filters)
     ((mk-file-selector 'put-file #t #f) message parent directory filename extension style filters)]))
 
+(define get-directory
+  (case-lambda
+   [() (get-directory #f #f #f null)]
+   [(message) (get-directory message #f #f null)]
+   [(message parent) (get-directory message parent #f null)]
+   [(message parent directory) (get-directory message parent directory null)]
+   [(message parent directory style)
+
+    (check-label-string/false 'get-directory message)
+    (check-top-level-parent/false 'get-directory parent)
+    (check-string/false 'get-directory directory)
+    (check-style 'get-directory #f null style)
+
+    (if (eq? 'windows (system-type))
+	(wx:file-selector
+	 message directory #f #f #f
+	 'dir
+	 (and parent (mred->wx parent)))
+	(error 'get-directory "not supported, yet"))]))
+
 (define get-color-from-user 
   (case-lambda
    [() (get-color-from-user #f #f #f null)]
@@ -6076,6 +6096,7 @@
 	get-file
 	get-file-list
 	put-file
+	get-directory
 	get-choices-from-user
 	get-text-from-user
 	get-ps-setup-from-user
