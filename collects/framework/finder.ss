@@ -578,6 +578,8 @@
 	 (make-object button% "OK" bottom-panel do-ok (if multi-mode? '() '(border)))]
 	[cancel-button (make-object button% "Cancel" bottom-panel do-cancel)])
       (sequence
+	(make-object grow-box-spacer-pane% bottom-panel)
+
 	(cond
 	  [(and start-dir
 		(directory-exists? start-dir))

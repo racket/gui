@@ -85,11 +85,6 @@
      (or (eq? x 'common)
 	 (eq? x 'std))))
 
-  ;; reset this -- this preference is only for the test suite.
-  ;; it does not need to be set across starting up and shutting down
-  ;; the application.
-  (preferences:set 'framework:file-dialogs 'std)
-
   ;; groups
   
   (preferences:set-default 'framework:exit-when-no-frames #t boolean?)
@@ -150,6 +145,11 @@
   ;(wx:application-file-handler edit-file) ;; how to handle drag and drop?
 
   (preferences:read)
+
+  ;; reset these -- they are only for the test suite.
+  ;; they do not need to be set across starting up and shutting down
+  ;; the application.
+  (preferences:set 'framework:file-dialogs 'std)
   (preferences:set 'framework:exit-when-no-frames #t)
   
   (void))
