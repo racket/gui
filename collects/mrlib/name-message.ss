@@ -4,7 +4,7 @@
            (lib "file.ss")
            (lib "list.ss")
            (lib "mred.ss" "mred")
-           (lib "contracts.ss"))
+           (lib "contract.ss"))
   
   (provide/contract
    (draw-button-label
