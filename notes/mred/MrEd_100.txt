@@ -1027,6 +1027,9 @@ Added 'unknown image kind for bitmap%'s load-file, etc., which
 
 canvas%'s get-view-start returns values in pixels, not scroll units
 
+device context's get-text-extent and get-size return multiple values
+ instead of mutating boxes
+
 For canvas%'s set-scrollbars, #f indicates a disabled scrollbar rather
  than a non-positive number
 
