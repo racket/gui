@@ -1983,14 +1983,15 @@
     (define/override (handles-key-code code alpha? meta?) 
       #f)
 
-    (super-instantiate (mred proxy parent -1 -1 -1 -1 null))
+    (super-instantiate (mred proxy parent -1 -1 1 1 null))
 
     (compute-sizes)
     (set-min-width (inexact->exact (ceiling (get-total-width))))
     (set-min-height (inexact->exact (ceiling (+ tab-height 9 raise-h))))))
 
 (define wx-tab-group% 
-  (if (eq? 'unix (system-type))
+  (if 
+(eq? 'unix (system-type))
       canvas-based-tab-group%
       (make-window-glue%
        (make-control% wx:tab-group% 0 0 #t #t))))
