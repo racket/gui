@@ -9,7 +9,8 @@
 
   (rename [-read read])
   
-  (define default-preferences-filename (build-path (collection-path "defaults") "prefs.ss"))
+  (define default-preferences-filename
+    (build-path (collection-path "defaults") "prefs.ss"))
   
   ;; preferences : sym -o> (union marshalled pref)
   (define preferences (make-hash-table))
@@ -237,7 +238,7 @@
 			      (format "Error reading preferences~n~a"
 				      (exn-message exn)))
 			     (k #f))])
-		       (call-with-input-file (prefs-file:get-preferences-filename)
+		       (call-with-input-file preferences-filename
 			 read
 			 'text))])
 	  (if (eof-object? input)
