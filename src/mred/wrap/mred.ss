@@ -190,6 +190,8 @@
 	 (set! enabled? (and b #t))
 	 (super-enable b))])
     (public
+      [eventspace (wx:current-eventspace)]
+
       [is-enabled?
        (lambda () enabled?)]
 
@@ -214,12 +216,12 @@
        (lambda (w)
 	 (and w
 	      (if (is-a? w wx:editor-canvas%)
-		  (let loop ([m (send w get-edit)]
+		  (let loop ([m (send w get-editor)]
 			     [prev w])
 		    (if m
 			(let ([snip (send m get-focus-snip)])
 			  (if (and snip (is-a? snip wx:editor-snip%))
-			      (loop (send snip get-edit) m)
+			      (loop (send snip get-editor) m)
 			      m))
 			w))
 		  focus)))]
@@ -238,6 +240,8 @@
 		       (get-two-int-values get-client-size)])
 	   (send panel set-size 0 0 client-w client-h))
 	 (self-redraw-request))]
+
+      [area-parent (lambda () #f)]
       
       [get-top-panel
        (lambda ()
@@ -578,6 +582,10 @@
 
 ;------------- Mixins for glue to mred classes -----------------
 
+(define (queue-window-callback w cb)
+  (parameterize ([wx:current-eventspace (ivar (send w get-top-level) eventspace)])
+    (wx:queue-callback cb)))
+
 (define wx<%> (interface () get-mred))
 (define wx/proxy<%> (interface (wx<%>) get-proxy))
 
@@ -590,6 +598,7 @@
 
 (define (make-window-glue% %)  ; implies make-glue%
   (class (make-glue% %) (mred proxy . args)
+    (inherit get-x get-y get-width get-height area-parent)
     (rename [super-on-size on-size]
 	    [super-on-set-focus on-set-focus]
 	    [super-on-kill-focus on-kill-focus]
@@ -601,13 +610,34 @@
 			   (if (is-a? w wx/proxy<%>)
 			       (k (wx->proxy w))
 			       (pre-wx->proxy (send w get-parent) k))
-			   #f))])
+			   #f))]
+      [old-w -1]
+      [old-h -1]
+      [old-x -1]
+      [old-y -1])
     (override
       [on-drop-file (lambda (f)
 		      (send proxy on-drop-file f))]
-      [on-size (lambda (x y)
-		 (super-on-size x y)
-		 (and mred (send mred on-size x y)))]
+      [on-size (lambda (w h)
+		 (super-on-size w h)
+		 ; Delay callback to make sure X structures (position) are updated, first
+		 (queue-window-callback
+		  this
+		  (lambda ()
+		    (when mred 
+		      (let* ([w (get-width)]
+			     [h (get-height)])
+			(when (not (and (= w old-w) (= h old-h)))
+			  (set! old-w w)
+			  (set! old-h h)
+			  (send mred on-size w h)))
+		      (let* ([p (area-parent)]
+			     [x (- (get-x) (or (and p (send p dx)) 0))]
+			     [y (- (get-y) (or (and p (send p dy)) 0))])
+			(when (not (and (= x old-x) (= y old-y)))
+			  (set! old-x x)
+			  (set! old-y y)
+			  (send mred on-move x y)))))))]
       [on-set-focus (lambda ()
 		      (super-on-set-focus)
 		      (send proxy on-focus #t))]
@@ -637,11 +667,10 @@
 
 (wx:application-file-handler (lambda (f)
 			       (when active-frame
-				 (let* ([e (send (wx->mred active-frame) get-eventspace)]
+				 (let* ([e (ivar active-frame eventspace)]
 					[p (wx:eventspace-parameterization e)])
 				   (parameterize ([wx:current-eventspace e])
-				     (semaphore-callback
-				      (make-semaphore 1)
+				     (wx:queue-callback
 				      (lambda () (when (ivar active-frame accept-drag?)
 						   (send active-frame on-drop-file f)))))))))
 
@@ -690,7 +719,11 @@
 		     (super-on-event e)))]
       [on-scroll (lambda (e)
 		 (if mred
-		     (send mred on-scroll e)
+		     ; Delay callback for windows scrollbar grab
+		     (queue-window-callback
+		      this
+		      (lambda ()
+			(send mred on-scroll e)))
 		     (super-on-scroll e)))]
       [on-paint (lambda ()
 		 (if mred
@@ -842,10 +875,10 @@
 
 (define (make-editor-canvas% %)
   (class % (parent x y w h name style spp init-buffer)
-    (inherit get-edit force-redraw
+    (inherit get-editor force-redraw
 	     call-as-primary-owner min-height get-size
 	     hard-min-height set-min-height)
-    (rename [super-set-edit set-edit]
+    (rename [super-set-editor set-editor]
 	    [super-on-set-focus on-set-focus])
     (private
       [fixed-height? #f]
@@ -853,22 +886,22 @@
       [orig-hard #f])
     (override
       [on-container-resize (lambda ()
-			     (let ([edit (get-edit)])
+			     (let ([edit (get-editor)])
 			       (when edit
 				 (send edit on-display-size))))]
       [on-set-focus
        (lambda ()
 	 (super-on-set-focus)
-	 (let ([m (get-edit)])
+	 (let ([m (get-editor)])
 	   (when m 
 	     (let ([mred (wx->mred this)])
 	       (when mred
 		 (send m set-active-canvas mred))))))]
-      [set-edit
+      [set-editor
        (letrec ([l (case-lambda
 		    [(edit) (l edit #t)]
 		    [(edit redraw?)
-		     (super-set-edit edit redraw?)
+		     (super-set-editor edit redraw?)
 		     
 		     (let ([mred (wx->mred this)])
 		       (when mred
@@ -895,7 +928,7 @@
 			(update-size))]
       [update-size
        (lambda ()
-	 (let ([edit (get-edit)])
+	 (let ([edit (get-editor)])
 	   (when (and edit fixed-height?)
 	     (let* ([top (send edit line-location 0 #t)]
 		    [bottom (send edit line-location 0 #f)]
@@ -1684,7 +1717,7 @@
 		      this)]
       [dy 0])
     (public
-      [get-edit (lambda () e)]
+      [get-editor (lambda () e)]
       
       [get-value (lambda () (send e get-text))]
       [set-value (lambda (v) (send e without-callback
@@ -1715,7 +1748,7 @@
       (let ([f (get-control-font)]
 	    [s (send (send e get-style-list) find-named-style "Standard")])
 	(send s set-delta (font->delta f)))
-      (send c set-edit e)
+      (send c set-editor e)
       (send c set-line-count (if multi? 3 1))
 
       (when (and l horiz?)
@@ -1877,7 +1910,7 @@
 (define window<%>
   (interface (area<%>)
     on-focus focus
-    on-size
+    on-size on-move
     accept-drop-files on-drop-file
     on-subwindow-char on-subwindow-event
     client->screen screen->client
@@ -1893,6 +1926,7 @@
     (public
       [on-focus void]
       [on-size void]
+      [on-move void]
       [on-subwindow-char (lambda (w e) #f)]
       [on-subwindow-event (lambda (w e) #f)]
       [on-drop-file void]
@@ -1981,14 +2015,13 @@
        (lambda (o)
 	 (if (is-a? o wx:window%)
 	     (wx->proxy o)
-	     o))]
-      [eventspace (wx:current-eventspace)])
+	     o))])
     (override
       [set-label (lambda (l)
 		   (send wx set-title (wx:label->plain-label l))
 		   (super-set-label l))])
     (public
-      [get-eventspace (lambda () eventspace)]
+      [get-eventspace (lambda () (ivar wx eventspace))]
       [can-close? (lambda () #t)]
       [on-close void]
       [on-activate void]
@@ -2325,12 +2358,8 @@
 		    wx)
 		  label parent))))
 
-(define text-control<%>
-  (interface (control<%>)
-    get-edit get-value set-value))
-
 (define text-field%
-  (class* basic-control% (text-control<%>) (label parent callback [init-val ""] [style '(single)])
+  (class* basic-control% () (label parent callback [init-val ""] [style '(single)])
     (sequence 
       (let ([cwho '(constructor-name text-field)])
 	(check-string/false cwho label)
@@ -2341,7 +2370,7 @@
     (private
       [wx #f])
     (public
-      [get-edit (lambda () (send wx get-edit))]
+      [get-editor (lambda () (send wx get-editor))]
       [get-value (lambda () (send wx get-value))]
       [set-value (lambda (v) 
 		   (check-string '(method text-control<%> set-value) v)
@@ -2396,13 +2425,18 @@
 				    (lambda (x y) (send wx get-virtual-size x y))))]
       [get-view-start (lambda () (double-boxed
 				  0 0
-				  (lambda (x y) (send wx get-view-start x y))))]
+				  (lambda (x y) (send wx view-start x y))))]
 
       [scroll (lambda (x y) (send wx scroll x y))]
 
-      [set-scrollbars (lambda (h-pixels v-pixels x-len y-len x-page y-page x-val y-val man?)
-			(send wx set-scrollbars 
-			      h-pixels v-pixels x-len y-len x-page y-page x-val y-val man?))]
+      [set-scrollbars (letrec ([set-scrollbars
+				(case-lambda 
+				 [(h-pixels v-pixels x-len y-len x-page y-page x-val y-val)
+				  (set-scrollbars h-pixels v-pixels x-len y-len x-page y-page x-val y-val #f)]
+				 [(h-pixels v-pixels x-len y-len x-page y-page x-val y-val man?)
+				  (send wx set-scrollbars 
+					h-pixels v-pixels x-len y-len x-page y-page x-val y-val man?)])])
+			set-scrollbars)]
 
       [get-scroll-pos (lambda (d) (send wx get-scroll-pos d))]
       [set-scroll-pos (lambda (d v) (send wx set-scroll-pos d v))]
@@ -2461,8 +2495,8 @@
 			     n))
 	 (send wx set-line-count n))]
 
-      [get-edit (lambda () (send wx get-edit))]
-      [set-edit (lambda (m) (send wx set-edit m))])
+      [get-editor (lambda () (send wx get-editor))]
+      [set-editor (lambda (m) (send wx set-editor m))])
     (private
       [wx #f])
     (sequence
@@ -2942,8 +2976,7 @@
   
   (define (evaluate expr-str)
     (parameterize ([wx:current-eventspace user-eventspace])
-      (semaphore-callback
-       (make-semaphore 1)
+      (wx:queue-callback
        (lambda ()
 	 (current-parameterization user-parameterization)
 	 (dynamic-wind
@@ -2986,7 +3019,7 @@
   ((in-parameterization user-parameterization current-error-port) user-output-port)
   ((in-parameterization user-parameterization current-input-port) (make-input-port (lambda () eof) void void))
   ((in-parameterization user-parameterization current-custodian) user-custodian)
-  (send repl-display-canvas set-edit repl-buffer)
+  (send repl-display-canvas set-editor repl-buffer)
   (send frame show #t)
 
   (send repl-display-canvas focus)
@@ -3023,7 +3056,7 @@
 	    (send f stretchable-height #f))
 	  (let ([m (make-object text-field% #f f void "" '(multiple))])
 	    (send m set-value message)
-	    (send (send m get-edit) lock #t)))
+	    (send (send m get-editor) lock #t)))
       (let* ([p (make-object horizontal-pane% f)]
 	     [mk-button (lambda (title v default?) 
 			  (let ([b (make-object button% title p (lambda (b e) (set! result v) (send f show #f))
@@ -3410,7 +3443,7 @@
 		 [underlined (make-object check-box% "Underlined" p2 refresh-sample)]
 		 [size (make-object slider% "Size:" 4 127 p2 refresh-sample 12)]
 		 [sample (make-object text-field% "Sample" f void "The quick brown fox jumped over the lazy dog" '(multiple))]
-		 [edit (send sample get-edit)]
+		 [edit (send sample get-editor)]
 		 [done (lambda (ok) (lambda (b e) (set! ok? ok) (send f show #f)))]
 		 [get-font (lambda () (let ([face (send face get-string-selection)])
 					(and face
