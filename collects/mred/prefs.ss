@@ -175,15 +175,17 @@
 	    (lambda (p)
 	      (mzlib:pretty-print:pretty-print
 	       (hash-table-map preferences marshall-pref) p))
-	      'truncate)	  
+	      'truncate 'text)	  
 	  (mred:debug:printf 'prefs "saved user preferences"))))
     
     (mred:exit:insert-exit-callback 
      (lambda ()
-       (with-handlers ((void (lambda (exn)
+       (with-handlers ([(lambda (x) #t)
+			(lambda (exn)
 			       (mred:gui-utils:message-box
-				(format "exception raied while saving prefs: ~a"
-					(exn-message exn))))))
+				(format "error while saving prefs: ~a"
+					(exn-message exn))
+				"Saving Prefs"))])
 	 (save-user-preferences))))
 
     (define read-user-preferences 
@@ -218,7 +220,8 @@
 		     (wx:message-box (format "found bad pref: ~n~a" input)
 				     "Preferences"))])
 	      (let loop ([input (call-with-input-file preferences-filename
-				  read)])
+				  read
+				  'text)])
 		(cond
 		 [(pair? input)
 		  (let/ec k
