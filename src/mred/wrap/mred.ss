@@ -1325,8 +1325,10 @@
 		 (lambda ()
 		   (let ([mred (get-mred)])
 		     (if mred
-			 (if (eq? 'windows (system-type))
-			     ;; Windows can circumvent the event queue, so delay
+			 (if (and (eq? 'windows (system-type))
+				  (not (eq? (wx:current-eventspace)
+					    (ivar (get-top-level) eventspace))))
+			     ;; Windows circumvented the event queue; delay
 			     (queue-window-callback
 			      this
 			      (lambda () (send mred on-paint)))
