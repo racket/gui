@@ -3211,10 +3211,13 @@
       [wx #f])
     (sequence
       (super-init (lambda () 
-		    (set! wx (make-object wx-canvas% this this
-					  (mred->wx-container parent)
-					  -1 -1 canvas-default-size canvas-default-size
-					  style))
+		    (let ([ds (if (or (memq 'vscroll style) (memq 'hscroll style))
+				  canvas-default-size
+				  1)])
+		      (set! wx (make-object wx-canvas% this this
+					    (mred->wx-container parent)
+					    -1 -1 ds ds
+					    style)))
 		    wx)
 		  parent))))
     
