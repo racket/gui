@@ -286,6 +286,7 @@
           select-up-sexp
           select-down-sexp
           transpose-sexp
+          mark-matching-parenthesis
           get-tab-size
           set-tab-size))
       
@@ -322,6 +323,15 @@
           (make-object color% gray-level gray-level gray-level)))
       (define mismatch-color (make-object color% "PINK"))
       
+      (define matching-parenthesis-style 
+        (let ([matching-parenthesis-delta (make-object style-delta% 'change-bold)])
+          (send matching-parenthesis-delta set-delta-foreground "forest green")
+          (send style-list new-named-style "Matching Parenthesis Style"
+                (send style-list find-or-create-style
+                      (send style-list find-named-style "Standard")
+                      matching-parenthesis-delta))
+          (send style-list find-named-style "Matching Parenthesis Style")))
+
       (define text-mixin 
         (mixin (text:basic<%> editor:keymap<%>) (-text<%>)
           (inherit begin-edit-sequence
@@ -349,7 +359,8 @@
                    set-wordbreak-map
                    set-tabs
                    set-style-list
-                   set-styles-fixed)
+                   set-styles-fixed
+                   change-style)
           (rename [super-on-char on-char])
           
           (define (in-single-line-comment? position)
@@ -1003,12 +1014,31 @@
                       (bell))
                   #t)))]
           (public select-forward-sexp select-backward-sexp select-up-sexp select-down-sexp
-                  transpose-sexp)
+                  transpose-sexp mark-matching-parenthesis)
           
           [define select-forward-sexp (lambda () (select-text (lambda (x) (get-forward-sexp x)) #t))]
           [define select-backward-sexp (lambda () (select-text (lambda (x) (get-backward-sexp x)) #f))]
           [define select-up-sexp (lambda () (select-text (lambda (x) (find-up-sexp x)) #f))]
           [define select-down-sexp (lambda () (select-text (lambda (x) (find-down-sexp x)) #t))]
+          
+          (define (mark-matching-parenthesis pos)
+            (let ([open-parens (map car (scheme-paren:get-paren-pairs))]
+                  [close-parens (map cdr (scheme-paren:get-paren-pairs))])
+              (when (member (string (get-character pos)) open-parens)
+                (let ([end (get-forward-sexp pos)])
+                  (when (and end
+                             (member (string (get-character (- end 1))) close-parens))
+                    (let ([start-style (send (find-snip pos 'after) get-style)]
+                          [end-style (send (find-snip end 'before) get-style)])
+                      (cond
+                        [(and (eq? matching-parenthesis-style start-style)
+                              (eq? matching-parenthesis-style end-style))
+                         (let ([standard-style (send style-list find-named-style "Standard")])
+                           (change-style standard-style pos (+ pos 1))
+                           (change-style standard-style (- end 1) end))]
+                        [else
+                         (change-style matching-parenthesis-style pos (+ pos 1))
+                         (change-style matching-parenthesis-style (- end 1) end)])))))))
           
           [define transpose-sexp
             (lambda (pos)
@@ -1089,7 +1119,9 @@
             (add-pos-function "flash-backward-sexp" (lambda (e p) (send e flash-backward-sexp p)))
             (add-pos-function "flash-forward-sexp" (lambda (e p) (send e flash-forward-sexp p)))
             (add-pos-function "remove-parens-forward" (lambda (e p) (send e remove-parens-forward p)))
-            (add-pos-function "transpose-sexp" (lambda (e p) (send e transpose-sexp p))))
+            (add-pos-function "transpose-sexp" (lambda (e p) (send e transpose-sexp p)))
+            (add-pos-function "mark-matching-parenthesis"
+                              (lambda (e p) (send e mark-matching-parenthesis p))))
           
           (let ([add-edit-function
                  (lambda (name call-method)
