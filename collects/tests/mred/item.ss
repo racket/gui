@@ -321,7 +321,7 @@
     (sequence
       (apply super-init name args))))
 
-(define (make-ctls ip cp lp add-testers ep radio-h? label-h? null-label? stretchy?)
+(define (make-ctls ip cp lp add-testers ep radio-h? label-h? null-label? stretchy? alt-inits?)
   
   (define return-bmp 
     (make-object bitmap% (icons-path "return.xbm") 'xbm))
@@ -367,11 +367,13 @@
   (define lb (make-object (trace-mixin list-box%)
 			  (if null-label? #f "L\355&st") ; 355 is i with '
 			  '("Appl\351" "Banana" "Coconut & Donuts" "Eclair" "French Fries" "Gatorade" "Huevos Rancheros") ; 351 is e with '
-			  ip void))
+			  ip void
+			  '(single)
+			  (if alt-inits? 2 #f)))
   
-  (define cb (make-object (trace-mixin check-box%) "C&h\351ck" ip void)) ; 351 is e with '
+  (define cb (make-object (trace-mixin check-box%) "C&h\351ck" ip void null alt-inits?)) ; 351 is e with '
   
-  (define icb (make-object (trace-mixin check-box%) mred-bmp ip void))
+  (define icb (make-object (trace-mixin check-box%) mred-bmp ip void null alt-inits?))
   
   (define rb (make-object (trace-mixin radio-box%)
 			  (if null-label? #f "R&ad\355o") ; 355 is i with '
@@ -379,7 +381,8 @@
 			  ip void 
 			  (if radio-h?
 			      '(horizontal)
-			      '(vertical))))
+			      '(vertical))
+			  (if alt-inits? 2 0)))
   
   (define irb (make-object (trace-mixin radio-box%)
 			   (if null-label? #f "Image Ra&dio")
@@ -387,12 +390,15 @@
 			    ip void 
 			    (if radio-h?
 				'(horizontal)
-				'(vertical))))
+				'(vertical))
+			  (if alt-inits? 1 0)))
   
   (define ch (make-object (trace-mixin choice%)
 			  (if null-label? #f "Ch&o\355ce") ; 355 is i with '
 			  '("Alpha" "Beta" "Gamma" "Delta & R\351st") ; 351 is e with '
-			  ip void))
+			  ip void
+			  null
+			  (if alt-inits? 3 0)))
   
   (define txt (make-object (trace-mixin text-field%)
 			   (if null-label? #f "T\351&xt") ; 351 is e with '
@@ -464,7 +470,7 @@
 	  items)))
 
 (define (big-frame h-radio? v-label? null-label? stretchy? special-label-font? special-button-font? 
-		   initially-disabled?)
+		   initially-disabled? alternate-init?)
   (define f (make-frame active-frame% "T\351ster")) ; 351 is e with '
   
   (define hp (make-object horizontal-panel% f))
@@ -505,7 +511,7 @@
   (when special-button-font?
     (send tp set-control-font special-font))
 
-  (let ([ctls (make-ctls tp cp lp add-testers ep h-radio? v-label? null-label? stretchy?)])
+  (let ([ctls (make-ctls tp cp lp add-testers ep h-radio? v-label? null-label? stretchy? alternate-init?)])
     (add-focus-note f ep)
     (send f set-info ep)
     
@@ -516,7 +522,7 @@
   f)
 
 (define (med-frame plain-slider? label-h? null-label? stretchy? special-label-font? special-button-font?
-		   initially-disabled?)
+		   initially-disabled? alternate-init?)
   (define f2 (make-frame active-frame% "Tester2"))
 
   (define hp2 (make-object horizontal-panel% f2))
@@ -1953,10 +1959,13 @@
     (define enabled-radio
       (make-object radio-box% "Initially" '("Enabled" "Disabled")
 		   p1 void))
+    (define selection-radio
+      (make-object radio-box% "Selection" '("Default" "Alternate")
+		   p1 void))
     (define next-button
       (make-next-button p2 (list radio-h-radio label-h-radio label-null-radio 
 				 stretchy-radio label-font-radio button-font-radio
-				 enabled-radio)))
+				 enabled-radio selection-radio)))
     (define go-button
       (make-object button% (format "Make ~a Frame" size) p2
 		   (lambda (b e)
@@ -1967,7 +1976,8 @@
 		      (positive? (send stretchy-radio get-selection))
 		      (positive? (send label-font-radio get-selection))
 		      (positive? (send button-font-radio get-selection))
-		      (positive? (send enabled-radio get-selection))))))
+		      (positive? (send enabled-radio get-selection))
+		      (positive? (send selection-radio get-selection))))))
     #t))
 
 (make-selector-and-runner bp1 bp2 #t "Big" big-frame)

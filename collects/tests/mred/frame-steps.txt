@@ -52,10 +52,13 @@ Medium Frame should contain:
  V Gauge (a vertical slider)
  Text (a multi-line text field)
    initial & starting
+ A tab panel with two tabs
+   
 
-The names on labels must match the above exactly (except that <>
-indicates an image). Watch out for letters that are dropped or
-&s that are dropped.
+The names on labels must match the above exactly, except that most
+labels have an "e" or "i" that gets an accent mark to test Latin-1
+labels. Also, <> above indicates an image. Watch out for letters that
+are dropped or &s that are dropped.
 
 Make sure all the controls with moving parts work.
 
@@ -273,5 +276,8 @@ Go back to the default configuration and try the 3 other combinations
 of label and button fonts. The big label font should apply to external
 control labels, and to message items. The button font should apply to
 the content of controls (names within a button, checkbox, listbox,
-choice, or text control).
-
+choice, or text control). The "Initially" radio box controls whether
+the control-containing panel is initially enabled (before the controls
+it contains are created). The "Selection" radio box controls the
+initial-value setting for check boxes, radio buttons, list boxes, and
+choices.

@@ -3946,7 +3946,7 @@
 		     label parent #f))))))
 
 (define check-box%
-  (class100 basic-control% (label parent callback [style null])
+  (class100 basic-control% (label parent callback [style null] [value #f])
     (sequence
       (let ([cwho '(constructor check-box)])
 	(check-label-string-or-bitmap cwho label)
@@ -3967,10 +3967,11 @@
 					     (mred->wx-container parent) (wrap-callback callback)
 					     label -1 -1 -1 -1 style))
 		       wx)
-		     label parent #f))))))
+		     label parent #f)))
+      (when value (set-value #t)))))
 
 (define radio-box%
-  (class100 basic-control% (label choices parent callback [style '(vertical)])
+  (class100 basic-control% (label choices parent callback [style '(vertical)] [selection 0])
     (private-field [chcs choices])
     (sequence 
       (let ([cwho '(constructor radio-box)])
@@ -3982,7 +3983,13 @@
 	(check-container-parent cwho parent)
 	(check-callback cwho callback)
 	(check-orientation cwho style)
-	(check-container-ready cwho parent)))
+	(check-non-negative-integer cwho selection)
+	(check-container-ready cwho parent)
+	(unless (< selection (length choices))
+	  (raise-mismatch-error (who->name cwho)
+				(format "initial selection is too large, given only ~a choices: "
+					(length choices))
+				selection))))
     (private-field
       [wx #f])
     (private
@@ -4026,7 +4033,9 @@
 					     (mred->wx-container parent) (wrap-callback callback)
 					     label -1 -1 -1 -1 chcs 0 style))
 		       wx)
-		     label parent #f))))))
+		     label parent #f)))
+      (when (positive? selection)
+	(set-selection selection)))))
 
 (define slider%
   (class100 basic-control% (label min-value max-value parent callback [init-value min-value] [style '(horizontal)])
@@ -4114,7 +4123,7 @@
 (define (-1=>false v) (if (negative? v) #f v))
 
 (define basic-list-control%
-  (class100* basic-control% (list-control<%>) (mk-wx label parent)
+  (class100* basic-control% (list-control<%>) (mk-wx label parent selection)
     (public
       [append (entry-point (lambda (i) (send wx append i)))]
       [clear (entry-point (lambda () (send wx clear)))]
@@ -4145,7 +4154,9 @@
     (sequence
       (as-entry
        (lambda ()
-	 (super-init (lambda () (set! wx (mk-wx)) wx) label parent #f))))))
+	 (super-init (lambda () (set! wx (mk-wx)) wx) label parent #f)))
+      (when selection
+	(set-selection selection)))))
 
 (define (check-list-control-args cwho label choices parent callback)
   (check-label-string/false cwho label)
@@ -4154,25 +4165,39 @@
   (check-container-parent cwho parent)
   (check-callback cwho callback))
 
+(define (check-list-control-selection cwho choices selection)
+  (unless (< selection (length choices))
+    (raise-mismatch-error (who->name cwho)
+			  (format "initial selection is too large, given only ~a choices: "
+				  (length choices))
+			  selection)))
+
 (define choice%
-  (class100 basic-list-control% (label choices parent callback [style null])
+  (class100 basic-list-control% (label choices parent callback [style null] [selection 0])
     (sequence
       (let ([cwho '(constructor choice)])
 	(check-list-control-args cwho label choices parent callback)
 	(check-style cwho #f null style)
-	(check-container-ready cwho parent))
+	(check-non-negative-integer cwho selection)
+	(check-container-ready cwho parent)
+	(unless (= 0 selection)
+	  (check-list-control-selection cwho choices selection)))
       (super-init (lambda () (make-object wx-choice% this this
 					  (mred->wx-container parent) (wrap-callback callback)
 					  label -1 -1 -1 -1 choices style))
-		  label parent))))
+		  label parent 
+		  (and (positive? selection) selection)))))
 
 (define list-box%
-  (class100 basic-list-control% (label choices parent callback [style '(single)])
+  (class100 basic-list-control% (label choices parent callback [style '(single)] [selection 0])
     (sequence 
       (let ([cwho '(constructor list-box)])
 	(check-list-control-args cwho label choices parent callback)
 	(check-style cwho '(single multiple extended) null style)
-	(check-container-ready cwho parent)))
+	(check-non-negative-integer/false cwho selection)
+	(check-container-ready cwho parent)
+	(when selection
+	  (check-list-control-selection cwho choices selection))))
     (rename [super-append append])
     (override
       [append (entry-point
@@ -4232,7 +4257,7 @@
 					    label kind
 					    -1 -1 -1 -1 choices style)))
 		    wx)
-		  label parent))))
+		  label parent (and (pair? choices) selection)))))
 
 (define text-field%
   (class100* basic-control% () (label parent callback [init-value ""] [style '(single)])
@@ -5067,7 +5092,7 @@
       (super-init label #f parent callback shortcut help-string (lambda (x) x) demand-callback))))
 
 (define checkable-menu-item%
-  (class100 basic-selectable-menu-item% (label parent callback [shortcut #f] [help-string #f] [demand-callback void])
+  (class100 basic-selectable-menu-item% (label parent callback [shortcut #f] [help-string #f] [demand-callback void] [checked #f])
     (sequence
       (check-shortcut-args 'checkable-menu-item label parent callback shortcut help-string demand-callback))
     (private-field
@@ -5077,7 +5102,8 @@
       [check (entry-point (lambda (on?) (send (send (mred->wx mnu) get-container) check (send wx id) on?)))]
       [is-checked? (entry-point (lambda () (send (send (mred->wx mnu) get-container) checked? (send wx id))))])
     (sequence
-      (super-init label #t mnu callback shortcut help-string (lambda (x) (set! wx x) x) demand-callback))))
+      (super-init label #t mnu callback shortcut help-string (lambda (x) (set! wx x) x) demand-callback)
+      (when checked (check #t)))))
 
 (define menu-item-container<%> (interface () get-items on-demand))
 (define internal-menu<%> (interface ()))
@@ -6563,9 +6589,20 @@
 		      "real number in [0.0, 1.0]"
 		      x)))
 
+(define (-check-non-negative-integer who i false-ok?)
+  (when (or i (not false-ok?))
+    (unless (and (integer? i) (exact? i) (not (negative? i)))
+      (raise-type-error (who->name who) 
+			(if false-ok?
+			    "non-negative exact integeror #f" 
+			    "non-negative exact integer" )
+			i))))
+
 (define (check-non-negative-integer who i)
-  (unless (and (integer? i) (exact? i) (not (negative? i)))
-    (raise-type-error (who->name who) "non-negative exact integer" i)))
+  (-check-non-negative-integer who i #f))
+
+(define (check-non-negative-integer/false who i)
+  (-check-non-negative-integer who i #t))
 
 (define check-dimension (check-bounded-integer 0 10000 #t))
 (define check-non#f-dimension (check-bounded-integer 0 10000 #f))
