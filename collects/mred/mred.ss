@@ -3752,15 +3752,16 @@
 (define default-paint-cb (lambda (canvas dc) (void)))
 
 (define canvas%
-  (class100 basic-canvas% (parent [style null] [paint-callback default-paint-cb])
+  (class100 basic-canvas% (parent [style null] [paint-callback default-paint-cb] [label #f])
     (private-field [paint-cb paint-callback])
-    (inherit get-client-size get-dc)
+    (inherit get-client-size get-dc set-label)
     (rename [super-on-paint on-paint])
     (sequence 
       (let ([cwho '(constructor canvas)])
 	(check-container-parent cwho parent)
 	(check-style cwho #f '(border hscroll vscroll gl) style)
 	(check-callback cwho paint-callback)
+	(check-string/false cwho label)
 	(check-container-ready cwho parent)
 	(when (memq 'gl style)
 	  (unless (eq? (system-type) 'windows)
@@ -3855,17 +3856,21 @@
 					    style)))
 		    wx)
 		  parent)
+      (when label
+	(set-label label))
       (send parent after-new-child this))))
     
 (define editor-canvas%
-  (class100 basic-canvas% (parent [buffer #f] [style null] [scrolls-per-page 100])
+  (class100 basic-canvas% (parent [buffer #f] [style null] [scrolls-per-page 100] [label #f])
     (sequence 
       (let ([cwho '(constructor editor-canvas)])
 	(check-container-parent cwho parent)
 	(check-instance cwho internal-editor<%> "text% or pasteboard%" #t buffer)
 	(check-style cwho #f '(hide-vscroll hide-hscroll no-vscroll no-hscroll) style)
 	(check-gauge-integer cwho scrolls-per-page)
+	(check-string/false cwho label)
 	(check-container-ready cwho parent)))
+    (inherit set-label)
     (private-field
       [force-focus? #f]
       [scroll-to-last? #f]
@@ -3932,6 +3937,8 @@
 					    #f style scrolls-per-page #f))
 		      wx))
 		  parent)
+      (when label
+	(set-label label))
       (when buffer
 	(set-editor buffer))
       (send parent after-new-child this))))
@@ -4425,17 +4432,17 @@
     (check-callback1 cwho demand-callback)))
 
 (define menu-item%
-  (class100 basic-selectable-menu-item% (label menu callback [shortcut #f] [help-string #f] [demand-callback void])
+  (class100 basic-selectable-menu-item% (label parent callback [shortcut #f] [help-string #f] [demand-callback void])
     (sequence 
-      (check-shortcut-args 'menu-item label menu callback shortcut help-string demand-callback)
-      (super-init label #f menu callback shortcut help-string (lambda (x) x) demand-callback))))
+      (check-shortcut-args 'menu-item label parent callback shortcut help-string demand-callback)
+      (super-init label #f parent callback shortcut help-string (lambda (x) x) demand-callback))))
 
 (define checkable-menu-item%
-  (class100 basic-selectable-menu-item% (label menu callback [shortcut #f] [help-string #f] [demand-callback void])
+  (class100 basic-selectable-menu-item% (label parent callback [shortcut #f] [help-string #f] [demand-callback void])
     (sequence
-      (check-shortcut-args 'checkable-menu-item label menu callback shortcut help-string demand-callback))
+      (check-shortcut-args 'checkable-menu-item label parent callback shortcut help-string demand-callback))
     (private-field
-      [mnu menu]
+      [mnu parent]
       [wx #f])
     (public
       [check (entry-point (lambda (on?) (send (send (mred->wx mnu) get-container) check (send wx id) on?)))]
