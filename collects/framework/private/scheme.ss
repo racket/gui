@@ -17,7 +17,7 @@
            (lib "scheme-lexer.ss" "syntax-color"))
   
   (provide scheme@)
-  
+
   (define scheme@
     (unit/sig framework:scheme^
       (import mred^
@@ -441,7 +441,8 @@
           
           (inherit get-visible-position-range)
           (define (balance-quotes key)
-            (let* ([char (send key get-key-code)]) ;; must be a character because of the mapping setup
+            (void)
+            #;(let* ([char (send key get-key-code)]) ;; must be a character because of the mapping setup
               ;; this function is only bound to ascii-returning keys
               (insert char)
               (let* ([start-pos (get-start-position)]
@@ -1154,7 +1155,7 @@
           (send keymap add-function "balance-parens"
                 (lambda (edit event)
                   (send edit balance-parens event)))
-          (send keymap add-function "balance-quotes"
+          #;(send keymap add-function "balance-quotes"
                 (lambda (edit event)
                   (send edit balance-quotes event)))
           
@@ -1173,8 +1174,8 @@
           (send keymap map-function ")" "balance-parens")
           (send keymap map-function "]" "balance-parens")
           (send keymap map-function "}" "balance-parens")
-          (send keymap map-function "\"" "balance-quotes")
-          (send keymap map-function "|" "balance-quotes")
+          #;(send keymap map-function "\"" "balance-quotes")
+          #;(send keymap map-function "|" "balance-quotes")
           
           (let ([map-meta
                  (lambda (key func)
