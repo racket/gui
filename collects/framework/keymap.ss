@@ -696,6 +696,7 @@
 	  
 	  (map "c:l" "center-view-on-line")
 	  
+	  (map "c:k" "delete-to-end-of-line")
 	  (map "c:y" "paste-clipboard")
 	  (map-meta "y" "paste-next")
 	  (map "a:v" "paste-clipboard")
