@@ -9,7 +9,7 @@
 
   (define canvas@
     (unit/sig framework:canvas^
-      (import [mred : mred^]
+      (import mred^
 	      [preferences : framework:preferences^]
 	      [frame : framework:frame^])
       

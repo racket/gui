@@ -2,7 +2,6 @@
   (require (lib "unitsig.ss"))
 
   (provide framework:menu^
-	   framework:prefs-file^
 	   framework:version^
 	   framework:panel^
 	   framework:exn^
@@ -33,9 +32,6 @@
      can-restore-mixin
      can-restore-menu-item%
      can-restore-checkable-menu-item%))
-
-  (define-signature framework:prefs-file^
-    (get-preferences-filename))
 
   (define-signature framework:version^
     (add-spec

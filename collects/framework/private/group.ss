@@ -231,10 +231,10 @@
 	  (sequence
 	    (super-init))))
       
-      (define the-frame-group #f)
+      (define (internal-get-the-frame-group)
+	(let ([the-frame-group (make-object %)])
+	  (set! internal-get-the-frame-group (lambda () the-frame-group))
+	  (internal-get-the-frame-group)))
       
       (define get-the-frame-group
-	(lambda ()
-	  (set! the-frame-group (make-object %))
-	  (set! get-the-frame-group (lambda () the-frame-group))
-	  (get-the-frame-group))))))
+	(internal-get-the-frame-group)))))

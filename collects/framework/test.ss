@@ -8,6 +8,6 @@
   (provide-signature-elements framework:test^)
 
   (define-values/invoke-unit/sig framework:test^
-    test@
+    framework:test@
     #f
     mred^))

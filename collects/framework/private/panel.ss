@@ -4,7 +4,8 @@
 	   "sig"
 	   "../macro.ss"
 	   (lib "mred-sig.ss" "mred")
-	   (lib "list.ss"))
+	   (lib "list.ss")
+	   (lib "etc.ss"))
 
   (provide panel@)
 

@@ -1,6 +1,7 @@
 (module frame mzscheme
   (require (lib "unitsig.ss")
 	   (lib "class.ss")
+	   (lib "include.ss")
 	   "sig.ss"
 	   "../gui-utils-sig.ss"
 	   "../macro.ss"
@@ -159,14 +160,7 @@
       (public
 	[get-area-container (lambda () panel)])
       (sequence
-	(set! after-init? #t)
-	(when (getenv "MREDMEMORYDEBUG")
-	  (global-defined-value 'open-frames
-				(cons (make-weak-box this)
-				      (global-defined-value 'open-frames)))))))
-
-  (when (getenv "MREDMEMORYDEBUG")
-    (global-defined-value 'open-frames null))
+	(set! after-init? #t))))
 
   (define lock-canvas%
     (class canvas% (parent . args)
