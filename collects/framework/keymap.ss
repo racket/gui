@@ -190,7 +190,7 @@
 	   
 	   [mouse-popup-menu 
 	    (lambda (edit event)
-	      (when (send event button-up?)
+	      (when (send event button-down?)
 		(let ([a (send edit get-admin)])
 		  (when a
 		    (let ([m (make-object popup-menu%)])
