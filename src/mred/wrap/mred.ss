@@ -2623,7 +2623,7 @@
     reflow-container
     container-size
     get-children change-children place-children
-    on-new-child
+    after-new-child
     add-child delete-child
     border spacing 
     set-alignment get-alignment))
@@ -2633,7 +2633,7 @@
 (define (make-container% %) ; % implements area<%>
   (class* % (area-container<%> internal-container<%>) (mk-wx get-wx-panel parent) 
     (public
-      [on-new-child (lambda (c) (void))]
+      [after-new-child (lambda (c) (void))]
       [reflow-container (entry-point (lambda () (send (send (get-wx-panel) get-top-level) force-redraw)))]
       [get-children (entry-point (lambda () (map wx->proxy (ivar (get-wx-panel) children))))]
       [border (param get-wx-panel 'border)]
@@ -2901,7 +2901,7 @@
       [wx #f])
     (sequence
       (super-init (lambda () (set! wx (mk-wx)) wx) (lambda () wx) label parent cursor)
-      (as-exit (lambda () (send parent on-new-child this))))))
+      (as-exit (lambda () (send parent after-new-child this))))))
 
 ;--------------------- Final mred class construction --------------------
     
@@ -3470,7 +3470,7 @@
 					    style)))
 		    wx)
 		  parent)
-      (send parent on-new-child this))))
+      (send parent after-new-child this))))
     
 (define editor-canvas%
   (class basic-canvas% (parent [buffer #f] [style null] [scrolls-per-page 100])
@@ -3549,7 +3549,7 @@
 		  parent)
       (when buffer
 	(set-editor buffer))
-      (send parent on-new-child this))))
+      (send parent after-new-child this))))
 
 ;-------------------- Final panel interfaces and class constructions --------------------
 
@@ -3575,7 +3575,7 @@
 							this this (mred->wx-container parent) null)) wx)
 		       (lambda () wx) parent)
 	   (send (send wx area-parent) add-child wx)))
-	(send parent on-new-child this)))))
+	(send parent after-new-child this)))))
 
 (define vertical-pane% (class pane% (parent) (sequence (super-init parent))))
 (define horizontal-pane% (class pane% (parent) (sequence (super-init parent))))
@@ -3602,7 +3602,7 @@
 							this this (mred->wx-container parent) style)) wx)
 		       (lambda () wx) #f parent #f)
 	   (send (send wx area-parent) add-child wx)))
-	(send parent on-new-child this)))))
+	(send parent after-new-child this)))))
 
 (define vertical-panel% (class panel% args (sequence (apply super-init args))))
 (define horizontal-panel% (class panel% args (sequence (apply super-init args))))
