@@ -245,8 +245,8 @@
 						 (send c set-value (pref->bool v))))))]
 		 [id (lambda (x) x)])
 	    (make-check 'mred:highlight-parens "Highlight between matching parens?" id id)
-	    (make-check 'mred:paren-match/fixup-parens
-			"Flash paren match and correct parens?" id id)
+	    (make-check 'mred:fixup-parens "Correct parens?" id id)
+	    (make-check 'mred:paren-match "Flash paren match?" id id)
 	    (make-check 'mred:autosaving-on? "Auto-save files?" id id)
 	    (make-check 'mred:delete-forward? "Map delete to backspace?" not not)
 	    (make-check 'mred:file-dialogs "Use platform-specific file dialogs?"
