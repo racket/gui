@@ -2,7 +2,7 @@
 .TH MZSCHEME 1 "31 May 1997"
 .UC 4
 .SH NAME
-mzscheme \- The PLT Scheme implementation
+MzScheme \- The PLT Scheme implementation
 .SH SYNOPSIS
 .B mzscheme
 [
@@ -16,8 +16,8 @@ is the Rice University PLT
 Scheme implementation.  It implements the language as
 described in the
 .I Revised^4 Report on
-.I the Algorithmic Language Scheme,
-plus numerous extensions.
+.I the Algorithmic Language Scheme\|\c
+, plus numerous extensions.
 .I MzScheme
 is the underlying implementation for
 .I DrScheme
@@ -60,19 +60,32 @@ Load/cds all remaining arguments after
 .I MzScheme
 starts.
 .TP
-.B \-l \ file
-Same as -e '(require-library "file")'.
+.BI \-l \ file
+Same as -e '(require-library "\|\c
+.I file\|\c
+")'.
+.TP
+.BI \-L \ file \ \\ coll
+Same as -e '(require-library "\|\c
+.I file\|\c
+" "\|\c
+.I coll\|\c
+")'.
 .TP
 .B \-r, --script
 Script mode: use as last flag for scripts.
-Same as -fmv-.
+Same as
+.BR -fmv- .
 .TP
 .B \-i, --script-cd
 Like -r, but also sets the directory.
-Same as -dmv-.
+Same as 
+.BR -dmv- .
 .TP
 .B \-w, --awk
-Same as -l awk.ss.
+Same as
+.B -l
+.BR awk.ss .
 .PP
 
 Initialization switches:
@@ -126,26 +139,36 @@ Suppresses the read-eval-print loop.
 .B \-h, --help
 Shows help for command-line arguments.
 .TP
-.BI \-R file, --restore \ file
+.BI \-R file ,\ --restore \ file
 Restores an image; must be the only switch.
 .PP
 Multiple single-letter switches can be collapsed, with arguments placed
-after the collapsed switches; the first collapsed switch cannot be --.
-E.g.: `-vfme file expr' is the same as `-v -f file -m -e expr'.
+after the collapsed switches; the first collapsed switch cannot be
+.BR -- .
+E.g.:
+.B -vfme file expr
+is the same as
+.B -v -f file -m -e
+.BR expr .
 .PP
 Extra arguments following the last switch are put into the Scheme global
 variable `argv' as a vector of strings. The name used to start 
 .I MzScheme
 is put into the global variable `program' as a string.
 .PP
-Extra arguments after a `--restore' file are returned as a vector of
+Extra arguments after a 
+.B --restore
+file are returned as a vector of
 strings to the continuation of the `write-image-to-file' call that created
 the image.
 .PP
 Expressions/files are evaluated/loaded in order as provided.
 .PP
 The current-library-collections-path is automatically set before any
-expressions/files are evaluated/loaded, unless the -x or --no-lib-path
+expressions/files are evaluated/loaded, unless the
+.B -x
+or
+.B --no-lib-path
 switch is used.  
 .PP
 .PP
@@ -158,8 +181,11 @@ documentation and other information available at
 http://www.cs.rice.edu/CS/PLT/packages/mzscheme/
 .SH FILES
 The file "~/.mzschemerc" is loaded before any provided
-expressions/files are evaluated/loaded, unless the -q or 
---no-init-file switch is used. (Under Windows and MacOS, "mzscheme.rc" 
+expressions/files are evaluated/loaded, unless the
+.B -q 
+or 
+.B --no-init-file 
+switch is used. (Under Windows and MacOS, "mzscheme.rc" 
 is loaded from the start-up working directory.)
 .PP
 .I MzScheme
