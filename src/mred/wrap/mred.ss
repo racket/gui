@@ -1438,11 +1438,11 @@
 			   [(and horizontal? (not vertical-labels?)) (- (get-width) client-w)]
 			   [(and (not horizontal?) vertical-labels?) (- (get-height) client-h)]
 			   [else 0]))])
-	   (stretchable-in-x horizontal?)
-	   (stretchable-in-y (not horizontal?))
 	   ((if horizontal? set-min-width set-min-height) 
 	    (max ((if horizontal? get-width get-height))
-		 (min const-max-gauge-length range)))))))))
+		 (min const-max-gauge-length range)))
+	   (stretchable-in-x horizontal?)
+	   (stretchable-in-y (not horizontal?))))))))
 
 (define wx-canvas% (make-canvas-glue%
 		    (class (make-control% wx:canvas% 0 0 #t #t) args
@@ -1456,7 +1456,7 @@
 			[gets-focus? (lambda () tabable?)]
 			[handles-key-code
 			 (lambda (code alpha? meta?)
-			   (not tabable?))])
+			   (or meta? (not tabable?)))])
 		      (sequence
 			(apply super-init args)))))
 
@@ -1473,7 +1473,8 @@
       [fixed-height? #f]
       [fixed-height-lines 0]
       [orig-hard #f]
-      [single-line-canvas? #f])
+      [single-line-canvas? #f]
+      [tabable? #f])
     (override
       [on-container-resize (lambda ()
 			     (let ([edit (get-editor)])
@@ -1512,9 +1513,12 @@
       [handles-key-code 
        (lambda (x alpha? meta?)
 	 (case x
-	   [(#\tab #\return escape) (not single-line-canvas?)]
+	   [(#\tab #\return escape) (and (not tabable?)
+					 (not single-line-canvas?))]
 	   [else (not meta?)]))])
     (public
+      [set-tabable (lambda (on?) (set! tabable? on?))]
+      [is-tabable? (lambda () tabable?)]
       [on-tab-in (lambda () 
 		   (let ([mred (wx->mred this)])
 		     (when mred
@@ -3504,6 +3508,11 @@
 	 [(on?) (set! force-focus? (and on? #t))
 		(send wx force-display-focus on?)]))]
 
+      [allow-tab-exit (entry-point-0-1
+		       (case-lambda
+			[() (send wx is-tabable?)]
+			[(on?) (send wx set-tabable (and on? #t))]))]
+
       [set-line-count
        (entry-point-1
 	(lambda (n)
@@ -4280,11 +4289,16 @@
 	    (for-each (lambda (s) (make-object message% s f)) strings)
 	    (send f stretchable-width #f)
 	    (send f stretchable-height #f))
-	  (let ([m (make-object text-field% #f f void "" '(multiple))])
+	  (let* ([e (make-object text%)]
+		 [c (make-object editor-canvas% f e '(no-hscroll))])
 	    (send f resize 400 200)
-	    (send m set-value message)
-	    (send (send m get-editor) set-position 0)
-	    (send (send m get-editor) lock #t)))
+	    (send c set-line-count (min 5 (length strings)))
+	    (send c allow-tab-exit #t)
+	    (send f reflow-container)
+	    (send e auto-wrap #t)
+	    (send e insert message)
+	    (send e set-position 0)
+	    (send e lock #t)))
       (let* ([p (make-object horizontal-pane% f)]
 	     [mk-button (lambda (title v default?) 
 			  (let ([b (make-object button% title p (lambda (b e) (set! result v) (send f show #f))
