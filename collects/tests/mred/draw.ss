@@ -377,6 +377,29 @@
 				  (send dc set-brush orig-b)
 				  (send dc set-pen orig-pen))))
 			    
+			    (when last?
+			      ; Test get-text-extent
+			      (let ([save-pen (send dc get-pen)]
+				    [save-fnt (send dc get-font)])
+				(send dc set-pen (make-object pen% "YELLOW" 1 'xor))
+				(let loop ([fam '(default default modern modern decorative roman)]
+					   [stl '(normal  slant   slant  italic normal     normal)]
+					   [wgt '(normal  bold    normal normal bold       normal)]
+					   [sze '(12      12      12     12     12         32)]
+					   [x 244]
+					   [y 210])
+				  (unless (null? fam)
+				    (let ([fnt (make-object font% (car sze) (car fam) (car stl) (car wgt))]
+					  [s "AgMh"])
+				      (send dc set-font fnt)
+				      (send dc draw-text s x y)
+				      (send dc set-font save-fnt)
+				      (let-values ([(w h d a) (send dc get-text-extent s fnt)])
+					(send dc draw-rectangle x y w h)
+					(send dc draw-line x (+ y (- h d)) (+ x w) (+ y (- h d)))
+					(loop (cdr fam) (cdr stl) (cdr wgt) (cdr sze) x (+ y h))))))
+				(send dc set-pen save-pen)))
+
 			    (when (and (not no-bitmaps?) last?)
 			      (let ([x 5] [y 165])
 				(send dc draw-bitmap (get-icon) x y 'xor)
@@ -445,11 +468,11 @@
 				  ; Green cross hatch (white BG) on blue field
 				  (send dc draw-rectangle 180 205 20 20)
 				  (send dc set-brush brushs))))
-
+			    
 			    (when (and pixel-copy? last? (not (or ps? (eq? dc can-dc))))
 			      (let* ([x 100]
 				     [y 170]
-				     [x2 220] [y2 200]
+				     [x2 245] [y2 188]
 				     [w 40] [h 20]
 				     [c (make-object color%)]
 				     [bm (make-object bitmap% w h depth-one?)]
@@ -609,17 +632,13 @@
 						  [(polka) '(0. 0. 310. 510.)]))
 				  (error 'draw-test "clipping region changed badly: ~a" l))))))
 
-		      (let ([w (box 0)]
-			    [h (box 0)])
-			(send dc get-size w h)
-			(let ([w (unbox w)]
-			      [h (unbox h)])
-			  (unless (cond
-				   [ps? #t]
-				   [use-bitmap? (and (= w (* scale 350)) (= h (* scale 300)))]
-				   [else (= w (send this get-width)) (= h (send this get-height))])
-			    (error 'x "wrong size reported by get-size: ~a ~a; w & h is ~a ~a" 
-				   w h (send this get-width) (send this get-height)))))
+		      (let-values ([(w h) (send dc get-size)])
+			(unless (cond
+				 [ps? #t]
+				 [use-bitmap? (and (= w (* scale 350)) (= h (* scale 300)))]
+				 [else (= w (send this get-width)) (= h (send this get-height))])
+			  (error 'x "wrong size reported by get-size: ~a ~a; w & h is ~a ~a" 
+				 w h (send this get-width) (send this get-height))))
 
 		      (send dc set-clipping-region #f)
 
