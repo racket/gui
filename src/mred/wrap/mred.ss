@@ -743,15 +743,16 @@
 					   (send o button-focus (if forward? 0 (sub1 (send o number))))
 					   (begin
 					     (send o set-focus)
-					     (when (and (is-a? o wx-text-editor-canvas%)
-							(send o is-single-line?))
-					       (let ([e (send o get-editor)])
-						 (as-exit
-						  (lambda ()
-						    (send e set-position 0 (send e last-position) #f #t 'local)))))
-					     (when (or (is-a? o wx-canvas%)
-						       (is-a? o wx-editor-canvas%))
-					       (as-exit (lambda () (send o on-tab-in)))))))))])
+					     (if (and (is-a? o wx-text-editor-canvas%)
+						      (send o is-single-line?))
+						 (let ([e (send o get-editor)])
+						   (as-exit
+						    (lambda ()
+						      (send e set-position 0 (send e last-position) #f #t 'local))))
+						 ;; Not a text field; a canvas?
+						 (when (or (is-a? o wx-canvas%)
+							   (is-a? o wx-editor-canvas%))
+						   (as-exit (lambda () (send o on-tab-in))))))))))])
 			   (if (is-a? o wx:radio-box%)
 			       (let ([n (send o number)]
 				     [s (send o button-focus -1)]
