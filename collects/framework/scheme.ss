@@ -113,7 +113,7 @@
 	      (lambda (comment-start)
 		(let ([f (find-string comment-start 'backward position)])
 		  (if f
-		      (= (send position-line f) line)
+		      (= (position-line f) line)
 		      #f)))
 	      (scheme-paren:get-comments))))])
       (private
@@ -227,10 +227,12 @@
 			   [there (get-end-position)]
 			   [slash?
 			    (lambda (before after)
-			      (let ([text (get-text before after)])
-				(and (string=? text)
-				     (>= (string-length text) 1)
-				     (char=? #\\ (string-ref text 0)))))]
+			      (and (>= before 0)
+				   (>= after 0)
+				   (let ([text (get-text before after)])
+				     (and (string? text)
+					  (>= (string-length text) 1)
+					  (char=? #\\ (string-ref text 0))))))]
 			   [is-paren?
 			    (lambda (f)
 			      (lambda (char)
