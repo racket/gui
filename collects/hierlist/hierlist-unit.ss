@@ -684,6 +684,9 @@
                                          (send (car l) select #t)
                                          (send (car l) scroll-to)]
                                         [else (loop (cdr l))])))]
+	    [select (lambda (i) 
+		      (send i select #t)
+		      (send i scroll-to))]
             [page-up (lambda () (page 'up))]
             [page-down (lambda () (page 'down))]
             [show-focus
