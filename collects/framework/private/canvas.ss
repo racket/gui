@@ -25,7 +25,7 @@
 	  (inherit has-focus? get-top-level-window)
 	  (rename [super-on-focus on-focus]
 		  [super-set-editor set-editor])
-	  (override on-focus)
+	  (override on-focus set-editor)
           [define on-focus
 	    (lambda (on?)
 	      (super-on-focus on?)

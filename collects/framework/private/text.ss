@@ -338,9 +338,9 @@
       (super-instantiate ())
       (set-autowrap-bitmap (initial-autowrap-bitmap))))
 
-  (define hide/selection<%> (interface (basic<%>)))
-  (define hide/selection-mixin
-    (mixin (basic<%>) (hide/selection<%>)
+  (define hide-caret/selection<%> (interface (basic<%>)))
+  (define hide-caret/selection-mixin
+    (mixin (basic<%>) (hide-caret/selection<%>)
       (override after-set-position)
       (inherit get-start-position get-end-position hide-caret)
       (define (after-set-position)
@@ -460,7 +460,7 @@
       (super-instantiate ())))
   
   (define basic% (basic-mixin (editor:basic-mixin text%)))
-  (define hide/selection% (hide/selection-mixin basic%))
+  (define hide-caret/selection% (hide-caret/selection-mixin basic%))
   (define -keymap% (editor:keymap-mixin basic%))
   (define return% (return-mixin -keymap%))
   (define autowrap% (editor:autowrap-mixin -keymap%))

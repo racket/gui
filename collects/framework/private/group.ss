@@ -2,7 +2,6 @@
 (module group mzscheme
   (require (lib "unitsig.ss")
 	   (lib "class.ss")
-	   (lib "class100.ss")
 	   "sig.ss"
 	   (lib "mred-sig.ss" "mred")
 	   (lib "list.ss")
@@ -22,19 +21,18 @@
       (define mdi-parent #f)
 
       (define %
-	(class100 object% ()
-	  (private-field
-	    [active-frame #f]
-	    [frame-counter 0]
-	    [frames null]
-	    [todo-to-new-frames void]
-	    [empty-close-down (lambda () (void))]
-	    [empty-test (lambda () #t)]
+	(class object%
+
+	  [define active-frame #f]
+	    [define frame-counter 0]
+	    [define frames null]
+	    [define todo-to-new-frames void]
+	    [define empty-close-down (lambda () (void))]
+	    [define empty-test (lambda () #t)]
 	    
-	    [windows-menus null])
+	    [define windows-menus null]
 	  
-	  (private
-	    [get-windows-menu
+	    [define get-windows-menu
 	     (lambda (frame)
 	       (let ([menu-bar (send frame get-menu-bar)])
 		 (and menu-bar
@@ -44,12 +42,12 @@
 				     x
 				     #f))
 			       menus)))))]
-	    [insert-windows-menu
+	    [define insert-windows-menu
 	     (lambda (frame)
 	       (let ([menu (get-windows-menu frame)])
 		 (when menu
 		   (set! windows-menus (cons menu windows-menus)))))]
-	    [remove-windows-menu
+	    [define remove-windows-menu
 	     (lambda (frame)
 	       (let* ([menu (get-windows-menu frame)])
 		 (set! windows-menus
@@ -58,7 +56,7 @@
 			windows-menus
 			eq?))))]
 
-	    [update-windows-menus
+	    [define update-windows-menus
 	     (lambda ()
 	       (let* ([windows (length windows-menus)]
 		      [default-name "Untitled"]
@@ -91,10 +89,9 @@
 				      (lambda (_1 _2)
 					(send frame show #t)))))
 		     sorted-frames))
-		  windows-menus)))])
+		  windows-menus)))]
 	  
-	  (private
-	    [update-close-menu-item-state
+	    [define update-close-menu-item-state
 	     (lambda ()
 	       (let* ([set-close-menu-item-state! 
 		       (lambda (frame state)
@@ -106,127 +103,128 @@
 		     (set-close-menu-item-state! (car frames) #f)
 		     (for-each (lambda (a-frame)
 				 (set-close-menu-item-state! a-frame #t))
-			       frames))))])
-	  (public
-	    [get-mdi-parent
-	     (lambda ()
-               (when (and (eq? (system-type) 'windows)
-                          (preferences:get 'framework:windows-mdi)
-                          (not mdi-parent))
-                 (set! mdi-parent (make-object frame% (application:current-app-name)
-                                    #f #f #f #f #f
-                                    '(mdi-parent)))
-                 (send mdi-parent show #t))
-               mdi-parent)]
+			       frames))))]
+	  (public get-mdi-parent set-empty-callbacks frame-label-changed for-each-frame
+		  get-active-frame set-active-frame insert-frame can-remove-frame?
+		  remove-frame clear on-close-all can-close-all? locate-file get-frames)
+	  [define get-mdi-parent
+	    (lambda ()
+	      (when (and (eq? (system-type) 'windows)
+			 (preferences:get 'framework:windows-mdi)
+			 (not mdi-parent))
+		(set! mdi-parent (make-object frame% (application:current-app-name)
+					      #f #f #f #f #f
+					      '(mdi-parent)))
+		(send mdi-parent show #t))
+	      mdi-parent)]
 
-	    [set-empty-callbacks
-	     (lambda (test close-down) 
-	       (set! empty-test test)
-	       (set! empty-close-down close-down))]
-	    [get-frames (lambda () (map frame-frame frames))]
+	  [define set-empty-callbacks
+	    (lambda (test close-down) 
+	      (set! empty-test test)
+	      (set! empty-close-down close-down))]
+	  [define get-frames (lambda () (map frame-frame frames))]
 	    
-	    [frame-label-changed
-	     (lambda (frame)
-	       (when (member frame (map frame-frame frames))
-		 (update-windows-menus)))]
+	  [define frame-label-changed
+	    (lambda (frame)
+	      (when (member frame (map frame-frame frames))
+		(update-windows-menus)))]
 	    
-	    [for-each-frame
-	     (lambda (f)
-	       (for-each (lambda (x) (f (frame-frame x))) frames)
-	       (set! todo-to-new-frames
-		     (let ([old todo-to-new-frames])
-		       (lambda (frame) (old frame) (f frame)))))]
-	    [get-active-frame
-	     (lambda ()
-	       (cond
+	  [define for-each-frame
+	    (lambda (f)
+	      (for-each (lambda (x) (f (frame-frame x))) frames)
+	      (set! todo-to-new-frames
+		    (let ([old todo-to-new-frames])
+		      (lambda (frame) (old frame) (f frame)))))]
+	  [define get-active-frame
+	    (lambda ()
+	      (cond
 		[active-frame active-frame]
 		[(null? frames) #f]
 		[else (frame-frame (car frames))]))]
-	    [set-active-frame
-	     (lambda (f)
-	       (set! active-frame f))]
-	    [insert-frame
-	     (lambda (f)
-	       (set! frame-counter (add1 frame-counter))
-	       (let ([new-frames (cons (make-frame f frame-counter)
-				       frames)])
-		 (set! frames new-frames)
-		 (update-close-menu-item-state)
-		 (insert-windows-menu f)
-		 (update-windows-menus))
-	       (todo-to-new-frames f))]
+	  [define set-active-frame
+	    (lambda (f)
+	      (set! active-frame f))]
+	  [define insert-frame
+	    (lambda (f)
+	      (set! frame-counter (add1 frame-counter))
+	      (let ([new-frames (cons (make-frame f frame-counter)
+				      frames)])
+		(set! frames new-frames)
+		(update-close-menu-item-state)
+		(insert-windows-menu f)
+		(update-windows-menus))
+	      (todo-to-new-frames f))]
 	    
-	    [can-remove-frame?
-	     (lambda (f)
-	       (let ([new-frames 
-		      (remove
-		       f frames
-		       (lambda (f fr) (eq? f (frame-frame fr))))])
-		 (if (null? new-frames)
-		     (empty-test)
-		     #t)))]
-	    [remove-frame
-	     (lambda (f)
-	       (when (eq? f active-frame)
-		 (set! active-frame #f))
-	       (let ([new-frames
-		      (remove
-		       f frames
-		       (lambda (f fr) (eq? f (frame-frame fr))))])
-		 (set! frames new-frames)
-		 (update-close-menu-item-state)
-		 (remove-windows-menu f)
-		 (update-windows-menus)
-		 (when (null? frames)
-		   (empty-close-down))))]
-	    [clear
-	     (lambda ()
-	       (and (empty-test)
-		    (begin (set! frames null)
-			   (empty-close-down)
-			   #t)))]
-	    [on-close-all
-	     (lambda ()
-	       (for-each (lambda (f)
-			   (let ([frame (frame-frame f)])
-			     (send frame on-close) 
-			     (send frame show #f)))
-			 frames))]
-	    [can-close-all?
-	     (lambda ()
-	       (andmap (lambda (f)
-			 (let ([frame (frame-frame f)])
-			   (send frame can-close?)))
-		       frames))]
-	    [locate-file
-	     (lambda (name)
-	       (let* ([normalized
-		       ;; allow for the possiblity of filenames that are urls
-		       (with-handlers ([(lambda (x) #t)
-					(lambda (x) name)])
-			 (normal-case-path
-			  (normalize-path name)))]
-		      [test-frame
-		       (lambda (frame)
-			 (and (is-a? frame frame:basic<%>)
-			      (let* ([filename (send frame get-filename)])
-				(and (string? filename)
-				     (string=? normalized
-					       (with-handlers ([(lambda (x) #t)
-								(lambda (x) filename)])
-						 (normal-case-path
-						  (normalize-path 
-						   filename))))))))])
-		 (let loop ([frames frames])
-		   (cond
+	  [define can-remove-frame?
+	    (lambda (f)
+	      (let ([new-frames 
+		     (remove
+		      f frames
+		      (lambda (f fr) (eq? f (frame-frame fr))))])
+		(if (null? new-frames)
+		    (empty-test)
+		    #t)))]
+	  [define remove-frame
+	    (lambda (f)
+	      (when (eq? f active-frame)
+		(set! active-frame #f))
+	      (let ([new-frames
+		     (remove
+		      f frames
+		      (lambda (f fr) (eq? f (frame-frame fr))))])
+		(set! frames new-frames)
+		(update-close-menu-item-state)
+		(remove-windows-menu f)
+		(update-windows-menus)
+		(when (null? frames)
+		  (empty-close-down))))]
+	  [define clear
+	    (lambda ()
+	      (and (empty-test)
+		   (begin (set! frames null)
+			  (empty-close-down)
+			  #t)))]
+	  [define on-close-all
+	    (lambda ()
+	      (for-each (lambda (f)
+			  (let ([frame (frame-frame f)])
+			    (send frame on-close) 
+			    (send frame show #f)))
+			frames))]
+	  [define can-close-all?
+	    (lambda ()
+	      (andmap (lambda (f)
+			(let ([frame (frame-frame f)])
+			  (send frame can-close?)))
+		      frames))]
+	  [define locate-file
+	    (lambda (name)
+	      (let* ([normalized
+		      ;; allow for the possiblity of filenames that are urls
+		      (with-handlers ([(lambda (x) #t)
+				       (lambda (x) name)])
+			(normal-case-path
+			 (normalize-path name)))]
+		     [test-frame
+		      (lambda (frame)
+			(and (is-a? frame frame:basic<%>)
+			     (let* ([filename (send frame get-filename)])
+			       (and (string? filename)
+				    (string=? normalized
+					      (with-handlers ([(lambda (x) #t)
+							       (lambda (x) filename)])
+						(normal-case-path
+						 (normalize-path 
+						  filename))))))))])
+		(let loop ([frames frames])
+		  (cond
 		    [(null? frames) #f]
 		    [else
 		     (let* ([frame (frame-frame (car frames))])
 		       (if (test-frame frame)
 			   frame
-			   (loop (cdr frames))))]))))])
-	  (sequence
-	    (super-init))))
+			   (loop (cdr frames))))]))))]
+	  (super-instantiate ())))
       
       (define (internal-get-the-frame-group)
 	(let ([the-frame-group (make-object %)])

@@ -6,10 +6,10 @@
 	   "test.ss"
 	   "test-sig.ss"
            
-	   (prefix prefs-file: "prefs-file.ss")
+	   "prefs-file.ss"
 	   "prefs-file-sig.ss"
            
-	   (prefix gui-utils: "gui-utils.ss")
+	   "gui-utils.ss"
 	   "gui-utils-sig.ss"
            
            "framework-unit.ss"

@@ -5,10 +5,13 @@
 	   (lib "mred-sig.ss" "mred")
 	   (lib "mred.ss" "mred"))
 
-  (provide-signature-elements framework:gui-utils^)
+  (provide-signature-elements ((unit gui-utils : framework:gui-utils^)))
 
   (define-values/invoke-unit/sig 
-    framework:gui-utils^
-    framework:gui-utils@
+    ((unit gui-utils : framework:gui-utils^))
+    (compound-unit/sig
+      (import [mred : mred^])
+      (link [gui-utils : framework:gui-utils^ (framework:gui-utils@ mred)])
+      (export (unit gui-utils)))
     #f
     mred^))

@@ -26,17 +26,20 @@
   (load-framework-automatically #f)
 
   (test/load "prefs-file-unit.ss" 'framework:prefs-file@)
-  (test/load "prefs-file.ss" 'get-preferences-filename)
+  (test/load "prefs-file.ss" 'prefs-file:get-preferences-filename)
 
   (test/load "gui-utils-unit.ss" 'framework:gui-utils@)
-  (test/load "gui-utils.ss" 'next-untitled-name)
+  (test/load "gui-utils.ss" 'gui-utils:next-untitled-name)
 
   (test/load "test-unit.ss" 'framework:test@)
   (test/load "test.ss" 'test:run-interval)
 
   (test/load "macro.ss" '(mixin () () ()))
 
-  (test/load "framework-unit.ss" 'framework@)
-  (test/load "framework.ss" 'frame:basic-mixin)
+  (test/load "framework-unit.ss" '(list framework@ framework-no-prefs@ framework-small-part@))
+  (test/load "framework.ss" '(list prefs-file:get-preferences-filename
+				   test:button-push
+				   gui-utils:next-untitled-name
+				   frame:basic-mixin))
 
   (load-framework-automatically old-load-framework-automatically?))
