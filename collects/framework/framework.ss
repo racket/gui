@@ -626,13 +626,14 @@
     "."
     ""
     "It finds a handler based on \\var{filename}.")
+
    (handler:edit-file
     (opt->
      ((union string? false?))
      ((-> (is-a?/c frame:editor<%>)))
      (union false? (is-a?/c frame:editor<%>)))
     ((filename)
-     ((make-default (lambda () (make-object frame:text-info-file\% filename)))))
+     ((make-default (lambda () ((handler:current-create-new-window) filename)))))
     "This function creates a frame or re-uses an existing frame to edit a file. "
     ""
     "If the preference \\scheme{'framework:open-here} is set to \\scheme{#t},"
@@ -671,6 +672,23 @@
     "\\item"
     "If \\var{filename} is \\rawscm{\\#f}, \\var{make-default} is used."
     "\\end{itemize}")
+
+   (handler:current-create-new-window
+    (case->
+     (((union false? string?) . -> . (is-a?/c frame%)) . -> . void)
+     (-> ((union false? string?) . -> . (is-a?/c frame%))))
+    ((new-window-handler) ())
+    "This is a parameter that controls how the framework"
+    "creates new application windows."
+    ""
+    "The default setting is this:"
+    "\\begin{schemedisplay}"
+    "(lambda (filename)"
+    "  (let ([frame (make-object frame:text-info-file% filename)])"
+    "    (send frame show #t)"
+    "    frame))"
+    "\\end{schemedisplay}")
+
    (handler:open-file
     (-> (union false? (is-a?/c frame:basic<%>)))
     ()

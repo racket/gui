@@ -378,6 +378,7 @@
      insert-format-handler
      find-format-handler 
      find-named-format-handler 
+     current-create-new-window
      edit-file
      open-file
      install-recent-items

@@ -97,14 +97,19 @@
 	  (find-named-handler name format-handlers)))
 
 					; Open a file for editing
+      (define current-create-new-window
+	(make-parameter
+	 (lambda (filename)
+	   (let ([frame (make-object frame:text-info-file% filename)])
+	     (send frame show #t)
+	     frame))))
+
       (define edit-file
 	(case-lambda
 	 [(filename) (edit-file
 		      filename
 		      (lambda ()
-			(let ([frame (make-object frame:text-info-file% filename)])
-			  (send frame show #t)
-			  frame)))]
+			((current-create-new-window) filename)))]
 	 [(filename make-default)
 	  (gui-utils:show-busy-cursor
 	   (lambda ()

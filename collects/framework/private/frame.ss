@@ -874,7 +874,8 @@
       (define open-here<%>
         (interface (-editor<%>)
           get-open-here-editor
-	  open-here))
+	  open-here
+          create-empty-window))
       
       (define open-here-mixin
         (mixin (-editor<%>) (open-here<%>)
@@ -886,7 +887,6 @@
                                      (string-constant new-...-menu-item)
                                      (string-constant new-menu-item))))
           
-          (rename [super-file-menu:new-callback file-menu:new-callback])
           (define/override (file-menu:new-callback item event)
             (cond
               [(preferences:get 'framework:open-here?)
@@ -894,14 +894,30 @@
                  (cond
                    [(eq? clear-current 'cancel) (void)]
                    [clear-current
-                    (let ([editor (get-editor)])
-                      (send editor begin-edit-sequence)
-                      (send editor set-filename #f)
-                      (send editor erase)
-                      (send editor set-modified #f)
-                      (send editor end-edit-sequence))]
-                   [else (super-file-menu:new-callback item event)]))]
-              [else (super-file-menu:new-callback item event)]))
+                    (let* ([editor (get-editor)]
+                           [canceled? (cancel-due-to-unsaved-changes editor)])
+                      (unless canceled?
+                        (send editor begin-edit-sequence)
+                        (send editor set-filename #f)
+                        (send editor erase)
+                        (send editor set-modified #f)
+                        (send editor clear-undos)
+                        (send editor end-edit-sequence)))]
+                   [else ((handler:current-create-new-window) #f)]))]
+              [else ((handler:current-create-new-window) #f)]))
+
+          ;; cancel-due-to-unsaved-changes : -> boolean
+          (define (cancel-due-to-unsaved-changes editor)
+            (and (send editor is-modified?)
+                 (let ([save (gui-utils:unsaved-warning
+                              (or (send editor get-filename) (get-label))
+                              (string-constant clear-anyway)
+                              #t
+                              this)])
+                   (case save
+                     [(continue) #f]
+                     [(save) (not (send editor save-file))]
+                     [(cancel) #t]))))
           
           ;; ask-about-new-here : -> (union 'cancel boolean?)
           ;; prompts the user about creating a new window
@@ -911,10 +927,15 @@
              (string-constant create-new-window-or-clear-current)
              (string-constant clear-current)
              (string-constant new-window)
-             (string-constant drscheme)
+             (string-constant warning)
              'cancel
              this))
-            
+ 
+          ;; create-empty-window : -> void
+          (define/public (create-empty-window) 
+            (make-object text-info-file%)
+            (void))
+          
           (rename [super-file-menu:open-on-demand file-menu:open-on-demand])
           (define/override (file-menu:open-on-demand item)
             (super-file-menu:open-on-demand item)
