@@ -93,6 +93,9 @@
            ;  (send (send snip get-editor) set-min-width 'none))
            ]))
       
+      ;;;;;;;;;;
+      ;; Events
+      
       ;; after-insert ((is-a?/c snip%) (is-a?/c snip%) number? number? . -> . void?)
       ;; called after a snip is inserted to the pasteboard
       (rename [super-after-insert after-insert])
@@ -118,12 +121,11 @@
       ;; called when a snip inside the editor is resized
       (rename [super-resized resized])
       (define/override (resized snip redraw-now?)
+        (super-resized snip redraw-now?)
         (unless ignore-resizing?
-          (super-resized snip redraw-now?)
           (when (or redraw-now?
                     (and (not (refresh-delayed?))
-                         (needs-resize? snip)
-                         ))
+                         (needs-resize? snip)))
             (calc/realign))))
       
       ;; after-edit-sequence (-> void?)
@@ -135,13 +137,14 @@
       ;; calc/realign (-> void?)
       ;; sends a message to the pasteboard to recalculate min sizes and realign
       (define/private (calc/realign)
-        (if (refresh-delayed?)
-            (unless my-edit-sequence? (set! needs-realign? true))
-            (let* ([root (pasteboard-root this)]
-                   [parent (pasteboard-parent root)])
-              (when parent
-                (send parent set-aligned-min-sizes)
-                (send root realign)))))
+        (unless ignore-resizing?
+          (if (refresh-delayed?)
+              (unless my-edit-sequence? (set! needs-realign? true))
+              (let* ([root (pasteboard-root this)]
+                     [parent (pasteboard-parent root)])
+                (when parent
+                  (send parent set-aligned-min-sizes)
+                  (send root realign))))))
       
       ;; needs-resize? ((is-a?/c snip%) . -> . boolean?)
       ;; determines if the snip's size is smaller than it's min size
