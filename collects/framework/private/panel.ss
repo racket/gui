@@ -241,15 +241,6 @@
  		     "expected a list of numbers whose length is the number of children: ~a, got ~e"
  		     (length (get-children))
  		     ps))
- 	    (let ([available-extent (get-available-extent)])
- 	      (unless (andmap
- 		       (lambda (p child)
- 			 ((* p available-extent) . >= . (min-extent child)))
- 		       ps
- 		       (get-children))
- 		(error 'set-percentages
- 		       "the percentages would violate minimum size requirements of the children: ~e"
- 		       ps)))
  	    (set! percentages (map make-percentage ps))
  	    (container-flow-modified))
  
@@ -263,7 +254,7 @@
  	  (inherit get-children)
            
  	  (define/private (update-percentages)
- 	    (let* ([len-children (length (get-children))])
+ 	    (let ([len-children (length (get-children))])
  	      (unless (= len-children (length percentages))
  		(let ([rat (/ 1 len-children)])
  		  (set! percentages (build-list len-children (lambda (i) (make-percentage rat)))))
@@ -274,7 +265,7 @@
            
  	  (define resizing-dim #f)
  	  (define resizing-gap #f)
-           
+          
  	  (inherit set-cursor)
  	  (define/override (on-subwindow-event receiver evt)
  	    (if (eq? receiver this)
@@ -318,9 +309,9 @@
 		(begin
 		  (set-cursor #f)
 		  (super on-subwindow-event receiver evt))))
-           
+
  	  (define cursor-gaps null)
-           
+
  	  (define/override (place-children _infos width height)
  	    (set! cursor-gaps null)
  	    (update-percentages)
@@ -370,7 +361,38 @@
  			    (loop (cdr percentages)
  				  (cdr children)
  				  (cdr infos)
- 				  (+ dim this-space bar-thickness))))])))]))))
+ 				  (+ dim this-space bar-thickness))))])))]))
+
+          (define/override (container-size children-info)
+            (update-percentages)
+            (let loop ([percentages percentages]
+                       [children-info children-info]
+                       [major-size 0]
+                       [minor-size 0])
+              (cond
+                [(null? children-info)
+                 (if (get-vertical?)
+                     (values (ceiling minor-size) (ceiling major-size))
+                     (values (ceiling major-size) (ceiling minor-size)))]
+                [(null? percentages)
+                 (error 'panel.ss::dragable-panel "internal error.12")]
+                [else
+                 (let ([child-info (car children-info)]
+                       [percentage (car percentages)])
+                   (let-values ([(child-major major-stretch? child-minor minor-stretch?)
+                                 (if (get-vertical?)
+                                     (values (list-ref child-info 1)
+                                             (list-ref child-info 3)
+                                             (list-ref child-info 0)
+                                             (list-ref child-info 2))
+                                     (values (list-ref child-info 0)
+                                             (list-ref child-info 2)
+                                             (list-ref child-info 1)
+                                             (list-ref child-info 3)))])
+                     (loop (cdr percentages)
+                           (cdr children-info)
+                           (max (/ child-major (percentage-% percentage)) major-size)
+                           (max child-minor minor-size))))])))))
       
       (define three-bar-pen-bar-width 8)
       
