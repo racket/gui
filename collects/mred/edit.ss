@@ -112,7 +112,10 @@
 			[the-format wx:const-media-ff-guess]
 			[show-dialog? #t])
 	     (let ([filename (if (null? filename)
-				 (mred:finder:get-file)
+				 (parameterize ([mred:finder:dialog-parent-parameter
+						 (or (get-frame)
+						     null)])
+				   (mred:finder:get-file))
 				 filename)])
 	       (and filename
 		    (if (file-exists? filename)
@@ -230,11 +233,17 @@
 	
 	(public
 	  [get-file (lambda (d) 
-		      (let ([v (mred:finder:get-file d)])
+		      (let ([v (parameterize ([mred:finder:dialog-parent-parameter
+					       (or (get-frame)
+						   null)])
+				 (mred:finder:get-file d))])
 			(if v
 			    v
 			    null)))]
-	  [put-file (lambda (d f) (let ([v (mred:finder:put-file f d)])
+	  [put-file (lambda (d f) (let ([v (parameterize ([mred:finder:dialog-parent-parameter
+							   (or (get-frame)
+							       null)])
+					     (mred:finder:put-file f d))])
 				    (if v
 					v
 					null)))]
