@@ -132,8 +132,8 @@
       (lambda ()
 	(mred:debug:printf 'prefs "setting prefs to default values")
 	(hash-table-for-each
-	 (lambda (p v) (set-preference p v))
-	 defaults)
+	 defaults
+	 (lambda (p v) (set-preference p v)))
 	(mred:debug:printf 'prefs "finished setting prefs to default values")))
     
     (define set-preference-default
