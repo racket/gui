@@ -1,6 +1,5 @@
 (module name-message mzscheme
   (require (lib "string-constant.ss" "string-constants")
-           (lib "framework.ss" "framework")
            (lib "class.ss")
            (lib "file.ss")
            (lib "list.ss")
@@ -26,6 +25,9 @@
                stretchable-width stretchable-height
                get-top-level-window)
       (override on-event on-paint)
+      
+      (define/public (on-choose-directory dir)
+        (void))
       
       (define paths #f)
       
@@ -71,11 +73,7 @@
                       [else 
                        (make-object menu-item% (car paths) menu
                          (lambda (evt item)
-                           (parameterize ([finder:dialog-parent-parameter
-                                           (get-top-level-window)])
-                             (let ([file (finder:get-file (apply build-path (reverse paths)))])
-                               (when file
-                                 (handler:edit-file file))))))
+                           (on-choose-directory (apply build-path (reverse paths)))))
                        (loop (cdr paths))]))
                   (popup-menu menu
                               0
