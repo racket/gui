@@ -1,4 +1,8 @@
 
+Version 103.2:
+
+ * Windows: fixed dialog% bugs introduced in 103.1.
+
 Version 103.1:
 
  * Added `popup-menu' to window<%>.
