@@ -575,30 +575,32 @@
     (make-common
      (opt-lambda (result-box 
 		  [name #f]
-		  [directory #f]
+		  [in-directory #f]
 		  [replace? #f]
 		  [prompt "Select file"]
 		  [filter #f]
 		  [filter-msg "Invalid form"]
 		  [parent-win (dialog-parent-parameter)])
-       (let* ([directory (if (and (not directory)
+       (let* ([directory (if (and (not in-directory)
 				  (string? name))
 			     (mzlib:file:path-only name)
-			     directory)]
+			     in-directory)]
+	      [saved-directory last-directory]
 	      [name (or (and (string? name)
 			     (mzlib:file:file-name-from-path name))
 			name)])
 	 (make-object finder-dialog% 
-		      parent-win
-		      #t 
-		      replace? 
-		      #f 
-		      result-box 
-		      directory 
-		      name 
-		      prompt 
-		      filter 
-		      filter-msg)))))
+	   parent-win
+	   #t 
+	   replace? 
+	   #f 
+	   result-box 
+	   directory 
+	   name 
+	   prompt 
+	   filter 
+	   filter-msg)
+	 (when in-directory (set! last-directory saved-directory))))))
   
   (define common-get-file
     (make-common
@@ -609,17 +611,19 @@
 	  [filter #f]
 	  [filter-msg "Bad name"]
 	  [parent-win (dialog-parent-parameter)])
-       (make-object finder-dialog% 
-	 parent-win     ; parent window
-	 #f             ; save-mode?
-	 #f             ; replace-ok?
-	 #f             ; multi-mode?
-	 result-box     ; boxed results
-	 directory      ; start-dir
-	 #f             ; start-name
-	 prompt         ; prompt
-	 filter         ; file-filter
-	 filter-msg)))) ; file-filter-msg
+       (let ([saved-directory last-directory])
+	 (make-object finder-dialog% 
+	   parent-win     ; parent window
+	   #f             ; save-mode?
+	   #f             ; replace-ok?
+	   #f             ; multi-mode?
+	   result-box     ; boxed results
+	   directory      ; start-dir
+	   #f             ; start-name
+	   prompt         ; prompt
+	   filter         ; file-filter
+	   filter-msg)    ; file-filter-msg
+	 (when directory (set! last-directory saved-directory))))))
   
   (define common-get-file-list
     (make-common
