@@ -17,9 +17,6 @@
 ; maximum reasonable minimum width/height
 (define max-min 10000)
 
-; maximum reasonable margin
-(define max-margin 1000)
-
 ;;;;;;;;;;;;;;; Helpers ;;;;;;;;;;;;;;;;;;;;
 
 ; this structure holds the information that a child will need to send
@@ -50,14 +47,6 @@
 	(= new-dim -1))))
 
 (define identity (lambda (x) x))
-
-(define (check-reasonable-min who v)
-  (unless (<= 0 v max-min)
-    (raise-mismatch-error (who->name who) "not a reasaonable minimum width: " v)))
-
-(define (check-reasonable-margin who v)
-  (unless (<= 0 v max-margin)
-    (raise-mismatch-error (who->name who) "not a reasaonable margin size: " v)))
 
 (define (range-error who v hard-min-width max-min)
   (raise-mismatch-error (who->name who) 
@@ -476,11 +465,15 @@
 	 [min-client-width
 	  (case-lambda 
 	   [() (- (min-width) (client-inset #f))]
-	   [(new-width) (min-width (+ new-width (client-inset #f)))])]
+	   [(new-width)
+	    (check-range-integer '(method canvas<%> min-client-width) new-width)
+	    (min-width (+ new-width (client-inset #f)))])]
 	 [min-client-height
 	  (case-lambda 
 	   [() (- (min-height) (client-inset #t))]
-	   [(new-height) (min-height (+ new-height (client-inset #t)))])]
+	   [(new-height) 
+	    (check-range-integer '(method canvas<%> min-client-height) new-height)
+	    (min-height (+ new-height (client-inset #t)))])]
 
 	 [mk-param
 	  (lambda (val filter check)
@@ -496,14 +489,14 @@
 	  (mk-param
 	   0 identity
 	   (lambda (v)
-	     (check-reasonable-min 'min-width v)
+	     (check-range-integer '(method area<%> min-width) v)
 	     (when (< v hard-min-width)
 	       (range-error 'min-width v hard-min-width max-min))))]
 	 [min-height
 	  (mk-param
 	   0  identity
 	   (lambda (v)
-	     (check-reasonable-min 'min-height v)
+	     (check-range-integer '(method area<%> min-height) v)
 	     (when (< v hard-min-height)
 	       (range-error 'min-height v hard-min-height max-min))))]
 	 
@@ -511,11 +504,14 @@
 	  (mk-param
 	   x-margin-w identity
 	   (lambda (v)
-	     (check-reasonable-margin 'x-margin-width v) v))]
+	     (check-margin-integer '(method subarea<%> horiz-margin) v)
+	     v))]
 	 [y-margin
 	  (mk-param
 	   y-margin-h identity
-	   (lambda (v) (check-reasonable-margin 'y-margin-width v)))]
+	   (lambda (v) 
+	     (check-margin-integer '(method subarea<%> vert-margin) v)
+	     v))]
 
 	 [stretchable-in-x
 	  (mk-param stretch-x (lambda (x) (and x #t)) void)]
@@ -1177,7 +1173,7 @@
 	 (case-lambda
 	  [() curr-border]
 	  [(new-val)
-	   (check-reasonable-margin 'border new-val)
+	   (check-margin-integer '(method area-container<%> border) new-val)
 	   (set! curr-border new-val)
 	   (force-redraw)]))]
 
@@ -1514,7 +1510,7 @@
 	 (case-lambda
 	  [() curr-spacing]
 	  [(new-val)
-	   (check-reasonable-margin 'spacing new-val)
+	   (check-margin-integer '(method area-container<%> spacing) new-val)
 	   (set! curr-spacing new-val)
 	   (force-redraw)]))])
     (public
@@ -1522,12 +1518,12 @@
       [major-align (lambda (a) (set! major-align-pos a) (force-redraw))]
       [major-offset (lambda (space)
 		      (case major-align-pos
-			[(center) (/ space 2)]
+			[(center) (quotient space 2)]
 			[(left) 0]
 			[(right) space]))]
       [minor-offset (lambda (width size)
 		      (case minor-align-pos
-			[(center) (/ (- width size) 2)]
+			[(center) (quotient (- width size) 2)]
 			[(left) 0]
 			[(right) (- width size)]))]
       
@@ -3865,13 +3861,18 @@
 	       (procedure-arity-includes? callback 2))
     (raise-type-error (who->name who) "procedure of arity 2" callback)))
 
-(define (check-range-integer who range)
-  (unless (and (number? range) (integer? range) (<= 0 range 10000))
-    (raise-type-error (who->name who) "integer in [0, 10000]" range)))
+(define (check-bounded-integer min max)
+  (lambda (who range)
+    (unless (and (number? range) (integer? range) (<= min range max))
+      (raise-type-error (who->name who) 
+			(format "integer in [~a, ~a]" min max)
+			range))))
 
-(define (check-slider-integer who range)
-  (unless (and (number? range) (integer? range) (<= -10000 range 10000))
-    (raise-type-error (who->name who) "integer in [-10000, 10000]" range)))
+(define (check-range-integer who range) (check-bounded-integer 0 10000))
+
+(define (check-slider-integer who range) (check-bounded-integer -10000 10000))
+
+(define (check-margin-integer who range) (check-bounded-integer 0 1000))
 
 (define (check-non-negative-integer who i)
   (unless (and (number? i) (integer? i) (not (negative? i)))
