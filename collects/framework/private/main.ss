@@ -23,7 +23,7 @@
       (application-preferences-handler (lambda () (preferences:show-dialog)))
       
       (preferences:set-default 'framework:basic-canvas-background
-                               (send the-color-database find-color "pink")
+                               (send the-color-database find-color "white")
                                (lambda (x) (is-a? x color%)))
       (preferences:set-un/marshall 
        'framework:basic-canvas-background
