@@ -518,6 +518,7 @@
     on-kill-focus)
   (define-class font% object% #f
     get-font-id
+    get-size-in-pixels?
     get-underlined
     get-smoothing
     get-weight
@@ -600,6 +601,7 @@
   (define-function write-resource)
   (define-function get-resource)
   (define-function label->plain-label)
+  (define-function display-origin)
   (define-function display-size)
   (define-function bell)
   (define-function end-busy-cursor)
