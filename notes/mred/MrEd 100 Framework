@@ -72,7 +72,7 @@ The moved functions and classes are:
   
 The remaining existant functions and classes follow. 
 
-  testable-frame% = (add-get-focus (add-get-focus frame%))
+  testable-frame% = (add-get-focus (add-get-active frame%))
   connections-frame% = (make-connections-frame% testable-frame%)
   empty-frame% = (make-empty-frame% frame%)
   menu-frame% = (make-menu-frame% empty-frame%)
@@ -85,7 +85,7 @@ The remaining existant functions and classes follow.
   pasteboard-info-frame% = (make-info-frame% pasteboard-frame%)
   pasteboard-info-file-frame% = (make-info-file-frame% pasteboard-info-frame%)
 
-  testable-frame% = (add-get-focus (add-get-focus dialog-box%))
+  testable-frame% = (add-get-focus (add-get-active dialog-box%))
   connections-dialog-box% = (make-connections-frame% dialog-bo%)
 
   connections-media-edit% = (make-connections-media-buffer% (make-std-buffer% edit%))
@@ -105,8 +105,18 @@ The remaining existant functions and classes follow.
   file-pasteboard% = (make-file-buffer% info-pasteboard%)
   backup-autosave-pasteboard% = (make-backup-autosave-buffer info-pasteboard%)
   
+  testable-canvas% 
   canvas% 
-  connections-media-canvas% 
+
+  testable-media-canvas% = (add-get-focus media-canvas%)
+  connections-media-canvas% = (make-connections-media-canvas% testable-media-canvas%)
+  wrapping-canvas% = (make-wrapping-canvas% 
+  frame-title-canvas% 
+  one-line-canvas% 
+  wide-snip-canvas% 
+
+  keymap-canvas% 
+  media-canvas% 
 
   canvas-message% 
 
@@ -117,31 +127,21 @@ The remaining existant functions and classes follow.
   
   frame-group% 
   
-  frame-title-canvas% 
-    
   horizontal-edit-panel% 
               
-  keymap-canvas% 
                
   match-cache% 
-  media-canvas% 
   
   media-snip%          (needs better docs)
-  one-line-canvas% 
-              
-
 
   snip% 
 
-
   testable-button% 
-  testable-canvas% 
   testable-check-box% 
   testable-choice% 
   testable-dialog-box% 
   testable-gauge% 
   testable-list-box% 
-  testable-media-canvas% 
   testable-message% 
   testable-multi-text% 
   testable-panel% 
@@ -151,5 +151,3 @@ The remaining existant functions and classes follow.
   testable-text-window% 
 
   vertical-edit-panel% 
-  wide-snip-canvas% 
-  wrapping-canvas% 
