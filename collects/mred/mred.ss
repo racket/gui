@@ -1243,7 +1243,8 @@
 			  (send (get-proxy) on-drop-file f)))))]
       [on-size (lambda (bad-w bad-h)
 		 (super-on-size bad-w bad-h)
-		 ; Delay callback to make sure X structures (position) are updated, first
+		 ;; Delay callback to make sure X structures (position) are updated, first.
+		 ;; Also, Windows needs a trampoline.
 		 (queue-window-callback
 		  this
 		  (entry-point
@@ -1402,7 +1403,7 @@
 			(set! act-date/milliseconds (current-milliseconds))
 			(when (wx:main-eventspace? (get-eventspace))
 			  (set! active-main-frame this)))
-		      ;; Delay callback to handle Windows bug:
+		      ;; Windows needs trampoline:
 		      (queue-window-callback
 		       this
 		       (lambda () (send (get-mred) on-activate on?)))
@@ -1486,10 +1487,18 @@
 	(entry-point
 	 (lambda (id)
 	   (let ([wx (wx:id-to-menu-item id)])
-	     (do-command (wx->mred wx) (make-object wx:control-event% 'menu)))))]
+	     (let ([go (lambda ()
+			 (do-command (wx->mred wx) (make-object wx:control-event% 'menu)))])
+	       (if (eq? 'windows (system-type))
+		   ;; Windows: need trampoline
+		   (wx:queue-callback 
+		    (entry-point (lambda () (go)))
+		    wx:middle-queue-key)
+		   (go))))))]
        [on-menu-click
 	(entry-point
 	 (lambda ()
+	   ;; Windows: no trampoline needed
 	   (and menu-bar (send menu-bar on-demand))))])
      (public
        [handle-menu-key
@@ -3377,7 +3386,13 @@
 (define (wrap-callback cb)
   (if (and (procedure? cb)
 	     (procedure-arity-includes? cb 2))
-      (lambda (w e) (cb (wx->proxy w) e))
+      (lambda (w e) (if (eq? 'windows (system-type))
+			;; Windows: need trampoline
+			(wx:queue-callback
+			 (lambda ()
+			   (cb (wx->proxy w) e))
+			 wx:middle-queue-key)
+			(cb (wx->proxy w) e)))
       cb))
 
 ;---------------- Keyword propagation macros -------------------
@@ -3879,9 +3894,9 @@
   area%-keywords)
 
 (define basic-control%
-  (class100* (make-window% #f (make-subarea% area%)) (control<%>) (mk-wx mismatches lbl parent cursor)
+  (class100* (make-window% #f (make-subarea% area%)) (control<%>) (mk-wx mismatches lbl parent cb cursor)
     (rename [super-set-label set-label])
-    (private-field [label lbl])
+    (private-field [label lbl][callback cb])
     (override
       [get-label (lambda () label)]
       [get-plain-label (lambda () (and (string? label) (wx:label->plain-label label)))]
@@ -3897,7 +3912,7 @@
     (public
       [hidden-child? (lambda () #f)] ; module-local method
       [label-checker  (lambda () check-label-string/false)] ; module-local method
-      [command (lambda (e) (send wx command e))]) ; no entry/exit needed
+      [command (lambda (e) (void (callback this e)))]) ; no entry/exit needed
     (private-field
       [wx #f])
     (sequence
@@ -4044,7 +4059,7 @@
 		     (lambda () 
 		       (let ([cwho '(constructor message)])
 			 (check-container-ready cwho parent)))
-		     label parent #f))))))
+		     label parent void #f))))))
 
 (define button%
   (class100*/kw basic-control% () [(label parent callback [style null]) control%-keywords]
@@ -4064,7 +4079,7 @@
 		     (lambda () 
 		       (let ([cwho '(constructor button)])
 			 (check-container-ready cwho parent)))
-		     label parent #f))))))
+		     label parent callback #f))))))
 
 (define check-box%
   (class100*/kw basic-control% () [(label parent callback [style null] [value #f]) control%-keywords]
@@ -4092,7 +4107,7 @@
 		     (lambda ()
 		       (let ([cwho '(constructor check-box)])
 			 (check-container-ready cwho parent)))
-		     label parent #f)))
+		     label parent callback #f)))
       (when value (set-value #t)))))
 
 (define radio-box%
@@ -4161,7 +4176,7 @@
 						 (format "initial selection is too large, given only ~a choices: "
 							 (length choices))
 						 selection))))
-		     label parent #f)))
+		     label parent callback #f)))
       (when (positive? selection)
 	(set-selection selection)))))
 
@@ -4203,7 +4218,7 @@
 		     (lambda () 
 		       (let ([cwho '(constructor slider)])
 			 (check-container-ready cwho parent)))
-		     label parent #f))))))
+		     label parent callback #f))))))
 
 (define gauge%
   (class100*/kw basic-control% ()
@@ -4243,7 +4258,7 @@
 		     (lambda ()
 		       (let ([cwho '(constructor gauge)])
 			 (check-container-ready cwho parent)))
-		     label parent #f))))))
+		     label parent void #f))))))
 
 (define list-control<%>
   (interface (control<%>)
@@ -4258,7 +4273,7 @@
 (define (-1=>false v) (if (negative? v) #f v))
 
 (define basic-list-control%
-  (class100* basic-control% (list-control<%>) (mk-wx mismatches label parent selection)
+  (class100* basic-control% (list-control<%>) (mk-wx mismatches label parent selection callback)
     (public
       [append (entry-point (lambda (i) (send wx append i)))]
       [clear (entry-point (lambda () (send wx clear)))]
@@ -4289,7 +4304,7 @@
     (sequence
       (as-entry
        (lambda ()
-	 (super-init (lambda () (set! wx (mk-wx)) wx) mismatches label parent #f)))
+	 (super-init (lambda () (set! wx (mk-wx)) wx) mismatches label parent callback #f)))
       (when selection
 	(set-selection selection)))))
 
@@ -4325,7 +4340,8 @@
 		      (unless (= 0 selection)
 			(check-list-control-selection cwho choices selection))))
 		  label parent 
-		  (and (positive? selection) selection)))))
+		  (and (positive? selection) selection)
+		  callback))))
 
 (define list-box%
   (class100*/kw basic-list-control%  ()
@@ -4400,7 +4416,7 @@
 		      (check-container-ready cwho parent)
 		      (when selection
 			(check-list-control-selection cwho choices selection))))
-		  label parent (and (pair? choices) selection)))))
+		  label parent (and (pair? choices) selection) callback))))
 
 (define text-field%
   (class100*/kw basic-control% () 
@@ -4433,7 +4449,7 @@
 		     (lambda ()
 		       (let ([cwho '(constructor text-field)])
 			 (check-container-ready cwho parent)))
-		     label parent ibeam))))))
+		     label parent callback ibeam))))))
 
 ;; Not exported:
 (define tab-group%
@@ -4454,7 +4470,7 @@
 		  (lambda ()
 		    (let ([cwho '(constructor tab-group)])
 		      (check-container-ready cwho parent)))
-		  label parent #f))))
+		  label parent callback #f))))
 
 ;-------------------- Canvas class constructions --------------------
 
