@@ -1,4 +1,12 @@
 
+Version 199.26:
+
+ * Added a `use-paper-bbox?' initialization argument to
+   post-script-dc%. When it's #t (the default is #f), the bounding box
+   for the PostScript output is determined by the paper size (from
+   `current-ps-setup'), instead of from the location of drawing
+   commands.
+
 Version 199.25:
 
  * Restricted all label string arguments to <= 200 characters (so that
