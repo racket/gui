@@ -352,7 +352,7 @@
       (cons 'vertical-label l)
       l))
 
-(define (make-ctls ip cp lp add-testers ep radio-h? label-h? null-label? stretchy? alt-inits?)
+(define (make-ctls ip cp lp add-testers ep radio-h? label-h? null-label? stretchy? alt-inits? font)
   
   (define :::dummy:::
     (when (and (not label-h?)
@@ -365,8 +365,8 @@
       (send p stretchable-height stretchy?)
       
       (let ()
-	(define l (make-object (trace-mixin message%) "Messag&\uE9" p)) ; \uE9 is e with '
-	(define il (make-object (trace-mixin message%) return-bmp p))
+	(define l (make-object (trace-mixin message%) "Messag&\uE9" p null font)) ; \uE9 is e with '
+	(define il (make-object (trace-mixin message%) return-bmp p null font))
 	
 	(add-testers "Message" l)
 	(add-change-label "Message" l lp #f OTHER-LABEL)
@@ -381,9 +381,10 @@
 			 (lambda (b e)
 			   (send b enable #f)
 			   (sleep/yield 5)
-			   (send b enable #t))))
+			   (send b enable #t))
+			 null font))
   
-  (define ib (make-object (trace-mixin button%) bb-bmp ip void))
+  (define ib (make-object (trace-mixin button%) bb-bmp ip void null font))
   
   ; (define ib2 (make-object button% return-bmp ip void))
   
@@ -392,11 +393,12 @@
 			  '("Appl\uE9" "Banana" "Coconut & Donuts" "Eclair" "French Fries" "Gatorade" "Huevos Rancheros") ; \uE9 is e with '
 			  ip void
 			  (add-label-direction label-h? '(single))
-			  (if alt-inits? 2 #f)))
+			  (if alt-inits? 2 #f)
+			  font font))
   
-  (define cb (make-object (trace-mixin check-box%) "C&h\u00E9ck" ip void null alt-inits?)) ; \uE9 is e with '
+  (define cb (make-object (trace-mixin check-box%) "C&h\u00E9ck" ip void null alt-inits? font)) ; \uE9 is e with '
   
-  (define icb (make-object (trace-mixin check-box%) mred-bmp ip void null alt-inits?))
+  (define icb (make-object (trace-mixin check-box%) mred-bmp ip void null alt-inits? font))
   
   (define rb (make-object (trace-mixin radio-box%)
 			  (if null-label? #f "R&ad\uEDo") ; \uED is i with '
@@ -407,7 +409,8 @@
 			   (if radio-h?
 			       '(horizontal)
 			       '(vertical)))
-			  (if alt-inits? 2 0)))
+			  (if alt-inits? 2 0)
+			  font))
   
   (define irb (make-object (trace-mixin radio-box%)
 			   (if null-label? #f "Image Ra&dio")
@@ -418,20 +421,23 @@
 			     (if radio-h?
 				 '(horizontal)
 				 '(vertical)))
-			  (if alt-inits? 1 0)))
+			  (if alt-inits? 1 0)
+			  font))
   
   (define ch (make-object (trace-mixin choice%)
 			  (if null-label? #f "Ch&o\u00EDce") ; \uED is i with '
 			  '("Alpha" "Beta" "Gamma" "Delta & R\uE9st") ; \uE9 is e with '
 			  ip void
 			  (add-label-direction label-h? null)
-			  (if alt-inits? 3 0)))
+			  (if alt-inits? 3 0)
+			  font))
   
   (define txt (make-object (trace-mixin text-field%)
 			   (if null-label? #f "T\uE9&xt") ; \uE9 is e with '
 			   ip void
 			   "initial & starting"
-			   (add-label-direction label-h? '(single))))
+			   (add-label-direction label-h? '(single))
+			   font))
   
   (set! my-txt txt)
   (set! my-lb lb)
@@ -543,8 +549,7 @@
 (define float-frame? #f)
 (define no-caption? #f)
 
-(define (big-frame h-radio? v-label? null-label? stretchy? special-label-font? special-button-font? 
-		   initially-disabled? alternate-init?)
+(define (big-frame h-radio? v-label? null-label? stretchy? font initially-disabled? alternate-init?)
   (define f (make-frame (if use-dialogs?
 			    active-dialog%
 			    active-frame%)
@@ -573,8 +578,8 @@
   
   (define tp 
     (if #f
-	(make-object group-box-panel% "Sub" fp)
-	(make-object tab-panel% '("Sub" "Panel") fp void)))
+	(make-object group-box-panel% "Sub" fp null font)
+	(make-object tab-panel% '("Sub" "Panel") fp void null font)))
 
   (when initially-disabled?
     (send tp enable #f))
@@ -586,12 +591,7 @@
   (send tp set-label "Sub-sub panel")
   (add-testers "Sub-sub-panel" tp)
 
-  (when special-label-font?
-    (send tp set-label-font special-font))
-  (when special-button-font?
-    (send tp set-control-font special-font))
-
-  (let ([ctls (make-ctls tp cp lp add-testers ep h-radio? v-label? null-label? stretchy? alternate-init?)])
+  (let ([ctls (make-ctls tp cp lp add-testers ep h-radio? v-label? null-label? stretchy? alternate-init? font)])
     (add-focus-note f ep)
     (send f set-info ep)
     
@@ -603,8 +603,7 @@
   (set! prev-frame f)
   f)
 
-(define (med-frame plain-slider? label-h? null-label? stretchy? special-label-font? special-button-font?
-		   initially-disabled? alternate-init?)
+(define (med-frame plain-slider? label-h? null-label? stretchy? font initially-disabled? alternate-init?)
   (define f2 (make-frame (if use-dialogs?
 			    active-dialog%
 			    active-frame%)
@@ -650,14 +649,9 @@
 	     (not position-via-style?))
     (send ip2 set-label-position 'vertical))
 
-  (when special-label-font?
-    (send ip2 set-label-font special-font))
-  (when special-button-font?
-    (send ip2 set-control-font special-font))
-  
   (let ()
     (define co
-      (make-object combo-field% "Greet:" '("Hola" "Ni Hao") ip2 void "hello"))
+      (make-object combo-field% "Greet:" '("Hola" "Ni Hao") ip2 void "hello" null font))
 
     (define sh (make-object slider% 
 			    (if null-label? #f "H S&lid\uE9r") 0 10 ip2
@@ -666,7 +660,8 @@
 			    5
 			    (add-label-direction 
 			     label-h? 
-			     (if plain-slider? '(horizontal plain) '(horizontal)))))
+			     (if plain-slider? '(horizontal plain) '(horizontal)))
+			    font))
     
     (define sv (make-object slider% 
 			    (if null-label? #f "V Sl&id\uE9r") 0 10 ip2 
@@ -675,19 +670,22 @@
 			    5
 			    (add-label-direction 
 			     label-h? 
-			     (if plain-slider? '(vertical plain) '(vertical)))))
+			     (if plain-slider? '(vertical plain) '(vertical)))
+			    font))
     
     (define gh (make-object gauge% 
 			    (if null-label? #f "H G&aug\uE9") 100 ip2
 			    (add-label-direction 
 			     label-h? 
-			     '(horizontal))))
+			     '(horizontal))
+			    font))
     
     (define gv (make-object gauge% 
 			    (if null-label? #f "V Ga&ug\uE9") 100 ip2
 			    (add-label-direction 
 			     label-h? 
-			     '(vertical))))
+			     '(vertical))
+			    font))
     
     (define txt (make-object text-field% 
 			     (if null-label? #f "T&ext \u7238") ; \u7238 is Chinese "father"
@@ -695,14 +693,17 @@
 			     "initial & starting"
 			     (add-label-direction 
 			      label-h? 
-			      '(multiple))))
+			      '(multiple))
+			     font))
 
     (define tab (make-object tab-panel% 
 			     '("Appl\uE9" "B&anana") ip2 void
-			     null))
+			     null
+			     font))
 
     (define grp (make-object group-box-panel% 
-			     "Group\uE9" ip2))
+			     "Group\uE9" ip2
+			     null font))
 
     (make-object button% "OK" tab void)
     (make-object button% "Cancel" grp void)
@@ -2239,7 +2240,9 @@
   (lambda (p1 p2 radios? size maker)
     (define (make-radio-box lbl choices panel cb)
       (let ([g (instantiate group-box-panel% (lbl panel))])
-	(make-object radio-box% #f choices g cb)))
+	(if (= (length choices) 2)
+	    (make-object radio-box% #f choices g cb)
+	    (make-object choice% #f choices g cb))))
     (define radio-h-radio
       (make-radio-box 
        (if radios? "Radio Box Orientation" "Slider Style")
@@ -2254,11 +2257,8 @@
     (define stretchy-radio
       (make-radio-box "Stretchiness" '("Normal" "All Stretchy")
 		      p1 void))
-    (define label-font-radio
-      (make-radio-box "Label Font" '("Normal" "Big")
-		      p1 void))
-    (define button-font-radio
-      (make-radio-box "Control Font" '("Normal" "Big")
+    (define font-radio
+      (make-radio-box "Label Font" '("Normal" "Small" "Tiny" "Big")
 		      p1 void))
     (define enabled-radio
       (make-radio-box "Initially" '("Enabled" "Disabled")
@@ -2268,7 +2268,7 @@
 		      p1 void))
     (define next-button
       (make-next-button p2 (list radio-h-radio label-h-radio label-null-radio 
-				 stretchy-radio label-font-radio button-font-radio
+				 stretchy-radio font-radio
 				 enabled-radio selection-radio)))
     (define go-button
       (make-object button% (format "Make ~a Frame" size) p2
@@ -2278,8 +2278,11 @@
 		      (positive? (send label-h-radio get-selection))
 		      (positive? (send label-null-radio get-selection))
 		      (positive? (send stretchy-radio get-selection))
-		      (positive? (send label-font-radio get-selection))
-		      (positive? (send button-font-radio get-selection))
+		      (list-ref (list normal-control-font
+				      small-control-font
+				      tiny-control-font
+				      (make-object font% 20 'system))
+				(send font-radio get-selection))
 		      (positive? (send enabled-radio get-selection))
 		      (positive? (send selection-radio get-selection))))))
     #t))

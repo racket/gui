@@ -664,6 +664,7 @@
   (define-function is-color-display?)
   (define-function file-selector)
   (define-class list-box% item% #f
+    get-label-font
     set-string
     set-first-visible-item
     set
@@ -931,6 +932,7 @@
     copy-self)
   (define-class menu% object% #f
     select
+    get-font
     set-width
     set-title
     set-label

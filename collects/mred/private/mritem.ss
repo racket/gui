@@ -41,11 +41,14 @@
 
   (define-local-member-name hidden-child? label-checker)
 
-  (define-keywords control%-keywords
-    [font no-val]
+  (define-keywords control%-nofont-keywords
     window%-keywords
     subarea%-keywords
     area%-keywords)
+
+  (define-keywords control%-keywords
+    [font no-val]
+    control%-nofont-keywords)
 
   (define basic-control%
     (class100* (make-window% #f (make-subarea% area%)) (control<%>) (mk-wx mismatches lbl parent cb cursor
@@ -443,14 +446,15 @@
 
   (define list-box%
     (class100*/kw basic-list-control%  ()
-		  [(label choices parent callback [style '(single)] [selection #f])
-		   control%-keywords]
+		  [(label choices parent callback [style '(single)] [selection #f] [font no-val] [label-font no-val])
+		   control%-nofont-keywords]
       (sequence 
 	(let ([cwho '(constructor list-box)])
 	  (check-list-control-args cwho label choices parent callback)
 	  (check-style cwho '(single multiple extended) '(vertical-label horizontal-label deleted) style)
 	  (check-non-negative-integer/false cwho selection)
-	  (check-font cwho font)))
+	  (check-font cwho font)
+	  (check-font cwho label-font)))
       (rename [super-append append])
       (override
 	[append (entry-point
@@ -517,7 +521,8 @@
 			(set! wx (make-object wx-list-box% this this
 					      (mred->wx-container parent) (wrap-callback callback)
 					      label kind
-					      -1 -1 -1 -1 choices style (no-val->#f font))))
+					      -1 -1 -1 -1 choices style 
+					      (no-val->#f font) (no-val->#f label-font))))
 		      wx)
 		    (lambda ()
 		      (let ([cwho '(constructor list-box)])

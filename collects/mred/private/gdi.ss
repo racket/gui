@@ -16,9 +16,9 @@
 	   get-window-text-extent
 	   get-family-builtin-face
 	   normal-control-font
-	   view-control-font
 	   small-control-font
-	   tiny-control-font)
+	   tiny-control-font
+	   view-control-font)
 
   (define register-collecting-blit
     (case-lambda
@@ -155,8 +155,8 @@
 			[else 1]))
 
   (define normal-control-font (make-object wx:font% (wx:get-control-font-size) 'system))
-  (define view-control-font (if (eq? 'macosx (system-type))
-				(make-object wx:font% 12 'system)
-				(make-object wx:font% (wx:get-control-font-size) 'system)))
   (define small-control-font (make-object wx:font% (- (wx:get-control-font-size) small-delta) 'system))
-  (define tiny-control-font (make-object wx:font% (- (wx:get-control-font-size) 2 small-delta) 'system)))
+  (define tiny-control-font (make-object wx:font% (- (wx:get-control-font-size) 2 small-delta) 'system))
+  (define view-control-font (if (eq? 'macosx (system-type))
+				(make-object wx:font% (- (wx:get-control-font-size) 1) 'system)
+				normal-control-font)))

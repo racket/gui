@@ -120,7 +120,7 @@
 					    (on-popup e)
 					    #t)))))])
       (private-field
-       [menu (new popup-menu%)])
+       [menu (new popup-menu% [font font])])
       (sequence
 	(for-each (lambda (item) 
 		    (append item))

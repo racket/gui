@@ -113,7 +113,7 @@
 	(super-init))))
 
   (define wx-menu%
-    (class100* wx:menu% (wx<%>) (mr popup-label popup-callback)
+    (class100* wx:menu% (wx<%>) (mr popup-label popup-callback font)
       (private-field
        [mred mr]
        [items null]
@@ -162,4 +162,4 @@
 		    (send iwx set-enabled (and on? #t))
 		    (super-enable id on?)))])
       (sequence
-	(super-init popup-label popup-callback)))))
+	(super-init popup-label popup-callback font)))))

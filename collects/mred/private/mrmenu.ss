@@ -300,7 +300,7 @@
       (sequence
 	(as-entry
 	 (lambda () 
-	   (set! wx-menu (make-object wx-menu% this #f void))
+	   (set! wx-menu (make-object wx-menu% this #f void #f))
 	   (super-init parent label help-string wx-menu #f (send wx-menu get-keymap) (lambda (x) x) void)
 	   (let ([wx-item (mred->wx this)])
 	     (set-cdr! (send wx-item get-menu-data) wx-menu) ; for meta-shortcuts

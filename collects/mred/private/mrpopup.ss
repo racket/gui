@@ -14,7 +14,7 @@
   (provide popup-menu%)
 
   (define popup-menu%
-    (class100* mred% (menu-item-container<%> internal-menu<%>) ([title #f][popdown-callback void][demand-callback void])
+    (class100* mred% (menu-item-container<%> internal-menu<%>) ([title #f][popdown-callback void][demand-callback void][font no-val])
       (private-field 
        [callback demand-callback])
       (public
@@ -31,13 +31,17 @@
 		      (send wx get-items)))]
 	[set-min-width (lambda (n)
 			 (check-range-integer '(method popup-menu% set-min-width) n)
-			 (send wx set-width n))])
+			 (send wx set-width n))]
+	[get-font (lambda ()
+		    (send wx get-font))])
       (private-field
        [wx #f])
       (sequence
-	(check-label-string/false '(constructor popup-menu) title)
-	(check-callback '(constructor popup-menu) popdown-callback)
-	(check-callback1 '(constructor popup-menu) demand-callback)
+	(let ([cwho '(constructor popup-menu)])
+	  (check-label-string/false cwho title)
+	  (check-callback cwho popdown-callback)
+	  (check-callback1 cwho demand-callback)
+	  (check-font cwho font))
 	(as-entry 
 	 (lambda ()
 	   (set! wx (make-object wx-menu% this title
@@ -57,5 +61,6 @@
 						  (lambda () (send mwx popup-release)))))])
 				     (if (eq? 'windows (system-type))
 					 (wx:queue-callback go wx:middle-queue-key)
-					 (go))))))
+					 (go))))
+				 (no-val->#f font)))
 	   (super-init wx)))))))

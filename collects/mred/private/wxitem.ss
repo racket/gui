@@ -303,7 +303,7 @@
     (make-window-glue% 
      (class100 (make-control% wx:list-box%
 			      const-default-x-margin const-default-y-margin 
-			      #t #t) (parent cb label kind x y w h choices style font)
+			      #t #t) (parent cb label kind x y w h choices style font label-font)
        (inherit get-first-item
 		set-first-visible-item)
        (private
@@ -328,7 +328,7 @@
 			      [(wheel-up) (scroll -1) #t]
 			      [(wheel-down) (scroll 1) #t]
 			      [else #f])))])
-       (sequence (super-init style parent cb label kind x y w h choices style font)))))
+       (sequence (super-init style parent cb label kind x y w h choices style font label-font)))))
 
   (define wx-radio-box%
     (make-window-glue% 
