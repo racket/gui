@@ -1620,8 +1620,8 @@
 	 (unless (and (list? children-info)
 		      (andmap (lambda (x) (and (list? x)
 					       (= 4 (length x))
-					       (number? (car x)) (not (negative? (car x))) (integer? (car x)) (exact? (car x))
-					       (number? (cadr x)) (not (negative? (cadr x))) (integer? (cadr x)) (exact? (cadr x))))
+					        (integer? (car x)) (not (negative? (car x))) (exact? (car x))
+					        (integer? (cadr x)) (not (negative? (cadr x))) (exact? (cadr x))))
 			      children-info))
 	   (raise-type-error (who->name '(method area-container-window<%> place-children))
 			     "list of (list of non-negative-integer non-negative-integer boolean boolean)"
@@ -1674,7 +1674,7 @@
 			  (= (length l) (length children-info))
 			  (andmap (lambda (x) (and (list? x)
 						   (= 4 (length x))
-						   (andmap (lambda (x) (and (number? x) (integer? x) (exact? x))) x)))
+						   (andmap (lambda (x) (and (integer? x) (exact? x))) x)))
 				  l))
 	       (raise-mismatch-error 'container-redraw 
 				     "result from place-children is not a list of 4-integer lists with the correct length: "
@@ -2263,8 +2263,8 @@
 				     (andmap
 				      (lambda (l)
 					(and (list? l) (= (length l) 4)
-					     (exact? (car l)) (integer? (car l)) (<= 0 (car l) 10000)
-					     (exact? (cadr l)) (integer? (cadr l)) (<= 0 (cadr l) 10000)))
+					     (integer? (car l)) (exact? (car l)) (<= 0 (car l) 10000)
+					     (integer? (cadr l)) (exact? (cadr l)) (<= 0 (cadr l) 10000)))
 				      l))
 			  (raise-type-error (who->name '(method area-container<%> container-size))
 					    "list of lists containing two exact integers in [0, 10000] and two booleans"
@@ -3887,7 +3887,7 @@
        [() (get-color-from-user #f #f #f null)]
        [(message) (get-color-from-user message #f #f null)]
        [(message parent) (get-color-from-user message parent #f null)]
-       [(message parent color) (get-color-from-user message parent #f null)]
+       [(message parent color) (get-color-from-user message parent color null)]
        [(message parent color style)
 	(check-string/false 'get-color-from-user message)
 	(check-top-level-parent/false 'get-color-from-user parent)
@@ -3924,11 +3924,11 @@
        [() (get-font-from-user #f #f #f null)]
        [(message) (get-font-from-user message #f #f null)]
        [(message parent) (get-font-from-user message parent #f null)]
-       [(message parent font) (get-font-from-user message parent #f null)]
+       [(message parent font) (get-font-from-user message parent font null)]
        [(message parent font style)
 	(check-string/false 'get-font-from-user message)
 	(check-top-level-parent/false 'get-font-from-user parent)
-	(check-instance 'get-color-from-user wx:font% 'font% #t font)
+	(check-instance 'get-font-from-user wx:font% 'font% #t font)
 	(check-style 'get-font-from-user #f null style)
 	(letrec ([ok? #f]
 		 [f (make-object dialog% "Choose Font" parent 500 300)]
@@ -4180,7 +4180,7 @@
 
 (define (check-bounded-integer min max)
   (lambda (who range)
-    (unless (and (number? range) (integer? range) (exact? range) (<= min range max))
+    (unless (and (integer? range) (exact? range) (<= min range max))
       (raise-type-error (who->name who) 
 			(format "exact integer in [~a, ~a]" min max)
 			range))))
@@ -4194,7 +4194,7 @@
 (define check-gauge-integer (check-bounded-integer 1 10000))
 
 (define (check-non-negative-integer who i)
-  (unless (and (number? i) (integer? i) (exact? i) (not (negative? i)))
+  (unless (and (integer? i) (exact? i) (not (negative? i)))
     (raise-type-error (who->name who) "non-negative exact integer" i)))
 
 (define (check-dimension who d)
