@@ -620,7 +620,7 @@
                      (get-close-paren pos (if fixup? (map symbol->string (map cadr pairs)) null)))))
               (end-edit-sequence)
               (let ((insert-str (if closer closer (string char))))
-                (insert insert-str)
+                (for-each (lambda (c) (insert c)) (string->list insert-str))
                 (when flash?
                   (unless stopped?
                     (let ((to-pos (backward-match (+ (string-length insert-str) pos) 0)))
