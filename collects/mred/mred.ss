@@ -7207,6 +7207,13 @@
       (let-values ([(w h d a) (send dc get-text-extent string font)])
 	(values (inexact->exact w) (inexact->exact h)))])))
 
+(define mswin-system #f)
+(define mswin-default #f)
+(define (look-for-font name)
+  (if (ormap (lambda (n) (string-ci=? name n)) (wx:get-face-list))
+      name
+      "MS San Serif"))
+
 (define (get-family-builtin-face family)
   (unless (memq family '(default decorative roman script swiss modern system symbol))
     (raise-type-error 'get-default-face "family symbol" family))
@@ -7223,7 +7230,14 @@
        [(symbol) "-adobe-symbol"])]
     [(windows)
      (case family
-       [(system) "MS Sans Serif"]
+       [(system) 
+	(unless mswin-system 
+	  (set! mswin-system (look-for-font "Tahoma")))
+	mswin-system]
+       [(default) 
+	(unless mswin-default 
+	  (set! mswin-default (look-for-font "Microsoft Sans Serif")))
+	mswin-default]
        [(default) "MS Sans Serif"]
        [(roman) "Times New Roman"]
        [(decorative) "Arial"]
