@@ -1645,7 +1645,7 @@
 ;--------------------- wx Panel Classes -------------------------
 
 (define wx:windowless-panel%
-  (class null (parent x y w h style)
+  (class object% (parent x y w h style)
     (private
       [pos-x 0] [pos-y 0] [width 1] [height 1])
     (public
@@ -1669,7 +1669,8 @@
       [get-x (lambda () pos-x)]
       [get-y (lambda () pos-y)]
       [get-width (lambda () width)]
-      [get-height (lambda () height)])))
+      [get-height (lambda () height)])
+    (sequence (super-init))))
 
 (define wx-basic-panel<%> (interface ()))
 
@@ -2488,10 +2489,11 @@
 (define widget-table (make-hash-table-weak))
 
 (define mred%
-  (class null (wx)
+  (class object% (wx)
     (sequence
       ; (unless (eq? monitor-owner (current-thread)) (error 'init-mred% "not in monitored area"))
-      (hash-table-put! widget-table this (make-weak-box wx)))))
+      (hash-table-put! widget-table this (make-weak-box wx))
+      (super-init))))
 
 (define (mred->wx w) 
   ; (unless (eq? monitor-owner (current-thread)) (error 'mred->wx "not in monitored area"))
@@ -4016,7 +4018,7 @@
 	  (let ([e (last-position)])
 	    (insert #\newline)
 	    (change-style
-	     (send (make-object wx:style-delta% 'change-style 'slant) set-delta-foreground "RED")
+	     (send (make-object wx:style-delta% 'change-italic) set-delta-foreground "RED")
 	     s e)))
 	(insert "The current input port always returns eof.") (insert #\newline)
 	(new-prompt))))
