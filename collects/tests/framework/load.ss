@@ -12,8 +12,7 @@
             [orig-namespace (current-namespace)])
         (parameterize ([current-namespace (make-namespace)])
           (namespace-attach-module
-           orig-namespace
-           mred-name)
+           orig-namespace           mred-name)
           (eval '(require (lib ,file "framework")))
           (with-handlers ([(lambda (x) #t)
                            (lambda (x)
@@ -23,6 +22,7 @@
             (eval ',exp)
             (void))))))
 
+ 
   (test/load "specs.ss" '(contract (lambda (x) #t) 1 'pos 'neg))
   
   (test/load "gui-utils-unit.ss" 'framework:gui-utils@)
@@ -34,8 +34,40 @@
   (test/load "macro.ss" '(mixin () () ()))
 
   (test/load "framework-unit.ss" '(list framework@ frameworkc@))
+  
   (test/load "framework.ss" '(list test:button-push
 				   gui-utils:next-untitled-name
 				   frame:basic-mixin
                                    (mixin () () ())
-                                   (contract (lambda (x) #t) 1 'pos 'neg))))
+                                   (contract (lambda (x) #t) 1 'pos 'neg)))
+  
+  ;; ensures that all of the names in the signature are provided
+  ;; by (require (lib "framework.ss" "framework"))
+  (test/load 
+   "framework.ss"
+   ;; these extra evals let me submit multiple, independent top-level
+   ;; expressions in the newly created namespace.
+   '(begin (eval '(require (lib "unitsig.ss")))
+           (eval '(require (lib "framework-sig.ss" "framework")))
+           (eval '(letrec ([prepend-symbol
+                            (lambda (s1)
+                              (lambda (s2)
+                                (string->symbol
+                                 (string-append
+                                  (symbol->string s1)
+                                  ":"
+                                  (symbol->string s2)))))]
+                           ;; exp-sig = (union (vectorof exp-sig)
+                           ;;                  (cons sym exp-sig) 
+                           ;;                  symbol)
+                           [flatten ;; : exp-sig -> (listof symbol)
+                            (lambda (l)
+                              (cond
+                                [(vector? l) 
+                                 (apply append (map flatten (vector->list l)))]
+                                [(pair? l)
+                                 (map (prepend-symbol (car l)) (flatten (cdr l)))]
+                                [(symbol? l) (list l)]
+                                [else (error 'flatten "unk: ~e" l)]))]
+                        [names (flatten (signature->symbols framework^))])
+                    (for-each eval names))))))
