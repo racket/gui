@@ -123,9 +123,8 @@
                 [snip (loop (send snip next) snip)]
                 [else acc])))
           
-          (define/public (read-one-special index source line column position)
-            (raise (make-special-comment
-                    1)))
+          (define/public (read-special source line column position)
+            (raise (make-special-comment "comment")))
           (super-instantiate ())
           (inherit set-snipclass)
           (set-snipclass snipclass))))))

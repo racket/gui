@@ -72,19 +72,17 @@
           (define/public (get-saved-snips) saved-snips)
           (field [sizing-text (format "~a   ~a" left-bracket right-bracket)])
 
-          (define/public (read-one-special index file line col pos)
+          (define/public (read-special file line col pos)
             (let ([text (make-object text:basic%)])
               (for-each
                (lambda (s) (send text insert (send s copy)
                                  (send text last-position)
                                  (send text last-position)))
                saved-snips)
-              (values (datum->syntax-object
-                       #f
-                       (read (open-input-text-editor text))
-                       (list file line col pos 1))
-                      1
-                      #t)))
+	      (datum->syntax-object
+	       #f
+	       (read (open-input-text-editor text))
+	       (list file line col pos 1))))
           
           (define/override get-text
             (opt-lambda (offset num [flattened? #f])

@@ -291,8 +291,8 @@
           ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
           
           
-          (define/public (read-one-special index file line col pos)
-            (values number 1 #t))
+          (define/public (read-special file line col pos)
+	    number)
           
           (define/override get-text
             (case-lambda

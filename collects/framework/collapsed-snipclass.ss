@@ -8,19 +8,17 @@
   (define simple-sexp-snip%
     (class* snip% (readable-snip<%>)
       (init-field left-bracket right-bracket saved-snips)
-      (define/public (read-one-special index file line col pos)
+      (define/public (read-special file line col pos)
         (let ([text (make-object text%)])
           (for-each
            (lambda (s) (send text insert (send s copy)
                              (send text last-position)
                              (send text last-position)))
            saved-snips)
-          (values (datum->syntax-object
-                   #f
-                   (read (open-input-text-editor text))
-                   (list file line col pos 1))
-                  1
-                  #t)))
+	  (datum->syntax-object
+	   #f
+	   (read (open-input-text-editor text))
+	   (list file line col pos 1))))
       (super-instantiate ())))
   
   (define sexp-snipclass% (make-sexp-snipclass% simple-sexp-snip%))
