@@ -33,13 +33,13 @@
       (define autosave-toc-filename
         (build-path (find-system-path 'pref-dir)
                     (case (system-type)
-                      [(windows unix) ".plt-autosave-toc"]
+                      [(unix) ".plt-autosave-toc"]
                       [else "PLT-autosave-toc"])))
       
       (define autosave-toc-save-filename
         (build-path (find-system-path 'pref-dir)
                     (case (system-type)
-                      [(windows unix) ".plt-autosave-toc-save"]
+                      [(unix) ".plt-autosave-toc-save"]
                       [else "PLT-autosave-toc-save"])))
 
       (define autosave-timer%
