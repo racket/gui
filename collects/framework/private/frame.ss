@@ -1330,10 +1330,6 @@
 		  [pos (if (eq? searching-direction 'forward)
 			   (send replacee-edit get-start-position)
 			   (send replacee-edit get-end-position))]
-		  [get-pos 
-		   (if (eq? searching-direction 'forward)
-		       (ivar replacee-edit get-end-position)
-		       (ivar replacee-edit get-start-position))]
 		  [done? (if (eq? 'forward searching-direction)
 			     (lambda (x) (>= x (send replacee-edit last-position)))
 			     (lambda (x) (<= x 0)))])

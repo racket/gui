@@ -829,124 +829,133 @@
 
   (define setup-keymap
     (lambda (keymap)
-
-	(let ([add-pos-function
-	       (lambda (name ivar-sym)
-		 (send keymap add-function name
-		       (lambda (edit event)
-			 ((ivar/proc edit ivar-sym)
-			  (send edit get-start-position)))))])
-	  (add-pos-function "remove-sexp" 'remove-sexp)
-	  (add-pos-function "forward-sexp" 'forward-sexp)
-	  (add-pos-function "backward-sexp" 'backward-sexp)
-	  (add-pos-function "up-sexp" 'up-sexp)
-	  (add-pos-function "down-sexp" 'down-sexp)
-	  (add-pos-function "flash-backward-sexp" 'flash-backward-sexp)
-	  (add-pos-function "flash-forward-sexp" 'flash-forward-sexp)
-	  (add-pos-function "remove-parens-forward" 'remove-parens-forward)
-	  (add-pos-function "transpose-sexp" 'transpose-sexp))
-	
-	(let ([add-edit-function
-	       (lambda (name ivar-sym)
-		 (send keymap add-function name
-		       (lambda (edit event)
-			 ((ivar/proc edit ivar-sym)))))])
-	  (add-edit-function "select-forward-sexp" 'select-forward-sexp)
-	  (add-edit-function "select-backward-sexp" 'select-backward-sexp)
-	  (add-edit-function "select-down-sexp" 'select-down-sexp)
-	  (add-edit-function "select-up-sexp" 'select-up-sexp)
-	  (add-edit-function "tabify-at-caret" 'tabify-selection)
-	  (add-edit-function "do-return" 'insert-return)
-	  (add-edit-function "comment-out" 'comment-out-selection)
-	  (add-edit-function "uncomment" 'uncomment-selection))
-
-	(send keymap add-function "balance-parens"
-	      (lambda (edit event)
-		(send edit balance-parens event)))
-	(send keymap add-function "balance-quotes"
-	      (lambda (edit event)
-		(send edit balance-quotes event)))
-
-	(send keymap map-function "TAB" "tabify-at-caret")
-
-	(send keymap map-function "return" "do-return")
-	(send keymap map-function "s:return" "do-return")
-	(send keymap map-function "s:c:return" "do-return")
-	(send keymap map-function "a:return" "do-return")
-	(send keymap map-function "s:a:return" "do-return")
-	(send keymap map-function "c:a:return" "do-return")
-	(send keymap map-function "c:s:a:return" "do-return")
-	(send keymap map-function "c:return" "do-return")
-	(send keymap map-function "d:return" "do-return")
-
-	(send keymap map-function ")" "balance-parens")
-	(send keymap map-function "]" "balance-parens")
-	(send keymap map-function "}" "balance-parens")
-	(send keymap map-function "\"" "balance-quotes")
-	(send keymap map-function "|" "balance-quotes")
-
-	;(send keymap map-function "c:up" "up-sexp") ;; paragraph
-	;(send keymap map-function "s:c:up" "select-up-sexp")
-
-	;(send keymap map-function "c:down" "down-sexp") ;; paragraph
-	;(send keymap map-function "s:c:down" "select-down-sexp")
-
-	(let ([map-meta
-	       (lambda (key func)
-		 (keymap:send-map-function-meta keymap key func))]
-	      [map
-	       (lambda (key func)
-		 (send keymap map-function key func))])
-
-	  (map-meta "up" "up-sexp")
-	  (map-meta "c:u" "up-sexp")
-	  (map "a:up" "up-sexp")
-	  (map-meta "s:up" "select-up-sexp")
-	  (map "a:s:up" "select-up-sexp")
-	  (map-meta "s:c:u" "select-up-sexp")
-	  
-	  (map-meta "down" "down-sexp")
-	  (map "a:down" "down-sexp")
-	  (map-meta "c:down" "down-sexp")
-	  (map-meta "s:down" "select-down-sexp")
-	  (map "a:s:down" "select-down-sexp")
-	  (map-meta "s:c:down" "select-down-sexp")
-	  
-	  (map-meta "right" "forward-sexp")
-	  (map "a:right" "forward-sexp")
-	  (map-meta "s:right" "select-forward-sexp")
-	  (map "a:s:right" "select-forward-sexp")
-	  
-	  (map-meta "left" "backward-sexp")
-	  (map "a:left" "backward-sexp")
-	  (map-meta "s:left" "select-backward-sexp")
-	  (map "a:s:left" "select-backward-sexp")
-	  
-	  (map-meta "return" "do-return")
-	  (map-meta "s:return" "do-return")
-	  (map-meta "s:c:return" "do-return")
-	  (map-meta "a:return" "do-return")
-	  (map-meta "s:a:return" "do-return")
-	  (map-meta "c:a:return" "do-return")
-	  (map-meta "c:s:a:return" "do-return")
-	  (map-meta "c:return" "do-return")
-
-	  (map-meta "c:semicolon" "comment-out")
-	  (map-meta "c:=" "uncomment")
-	  (map-meta "c:k" "remove-sexp")
-
-	  (map-meta "c:f" "forward-sexp")
-	  (map-meta "s:c:f" "select-forward-sexp")
-
-	  (map-meta "c:b" "backward-sexp")
-	  (map-meta "s:c:b" "select-backward-sexp")
-
-	  (map-meta "c:p" "flash-backward-sexp")
-	  (map-meta "s:c:n" "flash-forward-sexp")
-
-	  (map-meta "c:space" "select-forward-sexp")
-	  (map-meta "c:t" "transpose-sexp"))
-	(send keymap map-function "c:c;c:b" "remove-parens-forward")))
+      
+      (let ([add-pos-function
+             (lambda (name call-method)
+               (send keymap add-function name
+                     (lambda (edit event)
+                       (call-method
+                        edit
+                        (send edit get-start-position)))))])
+        (add-pos-function "remove-sexp" (lambda (e p) (send e remove-sexp p)))
+        (add-pos-function "forward-sexp" (lambda (e p) (send e forward-sexp p)))
+        (add-pos-function "backward-sexp" (lambda (e p) (send e backward-sexp p)))
+        (add-pos-function "up-sexp" (lambda (e p) (send e up-sexp p)))
+        (add-pos-function "down-sexp" (lambda (e p) (send e down-sexp p)))
+        (add-pos-function "flash-backward-sexp" (lambda (e p) (send e flash-backward-sexp p)))
+        (add-pos-function "flash-forward-sexp" (lambda (e p) (send e flash-forward-sexp p)))
+        (add-pos-function "remove-parens-forward" (lambda (e p) (send e remove-parens-forward p)))
+        (add-pos-function "transpose-sexp" (lambda (e p) (send e transpose-sexp p))))
+      
+      (let ([add-edit-function
+             (lambda (name call-method)
+               (send keymap add-function name
+                     (lambda (edit event)
+                       (call-method edit))))])
+        (add-edit-function "select-forward-sexp" 
+                           (lambda (x) (send x select-forward-sexp)))
+        (add-edit-function "select-backward-sexp"  
+                           (lambda (x) (send x select-backward-sexp)))
+        (add-edit-function "select-down-sexp"  
+                           (lambda (x) (send x select-down-sexp)))
+        (add-edit-function "select-up-sexp"  
+                           (lambda (x) (send x select-up-sexp)))
+        (add-edit-function "tabify-at-caret"  
+                           (lambda (x) (send x tabify-selection)))
+        (add-edit-function "do-return"  
+                           (lambda (x) (send x insert-return)))
+        (add-edit-function "comment-out"  
+                           (lambda (x) (send x comment-out-selection)))
+        (add-edit-function "uncomment"  
+                           (lambda (x) (send x uncomment-selection))))
+      
+      (send keymap add-function "balance-parens"
+            (lambda (edit event)
+              (send edit balance-parens event)))
+      (send keymap add-function "balance-quotes"
+            (lambda (edit event)
+              (send edit balance-quotes event)))
+      
+      (send keymap map-function "TAB" "tabify-at-caret")
+      
+      (send keymap map-function "return" "do-return")
+      (send keymap map-function "s:return" "do-return")
+      (send keymap map-function "s:c:return" "do-return")
+      (send keymap map-function "a:return" "do-return")
+      (send keymap map-function "s:a:return" "do-return")
+      (send keymap map-function "c:a:return" "do-return")
+      (send keymap map-function "c:s:a:return" "do-return")
+      (send keymap map-function "c:return" "do-return")
+      (send keymap map-function "d:return" "do-return")
+      
+      (send keymap map-function ")" "balance-parens")
+      (send keymap map-function "]" "balance-parens")
+      (send keymap map-function "}" "balance-parens")
+      (send keymap map-function "\"" "balance-quotes")
+      (send keymap map-function "|" "balance-quotes")
+      
+      ;(send keymap map-function "c:up" "up-sexp") ;; paragraph
+      ;(send keymap map-function "s:c:up" "select-up-sexp")
+      
+      ;(send keymap map-function "c:down" "down-sexp") ;; paragraph
+      ;(send keymap map-function "s:c:down" "select-down-sexp")
+      
+      (let ([map-meta
+             (lambda (key func)
+               (keymap:send-map-function-meta keymap key func))]
+            [map
+             (lambda (key func)
+               (send keymap map-function key func))])
+        
+        (map-meta "up" "up-sexp")
+        (map-meta "c:u" "up-sexp")
+        (map "a:up" "up-sexp")
+        (map-meta "s:up" "select-up-sexp")
+        (map "a:s:up" "select-up-sexp")
+        (map-meta "s:c:u" "select-up-sexp")
+        
+        (map-meta "down" "down-sexp")
+        (map "a:down" "down-sexp")
+        (map-meta "c:down" "down-sexp")
+        (map-meta "s:down" "select-down-sexp")
+        (map "a:s:down" "select-down-sexp")
+        (map-meta "s:c:down" "select-down-sexp")
+        
+        (map-meta "right" "forward-sexp")
+        (map "a:right" "forward-sexp")
+        (map-meta "s:right" "select-forward-sexp")
+        (map "a:s:right" "select-forward-sexp")
+        
+        (map-meta "left" "backward-sexp")
+        (map "a:left" "backward-sexp")
+        (map-meta "s:left" "select-backward-sexp")
+        (map "a:s:left" "select-backward-sexp")
+        
+        (map-meta "return" "do-return")
+        (map-meta "s:return" "do-return")
+        (map-meta "s:c:return" "do-return")
+        (map-meta "a:return" "do-return")
+        (map-meta "s:a:return" "do-return")
+        (map-meta "c:a:return" "do-return")
+        (map-meta "c:s:a:return" "do-return")
+        (map-meta "c:return" "do-return")
+        
+        (map-meta "c:semicolon" "comment-out")
+        (map-meta "c:=" "uncomment")
+        (map-meta "c:k" "remove-sexp")
+        
+        (map-meta "c:f" "forward-sexp")
+        (map-meta "s:c:f" "select-forward-sexp")
+        
+        (map-meta "c:b" "backward-sexp")
+        (map-meta "s:c:b" "select-backward-sexp")
+        
+        (map-meta "c:p" "flash-backward-sexp")
+        (map-meta "s:c:n" "flash-forward-sexp")
+        
+        (map-meta "c:space" "select-forward-sexp")
+        (map-meta "c:t" "transpose-sexp"))
+      (send keymap map-function "c:c;c:b" "remove-parens-forward")))
 
   (define keymap (make-object keymap:aug-keymap%))
   (setup-keymap keymap)

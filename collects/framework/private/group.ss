@@ -98,7 +98,7 @@
 	       (let* ([set-close-menu-item-state! 
 		       (lambda (frame state)
 			 (when (is-a? frame frame:standard-menus<%>)
-			   (let ([close-menu-item (ivar frame file-menu:close-menu)])
+			   (let ([close-menu-item (send frame file-menu:get-close-menu)])
 			     (when close-menu-item
 			       (send close-menu-item enable state)))))])
 		 (if (eq? (length frames) 1)

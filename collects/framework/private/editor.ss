@@ -109,7 +109,7 @@
 	  
 	  (rename [super-begin-edit-sequence begin-edit-sequence]
 		  [super-end-edit-sequence end-edit-sequence])
-	  (private
+	  (private-field
 	    [edit-sequence-count 0])
 	  (override
 	   [begin-edit-sequence
@@ -126,7 +126,7 @@
 	      (super-end-edit-sequence))])
 
 	  (public
-	    [on-close void]
+	    [on-close (lambda () (void))]
 	    [get-top-level-window
 	     (lambda ()
 	       (let loop ([text this])
@@ -143,7 +143,7 @@
 
 	  (public [editing-this-file? (lambda () #f)])
 
-	  (private
+	  (private-field
 	    [edit-sequence-queue null]
 	    [edit-sequence-ht (make-hash-table)])
 
@@ -277,7 +277,7 @@
 	    (auto-wrap 
 	     (preferences:get
 	      'framework:auto-set-wrap?)))
-	  (private
+	  (private-field
 	    [remove-callback
 	     (preferences:add-callback
 	      'framework:auto-set-wrap?
@@ -398,7 +398,7 @@
 	    (lambda ()
 	      (super-on-close)
 	      (remove-autosave)
-	      (set! autosave? (lambda () #f)))]
+	      (set! do-autosave? #f))]
 	   [on-change
 	    (lambda ()
 	      (super-on-change)
@@ -410,8 +410,10 @@
 		    (set! auto-save-out-of-date? #t)
 		    (remove-autosave)))
 	      (super-set-modified modified?))])
+          (private-field
+           [do-autosave? #t])
 	  (public
-	    [autosave? (lambda () #t)]
+	    [autosave? (lambda () do-autosave?)]
 	    [do-autosave
 	     (lambda ()
 	       (when (and (autosave?)
