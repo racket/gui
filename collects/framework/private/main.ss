@@ -55,6 +55,7 @@
 		  '(
                     instantiate super-instantiate
                     lambda let let* letrec recur
+                     letrec-values
                      with-syntax
                      module
                      let/cc let/ec letcc catch
