@@ -3,11 +3,11 @@
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;;;                                 ;;;
-  ;;;           MATRIX OPS            ;;;
+  ;;;           matrix ops            ;;;
   ;;;                                 ;;;
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     
-  ;; Matrix inversion using Cramer's Rule
+  ;; matrix inversion using cramer's rule
 
   ; submatrix : (list-of (list-of num)) int int -> (list-of (list-of num))
   ; submatrix "crosses out" row i and column j from the matrix, returning a new one
@@ -134,18 +134,18 @@
   
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;;;                                 ;;;
-  ;;;           COLOR MODEL           ;;;
+  ;;;           color model           ;;;
   ;;;                                 ;;;
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-  ; NTSC standard RGB phosphor constants:
+  ; ntsc standard rgb phosphor constants:
   
   ;    red green blue
   ;x   0.67 0.21 0.14
   ;y   0.33 0.71 0.08
   ;
   ; white point: 
-  ; C : x-w = 0.31, y-w = 0.316, big-y-w = 100.0
+  ; c : x-w = 0.31, y-w = 0.316, big-y-w = 100.0
   
   (define x-r 0.67)
   (define y-r 0.33)
@@ -162,22 +162,22 @@
   (define y-w 0.316)
   (define big-y-w 100.0)
   
-  (define-struct XYZ (X Y Z))
+  (define-struct xyz (x y z))
   
-  (define (xy-big-y->XYZ x y big-y)
+  (define (xy-big-y->xyz x y big-y)
     (let ([sigma (/ big-y y)])
-      (make-XYZ
+      (make-xyz
        (* x sigma)
        (* y sigma)
        (* (- 1 x y) sigma))))
   
-  (define XYZ-white (xy-big-y->XYZ x-w y-w big-y-w))
+  (define xyz-white (xy-big-y->xyz x-w y-w big-y-w))
   
-  ;`((,(XYZ-X XYZ-white) ,x-r ,x-g ,x-b)
-  ;  (,(XYZ-Y XYZ-white) ,y-r ,y-g ,y-b)
-  ;  (,(XYZ-Z XYZ-white) ,z-r ,z-g ,z-b))
+  ;`((,(xyz-x xyz-white) ,x-r ,x-g ,x-b)
+  ;  (,(xyz-y xyz-white) ,y-r ,y-g ,y-b)
+  ;  (,(xyz-z xyz-white) ,z-r ,z-g ,z-b))
   
-  ; sigmas were calculated by soving a set of linear equations based upon NTSC standard phosphors
+  ; sigmas were calculated by soving a set of linear equations based upon ntsc standard phosphors
 
   (define pre-matrix `((,x-r ,x-g ,x-b)
                        (,y-r ,y-g ,y-b)
@@ -187,9 +187,9 @@
     (let* ([inversion 
             (matrix-invert pre-matrix)]
            [sigmas
-            (matrix-multiply inversion `((,(XYZ-X XYZ-white))
-                                         (,(XYZ-Y XYZ-white))
-                                         (,(XYZ-Z XYZ-white))))])
+            (matrix-multiply inversion `((,(xyz-x xyz-white))
+                                         (,(xyz-y xyz-white))
+                                         (,(xyz-z xyz-white))))])
       (apply values (car (transpose sigmas)))))
   
   (define big-x-r (* x-r sigma-r))
@@ -218,46 +218,46 @@
   ;(printf "xyz->rgb-matrix: ~n~s~n" xyz->rgb-matrix)
   
   (define (rgb->xyz r g b)
-    (apply make-XYZ (car (transpose (matrix-multiply rgb->xyz-matrix (transpose `((,r ,g ,b))))))))
+    (apply make-xyz (car (transpose (matrix-multiply rgb->xyz-matrix (transpose `((,r ,g ,b))))))))
   
   (define (xyz->rgb x y z)
     (car (transpose (matrix-multiply xyz->rgb-matrix (transpose `((,x ,y ,z)))))))
 
-  ;L* = 116(Y/big-y-n)^1/3 - 16, Y/big-y-n > 0.01
-  ;u* = 13 L*(u-p - u-p-n)
-  ;v* = 13 L*(v-p - v-p-n)
+  ;l* = 116(y/big-y-n)^1/3 - 16, y/big-y-n > 0.01
+  ;u* = 13 l*(u-p - u-p-n)
+  ;v* = 13 l*(v-p - v-p-n)
   ;
-  ;u-p = (4X)/(X+15Y+3Z)   v-p = (9Y)/(X+15Y+3Z)
+  ;u-p = (4x)/(x+15y+3z)   v-p = (9y)/(x+15y+3z)
   ;u-p-n = (same but with -n) v-p-n = (same but with -n)
   
-  (define-struct Luv (L u v))
+  (define-struct luv (l u v))
   
-  (define (XYZ-denom XYZ)
-    (+ (XYZ-X XYZ) (* 15 (XYZ-Y XYZ)) (* 3 (XYZ-Z XYZ))))
+  (define (xyz-denom xyz)
+    (+ (xyz-x xyz) (* 15 (xyz-y xyz)) (* 3 (xyz-z xyz))))
   
-  (define (XYZ-u-p XYZ)
-    (/ (* 4 (XYZ-X XYZ)) (XYZ-denom XYZ)))
+  (define (xyz-u-p xyz)
+    (/ (* 4 (xyz-x xyz)) (xyz-denom xyz)))
   
-  (define (XYZ-v-p XYZ)
-    (/ (* 9 (XYZ-Y XYZ)) (XYZ-denom XYZ)))
+  (define (xyz-v-p xyz)
+    (/ (* 9 (xyz-y xyz)) (xyz-denom xyz)))
   
-  (define (XYZ->Luv XYZ)
-    (let* ([L (- (* 116 (expt (/ (XYZ-Y XYZ) (XYZ-Y XYZ-white))
+  (define (xyz->luv xyz)
+    (let* ([l (- (* 116 (expt (/ (xyz-y xyz) (xyz-y xyz-white))
                               1/3))
                  16)]
-           [u-p (XYZ-u-p XYZ)]
-           [u-p-white (XYZ-u-p XYZ-white)]
-           [v-p (XYZ-v-p XYZ)]
-           [v-p-white (XYZ-v-p XYZ-white)])
-      (make-Luv L (* 13 L (- u-p u-p-white)) (* 13 L (- v-p v-p-white)))))
+           [u-p (xyz-u-p xyz)]
+           [u-p-white (xyz-u-p xyz-white)]
+           [v-p (xyz-v-p xyz)]
+           [v-p-white (xyz-v-p xyz-white)])
+      (make-luv l (* 13 l (- u-p u-p-white)) (* 13 l (- v-p v-p-white)))))
   
-  (define (Luv-distance a b)
-    (expt (+ (expt (- (Luv-L a) (Luv-L b)) 2)
-             (expt (- (Luv-u a) (Luv-u b)) 2)
-             (expt (- (Luv-v a) (Luv-v b)) 2))
+  (define (luv-distance a b)
+    (expt (+ (expt (- (luv-l a) (luv-l b)) 2)
+             (expt (- (luv-u a) (luv-u b)) 2)
+             (expt (- (luv-v a) (luv-v b)) 2))
           1/3))
   
   (define (rgb-color-distance r-a g-a b-a r-b g-b b-b)
-    (let* ([Luv-a (XYZ->Luv (RGB->XYZ r-a g-a b-a))]
-           [Luv-b (XYZ->Luv (RGB->XYZ r-b g-b b-b))])
-      (Luv-distance Luv-a Luv-b))))
+    (let* ([luv-a (xyz->luv (rgb->xyz r-a g-a b-a))]
+           [luv-b (xyz->luv (rgb->xyz r-b g-b b-b))])
+      (luv-distance luv-a luv-b))))
