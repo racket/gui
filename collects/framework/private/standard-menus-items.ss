@@ -130,6 +130,8 @@
              (let ([target (get-edit-target-object)])
                (and target (is-a? target editor<%>))))))
   
+  (define on-demand-do-nothing '(lambda (menu-item) (void)))
+
   (define items
     (list (make-generic-override
            'on-close 
@@ -218,37 +220,37 @@
           (make-an-item 'file-menu 'new "Open a new file"
                         '(lambda (item control) (handler:edit-file #f) #t)
                         #\n "&New" ""
-                        '(lambda () (void)))
+                        on-demand-do-nothing)
           (make-between 'file-menu 'new 'open 'nothing)
           (make-an-item 'file-menu 'open "Open a file from disk"
                         '(lambda (item control) (handler:open-file) #t)
                         #\o "&Open" "..."
-                        '(lambda () (void)))
+                        on-demand-do-nothing)
           (make-between 'file-menu 'open 'revert 'nothing)
           (make-an-item 'file-menu 'revert 
                         "Revert this file to the copy on disk"
                         #f #f "&Revert" ""
-                        '(lambda () (void)))
+                        on-demand-do-nothing)
           (make-between 'file-menu 'revert 'save 'nothing)
           (make-an-item 'file-menu 'save
                         "Save this file to disk"
                         #f #\s "&Save" ""
-                        '(lambda () (void)))
+                        on-demand-do-nothing)
           (make-an-item 'file-menu 'save-as
                         "Prompt for a filename and save this file to disk"
                         #f #f "Save" " &As..."
-                        '(lambda () (void)))
+                        on-demand-do-nothing)
           (make-between 'file-menu 'save-as 'print 'separator)
           (make-an-item 'file-menu 'print
                         "Print this file"
                         #f #\p "&Print" "..."
-                        '(lambda () (void)))
+                        on-demand-do-nothing)
           (make-between 'file-menu 'print 'close 'separator)
           (make-an-item 'file-menu 'close
                         "Close this file"
                         '(lambda (item control) (when (can-close?) (on-close) (show #f)) #t)
                         #\w "&Close" ""
-                        '(lambda () (void)))
+                        on-demand-do-nothing)
           (make-between 'file-menu 'close 'quit 'nothing)
           (make-an-item 'file-menu 'quit
                         "Quit"
@@ -256,7 +258,7 @@
                         #\q
                         '(if (eq? (system-type) 'windows) "E&xit" "Quit")
                         ""
-                        '(lambda () (void)))
+                        on-demand-do-nothing)
           (make-after 'file-menu 'quit 'nothing)
           
           (make-an-item 'edit-menu 'undo "Undo the most recent action" 
@@ -311,7 +313,7 @@
           (make-an-item 'edit-menu 'preferences "Configure the preferences"
                         '(lambda (item control) (preferences:show-dialog) #t)
                         #f "Preferences..." ""
-                        '(lambda () (void)))
+                        on-demand-do-nothing)
           (make-after 'edit-menu 'preferences 'nothing)
           
           (make-before 'help-menu 'about 'nothing)
@@ -320,5 +322,5 @@
                         #f
                         "About "
                         "..."
-                        '(lambda () (void)))
+                        on-demand-do-nothing)
           (make-after 'help-menu 'about 'nothing))))

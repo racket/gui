@@ -119,14 +119,14 @@
             ,@(apply append (map
                              (lambda (x)
                                (cond
-                                 [(an-item? x) (map (lambda (f) (f x))
-                                                    (list 
-                                                     an-item->callback-name
-                                                     an-item->get-item-name
-                                                     an-item->string-name
-                                                     an-item->help-string-name
-                                                     an-item->on-demand-name
-                                                     an-item->create-menu-item-name))]
+                                 [(an-item? x) 
+                                  (list 
+                                   (an-item->callback-name x)
+                                   (an-item->get-item-name x)
+                                   (an-item->string-name x)
+                                   (an-item->help-string-name x)
+                                   (an-item->on-demand-name x)
+                                   (an-item->create-menu-item-name x))]
                                  [(between? x) (list (between->name x))]
                                  [(or (after? x) (before? x))
                                   (list (before/after->name x))]
