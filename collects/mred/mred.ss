@@ -7829,10 +7829,11 @@
       ;; If the region is small enough, and if the editor contains
       ;; only string snips, then it's probably better to move
       ;; all of the text into a string port:
-      (if (and (is-a? snip wx:string-snip%)
-	       (let ([s (send text find-next-non-string-snip snip)])
-		 (or (not s)
-		     ((send text get-snip-position s) . >= . end))))
+      (if (or (not snip)
+	      (and (is-a? snip wx:string-snip%)
+		   (let ([s (send text find-next-non-string-snip snip)])
+		     (or (not s)
+			 ((send text get-snip-position s) . >= . end)))))
 	  (if (or expect-to-read-all?
 		  ((- end start) . < . 4096))
 	      ;; It's all text, and it's short enough: just read it into a string
