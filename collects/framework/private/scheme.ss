@@ -282,7 +282,13 @@
       (define (get-color-prefs-table) color-prefs-table)
       
       (define (short-sym->pref-name sym) (string->symbol (short-sym->style-name sym)))
-      (define (short-sym->style-name sym) (format "framework:syntax-coloring:scheme:~a" sym))
+      (define sn-hash (make-hash-table))
+      (define (short-sym->style-name sym)
+	(hash-table-get sn-hash sym
+			(lambda ()
+			  (let ([s (format "framework:syntax-coloring:scheme:~a" sym)])
+			    (hash-table-put! sn-hash sym s)
+			    s))))
       
       (define (add-coloring-preferences-panel)
         (color-prefs:add-to-preferences-panel

@@ -582,7 +582,7 @@
 		  (region-click edit event
 				(lambda (click eol start end)
 				  (send edit set-position click)
-				  (send edit paste 0 click))))]
+				  (send edit paste-x-selection 0 click))))]
 	       
 	       [mouse-copy-clipboard
 		(lambda (edit event)

@@ -302,7 +302,7 @@
 						       (lambda (x) #f))
 			       current-pos))
                 (set! up-to-date? #t)
-                ;(printf "~a~n" (- (current-milliseconds) timer))
+		;; (printf "~a~n" (- (current-milliseconds) timer))
 		(semaphore-post done-sema)
                 (semaphore-post mutex-lock)
                 (thread-suspend (current-thread))))
@@ -330,7 +330,7 @@
 		(parameterize-break #f
 		  (set! background-thread
 			(thread (lambda () (background-colorer-entry))))))
-              ;(set! timer (current-milliseconds))
+	      ;; (set! timer (current-milliseconds))
               (do-insert/delete start-pos 0)))
             
           ;; See docs
