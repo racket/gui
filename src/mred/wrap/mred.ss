@@ -534,6 +534,9 @@
       [focus #f]
       [target #f])
     
+    (public
+      [flush-resize-cache (entry-point (lambda () (set! last-width -1) (set! last-height -1)))])
+
     (override
       [enable
        (lambda (b)
@@ -3140,6 +3143,10 @@
       [maximize (entry-point-1 (lambda (on?) (send wx maximize on?)))]
       [get-menu-bar (entry-point (lambda () (let ([mb (ivar wx menu-bar)])
 					      (and mb (wx->mred mb)))))])
+
+    (public
+      [flush-resize-cache (lambda () (send wx flush-resize-cache))])
+
     (sequence
       (as-entry
        (lambda ()
