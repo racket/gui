@@ -723,22 +723,29 @@
                            (if (is-a? edit text%)
                                (send edit get-start-position)
                                #f)])
-                      (send edit begin-edit-sequence)
-                      (let ([status (send edit load-file
-                                          filename
-                                          'same
-                                          #f)])
-                        (if status
-                            (begin
-                              (when (is-a? edit text%)
-                                (send edit set-position start start))
-                              (send edit end-edit-sequence))
-                            (begin
-                              (send edit end-edit-sequence)
-                              (message-box
-                               (string-constant error-reverting)
-                               (format (string-constant could-not-read) filename)
-                               this)))))))
+                      (when (gui-utils:get-choice
+                             (string-constant are-you-sure-revert)
+                             (string-constant yes)
+                             (string-constant no)
+                             (string-constant are-you-sure-revert-title)
+                             #f
+                             this)
+                        (send edit begin-edit-sequence)
+                        (let ([status (send edit load-file
+                                            filename
+                                            'same
+                                            #f)])
+                          (if status
+                              (begin
+                                (when (is-a? edit text%)
+                                  (send edit set-position start start))
+                                (send edit end-edit-sequence))
+                              (begin
+                                (send edit end-edit-sequence)
+                                (message-box
+                                 (string-constant error-reverting)
+                                 (format (string-constant could-not-read) filename)
+                                 this))))))))
               #t))
           (define/override file-menu:create-revert? (lambda () #t))
           (define file-menu:save-callback (lambda (item control)
