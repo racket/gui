@@ -4596,6 +4596,8 @@
 
     (define save-choices (map string->immutable-string choices))
 
+    (define hidden-tabs? #f)
+
     (public*
      [get-number (lambda () (length save-choices))]
      [append (entry-point
