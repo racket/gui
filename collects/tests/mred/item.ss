@@ -3,6 +3,7 @@
 
 (define my-txt #f)
 (define my-lb #f)
+(define noisy? #f)
 
 (define special-font (send the-font-list find-or-create-font
 			   20 'decorative 
@@ -74,6 +75,19 @@
       (and (not (or (eq? win cm) (eq? win ck)))
 	   (or (and m? (send cm get-value))
 	       (and (not m?) (send ck get-value)))))))
+
+(define (add-enter/leave-note frame panel)
+  (define m (make-object message% "enter: ??????????????????????????????" panel))
+  (lambda (win e)
+    (when (memq (send e get-event-type) '(enter leave))
+      (let ([s (format "~a: ~a"
+		    (send e get-event-type)
+		    (let ([l (send win get-label)])
+		      (if (not l)
+			  win
+			  l)))])
+	(when noisy? (printf "~a~n" s))
+	(send m set-label s)))))
 
 (define (add-cursors frame panel ctls)
   (let ([old #f]
@@ -174,10 +188,13 @@
 
 (define active-frame%
   (class-asi frame%
-    (private (pre-on void))
+    (private 
+      [pre-on void]
+      [el void])
     (rename [super-on-subwindow-event on-subwindow-event]
 	    [super-on-subwindow-char on-subwindow-char])
     (override [on-subwindow-event (lambda args 
+				    (apply el args)
 				    (or (apply pre-on args)
 					(apply super-on-subwindow-event args)))]
 	      [on-subwindow-char (lambda args 
@@ -187,7 +204,8 @@
 	      [on-size (lambda (x y) (printf "sized: ~a ~a~n" x y))])
     (public [set-info
 	     (lambda (ep)
-	       (set! pre-on (add-pre-note this ep)))])))
+	       (set! pre-on (add-pre-note this ep))
+	       (set! el (add-enter/leave-note this ep)))])))
 
 (define (make-ctls ip cp lp add-testers ep radio-h? label-h? null-label? stretchy?)
   
@@ -1561,7 +1579,7 @@
       (make-object radio-box% "Label Font" '("Normal" "Big")
 		    p1 void))
     (define button-font-radio
-      (make-object radio-box% "Button Font" '("Normal" "Big")
+      (make-object radio-box% "Control Font" '("Normal" "Big")
 		    p1 void))
     (define next-button
       (make-next-button p2 (list radio-h-radio label-h-radio label-null-radio 

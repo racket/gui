@@ -28,6 +28,10 @@ The drawing area should have the following features:
     be black for the left colum, and green for the remaining two
     columns.
 
+  Under the three columns of boxes, a black box should be filled with
+    an 25% black B&W bitmap, and a red box frame should be draw with a
+    50% red stipple.
+
   The drawings under "0 x 0" and "1 x 1" should look nearly the same:
 
     TopLeft: h-line should be left-aligned with box below it, but

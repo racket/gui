@@ -36,6 +36,16 @@
 	(make-object point% 0 120)
 	(make-object point% 60 60)))
 
+(define (get-b&w-light-stipple)
+  (make-object bitmap%
+	       (list->string (map integer->char '(#x88 0 #x22 0 #x88 0 #x22 0)))
+	       8 8))
+
+(define (get-b&w-half-stipple)
+  (make-object bitmap%
+	       (list->string (map integer->char '(#xcc #x33 #xcc #x33 #xcc #x33 #xcc #x33)))
+	       8 8))
+
 (let* ([f (make-object frame% "Graphics Test" #f 300 450)]
        [vp (make-object vertical-panel% f)]
        [hp0 (make-object horizontal-panel% vp)]
@@ -343,8 +353,29 @@
 				    (send dc set-brush ob)
 				    (loop x (+ y 25) (cdr l)))))
 
-			      (send dc set-pen op))
+			      (send dc set-pen op)
 
+			      ; B&W 8x8 stipple:
+			      (unless no-bitmaps?
+				(let ([bml (get-b&w-light-stipple)]
+				      [bmh (get-b&w-half-stipple)]
+				      [orig-b (send dc get-brush)]
+				      [orig-pen (send dc get-pen)])
+				  (send dc set-brush brusht)
+				  (send dc set-pen pen1s)
+				  (send dc draw-rectangle 244 164 18 18)
+				  (send dc draw-bitmap bml 245 165)
+				  (send dc draw-bitmap bml 245 173)
+				  (send dc draw-bitmap bml 253 165)
+				  (send dc draw-bitmap bml 253 173)
+
+				  (let ([p (make-object pen% "RED" 1 'solid)])
+				    (send p set-stipple bmh)
+				    (send dc set-pen p)
+				    (send dc draw-rectangle 270 164 18 18))
+
+				  (send dc set-brush orig-b)
+				  (send dc set-pen orig-pen))))
 			    
 			    (when (and (not no-bitmaps?) last?)
 			      (let ([x 5] [y 165])
