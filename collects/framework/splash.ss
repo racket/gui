@@ -100,8 +100,8 @@
        (old-load f expected)))
   
   (let ([addl-load-handler
-         (and (not (getenv "PLTDRDEBUG"))
-              (getenv "PLTDRCM")
+         (and (or (getenv "PLTDRDEBUG")
+                  (getenv "PLTDRCM"))
               (parameterize ([current-namespace (make-namespace)])
                 (dynamic-require '(lib "cm.ss") 'make-compilation-manager-load/use-compiled-handler)))])
     (current-load
@@ -112,7 +112,7 @@
     ;; abstraction breaking -- matthew will change cm
     ;; so that I don't need this here(?).
     (when addl-load-handler
-      (printf "PLTDRCM: reinstalling CM load handler after setting splash load handler\n")
+      (printf "PLTDRCM/PLTDRDEBUG: reinstalling CM load handler after setting splash load handler\n")
       (current-load/use-compiled (addl-load-handler))))
   
   (define funny-gauge%
