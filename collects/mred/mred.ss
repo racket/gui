@@ -2127,6 +2127,8 @@
 (define-local-member-name 
   -format-filter
   -get-current-format
+  -get-file-format
+  -set-file-format
   -set-format)
 		    
 (define (make-editor-buffer% % can-wrap? get-editor%)
@@ -2731,7 +2733,9 @@
       [spacing ; does nothing!
        (case-lambda
 	[() curr-spacing]
-	[(new-val) (set! curr-spacing new-val)])]
+	[(new-val)
+	 (check-margin-integer '(method area-container<%> spacing) new-val)
+	 (set! curr-spacing new-val)])]
 
       [do-align (lambda (h v set-h set-v)
 		  (unless (memq h '(left center right))
@@ -3374,6 +3378,70 @@
       (lambda (w e) (cb (wx->proxy w) e))
       cb))
 
+;---------------- Keyword propagation macros -------------------
+
+;; Since we use class100 to construct the classes that users see,
+;; keywords are not propagated by position automatically. So we use
+;; the class100*/kw macro for every class exported to the user; it
+;; explicitly includes all keywords supported through superclasses.
+;; To avoid writing the same keyword sets over and over, we have
+;; a define-keywords form.
+
+;; Arguably, this is making a problem (using `class100' instead of
+;; `class') worse as much as it solves the problem. Or maybe the
+;; problem is trying to hard to make by-position and by-name
+;; initialization work.
+
+(define-syntax (define-keywords stx)
+  (syntax-case stx ()
+    [(_ name kw ...)
+     (with-syntax ([(kw2 ...)
+		    (apply
+		     append
+		     (map (lambda (kw)
+			    (if (identifier? kw)
+				(syntax-local-value kw)
+				(list kw)))
+			  (syntax->list #'(kw ...))))])
+       #'(define-syntax name '(kw2 ...)))]))
+
+(define-syntax (class100*/kw stx)
+  (syntax-case stx ()
+    [(_ base (intf ...) ((base-init ...) keywords) . rest)
+     (let ([kws (syntax-local-value #'keywords)])
+       (with-syntax ([super-init (datum->syntax-object 
+				  stx
+				  'super-init)]
+		     [super-instantiate (datum->syntax-object 
+					 stx
+					 'super-instantiate)]
+		     [this (datum->syntax-object 
+			    stx
+			    'this)]
+		     [(new-keyword ...) (map car kws)]
+		     [(new-init ...) (datum->syntax-object 
+				      stx
+				      kws)])
+	 #'(let-syntax ([super-init
+			 (lambda (sstx)
+			   (syntax-case sstx ()
+			     [(_ arg (... ...))
+			      (with-syntax ([super-instantiate
+					     (datum->syntax-object 
+					      sstx
+					      'super-instantiate)]
+					    [(new-kw (... ...))
+					     (map (lambda (x)
+						    (datum->syntax-object 
+						     sstx
+						     x))
+						  '(new-keyword ...))])
+				#'(super-instantiate (arg (... ...))
+						     [new-kw new-kw] (... ...)))]))])
+	     (class100*/names (this -hide-super-init super-instantiate)
+			      base (intf ...) (base-init ... new-init ...)
+			      . rest))))]))
+
 ;---------------- Window interfaces and base classes ------------
 
 (define area<%>
@@ -3383,8 +3451,14 @@
     get-graphical-min-size
     stretchable-width stretchable-height))
 
+(define-keywords area%-keywords 
+  [min-width no-val]
+  [min-height no-val]
+  [stretchable-width no-val]
+  [stretchable-height no-val])
+
 (define area%
-  (class100* mred% (area<%>) (mk-wx get-wx-pan prnt
+  (class100* mred% (area<%>) (mk-wx get-wx-pan mismatches prnt
 				    ;; for keyword use:
 				    [min-width no-val]
 				    [min-height no-val]
@@ -3393,7 +3467,8 @@
     (sequence
       (let ([cwho '(iconstructor area)])
 	(unless (eq? min-width no-val) (check-non#f-dimension cwho min-width))
-	(unless (eq? min-height no-val) (check-non#f-dimension cwho min-height))))
+	(unless (eq? min-height no-val) (check-non#f-dimension cwho min-height)))
+      (mismatches))
     (private-field 
       [get-wx-panel get-wx-pan]
       [parent prnt])
@@ -3423,11 +3498,15 @@
   (interface (area<%> internal-subarea<%>)
     horiz-margin vert-margin))
 
+(define-keywords subarea%-keywords
+  [horiz-margin no-val]
+  [vert-margin no-val])
+
 (define (make-subarea% %) ; % implements area<%>
-  (class100* % (subarea<%>) (mk-wx get-wx-pan parent
-				      ;; for keyword use
-				      [horiz-margin no-val]
-				      [vert-margin no-val])
+  (class100* % (subarea<%>) (mk-wx get-wx-pan mismatches parent
+				   ;; for keyword use
+				   [horiz-margin no-val]
+				   [vert-margin no-val])
     (sequence
       (let ([cwho '(iconstructor subarea)])
 	(unless (eq? horiz-margin no-val) (check-margin-integer cwho horiz-margin))
@@ -3437,7 +3516,7 @@
       [(hm horiz-margin) (param get-wx-panel x-margin)]
       [(vm vert-margin) (param get-wx-panel y-margin)])
     (sequence 
-      (super-init mk-wx get-wx-panel parent)
+      (super-init mk-wx get-wx-panel mismatches parent)
       (unless (eq? horiz-margin no-val) (hm horiz-margin))
       (unless (eq? vert-margin no-val) (vm vert-margin)))))
 
@@ -3453,12 +3532,17 @@
 
 (define internal-container<%> (interface ()))
 
+(define-keywords container%-keywords
+  [border no-val]
+  [spacing no-val]
+  [alignment no-val])
+
 (define (make-container% %) ; % implements area<%>
-  (class100* % (area-container<%> internal-container<%>) (mk-wx get-wx-pan parent
-								   ;; for keyword use
-								   [border no-val]
-								   [spacing no-val]
-								   [alignment no-val])
+  (class100* % (area-container<%> internal-container<%>) (mk-wx get-wx-pan mismatches parent
+								;; for keyword use
+								[border no-val]
+								[spacing no-val]
+								[alignment no-val])
     (sequence
       (let ([cwho '(iconstructor area-container)])
 	(unless (eq? border no-val) (check-margin-integer cwho border))
@@ -3471,7 +3555,9 @@
 	    (raise-type-error (who->name cwho) "alignment list" alignment)))))
     (private-field [get-wx-panel get-wx-pan])
     (public
-      [after-new-child (lambda (c) (void))]
+      [after-new-child (lambda (c) 
+			 (check-instance '(method area-container<%> after-new-child) subarea<%> 'subarea<%> #f c)
+			 (void))]
       [reflow-container (entry-point (lambda () (send (send (get-wx-panel) get-top-level) force-redraw)))]
       [container-flow-modified (entry-point (lambda () 
 					      (let ([p (get-wx-panel)])
@@ -3532,7 +3618,7 @@
 		       (check-instance '(method area-container<%> delete-child) subwindow<%> 'subwindow<%> #f c)
 		       (send (get-wx-panel) delete-child (mred->wx c))))])
     (sequence
-      (super-init mk-wx get-wx-panel parent)
+      (super-init mk-wx get-wx-panel mismatches parent)
       (unless (eq? border no-val) (bdr border))
       (unless (eq? spacing no-val) (spc spacing))
       (unless (eq? alignment no-val) (set-alignment . alignment)))))
@@ -3550,15 +3636,19 @@
     get-cursor set-cursor popup-menu
     show is-shown? on-superwindow-show refresh))
 
+(define-keywords window%-keywords [enabled #t])
+
 (define (make-window% top? %) ; % implements area<%>
-  (class100* % (window<%>) (mk-wx get-wx-panel lbl parent crsr
-				     ;; for keyword use
-				     [enabled #t])
+  (class100* % (window<%>) (mk-wx get-wx-panel mismatches lbl parent crsr
+				  ;; for keyword use
+				  [enabled #t])
     (private-field [label lbl][cursor crsr])
     (public
       [popup-menu (entry-point 
 		   (lambda (m x y)
 		     (check-instance '(method window<%> popup-menu) popup-menu% 'popup-menu% #f m)
+		     (check-range-integer '(method window<%> popup-menu) x)
+		     (check-range-integer '(method window<%> popup-menu) y)
 		     (let ([mwx (mred->wx m)])
 		       (and (send mwx popup-grab this)
 			    (as-exit
@@ -3656,7 +3746,7 @@
     (private-field
       [wx #f])
     (sequence
-      (super-init (lambda () (set! wx (mk-wx)) wx) get-wx-panel parent)
+      (super-init (lambda () (set! wx (mk-wx)) wx) get-wx-panel mismatches parent)
       (unless enabled (enable #f)))))
 
 (define area-container-window<%>
@@ -3666,7 +3756,7 @@
     set-label-position get-label-position))
 
 (define (make-area-container-window% %) ; % implements window<%> (and area-container<%>)
-  (class100* % (area-container-window<%>) (mk-wx get-wx-pan label parent cursor) 
+  (class100* % (area-container-window<%>) (mk-wx get-wx-pan mismatches label parent cursor) 
     (private-field [get-wx-panel get-wx-pan])    
     (public
       [get-control-font (entry-point (lambda () (send (get-wx-panel) get-control-font)))]
@@ -3676,7 +3766,7 @@
       [get-label-position (entry-point (lambda () (send (get-wx-panel) get-label-position)))]
       [set-label-position (entry-point (lambda (x) (send (get-wx-panel) set-label-position x)))])
     (sequence
-      (super-init mk-wx get-wx-panel label parent cursor))))
+      (super-init mk-wx get-wx-panel mismatches label parent cursor))))
 
 (define top-level-window<%>
   (interface (area-container-window<%>)
@@ -3689,8 +3779,12 @@
     center move resize
     on-message))
 
+(define-keywords top-level-window%-keywords
+  window%-keywords container%-keywords area%-keywords)
+
 (define basic-top-level-window%
-  (class100* (make-area-container-window% (make-window% #t (make-container% area%))) (top-level-window<%>) (mk-wx label parent)
+  (class100* (make-area-container-window% (make-window% #t (make-container% area%))) (top-level-window<%>) 
+    (mk-wx mismatches label parent)
     (inherit show)
     (rename [super-set-label set-label])
     (private
@@ -3766,7 +3860,7 @@
 		   (send wx-panel show #f))
 		 top-level))])
     (sequence 
-      (super-init (lambda () (set! wx (mk-wx finish)) wx) (lambda () wx-panel) label parent arrow-cursor))))
+      (super-init (lambda () (set! wx (mk-wx finish)) wx) (lambda () wx-panel) mismatches label parent arrow-cursor))))
 
 (define subwindow<%> 
   (interface (window<%> subarea<%>)))
@@ -3777,8 +3871,13 @@
 
 (define-local-member-name hidden-child?)
 
+(define-keywords control%-keywords
+  window%-keywords
+  subarea%-keywords
+  area%-keywords)
+
 (define basic-control%
-  (class100* (make-window% #f (make-subarea% area%)) (control<%>) (mk-wx lbl parent cursor)
+  (class100* (make-window% #f (make-subarea% area%)) (control<%>) (mk-wx mismatches lbl parent cursor)
     (rename [super-set-label set-label])
     (private-field [label lbl])
     (override
@@ -3786,6 +3885,7 @@
       [get-plain-label (lambda () (and (string? label) (wx:label->plain-label label)))]
       [set-label (entry-point
 		  (lambda (l)
+		    (check-label-string/false '(method control<%> set-label) l)
 		    (let ([l (if (string? l) 
 				 (string->immutable-string l)
 				 l)])
@@ -3799,14 +3899,16 @@
     (sequence
       (when (string? label)
 	(set! label (string->immutable-string label)))
-      (super-init (lambda () (set! wx (mk-wx)) wx) (lambda () wx) label parent cursor)
+      (super-init (lambda () (set! wx (mk-wx)) wx) (lambda () wx) mismatches label parent cursor)
       (unless (hidden-child?)
 	(as-exit (lambda () (send parent after-new-child this)))))))
 
 ;--------------------- Final mred class construction --------------------
     
 (define frame%
-  (class100 basic-top-level-window% (label [parent #f] [width #f] [height #f] [x #f] [y #f] [style null])
+  (class100*/kw basic-top-level-window% ()
+		[(label [parent #f] [width #f] [height #f] [x #f] [y #f] [style null])
+		 top-level-window%-keywords]
     (inherit on-traverse-char on-system-menu-char)
     (sequence
       (let ([cwho '(constructor frame)])
@@ -3819,12 +3921,7 @@
 	  (when (memq 'mdi-parent style)
 	    (raise-type-error (who->name cwho) 
 			      "style list, 'mdi-child and 'mdi-parent are mutually exclusive" 
-			      style)))	
-	(check-container-ready cwho parent)
-	(when (memq 'mdi-child style)
-	  (let ([pwx (and parent (mred->wx parent))])
-	    (unless (and pwx (send pwx get-mdi-parent))
-	      (raise-mismatch-error (who->name cwho) "parent for 'mdi-child frame is not an 'mdi-parent frame: " parent))))))
+			      style)))))
     (rename [super-on-subwindow-char on-subwindow-char])
     (private-field
       [wx #f]
@@ -3855,27 +3952,36 @@
     (sequence
       (as-entry
        (lambda ()
-	 (super-init (lambda (finish) 
-		       (set! wx (finish (make-object wx-frame% this this
-						     (and parent (mred->wx parent)) label
-						     (or x -1) (or y -1)
-						     (or width -1) (or height -1)
-						     style)
-					(memq 'mdi-parent style)))
-		       (send wx set-mdi-parent (memq 'mdi-parent style))
-		       wx)
-		     label parent))))))
+	 (super-init 
+	  (lambda (finish) 
+	    (set! wx (finish (make-object wx-frame% this this
+					  (and parent (mred->wx parent)) label
+					  (or x -1) (or y -1)
+					  (or width -1) (or height -1)
+					  style)
+			     (memq 'mdi-parent style)))
+	    (send wx set-mdi-parent (memq 'mdi-parent style))
+	    wx)
+	  (lambda ()
+	    (let ([cwho '(constructor frame)])
+	      (check-container-ready cwho parent)
+	      (when (memq 'mdi-child style)
+		(let ([pwx (and parent (mred->wx parent))])
+		  (unless (and pwx (send pwx get-mdi-parent))
+		    (raise-mismatch-error (who->name cwho) "parent for 'mdi-child frame is not an 'mdi-parent frame: " parent))))))
+	  label parent))))))
 
 (define dialog%
-  (class100 basic-top-level-window% (label [parent #f] [width #f] [height #f] [x #f] [y #f] [style null])
+  (class100*/kw basic-top-level-window% ()
+		[(label [parent #f] [width #f] [height #f] [x #f] [y #f] [style null])
+		 top-level-window%-keywords]
     (inherit on-traverse-char on-system-menu-char)
     (sequence
       (let ([cwho '(constructor dialog)])
 	(check-label-string cwho label)
 	(check-top-level-parent/false cwho parent)
 	(for-each (lambda (x) (check-dimension cwho x)) (list width height x y))
-	(check-style cwho #f '(no-caption resize-border) style)
-	(check-container-ready cwho parent)))
+	(check-style cwho #f '(no-caption resize-border) style)))
     (rename [super-on-subwindow-char on-subwindow-char])
     (private-field [wx #f])
     (override
@@ -3893,6 +3999,9 @@
 						     style)
 					#f))
 		       wx)
+		     (lambda () 
+		       (let ([cwho '(constructor dialog)])
+			 (check-container-ready cwho parent)))
 		     label parent))))))
 
 (define (get-top-level-windows)
@@ -3915,45 +4024,48 @@
 	      (loop (cdr l) f s ms))))))
 
 (define message%
-  (class100 basic-control% (label parent [style null])
+  (class100*/kw basic-control% () [(label parent [style null]) control%-keywords]
     (sequence
       (let ([cwho '(constructor message)])
 	(check-label-string/bitmap/iconsym cwho label)
 	(check-container-parent cwho parent)
-	(check-style cwho #f null style)
-	(check-container-ready cwho parent))
+	(check-style cwho #f null style))
       (as-entry
        (lambda ()
 	 (super-init (lambda () (make-object wx-message% this this
 					     (mred->wx-container parent)
 					     label -1 -1 style))
+		     (lambda () 
+		       (let ([cwho '(constructor message)])
+			 (check-container-ready cwho parent)))
 		     label parent #f))))))
 
 (define button%
-  (class100 basic-control% (label parent callback [style null])
+  (class100*/kw basic-control% () [(label parent callback [style null]) control%-keywords]
     (sequence
       (let ([cwho '(constructor button)])
 	(check-label-string-or-bitmap cwho label)
 	(check-container-parent cwho parent)
 	(check-callback cwho callback)
-	(check-style cwho #f '(border) style)
-	(check-container-ready cwho parent))
+	(check-style cwho #f '(border) style))
       (as-entry
        (lambda ()
 	 (super-init (lambda () (make-object wx-button% this this
 					     (mred->wx-container parent) (wrap-callback callback)
 					     label -1 -1 -1 -1 style))
+		     (lambda () 
+		       (let ([cwho '(constructor button)])
+			 (check-container-ready cwho parent)))
 		     label parent #f))))))
 
 (define check-box%
-  (class100 basic-control% (label parent callback [style null] [value #f])
+  (class100*/kw basic-control% () [(label parent callback [style null] [value #f]) control%-keywords]
     (sequence
       (let ([cwho '(constructor check-box)])
 	(check-label-string-or-bitmap cwho label)
 	(check-container-parent cwho parent)
 	(check-callback cwho callback)
-	(check-style cwho #f null style)
-	(check-container-ready cwho parent)))
+	(check-style cwho #f null style)))
     (private-field
       [wx #f])
     (public
@@ -3967,11 +4079,15 @@
 					     (mred->wx-container parent) (wrap-callback callback)
 					     label -1 -1 -1 -1 style))
 		       wx)
+		     (lambda ()
+		       (let ([cwho '(constructor check-box)])
+			 (check-container-ready cwho parent)))
 		     label parent #f)))
       (when value (set-value #t)))))
 
 (define radio-box%
-  (class100 basic-control% (label choices parent callback [style '(vertical)] [selection 0])
+  (class100*/kw basic-control% () 
+		[(label choices parent callback [style '(vertical)] [selection 0]) control%-keywords]
     (private-field [chcs choices])
     (sequence 
       (let ([cwho '(constructor radio-box)])
@@ -3983,13 +4099,7 @@
 	(check-container-parent cwho parent)
 	(check-callback cwho callback)
 	(check-orientation cwho style)
-	(check-non-negative-integer cwho selection)
-	(check-container-ready cwho parent)
-	(unless (< selection (length choices))
-	  (raise-mismatch-error (who->name cwho)
-				(format "initial selection is too large, given only ~a choices: "
-					(length choices))
-				selection))))
+	(check-non-negative-integer cwho selection)))
     (private-field
       [wx #f])
     (private
@@ -4033,12 +4143,22 @@
 					     (mred->wx-container parent) (wrap-callback callback)
 					     label -1 -1 -1 -1 chcs 0 style))
 		       wx)
+		     (lambda ()
+		       (let ([cwho '(constructor radio-box)])
+			 (check-container-ready cwho parent)
+			 (unless (< selection (length choices))
+			   (raise-mismatch-error (who->name cwho)
+						 (format "initial selection is too large, given only ~a choices: "
+							 (length choices))
+						 selection))))
 		     label parent #f)))
       (when (positive? selection)
 	(set-selection selection)))))
 
 (define slider%
-  (class100 basic-control% (label min-value max-value parent callback [init-value min-value] [style '(horizontal)])
+  (class100*/kw basic-control% ()
+		[(label min-value max-value parent callback [init-value min-value] [style '(horizontal)])
+		 control%-keywords]
     (private-field [minv min-value][maxv max-value])
     (sequence 
       (let ([cwho '(constructor slider)])
@@ -4048,8 +4168,7 @@
 	(check-container-parent cwho parent) 
 	(check-callback cwho callback)
 	(check-slider-integer cwho init-value)
-	(check-style cwho '(vertical horizontal) '(plain) style)
-	(check-container-ready cwho parent)))
+	(check-style cwho '(vertical horizontal) '(plain) style)))
     (private-field
       [wx #f])
     (public
@@ -4071,17 +4190,20 @@
 					     (mred->wx-container parent) (wrap-callback callback)
 					     label init-value minv maxv style))
 		       wx)
+		     (lambda () 
+		       (let ([cwho '(constructor slider)])
+			 (check-container-ready cwho parent)))
 		     label parent #f))))))
 
 (define gauge%
-  (class100 basic-control% (label range parent [style '(horizontal)])
+  (class100*/kw basic-control% ()
+		[(label range parent [style '(horizontal)]) control%-keywords]
     (sequence 
       (let ([cwho '(constructor gauge)])
 	(check-label-string/false cwho label)
 	(check-container-parent cwho parent) 
 	(check-gauge-integer cwho range)
-	(check-orientation cwho style)
-	(check-container-ready cwho parent)))
+	(check-orientation cwho style)))
     (private-field
       [wx #f])
     (public
@@ -4108,6 +4230,9 @@
 					     (mred->wx-container parent)
 					     label range style))
 		       wx)
+		     (lambda ()
+		       (let ([cwho '(constructor gauge)])
+			 (check-container-ready cwho parent)))
 		     label parent #f))))))
 
 (define list-control<%>
@@ -4123,7 +4248,7 @@
 (define (-1=>false v) (if (negative? v) #f v))
 
 (define basic-list-control%
-  (class100* basic-control% (list-control<%>) (mk-wx label parent selection)
+  (class100* basic-control% (list-control<%>) (mk-wx mismatches label parent selection)
     (public
       [append (entry-point (lambda (i) (send wx append i)))]
       [clear (entry-point (lambda () (send wx clear)))]
@@ -4154,7 +4279,7 @@
     (sequence
       (as-entry
        (lambda ()
-	 (super-init (lambda () (set! wx (mk-wx)) wx) label parent #f)))
+	 (super-init (lambda () (set! wx (mk-wx)) wx) mismatches label parent #f)))
       (when selection
 	(set-selection selection)))))
 
@@ -4173,31 +4298,34 @@
 			  selection)))
 
 (define choice%
-  (class100 basic-list-control% (label choices parent callback [style null] [selection 0])
+  (class100*/kw basic-list-control% ()
+		[(label choices parent callback [style null] [selection 0])
+		 control%-keywords]
     (sequence
       (let ([cwho '(constructor choice)])
 	(check-list-control-args cwho label choices parent callback)
 	(check-style cwho #f null style)
-	(check-non-negative-integer cwho selection)
-	(check-container-ready cwho parent)
-	(unless (= 0 selection)
-	  (check-list-control-selection cwho choices selection)))
+	(check-non-negative-integer cwho selection))
       (super-init (lambda () (make-object wx-choice% this this
 					  (mred->wx-container parent) (wrap-callback callback)
 					  label -1 -1 -1 -1 choices style))
+		  (lambda ()
+		    (let ([cwho '(constructor choice)])
+		      (check-container-ready cwho parent)
+		      (unless (= 0 selection)
+			(check-list-control-selection cwho choices selection))))
 		  label parent 
 		  (and (positive? selection) selection)))))
 
 (define list-box%
-  (class100 basic-list-control% (label choices parent callback [style '(single)] [selection #f])
+  (class100*/kw basic-list-control%  ()
+		[(label choices parent callback [style '(single)] [selection #f])
+		 control%-keywords]
     (sequence 
       (let ([cwho '(constructor list-box)])
 	(check-list-control-args cwho label choices parent callback)
 	(check-style cwho '(single multiple extended) null style)
-	(check-non-negative-integer/false cwho selection)
-	(check-container-ready cwho parent)
-	(when selection
-	  (check-list-control-selection cwho choices selection))))
+	(check-non-negative-integer/false cwho selection)))
     (rename [super-append append])
     (override
       [append (entry-point
@@ -4257,18 +4385,24 @@
 					    label kind
 					    -1 -1 -1 -1 choices style)))
 		    wx)
+		  (lambda ()
+		    (let ([cwho '(constructor list-box)])
+		      (check-container-ready cwho parent)
+		      (when selection
+			(check-list-control-selection cwho choices selection))))
 		  label parent (and (pair? choices) selection)))))
 
 (define text-field%
-  (class100* basic-control% () (label parent callback [init-value ""] [style '(single)])
+  (class100*/kw basic-control% () 
+		[(label parent callback [init-value ""] [style '(single)])
+		 control%-keywords]
     (sequence 
       (let ([cwho '(constructor text-field)])
 	(check-label-string/false cwho label)
 	(check-container-parent cwho parent)
 	(check-callback cwho callback)
 	(check-string cwho init-value)
-	(check-style cwho '(single multiple) '(hscroll password) style)
-	(check-container-ready cwho parent)))
+	(check-style cwho '(single multiple) '(hscroll password) style)))
     (private-field
       [wx #f])
     (public
@@ -4286,6 +4420,9 @@
 					     (mred->wx-container parent) (wrap-callback callback)
 					     label init-value style))
 		       wx)
+		     (lambda ()
+		       (let ([cwho '(constructor text-field)])
+			 (check-container-ready cwho parent)))
 		     label parent ibeam))))))
 
 ;; Not exported:
@@ -4296,13 +4433,15 @@
     (sequence
       (let ([cwho '(constructor tab-group)])
 	(check-list-control-args cwho label choices parent callback)
-	(check-style cwho #f null style)
-	(check-container-ready cwho parent))
+	(check-style cwho #f null style))
       (super-init (lambda () (make-object wx-tab-group% this this
 					  (mred->wx-container parent)
 					  (wrap-callback callback)
 					  label
 					  choices))
+		  (lambda ()
+		    (let ([cwho '(constructor tab-group)])
+		      (check-container-ready cwho parent)))
 		  label parent #f))))
 
 ;-------------------- Canvas class constructions --------------------
@@ -4315,8 +4454,13 @@
     on-char on-event on-paint on-scroll on-tab-in
     warp-pointer get-dc))
 
+(define-keywords canvas%-keywords
+  window%-keywords
+  subarea%-keywords
+  area%-keywords)
+
 (define basic-canvas%
-  (class100* (make-window% #f (make-subarea% area%)) (canvas<%>) (mk-wx parent)
+  (class100* (make-window% #f (make-subarea% area%)) (canvas<%>) (mk-wx mismatches parent)
     (public
       [on-char (lambda (e) (send wx do-on-char e))]
       [on-event (lambda (e) (send wx do-on-event e))]
@@ -4335,12 +4479,14 @@
     (sequence
       (as-entry
        (lambda ()
-	 (super-init (lambda () (set! wx (mk-wx)) wx) (lambda () wx) #f parent #f))))))
+	 (super-init (lambda () (set! wx (mk-wx)) wx) (lambda () wx) mismatches #f parent #f))))))
 
 (define default-paint-cb (lambda (canvas dc) (void)))
 
 (define canvas%
-  (class100 basic-canvas% (parent [style null] [paint-callback default-paint-cb] [label #f])
+  (class100*/kw basic-canvas% ()
+		[(parent [style null] [paint-callback default-paint-cb] [label #f])
+		 canvas%-keywords]
     (private-field [paint-cb paint-callback])
     (inherit get-client-size get-dc set-label)
     (rename [super-on-paint on-paint])
@@ -4349,14 +4495,7 @@
 	(check-container-parent cwho parent)
 	(check-style cwho #f '(border hscroll vscroll gl) style)
 	(check-callback cwho paint-callback)
-	(check-label-string/false cwho label)
-	(check-container-ready cwho parent)
-	(when (memq 'gl style)
-	  (unless (or (eq? (system-type) 'windows)
-		      (eq? (system-type) 'unix))
-	    (raise-mismatch-error (who->name cwho)
-				  "the 'gl style flag is not supported on this platform: "
-				  style)))))
+	(check-label-string/false cwho label)))
     (public
       [swap-gl-buffers (lambda () (send wx swap-buffers))]
       [with-gl-context (lambda (thunk) 
@@ -4441,14 +4580,25 @@
 					    -1 -1 ds ds
 					    style)))
 		    wx)
+		  (lambda ()
+		    (let ([cwho '(constructor canvas)])
+		      (check-container-ready cwho parent)
+		      (when (memq 'gl style)
+			(unless (or (eq? (system-type) 'windows)
+				    (eq? (system-type) 'unix))
+			  (raise-mismatch-error (who->name cwho)
+						"the 'gl style flag is not supported on this platform: "
+						style)))))
 		  parent)
       (when label
 	(set-label label))
       (send parent after-new-child this))))
     
 (define editor-canvas%
-  (class100 basic-canvas% (parent [editor #f] [style null] [scrolls-per-page 100] [label #f]
-				  [wheel-step no-val] [line-count no-val])
+  (class100*/kw basic-canvas% ()
+		[(parent [editor #f] [style null] [scrolls-per-page 100] [label #f]
+			 [wheel-step no-val] [line-count no-val])
+		 canvas%-keywords]
     (sequence 
       (let ([cwho '(constructor editor-canvas)])
 	(check-container-parent cwho parent)
@@ -4459,8 +4609,7 @@
 	(unless (eq? wheel-step no-val)
 	  (check-wheel-step cwho wheel-step))
 	(unless (or (not line-count) (eq? line-count no-val))
-	  ((check-bounded-integer 1 1000 #t) cwho line-count))
-	(check-container-ready cwho parent)))
+	  ((check-bounded-integer 1 1000 #t) cwho line-count))))
     (inherit set-label)
     (private-field
       [force-focus? #f]
@@ -4542,6 +4691,9 @@
 					    (get-ds no-v? no-h?)
 					    #f style scrolls-per-page #f))
 		      wx))
+		  (lambda () 
+		    (let ([cwho '(constructor editor-canvas)])
+		      (check-container-ready cwho parent)))
 		  parent)
       (unless (eq? wheel-step no-val)
 	(ws wheel-step))
@@ -4555,8 +4707,14 @@
 
 ;-------------------- Final panel interfaces and class constructions --------------------
 
+(define-keywords pane%-keywords
+  subarea%-keywords
+  container%-keywords
+  area%-keywords)
+
 (define pane%
-  (class100 (make-subarea% (make-container% area%)) (parent)
+  (class100*/kw (make-subarea% (make-container% area%)) ()
+		[(parent) pane%-keywords]
     (private-field [wx #f])
     (sequence 
       (let* ([who (cond ; yuck! - we do this to make h-p and v-p subclasses of p
@@ -4566,7 +4724,6 @@
 		   [else 'pane])]
 	     [cwho `(constructor ,who)])
 	(check-container-parent cwho parent)
-	(check-container-ready cwho parent)
 	(as-entry
 	 (lambda ()
 	   (super-init (lambda () (set! wx (make-object (case who
@@ -4575,16 +4732,26 @@
 							  [(grow-box-spacer-pane) wx-grow-box-pane%]
 							  [else wx-pane%])
 							this this (mred->wx-container parent) null)) wx)
-		       (lambda () wx) parent)
+		       (lambda () wx) 
+		       (lambda ()
+			 (check-container-ready cwho parent))
+		       parent)
 	   (send (send wx area-parent) add-child wx)))
 	(send parent after-new-child this)))))
 
-(define vertical-pane% (class100 pane% (parent) (sequence (super-init parent))))
-(define horizontal-pane% (class100 pane% (parent) (sequence (super-init parent))))
-(define grow-box-spacer-pane% (class100 pane% (parent) (sequence (super-init parent))))
+(define vertical-pane% (class100*/kw pane% () [(parent) pane%-keywords] (sequence (super-init parent))))
+(define horizontal-pane% (class100*/kw pane% () [(parent) pane%-keywords] (sequence (super-init parent))))
+(define grow-box-spacer-pane% (class100*/kw pane% () [(parent) pane%-keywords] (sequence (super-init parent))))
+
+(define-keywords panel%-keywords
+  window%-keywords
+  subarea%-keywords
+  container%-keywords
+  area%-keywords)
 
 (define panel%
-  (class100* (make-area-container-window% (make-window% #f (make-subarea% (make-container% area%)))) (subwindow<%>) (parent [style null])
+  (class100*/kw (make-area-container-window% (make-window% #f (make-subarea% (make-container% area%)))) (subwindow<%>) 
+		[(parent [style null]) panel%-keywords]
     (private-field [wx #f])
     (sequence 
       (let* ([who (cond ; yuck! - we do this to make h-p and v-p subclasses of p
@@ -4595,7 +4762,6 @@
 	     [cwho `(constructor ,who)])
 	(check-container-parent cwho parent)
 	(check-style cwho #f '(border) style)
-	(check-container-ready cwho parent)
 	(as-entry
 	 (lambda ()
 	   (super-init (lambda () (set! wx (make-object (case who
@@ -4603,33 +4769,39 @@
 							  [(horizontal-panel) wx-horizontal-panel%]
 							  [else wx-panel%])
 							this this (mred->wx-container parent) style)) wx)
-		       (lambda () wx) #f parent #f)
+		       (lambda () wx) 
+		       (lambda () (check-container-ready cwho parent))
+		       #f parent #f)
 	   (send (send wx area-parent) add-child wx)))
 	(send parent after-new-child this)))))
 
-(define vertical-panel% (class100 panel% (parent [style null]) (sequence (super-init parent style))))
-(define horizontal-panel% (class100 panel% (parent [style null]) (sequence (super-init parent style))))
+(define vertical-panel% (class100*/kw panel% () [(parent [style null]) panel%-keywords] (sequence (super-init parent style))))
+(define horizontal-panel% (class100*/kw panel% () [(parent [style null]) panel%-keywords] (sequence (super-init parent style))))
 
 (define list-append append)
 
 (define tab-panel%
-  (class vertical-panel%
-    (init choices parent callback [style null])
-    (let ([cwho '(constructor tab-panel)])
-      (unless (and (list? choices) (andmap label-string? choices))
-	(raise-type-error (who->name cwho) "list of strings (up to 200 characters)" choices))
-      (check-callback cwho callback)
-      (check-container-parent cwho parent)
-      (check-style cwho #f '() style))
-    (super-instantiate (parent null))
-    (define tabs (make-object tab-group% #f choices this (lambda (c e) (callback this e))))
-    (send (mred->wx this) set-first-child-is-hidden)
+  (class100*/kw vertical-panel% ()
+		[(choices parent callback [style null]) panel%-keywords]
+    (sequence
+      (let ([cwho '(constructor tab-panel)])
+	(unless (and (list? choices) (andmap label-string? choices))
+	  (raise-type-error (who->name cwho) "list of strings (up to 200 characters)" choices))
+	(check-callback cwho callback)
+	(check-container-parent cwho parent)
+	(check-style cwho #f '() style))
+      (super-init parent null))
 
-    (define save-choices (map string->immutable-string choices))
+    (private-field
+     [tabs (make-object tab-group% #f choices this (lambda (c e) (callback this e)))])
+    (sequence
+      (send (mred->wx this) set-first-child-is-hidden))
 
-    (define hidden-tabs? #f)
+    (private-field
+     [save-choices (map string->immutable-string choices)]
+     [hidden-tabs? #f])
 
-    (public*
+    (public
      [get-number (lambda () (length save-choices))]
      [append (entry-point
 	      (lambda (n) 
@@ -4652,16 +4824,18 @@
 					 (cons (car l) (loop (add1 p) (cdr l))))))
 		(as-exit (lambda () (send (mred->wx tabs) delete i)))))])
     
-    (define/private (check-item method n)
-      (check-non-negative-integer `(method tab-panel% ,method) n)
-      (let ([m (length save-choices)])
-	(unless (< n m)
-	  (raise-mismatch-error (who->name `(method tab-panel% ,method)) 
-				(if (zero? m)
-				    "panel has no tabs; given index: " 
-				    (format "panel has only ~a tabls, indexed 0 to ~a; given out-of-range index: " 
-					    m (sub1 m)))
-				n))))))
+    (private
+      [check-item
+       (lambda (method n)
+	 (check-non-negative-integer `(method tab-panel% ,method) n)
+	 (let ([m (length save-choices)])
+	   (unless (< n m)
+	     (raise-mismatch-error (who->name `(method tab-panel% ,method)) 
+				   (if (zero? m)
+				       "panel has no tabs; given index: " 
+				       (format "panel has only ~a tabls, indexed 0 to ~a; given out-of-range index: " 
+					       m (sub1 m)))
+				   n))))])))
 
 ;;;;;;;;;;;;;;;;;;;;;; Menu classes ;;;;;;;;;;;;;;;;;;;;;;
 
