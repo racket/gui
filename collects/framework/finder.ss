@@ -326,7 +326,7 @@
 	
 	[top-panel (make-object horizontal-panel% main-panel)]
 	
-	[_1 (make-object message% top-panel prompt)]
+	[_1 (make-object message% prompt top-panel)]
 	
 	[dir-choice (make-object choice% #f null top-panel do-dir)]
 	

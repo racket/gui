@@ -207,9 +207,7 @@
    get-gc-off-bitmap))
 
 (define-signature framework:keymap^
-  (set-keymap-error-handler
-   set-keymap-implied-shifts
-   send-map-function-meta
+  (send-map-function-meta
    make-meta-prefix-list
 
    setup-global

@@ -171,8 +171,6 @@
       (sequence
 	(apply super-init args)
 	(let ([keymap (get-keymap)])
-	  (keymap:set-keymap-error-handler keymap)
-	  (keymap:set-keymap-implied-shifts keymap)
 	  (for-each (lambda (k) (send keymap chain-to-keymap k #f))
 		    (get-keymaps))))))
 

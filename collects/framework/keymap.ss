@@ -8,18 +8,6 @@
 	  [frame : framework:frame^])
   
   (rename [-get-file get-file])
-
-  (define keyerr
-    (lambda (str)
-      (display str (current-error-port))
-      (newline (current-error-port))))
-  
-  (define (set-keymap-error-handler keymap)
-    (send keymap set-error-callback keyerr))
-  
-  (define (set-keymap-implied-shifts keymap)
-    (map (lambda (k) (send keymap implies-shift k)) 
-	 (keys:get-shifted-key-list)))
   
   (define (make-meta-prefix-list key)
     (list (string-append "m:" key)
@@ -530,18 +518,14 @@
 	      (send edit set-overwrite-mode
 		    (not (send edit get-overwrite-mode))))])
       (lambda (kmap)
-	; Redirect keymapping error messages to stderr
-	(send kmap set-error-callback keyerr)
-	; Set the implied shifting map
-	(map (lambda (k) (send kmap implies-shift k)) (keys:get-shifted-key-list))
 	(let* ([map (lambda (key func) 
 		      (send kmap map-function key func))]
 	       [map-meta (lambda (key func)
 			   (send-map-function-meta kmap key func))]
 	       [add (lambda (name func)
-		      (send kmap add-key-function name func))]
+		      (send kmap add-function name func))]
 	       [add-m (lambda (name func)
-			(send kmap add-mouse-function name func))])
+			(send kmap add-function name func))])
 	  
 	  ; Map names to keyboard functions
 	  (add "toggle-overwrite" toggle-overwrite)
@@ -748,8 +732,6 @@
 	  (map "leftbuttontriple" "select-click-line")
 	  (map "leftbuttondouble" "select-click-word")
 	  
-	  (map "c:x;c:c" "exit")
-	  
 	  (map "rightbutton" "copy-click-region")
 	  (map "rightbuttondouble" "cut-click-region")
 	  (map "middlebutton" "paste-click-region")
@@ -778,9 +760,9 @@
 	       [map-meta (lambda (key func)
 			   (send-map-function-meta kmap key func))]
 	       [add (lambda (name func)
-		      (send kmap add-key-function name func))]
+		      (send kmap add-function name func))]
 	       [add-m (lambda (name func)
-			(send kmap add-mouse-function name func))])
+			(send kmap add-function name func))])
 	  
 	  (add "move-to-search-or-search" (send-frame 'move-to-search-or-search)) ;; key 1
 	  (add "move-to-search-or-reverse-search" (send-frame 'move-to-search-or-reverse-search)) ;; key 1b, backwards
@@ -828,15 +810,14 @@
 	      (handler:open-file)
 	      #t)])
       (lambda (kmap)
-	(map (lambda (k) (send kmap implies-shift k)) (keys:get-shifted-key-list))
 	(let* ([map (lambda (key func) 
 		      (send kmap map-function key func))]
 	       [map-meta (lambda (key func)
 			   (send-map-function-meta kmap key func))]
 	       [add (lambda (name func)
-		      (send kmap add-key-function name func))]
+		      (send kmap add-function name func))]
 	       [add-m (lambda (name func)
-			(send kmap add-mouse-function name func))])
+			(send kmap add-function name func))])
 	  
 	  (add "save-file" save-file)
 	  (add "save-file-as" save-file-as)
@@ -848,8 +829,6 @@
 	  (map "c:x;c:f" "load-file")))))
   
   (define (generic-setup keymap)
-    (set-keymap-error-handler keymap)
-    (set-keymap-implied-shifts keymap)
     (add-editor-keymap-functions keymap)
     (add-pasteboard-keymap-functions keymap)
     (add-text-keymap-functions keymap))

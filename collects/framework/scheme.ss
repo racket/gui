@@ -754,12 +754,10 @@
 
   (define setup-keymap
     (lambda (keymap)
-	(keymap:set-keymap-error-handler keymap)
-	(keymap:set-keymap-implied-shifts keymap)
 
 	(let ([add-pos-function ;; wx: this needs to be cleaned up!
 	       (lambda (name ivar-sym)
-		 (send keymap add-key-function name
+		 (send keymap add-function name
 		       (lambda (edit event)
 			 ((ivar/proc edit ivar-sym)
 			  (send edit get-start-position)))))])
@@ -775,7 +773,7 @@
 	
 	(let ([add-edit-function
 	       (lambda (name ivar-sym)
-		 (send keymap add-key-function name
+		 (send keymap add-function name
 		       (lambda (edit event)
 			 ((ivar/proc edit ivar-sym)))))])
 	  (add-edit-function "select-forward-sexp" 'select-forward-sexp)
@@ -787,10 +785,10 @@
 	  (add-edit-function "comment-out" 'comment-out-selection)
 	  (add-edit-function "uncomment" 'uncomment-selection))
 
-	(send keymap add-key-function "balance-parens"
+	(send keymap add-function "balance-parens"
 	      (lambda (edit event)
 		(send edit balance-parens event)))
-	(send keymap add-key-function "balance-quotes"
+	(send keymap add-function "balance-quotes"
 	      (lambda (edit event)
 		(send edit balance-quotes event)))
 
