@@ -4,13 +4,18 @@ Version 200: June, 2002
 Changed mouse-event% and key-event% positions (x and y) to be
  exact integers
 Added 'wheel-up and 'wheel-down "key" events
+Added 'release key events
 Added popup-menu to window<%>
 Added a popup menu to the message-box dialog that copies the contained
  message to the clipboard
 Changed methods in dc<%> classes to raise an exception if the
  DC is not ok (except for the ok? method)
 Changed dc<%>'s draw-bitmap and draw-bitmap-section to
- scale the bitmap if the dc<%> has a scale
+ scale the bitmap if the dc<%> has a scale, and to accept
+ a mask bitmap
+The get-resource and write-resource procedures are deprecated, and
+ not supported for Mac OS; MrEd uses the preferences file that
+ ismanaged by MzLib's get-preference and put-preferences
 Changed text% undo to restore the pre-modification selection
 Changed text% so that later-installed clickbacks take precedence
 Changed cursor% constructor to take image and mask bitmaps instead of
@@ -18,6 +23,7 @@ Changed cursor% constructor to take image and mask bitmaps instead of
 Restricted all label string arguments to <= 200 characters
 Added optional filters argument to get-file, put-file, and
  get-file-list (used by Windows, only)
+Added get-directory
 Fixed internal lock handling on focus and activation events
 Removed ps-setup%'s get-options and set-options
 Added a use-paper-bbox? initialization argument to post-script-dc%
