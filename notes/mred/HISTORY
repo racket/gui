@@ -1,6 +1,12 @@
 
 Version 199.24:
 
+ * Added `wheel-step' instantiation keyword and method to
+   editor-canvas%; #f turns off wheel event handling, and the default
+   is 3 (or a value specified through a "mred.wheelStep" resource).
+
+ * Added "wheelup" and "wheeldown" keymap names.
+
  * Added `scroll-to' method to editor-canvas%.
 
  * X: 'no-resize-border works for frame% with many window managers.
