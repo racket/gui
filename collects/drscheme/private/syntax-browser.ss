@@ -482,6 +482,8 @@ needed to really make this work:
               '(inferred-name
                 bound-in-source
                 origin
+                disappeared-binding
+                disappeared-use
                 module-variable-provides
                 module-syntax-provides
                 module-indirect-provides
