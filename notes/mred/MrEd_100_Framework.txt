@@ -13,7 +13,9 @@ Subtle Changes:
    menu. Now, it is an error.
  - mred:original-output-port, mred:original-error-port, and 
    mred:original-input-port are gone
-
+ - mred:the-frame-groups method new-frame is gone. Use handler:edit-file 
+   instead.
+   
 The eliminated classes are:
 
   :: classes that used to improve the wx: toolbox 
@@ -73,24 +75,12 @@ The eliminated classes are:
   mred:scheme-interaction-mode% 
   mred:scheme-mode% 
   
-  :: see the methods of scheme:text%
-
-  mred:scheme-mode-allow-console-eval
-  mred:scheme-mode-tabify-on-return?
-  mred:scheme-mode-match-round-to-square?
-
   :: just use drscheme instead of these
     
   mred:console-edit% 
   mred:console-frame%
   mred:editor-frame%
   mred:transparent-io-edit% 
-  mred:setup-global-scheme-interaction-mode-keymap
-  mred:global-scheme-interaction-mode-keymap
-  mred:make-scheme-interaction-mode%
-  mred:scheme-interaction-mode%
-
-  :: deemed unworthy
 
   mred:autoload
 
@@ -158,13 +148,7 @@ The remaining existant classes:
 
 Old to new name mapping:
 
-  mred:scheme-media-wordbreak-map -> scheme:wordbreak-map
-  mred:scheme-init-wordbreak-map ->  scheme:init-wordbreak-map
-  mred:setup-global-scheme-mode-keymap -> scheme:setup-keymap
-  mred:global-scheme-mode-keymap -> scheme:keymap
-  mred:make-scheme-mode% -> scheme:make-text%  ; the meaning is different; see the docs
-  mred:scheme-mode% -> mred:text%              ; the meaning is different; see the docs
-  mred:scheme-mode-style-list -> scheme:style-list
+  mred:match-cache% -> match-cache:%
 
   mred:handler? -> handler:handler?
   mred:handler-name -> handler:handler-name
@@ -264,9 +248,9 @@ NOTE: some used but non-existant interfaces from mred engine:
   
   ; text:make-basic% adds ranges, wrapping, move/copy-to-edit
   text:make-basic% : (interface (editor:basic<%> text<%>)) -> text:basic<%>
-  text:make-return% : editor:basic<%> -> editor:basic<%>
+  text:make-return% : text<%> -> editor:basic<%>
   text:make-searching% : (interface (editor:basic<%> text<%>)) -> text:searching<%>
-  text:make-clever-file-format% : editor:basic<%> -> editor:basic<%>
+  text:make-clever-file-format% : text<%> -> editor<%>
   text:make-scheme% : (interface (editor:basic<%> text<%>)) -> editor:scheme<%>
   
   editor-canvas:make-frame-title% : editor-canvas<%> -> editor-canvas<%>
