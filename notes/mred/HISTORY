@@ -14,6 +14,7 @@ Fixed wx:canvas% scrolling on all platforms; the style flags
  get-scroll-pos, get-scroll-range, and get-scroll-page.
 The wx:canvas% wx:const-backingstore and wx:const-retained
  style flags have been removed.
+Pasteboard printing implemented [finally]
 Removed wx:key-event%'s position method and added get-x,
  get-y, set-x, and set-y
 Changed default pen in DC to width 0 instead of 1
@@ -41,8 +42,15 @@ Windows: fixed initial setting of DC text mode: transparent
 X Windows: fixed wx:frame's iconize and iconized? methods,
  ignoring the X idea of not de-iconifying windows that were 
  iconified by the user
+X Windows: fixed iconification of parentless dialog boxes;
+ they can't be iconified, since there's often no way to
+ get them back
 Removed wx:exit
 MacOS: fixed event handling -> better response and performance
+X Windows: added .mred.resources option `mred.forceFocus'; if
+ the value is 1, bringing a frame to the foreground forces the
+ focus there (good for Window Managers where the focus does
+ not follow the pointer); the default is 0, the old behavior
 
 System:
 -------
