@@ -12,6 +12,11 @@
   
   (provide color@)
     
+  (define (nat-sub1 x)
+    (if (= 0 x)
+        0
+        (sub1 x)))
+  
   (define (should-color-type? type)
     (not (memq type '(white-space no-color))))
   
@@ -207,12 +212,12 @@
           
           (define/private (do-insert/delete edit-start-pos change-length)
             (unless (or stopped? force-stop?)
-              (when (> edit-start-pos start-pos)
-                (set! edit-start-pos (sub1 edit-start-pos)))
               (modify)
               (cond
                 (up-to-date?
-                 (send tokens search! (- edit-start-pos start-pos))
+                 ;; Subtract 1 because if the edit falls on a token boundary
+                 ;; we need the token before the boundary not the one after
+                 (send tokens search! (nat-sub1 (- edit-start-pos start-pos)))
                  (let-values 
                      (((orig-token-start orig-token-end valid-tree invalid-tree)
                        (send tokens split)))
@@ -236,7 +241,7 @@
                 ((>= edit-start-pos current-pos)
                  (set! invalid-tokens-start (+ change-length invalid-tokens-start)))
                 (else
-                 (send tokens search! (- edit-start-pos start-pos))
+                 (send tokens search! (nat-sub1 (- edit-start-pos start-pos)))
                  (let-values (((tok-start tok-end valid-tree invalid-tree)
                                (send tokens split)))
                    (send parens truncate tok-start)
@@ -621,6 +626,19 @@
                                  (send parens is-close-pos? (- pos start-pos)))
                         (flash-on to-pos (+ 1 to-pos)))))))))
           
+          (define/public (debug-printout)
+            (let* ((x null)
+                   (f (lambda (a b c)
+                        (set! x (cons (list a b c) x)))))
+              (send tokens for-each f)
+              (printf "tokens: ~e~n" (reverse x))
+              (set! x null)
+              (send invalid-tokens for-each f)
+              (printf "invalid-tokens: ~e~n" (reverse x))
+              (printf "start-pos: ~a current-pos: ~a invalid-tokens-start ~a~n"
+                      start-pos current-pos invalid-tokens-start)
+              (printf "parens: ~e~n" (car (send parens test)))))
+          
           ;; ------------------------- Callbacks to Override ----------------------
           
           (rename (super-lock lock))
@@ -715,4 +733,7 @@
           
           (super-instantiate ())))
   
-      (define text-mode% (text-mode-mixin mode:surrogate-text%)))))
+      (define text-mode% (text-mode-mixin mode:surrogate-text%))))
+
+  
+  )
