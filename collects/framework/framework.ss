@@ -101,7 +101,8 @@
     (opt-> (symbol? (symbol? any? . -> . any?))
            (boolean?)
            (-> void?))
-    (p f (weak? #f))
+    ((p f)
+     ((weak? #f)))
     "This function adds a callback which is called with a symbol naming a"
     "preference and it's value, when the preference changes."
     "\\rawscm{preferences:add-callback} returns a thunk, which when"
