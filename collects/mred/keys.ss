@@ -907,6 +907,6 @@
 	    (map "middlebutton" "paste-click-region")
 	    (map "c:rightbutton" "copy-clipboard")))))
 
-    (define global-keymap wx:keymap%)
+    (define global-keymap (make-object wx:keymap%))
 					     
     (setup-global-keymap global-keymap)))
