@@ -1984,7 +1984,7 @@
       (list this (+ x (get-init-x)) y (get-total-width) tab-height))
     (define/public (number) (length tabs))
     
-    (define (draw-once dc w light? dark? inset)
+    (define/private (draw-once dc w light? dark? inset)
       (let ([init-x (get-init-x)])
 	(let loop ([x init-x][l tabs][wl tab-widths][pos 0])
 	  (if (null? l)
