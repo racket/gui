@@ -247,7 +247,7 @@
 								      [this-right (+ this-left this-width)])
 								 (values this-left
 									 this-right))))])
-					   (if left
+					   (if (and left right)
 					       (loop (min this-left left)
 						     (max this-right right)
 						     (cdr canvases))
@@ -278,7 +278,7 @@
 							 max-right)]
 					 [this-bottom rbottom]
 					 [this-top rtop])
-				    (if left
+				    (if (and left top right bottom)
 					(loop (min this-left left)
 					      (min this-top top)
 					      (max this-right right)
