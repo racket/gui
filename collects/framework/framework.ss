@@ -147,7 +147,7 @@
     "preference in that file is used instead of \\var{value}."
     ""
     "Once"
-    "@flink preferences:start-writing-thread "
+    "@flink preferences:start-writing-timer "
     "has been called, no more default preferences may be registered.")
    (preferences:set-un/marshall
     (symbol? (any? . -> . printable?) (printable? . -> . any?) . -> . void?)
@@ -188,7 +188,7 @@
     ()
     "\\rawscm{(preferences:restore-defaults)} restores the users's configuration to the"
     "default preferences.")
-   (preferences:start-writing-thread
+   (preferences:start-writing-timer
     (-> void?)
     ()
     "Starts a thread that periodically flushes the preferences"

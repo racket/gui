@@ -61,20 +61,11 @@
         (hash-table-put! changed p #t))
       
       ;; periodically checks to see if changes need to be written out.
-      (define (start-writing-thread)
+      (define (start-writing-timer)
         (set! no-more-defaults? #t)
-        (thread 
-         (lambda ()
-           (let loop ()
-             (sleep 5)
-             (let ([s (make-semaphore 0)])
-               (queue-callback
-                (lambda ()
-                  (maybe-flush-changes)
-                  (semaphore-post s))
-                #f)
-               (semaphore-wait s))
-             (loop))))
+        (new timer%
+             [notify-callback (lambda () (maybe-flush-changes))]
+             [interval (* 5 1000)])
         (void))
       
       (define last-time-read #f)
@@ -235,7 +226,7 @@
       ;; set-default : (sym TST (TST -> boolean) -> void
       (define (set-default p default-value checker)
         (when no-more-defaults?
-          (error 'set-default "tried to register the pref ~e too late; preferences:start-writing-thread has already been called" p))
+          (error 'set-default "tried to register the pref ~e too late; preferences:start-writing-timer has already been called" p))
         (let ([default-okay? (checker default-value)])
           (unless default-okay?
             (error 'set-default "~s: checker (~s) returns ~s for ~s, expected #t~n"
