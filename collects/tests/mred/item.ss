@@ -1331,9 +1331,9 @@
   (send f show #t))
 
 (define (canvas-frame flags)
-  (define f (make-object mred:frame% null "Canvas Test"))
+  (define f (make-object mred:frame% null "Canvas Test" -1 -1 -1 250))
   (define p (make-object mred:vertical-panel% f))
-  (define c% (class mred:canvas% (name p)
+  (define c% (class mred:canvas% (name swapped-name p)
 		    (inherit clear draw-text draw-line set-clipping-region
 			     get-scroll-pos get-scroll-range get-scroll-page
 			     get-client-size get-virtual-size)
@@ -1355,7 +1355,7 @@
 			  (get-virtual-size w2 h2)
 			  ; (set-clipping-region 0 0 (unbox w2) (unbox h2))
 			  (clear)
-			  (draw-text name 3 3)
+			  (draw-text (if (send ck-w get-value) swapped-name name) 3 3)
 			  ; (draw-line 3 12 40 12)
 			  (draw-text s 3 15)
 			  (draw-text (format "client: ~s x ~s  virtual: ~s x ~s" 
@@ -1369,8 +1369,10 @@
 		      (lambda (e) (on-paint))])
 		    (sequence
 		      (super-init p -1 -1 -1 -1 flags))))
-  (define c1 (make-object c% "Unmanaged scroll" p))
-  (define c2 (make-object c% "Automanaged scroll" p))
+  (define un-name "Unmanaged scroll")
+  (define m-name "Automanaged scroll")
+  (define c1 (make-object c% un-name m-name p))
+  (define c2 (make-object c% m-name un-name p))
   (define (reset-scrolls for-small?)
     (let* ([h? (send ck-h get-value)]
 	   [v? (send ck-v get-value)]
@@ -1387,11 +1389,17 @@
 	  ; Otherwise, we have to specifically refresh the unmanaged canvas
 	  (send (if swap? c2 c1) refresh))))
   (define p2 (make-object mred:horizontal-panel% p))
-  (define jumk (send p2 stretchable-in-y #f))
+  (define junk (send p2 stretchable-in-y #f))
   (define ck-v (make-object mred:check-box% p2 (lambda (b e) (reset-scrolls #f)) "Vertical Scroll"))
   (define ck-h (make-object mred:check-box% p2 (lambda (b e) (reset-scrolls #f)) "Horizontal Scroll"))
   (define ck-s (make-object mred:check-box% p2 (lambda (b e) (reset-scrolls #t)) "Small"))
   (define ck-w (make-object mred:check-box% p2 (lambda (b e) (reset-scrolls #f)) "Swap"))
+  (define ip (make-object mred:horizontal-panel% p))
+  (send ip stretchable-in-y #f)
+  (make-object mred:button% ip
+	       (lambda (b e) 
+		 (send (send (mred:edit-file (local-path "canvas-steps.txt")) get-edit) lock #t))
+	       "Get Instructions")
   (send c1 set-vsize 10 10)
   (send c2 set-vsize 500 200)
   (send f show #t))
