@@ -220,12 +220,13 @@
       (color-prefs:add
        "Scheme"
        `((symbol ,(color-prefs:make-style-delta "navy" #f #f #f))
-         (string ,(color-prefs:make-style-delta "ForestGreen" #f #f #f))
-         (comment ,(color-prefs:make-style-delta (make-object color% 0 105 255) #f #f #f))
          (keyword ,(color-prefs:make-style-delta (make-object color% 40 25 15) #f #f #f))
+         (comment ,(color-prefs:make-style-delta (make-object color% 0 105 255) #f #f #f))
+         (string ,(color-prefs:make-style-delta "ForestGreen" #f #f #f))
          (constant ,(color-prefs:make-style-delta (make-object color% 51 135 39) #f #f #f))
-         (base ,(color-prefs:make-style-delta "brown" #f #f #f))
+         (parenthesis ,(color-prefs:make-style-delta "brown" #f #f #f))
          (error ,(color-prefs:make-style-delta "red" #f #f #f))
+         (other ,(color-prefs:make-style-delta "black" #f #f #f))
          
          ;; for  check syntax (to be moved elsewhere)
          (lexically-bound-variable 
