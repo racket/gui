@@ -959,6 +959,9 @@
     after-select
     on-select
     can-select?
+    after-reorder
+    on-reorder
+    can-reorder?
     after-resize
     on-resize
     can-resize?
@@ -1016,6 +1019,7 @@
     read-from-file
     set-filename
     release-snip
+    on-snip-modified
     set-modified
     set-snip-data
     get-snip-data
