@@ -4,7 +4,7 @@
 (define source-dir (current-load-relative-directory))
 
 (define num-times 12)
-(define num-threads 3)
+(define num-threads 1)
 
 (define dump-stats? #t)
 
@@ -31,9 +31,9 @@
   (make-class mred:editor-frame%
 	      (rename [super-show show])
 	      (public
-	       [prim-show (lambda (arg) (super-show arg))]
-	       [show
-		(lambda (x) (void))])))
+		[prim-show (lambda (arg) (super-show arg))]
+		[show
+		 (lambda (x) (void))])))
 
 (when subwindows?
   (global-defined-value 
@@ -58,24 +58,24 @@
       (let* ([f (if edit? (remember tag (make-object frame%)))]
 	     [c (make-custodian)]
 	     [es (parameterize ([current-custodian c])
-			       (wx:make-eventspace))])
+		   (wx:make-eventspace))])
 
 	(parameterize ([wx:current-eventspace es])
-		      (send (remember 
-			     tag
-			     (make-object
-			      (class-asi wx:timer%
-					 (public
-					  [notify void]))))
-			    start 100))
+	  (send (remember 
+		 tag
+		 (make-object
+		  (class-asi wx:timer%
+			     (public
+			       [notify void]))))
+		start 100))
 
 	(when edit?
-	    (remember tag (send f get-edit)))
+	  (remember tag (send f get-edit)))
 
 	(when (and edit? (zero? (modulo n 2)))
-	    (send f prim-show #t)
-		(sleep 0.5))
-
+	  (send f prim-show #t)
+	  (sleep 0.5))
+	
 	(if frame?
 	    (let* ([f (make-object wx:frame% '() "Tester" -1 -1 200 200)]
 		   [p (remember tag (make-object wx:panel% f))])
@@ -86,9 +86,9 @@
 	      (let ([class wx:check-box%])
 		(let loop ([m 10])
 		  (unless (zero? m)
-			  (remember (cons tag m)
-				    (make-object class p (lambda args #t) "another"))
-			  (loop (sub1 m)))))
+		    (remember (cons tag m)
+			      (make-object class p (lambda args #t) "another"))
+		    (loop (sub1 m)))))
 	      (send p new-line)
 	      (remember tag (make-object wx:check-box% p (lambda args #t) "check"))
 	      (remember tag (make-object wx:choice% p (lambda args #t) "choice"))
@@ -111,11 +111,11 @@
 					    wx:const-single 0 0 -1 -1
 					    '("apple" "banana" "coconut"))])
 		       (when hide?
-			     (send b show #f)
-			     (send c show #f)
-			     (send cv show #f)
-			     (send co show #f)
-			     (send lb show #f))
+			 (send b show #f)
+			 (send c show #f)
+			 (send cv show #f)
+			 (send co show #f)
+			 (send lb show #f))
 		       (remember tag b)
 		       (remember tag c)
 		       (remember tag cv)
@@ -127,16 +127,16 @@
 	      (remember (cons 'sc0 tag) cv)
 	      (send p show #f)
 	      (send cv show #f)))
-	      
+	
 
 	(if (and edit? insert?)
 	    (let ([e (send f get-edit)])
 	      (when load-file?
-		    (send e load-file (build-path source-dir "mem.ss")))
+		(send e load-file (build-path source-dir "mem.ss")))
 	      (let loop ([i 20])
 		(send e insert (number->string i))
 		(unless (zero? i)
-			(loop (sub1 i))))
+		  (loop (sub1 i))))
 	      (let ([s (make-object wx:media-snip%)])
 		(send (send s get-this-media) insert "Hello!")
 		(send e insert s))
@@ -145,54 +145,54 @@
 	      (send e set-modified #f)))
 	
 	(when menus?
-	      (remember tag (make-object wx:menu-bar%))
-	      (remember tag (make-object wx:menu%))
-	      (let ([mb (remember tag (make-object wx:menu-bar%))]
-		    [m (remember tag (make-object wx:menu%))])
-		(send m append 5 "Hi" (remember tag (make-object wx:menu%)))
-		(send mb append m "x"))
-	      
-	      (if edit?
-		  (let ([m (remember tag (make-object mred:menu%))]
-			[m2 (remember tag (make-object mred:menu%))]
-			[mb (send f get-menu-bar)])
-		    (send m append 4 "ok")
-		    (send m2 append 4 "hao")
-		    (send m append 5 "Hi" (remember tag (make-object mred:menu%)))
-		    (send mb append m "Extra")
-		    (send mb append m2 "Other")
-		    (send m delete 5)
-		    (send mb delete m))))
+	  (remember tag (make-object wx:menu-bar%))
+	  (remember tag (make-object wx:menu%))
+	  (let ([mb (remember tag (make-object wx:menu-bar%))]
+		[m (remember tag (make-object wx:menu%))])
+	    (send m append 5 "Hi" (remember tag (make-object wx:menu%)))
+	    (send mb append m "x"))
+	  
+	  (if edit?
+	      (let ([m (remember tag (make-object mred:menu%))]
+		    [m2 (remember tag (make-object mred:menu%))]
+		    [mb (send f get-menu-bar)])
+		(send m append 4 "ok")
+		(send m2 append 4 "hao")
+		(send m append 5 "Hi" (remember tag (make-object mred:menu%)))
+		(send mb append m "Extra")
+		(send mb append m2 "Other")
+		(send m delete 5)
+		(send mb delete m))))
 
 	(when atomic?
-	      (let loop ([m 8])
-		(unless (zero? m)
-			(remember (cons tag m) (make-object wx:point% n m))
-			(remember (cons tag m) (make-object wx:int-point% n m))
-			(remember (cons tag m) (make-object wx:brush%))
-			(remember (cons tag m) (make-object wx:pen%))
-			(loop (sub1 m)))))
+	  (let loop ([m 8])
+	    (unless (zero? m)
+	      (remember (cons tag m) (make-object wx:point% n m))
+	      (remember (cons tag m) (make-object wx:int-point% n m))
+	      (remember (cons tag m) (make-object wx:brush%))
+	      (remember (cons tag m) (make-object wx:pen%))
+	      (loop (sub1 m)))))
 	
 	(when offscreen?
-	      (let ([m (remember tag (make-object wx:memory-dc%))]
-		    [b (remember (cons tag 'u) (make-object wx:bitmap% 100 100))]
-		    [b2 (remember (cons tag 'x) (make-object wx:bitmap% 100 100))])
-		(send m select-object b)))
+	  (let ([m (remember tag (make-object wx:memory-dc%))]
+		[b (remember (cons tag 'u) (make-object wx:bitmap% 100 100))]
+		[b2 (remember (cons tag 'x) (make-object wx:bitmap% 100 100))])
+	    (send m select-object b)))
 	
 	
 	(when edit?
-	      (let ([name (wx:get-temp-file-name "hi")])
-		(send (send f get-edit) save-file name)
-		(send f on-close) 
-		(send f prim-show #f)
-		(delete-file name)))
+	  (let ([name (make-temporary-file "hi~a")])
+	    (send (send f get-edit) save-file name)
+	    (send f on-close) 
+	    (send f prim-show #f)
+	    (delete-file name)))
 
 	(custodian-shutdown-all c)
 
 	(collect-garbage)
 
 	(maker id (sub1 n))))))
-    
+
 (define (still)
   (map (lambda (x)
 	 (let ([v (weak-box-value (cdr x))])
@@ -209,19 +209,19 @@
 
 (define (do-test)
   (let ([sema (make-semaphore)])
-  	 (let loop ([n num-threads])
-	   (unless (zero? n)
-		 (thread (lambda () 
-			   (stw (current-thread) n)
-			   (dynamic-wind
-			    void
-			    (lambda () (maker n num-times))
-			    (lambda () (semaphore-post sema)))))
-		 (loop (sub1 n))))
-	(let loop ([n num-threads])
-	  (unless (zero? n)
-	    (wx:yield sema)
-		(loop (sub1 n)))))
+    (let loop ([n num-threads])
+      (unless (zero? n)
+	(thread (lambda () 
+		  (stw (current-thread) n)
+		  (dynamic-wind
+		   void
+		   (lambda () (maker n num-times))
+		   (lambda () (semaphore-post sema)))))
+	(loop (sub1 n))))
+    (let loop ([n num-threads])
+      (unless (zero? n)
+	(wx:yield sema)
+	(loop (sub1 n)))))
   
   (collect-garbage)
   (collect-garbage)
@@ -231,11 +231,11 @@
   (collect-garbage)
   (still)
   (when subwindows?
-	(set! sub-collect-frame #f)
-	(set! sub-collect-panel #f))
+    (set! sub-collect-frame #f)
+    (set! sub-collect-panel #f))
   (when dump-stats?
-	(dump-memory-stats)
-	(still)))
+    (dump-memory-stats)
+    (still)))
 
 (define mred:startup
   (lambda args
