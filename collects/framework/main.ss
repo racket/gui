@@ -209,4 +209,5 @@
        (preferences:save))))
   
   ;(wx:application-file-handler edit-file) ;; how to handle drag and drop?
-  )
+
+  (void))

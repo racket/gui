@@ -1,33 +1,33 @@
 (thread
- (letrec ([namespace (make-namespace)]
-	  [_ (parameterize ([current-namespace namespace])
-	       (require-library "pconvert.ss"))]
-	  [restart
-	   (lambda ()
-	     (let*-values ([(in out) (tcp-connect "localhost" (load-relative "receive-sexps-port.ss"))]
-			   [(continue) (make-semaphore 0)]
-			   [(error) #f]
-			   [(answer) (void)])
-	       (let loop ()
-		 (let ([sexp (read in)])
-		   (if (eof-object? sexp)
-		       (begin
-			 (close-input-port in)
-			 (close-output-port out)
-			 (exit))
-		       (begin
-			 (queue-callback (lambda ()
-					   (set! error #f)
-					   (with-handlers ([(lambda (x) #t)
-							    (lambda (exn)
-							      (set! error exn))])
-					     (set! answer (eval sexp)))
-					   (semaphore-post continue)))
-			 (semaphore-wait continue)
-			 (write
-			  (if error
-			      (list 'error (exn-message error))
-			      (list 'normal answer))
-			  out)
-			 (loop)))))))])
-   restart))
+ (let ([print-convert
+	(parameterize ([current-namespace (make-namespace)])
+	  (require-library "pconvert.ss")
+	  (global-defined-value 'print-convert))])
+
+   (lambda ()
+     (let*-values ([(in out) (tcp-connect "localhost" (load-relative "receive-sexps-port.ss"))]
+		   [(continue) (make-semaphore 0)]
+		   [(error) #f]
+		   [(answer) (void)])
+       (let loop ()
+	 (let ([sexp (read in)])
+	   (if (eof-object? sexp)
+	       (begin
+		 (close-input-port in)
+		 (close-output-port out)
+		 (exit))
+	       (begin
+		 (queue-callback (lambda ()
+				   (set! error #f)
+				   (with-handlers ([(lambda (x) #t)
+						    (lambda (exn)
+						      (set! error exn))])
+				     (set! answer (eval sexp)))
+				   (semaphore-post continue)))
+		 (semaphore-wait continue)
+		 (write
+		  (if error
+		      (list 'error (exn-message error))
+		      (list 'normal (print-convert answer)))
+		  out)
+		 (loop)))))))))

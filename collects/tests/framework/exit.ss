@@ -1,0 +1,1 @@
+(send-sexp-to-mred '(exit:exit))

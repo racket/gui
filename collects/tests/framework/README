@@ -11,6 +11,11 @@ There will be a main mzscheme process which will start up a new mred
 as necessary for the test suites. Since some tests actually require
 mred to exit in order to pass, this governor is required.
 
+- exit: |# exit.ss #|
+
+  | This tests that exit:exit really exits and that the exit callbacks
+  | are actually run.
+
 - preferences: |# prefs.ss #|
 
   | This tests that preferences are saved and restored correctly, both
@@ -19,10 +24,12 @@ mred to exit in order to pass, this governor is required.
 - individual object tests:
 
   | These tests are simple object creation and basic operations.
+  | Each test assumes that the others pass; this may yield strange
+  | error messages when one fails.
 
-  - edits: |# edit.ss #|
   - frames: |# frame.ss #|
   - canvases: |# canvas.ss #|
+  - edits: |# edit.ss #|
 
 - basic connections between classes
 

@@ -10,7 +10,7 @@
 (printf "4~n")
 (require-library "mred-interfaces.ss" "framework")
 (printf "5~n")
-(require-library "sig.ss" "framework")
+(require-library "frameworks.ss" "framework")
 (printf "6~n")
 (define framework@ (require-library "frameworkr.ss" "framework"))
 (printf "7~n")
