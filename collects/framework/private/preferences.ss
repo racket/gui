@@ -3,6 +3,7 @@
   (require (lib "string-constant.ss" "string-constants")
            (lib "unitsig.ss")
 	   (lib "class.ss")
+           (lib "file.ss")
 	   (lib "class100.ss")
 	   "sig.ss"
 	   "../prefs-file-sig.ss"
@@ -21,6 +22,7 @@
       
       (rename [-read read])
       
+      ;; default-preferences-filename
       (define default-preferences-filename
         (build-path (collection-path "defaults") "prefs.ss"))
       
@@ -223,81 +225,96 @@
                    (hash-table-map preferences marshall-pref) p))
                 'truncate 'text)))))
       
+      (define (err input msg)
+        (message-box 
+         (string-constant preferences)
+         (let* ([max-len 150]
+                [s1 (format "~s" input)]
+                [ell "..."]
+                [s2 (if (<= (string-length s1) max-len)
+                        s1
+                        (string-append
+                         (substring s1 0 (- max-len
+                                            (string-length ell)))
+                         ell))])
+           (string-append
+            (string-constant error-reading-preferences)
+            "\n"
+            msg
+            s2))))
+
       (define (for-each-pref-in-file parse-pref preferences-filename)
         (let/ec k
-          (let ([err
-                 (lambda (input msg)
-                   (message-box 
-                    (string-constant preferences)
-                    (let* ([max-len 150]
-                           [s1 (format "~s" input)]
-                           [ell "..."]
-                           [s2 (if (<= (string-length s1) max-len)
-                                   s1
-                                   (string-append
-                                    (substring s1 0 (- max-len
-                                                       (string-length ell)))
-                                    ell))])
-                      (string-append
-                       (format (string-constant found-bad-pref) preferences-filename)
-                       "\n"
-                       msg
-                       s2)))
-                   (k #f))])
-            (let ([input (with-handlers
-                             ([not-break-exn?
-                               (lambda (exn)
-                                 (message-box
-                                  (string-constant error-reading-preferences)
-                                  (string-append
-                                   (string-constant error-reading-preferences)
-                                   (format "\n~a" (exn-message exn))))
-                                 (k #f))])
-                           (call-with-input-file preferences-filename
-                             read
-                             'text))])
-              (if (eof-object? input)
-                  (void)
-                  (let loop ([input input])
-                    (when (pair? input)
-                      (let ([pre-pref (car input)])
-                        (if (and (list? pre-pref)
-                                 (= 2 (length pre-pref)))
-                            (parse-pref (car pre-pref) (cadr pre-pref))
-                            (err input (string-constant expected-list-of-length2))))
-                      (loop (cdr input)))))))))
+          (let ([input (with-handlers
+                           ([not-break-exn?
+                             (lambda (exn)
+                               (message-box
+                                (string-constant error-reading-preferences)
+                                (string-append
+                                 (string-constant error-reading-preferences)
+                                 (format "\n~a" (exn-message exn))))
+                               (k #f))])
+                         (call-with-input-file preferences-filename read 'text))])
+            (if (eof-object? input)
+                (void)
+                (for-each-pref-in-sexp input parse-pref)))))
       
+      ;; for-each-pref-in-sexp : sexp (symbol TST -> void) -> void
+      (define (for-each-pref-in-sexp input parse-pref)
+        (let/ec k
+          (let loop ([input input])
+            (when (pair? input)
+              (let ([pre-pref (car input)])
+                (if (and (list? pre-pref)
+                         (= 2 (length pre-pref)))
+                    (parse-pref (car pre-pref) (cadr pre-pref))
+                    (begin (err input (string-constant expected-list-of-length2))
+                           (k #f))))
+              (loop (cdr input))))))
       
       ;; read-from-file-to-ht : string hash-table -> void
       (define (read-from-file-to-ht filename ht)
         (let* ([parse-pref
                 (lambda (p marshalled)
-                  (let* ([ht-pref (hash-table-get ht p (lambda () #f))]
-                         [unmarshall-struct (hash-table-get marshall-unmarshall p (lambda () #f))])
-                    (cond
-                      [unmarshall-struct
-                       (set p ((un/marshall-unmarshall unmarshall-struct) marshalled))]
-                      
-                      ;; in this case, assume that no marshalling/unmarshalling 
-                      ;; is going to take place with the pref, since an unmarshalled 
-                      ;; pref was already there.
-                      [(pref? ht-pref)
-                       (set p marshalled)]
-                      
-                      [(marshalled? ht-pref) 
-                       (set-marshalled-data! ht-pref marshalled)]
-                      [(and (not ht-pref) unmarshall-struct)
-                       (set p ((un/marshall-unmarshall unmarshall-struct) marshalled))]
-                      [(not ht-pref)
-                       (hash-table-put! ht p (make-marshalled marshalled))]
-                      [else (error 'prefs.ss "robby error.3: ~a" ht-pref)])))])
+                  (add-raw-pref-to-ht ht p marshalled))])
           (when (file-exists? filename)
             (for-each-pref-in-file parse-pref filename))))
       
+      ;; add-raw-pref-to-ht : hash-table symbol marshalled-preference -> void
+      (define (add-raw-pref-to-ht ht p marshalled)
+        (let* ([ht-pref (hash-table-get ht p (lambda () #f))]
+               [unmarshall-struct (hash-table-get marshall-unmarshall p (lambda () #f))])
+          (cond
+            [unmarshall-struct
+             (set p ((un/marshall-unmarshall unmarshall-struct) marshalled))]
+            
+            ;; in this case, assume that no marshalling/unmarshalling 
+            ;; is going to take place with the pref, since an unmarshalled 
+            ;; pref was already there.
+            [(pref? ht-pref)
+             (set p marshalled)]
+            
+            [(marshalled? ht-pref) 
+             (set-marshalled-data! ht-pref marshalled)]
+            [(and (not ht-pref) unmarshall-struct)
+             (set p ((un/marshall-unmarshall unmarshall-struct) marshalled))]
+            [(not ht-pref)
+             (hash-table-put! ht p (make-marshalled marshalled))]
+            [else (error 'prefs.ss "robby error.3: ~a" ht-pref)])))
+
       ;; read : -> void
       (define (-read)
-        (read-from-file-to-ht (prefs-file:get-preferences-filename) preferences))
-      
+        (let/ec k
+          (let ([sexp (get-preference 
+                       'drscheme:preferences
+                       (lambda ()
+                         (k #f)))])
+            (for-each-pref-in-sexp 
+             sexp
+             (lambda (p marshalled)
+               (add-raw-pref-to-ht preferences p marshalled)))))
+        ;(read-from-file-to-ht (prefs-file:get-preferences-filename) preferences)
+        )
       
       ;; read in the saved defaults. These should override the
       ;; values used with set-default.

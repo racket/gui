@@ -400,47 +400,57 @@
           (define/override (get-extent dc x y wb hb db sb lb rb)
             (cond
               [(memq 'invisible (get-flags))
-               (set/f! wb 0)
-               (set/f! hb 0)]
+               (set/f! wb 0)]
               [else
-               (set/f! wb (get-count))
-               (set/f! hb 1)])
+               (set/f! wb (get-count))])
+            (set/f! hb 1)
             (set/f! db 0)
             (set/f! sb 0)
             (set/f! lb 0)
             (set/f! rb 0))
           
-          (define (for-each/sections f str)
+	  (field (cache-function #f))
+
+          (rename [super-insert insert])
+          (define/override (insert s len pos)
+            (set! cache-function #f)
+            (super-insert s len pos))
+
+	  ;; for-each/sections : string -> (number number -> void) -> void
+          (define (for-each/sections make-f str)
             (let loop ([n (string-length str)]
                        [len 0]
                        [blank? #t])
               (cond
                 [(zero? n)
-                 (unless blank?
-                   (f n len))]
+                 (if blank?
+		     (lambda (f) (void))
+		     (lambda (f) (f n len)))]
                 [else
                  (let ([white? (char-whitespace? (string-ref str (- n 1)))])
                    (cond
                      [(eq? white? blank?)
                       (loop (- n 1) (+ len 1) blank?)]
                      [else
-                      (unless blank? 
-                        (f n len))
-                      (loop (- n 1)
-                            1
-                            (not blank?))]))])))
-          
+		      (let ([res (loop (- n 1) 1 (not blank?))])
+			(if blank?
+			    res
+			    (lambda (f)
+			      (f n len)
+			      (res f))))]))])))
+
           (define/override (draw dc x y left top right bottom dx dy draw-caret)
             (let ([str (get-text 0 (get-count))])
+	      (unless cache-function
+		(set! cache-function (for-each/sections str)))
               (when (<= top y bottom)
-                (for-each/sections
+		(cache-function
                  (lambda (start len)
                    (send dc draw-line
                          (+ x start)
                          y
                          (+ x start (- len 1))
-                         y))
-                 str))))
+                         y))))))
           (apply super-make-object args)))
       
       (define 1-pixel-tab-snip%

@@ -1,7 +1,7 @@
 
 (module splash mzscheme
   (require (lib "class.ss")
-           (lib "etc.ss")
+           (lib "file.ss")
            (lib "mred.ss" "mred"))
   
   (provide get-splash-bitmap get-splash-canvas get-splash-eventspace get-dropped-files 
@@ -20,7 +20,7 @@
   (define (start-splash _splash-filename _splash-title width-default)
     (set! splash-title _splash-title)
     (set! splash-filename _splash-filename)
-    (set! splash-max-width (max 1 (splash-get-resource (get-splash-width-resource) width-default)))
+    (set! splash-max-width (max 1 (splash-get-preference (get-splash-width-preference-name) width-default)))
     (send gauge set-range splash-max-width)
     (send splash-frame set-label splash-title)
     (let/ec k
@@ -53,12 +53,13 @@
   
   (define splash-current-width 0)
   
-  (define (get-splash-width-resource) (format "~a-splash-max-width" splash-title))
+  (define (get-splash-width-preference-name) 
+    (string->symbol (format "plt:~a-splash-max-width" splash-title)))
   (define splash-max-width 1)
   
   (define (close-splash)
     (unless (= splash-max-width splash-current-width)
-      (splash-set-resource (get-splash-width-resource) (max 1 splash-current-width)))
+      (splash-set-preference (get-splash-width-preference-name) (max 1 splash-current-width)))
     (set! quit-on-close? #f)
     (when splash-frame
       (send splash-frame show #f)))
@@ -129,13 +130,13 @@
       (stretchable-width #f)
       (stretchable-height #f)))
   
-  (define (splash-get-resource name default)
-    (let ([b (box 0)])
-      (if (get-resource "mred" name b #f)
-          (unbox b)
-          default)))
-  (define (splash-set-resource name value)
-    (write-resource "mred" name value (find-graphical-system-path 'setup-file)))
+  (define (splash-get-preference name default)
+    (get-preference
+     name
+     (lambda ()
+       default)))
+  (define (splash-set-preference name value)
+    (put-preferences (list name) (list value)))
   
   (define (splitup-path f)
     (let*-values ([(absf) (if (relative-path? f)
