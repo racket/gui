@@ -141,21 +141,22 @@
           [else 
            (super on-event evt)]))
       
-      (define/override (on-interactive-move evt)
+      (define/augment (on-interactive-move evt)
         (invalidate-selected-snips)
-        (super on-interactive-move evt))
+        #;(super on-interactive-move evt)
+        )
       
-      (define/override (after-interactive-move evt)
+      (define/augment (after-interactive-move evt)
         (invalidate-selected-snips)
-        (super on-interactive-move evt))
+        #;(super on-interactive-move evt))
       
       (define/override (interactive-adjust-move snip x y)
         (invalidate-to-children/parents snip)
         (super interactive-adjust-move snip x y))
       
-      (define/override (after-insert snip before x y)
+      (define/augment (after-insert snip before x y)
         (invalidate-to-children/parents snip)
-        (super after-insert snip before x y))
+        #;(super after-insert snip before x y))
       
       ;; invalidate-selected-snips : -> void
       ;; invalidates the region around the selected
