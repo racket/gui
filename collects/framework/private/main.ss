@@ -140,8 +140,8 @@
 		  '(define defmacro define-macro
                      define-syntax-set
 		     define-values
-                     define/public define/override define/private define/field
-                     define/override-final define/public-final
+                     define/public define/pubment define/private define/field
+                     define/override define/augment define/overment define/augride
                      define/contract
 		     define-signature 
                      define-syntax define-syntaxes

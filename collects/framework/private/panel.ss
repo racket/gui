@@ -256,8 +256,7 @@
  	    (set! percentages (map make-percentage ps))
  	    (container-flow-modified))
  
- 	  (define/public (after-percentage-change)
- 	    (void))
+ 	  (define/pubment (after-percentage-change) (inner (void) after-percentage-change))
            
  	  (define/private (get-available-extent)
  	    (let-values ([(width height) (get-client-size)])

@@ -125,42 +125,37 @@
       (inherit find-first-snip find-next-selected-snip)
 
       (inherit dc-location-to-editor-location get-canvas)
-      (rename [super-on-event on-event])
       (field (currently-overs null))
       (define/override (on-event evt)
         (cond
           [(send evt leaving?)
            (change-currently-overs null)
-           (super-on-event evt)]
+           (super on-event evt)]
           [(or (send evt entering?)
                (send evt moving?))
            (let ([ex (send evt get-x)]
                  [ey (send evt get-y)])
              (let-values ([(x y) (dc-location-to-editor-location ex ey)])
                (change-currently-overs (find-snips-under-mouse x y))))
-           (super-on-event evt)]
+           (super on-event evt)]
           [else 
-           (super-on-event evt)]))
+           (super on-event evt)]))
       
-      (rename [super-on-interactive-move on-interactive-move])
       (define/override (on-interactive-move evt)
         (invalidate-selected-snips)
-        (super-on-interactive-move evt))
+        (super on-interactive-move evt))
       
-      (rename [super-after-interactive-move after-interactive-move])
       (define/override (after-interactive-move evt)
         (invalidate-selected-snips)
-        (super-on-interactive-move evt))
+        (super on-interactive-move evt))
       
-      (rename [super-interactive-adjust-move interactive-adjust-move])
       (define/override (interactive-adjust-move snip x y)
         (invalidate-to-children/parents snip)
-        (super-interactive-adjust-move snip x y))
+        (super interactive-adjust-move snip x y))
       
-      (rename [super-after-insert after-insert])
       (define/override (after-insert snip before x y)
         (invalidate-to-children/parents snip)
-        (super-after-insert snip before x y))
+        (super after-insert snip before x y))
       
       ;; invalidate-selected-snips : -> void
       ;; invalidates the region around the selected
@@ -263,7 +258,6 @@
       ;; on-paint : ... -> void
       ;; see docs, same as super
       ;; draws all of the lines and then draws all of the arrow heads
-      (rename [super-on-paint on-paint])
       (define/override (on-paint before? dc left top right bottom dx dy draw-caret)
         (when before?
           (let ([old-pen (send dc get-pen)]
@@ -274,7 +268,7 @@
             
             (send dc set-pen old-pen)
             (send dc set-brush old-brush)))
-        (super-on-paint before? dc left top right bottom dx dy draw-caret))
+        (super on-paint before? dc left top right bottom dx dy draw-caret))
       
       ;; draw-all-connections : ... boolean -> void
       ;; draws all of the connections between the snips
