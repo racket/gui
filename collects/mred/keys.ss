@@ -1,10 +1,12 @@
 (define mred:keymap@
-  (unit/s mred:keymap^
-    (import [mred:debug mred:debug^] [mred:finder mred:finder^]
-	    [mred:handler mred:handler^] [mred:find-string mred:find-string^]
-	    [mred:scheme-paren mred:scheme-paren^])
-
-    (mred:debug:printf "mred:keymap@")
+  (unit/sig mred:keymap^
+    (import ([unit mred:debug : mred:debug^]
+	     [unit mred:finder : mred:finder^]
+	     [unit mred:handler : mred:handler^]
+	     [unit mred:find-string : mred:find-string^]
+	     [unit mred:scheme-paren : mred:scheme-paren^]))
+	    
+    (mred:debug:printf 'invoke "mred:keymap@")
 
     ; This is a list of keys that are typed with the SHIFT key, but
     ;  are not normally thought of as shifted. It will have to be

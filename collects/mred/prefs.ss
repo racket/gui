@@ -6,10 +6,12 @@
 ;; to see if it needs to be unmarshalled.
 
 (define mred:preferences@
-  (unit/s mred:preferences^
-    (import [mred:debug mred:debug^]
-	    [mred:exn mred:exn^]
-	    [mzlib:function mzlib:function^])
+  (unit/sig mred:preferences^
+    (import ([unit mred:debug : mred:debug^]
+	     [unit mred:exn : mred:exn^]
+	     [unit mzlib:function : mzlib:function^]))
+
+    (mred:debug:printf 'invoke "mred:preferences@")
     
     (define preferences-filename
       (case wx:platform

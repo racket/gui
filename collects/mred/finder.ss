@@ -1,7 +1,11 @@
 (define mred:finder@
-  (unit/s mred:finder^
-    (import [mred:debug mred:debug^] [mzlib:string mzlib:string^]
-	    [mzlib:function mzlib:function^] [mzlib:file mzlib:file^])
+  (unit/sig mred:finder^
+    (import ([unit mred:debug : mred:debug^]
+	     [unit mzlib:string : mzlib:string^]
+	     [unit mzlib:function : mzlib:function^]
+	     [unit mzlib:file : mzlib:file^]))
+	    
+    (mred:debug:printf 'invoke "mred:finder@")
 
     (define filter-match?
       (lambda (filter name msg)
