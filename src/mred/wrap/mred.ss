@@ -217,7 +217,7 @@
       [window->focus-object
        (lambda (w)
 	 (and w
-	      (if (is-a? focus wx:text-editor%)
+	      (if (is-a? focus wx:editor-canvas%)
 		  (let loop ([m (send focus get-edit)]
 			     [prev w])
 		    (if m
@@ -225,7 +225,8 @@
 			  (if (and snip (is-a? snip wx:editor-snip%))
 			      (loop (send snip get-edit) m)
 			      m))
-			w)))))]
+			w))
+		  focus)))]
 
       ; add-child: update panel pointer.
       ; input: new-panel: panel in frame (descendant of
@@ -714,6 +715,10 @@
 	(lambda (id)
 	  (let ([wx (wx:id-to-menu-item id)])
 	    (send (wx->mred wx) go)))])
+     (public
+       [handle-menu-key
+	(lambda (event)
+	  (and menu-bar (send menu-bar handle-key event)))])
      (sequence
        (apply super-init args)))))
 
@@ -1625,6 +1630,15 @@
     (sequence
       (super-init mred proxy parent -1 -1 100 20 #f style 100 #f))))
   
+(define (font->delta f)
+  (define d (make-object wx:style-delta%))
+  (send d set-delta-face (send f get-face))
+  (send d set-delta 'change-size (send f get-point-size))
+  (send d set-delta 'change-style (send f get-style))
+  (send d set-delta 'change-weight (send f get-weight))
+  (send d set-delta 'change-underline (send f get-underlined))
+  d)
+
 (define (make-wx-text% multi?)
   (class wx-horizontal-panel% (mred proxy parent func label value style)
     (inherit alignment stretchable-in-y get-button-font)
@@ -1682,13 +1696,8 @@
       (unless multi? (stretchable-in-y #f))
       (send e auto-wrap multi?)
       (let ([f (get-button-font)]
-	    [s (send (send e get-style-list) find-named-style "Standard")]
-	    [d (make-object wx:style-delta%)])
-	(send d set-delta-face (send f get-face))
-	(send d set-delta 'change-size (send f get-point-size))
-	(send d set-delta 'change-style (send f get-style))
-	(send d set-delta 'change-weight (send f get-weight))
-	(send s set-delta d))
+	    [s (send (send e get-style-list) find-named-style "Standard")])
+	(send s set-delta (font->delta f)))
       (send c set-edit e)
       (send c set-line-count (if multi? 3 1))
 
@@ -1967,7 +1976,7 @@
     (private
       [wx-object->mred
        (lambda (o)
-	 (or (and (is-a? o wx:window%))
+	 (if (is-a? o wx:window%)
 	     (wx->mred o)
 	     o))]
       [eventspace (wx:current-eventspace)])
@@ -2033,6 +2042,8 @@
     (private
       [wx #f]
       [status-line? #f])
+    (override
+      [pre-on-char (lambda (w event) (send wx handle-menu-key event))])
     (public
       [create-status-line (lambda () (unless status-line? (send wx create-status-line) (set! status-line? #t)))]
       [set-status-line (lambda () (send wx create-status-line))]
@@ -2423,13 +2434,20 @@
 
 (define (barless-frame-parent p)
   (unless (is-a? p frame%)
-    (raise-type-error 'menu-bar-cnostructor "parent frame% object" p))
+    (raise-type-error 'menu-bar-cnostructor "frame% object" p))
   (when (send (mred->wx p) get-menu-bar)
     (error 'menu-bar-constructor "the specified frame already has a menu bar")))
 
 (define wx-menu-item%
   (class* wx:menu-item% (wx<%>) (mred)
+    (private 
+      [keymap #f])
     (public
+      [get-keymap (lambda () keymap)]
+      [set-keymap (lambda (k) (set! keymap k))]
+      [swap-keymap (lambda (parent k) 
+		     (send (mred->wx parent) swap-item-keymap keymap k) 
+		     (set-keymap k))]
       [get-mred (lambda () mred)])
     (sequence
       (super-init))))
@@ -2439,17 +2457,21 @@
     (inherit delete)
     (rename [super-append append])
     (private
-      [items null])
+      [items null]
+      [keymap (make-object wx:keymap%)])
     (public
+      [handle-key (lambda (event) (send keymap handle-key-event this event))]
       [get-mred (lambda () mred)]
       [get-items (lambda () items)]
       [append-item (lambda (item menu title)
 		     (super-append menu title)
-		     (set! items (append items (list item))))]
+		     (set! items (append items (list item)))
+		     (send keymap chain-to-keymap (send (mred->wx item) get-keymap) #f))]
       [delete-item (lambda (i)
 		     (let ([p (position-of i)])
 		       (set! items (remq i items))
-		       (delete #f p)))]
+		       (delete #f p)
+		       (send keymap remove-chained-keymap (send (mred->wx i) get-keymap))))]
       [position-of (lambda (i) (find-pos items i eq?))])
     (sequence
       (super-init null null))))
@@ -2457,16 +2479,32 @@
 (define wx-menu%
   (class* wx:menu% (wx<%>) (mred popup-label popup-callback)
     (private
-      [items null])
+      [items null]
+      [keymap (make-object wx:keymap%)])
     (inherit delete-by-position)
     (rename [super-delete delete])
     (public
+      [get-keymap (lambda () keymap)]
       [get-mred (lambda () mred)]
       [get-items (lambda () items)]
-      [append-item (lambda (i) (set! items (append items (list i))))]
-      [delete-sep (lambda (i) (delete-by-position (find-pos items i eq?)) (set! items (remq i items)))])
+      [append-item (lambda (i) 
+		     (set! items (append items (list i)))
+		     (let ([k (send (mred->wx i) get-keymap)])
+		       (when k
+			 (send keymap chain-to-keymap k #f))))]
+      [delete-sep (lambda (i) 
+		    (delete-by-position (find-pos items i eq?))
+		    (set! items (remq i items)))]
+      [swap-item-keymap (lambda (old-k new-k)
+			  (when old-k (send keymap remove-chained-keymap old-k))
+			  (when new-k (send keymap chain-to-keymap new-k #f)))])
     (override
-      [delete (lambda (id i) (super-delete id) (set! items (remq i items)))])
+      [delete (lambda (id i) 
+		(super-delete id) 
+		(set! items (remq i items))
+		(let ([k (send (mred->wx i) get-keymap)])
+		  (when k
+		    (send keymap remove-chained-keymap k))))])
     (sequence
       (super-init popup-label popup-callback))))
 
@@ -2520,8 +2558,10 @@
       (super-init wx)
       (restore))))
 
+(define (strip-tab s) (car (regexp-match (format "^[^~a]*" #\tab) s)))
+
 (define basic-labelled-menu-item%
-  (class* mred% (labelled-menu-item<%>) (parent label help-string submenu checkable? set-wx)
+  (class* mred% (labelled-menu-item<%>) (parent label help-string submenu checkable? keymap set-wx)
     (private
       [wx (set-wx (make-object wx-menu-item% this))]
       [wx-parent (mred->wx parent)]
@@ -2538,13 +2578,17 @@
     (public
       [get-parent (lambda () parent)]
       [get-label (lambda () label)]
-      [set-label (lambda (l)
-		   (set! label l)
-		   (set! plain-label (wx:label->plain-label l))
-		   (when shown?
-		     (if in-menu?
-			 (send wx-parent set-label (send wx id) label)
-			 (send wx-parent set-label-top (send wx-parent position-of this) plain-label))))]
+      [set-label (letrec ([set-label
+			   (case-lambda
+			    [(keep-l set-l)
+			     (set! label keep-l)
+			     (set! plain-label (wx:label->plain-label keep-l))
+			     (when shown?
+			       (if in-menu?
+				   (send wx-parent set-label (send wx id) set-l)
+				   (send wx-parent set-label-top (send wx-parent position-of this) plain-label)))]
+			    [(l) (set-label l l)])])
+		   set-label)]
       [get-plain-label (lambda () plain-label)]
       [get-help-string (lambda () help-string)]
       [set-help-string (lambda (s) (set! help-string s)
@@ -2571,38 +2615,80 @@
       [is-deleted? (lambda () (not shown?))])
     (sequence
       (super-init wx)
+      (when keymap (send wx set-keymap keymap))
       (restore))))
 
-(define basic-label-menu-item%
-  (class basic-labelled-menu-item% (label checkable? menu callback shortcut help-string set-wx)
+(define shortcut-menu-item<%>
+  (interface (labelled-menu-item<%>)
+    get-shortcut set-shortcut
+    get-x-shortcut-prefix set-x-shortcut-prefix))
+
+(define basic-shortcut-menu-item%
+  (class* basic-labelled-menu-item% (shortcut-menu-item<%>) (label checkable? menu callback shortcut help-string set-wx)
+    (rename [super-restore restore] [super-set-label set-label])
+    (inherit is-deleted? get-label)
     (private
       [wx #f])
     (public
       [go (lambda () (callback this (make-object wx:control-event% 'menu)))])
+    (private
+      [x-prefix 'meta]
+      [calc-labels (lambda (label)
+		     (let* ([new-label (if shortcut
+					   (string-append
+					    (strip-tab label)
+					    (case (system-type)
+					      [(unix) (format "~a~a~a" #\tab 
+							      (case x-prefix
+								[(meta) "Meta+"]
+								[(alt) "Alt+"]
+								[(ctl-m) "Ctl+M "]
+								[(ctl) "Ctl+"])
+							      (char-upcase shortcut))]
+					      [(windows) (format "~aCtl+~a" #\tab (char-upcase shortcut))]
+					      [(macos) (format "~aCmd-~a" #\tab (char-upcase shortcut))]))
+					   (strip-tab label))]
+			    [key-binding (and shortcut
+					      (case (system-type)
+						[(unix) (format "~a~a" 
+								(case x-prefix
+								  [(meta) "m:"]
+								  [(alt) "a:"]
+								  [(ctl-m) "c:m;"]
+								  [(ctl) "c:"])
+								(char-downcase shortcut))]
+						[(windows) (format "c:~a" (char-downcase shortcut))]
+						[(macos) (format "d:~a" (char-downcase shortcut))]))]
+			    [keymap (and key-binding
+					 (let ([keymap (make-object wx:keymap%)])
+					   (send keymap add-key-function "menu-item" (lambda (edit event) (go)))
+					   (send keymap map-function key-binding "menu-item")
+					   keymap))])
+		       (values new-label keymap)))])
+    (override
+      [set-label (lambda (l) 
+		   (let-values ([(new-label keymap) (calc-labels l)])
+		     (super-set-label new-label)
+		     (if (is-deleted?)
+			 (send wx set-keymap keymap)
+			 (send wx swap-keymap menu keymap))))])
+    (public
+      [set-shortcut (lambda (c) (set! shortcut c) (set-label (get-label)))]
+      [get-shortcut (lambda () shortcut)]
+      [get-x-shortcut-prefix (lambda () x-prefix)]
+      [set-x-shortcut-prefix (lambda (p) (set! x-prefix p) (set-label (get-label)))])
     (sequence
-      (let ([new-label (if shortcut
-			   (string-append
-			    label
-			    (case (system-type)
-			      [(unix) (format "~aCtl+m ~a" #\tab (char-downcase shortcut))]
-			      [(windows) (format "~aCtl+~a" #\tab (char-upcase shortcut))]
-			      [(macos) (format "~aCmd-~a" #\tab (char-upcase shortcut))]))
-			   label)]
-	    [key-binding (and shortcut
-			      (case (system-type)
-				[(unix) (format "c:m;~a" (char-downcase shortcut))]
-				[(windows) (format "c:~a" (char-downcase shortcut))]
-				[(macos) (format "d:~a" (char-downcase shortcut))]))])
-	(super-init menu new-label help-string #f checkable? (lambda (x) (set! wx x) (set-wx x)))))))
+      (let-values ([(new-label keymap) (calc-labels label)])
+	(super-init menu new-label help-string #f checkable? keymap (lambda (x) (set! wx x) (set-wx x)))))))
 
 (define menu-item%
-  (class basic-label-menu-item% (label menu callback [shortcut #f] [help-string #f])
+  (class basic-shortcut-menu-item% (label menu callback [shortcut #f] [help-string #f])
     (sequence 
       (menu-parent-only 'menu-item menu)
       (super-init label #f menu callback shortcut help-string (lambda (x) x)))))
 
 (define checkable-menu-item%
-  (class basic-label-menu-item% (label menu callback [shortcut #f] [help-string #f])
+  (class basic-shortcut-menu-item% (label menu callback [shortcut #f] [help-string #f])
     (sequence (menu-parent-only 'checkable-menu-item menu))
     (private
       [wx #f])
@@ -2618,7 +2704,7 @@
     (public
       [get-menu (lambda () menu)])
     (sequence
-      (super-init parent label help-string menu #f (lambda (x) x)))))
+      (super-init parent label help-string menu #f (send (mred->wx menu) get-keymap) (lambda (x) x)))))
 
 (define menu-item-container<%> (interface () get-items))
 (define internal-menu<%> (interface ()))
@@ -2657,6 +2743,7 @@
       [wx-parent (mred->wx parent)]
       [shown? #f])
     (public
+      [get-frame (lambda () parent)]
       [get-items (lambda () (send wx get-items))]
       [enable (lambda (on?) (send wx enable-all on?))]
       [is-enabled? (lambda () (send wx all-enabled?))]
@@ -2674,7 +2761,7 @@
   ;; The REPL buffer class
   (define esq:text-editor%
     (class text-editor% ()
-      (inherit insert last-position get-text erase change-style)
+      (inherit insert last-position get-text erase change-style clear-undos)
       (rename [super-on-char on-char])
       (private [prompt-pos 0] [locked? #f])
       (override
@@ -2690,7 +2777,8 @@
 	[new-prompt (lambda ()
 		      (output "> ")
 		      (set! prompt-pos (last-position))
-		      (set! locked? #f))]
+		      (set! locked? #f)
+		      (clear-undos))]
 	[output (lambda (str)
 		  (let ([l? locked?])
 		    (set! locked? #f)
@@ -2760,7 +2848,13 @@
 
   (define waiting (make-semaphore 0))
 
-  ;; Just a few key bindings:
+  (let ([mb (make-object menu-bar% frame)])
+    (let ([m (make-object menu% "File" mb)])
+      (make-object menu-item% "Quit" m (lambda (i e) (send frame on-close) (send frame show #f)) #\q))
+    (let ([m (make-object menu% "Edit" mb)])
+      (append-edit-operation-items m)))
+
+  ;; Just a few extra key bindings:
   (let* ([k (send repl-buffer get-keymap)]
 	 [mouse-paste (lambda (edit event) 
 			(when (send event button-down?)
@@ -3156,18 +3250,14 @@
 		 [refresh-sample (lambda (b e) (let ([f (get-font)])
 						 (send ok-button enable f)
 						 (when f
-						   (let ([s (send (send edit get-style-list) find-named-style "Standard")]
-							 [d (make-object wx:style-delta%)])
-						     (send d set-delta-face (send f get-face))
-						     (send d set-delta 'change-size (send f get-point-size))
-						     (send d set-delta 'change-style (send f get-style))
-						     (send d set-delta 'change-weight (send f get-weight))
-						     (send s set-delta d)))))]
+						   (let ([s (send (send edit get-style-list) find-named-style "Standard")])
+						     (send s set-delta (font->delta f))))))]
 		 [p (make-object horizontal-pane% f)]
 		 [face (make-object list-box% "Font:" (wx:get-font-list) p refresh-sample)]
 		 [p2 (make-object vertical-pane% p)]
 		 [style (make-object radio-box% "Style:" '("Normal" "Italic" "Slant") p2 refresh-sample)]
 		 [weight (make-object radio-box% "Weight:" '("Normal" "Bold" "Light") p2 refresh-sample)]
+		 [underlined (make-object check-box% "Underlined" p2 refresh-sample)]
 		 [size (make-object slider% "Size:" 4 127 p2 refresh-sample 12)]
 		 [sample (make-object multi-text% "Sample" f void "The quick brown fox jumped over the lazy dog")]
 		 [edit (send sample get-edit)]
@@ -3176,7 +3266,8 @@
 					(and face
 					     (make-object wx:font% (send size get-value) face 'default
 							  (case (send style get-selection) [(0) 'normal] [(1) 'italic] [(2) 'slant])
-							  (case (send weight get-selection) [(0) 'normal] [(1) 'bold] [(2) 'light])))))]
+							  (case (send weight get-selection) [(0) 'normal] [(1) 'bold] [(2) 'light])
+							  (send underlined get-value)))))]
 		 [bp (make-object horizontal-pane% f)]
 		 [cancel-button (make-object button% "Cancel" bp (done #f))]
 		 [ok-button (make-object button% "Ok" bp (done #t) '(default))])
@@ -3185,6 +3276,7 @@
 	      (and f (>= f 0) (send face set-selection f)))
 	    (send style set-selection (case (send font get-style) [(normal) 0] [(italic) 1] [(slant) 2]))
 	    (send weight set-selection (case (send font get-weight) [(normal) 0] [(bold) 1] [(light) 2]))
+	    (send underlined set-value (send font get-underlined))
 	    (send size set-value (send font get-point-size)))
 	  (send bp set-alignment 'right 'center)
 	  (refresh-sample (void) (void))
@@ -3207,3 +3299,152 @@
 	[yb (box 0)])
     (wx:display-size xb yb)
     (values (unbox xb) (unbox yb))))
+
+(define (find-item-frame item)
+  (let loop ([i item])
+    (let ([p (send i get-parent)])
+      (cond
+       [(not p) #f]
+       [(is-a? p menu%) (loop (send p get-item))]
+       [else (send p get-frame)]))))
+
+(define (append-edit-operation-items m)
+  (let ([mk (lambda (name key op)
+	      (make-object menu-item% name m
+			   (lambda (i e)
+			     (let* ([f (find-item-frame i)]
+				    [o (and f (send f get-edit-target-object))])
+			       (and o (is-a? o wx:editor<%>)
+				    (send o do-edit-operation op))))
+			   key))]
+	[mk-sep (lambda () (make-object separator-menu-item% m))])
+    (mk "Undo" #\z 'undo)
+    (mk "Redo" #f 'redo)
+    (mk-sep)
+    (mk "Clear" #f 'clear)
+    (mk "Copy" #\c 'copy)
+    (mk "Cut" #\x 'cut)
+    (mk "Paste" #\v 'paste)
+    (mk-sep)
+    (mk "Insert Text Box" #f 'insert-text-box)
+    (mk "Insert Pasteboard Box" #f 'insert-pasteboard-box)
+    (mk "Insert Image Box" #f 'insert-image)
+    (void)))
+
+(define (append-edit-font-items m)
+  (let ([mk (lambda (name m cb)
+	      (make-object menu-item% name m
+			   (lambda (i e)
+			     (let* ([f (find-item-frame i)]
+				    [o (and f (send f get-edit-target-object))])
+			       (and o (is-a? o wx:editor<%>)
+				    (cb o))))))]
+	[mk-sep (lambda (m) (make-object separator-menu-item% m))]
+	[mk-menu (lambda (name) (make-object menu% name m))])
+    (let ([family (mk-menu "Font")]
+	  [size (mk-menu "Size")]
+	  [style (mk-menu "Style")]
+	  [weight (mk-menu "Weight")]
+	  [underline (mk-menu "Underline")]
+	  [alignment (mk-menu "Alignment")]
+	  [color (mk-menu "Color")]
+	  [background (mk-menu "Background")])
+      
+      ; Font menu 
+      (for-each (lambda (l f)
+		  (mk l family 
+		      (lambda (e)
+			(send e change-style (make-object wx:style-delta% 'change-family f)))))
+		'("Standard" "Decorative" "Roman" "Script" "Swiss" "Fixed")
+		'(default decorative roman script swiss fixed))
+      (mk-sep family)
+      (mk "Choose..." family (lambda (e) (let ([f (get-font-from-user)])
+					   (when f
+					     (send e change-style (font->delta f))))))
+
+      ; Size menu
+      (let ([bigger (make-object menu% "Bigger" size)]
+	    [smaller (make-object menu% "Smaller" size)]
+	    [add-change-size
+	     (lambda (m ls dss xss)
+	       (for-each (lambda (l ds xs)
+			   (mk l m (lambda (e)
+				     (let ([d (make-object wx:style-delta%)])
+				       (send d set-size-add ds)
+				       (send d set-size-mult xs)
+				       (send e change-style d)))))
+			 ls dss xss))])
+	(add-change-size bigger
+			 '("+1" "+2" "+4" "+8" "+16" "+32")
+			 '(1 2 4 8 16 32)
+			 '(1 1 1 1 1  1))
+	(mk-sep bigger)
+	(add-change-size bigger
+			 '("x2" "x3" "x4" "x5")
+			 '(0    0    0    0)
+			 '(2    3    4    5))
+
+	(add-change-size smaller
+			 '("-1" "-2" "-4" "-8" "-16" "-32")
+			 '(1 -2 -4 -8 -16 -32)
+			 '(1 1   1  1  1  1))
+	(mk-sep smaller)
+	(add-change-size smaller
+			 '("/2" "/3" "/5" "/5")
+			 '(0    0    0    0)
+			 '(#i1/2 #i1/3 #i1/4 #i1/5))
+	
+	(for-each (lambda (s)
+		    (mk (number->string s) size (lambda (e)
+						  (let ([d (make-object wx:style-delta%)])
+						    (send d set-size-add s)
+						    (send d set-size-mult 0)
+						    (send e change-style d)))))
+		  '(9 10 12 14 16 24 32 48)))
+
+      
+      (let ([mk-cg (lambda (cmd arg)
+		     (lambda (e) (send e change-style (make-object wx:style-delta% cmd arg))))])
+
+      ; Style
+      (for-each (lambda (name s)
+		  (mk name style (mk-cg 'change-style s)))
+		'("Normal" "Italic" "Slant")
+		'(normal italic slant))
+      
+      ; Weight
+      (for-each (lambda (name s)
+		  (mk name weight (mk-cg 'change-weight s)))
+		'("Normal" "Bold" "Light")
+		'(normal bold light))
+      
+      ; Underline
+      (mk "No Underline" underline (mk-cg 'change-underline #f))
+      (mk "Underline" underline (mk-cg 'change-underline #t))
+      (mk "Toggle" underline (lambda (e) (send e change-style (make-object wx:style-delta% 'change-toggle-underline))))
+
+      ; Alignment
+      (for-each (lambda (name s)
+		  (mk name alignment (mk-cg 'change-weight s)))
+		'("Top" "Center" "Bottom")
+		'(top center bottom))
+
+      (let ([colors '("Black" "White" "Red" "Orange" "Yellow" "Green" "Blue" "Purple" "Cyan" "Magenta" "Grey")])
+
+	; Colors
+	(for-each (lambda (c)
+		    (mk c color (lambda (e) (let ([d (make-object wx:style-delta%)])
+					      (send d set-delta-foreground c)
+					      (send e change-style d)))))
+		  colors)
+
+	; Background
+	(mk "Transparent" background (lambda (e) (let ([d (make-object wx:style-delta%)])
+						   (send d set-transparent-text-backing-on #t)
+						   (send e change-style d))))
+	(for-each (lambda (c)
+		    (mk c background (lambda (e) (let ([d (make-object wx:style-delta%)])
+						   (send d set-delta-background c)
+						   (send e change-style d)))))
+		  colors))))))
+
