@@ -2552,27 +2552,26 @@
 
     (sequence (apply super-init args))))
 
-  
-  
-  (define text% 
-    (es-contract-mixin
-     (class100 (make-editor-buffer% wx:text% #t  (lambda () text%)) ([line-spacing 1.0] 
-                                                                     [tab-stops null]
-                                                                     [auto-wrap #f])
-       (rename (super-auto-wrap auto-wrap)
-               (super-set-file-format set-file-format)
-               (super-get-file-format get-file-format)
-               (super-set-position set-position))
-       (override
-         [-get-file-format (lambda ()
-                             (super-get-file-format))]
-         [-set-file-format (lambda (format)
-                             (super-set-file-format format)
-                             (super-set-position 0 0))])
-       
-       (sequence (super-init line-spacing tab-stops)
-                 (when auto-wrap
-                   (super-auto-wrap #t))))))
+  (define text%
+    (lock-contract-mixin
+     (es-contract-mixin
+      (class100 (make-editor-buffer% wx:text% #t  (lambda () text%)) ([line-spacing 1.0] 
+                                                                      [tab-stops null]
+                                                                      [auto-wrap #f])
+        (rename (super-auto-wrap auto-wrap)
+                (super-set-file-format set-file-format)
+                (super-get-file-format get-file-format)
+                (super-set-position set-position))
+        (override
+          [-get-file-format (lambda ()
+                              (super-get-file-format))]
+          [-set-file-format (lambda (format)
+                              (super-set-file-format format)
+                              (super-set-position 0 0))])
+        
+        (sequence (super-init line-spacing tab-stops)
+                  (when auto-wrap
+                    (super-auto-wrap #t)))))))
   (define pasteboard%
     (es-contract-mixin
      (class100 (make-editor-buffer% wx:pasteboard% #f (lambda () pasteboard%)) ()

@@ -1,6 +1,6 @@
 (module seqcontract mzscheme
   (require (lib "class.ss"))
-  (provide es-contract-mixin)
+  (provide es-contract-mixin lock-contract-mixin)
   
   (require-for-syntax (lib "stx.ss" "syntax")
                       (lib "boundmap.ss" "syntax"))
@@ -8,7 +8,7 @@
   (define-syntax (sequence-contract-mixin stx)
     (syntax-case stx (state-machine)
       [(_ (state-machine
-           [name exp (method-name states ...) ...] ...)
+           [name exp (method-name aritiess states ...) ...] ...)
           clauses ...)
        (and (andmap identifier? (syntax->list (syntax (name ...))))
             (andmap (lambda (x) (andmap identifier? (syntax->list x)))
@@ -30,27 +30,30 @@
              (lambda (state-name)
                (bound-identifier-mapping-get mapping state-name))))
          
-         (define-struct state-desc (method-name predicate-name state-name result-predicates) (make-inspector))
+         (define-struct state-desc (method-name arities predicate-name state-name result-predicates) (make-inspector))
          
          ;; -> mapping[state-name-symbol -o> state-desc]
          (define (build-table)
            (let ([mapping (new-mapping)])
              (for-each 
-              (lambda (state-name-stx predicate-name-stx method-names state-namess)
+              (lambda (state-name-stx predicate-name-stx method-names aritiess state-namess)
                 (for-each
-                 (lambda (method-name state-names-stx)
+                 (lambda (method-name arities state-names-stx)
                    (extend-mapping/at-end
                     mapping
                     method-name
                     (make-state-desc method-name
+                                     arities
                                      predicate-name-stx
                                      state-name-stx
                                      (syntax->list state-names-stx))))
                  (syntax->list method-names)
+                 (syntax->list aritiess)
                  (syntax->list state-namess)))
               (syntax->list (syntax (name ...)))
               predicate-names
               (syntax->list (syntax ((method-name ...) ...)))
+              (syntax->list (syntax ((aritiess ...) ...)))
               (syntax->list (syntax (((states ...) ...) ...))))
              mapping))
          
@@ -66,28 +69,48 @@
                            (lambda (state-desc)
                              (map state-name->predicate-name
                                   (state-desc-result-predicates state-desc)))
-                           state-descs)])
-             (syntax
-              (begin
-                (rename [super-method-name method-name])
-                (define/override (method-name . x)
-                  (cond
-                    [(predicate-name)
-                     (super-method-name . x)
-                     (unless (or (result-predicate-name) ...)
-                       (sequence-contract-violation 
-                        'positive 
-                        "expected one of states ~s after calling ~s in state ~s"
-                        '(result-predicate-state ...)
-                        'method-name
-                        'state-name))]
-                    ...
-                    [else
-                     (sequence-contract-violation 
-                      'negative
-                      "method ~s cannot be called, except in states ~s"
-                      'method-name
-                      '(state-name ...))]))))))
+                           state-descs)]
+                         [(all-state-names ...) state-names]
+                         [(all-predicate-names ...) predicate-names])
+             (with-syntax ([(cases ...)
+                            (map (lambda (arity)
+                                   (with-syntax ([formals arity])
+                                     (with-syntax ([call (if (identifier? arity)
+                                                             (syntax (super-method-name . formals))
+                                                             (with-syntax ([(x ...) arity])
+                                                               (syntax (super-method-name x ...))))])
+                                       (syntax
+                                        [formals
+                                         (cond
+                                           [(predicate-name)
+                                            (begin0
+                                              call
+                                              (unless (or (result-predicate-name) ...)
+                                                (sequence-contract-violation 
+                                                 'positive 
+                                                 "expected one of states ~s after calling ~s in state ~s"
+                                                 '(result-predicate-state ...)
+                                                 'method-name
+                                                 'state-name)))]
+                                           ...
+                                           [else
+                                            (sequence-contract-violation 
+                                             'negative
+                                             "method ~s cannot be called, except in states ~s, current state: ~s"
+                                             'method-name
+                                             '(state-name ...)
+                                             (let loop ([l (list (list 'all-state-names (all-predicate-names)) ...)])
+                                               (cond
+                                                 [(null? l) '<<unknown-state>>]
+                                                 [else (if (cadr (car l))
+                                                           (car (car l))
+                                                           (loop (cdr l)))])))])]))))
+                                 (syntax->list (state-desc-arities (car state-descs))))])
+               (syntax
+                (begin
+                  (rename [super-method-name method-name])
+                  (define/override method-name
+                    (case-lambda cases ...)))))))
          
          ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
          ;;
@@ -152,11 +175,11 @@
      (state-machine
       [in-edit-sequence
        (in-edit-sequence?)
-       (begin-edit-sequence in-edit-sequence)
-       (end-edit-sequence in-edit-sequence out-of-edit-sequence)]
+       (begin-edit-sequence [() (x)] in-edit-sequence)
+       (end-edit-sequence [()] in-edit-sequence out-of-edit-sequence)]
       [out-of-edit-sequence
        (not (in-edit-sequence?))
-       (begin-edit-sequence in-edit-sequence)])
+       (begin-edit-sequence [() (x)] in-edit-sequence)])
      
      (inherit in-edit-sequence?)
      (super-new)))
@@ -190,51 +213,125 @@ Yes: readLocked => flowLocked, and flowLocked => writeLocked.
 
 Matthew
 
-(define lock-contract-mixin
-  (sequence-contract-mixin
-   (state-machine
-    [(and (locked-for-flow?)
-          (locations-computed?))
-     ;; everything except CheckRecalc
-     ...]
-    
-    [(locked-for-flow?)
-     ]
-    [(locked-for-write?)
-     ]
-    [(locked-for-read?)
-     ]
-    [#t ;; unlocked
-     
+  |#
+  
+  (define lock-contract-mixin
+    (sequence-contract-mixin
+     (state-machine
+      [unlocked
+       (and (not (locked-for-write?))
+            (not (locked-for-flow?))
+            (not (locked-for-read?)))
+       (set-position [(x) (x y) (x y z) (x y z p) (x y z p q)] unlocked)
+       (set-autowrap-bitmap [(bitmap)] unlocked)
+       (print-to-dc [(dc)] unlocked)
+       (move-position [(code?) (code? extend) (code? extend kind)] unlocked)
+       (split-snip [(pos)] unlocked)
+       (set-line-spacing [(space)] unlocked)
+       (set-max-width [(width)] unlocked)
+       (set-min-width [(width)] unlocked)
+       (set-min-height [(width)] unlocked)
+       (set-max-height [(width)] unlocked)
+       (set-tabs [(tabs) (tabs tab-width) (tabs tab-width units?)] unlocked)
+       
+       (get-text [() (x) (x y) (x y z) (x y z p)] unlocked)
+       (get-character [(start)] unlocked)
+       (find-wordbreak [(start end reason)] unlocked)
+       (save-file [() (filename) (filename format) (filename format show-errors?)] unlocked)
+       (write-to-file [(stream) (stream start end)]  unlocked)
+       (find-position [(x y) (x y at-eol?) (x y at-eol? on-it?) (x y at-eol? on-it? edge-close?)] unlocked)
+       (scroll-line-location [(pos)] unlocked)
+       (num-scroll-lines [()] unlocked)
+       (find-scroll-line [(location)] unlocked)
+       (style-has-changed [(style)] unlocked)
+       
+       (change-style [(x) (x y) (x y z) (x y z w)] unlocked)
+       (insert [(x) (x y) (x y z) (x y z p) (x y z p q)] unlocked)
+       (delete [() (start) (start end) (start end scroll-ok?)] unlocked)
+       (insert-port [(port) (port format show-errors?)] unlocked)
+       (read-from-file [(x) (x y) (x y z)] unlocked)
+       (set-style-list [(style-list)] unlocked)]
+      
+      [write-lock
+       (and (locked-for-write?)
+            (not (locked-for-flow?))
+            (not (locked-for-read?)))
+
+       (set-position [(x) (x y) (x y z) (x y z p) (x y z p q)] write-lock)
+       (set-autowrap-bitmap [(bitmap)] write-lock)
+       (print-to-dc [(dc)] write-lock)
+       (move-position [(code?) (code? extend) (code? extend kind)] write-lock)
+       (split-snip [(pos)] write-lock)
+       (set-line-spacing [(space)] write-lock)
+       (set-max-width [(width)] write-lock)
+       (set-min-width [(width)] write-lock)
+       (set-min-height [(width)] write-lock)
+       (set-max-height [(width)] write-lock)
+       (set-tabs [(tabs) (tabs tab-width) (tabs tab-width units?)] write-lock)
+       
+       (get-text [() (x) (x y) (x y z) (x y z p)] write-lock)
+       (get-character [(start)] write-lock)
+       (find-wordbreak [(start end reason)] write-lock)
+       (save-file [() (filename) (filename format) (filename format show-errors?)] write-lock)
+       (write-to-file [(stream) (stream start end)]  write-lock)
+       (find-position [(x y) (x y at-eol? on-it? edge-close?)] write-lock)
+       (scroll-line-location [(pos)] write-lock)
+       (num-scroll-lines [()] write-lock)
+       (find-scroll-line [(location)] write-lock)
+       (style-has-changed [(style)] write-lock)
+       ]
+      
+      [flow-lock
+       (and (locked-for-flow?)
+            (not (locked-for-read?)))
+
+       (get-text [() (x) (x y) (x y z) (x y z p)] flow-lock)
+       (get-character [(start)] flow-lock)
+       (find-wordbreak [(start end reason)] flow-lock)
+       (save-file [() (filename) (filename format) (filename format show-errors?)] flow-lock)
+       (write-to-file [(stream) (stream start end)]  flow-lock)
+       (find-position [(x y) (x y at-eol? on-it? edge-close?)] flow-lock)
+       (scroll-line-location [(pos)] flow-lock)
+       (num-scroll-lines [()] flow-lock)
+       (find-scroll-line [(location)] flow-lock)
+       (style-has-changed [(style)] flow-lock)
+       
+       ]
+
+      [read-lock
+       (locked-for-read?)])
+
+     (inherit locked-for-flow?
+              locked-for-write?
+              locked-for-read?)
+     (super-new))))
+
+  #|
      ;; flowLocked in wx_mpriv
      set-position ; _SetPosition
-     CheckRecalc  (only if graphicMaybeInvalid)
+     CheckRecalc  (only if graphicMaybeInvalid aka locations-computed?)
      set-autowrap-bitmap ; SetAutowrapBitmap
-     Redraw
+     Redraw 
      BeginPrint
      EndPrint
      HasPrintPage
      print-to-dc ; PrintToDC
      
      ;; flowlocked in wx_media.cxx
-     scroll-to-position ; ScrollToPosition
      move-position ; MovePosition
      split-snip ; SplitSnip
-     ReallyCanEdit
      set-line-spacing ; SetLineSpacing
      set-max-width ; SetMaxWidth
      set-min-width ; SetMinWidth
      set-min-height ; SetMinHeight
      set-max-height ; SetMaxHeight
      set-tabs ; SetTabs
-     scroll-to ; ScrollTo
      resized ; Resized ;; uses the flag, but not to abort
      
      ;; methods that consider
      ;; the readLocked variable,
      ;; at the C level; they just
      ;; return if it is set.
-     ReallyCanEdit
      get-text ; GetText
      get-character ; GetCharacter
      find-wordbreak ; FindWorkbreak
@@ -246,7 +343,8 @@ Matthew
      num-scroll-lines ; NumScrollLines
      find-scroll-line ; FindScrollLine
      style-has-changed ; StyleHasChanged ;; maybe need to expand this to include style lists?
-     FindFirstVisiblePosition
+
+     FindFirstVisiblePosition ;; LineStartPosition?
      FindLastVisiblePosition
      CheckRecalc
      
@@ -255,11 +353,11 @@ Matthew
      _ChangeStyle
      _Insert
      _Delete
-     ReallyCanEdit -- only when op != wxEDIT_COPY
-     InsertPort
+     insert-port ; InsertPort
      read-from-file ; ReadFromFile
      set-style-list ; SetStyleList
-     Recounted
+     ; Recounted
+     ReallyCanEdit -- only when op != wxEDIT_COPY
      
      ;; in wx_mpbrd.cxx
      insert ; Insert
@@ -281,12 +379,5 @@ Matthew
      read-from-file ; ReadFromFile
      ; BeginEditSequence ;; -- wierd flag check
      ; EndEditSequence ;; -- wierd flag check, like BeginEditSequence
-     
-     ])
-   (inherit locked-for-flow?
-            locked-for-write?
-            locked-for-read?)
-   (super-new)))
   
   |#
-  )
