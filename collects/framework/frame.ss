@@ -656,7 +656,7 @@
 	 (lambda (item control)
 	   (let* ([b (box #f)]
 		  [edit (get-editor)]
-		  [filename (send edit get-filename b)])
+		  [filename (get-filename b)])
 	     (if (or (not filename) (unbox b))
 		 (bell)
 		 (let ([start
@@ -1399,7 +1399,7 @@
   (define file<%> (interface (-editor<%>)))
   (define file-mixin
     (mixin (-editor<%>) (file<%>) args
-      (inherit get-editor)
+      (inherit get-editor get-filename get-label)
       (rename [super-can-close? can-close?])
       (override
 	[can-close?
@@ -1408,10 +1408,10 @@
 		  [user-allowed-or-not-modified
 		   (or (not (send edit is-modified?))
 		       (case (gui-utils:unsaved-warning
-			      (let ([fn (send edit get-filename)])
+			      (let ([fn (get-filename)])
 				(if (string? fn)
 				    fn
-				    "Untitled"))
+				    (get-label)))
 			      "Close"
 			      #t
 			      this)

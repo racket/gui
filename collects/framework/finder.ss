@@ -173,7 +173,7 @@
 	   (if (eq? (send evt get-event-type) 'list-box-dclick)
 	       (let ([dir (send directory-field get-value)])
 		 (if (directory-exists? dir)
-		     (set-directory (mzlib:file:normalize-path dir))
+		     (set-directory (normal-case-path (mzlib:file:normalize-path dir)))
 		     (if multi-mode?
 			 (do-add)
 			 (do-ok))))
@@ -213,7 +213,7 @@
 			 (string=? name ""))
 		    (let ([file (send directory-field get-value)])
 		      (if (directory-exists? file)
-			  (set-directory (mzlib:file:normalize-path file))
+			  (set-directory (normal-case-path (mzlib:file:normalize-path file)))
 			  (message-box 
 			   "Error"
 			   "You must specify a file name")))]
@@ -231,7 +231,7 @@
 		    (let ([dir-name (send directory-field get-value)])
 		      
 		      (if (directory-exists? dir-name)
-			  (set-directory (mzlib:file:normalize-path dir-name))
+			  (set-directory (normal-case-path (mzlib:file:normalize-path dir-name)))
 			  
 			  ; otherwise, try to return absolute path
 			  
@@ -278,7 +278,8 @@
 						     file
 						     " contains nonexistent directory or cycle."))
 						   #f)])
-					     (mzlib:file:normalize-path file))])
+					     (normal-case-path
+					      (mzlib:file:normalize-path file)))])
 				      (when normal-path 
 					(set-box! result-box normal-path)
 					(show #f))))))))]))))]
@@ -287,7 +288,8 @@
 	 (lambda (name)
 	   (unless (or (directory-exists? name)
 		       (send result-list find-string name))
-	     (send result-list append (mzlib:file:normalize-path name))))]
+	     (send result-list append
+		   (normal-case-path (mzlib:file:normalize-path name)))))]
 	
 	[do-add
 	 (lambda args
@@ -458,7 +460,8 @@
 			 [dir (build-path current-dir
 					  (make-relative which))])
 		    (if (directory-exists? dir)
-			(set-directory (mzlib:file:normalize-path dir))
+			(set-directory (normal-case-path
+					(mzlib:file:normalize-path dir)))
 			(if multi-mode?
 			    (do-add)
 			    (do-ok))))))]))]
@@ -490,7 +493,8 @@
 		(when (eq? (send evt get-event-type) 'text-field-enter)
 		  (let ([dir (send directory-field get-value)])
 		    (if (directory-exists? dir)
-			(set-directory (mzlib:file:normalize-path dir))
+			(set-directory (normal-case-path
+					(mzlib:file:normalize-path dir)))
 			(if multi-mode?
 			    (do-add)
 			    (do-ok)))))))))]
@@ -577,7 +581,8 @@
 	(cond
 	  [(and start-dir
 		(directory-exists? start-dir))
-	   (set-directory (mzlib:file:normalize-path start-dir))]
+	   (set-directory (normal-case-path
+			   (mzlib:file:normalize-path start-dir)))]
 	  [last-directory (set-directory last-directory)]
 	  [else (set-directory (current-directory))])
 	
@@ -707,7 +712,7 @@
 					 f
 					 filter-msg))))
 	    #f
-	    (let* ([f (mzlib:file:normalize-path f)]
+	    (let* ([f (normal-case-path (mzlib:file:normalize-path f))]
 		   [dir (mzlib:file:path-only f)]
 		   [name (mzlib:file:file-name-from-path f)])
 	      (cond

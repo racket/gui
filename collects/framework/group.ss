@@ -202,9 +202,8 @@
 		      (mzlib:file:normalize-path name)))]
 		  [test-frame
 		   (lambda (frame)
-		     (and (is-a? frame frame:editor<%>)
-			  (let* ([editor (send frame get-editor)]
-				 [filename (send editor get-filename)])
+		     (and (is-a? frame frame:basic<%>)
+			  (let* ([filename (send frame get-filename)])
 			    (and (string? filename)
 				 (string=? normalized
 					   (with-handlers ([(lambda (x) #t)
