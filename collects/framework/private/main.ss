@@ -69,7 +69,7 @@
                                                  (lambda (x) 
                                                    (and (list? x)
                                                         (= 3 (length x))
-                                                        (bytes? (car x))
+                                                        (path? (car x))
                                                         (number? (cadr x))
                                                         (number? (caddr x))))
                                                  x))))
