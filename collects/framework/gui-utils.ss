@@ -148,6 +148,7 @@
 
    (gui-utils:get-clicked-clickback-delta
     (-> (is-a?/c style-delta%))
+    ()
     "This delta is designed for use with"
     "@link text set-clickback %"
     ". Use it as one of the \\iscmclass{style-delta} argument to"
@@ -160,6 +161,7 @@
 
    (gui-utils:get-clickback-delta
     (-> (is-a?/c style-delta%))
+    ()
     "This delta is designed for use with"
     "@link text set-clickback %"
     ". Use the result of this function as the style"
@@ -167,7 +169,7 @@
     "text where the clickback is set." 
     ""
     "See also"
-    "@flink gui-utils:get-clickback-clicked-delta %"
+    "@flink gui-utils:get-clicked-clickback-delta %"
     "."))
   
   (define clickback-delta (make-object style-delta% 'change-underline #t))

@@ -28,6 +28,12 @@
       [(_ (name contract docs ...) ...)
        (syntax (provide/contract (name contract) ...))]))
 
+  (define-values/invoke-unit/sig 
+   framework^ 
+   framework@ 
+   #f
+   mred^)
+  
   (provide/contract/docs
    (version:add-spec
     (any? any? . -> . void?)
@@ -90,11 +96,10 @@
     "\\scmindex{exn:unknown-preference}\\rawscm{exn:unknown-preference}"
     "if the preference has not been set.")
    (preferences:add-callback
-    (symbol? (symbol? any? . -> . boolean?) . -> . (-> void?))
+    (symbol? (symbol? any? . -> . any?) . -> . (-> void?))
     (p f)
     "This function adds a callback which is called with a symbol naming a"
-    "preference and it's value, when the preference changes. If the"
-    "callback function returns \\rawscm{\\#f}, the preference is not changed."
+    "preference and it's value, when the preference changes."
     "\\rawscm{preferences:add-callback} returns a thunk, which when"
     "invoked, removes the callback from this preference."
     ""
@@ -583,9 +588,9 @@
     "and (send ("
     "@flink group:get-the-frame-group %"
     ") "
-    "@milink open-here get-open-here-frame %"
+    "@ilink frame:open-here get-open-here-frame %"
     ") returns a frame, the "
-    "@milink open-here "
+    "@ilink frame:open-here open-here "
     "method of that frame is used to load"
     "the file in the existing frame."
     ""
@@ -1307,11 +1312,5 @@
     (color-model:xyz-z
      (color-model:xyz? . -> . number?)
      (xyz)
-     "Extracts the z component of \\var{xyz}."))
-  
-  (define-values/invoke-unit/sig 
-   framework^ 
-   framework@ 
-   #f
-   mred^))
+     "Extracts the z component of \\var{xyz}.")))
 

@@ -317,6 +317,7 @@
      pasteboard-info%
      standard-menus%
      editor%
+     open-here%
      text%
      text-info-file%
      searchable%

@@ -98,13 +98,12 @@
                       [else
                        (cons (car callbacks) (loop (cdr callbacks)))]))]))))))
       
-      (define check-callbacks
-        (lambda (p value)
-          (andmap (lambda (x)
-                    (guard "calling callback" p value
-                           (lambda () ((pref-callback-cb x) p value))
-                           raise))
-                  (get-callbacks p))))
+      (define (check-callbacks p value)
+	(for-each (lambda (x)
+		    (guard "calling callback" p value
+			   (lambda () ((pref-callback-cb x) p value))
+			   raise))
+                  (get-callbacks p)))
       
       (define (get p) 
         (let ([ans (hash-table-get preferences p
@@ -127,9 +126,8 @@
                                     (if (checker unmarsh)
                                         unmarsh
                                         default))]
-                    [pref (if (check-callbacks p unmarshalled)
-                              unmarshalled
-                              default)])
+                    [pref (begin (check-callbacks p unmarshalled)
+				 unmarshalled)])
                (hash-table-put! preferences p (make-pref pref))
                pref)]
             [(pref? ans)
@@ -148,12 +146,12 @@
                    p value))
           (cond
             [(pref? pref)
-             (when (check-callbacks p value)
-               (set-pref-value! pref value))]
+             (check-callbacks p value)
+	     (set-pref-value! pref value)]
             [(or (marshalled? pref) 
                  (not pref))
-             (when (check-callbacks p value)
-               (hash-table-put! preferences p (make-pref value)))]
+             (check-callbacks p value)
+	     (hash-table-put! preferences p (make-pref value))]
             [else
              (error 'prefs.ss "robby error.0: ~a" pref)])))
       

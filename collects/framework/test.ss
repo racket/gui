@@ -11,6 +11,10 @@
        (syntax (provide/contract (name contract) ...))]))
   
   (provide/contract/docs
+   (test:number-pending-actions
+    (-> number?)
+    ()
+    "Returns the number of pending events (those that haven't completed yet)")
    (test:run-interval
     (case->
      (number? . -> . void?)
