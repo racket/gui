@@ -56,7 +56,9 @@
        (lambda (c) (list (send c red) (send c green) (send c blue)))
        (lambda (l) (make-object color% (car l) (cadr l) (caddr l))))
       
-      (preferences:set-default 'framework:last-directory (find-system-path 'home-dir) string?)
+      (preferences:set-default 'framework:last-directory (find-system-path 'home-dir) path-string?)
+      (preferences:set-un/marshall 'framework:last-directory path->bytes bytes->path)
+
       (preferences:set-default 'framework:recent-max-count 
                                50 
                                (lambda (x) (and (number? x)
