@@ -188,6 +188,25 @@
 	    (lambda (edit event)
 	      (bell))]
 	   
+	   [mouse-popup-menu 
+	    (lambda (edit event)
+	      (when (send event button-up?)
+		(let ([a (send edit get-admin)])
+		  (when a
+		    (let ([m (make-object popup-menu%)])
+		      (append-editor-operation-menu-items m)
+		      (for-each
+		       (lambda (i)
+			 (when (is-a? i selectable-menu-item<%>)
+			   (send i set-shortcut #f)))
+		       (send m get-items))
+
+		      (let-values ([(x y) (send edit
+						dc-location-to-editor-location
+						(send event get-x)
+						(send event get-y))])
+			(send a popup-menu m (+ x 1) (+ y 1))))))))]
+
 	   [up-out-of-editor-snip
 	    (lambda (text event)
 	      (let ([editor-admin (send text get-admin)])
@@ -790,6 +809,8 @@
 	  (add "goto-position" goto-position)
 	  
 	  (add "delete-key" delete-key)
+
+	  (add "mouse-popup-menu" mouse-popup-menu)
 	  
 	  ; Map keys to functions
 	  (map "c:g" "ring-bell")
@@ -951,10 +972,8 @@
 	  (map "leftbuttontriple" "select-click-line")
 	  (map "leftbuttondouble" "select-click-word")
 	  
-	  (map "rightbutton" "copy-click-region")
-	  (map "rightbuttondouble" "cut-click-region")
 	  (map "middlebutton" "paste-click-region")
-	  (map "c:rightbutton" "copy-clipboard")))))
+	  (map ":rightbuttonseq" "mouse-popup-menu")))))
   
   (define setup-search
     (let* ([send-frame
