@@ -559,33 +559,36 @@
                                    (make-hash-table)
                                    #f))
             (when delegate
-              (send delegate begin-edit-sequence)
-              (send delegate lock #f)
-              (when (is-a? this scheme:text<%>)
-                (send delegate set-tabs null (send this get-tab-size) #f))
-              (send delegate hide-caret #t)
-              (send delegate erase)
-              (send delegate set-style-list (get-style-list))
-              (let loop ([snip (find-first-snip)])
-                (when snip
-                  (let ([copy-of-snip (copy snip)])
-                    (send delegate insert
-                          copy-of-snip
-                          (send delegate last-position)
-                          (send delegate last-position))
-                    (loop (send snip next)))))
-              (for-each
-               (lambda (range)
-                 (send delegate highlight-range 
-                       (range-start range)
-                       (range-end range)
-                       (range-color range)
-                       (range-b/w-bitmap range)
-                       (range-caret-space? range)
-                       'high))
-               (reverse (get-highlighted-ranges)))
-              (send delegate lock #t)
-              (send delegate end-edit-sequence)))
+              (refresh-delegate)))
+          
+          (define/private (refresh-delegate)
+            (send delegate begin-edit-sequence)
+            (send delegate lock #f)
+            (when (is-a? this scheme:text<%>)
+              (send delegate set-tabs null (send this get-tab-size) #f))
+            (send delegate hide-caret #t)
+            (send delegate erase)
+            (send delegate set-style-list (get-style-list))
+            (let loop ([snip (find-first-snip)])
+              (when snip
+                (let ([copy-of-snip (copy snip)])
+                  (send delegate insert
+                        copy-of-snip
+                        (send delegate last-position)
+                        (send delegate last-position))
+                  (loop (send snip next)))))
+            (for-each
+             (lambda (range)
+               (send delegate highlight-range 
+                     (range-start range)
+                     (range-end range)
+                     (range-color range)
+                     (range-b/w-bitmap range)
+                     (range-caret-space? range)
+                     'high))
+             (reverse (get-highlighted-ranges)))
+            (send delegate lock #t)
+            (send delegate end-edit-sequence))
           
           (rename [super-highlight-range highlight-range])
           (define/override highlight-range
@@ -683,12 +686,7 @@
           (define/override (after-load-file success?)
             (super-after-load-file success?)
             (when (and delegate success?)
-              (send delegate begin-edit-sequence)
-              (send delegate lock #f)
-              (send delegate load-file/gui-error filename format)
-              (send delegate set-filename #f)
-              (send delegate lock #t)
-              (send delegate end-edit-sequence)))
+              (refresh-delegate)))
           (super-instantiate ())))
     
       (define info<%> (interface (basic<%>)))
