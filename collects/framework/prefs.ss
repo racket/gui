@@ -337,9 +337,11 @@
 	 (make-check 'framework:paren-match "Flash paren match" id id)
 	 (make-check 'framework:autosaving-on? "Auto-save files" id id)
 	 (make-check 'framework:delete-forward? "Map delete to backspace" not not)
-	 (make-check 'framework:file-dialogs "Use platform-specific file dialogs"
-		     (lambda (x) (if x 'std 'common))
-		     (lambda (x) (eq? x 'std)))
+
+	 ;; not exposed to the user anymore. Only left in for automated testing.
+	 ;(make-check 'framework:file-dialogs "Use platform-specific file dialogs"
+	 ;(lambda (x) (if x 'std 'common))
+	 ;(lambda (x) (eq? x 'std)))
 	 
 	 (make-check 'framework:verify-exit "Verify exit" id id)
 	 (make-check 'framework:verify-change-format "Ask before changing save format" id id)

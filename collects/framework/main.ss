@@ -80,9 +80,7 @@
   (preferences:set-default 'framework:show-periods-in-dirlist #f boolean?)
   (preferences:set-default
    'framework:file-dialogs
-   (if (eq? (system-type) 'unix)
-       'common
-       'std)
+   'std
    (lambda (x)
      (or (eq? x 'common)
 	 (eq? x 'std))))

@@ -2317,7 +2317,7 @@ void *wxOutOfMemory()
 
 
 static void (*mr_save_oom)(void);
-static jmp_buf oom_buf;
+static mz_jmp_buf oom_buf;
 
 static void not_so_much_memory(void)
 {
