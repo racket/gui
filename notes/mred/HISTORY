@@ -1,3 +1,9 @@
+101/5:
+
+ * Fixed PR 1170, `alignment' menu item from MrEd's
+   `append-editor-font-menu-items'
+
+
 Version 101: ??
 
 Showing an inactive child window now raises an exception
