@@ -1,7 +1,16 @@
 
 Version 102/12:
 
- * Added offset argument to dc<%>'s get-text-extent and draw-text.
+ * Fixed list-box scrolling. (PR 1435)
+
+ * Made stdio window for Windows/MacOS accept input (for `read',
+   etc.).
+
+ * Added an optional string-offset argument to dc<%>'s get-text-extent
+   and draw-text.
+
+ * Changed code for MrEd2k so that it does not rely on interior
+   pointers.
 
 Version 102/11:
 
@@ -154,7 +163,10 @@ Version 102/1:
    `get-text-extent' return a useful value for the vertical space above
    a font.
 
+----------------------------------------------------------------------
+
 Version 102: ??, 2000
+
 Changed the interaction of face and familiy settings in a font for
  drawing text
 Removed get-afm-name and set-afm-name from font-name-directory<%>,
@@ -170,14 +182,18 @@ Added pop-down callback initialization argument to popup-menu%, and
  control-event%
 Changed the meaning of the on-change method in editor<%>; see the
  manual for details
-Editor reading/writing/cuting/pasting no longer relies on global
+Editor reading/writing/cutting/pasting no longer relies on global
  state, so exceptions raised for one editor do not affect other
  editors
 Removed read-done and write-done from snip-class%
 Moved reading-version to snip-class% (from snip-class-list%)
-X: Fixed list-box% to handle arbitrarily many list items.
+Added offset argument to dc<%>'s get-text-extent and draw-text
+Made stdio window for Windows/MacOS accept input (for `read', etc.)
+X, Mac: Fixed list-box% to handle arbitrarily many list items
 X: Fixed input of keypad characters and dead characters (such as
  accent marks)
+
+----------------------------------------------------------------------
 
 Version 101: October 25, 1999
 
