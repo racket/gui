@@ -4766,18 +4766,18 @@
 			    (send blue get-value)))))]))
 
 (define get-font-from-user 
-  (if (eq? (system-type) 'windows)
-      wx:get-font-from-user
-      (case-lambda
-       [() (get-font-from-user #f #f #f null)]
-       [(message) (get-font-from-user message #f #f null)]
-       [(message parent) (get-font-from-user message parent #f null)]
-       [(message parent font) (get-font-from-user message parent font null)]
-       [(message parent font style)
-	(check-string/false 'get-font-from-user message)
-	(check-top-level-parent/false 'get-font-from-user parent)
-	(check-instance 'get-font-from-user wx:font% 'font% #t font)
-	(check-style 'get-font-from-user #f null style)
+  (case-lambda
+   [() (get-font-from-user #f #f #f null)]
+   [(message) (get-font-from-user message #f #f null)]
+   [(message parent) (get-font-from-user message parent #f null)]
+   [(message parent font) (get-font-from-user message parent font null)]
+   [(message parent font style)
+    (check-string/false 'get-font-from-user message)
+    (check-top-level-parent/false 'get-font-from-user parent)
+    (check-instance 'get-font-from-user wx:font% 'font% #t font)
+    (check-style 'get-font-from-user #f null style)
+    (if (eq? (system-type) 'windows)
+	(wx:get-font-from-user message (and parent (mred->wx parent)) font style)
 	(letrec ([ok? #f]
 		 [f (make-object dialog% "Choose Font" parent 500 300)]
 		 [refresh-sample (lambda (b e) (let ([f (get-font)])
@@ -4816,7 +4816,7 @@
 	  (refresh-sample (void) (void))
 	  (send f center)
 	  (send f show #t)
-	  (and ok? (get-font)))])))
+	  (and ok? (get-font))))]))
 
 (define (play-sound f async?)
   (if (not (eq? (system-type) 'unix))
