@@ -4429,148 +4429,161 @@
 (define last-visted-directory #f)
 
 (define (mk-file-selector who put?)
-  (letrec ([sel
-	    (case-lambda
-	     [() (sel #f #f #f #f #f null)]
-	     [(message) (sel message #f #f #f #f null)]
-	     [(message parent) (sel message parent #f #f #f null)]
-	     [(message parent directory) (sel message parent directory #f #f null)]
-	     [(message parent directory filename) (sel message parent directory filename #f null)]
-	     [(message parent directory filename extension) (sel message parent directory filename extension null)]
-	     [(message parent directory filename extension style)
-	      (check-string/false who message)
-	      (check-top-level-parent/false who parent)
-	      (check-string/false who directory) (check-string/false who filename) (check-string/false who extension)
-	      (check-style who #f null style)
-	      (if (not (eq? (system-type) 'unix))
-		  (wx:file-selector message directory filename extension "*.*" (if put? 'put 'get) (mred->wx parent))
-		  (letrec ([ok? #f]
-			   [typed-name #f]
-			   [dir (or directory last-visted-directory (current-directory))]
-			   [f (make-object dialog% (if put? "Put File" "Get File") parent 500 300)]
-			   [__ (when message
-				 (let ([p (make-object vertical-pane% f)])
-				   (send p stretchable-height #f)
-				   (make-object message% message p)))]
-			   [m (make-object message% dir f)]
-			   [lp (make-object horizontal-pane% f)]
-			   [dirs (make-object list-box% #f null lp (lambda (d e)
-								     (when (eq? (send e get-event-type) 'list-box-dclick)
-								       (let ([sd (send d get-string-selection)])
-									 (set! dir (simplify-path (build-path dir sd)))
-									 (reset-directory)))))]
-			   [files (make-object list-box% #f null lp (lambda (d e)
-								      (update-ok)
-								      (when (eq? (send e get-event-type) 'list-box-dclick)
-									(done))))]
-			   [do-text-name (lambda ()
-					   (let ([v (send dir-text get-value)])
-					     (if (directory-exists? v)
-						 (begin
-						   (set! dir v)
-						   (reset-directory))
-						 ; Maybe specifies a file:
-						 (let-values ([(super file) 
-							       (with-handlers ([void #f])
-								 (let-values ([(base name dir?) (split-path v)])
-								   (let ([super (and (not dir?) 
-										     (or (and (string? base) 
-											      (directory-exists? base)
-											      base)
-											 (and (eq? base 'relative) 
-											      (directory-exists? dir) dir)))])
-								     (if super
-									 (values super name)
-									 (values #f #f)))))])
-						   (if super
-						       (begin
-							 (set! dir super)
-							 (set! typed-name file)
-							 (done))
-						       (begin
-							 (set! dir v)
-							 (reset-directory)))))))]
-			   [dir-text (make-object text-field% #f f (lambda (t e)
-								     (if (eq? (send e get-event-type) 'text-field-enter)
-									 (do-text-name)
-									 (begin
-									   ; typing in the box; disable the file list and enable ok
-									   (send files enable #f)
-									   (send ok-button enable #t)))))]
-			   [bp (make-object horizontal-pane% f)]
-			   [dot-check (make-object check-box% "Show files/directories that start with \".\"" bp (lambda (b e) (reset-directory)))]
-			   [spacer (make-object vertical-pane% bp)]
-			   [cancel-button (make-object button% "Cancel" bp (lambda (b e) (set! ok? #f) (send f show #f)))]
-			   [ok-button (make-object button% "Ok" bp (lambda (b e) 
-								     (if (send files is-enabled?)
-									 (done) ; normal mode
-									 (do-text-name))) ; handle typed text
-						   '(border))]
-			   [update-ok (lambda () (send ok-button enable (not (null? (send files get-selections)))))]
-			   [reset-directory (lambda ()
-					      (wx:begin-busy-cursor)
-					      (send m set-label (if (directory-exists? dir)
-								    (begin
-								      (set! last-visted-directory dir)
-								      dir)
-								    (string-append "BAD DIRECTORY: " dir)))
-					      (send dir-text set-value dir)
-					      (let ([l (with-handlers ([void (lambda (x) null)])
-							 (directory-list dir))]
-						    [dot? (send dot-check get-value)])
-						(letrec ([sort (lambda (l)
-								 (if (or (null? l) (null? (cdr l)))
-								     l
-								     (let-values ([(l1 l2) (split l null null)])
-								       (merge (sort l1) (sort l2)))))]
-							 [split (lambda (l l1 l2)
-								  (cond
-								   [(null? l) (values l1 l2)]
-								   [(null? (cdr l)) (values (cons (car l) l1) l2)]
-								   [else (split (cddr l) (cons (car l) l1) (cons (cadr l) l2))]))]
-							 [merge (lambda (l1 l2)
-								  (cond
-								   [(null? l1) l2]
-								   [(null? l2) l1]
-								   [(string<? (car l1) (car l2)) (cons (car l1) (merge (cdr l1) l2))]
-								   [else (merge l2 l1)]))])
-						  (let-values ([(ds fs)
-								(let loop ([l l][ds null][fs null])
-								  (cond
-								   [(null? l) (values (cons ".." (sort (reverse! ds))) (sort (reverse! fs)))]
-								   [(and (not dot?) (char=? (string-ref (car l) 0) #\.)) (loop (cdr l) ds fs)]
-								   [(file-exists? (build-path dir (car l))) (loop (cdr l) ds (cons (car l) fs))]
-								   [else (loop (cdr l) (cons (car l) ds) fs)]))])
-						    (send dirs set ds)
-						    (send files set fs)
-						    (send files enable #t)
-						    (update-ok)
-						    (wx:end-busy-cursor)))))]
-			   [get-filename (lambda () (simplify-path (build-path dir (or typed-name (send files get-string-selection)))))]
-			   [done (lambda ()
-				   (let ([name (get-filename)])
-				     (unless (and put? (file-exists? name)
-						  (eq? (message-box "Warning" (format "Replace ~s?" name) f '(yes-no)) 'no)
-						  (set! typed-name #f))
-				       (set! ok? #t)
-				       (send f show #f))))])
-		    (send bp stretchable-height #f)
-		    (send m stretchable-width #t)
-		    (reset-directory)
-		    (when filename
-		      (let ([d (send dir-text get-value)])
-			(send dir-text set-value (build-path d filename))
-			(set! typed-name filename)
-			(send ok-button enable #t)))
-		    (when put?
-		      (send dir-text focus))
-		    (send f center)
-		    (send f show #t)
-		    (and ok? (get-filename))))])])
-    sel))
+  (lambda (message parent directory filename extension style)
+    (check-string/false who message)
+    (check-top-level-parent/false who parent)
+    (check-string/false who directory) (check-string/false who filename) (check-string/false who extension)
+    (check-style who #f null style)
+    (if (not (eq? (system-type) 'unix))
+	(wx:file-selector message directory filename extension "*.*" (if put? 'put 'get) (mred->wx parent))
+	(letrec ([ok? #f]
+		 [typed-name #f]
+		 [dir (or directory last-visted-directory (current-directory))]
+		 [f (make-object dialog% (if put? "Put File" "Get File") parent 500 300)]
+		 [__ (when message
+		       (let ([p (make-object vertical-pane% f)])
+			 (send p stretchable-height #f)
+			 (make-object message% message p)))]
+		 [m (make-object message% dir f)]
+		 [lp (make-object horizontal-pane% f)]
+		 [dirs (make-object list-box% #f null lp (lambda (d e)
+							   (when (eq? (send e get-event-type) 'list-box-dclick)
+							     (let ([sd (send d get-string-selection)])
+							       (set! dir (simplify-path (build-path dir sd)))
+							       (reset-directory)))))]
+		 [files (make-object list-box% #f null lp (lambda (d e)
+							    (update-ok)
+							    (when (eq? (send e get-event-type) 'list-box-dclick)
+							      (done))))]
+		 [do-text-name (lambda ()
+				 (let ([v (send dir-text get-value)])
+				   (if (directory-exists? v)
+				       (begin
+					 (set! dir v)
+					 (reset-directory))
+				       ; Maybe specifies a file:
+				       (let-values ([(super file) 
+						     (with-handlers ([void #f])
+						       (let-values ([(base name dir?) (split-path v)])
+							 (let ([super (and (not dir?) 
+									   (or (and (string? base) 
+										    (directory-exists? base)
+										    base)
+									       (and (eq? base 'relative) 
+										    (directory-exists? dir) dir)))])
+							   (if super
+							       (values super name)
+							       (values #f #f)))))])
+					 (if super
+					     (begin
+					       (set! dir super)
+					       (set! typed-name file)
+					       (done))
+					     (begin
+					       (set! dir v)
+					       (reset-directory)))))))]
+		 [dir-text (make-object text-field% #f f (lambda (t e)
+							   (if (eq? (send e get-event-type) 'text-field-enter)
+							       (do-text-name)
+							       (begin
+								 ; typing in the box; disable the file list and enable ok
+								 (send files enable #f)
+								 (send ok-button enable #t)))))]
+		 [bp (make-object horizontal-pane% f)]
+		 [dot-check (make-object check-box% "Show files/directories that start with \".\"" bp (lambda (b e) (reset-directory)))]
+		 [spacer (make-object vertical-pane% bp)]
+		 [cancel-button (make-object button% "Cancel" bp (lambda (b e) (set! ok? #f) (send f show #f)))]
+		 [ok-button (make-object button% "Ok" bp (lambda (b e) 
+							   (if (send files is-enabled?)
+							       (done) ; normal mode
+							       (do-text-name))) ; handle typed text
+					 '(border))]
+		 [update-ok (lambda () (send ok-button enable (not (null? (send files get-selections)))))]
+		 [reset-directory (lambda ()
+				    (wx:begin-busy-cursor)
+				    (send m set-label (if (directory-exists? dir)
+							  (begin
+							    (set! last-visted-directory dir)
+							    dir)
+							  (string-append "BAD DIRECTORY: " dir)))
+				    (send dir-text set-value dir)
+				    (let ([l (with-handlers ([void (lambda (x) null)])
+					       (directory-list dir))]
+					  [dot? (send dot-check get-value)])
+				      (letrec ([sort (lambda (l)
+						       (if (or (null? l) (null? (cdr l)))
+							   l
+							   (let-values ([(l1 l2) (split l null null)])
+							     (merge (sort l1) (sort l2)))))]
+					       [split (lambda (l l1 l2)
+							(cond
+							 [(null? l) (values l1 l2)]
+							 [(null? (cdr l)) (values (cons (car l) l1) l2)]
+							 [else (split (cddr l) (cons (car l) l1) (cons (cadr l) l2))]))]
+					       [merge (lambda (l1 l2)
+							(cond
+							 [(null? l1) l2]
+							 [(null? l2) l1]
+							 [(string<? (car l1) (car l2)) (cons (car l1) (merge (cdr l1) l2))]
+							 [else (merge l2 l1)]))])
+					(let-values ([(ds fs)
+						      (let loop ([l l][ds null][fs null])
+							(cond
+							 [(null? l) (values (cons ".." (sort (reverse! ds))) (sort (reverse! fs)))]
+							 [(and (not dot?) (char=? (string-ref (car l) 0) #\.)) (loop (cdr l) ds fs)]
+							 [(file-exists? (build-path dir (car l))) (loop (cdr l) ds (cons (car l) fs))]
+							 [else (loop (cdr l) (cons (car l) ds) fs)]))])
+					  (send dirs set ds)
+					  (send files set fs)
+					  (send files enable #t)
+					  (update-ok)
+					  (wx:end-busy-cursor)))))]
+		 [get-filename (lambda () (simplify-path (build-path dir (or typed-name (send files get-string-selection)))))]
+		 [done (lambda ()
+			 (let ([name (get-filename)])
+			   (unless (and put? (file-exists? name)
+					(eq? (message-box "Warning" (format "Replace ~s?" name) f '(yes-no)) 'no)
+					(set! typed-name #f))
+			     (set! ok? #t)
+			     (send f show #f))))])
+	  (send bp stretchable-height #f)
+	  (send m stretchable-width #t)
+	  (reset-directory)
+	  (when filename
+	    (let ([d (send dir-text get-value)])
+	      (send dir-text set-value (build-path d filename))
+	      (set! typed-name filename)
+	      (send ok-button enable #t)))
+	  (when put?
+	    (send dir-text focus))
+	  (send f center)
+	  (send f show #t)
+	  (and ok? (get-filename))))))
 
-(define get-file (lambda x (apply (mk-file-selector 'get-file #f) x)))
-(define put-file (lambda x (apply (mk-file-selector 'put-file #t) x)))
+; We duplicate the case-lambda for both `get-file' and `put-file' so that they have the
+;   right arities and names
+
+(define get-file
+  (case-lambda
+   [() (get-file #f #f #f #f #f null)]
+   [(message) (get-file message #f #f #f #f null)]
+   [(message parent) (get-file message parent #f #f #f null)]
+   [(message parent directory) (get-file message parent directory #f #f null)]
+   [(message parent directory filename) (get-file message parent directory filename #f null)]
+   [(message parent directory filename extension) (get-file message parent directory filename extension null)]
+   [(message parent directory filename extension style)
+    ((mk-file-selector 'get-file #f) message parent directory filename extension style)]))
+
+(define put-file
+  (case-lambda
+   [() (put-file #f #f #f #f #f null)]
+   [(message) (put-file message #f #f #f #f null)]
+   [(message parent) (put-file message parent #f #f #f null)]
+   [(message parent directory) (put-file message parent directory #f #f null)]
+   [(message parent directory filename) (put-file message parent directory filename #f null)]
+   [(message parent directory filename extension) (put-file message parent directory filename extension null)]
+   [(message parent directory filename extension style)
+    ((mk-file-selector 'put-file #f) message parent directory filename extension style)]))
 
 (define get-color-from-user 
   (if (not (eq? (system-type) 'unix))
