@@ -6,20 +6,6 @@
 ;;                        Parameterization Tests                              ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(define (get-hello thunk)
-  (parameterize ([debug-info-handler (lambda () 'hello)])
-    (with-handlers ([void (lambda (x) (exn-debug-info x))])
-      (thunk))))
-
-(test 'hello
-      'debug-info-handler
-      (get-hello (lambda () (make-object frame% #f))))
-
-(test 'hello
-      'debug-info-handler
-      (get-hello (lambda () (let ([f (make-object frame% #f)])
-			      (send f set-status-text 'bad-val)))))
-
 ;; Killing an eventspace
 (define c (make-custodian))
 (define e (parameterize ([current-custodian c]) (make-eventspace)))
