@@ -41,14 +41,11 @@
 
   (try 'get-background)
   (try 'get-brush)
-  (try 'get-char-height)
-  (try 'get-char-width)
   (try 'get-clipping-region)
   (try 'get-font)
   (try 'get-pen)
   (try 'get-size)
   (try 'get-text-background)
-  (try 'get-text-extent "Hello")
   (try 'get-text-foreground)
   (try 'get-text-mode)
 

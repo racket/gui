@@ -2,6 +2,47 @@
 (load-relative "loadtest.ss")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;                             Yield Tests                                    ;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(define s (make-semaphore))
+(define v 4)
+(queue-callback (lambda () (set! v 5)))
+(yield)
+(test v 'yield-run 5)
+(queue-callback (lambda () (set! v 6)))
+
+(semaphore-post s)
+(yield s)
+(test v 'yield-wait 5)
+(yield)
+(test v 'yield-run 6)
+
+(queue-callback (lambda () (set! v 7) (semaphore-post s)))
+(yield s)
+(test v 'yield-run-post 7)
+
+(queue-callback (lambda () 
+		  (set! v 8)
+		  (semaphore-post s)
+		  (queue-callback
+		   (lambda () (set! v 9)))))
+(yield s)
+(test v 'yield-wait-post 8)
+(yield)
+(test v 'yield-run 9)
+
+(define d (make-object dialog% "hello"))
+(thread (lambda () 
+	  (sleep 1)
+	  (queue-callback (lambda () (set! v 9)))
+	  (send d show #f)))
+(send d show #t)
+(test v 'dialog-wait 9)
+(yield)
+(test v 'dialog-run 9)
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;                        Parameterization Tests                              ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 

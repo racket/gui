@@ -283,8 +283,8 @@
       (unless (ok?)
 	(printf "bitmap failure: ~s~n" args)))))
 
-(define active-frame%
-  (class100-asi frame%
+(define (active-mixin %)
+  (class100-asi %
     (private-field
       [pre-on void]
       [click-i void]
@@ -307,6 +307,9 @@
 	       (set! pre-on (add-pre-note this ep))
 	       (set! click-i (add-click-intercept this ep))
 	       (set! el (add-enter/leave-note this ep)))])))
+
+(define active-frame% (active-mixin frame%))
+(define active-dialog% (active-mixin dialog%))
 
 (define (trace-mixin c%)
   (class100 c% (-name . args)
@@ -509,9 +512,14 @@
 	 (list "Tab Panel" (lambda () (instantiate tab-panel% ('("Hello" "Bye") panel void) [style '(deleted)])))
 	 (list "Panel" (lambda () (instantiate panel% (panel) [style '(deleted border)]))))))
 
+(define use-dialogs? #f)
+
 (define (big-frame h-radio? v-label? null-label? stretchy? special-label-font? special-button-font? 
 		   initially-disabled? alternate-init?)
-  (define f (make-frame active-frame% "T\351ster")) ; 351 is e with '
+  (define f (make-frame (if use-dialogs?
+			    active-dialog%
+			    active-frame%)
+			"T\351ster")) ; 351 is e with '
   
   (define hp (make-object horizontal-panel% f))
   
@@ -565,7 +573,10 @@
 
 (define (med-frame plain-slider? label-h? null-label? stretchy? special-label-font? special-button-font?
 		   initially-disabled? alternate-init?)
-  (define f2 (make-frame active-frame% "Tester2"))
+  (define f2 (make-frame (if use-dialogs?
+			    active-dialog%
+			    active-frame%)
+			 "Tester2"))
 
   (define hp2 (make-object horizontal-panel% f2))
   
@@ -681,8 +692,9 @@
 
       (add-med-deleted-adds lp2))
 
-    (send f2 create-status-line)
-    (send f2 set-status-text "This is the status line")
+    (unless use-dialogs?
+      (send f2 create-status-line)
+      (send f2 set-status-text "This is the status line"))
     (send f2 show #t)
     (set! prev-frame f2)
     f2))
@@ -1863,6 +1875,9 @@
   (make-object button% "Get Instructions" clockp
 	       (lambda (b e) 
 		 (open-file "frame-steps.txt")))
+  (make-object check-box% "Use Dialogs" clockp
+	       (lambda (c e)
+		 (set! use-dialogs? (send c get-value))))
   (make-object vertical-panel% clockp) ; filler
   (let ([time (make-object message% "XX:XX:XX" clockp)])
     (make-object
