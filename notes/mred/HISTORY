@@ -1,4 +1,10 @@
 
+Version 299.5
+Dropped question marks for interactive and use-paper-bbox
+ initialization arguments of post-script-dc%; added
+ as-eps initialization argument
+Added an as-eps argument to editor<%>'s print method
+
 Version 299.1
 Added 'transparent flag for canvas%
 Added 'metal flag to frame%
