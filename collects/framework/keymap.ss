@@ -37,12 +37,13 @@
 		    [bb (box 0)])
 		(send edit get-visible-line-range bt bb)
 		(let* ([half (sub1 (quotient (- (unbox bb) (unbox bt)) 2))]
+                       [last-pos (send edit position-line (send edit last-position))]
 		       [top-pos (send edit line-start-position 
-				      (max (- new-mid-line half) 0))]
+				      (max (min (- new-mid-line half) last-pos) 0))]
 		       [bottom-pos (send edit line-start-position 
-					 (min (+ new-mid-line half)
-					      (send edit position-line 
-						    (send edit last-position))))])
+                                         (max 0
+                                              (min (+ new-mid-line half)
+                                                   last-pos)))])
 		  (send edit scroll-to-position 
 			top-pos
 			#f
