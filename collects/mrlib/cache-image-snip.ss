@@ -253,22 +253,22 @@
            [bm (make-object bitmap% w h)]
            [mask-bm (make-object bitmap% w h)]
            [bdc (new bitmap-dc% (bitmap bm))]
-           [str (make-string (vector-length argb-vector) #\377)]
-           [mask-str (make-string (vector-length argb-vector) #\377)])
+           [bytes (make-bytes (vector-length argb-vector) 255)]
+           [mask-bytes (make-bytes (vector-length argb-vector) 255)])
       (let loop ([i (- (vector-length argb-vector) 1)])
         (cond
           [(zero? (modulo i 4))
-           (let ([av (integer->char (round (vector-ref argb-vector i)))])
-             (string-set! mask-str (+ i 1) av)
-             (string-set! mask-str (+ i 2) av)
-             (string-set! mask-str (+ i 3) av))]
+           (let ([av (round (vector-ref argb-vector i))])
+             (bytes-set! mask-bytes (+ i 1) av)
+             (bytes-set! mask-bytes (+ i 2) av)
+             (bytes-set! mask-bytes (+ i 3) av))]
           [else
-           (string-set! str i (integer->char (round (vector-ref argb-vector i))))])
+           (bytes-set! bytes i (round (vector-ref argb-vector i)))])
         (unless (zero? i)
           (loop (- i 1))))
-      (send bdc set-argb-pixels 0 0 w h str)
+      (send bdc set-argb-pixels 0 0 w h bytes)
       (send bdc set-bitmap mask-bm)
-      (send bdc set-argb-pixels 0 0 w h mask-str)
+      (send bdc set-argb-pixels 0 0 w h mask-bytes)
       (send bdc set-bitmap #f)
       (send bm set-loaded-mask mask-bm)
       bm))
@@ -281,14 +281,14 @@
            [argb-w (argb-width argb)]
            [w (send color get-width)]
            [h (send color get-height)]
-           [color-str (make-string (* w h 4) #\000)]
-           [mask-str (make-string (* w h 4) #\000)]
+           [color-bytes (make-bytes (* w h 4) 0)]
+           [mask-bytes (make-bytes (* w h 4) 0)]
            [dc (make-object bitmap-dc%)])
       (send dc set-bitmap color)
-      (send dc get-argb-pixels 0 0 w h color-str)
+      (send dc get-argb-pixels 0 0 w h color-bytes)
       (send dc set-bitmap #f) ;; in case mask and color are the same bitmap....
       (send dc set-bitmap mask)
-      (send dc get-argb-pixels 0 0 w h mask-str)
+      (send dc get-argb-pixels 0 0 w h mask-bytes)
       (send dc set-bitmap #f)
       (let yloop ([y 0]
                   [str-i 0])
@@ -299,7 +299,7 @@
                 (yloop (add1 y) str-i)
                 (let* ([argb-i (* 4 (+ (+ dx x) (* (+ dy y) argb-w)))]
                        [m1 (vector-ref argb-vector argb-i)]
-                       [m2 (char->integer (string-ref mask-str (+ str-i 1)))] ;; get red coordinate
+                       [m2 (bytes-ref mask-bytes (+ str-i 1))] ;; get red coordinate
                        [m3 (build-m3 m1 m2)]
                        [do-b
                         (lambda (off)
@@ -308,7 +308,7 @@
                                        (build-b3 m1
                                                  (vector-ref argb-vector (+ argb-i off))
                                                  m2
-                                                 (char->integer (string-ref color-str (+ str-i off)))
+                                                 (bytes-ref color-bytes (+ str-i off))
                                                  m3)))])
                   (vector-set! argb-vector argb-i m3)
                   (do-b 1)
