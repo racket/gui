@@ -71,12 +71,12 @@
 
 (define (get-b&w-light-stipple)
   (make-object bitmap%
-	       (list->string (map integer->char '(#x88 0 #x22 0 #x88 0 #x22 0)))
+	       (list->bytes '(#x88 0 #x22 0 #x88 0 #x22 0))
 	       8 8))
 
 (define (get-b&w-half-stipple)
   (make-object bitmap%
-	       (list->string (map integer->char '(#xcc #x33 #xcc #x33 #xcc #x33 #xcc #x33)))
+	       (list->bytes '(#xcc #x33 #xcc #x33 #xcc #x33 #xcc #x33))
 	       8 8))
 
 (let* ([f (make-object frame% "Graphics Test" #f 300 450)]
@@ -180,7 +180,7 @@
 			      (send dc set-text-foreground (make-object color% "RED"))
 			      (send dc set-text-mode 'solid))
 
-			    (send dc draw-text (string-append size " P\351n") ; 351 is e with '
+			    (send dc draw-text (string-append size " P\uE9n") ; \uE9 is e with '
 				  (+ x 5) (+ y 8))
 			    (send dc set-font ofont)
 			    
@@ -470,10 +470,10 @@
 			      (let ([obg (send dc get-background)]
 				    [tan (make-object color% "TAN")])
 				(send dc set-background tan)
-				(let* ([bits "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789/+"]
+				(let* ([bits #"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789/+"]
 				       [bm (make-object bitmap% bits 64 8)])
 				  (send dc draw-bitmap bm 306 164 'opaque))
-				(let* ([bits "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz01234567"]
+				(let* ([bits #"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz01234567"]
 				       [bm (make-object bitmap% bits 48 10)])
 				  (send dc draw-bitmap bm 306 184 'opaque))
 				(send dc set-background obg)))

@@ -674,7 +674,8 @@
 			     '(vertical))))
     
     (define txt (make-object text-field% 
-			     (if null-label? #f "T&ext") ip2 void 
+			     (if null-label? #f "T&ext \u7238") ; \u7238 is Chinese "father"
+			     ip2 void 
 			     "initial & starting"
 			     (add-label-direction 
 			      label-h? 
