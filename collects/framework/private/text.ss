@@ -249,10 +249,9 @@ WARNING: printf is rebound in the body of the unit to always
                                         (cons (car r) (loop (cdr r))))])))
                     (recompute-range-rectangles)                    
                     (invalidate-rectangles old-rectangles))))))
-          (rename [super-on-paint on-paint])
           (override on-paint)
           (define (on-paint before dc left-margin top-margin right-margin bottom-margin dx dy draw-caret)
-            (super-on-paint before dc left-margin top-margin right-margin bottom-margin dx dy draw-caret)
+            (super on-paint before dc left-margin top-margin right-margin bottom-margin dx dy draw-caret)
             (recompute-range-rectangles)
             (let ([b1 (box 0)]
                   [b2 (box 0)]
@@ -320,19 +319,17 @@ WARNING: printf is rebound in the body of the unit to always
           (define (get-styles-fixed) styles-fixed?)
           (define (set-styles-fixed b) (set! styles-fixed? b))
           
-          (rename [super-on-insert on-insert]
-                  [super-after-insert after-insert])
-          (define/override (on-insert start len)
-            (begin-edit-sequence)
-            (super-on-insert start len))
-          (define/override (after-insert start len)
+          (define/augment (on-insert start len)
+            (inner (void) on-insert start len)
+            (begin-edit-sequence))
+          (define/augment (after-insert start len)
             (when styles-fixed?
               (change-style (send (get-style-list) find-named-style "Standard")
                             start
                             (+ start len)
                             #f))
-            (super-after-insert start len)
-            (end-edit-sequence))
+            (end-edit-sequence)
+            (inner (void) after-insert start len))
           
           (public move/copy-to-edit)
           (define (move/copy-to-edit dest-edit start end dest-position)
@@ -363,10 +360,11 @@ WARNING: printf is rebound in the body of the unit to always
       (define hide-caret/selection<%> (interface (basic<%>)))
       (define hide-caret/selection-mixin
         (mixin (basic<%>) (hide-caret/selection<%>)
-          (override after-set-position)
           (inherit get-start-position get-end-position hide-caret)
-          (define (after-set-position)
-            (hide-caret (= (get-start-position) (get-end-position))))
+          (define/augment (after-set-position)
+	    ;; >>> super was not here <<<
+            (hide-caret (= (get-start-position) (get-end-position)))
+	    (inner (void) after-set-position))
           (super-instantiate ())))
 
       (define nbsp->space<%> (interface ((class->interface text%))))
@@ -374,13 +372,11 @@ WARNING: printf is rebound in the body of the unit to always
         (mixin ((class->interface text%)) (nbsp->space<%>)
           (field [rewriting #f])
           (inherit begin-edit-sequence end-edit-sequence delete insert get-character)
-          (rename [super-on-insert on-insert]
-                  [super-after-insert after-insert])
-          (define/override (on-insert start len)
-            (begin-edit-sequence)
-            (super-on-insert start len))
+          (define/augment (on-insert start len)
+            (inner (void) on-insert start len)
+            (begin-edit-sequence))
 	  (inherit find-string)
-          (define/override (after-insert start len)
+          (define/augment (after-insert start len)
             (unless rewriting
               (set! rewriting #t)
 	      (let ([str (string (integer->char 160))]
@@ -393,24 +389,22 @@ WARNING: printf is rebound in the body of the unit to always
 			(insert " " next-pos next-pos #f)
 			(loop (+ next-pos 1)))))))
 	      (set! rewriting #f))
-            (super-after-insert start len)
-            (end-edit-sequence))
+            (end-edit-sequence)
+            (inner (void) after-insert start len))
           (super-instantiate ())))
       
       (define searching<%> (interface (editor:keymap<%> basic<%>)))
       (define searching-mixin
         (mixin (editor:keymap<%> basic<%>) (searching<%>)
-          (rename [super-get-keymaps get-keymaps])
           (override get-keymaps)
           (define (get-keymaps)
-            (cons (keymap:get-search) (super-get-keymaps)))
+            (cons (keymap:get-search) (super get-keymaps)))
           (super-instantiate ())))
       
       (define return<%> (interface ((class->interface text%))))
       (define return-mixin
         (mixin ((class->interface text%)) (return<%>) 
           (init-field return)
-          (rename [super-on-local-char on-local-char])
           (override on-local-char)
           (define (on-local-char key)
             (let ([cr-code #\return]
@@ -420,7 +414,7 @@ WARNING: printf is rebound in the body of the unit to always
                        (or (char=? lf-code code)
                            (char=? cr-code code))
                        (return))
-                  (super-on-local-char key))))
+                  (super on-local-char key))))
           (super-instantiate ())))
       
       (define delegate<%> (interface (basic<%>) 
@@ -484,10 +478,9 @@ WARNING: printf is rebound in the body of the unit to always
           
 	  (define cache-function #f)
 
-          (rename [super-insert insert])
           (define/override (insert s len pos)
             (set! cache-function #f)
-            (super-insert s len pos))
+            (super insert s len pos))
 
 	  ;; for-each/sections : string -> dc number number -> void
           (define (for-each/sections str)
@@ -634,10 +627,9 @@ WARNING: printf is rebound in the body of the unit to always
               (send delegate lock #t)
               (send delegate end-edit-sequence)))
           
-          (rename [super-highlight-range highlight-range])
           (define/override highlight-range
             (opt-lambda (start end color [bitmap #f] [caret-space? #f] [priority 'low])
-              (let ([res (super-highlight-range start end color bitmap caret-space? priority)])
+              (let ([res (super highlight-range start end color bitmap caret-space? priority)])
                 (if delegate
                     (let ([delegate-res (send delegate highlight-range 
                                               start end color bitmap caret-space? priority)]) 
@@ -646,30 +638,26 @@ WARNING: printf is rebound in the body of the unit to always
                         (delegate-res)))
                     res))))
           
-          (rename [super-on-paint on-paint])
           (inherit get-canvases get-active-canvas has-focus?)
           (define/override (on-paint before? dc left top right bottom dx dy draw-caret?)
-            (super-on-paint before? dc left top right bottom dx dy draw-caret?)
+            (super on-paint before? dc left top right bottom dx dy draw-caret?)
             (unless before?
               (let ([active-canvas (get-active-canvas)])
                 (when active-canvas
                   (send (send active-canvas get-top-level-window) delegate-moved)))))
 
-          (rename [super-on-edit-sequence on-edit-sequence])
-          (define/override (on-edit-sequence)
-            (super-on-edit-sequence)
+          (define/augment (on-edit-sequence)
             (when delegate
-              (send delegate begin-edit-sequence)))
+              (send delegate begin-edit-sequence))
+            (inner (void) on-edit-sequence))
           
-          (rename [super-after-edit-sequence after-edit-sequence])
-          (define/override (after-edit-sequence)
-            (super-after-edit-sequence)
+          (define/augment (after-edit-sequence)
             (when delegate
-              (send delegate end-edit-sequence)))
+              (send delegate end-edit-sequence))
+            (inner (void) after-edit-sequence))
 
-          (rename [super-resized resized])
           (define/override (resized snip redraw-now?)
-            (super-resized snip redraw-now?)
+            (super resized snip redraw-now?)
             (when (and delegate
                        linked-snips
                        (not (is-a? snip string-snip%)))
@@ -677,9 +665,7 @@ WARNING: printf is rebound in the body of the unit to always
                 (when delegate-copy
                   (send delegate resized delegate-copy redraw-now?)))))
           
-          (rename [super-after-insert after-insert])
-          (define/override (after-insert start len)
-            (super-after-insert start len)
+          (define/augment (after-insert start len)
             (when delegate
               (send delegate begin-edit-sequence)
               (send delegate lock #f)
@@ -691,21 +677,19 @@ WARNING: printf is rebound in the body of the unit to always
                     (send delegate insert (copy snip) start start)
                     (loop (send snip previous)))))
               (send delegate lock #t)
-              (send delegate end-edit-sequence)))
+              (send delegate end-edit-sequence))
+            (inner (void) after-insert start len))
           
-          (rename [super-after-delete after-delete])
-          (define/override (after-delete start len)
-            (super-after-delete start len)
+          (define/augment (after-delete start len)
             (when delegate
               (send delegate lock #f)
               (send delegate begin-edit-sequence)
               (send delegate delete start (+ start len))
               (send delegate end-edit-sequence)
-              (send delegate lock #t)))
+              (send delegate lock #t))
+            (inner (void) after-delete start len))
           
-          (rename [super-after-change-style after-change-style])
-          (define/override (after-change-style start len)
-            (super-after-change-style start len)
+          (define/augment (after-change-style start len)
             (when delegate
               (send delegate begin-edit-sequence)
               (send delegate lock #f)
@@ -717,20 +701,19 @@ WARNING: printf is rebound in the body of the unit to always
                              style delegate-style-delta)])
                 (send delegate change-style style start (+ start len)))
               (send delegate lock #f)
-              (send delegate end-edit-sequence)))
+              (send delegate end-edit-sequence))
+            (inner (void) after-change-style start len))
           
           (define filename #f)
           (define format #f)
-          (rename [super-on-load-file on-load-file]
-                  [super-after-load-file after-load-file])
-          (define/override (on-load-file _filename _format)
-            (super-on-load-file _filename _format)
+          (define/augment (on-load-file _filename _format)
             (set! filename _filename)
-            (set! format _format))
-          (define/override (after-load-file success?)
-            (super-after-load-file success?)
+            (set! format _format)
+            (inner (void) on-load-file _filename _format))
+          (define/augment (after-load-file success?)
             (when success?
-              (refresh-delegate)))
+              (refresh-delegate))
+            (inner (void) after-load-file success?))
           (super-instantiate ())))
     
       (define info<%> (interface (basic<%>)))
@@ -739,13 +722,6 @@ WARNING: printf is rebound in the body of the unit to always
         (mixin (editor:keymap<%> basic<%>) (info<%>)
           (inherit get-start-position get-end-position get-canvas
                    run-after-edit-sequence)
-          (rename [super-after-set-position after-set-position]
-                  [super-after-edit-sequence after-edit-sequence]
-                  [super-on-edit-sequence on-edit-sequence]
-                  [super-after-insert after-insert]
-                  [super-after-delete after-delete]
-                  [super-set-overwrite-mode set-overwrite-mode]
-                  [super-set-anchor set-anchor])
           (define (enqueue-for-frame call-method tag)
             (run-after-edit-sequence
              (rec from-enqueue-for-frame
@@ -762,20 +738,22 @@ WARNING: printf is rebound in the body of the unit to always
                   (when (is-a? frame frame:text-info<%>)
                     (call-method frame))))))
           
-          (override set-anchor set-overwrite-mode after-set-position after-insert after-delete)
+          (override set-anchor set-overwrite-mode)
+	  (augment after-set-position after-insert after-delete)
+
           (define (set-anchor x)
-            (super-set-anchor x)
+            (super set-anchor x)
             (enqueue-for-frame 
              (lambda (x) (send x anchor-status-changed))
              'framework:anchor-status-changed))
           (define (set-overwrite-mode x)
-            (super-set-overwrite-mode x)
+            (super set-overwrite-mode x)
             (enqueue-for-frame
              (lambda (x) (send x overwrite-status-changed))
              'framework:overwrite-status-changed))
           (define (after-set-position)
-            (super-after-set-position)
-            (maybe-queue-editor-position-update))
+            (maybe-queue-editor-position-update)
+            (inner (void) after-set-position))
           
           ;; maybe-queue-editor-position-update : -> void
           ;; updates the editor-position in the frame,
@@ -794,11 +772,11 @@ WARNING: printf is rebound in the body of the unit to always
              'framework:info-frame:update-editor-position))
           
           (define (after-insert start len)
-            (super-after-insert start len)
-            (maybe-queue-editor-position-update))
+            (maybe-queue-editor-position-update)
+            (inner (void) after-insert start len))
           (define (after-delete start len)
-            (super-after-delete start len)
-            (maybe-queue-editor-position-update))
+            (maybe-queue-editor-position-update)
+            (inner (void) after-delete start len))
           (super-instantiate ())))
       
       (define clever-file-format<%> (interface ((class->interface text%))))
@@ -806,7 +784,6 @@ WARNING: printf is rebound in the body of the unit to always
       (define clever-file-format-mixin
         (mixin ((class->interface text%)) (clever-file-format<%>)
           (inherit get-file-format set-file-format find-first-snip)
-          (rename [super-on-save-file on-save-file])
           (define (all-string-snips)
             (let loop ([s (find-first-snip)])
               (cond
@@ -814,7 +791,7 @@ WARNING: printf is rebound in the body of the unit to always
                 [(is-a? s string-snip%)
                  (loop (send s next))]
                 [else #f])))
-          (define/override (on-save-file name format)
+          (define/augment (on-save-file name format)
             (let ([all-strings? (all-string-snips)])
               (cond
                 [(and all-strings?
@@ -836,7 +813,7 @@ WARNING: printf is rebound in the body of the unit to always
                            (string-constant no))))
                  (set-file-format 'standard)]
                 [else (void)]))
-            (super-on-save-file name format))
+            (inner (void) on-save-file name format))
           (super-instantiate ())))
       
       (define ports<%>
@@ -958,19 +935,16 @@ WARNING: printf is rebound in the body of the unit to always
           ;;  editor integration
           ;;
           
-          (rename [super-can-insert? can-insert?])
-          (define/override (can-insert? start len)
-            (and (super-can-insert? start len)
-                 (or allow-edits?
-                     (start . >= . insertion-point))))
+          (define/augment (can-insert? start len)
+            (and (or allow-edits?
+                     (start . >= . insertion-point))
+                 (inner #t can-insert? start len)))
           
-          (rename [super-can-delete? can-delete?])
-          (define/override (can-delete? start len)
-            (and (super-can-delete? start len)
-                 (or allow-edits?
-                     (start . >= . insertion-point))))
+          (define/augment (can-delete? start len)
+            (and (or allow-edits?
+                     (start . >= . insertion-point))
+                 (inner #t can-delete? start len)))
           
-          (rename [super-on-local-char on-local-char])
           (define/override (on-local-char key)
             (let ([start (get-start-position)]
                   [end (get-end-position)]
@@ -979,7 +953,7 @@ WARNING: printf is rebound in the body of the unit to always
                 [(not (or (eq? code 'numpad-enter)
                           (equal? code #\return)
                           (equal? code #\newline)))
-                 (super-on-local-char key)]
+                 (super on-local-char key)]
                 [(and (insertion-point . <= . start)
                       (= start end)
                       (submit-to-port? key))
@@ -993,13 +967,13 @@ WARNING: printf is rebound in the body of the unit to always
                                             (bytes->list (string->bytes/utf-8 (string s/c))))]))
                              snips/chars)
                    (set! allow-tabify? #f)
-                   (super-on-local-char key)
+                   (super on-local-char key)
                    (set! allow-tabify? #t)
                    (set! unread-start-point (last-position))
                    (set! insertion-point (last-position))
                    (on-submit))]
                 [else
-                 (super-on-local-char key)])))
+                 (super on-local-char key)])))
           
           (define allow-tabify? #t)
 ;          (rename [super-tabify-on-return? tabify-on-return?])
@@ -1071,7 +1045,6 @@ WARNING: printf is rebound in the body of the unit to always
               (lock locked?)
               (end-edit-sequence)))
           
-          
           (define output-buffer-thread
             (let ([buffer-full 40]
                   [converter (bytes-open-converter "UTF-8-permissive" "UTF-8")])
@@ -1118,10 +1091,11 @@ WARNING: printf is rebound in the body of the unit to always
             (define (make-write-bytes-proc style)
               (lambda (to-write start end block/buffer? enable-breaks?)
                 (cond
-                  [(eq? (current-thread) (eventspace-handler-thread eventspace))
-                   (error 'write-bytes-proc "cannot write to port on eventspace main thread")]
-                  [else
-                   (channel-put write-chan (cons (subbytes to-write start end) style))])
+		 [(= start end) (flush-proc)]
+		 [(eq? (current-thread) (eventspace-handler-thread eventspace))
+		  (error 'write-bytes-proc "cannot write to port on eventspace main thread")]
+		 [else
+		  (channel-put write-chan (cons (subbytes to-write start end) style))])
                 (- end start)))
             
             (define (flush-proc)
