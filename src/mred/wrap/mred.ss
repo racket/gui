@@ -16,6 +16,89 @@
 ; maximum reasonable minimum width/height
 (define max-min 10000)
 
+;;;;;;;;;;;;;;; Security ("thread safety") ;;;;;;;;;;;;;;;;;;;;
+
+;; When the user creates an object or calls a method, or when the
+;; system invokes a callback, many steps may be required to initialize
+;; or reset fields to maintain invariants. To ensure that other
+;; threads do not call methods during a time when invariants do not
+;; hold, we force all of the following code to be executed in a single
+;; threaded manner. This is accompiled with a single monitor: all
+;; entry points into the code use `entry-point' or `as-entry', and all
+;; points with this code that call back out to user code uses
+;; `as-exit'.
+
+;; If an exception is raised within an `enter'ed area, control is
+;; moved back outside by the exception handler, and then the exception
+;; is re-raised. The user can't tell that the exception was caught an
+;; re-raised. But without the catch-and-reraise, the user's exception
+;; handler might try to use GUI elements from a different thread,
+;; leading to deadlock.
+
+(define monitor-sema (make-semaphore 1))
+(define monitor-owner #f)
+(define old-exn-handler #f)
+
+(define (as-entry f)
+  (cond
+   [(eq? monitor-owner (current-thread))
+    (f)]
+   [else
+    ((let/ec k
+       (dynamic-wind
+	(lambda () 
+	  (semaphore-wait monitor-sema)
+	  
+	  (set! monitor-owner (current-thread))
+	  (set! old-exn-handler (current-exception-handler))
+	  (current-exception-handler
+	   (lambda (exn)
+	     (k (lambda () (raise exn))))))
+	(lambda () 
+	  (call-with-values 
+	   f 
+	   (lambda args (lambda () (apply values args)))))
+	(lambda ()
+	  (set! monitor-owner #f)
+	  (current-exception-handler old-exn-handler)
+	  
+	  (semaphore-post monitor-sema)))))]))
+
+(define (entry-point f)
+  (lambda () (as-entry f)))
+(define (entry-point-1 f)
+  (lambda (x) (as-entry (lambda () (f x)))))
+(define (entry-point-2 f)
+  (lambda (x y) (as-entry (lambda () (f x y)))))
+(define (entry-point-3 f)
+  (lambda (x y z) (as-entry (lambda () (f x y z)))))
+(define (entry-point-0-1 f)
+  (case-lambda
+   [() (as-entry f)]
+   [(x) (as-entry (lambda () (f x)))]))
+(define (entry-point-1-2 f)
+  (case-lambda
+   [(x) (as-entry (lambda () (f x)))]
+   [(x y) (as-entry (lambda () (f x y)))]))
+
+(define (as-exit f)
+  ; (unless (eq? monitor-owner (current-thread)) (error 'monitor-exit "not in monitored area"))
+  (let ([eh #f])
+    (dynamic-wind
+     (lambda ()
+       (set! eh (current-exception-handler))
+       (set! monitor-owner #f)
+       (current-exception-handler old-exn-handler)
+       
+       (semaphore-post monitor-sema))
+     f
+     (lambda ()
+       (semaphore-wait monitor-sema)
+
+       (set! monitor-owner (current-thread))
+       (set! old-exn-handler (current-exception-handler))
+       (current-exception-handler eh)))))
+
 ;;;;;;;;;;;;;;; Helpers ;;;;;;;;;;;;;;;;;;;;
 
 ; this structure holds the information that a child will need to send
@@ -298,15 +381,17 @@
 	   (set! accept-drag? (and on? #t))
 	   (super-drag-accept-files on?))]
 	[on-set-focus
-	 (lambda ()
-	   (send (get-top-level) set-focus-window this)
-	   (set! focus? #t)
-	   (super-on-set-focus))]
+	 (entry-point
+	  (lambda ()
+	    (send (get-top-level) set-focus-window this)
+	    (set! focus? #t)
+	    (super-on-set-focus)))]
 	[on-kill-focus
-	 (lambda ()
-	   (send (get-top-level) set-focus-window #f)
-	   (set! focus? #f)
-	   (super-on-kill-focus))])
+	 (entry-point
+	  (lambda ()
+	    (send (get-top-level) set-focus-window #f)
+	    (set! focus? #f)
+	    (super-on-kill-focus)))])
       (public
 	[has-focus? (lambda () focus?)])
       (sequence (apply super-init args)))))
@@ -489,23 +574,24 @@
 
 
       [resized
-       (lambda ()
-	 (unless already-trying?
-	   (let ([new-width (get-width)]
-		 [new-height (get-height)])
-	     (let-values ([(correct-w correct-h) (correct-size new-width new-height)])
-	       (if (or (and (= new-width correct-w) (= new-height correct-h))
-		       was-bad?)
-		   ;; Good size; do panel
-		   (begin
-		     (set! was-bad? #f)
-		     (set-panel-size))
-		   ;; Too large/small; try to fix it, but give up after a while
-		   (begin
-		     (set! was-bad? #t)
-		     (set! already-trying? #t)
-		     (set-size -1 -1 correct-w correct-h)
-		     (set! already-trying? #f)))))))])
+       (entry-point
+	(lambda ()
+	  (unless already-trying?
+	    (let ([new-width (get-width)]
+		  [new-height (get-height)])
+	      (let-values ([(correct-w correct-h) (correct-size new-width new-height)])
+		(if (or (and (= new-width correct-w) (= new-height correct-h))
+			was-bad?)
+		    ;; Good size; do panel
+		    (begin
+		      (set! was-bad? #f)
+		      (set-panel-size))
+		    ;; Too large/small; try to fix it, but give up after a while
+		    (begin
+		      (set! was-bad? #t)
+		      (set! already-trying? #t)
+		      (set-size -1 -1 correct-w correct-h)
+		      (set! already-trying? #f))))))))])
       
     (override
       ; show: add capability to set perform-updates
@@ -535,7 +621,8 @@
 	 (if on?
 	     (hash-table-put! top-level-windows this #t)
 	     (hash-table-remove! top-level-windows this))
-	 (super-show on?))]
+	 (as-exit ; as-exit because there's an implicit wx:yield for dialogs
+	  (lambda () (super-show on?))))]
       
       [move (lambda (x y) (set! use-default-position? #f) (super-move x y))]
       [center (lambda (dir)
@@ -572,29 +659,35 @@
 			      (and (is-a? x wx:button%)
 				   (send x has-border?)
 				   (let ([v (make-object wx:control-event% 'button)])
-				     (send x command v)
+				     (as-exit (lambda () (send x command v)))
 				     #t)))
 			    objs)
 			   #t)))]
 		  [(escape)
-		   (let ([o (get-focus-window)])
-		     (if (and o (send o handles-key-code code))
-			 #f
-			 (when (on-close)
-			   (show #f))))]
+		   (and (is-a? this wx:dialog%)
+			(let ([o (get-focus-window)])
+			  (if (and o (send o handles-key-code code))
+			      #f
+			      (begin
+				(when (on-close)
+				  (show #f))
+				#t))))]
 		  [(#\space)
 		   (let ([o (get-focus-window)])
 		     (cond
 		      [(is-a? o wx:button%)
-		       (send o command (make-object wx:control-event% 'button))]
+		       (send o command (make-object wx:control-event% 'button))
+		       #t]
 		      [(is-a? o wx:check-box%) 
 		       (send o set-value (not (send o get-value)))
-		       (send o command (make-object wx:control-event% 'check-box))]
+		       (send o command (make-object wx:control-event% 'check-box))
+		       #t]
 		      [(is-a? o wx:radio-box%)
 		       (let ([s (send o button-focus -1)])
 			 (unless (negative? s)
 			   (send o set-selection s)
-			   (send o command (make-object wx:control-event% 'radio-box))))]
+			   (send o command (make-object wx:control-event% 'radio-box))))
+		       #t]
 		      [else #f]))]
 		  [(#\tab left up down right) 
 		   (let ([o (get-focus-window)])
@@ -605,7 +698,7 @@
 					      (memq code '(right down)))]
 				[normal-move
 				 (lambda ()
-				   (let* ([o (if (is-a? o wx:item%) o #f)]
+				   (let* ([o (if (or (is-a? o wx:canvas%) (is-a? o wx:item%)) o #f)]
 					  [dests (map object->position (container->children panel o))]
 					  [pos (if o (object->position o) (list 'x 0 0 1 1))]
 					  [o (traverse (cadr pos) (caddr pos) (cadddr pos) (list-ref pos 4)
@@ -876,41 +969,53 @@
       [old-x -1]
       [old-y -1])
     (override
-      [on-drop-file (lambda (f)
-		      (send (get-proxy) on-drop-file f))]
+      [on-drop-file (entry-point-1
+		     (lambda (f)
+		       (as-exit
+			(lambda ()
+			  (send (get-proxy) on-drop-file f)))))]
       [on-size (lambda (w h)
 		 (super-on-size w h)
 		 ; Delay callback to make sure X structures (position) are updated, first
 		 (queue-window-callback
 		  this
-		  (lambda ()
-		    (let ([mred (get-mred)])
-		      (when mred 
-			(let* ([w (get-width)]
-			       [h (get-height)])
-			  (when (not (and (= w old-w) (= h old-h)))
-			    (set! old-w w)
-			    (set! old-h h)
-			    (send mred on-size w h)))
-			(let* ([p (area-parent)]
-			       [x (- (get-x) (or (and p (send p dx)) 0))]
-			       [y (- (get-y) (or (and p (send p dy)) 0))])
-			  (when (not (and (= x old-x) (= y old-y)))
-			    (set! old-x x)
-			    (set! old-y y)
-			    (send mred on-move x y))))))))]
-      [on-set-focus (lambda ()
-		      (super-on-set-focus)
-		      (send (get-proxy) on-focus #t))]
-      [on-kill-focus (lambda ()
-		      (super-on-kill-focus)
-		      (send (get-proxy) on-focus #f))]
-      [pre-on-char (lambda (w e)
-		     (super-pre-on-char w e)
-		     (pre-wx->proxy w (lambda (m) (send (get-proxy) on-subwindow-char m e))))]
-      [pre-on-event (lambda (w e)
-		      (super-pre-on-event w e)
-		      (pre-wx->proxy w (lambda (m) (send (get-proxy) on-subwindow-event m e))))])
+		  (entry-point
+		   (lambda ()
+		      (let ([mred (get-mred)])
+			(when mred 
+			  (let* ([w (get-width)]
+				 [h (get-height)])
+			    (when (not (and (= w old-w) (= h old-h)))
+			      (set! old-w w)
+			      (set! old-h h)
+			      (as-exit (lambda () (send mred on-size w h)))))
+			  (let* ([p (area-parent)]
+				 [x (- (get-x) (or (and p (send p dx)) 0))]
+				 [y (- (get-y) (or (and p (send p dy)) 0))])
+			    (when (not (and (= x old-x) (= y old-y)))
+			      (set! old-x x)
+			      (set! old-y y)
+			      (as-exit (lambda () (send mred on-move x y)))))))))))]
+      [on-set-focus (entry-point
+		     (lambda ()
+		       (super-on-set-focus)
+		       (as-exit (lambda () (send (get-proxy) on-focus #t)))))]
+      [on-kill-focus (entry-point
+		      (lambda ()
+			(super-on-kill-focus)
+			(as-exit (lambda () (send (get-proxy) on-focus #f)))))]
+      [pre-on-char (entry-point-2
+		    (lambda (w e)
+		      (super-pre-on-char w e)
+		      (pre-wx->proxy w (lambda (m)
+					 (as-exit (lambda () 
+						    (send (get-proxy) on-subwindow-char m e)))))))]
+      [pre-on-event (entry-point-2
+		     (lambda (w e)
+		       (super-pre-on-event w e)
+		       (pre-wx->proxy w (lambda (m) 
+					  (as-exit (lambda () 
+						     (send (get-proxy) on-subwindow-event m e)))))))])
     (sequence (apply super-init mred proxy args))))
 
 (define (make-container-glue% %)
@@ -919,38 +1024,45 @@
     (override
       [get-graphical-min-size (lambda () 
 				(cond
-				 [mred (let-values ([(w h) (send mred container-size 
-								 (map (lambda (i)
-									(list (child-info-x-min i) (child-info-y-min i)
-									      (child-info-x-stretch i) (child-info-y-stretch i)))
-								      (get-children-info)))])
-					 (list w h))]
+				 [mred (let ([info
+					      (map (lambda (i)
+						     (list (child-info-x-min i) (child-info-y-min i)
+							   (child-info-x-stretch i) (child-info-y-stretch i)))
+						   (get-children-info))])
+					 (let-values ([(w h) (as-exit (lambda () (send mred container-size info)))])
+					   (list w h)))]
 				 [else (do-get-graphical-min-size)]))]
-      [place-children (lambda (l w h) (cond
-				       [(null? l) null]
-				       [mred (send mred place-children l w h)]
-				       [else (do-place-children l w h)]))])
+      [place-children (lambda (l w h) 
+			(cond
+			 [(null? l) null]
+			 [mred (as-exit (lambda () (send mred place-children l w h)))]
+			 [else (do-place-children l w h)]))])
     (sequence
       (apply super-init mred proxy args))))
 
 (define active-frame #f)
 
-(wx:application-file-handler (lambda (f)
-			       (when active-frame
-				 (queue-window-callback
-				  active-frame
-				  (lambda () (when (ivar active-frame accept-drag?)
-					       (send active-frame on-drop-file f)))))))
-
-(wx:application-quit-handler (lambda ()
-			       (let ([l (hash-table-map top-level-windows (lambda (x y) x))])
-				 (for-each
-				  (lambda (f)
+(wx:application-file-handler (entry-point-1
+			      (lambda (f)
+				(let ([af active-frame])
+				  (when af
 				    (queue-window-callback
-				     f
-				     (lambda ()
-				       (send f on-exit))))
-				  l))))
+				     af
+				     (entry-point
+				      (lambda () (when (ivar af accept-drag?)
+						   (send af on-drop-file f))))))))))
+
+(wx:application-quit-handler (entry-point
+			      (lambda ()
+				(let ([l (hash-table-map top-level-windows (lambda (x y) x))])
+				  (for-each
+				   (lambda (f)
+				     (queue-window-callback
+				      f
+				      (entry-point
+				       (lambda ()
+					 (send f on-exit)))))
+				   l)))))
 
 (define (make-top-level-window-glue% %) ; implies make-window-glue%
   (class (make-window-glue% %) (mred proxy . args)
@@ -958,29 +1070,32 @@
     (rename [super-on-activate on-activate])
     (public 
       [act-date/seconds 0] [act-date/milliseconds 0] [act-on? #f]
-      [on-exit (lambda ()
-		 (and is-shown?
-		      (let ([mred (get-mred)])
-			(and (and mred (send mred can-exit?))
-			     (send mred on-exit)))))])
+      [on-exit (entry-point
+		(lambda ()
+		  (and is-shown?
+		       (let ([mred (get-mred)])
+			 (and (and mred (as-exit (lambda () (send mred can-exit?))))
+			      (as-exit (lambda () (send mred on-exit))))))))])
     (override
-      [on-close (lambda ()
-		  (let ([mred (get-mred)])
-		    (if mred
-			(if (send mred can-close?)
-			    (begin
-			      (send mred on-close)
-			      #t)
-			    #f)
-			#t)))]
-      [on-activate (lambda (on?)
-		     (set! act-on? on?)
-		     (when on?
-		       (set! act-date/seconds (current-seconds))
-		       (set! act-date/milliseconds (current-milliseconds))
-		       (set! active-frame this))
-		     (super-on-activate on?)
-		     (send (get-mred) on-activate on?))])
+      [on-close (entry-point
+		 (lambda ()
+		   (let ([mred (get-mred)])
+		     (if mred
+			 (if (as-exit (lambda () (send mred can-close?)))
+			     (begin
+			       (as-exit (lambda () (send mred on-close)))
+			       #t)
+			     #f)
+			 #t))))]
+      [on-activate (entry-point-1
+		    (lambda (on?)
+		      (set! act-on? on?)
+		      (when on?
+			(set! act-date/seconds (current-seconds))
+			(set! act-date/milliseconds (current-milliseconds))
+			(set! active-frame this))
+		      (super-on-activate on?)
+		      (as-exit (lambda () (send (get-mred) on-activate on?)))))])
     (sequence (apply super-init mred proxy args))))
 
 (define (make-canvas-glue% %) ; implies make-window-glue%
@@ -996,30 +1111,35 @@
       [do-on-scroll (lambda (e) (super-on-scroll e))]
       [do-on-paint (lambda () (super-on-paint))])
     (override
-      [on-char (lambda (e)
-		 (let ([mred (get-mred)])
-		   (if mred
-		       (send mred on-char e)
-		       (super-on-char e))))]
-      [on-event (lambda (e)
+      [on-char (entry-point-1
+		(lambda (e)
 		  (let ([mred (get-mred)])
 		    (if mred
-			(send mred on-event e)
-			(super-on-event e))))]
-      [on-scroll (lambda (e)
+			(as-exit (lambda () (send mred on-char e)))
+			(super-on-char e)))))]
+      [on-event (entry-point-1
+		 (lambda (e)
 		   (let ([mred (get-mred)])
 		     (if mred
-			 ; Delay callback for windows scrollbar grab
-			 (queue-window-callback
-			  this
-			  (lambda ()
-			    (send mred on-scroll e)))
-			 (super-on-scroll e))))]
-      [on-paint (lambda ()
-		  (let ([mred (get-mred)])
-		    (if mred
-			(send mred on-paint)
-			(super-on-paint))))])
+			 (as-exit (lambda () (send mred on-event e)))
+			 (super-on-event e)))))]
+      [on-scroll (entry-point-1
+		  (lambda (e)
+		    (let ([mred (get-mred)])
+		      (if mred
+			  ; Delay callback for Windows scrollbar grab
+			  (queue-window-callback
+			   this
+			   (entry-point
+			    (lambda ()
+			      (as-exit (lambda () (send mred on-scroll e))))))
+			  (super-on-scroll e)))))]
+      [on-paint (entry-point
+		 (lambda ()
+		   (let ([mred (get-mred)])
+		     (if mred
+			 (as-exit (lambda () (send mred on-paint)))
+			 (super-on-paint)))))])
     (sequence (apply super-init mred proxy args))))
 
 ;------------- Create the actual wx classes -----------------
@@ -1036,9 +1156,10 @@
 	  (when mb (set! menu-bar mb))
 	  (super-set-menu-bar mb))]
        [on-menu-command
-	(lambda (id)
-	  (let ([wx (wx:id-to-menu-item id)])
-	    (send (wx->mred wx) go)))])
+	(entry-point-1
+	 (lambda (id)
+	   (let ([wx (wx:id-to-menu-item id)])
+	     (as-exit (lambda () (send (wx->mred wx) go))))))])
      (public
        [handle-menu-key
 	(lambda (event)
@@ -1182,7 +1303,20 @@
 	    (max ((if horizontal? get-width get-height))
 		 (min const-max-gauge-length range)))))))))
 
-(define wx-canvas% (make-canvas-glue% (make-control% wx:canvas% 0 0 #t #t)))
+(define wx-canvas% (make-canvas-glue%
+		    (class (make-control% wx:canvas% 0 0 #t #t) args
+		      (private
+			[tabable? #f])
+		      (public
+			[get-tab-focus (lambda () tabable?)]
+			[set-tab-focus (lambda (v) (set! tabable? v))])
+		      (override
+			[gets-focus? (lambda () tabable?)]
+			[handles-key-code
+			 (lambda (code)
+			   (not tabable?))])
+		      (sequence
+			(apply super-init args)))))
 
 ;--------------------- wx media Classes -------------------------
 
@@ -1202,15 +1336,16 @@
       [on-container-resize (lambda ()
 			     (let ([edit (get-editor)])
 			       (when edit
-				 (send edit on-display-size))))]
+				 (as-exit (lambda () (send edit on-display-size))))))]
       [on-set-focus
-       (lambda ()
-	 (super-on-set-focus)
-	 (let ([m (get-editor)])
-	   (when m 
-	     (let ([mred (wx->mred this)])
-	       (when mred
-		 (send m set-active-canvas mred))))))]
+       (entry-point
+	(lambda ()
+	  (super-on-set-focus)
+	  (let ([m (get-editor)])
+	    (when m 
+	      (let ([mred (wx->mred this)])
+		(when mred
+		  (as-exit (lambda () (send m set-active-canvas mred)))))))))]
       [set-editor
        (letrec ([l (case-lambda
 		    [(edit) (l edit #t)]
@@ -1221,9 +1356,9 @@
 		       (let ([mred (wx->mred this)])
 			 (when mred
 			   (when old-edit
-			     (send old-edit remove-canvas mred))
+			     (as-exit (lambda () (send old-edit remove-canvas mred))))
 			   (when edit
-			     (send edit add-canvas mred)))))
+			     (as-exit (lambda () (send edit add-canvas mred)))))))
 
 		     (update-size)
 		     
@@ -1278,7 +1413,7 @@
       (when init-buffer
 	(let ([mred (wx->mred this)])
 	  (when mred
-	    (send init-buffer add-canvas mred)))))))
+	    (as-exit (lambda () (send init-buffer add-canvas mred)))))))))
 
 (define wx-editor-canvas% (make-canvas-glue%
 			   (make-editor-canvas% (make-control% wx:editor-canvas%
@@ -1320,63 +1455,73 @@
 	      canvases))
 	   (values (unbox wb) (unbox hb))))])
     (public
-      [get-canvases (lambda () (map wx->mred canvases))]
-      [get-active-canvas (lambda () (and active-canvas (wx->mred active-canvas)))]
+      [get-canvases (entry-point (lambda () (map wx->mred canvases)))]
+      [get-active-canvas (entry-point (lambda () (and active-canvas (wx->mred active-canvas))))]
       [get-canvas
-       (lambda ()
-	 (let ([c (or active-canvas
-		      (and (not (null? canvases))
-			   (car canvases)))])
-	   (and c (wx->mred c))))]
+       (entry-point
+	(lambda ()
+	  (let ([c (or active-canvas
+		       (and (not (null? canvases))
+			    (car canvases)))])
+	    (and c (wx->mred c)))))]
       [set-active-canvas
-       (lambda (new-canvas)
-	 (check-instance '(method editor<%> set-active-canvas) editor-canvas% 'editor-canvas% #t new-canvas)
-	 (set! active-canvas (mred->wx new-canvas)))]
+       (entry-point-1
+	(lambda (new-canvas)
+	  (check-instance '(method editor<%> set-active-canvas) editor-canvas% 'editor-canvas% #t new-canvas)
+	  (set! active-canvas (mred->wx new-canvas))))]
 
       [add-canvas
-       (lambda (new-canvas)
-	 (check-instance '(method editor<%> add-canvas) editor-canvas% 'editor-canvas% #f new-canvas)
-	 (let ([new-canvas (mred->wx new-canvas)])
-	   (unless (memq new-canvas canvases)
-	     (set! canvases (cons new-canvas canvases)))))]
+       (entry-point-1
+	(lambda (new-canvas)
+	  (check-instance '(method editor<%> add-canvas) editor-canvas% 'editor-canvas% #f new-canvas)
+	  (let ([new-canvas (mred->wx new-canvas)])
+	    (unless (memq new-canvas canvases)
+	      (set! canvases (cons new-canvas canvases))))))]
 
       [remove-canvas
-       (lambda (old-canvas)
-	 (check-instance '(method editor<%> remove-canvas) editor-canvas% 'editor-canvas% #f old-canvas)
-	 (let ([old-canvas (mred->wx old-canvas)])
-	   (when (eq? old-canvas active-canvas)
-	     (set! active-canvas #f))
-	   (set! canvases (remq old-canvas canvases))))]
+       (entry-point-1
+	(lambda (old-canvas)
+	  (check-instance '(method editor<%> remove-canvas) editor-canvas% 'editor-canvas% #f old-canvas)
+	  (let ([old-canvas (mred->wx old-canvas)])
+	    (when (eq? old-canvas active-canvas)
+	      (set! active-canvas #f))
+	    (set! canvases (remq old-canvas canvases)))))]
 
       [auto-wrap (case-lambda
 		  [() auto-set-wrap?]
-		  [(on?) (set! auto-set-wrap? (and on? #t))
-			 (if on?
-			     (on-display-size)
-			     (set-max-width 'none))])]
-      [get-max-view-size (lambda () (max-view-size))])
+		  [(on?) (as-entry
+			  (lambda ()
+			    (set! auto-set-wrap? (and on? #t))
+			    (as-exit
+			     (lambda ()
+			       (if on?
+				   (on-display-size)
+				   (set-max-width 'none))))))])]
+      [get-max-view-size (entry-point (lambda () (max-view-size)))])
     (override
       [on-display-size
-       (lambda ()
-	 (super-on-display-size)
-	 (when (get-admin)
-	   (when (and can-wrap? auto-set-wrap?)
-	     (let-values ([(current-width) (get-max-width)]
-			  [(new-width new-height) (max-view-size)])
-	       (when (and (not (= current-width new-width))
-			  (< 0 new-width))
-		 (set-max-width new-width))))))]
+       (entry-point
+	(lambda ()
+	  (as-exit super-on-display-size)
+	  (when (as-exit get-admin)
+	    (when (and can-wrap? auto-set-wrap?)
+	      (let-values ([(current-width) (as-exit get-max-width)]
+			   [(new-width new-height) (max-view-size)])
+		(when (and (not (= current-width new-width))
+			   (< 0 new-width))
+		  (as-exit (lambda () (set-max-width new-width)))))))))]
 
       [on-new-box
-       (lambda (type)
-	 (unless (memq type '(text pasteboard))
-	   (raise-type-error (who->name '(method editor<%> on-new-box)) "symbol: text or pasteboard" type))
-	 (make-object editor-snip%
-		      (make-object (cond
-				    [(eq? type 'pasteboard) pasteboard%]
-				    [else text%]))))])
+       (entry-point-1
+	(lambda (type)
+	  (unless (memq type '(text pasteboard))
+	    (raise-type-error (who->name '(method editor<%> on-new-box)) "symbol: text or pasteboard" type))
+	  (make-object editor-snip%
+		       (make-object (cond
+				     [(eq? type 'pasteboard) pasteboard%]
+				     [else text%])))))])
 
-    (sequence (apply super-init args))))
+    (sequence (as-entry (lambda () (apply super-init args))))))
 
 (define text% (class (make-editor-buffer% wx:text% #t) args
 		(sequence (apply super-init args))))
@@ -1466,7 +1611,6 @@
 
       ; list of panel's contents.
       [children null]
-      [set-children (lambda (l) (set! children l))]
       
       ; add-child: adds an existing child to the panel.
       ; input: new-child: item% descendant to add
@@ -1528,7 +1672,7 @@
 	     (force-redraw)
 	     (for-each (lambda (child) (send child show #t))
 		       added-children))))]
-      
+  
       ; delete-child: removes a child from the panel.
       ; input: child: child to delete.
       ; returns: nothing
@@ -1537,7 +1681,7 @@
        (lambda (child)
 	 (unless (memq child children)
 	   (raise-mismatch-error 'delete-child 
-				 "not a child of this container or child is not active: ~e" 
+				 "not a child of this container or child is not active: " 
 				 (wx->mred child)))
 	 (change-children (lambda (child-list)
 			    (remq child child-list))))]
@@ -1550,10 +1694,17 @@
       [get-children-info
        (lambda ()
 	 (unless children-info
-	   (set! children-info
-		 (map (lambda (child)
-			(send child get-info))
-		      children)))
+	   (let* ([childs children]
+		  [info (map (lambda (child)
+			       (send child get-info))
+			     childs)])
+	     (if (equal? childs children)
+		 ;; Got the infor for the right set of children
+		 (set! children-info info)
+		 
+		 ;; During the call to some get-info, the set of children changed;
+		 ;; try again
+		 (get-children-info))))
 	 children-info)]
       
       [child-redraw-request
@@ -1707,7 +1858,8 @@
       ; effects: places children at default positions in panel.
       [redraw
        (lambda (width height)
-	 (let ([children-info (get-children-info)])
+	 (let ([children-info (get-children-info)]
+	       [children children]) ; keep list of children matching children-info
 	   (let ([l (place-children (map (lambda (i)
 					   (list (child-info-x-min i) (child-info-y-min i)
 						 (child-info-x-stretch i) (child-info-y-stretch i)))
@@ -2012,20 +2164,25 @@
 	       (cb control e))))])
       (override
 	[on-char
-	 (lambda (e)
-	   (let ([c (send e get-key-code)])
-	     (unless (and (or (eq? c #\return) (eq? c #\newline))
-			  return-cb
-			  (return-cb (lambda () (callback 'text-field-enter) #t)))
-	       (super-on-char e))))]
+	 (entry-point-1
+	  (lambda (e)
+	    (let ([c (send e get-key-code)])
+	      (unless (and (or (eq? c #\return) (eq? c #\newline))
+			   return-cb
+			   (return-cb (lambda () (callback 'text-field-enter) #t)))
+		(super-on-char e)))))]
 	[after-insert
 	 (lambda args
-	   (apply super-after-insert args)
-	   (callback 'text-field))]
+	   (as-entry
+	    (lambda ()
+	      (apply super-after-insert args)
+	      (callback 'text-field))))]
 	[after-delete
 	 (lambda args
-	   (apply super-after-delete args)
-	   (callback 'text-field))])
+	   (as-entry
+	    (lambda ()
+	      (apply super-after-delete args)
+	      (callback 'text-field))))])
       (public
 	[callback-ready
 	 (lambda () 
@@ -2043,7 +2200,7 @@
   (class wx-editor-canvas% (mred proxy control parent style)
     (rename [super-on-char on-char])
     (override
-      [on-char (lambda (e) (send control on-char e))])
+      [on-char (entry-point-1 (lambda (e) (send control on-char e)))])
     (public
       [continue-on-char (lambda (e) (super-on-char e))])
     (sequence
@@ -2095,7 +2252,7 @@
     (public
       [command (lambda (e) 
 		 (check-instance '(method text-field% command) wx:control-event% 'control-event% #f e)
-		 (func e))]
+		 (as-exit (lambda () (func e))))]
 
       [get-editor (lambda () e)]
       
@@ -2106,7 +2263,7 @@
       [set-label (lambda (str) (when l (send l set-label str)))])
     (override
       [set-cursor (lambda (c) (send e set-cursor c #t))]
-      [on-char (lambda (ev) (send c continue-on-char ev))]
+      [on-char (entry-point-1 (lambda (ev) (send c continue-on-char ev)))]
       [set-focus (lambda () (send c set-focus))]
 	
       [place-children
@@ -2186,9 +2343,10 @@
 (define (wx->proxy w) ((wx-get-proxy w)))
 
 (define (param get-obj method)
-  (case-lambda
-   [() ((ivar/proc (get-obj) method))]
-   [(v) ((ivar/proc (get-obj) method) v)]))
+  (entry-point-0-1
+   (case-lambda
+    [() ((ivar/proc (get-obj) method))]
+    [(v) ((ivar/proc (get-obj) method) v)])))
 
 (define (constructor-name who)
   (string->symbol (format "initialization for ~a%" who)))
@@ -2219,9 +2377,11 @@
 (define mred%
   (class null (wx)
     (sequence
+      ; (unless (eq? monitor-owner (current-thread)) (error 'init-mred% "not in monitored area"))
       (hash-table-put! widget-table this (make-weak-box wx)))))
 
 (define (mred->wx w) 
+  ; (unless (eq? monitor-owner (current-thread)) (error 'mred->wx "not in monitored area"))
   (let ([v (hash-table-get widget-table w (lambda () #f))])
     (and v (weak-box-value v))))
 
@@ -2248,7 +2408,7 @@
   (class* mred% (area<%>) (mk-wx get-wx-panel parent)
     (public
       [get-parent (lambda () parent)]
-      [get-top-level-window (lambda () (wx->mred (send wx get-top-level)))]
+      [get-top-level-window (entry-point (lambda () (wx->mred (send wx get-top-level))))]
       [min-width (param get-wx-panel 'min-width)]
       [min-height (param get-wx-panel 'min-height)]
       [stretchable-width (param get-wx-panel 'stretchable-in-x)]
@@ -2272,6 +2432,7 @@
 
 (define area-container<%> 
   (interface (area<%>) 
+    reflow-container
     container-size
     get-children change-children place-children
     add-child delete-child
@@ -2283,47 +2444,53 @@
 (define (make-container% %) ; % implements area<%>
   (class* % (area-container<%> internal-container<%>) (mk-wx get-wx-panel parent) 
     (public
-      [get-children (lambda () (map wx->mred (ivar (get-wx-panel) children)))]
+      [reflow-container (entry-point (lambda () (send (get-wx-panel) force-redraw)))]
+      [get-children (entry-point (lambda () (map wx->mred (ivar (get-wx-panel) children))))]
       [border (param get-wx-panel 'border)]
       [spacing (param get-wx-panel 'spacing)]
-      [set-alignment (lambda (h v) (send (get-wx-panel) alignment h v))]
-      [get-alignment (lambda () (send (get-wx-panel) get-alignment))]
-      [change-children (lambda (f)
-			 (unless (and (procedure? f)
-				      (procedure-arity-includes? f 1))
-			   (raise-type-error (who->name '(method container<%> change-chidlren))
-					     "procedure or arity 1"
-					     f))
-			 (send (get-wx-panel) change-children
-			       (lambda (kids)
-				 (let ([l (f (map wx->mred kids))])
-				   (unless (and (list? l)
-						(andmap (lambda (x) (is-a? x internal-subarea<%>)) l))
-				     (raise-mismatch-error 'change-children
-							   "result of given procedure was not a list of subareas: "
-							   l))
-				   (map mred->wx l)))))]
-      [container-size (lambda (l) 
-			; Check l, even though we don't use it
-			(unless (and (list? l) 
-				     (andmap
-				      (lambda (l)
-					(and (list? l) (= (length l) 4)
-					     (integer? (car l)) (exact? (car l)) (<= 0 (car l) 10000)
-					     (integer? (cadr l)) (exact? (cadr l)) (<= 0 (cadr l) 10000)))
-				      l))
-			  (raise-type-error (who->name '(method area-container<%> container-size))
-					    "list of lists containing two exact integers in [0, 10000] and two booleans"
-					    l))
-			(let ([l (send (get-wx-panel) do-get-graphical-min-size)])
-			  (apply values l)))]
-      [place-children (lambda (l w h) (send (get-wx-panel) do-place-children l w h))]
-      [add-child (lambda (c) 
-		   (check-instance '(method area-container<%> add-child) subwindow<%> 'subwindow<%> #f c)
-		   (send (get-wx-panel) add-child (mred->wx c)))]
-      [delete-child (lambda (c) 
-		      (check-instance '(method area-container<%> delete-child) subwindow<%> 'subwindow<%> #f c)
-		      (send (get-wx-panel) delete-child (mred->wx c)))])
+      [set-alignment (entry-point-2 (lambda (h v) (send (get-wx-panel) alignment h v)))]
+      [get-alignment (entry-point (lambda () (send (get-wx-panel) get-alignment)))]
+      [change-children (entry-point-1
+			(lambda (f)
+			  (unless (and (procedure? f)
+				       (procedure-arity-includes? f 1))
+			    (raise-type-error (who->name '(method container<%> change-chidlren))
+					      "procedure or arity 1"
+					      f))
+			  (send (get-wx-panel) change-children
+				(lambda (kids)
+				  (let* ([mred-kids (map wx->mred kids)]
+					 [l (as-exit (lambda () (f mred-kids)))])
+				    (unless (and (list? l)
+						 (andmap (lambda (x) (is-a? x internal-subarea<%>)) l))
+				      (raise-mismatch-error 'change-children
+							    "result of given procedure was not a list of subareas: "
+							    l))
+				    (map mred->wx l))))))]
+      [container-size (entry-point-1
+		       (lambda (l) 
+			 ; Check l, even though we don't use it
+			 (unless (and (list? l) 
+				      (andmap
+				       (lambda (l)
+					 (and (list? l) (= (length l) 4)
+					      (integer? (car l)) (exact? (car l)) (<= 0 (car l) 10000)
+					      (integer? (cadr l)) (exact? (cadr l)) (<= 0 (cadr l) 10000)))
+				       l))
+			   (raise-type-error (who->name '(method area-container<%> container-size))
+					     "list of lists containing two exact integers in [0, 10000] and two booleans"
+					     l))
+			 (let ([l (send (get-wx-panel) do-get-graphical-min-size)])
+			   (apply values l))))]
+      [place-children (entry-point-3 (lambda (l w h) (send (get-wx-panel) do-place-children l w h)))]
+      [add-child (entry-point-1
+		  (lambda (c) 
+		    (check-instance '(method area-container<%> add-child) subwindow<%> 'subwindow<%> #f c)
+		    (send (get-wx-panel) add-child (mred->wx c))))]
+      [delete-child (entry-point-1
+		     (lambda (c) 
+		       (check-instance '(method area-container<%> delete-child) subwindow<%> 'subwindow<%> #f c)
+		       (send (get-wx-panel) delete-child (mred->wx c))))])
     (sequence
       (super-init mk-wx get-wx-panel parent))))
 
@@ -2363,10 +2530,10 @@
 		      (unless (string? s)
 			(raise-type-error (who->name '(method window<%> on-drop-file)) "pathname string" s)))]
 
-      [focus (lambda () (send wx set-focus))]
-      [has-focus? (lambda () (send wx has-focus?))]
-      [enable (lambda (on?) (send wx enable on?))]
-      [is-enabled? (lambda () (send wx is-enabled?))]
+      [focus (entry-point (lambda () (send wx set-focus)))]
+      [has-focus? (entry-point (lambda () (send wx has-focus?)))]
+      [enable (entry-point-1 (lambda (on?) (send wx enable on?)))]
+      [is-enabled? (entry-point (lambda () (send wx is-enabled?)))]
       
       [get-label (lambda () label)]
       [set-label (lambda (l)
@@ -2375,45 +2542,51 @@
       [get-plain-label (lambda () (and (string? label) (wx:label->plain-label label)))]
 
       [accept-drop-files
-       (case-lambda
-	[() (ivar wx accept-drag?)]
-	[(on?) (send wx drag-accept-files on?)])]
+       (entry-point-0-1
+	(case-lambda
+	 [() (ivar wx accept-drag?)]
+	 [(on?) (send wx drag-accept-files on?)]))]
       
-      [client->screen (lambda (x y)
-			(check-slider-integer '(method window<%> client->screen) x)
-			(check-slider-integer '(method window<%> client->screen) y)
-			(double-boxed
-			 x y
-			 (lambda (x y) (send wx client-to-screen x y))))]
-      [screen->client (lambda (x y)
-			(check-slider-integer '(method window<%> screen->client) x)
-			(check-slider-integer '(method window<%> screen->client) y)
-			(double-boxed
-			 x y
-			 (lambda (x y) (send wx screen-to-client x y))))]
-      [get-client-size (lambda ()
+      [client->screen (entry-point-2
+		       (lambda (x y)
+			 (check-slider-integer '(method window<%> client->screen) x)
+			 (check-slider-integer '(method window<%> client->screen) y)
 			 (double-boxed
-			  0 0
-			  (lambda (x y) (send wx get-client-size x y))))]
-      [get-size (lambda ()
-		  (double-boxed
-		   0 0
-		   (lambda (x y) (send wx get-size x y))))]
+			  x y
+			  (lambda (x y) (send wx client-to-screen x y)))))]
+      [screen->client (entry-point-2
+		       (lambda (x y)
+			 (check-slider-integer '(method window<%> screen->client) x)
+			 (check-slider-integer '(method window<%> screen->client) y)
+			 (double-boxed
+			  x y
+			  (lambda (x y) (send wx screen-to-client x y)))))]
+      [get-client-size (entry-point
+			(lambda ()
+			  (double-boxed
+			   0 0
+			   (lambda (x y) (send wx get-client-size x y)))))]
+      [get-size (entry-point
+		 (lambda ()
+		   (double-boxed
+		    0 0
+		    (lambda (x y) (send wx get-size x y)))))]
       
-      [get-width (lambda () (send wx get-width))]
-      [get-height (lambda () (send wx get-height))]
-      [get-x (lambda () (- (send wx get-x) (if top? 0 (send (send wx get-parent) dx))))]
-      [get-y (lambda () (- (send wx get-y) (if top? 0 (send (send wx get-parent) dy))))]
+      [get-width (entry-point (lambda () (send wx get-width)))]
+      [get-height (entry-point (lambda () (send wx get-height)))]
+      [get-x (entry-point (lambda () (- (send wx get-x) (if top? 0 (send (send wx get-parent) dx)))))]
+      [get-y (entry-point (lambda () (- (send wx get-y) (if top? 0 (send (send wx get-parent) dy)))))]
       
       [get-cursor (lambda () cursor)]
-      [set-cursor (lambda (x)
-		    (send wx set-cursor x)
-		    (set! cursor x))]
+      [set-cursor (entry-point-1
+		   (lambda (x)
+		     (send wx set-cursor x)
+		     (set! cursor x)))]
 
-      [show (lambda (on?) (send wx show on?))]
-      [is-shown? (lambda () (send wx is-shown?))]
+      [show (entry-point-1 (lambda (on?) (send wx show on?)))]
+      [is-shown? (entry-point (lambda () (send wx is-shown?)))]
 
-      [refresh (lambda () (send wx refresh))])
+      [refresh (entry-point (lambda () (send wx refresh)))])
     (private
       [wx #f])
     (sequence
@@ -2428,19 +2601,19 @@
 (define (make-area-container-window% %) ; % implements window<%> (and carea-ontainer<%>)
   (class* % (area-container-window<%>) (mk-wx get-wx-panel label parent cursor) 
     (public
-      [get-control-font (lambda () (send (get-wx-panel) get-control-font))]
-      [set-control-font (lambda (x) (send (get-wx-panel) set-control-font x))]
-      [get-label-font (lambda () (send (get-wx-panel) get-label-font))]
-      [set-label-font (lambda (x) (send (get-wx-panel) set-label-font x))]
-      [get-label-position (lambda () (send (get-wx-panel) get-label-position))]
-      [set-label-position (lambda (x) (send (get-wx-panel) set-label-position x))])
+      [get-control-font (entry-point (lambda () (send (get-wx-panel) get-control-font)))]
+      [set-control-font (entry-point-1 (lambda (x) (send (get-wx-panel) set-control-font x)))]
+      [get-label-font (entry-point (lambda () (send (get-wx-panel) get-label-font)))]
+      [set-label-font (entry-point-1 (lambda (x) (send (get-wx-panel) set-label-font x)))]
+      [get-label-position (entry-point (lambda () (send (get-wx-panel) get-label-position)))]
+      [set-label-position (entry-point-1 (lambda (x) (send (get-wx-panel) set-label-position x)))])
     (sequence
       (super-init mk-wx get-wx-panel label parent cursor))))
 
 (define top-level-window<%>
   (interface (area-container-window<%>)
     get-eventspace
-    on-activate
+    on-activate on-traverse-char
     can-close? on-close
     can-exit? on-exit
     get-focus-window get-edit-target-window
@@ -2458,45 +2631,57 @@
 	     (wx->proxy o)
 	     o))])
     (override
-      [set-label (lambda (l)
-		   (check-string '(method top-level-window<%> set-label) l)
-		   (send wx set-title (wx:label->plain-label l))
-		   (super-set-label l))])
+      [set-label (entry-point-1
+		  (lambda (l)
+		    (check-string '(method top-level-window<%> set-label) l)
+		    (send wx set-title (wx:label->plain-label l))
+		    (super-set-label l)))])
     (public
-      [get-eventspace (lambda () (ivar wx eventspace))]
+      [on-traverse-char (lambda (e)
+			  (check-instance '(method top-level-window<%> on-traverse-char) wx:key-event% 'key-event% #f e)
+			  (send wx handle-traverse-key e))]
+      [get-eventspace (entry-point (lambda () (ivar wx eventspace)))]
       [can-close? (lambda () #t)]
       [can-exit? (lambda () (can-close?))]
       [on-close cb-0]
       [on-exit (lambda () (on-close) (show #f))]
       [on-activate cb-1]
-      [center (case-lambda
-	       [() (send wx center 'both)]
-	       [(dir) (send wx center dir)])]
-      [move (lambda (x y)
-	      (check-slider-integer '(method top-level-window<%> move) x)
-	      (check-slider-integer '(method top-level-window<%> move) y)
-	      (send wx move x y))]
-      [resize (lambda (w h)
-		(check-range-integer '(method top-level-window<%> resize) w)
-		(check-range-integer '(method top-level-window<%> resize) h)
-		(send wx set-size -1 -1 w h))]
+      [center (entry-point-0-1
+	       (case-lambda
+		[() (send wx center 'both)]
+		[(dir) (send wx center dir)]))]
+      [move (entry-point-2
+	     (lambda (x y)
+	       (check-slider-integer '(method top-level-window<%> move) x)
+	       (check-slider-integer '(method top-level-window<%> move) y)
+	       (send wx move x y)))]
+      [resize (entry-point-2
+	       (lambda (w h)
+		 (check-range-integer '(method top-level-window<%> resize) w)
+		 (check-range-integer '(method top-level-window<%> resize) h)
+		 (send wx set-size -1 -1 w h)))]
 
-      [get-focus-window (lambda () (let ([w (send wx get-focus-window)])
-				     (and w (wx->proxy w))))]
-      [get-edit-target-window (lambda () (let ([w (send wx get-edit-target-window)])
-					   (and w (wx->proxy w))))]
-      [get-focus-object (lambda () (let ([o (send wx get-focus-object)])
-				     (and o (wx-object->proxy o))))]
-      [get-edit-target-object (lambda () (let ([o (send wx get-edit-target-object)])
-					   (and o (wx-object->proxy o))))])
+      [get-focus-window (entry-point
+			 (lambda () (let ([w (send wx get-focus-window)])
+				      (and w (wx->proxy w)))))]
+      [get-edit-target-window (entry-point
+			       (lambda () (let ([w (send wx get-edit-target-window)])
+					    (and w (wx->proxy w)))))]
+      [get-focus-object (entry-point
+			 (lambda () (let ([o (send wx get-focus-object)])
+				      (and o (wx-object->proxy o)))))]
+      [get-edit-target-object (entry-point
+			       (lambda () (let ([o (send wx get-edit-target-object)])
+					    (and o (wx-object->proxy o)))))])
     (private
       [wx #f]
       [wx-panel #f]
-      [finish (lambda (top-level)
-		(set! wx-panel (make-object wx-vertical-panel% #f this top-level null))
-		(send (send wx-panel area-parent) add-child wx-panel)
-		(send top-level set-container wx-panel)
-		top-level)])
+      [finish (entry-point-1
+	       (lambda (top-level)
+		 (set! wx-panel (make-object wx-vertical-panel% #f this top-level null))
+		 (send (send wx-panel area-parent) add-child wx-panel)
+		 (send top-level set-container wx-panel)
+		 top-level))])
     (sequence (super-init (lambda () (set! wx (mk-wx finish)) wx) (lambda () wx-panel) label parent #f))))
 
 (define subwindow<%> 
@@ -2511,11 +2696,12 @@
     (rename [super-set-label set-label])
     (override
       [get-label (lambda () label)]
-      [set-label (lambda (l)
-		   (send wx set-label l)
-		   (set! label l))])
+      [set-label (entry-point-1
+		  (lambda (l)
+		    (send wx set-label l)
+		    (set! label l)))])
     (public
-      [command (lambda (e) (send wx command e))])
+      [command (entry-point-1 (lambda (e) (as-exit (lambda () (send wx command e)))))])
     (private
       [wx #f])
     (sequence
@@ -2525,6 +2711,7 @@
     
 (define frame%
   (class basic-top-level-window% (label [parent #f] [width #f] [height #f] [x #f] [y #f] [style null])
+    (inherit on-traverse-char)
     (sequence
       (let ([cwho '(constructor frame)])
 	(check-string cwho label)
@@ -2538,31 +2725,38 @@
       [wx #f]
       [status-line? #f])
     (override
-      [on-subwindow-char (lambda (w event)
-			   (super-on-subwindow-char w event)
-			   (or (send wx handle-menu-key event)
-			       (send wx handle-traverse-key event)))])
+      [on-subwindow-char (entry-point-2
+			  (lambda (w event)
+			    (super-on-subwindow-char w event)
+			    (or (on-menu-char event)
+				(on-traverse-char event))))])
     (public
-      [create-status-line (lambda () (unless status-line? (send wx create-status-line) (set! status-line? #t)))]
-      [set-status-text (lambda (s) (send wx set-status-text s))]
+      [on-menu-char (lambda (e)
+		      (check-instance '(method frame% on-menu-char) wx:key-event% 'key-event% #f e)
+		      (send wx handle-menu-key e))]
+      [create-status-line (entry-point (lambda () (unless status-line? (send wx create-status-line) (set! status-line? #t))))]
+      [set-status-text (entry-point-1 (lambda (s) (send wx set-status-text s)))]
       [has-status-line? (lambda () status-line?)]
-      [iconize (lambda (on?) (send wx iconize on?))]
-      [is-iconized? (lambda () (send wx iconized?))]
-      [set-icon (lambda (i) (send wx set-icon i))]
-      [maximize (lambda (on?) (send wx maximize on?))]
-      [get-menu-bar (lambda () (let ([mb (ivar wx menu-bar)])
-				 (and mb (wx->mred mb))))])
+      [iconize (entry-point-1 (lambda (on?) (send wx iconize on?)))]
+      [is-iconized? (entry-point (lambda () (send wx iconized?)))]
+      [set-icon (entry-point-1 (lambda (i) (send wx set-icon i)))]
+      [maximize (entry-point-1 (lambda (on?) (send wx maximize on?)))]
+      [get-menu-bar (entry-point (lambda () (let ([mb (ivar wx menu-bar)])
+					      (and mb (wx->mred mb)))))])
     (sequence
-      (super-init (lambda (finish) 
-		    (set! wx (finish (make-object wx-frame% this this
-						  (and parent (mred->wx parent)) (wx:label->plain-label label)
-						  (or x -1) (or y -1) (or width -1) (or height -1)
-						  style)))
-		    wx)
-		  label parent))))
+      (as-entry
+       (lambda ()
+	 (super-init (lambda (finish) 
+		       (set! wx (finish (make-object wx-frame% this this
+						     (and parent (mred->wx parent)) (wx:label->plain-label label)
+						     (or x -1) (or y -1) (or width -1) (or height -1)
+						     style)))
+		       wx)
+		     label parent))))))
 
 (define dialog%
   (class basic-top-level-window% (label [parent #f] [width #f] [height #f] [x #f] [y #f] [style null])
+    (inherit on-traverse-char)
     (sequence
       (let ([cwho '(constructor dialog)])
 	(check-string cwho label)
@@ -2572,17 +2766,19 @@
     (rename [super-on-subwindow-char on-subwindow-char])
     (private [wx #f])
     (override
-      [on-subwindow-char (lambda (w event)
-			   (super-on-subwindow-char w event)
-			   (send wx handle-traverse-key event))])
+      [on-subwindow-char (entry-point-2 (lambda (w event)
+					  (super-on-subwindow-char w event)
+					  (on-traverse-char event)))])
     (sequence
-      (super-init (lambda (finish) 
-		    (set! wx (finish (make-object wx-dialog% this this
-						  (and parent (mred->wx parent)) (wx:label->plain-label label) #t
-						  (or x -1) (or y -1) (or width 0) (or height 0)
-						  style)))
-		    wx)
-		  label parent))))
+      (as-entry
+       (lambda ()
+	 (super-init (lambda (finish) 
+		       (set! wx (finish (make-object wx-dialog% this this
+						     (and parent (mred->wx parent)) (wx:label->plain-label label) #t
+						     (or x -1) (or y -1) (or width 0) (or height 0)
+						     style)))
+		       wx)
+		     label parent))))))
 
 (define (get-top-level-windows)
   (map wx->mred (wx:get-top-level-windows)))
@@ -2609,10 +2805,12 @@
       (check-string-or-bitmap '(constructor message) label)
       (check-container-parent 'message parent)
       (check-style '(constructor message) #f null style)
-      (super-init (lambda () (make-object wx-message% this this
-					  (mred->wx-container parent)
-					  label -1 -1 style))
-		  label parent #f))))
+      (as-entry
+       (lambda ()
+	 (super-init (lambda () (make-object wx-message% this this
+					     (mred->wx-container parent)
+					     label -1 -1 style))
+		     label parent #f))))))
 
 (define button%
   (class basic-control% (label parent callback [style null])
@@ -2621,10 +2819,12 @@
       (check-container-parent 'button parent)
       (check-callback '(constructor button) callback)
       (check-style '(constructor button) #f '(border) style)
-      (super-init (lambda () (make-object wx-button% this this
-					  (mred->wx-container parent) (wrap-callback callback)
-					  label -1 -1 -1 -1 style))
-		  label parent #f))))
+      (as-entry
+       (lambda ()
+	 (super-init (lambda () (make-object wx-button% this this
+					     (mred->wx-container parent) (wrap-callback callback)
+					     label -1 -1 -1 -1 style))
+		     label parent #f))))))
 
 (define check-box%
   (class basic-control% (label parent callback [style null])
@@ -2636,15 +2836,17 @@
     (private
       [wx #f])
     (public
-      [get-value (lambda () (send wx get-value))]
-      [set-value (lambda (v) (send wx set-value v))])
+      [get-value (entry-point (lambda () (send wx get-value)))]
+      [set-value (entry-point-1 (lambda (v) (send wx set-value v)))])
     (sequence
-      (super-init (lambda () 
-		    (set! wx (make-object wx-check-box% this this
-					  (mred->wx-container parent) (wrap-callback callback)
-					  label -1 -1 -1 -1 style))
-		    wx)
-		  label parent #f))))
+      (as-entry
+       (lambda ()
+	 (super-init (lambda () 
+		       (set! wx (make-object wx-check-box% this this
+					     (mred->wx-container parent) (wrap-callback callback)
+					     label -1 -1 -1 -1 style))
+		       wx)
+		     label parent #f))))))
 
 (define radio-box%
   (class basic-control% (label choices parent callback [style '(vertical)])
@@ -2665,14 +2867,16 @@
 	 (unless (< n (length choices))
 	   (raise-mismatch-error (who->name `(method radio-box% ,method)) "no such button: " n)))])
     (override
-      [enable (case-lambda
-	       [(on?) (send wx enable on?)]
-	       [(which on?) (check-button 'enable which)
-			    (send wx enable which on?)])]
-      [is-enabled? (case-lambda
-		    [() (send wx is-enabled?)]
-		    [(which) (check-button 'is-enabled? which)
-			     (send wx is-enabled? which)])])
+      [enable (entry-point-1-2
+	       (case-lambda
+		[(on?) (send wx enable on?)]
+		[(which on?) (check-button 'enable which)
+			     (send wx enable which on?)]))]
+      [is-enabled? (entry-point-0-1
+		    (case-lambda
+		     [() (send wx is-enabled?)]
+		     [(which) (check-button 'is-enabled? which)
+			      (send wx is-enabled? which)]))])
     (public
       [get-number (lambda () (length choices))]
       [get-item-label (lambda (n) 
@@ -2682,17 +2886,20 @@
 			      (check-button 'get-item-plain-label n)
 			      (wx:label->plain-label (list-ref choices n)))]
        
-      [get-selection (lambda () (send wx get-selection))]
-      [set-selection (lambda (v) 
-		       (check-button 'set-selection v)
-		       (send wx set-selection v))])
+      [get-selection (entry-point (lambda () (send wx get-selection)))]
+      [set-selection (entry-point-1
+		      (lambda (v) 
+			(check-button 'set-selection v)
+			(send wx set-selection v)))])
     (sequence
-      (super-init (lambda () 
-		    (set! wx (make-object wx-radio-box% this this
-					  (mred->wx-container parent) (wrap-callback callback)
-					  label -1 -1 -1 -1 choices 0 style))
-		    wx)
-		  label parent #f))))
+      (as-entry
+       (lambda ()
+	 (super-init (lambda () 
+		       (set! wx (make-object wx-radio-box% this this
+					     (mred->wx-container parent) (wrap-callback callback)
+					     label -1 -1 -1 -1 choices 0 style))
+		       wx)
+		     label parent #f))))))
 
 (define slider%
   (class basic-control% (label min-val max-val parent callback [value min-val] [style '(horizontal)])
@@ -2707,22 +2914,25 @@
     (private
       [wx #f])
     (public
-      [get-value (lambda () (send wx get-value))]
-      [set-value (lambda (v)
-		   (check-slider-integer '(method slider% set-value) v)
-		   (unless (<= min-val v max-val)
-		     (raise-mismatch-error (who->name '(method slider% set-value))
-					   (format "slider's range is ~a to ~a; cannot set the value to: "
-						   min-val max-val)
-					   v))
-		   (send wx set-value v))])
+      [get-value (entry-point (lambda () (send wx get-value)))]
+      [set-value (entry-point-1
+		  (lambda (v)
+		    (check-slider-integer '(method slider% set-value) v)
+		    (unless (<= min-val v max-val)
+		      (raise-mismatch-error (who->name '(method slider% set-value))
+					    (format "slider's range is ~a to ~a; cannot set the value to: "
+						    min-val max-val)
+					    v))
+		    (send wx set-value v)))])
     (sequence
-      (super-init (lambda () 
-		    (set! wx (make-object wx-slider% this this
-					  (mred->wx-container parent) (wrap-callback callback)
-					  label value min-val max-val style))
-		    wx)
-		  label parent #f))))
+      (as-entry
+       (lambda ()
+	 (super-init (lambda () 
+		       (set! wx (make-object wx-slider% this this
+					     (mred->wx-container parent) (wrap-callback callback)
+					     label value min-val max-val style))
+		       wx)
+		     label parent #f))))))
 
 (define gauge%
   (class basic-control% (label range parent [style '(horizontal)])
@@ -2734,26 +2944,30 @@
     (private
       [wx #f])
     (public
-      [get-value (lambda () (send wx get-value))]
-      [set-value (lambda (v)
-		   (check-range-integer '(method gauge% set-value) v)
-		   (when (> v (send wx get-range))
-		     (raise-mismatch-error (who->name '(method gauge% set-value))
-					   (format "gauge's range is 0 to ~a; cannot set the value to: "
-						   (send wx get-range))
-					   v))
-		   (send wx set-value v))]
-      [get-range (lambda () (send wx get-range))]
-      [set-range (lambda (v)
-		   (check-gauge-integer '(method gauge% set-range) v)
-		   (send wx set-range v))])
+      [get-value (entry-point (lambda () (send wx get-value)))]
+      [set-value (entry-point-1
+		  (lambda (v)
+		    (check-range-integer '(method gauge% set-value) v)
+		    (when (> v (send wx get-range))
+		      (raise-mismatch-error (who->name '(method gauge% set-value))
+					    (format "gauge's range is 0 to ~a; cannot set the value to: "
+						    (send wx get-range))
+					    v))
+		    (send wx set-value v)))]
+      [get-range (entry-point (lambda () (send wx get-range)))]
+      [set-range (entry-point-1
+		  (lambda (v)
+		    (check-gauge-integer '(method gauge% set-range) v)
+		    (send wx set-range v)))])
     (sequence
-      (super-init (lambda () 
-		    (set! wx (make-object wx-gauge% this this
-					  (mred->wx-container parent)
-					  label range style))
-		    wx)
-		  label parent #f))))
+      (as-entry
+       (lambda ()
+	 (super-init (lambda () 
+		       (set! wx (make-object wx-gauge% this this
+					     (mred->wx-container parent)
+					     label range style))
+		       wx)
+		     label parent #f))))))
 
 (define list-control<%>
   (interface (control<%>)
@@ -2770,17 +2984,18 @@
 (define basic-list-control%
   (class* basic-control% (list-control<%>) (mk-wx label parent)
     (public
-      [append (lambda (i) (send wx append i))]
-      [clear (lambda () (send wx clear))]
-      [get-number (lambda () (send wx number))]
-      [get-string (lambda (n) (check-item 'get-string n) (send wx get-string n))]
-      [get-selection (lambda () (and (positive? (send wx number)) (-1=>false (send wx get-selection))))]
-      [get-string-selection (lambda () (and (positive? (send wx number)) (send wx get-string-selection)))]
-      [set-selection (lambda (s) (check-item 'set-selection s) (send wx set-selection s))]
-      [set-string-selection (lambda (s) (unless (send wx set-string-selection s)
-					  (raise-mismatch-error (who->name '(method list-control<%> set-string-selection))
-								"no item matching the given string: " s)))]
-      [find-string (lambda (x) (-1=>false (send wx find-string x)))])
+      [append (entry-point-1 (lambda (i) (send wx append i)))]
+      [clear (entry-point (lambda () (send wx clear)))]
+      [get-number (entry-point (lambda () (send wx number)))]
+      [get-string (entry-point-1 (lambda (n) (check-item 'get-string n) (send wx get-string n)))]
+      [get-selection (entry-point (lambda () (and (positive? (send wx number)) (-1=>false (send wx get-selection)))))]
+      [get-string-selection (entry-point (lambda () (and (positive? (send wx number)) (send wx get-string-selection))))]
+      [set-selection (entry-point-1 (lambda (s) (check-item 'set-selection s) (send wx set-selection s)))]
+      [set-string-selection (entry-point-1
+			     (lambda (s) (unless (send wx set-string-selection s)
+					   (raise-mismatch-error (who->name '(method list-control<%> set-string-selection))
+								 "no item matching the given string: " s))))]
+      [find-string (entry-point-1 (lambda (x) (-1=>false (send wx find-string x))))])
     (private
       [wx #f]
       [check-item
@@ -2793,7 +3008,9 @@
 					   m (sub1 m))
 				   n))))])
     (sequence
-      (super-init (lambda () (set! wx (mk-wx)) wx) label parent #f))))
+      (as-entry
+       (lambda ()
+	 (super-init (lambda () (set! wx (mk-wx)) wx) label parent #f))))))
 
 (define (check-list-control-args who label choices parent callback)
   (let ([cwho `(constructor-name ,who)])
@@ -2820,38 +3037,44 @@
       (check-style '(constructor list-box) '(single multiple extended) null style))
     (rename [super-append append])
     (override
-      [append (case-lambda
-	       [(i) (super-append i)]
-	       [(i d) (send wx append i d)])])
+      [append (entry-point-1-2
+	       (case-lambda
+		[(i) (super-append i)]
+		[(i d) (send wx append i d)]))])
     (public
-      [delete (lambda (n) (check-item 'delete n) (send wx delete n))]
-      [get-data (lambda (n) (check-item 'get-data n) (send wx get-data n))]
-      [get-selections (lambda () (send wx get-selections))]
-      [number-of-visible-items (lambda () (send wx number-of-visible-items))]
-      [is-selected? (lambda (n) (check-item 'is-selected? n) (send wx selected? n))]
-      [set (lambda (l) (send wx set l))]
-      [set-string (lambda (n d)
-		    (check-non-negative-integer '(method list-box% set-string) n) ; int error before string
-		    (check-string '(method list-box% set-string) d) ; string error before range mismatch
-		    (check-item 'set-string n)
-		    (send wx set-string n d))]
-      [set-data (lambda (n d) (check-item 'set-data n) (send wx set-data n d))]
-      [get-first-visible-item (lambda () (send wx get-first-item))]
-      [set-first-visible-item (lambda (n) (check-item 'set-first-visible-item n) (send wx set-first-visible-item n))]
-      [select (case-lambda 
-	       [(n) (check-item 'select n) (send wx set-selection n)]
-	       [(n on?) (check-item 'select n) (send wx set-selection n on?)])])
+      [delete (entry-point-1 (lambda (n) (check-item 'delete n) (send wx delete n)))]
+      [get-data (entry-point-1 (lambda (n) (check-item 'get-data n) (send wx get-data n)))]
+      [get-selections (entry-point (lambda () (send wx get-selections)))]
+      [number-of-visible-items (entry-point (lambda () (send wx number-of-visible-items)))]
+      [is-selected? (entry-point-1 (lambda (n) (check-item 'is-selected? n) (send wx selected? n)))]
+      [set (entry-point-1 (lambda (l) (send wx set l)))]
+      [set-string (entry-point-2
+		   (lambda (n d)
+		     (check-non-negative-integer '(method list-box% set-string) n) ; int error before string
+		     (check-string '(method list-box% set-string) d) ; string error before range mismatch
+		     (check-item 'set-string n)
+		     (send wx set-string n d)))]
+      [set-data (entry-point-2 (lambda (n d) (check-item 'set-data n) (send wx set-data n d)))]
+      [get-first-visible-item (entry-point (lambda () (send wx get-first-item)))]
+      [set-first-visible-item (entry-point-1 (lambda (n) 
+					       (check-item 'set-first-visible-item n) 
+					       (send wx set-first-visible-item n)))]
+      [select (entry-point-1-2 
+	       (case-lambda 
+		[(n) (check-item 'select n) (send wx set-selection n)]
+		[(n on?) (check-item 'select n) (send wx set-selection n on?)]))])
     (private
       [wx #f]
       [check-item
-       (lambda (method n)
-	 (check-non-negative-integer `(method list-box% ,method) n)
-	 (let ([m (send wx number)])
-	   (unless (< n m)
-	     (raise-mismatch-error (who->name `(method list-box% ,method)) 
-				   (format "list has only ~a items, indexed 0 to ~a; given out-of-range index: "
-					   m (sub1 m))
-				   n))))])
+       (entry-point-2
+	(lambda (method n)
+	  (check-non-negative-integer `(method list-box% ,method) n)
+	  (let ([m (send wx number)])
+	    (unless (< n m)
+	      (raise-mismatch-error (who->name `(method list-box% ,method)) 
+				    (format "list has only ~a items, indexed 0 to ~a; given out-of-range index: "
+					    m (sub1 m))
+				    n)))))])
     (sequence
       (super-init (lambda () 
 		    (let-values ([(kind style)
@@ -2878,18 +3101,21 @@
     (private
       [wx #f])
     (public
-      [get-editor (lambda () (send wx get-editor))]
-      [get-value (lambda () (send wx get-value))]
-      [set-value (lambda (v) 
-		   (check-string '(method text-control<%> set-value) v)
-		   (send wx set-value v))])
+      [get-editor (entry-point (lambda () (send wx get-editor)))]
+      [get-value (entry-point (lambda () (send wx get-value)))]
+      [set-value (entry-point-1 
+		  (lambda (v) 
+		    (check-string '(method text-control<%> set-value) v)
+		    (send wx set-value v)))])
     (sequence
-      (super-init (lambda () 
-		    (set! wx (make-object wx-text-field% this this
-					  (mred->wx-container parent) (wrap-callback callback)
-					  label init-val style))
-		    wx)
-		  label parent ibeam))))
+      (as-entry
+       (lambda ()
+	 (super-init (lambda () 
+		       (set! wx (make-object wx-text-field% this this
+					     (mred->wx-container parent) (wrap-callback callback)
+					     label init-val style))
+		       wx)
+		     label parent ibeam))))))
 
 ;-------------------- Canvas class constructions --------------------
 
@@ -2904,24 +3130,27 @@
 (define basic-canvas%
   (class* (make-window% #f (make-subarea% area%)) (canvas<%>) (mk-wx parent)
     (public
-      [on-char (lambda (e) (send wx do-on-char e))]
-      [on-event (lambda (e) (send wx do-on-event e))]
-      [on-paint (lambda () (when wx (send wx do-on-paint)))]
-      [on-scroll (lambda (e) (send wx do-on-scroll e))]
+      [on-char (entry-point-1 (lambda (e) (send wx do-on-char e)))]
+      [on-event (entry-point-1 (lambda (e) (send wx do-on-event e)))]
+      [on-paint (entry-point (lambda () (when wx (send wx do-on-paint))))]
+      [on-scroll (entry-point-1 (lambda (e) (send wx do-on-scroll e)))]
       
       [min-client-width (param (lambda () wx) 'min-client-width)]
       [min-client-height (param (lambda () wx) 'min-client-height)]
 
-      [popup-menu (lambda (m x y) 
-		    (check-instance '(method canvas<%> popup-menu) popup-menu% 'popup-menu% #f m)
-		    (send wx popup-menu (mred->wx m) x y))]
-      [warp-pointer (lambda (x y) (send wx warp-pointer x y))]
+      [popup-menu (entry-point-3
+		   (lambda (m x y) 
+		     (check-instance '(method canvas<%> popup-menu) popup-menu% 'popup-menu% #f m)
+		     (send wx popup-menu (mred->wx m) x y)))]
+      [warp-pointer (entry-point-2 (lambda (x y) (send wx warp-pointer x y)))]
 
-      [get-dc (lambda () (send wx get-dc))])
+      [get-dc (entry-point (lambda () (send wx get-dc)))])
     (private
       [wx #f])
     (sequence
-      (super-init (lambda () (set! wx (mk-wx)) wx) (lambda () wx) #f parent #f))))
+      (as-entry
+       (lambda ()
+	 (super-init (lambda () (set! wx (mk-wx)) wx) (lambda () wx) #f parent #f))))))
 
 (define canvas%
   (class basic-canvas% (parent [style null])
@@ -2929,34 +3158,45 @@
       (check-container-parent 'canvas parent)
       (check-style '(constructor canvas) #f '(border hscroll vscroll) style))
     (public
-      [get-virtual-size (lambda () (double-boxed
-				    0 0
-				    (lambda (x y) (send wx get-virtual-size x y))))]
-      [get-view-start (lambda () (double-boxed
-				  0 0
-				  (lambda (x y) (send wx view-start x y))))]
+      [accept-tab-focus (entry-point-0-1
+			 (case-lambda
+			  [() (send wx get-tab-focus)]
+			  [(on?) (send wx set-tab-focus (and on? #t))]))]
+      [get-virtual-size (entry-point
+			 (lambda () (double-boxed
+				     0 0
+				     (lambda (x y) (send wx get-virtual-size x y)))))]
+      [get-view-start (entry-point
+		       (lambda () (double-boxed
+				   0 0
+				   (lambda (x y) (send wx view-start x y)))))]
 
-      [scroll (lambda (x y) (send wx scroll x y))]
+      [scroll (entry-point-2 (lambda (x y) 
+			       (check-dimension '(method canvas% scroll) x)
+			       (check-dimension '(method canvas% scroll) y)
+			       (send wx scroll (or x -1) (or y -1))))]
 
       [set-scrollbars (letrec ([set-scrollbars
 				(case-lambda 
 				 [(h-pixels v-pixels x-len y-len x-page y-page x-val y-val)
 				  (set-scrollbars h-pixels v-pixels x-len y-len x-page y-page x-val y-val #t)]
 				 [(h-pixels v-pixels x-len y-len x-page y-page x-val y-val man?)
-				  (let ([rc (lambda (x)
-					      (when x (check-gauge-integer '(method canvas% set-scrollbars) x)))])
-				    (rc h-pixels)
-				    (rc v-pixels)
-				    (send wx set-scrollbars (or h-pixels 0) (or v-pixels 0)
-					  x-len y-len x-page y-page x-val y-val man?))])])
+				  (as-entry
+				   (lambda ()
+				     (let ([rc (lambda (x)
+						 (when x (check-gauge-integer '(method canvas% set-scrollbars) x)))])
+				       (rc h-pixels)
+				       (rc v-pixels)
+				       (send wx set-scrollbars (or h-pixels 0) (or v-pixels 0)
+					     x-len y-len x-page y-page x-val y-val man?))))])])
 			set-scrollbars)]
 
-      [get-scroll-pos (lambda (d) (send wx get-scroll-pos d))]
-      [set-scroll-pos (lambda (d v) (send wx set-scroll-pos d v))]
-      [get-scroll-range (lambda (d) (send wx get-scroll-range d))]
-      [set-scroll-range (lambda (d v) (send wx set-scroll-range d v))]
-      [get-scroll-page (lambda (d) (send wx get-scroll-page d))]
-      [set-scroll-page (lambda (d v) (send wx set-scroll-page d v))])
+      [get-scroll-pos (entry-point-1 (lambda (d) (send wx get-scroll-pos d)))]
+      [set-scroll-pos (entry-point-2 (lambda (d v) (send wx set-scroll-pos d v)))]
+      [get-scroll-range (entry-point-1 (lambda (d) (send wx get-scroll-range d)))]
+      [set-scroll-range (entry-point-2 (lambda (d v) (send wx set-scroll-range d v)))]
+      [get-scroll-page (entry-point-1 (lambda (d) (send wx get-scroll-page d)))]
+      [set-scroll-page (entry-point-2 (lambda (d v) (send wx set-scroll-page d v)))])
     (private
       [wx #f])
     (sequence
@@ -2980,36 +3220,42 @@
       [scroll-to-last? #f]
       [scroll-bottom? #f])
     (public
-      [call-as-primary-owner (lambda (f) (send wx call-as-primary-owner f))]
+      [call-as-primary-owner (entry-point-1 (lambda (f) (send wx call-as-primary-owner f)))]
       [allow-scroll-to-last
-       (case-lambda
-	[() scroll-to-last?]
-	[(on?) (set! scroll-to-last? (and on? #t))
-	       (send wx allow-scroll-to-last on?)])]
+       (entry-point-0-1 
+	(case-lambda
+	 [() scroll-to-last?]
+	 [(on?) (set! scroll-to-last? (and on? #t))
+		(send wx allow-scroll-to-last on?)]))]
       [scroll-with-bottom-base
-       (case-lambda
-	[() scroll-bottom?]
-	[(on?) (set! scroll-bottom? (and on? #t))
-	       (send wx scroll-with-bottom-base on?)])]
+       (entry-point-0-1
+	(case-lambda
+	 [() scroll-bottom?]
+	 [(on?) (set! scroll-bottom? (and on? #t))
+		(send wx scroll-with-bottom-base on?)]))]
       [lazy-refresh
-       (case-lambda
-	[() (send wx get-lazy-refresh)]
-	[(on?) (send wx set-lazy-refresh on?)])]
+       (entry-point-0-1
+	(case-lambda
+	 [() (send wx get-lazy-refresh)]
+	 [(on?) (send wx set-lazy-refresh on?)]))]
       [force-display-focus
-       (case-lambda
-	[() force-focus?]
-	[(on?) (set! force-focus? (and on? #t))
-	       (send wx force-display-focus on?)])]
+       (entry-point-0-1
+	(case-lambda
+	 [() force-focus?]
+	 [(on?) (set! force-focus? (and on? #t))
+		(send wx force-display-focus on?)]))]
 
       [set-line-count
-       (lambda (n)
-	 ((check-bounded-integer 1 1000) '(method editor-canvas% set-line-count) n)
-	 (send wx set-line-count n))]
+       (entry-point-1
+	(lambda (n)
+	  ((check-bounded-integer 1 1000) '(method editor-canvas% set-line-count) n)
+	  (send wx set-line-count n)))]
 
-      [get-editor (lambda () (send wx get-editor))]
-      [set-editor (case-lambda 
-		   [(m) (send wx set-editor m)]
-		   [(m upd?) (send wx set-editor m upd?)])])
+      [get-editor (entry-point (lambda () (send wx get-editor)))]
+      [set-editor (entry-point-1-2
+		   (case-lambda 
+		    [(m) (send wx set-editor m)]
+		    [(m upd?) (send wx set-editor m upd?)]))])
     (private
       [wx #f])
     (sequence
@@ -3033,13 +3279,15 @@
 		  [(is-a? this horizontal-pane%) 'horizontal-pane]
 		  [else 'pane])])
 	(check-container-parent who parent)
-	(super-init (lambda () (set! wx (make-object (case who
-						      [(vertical-pane) wx-vertical-pane%]
-						      [(horizontal-pane) wx-horizontal-pane%]
-						      [else wx-pane%])
-						     this this (mred->wx-container parent) null)) wx)
-		    (lambda () wx) parent)
-	(send (send wx area-parent) add-child wx)))))
+	(as-entry
+	 (lambda ()
+	   (super-init (lambda () (set! wx (make-object (case who
+							  [(vertical-pane) wx-vertical-pane%]
+							  [(horizontal-pane) wx-horizontal-pane%]
+							  [else wx-pane%])
+							this this (mred->wx-container parent) null)) wx)
+		       (lambda () wx) parent)
+	   (send (send wx area-parent) add-child wx)))))))
 
 (define vertical-pane% (class pane% (parent) (sequence (super-init parent))))
 (define horizontal-pane% (class pane% (parent) (sequence (super-init parent))))
@@ -3054,13 +3302,15 @@
 		  [else 'panel])])
 	(check-container-parent who parent)
 	(check-style `(constructor ,who) #f '(border) style)
-	(super-init (lambda () (set! wx (make-object (case who
-						       [(vertical-panel) wx-vertical-panel%]
-						       [(horizontal-panel) wx-horizontal-panel%]
-						       [else wx-panel%])
-						     this this (mred->wx-container parent) style)) wx)
-		    (lambda () wx) #f parent #f)
-	(send (send wx area-parent) add-child wx)))))
+	(as-entry
+	 (lambda ()
+	   (super-init (lambda () (set! wx (make-object (case who
+							  [(vertical-panel) wx-vertical-panel%]
+							  [(horizontal-panel) wx-horizontal-panel%]
+							  [else wx-panel%])
+							this this (mred->wx-container parent) style)) wx)
+		       (lambda () wx) #f parent #f)
+	   (send (send wx area-parent) add-child wx)))))))
 
 (define vertical-panel% (class panel% args (sequence (apply super-init args))))
 (define horizontal-panel% (class panel% args (sequence (apply super-init args))))
@@ -3085,7 +3335,7 @@
 (define (barless-frame-parent p)
   (unless (is-a? p frame%)
     (raise-type-error (constructor-name 'menu-bar) "frame% object" p))
-  (when (send (mred->wx p) get-menu-bar)
+  (when (as-entry (lambda () (send (mred->wx p) get-menu-bar)))
     (raise-mismatch-error (constructor-name 'menu-bar) "the specified frame already has a menu bar: " p)))
 
 (define wx-menu-item%
@@ -3164,12 +3414,13 @@
       [get-keymap (lambda () keymap)]
       [get-mred (lambda () mred)]
       [get-items (lambda () items)]
-      [append-item (lambda (i) 
+      [append-item (lambda (i iwx) 
 		     (set! items (append items (list i)))
-		     (let ([k (send (mred->wx i) get-keymap)])
-		       (when k
-			 (send keymap chain-to-keymap k #f))))]
-      [delete-sep (lambda (i) 
+		     (unless (is-a? i separator-menu-item%)
+		       (let ([k (send iwx get-keymap)])
+			 (when k
+			   (send keymap chain-to-keymap k #f)))))]
+      [delete-sep (lambda (i iwx)
 		    (delete-by-position (find-pos items i eq?))
 		    (set! items (remq i items)))]
       [swap-item-keymap (lambda (old-k new-k)
@@ -3216,23 +3467,29 @@
   (class* mred% (menu-item<%>) (parent)
     (sequence (menu-parent-only 'separator-menu-item parent))
     (private
-      [wx (make-object wx-menu-item% this)]
+      [wx #f]
       [shown? #f]
-      [wx-parent (mred->wx parent)])
+      [wx-parent #f])
     (public
       [get-parent (lambda () parent)]
-      [restore (lambda ()
-		 (unless shown?
-		   (send wx-parent append-separator)
-		   (send wx-parent append-item this)
-		   (set! shown? #t)))]
-      [delete (lambda ()
-		(when shown?
-		  (send wx-parent delete-sep this)
-		  (set! shown? #f)))]
+      [restore (entry-point
+		(lambda ()
+		  (unless shown?
+		    (send wx-parent append-separator)
+		    (send wx-parent append-item this wx)
+		    (set! shown? #t))))]
+      [delete (entry-point
+	       (lambda ()
+		 (when shown?
+		   (send wx-parent delete-sep this wx)
+		   (set! shown? #f))))]
       [is-deleted? (lambda () (not shown?))])
     (sequence
-      (super-init wx)
+      (as-entry
+       (lambda ()
+	 (set! wx (make-object wx-menu-item% this))
+	 (set! wx-parent (mred->wx parent))
+	 (super-init wx)))
       (restore))))
 
 (define (strip-tab s) (car (regexp-match (format "^[^~a]*" #\tab) s)))
@@ -3240,8 +3497,8 @@
 (define basic-labelled-menu-item%
   (class* mred% (labelled-menu-item<%>) (parent label help-string submenu checkable? keymap set-wx)
     (private
-      [wx (set-wx (make-object wx-menu-item% this))]
-      [wx-parent (mred->wx parent)]
+      [wx #f]
+      [wx-parent #f]
       [plain-label (wx:label->plain-label label)]
       [in-menu? (is-a? parent basic-menu%)]
       [shown? #f]
@@ -3255,44 +3512,52 @@
     (public
       [get-parent (lambda () parent)]
       [get-label (lambda () label)]
-      [set-label (lambda (l)
-		   (check-string '(method labelled-menu-item<%> set-label) l)
-		   (set! label l)
-		   (set! plain-label (wx:label->plain-label l))
-		   (when shown?
-		     (if in-menu?
-			 (send wx-parent set-label (send wx id) l)
-			 (send wx-parent set-label-top (send wx-parent position-of this) plain-label))))]
+      [set-label (entry-point-1
+		  (lambda (l)
+		    (check-string '(method labelled-menu-item<%> set-label) l)
+		    (set! label l)
+		    (set! plain-label (wx:label->plain-label l))
+		    (when shown?
+		      (if in-menu?
+			  (send wx-parent set-label (send wx id) l)
+			  (send wx-parent set-label-top (send wx-parent position-of this) plain-label)))))]
       [get-plain-label (lambda () plain-label)]
       [get-help-string (lambda () help-string)]
-      [set-help-string (lambda (s) 
-			 (check-string/false '(method labelled-menu-item<%> set-help-string) s)
-			 (set! help-string s)
-			 (when in-menu?
-			   (send wx-parent set-help-string (send wx id) s)))]
+      [set-help-string (entry-point-1
+			(lambda (s) 
+			  (check-string/false '(method labelled-menu-item<%> set-help-string) s)
+			  (set! help-string s)
+			  (when in-menu?
+			    (send wx-parent set-help-string (send wx id) s))))]
       [enable (lambda (on?) (do-enable on?))]
       [is-enabled? (lambda () enabled?)]
-      [restore (lambda ()
-		 (unless shown?
+      [restore (entry-point
+		(lambda ()
+		  (unless shown?
+		    (if in-menu?
+			(begin
+			  (if submenu
+			      (send wx-parent append (send wx id) plain-label (mred->wx submenu) help-string)
+			      (send wx-parent append (send wx id) label help-string checkable?))
+			  (send wx-parent append-item this wx))
+			(send wx-parent append-item this (mred->wx submenu) plain-label))
+		    (set! shown? #t)
+		    (do-enable enabled?))))]
+      [delete (entry-point
+	       (lambda ()
+		 (when shown?
 		   (if in-menu?
-		       (begin
-			 (if submenu
-			     (send wx-parent append (send wx id) plain-label (mred->wx submenu) help-string)
-			     (send wx-parent append (send wx id) label help-string checkable?))
-			 (send wx-parent append-item this))
-		       (send wx-parent append-item this (mred->wx submenu) plain-label))
-		   (set! shown? #t)
-		   (do-enable enabled?)))]
-      [delete (lambda ()
-		(when shown?
-		  (if in-menu?
-		      (send wx-parent delete (send wx id) this)
-		      (send (mred->wx parent) delete-item this))
-		  (set! shown? #f)))]
+		       (send wx-parent delete (send wx id) this)
+		       (send (mred->wx parent) delete-item this))
+		   (set! shown? #f))))]
       [is-deleted? (lambda () (not shown?))])
     (sequence
-      (super-init wx)
-      (when keymap (send wx set-keymap keymap))
+      (as-entry
+       (lambda ()
+	 (set! wx (set-wx (make-object wx-menu-item% this)))
+	 (set! wx-parent (mred->wx parent))
+	 (super-init wx)
+	 (when keymap (send wx set-keymap keymap))))
       (restore))))
 
 (define shortcut-menu-item<%>
@@ -3303,8 +3568,9 @@
 
 (define basic-shortcut-menu-item%
   (class* basic-labelled-menu-item% (shortcut-menu-item<%>) (label checkable? menu callback shortcut help-string set-wx)
-    (rename [super-restore restore] [super-set-label set-label])
-    (inherit is-deleted? get-label)
+    (rename [super-restore restore] [super-set-label set-label]
+	    [super-is-deleted? is-deleted?]
+	    [super-get-label get-label])
     (private
       [wx #f])
     (public
@@ -3343,25 +3609,28 @@
 					   (send keymap map-function key-binding "menu-item")
 					   keymap))])
 		       (values new-label keymap)))])
+    (private
+      [do-set-label (entry-point-1
+		     (lambda (l) 
+		       (check-string '(method labelled-menu-item<%> set-label) l)
+		       (let-values ([(new-label keymap) (calc-labels l)])
+			 (super-set-label new-label)
+			 (if (super-is-deleted?)
+			     (send wx set-keymap keymap)
+			     (send wx swap-keymap menu keymap)))))])
     (override
-      [set-label (lambda (l) 
-		   (check-string '(method labelled-menu-item<%> set-label) l)
-		   (let-values ([(new-label keymap) (calc-labels l)])
-		     (super-set-label new-label)
-		     (if (is-deleted?)
-			 (send wx set-keymap keymap)
-			 (send wx swap-keymap menu keymap))))])
+      [set-label do-set-label])
     (public
       [set-shortcut (lambda (c) 
 		      (check-char/false '(method shortcut-menu-item<%> set-shortcut) c)
-		      (set! shortcut c) (set-label (get-label)))]
+		      (set! shortcut c) (do-set-label (super-get-label)))]
       [get-shortcut (lambda () shortcut)]
       [get-x-shortcut-prefix (lambda () x-prefix)]
       [set-x-shortcut-prefix (lambda (p) 
 			       (unless (memq p '(meta alt ctl-m ctl))
 				 (raise-type-error (who->name '(method shortcut-menu-item<%> set-x-shortcut-prefix))
 						   "symbol: meta, alt, ctl-m, or ctl" p))
-			       (set! x-prefix p) (set-label (get-label)))])
+			       (set! x-prefix p) (do-set-label (super-get-label)))])
     (sequence
       (let-values ([(new-label keymap) (calc-labels label)])
 	(super-init menu new-label help-string #f checkable? keymap (lambda (x) (set! wx x) (set-wx x)))))))
@@ -3387,8 +3656,8 @@
     (private
       [wx #f])
     (public
-      [check (lambda (on?) (send (mred->wx menu) check (send wx id) on?))]
-      [is-checked? (lambda () (send (mred->wx menu) checked? (send wx id)))])
+      [check (entry-point-1 (lambda (on?) (send (mred->wx menu) check (send wx id) on?)))]
+      [is-checked? (entry-point (lambda () (send (mred->wx menu) checked? (send wx id))))])
     (sequence
       (super-init label #t menu callback shortcut help-string (lambda (x) (set! wx x) x)))))
 
@@ -3406,48 +3675,64 @@
 (define basic-menu%
   (class* mred% (menu-item-container<%> internal-menu<%>) (popup-label callback)
     (public
-      [get-items (lambda () (send wx get-items))])
+      [get-items (entry-point (lambda () (send wx get-items)))])
     (private
-      [wx (make-object wx-menu% this popup-label callback)])
-    (sequence (super-init wx))))
+      [wx #f])
+    (sequence 
+      (set! wx (make-object wx-menu% this popup-label callback))
+      (super-init wx))))
 
 (define menu%
   (class basic-menu% (label parent [help-string #f])
+    (private
+      [item #f])
+    (public
+      [get-item (lambda () item)])
     (sequence 
       (check-string '(constructor menu) label)
       (menu-or-bar-parent 'menu parent)
       (check-string/false '(constructor menu) help-string)
-      (super-init #f void))
-    (private
-      [item (make-object sub-menu-item% this label parent help-string)])
-    (public
-      [get-item (lambda () item)])))
+      (as-entry
+       (lambda () 
+	 (super-init #f void)
+	 (set! item (make-object sub-menu-item% this label parent help-string)))))))
 
 (define popup-menu%
   (class basic-menu% ([title #f])
     (sequence
       (check-string/false '(constructor popup-menu) title)
-      (super-init title
-		  (lambda (m e)
-		    (let ([wx (wx:id-to-menu-item (send e get-menu-id))])
-		      (send (wx->mred wx) go)))))))
+      (as-entry 
+       (lambda ()
+	 (super-init title
+		     (lambda (m e)
+		       (let ([wx (wx:id-to-menu-item (send e get-menu-id))])
+			 (send (wx->mred wx) go)))))))))
 
 (define menu-bar%
   (class* mred% (menu-item-container<%>) (parent)
     (sequence (barless-frame-parent parent))
     (private 
-      [wx (make-object wx-menu-bar% this)]
-      [wx-parent (mred->wx parent)]
+      [wx #f]
+      [wx-parent #f]
       [shown? #f])
     (public
       [get-frame (lambda () parent)]
-      [get-items (lambda () (send wx get-items))]
-      [enable (lambda (on?) (send wx enable-all on?))]
-      [is-enabled? (lambda () (send wx all-enabled?))])
+      [get-items (entry-point (lambda () (send wx get-items)))]
+      [enable (entry-point-1 (lambda (on?) (send wx enable-all on?)))]
+      [is-enabled? (entry-point (lambda () (send wx all-enabled?)))])
     (sequence
-      (super-init wx)
-      (send wx-parent set-menu-bar wx)
-      (send wx-parent self-redraw-request))))
+      (as-entry
+       (lambda ()
+	 (set! wx (make-object wx-menu-bar% this))
+	 (set! wx-parent (mred->wx parent))
+	 (super-init wx)
+	 (send wx-parent set-menu-bar wx)
+	 (send wx-parent self-redraw-request))))))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;; END SECURE LEVEL ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;; Everything past this point is written at the user's level, so there
+;; are no entry/edit operations.
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Standard Key Bindings ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -3803,7 +4088,13 @@
     (unless (andmap string? choices)
       (raise-type-error 'get-choice-from-user parent "list of strings" choices))
     (check-top-level-parent/false 'get-choice-from-user parent)
+    (unless (and (list? init-vals) (andmap (lambda (x) (integer? x) (exact? x) (not (negative? x))) init-vals))
+      (raise-type-error 'get-choice-from-user "list of exact non-negative integers" init-vals))
     (check-style 'get-choice-from-user '(single multiple extended) null style)
+    (when (and (memq 'single style) (> (length init-vals) 1))
+      (raise-mismatch-error 'get-choice-from-user 
+			    (format "multiple initial-selection indices provided with ~e style: " 'single)
+			    init-vals))
     (let* ([f (make-object dialog% title parent box-width)]
 	   [ok-button #f]
 	   [update-ok (lambda (l) (send ok-button enable (not (null? (send l get-selections)))))]
@@ -3817,7 +4108,14 @@
 				((done #t) #f #f)))
 			    style)]
 	    [p (make-object horizontal-pane% f)])
-	(for-each (lambda (i) (send l select i #t)) init-vals)
+	(for-each (lambda (i) 
+		    (when (>= i (send l get-number))
+		      (raise-mismatch-error 
+		       'get-choice-from-user 
+		       (format "inital-selection list specifies an out-of-range index (~e choices provided): "
+			       (send l get-number))
+		       i))
+		    (send l select i #t)) init-vals)
 	(send p set-alignment 'right 'center)
 	(send p stretchable-height #f)
 	(make-object button% "Cancel" p (done #f))
@@ -4283,7 +4581,9 @@
     (raise-type-error (who->name who) "non-negative exact integer" i)))
 
 (define (check-dimension who d)
-  (when d (check-range-integer who d)))
+  (when d
+    (unless (and (integer? d) (exact? d) (<= 0 d 10000))
+      (raise-type-error (who->name who) "exact integer in [0, 10000] or #f"))))
 
 (define (check-string-or-bitmap who label)
   (unless (or (string? label) (is-a? label wx:bitmap%))
