@@ -632,6 +632,10 @@
     on-kill-focus
     popup-for-editor
     call-as-primary-owner
+    set-y-margin
+    set-x-margin
+    get-y-margin
+    get-x-margin
     scroll-to
     set-lazy-refresh
     get-lazy-refresh

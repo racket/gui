@@ -3414,6 +3414,8 @@
 			      '(hide-hscroll))
 			  '(hide-vscroll hide-hscroll)))])
     (sequence
+      (send c set-x-margin 2)
+      (send c set-y-margin 2)
       (send e set-paste-text-only #t)
       (send e auto-wrap (and multi? (not (memq 'hscroll style))))
       (let ([f (get-control-font)]
@@ -3438,7 +3440,7 @@
 	      [abox (box 0)])
 	  ; To bottom of first line
 	  (send (send e get-admin) get-dc #f ybox)
-	  (set! dy (+ -3 (abs (unbox ybox)) (send e line-location 0 #f))) ; 3 is fudge factor
+	  (set! dy (+ -3 (abs (unbox ybox)) (send e line-location 0 #f))) ; -3 is fudge factor
 	    
 	  ; Add diff for client size
 	  (send c get-client-size wbox hbox)
@@ -4603,6 +4605,10 @@
 		    (check-string '(method text-control<%> set-value) v)
 		    (send wx set-value v)))])
     (sequence
+      ;; Technically a bad way to change margin defaults, since it's
+      ;;  implemented with an update after creation:
+      (when (eq? horiz-margin no-val) (set! horiz-margin 2))
+      (when (eq? vert-margin no-val) (set! vert-margin 2))
       (as-entry
        (lambda ()
 	 (super-init (lambda () 
