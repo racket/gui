@@ -25,9 +25,11 @@
 	   exn:struct:unknown-preference
 	   exn:struct:exn)
 
+  (provide version:version)
+
   (provide/contract
    (version:add-spec any?)
-   (version:version any?)
+   ;(version:version any?)
    (exn:make-exn any?)
    (exn:exn? any?)
    (exn:make-unknown-preference any?)
