@@ -304,7 +304,7 @@
           (define (get-styles-fixed) styles-fixed?)
           (define (set-styles-fixed b) (set! styles-fixed? b))
           
-          (rename [super-after-change-style after-change-style]
+          (rename [super-on-insert on-insert]
                   [super-after-insert after-insert])
           (define/override (on-insert start len)
             (begin-edit-sequence)
