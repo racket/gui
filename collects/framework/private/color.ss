@@ -177,9 +177,10 @@
           (define/private (re-tokenize in in-start-pos enable-suspend)
             (let-values ([(lexeme type data new-token-start new-token-end) 
                           (get-token in)])
-              ;(printf "~a~n" lexeme)
 	      (unless (eq? 'eof type)
                 (enable-suspend #f)
+                #;(printf "~a at ~a to ~a~n" lexeme (+ in-start-pos (sub1 new-token-start))
+                        (+ in-start-pos (sub1 new-token-end)))
 		(let ((len (- new-token-end new-token-start)))
 		  (set! current-pos (+ len current-pos))
 		  (sync-invalid)
@@ -251,16 +252,19 @@
           
           (define/private (colorer-driver)
             (unless up-to-date?
+              #;(printf "revision ~a~n" (get-revision-number))
               (unless (and tok-cor (= rev (get-revision-number)))
                 (when tok-cor
                   (coroutine-kill tok-cor))
+                #;(printf "new coroutine~n")
                 (set! tok-cor
                       (coroutine
                        (lambda (enable-suspend)
-                         (re-tokenize (open-input-text-editor this current-pos end-pos
+                         (parameterize ((port-count-lines-enabled #t))
+                           (re-tokenize (open-input-text-editor this current-pos end-pos
                                                               (lambda (x) #f))
-                                      current-pos
-                                      enable-suspend))))
+                                        current-pos
+                                        enable-suspend)))))
                 (set! rev (get-revision-number)))
               (with-handlers ((exn:fail?
                                (lambda (exn)
@@ -269,12 +273,16 @@
                                     (format "exception in colorer thread: ~s" exn)
                                     exn))
                                  (set! tok-cor #f))))
+                #;(printf "begin lexing~n")
                 (when (coroutine-run 10 tok-cor)
                   (set! up-to-date? #t)))
+              #;(printf "end lexing~n")
               (unless (null? colors)
+                #;(printf "begin coloring~n")
                 (begin-edit-sequence #f #f)
                 (color)
-                (end-edit-sequence))))
+                (end-edit-sequence)
+                #;(printf "end coloring~n"))))
           
           (define/private (colorer-callback)
             (cond
