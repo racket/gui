@@ -13,6 +13,13 @@
 (define (get-icon)
   (make-object bitmap% (sys-path "mred.xbm") 'xbm))
 
+(define get-plt
+  (let ([i #f])
+    (lambda ()
+      (unless i
+	(set! i (make-object bitmap% (sys-path "plt.gif"))))
+      i)))
+      
 (define (show-instructions file)
   (letrec ([f (make-object frame% file #f 400 400)]
 	   [print (make-object button% "Print" f
@@ -82,12 +89,14 @@
 	     [no-bitmaps? #f]
 	     [no-stipples? #f]
 	     [pixel-copy? #f]
+	     [mask? #f]
 	     [scale 1]
 	     [offset 0])
 	    (public
 	     [set-bitmaps (lambda (on?) (set! no-bitmaps? (not on?)) (on-paint))]
 	     [set-stipples (lambda (on?) (set! no-stipples? (not on?)) (on-paint))]
 	     [set-pixel-copy (lambda (on?) (set! pixel-copy? on?) (on-paint))]
+	     [set-use-mask (lambda (on?) (set! mask? on?) (on-paint))]
 	     [set-scale (lambda (s) (set! scale s) (on-paint))]
 	     [set-offset (lambda (o) (set! offset o) (on-paint))])
 	    (override
@@ -430,7 +439,28 @@
 			    ; Bitmap copying:
 			    (when (and (not no-bitmaps?) last?)
 			      (let ([x 5] [y 165])
-				(send dc draw-bitmap (get-icon) x y 'xor)
+				(let ([mred-icon (get-icon)])
+				  (cond
+				   [mask?
+				    (let* ([plt (get-plt)]
+					   [tmp-bm (make-object bitmap% 
+								(send mred-icon get-width)
+								(send mred-icon get-height)
+								#f)]
+					   [tmp-dc (make-object bitmap-dc% tmp-bm)])
+				      (send tmp-dc draw-bitmap plt 
+					    (/ (- (send mred-icon get-width)
+						  (send plt get-width))
+					       2)
+					    (/ (- (send mred-icon get-height)
+						  (send plt get-height))
+					       2))
+				      (send dc draw-bitmap tmp-bm x y 'solid 
+					    (send the-color-database find-color "BLACK")
+					    mred-icon))]
+				   [else
+				    ;; simple draw
+				    (send dc draw-bitmap mred-icon x y 'xor)]))
 				(set! x (+ x (send (get-icon) get-width)))
 				(let ([black (send the-color-database find-color "BLACK")]
 				      [red (send the-color-database find-color "RED")]
@@ -628,6 +658,7 @@
 			    (case clip
 			      [(none) (void)]
 			      [(rect) (send dc set-clipping-rect 100 -25 10 400)]
+			      [(rect2) (send dc set-clipping-rect 50 -25 10 400)]
 			      [(poly) (send dc set-clipping-region (mk-poly))]
 			      [(circle) (send dc set-clipping-region (mk-circle))]
 			      [(rect+poly) (let ([r (mk-poly)])
@@ -685,6 +716,7 @@
 				(unless (andmap = l
 						(case clip
 						  [(rect) '(100. -25. 10. 400.)]
+						  [(rect2) '(50. -25. 10. 400.)]
 						  [(poly circle poly-rect) '(0. 60. 180. 180.)]
 						  [(rect+poly rect+circle) '(0. -25. 180. 400.)]
 						  [(poly&rect) '(100. 60. 10. 180.)]
@@ -744,13 +776,13 @@
 		 (lambda (self event)
 		   (send canvas set-pixel-copy (send self get-value))))
     (make-object choice% "Clip" 
-		 '("None" "Rectangle" "Octagon" "Circle" "Round Rectangle"
+		 '("None" "Rectangle" "Rectangle2" "Octagon" "Circle" "Round Rectangle"
 		   "Rectangle + Octagon" "Rectangle + Circle" 
 		   "Octagon - Rectangle" "Rectangle & Octagon" "Polka")
 		 hp3
 		 (lambda (self event)
 		   (set! clip (list-ref
-		               '(none rect poly circle roundrect rect+poly rect+circle poly-rect poly&rect polka)
+		               '(none rect rect2 poly circle roundrect rect+poly rect+circle poly-rect poly&rect polka)
 		               (send self get-selection)))
 		   (send canvas on-paint)))
     (let ([clock (lambda (clip?)
@@ -772,7 +804,10 @@
 			     (set! clock-end #f)
 			     (send canvas on-paint))))])
       (make-object button% "Clock" hp3 (lambda (b e) (clock #f)))
-      (make-object button% "Clip Clock" hp3 (lambda (b e) (clock #t)))))
+      (make-object button% "Clip Clock" hp3 (lambda (b e) (clock #t)))
+      (make-object check-box% "Mask" hp3
+		   (lambda (self event)
+		     (send canvas set-use-mask (send self get-value))))))
 
   (send f show #t))
 
