@@ -178,6 +178,7 @@
 		  [super-on-local-char on-local-char]
 
 		  [super-on-save-file on-save-file]
+		  [super-after-save-file after-save-file]
 		  
 		  [super-after-set-position after-set-position]
 		  
@@ -195,11 +196,11 @@
 		  [super-after-delete after-delete]
 		  [super-after-set-size-constraint after-set-size-constraint])
 	  (private
-	    [styles-fixed-edit-modified? #f])
+	    [styles-fixed-edit-modified? #f]
+	    [restore-file-format void]) ; the function void, not #<void>
 	  (public
 	    [on-save-file
-	     (let ([skip-check #f]
-		   [has-non-text-snips 
+	     (let ([has-non-text-snips 
 		    (lambda ()
 		      (let loop ([s (find-snip 0 wx:const-snip-after)])
 			(cond
@@ -208,29 +209,31 @@
 			   (loop (send s next))]
 			  [else #t])))])
 	       (lambda (name format)
-		 (unless (or skip-check
-			     (= format wx:const-media-ff-std)
-			     (= format wx:const-media-ff-guess)
-			     (and (= format wx:const-media-ff-same)
-				  (= (get-file-format) 
-				     wx:const-media-ff-std)))
-		   (dynamic-wind
-		    (lambda () (set! skip-check #t))
-		    (lambda ()
-		      (cond
-			[(= format wx:const-media-ff-copy)
-			 (let ([format (get-file-format)])
-			   (set-file-format wx:const-media-ff-std)
-			   (save-file name format)
-			   (set-file-format format))]
-			[(and (has-non-text-snips)
-			      (or (not (mred:preferences:get-preference 'mred:verify-change-format))
-				  (mred:gui-utils:get-choice "Save this file as plain text?" "No" "Yes")))
-			 (save-file name wx:const-media-ff-std)]
-			[else (void)]))
-		    (lambda () (set! skip-check #f))))
-		 (super-on-save-file name format)))]
-	 
+		 (when (and (or (= format wx:const-media-ff-same)
+				(= format wx:const-media-ff-copy))
+			    (not (= (get-file-format) 
+				    wx:const-media-ff-std)))
+		   (cond
+		     [(= format wx:const-media-ff-copy)
+		      (set! restore-file-format 
+			    (let ([f (get-file-format)])
+			      (lambda ()
+				(set! restore-file-format void)
+				(set-file-format f))))
+		      (set-file-format wx:const-media-ff-std)]
+		     [(and (has-non-text-snips)
+			   (or (not (mred:preferences:get-preference 'mred:verify-change-format))
+			       (mred:gui-utils:get-choice "Save this file as plain text?" "No" "Yes")))
+		      (set-file-format wx:const-media-ff-std)]
+		     [else (void)]))
+		 (or (super-on-save-file name format)
+		     (begin 
+		       (restore-file-format)
+		       #f))))]
+	    [after-save-file
+	     (lambda (success)
+	       (super-after-save-file success)
+	       (restore-file-format))]
 
 
 	    [autowrap-bitmap mred:icon:autowrap-bitmap]
