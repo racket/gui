@@ -52,7 +52,7 @@
 				  (let* ([parents-children (ivar parent children)]
 					 [num-children (length parents-children)])
 				    (if (<= num-children 1)
-					(collapse parent)
+					(helper parent)
 					(begin (send parent delete-child canvas/panel)
 					       (send (car (ivar parent children)) set-focus)))))))])
 		 (send media remove-canvas canvas)
