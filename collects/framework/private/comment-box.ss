@@ -6,7 +6,7 @@
            (lib "unitsig.ss")
            "sig.ss"
            "../decorated-editor-snip.ss"
-           (lib "bitmap-constant.ss" "mrlib")
+           (lib "include-bitmap.ss" "mrlib")
            (lib "string-constant.ss" "string-constants"))
   
   (provide comment-box@)

@@ -1,7 +1,7 @@
 (module icon mzscheme
   (require (lib "unitsig.ss")
 	   (lib "class.ss")
-           (lib "bitmap-constant.ss" "mrlib")
+           (lib "include-bitmap.ss" "mrlib")
 	   "bday.ss"
            "sig.ss"
 	   (lib "mred-sig.ss" "mred"))
