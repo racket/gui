@@ -50,7 +50,9 @@
 	 (lambda ()
 	   (when (send frame is-shown?)
 	     (send m set-label
-		   (let* ([w (with-handlers ([void (lambda (x) #f)]) (mred:test:get-focused-window))]
+		   (let* ([w (with-handlers ([void (lambda (x) #f)])
+			       (let ([f (get-top-level-focus-window)])
+				 (and f (send f get-focus-window))))]
 			  [l (and w (send w get-label))])
 		     (format "focus: ~a ~a" (or l "") w)))
 	     (start 1000 #t)))])))

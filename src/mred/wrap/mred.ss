@@ -116,7 +116,6 @@
 	[get-window (lambda () this)]
 	[dx (lambda () 0)]
 	[dy (lambda () 0)]
-	[get-edit-target (lambda () this)]
 	[get-top-level
 	 (lambda ()
 	   (unless top-level
@@ -199,9 +198,8 @@
       [set-focus-window
        (lambda (w)
 	 (set! focus w)
-	 (let ([t (and w (send w get-edit-target))])
-	   (when t
-	     (set! target t))))]
+	 (when w
+	   (set! target w)))]
       
       [get-focus-window
        (lambda () focus)]
@@ -855,7 +853,6 @@
     (private
       [fixed-height? #f]
       [fixed-height-lines 0]
-      [edit-target this]
       [orig-hard #f])
     (override
       [on-container-resize (lambda ()
@@ -870,7 +867,6 @@
 	     (let ([mred (wx->mred this)])
 	       (when mred
 		 (send m set-active-canvas mred))))))]
-      [get-edit-target (lambda () edit-target)]
       [set-edit
        (letrec ([l (case-lambda
 		    [(edit) (l edit #t)]
@@ -889,7 +885,6 @@
 		     (force-redraw)])])
 	 l)])
     (public
-      [set-edit-target (lambda (t) (set! edit-target t))]
       [set-line-count (lambda (n)
 			(if n
 			    (begin
@@ -1978,10 +1973,10 @@
   (class* (make-area-container-window% (make-window% #t (make-container% area%))) (top-level-window<%>) (mk-wx label parent)
     (rename [super-set-label set-label])
     (private
-      [wx-object->mred
+      [wx-object->proxy
        (lambda (o)
 	 (if (is-a? o wx:window%)
-	     (wx->mred o)
+	     (wx->proxy o)
 	     o))]
       [eventspace (wx:current-eventspace)])
     (override
@@ -2002,13 +1997,13 @@
 		(send wx set-size -1 -1 w h))]
 
       [get-focus-window (lambda () (let ([w (send wx get-focus-window)])
-				     (and w (wx->mred w))))]
+				     (and w (wx->proxy w))))]
       [get-edit-target-window (lambda () (let ([w (send wx get-edit-target-window)])
-					   (and w (wx->mred w))))]
+					   (and w (wx->proxy w))))]
       [get-focus-object (lambda () (let ([o (send wx get-focus-object)])
-				     (and o (wx-object->mred o))))]
+				     (and o (wx-object->proxy o))))]
       [get-edit-target-object (lambda () (let ([o (send wx get-edit-target-object)])
-					   (and o (wx-object->mred o))))])
+					   (and o (wx-object->proxy o))))])
     (private
       [wx #f]
       [wx-panel #f]
@@ -2384,10 +2379,6 @@
 	[() force-focus?]
 	[(on?) (set! force-focus? (and on? #t))
 	       (send wx force-display-focus on?)])]
-      [edit-target 
-       (case-lambda 
-	[() (and (send wx get-edit-target) #t)]
-	[(on?) (send wx set-edit-target (and on? wx))])]
 
       [set-line-count
        (lambda (n) (send wx set-line-count n))]
