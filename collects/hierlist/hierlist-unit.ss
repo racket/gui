@@ -34,90 +34,90 @@
       (send arrow-snip-class set-classname "hier-arrow")
       (define arrow-snip%
 	(class100 snip% (callback)
-	       (inherit get-admin set-flags get-flags set-count set-snipclass get-style)
-	       (rename [super-get-extent get-extent])
-	       (private-field 
-		 [size-calculated? #f]
-		 [size (max (send up-click-bitmap get-width) (send up-click-bitmap get-height))]
-		 [width-fraction 1/2]
-		 [on? #f]
-		 [click-callback callback]
-		 [clicked? #f])
-	       (private
-		 [set-sizes
-		  (lambda (dc)
-		    (let* ([s (get-style)]
-                           [h (send s get-text-height dc)]
-			   [d (send s get-text-descent dc)]
-			   [a (send s get-text-space dc)])
-		      (set! size (- h d a))
-		      (set! size-calculated? #t)
-		      (set! arrow-size (+ size 2))))]
-		 [get-width (lambda () (+ 2 size))]
-		 [get-height (lambda () (+ 2 size))]
-		 [update
-		  (lambda ()
-		    (send (get-admin) needs-update this 0 0 (get-width) (get-height)))])
-	       (override
-		 [get-extent (lambda (dc x y w h descent space lspace rspace)
-			       (super-get-extent dc x y w h descent space lspace rspace)
-			       (unless size-calculated? (set-sizes dc))
-			       (when w (set-box! w (get-width)))
-			       (when h (set-box! h (get-height)))
-			       (when descent (set-box! descent 2))
-			       (when space (set-box! space 0)))]
-		 [partial-offset (lambda (dc x y len)
-				   (unless size-calculated? (set-sizes dc))
-				   (if (zero? len)
-				       0 
-				       (get-width)))]
-		 [draw (lambda (dc x y left top right bottom dx dy draw-caret)
-			 (unless size-calculated? (set-sizes dc))
-			 (let* ([bitmap (if clicked?
-                                            (if on? down-click-bitmap up-click-bitmap)
-                                            (if on? down-bitmap up-bitmap))]
-                                [bw (send bitmap get-width)]
-                                [bh (send bitmap get-height)])
-                           (send dc draw-bitmap bitmap 
-                                 (+ x (- (/ size 2) (/ bw 2))) 
-                                 (+ y (- (/ size 2) (/ bh 2))))))]
-		 [size-cache-invalid (lambda () (set! size-calculated? #f))]
-		 [on-event
-		  (lambda (dc x y mediax mediay event)
-		    (let ([in-range?
-			   (and (<= 0 (- (send event get-x) x) (get-width))
-				(<= 0 (- (send event get-y) y) (get-height)))])
-		      (cond
-		       [(send event button-down?)
-			(when in-range?
-			  (unless clicked?
-			    (set! clicked? #t)
-			    (update)))]
-		       [(send event button-up?)
-			(when clicked?
-			  (set! clicked? #f)
-			  (update))
-			(when in-range?
-			  (on (not on?))
-			  (click-callback this))]
-		       [(send event dragging?)
-			(unless (or (and clicked? in-range?)
-				    (and (not clicked?) (not in-range?)))
-			  (set! clicked? (not clicked?))
-			  (update))]
-		       [else (when clicked?
-			       (set! clicked? #f)
-			       (update))])))]
-		 [copy (lambda () (make-object arrow-snip% click-callback))])
-	       (public
-		 [on (case-lambda 
-		      [(v) (set! on? v) (update)]
-		      [() on?])])
-	       (sequence
-		 (super-init)
-		 (set-snipclass arrow-snip-class)
-		 (set-count 1)
-		 (set-flags (cons 'handles-events (get-flags))))))
+          (inherit get-admin set-flags get-flags set-count set-snipclass get-style)
+          (rename [super-get-extent get-extent])
+          (private-field 
+           [size-calculated? #f]
+           [size (max (send up-click-bitmap get-width) (send up-click-bitmap get-height))]
+           [width-fraction 1/2]
+           [on? #f]
+           [click-callback callback]
+           [clicked? #f])
+          (private
+            [set-sizes
+             (lambda (dc)
+               (let* ([s (get-style)]
+                      [h (send s get-text-height dc)]
+                      [d (send s get-text-descent dc)]
+                      [a (send s get-text-space dc)])
+                 (set! size (- h d a))
+                 (set! size-calculated? #t)
+                 (set! arrow-size (+ size 2))))]
+            [get-width (lambda () (+ 2 size))]
+            [get-height (lambda () (+ 2 size))]
+            [update
+             (lambda ()
+               (send (get-admin) needs-update this 0 0 (get-width) (get-height)))])
+          (override
+            [get-extent (lambda (dc x y w h descent space lspace rspace)
+                          (super-get-extent dc x y w h descent space lspace rspace)
+                          (unless size-calculated? (set-sizes dc))
+                          (when w (set-box! w (get-width)))
+                          (when h (set-box! h (get-height)))
+                          (when descent (set-box! descent 2))
+                          (when space (set-box! space 0)))]
+            [partial-offset (lambda (dc x y len)
+                              (unless size-calculated? (set-sizes dc))
+                              (if (zero? len)
+                                  0 
+                                  (get-width)))]
+            [draw (lambda (dc x y left top right bottom dx dy draw-caret)
+                    (unless size-calculated? (set-sizes dc))
+                    (let* ([bitmap (if clicked?
+                                       (if on? down-click-bitmap up-click-bitmap)
+                                       (if on? down-bitmap up-bitmap))]
+                           [bw (send bitmap get-width)]
+                           [bh (send bitmap get-height)])
+                      (send dc draw-bitmap bitmap 
+                            (+ x (- (/ size 2) (/ bw 2))) 
+                            (+ y (- (/ size 2) (/ bh 2))))))]
+            [size-cache-invalid (lambda () (set! size-calculated? #f))]
+            [on-event
+             (lambda (dc x y mediax mediay event)
+               (let ([in-range?
+                      (and (<= 0 (- (send event get-x) x) (get-width))
+                           (<= 0 (- (send event get-y) y) (get-height)))])
+                 (cond
+                   [(send event button-down?)
+                    (when in-range?
+                      (unless clicked?
+                        (set! clicked? #t)
+                        (update)))]
+                   [(send event button-up?)
+                    (when clicked?
+                      (set! clicked? #f)
+                      (update))
+                    (when in-range?
+                      (on (not on?))
+                      (click-callback this))]
+                   [(send event dragging?)
+                    (unless (or (and clicked? in-range?)
+                                (and (not clicked?) (not in-range?)))
+                      (set! clicked? (not clicked?))
+                      (update))]
+                   [else (when clicked?
+                           (set! clicked? #f)
+                           (update))])))]
+            [copy (lambda () (make-object arrow-snip% click-callback))])
+          (public
+            [on (case-lambda 
+                 [(v) (set! on? v) (update)]
+                 [() on?])])
+          (sequence
+            (super-init)
+            (set-snipclass arrow-snip-class)
+            (set-count 1)
+            (set-flags (cons 'handles-events (get-flags))))))
 
       ;; Hack to get whitespace matching width of arrow: derive a new
       ;; class that overrides the `draw' method to do nothing. 
@@ -143,7 +143,11 @@
 
       (define hierarchical-list-item<%>
 	(interface ()
-	  get-editor is-selected? select user-data))
+	  get-editor 
+          is-selected?
+          select
+          user-data
+          get-clickable-snip))
 
       (define hierarchical-list-item%
 	(class100* object% (hierarchical-list-item<%>) (snp)
@@ -151,6 +155,7 @@
 		  [snip snp]
 		  [data #f])
 		(public
+                  [get-clickable-snip (lambda () snip)]
 		  [get-editor (lambda () (send snip get-item-buffer))]
 		  [is-selected? (lambda () (send (send snip get-editor) is-selected?))]
 		  [select (lambda (on?) (send (send snip get-editor) select on?))]
@@ -167,42 +172,47 @@
 
       (define hierarchical-list-compound-item<%>
 	(interface (hierarchical-list-item<%>)
-	  new-item new-list delete-item get-items))
+	  new-item 
+          new-list
+          delete-item
+          get-items
+          get-arrow-snip))
 
       (define hierarchical-list-compound-item%
 	(class100* hierarchical-list-item% (hierarchical-list-compound-item<%>) (snp)
-		(private-field [snip snp])
-		(override
-		  [get-editor (lambda () (send snip get-title-buffer))])
-		(public
-		  [open
-		   (lambda ()
-		     (send snip open))]
-		  [close
-		   (lambda ()
-		     (send snip close))]
-		  [toggle-open/closed
-		   (lambda ()
-		     (send snip toggle-open/closed))]
-		  [is-open?
-		   (lambda ()
-		     (send snip is-open?))]
-		  [new-item 
-		   (lambda x
-		     (begin0
-		      (send (send snip get-content-buffer) new-item . x)
-		      (send snip not-empty-anymore)))]
-		  [new-list 
-		   (lambda x
-		     (begin0 
-		      (send (send snip get-content-buffer) new-list . x)
-		      (send snip not-empty-anymore)))]
-		  [delete-item (lambda (i) (begin0
-					    (send (send snip get-content-buffer) delete-item i)
-					    (send snip check-empty-now)))]
-		  [get-items (lambda () (send (send snip get-content-buffer) get-items))])
-		(sequence
-		  (super-init snip))))
+          (private-field [snip snp])
+          (override
+            [get-editor (lambda () (send snip get-title-buffer))])
+          (public
+            [get-arrow-snip (lambda () (send snip get-arrow-snip))]
+            [open
+             (lambda ()
+               (send snip open))]
+            [close
+             (lambda ()
+               (send snip close))]
+            [toggle-open/closed
+             (lambda ()
+               (send snip toggle-open/closed))]
+            [is-open?
+             (lambda ()
+               (send snip is-open?))]
+            [new-item 
+             (lambda x
+               (begin0
+                 (send (send snip get-content-buffer) new-item . x)
+                 (send snip not-empty-anymore)))]
+            [new-list 
+             (lambda x
+               (begin0 
+                 (send (send snip get-content-buffer) new-list . x)
+                 (send snip not-empty-anymore)))]
+            [delete-item (lambda (i) (begin0
+                                       (send (send snip get-content-buffer) delete-item i)
+                                       (send snip check-empty-now)))]
+            [get-items (lambda () (send (send snip get-content-buffer) get-items))])
+          (sequence
+            (super-init snip))))
 
       ;; Buffer for a single list item
       (define hierarchical-item-text%
@@ -488,6 +498,8 @@
 	    [content-snip (make-object editor-snip% content-buffer #f 4 0 0 0 0 0 0 0)]
 	    [arrow (make-object (get-arrow-snip%) (lambda (a) (on-arrow a)))]
 	    [whitespace (make-object whitespace-snip%)])
+          (public
+            [get-arrow-snip (lambda () arrow)])
 	  (sequence
 	    (super-init main-buffer #f 0 0 0 0 0 0 0 0)
 	    (send main-buffer set-max-undo-history 0)
