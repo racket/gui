@@ -6,7 +6,10 @@
   (provide
    test-name
    failed-tests
-   (struct eof-result ())
+
+   ;(struct eof-result ())
+   eof-result?
+
    load-framework-automatically
    shutdown-listener shutdown-mred mred-running?
    send-sexp-to-mred queue-sexp-to-mred
@@ -17,7 +20,24 @@
    ;; grabs the frontmost window, executes the sexp and waits for a new frontmost window
    wait-for-new-frame
 
-   wait-for)
+   wait-for
+
+   reset-section-jump!
+   set-section-jump!
+   reset-section-name!
+   set-section-name!
+   set-only-these-tests!)
+
+  (define section-jump void)
+  (define (set-section-jump! _s) (set! section-jump _s))
+  (define (reset-section-jump!) (set! section-jump #f))
+
+  (define section-name "<<setup>>")
+  (define (set-section-name! _s) (set! section-name _s))
+  (define (reset-section-name!) (set! section-name "<<setup>>"))
+
+  (define only-these-tests #f)
+  (define (set-only-these-tests! _t) (set! only-these-tests _t))
 
   (define test-name "<<setup>>")
   (define failed-tests null)
@@ -48,11 +68,10 @@
   (define restart-mred
     (lambda ()
       (shutdown-mred)
-      (let-values ([(base _1 _2) (split-path program)])
-	((case (system-type)
-	   [(macos) system*]
-	   [else (lambda (x) (thread (lambda () (system* x))))])
-	 (mred-program-launcher-path "Framework Test Engine")))
+      ((case (system-type)
+	 [(macos) system*]
+	 [else (lambda (x) (thread (lambda () (system* x))))])
+       (mred-program-launcher-path "Framework Test Engine"))
       (let-values ([(in out) (tcp-accept listener)])
 	(set! in-port in)
 	(set! out-port out))

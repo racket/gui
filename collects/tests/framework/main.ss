@@ -5,16 +5,7 @@
 	   "test-suite-utils.ss"
 	   (lib "guis.ss" "tests" "utils"))
 
-  (provide
-   only-these-tests
-   section-name
-   section-jump)
-
   (define initial-port 6012)
-
-  (define section-jump void)
-  (define section-name "<<setup>>")
-  (define only-these-tests #f)
 
   (unless (file-exists? (build-path (current-load-relative-directory) "receive-sexps-port.ss"))
     (call-with-output-file (build-path (current-load-relative-directory) "receive-sexps-port.ss")
@@ -44,8 +35,8 @@
 	      (multi
 	       [("-o" "--only")
 		,(lambda (flag _only-these-tests)
-		   (set! only-these-tests (cons (string->symbol _only-these-tests)
-						(or only-these-tests null))))
+		   (set-only-these-tests (cons (string->symbol _only-these-tests)
+					       (or only-these-tests null))))
 		("Only run test named <test-name>" "test-name")]))])
       
       (let* ([saved-command-line-file (build-path (collection-path "tests" "framework") "saved-command-line.ss")]
@@ -74,21 +65,28 @@
 	    (begin (copy-file preferences-file old-preferences-file)
 		   (printf "  saved preferences file~n"))))
       
-      (for-each (lambda (x)
-		  (when (member x all-files)
-		    (shutdown-mred)
-		    (let/ec k
-		      (fluid-let ([section-name x]
-				  [section-jump k])
-			(with-handlers ([(lambda (x) #t)
-					 (lambda (exn)
-					   (printf "~a~n" (if (exn? exn) (exn-message exn) exn)))])
-			  (printf "beginning ~a test suite~n" x)
+      (for-each
+       (lambda (x)
+	 (when (member x all-files)
+	   (shutdown-mred)
+	   (let/ec k
+	     (dynamic-wind
+	      (lambda ()
+		(set-section-name! x)
+		(set-section-jump k))
+	      (lambda ()
+		(with-handlers ([(lambda (x) #t)
+				 (lambda (exn)
+				   (printf "~a~n" (if (exn? exn) (exn-message exn) exn)))])
+		  (printf "beginning ~a test suite~n" x)
 
-			  (eval `(require ,x))
-			  
-			  (printf "PASSED ~a test suite~n" x))))))
-		files-to-process)))
+		  (eval `(require ,x))
+		  
+		  (printf "PASSED ~a test suite~n" x)))
+	      (lambda ()
+		(reset-section-name!)
+		(reset-section-jump!))))))
+       files-to-process)))
 
   (printf "  restoring preferences file ~s to ~s~n" old-preferences-file preferences-file)
   (when (file-exists? preferences-file)
