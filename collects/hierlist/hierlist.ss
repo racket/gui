@@ -1,0 +1,32 @@
+
+(require-library "hierlists.ss" "hierlist")
+
+(invoke-open-unit/sig (require-library "hierlistr.ss" "hierlist") mred (mred : mred^))
+
+#|
+
+;; Testing
+(define f (make-object mred:frame% null "test"))
+(define p (make-object mred:horizontal-panel% f))
+(define c (make-object (class-asi mred:hierarchical-list%
+				  (public
+				   [double-select
+				    (lambda (s)
+				      (printf "Selected: ~a~n"
+					      (send (send s get-buffer) get-flattened-text)))]))
+		       p))
+
+(define a (send c new-list))
+(send (send a get-buffer) insert "First Item: List")
+(send (send (send a new-item) get-buffer) insert "Sub1")
+(send (send (send a new-item) get-buffer) insert "Sub2")
+(define a.1 (send a new-list))
+(send (send a.1 get-buffer) insert "Deeper List")
+(send (send (send a.1 new-item) get-buffer) insert "Way Down")
+
+(define b (send c new-item))
+(send (send b get-buffer) insert "Second Item")
+
+(send f show #t)
+
+|#
