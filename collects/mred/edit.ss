@@ -1013,34 +1013,34 @@
 	     (super-after-delete start len)
 	     (enqueue-for-frame 'edit-position-changed))]))))
 
-  (define make-trace-edit%
-    (trace-methods get-extent
-		   get-descent
-		   get-snip-location
-		   get-space
-		   scroll-line-location
-		   find-scroll-line
-		   num-scroll-lines
-		   find-line
-		   find-position
-		   find-position-in-line
-		   get-snip-position-and-location
-		   get-visible-line-range
-		   get-visible-position-range
-		   last-line
-		   last-paragraph
-		   line-end-position
-		   line-length
-		   line-location
-		   line-paragraph
-		   line-start-position
-		   ;paragraph-end-line
-		   paragraph-end-position
-		   paragraph-start-line
-		   paragraph-start-position
-		   position-line
-		   position-location
-		   position-paragraph))
+  '(define make-trace-edit%
+     (trace-methods get-extent
+		    get-descent
+		    get-snip-location
+		    get-space
+		    scroll-line-location
+		    find-scroll-line
+		    num-scroll-lines
+		    find-line
+		    find-position
+		    find-position-in-line
+		    get-snip-position-and-location
+		    get-visible-line-range
+		    get-visible-position-range
+		    last-line
+		    last-paragraph
+		    line-end-position
+		    line-length
+		    line-location
+		    line-paragraph
+		    line-start-position
+		    ;paragraph-end-line
+		    paragraph-end-position
+		    paragraph-start-line
+		    paragraph-start-position
+		    position-line
+		    position-location
+		    position-paragraph))
   
   (define media-edit% (make-media-edit%
 		       (make-std-buffer% 
