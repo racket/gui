@@ -1,7 +1,6 @@
-(define mred:exit@
+
   (unit/sig mred:exit^
-    (import [mred:debug : mred:debug^]
-	    [mred:preferences : mred:preferences^]
+    (import [mred:preferences : mred:preferences^]
 	    [mred:gui-utils : mred:gui-utils^])
     (rename (-exit exit))
 
@@ -55,6 +54,6 @@
 		 (if (null? exit-callbacks)
 		     (exit)
 		     #f)))
-	     (lambda () (set! exiting? #f)))))))))
+	     (lambda () (set! exiting? #f))))))))
 		   
 

@@ -1,8 +1,6 @@
 
-(define mred:finder@
   (unit/sig mred:finder^
-    (import [mred:debug : mred:debug^]
-	    [mred:container : mred:container^]
+    (import [mred:container : mred:container^]
 	    [mred:preferences : mred:preferences^]
 	    [mred:gui-utils : mred:gui-utils^]
 	    [mred:edit : mred:edit^]
@@ -550,4 +548,4 @@
 	(apply (case (mred:preferences:get-preference 'mred:file-dialogs)
 		 [(std) std-get-file]
 		 [(common) common-get-file])
-	       args)))))
+	       args))))

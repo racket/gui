@@ -1,9 +1,7 @@
 ;; need a preference for pconvert
 
-(define mred:preferences@
   (unit/sig mred:preferences^
-    (import [mred:debug : mred:debug^]
-	    [mred:exn : mred:exn^]
+    (import [mred:exn : mred:exn^]
 	    [mred : mred:container^] ;; warning -- to use the mred:panel macros, 
 	                             ;; need to have mred:container be prefixed with "mred"
 	    [mred:exit : mred:exit^]
@@ -15,14 +13,6 @@
     (mred:debug:printf 'invoke "mred:preferences@")
     
     (define preferences-filename (wx:find-path 'pref-file))
- #|
-    (define preferences-filename
-      (build-path (wx:find-directory 'pref)
-		  (case wx:platform
-		    [(unix)  ".mred.prefs"]
-		    [(macintosh) "MrEd Preferences"]
-		    [else "mred.pre"])))
- |#
     
     (define preferences (make-hash-table))
     (define marshall-unmarshall (make-hash-table))
@@ -358,4 +348,4 @@
 			  (begin0 (make-preferences-dialog)
 				  (cursor-off)))))))))))
 
-    (read-user-preferences)))
+    (read-user-preferences))

@@ -1,7 +1,6 @@
-(define mred:keymap@
+
   (unit/sig mred:keymap^
-    (import [mred:debug : mred:debug^]
-	    [mred:preferences : mred:preferences^]
+    (import [mred:preferences : mred:preferences^]
 	    [mred:exit : mred:exit^]
 	    [mred:finder : mred:finder^]
 	    [mred:handler : mred:handler^]
@@ -908,4 +907,4 @@
 
     (define global-keymap (make-object wx:keymap%))
 					     
-    (setup-global-keymap global-keymap)))
+    (setup-global-keymap global-keymap))

@@ -1,7 +1,6 @@
-(define mred:panel@
+
   (unit/sig mred:panel^
-    (import [mred:debug : mred:debug^]
-	    [mred:container : mred:container^]
+    (import [mred:container : mred:container^]
 	    [mred:canvas : mred:canvas^]
 	    mzlib:function^)
 
@@ -75,4 +74,4 @@
     (define horizontal-edit-panel%
       (make-edit-panel% mred:container:horizontal-panel%))    
     (define vertical-edit-panel%
-      (make-edit-panel% mred:container:vertical-panel%))))
+      (make-edit-panel% mred:container:vertical-panel%)))

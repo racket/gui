@@ -1,8 +1,6 @@
 
-(define mred:edit@
   (unit/sig mred:edit^
-    (import [mred:debug : mred:debug^]
-	    [mred:connections : mred:connections^]
+    (import [mred:connections : mred:connections^]
 	    [mred:finder : mred:finder^]
 	    [mred:path-utils : mred:path-utils^]
 	    [mred:mode : mred:mode^]
@@ -43,7 +41,6 @@
 	  (inherit modified? get-filename save-file canvases
 		   get-max-width get-admin)
 	  (rename
-	    [super-set-filename set-filename]
 	    [super-set-modified set-modified]
 	    [super-on-change on-change]
 	    [super-on-save-file on-save-file]
@@ -133,14 +130,7 @@
 			 (delete-file auto-saved-name)
 			 (set! auto-saved-name #f))
 		       (set! auto-save-out-of-date? #t)))
-	       (super-set-modified modified?)
-	       (for-each (lambda (canvas) (send canvas edit-modified modified?))
-			 canvases))]
-	    [set-filename
-	     (opt-lambda (name [temp? #f])
-	       (super-set-filename name temp?)
-	       (for-each (lambda (canvas) (send canvas edit-renamed name))
-			 canvases))]
+	       (super-set-modified modified?))]
 	    
 	    [on-change
 	     (lambda ()
@@ -234,9 +224,11 @@
 		  [super-after-insert after-insert]
 		  [super-after-delete after-delete]
 		  [super-after-set-size-constraint after-set-size-constraint])
+
 	  (private
 	    [styles-fixed-edit-modified? #f]
-	    [restore-file-format void])
+	    [restore-file-format void])	  
+
 	  (public
 	    [move/copy-to-edit
 	     (lambda (dest-edit start end dest-position)
@@ -398,7 +390,7 @@
 	       (when mode 
 		 (send mode after-set-position this))
 	       (super-after-set-position))])
-	    
+
 	  (private
 	    [range-rectangles null]
 	    [recompute-range-rectangles
@@ -548,6 +540,7 @@
 		      (send dc set-pen old-pen)
 		      (send dc set-brush old-brush))))
 		range-rectangles))])
+
 	  (public
 	    [find-string-embedded
 	     (opt-lambda (str [direction 1] [start -1]
@@ -656,4 +649,4 @@
     (define return-edit% (make-return-edit% edit%))
 		  
     (define make-pasteboard% make-std-buffer%)
-    (define pasteboard% (make-pasteboard% mred:connections:connections-media-pasteboard%))))
+    (define pasteboard% (make-pasteboard% mred:connections:connections-media-pasteboard%)))
