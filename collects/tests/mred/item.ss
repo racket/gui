@@ -497,6 +497,8 @@
   (send ip2 set-label "Sub-sub panel")
   (add-testers2 "Sub-sub-panel" ip2)
   
+  (make-object text-field% #f ip2 void "start focus here")
+
   (when prev-frame
     (add-disable "Previous Tester Frame" prev-frame ep2))
   
@@ -550,7 +552,6 @@
     (add-change-label "Vert Gauge" gv lp2 #f OTHER-LABEL)
     (add-change-label "Text" txt lp2 #f OTHER-LABEL)
     
-
     (let* ([items (list sh sv
 			gh gv
 			; cmt cmi
