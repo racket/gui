@@ -18,6 +18,12 @@
          (top-margin 5)
          (bottom-margin 5))
         
+        (unless (member label labels)
+          (error 'fixed-width-label-snip
+                 "Instantiation of label-snip expected one of ~s. Given ~s"
+                 labels
+                 label))
+        
         (define (get-string-size dc string)
           (let-values ([(width height baseline vspace)
                         (send dc get-text-extent string)])
