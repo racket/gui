@@ -55,7 +55,7 @@
 	 (lambda ()
 	   (when (send frame is-shown?)
 	     (send m set-label
-		   (let* ([w (mred:test:get-focused-window)]
+		   (let* ([w (with-handlers ([void (lambda (x) #f)]) (mred:test:get-focused-window))]
 			  [l (and w (send w get-label))])
 		     (format "focus: ~a ~a" (or l "") w)))
 	     (start 1000 #t)))])))
@@ -94,7 +94,7 @@
 				  ctls))
 		       (map (lambda (b c) (send b set-cursor c))
 			    ctls old)))
-		 "Bullseye Cursors")
+		 "Control Bullseye Cursors")
     (make-object mred:check-box% panel
 		 (lambda (c e)
 		   (if (send c get-value)
@@ -310,7 +310,7 @@
 		     cp)
 	  items)))
 
-(define (big-frame h-radio? v-label? null-label? stretchy? special-font?)
+(define (big-frame h-radio? v-label? null-label? stretchy? special-label-font? special-button-font?)
   (define f (make-object active-frame%
 			 null "Tester"))
   
@@ -343,8 +343,10 @@
   
   (add-testers "Sub-sub-panel" tp)
 
-  (when special-font?
+  (when special-label-font?
     (send tp set-label-font special-font))
+  (when special-button-font?
+    (send tp set-button-font special-font))
     
   (let ([ctls (make-ctls tp cp lp add-testers ep h-radio? v-label? null-label? stretchy?)])
     (add-focus-note f ep)
@@ -356,12 +358,12 @@
   (set! prev-frame f)
   f)
 
-(define (med-frame radio-h? label-h? null-label? stretchy? special-font?)
+(define (med-frame radio-h? label-h? null-label? stretchy? special-label-font? special-button-font?)
   (define f2 (make-object active-frame% null "Tester2"))
 
   (define hp2 (make-object mred:horizontal-panel% f2))
   
-  (define ip2 (make-object mred:vertical-panel% hp2))
+  (define ip2-0 (make-object mred:vertical-panel% hp2))
   (define cp2 (make-object mred:vertical-panel% hp2))
   (define ep2 (make-object mred:vertical-panel% hp2))
   (define lp2 (make-object mred:vertical-panel% hp2))
@@ -377,16 +379,25 @@
 	  (send control stretchable-in-y #t)
 	  (basic-add-testers2 name control))
 	basic-add-testers2))
-  
+
+  (define fp2 (make-object mred:vertical-panel% ip2-0))  
+  (define ip2 (make-object mred:vertical-panel% fp2))
+
   (make-h&s cp2 f2)
   
-  (add-disable "Previous Tester Frame" prev-frame ep2)
+  (add-testers2 "Sub-panel" fp2)
+  (add-testers2 "Sub-sub-panel" ip2)
+  
+  (when prev-frame
+    (add-disable "Previous Tester Frame" prev-frame ep2))
   
   (when (not label-h?)
     (send ip2 set-label-position wx:const-vertical))
 
-  (when special-font?
+  (when special-label-font?
     (send ip2 set-label-font special-font))
+  (when special-button-font?
+    (send ip2 set-button-font special-font))
   
   (begin
     (define sh (make-object mred:slider% ip2
@@ -440,14 +451,24 @@
     (add-change-label "Vert Gauge" gv lp2 #f OTHER-LABEL)
     (add-change-label "Text" txt lp2 #f OTHER-LABEL)
     
-    (add-focus-note f2 ep2)
-    (send f2 set-info ep2)
 
-    (add-cursors f2 lp2 (list sh sv
-			      gh gv
-			      cmt cmi 
-			      txt))
-
+    (let* ([items (list sh sv
+			gh gv
+			cmt cmi
+			txt)]
+	   [canvas  (make-object popup-test-canvas% 
+				 items
+				 (list "h slider" "v slider"
+				       "v gauge" "v gauge"
+				       "text msg" "image msg"
+				       "text")
+				 cp2)])
+      
+      (add-focus-note f2 ep2)
+      (send f2 set-info ep2)
+      
+      (add-cursors f2 lp2 (cons canvas items)))
+    
     (send f2 show #t)
     (set! prev-frame f2)
     f2))
@@ -597,7 +618,7 @@
       (sequence
 	(send restp stretchable-in-y #f)
 	(send mc set-media e)
-	(send e load-file (local-path "steps.txt")))
+	(send e load-file (local-path "menu-steps.txt")))
       (public
 	[make-test-button
 	 (lambda (name pnl menu id)
@@ -790,10 +811,10 @@
   (define p (make-object mred:vertical-panel% f))
   (define old-list null)
   (define commands (list wx:const-event-type-button-command))
-  (define sema (make-semaphore))
+  (define hit? #f)
   (define b (make-object mred:button% p
 			 (lambda (bx e)
-			   (semaphore-post sema)
+			   (set! hit? #t)
 			   (set! old-list (cons e old-list))
 			   (check-callback-event b bx e commands #f))
 			 "Hit Me"))
@@ -808,14 +829,14 @@
   (define e (make-object mred:button% p
 			 (lambda (c e)
 			   (sleep 1)
-			   (wx:yield) ; try to catch a click, but not a callback
-			   (set! sema (make-semaphore))
-			   (send b enable #f)
-			   (thread (lambda () (wx:yield sema)))
-			   (when (semaphore-wait-multiple (list sema) 0.5)
-				 (printf "un-oh~n"))
-			   (send b enable #t)
-			   (semaphore-post sema))
+			   (set! hit? #f)
+			   (let ([sema (make-semaphore)])
+			     (send b enable #f)
+			     (thread (lambda () (sleep 0.5) (semaphore-post sema)))
+			     (wx:yield sema)
+			     (when hit?
+			       (printf "un-oh~n"))
+			     (send b enable #t)))
 			 "Disable Test"))
   (send f show #t))
 
@@ -1155,9 +1176,13 @@
 (define selector (make-object mred:frame% null "Test Selector"))
 (define ap (make-object mred:vertical-panel% selector))
 
-; Test timers while we're at it:
+; Test timers while we're at it. And create the "Instructions" button.
 (let ([clockp (make-object mred:horizontal-panel% ap)]
       [selector selector])
+  (make-object mred:button% clockp
+	       (lambda (b e) 
+		 (send (send (mred:edit-file (local-path "frame-steps.txt")) get-edit) lock #t))
+	       "Get Instructions")
   (make-object mred:vertical-panel% clockp) ; filler
   (let ([time (make-object mred:message% clockp "XX:XX:XX")])
     (make-object
@@ -1271,12 +1296,16 @@
       (make-object mred:radio-box% p1 void "Stretchiness"
 		   -1 -1 -1 -1
 		   '("Normal" "All Stretchy")))
-    (define font-radio
-      (make-object mred:radio-box% p1 void "Font"
+    (define label-font-radio
+      (make-object mred:radio-box% p1 void "Label Font"
+		   -1 -1 -1 -1
+		   '("Normal" "Big")))
+    (define button-font-radio
+      (make-object mred:radio-box% p1 void "Button Font"
 		   -1 -1 -1 -1
 		   '("Normal" "Big")))
     (define next-button
-      (let ([basic-set (list label-h-radio label-null-radio stretchy-radio font-radio)])
+      (let ([basic-set (list label-h-radio label-null-radio stretchy-radio label-font-radio button-font-radio)])
 	(make-next-button p2 
 			  (if radios?
 			      (cons radio-h-radio basic-set)
@@ -1291,7 +1320,8 @@
 		      (positive? (send label-h-radio get-selection))
 		      (positive? (send label-null-radio get-selection))
 		      (positive? (send stretchy-radio get-selection))
-		      (positive? (send font-radio get-selection))))
+		      (positive? (send label-font-radio get-selection))
+		      (positive? (send button-font-radio get-selection))))
 		   (format "Make ~a Frame" size)))
     #t))
 
