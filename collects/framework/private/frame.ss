@@ -937,6 +937,7 @@
                      [by (box 0)])
                 (let-values ([(cw ch) (send d-canvas get-client-size)])
                   (send d-text position-location pos bx by)
+                  (send d-canvas focus)
                   (send d-canvas scroll-to 
                         (- (unbox bx) (/ cw 2))
                         (- (unbox by) (/ ch 2))
