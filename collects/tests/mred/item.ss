@@ -690,10 +690,6 @@
 		     (lambda args
 		       (send DELETE-BANANA restore)))
 	(make-object button%
-		     "Toggle Menubar Enable" sbp
-		     (lambda args
-		       (send mb enable (send mb is-enabled?))))
-	(make-object button%
 		     "Counts" sbp
 		     (lambda args
 		       (message-box
@@ -709,7 +705,15 @@
 		     "Check in Apple" mfbp
 		     (lambda args
 		       (send APPLE-CHECK-ID check #t)))
-	
+	(make-object button%
+		     "Toggle Menubar Enable" mfbp
+		     (lambda args
+		       (send menu-bar enable (not (send menu-bar is-enabled?)))))
+	(make-object button%
+		     "Toggle Apple Enable" mfbp
+		     (lambda args
+		       (send (send apple-menu get-item) enable (not (send (send apple-menu get-item) is-enabled?)))))
+
 	(make-object button%
 		     "Test Labels" lblp 
 		     (lambda args
