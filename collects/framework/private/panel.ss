@@ -70,6 +70,8 @@
 	 (case-lambda
 	  [() current-active-child]
 	  [(x) 
+	   (unless (memq x (get-children))
+	     (error 'active-child "got a panel that is not a child: ~e" x))
 	   (unless (eq? x current-active-child)
 	     (for-each (lambda (x) (send x show #f))
 		       (get-children))
@@ -280,7 +282,6 @@
                               (max thumb-height
                                    (let-values ([(w h) (send (list-ref (send parent get-children) (+ grabbed 1)) get-graphical-min-size)])
                                      h))])
-                         ;(printf "min-child-height: ~s ~s ~s~n" min-child-height grabbed (send parent get-children))
                          (if (= grabbed 0)
                              min-child-height
                              (+ (get-thumb-middle (sum-percentages (- grabbed 1)))
