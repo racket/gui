@@ -223,7 +223,7 @@
   (f))
 
 (define (stw t n)
-  (thread-weight t (floor (/ (thread-weight t) n))))
+  '(thread-weight t (floor (/ (thread-weight t) n))))
 
 (define (breakable t)
   (if #f
