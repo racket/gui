@@ -15,7 +15,9 @@ set-cursor in wx:window% now accepts and returns null, indicating
 
 System:
 -------
-
+- added get-title-prefix to mred:simple-menu-frame% class
+  documented get-title, etc. in mred:simple-menu-frame% class
+  added get-complete-title to mred:simple-menu-frame% class
 
 Version 51: March 25, 1998
 
