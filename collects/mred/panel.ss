@@ -44,7 +44,6 @@
 	       (letrec* ([media (send canvas get-media)]
 			 [helper
 			  (lambda (canvas/panel)
-			    (printf "collapse; canvas/panel: ~a~n" canvas/panel)
 			    (let* ([parent (send canvas/panel get-parent)])
 			      (if (is-a? parent wx:frame%)
 				  (begin (send canvas/panel change-children
@@ -52,7 +51,6 @@
 					 (wx:bell))
 				  (let* ([parents-children (ivar parent children)]
 					 [num-children (length parents-children)])
-				    (printf "collapse; parent: ~a num-children: ~a~n" parent num-children)
 				    (if (<= num-children 1)
 					(collapse parent)
 					(begin (send parent delete-child canvas/panel)
