@@ -53,6 +53,9 @@
                    get-style-list is-modified? change-style set-modified
                    position-location get-extent)
           
+          (define highlight-pen (make-object pen% "BLACK" 0 'solid))
+          (define highlight-brush (make-object brush% "black" 'solid))
+
           (define range-rectangles null)
           (define ranges null)
           
