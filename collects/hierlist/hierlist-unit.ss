@@ -37,6 +37,8 @@
       ;; Hack for implementing auto-wrapping items:
       (define arrow-size 0)
 
+      (define orig-size (max (send up-click-bitmap get-width) (send up-click-bitmap get-height)))
+
       ;; Private arrow snip class:
       (define arrow-snip-class (make-object snip-class%))
       (send arrow-snip-class set-classname "hier-arrow")
@@ -46,7 +48,7 @@
           (rename [super-get-extent get-extent])
           (private-field 
            [size-calculated? #f]
-           [size (max (send up-click-bitmap get-width) (send up-click-bitmap get-height))]
+           [size orig-size]
            [width-fraction 1/2]
            [on? #f]
            [click-callback callback]
@@ -58,11 +60,11 @@
                       [h (send s get-text-height dc)]
                       [d (send s get-text-descent dc)]
                       [a (send s get-text-space dc)])
-                 (set! size (- h d a))
+                 (set! size (max orig-size (- h d a)))
                  (set! size-calculated? #t)
-                 (set! arrow-size (+ size 2))))]
-            [get-width (lambda () (+ 2 size))]
-            [get-height (lambda () (+ 2 size))]
+		 (set! arrow-size size)))]
+            [get-width (lambda () size)]
+            [get-height (lambda () size)]
             [update
              (lambda ()
                (send (get-admin) needs-update this 0 0 (get-width) (get-height)))])
@@ -72,7 +74,7 @@
                           (unless size-calculated? (set-sizes dc))
                           (when w (set-box! w (get-width)))
                           (when h (set-box! h (get-height)))
-                          (when descent (set-box! descent 2))
+                          (when descent (set-box! descent 0))
                           (when space (set-box! space 0)))]
             [partial-offset (lambda (dc x y len)
                               (unless size-calculated? (set-sizes dc))
@@ -86,9 +88,10 @@
                                        (if on? down-bitmap up-bitmap))]
                            [bw (send bitmap get-width)]
                            [bh (send bitmap get-height)])
-                      (send dc draw-bitmap bitmap 
-                            (+ x (- (/ size 2) (/ bw 2))) 
-                            (+ y (- (/ size 2) (/ bh 2))))))]
+                      (send dc draw-bitmap-section bitmap 
+                            (+ x (max 0 (- (/ size 2) (/ bw 2))))
+                            (+ y (max 0 (- (/ size 2) (/ bh 2))))
+			    0 0 (min bw (+ size 2)) (min bh (+ size 2)))))]
             [size-cache-invalid (lambda () (set! size-calculated? #f))]
             [on-event
              (lambda (dc x y mediax mediay event)
