@@ -1273,6 +1273,14 @@
 				 (lambda (b e)
 				   (send c select (send c get-selection) #f)))
 		    null))
+  (define change-button-name (if list? 
+                                 (make-object button%
+                                              "Change Name" cdp
+                                              (lambda (b e)
+                                                (send c set-string
+                                                      (send c get-selection)
+                                                      "New Name")))
+                                 null))
   (define (make-selectors method mname numerical?)
     (define p2 (make-object horizontal-panel% p))
     (send p2 stretchable-height #f)
