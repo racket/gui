@@ -305,7 +305,6 @@
             (update-memory-text)
 	    (set! memory-cleanup
 		  (lambda ()
-		    (send memory-text remove-canvas ec)
 		    (send ec set-editor #f)))
             (send panel stretchable-width #f))))
       (private
@@ -1150,6 +1149,11 @@
 	   (unless dont-search
 	     (search #f)))])))
 
+  ;; this is here for when editors are printed.
+  (define replace-text%
+    (class text:keymap% args
+      (sequence (apply super-init args))))
+
   (define find-edit #f)
   (define replace-edit #f)
 
@@ -1170,7 +1174,7 @@
   (define (init-find/replace-edits)
     (unless find-edit
       (set! find-edit (make-object find-text%))
-      (set! replace-edit (make-object text:keymap%))
+      (set! replace-edit (make-object replace-text%))
       (for-each (lambda (keymap)
 		  (send keymap chain-to-keymap
 			(keymap:get-search)
@@ -1247,7 +1251,6 @@
 	   (remove-callback)
 	   (let ([close-canvas
 		  (lambda (canvas edit)
-		    (send edit remove-canvas canvas)
 		    (send canvas set-editor #f))])
 	     (close-canvas find-canvas find-edit)
 	     (close-canvas replace-canvas replace-edit))
@@ -1398,11 +1401,11 @@
 		  (list middle-left-panel middle-middle-panel middle-right-panel))
 	(send find-canvas set-editor find-edit)
 	(send replace-canvas set-editor replace-edit) 
-	(send find-edit add-canvas find-canvas)
-	(send replace-edit add-canvas replace-canvas)
 	(hide-search #t))))
   
-  (define memory-text (make-object text%))
+  ;; to see printouts in memory debugging better.
+  (define memory-text% (class text% args (sequence (apply super-init args))))
+  (define memory-text (make-object memory-text%))
   (send memory-text hide-caret #t)
   (define show-memory-text? (directory-exists? (build-path (collection-path "framework") "CVS")))
 
