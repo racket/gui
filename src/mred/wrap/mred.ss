@@ -1313,7 +1313,7 @@
  (make-window-glue% 
   (class (make-control% wx:gauge% 
 			const-default-x-margin const-default-y-margin 
-			#t #f)
+			#f #f)
       (parent label range style)
     (inherit get-client-size get-width get-height set-size 
 	     stretchable-in-x stretchable-in-y set-min-height set-min-width
@@ -1404,7 +1404,7 @@
   (make-window-glue% 
    (class (make-control% wx:slider% 
 			 const-default-x-margin const-default-y-margin 
-			 #t #f)
+			 #f #f)
        (parent func label value min-val max-val style)
      (inherit set-min-width set-min-height stretchable-in-x stretchable-in-y
 	      get-client-size get-width get-height get-parent)
