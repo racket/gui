@@ -39,7 +39,7 @@
 (define permanent-ready? #f)
 (define mb-lock (make-semaphore 1))
 
-(define htw (make-hash-table-weak))
+(define htw (make-hash-table 'weak))
 
 (send sub-collect-frame show #t)
 
