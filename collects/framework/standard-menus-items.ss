@@ -72,7 +72,7 @@
 			""
 			"defaultly returns"
 			"@link menu"))
-	(make-generic 'get-menu-item% '(lambda () menu-item%)
+	(make-generic 'get-menu-item% '(lambda () menu:can-restore-menu-item%)
 		      '("The result of this method is used as the class for creating"
 			"the menu items in this class (see "
 			"@link frame:standard-menus"
@@ -81,8 +81,9 @@
 			"@return : (derived-from \\iscmclass{menu-item})"
 			""
 			"defaultly returns"
-			"@link menu-item"))
-	(make-generic 'get-checkable-menu-item% '(lambda () checkable-menu-item%)
+			"@link menu:can-restore-menu-item %"
+                        "."))
+	(make-generic 'get-checkable-menu-item% '(lambda () menu:can-restore-checkable-menu-item%)
 		      '("The result of this method is used as the class for creating"
 			"checkable menu items in this class (see "
 			"@link frame:standard-menus"
@@ -91,7 +92,8 @@
 			"@return : (derived-from \\iscmclass{checkable-menu-item})"
 			""
 			"defaultly returns"
-			"@link menu-item"))
+			"@link menu:can-restore-checkable-menu-item %"
+                        "."))
 
 	(make-generic 'get-file-menu
 		      '(let ([m (make-object (get-menu%)

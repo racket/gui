@@ -11,6 +11,12 @@
 (require-relative-library "tests.ss")
 (require-relative-library "guiutilss.ss")
 
+(define-signature framework:menu^
+  (can-restore<%>
+   can-restore-mixin
+   can-restore-menu-item%
+   can-restore-checkable-menu-item%))
+
 (define-signature framework:prefs-file^
   (get-preferences-filename))
 
@@ -301,6 +307,8 @@
 
    [unit panel : framework:panel^]
 
+   [unit menu : framework:menu^]
+   
    [unit frame : framework:frame^]
    [unit scheme : framework:scheme^]
    [unit main : framework:main^]))

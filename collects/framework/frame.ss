@@ -15,6 +15,7 @@
 	  [pasteboard : framework:pasteboard^]
 	  [editor : framework:editor^]
 	  [canvas : framework:canvas^]
+          [menu : framework:menu^]
 	  [mzlib:function : mzlib:function^]
 	  [mzlib:file : mzlib:file^])
 
