@@ -447,7 +447,7 @@
 ;            capabilities necessary to serve as the frame/dialog which
 ;            contains container classes.
 (define (make-top-container% base% dlg?)
-  (class (wx-make-container% (wx-make-window% base%)) args
+  (class (wx-make-container% (wx-make-window% base%)) (parent . args)
     (inherit get-x get-y get-width get-height set-size
 	     get-client-size is-shown? on-close)
     (rename [super-show show] [super-move move] [super-center center]
@@ -471,8 +471,8 @@
       ; pointer to panel in the frame for use in on-size
       [panel #f]
 
-      [use-default-position? (and (= -1 (list-ref args 3))
-				  (= -1 (list-ref args (if dlg? 4 2))))]
+      [use-default-position? (and (= -1 (list-ref args 2))
+				  (= -1 (list-ref args (if dlg? 3 1))))]
       
       [enabled? #t]
       [focus #f]
@@ -484,7 +484,9 @@
 	 (set! enabled? (and b #t))
 	 (super-enable b))])
     (public
-      [eventspace (wx:current-eventspace)]
+      [eventspace (if parent
+		      (ivar parent eventspace)
+		      (wx:current-eventspace))]
 
       [is-enabled?
        (lambda () enabled?)]
@@ -828,7 +830,7 @@
 			    #f)]))))])
     
     (sequence
-      (apply super-init args))))
+      (apply super-init parent args))))
 
 ; make-item%: creates items which are suitable for placing into
 ;  containers.
@@ -1253,7 +1255,9 @@
    (class (make-top-container% wx:frame% #f) args
      (rename [super-set-menu-bar set-menu-bar])
      (public
-       [menu-bar #f])
+       [menu-bar #f]
+       [is-mdi-parent? #f]
+       [set-mdi-parent (lambda (x) (and (set! is-mdi-parent? x) #t))])
      (override
        [set-menu-bar
 	(lambda (mb)
@@ -2866,7 +2870,15 @@
 	(for-each (lambda (x) (check-dimension cwho x)) (list width height x y))
 	(check-style cwho #f '(no-thick-border no-resize-border no-caption no-system-menu
 					       iconize maximize mdi-parent mdi-child) 
-		     style)))
+		     style)
+	(when (memq 'mdi-child style)
+	  (when (memq 'mdi-parent style)
+	    (raise-type-error (who->name cwho) 
+			      "style list, 'mdi-child and 'mdi-parent are mutually exclusive" 
+			      style))
+	  (let ([pwx (and parent (mred->wx parent))])
+	    (unless (and pwx (ivar pwx is-mdi-parent?))
+	      (raise-mismatch-error (who->name cwho) "parent for 'mdi-child frame is not an 'mdi-parent frame: " parent))))))
     (rename [super-on-subwindow-char on-subwindow-char])
     (private
       [wx #f]
@@ -2898,6 +2910,7 @@
 						     (and parent (mred->wx parent)) label
 						     (or x -1) (or y -1) (or width -1) (or height -1)
 						     style)))
+		       (send wx set-mdi-parent (memq 'mdi-parent style))
 		       wx)
 		     label parent))))))
 
