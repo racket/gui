@@ -408,11 +408,6 @@
 (define wx-make-window%
   (lambda (% top?)
     (class100 % args
-      (rename [super-on-set-focus on-set-focus]
-	      [super-on-kill-focus on-kill-focus]
-	      [super-drag-accept-files drag-accept-files]
-	      [super-show show]
-	      [super-enable enable])
       (inherit is-shown-to-root? is-enabled-to-root?)
       (private-field
 	[top-level #f]
@@ -450,6 +445,7 @@
 	;; Needed for radio boxes:
 	[orig-enable
 	 (lambda args (super-enable . args))])
+      (rename [super-enable enable])
       
       (private-field
 	[can-accept-drag? #f])
@@ -479,28 +475,28 @@
 	[show
 	 (lambda (on?)
 	   (queue-visible)
-	   (super-show on?))]
+	   (super show on?))]
 	[enable
 	 (lambda (on?)
 	   (queue-active)
-	   (super-enable on?))]
+	   (super enable on?))]
 
 	[drag-accept-files
 	 (lambda (on?)
 	   (set! can-accept-drag? (and on? #t))
-	   (super-drag-accept-files on?))]
+	   (super drag-accept-files on?))]
 	[on-set-focus
 	 (entry-point
 	  (lambda ()
 	    (send (get-top-level) set-focus-window this)
 	    (set! focus? #t)
-	    (as-exit (lambda () (super-on-set-focus)))))]
+	    (as-exit (lambda () (super on-set-focus)))))]
 	[on-kill-focus
 	 (entry-point
 	  (lambda ()
 	    (send (get-top-level) set-focus-window #f)
 	    (set! focus? #f)
-	    (as-exit (lambda () (super-on-kill-focus)))))])
+	    (as-exit (lambda () (super on-kill-focus)))))])
       (public
 	[has-focus? (lambda () focus?)])
       (sequence 
@@ -525,11 +521,6 @@
   (class100 (wx-make-container% (wx-make-window% base% #t)) (parent . args)
     (inherit get-x get-y get-width get-height set-size
 	     get-client-size is-shown? on-close enforce-size)
-    (rename [super-show show] [super-move move] [super-center center]
-	    [super-on-size on-size]
-	    [super-enable enable]
-	    [super-on-visible on-visible]
-	    [super-on-active on-active])
     (private-field
       ; have we had any redraw requests while the window has been
       ; hidden?
@@ -559,7 +550,7 @@
       [enable
        (lambda (b)
 	 (set! enabled? (and b #t))
-	 (super-enable b))])
+	 (super enable b))])
     (private-field
       [eventspace (if parent
 		      (send parent get-eventspace)
@@ -782,22 +773,22 @@
 	     (hash-table-put! top-level-windows this #t)
 	     (hash-table-remove! top-level-windows this))
 	 (as-exit ; as-exit because there's an implicit wx:yield for dialogs
-	  (lambda () (super-show on?))))]
+	  (lambda () (super show on?))))]
 
       [on-visible
        (lambda ()
 	 (send panel queue-visible)
-	 (super-on-visible))]
+	 (super on-visible))]
       [on-active
        (lambda ()
 	 (send panel queue-active)
-	 (super-on-active))]
+	 (super on-active))]
       
-      [move (lambda (x y) (set! use-default-position? #f) (super-move x y))]
+      [move (lambda (x y) (set! use-default-position? #f) (super move x y))]
       [center (lambda (dir)
 		(when pending-redraws? (force-redraw))
 		(set! use-default-position? #f)
-		(super-center dir))]
+		(super center dir))]
       
       ; on-size: ensures that size of frame matches size of content
       ; input: new-width/new-height: new size of frame
@@ -980,18 +971,14 @@
 (define make-item%
    (lambda (item% x-margin-w y-margin-h stretch-x stretch-y)
      (class100 (wx-make-window% item% #f) (window-style . args)
-       (rename [super-on-set-focus on-set-focus]
-	       [super-on-kill-focus on-kill-focus])
        (inherit get-width get-height get-x get-y
 		get-parent get-client-size)
-       (rename [super-enable enable]
-	       [super-set-size set-size])
        (private-field [enabled? #t])
        (override
 	 [enable
 	  (lambda (b)
 	    (set! enabled? (and b #t))
-	    (super-enable b))]
+	    (super enable b))]
 
 	 ; set-size: caches calls to set-size to avoid unnecessary work,
 	 ;           and works with windowsless panels
@@ -1009,7 +996,7 @@
 			 (same-dimension? y (get-y))
 			 (same-dimension? width (get-width))
 			 (same-dimension? height (get-height)))
-	      (super-set-size x y width height)))])
+	      (super set-size x y width height)))])
 
        (public
 	 [is-enabled?
@@ -1183,10 +1170,6 @@
 (define (make-window-glue% %)  ; implies make-glue%
   (class100 (make-glue% %) (mred proxy . args)
     (inherit get-x get-y get-width get-height area-parent get-mred get-proxy)
-    (rename [super-on-size on-size]
-	    [super-on-set-focus on-set-focus]
-	    [super-on-kill-focus on-kill-focus]
-	    [super-pre-on-char pre-on-char])
     (private-field
       [pre-wx->proxy (lambda (orig-w e k)
 		       ;; MacOS: w may not be something the user knows
@@ -1231,7 +1214,7 @@
 			(lambda ()
 			  (send (get-proxy) on-drop-file f)))))]
       [on-size (lambda (bad-w bad-h)
-		 (super-on-size bad-w bad-h)
+		 (super on-size bad-w bad-h)
 		 ;; Delay callback to make sure X structures (position) are updated, first.
 		 ;; Also, Windows needs a trampoline.
 		 (queue-window-callback
@@ -1260,16 +1243,16 @@
 		       (queue-window-callback
 			this 
 			(lambda () (send (get-proxy) on-focus #t)))
-		       (as-exit (lambda () (super-on-set-focus)))))]
+		       (as-exit (lambda () (super on-set-focus)))))]
       [on-kill-focus (entry-point
 		      (lambda ()
 			; see on-set-focus:
 			(queue-window-callback
 			 this
 			 (lambda () (send (get-proxy) on-focus #f)))
-			(as-exit (lambda () (super-on-kill-focus)))))]
+			(as-exit (lambda () (super on-kill-focus)))))]
       [pre-on-char (lambda (w e)
-		     (or (super-pre-on-char w e)
+		     (or (super pre-on-char w e)
 			 (as-entry
 			  (lambda ()
 			    (pre-wx->proxy w e
@@ -1464,7 +1447,6 @@
 (define (make-top-level-window-glue% %) ; implies make-window-glue%
   (class100 (make-window-glue% %) (mred proxy . args)
     (inherit is-shown? get-mred queue-visible get-eventspace)
-    (rename [super-on-activate on-activate])
     (private-field 
       [act-date/seconds 0] [act-date/milliseconds 0] [act-on? #f])
     (public 
@@ -1500,7 +1482,7 @@
 		       (lambda () (send (get-mred) on-activate on?)))
 		      (as-exit
 		       (lambda ()
-			 (super-on-activate on?)))))])
+			 (super on-activate on?)))))])
     (public
       [is-act-on? (lambda () act-on?)]
       [get-act-date/seconds (lambda () act-date/seconds)]
@@ -1510,28 +1492,24 @@
 (define (make-canvas-glue% %) ; implies make-window-glue%
   (class100 (make-window-glue% %) (mred proxy . args)
     (inherit get-mred get-top-level)
-    (rename [super-on-char on-char]
-	    [super-on-event on-event]
-	    [super-on-paint on-paint]
-	    [super-on-scroll on-scroll])
     (public
-      [do-on-char (lambda (e) (super-on-char e))]
-      [do-on-event (lambda (e) (super-on-event e))]
-      [do-on-scroll (lambda (e) (super-on-scroll e))]
-      [do-on-paint (lambda () (super-on-paint))])
+      [do-on-char (lambda (e) (super on-char e))]
+      [do-on-event (lambda (e) (super on-event e))]
+      [do-on-scroll (lambda (e) (super on-scroll e))]
+      [do-on-paint (lambda () (super on-paint))])
     (override
       [on-char (entry-point
 		(lambda (e)
 		  (let ([mred (get-mred)])
 		    (if mred
 			(as-exit (lambda () (send mred on-char e)))
-			(super-on-char e)))))]
+			(super on-char e)))))]
       [on-event (entry-point
 		 (lambda (e)
 		   (let ([mred (get-mred)])
 		     (if mred
 			 (as-exit (lambda () (send mred on-event e)))
-			 (as-exit (lambda () (super-on-event e)))))))]
+			 (as-exit (lambda () (super on-event e)))))))]
       [on-scroll (entry-point
 		  (lambda (e)
 		    (let ([mred (get-mred)])
@@ -1541,7 +1519,7 @@
 			  (queue-window-callback
 			   this
 			   (lambda () (send mred on-scroll e)))
-			  (as-exit (lambda () (super-on-scroll e)))))))]
+			  (as-exit (lambda () (super on-scroll e)))))))]
       [on-paint (entry-point
 		 (lambda ()
 		   (let ([mred (get-mred)])
@@ -1554,7 +1532,7 @@
 			      this
 			      (lambda () (send mred on-paint)))
 			     (as-exit (lambda () (send mred on-paint))))
-			 (as-exit (lambda () (super-on-paint)))))))])
+			 (as-exit (lambda () (super on-paint)))))))])
     (sequence (apply super-init mred proxy args))))
 
 ;------------- Create the actual wx classes -----------------
@@ -1562,7 +1540,6 @@
 (define wx-frame%
   (make-top-level-window-glue% 
    (class100 (make-top-container% wx:frame% #f) args
-     (rename [super-set-menu-bar set-menu-bar])
      (private-field
        [menu-bar #f]
        [is-mdi-parent? #f])
@@ -1574,7 +1551,7 @@
        [set-menu-bar
 	(lambda (mb)
 	  (when mb (set! menu-bar mb))
-	  (super-set-menu-bar mb))]
+	  (super set-menu-bar mb))]
        [on-menu-command
 	(entry-point
 	 (lambda (id)
@@ -1704,8 +1681,6 @@
    (class100 (make-control% wx:list-box%
 			 const-default-x-margin const-default-y-margin 
 			 #t #t) (parent cb label kind x y w h choices style)
-     (rename
-       [super-pre-on-char pre-on-char])
      (inherit get-first-item
 	      set-first-visible-item)
      (private
@@ -1725,7 +1700,7 @@
 			     [(up down) #t]
 			     [else (and alpha? (not meta?))]))]
        [pre-on-char (lambda (w e)
-		      (or (super-pre-on-char w e)
+		      (or (super pre-on-char w e)
 			  (case (send e get-key-code)
 			    [(wheel-up) (scroll -1) #t]
 			    [(wheel-down) (scroll 1) #t]
@@ -1736,18 +1711,16 @@
   (make-window-glue% 
    (class100 (make-simple-control% wx:radio-box%) (parent cb label x y w h choices major style)
      (inherit number orig-enable set-selection command)
-     (rename [super-enable enable]
-	     [super-is-enabled? is-enabled?])
      (override
        [enable
 	(case-lambda
-	 [(on?) (super-enable on?)]
+	 [(on?) (super enable on?)]
 	 [(which on?) (when (< -1 which (number))
 			(vector-set! enable-vector which (and on? #t))
 			(orig-enable which on?))])]
        [is-enabled?
 	(case-lambda
-	 [() (super-is-enabled?)]
+	 [() (super is-enabled?)]
 	 [(which) (and (< -1 which (number))
 		       (vector-ref enable-vector which))])])
 
@@ -1849,7 +1822,6 @@
 	     set-min-width set-min-height
 	     set-tab-focus
 	     set-background-to-gray)
-    (rename [super-on-size on-size])
     
     (define selected 0)
     (define tracking-pos #f)
@@ -2045,7 +2017,7 @@
 
     (define/override (on-size w h)
       (set! redo-regions? #t)
-      (super-on-size w h))
+      (super on-size w h))
 
     (define/private (my-get-client-size)
       (get-two-int-values (lambda (a b) (get-client-size a b))))
@@ -2127,7 +2099,6 @@
 	     set-min-width set-min-height
 	     set-tab-focus
 	     set-background-to-gray)
-    (rename [super-on-size on-size])
     
     (define lbl label)
 
@@ -2206,8 +2177,6 @@
     (inherit get-editor force-redraw
 	     call-as-primary-owner min-height get-size
 	     get-hard-minimum-size set-min-height)
-    (rename [super-set-editor set-editor]
-	    [super-on-set-focus on-set-focus])
     (private-field
       [fixed-height? #f]
       [fixed-height-lines 0]
@@ -2222,7 +2191,7 @@
       [on-set-focus
        (entry-point
 	(lambda ()
-	  (as-exit (lambda () (super-on-set-focus)))
+	  (as-exit (lambda () (super on-set-focus)))
 	  (let ([m (get-editor)])
 	    (when m 
 	      (let ([mred (wx->mred this)])
@@ -2233,7 +2202,7 @@
 		    [(edit) (l edit #t)]
 		    [(edit redraw?)
 		     (let ([old-edit (get-editor)])
-		       (super-set-editor edit redraw?)
+		       (super set-editor edit redraw?)
 		       
 		       (let ([mred (wx->mred this)])
 			 (when mred
@@ -2309,10 +2278,9 @@
 					  (- (unbox h) (unbox ch)))])
 		   (set-min-height (inexact->exact (round new-min-height)))
 		   (force-redraw)))))))])
-    (rename [super-set-y-margin set-y-margin])
     (override
       [set-y-margin (lambda (m)
-		      (super-set-y-margin m)
+		      (super set-y-margin m)
 		      (when fixed-height? (update-size)))])
     
     (sequence
@@ -2340,35 +2308,36 @@
   -get-file-format
   -set-file-format
   -set-format)
+
+(define-syntax (augmentize stx)
+  (syntax-case stx ()
+    [(_ (result id arg ...) ...)
+     #'(begin
+	 (define/overment (id arg ...)
+	   (and (super id arg ...)
+		(inner result id arg ...)))
+	 ...)]))
 		    
 (define (make-editor-buffer% % can-wrap? get-editor%)
   ; >>> This class is instantiated directly by the end-user <<<
-  (class100* % (editor<%> internal-editor<%>) args
+  (class* % (editor<%> internal-editor<%>)
+    (init-rest args)
     (inherit get-max-width set-max-width get-admin get-view-size
 	     get-keymap get-style-list
-	     can-load-file? on-load-file after-load-file
-	     set-modified set-filename)
-    (rename [super-on-display-size on-display-size]
-	    [super-get-view-size get-view-size]
-	    [super-copy-self-to copy-self-to]
-	    [super-print print]
-	    [super-get-filename get-filename]
-	    [super-begin-edit-sequence begin-edit-sequence]
-	    [super-end-edit-sequence end-edit-sequence]
-	    [super-erase erase]
-	    [super-insert-port insert-port]
-	    [super-clear-undos clear-undos]
-	    [super-get-load-overwrites-styles get-load-overwrites-styles])
-    (private-field
-      [canvases null]
-      [active-canvas #f]
-      [auto-set-wrap? #f])
-    (private
+	     set-modified set-filename
+	     begin-edit-sequence end-edit-sequence
+	     insert-port
+	     get-filename
+	     erase clear-undos get-load-overwrites-styles)
+    (define canvases null)
+    (define active-canvas #f)
+    (define auto-set-wrap? #f)
+    (private*
       [max-view-size
        (lambda ()
 	 (let ([wb (box 0)]
 	       [hb (box 0)])
-	   (super-get-view-size wb hb)
+	   (super get-view-size wb hb)
 	   (unless (or (null? canvases) (null? (cdr canvases)))
 	     (for-each
 	      (lambda (canvas)
@@ -2376,28 +2345,28 @@
 		      (lambda ()
 			(let ([wb2 (box 0)]
 			      [hb2 (box 0)])
-			  (super-get-view-size wb2 hb2)
+			  (super get-view-size wb2 hb2)
 			  (set-box! wb (max (unbox wb) (unbox wb2)))
 			  (set-box! hb (max (unbox hb) (unbox hb2)))))))
 	      canvases))
 	   (values (unbox wb) (unbox hb))))])
-    (public
+    (public*
       [-format-filter (lambda (f) f)]
       [-set-file-format (lambda (f) (void))]
       [-get-file-format (lambda () 'standard)])
-
-    (override
+    
+    (override*
       [insert-file
        (opt-lambda ([file #f] [format 'guess] [show-errors? #t])
 	 (dynamic-wind
-	     (lambda () (super-begin-edit-sequence))
-	     (lambda () (super-insert-port file format #f))
-	     (lambda () (super-end-edit-sequence))))]
+	     (lambda () (super begin-edit-sequence))
+	     (lambda () (super insert-port file format #f))
+	     (lambda () (super end-edit-sequence))))]
 
       [load-file
        (opt-lambda ([file #f] [format 'guess] [show-errors? #t])
 	 (let* ([temp-filename?-box (box #f)]
-		[old-filename (super-get-filename temp-filename?-box)])
+		[old-filename (super get-filename temp-filename?-box)])
 	   (let* ([file (cond
 			 [(or (not (path-string? file))
 			      (equal? file ""))
@@ -2420,26 +2389,26 @@
 		      void
 		      (lambda ()
 			(wx:begin-busy-cursor)
-			(super-begin-edit-sequence)
+			(super begin-edit-sequence)
 			(dynamic-wind
 			    void
 			    (lambda ()
-			      (super-erase)
+			      (super erase)
 			      (unless (and (not (unbox temp-filename?-box))
 					   (equal? file old-filename))
 				(set-filename file #f))
 			      (let ([format (if (eq? format 'same)
 						(-get-file-format)
 						format)])
-				(let ([new-format (super-insert-port port 
+				(let ([new-format (super insert-port port 
 								     (-format-filter format) 
-								     (super-get-load-overwrites-styles))])
+								     (super get-load-overwrites-styles))])
 				  (close-input-port port) ; close as soon as possible
 				  (-set-file-format new-format)))) ; text% only
 			    (lambda ()
-			      (super-end-edit-sequence)
+			      (super end-edit-sequence)
 			      (wx:end-busy-cursor)))
-			(super-clear-undos)
+			(super clear-undos)
 			(set-modified #f)
 			(set! finished? #t)
 			#t)
@@ -2448,7 +2417,7 @@
 			;; In case it wasn't closed before:
 			(close-input-port port)))))))))])
 
-    (public
+    (public*
       [get-canvases (entry-point (lambda () (map wx->mred canvases)))]
       [get-active-canvas (entry-point (lambda () (and active-canvas (wx->mred active-canvas))))]
       [get-canvas
@@ -2492,37 +2461,51 @@
 				   (on-display-size)
 				   (set-max-width 'none))))))])]
       [get-max-view-size (entry-point (lambda () (max-view-size)))])
-    (override
+    (override*
       [copy-self
        (lambda () (let ([e (make-object (get-editor%))])
 		    (copy-self-to e)
 		    e))]
       [copy-self-to
        (lambda (e)
-	 (super-copy-self-to e)
-	 (send e auto-wrap auto-set-wrap?))]
+	 (super copy-self-to e)
+	 (send e auto-wrap auto-set-wrap?))])
+    
+    (overment*
       [on-display-size
        (entry-point
 	(lambda ()
-	  (as-exit (lambda () (super-on-display-size)))
+	  (as-exit (lambda () (super on-display-size)))
 	  (when (as-exit (lambda () (get-admin)))
 	    (when (and can-wrap? auto-set-wrap?)
 	      (let-values ([(current-width) (as-exit (lambda () (get-max-width)))]
 			   [(new-width new-height) (max-view-size)])
 		(when (and (not (= current-width new-width))
 			   (< 0 new-width))
-		  (as-exit (lambda () (set-max-width new-width)))))))))])
+		  (as-exit (lambda () (set-max-width new-width)))))))
+	  (as-exit (lambda () (inner (void) on-display-size)))))])
     
-    (private
+    (augmentize ((void) on-change)
+		((void) on-snip-modified snip x)
+		(#t can-save-file? p t)
+		((void) on-save-file p t)
+		((void) after-save-file t)
+		(#t can-load-file? p t)
+		((void) on-load-file p t)
+		((void) after-load-file t)
+		((void) on-edit-sequence)
+		((void) after-edit-sequence))
+
+    (private*
       [sp (lambda (x y z f b?)
 	    ;; let super method report z errors:
 	    (let ([zok? (memq z '(standard postscript))])
 	      (when zok?
 		(check-top-level-parent/false '(method editor<%> print) f))
 	      (let ([p (and zok? f (mred->wx f))])
-		(as-exit (lambda () (super-print x y z p b?))))))])
+		(as-exit (lambda () (super print x y z p b?))))))])
 
-    (override
+    (override*
       [print
        (entry-point
 	(case-lambda 
@@ -2546,35 +2529,72 @@
 			 (send e set-style-list (get-style-list))
 			 e))))])
 
-    (sequence (apply super-init args))))
+    (apply super-make-object args)))
 
   (define text%
-    (class100 (lock-contract-mixin
-               (es-contract-mixin
-                (make-editor-buffer% wx:text% #t  (lambda () text%))))
-      ([line-spacing 1.0] 
-       [tab-stops null]
-       [auto-wrap #f])
-      (rename (super-auto-wrap auto-wrap)
-              (super-set-file-format set-file-format)
-              (super-get-file-format get-file-format)
-              (super-set-position set-position))
-      (override
+    (class (lock-contract-mixin
+	    (es-contract-mixin
+	     (make-editor-buffer% wx:text% #t  (lambda () text%))))
+      (init [line-spacing 1.0] 
+	    [tab-stops null]
+	    [(aw? auto-wrap) #f])
+      (inherit get-file-format set-file-format set-position
+	       auto-wrap)
+      (override*
         [-get-file-format (lambda ()
-                            (super-get-file-format))]
+                            (super get-file-format))]
         [-set-file-format (lambda (format)
-                            (super-set-file-format format)
-                            (super-set-position 0 0))])
+                            (super set-file-format format)
+                            (super set-position 0 0))])
+
+      (augmentize (#t can-insert? s e)
+		  ((void) on-insert s e)
+		  ((void) after-insert s e)
+		  (#t can-delete? s e)
+		  ((void) on-delete s e)
+		  ((void) after-delete s e)
+		  (#t can-change-style? s e)
+		  ((void) on-change-style s e)
+		  ((void) after-change-style s e)
+		  ((void) after-set-position)
+		  (#t can-set-size-constraint?)
+		  ((void) on-set-size-constraint)
+		  ((void) after-set-size-constraint))
       
-      (sequence (super-init line-spacing tab-stops)
-                (when auto-wrap
-                  (super-auto-wrap #t)))))
+      (super-make-object line-spacing tab-stops)
+      (when aw?
+	(super auto-wrap #t))))
   
   (define pasteboard%
-    (class100 (es-contract-mixin (make-editor-buffer% wx:pasteboard% #f (lambda () pasteboard%))) ()
-      (override
-        [-format-filter (lambda (f) 'standard)])
-      (sequence (super-init))))
+    (class (es-contract-mixin (make-editor-buffer% wx:pasteboard% #f (lambda () pasteboard%))) ()
+      (override*
+       [-format-filter (lambda (f) 'standard)])
+      (augmentize (#t can-insert? s s2 x y)
+		  ((void) on-insert s s2 x y)
+		  ((void) after-insert s s2 x y)
+		  (#t can-delete? s)
+		  ((void) on-delete s)
+		  ((void) after-delete s)
+		  (#t can-move-to? s x y ?)
+		  ((void) on-move-to s x y ?)
+		  ((void) after-move-to s x y ?)
+		  (#t can-resize? s x y)
+		  ((void) on-resize s x y)
+		  ((void) after-resize s x y)
+		  (#t can-reorder? s s2 ?)
+		  ((void) on-reorder s s2 ?)
+		  ((void) after-reorder s s2 ?)
+		  (#t can-select? s ?)
+		  ((void) on-select s ?)
+		  ((void) after-select s ?)
+		  
+		  (#t can-interactive-move? e)
+		  ((void) on-interactive-move e)
+		  ((void) after-interactive-move e)
+		  (#t can-interactive-resize? s)
+		  ((void) on-interactive-resize s)
+		  ((void) after-interactive-resize s))
+      (super-new)))
 
 (define editor-snip% (class100 wx:editor-snip% ([editor #f]
 						[with-border? #t]
@@ -3331,9 +3351,7 @@
 
 (define text-field-text% 
   (class100 text% (cb ret-cb control set-cb-mgrs!)
-      (rename [super-after-insert after-insert]
-	      [super-after-delete after-delete]
-	      [super-on-char on-char])
+      (rename [super-on-char on-char])
       (inherit get-text last-position)
       (private-field
 	[return-cb ret-cb])
@@ -3353,18 +3371,17 @@
 	      (unless (and (or (eq? c #\return) (eq? c #\newline))
 			   return-cb
 			   (return-cb (lambda () (callback 'text-field-enter) #t)))
-		(as-exit (lambda () (super-on-char e)))))))]
+		(as-exit (lambda () (super-on-char e)))))))])
+      (augment
 	[after-insert
 	 (lambda args
 	   (as-entry
 	    (lambda ()
-	      (as-exit (lambda () (super-after-insert . args)))
 	      (callback 'text-field))))]
 	[after-delete
 	 (lambda args
 	   (as-entry
 	    (lambda ()
-	      (as-exit (lambda () (super-after-delete . args)))
 	      (callback 'text-field))))])
       (sequence
 	(set-cb-mgrs!
@@ -5909,9 +5926,10 @@
       (inherit insert last-position get-text erase change-style clear-undos)
       (rename [super-on-char on-char])
       (private-field [prompt-pos 0] [locked? #f])
-      (override
+      (augment
 	[can-insert? (lambda (start end) (and (>= start prompt-pos) (not locked?)))]
-	[can-delete? (lambda (start end) (and (>= start prompt-pos) (not locked?)))]
+	[can-delete? (lambda (start end) (and (>= start prompt-pos) (not locked?)))])
+      (override
 	[on-char (lambda (c)
 		   (super-on-char c)
 		   (when (and (memq (send c get-key-code) '(#\return #\newline #\003))
@@ -6519,7 +6537,6 @@
                                            (set! dir (simplify-path (build-path dir sd)))
                                            (reset-directory)))]
 		 [dirs (make-object (class list-box%
-                                      (rename [super-on-subwindow-char on-subwindow-char])
                                       (define/override (on-subwindow-char w e)
                                         (cond
                                           [(and (send e get-meta-down)
@@ -6530,7 +6547,7 @@
                                            (send dirs set-selection 0)
                                            (change-dir dirs)]
                                           [else
-                                           (super-on-subwindow-char w e)]))
+                                           (super on-subwindow-char w e)]))
                                       (super-instantiate ()))
                          #f null lp (lambda (d e)
                                       (update-ok)

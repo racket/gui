@@ -116,7 +116,7 @@
                                  (syntax->list (state-desc-arities (car state-descs))))])
                (syntax
                 (begin
-                  (rename [super-method-name method-name])
+                  (rename-super [super-method-name method-name])
                   (define/override method-name
                     (case-lambda cases ...)))))))
          

@@ -16,9 +16,8 @@
   (define (new-frame editor% file)
     (define f (make-object (class frame%
 			     (inherit modified)
-			     (rename [super-can-close? can-close?])
 			     (define/override (can-close?)
-			       (and (super-can-close?)
+			       (and (super can-close?)
 				    (or (not (modified))
 					(let ([r (message-box/custom
 						  "Editor Modified"
@@ -35,10 +34,9 @@
 			   "MrEdIt" #f 620 450))
     (define c (make-object editor-canvas% f))
     (define e (make-object (class editor%
-			     (rename [super-set-modified set-modified])
 			     (define/override (set-modified mod?)
 			       (send f modified mod?)
-			       (super-set-modified mod?))
+			       (super set-modified mod?))
 			     (super-new))))
     (define mb (make-object menu-bar% f))
 
