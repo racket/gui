@@ -643,8 +643,9 @@
 		(let ([kmap (send edit get-keymap)])
 		  (send kmap call-function
 			(if (mred:preferences:get-preference 'mred:delete-forward?)
-			    "delete-next-character"
-			    "delete-previous-character"))))]
+			    "delete-previous-character"
+			    "delete-next-character")
+			edit event #t)))]
 	     [select-forward-character
 	      (lambda (edit event)
 		(let ([start (box 0)]
