@@ -732,16 +732,20 @@
                                 "Error Reverting"
                                 (format "could not read ~a" filename)))))))
                  #t))]
+            [file-menu:create-revert? (lambda () #t)]
             [file-menu:save-callback (lambda (item control)
                               (send (get-editor) save-file)
                               #t)]
+            [file-menu:create-save? (lambda () #t)]
             [file-menu:save-as-callback (lambda (item control) (save-as) #t)]
+            [file-menu:create-save-as? (lambda () #t)]
             [file-menu:print-callback (lambda (item control)
                                         (send (get-editor) print
                                               #t
                                               #t
                                               (preferences:get 'framework:print-output-mode))
-                                        #t)])
+                                        #t)]
+            [file-menu:create-print? (lambda () #t)])
           
           (private
             [edit-menu:do (lambda (const)
@@ -807,7 +811,8 @@
              (lambda (menu evt) 
                (message-box (application:current-app-name)
                             (format "Welcome to ~a" (application:current-app-name))))]
-            [help-menu:about-string (lambda () (application:current-app-name))])
+            [help-menu:about-string (lambda () (application:current-app-name))]
+            [help-menu:create-about? (lambda () #t)])
           
           (sequence
             (apply super-init
@@ -1250,10 +1255,13 @@
             [super-root 'unitiaialized-super-root])
           (override
             [edit-menu:find-callback (lambda (menu evt) (move-to-search-or-search) #t)]
+            [edit-menu:create-find? (lambda () #t)]
             [edit-menu:find-again-callback (lambda (menu evt) (search-again) #t)]
+            [edit-menu:create-find-again? (lambda () #t)]
             [edit-menu:replace-and-find-again-callback (lambda (menu evt) (replace&search) #t)]
             [edit-menu:replace-and-find-again-on-demand
-             (lambda (item) (send item enable (can-replace?)))])
+             (lambda (item) (send item enable (can-replace?)))]
+            [edit-menu:create-replace-and-find-again? (lambda () #t)])
           (override
             [make-root-area-container
              (lambda (% parent)
