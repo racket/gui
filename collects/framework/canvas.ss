@@ -17,6 +17,7 @@
 	[tall-snips null]
 	[update-snip-size
 	 (lambda (width?)
+	   (printf "update-snip-size: ~a~n" width?)
 	   (lambda (s)
 	     (let* ([width (box 0)]
 		    [height (box 0)]

@@ -36,7 +36,7 @@
       (inherit get-filename save-file
 	       refresh-delayed? 
 	       get-canvas
-	       get-max-width get-admin set-filename)
+	       get-max-width get-admin)
       (private 
 	[has-focus #f])
       (rename [super-on-focus on-focus])

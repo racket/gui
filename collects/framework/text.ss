@@ -355,6 +355,7 @@
 							(if (eq? direction 'forward)
 							    'after-or-none
 							    'before-or-none))])
+		      (printf "searching snips: ~a~n" current-snip)
 		      (let ([next-loop
 			     (lambda ()
 			       (if (eq? direction 'forward)
