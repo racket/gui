@@ -1,3 +1,44 @@
+#|
+
+save needs contracts
+
+showing the dialog needs preferences.
+
+There are four attributes for each preference (technically, "read from 
+disk" is global, but we can just think of it happening to each one 
+independently, but simultaneously):
+
+  - read from disk, or not
+  - default set, or not
+  - marshalling function set, or not
+  - initialization still okay, or not
+
+the state transitions / contracts are:
+
+  get(true, true, _, _) -> (true, true, _, false)
+  get(false, _, _, _) -> error not yet read from disk
+  get(_, false, _, _) -> error default not yet set
+
+  set is just like get.
+
+  set-default(true, false, _, true) -> set-default(true, true, _, true)
+  set-default(false, _, _, _) -> error not yet read from disk
+  set-default(_, true, _, _) -> error default already set
+  set-default(_, _, _, false) -> initialization not okay anymore  /* cannot happen, I think */
+
+  set-marshallingfn(true, _, false, true) -> (true, _, true, true)
+   ... similar to set-default ...
+
+  read(false, _, _, true) -> (true, _, _, true)
+  read(true, _, _, _) -> error, already read from disk
+  read(_, _, _, false) -> initialization phase over /* cannot happen */
+
+  for all syms: 
+   prefs-snapshot(true, _, _, _) -> (true, _, _, false) 
+
+for the last one, need a global "no more initialization can happen" flag.
+
+|#
 
 (module preferences mzscheme
   (require (lib "string-constant.ss" "string-constants")
@@ -24,11 +65,15 @@
       
       (define main-preferences-symbol 'plt:framework-prefs)
       
-      ;; preferences : sym -o> (union marshalled any)
-      ;; for a given preference symbol, p,
-      ;;   when the table maps to a marshalled struct, the
-      ;;   preference has not been examined (via get or set)
+      ;; preferences : hash-table[sym -o> any]
+      ;; the current values of the preferences
       (define preferences (make-hash-table))
+      
+      ;; marshalled : hash-table[sym -o> any]
+      ;; the values of the preferences, as read in from the disk
+      ;; each symbol will only be mapped in one of the preferences
+      ;; hash-table and this hash-table, but not both.
+      (define marshalled (make-hash-table))
       
       ;; marshall-unmarshall : sym -o> un/marshall
       (define marshall-unmarshall (make-hash-table))
@@ -36,19 +81,19 @@
       ;; callbacks : sym -o> (listof (sym TST -> boolean))
       (define callbacks (make-hash-table))
       
-      ;; defaults : sym -o> default
+      ;; defaults : hash-table[sym -o> default]
       (define defaults (make-hash-table))
       
-      ;; changed : hash-table[symbol -o> true]
-      ;; the mapped symbols are the ones that have changed
-      ;; but not yet written out to disk.
-      (define changed (make-hash-table))
-            
+      ;; these four functions determine the state of a preference
+      (define (pref-read?) read?)
+      (define (pref-marshall-set? pref) (hash-table-bound? marshall-unmarshall pref))
+      (define (pref-default-set? pref) (hash-table-bound? defaults pref))
+      (define (pref-can-init? pref) 
+        (and (not snapshot-grabbed?)
+             (not (hash-table-bound? preferences pref))))
+      
       ;; type un/marshall = (make-un/marshall (any -> prinable) (printable -> any))
       (define-struct un/marshall (marshall unmarshall))
-      
-      ;; type marshalled = (make-marshalled printable)
-      (define-struct marshalled (data))
       
       ;; type pref = (make-pref any)
       (define-struct pref (value))
@@ -71,10 +116,15 @@
         (hash-table-get preferences
                         p
                         (λ ()
-                          (let* ([def (hash-table-get defaults p)]
-                                 [def-val (default-value def)])
-                            (hash-table-put! preferences p def-val)
-                            def-val))))
+                          (cond
+                            [(hash-table-bound? marshalled p)
+                             (hash-table-put! preferences p (unmarshall p (hash-table-get marshalled p)))
+                             (hash-table-remove! marshalled p)]
+                            [else
+                             (let* ([def (hash-table-get defaults p)]
+                                    [def-val (default-value def)])
+                               (hash-table-put! preferences p def-val))])
+                          (hash-table-get preferences p))))
           
       ;; set : symbol any -> void
       ;; updates the preference
@@ -92,6 +142,7 @@
                    "tried to set preference ~e to ~e but it does not meet test from preferences:set-default"
                    p value))
           (check-callbacks p value)
+          (hash-table-remove! marshalled p)
           (hash-table-put! preferences p value)))
 
       (define (raise-unknown-preference-error fmt . args)
@@ -101,18 +152,17 @@
       
       ;; unmarshall : symbol marshalled -> any
       ;; unmarshalls a preference read from the disk
-      (define (unmarshall p marshalled)
+      (define (unmarshall p data)
         (let/ec k
-          (let* ([data (marshalled-data marshalled)]
-                 [unmarshall-fn (un/marshall-unmarshall
+          (let* ([unmarshall-fn (un/marshall-unmarshall
                                  (hash-table-get marshall-unmarshall
                                                  p
                                                  (λ () (k data))))]
-                 [default (hash-table-get defaults p)])
-            (let ([result (unmarshall-fn data)])
-              (if ((default-checker default) result)
-                  result
-                  (default-value default))))))
+                 [default (hash-table-get defaults p)]
+                 [result (unmarshall-fn data)])
+            (if ((default-checker default) result)
+                result
+                (default-value default)))))
 
       ;; add-callback : sym (-> void) -> void
       (define add-callback 
@@ -169,8 +219,8 @@
           (unless (hash-table-bound? defaults p)
             (error 'set-un/marshall "must call set-default for ~s before calling set-un/marshall for ~s"
                    p p))
-          (when (pref-has-value? p)
-            (error 'preferences:set-un/marshall "a value for the preference ~e has already been looked up or set" p))
+          (unless (pref-can-init? p)
+            (error 'preferences:set-un/marshall "the preference ~e cannot be configured any more" p))
           (hash-table-put! marshall-unmarshall p (make-un/marshall marshall unmarshall))))
       
       (define (hash-table-bound? ht s)
@@ -186,23 +236,15 @@
       
       ;; set-default : (sym TST (TST -> boolean) -> void
       (define (set-default p default-value checker)
-        (when (pref-has-value? p)
+        (unless (pref-can-init? p)
           (error 'preferences:set-default
-                 "tried to call set-default for preference ~e but it already has a value"
+                 "tried to call set-default for preference ~e but it cannot be configured any more"
                  p))
         (let ([default-okay? (checker default-value)])
           (unless default-okay?
             (error 'set-default "~s: checker (~s) returns ~s for ~s, expected #t~n"
                    p checker default-okay? default-value))
           (hash-table-put! defaults p (make-default default-value checker))))
-      
-      ;; pref-has-value? : symbol -> boolean
-      ;; returns #t if the preference's value has been examined with set or get
-      (define (pref-has-value? p)
-        (let/ec k
-          (let ([b (hash-table-get preferences p (λ () (k #f)))])
-            (not (marshalled? b)))))
-
       
       (define (save) (raw-save #f))
       (define (silent-save) (raw-save #f))
@@ -244,15 +286,13 @@
       
       ;; marshall-pref : symbol any -> (list symbol printable)
       (define (marshall-pref p value)
-        (if (marshalled? value)
-            (list p (marshalled-data value))
-            (let/ec k
-              (let* ([marshaller
-                      (un/marshall-marshall
-                       (hash-table-get marshall-unmarshall p
-                                       (λ () (k (list p value)))))]
-                     [marshalled (marshaller value)])
-                (list p marshalled)))))
+        (let/ec k
+          (let* ([marshaller
+                  (un/marshall-marshall
+                   (hash-table-get marshall-unmarshall p
+                                   (λ () (k (list p value)))))]
+                 [marshalled (marshaller value)])
+            (list p marshalled))))
 
       (define (read-err input msg)
         (message-box 
@@ -275,65 +315,31 @@
       
       ;; read : -> void
       (define (-read) 
-        (get-disk-prefs/install void)
-        (void))
-      
-      ;; get-disk-prefs/install : (-> A) -> (union A sexp)
-      (define (get-disk-prefs/install fail)
+        (set! read? #t)
         (let/ec k
-          (let ([sexp (get-disk-prefs (λ () (k (fail))))])
-            (install-stashed-preferences sexp '())
-            sexp)))
-
-      ;; get-disk-prefs : (-> A) -> (union A sexp)
-      (define (get-disk-prefs fail)
-        (let/ec k
-          (let* ([filename (find-system-path 'pref-file)]
-		 [mod (and (file-exists? filename) (file-or-directory-modify-seconds filename))]
-		 [sexp (get-preference main-preferences-symbol (λ () (k (fail))))])
-            sexp)))
+          (let ([sexp (get-preference main-preferences-symbol (λ () (k (void))))])
+            (when (andmap (lambda (x)
+                            (and (pair? x)
+                                 (symbol? (car x))
+                                 (pair? (cdr x))
+                                 (null? (cddr x))))
+                          sexp)
+              (for-each (lambda (pr)
+                          (let ([sym (car pr)]
+                                [pref (cadr pr)])
+                            (hash-table-put! marshalled sym pref)))
+                        sexp)))))
+      (define read? #f)
       
-      ;; install-stashed-preferences : sexp (listof symbol) -> void
-      ;; ensure that `prefs' is actuall a well-formed preferences
-      ;; table and installs them as the current preferences.
-      (define (install-stashed-preferences prefs skip)
-        (for-each-pref-in-sexp
-         prefs
-         (λ (p marshalled)
-           (unless (memq p skip)
-             (let ([unmarshalled (unmarshall p (make-marshalled marshalled))])
-               (hash-table-put! preferences p unmarshalled)
-               (check-callbacks p unmarshalled))))))
+      (define snapshot-grabbed? #f)
+      (define (get-prefs-snapshot)
+        (set! snapshot-grabbed? #t)
+        (hash-table-map preferences cons))
       
-      (define (for-each-pref-in-file parse-pref preferences-filename)
-        (let/ec k
-          (let ([input (with-handlers
-                           ([(λ (x) #f) ;exn:fail?
-                             (λ (exn)
-                               (message-box
-                                (string-constant error-reading-preferences)
-                                (string-append
-                                 (string-constant error-reading-preferences)
-                                 (format "\n~a" (exn-message exn))))
-                               (k #f))])
-                         (call-with-input-file preferences-filename read 'text))])
-            (if (eof-object? input)
-                (void)
-                (for-each-pref-in-sexp input parse-pref)))))
+      (define (restore-prefs-snapshot snapshot)
+        (for-each (lambda (lst) (set (car lst) (cdr lst)))
+                  snapshot))
       
-      ;; for-each-pref-in-sexp : sexp (symbol TST -> void) -> void
-      (define (for-each-pref-in-sexp input parse-pref)
-        (let/ec k
-          (let loop ([input input])
-            (when (pair? input)
-              (let ([pre-pref (car input)])
-                (if (and (pair? pre-pref)
-                         (pair? (cdr pre-pref))
-                         (null? (cddr pre-pref)))
-                    (parse-pref (car pre-pref) (cadr pre-pref))
-                    (begin (read-err pre-pref (string-constant expected-list-of-length2))
-                           (k #f))))
-              (loop (cdr input))))))
 
 
  
@@ -448,14 +454,14 @@
       (define can-close-dialog-callbacks null)
       
       (define (make-preferences-dialog)
-        (letrec ([stashed-prefs (get-disk-prefs/install (λ () null))]
+        (letrec ([stashed-prefs (get-prefs-snapshot)]
 		 [frame-stashed-prefs%
 		  (class frame:basic%
                     (define/override (show on?)
                       (when on?
-                        (set! stashed-prefs (get-disk-prefs/install (λ () null))))
+                        (set! stashed-prefs (get-prefs-snapshot)))
 		      (super show on?))
-		    (super-instantiate ()))]
+		    (super-new))]
                  [frame 
                   (make-object frame-stashed-prefs%
                     (string-constant preferences))]
@@ -513,7 +519,7 @@
                                   (hide-dialog)))]
                  [cancel-callback (λ (_1 _2)
                                     (hide-dialog)
-                                    (install-stashed-preferences stashed-prefs '()))])
+                                    (restore-prefs-snapshot stashed-prefs))])
           (gui-utils:ok/cancel-buttons
            bottom-panel
            ok-callback
