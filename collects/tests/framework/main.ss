@@ -133,66 +133,78 @@
 	  (regexp-match re:tcp-write-error (exn-message exn))))
 
     (define send-sexp-to-mred
-      (lambda (sexp)
-	(let ([show-text 
-	       (lambda (sexp)
-		 
-		 (parameterize ([pretty-print-print-line
-				 (let ([prompt "  "]
-				       [old-liner (pretty-print-print-line)])
-				   (lambda (ln port ol cols)
-				     (let ([ov (old-liner ln port ol cols)])
-				       (if ln 
-					   (begin (display prompt port)
-						  (+ (string-length prompt) ov))
-					   ov))))])
-		   (pretty-print sexp)
-		   (newline)))])
-	  (unless (and in-port
-		       out-port
-		       (or (not (char-ready? in-port))
-			   (not (eof-object? (peek-char in-port)))))
-	    (restart-mred))
-	  (printf "  ~a // ~a: sending to mred:~n" section-name test-name)
-	  (show-text sexp)
-	  (write sexp out-port)
-	  (newline out-port)
-	  (let ([answer
-		 (with-handlers ([(lambda (x) #t)
-				  (lambda (x)
-				    (if (tcp-error? x);; assume tcp-error means app closed
-					eof
-					(list 'cant-read
-					      (string-append
-					       (exn-message x)
-					       "; rest of string: "
-					       (format
-						"~s"
-						(apply
-						 string
-						 (let loop ()
-						   (if (char-ready? in-port)
-						       (let ([char (read-char in-port)])
-							 (if (eof-object? char)
-							     null
-							     (cons char (loop))))
-						       null))))))))])
-		   (read in-port))])
-	    (unless (or (eof-object? answer)
-			(and (list? answer)
-			     (= 2 (length answer))))
-	      (error 'send-sexp-to-mred "unpected result from mred: ~s~n" answer))
+      (let ([failed-last-time? #f])
+	(lambda (sexp)
+	  (let/ec k
+	    (let ([show-text 
+		   (lambda (sexp)
+		     
+		     (parameterize ([pretty-print-print-line
+				     (let ([prompt "  "]
+					   [old-liner (pretty-print-print-line)])
+				       (lambda (ln port ol cols)
+					 (let ([ov (old-liner ln port ol cols)])
+					   (if ln 
+					       (begin (display prompt port)
+						      (+ (string-length prompt) ov))
+					       ov))))])
+		       (pretty-print sexp)
+		       (newline)))])
+	      (unless (and in-port
+			   out-port
+			   (or (not (char-ready? in-port))
+			       (not (eof-object? (peek-char in-port)))))
+		(restart-mred))
+	      (printf "  ~a // ~a: sending to mred:~n" section-name test-name)
+	      (show-text sexp)
+	      (with-handlers ([(lambda (x) #t)
+			       (lambda (x)
+				 (cond
+				  ;; this means that mred was closed
+				  ;; so we can restart it and try again.
+				  [(tcp-error? x) 
+				   (restart-mred)
+				   (write sexp out-port)
+				   (newline out-port)]
+				  [else (raise x)]))])
+		(write sexp out-port)
+		(newline out-port))
+	      (let ([answer
+		     (with-handlers ([(lambda (x) #t)
+				      (lambda (x)
+					(if (tcp-error? x);; assume tcp-error means app closed
+					    eof
+					    (list 'cant-read
+						  (string-append
+						   (exn-message x)
+						   "; rest of string: "
+						   (format
+						    "~s"
+						    (apply
+						     string
+						     (let loop ()
+						       (if (char-ready? in-port)
+							   (let ([char (read-char in-port)])
+							     (if (eof-object? char)
+								 null
+								 (cons char (loop))))
+							   null))))))))])
+		       (read in-port))])
+		(unless (or (eof-object? answer)
+			    (and (list? answer)
+				 (= 2 (length answer))))
+		  (error 'send-sexp-to-mred "unpected result from mred: ~s~n" answer))
 
-	    (if (eof-object? answer)
-		(raise (make-eof-result))
-		(case (car answer)
-		  [(error)
-		   (error 'send-sexp-to-mred "mred raised \"~a\"" (second answer))]
-		  [(cant-read) (error 'mred/cant-parse (second answer))]
-		  [(normal) 
-		   (printf "  ~a // ~a: received from mred:~n" section-name test-name)
-		   (show-text (second answer))
-		   (eval (second answer))]))))))
+		(if (eof-object? answer)
+		    (raise (make-eof-result))
+		    (case (car answer)
+		      [(error)
+		       (error 'send-sexp-to-mred "mred raised \"~a\"" (second answer))]
+		      [(cant-read) (error 'mred/cant-parse (second answer))]
+		      [(normal) 
+		       (printf "  ~a // ~a: received from mred:~n" section-name test-name)
+		       (show-text (second answer))
+		       (eval (second answer))]))))))))
 
 
     (define test
