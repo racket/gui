@@ -7421,7 +7421,7 @@
 ;; and ending at position `end'.
 (define open-input-text-editor 
   (case-lambda
-   [(text start end)
+   [(text start end snip-filter)
     ;; Check arguments:
     (unless (text . is-a? . text%)
       (raise-type-error 'open-input-text-editor "text% object" text))
@@ -7480,23 +7480,30 @@
 			      [next?
 			       (next-snip to-str)]
 			      [snip
-			       (let ([the-snip snip])
-				 ;; Increment the snip now, because the
-				 ;;  system promises to use the procedure
-				 ;;  below before another read
-				 (next-snip empty-string)
+			       (let-values ([(the-snip alt-size) (snip-filter snip)])
 				 (lambda (file line col ppos)
-				   (if (is-a? the-snip readable-snip<%>)
-				       (with-handlers ([exn:special-comment?
-							(lambda (exn)
-							  ;; implies "done"
-							  (raise exn))])
-					 (let-values ([(val size done?)
-						       (send the-snip read-one-special pos file line col ppos)])
-					   (unless done?
-					     (set! pos (add1 pos)))
-					   (values val size)))
-				       (values (send the-snip copy) 1))))]
+				   (if (is-a? the-snip wx:snip%)
+				       (if (is-a? the-snip readable-snip<%>)
+					   (with-handlers ([exn:special-comment?
+							    (lambda (exn)
+							      ;; implies "done"
+							      (next-snip empty-string)
+							      (raise exn))]
+							   [not-break-exn?
+							    (lambda (exn)
+							      ;; Give up after an exception
+							      (next-snip empty-string)
+							      (raise exn))])
+					     (let-values ([(val size done?)
+							   (send the-snip read-one-special pos file line col ppos)])
+					       (if done?
+						   (next-snip empty-string)
+						   (set! pos (add1 pos)))
+					       (values val size)))
+					   (values (send the-snip copy) alt-size))
+				       (begin
+					 (next-snip empty-string)
+					 (values the-snip alt-size)))))]
 			      [else eof]))]
 	       [close (lambda () (void))]
 	       [port (make-custom-input-port 
@@ -7525,6 +7532,7 @@
 	      (update-str-to-snip empty-string))
 	  (port-count-lines! port)
 	  port)))]
+   [(text start end) (open-input-text-editor text start end (lambda (x) (values x 1)))]
    [(text start) (open-input-text-editor text start 'end)]
    [(text) (open-input-text-editor text 0 'end)]))
 

@@ -64,7 +64,8 @@
 
 ;; Editor ports
 
-(let ([e (make-object text%)])
+(let ([e (make-object text%)]
+      [multi-mode? #f])
   (stv e insert "hello")
   (let ([p (open-input-text-editor e)])
     (test 'hello 'read (read p))
@@ -77,8 +78,10 @@
   (stv e insert (make-object
 		 (class* snip% 
 		   (readable-snip<%>)
-		   (define/public (read-one-special idx src line col pos)
-		     (error 'ack))
+		   (define/public (read-one-special index src line col pos)
+		     (if multi-mode?
+			 (values 'multi 1 (= index 1))
+			 (error 'ack)))
 		   (super-new))))
   (let ([p (open-input-text-editor e)])
     (port-count-lines! p)
@@ -91,6 +94,16 @@
 							   'got-ack)])
 			   (read p)))
     (test '(1 12 13) 'pos (call-with-values (lambda () (port-next-location p)) list))
+    (test eof 'read (read p)))
+  (set! multi-mode? #t)
+  (let ([p (open-input-text-editor e)])
+    (port-count-lines! p)
+    (test 'hello 'read (read p))
+    (test 'there 'read (read p))
+    (test 'multi 'read (read p))
+    (test '(1 12 13) 'pos (call-with-values (lambda () (port-next-location p)) list))
+    (test 'multi 'read (read p))
+    (test '(1 13 14) 'pos (call-with-values (lambda () (port-next-location p)) list))
     (test eof 'read (read p))))
 		 
 
