@@ -116,6 +116,7 @@
                          get-filename))
       (define basic-mixin
         (mixin ((class->interface frame%)) (basic<%>)
+        
           (rename [super-can-close? can-close?]
                   [super-on-close on-close]
                   [super-on-focus on-focus])

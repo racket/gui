@@ -1,3 +1,4 @@
+
 (module editor mzscheme
   (require (lib "unitsig.ss")
 	   (lib "class.ss")
@@ -223,20 +224,24 @@
 	      (super-after-edit-sequence)
 	      (let ([queue edit-sequence-queue]
 		    [ht edit-sequence-ht]
-		    [find-enclosing-edit
-		     (lambda (edit)
-		       (let ([admin (send edit get-admin)])
+		    [find-enclosing-editor
+		     (lambda (editor)
+		       (let ([admin (send editor get-admin)])
 			 (cond
 			   [(is-a? admin editor-snip-editor-admin<%>)
 			    (send (send (send admin get-snip) get-admin) get-editor)]
 			   [else #f])))])
 		(set! edit-sequence-queue null)
 		(set! edit-sequence-ht (make-hash-table))
-		(let loop ([edit (find-enclosing-edit this)])
+		(let loop ([editor (find-enclosing-editor this)])
 		  (cond
-		    [(and edit (not (send edit local-edit-sequence?)))
-		     (loop (find-enclosing-edit edit))]
-		    [edit (send edit extend-edit-sequence-queue queue ht)]
+		    [(and editor 
+                          (is-a? editor basic<%>)
+                          (not (send editor local-edit-sequence?)))
+		     (loop (find-enclosing-editor editor))]
+		    [(and editor
+                          (is-a? editor basic<%>))
+                     (send editor extend-edit-sequence-queue queue ht)]
 		    [else
 		     (hash-table-for-each ht (lambda (k t) (t)))
 		     (for-each (lambda (t) (t)) queue)]))))]

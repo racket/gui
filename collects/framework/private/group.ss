@@ -88,8 +88,7 @@
                                      (get-name (frame-frame f2)))))])
               (for-each
                (lambda (menu)
-                 (for-each (lambda (item) (send item delete))
-                           (send menu get-items))
+                 (for-each (lambda (item) (send item delete)) (send menu get-items))
                  (instantiate menu:can-restore-menu-item% ()
                    (label (string-constant bring-frame-to-front...))
                    (parent menu)
