@@ -200,7 +200,11 @@
 			     (lambda ()
                                (change-style color sp ep #f)))
 			   colors)))
-		  (insert-last! tokens (new token-tree% (length len) (data type)))
+                  ; Using the non-spec version takes 3 times as long as the spec
+                  ; version.  In other words, the new greatly outweighs the tree
+                  ; operations.
+		  ;(insert-last! tokens (new token-tree% (length len) (data type)))
+                  (insert-last-spec! tokens len type)
 		  (send parens add-token data len)
 		  (cond
 		   ((and (not (send invalid-tokens is-empty?))
