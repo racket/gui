@@ -139,13 +139,22 @@
     (st #f f get-cursor)
     (stv f set-cursor c)))
 
+(define (show-tests f)
+  (unless (is-a? f dialog%)
+    (printf "Show ~a~n" f)
+    (let ([on? (send f is-shown?)])
+      (stv f show #f)
+      (when on?
+	(stv f show #t)))))
+
 (define (window-tests f sw? sh? parent top m)
   (st parent f get-parent)
   (st top f get-top-level-window)
   (enable-tests f)
   (drop-file-tests f)
   (client->screen-tests f)
-  (cursor-tests f))
+  (cursor-tests f)
+  (show-tests f))
 
 (define (containee-window-tests f sw? sh? parent top m)
   (window-tests f sw? sh? parent top m)

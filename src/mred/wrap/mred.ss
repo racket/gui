@@ -2792,7 +2792,7 @@
       [show (entry-point-1 (lambda (on?) 
 			     (when on?
 			       (unless top?
-				 (unless (memq wx (ivar (send wx get-parent) children))
+				 (unless (memq wx (ivar (send wx area-parent) children))
 				   (raise-mismatch-error 
 				    (who->name '(method window<%> show))
 				    "cannot show a subwindow that is not active in its parent: "
