@@ -495,8 +495,8 @@ needed to really make this work:
   (define (make-text-port text)
     (make-output-port #f
                       always-evt
-                      (lambda (s start end flush?) 
-                        (send text insert (substring s start end)
+                      (lambda (s start end flush? breaks?) 
+                        (send text insert (bytes->string/utf-8 (subbytes s start end))
                               (send text last-position)
                               (send text last-position))
                         (- end start))
