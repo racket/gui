@@ -38,10 +38,34 @@
       
       (define text-mixin
         (mixin (text:basic<%>) (-text<%>)
-          ;; ---------------------- Lexing state ----------------------------------
+          ;; ---------------------- Coloring modes ----------------------------
+          
+          ;; The tokenizer is stopped.  This is used by the surrogate to enter
+          ;; a mode with no coloring or paren matching.
+          (define stopped? #t)
+
+          ;; The tokenizer is stopped and prevented from starting.  This is 
+          ;; an internal call for debugging.
+          (define force-stop? #f)
+
+          ;; color-callback has been suspended because the text% became locked
+          ;; and should be requeued when the text% is unlocked.
+          (define restart-callback #f)
+
+          ;; Some other tool wants to take over coloring the buffer, so the 
+          ;; colorer shouldn't color anything.
+          (define frozen? #f)
+          ;; true iff the colorer should recolor from scratch when the freeze
+          ;; is over.
+          (define restart-after-freeze #f)
+          
+          ;; ---------------------- Lexing state ------------------------------
           
           ;; The tree of valid tokens, starting at start-pos
           (define tokens (new token-tree%))
+          
+          ;; If the tree is completed
+          (define up-to-date? #t)
           
           ;; The tree of tokens that have been invalidated by an edit
           ;; but might still be valid.
@@ -55,27 +79,14 @@
           
           ;; The lexer
           (define get-token #f)
-          
-          ;; If the tree is completed
-          (define up-to-date? #t)
-          
-          ;; The tokenizer is stopped
-          (define stopped? #t)
-
-          ;; The tokenizer is stopped and prevented from starting
-          (define force-stop? #f)
-          
-          ;; color-callback has been suspended because the text% became locked and
-          ;; should be requeued when the text% is unlocked.
-          (define restart-callback #f)
-          
-          ;; ---------------------- Parnethesis matching --------------------------
+                              
+          ;; ---------------------- Parnethesis matching ----------------------
           
           (define pairs '())
           (define parens (new paren-tree% (matches pairs)))
           
           
-          ;; ---------------------- Interactions state ----------------------------
+          ;; ---------------------- Interactions state ------------------------
           ;; The positions right before and right after the area to be tokenized
           (define start-pos 0)
           (define end-pos 'end)
@@ -88,11 +99,11 @@
           (define/public (update-region-end end)
             (set! end-pos end))
           
-          ;; ---------------------- Preferences -----------------------------------
+          ;; ---------------------- Preferences -------------------------------
           (define should-color? #t)
           (define tab-name #f)
                     
-          ;; ---------------------- Multi-threading -------------------------------
+          ;; ---------------------- Multi-threading ---------------------------
           ;; A list of thunks that color the buffer
           (define colors null)
           ;; The thread handle to the background colorer
@@ -149,7 +160,7 @@
                 (let ((len (- new-token-end new-token-start)))
                   (set! current-pos (+ len current-pos))
                   (sync-invalid)
-                  (when (and should-color? (not (eq? 'white-space type)))
+                  (when (and should-color? (not (eq? 'white-space type)) (not frozen?))
                     (set! colors
                           (cons
                            (let ((color (send (get-style-list) find-named-style
@@ -175,6 +186,8 @@
           
           (define (do-insert/delete edit-start-pos change-length)
             (unless (or stopped? force-stop?)
+              (when frozen?
+                (set! restart-after-freeze #t))
               (when (> edit-start-pos start-pos)
                 (set! edit-start-pos (sub1 edit-start-pos)))
               (modify)
@@ -212,23 +225,25 @@
 
           (inherit is-locked?)
           
+          (define (colorer-driver)
+            (unless (or up-to-date? (in-edit-sequence?))
+              (thread-resume background-thread)
+              (sleep .01)    ;; This is when the background thread is working.
+              (semaphore-wait mutex-lock)
+              (thread-suspend background-thread)
+              (semaphore-post mutex-lock)
+              (begin-edit-sequence #f #f)
+              (color)
+              (end-edit-sequence)))
+          
           (define (colorer-callback)
             (cond
               ((is-locked?)
                (set! restart-callback #t))
               (else
-               (unless (in-edit-sequence?)
-                 (thread-resume background-thread)
-                 (sleep .01)    ;; This is when the background thread is working.
-                 (semaphore-wait mutex-lock)
-                 (thread-suspend background-thread)
-                 (semaphore-post mutex-lock)
-                 (begin-edit-sequence #f #f)
-                 (color)
-                 (end-edit-sequence))
+               (colorer-driver)
                (unless up-to-date?
                  (queue-callback colorer-callback #f)))))
-          
           
           ;; Breaks should be disabled on entry
           (define (background-colorer-entry)
@@ -259,6 +274,15 @@
                 (thread-suspend (current-thread))))
             (background-colorer))
           
+          ;; Must not be called when the editor is locked or in an edit
+          ;; sequence
+          (define (finish-now)
+            (unless stopped?
+              (let loop ()
+                (unless up-to-date?
+                  (colorer-driver)
+                  (loop)))))
+          
           (define/public (start-colorer tab-name- get-token- pairs-)
             (unless force-stop?
               (set! stopped? #f)
@@ -276,19 +300,42 @@
                 (break-enabled #t))
               (do-insert/delete start-pos 0)))
             
-          (define/public (stop-colorer)
-            (set! stopped? #t)
-            (color-prefs:remove-active-pref-callback tab-name this)
-            (change-style (send (get-style-list) find-named-style "Standard")
-                          start-pos end-pos #f)
-            (match-parens #t)
-            (reset-tokens)
-            (set! pairs null)
-            (set! tab-name #f)
-            (set! get-token #f))
+          (define/public stop-colorer
+            (opt-lambda ((clear-colors #t))
+              (set! stopped? #t)
+              (color-prefs:remove-active-pref-callback tab-name this)
+              (when clear-colors
+                (change-style (send (get-style-list) find-named-style "Standard")
+                              start-pos end-pos #f))
+              (match-parens #t)
+              (reset-tokens)
+              (set! pairs null)
+              (set! tab-name #f)
+              (set! get-token #f)))
+          
+          (define/public (freeze-colorer)
+            (when (is-locked?)
+              (error 'freeze-colorer "called on a locked color:text<%>."))
+            (when (in-edit-sequence?)
+              (error 'freeze-colorer "called on a color:text<%> while in an edit sequence."))
+            (unless frozen?
+              (finish-now)
+              (set! frozen? #t)))
+          
+          (define/public (thaw-colorer)
+            (when frozen?
+              (set! frozen? #f)
+              (when restart-after-freeze
+                (let ((tn tab-name)
+                      (gt get-token)
+                      (p pairs))
+                  (stop-colorer (not should-color?))
+                  (start-colorer tn gt p)))))
           
           (define/public (toggle-color on?)
             (cond
+              ((and frozen? (not (equal? on? should-color?)))
+               (set! restart-after-freeze #t))
               ((and (not should-color?) on?)
                (set! should-color? #t)
                (reset-tokens)
@@ -330,6 +377,15 @@
           
           (define in-match-parens? #f)
           
+          
+          ;; If there is no match because the buffer isn't lexed yet, this will
+          ;; do nothing, but the edit sequence for changing color the colors 
+          ;; will trigger a callback that will call this to try and match again.
+          ;; This edit sequence is used even if the coloring is disabled in
+          ;; the preferences, although nothing is actually colored during it.
+          ;; This leads to the nice bahavior that we don't have to block to
+          ;; highlight parens, and the parens will be highlighted as soon as
+          ;; possible.
           (define match-parens
             (opt-lambda ([just-clear? #f])
               (unless in-match-parens?
