@@ -6160,12 +6160,17 @@
 			  (let ([the-snip snip])
 			    (lambda (file line col ppos)
 			      (if (is-a? the-snip readable-snip<%>)
+				  (with-handlers ([exn:special-comment?
+						   (lambda (exn)
+						     ;; implies "done"
+						     (next-snip)
+						     (raise exn))])
 				  (let-values ([(val size done?)
 						(send the-snip read-one-special pos file line col ppos)])
 				    (if done?
 					(next-snip)
 					(set! pos (add1 pos)))
-				    (values val size))
+				    (values val size)))
 				  (begin
 				    (next-snip)
 				    (values (send the-snip copy) 1)))))]))]
