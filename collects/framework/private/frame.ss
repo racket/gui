@@ -2138,16 +2138,17 @@
                   [else editor]))))
           
           (define (toggle-search-focus)
-            (set-searching-frame this)
-            (unhide-search)
-	    (send (cond
-		    [(send find-canvas has-focus?)
-		     replace-canvas]
-		    [(send replace-canvas has-focus?)
-		     (send (get-text-to-search) get-canvas)]
-		    [else
-		     find-canvas])
-		  focus))
+            (when find-canvas
+              (set-searching-frame this)
+              (unhide-search)
+              (send (cond
+                      [(send find-canvas has-focus?)
+                       replace-canvas]
+                      [(send replace-canvas has-focus?)
+                       (send (get-text-to-search) get-canvas)]
+                      [else
+                       find-canvas])
+                    focus)))
           (define move-to-search-or-search
             (lambda ()
               (set-searching-frame this)
