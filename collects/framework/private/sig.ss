@@ -166,11 +166,11 @@
      add-font-panel
 
      add-editor-checkbox-panel
-     add-misc-checkbox-panel
+     add-warnings-checkbox-panel
      add-scheme-checkbox-panel
 
      add-to-editor-checkbox-panel
-     add-to-misc-checkbox-panel
+     add-to-warnings-checkbox-panel
      add-to-scheme-checkbox-panel
      
      show-dialog

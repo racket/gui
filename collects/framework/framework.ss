@@ -202,18 +202,18 @@
     ()
     "Adds a preferences panel for configuring options"
     "related to editing.")
-   (preferences:add-misc-checkbox-panel
+   (preferences:add-warnings-checkbox-panel
     (-> void?)
     ()
     "Adds a preferences panel for configuring"
-    "misc. options")
+    "options relating to warnings")
    (preferences:add-scheme-checkbox-panel
     (-> void?)
     ()
     "Adds a preferences panel for configuring"
     "options related to Scheme.")
    
-   (preferences:add-to-misc-checkbox-panel
+   (preferences:add-to-warnings-checkbox-panel
     (((is-a?/c vertical-panel%) . -> . void?) . -> . void?)
     (proc)
     "Saves \\var{proc} until the preferences panel is"

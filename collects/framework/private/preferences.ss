@@ -341,14 +341,14 @@
               (let ([old editor-panel-procs])
                 (lambda (parent) (old parent) (f parent)))))
       
-      (define (add-to-misc-checkbox-panel f)
-        (set! misc-panel-procs 
-              (let ([old misc-panel-procs])
+      (define (add-to-warnings-checkbox-panel f)
+        (set! warnings-panel-procs 
+              (let ([old warnings-panel-procs])
                 (lambda (parent) (old parent) (f parent)))))
 
       (define scheme-panel-procs void)
       (define editor-panel-procs void)
-      (define misc-panel-procs void)
+      (define warnings-panel-procs void)
       
       (define (add-checkbox-panel label proc)
         (add-panel
@@ -409,11 +409,6 @@
                        (make-check editor-panel  'framework:backup-files? (string-constant backup-files) values values)
                        (make-check editor-panel  'framework:delete-forward? (string-constant map-delete-to-backspace)
                                    not not)
-                       
-                       (make-check editor-panel 
-                                   'framework:verify-change-format 
-                                   (string-constant ask-before-changing-format)
-                                   values values)
                        (make-check editor-panel 'framework:show-status-line (string-constant show-status-line) values values)
                        (make-check editor-panel 'framework:line-offsets (string-constant count-from-one) values values)
                        (make-check editor-panel 
@@ -433,38 +428,38 @@
                                    'framework:open-here?
                                    (string-constant reuse-existing-frames)
                                    values values)
-                       (editor-panel-procs editor-panel))))])
-          (add-editor-checkbox-panel)))
-
-      (define (add-misc-checkbox-panel)
-        (letrec ([add-misc-checkbox-panel
-                  (lambda ()
-                    (set! add-misc-checkbox-panel void)
-                    (add-checkbox-panel 
-                     (string-constant misc-prefs-panel-label)
-                     (lambda (misc-panel)
-                       (make-check misc-panel 
-                                   'framework:verify-exit
-                                   (string-constant verify-exit)
-                                   values values)
-                       (make-check misc-panel 
+                       (make-check editor-panel 
                                    'framework:menu-bindings
                                    (string-constant enable-keybindings-in-menus)
                                    values values)
                        (unless (eq? (system-type) 'unix) 
-                         (make-check misc-panel 
+                         (make-check editor-panel 
                                      'framework:print-output-mode 
                                      (string-constant automatically-to-ps)
                                      (lambda (b) 
                                        (if b 'postscript 'standard))
                                      (lambda (n) (eq? 'postscript n))))
-                       '(when (eq? (system-type) 'windows) 
-                          (make-check misc-panel 
-                                      'framework:windows-mdi
-                                      (string-constant use-mdi)
-                                      values values))
-                       (misc-panel-procs misc-panel))))])
-          (add-misc-checkbox-panel)))
+                       (editor-panel-procs editor-panel))))])
+          (add-editor-checkbox-panel)))
+
+      (define (add-warnings-checkbox-panel)
+        (letrec ([add-warnings-checkbox-panel
+                  (lambda ()
+                    (set! add-warnings-checkbox-panel void)
+                    (add-checkbox-panel 
+                     (string-constant warnings-prefs-panel-label)
+                     (lambda (warnings-panel)
+                       (make-check warnings-panel 
+                                   'framework:verify-change-format 
+                                   (string-constant ask-before-changing-format)
+                                   values values)
+                       (make-check warnings-panel 
+                                   'framework:verify-exit
+                                   (string-constant verify-exit)
+                                   values values)
+                       
+                       (warnings-panel-procs warnings-panel))))])
+          (add-warnings-checkbox-panel)))
                   
       (define (local-add-font-panel)
         (let* ([font-families-name/const
