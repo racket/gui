@@ -1126,7 +1126,7 @@ WARNING: printf is rebound in the body of the unit to always
                     (let* ([data-hd (queue-first data)]
                            [reader-hd (queue-first readers)]
                            [reader-succeed (car reader-hd)]
-                           [reader-fail (cdr reader-hd)])
+                           [reader-fail (cadr reader-hd)])
                       (object-wait-multiple
                        #f
                        (make-wrapped-waitable
