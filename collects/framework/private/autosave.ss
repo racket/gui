@@ -63,7 +63,7 @@
                     'text))))
             (let ([seconds (preferences:get 'framework:autosave-delay)])
               (start (* 1000 seconds) #t)))
-          (super-instantiate ())
+          (super-new)
           (let ([seconds (preferences:get 'framework:autosave-delay)])
             (start (* 1000 seconds) #t))))
 
@@ -134,11 +134,10 @@
                    [filtered-table
                     (filter (lambda (x) (file-exists? (cadr x))) table)])
               (unless (null? filtered-table)
-                (let* ([f (make-object final-frame%
-			    (string-constant recover-autosave-files-frame-title))]
-                       [t (instantiate text% ()
-                            (auto-wrap #t))]
-                       [ec (instantiate editor-canvas% ()
+                (let* ([f (new final-frame%
+                               (label (string-constant recover-autosave-files-frame-title)))]
+                       [t (new text% (auto-wrap #t))]
+                       [ec (new editor-canvas%
                              (parent (send f get-area-container))
                              (editor t)
                              (line-count 2)
@@ -168,13 +167,14 @@
         
         (define final-frame%
           (class frame:basic%
-            (define/override (can-close?) #t)
-            (define/override (on-close)
+            (define/augment (can-close?) #t)
+            (define/augment (on-close)
+              (inner (void) on-close)
               (send (group:get-the-frame-group)
                     remove-frame
                     this)
               (semaphore-post done-semaphore))
-            (super-instantiate ())))
+            (super-new)))
         
         ;; add-table-line : (is-a? area-container<%>)  (union #f (is-a?/c top-level-window<%>))
         ;;               -> (list (union #f string[filename]) string[filename-file-exists?])
@@ -184,27 +184,27 @@
           (lambda (table-entry)
             (letrec ([orig-file (car table-entry)]
 		     [backup-file (cadr table-entry)]
-		     [hp (instantiate horizontal-panel% ()
+		     [hp (new horizontal-panel%
 			   (parent area-container)
 			   (style '(border))
 			   (stretchable-height #f))]
-		     [vp (instantiate vertical-panel% ()
+		     [vp (new vertical-panel%
 			   (parent hp))]
-		     [msg1-panel (instantiate horizontal-panel% ()
+		     [msg1-panel (new horizontal-panel%
 				   (parent vp))]
-		     [msg1-label (instantiate message% ()
+		     [msg1-label (new message%
 				   (parent msg1-panel)
 				   (label (string-constant autosave-original-label:)))]
-		     [msg1 (instantiate message% ()
+		     [msg1 (new message%
 			     (label (or orig-file (string-constant autosave-unknown-filename)))
 			     (stretchable-width #t)
 			     (parent msg1-panel))]
-		     [msg2-panel (instantiate horizontal-panel% ()
+		     [msg2-panel (new horizontal-panel%
 				   (parent vp))]
-		     [msg2-label (instantiate message% ()
+		     [msg2-label (new message%
 				   (parent msg2-panel)
 				   (label (string-constant autosave-autosave-label:)))]
-		     [msg2 (instantiate message% ()
+		     [msg2 (new message%
 			     (label backup-file)
 			     (stretchable-width #t)
 			     (parent msg2-panel))]
@@ -275,7 +275,7 @@
                             #f
                             (if file1 600 300)
                             600))
-            (define hp (instantiate horizontal-panel%  ()
+            (define hp (new horizontal-panel%
                          (parent (send frame get-area-container))))
             (when file1
               (add-file-viewer file1 hp (string-constant autosave-original-label)))

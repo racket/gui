@@ -110,7 +110,7 @@
          (splash-load-handler old-load f expected))))
     
     ;; abstraction breaking -- matthew will change cm
-    ;; so that I don't need this here.
+    ;; so that I don't need this here(?).
     (when addl-load-handler
       (printf "PLTDRCM: reinstalling CM load handler after setting splash load handler\n")
       (current-load/use-compiled (addl-load-handler))))
@@ -187,10 +187,10 @@
   
   (define splash-frame%
     (class frame%
-      (define/override (on-close)
+      (define/augment (on-close)
         (when quit-on-close?
           (exit)))
-      (super-instantiate ())))
+      (super-new)))
   
   (define splash-canvas%
     (class canvas%
