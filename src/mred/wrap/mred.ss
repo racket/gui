@@ -4583,7 +4583,7 @@
    [(message parent directory filename) (put-file message parent directory filename #f null)]
    [(message parent directory filename extension) (put-file message parent directory filename extension null)]
    [(message parent directory filename extension style)
-    ((mk-file-selector 'put-file #f) message parent directory filename extension style)]))
+    ((mk-file-selector 'put-file #t) message parent directory filename extension style)]))
 
 (define get-color-from-user 
   (if (not (eq? (system-type) 'unix))
