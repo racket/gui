@@ -71,6 +71,8 @@
 	     [set-bitmaps (lambda (on?) (set! no-bitmaps? (not on?)) (on-paint))]
 	     [no-stipples? #f]
 	     [set-stipples (lambda (on?) (set! no-stipples? (not on?)) (on-paint))]
+	     [pixel-copy? #f]
+	     [set-pixel-copy (lambda (on?) (set! pixel-copy? on?) (on-paint))]
 	     [scale 1]
 	     [set-scale (lambda (s) (set! scale s) (on-paint))]
 	     [offset 0]
@@ -413,6 +415,33 @@
 				  (send dc draw-rectangle 180 205 20 20)
 				  (send dc set-brush brushs))))
 
+			    (when (and pixel-copy? last? (not (or ps? (eq? dc can-dc))))
+			      (let* ([x 100]
+				     [y 170]
+				     [x2 220] [y2 200]
+				     [w 40] [h 20]
+				     [c (make-object color%)]
+				     [bm (make-object bitmap% w h depth-one?)]
+				     [mdc (make-object bitmap-dc%)])
+				(send mdc set-bitmap bm)
+				(let iloop ([i 0])
+				  (unless (= i w)
+				    (let jloop ([j 0])
+				      (if (= j h)
+					  (iloop (add1 i))
+					  (begin
+					    (send dc get-pixel (+ i x) (+ j y) c)
+					    (send mdc set-pixel i j c)
+					    (jloop (add1 j)))))))
+				(send dc draw-bitmap bm x2 y2)
+				(let ([p (send dc get-pen)]
+				      [b (send dc get-brush)])
+				  (send dc set-pen (make-object pen% "BLACK" 0 'xor-dot))
+				  (send dc set-brush brusht)
+				  (send dc draw-rectangle x y w h)
+				  (send dc set-pen p)
+				  (send dc set-brush b))))
+			    
 			    (let ([styles (list 'solid
 						'dot
 						'long-dash
@@ -598,6 +627,9 @@
 		       (lambda (self event)
 			 (send canvas set-stipples (send self get-value))))
 	  set-value #t)
+    (make-object check-box% "Pixset" hp2
+		 (lambda (self event)
+		   (send canvas set-pixel-copy (send self get-value))))
     (make-object choice% "Clip" 
 		 '("None" "Rectangle" "Octagon" "Circle" "Round Rectangle"
 		   "Rectangle + Octagon" "Rectangle + Circle" 
