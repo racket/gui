@@ -1,0 +1,816 @@
+
+                        ******************
+                        *    MrEd 100    *
+                        ******************
+
+                         >>> Proposal <<<
+
+Between version 53 and 100 or MrEd, the windowing portion of the MrEd
+toolbox was drastically simplified and Scheme-ified. In general, we
+did not try to develop an improved windowing model, but instead tried
+to clean up the existing model.
+
+The next section shows the new interface/class hierarchy for windows a
+few other parts of the toolbox, and the last section lists all the
+methods of the new interfaces and classes. 
+
+The following are a few highlights of the revision:
+
+ * The wx/mred split has been eliminated. The wx methods for
+   manually managing the geometry of windows have been eliminated; the
+   only way to set control positions explicitly is to derive a new
+   panel class.
+
+   The class hierarchy has been rerranged. For example, dialog-box%
+   is no longer a subclass of panel%, which is itself no longer
+   a subclass of canvas%.
+
+ * Interfaces are widely used in the toolbox. The old toolbox had
+   "classes" like wx:window% that could not be instantiated. The
+   new toolbox has a window<%> interface ("<%>" is the conventional
+   suffix for interfaces), and all buit-in classes can be
+   instantiated.
+
+ * Instead of null, #f is used for the `no appropriate value' value,
+   such as the parent argument for a frame that doesn't have a
+   parent window, or the result for get-label when the menu doesn't
+   have a label.
+
+ * There are hardly any wx:const-... values. Instead, methods that
+   used to take a single flag now take a symbol, and methods that 
+   used to take bitwise-ior'd flags now take a list of symbols.
+   For example, wx:const-horizontal was replaced by 'horizontal, and
+   wx:const-bitmap-type-gif was replaced with 'gif.
+
+ * The menu system was turned upside-down, giving it a structure more
+   like rest of the toolbox. For example, instead of creating a menu
+   bar and then calling a frame's set-menu-bar method, the new way to
+   create a menu bar is to provide the frame as a constructor
+   argument. Menu are created by supplying the parent menu bar to the
+   class constructor. Menu items are created by instantiating
+   menu-item% or checkable-menu-item% (or menu% for a submenu) with
+   a menu argument. There are no menu ids anywhere; when a menu item
+   is selected, the callback associated with the menu item is executed
+   (just like when a button is clicked).
+
+ * Initialization arguments to window class have been re-ordered.
+   In general, the order is something like the following:
+      label [sub-labels] callback parent style
+              ^- e.g., items in a radio box
+   where style is now a list of symbols.
+
+ * The "media" names have changed. Roughly, we replaced "media" with
+   "editor". Here's the mapping for some commonly used classes:
+            media-canvas      => editor-canvas
+            media-buffer      => editor  (now an interface)
+            media-edit        => buffer
+            media-pasteboard  => pasteboard
+            snip              => snip
+            media-snip        => editor-snip
+   One nice thing about this renaming is that matches a lot of the
+   old method names, e.g. `active-edit', make more sense. Still,
+   some old method names have changed.
+
+   Aside from the renaming, little has changed in the editor toolbox,
+   but it is a little better integrated with system-wide keyboard
+   focus methods. For example, a frame% has a get-focus-window method,
+   which returns the frame's subwindow with the current focus, but it
+   also has a get-focus-object, which will return an editor<%> object
+   if an editor-canvas has the keyboard focus.
+
+ * The text% and multi-text% controls now work well, because they're
+   now implemented using the editor classes.
+
+ * The command-event% class was changed to control-event%. It has
+   very few methods, since the information can always be extracted
+   from the control.
+
+ * Some methods have been renamed to be either more (accurately)
+   descriptive or more consistent with other method names.
+
+ * The device context system has been changed more onservatively.
+   Some drawing modes eliminated, ...
+
+   The canvas% class no longer supplies drawing methods. Instead,
+   get-dc to get a drawing context (which always has a more
+   complete set of methods, anyway).
+
+ * Everything works. In previous releases of MrEd, we made all of
+   wxWindows available and then started fixing things that didn't
+   work. We've made it far enough to reverse the process: we only
+   expose things that work (i.e., that we've tested), and there's
+   a little bit more that might be exposed in the future (but not
+   much).
+
+======================================================================
+1. Interface/Class Type Hierarchy (Selected Excerpts)
+======================================================================
+
+window<%>
+ |-- subwindow-container<%>
+ |                 |-- top-level-window<%>
+ |                 |        |- frame%
+ |-- subwindow<%>  |---     |- dialog-box%
+          |           |
+          |---------- panel<%>
+          |              |- panel%
+          |              |- single-panel%
+          |              |- linear-panel<%>
+          |                   |- horizontal-panel%
+          |- control<%>       |- vertical-panel%
+          |   |- message%
+          |   |- button%
+          |   |- check-box%
+          |   |- slider%
+	  |   |- gauge%
+          |   |- text-control<%>
+          |   |     |- text%
+          |   |     |- multi-text%
+          |   |- radio-box%
+          |   |- list-control<%>
+          |       |- choice%
+          |       |- list-box%
+          |
+          |- canvas<%>
+               |- canvas%
+               |- editor-canvas% (has an editor-admin%, maybe an editor<%>)
+
+menu-item<%>
+  |- separator-menu-item%
+  |- labelled-menu-item<%>
+       |- menu-item%
+       |- checkable-menu-item%
+       |- submenu-item<%> (no classes)
+
+menu-item-container<%>
+  |- menu% (has a submenu-item<%>)
+  |- menu-bar% (all items are submenu-item<%>s)
+  |- popup-menu% (not created in a menu-bar; for use with canvas%'s popup-menu)
+
+dc<%>
+ |- canvas-dc%
+ |   |-memory-dc%
+ |- printer-dc%
+ |- postscript-dc%
+
+editor<%> (maybe has an edit-admin% and some editor-canvas<%>s)
+ |- buffer%
+ |- pasteboard%
+
+snip% (as a snip-admin%)
+ |- text-snip%
+ |    |- tab-snip%
+ |- image-snip%
+ |- editor-snip% (formerly media-snip%; has an editor<%>)
+
+editor-admin%  (formerly media-admin%)
+ |- snip-editor-admin%
+
+snip-admin%
+
+(pens, styles, fonts, etc. as before)
+
+event%
+ |- control-event% (formerly command-event%; for control/menu-item callbacks)
+ |- mouse-event%
+ |- key-event%
+ |- scroll-event%
+
+======================================================================
+2. Interface/Class Methods (Selected Excerpts)
+
+ Method arguments are not generally shown, but the new initialization
+ arguments are listed after "<=" for classes.
+======================================================================
+
+window<%>
+    focus on-focus
+    enable is-enabled?
+    on-size
+    pre-on-char pre-on-event
+    client-to-screen screen-to-client
+    get-label set-label
+    get-plain-label - e.g., "Button" instead of "&Button"
+    get-parent
+    get-client-size get-geometry get-width get-height get-x get-y
+    get-text-extent
+    get-cursor set-cursor 
+    show is-shown?
+    refresh
+    get-top-level  *
+
+subwindow-container<%>
+    get-subwindows
+
+top-level-window<%>
+    on-activate
+    get-panel
+    get-focus-window - the window with the current focus (or #f)
+    get-edit-target-window - the window to last have the focus (or #f)
+    get-focus-object - the window/editor with the curent focus (or #f)
+    get-edit-target-object - the window/editor to last have the focus (or #f)
+    center move resize
+
+frame% 
+   <= label [parent #f] [x #f] [y #f] [width #f] [height #f] 
+            [style wx:const-default-frame-style]
+   create-status-line set-status-line
+   get-menu-bar
+
+dialog-box%
+   <= label [modal? #t] [parent #f] [x #f] [y #f] [width #f] [height #f] 
+            [style wx:const-default-dialog-style]
+
+subwindow<%>
+   min-width min-height
+   stretchable-width stretchable-height
+   horiz-margin vert-margin
+
+panel<%>
+    set-control-font get-control-font
+    set-label-font get-label-font
+    set-label-position get-label-position
+    change-children place-children add-child delete-child
+    border - parameter-like
+
+panel%
+    <= parent [style null]
+
+single-panel%
+    <= parent [style null]
+
+linear-panel<%>
+   spacing - parameter-like
+   set-alignment - takes two syms: 'left/'center/'right 'top/'center/'bottom
+   get-alignment - returns two syms...
+
+vertical-panel%
+    <= parent [style null]
+
+horizontal-panel
+    <= parent [style null]
+
+control<%>
+   command - just invokes the callback; no longer changes the control
+
+message%
+   <= label parent [style null]
+
+button%
+   <= label parent callback [style null]
+
+check-box%
+   <= label parent callback [style null]
+   set-value get-value
+
+slider%
+   <= label min-val max-val parent callback [value min-val] [style '(horizontal)]
+   set-value get-value
+
+gauge%
+   <= label parent range [style '(horizontal)]
+   set-value get-value
+
+text-control<%>
+   get-value set-value get-edit
+
+text%
+   <= label parent callback [init-val ""] [style null]
+
+multi-text%
+   <= label parent callback [init-val ""] [style null]
+
+radio-box%
+   <= label choices parent callback [style '(vertical)]
+   get-number
+   get-item-label - label for one of the choices
+   get-item-plain-label - e.g., "Cut" intsead of "Cut  Cmd-X"
+   get-selection set-selection
+
+list-control<%>
+   clear append
+   get-number
+   get-string find-string
+   get-selection
+   get-string-selection
+   set-selection
+   set-string-selection
+
+choice%
+   <= label choices parent callback [style null]
+
+list-box%
+   <= label choices parent callback [style '(single)]
+   delete
+   get-data
+   get-selections
+   select is-selected?
+   set set-string set-data
+   number-of-visible-items
+   get-first-visible set-first-visible
+
+canvas<%>
+    on-char on-event on-paint on-scroll
+    popup-menu warp-pointer get-dc
+
+canvas%
+    <= parent [style null]
+    virtual-size view-start
+    set-scrollbars scroll
+    get-scroll-pos set-scroll-pos
+    get-scroll-range set-scroll-range
+    get-scroll-page set-scroll-page
+
+editor-canvas%
+   <= parent [buffer #f] [style null] [scrolls-per-page 100]
+   call-as-primary-owner
+   allow-scroll-to-last - parameter-like *
+   scroll-with-bottom-base - parameter-like *
+   lazy-refresh - parameter-like *
+   force-display-focus - parameter-like *
+   edit-target  - parameter-like *
+   get-edit set-edit - formerly get-media and set-media
+   set-line-count *
+
+menu-item<%>
+   get-parent
+   delete restore is-deleted?
+
+separator-menu-item%
+   <= parent
+
+labelled-menu-item<%>
+   get-label set-label
+   get-plain-label
+   get-help-string set-help-string
+   enable is-enabled?
+
+menu-item%
+   <= label parent callback [shortcut #f] [help-string #f]
+
+checkable-menu-item%
+   <= label parent callback [shortcut #f] [help-string #f]
+   check is-checked?
+
+submenu-item<%>
+   get-menu
+
+menu-item-container<%>
+   get-items
+
+menu% (has a submenu-item<%>)
+   <= label parent [help-string #f]
+   get-item
+
+popup-menu%
+   <= title
+
+menu-bar%
+   <= parent
+   show is-shown?
+   enable is-enabled?
+
+editor<%>
+   [ all the old wx:media-buffer% stuff, plus... ]
+   get-canvases - a list of canvases displaying the editor
+   get-active-canvas - the canvas that most recently had the focus (or #f)
+   get-canvas - the active canvas, or the first canva (or #f)
+   set-active-canvas add-canvas remove-canvas
+   auto-wrap - parameter-like
+   on-display-size - called when a display for the editor changes its size
+
+event%
+   <=
+   get-time-stamp set-time-stamp
+
+control-event%
+   <= event-type
+   get-event-type set-event-type
+
+mouse-event%
+   <= event-type
+   get-event-type set-event-type
+   button-dclick?  - specify a button with 'left, 'middle, 'right, or 'all
+   button-down?
+   button-up?
+   dragging?
+   entering?
+   leaving?
+   moving?
+   button-changed?
+   get-left-down set-left-down
+   get-middle-down set-middle-down
+   get-right-down set-right-down
+   get-x get-y set-x set-y
+   get-shift-down set-shift-down
+   get-control-down set-control-down
+   get-meta-down set-meta-down
+   get-alt-down set-alt-down
+
+key-event%
+   <=
+   get-key-code set-key-code  - key code is a char or a symbol
+   get-shift-down set-shift-down
+   get-control-down set-control-down
+   get-meta-down set-meta-down
+   get-alt-down set-alt-down
+   get-x get-y set-x set-y
+
+scroll-event%
+   <=
+   get-event-type set-event-type
+   get-direction set-direction
+
+======================================================================
+3. Subtle changes
+======================================================================
+
+ * key-event%'s key-code method was removed
+
+ * key-event%'s get-key-code returns a character or a symbol 
+   instead of a number
+
+ * window%'s set-cursor no longer returns the cursor; added get-cursor,
+   instead
+
+ * editor-snip%'s resize method no longer calls the embedded buffer's
+   set-max-size and set-min-size; now it calls on-display-size
+
+wx:{get-set}-{...} PS configuration bundled into an object, an instance of
+  wx:ps-setup%. Added wx:current-ps-setup parameter.
+
+wx:media-buffer%'s do-edit takes a symbol instead of a number; extract
+ the symbol from a menu item using get-edit-command; do-font still takes
+ a number; extract it with get-font-command
+
+
+======================================================================
+4. Constant Mapping
+
+ The following atble details the conversion from the old wx:const-
+ identifiers to symbols.
+======================================================================
+
+  wx:const-align-bottom                      'bottom
+  wx:const-align-center                      'center
+  wx:const-align-top                         'top
+  wx:const-always-sb                         'always-sb
+  wx:const-and                               'and
+  wx:const-and-invert                        'and-invert
+  wx:const-and-reverse                       'and-reverse
+  wx:const-base                              'base
+  wx:const-bdiagonal-hatch                   'bdiagonal-hatch
+  wx:const-bitmap-type-bmp                   'bmp
+  wx:const-bitmap-type-bmp-resource          'bmp-resource
+  wx:const-bitmap-type-gif                   'gif
+  wx:const-bitmap-type-pict                  'pict
+  wx:const-bitmap-type-pict-resource         'pict-resource
+  wx:const-bitmap-type-xbm                   'xbm
+  wx:const-bitmap-type-xpm                   'xpm
+  wx:const-bold                              'bold
+  wx:const-border                            'border
+  wx:const-both                              'both
+  wx:const-break-for-caret                   'caret
+  wx:const-break-for-line                    'line
+  wx:const-break-for-selection               'selection
+  wx:const-break-for-user-1                  'user1
+  wx:const-break-for-user-2                  'user2
+  wx:const-cancel                            'cancel
+  wx:const-cap-butt                          'butt
+  wx:const-cap-projecting                    'projecting
+  wx:const-cap-round                         'round
+  wx:const-caption                           'caption
+  wx:const-centre                            'centre
+  wx:const-change-alignment                  'change-alignment
+  wx:const-change-bigger                     'change-bigger
+  wx:const-change-bold                       'change-bold
+  wx:const-change-family                     'change-family
+  wx:const-change-italic                     'change-italic
+  wx:const-change-normal                     'change-normal
+  wx:const-change-normal-colour              'change-normal-colour
+  wx:const-change-nothing                    'change-nothing
+  wx:const-change-size                       'change-size
+  wx:const-change-smaller                    'change-smaller
+  wx:const-change-style                      'change-style
+  wx:const-change-toggle-style               'change-toggle-style
+  wx:const-change-toggle-underline           'change-toggle-underline
+  wx:const-change-toggle-weight              'change-toggle-weight
+  wx:const-change-underline                  'change-underline
+  wx:const-change-weight                     'change-weight
+  wx:const-clear                             'clear
+  wx:const-colour                            'colour
+  wx:const-copy                              'copy
+  wx:const-cross-hatch                       'cross-hatch
+  wx:const-crossdiag-hatch                   'crossdiag-hatch
+  wx:const-cursor-arrow                      'arrow
+  wx:const-cursor-bullseye                   'bullseye
+  wx:const-cursor-char                       (NO LONGER USED)
+  wx:const-cursor-cross                      'cross
+  wx:const-cursor-hand                       'hand
+  wx:const-cursor-ibeam                      'ibeam
+  wx:const-cursor-left-button                (NO LONGER USED)
+  wx:const-cursor-magnifier                  (NO LONGER USED)
+  wx:const-cursor-middle-button              (NO LONGER USED)
+  wx:const-cursor-no-entry                   (NO LONGER USED)
+  wx:const-cursor-paint-brush                (NO LONGER USED)
+  wx:const-cursor-pencil                     (NO LONGER USED)
+  wx:const-cursor-point-left                 (NO LONGER USED)
+  wx:const-cursor-point-right                (NO LONGER USED)
+  wx:const-cursor-question-arrow             (NO LONGER USED)
+  wx:const-cursor-right-button               (NO LONGER USED)
+  wx:const-cursor-sizenesw                   (NO LONGER USED)
+  wx:const-cursor-sizens                     (NO LONGER USED)
+  wx:const-cursor-sizenwse                   (NO LONGER USED)
+  wx:const-cursor-sizewe                     (NO LONGER USED)
+  wx:const-cursor-sizing                     (NO LONGER USED)
+  wx:const-cursor-spraycan                   (NO LONGER USED)
+  wx:const-cursor-wait                       (NO LONGER USED)
+  wx:const-cursor-watch                      'watch
+  wx:const-decorative                        'decorative
+  wx:const-default                           'default
+  wx:const-default-dialog-style              (NOT A SYMBOL: wx:wx:const-default-dialog-style)
+  wx:const-default-frame                     (NOT A SYMBOL: wx:wx:const-default-frame-style)
+  wx:const-default-select                    'default
+  wx:const-dot                               'dot
+  wx:const-dot-dash                          'dot-dash
+  wx:const-edit-buffer                       'edit-buffer
+  wx:const-edit-clear                        'clear
+  wx:const-edit-copy                         'copy
+  wx:const-edit-cut                          'cut
+  wx:const-edit-insert-graphic-box           'insert-graphic-box
+  wx:const-edit-insert-image                 'insert-image
+  wx:const-edit-insert-text-box              'insert-text-box
+  wx:const-edit-kill                         'kill
+  wx:const-edit-paste                        'paste
+  wx:const-edit-redo                         'redo
+  wx:const-edit-select-all                   'select-all
+  wx:const-edit-undo                         'undo
+  wx:const-equiv                             'equiv
+  wx:const-event-type-button-command         'button
+  wx:const-event-type-checkbox-command       'checkbox
+  wx:const-event-type-choice-command         'choice
+  wx:const-event-type-enter-window           'enter
+  wx:const-event-type-kill-focus             'kill-focus
+  wx:const-event-type-leave-window           'leave
+  wx:const-event-type-left-dclick            'left-dclick
+  wx:const-event-type-left-down              'left-down
+  wx:const-event-type-left-up                'left-up
+  wx:const-event-type-listbox-command        'list-box
+  wx:const-event-type-menu-command           (NO LONGER USED)
+  wx:const-event-type-middle-dclick          'middle-dclick
+  wx:const-event-type-middle-down            'middle-down
+  wx:const-event-type-middle-up              'middle-up
+  wx:const-event-type-motion                 'motion
+  wx:const-event-type-multitext-command      (NO LONGER USED)
+  wx:const-event-type-radiobox-command       'radio-box
+  wx:const-event-type-right-dclick           'right-dclick
+  wx:const-event-type-right-down             'right-down
+  wx:const-event-type-right-up               'right-up
+  wx:const-event-type-scroll-bottom          'scroll-bottom
+  wx:const-event-type-scroll-linedown        'scroll-line-down
+  wx:const-event-type-scroll-lineup          'scroll-line-up
+  wx:const-event-type-scroll-pagedown        'scroll-page-down
+  wx:const-event-type-scroll-pageup          'scroll-page-up
+  wx:const-event-type-scroll-thumbtrack      'scroll-thumb
+  wx:const-event-type-scroll-top             'scroll-top
+  wx:const-event-type-scrollbar-command      (NO LONGER USED)
+  wx:const-event-type-set-focus              'set-focus
+  wx:const-event-type-slider-command         'slider
+  wx:const-event-type-text-command           'text
+  wx:const-event-type-text-enter-command     'text-enter
+  wx:const-event-type-virt-listbox-command   (NO LONGER USED)
+  wx:const-extended                          'extended
+  wx:const-fdiagonal-hatch                   'fdiagonal-hatch
+  wx:const-focus-display                     'display
+  wx:const-focus-global                      'global
+  wx:const-focus-immediate                   'immediate
+  wx:const-hide-readonly                     'hide-readonly
+  wx:const-horizontal                        'horizontal
+  wx:const-horizontal-hatch                  'horizontal-hatch
+  wx:const-hscroll                           'hscroll
+  wx:const-icon-exclamation                  'icon-exclamation
+  wx:const-icon-hand                         'icon-hand
+  wx:const-icon-information                  'icon-information
+  wx:const-icon-question                     'icon-question
+  wx:const-iconize                           'iconize
+  wx:const-invert                            'invert
+  wx:const-italic                            'italic
+  wx:const-join-bevel                        'bevel
+  wx:const-join-miter                        'miter
+  wx:const-join-round                        'round
+  wx:const-k-add                             'add
+  wx:const-k-back                            (NO LONGER USED)
+  wx:const-k-cancel                          'cancel
+  wx:const-k-capital                         'capital
+  wx:const-k-clear                           'clear
+  wx:const-k-control                         'control
+  wx:const-k-decimal                         'decimal
+  wx:const-k-delete                          (NO LONGER USED)
+  wx:const-k-divide                          'divide
+  wx:const-k-down                            'down
+  wx:const-k-end                             'end
+  wx:const-k-escape                          (NO LONGER USED)
+  wx:const-k-execute                         'execute
+  wx:const-k-f1                              'f1
+  wx:const-k-f10                             'f10
+  wx:const-k-f11                             'f11
+  wx:const-k-f12                             'f12
+  wx:const-k-f13                             'f13
+  wx:const-k-f14                             'f14
+  wx:const-k-f15                             'f15
+  wx:const-k-f16                             'f16
+  wx:const-k-f17                             'f17
+  wx:const-k-f18                             'f18
+  wx:const-k-f19                             'f19
+  wx:const-k-f2                              'f2
+  wx:const-k-f20                             'f20
+  wx:const-k-f21                             'f21
+  wx:const-k-f22                             'f22
+  wx:const-k-f23                             'f23
+  wx:const-k-f24                             'f24
+  wx:const-k-f3                              'f3
+  wx:const-k-f4                              'f4
+  wx:const-k-f5                              'f5
+  wx:const-k-f6                              'f6
+  wx:const-k-f7                              'f7
+  wx:const-k-f8                              'f8
+  wx:const-k-f9                              'f9
+  wx:const-k-help                            'help
+  wx:const-k-home                            'home
+  wx:const-k-insert                          'insert
+  wx:const-k-lbutton                         'lbutton
+  wx:const-k-left                            'left
+  wx:const-k-mbutton                         'mbutton
+  wx:const-k-menu                            'menu
+  wx:const-k-multiply                        'multiply
+  wx:const-k-next                            'next
+  wx:const-k-numlock                         'numlock
+  wx:const-k-numpad0                         'numpad0
+  wx:const-k-numpad1                         'numpad1
+  wx:const-k-numpad2                         'numpad2
+  wx:const-k-numpad3                         'numpad3
+  wx:const-k-numpad4                         'numpad4
+  wx:const-k-numpad5                         'numpad5
+  wx:const-k-numpad6                         'numpad6
+  wx:const-k-numpad7                         'numpad7
+  wx:const-k-numpad8                         'numpad8
+  wx:const-k-numpad9                         'numpad9
+  wx:const-k-pause                           'pause
+  wx:const-k-print                           'print
+  wx:const-k-prior                           'prior
+  wx:const-k-rbutton                         'rbutton
+  wx:const-k-return                          (NO LONGER USED)
+  wx:const-k-right                           'right
+  wx:const-k-scroll                          'scroll
+  wx:const-k-select                          'select
+  wx:const-k-separator                       'separator
+  wx:const-k-shift                           'shift
+  wx:const-k-snapshot                        'snapshot
+  wx:const-k-space                           (NO LONGER USED)
+  wx:const-k-start                           'start
+  wx:const-k-subtract                        'subtract
+  wx:const-k-tab                             (NO LONGER USED)
+  wx:const-k-up                              'up
+  wx:const-light                             'light
+  wx:const-local-select                      'local
+  wx:const-long-dash                         'long-dash
+  wx:const-maximize                          'maximize
+  wx:const-maximize-box                      'maximize-box
+  wx:const-mcanvas-hide-h-scroll             'hide-h-scroll
+  wx:const-mcanvas-hide-v-scroll             'hide-v-scroll
+  wx:const-mcanvas-no-h-scroll               'no-h-scroll
+  wx:const-mcanvas-no-v-scroll               'no-v-scroll
+  wx:const-mdi-child                         'mdi-child
+  wx:const-mdi-parent                        'mdi-parent
+  wx:const-media-ff-copy                     'copy
+  wx:const-media-ff-guess                    'guess
+  wx:const-media-ff-same                     'same
+  wx:const-media-ff-std                      'standard
+  wx:const-media-ff-text                     'text
+  wx:const-media-ff-text-force-cr            'text-force-cr
+  wx:const-minimize                          'minimize
+  wx:const-minimize-box                      'minimize-box
+  wx:const-mm-lometric                       (NO LONGER USED)
+  wx:const-mm-metric                         (NO LONGER USED)
+  wx:const-mm-points                         (NO LONGER USED)
+  wx:const-mm-text                           (NO LONGER USED)
+  wx:const-mm-twips                          (NO LONGER USED)
+  wx:const-modern                            'modern
+  wx:const-move-line                         'line
+  wx:const-move-page                         'page
+  wx:const-move-simple                       'simple
+  wx:const-move-word                         'word
+  wx:const-msnipbox-xinset                   (NOT A SYMBOL: wx:wx:const-msnipbox-xinset)
+  wx:const-msnipbox-xmargin                  (NOT A SYMBOL: wx:wx:const-msnipbox-xmargin)
+  wx:const-msnipbox-yinset                   (NOT A SYMBOL: wx:wx:const-msnipbox-yinset)
+  wx:const-msnipbox-ymargin                  (NOT A SYMBOL: wx:wx:const-msnipbox-ymargin)
+  wx:const-multiple                          'multiple
+  wx:const-nand                              'nand
+  wx:const-no                                'no
+  wx:const-no-op                             'no-op
+  wx:const-nor                               'nor
+  wx:const-normal                            'normal
+  wx:const-oddeven-rule                      'odd-even
+  wx:const-ok                                'ok
+  wx:const-opaque-stipple                    'opaque-stipple
+  wx:const-open                              'open
+  wx:const-or                                'or
+  wx:const-or-invert                         'or-invert
+  wx:const-or-reverse                        'or-reverse
+  wx:const-overwrite-prompt                  'overwrite-prompt
+  wx:const-password                          (NO LONGER USED)
+  wx:const-pasteboard-buffer                 'pasteboard-buffer
+  wx:const-pos-use-minus-one                 (NO LONGER USED)
+  wx:const-print-ask                         'ask
+  wx:const-print-postscript                  'postscript
+  wx:const-print-standard                    'standard
+  wx:const-process-enter                     (NO LONGER USED)
+  wx:const-ps-file                           'file
+  wx:const-ps-landscape                      'landscape
+  wx:const-ps-portrait                       'portrait
+  wx:const-ps-preview                        'preview
+  wx:const-ps-printer                        'printer
+  wx:const-readonly                          (NO LONGER USED)
+  wx:const-resize-border                     'resize-border
+  wx:const-roman                             'roman
+  wx:const-save                              'save
+  wx:const-script                            'script
+  wx:const-sdi                               'sdi
+  wx:const-set                               'set
+  wx:const-short-dash                        'short-dash
+  wx:const-single                            'single
+  wx:const-size-auto                         (NO LONGER USED)
+  wx:const-size-auto-height                  (NO LONGER USED)
+  wx:const-size-auto-width                   (NO LONGER USED)
+  wx:const-size-use-exsiting                 (NO LONGER USED)
+  wx:const-slant                             'slant
+  wx:const-snip-after                        'after
+  wx:const-snip-after-or-null                'after-or-none
+  wx:const-snip-anchored                     'anchored
+  wx:const-snip-before                       'before
+  wx:const-snip-before-or-null               'before-or-none
+  wx:const-snip-can-append                   'can-append
+  wx:const-snip-draw-no-caret                'no-caret
+  wx:const-snip-draw-show-caret              'show-caret
+  wx:const-snip-draw-show-inactive-caret     'show-inactive-caret
+  wx:const-snip-handles-events               'handles-events
+  wx:const-snip-hard-newline                 'hard-newline
+  wx:const-snip-height-depends-on-x          'height-depends-on-x
+  wx:const-snip-height-depends-on-y          'height-depends-on-y
+  wx:const-snip-invisible                    'invisible
+  wx:const-snip-is-text                      'is-text
+  wx:const-snip-newline                      'newline
+  wx:const-snip-uses-buffer-path             'uses-buffer-path
+  wx:const-snip-width-depends-on-x           'width-depends-on-x
+  wx:const-snip-width-depends-on-y           'width-depends-on-y
+  wx:const-solid                             'solid
+  wx:const-src-invert                        'src-invert
+  wx:const-stipple                           'stipple
+  wx:const-swiss                             'swiss
+  wx:const-system                            'system
+  wx:const-system-menu                       'system-menu
+  wx:const-teletype                          'teletype
+  wx:const-thick-frame                       'thick-frame
+  wx:const-transparent                       'transparent
+  wx:const-type-command-event                'command
+  wx:const-type-key-event                    'key
+  wx:const-type-mouse-event                  'mouse
+  wx:const-vertical                          'vertical
+  wx:const-vertical-hatch                    'vertical-hatch
+  wx:const-vscroll                           'vscroll
+  wx:const-winding-rule                      'winding
+  wx:const-x-select                          'x
+  wx:const-xor                               'xor
+  wx:const-yes                               'yes
+  wx:const-yes-no                            'yes-no
+
+
+
+TODO Miscellaneous Cleanup
+--------------------------
+
+Need a method to get the frames of an eventspace.
+
+Add something like a send-event method to mred:window<%> classes,
+which registers a callback to be evaluated on an event boundary (in
+the Window's eventspace). This is handy for inter-thread
+communication.
+
+Put the PS printing options into an object and make it a
+parameter. (The PS dialog will be re-implemented in Scheme.)
+
+Eventually, implement keyboard-based movement in frames/dialogs
+(implemented in Scheme using on-pre-char).
+
+Change dc set-background to take a color instead of a brush. Choose a
+small set of logical drawing modes to implement consistently, and
+perhaps make the drawing mode a property of a pen/brush instead of the
+DC.
+
+Eliminate anything to do with colormaps. Change the mred:bitmap%
+constructors, replacing `depth' with `color?' (#t means the current
+screen's depth, #f means a B&W bitmap).
+
+Remove add-edit-items and add-font-items from the wx:media-buffer%
+class, re-implementing them (as necessary) as Scheme top-level
+procedures.
