@@ -1,5 +1,14 @@
 Version 51: ??, 1998
 
+IMPORTANT: Expect major changes in the MrEd toolbox with version 53 or
+so. Likely changes include:
+ * Removing the useless size arguments for initializing mred:frame%,
+   mred:button%, etc. instances.
+ * Changing the ``nothing'' value (e.g., no parent frame) from null 
+   to #f.
+ * Replacing `bitwise-or'ed wx:const-XXX numerical constants with 
+   lists of 'wx:const-XXX symbols.
+
 Engine:
 -------
 The wx: classes and procedures are no longer ``built-in''
