@@ -400,8 +400,8 @@
 	     (let* ([edit (get-info-editor)]
 		    [make-one
 		     (lambda (pos)
-		       (let* ([line (send edit position-line pos)]
-			      [line-start (send edit line-start-position line)]
+		       (let* ([line (send edit position-paragraph pos)]
+			      [line-start (send edit paragraph-start-position line)]
 			      [char (- pos line-start)])
 			 (if line-numbers?
 			     (format "~a:~a"
