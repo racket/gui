@@ -449,10 +449,17 @@
         (define (turn tx ty ta a) (values tx
                                           ty
                                           (+ ta a)))
-        (define init-angle (let ([theta (atan (/ (- from-y to-y) (- from-x to-x)))])
-                             (if (from-x . <= . to-x)
-                                 (+ pi theta)
-                                 theta)))
+        (define init-angle 
+          (cond
+            [(and (from-x . = . to-x)
+                  (from-y . < . to-y))
+             pi]
+            [(from-x . = . to-x)
+             (- pi)]
+            [(from-x . < . to-x)
+             (+ pi (atan (/ (- from-y to-y) (- from-x to-x))))]
+            [else
+             (atan (/ (- from-y to-y) (- from-x to-x)))]))
         (let*-values ([(t1x t1y t1a) (values to-x to-y init-angle)]
                       [(t2x t2y t2a) (turn t1x t1y t1a (/ arrowhead-angle-width 2))]
                       [(t3x t3y t3a) (move t2x t2y t2a arrowhead-long-side)]

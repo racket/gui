@@ -20,8 +20,11 @@ needed to really make this work:
   (define (render-syntax/window syntax)
     (let ([es (render-syntax/snip syntax)])
       (define f (make-object frame% "frame" #f 400 400))
+      (define mb (make-object menu-bar% f))
+      (define edit-menu (make-object menu% "Edit" mb))
       (define t (make-object text%))
       (define ec (make-object editor-canvas% f t))
+      (append-editor-operation-menu-items edit-menu)
       (send t insert es)
       (send f show #t)))
 
@@ -42,7 +45,10 @@ needed to really make this work:
   (define syntax-snip%
     (class editor-snip%
       (init-field main-stx)
-    
+      
+      (unless (syntax? main-stx)
+        (error 'syntax-snip% "got non-syntax object"))
+      
       (define/public (get-syntax) main-stx)
       
       (define/override (copy) (make-object syntax-snip% main-stx))
@@ -405,30 +411,24 @@ needed to really make this work:
          (send down-click-bitmap get-width)))
   (define arrow-snip-cursor (make-object cursor% 'arrow))
   
-  ;; build-ht : stx -> hash-table
+  ;; syntax-object->datum/hte : stx -> (values any hash-table)
   ;; the resulting hash-table maps from the each sub-object's to it's syntax.
   (define (syntax-object->datum/ht stx)
     (let ([ht (make-hash-table)])
-      (values (let loop ([stx stx])
-                (let ([obj (syntax-e stx)])
-                  (cond
-                    [(list? obj) 
-                     (let ([res (map loop obj)])
-                       (hash-table-put! ht res stx)
-                       res)]
-                    [(pair? obj) 
-                     (let ([res (cons (loop (car obj))
-                                      (loop (cdr obj)))])
-                       (hash-table-put! ht res stx)
-                       res)]
-                    [(vector? obj) 
-                     (let ([res (list->vector (map loop (vector->list obj)))])
-                       (hash-table-put! ht res stx)
-                       res)]
-                    [else 
-                     (let ([res (syntax-object->datum stx)])
-                       (hash-table-put! ht res stx)
-                       res)])))
+      (values (let loop ([obj stx])
+                (cond
+                  [(syntax? obj)
+                   (let* ([datum (syntax-e obj)]
+                          [lp-datum (loop datum)])
+                     (hash-table-put! ht lp-datum obj)
+                     lp-datum)]
+                  [(pair? obj) 
+                   (cons (loop (car obj))
+                         (loop (cdr obj)))]
+                  [(vector? obj) 
+                   (list->vector (map loop (vector->list obj)))]
+                  [else 
+                   obj]))
               ht)))
   
   (define (syntax-properties stx)
@@ -458,16 +458,18 @@ needed to really make this work:
   
   ;; marshall-syntax : syntax -> printable
   (define (marshall-syntax stx)
+    (unless (syntax? stx)
+      (error 'marshall-syntax "not syntax: ~s\n" stx))
     `(syntax
       (source ,(marshall-object (syntax-source stx)))
-      (source-module ,(syntax-source-module stx))
+      (source-module ,(marshall-object (syntax-source-module stx)))
       (position ,(syntax-position stx))
       (line ,(syntax-line stx))
       (column ,(syntax-column stx))
       (span ,(syntax-span stx))
       (original? ,(syntax-original? stx))
       (properties 
-       ,@(map (lambda (x) `(,x ,(syntax-property stx x)))
+       ,@(map (lambda (x) `(,x ,(marshall-object (syntax-property stx x))))
               (syntax-properties stx)))
       (contents
        ,(marshall-object (syntax-e stx)))))
@@ -483,15 +485,16 @@ needed to really make this work:
       [(or (symbol? obj)
 	   (char? obj)
 	   (string? obj)
-	   (boolean? obj))
+	   (boolean? obj)
+           (null? obj))
        `(other ,obj)]
-      [else 'unknown-object]))
+      [else (string->symbol (format "unknown-object: ~s" obj))]))
   
   (define (unmarshall-syntax stx)
     (match stx
       [`(syntax
          (source ,src)
-         (source-module ,source-module)
+         (source-module ,source-module) ;; marshalling
          (position ,pos)
          (line ,line)
          (column ,col)
@@ -499,7 +502,6 @@ needed to really make this work:
          (original? ,original?)
          (properties ,@properties)
          (contents ,contents))
-       ;(printf "a\n")
        (foldl
         add-properties
         (datum->syntax-object
