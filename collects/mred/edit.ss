@@ -48,8 +48,9 @@
 	    [set-auto-set-wrap
 	     (lambda (v)
 	       (set! auto-set-wrap? v)
-	       (if (not v)
-		   (set-max-width -1)))]
+	       (when (not v)
+		 (set-max-width -1))
+	       (for-each (lambda (c) (send c force-redraw)) canvases))]
 	    
 	    [active-canvas #f]
 	    [set-active-canvas
@@ -287,12 +288,12 @@
 	    
 	    [after-insert
 	     (lambda (start len)
-	       (when mode (send mode after-insert this start len))
-	       (super-after-insert start len)
 	       (when styles-fixed?
 		 (change-style (send (get-style-list) find-named-style "Standard")
 			       start
-			       (+ start len))))]
+			       (+ start len)))
+	       (when mode (send mode after-insert this start len))
+	       (super-after-insert start len))]
 	    [after-delete
 	     (lambda (start len)
 	       (if mode (send mode after-delete this start len))
@@ -313,7 +314,6 @@
 	       (when mode
 		 (send mode after-set-size-constraint this))
 	       (super-after-set-size-constraint))]
-	    
 	    [after-set-position
 	     (lambda ()
 	       (when mode 
@@ -387,59 +387,77 @@
 	    ;; the bitmap is used in b/w and the color is used in color.
 	    [highlight-range
 	     (opt-lambda (start end color [bitmap #f])
-	       (let ([l (make-range start end bitmap color)])
+	       (let ([l (make-range start end bitmap color)]
+		     [colored-delta (make-object wx:style-delta%)]
+		     [hack-time? (and (eq? 'unix wx:platform) (<= 8 (wx:display-depth)))])
+		 (when hack-time?
+		   (send colored-delta set-delta-background color)
+		   (change-style colored-delta start end))
 		 (set! ranges (cons l ranges))
 		 (recompute-range-rectangles)
-		 (lambda () (set! ranges 
-				  (let loop ([r ranges])
-				    (cond
-				      [(null? r) r]
-				      [else (if (eq? (car r) l)
-						(cdr r)
-						(cons (car r) (loop (cdr r))))])))
+		 (lambda ()
+		   (set! ranges 
+			 (let loop ([r ranges])
+			   (cond
+			    [(null? r) r]
+			    [else (if (eq? (car r) l)
+				      (cdr r)
+				      (cons (car r) (loop (cdr r))))])))
+		   (when hack-time?
+		     (change-style (send (get-style-list) find-named-style "Standard")
+				   start end))
 		   (recompute-range-rectangles))))]
 
 	    [on-paint
 	     (lambda (before dc left top right bottom dx dy draw-caret)
 	       (super-on-paint before dc left top right bottom dx dy draw-caret)
-	       (unless before
-		 (for-each (lambda (rectangle)
-			     (let ([pen (make-object wx:pen% "black" 1 wx:const-stipple)]
-				   [brush (make-object wx:brush% "black" wx:const-stipple)]
-				   [old-pen (send dc get-pen)]
-				   [old-brush (send dc get-brush)]
-				   [old-logical-function (send dc get-logical-function)]
-				   [b/w-bitmap (rectangle-b/w-bitmap rectangle)]
-				   [color (rectangle-color rectangle)]
-				   [left (rectangle-left rectangle)]
-				   [top (rectangle-top rectangle)]
-				   [width (rectangle-width rectangle)]
-				   [height (rectangle-height rectangle)])
-			       (cond
-				 [(and color
-				       (not (eq? wx:platform 'unix))
-				       (<= 8 (wx:display-depth)))	
-				  (send pen set-style wx:const-solid)
-				  (send brush set-style wx:const-solid)
-				  (send pen set-colour color)
-				  (send brush set-colour color)
-				  (send dc set-logical-function wx:const-and)]
-				 [(and b/w-bitmap
-				       (eq? wx:platform 'unix))
-				  (send pen set-stipple b/w-bitmap)
-				  (send brush set-stipple b/w-bitmap)]
-				 [else (send dc set-logical-function wx:const-xor)
-				       (send pen set-style wx:const-solid)
-				       (send brush set-style wx:const-solid)])
-			       (send dc set-pen pen)
-			       (send dc set-brush brush)
-			       (unless (or (zero? width)
-					   (zero? height))
-				 (send dc draw-rectangle (+ left dx) (+ top dy) width height))
-			       (send dc set-logical-function old-logical-function)
-			       (send dc set-pen old-pen)
-			       (send dc set-brush old-brush)))
-			   range-rectangles)))])
+	       (for-each
+		(lambda (rectangle)
+		  (let ([pen (make-object wx:pen% "black" 1 wx:const-stipple)]
+			[brush (make-object wx:brush% "black" wx:const-stipple)]
+			[old-pen (send dc get-pen)]
+			[old-brush (send dc get-brush)]
+			[old-logical-function (send dc get-logical-function)]
+			[b/w-bitmap (rectangle-b/w-bitmap rectangle)]
+			[color (rectangle-color rectangle)]
+			[left (rectangle-left rectangle)]
+			[top (rectangle-top rectangle)]
+			[width (rectangle-width rectangle)]
+			[height (rectangle-height rectangle)])
+		    (let/ec k
+		      (cond
+		       [(and (not before)
+			     color
+			     (not (eq? wx:platform 'unix))
+			     (<= 8 (wx:display-depth)))
+			(send pen set-style wx:const-solid)
+			(send brush set-style wx:const-solid)
+			(send pen set-colour color)
+			(send brush set-colour color)
+			(send dc set-logical-function wx:const-and)]
+		       [(and before
+			     color
+			     (<= 8 (wx:display-depth)))
+			(send* pen (set-style wx:const-solid)
+			       (set-colour color))
+			(send* brush (set-style wx:const-solid)
+			       (set-colour color))
+			(send dc set-logical-function wx:const-copy)]
+		       [(and (not before)
+			     (< (wx:display-depth) 8)
+			     b/w-bitmap
+			     (eq? wx:platform 'unix))
+			(send pen set-stipple b/w-bitmap)
+			(send brush set-stipple b/w-bitmap)]
+		       [else (k (void))])
+		      (send dc set-pen pen)
+		      (send dc set-brush brush)
+		      (send dc draw-rectangle (+ left dx) (+ top dy)
+			    width height)
+		      (send dc set-logical-function old-logical-function)
+		      (send dc set-pen old-pen)
+		      (send dc set-brush old-brush))))
+		range-rectangles))])
 	  (sequence
 	    (apply super-init args)
 	    (set-autowrap-bitmap autowrap-bitmap)
@@ -451,6 +469,5 @@
     (define edit% (make-edit% wx:media-edit%))
 
     (define make-pasteboard% make-std-buffer%)
+
     (define pasteboard% (make-pasteboard% wx:media-pasteboard%))))
-
-
