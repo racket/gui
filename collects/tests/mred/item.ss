@@ -5,6 +5,27 @@
 (define my-lb #f)
 (define noisy? #f)
 
+(define mdi-frame #f)
+(define (mdi)
+  (set! mdi-frame (make-object frame% "Item Test" #f
+			       #f #f #f #f
+			       '(mdi-parent)))
+  (send mdi-frame maximize #t)
+  (send mdi-frame show #t))
+
+(when (defined? 'mdi?)
+  (when mdi?
+    (mdi)))
+
+(define make-frame
+  (opt-lambda (% name [parent #f] [x #f] [y #f] [w #f] [h #f] [style '()])
+    (make-object % name
+		 (or parent mdi-frame)
+		 x y w h
+		 (if mdi-frame
+		     (cons 'mdi-child style)
+		     style))))
+
 (define special-font (send the-font-list find-or-create-font
 			   20 'decorative 
 			   'normal 'bold
@@ -358,7 +379,7 @@
 	  items)))
 
 (define (big-frame h-radio? v-label? null-label? stretchy? special-label-font? special-button-font?)
-  (define f (make-object active-frame% "Tester"))
+  (define f (make-frame active-frame% "Tester"))
   
   (define hp (make-object horizontal-panel% f))
   
@@ -406,7 +427,7 @@
   f)
 
 (define (med-frame plain-slider? label-h? null-label? stretchy? special-label-font? special-button-font?)
-  (define f2 (make-object active-frame% "Tester2"))
+  (define f2 (make-frame active-frame% "Tester2"))
 
   (define hp2 (make-object horizontal-panel% f2))
   
@@ -813,7 +834,7 @@
 	#f)))
 
 (define (menu-frame)
-  (define mf (make-object f% "Menu Test"))
+  (define mf (make-frame f% "Menu Test"))
   (set! prev-frame mf)
   (send mf show #t)
   mf)
@@ -843,7 +864,7 @@
 				      (cons (list x y w h) r)
 				      (+ x w) (+ y h))))))))])
 	       (sequence (super-init parent)))))
-  (define f (make-object frame% "Panel Tests"))
+  (define f (make-frame frame% "Panel Tests"))
   (define h (make-object horizontal-panel% f))
   (define kind (begin
 		 (send h set-label-position 'vertical)
@@ -894,7 +915,7 @@
   (send f show #t))
 
 (define (do-panel-frame p% va ha)
-  (define f (make-object frame% "Container Test"))
+  (define f (make-frame frame% "Container Test"))
   (define p (make-object p% f))
   (define b (make-object button% "Add List or Bad" p
 			 (lambda (b e)
@@ -944,7 +965,7 @@
   (send f show #t))
 
 (define (button-frame frame% style)
-  (define f (make-object frame% "Button Test"))
+  (define f (make-frame frame% "Button Test"))
   (define p (make-object vertical-panel% f))
   (define old-list null)
   (define commands (list 'button))
@@ -980,7 +1001,7 @@
   (send f show #t))
 
 (define (checkbox-frame)
-  (define f (make-object frame% "Checkbox Test"))
+  (define f (make-frame frame% "Checkbox Test"))
   (define p f)
   (define old-list null)
   (define commands (list 'check-box))
@@ -1013,7 +1034,7 @@
   (send f show #t))
 
 (define (radiobox-frame)
-  (define f (make-object frame% "Radiobox Test"))
+  (define f (make-frame frame% "Radiobox Test"))
   (define p f)
   (define old-list null)
   (define commands (list 'radio-box))
@@ -1082,7 +1103,7 @@
   (send f show #t))
 
 (define (choice-or-list-frame list? list-style empty?)
-  (define f (make-object frame% (if list? "List Test" "Choice Test")))
+  (define f (make-frame frame% (if list? "List Test" "Choice Test")))
   (define p f)
   (define-values (actual-content actual-user-data)
     (if empty?
@@ -1296,7 +1317,7 @@
   (send f show #t))
 
 (define (slider-frame)
-  (define f (make-object frame% "Slider Test"))
+  (define f (make-frame frame% "Slider Test"))
   (define p (make-object vertical-panel% f))
   (define old-list null)
   (define commands (list 'slider))
@@ -1339,7 +1360,7 @@
   (send f show #t))
 
 (define (gauge-frame)
-  (define f (make-object frame% "Gauge Test"))
+  (define f (make-frame frame% "Gauge Test"))
   (define p (make-object vertical-panel% f))
   (define g (make-object gauge% "Tester" 10 p))
   (define (move d name)
@@ -1371,7 +1392,7 @@
 	 [(eq? t 'text-field-enter)
 	  (printf "Return: ~a~n" (send c get-value))]))))
 
-  (define f (make-object frame% "Text Test"))
+  (define f (make-frame frame% "Text Test"))
   (define p (make-object vertical-panel% f))
   (define t1 (make-object text-field% #f p (handler (lambda () t1)) "This should just fit!" style))
   (define t2 (make-object text-field% "Another" p (handler (lambda () t2)) "This too!" style))
@@ -1384,7 +1405,7 @@
   (send f show #t))
 
 (define (canvas-frame flags)
-  (define f (make-object frame% "Canvas Test" #f #f 250))
+  (define f (make-frame frame% "Canvas Test" #f #f 250))
   (define p (make-object vertical-panel% f))
   (define c% (class canvas% (name swapped-name p)
 	       (inherit get-dc get-scroll-pos get-scroll-range get-scroll-page
@@ -1487,7 +1508,7 @@
   (send f show #t))
 
 (define (editor-canvas-oneline-frame)
-  (define f (make-object frame% "x" #f 200 #f))
+  (define f (make-frame frame% "x" #f 200 #f))
   
   (define (try flags)
     (define c (make-object editor-canvas% f #f flags))
@@ -1509,7 +1530,7 @@
   (try '()))
 
 (define (minsize-frame)
-  (define f (make-object frame% "x"))
+  (define f (make-frame frame% "x"))
   
   (define bp (make-object horizontal-panel% f))
   (define tb (make-object button% "Toggle Stretch" bp
@@ -1568,7 +1589,7 @@
 
 ;----------------------------------------------------------------------
 
-(define selector (make-object frame% "Test Selector"))
+(define selector (make-frame frame% "Test Selector"))
 (define ap (make-object vertical-panel% selector))
 
 ; Test timers while we're at it. And create the "Instructions" button.
