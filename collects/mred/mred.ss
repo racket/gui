@@ -4502,6 +4502,10 @@
 	(lambda (n)
 	  ((check-bounded-integer 1 1000 #t) '(method editor-canvas% set-line-count) n)
 	  (send wx set-line-count n)))]
+      [get-line-count
+       (entry-point
+	(lambda ()
+	  (send wx get-line-count)))]
 
       [scroll-to (case-lambda 
 		  [(x y w h refresh?) (send wx scroll-to x y w h refresh?)]
