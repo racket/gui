@@ -934,6 +934,19 @@
     "@link bitmap ok?"
     "method.")
 
+   (keymap:remove-user-keybindings-file
+    (-> path? any)
+    (user-keybindings-path)
+    "Removes the keymap previously added by"
+    "@flink keymap:add-user-keybindings-file %"
+    ".")
+   (keymap:add-user-keybindings-file
+    (-> path? any)
+    (user-keybindings-path)
+    "Chains the keymap defined by \\var{user-keybindings-path} to "
+    "the global keymap, returned by "
+    "@flink keymap:get-global %"
+    ".")
    (keymap:add-to-right-button-menu
     (case->
      (((is-a?/c popup-menu%) (is-a?/c editor<%>) (is-a?/c event%) . -> . void?) . -> . void?)

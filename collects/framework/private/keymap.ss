@@ -6,6 +6,7 @@
 	   (lib "class.ss")
 	   (lib "list.ss")
 	   (lib "mred-sig.ss" "mred")
+           (lib "match.ss")
            "sig.ss")
   
   (provide keymap@)
@@ -21,6 +22,30 @@
       
       (rename [-get-file get-file])
 
+      (define user-keybindings-files (make-hash-table 'equal))
+      
+      (define (add-user-keybindings-file path)
+        (hash-table-get 
+         user-keybindings-files
+         path
+         (lambda ()
+           (let ([sexp (and (file-exists? path)
+                            (call-with-input-file path read))])
+             (match sexp
+               [`(module ,name (lib "keybinding-lang.ss" "framework") ,@(x ...)) 
+                 (let ([km (dynamic-require path '#%keymap)])
+                   (hash-table-put! user-keybindings-files path km)
+                   (send global chain-to-keymap km #t))]
+               [else (error 'add-user-keybindings-file 
+                            (string-constant user-defined-keybinding-malformed-file)
+                            (path->string path))])))))
+      
+      (define (remove-user-keybindings-file path)
+        (let/ec k
+          (let ([km (hash-table-get user-keybindings-files path (lambda () (k (void))))])
+            (send global remove-chained-keymap km)
+            (hash-table-remove! user-keybindings-files path))))
+      
       (define (remove-chained-keymap ed keymap-to-remove)
         (let ([ed-keymap (send ed get-keymap)])
           (when (eq? keymap-to-remove ed-keymap)
@@ -1275,8 +1300,10 @@
 	(add-text-keymap-functions keymap))
       
       (define global (make-object aug-keymap%))
-      (setup-global global)
-      (generic-setup global)
+      (define global-main (make-object aug-keymap%))
+      (send global chain-to-keymap global-main #t)
+      (setup-global global-main)
+      (generic-setup global-main)
       (define (get-global) global)
       
       (define file (make-object aug-keymap%))

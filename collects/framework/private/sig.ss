@@ -489,7 +489,10 @@
      set-chained-keymaps
      remove-chained-keymap
      
-     call/text-keymap-initializer))
+     call/text-keymap-initializer
+     
+     add-user-keybindings-file
+     remove-user-keybindings-file))
   (define-signature framework:keymap^
     ((open framework:keymap-class^)
      (open framework:keymap-fun^)))
