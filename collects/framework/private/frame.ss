@@ -1162,13 +1162,13 @@
                      (reset-search-anchor (get-searching-edit)))))
                (super-on-focus on?))]
             [after-insert
-             (lambda ()
-               (super-after-insert)
+             (lambda (x y)
+               (super-after-insert x y)
                (unless dont-search
                  (search #f)))]
             [after-delete
-             (lambda ()
-               (super-after-delete)
+             (lambda (x y)
+               (super-after-delete x y)
                (unless dont-search
                  (search #f)))])
           (sequence (apply super-init args))))
