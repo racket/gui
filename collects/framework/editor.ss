@@ -17,7 +17,6 @@
       editing-this-file?
       local-edit-sequence?
       run-after-edit-sequence
-      default-auto-wrap?
       get-top-level-window
       locked?
       on-close))
@@ -172,12 +171,10 @@
 						(get-top-level-window)])
 				  (finder:put-file f d)))])
       
-      (public
-	[default-auto-wrap? (lambda () #t)])
-      (inherit auto-wrap)
+      
       (sequence
-	(apply super-init args)
-	(auto-wrap (default-auto-wrap?)))))
+	(apply super-init args))))
+
   
   (define -keymap<%> (interface (basic<%>) get-keymaps))
   (define keymap-mixin
@@ -193,6 +190,30 @@
 	  (for-each (lambda (k) (send keymap chain-to-keymap k #f))
 		    (get-keymaps))))))
 
+  (define autowrap<%> (interface (basic<%>) default-auto-wrap?))
+  (define autowrap-mixin
+    (mixin (basic<%>) (autowrap<%>) args
+      (public
+	[default-auto-wrap? (lambda () #t)])
+      
+      (rename [super-on-close on-close])
+      (override
+        [on-close
+         (lambda ()
+           (remove-callback)
+           (super-on-close))])
+      
+      (inherit auto-wrap)
+      (sequence
+	(apply super-init args)
+	(auto-wrap (default-auto-wrap?)))
+      (private
+        [remove-callback
+         (preferences:add-callback
+          'framework:auto-set-wrap?
+          (lambda (p v)
+            (auto-wrap v)))])))
+  
   (define file<%> (interface (-keymap<%>)))
   (define file-mixin
     (mixin (-keymap<%>) (file<%>) args

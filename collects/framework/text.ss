@@ -310,26 +310,9 @@
 	   (public
 	     [initial-autowrap-bitmap (lambda () (icon:get-autowrap-bitmap))])
 	   
-	   (rename [super-on-close on-close])
-	   (override
-	     [on-close
-	      (lambda ()
-		(remove-callback)
-		(super-on-close))])
-
 	   (sequence
 	     (apply super-init args)
-	     (set-autowrap-bitmap (initial-autowrap-bitmap)))
-
-	   (private
-	     [remove-callback
-	      (preferences:add-callback
-	       'framework:auto-set-wrap?
-	       (lambda (p v)
-		 (auto-wrap v)))])
-	   (inherit auto-wrap)
-	   (sequence
-	     (auto-wrap (preferences:get 'framework:auto-set-wrap?)))))
+	     (set-autowrap-bitmap (initial-autowrap-bitmap)))))
 
   (define searching<%> (interface (editor:keymap<%> basic<%>)))
   (define searching-mixin
@@ -470,7 +453,8 @@
   (define basic% (basic-mixin (editor:basic-mixin text%)))
   (define -keymap% (editor:keymap-mixin basic%))
   (define return% (return-mixin -keymap%))
-  (define file% (editor:file-mixin -keymap%))
+  (define autowrap% (editor:autowrap-mixin -keymap%))
+  (define file% (editor:file-mixin autowrap%))
   (define clever-file-format% (clever-file-format-mixin file%))
   (define backup-autosave% (editor:backup-autosave-mixin clever-file-format%))
   (define searching% (searching-mixin backup-autosave%))

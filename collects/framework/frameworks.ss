@@ -87,12 +87,14 @@
 (define-signature framework:editor^
   (basic<%>
    keymap<%>
+   autowrap<%>
    info<%>
    file<%>
    backup-autosave<%>
    
    basic-mixin
    keymap-mixin
+   autowrap-mixin
    info-mixin
    file-mixin
    backup-autosave-mixin))
