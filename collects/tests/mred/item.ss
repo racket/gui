@@ -917,26 +917,7 @@
 				 (send e get-command-string))
 			   old-list))
       (cond
-       [(= 0 (send e get-extra-long))
-	; deselection
-	(printf "Deselected ~a~n" (send e get-command-int))
-	(unless multi?
-	  (error "delselection in a single-selection list"))
-	(unless (< -1 (send e get-command-int) (length actual-content))
-	  (error "deselection index is out of range"))
-	(unless (not (memv (send e get-command-int) (send c get-selections)))
-	  (error "deselected item is actually selected"))
-	(unless (string=? (send e get-command-string)
-			  (send c get-string (send e get-command-int)))
-	  (error "string selection mismatch:" (send e get-command-string)))]
-       [(= 2 (send e get-extra-long))
-	; double-click
-	(unless (= -1 (send e get-command-int))
-	  (error "selection index is not -1"))
-	(unless (null? (send e get-command-string))
-	  (error "string selection not null:" (send e get-command-string)))
-	(printf "Double-click~n")]
-       [else
+       [(send e is-selection?)
 	; selection
 	(printf "Selected ~a~n" (send e get-command-int))
 	(if (or (not multi?) (<= (length (send c get-selections)) 1))
@@ -956,7 +937,23 @@
 				(send c get-string (send e get-command-int)))
 		(error "selection string mismatch"))
 	      (unless (null? (send c get-string-selection))
-		(error "string selection not null"))))])
+		(error "string selection not null"))))]
+       [(send e is-double-click?)
+	; double-click
+	(unless (= -1 (send e get-command-int))
+	  (error "selection index is not -1"))
+	(unless (null? (send e get-command-string))
+	  (error "string selection not null:" (send e get-command-string)))
+	(printf "Double-click~n")]
+       [else
+	; misc multi-selection
+	(printf "Changed~n")
+	(unless multi?
+	  (error "unknown event for a single-selection list"))
+	(unless (= -1 (send e get-selection))
+	  (error "selection is not -1"))
+	(unless (null? (send e get-string))
+	  (error "string selection is not null:" (send e get-string)))])
       (check-callback-event c cx e commands #f)))
   (define c (if list?
 		(make-object mred:list-box% p
