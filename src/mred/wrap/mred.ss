@@ -653,6 +653,7 @@
 (define (make-top-level-window-glue% %) ; implies make-window-glue%
   (class (make-window-glue% %) (mred proxy . args)
     (rename [super-on-activate on-activate])
+    (public [act-date/seconds 0] [act-date/milliseconds 0] [act-on? #f])
     (override
       [on-close (lambda ()
 		  (if mred
@@ -663,7 +664,11 @@
 			  #f)
 		      #t))]
       [on-activate (lambda (on?)
-		     (set! active-frame this)
+		     (set! act-on? on?)
+		     (when on?
+		       (set! act-date/seconds (current-seconds))
+		       (set! act-date/milliseconds (current-milliseconds))
+		       (set! active-frame this))
 		     (super-on-activate on?)
 		     (send mred on-activate on?))])
     (sequence (apply super-init mred proxy args))))
@@ -2071,6 +2076,22 @@
 
 (define (get-top-level-windows)
   (map wx->mred (wx:get-top-level-windows)))
+
+(define (get-top-level-focus-window)
+  (ormap (lambda (f) (and (ivar f act-on?) (wx->mred f))) (wx:get-top-level-windows)))
+
+(define (get-top-level-edit-target-window)
+  (let loop ([l (wx:get-top-level-windows)][f #f][s 0][ms 0])
+    (if (null? l)
+	(and f (wx->mred f))
+	(let* ([f2 (car l)]
+	       [s2 (ivar f2 act-date/seconds)]
+	       [ms2 (ivar f2 act-date/milliseconds)])
+	  (if (or (not f)
+		  (> s2 s)
+		  (and (= s2 s) (> ms2 ms)))
+	      (loop (cdr l) f2 s2 ms2)
+	      (loop (cdr l) f s ms))))))
 
 (define message%
   (class basic-control% (label parent [style null])
