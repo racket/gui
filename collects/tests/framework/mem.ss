@@ -31,34 +31,44 @@
       (yield) (collect-garbage)
       (yield) (collect-garbage)
       (yield) (collect-garbage)
-      (let ([f (make-object dialog% "Results")]
-            [anything? #f])
-        (for-each
-         (lambda (boxl)
-           (let* ([tag (car boxl)]
-                  [boxes (cadr boxl)]
-                  [calc-results
-                   (lambda ()
-		     (let loop ([boxes boxes]
-				[n 0])
-		       (cond
-			 [(null? boxes) n]
-			 [else (if (weak-box-value (car boxes))
-				   (loop (cdr boxes) (+ n 1))
-				   (loop (cdr boxes) n))])))])
-	     (let loop ([tries 16])
-	       (unless (zero? tries)
-		 (when (> (calc-results) 0)
-		   (yield) (yield) (sleep/yield 1/5) (collect-garbage)
-		   (loop (- tries 1)))))
-             (let ([res (calc-results)])
-               (when (> res 0)
-                 (set! anything? #t)
-                 (make-object message% (format "~a: ~a of ~a~n" tag res ,mem-count) f)))))
-         (reverse mem-boxes))
-        (cond
-          [anything? (make-object button% "Close" f (lambda x (send f show #f)))]
-          [else (make-object button% "NOTHING!" f (lambda x (send f show #f)))])
+      (let* ([f (make-object dialog% "Results" #f 300 500)]
+             [text (make-object text%)]
+             [ec (make-object editor-canvas% f text)]
+             [anything? #f])
+        (define (update-gui)
+          (send text erase)
+          (let ([anything? #f])
+            (for-each
+             (lambda (boxl)
+               (let* ([tag (car boxl)]
+                      [boxes (cadr boxl)]
+                      [calc-results
+                       (lambda ()
+                         (let loop ([boxes boxes]
+                                    [n 0])
+                           (cond
+                             [(null? boxes) n]
+                             [else (if (weak-box-value (car boxes))
+                                       (loop (cdr boxes) (+ n 1))
+                                       (loop (cdr boxes) n))])))])
+                 (let ([res (calc-results)])
+                   (when (> res 0)
+                     (set! anything? #t)
+                     (send text insert (format "~a: ~a of ~a\n" tag res ,mem-count))))))
+             (reverse mem-boxes))
+            (unless anything?
+              (send text insert "Nothing!\n"))))
+        
+        (update-gui)
+        (make-object button% "Collect" f (lambda (x y)
+                                           (send text erase)
+                                           (send text insert "Collecting Garbage\n")
+                                           (collect-garbage)(collect-garbage)(collect-garbage)(collect-garbage)
+                                           (collect-garbage)(collect-garbage)(collect-garbage)(collect-garbage)
+                                           (collect-garbage)(collect-garbage)(collect-garbage)(collect-garbage)
+                                           (collect-garbage)(collect-garbage)(collect-garbage)(collect-garbage)
+                                           (update-gui)))
+        (make-object button% "Close" f (lambda (x y) (send f show #f)))
         (send f show #t)))))
 
 (define (test-frame-allocate %)
@@ -109,7 +119,6 @@
 (test-allocate "text:return%"
 	       '(lambda () (make-object text:return% void))
 	       '(lambda (t) (void)))
-
 
 (test-frame-allocate 'frame:basic%)
 (test-frame-allocate 'frame:info%)
