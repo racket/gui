@@ -1,4 +1,8 @@
 
+Version 102/10:
+
+ * X: Changed dialogs to use the icon of the dialog's parent (if any).
+
 Version 102/9:
 
  * X: Fixed list-box% to handle arbitrarily many list items. (PR 1342)
