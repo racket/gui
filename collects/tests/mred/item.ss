@@ -297,17 +297,27 @@
 		     cb icb 
 		     rb irb 
 		     ch
-		     txt)])
+		     txt)]
+	[names (list "label" "image label"
+		     "button" "image button"
+		     "list box"
+		     "checkbox" "image checkbox"
+		     "radio box" "image radiobox"
+		     "choice"
+		     "text")])
+    (make-object choice%
+		 "Set Focus"
+		 (cons "..." names)
+		 lp
+		 (lambda (c e)
+		   (let ([v (send c get-selection)])
+		     (when (positive? v)
+		       (send (list-ref items (sub1 v)) focus)
+		       (send c set-selection 0)))))
     (cons (make-object popup-test-canvas% 
 		       items
-		     (list "label" "image label"
-			   "button" "image button"
-			   "list box"
-			   "checkbox" "image checkbox"
-			   "radio box" "image radiobox"
-			   "choice"
-			   "text")
-		     cp)
+		       names
+		       cp)
 	  items)))
 
 (define (big-frame h-radio? v-label? null-label? stretchy? special-label-font? special-button-font?)
