@@ -193,7 +193,7 @@
             (invalidate-to-children/parents snip)
             (loop (find-next-selected-snip snip)))))
       
-      (define (add-to-rect from to rect)
+      (define/private (add-to-rect from to rect)
         (let-values ([(xf yf wf hf) (get-position from)]
                      [(xt yt wt ht) (get-position to)])
           (make-rect
@@ -212,7 +212,7 @@
       
       
       ;; find-snips-under-mouse : num num -> (listof graph-snip<%>)
-      (define (find-snips-under-mouse x y)
+      (define/private (find-snips-under-mouse x y)
         (let loop ([snip (find-first-snip)])
           (cond
             [snip
@@ -225,7 +225,7 @@
             [else null])))
       
       ;; change-currently-overs : (listof snip) -> void
-      (define (change-currently-overs new-currently-overs)
+      (define/private (change-currently-overs new-currently-overs)
         (unless (set-equal new-currently-overs currently-overs)
           (let ([old-currently-overs currently-overs])
             (set! currently-overs new-currently-overs)
@@ -246,7 +246,7 @@
       ;; set-equal : (listof snip) (listof snip) -> boolean
       ;; typically lists will be small (length 1),
       ;; so use andmap/memq rather than hash-tables
-      (define (set-equal los1 los2)
+      (define/private (set-equal los1 los2)
         (and (andmap (lambda (s1) (memq s1 los2)) los1)
              (andmap (lambda (s2) (memq s2 los1)) los2)
              #t))
@@ -255,32 +255,33 @@
       ;; invalidates the region containing this snip and
       ;; all of its children and parents.
       (inherit invalidate-bitmap-cache)
-      (define (invalidate-to-children/parents snip)
-        (let ([children (get-all-children snip)]
-              [parents (get-all-parents snip)])
-          (let-values ([(fx fy fw fh) (get-position snip)])
-            (let loop ([snips (append children parents)]
-                       [l fx]
-                       [t fy]
-                       [r (+ fx (max 0 fw))]
-                       [b (+ fy (max 0 fh))])
-              (cond
-                [(null? snips)
-                 (invalidate-bitmap-cache l t (- r l) (- b t))]
-                [else
-                 (let ([c/p (car snips)])
-                   (let-values ([(sx sy sw sh) (get-position c/p)])
-                     (if (eq? c/p snip)
-                         (loop (cdr snips)
-                               (- (min l sx) self-offset)
-                               (min t sy)
-                               (+ (max r (+ sx sw)) self-offset)
-                               (+ (max b (+ sy sh)) self-offset))
-                         (loop (cdr snips)
-                               (min l sx)
-                               (min t sy)
-                               (max r (+ sx sw))
-                               (max b (+ sy sh))))))])))))
+      (define/private (invalidate-to-children/parents snip)
+        (when (is-a? snip graph-snip<%>)
+          (let ([children (get-all-children snip)]
+                [parents (get-all-parents snip)])
+            (let-values ([(fx fy fw fh) (get-position snip)])
+              (let loop ([snips (append children parents)]
+                         [l fx]
+                         [t fy]
+                         [r (+ fx (max 0 fw))]
+                         [b (+ fy (max 0 fh))])
+                (cond
+                  [(null? snips)
+                   (invalidate-bitmap-cache l t (- r l) (- b t))]
+                  [else
+                   (let ([c/p (car snips)])
+                     (let-values ([(sx sy sw sh) (get-position c/p)])
+                       (if (eq? c/p snip)
+                           (loop (cdr snips)
+                                 (- (min l sx) self-offset)
+                                 (min t sy)
+                                 (+ (max r (+ sx sw)) self-offset)
+                                 (+ (max b (+ sy sh)) self-offset))
+                           (loop (cdr snips)
+                                 (min l sx)
+                                 (min t sy)
+                                 (max r (+ sx sw))
+                                 (max b (+ sy sh))))))]))))))
       
       ;; on-paint : ... -> void
       ;; see docs, same as super
@@ -488,7 +489,7 @@
       ;; updates points1, 2, and 3 with the arrow head's
       ;; points. Use a turtle-like movement to find the points.
       ;; point3 is the point where the line should end.
-      (define (update-polygon from-x from-y to-x to-y)
+      (define/private (update-polygon from-x from-y to-x to-y)
         (define (move tx ty ta d) (values (+ tx (* d (cos ta)))
                                           (+ ty (* d (sin ta)))
                                           ta))
@@ -521,7 +522,7 @@
           (send point4 set-x t5x)
           (send point4 set-y t5y)))
       
-      (define (should-hilite? snip)
+      (define/private (should-hilite? snip)
         (let ([check-one-way
                (lambda (way)
                  (let loop ([snip snip])
@@ -544,7 +545,7 @@
                 (- (unbox rb) (unbox lb))
                 (- (unbox bb) (unbox tb))))
       
-      (super-instantiate ())))
+      (super-new)))
   
   ;; in-rectangle? : number^2 number^2 number^2 -> boolean
   ;; determines if (x,y) is in the rectangle described
