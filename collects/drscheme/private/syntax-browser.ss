@@ -525,7 +525,7 @@ needed to really make this work:
          (column ,col)
          (span ,span)
          (original? ,original?)
-         (properties ,@properties)
+         (properties ,@(properties))
          (contents ,contents))
        (foldl
         add-properties
