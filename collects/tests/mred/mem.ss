@@ -51,6 +51,14 @@
     [(2) horizontal-pane%]
     [else (get-panel% n)]))
 
+(define (get-image n)
+  (build-path (collection-path "icons")
+   (case (modulo n 4)
+     [(0) "mini-plt.xpm"]
+     [(1) "lock.gif"]
+     [(2) "help.bmp"]
+     [(3) "return.xbm"])))
+
 (define (maker id n)
   (sleep)
   (collect-garbage)
@@ -187,8 +195,11 @@
 	
 	(when offscreen?
 	  (let ([m (remember tag (make-object bitmap-dc%))]
+	        [b0 (remember (cons tag 'f) (make-object bitmap% (get-image n)))]
 		[b (remember (cons tag 'u) (make-object bitmap% 100 100))]
 		[b2 (remember (cons tag 'x) (make-object bitmap% 100 100))])
+	    (unless (send b0 ok?)
+	      (error "bitmap load error"))
 	    (send m set-bitmap b)))
 	
 	(when edit?
