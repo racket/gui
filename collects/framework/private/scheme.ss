@@ -1321,7 +1321,8 @@
       
       (define (add-preferences-panel)
         (preferences:add-panel
-         (string-constant indenting-prefs-panel-label)
+         (list (string-constant editor-prefs-panel-label) 
+               (string-constant indenting-prefs-panel-label))
          (lambda (p)
            (let*-values
                ([(get-keywords)

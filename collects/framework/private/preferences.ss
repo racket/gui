@@ -338,6 +338,162 @@
       ;; ppanels : (listof ppanel-tree)
       (define ppanels null)
       
+      (define preferences-dialog #f)
+      
+      (define (add-panel title make-panel)
+        (when preferences-dialog
+          (error 'add-panel "preferences dialog already open, cannot add new panels"))
+        (let ([titles (if (string? title)
+                          (list title)
+                          title)])
+          (add-to-existing-children
+           titles 
+           make-panel
+           (lambda (new-subtree) (set! ppanels (cons new-subtree ppanels))))))
+      
+      ;; add-to-existing-children : (listof string) (panel -> panel) (ppanel -> void)
+      ;; adds the child specified by the path in-titles to the tree.
+      (define (add-to-existing-children in-titles make-panel banger)
+        (let loop ([children ppanels]
+                   [title (car in-titles)]
+                   [titles (cdr in-titles)]
+                   [banger banger])
+          (cond
+            [(null? children)
+             (banger (build-new-subtree (cons title titles) make-panel))]
+            [else
+             (let ([child (car children)])
+               (if (string=? (ppanel-name child) title)
+                   (cond
+                     [(null? titles) 
+                      (error 'add-child "child already exists with this path: ~e" in-titles)]
+                     [(ppanel-leaf? child)
+                      (error 'add-child "new child's path conflicts with existing path: ~e" in-titles)]
+                     [else
+                      (loop
+                       (ppanel-interior-children child)
+                       (car titles)
+                       (cdr titles)
+                       (lambda (x)
+                         (set-ppanel-interior-children! 
+                          (cons
+                           x
+                           (ppanel-interior-children child)))))])
+                   (loop 
+                    (cdr children)
+                    title
+                    titles
+                    (lambda (x)
+                      (set-cdr! children
+                                (cons x (cdr children)))))))])))
+      
+      ;; build-new-subtree : (cons string (listof string)) (panel -> panel) -> ppanel
+      (define (build-new-subtree titles make-panel)
+        (let loop ([title (car titles)]
+                   [titles (cdr titles)])
+          (cond
+            [(null? titles) (make-ppanel-leaf title #f make-panel)]
+            [else
+             (make-ppanel-interior 
+              title
+              #f
+              (list (loop (car titles) (cdr titles))))])))
+           
+      
+      (define (hide-dialog)
+	(when preferences-dialog
+	  (send preferences-dialog show #f)))
+      
+      (define (show-dialog)
+	(save)
+	(if preferences-dialog
+	    (send preferences-dialog show #t)
+	    (set! preferences-dialog
+		  (make-preferences-dialog))))
+
+      (define (add-can-close-dialog-callback cb)
+	(set! can-close-dialog-callbacks
+	      (cons cb can-close-dialog-callbacks)))
+
+      (define (add-on-close-dialog-callback cb)
+	(set! on-close-dialog-callbacks
+	      (cons cb on-close-dialog-callbacks)))
+
+      (define on-close-dialog-callbacks null)
+
+      (define can-close-dialog-callbacks null)
+      
+      (define (make-preferences-dialog)
+        (letrec ([stashed-prefs (get-preference main-preferences-symbol (lambda () null))]
+                 [frame 
+                  (make-object frame:basic%
+                    (string-constant preferences))]
+                 [build-ppanel-tree
+                  (lambda (ppanel tab-panel single-panel)
+                    (send tab-panel append (ppanel-name ppanel))
+                    (cond
+                      [(ppanel-leaf? ppanel) 
+                       ((ppanel-leaf-maker ppanel) single-panel)]
+                      [(ppanel-interior? ppanel)
+                       (let-values ([(tab-panel single-panel) (make-tab/single-panel single-panel #t)])
+                         (for-each
+                          (lambda (ppanel) (build-ppanel-tree ppanel tab-panel single-panel))
+                          (ppanel-interior-children ppanel)))]))]
+                 [make-tab/single-panel 
+                  (lambda (parent inset?)
+                    (letrec ([spacer (and inset?
+                                          (instantiate vertical-panel% ()
+                                            (parent parent)
+                                            (border 10)))]
+                             [tab-panel (instantiate tab-panel% ()
+                                          (choices null)
+                                          (parent (if inset? spacer parent))
+                                          (callback (lambda (_1 _2) 
+                                                      (tab-panel-callback
+                                                       single-panel
+                                                       tab-panel))))]
+                             [single-panel (instantiate panel:single% ()
+                                             (parent tab-panel))])
+                      (values tab-panel single-panel)))]
+                 [tab-panel-callback
+                  (lambda (single-panel tab-panel)
+                    (send single-panel active-child
+                          (list-ref (send single-panel get-children)
+                                    (send tab-panel get-selection))))]
+                 [panel (make-object vertical-panel% (send frame get-area-container))]
+                 [_ (let-values ([(tab-panel single-panel) (make-tab/single-panel panel #f)])
+                      (for-each
+                       (lambda (ppanel)
+                         (build-ppanel-tree ppanel tab-panel single-panel))
+                       ppanels)
+                      (let ([single-panel-children (send single-panel get-children)])
+                        (unless (null? single-panel-children)
+                          (send single-panel active-child (car single-panel-children))
+                          (send tab-panel set-selection 0)))
+                      (send tab-panel focus))]
+                 [bottom-panel (make-object horizontal-panel% panel)]
+                 [ok-callback (lambda args
+                                (when (andmap (lambda (f) (f))
+                                              can-close-dialog-callbacks)
+                                  (for-each
+                                   (lambda (f) (f))
+                                   on-close-dialog-callbacks)
+                                  (save)
+                                  (hide-dialog)))]
+                 [cancel-callback (lambda (_1 _2)
+                                    (hide-dialog)
+                                    (install-stashed-preferences stashed-prefs))])
+          (gui-utils:ok/cancel-buttons
+           bottom-panel
+           ok-callback
+           cancel-callback)
+          (make-object grow-box-spacer-pane% bottom-panel)
+          (send* bottom-panel
+            (stretchable-height #f)
+            (set-alignment 'right 'center))
+          (send frame show #t)
+          frame))
+      
       (define (add-to-scheme-checkbox-panel f)
         (set! scheme-panel-procs 
               (let ([old scheme-panel-procs])
@@ -400,7 +556,9 @@
                   (lambda ()
                     (set! add-scheme-checkbox-panel void)
                     (add-checkbox-panel
-                     (string-constant scheme-prefs-panel-label)
+                     (list 
+                      (string-constant editor-prefs-panel-label) 
+                      (string-constant scheme-prefs-panel-label))
                      (lambda (scheme-panel)
                        (make-check scheme-panel
                                    'framework:highlight-parens
@@ -422,7 +580,8 @@
                   (lambda ()
                     (set! add-editor-checkbox-panel void)
                     (add-checkbox-panel 
-                     (string-constant editor-prefs-panel-label)
+                     (list (string-constant editor-prefs-panel-label) 
+                           (string-constant general-prefs-panel-label))
                      (lambda (editor-panel)
                        (make-recent-items-slider editor-panel)
                        (make-check editor-panel
@@ -469,7 +628,7 @@
         (letrec ([add-warnings-checkbox-panel
                   (lambda ()
                     (set! add-warnings-checkbox-panel void)
-                    (add-checkbox-panel 
+                    (add-checkbox-panel
                      (string-constant warnings-prefs-panel-label)
                      (lambda (warnings-panel)
                        (make-check warnings-panel 
@@ -658,121 +817,4 @@
                main))))
         (set! local-add-font-panel void))
       
-      (define (add-font-panel) (local-add-font-panel))
-      
-      (define preferences-dialog #f)
-      
-      (define (add-panel title make-panel)
-        (let ([titles (if (string? title)
-                          (list title)
-                          title)])
-          (add-to-existing-tree 
-           titles 
-           make-panel
-           (lambda (new-subtree) (set! ppanels new-subtree)))))
-      
-      (define (add-to-existing-children titles make-panel banger)
-        (let loop ([children ppanels]
-                   [title (car titles)]
-                   [titles (cdr titles)]
-                   [banger banger])
-          (cond
-            [(null? children)
-             (banger (build-new-subtree titles make-panel))]
-            [else
-             (let ([child (car children)])
-               (if (string=? (ppanel-name child) title)
-                   (add-to-existing-children 
-
-               
-             
-             (build-new-subtree 
-              (append ppanels 
-                      (list (make-ppanel (if (string? title)
-                                             (list title)
-                                             title)
-                                         container
-                                         #f))))
-        (when preferences-dialog
-          (error 'add-panel "preferences dialog already open, cannot add new panels")))
-      
-      (define (hide-dialog)
-	(when preferences-dialog
-	  (send preferences-dialog show #f)))
-      
-      (define (show-dialog)
-	(save)
-	(if preferences-dialog
-	    (send preferences-dialog show #t)
-	    (set! preferences-dialog
-		  (make-preferences-dialog))))
-
-      (define (add-can-close-dialog-callback cb)
-	(set! can-close-dialog-callbacks
-	      (cons cb can-close-dialog-callbacks)))
-
-      (define (add-on-close-dialog-callback cb)
-	(set! on-close-dialog-callbacks
-	      (cons cb on-close-dialog-callbacks)))
-
-      (define on-close-dialog-callbacks null)
-
-      (define can-close-dialog-callbacks null)
-      
-      (define make-preferences-dialog
-        (lambda ()
-          (letrec ([stashed-prefs (get-preference main-preferences-symbol (lambda () null))]
-                   [frame 
-                    (make-object frame:basic%
-                      (string-constant preferences))]
-                   [panel (make-object vertical-panel% (send frame get-area-container))]
-                   [popup-callback
-                    (lambda (tab-panel evt)
-                      (unless (null? ppanels)
-                        (send single-panel active-child
-                              (ppanel-panel 
-                               (list-ref ppanels
-                                         (send tab-panel get-selection))))))]
-                   [tap-panel
-                    (instantiate tab-panel% ()
-                      (choices (map ppanel-title ppanels))
-                      (parent panel)
-                      (callback popup-callback))]
-                   [single-panel (make-object panel:single% tap-panel)]
-                   [bottom-panel (make-object horizontal-panel% panel)]
-                   [ensure-constructed
-                    (lambda ()
-                      (for-each (lambda (ppanel)
-                                  (unless (ppanel-panel ppanel)
-                                    (let ([panel ((ppanel-container ppanel) single-panel)])
-                                      (set-ppanel-panel! ppanel panel))))
-                                ppanels)
-                      (send single-panel change-children (lambda (l) (map ppanel-panel ppanels)))
-                      (unless (null? ppanels)
-                        (send single-panel active-child (ppanel-panel (car ppanels)))))]
-                   
-                   [ok-callback (lambda args
-				  (when (andmap (lambda (f) (f))
-						can-close-dialog-callbacks)
-				    (for-each
-				     (lambda (f) (f))
-				     on-close-dialog-callbacks)
-				    (save)
-				    (hide-dialog)))]
-                   [cancel-callback (lambda (_1 _2)
-                                      (hide-dialog)
-                                      (install-stashed-preferences stashed-prefs))])
-            (gui-utils:ok/cancel-buttons
-             bottom-panel
-             ok-callback
-             cancel-callback)
-            (make-object grow-box-spacer-pane% bottom-panel)
-            (send* bottom-panel
-              (stretchable-height #f)
-              (set-alignment 'right 'center))
-            (ensure-constructed)
-            (unless (null? ppanels)
-              (send tap-panel set-selection 0))
-            (send tap-panel focus)
-            (send frame show #t)
-            frame))))))
+      (define (add-font-panel) (local-add-font-panel)))))

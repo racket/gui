@@ -3,6 +3,7 @@
   (require (lib "unitsig.ss")
            (lib "mred.ss" "mred")
            (lib "mred-sig.ss" "mred")
+           (lib "class.ss")
            
            "test.ss"
            "gui-utils.ss"
@@ -193,14 +194,25 @@
           (lambda (child)
             (and (is-a? child area-container-window<%>)
                  (andmap eq?
-                         (cons child children)
+                         (append children (list child))
                          (send parent get-children)))))))
      . -> .
      void?)
-    (name f)
+    (labels f)
    "\\rawscm{preferences:add-preference-panel} adds the result of"
-   "\\var{f} with name \\var{name} to the preferences dialog"
-   "box. When the preference dialog is opened for the first"
+   "\\var{f} with name \\var{labels} to the preferences dialog"
+   "box."
+   ""
+   "The labels determine where this preference panel is placed"
+   "in the dialog. If the list is just one string, the"
+   "preferences panel is placed at the top level of the dialog."
+   "If there are more strings, a hierarchy of nested panels is"
+   "created and the new panel is added at the end."
+   "If multiple calls to \\rawscm{preferences:add-preference-panel}"
+   "pass the same prefix of strings, those panels are placed in the"
+   "same children."
+   ""
+   "When the preference dialog is opened for the first"
    "time, the function \\var{f} is called with a panel, and"
    "\\var{f} is expected to add a new child panel to it and add"
    "whatever preferences configuration controls it wants to that"
