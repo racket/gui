@@ -98,10 +98,24 @@
          (send gauge set-value splash-current-width))
        (old-load f expected)))
   
-  (current-load
-   (let ([old-load (current-load)])
-     (lambda (f expected)
-       (splash-load-handler old-load f expected))))
+  (printf "one\n")
+  (let ([addl-load-handler
+         (and (not (getenv "PLTDRDEBUG"))
+              (getenv "PLTDRCM")
+              (dynamic-require '(lib "cm.ss") 'make-compilation-manager-load/use-compiled-handler))])
+    (printf "two\n")
+    (current-load
+     (let ([old-load (current-load)])
+       (lambda (f expected)
+         (splash-load-handler old-load f expected))))
+    (printf "three\n")
+    
+    ;; abstraction breaking -- matthew will change cm
+    ;; so that I don't need this here.
+    (when addl-load-handler
+      (printf "PLTDRCM: reinstalling CM load handler after setting splash load handler\n")
+      (current-load/use-compiled (addl-load-handler)))
+    (printf "four\n"))
   
   (define funny-gauge%
     (class canvas% 
