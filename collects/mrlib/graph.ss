@@ -357,10 +357,10 @@
                       [(xt yt wt ht) (get-position to)]
                       [(lf tf rf bf) (values xf yf (+ xf wf) (+ yf hf))]
                       [(lt tt rt bt) (values xt yt (+ xt wt) (+ yt ht))])
-          (let ([x1 (+ xf (quotient wf 2))]
-                [y1 (+ yf (quotient hf 2))]
-                [x2 (+ xt (quotient wt 2))]
-                [y2 (+ yt (quotient ht 2))])
+          (let ([x1 (+ xf (/ wf 2))]
+                [y1 (+ yf (/ hf 2))]
+                [x2 (+ xt (/ wt 2))]
+                [y2 (+ yt (/ ht 2))])
             
             (unless (or (and (x1 . <= . left)
                              (x2 . <= . left))
