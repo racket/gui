@@ -227,6 +227,7 @@
 		 ("Only run test named <test-name>" "test-name")]))])
 	(parse-command-line "framework-test" argv command-line-flags
 			    (lambda files
+			      (printf "processing ~a~n" files)
 			      (set! files-to-process (if (null? files) all-files files)))
 			    `("Names of the tests; defaults to all tests"))
 
