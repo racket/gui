@@ -50,6 +50,7 @@
 		 class class* class-asi class-asi*
 		 define-some do opt-lambda send*
 		 local catch shared
+                 make-object
 		 unit/sig
 		 with-handlers
 		 interface

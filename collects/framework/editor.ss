@@ -156,13 +156,11 @@
 	 (lambda (x)
 	   (set! is-locked? x)
 	   (super-lock x))]
-	;[on-new-box
-	; (lambda (type)
-	;   (cond
-	;     [(eq? type 'text) (make-object editor-snip% (make-object text:basic%))]
-	;     [else (make-object editor-snip% (make-object pasteboard:basic%))]))]
-	;; need a snipclass to handle copying/pasting. This isn't enough.
-	)
+	[on-new-box
+	 (lambda (type)
+	   (cond
+	     [(eq? type 'text) (make-object editor-snip% (make-object text:basic%))]
+	     [else (make-object editor-snip% (make-object pasteboard:basic%))]))])
 
 
       (override

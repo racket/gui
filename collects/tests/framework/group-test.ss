@@ -4,6 +4,7 @@
  (lambda ()
    (send-sexp-to-mred
     '(begin (send (make-object frame:basic% "test") show #t)
+	    (preferences:set 'framework:verify-exit #f)
 	    (preferences:set 'framework:exit-when-no-frames #f)))
    (wait-for-frame "test")
    (send-sexp-to-mred
@@ -18,6 +19,7 @@
  (lambda ()
    (send-sexp-to-mred
     '(begin (send (make-object frame:basic% "test") show #t)
+	    (preferences:set 'framework:verify-exit #t)
 	    (preferences:set 'framework:exit-when-no-frames #t)))
    (wait-for-frame "test")
    (send-sexp-to-mred

@@ -23,7 +23,8 @@
       (require-library "tests.ss" "framework")
       (require-library "mred-interfaces.ss" "framework")
       (eval
-       '(invoke-open-unit/sig
+       '(define-values/invoke-unit/sig
+         ((unit test : framework:test^))
 	 (compound-unit/sig
 	   (import)
 	   (link [mred : mred-interfaces^ (mred-interfaces@)]
@@ -60,13 +61,14 @@
    'mred-interfaces.ss/gen
    (lambda (x) x)
    '(parameterize ([current-namespace (make-namespace 'mred)])
+      (require-library "invoke.ss")
       (require-library "mred-interfaces.ss" "framework")
       (eval
-       '(let ([orig-button% (global-defined-value 'button%)])
-	  (invoke-open-unit/sig mred-interfaces@)
-	  (let ([first-button% (global-defined-value 'button%)])
-	    (invoke-open-unit/sig mred-interfaces@)
-	    (let ([second-button% (global-defined-value 'button%)])
+       '(let ([orig-button% button%])
+	  (define-values/invoke-unit/sig mred-interfaces^ mred-interfaces@)
+	  (let ([first-button% button%])
+	    (define-values/invoke-unit/sig mred-interfaces^ mred-interfaces@)
+	    (let ([second-button% button%])
 	      (and (eq? second-button% first-button%)
 		   (not (eq? first-button% orig-button%)))))))))
   (test
@@ -76,7 +78,8 @@
       (require-library "frameworks.ss" "framework")
       (require-library "mred-interfaces.ss" "framework")
       (eval
-       '(invoke-open-unit/sig
+       '(define-values/invoke-unit/sig
+         framework^
 	 (compound-unit/sig
 	   (import)
 	   (link [mred : mred-interfaces^ (mred-interfaces@)]

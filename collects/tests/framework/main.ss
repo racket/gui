@@ -299,10 +299,10 @@
 	
 	(when (file-exists? preferences-file)
 	  (printf "  saving preferences file ~s to ~s~n" preferences-file old-preferences-file)
-	  (when (file-exists? old-preferences-file)
-	    (error 'framework-test "backup preferences file exists, aborting"))
-	  (printf "  saved preferences file~n")
-	  (copy-file preferences-file old-preferences-file))
+	  (if (file-exists? old-preferences-file)
+              (printf "  backup preferences file exists, using that one~n")
+              (begin (copy-file preferences-file old-preferences-file)
+                     (printf "  saved preferences file~n"))))
     
 	(for-each (lambda (x)
 		    (when (member x all-files)
