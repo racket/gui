@@ -16,6 +16,26 @@
       (define basic<%> (interface ((class->interface editor-canvas%))))
       (define basic-mixin
 	(mixin ((class->interface editor-canvas%)) (basic<%>)
+          (inherit get-editor)
+          (rename [super-on-char on-char])
+          (define (do-keymap to-call evt)
+            (let ([t (get-editor)])
+              (when (is-a? t text%)
+                (let ([k (send t get-keymap)])
+                  (when k
+                    (send k call-function to-call t evt #t))))))
+          (define/override (on-char evt)
+            (let ([code (send evt get-key-code)])
+              (cond 
+                [(not (preferences:get 'framework:wheel-mouse-by-page))
+                 (super-on-char evt)]
+                [(eq? code 'wheel-up)
+                 (do-keymap "previous-page" evt)]
+                [(eq? code 'wheel-down)
+                 (do-keymap "next-page" evt)]
+                [else 
+                 (super-on-char evt)])))
+
           (super-instantiate ())))
       
       (define info<%> (interface (basic<%>)))
