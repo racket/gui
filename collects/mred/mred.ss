@@ -1186,7 +1186,8 @@
     (inherit get-x get-y get-width get-height area-parent get-mred get-proxy)
     (rename [super-on-size on-size]
 	    [super-on-set-focus on-set-focus]
-	    [super-on-kill-focus on-kill-focus])
+	    [super-on-kill-focus on-kill-focus]
+	    [super-pre-on-char pre-on-char])
     (private-field
       [pre-wx->proxy (lambda (w k) ; MacOS: w may not be something the user knows
 		       (if w
@@ -1241,11 +1242,13 @@
 			 this
 			 (lambda () (send (get-proxy) on-focus #f)))
 			(as-exit (lambda () (super-on-kill-focus)))))]
-      [pre-on-char (entry-point
-		    (lambda (w e)
-		      (pre-wx->proxy w (lambda (m)
-					 (as-exit (lambda () 
-						    (send (get-proxy) on-subwindow-char m e)))))))]
+      [pre-on-char (lambda (w e)
+		     (or (super-pre-on-char w e)
+			 (as-entry
+			  (lambda ()
+			    (pre-wx->proxy w (lambda (m)
+					       (as-exit (lambda () 
+							  (send (get-proxy) on-subwindow-char m e)))))))))]
       [pre-on-event (entry-point
 		     (lambda (w e)
 		       (pre-wx->proxy w (lambda (m) 
