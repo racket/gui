@@ -183,7 +183,10 @@
                    (send parens split-tree orig-token-start)
                    (set! invalid-tokens invalid-tree)
                    (set! tokens valid-tree)
-                   (set! invalid-tokens-start (+ start-pos orig-token-end change-length))
+                   (set! invalid-tokens-start
+                         (if (send invalid-tokens is-empty?)
+                             +inf.0
+                             (+ start-pos orig-token-end change-length)))
                    (set! current-pos (+ start-pos orig-token-start))
                    (set! up-to-date? #f)
                    (queue-callback colorer-callback #f)))
