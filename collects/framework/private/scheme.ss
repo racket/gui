@@ -424,12 +424,17 @@
                      [okay (and is-tabbable? (> para 0))]
                      [end (if okay (paragraph-start-position para) 0)]
                      [limit (get-limit pos)]
+		     ;; "contains" is the start of the initial sub-S-exp
+		     ;;  in the S-exp that contains "pos". If pos is outside
+		     ;;  all S-exps, this will be the start of the initial
+		     ;;  S-exp
                      [contains 
                       (if okay
                           (backward-containing-sexp end limit)
                           #f)]
                      [contain-para (and contains
                                         (position-paragraph contains))]
+		     ;; "last" is the start of the S-exp just before "pos"
                      [last 
                       (if contains
                           (backward-match end limit)
@@ -510,18 +515,30 @@
                      (void)]
                     [(= para 0) (do-indent 0)]
                     [(not contains)
+		     ;; Something went wrong matching. Should we get here?
                      (do-indent 0)]
-                    [(not last) ;; search backwards for the opening parenthesis, and use it to align this line
+                    [(not last) 
+		     ;; We can't find a match backward from pos,
+		     ;;  but we seem to be inside an S-exp, so 
+		     ;;  go "up" an S-exp, and move forward past
+		     ;;  the associated paren
                      (let ([enclosing (find-up-sexp pos)])
                        (do-indent (if enclosing
                                       (+ (visual-offset enclosing) 1)
                                       0)))]
                     [(= contains last)
+		     ;; There's only one S-expr in the S-expr
+		     ;;  containing "pos"
                      (do-indent (+ (visual-offset contains)
                                    (procedure-indent)))]
                     [(special-check)
+		     ;; In case of "define", etc., ignore the position of last 
+		     ;;  and just indent under the "define"
                      (do-indent (add1 (visual-offset contains)))]
                     [(= contain-para last-para)
+		     ;; So far, the S-exp containing "pos" was all on
+		     ;;  one line (possibly not counting the opening paren),
+		     ;;  so indent to follow the first S-exp's end
                      (let ([name-length (let ([id-end (forward-match contains (last-position))])
 					  (if id-end
 					      (- id-end contains)
@@ -531,7 +548,15 @@
                                      (indent-first-arg (+ contains 
                                                           name-length)))))]
                     [else
-                     (do-indent (indent-first-arg (paragraph-start-position last-para)))])))))
+		     ;; No particular special case, so indent to match first 
+		     ;; S-expr that start on the previous line
+		     (let loop ([last last][last-para last-para])
+		       (let* ([next-to-last (backward-match last limit)]
+			      [next-to-last-para (and next-to-last
+						      (position-paragraph next-to-last))])
+			 (if (equal? last-para next-to-last-para)
+			     (loop next-to-last next-to-last-para)
+			     (do-indent (visual-offset last)))))])))))
           
           (define tabify-selection
             (opt-lambda ([start-pos (get-start-position)]
