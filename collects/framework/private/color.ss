@@ -78,6 +78,7 @@
           
           ;; If the tree is completed
           (define up-to-date? #t)
+          (define/public (get-up-to-date?) up-to-date?)
           
           ;; The tree of tokens that have been invalidated by an edit
           ;; but might still be valid.
@@ -109,6 +110,8 @@
             (set! start-pos start)
             (set! end-pos end)
             (reset-tokens))
+
+          (define/public (get-region) (values start-pos end-pos))
           
           ;; Modify the end of the region.
           (define/public (update-region-end end)
@@ -394,8 +397,7 @@
           
           ;; ----------------------- Match parentheses ----------------------------
           
-          (define clear-old-locations 'dummy)
-          (set! clear-old-locations void)
+          (define clear-old-locations void)
           
           (define mismatch-color (make-object color% "PINK"))
           (define/private (get-match-color) (preferences:get 'framework:paren-match-color))
@@ -704,9 +706,6 @@
             (super on-enable-surrogate text)
             (send text start-colorer token-sym->style get-token matches))
           
-          (super-instantiate ())))
+          (super-new)))
   
-      (define text-mode% (text-mode-mixin mode:surrogate-text%))))
-
-  
-  )
+      (define text-mode% (text-mode-mixin mode:surrogate-text%)))))

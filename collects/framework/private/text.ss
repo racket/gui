@@ -839,6 +839,9 @@ WARNING: printf is rebound in the body of the unit to always
       (define-struct peeker (bytes skip-count pe resp-chan nack) (make-inspector))
       (define-struct committer (kr commit-peeker-evt done-evt resp-chan resp-nack))
       
+      (define msec-timeout 500)
+      (define output-buffer-full 4096)
+      
       (define ports-mixin
         (mixin ((class->interface text%) #;scheme:text<%>) (ports<%>)
           (inherit begin-edit-sequence
@@ -954,6 +957,7 @@ WARNING: printf is rebound in the body of the unit to always
                 [(and (insertion-point . <= . start)
                       (= start end)
                       (submit-to-port? key))
+                 (insert "\n")
                  (let ([snips/chars (extract-snips/chars unread-start-point (last-position))])
                    (for-each (lambda (s/c) 
                                (cond
@@ -963,9 +967,7 @@ WARNING: printf is rebound in the body of the unit to always
                                   (for-each (lambda (b) (channel-put read-chan b))
                                             (bytes->list (string->bytes/utf-8 (string s/c))))]))
                              snips/chars)
-                   (channel-put read-chan (bytes-ref #"\n" 0))
                    (set! allow-tabify? #f)
-                   (super on-local-char key)
                    (set! allow-tabify? #t)
                    (set! unread-start-point (last-position))
                    (set! insertion-point (last-position))
@@ -1042,35 +1044,47 @@ WARNING: printf is rebound in the body of the unit to always
               (end-edit-sequence)))
           
           (define output-buffer-thread
-            (let ([buffer-full 40]
-                  [converter (bytes-open-converter "UTF-8-permissive" "UTF-8")])
+            (let ([converter (bytes-open-converter "UTF-8-permissive" "UTF-8")])
               (thread
                (lambda ()
                  (let loop (;; text-to-insert : (queue (cons (union snip bytes) style))
-                            [text-to-insert (empty-queue)])
+                            [text-to-insert (empty-queue)]
+                            [last-flush (current-inexact-milliseconds)])
                    (sync
+                    
+                    (if (queue-empty? text-to-insert)
+                        never-evt
+                        (handle-evt
+                         (alarm-evt (+ last-flush msec-timeout))
+                         (lambda (_)
+                           (let-values ([(viable-bytes remaining-queue) (split-queue converter text-to-insert)])
+                             (queue-insertion viable-bytes always-evt)
+                             (loop remaining-queue (current-inexact-milliseconds))))))
+                    
                     (handle-evt
                      flush-chan
                      (lambda (return-evt)
                        (let-values ([(viable-bytes remaining-queue) (split-queue converter text-to-insert)])
                          (queue-insertion viable-bytes return-evt)
-                         (loop remaining-queue))))
+                         (loop remaining-queue (current-inexact-milliseconds)))))
                     (handle-evt
                      clear-output-chan
                      (lambda (_)
-                       (loop (empty-queue))))
+                       (loop (empty-queue) (current-inexact-milliseconds))))
                     (handle-evt
                      write-chan
                      (lambda (pr)
-                       (cond
-                         [((queue-size text-to-insert) . < . buffer-full)
-                          (loop (enqueue pr text-to-insert))]
-                         [else
-                          (let ([chan (make-channel)])
-                            (let-values ([(viable-bytes remaining-queue) (split-queue converter text-to-insert)])
-                              (queue-insertion viable-bytes (channel-put-evt chan (void)))
-                              (channel-get chan)
-                              (loop remaining-queue)))])))))))))
+                       (let ([new-text-to-insert (enqueue pr text-to-insert)])
+                         (cond
+                           [((queue-size text-to-insert) . < . output-buffer-full)
+                            (loop new-text-to-insert last-flush)]
+                           [else
+                            (let ([chan (make-channel)])
+                              (let-values ([(viable-bytes remaining-queue) 
+                                            (split-queue converter new-text-to-insert)])
+                                (queue-insertion viable-bytes (channel-put-evt chan (void)))
+                                (channel-get chan)
+                                (loop remaining-queue (current-inexact-milliseconds))))]))))))))))
           
           (field [in-port #f]
                  [out-port #f]
@@ -1124,7 +1138,7 @@ WARNING: printf is rebound in the body of the unit to always
             
             (define out-sd (make-object style-delta% 'change-normal))
             (define err-sd (make-object style-delta% 'change-italic))
-            (define value-sd (make-object style-delta% 'change-normal))
+            (define value-sd (make-object style-delta% 'change-family 'modern))
             (send out-sd set-delta-foreground (make-object color% 150 0 150))
             (send err-sd set-delta-foreground (make-object color% 255 0 0))
             (send value-sd set-delta-foreground (make-object color% 0 0 175))
@@ -1622,27 +1636,41 @@ WARNING: printf is rebound in the body of the unit to always
       ;;
       ;; queues
       ;;
-      (define-struct queue (eles count))
-      (define (empty-queue) (make-queue '() 0))
-      (define (enqueue e q) (make-queue (append (queue-eles q) (list e))
-                                        (+ (queue-count q) 1)))
+      (define-struct queue (front back count))
+      (define (empty-queue) (make-queue '() '() 0))
+      (define (enqueue e q) (make-queue 
+                             (cons e (queue-front q))
+                             (queue-back q)
+                             (+ (queue-count q) 1)))
       (define (queue-first q)
-        (let ([eles (queue-eles q)])
-          (if (null? eles)
+        (flip-around q)
+        (let ([back (queue-back q)])
+          (if (null? back)
               (error 'queue-first "empty queue")
-              (car eles))))
+              (car back))))
       (define (queue-rest q)
-        (let ([eles (queue-eles q)])
-          (if (null? eles)
+        (flip-around q)
+        (let ([back (queue-back q)])
+          (if (null? back)
               (error 'queue-rest "empty queue")
-              (make-queue (cdr eles)
+              (make-queue (queue-front q)
+                          (cdr back)
                           (- (queue-count q) 1)))))
-      (define (queue-empty? q) (null? (queue-eles q)))
+      (define (flip-around q)
+        (when (null? (queue-back q))
+          (set-queue-back! q (reverse (queue-front q)))
+          (set-queue-front! q '())))
+      
+      (define (queue-empty? q) (zero? (queue-count q)))
       (define (queue-size q) (queue-count q))
       
       ;; queue->list : (queue x) -> (listof x)
       ;; returns the elements in the order that successive deq's would have
-      (define (queue->list q) (queue-eles q))
+      (define (queue->list q) 
+        (let ([ans (append (queue-back q) (reverse (queue-front q)))])
+          (set-queue-back! q ans)
+          (set-queue-front! q '())
+          ans))
       
       ;;
       ;;  end queue abstraction
