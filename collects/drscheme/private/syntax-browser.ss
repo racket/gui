@@ -120,12 +120,32 @@ needed to really make this work:
         (piece-of-info "Column" (syntax-column stx))
         (piece-of-info "Span" (syntax-span stx))
         (piece-of-info "Original?" (syntax-original? stx))
+        (when (identifier? stx)
+          (piece-of-info "Identifier-binding" (identifier-binding stx))
+          (piece-of-info "Identifier-transformer-binding" (identifier-transformer-binding stx)))
+        
 	(let ([properties (syntax-properties stx)])
 	  (unless (null? properties)
 	    (insert/big "Properties\n")
 	    (for-each
 	     (lambda (prop) (show-property stx prop))
 	     properties))))
+      
+      (define (render-mpi mpi)
+        (string-append
+         "#<module-path-index "
+         (let loop ([mpi mpi])
+           (cond
+             [(module-path-index? mpi)
+              (let-values ([(x y) (module-path-index-split mpi)])
+                (string-append
+                 "("
+                 (format "~s" x)
+                 " . "
+                 (loop y)
+                 ")"))]
+             [else (format "~s" mpi)]))
+         ">"))
       
       (define (show-property stx prop)
         (piece-of-info (format "'~a" prop) (syntax-property stx prop)))
