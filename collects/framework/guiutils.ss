@@ -98,15 +98,21 @@
 		    (let ([now (make-object button% 
 				 "Save"
 				 button-panel
-				 on-save-now)]
+				 on-save-now
+				 (if can-save-now?
+				     '(border)
+				     '()))]
 			  [cancel (make-object button%
 				    "Cancel"
 				    button-panel
-				    on-cancel)])
-		      (if (not can-save-now?)
+				    on-cancel
+				    (if can-save-now?
+					'()
+					'(border)))])
+		      (if can-save-now?
+			  (send now focus)
 			  (begin (send cancel focus)
-				 (send now show #f))
-			  (send now focus))))
+				 (send now show #f)))))
 		  
 		  (center 'both)
 		  
@@ -171,26 +177,57 @@
 	(send dialog show #t)
 	result)]))
 
-  (define read-snips/chars-from-buffer
-    (opt-lambda (edit [start 0] [end (send edit last-position)])
-      (let ([pos start]
-	    [box (box 0)])
-	(lambda ()
-	  (let* ([snip (send edit find-snip pos 'after-or-none box)]
-		 [ans
+  (define sexp-snip<%> (interface ((class->interface snip%))
+			 get-chars/snips ; : (-> (list-of (union char (instance-of text%) (instance-of snip%))))
+			 ))
+			  
+  ;; better to treat all snips uniformly -- always processes text
+  ;; snips, etc. in certain way, rather than just the top-level ones.
+  ;; process sexp-snip<%> returned text%s as if top-level.
+  (define read-snips/chars-from-text
+    (case-lambda
+     [(text) (read-snips/chars-from-text text 0)]
+     [(text start) (read-snips/chars-from-text text start (send text last-position))]
+     [(text start end)
+      (define pos-box (box 0))
+      (define (get-next)
+	(let loop ([snip (send text find-snip start 'after-or-none pos-box)])
+	  (cond
+	   [(not snip)
+	    (set! get-next (lambda () eof))
+	    eof]
+	   [(<= end (unbox pos-box))
+	    (set! get-next (lambda () eof))
+	    eof]
+	   [(is-a? snip sexp-snip<%>)
+	    (let sexp-loop ([l (send snip get-chars/snips)])
+	      (cond
+	       [(null? l)
+		(loop (send snip next))]
+	       [else
+		(let ([snip (car l)])
 		  (cond
-		    [(<= end pos) eof]
-		    [(not snip) eof]
-		    [(is-a? snip string-snip%)
-		     (let ([t (send snip get-text (- pos (unbox box)) 1)])
-		       (unless (= (string-length t) 1)
-			 (error 'read-snips/chars-from-buffer
-				"unexpected string, t: ~s; pos: ~a box: ~a"
-				t pos box))
-		       (string-ref t 0))]
-		    [else snip])])
-	    (set! pos (add1 pos))
-	    ans)))))
+		   [(is-a? snip sexp-snip<%>)
+		    (sexp-loop (append (send snip get-chars/snips) (cdr l)))]
+		   [else
+		    (set! get-next (lambda () (sexp-loop (cdr l))))
+		    (car l)]))]))]
+	   [(is-a? snip string-snip%)
+	    (let ([str (send snip get-text 0 (send snip get-count))])
+	      (let string-loop ([n 0])
+		(cond
+		 [(< n (string-length str))
+		  (set! get-next (lambda () (string-loop (+ n 1))))
+		  (string-ref str n)]
+		 [else
+		  (loop (send snip next))])))]
+	   [else
+	    (set! get-next (lambda () (loop (send snip next))))
+	    snip])))
+      (let ([read-snips/chars-from-text-thunk
+	     (lambda ()
+	       (get-next))])
+	read-snips/chars-from-text-thunk)]))
 
   (define open-input-buffer
     (lambda (buffer)

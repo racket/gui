@@ -687,10 +687,10 @@
 		   [name (mzlib:file:file-name-from-path f)])
 	      (cond
 		[(not (and (string? dir) (directory-exists? dir)))
-		 (message-box "That directory does not exist." "Error")
+		 (message-box "Error" "That directory does not exist.")
 		 #f]
 		[(or (not name) (equal? name ""))
-		 (message-box "Empty filename." "Error")
+		 (message-box "Error" "Empty filename.")
 		 #f]
 		[else f]))))))
   
@@ -709,10 +709,10 @@
 		(let ([f (mzlib:file:normalize-path f)])
 		  (cond
 		    [(directory-exists? f)
-		     (message-box "That is a directory name." "Error")
+		     (message-box "Error" "That is a directory name.")
 		     #f]
 		    [(not (file-exists? f))
-		     (message-box "File does not exist.")
+		     (message-box "Error" "File does not exist.")
 		     #f]
 		    [else f]))
 		#f)
