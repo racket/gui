@@ -226,7 +226,7 @@
                 (break-enabled #t)
                 (with-handlers ((not-break-exn?
                                  (lambda (exn)
-                                   (printf "~a~n" exn)
+                                   (printf "colorer thread: ~s\n" exn)
                                    (break-enabled #f)
                                    (semaphore-wait lock))))
                   (re-tokenize (open-input-text-editor this current-pos end-pos)
