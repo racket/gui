@@ -43,6 +43,35 @@
 (yield)
 (test v 'dialog-run 11)
 
+(define d (make-object dialog% "Hello"))
+(let ([t (thread (lambda ()
+		   (send d show #t)))])
+  (let loop () (unless (send d is-shown?) (loop)))
+  (st #t d is-shown?)
+  (thread-suspend t)
+  (stv d show #f)
+  (st #t d is-shown?)
+  (thread-resume t)
+  (thread-wait t)
+  (st #f d is-shown?)
+
+  (let ([t (thread (lambda ()
+		   (send d show #t)))])
+    (let loop () (unless (send d is-shown?) (loop)))
+    (st #t d is-shown?)
+    (thread-suspend t)
+    (stv d show #f)
+    (let ([t2 (thread (lambda () (send d show #t)))])
+      (sleep 0.1)
+      (thread-resume t)
+      (sleep 0.1)
+      (st #t d is-shown?)
+      (test #t 'thread2 (thread-running? t2))
+      (stv d show #f)
+      (thread-wait t)
+      (thread-wait t2)
+      (st #f d is-shown?))))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;                        Parameterization Tests                              ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
