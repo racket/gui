@@ -20,11 +20,13 @@
                begin-edit-sequence end-edit-sequence)
       
       (field
-       (alloted-width 0)
-       (alloted-height 0)
-       (aligned-min-width 0)
-       (aligned-min-height 0)
-       (aligned-rects empty))
+       [needs-realign? false]
+       [ignore-resizing? false]
+       [alloted-width 0]
+       [alloted-height 0]
+       [aligned-min-width 0]
+       [aligned-min-height 0]
+       [aligned-rects empty])
       
       ;; get-aligned-min-width (-> number?)
       ;; the aligned-min-width of the pasteboard
@@ -47,6 +49,7 @@
           [()
            (when (and (positive? alloted-width)
                       (positive? alloted-height))
+             (set! needs-realign? false)
              (realign-to-alloted))]))
       
       ;; realign-to-alloted (-> void?)
@@ -57,14 +60,18 @@
                 (align type alloted-width alloted-height
                        (map-snip build-rect first-snip)))
           (begin-edit-sequence)
+          (set! ignore-resizing? true)
           (for-each-snip move/resize first-snip aligned-rects)
+          (set! ignore-resizing? false)
           (end-edit-sequence)))
       
       ;; set-algined-min-sizes (-> void?)
       ;; set the aligned min width and height of the pasteboard based on it's children snips
       (define/public (set-aligned-min-sizes)
+        (set! ignore-resizing? true)
         (set!-values (aligned-min-width aligned-min-height)
-                     (get-aligned-min-sizes type (find-first-snip))))
+                     (get-aligned-min-sizes type (find-first-snip)))
+        (set! ignore-resizing? false))
       
       ;;move/resize (snip-pos? rect? . -> . void?)
       ;;moves and resizes the snips with in pasteboard

@@ -20,6 +20,8 @@
   (define editor? (is-a?/c editor<%>))
   
   (provide/contract
+   (snip-width (snip? . -> . number?))
+   (snip-height (snip? . -> . number?))
    (snip-min-width (snip? . -> . number?))
    (snip-min-height (snip? . -> . number?))
    (snip-parent (snip? . -> . editor?))
@@ -30,7 +32,6 @@
    (stretchable-height? (snip? . -> . boolean?)))
   
   ;; the width of a snip in the parent pasteboard
-  ;; snip-width (snip? . -> . number?)
   (define (snip-width snip)
     (let ([left (box 0)]
           [right (box 0)]
@@ -40,7 +41,6 @@
       (- (unbox right) (unbox left))))
   
   ;; the height of a snip in the parent pasteboard
-  ;; snip-height (snip? . -> . number?)
   (define (snip-height snip)
     (let ([top (box 0)]
           [bottom (box 0)]

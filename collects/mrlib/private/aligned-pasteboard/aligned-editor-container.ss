@@ -17,7 +17,8 @@
   
   (provide
    aligned-editor-canvas%
-   aligned-editor-snip%)
+   aligned-editor-snip%
+   aligned-snip-mixin)
   
   ;; a canvas that can contain an aligned-pasteboard<%>
   (define aligned-editor-canvas%
@@ -150,6 +151,61 @@
       ;; calculates and stores the minimum height and width of the snip
       (define/public (set-aligned-min-sizes)
         (send (get-editor) set-aligned-min-sizes))
+      
+      (super-instantiate ())
+      ))
+  
+  (define (aligned-snip-mixin super%)
+    (class* super% (aligned-snip<%>)
+      (inherit get-editor get-margin)
+      
+      (init
+       (stretchable-width true)
+       (stretchable-height true))
+      
+      (field
+       (stretchable-width-field stretchable-width)
+       (stretchable-height-field stretchable-height))
+      
+      (public (stretchable-width-method stretchable-width)
+              (stretchable-height-method stretchable-height))
+      
+      ;; stretchable-width (case-> (Boolean . -> . (void)) (-> Boolean))
+      ;; get or set the stretchablity of the pasteboards width
+      (define stretchable-width-method
+        (case-lambda
+          [(value) (set! stretchable-width-field value)]
+          [() stretchable-width-field]))
+      
+      ;; stretchable-height (case-> (Boolean . -> .(void)) (-> Boolean))
+      ;; get or set the stretchablity of the pasteboards height
+      (define stretchable-height-method
+        (case-lambda
+          [(value) (set! stretchable-height-field value)]
+          [() stretchable-height-field]))
+      
+      ;; get-aligned-min-width (-> number?)
+      ;; the minimum width of the snip based on the children
+      (define/public (get-aligned-min-width)
+        (let ([left (box 0)]
+              [top (box 0)]
+              [right (box 0)]
+              [bottom (box 0)])
+          (get-margin left top right bottom)
+          (+ (unbox left) (unbox right))))
+      
+      ;; get-aligned-min-height (-> number?)
+      ;; the minimum height of the snip based on the children
+      (define/public (get-aligned-min-height)
+        (let ([left (box 0)]
+              [top (box 0)]
+              [right (box 0)]
+              [bottom (box 0)]
+              [editor (get-editor)])
+          (get-margin left top right bottom)
+          (+ (unbox top) (unbox bottom)
+             (* (send editor line-location 0 false)
+                (add1 (send editor last-line))))))
       
       (super-instantiate ())
       ))
