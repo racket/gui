@@ -180,9 +180,10 @@
       (send panel set-alignment ha va)))
 
   (define thumb-canvas%
-    (class canvas% (parent)
-      (private
-
+    (class100 canvas% (_parent)
+      (private-field [parent _parent])
+      
+      (private-field
 	;; (listof number)
 	;; the length of the list is equal to the number of children
 	;; of the panel. Each entry in the list is the percentage
@@ -193,12 +194,12 @@
 	[set-percentages (lambda (_p) 
 			  (set! percentages _p)
 			  (on-paint))])
-      (private
+      (private-field
 	[thumb-height 12]
 	[canvas-width (+ thumb-height 3)]
         [thumb-min thumb-height])
       
-      (private
+      (private-field
 	
         ;; (union #f num)
         ;; if num, ranges between 0 and (- (length percentages) 2)
@@ -209,8 +210,9 @@
         ;; 0th and 1st percentage (in the percentage list)
         ;; 1 corresponds to the first thumb, which is between the 
         ;; 1st and 2nd percentage, etc.
-        [grabbed #f]
-        
+        [grabbed #f])
+      
+      (private
 	[get-thumb-middle
 	 (lambda (percentage)
 	   (let-values ([(w h) (get-client-size)])
@@ -299,7 +301,7 @@
                                  (- old-percentage new-percentage))))
                  (send parent on-percentage-change)
                  (on-paint)))))])
-      (private
+      (private-field
         [point1 (make-object point% 0 0)]
         [point2 (make-object point% 0 0)]
         [point3 (make-object point% 0 0)]
@@ -377,7 +379,7 @@
     (mixin (area-container<%>) (vertical-resizable<%>) args
       (inherit get-children)
 
-      (private [thumb-canvas #f])
+      (private-field [thumb-canvas #f])
       (public
         [on-between-click
          (lambda (num pct)
