@@ -2,7 +2,7 @@
 .TH MRED 1 "8 June 1996"
 .UC 4
 .SH NAME
-mred \- The Rice PLT GUI engine
+mred \- The Rice PLT Scheme GUI engine
 .SH SYNOPSIS
 .B mred
 [-s
@@ -37,7 +37,7 @@ mred \- The Rice PLT GUI engine
 ]
 .SH DESCRIPTION
 .I MrEd
-is Rice University's Programming Languages Group's GUI
+is the Rice University PLT Scheme GUI
 execution engine.
 .I MrEd
 runs on a variety of platforms.
@@ -67,7 +67,7 @@ flag. See the Static Debugger and the Toolbox manuals for more information
 on Static Debugger conformancy and the -a flag respectively.
 .PP
 The -p flag specifies a splash screen filename. The splash screen must be
-an image file supported by wx:bitmap% objects. See the mred manual for more
+an image file supported by wx:bitmap% objects. See the Toolbox manual for more
 information on what image types are supported by wx:bitmap% objects. The
 second argument to -p names the splash screen, and the third is a count
 indicating how many files will be loaded.
@@ -131,18 +131,41 @@ variable
 * "/usr/lib/mred/system"
 .PP
 
-The standard system loads the core or the mzlib library,
-using the following search path, setting the
-require-library-collections-path to one of (in order of preference):
+The standard system finds the
+.I MrEd
+collections directory and loads the
+.I MrEd
+library.  The
+I. MrEd 
+collections directory is
+"../mred/collects" relative to the system's directory.
+
+The standard system also finds the
+.I MzScheme 
+collection
+directory and loads the core
+.I MzLib 
+library. The
+.I MzScheme 
+collection directory is found with
+the following search path:
 .IP
 * "$PLTHOME/mzscheme/collects/standard" (if PLTHOME is not defined,
 /usr/local/lib/ is used as it's value).
 .IP
-* "../mzscheme/collects/"
+* "../mzscheme/collects/" relative to the system's directory
 .IP
-* "../../mzscheme/collects/standard"
+* "../../mzscheme/collects/standard"  relative to the system's directory
 .IP
 .PP
+
+The `require-library-collections-paths' parameter is set
+to a list containing the 
+.I MzScheme
+collections
+directory and the 
+.I MrEd 
+collections directory. 
 
 .I MrEd
 also looks for Xresources in 
