@@ -100,8 +100,7 @@
           (define start-pos 0)
           (define end-pos 'end)
           
-          ;; Set the region of the text that is tokenized to start at start and
-          ;; end at end.
+          ;; See docs
           (define/public (reset-region start end)
             (set! start-pos start)
             (set! end-pos end)
@@ -301,48 +300,7 @@
                 (unless up-to-date?
                   (colorer-driver)
                   (loop)))))
-          
-
-          ;; Starts tokenizing the buffer.
-          ;;
-          ;; token-sym-style- will be passed the first return symbol from get-token-
-          ;;   and should return the style-name that the token should be colored.
-          ;;
-          ;; get-token- takes an input port and returns the next token as 4 values:
-          ;;   first, a symbol describing the type of the token.  This symbol
-          ;;          is transformed into a style-name via the token-sym->style-
-          ;;          argument.  The symbols 'white-space and 'comment have special
-          ;;          meaning and should always be returned for white-space and comment
-          ;;          tokens respectively.
-          ;;   second, a symbol indicating how the token should be treated by the paren
-          ;;           matcher.  This symbol should be in the pairs- argument.
-          ;;   third and fourth, the starting and ending position of the token.
-          ;;   get-token- will usually be implemented with a lexer using the
-          ;;     (lib "lex.ss" "parser-tools") library.
-          ;;   get-token- must obey the following invariants:
-          ;;    1) Every position in the buffer must be accounted for in exactly one token.
-          ;;    2) The token returned by get-token- must rely only on the contents of the
-          ;;       input port argument.  This means that the tokenization of some part
-          ;;       of the input cannot depend on earlier parts of the input.
-          ;;    3) No edit to the buffer can change the tokenization of the buffer
-          ;;       prior to the token immediately preceeding the edit.  In the following 
-          ;;       example this invariant does not hold.  If the buffer contains:
-          ;;       " 1 2 3
-          ;;       and the tokenizer treats the unmatched " as its own token (a string error token), 
-          ;;       and separately tokenizes the 1 2 and 3, an edit to make the buffer look like:
-          ;;       " 1 2 3" would result in a single string token modifying previous tokens.
-          ;;       To handle these situations, get-token- must treat the first line as a single
-          ;;       token.
-          ;; pairs- is a list of different kinds of matching parens.  The second value returned
-          ;;   by get-token- is compared to this list to see how the paren matcher should treat
-          ;;   the token.  An example: Suppose pairs is '((|(| |)|) (|[| |]|) (begin end)).
-          ;;   This means that there are three kinds of parens.  Any token which has 'begin as its
-          ;;   second return value will act as an open for matching tokens with 'end.
-          ;;   Similarly any token with '|]| will act as a closing match for tokens with '|[|.
-          ;;   
-          ;; start-colorer: (symbol? -> string?) *
-          ;;                (input-port? -> symbol? (union false? symbol?) natural-number? natural-number?) * 
-          ;;                (listof (list/p symbol? symbol?)) ->
+          ;; See docs
           (define/public (start-colorer token-sym->style- get-token- pairs-)
             (unless force-stop?
               (set! stopped? #f)
@@ -359,7 +317,7 @@
                 (break-enabled #t))
               (do-insert/delete start-pos 0)))
             
-          ;; Stop coloring and paren matching the buffer.
+          ;; See docs
           (define/public stop-colorer
             (opt-lambda ((clear-colors #t))
               (set! stopped? #t)
@@ -372,7 +330,7 @@
               (set! token-sym->style #f)
               (set! get-token #f)))
           
-          ;; Keep the buffer tokenized and paren matched, but stop altering the colors.
+          ;; See docs
           (define/public (freeze-colorer)
             (when (is-locked?)
               (error 'freeze-colorer "called on a locked color:text<%>."))
@@ -380,11 +338,7 @@
               (finish-now)
               (set! frozen? #t)))
           
-          ;; Start coloring the buffer again.  If recolor? is #t, the buffer is re-colored.  If it is #f
-          ;; the buffer is not recolored.  When recolor? is #t, retokenize? controls how the buffer
-          ;; is recolored.  #f causes the buffer to be entirely recolored before thaw returns using
-          ;; the existing tokenization.  #t causes the entire buffer to be retokenized and recolored
-          ;; from scratch.  This will happen in the background after the call to that-colorer returns.
+          ;; See docs
           (define/public thaw-colorer
             (opt-lambda ((recolor? #t)
                          (retokenize? #f))
@@ -429,10 +383,10 @@
                (change-style (send (get-style-list) find-named-style "Standard")
                              start-pos end-pos #f))))
 
-          ;; Causes the entire tokenizing system to become inactive.
-          (define/public (force-stop-colorer x)
-            (set! force-stop? x)
-            (when x
+          ;; see docs
+          (define/public (force-stop-colorer stop?)
+            (set! force-stop? stop?)
+            (when stop?
               (stop-colorer)
               (when background-thread
                 (kill-thread background-thread)
@@ -498,12 +452,7 @@
                 (end-edit-sequence)
                 (set! in-match-parens? #f))))
                     
-          ;; forward-match: natural-number? natural-number? -> (union natural-number? false?)
-          ;; Skip all consecutive white-space and comments immediately following position.
-          ;; If the token at the new position is an open,
-          ;;    return the position of the matching close, or #f if there is none.
-          ;; For any other token, return the start of the next token.
- 
+          ;; See docs
           (define/public (forward-match position cutoff)
             (do-forward-match position cutoff #t))
           
@@ -539,11 +488,7 @@
                         (+ start-pos tok-end)))))))))
           
                     
-          ;; backward-match: natural-number? natural-number? -> (union natural-number? false?)
-          ;; Skip all consecutive white-space and comments immediately preceeding position.
-          ;; If the token at the new position is a close,
-          ;;    return the position of the matching open, or #f if there is none.
-          ;; For any other token, return the start of that token.
+          ;; See docs
           (define/public (backward-match position cutoff)
             (let ((x (internal-backward-match position cutoff)))
               (cond
@@ -579,6 +524,7 @@
                        (else
                         (+ start-pos tok-start)))))))))
 
+          ;; See docs
           (define/public (backward-containing-sexp position cutoff)
             (when stopped?
               (error 'backward-containing-sexp "called on a color:text<%> whose colorer is stopped."))
@@ -596,11 +542,7 @@
           
           (inherit last-position)
           
-          
-          ;; skip-whitespace: natural-number? (symbols 'forward 'backward) boolean -> natural-number?
-          ;; If dir is 'forward, this returns the position of the first non-whitespace character
-          ;; after pos. If dir is 'backward, it returns the first non-whitespace character before pos.
-          ;; Must only be called while the tokenizer is started.
+          ;; See docs
           (define/public (skip-whitespace position direction comments?)
             (when stopped?
               (error 'skip-whitespace "called on a color:text<%> whose colorer is stopped."))
@@ -627,6 +569,7 @@
           
           
           ;; Lifted from scheme-paren.ss
+          ;; See docs
           (define/public (balanced? region-start region-end)
             (if (or (> region-end (if (eq? end-pos 'end) (last-position) end-pos))
                     (<= region-end region-start))
@@ -639,12 +582,6 @@
                        (or (and (<= balance-point region-end) (>= end-point region-end))
                            (balanced? end-point region-end))))))
 
-          
-          (define/public (in-single-line-comment? pos)
-            (send tokens search! (sub1 pos))
-            (eq? 'comment (send tokens get-root-data)))
-          
-          
           (define (get-close-paren pos closers)
             (cond
               ((null? closers) #f)
@@ -662,6 +599,7 @@
                       (get-close-paren pos (cdr closers)))))))))
           
           (inherit insert delete flash-on)
+          ;; See docs
           (define/public (insert-close-paren pos char flash? fixup?)
             (let ((closer
                    (begin
