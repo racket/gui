@@ -1,6 +1,6 @@
 
   (unit/sig mred:finder^
-    (import mred:wx^
+    (import [wx : wx^]
 	    [mred:constants : mred:constants^]
 	    [mred:container : mred:container^]
 	    [mred:preferences : mred:preferences^]

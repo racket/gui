@@ -1,5 +1,5 @@
 (unit/sig mred:edit^
-  (import mred:wx^
+  (import [wx : wx^]
 	  [mred:constants : mred:constants^]
 	  [mred:connections : mred:connections^]
 	  [mred:autosave : mred:autosave^]
