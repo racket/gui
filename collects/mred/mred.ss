@@ -2871,7 +2871,7 @@
       (values (unbox x) (unbox y)))))
 
 
-(declare-local-member-name private-wx)
+(define-local-member-name private-wx)
 
 (define mred%
   (class object%
