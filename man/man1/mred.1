@@ -129,7 +129,7 @@ Like -r, but also sets the directory.
 Same as 
 .BR -dmv- .
 .TP
-.B \-s, --stdio
+.B \-z, --stdio
 Use stdio REPL. Same as
 .BR -ve \ '(read-eval-print-loop)'.
 .TP
@@ -155,9 +155,6 @@ Identifiers and symbols are initially case-sensitive.
 .TP
 .B \-c, --esc-cont
 Call/cc is replaced with call/ec.
-.TP
-.B \-k, --const-globs
-Builtin globals are constant.
 .TP
 .B \-s, --set-undef
 Set! works on undefined identifiers.
@@ -283,8 +280,9 @@ or by e-mail to
 plt-bugs@cs.rice.edu (discouraged)
 .SH AUTHOR
 .I MrEd
-was implemented by Matthew Flatt (mflatt@cs.rice.edu) with
-Robert Bruce Findler (robby@cs.rice.edu), based on
+was implemented by Matthew Flatt (mflatt@cs.utah.edu) with
+Robert Bruce Findler (robby@cs.rice.edu) and
+John Clements (clements@cs.rice.edu), based on
 MzScheme.
 .SH SEE ALSO
 .BR mzscheme(1),
