@@ -680,10 +680,19 @@
             (enqueue-for-frame
              (lambda (x) (send x editor-position-changed))
              'framework:editor-position-changed))
+          
+          (field (callback-running? #f))
           (define (after-insert start len)
             (super-after-insert start len)
             (enqueue-for-frame
-             (lambda (x) (send x editor-position-changed))
+             (lambda (x) 
+               (unless callback-running?
+                 (set! callback-running? #t)
+                 (queue-callback
+                  (lambda ()
+                    (send x editor-position-changed)
+                    (set! callback-running? #f))
+                  #f)))
              'framework:editor-position-changed))
           (define (after-delete start len)
             (super-after-delete start len)
