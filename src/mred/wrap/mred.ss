@@ -3000,7 +3000,8 @@
       [is-enabled? (lambda () (send wx all-enabled?))])
     (sequence
       (super-init wx)
-      (send wx-parent set-menu-bar wx))))
+      (send wx-parent set-menu-bar wx)
+      (send wx-parent self-redraw-request))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;; REPL ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
