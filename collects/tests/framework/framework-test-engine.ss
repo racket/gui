@@ -1,21 +1,20 @@
-(printf "creating thread~n")
+(printf "mred:creating thread~n")
 (thread
  (letrec ([restart
 	   (lambda ()
-	     (printf "initializing loop~n")
-	     (let*-values ([(listener) (tcp-listen (require-library "receive-sexps-port.ss" "tests" "framework"))]
-			   [(in out) (tcp-accept listener)]
+	     (printf "mred:initializing loop~n")
+	     (let*-values ([(in out) (tcp-connect "localhost" (load-relative "receive-sexps-port.ss"))]
 			   [(continue) (make-semaphore 0)]
 			   [(error) #f]
 			   [(answer) (void)])
+	       (printf "mred:made connection~n")
 	       (let loop ()
 		 (let ([sexp (read in)])
 		   (if (eof-object? sexp)
 		       (begin
 			 (close-input-port in)
 			 (close-output-port out)
-			 (tcp-close listener)
-			 (restart))
+			 (exit))
 		       (begin
 			 (queue-callback (lambda ()
 					   (set! error #f)
