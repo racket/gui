@@ -6,8 +6,7 @@
    (lib "mred.ss" "mred")
    (lib "list.ss")
    (lib "contract.ss")
-   "interface.ss"
-   (lib "debug.ss" "mike-lib"))
+   "interface.ss")
   
   ;; a snip
   (define snip? (is-a?/c snip%))

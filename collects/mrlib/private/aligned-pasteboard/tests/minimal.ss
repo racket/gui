@@ -1,7 +1,6 @@
 (require
  "../aligned-editor-container.ss"
- "../aligned-pasteboard.ss"
- (lib "debug.ss" "mike-lib"))
+ "../aligned-pasteboard.ss")
 
 (define my-string-snip%
   (class string-snip%
