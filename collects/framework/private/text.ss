@@ -375,6 +375,124 @@
                   (super-on-local-char key))))
           (super-instantiate ())))
       
+      (define delegate<%> (interface (basic<%>) 
+                            get-delegate
+                            get-delegate-style-delta
+                            set-delegate-style-delta))
+      (define small-style-delta (make-object style-delta% 'change-size 2))
+      (define delegate-mixin
+        (mixin (basic<%>) (delegate<%>) 
+          (inherit split-snip find-snip get-snip-position
+                   find-first-snip get-style-list)
+          
+          (field (delegate #f))
+          (define/public (get-delegate) delegate)
+          (define/public (set-delegate _d)
+            (set! delegate _d)
+            (when delegate
+              (send delegate begin-edit-sequence)
+              (send delegate lock #f)
+              (send delegate hide-caret #t)
+              (send delegate erase)
+              (send delegate set-style-list (get-style-list))
+              (let loop ([snip (find-first-snip)])
+                (when snip
+                  (send delegate insert 
+                        (send snip copy)
+                        (send delegate last-position)
+                        (send delegate last-position))
+                  (loop (send snip next))))
+              (send delegate change-style
+                    delegate-style-delta
+                    0
+                    (send delegate last-position))
+              (send delegate lock #t)
+              (send delegate end-edit-sequence)))
+
+          (define delegate-style-delta (make-object style-delta% 'change-size 1))
+          (define/public (get-delegate-style-delta)
+            delegate-style-delta)
+          (define/public (set-delegate-style-delta _sd)
+            (set! delegate-style-delta _sd))
+            
+          (rename [super-on-edit-sequence on-edit-sequence])
+          (define/override (on-edit-sequence)
+            (super-on-edit-sequence)
+            (when delegate
+              (send delegate begin-edit-sequence)))
+          
+          (rename [super-after-edit-sequence after-edit-sequence])
+          (define/override (after-edit-sequence)
+            (super-after-edit-sequence)
+            (when delegate
+              (send delegate end-edit-sequence)))
+
+          (rename [super-after-insert after-insert])
+          (define/override (after-insert start len)
+            (super-after-insert start len)
+            (when delegate
+              (send delegate begin-edit-sequence)
+              (send delegate lock #f)
+              (split-snip start)
+              (split-snip (+ start len))
+              (let loop ([snip (find-snip (+ start len) 'before)])
+                (when snip
+                  (unless ((get-snip-position snip) . < . start)
+                    (send delegate insert (send snip copy) start start)
+                    (loop (send snip previous)))))
+              (send delegate change-style delegate-style-delta start (+ start len))
+              (send delegate lock #t)
+              (send delegate end-edit-sequence)))
+          
+          (rename [super-after-delete after-delete])
+          (define/override (after-delete start len)
+            (super-after-delete start len)
+            (when delegate
+              (send delegate lock #f)
+              (send delegate begin-edit-sequence)
+              (send delegate delete start (+ start len))
+              (send delegate end-edit-sequence)
+              (send delegate lock #t)))
+          
+          (rename [super-after-change-style after-change-style])
+          (define/override (after-change-style start len)
+            (super-after-change-style start len)
+            (when delegate
+              (send delegate begin-edit-sequence)
+              (send delegate lock #f)
+              (split-snip start)
+              (let* ([snip (find-snip start 'after)]
+                     [style (send snip get-style)]
+                     [other-style 
+                      (send (send delegate get-style-list) find-or-create-style
+                            style delegate-style-delta)])
+                (send delegate change-style other-style start (+ start len)))
+              (send delegate lock #f)
+              (send delegate end-edit-sequence)))
+          
+          (field (filename #f)
+                 (format #f))
+          (rename [super-on-load-file on-load-file]
+                  [super-after-load-file after-load-file])
+          (define/override (on-load-file _filename _format)
+            (super-on-load-file _filename _format)
+            (set! filename _filename)
+            (set! format _format))
+          (define/override (after-load-file success?)
+            (super-after-load-file success?)
+            (when (and delegate success?)
+              (send delegate begin-edit-sequence)
+              (send delegate lock #f)
+              (send delegate load-file filename format)
+              (send delegate set-filename #f)
+              (send delegate change-style 
+                    delegate-style-delta
+                    0
+                    (send delegate last-position))
+              (send delegate lock #t)
+              (send delegate end-edit-sequence)))
+          (super-instantiate ())))
+    
       (define info<%> (interface (basic<%>)))
       
       (define info-mixin
@@ -425,7 +543,7 @@
              (lambda (x) (send x editor-position-changed))
              'framework:editor-position-changed))
           (super-instantiate ())))
-
+      
   (define clever-file-format<%> (interface ((class->interface text%))))
   
   (define clever-file-format-mixin
@@ -467,6 +585,7 @@
   
   (define basic% (basic-mixin (editor:basic-mixin text%)))
   (define hide-caret/selection% (hide-caret/selection-mixin basic%))
+  (define delegate% (delegate-mixin basic%))
   (define -keymap% (editor:keymap-mixin basic%))
   (define return% (return-mixin -keymap%))
   (define autowrap% (editor:autowrap-mixin -keymap%))

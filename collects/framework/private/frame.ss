@@ -204,7 +204,7 @@
                 (stretchable-height #t)
                 (min-width (inexact->exact (floor (max w1 w2))))
                 (min-height (inexact->exact (floor (+ 4 (max h1 h2))))))))))
-      
+
       (define info<%> (interface (basic<%>)
                         determine-width
                         lock-status-changed
@@ -702,15 +702,20 @@
                 (when file
                   (send (get-editor) save-file file format))))]
           (inherit get-checkable-menu-item% get-menu-item%)
-          (override file-menu:revert-callback file-menu:create-revert? file-menu:save-callback
+          (override file-menu:save-callback
                     file-menu:create-save? file-menu:save-as-callback file-menu:create-save-as? 
                     file-menu:print-callback file-menu:create-print?)
-          [define file-menu:revert-callback 
+
+          [define/override (file-menu:revert-on-demand item)
+            (send item enable (not (send (get-editor) is-locked?)))]
+
+          [define/override file-menu:revert-callback 
             (lambda (item control)
-              (let* ([b (box #f)]
-                     [edit (get-editor)]
+              (let* ([edit (get-editor)]
+                     [b (box #f)]
                      [filename (send edit get-filename b)])
-                (if (or (not filename) (unbox b))
+                (if (or (not filename) 
+                        (unbox b))
                     (bell)
                     (let ([start
                            (if (is-a? edit text%)
@@ -730,9 +735,10 @@
                               (send edit end-edit-sequence)
                               (message-box
                                (string-constant error-reverting)
-                               (format (string-constant could-not-read) filename)))))))
-                #t))]
-          [define file-menu:create-revert? (lambda () #t)]
+                               (format (string-constant could-not-read) filename)
+                               this)))))))
+              #t)]
+          [define/override file-menu:create-revert? (lambda () #t)]
           [define file-menu:save-callback (lambda (item control)
                                             (send (get-editor) save-file)
                                             #t)]
@@ -859,6 +865,104 @@
           [define get-editor<%> (lambda () (class->interface pasteboard%))]
           [define get-editor% (lambda () pasteboard:keymap%)]
           (super-instantiate ())))
+      
+      (define delegate<%>
+        (interface (text<%>)
+          get-delegated-text
+          delegated-text-shown?
+          hide-delegated-text
+          show-delegated-text))
+      
+      (define delegate-editor-canvas%
+        (class editor-canvas%
+          (rename [super-on-event on-event])
+          (init-field delegate-frame)
+          (inherit get-editor)
+          (define/override (on-event evt)
+            (super-on-event evt)
+            (when (and delegate-frame
+                       (send evt button-down?))
+              (let ([text (get-editor)])
+                (when (is-a? text text%)
+                  (let-values ([(editor-x editor-y)
+                                (send text dc-location-to-editor-location 
+                                      (send evt get-x)
+                                      (send evt get-y))])
+                    (send delegate-frame click-in-overview 
+                          (send text find-position editor-x editor-y)))))))
+          (super-instantiate ())))
+      
+      (define delegate-mixin
+        (mixin (text<%>) (delegate<%>)
+
+          (define/public (get-delegated-text) (get-editor))
+
+          (rename [super-make-root-area-container make-root-area-container])
+          [define rest-panel 'uninitialized-root]
+          [define super-root 'uninitialized-super-root]
+          (override make-root-area-container)
+          [define make-root-area-container
+            (lambda (% parent)
+              (let* ([s-root (super-make-root-area-container
+                              horizontal-panel%
+                              parent)]
+                     [r-root (make-object % s-root)])
+                (set! super-root s-root)
+                (set! rest-panel r-root)
+                r-root))]
+          (rename [super-get-editor% get-editor%])
+          (define/override (get-editor%)
+            (text:delegate-mixin (super-get-editor%)))
+
+          (field (shown? (preferences:get 'framework:show-delegate?)))
+          (define/public (delegated-text-shown?) 
+            shown?)
+
+          (define/public (hide-delegated-text)
+            (set! shown? #f)
+            (send (get-delegated-text) set-delegate #f)
+            (send super-root change-children
+                  (lambda (l) (list rest-panel))))
+          (define/public (show-delegated-text)
+            (set! shown? #t)
+            (send (get-delegated-text) set-delegate delegatee)
+            (send super-root change-children
+                  (lambda (l) (list rest-panel delegate-ec))))
+
+          (define/public (click-in-overview pos)
+            (when shown?
+              (let* ([d-text (get-delegated-text)]
+                     [d-canvas (send d-text get-canvas)]
+                     [bx (box 0)]
+                     [by (box 0)])
+                (let-values ([(cw ch) (send d-canvas get-client-size)])
+                  (send d-text position-location pos bx by)
+                  (send d-canvas scroll-to 
+                        (- (unbox bx) (/ cw 2))
+                        (- (unbox by) (/ ch 2))
+                        cw
+                        ch
+                        #t)))))
+
+          (super-instantiate ())
+          
+          (define delegatee (instantiate text:basic% ()))
+          (define delegate-ec (instantiate delegate-editor-canvas% ()
+                                (editor delegatee)
+                                (parent super-root)
+                                (delegate-frame this)
+                                (min-width 150)
+                                (stretchable-width #f)))
+          (inherit get-editor)
+          (if (preferences:get 'framework:show-delegate?)
+              (begin
+                (send (get-delegated-text) set-delegate delegatee)
+                (send super-root change-children
+                      (lambda (l) (list rest-panel delegate-ec))))
+              (begin
+                (send (get-delegated-text) set-delegate #f)
+                (send super-root change-children (lambda (l) (list rest-panel)))))))
+              
       
       (define (search-dialog frame)
         (init-find/replace-edits)
@@ -1585,6 +1689,7 @@
       (define -text% (text-mixin editor%))
       (define text-info-file% (file-mixin -text%))
       (define searchable% (searchable-text-mixin (searchable-mixin text-info-file%)))
+      (define delegate% (delegate-mixin searchable%))
       
       (define -pasteboard% (pasteboard-mixin editor%))
       (define pasteboard-info-file% (file-mixin -pasteboard%)))))

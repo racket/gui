@@ -133,6 +133,7 @@
   (define-signature framework:text^
     (basic<%>
      hide-caret/selection<%>
+     delegate<%>
      searching<%>
      return<%>
      info<%>
@@ -140,6 +141,7 @@
      
      basic-mixin
      hide-caret/selection-mixin
+     delegate-mixin
      searching-mixin
      return-mixin
      info-mixin
@@ -147,6 +149,7 @@
      
      basic% 
      hide-caret/selection%
+     delegate%
      keymap%
      return%
      autowrap%
@@ -188,6 +191,9 @@
      pasteboard<%>
      pasteboard-mixin
 
+     delegate<%>
+     delegate-mixin
+
      searchable<%>
      searchable-mixin
 
@@ -216,6 +222,7 @@
      text%
      text-info-file%
      searchable%
+     delegate%
      pasteboard%
      pasteboard-info-file%))
 

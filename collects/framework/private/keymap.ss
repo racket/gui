@@ -160,6 +160,8 @@
       
       ;; split-out : char (listof char) -> (listof (listof char))
       ;; splits a list of characters at its first argument
+      ;; if the last character is the same as the first character,
+      ;; it is not split into an empty list, but returned.
       (define (split-out split-char chars)
 	(let loop ([chars chars]
 		   [this-split null]
@@ -170,9 +172,13 @@
 	   [else (let ([char (car chars)])
 		   (cond
 		    [(char=? split-char char)
-		     (loop (cdr chars)
-			   null
-			   (cons (reverse this-split) all-split))]
+                     (if (null? (cdr chars))
+                         (loop null
+                               (cons char this-split)
+                               all-split)
+                         (loop (cdr chars)
+                               null
+                               (cons (reverse this-split) all-split)))]
 		    [else
 		     (loop (cdr chars)
 			   (cons char this-split)

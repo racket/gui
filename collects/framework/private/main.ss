@@ -15,22 +15,16 @@
 	      [group : framework:group^])
       
       ;; preferences
-
+      
+      (preferences:set-default 'framework:show-delegate? #f boolean?)
       (preferences:set-default 'framework:recently-opened-files null 
                                (lambda (x) (and (list? x) (andmap string? x))))
-      
       (preferences:set-default 'framework:search-using-dialog? #t boolean?)
-      
       (preferences:set-default 'framework:windows-mdi #f boolean?)
-
       (preferences:set-default 'framework:menu-bindings #t boolean?)
-
       (preferences:set-default 'framework:verify-change-format #f boolean?)
-      
       (preferences:set-default 'framework:auto-set-wrap? #t boolean?)
-      
       (preferences:set-default 'framework:display-line-numbers #t boolean?)
-      
       (preferences:set-default 'framework:show-status-line #t boolean?)
       (preferences:set-default 'framework:line-offsets #t boolean?)
       
@@ -39,22 +33,17 @@
        'standard
        (lambda (x) (or (eq? x 'standard) (eq? x 'postscript))))
       
-      (define (add-#% x)
-	(string->symbol (string-append "#%" (symbol->string x))))
-
       (preferences:set-default 'framework:highlight-parens #t boolean?)
       (preferences:set-default 'framework:fixup-parens #t boolean?)
       (preferences:set-default 'framework:paren-match #t boolean?)
       (let ([hash-table (make-hash-table)])
 	(for-each (lambda (x) 
-		    (hash-table-put! hash-table (add-#% x) 'define)
 		    (hash-table-put! hash-table x 'define))
 		  '(define defmacro define-macro
 		     define-values
                      define/public define/override define/private define/field
 		     define-signature define-syntax define-schema))
 	(for-each (lambda (x) 
-		    (hash-table-put! hash-table (add-#% x) 'begin)
 		    (hash-table-put! hash-table x 'begin))
 		  '(cond case-lambda
 		    begin begin0 delay
@@ -62,7 +51,6 @@
 		    public private override
 		    inherit sequence))
 	(for-each (lambda (x) 
-		    (hash-table-put! hash-table (add-#% x) 'lambda)
 		    (hash-table-put! hash-table x 'lambda))
 		  '(
                     instantiate super-instantiate
