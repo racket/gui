@@ -175,7 +175,7 @@
 	    (lambda (p)
 	      (mzlib:pretty-print:pretty-print
 	       (hash-table-map preferences marshall-pref) p))
-	      'replace)	  
+	      'truncate)	  
 	  (mred:debug:printf 'prefs "saved user preferences"))))
     
     (mred:exit:insert-exit-callback 
@@ -303,20 +303,14 @@
 
     (define make-preferences-dialog
       (lambda ()
-	(letrec* ([refresh-menu
-		   (lambda (ppanel)
-		     (let ([new-panel ((ppanel-container ppanel) single-panel)])
-		       (set! panels (append panels (list new-panel)))
-		       (let ([new-popup (make-popup-menu)])
-			 (send new-popup set-selection (send popup-menu get-selection))
-			 (send top-panel change-children
-			       (lambda (l) (list top-left new-popup top-right))))))]
-                  [frame 
+	(letrec* ([frame 
                     (make-object (class-asi mred:frame%
                                    (public [added-pane
                                              (lambda (ppanel)
                                                (refresh-menu ppanel))]))
                       '() "Preferences")]
+
+
 		  [panel (make-object mred:vertical-panel% frame)]
 		  [top-panel (make-object mred:horizontal-panel% panel)]
 		  [single-panel (make-object mred:single-panel% panel -1 -1 -1 -1 wx:const-border)]
@@ -335,6 +329,14 @@
 		  [top-left (make-object mred:vertical-panel% top-panel)]
 		  [popup-menu (make-popup-menu)]
 		  [top-right (make-object mred:vertical-panel% top-panel)]
+		  [refresh-menu
+		   (lambda (ppanel)
+		     (let ([new-panel ((ppanel-container ppanel) single-panel)])
+		       (set! panels (append panels (list new-panel)))
+		       (let ([new-popup (make-popup-menu)])
+			 (send new-popup set-selection (send popup-menu get-selection))
+			 (send top-panel change-children
+			       (lambda (l) (list top-left new-popup top-right))))))]
 		  [ok-callback (lambda args
 				 (save-user-preferences)
 				 (hide-preferences-dialog))]
