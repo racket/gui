@@ -63,6 +63,7 @@ class wxPostScriptDC: public wxDC
   float clipx, clipy, clipw, cliph;
 
   float paper_x, paper_y, paper_w, paper_h, paper_x_scale, paper_y_scale;
+  float paper_margin_x, paper_margin_y;
   Bool landscape, resetFont, level2ok;
   char *afm_path;
 
@@ -217,6 +218,8 @@ public:
 	{ print_level_2 = l2; }
     void SetEditorMargin(long x, long y)
         { emargin_h = x; emargin_v = y; }
+    void SetMargin(float x, float y)
+        { ps_margin_h = x; ps_margin_v = y; }
 
     inline char *GetPrinterCommand(void)
 	{ return printer_command; }
@@ -244,6 +247,8 @@ public:
 	{ return print_level_2; }
     void GetEditorMargin(long *x, long *y)
         { *x = emargin_h; *y = emargin_v; }
+    void GetMargin(float *x, float *y)
+        { *x = ps_margin_h; *y = ps_margin_v; }
 
 private:
     friend class wxPostScriptDC;
@@ -263,6 +268,7 @@ private:
     Bool   print_colour;
     Bool   print_level_2;
     long   emargin_h, emargin_v;
+    float  ps_margin_h, ps_margin_v;
 };
 
 extern wxPrintSetupData *wxGetThePrintSetupData();

@@ -297,9 +297,11 @@ Bool wxPostScriptDC::Create(Bool interactive)
       landscape = 1;
     else
       landscape = 0;
+    wxThePrintSetupData->GetMargin(&paper_margin_x, &paper_margin_y);
   } else {
     paper_x = paper_y = 0;
     paper_x_scale = paper_y_scale = 1;
+    paper_margin_x = paper_margin_y = 0;
     landscape = 0;
   }
 
@@ -311,11 +313,14 @@ Bool wxPostScriptDC::Create(Bool interactive)
     paper_h = tmp;
   }
 
+  paper_w -= (paper_margin_x * 2);
+  paper_h -= (paper_margin_y * 2);
+
   paper_w /= paper_x_scale;
-  if (!paper_w)
+  if (paper_w <= 0)
     paper_w = 1;
   paper_h /= paper_y_scale;
-  if (!paper_h)
+  if (paper_h <= 0)
     paper_h = 1;
 
   return ok;
@@ -1313,7 +1318,7 @@ void wxPostScriptDC::TryColour(wxColour *src, wxColour *dest)
     else
       dest->Set(0, 0, 0);
   } else
-    *dest = *src;
+    dest->CopyFrom(src);
 }
 
 static const char *wxPostScriptHeaderEllipse = "\
@@ -1413,15 +1418,15 @@ void wxPostScriptDC::EndDoc (void)
   // coordinate system, thus we have to convert the values.
   // If we're landscape, our sense of "x" and "y" is reversed.
   if (landscape) {
-    llx = min_y * paper_y_scale + paper_y;
-    lly = min_x * paper_x_scale + paper_x;
-    urx = max_y * paper_y_scale + paper_y;
-    ury = max_x * paper_x_scale + paper_x;
+    llx = min_y * paper_y_scale + paper_y + paper_margin_y;
+    lly = min_x * paper_x_scale + paper_x + paper_margin_x;
+    urx = max_y * paper_y_scale + paper_y + paper_margin_y;
+    ury = max_x * paper_x_scale + paper_x + paper_margin_x;
   } else {
-    llx = min_x * paper_x_scale + paper_x;
-    lly = paper_h * paper_y_scale - (max_y * paper_y_scale) + paper_y;
-    urx = max_x * paper_x_scale + paper_x;
-    ury = paper_h * paper_y_scale - (min_y * paper_y_scale) + paper_y;
+    llx = min_x * paper_x_scale + paper_x + paper_margin_x;
+    lly = paper_h * paper_y_scale - (max_y * paper_y_scale) + paper_y + paper_margin_y;
+    urx = max_x * paper_x_scale + paper_x + paper_margin_x;
+    ury = paper_h * paper_y_scale - (min_y * paper_y_scale) + paper_y + paper_margin_y;
   }
 
   // The Adobe specifications call for integers; we round as to make
@@ -1486,8 +1491,8 @@ void wxPostScriptDC::StartPage (void)
     return;
   pstream->Out("%%Page: "); pstream->Out(page_number++); pstream->Out("\n");
 
-  pstream->Out((paper_x + (landscape ? (paper_h * paper_y_scale) : 0)));
-  pstream->Out(" "); pstream->Out(paper_y); pstream->Out(" translate\n");
+  pstream->Out((paper_x + paper_margin_x + (landscape ? (paper_h * paper_y_scale) : 0)));
+  pstream->Out(" "); pstream->Out(paper_y + paper_margin_y); pstream->Out(" translate\n");
   if (landscape) {
     pstream->Out(paper_y_scale); pstream->Out(" "); pstream->Out(paper_x_scale); pstream->Out(" scale\n");
     pstream->Out("90 rotate\n");
@@ -2077,7 +2082,8 @@ wxPrintSetupData::wxPrintSetupData(void)
     print_colour = TRUE;
     print_level_2 = TRUE;
     printer_file = NULL;
-    emargin_v = emargin_h = 36;
+    emargin_v = emargin_h = 20;
+    ps_margin_v = ps_margin_h = 16;
 }
 
 wxPrintSetupData::~wxPrintSetupData(void)

@@ -191,6 +191,10 @@
                `(#%begin (,(make-break 'normal)) ,expr)
                expr))
          
+         (define (double-break-wrap expr)
+           (if break
+               `(#%begin (,(make-break 'double)) ,expr)))
+         
          (define (simple-wcm-break-wrap debug-info expr)
            (simple-wcm-wrap debug-info (break-wrap expr)))
          
@@ -275,7 +279,9 @@
                   [define-values-recur (lambda (expr) (annotate/inner expr tail-bound #f #f))]
                   [non-tail-recur (lambda (expr) (annotate/inner expr null #f #f))]
                   [lambda-body-recur (lambda (expr) (annotate/inner expr 'all #t #f))]
-                  [let-body-recur (lambda (expr vars) (annotate/inner expr (var-set-union tail-bound vars) #t #f))]
+                  ; note: no pre-break for the body of a let; it's handled by the break for the
+                  ; let itself.
+                  [let-body-recur (lambda (expr vars) (annotate/inner expr (var-set-union tail-bound vars) #f #f))]
                   [cheap-wrap-recur (lambda (expr) (let-values ([(ann _) (non-tail-recur expr)]) ann))]
                   [make-debug-info-normal (lambda (free-vars)
                                             (make-debug-info expr tail-bound free-vars 'none))]
@@ -438,7 +444,7 @@
                     (let+ ([val bodies (z:begin-form-bodies expr)]
                            [val (values annotated-bodies free-vars)
                                 (dual-map (lambda (expr)
-                                            (annotate/inner expr 'all #f #t))
+                                            (annotate/inner expr 'all #f #t)) 
                                           bodies)])
                        (values `(#%begin ,@annotated-bodies)
                                (apply var-set-union free-vars)))
@@ -487,6 +493,15 @@
                ;       e3))))
                ;
                ; let me know if you can do it in less.
+               
+               ; another irritating point: the mark and the break that must go immediately 
+               ; around the body.  Irritating because they will be instantly replaced by
+               ; the mark and the break produced by the annotated body itself. However, 
+               ; they're necessary, because the body may not contain free references to 
+               ; all of the variables defined in the let, and thus their values are not 
+               ; known otherwise.  
+               ; whoops! hold the phone.  I think I can get away with a break before, and
+               ; a mark after, so only one of each.  groovy, eh?
                       
                [(z:let-values-form? expr)
                 (let+ ([val var-sets (z:let-values-form-vars expr)]
@@ -534,11 +549,11 @@
                              [val inner-let-values
                                   `(#%let-values ,inner-transference ,annotated-body)]
                              [val middle-begin
-                                  `(#%begin ,@set!-clauses ,inner-let-values)]
+                                  `(#%begin ,@set!-clauses ,(double-break-wrap inner-let-values))]
                              [val wrapped-begin
                                   (wcm-wrap (make-debug-info-app (var-set-union tail-bound dummy-var-list)
                                                                  (var-set-union free-vars dummy-var-list)
-                                                                 'none)
+                                                                 'let-body)
                                             middle-begin)]
                              [val whole-thing
                                   `(#%let-values ,outer-dummy-initialization ,wrapped-begin)])
@@ -578,17 +593,17 @@
                                        var-sets
                                        annotated-vals)]
                              [val middle-begin
-                                  `(#%begin ,@set!-clauses ,annotated-body)]
+                                  `(#%begin ,@set!-clauses ,(double-break-wrap annotated-body))]
                              [val wrapped-begin
                                   (wcm-wrap (make-debug-info-app (var-set-union tail-bound var-set-list-varrefs)
                                                                  (var-set-union free-vars-inner var-set-list-varrefs)
-                                                                 'none)
+                                                                 'let-body)
                                             middle-begin)]
                              [val whole-thing
                                   `(#%letrec-values ,outer-initialization ,wrapped-begin)])
                         (values whole-thing free-vars-outer))))]
                
-	       [(z:define-values-form? expr)
+	       [(z:define-values-form? expr)  
 		(let+ ([val vars (z:define-values-form-vars expr)]
 		       [val _ (map utils:check-for-keyword vars)]
 		       [val var-names (map z:varref-var vars)]

@@ -233,6 +233,9 @@ int scheme_solaris_semaphore_try_down(void *);
 # if defined(__mc68000__)
 #  define SCHEME_PLATFORM_LIBRARY_SUBPATH "m68k-linux"
 # endif
+# if defined(__alpha__)
+#  define SCHEME_PLATFORM_LIBRARY_SUBPATH "alpha-linux"
+# endif
 # ifndef SCHEME_PLATFORM_LIBRARY_SUBPATH
 #  define SCHEME_PLATFORM_LIBRARY_SUBPATH "unknown-linux"
 # endif
@@ -248,6 +251,10 @@ int scheme_solaris_semaphore_try_down(void *);
 # define HAS_LINUX_IOB
 
 # define STACK_GROWS_DOWN
+
+# if defined(__alpha)
+#  define SIXTY_FOUR_BIT_INTEGERS
+# endif
 
 # define USE_IEEE_FP_PREDS
 # define USE_EXPLICT_FP_FORM_CHECK
@@ -403,7 +410,7 @@ int scheme_solaris_semaphore_try_down(void *);
 # define BSTRING_INCLUDE
 
 # define DEFEAT_FP_COMP_OPTIMIZATION
-# define POW_HANDLES_INF_CORRECTLY
+# define FMOD_CAN_RETURN_NEG_ZERO
 
 # define NO_INLINE_KEYWORD
 
@@ -490,7 +497,7 @@ int   scheme_sproc_semaphore_try_down(void *);
 
   /************** ALPHA/OSF1 with gcc ****************/
 
-#if defined(__alpha)
+#if defined(__digital__) && defined(__unix__)
 
 # define SCHEME_PLATFORM_LIBRARY_SUBPATH "alpha-osf1"
 
@@ -520,6 +527,7 @@ int   scheme_sproc_semaphore_try_down(void *);
 # define STACK_GROWS_UP
 
 # define SOME_FDS_ARE_NOT_SELECTABLE
+# define USE_FCNTL_O_NONBLOCK
 
 # define USE_SYSCALL_GETRUSAGE
 
@@ -527,6 +535,7 @@ int   scheme_sproc_semaphore_try_down(void *);
 # define USE_IEEE_FP_PREDS
 # define USE_EXPLICT_FP_FORM_CHECK
 # define ZERO_MINUS_ZERO_IS_POS_ZERO
+# define LOG_ZERO_ISNT_NEG_INF
 
 # define NO_INLINE_KEYWORD
 
@@ -1207,6 +1216,12 @@ int scheme_pthread_semaphore_try_down(void *);
 
  /* TRIG_ZERO_NEEDS_SIGN_CHECK defines versions of tan, sin, atan, and
     asin that preserve the sign of a zero argument. */
+
+ /* FMOD_CAN_RETURN_NEG_ZERO is fmod() on positive numbers can produce
+    a negative zero. */
+
+ /* LOG_ZERO_ISNT_NEG_INF defines a version of log that checks for an
+    inexact zero argument and return negative infinity. */
 
   /***********************/
  /* Stack Maniuplations */
