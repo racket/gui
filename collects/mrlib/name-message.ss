@@ -9,7 +9,7 @@
   
   (provide/contract
    (draw-button-label
-    ((is-a?/c dc<%>) (union false/c string?) (>/c 5) (>/c 5) boolean? boolean?
+    ((is-a?/c dc<%>) (union false/c string?) number? number? (>/c 5) (>/c 5) boolean? boolean?
      . -> .
      void?))
 
@@ -123,7 +123,7 @@
         (let ([dc (get-dc)])
           (let-values ([(w h) (get-client-size)])
             (when (and (> w 5) (> h 5))
-              (draw-button-label dc label w h mouse-over? mouse-grabbed?)))))
+              (draw-button-label dc label 0 0 w h mouse-over? mouse-grabbed?)))))
       
       (super-new [style '(transparent)])
       (update-min-sizes)
@@ -183,7 +183,7 @@
                 button-label-inset)])
         (values ans-w ans-h))))
   
-  (define (draw-button-label dc label w h mouse-over? grabbed?)
+  (define (draw-button-label dc label dx dy w h mouse-over? grabbed?)
     (when (or mouse-over? grabbed?)
       (let ([color (if grabbed?
 		       mouse-grabbed-color
@@ -193,25 +193,33 @@
 	  [(macosx)
 	   (send dc set-pen (send the-pen-list find-or-create-pen color 1 'solid))
 	   (send dc set-brush (send the-brush-list find-or-create-brush color 'solid))
-	   (send dc draw-ellipse border-inset border-inset xh xh)
-	   (send dc draw-ellipse (- w xh) border-inset xh xh)
+	   (send dc draw-ellipse (+ dx border-inset) (+ dy border-inset) xh xh)
+	   (send dc draw-ellipse (+ dx (- w xh)) border-inset xh xh)
 	   (send dc set-pen (send the-pen-list find-or-create-pen "black" 1 'transparent))
-	   (send dc draw-rectangle (quotient xh 2) border-inset (- w xh) xh)
+	   (send dc draw-rectangle (+ dx (quotient xh 2)) (+ dy border-inset) (- w xh) xh)
 	   (send dc set-pen (send the-pen-list find-or-create-pen color 1 'solid))
-	   (send dc draw-line (quotient xh 2) border-inset (- w (quotient xh 2)) border-inset)
-	   (send dc draw-line (quotient xh 2) (- h 1 border-inset) (- w (quotient xh 2)) (- h 1 border-inset))]
+	   (send dc draw-line 
+                 (+ dx (quotient xh 2))
+                 (+ dy border-inset)
+                 (+ dx (- w (quotient xh 2)))
+                 (+ dy border-inset))
+	   (send dc draw-line 
+                 (+ dx (quotient xh 2))
+                 (+ dy (- h 1 border-inset))
+                 (+ dx (- w (quotient xh 2)))
+                 (+ dy (- h 1 border-inset)))]
 	  [else
 	   (send dc set-pen (send the-pen-list find-or-create-pen triangle-color 1 'solid))
 	   (send dc set-brush (send the-brush-list find-or-create-brush color 'solid))
-	   (send dc draw-rounded-rectangle rrect-spacer border-inset (- w border-inset rrect-spacer) xh 2)])))
+	   (send dc draw-rounded-rectangle (+ dx rrect-spacer) (+ dy border-inset) (- w border-inset rrect-spacer) xh 2)])))
     
     (when label
       (send dc set-text-foreground (if grabbed? grabbed-fg-color black-color))
       (send dc set-font button-label-font)
       (let-values ([(tw th _1 _2) (send dc get-text-extent label)])
         (send dc draw-text label
-              (+ circle-spacer button-label-inset)
-              (- (/ h 2) (/ th 2))
+              (+ dx (+ circle-spacer button-label-inset))
+              (+ dy (- (/ h 2) (/ th 2)))
 	      #t)))
 
     (send dc set-pen (send the-pen-list find-or-create-pen 
@@ -219,11 +227,13 @@
 			   1 'solid))
     (let ([x (- w triangle-width circle-spacer)]
 	  [y (- (/ h 2) (/ triangle-height 2))])
-      (let loop ([dx 0][dy 5])
-	(unless (= 5 dx)
+      (let loop ([x-off 0][off-y 5])
+	(unless (= 5 x-off)
 	  (send dc draw-line 
-		(+ x 1 dx) (+ y dy)
-		(+ x (- triangle-width 1 dx)) (+ y dy))
-	  (loop (+ dx 1) (+ dy 1)))))
+		(+ dx (+ x 1 x-off))
+                (+ dy (+ y off-y))
+		(+ dx (+ x (- triangle-width 1 x-off)))
+                (+ dy (+ y off-y)))
+	  (loop (+ x-off 1) (+ off-y 1)))))
 
     (void)))
