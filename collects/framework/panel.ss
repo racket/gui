@@ -186,6 +186,7 @@
 		    [y-min (max thumb-min (get-top-min))]
 		    [y-max (- h (max thumb-min (get-bot-min)))])
 	       (set! percentage (/ (min (max y-min y) y-max) h))
+               (send parent on-percentage percentage)
 	       (on-paint))))])
       (private
         [point1 (make-object point% 0 0)]
@@ -194,7 +195,7 @@
         [points (list point1 point2 point3)]
         [grab-brush (send the-brush-list find-or-create-brush "blue" 'solid)]
         [reg-brush (send the-brush-list find-or-create-brush "black" 'solid)]
-        [reg-pen (send the-pen-list find-or-create-pen "black" 1 'solid)]
+        [reg-pen (send the-pen-list find-or-create-pen "black" 1 'solid)])
       (inherit get-dc get-client-size get-top-level-window)
       (rename [super-on-event on-event])
       (override
@@ -293,6 +294,7 @@
 	    res))])
       (inherit reflow-container get-top-level-window set-alignment get-alignment)
       (public
+        [on-percentage (lambda (p) (void))]
 	[set-percentage
 	 (lambda (p)
 	   (send thumb-canvas set-percentage p)
