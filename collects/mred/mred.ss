@@ -6150,18 +6150,22 @@
   (unless (and (list? style) (andmap symbol? style))
     (raise-type-error (who->name who) "list of style symbols" style))
   (when reqd
-    (unless (ormap (lambda (i) (memq i reqd)) style)
-      (raise-type-error (who->name who)
-			(format "style list including ~a"
-				(if (= (length reqd) 1)
-				    (car reqd)
-				    (string-append
-				     "one of "
-				     (let loop ([l reqd])
-				       (if (null? (cdr l))
-					   (format "or ~a" (car l))
-					   (format "~a, ~a" (car l) (loop (cdr l))))))))
-			style)))
+    (letrec ([or-together (lambda (l)
+			    (if (= (length l) 2)
+				(format "~a or ~a" (car l) (cadr l))
+				(let loop ([l l])
+				  (if (null? (cdr l))
+				      (format "or ~a" (car l))
+				      (format "~a, ~a" (car l) (loop (cdr l)))))))])
+      (unless (ormap (lambda (i) (memq i reqd)) style)
+	(raise-type-error (who->name who)
+			  (format "style list, missing ~a"
+				  (if (= (length reqd) 1)
+				      (car reqd)
+				      (string-append
+				       "one of "
+				       (or-together reqd))))
+			  style))))
   (if (and (not reqd) (null? other-allowed))
       (unless (null? style)
 	(raise-type-error (who->name who) "empty style list" style))
