@@ -2,6 +2,17 @@ Version 51: ??, 1998
 
 Engine:
 -------
+Added a --pre flag for evaluating an expression in a 
+ MzScheme-only namespace at startup. This flag is intended
+ for use with image dumps (see the MzScheme manual), which
+ are disabled by default
+X Windows: mred now accepts a fixed set of standard X
+ Windows command-line flags (it treats them the same as
+ always) instead of letting the platform-specific Xt
+ library decide; these flags must now be specified
+ first if there is no --pre flag, or after --pre's 
+ argument if there is one, otherwise the flags
+ are passed on to MrEd's system (for good or ill)
 X Windows: window manager close-frame request is ignored
  when a modal dialog is in control
 Added security so that wx:snip% methods cannot be overridden 
@@ -14,7 +25,8 @@ Fixed wx:canvas% scrolling on all platforms; the style flags
  get-scroll-pos, get-scroll-range, and get-scroll-page.
 The wx:canvas% wx:const-backingstore and wx:const-retained
  style flags have been removed.
-Pasteboard printing implemented [finally]
+Pasteboard printing implemented [finally], and many pasteboard
+ bugs are fixed
 Removed wx:key-event%'s position method and added get-x,
  get-y, set-x, and set-y
 Changed default pen in DC to width 0 instead of 1
@@ -27,9 +39,11 @@ Revised wx:media-buffer%'s cursor system for better
 Added refresh-delayed? predicate to wx:media-buffer%, useful
  for deciding whether a buffer (or one of its enclosing 
  buffers) is in an edit-sequence
-Added a --pre flag for evaluating an expression in a 
- MzScheme-only namespace at startup. This flag is intended
- for use with image dumps (see the MzScheme manual)
+Added copy-self-to method to wx:media-buffer% and made copy-self
+ overrideable; copy-self creates a new buffer and copy-self-to
+ copies properties of the buffer to the newly created buffer;
+ now implemented for pasteboards, too
+Added number-of-visible-items to wx:list-box%
 Removed wx:copy-file; MzScheme now has copy-file
 Fixed wx:media-stream-in%'s get-string (it was adding an
  extra nul character)
@@ -47,6 +61,7 @@ X Windows: fixed iconification of parentless dialog boxes;
  get them back
 Removed wx:exit
 MacOS: fixed event handling -> better response and performance
+More PostScript drawing fixes
 X Windows: added .mred.resources option `mred.forceFocus'; if
  the value is 1, bringing a frame to the foreground forces the
  focus there (good for Window Managers where the focus does
