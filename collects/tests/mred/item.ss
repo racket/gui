@@ -1557,6 +1557,13 @@
   (define chv (make-object canvas% (make-container hp1) '(hscroll vscroll)))
   (define cbhv (make-object canvas% (make-container hp1) '(border hscroll vscroll)))
 
+  (define hp2 (make-object horizontal-panel% f))
+
+  (define ec (make-object editor-canvas% (make-container hp2) #f '(no-hscroll no-vscroll)))
+  (define ech (make-object editor-canvas% (make-container hp2) #f '(no-vscroll)))
+  (define ecv (make-object editor-canvas% (make-container hp2) #f '(no-hscroll)))
+  (define echv (make-object editor-canvas% (make-container hp2) #f '()))
+
   (send f show #t))
 
 ;----------------------------------------------------------------------
