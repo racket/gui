@@ -1,12 +1,22 @@
 101/6:
 
+ * Added 'symbol font family
+
  * Changed font-search meachnism to try normal-weight and
    normal-style before resorting to a default font
 
  * Added set-screen-name, set-post-script-name, and set-afm-name to
    font-name-directory<%>.
 
- * Fixed region% and font problems for post-script-dc%
+ * Fixed region and font problems for post-script-dc%
+
+ * Added {set,get}-paste-text-only to editor<%>
+
+ * Added {set,get}-line-spacing and {set,get}-styles-sticky ro text%
+
+ * Added {set,get}-tight-text-fit to editor-snip%
+
+ * string-snip% forces a non-breaking space to draw like a space
 
 101/5:
 
@@ -18,6 +28,10 @@ Version 101: ??
 
 Showing an inactive child window now raises an exception
 Added set-paragrapgh-alignment to text%
+Added 'symbol font family
+Added {set,get}-paste-text-only to editor<%>
+Added {set,get}-line-spacing and {set,get}-styles-sticky to text%
+Added {set,get}-tight-text-fit to editor-snip%
 
 ----------------------------------------------------------------------
 
