@@ -152,9 +152,11 @@
 	   (send (get-editor) on-close))]
 	[get-area-container%  (lambda () panel:vertical-editor%)])
       (private
-	[label (let-values ([(base name dir?) (split-path file-name)])
-		 (or name
-		     file-name))]
+	[label (if file-name
+		   (let-values ([(base name dir?) (split-path file-name)])
+		     (or name
+			 file-name))
+		   "Untitled")]
 	[label-prefix (application:current-app-name)]
 	[do-label
 	 (lambda ()
@@ -322,8 +324,9 @@
 	  (when (send icon ok?)
 	    (set-icon icon)))
 	(do-label)
+	(when file-name
+	  (send (get-editor) load-file file-name 'guess #f))
 	(let ([canvas (get-canvas)])
-	  (send (get-editor) load-file file-name 'guess #f)
 	  (send canvas focus)))))
   
   (define -text<%> (interface (-editor<%>)))
