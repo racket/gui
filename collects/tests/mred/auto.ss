@@ -6,7 +6,7 @@
   (set! test-count (add1 test-count))
   (unless (equal? expect got)
     (let ([s (format "~a: expected ~a; got ~a" name expect got)])
-      (printf "~a~n" s)
+      (printf "ERROR: ~a~n" s)
       (set! errs (cons s errs)))))
 
 
@@ -159,7 +159,7 @@
     (st my-l b get-plain-label)
     (stv b set-label &-l)))
 			      
-(let ([f (make-object frame% "Yes & No" #f 50 51 20 21)])
+(let ([f (make-object frame% "Yes & No" #f 150 151 20 21)])
   (let ([init-tests
 	 (lambda ()
 	   (st "Yes & No" f get-label)
@@ -172,8 +172,8 @@
 	   (st f f get-top-level-window)
 	   (st 20 f get-x)
 	   (st 21 f get-y)
-	   (st 50 f get-width)
-	   (st 51 f get-height)
+	   (st 150 f get-width)
+	   (st 151 f get-height)
 	   (stvals (list (send f get-width) (send f get-height)) f get-size)
 	   (st #f f has-status-line?)
 	   (st #f f is-iconized?)
@@ -264,8 +264,8 @@
     (pause)
     (FAILS (st 34 f get-x))
     (FAILS (st 37 f get-y))
-    (st 50 f get-width)
-    (st 51 f get-height)
+    (st 150 f get-width)
+    (st 151 f get-height)
 
     (printf "Resize~n")
     (stv f resize 56 57)
@@ -783,21 +783,93 @@
     'done-lists)
 
   (let ([c (make-object canvas% parent '(hscroll vscroll))])
-    
+
+    (printf "Tab Focus~n")
+    (st #f c accept-tab-focus)
+    (stv c accept-tab-focus #t)
+    (st #t c accept-tab-focus)
+    (stv c accept-tab-focus #f)
+    (st #f c accept-tab-focus)
+
     (stv c set-scrollbars 100 101 5 6 2 3 10 20 #t)
     (let-values ([(w h) (send c get-virtual-size)]
 		 [(cw ch) (send c get-client-size)]
-		 [(x y) (send c get-view-start)])
-      (test (* 100 5) 'canvas-virt-w-size w)
-      (test (* 101 6) 'canvas-virt-h-size h)
+		 [(s1x s1y) (values 0 0)])
+      (printf "Canvas size: Virtual: ~a x ~a  Client: ~a x ~a~n" w h cw ch)
+      (let ([check-scroll
+	     (lambda (xpos ypos)
+	       (let-values ([(x y) (send c get-view-start)])
+		 (test (* xpos s1x) `(canvas-view-x ,xpos ,ypos ,x ,cw) x)
+		 (test (* ypos s1y) `(canvas-view-y ,xpos ,ypos ,y ,ch) y)))])
+	(test (* 100 5) 'canvas-virt-w-size w)
+	(test (* 101 6) 'canvas-virt-h-size h)
+	
+	(let-values ([(x y) (send c get-view-start)])
+	  (printf "Canvas Init View: ~a ~a~n" x y)
+	  (test #t 'canvas-view-x (<= (- w cw) x (+ cw (- w cw))))
+	  (test #t 'canvas-view-y (<= (- h ch) y (+ ch (- h ch)))))
+	
+	(st 0 c get-scroll-pos 'horizontal)
+	(st 0 c get-scroll-pos 'vertical)
+	(st 0 c get-scroll-page 'horizontal)
+	(st 0 c get-scroll-page 'vertical)
+	(st 0 c get-scroll-range 'horizontal)
+	(st 0 c get-scroll-range 'vertical)
+	
+	(stv c scroll 1 1)
+	(let-values ([(x y) (send c get-view-start)])
+	  (set! s1x x)
+	  (set! s1y y))
+	(check-scroll 1 1)
+	(stv c scroll #f 2)
+	(check-scroll 1 2)
+	(stv c scroll 0 #f)
+	(check-scroll 0 2)
+	
+	'done-sb))
 
-      (test (- w cw) 'canvas-view-x x)
-      (test (- h ch) 'canvas-view-y y)
+    (stv c set-scrollbars 100 101 5 6 2 3 10 20 #f)
+    (let-values ([(w h) (send c get-virtual-size)]
+		 [(cw ch) (send c get-client-size)])
+      (let ([check-scroll
+	     (lambda (xpos ypos)
+	       (st xpos c get-scroll-pos 'horizontal)
+	       (st ypos c get-scroll-pos 'vertical)
+	
+	       (test cw 'canvas-virt-w-size w)
+	       (test ch 'canvas-virt-h-size h)
+	       
+	       (let-values ([(x y) (send c get-view-start)])
+		 (test 0 'canvas-view-x x)
+		 (test 0 'canvas-view-y y)))])
+	
+	(check-scroll 5 6)
+	
+	(st 2 c get-scroll-page 'horizontal)
+	(st 3 c get-scroll-page 'vertical)
+	(st 5 c get-scroll-range 'horizontal)
+	(st 6 c get-scroll-range 'vertical)
+	
+	(stv c scroll 1 1)
+	(check-scroll 1 1)
+	(stv c scroll #f 2)
+	(check-scroll 1 2)
+	(stv c scroll 0 #f)
+	(check-scroll 0 2)
 
-      (st 0 c get-scroll-pos 'horizontal)
-      (st 0 c get-scroll-pos 'vertical)
-
-      'done-sb)
+	(stv c set-scroll-pos 'horizontal 1)
+	(check-scroll 1 2)
+	(stv c set-scroll-pos 'vertical 0)
+	(check-scroll 1 0)
+	
+	(stv c set-scroll-page 'horizontal 1)
+	(st 1 c get-scroll-page 'horizontal)
+	(st 3 c get-scroll-page 'vertical)
+	(stv c set-scroll-page 'vertical 2)
+	(st 1 c get-scroll-page 'horizontal)
+	(st 2 c get-scroll-page 'vertical)
+		
+	'done-sb))
 
     (window-tests c #t #t parent frame 0))
 
