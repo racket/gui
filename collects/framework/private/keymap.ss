@@ -1108,13 +1108,13 @@
                                          (send edit get-top-level-window))])
                       (let ([file (finder:put-file)])
                         (when file
-                          (send edit save-file file)))))
+                          (send edit save-file/gui-error file)))))
                   #t)]
 	       [save-file
 		(lambda (this-edit event)
                   (let ([edit (get-outer-editor this-edit)])
                     (if (send edit get-filename)
-                        (send edit save-file)
+                        (send edit save-file/gui-error)
                         (save-file-as edit event)))
 		  #t)]
 	       [load-file

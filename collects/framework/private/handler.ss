@@ -111,34 +111,45 @@
 		      (lambda ()
 			((current-create-new-window) filename)))]
 	 [(filename make-default)
-	  (gui-utils:show-busy-cursor
-	   (lambda ()
-	     (if filename
-		 (let ([already-open (send (group:get-the-frame-group)
-					   locate-file
-					   filename)])
-		   (cond
-                     [already-open
-                      (send already-open show #t)
-                      already-open]
-                     [(and (preferences:get 'framework:open-here?)
-                           (send (group:get-the-frame-group) get-open-here-frame))
-                      =>
-                      (lambda (fr)
-                        (add-to-recent filename)
-                        (send fr open-here filename)
-                        (send fr show #t)
-                        fr)]
-                     [else
-                      (let ([handler
-                             (if (string? filename)
-                                 (find-format-handler filename)
-                                 #f)])
-                        (add-to-recent filename)
-                        (if handler
-                            (handler filename)
-                            (make-default)))]))
-		 (make-default))))]))
+	  (with-handlers ([not-break-exn?
+			   (lambda (exn)
+			     (message-box
+			      (string-constant error-loading)
+			      (string-append
+			       (format (string-constant error-loading-file/name)
+				       (or filename
+					   (string-constant unknown-filename)))
+			       "\n\n"
+			       (if (exn? exn) (exn-message exn) (format "~s" exn))))
+			     #f)])
+	    (gui-utils:show-busy-cursor
+	     (lambda ()
+	       (if filename
+		   (let ([already-open (send (group:get-the-frame-group)
+					     locate-file
+					     filename)])
+		     (cond
+		       [already-open
+			(send already-open show #t)
+			already-open]
+		       [(and (preferences:get 'framework:open-here?)
+			     (send (group:get-the-frame-group) get-open-here-frame))
+			=>
+			(lambda (fr)
+			  (add-to-recent filename)
+			  (send fr open-here filename)
+			  (send fr show #t)
+			  fr)]
+		       [else
+			(let ([handler
+			       (if (string? filename)
+				   (find-format-handler filename)
+				   #f)])
+			  (add-to-recent filename)
+			  (if handler
+			      (handler filename)
+			      (make-default)))]))
+		   (make-default)))))]))
       
 					; Query the user for a file and then edit it
 

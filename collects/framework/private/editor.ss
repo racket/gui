@@ -41,7 +41,8 @@
 	  get-top-level-window
 	  on-close
 	  save-file-out-of-date?
-          save-file/gui-error))
+          save-file/gui-error
+          load-file/gui-error))
 
       (define basic-mixin
 	(mixin (editor<%>) (basic<%>)
@@ -59,16 +60,47 @@
 					(mred:get-file)
 					internal-filename))
 				  input-filename)])
-		(if filename
-		    (let ([result (save-file filename fmt #f)])
-		      (unless result
-			(when show-errors?
-			  (message-box
-			   (string-constant error-saving)
-			   (format (string-constant error-saving-file/name)
-				   filename))))
-		      result)
-		    #f))))
+                (with-handlers ([not-break-exn?
+                                 (lambda (exn)
+                                   (message-box
+                                    (string-constant error-saving)
+                                    (string-append
+                                     (format (string-constant error-saving-file/name) 
+                                             filename)
+                                     "\n\n"
+                                     (if (exn? exn)
+                                         (exn-message exn)
+                                         (format "~s" exn))))
+                                   #f)])
+                  (when filename
+                    (save-file filename fmt #f))
+                  #t))))
+          
+          (inherit load-file)
+          (define/public load-file/gui-error
+            (opt-lambda ([input-filename #f]
+                         [fmt 'guess]
+                         [show-errors? #t])
+              (let ([filename (if (or (not input-filename)
+                                      (equal? input-filename ""))
+                                  (let ([internal-filename (get-filename)])
+                                    (if (or (not internal-filename)
+                                            (equal? internal-filename ""))
+                                        (mred:get-file)
+                                        internal-filename))
+                                  input-filename)])
+                (with-handlers ([not-break-exn?
+                                 (lambda (exn)
+                                   (message-box 
+                                    (string-constant error-loading)
+				    (string-append
+				     (format (string-constant error-loading-file/name)
+					     filename)
+				     "\n\n"
+				     (if (exn? exn) (exn-message exn) (format "~s" exn))))
+                                   #f)])
+                  (load-file input-filename fmt show-errors?)
+                  #t))))
 	  
 	  (inherit refresh-delayed? 
 		   get-canvas
@@ -415,32 +447,34 @@
           [define do-autosave? #t]
 	  (public autosave? do-autosave remove-autosave)
           [define autosave? (lambda () do-autosave?)]
-          [define do-autosave
-            (lambda ()
-              (when (and (autosave?)
-                         (not auto-save-error?)
-                         (is-modified?)
-                         (or (not auto-saved-name)
-                             auto-save-out-of-date?))
-                (let* ([orig-name (get-filename)]
-                       [old-auto-name auto-saved-name]
-                       [auto-name (path-utils:generate-autosave-name orig-name)]
-                       [success (save-file auto-name 'copy #f)])
-                  (if success
-                      (begin
-                        (when old-auto-name
-                          (delete-file old-auto-name))
-                        (set! auto-saved-name auto-name)
-                        (set! auto-save-out-of-date? #f))
-                      (begin
-                        (message-box 
-                         (string-constant warning)
-                         (string-append
-                          (format (string-constant error-autosaving)
-                                  (or orig-name (string-constant untitled)))
-                          "\n"
-                          (string-constant autosaving-turned-off)))
-                        (set! auto-save-error? #t))))))]
+          [define (do-autosave)
+            (when (and (autosave?)
+                       (not auto-save-error?)
+                       (is-modified?)
+                       (or (not auto-saved-name)
+                           auto-save-out-of-date?))
+              (let* ([orig-name (get-filename)]
+                     [old-auto-name auto-saved-name]
+                     [auto-name (path-utils:generate-autosave-name orig-name)])
+                (with-handlers ([not-break-exn?
+                                 (lambda (exn)
+                                   (message-box 
+                                    (string-constant warning)
+                                    (string-append
+                                     (format (string-constant error-autosaving)
+                                             (or orig-name (string-constant untitled)))
+                                     "\n"
+                                     (string-constant autosaving-turned-off)
+                                     "\n\n"
+                                     (if (exn? exn)
+                                         (exn-message exn)
+                                         (format "~s" exn))))
+                                   (set! auto-save-error? #t))])
+                  (save-file auto-name 'copy #f)
+                  (when old-auto-name
+                    (delete-file old-auto-name))
+                  (set! auto-saved-name auto-name)
+                  (set! auto-save-out-of-date? #f))))]
           [define remove-autosave
             (lambda ()
               (when auto-saved-name

@@ -334,7 +334,7 @@
   ;; Note: never more than one timer (of ours) on real event queue.
   ;; 
   
-  '(define run-one
+  (define run-one
     (let ([yield-semaphore (make-semaphore 0)]
 	  [thread-semaphore (make-semaphore 0)])
       (thread
@@ -369,7 +369,8 @@
 	    (semaphore-wait sem)
 	    (reraise-error))))))
   
-  (define run-one
+  ;; new, queue-callback based run-one
+  '(define run-one
     (let ([yield-semaphore (make-semaphore 0)]
 	  [thread-semaphore (make-semaphore 0)])
       (thread

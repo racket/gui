@@ -25,7 +25,6 @@
               [handler : framework:handler^]
               [application : framework:application^]
               [panel : framework:panel^]
-              [exit : framework:exit^]
               [finder : framework:finder^]
               [keymap : framework:keymap^]
               [text : framework:text^]
@@ -33,7 +32,8 @@
               [editor : framework:editor^]
               [canvas : framework:canvas^]
               [menu : framework:menu^]
-              [scheme : framework:scheme^])
+              [scheme : framework:scheme^]
+              [exit : framework:exit^])
       
       (rename [-editor<%> editor<%>]
               [-pasteboard% pasteboard%]
@@ -684,14 +684,11 @@
            (lambda ()
              (super-on-close)
              (send (get-editor) on-close))]
-          [define label (if filename
-                            (file-name-from-path filename)
-                            (gui-utils:next-untitled-name))]
+          [define label ""]
           [define label-prefix (application:current-app-name)]
-          [define do-label
-           (lambda ()
-             (super-set-label (get-entire-label))
-             (send (group:get-the-frame-group) frame-label-changed this))]
+          (define (do-label)
+            (super-set-label (get-entire-label))
+            (send (group:get-the-frame-group) frame-label-changed this))
           
           (public get-entire-label get-label-prefix set-label-prefix)
           [define get-entire-label
@@ -787,7 +784,7 @@
                              #f
                              this)
                         (send edit begin-edit-sequence)
-                        (let ([status (send edit load-file
+                        (let ([status (send edit load-file/gui-error
                                             filename
                                             'same
                                             #f)])
@@ -796,12 +793,7 @@
                                 (when (is-a? edit text%)
                                   (send edit set-position start start))
                                 (send edit end-edit-sequence))
-                              (begin
-                                (send edit end-edit-sequence)
-                                (message-box
-                                 (string-constant error-reverting)
-                                 (format (string-constant could-not-read) filename)
-                                 this))))))))
+			      (send edit end-edit-sequence)))))))
               #t))
           (define/override file-menu:create-revert? (lambda () #t))
           (define file-menu:save-callback (lambda (item control)
@@ -875,17 +867,22 @@
                 (send (get-canvas) set-editor editor))
               editor))
 
-          (do-label)
           (cond
             [(and filename (file-exists? filename))
-             (send (get-editor) load-file filename 'guess #f)]
+             (send (get-editor) load-file/gui-error filename 'guess)]
             [filename
              (send (get-editor) set-filename filename)]
             [else (void)])
+          (let ([ed-fn (send (get-editor) get-filename)])
+            (set! label (if ed-fn
+                            (or (file-name-from-path ed-fn)
+                                (gui-utils:next-untitled-name))
+                            (gui-utils:next-untitled-name))))
+          (do-label)
           (let ([canvas (get-canvas)])
             (when (is-a? canvas editor-canvas%)
-	    ;; when get-canvas is overridden,
-	    ;; it might not yet be implemented
+              ;; when get-canvas is overridden,
+              ;; it might not yet be implemented
               (send canvas focus)))))
       
       (define open-here<%>
@@ -924,6 +921,7 @@
               [else ((handler:current-create-new-window) #f)]))
 
           ;; cancel-due-to-unsaved-changes : -> boolean
+          ;; returns #t if the action should be cancelled
           (define (cancel-due-to-unsaved-changes editor)
             (and (send editor is-modified?)
                  (let ([save (gui-utils:unsaved-warning
@@ -933,7 +931,7 @@
                               this)])
                    (case save
                      [(continue) #f]
-                     [(save) (not (send editor save-file))]
+                     [(save) (not (send editor save-file/gui-errors))]
                      [(cancel) #t]))))
           
           ;; ask-about-new-here : -> (union 'cancel boolean?)
@@ -985,7 +983,7 @@
                          (send editor get-end-position))))))
                 (send editor begin-edit-sequence)
                 (send editor lock #f)
-                (send editor load-file filename)
+                (send editor load-file/gui-error filename)
                 (send editor end-edit-sequence)
 		(void))))
           

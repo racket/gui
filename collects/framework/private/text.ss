@@ -647,7 +647,7 @@
             (when (and delegate success?)
               (send delegate begin-edit-sequence)
               (send delegate lock #f)
-              (send delegate load-file filename format)
+              (send delegate load-file/gui-error filename format)
               (send delegate set-filename #f)
               (send delegate lock #t)
               (send delegate end-edit-sequence)))

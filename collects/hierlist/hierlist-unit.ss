@@ -157,7 +157,8 @@
           user-data
           get-allow-selection?
           set-allow-selection
-          get-clickable-snip))
+          get-clickable-snip
+          get-parent))
 
       (define hierarchical-list-item%
 	(class100* object% (hierarchical-list-item<%>) (snp)
@@ -184,7 +185,13 @@
                                           scroll-to
                                           snip
                                           0 0 0 (unbox h-box) #t)))]
-            [user-data (case-lambda [() data][(x) (set! data x)])])
+            [user-data (case-lambda [() data][(x) (set! data x)])]
+            [get-parent (lambda () 
+                          (let ([parent-of-snip (send snip get-parent)])
+                            (and parent-of-snip
+                                 (let ([parent-snip (send parent-of-snip get-parent-snip)])
+                                   (and parent-snip
+                                        (send parent-snip get-item))))))])
           (sequence (super-init))))
 
       (define hierarchical-list-compound-item<%>
