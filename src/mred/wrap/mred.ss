@@ -992,10 +992,9 @@
       [on-new-box
        (lambda (type)
 	 (make-object editor-snip%
-		      (make-object
-		       (cond
-			[(eq? type 'pasteboard-buffer) (make-object pasteboard-editor%)]
-			[else (make-object text-editor%)]))))])
+		      (make-object (cond
+				    [(eq? type 'pasteboard-buffer) pasteboard-editor%]
+				    [else text-editor%]))))])
 
     (sequence (apply super-init args))))
 
@@ -2860,7 +2859,7 @@
 			(when (send event button-down?)
 			  (send edit set-position (send edit last-position))
 			  (send edit paste)))])
-    (wx:add-text-editor-functions k)
+    (wx:add-text-editor-keymap-functions k)
     (send k add-mouse-function "mouse-paste" mouse-paste)
     (map
      (lambda (key func) (send k map-function key func))
@@ -3308,7 +3307,7 @@
        [(is-a? p menu%) (loop (send p get-item))]
        [else (send p get-frame)]))))
 
-(define (append-edit-operation-items m)
+(define (append-edit-operation-menu-items m)
   (let ([mk (lambda (name key op)
 	      (make-object menu-item% name m
 			   (lambda (i e)
@@ -3331,7 +3330,7 @@
     (mk "Insert Image Box" #f 'insert-image)
     (void)))
 
-(define (append-edit-font-items m)
+(define (append-edit-font-menu-items m)
   (let ([mk (lambda (name m cb)
 	      (make-object menu-item% name m
 			   (lambda (i e)
