@@ -13,6 +13,17 @@ Version 199.24:
 
  * X: too-long menus now scroll.
 
+ * X: changed `show' method of a top-level window to try harder to set
+   the focus to the shown (or raised) window. This seems to work
+   better for Gnome, and doesn't seem to have any affect on other
+   window managers that I tried.
+
+   This change can be disabled through a ~/.mred.resources setting:
+
+          mred.forceFocus : 0
+
+
+
 Version 199.23:
 
  * X: mouse wheel events are now reported to `on-char'.
