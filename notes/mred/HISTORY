@@ -1,4 +1,8 @@
 
+Version 299.24
+Added on-split-snip, on-merge-snips, and get-revision-number
+ to text%
+
 Version 299.23
 Added get-item-label, set-item-label, and set to tab-panel%
 
