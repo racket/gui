@@ -524,9 +524,7 @@
     (register-color-pref
      add-to-preferences-panel
      add-preferences-panel
-     build-color-selection-panel
-     register-active-pref-callback
-     remove-active-pref-callback))
+     build-color-selection-panel))
   (define-signature framework:color-prefs^
     ((open framework:color-prefs-class^)
      (open framework:color-prefs-fun^)))

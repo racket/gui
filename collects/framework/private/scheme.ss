@@ -270,7 +270,7 @@
       (define (get-color-prefs-table) color-prefs-table)
       
       (define (short-sym->pref-name sym) (string->symbol (short-sym->style-name sym)))
-      (define (short-sym->style-name sym) (format "syntax-coloring:Scheme:~a" sym))
+      (define (short-sym->style-name sym) (format "framework:syntax-coloring:scheme:~a" sym))
       
       (define (add-coloring-preferences-panel)
         (color-prefs:add-to-preferences-panel

@@ -278,43 +278,11 @@
           (hash-table-put! prefs-panel-mapping (string->symbol name) panel)
           panel))
       
-      
       ;; see docs
       (define (register-color-pref pref-name style-name color)
         (let ([sd (new style-delta%)])
           (send sd set-delta-foreground color)
           (preferences:set-default pref-name sd (lambda (x) (is-a? x style-delta%)))
           (preferences:set-un/marshall pref-name marshall-style unmarshall-style)
-          (editor:set-standard-style-list-delta style-name sd)))
-            
-      ;; The following 4 defines are a mini-prefs system that uses a weak hash table
-      ;; so the preferences won't hold on to a text when it should otherwise be GCed.
-      (define active-pref-callback-table (make-hash-table))
-            
-      ;; string? any? -> 
-      (define (do-active-pref-callbacks tab-name on?)
-        (hash-table-for-each (hash-table-get active-pref-callback-table
-                                             (string->symbol tab-name)
-                                             (lambda () (make-hash-table)))
-                             (lambda (k v)
-                               (v k on?))))
-      
-      ;; string? any? ->
-      (define (remove-active-pref-callback tab-name k)
-        (let ((ht (hash-table-get active-pref-callback-table
-                                  (string->symbol tab-name)
-                                  (lambda () #f))))
-          (when ht
-            (hash-table-remove! ht k))))
-      
-      ;; string? any? any? -> 
-      (define (register-active-pref-callback tab-name k v)
-        (hash-table-put! (hash-table-get active-pref-callback-table (string->symbol tab-name)
-                                         (lambda ()
-                                           (let ((ht (make-hash-table 'weak)))
-                                             (hash-table-put! active-pref-callback-table
-                                                              (string->symbol tab-name)
-                                                              ht)
-                                             ht)))
-                         k v)))))
+          (editor:set-standard-style-list-delta style-name sd))))))
 

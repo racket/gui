@@ -4,7 +4,8 @@
            (lib "unitsig.ss")
 	   (lib "class.ss")
            (lib "file.ss")
-	   "sig.ss"
+	   (lib "etc.ss")
+           "sig.ss"
            "../gui-utils.ss"
 	   (lib "mred-sig.ss" "mred")
 	   (lib "pretty.ss")
@@ -96,8 +97,16 @@
 		    (reset-changed))))))))
 
       (define guard
-        (lambda (when p value thunk failure)
-          (with-handlers ([not-break-exn? failure])
+        (lambda (when p value thunk)
+          (with-handlers ([not-break-exn? 
+                           (lambda (exn)
+                             (error "excetion raised ~s, pref ~s val ~s, msg: ~a"
+                                    when
+                                    p
+                                    value
+                                    (if (exn? exn)
+                                        (exn-message exn)
+                                        (format "~s" exn))))])
             (thunk))))
       
       (define (unmarshall p marshalled)
@@ -107,59 +116,72 @@
                                  (hash-table-get marshall-unmarshall
                                                  p
                                                  (lambda () (k data))))])
-            (guard "unmarshalling" p marshalled
-                   (lambda () (unmarshall-fn data))
-                   (lambda (exn)
-                     (begin0
-                       (hash-table-get
-                        defaults
-                        p
-                        (lambda ()
-                          (raise exn)))
-                       (message-box (format (string-constant error-unmarshalling) p)
-                                    (if (exn? exn)
-                                        (format "~a" (exn-message exn))
-                                        (format "~s" exn)))))))))
+            (with-handlers ([not-break-exn?
+                             (lambda (exn)
+                               (begin0
+                                 (hash-table-get defaults p (lambda () (raise exn)))
+                                 (message-box (format (string-constant error-unmarshalling) p)
+                                              (if (exn? exn)
+                                                  (format "~a" (exn-message exn))
+                                                  (format "~s" exn)))))])
+              (unmarshall-fn data)))))
       
-      ;; get-callbacks : sym -> (listof (-> void))
-      (define (get-callbacks p)
-        (hash-table-get callbacks
-                        p
-                        (lambda () null)))
-      
-      ;; pref-callback : (make-pref-callback (sym tst -> void))
+      ;; pref-callback : (make-pref-callback (union (weak-box (sym tst -> void)) (sym tst -> void)))
       ;; this is used as a wrapped to hack around the problem
       ;; that different procedures might be eq?.
       (define-struct pref-callback (cb))
 
       ;; add-callback : sym (-> void) -> void
-      (define (add-callback p callback)
-        (let ([new-cb (make-pref-callback callback)])
-          (hash-table-put! callbacks p 
-                           (append 
-                            (hash-table-get callbacks p (lambda () null))
-                            (list new-cb)))
-          (lambda ()
-            (hash-table-put!
-             callbacks
-             p
-             (let loop ([callbacks (hash-table-get callbacks p (lambda () null))])
-               (cond
-                 [(null? callbacks) null]
-                 [else 
-                  (let ([callback (car callbacks)])
-                    (cond
-                      [(eq? callback new-cb)
-                       (loop (cdr callbacks))]
-                      [else
-                       (cons (car callbacks) (loop (cdr callbacks)))]))]))))))
+      (define add-callback 
+        (opt-lambda (p callback [weak? #f])
+          (let ([new-cb (make-pref-callback (if weak?
+                                                (make-weak-box callback)
+                                                callback))])
+            (hash-table-put! callbacks
+                             p 
+                             (append 
+                              (hash-table-get callbacks p (lambda () null))
+                              (list new-cb)))
+            (lambda ()
+              (hash-table-put!
+               callbacks
+               p
+               (let loop ([callbacks (hash-table-get callbacks p (lambda () null))])
+                 (cond
+                   [(null? callbacks) null]
+                   [else 
+                    (let ([callback (car callbacks)])
+                      (cond
+                        [(eq? callback new-cb)
+                         (loop (cdr callbacks))]
+                        [else
+                         (cons (car callbacks) (loop (cdr callbacks)))]))])))))))
       
+      ;; check-callbacks : sym val -> void
       (define (check-callbacks p value)
-	(for-each (lambda (x)
-		    (guard "calling callback" p value
-			   (lambda () ((pref-callback-cb x) p value))
-			   raise))
-                  (get-callbacks p)))
+        (let ([new-callbacks
+               (let loop ([callbacks (hash-table-get callbacks p (lambda () null))])
+                 (cond
+                   [(null? callbacks) null]
+                   [else 
+                    (let* ([callback (car callbacks)]
+                           [cb (pref-callback-cb callback)])
+                      (cond
+                        [(weak-box? cb)
+                         (let ([v (weak-box-value cb)])
+                           (if v
+                               (begin 
+                                 (guard "calling callback" p value
+                                        (lambda () (v p value)))
+                                 (cons callback (loop (cdr callbacks))))
+                               (loop (cdr callbacks))))]
+                        [else
+                         (guard "calling callback" p value
+                                (lambda () (cb p value)))
+                         (cons callback (loop (cdr callbacks)))]))]))])
+          (if (null? new-callbacks)
+              (hash-table-remove! callbacks p)
+              (hash-table-put! callbacks p new-callbacks))))
       
       (define (get p) 
         (let ([ans (hash-table-get preferences p
@@ -290,8 +312,7 @@
                                 (hash-table-get marshall-unmarshall p
                                                 (lambda ()
                                                   (k value))))
-                               value))
-                            raise))])
+                               value))))])
              (list p marshalled))]
           [else (error 'prefs.ss "robby error.2: ~a" ht-value)]))
       
@@ -750,6 +771,10 @@
                        (make-check editor-panel 
                                    'framework:menu-bindings
                                    (string-constant enable-keybindings-in-menus)
+                                   values values)
+                       (make-check editor-panel 
+                                   'framework:coloring-active
+                                   (string-constant online-coloring-active)
                                    values values)
                        (unless (eq? (system-type) 'unix) 
                          (make-check editor-panel 

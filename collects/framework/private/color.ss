@@ -36,12 +36,7 @@
 
           reset-region
           update-region-end))
-                
-      (define-local-member-name toggle-color)
 
-      (define (active-cb text on?)
-        (send text toggle-color on?))
-      
       (define text-mixin
         (mixin (text:basic<%>) (-text<%>)
           ;; ---------------------- Coloring modes ----------------------------
@@ -298,7 +293,6 @@
               (set! get-token get-token-)
               (set! pairs pairs-)
               (set! parens (new paren-tree% (matches pairs)))
-              (color-prefs:register-active-pref-callback tab-name this active-cb)
               (unless background-thread
                 (break-enabled #f)
                 (set! background-thread (thread (lambda () (background-colorer-entry))))
@@ -308,7 +302,6 @@
           (define/public stop-colorer
             (opt-lambda ((clear-colors #t))
               (set! stopped? #t)
-              (color-prefs:remove-active-pref-callback tab-name this)
               (when clear-colors
                 (change-style (send (get-style-list) find-named-style "Standard")
                               start-pos end-pos #f))
@@ -321,8 +314,10 @@
           (define/public (freeze-colorer)
             (when (is-locked?)
               (error 'freeze-colorer "called on a locked color:text<%>."))
-            #;(when (in-edit-sequence?)
-                (error 'freeze-colorer "called on a color:text<%> while in an edit sequence."))
+            #|
+            (when (in-edit-sequence?)
+              (error 'freeze-colorer "called on a color:text<%> while in an edit sequence."))
+            |#
             (unless frozen?
               (finish-now)
               (set! frozen? #t)))
@@ -337,7 +332,7 @@
                   (stop-colorer (not should-color?))
                   (start-colorer tn gt p)))))
           
-          (define/public (toggle-color on?)
+          (define/private (toggle-color on?)
             (cond
               ((and frozen? (not (equal? on? should-color?)))
                (set! restart-after-freeze #t))
@@ -474,7 +469,13 @@
                     
           (rename (super-change-style change-style))
           
-          (super-instantiate ())))
+          (super-new)
+          
+          ;; need pref-callback to be in a private field
+          ;; so that the editor hangs on to the callback
+          ;; when the editor goes away, so does the callback
+          (define (pref-callback k v) (toggle-color v))
+          (preferences:add-callback 'framework:coloring-active pref-callback #t)))
       
       (define -text% (text-mixin text:keymap%))
               

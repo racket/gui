@@ -98,12 +98,17 @@
     "\\scmindex{exn:unknown-preference}\\rawscm{exn:unknown-preference}"
     "if the preference has not been set.")
    (preferences:add-callback
-    (symbol? (symbol? any? . -> . any?) . -> . (-> void?))
-    (p f)
+    (opt-> (symbol? (symbol? any? . -> . any?))
+           (boolean?)
+           (-> void?))
+    (p f (weak? #f))
     "This function adds a callback which is called with a symbol naming a"
     "preference and it's value, when the preference changes."
     "\\rawscm{preferences:add-callback} returns a thunk, which when"
     "invoked, removes the callback from this preference."
+    ""
+    "If \\var{weak?} is true, the preferences system will only hold on to"
+    "the callback weakly."
     ""
     "The callbacks will be called in the order in which they were added."
     ""
@@ -1580,6 +1585,18 @@
     (color-prefs:build-color-selection-panel
      ((is-a?/c area-container<%>) symbol? string? string? . -> . void?)
      (parent pref-sym style-name example-text)
-     "...")
+     "Builds a panel with a number of controls for configuring"
+     "a font: the color and check boxes for bold, italic, and underline."
+     "The \\var{parent} argument specifies where the panel will be"
+     "placed. The \\var{pref-sym} should be a preference (suitable for"
+     "use with"
+     "@flink preferences:get "
+     "and"
+     "@flink preferences:set %"
+     "). The \\var{style-name} specifies the name of a style in the"
+     "style list returned from"
+     "@flink editor:get-standard-style-list"
+     "and \\var{example-text} is shown in the panel so users can see"
+     "the results of their configuration.")
     
     ))
