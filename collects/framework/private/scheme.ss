@@ -886,6 +886,24 @@
 		(end-edit-sequence)
 		#t)))
           
+          ;; uncomment-box/selection : -> void
+          ;; uncomments a comment box, if the focus is inside one.
+          ;; otherwise, calls uncomment selection to uncomment
+          ;; something else.
+          (inherit get-focus-snip)
+          (define/public (uncomment-box/selection)
+            (begin-edit-sequence)
+            (let ([focus-snip (get-focus-snip)])
+              (cond
+                [(not focus-snip) (uncomment-selection)]
+                [(is-a? focus-snip comment-box:snip%) 
+                 (extract-contents 
+                  (get-snip-position focus-snip)
+                  focus-snip)]
+                [else (uncomment-selection)]))
+            (end-edit-sequence)
+            #t)
+          
           (define uncomment-selection
             (opt-lambda ([start-pos (get-start-position)]
                          [end-pos (get-end-position)])

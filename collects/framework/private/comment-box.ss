@@ -13,8 +13,10 @@
   (define comment-box@
     (unit/sig framework:comment-box^
       (import [text : framework:text^]
-              [scheme : framework:scheme^])
-      (rename [-snip% snip%])
+              [scheme : framework:scheme^]
+              [keymap : framework:keymap^])
+      (rename [-snip% snip%]
+              [-text% text%])
       
       (define snipclass%
         (class decorated-editor-snipclass%
@@ -32,13 +34,21 @@
                           (and (send bm ok?)
                                bm)))))
       
+      (define (editor-keymap-mixin %)
+        (class %
+          (rename [super-get-keymaps get-keymaps])
+          (define/override (get-keymaps)
+            (cons (keymap:get-file) (super-get-keymaps)))
+          (super-instantiate ())))
+      
       (define -snip%
         (class* decorated-editor-snip% (readable-snip<%>)
           (inherit get-editor get-style)
           
-          (define/override (make-editor) (make-object (scheme:text-mixin text:keymap%)))
+          (define/override (make-editor) (make-object (scheme:text-mixin (editor-keymap-mixin text:keymap%))))
           (define/override (make-snip) (make-object -snip%))
           (define/override (get-corner-bitmap) bm)
+          (define/override (get-position) 'left-top)
           
           (rename [super-get-text get-text])
           (define/override get-text

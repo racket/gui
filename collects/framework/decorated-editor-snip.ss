@@ -30,6 +30,13 @@
       ;; when clicking in the top part of the snip.
       (define/public (get-menu) #f)
 
+      ;; get-position : -> (union 'top-right 'left-top)
+      ;; returns the location of the image and the clickable
+      ;; region. 'top-right indicates top portion is clickable
+      ;; and icon on right. 'left-top means left portion is
+      ;; clickable and icon on top.
+      (define/public (get-position) 'top-right)
+      
       [define/private (get-pen) (send the-pen-list find-or-create-pen (get-color) 1 'solid)]
       [define/private (get-brush) (send the-brush-list find-or-create-brush "BLACK" 'transparent)]      
       
@@ -49,18 +56,26 @@
                  [bml (box 0)]
                  [bmt (box 0)]
                  [bmr (box 0)]
-                 [bmb (box 0)])
+                 [bmb (box 0)]
+                 [menu (get-menu)])
              (get-extent dc x y bw bh #f #f #f #f)
              (get-inset bil bit bir bib)
              (get-margin bml bmt bmr bmb)
-             (let ([menu (get-menu)])
+             (let ([in-range
+                    (case (get-position)
+                      [(top-right)
+                       (and (<= 0 sx (unbox bw))
+                            (<= 0 sy (unbox bmt)))]
+                      [(left-top)
+                       (and (<= 0 sx (unbox bml))
+                            (<= 0 sy (unbox bh)))]
+                      [else #f])])
                (cond
-                 [(and menu
-                       (<= 0 sx (unbox bw))
-                       (<= 0 sy (unbox bmt)))
+                 [(and menu in-range)
                   (let ([admin (get-admin)])
-                    (send admin popup-menu menu this (+ sx 1) (+ sy 1)))]
-                 [else (super-on-event dc x y editorx editory evt)])))]
+                    (when admin
+                      (send admin popup-menu menu this (+ sx 1) (+ sy 1))))]
+                  [else (super-on-event dc x y editorx editory evt)])))]
           [else
            (super-on-event dc x y editorx editory evt)]))
       
@@ -87,11 +102,19 @@
             
             (send dc set-pen (send the-pen-list find-or-create-pen "white" 1 'transparent))
             (send dc set-brush (send the-brush-list find-or-create-brush "white" 'solid))
-            (send dc draw-rectangle 
-                  (+ x (unbox bml))
-                  (+ y (unbox bit))
-                  (max 0 (- (unbox bw) (unbox bml) (unbox bmr)))
-                  (- (unbox bmt) (unbox bit)))
+            (case (get-position)
+              [(top-right)
+               (send dc draw-rectangle 
+                     (+ x (unbox bml))
+                     (+ y (unbox bit))
+                     (max 0 (- (unbox bw) (unbox bml) (unbox bmr)))
+                     (- (unbox bmt) (unbox bit)))]
+              [(left-top)
+               (send dc draw-rectangle 
+                     (+ x (unbox bil))
+                     (+ y (unbox bmt))
+                     (- (unbox bml) (unbox bil))
+                     (max 0 (- (unbox bh) (unbox bmt) (unbox bmb))))])
             
             (send dc set-pen (send the-pen-list find-or-create-pen "black" 1 'solid))
             (send dc set-brush (send the-brush-list find-or-create-brush "black" 'solid))
@@ -99,14 +122,22 @@
             (when bm
               (let ([bm-w (send bm get-width)]
                     [bm-h (send bm get-height)])
-                (send dc draw-bitmap
-                      bm
-                      (+ x (max 0
-                                (- (unbox bw)
-                                   (unbox bmr)
-                                   bm-w)))
-                      ;; leave two pixels above and two below (see super-instantiate below)
-                      (+ y (unbox bit) 2))))
+                (case (get-position)
+                  [(top-right)
+                   (send dc draw-bitmap
+                         bm
+                         (+ x (max 0
+                                   (- (unbox bw)
+                                      (unbox bmr)
+                                      bm-w)))
+                         ;; leave two pixels above and two below (see super-instantiate below)
+                         (+ y (unbox bit) 2))]
+                  [(left-top)
+                   (send dc draw-bitmap
+                         bm
+                         ;; leave two pixels left and two right (see super-instantiate below)
+                         (+ x (unbox bil) 2)
+                         (+ y (unbox bmt)))])))
             
             (send dc set-pen (get-pen))
             (send dc set-brush (get-brush))
@@ -129,29 +160,41 @@
           (send snip set-style (get-style))
           snip))
       
-      (inherit set-min-width get-margin)
-      (define/public (reset-min-width)
-        (let ([lib (box 0)]
-              [rib (box 0)]
-              [lmb (box 0)]
-              [rmb (box 0)])
-          (get-inset lib (box 0) rib (box 0))
-          (get-margin lmb (box 0) rmb (box 0))
-          (let ([bm (get-corner-bitmap)])
-            (when bm
-              (set-min-width 
-               (max 0 (send bm get-width)))))))
+      (inherit set-min-width set-min-height get-margin)
+      (define/public (reset-min-sizes)
+        (let ([bm (get-corner-bitmap)])
+          (when bm
+            (case (get-position)
+              [(top-right)
+               (set-min-width (+ 4 (send bm get-width)))]
+              [(left-top)
+               (set-min-height (+ 4 (send bm get-height)))]))))
       
-      (super-instantiate ()
-        (editor (make-editor))
-        (with-border? #f)
-        (top-margin (+ 4 
-                       (let ([bm (get-corner-bitmap)])
-                         (if bm
-                             (send bm get-height)
-                             0)))))
+      (let ([top-margin 
+             (case (get-position)
+               [(top-right)
+                (+ 4 
+                   (let ([bm (get-corner-bitmap)])
+                     (if bm
+                         (send bm get-height)
+                         0)))]
+               [else 4])]
+            [left-margin
+             (case (get-position)
+               [(left-top)
+                (+ 4
+                   (let ([bm (get-corner-bitmap)])
+                     (if bm
+                         (send bm get-width)
+                         0)))]
+               [else 4])])
+        (super-instantiate ()
+          (editor (make-editor))
+          (with-border? #f)
+          (top-margin top-margin)
+          (left-margin left-margin)))
       
-      (reset-min-width)))
+      (reset-min-sizes)))
   
   (define decorated-editor-snipclass%
     (class snip-class%

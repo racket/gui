@@ -1843,89 +1843,97 @@
                         (send tx get-start-position)
                         (send tx get-end-position))
                   (send find-edit get-text 0 (send find-edit last-position)))))))
-            (define replace&search
-             (lambda ()
-               (let ([text (get-text-to-search)])
-                 (send text begin-edit-sequence)
-                 (when (replace)
-                   (search-again))
-                 (send text end-edit-sequence))))
-            (define replace-all
-             (lambda ()
-               (let* ([replacee-edit (get-text-to-search)]
-                      [pos (if (eq? searching-direction 'forward)
-                               (send replacee-edit get-start-position)
-                               (send replacee-edit get-end-position))]
-                      [done? (if (eq? 'forward searching-direction)
-                                 (lambda (x) (>= x (send replacee-edit last-position)))
-                                 (lambda (x) (<= x 0)))])
-                 (send* replacee-edit 
-                   (begin-edit-sequence)
-                   (set-position pos))
-                 (when (search-again)
-                   (send replacee-edit set-position pos)
-                   (let loop ()
-                     (when (send find-edit search #t #f #f)
-                       (replace)
-                       (loop))))
-                 (send replacee-edit end-edit-sequence))))
-            (define replace
-             (lambda ()
-               (let* ([search-text (send find-edit get-text)]
-                      [replacee-edit (get-text-to-search)]
-                      [replacee-start (send replacee-edit get-start-position)]
-                      [new-text (send replace-edit get-text)]
-                      [replacee (send replacee-edit get-text
-                                      replacee-start
-                                      (send replacee-edit get-end-position))])
-                 (if (string=? replacee search-text)
-                     (begin (send replacee-edit insert new-text)
-                            (send replacee-edit set-position
-                                  replacee-start
-                                  (+ replacee-start (string-length new-text)))
-                            #t)
-                     #f))))
-            (define toggle-search-focus
-             (lambda ()
-               (set-searching-frame this)
-               (unhide-search)
-               (send (cond
-                       [(send find-canvas has-focus?)
-                        replace-canvas]
-                       [(send replace-canvas has-focus?)
-                        (send (get-text-to-search) get-canvas)]
-                       [else
-                        find-canvas])
-                     focus)))
-            (define move-to-search-or-search
-             (lambda ()
-               (set-searching-frame this)
-               (unhide-search)
-               (cond
-                 [(preferences:get 'framework:search-using-dialog?)
-                  (search-dialog this)]
-                 [else
-                  (if (or (send find-canvas has-focus?)
-                          (send replace-canvas has-focus?))
-                      (search-again 'forward)
-                      (send find-canvas focus))])))
-            (define move-to-search-or-reverse-search
-             (lambda ()
-               (set-searching-frame this)
-               (unhide-search)
-               (if (or (send find-canvas has-focus?)
-                       (send replace-canvas has-focus?))
-                   (search-again 'backward)
-                   (send find-canvas focus))))
-            (define search-again
-             (opt-lambda ([direction searching-direction] [beep? #t])
-               (set-searching-frame this)
-               (unhide-search)
-               (set-search-direction direction)
-               (send find-edit search #t beep?)))
+          (define replace&search
+            (lambda ()
+              (let ([text (get-text-to-search)])
+                (send text begin-edit-sequence)
+                (when (replace)
+                  (search-again))
+                (send text end-edit-sequence))))
+          (define (replace-all)
+            (let* ([replacee-edit (get-text-to-search)]
+                   [embeded-replacee-edit (find-embedded-focus-editor replacee-edit)]
+                   [pos (if (eq? searching-direction 'forward)
+                            (send embeded-replacee-edit get-start-position)
+                            (send embeded-replacee-edit get-end-position))]
+                   [done? (if (eq? 'forward searching-direction)
+                              (lambda (x) (>= x (send replacee-edit last-position)))
+                              (lambda (x) (<= x 0)))])
+              (send replacee-edit begin-edit-sequence)
+              (when (search-again)
+                (send embeded-replacee-edit set-position pos)
+                (let loop ()
+                  (when (send find-edit search #t #f #f)
+                    (replace)
+                    (loop))))
+              (send replacee-edit end-edit-sequence)))
+          (define (replace)
+            (let* ([search-text (send find-edit get-text)]
+                   [replacee-edit (find-embedded-focus-editor (get-text-to-search))]
+                   [replacee-start (send replacee-edit get-start-position)]
+                   [new-text (send replace-edit get-text)]
+                   [replacee (send replacee-edit get-text
+                                   replacee-start
+                                   (send replacee-edit get-end-position))])
+              (if (string=? replacee search-text)
+                  (begin (send replacee-edit insert new-text)
+                         (send replacee-edit set-position
+                               replacee-start
+                               (+ replacee-start (string-length new-text)))
+                         #t)
+                  #f)))
+
+          (define/private (find-embedded-focus-editor editor)
+            (let loop ([editor editor])
+              (let ([s (send editor get-focus-snip)])
+                (cond
+                  [(and s (is-a? s editor-snip%))
+                   (let ([next-ed (send s get-editor)])
+                     (if next-ed 
+                         (loop next-ed)
+                         editor))]
+                  [else editor]))))
+          
+          (define (toggle-search-focus)
+            (set-searching-frame this)
+            (unhide-search)
+            (send (cond
+                    [(send find-canvas has-focus?)
+                     replace-canvas]
+                    [(send replace-canvas has-focus?)
+                     (send (get-text-to-search) get-canvas)]
+                    [else
+                     find-canvas])
+                  focus))
+          (define move-to-search-or-search
+            (lambda ()
+              (set-searching-frame this)
+              (unhide-search)
+              (cond
+                [(preferences:get 'framework:search-using-dialog?)
+                 (search-dialog this)]
+                [else
+                 (if (or (send find-canvas has-focus?)
+                         (send replace-canvas has-focus?))
+                     (search-again 'forward)
+                     (send find-canvas focus))])))
+          (define move-to-search-or-reverse-search
+            (lambda ()
+              (set-searching-frame this)
+              (unhide-search)
+              (if (or (send find-canvas has-focus?)
+                      (send replace-canvas has-focus?))
+                  (search-again 'backward)
+                  (send find-canvas focus))))
+          (define search-again
+            (opt-lambda ([direction searching-direction] [beep? #t])
+              (set-searching-frame this)
+              (unhide-search)
+              (set-search-direction direction)
+              (send find-edit search #t beep?)))
           
           (super-instantiate ())
-
+          
           (define search-panel (make-object horizontal-panel% super-root '(border)))
           
           (define left-panel (make-object vertical-panel% search-panel))
@@ -1944,7 +1952,7 @@
                                   (string-constant find)
                                   middle-left-panel
                                   (lambda args (search-again))))
-
+          
           (define replace-button-panel
             (instantiate vertical-panel% ()
               (parent middle-left-panel)
@@ -1959,7 +1967,7 @@
                                           (string-constant replace&find-again)
                                           middle-middle-panel
                                           (lambda x (replace&search))))
-
+          
           (define replace-all-button (make-object button% 
                                        (string-constant replace-to-end)
                                        middle-middle-panel
@@ -1978,13 +1986,13 @@
                                   (reset-search-anchor (get-text-to-search))))))
           (define hide/undock-pane (make-object horizontal-panel% middle-right-panel))
           (define hide-button (make-object button% (string-constant hide)
-                                 hide/undock-pane
-                                 (lambda args (hide-search))))
+                                hide/undock-pane
+                                (lambda args (hide-search))))
           (define undock-button (make-object button% (string-constant undock)
                                   hide/undock-pane
                                   (lambda args (undock))))
           (define hidden? #f)
-
+          
           (let ([align
                  (lambda (x y)
                    (let ([m (max (send x get-width)
