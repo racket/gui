@@ -1,16 +1,3 @@
-#|
-
-these should line up!
-
-	aaa
-        aaa
-	aaa
-        aaa
-	aaa
-        aaa
-
-|#
-
 (module group mzscheme
   (require (lib "string-constant.ss" "string-constants")
            (lib "unitsig.ss")
