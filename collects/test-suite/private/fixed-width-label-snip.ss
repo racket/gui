@@ -42,8 +42,8 @@
         
         (define/override (get-extent dc x y w h descent space lspace rspace)
           (let ([maxes (get-max-string-size dc labels)])
-            (set-box! w (+ left-margin (car maxes) right-margin))
-            (set-box! h (+ top-margin (cdr maxes) bottom-margin))))
+            (when w (set-box! w (+ left-margin (car maxes) right-margin)))
+            (when h (set-box! h (+ top-margin (cdr maxes) bottom-margin)))))
         
         (rename [super-draw draw])
         (define/override (draw dc x y left top right bottom dx dy draw-caret)
