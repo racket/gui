@@ -1428,7 +1428,14 @@
        [handle-menu-key
 	(lambda (event)
 	  (and menu-bar 
-	       (begin (send menu-bar on-demand) #t)
+	       (begin 
+		 ;; It can't be a menu event without a
+		 ;; control, meta, or alt key...
+		 (when (or (send event get-control-down)
+			   (send event get-meta-down)
+			   (send event get-alt-down))
+		   (send menu-bar on-demand))
+		 #t)
 	       (send menu-bar handle-key event)))])
      (sequence
        (apply super-init args)))))
