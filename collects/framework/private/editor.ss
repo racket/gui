@@ -10,9 +10,6 @@
 	   (lib "mred-sig.ss" "mred")
 	   (lib "file.ss"))
 
-  ;; renaming, for editor-mixin where get-file is shadowed by a method.
-  (define mred:get-file get-file) 
-
   (provide editor@)
 
   (define editor@
@@ -28,8 +25,11 @@
 	      [pasteboard : framework:pasteboard^]
 	      [frame : framework:frame^]
               [handler : framework:handler^])
-      
+
       (rename [-keymap<%> keymap<%>])
+      
+      ;; renaming, for editor-mixin where get-file is shadowed by a method.
+      (define mred:get-file get-file) 
 
       (define basic<%>
 	(interface (editor<%>)
