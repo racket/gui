@@ -108,3 +108,14 @@ file.
 
 The "icons" and "stipple" boxes just enable those parts of the
 drawing. PostScript drawing of icons and stipples can be slow.
+
+----------
+
+Finally, print these instructions by hitting the "Print" button at the
+top of the window. The following lines are for the printing test; they
+should wrap aroundneatly on the printed page. (Don't add any
+newlines.) Check to make sure no lines are skipped or duplicated across
+page breaks. Try different page orientations.
+
+0         1         2         3         4         5         6         7         8         9         X         O         T         T         F
+012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789

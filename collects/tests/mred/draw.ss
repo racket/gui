@@ -11,6 +11,18 @@
 (define (get-icon)
   (make-object icon% (sys-path "mred.xbm") 'xbm))
 
+(define (show-instructions file)
+  (letrec ([f (make-object frame% file #f 400 400)]
+	   [print (make-object button% "Print" f
+			       (lambda (b ev)
+				 (send e print)))]
+	   [c (make-object editor-canvas% f)]
+	   [e (make-object text%)])
+    (send e load-file file)
+    (send e lock #t)
+    (send c set-editor e)
+    (send f show #t)))
+
 (let* ([f (make-object frame% "Graphics Test" #f 300 450)]
        [vp (make-object vertical-panel% f)]
        [hp0 (make-object horizontal-panel% vp)]
@@ -32,7 +44,7 @@
   (send hp stretchable-height #f)
   (make-object button% "What Should I See?" hp0
 	       (lambda (b e)
-		 (send (send (edit-file (local-path "draw-info.txt")) get-edit) lock #t)))
+		 (show-instructions (local-path "draw-info.txt"))))
   (let ([canvas
 	 (make-object
 	  (class canvas% args

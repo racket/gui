@@ -1408,8 +1408,8 @@
 		 (lambda ()
 		   (send child set-size
 			 (max 0 (+ x xm)) (max 0 (+ y ym))
-			 (max minw (- w (* 2 xm)))
-			 (max minh (- h (* 2 ym)))))
+			 (- (max minw w) (* 2 xm))
+			 (- (max minh h) (* 2 ym))))
 		 (lambda () (set! ignore-redraw-request? #f)))
 		(send child on-container-resize))))
 	  childs
@@ -1858,8 +1858,7 @@
 
 (define (check-container-parent who p)
   (unless (is-a? p internal-container<%>)
-    (raise-type-error (string->symbol (constructor-name who))
-		      "built-in container<%> object" p)))
+    (raise-type-error (constructor-name who) "built-in container<%> object" p)))
 
 (define (check-top-level-parent/false who p)
   (unless (or (not p) (is-a? p frame%) (is-a? p dialog%))
