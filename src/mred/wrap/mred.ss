@@ -382,15 +382,59 @@
 
 
 (define wx-make-window%
-  (lambda (%)
+  (lambda (% top?)
     (class % args
       (rename [super-on-set-focus on-set-focus]
 	      [super-on-kill-focus on-kill-focus]
-	      [super-drag-accept-files drag-accept-files])
+	      [super-drag-accept-files drag-accept-files]
+	      [super-show show]
+	      [super-enable enable])
       (private
 	[top-level #f]
 	[focus? #f]
-	[container this])
+	[container this]
+	[visible? #f]
+	[active? #f])
+      (private
+	[currently?
+	 (lambda (m)
+	   (let loop ([p this])
+	     (and (or (is-a? p wx:windowless-panel%)
+		      ((ivar/proc p m)))
+		  (or (is-a? p wx:frame%)
+		      (is-a? p wx:dialog%)
+		      (loop (send p get-parent))))))])
+      (public
+	[on-visible
+	 (lambda ()
+	   (let ([vis? (currently? 'is-shown?)])
+	     (unless (eq? vis? visible?)
+	       (set! visible? vis?)
+	       (as-exit
+		(lambda ()
+		  (send (wx->proxy this) on-superwindow-show vis?))))))]
+	[queue-visible
+	 (lambda ()
+	   (parameterize ([wx:current-eventspace (ivar (get-top-level) eventspace)])
+	     (wx:queue-callback (entry-point on-visible) wx:middle-queue-key)))])
+      (public
+	[on-active
+	 (lambda ()
+	   (let ([act? (currently? 'is-enabled?)])
+	     (unless (eq? act? active?)
+	       (set! active? act?)
+	       (as-exit
+		(lambda ()
+		  (send (wx->proxy this) on-superwindow-enable act?))))))]
+	[queue-active
+	 (lambda ()
+	   (parameterize ([wx:current-eventspace (ivar (get-top-level) eventspace)])
+	     (wx:queue-callback (entry-point on-active) wx:middle-queue-key)))]
+
+	;; Needed for radio boxes:
+	[orig-enable
+	 (lambda args (apply super-enable args))])
+      
       (public
 	[accept-drag? #f]
 	[get-container (lambda () container)]
@@ -411,6 +455,15 @@
 		[else (loop (send window get-parent))])))
 	   top-level)])
       (override
+	[show
+	 (lambda (on?)
+	   (queue-visible)
+	   (super-show on?))]
+	[enable
+	 (lambda (on?)
+	   (queue-active)
+	   (super-enable on?))]
+
 	[drag-accept-files
 	 (lambda (on?)
 	   (set! accept-drag? (and on? #t))
@@ -429,7 +482,11 @@
 	    (super-on-kill-focus)))])
       (public
 	[has-focus? (lambda () focus?)])
-      (sequence (apply super-init args)))))
+      (sequence 
+	(apply super-init args)
+	(unless top?
+	  (set! visible? (currently? 'is-shown?))
+	  (set! active? (currently? 'is-enabled?)))))))
 
 ; make-container% - for panels and top-level windows
 (define (wx-make-container% %) %)
@@ -444,13 +501,14 @@
 ;            capabilities necessary to serve as the frame/dialog which
 ;            contains container classes.
 (define (make-top-container% base% dlg?)
-  (class (wx-make-container% (wx-make-window% base%)) (parent . args)
+  (class (wx-make-container% (wx-make-window% base% #t)) (parent . args)
     (inherit get-x get-y get-width get-height set-size
 	     get-client-size is-shown? on-close)
     (rename [super-show show] [super-move move] [super-center center]
 	    [super-on-size on-size]
-	    [super-enable enable])
-    
+	    [super-enable enable]
+	    [super-on-visible on-visible]
+	    [super-on-active on-active])
     (private
       ; have we had any redraw requests while the window has been
       ; hidden?
@@ -688,6 +746,15 @@
 	     (hash-table-remove! top-level-windows this))
 	 (as-exit ; as-exit because there's an implicit wx:yield for dialogs
 	  (lambda () (super-show on?))))]
+
+      [on-visible
+       (lambda ()
+	 (send panel queue-visible)
+	 (super-on-visible))]
+      [on-active
+       (lambda ()
+	 (send panel queue-active)
+	 (super-on-active))]
       
       [move (lambda (x y) (set! use-default-position? #f) (super-move x y))]
       [center (lambda (dir)
@@ -866,7 +933,7 @@
 
 (define make-item%
    (lambda (item% x-margin-w y-margin-h stretch-x stretch-y)
-     (class (wx-make-window% item%) args
+     (class (wx-make-window% item% #f) args
        (rename [super-on-set-focus on-set-focus]
 	       [super-on-kill-focus on-kill-focus])
        (inherit get-width get-height get-x get-y
@@ -899,8 +966,6 @@
 	      (super-set-size x y width height)))])
 
        (public
-	 [orig-enable
-	  (lambda args (apply super-enable args))]
 	 [is-enabled?
 	  (lambda () enabled?)])
 
@@ -1184,7 +1249,7 @@
 
 (define (make-top-level-window-glue% %) ; implies make-window-glue%
   (class (make-window-glue% %) (mred proxy . args)
-    (inherit is-shown? get-mred)
+    (inherit is-shown? get-mred queue-visible)
     (rename [super-on-activate on-activate])
     (public 
       [act-date/seconds 0] [act-date/milliseconds 0] [act-on? #f]
@@ -1202,6 +1267,7 @@
 			 (if (as-exit (lambda () (send mred can-close?)))
 			     (begin
 			       (as-exit (lambda () (send mred on-close)))
+			       (queue-visible)
 			       #t)
 			     #f)
 			 #t))))]
@@ -1845,13 +1911,19 @@
 				       (format "cannot make non-window area inactive in ~e: "
 					       (wx->proxy this))
 				       non-window)))
+
+	     ;; Newly-added children may have been removed when
+	     ;;  disabled, or now added into a disabled panel:
+	     (for-each (lambda (child) (send child queue-active))
+		       added-children)
+
 	     (for-each (lambda (child) (send child show #f))
 		       removed-children)
 	     (set! children new-children)
 	     (force-redraw)
 	     (for-each (lambda (child) (send child show #t))
 		       added-children))))]
-  
+      
       ; delete-child: removes a child from the panel.
       ; input: child: child to delete.
       ; returns: nothing
@@ -2082,9 +2154,16 @@
 
 (define (wx-make-pane% wx:panel% stretch?)
   (class (make-container-glue% (make-glue% (wx-make-basic-panel% wx:panel% stretch?))) args
-    (inherit get-parent get-x get-y need-move-children)
+    (inherit get-parent get-x get-y need-move-children children)
     (rename [super-set-size set-size])
     (override
+      [on-visible
+       (lambda ()
+	 (for-each (lambda (c) (send c queue-visible)) children))]
+      [on-active
+       (lambda ()
+	 (for-each (lambda (c) (send c queue-active)) children))]
+
       [get-window (lambda () (send (get-parent) get-window))]
       [set-size (lambda (x y w h) 
 		  (super-set-size x y w h)
@@ -2095,7 +2174,20 @@
       (apply super-init args))))
 
 (define (wx-make-panel% wx:panel%)
-   (make-container-glue% (make-window-glue% (wx-make-basic-panel% wx:panel% #t))))
+  (class (make-container-glue% (make-window-glue% (wx-make-basic-panel% wx:panel% #t))) args
+    (rename [super-on-visible on-visible]
+	    [super-on-active on-active])
+    (inherit children)
+    (override 
+      [on-visible
+       (lambda ()
+	 (for-each (lambda (c) (send c queue-visible)) children)
+	 (super-on-visible))]
+      [on-active
+       (lambda ()
+	 (for-each (lambda (c) (send c queue-active)) children)
+	 (super-on-active))])
+    (sequence (apply super-init args))))
 
 (define (wx-make-linear-panel% wx-panel%)
   (class wx-panel% args
@@ -2713,12 +2805,11 @@
     accept-drop-files on-drop-file
     on-subwindow-char on-subwindow-event
     client->screen screen->client
-    enable is-enabled?
+    enable is-enabled? on-superwindow-enable
     get-label set-label get-plain-label
     get-client-size get-size get-width get-height get-x get-y
     get-cursor set-cursor 
-    show is-shown?
-    refresh))
+    show is-shown? on-superwindow-show refresh))
 
 (define (make-window% top? %) ; % implements area<%>
   (class* % (window<%>) (mk-wx get-wx-panel label parent cursor)
@@ -2807,6 +2898,8 @@
 				    this))))
 			     (send wx show on?)))]
       [is-shown? (entry-point (lambda () (send wx is-shown?)))]
+      [on-superwindow-show (lambda (visible?) (void))]
+      [on-superwindow-enable (lambda (active?) (void))]
 
       [refresh (entry-point (lambda () (send wx refresh)))])
     (private
@@ -2840,7 +2933,8 @@
     can-exit? on-exit
     get-focus-window get-edit-target-window
     get-focus-object get-edit-target-object
-    center move resize))
+    center move resize
+    on-message))
 
 (define basic-top-level-window%
   (class* (make-area-container-window% (make-window% #t (make-container% area%))) (top-level-window<%>) (mk-wx label parent)
@@ -2904,7 +2998,9 @@
 				      (and o (wx-object->proxy o)))))]
       [get-edit-target-object (entry-point
 			       (lambda () (let ([o (send wx get-edit-target-object)])
-					    (and o (wx-object->proxy o)))))])
+					    (and o (wx-object->proxy o)))))]
+
+      [on-message (lambda (m) (void))])
     (private
       [wx #f]
       [wx-panel #f]
@@ -5243,3 +5339,9 @@
        [(script) "Geneva"]
        [(symbol) "Symbol"])]))
 
+(define (send-message-to-window x y m)
+  (check-slider-integer 'send-message-to-window x)
+  (check-slider-integer 'send-message-to-window y)
+  (let ([w (wx:location->window x y)])
+    (and w (let ([f (wx->proxy w)])
+	     (and f (send f on-message m))))))
