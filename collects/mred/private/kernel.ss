@@ -934,8 +934,8 @@
     get-inexact
     get-exact
     get-fixed
+    get-unterminated-bytes
     get-bytes
-    get-terminated-bytes
     get)
   (define-class editor-stream-out% object% #f
     ok?

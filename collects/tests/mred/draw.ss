@@ -88,11 +88,12 @@
 	       (list->bytes '(#xcc #x33 #xcc #x33 #xcc #x33 #xcc #x33))
 	       8 8))
 
-(let* ([f (make-object frame% "Graphics Test" #f 300 450)]
+(let* ([f (make-object frame% "Graphics Test" #f 300 550)]
        [vp (make-object vertical-panel% f)]
        [hp0 (make-object horizontal-panel% vp)]
        [hp (make-object horizontal-panel% vp)]
        [hp2 hp]
+       [hp2.5 (make-object horizontal-panel% vp)]
        [hp3 (make-object horizontal-pane% vp)]
        [bb (make-object bitmap% (sys-path "bb.gif") 'gif)]
        [return (let* ([bm (make-object bitmap% (sys-path "return.xbm") 'xbm)]
@@ -107,11 +108,13 @@
        [use-bad? #f]
        [depth-one? #f]
        [cyan? #f]
+       [smoothing 'unsmoothed]
        [save-filename #f]
        [save-file-format #f]
        [clip 'none])
   (send hp0 stretchable-height #f)
   (send hp stretchable-height #f)
+  (send hp2.5 stretchable-height #f)
   (send hp3 stretchable-height #f)
   (make-object button% "What Should I See?" hp0
 	       (lambda (b e)
@@ -734,6 +737,17 @@
 				      (send dc set-pen pent)
 				      (loop (cdr l) (+ x 20)))))))
 
+			    (when last?
+			      (send dc set-pen (make-object pen% "black" 1 'transparent))
+			      (send dc set-brush (make-object brush% "blue" 'solid))
+			      (send dc draw-ellipse 400 10 40 40)
+			      (send dc draw-ellipse 400 50 40 40)
+			      (send dc draw-ellipse 400 90 40 40)
+			      (send dc set-pen (make-object pen% "black" 1 'solid))
+			      (send dc draw-ellipse 400 130 40 40)
+			      (send dc draw-ellipse 400 170 40 40)
+			      (send dc draw-ellipse 400 210 40 40))
+
 			    (when (and last? (not (or ps? (eq? dc can-dc)))
 				       (send mem-dc get-bitmap))
 			      (send can-dc draw-bitmap (send mem-dc get-bitmap) 0 0 'opaque)))
@@ -759,6 +773,7 @@
 
 		      (send dc set-scale xscale yscale)
 		      (send dc set-origin offset offset)
+		      (send dc set-smoothing smoothing)
 		      
 		      (send dc set-background
 			    (if cyan?
@@ -923,7 +938,12 @@
     (make-object check-box% "Pixset" hp2
 		 (lambda (self event)
 		   (send canvas set-pixel-copy (send self get-value))))
-    (make-object check-box% "Kern" hp2
+    (make-object choice% #f '("Unsmoothed" "Smoothed" "Compatible") hp2.5
+		 (lambda (self event)
+		   (set! smoothing (list-ref '(unsmoothed smoothed compatible)
+					     (send self get-selection)))
+		   (send canvas on-paint)))
+    (make-object check-box% "Kern" hp2.5
 		 (lambda (self event)
 		   (send canvas set-kern (send self get-value))))
     (make-object choice% "Clip" 
