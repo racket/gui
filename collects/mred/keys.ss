@@ -684,8 +684,7 @@
 				 (set! build-protect? #f)))
 			      (when building-macro
 				(set! building-macro 
-				      (cons (cons name 
-						  (duplicate-key-event event))
+				      (cons (cons name event)
 					    building-macro)))
 			      #t))
 		      (send km set-break-sequence-callback done)))
