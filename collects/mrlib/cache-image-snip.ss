@@ -139,9 +139,8 @@
                    (width (car data))
                    (height (cadr data))
                    (argb-vector (caddr data))
-                   (bitmap #f)
                    (argb-proc void)
-                   (draw-proc void))
+                   (dc-proc void))
               (make-null-cache-image-snip))))
       (super-new)))
   
