@@ -13,7 +13,8 @@
 
   (define finder@
     (unit/sig framework:finder^
-      (import [preferences : framework:preferences^]
+      (import mred^
+              [preferences : framework:preferences^]
 	      [gui-utils : framework:gui-utils^]
 	      [keymap : framework:keymap^])
 

@@ -60,28 +60,30 @@
 	(for-each (lambda (x) 
 		    (hash-table-put! hash-table (add-#% x) 'lambda)
 		    (hash-table-put! hash-table x 'lambda))
-		  '(lambda let let* letrec recur
-			   module
-			   let/cc let/ec letcc catch
-			   let-syntax letrec-syntax syntax-case
-			   let-signature fluid-let
-			   let-struct let-macro let-values let*-values
-			   case when unless match
-			   let-enumerate
-			   class class* class-asi class-asi* class*/names
-			   class/d class/d* class/d*/names
-			   rec
-			   make-object mixin
-			   define-some do opt-lambda send*
-			   define-record
-			   local catch shared
-			   unit/sig unit/lang
-			   with-handlers
-			   interface
-			   parameterize
-			   call-with-input-file with-input-from-file
-			   with-input-from-port call-with-output-file
-			   with-output-to-file with-output-to-port))
+		  '(
+                    lambda let let* letrec recur
+                     with-syntax
+                     module
+                     let/cc let/ec letcc catch
+                     let-syntax letrec-syntax syntax-case
+                     let-signature fluid-let
+                     let-struct let-macro let-values let*-values
+                     case when unless match
+                     let-enumerate
+                     class class* class-asi class-asi* class*/names
+                     class/d class/d* class/d*/names
+                     rec
+                     make-object mixin
+                     define-some do opt-lambda send*
+                     define-record
+                     local catch shared
+                     unit/sig unit/lang
+                     with-handlers
+                     interface
+                     parameterize
+                     call-with-input-file with-input-from-file
+                     with-input-from-port call-with-output-file
+                     with-output-to-file with-output-to-port))
 	(preferences:set-un/marshall
 	 'framework:tabify 
 	 (lambda (t) (hash-table-map t list))

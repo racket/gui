@@ -1,4 +1,4 @@
-(module handle mzscheme
+(module handler mzscheme
   (require (lib "unitsig.ss")
 	   (lib "class.ss")
 	   "sig.ss"

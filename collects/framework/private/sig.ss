@@ -108,7 +108,6 @@
      std-put-file 
      std-get-file 
      common-get-file-list
-     current-find-file-directory
      get-file
      put-file))
 

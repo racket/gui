@@ -6,7 +6,7 @@
 	   (lib "list.ss")
 	   (lib "file.ss"))
 
-  (povide group@)
+  (provide group@)
 
   (define group@
     (unit/sig framework:group^

@@ -4,6 +4,7 @@
 	   "sig.ss"
 	   "../gui-utils-sig.ss"
 	   "../macro.ss"
+           (lib "etc.ss")
 	   (lib "mred-sig.ss" "mred")
 	   (lib "file.ss"))
 
@@ -11,7 +12,7 @@
 
   (define editor@
     (unit/sig framework:editor^
-      (import [mred : mred^]
+      (import mred^
 	      [autosave : framework:autosave^]
 	      [finder : framework:finder^]
 	      [path-utils : framework:path-utils^]
