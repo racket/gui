@@ -42,6 +42,7 @@ X Windows: fixed wx:frame's iconize and iconized? methods,
  ignoring the X idea of not de-iconifying windows that were 
  iconified by the user
 Removed wx:exit
+MacOS: fixed event handling -> better response and performance
 
 System:
 -------
