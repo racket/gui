@@ -266,26 +266,11 @@
       (define autowrap<%> (interface (basic<%>)))
       (define autowrap-mixin
 	(mixin (basic<%>) (autowrap<%>)
-	  
-	  (rename [super-on-close on-close])
-	  (override on-close)
-          [define on-close
-	    (lambda ()
-	      (remove-callback)
-	      (super-on-close))]
-	  
 	  (inherit auto-wrap)
           (super-instantiate ())
           (auto-wrap 
            (preferences:get
-            'framework:auto-set-wrap?))
-          [define remove-callback
-            (preferences:add-callback
-             'framework:auto-set-wrap?
-             (let ([autowrap-mixin-pref-callback
-                    (lambda (p v)
-                      (auto-wrap v))])
-               autowrap-mixin-pref-callback))]))
+            'framework:auto-set-wrap?))))
       
       (define file<%> (interface (-keymap<%>)))
       (define file-mixin

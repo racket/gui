@@ -269,8 +269,9 @@
           (let loop ([input input])
             (when (pair? input)
               (let ([pre-pref (car input)])
-                (if (and (list? pre-pref)
-                         (= 2 (length pre-pref)))
+                (if (and (pair? pre-pref)
+                         (pair? (cdr pre-pref))
+                         (null? (cddr pre-pref)))
                     (parse-pref (car pre-pref) (cadr pre-pref))
                     (begin (read-err input (string-constant expected-list-of-length2))
                            (k #f))))
@@ -302,16 +303,30 @@
       (define (-read)
         (let/ec k
           (let ([sexp (get-preference main-preferences-symbol (lambda () (k #f)))])
-            (for-each-pref-in-sexp 
-             sexp
-             (lambda (p marshalled)
-               (add-raw-pref-to-ht preferences p marshalled))))))
-            
-      ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-      ;;;                                                 ;;;
-      ;;;               preferences dialog                ;;;
-      ;;;                                                 ;;;
-      ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+            (install-stashed-preferences sexp))))
+      
+      ;; install-stashed-preferences : sexp -> void
+      ;; ensure that `prefs' is actuall a well-formed preferences
+      ;; table and installs them as the current preferences.
+      (define (install-stashed-preferences prefs)
+        (for-each-pref-in-sexp 
+         prefs
+         (lambda (p marshalled)
+           (add-raw-pref-to-ht preferences p marshalled))))
+ 
+                                          
+    ;;    ;           ;;;                 
+     ;                  ;                 
+     ;                  ;                 
+  ;;;;  ;;;    ;;;;     ;     ;;;    ;;; ;
+ ;   ;    ;        ;    ;    ;   ;  ;   ; 
+ ;   ;    ;     ;;;;    ;    ;   ;  ;   ; 
+ ;   ;    ;    ;   ;    ;    ;   ;  ;   ; 
+ ;   ;    ;    ;   ;    ;    ;   ;  ;   ; 
+  ;;; ; ;;;;;   ;;; ; ;;;;;;  ;;;    ;;;; 
+                                        ; 
+                                        ; 
+                                     ;;;  
       
       
       (define-struct ppanel (title container panel))
@@ -583,7 +598,8 @@
       
       (define make-preferences-dialog
         (lambda ()
-          (letrec ([frame 
+          (letrec ([stashed-prefs (get-preference main-preferences-symbol (lambda () null))]
+                   [frame 
                     (make-object (class100 frame% args
                                    (public
                                      [added-pane
@@ -648,9 +664,9 @@
                                   (hide-dialog))]
                    [ok-button (make-object button% (string-constant ok)
                                 bottom-panel ok-callback '(border))]
-                   [cancel-callback (lambda args
+                   [cancel-callback (lambda (_1 _2)
                                       (hide-dialog)
-                                      (-read))]
+                                      (install-stashed-preferences stashed-prefs))]
                    [cancel-button (make-object button% (string-constant cancel)
                                     bottom-panel cancel-callback)]
                    [grow-box-space (make-object grow-box-spacer-pane% bottom-panel)])

@@ -814,7 +814,9 @@
                        (let ([edit (get-edit-target-object)])
                          (when (and edit
                                     (is-a? edit editor<%>))
-                           (send edit auto-wrap (not (send edit auto-wrap))))))])
+                           (let ([new-pref (not (send edit auto-wrap))])
+                             (preferences:set 'framework:auto-set-wrap? new-pref)
+                             (send edit auto-wrap new-pref)))))])
                (make-object c% (string-constant wrap-text-item)
                  edit-menu callback #f #f on-demand))
              
