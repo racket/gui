@@ -398,30 +398,96 @@
                          (get-text 0 (get-count)))])
               (send cpy set-flags (get-flags))))
           (define/override (get-extent dc x y wb hb db sb lb rb)
-            (let ([set/f!
-                   (lambda (b n)
-                     (when (box? b)
-                       (set-box! b n)))])
+            (cond
+              [(memq 'invisible (get-flags))
+               (set/f! wb 0)
+               (set/f! hb 0)]
+              [else
+               (set/f! wb (get-count))
+               (set/f! hb 1)])
+            (set/f! db 0)
+            (set/f! sb 0)
+            (set/f! lb 0)
+            (set/f! rb 0))
+          
+          (define (for-each/sections f str)
+            (let loop ([n (string-length str)]
+                       [len 0]
+                       [blank? #t])
               (cond
-                [(memq 'invisible (get-flags))
-                 (set/f! wb 0)
-                 (set/f! hb 0)]
+                [(zero? n)
+                 (unless blank?
+                   (f n len))]
                 [else
-                 (set/f! wb (get-count))
-                 (set/f! hb 1)])
-              (set/f! db 0)
-              (set/f! sb 0)
-              (set/f! lb 0)
-              (set/f! rb 0)))
-          (define/override (draw dc x y left right top bottom dx dy draw-caret)
+                 (let ([white? (char-whitespace? (string-ref str (- n 1)))])
+                   (cond
+                     [(eq? white? blank?)
+                      (loop (- n 1) (+ len 1) blank?)]
+                     [else
+                      (unless blank? 
+                        (f n len))
+                      (loop (- n 1)
+                            1
+                            (not blank?))]))])))
+          
+          (define/override (draw dc x y left top right bottom dx dy draw-caret)
             (let ([str (get-text 0 (get-count))])
-              (let loop ([n (string-length str)])
-                (unless (zero? n)
-                  (let ([char (string-ref str (- n 1))])
-                    (unless (char-whitespace? char)
-                      (send dc draw-point (+ x (- n 1)) y)))
-                  (loop (- n 1))))))
+              (when (<= top y bottom)
+                (for-each/sections
+                 (lambda (start len)
+                   (send dc draw-line
+                         (+ x start)
+                         y
+                         (+ x start (- len 1))
+                         y))
+                 str))))
           (apply super-make-object args)))
+      
+      (define 1-pixel-tab-snip%
+        (class tab-snip%
+          (init-rest args)
+          (inherit get-text get-count set-count get-flags)
+          (define/override (split position first second)
+            (let* ([str (get-text 0 (get-count))]
+                   [new-second (make-object 1-pixel-string-snip%
+                                 (substring str position (string-length str)))])
+              (set-box! first this)
+              (set-box! second new-second)
+              (set-count position)
+              (void)))
+          (define/override (copy)
+            (let ([cpy (make-object 1-pixel-tab-snip%)])
+              (send cpy set-flags (get-flags))))
+          
+          (inherit get-admin)
+          (define/override (get-extent dc x y wb hb db sb lb rb)
+            (set/f! wb 0)
+            (let ([admin (get-admin)])
+              (when admin
+                (let ([ed (send admin get-editor)])
+                  (when (is-a? ed text%)
+                    (let ([len-b (box 0)]
+                          [tab-width-b (box 0)]
+                          [in-units-b (box #f)])
+                      (send ed get-tabs len-b tab-width-b in-units-b)
+                      (when (and (or (equal? (unbox len-b) 0)
+                                     (equal? (unbox len-b) null))
+                                 (not (unbox in-units-b)))
+                        (set/f! wb (unbox tab-width-b))))))))
+            
+            (set/f! hb 0)
+            (set/f! db 0)
+            (set/f! sb 0)
+            (set/f! lb 0)
+            (set/f! rb 0))
+          
+          (define/override (draw dc x y left top right bottom dx dy draw-caret)
+            (void))
+          (apply super-make-object args)))
+
+      (define (set/f! b n)
+        (when (box? b)
+          (set-box! b n)))
 
       (define delegate-mixin
         (mixin (basic<%>) (delegate<%>) 

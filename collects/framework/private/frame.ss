@@ -915,10 +915,14 @@
           (define view-width-b (box 0))
           (inherit paragraph-start-position paragraph-end-position 
                    position-location invalidate-bitmap-cache scroll-to-position
-                   get-visible-position-range position-paragraph)
+                   get-visible-position-range position-paragraph
+                   last-position)
 
           (define/override (on-new-string-snip)
             (instantiate text:1-pixel-string-snip% ()))
+          
+          (define/override (on-new-tab-snip)
+            (instantiate text:1-pixel-tab-snip% ()))
           
           ;; set-start/end-para : (union (#f #f -> void) (number number -> void))
           (define/public (set-start/end-para _start-para _end-para)
@@ -926,10 +930,16 @@
                          (equal? _end-para end-para))
               (let ([old-start-para start-para]
                     [old-end-para end-para])
-                (set! start-para _start-para)
-                (set! end-para _end-para)
+                (cond
+                  [(= 0 (last-position))
+                   (set! start-para #f)
+                   (set! end-para #f)]
+                  [else
+                   (set! start-para _start-para)
+                   (set! end-para _end-para)])
                 
                 (when (and start-para end-para)
+                  
                   (let-values ([(v-start v-end) (let ([bs (box 0)]
                                                       [bf (box 0)])
                                                   (get-visible-position-range bs bf)
