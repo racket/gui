@@ -531,7 +531,7 @@
     
   ;; label-font : font
   (define label-font (send the-font-list find-or-create-font
-                           12
+                           (if (eq? (system-type) 'windows) 10 12)
                            'system 'normal
                            (if (eq? (system-type) 'macosx) 'bold 'normal)
                            #f))
