@@ -1175,7 +1175,7 @@
       (define -text% (set-mode-mixin
 		      (text-mixin
 		       (mode:host-text-mixin
-			text:info%))))
+			text:keymap%))))
 
       (define text-mode% (text-mode-mixin mode:surrogate-text%))
     
