@@ -142,51 +142,45 @@
       
       (pretty-print
        `(define standard-menus-mixin
-	  (let ([t 0])
-	    (mixin (basic<%>) (standard-menus<%>)
-	      (inherit on-menu-char on-traverse-char)
-	  
-	      (set! t (current-milliseconds))
-    
-	      (define remove-prefs-callback
-		(preferences:add-callback
-		 'framework:menu-bindings
-		 (lambda (p v)
-		   (let loop ([menu (get-menu-bar)])
-		     (when (is-a? menu menu:can-restore<%>)
-		       (if v
-			   (send menu restore-keybinding)
-			   (send menu set-shortcut #f)))
-		     (when (is-a? menu menu:can-restore-underscore<%>)
-		       (if v
-			   (send menu restore-underscores)
-			   (send menu erase-underscores)))
-		     (when (is-a? menu menu-item-container<%>)
-		       (for-each loop (send menu get-items)))))))
-	      
-	      (inherit get-menu-bar show can-close? get-edit-target-object)
-	      ,@(apply append (map (lambda (x)
-				     (cond
-				       [(between? x) (build-before-super-between-clause x)]
-				       [(or (after? x) (before? x)) (build-before-super-before/after-clause x)]
-				       [(an-item? x) (build-before-super-item-clause x)]
-				       [(generic? x) (build-before-super-generic-clause x)]
-				       [else (printf "~a~n" x)]))
-				   items))
-	      (printf "before instantiation: ~s\n" (- (current-milliseconds) t))
-	      (super-instantiate ())
-	      (printf "after instantiation: ~s\n" (- (current-milliseconds) t))
-	      ,@(apply append (map (lambda (x)
-				     (cond
-				       [(between? x) (build-after-super-between-clause x)]
-				       [(an-item? x) (build-after-super-item-clause x)]
-				       [(or (after? x) (before? x)) (build-after-super-before/after-clause x)]
-				       [(generic? x) (build-after-super-generic-clause x)]))
-				   items))
-	      (reorder-menus this)
-
-	      (printf "total time: ~s\n" (- (current-milliseconds) t))
-	      )))
+	  (mixin (basic<%>) (standard-menus<%>)
+	    (inherit on-menu-char on-traverse-char)
+	    
+	    (set! t (current-milliseconds))
+	    (set! g (current-gc-milliseconds))
+	    
+	    (define remove-prefs-callback
+	      (preferences:add-callback
+	       'framework:menu-bindings
+	       (lambda (p v)
+		 (let loop ([menu (get-menu-bar)])
+		   (when (is-a? menu menu:can-restore<%>)
+		     (if v
+			 (send menu restore-keybinding)
+			 (send menu set-shortcut #f)))
+		   (when (is-a? menu menu:can-restore-underscore<%>)
+		     (if v
+			 (send menu restore-underscores)
+			 (send menu erase-underscores)))
+		   (when (is-a? menu menu-item-container<%>)
+		     (for-each loop (send menu get-items)))))))
+	    
+	    (inherit get-menu-bar show can-close? get-edit-target-object)
+	    ,@(apply append (map (lambda (x)
+				   (cond
+				     [(between? x) (build-before-super-between-clause x)]
+				     [(or (after? x) (before? x)) (build-before-super-before/after-clause x)]
+				     [(an-item? x) (build-before-super-item-clause x)]
+				     [(generic? x) (build-before-super-generic-clause x)]))
+				 items))
+	    (super-instantiate ())
+	    ,@(apply append (map (lambda (x)
+				   (cond
+				     [(between? x) (build-after-super-between-clause x)]
+				     [(an-item? x) (build-after-super-item-clause x)]
+				     [(or (after? x) (before? x)) (build-after-super-before/after-clause x)]
+				     [(generic? x) (build-after-super-generic-clause x)]))
+				 items))
+	    (reorder-menus this)))
        port))
     'text
     'truncate))
