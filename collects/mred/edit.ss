@@ -473,28 +473,19 @@
 		    (let/ec k
 		      (cond
 			[(and (not before)
-			      color
-			      (not (eq? wx:platform 'unix))
-			      (<= 8 (wx:display-depth)))
+			      color)
 			 (send pen set-style wx:const-solid)
 			 (send brush set-style wx:const-solid)
 			 (send pen set-colour color)
 			 (send brush set-colour color)
 			 (send dc set-logical-function wx:const-and)]
-			[(and before
-			      color
-			      (<= 8 (wx:display-depth)))
-			 (send* pen (set-style wx:const-solid)
-			   (set-colour color))
-			 (send* brush (set-style wx:const-solid)
-			   (set-colour color))
-			 (send dc set-logical-function wx:const-copy)]
 			[(and (not before)
-			      (< (wx:display-depth) 8)
-			      b/w-bitmap
-			      (eq? wx:platform 'unix))
+			      b/w-bitmap)
 			 (send pen set-stipple b/w-bitmap)
-			 (send brush set-stipple b/w-bitmap)]
+			 (send pen set-style wx:const-stipple)
+			 (send brush set-stipple b/w-bitmap)
+			 (send brush set-style wx:const-stipple)
+			 (send dc set-logical-function wx:const-and)]
 			[else (k (void))])
 		      (send dc set-pen pen)
 		      (send dc set-brush brush)
