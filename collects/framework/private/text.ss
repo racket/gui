@@ -1055,7 +1055,7 @@ WARNING: printf is rebound in the body of the unit to always
                        
                        ;; the idea here is that if you made a string snip, you
                        ;; could have made a string and gotten the style, so you
-                       ;; must intend to have your own style....
+                       ;; must intend to have your own style.
                        (unless (is-a? str/snp string-snip%)
                          (change-style sd old-insertion-point insertion-point))))
                    (loop (cdr txts))]))

@@ -136,14 +136,15 @@
       (preferences:set-default 'framework:paren-match #t boolean?)
       (let ([hash-table (make-hash-table)])
 	(for-each (lambda (x) 
-		    (hash-table-put! hash-table x 'define))
-		  '(define defmacro define-macro
+                    (hash-table-put! hash-table x 'define))
+                  '(define defmacro define-macro
                      define-syntax-set
-		     define-values
+                     define-values
                      define/public define/pubment define/private define/field
                      define/override define/augment define/overment define/augride
+                     define/augment-final define/override-final define/public-final
                      define/contract
-		     define-signature 
+                     define-signature 
                      define-syntax define-syntaxes
                      define-schema define/contract))
 	(for-each (lambda (x) 

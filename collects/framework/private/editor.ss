@@ -390,12 +390,13 @@
           get-can-close-parent
           update-frame-filename))
       (define file-mixin
-	(mixin (-keymap<%>) (file<%>)
-	  (inherit get-filename lock get-style-list 
-		   is-modified? change-style set-modified 
-		   get-top-level-window)
+        (mixin (-keymap<%>) (file<%>)
+          (inherit
+            get-filename lock get-style-list 
+            is-modified? set-modified 
+            get-top-level-window)
 
-	  (inherit get-canvases)
+          (inherit get-canvases)
           (define/private (check-lock)
             (let* ([filename (get-filename)]
                    [lock? (and filename
