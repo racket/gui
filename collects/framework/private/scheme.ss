@@ -49,13 +49,15 @@
           (define/public (get-saved-snips) saved-snips)
           (field [sizing-text (format "~a   ~a" left-bracket right-bracket)])
 
+          (rename [super-get-text get-text])
           (define/override (get-text offset num flattened?)
-            (apply string-append
-                   (map (lambda (snip)
-                          (send snip get-text 0 (send snip get-count) flattened?))
-                        saved-snips)))
+            (if flattened?
+                (apply string-append
+                       (map (lambda (snip)
+                              (send snip get-text 0 (send snip get-count) flattened?))
+                            saved-snips))
+                (super-get-text offset num flattened?)))
               
-          
           (define/override (copy)
             (instantiate (get-sexp-snip-class) ()
               (left-bracket left-bracket)
