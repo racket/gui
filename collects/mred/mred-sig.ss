@@ -94,6 +94,7 @@
      grow-box-spacer-pane%
      horizontal-pane%
      horizontal-panel%
+     tab-panel%
      image-snip%
      is-busy?
      is-color-display?
