@@ -211,8 +211,8 @@
 	 'framework:tabify 
 	 (lambda (t) (hash-table-map t list))
 	 (lambda (l) (let ([h (make-hash-table)])
-		       (for-each (lambda (x) (apply hash-table-put! h x)) l)
-		       h))))
+                       (for-each (lambda (x) (apply hash-table-put! h x)) l)
+                       h))))
       
       
       (preferences:set-default 'framework:autosave-delay 300 number?)

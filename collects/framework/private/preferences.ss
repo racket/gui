@@ -71,8 +71,10 @@
         (hash-table-get preferences
                         p
                         (lambda ()
-                          (let ([def (hash-table-get defaults p)])
-                            (default-value def)))))
+                          (let* ([def (hash-table-get defaults p)]
+                                 [def-val (default-value def)])
+                            (hash-table-put! preferences p def-val)
+                            def-val))))
           
       ;; set : symbol any -> void
       ;; updates the preference
@@ -209,7 +211,7 @@
       ;; input determines if there is a dialog box showing the errors (and other msgs)
       ;; and result indicates if there was an error
       (define (raw-save silent?)
-        (with-handlers ([(lambda (x) #f) ;exn:fail?
+        (with-handlers ([exn:fail?
                          (lambda (exn)
                            (unless silent?
                              (message-box
@@ -284,9 +286,6 @@
             sexp)))
 
       ;; get-disk-prefs : (-> A) -> (union A sexp)
-      ;; effect: updates the flag for the modified seconds
-      ;; (note: if this is not followed by actually installing 
-      ;;        the preferences, things break)
       (define (get-disk-prefs fail)
         (let/ec k
           (let* ([filename (find-system-path 'pref-file)]
