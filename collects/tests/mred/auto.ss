@@ -780,6 +780,23 @@
 
     'done-lists)
 
+  (let ([c (make-object canvas% parent '(hscroll vscroll))])
+    
+    (stv c set-scrollbars 100 101 5 6 2 3 10 20 #t)
+    (let-values ([(w h) (send c get-virtual-size)]
+		 [(cw ch) (send c get-client-size)]
+		 [(x y) (send c get-view-start)])
+      (test (* 100 5) 'canvas-virt-w-size w)
+      (test (* 101 6) 'canvas-virt-h-size h)
+
+      (test (- w cw) 'canvas-view-x x)
+      (test (- h ch) 'canvas-view-y y)
+
+      (st 0 c get-scroll-pos 'horizontal)
+      (st 0 c get-scroll-pos 'vertical)
+
+    (window-tests c #f #f parent frame))
+
   'done)
 
 (test-controls frame frame)
