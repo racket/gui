@@ -1482,13 +1482,64 @@
     
     (send c set-editor e)
     (send c stretchable-height #f))
-  
+
   (send f show #t)
   
   (try '(no-hscroll no-vscroll))
   (try '(no-vscroll))
   (try '(no-hscroll))
   (try '()))
+
+(define (minsize-frame)
+  (define f (make-object frame% "x"))
+  
+  (define bp (make-object horizontal-panel% f))
+  (define tb (make-object button% "Toggle Stretch" bp
+			  (lambda (b e)
+			    (for-each
+			     (lambda (p)
+			       (send p stretchable-width (not (send p stretchable-width)))
+			       (send p stretchable-height (not (send p stretchable-height))))
+			     containers))))
+  (define ps (make-object button% "Print Sizes" bp
+			  (lambda (b e)
+			    (newline)
+			    (for-each
+			     (lambda (p)
+			       (let ([c (car (send p get-children))])
+				 (let-values ([(w h) (send c get-size)]
+					      [(cw ch) (send c get-client-size)])
+				   (printf "~a: (~a x ~a) client[~a x ~a] diff<~a x ~a> min{~a x ~a}~n"
+					   c w h cw ch
+					   (- w cw) (- h ch)
+					   (send c min-width) (send c min-height)))))
+			     (reverse containers))
+			    (newline))))
+  
+  (define containers null)
+
+  (define (make-container p)
+    (let ([p (make-object vertical-panel% p '(border))])
+      (send p stretchable-width #f)
+      (send p stretchable-height #f)
+      (set! containers (cons p containers))
+      p))
+  
+  (define hp0 (make-object horizontal-panel% f))
+
+  (define p (make-object panel% (make-container hp0)))
+  (define pb (make-object panel% (make-container hp0) '(border)))
+
+  (define hp1 (make-object horizontal-panel% f))
+
+  (define c (make-object canvas% (make-container hp1)))
+  (define cb (make-object canvas% (make-container hp1) '(border)))
+  (define ch (make-object canvas% (make-container hp1) '(hscroll)))
+  (define cv (make-object canvas% (make-container hp1) '(vscroll)))
+  (define chv (make-object canvas% (make-container hp1) '(hscroll vscroll)))
+  (define cbhv (make-object canvas% (make-container hp1) '(border hscroll vscroll)))
+
+  (send f show #t))
 
 ;----------------------------------------------------------------------
 
@@ -1546,6 +1597,8 @@
 (make-object button% "Make Panel Frame" pp (lambda (b e) (panel-frame)))
 (make-object horizontal-pane% pp)
 (make-object button% "Editor Canvas One-liners" pp (lambda (b e) (editor-canvas-oneline-frame)))
+(make-object horizontal-pane% pp)
+(make-object button% "Minsize Windows" pp (lambda (b e) (minsize-frame)))
 (define bp (make-object horizontal-pane% ap))
 (send bp stretchable-width #f)
 (make-object button% "Make Button Frame" bp (lambda (b e) (button-frame frame% null)))

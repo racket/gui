@@ -1908,8 +1908,8 @@
 	     (set! move-children? #f)
 	     (redraw client-width client-height))))]
 
-      [init-min (lambda (x) 0)])
-      
+      [init-min (lambda (x) (if (memq 'border style) 8 0))])
+    
     (public
       ; place-children: determines where each child of panel should be
       ; placed.
@@ -3237,7 +3237,7 @@
 
 ;-------------------- Canvas class constructions --------------------
 
-(define canvas-default-size 20) ; an arbitrary default size for canvases to avoid initial size problems
+(define canvas-default-size 20) ; a default size for canvases tht fits borders without losing client sizes
 
 (define canvas<%>
   (interface (subwindow<%>)
@@ -3341,9 +3341,12 @@
       [wx #f])
     (sequence
       (super-init (lambda () 
-		    (let ([ds (if (or (memq 'vscroll style) (memq 'hscroll style))
-				  canvas-default-size
-				  0)])
+		    (let ([ds (+ (if (memq 'border style)
+				     4 
+				     0)
+				 (if (or (memq 'vscroll style) (memq 'hscroll style))
+				     canvas-default-size
+				     1))])
 		      (set! wx (make-object wx-canvas% this this
 					    (mred->wx-container parent)
 					    -1 -1 ds ds
