@@ -1,4 +1,11 @@
 
+Version 202: August, 2002
+
+Added 'panel brush style for drawing in the current platform's panel
+ background color and pattern.
+
+----------------------------------------------------------------------
+
 Version 201: July, 2002
 
 Added 'unknown/mask and 'unknown/gif bitmap types and
