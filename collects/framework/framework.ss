@@ -858,6 +858,14 @@
     "This returns the parenthesis highlight "
     "@link bitmap %"
     ". It is only used on black and white screens.")
+   (icon:get-eof-bitmap
+    (-> (is-a?/c bitmap%))
+    ()
+    "This returns the"
+    "@link bitmap %"
+    "used for the clickable ``eof'' icon from"
+    "@ilink text:ports %"
+    ".")
    (icon:get-autowrap-bitmap
     (-> (is-a?/c bitmap%))
     ()
@@ -1499,5 +1507,16 @@
      "@flink editor:get-standard-style-list"
      "and \\var{example-text} is shown in the panel so users can see"
      "the results of their configuration.")
+
+    (color-prefs:marshall-style
+     (-> (is-a?/c style-delta%) printable/c)
+     (style-delta)
+     "Builds a printed representation for a style-delta.")
+    
+    (color-prefs:unmarshall-style
+     (-> printable/c (union false/c (is-a?/c style-delta%)))
+     (marshalled-style-delta)
+     "Builds a style delta from its printed representation."
+     "Returns \\scheme|#f| if the printed form cannot be parsed.")
     
     ))

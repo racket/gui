@@ -995,22 +995,21 @@
                 (set! label t)
                 (do-label)))]
 
-          (public get-canvas% get-canvas<%> make-canvas get-editor% get-editor<%> make-editor)
-          [define get-canvas% (λ () editor-canvas%)]
-          [define get-canvas<%> (λ () (class->interface editor-canvas%))]
-          [define make-canvas (λ ()
-                                (let ([% (get-canvas%)]
-                                      [<%> (get-canvas<%>)])
-                                  (unless (implementation? % <%>)
-                                    (error 'frame:editor%
-                                           "result of get-canvas% method must match ~e interface; got: ~e"
-                                           <%> %))
-                                  (instantiate % () (parent (get-area-container)))))]
-          (define (get-editor%)
+          (define/public (get-canvas%) editor-canvas%)
+          (define/public (get-canvas<%>) (class->interface editor-canvas%))
+          (define/public (make-canvas)
+            (let ([% (get-canvas%)]
+                  [<%> (get-canvas<%>)])
+              (unless (implementation? % <%>)
+                (error 'frame:editor%
+                       "result of get-canvas% method must match ~e interface; got: ~e"
+                       <%> %))
+              (instantiate % () (parent (get-area-container)))))
+          (define/public (get-editor%)
 	    (error 'editor-frame% "abstract method: no editor% class specified"))
-          (define (get-editor<%>)
-	    editor<%>)
-          (define (make-editor)
+          (define/public (get-editor<%>)
+	    editor:basic<%>)
+          (define/public (make-editor)
 	    (let ([% (get-editor%)]
 		  [<%> (get-editor<%>)])
 	      (unless (implementation? % <%>)
@@ -1296,13 +1295,13 @@
                     [(cancel)
                      #f]))))
             
-	  (super-instantiate ())))
+	  (super-new)))
 
       (define text<%> (interface (-editor<%>)))
       (define text-mixin
         (mixin (-editor<%>) (text<%>)
-          [define/override get-editor<%> (λ () (class->interface text%))]
-          [define/override get-editor% (λ () text:keymap%)]
+          (define/override (get-editor<%>) (class->interface text%))
+          (define/override (get-editor%) text:keymap%)
           (super-new)))
       
       (define pasteboard<%> (interface (-editor<%>)))

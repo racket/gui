@@ -7,9 +7,8 @@
  `(let* ([semaphore (make-semaphore 0)]
 	 [semaphore-frame%
 	  (class frame% 
-	    (override on-close)
-	    [define on-close (lambda () (semaphore-post semaphore))]
-	    (super-instantiate ()))]
+	    (define/augment (on-close) (semaphore-post semaphore))
+	    (super-new))]
 	 [f (make-object semaphore-frame% "Single Panel Test")]
 	 [blue-brush (send the-brush-list find-or-create-brush "BLUE" 'solid)]
 	 [green-brush (send the-brush-list find-or-create-brush "FOREST GREEN" 'solid)]

@@ -41,7 +41,8 @@
           load-file/gui-error
           on-close
           can-close?
-          close))
+          close
+          get-filename/untitled-name))
 
       (define basic-mixin
 	(mixin (editor<%>) (basic<%>)
@@ -51,6 +52,19 @@
           (define/public (close) (if (can-close?)
                                      (begin (on-close) #t)
                                      #f))
+          
+          ;; get-filename/untitled-name : -> string
+          ;; returns a string representing the visible name for this file,
+          ;; or "Untitled <n>" for some n.
+          (define untitled-name #f)
+          (define/public (get-filename/untitled-name)
+            (let ([filename (get-filename)])
+              (if filename
+                  (path->string filename)
+                  (begin
+                    (unless untitled-name
+                      (set! untitled-name (gui-utils:next-untitled-name)))
+                    untitled-name))))
           
 	  (inherit get-filename save-file)
 	  (define/public save-file/gui-error
@@ -402,7 +416,6 @@
       
       (define file<%> 
         (interface (-keymap<%>)
-          get-filename/untitled-name
           get-can-close-parent
           update-frame-filename
           allow-close-with-no-filename?))
@@ -413,7 +426,7 @@
                    is-modified? set-modified 
                    get-top-level-window)
 
-          (inherit get-canvases)
+          (inherit get-canvases get-filename/untitled-name)
           (define/public (update-frame-filename)
             (let* ([filename (get-filename)]
                    [name (if filename
@@ -426,19 +439,6 @@
                               (send tlw set-label name))))
                         (get-canvases))))
           
-          ;; get-filename/untitled-name : -> string
-          ;; returns a string representing the visible name for this file,
-          ;; or "Untitled <n>" for some n.
-          (define untitled-name #f)
-          (define/public (get-filename/untitled-name)
-            (let ([filename (get-filename)])
-              (if filename
-                  (path->string filename)
-                  (begin
-                    (unless untitled-name
-                      (set! untitled-name (gui-utils:next-untitled-name)))
-                    untitled-name))))
-
           (define/override set-filename
 	    (case-lambda
 	     [(name) (set-filename name #f)]

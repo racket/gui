@@ -111,7 +111,7 @@
           (send f show #t)))))
   
   (define (test-frame-allocate %)
-    (let ([name (symbol->string %)])
+    (let ([name (format "~s" %)])
       (send-sexp-to-mred '(preferences:set 'framework:exit-when-no-frames #f))
       (test-allocate name
                      `(lambda () (let ([f (make-object ,% ,name)])
@@ -159,6 +159,7 @@
                  '(lambda () (make-object text:return% void))
                  '(lambda (t) (void)))
   
+  (test-frame-allocate '(class frame% (inherit show) (define/public (close) (show #f)) (super-new)))
   (test-frame-allocate 'frame:basic%)
   (test-frame-allocate 'frame:info%)
   (test-frame-allocate 'frame:text-info%)
@@ -166,9 +167,7 @@
   (test-frame-allocate 'frame:standard-menus%)
   
   (test-frame-allocate 'frame:text%)
-  (test-frame-allocate 'frame:text-info-file%)
   (test-frame-allocate 'frame:searchable%)
   
   (test-frame-allocate 'frame:pasteboard%)
-  (test-frame-allocate 'frame:pasteboard-info-file%)
   (done))

@@ -23,8 +23,12 @@
          (send-sexp-to-mred `(test:keystroke #\a))
          (wait-for `(string=? "a" (send (send (get-top-level-focus-window) get-editor) get-text)))
          (send-sexp-to-mred
-          `(begin (send (send (get-top-level-focus-window) get-editor) lock #t)
-                  (send (send (get-top-level-focus-window) get-editor) lock #f)))
+          `(begin 
+             ;; remove the `a' to avoid save dialog boxes (and test them, I suppose)
+             (send (send (get-top-level-focus-window) get-editor) undo) 
+
+             (send (send (get-top-level-focus-window) get-editor) lock #t)
+             (send (send (get-top-level-focus-window) get-editor) lock #f)))
          (queue-sexp-to-mred
           `(send (get-top-level-focus-window) close))
          (send-sexp-to-mred `(map (lambda (x) (send x get-label)) (get-top-level-windows)))))))

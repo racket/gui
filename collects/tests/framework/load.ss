@@ -25,15 +25,13 @@
  
   (test/load "gui-utils.ss" 'gui-utils:next-untitled-name)
   (test/load "test.ss" 'test:run-interval)
-  (test/load "macro.ss" '(mixin () () ()))
   (test/load "splash.ss" 'start-splash)
   (test/load "framework-sig.ss" '(begin (eval '(require (lib "unitsig.ss")))
                                         (eval '(define-signature dummy-signature^ framework^))))
   (test/load "framework-unit.ss" 'framework@)
   (test/load "framework.ss" '(list test:button-push
 				   gui-utils:next-untitled-name
-				   frame:basic-mixin
-                                   (mixin () () ())))
+				   frame:basic-mixin))
   
   ;; ensures that all of the names in the signature are provided
   ;; by (require (lib "framework.ss" "framework"))

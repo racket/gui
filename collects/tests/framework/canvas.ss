@@ -9,7 +9,7 @@
      (send-sexp-to-mred
       `(let* ([f (make-object frame:basic% "test canvas" #f 300 300)]
 	      [c (make-object ,class (send f get-area-container))])
-	 (send c set-editor (make-object text:basic%))
+	 (send c set-editor (make-object text:wide-snip%))
 	 (send f show #t)))
       (wait-for-frame "test canvas")
       (send-sexp-to-mred

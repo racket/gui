@@ -86,10 +86,6 @@
    '(frame:searchable-mixin frame:text%))
   
   (test-creation
-   'text-info-file%-creation
-   'frame:text-info-file%)
-  
-  (test-creation
    'pasteboard-mixin-creation
    '(frame:pasteboard-mixin frame:editor%))
   (test-creation
@@ -98,10 +94,6 @@
   (test-creation
    'pasteboard%-creation
    'frame:pasteboard%)
-  
-  (test-creation
-   'pasteboard-info-file%-creation
-   'frame:pasteboard-info-file%)
   
   (define (test-open name class-expression)
     (let* ([test-file-contents "test"]
@@ -117,7 +109,7 @@
        (lambda ()
          (let ([frame-name 
                 (send-sexp-to-mred
-                 `(let ([frame (instantiate ,class-expression ())])
+                 `(let ([frame (new ,class-expression)])
                     (preferences:set 'framework:file-dialogs 'common)
                     (send frame show #t)
                     (send frame get-label)))])
@@ -137,7 +129,7 @@
                        [(windows) `(test:keystroke #\a '(control))]
                        [else (error 'file-open-dialog "unknown system type: ~a" (system-type))])
                     (for-each test:keystroke
-                              (string->list ,tmp-file))
+                              (string->list ,(path->string tmp-file)))
                     (test:keystroke #\return)))
            (wait-for-frame tmp-file-name)
            (begin0
@@ -150,6 +142,5 @@
              (queue-sexp-to-mred
               `(send (get-top-level-focus-window) close))))))))
   
-  (test-open "frame:editor open" 'frame:text%)
   (test-open "frame:searchable open" 'frame:searchable%)
-  (test-open "frame:text-info open" 'frame:text-info-file%))
+  (test-open "frame:text open" 'frame:text%))

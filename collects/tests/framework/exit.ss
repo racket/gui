@@ -22,7 +22,7 @@
 	(with-handlers ([eof-result? (lambda (x) 'passed)])
 	  (send-sexp-to-mred
 	   `(begin
-	      (exit:insert-can?-callback (lambda () (call-with-output-file ,tmp-file void) #t))
+	      (exit:insert-can?-callback (lambda () (call-with-output-file (bytes->path ,(path->bytes tmp-file)) void) #t))
 	      (begin (exit:exit) (sleep/yield 1)))))))
 
 (test 'exit-callback-removed

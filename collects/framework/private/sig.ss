@@ -314,6 +314,7 @@
      1-pixel-string-snip%
      1-pixel-tab-snip%
      delegate%
+     wide-snip%
      standard-style-list%
      keymap%
      return%

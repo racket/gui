@@ -995,7 +995,8 @@ WARNING: printf is rebound in the body of the unit to always
           
           (define/public-final (get-insertion-point) insertion-point)
           (define/public-final (set-insertion-point ip) (set! insertion-point ip))
-          (define/public-final (get-unread-start-point) unread-start-point)
+          (define/public-final (get-unread-start-point)
+            unread-start-point)
           (define/public-final (set-unread-start-point u) 
             (unless (<= u (last-position))
               (error 'set-unread-start-point "~e is too large, last-position is ~e"
@@ -1076,7 +1077,7 @@ WARNING: printf is rebound in the body of the unit to always
           ;;
           
           (define/augment (can-insert? start len)
-            (and (or allow-edits?
+            (and (or allow-edits? 
                      (start . >= . unread-start-point))
                  (inner #t can-insert? start len)))
           
@@ -1929,7 +1930,8 @@ WARNING: printf is rebound in the body of the unit to always
       (define hide-caret/selection% (hide-caret/selection-mixin basic%))
       (define nbsp->space% (nbsp->space-mixin basic%))
       (define delegate% (delegate-mixin basic%))
-      (define standard-style-list% (editor:standard-style-list-mixin (wide-snip-mixin basic%)))
+      (define wide-snip% (wide-snip-mixin basic%))
+      (define standard-style-list% (editor:standard-style-list-mixin wide-snip%))
       (define input-box% (input-box-mixin standard-style-list%))
       (define -keymap% (editor:keymap-mixin standard-style-list%))
       (define return% (return-mixin -keymap%))
