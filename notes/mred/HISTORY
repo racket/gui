@@ -1,4 +1,8 @@
 
+Version 103.5:
+
+ * Added `get-origin' and `get-scale' to dc<%>.
+
 Version 103.4:
 
  * Changed text% so that later-installed clickbacks take precedence
