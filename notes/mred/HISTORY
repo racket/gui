@@ -1,13 +1,14 @@
 
 Version 102/4:
 
- * Fixed scrolling, I think. Please report any scrolling behavior that
-   doesn't seem right. (PR 1174 et al.)
+ * Fixed page scrolling in editors, I think. (Rewrote it, actually.)
+   Please report any scrolling behavior that doesn't seem right. (PR
+   1174 et al.)
 
  * Fixed copying for editor-snip%s, incorporating and extending
    Robby's fixes. (PRs 1304 and 1305)
 
- * Hijacked `on-change' method of editor%, which wasn't doing anything
+ * Hijacked `on-change' method of editor<%>, which wasn't doing anything
    useful, to serve a new purpose.
 
    The new `on-change' is called whenever any change occurs to an
@@ -78,7 +79,7 @@ Changed the interaction of face and familiy settings in a font for
 Removed `get-afm-name' and `set-afm-name' from
  `font-name-directory<%>', and changed post-script-dc% to use the
  PostScript font name as the AFM file name
-Changed the meaning of the `on-change' method in editor%. See the
+Changed the meaning of the `on-change' method in editor<%>. See the
  manual for details.
 Editor reading/writing/cuting/pasting no longer relies on global
  state, so exceptions raised for one editor do not affect other
