@@ -118,7 +118,10 @@
 
      vertical-dragable<%>
      vertical-dragable-mixin
-     vertical-dragable%))
+     vertical-dragable%
+     horizontal-dragable<%>
+     horizontal-dragable-mixin
+     horizontal-dragable%))
   (define-signature framework:panel-fun^
     ())
   (define-signature framework:panel^

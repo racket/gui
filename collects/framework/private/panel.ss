@@ -184,7 +184,7 @@
       ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
       
       ;; type gap = (make-gap number area<%> percentage number area<%> percentage)
-      (define-struct gap (before before-y before-percentage after after-y after-percentage))
+      (define-struct gap (before before-dim before-percentage after after-dim after-percentage))
 
       ;; type percentage : (make-percentage number)
       (define-struct percentage (%))
@@ -195,156 +195,191 @@
           set-percentages
           get-percentages))
 
-      (define vertical-dragable-mixin
-        (mixin ((class->interface vertical-panel%)) (vertical-dragable<%>)
-          (init parent)
-          (super-instantiate (parent))
-          (inherit get-client-size container-flow-modified)
-          
-          (init-field [bar-thickness 5])
-          
-          ;; percentages : (listof percentage)
-          (define percentages null)
+      (define horizontal-dragable<%>
+        (interface ((class->interface horizontal-panel%))
+          after-percentage-change
+          set-percentages
+          get-percentages))
 
-          ;; get-percentages : -> (listof number)
-          (define/public (get-percentages)
-            (map percentage-% percentages))
+       (define (make-dragable-mixin vertical?
+ 				   panel% dragable<%>
+ 				   min-extent
+ 				   event-get-dim
+ 				   get-cursor)
+ 	(mixin ((class->interface panel%)) (dragable<%>)
+ 	       (init parent)
+ 	  (super-instantiate (parent))
+ 	  (inherit get-client-size container-flow-modified)
+           
+ 	  (init-field [bar-thickness 5])
+           
+ 	  ;; percentages : (listof percentage)
+ 	  (define percentages null)
+ 
+ 	  ;; get-percentages : -> (listof number)
+ 	  (define/public (get-percentages)
+ 	    (map percentage-% percentages))
+ 
+ 	  (define/public (set-percentages ps)
+ 	    (unless (and (list? ps)
+ 			 (andmap number? ps)
+ 			 (= 1 (apply + ps))
+ 			 (andmap positive? ps))
+ 	      (error 'set-percentages 
+ 		     "expected a list of numbers that are all positive and sum to 1, got: ~e"
+ 		     ps))
+ 	    (unless (= (length ps) (length (get-children)))
+ 	      (error 'set-percentages 
+ 		     "expected a list of numbers whose length is the number of children: ~a, got ~e"
+ 		     (length (get-children))
+ 		     ps))
+ 	    (let ([available-extent (get-available-extent)])
+ 	      (unless (andmap
+ 		       (lambda (p child)
+ 			 ((* p available-extent) . >= . (min-extent child)))
+ 		       ps
+ 		       (get-children))
+ 		(error 'set-percentages
+ 		       "the percentages would violate minimum size requirements of the children: ~e"
+ 		       ps)))
+ 	    (set! percentages (map make-percentage ps))
+ 	    (container-flow-modified))
+ 
+ 	  (define/public (after-percentage-change)
+ 	    (void))
+           
+ 	  (define/private (get-available-extent)
+ 	    (let-values ([(width height) (get-client-size)])
+ 	      (- (if vertical? height width)
+ 		 (* bar-thickness (- (length (get-children)) 1)))))
+ 
+ 	  (inherit get-children)
+           
+ 	  (define/private (update-percentages)
+ 	    (let* ([len-children (length (get-children))])
+ 	      (unless (= len-children (length percentages))
+ 		(let ([rat (/ 1 len-children)])
+ 		  (set! percentages (build-list len-children (lambda (i) (make-percentage rat)))))
+ 		(after-percentage-change))))
+           
+ 	  (define/override (after-new-child child)
+ 	    (update-percentages))
+           
+ 	  (define resizing-dim #f)
+ 	  (define resizing-gap #f)
+           
+ 	  (rename [super-on-subwindow-event on-subwindow-event])
+ 	  (inherit set-cursor)
+ 	  (define/override (on-subwindow-event receiver evt)
+ 	    (if (eq? receiver this)
+ 		(let ([gap
+ 		       (ormap (lambda (gap) 
+ 				(and (<= (gap-before-dim gap) 
+ 					 (event-get-dim evt)
+ 					 (gap-after-dim gap))
+ 				     gap))
+ 			      cursor-gaps)])
+ 		  (set-cursor (and (or gap
+ 				       resizing-dim)
+ 				   (send (icon:get-up/down-cursor) ok?)
+ 				   (get-cursor)))
+ 		  (cond
+ 		   [(and gap (send evt button-down? 'left))
+ 		    (set! resizing-dim (event-get-dim evt))
+ 		    (set! resizing-gap gap)]
+ 		   [(and resizing-dim (send evt button-up?))
+ 		    (set! resizing-dim #f)
+ 		    (set! resizing-gap #f)]
+ 		   [(and resizing-dim (send evt moving?))
+ 		    (let-values ([(width height) (get-client-size)])
+ 		      (let* ([before (gap-before resizing-gap)]
+ 			     [before-percentage (gap-before-percentage resizing-gap)]
+ 			     [after (gap-after resizing-gap)]
+ 			     [after-percentage (gap-after-percentage resizing-gap)]
+ 			     [available-extent (get-available-extent)]
+ 			     [change-in-percentage (/ (- resizing-dim (event-get-dim evt)) available-extent)]
+ 			     [new-before (- (percentage-% before-percentage) change-in-percentage)]
+ 			     [new-after (+ (percentage-% after-percentage) change-in-percentage)])
+ 			(when (and ((* new-before available-extent) . > . (min-extent before))
+ 				   ((* new-after available-extent) . > . (min-extent after)))
+ 			  (set-percentage-%! before-percentage new-before)
+ 			  (set-percentage-%! after-percentage new-after)
+ 			  (after-percentage-change)
+ 			  (set! resizing-dim (event-get-dim evt))
+ 			  (container-flow-modified))))]
+ 		   [else (super-on-subwindow-event receiver evt)]))
+ 		(super-on-subwindow-event receiver evt)))
+           
+ 	  (define cursor-gaps null)
+           
+ 	  (rename [super-place-children place-children])
+ 	  (define/override (place-children _infos width height)
+ 	    (set! cursor-gaps null)
+ 	    (update-percentages)
+ 	    (cond
+ 	     [(null? _infos) null]
+ 	     [(null? (cdr _infos)) (list (list 0 0 width height))]
+ 	     [else
+ 	      (let ([available-extent (get-available-extent)]
+ 		    [show-error
+ 		     (lambda (n)
+ 		       (error 'panel.ss::dragable-panel "internal error.~a" n))])
+ 		(let loop ([percentages percentages]
+ 			   [children (get-children)]
+ 			   [infos _infos]
+ 			   [dim 0])
+ 		  (cond
+ 		   [(null? percentages)
+ 		    (unless (null? infos) (show-error 1))
+ 		    (unless (null? children) (show-error 2))
+ 		    null]
+ 		   [(null? (cdr percentages))
+ 		    (when (null? infos) (show-error 3))
+ 		    (when (null? children) (show-error 4))
+ 		    (unless (null? (cdr infos)) (show-error 5))
+ 		    (unless (null? (cdr children)) (show-error 6))
+ 		    (if vertical?
+ 			(list (list 0 dim width (- height dim)))
+ 			(list (list dim 0 (- width dim) height)))]
+ 		   [else
+ 		    (when (null? infos) (show-error 7))
+ 		    (when (null? children) (show-error 8))
+ 		    (when (null? (cdr infos)) (show-error 9))
+ 		    (when (null? (cdr children)) (show-error 10))
+ 		    (let* ([info (car infos)]
+ 			   [percentage (car percentages)]
+ 			   [this-space (floor (* (percentage-% percentage) available-extent))])
+ 		      (set! cursor-gaps (cons (make-gap (car children)
+ 							(+ dim this-space)
+ 							percentage
+ 							(cadr children)
+ 							(+ dim this-space bar-thickness)
+ 							(cadr percentages))
+ 					      cursor-gaps))
+ 		      (cons (if vertical?
+ 				(list 0 dim width this-space)
+ 				(list dim 0 this-space height))
+ 			    (loop (cdr percentages)
+ 				  (cdr children)
+ 				  (cdr infos)
+ 				  (+ dim this-space bar-thickness))))])))]))))
+ 	    
+ 
+        (define vertical-dragable-mixin
+         (make-dragable-mixin #t
+ 			     vertical-panel% vertical-dragable<%>
+ 			     (lambda (child) (send child min-height))
+ 			     (lambda (evt) (send evt get-y))
+ 			     icon:get-up/down-cursor))
+ 
+       (define horizontal-dragable-mixin
+         (make-dragable-mixin #f
+ 			     horizontal-panel% horizontal-dragable<%>
+ 			     (lambda (child) (send child min-width))
+ 			     (lambda (evt) (send evt get-x))
+ 			     icon:get-left/right-cursor))
+        
+       (define vertical-dragable% (vertical-dragable-mixin vertical-panel%))
+ 
+       (define horizontal-dragable% (horizontal-dragable-mixin horizontal-panel%)))))
 
-          (define/public (set-percentages ps)
-            (unless (and (list? ps)
-                         (andmap number? ps)
-                         (= 1 (apply + ps))
-                         (andmap positive? ps))
-              (error 'set-percentages 
-                     "expected a list of numbers that are all positive and sum to 1, got: ~e"
-                     ps))
-            (unless (= (length ps) (length (get-children)))
-              (error 'set-percentages 
-                     "expected a list of numbers whose length is the number of children: ~a, got ~e"
-                     (length (get-children))
-                     ps))
-            (let ([available-height (get-available-height)])
-              (unless (andmap
-                       (lambda (p child)
-                         ((* p available-height) . >= . (send child min-height)))
-                       ps
-                       (get-children))
-                (error 'set-percentages
-                       "the percentages would violate minimum height requirements of the children: ~e"
-                       ps)))
-            (set! percentages (map make-percentage ps))
-            (container-flow-modified))
-
-          (define/public (after-percentage-change)
-            (void))
-          
-          (define/private (get-available-height)
-            (let-values ([(width height) (get-client-size)])
-              (- height (* bar-thickness (- (length (get-children)) 1)))))
-
-          (inherit get-children)
-          
-          (define/private (update-percentages)
-            (let* ([len-children (length (get-children))])
-              (unless (= len-children (length percentages))
-                (let ([rat (/ 1 len-children)])
-                  (set! percentages (build-list len-children (lambda (i) (make-percentage rat)))))
-                (after-percentage-change))))
-          
-          (define/override (after-new-child child)
-            (update-percentages))
-          
-          (define resizing-y #f)
-          (define resizing-gap #f)
-          
-          (rename [super-on-subwindow-event on-subwindow-event])
-          (inherit set-cursor)
-          (define/override (on-subwindow-event receiver evt)
-            (if (eq? receiver this)
-                (let ([gap
-                       (ormap (lambda (gap) 
-                                (and (<= (gap-before-y gap) (send evt get-y) (gap-after-y gap))
-                                     gap))
-                              cursor-gaps)])
-                  (set-cursor (and (or gap
-                                       resizing-y)
-                                   (send (icon:get-up/down-cursor) ok?)
-                                   (icon:get-up/down-cursor)))
-                  (cond
-                    [(and gap (send evt button-down? 'left))
-                     (set! resizing-y (send evt get-y))
-                     (set! resizing-gap gap)]
-                    [(and resizing-y (send evt button-up?))
-                     (set! resizing-y #f)
-                     (set! resizing-gap #f)]
-                    [(and resizing-y (send evt moving?))
-                     (let-values ([(width height) (get-client-size)])
-                       (let* ([before (gap-before resizing-gap)]
-                              [before-percentage (gap-before-percentage resizing-gap)]
-                              [after (gap-after resizing-gap)]
-                              [after-percentage (gap-after-percentage resizing-gap)]
-                              [available-height (get-available-height)]
-                              [change-in-percentage (/ (- resizing-y (send evt get-y)) available-height)]
-                              [new-before (- (percentage-% before-percentage) change-in-percentage)]
-                              [new-after (+ (percentage-% after-percentage) change-in-percentage)])
-                         (when (and ((* new-before available-height) . > . (send before min-height))
-                                    ((* new-after available-height) . > . (send after min-height)))
-                           (set-percentage-%! before-percentage new-before)
-                           (set-percentage-%! after-percentage new-after)
-                           (after-percentage-change)
-                           (set! resizing-y (send evt get-y))
-                           (container-flow-modified))))]
-                    [else (super-on-subwindow-event receiver evt)]))
-                (super-on-subwindow-event receiver evt)))
-          
-          (define cursor-gaps null)
-          
-          (rename [super-place-children place-children])
-          (define/override (place-children _infos width height)
-            (set! cursor-gaps null)
-            (update-percentages)
-            (cond
-              [(null? _infos) null]
-              [(null? (cdr _infos)) (list (list 0 0 width height))]
-              [else
-               (let ([available-height (get-available-height)]
-                     [show-error
-                      (lambda (n)
-                        (error 'panel.ss::dragable-panel "internal error.~a" n))])
-                 (let loop ([percentages percentages]
-                            [children (get-children)]
-                            [infos _infos]
-                            [y 0])
-                   (cond
-                     [(null? percentages)
-                      (unless (null? infos) (show-error 1))
-                      (unless (null? children) (show-error 2))
-                      null]
-                     [(null? (cdr percentages))
-                      (when (null? infos) (show-error 3))
-                      (when (null? children) (show-error 4))
-                      (unless (null? (cdr infos)) (show-error 5))
-                      (unless (null? (cdr children)) (show-error 6))
-                      (list (list 0 y width (- height y)))]
-                     [else
-                      (when (null? infos) (show-error 7))
-                      (when (null? children) (show-error 8))
-                      (when (null? (cdr infos)) (show-error 9))
-                      (when (null? (cdr children)) (show-error 10))
-                      (let* ([info (car infos)]
-                             [percentage (car percentages)]
-                             [this-space (floor (* (percentage-% percentage) available-height))])
-                        (set! cursor-gaps (cons (make-gap (car children)
-                                                          (+ y this-space)
-                                                          percentage
-                                                          (cadr children)
-                                                          (+ y this-space bar-thickness)
-                                                          (cadr percentages))
-                                                cursor-gaps))
-                        (cons (list 0 y width this-space)
-                              (loop (cdr percentages)
-                                    (cdr children)
-                                    (cdr infos)
-                                    (+ y this-space bar-thickness))))])))]))))
-      
-      (define vertical-dragable% (vertical-dragable-mixin vertical-panel%)))))
