@@ -268,9 +268,7 @@
 	 (when panel
 	   (dynamic-wind
 	    (lambda () (set! ignore-redraw-request? #t))
-	    (lambda () 
-	      ; Ensures that the frame is big enough:
-	      (set-size (get-x) (get-y) (get-width) (get-height)))
+	    resized
 	    (lambda () (set! ignore-redraw-request? #f))))
 	 (set! pending-redraws? #f))]
 
@@ -308,7 +306,23 @@
 	 (when panel
 	   (let-values ([(f-client-w f-client-h) (get-two-int-values get-client-size)])
 	     (send panel set-size 0 0 f-client-w f-client-h)
-	     (send panel on-container-resize))))])
+	     (send panel on-container-resize))))]
+
+
+      [resized
+       (lambda ()
+	 (unless already-trying?
+	   (let ([new-width (get-width)]
+		 [new-height (get-height)])
+	     (let-values ([(correct-w correct-h) (correct-size new-width new-height)])
+	       (if (and (= new-width correct-w) (= new-height correct-h))
+		   ;; Good size; do panel
+		   (set-panel-size)
+		   ;; Too small; fix it
+		   (begin
+		     (set! already-trying? #t)
+		     (set-size -1 -1 correct-w correct-h)
+		     (set! already-trying? #f)))))))])
       
     (override
       ; show: add capability to set perform-updates
@@ -357,19 +371,7 @@
       ;            independently.
       [on-size
        (lambda (width height)
-	 (unless (negative? width) (super-on-size width height))
-	 (unless already-trying?
-	   (let ([new-width (get-width)]
-		 [new-height (get-height)])
-	     (let-values ([(correct-w correct-h) (correct-size new-width new-height)])
-	       (if (and (= new-width correct-w) (= new-height correct-h))
-		   ;; Good size; do panel
-		   (set-panel-size)
-		   ;; Too small; fix it if it's our first try
-		   (begin
-		     (set! already-trying? #t)
-		     (set-size -1 -1 correct-w correct-h)
-		     (set! already-trying? #f)))))))])
+	 (wx:queue-callback resized #t))])
 
     (sequence
       (apply super-init args))))
