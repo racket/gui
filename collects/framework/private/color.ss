@@ -277,12 +277,13 @@
                 (when (coroutine-run 10 tok-cor)
                   (set! up-to-date? #t)))
               #;(printf "end lexing~n")
-              (unless (null? colors)
-                #;(printf "begin coloring~n")
-                (begin-edit-sequence #f #f)
-                (color)
-                (end-edit-sequence)
-                #;(printf "end coloring~n"))))
+              #;(printf "begin coloring~n")
+              ;; This edit sequence needs to happen even when colors is null
+              ;; for the paren highlighter.
+              (begin-edit-sequence #f #f)
+              (color)
+              (end-edit-sequence)
+              #;(printf "end coloring~n")))
           
           (define/private (colorer-callback)
             (cond
@@ -430,6 +431,7 @@
           ;; possible.
           (define/private match-parens
             (opt-lambda ([just-clear? #f])
+              ;;(printf "(match-parens ~a)~n" just-clear?)
               (when (and (not in-match-parens?)
                          ;; Trying to match open parens while the
                          ;; background thread is going slows it down.
@@ -631,6 +633,7 @@
           ;; ------------------------- Callbacks to Override ----------------------
           
           (define/override (lock x)
+            ;;(printf "(lock ~a)~n" x)
             (super lock x)
             (when (and restart-callback (not x))
               (set! restart-callback #f)
@@ -638,21 +641,25 @@
           
           
           (define/override (on-focus on?)
+            ;;(printf "(on-focus ~a)~n" on?)
             (super on-focus on?)
             (match-parens (not on?)))
                     
           (define/augment (after-edit-sequence)
+            ;;(printf "(after-edit-sequence)~n")
             (when (has-focus?)
               (match-parens))
             (inner (void) after-edit-sequence))
           
           (define/augment (after-set-position)
+            ;;(printf "(after-set-position)~n")
             (unless (local-edit-sequence?)
               (when (has-focus?)
                 (match-parens)))
             (inner (void) after-set-position))
           
           (define/augment (after-change-style a b)
+            ;;(printf "(after-change-style)~n")
             (unless (get-styles-fixed)
               (unless (local-edit-sequence?)
                 (when (has-focus?)
@@ -660,16 +667,19 @@
             (inner (void) after-change-style a b))
           
           (define/augment (on-set-size-constraint)
+            ;;(printf "(on-set-size-constraint)~n")
             (unless (local-edit-sequence?)
               (when (has-focus?)
                 (match-parens)))
             (inner (void) on-set-size-constraint))
           
           (define/augment (after-insert edit-start-pos change-length)
+            ;;(printf "(after-insert ~a ~a)~n" edit-start-pos change-length)
             (do-insert/delete edit-start-pos change-length)
             (inner (void) after-insert edit-start-pos change-length))
           
           (define/augment (after-delete edit-start-pos change-length)
+            ;;(printf "(after-delete ~a ~a)~n" edit-start-pos change-length)
             (do-insert/delete edit-start-pos (- change-length))
             (inner (void) after-delete edit-start-pos change-length))
                     
