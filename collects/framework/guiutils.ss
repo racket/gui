@@ -1,6 +1,15 @@
 (unit/sig framework:gui-utils^
   (import mred-interfaces^)
 
+  (define next-untitled-name
+    (let ([n 1])
+      (lambda ()
+	(begin0
+	 (cond
+	  [(= n 1) "Untitled"]
+	  [else (format "Untitled ~a" n)])
+	 (set! n (+ n 1))))))
+
   (define cursor-delay
     (let ([x 0.25])
       (case-lambda

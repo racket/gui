@@ -65,7 +65,8 @@
    exit))
 
 (define-signature framework:gui-utils^
-  (cursor-delay
+  (next-untitled-name
+   cursor-delay
    show-busy-cursor
    delay-action
    local-busy-cursor

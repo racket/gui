@@ -147,7 +147,8 @@
 
   (define editor-mixin
     (mixin (standard-menus<%>) (-editor<%>) (file-name)
-      (inherit get-area-container get-client-size set-icon show get-edit-target-window get-edit-target-object)
+      (inherit get-area-container get-client-size 
+	       set-icon show get-edit-target-window get-edit-target-object)
       (rename [super-on-close on-close]
 	      [super-set-label set-label])
       (public
@@ -165,7 +166,7 @@
 		   (let-values ([(base name dir?) (split-path file-name)])
 		     (or name
 			 file-name))
-		   "Untitled")]
+		   (gui-utils:next-untitled-name))]
 	[label-prefix (application:current-app-name)]
 	[do-label
 	 (lambda ()
@@ -175,10 +176,13 @@
       (public
 	[get-entire-label
 	 (lambda ()
-	   (if (or (string=? "" label)
-		   (string=? "" label-prefix))
-	       (string-append label-prefix label)
-	       (string-append label " - " label-prefix)))]
+	   (cond
+	    [(string=? "" label)
+	     label-prefix]
+	    [(string=? "" label-prefix)
+	     label]
+	    [else 
+	     (string-append label " - " label-prefix)]))]
 	[get-label-prefix (lambda () label-prefix)]
 	[set-label-prefix
 	 (lambda (s)
@@ -302,7 +306,9 @@
 	   (make-object separator-menu-item% edit-menu))])
 	     
       (override
-	[help-menu:about (lambda (menu evt) (message-box (format "Welcome to ~a" (application:current-app-name))))]
+        [help-menu:about 
+	 (lambda (menu evt) 
+	   (message-box (format "Welcome to ~a" (application:current-app-name))))]
 	[help-menu:about-string (lambda () (application:current-app-name))])
 	     
       (sequence (super-init (get-entire-label) #f (get-init-width) (get-init-height)))
@@ -325,8 +331,12 @@
 	  (when (send icon ok?)
 	    (set-icon icon)))
 	(do-label)
-	(when file-name
-	  (send (get-editor) load-file file-name 'guess #f))
+	(cond
+	 [(and file-name (file-exists? file-name))
+	  (send (get-editor) load-file file-name 'guess #f)]
+	 [file-name
+	  (send (get-editor) set-filename file-name)]
+	 [else (void)])
 	(let ([canvas (get-canvas)])
 	  (send canvas focus)))))
   
