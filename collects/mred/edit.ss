@@ -623,20 +623,31 @@
 		  [super-after-edit-sequence after-edit-sequence]
 		  [super-on-edit-sequence on-edit-sequence]
 		  [super-after-insert after-insert]
-		  [super-after-delete after-delete])
+		  [super-after-delete after-delete]
+		  [super-lock lock])
 	  (private
 	    [edit-sequence-depth 0]
-	    [needs-updating #f]
+	    [position-needs-updating #f]
+	    [lock-needs-updating #f]
+	    [maybe-update-lock-icon
+	     (lambda ()
+	       (if (= edit-sequence-depth 0)
+		   (send (get-frame) lock-status-changed)
+		   (set! lock-needs-updating #t)))]
 	    [maybe-update-position-edit
 	     (lambda ()
 	       (if (= edit-sequence-depth 0)
 		   (update-position-edit)
-		   (set! needs-updating #t)))]
+		   (set! position-needs-updating #t)))]
 	    [update-position-edit
 	     (lambda ()
 	       (send (get-frame) edit-position-changed))])
 			       
 	  (public
+	    [lock
+	     (lambda (x)
+	       (super-lock x)
+	       (maybe-update-lock-icon))]
 	    [after-set-position
 	     (lambda ()
 	       (maybe-update-position-edit)
@@ -652,10 +663,13 @@
 	    [after-edit-sequence
 	     (lambda ()
 	       (set! edit-sequence-depth (sub1 edit-sequence-depth))
-	       (when (and (= 0 edit-sequence-depth)
-			  needs-updating)
-		 (set! needs-updating #f)
-		 (update-position-edit))
+	       (when (= 0 edit-sequence-depth)
+		 (when position-needs-updating
+		   (set! position-needs-updating #f)
+		   (update-position-edit))
+		 (when lock-needs-updating
+		   (set! lock-needs-updating #f)
+		   (send (get-frame) lock-status-changed)))
 	       (super-after-edit-sequence))]
 	    [on-edit-sequence
 	     (lambda ()
