@@ -1,4 +1,9 @@
 
+Version 102/6:
+
+ * Fixed pasting and file-loading with objects that use a style other
+   than the default one.
+
 Version 102/5:
 
  [No notable changes]
