@@ -723,7 +723,13 @@
 	     (st 3 l get-number)
 	     (st "ONe" l get-string 0)
 	     (st "TW&o" l get-string 1)
-	     (st "THRee" l get-string 2))
+	     (st "THRee" l get-string 2)
+
+	     (stv l set-data 0 'my-example-data)
+	     (stv l set-data 2 'my-other-data)
+	     (st 'my-example-data l get-data 0)
+	     (st #f l get-data 1)
+	     (st 'my-other-data l get-data 2))
 
 	   'done-list)])
 

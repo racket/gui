@@ -3715,7 +3715,7 @@
 		      (if on?
 			  (when (memq i disabled)
 			    (set! disabled (remq i disabled))
-			    (send keymap add-chained-keymap (send (mred->wx i) get-keymap) #t)
+			    (send keymap chain-to-keymap (send (mred->wx i) get-keymap) #t)
 			    (unless disabled?
 			      (super-enable-top p #t)))
 			  (unless (memq i disabled)
