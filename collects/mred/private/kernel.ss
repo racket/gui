@@ -908,7 +908,6 @@
     set-clipboard-client)
   (define-function get-the-clipboard)
   (define-class clipboard-client% object% ()
-    queue-callback
     get-types
     add-type
     get-data
@@ -959,6 +958,9 @@
     after-select
     on-select
     can-select?
+    after-reorder
+    on-reorder
+    can-reorder?
     after-resize
     on-resize
     can-resize?

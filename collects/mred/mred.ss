@@ -3,7 +3,8 @@
   (require (lib "class.ss")
 	   (lib "class100.ss")
 	   (lib "file.ss")
-	   (lib "process.ss"))
+	   (lib "process.ss")
+	   (lib "moddep.ss" "syntax"))
 
 ;;;;;;;;;;;;;;; Constants ;;;;;;;;;;;;;;;;;;;;
 
@@ -6082,6 +6083,171 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+(define readable-snip<%>
+  (interface ()
+    read-one-special))
+      
+;; open-input-text-editor : (instanceof text%) num num -> input-port
+;; creates a user port whose input is taken from the text%,
+;; starting at position `start-in'
+;; and ending at position `end'.
+(define open-input-text-editor 
+  (case-lambda
+   [(text start end)
+    ;; Check arguments:
+    (unless (text . is-a? . text%)
+      (raise-type-error 'open-input-text-editor "text% object" text))
+    (check-non-negative-integer 'open-input-text-editor start)
+    (unless (or (eq? end 'end)
+		(and (integer? end) (exact? end) (not (negative? end))))
+      (raise-type-error 'open-input-text-editor "non-negative exact integer or 'end" end))
+    (let ([last (send text last-position)])
+      (when (start . > . last)
+	(raise-mismatch-error 'open-input-text-editor
+			      (format "start index outside the range [0,~a]: " last)
+			      start))
+      (unless (eq? end 'end)
+	(unless (<= start end last)
+	  (raise-mismatch-error 'open-input-text-editor
+				(format "end index outside the range [~a,~a]: " start last)
+				end))))
+    ;; Create the port:
+    (let* ([end (if (eq? end 'end) (send text last-position) end)]
+	   [snip (send text find-snip start 'after-or-none)]
+	   [str #f]
+	   [pos 0]
+	   [semaphore (make-semaphore 1)]
+	   [update-str-to-snip
+	    (lambda ()
+	      (cond
+	       [(not snip)
+		(set! str #f)]
+	       [((send text get-snip-position snip) . >= . end)
+		(set! str #f)]
+	       [(is-a? snip wx:string-snip%)
+		(set! str (send snip get-text 0 (send snip get-count)))]
+	       [else
+		(set! str 'snip)]))]
+	   [next-snip
+	    (lambda ()
+	      (set! snip (send snip next))
+	      (set! pos 0)
+	      (update-str-to-snip))]
+	   [read-char (lambda ()
+			(cond
+			 [(not str) eof]
+			 [(string? str)
+			  (begin0 
+			   (string-ref str pos)
+			   (set! pos (+ pos 1))
+			   (when ((string-length str) . <= . pos)
+			     (next-snip)))]
+			 [(eq? str 'snip)
+			  (let ([the-snip snip])
+			    (lambda (file line col ppos)
+			      (if (is-a? the-snip readable-snip<%>)
+				  (let-values ([(val size done?)
+						(send the-snip read-one-special pos file line col ppos)])
+				    (if done?
+					(next-snip)
+					(set! pos (add1 pos)))
+				    (values val size))
+				  (begin
+				    (next-snip)
+				    (values (send the-snip copy) 1)))))]))]
+	   [close (lambda () (void))]
+	   ;; We create a slow port for now; in the future, try
+	   ;; grabbing more characters:
+	   [port (make-custom-input-port 
+		  semaphore
+		  (lambda (s)
+		    (parameterize ([break-enabled #f])
+		      (if (semaphore-try-wait? semaphore)
+			  (dynamic-wind
+			      void
+			      (lambda ()
+				(let ([c (read-char)])
+				  (if (char? c)
+				      (begin
+					(string-set! s 0 c)
+					1)
+				      c)))
+			      (lambda () (semaphore-post semaphore)))
+			  0)))
+		  #f ; no peek
+		  close)])
+      (update-str-to-snip)
+      (port-count-lines! port)
+      port)]
+   [(text start) (open-input-text-editor text start 'end)]
+   [(text) (open-input-text-editor text 0 'end)]))
+
+(define (text-editor-load-handler filename expected-module)
+  (unless (and (string? filename)
+	       (or (relative-path? filename)
+		   (absolute-path? filename)))
+    (raise-type-error 'text-editor-load-handler "path string" filename))
+  (let-values ([(in-port src) (build-input-port filename)])
+    (dynamic-wind
+	(lambda () (void))
+	(lambda ()
+	  (parameterize ([read-accept-compiled #t])
+	    (if expected-module
+		(with-module-reading-parameterization 
+		 (lambda ()
+		   (let* ([first (read-syntax src in-port)]
+			  [module-ized-exp (check-module-form first expected-module filename)]
+			  [second (read in-port)])
+		     (unless (eof-object? second)
+		       (raise-syntax-error
+			'text-editor-load-handler
+			(format "expected only a `module' declaration for `~s', but found an extra expression"
+				expected-module)
+			second))
+		     (eval module-ized-exp))))
+		(let loop ([last-time-values (list (void))])
+		  (let ([exp (read-syntax src in-port)])
+		    (if (eof-object? exp)
+			(apply values last-time-values)
+			(call-with-values (lambda () (eval exp))
+			  (lambda x (loop x)))))))))
+	(lambda ()
+	  (close-input-port in-port)))))
+
+
+;; build-input-port : string -> (values input any)
+;; constructs an input port for the load handler. Also
+;; returns a value representing the source of code read from the file.
+;; if the file's first lines begins with #!, skips the first chars of the file.
+(define (build-input-port filename)
+  (let ([p (open-input-file filename)])
+    (port-count-lines! p)
+    (let ([p (cond
+	      [(regexp-match-peek "^WXME01[0-9][0-9] ## " p)
+	       (let ([t (make-object text%)])
+		 (send t insert-file p 'standard)
+		 (open-input-text-editor t))]
+	      [else p])])
+      (port-count-lines! p) ; in case it's new
+      (let loop ()
+	;; Wrap regexp check with `with-handlers' in case the file
+	;;  starts with non-text input
+	(when (with-handlers ([not-break-exn? (lambda (x) #f)])
+		(regexp-match-peek "^#!" p))
+	  ;; Throw away chars/specials up to eol,
+	  ;;  and continue if line ends in backslash
+	  (let lloop ([prev #f])
+	    (let ([c (read-char-or-special p)])
+	      (if (or (eof-object? c)
+		      (eq? c #\return)
+		      (eq? c #\newline))
+		  (when (eq? prev #\\)
+		    (loop))
+		  (lloop c))))))
+      (values p filename))))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 (define-syntax propagate
   (lambda (stx)
     (syntax-case stx ()
@@ -6272,7 +6438,10 @@
 	the-pen-list
 	the-font-list
 	the-style-list
-	timer%)
+	timer%
+	readable-snip<%>
+	open-input-text-editor
+	text-editor-load-handler)
 
 
 ) ;; end of module

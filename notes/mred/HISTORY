@@ -1,11 +1,25 @@
 
 Version 200.1
 
+New load handler, text-editor-load-handler, enables MrEd to
+ load source files that are stored in the graphical
+ editor format
+Added open-input-text-editor, used by the load handler
+Added readable-snip<%>, which is recognized in ports created
+ with open-input-text-editor to "read" special snips
+Changed file loading and saving so that a snip class name of
+ the form "(lib ...)" triggers the loading of a snip class
+ implementation
 Removed get-clipboard-client from clipboard<%>
+Changed set-clipboard-client to associate a clipboard-client%
+ object to the current eventspace, and the-clipboard to call
+ methods within the eventspace through event callbacks
+Added a variant of insert-file to editor<%> to accept
+ an input port instead of a filename
+Added can-reorder?, on-reorder, and after-reorder to
+ pasteboard%
 
-set-clipboard-client associates a clipboard-client% object to
- the current eventspace, and the-clipboard calls methods
- within the eventspace through event callbacks
+----------------------------------------------------------------------
 
 Version 200: June, 2002
 
