@@ -317,7 +317,8 @@
 		  (show #f)]
 		 [(directory-exists? t)
 		  (set-directory (mzlib:file:normalize-path t))]
-		 [else (wx:bell)])))])
+		 [else (wx:message-box (format "~a doesn't exist" t))])))])
+			
 	(sequence
 	  (when (eq? wx:platform 'unix)
 	    (make-object mred:container:check-box% period-panel
