@@ -12,6 +12,9 @@
   
   (provide color@)
     
+  (define (should-color-type? type)
+    (not (memq type '(white-space no-color))))
+  
   (define color@
     (unit/sig framework:color^
       (import [preferences : framework:preferences^]
@@ -175,7 +178,7 @@
                 (let ((len (- new-token-end new-token-start)))
                   (set! current-pos (+ len current-pos))
                   (sync-invalid)
-                  (when (and should-color? (not (eq? 'white-space type)) (not frozen?))
+                  (when (and should-color? (should-color-type? type) (not frozen?))
                     (set! colors
                           (cons
                            (let ((color (send (get-style-list) find-named-style
@@ -361,7 +364,7 @@
                       (finish-now)
                       (send tokens for-each
                             (lambda (start len type)
-                              (when (and should-color? (not (eq? 'white-space type)))
+                              (when (and should-color? (should-color-type? type))
                                 (let ((color (send (get-style-list) find-named-style
                                                    (token-sym->style type)))
                                       (sp (+ start-pos start))
@@ -579,7 +582,9 @@
                  (insert c)
                  (let ((m (backward-match (+ l pos) start-pos)))
                    (cond
-                     ((and m (send parens is-open-pos? (- m start-pos)))
+                     ((and m
+                           (send parens is-open-pos? (- m start-pos))
+                           (send parens is-close-pos? (- pos start-pos)))
                       (delete pos (+ l pos))
                       c)
                      (else
@@ -598,9 +603,11 @@
                 (insert insert-str)
                 (when flash?
                   (unless stopped?
-                    (let ((pos (backward-match (+ (string-length insert-str) pos) 0)))
-                      (when (and pos (send parens is-open-pos? pos))
-                        (flash-on pos (+ 1 pos)))))))))
+                    (let ((to-pos (backward-match (+ (string-length insert-str) pos) 0)))
+                      (when (and to-pos
+                                 (send parens is-open-pos? (- to-pos start-pos))
+                                 (send parens is-close-pos? (- pos start-pos)))
+                        (flash-on to-pos (+ 1 to-pos)))))))))
           
           ;; ------------------------- Callbacks to Override ----------------------
           
