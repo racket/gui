@@ -7576,34 +7576,27 @@
 				    [next?
 				     (next-snip to-str)]
 				    [snip
-				     (let-values ([(the-snip alt-size) (snip-filter snip)])
-				       (cons
-					alt-size
-					(lambda (file line col ppos)
-					  (if (is-a? the-snip wx:snip%)
-					      (if (is-a? the-snip readable-snip<%>)
-						  (with-handlers ([special-comment?
-								   (lambda (exn)
-								     ;; implies "done"
-								     (next-snip empty-string)
-								     (raise exn))]
-								  [void
-								   (lambda (exn)
-								     ;; Give up after an exception
-								     (next-snip empty-string)
-								     (raise exn))])
-						    (let-values ([(val size done?)
-								  (send the-snip read-one-special pos file line col ppos)])
-						      (if done?
-							  (next-snip empty-string)
-							  (set! pos (add1 pos)))
-						      val))
-						  (begin
-						    (next-snip empty-string)
-						    (send the-snip copy)))
-					      (begin
-						(next-snip empty-string)
-						the-snip)))))]
+				     (let ([the-snip (snip-filter snip)])
+				       (lambda (file line col ppos)
+					 (if (is-a? the-snip wx:snip%)
+					     (if (is-a? the-snip readable-snip<%>)
+						 (with-handlers ([void
+								  (lambda (exn)
+								    ;; Give up after an exception
+								    (next-snip empty-string)
+								    (raise exn))])
+						   (let-values ([(val done?)
+								 (send the-snip read-one-special pos file line col ppos)])
+						     (if done?
+							 (next-snip empty-string)
+							 (set! pos (add1 pos)))
+						     val))
+						 (begin
+						   (next-snip empty-string)
+						   (send the-snip copy)))
+					     (begin
+					       (next-snip empty-string)
+					       the-snip))))]
 				    [else eof]))]
 		     [close (lambda () (void))]
 		     [port (make-input-port/read-to-peek
@@ -7621,7 +7614,7 @@
 				       (semaphore-peek-evt lock-semaphore)
 				       (lambda (x) 0)))))
 			    (lambda (s skip general-peek)
-			      (let ([v (peek-bytes-avail!* s skip pipe-r)])
+			      (let ([v (peek-bytes-avail!* s skip #f pipe-r)])
 				(if (zero? v)
 				    (general-peek s skip)
 				    v)))
@@ -7639,7 +7632,7 @@
 		(port-count-lines! port)
 		port)))))]
    [(text start end filter) (open-input-text-editor text start end filter text)]
-   [(text start end) (open-input-text-editor text start end (lambda (x) (values x 1)))]
+   [(text start end) (open-input-text-editor text start end (lambda (x) x))]
    [(text start) (open-input-text-editor text start 'end)]
    [(text) (open-input-text-editor text 0 'end)]))
 
