@@ -142,9 +142,13 @@
     "preference. If \\var{test} returns \\rawscm{\\#t}, then the preference is"
     "treated as valid. If \\var{test} returns \\rawscm{\\#f} then the default is"
     "used."
-
+    ""
     "If there is a site-wide default preferences file, the default"
-    "preference in that file is used instead of \\var{value}.")
+    "preference in that file is used instead of \\var{value}."
+    ""
+    "Once"
+    "@flink preferences:start-writing-thread "
+    "has been called, no more default preferences may be registered.")
    (preferences:set-un/marshall
     (symbol? (any? . -> . printable?) (printable? . -> . any?) . -> . void?)
     (symbol marshall unmarshall)
@@ -184,6 +188,13 @@
     ()
     "\\rawscm{(preferences:restore-defaults)} restores the users's configuration to the"
     "default preferences.")
+   (preferences:start-writing-thread
+    (-> void?)
+    ()
+    "Starts a thread that periodically flushes the preferences"
+    "to disk reads them from the disk (if the prefs have changed on the disk."
+    ""
+    "Once this function has been called, no new preferences may be registered.")
 
    (preferences:add-panel
     ((union string? (cons/p string? (listof string?)))

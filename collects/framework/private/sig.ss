@@ -181,7 +181,8 @@
      save
      read
      restore-defaults
-
+     start-writing-thread
+     
      add-panel
      add-font-panel
 

@@ -35,11 +35,71 @@
       ;; defaults : sym -o> default
       (define defaults (make-hash-table))
       
+      ;; changed : hash-table[symbol -o> true]
+      ;; the mapped symbols are the ones that have changed
+      ;; but not yet written out to disk.
+      (define changed (make-hash-table))
+      
+      ;; no-more-defaults? : boolean
+      ;; when #t, no more default prefs may be set.
+      (define no-more-defaults? #f)
+      
       (define-struct un/marshall (marshall unmarshall))
       (define-struct marshalled (data))
       (define-struct pref (value))
       (define-struct default (value checker))
       
+
+      ;; reset-changed : -> void
+      ;; resets the changed table to indicate no changes have occurred
+      (define (reset-changed) 
+        (set! changed (make-hash-table)))
+      
+      ;; add-changed-pref : symbol -> void
+      ;; marks the pref p as changed
+      (define (add-changed-pref p)
+        (hash-table-put! changed p #t))
+      
+      ;; periodically checks to see if changes need to be written out.
+      (define (start-writing-thread)
+        (set! no-more-defaults? #t)
+        (thread 
+         (lambda ()
+           (let loop ()
+             (sleep 5)
+             (let ([s (make-semaphore 0)])
+               (queue-callback
+                (lambda ()
+                  (maybe-flush-changes)
+                  (semaphore-post s))
+                #f)
+               (semaphore-wait s))
+             (loop))))
+        (void))
+      
+      (define last-time-read #f)
+      (define (maybe-flush-changes)
+        
+        ;; writing out changes
+        (let ([changed-syms (hash-table-map changed (lambda (k v) k))])
+          (unless (null? changed-syms)
+            (let/ec k
+              (let ([sexp (get-disk-prefs (lambda () (k #f)))])
+                (install-stashed-preferences sexp changed-syms)
+                (raw-save #t)
+                (reset-changed)))))
+        
+        ;; reading in changes
+        (let* ([mod (file-or-directory-modify-seconds (find-system-path 'pref-file))])
+          (when (or (not last-time-read)
+                    (last-time-read . < . mod))
+            (let* ([failed? #f]
+                   [new-stuff (get-preference main-preferences-symbol (lambda () (set! failed? #t)))])
+              (unless failed?
+                (set! last-time-read mod)
+                (install-stashed-preferences new-stuff '())
+                (reset-changed))))))
+
       (define guard
         (lambda (when p value thunk failure)
           (with-handlers ([not-break-exn? failure])
@@ -139,15 +199,11 @@
         (let/ec k
           (hash-table-get defaults p (lambda () (k #f)))
           #t))
-
-      ;; set : symbol any -> void
-      ;; updates the preference `p' and records it as changed
-      (define (set p value)
-        (raw-set p value))
       
-      ;; raw-set : symbol any -> void
-      ;; updates the preference, but without recording it as changed
-      (define (raw-set p value)
+      ;; set : symbol any -> void
+      ;; updates the preference
+      (define (set p value)
+        (add-changed-pref p)
         (let* ([pref (hash-table-get preferences p (lambda () #f))])
           (unless (default-set? p)
             (error 'preferences:set "tried to set a preference but no default set for ~e, with ~e"
@@ -178,6 +234,8 @@
       
       ;; set-default : (sym TST (TST -> boolean) -> void
       (define (set-default p default-value checker)
+        (when no-more-defaults?
+          (error 'set-default "tried to register the pref ~e too late; preferences:start-writing-thread has already been called" p))
         (let ([default-okay? (checker default-value)])
           (unless default-okay?
             (error 'set-default "~s: checker (~s) returns ~s for ~s, expected #t~n"
@@ -187,13 +245,19 @@
                             (hash-table-put! preferences p (make-pref default-value))))
           (hash-table-put! defaults p (make-default default-value checker))))
       
-      (define (save)
-        (with-handlers ([(lambda (x) #t)
+      (define (save) (raw-save #f))
+      
+      ;; raw-save : boolean -> boolean
+      ;; input determines if there is a dialog box showing the errors (and other msgs)
+      ;; and result indicates if there was an error
+      (define (raw-save silent?)
+        (with-handlers ([not-break-exn?
                          (lambda (exn)
-                           (message-box
-                            (string-constant preferences)
-                            (format (string-constant error-saving-preferences)
-                                    (exn-message exn)))
+                           (unless silent?
+                             (message-box
+                              (string-constant preferences)
+                              (format (string-constant error-saving-preferences)
+                                      (exn-message exn))))
                            #f)])
           (let ([syms (list main-preferences-symbol)]
                 [vals (list (hash-table-map preferences marshall-pref))]
@@ -201,20 +265,21 @@
             (put-preferences
              syms vals
              (lambda (filename)
-               (let* ([d (make-object dialog% (string-constant preferences))]
-                      [m (make-object message% (string-constant waiting-for-pref-lock) d)])
-                 (thread
-                  (lambda ()
-                    (sleep 2)
-                    (send d show #f)))
-                 (send d show #t)
-                 (put-preferences 
-                  syms vals
-                  (lambda (filename)
-                    (set! res #f)
-                    (message-box
-                     (string-constant preferences)
-                     (format (string-constant pref-lock-not-gone) filename)))))))
+               (unless silent?
+                 (let* ([d (make-object dialog% (string-constant preferences))]
+                        [m (make-object message% (string-constant waiting-for-pref-lock) d)])
+                   (thread
+                    (lambda ()
+                      (sleep 2)
+                      (send d show #f)))
+                   (send d show #t)
+                   (put-preferences 
+                    syms vals
+                    (lambda (filename)
+                      (set! res #f)
+                      (message-box
+                       (string-constant preferences)
+                       (format (string-constant pref-lock-not-gone) filename))))))))
             res)))
       
       (define (marshall-pref p ht-value)
@@ -306,19 +371,36 @@
             [else (error 'prefs.ss "robby error.3: ~a" ht-pref)])))
 
       ;; read : -> void
-      (define (-read)
-        (let/ec k
-          (let ([sexp (get-preference main-preferences-symbol (lambda () (k #f)))])
-            (install-stashed-preferences sexp))))
+      (define (-read) (get-disk-prefs/install void))
       
-      ;; install-stashed-preferences : sexp -> void
+      ;; get-disk-prefs/install : (-> A) -> (union A sexp)
+      (define (get-disk-prefs/install fail)
+        (let/ec k
+          (let ([sexp (get-disk-prefs (lambda () (k (fail))))])
+            (install-stashed-preferences sexp '())
+            (reset-changed)
+            sexp)))
+
+      ;; get-disk-prefs : (-> A) -> (union A sexp)
+      ;; effect: updates the flag for the modified seconds
+      ;; (note: if this is not followed by actually installing 
+      ;;        the preferences, things break)
+      (define (get-disk-prefs fail)
+        (let/ec k
+          (let ([mod (file-or-directory-modify-seconds (find-system-path 'pref-file))]
+                [sexp (get-preference main-preferences-symbol (lambda () (k (fail))))])
+            (set! last-time-read mod)
+            sexp)))
+      
+      ;; install-stashed-preferences : sexp (listof symbol) -> void
       ;; ensure that `prefs' is actuall a well-formed preferences
       ;; table and installs them as the current preferences.
-      (define (install-stashed-preferences prefs)
-        (for-each-pref-in-sexp 
+      (define (install-stashed-preferences prefs skip)
+        (for-each-pref-in-sexp
          prefs
          (lambda (p marshalled)
-           (add-raw-pref-to-ht preferences p marshalled))))
+           (unless (memq p skip)
+             (add-raw-pref-to-ht preferences p marshalled)))))
  
                                           
     ;;    ;           ;;;                 
@@ -431,15 +513,13 @@
       (define can-close-dialog-callbacks null)
       
       (define (make-preferences-dialog)
-        (letrec ([stashed-prefs (get-preference main-preferences-symbol (lambda () null))]
+        (letrec ([stashed-prefs (get-disk-prefs/install (lambda () null))]
 		 [frame-stashed-prefs%
 		  (class frame:basic%
 		    (rename [super-show show])
                     (define/override (show on?)
                       (when on?
-                        (set! stashed-prefs
-                              (get-preference main-preferences-symbol
-                                              (lambda () null))))
+                        (set! stashed-prefs (get-disk-prefs/install (lambda () null))))
 		      (super-show on?))
 		    (super-instantiate ()))]
                  [frame 
@@ -499,7 +579,7 @@
                                   (hide-dialog)))]
                  [cancel-callback (lambda (_1 _2)
                                     (hide-dialog)
-                                    (install-stashed-preferences stashed-prefs))])
+                                    (install-stashed-preferences stashed-prefs '()))])
           (gui-utils:ok/cancel-buttons
            bottom-panel
            ok-callback
