@@ -203,6 +203,7 @@
     num-scroll-lines
     scroll-line-location
     get-snip-location
+    in-edit-sequence?
     refresh-delayed?
     end-edit-sequence
     begin-edit-sequence
