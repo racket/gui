@@ -283,6 +283,8 @@
   (define-function set-editor-print-margin)
   (define-function get-editor-print-margin)
   (define-class bitmap% object% #f
+    set-loaded-mask
+    get-loaded-mask
     save-file
     load-file
     is-color?
