@@ -737,8 +737,8 @@
                                       (install-stashed-preferences stashed-prefs))])
             (gui-utils:ok/cancel-buttons
              bottom-panel
-             cancel-callback
-             ok-callback)
+             ok-callback
+             cancel-callback)
             (make-object grow-box-spacer-pane% bottom-panel)
             (send* bottom-panel
               (stretchable-height #f)
