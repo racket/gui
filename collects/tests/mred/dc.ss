@@ -8,6 +8,8 @@
 (define mdc (make-object bitmap-dc%))
 (define bm (make-object bitmap% 10 10))
 
+(test #t 'is-color? (send bm is-color?))
+
 (define (bad m . args)
   (with-handlers ([exn:application:mismatch?
 		   (lambda (x)
