@@ -2795,7 +2795,7 @@
 				 (unless (memq wx (ivar (send wx get-parent) children))
 				   (raise-mismatch-error 
 				    (who->name '(method window<%> show))
-				    "cannot show a child window that is not active in its parent: "
+				    "cannot show a subwindow that is not active in its parent: "
 				    this))))
 			     (send wx show on?)))]
       [is-shown? (entry-point (lambda () (send wx is-shown?)))]
