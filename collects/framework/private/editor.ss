@@ -346,10 +346,10 @@
       (define (set-standard-style-list-pref-callbacks)
         (set-font-size (preferences:get 'framework:standard-style-list:font-size))
         (set-font-name (preferences:get 'framework:standard-style-list:font-name))
-        (set-font-smoothing (preferences:get 'framework:standard-style-list:font-smoothing))
+        (set-font-smoothing (preferences:get 'framework:standard-style-list:smoothing))
         (preferences:add-callback 'framework:standard-style-list:font-size (lambda (p v) (set-font-size v)))
         (preferences:add-callback 'framework:standard-style-list:font-name (lambda (p v) (set-font-name v)))
-        (preferences:add-callback 'framework:standard-style-list:font-smoothing (lambda (p v) (set-font-smoothing v)))
+        (preferences:add-callback 'framework:standard-style-list:smoothing (lambda (p v) (set-font-smoothing v)))
         
         (unless (member (preferences:get 'framework:standard-style-list:font-name) (get-face-list 'mono))
           (preferences:set 'framework:standard-style-list:font-name (get-family-builtin-face 'modern))))

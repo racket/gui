@@ -35,7 +35,7 @@
        (lambda (x) (and (number? x) (exact? x) (integer? x) (positive? x))))
       
       (preferences:set-default
-       'framework:standard-style-list:font-smoothing
+       'framework:standard-style-list:smoothing
        'default
        (lambda (x) 
          (memq x '(unsmoothed partly-smoothed smoothed default))))
