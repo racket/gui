@@ -405,11 +405,12 @@
       (override
 	[on-local-char
 	 (lambda (key)
-	   (let ([cr-code 13]
-		 [lf-code 10]
+	   (let ([cr-code #\return]
+		 [lf-code #\newline]
 		 [code (send key get-key-code)])
-	     (or (and (or (= lf-code code)
-			  (= cr-code code))
+	     (or (and (char? code)
+		      (or (char=? lf-code code)
+			  (char=? cr-code code))
 		      (return))
 		 (super-on-local-char key))))])
       (sequence

@@ -716,7 +716,7 @@
 	  (lambda (p v)
 	    (if v 
 		(register-gc-blit)
-		(unregister-collecting-blit gc-canvas))
+		'(unregister-collecting-blit gc-canvas))
 	    (send super-root change-children
 		  (lambda (l)
 		    (if v
@@ -727,7 +727,7 @@
 	 (lambda ()
 	   (super-on-close)
 	   (send time-canvas set-editor #f)
-	   (unregister-collecting-blit gc-canvas)
+	   '(unregister-collecting-blit gc-canvas)
 	   (close-panel-callback))])
       
       (inherit get-editor)
@@ -785,7 +785,7 @@
 		 [offb (icon:get-gc-off-bitmap)])
 	     (when (and (send onb ok?)
 			(send offb ok?))
-	       (register-collecting-blit gc-canvas 
+	       '(register-collecting-blit gc-canvas 
 					 0 0
 					 (send onb get-width)
 					 (send onb get-height)
@@ -805,9 +805,9 @@
 	       [gc-height (if (send gcb ok?)
 			      (send gcb get-height)
 			      10)])
-	  '(send* gc-canvas
-		  (min-client-width gc-width)
-		  (min-client-height gc-height)
+	  (send* gc-canvas
+		  (min-client-width (max (send gc-canvas min-width) gc-width))
+		  (min-client-height (max (send gc-canvas min-height) gc-height))
 		  (stretchable-width #f)
 		  (stretchable-height #f)))
 	(send* (get-info-panel) 
