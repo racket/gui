@@ -1172,7 +1172,8 @@
       (private
 	[editor-position-changed-offset/numbers
 	 (let ([last-start #f]
-	       [last-end #f])
+	       [last-end #f]
+               [last-params #f])
 	   (lambda (offset? line-numbers?)
 	     (let* ([edit (get-info-editor)]
 		    [make-one
@@ -1201,8 +1202,10 @@
 		 (let ([start (send edit get-start-position)]
 		       [end (send edit get-end-position)])
 		   (unless (and last-start
+                                (equal? last-params (list offset? line-numbers?))
 				(= last-start start)
 				(= last-end end))
+                     (set! last-params (list offset? line-numbers?))
 		     (set! last-start start)
 		     (set! last-end end)
 		     (when (object? position-edit)

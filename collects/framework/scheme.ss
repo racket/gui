@@ -142,7 +142,7 @@
 	      [super-after-delete after-delete]
 	      [super-after-set-size-constraint after-set-size-constraint]
 	      [super-after-set-position after-set-position])
-      (inherit has-focus?)
+      (inherit has-focus? find-snip split-snip)
       (override
        [on-focus
 	(lambda (on?)
@@ -558,7 +558,20 @@
 			new-pos)))
 		 (end-edit-sequence))
 	       (insert #\newline)))]
-	[comment-out-selection
+	
+        
+        [calc-last-para
+         (lambda (last-pos)
+           (let ([last-para (position-paragraph last-pos #t)])
+             (if (and (> last-pos 0)
+                      (> last-para 0))
+                 (begin (split-snip last-pos)
+                        (let ([snip (find-snip last-pos 'before)])
+                          (if (member 'hard-newline (send snip get-flags))
+                              (- last-para 1)
+                              last-para)))
+                 last-para)))]
+        [comment-out-selection
 	 (opt-lambda ([start-pos (get-start-position)]
 		      [end-pos (get-end-position)])
 	   (begin-edit-sequence)
@@ -566,7 +579,7 @@
 		  (= (paragraph-start-position (position-paragraph start-pos))
 		     start-pos)])
 	     (let* ([first-para (position-paragraph start-pos)]
-		    [last-para (position-paragraph end-pos #t)])
+		    [last-para (calc-last-para end-pos)])
 	       (let para-loop ([curr-para first-para])
 		 (if (<= curr-para last-para)
 		     (let ([first-on-para (paragraph-start-position curr-para)])
@@ -582,9 +595,9 @@
 	 (opt-lambda ([start-pos (get-start-position)]
 		      [end-pos (get-end-position)])
 	   (begin-edit-sequence)
-	   (let ([last-pos (last-position)]
-		 [first-para (position-paragraph start-pos)]
-		 [last-para (position-paragraph end-pos #t)])
+	   (let* ([last-pos (last-position)]
+                  [first-para (position-paragraph start-pos)]
+                  [last-para (calc-last-para end-pos)])
 	     (let para-loop ([curr-para first-para])
 	       (if (<= curr-para last-para)
 		   (let ([first-on-para

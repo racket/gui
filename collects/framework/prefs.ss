@@ -291,6 +291,7 @@
 	 
 	 (make-check 'framework:show-status-line "Show status-line" id id)
 	 (make-check 'framework:line-offsets "Count line and column numbers from one" id id)
+	 (make-check 'framework:display-line-numbers "Display line numbers in buffer; not character offsets" id id)
 	 (make-check 'framework:menu-bindings "Enable keybindings in menus" id id)
 	 (unless (eq? (system-type) 'unix) 
 	   (make-check 'framework:print-output-mode "Automatically print to postscript file"
@@ -299,7 +300,6 @@
 		       (lambda (n) (eq? 'postscript n))))
 
 	 
-	 (make-check 'framework:display-line-numbers "Display line numbers in buffer; not character offsets" id id)
 	 '(when (eq? (system-type) 'windows)
 	    (make-check 'framework:windows-mdi "Use MDI Windows" id id))
 	 (make-check 'framework:search-using-dialog?
