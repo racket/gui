@@ -65,7 +65,7 @@
         (set! no-more-defaults? #t)
         (new timer%
              [notify-callback (lambda () (maybe-flush-changes))]
-             [interval (* 5 1000)])
+             [interval (* 10 1000)])
         (void))
       
       (define last-time-read #f)

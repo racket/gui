@@ -181,7 +181,7 @@
      save
      read
      restore-defaults
-     start-writing-thread
+     start-writing-timer
      
      add-panel
      add-font-panel
