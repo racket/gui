@@ -12,10 +12,9 @@
 		       "Graphics Test"
 		       -1 -1 300 450)]
        [vp (make-object mred:vertical-panel% f)]
-       [hp-instr (make-object mred:horizontal-panel% vp)]
        [hp0 (make-object mred:horizontal-panel% vp)]
        [hp (make-object mred:horizontal-panel% vp)]
-       [hp2 (make-object mred:horizontal-panel% vp)]
+       [hp2 hp]
        [bb (make-object wx:bitmap% (sys-path "bb.gif")
 			wx:const-bitmap-type-gif)]
        [return (make-object wx:bitmap% (sys-path "return.xbm")
@@ -23,11 +22,9 @@
        [tmp-mdc (make-object wx:memory-dc%)]
        [use-bitmap? #f]
        [depth-one? #f])
-  (send hp-instr stretchable-in-y #f)
   (send hp0 stretchable-in-y #f)
   (send hp stretchable-in-y #f)
-  (send hp2 stretchable-in-y #f)
-  (make-object mred:button% hp-instr
+  (make-object mred:button% hp0
 	       (lambda (b e)
 		 (send (send (mred:edit-file (local-path "draw-info.txt")) get-edit) lock #t))
 	       "What Should I See?")

@@ -263,5 +263,8 @@ and make sure the resulting controls look right. Resize each frame and
 check stretchiness before closing it.
 
 Go back to the default configuration and try the 3 other combinations
-of label and button fonts.
+of label and button fonts. The big label font should apply to external
+control labels, and to message items. The button font should apply to
+the content of controls (names within a button, checkbox, listbox,
+choice, or text control).
 

@@ -1,6 +1,12 @@
 
 The drawing area should have the following features:
 
+  At the top-left, when the window is opened for the first time,
+    you shoudl see a hollow box with a line sticking out to the
+    bottom left. Repainting the canvas should produce instead
+    a solid box and no line. Repainting with Pixmap or Bitmap
+    should always produce the hollow box and line.
+
   At the top, "Pen 0 x 0" in a consistent font (i.e., re-painting
     should not change the font)
   "Pen 1 x 1" in a possibly different font
@@ -10,7 +16,7 @@ The drawing area should have the following features:
     (if the line is missing, it was probably erased when the text
      was repainted, and that is bad)
 
-  the drawings under 0x0 and 1x1 should look the same:
+  The drawings under 0x0 and 1x1 should look the same:
     TopLeft: h-line should be left-aligned with box below it,
              but extend 1 extra pixel. v-line similarly should be
              top-aligned and 1 pixel longer. The lines should not 

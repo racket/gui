@@ -1,5 +1,6 @@
 
 (define my-txt #f)
+(define my-lb #f)
 
 (define special-font (send wx:the-font-list find-or-create-font
 			   20 wx:const-decorative 
@@ -258,6 +259,7 @@
 			   -1 -1 -1 -1))
   
   (set! my-txt txt)
+  (set! my-lb lb)
 
   (add-testers "Button" b)
   (add-change-label "Button" b lp #f OTHER-LABEL)
