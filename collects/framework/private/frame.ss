@@ -990,12 +990,22 @@
           
           (define/public save-as
             (opt-lambda ([format 'same])
-              (let* ([name (send (get-editor) get-filename)]
-                     [file (parameterize ([finder:dialog-parent-parameter this])
-                             (finder:put-file name))])
-                (if file
-                    (send (get-editor) save-file/gui-error file format)
-                    #f))))
+              (let* ([editor (get-editor)]
+                     [name (send editor get-filename)])
+                (let-values ([(base name)
+                              (if name 
+                                  (let-values ([(base name dir?) (split-path name)])
+                                    (values base name))
+                                  (values #f #f))])
+                  (let ([file (send editor put-file name base)])
+                    (if file
+                        (send editor save-file/gui-error file format)
+                        #f))))))
+          
+          (define/private (basename str)
+            (let-values ([(base name dir?) (split-path str)])
+              base))
+          
           (inherit get-checkable-menu-item% get-menu-item%)
           (override file-menu:save-callback
                     file-menu:create-save? file-menu:save-as-callback file-menu:create-save-as? 

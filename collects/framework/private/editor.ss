@@ -52,12 +52,12 @@
 	    (opt-lambda ([input-filename #f]
 			 [fmt 'same]
 			 [show-errors? #t])
-	      (let ([filename (if (or (not input-filename)
+              (let ([filename (if (or (not input-filename)
 				      (equal? input-filename ""))
 				  (let ([internal-filename (get-filename)])
 				    (if (or (not internal-filename)
 					    (equal? internal-filename ""))
-					(mred:get-file)
+					(put-file #f #f)
 					internal-filename))
 				  input-filename)])
                 (with-handlers ([not-break-exn?
@@ -86,7 +86,7 @@
                                   (let ([internal-filename (get-filename)])
                                     (if (or (not internal-filename)
                                             (equal? internal-filename ""))
-                                        (mred:get-file)
+                                        (get-file #f)
                                         internal-filename))
                                   input-filename)])
                 (with-handlers ([not-break-exn?
@@ -299,14 +299,14 @@
 		[else (make-object editor-snip% (make-object pasteboard:basic%))]))]
 	  
 	  
-	  (override get-file put-file)
-	  [define get-file (lambda (d) 
-			     (parameterize ([finder:dialog-parent-parameter
-					     (get-top-level-window)])
-			       (finder:get-file d)))]
-	  [define put-file (lambda (d f) (parameterize ([finder:dialog-parent-parameter
-							 (get-top-level-window)])
-					   (finder:put-file f d)))]
+	  (define/override (get-file d)
+            (parameterize ([finder:dialog-parent-parameter
+                            (get-top-level-window)])
+              (finder:get-file d)))
+	  (define/override (put-file d f)
+            (parameterize ([finder:dialog-parent-parameter
+                            (get-top-level-window)])
+              (finder:put-file f d)))
 	  
 	  
 	  (super-instantiate ())))
