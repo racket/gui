@@ -2805,7 +2805,7 @@
   (string->symbol (format "initialization for ~a%" who)))
 
 (define (iconstructor-name who)
-  (string->symbol (format "initialization for a ~a<%> class" who)))
+  (string->symbol (format "initialization for a class that implements ~a<%>" who)))
 
 (define (check-container-parent who p)
   (unless (is-a? p internal-container<%>)
@@ -3882,7 +3882,7 @@
     
 (define editor-canvas%
   (class100 basic-canvas% (parent [editor #f] [style null] [scrolls-per-page 100] [label #f]
-				  [wheel-step no-val])
+				  [wheel-step no-val] [line-count no-val])
     (sequence 
       (let ([cwho '(constructor editor-canvas)])
 	(check-container-parent cwho parent)
@@ -3892,6 +3892,8 @@
 	(check-label-string/false cwho label)
 	(unless (eq? wheel-step no-val)
 	  (check-wheel-step cwho wheel-step))
+	(unless (or (not line-count) (eq? line-count no-val))
+	  ((check-bounded-integer 1 1000 #t) cwho line-count))
 	(check-container-ready cwho parent)))
     (inherit set-label)
     (private-field
@@ -3977,7 +3979,9 @@
 	(set-label label))
       (when editor
 	(set-editor editor))
-      (send parent after-new-child this))))
+      (send parent after-new-child this)
+      (unless (or (not line-count) (eq? line-count no-val))
+	(set-line-count line-count)))))
 
 ;-------------------- Final panel interfaces and class constructions --------------------
 
