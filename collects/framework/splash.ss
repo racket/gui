@@ -1,7 +1,8 @@
 ; filename : splash-image-path
 ; title : title of window
+; width-default : number 
 
-(lambda (filename title width-default depth-default)
+(lambda (filename title width-default)
   (let/ec k
     (letrec-values
 	([(no-splash) (lambda () (k void void))]
@@ -102,22 +103,10 @@
 	    (when (<= splash-current-width splash-max-width)
 	      (send gauge set-value splash-current-width)))]
 	 [(splash-load-handler)
-	  (let ([depth 0])
-	    (lambda (old-load f)
-	      (let ([error? #t]
-		    [finalf (splitup-path f)])
-		(dynamic-wind
-		 (lambda () (void))
-		 (lambda ()
-		   (inc-splash)
-		   (set! depth (+ depth 1))
-		   (begin0 (old-load f)
-			   (set! error? #f)))
-		 (lambda ()
-		   (if error?
-		       (shutdown-splash)
-		       (begin (set! depth (- depth 1))
-			      #t)))))))]
+	  (lambda (old-load f)
+	    (let ([finalf (splitup-path f)])
+	      (inc-splash)
+	      (old-load f)))]
 	 [(_4) (current-load
 		(let ([old-load (current-load)])
 		  (lambda (f)
