@@ -1,4 +1,14 @@
 
+Version 199.14:
+
+ * Converted many classes to have by-name initialization
+   arguments. The order is unchanged from previous versions of MrEd,
+   but arguments have been added. For example, the complete list of
+   frame% argument is now: `label', `parent', `width', `height', `x',
+   `y', `style', `enabled', `border', `spacing', `alignment',
+   `min-width', `min-height', `stretchable-width', and
+   `stretchable-height'.
+
 Version 199.7:
 
  * Added a 'gl style flag to canvas%, for use with extensions that
