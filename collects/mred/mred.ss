@@ -5644,11 +5644,13 @@
 	 (with-syntax ([(k:n ...)
 			(map
 			 (lambda (n)
-			   (datum->syntax (string->symbol
-					   (format 
-					    "wx:~a"
-					    (syntax-e n)))
-					  #f n))
+			   (datum->syntax-object
+			    n
+			    (string->symbol
+			     (format 
+			      "wx:~a"
+			      (syntax-e n)))
+			    #f))
 			 ns)])
 	   (syntax (begin
 		     (provide (rename k:n n) ...)))))])))
@@ -5815,6 +5817,7 @@
 	get-window-text-extent
 	get-family-builtin-face
 	send-message-to-window
+	the-clipboard
 	the-editor-wordbreak-map
 	the-brush-list
 	the-color-database

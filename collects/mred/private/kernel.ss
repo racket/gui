@@ -34,11 +34,13 @@
     (lambda (stx)
       (syntax-case stx ()
 	[(_ name)
-	 (with-syntax ([kernel:name (datum->syntax (string->symbol
-						    (format 
-						     "kernel:~a"
-						     (syntax-e (syntax name))))
-						   #f (syntax name))])
+	 (with-syntax ([kernel:name (datum->syntax-object
+				     (syntax name)
+				     (string->symbol
+				      (format 
+				       "kernel:~a"
+				       (syntax-e (syntax name))))
+				     #f)])
 	   (syntax
 	    (begin
 	      (define kernel:name (dynamic-require '#%mred-kernel 'name))
@@ -86,8 +88,8 @@
 				 (loop (cdr l) (cons (car l) o) n)]
 				[else
 				 (loop (cdr l) o (cons (car l) n))]))])
-		 (with-syntax ([(old ...) (datum->syntax old #f #f)]
-			       [(new ...) (datum->syntax new #f #f)])
+		 (with-syntax ([(old ...) (datum->syntax-object #f old #f)]
+			       [(new ...) (datum->syntax-object #f new #f)])
 		   (syntax
 		    (define name (let ([c (dynamic-require '#%mred-kernel 'name)]
 				       [b (box #f)])
