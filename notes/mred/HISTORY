@@ -1,4 +1,20 @@
 
+103/2:
+
+ * Fixed unreliable menu keybindings, especially cut-and-paste. More
+   technically, fixed menu shortcut handling to call the menu bar's
+   `on-demand' method before looking for a key binding.
+
+ * Fixed bug in text%'s autowrapper. The bug would manifest itself if
+   snips were deleted from a line created by autowrapping, leaving
+   nothing on the line except a newline. (PR 1592)
+
+ * Windows: fixed double-insertion of numbers from Windows numpad. (PR
+   1588 and plt-scheme msg)
+
+ * X: made Alt/Meta release dismiss active menu in the menu bar if one
+   is active, like ESC. (PR 1581)
+
 103/1:
 
  * Added support for JPEG file loading (but not saving) using the IJG
@@ -30,6 +46,9 @@ Added get-clipboard-bitmap and set-clipboard-bitmap to
  clipboard<%>
 Changed graphical-read-eval-print-loop to take an optional
  eventspace argument, which determines the evaluation eventspace
+Fixed menu shortcut handling to call the menu bar's `on-demand'
+ method before looking for a key binding
+Fixed auto-wrapping bug in text%
 Windows: editors can paste bitmaps copied to the
  clipboard from other programs
 Windows: fixed get-file-list
