@@ -7477,7 +7477,16 @@
 				  (make-semaphore-peek lock-semaphore)))))
 		      #f ; no peek
 		      close)])
-	  (update-str-to-snip empty-string)
+	  (if (is-a? snip wx:string-snip%)
+	      ;; Specilal handling for initial snip string in case
+	      ;;  it starts too early:
+	      (let* ([snip-start (gsp snip)]
+		     [skip (- start snip-start)]
+		     [c (min (- (send-generic snip get-count-generic) skip)
+			     (- end snip-start))])
+		(set! next? #t)
+		(display (send-generic snip get-text-generic skip c) pipe-w))
+	      (update-str-to-snip empty-string))
 	  (port-count-lines! port)
 	  port)))]
    [(text start) (open-input-text-editor text start 'end)]
