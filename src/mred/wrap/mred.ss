@@ -630,8 +630,8 @@
 		      (set! was-bad? #t)
 		      (set! already-trying? #t)
 		      (set-size -1 -1 correct-w correct-h)
-		      (when was-bad? (resized))
-		      (set! already-trying? #f))))))))])
+		      (set! already-trying? #f)
+		      (when was-bad? (resized)))))))))])
       
     (override
       ; show: add capability to set perform-updates
