@@ -2824,11 +2824,13 @@
     (private
       [wx #f]
       [wx-panel #f]
-      [finish (entry-point-1
-	       (lambda (top-level)
+      [finish (entry-point-2
+	       (lambda (top-level hide-panel?)
 		 (set! wx-panel (make-object wx-vertical-panel% #f this top-level null))
 		 (send (send wx-panel area-parent) add-child wx-panel)
 		 (send top-level set-container wx-panel)
+		 (when hide-panel?
+		   (send wx-panel show #f))
 		 top-level))])
     (sequence 
       (super-init (lambda () (set! wx (mk-wx finish)) wx) (lambda () wx-panel) label parent arrow-cursor))))
@@ -2908,8 +2910,10 @@
 	 (super-init (lambda (finish) 
 		       (set! wx (finish (make-object wx-frame% this this
 						     (and parent (mred->wx parent)) label
-						     (or x -1) (or y -1) (or width -1) (or height -1)
-						     style)))
+						     (or x -1) (or y -1)
+						     (or width -1) (or height -1)
+						     style)
+					(memq 'mdi-parent style)))
 		       (send wx set-mdi-parent (memq 'mdi-parent style))
 		       wx)
 		     label parent))))))
@@ -2936,7 +2940,8 @@
 		       (set! wx (finish (make-object wx-dialog% this this
 						     (and parent (mred->wx parent)) label #t
 						     (or x -1) (or y -1) (or width 0) (or height 0)
-						     style)))
+						     style)
+					#f))
 		       wx)
 		     label parent))))))
 
