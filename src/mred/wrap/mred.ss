@@ -1253,7 +1253,7 @@
 	(let ([delta-w (- (get-width) client-width)]
 	      [delta-h (- (get-height) client-height)]
 	      [vertical-labels? (eq? (send (send (get-parent) get-window) get-label-position) 'vertical)]
-	      [horizontal? (eq? 'horizontal style)])
+	      [horizontal? (memq 'horizontal style)])
 	  (set-min-width (if horizontal?
 			     (let ([cw (min const-max-gauge-length
 					    (* range pixels-per-value))])
@@ -3903,8 +3903,7 @@
   ;; The REPL buffer class
   (define esq:text%
     (class text% ()
-      (inherit insert last-position get-text erase change-style clear-undos
-	       begin-edit-sequence end-edit-sequence get-start-position)
+      (inherit insert last-position get-text erase change-style clear-undos)
       (rename [super-on-char on-char])
       (private [prompt-pos 0] [locked? #f])
       (override
@@ -3916,22 +3915,16 @@
 			      (not locked?))
 		     (set! locked? #t)
 		     (evaluate (get-text prompt-pos (last-position)))))])
-      (private
-	[plain-style (make-object wx:style-delta% 'change-normal)])
       (public
 	[new-prompt (lambda ()
-		      (output "> " #f)
+		      (output "> ")
 		      (set! prompt-pos (last-position))
 		      (set! locked? #f)
 		      (clear-undos))]
-	[output (lambda (str style-delta)
+	[output (lambda (str)
 		  (let ([l? locked?])
 		    (set! locked? #f)
-		    (begin-edit-sequence)
-		    (let ([pos (get-start-position)])
-		      (insert str)
-		      (change-style (or style-delta plain-style) pos (get-start-position)))
-		    (end-edit-sequence)
+		    (insert str)
 		    (set! locked? l?)))]
 	[reset (lambda ()
 		 (set! locked? #f)
@@ -3945,7 +3938,7 @@
 	  (let ([e (last-position)])
 	    (insert #\newline)
 	    (change-style (send (make-object wx:style-delta% 'change-bold) set-delta-foreground "BLUE") s e)))
-	(output (format "Copyright (c) 1995-98 PLT (Matthew Flatt and Robby Findler)~n") #f)
+	(output (format "Copyright (c) 1995-98 PLT (Matthew Flatt and Robby Findler)~n"))
 	(insert "This is a simple window for evaluating MrEd Scheme expressions.") (insert #\newline)
 	(let ([s (last-position)])
 	  (insert "Quit now and run DrScheme to get a better window.")
@@ -3978,25 +3971,9 @@
       (wx:make-eventspace)))
   (define user-parameterization (wx:eventspace-parameterization user-eventspace))
   
-  (define make-user-output-port
-    (let ([semaphore (make-semaphore 1)])
-      (lambda (style-delta)
-	(make-output-port (lambda (s)
-			    (semaphore-wait semaphore)
-			    (send repl-buffer output s style-delta)
-			    (semaphore-post semaphore))
-			  (lambda () 'nothing-to-do)))))
-
-  (define user-output-port (make-user-output-port
-			    (send (make-object wx:style-delta%)
-				  set-delta-foreground "PURPLE")))
-  (define user-error-port (make-user-output-port
-			    (send (make-object wx:style-delta% 'change-style 'slant)
-				  set-delta-foreground "RED")))
-  (define user-value-port (make-user-output-port
-			   (send (make-object wx:style-delta% 'change-bold)
-				 set-delta-foreground "BLUE")))
-  
+  (define user-output-port
+    (make-output-port (lambda (s) (send repl-buffer output s))
+		      (lambda () 'nothing-to-do)))
   
   ;; Evaluation and resetting
   
@@ -4012,7 +3989,7 @@
 	     (lambda () (eval (read (open-input-string expr-str))))
 	     (lambda results
 	       (for-each 
-		(lambda (v) (print v user-value-port) (newline))
+		(lambda (v) (print v) (newline))
 		results))))
 	  (lambda ()
 	    (send repl-buffer new-prompt)))))))
@@ -4036,7 +4013,7 @@
 
   ;; Go
   ((in-parameterization user-parameterization current-output-port) user-output-port)
-  ((in-parameterization user-parameterization current-error-port) user-error-port)
+  ((in-parameterization user-parameterization current-error-port) user-output-port)
   ((in-parameterization user-parameterization current-input-port) (make-input-port (lambda () eof) void void))
   ((in-parameterization user-parameterization current-custodian) user-custodian)
   ((in-parameterization user-parameterization current-will-executor) (make-will-executor))
