@@ -839,13 +839,16 @@ WARNING: printf is rebound in the body of the unit to always
       (define ports<%>
         (interface ()
           get-insertion-point 
+          set-insertion-point
           get-unread-start-point
           set-unread-start-point
+          set-allow-edits
+          get-allow-edits
           has-between?
           submit-to-port?
           on-submit
           send-eof-to-in-port
-          flush-output-ports
+          clear-ports
           get-in-port
           get-out-port
           get-err-port
@@ -880,6 +883,11 @@ WARNING: printf is rebound in the body of the unit to always
           ;; only updated in `eventspace' (above)'s main thread
           (define unread-start-point 0)
           
+          ;; allow-edits? : boolean
+          ;; when this flag is set, only insert/delete after the
+          ;; insertion-point are allowed.
+          (define allow-edits? #f)
+          
           ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
           ;;
           ;;  public interface
@@ -900,16 +908,18 @@ WARNING: printf is rebound in the body of the unit to always
             (not (= insertion-point unread-start-point)))
           
           (define/public (get-insertion-point) insertion-point)
+          (define/public (set-insertion-point ip) (set! insertion-point ip))
           (define/public (get-unread-start-point) unread-start-point)
           (define/public (set-unread-start-point u) (set! unread-start-point u))
           
+          (define/public (set-allow-edits allow?) (set! allow-edits? allow?))
+          (define/public (get-allow-edits) allow-edits?)
+          
           (define/public (send-eof-to-in-port) (channel-put read-chan eof))
           
-          (define/public (flush-output-ports)
-            (let ([c (make-channel)])
-              (channel-put this-eventspace-flush-chan c)
-              (let ([viable-bytes (channel-get c)])
-                (do-insertion viable-bytes))))
+          (define/public (clear-ports) 
+            (channel-put clear-output-chan (void))
+            (channel-put clear-input-chan (void)))
           
           (define/public (get-in-port)
             (unless in-port (error 'get-in-port "not ready"))
@@ -941,12 +951,14 @@ WARNING: printf is rebound in the body of the unit to always
           (rename [super-can-insert? can-insert?])
           (define/override (can-insert? start len)
             (and (super-can-insert? start len)
-                 (start . >= . insertion-point)))
+                 (or allow-edits?
+                     (start . >= . insertion-point))))
           
           (rename [super-can-delete? can-delete?])
           (define/override (can-delete? start len)
             (and (super-can-delete? start len)
-                 (start . >= . insertion-point)))
+                 (or allow-edits?
+                     (start . >= . insertion-point))))
           
           (rename [super-on-local-char on-local-char])
           (define/override (on-local-char key)
@@ -996,10 +1008,10 @@ WARNING: printf is rebound in the body of the unit to always
           ;; the waitable inside is waited on to indicate the flush has occurred
           (define flush-chan (make-channel))
           
-          ;; this-eventspace-flush-chan : (channel (channel viable-bytes))
-          ;; used to do syncs on the main eventspace
-          (define this-eventspace-flush-chan (make-channel))
-          
+          ;; clear-output-chan, clear-input-chan : (channel void)
+          ;; dumps all data and readers making the ports empty again
+          (define clear-output-chan (make-channel))
+          (define clear-input-chan (make-channel))
           
           ;; write-chan : (channel (cons bytes style))
           ;; send output to the editor
@@ -1069,6 +1081,10 @@ WARNING: printf is rebound in the body of the unit to always
                      (channel-put result #t)
                      (data-waiting data)))
                   (make-wrapped-waitable
+                   clear-input-chan
+                   (lambda (_)
+                     (data-and-readers-waiting (empty-queue) (empty-queue))))
+                  (make-wrapped-waitable
                    read-chan
                    (lambda (new-data)
                      (data-waiting (enqueue new-data data))))
@@ -1080,6 +1096,10 @@ WARNING: printf is rebound in the body of the unit to always
                (define (readers-waiting readers)
                  (object-wait-multiple
                   #f
+                  (make-wrapped-waitable
+                   clear-input-chan
+                   (lambda (_)
+                     (data-and-readers-waiting (empty-queue) (empty-queue))))
                   (make-wrapped-waitable
                    peek-chan
                    (lambda (result)
@@ -1105,6 +1125,10 @@ WARNING: printf is rebound in the body of the unit to always
                            (object-wait-multiple
                             #f
                             (make-wrapped-waitable
+                             clear-input-chan
+                             (lambda (_)
+                               (data-and-readers-waiting (empty-queue) (empty-queue))))
+                            (make-wrapped-waitable
                              peek-chan
                              (lambda (result)
                                (channel-put result #t)
@@ -1119,7 +1143,7 @@ WARNING: printf is rebound in the body of the unit to always
                              (lambda (v)
                                (data-and-readers-waiting data
                                                          (queue-rest readers))))))]))
-               (data-waiting (empty-queue)))))
+               (data-and-readers-waiting (empty-queue) (empty-queue)))))
           
           (define output-buffer-thread
             (let ([buffer-full 40]
@@ -1137,11 +1161,9 @@ WARNING: printf is rebound in the body of the unit to always
                          (queue-insertion viable-bytes return-waitable)
                          (loop remaining-queue))))
                     (make-wrapped-waitable
-                     this-eventspace-flush-chan
-                     (lambda (return)
-                       (let-values ([(viable-bytes remaining-queue) (split-queue converter text-to-insert)])
-                         (channel-put return viable-bytes)
-                         (loop remaining-queue))))
+                     clear-output-chan
+                     (lambda (_)
+                       (loop (empty-queue))))
                     (make-wrapped-waitable
                      write-chan
                      (lambda (pr)

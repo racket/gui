@@ -81,12 +81,11 @@
                          (let loop ([this-dir dir]
                                     [dir-list null]
                                     [menu-list null])
-                           (let-values ([(base-dir in-dir dir?) 
-                                         (split-path this-dir)])
-                             (if (eq? (system-type) 'windows)
-                                 (string-lowercase! in-dir))
+                           (let-values ([(base-dir in-dir dir?) (split-path this-dir)])
+                             (when (eq? (system-type) 'windows)
+                               (string-lowercase! in-dir))
                              (let* ([dir-list (cons this-dir dir-list)]
-                                    [menu-list (cons in-dir menu-list)])
+                                    [menu-list (cons (path->string in-dir) menu-list)])
                                (if base-dir
                                    (loop base-dir dir-list menu-list)
                                    ; No more
@@ -112,27 +111,28 @@
                                         [rest (loop (cdr l))])
                                     (cond
                                       [(and no-periods?
-                                            (<= 1 (string-length s))
-                                            (char=? (string-ref s 0) #\.))
+                                            (let ([str (path->string s)])
+                                              (<= 1 (string-length str))
+                                              (char=? (string-ref str 0) #\.)))
                                        rest]
                                       [(directory-exists? (build-path dir s))
-                                       (cons s rest)]
+                                       (cons (path->string s) rest)]
                                       [(or (not file-filter)
-                                           (regexp-match-exact? file-filter s))
-                                       (cons s rest)]
+                                           (regexp-match-exact? file-filter (path->string s)))
+                                       (cons (path->string s)
+                                             rest)]
                                       [else rest])))))
-                          ;(if (eq? (system-type) 'unix) string<? string-ci<?)
-                          string-ci<?
-                          ))
+                          string<?))
                    (send name-list set-selection-and-edit 0))))))
           
           (define/private set-edit
             (lambda ()
               (let* ([file (send name-list get-string-selection)])
                 (send directory-field set-value
-                      (if file
-                          (build-path current-dir file)
-                          current-dir)))))
+                      (path->string
+                       (if file
+                           (build-path current-dir file)
+                           current-dir))))))
 	  
 	  [define/public do-period-in/exclusion
             (lambda (check-box event)
