@@ -195,11 +195,13 @@ Multiple Selections >> Multiple-Selection Lists Only <<
 -------------------
 
 Click on each of the three items and make sure that "Selected N"
- and "Callback Ok" are printed in the console.
+ and "Callback Ok" are printed in the console. (For most platforms
+ selecting an item deselects the other items, but some platforms
+ preserve the old selections. That's ok.)
 
 Click "Check" and verify the item list *and* the selection list.  Only
  one item should be selected, and the only position of that item
- (counting frmo 0) should be in the selection list.
+ (counting from 0) should be in the selection list.
 
 Use the shift key to select a second item. The console should show
  "Selected N" and "Callback Ok" as usual.
@@ -215,6 +217,14 @@ Shift-click to select the remaining item. The console should show
 
 Control-click on a selected item. It should become unselected (and the
  other two selected items should remain so). The console should report
- "Selected -1", "Deselect", and "Callback Ok".
+ "Deselected N" and "Callback Ok".
 
+Click "Check" and verify the selection list.
+
+...
+
+Simulate should act like clicking, either extending the selection or
+ restarting it.
+
+Drag and make sure each selection/desel causes a notification.
 

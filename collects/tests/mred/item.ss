@@ -906,7 +906,8 @@
 	(list wx:const-event-type-listbox-command)
 	(list wx:const-event-type-choice-command)))
   (define old-list null)
-  (define multi? (= list-style wx:const-multiple))
+  (define multi? (or (= list-style wx:const-multiple)
+		     (= list-style wx:const-extended)))
   (define callback
     (lambda (cx e)
       (when (zero? (send c number))
@@ -915,15 +916,19 @@
 				 (send e get-command-int)
 				 (send e get-command-string))
 			   old-list))
-      (printf "Selected ~a~n" (send e get-command-int))
       (cond
-       [(and multi? (= -1 (send e get-command-int)))
+       [(= 0 (send e get-extra-long))
 	; deselection
-	(unless (= -1 (send e get-command-int))
-	  (error "selection index is not -1"))
-	(unless (null? (send e get-command-string))
-	  (error "string selection not null:" (send e get-command-string)))
-	(printf "Deselect~n")]
+	(printf "Deselected ~a~n" (send e get-command-int))
+	(unless multi?
+	  (error "delselection in a single-selection list"))
+	(unless (< -1 (send e get-command-int) (length actual-content))
+	  (error "deselection index is out of range"))
+	(unless (not (memv (send e get-command-int) (send c get-selections)))
+	  (error "deselected item is actually selected"))
+	(unless (string=? (send e get-command-string)
+			  (send c get-string (send e get-command-int)))
+	  (error "string selection mismatch:" (send e get-command-string)))]
        [(= 2 (send e get-extra-long))
 	; double-click
 	(unless (= -1 (send e get-command-int))
@@ -933,6 +938,7 @@
 	(printf "Double-click~n")]
        [else
 	; selection
+	(printf "Selected ~a~n" (send e get-command-int))
 	(if (or (not multi?) (<= (length (send c get-selections)) 1))
 	    (begin
 	      (unless (= (send e get-command-int)
@@ -1092,7 +1098,7 @@
 				      (send e set-command-string 
 					    (if (< -1 p (length actual-content))
 						(list-ref actual-content p)
-						"???"))
+						null))
 				      (when list? (send c set-first-item p))
 				      (send c command e)))
 				  " by Simulate" #t))
@@ -1313,7 +1319,8 @@
 (send lp stretchable-in-x #f)
 (make-object mred:button% lp (lambda (b e) (choice-or-list-frame #t wx:const-single #f)) "Make List Frame")
 (make-object mred:button% lp (lambda (b e) (choice-or-list-frame #t wx:const-single #t)) "Make Empty List Frame")
-(make-object mred:button% lp (lambda (b e) (choice-or-list-frame #t wx:const-multiple #f)) "Make Multilist Frame")
+(make-object mred:button% lp (lambda (b e) (choice-or-list-frame #t wx:const-multiple #f)) "Make MultiList Frame")
+(make-object mred:button% lp (lambda (b e) (choice-or-list-frame #t wx:const-extended #f)) "Make MultiExtendList Frame")
 (make-object mred:button% ap (lambda (b e) (gauge-frame)) "Make Gauge Frame")
 (define tp (make-object mred:horizontal-panel% ap))
 (send tp stretchable-in-x #f)
