@@ -588,7 +588,7 @@
     "and (send ("
     "@flink group:get-the-frame-group %"
     ") "
-    "@ilink group: get-open-here-frame %"
+    "@link group: get-open-here-frame %"
     ") returns a frame, the "
     "@ilink frame:open-here open-here "
     "method of that frame is used to load"
