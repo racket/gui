@@ -252,12 +252,13 @@
 		    (super-on-set-size-constraint)))]
 	    
 	    [after-insert
-	     (let ([style (make-object wx:style-delta% wx:const-change-normal 0)])
-	       (lambda (start len)
-		 (when mode (send mode after-insert this start len))
-		 (super-after-insert start len)
-		 (when styles-fixed?
-		   (change-style style start (+ start len)))))]
+	     (lambda (start len)
+	       (when mode (send mode after-insert this start len))
+	       (super-after-insert start len)
+	       (when styles-fixed?
+		 (change-style (send (get-style-list) find-named-style "Standard")
+			       start
+			       (+ start len))))]
 	    [after-delete
 	     (lambda (start len)
 	       (if mode (send mode after-delete this start len))
