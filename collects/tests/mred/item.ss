@@ -25,12 +25,16 @@
   (mdi))
 
 (define (add-frame-style style)
-  (let ([style (if use-metal?
-		   (cons 'metal style)
-		   style)])
-    (if float-frame?
-	(cons 'float style)
-	style)))
+  (let* ([style (if use-metal?
+		    (cons 'metal style)
+		    style)]
+	 [style (if float-frame?
+		    (cons 'float style)
+		    style)]
+	 [style (if no-caption?
+		    (cons 'no-caption style)
+		    style)])
+    style))
 
 (define make-frame
   (opt-lambda (% name [parent #f] [x #f] [y #f] [w #f] [h #f] [style '()])
@@ -537,6 +541,7 @@
 (define use-dialogs? #f)
 (define use-metal? #f)
 (define float-frame? #f)
+(define no-caption? #f)
 
 (define (big-frame h-radio? v-label? null-label? stretchy? special-label-font? special-button-font? 
 		   initially-disabled? alternate-init?)
@@ -2038,6 +2043,9 @@
   (make-object check-box% "Float" clockp
 	       (lambda (c e)
 		 (set! float-frame? (send c get-value))))
+  (make-object check-box% "No Title" clockp
+	       (lambda (c e)
+		 (set! no-caption? (send c get-value))))
   (make-object vertical-panel% clockp) ; filler
   (let ([time (make-object message% "XX:XX:XX" clockp)])
     (make-object
