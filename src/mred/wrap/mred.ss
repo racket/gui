@@ -4334,7 +4334,7 @@
        [mouse-popup-menu (lambda (edit event)
 			   (let ([a (send edit get-admin)])
 			     (when a
-			       (let ([m (make-object popup-menu% "Edit")])
+			       (let ([m (make-object popup-menu%)])
 				 (append-editor-operation-menu-items m)
 				 ;; Remove shortcut indicators (because they might not be correct)
 				 (for-each
@@ -4346,7 +4346,7 @@
 							   dc-location-to-editor-location
 							   (send event get-x)
 							   (send event get-y))])
-				   (send a popup-menu m x y))))))])
+				   (send a popup-menu m (+ x 5) (+ y 5)))))))])
   (wx:add-text-keymap-functions k)
   (send k add-function "mouse-paste" mouse-paste)
   (send k add-function "mouse-popup-menu" mouse-popup-menu)
