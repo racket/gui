@@ -52,14 +52,14 @@
   ;; the minimum width of the snip
   (define (snip-min-width snip)
     (cond
-      [(is-a? snip aligned-snip<%>)
+      [(is-a? snip stretchable-snip<%>)
        (send snip get-aligned-min-width)]
       [else (snip-width snip)]))
   
   ;; the minimum height of the snip
   (define (snip-min-height snip)
     (cond
-      [(is-a? snip aligned-snip<%>)
+      [(is-a? snip stretchable-snip<%>)
        (send snip get-aligned-min-height)]
       [else (snip-height snip)]))
   
@@ -104,14 +104,14 @@
   ;; true if the snip can be resized in the x dimention
   (define (stretchable-width? snip)
     (cond
-      [(is-a? snip aligned-snip<%>)
+      [(is-a? snip stretchable-snip<%>)
        (send snip stretchable-width)]
       [else false]))
   
   ;; true if the snip can be resized in the y dimention
   (define (stretchable-height? snip)
     (cond
-      [(is-a? snip aligned-snip<%>)
+      [(is-a? snip stretchable-snip<%>)
        (send snip stretchable-height)]
       [else false]))
   )

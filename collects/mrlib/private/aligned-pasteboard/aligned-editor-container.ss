@@ -82,7 +82,7 @@
   
   ;; a snip that can contain an aligned-pasteboard<%> and also be stretched within an aligned-pasteboard<%>
   (define aligned-editor-snip%
-    (class* editor-snip% (aligned-pasteboard-parent<%> aligned-snip<%>)
+    (class* editor-snip% (aligned-pasteboard-parent<%> stretchable-snip<%>)
       (inherit get-editor get-margin set-min-width set-min-height)
       
       (init

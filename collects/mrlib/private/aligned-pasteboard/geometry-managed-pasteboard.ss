@@ -54,7 +54,7 @@
         (dynamic-let ([ignore-resizing? true])
           (for-each-snip
            (lambda (s)
-             (if (is-a? s aligned-snip<%>)
+             (if (is-a? s stretchable-snip<%>)
                  (send s set-aligned-min-sizes)))
            (find-first-snip))
           (set!-values (aligned-min-width aligned-min-height)

@@ -70,7 +70,7 @@
     (new aligned-editor-snip% (editor pb))))
 
 ;; a text field fit to be in a test-case (no borders or margins etc.)
-;;STATUS: this should really return an aligned-snip<%> not an editor-snip% of fixed size.
+;;STATUS: this should really return a stretchable-snip<%> not an editor-snip% of fixed size.
 (define (text-field text)
   (new editor-snip% (editor text)))
 

@@ -7,7 +7,7 @@
   (provide
     aligned-pasteboard<%>
     aligned-pasteboard-parent<%>
-    aligned-snip<%>)
+    stretchable-snip<%>)
   
   ;; the interface that must be implemented for a pasteboard to be contained in an aligned-pasteboard-parent<%>
   (define aligned-pasteboard<%>
@@ -69,8 +69,8 @@
   
   ;; the interface that must be implemented by a class to be inserted into an aligned-pasteboard<%> and
   ;; be stretched and shrunk according to the geometry managment. note: any snip may be insert... those
-  ;; that do not implement aligned-snip<%> will simply not be stretched.
-  (define aligned-snip<%>
+  ;; that do not implement stretchable-snip<%> will simply not be stretched.
+  (define stretchable-snip<%>
     (interface ()
       ;; get-aligned-min-width (-> positive?)
       ;; get the minimum width of the snip
