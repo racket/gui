@@ -1,4 +1,10 @@
 
+Version 204.1
+Added "smoothing" to font%, style-delta%, and style<%>
+Mac OS X, 10.2 and up: default text rendering uses Quartz smoothing
+
+----------------------------------------
+
 Version 204: May, 2003
 
 Mac OS X: tab-panel% draws a border around its content by default
