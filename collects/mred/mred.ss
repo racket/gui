@@ -2586,7 +2586,7 @@
 		  ((void) after-move-to s x y ?)
 		  (#t can-resize? s x y)
 		  ((void) on-resize s x y)
-		  ((void) after-resize s x y)
+		  ((void) after-resize s x y ?)
 		  (#t can-reorder? s s2 ?)
 		  ((void) on-reorder s s2 ?)
 		  ((void) after-reorder s s2 ?)
@@ -6588,8 +6588,9 @@
 		 [m (make-object message% (protect& (path->string dir)) dir-pane)]
                  [lp (make-object horizontal-pane% f)]
                  [change-dir (lambda (d) (let ([sd (send d get-string-selection)])
-                                           (set! dir (simplify-path (build-path dir sd)))
-                                           (reset-directory)))]
+					   (when sd
+					     (set! dir (simplify-path (build-path dir sd)))
+					     (reset-directory))))]
 		 [dirs (make-object (class list-box%
                                       (define/override (on-subwindow-char w e)
                                         (cond
