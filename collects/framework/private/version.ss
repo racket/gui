@@ -1,14 +1,15 @@
 (module version mzscheme
   (require (lib "unitsig.ss")
 	   "sig"
-	   (lib "mred-sig.ss" "mred"))
+	   (lib "mred-sig.ss" "mred")
+	   (lib "string.ss")
+	   (lib "list.ss"))
 
   (provide version@)
 
   (define version@
     (unit/sig framework:version^
-      (import [mzlib:string : mzlib:string^]
-	      [mzlib:function : mzlib:function^])
+      (import)
 
       (rename [-version version])
 
@@ -16,7 +17,7 @@
 
       (define -version
 	(lambda ()
-	  (mzlib:function:foldr
+	  (foldr
 	   (lambda (entry sofar)
 	     (match entry
 	       [(sep num) (string-append sofar sep num)]))
@@ -25,6 +26,5 @@
 
       (define add-spec
 	(lambda (sep num)
-	  (set! specs (cons (list (mzlib:string:expr->string sep)
-				  (mzlib:string:expr->string num))
+	  (set! specs (cons (list (expr->string sep) (expr->string num))
 			    specs)))))))
