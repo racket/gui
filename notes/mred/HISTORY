@@ -1,6 +1,6 @@
 
 Version 299.25
-Added draw-bitmap-section-smooth to memory-dc%
+Added draw-bitmap-section-smooth to bitmap-dc% (not dc<%>)
 
 Version 299.24
 Added on-split-snip, on-merge-snips, and get-revision-number
@@ -129,6 +129,12 @@ Added screen-glyph-exists? to font% and glyph-exists to dc<%>
 Removed get-afm-path and set-afm-path from ps-setup%
  use the PLTAFMDIR environment variable or the
  current-ps-afm-file-paths parameter, instead
+
+----------------------------------------------------------------------
+
+Version 209, December 2004
+
+No significant changes.
 
 ----------------------------------------------------------------------
 
