@@ -588,7 +588,8 @@
 	       [cancel-callback (lambda args
 				  (hide-dialog)
 				  (-read))]
-	       [cancel-button (make-object button% "Cancel" bottom-panel cancel-callback)])
+	       [cancel-button (make-object button% "Cancel" bottom-panel cancel-callback)]
+	       [grow-box-space (make-object grow-box-spacer-pane% bottom-panel)])
 	(send ok-button min-width (send cancel-button get-width))
 	(send* bottom-panel
 	  (stretchable-height #f)
