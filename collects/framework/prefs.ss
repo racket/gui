@@ -311,6 +311,7 @@
 		  (list "Decorative" 'decorative)
 		  (list "Modern" 'modern)
 		  (list "Roman" 'roman)
+                  (list "Script" 'script)
 		  (list "Swiss" 'swiss))]
 	   
 	   [font-families (map car font-families-name/const)]
