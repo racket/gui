@@ -104,7 +104,16 @@
     (test '(1 12 13) 'pos (call-with-values (lambda () (port-next-location p)) list))
     (test 'multi 'read (read p))
     (test '(1 13 14) 'pos (call-with-values (lambda () (port-next-location p)) list))
-    (test eof 'read (read p))))
+    (test eof 'read (read p)))
+  (stv e insert (make-object image-snip% (build-path
+					  (collection-path "icons") 
+					  "plt.gif")))
+  (let ([p (open-input-text-editor e)])
+    (test 'hello 'read (read p))
+    (test 'there 'read (read p))
+    (test 'multi 'read (read p))
+    (test 'multi 'read (read p))
+    (test #t 'read (is-a? (read p) image-snip%))))
 		 
 
 

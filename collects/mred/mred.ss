@@ -7500,7 +7500,9 @@
 						   (next-snip empty-string)
 						   (set! pos (add1 pos)))
 					       (values val size)))
-					   (values (send the-snip copy) alt-size))
+					   (begin
+					     (next-snip empty-string)
+					     (values (send the-snip copy) alt-size)))
 				       (begin
 					 (next-snip empty-string)
 					 (values the-snip alt-size)))))]
