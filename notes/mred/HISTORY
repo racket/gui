@@ -1,4 +1,13 @@
 
+Version 202.1
+
+Added message-box/custom
+Added 'app, 'caution, and 'stop styles to message-box
+Added 'app, 'caution, and 'stop labels for message%
+
+
+----------------------------------------------------------------------
+
 Version 202: August, 2002
 
 Added 'panel brush style for drawing in the current platform's panel
