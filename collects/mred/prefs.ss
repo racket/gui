@@ -30,6 +30,20 @@
     (define-struct marshalled (data))
     (define-struct pref (value))
 
+    (define guard
+      (lambda (when p value thunk)
+	(let ([h
+	       (lambda (x)
+		 (let ([msg
+			(format "exception raised ~a for ~a with ~a: ~a~n"
+				when p value
+				(exn-message x))])
+		   (raise (mred:exn:make-exn:during-preferences
+			   msg
+			   ((debug-info-handler))))))])
+	  (with-handlers ([void h])
+			 (thunk)))))
+
     (define unmarshall
       (lambda (p marshalled)
 	(let/ec k
@@ -37,13 +51,15 @@
 		 [unmarshall-fn (un/marshall-unmarshall (hash-table-get marshall-unmarshall
 						        p
 							(lambda () (k data))))])
-	    (unmarshall-fn data)))))
+	    (guard "unmarshalling" p marshalled
+		   (lambda () (unmarshall-fn data)))))))
 
     (define get-callbacks
       (lambda (p)
 	(hash-table-get callbacks
 			p
 			(lambda () null))))
+
     (define add-preference-callback
       (lambda (p callback)
 	(hash-table-put! callbacks p (append (get-callbacks p) (list callback)))
@@ -56,7 +72,10 @@
 
     (define check-callbacks
       (lambda (p value)
-	(andmap (lambda (x) (x p value)) (get-callbacks p))))
+	(andmap (lambda (x)
+		  (guard "calling callback" p value
+			 (lambda () (x p value))))
+		(get-callbacks p))))
 
     (define get-preference
       (lambda (p) 
@@ -144,11 +163,13 @@
 		  (let* ([value (pref-value ht-value)]
 			 [marshalled
 			  (let/ec k
-			    ((un/marshall-marshall
-			      (hash-table-get marshall-unmarshall p
-					      (lambda ()
-						(k value))))
-			     value))])
+			    (guard "marshalling" p value
+				   (lambda ()
+				     ((un/marshall-marshall
+				       (hash-table-get marshall-unmarshall p
+						       (lambda ()
+							 (k value))))
+				      value))))])
 		    (list p marshalled))]
 		 [else (error 'prefs.ss "robby error.2: ~a" ht-value)]))])
 	(lambda () 
