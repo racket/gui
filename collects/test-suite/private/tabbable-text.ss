@@ -19,24 +19,22 @@
     (mixin (editor:keymap<%>) (tabbable-text<%>)
       
       (init-field
-       [ahead #f]
-       [back #f])
+       [ahead void]
+       [back void])
       
       ;; get-keymaps (-> (listof keymap%))
       ;; the list of keymaps associated with this text
       (rename [super-get-keymaps get-keymaps])
       (define/override (get-keymaps)
         (let ([keymap (make-object keymap%)])
-          (when ahead
-            (send keymap add-function "tab-ahead"
-                  (lambda (ignored event)
-                    (ahead)))
-            (send keymap map-function ":tab" "tab-ahead"))
-          (when back
-            (send keymap add-function "tab-back"
+          (send keymap add-function "tab-ahead"
+                (lambda (ignored event)
+                  (ahead)))
+          (send keymap map-function ":tab" "tab-ahead")
+          (send keymap add-function "tab-back"
                 (lambda (ignored event)
                   (back)))
-            (send keymap map-function "s:tab" "tab-back"))
+          (send keymap map-function "s:tab" "tab-back")
           (cons keymap (super-get-keymaps))))
       
       (define/public (set-ahead t) (set! ahead t))
