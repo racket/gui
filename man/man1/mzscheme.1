@@ -155,8 +155,8 @@ to
 .B \-C
 .TP
 .B \--main
-Call `main' with a list of argument strings, where the first string is
-the name of the file most recently loaded from the command line, and
+Like -r, then calls `main' with a list of argument strings. The first 
+string in the list is the name of the loaded file, and
 the rest of the list contains leftover command-line arguments.
 .PP
 
@@ -265,7 +265,7 @@ If the executable name has the form scheme-\|\c
 .I dialect\|\c
 , then the command line is effectively prefixed with
 .ce 1
--qAerC '(require (lib "init.ss" "script-lang" "\|\c
+-qAeC '(require (lib "init.ss" "script-lang" "\|\c
 .I dialect\|\c
 "))'
 The first actual command-line argument thus serves as the name of a file
