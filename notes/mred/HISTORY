@@ -1,4 +1,7 @@
 Version 51: ??, 1997
+
+Engine:
+-------
 X Windows: window manager close-frame request is ignored
  when a modal dialog is in control
 Added security so that wx:snip% methods cannot be overridden 
@@ -40,7 +43,53 @@ X Windows: fixed wx:frame's iconize and iconized? methods,
  iconified by the user
 Removed wx:exit
 
+System:
+-------
+ - mred:original-output-port is now called mred:constants:original-output-port
+   mred:original-input-port is now called mred:constants:original-input-port
+
+ - MrEd's collections are now documented.
+
+ - the collection paths are not normalized anymore
+
+ - the application startup procedure is new (again). The unit/sig
+   version is improved, and the non unitized approach now receives all
+   of the arguments, even the processed ones.
+
+ - the splash screen flag has changed.
+
+ - mred no longer imports a unit of the mred:application signature. Instead, 
+   the parameter mred:current-app-name is used to get and set the
+   applications name. The eval-string and frame are not used.
+
+ - CACHE-WRITE-COUNT in a console-edit is no longer used.
+
+ - do not use the frame method on-close anymore. Use can-close? and
+   do-close.
+
+ - renamed the edit-method "on-close" to "do-close"
+
+ - the startup procedure has changed again. Now, applications are
+   expected to be in a collection. The -a flag has an extra first
+   argument, specifing the collection to load the files from, and 
+   a -A flag has been added. See the startup documentation for more
+   information.
+
+   Also, if you define mred:startup and use the -nu flag, the
+   definition of mred:startup must come after the flag on the command
+   line. For example:
+     mred -e "(define mred:startup (lambda ...))" -nu
+   no longer works.
+
+   Redefinition of mred:initialize and mred:make-invokeable-unit are
+   no longer supported. Create a new system instead.
+
+----------------------------------------------------------------------
+
 Version 50: August 26, 1997
+
+Engine:
+-------
 Changed wx:dc%'s get-size method to return size of
  destination area; old [documented] functionality
  is available via max-x and max-y
@@ -67,7 +116,53 @@ Fixed on-size, pre-on-char, and pre-on-event for wx:item%
 Fixed confusing argument type and number error messages
  for overloaded methods of primitive classes
 
+System:
+-------
+- fixed a bug in file handlers; if a predicate is supplied, that
+  predicate is only called with one argument, the filename.
+
+- added mred:get-single-choice, which takes the same arguments as
+  wx:get-single-choice. It works the same, unless the dialog is
+  resized, in which case the mred: version resizes gracefully.
+
+- All of the icons in mred are now loaded lazily (but only once),
+  and their names are prefixed with "get-". They are now:
+
+  - mred:get-anchor-bitmap
+  - mred:get-lock-bitmap
+  - mred:get-unlock-bitmap
+  - mred:get-icon
+  - mred:get-autowrap-bitmap
+  - mred:get-paren-highlight-bitmap
+  - mred:get-reset-console-bitmap
+
+- added mred:info-frame%
+
+- split out mred:edit into several edits. The choices for pasteboards
+  and edits are now:
+
+    mred:media-edit%
+    mred:info-edit%
+    mred:searching-edit%
+    mred:clever-file-format-edit%
+    mred:file-edit%
+    mred:backup-autosave-edit%
+    mred:edit%
+    mred:return-edit%
+    mred:pasteboard%
+    mred:file-pasteboard%
+    mred:backup-autosave-pasteboard%
+
+  Probably mred:edit is not the right choice for you now.
+
+- mred:media-snip% objects now defaultly carry a mred:media-edit% object 
+
+----------------------------------------------------------------------
+
 Version 49: May 31, 1997
+
+Engine:
+-------
 Object system changes: see mzscheme/HISTORY for details
 Fixed Mac event-handling and many other Mac things
 Fixed garbage collection of hidden frames under Windows (!)
@@ -109,9 +204,78 @@ Windows and X Windows: Break key changed back to shift-ctl-c
   instead of ctl-c (to avoid conflicts with Emacs-std keyboard
   mappings)
 
+System:
+-------
+- .htx files are no longer supported
+
+- the search paths for the mzlib collection have changed. The PLTHOME
+  environment variable is now given preference.
+
+- mred:editor-frames are shown by default (the documentation was wrong)
+
+- mred:pasteboard-frames initialization arguments have changed and
+  they are not shown by default
+
+- autosaving has been moved to new edit and pasteboard classes, 
+  mred:backup-autosave-edit and  mred:backup-autosave-pasteboard.
+
+- mred:add-preference-default now takes a function which determines if
+  preferences read from the disk are valid or not (if not, the default
+  is used)
+
+- the show method of mred:dialog-box% only takes one argument now. Use
+  the centre method instead of the second argument
+
+- There is only one frame group now, and all frames are registered
+  with it. It is called mred:the-frame-group.
+  Associated changes:
+  - mred:current-frames is gone
+  - mred:edit-file only takes at most two arguments now
+  - handlers do not take a group as an argument
+  - mred:editor-frame% does not take a group as an input argument
+  - classes with the method `get-edit' are treated specially in groups
+  - mred:frame-group% method open-file does not exist,
+    use the procedures mred:edit-file or mred:open-file.
+  - mred:frame-group% ask-before-closing last eliminated. 
+    Use the empty-callback method
+  - added locate-file, a method of mred:the-frame-group which
+    takes a filename and returns a frame that is editing that if one exists.
+  - mred:edit-file now consults mred:the-frame-group to see if 
+    the file is already open, based on the third argument (or the parameter
+    mred:edit-file-consult-group)
+  - mred:editor-frame
+     - medthod get-frame-group gone from mred:editor-frame%
+     - method open-file's final optional arg eliminated
+     - do-autosave method deleted
+     - register-autosave call moved to mred:std-buffer 
+       (ie mred:edit and mred:pasteboard)
+
+- The perform-updates and set-perform-update ivars in mred:panel%,
+  mred:frame%, and mred:dialog-box% have been replaced with the
+  delay-updates method in mred:frame% and mred:dialog-box%.
+
+  Added on-container-resize method to mred:panel%, etc. to handle
+  container resize events, rather than inferring a container resize via
+  on-size (which could confuse real container resizes with external
+  events).
+
+  Changed force-redraw to ignore refresh requests when the
+  redraw-requesting window is not shown. Redraw requests are now
+  propogated to the top-level frame or dialog via child-redraw-request.
+- if your application is unititized, then you need to change the
+  startup procedure. See the application startup section in the
+  toolbox manual.
+
+----------------------------------------------------------------------
+
 Version 48: Skipped to avoid confusion with Scheme48
 
+----------------------------------------------------------------------
+
 Version 47: January 11, 1997
+
+Engine:
+-------
 WARNING: multiple inhertance is going away in 48
 Added overwrite-styles? arg to wx:media-buffer%'s read-from-file,
   and added get-/set-load-overwrites-styles methods
@@ -122,12 +286,36 @@ Controls with bitmap labels work correctly, fixed crashing bugs,
 wx:bitmap%'s load-file only allowed when the bitmap is not selected
   into a wx:memory-dc% object or used by a control
 
+System:
+-------
+- find-string-embedded of mred:edit% is just like find-string except it
+  searches in embedded buffers as well.
+- mred:frame-name is gone, use app-name in the application unit instead,
+  which is documented under the `Starting Up' section of the toolbox
+  manual.
+- the signature mred:application^ now contains the variable app-name.
+
+----------------------------------------------------------------------
+
 Version 46: December 5, 1996
+
+Engine:
+-------
 Fixed misc. Motif control-sizing problems
 Mac & Xt: "&" stripped from control labels correctly
 wx:yield takes an optional semaphore argument
 
+System:
+-------
+- pretty-print-out is gone, use display-result instead, if you want to
+  display results
+
+----------------------------------------------------------------------
+
 Version 45: November 12, 1996
+
+Engine:
+-------
 IMPORTANT: let-values is now analogous to let; the old 
   let-values is now let*-values
 Added thread-savy parameterization system; namespace system changed
@@ -145,7 +333,57 @@ wx:window% capture-mode, release-mouse, and make-modal no longer supported
   likely to be in 46.
 Xt and Mac: "&" stripped from control labels (matches Windows/Motif), sortof
 
+System:
+-------
+- frame groups no longer set the frame title prefix
+- there is a new edit%, mred:return-edit%. It takes an extra arg at
+  initialization time, which should be a function that will be called
+  when the user types return in the edit.
+- takeover-output is now takeover and release-output is gone.
+  In the next release this should become obsolete
+- there are now two new methods of simple-menu-frame%'s, 
+  get-edit and get-canvas. These return the current "main" edit and canvas
+  in the frame. They should be used for saving, reverting, etc. If your
+  frame can have more than one "main" edit then override get-edit and 
+  get-canvas and have them return the current main canvas. Note that
+  this is different from active-canvas and active-edit. Those two functions
+  may return *any* visible edit in the frame, eg one of the searching edits
+  in the bottom of the frame, that appear while searching. 
+  active-edit and active-canvas should be used for things like pasting 
+  and copying, which should apply to all edits, not just "important" or "main"
+  ones.
+- mred:simple-frame-canvas% and mred:editor-canvas% are now obsolete.
+  Instead there are now three important canvas classes in the system:
+  mred:wrapping-canvas% : 
+    handles autowrapping, can create edits automatically, uses
+    style-flags ivar and style initialization for default styles to
+    super-init, and implements edit-modifited and edit-renamed
+  mred:one-line-canvas% 
+    is just the right height to display one line of text.
+    inherits from mred:wrapping-canvas%
+  mred:frame-title-canvas%
+    updates the title of the frame when it recieves focus
+    events. inherits from mred:wrapping-canvas%
+- all of the "connection maintenence" ie edits that know which canvses
+  they are in, frames that know which canvas is the most recently
+  active canvas have been moved into into separate classes that only
+  maintain those connections, mred:connections-media-edit%,
+  mred:connections-media-canvas%, mred:connections-frame%,
+  mred:connections-dialog-box%, and mred:connections-panel%
+- all instance variables class% (e.g. edit% and canvas% on frames) 
+  have been changed to get-class%, to support inheiritance.
+- added extra optional arg to mred:local-busy-cursor and
+  mred:show-busy-cursor that specifies the timeout
+- frame title prefixes are now handled by the frame, and
+  the set-frame-prefix and set-frame-title methods correctly
+  update the graphical frame with it's new title.
+
+----------------------------------------------------------------------
+
 Version 44: September 9, 1996
+
+Engine:
+-------
 wx:play-sound added
 Saving bitmaps fixed on all platforms; editor can now save 
   "inlined" images instead of only references to images
@@ -157,10 +395,30 @@ Fixed Motif canvas click event reporting (spurious drags)
 See also mzscheme/HISTORY, wxme/README, and system/HISTORY
 Upgraded to gc 11alpha3
 
+System:
+-------
+- .html files (with file: links) are supported
+- system now provides and uses a better dialog buildling classes. 
+  See toolbox manual for more info
+- changed do-eval and do-save-and-eval-or-read-avail
+  to accept a range in the edit rather than a string
+- added read-snips/chars-from-buffer, a function that takes an edit and 
+  produces a thunk. That thunk returns either a snip or a character, for
+  each character and non-text snip in the edit.  
+- added a check so that edits will now save themselves in mred's format
+  if there are non-text snips in the edit.
+
+----------------------------------------------------------------------
+
 Version 43: Re-released August 12, 1996
 Under GNU LGPL license
 
+----------------------------------------------------------------------
+
 Version 43: August 9, 1996
+
+Engine:
+-------
 Major system overhaul (Robby Findler); see system/HISTORY
 Windows stability greatly advanced
 Windows and MacOS versions much more "Windows-like" and "Mac-like"
@@ -172,6 +430,22 @@ wx:panel%'s get-cursor renamed to get-item-cursor; added set-item-cursor
 Fixed cut-n-paste newlines under MacOS and Windows
 Xt: panel with one item no longer auto-sizes the child
 See also mzscheme/HISTORY
+
+System:
+-------
+- replaced search dialogue
+- new application startup procedure
+- mred:frame% changed to mred:editor-frame%
+- mred:canvas% changed to mred:editor-canvas%
+- mred:console-frame renamed to mred:console
+- mred:console-edit and mred:console-canvas gone, use
+  (ivar mred:console edit) and (ivar mred:console canavs)
+- expanded keybindings -- most movement keys now
+  have a shifted form that selects text
+- added mred:standard-menus-frame% which gets the right keybindings for
+  the different platforms
+
+----------------------------------------------------------------------
 
 Version 42: June 8, 1996
 Documentation translated to Scheme notation, corrected
