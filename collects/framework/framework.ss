@@ -6,6 +6,7 @@
            
            "test.ss"
            "gui-utils.ss"
+           "decorated-editor-snip.ss"
            
            "framework-unit.ss"
            "framework-sig.ss"
@@ -17,7 +18,8 @@
 
   (provide (all-from "macro.ss")
            (all-from "test.ss")
-           (all-from "gui-utils.ss"))
+           (all-from "gui-utils.ss")
+           (all-from "decorated-editor-snip.ss"))
 
   (provide exn:struct:unknown-preference
            exn:struct:exn)
