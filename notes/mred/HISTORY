@@ -197,6 +197,8 @@ On windows:
 -  mred:get-file and mred:put-file now take a parent window as optional
    last argument.
 
+- added kill-protect and kill-allow-protected to mred:console-edit%
+
 - the collection paths are not normalized anymore
 
 - fixed bugs in the meta-u and meta-l keybindings
