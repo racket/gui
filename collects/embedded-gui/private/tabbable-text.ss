@@ -40,12 +40,10 @@
       (define/override (get-keymaps)
         (let ([keymap (make-object keymap%)])
           (send keymap add-function "tab-ahead"
-                (lambda (ignored event)
-                  (ahead)))
+                (lambda (ignored event) (ahead)))
           (send keymap map-function ":tab" "tab-ahead")
           (send keymap add-function "tab-back"
-                (lambda (ignored event)
-                  (back)))
+                (lambda (ignored event) (back)))
           (send keymap map-function "s:tab" "tab-back")
           (cons keymap (super get-keymaps))))
       

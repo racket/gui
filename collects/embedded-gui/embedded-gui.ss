@@ -7,11 +7,14 @@
                (provide (all-from filename) ...))]))
   
   (require/provide
-   "private/aligned-pasteboard.ss"
    "private/interface.ss"
+   
+   "private/aligned-pasteboard.ss"
    "private/verthoriz-alignment.ss"
    "private/grid-alignment.ss"
    "private/snip-wrapper.ss"
+   
+   "private/on-show-editor.ss"
    
    "private/button-snip.ss"
    "private/embedded-message.ss"
@@ -22,6 +25,7 @@
    "private/tabbable-text.ss"
    "private/grey-editor.ss"
    "private/single-line-text.ss"
+   "private/cue-text.ss"
    
    "private/snip-lib.ss")
   )

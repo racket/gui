@@ -11,7 +11,7 @@
   
   (define snip-wrapper%
     (class* dllist% (alignment<%>)
-      (init-field snip parent)
+      (init-field parent snip)
       (field [pasteboard (send parent get-pasteboard)]
              [show? true]
              [snip-is-inserted? false]
@@ -69,15 +69,15 @@
       #;(boolean? . -> . void)
       ;; Tells the alignment to show or hide its children
       (define/public (show/hide bool)
+        (send pasteboard lock-alignment true)
         (unless (boolean=? bool snip-is-inserted?)
-          (send pasteboard lock-alignment true)
           (if bool
-              (begin (send pasteboard insert snip)
+              (begin (send pasteboard insert-aligned-snip snip)
                      (set! snip-is-inserted? true))
-              (begin (send pasteboard release-snip snip)
-                     (set! snip-is-inserted? false)))
-          (send pasteboard realign)
-          (send pasteboard lock-alignment false)))
+              (begin (send pasteboard release-aligned-snip snip)
+                     (set! snip-is-inserted? false))))
+        (send pasteboard realign)
+        (send pasteboard lock-alignment false))
       
       (super-new)
       (send parent add-child this)

@@ -35,13 +35,15 @@
   (define embedded-toggle-button%
     (class snip-wrapper%
       (init images-off images-on turn-off turn-on (state 'on))
-      (super-new
-       (snip (new toggle-button-snip%
-                  (images-off images-off)
-                  (images-on images-on)
-                  (turn-off turn-off)
-                  (turn-on turn-on)
-                  (state state))))))
+      (field [btn (new toggle-button-snip%
+                       (images-off images-off)
+                       (images-on images-on)
+                       (turn-off turn-off)
+                       (turn-on turn-on)
+                       (state state))])
+      ;; Provide the original toggle-button-snip% interface
+      (define/public (set-state x) (send btn set-state x))
+      (super-new (snip btn))))
   
   ;; a snip of a button that can be pushed to invoke a given callback
   (define button-snip%

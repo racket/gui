@@ -13,21 +13,19 @@
    (lib "mred.ss" "mred")
    (lib "etc.ss")
    (lib "click-forwarding-editor.ss" "mrlib")
-   (lib "pasteboard-lib.ss" "mrlib" "private" "aligned-pasteboard")
    "on-show-pasteboard.ss"
    "really-resized-pasteboard.ss"
    "interface.ss"
-   "snip-lib.ss"
    "locked-pasteboard.ss"
-   "suppress-modify-editor.ss")
+   "suppress-modify-editor.ss"
+   "on-show-editor.ss")
   
   (define aligned-pasteboard%
     (class* (click-forwarding-editor-mixin
-             (on-show-pasteboard-mixin
-              (suppress-modify-editor-mixin
-               (locked-pasteboard-mixin
-                (really-resized-pasteboard-mixin pasteboard%)))))
-      (alignment-parent<%>)
+             (suppress-modify-editor-mixin
+              (locked-pasteboard-mixin
+               (really-resized-pasteboard-mixin pasteboard%))))
+      (alignment-parent<%> on-show-editor<%>)
       
       (inherit begin-edit-sequence end-edit-sequence
                get-max-view-size refresh-delayed?)
@@ -36,6 +34,29 @@
        [alignment false]
        [lock-alignment-depth 0]
        [needs-alignment? false])
+      
+      ;;;;;;;;;;
+      ;; insert/delete
+      
+      (rename-super [super-insert insert] [super-release-snip release-snip])
+      (define/override (insert . args) (void))
+      (define/override (release-snip snip) (void))
+      
+      #;((is-a?/c snip%) . -> . void)
+      ;; The insert that can be called from snip-wrappers to install a snip in the pasteboard
+      (define/public (insert-aligned-snip snip)
+        #;(lock-alignment true)
+        (super-insert snip)
+        #;(realign)
+        #;(lock-alignment false))
+      
+      #;((is-a?/c snip%) . -> . void)
+      ;; The release-snip that can be called from snip-wrappers to clear a snip
+      (define/public (release-aligned-snip snip)
+        #;(lock-alignment true)
+        (super-release-snip snip)
+        #;(realign)
+        #;(lock-alignment false))
       
       ;;;;;;;;;;
       ;; alignment-parent<%>
@@ -80,9 +101,8 @@
       #;(-> void)
       ;; Called when the pasteboard is first shown.
       ;; Overriden because I need to know when the snips have their size to lay them out.
-      (define/override (on-show)
-        (realign)
-        (super on-show))
+      (define/public (on-show)
+        (realign))
       
       #;(boolean? . -> . void?)
       ;; Locks the pasteboard so that all alignment requests are delayed until after it's done.
