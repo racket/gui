@@ -1,42 +1,42 @@
 
-Version 205.8
-Changed get-argb-pixels and set-argb-pixels to row-major order:
- left to right then top to bottom
-Added optional 'mono argument to get-face-list
-Added get-bitmap and get-bitmap-mask to image-snip%
+Version 206, Janurary 2004
 
-Version 205.5
-Added an optional argument to begin-edit-sequence in
- editor<%> to treat actions before and after sequence
- as consecutive
-Changed the default radius for dc<%>'s draw-rounded-rectangle
- to -0.25, and added checking and a mismatch exception
- when the radius is out of range
-X, Mac OS: minimum size and non-stretchiness of a frame
- or dialog is enforced by the window manager
+Drawing:
+ Changed get-argb-pixels and set-argb-pixels to row-major order:
+  left to right then top to bottom
+ Added get-bitmap and get-bitmap-mask to image-snip%
+ PostScript `draw-bitmap' now uses a supplied mask
+ Changed the default radius for dc<%>'s draw-rounded-rectangle
+  to -0.25, and added checking and a mismatch exception
+  when the radius is out of range
+Text and fonts:
+ Added optional argument to draw-text in dc<%> for rotation
+ Changed text scaling to support independent X and Y scale
+  (except Windows 95/98/Me)
+ Added argument to font%, etc., to make size in pixels
+ Added size-in-pixels to style<%> and style-delta%
+ X with fontconfig/Xft: Added remapping for the 'symbol family
+  to match Adobe symbols (like Mac OS X)
+ X with fontconfig/Xft: Added substitution support via
+  comma-separated font names
+ X with fontconfig/Xft: Changed default 'symbol face mapping
+  to " Standard Symbols L,Nimbus Sans L"
+ Added optional 'mono argument to get-face-list
+Frames:
+ X, Mac OS: minimum size and non-stretchiness of a frame
+  or dialog is enforced by the window manager
+ Added optional argument to get-display-size to get the entire
+  screen's size under Windows and Mac OS
+ Added get-display-left-top-inset
+ Added 'hide-menu-bar frame style
+ Initial location for a frame can use negative numbers, and
+  the move method can move a frame to a negative location
+Editors:
+ Added an optional argument to begin-edit-sequence in
+  editor<%> to treat actions before and after sequence
+  as consecutive
 
-Version 205.4
-Added size-in-pixels to style<%> and style-delta%
-X with fontconfig/Xft: Added remapping for the 'symbol family
- to match Adobe symbols (like Mac OS X)
-X with fontconfig/Xft: Added substitution support via
- comma-separated font names
-X with fontconfig/Xft: Changed default 'symbol face mapping
- to " Standard Symbols L,Nimbus Sans L"
-PostScript `draw-bitmap' now uses a supplied mask
-
-Version 205.3
-Added optional argument to draw-text in dc<%> for rotation
-
-Version 205.2
-Added optional argument to get-display-size to get the entire
- screen's size under Windows and Mac OS
-Added get-display-left-top-inset
-Added argument to font%, etc., to make size in pixels
-Added 'hide-menu-bar frame style
-Initial location for a frame can use negative numbers, and
- the move method can move a frame to a negative location
-
+----------------------------------------------------------------------
 
 Version 205: August, 2003
 
