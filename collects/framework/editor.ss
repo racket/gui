@@ -9,6 +9,7 @@
 	  [text : framework:text^]
 	  [pasteboard : framework:pasteboard^]
 	  [frame : framework:frame^]
+          [gui-utils : framework:gui-utils^]
 	  [mzlib:file : mzlib:file^])
   
   (rename [-keymap<%> keymap<%>])
@@ -29,6 +30,43 @@
 	       refresh-delayed? 
 	       get-canvas
 	       get-max-width get-admin)
+
+      (rename [super-can-save-file? can-save-file?])
+      (override
+        [can-save-file?
+         (lambda (filename format)
+           (and (if (equal? filename (get-filename))
+                    (if (save-file-out-of-date?)
+                        (gui-utils:get-choice 
+                         "The file has beeen modified since it was last saved. Overwrite the modifications?"
+                         "Overwrite"
+                         "Cancel"
+                         "Warning"
+                         #f
+                         (get-top-level-focus-window))
+                        #t)
+                    #t)
+                (super-can-save-file? filename format)))])
+           
+      (rename [super-after-save-file after-save-file])
+      (private
+        [last-saved-file-time #f])
+      (override
+        [after-save-file
+         (lambda (sucess?)
+           (when sucess?
+             (set! last-saved-file-time (file-or-directory-modify-seconds (get-filename))))
+           (super-after-save-file sucess?))])
+      (public
+        [save-file-out-of-date?
+         (lambda ()
+           (and 
+            last-saved-file-time
+            (let ([fn (get-filename)])
+              (and fn
+                   (let ([ms (file-or-directory-modify-seconds fn)])
+                     (< last-saved-file-time ms))))))])
+
       (private 
 	[has-focus #f])
       (rename [super-on-focus on-focus])
