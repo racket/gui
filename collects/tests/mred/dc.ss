@@ -7,6 +7,7 @@
 
 (define mdc (make-object bitmap-dc%))
 (define bm (make-object bitmap% 10 10))
+(define bm2 (make-object bitmap% 10 10))
 
 (test #t 'is-color? (send bm is-color?))
 
@@ -22,8 +23,8 @@
 (define (test-all mdc try)
   (try 'clear)
   (try 'draw-arc 0 0 10 10 0.1 0.2)
-  (try 'draw-bitmap bm 0 0)
-  (try 'draw-bitmap-section bm 0 0 0 0 5 5)
+  (try 'draw-bitmap bm2 0 0)
+  (try 'draw-bitmap-section bm2 0 0 0 0 5 5)
   (try 'draw-ellipse 0 0 10 10)
   (try 'draw-line 0 0 10 10)
   (try 'draw-lines (list (make-object point% 0 0) (make-object point% 10 10)))
