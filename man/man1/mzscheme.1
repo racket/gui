@@ -26,6 +26,15 @@ runs on a variety of platforms.
 .B \-h, --help
 Shows help for command-line arguments.
 .TP
+.B \-g, --case-sens
+Identifiers and symbols are case-sensitive.
+.TP
+.B \-b, --no-brackets
+Square brackets are not read as parentheses.
+.TP
+.B \-B, --no-braces
+Curly braces are not read as parentheses.
+.TP
 .B \-c, --esc-cont
 Call/cc is replaced with call/ec.
 .TP
@@ -40,6 +49,9 @@ Fall-through cond or case is an error.
 .TP
 .B \-n, --no-key
 Keywords not enforced.
+.TP
+.B \-y, --hash-percent-syntax
+Only #% syntactic forms are present.
 .TP
 .B \-r, --script
 Script mode: use as last flag for scripts.
@@ -80,6 +92,9 @@ Load/cds all remaining arguments after
 .I MzScheme
 starts.
 .TP
+.B \-l \ file
+Shorthand for -e '(require-library file)'.
+.TP
 .B \-x, --no-lib-path
 Does not try to set (current-library-path).
 .TP
@@ -88,6 +103,9 @@ Does not load "~/.mzschemerc".
 .TP
 .B \-p, --persistent
 Catches AIX SIGDANGER (low page space) signal.
+.TP
+.B \-m, --mute-banner
+Suppresses the startup banner.
 .TP
 .B \-v, --version
 Suppresses the read-eval-print loop.
