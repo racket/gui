@@ -2322,13 +2322,17 @@
   ; >>> This class is instantiated directly by the end-user <<<
   (class* % (editor<%> internal-editor<%>)
     (init-rest args)
-    (inherit get-max-width set-max-width get-admin get-view-size
+    (rename-super [super-get-view-size get-view-size]
+		  [super-begin-edit-sequence begin-edit-sequence]
+		  [super-end-edit-sequence end-edit-sequence]
+		  [super-insert-port insert-port]
+		  [super-erase erase]
+		  [super-clear-undos clear-undos]
+		  [super-get-load-overwrites-styles get-load-overwrites-styles]
+		  [super-get-filename get-filename])
+    (inherit get-max-width set-max-width get-admin
 	     get-keymap get-style-list
-	     set-modified set-filename
-	     begin-edit-sequence end-edit-sequence
-	     insert-port
-	     get-filename
-	     erase clear-undos get-load-overwrites-styles)
+	     set-modified set-filename)
     (define canvases null)
     (define active-canvas #f)
     (define auto-set-wrap? #f)
@@ -2337,7 +2341,7 @@
        (lambda ()
 	 (let ([wb (box 0)]
 	       [hb (box 0)])
-	   (super get-view-size wb hb)
+	   (super-get-view-size wb hb)
 	   (unless (or (null? canvases) (null? (cdr canvases)))
 	     (for-each
 	      (lambda (canvas)
@@ -2345,7 +2349,7 @@
 		      (lambda ()
 			(let ([wb2 (box 0)]
 			      [hb2 (box 0)])
-			  (super get-view-size wb2 hb2)
+			  (super-get-view-size wb2 hb2)
 			  (set-box! wb (max (unbox wb) (unbox wb2)))
 			  (set-box! hb (max (unbox hb) (unbox hb2)))))))
 	      canvases))
@@ -2359,14 +2363,14 @@
       [insert-file
        (opt-lambda ([file #f] [format 'guess] [show-errors? #t])
 	 (dynamic-wind
-	     (lambda () (super begin-edit-sequence))
-	     (lambda () (super insert-port file format #f))
-	     (lambda () (super end-edit-sequence))))]
+	     (lambda () (super-begin-edit-sequence))
+	     (lambda () (super-insert-port file format #f))
+	     (lambda () (super-end-edit-sequence))))]
 
       [load-file
        (opt-lambda ([file #f] [format 'guess] [show-errors? #t])
 	 (let* ([temp-filename?-box (box #f)]
-		[old-filename (super get-filename temp-filename?-box)])
+		[old-filename (super-get-filename temp-filename?-box)])
 	   (let* ([file (cond
 			 [(or (not (path-string? file))
 			      (equal? file ""))
@@ -2389,26 +2393,26 @@
 		      void
 		      (lambda ()
 			(wx:begin-busy-cursor)
-			(super begin-edit-sequence)
+			(super-begin-edit-sequence)
 			(dynamic-wind
 			    void
 			    (lambda ()
-			      (super erase)
+			      (super-erase)
 			      (unless (and (not (unbox temp-filename?-box))
 					   (equal? file old-filename))
 				(set-filename file #f))
 			      (let ([format (if (eq? format 'same)
 						(-get-file-format)
 						format)])
-				(let ([new-format (super insert-port port 
+				(let ([new-format (super-insert-port port 
 								     (-format-filter format) 
-								     (super get-load-overwrites-styles))])
+								     (super-get-load-overwrites-styles))])
 				  (close-input-port port) ; close as soon as possible
 				  (-set-file-format new-format)))) ; text% only
 			    (lambda ()
-			      (super end-edit-sequence)
+			      (super-end-edit-sequence)
 			      (wx:end-busy-cursor)))
-			(super clear-undos)
+			(super-clear-undos)
 			(set-modified #f)
 			(set! finished? #t)
 			#t)
@@ -2538,14 +2542,16 @@
       (init [line-spacing 1.0] 
 	    [tab-stops null]
 	    [(aw? auto-wrap) #f])
-      (inherit get-file-format set-file-format set-position
-	       auto-wrap)
+      (rename-super [super-get-file-format get-file-format]
+		    [super-set-file-format set-file-format]
+		    [super-set-position set-position]
+		    [super-auto-wrap auto-wrap])
       (override*
         [-get-file-format (lambda ()
-                            (super get-file-format))]
+                            (super-get-file-format))]
         [-set-file-format (lambda (format)
-                            (super set-file-format format)
-                            (super set-position 0 0))])
+                            (super-set-file-format format)
+                            (super-set-position 0 0))])
 
       (augmentize (#t can-insert? s e)
 		  ((void) on-insert s e)
@@ -2563,7 +2569,7 @@
       
       (super-make-object line-spacing tab-stops)
       (when aw?
-	(super auto-wrap #t))))
+	(super-auto-wrap #t))))
   
   (define pasteboard%
     (class (es-contract-mixin (make-editor-buffer% wx:pasteboard% #f (lambda () pasteboard%))) ()
@@ -4083,10 +4089,12 @@
 				   (send e get-meta-down)
 				   (eq? 'windows (system-type))
 				   (send wx system-menu) #t)))]
-      [get-eventspace (entry-point (lambda () (send wx get-eventspace)))]
-      [can-close? (lambda () #t)]
+      [get-eventspace (entry-point (lambda () (send wx get-eventspace)))])
+    (pubment
+      [can-close? (lambda () (inner #t can-close?))]
+      [on-close (lambda () (inner (void) on-close))])
+    (public
       [can-exit? (lambda () (can-close?))]
-      [on-close (lambda () (void))]
       [on-exit (lambda () (on-close) (show #f))]
       [on-activate (lambda (x) (void))]
       [center (entry-point
@@ -5975,10 +5983,11 @@
   ;; GUI creation
   (define frame (make-object (class100 frame% args
 			       (inherit accept-drop-files)
-			       (override
+			       (augment
 				 [on-close (lambda () 
 					     (custodian-shutdown-all user-custodian)
-					     (semaphore-post waiting))]
+					     (semaphore-post waiting))])
+			       (override
 				 [on-drop-file (lambda (f) (evaluate (format "(load ~s)" f)))])
 			       (sequence 
 				 (apply super-init args) (accept-drop-files #t)))
@@ -6121,13 +6130,14 @@
 			     (public
 			       [get-message
 				(lambda () message)])
-			     (override
+			     (augment
 			       [can-close? (lambda ()
 					     (if (memq 'disallow-close style)
 						 (begin
 						   (wx:bell)
 						   #f)
-						 #t))]
+						 #t))])
+			     (override
 			       [on-subwindow-event 
 				(lambda (w e)
 				  (if (send e button-down?)

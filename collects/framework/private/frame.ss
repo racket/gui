@@ -213,21 +213,21 @@
       (define register-group-mixin
         (mixin (basic<%>) (register-group<%>)
           
-          (define/override (can-close?)
+          (define/augment (can-close?)
             (let ([number-of-frames 
                    (length (send (group:get-the-frame-group)
                                  get-frames))])
               (if (preferences:get 'framework:exit-when-no-frames)
-                  (and (super can-close?)
+                  (and (inner #t can-close?)
                        (or (exit:exiting?)
                            (not (= 1 number-of-frames))
                            (exit:user-oks-exit)))
                   #t)))
-          (define/override (on-close)
-            (super on-close)
+          (define/augment (on-close)
             (send (group:get-the-frame-group)
                   remove-frame
                   this)
+            (inner (void) on-close)
             (when (preferences:get 'framework:exit-when-no-frames)
               (unless (exit:exiting?)
                 (when (null? (send (group:get-the-frame-group) get-frames))
@@ -549,12 +549,12 @@
                (update-info-visibility v)))]
           [define memory-cleanup void] ;; only for CVSers and nightly build users; used with memory-text
 
-          [define/override on-close
+          [define/augment on-close
             (lambda ()
-              (super on-close)
               (unregister-collecting-blit gc-canvas)
               (close-panel-callback)
-              (memory-cleanup))]
+              (memory-cleanup)
+	      (inner (void) on-close))]
           
           [define icon-currently-locked? 'uninit]
           (public lock-status-changed)
@@ -695,11 +695,11 @@
                 (preferences:get 'framework:col-offsets)
                 v)
                #t))]
-          [define/override on-close
+          [define/augment on-close
             (lambda ()
-              (super on-close)
               (remove-first)
-              (remove-second))]
+              (remove-second)
+              (inner (void) on-close))]
           [define last-start #f]
           [define last-end #f]
           [define last-params #f]
@@ -945,13 +945,13 @@
                 (and this-fn
                      (path-equal? filename (get-filename))))))
           
-          (define/override (on-close)
-            (super on-close)
-            (send (get-editor) on-close))
+          (define/augment (on-close)
+            (send (get-editor) on-close)
+            (inner (void) on-close))
           
-          (define/override (can-close?)
-            (and (super can-close?)
-                 (send (get-editor) can-close?)))
+          (define/augment (can-close?)
+            (and (send (get-editor) can-close?)
+                 (inner #t can-close?)))
           
           [define label ""]
           [define label-prefix (application:current-app-name)]
@@ -1242,11 +1242,11 @@
                                      (string-constant open-here-menu-item)
                                      (string-constant open-menu-item))))
           
-	  (define/override (on-close)
-	    (super on-close)
+	  (define/augment (on-close)
 	    (let ([group (group:get-the-frame-group)])
 	      (when (eq? this (send group get-open-here-frame))
-		(send group set-open-here-frame #f))))
+		(send group set-open-here-frame #f)))
+	    (inner (void) on-close))
 
           (define/override (on-activate on?)
             (super on-activate on?)
@@ -2040,9 +2040,8 @@
              (lambda (p v)
                (when p
                  (hide-search)))))
-          (define/override on-close
+          (define/augment on-close
             (lambda ()
-              (super on-close)
               (remove-callback)
               (let ([close-canvas
                      (lambda (canvas edit)
@@ -2051,7 +2050,8 @@
 		  (close-canvas find-canvas find-edit)
 		  (close-canvas replace-canvas replace-edit)))
               (when (eq? this searching-frame)
-                (set-searching-frame #f))))
+                (set-searching-frame #f))
+              (inner (void) on-close)))
           (public set-search-direction can-replace? replace&search replace-all replace
                   toggle-search-focus move-to-search-or-search move-to-search-or-reverse-search
                   search-again)

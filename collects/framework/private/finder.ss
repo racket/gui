@@ -299,7 +299,7 @@
               (set-box! result-box #f)
               (show #f))]
 	  
-	  (define/override on-close (lambda () #f))
+	  (define/augment on-close (lambda () #f))
 	  
           (super-new (label (if save-mode? 
                                 (string-constant put-file)
