@@ -1,3 +1,12 @@
+
+Version 102/1:
+
+ * Fixed some PS problems (roundoff error with regions), and made
+   `get-text-extent' return a useful value for the vertical space above
+   a font.
+
+Version 102: ??
+
 Version 101: October 25, 1999
 
 Showing an inactive child window now raises an exception
