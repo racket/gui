@@ -173,7 +173,15 @@
 		   [y (send e get-y)]
 		   [m (if (or (null? last-m)
 			      (send e button-down? 'left))
-			  (let ([m (make-object popup-menu% "T&itle")]
+			  (let ([m (make-object popup-menu% "T&itle"
+						(lambda (m e)
+						  (unless (is-a? m popup-menu%)
+						    (error "bad menu object"))
+						  (unless (and (is-a? e control-event%)
+							       (memq (send e get-event-type)
+								     '(menu-popdown menu-popdown-none)))
+						    (error "bad event object"))
+						  (printf "popdown ok~n")))]
 				[make-callback 
 				 (let ([id 0])
 				   (lambda ()
