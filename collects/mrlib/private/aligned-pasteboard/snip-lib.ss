@@ -13,7 +13,7 @@
   ;; a snip to act as the varying argument to a recursive functions
   (define linked-snip? (union snip? false?))
   ;; a function to act on snips being mapped
-  (define snip-visitor? ((snip?) (listof any?) . ->* . (void)))
+  (define snip-visitor? any? #;((snip?) (listof any?) . ->* . (void)))
   ;; the rest of the lists passed to a snip mapping function
   (define rest-lists? (listof (listof any?)))
   ;; a class that contains a snip
