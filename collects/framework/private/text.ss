@@ -831,6 +831,7 @@
         (interface ()
           get-insertion-point 
           get-unread-start-point
+          set-unread-start-point
           has-between?
           submit-to-port?
           on-submit
@@ -887,6 +888,7 @@
           
           (define/public (get-insertion-point) insertion-point)
           (define/public (get-unread-start-point) unread-start-point)
+          (define/public (set-unread-start-point u) (set! unread-start-point u))
           
           ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
           ;;
