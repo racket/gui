@@ -529,7 +529,7 @@
                                            (send the-color-database find-color "BLACK")
                                            mred-icon)]
                                     [(mred~)
-                                     (send dc draw-bitmap (get-rotated) x y)]                                    
+                                     (send dc draw-bitmap (get-rotated) x y 'opaque)]
                                     [(mred^mred~ opaque-mred^mred~ red-mred^mred~)
                                      (send dc draw-bitmap mred-icon x y 
                                            (if (eq? mask-ex-mode 'opaque-mred^mred~)
@@ -840,16 +840,18 @@
 		 (lambda (b e)
 		   (unless use-bitmap?
 		     (error 'save-file "only available for pixmap/bitmap mode"))
-		   (let ([f (get-file)])
-		     (let ([format
-			    (cond 
-			     [(regexp-match "[.]xbm$" f) 'xbm]
-			     [(regexp-match "[.]xpm$" f) 'xpm]
-			     [(regexp-match "[.]jpg$" f) 'jpeg]
-			     [else (error 'save-file "unknown suffix: ~e" f)])])
-		       (set! save-filename f)
-		       (set! save-file-format format)
-		       (send canvas on-paint)))))
+		   (let ([f (put-file)])
+		     (when f
+		       (let ([format
+			      (cond 
+			       [(regexp-match "[.]xbm$" f) 'xbm]
+			       [(regexp-match "[.]xpm$" f) 'xpm]
+			       [(regexp-match "[.]jpe?g$" f) 'jpeg]
+			       [(regexp-match "[.]png$" f) 'png]
+			       [else (error 'save-file "unknown suffix: ~e" f)])])
+			 (set! save-filename f)
+			 (set! save-file-format format)
+			 (send canvas on-paint))))))
     (make-object button% "PS" hp
 		 (lambda (self event)
 		   (send canvas on-paint #t)))
