@@ -19,6 +19,11 @@ where or <test.ss> is the name of one of the tests
 below. Alternatively, pass no command-line arguments to run all of the
 tests.
 
+- load: |# load.ss #|
+
+  | This tests that the advertised ways of loading the framework at
+  | it's components all work.
+
 - exit: |# exit.ss #|
 
   | This tests that exit:exit really exits and that the exit callbacks

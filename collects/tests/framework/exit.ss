@@ -1,4 +1,4 @@
-(test 'exit:exit
+'(test 'exit:exit
       (lambda (x) (not (and (eq? x 'passed)
 			    (not (mred-running?)))))
       (lambda ()
@@ -13,5 +13,5 @@
       (lambda ()
 	(with-handlers ([eof-result? (lambda (x) 'passed)])
 	  (send-sexp-to-mred '(preferences:set 'framework:verify-exit #t))
-	  (send-sexp-to-mred '(exit:exit))
+	  (send-sexp-to-mred '(queue-callback (lambda () (exit:exit))))
 	  'failed)))

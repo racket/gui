@@ -7,25 +7,33 @@
 (require-library "file.ss")
 (require-library "thread.ss")
 
+(require-relative-library "test.ss")
+
 (invoke-open-unit/sig
  (compound-unit/sig
    (import [core:string : mzlib:string^]
 	   [core:function : mzlib:function^]
 	   [core:pretty-print : mzlib:pretty-print^]
 	   [core:file : mzlib:file^]
-	   [core:thread : mzlib:thread^])
+	   [core:thread : mzlib:thread^]
+	   [framework:keys : framework:keys^]
+	   [framework:test : framework:test^])
    (link [M : mred-interfaces^ (mred-interfaces@)]
-	 [F : framework^ ((require-library "frameworkc.ss" "framework")
-			  core:string
-			  core:function
-			  core:pretty-print
-			  core:file
-			  core:thread
-			  C M)])
+	 [F : frameworkc^ ((require-library "frameworkc.ss" "framework")
+			   core:string
+			   core:function
+			   core:pretty-print
+			   core:file
+			   core:thread
+			   M
+			   framework:keys
+			   framework:test)])
    (export (open F)))
  #f
  mzlib:string^
  mzlib:function^
  mzlib:pretty-print^
  mzlib:file^
- mzlib:thread^)
+ mzlib:thread^
+ (keys : framework:keys^)
+ (test : framework:test^))

@@ -14,6 +14,11 @@
 
 (require-relative-library "tests.ss")
 
+(define-signature framework:keys^
+  (shifted-key-list
+   get-shifted-key-list))
+
+
 (define-signature framework:version^
   (add-spec
    version))
@@ -208,7 +213,6 @@
 (define-signature framework:keymap^
   (set-keymap-error-handler
    set-keymap-implied-shifts
-   get-shifted-key-list
    send-map-function-meta
    make-meta-prefix-list
 
@@ -250,9 +254,8 @@
 
 (define-signature framework:main^ ())
 
-(define-signature framework^
-  ([unit test : framework:test^]
-   [unit application : framework:application^]
+(define-signature frameworkc^
+  ([unit application : framework:application^]
    [unit version : framework:version^]
    [unit exn : framework:exn^]
    [unit exit : framework:exit^]
@@ -283,3 +286,7 @@
    [unit frame : framework:frame^]
    [unit scheme : framework:scheme^]
    [unit main : framework:main^]))
+
+(define-signature framework^
+  ([unit test : framework:test^]
+   (open frameworkc^)))

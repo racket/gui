@@ -63,7 +63,6 @@
 	   (restart-mred))
 	 (printf "send-sexp-to-mred.sending:~n")
 	 (pretty-print sexp)
-	 (newline)
 	 (write sexp out-port)
 	 (newline out-port)
 	 (let ([answer
