@@ -571,7 +571,10 @@
   
   (define fp (make-object vertical-panel% ip))
   
-  (define tp (make-object group-box-panel% "Sub" fp))
+  (define tp 
+    (if #f
+	(make-object group-box-panel% "Sub" fp)
+	(make-object tab-panel% '("Sub" "Panel") fp void)))
 
   (when initially-disabled?
     (send tp enable #f))
@@ -656,7 +659,7 @@
   
   (let ()
     (define sh (make-object slider% 
-			    (if null-label? #f "H S&lider") 0 10 ip2
+			    (if null-label? #f "H S&lid\uE9r") 0 10 ip2
 			    (lambda (s e)
 			      (send gh set-value (* 10 (send sh get-value))))
 			    5
@@ -665,7 +668,7 @@
 			     (if plain-slider? '(horizontal plain) '(horizontal)))))
     
     (define sv (make-object slider% 
-			    (if null-label? #f "V Sl&ider") 0 10 ip2 
+			    (if null-label? #f "V Sl&id\uE9r") 0 10 ip2 
 			    (lambda (s e)
 			      (send gv set-value (* 10 (send sv get-value))))
 			    5
@@ -674,13 +677,13 @@
 			     (if plain-slider? '(vertical plain) '(vertical)))))
     
     (define gh (make-object gauge% 
-			    (if null-label? #f "H G&auge") 100 ip2
+			    (if null-label? #f "H G&aug\uE9") 100 ip2
 			    (add-label-direction 
 			     label-h? 
 			     '(horizontal))))
     
     (define gv (make-object gauge% 
-			    (if null-label? #f "V Ga&uge") 100 ip2
+			    (if null-label? #f "V Ga&ug\uE9") 100 ip2
 			    (add-label-direction 
 			     label-h? 
 			     '(vertical))))
