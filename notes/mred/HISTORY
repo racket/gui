@@ -1,4 +1,12 @@
 
+Version 205.2
+Added optional argument to get-display-size to get the entire
+ screen's size under Windows and Mac OS
+Added get-display-left-top-inset
+Added argument to font%, etc., to make size in pixels
+Added 'hide-menu-bar frame style
+
+
 Version 205: August, 2003
 
 Anti-aliased text:
