@@ -255,7 +255,7 @@
                         '(string-constant save-as-menu-item)
                         on-demand-do-nothing
                         #f)
-          (make-between 'file-menu 'save-as 'print 'separator)
+          (make-between 'file-menu 'save-as 'print 'nothing)
           (make-an-item 'file-menu 'print
                         '(string-constant print-info)
                         '(lambda (item control) (void))
