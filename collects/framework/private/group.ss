@@ -4,6 +4,7 @@
            (lib "unitsig.ss")
 	   (lib "class.ss")
 	   "sig.ss"
+           "../gui-utils-sig.ss"
 	   (lib "mred-sig.ss" "mred")
 	   (lib "list.ss")
 	   (lib "file.ss"))
@@ -15,7 +16,8 @@
       (import mred^
 	      [application : framework:application^]
 	      [frame : framework:frame^]
-	      [preferences : framework:preferences^])
+	      [preferences : framework:preferences^]
+              [gui-utils : framework:gui-utils^])
 
       (define-struct frame (frame id))
       
@@ -81,6 +83,12 @@
 	       (lambda (menu)
 		 (for-each (lambda (item) (send item delete))
 			   (send menu get-items))
+                 (instantiate menu-item% ()
+                   (label (string-constant choose-a-frame...))
+                   (parent menu)
+                   (callback (lambda (x y) (choose-a-frame (send (send menu get-parent) get-frame))))
+                   (shortcut #\b))
+                 (make-object separator-menu-item% menu)
 		 (for-each
 		  (lambda (frame)
 		    (let ([frame (frame-frame frame)])
@@ -233,6 +241,22 @@
 	  
           (super-instantiate ())))
       
+      (define (choose-a-frame parent)
+        (let* ([frames (send (get-the-frame-group) get-frames)]
+               [d (make-object dialog% (string-constant choose-a-frame) parent)]
+               [lb (instantiate gui-utils:alphabetic-list-box% () 
+                     (label #f)
+                     (choices (quicksort
+                               (map (lambda (x) (send x get-label)) frames)
+                               string<=?))
+                     (callback (lambda (x y) (void)))
+                     (parent d))])
+          (send d show #t)
+          (let ([sels (send lb get-selections)])
+            (unless (null? sels)
+              (send (list-ref frames (car sels)) show #t)))))
+          
+
       (define (internal-get-the-frame-group)
 	(let ([the-frame-group (make-object %)])
 	  (set! internal-get-the-frame-group (lambda () the-frame-group))
