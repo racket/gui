@@ -1,6 +1,6 @@
 (module mred mzscheme
-  (import (prefix wx: (lib "kernel.ss" "mred")))
-  (import (lib "class.ss"))
+  (require (prefix wx: (lib "kernel.ss" "mred" "private")))
+  (require (lib "class.ss"))
 
 ;;;;;;;;;;;;;;; Constants ;;;;;;;;;;;;;;;;;;;;
 
@@ -5651,7 +5651,7 @@
 					  #f n))
 			 ns)])
 	   (syntax (begin
-		     (export (rename k:n n) ...)))))])))
+		     (provide (rename k:n n) ...)))))])))
 
 (propagate add-color<%>
 	   add-editor-keymap-functions
@@ -5743,7 +5743,7 @@
 	   eventspace-shutdown?
 	   get-panel-background)
 
-(export button%
+(provide button%
 	canvas%
 	check-box%
 	choice%

@@ -1,8 +1,8 @@
 
 (module mred-sig mzscheme
-  (import (lib "unitsig.ss"))
+  (require (lib "unitsig.ss"))
 
-  (export mred^)
+  (provide mred^)
   (define-signature
     mred^
     (add-color<%>
