@@ -446,10 +446,8 @@
     (filename)
     "Generates a name for an backup file from \\var{filename}.")
    (finder:dialog-parent-parameter
-    (case->
-     ((union false? (is-a?/c top-level-window<%>)) . -> . void?)
-     (-> (union false? (is-a?/c top-level-window<%>))))
-    ((parent) ())
+    any?
+    ()
     "This is a parameter (see "
     "\\Mzhyperref{parameters}{mz:parameters} for information about parameters)"
     "which determines the parent of the dialogs created by"
