@@ -3356,6 +3356,7 @@
   (send d set-delta 'change-style (send f get-style))
   (send d set-delta 'change-weight (send f get-weight))
   (send d set-delta 'change-underline (send f get-underlined))
+  (send d set-delta 'change-smoothing (send f get-smoothing))
   d)
 
 (define wx-text-field%
@@ -6703,7 +6704,7 @@
 			   (make-object radio-box% #f '("Normal" "Bold" "Light") pnl refresh-sample))]
 		 [underlined (make-object check-box% "Underlined" p2 refresh-sample)]
 		 [size (make-object slider% "Size:" 4 127 p2 refresh-sample 12)]
-		 [smoothing (make-object choice% "Smoothing:" '("Default" "Partial" "Enabled" "Disabled") p2 refresh-sample)]
+		 [smoothing (make-object choice% "Smoothing:" '("Default" "Some" "Full" "None") p2 refresh-sample)]
 		 [sample (make-object text-field% "Sample" f void "The quick brown fox jumped over the lazy dog" '(multiple))]
 		 [edit (send sample get-editor)]
 		 [done (lambda (ok) (lambda (b e) (set! ok? ok) (send f show #f)))]
@@ -6714,8 +6715,8 @@
 							  (case (send weight get-selection) [(0) 'normal] [(1) 'bold] [(2) 'light])
 							  (send underlined get-value)
 							  (case (send smoothing get-selection) 
-							    [(0) 'family+size-default] 
-							    [(1) 'system-default] 
+							    [(0) 'default] 
+							    [(1) 'partly-smoothed]
 							    [(2) 'smoothed]
 							    [(3) 'unsmoothed])))))]
 		 [bp (make-object horizontal-pane% f)]
@@ -7211,7 +7212,7 @@
        [(system) "systemfont"]
        [(default) "applicationfont"]
        [(roman) "Times"]
-       [(decorative) "Geneva"]
+       [(decorative) "Arial"]
        [(modern) "Courier New"]
        [(swiss) "Helvetica"]
        [(script) "Apple Chancery"]

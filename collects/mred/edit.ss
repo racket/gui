@@ -65,8 +65,8 @@
 					(o . is-a? . editor<%>)
 					(send o change-style 
 					      (make-object style-delta% 'change-smoothing v)))))))])
-	(mk "Default" 'family+size-default)
-	(mk "System Default" 'system-default)
+	(mk "Default" 'default)
+	(mk "Partly Smoothed" 'partly-smoothed)
 	(mk "Smoothed" 'smoothed)
 	(mk "Not Smoothed" 'unsmoothed)))
 
