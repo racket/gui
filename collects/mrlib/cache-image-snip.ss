@@ -66,7 +66,7 @@
 
       (init-field (width #f)
                   (height #f))
-      (define/public (get-size) 
+      (define/public (get-size)
         (values width height))
       
       ;; argb : (union #f argb)
