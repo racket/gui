@@ -1,4 +1,8 @@
 
+Version 199.23:
+
+ * X: mouse wheel events are now reported to `on-char'.
+
 Version 199.22:
 
  * Removed the cursor% constructor that takes a filename (it never
