@@ -85,6 +85,181 @@
 
 (define top-level-windows (make-hash-table))
 
+;;;;;;;;;;;;;;; Focus-tabbing helpers ;;;;;;;;;;;;;;;;;;;;
+
+(define (traverse x y w h dir dests)
+  ; x, y : real = starting positions
+  ; dir : one of 'left, 'right, 'up, 'next, 'prev = desried move
+  ; dests : list of (cons key x y w h) = destinations
+  ; returns key or #f
+  (case dir
+    [(next prev)
+     (letrec ([get-x cadr]
+	      [get-w cadddr]
+	      [get-y caddr]
+	      [get-h (lambda (x) (caddr (cddr x)))]
+	      [backward? (eq? dir 'prev)]
+	      [fail-start (if backward?
+			      1000000000
+			      0)]
+	      [find-stripe (lambda (t stripes)
+			     (let loop ([s stripes])
+			       (cond
+				[(null? s) #f]
+				[(and (<= (caar s) t) (< t (cdar s)))
+				 (car s)]
+				[else (loop (cdr s))])))]
+	      [mk-stripes
+	       (lambda (get-y get-h stripes dests)
+		 (let loop ([l (append (map (lambda (x) (cons (car x) (- (cdr x) (car x))))
+					    stripes)
+				       (map (lambda (x) 
+					      (cons (get-y x) (get-h x)))
+					    dests))])
+		   (if (null? l)
+		       null
+		       ;; Find longest top-most
+		       (let* ([top (let loop ([l (cdr l)][best (car l)])
+				     (cond
+				      [(null? l) best]
+				      [(or (< (caar l) (car best)) ; topmost
+					   (and (= (caar l) (car best)) ; at least as top
+						(> (cdar l) (cdr best)))) ; longer
+				       (loop (cdr l) (car l))]
+				      [else (loop (cdr l) best)]))]
+			      [t (car top)]
+			      [b (+ t (cdr top))])
+			 ;; Stripe is anything that starts before the end of `top'
+			 (let ([remaining (let loop ([l l])
+					    (cond
+					     [(null? l) null]
+					     [(find-stripe (caar l) (list (cons t b)))
+					      (loop (cdr l))]
+					     [else (cons (car l) (loop (cdr l)))]))])
+			   (cons (cons t b) (loop remaining)))))))]
+	      [in-stripe (lambda (stripe dests get-y get-h)
+			   (let loop ([l dests])
+			     (cond
+			      [(null? l) null]
+			      [(find-stripe (get-y (car l)) (list stripe))
+			       (cons (car l) (loop (cdr l)))]
+			      [else (loop (cdr l))])))]
+	      [next-stripe (lambda (stripe stripes)
+			     (let loop ([s stripes][best #f])
+			       (cond
+				[(null? s) best]
+				[(and (or (not stripe)
+					  (if backward?
+					      (<= (cdar s) (car stripe))
+					      (>= (caar s) (cdr stripe))))
+				      (or (not best)
+					  (if backward?
+					      (> (cdar s) (cdr best))
+					      (< (caar s) (cdr best)))))
+				 (loop (cdr s) (car s))]
+				[else (loop (cdr s) best)])))]
+	      [find (lambda (get-x get-w get-y get-h use-x? x w use-y? y h dests fail)
+		      ;; find's variable names correspond to an h-stripe view, but everything is
+		      ;;  flipped to v-stripes if the args are flipped
+		      (let ([h-stripes (mk-stripes get-y get-h 
+						   (if use-y? (list (cons y (+ y h))) null)
+						   dests)])
+
+			;; find the initial h-stripe
+			(let sel-h-stripe-loop ([init-h-stripe (if use-y?
+								   (find-stripe y h-stripes)
+								   (next-stripe #f h-stripes))]
+						[x x][w w][use-x? use-x?])
+			  
+			  ;; find items in the initial stripe
+			  (let ([in-init-h-stripe (in-stripe init-h-stripe dests get-y get-h)]
+				[next (lambda ()
+					(let ([s (next-stripe init-h-stripe h-stripes)])
+					  (if s
+					      (sel-h-stripe-loop s fail-start fail-start #f)
+					      (fail))))])
+
+			    ; (printf "in ~a stripe ~a: ~a~n" (if (eq? get-x cadr) 'h 'v) init-h-stripe in-init-h-stripe)
+					
+			    (if (null? in-init-h-stripe)
+
+				;; no items in this stripe; try the next one
+				(next)
+				
+				;; Non-empty h-stripe; now look for items in the same or later v-stripe
+				(if (null? (cdr in-init-h-stripe))
+				    
+				    ;; one item in the stripe; take it unless we're using x and it's
+				    ;;  before x:
+				    (if (or (not use-x?)
+					    ((if backward? < >) (get-x (car in-init-h-stripe)) x))
+					(car in-init-h-stripe)
+					
+					;; Only item is no good; try the next stripe
+					(next))
+				    
+				    ;; Recur to work with v-stripes
+				    (find get-y get-h get-x get-w use-y? y h use-x? x w in-init-h-stripe next)))))))])
+       (if (null? dests)
+	   #f
+	   (car (find get-x get-w get-y get-h #t x w #t y h dests
+		      (lambda ()
+			(find get-x get-w get-y get-h 
+			      #f fail-start fail-start 
+			      #f fail-start fail-start 
+			      dests void))))))]
+    [else
+     (let ([v (let loop ([d dests])
+		(if (null? d)
+		    #f
+		    (let* ([best (loop (cdr d))]
+			   [this (car d)]
+			   [diff (lambda (v l x w)
+				   (cond
+				    [(< (+ v l) x) (- x (+ v l))]
+				    [(< (+ x w) v) (- (+ x w) v)]
+				    [else 0]))])
+		      (let* ([get-x cadr]
+			     [get-w cadddr]
+			     [get-y caddr]
+			     [get-h (lambda (x) (caddr (cddr x)))]
+			     [tdx (diff x w (get-x this) (get-w this))]
+			     [tdy (diff y h (get-y this) (get-h this))]
+			     [bdx (and best (diff x w (get-x best) (get-w best)))]
+			     [bdy (and best (diff y h (get-y best) (get-h best)))]
+			     [better (lambda (tdx tdy bdy negative?)
+				       (if (and (zero? tdx) (negative? tdy)
+						(or (not best) 
+						    (< (abs tdy) (abs bdy))))
+					   this
+					   best))])
+			(case dir
+			  [(up) (better tdx tdy bdy negative?)]
+			  [(down) (better tdx tdy bdy positive?)]
+			  [(left) (better tdy tdx bdx negative?)]
+			  [(right) (better tdy tdx bdx positive?)])))))])
+       (and v (car v)))]))
+
+(define (object->position o)
+  (let-values ([(x y) (double-boxed 0 0 (lambda (x y) (send o client-to-screen x y)))]
+	       [(w h) (double-boxed 0 0 (lambda (x y) (send o get-client-size x y)))])
+    (list o x y w h)))
+
+(define (container->children f except)
+  (apply
+   append
+   (map
+    (lambda (i)
+      (cond
+       [(is-a? i wx-basic-panel<%>) (container->children i except)]
+       [(or (eq? i except) 
+	    (not (send i gets-focus?))
+	    (not (send i is-enabled?))
+	    (not (send i is-shown?)))
+	null]
+       [else (list i)]))
+    (ivar f children))))
+
 ;;;;;;;;;;;;;;; wx- Class Construction ;;;;;;;;;;;;;;;;;;;;
 
 ; ------------- Mixins for common functionality --------------
@@ -107,6 +282,7 @@
 	[get-window (lambda () this)]
 	[dx (lambda () 0)]
 	[dy (lambda () 0)]
+	[handles-key-code (lambda (x) #f)]
 	[get-top-level
 	 (lambda ()
 	   (unless top-level
@@ -373,6 +549,52 @@
        (lambda (width height)
 	 (wx:queue-callback resized #t))])
 
+    (public
+      [handle-traverse-key
+       (lambda (e)
+	 (and panel
+	      (let ([code (send e get-key-code)])
+		(case code
+		  [(#\tab left up down right) 
+		   (let ([o (get-focus-window)])
+		     (if (send o handles-key-code code)
+			 #f
+			 (let* ([shift? (send e get-shift-down)]
+				[forward? (or (and (eq? code #\tab) (not shift?))
+					      (memq code '(right down)))]
+				[normal-move
+				 (lambda ()
+				   (let* ([dests (map object->position (container->children panel o))]
+					  [pos (if o (object->position o) (list 'x 0 0 0 0))]
+					  [o (traverse (cadr pos) (caddr pos) (cadddr pos) (list-ref pos 4)
+						       (case code
+							 [(#\tab) (if shift? 'prev 'next)]
+							 [else code])
+						       dests)])
+				     (when o
+				       (if (is-a? o wx:radio-box%)
+					   (send o button-focus (if forward? 0 (sub1 (send o number))))
+					   (send o set-focus)))))])
+			   (if (is-a? o wx:radio-box%)
+			       (let ([n (send o number)]
+				     [s (send o button-focus -1)]
+				     [v-move? (memq code '(up down))]
+				     [h-move? (memq code '(left right))]
+				     [v? (send o vertical?)])
+				 (cond
+				  [(or (negative? s) 
+				       (and v? h-move?) 
+				       (and (not v?) v-move?))
+				   (normal-move)]
+				  [(and forward? (< s (sub1 n)))
+				   (send o button-focus (add1 s))]
+				  [(and (not forward?) (positive? s))
+				   (send o button-focus (sub1 s))]
+				  [else (normal-move)]))
+			       (normal-move))
+			   #t)))]
+		  [else #f]))))])
+    
     (sequence
       (apply super-init args))))
 
@@ -783,7 +1005,10 @@
 (define wx-button% (make-window-glue% (make-simple-control% wx:button%)))
 (define wx-check-box% (make-window-glue% (make-simple-control% wx:check-box%)))
 (define wx-choice% (make-window-glue% (make-simple-control% wx:choice%)))
-(define wx-message% (make-window-glue% (make-simple-control% wx:message%)))
+(define wx-message% (class (make-window-glue% (make-simple-control% wx:message%)) args
+		      (override [gets-focus? (lambda () #f)])
+		      (sequence (apply super-init args))))
+			
 
 (define wx-gauge%
  (make-window-glue% 
@@ -835,13 +1060,19 @@
 
 (define wx-list-box%
   (make-window-glue% 
-   (make-control% wx:list-box%
-		  const-default-x-margin const-default-y-margin 
-		  #t #t)))
+   (class (make-control% wx:list-box%
+			 const-default-x-margin const-default-y-margin 
+			 #t #t) args
+     (override
+       [handles-key-code (lambda (x)
+			   (case x
+			     [(up down) #t]
+			     [else #f]))])
+     (sequence (apply super-init args)))))
 
 (define wx-radio-box%
   (make-window-glue% 
-   (class (make-simple-control% wx:radio-box%) args
+   (class (make-simple-control% wx:radio-box%) (parent cb label x y w h choices major style)
      (inherit number orig-enable)
      (rename [super-enable enable]
 	     [super-is-enabled? is-enabled?])
@@ -858,7 +1089,10 @@
 	 [(which) (and (< -1 which (number))
 		       (vector-ref enable-vector which))])])
 
-     (sequence (apply super-init args))
+     (public
+       [vertical? (lambda () (memq 'vertical style))])
+
+     (sequence (super-init parent cb label x y w h choices major style))
 
      (private [enable-vector (make-vector (number) #t)]))))
 
@@ -909,7 +1143,8 @@
     (private
       [fixed-height? #f]
       [fixed-height-lines 0]
-      [orig-hard #f])
+      [orig-hard #f]
+      [single-line-canvas? #f])
     (override
       [on-container-resize (lambda ()
 			     (let ([edit (get-editor)])
@@ -943,8 +1178,14 @@
 		     ;  but only when the size of the canvas really matters
 		     ;  (i.e., when it is shown)
 		     (force-redraw)])])
-	 l)])
+	 l)]
+      [handles-key-code 
+       (lambda (x)
+	 (case x
+	   [(#\tab #\return) (not single-line-canvas?)]
+	   [else #t]))])
     (public
+      [set-single-line (lambda () (set! single-line-canvas? #t))]
       [set-line-count (lambda (n)
 			(if n
 			    (begin
@@ -1845,6 +2086,7 @@
 	(send s set-delta (font->delta f)))
       (send c set-editor e)
       (send c set-line-count (if multi? 3 1))
+      (unless multi? (send c set-single-line))
 
       (when (and l horiz?)
 	;; Find amount to drop label down to line up the baselines:
@@ -2252,7 +2494,8 @@
       [on-subwindow-char (lambda (w event) 
 			   (check-instance '(method top-level-window<%> on-subwindow-char) window<%> 'window<%> #f w)
 			   (check-instance '(method top-level-window<%> on-subwindow-char) wx:key-event% 'key-event% #f event)
-			   (send wx handle-menu-key event))])
+			   (or (send wx handle-menu-key event)
+			       (send wx handle-traverse-key event)))])
     (public
       [create-status-line (lambda () (unless status-line? (send wx create-status-line) (set! status-line? #t)))]
       [set-status-text (lambda (s) (send wx set-status-text s))]
