@@ -63,7 +63,10 @@
       ;; periodically checks to see if changes need to be written out.
       (define (start-writing-timer)
         (set! no-more-defaults? #t)
-        (new timer%
+	;; don't actually start the timer anymore.
+	;; turns out that preferences are set far too often
+	;; and I need a better test for when things should be written out.
+        '(new timer%
              [notify-callback (lambda () (maybe-flush-changes))]
              [interval (* 10 1000)])
         (void))
