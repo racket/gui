@@ -200,7 +200,10 @@
 	    (lambda (edit event)
 	      (let ([sel-start (send edit get-start-position)]
 		    [sel-end (send edit get-end-position)])
-		(when (= sel-start sel-end)
+		(when (and (= sel-start sel-end)
+                           (not (= sel-start 0))
+                           (not (= sel-start (send edit last-position))))
+                  
 		  (let ([sel-start
 			 (if (= sel-start
 				(send edit line-end-position
@@ -392,7 +395,7 @@
 		     [else
 		      (message-box
 		       "Goto Line"
-		       (format "~a is not an integer between 1 and ~a"
+		       (format "~a is not a valid line number. It must be an integer between 1 and ~a"
 			       num-str
 			       (+ (send edit last-line) 1)))]))))
 
