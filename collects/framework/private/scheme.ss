@@ -408,7 +408,8 @@
           (define (get-limit pos) 0)
           
           (define (balance-parens key-event)
-            (insert-close-paren (get-start-position) (send key-event get-key-code)
+            (insert-close-paren (get-start-position) 
+                                (send key-event get-key-code)
                                 (preferences:get 'framework:paren-match)
                                 (preferences:get 'framework:fixup-parens)))
           

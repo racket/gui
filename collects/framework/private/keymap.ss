@@ -997,7 +997,7 @@
 	      (map-meta "\"" "insert-\"\"-pair")
 	      (map-meta "|" "insert-||-pair")
 	      (map-meta "s:l" "insert-lambda-template")
-              
+
 	      (map "c:p" "previous-line")
 	      (map "up" "previous-line")
 	      (map "s:c:p" "select-up")

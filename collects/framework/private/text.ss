@@ -1471,8 +1471,7 @@ WARNING: printf is rebound in the body of the unit to always
 
       (define input-box<%>
         (interface ((class->interface text%))
-          box-input-not-used-anymore
-          set-port-text))
+          ))
       
       (define input-box-mixin
         (mixin ((class->interface text%)) (input-box<%>)
