@@ -1,4 +1,10 @@
 
+Version 203.2
+
+Added application-quit-handler
+
+----------------------------------------------------------------------
+
 Version 203: December, 2002
 
 Windows: corrected a source of much instability
