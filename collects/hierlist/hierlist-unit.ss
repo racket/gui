@@ -31,13 +31,16 @@
 	(class100 snip% (callback)
 	       (inherit get-admin set-flags get-flags set-count set-snipclass get-style)
 	       (rename [super-get-extent get-extent])
-	       (private 
+	       (private-field 
 		 [size-calculated? #f]
 		 [size 10]
 		 [width-fraction 1/2]
 		 [right-points #f]
 		 [down-points #f]
 		 [on? #f]
+		 [click-callback callback]
+		 [clicked? #f])
+	       (private
 		 [set-sizes
 		  (lambda (dc)
 		    (let* ([s (get-style)]
@@ -58,12 +61,9 @@
 			(set! down-points 
 			      (list (make-object point% 0 (+ voffset offset))
 				    (make-object point% sz (+ voffset offset))
-				    (make-object point% (quotient sz 2) (+ width offset voffset)))))))])
-	       (private
+				    (make-object point% (quotient sz 2) (+ width offset voffset)))))))]
 		 [get-width (lambda () (+ 2 size))]
 		 [get-height (lambda () (+ 2 size))]
-		 [click-callback callback]
-		 [clicked? #f]
 		 [update
 		  (lambda ()
 		    (send (get-admin) needs-update this 0 0 (get-width) (get-height)))])
@@ -158,7 +158,7 @@
 
       (define hierarchical-list-item%
 	(class100* object% (hierarchical-list-item<%>) (snp)
-		(private
+		(private-field
 		  [snip snp]
 		  [data #f])
 		(public
@@ -182,7 +182,7 @@
 
       (define hierarchical-list-compound-item%
 	(class100* hierarchical-list-item% (hierarchical-list-compound-item<%>) (snp)
-		(private [snip snp])
+		(private-field [snip snp])
 		(override
 		  [get-editor (lambda () (send snip get-title-buffer))])
 		(public
@@ -224,7 +224,7 @@
 			get-view-size)
 	       (rename [super-auto-wrap auto-wrap]
 		       [super-on-default-event on-default-event])
-	       (private
+	       (private-field
 		 [top tp]
 		 [top-select tp-select]
 		 [item itm]
@@ -285,13 +285,17 @@
 
       ;; Buffer for a compound list item (and the top-level list)
       (define (make-hierarchical-list-text% super%)
-	(class100 super% (top top-select depth parent-snp)
+	(class100 super% (tp tp-select dpth parent-snp)
 	       (inherit set-max-undo-history hide-caret erase
 			last-position insert delete line-start-position line-end-position
 			begin-edit-sequence end-edit-sequence get-style-list)
-	       (private
+	       (private-field
+		 [top tp]
+		 [top-select tp-select]
+		 [depth dpth]
 		 [parent-snip parent-snp]
-		 [children null]
+		 [children null])
+	       (private
 		 [make-whitespace (lambda () (make-object whitespace-snip%))]
 		 [insert-item 
 		  (lambda (mixin snip% whitespace?)
@@ -373,7 +377,7 @@
       ;; Snip for a single list item
       (define hierarchical-item-snip%
 	(class100 editor-snip% (prnt top top-select depth mixin)
-	  (private [parent prnt])
+	  (private-field [parent prnt])
 	  (public
 	    [get-parent (lambda () parent)]
 	    [get-item-text% (lambda () hierarchical-item-text%)]
@@ -385,7 +389,7 @@
 	    [reflow-item (lambda () 
 			   (when (send item-buffer auto-wrap)
 			     (send item-buffer auto-wrap #t)))])
-	  (private
+	  (private-field
 	    [item (make-object (mixin hierarchical-list-item%) this)]
 	    [item-buffer (make-object (get-item-text%) top top-select item this depth)])
 	  (sequence
@@ -393,8 +397,10 @@
 
       ;; Snip for a compound list item
       (define hierarchical-list-snip%
-	(class100 editor-snip% (prnt top top-select depth mixin [title #f][content #f])
-	  (private [parent prnt])
+	(class100 editor-snip% (prnt tp top-select depth mixin [title #f][content #f])
+	  (private-field 
+	    [parent prnt]
+	    [top tp])
 	  (public
 	    [get-parent (lambda () parent)]
 	    [get-main-text% (lambda () (class100 text% args
@@ -448,8 +454,9 @@
 			   (when (send title-buffer auto-wrap)
 			     (send title-buffer auto-wrap #t))
 			   (send (send content-snip get-editor) reflow-items))])
+	  (private-field
+	    [open? #f])
 	  (private
-	    [open? #f]
 	    [handle-open
 	     (lambda (update-arrow?)
 	       (unless open?
@@ -481,7 +488,7 @@
 		 (send main-buffer delete 2 5)
 		 (send top on-item-closed (get-item))
 		 (send main-buffer end-edit-sequence)))])
-	  (private
+	  (private-field
 	    [was-empty? #f]
 	    [was-non-empty? #f]
 	    [item (make-object (mixin hierarchical-list-compound-item%) this)]
@@ -668,9 +675,11 @@
 					  [i (list-ref items l)])
 				     (send i select #t)
 				     (send i scroll-to)))))
-			     (send top-buffer move-position dir #f 'page)))]
+			     (send top-buffer move-position dir #f 'page)))])
+	       (private-field
 		 [selectable? #t]
-		 [show-focus? #f]
+		 [show-focus? #f])
+	       (private
 		 [do-select (lambda (item s)
 			      (when selectable?
 				(unless (eq? item selected-item)
@@ -678,8 +687,9 @@
 				  (set! selected (if item s #f))
 				  (set! selected-item item)
 				  (when selected (send selected show-select #t))
-				  (on-select item))))]
-		 [top-buffer (make-object hierarchical-list-text% this do-select 0 #f)]
+				  (on-select item))))])
+	       (private-field
+		 [top-buffer (make-object hierarchical-list-text% this (lambda (i s) (do-select i s)) 0 #f)]
 		 [selected #f]
 		 [selected-item #f])
 	       (sequence

@@ -418,7 +418,7 @@
 	      [super-drag-accept-files drag-accept-files]
 	      [super-show show]
 	      [super-enable enable])
-      (private
+      (private-field
 	[top-level #f]
 	[focus? #f]
 	[container this]
@@ -464,7 +464,7 @@
 	[orig-enable
 	 (lambda args (super-enable . args))])
       
-      (private
+      (private-field
 	[can-accept-drag? #f])
 
       (public
@@ -541,7 +541,7 @@
 	    [super-enable enable]
 	    [super-on-visible on-visible]
 	    [super-on-active on-active])
-    (private
+    (private-field
       ; have we had any redraw requests while the window has been
       ; hidden?
       [pending-redraws? #t]
@@ -571,7 +571,7 @@
        (lambda (b)
 	 (set! enabled? (and b #t))
 	 (super-enable b))])
-    (private
+    (private-field
       [eventspace (if parent
 		      (send parent get-eventspace)
 		      (wx:current-eventspace))])
@@ -977,7 +977,7 @@
 		get-parent get-client-size)
        (rename [super-enable enable]
 	       [super-set-size set-size])
-       (private [enabled? #t])
+       (private-field [enabled? #t])
        (override
 	 [enable
 	  (lambda (b)
@@ -1006,7 +1006,7 @@
 	 [is-enabled?
 	  (lambda () enabled?)])
 
-       (private
+       (private-field
 	 ; Store minimum size of item.  
 	 ; This will never change after the item is created.
 	 hard-min-width
@@ -1043,7 +1043,7 @@
 	    (check-range-integer '(method canvas<%> min-client-height) new-height)
 	    (min-height (+ new-height (client-inset #t)))])])
 
-       (private [-mw 0]
+       (private-field [-mw 0]
 		[-mh 0]
 		[-xm x-margin-w]
 		[-ym y-margin-h]
@@ -1164,7 +1164,7 @@
 
 (define (make-glue% %)
   (class100* % (wx/proxy<%>) (mr prxy . args)
-    (private [mred mr]
+    (private-field [mred mr]
 	     [proxy prxy])
     (public
       [get-mred (lambda () mred)]
@@ -1177,7 +1177,7 @@
     (rename [super-on-size on-size]
 	    [super-on-set-focus on-set-focus]
 	    [super-on-kill-focus on-kill-focus])
-    (private
+    (private-field
       [pre-wx->proxy (lambda (w k) ; MacOS: w may not be something the user knows
 		       (if w
 			   (if (is-a? w wx/proxy<%>)
@@ -1246,7 +1246,7 @@
 (define (make-container-glue% %)
   (class100 % (mr prxy . args)
     (inherit do-place-children do-get-graphical-min-size get-children-info)
-    (private [mred mr][proxy prxy])
+    (private-field [mred mr][proxy prxy])
     (override
       [get-graphical-min-size (lambda () 
 				(cond
@@ -1294,7 +1294,7 @@
   (class100 (make-window-glue% %) (mred proxy . args)
     (inherit is-shown? get-mred queue-visible)
     (rename [super-on-activate on-activate])
-    (private 
+    (private-field 
       [act-date/seconds 0] [act-date/milliseconds 0] [act-on? #f])
     (public 
       [on-exit (entry-point
@@ -1390,7 +1390,7 @@
   (make-top-level-window-glue% 
    (class100 (make-top-container% wx:frame% #f) args
      (rename [super-set-menu-bar set-menu-bar])
-     (private
+     (private-field
        [menu-bar #f]
        [is-mdi-parent? #f])
      (public
@@ -1429,7 +1429,7 @@
 (define wx-button% (make-window-glue% 
 		    (class100 (make-simple-control% wx:button%) (parent cb label x y w h style)
 		      (inherit command)
-		      (private [border? (memq 'border style)])
+		      (private-field [border? (memq 'border style)])
 		      (public [has-border? (lambda () border?)])
 		      (override
 			[char-to (lambda ()
@@ -1468,7 +1468,7 @@
 	     stretchable-in-x stretchable-in-y set-min-height set-min-width
 	     get-parent)
     (override [gets-focus? (lambda () #f)])
-    (private
+    (private-field
       ; # pixels per unit of value.
       [pixels-per-value 1])
     (sequence
@@ -1538,7 +1538,7 @@
 	 [(which) (and (< -1 which (number))
 		       (vector-ref enable-vector which))])])
 
-     (private [is-vertical? (memq 'vertical style)])
+     (private-field [is-vertical? (memq 'vertical style)])
      (public
        [vertical? (lambda () is-vertical?)]
        [char-to-button (lambda (i)
@@ -1549,7 +1549,7 @@
 
      (sequence (super-init parent cb label x y w h choices major style))
 
-     (private [enable-vector (make-vector (number) #t)]))))
+     (private-field [enable-vector (make-vector (number) #t)]))))
 
 (define wx-slider%
   (make-window-glue% 
@@ -1559,7 +1559,7 @@
        (parent func label value min-val max-val style)
      (inherit set-min-width set-min-height stretchable-in-x stretchable-in-y
 	      get-client-size get-width get-height get-parent)
-     (private
+     (private-field
        ; # pixels per possible setting.
        [pixels-per-value 3])
      ; 3 is good because with horizontal sliders under Xt, with 1 or 2
@@ -1586,7 +1586,7 @@
 
 (define wx-canvas% (make-canvas-glue%
 		    (class100 (make-control% wx:canvas% 0 0 #t #t) args
-		      (private
+		      (private-field
 			[tabable? #f])
 		      (public
 			[on-tab-in (lambda () (send (wx->mred this) on-tab-in))]
@@ -1609,7 +1609,7 @@
 	     get-hard-minimum-size set-min-height)
     (rename [super-set-editor set-editor]
 	    [super-on-set-focus on-set-focus])
-    (private
+    (private-field
       [fixed-height? #f]
       [fixed-height-lines 0]
       [orig-hard #f]
@@ -1736,10 +1736,11 @@
 	    [super-get-view-size get-view-size]
 	    [super-copy-self-to copy-self-to]
 	    [super-print print])
-    (private
+    (private-field
       [canvases null]
       [active-canvas #f]
-      [auto-set-wrap? #f]
+      [auto-set-wrap? #f])
+    (private
       [max-view-size
        (lambda ()
 	 (let ([wb (box 0)]
@@ -1873,7 +1874,7 @@
 
 (define wx:windowless-panel%
   (class100 object% (prnt x y w h style)
-    (private
+    (private-field
       [pos-x 0] [pos-y 0] [width 1] [height 1]
       [parent prnt])
     (public
@@ -1911,7 +1912,7 @@
     
     (rename [super-set-focus set-focus])
     
-    (private
+    (private-field
       ; cache to prevent on-size from recomputing its result every
       ; time. when curr-width is #f, cache invalid.
       curr-width
@@ -1936,7 +1937,7 @@
 	     (super-set-focus)
 	     (send (car children) set-focus)))])
     
-    (private
+    (private-field
       ;; list of panel's contents.
       [children null]
       [curr-border const-default-border]
@@ -2185,7 +2186,7 @@
 		   (cadr curr-info)) ; child-info-y-min
 		  (loop (cdr children-info)))))))])
 
-    (private
+    (private-field
       [curr-spacing const-default-spacing])
       
     (public
@@ -2292,13 +2293,13 @@
 
 (define (wx-make-linear-panel% wx-panel%)
   (class100 wx-panel% args
-    (private
+    (private-field
       [major-align-pos 'left]
       [minor-align-pos 'center])
     
     (inherit force-redraw border get-width get-height
 	     get-graphical-min-size)
-    (private [curr-spacing const-default-spacing])
+    (private-field [curr-spacing const-default-spacing])
     (override
       [spacing
        (case-lambda
@@ -2541,9 +2542,9 @@
 	      [super-after-delete after-delete]
 	      [super-on-char on-char])
       (inherit get-text last-position)
-      (private
+      (private-field
 	[return-cb ret-cb])
-      (private
+      (private-field
 	[block-callback 1]
 	[callback
 	 (lambda (type)
@@ -2604,7 +2605,7 @@
   (class100 wx-horizontal-panel% (mred proxy parent fun label value style)
     ; Make text field first because we'll have to exit
     ;  for keymap initializer
-    (private
+    (private-field
       [func fun]
       [without-callback #f]
       [callback-ready #f]
@@ -2657,7 +2658,7 @@
     (sequence
       (super-init #f proxy parent null)
       (send (area-parent) add-child this))
-    (private
+    (private-field
       [multi? (memq 'multiple style)]
       [horiz? (eq? (send (send parent get-window) get-label-position) 'horizontal)]
       [dy 0]
@@ -2670,7 +2671,7 @@
       (alignment 'left 'top)
       (unless horiz? (send p alignment 'left 'top))
       (unless multi? (stretchable-in-y #f)))
-    (private
+    (private-field
       [l (and label
 	      (make-object wx-message% #f proxy p label -1 -1 null))]
       [c (make-object wx-text-editor-canvas% #f proxy this p
@@ -2819,7 +2820,7 @@
 
 (define area%
   (class100* mred% (area<%>) (mk-wx get-wx-pan prnt)
-    (private [get-wx-panel get-wx-pan]
+    (private-field [get-wx-panel get-wx-pan]
 	     [parent prnt])
     (public
       [get-parent (lambda () parent)]
@@ -2829,7 +2830,7 @@
       [stretchable-width (param get-wx-panel stretchable-in-x)]
       [stretchable-height (param get-wx-panel stretchable-in-y)]
       [get-graphical-min-size (entry-point (lambda () (send wx get-hard-minimum-size)))])
-    (private
+    (private-field
       [wx (mk-wx)])
     (sequence (super-init wx))))
 
@@ -2841,7 +2842,7 @@
 
 (define (make-subarea% %) ; % implements area<%>
   (class100* % (subarea<%>) (mk-wx get-wx-pan parent)
-    (private [get-wx-panel get-wx-pan])
+    (private-field [get-wx-panel get-wx-pan])
     (public
       [horiz-margin (param get-wx-panel x-margin)]
       [vert-margin (param get-wx-panel y-margin)])
@@ -2861,7 +2862,7 @@
 
 (define (make-container% %) ; % implements area<%>
   (class100* % (area-container<%> internal-container<%>) (mk-wx get-wx-pan parent) 
-    (private [get-wx-panel get-wx-pan])
+    (private-field [get-wx-panel get-wx-pan])
     (public
       [after-new-child (lambda (c) (void))]
       [reflow-container (entry-point (lambda () (send (send (get-wx-panel) get-top-level) force-redraw)))]
@@ -2931,7 +2932,7 @@
 
 (define (make-window% top? %) ; % implements area<%>
   (class100* % (window<%>) (mk-wx get-wx-panel lbl parent crsr)
-    (private [label lbl][cursor crsr])
+    (private-field [label lbl][cursor crsr])
     (public
       [popup-menu (entry-point 
 		   (lambda (m x y)
@@ -3030,7 +3031,7 @@
       [on-superwindow-enable (lambda (active?) (void))]
 
       [refresh (entry-point (lambda () (send wx refresh)))])
-    (private
+    (private-field
       [wx #f])
     (sequence
       (super-init (lambda () (set! wx (mk-wx)) wx) get-wx-panel parent))))
@@ -3043,7 +3044,7 @@
 
 (define (make-area-container-window% %) ; % implements window<%> (and area-container<%>)
   (class100* % (area-container-window<%>) (mk-wx get-wx-pan label parent cursor) 
-    (private [get-wx-panel get-wx-pan])    
+    (private-field [get-wx-panel get-wx-pan])    
     (public
       [get-control-font (entry-point (lambda () (send (get-wx-panel) get-control-font)))]
       [set-control-font (entry-point (lambda (x) (send (get-wx-panel) set-control-font x)))]
@@ -3130,7 +3131,7 @@
 					    (and o (wx-object->proxy o)))))]
 
       [on-message (lambda (m) (void))])
-    (private
+    (private-field
       [wx #f]
       [wx-panel #f]
       [finish (entry-point
@@ -3154,7 +3155,7 @@
 (define basic-control%
   (class100* (make-window% #f (make-subarea% area%)) (control<%>) (mk-wx lbl parent cursor)
     (rename [super-set-label set-label])
-    (private [label lbl])
+    (private-field [label lbl])
     (override
       [get-label (lambda () label)]
       [get-plain-label (lambda () (and (string? label) (wx:label->plain-label label)))]
@@ -3167,7 +3168,7 @@
 		      (set! label l))))])
     (public
       [command (lambda (e) (send wx command e))]) ; no entry/exit needed
-    (private
+    (private-field
       [wx #f])
     (sequence
       (when (string? label)
@@ -3198,7 +3199,7 @@
 	    (unless (and pwx (send pwx get-mdi-parent))
 	      (raise-mismatch-error (who->name cwho) "parent for 'mdi-child frame is not an 'mdi-parent frame: " parent))))))
     (rename [super-on-subwindow-char on-subwindow-char])
-    (private
+    (private-field
       [wx #f]
       [status-line? #f])
     (override
@@ -3249,7 +3250,7 @@
 	(check-style cwho #f '(no-caption resize-border) style)
 	(check-container-ready cwho parent)))
     (rename [super-on-subwindow-char on-subwindow-char])
-    (private [wx #f])
+    (private-field [wx #f])
     (override
       [on-subwindow-char (lambda (w event)
 			   (super-on-subwindow-char w event)
@@ -3326,7 +3327,7 @@
 	(check-callback cwho callback)
 	(check-style cwho #f null style)
 	(check-container-ready cwho parent)))
-    (private
+    (private-field
       [wx #f])
     (public
       [get-value (entry-point (lambda () (send wx get-value)))]
@@ -3343,7 +3344,7 @@
 
 (define radio-box%
   (class100 basic-control% (label chcs parent callback [style '(vertical)])
-    (private [choices chcs])
+    (private-field [choices chcs])
     (sequence 
       (let ([cwho '(constructor radio-box)])
 	(check-string/false cwho label)
@@ -3355,8 +3356,9 @@
 	(check-callback cwho callback)
 	(check-orientation cwho style)
 	(check-container-ready cwho parent)))
+    (private-field
+      [wx #f])
     (private
-      [wx #f]
       [check-button
        (lambda (method n)
 	 (check-non-negative-integer `(method radio-box% ,method) n)
@@ -3401,7 +3403,7 @@
 
 (define slider%
   (class100 basic-control% (label minv maxv parent callback [value min-val] [style '(horizontal)])
-    (private [min-val minv][max-val maxv])
+    (private-field [min-val minv][max-val maxv])
     (sequence 
       (let ([cwho '(constructor slider)])
 	(check-string/false cwho label)
@@ -3412,7 +3414,7 @@
 	(check-slider-integer cwho value)
 	(check-style cwho '(vertical horizontal) '(plain) style)
 	(check-container-ready cwho parent)))
-    (private
+    (private-field
       [wx #f])
     (public
       [get-value (entry-point (lambda () (send wx get-value)))]
@@ -3444,7 +3446,7 @@
 	(check-gauge-integer cwho range)
 	(check-orientation cwho style)
 	(check-container-ready cwho parent)))
-    (private
+    (private-field
       [wx #f])
     (public
       [get-value (entry-point (lambda () (send wx get-value)))]
@@ -3499,8 +3501,9 @@
 					   (raise-mismatch-error (who->name '(method list-control<%> set-string-selection))
 								 "no item matching the given string: " s))))]
       [find-string (entry-point (lambda (x) (-1=>false (send wx find-string x))))])
+    (private-field
+      [wx #f])
     (private
-      [wx #f]
       [check-item
        (lambda (method n)
 	 (check-non-negative-integer `(method list-control<%> ,method) n)
@@ -3571,8 +3574,9 @@
 	       (case-lambda 
 		[(n) (check-item 'select n) (send wx select n #t)]
 		[(n on?) (check-item 'select n) (send wx select n on?)]))])
+    (private-field
+      [wx #f])
     (private
-      [wx #f]
       [check-item
        (entry-point
 	(lambda (method n)
@@ -3609,7 +3613,7 @@
 	(check-string cwho init-val)
 	(check-style cwho '(single multiple) '(hscroll) style)
 	(check-container-ready cwho parent)))
-    (private
+    (private-field
       [wx #f])
     (public
       [get-editor (entry-point (lambda () (send wx get-editor)))]
@@ -3653,7 +3657,7 @@
       [warp-pointer (entry-point (lambda (x y) (send wx warp-pointer x y)))]
 
       [get-dc (entry-point (lambda () (send wx get-dc)))])
-    (private
+    (private-field
       [wx #f])
     (sequence
       (as-entry
@@ -3728,7 +3732,7 @@
       [set-scroll-range (entry-point (lambda (d v) (send wx set-scroll-range d v)))]
       [get-scroll-page (entry-point (lambda (d) (send wx get-scroll-page d)))]
       [set-scroll-page (entry-point (lambda (d v) (send wx set-scroll-page d v)))])
-    (private
+    (private-field
       [wx #f])
     (sequence
       (super-init (lambda () 
@@ -3755,7 +3759,7 @@
 	(check-style cwho #f '(hide-vscroll hide-hscroll no-vscroll no-hscroll) style)
 	(check-gauge-integer cwho scrolls-per-page)
 	(check-container-ready cwho parent)))
-    (private
+    (private-field
       [force-focus? #f]
       [scroll-to-last? #f]
       [scroll-bottom? #f])
@@ -3801,7 +3805,7 @@
 		   (case-lambda 
 		    [(m) (send wx set-editor m)]
 		    [(m upd?) (send wx set-editor m upd?)]))])
-    (private
+    (private-field
       [wx #f])
     (sequence
       (super-init (lambda () 
@@ -3829,7 +3833,7 @@
 
 (define pane%
   (class100 (make-subarea% (make-container% area%)) (parent)
-    (private [wx #f])
+    (private-field [wx #f])
     (sequence 
       (let* ([who (cond ; yuck! - we do this to make h-p and v-p subclasses of p
 		   [(is-a? this vertical-pane%) 'vertical-pane]
@@ -3857,7 +3861,7 @@
 
 (define panel%
   (class100* (make-area-container-window% (make-window% #f (make-subarea% (make-container% area%)))) (subwindow<%>) (parent [style null])
-    (private [wx #f])
+    (private-field [wx #f])
     (sequence 
       (let* ([who (cond ; yuck! - we do this to make h-p and v-p subclasses of p
 		   [(is-a? this vertical-panel%) 'vertical-panel]
@@ -3906,7 +3910,7 @@
 
 (define wx-menu-item%
   (class100* wx:menu-item% (wx<%>) (mr mn-dat)
-    (private 
+    (private-field 
       [menu-data mn-dat]
       [mred mr]
       [keymap #f]
@@ -3932,7 +3936,7 @@
     (inherit delete)
     (rename [super-append append]
 	    [super-enable-top enable-top])
-    (private
+    (private-field
       [mred mr]
       [items null]
       [disabled null]
@@ -4007,7 +4011,7 @@
 
 (define wx-menu%
   (class100* wx:menu% (wx<%>) (mr popup-label popup-callback)
-    (private
+    (private-field
       [mred mr]
       [items null]
       [keymap (make-object wx:keymap%)]
@@ -4093,7 +4097,7 @@
 (define separator-menu-item%
   (class100* mred% (menu-item<%>) (prnt)
     (sequence (menu-parent-only 'separator-menu-item prnt))
-    (private
+    (private-field
       [parent prnt]
       [wx #f]
       [shown? #f]
@@ -4124,7 +4128,7 @@
 
 (define basic-labelled-menu-item%
   (class100* mred% (labelled-menu-item<%>) (prnt lbl help-str wx-sub chkble? keymap set-wx)
-    (private
+    (private-field
       [parent prnt]
       [label lbl]
       [help-string help-str]
@@ -4135,7 +4139,8 @@
       [plain-label (string->immutable-string (wx:label->plain-label label))]
       [in-menu? (is-a? parent internal-menu<%>)]
       [shown? #f]
-      [enabled? #t]
+      [enabled? #t])
+    (private
       [do-enable (lambda (on?)
 		   (when shown?
 		     (if in-menu?
@@ -4213,12 +4218,13 @@
     [else c]))
 
 (define basic-selectable-menu-item%
-  (class100* basic-labelled-menu-item% (selectable-menu-item<%>) (lbl checkable? menu cb shrtcut help-string set-wx)
+  (class100* basic-labelled-menu-item% (selectable-menu-item<%>) (lbl checkable? mnu cb shrtcut help-string set-wx)
     (rename [super-restore restore] [super-set-label set-label]
 	    [super-is-deleted? is-deleted?]
 	    [super-is-enabled? is-enabled?]
 	    [super-get-label get-label])
-    (private
+    (private-field
+      [menu mnu]
       [callback cb]
       [label lbl]
       [shortcut shrtcut]
@@ -4227,8 +4233,9 @@
       [command (lambda (e)
 		 (check-instance '(method selectable-menu-item<%> command) wx:control-event% 'control-event% #f e)
 		 (void (callback this e)))])
+    (private-field
+      [x-prefix 'meta])
     (private
-      [x-prefix 'meta]
       [calc-labels (lambda (label)
 		     (let* ([new-label (if shortcut
 					   (string-append
@@ -4315,7 +4322,7 @@
   (class100 basic-selectable-menu-item% (label mnu callback [shortcut #f] [help-string #f])
     (sequence
       (check-shortcut-args 'checkable-menu-item label mnu callback shortcut help-string))
-    (private
+    (private-field
       [menu mnu]
       [wx #f])
     (public
@@ -4342,7 +4349,7 @@
 		      (when (is-a? i labelled-menu-item<%>)
 			(send i on-demand)))
 		    (send wx-menu get-items)))])
-    (private
+    (private-field
       [wx-menu #f])
     (sequence
       (as-entry
@@ -4366,7 +4373,7 @@
 		      (when (is-a? i labelled-menu-item<%>)
 			(send i on-demand)))
 		    (send wx get-items)))])
-    (private
+    (private-field
       [wx #f])
     (sequence
       (check-string/false '(constructor popup-menu) title)
@@ -4391,7 +4398,7 @@
 (define menu-bar%
   (class100* mred% (menu-item-container<%>) (prnt)
     (sequence (barless-frame-parent prnt))
-    (private 
+    (private-field 
       [parent prnt]
       [wx #f]
       [wx-parent #f]
@@ -4504,7 +4511,7 @@
     (class100 text% ()
       (inherit insert last-position get-text erase change-style clear-undos)
       (rename [super-on-char on-char])
-      (private [prompt-pos 0] [locked? #f])
+      (private-field [prompt-pos 0] [locked? #f])
       (override
 	[can-insert? (lambda (start end) (and (>= start prompt-pos) (not locked?)))]
 	[can-delete? (lambda (start end) (and (>= start prompt-pos) (not locked?)))]
