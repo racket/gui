@@ -959,6 +959,7 @@
 	      (map "a:v" "paste-clipboard")
 	      (map "d:v" "paste-clipboard")
 	      (map "c:_" "undo")
+	      (map "c:\037" "undo")
 	      (map "c:+" "redo")
 	      (map "a:z" "undo")
 	      (map "d:z" "undo")
