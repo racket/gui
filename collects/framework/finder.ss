@@ -155,8 +155,10 @@
       (public
 	
 	[do-period-in/exclusion
-	 (lambda (button event)
-	   (preferences:set 'framework:show-periods-in-dirlist (send event checked?))
+	 (lambda (check-box event)
+	   (preferences:set
+	    'framework:show-periods-in-dirlist
+	    (send check-box get-value))
 	   (set-directory current-dir))]
 	
 	[do-dir
