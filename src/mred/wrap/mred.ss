@@ -130,12 +130,6 @@
 
 (define identity (lambda (x) x))
 
-(define (range-error who v hard-min-width max-min)
-  (raise-mismatch-error (who->name who) 
-			(format "value out-of-range ~e to ~e: "
-				hard-min-width max-min)
-			v))
-
 ; list-diff: computes the difference between two lists
 ; input: l1, l2: two lists
 ; returns:  a list of all elements in l1 which are not in l2.
@@ -365,7 +359,8 @@
 	[get-window (lambda () this)]
 	[dx (lambda () 0)]
 	[dy (lambda () 0)]
-	[handles-key-code (lambda (x) #f)]
+	[handles-key-code (lambda (x alpha? meta?) #f)]
+	[char-to void]
 	[get-top-level
 	 (lambda ()
 	   (unless top-level
@@ -653,7 +648,7 @@
 		(case code
 		  [(#\return) 
 		   (let ([o (get-focus-window)])
-		     (if (and o (send o handles-key-code code))
+		     (if (and o (send o handles-key-code code #f #f))
 			 #f
 			 (let ([objs (container->children panel #f)])
 			   (or (ormap
@@ -668,7 +663,7 @@
 		  [(escape)
 		   (and (is-a? this wx:dialog%)
 			(let ([o (get-focus-window)])
-			  (if (and o (send o handles-key-code code))
+			  (if (and o (send o handles-key-code code #f #f))
 			      #f
 			      (begin
 				(when (on-close)
@@ -693,7 +688,7 @@
 		      [else #f]))]
 		  [(#\tab left up down right) 
 		   (let ([o (get-focus-window)])
-		     (if (and o (send o handles-key-code code))
+		     (if (and o (send o handles-key-code code #f #f))
 			 #f
 			 (let* ([shift? (send e get-shift-down)]
 				[forward? (or (and (eq? code #\tab) (not shift?))
@@ -730,7 +725,46 @@
 				  [else (normal-move)]))
 			       (normal-move))
 			   #t)))]
-		  [else #f]))))])
+		  [else (if (and (wx:shortcut-visible-in-label?)
+				 (char? code)
+				 (or (char-alphabetic? code)
+				     (char-numeric? code))
+				 (not (send e get-shift-down))
+				 (not (send e get-control-down))
+				 (not (send e get-alt-down)))
+			    (let ([o (get-focus-window)]
+				  [meta? (send e get-meta-down)])
+			      (if (and o (send o handles-key-code code #t meta?))
+				  #f
+				  ;; Move selection/hit control based on & shortcuts
+				  (let* ([objs (container->children panel #f)]
+					 [re (regexp (format "(^|[^&])&~a" code))])
+				    (ormap
+				     (lambda (o)
+				       (let* ([win (wx->proxy o)]
+					      [l (send win get-label)])
+					 (cond
+					  [(and (string? l)
+						(regexp-match re l))
+					   (send o set-focus)
+					   (send o char-to)
+					   #t]
+					  [(is-a? o wx:radio-box%)
+					   (let ([n (send o number)])
+					     (let loop ([i 0])
+					       (if (= i n)
+						   #f
+						   (let ([l (send o get-string i)])
+						     (if (and (string? l)
+							      (regexp-match re l))
+							 (begin
+							   (send o button-focus i)
+							   (send o char-to-button i)
+							   #t)
+							 (loop (add1 i)))))))]
+					  [else #f])))
+				     objs))))
+			    #f)]))))])
     
     (sequence
       (apply super-init args))))
@@ -795,6 +829,7 @@
 	 hard-min-height
 	 [set-min-height (lambda (v) (set! hard-min-height v) (min-height v))]
 	 [set-min-width (lambda (v) (set! hard-min-width v) (min-width v))]
+	 [get-hard-minimum-size (lambda () (values hard-min-width hard-min-height))]
 	 
 	 [client-inset
 	  (lambda (h?)
@@ -837,16 +872,12 @@
 	  (mk-param
 	   0 identity
 	   (lambda (v)
-	     (check-range-integer '(method area<%> min-width) v)
-	     (when (< v hard-min-width)
-	       (range-error 'min-width v hard-min-width max-min))))]
+	     (check-range-integer '(method area<%> min-width) v)))]
 	 [min-height
 	  (mk-param
 	   0  identity
 	   (lambda (v)
-	     (check-range-integer '(method area<%> min-height) v)
-	     (when (< v hard-min-height)
-	       (range-error 'min-height v hard-min-height max-min))))]
+	     (check-range-integer '(method area<%> min-height) v)))]
 	 
 	 [x-margin
 	  (mk-param
@@ -904,8 +935,8 @@
 	 ; returns: a list containing the minimum width & height.
 	 [get-min-size
 	  (lambda ()
-	    (let ([w (+ (* 2 (x-margin)) (min-width))]
-		  [h (+ (* 2 (y-margin)) (min-height))])
+	    (let ([w (+ (* 2 (x-margin)) (max hard-min-width (min-width)))]
+		  [h (+ (* 2 (y-margin)) (max hard-min-height (min-height)))])
 	      (list w h)))])
        
        (sequence
@@ -1177,11 +1208,29 @@
 
 (define wx-button% (make-window-glue% 
 		    (class (make-simple-control% wx:button%) (parent cb label x y w h style)
+		      (inherit command)
 		      (public [has-border? (lambda () (memq 'border style))])
+		      (override
+			[char-to (lambda ()
+				   (as-exit
+				    (lambda ()
+				      (command (make-object wx:control-event% 'button)))))])
 		      (sequence (super-init parent cb label x y w h style)))))
-(define wx-check-box% (make-window-glue% (make-simple-control% wx:check-box%)))
+(define wx-check-box% (class (make-window-glue% (make-simple-control% wx:check-box%)) args
+			(inherit set-value get-value command)
+			(override
+			  [char-to (lambda ()
+				     (as-exit
+				      (lambda ()
+					(set-value (not (get-value)))
+					(command (make-object wx:control-event% 'check-box)))))])
+			(sequence (apply super-init args))))
 (define wx-choice% (class (make-window-glue% (make-simple-control% wx:choice%)) args
-		     (override [handles-key-code (lambda (x) (memq x '(up down)))])
+		     (override 
+		       [handles-key-code 
+			(lambda (x alpha? meta?) 
+			  (or (memq x '(up down))
+			      (and alpha? (not meta?))))])
 		     (sequence (apply super-init args))))
 (define wx-message% (class (make-window-glue% (make-simple-control% wx:message%)) args
 		      (override [gets-focus? (lambda () #f)])
@@ -1242,16 +1291,16 @@
 			 const-default-x-margin const-default-y-margin 
 			 #t #t) args
      (override
-       [handles-key-code (lambda (x)
+       [handles-key-code (lambda (x alpha? meta?)
 			   (case x
 			     [(up down) #t]
-			     [else #f]))])
+			     [else (and alpha? (not meta?))]))])
      (sequence (apply super-init args)))))
 
 (define wx-radio-box%
   (make-window-glue% 
    (class (make-simple-control% wx:radio-box%) (parent cb label x y w h choices major style)
-     (inherit number orig-enable)
+     (inherit number orig-enable set-selection command)
      (rename [super-enable enable]
 	     [super-is-enabled? is-enabled?])
      (override
@@ -1268,7 +1317,12 @@
 		       (vector-ref enable-vector which))])])
 
      (public
-       [vertical? (lambda () (memq 'vertical style))])
+       [vertical? (lambda () (memq 'vertical style))]
+       [char-to-button (lambda (i)
+			 (as-exit
+			  (lambda ()
+			    (set-selection i)
+			    (command (make-object wx:control-event% 'radio-box)))))])
 
      (sequence (super-init parent cb label x y w h choices major style))
 
@@ -1317,7 +1371,7 @@
 		      (override
 			[gets-focus? (lambda () tabable?)]
 			[handles-key-code
-			 (lambda (code)
+			 (lambda (code alpha? meta?)
 			   (not tabable?))])
 		      (sequence
 			(apply super-init args)))))
@@ -1372,10 +1426,10 @@
 		     (force-redraw)])])
 	 l)]
       [handles-key-code 
-       (lambda (x)
+       (lambda (x alpha? meta?)
 	 (case x
 	   [(#\tab #\return escape) (not single-line-canvas?)]
-	   [else #t]))])
+	   [else (not meta?)]))])
     (public
       [set-single-line (lambda () (set! single-line-canvas? #t))]
       [set-line-count (lambda (n)
@@ -2404,6 +2458,7 @@
   (interface ()
     get-parent get-top-level-window
     min-width min-height
+    get-graphical-min-size
     stretchable-width stretchable-height))
 
 (define area%
@@ -2414,7 +2469,8 @@
       [min-width (param get-wx-panel 'min-width)]
       [min-height (param get-wx-panel 'min-height)]
       [stretchable-width (param get-wx-panel 'stretchable-in-x)]
-      [stretchable-height (param get-wx-panel 'stretchable-in-y)])
+      [stretchable-height (param get-wx-panel 'stretchable-in-y)]
+      [get-graphical-min-size (entry-point (lambda () (send wx get-hard-minimum-size)))])
     (private
       [wx (mk-wx)])
     (sequence (super-init wx))))
@@ -2636,7 +2692,7 @@
       [set-label (entry-point-1
 		  (lambda (l)
 		    (check-string/false '(method top-level-window<%> set-label) l)
-		    (send wx set-title (if l (wx:label->plain-label l) ""))
+		    (send wx set-title (or l ""))
 		    (super-set-label l)))])
     (public
       [on-traverse-char (entry-point-1
@@ -2752,7 +2808,7 @@
        (lambda ()
 	 (super-init (lambda (finish) 
 		       (set! wx (finish (make-object wx-frame% this this
-						     (and parent (mred->wx parent)) (wx:label->plain-label label)
+						     (and parent (mred->wx parent)) label
 						     (or x -1) (or y -1) (or width -1) (or height -1)
 						     style)))
 		       wx)
@@ -2778,7 +2834,7 @@
        (lambda ()
 	 (super-init (lambda (finish) 
 		       (set! wx (finish (make-object wx-dialog% this this
-						     (and parent (mred->wx parent)) (wx:label->plain-label label) #t
+						     (and parent (mred->wx parent)) label #t
 						     (or x -1) (or y -1) (or width 0) (or height 0)
 						     style)))
 		       wx)
@@ -3531,7 +3587,7 @@
 		    (when shown?
 		      (if in-menu?
 			  (send wx-parent set-label (send wx id) l)
-			  (send wx-parent set-label-top (send wx-parent position-of this) plain-label)))))]
+			  (send wx-parent set-label-top (send wx-parent position-of this) label)))))]
       [get-plain-label (lambda () plain-label)]
       [get-help-string (lambda () help-string)]
       [set-help-string (entry-point-1
@@ -3548,10 +3604,10 @@
 		    (if in-menu?
 			(begin
 			  (if submenu
-			      (send wx-parent append (send wx id) plain-label (mred->wx submenu) help-string)
+			      (send wx-parent append (send wx id) label (mred->wx submenu) help-string)
 			      (send wx-parent append (send wx id) label help-string checkable?))
 			  (send wx-parent append-item this wx))
-			(send wx-parent append-item this (mred->wx submenu) plain-label))
+			(send wx-parent append-item this (mred->wx submenu) label))
 		    (set! shown? #t)
 		    (do-enable enabled?))))]
       [delete (entry-point
@@ -3893,10 +3949,14 @@
   (define waiting (make-semaphore 0))
 
   (let ([mb (make-object menu-bar% frame)])
-    (let ([m (make-object menu% "File" mb)])
+    (let ([m (make-object menu% "&File" mb)])
       (make-object menu-item% "Load File..." m (lambda (i e) (let ([f (get-file)]) (and f (evaluate (format "(load ~s)" f))))))
-      (make-object menu-item% "Quit" m (lambda (i e) (send frame on-close) (send frame show #f)) #\q))
-    (let ([m (make-object menu% "Edit" mb)])
+      (make-object menu-item% 
+		   (if (eq? (system-type) 'windows)
+		       "E&xit"
+		       "&Quit")
+		   m (lambda (i e) (send frame on-close) (send frame show #f)) #\q))
+    (let ([m (make-object menu% "&Edit" mb)])
       (append-editor-operation-menu-items m #f)))
 
   ;; Just a few extra key bindings:
@@ -4429,13 +4489,15 @@
 				      (send o do-edit-operation op))))
 			     key))]
 	  [mk-sep (lambda () (make-object separator-menu-item% m))])
-      (mk "Undo" #\z 'undo)
+      (mk "&Undo" #\z 'undo)
       (mk "Redo" #f 'redo)
       (mk-sep)
-      (mk "Clear" #f 'clear)
-      (mk "Copy" #\c 'copy)
-      (mk "Cut" #\x 'cut)
-      (mk "Paste" #\v 'paste)
+      (mk "&Copy" #\c 'copy)
+      (mk "Cu&t" #\x 'cut)
+      (mk "&Paste" #\v 'paste)
+      (if (eq? (system-type) 'windows)
+	  (mk "Delete" #f 'clear)
+	  (mk "Clear" #f 'clear))
       (unless text-only?
 	(mk-sep)
 	(mk "Insert Text Box" #f 'insert-text-box)
