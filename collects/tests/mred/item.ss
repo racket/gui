@@ -1604,7 +1604,8 @@
 		 (let ([s (if (send c get-value)
 			      2
 			      1)])
-		   (send (send c2 get-dc) set-scale s s))))
+		   (send (send c2 get-dc) set-scale s s)
+		   (send c2 refresh))))
   (send c1 set-vsize 10 10)
   (send c2 set-vsize 500 200)
   (send f create-status-line)

@@ -1,4 +1,6 @@
 
+(require (lib "class100.ss"))
+
 (define sys-path 
   (lambda (f)
     (build-path (collection-path "icons") f)))
@@ -74,18 +76,19 @@
 		 (show-instructions (local-path "draw-info.txt"))))
   (let ([canvas
 	 (make-object
-	  (class canvas% args
+	  (class100 canvas% args
 	    (inherit get-dc)
-	    (public
+	    (private-field
 	     [no-bitmaps? #f]
-	     [set-bitmaps (lambda (on?) (set! no-bitmaps? (not on?)) (on-paint))]
 	     [no-stipples? #f]
-	     [set-stipples (lambda (on?) (set! no-stipples? (not on?)) (on-paint))]
 	     [pixel-copy? #f]
-	     [set-pixel-copy (lambda (on?) (set! pixel-copy? on?) (on-paint))]
 	     [scale 1]
+	     [offset 0])
+	    (public
+	     [set-bitmaps (lambda (on?) (set! no-bitmaps? (not on?)) (on-paint))]
+	     [set-stipples (lambda (on?) (set! no-stipples? (not on?)) (on-paint))]
+	     [set-pixel-copy (lambda (on?) (set! pixel-copy? on?) (on-paint))]
 	     [set-scale (lambda (s) (set! scale s) (on-paint))]
-	     [offset 0]
 	     [set-offset (lambda (o) (set! offset o) (on-paint))])
 	    (override
 	     [on-paint
