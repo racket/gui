@@ -4,15 +4,21 @@
 ; Scheme mode for MrEd.
 
 (unit/sig framework:scheme^
-  (import mred^
+  (import mred-interfaces^
 	  [preferences : framework:preferences^]
 	  [match-cache : framework:match-cache^]
 	  [paren : framework:paren^] 
 	  [scheme-paren : framework:scheme-paren^]
 	  [icon : framework:icon^]
-	  [keymap : framework:keymap^])
+	  [keymap : framework:keymap^]
+	  [editor : framework:editor^]
+	  [frame : framework:frame^]
+	  [mzlib:thread : mzlib:thread^])
   
-  (define text<%>
+  (rename [-text% text%]
+	  [-text<%> text<%>])
+
+  (define -text<%>
     (interface ()
       highlight-parens?
       highlight-parens
@@ -55,25 +61,25 @@
 	      (char->integer #\-)
 	      '(line)))))
   (define wordbreak-map (make-object editor-wordbreak-map%))
-  (init-wordbreak-map scheme-media-wordbreak-map)
+  (init-wordbreak-map wordbreak-map)
 
   (define style-list (make-object style-list%))
   (define standard-style-delta
     (let ([delta (make-object style-delta% 'change-normal)])
       (send delta set-delta 'change-family 'modern)
       delta))
-  (let ([style (send scheme-mode-style-list find-named-style "Standard")])
+  (let ([style (send style-list find-named-style "Standard")])
     (if (null? style)
-	(send scheme-mode-style-list new-named-style "Standard"
-	      (send scheme-mode-style-list find-or-create-style
-		    (send scheme-mode-style-list
-			  find-named-style "Basic")
-		    scheme-mode-standard-style-delta))
-	(send style set-delta scheme-mode-standard-style-delta)))
+	(send style-list new-named-style "Standard"
+	      (send style-list find-or-create-style
+		    (send style-list find-named-style "Basic")
+		    standard-style-delta))
+	(send style set-delta standard-style-delta)))
 
   (define make-text% 
-    (mixin editor:basic<%> text<%> args
+    (mixin (editor:basic<%>) (-text<%>) args
       (inherit begin-edit-sequence
+	       delete
 	       end-edit-sequence
 	       find-string
 	       get-character
@@ -81,18 +87,23 @@
 	       get-key-code
 	       get-text
 	       get-start-position
+	       get-end-position
 	       flash-on
 	       highlight-range
 	       insert
 	       kill
 	       last-position
 	       paragraph-start-position
+	       paragraph-end-position
 	       position-line
 	       position-paragraph
+	       set-keymap
 	       set-load-overwrites-styles
+	       set-position
 	       set-wordbreak-map
 	       set-tabs
-	       set-style-list)
+	       set-style-list
+	       set-styles-fixed)
       (rename [super-on-char on-char]
 	      [super-deinstall deinstall]
 	      [super-install install])
@@ -107,7 +118,7 @@
 		  (if (= -1 f)
 		      #f
 		      (= (send position-line f) line))))
-	      scheme-paren:scheme-comments)))])
+	      scheme-paren:comments)))])
       (private
 	[remove-indents-callback
 	 (preferences:add-callback
@@ -116,8 +127,8 @@
 	    (set! indents value)))])
       (private
 	[indents (preferences:get 'framework:tabify)]
-	[backward-cache (make-object match-cache:match-cache%)]
-	[forward-cache (make-object match-cache:match-cache%)])
+	[backward-cache (make-object match-cache:%)]
+	[forward-cache (make-object match-cache:%)])
       
       (private
 	[in-highlight-parens? #f])
@@ -149,7 +160,7 @@
 	(lambda (start len)
 	  (end-edit-sequence)
 	  (unless styles-fixed?
-	    (highlight-parens edit))
+	    (highlight-parens))
 	  (super-after-change-style))]
        [on-edit-sequence
 	(lambda ()
@@ -211,7 +222,7 @@
 	 (lambda (pos)
 	   (let loop ([pos pos])
 	     (let ([paren-pos (apply max (map (lambda (pair) (find-string (car pair) -1 pos -1 #f))
-					      scheme-paren:scheme-paren-pairs))])
+					      scheme-paren:paren-pairs))])
 	       (cond
 		 [(= -1 paren-pos) #f]
 		 [else
@@ -255,7 +266,7 @@
 			    (lambda (f)
 			      (lambda (char)
 				(ormap (lambda (x) (char=? char (string-ref (f x) 0)))
-				       scheme-paren:scheme-paren-pairs)))]
+				       scheme-paren:paren-pairs)))]
 			   [is-left-paren? (is-paren? car)]
 			   [is-right-paren? (is-paren? cdr)])
 		      (when (and (= here there)
@@ -267,7 +278,7 @@
 				  [(is-right-paren? (get-character (sub1 here))) 
 				   (cond
 				     [(slash? (- here 2) (- here 1)) (k (void))]
-				     [(scheme-paren:scheme-backward-match
+				     [(scheme-paren:backward-match
 				       this here (get-limit here)
 				       backward-cache)
 				      =>
@@ -277,7 +288,7 @@
 				  [(is-left-paren? (get-character here))
 				   (cond
 				     [(slash? (- here 1) here) (k (void))]
-				     [(scheme-paren:scheme-forward-match
+				     [(scheme-paren:forward-match
 				       this here (last-position)
 				       forward-cache)
 				      =>
@@ -299,26 +310,27 @@
 	
 	[balance-quotes
 	 (lambda (key)
-	   (let* ([code (send key get-key-code)]
+	   (let* ([code (send key get-key-code)] ;; must be a character because of the mapping setup
+		                                 ;; this function is only bound to ascii-returning keys
 		  [char (integer->char code)])
 	     (insert char)
 	     (let* ([start-pos (get-start-position)]
 		    [limit (get-limit start-pos)]
-		    [match (scheme-paren:scheme-backward-match
+		    [match (scheme-paren:backward-match
 			    this start-pos limit backward-cache)])
 	       (when match
 		 (flash-on match (add1 match))))))]
 	[balance-parens
 	 (let-struct string/pos (string pos)
-	   (lambda (key)
-	     (letrec ([char (integer->char code)]
+	   (lambda (key-event)
+	     (letrec ([char (send key-event get-key-code)] ;; must be a character. See above.
 		      [here (get-start-position)]
 		      [limit (get-limit here)]
 		      [paren-match? (preferences:get 'framework:paren-match)]
 		      [fixup-parens? (preferences:get 'framework:fixup-parens)]
 		      [find-match
 		       (lambda (pos)
-			 (let loop ([parens scheme-paren:scheme-paren-pairs])
+			 (let loop ([parens scheme-paren:paren-pairs])
 			   (cond
 			     [(null? parens) #f]
 			     [else (let* ([paren (car parens)]
@@ -334,7 +346,7 @@
 		       (char=? (string-ref (get-text (- here 1) here) 0) #\\))
 		  (insert char)]
 		 [(or paren-match? fixup-parens?)
-		  (let* ([end-pos (scheme-paren:scheme-backward-containing-sexp 
+		  (let* ([end-pos (scheme-paren:backward-containing-sexp 
 				   this here limit
 				   backward-cache)])
 		    (cond
@@ -357,7 +369,7 @@
 	[tabify-on-return? (lambda () #t)]
 	[match-round-to-square? (lambda () #t)]
 	[tabify    
-	 (opt-lambda ([pos (send edit get-start-position)])
+	 (opt-lambda ([pos (get-start-position)])
 	   (let* ([last-pos (last-position)]
 		  [para (position-paragraph pos)]
 		  [okay (> para 0)]
@@ -365,14 +377,14 @@
 		  [limit (get-limit pos)]
 		  [contains 
 		   (if okay
-		       (scheme-paren:scheme-backward-containing-sexp 
+		       (scheme-paren:backward-containing-sexp 
 			this end limit backward-cache)
 		       #f)]
 		  [contain-para (and contains
 				     (position-paragraph contains))]
 		  [last 
 		   (if contains
-		       (scheme-paren:scheme-backward-match edit end limit backward-cache)
+		       (scheme-paren:backward-match this end limit backward-cache)
 		       #f)]
 		  [last-para (and last
 				  (position-paragraph last))])
@@ -500,7 +512,7 @@
 		  (let loop ([para first-para])
 		    (when (<= para end-para)
 		      (tabify (paragraph-start-position para))
-		      (dynamic-enable-break (lambda () (break-enabled)))
+		      (mzlib:thread:dynamic-enable-break (lambda () (break-enabled)))
 		      (loop (add1 para))))
 		  (when (and (>= (position-paragraph start-pos) end-para)
 			     (<= (paren:skip-whitespace 
@@ -575,7 +587,7 @@
 	   #t)]
 	[get-forward-sexp
 	 (lambda (start-pos)
-	   (scheme-paren:scheme-forward-match 
+	   (scheme-paren:forward-match 
 	    this start-pos
 	    (last-position)
 	    forward-cache))]
@@ -604,10 +616,10 @@
 	 (lambda (start-pos)
 	   (let* ([limit (get-limit start-pos)]
 		  [end-pos
-		   (scheme-paren:scheme-backward-match 
+		   (scheme-paren:backward-match 
 		    this start-pos limit backward-cache)]
 		  [min-pos
-		   (scheme-paren:scheme-backward-containing-sexp 
+		   (scheme-paren:backward-containing-sexp 
 		    this start-pos limit backward-cache)]
 		  [ans
 		   (if (and end-pos 
@@ -633,7 +645,7 @@
 	[find-up-sexp
 	 (lambda (start-pos)
 	   (let* ([exp-pos
-		   (scheme-paren:scheme-backward-containing-sexp 
+		   (scheme-paren:backward-containing-sexp 
 		    this start-pos
 		    (get-limit start-pos) 
 		    backward-cache)]
@@ -646,7 +658,7 @@
 
 	     (if (and exp-pos (> exp-pos 0))
 		 (let ([pos (apply max
-				   (map paren-pos scheme-paren:scheme-paren-pairs))])
+				   (map paren-pos scheme-paren:paren-pairs))])
 		   (if (= pos -1)  ;; all finds failed
 		       #f
 		       (- pos 1))) ;; subtract one to move outside the paren
@@ -660,14 +672,14 @@
 	     #t))]
 	[find-down-sexp
 	 (lambda (start-pos)
-	   (let ([last (send last-position)])
+	   (let ([last (last-position)])
 	     (let loop ([pos start-pos])
-	       (let ([next-pos (scheme-paren:scheme-forward-match 
+	       (let ([next-pos (scheme-paren:forward-match 
 				this pos last
 				forward-cache)])
 		 (if (and next-pos (> next-pos pos))
 		     (let ([back-pos
-			    (scheme-paren:scheme-backward-containing-sexp 
+			    (scheme-paren:backward-containing-sexp 
 			     this (sub1 next-pos) pos backward-cache)])
 		       (if (and back-pos
 				(> back-pos pos))
@@ -688,7 +700,7 @@
 		  [paren? (or (char=? first-char #\( )
 			      (char=? first-char #\[ ))]
 		  [closer (if paren? 
-			      (scheme-paren:scheme-forward-match 
+			      (scheme-paren:forward-match 
 			       this pos (last-position)
 			       forward-cache))])
 	     (if (and paren? closer)
@@ -751,15 +763,17 @@
 	
 	(highlight-parens #t)
 	(set-load-overwrites-styles #f)
-	(set-wordbreak-map scheme-media-wordbreak-map)
+	(set-wordbreak-map wordbreak-map)
 	(set-tabs null tab-size #f)
-	(set-style-list scheme-mode-style-list)
+	(set-style-list style-list)
 	(set-styles-fixed #t)
 	(let ([keymap (or (get-keymap)
 			  (let ([k (make-object keymap%)])
 			    (set-keymap k)
 			    k))])
-	  (send keymap chain-to-keymap scheme-keymap #t)))))
+	  (send keymap chain-to-keymap keymap #t)))))
+
+  (define -text% (make-text% frame:text-info-file%))
 
   (define setup-keymap
     (lambda (keymap)
@@ -882,6 +896,7 @@
 	  (map-meta "c:space" "select-forward-sexp")
 	  (map-meta "c:t" "transpose-sexp"))
 	(send keymap map-function "c:c;c:b" "remove-parens-forward")))
+
 
   (define keymap (make-object keymap%))
   (setup-keymap keymap))

@@ -1,5 +1,5 @@
 (unit/sig framework:canvas^
-  (import mred^
+  (import mred-interfaces^
 	  [preferences : framework:preferences^])
   
   ;; wx: this need to collude with

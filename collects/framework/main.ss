@@ -1,6 +1,9 @@
 (unit/sig ()
-  (import [preferences : framework:preferences^]
-	  [exit : framework:exit^])
+  (import mred-interfaces^
+	  [preferences : framework:preferences^]
+	  [exit : framework:exit^]
+	  [group : framework:group^]
+	  [mzlib:function : mzlib:function^])
   
   ;; preferences
 
@@ -11,7 +14,7 @@
   (preferences:set-default 'framework:display-line-numbers #t boolean?)
   
   (preferences:set-default 'framework:show-status-line #t boolean?)
-  (preferences:set-default 'framework:line-offsets t boolean?)
+  (preferences:set-default 'framework:line-offsets #t boolean?)
   
   
   
@@ -102,7 +105,7 @@
        (let* ([add-callback
 	       (lambda (keyword-type keyword-symbol list-box)
 		 (lambda (button command)
-		   (let ([new-one (get-text-from-user 
+		   (let ([new-one (get-text-from-user
 				   (string-append "Enter new " keyword-type "-like keyword:")
 				   (string-append keyword-type " Keyword"))])
 		     (when new-one
@@ -180,23 +183,21 @@
 			(semaphore-post s))))))))
   
   (let ([at-most-one (at-most-one-maker)])
-    (send the-frame-group set-empty-callbacks
+    (send group:the-frame-group set-empty-callbacks
 	  (lambda () 
 	    (at-most-one (void) 
 			 (lambda () (exit:exit #t))))
 	  (lambda () 
 	    (at-most-one #t
 			 (lambda ()
-			   (exit:run-exit-callbacks)))))
+			   (exit:run-callbacks)))))
   
-    (exit:insert-exit-callback
+    (exit:insert-callback
      (lambda ()
        (at-most-one
 	#t
 	(lambda ()
-	  (send the-frame-group close-all))))))
-  
-  
+	  (send group:the-frame-group close-all))))))
   
   ;; misc other stuff
   
@@ -208,7 +209,7 @@
 			 "Saving Prefs"
 			 (format "Error saving preferences: ~a"
 				 (exn-message exn))))])
-       (save-user-preferences))))
+       (preferences:save))))
   
   ;(wx:application-file-handler edit-file) ;; how to handle drag and drop?
   )

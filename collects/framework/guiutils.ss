@@ -1,5 +1,5 @@
 (unit/sig framework:gui-utils^
-  (import mred^)
+  (import mred-interfaces^)
 
   (define cursor-delay
     (let ([x 0.25])

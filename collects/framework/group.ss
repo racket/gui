@@ -1,5 +1,5 @@
 (unit/sig framework:group^
-  (import mred^
+  (import mred-interfaces^
 	  [exit : framework:exit^]
 	  [frame : framework:frame^]
 	  [mzlib:function : mzlib:function^]
@@ -41,7 +41,7 @@
 	  [update-windows-menus
 	   (lambda ()
 	     (let* ([windows (length windows-menus)]
-		    [get-name (lambda (frame) (send (frame-frame frame) get-title))]
+		    [get-name (lambda (frame) (send (frame-frame frame) get-label))]
 		    [sorted-frames
 		     (mzlib:function:quicksort
 		      frames
@@ -62,15 +62,15 @@
 			       (let ([frame (frame-frame frame)]
 				     [default-name "Untitled"])
 				 (send menu append-item
-				       (let ([title (send frame get-title)])
-					 (if (string=? title "")
-					     (if (ivar-in-class? 'get-entire-title (object-class frame))
-						 (let ([title (send frame get-entire-title)])
-						   (if (string=? title "")
+				       (let ([label (send frame get-label)])
+					 (if (string=? label "")
+					     (if (ivar-in-class? 'get-entire-label (object-class frame))
+						 (let ([label (send frame get-entire-label)])
+						   (if (string=? label "")
 						       default-name
-						       title))
+						       label))
 						 default-name)
-					     title))
+					     label))
 				       (lambda ()
 					 (send frame show #t)))))
 			     sorted-frames)])
@@ -98,7 +98,7 @@
 	     (set! empty-close-down close-down))]
 	  [get-frames (lambda () (map frame-frame frames))]
 	  
-	  [frame-title-changed
+	  [frame-label-changed
 	   (lambda (frame)
 	     (when (member frame (map frame-frame frames))
 	       (update-windows-menus)))]

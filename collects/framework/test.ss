@@ -16,5 +16,11 @@
 (printf "5~n")
 (require-library "sig.ss" "framework")
 (printf "6~n")
-(require-library "frameworkr.ss" "framework")
+(invoke-unit/sig
+ (compound-unit/sig
+   (import)
+   (link [M : mred-interfaces^ (mred-interfaces@)]
+	 [C : mzlib:core^ ((require-library "corer.ss"))]
+	 [F : framework^ ((require-library "frameworkr.ss" "framework") C M)])
+   (export)))
 (printf "7~n")

@@ -1,14 +1,22 @@
 (unit/sig framework:frame^
-  (import mred^
-	  [group framework:group^]
+  (import mred-interfaces^
+	  [group : framework:group^]
 	  [preferences : framework:preferences^]
 	  [icon : framework:icon^]
 	  [handler : framework:handler^]
 	  [application : framework:application^]
 	  [panel : framework:panel^]
 	  [gui-utils : framework:gui-utils^]
+	  [exit : framework:exit^]
+	  [finder : framework:finder^]
+	  [keymap : framework:keymap^]
 	  [mzlib:function : mzlib:function^])
 
+  (rename [-editor<%> editor<%>]
+	  [-pasteboard% pasteboard%]
+	  [-pasteboard<%> pasteboard<%>]
+	  [-text% text%]
+	  [-text<%> text<%>])
 
   (define frame-width 600)
   (define frame-height 650)
@@ -18,11 +26,11 @@
     (when (< w frame-height)
       (set! frame-height (- (unbox h) 65))))
 
-  (define empty<%> (interface ()
+  (define basic<%> (interface ()
 		     get-panel%
 		     make-root-panel))
-  (define make-empty%
-    (mixin frame% empty<%> args
+  (define make-basic%
+    (mixin (frame<%>) (basic<%>) args
       (rename [super-on-activate on-activate])
 
       (override
@@ -65,7 +73,7 @@
 	[panel (make-root-panel (get-panel%) this)])))
 
   (define standard-menus<%>
-    (interface (empty<%>)
+    (interface (basic<%>)
       get-menu%
       get-menu-item%
 
@@ -117,7 +125,8 @@
       file-menu:after-quit
       file-menu:between-close-and-quit
       file-menu:between-new-and-open
-      file-menu:between-open-and-save
+      file-menu:between-open-and-revert
+      file-menu:between-revert-and-save
       file-menu:between-print-and-close
       file-menu:between-save-and-print
       file-menu:close
@@ -132,10 +141,6 @@
       file-menu:open-help-string
       file-menu:open-menu
       file-menu:open-string
-      file-menu:open-url
-      file-menu:open-url-help-string
-      file-menu:open-url-menu
-      file-menu:open-url-string
       file-menu:print
       file-menu:print-help-string
       file-menu:print-menu
@@ -250,13 +255,11 @@
 			   (make-an-item 'file-menu:open "Open a file from disk"
 					 '(lambda (item control) (handler:open-file) #t)
 					 #\o "&Open" "...")
-			   (make-an-item 'file-menu:open-url "Open a Uniform Resource Locater"
-					 '(lambda (item control) (handler:open-url) #t)
-					 #f "Open &URL" "...")
+			   (make-between 'file-menu 'between-open-and-revert between-nothing)
 			   (make-an-item 'file-menu:revert 
 					 "Revert this file to the copy on disk"
 					 #f #f "&Revert" "")
-			   (make-between 'file-menu 'between-open-and-save between-nothing)
+			   (make-between 'file-menu 'between-revert-and-save between-nothing)
 			   (make-an-item 'file-menu:save "" #f "s" "&Save" "")
 			   (make-an-item 'file-menu:save-as "" #f #f "Save" " &As...")
 			   (make-between 'file-menu 'between-save-and-print between-separator)
@@ -304,8 +307,8 @@
 					 "About "
 					 "...")
 			   (make-between 'help-menu 'after-about between-nothing)))])
-	   `(mixin empty<%> standard-menus<%> args
-	      (inherit menu-bar on-close)
+	   `(mixin (basic<%>) (standard-menus<%>) args
+	      (inherit menu-bar on-close show)
 	      (public [get-menu% (lambda () menu%)]
 		      [get-menu-item% (lambda () menu-item%)])
 	      ,@(append 
@@ -330,28 +333,27 @@
 			    (build-item-menu-clause x)))
 		      items))))))))
 
-  (define editor<%> (interface (standard-menus<%>)
-		      WIDTH
-		      HEIGHT
-		      title-prefix
-		      get-entire-label
-		      get-label-prefix
-		      set-label-prefix
+  (define -editor<%> (interface (standard-menus<%>)
+		       WIDTH
+		       HEIGHT
+		       get-entire-label
+		       get-label-prefix
+		       set-label-prefix
 
-		      get-canvas%
-		      get-edit%
-		      make-edit
-		      save-as		      
-		      get-canvas
-		      get-edit))
+		       get-canvas%
+		       get-editor%
+		       make-edit
+		       save-as		      
+		       get-canvas
+		       get-editor))
 
   (define make-editor%
-    (mixin standard-menus<%> simple-menu<%> (file-name)
+    (mixin (standard-menus<%>) (-editor<%>) (file-name)
       (inherit panel get-client-size set-icon get-menu-bar
 	       make-menu show active-edit active-canvas)
       (rename [super-can-close? can-close?]
 	      [super-make-menu-bar make-menu-bar]
-	      [super-set-title set-title])
+	      [super-set-label set-label])
       (public
 	[WIDTH frame-width]
 	[HEIGHT frame-height])
@@ -359,19 +361,16 @@
       (override
 	[can-close?
 	 (lambda ()
-	   (and (send (get-edit) do-close)
+	   (and (send (get-editor) do-close)
 		(super-can-close?)))]
-	[get-panel%  (lambda () panel:vertical-edit-panel%)])
-      (public
-	[title-prefix (application:current-app-name)])
-	     
+	[get-panel%  (lambda () panel:vertical-edit%)])
       (private
-	[label ""]
-	
+	[label file-name]
+	[label-prefix (application:current-app-name)]
 	[do-label
 	 (lambda ()
 	   (super-set-label (get-entire-label))
-	   (send group:the-frame-group frame-title-changed this))])
+	   (send group:the-frame-group frame-label-changed this))])
 	     
       (public
 	[get-entire-label
@@ -397,8 +396,8 @@
 	     (do-label)))])
       (public
 	[get-canvas% (lambda () editor-canvas%)]
-	[get-edit% (lambda () text%)]
-	[make-edit (lambda () (make-object (get-edit%)))])
+	[get-editor% (lambda () (error 'editor-frame% "no editor% class specified"))]
+	[make-editor (lambda () (make-object (get-editor%)))])
 	     
       (public
 	[save-as
@@ -406,12 +405,12 @@
 	   (let ([file (parameterize ([finder:dialog-parent-parameter this])
 			 (finder:put-file))])
 	     (when file
-	       (send (get-edit) save-file file format))))])
+	       (send (get-editor) save-file file format))))])
       (override
 	[file-menu:revert 
 	 (lambda () 
 	   (let* ([b (box #f)]
-		  [edit (get-edit)]
+		  [edit (get-editor)]
 		  [filename (send edit get-filename b)])
 	     (if (or (not filename) (unbox b))
 		 (bell)
@@ -437,7 +436,7 @@
 			    (format "could not read ~a" filename)))))))
 	     #t))]
 	[file-menu:save (lambda ()
-			  (send (get-edit) save-file)
+			  (send (get-editor) save-file)
 			  #t)]
 	[file-menu:save-as (lambda () (save-as) #t)]
 	[file-menu:between-print-and-close
@@ -456,7 +455,7 @@
 		       (send panel collapse (active-canvas))))))
 	   (send file-menu append-separator))]
 	[file-menu:print (lambda ()
-			   (send (get-edit) print
+			   (send (get-editor) print
 				 #f
 				 #t
 				 #t
@@ -500,33 +499,44 @@
 	[help-menu:about (lambda (menu evt) (message-box (format "Welcome to ~a" (application:current-app-name))))]
 	[help-menu:about-string (application:current-app-name)])
 	     
-      (sequence
-	(super-init name #f WIDTH HEIGHT '(default-frame sdi)))
+      (sequence (super-init (get-entire-label) #f WIDTH HEIGHT))
 	     
       (public
 	[get-canvas (let ([c #f])
 		      (lambda () 
 			(unless c
 			  (set! c (make-object (get-canvas%) panel))
-			  (send c set-media (get-edit)))
+			  (send c set-media (get-editor)))
 			c))]
-	[get-edit (let ([e #f])
-		    (lambda () 
-		      (unless e 
-			(set! e (make-edit))
-			(send (get-canvas) set-media e))
-		      e))])
+	[get-editor (let ([e #f])
+		      (lambda () 
+			(unless e 
+			  (set! e (make-editor))
+			  (send (get-canvas) set-media e))
+			e))])
       (sequence
-	(let ([icon (icon:get-icon)])
+	(let ([icon (icon:get)])
 	  (when (send icon ok?)
 	    (set-icon icon)))
-	(do-title)
+	(do-label)
 	(let ([canvas (get-canvas)])
-	  (send (get-edit) load-file filename)
+	  (send (get-editor) load-file file-name)
 	  (send canvas focus)))))
   
+  (define make-text/pasteboard%
+    (lambda (% <%>)
+      (mixin (editor<%>) (<%>) args
+	(override
+	  [get-editor% (lambda () %)])
+	(sequence (apply super-init args)))))
+  (define -text<%> (interface (editor<%>)))
+  (define make-text% (make-text/pasteboard% -text% -text<%>))
+  (define -pasteboard<%> (interface (pasteboard<%>)))
+  (define make-pasteboard% (make-text/pasteboard% -pasteboard% -pasteboard<%>))
+
+
   (define searchable<%> (interface ()
-			  get-edit-to-search
+			  get-text-to-search
 			  hide-search
 			  unhide-search
 			  set-search-direction
@@ -580,7 +590,7 @@
 		 [get-searching-edit
 		  (lambda ()
 		    (get-active-embedded-edit
-		     (send searching-frame get-edit-to-search)))]
+		     (send searching-frame get-text-to-search)))]
 		 [search
 		  (opt-lambda ([reset-anchor? #t] [beep? #t] [wrap? #t])
 		    (when searching-frame
@@ -661,12 +671,12 @@
 		(set-line-count 2)))])
       (for-each (lambda (keymap)
 		  (send keymap chain-to-keymap
-			keymap:global-search-keymap
+			keymap:search
 			#t))
 		(list (send find-edit get-keymap)
 		      (send replace-edit get-keymap)))
-      (mixin edit<%> searchable<%> args
-	(inherit active-edit active-canvas get-edit)
+      (mixin (-text<%>) (searchable<%>) args
+	(inherit active-edit active-canvas get-editor)
 	(rename [super-make-root-panel make-root-panel]
 		[super-on-activate on-activate]
 		[super-do-close do-close])
@@ -688,27 +698,27 @@
 	   (lambda (on?)
 	     (unless hidden?
 	       (if on?
-		   (reset-anchor (get-edit-to-search))
+		   (reset-anchor (get-text-to-search))
 		   (clear-highlight)))
 	     (super-on-activate on?))])
 	(public
-	  [get-edit-to-search
+	  [get-text-to-search
 	   (lambda () 
-	     (get-edit))]
+	     (get-editor))]
 	  [hide-search
 	   (opt-lambda ([startup? #f])
 	     (send super-root delete-child search-panel)
 	     (clear-highlight)
 	     (unless startup?
 	       (send 
-		(send (get-edit-to-search) get-canvas) 
+		(send (get-text-to-search) get-canvas) 
 		focus))
 	     (set! hidden? #t))]
 	  [unhide-search
 	   (lambda ()
 	     (set! hidden? #f)
 	     (send super-root add-child search-panel)
-	     (reset-anchor (get-edit-to-search)))])
+	     (reset-anchor (get-text-to-search)))])
 	(override
 	  [do-close
 	   (lambda ()
@@ -721,6 +731,7 @@
 	       (close-canvas replace-canvas replace-edit))
 	     (when (eq? this (ivar find-edit searching-frame))
 	       (send find-edit set-searching-frame #f)))])
+	(public
 	  [set-search-direction 
 	   (lambda (x) 
 	     (set! searching-direction x)
@@ -731,7 +742,7 @@
 	       (search)))]
 	  [replace-all
 	   (lambda ()
-	     (let* ([replacee-edit (get-edit-to-search)]
+	     (let* ([replacee-edit (get-text-to-search)]
 		    [pos (if (= searching-direction 1)
 			     (send replacee-edit get-start-position)
 			     (send replacee-edit get-end-position))]
@@ -755,7 +766,7 @@
 	  [replace
 	   (lambda ()
 	     (let* ([search-text (send find-edit get-text)]
-		    [replacee-edit (get-edit-to-search)]
+		    [replacee-edit (get-text-to-search)]
 		    [replacee-start (send replacee-edit get-start-position)]
 		    [new-text (send replace-edit get-text)]
 		    [replacee (send replacee-edit get-text
@@ -776,7 +787,7 @@
 		     [(send find-canvas is-focus-on?)
 		      replace-canvas]
 		     [(send replace-canvas is-focus-on?)
-		      (send (get-edit-to-search) get-canvas)]
+		      (send (get-text-to-search) get-canvas)]
 		     [else
 		      find-canvas])
 		   focus))]
@@ -841,7 +852,7 @@
 					    1
 					    -1)])
 			   (set-search-direction forward)
-			   (reset-anchor (get-edit-to-search)))))]
+			   (reset-anchor (get-text-to-search)))))]
 	  [close-button (make-object button% middle-right-panel
 				     (lambda args (hide-search)) "Hide")]
 	  [hidden? #f])
@@ -866,7 +877,7 @@
 	  (send replace-edit add-canvas replace-canvas)
 	  (hide-search #t)))))
   
-  (define info<%> (interface (edit<%>)
+  (define info<%> (interface (editor<%>)
 		    determine-width
 		    get-info-edit
 		    lock-status-changed
@@ -909,7 +920,7 @@
 		    (update-time)
 		    (sleep 30)
 		    (loop))))])
-      (mixin edit<%> info<%> args
+      (mixin (-editor<%>) (info<%>) args
 	(rename [super-make-root-panel make-root-panel])
 	(private
 	  [rest-panel 'uninitialized-root]
@@ -965,12 +976,12 @@
 	     (unregister-collecting-blit gc-canvas)
 	     (close-panel-callback))])
 	
-	(inherit get-edit)
+	(inherit get-editor)
 	(public
 	  [get-info-edit
 	   (lambda ()
-	     (and (procedure? get-edit)
-		  (get-edit)))])
+	     (and (procedure? get-editor)
+		  (get-editor)))])
 	
 	(public
 	  [lock-status-changed
@@ -1025,7 +1036,7 @@
 					   (icon:get-gc-off-dc)))))])
 	
 	(sequence
-	  (unless (preferences:get-preference 'framework:show-status-line)
+	  (unless (preferences:get 'framework:show-status-line)
 	    (send super-root change-children
 		  (lambda (l)
 		    (list rest-panel))))
@@ -1062,7 +1073,7 @@
 			 edit-position-changed-offset
 			 edit-position-changed))
   (define make-edit-info%
-    (mixin info<%> edit-info<%> args
+    (mixin (info<%>) (edit-info<%>) args
       (inherit get-info-edit)
       (rename [super-do-close do-close])
       (private
@@ -1201,15 +1212,15 @@
 	(edit-position-changed)
 	(send position-edit lock #t))))
   
-  (define file<%> (interface (edit<%>)))
+  (define file<%> (interface (-editor<%>)))
   (define make-file%
-    (mixin edit<%> file<%> args
-      (inherit get-edit)
+    (mixin (editor<%>) (file<%>) args
+      (inherit get-editor)
       (rename [super-can-close? can-close?])
       (override
 	[on-close?
 	 (lambda ()
-	   (let* ([edit (get-edit)]
+	   (let* ([edit (get-editor)]
 		  [user-allowed-or-not-modified
 		   (or (not (send edit modified?))
 		       (case (gui-utils:unsaved-warning
@@ -1226,14 +1237,17 @@
 		  (super-can-close?))))])
       (sequence (apply super-init args))))
 
-  (define empty% (make-empty% frame%))
+  (define empty% (make-basic% frame%))
   (define standard-menus% (make-standard-menus% empty%))
-  (define edit% (make-edit% standard-menus%))
-  (define searchable% (make-searchable% edit%))
-  (define info% (make-info% searchable%))
-  (define info-file% (make-file% info%))
-  (define pasteboard% (make-pasteboard% simple-menu%))
-  (define pasteboard-info% (make-info% pasteboard%))
+  (define editor% (make-editor% standard-menus%))
+
+  (define -text% (make-text% editor%))
+  (define searchable% (make-searchable% editor%))
+  (define text-info% (make-info% searchable%))
+  (define text-info-file% (make-file% text-info%))
+
+  (define -pasteboard% (make-pasteboard% editor%))
+  (define pasteboard-info% (make-info% -pasteboard%))
   (define pasteboard-info-file% (make-file% pasteboard-info%)))
   
   

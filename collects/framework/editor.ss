@@ -1,5 +1,5 @@
 (unit/sig framework:editor^
-  (import mred^
+  (import mred-interfaces^
 	  [autosave : framework:autosave^]
 	  [finder : framework:finder^]
 	  [path-utils : framework:path-utils^]

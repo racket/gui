@@ -1,5 +1,5 @@
 (unit/sig framework:icon^
-  (import mred^)
+  (import mred-interfaces^)
 
   (define icon-path 
     (with-handlers ([void (lambda (x) (collection-path "system"))]) 

@@ -1,5 +1,5 @@
 (unit/sig framework:keymap^
-  (import mred^
+  (import mred-interfaces^
 	  [preferences : framework:preferences^]
 	  [finder : framework:finder^]
 	  [handler : framework:handler^]

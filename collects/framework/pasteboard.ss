@@ -1,5 +1,5 @@
 (unit/sig framework:pasteboard^
-  (import mred^
+  (import mred-interfaces^
 	  [editor : framework:editor^])
 
   (define basic% (editor:make-basic% pasteboard%))

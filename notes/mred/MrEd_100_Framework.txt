@@ -198,12 +198,12 @@ Old to new name mapping:
   mred:add-version-spec -> version:add-spec
   mred:version -> version:version
 
-  mred:empty-frame% -> frame:empty%
+  mred:empty-frame% -> frame:basic%
   mred:standard-menus-frame% -> frame:standard-menus%
   mred:simple-menu-frame% -> frame:simple-menu%
   mred:searchable-frame% -> frame:searchable%
-  mred:info-frame% -> frame:info%
-  mred:info-file-frame% -> frame:info-file%
+  mred:info-frame% -> frame:text-info%
+  mred:info-file-frame% -> frame:text-info-file%
   mred:pasteboard-frame% -> frame:pasteboard%
   mred:pasteboard-info-frame% -> frame:pasteboard-info%
   mred:pasteboard-info-file-frame% -> frame:pasteboard-info-file%
@@ -247,7 +247,7 @@ NOTE: some used but non-existant interfaces from mred engine:
       with the corresponding engine classes. Perhaps later those
       interfaces will be added.
 
-  frame:make-empty% : frame% -> frame:empty<%>
+  frame:make-empty% : frame% -> frame:basic<%>
   frame:make-standard-menus% : frame% -> frame:standard-menus<%>
   frame:make-edit% : frame:empty-standard-menus<%> -> frame:edit<%>
   frame:make-searchable% : frame:edit<%> -> frame:searchable<%>

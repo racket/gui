@@ -1,12 +1,15 @@
 (unit/sig framework:preferences^
-  (import mred^
+  (import mred-interfaces^
 	  [exn : framework:exn^]
 	  [exit : framework:exit^]
 	  [panel : framework:panel^]
 	  [mzlib:pretty-print : mzlib:pretty-print^]
 	  [mzlib:function : mzlib:function^])
   
-  (define preferences-filename (find-system-path 'pref-file))
+  (define preferences-filename (build-path (find-system-path 'pref-dir)
+					   (case (system-type)
+					     [(macos) "MrEd Preferences"]
+					     [else ".mred.prefs"])))
   
   (define preferences (make-hash-table))
   (define marshall-unmarshall (make-hash-table))

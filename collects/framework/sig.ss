@@ -6,33 +6,6 @@
 (require-library "macro.ss")
 (require-relative-library "macro.ss")
 
-(define-signature framework:frame^
-  (empty<%>
-   standard-menus<%>
-   empty-standard-menus<%>
-   editor<%>
-   searchable<%>
-   pasteboard<%>
-   info<%>
-   info-file<%>
-
-   make-empty%
-   make-standard-menus%
-   make-editor%
-   make-searchable%
-   make-info%
-   make-file%
-
-   empty%
-   standard-menus%
-   editor%
-   searchable%
-   info%
-   info-file%
-   pasteboard%
-   pasteboard-info%
-   pasteboard-info-file%))
-
 (define-signature framework:version^
   (add-spec
    version))
@@ -146,62 +119,45 @@
    pasteboard:backup-autosave%))
 
 
-(define-signature framework:edit^
-  (make-std-buffer%
-   make-pasteboard%
-   make-info-buffer%
-   make-info-edit%
-   make-file-buffer%
-   make-searching-edit%
-   make-backup-autosave-buffer%
-   make-return-edit%
-
-   media-edit%
-   info-edit%
-   searching-edit%
-   clever-file-format-edit%
-   file-edit%
-   backup-autosave-edit%
-   edit%
-   return-edit%
-
-   pasteboard%
-   info-pasteboard%
-   file-pasteboard%
-   backup-autosave-pasteboard% 
-   
-   make-snip%
-   snip%
-   media-snip%))
-
 (define-signature framework:canvas^
   (make-wide-snip%
    wide-snip%))
 
 (define-signature framework:frame^
-  (empty<%>
-   standard-menus<%>
-   empty-standard-menus<%>
-   edit<%>
-   searchable<%>
-   pasteboard<%>
-   info<%>
-   info-file<%>
+  (basic<%>
+   make-basic%
 
-   make-empty%
+   standard-menus<%>
    make-standard-menus%
-   make-edit%
-   make-searchable%
+
+   editor<%>
+   make-editor%
+
+   text<%>
+   make-text%
+
+   pasteboard<%>
    make-pasteboard%
+
+   searchable<%>
+   make-searchable%
+
+   info<%>
    make-info%
+
+   edit-info<%>
+   make-edit-info%
+
+   file<%>
    make-file%
-   
+
    empty%
    standard-menus%
-   edit%
+   editor%
+   text%
    searchable%
-   info%
-   info-file%
+   text-info%
+   text-info-file%
    pasteboard%
    pasteboard-info%
    pasteboard-info-file%))
@@ -257,8 +213,6 @@
 
 (define-signature framework:match-cache^
   (%))
-
-
 
 (define-signature framework:scheme-paren^
   (paren-pairs

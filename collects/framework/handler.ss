@@ -1,5 +1,5 @@
 (unit/sig framework:handler^
-  (import mred^
+  (import mred-interfaces^
 	  [gui-utils : framework:gui-utils^]
 	  [finder : framework:finder^]
 	  [group : framework:group^]
@@ -89,7 +89,7 @@
     (opt-lambda (filename
 		 [make-default
 		  (lambda (filename)
-		    (make-object frame:info-file% filename))]
+		    (make-object frame:text-info-file% filename))]
 		 [consult-group? (edit-file-consult-group)])
       (gui-utils:show-busy-cursor
        (lambda ()
