@@ -4823,7 +4823,7 @@
     (check-instance 'get-font-from-user wx:font% 'font% #t font)
     (check-style 'get-font-from-user #f null style)
     (if (eq? (system-type) 'windows)
-	(wx:get-font-from-user message (and parent (mred->wx parent)) font style)
+	(wx:get-font-from-user message (and parent (mred->wx parent)) font)
 	(letrec ([ok? #f]
 		 [f (make-object dialog% "Choose Font" parent 500 300)]
 		 [refresh-sample (lambda (b e) (let ([f (get-font)])
