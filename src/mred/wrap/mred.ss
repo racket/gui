@@ -53,14 +53,14 @@
 
 (define (check-reasonable-min who v)
   (unless (<= 0 v max-min)
-    (error who "not a reasaonable minimum width: ~a" v)))
+    (error (who->name who) "not a reasaonable minimum width: ~a" v)))
 
 (define (check-reasonable-margin who v)
   (unless (<= 0 v max-margin)
-    (error who "not a reasaonable margin size: ~a" v)))
+    (error (who->name who) "not a reasaonable margin size: ~a" v)))
 
 (define (range-error who v hard-min-width max-min)
-  (error who "value out-of-range: ~a not in: ~a to ~a"
+  (error (who->name who) "value out-of-range: ~a not in: ~a to ~a"
 	 v hard-min-width max-min))
 
 ; list-diff: computes the difference between two lists
@@ -1780,7 +1780,7 @@
 
 (define (check-top-level-parent/false who p)
   (unless (or (not p) (is-a? p frame%) (is-a? p dialog%))
-    (raise-type-error who "frame% or dialog% object or #f" p)))
+    (raise-type-error (who->name who) "frame% or dialog% object or #f" p)))
 
 (define (check-orientation who l)
   (check-style `(constructor-name ,who) '(vertical horizontal) null l))
@@ -2946,7 +2946,7 @@
 	 (dynamic-wind
 	  void
 	  (lambda () 
-	    (display (eval (read (open-input-string expr-str))))
+	    (write (eval (read (open-input-string expr-str))))
 	    (newline))
 	  (lambda ()
 	    (send repl-buffer new-prompt)))))))
