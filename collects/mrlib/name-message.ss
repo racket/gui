@@ -211,7 +211,8 @@
       (let-values ([(tw th _1 _2) (send dc get-text-extent label)])
         (send dc draw-text label
               (+ circle-spacer button-label-inset)
-              (- (/ h 2) (/ th 2)))))
+              (- (/ h 2) (/ th 2))
+	      #t)))
 
     (send dc set-pen (send the-pen-list find-or-create-pen 
 			   (if grabbed? grabbed-fg-color triangle-color)
