@@ -29,16 +29,6 @@
 	    [auto-save-out-of-date? #t]
 	    [auto-save-error? #f])
 	  (public
-	    [locked? #f]
-	    [lock
-	     (lambda (v)
-	       (set! locked? v)
-	       (super-lock v))]
-	    [on-focus
-	     (lambda (in?)
-	       '(send (ivar (get-frame) save-icon) show (and in? (modified?)))
-	       '(send (ivar (get-frame) lock-icon) show (and in? locked?))
-	       (super-on-focus in?))]
 	    [get-file (lambda (d) (let ([v (mred:finder:get-file d)])
 				    (if v
 					v

@@ -80,14 +80,17 @@
     
     (define set-preference
       (lambda (p value)
-	(let/ec k
-	  (let ([pref (hash-table-get preferences p 
-				      (lambda () 
-					(let ([pref (make-pref value null)])
-					  (k (hash-table-put! preferences p pref)))))])
-	    (set-pref-value! pref value)
-	    (for-each (lambda (x) (x p value)) (pref-callbacks pref))))))
-    
+	(let ([pref (hash-table-get preferences p (lambda () #f))])
+	    (cond 
+	      [(pref? pref)
+	       (set-pref-value! pref value)
+	       (for-each (lambda (x) (x p value)) (pref-callbacks pref))]
+	      [(or (marshalled? pref) 
+		   (not pref))
+	       (hash-table-put! preferences p (make-pref value null))]
+	      [else
+	       (error 'prefs.ss "robby error.0: ~a" pref)]))))
+
     (define set-preference-default
       (lambda (p value)
 	(hash-table-get preferences p 
@@ -144,8 +147,13 @@
 		   (cond
 		     [(and (pref? ht-pref) unmarshall-struct)
 		      (set-preference p ((un/marshall-unmarshall unmarshall-struct) marshalled))]
+
+		     ;; in this case, assume that no marshalling/unmarshalling 
+		     ;; is going to take place with the pref, since an unmarshalled 
+		     ;; pref was already there.
 		     [(pref? ht-pref)
-		      (hash-table-put! preferences p (make-marshalled marshalled))]
+		      (set-preference p marshalled)]
+
 		     [(marshalled? ht-pref) (set-marshalled-data! ht-pref marshalled)]
 		     [(and (not ht-pref) unmarshall-struct)
 		      (set-preference p ((un/marshall-unmarshall unmarshall-struct) marshalled))]
@@ -193,7 +201,7 @@
 			"Use platform-specific file dialogs?" (eq? (get-preference 'mred:file-dialogs) 'common))
 	    (make-check (lambda (_ command) 
 			  (set-preference 'mred:status-line (send command checked?)))
-			"Display status Information?" (get-preference 'mred:status-line))
+			"Show Clock?" (get-preference 'mred:status-line))
 	    (make-check (lambda (_ command) 
 			  (set-preference 'mred:verify-exit (send command checked?)))
 			"Verify exit?" (get-preference 'mred:verify-exit))
