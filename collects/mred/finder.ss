@@ -88,10 +88,8 @@
 					       file-filter-msg)
 
 		   (inherit new-line tab fit center
-			    popup-menu)
+			    popup-menu show)
 		   
-		   (rename [super-show show])
-
 		   (private
 		    [WIDTH 500]
 		    [HEIGHT 400]
@@ -176,14 +174,6 @@
 				(end-edit-sequence))))])
 
 		   (public
-
-		    [show
-		     (lambda (b) 
-		       (when b
-			     (if (directory-exists? current-dir)
-				 (set-directory current-dir)
-				 (set-directory (current-directory))))
-		       (super-show b))]
 
 		    [do-period-in/exclusion
 		     (lambda (button event)
