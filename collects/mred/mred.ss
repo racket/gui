@@ -4521,30 +4521,36 @@
 
     (public*
      [get-number (lambda () (length save-choices))]
-     [append (lambda (n) 
-	       (check-label-string '(method tab-group% append) n)
-	       (set! save-choices (list-append save-choices (list (string->immutable-string n))))
-	       (send (mred->wx tabs) append n))]
-     [get-selection (lambda () (send (mred->wx tabs) get-selection))]
+     [append (entry-point
+	      (lambda (n) 
+		(check-label-string '(method tab-group% append) n)
+		(set! save-choices (list-append save-choices (list (string->immutable-string n))))
+		(as-exit (lambda () (send (mred->wx tabs) append n)))))]
+     [get-selection (lambda () (and (pair? save-choices)
+				    (send (mred->wx tabs) get-selection)))]
      [set-selection (entry-point
 		     (lambda (i)
 		       (check-item 'set-selection i)
 		       (as-exit (lambda () (send (mred->wx tabs) set-selection i)))))]
-     [delete (lambda (i)
-	       (check-item 'delete i)
-	       (as-exit (lambda () (send (mred->wx tabs) delete i))))])
+     [delete (entry-point
+	      (lambda (i)
+		(check-item 'delete i)
+		(set! save-choices (let loop ([p 0][l save-choices])
+				     (if (= p i)
+					 (cdr l)
+					 (cons (car l) (loop (add1 p) (cdr l))))))
+		(as-exit (lambda () (send (mred->wx tabs) delete i)))))])
     
     (define/private (check-item method n)
-      (lambda (method n)
-	(check-non-negative-integer `(method tab-panel% ,method) n)
-	(let ([m (length save-choices)])
-	  (unless (< n m)
-            (raise-mismatch-error (who->name `(method tab-panel% ,method)) 
-		(if (zero? m)
-		    "panel has no tabs; given index: " 
-		    (format "panel has only ~a tabls, indexed 0 to ~a; given out-of-range index: " 
-			    m (sub1 m)))
-		n)))))))
+      (check-non-negative-integer `(method tab-panel% ,method) n)
+      (let ([m (length save-choices)])
+	(unless (< n m)
+	  (raise-mismatch-error (who->name `(method tab-panel% ,method)) 
+				(if (zero? m)
+				    "panel has no tabs; given index: " 
+				    (format "panel has only ~a tabls, indexed 0 to ~a; given out-of-range index: " 
+					    m (sub1 m)))
+				n))))))
 
 ;;;;;;;;;;;;;;;;;;;;;; Menu classes ;;;;;;;;;;;;;;;;;;;;;;
 
