@@ -300,7 +300,7 @@
 	       (add-callback 
 		name 
 		(lambda (p new-value)
-		  (write-resource 
+		  '(write-resource 
 		   font-section
 		   font-entry
 		   (if (and (string? new-value)
@@ -308,8 +308,7 @@
 		       ""
 		       new-value)
 		   font-file))))))])
-    (for-each (set-default build-font-entry			   font-default-string 
-			   string?)
+    (for-each (set-default build-font-entry font-default-string string?)
 	      font-families)
     ((set-default (lambda (x) x)
 		  font-default-size
