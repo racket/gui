@@ -266,9 +266,10 @@
               (semaphore-wait mutex-lock)
               (thread-suspend background-thread)
               (semaphore-post mutex-lock)
-              (begin-edit-sequence #f #f)
-              (color)
-              (end-edit-sequence)))
+              (unless (null? colors)
+                (begin-edit-sequence #f #f)
+                (color)
+                (end-edit-sequence))))
           
           (define/private (colorer-callback)
             (cond
