@@ -535,12 +535,16 @@
     (lambda ()
       (letrec ([frame 
 		(make-object (class-asi frame%
-			       (public [added-pane (lambda () 
-						     (ensure-constructed)
-						     (refresh-menu)
-						     (send popup-menu set-selection (sub1 (length ppanels)))
-						     (send single-panel active-child 
-							   (ppanel-panel (car (list-tail ppanels (sub1 (length ppanels)))))))]))
+			       (public [added-pane
+					(lambda () 
+					  (ensure-constructed)
+					  (refresh-menu)
+					  (send popup-menu set-selection (sub1 (length ppanels)))
+					  (send single-panel active-child 
+						(ppanel-panel
+						 (car
+						  (list-tail ppanels
+							     (sub1 (length ppanels)))))))]))
 		  "Preferences")]
 	       [panel (make-object vertical-panel% frame)]
 	       [popup-callback
