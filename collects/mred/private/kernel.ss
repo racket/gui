@@ -634,7 +634,9 @@
     force-display-focus
     is-focus-on?
     get-editor
-    set-editor)
+    set-editor
+    get-wheel-step
+    set-wheel-step)
   (define-class editor-admin% object% #f
     refresh-delayed?
     popup-menu

@@ -3875,7 +3875,8 @@
       (send parent after-new-child this))))
     
 (define editor-canvas%
-  (class100 basic-canvas% (parent [editor #f] [style null] [scrolls-per-page 100] [label #f])
+  (class100 basic-canvas% (parent [editor #f] [style null] [scrolls-per-page 100] [label #f]
+				  [wheel-step no-val])
     (sequence 
       (let ([cwho '(constructor editor-canvas)])
 	(check-container-parent cwho parent)
@@ -3883,6 +3884,8 @@
 	(check-style cwho #f '(hide-vscroll hide-hscroll no-vscroll no-hscroll) style)
 	(check-gauge-integer cwho scrolls-per-page)
 	(check-string/false cwho label)
+	(unless (eq? wheel-step no-val)
+	  (check-wheel-step cwho wheel-step))
 	(check-container-ready cwho parent)))
     (inherit set-label)
     (private-field
@@ -3934,7 +3937,14 @@
       [set-editor (entry-point 
 		   (case-lambda 
 		    [(m) (send wx set-editor m)]
-		    [(m upd?) (send wx set-editor m upd?)]))])
+		    [(m upd?) (send wx set-editor m upd?)]))]
+      [(ws wheel-step)
+       (case-lambda 
+	[() (let ([v (send wx get-wheel-step)])
+	      (if (zero? v) #f v))]
+	[(wheel-step)
+	 (check-wheel-step '(method editor-canvas% wheel-step) wheel-step)
+	 (send wx set-wheel-step (or wheel-step 0))])])
     (private-field
       [wx #f])
     (sequence
@@ -3955,6 +3965,8 @@
 					    #f style scrolls-per-page #f))
 		      wx))
 		  parent)
+      (unless (eq? wheel-step no-val)
+	(ws wheel-step))
       (when label
 	(set-label label))
       (when editor
@@ -5712,6 +5724,15 @@
 (define check-margin-integer (check-bounded-integer 0 1000 #f))
 
 (define check-gauge-integer (check-bounded-integer 1 10000 #f))
+
+(define (check-wheel-step cwho wheel-step)
+  (when (and wheel-step
+	     (not (and (integer? wheel-step)
+		       (exact? wheel-step)
+		       (<= 1 wheel-step 1000))))
+    (raise-type-error (who->name cwho)
+		      "#f or exact integer in [1,1000]"
+		      wheel-step)))
 
 (define (check-fraction who x)
   (unless (and (real? x) (<= 0.0 x 1.0))
