@@ -395,8 +395,7 @@
 		  [visual-offset
 		   (lambda (pos)
 		     (let loop ([p (sub1 pos)])
-		       (if (= p -1)
-			   0
+		       (if p
 			   (let ([c (get-character p)])
 			     (cond
 			      [(char=? c #\null) 0]
@@ -404,7 +403,8 @@
 			       (let ([o (loop (sub1 p))])
 				 (+ o (- 8 (modulo o 8))))]
 			      [(char=? c #\newline) 0]
-			      [else (add1 (loop (sub1 p)))])))))]
+			      [else (add1 (loop (sub1 p)))]))
+			   0)))]
 		  [do-indent
 		   (lambda (amt)
 		     (let* ([pos-start end]
@@ -645,11 +645,17 @@
 			   exp-pos))])
 
 	     (if (and exp-pos (> exp-pos 0))
-		 (let ([pos (apply max
-				   (map paren-pos (scheme-paren:get-paren-pairs)))])
-		   (if (= pos -1)  ;; all finds failed
+		 (let ([poss (let loop ([parens (scheme-paren:get-paren-pairs)])
+                              (cond
+                                [(null? parens) null]
+                                [else 
+                                 (let ([pos (paren-pos (car parens))])
+                                   (if pos
+                                       (cons pos (loop (cdr parens)))
+                                       (loop (cdr parens))))]))])
+		   (if (null? poss) ;; all finds failed
 		       #f
-		       (- pos 1))) ;; subtract one to move outside the paren
+                       (- (apply max poss) 1))) ;; subtract one to move outside the paren
 		 #f)))]
 	[up-sexp
 	 (lambda (start-pos)

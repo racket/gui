@@ -157,7 +157,7 @@
 		   f frames
 		   (lambda (f fr) (eq? f (frame-frame fr))))])
 	     (if (null? new-frames)
-		 (empty-test)
+                 (empty-test)
 		 #t)))]
 	[remove-frame
 	 (opt-lambda (f)

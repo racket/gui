@@ -71,10 +71,12 @@
       (override
 	[can-close?
 	 (lambda ()
-	   (and (super-can-close?)
-		(send (group:get-the-frame-group)
-		      can-remove-frame?
-		      this)))]
+           (let ([super (super-can-close?)]
+                 [group
+                  (send (group:get-the-frame-group)
+                        can-remove-frame?
+                        this)])
+             (and super group)))]
 	[on-close
 	 (lambda ()
 	   (super-on-close)
@@ -85,7 +87,11 @@
 	 (lambda (on?)
 	   (super-on-focus on?)
 	   (when on?
-	     (send (group:get-the-frame-group) set-active-frame this)))])
+	     (send (group:get-the-frame-group) set-active-frame this)))]
+        
+        [on-drop-file
+         (lambda (filename)
+           (handler:edit-file filename))])
 
       (inherit show)
       (public
@@ -100,6 +106,7 @@
 	     (on-close)
 	     (show #f)))])
       
+      (inherit accept-drop-files)
       (sequence
 	(let ([mdi-parent (send (group:get-the-frame-group) get-mdi-parent)])
 	  (super-init label
@@ -109,6 +116,8 @@
 		       [parent style]
 		       [mdi-parent (cons 'mdi-child style)]
 		       [else style])))
+
+        (accept-drop-files #t)
 
 	(make-object menu% "Windows" (make-object (get-menu-bar%) this))
 	(reorder-menus this)
