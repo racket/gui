@@ -3822,11 +3822,10 @@
     (public
       [swap-gl-buffers (lambda () (send wx swap-buffers))]
       [with-gl-context (lambda (thunk) 
-			 (dynamic-wind
-			     (lambda () (send wx this-context-current))
-			     thunk
-			     (lambda () (send wx previous-context-current))))]
-
+                         (dynamic-wind
+                          (lambda () (send wx this-context-current))
+                          thunk
+                          void))]
       [accept-tab-focus (entry-point
 			 (case-lambda
 			  [() (send wx get-tab-focus)]
