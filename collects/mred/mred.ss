@@ -2,6 +2,7 @@
   (require (prefix wx: (lib "kernel.ss" "mred" "private")))
   (require (lib "class.ss")
 	   (lib "class100.ss")
+	   (lib "file.ss")
 	   (lib "process.ss"))
 
 ;;;;;;;;;;;;;;; Constants ;;;;;;;;;;;;;;;;;;;;
@@ -5459,7 +5460,9 @@
 		      "not supported by default on this platform"
 		      subpath)]))])
 	  ; see if user has overridden defaults 		  
-	  (wx:get-resource "mred" "playcmd" b)
+	  (let ([r (get-preference '|MrEd:playcmd| (lambda () #f))])
+	    (when (and r (string? r))
+	      (set-box! b r)))
 	  ((if async? (lambda (x) (process x) #t) system)
 	   (format (unbox b) (expand-path f)))))))
 
