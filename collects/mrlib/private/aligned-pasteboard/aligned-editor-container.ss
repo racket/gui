@@ -11,8 +11,7 @@
   
   (provide
    aligned-editor-canvas%
-   aligned-editor-snip%
-   aligned-snip-mixin)
+   aligned-editor-snip%)
   
   ;; a canvas that can contain an aligned-pasteboard<%>
   ;; STATUS: When both min-width and min-height change the size of the canvas
@@ -114,7 +113,10 @@
       ;; called to resize the snip
       (rename [super-resize resize])
       (define/override (resize width height)
-        (super-resize width height)
+        (super-resize width height))
+        
+      (define/public (stretch width height)
+        (resize width height)
         (let ([left (box 0)]
               [top (box 0)]
               [right (box 0)]
@@ -192,7 +194,4 @@
             (send ed realign w h))))
       
       (super-new)))
-  
-  ;not-yet-implemented
-  (define aligned-snip-mixin (lambda (x) x))
   )

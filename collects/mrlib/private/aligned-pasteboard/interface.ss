@@ -72,6 +72,10 @@
   ;; that do not implement stretchable-snip<%> will simply not be stretched.
   (define stretchable-snip<%>
     (interface ()
+      ;; (positive? positive? . ->  . void?)
+      ;; called by the parent editor to stretch the snip to an specific size
+      stretch
+      
       ;; get-aligned-min-width (-> positive?)
       ;; get the minimum width of the snip
       get-aligned-min-width

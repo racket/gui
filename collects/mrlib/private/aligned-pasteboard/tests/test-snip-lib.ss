@@ -1,6 +1,5 @@
 (require
  (lib "etc.ss")
- (lib "devel.ss" "mike")
  (lib "class.ss")
  (lib "mred.ss" "mred")
  "../snip-lib.ss"

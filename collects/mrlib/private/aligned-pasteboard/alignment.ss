@@ -40,7 +40,8 @@
   (provide/contract
    (align ((symbols 'horizontal 'vertical)
            positive? positive? (listof rect?)
-           . -> . (listof rect?))))
+           . -> . (listof rect?)))
+   (rect-print ((listof rect?) . -> . void?)))
   
   ;; align the rectangles within the given space
   (define (align type width height rects)
@@ -145,4 +146,16 @@
           (begin
             (set! n (sub1 n))
             1))))
+  
+  (define rect-print
+    (match-lambda
+      [() (void)]
+      [(($ rect
+           ($ dim x width stretchable-width?)
+           ($ dim y height stretchable-height?))
+        others ...)
+       (printf "(make-rect (make-dim ~s ~s ~s) (make-dim ~s ~s ~s))~n"
+               x width stretchable-width?
+               y height stretchable-height?)
+       (rect-print others)]))
   )

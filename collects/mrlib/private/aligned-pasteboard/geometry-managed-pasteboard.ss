@@ -7,23 +7,11 @@
    (lib "etc.ss")
    (lib "match.ss")
    (lib "mred.ss" "mred")
+   "aligned-editor-container.ss"
    "interface.ss"
    "alignment.ss"
    "snip-lib.ss"
    "pasteboard-lib.ss")
-  
-  (define f 0)
-  (define rect-print
-    (match-lambda
-      [() (void)]
-      [(($ rect
-           ($ dim x width stretchable-width?)
-           ($ dim y height stretchable-height?))
-        others ...)
-       (printf "(make-rect (make-dim ~s ~s ~s) (make-dim ~s ~s ~s))~n"
-               x width stretchable-width?
-               y height stretchable-height?)
-       (rect-print others)]))
   
   (provide/contract (make-aligned-pasteboard ((symbols 'vertical 'horizontal) . -> . class?)))
   
@@ -54,7 +42,7 @@
         (dynamic-let ([ignore-resizing? true])
           (for-each-snip
            (lambda (s)
-             (if (is-a? s stretchable-snip<%>)
+             (if (is-a? s aligned-editor-snip%)
                  (send s set-aligned-min-sizes)))
            (find-first-snip))
           (set!-values (aligned-min-width aligned-min-height)
@@ -103,10 +91,8 @@
                     ($ dim x width stretchable-width?)
                     ($ dim y height stretchable-height?)))
            (move-to snip x y)
-           ;; Maybe I don't need to resize it if it's aligned-pasteboard-parent<%> and only if it's
-           ;; a stretchable snip.
-           (when (or stretchable-height? stretchable-width? (is-a? snip aligned-pasteboard-parent<%>))
-             (resize snip width height))]))
+           (when (is-a? snip stretchable-snip<%>)
+             (send snip stretch width height))]))
       
       ;;;;;;;;;;
       ;; Events
