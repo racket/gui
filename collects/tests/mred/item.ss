@@ -790,7 +790,11 @@
   (define ab (make-object mred:button% p
 			  (lambda (b e)
 			    (set! counter (add1 counter))
-			    (let ([naya (format "Extra ~a" counter)]
+			    (let ([naya (format "~aExtra ~a" 
+						(if (= counter 10)
+						    "This is a Really Long Named Item That Would Have Used the Short Name "
+						    "")
+						counter)]
 				  [naya-data (box 0)])
 			      (set! actual-content (append actual-content (list naya)))
 			      (set! actual-user-data (append actual-user-data (list naya-data)))
@@ -805,6 +809,13 @@
 			      (set! append-with-user-data?
 				    (not append-with-user-data?))))
 			  "Append"))
+  (define cs (when list? 
+	       (make-object mred:button% p
+			    (lambda (b e)
+			      (printf "top: ~a~nvisible count: ~a~n"
+				      (send c get-first-item)
+				      (send c number-of-visible-items)))
+			    "Visible Indices")))
   (define cdp (make-object mred:horizontal-panel% p))
   (define rb (make-object mred:button% cdp
 			  (lambda (b e)
