@@ -15,10 +15,10 @@
    
    (gui-utils:trim-string
     (string?
-     (and/f number? positive?)
+     (and/c number? positive?)
      . ->d .
      (lambda (str size)
-       (and/f string?
+       (and/c string?
 	      (lambda (str)
 		((string-length str) . <= . size)))))
     (str size)

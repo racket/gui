@@ -293,7 +293,7 @@
     ".")
 
    (autosave:register
-    ((and/f (is-a?/c autosave:autosavable<%>)
+    ((and/c (is-a?/c autosave:autosavable<%>)
             (is-a?/c editor<%>))
      . -> . 
      void?)
@@ -1226,10 +1226,10 @@
    (scheme-paren:backward-containing-sexp
     (opt->
      ((is-a?/c text%)
-      (and/f integer? exact?)
-      (and/f integer? exact?))
+      (and/c integer? exact?)
+      (and/c integer? exact?))
      ((union false? (is-a?/c match-cache:%)))
-     (union false? (and/f integer? exact?)))
+     (union false? (and/c integer? exact?)))
     ((text start end)
      ((cache #f)))
     "Returns the beginning of the interior of the (non-atomic) S-expression"
@@ -1238,10 +1238,10 @@
    (scheme-paren:backward-match
     (opt->
      ((is-a?/c text%)
-      (and/f integer? exact?)
-      (and/f integer? exact?))
+      (and/c integer? exact?)
+      (and/c integer? exact?))
      ((union false? (is-a?/c match-cache:%)))
-     (union false? (and/f integer? exact?)))
+     (union false? (and/c integer? exact?)))
     ((text start end)
      ((cache #f)))
     "Specializes "
@@ -1249,7 +1249,7 @@
     "to Scheme.")
 
    (scheme-paren:balanced?
-    ((is-a?/c text%) (and/f integer? exact?) (and/f integer? exact?) . -> . boolean?)
+    ((is-a?/c text%) (and/c integer? exact?) (and/c integer? exact?) . -> . boolean?)
     (text start end)
     "Specializes "
     "@flink paren:balanced?"
@@ -1258,10 +1258,10 @@
    (scheme-paren:forward-match
     (opt->
      ((is-a?/c text%)
-      (and/f integer? exact?)
-      (and/f integer? exact?))
+      (and/c integer? exact?)
+      (and/c integer? exact?))
      ((union false? (is-a?/c match-cache:%)))
-     (union false? (and/f integer? exact?)))
+     (union false? (and/c integer? exact?)))
     ((text start end)
      ((cache #f)))
     "Specializes"
@@ -1339,14 +1339,14 @@
     (paren:backward-match
      (opt->
       ((is-a?/c text%)
-       (and/f integer? exact?)
-       (and/f integer? exact?)
+       (and/c integer? exact?)
+       (and/c integer? exact?)
        (listof (cons/p string? string?))
        (listof (cons/p string? string?))
        (listof string?))
       (boolean?
        (union false? (is-a?/c match-cache:%)))
-      (union false? (and/f integer? exact?)))
+      (union false? (and/c integer? exact?)))
      ((text start end parens quotes comments)
       ((containing? #f) (cache #f)))
      "Returns the position in \\var{text} that ``opens'' the text ending at "
@@ -1389,8 +1389,8 @@
 
     (paren:balanced?
      ((is-a?/c text%)
-      (and/f integer? exact?)
-      (and/f integer? exact?)
+      (and/c integer? exact?)
+      (and/c integer? exact?)
       (listof (cons/p string? string?))
       (listof (cons/p string? string?))
       (listof string?)
@@ -1410,13 +1410,13 @@
     (paren:forward-match
      (opt->
       ((is-a?/c text%)
-       (and/f integer? exact?)
-       (and/f integer? exact?)
+       (and/c integer? exact?)
+       (and/c integer? exact?)
        (listof (cons/p string? string?))
        (listof (cons/p string? string?))
        (listof string?))
       ((union false? (is-a?/c match-cache:%)))
-      (union false? (and/f integer? exact?)))
+      (union false? (and/c integer? exact?)))
      ((text start end parens quotes comments)
       ((cache #f)))
      "This function returns the position in \\var{text} that ``closes'' the"
@@ -1447,9 +1447,9 @@
      "")
 
     (paren:skip-whitespace
-     ((is-a?/c text%) (and/f integer? exact?) (symbols 'forward 'backward)
+     ((is-a?/c text%) (and/c integer? exact?) (symbols 'forward 'backward)
       . -> .
-      (and/f integer? exact?))
+      (and/c integer? exact?))
      (text pos dir)
      "If \\var{dir} is \\rawscm{'forward}, this returns the position of the first"
      "non-whitespace character in \\var{text} after \\var{pos}. If \\var{dir}"

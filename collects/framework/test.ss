@@ -3,7 +3,7 @@
   (require (lib "mred.ss" "mred")
            (lib "class.ss")
            (lib "etc.ss")
-           (lib "contract.ss"))  
+           (lib "contract.ss"))
   
   (define-syntax (provide/contract/docs stx)
     (syntax-case stx ()
@@ -80,15 +80,16 @@
    ;; ((frame-has? p) f) =
    ;;    f is a frame and it has a child (in it or a subpanel) that responds #t to p
    (test:button-push
-    ((union (and/f string?
-		   (lambda (str)
-		     (test:top-level-focus-window-has?
-		      (lambda (c)
-			(and (is-a? c button%)
-			     (string=? (send c get-label) str)
-			     (send c is-enabled?)
-			     (send c is-shown?))))))
-	    (and/f (is-a?/c button%)
+    ((union (lambda (str)
+              (and (string? str)
+                   (test:top-level-focus-window-has?
+                    (lambda (c)
+                      (and (is-a? c button%)
+                           (string=? (send c get-label) str)
+                           (send c is-enabled?)
+                           (send c is-shown?))))))
+	    
+            (and/c (is-a?/c button%)
 		   (lambda (btn)
 		     (and (send btn is-enabled?)
 			  (send btn is-shown?)))
@@ -179,8 +180,8 @@
    (test:mouse-click
     (opt->
      ((symbols 'left 'middle 'right)
-      (and/f exact? integer?)
-      (and/f exact? integer?))
+      (and/c exact? integer?)
+      (and/c exact? integer?))
      ((listof (symbols 'alt 'control 'meta 'shift 'noalt 'nocontrol 'nometa 'noshift)))
      void?)
     ((button x y)
