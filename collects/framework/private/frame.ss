@@ -1404,7 +1404,8 @@
                   
                   [close
                    (lambda ()
-                     (send to-be-searched-canvas force-display-focus #f)
+                     (when to-be-searched-canvas
+                       (send to-be-searched-canvas force-display-focus #f))
                      (send dialog show #f))]
                   
                   [close-button (make-object button% (string-constant close) button-panel
@@ -1450,7 +1451,8 @@
              (send f-text set-position 0 (send f-text last-position))
              (send button-panel set-alignment 'right 'center)
              (send dialog center 'both)
-             (send to-be-searched-canvas force-display-focus #t)
+             (when to-be-searched-canvas
+               (send to-be-searched-canvas force-display-focus #t))
              (send dialog show #t)
              (remove-pref-callback)))))
       
@@ -1763,8 +1765,9 @@
               (clear-search-highlight)
               (unless startup?
                 (let ([canvas (send (get-text-to-search) get-canvas)])
-                  (send canvas force-display-focus #f)
-                  (send canvas focus)))
+                  (when canvas
+                    (send canvas force-display-focus #f)
+                    (send canvas focus))))
               (set! hidden? #t)))
           
           (define/public (unhide-search)
