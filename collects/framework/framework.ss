@@ -155,11 +155,13 @@
     (symbol value test)
     "This function must be called every time your application starts up, before any call to"
     "@flink preferences:get %"
+    ", "
+    "@flink preferences:set %"
     "."
     ""
     "If you use"
     "@flink preferences:set-un/marshall %"
-    ", you must also call it before calling this function."
+    ", you must call this function before calling it."
     ""
     "This sets the default value of the preference \\var{symbol} to"
     "\\var{value}. If the user has chosen a different setting,"
@@ -173,11 +175,7 @@
     "used."
     ""
     "If there is a site-wide default preferences file, the default"
-    "preference in that file is used instead of \\var{value}."
-    ""
-    "Once"
-    "@flink preferences:start-writing-timer "
-    "has been called, no more default preferences may be registered.")
+    "preference in that file is used instead of \\var{value}.")
    (preferences:set-un/marshall
     (symbol? (any? . -> . printable?) (printable? . -> . any?) . -> . void?)
     (symbol marshall unmarshall)
@@ -203,9 +201,9 @@
     "by hand."
     ""
     "\\rawscm{preference:set-un/marshall} must be called before calling"
-    "@flink preferences:get "
-    "or "
-    "@flink preferences:set-default %"
+    "@flink preferences:get %"
+    ", "
+    "@flink preferences:set %"
     ".")
    (preferences:save
     (-> boolean?)
@@ -223,13 +221,6 @@
     ()
     "\\rawscm{(preferences:restore-defaults)} restores the users's configuration to the"
     "default preferences.")
-   (preferences:start-writing-timer
-    (-> void?)
-    ()
-    "Starts a thread that periodically flushes the preferences"
-    "to disk reads them from the disk (if the prefs have changed on the disk."
-    ""
-    "Once this function has been called, no new preferences may be registered.")
 
    (preferences:add-panel
     ((union string? (cons/p string? (listof string?)))

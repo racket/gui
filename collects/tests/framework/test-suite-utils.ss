@@ -67,7 +67,7 @@
   (define listener
     (let loop ()
       (let ([port (load port-filename)])
-	(with-handlers ([not-break-exn?
+	(with-handlers ([exn:fail?
 			 (lambda (x)
 			   (let ([next (+ port 1)])
 			     (call-with-output-file port-filename
@@ -87,32 +87,23 @@
   (define (restart-mred)
     (shutdown-mred)
     (case (system-type)
-      [(macos) (system* 
-                (mred-program-launcher-path
-                 (if (use-3m)
-                     "Framework Test Engine3m"
-                    "Framework Test Engine")))]
       [(macosx)
        (thread
         (lambda ()
           (system*
-           (build-path (collection-path "mzlib")
-                       'up
-                       'up
-                       "bin" 
-                       (if (use-3m)
-                           "mred3m"
-                           "mred"))
+           (path->string
+            (build-path (collection-path "mzlib")
+                        'up
+                        'up
+                        "bin" 
+                        (if (use-3m)
+                            "mred3m"
+                            "mred")))
            "-mvqt"
-           (build-path (collection-path "tests" "framework")
-                       "framework-test-engine.ss"))))]
-      [else (thread 
-             (lambda () 
-               (system*
-                (mred-program-launcher-path 
-                 (if (use-3m)
-                     "Framework Test Engine3m"
-                     "Framework Test Engine")))))])
+           (path->string 
+            (build-path (collection-path "tests" "framework")
+                        "framework-test-engine.ss")))))]
+      [else (error 'test-suite-utils.ss "don't know how to start mred")])
     (debug-printf mz-tcp "accepting listener~n")
     (let-values ([(in out) (tcp-accept listener)])
       (set! in-port in)
@@ -141,9 +132,9 @@
     (lambda ()
       (when (and in-port
 		 out-port)
-	(with-handlers ([not-break-exn? (lambda (x) (void))])
+	(with-handlers ([exn:fail? (lambda (x) (void))])
 	  (close-output-port out-port))
-	(with-handlers ([not-break-exn? (lambda (x) (void))])
+	(with-handlers ([exn:fail? (lambda (x) (void))])
 	  (close-input-port in-port))
 	(set! in-port #f)
 	(set! in-port #f))))
@@ -196,7 +187,7 @@
 	  (restart-mred))
 	(debug-printf messages "  ~a // ~a: sending to mred:~n" section-name test-name)
 	(show-text sexp)
-	(with-handlers ([not-break-exn?
+	(with-handlers ([exn:fail?
 			 (lambda (x)
 			   (cond
 			     ;; this means that mred was closed
@@ -209,7 +200,7 @@
 	  (write sexp out-port)
 	  (newline out-port))
 	(let ([answer
-	       (with-handlers ([not-break-exn?
+	       (with-handlers ([exn:fail?
 				(lambda (x)
 				  (if (tcp-error? x);; assume tcp-error means app closed
 				      eof
@@ -256,7 +247,7 @@
 	(when (or (not only-these-tests)
 		  (memq test-name only-these-tests))
 	  (let* ([result
-		  (with-handlers ([not-break-exn?
+		  (with-handlers ([exn:fail?
 				   (lambda (x)
 				     (if (exn? x)
 					 (exn-message x)
@@ -265,7 +256,7 @@
 			(sexp/proc)
 			(begin0 (send-sexp-to-mred sexp/proc)
 				(send-sexp-to-mred ''check-for-errors))))]
-		 [failed (with-handlers ([not-break-exn?
+		 [failed (with-handlers ([exn:fail?
 					  (lambda (x)
 					    (string-append
 					     "passed? test raised exn: "

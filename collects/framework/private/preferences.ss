@@ -24,7 +24,10 @@
       
       (define main-preferences-symbol 'plt:framework-prefs)
       
-      ;; preferences : sym -o> (union marshalled pref)
+      ;; preferences : sym -o> (union marshalled any)
+      ;; for a given preference symbol, p,
+      ;;   when the table maps to a marshalled struct, the
+      ;;   preference has not been examined (via get or set)
       (define preferences (make-hash-table))
       
       ;; marshall-unmarshall : sym -o> un/marshall
@@ -40,96 +43,81 @@
       ;; the mapped symbols are the ones that have changed
       ;; but not yet written out to disk.
       (define changed (make-hash-table))
-      
-      ;; no-more-defaults? : boolean
-      ;; when #t, no more default prefs may be set.
-      (define no-more-defaults? #f)
-      
+            
+      ;; type un/marshall = (make-un/marshall (any -> prinable) (printable -> any))
       (define-struct un/marshall (marshall unmarshall))
+      
+      ;; type marshalled = (make-marshalled printable)
       (define-struct marshalled (data))
+      
+      ;; type pref = (make-pref any)
       (define-struct pref (value))
+      
+      ;; type default  = (make-default any (any -> bool))
       (define-struct default (value checker))
 
-      ;; reset-changed : -> void
-      ;; resets the changed table to indicate no changes have occurred
-      (define (reset-changed) 
-        (set! changed (make-hash-table)))
-      
-      ;; add-changed-pref : symbol -> void
-      ;; marks the pref p as changed
-      (define (add-changed-pref p)
-        (hash-table-put! changed p #t))
-      
-      ;; periodically checks to see if changes need to be written out.
-      (define (start-writing-timer)
-        (set! no-more-defaults? #t)
-	;; don't actually start the timer anymore.
-	;; turns out that preferences are set far too often
-	;; and I need a better test for when things should be written out.
-        '(new timer%
-             [notify-callback (lambda () (maybe-flush-changes))]
-             [interval (* 10 1000)])
-        (void))
-      
-      (define last-time-read #f)
-      (define (maybe-flush-changes)
-        
-        ;; writing out changes
-        (let ([changed-syms (hash-table-map changed (lambda (k v) k))])
-          (unless (null? changed-syms)
-            (let/ec k
-              (let ([sexp (get-disk-prefs (lambda () (k #f)))])
-                (install-stashed-preferences sexp changed-syms)
-                (raw-save #t)
-                (reset-changed)))))
-        
-        ;; reading in changes
-        (let* ([filename (find-system-path 'pref-file)])
-	  (when (file-exists? filename)
-	    (let ([mod (file-or-directory-modify-seconds filename)])
-	      (when (or (not last-time-read)
-			(last-time-read . < . mod))
-		(let* ([failed? #f]
-		       [new-stuff (get-preference main-preferences-symbol (lambda () (set! failed? #t)))])
-		  (unless failed?
-		    (set! last-time-read mod)
-		    (install-stashed-preferences new-stuff '())
-		    (reset-changed))))))))
+      ;; pref-callback : (make-pref-callback (union (weak-box (sym tst -> void)) (sym tst -> void)))
+      ;; this is used as a wrapped to deal with the problem that different procedures might be eq?.
+      (define-struct pref-callback (cb))
 
-      (define guard
-        (lambda (when p value thunk)
-          (with-handlers ([exn:fail? 
-                           (lambda (exn)
-                             (error "excetion raised ~s, pref ~s val ~s, msg: ~a"
-                                    when
-                                    p
-                                    value
-                                    (if (exn? exn)
-                                        (exn-message exn)
-                                        (format "~s" exn))))])
-            (thunk))))
+      ;; get : symbol -> any
+      ;; return the current value of the preference `p'
+      ;; exported
+      (define (get p) 
+        (unless (hash-table-bound? defaults p)
+          (raise-unknown-preference-error
+           "preferences:get: tried to get a preference but no default set for ~e"
+           p))
+        (let ([res
+               (hash-table-get preferences
+                               p
+                               (lambda ()
+                                 (let ([def (hash-table-get defaults p)])
+                                   (default-value def))))])
+          (cond
+            [(marshalled? res)
+             (let ([unmarshalled (unmarshall p res)])
+               (hash-table-put! preferences p unmarshalled)
+               unmarshalled)]
+            [else res])))
+          
+      ;; set : symbol any -> void
+      ;; updates the preference
+      ;; exported
+      (define (set p value)
+        (let ([default (hash-table-get
+                        defaults p
+                        (lambda ()
+                          (raise-unknown-preference-error
+                           "preferences:set: tried to set the preference ~e to ~e, but no default is set"
+                           p
+                           value)))])
+          (unless ((default-checker default) value)
+            (error 'preferences:set
+                   "tried to set preference ~e to ~e but it does not meet test from preferences:set-default"
+                   p value))
+          (check-callbacks p value)
+          (hash-table-put! preferences p value)))
+
+      (define (raise-unknown-preference-error fmt . args)
+        (raise (exn:make-unknown-preference
+                (string->immutable-string (apply format fmt args))
+                (current-continuation-marks))))
       
+      ;; unmarshall : symbol marshalled -> any
+      ;; unmarshalls a preference read from the disk
       (define (unmarshall p marshalled)
         (let/ec k
           (let* ([data (marshalled-data marshalled)]
                  [unmarshall-fn (un/marshall-unmarshall
                                  (hash-table-get marshall-unmarshall
                                                  p
-                                                 (lambda () (k data))))])
-            (with-handlers ([exn:fail?
-                             (lambda (exn)
-                               (begin0
-                                 (hash-table-get defaults p (lambda () (raise exn)))
-                                 (message-box (format (string-constant error-unmarshalling) p)
-                                              (if (exn? exn)
-                                                  (format "~a" (exn-message exn))
-                                                  (format "~s" exn)))))])
-              (unmarshall-fn data)))))
-      
-      ;; pref-callback : (make-pref-callback (union (weak-box (sym tst -> void)) (sym tst -> void)))
-      ;; this is used as a wrapped to hack around the problem
-      ;; that different procedures might be eq?.
-      (define-struct pref-callback (cb))
+                                                 (lambda () (k data))))]
+                 [default (hash-table-get defaults p)])
+            (let ([result (unmarshall-fn data)])
+              (if ((default-checker default) result)
+                  result
+                  (default-value default))))))
 
       ;; add-callback : sym (-> void) -> void
       (define add-callback 
@@ -171,77 +159,29 @@
                          (let ([v (weak-box-value cb)])
                            (if v
                                (begin 
-                                 (guard "calling callback" p value
-                                        (lambda () (v p value)))
+                                 (v p value)
                                  (cons callback (loop (cdr callbacks))))
                                (loop (cdr callbacks))))]
                         [else
-                         (guard "calling callback" p value
-                                (lambda () (cb p value)))
+                         (cb p value)
                          (cons callback (loop (cdr callbacks)))]))]))])
           (if (null? new-callbacks)
               (hash-table-remove! callbacks p)
               (hash-table-put! callbacks p new-callbacks))))
       
-      (define (get p) 
-        (let ([ans (hash-table-get preferences p
-                                   (lambda () 
-                                     (raise (exn:make-unknown-preference
-                                             (format "preferences:get: attempted to get unknown preference: ~e" p)
-                                             (current-continuation-marks)))))])
-          (cond
-            [(marshalled? ans)
-             (let* ([default-s
-                     (hash-table-get
-                      defaults p
-                      (lambda ()
-                        (raise (exn:make-unknown-preference
-                                (format "preferences:get: no default pref for: ~e" p)
-                                (current-continuation-marks)))))]
-                    [default (default-value default-s)]
-                    [checker (default-checker default-s)]
-                    [unmarshalled (let ([unmarsh (unmarshall p ans)])
-                                    (if (checker unmarsh)
-                                        unmarsh
-                                        default))]
-                    [pref (begin (check-callbacks p unmarshalled)
-				 unmarshalled)])
-               (hash-table-put! preferences p (make-pref pref))
-               pref)]
-            [(pref? ans)
-             (pref-value ans)]
-            [else (error 'prefs.ss "robby error.1: ~a" ans)])))
-      
-      (define (default-set? p)
-        (let/ec k
-          (hash-table-get defaults p (lambda () (k #f)))
-          #t))
-      
-      ;; set : symbol any -> void
-      ;; updates the preference
-      (define (set p value)
-        (add-changed-pref p)
-        (let* ([pref (hash-table-get preferences p (lambda () #f))])
-          (unless (default-set? p)
-            (error 'preferences:set "tried to set a preference but no default set for ~e, with ~e"
-                   p value))
-          (cond
-            [(pref? pref)
-             (check-callbacks p value)
-	     (set-pref-value! pref value)]
-            [(or (marshalled? pref) 
-                 (not pref))
-             (check-callbacks p value)
-	     (hash-table-put! preferences p (make-pref value))]
-            [else
-             (error 'prefs.ss "robby error.0: ~a" pref)])))
-      
       (define set-un/marshall
         (lambda (p marshall unmarshall)
-          (unless (default-set? p)
+          (unless (hash-table-bound? defaults p)
             (error 'set-un/marshall "must call set-default for ~s before calling set-un/marshall for ~s"
                    p p))
+          (when (pref-has-value? p)
+            (error 'preferences:set-un/marshall "a value for the preference ~e has already been looked up or set" p))
           (hash-table-put! marshall-unmarshall p (make-un/marshall marshall unmarshall))))
+      
+      (define (hash-table-bound? ht s)
+        (let/ec k
+          (hash-table-get ht s (lambda () (k #f)))
+          #t))
       
       (define restore-defaults
         (lambda ()
@@ -251,16 +191,23 @@
       
       ;; set-default : (sym TST (TST -> boolean) -> void
       (define (set-default p default-value checker)
-        (when no-more-defaults?
-          (error 'set-default "tried to register the pref ~e too late; preferences:start-writing-timer has already been called" p))
+        (when (pref-has-value? p)
+          (error 'preferences:set-default
+                 "tried to call set-default for preference ~e but it already has a value"
+                 p))
         (let ([default-okay? (checker default-value)])
           (unless default-okay?
             (error 'set-default "~s: checker (~s) returns ~s for ~s, expected #t~n"
                    p checker default-okay? default-value))
-          (hash-table-get preferences p 
-                          (lambda ()
-                            (hash-table-put! preferences p (make-pref default-value))))
           (hash-table-put! defaults p (make-default default-value checker))))
+      
+      ;; pref-has-value? : symbol -> boolean
+      ;; returns #t if the preference's value has been examined with set or get
+      (define (pref-has-value? p)
+        (let/ec k
+          (let ([b (hash-table-get preferences p (lambda () (k #f)))])
+            (not (marshalled? b)))))
+
       
       (define (save) (raw-save #f))
       
@@ -268,7 +215,7 @@
       ;; input determines if there is a dialog box showing the errors (and other msgs)
       ;; and result indicates if there was an error
       (define (raw-save silent?)
-        (with-handlers ([exn:fail?
+        (with-handlers ([(lambda (x) #f) ;exn:fail?
                          (lambda (exn)
                            (unless silent?
                              (message-box
@@ -299,23 +246,18 @@
                        (format (string-constant pref-lock-not-gone) filename))))))))
             res)))
       
-      (define (marshall-pref p ht-value)
-        (cond
-          [(marshalled? ht-value) (list p (marshalled-data ht-value))]
-          [(pref? ht-value)
-           (let* ([value (pref-value ht-value)]
-                  [marshalled
-                   (let/ec k
-                     (guard "marshalling" p value
-                            (lambda ()
-                              ((un/marshall-marshall
-                                (hash-table-get marshall-unmarshall p
-                                                (lambda ()
-                                                  (k value))))
-                               value))))])
-             (list p marshalled))]
-          [else (error 'prefs.ss "robby error.2: ~a" ht-value)]))
-      
+      ;; marshall-pref : symbol any -> (list symbol printable)
+      (define (marshall-pref p value)
+        (if (marshalled? value)
+            (list p (marshalled-data value))
+            (let/ec k
+              (let* ([marshaller
+                      (un/marshall-marshall
+                       (hash-table-get marshall-unmarshall p
+                                       (lambda () (k (list p value)))))]
+                     [marshalled (marshaller value)])
+                (list p marshalled)))))
+
       (define (read-err input msg)
         (message-box 
          (string-constant preferences)
@@ -332,12 +274,44 @@
             (string-constant error-reading-preferences)
             "\n"
             msg
+            "\n"
             s2))))
+      
+      ;; read : -> void
+      (define (-read) (get-disk-prefs/install void))
+      
+      ;; get-disk-prefs/install : (-> A) -> (union A sexp)
+      (define (get-disk-prefs/install fail)
+        (let/ec k
+          (let ([sexp (get-disk-prefs (lambda () (k (fail))))])
+            (install-stashed-preferences sexp '())
+            sexp)))
 
+      ;; get-disk-prefs : (-> A) -> (union A sexp)
+      ;; effect: updates the flag for the modified seconds
+      ;; (note: if this is not followed by actually installing 
+      ;;        the preferences, things break)
+      (define (get-disk-prefs fail)
+        (let/ec k
+          (let* ([filename (find-system-path 'pref-file)]
+		 [mod (and (file-exists? filename) (file-or-directory-modify-seconds filename))]
+		 [sexp (get-preference main-preferences-symbol (lambda () (k (fail))))])
+            sexp)))
+      
+      ;; install-stashed-preferences : sexp (listof symbol) -> void
+      ;; ensure that `prefs' is actuall a well-formed preferences
+      ;; table and installs them as the current preferences.
+      (define (install-stashed-preferences prefs skip)
+        (for-each-pref-in-sexp
+         prefs
+         (lambda (p marshalled)
+           (unless (memq p skip)
+             (hash-table-put! preferences p (make-marshalled marshalled))))))
+      
       (define (for-each-pref-in-file parse-pref preferences-filename)
         (let/ec k
           (let ([input (with-handlers
-                           ([exn:fail?
+                           ([(lambda (x) #f) ;exn:fail?
                              (lambda (exn)
                                (message-box
                                 (string-constant error-reading-preferences)
@@ -360,64 +334,11 @@
                          (pair? (cdr pre-pref))
                          (null? (cddr pre-pref)))
                     (parse-pref (car pre-pref) (cadr pre-pref))
-                    (begin (read-err input (string-constant expected-list-of-length2))
+                    (begin (read-err pre-pref (string-constant expected-list-of-length2))
                            (k #f))))
               (loop (cdr input))))))
-      
-      ;; add-raw-pref-to-ht : hash-table symbol marshalled-preference -> void
-      (define (add-raw-pref-to-ht ht p marshalled)
-        (let* ([ht-pref (hash-table-get ht p (lambda () #f))]
-               [unmarshall-struct (hash-table-get marshall-unmarshall p (lambda () #f))])
-          (cond
-            [unmarshall-struct
-             (set p ((un/marshall-unmarshall unmarshall-struct) marshalled))]
-            
-            ;; in this case, assume that no marshalling/unmarshalling 
-            ;; is going to take place with the pref, since an unmarshalled 
-            ;; pref was already there.
-            [(pref? ht-pref)
-             (set p marshalled)]
-            
-            [(marshalled? ht-pref) 
-             (set-marshalled-data! ht-pref marshalled)]
-            [(and (not ht-pref) unmarshall-struct)
-             (set p ((un/marshall-unmarshall unmarshall-struct) marshalled))]
-            [(not ht-pref)
-             (hash-table-put! ht p (make-marshalled marshalled))]
-            [else (error 'prefs.ss "robby error.3: ~a" ht-pref)])))
 
-      ;; read : -> void
-      (define (-read) (get-disk-prefs/install void))
-      
-      ;; get-disk-prefs/install : (-> A) -> (union A sexp)
-      (define (get-disk-prefs/install fail)
-        (let/ec k
-          (let ([sexp (get-disk-prefs (lambda () (k (fail))))])
-            (install-stashed-preferences sexp '())
-            (reset-changed)
-            sexp)))
 
-      ;; get-disk-prefs : (-> A) -> (union A sexp)
-      ;; effect: updates the flag for the modified seconds
-      ;; (note: if this is not followed by actually installing 
-      ;;        the preferences, things break)
-      (define (get-disk-prefs fail)
-        (let/ec k
-          (let* ([filename (find-system-path 'pref-file)]
-		 [mod (and (file-exists? filename) (file-or-directory-modify-seconds filename))]
-		 [sexp (get-preference main-preferences-symbol (lambda () (k (fail))))])
-            (set! last-time-read mod)
-            sexp)))
-      
-      ;; install-stashed-preferences : sexp (listof symbol) -> void
-      ;; ensure that `prefs' is actuall a well-formed preferences
-      ;; table and installs them as the current preferences.
-      (define (install-stashed-preferences prefs skip)
-        (for-each-pref-in-sexp
-         prefs
-         (lambda (p marshalled)
-           (unless (memq p skip)
-             (add-raw-pref-to-ht preferences p marshalled)))))
  
                                           
     ;;    ;           ;;;                 

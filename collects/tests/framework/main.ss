@@ -10,7 +10,7 @@
   (define preferences-file (find-system-path 'pref-file))
 
   (define old-preferences-file (let-values ([(base name _2) (split-path preferences-file)])
-				 (build-path base (string-append name ".save"))))
+				 (build-path base (string-append (path->string name) ".save"))))
   
 
   (define all-files

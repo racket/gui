@@ -9,7 +9,7 @@ WARNING: printf is rebound in the body of the unit to always
   (require (lib "string-constant.ss" "string-constants")
            (lib "unitsig.ss")
 	   (lib "class.ss")
-           (lib "plt-match.ss")
+           (lib "match.ss")
 	   "sig.ss"
 	   "../macro.ss"
 	   "../gui-utils.ss"
@@ -856,8 +856,8 @@ WARNING: printf is rebound in the body of the unit to always
           get-err-port
           get-value-port))
       
-      (define-struct peeker (bytes skip-count pe resp-chan))
-      (define-struct peeker-req (bytes skip-count pe resp-chan resp-nack))
+      (define-struct peeker (bytes skip-count pe resp-chan nack))
+      (define-struct committer (kr commit-peeker-evt done-evt resp-chan resp-nack))
       
       (define ports-mixin
         (mixin ((class->interface text%) #;scheme:text<%>) (ports<%>)
@@ -1118,7 +1118,7 @@ WARNING: printf is rebound in the body of the unit to always
             ;;  in any thread (even concurrently)
             ;;
             (define (make-write-bytes-proc style)
-              (lambda (to-write start end block/buffer?)
+              (lambda (to-write start end block/buffer? enable-breaks?)
                 (cond
                   [(eq? (current-thread) (eventspace-handler-thread eventspace))
                    (error 'write-bytes-proc "cannot write to port on eventspace main thread")]
@@ -1252,70 +1252,35 @@ WARNING: printf is rebound in the body of the unit to always
                     (apply 
                      choice-evt
                      (map
-                      (lambda (committer)
-                        (match (make-committer kr
-                                               commit-peeker-evt
-                                               done-evt
-                                               resp-chan
-                                               resp-nack)
-                          (choice-evt
-                           (handle-evt 
-                            commit-peeker-evt
-                            (lambda (_) 
-                              ;; this committer will be thrown out in next iteration
-                              (loop)))
-                           (handle-evt
-                            done-evt
-                            (lambda (v)
-                              (set! data (drop-some-data data))
-                              (semaphore-post peeker-sema)
-                              (set! peeker-sema (make-semaphore 0))
-                              (set! peeker-evt (semaphore-peek-evt peeker-sema))
-                              (set! committers (remq committer committers))
-                              (set! resp-evts
-                                    (cons 
-                                     (choice-evt
-                                      resp-nack
-                                      (channel-put-evt resp-chan #t))
-                                     resp-evts))
-                              (loop))))))
-                      committers))
-                    (apply 
-                     choice-evt
-                     (map
-                      (lambda (committer)
-                        (match (make-committer kr commit-peeker-evt
-                                               done-evt resp-chan resp-nack)
-                          (let ([size (queue-size data)])
-                            (cond
-                              [(not (eq? peeker-evt commit-peeker-evt))
-                               (set! resp-evts
-                                     (cons
-                                      (choice-evt
-                                       resp-nack
-                                       (channel-put-evt resp-chan #f))
-                                      resp-evts))
-                               (loop)]
-                              [(< size kr)
-                               (set! resp-evts
-                                     (cons
-                                      (choice-evt
-                                       resp-nack
-                                       (channel-put-evt resp-chan 'commit-failure))
-                                      resp-evts))
-                               (loop)]
-                              [else  ;; commit succeeds
+                      (lambda (a-committer)
+                        (match a-committer
+                          [($ committer 
+                              kr
+                              commit-peeker-evt
+                              done-evt
+                              resp-chan
+                              resp-nack)
+                           (choice-evt
+                            (handle-evt 
+                             commit-peeker-evt
+                             (lambda (_) 
+                               ;; this committer will be thrown out in next iteration
+                               (loop)))
+                            (handle-evt
+                             done-evt
+                             (lambda (v)
+                               (set! data (dequeue-n kr data))
                                (semaphore-post peeker-sema)
                                (set! peeker-sema (make-semaphore 0))
                                (set! peeker-evt (semaphore-peek-evt peeker-sema))
-                               (set! data (dequeue-n kr data))
-                               (set! resp-evts
+                               (set! committers (remq a-committer committers))
+                               (set! response-evts
                                      (cons 
                                       (choice-evt
                                        resp-nack
                                        (channel-put-evt resp-chan #t))
-                                      resp-evts))
-                               (loop)]))))
+                                      response-evts))
+                               (loop))))]))
                       committers))
                     (apply choice-evt 
                            (map (lambda (resp-evt)
@@ -1336,7 +1301,7 @@ WARNING: printf is rebound in the body of the unit to always
                      [(null? eles) (values left-alone transformed)]
                      [else (let* ([ele (car eles)]
                                   [maybe (f ele)])
-                             (if maybe-evt
+                             (if maybe
                                  (loop (cdr eles)
                                        (cons maybe transformed)
                                        left-alone)
@@ -1347,49 +1312,47 @@ WARNING: printf is rebound in the body of the unit to always
                ;; service-committer : queue evt -> committer -> (union #f evt)
                ;; if the committer can be dumped, return an evt that
                ;; does the dumping. otherwise, return #f
-               (define ((service-committer data peeker-evt) committer)
-                 (match (make-committer kr commit-peeker-evt
-                                        done-evt resp-chan resp-nack)
-                   (let ([size (queue-size data)])
-                     (cond
-                       [(not (eq? peeker-evt commit-peeker-evt))
-                        (choice-evt
-                         resp-nack
-                         (channel-put-evt resp-chan #f))]
-                       [(< size kr)
-                        (choice-evt
-                         resp-nack
-                         (channel-put-evt resp-chan 'commit-failure))]
-                       [else  ;; commit succeeds
-                        #f]))))
+               (define ((service-committer data peeker-evt) a-committer)
+                 (match a-committer
+                   [($ committer
+                       kr commit-peeker-evt
+                       done-evt resp-chan resp-nack)
+                    (let ([size (queue-size data)])
+                      (cond
+                        [(not (eq? peeker-evt commit-peeker-evt))
+                         (choice-evt
+                          resp-nack
+                          (channel-put-evt resp-chan #f))]
+                        [(< size kr)
+                         (choice-evt
+                          resp-nack
+                          (channel-put-evt resp-chan 'commit-failure))]
+                        [else  ;; commit succeeds
+                         #f]))]))
                
                ;; service-waiter : peeker -> (union #f evt)
                ;; if the peeker can be serviced, build an event to service it
                ;; otherwise return #f
-               (define (service-waiter peeker)
-                 (let* ([bytes (peeker-bytes peeker)]
-                        [skip-count (peeker-count peeker)]
-                        [pe (peeker-pe peeker)]
-                        [resp-chan (peeker-resp-chan peeker)]
-                        [nack-evt (peeker-nack-evt peeker)]
-                        (cond
-                          [(not (eq? pe peeker-evt))
-                           (choice-evt (make-channel-put-evt resp-chan #f)
-                                       nack-evt)]
-                          [(queue-has-n? data (+ skip-count 1))
-                           (let ([nth (queue-nth data (+ skip-count 1))])
-                             (choice-evt
-                              nack-evt
-                              (if (byte? nth)
-                                  (begin
-                                    (byte-set! bytes 0 fst)
-                                    (make-channel-put-evt resp-chan 1))
-                                  (build-answer-evt 
-                                   (make-channel-put-evt 
-                                    resp-chan
-                                    (lambda (src line col pos)
-                                      nth))))))]
-                          [else #f]))))
+               (define (service-waiter a-peeker)
+                 (match a-peeker
+                   [($ peeker bytes skip-count pe resp-chan nack-evt)
+                    (cond
+                      [(not (eq? pe peeker-evt))
+                       (choice-evt (channel-put-evt resp-chan #f)
+                                   nack-evt)]
+                      [((queue-size data) . > . skip-count)
+                       (let ([nth (peek-n data (+ skip-count 1))])
+                         (choice-evt
+                          nack-evt
+                          (if (byte? nth)
+                              (begin
+                                (bytes-set! bytes 0 nth)
+                                (channel-put-evt resp-chan 1))
+                              (channel-put-evt 
+                               resp-chan
+                               (lambda (src line col pos)
+                                 nth)))))]
+                      [else #f])]))
                
                (loop))))
           
@@ -1466,6 +1429,29 @@ WARNING: printf is rebound in the body of the unit to always
                            (loop (send snip next))))]
                 [else null])))
           
+          ;; dequeue-n : queue number -> queue
+          (define (dequeue-n queue n)
+            (let loop ([q queue]
+                       [n n])
+              (cond
+                [(zero? n) queue]
+                [(queue-empty? q) (error 'dequeue-n "not enough!")]
+                [else (loop (queue-rest q) (- n 1))])))
+          
+          ;; peek-n : queue number -> queue
+          (define (peek-n queue n)
+            (let loop ([q queue]
+                       [n n])
+              (cond
+                [(zero? n) 
+                 (when (queue-empty? q)
+                   (error 'peek-n "not enough!"))
+                 (queue-first q)]
+                [else 
+                 (when (queue-empty? q)
+                   (error 'dequeue-n "not enough!"))
+                 (loop (queue-rest q) (- n 1))])))
+                
           ;; split-queue : converter (queue (cons (union snip bytes) style) 
           ;;            -> (values (listof (queue (cons (union snip bytes) style)) queue)
           ;; this function must only be called on the output-buffer-thread

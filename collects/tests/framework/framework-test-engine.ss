@@ -47,7 +47,7 @@
 		     (write
 		      (let ([these-errs (protect (lambda () (begin0 errs (set! errs null))))])
 			(if (null? these-errs)
-			    (with-handlers ([not-break-exn?
+			    (with-handlers ([(lambda (x) #t)
 					     (lambda (x) (list 'error (exception->string x)))])
 			      (list 'normal (print-convert (eval sexp))))
 			    (list 'last-error

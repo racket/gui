@@ -184,7 +184,6 @@
      save
      read
      restore-defaults
-     start-writing-timer
      
      add-panel
      add-font-panel
