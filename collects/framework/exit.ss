@@ -6,18 +6,15 @@
   (define callbacks '())
   
   (define insert-callback
-    (lambda (f)
-      (set! callbacks (cons f callbacks))
-      f))
-  
-  (define remove-callback
     (lambda (cb)
-      (set! callbacks
-	    (let loop ([cb-list callbacks])
-	      (cond
-		[(null? cb-list) ()]
-		[(eq? cb (car cb-list)) (cdr cb-list)]
-		[else (cons (car cb-list) (loop (cdr cb-list)))])))))
+      (set! callbacks (cons cb callbacks))
+      (lambda ()
+	(set! callbacks
+	      (let loop ([cb-list callbacks])
+		(cond
+		  [(null? cb-list) ()]
+		  [(eq? cb (car cb-list)) (cdr cb-list)]
+		  [else (cons (car cb-list) (loop (cdr cb-list)))]))))))
   
   (define exiting? #f)
 

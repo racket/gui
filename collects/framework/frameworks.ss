@@ -57,7 +57,6 @@
 
 (define-signature framework:exit^
   (insert-callback
-   remove-callback
    run-callbacks
    exit))
 

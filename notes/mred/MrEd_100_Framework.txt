@@ -11,7 +11,10 @@ Subtle Changes:
 
  - get-edit -> get-editor
  - get-panel -> get-??-container
- - other mred-sympathetic names changes
+ - many other mred-sympathetic names changes
+
+ - removing exit callbacks is accomplished by calling the procedure that
+   exit:insert-callback returns
 
  - menus
 
