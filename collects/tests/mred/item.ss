@@ -1712,12 +1712,23 @@
 	  (send c2 refresh)
 	  ; Otherwise, we have to specifically refresh the unmanaged canvas
 	  (send (if swap? c2 c1) refresh))))
+  (define (reset-show)
+    (for-each
+     (lambda (c)
+       (send c show-scrollbars 
+	     (and (not (send sh-h get-value)) (memq 'hscroll flags))
+	     (and (not (send sh-v get-value)) (memq 'vscroll flags))))
+     (list c1 c2)))
   (define p2 (make-object horizontal-panel% p))
   (define junk (send p2 stretchable-height #f))
   (define ck-v (make-object check-box% "Vertical Scroll" p2 (lambda (b e) (reset-scrolls #f))))
   (define ck-h (make-object check-box% "Horizontal Scroll" p2 (lambda (b e) (reset-scrolls #f))))
   (define ck-s (make-object check-box% "Small" p2 (lambda (b e) (reset-scrolls #t))))
   (define ck-w (make-object check-box% "Swap" p2 (lambda (b e) (reset-scrolls #f))))
+  (define p3 (make-object horizontal-panel% p))
+  (define junk2 (send p3 stretchable-height #f))
+  (define sh-v (make-object check-box% "Hide Vertical" p3 (lambda (b e) (reset-show))))
+  (define sh-h (make-object check-box% "Hide Horizontal" p3 (lambda (b e) (reset-show))))
   (define ip (make-object horizontal-panel% p))
   (send ip stretchable-height #f)
   (make-object button%
