@@ -1,16 +1,23 @@
 \" dummy line
-.TH MRED 1 "8 June 1996"
+.TH MRED 1 "25 March 1998"
 .UC 4
 .SH NAME
 mred \- The Rice PLT Scheme GUI engine
 .SH SYNOPSIS
 .B mred
+[--pre 
+.I expression
+]
 [-s
 .I sysfile
 ]
 [-a 
+.I collection
 .I unit-filename
 .I sig-filename
+]
+[-A 
+.I collection
 ]
 [-w
 .I filename
@@ -21,8 +28,9 @@ mred \- The Rice PLT Scheme GUI engine
 .I splash-count
 ]
 [-b ]
+--
 [-q | --no-init-file]
-[-nu ]
+[-n ]
 [-f
 .I file
 ]
@@ -35,6 +43,7 @@ mred \- The Rice PLT Scheme GUI engine
 [
 .I file
 ]
+
 .SH DESCRIPTION
 .I MrEd
 is the Rice University PLT Scheme GUI
@@ -45,6 +54,11 @@ with graphics
 and provides the underlying architecture for
 .I DrScheme.
 .PP
+The --pre flag directs
+.I MrEd
+to evaluate its argument in an environment without the wx primitives,
+before doing anything else.
+.PP
 The -s flag directs
 .I MrEd
 to load the startup system from
@@ -52,12 +66,19 @@ a particular file. This overrides the system directory
 search path described below in FILES and must come before all other
 arguments.
 .PP
+The -A flag directs 
+.I MrEd 
+to look in the collection for an application.
+See the Toolbox manual for more information on how to write your own
+application using 
+.I MrEd.
+.PP
 The -a flag directs 
 .I MrEd 
-to look in the first file for a unit/sig (not a
-definition of a unit, just a plain unit) and the second file for signatures
-that the unit/sig needs. That unit will be used to start a new appliaction
-built on top of
+to look in the collection for the next two files. The first file should
+contain a unit/sig (not a definition of a unit, just a plain unit) and the
+second file should contain signatures that the unit/sig needs. That unit
+will be used to start a new appliaction built on top of
 .I MrEd. 
 See the Toolbox manual for more information on how to write your own
 application using 
@@ -76,6 +97,8 @@ second argument to -p names the splash screen, and the third is a count
 indicating how many files will be loaded.
 .PP
 The -b flags supresses the splash screen.
+.PP
+The -- must be specified, if any of the subsequent flags are used.
 .PP
 The -q or --no-init-file flag prevents 
 .I MrEd
@@ -117,21 +140,21 @@ http://www.cs.rice.edu/CS/PLT/packages/mred/
 .SH FILES
 If the -s flag is not specified, 
 .I MrEd
-looks for its standard system file "mrsystem.ss" with the following 
+looks for its standard system file "system.ss" with the following 
 search path:
 .IP
 * the search path defined by the MREDSYS system evironment 
 variable
 .IP
-* "$PLTHOME/mred/system"
+* "$PLTHOME/collects/system"
 .IP
-* "/usr/local/lib/plt/mred/system" 
+* "/usr/local/lib/plt/collects/system" 
 .IP
-* "/usr/lib/plt/mred/system"
+* "/usr/lib/plt/collects/system"
 .IP
-* "/usr/local/lib/mred/system"
+* "/usr/local/lib/collects/system"
 .IP
-* "/usr/lib/mred/system"
+* "/usr/lib/collects/system"
 .PP
 
 The standard system finds the
@@ -141,7 +164,7 @@ collections directory and loads the
 library.  The
 I. MrEd 
 collections directory is
-"../mred/collects" relative to the system's directory.
+"../mred" relative to the system's directory.
 
 The standard system also finds the
 .I MzScheme 
@@ -153,16 +176,14 @@ library. The
 collection directory is found with
 the following search path:
 .IP
-* "$PLTHOME/mzscheme/collects/standard" (if PLTHOME is not defined,
+* "$PLTHOME/collects/mzlib" (if PLTHOME is not defined,
 /usr/local/lib/ is used as it's value).
 .IP
-* "../mzscheme/collects/" relative to the system's directory
-.IP
-* "../../mzscheme/collects/standard"  relative to the system's directory
+* "../mzlib" relative to the system's directory
 .IP
 .PP
 
-The `require-library-collections-paths' parameter is set
+The `current-library-collections-paths' parameter is set
 to a list containing the 
 .I MzScheme
 collections
