@@ -2,12 +2,11 @@
 (module keymap mzscheme
   (require (lib "string-constant.ss" "string-constants")
            (lib "unitsig.ss")
-	   "sig.ss"
 	   "../macro.ss"
 	   (lib "class.ss")
-	   (lib "class100.ss")
 	   (lib "list.ss")
-	   (lib "mred-sig.ss" "mred"))
+	   (lib "mred-sig.ss" "mred")
+           "sig.ss")
   
   (provide keymap@)
   
@@ -22,7 +21,35 @@
               [editor : framework:editor^])
       
       (rename [-get-file get-file])
+
+      (define (remove-chained-keymap ed keymap-to-remove)
+        (let ([ed-keymap (send ed get-keymap)])
+          (when (eq? keymap-to-remove ed-keymap)
+            (error 'keymap:remove-keymap "cannot remove initial keymap from editor"))
+          (let p-loop ([parent-keymap ed-keymap])
+            (unless (is-a? parent-keymap aug-keymap<%>)
+              (error 'keymap:remove-keymap
+                     "found a keymap that is not a keymap:aug-keymap<%> ~e" 
+                     parent-keymap))
+            (let c-loop ([child-keymaps (send parent-keymap get-chained-keymaps)])
+              (cond
+                [(null? child-keymaps) null]
+                [else
+                 (let ([child-keymap (car child-keymaps)])
+                   (cond
+                     [(eq? child-keymap keymap-to-remove)
+                      (send parent-keymap remove-chained-keymap child-keymap)
+                      (c-loop (cdr child-keymaps))]
+                     [else 
+                      (p-loop child-keymap)
+                      (c-loop (cdr child-keymaps))]))])))))
       
+      (define (set-chained-keymaps parent-keymap children-keymaps)
+        (for-each (lambda (orig-sub) (send parent-keymap remove-chained-keymap))
+                  (send parent-keymap get-chained-keymaps))
+        (for-each (lambda (new-sub) (send parent-keymap chain-to-keymap new-sub #f))
+                  children-keymaps))
+        
       (define aug-keymap<%> (interface ((class->interface keymap%))
 			      get-chained-keymaps
 			      get-map-function-table
@@ -35,16 +62,20 @@
           [define get-chained-keymaps
             (lambda ()
               chained-keymaps)]
-	  (rename [super-chain-to-keymap chain-to-keymap])
-	  (override chain-to-keymap)
-          [define chain-to-keymap
-	    (lambda (keymap prefix?)
-	      (super-chain-to-keymap keymap prefix?)
-	      (set! chained-keymaps
-		    (if prefix?
-			(cons keymap chained-keymaps)
-			(append chained-keymaps (list keymap)))))]
 	  
+          (rename [super-chain-to-keymap chain-to-keymap])
+	  (define/override (chain-to-keymap keymap prefix?)
+            (super-chain-to-keymap keymap prefix?)
+            (set! chained-keymaps
+                  (if prefix?
+                      (cons keymap chained-keymaps)
+                      (append chained-keymaps (list keymap)))))
+	  
+          (rename [super-remove-chained-keymap remove-chained-keymap])
+          (define/override (remove-chained-keymap keymap)
+            (super-remove-chained-keymap keymap)
+            (set! chained-keymaps (remq keymap chained-keymaps)))
+          
 	  [define function-table (make-hash-table)]
 	  (public get-function-table)
           [define get-function-table (lambda () function-table)]

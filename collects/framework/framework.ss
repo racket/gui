@@ -1195,6 +1195,34 @@
     "@link keymap"
     "with the bindings for searching.")
 
+   (keymap:set-chained-keymaps
+    ((is-a?/c keymap:aug-keymap<%>)
+     (listof (is-a?/c keymap%))
+     . -> .
+     void?)
+    (keymap children-keymaps)
+    "Sets \\var{keymap}'s chained keymaps to \\var{children-keymaps},"
+    "unchaining any keymaps that are currently chained to \\var{keymap}.")
+   
+   (keymap:remove-chained-keymap
+    ((is-a?/c editor<%>)
+     (is-a?/c keymap:aug-keymap<%>)
+     . -> . 
+     void?)
+    (editor keymap)
+    "Removes \\var{keymap} from the keymaps chained to \\var{editor}."
+    "Also (indirectly) removes all keymaps chained to \\var{keymap} from \\var{editor},"
+    "since they are removed when unchaining \\var{keymap} itself."
+    ""
+    "Each of the keymaps chained to \\var{editor} must be an"
+    "@ilink keymap:aug-keymap"
+    "and \\var{keymap} cannot be the result of"
+    "\\begin{schemedisplay}"
+    "(send editor get-keymap)"
+    "\\end{schemedisplay}"
+    "That is, \\var{keymap} must be chained to some keymap attached"
+    "to the editor.")
+    
    (scheme-paren:backward-containing-sexp
     (opt->
      ((is-a?/c text%)

@@ -317,7 +317,7 @@
           (send style-list find-named-style "Matching Parenthesis Style")))
 
       (define text-mixin
-        (mixin (text:basic<%> editor:keymap<%>) (-text<%>)
+        (mixin (text:basic<%>) (-text<%>)
           (inherit begin-edit-sequence
                    delete
                    end-edit-sequence
@@ -407,12 +407,12 @@
           
           (define/public highlight-parens
             (opt-lambda ([just-clear? #f])
-              (when (preferences:get 'framework:highlight-parens)
-                (unless in-highlight-parens?
-                  (set! in-highlight-parens? #t)
-                  (begin-edit-sequence)
-                  (clear-old-locations)
-                  (set! clear-old-locations void)
+              (unless in-highlight-parens?
+                (set! in-highlight-parens? #t)
+                (begin-edit-sequence)
+                (clear-old-locations)
+                (set! clear-old-locations void)
+                (when (preferences:get 'framework:highlight-parens)
                   (unless just-clear?
                     (let* ([here (get-start-position)]
                            [there (get-end-position)]
@@ -489,9 +489,9 @@
                              (handle-single before)]
                             [after (handle-single after)]
                             [before (handle-single before)]
-                            [else (void)])))))
-                  (end-edit-sequence)
-                  (set! in-highlight-parens? #f)))))
+                            [else (void)]))))))
+                (end-edit-sequence)
+                (set! in-highlight-parens? #f))))
           
           (public get-limit balance-quotes balance-parens tabify-on-return? tabify tabify-selection
                   tabify-all insert-return calc-last-para 
@@ -1074,23 +1074,17 @@
           [define get-tab-size (lambda () tab-size)]
           [define set-tab-size (lambda (s) (set! tab-size s))]
           
-          (rename [super-get-keymaps get-keymaps])
-          (override get-keymaps)
-          [define get-keymaps
-            (lambda ()
-              (cons keymap (super-get-keymaps)))]
-          
           (rename [super-after-delete after-delete])
           (define/override (after-delete start size)
             (send backward-cache invalidate start)
             (send forward-cache forward-invalidate (+ start size) (- size))
-            ;; must call super after invalidating cache -- super calls delegate object
+            ;; must call super after invalidating cache -- super calls surrogate object
             (super-after-delete start size))
           (rename [super-after-insert after-insert])
           (define/override (after-insert start size)
             (send backward-cache invalidate start)
             (send forward-cache forward-invalidate start size)
-            ;; must call super after invalidating cache -- super calls delegate object
+            ;; must call super after invalidating cache -- super calls surrogate object
             (super-after-insert start size))
           
           (super-instantiate ())))
@@ -1100,7 +1094,7 @@
           ))
       
       (define text-mode-mixin
-        (mixin (mode:text<%>) (-text-mode<%>)
+        (mixin (mode:surrogate-text<%>) (-text-mode<%>)
           (rename [super-on-focus on-focus])
           (define/override (on-focus text on?)
             (super-on-focus text on?)
@@ -1117,9 +1111,8 @@
           (rename [super-after-edit-sequence after-edit-sequence])
           (define/override (after-edit-sequence text)
             (super-after-edit-sequence text)
-            (unless (send text local-edit-sequence?)
-              (when (send text has-focus?)
-                (send text highlight-parens))))
+            (when (send text has-focus?)
+              (send text highlight-parens)))
           
           (rename [super-after-insert after-insert])
           (define/override (after-insert text start size)
@@ -1132,7 +1125,8 @@
           (define/override (after-delete text start size)
             (unless (send text local-edit-sequence?)
               (when (send text has-focus?)
-                (send text highlight-parens))))
+                (send text highlight-parens)))
+            (super-after-delete text start size))
           
           (rename [super-after-set-size-constraint after-set-size-constraint])
           (define/override (after-set-size-constraint text)
@@ -1148,15 +1142,22 @@
                 (send text highlight-parens)))
             (super-after-set-position text))
 
-          (rename [super-on-disable-delegate on-disable-delegate])
-          (define/override (on-disable-delegate text)
+          (rename [super-on-disable-surrogate on-disable-surrogate])
+          (define/override (on-disable-surrogate text)
+            (keymap:remove-chained-keymap text keymap)
             (send text highlight-parens #t)
-            (super-on-disable-delegate text))
+            (super-on-disable-surrogate text))
           
-          (rename [super-on-enable-delegate on-enable-delegate])
-          (define/override (on-enable-delegate text)
-            (super-on-enable-delegate text)
-            (send text highlight-parens #t)
+          (rename [super-on-enable-surrogate on-enable-surrogate])
+          (define/override (on-enable-surrogate text)
+            (super-on-enable-surrogate text)
+            (send (send text get-keymap) chain-to-keymap keymap #t)
+            (unless (send text local-edit-sequence?)
+              (when (send text has-focus?)
+                (send text highlight-parens)))
+            
+            ;; I don't know about these editor flag settings.
+            ;; maybe they belong in drscheme?
             (send text set-load-overwrites-styles #f)
             (send text set-wordbreak-map wordbreak-map)
             (send text set-tabs null (send text get-tab-size) #f)
@@ -1165,7 +1166,8 @@
           (super-instantiate ())))
 
       (define -text% (text-mixin text:info%))
-      
+      (define text-mode% (text-mode-mixin mode:surrogate-text%))
+    
                                                                                            
               ;;                                 ;;                                        
                ;                                  ;                                        

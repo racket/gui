@@ -463,6 +463,9 @@
      get-file
      get-editor
 
+     set-chained-keymaps
+     remove-chained-keymap
+     
      call/text-keymap-initializer))
   (define-signature framework:keymap^
     ((open framework:keymap-class^)
@@ -494,7 +497,11 @@
     (text<%>
      text-mixin
      text%
+     
+     text-mode<%>
      text-mode-mixin
+     text-mode%
+     
      sexp-snip%
      sexp-snip<%>))
   (define-signature framework:scheme-fun^
@@ -525,9 +532,9 @@
      (open framework:main-fun^)))
 
   (define-signature framework:mode-class^ 
-    (delegating-text-mixin
-     text%
-     text<%>))
+    (host-text-mixin
+     surrogate-text%
+     surrogate-text<%>))
   (define-signature framework:mode-fun^ ())
   (define-signature framework:mode^
     ((open framework:mode-class^)

@@ -1,5 +1,5 @@
 (module mode mzscheme
-  (require (lib "delegate.ss")
+  (require (lib "surrogate.ss")
            (lib "unitsig.ss")
            "sig.ss")
   
@@ -9,8 +9,8 @@
     (unit/sig framework:mode^
       (import)
       
-      (define-values (delegating-text-mixin text% text<%>)
-        (delegate
+      (define-values (host-text-mixin surrogate-text% surrogate-text<%>)
+        (surrogate
          (on-change ())
          (on-char (event))
          (on-default-char (event))
@@ -48,6 +48,6 @@
          (can-delete? (start len))
          (can-insert? (start len))
          (can-set-size-constraint? ())
-         (can-do-edit-operation? (op recursive?))
+         (can-do-edit-operation? (op) (op recursive?))
          (can-load-file? (filename format))
          (can-save-file? (filename format)))))))
