@@ -168,13 +168,6 @@
           (for-each (λ (fs v) ((cdr fs) style v)) style-delta-get/set info)
           style))
       
-      (define (set-default sym code-style)
-        (preferences:set-default
-         sym
-         code-style
-         (λ (x)
-           (is-a? x style-delta%))))
-      
       (define (make-style-delta color bold? underline? italic?)
         (let ((sd (make-object style-delta%)))
           (send sd set-delta-foreground color)
