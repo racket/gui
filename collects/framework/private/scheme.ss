@@ -50,10 +50,24 @@
           (field [sizing-text (format "~a   ~a" left-bracket right-bracket)])
 
           (define/override (copy)
-            (instantiate sexp-snip% ()
+            (instantiate (get-sexp-snip-class) ()
               (left-bracket left-bracket)
               (right-bracket right-bracket)
               (saved-snips saved-snips)))
+          
+          (define/override (write stream-out)
+            (send stream-out put (string left-bracket))
+            (send stream-out put (string right-bracket))
+            (send stream-out put (length saved-snips))
+            (let loop ([snips saved-snips])
+              (cond
+                [(null? snips) (void)]
+                [else
+                 (let* ([snip (car snips)]
+                        [snipclass (send snip get-snipclass)])
+                   (send stream-out put (send snipclass get-classname))
+                   (send snip write stream-out))
+                 (loop (cdr snips))])))
           
           (define/override (draw dc x y left top right bottom dx dy draw-caret)
             (send dc draw-text sizing-text x y)
@@ -82,10 +96,31 @@
           (inherit set-snipclass)
           (set-snipclass sexp-snipclass)))
       
+      (define-values (get-sexp-snip-class set-sexp-snip-class)
+        (let ([cached-sexp-snip% sexp-snip%])
+          (values
+           (lambda () cached-sexp-snip%)
+           (lambda (_s%) (set! cached-sexp-snip% _s%)))))
+
       (define sexp-snipclass%
         (class snip-class%
           (define/override (read in)
-            (make-object sexp-snip%))
+            (let* ([left-bracket (string-ref (send in get-string) 0)]
+                   [right-bracket (string-ref (send in get-string) 0)]
+                   [snip-count (send in get-exact)]
+                   [saved-snips
+                    (let loop ([n snip-count])
+                      (cond
+                        [(zero? n) null]
+                        [else
+                         (let* ([classname (send in get-string)]
+                                [snipclass (send (get-the-snip-class-list) find classname)])
+                           (cons (send snipclass read in)
+                                 (loop (- n 1))))]))])
+              (instantiate (get-sexp-snip-class) ()
+                (left-bracket left-bracket)
+                (right-bracket right-bracket)
+                (saved-snips saved-snips))))
           (super-instantiate ())))
       
       (define sexp-snipclass (make-object sexp-snipclass%))
@@ -186,7 +221,7 @@
                             null]
                            [else (cons (send snip copy) (loop (send snip next)))]))])
             (send text delete left-pos right-pos)
-            (send text insert (instantiate sexp-snip% () 
+            (send text insert (instantiate (get-sexp-snip-class) () 
                                 (left-bracket left-bracket)
                                 (right-bracket right-bracket)
                                 (saved-snips snips))
