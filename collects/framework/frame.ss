@@ -389,6 +389,110 @@
 	  '(set! old-search-highlight
 		(send edit highlight-range position position color #f))))))
 
+  (define find-string-embedded
+    (let ([default-direction 'forward]
+	  [default-start 'start]
+	  [default-end 'eof]
+	  [default-get-start #t]
+	  [default-case-sensitive? #t]
+	  [default-pop-out? #t])
+      (case-lambda
+       [(edit str)
+	(find-string-embedded edit str default-direction default-start default-end default-get-start default-case-sensitive? default-pop-out?)]
+       [(edit str direction) 
+	(find-string-embedded edit str direction default-start default-end default-get-start default-case-sensitive? default-pop-out?)]
+       [(edit str direction start) 
+	(find-string-embedded edit str direction start default-end default-get-start default-case-sensitive? default-pop-out?)]
+       [(edit str direction start end) 
+	(find-string-embedded edit str direction start end default-get-start default-case-sensitive? default-pop-out?)]
+       [(edit str direction start end get-start) 
+	(find-string-embedded edit str direction start end get-start default-case-sensitive? default-pop-out?)]
+       [(edit str direction start end get-start case-sensitive?) 
+	(find-string-embedded edit str direction start end get-start case-sensitive? default-pop-out?)]
+       [(edit str direction start end get-start case-sensitive? pop-out?)
+	(unless (member direction '(forward backward))
+	  (error 'find-string-embedded
+		 "expected ~e or ~e as first argument, got: ~e" 'forward 'backward direction))
+	(let/ec k
+	  (let* ([start (if (eq? start 'start) 
+			    (send edit get-start-position)
+			    start)]
+		 [end (if (eq? 'eof end)
+			  (if (eq? direction 'forward)
+			      (send edit last-position)
+			      0)
+			  end)]
+		 [flat (send edit find-string str direction
+			     start end get-start
+			     case-sensitive?)]
+		 [pop-out
+		  (lambda ()
+		    (let ([admin (send edit get-admin)])
+		      (if (is-a? admin editor-snip-editor-admin%)
+			  (let* ([snip (send admin get-snip)]
+				 [edit-above (send (send snip get-admin) get-editor)]
+				 [pos (send edit-above get-snip-position snip)]
+				 [pop-out-pos (if (eq? direction 'forward) (add1 pos) pos)])
+			    (printf "popping out to ~a~n" pop-out-pos)
+			    (find-string-embedded
+			     edit-above
+			     str
+			     direction 
+			     pop-out-pos
+			     (if (eq? direction 'forward) 'eof 0)
+			     get-start
+			     case-sensitive?
+			     pop-out?))
+			  (values edit #f))))])
+	    (printf "flat: ~a start: ~a end: ~a~n" flat start end)
+	    (let loop ([current-snip (send edit find-snip start
+					   (if (eq? direction 'forward)
+					       'after-or-none
+					       'before-or-none))])
+	      (printf "searching snips: ~s ~s~n" current-snip 
+		      (and current-snip (send current-snip get-text 0 (send current-snip get-count))))
+	      (let ([next-loop
+		     (lambda ()
+		       (if (eq? direction 'forward)
+			   (loop (send current-snip next))
+			   (loop (send current-snip previous))))])
+		(cond
+		  [(or (not current-snip)
+		       (and flat
+			    (let* ([start (send edit get-snip-position current-snip)]
+				   [end (+ start (send current-snip get-count))])
+			      (if (eq? direction 'forward)
+				  (and (<= start flat)
+				       (< flat end))
+				  (and (< start flat)
+				       (<= flat end))))))
+		   (if (and (not flat) pop-out?)
+		       (pop-out)
+		       (values edit flat))]
+		  [(is-a? current-snip original:editor-snip%)
+		   (printf "found embedded editor~n")
+		   (let-values ([(embedded embedded-pos)
+				 (let ([media (send current-snip get-editor)])
+				   (if (and media
+					    (is-a? media original:text%))
+				       (begin
+					 (printf "searching in embedded editor~n")
+					 (find-string-embedded 
+					  media 
+					  str
+					  direction
+					  (if (eq? 'forward direction)
+					      0
+					      (send media last-position))
+					  'eof
+					  get-start case-sensitive?))
+				       (values #f #f)))])
+		     (printf "embedded: ~a embedded-pos ~a~n" embedded embedded-pos)
+		     (if (not embedded-pos)
+			 (next-loop)
+			 (values embedded embedded-pos)))]
+		  [else (next-loop)])))))])))
+  
   (define find-text%
     (class-asi text%
       (inherit get-text)
@@ -408,7 +512,13 @@
 	 (opt-lambda ([reset-search-anchor? #t] [beep? #t] [wrap? #t])
 	   (when searching-frame
 	     (let* ([string (get-text)]
-		    [searching-edit (get-searching-edit)]
+		    [top-searching-edit (get-searching-edit)]
+
+		    [searching-edit (let ([focus-snip (send top-searching-edit get-focus-snip)])
+				      (if focus-snip
+					  (send focus-snip get-editor)
+					  top-searching-edit))]
+					
 		    [not-found
 		     (lambda (found-edit)
 		       (send found-edit set-position search-anchor)
@@ -420,32 +530,32 @@
 		       (let ([last-pos ((if (eq? searching-direction 'forward) + -)
 					first-pos (string-length string))])
 			 (send* edit 
-				(set-caret-owner #f 'display)
-				(set-position
-				 (min first-pos last-pos)
-				 (max first-pos last-pos)))
+			   (set-caret-owner #f 'display)
+			   (set-position
+			    (min first-pos last-pos)
+			    (max first-pos last-pos)))
 			 #t))])
 	       (unless (string=? string "")
 		 (when reset-search-anchor?
 		   (reset-search-anchor searching-edit))
 		 (let-values ([(found-edit first-pos)
-			       (send searching-edit
-				     find-string-embedded
-				     string
-				     searching-direction
-				     search-anchor
-				     'eof #t #t #t)])
+			       (find-string-embedded
+				searching-edit
+				string
+				searching-direction
+				search-anchor
+				'eof #t #t #t)])
 		   (cond
 		     [(not first-pos)
 		      (if wrap?
 			  (let-values ([(found-edit pos)
-					(send searching-edit
-					      find-string-embedded
-					      string 
-					      searching-direction
-					      (if (eq? 'forward searching-direction)
-						  0
-						  (send searching-edit last-position)))])
+					(find-string-embedded
+					 searching-edit
+					 string 
+					 searching-direction
+					 (if (eq? 'forward searching-direction)
+					     0
+					     (send searching-edit last-position)))])
 			    (if (not pos)
 				(not-found found-edit)
 				(found found-edit pos)))

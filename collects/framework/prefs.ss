@@ -103,7 +103,7 @@
 				  (if (checker unmarsh)
 				      unmarsh
 				      (begin
-					(printf "WARNING: ~s rejecting invalid pref ~s in favor of ~s (pred: ~s)~n"
+					'(printf "WARNING: ~s rejecting invalid pref ~s in favor of ~s (pred: ~s)~n"
 						p unmarsh default checker)
 					default)))]
 		  [pref (if (check-callbacks p unmarshalled)

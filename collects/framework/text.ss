@@ -302,9 +302,7 @@
 	     (apply super-init args)
 	     (set-autowrap-bitmap (initial-autowrap-bitmap)))))
 
-  (define searching<%>
-    (interface ()
-      find-string-embedded))
+  (define searching<%> (interface (editor:keymap<%> basic<%>)))
   (define searching-mixin
     (mixin (editor:keymap<%> basic<%>) (searching<%>) args
 	   (inherit get-end-position get-start-position last-position 
@@ -316,85 +314,7 @@
 	       (if (eq? type 'text)
 		   (make-object editor-snip% (make-object searching%))
 		   (super-on-new-box)))])
-	   (public
-	     [find-string-embedded
-	      (opt-lambda (str [direction 'forward] [start 'start]
-			       [end 'eof] [get-start #t]
-			       [case-sensitive? #t] [pop-out? #t])
-		(unless (member direction '(forward backward))
-		  (error 'find-string-embedded
-			 "expected ~e or ~e as first argument, got: ~e" 'forward 'backward direction))
-		(let/ec k
-		  (let* ([start (if (eq? start 'start) 
-				    (get-start-position)
-				    start)]
-			 [end (if (eq? 'eof end)
-				  (if (eq? direction 'forward)
-				      (last-position)
-				      0)
-				  end)]
-			 [flat (find-string str direction
-					    start end get-start
-					    case-sensitive?)]
-			 [pop-out
-			  (lambda ()
-			    (let ([admin (get-admin)])
-			      (if (is-a? admin editor-snip-editor-admin%)
-				  (let* ([snip (send admin get-snip)]
-					 [edit-above (send (send snip get-admin) get-editor)]
-					 [pos (send edit-above get-snip-position snip)])
-				    (send edit-above
-					  find-string-embedded
-					  str
-					  direction 
-					  (if (eq? direction 'forward) (add1 pos) pos)
-					  'eof get-start
-					  case-sensitive? pop-out?))
-				  (values this #f))))])
-		    (let loop ([current-snip (find-snip start
-							(if (eq? direction 'forward)
-							    'after-or-none
-							    'before-or-none))])
-		      (printf "searching snips: ~a~n" current-snip)
-		      (let ([next-loop
-			     (lambda ()
-			       (if (eq? direction 'forward)
-				   (loop (send current-snip next))
-				   (loop (send current-snip previous))))])
-			(cond
-			  [(or (not current-snip)
-			       (and flat
-				(let* ([start (get-snip-position current-snip)]
-				       [end (+ start (send current-snip get-count))])
-				  (if (eq? direction 'forward)
-				      (and (<= start flat)
-					   (< flat end))
-				      (and (< start flat)
-					   (<= flat end))))))
-			   (if (and (not flat) pop-out?)
-			       (pop-out)
-			       (values this flat))]
-			  [(is-a? current-snip original:editor-snip%)
-			   (printf "found embedded editor~n")
-			   (let-values ([(embedded embedded-pos)
-					 (let ([media (send current-snip get-editor)])
-					   (if (and media
-						    (is-a? media searching<%>))
-					       (begin
-						 (printf "searching in embedded editor~n")
-						 (send media find-string-embedded str
-						       direction
-						       (if (eq? 'forward direction)
-							   0
-							   (send media last-position))
-						       'eof
-						       get-start case-sensitive?))
-					       (values #f #f)))])
-			     (printf "embedded: ~a embedded-pos ~a~n" embedded embedded-pos)
-			     (if (not embedded-pos)
-				 (next-loop)
-				 (values embedded embedded-pos)))]
-			  [else (next-loop)]))))))])
+	   (public)
 	   
 	   (rename [super-get-keymaps get-keymaps])
 	   (override
