@@ -6,44 +6,32 @@
       (collection-path "icons")))
   
   (define (load-icon name type)
-    (let ([p (build-path icon-path name)]
-	  [bitmap #f])
+    (letrec ([p (build-path icon-path name)]
+	     [f
+	      (lambda ()
+		(let ([bitmap (make-object bitmap% p type)])
+		  (set! f (lambda () bitmap))
+		  bitmap))])
       (unless (file-exists? p)
 	(fprintf (current-error-port) "WARNING: couldn't find ~a~n" p))
       (lambda ()
-	(if bitmap
-	    bitmap
-	    (begin (set! bitmap (make-object bitmap% p type))
-		   bitmap)))))
+	(f))))
   
-  (define (load-bitmap/bdc name type)
-    (let* ([p (build-path icon-path name)]
-	   [bitmap #f]
-	   [bitmap-dc #f]
-	   [force
-	    (lambda ()
-	      (set! bitmap (make-object bitmap% p type))
-	      (set! bitmap-dc (make-object bitmap-dc%))
-	      (when (send bitmap ok?)
-		(send bitmap-dc set-bitmap bitmap)))])
+  (define (load-bitmap name type)
+    (letrec ([p (build-path icon-path name)]
+	     [f
+	      (lambda ()
+		(let ([bitmap (make-object bitmap% p type)])
+		  (set! f (lambda () bitmap))
+		  bitmap))])
       (unless (file-exists? p)
 	(fprintf (current-error-port) "WARNING: couldn't find ~a~n" p))
-      (values 
-       (lambda ()
-	 (or bitmap
-	     (begin (force)
-		    bitmap)))
-       (lambda ()
-	 (or bitmap-dc
-	     (begin (force)
-		    bitmap-dc))))))
+      (lambda ()
+	(f))))
   
-  (define-values (get-anchor-bitmap get-anchor-bdc)
-    (load-bitmap/bdc "anchor.gif" 'gif))
-  (define-values (get-lock-bitmap get-lock-bdc)
-    (load-bitmap/bdc "lock.gif" 'gif))
-  (define-values (get-unlock-bitmap get-unlock-bdc)
-    (load-bitmap/bdc "unlock.gif" 'gif))
+  (define-values (get-anchor-bitmap) (load-bitmap "anchor.gif" 'gif))
+  (define-values (get-lock-bitmap) (load-bitmap "lock.gif" 'gif))
+  (define-values (get-unlock-bitmap) (load-bitmap "unlock.gif" 'gif))
   
   (define get-autowrap-bitmap (load-icon "return.xbm" 'xbm))
   (define get-paren-highlight-bitmap (load-icon "paren.xbm" 'xbm))

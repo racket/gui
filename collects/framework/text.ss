@@ -204,7 +204,7 @@
 		       [color (let* ([rc (rectangle-color rectangle)]
 				     [tmpc (make-object color% 0 0 0)])
 				(if rc
-				    (begin (send dc try-colour rc tmpc)
+				    (begin (send dc try-color rc tmpc)
 					   (and (<= (max (abs (- (send rc red) (send tmpc red)))
 							 (abs (- (send rc blue) (send tmpc blue)))
 							 (abs (- (send rc green) (send tmpc green))))
@@ -224,8 +224,8 @@
 		  (let/ec k
 		    (cond
 		      [(and before color)
-		       (send pen set-colour color)
-		       (send brush set-colour color)]
+		       (send pen set-color color)
+		       (send brush set-color color)]
 		      [(and (not before) (not color) b/w-bitmap)
 		       (send pen set-stipple b/w-bitmap)
 		       (send brush set-stipple b/w-bitmap)]
@@ -496,7 +496,7 @@
 	     (when (and (or (eq? format 'same)
 			    (eq? format 'copy))
 			(not (eq? (get-file-format) 
-				  'std)))
+				  'standard)))
 	       (cond
 		 [(eq? format 'copy)
 		  (set! restore-file-format 
@@ -504,11 +504,11 @@
 			  (lambda ()
 			    (set! restore-file-format void)
 			    (set-file-format f))))
-		  (set-file-format 'std)]
+		  (set-file-format 'standard)]
 		 [(and (has-non-string-snips)
 		       (or (not (preferences:get 'framework:verify-change-format))
 			   (gui-utils:get-choice "Save this file as plain text?" "No" "Yes")))
-		  (set-file-format 'std)]
+		  (set-file-format 'standard)]
 		 [else (void)]))
 	     (or (super-on-save-file name format)
 		 (begin 

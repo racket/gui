@@ -195,11 +195,8 @@
    get-autowrap-bitmap
 
    get-lock-bitmap
-   get-lock-bdc
    get-unlock-bitmap
-   get-unlock-bdc
    get-anchor-bitmap
-   get-anchor-bdc
    
    get-gc-on-bitmap
    get-gc-off-bitmap))

@@ -111,10 +111,10 @@
 	   (let ([line (position-line position)])
 	     (ormap
 	      (lambda (comment-start)
-		(let ([f (send find-string comment-start 'backward position)])
-		  (if (= -1 f)
-		      #f
-		      (= (send position-line f) line))))
+		(let ([f (find-string comment-start 'backward position)])
+		  (if f
+		      (= (send position-line f) line)
+		      #f)))
 	      (scheme-paren:get-comments))))])
       (private
 	[remove-indents-callback
@@ -145,19 +145,19 @@
       (override
        [on-focus
 	(lambda (on?)
-	  (super-on-focus)
+	  (super-on-focus on?)
 	  (highlight-parens (not on?)))]
        [on-change-style
 	(lambda (start len)
 	  (begin-edit-sequence)
-	  (super-on-change-style)
+	  (super-on-change-style start len)
 	  #t)]
        [after-change-style
 	(lambda (start len)
 	  (end-edit-sequence)
 	  (unless (get-styles-fixed)
 	    (highlight-parens))
-	  (super-after-change-style))]
+	  (super-after-change-style start len))]
        [after-edit-sequence
 	(lambda ()
 	  (unless in-highlight-parens?
@@ -166,17 +166,17 @@
        [on-insert
 	(lambda (start size)
 	  (begin-edit-sequence)
-	  (super-on-insert))]
+	  (super-on-insert start size))]
        [after-insert
 	(lambda (start size)
 	  (send backward-cache invalidate start)
 	  (send forward-cache forward-invalidate start size)
 	  (end-edit-sequence)
 	  (highlight-parens)
-	  (super-after-insert))]
+	  (super-after-insert start size))]
        [on-delete
 	(lambda (start size)
-	  (and (super-on-delete)
+	  (and (super-on-delete start size)
 	       (begin
 		 (send backward-cache invalidate start)
 		 (send forward-cache forward-invalidate (+ start size) (- size))
@@ -186,8 +186,7 @@
 	(lambda (start size)
 	  (super-after-delete start size)
 	  (end-edit-sequence)
-	  (highlight-parens)
-	  (super-after-delete))]
+	  (highlight-parens))]
        [on-set-size-constraint
 	(lambda ()
 	  (and (super-on-set-size-constraint)
@@ -200,7 +199,8 @@
 	  (super-after-set-size-constraint))]
        [after-set-position 
 	(lambda ()
-	  (highlight-parens))])
+	  (highlight-parens)
+	  (super-after-set-position))])
 
       (private
 	[highlight-parens? (preferences:get 'framework:highlight-parens)]
@@ -212,12 +212,17 @@
 	[find-enclosing-paren
 	 (lambda (pos)
 	   (let loop ([pos pos])
-	     (let ([paren-pos (apply max (map (lambda (pair) (find-string (car pair) -1 pos -1 #f))
+	     (let ([paren-pos (apply max (map (lambda (pair) (find-string
+							      (car pair)
+							      'backward
+							      pos
+							      'eof
+							      #f))
 					      (scheme-paren:get-paren-pairs)))])
 	       (cond
 		 [(= -1 paren-pos) #f]
 		 [else
-		  (let ([semi-pos (find-string ";" -1 paren-pos)])
+		  (let ([semi-pos (find-string ";" 'backward paren-pos)])
 		    (cond
 		      [(or (= -1 semi-pos)
 			   (< semi-pos (paragraph-start-position
@@ -266,7 +271,8 @@
 			  (let-values
 			      ([(left right)
 				(cond
-				  [(is-right-paren? (get-character (sub1 here))) 
+				  [(and (> here 0)
+					(is-right-paren? (get-character (sub1 here))))
 				   (cond
 				     [(slash? (- here 2) (- here 1)) (k (void))]
 				     [(scheme-paren:backward-match
@@ -643,7 +649,7 @@
 		   (lambda (paren-pair)
 		     (find-string
 			   (car paren-pair)
-			   -1
+			   'backward
 			   exp-pos))])
 
 	     (if (and exp-pos (> exp-pos 0))

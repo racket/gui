@@ -3,7 +3,7 @@
 
 (lambda (filename title width-default depth-default)
   (let/ec k
-    (let*-values
+    (letrec-values
 	([(no-splash) (lambda () (k void void void))]
 	 [(splash-get-resource)
 	  (lambda (name default)
@@ -15,7 +15,7 @@
 	  (lambda (name value)
 	    (write-resource "mred" name value (find-graphical-system-path 'setup-file))
 	    )]
-	 [(_)
+	 [(_1)
 	  (begin
 	    (unless filename
 	      (no-splash))
@@ -25,7 +25,7 @@
 
 	 [(splash-width-resource) (format "~a-splash-max-width" title)]
 	 [(splash-depth-resource) (format "~a-splash-max-depth" title)]
-	 [(splash-max-width) (splash-get-resource splash-width-resource width-default)]
+	 [(splash-max-width) (max 1 (splash-get-resource splash-width-resource width-default))]
 	 [(splash-max-depth) (splash-get-resource splash-depth-resource depth-default)]
 	 
 	 [(splash-sofar-depth) 0]
@@ -69,10 +69,10 @@
 		   [(string-ci=? "pict" suffix) 'pict]
 		   [else 'xpm]))))]
 	 [(bitmap) (make-object bitmap% filename bitmap-flag)]
-	 [(_) (unless (send bitmap ok?)
+	 [(_2) (unless (send bitmap ok?)
 		(fprintf (current-error-port) "WARNING: bad bitmap ~s" filename)
 		(no-splash))]
-	 [(canvas%)
+	 [(splash-canvas%)
 	  (class canvas% args
 	    (inherit get-dc)
 	    (override
@@ -85,10 +85,14 @@
 			     (if (get-resource "mred" "splashMessages" b)
 				 (not (zero? (unbox b)))
 				 #f))]
-	 [(logo-canvas) (make-object canvas% frame)]
+	 [(panel) (make-object vertical-panel% frame)]
+	 [(logo-canvas) (make-object splash-canvas% panel)]
 	 [(h-panel) (make-object (if show-messages? horizontal-panel% vertical-panel%)
-		      frame)]
-	 [(gauge) (make-object gauge% #f splash-max-width h-panel '(vertical))]
+		      panel)]
+	 [(gauge) (make-object gauge% #f splash-max-width h-panel
+			       (if show-messages?
+				   '(vertical)
+				   '(horizontal)))]
 	 [(v-panel) (make-object vertical-panel% h-panel)]
 	 [(splash-messages)
 	  (and show-messages?
@@ -102,9 +106,12 @@
 				      (loop (sub1 n)))]))])
 		 (send (car msgs) set-label (format "Welcome to ~a" title))
 		 msgs))]
-	 [(_) (begin
-		(send frame set-alignment 'left 'center)
-		(send v-panel set-alignment 'left 'top)
+	 [(_3) (begin
+		(send frame set-alignment 'center 'center)
+		(send panel stretchable-width show-messages?)
+		(send panel stretchable-height #f)
+		(send h-panel set-alignment 'center 'top)
+		(send v-panel set-alignment 'left 'center)
 		(send logo-canvas min-width (send bitmap get-width))
 		(send logo-canvas min-height (send bitmap get-height))
 		(send logo-canvas stretchable-width #f)
@@ -137,19 +144,26 @@
 	 [(splash-load-handler)
 	  (let ([depth 0])
 	    (lambda (old-load f)
-	      (let ([finalf (splitup-path f)])
-		(set! splash-sofar-depth (max (+ depth 1) splash-sofar-depth))
-		(set! splash-current-width (+ splash-current-width 1))
-		(when (change-splash-message (format "Loading ~a..." finalf) depth #f)
-		  (when (<= splash-current-width splash-max-width)
-		    (send gauge set-value splash-current-width)))
-		(set! depth (+ depth 1))
-		(begin0
-		 (old-load f)
-		 (begin (set! depth (- depth 1))
-			(change-splash-message (format "Loading ~a...done." finalf)
-					       depth #t))))))]
-	 [(_) (current-load
+	      (let ([error? #t]
+		    [finalf (splitup-path f)])
+		(dynamic-wind
+		 (lambda () (void))
+		 (lambda ()
+		   (set! splash-sofar-depth (max (+ depth 1) splash-sofar-depth))
+		   (set! splash-current-width (+ splash-current-width 1))
+		   (when (change-splash-message (format "Loading ~a..." finalf) depth #f)
+		     (when (<= splash-current-width splash-max-width)
+		       (send gauge set-value splash-current-width)))
+		   (set! depth (+ depth 1))
+		   (begin0 (old-load f)
+			   (set! error? #f)))
+		 (lambda ()
+		   (if error?
+		       (shutdown-splash)
+		       (begin (set! depth (- depth 1))
+			      (change-splash-message (format "Loading ~a...done." finalf)
+						     depth #t))))))))]
+	 [(_4) (current-load
 	       (let ([old-load (current-load)])
 		 (lambda (f)
 		   (splash-load-handler old-load f))))]
@@ -157,7 +171,7 @@
 	  (lambda ()
 	    (set! splash-load-handler (lambda (old-load f) (old-load f)))
 	    (unless (= splash-max-width splash-current-width)
-	      (set-resource splash-width-resource splash-current-width))
+	      (set-resource splash-width-resource (max 1 splash-current-width)))
 	    (unless (= splash-max-depth splash-sofar-depth)
 	      (set-resource splash-depth-resource splash-sofar-depth)))]
 	 [(close-splash)

@@ -27,6 +27,25 @@
 	       refresh-delayed? 
 	       get-canvas
 	       get-max-width get-admin set-filename)
+
+      (rename [super-begin-edit-sequence begin-edit-sequence]
+	      [super-end-edit-sequence end-edit-sequence])
+      (private
+	[edit-sequence-count 0])
+      (override
+	[begin-edit-sequence
+	 (lambda ()
+	   (set! edit-sequence-count (+ edit-sequence-count 1))
+	   (super-begin-edit-sequence))]
+	[end-edit-sequence
+	 (lambda ()
+	   (set! edit-sequence-count (- edit-sequence-count 1))
+	   (when (< edit-sequence-count 0)
+	     (error 'end-edit-sequence "extra end-edit-sequence"))
+	   (super-end-edit-sequence))])
+
+
+
       (rename [super-set-modified set-modified]
 	      [super-on-focus on-focus]
 	      [super-lock lock])
@@ -176,7 +195,7 @@
 	[check-lock
 	 (lambda ()
 	   (let* ([filename (get-filename)]
-		  [lock? (and (not (null? filename))
+		  [lock? (and filename
 			      (file-exists? filename)
 			      (not (member
 				    'write

@@ -141,8 +141,8 @@
 			 (unless (implementation? % <%>)
 			   (let ([name (inferred-name this)])
 			     (error (or name 'frame:editor%)
-				    "result of get-editor% method must match ~e class; got: ~e"
-				    % <%>)))
+				    "result of get-editor% method must match ~e interface; got: ~e"
+				    <%> %)))
 			 (make-object %)))])
 				  
 	     
@@ -451,6 +451,7 @@
 	[super-root 'unitiaialized-super-root])
       (override
         [get-editor<%> (lambda () text:searching<%>)]
+	[get-editor% (lambda () text:searching%)]
 	[edit-menu:find (lambda (menu evt) (search))])
       (override
 	[make-root-area-container
@@ -705,7 +706,8 @@
 	     r-root))])
       
       (override
-        [get-editor<%> (lambda () text:info<%>)])
+        [get-editor<%> (lambda () text:info<%>)]
+        [get-editor% (lambda () text:info%)])
 
       (public
 	[determine-width
@@ -766,13 +768,11 @@
 		     (set! icon-currently-locked? locked-now?)
 		     (let ([label
 			    (if locked-now?
-				(cons (icon:get-lock-bdc)
-				      (icon:get-lock-bitmap))
-				(cons (icon:get-unlock-bdc)
-				      (icon:get-unlock-bitmap)))])
+				(icon:get-lock-bitmap)
+				(icon:get-unlock-bitmap))])
 		       (send lock-message
 			     set-label
-			     (if (send (car label) ok?)
+			     (if (send label ok?)
 				 label
 				 (if locked-now? "Locked" "Unlocked"))))))))))])
       (public
@@ -835,7 +835,8 @@
 	       (border 3))
 	(send* time-canvas 
 	       (set-editor time-edit)
-	       (stretchable-width #f))
+	       (stretchable-width #f)
+	       (stretchable-height #f))
 	(semaphore-wait time-semaphore)
 	(determine-width wide-time time-canvas time-edit)
 	(semaphore-post time-semaphore)
@@ -971,7 +972,6 @@
 	   "Overwrite"
 	   (get-info-panel))]
 	[position-canvas (make-object editor-canvas% (get-info-panel) #f '(no-hscroll no-vscroll))]
-	[_2 (send position-canvas set-line-count 1)]
 	[position-edit (make-object text%)])
       
       (inherit determine-width)
@@ -991,8 +991,10 @@
 	(send anchor-message show #f)
 	(send overwrite-message show #f)
 	(send* position-canvas
+	       (set-line-count 1)
 	       (set-editor position-edit)
-	       (stretchable-width #f))
+	       (stretchable-width #f)
+	       (stretchable-height #f))
 	(determine-width "0000:000-0000:000" 
 			 position-canvas
 			 position-edit)
