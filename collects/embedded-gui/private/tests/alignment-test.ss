@@ -1,0 +1,30 @@
+(require
+ (lib "class.ss")
+ (lib "etc.ss")
+ (lib "mred.ss" "mred")
+ (lib "print-debug.ss" "mike-lib")
+ "../stretchable-editor-snip.ss"
+ "../verthoriz-alignment.ss"
+ "../aligned-pasteboard.ss"
+ "../grid-alignment.ss")
+
+(define f (new frame% (label "f") (height 500) (width 500)))
+(send f show true)
+(define a1 (new aligned-pasteboard%))
+(define c (new editor-canvas% (editor a1) (parent f)))
+(define a2 (new horizontal-alignment% (parent a1)))
+(define a3 (new horizontal-alignment% (parent a1)))
+(define a4 (new grid-alignment% (parent a1) (columns 4)))
+(send a2 add (make-object string-snip% "One"))
+(send a2 add (make-object string-snip% "Two"))
+(send a3 add (make-object string-snip% "Three"))
+(send a3 add (make-object string-snip% "Four"))
+(send a4 add (vector (make-object string-snip% "This is really long")
+                     (new editor-snip% (editor (new text%)))
+                     (make-object string-snip% "short")
+                     (make-object string-snip% "meduim")))
+(send a4 add (vector (make-object string-snip% "short")
+                     (make-object string-snip% "This is really long")
+                     (new editor-snip% (editor (new text%)))
+                     (make-object string-snip% "meduim")))
+(send f show true)
