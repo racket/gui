@@ -110,9 +110,23 @@
           (define start-pos 0)
           (define end-pos 'end)
           
+          (inherit last-position)
+          
           ;; See docs
           (define/public (reset-region start end)
             (unless (and (= start start-pos) (eqv? end end-pos))
+              (unless (<= 0 start (last-position))
+                (raise-mismatch-error 'reset-region
+                                      "start position not inside editor: "
+                                      start))
+              (unless (or (eq? 'end end) (<= 0 end (last-position)))
+                (raise-mismatch-error 'reset-region
+                                      "end position not inside editor: "
+                                      end))
+              (unless (or (eq? 'end end) (<= start end))
+                (raise-mismatch-error 'reset-region
+                                      "end position before start position: "
+                                      (list end start)))
               (set! start-pos start)
               (set! end-pos end)
               (reset-tokens)
@@ -553,9 +567,7 @@
             (when (and (not up-to-date?) (<= current-pos position))
               (colorer-driver)
               (tokenize-to-pos position)))
-          
-          (inherit last-position)
-          
+                    
           ;; See docs
           (define/public (skip-whitespace position direction comments?)
             (when stopped?
