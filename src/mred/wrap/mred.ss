@@ -584,7 +584,7 @@
 
 (define (queue-window-callback w cb)
   (parameterize ([wx:current-eventspace (ivar (send w get-top-level) eventspace)])
-    (wx:queue-callback cb)))
+    (wx:queue-callback cb wx:middle-queue-key)))
 
 (define wx<%> (interface () get-mred))
 (define wx/proxy<%> (interface (wx<%>) get-proxy))
@@ -667,12 +667,10 @@
 
 (wx:application-file-handler (lambda (f)
 			       (when active-frame
-				 (let* ([e (ivar active-frame eventspace)]
-					[p (wx:eventspace-parameterization e)])
-				   (parameterize ([wx:current-eventspace e])
-				     (wx:queue-callback
-				      (lambda () (when (ivar active-frame accept-drag?)
-						   (send active-frame on-drop-file f)))))))))
+				 (queue-window-callback
+				  active-frame
+				  (lambda () (when (ivar active-frame accept-drag?)
+					       (send active-frame on-drop-file f)))))))
 
 (define (make-top-level-window-glue% %) ; implies make-window-glue%
   (class (make-window-glue% %) (mred proxy . args)
