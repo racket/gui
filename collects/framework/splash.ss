@@ -102,12 +102,12 @@
   (let ([addl-load-handler
          (and (not (getenv "PLTDRDEBUG"))
               (getenv "PLTDRCM")
-              (dynamic-require '(lib "cm.ss") 'make-compilation-manager-load/use-compiled-handler))])
+              (parameterize ([current-namespace (make-namespace)])
+                (dynamic-require '(lib "cm.ss") 'make-compilation-manager-load/use-compiled-handler)))])
     (current-load
      (let ([old-load (current-load)])
        (lambda (f expected)
          (splash-load-handler old-load f expected))))
-    
     
     ;; abstraction breaking -- matthew will change cm
     ;; so that I don't need this here.
