@@ -4640,6 +4640,12 @@
       (send f show #t)
       result)]))
 
+(define (number->string* n)
+  (let ([s (number->string n)])
+    (regexp-replace "[.]([0-9][0-9][0-9])[0-9]*$"
+		    s
+		    ".\\1")))
+
 (define get-ps-setup-from-user
   (case-lambda
    [() (get-ps-setup-from-user #f #f #f null)]
@@ -4672,14 +4678,10 @@
     (define orientation (make-object radio-box% "Orientation:" '("Portrait" "Landscape") dp void))
     (define destination (and unix? (make-object radio-box% "Destination:" 
 						'("Printer" "Preview" "File") dp void)))
-    (define cp (and unix? (make-object horizontal-pane% f)))
-    (define command (and unix? (make-object text-field% "Printer Command:" cp void)))
-    (define options (and unix? (make-object text-field% "Printer Options:" cp void)))
-
     (define ssp (make-object horizontal-pane% f))
     (define sp (make-object vertical-pane% ssp))
-    (define def-scale "100.00")
-    (define def-offset "0000.00")
+    (define def-scale "0100.000")
+    (define def-offset "0000.000")
     (define xscale (make-object text-field% "Horizontal Scale:" sp void def-scale))
     (define xoffset (make-object text-field% "Horizontal Translation:" sp void def-offset))
     (define sp2 (make-object vertical-pane% ssp))
@@ -4687,6 +4689,10 @@
     (define yoffset (make-object text-field% "Vertical Translation:" sp2 void def-offset))
 
     (define l2 (make-object check-box% "PostScript Level 2" f void))
+
+    (define cp (and unix? (make-object horizontal-pane% f)))
+    (define command (and unix? (make-object text-field% "Print Command:" cp void)))
+    (define vcommand (and unix? (make-object text-field% "Preview Command:" f void)))
 
     (define ok? #f)
     (define (done ?)
@@ -4701,16 +4707,16 @@
       (send destination set-selection (case (send pss get-mode)
 					[(printer) 0] [(preview) 1] [(file) 2]))
       (send command set-value (send pss get-command))
-      (send options set-value (send pss get-options)))
+      (send vcommand set-value (send pss get-preview-command)))
 
     (send sp set-alignment 'right 'top)
     (send sp2 set-alignment 'right 'top)
     (send pss get-scaling xsb ysb)
-    (send xscale set-value (number->string (unbox xsb)))
-    (send yscale set-value (number->string (unbox ysb)))
+    (send xscale set-value (number->string* (unbox xsb)))
+    (send yscale set-value (number->string* (unbox ysb)))
     (send pss get-translation xtb ytb)
-    (send xoffset set-value (number->string (unbox xtb)))
-    (send yoffset set-value (number->string (unbox ytb)))
+    (send xoffset set-value (number->string* (unbox xtb)))
+    (send yoffset set-value (number->string* (unbox ytb)))
     (send xscale stretchable-width #f)
     (send yscale stretchable-width #f)
     (send xoffset stretchable-width #f)
@@ -4745,7 +4751,7 @@
 	  
 	  (when (eq? (system-type) 'unix)
 	    (send s set-command (send command get-value))
-	    (send s set-options (send options get-value)))
+	    (send s set-preview-command (send vcommand get-value)))
 
 	  s)
 	#f)]))
