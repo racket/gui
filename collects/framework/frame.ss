@@ -237,8 +237,9 @@
       (public
 	[save-as
 	 (opt-lambda ([format 'same])
-	   (let ([file (parameterize ([finder:dialog-parent-parameter this])
-			 (finder:put-file))])
+	   (let* ([name (send (get-editor) get-filename)]
+                  [file (parameterize ([finder:dialog-parent-parameter this])
+                          (finder:put-file name))])
 	     (when file
 	       (send (get-editor) save-file file format))))])
       (inherit get-menu-item%)
