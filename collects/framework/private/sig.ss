@@ -163,6 +163,9 @@
     (basic-mixin
      basic<%>
 
+     delegate-mixin
+     delegate<%>
+     
      info-mixin
      info<%>
 

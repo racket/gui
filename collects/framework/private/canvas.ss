@@ -18,6 +18,17 @@
 	(mixin ((class->interface editor-canvas%)) (basic<%>)
           (super-instantiate ())))
       
+      (define delegate<%> (interface (basic<%>)))
+
+      (define delegate-mixin
+        (mixin (basic<%>) (delegate<%>)
+          (rename [super-on-superwindow-show on-superwindow-show])
+          (inherit get-top-level-window)
+          (define/override (on-superwindow-show shown?)
+            (send (send (get-top-level-window) get-delegatee) set-start/end-para #f #f)
+            (super-on-superwindow-show shown?))
+          (super-instantiate ())))
+      
       (define info<%> (interface (basic<%>)))
       ;; (basic<%> -> (class (is-a? (send this get-top-level-window) frame:info<%>)))
       (define info-mixin 
@@ -169,4 +180,5 @@
 
       (define basic% (basic-mixin editor-canvas%))
       (define info% (info-mixin basic%))
+      (define delegat% (delegate-mixin basic%))
       (define wide-snip% (wide-snip-mixin basic%)))))

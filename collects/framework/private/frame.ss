@@ -888,6 +888,10 @@
           (rename [super-on-event on-event])
           (init-field delegate-frame)
           (inherit get-editor get-dc)
+          (rename [super-on-superwindow-show on-superwindow-show])
+          (define/override (on-superwindow-show shown?)
+            (send (send delegate-frame get-delegatee) set-start/end-para #f #f)
+            (super-on-superwindow-show shown?))
           (define/override (on-event evt)
             (super-on-event evt)
             (when (and delegate-frame
@@ -908,27 +912,33 @@
         (class text:basic%
           (rename [super-on-paint on-paint])
           (inherit get-admin)
-          (define start-para 0)
-          (define end-para 0)
+          (define start-para #f)
+          (define end-para #f)
           (define view-x-b (box 0))
           (define view-width-b (box 0))
           (inherit paragraph-start-position position-location invalidate-bitmap-cache)
+
+          ;; set-start/end-para : (union (#f #f -> void) (number number -> void))
           (define/public (set-start/end-para _start-para _end-para)
-            (unless (and (= _start-para start-para)
-                         (= _end-para end-para))
+            (unless (and (equal? _start-para start-para)
+                         (equal? _end-para end-para))
               (let ([old-start-para start-para]
                     [old-end-para end-para])
                 (set! start-para _start-para)
                 (set! end-para _end-para)
-                (let-values ([(x y w h) (get-rectangle old-start-para old-end-para)])
-                  (when x
-                    (invalidate-bitmap-cache x y w h)))
-                (let-values ([(x y w h) (get-rectangle start-para end-para)])
-                  (when x
-                    (invalidate-bitmap-cache x y w h))))))
+                (when (and old-start-para old-end-para)
+                  (let-values ([(x y w h) (get-rectangle old-start-para old-end-para)])
+                    (when x
+                      (invalidate-bitmap-cache x y w h))))
+                (when (and start-para end-para)
+                  (let-values ([(x y w h) (get-rectangle start-para end-para)])
+                    (when x
+                      (invalidate-bitmap-cache x y w h)))))))
 
           (define/override (on-paint before? dc left top right bottom dx dy draw-caret)
-            (when before?
+            (when (and before?
+                       start-para
+                       end-para)
               (let ([old-pen (send dc get-pen)]
                     [old-brush (send dc get-brush)])
                 (send dc set-pen
@@ -1037,6 +1047,8 @@
               (send delegatee set-start/end-para
                     (send delegate-text position-paragraph (unbox startb)) 
                     (send delegate-text position-paragraph (unbox endb)))))
+
+          (define/public (get-delegatee) delegatee)
 
           (super-instantiate ())
           
