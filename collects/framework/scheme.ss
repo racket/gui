@@ -81,6 +81,7 @@
       (inherit begin-edit-sequence
 	       delete
 	       end-edit-sequence
+	       local-edit-sequence?
 	       find-string
 	       get-character
 	       get-keymap
@@ -128,7 +129,9 @@
 	[forward-cache (make-object match-cache:%)])
       
       (private
-	[in-highlight-parens? #f])
+	[in-highlight-parens? #f]
+	[delay-highlight? (lambda () (local-edit-sequence?))])
+			    
 
       (inherit get-styles-fixed)
       (rename [super-on-focus on-focus]
@@ -146,39 +149,45 @@
 	  (highlight-parens (not on?)))]
        [after-change-style
 	(lambda (start len)
-	  (unless (get-styles-fixed)
-	    (when (has-focus?)
-	      (highlight-parens)))
+	  (unless (delay-highlight?)
+	    (unless (get-styles-fixed)
+	      (when (has-focus?)
+		(highlight-parens))))
 	  (super-after-change-style start len))]
        [after-edit-sequence
 	(lambda ()
-	  (when (has-focus?)
-	    (unless in-highlight-parens?
-	      (highlight-parens)))
-	  (super-after-edit-sequence))]
+	  (super-after-edit-sequence)
+	  (unless (delay-highlight?)
+	    (when (has-focus?)
+	      (unless in-highlight-parens?
+		(highlight-parens)))))]
        [after-insert
 	(lambda (start size)
 	  (send backward-cache invalidate start)
 	  (send forward-cache forward-invalidate start size)
-	  (when (has-focus?)
-	    (highlight-parens))
+	  (unless (delay-highlight?)
+	    (when (has-focus?)
+	      (highlight-parens)))
 	  (super-after-insert start size))]
        [after-delete
 	(lambda (start size)
 	  (super-after-delete start size)
 	  (send backward-cache invalidate start)
 	  (send forward-cache forward-invalidate (+ start size) (- size))
-	  (when (has-focus?)
-	    (highlight-parens)))]
+	  (unless (delay-highlight?)
+	    (when (has-focus?)
+	      (highlight-parens))))]
        [after-set-size-constraint
 	(lambda ()
-	  (when (has-focus?)
-	    (highlight-parens))
+	  (unless (delay-highlight?)
+	    (when (has-focus?)
+	      (highlight-parens)))
 	  (super-after-set-size-constraint))]
        [after-set-position 
 	(lambda ()
-	  (when (has-focus?)
-	    (highlight-parens))
+	  (unless (delay-highlight?)
+	    (when (has-focus?)
+	      (highlight-parens)))
 	  (super-after-set-position))])
 
       (private
