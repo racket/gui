@@ -1,6 +1,8 @@
 (define mred:exit@
   (unit/sig mred:exit^
-    (import [mred:debug : mred:debug^])
+    (import [mred:debug : mred:debug^]
+	    [mred:preferences : mred:preferences^]
+	    [mred:gui-utils : mred:gui-utils^])
     (rename (-exit exit))
 
     (mred:debug:printf 'invoke "mred:exit@")
@@ -23,15 +25,27 @@
 
     (define -exit
       (lambda ()
-	(set! exit-callbacks
-	      (let loop ([cb-list exit-callbacks])
-		(cond
-		 [(null? cb-list) ()]
-		 [(not ((car cb-list))) cb-list]
-		 [else (loop (cdr cb-list))])))
-	(if (null? exit-callbacks)
-	    (begin (when mred:debug:exit?
-		     (exit))
-		   #t)
-	    #f)))))
+	(let/ec k
+	  (when (and (mred:preferences:get-preference 'mred:verify-exit)
+		     (not (let ([w (if (eq? wx:platform 'macintosh)
+				       "quit"
+				       "exit")]
+				[capW (if (eq? wx:platform 'macintosh)
+					  "Quit"
+					  "Exit")])
+			    (mred:gui-utils:get-choice
+			     (string-append "Are you sure you want to " w "?")
+			     capW "Cancel"))))
+		     (k #f))
+	  (set! exit-callbacks
+		(let loop ([cb-list exit-callbacks])
+		  (cond
+		   [(null? cb-list) ()]
+		   [(not ((car cb-list))) cb-list]
+		   [else (loop (cdr cb-list))])))
+	  (if (null? exit-callbacks)
+	      (begin (when mred:debug:exit?
+		       (exit))
+		     #t)
+	      #f))))))
 

@@ -30,10 +30,11 @@
     (define unmarshall
       (lambda (p marshalled)
 	(let/ec k
-	  (let ([unmarshall (un/marshall-unmarshall (hash-table-get marshall-unmarshall
-						   p
-						   (lambda () (k marshalled))))])
-	    (unmarshall (marshalled-data marshalled))))))
+	  (let* ([data (marshalled-data marshalled)]
+		 [unmarshall-fn (un/marshall-unmarshall (hash-table-get marshall-unmarshall
+						        p
+							(lambda () (k data))))])
+	    (unmarshall-fn data)))))
 
     (define add-preference-callback
       (lambda (p callback)
@@ -63,12 +64,17 @@
 					     ((debug-info-handler))))))])
 	  (cond
 	    [(marshalled? ans)
-	     (let* ([marshalled (marshalled-data ans)]
-		    [unmarshalled (unmarshall p marshalled)]
+	     (let* ([unmarshalled (unmarshall p ans)]
 		    [pref (make-pref unmarshalled null)])
 	       (hash-table-put! preferences p pref)
+	       (mred:debug:printf 'prefs "get-preference.1 returning ~a as ~a"
+				  p unmarshalled)
 	       unmarshalled)]
-	    [(pref? ans) (pref-value ans)]
+	    [(pref? ans)
+	     (let ([ans (pref-value ans)])
+	       (mred:debug:printf 'prefs "get-preference.2 returning ~a as ~a"
+				  p ans)
+	       ans)]
 	    [else (error 'prefs.ss "robby error.1: ~a" ans)]))))
     
     (define set-preference
@@ -88,6 +94,10 @@
 			  (hash-table-put! preferences p (make-pref value null))))
 	(set! defaults (cons (list p value) defaults))))
     
+    ;; this is here becuase exit has to come before
+    ;; prefs.ss in the loading order.
+    (set-preference-default 'mred:verify-exit #t)
+
     (define set-preference-un/marshall
       (lambda (p marshall unmarshall)
 	(hash-table-put! marshall-unmarshall p (make-un/marshall marshall unmarshall))))
@@ -115,12 +125,12 @@
 		    (list p marshalled))]
 		 [else (error 'prefs.ss "robby error.2: ~a" ht-value)]))])
 	(lambda () 
-	  (mred:debug:printf 'startup "saving user preferences")
+	  (mred:debug:printf 'prefs "saving user preferences")
 	  (call-with-output-file preferences-filename
 	    (lambda (p)
 	      (write (hash-table-map preferences marshall-pref) p))
 	      'replace)	  
-	  (mred:debug:printf 'startup "saved user preferences"))))
+	  (mred:debug:printf 'prefs "saved user preferences"))))
     
     (mred:exit:insert-exit-callback save-user-preferences)
 
@@ -142,12 +152,12 @@
 		      (hash-table-put! preferences p (make-marshalled marshalled))]
 		     [else (error 'prefs.ss "robby error.3: ~a" ht-pref)]))))])
 	(lambda ()
-	  (mred:debug:printf 'startup "reading user preferences")
+	  (mred:debug:printf 'prefs "reading user preferences")
 	  (when (file-exists? preferences-filename)
 	    (let ([input (call-with-input-file preferences-filename read)])
 	      (when (list? input)
 		(for-each (lambda (x) (apply parse-pref x)) input))))
-	  (mred:debug:printf 'startup "read user preferences"))))
+	  (mred:debug:printf 'prefs "read user preferences"))))
     
     (define-struct ppanel (title container))
     
@@ -177,6 +187,24 @@
 							   (set-preference 'mred:delete-forward? (not (send command checked?))))
 							 "Remap delete to backspace?")])
 				       (send c set-value (not (get-preference 'mred:delete-forward?)))
+				       c)
+				     (panel #t #t)))
+			      (horizontal-panel 
+			       #t #f
+			       (list (let ([c (check-box (lambda (_ command) 
+							   (set-preference 'mred:file-dialogs (if (send command checked?)
+											       'common
+											       'std)))
+							 "Use platform-specific File Dialogs?")])
+				       (send c set-value (eq? (get-preference 'mred:file-dialogs) 'common))
+				       c)
+				     (panel #t #t)))
+			      (horizontal-panel 
+			       #t #f
+			       (list (let ([c (check-box (lambda (_ command) 
+							   (set-preference 'mred:verify-exit (send command checked?)))
+							 "Verify Exit?")])
+				       (send c set-value (get-preference 'mred:verify-exit))
 				       c)
 				     (panel #t #t)))))))))
 
