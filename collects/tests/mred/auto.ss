@@ -22,6 +22,10 @@
   (lambda (vals obj method . args)
     `(test ,vals ',method (call-with-values (lambda () (send ,obj ,method ,@args)) list))))
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;                           Windowing Tests                                  ;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 (define-macro FAILS void)
 
 (define (pause)
@@ -935,13 +939,20 @@
 	   [panel (if %
 		      (make-object % frame)
 		      frame)])
-      (when show? (send frame show #t))
-      (test-controls panel frame)
-      (if win?
-	  ((if % containee-window-tests window-tests) panel #t #t (and % frame) frame 0)
-	  (area-tests panel #t #t #f))
-      (container-tests panel win?)
-      (send frame show #f)))
+      (let ([go
+	     (lambda ()
+	       (test-controls panel frame)
+	       (if win?
+		   ((if % containee-window-tests window-tests) panel #t #t (and % frame) frame 0)
+		   (area-tests panel #t #t #f))
+	       (container-tests panel win?)
+	       (send frame show #f))])
+	(when (eq? show? 'dialog)
+	  (queue-callback go))
+	(when show?
+	  (send frame show #t))
+	(unless (eq? show? 'dialog)
+	  (go)))))
   (panel-test #f #t)
   (panel-test vertical-pane% #f)
   (panel-test horizontal-pane% #f)
@@ -951,6 +962,79 @@
 (panel-tests dialog% #f)
 (panel-tests frame% #t)
 (panel-tests frame% #f)
+(panel-tests dialog% 'dialog)
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;                            Editor Tests                                    ;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;;;;;; Undo tests
+
+(define e (make-object text%))
+(stv e insert "Hello")
+(st #t e is-modified?)
+(stv e undo)
+(st #f e is-modified?)
+(stv e redo)
+(st #t e is-modified?)
+(stv e set-modified #f)
+(st #f e is-modified?)
+(stv e undo)
+(st #t e is-modified?)
+(stv e redo)
+(st #f e is-modified?)
+(stv e undo)
+(st #t e is-modified?)
+(stv e redo)
+(st #f e is-modified?)
+(stv e undo)
+(stv e set-modified #f)
+(st #f e is-modified?)
+(stv e redo)
+(st #t e is-modified?)
+(st "Hello" e get-text)
+(define undone? #f)
+(stv e add-undo (make-object (class editor-undo% ()
+			       (override
+				 [undo
+				  (lambda (e2)
+				    (test e 'undo e2)
+				    (set! undone? #t)
+				    (send e add-undo this) ; reinstall self!
+				    #f)])
+			       (sequence
+				 (super-init)))))
+(stv e undo)
+(st "Hello" e get-text)
+(test #t 'undone? undone?)
+(stv e undo)
+(st "" e get-text)
+(set! undone? #f)
+(stv e redo)
+(st "Hello" e get-text)
+(test #f 'undone? undone?)
+(stv e redo)
+(st "Hello" e get-text)
+(test #t 'undone? undone?)
+(set! undone? #f)
+(stv e redo)
+(st "Hello" e get-text)
+(test #f 'undone? undone?)
+(stv e insert "x")
+(st "Hellox" e get-text)
+(stv e add-undo (make-object (class editor-undo% ()
+			       (override
+				 [undo
+				  (lambda (e2)
+				    (set! undone? #t)
+				    #t)]) ; do next one, too
+			       (sequence
+				 (super-init)))))
+(stv e undo)
+(test #t 'undone? undone?)
+(st "Hello" e get-text)
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (newline)
 (if (null? errs)

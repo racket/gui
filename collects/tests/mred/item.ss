@@ -149,7 +149,7 @@
 		   [y (send e get-y)]
 		   [m (if (or (null? last-m)
 			      (send e button-down? 'left))
-			  (let ([m (make-object popup-menu% "Title")]
+			  (let ([m (make-object popup-menu% "T&itle")]
 				[make-callback 
 				 (let ([id 0])
 				   (lambda ()
