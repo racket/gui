@@ -258,6 +258,18 @@
 	       (set! pre-on (add-pre-note this ep))
 	       (set! el (add-enter/leave-note this ep)))])))
 
+(define (trace-mixin c%)
+  (class c% (name . args)
+    (override
+      [on-superwindow-show
+       (lambda (on?)
+	 (printf "~a ~a~n" name (if on? "show" "hide")))]
+      [on-superwindow-enable
+       (lambda (on?)
+	 (printf "~a ~a~n" name (if on? "on" "off")))])
+    (sequence
+      (apply super-init name args))))
+
 (define (make-ctls ip cp lp add-testers ep radio-h? label-h? null-label? stretchy?)
   
   (define return-bmp 
@@ -279,8 +291,8 @@
       (send p stretchable-height stretchy?)
       
       (let ()
-	(define l (make-object message% "Me&ssage" p))
-	(define il (make-object message% return-bmp p))
+	(define l (make-object (trace-mixin message%) "Me&ssage" p))
+	(define il (make-object (trace-mixin message%) return-bmp p))
 	
 	(add-testers "Message" l)
 	(add-change-label "Message" l lp #f OTHER-LABEL)
@@ -290,26 +302,27 @@
 	
 	(values l il))))
   
-  (define b (make-object button% "He&llo" ip 
+  (define b (make-object (trace-mixin button%)
+			 "He&llo" ip 
 			 (lambda (b e)
 			   (send b enable #f)
 			   (sleep/yield 5)
 			   (send b enable #t))))
   
-  (define ib (make-object button% bb-bmp ip void))
+  (define ib (make-object (trace-mixin button%) bb-bmp ip void))
   
   ; (define ib2 (make-object button% return-bmp ip void))
   
-  (define lb (make-object list-box%
+  (define lb (make-object (trace-mixin list-box%)
 			  (if null-label? #f "L&ist")
 			  '("Apple" "Banana" "Coconut & Donuts" "Eclair" "French Fries" "Gatorade" "Huevos Rancheros")
 			  ip void))
   
-  (define cb (make-object check-box% "C&heck" ip void))
+  (define cb (make-object (trace-mixin check-box%) "C&heck" ip void))
   
-  (define icb (make-object check-box% mred-bmp ip void))
+  (define icb (make-object (trace-mixin check-box%) mred-bmp ip void))
   
-  (define rb (make-object radio-box%
+  (define rb (make-object (trace-mixin radio-box%)
 			  (if null-label? #f "R&adio")
 			  '("First" "Dos" "T&rio")
 			  ip void 
@@ -317,7 +330,7 @@
 			      '(horizontal)
 			      '(vertical))))
   
-  (define irb (make-object radio-box%
+  (define irb (make-object (trace-mixin radio-box%)
 			   (if null-label? #f "Image Ra&dio")
 			   (list return-bmp nruter-bmp)
 			    ip void 
@@ -325,12 +338,12 @@
 				'(horizontal)
 				'(vertical))))
   
-  (define ch (make-object choice% 
+  (define ch (make-object (trace-mixin choice%)
 			  (if null-label? #f "Ch&oice")
 			  '("Alpha" "Beta" "Gamma" "Delta & Rest")
 			  ip void))
   
-  (define txt (make-object text-field%
+  (define txt (make-object (trace-mixin text-field%)
 			   (if null-label? #f "T&ext")
 			   ip void
 			   "initial & starting"))
