@@ -866,10 +866,10 @@
 			 (make-std-buffer% 
 			  mred:connections:connections-media-edit%)))
 
-    (define info-edit% (make-info-edit% media-edit%))
+    (define searching-edit% (make-searching-edit% media-edit%))
 
-    (define searching-edit% (make-searching-edit% info-edit%))
-    (define clever-file-format-edit% (make-clever-file-format-edit% searching-edit%))
+    (define info-edit% (make-info-edit% searching-edit%))
+    (define clever-file-format-edit% (make-clever-file-format-edit% info-edit%))
     (define file-edit% (make-file-buffer% clever-file-format-edit%))
     (define backup-autosave-edit% (make-backup-autosave-buffer% file-edit%))
 
