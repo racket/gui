@@ -862,18 +862,17 @@
                     (bell))
                 #t))]
           
-          [define select-text
-            (lambda (f forward?)
-              (let* ([start-pos (get-start-position)]
-                     [end-pos (get-end-position)])
-                (let-values ([(new-start new-end)
-                              (if forward?
-                                  (values start-pos (f end-pos))
-                                  (values (f start-pos) end-pos))])
-                  (if (and new-start new-end) 
-                      (set-position new-start new-end)
-                      (bell))
-                  #t)))]
+          (define/private (select-text f forward?)
+            (let* ([start-pos (get-start-position)]
+                   [end-pos (get-end-position)])
+              (let-values ([(new-start new-end)
+                            (if forward?
+                                (values start-pos (f end-pos))
+                                (values (f start-pos) end-pos))])
+                (if (and new-start new-end) 
+                    (set-position new-start new-end)
+                    (bell))
+                #t)))
           (public select-forward-sexp select-backward-sexp select-up-sexp select-down-sexp
                   transpose-sexp mark-matching-parenthesis)
           

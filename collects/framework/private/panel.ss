@@ -130,24 +130,21 @@
             (lambda ()
               horizontal-panel%)]
           
-          (public split-vertically split-horizontally)
-          
-          [define split
-            (lambda (p%)
-              (let ([canvas (send (send parent get-top-level-window) get-edit-target-window)]
-                    [ec% (get-editor-canvas%)])
-                (when (and canvas
-                           (is-a? canvas ec%)
-                           (eq? (send canvas get-editor) editor))
-                  (let ([p (send canvas get-parent)])
-                    (send p change-children (lambda (x) null))
-                    (let ([pc (make-object p% p)])
-                      (send (make-object ec% (make-object vertical-panel% pc) editor) focus)
-                      (make-object ec% (make-object vertical-panel% pc) editor))))))]
-          [define split-vertically
+          (define/private (split p%)
+            (let ([canvas (send (send parent get-top-level-window) get-edit-target-window)]
+                  [ec% (get-editor-canvas%)])
+              (when (and canvas
+                         (is-a? canvas ec%)
+                         (eq? (send canvas get-editor) editor))
+                (let ([p (send canvas get-parent)])
+                  (send p change-children (lambda (x) null))
+                  (let ([pc (make-object p% p)])
+                    (send (make-object ec% (make-object vertical-panel% pc) editor) focus)
+                    (make-object ec% (make-object vertical-panel% pc) editor))))))
+          [define/public split-vertically
             (lambda ()
               (split (get-vertical%)))]
-          [define split-horizontally
+          [define/public split-horizontally
             (lambda ()
               (split (get-horizontal%)))]
           

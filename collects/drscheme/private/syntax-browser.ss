@@ -72,46 +72,34 @@ needed to really make this work:
 
       ;; range-ht : hash-table[obj -o> (listof (cons number number))]
       (define range-ht (make-hash-table))
-      (define (range-pretty-print-pre-hook x v)
-        (hash-table-put! range-start-ht x (send output-text last-position)))
-      (define (range-pretty-print-post-hook x port)
-        (let ([range-start (hash-table-get range-start-ht x (lambda () #f))])
-          (when range-start
-            (hash-table-put! range-ht x 
-                             (cons
-                              (cons
-                               range-start
-                               (send output-text last-position))
-                              (hash-table-get range-ht x (lambda () null)))))))
       
-      (define (make-modern text)
+      (define/private (make-modern text)
         (send text change-style
               (make-object style-delta% 'change-family 'modern)
               0
               (send text last-position)))
       
-      (define dummy
-        (begin (parameterize ([current-output-port output-port]
-                              [pretty-print-pre-print-hook range-pretty-print-pre-hook]
-                              [pretty-print-post-print-hook range-pretty-print-post-hook]
-                              [pretty-print-columns 30])
-                 (pretty-print datum))
-               (make-modern output-text)))
+      (let ([range-pretty-print-pre-hook 
+             (lambda (x v)
+               (hash-table-put! range-start-ht x (send output-text last-position)))]
+            [range-pretty-print-post-hook 
+             (lambda (x port)
+               (let ([range-start (hash-table-get range-start-ht x (lambda () #f))])
+                 (when range-start
+                   (hash-table-put! range-ht x 
+                                    (cons
+                                     (cons
+                                      range-start
+                                      (send output-text last-position))
+                                     (hash-table-get range-ht x (lambda () null)))))))])
+        (parameterize ([current-output-port output-port]
+                       [pretty-print-pre-print-hook range-pretty-print-pre-hook]
+                       [pretty-print-post-print-hook range-pretty-print-post-hook]
+                       [pretty-print-columns 30])
+          (pretty-print datum)
+          (make-modern output-text)))
       
-      (define ranges 
-        (quicksort 
-         (apply append 
-                (hash-table-map
-                 range-ht
-                 (lambda (k vs)
-                   (map 
-                    (lambda (v) (make-range k (car v) (cdr v)))
-                    vs))))
-         (lambda (x y)
-           (>= (- (range-end x) (range-start x))
-               (- (range-end y) (range-start y))))))
-      
-      (define (show-info stx)
+      (define/private (show-info stx)
         (insert/big "General Info\n")
         (piece-of-info "Source" (syntax-source stx))
         (piece-of-info "Source module" (syntax-source-module stx))
@@ -131,7 +119,7 @@ needed to really make this work:
 	     (lambda (prop) (show-property stx prop))
 	     properties))))
       
-      (define (render-mpi mpi)
+      (define/private (render-mpi mpi)
         (string-append
          "#<module-path-index "
          (let loop ([mpi mpi])
@@ -147,46 +135,45 @@ needed to really make this work:
              [else (format "~s" mpi)]))
          ">"))
       
-      (define (show-property stx prop)
+      (define/private (show-property stx prop)
         (piece-of-info (format "'~a" prop) (syntax-property stx prop)))
       
-      (define (piece-of-info label info)
-        (insert/bold label)
-        (newline info-port)
-        
-        ;; should just be using generic `print'
-        ;; but won't work without built-in support for
-        ;; editors as output ports
-        (parameterize ([pretty-print-size-hook
-                        (lambda (val d/p port)
-                          (if (is-a? val syntax-snip%)
-                              (+ (string-length (format "~a" (send val get-syntax))) 2)
-                              #f))]
-                       [pretty-print-print-hook
-                        (lambda (val d/p port)
-                          (send info-text insert (send val copy) 
-                                (send info-text last-position)
-                                (send info-text last-position)))])
-          (pretty-print (replace-syntaxes info) info-port))
-        
-        (optional-newline)
-        (small-newline info-port info-text))
+      (define/private (piece-of-info label info)
+        (let ([small-newline 
+               (lambda (port text)
+                 (let ([before-newline (send text last-position)])
+                   (newline port)
+                   (send info-text change-style small-style before-newline (+ before-newline 1))))])
+          
+          (insert/bold label)
+          (newline info-port)
+          
+          ;; should just be using generic `print'
+          ;; but won't work without built-in support for
+          ;; editors as output ports
+          (parameterize ([pretty-print-size-hook
+                          (lambda (val d/p port)
+                            (if (is-a? val syntax-snip%)
+                                (+ (string-length (format "~a" (send val get-syntax))) 2)
+                                #f))]
+                         [pretty-print-print-hook
+                          (lambda (val d/p port)
+                            (send info-text insert (send val copy) 
+                                  (send info-text last-position)
+                                  (send info-text last-position)))])
+            (pretty-print (replace-syntaxes info) info-port))
+          
+          (optional-newline)
+          (small-newline info-port info-text)))
       
-      (define (small-newline port text)
-        (let ([before-newline (send text last-position)])
-          (newline port)
-          (send info-text change-style small-style before-newline (+ before-newline 1))))
-      
-      (define small-style (make-object style-delta% 'change-size 4))
-
-      (define (replace-syntaxes obj)
+      (define/private (replace-syntaxes obj)
         (cond
           [(cons? obj) (cons (replace-syntaxes (car obj))
                              (replace-syntaxes (cdr obj)))]
           [(syntax? obj) (make-object syntax-snip% obj)]
           [else obj]))
       
-      (define (insert/bold str)
+      (define/private (insert/bold str)
         (let ([pos (send info-text last-position)])
           (send info-text insert str 
                 (send info-text last-position)
@@ -196,7 +183,7 @@ needed to really make this work:
                 pos 
                 (send info-text last-position))))
       
-      (define (insert/big str)
+      (define/private (insert/big str)
         (let ([sd (make-object style-delta% 'change-bold)])
           (send sd set-delta-foreground "Navy")
           (let ([pos (send info-text last-position)])
@@ -208,13 +195,13 @@ needed to really make this work:
                   pos 
                   (send info-text last-position)))))
       
-      (define (optional-newline)
+      (define/private (optional-newline)
         (unless (equal?
                  (send info-text get-character (- (send info-text last-position) 1))
                  #\newline)
           (send info-text insert "\n" (send info-text last-position))))
       
-      (define (show-range stx start end)
+      (define/private (show-range stx start end)
         (send output-text begin-edit-sequence)
         (send output-text lock #f)
         (send output-text change-style black-style-delta 0 (send output-text last-position))
@@ -260,7 +247,7 @@ needed to really make this work:
       (define details-shown? #t)
       
       (inherit show-border set-tight-text-fit)
-      (define (hide-details)
+      (define/private (hide-details)
         (when details-shown?
           (send outer-t lock #f)
           (show-border #f)
@@ -270,7 +257,7 @@ needed to really make this work:
           (send outer-t lock #t)
           (set! details-shown? #f)))
       
-      (define (show-details)
+      (define/private (show-details)
         (unless details-shown?
           (send outer-t lock #f)
           (show-border #t)
@@ -284,47 +271,61 @@ needed to really make this work:
           (send outer-t lock #t)
           (set! details-shown? #t)))
       
-      (for-each
-       (lambda (range)
-         (let* ([obj (range-obj range)]
-                [stx (hash-table-get stx-ht obj (lambda () #f))]
-                [start (range-start range)]
-                [end (range-end range)])
-           (when (syntax? stx)
-             (send output-text set-clickback start end 
-                   (lambda (_1 _2 _3)
-                     (show-range stx start end))))))
-       ranges)
-      
-      (send outer-t insert (make-object turn-snip% hide-details show-details))
-      (send outer-t insert (format "~s\n" main-stx))
-      (send outer-t insert inner-es)
-      (make-modern outer-t)
-      
-      (send inner-t insert (instantiate editor-snip% ()
-                             (editor output-text)
-                             (with-border? #f)
-                             (left-margin 0)
-                             (top-margin 0)
-                             (right-margin 0)
-                             (bottom-margin 0)
-                             (left-inset 0)
-                             (top-inset 0)
-                             (right-inset 0)
-                             (bottom-inset 0)))
-      (send inner-t insert (make-object editor-snip% info-text))
-      (send inner-t change-style (make-object style-delta% 'change-alignment 'top) 0 2)
-      
-      (send info-text auto-wrap #t)
-      (send info-text set-styles-sticky #f)
-      (let/ec k
-        (when (null? ranges)
-          (k (void)))
-        (let* ([rng (car ranges)]
-               [obj (hash-table-get stx-ht (range-obj rng) 
-                                    (lambda ()
-                                      (k (void))))])
-          (show-range obj (range-start rng) (range-end rng))))
+      (let ([ranges
+             (quicksort 
+              (apply append 
+                     (hash-table-map
+                      range-ht
+                      (lambda (k vs)
+                        (map 
+                         (lambda (v) (make-range k (car v) (cdr v)))
+                         vs))))
+              (lambda (x y)
+                (>= (- (range-end x) (range-start x))
+                    (- (range-end y) (range-start y)))))])
+        (for-each
+         (lambda (range)
+           (let* ([obj (range-obj range)]
+                  [stx (hash-table-get stx-ht obj (lambda () #f))]
+                  [start (range-start range)]
+                  [end (range-end range)])
+             (when (syntax? stx)
+               (send output-text set-clickback start end 
+                     (lambda (_1 _2 _3)
+                       (show-range stx start end))))))
+         ranges)
+        
+        (send outer-t insert (new turn-snip% 
+                                  [on-up (lambda () (hide-details))]
+                                  [on-down (lambda () (show-details))]))
+        (send outer-t insert (format "~s\n" main-stx))
+        (send outer-t insert inner-es)
+        (make-modern outer-t)
+        
+        (send inner-t insert (instantiate editor-snip% ()
+                               (editor output-text)
+                               (with-border? #f)
+                               (left-margin 0)
+                               (top-margin 0)
+                               (right-margin 0)
+                               (bottom-margin 0)
+                               (left-inset 0)
+                               (top-inset 0)
+                               (right-inset 0)
+                               (bottom-inset 0)))
+        (send inner-t insert (make-object editor-snip% info-text))
+        (send inner-t change-style (make-object style-delta% 'change-alignment 'top) 0 2)
+        
+        (send info-text auto-wrap #t)
+        (send info-text set-styles-sticky #f)
+        (let/ec k
+          (when (null? ranges)
+            (k (void)))
+          (let* ([rng (car ranges)]
+                 [obj (hash-table-get stx-ht (range-obj rng) 
+                                      (lambda ()
+                                        (k (void))))])
+            (show-range obj (range-start rng) (range-end rng)))))
       
       (send output-text hide-caret #t)
       (send info-text hide-caret #t)
@@ -343,7 +344,8 @@ needed to really make this work:
   (define black-style-delta (make-object style-delta% 'change-normal-color))
   (define green-style-delta (make-object style-delta%))
   (send green-style-delta set-delta-foreground "forest green")
-
+  (define small-style (make-object style-delta% 'change-size 4))
+  
   (define turn-snip%
     (class snip%
       

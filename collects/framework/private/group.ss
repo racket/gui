@@ -37,37 +37,34 @@
           [define windows-menus null]
           
           ;; get-windows-menu : (is-a?/c frame%) -> (union false? (is-a?/c menu%))
-          [define get-windows-menu
-            (lambda (frame)
-              (let ([menu-bar (send frame get-menu-bar)])
-		(and menu-bar
-                     (let ([menus (send menu-bar get-items)])
-                       (ormap (lambda (x)
-                                (if (string=? (string-constant windows-menu)
-                                              (send x get-plain-label))
-                                    x
-                                    #f))
-                              menus)))))]
-          [define insert-windows-menu
-            (lambda (frame)
-              (let ([menu (get-windows-menu frame)])
-                (when menu
-                  (set! windows-menus (cons menu windows-menus)))))]
-          [define remove-windows-menu
-            (lambda (frame)
-              (let ([menu (get-windows-menu frame)])
+          (define/private (get-windows-menu frame)
+            (let ([menu-bar (send frame get-menu-bar)])
+              (and menu-bar
+                   (let ([menus (send menu-bar get-items)])
+                     (ormap (lambda (x)
+                              (if (string=? (string-constant windows-menu)
+                                            (send x get-plain-label))
+                                  x
+                                  #f))
+                            menus)))))
+          (define/private (insert-windows-menu frame)
+            (let ([menu (get-windows-menu frame)])
+              (when menu
+                (set! windows-menus (cons menu windows-menus)))))
+          (define/private (remove-windows-menu frame)
+            (let ([menu (get-windows-menu frame)])
+              
+              (when menu
+                ;; to help the (conservative) gc.
+                (for-each (lambda (i) (send i delete)) (send menu get-items))
                 
-                (when menu
-                  ;; to help the (conservative) gc.
-                  (for-each (lambda (i) (send i delete)) (send menu get-items))
-                
-                  (set! windows-menus
-                        (remove
-                         menu
-                         windows-menus
-                         eq?)))))]
+                (set! windows-menus
+                      (remove
+                       menu
+                       windows-menus
+                       eq?)))))
           
-          [define (update-windows-menus)
+          (define/private (update-windows-menus)
             (let* ([windows (length windows-menus)]
                    [default-name (string-constant untitled)]
                    [get-name 
@@ -113,28 +110,27 @@
                         (lambda (_1 _2)
                           (send frame show #t)))))
                   sorted/visible-frames))
-               windows-menus))]
+               windows-menus)))
 
           ;; most-recent-window-to-front : -> void?
           ;; brings the most recent window to the front
-          (define (most-recent-window-to-front)
+          (define/private (most-recent-window-to-front)
             (let ([most-recent-window (weak-box-value most-recent-window-box)])
               (when most-recent-window
                 (send most-recent-window show #t))))                              
 
-          [define update-close-menu-item-state
-            (lambda ()
-              (let* ([set-close-menu-item-state! 
-                      (lambda (frame state)
-                        (when (is-a? frame frame:standard-menus<%>)
-                          (let ([close-menu-item (send frame file-menu:get-close-menu)])
-                            (when close-menu-item
-                              (send close-menu-item enable state)))))])
-                (if (eq? (length frames) 1)
-                    (set-close-menu-item-state! (car frames) #f)
-                    (for-each (lambda (a-frame)
-                                (set-close-menu-item-state! a-frame #t))
-                              frames))))]
+          (define/private (update-close-menu-item-state)
+            (let* ([set-close-menu-item-state! 
+                    (lambda (frame state)
+                      (when (is-a? frame frame:standard-menus<%>)
+                        (let ([close-menu-item (send frame file-menu:get-close-menu)])
+                          (when close-menu-item
+                            (send close-menu-item enable state)))))])
+              (if (eq? (length frames) 1)
+                  (set-close-menu-item-state! (car frames) #f)
+                  (for-each (lambda (a-frame)
+                              (set-close-menu-item-state! a-frame #t))
+                            frames))))
           
           (field [open-here-frame #f])
           (define/public (set-open-here-frame fr) (set! open-here-frame fr))

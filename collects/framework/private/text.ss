@@ -78,7 +78,7 @@ WARNING: printf is rebound in the body of the unit to always
           (define/public (get-fixed-style)
             (send (get-style-list) find-named-style "Standard"))
           
-          (define (invalidate-rectangles rectangles)
+          (define/private (invalidate-rectangles rectangles)
             (let ([b1 (box 0)]
                   [b2 (box 0)]
                   [b3 (box 0)]
@@ -163,7 +163,7 @@ WARNING: printf is rebound in the body of the unit to always
                                         this-bottom
                                         (cdr rectangles))))]))))))
           
-          (define (recompute-range-rectangles)
+          (define/private (recompute-range-rectangles)
             (let* ([b1 (box 0)]
                    [b2 (box 0)]
                    [new-rectangles
@@ -512,7 +512,7 @@ WARNING: printf is rebound in the body of the unit to always
             (super insert s len pos))
 
 	  ;; for-each/sections : string -> dc number number -> void
-          (define (for-each/sections str)
+          (define/private (for-each/sections str)
             (let loop ([n (string-length str)]
                        [len 0]
                        [blank? #t])
@@ -751,7 +751,7 @@ WARNING: printf is rebound in the body of the unit to always
         (mixin (editor:keymap<%> basic<%>) (info<%>)
           (inherit get-start-position get-end-position get-canvas
                    run-after-edit-sequence)
-          (define (enqueue-for-frame call-method tag)
+          (define/private (enqueue-for-frame call-method tag)
             (run-after-edit-sequence
              (rec from-enqueue-for-frame
                (lambda ()
@@ -760,7 +760,7 @@ WARNING: printf is rebound in the body of the unit to always
           
           ;; call-with-frame : ((is-a?/c frame:text-info<%>) -> void) -> void
           ;; calls the argument thunk with the frame showing this editor.
-          (define (call-with-frame call-method)
+          (define/private (call-with-frame call-method)
             (let ([canvas (get-canvas)])
               (when canvas
                 (let ([frame (send canvas get-top-level-window)])
@@ -810,7 +810,7 @@ WARNING: printf is rebound in the body of the unit to always
       (define clever-file-format-mixin
         (mixin ((class->interface text%)) (clever-file-format<%>)
           (inherit get-file-format set-file-format find-first-snip)
-          (define (all-string-snips)
+          (define/private (all-string-snips)
             (let loop ([s (find-first-snip)])
               (cond
                 [(not s) #t]
@@ -1640,7 +1640,7 @@ WARNING: printf is rebound in the body of the unit to always
                 [else (void)])))
           
           ;; dequeue-n : queue number -> queue
-          (define (dequeue-n queue n)
+          (define/private (dequeue-n queue n)
             (let loop ([q queue]
                        [n n])
               (cond
@@ -1649,7 +1649,7 @@ WARNING: printf is rebound in the body of the unit to always
                 [else (loop (queue-rest q) (- n 1))])))
           
           ;; peek-n : queue number -> queue
-          (define (peek-n queue init-n)
+          (define/private (peek-n queue init-n)
             (let loop ([q queue]
                        [n init-n])
               (cond
