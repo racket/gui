@@ -34,7 +34,7 @@
   (define-values (get-unlock-bitmap) (load-bitmap "unlock.gif" 'gif))
   
   (define get-autowrap-bitmap (load-icon "return.xbm" 'xbm))
-  (define get-paren-highlight-bitmap (load-icon "paren.xbm" 'xbm))
+  (define get-paren-highlight-bitmap (load-icon "paren.bmp" 'bmp))
   
   (define (make-get/mask filename type)
     (let ([icon #f]

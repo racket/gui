@@ -218,14 +218,16 @@
 			   [b/w-bitmap (rectangle-b/w-bitmap rectangle)]
 			   [color (let* ([rc (rectangle-color rectangle)]
 					 [tmpc (make-object color% 0 0 0)])
-				    (if rc
-					(begin (send dc try-color rc tmpc)
-					       (and (<= (max (abs (- (send rc red) (send tmpc red)))
-							     (abs (- (send rc blue) (send tmpc blue)))
-							     (abs (- (send rc green) (send tmpc green))))
-							50)
-						    rc))
-					rc))]
+				    (and 
+                                     #f
+                                     (if rc
+                                         (begin (send dc try-color rc tmpc)
+                                                (and (<= (max (abs (- (send rc red) (send tmpc red)))
+                                                              (abs (- (send rc blue) (send tmpc blue)))
+                                                              (abs (- (send rc green) (send tmpc green))))
+                                                         50)
+                                                     rc))
+                                         rc)))]
 			   [first-number (lambda (x y) (if (number? x) x y))]
 			   [left (max left-margin (first-number (rectangle-left rectangle) view-x))]
 			   [top (max top-margin (rectangle-top rectangle))]
