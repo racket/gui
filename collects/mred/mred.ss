@@ -6231,7 +6231,7 @@
 	    (let loop ([scroll? #f])
 	      (let* ([e (make-object text%)]
 		     [c (make-object editor-canvas% msg-pnl e (if scroll?
-								  '(no-hscroll transparent)
+								  '(no-hscroll)
 								  '(no-hscroll no-vscroll transparent no-border)))])
 		(send c min-width 400)
 		(send c set-line-count 5)
