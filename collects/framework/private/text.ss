@@ -902,7 +902,7 @@ WARNING: printf is rebound in the body of the unit to always
           get-box-input-editor-snip%
           get-box-input-text%))
       
-      (define-struct peeker (bytes skip-count pe resp-chan nack) (make-inspector))
+      (define-struct peeker (bytes skip-count pe resp-chan nack polling?) (make-inspector))
       (define-struct committer (kr commit-peeker-evt done-evt resp-chan resp-nack))
       
       (define msec-timeout 500)
@@ -1690,7 +1690,7 @@ WARNING: printf is rebound in the body of the unit to always
              ;; otherwise return #f
              (define (service-waiter a-peeker)
                (match a-peeker
-                 [($ peeker bytes skip-count pe resp-chan nack-evt)
+                 [($ peeker bytes skip-count pe resp-chan nack-evt polling?)
                   (cond
                     [(and pe (not (eq? pe peeker-evt)))
                      (choice-evt (channel-put-evt resp-chan #f)
@@ -1712,6 +1712,8 @@ WARNING: printf is rebound in the body of the unit to always
                               (if (is-a? nth readable-snip<%>)
                                   (send nth read-special src line col pos)
                                   nth)))])))]
+                    [polling? 
+                     (wrap-evt always-evt (λ (_) 0))]
                     [else
                      #f])]))
              
@@ -1765,11 +1767,24 @@ WARNING: printf is rebound in the body of the unit to always
                           0))))])))
         
         (define (peek-proc bstr skip-count progress-evt)
-          (nack-guard-evt
-           (λ (nack)
-             (let ([chan (make-channel)])
-               (channel-put peek-chan (make-peeker bstr skip-count progress-evt chan nack))
-               chan))))
+          (poll-guard-evt
+           (lambda (polling?)
+             (when polling?
+               (printf "polling\n"))
+             (if polling?
+                 (let ([answer 
+                        (sync
+                         (nack-guard-evt
+                          (λ (nack)
+                            (let ([chan (make-channel)])
+                              (channel-put peek-chan (make-peeker bstr skip-count progress-evt chan nack #t))
+                              chan))))])
+                   (wrap-evt always-evt (λ (_) answer)))
+                 (nack-guard-evt
+                  (λ (nack)
+                    (let ([chan (make-channel)])
+                      (channel-put peek-chan (make-peeker bstr skip-count progress-evt chan nack #f))
+                      chan)))))))
         
         (define (progress-evt-proc)
           (sync
