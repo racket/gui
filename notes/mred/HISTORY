@@ -85,55 +85,110 @@ Upgraded to gc 13alpha1
 
 System:
 -------
- - set-empty-callback in mred:frame-group% is now set-empty-callbacks
-   in mred:frame-group%. See the docs for more details.
+- mzlib now has empty? and empty. The print converter is now
+  parameterized over the symbol that represents the empty list.
 
- - mred:original-output-port is now called mred:constants:original-output-port
-   mred:original-input-port is now called mred:constants:original-input-port
+- parenthesis matching is improved
 
- - MrEd's collections are now documented.
+- turned off the file name printouts on splash screen
 
- - the collection paths are not normalized anymore
+  evaluate: 
+  (wx:write-resource "mred" "splashMessages" 1 (wx:find-path 'setup-file))
+  to turn them back on.
 
- - The command line flags have changed. Specifically:
-   the -nu flag is now called either "--non-unitized" or "-u".
-   the splash screen flag has changed.
+- searching keybindings have changed. There are four distinct actions:
+   action1: move keyboard focus to the searching window, opening it if necessary, 
+            or if already there search forward
+   action2: move keyboard focus to the searching window, opening it if necessary, 
+            or if already there search backward.
+   action3: search again, in the same direction
+   action4: move the focus between the main window, searching window and replacment window
+   action5: hide the searching window
 
- - mred no longer imports a unit of the mred:application signature. Instead, 
-   the parameter mred:current-app-name is used to get and set the
-   applications name. The eval-string and frame are not used.
+The actions are mapped to different keys, based on the platform. 
 
- - CACHE-WRITE-COUNT in a console-edit is no longer used.
+On unix:
+ action1 => control-s, meta-%
+ action2 => control-r
+ action3 => f3
+ action4 => control-i
+ action5 => control-g
 
- - set-empty-callback is now set-empty-callbacks. It sets two
-   callbacks, one for when the group is about to become empty and one
-   for when the group is actually empty. See the documentation for
-   more info.
+On the macintosh:
+  action1 => command-f
+  action2 => command-r
+  action3 => command-g
+  action4 => command-o
+  action5 => command-.
 
- - do not use the frame method on-close anymore. Use can-close? and
-   do-close.
+On windows:
+ action1 => control-f
+ action2 => control-r
+ action3 => f3, control-g
+ action4 => control-i
+ action5 => escape
 
- - renamed the edit-method "on-close" to "do-close"
+- set-empty-callback in mred:frame-group% is now set-empty-callbacks
+  in mred:frame-group%. See the docs for more details.
 
- - the startup procedure has changed again. Now, applications are
-   expected to be in a collection. The -a flag has an extra first
-   argument, specifing the collection to load the files from, and 
-   a -A flag has been added. See the startup documentation for more
-   information.
+- initial basis now documented
 
-   Also, if you define mred:startup and use the -u (previously -nu) flag, the
-   definition of mred:startup must come after the flag on the command
-   line. For example:
+- provide "simple" interface to unitized apps
+
+- fixed callback printfs from frames. They now appear in the console.
+
+- better begin/end-edit-sequence support in mred; used by info-frame.
+
+- eval no longer loops forever in mred vocabulary 
+
+
+- set-empty-callback in mred:frame-group% is now set-empty-callbacks
+  in mred:frame-group%. See the docs for more details.
+
+- mred:original-output-port is now called mred:constants:original-output-port
+  mred:original-input-port is now called mred:constants:original-input-port
+
+- MrEd's collections are now documented.
+
+- the collection paths are not normalized anymore
+
+- The command line flags have changed. Specifically:
+  the -nu flag is now called either "--non-unitized" or "-u".
+  the splash screen flag has changed.
+
+- mred no longer imports a unit of the mred:application signature. Instead, 
+  the parameter mred:current-app-name is used to get and set the
+  applications name. The eval-string and frame are not used.
+
+- CACHE-WRITE-COUNT in a console-edit is no longer used.
+
+- set-empty-callback is now set-empty-callbacks. It sets two
+  callbacks, one for when the group is about to become empty and one
+  for when the group is actually empty. See the documentation for
+  more info.
+
+- do not use the frame method on-close anymore. Use can-close? and
+  do-close.
+
+- renamed the edit-method "on-close" to "do-close"
+
+- the startup procedure has changed again. Now, applications are
+  expected to be in a collection. The -a flag has an extra first
+  argument, specifing the collection to load the files from, and 
+  a -A flag has been added. See the startup documentation for more
+  information.
+
+  Also, if you define mred:startup and use the -u (previously -nu) flag, the
+  definition of mred:startup must come after the flag on the command
+  line. For example:
      mred -e "(define mred:startup (lambda ...))" -nu
-   no longer works.
+  no longer works.
 
-   Redefinition of mred:initialize and mred:make-invokeable-unit are
-   no longer supported. Create a new system instead, using the -s flag.
+  Redefinition of mred:initialize and mred:make-invokeable-unit are
+  no longer supported. Create a new system instead, using the -s flag.
 
-   mred:get-file and mred:put-file now take a parent window as optional
-   last argument.  Also, in Unix, these calls now create a dialog
-   object on each call, because a single object retains too much state
-   (such as the prompt) between invocations.
+-  mred:get-file and mred:put-file now take a parent window as optional
+   last argument.
 
 ----------------------------------------------------------------------
 
