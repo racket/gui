@@ -623,16 +623,18 @@
       [delay-updates
        (case-lambda
 	[() (not perform-updates?)]
-	[(f) (set! perform-updates? (not f))
-	     (when (and perform-updates? pending-redraws?)
-	       (force-redraw))
-	     (when (and perform-updates? (positive? (hash-table-count show-ht)))
-	       (let ([t show-ht])
-		 (set! show-ht (make-hash-table))
-		 (hash-table-for-each
-		  show-ht
-		  (lambda (win v?)
-		    (send win show v?)))))])]
+	[(f) 
+	 (set! perform-updates? (not f))
+	 (when perform-updates?
+	   (when pending-redraws?
+	     (force-redraw))
+	   (when (positive? (hash-table-count show-ht))
+	     (let ([t show-ht])
+	       (set! show-ht (make-hash-table))
+	       (hash-table-for-each
+		t
+		(lambda (win v?)
+		  (send win show v?))))))])]
       [begin-container-sequence
        (lambda ()
 	 (when (zero? seq-count)
