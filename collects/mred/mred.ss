@@ -423,25 +423,17 @@
 	      [super-drag-accept-files drag-accept-files]
 	      [super-show show]
 	      [super-enable enable])
+      (inherit is-shown-to-root? is-enabled-to-root?)
       (private-field
 	[top-level #f]
 	[focus? #f]
 	[container this]
 	[visible? #f]
 	[active? #f])
-      (private
-	[currently?
-	 (lambda (m)
-	   (let loop ([p this])
-	     (and (or (is-a? p wx:windowless-panel%)
-		      (m p))
-		  (or (is-a? p wx:frame%)
-		      (is-a? p wx:dialog%)
-		      (loop (send p get-parent))))))])
       (public
 	[on-visible
 	 (lambda ()
-	   (let ([vis? (currently? (lambda (o) (send o is-shown?)))])
+	   (let ([vis? (is-shown-to-root?)])
 	     (unless (eq? vis? visible?)
 	       (set! visible? vis?)
 	       (as-exit
@@ -454,7 +446,7 @@
       (public
 	[on-active
 	 (lambda ()
-	   (let ([act? (currently? (lambda (o) (send o is-enabled?)))])
+	   (let ([act? (is-enabled-to-root?)])
 	     (unless (eq? act? active?)
 	       (set! active? act?)
 	       (as-exit
@@ -524,8 +516,8 @@
       (sequence 
 	(apply super-init args)
 	(unless top?
-	  (set! visible? (currently? (lambda (o) (send o is-shown?))))
-	  (set! active? (currently? (lambda (o) (send o is-enabled?)))))))))
+	  (set! visible? (is-shown-to-root?))
+	  (set! active? (is-enabled-to-root?)))))))
 
 ; make-container% - for panels and top-level windows
 (define (wx-make-container% %) %)
@@ -2644,6 +2636,8 @@
       [on-size (lambda () (void))]
       [enable (lambda () (void))]
       [show (lambda (on?) (void))]
+      [is-shown-to-root? (lambda () (send parent is-shown-to-root?))]
+      [is-enabled-to-root? (lambda () (send parent is-enabled-to-root?))]
       [get-parent (lambda () parent)]
       [get-client-size (lambda (wb hb)
 			 (when wb (set-box! wb width))
