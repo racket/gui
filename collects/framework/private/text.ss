@@ -374,20 +374,12 @@
 	      (let ([str (string (integer->char 160))]
 		    [last-pos (+ start len)])
 		(let loop ([pos start])
-		  (when (<= pos (+ start len))
+		  (when (< pos last-pos)
 		    (let ([next-pos (find-string str 'forward pos last-pos)])
 		      (when next-pos
 			(delete next-pos (+ next-pos 1) #f)
 			(insert " " next-pos next-pos #f)
 			(loop (+ next-pos 1)))))))
-              #;
-	      (let loop ([pos start])
-                (when (<= pos (+ start len))
-                  (let ([char (get-character pos)])
-                    (when (char=? char (integer->char 160))
-                      (delete pos (+ pos 1) #f)
-                      (insert " " pos pos #f))
-		    (loop (+ pos 1)))))
 	      (set! rewriting #f))
             (super-after-insert start len)
             (end-edit-sequence))
