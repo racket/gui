@@ -36,6 +36,11 @@ WARNING: printf is rebound in the body of the unit to always
       (define (printf . args) 
         (apply fprintf original-output-port args)
         (void))
+      (define-syntax (dprintf stx)
+        (syntax-case stx ()
+          [(_ . args) 
+           #;(syntax (printf . args))
+             (syntax (void))]))
       
       (define-struct range (start end b/w-bitmap color caret-space?))
       (define-struct rectangle (left top right bottom b/w-bitmap color))
@@ -1231,7 +1236,7 @@ WARNING: printf is rebound in the body of the unit to always
                     (handle-evt
                      position-chan
                      (lambda (pr)
-                       ;(printf "position-chan\n")
+                       (dprintf "position-chan\n")
                        (let ([nack-chan (car pr)]
                              [resp-chan (cdr pr)])
                          (set! positioners (cons pr positioners))
@@ -1242,7 +1247,7 @@ WARNING: printf is rebound in the body of the unit to always
                     (handle-evt
                      read-chan
                      (lambda (ent)
-                       ;(printf "read-chan\n")
+                       (dprintf "read-chan\n")
                        (set! data (enqueue ent data))
                        (unless position
                          (set! position (cdr ent)))
@@ -1250,7 +1255,7 @@ WARNING: printf is rebound in the body of the unit to always
                     (handle-evt
                      clear-input-chan
                      (lambda (_)
-                       ;(printf "clear-input-chan\n")
+                       (dprintf "clear-input-chan\n")
                        (semaphore-post peeker-sema)
                        (set! peeker-sema (make-semaphore 0))
                        (set! peeker-evt (semaphore-peek-evt peeker-sema))
@@ -1260,7 +1265,7 @@ WARNING: printf is rebound in the body of the unit to always
                     (handle-evt
                      progress-event-chan
                      (lambda (return-pr)
-                       ;(printf "progress-event-chan\n")
+                       (dprintf "progress-event-chan\n")
                        (let ([return-chan (car return-pr)]
                              [return-nack (cdr return-pr)])
                          (set! response-evts
@@ -1272,13 +1277,13 @@ WARNING: printf is rebound in the body of the unit to always
                     (handle-evt
                      peek-chan
                      (lambda (peeker)
-                       ;(printf "peek-chan\n")
+                       (dprintf "peek-chan\n")
                        (set! peekers (cons peeker peekers))
                        (loop)))
                     (handle-evt
                      commit-chan
                      (lambda (committer)
-                       ;(printf "commit-chan\n")
+                       (dprintf "commit-chan\n")
                        (set! committers (cons committer committers))
                        (loop)))
                     (apply 
@@ -1296,13 +1301,13 @@ WARNING: printf is rebound in the body of the unit to always
                             (handle-evt 
                              commit-peeker-evt
                              (lambda (_)
-                               ;(printf "commit-peeker-evt\n")
+                               (dprintf "commit-peeker-evt\n")
                                ;; this committer will be thrown out in next iteration
                                (loop)))
                             (handle-evt
                              done-evt
                              (lambda (v)
-                               ;(printf "done-evt\n")
+                               (dprintf "done-evt\n")
                                (let ([nth-pos (cdr (peek-n data (- kr 1)))])
                                  (set! position
                                        (list (car nth-pos)
@@ -1326,14 +1331,14 @@ WARNING: printf is rebound in the body of the unit to always
                                   (handle-evt
                                    resp-evt
                                    (lambda (_)
-                                     ;(printf "resp-evt\n")
+                                     (dprintf "resp-evt\n")
                                      (set! response-evts (remq resp-evt response-evts))
                                      (loop))))
                                 response-evts)))))
                
                ;; service-positioner : (cons (channel void) (channel line-col-pos)) -> evt
                (define (service-positioner pr)
-                 ;(printf "service-position ~s\n" pr)
+                 (dprintf "service-position ~s\n" pr)
                  (let ([nack-evt (car pr)]
                        [resp-evt (cdr pr)])
                    (handle-evt
@@ -1400,6 +1405,7 @@ WARNING: printf is rebound in the body of the unit to always
                  (let loop ([eles eles]
                             [transformed '()]
                             [left-alone '()])
+                   (dprintf "separate\n")
                    (cond
                      [(null? eles) (values left-alone transformed)]
                      [else (let* ([ele (car eles)]
@@ -1492,9 +1498,9 @@ WARNING: printf is rebound in the body of the unit to always
           (define/private (position->line-col-pos pos)
             (let* ([para (position-paragraph pos)]
                    [para-start (paragraph-start-position para)])
-              (list para
+              (list (+ para 1)
                     (- pos para-start)
-                    pos)))
+                    (+ pos 1))))
           
           ;; for-each/snips-chars : number number ((union char snip) line-col-pos -> void) -> void
           (define/private (for-each/snips-chars start end func)
