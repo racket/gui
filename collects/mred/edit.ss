@@ -384,8 +384,9 @@
 				  (send brush set-style wx:const-solid)
 				  (send pen set-colour color)
 				  (send brush set-colour color)
-				  (send dc set-logical-function wx:const-and-invert)]
-				 [b/w-bitmap
+				  (send dc set-logical-function wx:const-and)]
+				 [(and b/w-bitmap
+				       (eq? wx:platform 'unix))
 				  (send pen set-stipple b/w-bitmap)
 				  (send brush set-stipple b/w-bitmap)]
 				 [else (send dc set-logical-function wx:const-xor)
