@@ -1,4 +1,15 @@
 
+Version 204.4
+Added 'png and 'png/mask as load bitmap types, and added
+ optional background color argument for loading 'png
+Added 'jpeg and 'png as save bitmap types
+Changed draw-bitmap and draw-bitmap-section to accept
+ a non-monochrome bitmap as a mask (serving roughly 
+ as an inverted alpha channel)
+Changed image-snip% to use a mask attached to a
+ bitmap, if any, and to preserve the mask bitmap
+ when the file is saved
+
 Version 204.3
 Added 'no-autoclear style to canvas%
 Added 'control-border style to canvas% and editor-canvas%
