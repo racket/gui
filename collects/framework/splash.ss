@@ -3,7 +3,8 @@
 ; width-default : number 
 
 (module splash mzscheme
-  (require (lib "class.ss")
+  (require (lib "class100.ss")
+           (lib "class.ss")
 	   (lib "mred.ss" "mred"))
 
   (provide splash)
@@ -15,48 +16,52 @@
 	[(funny?) (let ([date (seconds->date (current-seconds))])
 		    (and (= (date-day date) 25)
 			 (= (date-month date) 12)))]
+
+        [(funny-bitmap)
+         (make-object bitmap%
+           (build-path (collection-path "icons") "touch.bmp"))]
+        [(funny-value) 0]
 	[(funny-gauge%)
-	 (class canvas% (max-value parent)
+	 (class100 canvas% (_max-value parent)
 	   (inherit get-dc min-width min-height stretchable-width stretchable-height)
-	   (private
-	     [bitmap
-	      (make-object bitmap%
-		(build-path (collection-path "icons") "touch.bmp"))]
-	     [value 0])
+           (private-field
+             [max-value _max-value])
 	   (public
 	     [set-value
 	      (lambda (new-value)
 		(let ([before-x
-		       (floor (* (send bitmap get-width) (/ value max-value)))]
+		       (floor (* (send funny-bitmap get-width) (/ funny-value max-value)))]
 		      [after-x
-		       (ceiling (* (send bitmap get-width) (/ (- new-value value) max-value)))])
+		       (ceiling (* (send funny-bitmap get-width)
+                                   (/ (- new-value funny-value)
+                                      max-value)))])
 		  (send (get-dc) draw-line
 			(+ before-x 2) 0
 			(+ after-x 2) 0)
 		  (send (get-dc) draw-line
-			(+ before-x 2) (+ (send bitmap get-height) 4)
-			(+ after-x 2) (+ (send bitmap get-height) 4))
+			(+ before-x 2) (+ (send funny-bitmap get-height) 4)
+			(+ after-x 2) (+ (send funny-bitmap get-height) 4))
 		  (send (get-dc) draw-bitmap-section bitmap
 			(+ 2 before-x) 2
 			before-x 0
-			after-x (send bitmap get-height)))
-		(set! value new-value))])
+			after-x (send funny-bitmap get-height)))
+		(set! funny-value new-value))])
 	   (override
 	    [on-paint
 	     (lambda ()
 	       (let ([dc (get-dc)])
 		 (send dc clear)
 		 (send dc draw-rectangle 0 0
-		       (+ (send bitmap get-width) 4)
-		       (+ (send bitmap get-height) 4))
-		 (send dc draw-bitmap-section bitmap
+		       (+ (send funny-bitmap get-width) 4)
+		       (+ (send funny-bitmap get-height) 4))
+		 (send dc draw-bitmap-section funny-bitmap
 		       2 2 0 0
-		       (* (send bitmap get-width) (/ value max-value))
-		       (send bitmap get-height))))])
+		       (* (send funny-bitmap get-width) (/ funny-value max-value))
+		       (send funny-bitmap get-height))))])
 	   (sequence
 	     (super-init parent)
-	     (min-width (+ (send bitmap get-width) 4))
-	     (min-height (+ (send bitmap get-height) 4))
+	     (min-width (+ (send funny-bitmap get-width) 4))
+	     (min-height (+ (send funny-bitmap get-height) 4))
 	     (stretchable-width #f)
 	     (stretchable-height #f)))]
 
@@ -68,8 +73,7 @@
 		 default)))]
 	[(set-resource)
 	 (lambda (name value)
-	   (write-resource "mred" name value (find-graphical-system-path 'setup-file))
-	   )]
+	   (write-resource "mred" name value (find-graphical-system-path 'setup-file)))]
 	[(_1)
 	 (begin
 	   (unless filename
@@ -102,7 +106,7 @@
 	[(dropped-files) null]
 	[(get-dropped-files) (lambda () dropped-files)]
 	[(splash-frame%)
-	 (class frame% (title)
+	 (class100 frame% (title)
 	   (override
 	    [on-drop-file
 	     (lambda (filename)
@@ -131,7 +135,7 @@
 		(fprintf (current-error-port) "WARNING: bad bitmap ~s" filename)
 		(no-splash))]
 	[(splash-canvas%)
-	 (class canvas% args
+	 (class100 canvas% args
 	   (inherit get-dc)
 	   (override
 	    [on-paint
