@@ -791,19 +791,18 @@
     (sequence
       (super-init parent label range -1 -1 -1 -1 style)
 
-      (let-values ([(client-width client-height)
-		    (get-two-int-values get-client-size)])
+      (let-values ([(client-width client-height) (get-two-int-values get-client-size)])
 	(let ([delta-w (- (get-width) client-width)]
 	      [delta-h (- (get-height) client-height)]
-	      [vertical-labels? (eq? (send (get-parent) get-label-position)
-				     'vertical)]
+	      [vertical-labels? (eq? (send (send (get-parent) get-window) get-label-position) 'vertical)]
 	      [horizontal? (eq? 'horizontal style)])
 	  (set-min-width (if horizontal?
 			     (let ([cw (min const-max-gauge-length
 					    (* range pixels-per-value))])
-			       (if vertical-labels?
-				   (max cw (get-width))
-				   (+ cw delta-w)))
+			       (max (if vertical-labels?
+					cw
+					(+ cw delta-w))
+				     (get-width)))
 			     ; client-height is the default
 			     ; dimension in the minor direction.
 			     (+ client-width delta-w)))
@@ -811,9 +810,10 @@
 			      (+ client-height delta-h)
 			      (let ([ch (min const-max-gauge-length
 					     (* range pixels-per-value))])
-				(if vertical-labels?
-				    (+ ch delta-h)
-				    (max ch (get-height))))))))
+				(max (if vertical-labels?
+					 (+ ch delta-h)
+					 ch)
+				     (get-height)))))))
 
       (if (memq 'horizontal style)
 	  (begin
@@ -859,7 +859,7 @@
 			 #t #f)
        (parent func label value min-val max-val style)
      (inherit set-min-width set-min-height stretchable-in-x stretchable-in-y
-	      get-client-size get-width get-height)
+	      get-client-size get-width get-height get-parent)
      (private
        ; # pixels per possible setting.
        [pixels-per-value 3])
@@ -871,12 +871,19 @@
        (super-init parent func label value min-val max-val -1 -1 -1 style)
        
        (let-values ([(client-w client-h) (get-two-int-values get-client-size)])
-	 (let ([range (* pixels-per-value (add1 (- max-val min-val)))]
-	       [horizontal? (memq 'horizontal style)])
+	 (let* ([horizontal? (memq 'horizontal style)]
+		[vertical-labels? (eq? (send (send (get-parent) get-window) get-label-position) 'vertical)]
+		[range (+ (* pixels-per-value (add1 (- max-val min-val)))
+			  (cond
+			   [(and horizontal? (not vertical-labels?)) (- (get-width) client-w)]
+			   [(and (not horizontal?) vertical-labels?) (- (get-height) client-h)]
+			   [else 0]))])
 	   (when (not horizontal?)
 	     (stretchable-in-x #f)
 	     (stretchable-in-y #t))
-	   ((if horizontal? set-min-width set-min-height) (min const-max-gauge-length range))))))))
+	   ((if horizontal? set-min-width set-min-height) 
+	    (max ((if horizontal? get-width get-height))
+		 (min const-max-gauge-length range)))))))))
 
 (define wx-canvas% (make-canvas-glue% (make-control% wx:canvas% 0 0 #t #t)))
 
