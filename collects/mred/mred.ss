@@ -2083,8 +2083,9 @@
 		  [info (map (lambda (child)
 			       (send child get-info))
 			     childs)])
-	     (if (equal? childs children)
-		 ;; Got the infor for the right set of children
+	     (if (and (= (length childs) (length children))
+		      (andmap eq? childs children))
+		 ;; Got the info for the right set of children
 		 (set! children-info info)
 		 
 		 ;; During the call to some get-info, the set of children changed;
