@@ -4162,8 +4162,7 @@
 		     (when disabled?
 		       (super-enable-top (length items) #f))
 		     (set! items (append items (list item)))
-		     (when (send (mred->wx item) is-enabled?)
-		       (send keymap chain-to-keymap (send (mred->wx item) get-keymap) #f)))]
+		     (send keymap chain-to-keymap (send (mred->wx item) get-keymap) #f))]
       [all-enabled? (lambda () (not disabled?))]
       [enable-all (lambda (on?)
 		    (set! disabled? (not on?))
@@ -4187,12 +4186,10 @@
 		      (if on?
 			  (when (memq i disabled)
 			    (set! disabled (remq i disabled))
-			    (send keymap chain-to-keymap (send (mred->wx i) get-keymap) #t)
 			    (unless disabled?
 			      (super-enable-top p #t)))
 			  (unless (memq i disabled)
 			    (set! disabled (cons i disabled))
-			    (send keymap remove-chained-keymap (send (mred->wx i) get-keymap))
 			    (super-enable-top p #f)))))])
     (sequence
       (super-init))))
@@ -4245,12 +4242,7 @@
 		; Only called if the item is not deleted
 		(unless (eq? (send iwx is-enabled?) (and on? #t))
 		  (send iwx set-enabled (and on? #t))
-		  (super-enable id on?)
-		  (let ([k (send iwx get-keymap)])
-		    (when k
-		      (if on?
-			  (send keymap chain-to-keymap k #f)
-			  (send keymap remove-chained-keymap k))))))])
+		  (super-enable id on?)))])
     (sequence
       (super-init popup-label popup-callback))))
 
@@ -4410,6 +4402,7 @@
 
 (define basic-selectable-menu-item%
   (class100* basic-labelled-menu-item% (selectable-menu-item<%>) (lbl checkable? mnu cb shrtcut help-string set-wx demand-callback)
+    (inherit is-enabled?)
     (rename [super-restore restore] [super-set-label set-label]
 	    [super-is-deleted? is-deleted?]
 	    [super-is-enabled? is-enabled?]
@@ -4461,8 +4454,9 @@
 					 (let ([keymap (make-object wx:keymap%)])
 					   (send keymap add-function "menu-item" 
 						 ;; keymap function callback already in exit mode:
-						 (lambda (edit event) 
-						   (callback this (make-object wx:control-event% 'menu))))
+						 (lambda (edit event)
+						   (when (is-enabled?)
+						     (callback this (make-object wx:control-event% 'menu)))))
 					   (send keymap map-function key-binding "menu-item")
 					   keymap))])
 		       (values new-label keymap)))])
