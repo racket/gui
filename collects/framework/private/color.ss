@@ -139,15 +139,17 @@
                   (set! current-pos (+ len current-pos))
                   (sync-invalid)
                   (when (and should-color? (not (eq? 'white-space type)))
-                    (set! colors (cons
-                                  (let ((color (preferences:get (string->symbol (format "syntax-coloring:~a:~a"
-                                                                                        prefix
-                                                                                        type))))
-                                        (sp (+ in-start-pos (sub1 new-token-start)))
-                                        (ep (+ in-start-pos (sub1 new-token-end))))
-                                    (lambda ()
-                                      (change-style color sp ep #f)))
-                                  colors)))
+                    (set! colors
+                          (cons
+                           (let ((color (send (get-style-list) find-named-style
+                                              (format "syntax-coloring:~a:~a"
+                                                      prefix
+                                                      type)))
+                                 (sp (+ in-start-pos (sub1 new-token-start)))
+                                 (ep (+ in-start-pos (sub1 new-token-end))))
+                             (lambda ()
+                               (change-style color sp ep #f)))
+                           colors)))
                   (insert-last! tokens (new token-tree% (length len) (data data)))
                   (send parens add-token data len)
                   (cond

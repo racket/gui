@@ -107,17 +107,15 @@
           (send bold-check set-value (eq? (send style get-weight) 'bold))
           (send underline-check set-value (send style get-underlined))))
       
-      (define add/mult-set
-        (lambda (m v)
-          (send m set (car v) (cadr v) (caddr v))))
+      (define (add/mult-set m v)
+        (send m set (car v) (cadr v) (caddr v)))
       
-      (define add/mult-get
-        (lambda (m)
-          (let ([b1 (box 0)]
-                [b2 (box 0)]
-                [b3 (box 0)])
-            (send m get b1 b2 b3)
-            (map unbox (list b1 b2 b3)))))
+      (define (add/mult-get m)
+        (let ([b1 (box 0)]
+              [b2 (box 0)]
+              [b3 (box 0)])
+          (send m get b1 b2 b3)
+          (map unbox (list b1 b2 b3))))
       
       (define style-delta-get/set
         (list (cons (lambda (x) (send x get-alignment-off))
@@ -166,22 +164,19 @@
          sym
          code-style
          (lambda (x)
-           (is-a? x style-delta%)))
-        (preferences:set-un/marshall sym marshall-style unmarshall-style))
-      
+           (is-a? x style-delta%))))
       
       ; a symbol naming the style  and a delta to set it to
-      (define set-slatex-style
-        (lambda (sym delta)
-          (let* ([style-list (editor:get-standard-style-list)]
-                 [name (symbol->string sym)]
-                 [style (send style-list find-named-style name)])
-            (if style
-                (send style set-delta delta)
-                (send style-list new-named-style name
-                      (send style-list find-or-create-style
-                            (send style-list find-named-style "Standard")
-                            delta))))))
+      (define (set-slatex-style sym delta)
+        (let* ([style-list (editor:get-standard-style-list)]
+               [name (symbol->string sym)]
+               [style (send style-list find-named-style name)])
+          (if style
+              (send style set-delta delta)
+              (send style-list new-named-style name
+                    (send style-list find-or-create-style
+                          (send style-list find-named-style "Standard")
+                          delta)))))
       
       
       (define (make-style-delta color bold? underline? italic?)
@@ -221,11 +216,14 @@
       
       (define (add tab-name symbols/defaults)
         (let* ((prefix (string->symbol (format "syntax-coloring:~a" tab-name)))
-               (active-pref (string->symbol (format "~a:active" prefix))))
+               (active-pref (string->symbol (format "~a:active" prefix)))
+               (syms (map (lambda (s/d) (string->symbol (format "~a:~a" prefix (car s/d))))
+                          symbols/defaults)))
+          (for-each set-default syms (map cadr symbols/defaults))
           (for-each (lambda (s)
-                      (set-default (string->symbol (format "~a:~a" prefix (car s)))
-                                   (cadr s)))
-                    symbols/defaults)
+                      (preferences:set-un/marshall s marshall-style unmarshall-style))
+                    syms)
+          (for-each set-slatex-style syms (map preferences:get syms))
           (preferences:set-default active-pref #t (lambda (x) #t))
           (preferences:add-panel `("Editing" "Colors" ,tab-name)
                                  (lambda (p)

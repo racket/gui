@@ -16,7 +16,8 @@
 	      [exit : framework:exit^]
 	      [group : framework:group^]
               [handler : framework:handler^]
-              [editor : framework:editor^])
+              [editor : framework:editor^]
+              [color-prefs : framework:color-prefs^])
       
       (application-preferences-handler (lambda () (preferences:show-dialog)))
       
@@ -214,5 +215,17 @@
       ;; the application.
       (preferences:set 'framework:file-dialogs 'std)
       (preferences:set 'framework:exit-when-no-frames #t)
+      
+      ;; This adds the preferences that scheme:text% needs for coloring
+      (color-prefs:add
+       "Scheme Color"
+       `((keyword ,(color-prefs:make-style-delta "Black" #f #f #f))
+         (string ,(color-prefs:make-style-delta "ForestGreen" #f #f #f))
+         (literal ,(color-prefs:make-style-delta "ForestGreen" #f #f #f))
+         (comment ,(color-prefs:make-style-delta "DimGray" #f #f #f))
+         (error ,(color-prefs:make-style-delta "Red" #f #f #f))
+         (identifier ,(color-prefs:make-style-delta "Navy" #f #f #f))
+         (other ,(color-prefs:make-style-delta "brown" #f #f #f))))
+
       
       (void))))
