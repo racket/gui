@@ -512,6 +512,8 @@
 					     (begin
 					       (let ([h (send bm get-height)]
 						     [w (send bm get-width)])
+						 (send dc set-pen (make-object pen% "YELLOW" 1 'solid))
+						 (send dc draw-line 3 3 40 40)
 						 (send dc draw-bitmap-section
 						       bm x y 
 						       0 0 w h
