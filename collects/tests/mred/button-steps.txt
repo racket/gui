@@ -1,0 +1,17 @@
+Click the "Hit Me" button. "Callback Ok" should appear in the console.
+
+Click "Check". "All Ok" should appear in the console.
+
+Repeat the above two steps.
+
+Click "Disable Test" and quickly click "Hit Me". The button should
+ become disabled for a second, then become re-enabled, but the
+ click on "Hit Me" should not invoke the callback.
+
+Repeat the first two steps above.
+
+Click "Set Default". If this is a "Button Frame", nothing should
+ happen. If this is a "Button Dialog Box", the "Hit Me" button *may*
+ become highlighted so that typing Return is the same as hitting the
+ button; whether this actually happens is platform-specific.
+

@@ -808,7 +808,16 @@
   (unless silent?
 	  (printf "Callback Ok~n")))
 
-(define (button-frame)
+(define (instructions v-panel file)
+  (define c (make-object mred:media-canvas% v-panel))
+  (define m (make-object mred:media-edit%))
+  (send c set-media m)
+  (send m load-file (local-path file))
+  (send m lock #t)
+  (send c user-min-width 520)
+  (send c user-min-height 200))
+
+(define (button-frame mred:frame%)
   (define f (make-object mred:frame% null "Button Test"))
   (define p (make-object mred:vertical-panel% f))
   (define old-list null)
@@ -840,6 +849,11 @@
 			       (printf "un-oh~n"))
 			     (send b enable #t)))
 			 "Disable Test"))
+  (define sd (make-object mred:button% p
+			  (lambda (sd e)
+			    (send b set-default))
+			  "Set Default"))
+  (instructions p "button-steps.txt")
   (send f show #t))
 
 (define (checkbox-frame)
@@ -876,10 +890,11 @@
 			    old-list)
 			   (printf "All Ok~n"))
 			 "Check"))
+  (instructions p "checkbox-steps.txt")
   (send f show #t))
 
 (define (choice-or-list-frame list? list-style empty?)
-  (define f (make-object mred:frame% null "Choice Test"))
+  (define f (make-object mred:frame% null (if list? "List Test" "Choice Test")))
   (define p (make-object mred:vertical-panel% f))
   (define-values (actual-content actual-user-data)
     (if empty?
@@ -891,6 +906,7 @@
 	(list wx:const-event-type-listbox-command)
 	(list wx:const-event-type-choice-command)))
   (define old-list null)
+  (define multi? (= list-style wx:const-multiple))
   (define callback
     (lambda (cx e)
       (when (zero? (send c number))
@@ -899,13 +915,42 @@
 				 (send e get-command-int)
 				 (send e get-command-string))
 			   old-list))
-      (unless (= (send e get-command-int)
-		 (send c get-selection))
-	      (error "event selection value mismatch"))
-      (unless (string=? (send e get-command-string)
-			(send c get-string-selection)
-			(send c get-string (send c get-selection)))
-	      (error "selection string mismatch"))
+      (printf "Selected ~a~n" (send e get-command-int))
+      (cond
+       [(and multi? (= -1 (send e get-command-int)))
+	; deselection
+	(unless (= -1 (send e get-command-int))
+	  (error "selection index is not -1"))
+	(unless (null? (send e get-command-string))
+	  (error "string selection not null:" (send e get-command-string)))
+	(printf "Deselect~n")]
+       [(= 2 (send e get-extra-long))
+	; double-click
+	(unless (= -1 (send e get-command-int))
+	  (error "selection index is not -1"))
+	(unless (null? (send e get-command-string))
+	  (error "string selection not null:" (send e get-command-string)))
+	(printf "Double-click~n")]
+       [else
+	; selection
+	(if (or (not multi?) (<= (length (send c get-selections)) 1))
+	    (begin
+	      (unless (= (send e get-command-int)
+			 (send c get-selection))
+		(error "event selection value mismatch"))
+	      (unless (string=? (send e get-command-string)
+				(send c get-string-selection)
+				(send c get-string (send c get-selection)))
+		(error "selection string mismatch")))
+	    (begin
+	      (unless (memv (send e get-command-int)
+			    (send c get-selections))
+		(error "event selection value mismatch"))
+	      (unless (string=? (send e get-command-string)
+				(send c get-string (send e get-command-int)))
+		(error "selection string mismatch"))
+	      (unless (null? (send c get-string-selection))
+		(error "string selection not null"))))])
       (check-callback-event c cx e commands #f)))
   (define c (if list?
 		(make-object mred:list-box% p
@@ -926,7 +971,9 @@
 			    (set! counter (add1 counter))
 			    (let ([naya (format "~aExtra ~a" 
 						(if (= counter 10)
-						    "This is a Really Long Named Item That Would Have Used the Short Name "
+						    (string-append
+						     "This is a Really Long Named Item That Would Have Used the Short Name, Yes "
+						     "This is a Really Long Named Item That Would Have Used the Short Name ")
 						    "")
 						counter)]
 				  [naya-data (box 0)])
@@ -957,25 +1004,50 @@
 			    (set! actual-user-data null)
 			    (send c clear))
 			  "Clear"))
+  (define (delete p)
+    (send c delete p)
+    (when (<= 0 p (sub1 (length actual-content)))
+      (if (zero? p)
+	  (begin
+	    (set! actual-content (cdr actual-content))
+	    (set! actual-user-data (cdr actual-user-data)))
+	  (begin
+	    (set-cdr! (list-tail actual-content (sub1 p)) 
+		      (list-tail actual-content (add1 p)))
+	    (set-cdr! (list-tail actual-user-data (sub1 p)) 
+		      (list-tail actual-user-data (add1 p)))))))
   (define db (if list?
 		 (make-object mred:button% cdp
 			      (lambda (b e)
 				(let ([p (send c get-selection)])
-				  (when (<= 0 p (sub1 (length actual-content)))
-					(send c delete p)
-					(if (zero? p)
-					    (begin
-					      (set! actual-content (cdr actual-content))
-					      (set! actual-user-data (cdr actual-user-data)))
-					    (begin
-					      (set-cdr! (list-tail actual-content (sub1 p)) 
-							(list-tail actual-content (add1 p)))
-					      (set-cdr! (list-tail actual-user-data (sub1 p)) 
-							(list-tail actual-user-data (add1 p))))))))
+				  (delete p)))
 			      "Delete")
 		 null))
+  (define dab (if list?
+		  (make-object mred:button% cdp
+			       (lambda (b e)
+				 (let ([p (send c get-selection)])
+				   (delete (sub1 p))))
+			       "Delete Above")
+		  null))
+  (define dbb (if list?
+		  (make-object mred:button% cdp
+			       (lambda (b e)
+				 (let ([p (send c get-selection)])
+				   (delete (add1 p))))
+			       "Delete Below")
+		  null))
+  (define setb (if list?
+		   (make-object mred:button% cdp
+				(lambda (b e)
+				  (send c set '("Alpha" "Beta" "Gamma"))
+				  (set! actual-content '("Alpha" "Beta" "Gamma"))
+				  (set! actual-user-data (list null null null)))
+				"Reset")
+		   null))
   (define (make-selectors method mname numerical?)
     (define p2 (make-object mred:horizontal-panel% p))
+    (send p2 stretchable-in-y #f)
     (when numerical?
 	  (make-object mred:button% p2
 		       (lambda (b e)
@@ -1056,12 +1128,14 @@
 				     [s (caddr eis)])
 				 (unless (= (send e get-command-int) i)
 					 (error "event selection value mismatch"))
-				 (unless (string=? (send e get-command-string) s)
-					 (error "selection string mismatch"))
+				 (unless (or (and (null? s) (null? (send e get-command-string)))
+					     (string=? (send e get-command-string) s))
+				   (error "selection string mismatch"))
 				 (check-callback-event c c e commands #t)))
 			     old-list)
 			    (printf "content: ~s~n" actual-content))
 			  "Check"))
+  (instructions p "choice-list-steps.txt")
   (send f show #t))
 
 (define (gauge-frame)
@@ -1224,7 +1298,10 @@
 (send mp1 set-label-position wx:const-vertical)
 
 (make-object mred:button% ap (lambda (b e) (menu-frame)) "Make Menus Frame")
-(make-object mred:button% ap (lambda (b e) (button-frame)) "Make Button Frame")
+(define bp (make-object mred:horizontal-panel% ap))
+(send bp stretchable-in-x #f)
+(make-object mred:button% bp (lambda (b e) (button-frame mred:frame%)) "Make Button Frame")
+(make-object mred:button% bp (lambda (b e) (button-frame mred:dialog-box%)) "Make Button Dialog Box")
 (make-object mred:button% ap (lambda (b e) (checkbox-frame)) "Make Checkbox Frame")
 (define cp (make-object mred:horizontal-panel% ap))
 (send cp stretchable-in-x #f)
