@@ -37,6 +37,29 @@
    mred^)
   
   (provide/contract/docs
+   
+   (number-snip:make-repeating-decimal-snip
+    (number? boolean? . -> . (is-a?/c snip%))
+    (num show-prefix?)
+    
+    "Makes a number snip that shows the decimal expansion for \\var{number}"
+    "The boolean indicates if a {\\tt \\#e} prefix appears"
+    "on the number."
+    ""
+    "See also"
+    "@flink number-snip:number-snip:make-fraction-snip %"
+    ".")
+   (number-snip:make-fraction-snip
+    (number? boolean? . -> . (is-a?/c snip%))
+    (num show-prefix-in-decimal-view?)
+    
+    "Makes a number snip that shows a fractional view of \\var{number}."
+    "The boolean indicates if a {\\tt \\#e} prefix appears"
+    "on the number, when shown in the decimal state."
+    ""
+    "See also"
+    "@flink drscheme:number-snip:make-repeating-decimal-snip %"
+    ".")   
    (version:add-spec
     (any? any? . -> . void?)
     (spec revision)

@@ -79,8 +79,20 @@
 	   framework:color-model-fun^
            framework:comment-box-fun^
            framework:comment-box-class^
-           framework:comment-box^)
+           framework:comment-box^
+           framework:number-snip^
+           framework:number-snip-fun^
+           framework:number-snip-class^)
            
+  (define-signature framework:number-snip-fun^ 
+    (make-repeating-decimal-snip
+     make-fraction-snip))
+  (define-signature framework:number-snip-class^ 
+    (snip-class%))
+  (define-signature framework:number-snip^
+    ((open framework:number-snip-fun^)
+     (open framework:number-snip-class^)))
+  
   (define-signature framework:comment-box-fun^
     ())
   (define-signature framework:comment-box-class^

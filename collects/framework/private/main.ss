@@ -22,6 +22,8 @@
       
       (application-preferences-handler (lambda () (preferences:show-dialog)))
       
+      (preferences:set-default 'framework:fraction-snip-style 'mixed (lambda (x) (memq x '(mixed improper))))
+      
       (preferences:set-default 'framework:standard-style-list:font-name
                                (get-family-builtin-face 'modern)
                                string?)

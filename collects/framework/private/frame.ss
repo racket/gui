@@ -554,7 +554,7 @@
              'framework:show-status-line
              (lambda (p v)
                (update-info-visibility v)))]
-          [define memory-cleanup void] ;; only for CVSers; used with memory-text
+          [define memory-cleanup void] ;; only for CVSers and nightly build users; used with memory-text
 
           (rename [super-on-close on-close])
           [define/override on-close
@@ -626,7 +626,7 @@
               [(<= n 99) (format "0~a" n)]
               [else (number->string n)]))
           
-            ; only for CVSers
+            ; only for CVSers and nightly build users
           (when show-memory-text?
             (let* ([panel (make-object horizontal-panel% (get-info-panel) '(border))]
                    [button (make-object button% (string-constant collect-button-label) panel 
@@ -2310,14 +2310,16 @@
           (define (get-editor%) text:searching%)
           (super-instantiate ())))
       
-      ; to see printouts in memory debugging better.
       (define memory-text% (class text% (super-new)))
       (define memory-text (make-object memory-text%))
       (send memory-text hide-caret #t)
       (define show-memory-text?
-	(with-handlers ([not-break-exn?
-			 (lambda (x) #f)])
-	  (directory-exists? (build-path (collection-path "framework") "CVS"))))
+        (or (with-handlers ([not-break-exn?
+                             (lambda (x) #f)])
+              (directory-exists? (collection-path "cvs-time-stamp")))
+            (with-handlers ([not-break-exn?
+                             (lambda (x) #f)])
+              (directory-exists? (build-path (collection-path "framework") "CVS")))))
       
       (define bday-click-canvas%
         (class canvas%
