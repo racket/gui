@@ -35,11 +35,18 @@
 		       (union false/c (is-a?/c brush%))
 		       (union false/c (is-a?/c brush%))
 		       . -> .
+		       void?)
+                      ((is-a?/c graph-snip<%>)
+		       (is-a?/c graph-snip<%>)
+		       (union false/c (is-a?/c pen%))
+		       (union false/c (is-a?/c pen%))
+		       (union false/c (is-a?/c brush%))
+		       (union false/c (is-a?/c brush%))
+		       number?
+                       number?
+                       . -> .
 		       void?))))
   
-  (define arrowhead-angle-width (* 1/4 pi))
-  (define arrowhead-short-side 8)
-  (define arrowhead-long-side 12)
   (define self-offset 10)
   
   ;; (or-2v arg ...)
@@ -64,7 +71,7 @@
   (define default-dark-brush (send the-brush-list find-or-create-brush "light blue" 'solid))
   (define default-light-brush (send the-brush-list find-or-create-brush "white" 'solid))
   
-  (define-struct link (snip dark-pen light-pen dark-brush light-brush))
+  (define-struct link (snip dark-pen light-pen dark-brush light-brush dx dy))
   
   ;; add-links : (is-a?/c graph-snip<%>) (is-a?/c graph-snip<%>) -> void
   ;;           : (is-a?/c graph-snip<%>) (is-a?/c graph-snip<%>) pen pen brush brush -> void
@@ -72,8 +79,10 @@
     (case-lambda
       [(parent child) (add-links parent child #f #f #f #f)]
       [(parent child dark-pen light-pen dark-brush light-brush)
+       (add-links child dark-pen light-pen dark-brush light-brush 0 0)]
+      [(parent child dark-pen light-pen dark-brush light-brush dx dy)
        (send parent add-child child)
-       (send child add-parent parent dark-pen light-pen dark-brush light-brush)]))
+       (send child add-parent parent dark-pen light-pen dark-brush light-brush dx dy)]))
   
   (define (graph-snip-mixin %)
     (class* % (graph-snip<%>)
@@ -93,13 +102,17 @@
         (case-lambda
           [(parent) (add-parent parent #f #f #f #f)]
           [(parent dark-pen light-pen dark-brush light-brush)
+           (add-parent parent dark-pen light-pen dark-brush light-brush 0 0)]
+          [(parent dark-pen light-pen dark-brush light-brush dx dy)
            (unless (memf (lambda (parent-link) (eq? (link-snip parent-link) parent)) parent-links)
              (set! parent-links 
                    (cons (make-link parent
                                     (or dark-pen default-dark-pen)
                                     (or light-pen default-light-pen)
                                     (or dark-brush default-dark-brush)
-                                    (or light-brush default-light-brush))
+                                    (or light-brush default-light-brush)
+                                    dx 
+                                    dy)
                          parent-links)))]))
       (define/public (remove-parent parent) 
         (when (memf (lambda (parent-link) (eq? (link-snip parent-link) parent)) parent-links)
@@ -123,7 +136,20 @@
   (define graph-pasteboard-mixin
     (mixin ((class->interface pasteboard%)) (graph-pasteboard<%>)
       (inherit find-first-snip find-next-selected-snip)
-
+    
+      (define arrowhead-angle-width (* 1/4 pi))
+      (define arrowhead-short-side 8)
+      (define arrowhead-long-side 12)
+      
+      (define/public (set-arrowhead-params angle-width long-side short-side)
+        (set! arrowhead-angle-width angle-width)
+        (set! arrowhead-short-side short-side)
+        (set! arrowhead-long-side long-side))
+      (define/public (get-arrowhead-params)
+        (values arrowhead-angle-width
+                arrowhead-long-side
+                arrowhead-short-side))
+      
       (inherit dc-location-to-editor-location get-canvas)
       (field (currently-overs null))
       (define/override (on-event evt)
@@ -312,7 +338,7 @@
       ;; sets the drawing context (pen and brush)
       ;; determines if the connection is between a snip and itself or two different snips
       ;;  and calls draw-self-connection or draw-non-self-connection
-      (define/private (draw-connection dc dx dy from-link to dark-lines?
+      (define/private (draw-connection dc raw-dx raw-dy from-link to dark-lines?
                                        left top right bottom
                                        arrow-heads?)
         (let ([from (link-snip from-link)])
@@ -325,11 +351,13 @@
                   (if dark-lines?
                       (link-dark-pen from-link)
                       (link-light-pen from-link)))
-            (cond
-              [(eq? from to)
-               (draw-self-connection dc dx dy from left top right bottom arrow-heads?)]
-              [else
-               (draw-non-self-connection dc dx dy from to left top right bottom arrow-heads?)]))))
+            (let ([dx (+ raw-dx (link-dx from-link))]
+                  [dy (+ raw-dy (link-dy from-link))])
+              (cond
+                [(eq? from to)
+                 (draw-self-connection dc dx dy from left top right bottom arrow-heads?)]
+                [else
+                 (draw-non-self-connection dc dx dy from to left top right bottom arrow-heads?)])))))
       
       (define/private (draw-self-connection dc dx dy snip left top right bottom arrow-heads?)
         (let*-values ([(sx sy sw sh) (get-position snip)]
