@@ -233,41 +233,6 @@
 						    (send event get-y))])
 			    (send a popup-menu m (+ x 1) (+ y 1))))))))]
                
-	       [up-out-of-editor-snip
-		(lambda (text event)
-		  (let ([editor-admin (send text get-admin)])
-		    (when (is-a? editor-admin editor-snip-editor-admin<%>)
-		      (let* ([snip (send editor-admin get-snip)]
-			     [snip-admin (send snip get-admin)])
-			(when snip-admin
-			  (let ([editor (send snip-admin get-editor)])
-			    (when (is-a? editor text%)
-			      (let ([new-pos (+ (send editor get-snip-position snip)
-						(if (= 0 (send text get-end-position))
-						    0
-						    (send snip get-count)))])
-				(send editor set-position new-pos new-pos))
-			      (send editor set-caret-owner #f 'display)))))))
-		  #t)]
-               
-	       [down-into-editor-snip
-		(lambda (dir get-pos)
-		  (lambda (text event)
-		    (when (= (send text get-start-position)
-			     (send text get-end-position))
-		      (let* ([pos (send text get-start-position)]
-			     [snip (send text find-snip pos dir)])
-			(when (and snip
-				   (is-a? snip editor-snip%))
-			  (let ([embedded-editor (send snip get-editor)])
-			    (when (is-a? embedded-editor text%)
-			      (send embedded-editor set-position (get-pos embedded-editor)))
-			    (send text set-caret-owner snip 'display)))))
-		    #t))]
-               
-	       [right-into-editor-snip (down-into-editor-snip 'after-or-none (lambda (x) 0))]
-	       [left-into-editor-snip (down-into-editor-snip 'before-or-none (lambda (x) (send x last-position)))]
-               
 	       [toggle-anchor
 		(lambda (edit event)
 		  (send edit set-anchor
@@ -787,7 +752,78 @@
 	       [toggle-overwrite
 		(lambda (edit event)
 		  (send edit set-overwrite-mode
-			(not (send edit get-overwrite-mode))))])
+			(not (send edit get-overwrite-mode))))]
+               
+               [down-into-embedded-editor
+                (lambda (text event)
+                  (let ([start (send text get-start-position)]
+                        [end (send text get-end-position)])
+                    (when (= start end)
+                      (let* ([bx (box 0)]
+                             [after-snip (send text find-snip start 'after-or-none bx)])
+                        (cond
+                          [(and (= (unbox bx) start)
+                                after-snip
+                                (is-a? after-snip editor-snip%))
+                           (let ([embedded-editor (send after-snip get-editor)])
+                             (when (is-a? embedded-editor text%)
+                               (send embedded-editor set-position 0))
+                             (send embedded-editor set-caret-owner #f 'global))]
+                          [else
+                           (let ([before-snip (send text find-snip start 'before-or-none bx)])
+                             (when (and (= (+ (unbox bx) 1) start)
+                                        before-snip
+                                        (is-a? before-snip editor-snip%))
+                              (let ([embedded-editor (send before-snip get-editor)])
+                                (when (is-a? embedded-editor text%)
+                                  (send embedded-editor set-position
+                                        (send embedded-editor last-position)))
+                                (send embedded-editor set-caret-owner #f 'global))))]))))
+                  #t)]
+                             
+               [forward-to-next-embedded-editor
+                (lambda (text event)
+                  (let ([start-pos (send text get-start-position)]
+                        [end-pos (send text get-end-position)])
+                    (when (= start-pos end-pos)
+                      (let loop ([snip (send text find-snip start-pos 'after-or-none)])
+                        (cond
+                          [(not snip) (void)]
+                          [(is-a? snip editor-snip%)
+                           (send text set-position (send text get-snip-position snip))]
+                          [else (loop (send snip next))]))))
+                  #t)]
+               
+               [back-to-prev-embedded-editor
+                (lambda (text event)
+                  (let ([start-pos (send text get-start-position)]
+                        [end-pos (send text get-end-position)])
+                    (when (= start-pos end-pos)
+                      (let loop ([snip (send text find-snip start-pos 'before-or-none)])
+                        (cond
+                          [(not snip) (void)]
+                          [(is-a? snip editor-snip%)
+                           (send text set-position (+ (send text get-snip-position snip) 1))]
+                          [else (loop (send snip previous))]))))
+                  #t)]
+               
+               [up-out-of-embedded-editor
+		(lambda (text event)
+                  (let ([start (send text get-start-position)]
+                        [end (send text get-end-position)])
+                    (when (= start end)
+                      (let ([editor-admin (send text get-admin)])
+                        (when (is-a? editor-admin editor-snip-editor-admin<%>)
+                          (let* ([snip (send editor-admin get-snip)]
+                                 [snip-admin (send snip get-admin)])
+                            (when snip-admin
+                              (let ([editor (send snip-admin get-editor)])
+                                (when (is-a? editor text%)
+                                  (let ([new-pos (send editor get-snip-position snip)])
+                                    (send editor set-position new-pos new-pos))
+                                  (send editor set-caret-owner #f 'display)))))))))
+		  #t)])
+               
 	  (lambda (kmap)
 	    (let* ([map (lambda (key func) 
 			  (send kmap map-function key func))]
@@ -797,8 +833,14 @@
 			  (send kmap add-function name func))]
 		   [add-m (lambda (name func)
 			    (send kmap add-function name func))])
-	      
+              
               ; Map names to keyboard functions
+
+	      (add "down-into-embedded-editor" down-into-embedded-editor)
+              (add "up-out-of-embedded-editor" up-out-of-embedded-editor)
+              (add "forward-to-next-embedded-editor" forward-to-next-embedded-editor)
+              (add "back-to-prev-embedded-editor" back-to-prev-embedded-editor)
+
 	      (add "toggle-overwrite" toggle-overwrite)
 	      
 	      (add "exit" (lambda (edit event)
@@ -811,10 +853,6 @@
 	      (add "ring-bell" ring-bell)
 	      
 	      (add "flash-paren-match" flash-paren-match)
-	      
-	      (add "left-into-editor-snip" left-into-editor-snip)
-	      (add "right-into-editor-snip" right-into-editor-snip)
-	      (add "up-out-of-editor-snip" up-out-of-editor-snip)
               
 	      (add "toggle-anchor" toggle-anchor)
 	      (add "center-view-on-line" center-view-on-line)
@@ -858,6 +896,16 @@
 	      (add "mouse-popup-menu" mouse-popup-menu)
 	      
               ; Map keys to functions
+              
+              (map-meta "c:down" "down-into-embedded-editor")
+              (map "a:c:down" "down-into-embedded-editor")
+              (map-meta "c:up" "up-out-of-embedded-editor")
+              (map "a:c:up" "up-out-of-embedded-editor")
+              (map-meta "c:right" "forward-to-next-embedded-editor")
+              (map "a:c:right" "forward-to-next-embedded-editor")
+              (map-meta "c:left" "back-to-prev-embedded-editor")
+              (map "a:c:left" "back-to-prev-embedded-editor")
+              
 	      (map "c:g" "ring-bell")
 	      (map-meta "c:g" "ring-bell")
 	      (map "c:x;c:g" "ring-bell")
@@ -994,10 +1042,6 @@
 	      
 	      (map "c:space" "toggle-anchor")
 	      
-	      (map-meta "c:left" "left-into-editor-snip")
-	      (map-meta "c:right" "right-into-editor-snip")
-	      (map-meta "c:up" "up-out-of-editor-snip")
-              
 	      (map "insert" "toggle-overwrite")
 	      (map-meta "o" "toggle-overwrite")
 	      

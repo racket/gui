@@ -6,7 +6,6 @@
            (lib "string-constant.ss" "string-constants")
            (lib "unitsig.ss")
 	   (lib "class.ss")
-           (prefix cb: "../comment-snip.ss")
 	   "sig.ss"
 	   "../macro.ss"
 	   (lib "mred-sig.ss" "mred")
@@ -28,7 +27,8 @@
               [keymap : framework:keymap^]
               [text : framework:text^]
               [editor : framework:editor^]
-              [frame : framework:frame^])
+              [frame : framework:frame^]
+              [comment-box : framework:comment-box^])
       
       (rename [-text% text%]
               [-text<%> text<%>])
@@ -869,9 +869,8 @@
 		(begin-edit-sequence)
 		(split-snip start-pos)
 		(split-snip end-pos)
-		(let* ([cb (instantiate cb:comment-box-snip% ())]
+		(let* ([cb (instantiate comment-box:snip% ())]
 		       [text (send cb get-editor)])
-		  (send text set-style-list style-list)
 		  (let loop ([snip (find-snip start-pos 'after-or-none)])
 		    (cond
 		      [(not snip) (void)]
@@ -897,15 +896,15 @@
                 (cond
                   [(and (= start-pos end-pos)
                         snip-before
-                        (is-a? snip-before cb:comment-box-snip%))
+                        (is-a? snip-before comment-box:snip%))
                    (extract-contents start-pos snip-before)]
                   [(and (= start-pos end-pos)
                         snip-after
-                        (is-a? snip-after cb:comment-box-snip%))
+                        (is-a? snip-after comment-box:snip%))
                    (extract-contents start-pos snip-after)]
                   [(and (= (+ start-pos 1) end-pos)
                         snip-after
-                        (is-a? snip-after cb:comment-box-snip%))
+                        (is-a? snip-after comment-box:snip%))
                    (extract-contents start-pos snip-after)]
                   [else
                    (let* ([last-pos (last-position)]
@@ -925,7 +924,7 @@
                 (end-edit-sequence))
               #t))
           
-          ;; extract-contents : number (is-a?/c cb:comment-box-snip%) -> void
+          ;; extract-contents : number (is-a?/c comment-box:snip%) -> void
           ;; copies the contents of the comment-box-snip out of the snip
           ;; and into this editor as `pos'. Deletes the comment box snip
           (define/private (extract-contents pos snip)
@@ -1243,12 +1242,6 @@
           (send keymap map-function "\"" "balance-quotes")
           (send keymap map-function "|" "balance-quotes")
           
-          ;(send keymap map-function "c:up" "up-sexp") ;; paragraph
-          ;(send keymap map-function "s:c:up" "select-up-sexp")
-          
-          ;(send keymap map-function "c:down" "down-sexp") ;; paragraph
-          ;(send keymap map-function "s:c:down" "select-down-sexp")
-          
           (let ([map-meta
                  (lambda (key func)
                    (keymap:send-map-function-meta keymap key func))]
@@ -1265,7 +1258,6 @@
             
             (map-meta "down" "down-sexp")
             (map "a:down" "down-sexp")
-            (map-meta "c:down" "down-sexp")
             (map-meta "s:down" "select-down-sexp")
             (map "a:s:down" "select-down-sexp")
             (map-meta "s:c:down" "select-down-sexp")

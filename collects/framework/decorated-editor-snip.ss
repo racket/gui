@@ -1,3 +1,4 @@
+
 (module decorated-editor-snip mzscheme
   (provide decorated-editor-snip%
            decorated-editor-snipclass%)

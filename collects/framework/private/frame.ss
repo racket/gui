@@ -11,8 +11,7 @@
 	   (lib "mred-sig.ss" "mred")
 	   (lib "list.ss")
 	   (lib "file.ss")
-	   (lib "etc.ss")
-           (prefix cb: "../comment-snip.ss"))
+	   (lib "etc.ss"))
   
   (provide frame@)
   
@@ -33,7 +32,8 @@
               [canvas : framework:canvas^]
               [menu : framework:menu^]
               [scheme : framework:scheme^]
-              [exit : framework:exit^])
+              [exit : framework:exit^]
+              [comment-box : framework:comment-box^])
       
       (rename [-editor<%> editor<%>]
               [-pasteboard% pasteboard%]
@@ -98,12 +98,7 @@
                  (lambda ()
                    (let ([text (get-edit-target-object)])
                      (when text
-                       (let ([snip (make-object cb:comment-box-snip%)])
-
-                         ;; we have to do this here to avoid cycles in the
-                         ;; module imports
-                         (send (send snip get-editor) set-style-list (scheme:get-style-list))
-
+                       (let ([snip (make-object comment-box:snip%)])
                          (send text insert snip)
                          (send text set-caret-owner snip 'global)))))])
           

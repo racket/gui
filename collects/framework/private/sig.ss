@@ -76,8 +76,19 @@
 	   framework:main-fun^
 	   framework:color-model^
 	   framework:color-model-class^
-	   framework:color-model-fun^)
-
+	   framework:color-model-fun^
+           framework:comment-box-fun^
+           framework:comment-box-class^
+           framework:comment-box^)
+           
+  (define-signature framework:comment-box-fun^
+    ())
+  (define-signature framework:comment-box-class^
+    (snipclass snip%))
+  (define-signature framework:comment-box^
+    ((open framework:comment-box-fun^)
+     (open framework:comment-box-class^)))
+  
   (define-signature framework:menu-class^
     (can-restore<%>
      can-restore-mixin

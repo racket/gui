@@ -68,9 +68,7 @@
                                      (format (string-constant error-saving-file/name) 
                                              filename)
                                      "\n\n"
-                                     (if (exn? exn)
-                                         (exn-message exn)
-                                         (format "~s" exn))))
+				     (format-error-message exn)))
                                    #f)])
                   (when filename
                     (save-file filename fmt #f))
@@ -97,11 +95,19 @@
 				     (format (string-constant error-loading-file/name)
 					     filename)
 				     "\n\n"
-				     (if (exn? exn) (exn-message exn) (format "~s" exn))))
+				     (format-error-message exn)))
                                    #f)])
                   (load-file input-filename fmt show-errors?)
                   #t))))
 	  
+	  (define/private (format-error-message exn)
+	    (let ([sp (open-output-string)])
+	      (parameterize ([current-output-port sp])
+		((error-display-handler)
+		 (if (exn? exn) (exn-message exn) (format "uncaught exn: ~s" exn))
+		 exn))
+	      (get-output-string sp)))
+
 	  (inherit refresh-delayed? 
 		   get-canvas
 		   get-max-width get-admin)
