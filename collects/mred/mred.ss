@@ -8,7 +8,8 @@
 	   (lib "list.ss")
 	   (lib "process.ss")
 	   (lib "moddep.ss" "syntax")
-           "private/seqcontract.ss")
+           "private/seqcontract.ss"
+	   "afm.ss")
 
 ;;;;;;;;;;;;;;; Constants ;;;;;;;;;;;;;;;;;;;;
 
@@ -7423,11 +7424,10 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-;; Initialize AFM path:
-(with-handlers ([not-break-exn? void])
-  (let ([pss (wx:current-ps-setup)])
-    (unless (send pss get-afm-path)
-      (send pss set-afm-path (collection-path "afm")))))
+;; Initialize AFM/PS:
+(wx:set-ps-draw-text/get-text-extent
+ afm-draw-text
+ afm-get-text-extent)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
