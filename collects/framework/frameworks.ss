@@ -219,6 +219,7 @@
   (send-map-function-meta
    make-meta-prefix-list
 
+   aug-keymap-mixin
    aug-keymap%
    aug-keymap<%>
    
