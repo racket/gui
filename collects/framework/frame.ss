@@ -638,7 +638,7 @@
                           (finder:put-file name))])
 	     (when file
 	       (send (get-editor) save-file file format))))])
-      (inherit get-menu-item%)
+      (inherit get-checkable-menu-item% get-menu-item%)
       (override
 	[file-menu:revert 
 	 (lambda (item control)
@@ -697,12 +697,29 @@
 			(edit-menu:do 'insert-pasteboard-box))
 	   (make-object (get-menu-item%) "Insert Image..." edit-menu
 			(edit-menu:do 'insert-image))
-	   (make-object (get-menu-item%) "Toggle Wrap Text" edit-menu
+
+	   (letrec ([c% (class (get-checkable-menu-item%) args
+			  (rename [super-on-demand on-demand])
+			  (override
+			    [on-demand
+			     (lambda ()
+			       (let ([edit (get-edit-target-object)])
+				 (if (and edit
+					  (is-a? edit editor<%>))
+				     (begin
+				       (send wrap-text-item enable #t)
+				       (send wrap-text-item check (send edit auto-wrap)))
+				     (send wrap-text-item enable #f))))])
+			  (sequence (apply super-init args)))]
+		    [wrap-text-item
+		     (make-object c% "Wrap Text" edit-menu
 			(lambda (item event)
 			  (let ([edit (get-edit-target-object)])
 			    (when (and edit
 				       (is-a? edit editor<%>))
-			      (send edit auto-wrap (not (send edit auto-wrap)))))))
+			      (send edit auto-wrap (not (send edit auto-wrap)))))))])
+	     (void))
+
 	   (make-object separator-menu-item% edit-menu))])
 	     
       (override

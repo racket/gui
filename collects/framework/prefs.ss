@@ -13,6 +13,7 @@
 					     [(macos) "MrEd Preferences"]
 					     [(windows) "mred.pre"]
 					     [else ".mred.prefs"])))
+  (define default-preferences-filename (build-path (collection-path "defaults") "prefs.ss"))
   
   (define preferences (make-hash-table))
   (define marshall-unmarshall (make-hash-table))
@@ -184,12 +185,12 @@
 	    'truncate 'text)))))
   
   (define -read
-    (let ([parse-pref
-	   (lambda (p marshalled)
-	     (let/ec k
-	       (let* ([ht-pref (hash-table-get preferences p (lambda () #f))]
-		      [unmarshall-struct (hash-table-get marshall-unmarshall p (lambda () #f))])
-		 (cond
+    (let* ([parse-pref
+	    (lambda (p marshalled)
+	      (let/ec k
+		(let* ([ht-pref (hash-table-get preferences p (lambda () #f))]
+		       [unmarshall-struct (hash-table-get marshall-unmarshall p (lambda () #f))])
+		  (cond
 		   [unmarshall-struct
 		    (set p ((un/marshall-unmarshall unmarshall-struct) marshalled))]
 		   
@@ -205,56 +206,65 @@
 		    (set p ((un/marshall-unmarshall unmarshall-struct) marshalled))]
 		   [(not ht-pref)
 		    (hash-table-put! preferences p (make-marshalled marshalled))]
-		   [else (error 'prefs.ss "robby error.3: ~a" ht-pref)]))))])
+		   [else (error 'prefs.ss "robby error.3: ~a" ht-pref)]))))]
+	   [read-from-filename
+	    (lambda (preferences-filename)
+	      (let/ec k
+		(let ([err
+		       (lambda (input msg)
+			 (message-box "Preferences"
+				      (let* ([max-len 150]
+					     [s1 (format "~s" input)]
+					     [ell "..."]
+					     [s2 (if (<= (string-length s1) max-len)
+						     s1
+						     (string-append
+						      (substring s1 0 (- max-len
+									 (string-length ell)))
+						      ell))])
+					(format "found bad pref in ~a: ~a~n~a"
+						preferences-filename msg s2))))])
+		  (let ([input (with-handlers
+				   ([(lambda (exn) #t)
+				     (lambda (exn)
+				       (message-box
+					"Error reading preferences"
+					(format "Error reading preferences~n~a"
+						(exn-message exn)))
+				       (k #f))])
+				 (call-with-input-file preferences-filename
+				   read
+				   'text))])
+		    (let loop ([input input])
+		      (cond
+		       [(pair? input)
+			(let ([err-msg
+			       (let/ec k
+				 (let ([first (car input)])
+				   (unless (pair? first)
+				     (k "expected pair of pair"))
+				   (let ([arg1 (car first)]
+					 [t1 (cdr first)])
+				     (unless (pair? t1)
+				       (k "expected pair of two pairs"))
+				     (let ([arg2 (car t1)]
+					   [t2 (cdr t1)])
+				       (unless (null? t2)
+					 (k "expected null after two pairs"))
+				       (parse-pref arg1 arg2)
+				       (k #f)))))])
+			  (when err-msg
+			    (err input err-msg)))
+			(loop (cdr input))]
+		       [(null? input) (void)]
+		       [else (err input "expected a pair")]))))))])
       (lambda ()
-	(let/ec k
-	  (when (file-exists? preferences-filename)
-	    (let ([err
-		   (lambda (input msg)
-		     (message-box "Preferences"
-				  (let* ([max-len 150]
-					 [s1 (format "~s" input)]
-					 [ell "..."]
-					 [s2 (if (<= (string-length s1) max-len)
-						 s1
-						 (string-append (substring s1 0 (- max-len
-										   (string-length ell)))
-								ell))])
-				    (format "found bad pref: ~a~n~a" msg s2))))])
-	      (let ([input (with-handlers
-			       ([(lambda (exn) #t)
-				 (lambda (exn)
-				   (message-box
-				    "Error reading preferences"
-				    (format "Error reading preferences~n~a"
-					    (exn-message exn)))
-				   (k #f))])
-			     (call-with-input-file preferences-filename
-			       read
-			       'text))])
-		(let loop ([input input])
-		  (cond
-		    [(pair? input)
-		     (let ([err-msg
-			    (let/ec k
-			      (let ([first (car input)])
-				(unless (pair? first)
-				  (k "expected pair of pair"))
-				(let ([arg1 (car first)]
-				      [t1 (cdr first)])
-				  (unless (pair? t1)
-				    (k "expected pair of two pairs"))
-				  (let ([arg2 (car t1)]
-					[t2 (cdr t1)])
-				    (unless (null? t2)
-				      (k "expected null after two pairs"))
-				    (parse-pref arg1 arg2)
-				    (k #f)))))])
-		       (when err-msg
-			 (err input err-msg)))
-		     (loop (cdr input))]
-		    [(null? input) (void)]
-		    [else (err input "expected a pair")])))))))))
+	(cond
+	 [(file-exists? preferences-filename)
+	  (read-from-filename preferences-filename)]
+	 [(file-exists? default-preferences-filename)
+	  (read-from-filename default-preferences-filename)]
+	 [else (void)]))))
   
   (define-struct ppanel (title container panel))
   

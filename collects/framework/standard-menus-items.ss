@@ -60,6 +60,16 @@
 			""
 			"defaultly returns"
 			"@link menu-item"))
+	(make-generic 'get-checkable-menu-item% '(lambda () checkable-menu-item%)
+		      '("The result of this method is used as the class for creating"
+			"checkable menu items in this class (see "
+			"@link frame:standard-menus"
+			"for a list)."
+			""
+			"@return : (derived-from \\iscmclass{checkable-menu-item})"
+			""
+			"defaultly returns"
+			"@link menu-item"))
 
 	(make-generic 'get-file-menu
 		      '(let ([m (make-object (get-menu%)

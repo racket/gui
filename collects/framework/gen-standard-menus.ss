@@ -1,6 +1,6 @@
 #!/bin/sh
 
-string=? ; exec mred -mgaqvf $0
+string=? ; exec mred -qr $0
 
 (require-library "pretty.ss")
 (require-library "function.ss")
