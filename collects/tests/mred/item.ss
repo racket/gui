@@ -1505,9 +1505,10 @@
 		 [swapped-name -swapped-name]
 		 [auto? #f]
 		 [incremental? #f]
-		 [inc-mode (lambda (x) (set! incremental? x))]
 		 [vw 10]
-		 [vh 10]
+		 [vh 10])
+	       (public
+		 [inc-mode (lambda (x) (set! incremental? x))]
 		 [set-vsize (lambda (w h) (set! vw w) (set! vh h))])
 	       (override
 		[on-paint
@@ -1535,6 +1536,10 @@
 			     3 27)
 		       (send dc draw-line 0 vh vw vh)
 		       (send dc draw-line vw 0 vw vh))))]
+		[on-event
+		 (lambda (e)
+		   (let ([s (format "~a ~a" (send e get-x) (send e get-y))])
+		     (send f set-status-text s)))]
 		[on-scroll
 		 (lambda (e) 
 		   (when auto? (printf "Hey - on-scroll called for auto scrollbars~n"))
@@ -1595,6 +1600,7 @@
 		 (send c2 inc-mode (send c get-value))))
   (send c1 set-vsize 10 10)
   (send c2 set-vsize 500 200)
+  (send f create-status-line)
   (send f show #t))
 
 (define (editor-canvas-oneline-frame)
