@@ -5,7 +5,7 @@ Each tests will rely on the sucessfully completion of all of the ones
 before it. In addition, all test suites rely on the sucessful
 completion of the engine test suites and the mzscheme test suites.
 
-All of these tests reside in PLTHOME/tests/framework/
+All of these tests reside in PLTHOME/collects/tests/framework/
 
 There will be a main mzscheme process which will start up a new mred
 as necessary for the test suites. Since some tests actually require
@@ -15,9 +15,19 @@ To run a test use:
 
    framework-test <test.ss> ...
 
-where or <test.ss> is the name of one of the tests
-below. Alternatively, pass no command-line arguments to run the same
-test as last time, or `all' to run all of the tests.
+where or <test.ss> is the name of one of the tests below.
+Alternatively, pass no command-line arguments to run all of
+the tests. (Under windows, the app will be named "Framework
+Test"; see the mred-launcher-names documentation for how the
+names change on the various platforms)
+
+Some of the tests in this file are not yet present in the
+testing directory. They are planned future expansions of
+this test suite (and have been for some time....)
+
+OS X: you will have to click on the newly started mred
+processes in the doc while the test suite runs or it will
+signal failures when there aren't any.
 
 - load: |# load.ss #|
 
@@ -35,10 +45,6 @@ test as last time, or `all' to run all of the tests.
   | immediately and across reboots of mred.
 
 
-- specs |# spec-test.ss #|
-
-  | this tests that the specs are compiled properly.
-  
 - individual object tests:
 
   | These tests are simple object creation and basic operations.
@@ -50,19 +56,9 @@ test as last time, or `all' to run all of the tests.
   - texts: |# text.ss #|
   - pasteboards: |# pasteboard.ss #|
 
-- basic connections between classes
-
-  | These tests will create objects in various configurations and
-  | trigger situations to test their functionality. 
-
-  - edits to canvases: |# edit-canvas.ss #|
-  - canvases to frames: |# canvas-frame.ss #|
-  - edits to frames: |# edit-frame.ss #|
-  - handler: handler-test.ss
-
 - keybindings: |# keys.ss #|
 
-  | This tests all of the misc (non-scheme) keybindings
+  | This tests the misc (non-scheme) keybindings
 
 - searching: |# search.ss #|
 
@@ -95,16 +91,6 @@ test as last time, or `all' to run all of the tests.
   - autosaving: |# autosave.ss #|
   - closing: |# close.ss #|
   - quitting: |# quit.ss #|
-
-- docs:
-
-  | these tests perform santiy checks to ensure that the docs are up to
-  | date with the code and the mred web browser isn't horribly broken
-
-  - inheritance: inheritance.ss
-
-    | make sure that the super-class relationships in the docs match
-    | the code.
 
 - interactive tests
 
