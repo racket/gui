@@ -411,9 +411,16 @@
               (cond
                 [(<= n 1000) (number->string n)]
                 [else
-                 (format "~a,~a"
-                         (loop (quotient n 1000))
-                         (modulo n 1000))])))
+                 (string-append 
+                  (loop (quotient n 1000))
+                  ","
+                  (pad-to-3 (modulo n 1000)))])))
+
+         (define (pad-to-3 n)
+           (cond
+             [(<= n 9) (format "00~a" n)]
+             [(<= n 99) (format "0~a" n)]
+             [else (number->string n)]))
           
             ; only for CVSers
           (when show-memory-text?
