@@ -4793,7 +4793,7 @@
 	(let ([s (wx:file-selector message directory filename extension "*.*"
 				   (if put? 'put (if multi? 'multi 'get))
 				   (mred->wx parent))])
-	  (if multi?
+	  (if (and multi? s)
 	      (files->list s)
 	      s))
 	(letrec ([ok? #f]
