@@ -38,11 +38,11 @@ The drawing area should have the following features:
     pattern; the third shape should be a semi-circle with no outline
     on the bottm edge.
 
-  On the far right (to the the right of the columns) should appear an
-   X, a cross, and an narrow X tilted NW. Each should be drawn in
-   green (5 pixels wide) with a thin black line centered along each
-   green line.  Scaling the piture should make the green line thicker,
-   but not the black line, and the black line should stay centered.
+  Further right (to the the right of the columns) should appear an
+    X, a cross, and an narrow X tilted NW. Each should be drawn in
+    green (5 pixels wide) with a thin black line centered along each
+    green line.  Scaling the piture should make the green line thicker,
+    but not the black line, and the black line should stay centered.
 
   Under the columns of boxes, a black box should be filled with an 25%
     black B&W bitmap, and a red box frame should be draw with a 50%
@@ -54,6 +54,11 @@ The drawing area should have the following features:
     line right or center with a kind of semi-spring on the left
     edge. The black pixels in 6x10 should be just a longer semi-spring
     to the left.
+
+  At the far right should appear six stars, drawn once as lines (left
+    column) and once as a polygon outline (right column). The first row
+    uses 'projecting cap and 'miter join, the second uses 'round and
+    'round, and the last uses 'butt and 'bevel.
 
   The drawings under "0 x 0" and "1 x 1" should look nearly the same:
 
@@ -96,7 +101,7 @@ The drawing area should have the following features:
           ellipse 40 tall and 30 wide (i.e., stretched slightly in the
           vertical direction from a circle).
 
-  Big octagon: The octagon defines the region for octagin clipping.
+  Big octagon: The octagon defines the region for octagon clipping.
           Also, it's drawn in xor mode, so it should flip black to
           white wherever the octagon line runs over the shapes of the
           middle section. The bitmaps of the bottom region are drawn
@@ -140,10 +145,10 @@ The drawing area should have the following features:
            Dot Dash line
 
    Long line: On the screen, the line should be 1 pixel wide, except
-       that the last 1/9th should be two pixels wide. In postscript,
-       the line should consist of 9 segments, growing in width from 
-       0.0 to 2.0 (inclusive) in 0.25 increments. When the image
-       is scaled by a factor of 2, the first 1/9th on the screen
+       that the last 1/9th should be two pixels wide. In postscript or
+       smooth mode, the line should consist of 9 segments, growing in
+       width from 0.0 to 2.0 (inclusive) in 0.25 increments. When the
+       image is scaled by a factor of 2, the first 1/9th on the screen
        should still be 1 pixel, the next 7/9ths should be 2 pixels,
        and the last 1/9 should be 4 pixels wide.
 
@@ -187,10 +192,13 @@ Clipping should slip the drawing to a particular shape:
 
    polka - purple field with holes showing the normal drawing
 
-When "*2" is also clicked, the clipping region should scale
+When the "Clip Pre-Scale" checkbox is not checked, then when a scale
+such as "*2" is selected, the clipping region should scale
 accordingly. "+10" should move the clipping region. (In either the
 "*2" or "+10" case, the content of the clipped region should be the
-same.)
+same.) When the "Clip Pre-Scale" checkbox is checked, then the
+clipping region should not scale with the rest of the drawing. Be sure
+to try both scaling modes with smoothing both on and off.
 
 The "Clock" button tests a range of wedges. Each wedge has a 1-pixel
  black background and orange filling. A sequence of wedges is
@@ -235,6 +243,9 @@ The "MrEd XOR" menu selects a icon:
     right (i.e., same section shown and scaled).
 
  - "PLT ^ MrEd" : "PLT Middle" masked by the MrEd icon.
+
+ - "MrEd ^ PLT" : MrEd icon masked by the "PLT Middle" image (so it's
+   translucent).
 
  - "MrEd ^ MrEd" : MrEd icon masked by itself... non-black parts
    should be transparent.
