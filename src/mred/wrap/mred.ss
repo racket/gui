@@ -554,7 +554,11 @@
 	 (set-min-width (init-min (get-width)))
 	 (set-min-height (init-min (get-height)))
 	 
-	 (send (area-parent) add-child this)))))
+	 ;; For a pane[l], the creator must call the equivalent of the following,
+	 ;;  delaying to let the panel's wx field get initialized before
+	 ;;  panel-sizing methods are called
+	 (unless (is-a? this wx-basic-panel<%>)
+	   (send (area-parent) add-child this))))))
 
 ; make-control% - for non-panel items
 (define (make-control% item% x-margin y-margin
@@ -1118,8 +1122,10 @@
       [get-width (lambda () width)]
       [get-height (lambda () height)])))
 
+(define wx-basic-panel<%> (interface ()))
+
 (define (wx-make-basic-panel% wx:panel%)
-  (class (wx-make-container% (make-item% wx:panel% 0 0 #t #t)) (parent style)
+  (class* (wx-make-container% (make-item% wx:panel% 0 0 #t #t)) (wx-basic-panel<%>) (parent style)
     (inherit get-x get-y get-width get-height
 	     min-width min-height set-min-width set-min-height
 	     x-margin y-margin
@@ -1773,16 +1779,19 @@
 
 (define wx-text-field%
   (class wx-horizontal-panel% (mred proxy parent func label value style)
-    (inherit alignment stretchable-in-y get-control-font)
+    (inherit alignment stretchable-in-y get-control-font area-parent)
     (rename [super-place-children place-children])
     (sequence
-      (super-init #f proxy parent null))
+      (super-init #f proxy parent null)
+      (send (area-parent) add-child this))
     (private
       [multi? (memq 'multiple style)]
       [horiz? (eq? (send (send parent get-window) get-label-position) 'horizontal)]
       [p (if horiz?
 	     this
-	     (make-object wx-vertical-pane% #f proxy this null))]
+	     (let ([p (make-object wx-vertical-pane% #f proxy this null)])
+	       (send (send p area-parent) add-child p)
+	       p))]
       [l (and label
 	      (make-object wx-message% #f proxy p label -1 -1 null))]
       [c (make-object wx-text-editor-canvas% #f proxy this p
@@ -2197,6 +2206,7 @@
       [wx-panel #f]
       [finish (lambda (top-level)
 		(set! wx-panel (make-object wx-vertical-panel% #f this top-level null))
+		(send (send wx-panel area-parent) add-child wx-panel)
 		(send top-level set-container wx-panel)
 		top-level)])
     (sequence (super-init (lambda () (set! wx (mk-wx finish)) wx) (lambda () wx-panel) label parent #f))))
@@ -2730,7 +2740,8 @@
 						      [(horizontal-pane) wx-horizontal-pane%]
 						      [else wx-pane%])
 						     this this (mred->wx-container parent) null)) wx)
-		    (lambda () wx) parent)))))
+		    (lambda () wx) parent)
+	(send (send wx area-parent) add-child wx)))))
 
 (define vertical-pane% (class pane% (parent) (sequence (super-init parent))))
 (define horizontal-pane% (class pane% (parent) (sequence (super-init parent))))
@@ -2750,7 +2761,8 @@
 						       [(horizontal-panel) wx-horizontal-panel%]
 						       [else wx-panel%])
 						     this this (mred->wx-container parent) style)) wx)
-		    (lambda () wx) #f parent #f)))))
+		    (lambda () wx) #f parent #f)
+	(send (send wx area-parent) add-child wx)))))
 
 (define vertical-panel% (class panel% args (sequence (apply super-init args))))
 (define horizontal-panel% (class panel% args (sequence (apply super-init args))))
