@@ -681,35 +681,37 @@
                                            "result of get-canvas% method must match ~e interface; got: ~e"
                                            <%> %))
                                   (make-object % (get-area-container))))]
-          [define get-editor% (lambda () (error 'editor-frame% "no editor% class specified"))]
-          [define get-editor<%> (lambda () editor<%>)]
-          [define make-editor (lambda ()
-                                (let ([% (get-editor%)]
-                                      [<%> (get-editor<%>)])
-                                  (unless (implementation? % <%>)
-                                    (error 'frame:editor%
-                                           "result of get-editor% method must match ~e interface; got: ~e"
-                                           <%> %))
-                                  (make-object %)))]
+          (define (get-editor%)
+	    (error 'editor-frame% "abstract method: no editor% class specified"))
+          (define (get-editor<%>)
+	    editor<%>)
+          (define (make-editor)
+	    (let ([% (get-editor%)]
+		  [<%> (get-editor<%>)])
+	      (unless (implementation? % <%>)
+		(error 'frame:editor%
+		       "result of get-editor% method must match ~e interface; got: ~e"
+		       <%> %))
+	      (make-object %)))
           
           
           (public save-as)
-          [define save-as
+          (define save-as
             (opt-lambda ([format 'same])
               (let* ([name (send (get-editor) get-filename)]
                      [file (parameterize ([finder:dialog-parent-parameter this])
                              (finder:put-file name))])
                 (when file
-                  (send (get-editor) save-file file format))))]
+                  (send (get-editor) save-file file format)))))
           (inherit get-checkable-menu-item% get-menu-item%)
           (override file-menu:save-callback
                     file-menu:create-save? file-menu:save-as-callback file-menu:create-save-as? 
                     file-menu:print-callback file-menu:create-print?)
 
-          [define/override (file-menu:revert-on-demand item)
-            (send item enable (not (send (get-editor) is-locked?)))]
+          (define/override (file-menu:revert-on-demand item)
+            (send item enable (not (send (get-editor) is-locked?))))
 
-          [define/override file-menu:revert-callback 
+          (define/override file-menu:revert-callback 
             (lambda (item control)
               (let* ([edit (get-editor)]
                      [b (box #f)]
@@ -737,33 +739,33 @@
                                (string-constant error-reverting)
                                (format (string-constant could-not-read) filename)
                                this)))))))
-              #t)]
-          [define/override file-menu:create-revert? (lambda () #t)]
-          [define file-menu:save-callback (lambda (item control)
+              #t))
+          (define/override file-menu:create-revert? (lambda () #t))
+          (define file-menu:save-callback (lambda (item control)
                                             (send (get-editor) save-file)
-                                            #t)]
+                                            #t))
           
-          [define file-menu:create-save? (lambda () #t)]
-          [define file-menu:save-as-callback (lambda (item control) (save-as) #t)]
-          [define file-menu:create-save-as? (lambda () #t)]
-          [define file-menu:print-callback (lambda (item control)
+          (define file-menu:create-save? (lambda () #t))
+          (define file-menu:save-as-callback (lambda (item control) (save-as) #t))
+          (define file-menu:create-save-as? (lambda () #t))
+          (define file-menu:print-callback (lambda (item control)
                                              (send (get-editor) print
                                                    #t
                                                    #t
                                                    (preferences:get 'framework:print-output-mode))
-                                             #t)]
-          [define file-menu:create-print? (lambda () #t)]
+                                             #t))
+          (define file-menu:create-print? (lambda () #t))
           
-          [define edit-menu:do (lambda (const)
+          (define edit-menu:do (lambda (const)
                                  (lambda (menu evt)
                                    (let ([edit (get-edit-target-object)])
                                      (when (and edit
                                                 (is-a? edit editor<%>))
                                        (send edit do-edit-operation const)))
-                                   #t))]
+                                   #t)))
           
           (public add-edit-menu-snip-items)
-          [define add-edit-menu-snip-items
+          (define add-edit-menu-snip-items
             (lambda (edit-menu)
               (let ([c% (get-menu-item%)]
                     [on-demand
@@ -776,11 +778,11 @@
                 (make-object c% (string-constant insert-pb-box-item)
                   edit-menu (edit-menu:do 'insert-pasteboard-box) #f #f on-demand)
                 (make-object c% (string-constant insert-image-item)
-                  edit-menu (edit-menu:do 'insert-image) #f #f on-demand)))]
+                  edit-menu (edit-menu:do 'insert-image) #f #f on-demand))))
           
           
           (override edit-menu:between-select-all-and-find)
-          [define edit-menu:between-select-all-and-find
+          (define edit-menu:between-select-all-and-find
            (lambda (edit-menu)
              (make-object separator-menu-item% edit-menu)
              
@@ -806,36 +808,36 @@
                (make-object c% (string-constant wrap-text-item)
                  edit-menu callback #f #f on-demand))
              
-             (make-object separator-menu-item% edit-menu))]
+             (make-object separator-menu-item% edit-menu)))
           
           (override help-menu:about-callback help-menu:about-string help-menu:create-about?)
-          [define help-menu:about-callback 
+          (define help-menu:about-callback 
             (lambda (menu evt) 
               (message-box (application:current-app-name)
                            (format (string-constant welcome-to-something)
-                                   (application:current-app-name))))]
-          [define help-menu:about-string (lambda () (application:current-app-name))]
-          [define help-menu:create-about? (lambda () #t)]
+                                   (application:current-app-name)))))
+          (define help-menu:about-string (lambda () (application:current-app-name)))
+          (define help-menu:create-about? (lambda () #t))
           
           (super-instantiate 
            () 
            (label (get-entire-label)))
           
-          [define canvas #f]
-          [define editor #f]
+          (define canvas #f)
+          (define editor #f)
           (public get-canvas get-editor)
-          [define get-canvas 
+          (define get-canvas 
             (lambda () 
               (unless canvas
                 (set! canvas (make-canvas))
                 (send canvas set-editor (get-editor)))
-              canvas)]
-          [define get-editor 
+              canvas))
+          (define get-editor 
             (lambda () 
               (unless editor
                 (set! editor (make-editor))
                 (send (get-canvas) set-editor editor))
-              editor)]
+              editor))
 
           (do-label)
           (cond
@@ -1372,42 +1374,42 @@
           (rename [super-make-root-area-container make-root-area-container]
                   [super-on-activate on-activate]
                   [super-on-close on-close])
-          [define super-root 'unitiaialized-super-root]
+          (define super-root 'unitiaialized-super-root)
           (override edit-menu:find-callback edit-menu:create-find? 
                     edit-menu:find-again-callback edit-menu:create-find-again? 
                     edit-menu:replace-and-find-again-callback edit-menu:replace-and-find-again-on-demand
                     edit-menu:create-replace-and-find-again?)
-          [define edit-menu:find-callback (lambda (menu evt) (move-to-search-or-search) #t)]
-          [define edit-menu:create-find? (lambda () #t)]
-          [define edit-menu:find-again-callback (lambda (menu evt) (search-again) #t)]
-          [define edit-menu:create-find-again? (lambda () #t)]
-          [define edit-menu:replace-and-find-again-callback (lambda (menu evt) (replace&search) #t)]
-          [define edit-menu:replace-and-find-again-on-demand
-            (lambda (item) (send item enable (can-replace?)))]
-          [define edit-menu:create-replace-and-find-again? (lambda () #t)]
+          (define edit-menu:find-callback (lambda (menu evt) (move-to-search-or-search) #t))
+          (define edit-menu:create-find? (lambda () #t))
+          (define edit-menu:find-again-callback (lambda (menu evt) (search-again) #t))
+          (define edit-menu:create-find-again? (lambda () #t))
+          (define edit-menu:replace-and-find-again-callback (lambda (menu evt) (replace&search) #t))
+          (define edit-menu:replace-and-find-again-on-demand
+            (lambda (item) (send item enable (can-replace?))))
+          (define edit-menu:create-replace-and-find-again? (lambda () #t))
           (override make-root-area-container)
-          [define make-root-area-container
+          (define make-root-area-container
             (lambda (% parent)
               (let* ([s-root (super-make-root-area-container
                               vertical-panel%
                               parent)]
                      [root (make-object % s-root)])
                 (set! super-root s-root)
-                root))]
+                root)))
           (override on-activate)
-          [define on-activate
+          (define on-activate
             (lambda (on?)
               (unless hidden?
                 (if on?
                     (reset-search-anchor (get-text-to-search))
                     (clear-search-highlight)))
-              (super-on-activate on?))]
+              (super-on-activate on?)))
           
           (public get-text-to-search hide-search unhide-search)
-          [define get-text-to-search
+          (define get-text-to-search
             (lambda ()
-              (error 'get-text-to-search "abstract method in searchable-mixin"))]
-          [define hide-search
+              (error 'get-text-to-search "abstract method in searchable-mixin")))
+          (define hide-search
             (opt-lambda ([startup? #f])
               (send super-root change-children
                     (lambda (l)
@@ -1417,8 +1419,8 @@
                 (send 
                  (send (get-text-to-search) get-canvas) 
                  focus))
-              (set! hidden? #t))]
-          [define unhide-search
+              (set! hidden? #t)))
+          (define unhide-search
             (lambda ()
               (when (and hidden?
                          (not (preferences:get 'framework:search-using-dialog?)))
@@ -1426,7 +1428,7 @@
                 (show/hide-replace (send (get-text-to-search) is-locked?))
                 (send search-panel focus)
                 (send super-root add-child search-panel)
-                (reset-search-anchor (get-text-to-search))))]
+                (reset-search-anchor (get-text-to-search)))))
 
           (define (show/hide-replace hide?)
             (cond
@@ -1444,14 +1446,14 @@
                      (lambda (l) (list replace&search-button
                                        replace-all-button)))]))
 
-          [define remove-callback
+          (define remove-callback
             (preferences:add-callback
              'framework:search-using-dialog?
              (lambda (p v)
                (when p
-                 (hide-search))))]
+                 (hide-search)))))
           (override on-close)
-          [define on-close
+          (define on-close
             (lambda ()
               (super-on-close)
               (remove-callback)
@@ -1461,15 +1463,15 @@
                 (close-canvas find-canvas find-edit)
                 (close-canvas replace-canvas replace-edit))
               (when (eq? this searching-frame)
-                (set-searching-frame #f)))]
+                (set-searching-frame #f))))
           (public set-search-direction can-replace? replace&search replace-all replace
                   toggle-search-focus move-to-search-or-search move-to-search-or-reverse-search
                   search-again)
-          [define set-search-direction 
+          (define set-search-direction 
             (lambda (x) 
               (set-searching-direction x)
-              (send dir-radio set-selection (if (eq? x 'forward) 0 1)))]
-          [define can-replace?
+              (send dir-radio set-selection (if (eq? x 'forward) 0 1))))
+          (define can-replace?
             (lambda ()
               (let ([tx (get-text-to-search)])
                 (and
@@ -1479,12 +1481,12 @@
                   (send tx get-text
                         (send tx get-start-position)
                         (send tx get-end-position))
-                  (send find-edit get-text 0 (send find-edit last-position))))))]
-            [define replace&search
+                  (send find-edit get-text 0 (send find-edit last-position)))))))
+            (define replace&search
              (lambda ()
                (when (replace)
-                 (search-again)))]
-            [define replace-all
+                 (search-again))))
+            (define replace-all
              (lambda ()
                (let* ([replacee-edit (get-text-to-search)]
                       [pos (if (eq? searching-direction 'forward)
@@ -1502,8 +1504,8 @@
                      (when (send find-edit search #t #f #f)
                        (replace)
                        (loop))))
-                 (send replacee-edit end-edit-sequence)))]
-            [define replace
+                 (send replacee-edit end-edit-sequence))))
+            (define replace
              (lambda ()
                (let* ([search-text (send find-edit get-text)]
                       [replacee-edit (get-text-to-search)]
@@ -1518,8 +1520,8 @@
                                   replacee-start
                                   (+ replacee-start (string-length new-text)))
                             #t)
-                     #f)))]
-            [define toggle-search-focus
+                     #f))))
+            (define toggle-search-focus
              (lambda ()
                (set-searching-frame this)
                (unhide-search)
@@ -1530,8 +1532,8 @@
                         (send (get-text-to-search) get-canvas)]
                        [else
                         find-canvas])
-                     focus))]
-            [define move-to-search-or-search
+                     focus)))
+            (define move-to-search-or-search
              (lambda ()
                (set-searching-frame this)
                (unhide-search)
@@ -1542,64 +1544,64 @@
                   (if (or (send find-canvas has-focus?)
                           (send replace-canvas has-focus?))
                       (search-again 'forward)
-                      (send find-canvas focus))]))]
-            [define move-to-search-or-reverse-search
+                      (send find-canvas focus))])))
+            (define move-to-search-or-reverse-search
              (lambda ()
                (set-searching-frame this)
                (unhide-search)
                (if (or (send find-canvas has-focus?)
                        (send replace-canvas has-focus?))
                    (search-again 'backward)
-                   (send find-canvas focus)))]
-            [define search-again
+                   (send find-canvas focus))))
+            (define search-again
              (opt-lambda ([direction searching-direction] [beep? #t])
                (set-searching-frame this)
                (unhide-search)
                (set-search-direction direction)
-               (send find-edit search #t beep?))]
+               (send find-edit search #t beep?)))
           
           (super-instantiate ())
 
-          [define search-panel (make-object horizontal-panel% super-root '(border))]
+          (define search-panel (make-object horizontal-panel% super-root '(border)))
           
-          [define left-panel (make-object vertical-panel% search-panel)]
-          [define find-canvas (make-object searchable-canvas% left-panel)]
-          [define replace-canvas-panel (instantiate vertical-panel% ()
+          (define left-panel (make-object vertical-panel% search-panel))
+          (define find-canvas (make-object searchable-canvas% left-panel))
+          (define replace-canvas-panel (instantiate vertical-panel% ()
                                          (parent left-panel)
                                          (stretchable-width #t)
-                                         (stretchable-height #f))]
-          [define replace-canvas (make-object searchable-canvas% replace-canvas-panel)]
+                                         (stretchable-height #f)))
+          (define replace-canvas (make-object searchable-canvas% replace-canvas-panel))
           
-          [define middle-left-panel (make-object vertical-pane% search-panel)]
-          [define middle-middle-panel (make-object vertical-pane% search-panel)]
-          [define middle-right-panel (make-object vertical-pane% search-panel)]
+          (define middle-left-panel (make-object vertical-pane% search-panel))
+          (define middle-middle-panel (make-object vertical-pane% search-panel))
+          (define middle-right-panel (make-object vertical-pane% search-panel))
           
-          [define search-button (make-object button% 
+          (define search-button (make-object button% 
                                   (string-constant find)
                                   middle-left-panel
-                                  (lambda args (search-again)))]
+                                  (lambda args (search-again))))
 
-          [define replace-button-panel
+          (define replace-button-panel
             (instantiate vertical-panel% ()
               (parent middle-left-panel)
               (stretchable-width #f)
-              (stretchable-height #f))]
+              (stretchable-height #f)))
           
-          [define replace-button (make-object button% (string-constant replace)
+          (define replace-button (make-object button% (string-constant replace)
                                    replace-button-panel
-                                   (lambda x (replace)))]
+                                   (lambda x (replace))))
           
-          [define replace&search-button (make-object button% 
+          (define replace&search-button (make-object button% 
                                           (string-constant replace&find-again)
                                           middle-middle-panel
-                                          (lambda x (replace&search)))]
+                                          (lambda x (replace&search))))
 
-          [define replace-all-button (make-object button% 
+          (define replace-all-button (make-object button% 
                                        (string-constant replace-to-end)
                                        middle-middle-panel
-                                       (lambda x (replace-all)))]
+                                       (lambda x (replace-all))))
           
-          [define dir-radio (make-object radio-box%
+          (define dir-radio (make-object radio-box%
                               #f
                               (list (string-constant forward)
                                     (string-constant backward))
@@ -1609,11 +1611,11 @@
                                                    'forward
                                                    'backward)])
                                   (set-search-direction forward)
-                                  (reset-search-anchor (get-text-to-search)))))]
-          [define close-button (make-object button% (string-constant hide)
+                                  (reset-search-anchor (get-text-to-search))))))
+          (define close-button (make-object button% (string-constant hide)
                                  middle-right-panel
-                                 (lambda args (hide-search)))]
-          [define hidden? #f]
+                                 (lambda args (hide-search))))
+          (define hidden? #f)
 
           (let ([align
                  (lambda (x y)
@@ -1640,12 +1642,11 @@
         (mixin (text<%> searchable<%>) (searchable-text<%>)
           (inherit get-editor)
           (override get-text-to-search)
-          [define get-text-to-search
-            (lambda ()
-              (get-editor))]
+          (define (get-text-to-search)
+	    (get-editor))
           (override get-editor<%> get-editor%)
-          [define get-editor<%> (lambda () text:searching<%>)]
-          [define get-editor% (lambda () text:searching%)]
+          (define (get-editor<%>) text:searching<%>)
+          (define (get-editor%) text:searching%)
           (super-instantiate ())))
       
       ; to see printouts in memory debugging better.

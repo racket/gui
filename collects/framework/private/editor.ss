@@ -99,8 +99,11 @@
           
           (rename [super-on-save-file on-save-file])
           (define/override (on-save-file filename format)
-            (unless (equal? filename (get-filename))
-              (handler:add-to-recent filename))
+            (let* ([temp-b (box #f)]
+                   [filename (get-filename temp-b)])
+              (unless (unbox temp-b)
+                (unless (equal? filename (get-filename))
+                  (handler:add-to-recent filename))))
             (super-on-save-file filename format))
           
           [define has-focus #f]
