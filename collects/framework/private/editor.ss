@@ -394,6 +394,7 @@
       (define file<%> 
         (interface (-keymap<%>)
           get-filename/untitled-name
+          get-can-close-parent
           update-frame-filename))
       (define file-mixin
 	(mixin (-keymap<%>) (file<%>)
@@ -467,12 +468,15 @@
                                (get-filename/untitled-name)
                                (string-constant close-anyway)
                                #t
-                               this)
+                               (or (get-top-level-window)
+                                   (get-can-close-parent)))
                           [(continue) #t]
                           [(save) (save-file)]
                           [else #f]))])
               (and user-allowed-or-not-modified
                    (super-can-close?))))
+          
+          (define/public (get-can-close-parent) #f)
           
           (define/override (get-keymaps)
             (cons (keymap:get-file) (super-get-keymaps)))
