@@ -22,7 +22,7 @@
    
   (define-values/invoke-unit/sig 
    frameworkc^ 
-   framework-small-part@ 
+   frameworkc@ 
    #f
    mred^
    (test : framework:test^)
