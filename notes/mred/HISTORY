@@ -1,4 +1,12 @@
 
+Version 204.8
+Added on-display-size-when-ready and lock for refresh
+ that blocks an edit sequence
+Added get-text! to snip%
+Added locations-computed? to editor<%>
+X with Xft: changed default 'modern mapping to
+ " Courier 10 Pitch"
+
 Version 204.6
 Changed canvas% so that 'gl style is no longer needed
  to enable OpenGL drawing in the canvas
