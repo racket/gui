@@ -111,11 +111,11 @@
       (cond
         [(empty? sizes) (values 0 0)]
         [else
-         (let ([extra/rect (quotient extra count)]
+         (let ([extra/rect (quotient (floor extra) count)]
                [onsize (first sizes)])
            (if (> onsize extra/rect)
                (loop (rest sizes) (- extra onsize) (sub1 count))
-               (values extra/rect (modulo extra count))))])))
+               (values extra/rect (modulo (floor extra) count))))])))
   
   ;; allocate-evenly/position ((cons/p nonnegative? nonnegative?) positive? (listof abs-rect?) . -> .
   ;;                           (listof abs->rect?))
