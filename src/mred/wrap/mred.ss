@@ -1287,7 +1287,7 @@
 
 (define (make-canvas-glue% %) ; implies make-window-glue%
   (class (make-window-glue% %) (mred proxy . args)
-    (inherit get-mred)
+    (inherit get-mred get-top-level)
     (rename [super-on-char on-char]
 	    [super-on-event on-event]
 	    [super-on-paint on-paint]
@@ -1317,15 +1317,20 @@
 			  ; Delay callback for Windows scrollbar grab
 			  (queue-window-callback
 			   this
-			   (entry-point
-			    (lambda ()
-			      (as-exit (lambda () (send mred on-scroll e))))))
+			   (lambda () (send mred on-scroll e)))
 			  (as-exit (lambda () (super-on-scroll e)))))))]
       [on-paint (entry-point
 		 (lambda ()
 		   (let ([mred (get-mred)])
 		     (if mred
-			 (as-exit (lambda () (send mred on-paint)))
+			 (if (and (eq? 'windows (system-type))
+				  (not (eq? (wx:current-eventspace)
+					    (ivar (get-top-level) eventspace))))
+			     ;; Windows circumvented event queue, so delay
+			     (queue-window-callback
+			      this
+			      (lambda () (send mred on-paint)))
+			     (as-exit (lambda () (send mred on-paint))))
 			 (as-exit (lambda () (super-on-paint)))))))])
     (sequence (apply super-init mred proxy args))))
 
