@@ -38,11 +38,24 @@
             (cons (keymap:get-file) (super-get-keymaps)))
           (super-instantiate ())))
       
+      (define scheme+copy-self% #f)
+      (define (get-scheme+copy-self%)
+        (unless scheme+copy-self%
+          (set! scheme+copy-self%
+                (class scheme:text%
+                  (inherit copy-self-to)
+                  (define/override (copy-self)
+                    (let ([ed (new scheme+copy-self%)])
+                      (copy-self-to ed)
+                      ed))
+                  (super-new))))
+        scheme+copy-self%)
+      
       (define -snip%
         (class* decorated-editor-snip% (readable-snip<%>)
           (inherit get-editor get-style)
           
-          (define/override (make-editor) (new scheme:text%))
+          (define/override (make-editor) (new (get-scheme+copy-self%)))
           (define/override (make-snip) (make-object -snip%))
           (define/override (get-corner-bitmap) bm)
           (define/override (get-position) 'left-top)

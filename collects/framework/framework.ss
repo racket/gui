@@ -1240,8 +1240,22 @@
     "That is, \\var{keymap} must be chained to some keymap attached"
     "to the editor.")
     
-
-    (scheme:add-preferences-panel
+   (scheme:text-balanced?
+    (opt->
+     ((is-a?/c text%))
+     (number? (union false? number?))
+     boolean?)
+   ((text)
+    ((start 0) (end #f)))
+   "Determines if the range in the editor from \\var{start} to \\var{end} in \\var{text}"
+   "is a matched set of parenthesis. If \\var{end} is \\scheme{#f}, it"
+   "defaults to the last position of the \\var{text}."
+   ""
+   "The implementation of this function creates a port with"
+   "@flink open-input-text-editor"
+   "and then uses `read' to parse the range of the buffer.")
+   
+   (scheme:add-preferences-panel
      (-> void?)
      ()
      "Adds a tabbing preferences panel to the preferences dialog.")

@@ -43,6 +43,16 @@
               [-text% text%])
       
       
+      (define text-balanced? 
+        (opt-lambda (text [start 0] [in-end #f])
+          (let* ([end (or in-end (send text last-position))]
+                 [port (open-input-text-editor text start end)])
+            (with-handlers ([exn:read:eof? (lambda (x) #f)])
+              (let loop ()
+                (let ([s (read port)])
+                  (or (eof-object? s)
+                      (loop))))))))
+      
       ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
       ;;                                                                  ;;
       ;;                           Sexp Snip                              ;;

@@ -358,7 +358,7 @@
           (make-an-item 'edit-menu 'replace-and-find-again 
                         '(string-constant replace-and-find-again-info)
                         '(lambda (item control) (void))
-                        #\h 
+                        '(if (eq? (system-type) 'macosx) #f #\h)
                         '(string-constant replace-and-find-again-menu-item)
                         edit-menu:edit-target-on-demand
                         #f)

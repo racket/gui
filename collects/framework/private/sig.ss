@@ -522,7 +522,9 @@
      
      get-color-prefs-table
      short-sym->pref-name
-     short-sym->style-name))
+     short-sym->style-name
+     
+     text-balanced?))
   (define-signature framework:scheme^
     ((open framework:scheme-class^)
      (open framework:scheme-fun^)))
