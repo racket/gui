@@ -1,6 +1,7 @@
 (module editor mzscheme
   (require (lib "unitsig.ss")
 	   "sig.ss"
+	   "../guiutils-sig.ss"
 	   (lib "mred-sig.ss" "mred")
 	   (lib "file.ss"))
 
@@ -310,7 +311,7 @@
 	    [update-filename
 	     (lambda (name)
 	       (let ([filename (if name
-				   (mzlib:file:file-name-from-path (mzlib:file:normalize-path name))
+				   (file-name-from-path (normalize-path name))
 				   "")])
 		 (for-each (lambda (canvas)
 			     (let ([tlw (send canvas get-top-level-window)])

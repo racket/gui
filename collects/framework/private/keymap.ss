@@ -118,7 +118,7 @@
 		   [(null? mods) null]
 		   [(null? (cdr mods)) null]
 		   [else (cons (car mods) (loop (cdr mods)))]))]
-	       [key (car (mzlib:function:last-pair mods/key))]
+	       [key (car (last-pair mods/key))]
 	       [shift (if neg? #f 'd/c)]
 	       [control (if neg? #f 'd/c)]
 	       [alt (if neg? #f 'd/c)]
@@ -144,7 +144,7 @@
 			  [(#\m) (set! meta val)])))
 		    mods)
 	  (join-strings ":"
-			(mzlib:function:filter
+			(filter
 			 (lambda (x) x)
 			 (list
 			  (do-key #\a alt)

@@ -19,8 +19,9 @@
 	(lambda ()
 	  (foldr
 	   (lambda (entry sofar)
-	     (match entry
-	       [(sep num) (string-append sofar sep num)]))
+	     (let ([sep (first entry)]
+		   [num (second entry)])
+	       (string-append sofar sep num)))
 	   (version)
 	   specs)))
 

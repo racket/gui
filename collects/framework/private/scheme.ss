@@ -6,7 +6,9 @@
 (module scheme mzscheme
   (require (lib "unitsig.ss")
 	   "sig"
-	   (lib "mred-sig.ss" "mred"))
+	   (lib "mred-sig.ss" "mred")
+	   (lib "list.ss")
+	   (lib "thread.ss"))
 
   (provide scheme@)
 
@@ -20,9 +22,7 @@
 	  [icon : framework:icon^]
 	  [keymap : framework:keymap^]
 	  [text : framework:text^]
-	  [frame : framework:frame^]
-	  [mzlib:thread : mzlib:thread^]
-	  [mzlib:function : mzlib:function^])
+	  [frame : framework:frame^])
   
   (rename [-text% text%]
 	  [-text<%> text<%>])
@@ -312,9 +312,9 @@
 			     [else #f])]
 			   [handle-single
 			    (lambda (single)
-			      (let* ([left (mzlib:function:first single)]
-				     [right (mzlib:function:second single)]
-				     [error? (mzlib:function:third single)]
+			      (let* ([left (first single)]
+				     [right (second single)]
+				     [error? (third single)]
 				     [off (highlight-range 
 					   left
 					   right
@@ -539,7 +539,7 @@
 		  (let loop ([para first-para])
 		    (when (<= para end-para)
 		      (tabify (paragraph-start-position para))
-		      (mzlib:thread:dynamic-enable-break (lambda () (break-enabled)))
+		      (dynamic-enable-break (lambda () (break-enabled)))
 		      (loop (add1 para))))
 		  (when (and (>= (position-paragraph start-pos) end-para)
 			     (<= (paren:skip-whitespace 
@@ -960,7 +960,7 @@
 	       (letrec ([all-keywords (hash-table-map hash-table list)]
 			[pick-out (lambda (wanted in out)
 				    (cond
-				     [(null? in) (mzlib:function:quicksort out string<=?)]
+				     [(null? in) (quicksort out string<=?)]
 				     [else (if (eq? wanted (cadr (car in))) 
 					       (pick-out wanted (cdr in) (cons (symbol->string (car (car in))) out))
 					       (pick-out wanted (cdr in) out))]))])

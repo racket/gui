@@ -1,6 +1,7 @@
 (module exit mzscheme
   (require (lib "unitsig.ss")
 	   "sig.ss"
+	   "../guiutils-sig.ss"
 	   (lib "mred-sig.ss" "mred")
 	   (lib "file.ss"))
 
@@ -61,11 +62,10 @@
 	      user-says)
 	    #t))
 
-      (define -exit
-	(opt-lambda ()
-	  (unless exiting?
-	    (set! exiting? #t)
-	    (when (can-exit?)
-	      (on-exit)
-	      (queue-callback (lambda () (exit))))
-	    (set! exiting? #f)))))))
+      (define (-exit)
+	(unless exiting?
+	  (set! exiting? #t)
+	  (when (can-exit?)
+	    (on-exit)
+	    (queue-callback (lambda () (exit))))
+	  (set! exiting? #f))))))

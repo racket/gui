@@ -1,3 +1,6 @@
+;; should import the flattened test and guiutils stuff and
+;; dynamically link to that.
+
 (module framework mzscheme
   (require (lib "unitsig.ss"))
 

@@ -1,8 +1,8 @@
 (module text mzscheme
   (require (lib "unitsig.ss")
 	   "sig"
-	   (lib "mred-sig.ss" "mred"))
-
+	   (lib "mred-sig.ss" "mred")
+	   (lib "list.ss"))
   (provide text@)
 
   (define text@
@@ -14,8 +14,7 @@
 	  [keymap : framework:keymap^]
           [gui-utils : framework:gui-utils^]
 	  [color-model : framework:color-model^]
-	  [frame : framework:frame^]
-	  [mzlib:function : mzlib:function^])
+	  [frame : framework:frame^])
   
   (rename [-keymap% keymap%])
   
@@ -182,8 +181,8 @@
 		      [old-rectangles range-rectangles])
 		  
 		  (set! range-rectangles 
-			(mzlib:function:foldl (lambda (x l) (append (new-rectangles x) l))
-					      null ranges))))]
+			(foldl (lambda (x l) (append (new-rectangles x) l))
+			       null ranges))))]
 	     [ranges null]
 	     [pen (make-object pen% "BLACK" 0 'solid)]
 	     [brush (make-object brush% "black" 'solid)])

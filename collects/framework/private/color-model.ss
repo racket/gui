@@ -1,8 +1,8 @@
-(module canvas mzscheme
+(module color-model mzscheme
   (require (lib "unitsig.ss")
 	   "sig.ss"
 	   (lib "mred-sig.ss" "mred")
-	   (lib "function.ss"))
+	   (lib "list.ss"))
 
   (provide color-model@)
 

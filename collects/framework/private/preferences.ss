@@ -1,7 +1,8 @@
 (module preferences mzscheme
   (require (lib "unitsig.ss")
 	   "sig"
-	   (lib "mred-sig.ss" "mred"))
+	   (lib "mred-sig.ss" "mred")
+	   (lib "pretty.ss"))
 
   (provide preferences@)
   (define preferences@
@@ -10,9 +11,7 @@
 	  [prefs-file : framework:prefs-file^]
 	  [exn : framework:exn^]
 	  [exit : framework:exit^]
-	  [panel : framework:panel^]
-	  [mzlib:pretty-print : mzlib:pretty-print^]
-	  [mzlib:function : mzlib:function^])
+	  [panel : framework:panel^])
 
   (rename [-read read])
   
@@ -218,7 +217,7 @@
 			    (exn-message exn)))])
 	  (call-with-output-file (prefs-file:get-preferences-filename)
 	    (lambda (p)
-	      (mzlib:pretty-print:pretty-print
+	      (pretty-print
 	       (hash-table-map preferences marshall-pref) p))
 	    'truncate 'text)))))
 

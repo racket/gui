@@ -50,7 +50,7 @@
 	     (lambda (frame)
 	       (let* ([menu (get-windows-menu frame)])
 		 (set! windows-menus
-		       (mzlib:function:remove
+		       (remove
 			menu
 			windows-menus
 			eq?))))]
@@ -71,7 +71,7 @@
 				   default-name)
 			       label)))]
 		      [sorted-frames
-		       (mzlib:function:quicksort
+		       (quicksort
 			frames
 			(lambda (f1 f2)
 			  (string-ci<=? (get-name (frame-frame f1))
@@ -161,7 +161,7 @@
 	    [can-remove-frame?
 	     (opt-lambda (f)
 	       (let ([new-frames 
-		      (mzlib:function:remove
+		      (remove
 		       f frames
 		       (lambda (f fr) (eq? f (frame-frame fr))))])
 		 (if (null? new-frames)
@@ -172,7 +172,7 @@
 	       (when (eq? f active-frame)
 		 (set! active-frame #f))
 	       (let ([new-frames
-		      (mzlib:function:remove
+		      (remove
 		       f frames
 		       (lambda (f fr) (eq? f (frame-frame fr))))])
 		 (set! frames new-frames)
@@ -207,7 +207,7 @@
 		       (with-handlers ([(lambda (x) #t)
 					(lambda (x) name)])
 			 (normal-case-path
-			  (mzlib:file:normalize-path name)))]
+			  (normalize-path name)))]
 		      [test-frame
 		       (lambda (frame)
 			 (and (is-a? frame frame:basic<%>)
@@ -217,7 +217,7 @@
 					       (with-handlers ([(lambda (x) #t)
 								(lambda (x) filename)])
 						 (normal-case-path
-						  (mzlib:file:normalize-path 
+						  (normalize-path 
 						   filename))))))))])
 		 (let loop ([frames frames])
 		   (cond

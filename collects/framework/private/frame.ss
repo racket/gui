@@ -2,7 +2,7 @@
   (require (lib "unitsig.ss")
 	   "sig.ss"
 	   (lib "mred-sig.ss" "mred")
-	   (lib "function.ss")
+	   (lib "list.ss")
 	   (lib "file.ss"))
 
   (provide frame@)
@@ -116,7 +116,7 @@
 	[after-new-child
 	 (lambda (child)
 	   (when after-init?
-	     (change-children (lambda (l) (mzlib:function:remq child l)))
+	     (change-children (lambda (l) (remq child l)))
 	     (error 'frame:basic-mixin
 		    "do not add children directly to a frame:basic (unless using make-root-area-container); use the get-area-container method instead"
 		    )))])
@@ -560,7 +560,7 @@
       (sequence
 	(let ([move-front
 	       (lambda (x l)
-		 (cons x (mzlib:function:remq x l)))])
+		 (cons x (remq x l)))])
 	  (send (get-info-panel) change-children
 		(lambda (l)
 		  (move-front
@@ -635,7 +635,7 @@
 	   (send (get-editor) on-close))])
       (private
 	[label (if file-name
-		   (mzlib:file:file-name-from-path file-name)
+		   (file-name-from-path file-name)
 		   (gui-utils:next-untitled-name))]
 	[label-prefix (application:current-app-name)]
 	[do-label
@@ -1271,7 +1271,7 @@
 	 (opt-lambda ([startup? #f])
 	   (send super-root change-children
                  (lambda (l)
-                   (mzlib:function:remove search-panel l)))
+                   (remove search-panel l)))
 	   (clear-search-highlight)
 	   (unless startup?
 	     (send 

@@ -1,14 +1,14 @@
 (module panel mzscheme
   (require (lib "unitsig.ss")
 	   "sig"
-	   (lib "mred-sig.ss" "mred"))
+	   (lib "mred-sig.ss" "mred")
+	   (lib "list.ss"))
 
   (provide panel@)
 
   (define panel@
 (unit/sig framework:panel^
-  (import mred^
-	  [mzlib:function : mzlib:function^])
+  (import mred^)
   
   (rename [-editor<%> editor<%>])
 
@@ -383,7 +383,7 @@
 	   (let ([len (length children)])
 	     (unless (= (- len 1) (length (send thumb-canvas get-percentages)))
 	       (send thumb-canvas set-percentages 
-		     (mzlib:function:build-list
+		     (build-list
 		      (- len 1)
 		      (lambda (i) (/ 1 (- len 1))))))))])
       (rename [super-change-children change-children])
@@ -395,7 +395,7 @@
              (if thumb-canvas
                  (let* ([res (cons
                               thumb-canvas
-                              (mzlib:function:filter
+                              (filter
                                (lambda (c) (not (eq? c thumb-canvas)))
                                (f l)))])
                    (fix-percentage-length res)

@@ -54,7 +54,7 @@
 	(lambda (name handlers)
 	  (let/ec exit
 	    (let ([extension (if (string? name)
-				 (or (mzlib:file:filename-extension name)
+				 (or (filename-extension name)
 				     "")
 				 "")])
 	      (for-each
@@ -128,7 +128,7 @@
 		[get (lambda () the-dir)]
 		[set-from-file!
 		 (lambda (file) 
-		   (set! the-dir (mzlib:file:path-only file)))]
+		   (set! the-dir (path-only file)))]
 		[set-to-default
 		 (lambda ()
 		   (set! the-dir (current-directory)))])
