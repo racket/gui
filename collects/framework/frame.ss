@@ -157,6 +157,47 @@
   (when (getenv "MREDMEMORYDEBUG")
     (global-defined-value 'open-frames null))
 
+  (define lock-canvas%
+    (class canvas% (parent . args)
+      (private
+	[locked-message "Read only"]
+	[unlocked-message "Read/Write"]
+	[locked? #f])
+      (public
+	[set-locked
+	 (lambda (l)
+	   (set! locked? l)
+	   (on-paint))])
+      (inherit get-client-size get-dc)
+      (override
+       [on-paint
+	(lambda ()
+	  (let* ([dc (get-dc)]
+		 [draw
+		  (lambda (str bg-color line-color)
+		    (let-values ([(w h) (get-client-size)]
+				 [(tw th ta td) (send dc get-text-extent str)])
+		      (send dc set-pen (send the-pen-list find-or-create-pen line-color 1 'solid))
+		      (send dc set-brush (send the-brush-list find-or-create-brush bg-color 'solid))
+		      (send dc draw-rectangle 0 0 w h)
+		      (send dc draw-text str
+			    (- (/ w 2) (/ tw 2))
+			    (- (/ h 2) (/ th 2)))))])
+	    (if locked?
+		(draw locked-message "yellow" "black")
+		(draw unlocked-message (get-panel-background) (get-panel-background)))))])
+      (inherit min-width min-height stretchable-width stretchable-height)
+      (sequence
+	(apply super-init parent args)
+	(let ([dc (get-dc)])
+	  (send dc set-font (send parent get-label-font))
+	  (let-values ([(w1 h1 _1 _2) (send dc get-text-extent locked-message)]
+		       [(w2 h2 _3 _4) (send dc get-text-extent unlocked-message)])
+	    (stretchable-width #f)
+	    (stretchable-height #t)
+	    (min-width (inexact->exact (floor (max w1 w2))))
+	    (min-height (inexact->exact (floor (+ 4 (max h1 h2))))))))))
+
   (define info<%> (interface (basic<%>)
 		    determine-width
 		    lock-status-changed
@@ -247,21 +288,19 @@
 	   (lambda ()
 	     (let ([info-edit (get-info-editor)])
 	       (cond
-		[(not (object? lock-message))
+		[(not (object? lock-canvas))
 		 (void)]
 		[info-edit
-		 (unless (send lock-message is-shown?)
-		   (send lock-message show #t))
+		 (unless (send lock-canvas is-shown?)
+		   (send lock-canvas show #t))
 		 (let ([locked-now? (send info-edit is-locked?)])
 		   (unless (eq? locked-now? icon-currently-locked?)
 		     (set! icon-currently-locked? locked-now?)
-		     (when (object? lock-message)
-		       (send lock-message
-			     set-label
-			     (if locked-now? "Locked" "Unlocked")))))]
+		     (when (object? lock-canvas)
+		       (send lock-canvas set-locked locked-now?))))]
 		[else
-		 (when (send lock-message is-shown?)
-		   (send lock-message show #f))]))))])
+		 (when (send lock-canvas is-shown?)
+		   (send lock-canvas show #f))]))))])
       (public
 	[update-info
 	 (lambda ()
@@ -305,12 +344,7 @@
 		    (send ec set-editor #f)))
             (send panel stretchable-width #f))))
       (private
-	[lock-message (make-object message%
-			(let ([b (icon:get-unlock-bitmap)])
-			  (if (send b ok?)
-			      b
-			      "Unlocked"))
-			(get-info-panel))]
+	[lock-canvas (make-object lock-canvas% (get-info-panel))]
 	[gc-canvas (make-object canvas% (get-info-panel) '(border))]
 	[register-gc-blit
 	 (lambda ()
