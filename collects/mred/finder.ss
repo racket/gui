@@ -206,14 +206,17 @@
 		    [do-ok
 		     (lambda args
 		       (if multi-mode?
-			   (let loop ([n (sub1 select-counter)][result ()])
-			     (if (< n 0)
-				 (begin
-				   (set-box! result-box result)
-				   (show #f))
-				 (loop (sub1 n) 
-				       (cons (send result-list get-string n)
-					     result))))
+			   (let ([dir-name (send directory-edit get-text)])
+			     (if (directory-exists? dir-name)
+				 (set-directory (mzlib:file:normalize-path dir-name))
+				 (let loop ([n (sub1 select-counter)][result ()])
+				   (if (< n 0)
+				       (begin
+					 (set-box! result-box result)
+					 (show #f))
+				       (loop (sub1 n) 
+					     (cons (send result-list get-string n)
+						   result))))))
 			   (let ([name (send name-list get-string-selection)])
 			     (cond
 			      [(and save-mode? (not (string? name))) 'nothing-selected]
@@ -475,22 +478,23 @@
 
 		    [directory-panel (make-object mred:container:horizontal-panel% main-panel)]
 
-		    [directory-edit (make-object (class-asi mred:edit:media-edit%
-							    (rename [super-on-local-char on-local-char])
-							    (public
-							     [on-local-char
-							      (lambda (key)
-								(let ([lf-code 10]
-								      [code (send key get-key-code)])
-								  (cond
-								   [(or (= code wx:const-k-return)
-									(= code lf-code))
-								    (do-ok)
-								    (set-focus-to-name-list)]
-								   [(= code wx:const-k-tab)
-								    (set-focus-to-name-list)]
-								   [else
-								    (super-on-local-char key)])))])))]
+		    [directory-edit 
+		     (make-object (class-asi mred:edit:media-edit%
+					     (rename [super-on-local-char on-local-char])
+					     (public
+					      [on-local-char
+					       (lambda (key)
+						 (let ([lf-code 10]
+						       [code (send key get-key-code)])
+						   (cond
+						    [(or (= code wx:const-k-return)
+							 (= code lf-code))
+						     (do-ok)
+						     (set-focus-to-name-list)]
+						    [(= code wx:const-k-tab)
+						     (set-focus-to-name-list)]
+						    [else
+						     (super-on-local-char key)])))])))]
 		    
 		    [dot-panel (when (eq? 'unix wx:platform)
 				     (make-object mred:container:horizontal-panel% main-panel))]
@@ -675,12 +679,25 @@
 
 	  (define common-get-file-list
 	    (make-common
-	     (opt-lambda (box [directory ()]
-			      [prompt "Select files"]
-			      [filter #f]
-			      [filter-msg "Bad name"])
-			 (make-object finder-dialog% #f #f #t box directory '() prompt 
-				      filter filter-msg))))
+	     (opt-lambda (result-box 
+			  [directory ()]
+			  [prompt "Select files"]
+			  [filter #f]
+			  [filter-msg "Bad name"]
+			  [parent-win null])
+			 (make-object 
+			  finder-dialog% 
+			  parent-win  ; parent window
+			  #f          ; save-mode?
+			  #f          ; replace-ok?
+			  #t          ; multi-mode?
+			  result-box  ; boxed results
+			  directory   ; directory
+			  '()         ; start-name
+			  prompt      ; prompt
+			  filter      ; file-filter
+			  filter-msg  ; file-filter-msg
+			  ))))
 
 	  ; the std- versions of these functions rely on wx: for their
 	  ; visible interfaces
