@@ -27,16 +27,18 @@
     (define guard
       (lambda (when p value thunk)
 	(let ([h
-	       (lambda (x)
-		 (let ([msg
-			(format "exception raised ~a for ~a with ~a: ~a~n"
-				when p value
-				(exn-message x))])
-		   (raise (mred:exn:make-exn:during-preferences
-			   msg
-			   ((debug-info-handler))))))])
-	  (with-handlers ([void h])
-			 (thunk)))))
+                (lambda (x)
+                  (let ([msg
+                          (format "exception raised ~a for ~a with ~a: ~a~n"
+                            when p value
+                            (exn-message x))])
+                    (raise (mred:exn:make-exn:during-preferences
+                             msg
+                             ((debug-info-handler))))))])
+
+          (with-handlers ([void h])
+             (thunk))
+          )))
 
     (define unmarshall
       (lambda (p marshalled)
@@ -263,6 +265,8 @@
 			  t
 			  (lambda () (semaphore-post semaphore)))))))
 
+    (define run-once (make-run-once))
+
     (define preferences-dialog #f)
 
     (define add-preference-panel
@@ -274,13 +278,38 @@
 	     (when preferences-dialog
 	       (send preferences-dialog added-pane new-ppanel)))))))
 
+    (define hide-preferences-dialog
+      (lambda ()
+	(run-once
+          (lambda ()
+            (when preferences-dialog
+              (send preferences-dialog show #f))))))
+
+    (define show-preferences-dialog
+      (lambda ()
+	(mred:gui-utils:show-busy-cursor
+	 (lambda ()
+	   (run-once
+	    (lambda () 
+	      (save-user-preferences)
+	      (if preferences-dialog
+		  (send preferences-dialog show #t)
+		  (set! preferences-dialog
+			(let ([cursor-off (mred:gui-utils:delay-action
+					   2 wx:begin-busy-cursor wx:end-busy-cursor)])
+			  (begin0 (make-preferences-dialog)
+				  (cursor-off)))))))))))
+
     (define make-preferences-dialog
       (lambda ()
-	(letrec* ([frame (make-object (class-asi mred:frame%
-						 (public [added-pane
-							  (lambda (ppanel)
-							    (refresh-menu ppanel))]))
-				      '() "Preferences")]
+	(letrec* ([frame 
+                    (make-object (class-asi mred:frame%
+                                   (public [added-pane
+                                             (lambda (ppanel)
+                                               (refresh-menu ppanel))]))
+                      '() "Preferences")]
+
+
 		  [panel (make-object mred:vertical-panel% frame)]
 		  [top-panel (make-object mred:horizontal-panel% panel)]
 		  [single-panel (make-object mred:single-panel% panel -1 -1 -1 -1 wx:const-border)]
@@ -323,30 +352,5 @@
 	  (send single-panel active-child (car panels))
 	  (send frame show #t)
 	  frame)))
-
-    (define run-once (make-run-once))
-
-    (define hide-preferences-dialog
-      (lambda ()
-	(run-once
-	 (lambda ()
-	   (when preferences-dialog
-	     (send preferences-dialog show #f))))))
-
-
-    (define show-preferences-dialog
-      (lambda ()
-	(mred:gui-utils:show-busy-cursor
-	 (lambda ()
-	   (run-once
-	    (lambda () 
-	      (save-user-preferences)
-	      (if preferences-dialog
-		  (send preferences-dialog show #t)
-		  (set! preferences-dialog
-			(let ([cursor-off (mred:gui-utils:delay-action
-					   2 wx:begin-busy-cursor wx:end-busy-cursor)])
-			  (begin0 (make-preferences-dialog)
-				  (cursor-off)))))))))))
 
     (read-user-preferences))
