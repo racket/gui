@@ -6,6 +6,8 @@
 	    [mred:exn : mred:exn^]
 	    [mred : mred:container^] ;; warning -- to use the mred:panel macros, 
 	                             ;; need to have mred:container be prefixed with "mred"
+	    [mred:exit : mred:exit^]
+	    [mred:gui-utils : mred:gui-utils^]
 	    [mred:edit : mred:edit^]
 	    [mzlib:function : mzlib:function^])
     
@@ -31,18 +33,20 @@
 				     (raise (mred:exn:make-exn:unknown-preference
 					     (format "unknown preference: ~a" p)
 					     ((debug-info-handler))))))])
-	  (if (marshalled? ans)
-	      (let* ([marshalled (marshalled-data ans)]
-		     [unmarshalled 
-		      (let/ec k
-			((un/marshall-unmarshall
-			  (hash-table-get marshall-unmarshall p
-					  (lambda () (k marshalled))))
-			 marshalled))]
-		     [boxed (box unmarshalled)])
-		(hash-table-put! preferences p boxed)
-		boxed)
-	      ans))))
+	  (cond
+	    [(marshalled? ans)
+	     (let* ([marshalled (marshalled-data ans)]
+		    [unmarshalled
+		     (let/ec k
+		       ((un/marshall-unmarshall
+			 (hash-table-get marshall-unmarshall p
+					 (lambda () (k marshalled))))
+			marshalled))]
+		    [boxed (box unmarshalled)])
+	       (hash-table-put! preferences p boxed)
+	       boxed)]
+	    [(box? ans) ans]
+	    [else (error 'prefs.ss "robby error.1: ~a" ans)]))))
     
     (define get-preference (mzlib:function:compose unbox get-preference-box))
     
@@ -76,18 +80,20 @@
     
     (define save-user-preferences 
       (let ([marshall-pref
-	     (lambda (p boxed-value)
-	       (if (marshalled? boxed-value)
-		   (list p (marshalled-data boxed-value))
-		   (let* ([value (unbox boxed-value)]
-			  [marshalled
-			   (let/ec k
-			     ((un/marshall-marshall
-			       (hash-table-get marshall-unmarshall p
-					       (lambda ()
-						 (k value))))
-			      value))])
-		     (list p marshalled))))])
+	     (lambda (p ht-value)
+	       (cond
+		 [(marshalled? ht-value) (list p (marshalled-data ht-value))]
+		 [(box? ht-value)
+		  (let* ([value (unbox ht-value)]
+			 [marshalled
+			  (let/ec k
+			    ((un/marshall-marshall
+			      (hash-table-get marshall-unmarshall p
+					      (lambda ()
+						(k value))))
+			     value))])
+		    (list p marshalled))]
+		 [else (error 'prefs.ss "robby error.2: ~a" ht-value)]))])
 	(lambda () 
 	  (mred:debug:printf 'startup "saving user preferences")
 	  (call-with-output-file preferences-filename
@@ -96,57 +102,63 @@
 	      'replace)	  
 	  (mred:debug:printf 'startup "saved user preferences"))))
     
+    (mred:exit:insert-exit-callback save-user-preferences)
+
     (define read-user-preferences 
-      (let ([unmarshall-pref
-	     (lambda (input)
-	       (let ([p (mzlib:function:first input)]
-		     [marshalled (mzlib:function:second input)])
-		 (let/ec k
-		   (let* ([not-in-table
-			   (lambda ()
-			     (k (hash-table-put! preferences p (make-marshalled marshalled))))]
-			  [ht-pref (hash-table-get preferences p not-in-table)]
-			  [unmarshall (hash-table-get marshall-unmarshall p (lambda () mzlib:function:identity))])
-		     (if (box? ht-pref)
-			 (set-box! ht-pref (unmarshall marshalled))
-			 (set-marshalled-data! ht-pref marshalled))))))])
+      (let ([parse-pref
+	     (lambda (p marshalled)
+	       (let/ec k
+		 (let* ([ht-pref (hash-table-get preferences p (lambda () 'not-in-table))]
+			[unmarshall-struct (hash-table-get marshall-unmarshall p (lambda () #f))])
+		   (cond
+		     [(box? ht-pref)
+		      (if unmarshall-struct
+			  (set-box! ht-pref ((un/marshall-unmarshall unmarshall-struct) marshalled))
+			  (set-box! ht-pref marshalled))]
+		     [(marshalled? ht-pref) (set-marshalled-data! ht-pref marshalled)]
+		     [(eq? 'not-in-table ht-pref)
+		      (if unmarshall-struct
+			  (hash-table-put! preferences p (box ((un/marshall-unmarshall unmarshall-struct) marshalled)))
+			  (hash-table-put! preferences p (make-marshalled marshalled)))]
+		     [else (error 'prefs.ss "robby error.3: ~a" ht-pref)]))))])
 	(lambda ()
 	  (mred:debug:printf 'startup "reading user preferences")
 	  (when (file-exists? preferences-filename)
 	    (let ([input (call-with-input-file preferences-filename read)])
 	      (when (list? input)
-		(for-each unmarshall-pref input))))	  
+		(for-each (lambda (x) (apply parse-pref x)) input))))
 	  (mred:debug:printf 'startup "read user preferences"))))
     
     (define-struct ppanel (title container))
+    
     (define ppanels 
       (list 
        (make-ppanel "General"
 		    (lambda (parent)
-		      (let ([autosave-buffer (make-object mred:edit:edit%)])
-			(mred:vertical-panel parent #t #t
-			  (horizontal-panel #t #f
-					    (check-box (lambda (_ command) 
-							 (set-preference 'mred:highlight-parens (send command checked?)))
-						       "Highlight Parens?")
-					    (panel #t #t))
-			  (horizontal-panel #t #f
-					    (check-box (lambda (_ command) 
-							 (set-preference 'mred:autosaving-on? (send command checked?)))
-						       "Autosave?")
-					    (panel #t #t))
-			  (horizontal-panel #t #f
-					    (message "Autosave timeout")
-					    (let ([media (media-canvas)])
-					      (send media set-media autosave-buffer)
-					      media))))))
-       (make-ppanel "Goodbye"
-		    (lambda (parent)
-		      (let* ([other-panel (make-object mred:vertical-panel% parent)]
-			     [msg3 (make-object mred:message% other-panel "Goodbye")]
-			     [msg4 (make-object mred:message% other-panel "For Now")])
-			(send other-panel change-children (lambda (l) (list msg3 msg4)))
-			other-panel)))))
+		      (mred:vertical-panel parent #t #t
+			(list (horizontal-panel #t #f
+						(list (let ([c (check-box (lambda (_ command) 
+									    (set-preference 'mred:highlight-parens (send command checked?)))
+									  "Highlight Parens?")])
+							(send c set-value (get-preference 'mred:highlight-parens))
+							c)
+						      (panel #t #t)))
+			      (horizontal-panel 
+			       #t #f
+			       (list (let ([c (check-box (lambda (_ command) 
+							   (set-preference 'mred:autosaving-on? (send command checked?)))
+							 "Autosave?")])
+				       (send c set-value (get-preference 'mred:autosaving-on?))
+				       c)
+				     (panel #t #t)))
+			      (horizontal-panel 
+			       #t #f
+			       (list (let ([c (check-box (lambda (_ command) 
+							   (set-preference 'mred:delete-forward? (not (send command checked?))))
+							 "Remap delete to backspace?")])
+				       (send c set-value (not (get-preference 'mred:delete-forward?)))
+				       c)
+				     (panel #t #t)))))))))
 
     (define make-run-once
       (lambda ()
@@ -162,7 +174,7 @@
       (lambda (title container)
 	(run-once
 	 (lambda ()
-	   (set! ppanels (cons (make-ppanel title container) ppanels))
+	   (set! ppanels (append ppanels (list (make-ppanel title container))))
 	   (when preferences-dialog
 	     (send preferences-dialog added-pane))))))
 
@@ -173,7 +185,7 @@
 				      '() "Preferences")]
 		  [panel (make-object mred:vertical-panel% frame)]
 		  [top-panel (make-object mred:horizontal-panel% panel)]
-		  [single-panel (make-object mred:single-panel% panel)]
+		  [single-panel (make-object mred:single-panel% panel -1 -1 -1 -1 wx:const-border)]
 		  [panels (map (lambda (p) ((ppanel-container p) single-panel)) ppanels)]
 		  [bottom-panel (make-object mred:horizontal-panel% panel)]
 		  [popup-callback
@@ -214,7 +226,8 @@
 	  (send single-panel change-children (lambda (l) panels))
 	  (send popup-menu set-selection 0)
 	  (send single-panel active-child (car panels))
-	  (send frame show #t))))
+	  (send frame show #t)
+	  frame)))
 
     (define run-once (make-run-once))
 
@@ -228,10 +241,12 @@
 
     (define show-preferences-dialog
       (lambda ()
-	(wx:bell)
-	'(run-once (lambda () 
-		    (if preferences-dialog
-			(send preferences-dialog show #t)
-			(set! preferences-dialog (make-preferences-dialog)))))))
+	(mred:gui-utils:show-busy-cursor
+	 (lambda ()
+	   (run-once
+	    (lambda () 
+	      (if preferences-dialog
+		  (send preferences-dialog show #t)
+		  (set! preferences-dialog (make-preferences-dialog)))))))))
 
     (read-user-preferences)))
