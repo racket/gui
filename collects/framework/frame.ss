@@ -517,7 +517,8 @@
 			   (set-caret-owner #f 'display)
 			   (set-position
 			    (min first-pos last-pos)
-			    (max first-pos last-pos)))
+			    (max first-pos last-pos)
+			    #f #t 'local))
 			 #t))])
 	       (unless (string=? string "")
 		 (when reset-search-anchor?
