@@ -1,4 +1,14 @@
 
+Version 299.26
+Added set-smoothing and get-smoothing to dc<%>
+Added dc-path% class and added draw-path to dc<%>
+Added set-path to region%
+Added in-region? to region%
+Added variants of dc<%>'s set-{pen,brush} that accept arguments
+ like the-{pen,brush}-list's find-or-create-{pen,brush}
+Changed default of radius argument of set-rounded-rectangle 
+ in region% to -0.25 (consistent with dc<%> method)
+
 Version 299.25
 Added draw-bitmap-section-smooth to bitmap-dc% (not dc<%>)
 
