@@ -121,7 +121,8 @@
 		     (is-a? window wx:dialog-box%)) 
 		 (set! top-level window)]
 		[else (loop (send window get-parent))])))
-	   top-level)]
+	   top-level)])
+      (override
 	[on-set-focus
 	 (lambda ()
 	   (send (get-top-level) set-focus-window this)
@@ -131,7 +132,8 @@
 	 (lambda ()
 	   (send (get-top-level) set-focus-window #f)
 	   (set! focus? #f)
-	   (super-on-kill-focus))]
+	   (super-on-kill-focus))])
+      (public
 	[has-focus? (lambda () focus?)])
       (sequence (apply super-init args)))))
 
@@ -174,11 +176,12 @@
       [focus #f]
       [target #f])
     
-    (public
+    (override
       [enable
        (lambda (b)
 	 (set! enabled? (and b #t))
-	 (super-enable b))]
+	 (super-enable b))])
+    (public
       [is-enabled?
        (lambda () enabled?)]
 
@@ -267,35 +270,7 @@
 	      (send panel on-container-resize))
 	    (lambda () (set! ignore-redraw-request? #f))))
 	 (set! pending-redraws? #f))]
-      
-      ; show: add capability to set perform-updates
-      ; input: now : boolean
-      ; returns: nothing
-      ; effects: if we're showing for the first time, unblock updates
-      ;            and force an update.  If we're hiding, block updates.
-      ;          pass now to superclass's show.
-      [show
-       (lambda (now)
-	 (when (and now pending-redraws?)
-	   (force-redraw))
-	 (super-show now))]
-      
-      [set-size
-       (lambda (x y width height)
-	 (let-values ([(correct-w correct-h)
-		       (correct-size width height)])
-	   (if (and (same-dimension? x (get-x))
-		    (same-dimension? y (get-y))
-		    (and (same-dimension? width (get-width))
-			 (= width correct-w))
-		    (and (same-dimension? height (get-height))
-			 (= height correct-h)))
-	       (when (get-top-panel)
-		 (let-values ([(f-client-w f-client-h)
-			       (get-two-int-values get-client-size)])
-		   (send panel set-size 0 0 f-client-w f-client-h)))
-	       (super-set-size x y correct-w correct-h))))]
-      
+
       [correct-size
        (lambda (frame-w frame-h)
 	 (if (not panel)
@@ -328,7 +303,36 @@
 			      (not (child-info-y-stretch panel-info)))
 			 min-h]
 			[else frame-h])])
-		 (values new-w new-h)))))]
+		 (values new-w new-h)))))])
+      
+    (override
+      ; show: add capability to set perform-updates
+      ; input: now : boolean
+      ; returns: nothing
+      ; effects: if we're showing for the first time, unblock updates
+      ;            and force an update.  If we're hiding, block updates.
+      ;          pass now to superclass's show.
+      [show
+       (lambda (now)
+	 (when (and now pending-redraws?)
+	   (force-redraw))
+	 (super-show now))]
+      
+      [set-size
+       (lambda (x y width height)
+	 (let-values ([(correct-w correct-h)
+		       (correct-size width height)])
+	   (if (and (same-dimension? x (get-x))
+		    (same-dimension? y (get-y))
+		    (and (same-dimension? width (get-width))
+			 (= width correct-w))
+		    (and (same-dimension? height (get-height))
+			 (= height correct-h)))
+	       (when (get-top-panel)
+		 (let-values ([(f-client-w f-client-h)
+			       (get-two-int-values get-client-size)])
+		   (send panel set-size 0 0 f-client-w f-client-h)))
+	       (super-set-size x y correct-w correct-h))))]
       
       ; on-size: ensures that size of frame matches size of content
       ; input: new-width/new-height: new size of frame
@@ -377,11 +381,31 @@
 		get-parent get-client-size)
        (rename [super-enable enable])
        (private [enabled? #t])
-       (public
+       (override
 	 [enable
 	  (lambda (b)
 	    (set! enabled? (and b #t))
 	    (super-enable b))]
+
+	 ; set-size: caches calls to set-size to avoid unnecessary work,
+	 ;           and works with windowsless panels
+	 ; input: x/y: new position for object
+	 ;        width/height: new size for object
+	 ; returns: nothing
+	 ; effect: if arguments mark a different geometry than the object's
+	 ;   current geometry, passes args to super-class's set-size.
+	 ;   Otherwise, does nothing.
+	 [set-size
+	  (lambda (x y width height)
+	    (set! x (+ x (send (area-parent) dx)))
+	    (set! y (+ y (send (area-parent) dy)))
+	    (unless (and (same-dimension? x (get-x))
+			 (same-dimension? y (get-y))
+			 (same-dimension? width (get-width))
+			 (same-dimension? height (get-height)))
+	      (super-set-size x y width height)))])
+
+       (public
 	 [orig-enable
 	  (lambda args (apply super-enable args))]
 	 [is-enabled?
@@ -460,72 +484,54 @@
 	  (mk-param stretch-x (lambda (x) (and x #t)) void)]
 	 [stretchable-in-y
 	  (mk-param stretch-y (lambda (x) (and x #t)) void)]
-	  
+	 
 	 ; get-info: passes necessary info up to parent.
 	 ; input: none
 	 ; returns: child-info struct containing the info about this
 	 ;   item.
 	 ; intended to be called by item's parent upon resize.
 	 [get-info
-	   (lambda ()
-	     (let* ([min-size (get-min-size)]
-		    [result (make-child-info (get-x) (get-y)
-					     (car min-size) (cadr min-size)
-					     (x-margin) (y-margin)
-					     (stretchable-in-x)
-					     (stretchable-in-y))])
-	       result))]
-	  
+	  (lambda ()
+	    (let* ([min-size (get-min-size)]
+		   [result (make-child-info (get-x) (get-y)
+					    (car min-size) (cadr min-size)
+					    (x-margin) (y-margin)
+					    (stretchable-in-x)
+					    (stretchable-in-y))])
+	      result))]
+	 
 	 [area-parent (lambda () (car args))]
 
-	  ; force-redraw: unconditionally trigger redraw.
-	  ; input: none
-	  ; returns: nothing
-	  ; effects: forces the item's parent (if it exists) to redraw
-	  ;   itself. This will recompute the min-size cache if it is
-	  ;   invalid.
-	  [force-redraw
-	   (lambda ()
-	     (let ([parent (area-parent)])
-	       (unless parent
-		 (send parent child-redraw-request this))))]
-	  
-	  ; set-size: caches calls to set-size to avoid unnecessary work,
-	  ;           and works with windowsless panels
-	  ; input: x/y: new position for object
-	  ;        width/height: new size for object
-	  ; returns: nothing
-	  ; effect: if arguments mark a different geometry than the object's
-	  ;   current geometry, passes args to super-class's set-size.
-	  ;   Otherwise, does nothing.
-	  [set-size
-	   (lambda (x y width height)
-	     (set! x (+ x (send (area-parent) dx)))
-	     (set! y (+ y (send (area-parent) dy)))
-	     (unless (and (same-dimension? x (get-x))
-			  (same-dimension? y (get-y))
-			  (same-dimension? width (get-width))
-			  (same-dimension? height (get-height)))
-	       (super-set-size x y width height)))]
-
-	  [on-container-resize void] ; This object doesn't contain anything
-	  
-	  ; get-min-size: computes the minimum size the item can
-	  ;   reasonably assume.
-	  ; input: none
-	  ; returns: a list containing the minimum width & height.
-	  [get-min-size
-	   (lambda ()
-	     (let ([w (+ (* 2 (x-margin)) (min-width))]
-		   [h (+ (* 2 (y-margin)) (min-height))])
-	       (list w h)))])
+	 ; force-redraw: unconditionally trigger redraw.
+	 ; input: none
+	 ; returns: nothing
+	 ; effects: forces the item's parent (if it exists) to redraw
+	 ;   itself. This will recompute the min-size cache if it is
+	 ;   invalid.
+	 [force-redraw
+	  (lambda ()
+	    (let ([parent (area-parent)])
+	      (unless parent
+		(send parent child-redraw-request this))))]
 	 
-	 (sequence
-	   (apply super-init (send (car args) get-window) (cdr args))
-	   (set-min-width (get-width))
-	   (set-min-height (get-height))
-	   
-	   (send (area-parent) add-child this)))))
+	 [on-container-resize void] ; This object doesn't contain anything
+	 
+	 ; get-min-size: computes the minimum size the item can
+	 ;   reasonably assume.
+	 ; input: none
+	 ; returns: a list containing the minimum width & height.
+	 [get-min-size
+	  (lambda ()
+	    (let ([w (+ (* 2 (x-margin)) (min-width))]
+		  [h (+ (* 2 (y-margin)) (min-height))])
+	      (list w h)))])
+       
+       (sequence
+	 (apply super-init (send (car args) get-window) (cdr args))
+	 (set-min-width (get-width))
+	 (set-min-height (get-height))
+	 
+	 (send (area-parent) add-child this)))))
 
 ; make-control% - for non-panel items
 (define (make-control% item% x-margin y-margin
@@ -562,7 +568,7 @@
 	    [super-on-kill-focus on-kill-focus]
 	    [super-pre-on-char pre-on-char]
 	    [super-pre-on-event pre-on-event])
-    (public
+    (override
       [on-size (lambda (x y)
 		 (super-on-size x y)
 		 (and mred (send mred on-size x y)))]
@@ -583,7 +589,7 @@
 (define (make-container-glue% %)
   (class % (mred proxy . args)
     (inherit do-place-children)
-    (public
+    (override
       [place-children (lambda (l w h) (cond
 				       [(null? l) null]
 				       [mred (send mred place-children l w h)]
@@ -594,7 +600,7 @@
 (define (make-top-level-window-glue% %) ; implies make-window-glue%
   (class (make-window-glue% %) (mred proxy . args)
     (rename [super-on-activate on-activate])
-    (public
+    (override
       [on-close (lambda ()
 		  (if mred
 		      (if (send mred can-close?)
@@ -615,26 +621,27 @@
 	    [super-on-paint on-paint]
 	    [super-on-scroll on-scroll])
     (public
+      [do-on-char (lambda (e) (super-on-char e))]
+      [do-on-event (lambda (e) (super-on-event e))]
+      [do-on-scroll (lambda (e) (super-on-scroll e))]
+      [do-on-paint (lambda () (super-on-paint))])
+    (override
       [on-char (lambda (e)
 		 (if mred
 		     (send mred on-char e)
 		     (super-on-char e)))]
-      [do-on-char (lambda (e) (super-on-char e))]
       [on-event (lambda (e)
 		 (if mred
 		     (send mred on-event e)
 		     (super-on-event e)))]
-      [do-on-event (lambda (e) (super-on-event e))]
       [on-scroll (lambda (e)
 		 (if mred
 		     (send mred on-scroll e)
 		     (super-on-scroll e)))]
-      [do-on-scroll (lambda (e) (super-on-scroll e))]
       [on-paint (lambda ()
 		 (if mred
 		     (send mred on-paint)
-		     (super-on-paint)))]
-      [do-on-paint (lambda () (super-on-paint))])
+		     (super-on-paint)))])
     (sequence (apply super-init mred proxy args))))
 
 ;------------- Create the actual wx classes -----------------
@@ -644,7 +651,8 @@
    (class (make-top-container% wx:frame%) args
      (rename [super-set-menu-bar set-menu-bar])
      (public
-       [menu-bar #f]
+       [menu-bar #f])
+     (override
        [set-menu-bar
 	(lambda (mb)
 	  (when mb (set! menu-bar mb))
@@ -727,7 +735,7 @@
      (inherit number orig-enable)
      (rename [super-enable enable]
 	     [super-is-enabled? is-enabled?])
-     (public
+     (override
        [enable
 	(case-lambda
 	 [(on?) (super-enable on?)]
@@ -779,22 +787,27 @@
     (inherit get-edit force-redraw
 	     call-as-primary-owner min-height get-size
 	     hard-min-height set-min-height)
+    (rename [super-set-edit set-edit]
+	    [super-on-set-focus on-set-focus])
     (private
       [fixed-height? #f]
       [fixed-height-lines 0]
       [edit-target this]
       [orig-hard #f])
-    (public
+    (override
       [on-container-resize (lambda ()
 			     (let ([edit (get-edit)])
 			       (when edit
-				 (send edit on-display-size))))])
-    (rename [super-set-edit set-edit]
-	    [super-on-set-focus on-set-focus])
-    (public       
-      [set-edit-target (lambda (t) (set! edit-target t))]
+				 (send edit on-display-size))))]
+      [on-set-focus
+       (lambda ()
+	 (super-on-set-focus)
+	 (let ([m (get-edit)])
+	   (when m 
+	     (let ([mred (wx->mred this)])
+	       (when mred
+		 (send m set-active-canvas mred))))))]
       [get-edit-target (lambda () edit-target)]
-
       [set-edit
        (letrec ([l (case-lambda
 		    [(edit) (l edit #t)]
@@ -811,17 +824,9 @@
 		     ;  but only when the size of the canvas really matters
 		     ;  (i.e., when it is shown)
 		     (force-redraw)])])
-	 l)]
-
-      [on-set-focus
-       (lambda ()
-	 (super-on-set-focus)
-	 (let ([m (get-edit)])
-	   (when m 
-	     (let ([mred (wx->mred this)])
-	       (when mred
-		 (send m set-active-canvas mred))))))]
-
+	 l)])
+    (public
+      [set-edit-target (lambda (t) (set! edit-target t))]
       [set-line-count (lambda (n)
 			(if n
 			    (begin
@@ -833,7 +838,6 @@
 			      (set! fixed-height? #f)
 			      (set-min-height orig-hard)))
 			(update-size))]
-
       [update-size
        (lambda ()
 	 (let ([edit (get-edit)])
@@ -862,14 +866,11 @@
 (define wx-editor-canvas% (make-canvas-glue%
 			   (make-editor-canvas% (make-control% wx:editor-canvas%
 							       0 0 #t #t))))
-
 (define (make-editor-buffer% % can-wrap?)
   ; >>> This class is instantiated directly by the end-user <<<
   (class % args
     (inherit get-max-width set-max-width get-admin)
-    (rename [super-set-modified set-modified]
-	    [super-set-filename set-filename]
-	    [super-on-display-size on-display-size])
+    (rename [super-on-display-size on-display-size])
     (private
       [canvases null]
       [active-canvas #f]
@@ -883,13 +884,6 @@
 		      (and (not (null? canvases))
 			   (car canvases)))])
 	   (and c (wx->mred c))))]
-      [set-filename
-       (letrec ([l (case-lambda 
-		    [(name) (l name #f)]
-		    [(name temp?)
-		     (super-set-filename name temp?)])])
-	 l)]
-
       [set-active-canvas
        (lambda (new-canvas)
 	 (set! active-canvas (mred->wx new-canvas)))]
@@ -910,7 +904,8 @@
       [auto-wrap (case-lambda
 		  [() auto-set-wrap?]
 		  [(on?) (set! auto-set-wrap? (and on? #t))
-			 (on-display-size)])]
+			 (on-display-size)])])
+    (override
       [on-display-size
        (lambda ()
 	 (super-on-display-size)
@@ -949,7 +944,9 @@
 (define text-editor% (make-editor-buffer% wx:text-editor% #t))
 (define pasteboard-editor% (make-editor-buffer% wx:pasteboard-editor% #f))
 
-(define editor-snip% wx:editor-snip%)
+(define editor-snip% (class wx:editor-snip% ([edit #f] . args)
+			(sequence
+			  (apply super-init (or edit (make-object text-editor%)) args))))
 
 ;--------------------- wx Panel Classes -------------------------
 
@@ -1007,6 +1004,13 @@
 
       [ignore-redraw-request? #f])
     
+    (override
+      [set-focus ; dispatch focus to a child panel
+       (lambda ()
+	 (if (null? children)
+	     (super-set-focus)
+	     (send (car children) set-focus)))])
+    
     (public
       [need-move-children (lambda () (set! move-children? #t))]
 
@@ -1019,12 +1023,6 @@
 	   (set! curr-border new-val)
 	   (force-redraw)]))]
 
-      [set-focus ; dispatch focus to a child panel
-       (lambda ()
-	 (if (null? children)
-	     (super-set-focus)
-	     (send (car children) set-focus)))]
-      
       ; list of panel's contents.
       [children null]
       [set-children (lambda (l) (set! children l))]
@@ -1090,23 +1088,12 @@
 		      children)))
 	 children-info)]
       
-      ; force-redraw: forces a redraw of the entire window.
-      ; input: none
-      ; returns: nothing
-      ; effects: sends a message up to the top container to redraw
-      ;   itself and all of its children.
       [child-redraw-request
        (lambda (from)
 	 (unless (or ignore-redraw-request?
 		     (not (memq from children)))
 	   (force-redraw)))]
-      [force-redraw
-       (lambda ()
-	 (set! children-info #f)
-	 (set! curr-width #f)
-	 (let ([parent (area-parent)])
-	   (send parent child-redraw-request this)))]
-
+      
       ; do-graphical-size: creates a function which returns the minimum
       ;   possible size for a horizontal-panel% or vertical-panel% object.
       ; input: compute-x/compute-y: functions which take the current x/y
@@ -1152,8 +1139,16 @@
 			    (child-info-x-min (car kid-info)))))
 	  (lambda (y-accum kid-info)
 	    (max y-accum (+ (* 2 (border))
-			    (child-info-y-min (car kid-info)))))))]
+			    (child-info-y-min (car kid-info)))))))])
       
+    (override
+     [force-redraw
+       (lambda ()
+	 (set! children-info #f)
+	 (set! curr-width #f)
+	 (let ([parent (area-parent)])
+	   (send parent child-redraw-request this)))]
+
       ; get-min-size: poll children and return minimum possible size
       ;   for the container which considers the user min sizes.
       ; input: none
@@ -1167,7 +1162,7 @@
 		    (max (car graphical-min-size) (min-width)))
 		 (+ (* 2 (y-margin))
 		    (max (cadr graphical-min-size) (min-height))))))]
-      
+    
       ; set-size:
       [set-size
        (lambda (x y width height)
@@ -1199,8 +1194,9 @@
 	     (set! curr-width client-width)
 	     (set! curr-height client-height)
 	     (set! move-children? #f)
-	     (redraw client-width client-height))))]
+	     (redraw client-width client-height))))])
       
+    (public
       ; place-children: determines where each child of panel should be
       ; placed.
       ; input: children-info: list of child-info structs
@@ -1277,7 +1273,7 @@
   (class (make-container-glue% (make-glue% (wx-make-basic-panel% wx:panel%))) args
     (inherit get-parent get-x get-y need-move-children)
     (rename [super-set-size set-size])
-    (public
+    (override
       [get-window (lambda () (send (get-parent) get-window))]
       [set-size (lambda (x y w h) 
 		  (super-set-size x y w h)
@@ -1298,6 +1294,15 @@
     
     (inherit force-redraw border get-width get-height
 	     get-graphical-min-size)
+    (override
+      [spacing
+       (let ([curr-spacing const-default-spacing])
+	 (case-lambda
+	  [() curr-spacing]
+	  [(new-val)
+	   (check-reasonable-margin 'spacing new-val)
+	   (set! curr-spacing new-val)
+	   (force-redraw)]))])
     (public
       [minor-align (lambda (a) (set! minor-align-pos a) (force-redraw))]
       [major-align (lambda (a) (set! major-align-pos a) (force-redraw))]
@@ -1315,15 +1320,6 @@
       [do-get-alignment (lambda (pick) (values (pick major-align-pos minor-align-pos)
 					       (case (pick minor-align-pos major-align-pos)
 						 [(top) 'left] [(center) 'center] [(right) 'bottom])))]
-
-      [spacing
-       (let ([curr-spacing const-default-spacing])
-	 (case-lambda
-	  [() curr-spacing]
-	  [(new-val)
-	   (check-reasonable-margin 'spacing new-val)
-	   (set! curr-spacing new-val)
-	   (force-redraw)]))]
 
       ; place-linear-children: implements place-children functions for
       ; horizontal-panel% or vertical-panel% classes.
@@ -1440,11 +1436,10 @@
   (class wx-linear-panel% args
     (inherit major-align minor-align do-align do-get-alignment major-offset minor-offset
 	     spacing border do-graphical-size place-linear-children)
-    (public
+    (override
       [alignment (lambda (h v) (do-align h v major-align minor-align))]
-      [get-alignment (lambda () (do-get-alignment (lambda (x y) x)))])
+      [get-alignment (lambda () (do-get-alignment (lambda (x y) x)))]
     
-    (public
       [get-graphical-min-size
        (lambda ()
 	 (do-graphical-size 
@@ -1478,11 +1473,10 @@
   (class wx-linear-panel% args
     (inherit major-align minor-align do-align do-get-alignment major-offset minor-offset
 	     spacing border do-graphical-size place-linear-children)
-    (public
+    (override
       [alignment (lambda (h v) (do-align h v minor-align major-align))]
-      [get-alignment (lambda () (do-get-alignment (lambda (x y) y)))])
-    
-    (public
+      [get-alignment (lambda () (do-get-alignment (lambda (x y) y)))]
+
       [get-graphical-min-size
        (lambda ()
 	 (do-graphical-size
@@ -1536,7 +1530,7 @@
 	   (when (zero? block-callback)
 	     (let ([e (make-object wx:control-event% type)])
 	       (cb control e))))])
-      (public
+      (override
 	[on-char
 	 (lambda (e)
 	   (let ([c (send e get-key-code)])
@@ -1551,7 +1545,8 @@
 	[after-delete
 	 (lambda args
 	   (apply super-after-delete args)
-	   (callback 'text))]
+	   (callback 'text))])
+      (public
 	[callback-ready
 	 (lambda () 
 	   (set! block-callback 0))]
@@ -1567,8 +1562,9 @@
 (define wx-text-editor-canvas% 
   (class wx-editor-canvas% (mred proxy control parent style)
     (rename [super-on-char on-char])
+    (override
+      [on-char (lambda (e) (send control on-char e))])
     (public
-      [on-char (lambda (e) (send control on-char e))]
       [continue-on-char (lambda (e) (super-on-char e))])
     (sequence
       (super-init mred proxy parent -1 -1 100 20 #f style 100 #f))))
@@ -1607,12 +1603,11 @@
       [set-value (lambda (v) (send e without-callback
 				   (lambda () (send e insert v 0 (send e last-position)))))]
 
-      [on-char (lambda (ev) (send c continue-on-char ev))]
-      
-      [set-label (lambda (str) (send l set-label str))]
       [get-label (lambda () (send l get-label))]
-
+      [set-label (lambda (str) (send l set-label str))])
+    (override
       [set-cursor (lambda (c) (send e set-cursor c #t))]
+      [on-char (lambda (ev) (send c continue-on-char ev))]
       [set-focus (lambda () (send c set-focus))]
 	
       [place-children
@@ -1913,6 +1908,10 @@
 	     (wx->mred o)
 	     o))]
       [eventspace (wx:current-eventspace)])
+    (override
+      [set-label (lambda (l)
+		   (send wx set-title l)
+		   (super-set-label))])
     (public
       [get-eventspace (lambda () eventspace)]
       [can-close? (lambda () #t)]
@@ -1921,9 +1920,6 @@
       [center (case-lambda
 	       [() (send wx center)]
 	       [(dir) (send wx center dir)])]
-      [set-label (lambda (l)
-		   (send wx set-title l)
-		   (super-set-label))]
       [move (lambda (x y)
 	      (send wx move x y))]
       [resize (lambda (w h)
@@ -1956,10 +1952,11 @@
 (define basic-control%
   (class* (make-window% #f (make-subarea% area%)) (control<%>) (mk-wx label parent cursor)
     (rename [super-set-label set-label])
-    (public
+    (override
       [set-label (lambda (l)
 		   (send wx set-label l)
-		   (super-set-label l))]
+		   (super-set-label l))])
+    (public
       [command (lambda (e) (send wx command e))])
     (private
       [wx #f])
@@ -2041,15 +2038,15 @@
     (sequence (check-container-parent 'radio-box parent) (check-orientation 'radio-box style))
     (private
       [wx #f])
-    (public
+    (override
       [enable (case-lambda
 	       [(on?) (send wx enable on?)]
 	       [(which on?) (send wx enable which on?)])]
       [is-enabled? (case-lambda
 		    [() (send wx is-enabled?)]
-		    [(which) (send wx is-enabled? which)])]
+		    [(which) (send wx is-enabled? which)])])
+    (public
       [get-number (lambda () (length choices))]
-
       [get-item-label (lambda (n) 
 			(if (>= n (get-number))
 			    #f
@@ -2145,10 +2142,11 @@
 	(when (> c 1)
 	  (error 'list-box-constructor "style specifies more than one of single, multiple, or extended: ~a" style))))
     (rename [super-append append])
-    (public
+    (override
       [append (case-lambda
 	       [(i) (super-append i)]
-	       [(i d) (send wx append i d)])]
+	       [(i d) (send wx append i d)])])
+    (public
       [delete (lambda (n) (send wx delete n))]
       [get-data (lambda (n) (send wx get-data n))]
       [get-selections (lambda () (send wx get-selections))]
@@ -2401,8 +2399,9 @@
       [get-mred (lambda () mred)]
       [get-items (lambda () items)]
       [append-item (lambda (i) (set! items (append items (list i))))]
-      [delete (lambda (id i) (super-delete id) (set! items (remq i items)))]
       [delete-sep (lambda (i) (delete-by-position (find-pos items i eq?)) (set! items (remq i items)))])
+    (override
+      [delete (lambda (id i) (super-delete id) (set! items (remq i items)))])
     (sequence
       (super-init popup-label popup-callback))))
 
@@ -2613,7 +2612,7 @@
       (inherit insert last-position get-text erase change-style)
       (rename [super-on-char on-char])
       (private [prompt-pos 0] [locked? #f])
-      (public ; override
+      (override
 	[on-insert (lambda (start end) (and (>= start prompt-pos) (not locked?)))]
 	[on-delete (lambda (start end) (and (>= start prompt-pos) (not locked?)))]
 	[on-char (lambda (c)
@@ -2624,14 +2623,14 @@
 		     (evaluate (get-text prompt-pos (last-position)))))])
       (public
 	[new-prompt (lambda ()
-		      (print "> ")
+		      (output "> ")
 		      (set! prompt-pos (last-position))
 		      (set! locked? #f))]
-	[print (lambda (str)
-		 (let ([l? locked?])
-		   (set! locked? #f)
-		   (insert str)
-		   (set! locked? l?)))]
+	[output (lambda (str)
+		  (let ([l? locked?])
+		    (set! locked? #f)
+		    (insert str)
+		    (set! locked? l?)))]
 	[reset (lambda ()
 		 (set! locked? #f)
 		 (set! prompt-pos 0)
@@ -2644,19 +2643,23 @@
 	  (let ([e (last-position)])
 	    (insert #\newline)
 	    (change-style (send (make-object wx:style-delta% 'change-bold) set-delta-foreground "BLUE") s e)))
-	(print (format "Copyright (c) 1995-98 PLT (Matthew Flatt and Robby Findler)~n"))
+	(output (format "Copyright (c) 1995-98 PLT (Matthew Flatt and Robby Findler)~n"))
+	(insert "This is a simple window for evaluating MrEd Scheme expressions.") (insert #\newline)
 	(let ([s (last-position)])
-	  (insert "Run DrScheme for a better interaction window.")
+	  (insert "Quit now and run DrScheme to get a better window.")
 	  (let ([e (last-position)])
 	    (insert #\newline)
 	    (change-style
 	     (send (make-object wx:style-delta% 'change-style 'slant) set-delta-foreground "RED")
 	     s e)))
+	(insert "The current input port always returns eof.") (insert #\newline)
 	(new-prompt))))
 
   ;; GUI creation
   (define frame (make-object (class frame% args
-			       (public [on-close (lambda () (exit))])
+			       (override [on-close (lambda () 
+						     (custodian-shutdown-all user-custodian)
+						     (semaphore-post waiting))])
 			       (sequence (apply super-init args)))
 			     "MrEd REPL" #f 500 400))
   (define repl-buffer (make-object esq:text-editor%))
@@ -2671,7 +2674,7 @@
   (define user-parameterization (wx:eventspace-parameterization user-eventspace))
   
   (define user-output-port
-    (make-output-port (lambda (s) (send repl-buffer print s))
+    (make-output-port (lambda (s) (send repl-buffer output s))
 		      (lambda () 'nothing-to-do)))
   
   ;; Evaluation and resetting
@@ -2682,17 +2685,22 @@
        (make-semaphore 1)
        (lambda ()
 	 (current-parameterization user-parameterization)
-	 (with-handlers ([(lambda (exn) #t)
-			  (lambda (exn) (display (exn-message exn)))])
-	   (display (eval (read (open-input-string expr-str)))))
-	 (newline)
-	 (send repl-buffer new-prompt)))))
+	 (dynamic-wind
+	  void
+	  (lambda () 
+	    (display (eval (read (open-input-string expr-str))))
+	    (newline))
+	  (lambda ()
+	    (send repl-buffer new-prompt)))))))
+
+  (define waiting (make-semaphore 0))
 
   ;; Just a few key bindings:
   (let* ([k (send repl-buffer get-keymap)]
 	 [mouse-paste (lambda (edit event) 
-			(send edit set-position (send edit last-position))
-			(send edit paste))])
+			(when (send event button-down?)
+			  (send edit set-position (send edit last-position))
+			  (send edit paste)))])
     (wx:add-text-editor-functions k)
     (send k add-mouse-function "mouse-paste" mouse-paste)
     (map
@@ -2708,11 +2716,15 @@
 
   ;; Go
   ((in-parameterization user-parameterization current-output-port) user-output-port)
+  ((in-parameterization user-parameterization current-error-port) user-output-port)
+  ((in-parameterization user-parameterization current-input-port) (make-input-port (lambda () eof) void void))
   ((in-parameterization user-parameterization current-custodian) user-custodian)
   (send repl-display-canvas set-edit repl-buffer)
   (send frame show #t)
 
-  (send repl-display-canvas focus))
+  (send repl-display-canvas focus)
+
+  (wx:yield waiting))
 
 (define box-width 300)
 
