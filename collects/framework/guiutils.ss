@@ -59,7 +59,8 @@
 		    delay
 		    (lambda ()
 		      (if win
-			  (set! old-cursor (send win set-cursor watch))
+			  (begin (set! old-cursor (send win get-cursor))
+                                 (send win set-cursor watch))
 			  (begin-busy-cursor)))
 		    (lambda ()
 		      (if win
