@@ -26,17 +26,17 @@
 
 (define no-val (gensym)) ; indicates init arg not supplied
 
-;;;;;;;;;;;;;;; Security ("thread safety") ;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;; Thread Safety ;;;;;;;;;;;;;;;;;;;;
 
 ;; When the user creates an object or calls a method, or when the
 ;; system invokes a callback, many steps may be required to initialize
 ;; or reset fields to maintain invariants. To ensure that other
 ;; threads do not call methods during a time when invariants do not
 ;; hold, we force all of the following code to be executed in a single
-;; threaded manner. This is accompiled with a single monitor: all
-;; entry points into the code use `entry-point' or `as-entry', and all
-;; points with this code that call back out to user code uses
-;; `as-exit'.
+;; threaded manner, and we temporarily disable breaks. This accompiled
+;; with a single monitor: all entry points into the code use
+;; `entry-point' or `as-entry', and all points with this code that
+;; call back out to user code uses `as-exit'.
 
 ;; If an exception is raised within an `enter'ed area, control is
 ;; moved back outside by the exception handler, and then the exception
@@ -57,14 +57,18 @@
 
 (define old-handler #f)
 (define old-err-string-handler #f)
+(define old-break #f)
 
 (define (enter-paramz)
   (set! old-handler (current-exception-handler))
   (set! old-err-string-handler (error-value->string-handler))
+  (set! old-break (break-enabled))
+  (break-enabled #f)
   (error-value->string-handler entered-err-string-handler))
 (define (exit-paramz)
   (current-exception-handler old-handler)
-  (error-value->string-handler old-err-string-handler))
+  (error-value->string-handler old-err-string-handler)
+  (break-enabled old-break))
 
 (define (as-entry f)
   (cond
@@ -168,9 +172,9 @@
 
 (define identity (lambda (x) x))
 
-; list-diff: computes the difference between two lists
-; input: l1, l2: two lists
-; returns:  a list of all elements in l1 which are not in l2.
+;; list-diff: computes the difference between two lists
+;; input: l1, l2: two lists
+;; returns:  a list of all elements in l1 which are not in l2.
 (define list-diff
   (lambda (l1 l2)
     (let ([table (make-hash-table)])
@@ -210,10 +214,10 @@
 ;;;;;;;;;;;;;;; Focus-tabbing helpers ;;;;;;;;;;;;;;;;;;;;
 
 (define (traverse x y w h dir dests)
-  ; x, y : real = starting positions
-  ; dir : one of 'left, 'right, 'up, 'next, 'prev = desried move
-  ; dests : list of (cons key x y w h) = destinations
-  ; returns key or #f
+  ;; x, y : real = starting positions
+  ;; dir : one of 'left, 'right, 'up, 'next, 'prev = desried move
+  ;; dests : list of (cons key x y w h) = destinations
+  ;; returns key or #f
   (case dir
     [(next prev)
      (letrec ([get-x cadr]
@@ -410,7 +414,7 @@
 
 ;;;;;;;;;;;;;;; wx- Class Construction ;;;;;;;;;;;;;;;;;;;;
 
-; ------------- Mixins for common functionality --------------
+;; ------------- Mixins for common functionality --------------
 
 
 (define wx-make-window%
@@ -1638,20 +1642,22 @@
 		    [(edit redraw?)
 		     (let ([old-edit (get-editor)])
 		       (super-set-editor edit redraw?)
-		 
+		       
 		       (let ([mred (wx->mred this)])
 			 (when mred
 			   (when old-edit
-			     (as-exit (lambda () (send old-edit remove-canvas mred))))
+			     (as-exit
+			      (lambda () (send old-edit remove-canvas mred))))
 			   (when edit
-			     (as-exit (lambda () (send edit add-canvas mred)))))))
+			     (as-exit
+			      (lambda () (send edit add-canvas mred))))))
 
-		     (update-size)
-		     
-		     ; force-redraw causes on-container-resize to be called,
-		     ;  but only when the size of the canvas really matters
-		     ;  (i.e., when it is shown)
-		     (force-redraw)])])
+		       (update-size)
+		       
+		       ;; force-redraw causes on-container-resize to be called,
+		       ;;  but only when the size of the canvas really matters
+		       ;;  (i.e., when it is shown)
+		       (force-redraw))])])
 	 l)]
       [handles-key-code 
        (lambda (x alpha? meta?)
@@ -1858,7 +1864,7 @@
 			 (send e set-style-list (get-style-list))
 			 e))))])
 
-    (sequence (as-entry (lambda () (apply super-init args))))))
+    (sequence (apply super-init args))))
 
 (define text% (class100 (make-editor-buffer% wx:text% #t  (lambda () text%)) ([line-spacing 1.0] [tab-stops null])
 		(sequence (super-init line-spacing tab-stops))))
@@ -2579,7 +2585,8 @@
 	 (lambda (type)
 	   (when (zero? block-callback)
 	     (let ([e (make-object wx:control-event% type)])
-	       (cb control e))))])
+	       (as-exit (lambda ()
+			  (cb control e))))))])
       (override
 	[on-char
 	 (entry-point
@@ -2663,7 +2670,7 @@
 
       [get-editor (lambda () e)]
       
-      [get-value (lambda () (send e get-text))]
+      [get-value (lambda () (send e get-text))] ; note: not as-entry when called
       [set-value (lambda (v) (without-callback
 			      (lambda () (send e insert v 0 (send e last-position)))))]
 
@@ -3694,7 +3701,7 @@
       [wx #f])
     (public
       [get-editor (entry-point (lambda () (send wx get-editor)))]
-      [get-value (entry-point (lambda () (send wx get-value)))]
+      [get-value (lambda () (send wx get-value))] ; note: wx method doesn't expect as-entry
       [set-value (entry-point 
 		  (lambda (v) 
 		    (check-string '(method text-control<%> set-value) v)
