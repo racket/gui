@@ -97,7 +97,9 @@
 				     "\n\n"
 				     (format-error-message exn)))
                                    #f)])
+		  (printf "before: ~s ~s ~s\n" input-filename fmt show-errors?)
                   (load-file input-filename fmt show-errors?)
+		  (printf "after\n")
                   #t))))
 	  
 	  (define/private (format-error-message exn)
