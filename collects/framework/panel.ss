@@ -8,9 +8,9 @@
   (define single-mixin
     (mixin (area-container<%>) (single<%>) args
       (inherit get-alignment)
-      (rename [super-on-new-child on-new-child])
+      (rename [super-after-new-child after-new-child])
       (override
-	[on-new-child
+	[after-new-child
 	 (lambda (c)
 	   (if current-active-child
 	       (send c show #f)

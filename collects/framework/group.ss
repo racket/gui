@@ -55,7 +55,7 @@
 		   (lambda (frame)
 		     (let ([label (send frame get-label)])
 		       (if (string=? label "")
-			   (if (ivar-in-class? 'get-entire-label (object-class frame))
+			   (if (ivar-in-interface? 'get-entire-label (object-interface frame))
 			       (let ([label (send frame get-entire-label)])
 				 (if (string=? label "")
 				     default-name

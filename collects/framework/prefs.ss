@@ -537,7 +537,7 @@
 			      (unless (ppanel-panel ppanel)
 				(let ([panel ((ppanel-container ppanel) single-panel)])
 				  (unless (and (object? panel)
-					       (implementation? (object-class panel) area-container<%>))
+					       (is-a? panel area-container<%>))
 				    (error 'preferences-dialog
 					   "expected the result of the function passed to preferences:add-panel to implement the area-container% interface. Got ~a~n"
 					   panel))

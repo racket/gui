@@ -29,7 +29,7 @@
 ;     (override
 ;      [copy-self
 ;	(lambda ()
-;	  (let ([editor (make-object (object-class this))])
+;	  (let ([editor (make-object (object-interface this))])
 ;	   (copy-self-to editor)
 ;	    editor))])
 	   

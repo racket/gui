@@ -93,7 +93,7 @@
         [on-drop-file
          (lambda (filename)
            (handler:edit-file filename))]
-	[on-new-child
+	[after-new-child
 	 (lambda (child)
 	   (when after-init?
 	     (error 'frame:basic-mixin
