@@ -932,9 +932,6 @@
               (let ([old-start-para start-para]
                     [old-end-para end-para])
                 (cond
-                  [(= 0 (last-position))
-                   (set! start-para #f)
-                   (set! end-para #f)]
                   [else
                    (set! start-para _start-para)
                    (set! end-para _end-para)])
@@ -993,15 +990,18 @@
             (let ([start (get-line-y start-para #t)]
                   [end (get-line-y end-para #f)]
                   [admin (get-admin)])
-              (if admin
-                  (begin
-                    (send admin get-view view-x-b #f view-width-b #f)
-                    (send admin get-view view-x-b #f view-width-b #f)
-                    (values (unbox view-x-b)
-                            start
-                            (unbox view-width-b)
-                            (- end start)))
-                  (values #f #f #f #f))))
+              (cond
+                [(not admin)
+                 (values #f #f #f #f)]
+                [(= 0 (last-position))
+                 (values #f #f #f #f)]
+                [else
+                 (send admin get-view view-x-b #f view-width-b #f)
+                 (send admin get-view view-x-b #f view-width-b #f)
+                 (values (unbox view-x-b)
+                         start
+                         (unbox view-width-b)
+                         (- end start))])))
 
           (define/private (get-line-y para top?)
             (let ([pos (paragraph-start-position para)]

@@ -877,11 +877,13 @@
                forward-cache))]
           [define remove-sexp
             (lambda (start-pos)
+              (begin-edit-sequence)
               (let ([end-pos (get-forward-sexp start-pos)])
                 (if end-pos 
                     (kill 0 start-pos end-pos)
-                    (bell))
-                #t))]
+                    (bell)))
+              (end-edit-sequence)
+              #t)]
           [define forward-sexp
             (lambda (start-pos)
               (let ([end-pos (get-forward-sexp start-pos)])
