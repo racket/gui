@@ -1021,6 +1021,8 @@ Changed arguments and default value of fit-on-page? for print in
 
 pasteboard%'s {on,after}-interactive-move takes a mouse-event% object.
 
+pasteboard% is now locked for writing during calls to on-paint
+
 editor-snip%'s resize method no longer calls the embedded buffer's
  set-max-size and set-min-size; now it calls on-display-size.
 
