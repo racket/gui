@@ -89,10 +89,11 @@
 		 (with-syntax ([(old ...) (datum->syntax old #f #f)]
 			       [(new ...) (datum->syntax new #f #f)])
 		   (syntax
-		    (define name (let ([c (dynamic-require '#%mred-kernel 'name)])
-				   (kernel:primitive-class-prepare-struct-type! c prop:object)
+		    (define name (let ([c (dynamic-require '#%mred-kernel 'name)]
+				       [b (box #f)])
+				   (kernel:primitive-class-prepare-struct-type! c prop:object b)
 				   (make-prim-class
-				    (kernel:primitive-class->struct-type c)
+				    (kernel:primitive-class->struct-type c) b
 				    kernel:dispatcher-property
 				    kernel:initialize-primitive-object
 				    'name super
