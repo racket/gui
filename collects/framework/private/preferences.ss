@@ -1,8 +1,9 @@
 (module preferences mzscheme
-  (require (lib "unitsig.ss")
+  (require (lib "string-constant.ss" "string-constants")
+           (lib "unitsig.ss")
 	   (lib "class.ss")
 	   (lib "class100.ss")
-	   "sig"
+	   "sig.ss"
 	   "../prefs-file-sig.ss"
 	   (lib "mred-sig.ss" "mred")
 	   (lib "pretty.ss")
@@ -63,7 +64,7 @@
                         p
                         (lambda ()
                           (raise exn)))
-                       (message-box (format "Error unmarshalling ~a preference" p)
+                       (message-box (format (string-constant error-unmarshalling) p)
                                     (if (exn? exn)
                                         (exn-message exn)
                                         (format "~s" exn)))))))))
@@ -166,11 +167,7 @@
                               [unmarshalled 
                                (if (checker unmarsh)
                                    unmarsh
-                                   (begin
-                                     '(printf
-                                       "WARNING: rejected saved default ~s for ~s; using ~s instead"
-                                       unmarsh p in-default-value)
-                                     in-default-value))]
+                                   in-default-value)]
                               [pref (if (check-callbacks p unmarshalled)
                                         unmarshalled
                                         in-default-value)])
@@ -210,7 +207,7 @@
             (with-handlers ([(lambda (x) #t)
                              (lambda (exn)
                                (message-box
-                                "Error saving preferences"
+                                (string-constant error-saving-preferences)
                                 (exn-message exn)))])
               (call-with-output-file (prefs-file:get-preferences-filename)
                 (lambda (p)
@@ -222,25 +219,31 @@
         (let/ec k
           (let ([err
                  (lambda (input msg)
-                   (message-box "Preferences"
-                                (let* ([max-len 150]
-                                       [s1 (format "~s" input)]
-                                       [ell "..."]
-                                       [s2 (if (<= (string-length s1) max-len)
-                                               s1
-                                               (string-append
-                                                (substring s1 0 (- max-len
-                                                                   (string-length ell)))
-                                                ell))])
-                                  (format "found bad pref in ~a: ~a~n~a"
-                                          preferences-filename msg s2))))])
+                   (message-box 
+                    (string-constant preferences)
+                    (let* ([max-len 150]
+                           [s1 (format "~s" input)]
+                           [ell "..."]
+                           [s2 (if (<= (string-length s1) max-len)
+                                   s1
+                                   (string-append
+                                    (substring s1 0 (- max-len
+                                                       (string-length ell)))
+                                    ell))])
+                      (string-append
+                       (format (string-constant found-bad-pref) preferences-filename)
+                       "\n"
+                       msg
+                       s2)))
+                   (k #f))])
             (let ([input (with-handlers
-                             ([(lambda (exn) #t)
+                             ([not-break-exn?
                                (lambda (exn)
                                  (message-box
-                                  "Error reading preferences"
-                                  (format "Error reading preferences~n~a"
-                                          (exn-message exn)))
+                                  (string-constant error-reading-preferences)
+                                  (string-append
+                                   (string-constant error-reading-preferences)
+                                   (format "\n~a" (exn-message exn))))
                                  (k #f))])
                            (call-with-input-file preferences-filename
                              read
@@ -248,28 +251,14 @@
               (if (eof-object? input)
                   (void)
                   (let loop ([input input])
-                    (cond
-                      [(pair? input)
-                       (let ([err-msg
-                              (let/ec k
-                                (let ([first (car input)])
-                                  (unless (pair? first)
-                                    (k "expected pair of pair"))
-                                  (let ([arg1 (car first)]
-                                        [t1 (cdr first)])
-                                    (unless (pair? t1)
-                                      (k "expected pair of two pairs"))
-                                    (let ([arg2 (car t1)]
-                                          [t2 (cdr t1)])
-                                      (unless (null? t2)
-                                        (k "expected null after two pairs"))
-                                      (parse-pref arg1 arg2)
-                                      (k #f)))))])
-                         (when err-msg
-                           (err input err-msg)))
-                       (loop (cdr input))]
-                      [(null? input) (void)]
-                      [else (err input "expected a pair")])))))))
+                    (when (pair? input)
+                      (let ([pre-pref (car input)])
+                        (if (and (list? pre-pref)
+                                 (= 2 (length pre-pref)))
+                            (parse-pref (car pre-pref) (cadr pre-pref))
+                            (err input (string-constant expected-list-of-length2))))
+                      (loop (cdr input)))))))))
+
       
   ;; read-from-file-to-ht : string hash-table -> void
       (define (read-from-file-to-ht filename ht)
@@ -320,7 +309,7 @@
       
       (define (local-add-general-panel)
         (add-panel
-         "General"
+         (string-constant general-prefs-panel-label)
          (lambda (parent)
            (let* ([main (make-object vertical-panel% parent)]
                   [make-check
@@ -337,36 +326,39 @@
                                        (send c set-value (pref->bool v))))))]
                   [id (lambda (x) x)])
              (send main set-alignment 'left 'center)
-             (make-check 'framework:highlight-parens "Highlight between matching parens" id id)
-             (make-check 'framework:fixup-parens "Correct parens" id id)
-             (make-check 'framework:paren-match "Flash paren match" id id)
-             (make-check 'framework:autosaving-on? "Auto-save files" id id)
-             (make-check 'framework:delete-forward? "Map delete to backspace" not not)
+             (make-check 'framework:highlight-parens (string-constant highlight-parens) id id)
+             (make-check 'framework:fixup-parens (string-constant fixup-parens) id id)
+             (make-check 'framework:paren-match (string-constant flash-paren-match) id id)
+             (make-check 'framework:autosaving-on? (string-constant auto-save-files) id id)
+             (make-check 'framework:delete-forward? (string-constant map-delete-to-backspace)
+                         not not)
              
-	 ;; not exposed to the user anymore. Only left in for automated testing.
-             ;(make-check 'framework:file-dialogs "Use platform-specific file dialogs"
-             ;(lambda (x) (if x 'std 'common))
-             ;(lambda (x) (eq? x 'std)))
+             (make-check 'framework:verify-exit (string-constant verify-exit) id id)
+             (make-check 'framework:verify-change-format 
+                         (string-constant ask-before-changing-format)
+                         id id)
+             (make-check 'framework:auto-set-wrap? (string-constant wrap-words-in-editor-buffers)
+                         id id)
              
-             (make-check 'framework:verify-exit "Verify exit" id id)
-             (make-check 'framework:verify-change-format "Ask before changing save format" id id)
-             (make-check 'framework:auto-set-wrap? "Wrap words in editor buffers" id id)
-             
-             (make-check 'framework:show-status-line "Show status-line" id id)
-             (make-check 'framework:line-offsets "Count line and column numbers from one" id id)
-             (make-check 'framework:display-line-numbers "Display line numbers in buffer; not character offsets" id id)
-             (make-check 'framework:menu-bindings "Enable keybindings in menus" id id)
+             (make-check 'framework:show-status-line (string-constant show-status-line) id id)
+             (make-check 'framework:line-offsets (string-constant count-from-one) id id)
+             (make-check 'framework:display-line-numbers
+                         (string-constant display-line-numbers)
+                         id id)
+             (make-check 'framework:menu-bindings (string-constant enable-keybindings-in-menus)
+                         id id)
              (unless (eq? (system-type) 'unix) 
-               (make-check 'framework:print-output-mode "Automatically print to postscript file"
+               (make-check 'framework:print-output-mode 
+                           (string-constant automatically-to-ps)
                            (lambda (b) 
                              (if b 'postscript 'standard))
                            (lambda (n) (eq? 'postscript n))))
              
              
              '(when (eq? (system-type) 'windows)
-                (make-check 'framework:windows-mdi "Use MDI Windows" id id))
+                (make-check 'framework:windows-mdi (string-constant use-mdi) id id))
              (make-check 'framework:search-using-dialog?
-                         "Use separate dialog for searching"
+                         (string-constant separate-dialog-for-searching)
                          id id)
              
              main)))
@@ -427,10 +419,10 @@
                         number?)
            font-size-entry)
           (add-panel
-           "Default Fonts"
+           (string-constant default-fonts)
            (lambda (parent)
              (letrec ([font-size-pref-sym (build-font-preference-symbol font-size-entry)]
-                      [ex-string "The quick brown fox jumped over the lazy dogs."]
+                      [ex-string (string-constant font-example-string)]
                       [main (make-object vertical-panel% parent)]
                       [fonts (cons font-default-string (get-face-list))]
                       [make-family-panel
@@ -467,13 +459,13 @@
                                            horiz)]
                                 [button 
                                  (make-object button%
-                                   "Change" 
+                                   (string-constant change-font-button-label)
                                    horiz
                                    (lambda (button evt)
                                      (let ([new-value
                                             (get-choices-from-user
-                                             "Fonts"
-                                             (format "Please choose a new ~a font"
+                                             (string-constant fonts)
+                                             (format (string-constant choose-a-new-font)
                                                      name)
                                              fonts)])
                                        (when new-value
@@ -527,7 +519,7 @@
                              font-default-size))]
                       [size-slider
                        (make-object slider%
-                         "Size"
+                         (string-constant font-size-slider-label)
                          1 127
                          size-panel
                          (lambda (slider evt)
@@ -543,7 +535,7 @@
                     (send size-slider set-value value))
                   #t))
                (for-each (lambda (f) (f initial-font-size)) set-edit-fonts)
-               (make-object message% "Restart to see font changes" main)
+               (make-object message% (string-constant restart-to-see-font-changes) main)
                main))))
         (set! local-add-font-panel void))
       
@@ -589,7 +581,7 @@
                                                              (sub1 (length ppanels))))))))])
                                    (sequence
                                      (apply super-init args)))
-                      "Preferences")]
+                      (string-constant preferences))]
                    [panel (make-object vertical-panel% frame)]
                    [popup-callback
                     (lambda (choice command-event)
@@ -598,7 +590,7 @@
                               (ppanel-panel (list-ref ppanels (send choice get-selection))))))]
                    [make-popup-menu 
                     (lambda ()
-                      (let ([menu (make-object choice% "Category"
+                      (let ([menu (make-object choice% (string-constant preferences-category)
                                     (map ppanel-title ppanels)
                                     panel popup-callback)])
                         (send menu stretchable-width #f)
@@ -636,11 +628,13 @@
                    [ok-callback (lambda args
                                   (save)
                                   (hide-dialog))]
-                   [ok-button (make-object button% "OK" bottom-panel ok-callback '(border))]
+                   [ok-button (make-object button% (string-constant ok)
+                                bottom-panel ok-callback '(border))]
                    [cancel-callback (lambda args
                                       (hide-dialog)
                                       (-read))]
-                   [cancel-button (make-object button% "Cancel" bottom-panel cancel-callback)]
+                   [cancel-button (make-object button% (string-constant cancel)
+                                    bottom-panel cancel-callback)]
                    [grow-box-space (make-object grow-box-spacer-pane% bottom-panel)])
             (send ok-button min-width (send cancel-button get-width))
             (send* bottom-panel

@@ -2,7 +2,8 @@
 ;; 6/30/95
 
 (module scheme mzscheme
-  (require (lib "unitsig.ss")
+  (require (lib "string-constant.ss" "string-constants")
+           (lib "unitsig.ss")
 	   (lib "class.ss")
 	   (lib "class100.ss")
 	   "sig"
@@ -505,7 +506,7 @@
               (cond
                 [(let ([real-start (cdr (find-offset end))]) 
                    (and (<= (+ 3 real-start) (last-position))
-                        (string=? ";;"
+                        (string=? ";;;"
                                   (get-text real-start
                                             (+ 2 real-start)))))
                  (void)]
@@ -970,7 +971,7 @@
 
   (define (add-preferences-panel)
     (preferences:add-panel
-     "Indenting"
+     (string-constant indenting-prefs-panel-label)
      (lambda (p)
        (let*-values
 	   ([(get-keywords)
@@ -994,8 +995,8 @@
 			    (keymap:call/text-keymap-initializer
 			     (lambda ()
 			       (get-text-from-user
-				(string-append "Enter new " keyword-type "-like keyword:")
-				(string-append keyword-type " Keyword"))))])
+				(format (string-constant enter-new-keyword) keyword-type)
+				(format (string-constant x-keyword) keyword-type))))])
 		       (when new-one
 			 (let ([parsed (with-handlers ((exn:read? (lambda (x) #f)))
 					 (read (open-input-string new-one)))])
@@ -1004,13 +1005,15 @@
 				  (hash-table-get (preferences:get 'framework:tabify)
 						  parsed
 						  (lambda () #f)))
-			     (message-box "Error"
-					  (format "\"~a\" is already a specially indented keyword" parsed))]
+			     (message-box (string-constant error)
+					  (format (string-constant already-used-keyword) parsed))]
 			    [(symbol? parsed)
 			     (hash-table-put! (preferences:get 'framework:tabify)
 					      parsed keyword-symbol)
 			     (send list-box append (symbol->string parsed))]
-			    [else (message-box "Error" (format "expected a symbol, found: ~a" new-one))]))))))]
+			    [else (message-box 
+                                   (string-constant error)
+                                   (format (string-constant expected-a-symbol) new-one))]))))))]
 		[delete-callback
 		 (lambda (list-box)
 		   (lambda (button command)
@@ -1023,11 +1026,13 @@
 		[make-column
 		 (lambda (string symbol keywords)
 		   (let* ([vert (make-object vertical-panel% main-panel)]
-			  [_ (make-object message% (string-append string "-like Keywords") vert)]
+			  [_ (make-object message% (format (string-constant x-like-keywords) string) vert)]
 			  [box (make-object list-box% #f keywords vert void '(multiple))]
 			  [button-panel (make-object horizontal-panel% vert)]
-			  [add-button (make-object button% "Add" button-panel (add-callback string symbol box))]
-			  [delete-button (make-object button% "Remove" button-panel (delete-callback box))])
+			  [add-button (make-object button% (string-constant add-keyword)
+                                        button-panel (add-callback string symbol box))]
+			  [delete-button (make-object button% (string-constant remove-keyword)
+                                           button-panel (delete-callback box))])
 		     (send* button-panel 
 			    (set-alignment 'center 'center)
 			    (stretchable-height #f))

@@ -1,5 +1,6 @@
 (module keymap mzscheme
-  (require (lib "unitsig.ss")
+  (require (lib "string-constant.ss" "string-constants")
+           (lib "unitsig.ss")
 	   "sig.ss"
 	   "../macro.ss"
 	   (lib "class.ss")
@@ -597,8 +598,8 @@
 			 (call/text-keymap-initializer
 			  (lambda ()
 			    (get-text-from-user
-			     "Goto Line"
-			     "Goto Line:")))])
+                             (string-constant goto-line)
+                             (string-constant goto-line))))])
 		    (when (string? num-str)
 		      (let ([line-num (inexact->exact (string->number num-str))])
 			(cond
@@ -610,10 +611,11 @@
 			    (send edit set-position pos))]
 			 [else
 			  (message-box
-			   "Goto Line"
-			   (format "~a is not a valid line number. It must be an integer between 1 and ~a"
-				   num-str
-				   (+ (send edit last-line) 1)))]))))
+                           (string-constant goto-line)
+			   (format 
+                            (string-constant goto-line-invalid-number)
+                            num-str
+                            (+ (send edit last-line) 1)))]))))
 
 		  #t)]
 	       [goto-position
@@ -622,12 +624,12 @@
 			 (call/text-keymap-initializer
 			  (lambda ()
 			    (get-text-from-user 
-			     "Goto Position" 
-			     "Goto Position:")))])
+                             (string-constant goto-position)
+                             (string-constant goto-position))))])
 		    (if (string? num-str)
 			(let ([pos (string->number num-str)])
-			  (if pos
-			      (send edit set-position (sub1 pos))))))
+			  (when pos
+                            (send edit set-position (sub1 pos))))))
 		  #t)]
 	       [repeater
 		(lambda (n edit)

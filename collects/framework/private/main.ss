@@ -158,16 +158,8 @@
       
       (exit:insert-on-callback 
        (lambda ()
-	 (with-handlers ([(lambda (x) (void))
-			  (lambda (exn)
-			    (message-box
-			     "Saving Prefs"
-			     (format "Error saving preferences: ~a"
-				     (exn-message exn))))])
-	   (preferences:save))))
+         (preferences:save)))
       
-					;(wx:application-file-handler edit-file) ;; how to handle drag and drop?
-
       (preferences:read)
 
       ;; reset these -- they are only for the test suite.

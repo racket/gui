@@ -1,6 +1,7 @@
 
 (module frame mzscheme
-  (require (lib "unitsig.ss")
+  (require (lib "string-constant.ss" "string-constants")
+           (lib "unitsig.ss")
 	   (lib "class.ss")
 	   (lib "class100.ss")
 	   (lib "include.ss")
@@ -55,11 +56,11 @@
                   (reverse (move-to-back name (reverse items))))]
                [re-ordered
                 (move-to-front
-                 "File"
+                 (string-constant file-menu)
                  (move-to-front
-                  "Edit"
+                  (string-constant edit-menu)
                   (move-to-back
-                   "Help"
+                   (string-constant help-menu)
                    items)))])
           (for-each (lambda (item) (send item delete)) items)
           (for-each (lambda (item) (send item restore)) re-ordered)))
@@ -151,7 +152,8 @@
           (super-instantiate ())
           (accept-drop-files #t)
             
-          (make-object menu% "&Windows" (make-object (get-menu-bar%) this))
+          (make-object menu% (string-constant windows-menu-label)
+            (make-object (get-menu-bar%) this))
           (reorder-menus this)
           (send (group:get-the-frame-group) insert-frame this)
           [define panel (make-root-area-container (get-area-container%) this)]
@@ -159,8 +161,8 @@
           [define get-area-container (lambda () panel)]
           (set! after-init? #t)))
       
-      (define locked-message "Read only")
-      (define unlocked-message "Read/Write")
+      (define locked-message (string-constant read-only))
+      (define unlocked-message (string-constant read/write))
       
       (define lock-canvas%
         (class100 canvas% (parent . args)
@@ -331,7 +333,7 @@
             ; only for CVSers
           (when show-memory-text?
             (let* ([panel (make-object horizontal-panel% (get-info-panel) '(border))]
-                   [button (make-object button% "Collect" panel 
+                   [button (make-object button% (string-constant collect-button-label) panel 
                              (lambda x
                                (collect-garbage)
                                (update-memory-text)))]
@@ -529,11 +531,11 @@
               (let ([b (icon:get-anchor-bitmap)])
                 (if (and #f (send b ok?))
                     b
-                    "Auto-extend Selection"))
+                    (string-constant auto-extend-selection)))
               (get-info-panel))]
           [define overwrite-message 
            (make-object message%
-             "Overwrite"
+             (string-constant overwrite)
              (get-info-panel))]
           [define position-canvas (make-object editor-canvas% (get-info-panel) #f '(no-hscroll no-vscroll))]
           [define position-edit (make-object text%)]
@@ -703,8 +705,8 @@
                             (begin
                               (send edit end-edit-sequence)
                               (message-box
-                               "Error Reverting"
-                               (format "could not read ~a" filename)))))))
+                               (string-constant error-reverting)
+                               (format (string-constant could-not-read) filename)))))))
                 #t))]
           [define file-menu:create-revert? (lambda () #t)]
           [define file-menu:save-callback (lambda (item control)
@@ -739,9 +741,12 @@
                        (let ([edit (get-edit-target-object)])
                          (send menu-item enable (and edit (is-a? edit editor<%>)))))])
                 
-                (make-object c% "Insert Text Box" edit-menu (edit-menu:do 'insert-text-box) #f #f on-demand)
-                (make-object c% "Insert Pasteboard Box" edit-menu (edit-menu:do 'insert-pasteboard-box) #f #f on-demand)
-                (make-object c% "Insert Image..." edit-menu (edit-menu:do 'insert-image) #f #f on-demand)))]
+                (make-object c% (string-constant insert-text-box-item)
+                  edit-menu (edit-menu:do 'insert-text-box) #f #f on-demand)
+                (make-object c% (string-constant insert-pb-box-item)
+                  edit-menu (edit-menu:do 'insert-pasteboard-box) #f #f on-demand)
+                (make-object c% (string-constant insert-image-item)
+                  edit-menu (edit-menu:do 'insert-image) #f #f on-demand)))]
           
           
           (override edit-menu:between-select-all-and-find)
@@ -768,7 +773,8 @@
                          (when (and edit
                                     (is-a? edit editor<%>))
                            (send edit auto-wrap (not (send edit auto-wrap))))))])
-               (make-object c% "Wrap Text" edit-menu callback #f #f on-demand))
+               (make-object c% (string-constant wrap-text-item)
+                 edit-menu callback #f #f on-demand))
              
              (make-object separator-menu-item% edit-menu))]
           
@@ -776,7 +782,8 @@
           [define help-menu:about-callback 
             (lambda (menu evt) 
               (message-box (application:current-app-name)
-                           (format "Welcome to ~a" (application:current-app-name))))]
+                           (format (string-constant welcome-to-something)
+                                   (application:current-app-name))))]
           [define help-menu:about-string (lambda () (application:current-app-name))]
           [define help-menu:create-about? (lambda () #t)]
           
@@ -836,7 +843,7 @@
            (let* ([to-be-searched-text (send frame get-text-to-search)]
                   [to-be-searched-canvas (send to-be-searched-text get-canvas)]
                   
-                  [dialog (make-object dialog% "Find and Replace" frame)]
+                  [dialog (make-object dialog% (string-constant find-and-replace) frame)]
                   
                   [copy-text
                    (lambda (from to)
@@ -862,20 +869,20 @@
                   
                   
                   [find-panel (make-object horizontal-panel% dialog)]
-                  [find-message (make-object message% "Find" find-panel)]
+                  [find-message (make-object message% (string-constant find) find-panel)]
                   [f-text (make-object text-keymap/editor%)]
                   [find-canvas (make-object editor-canvas% find-panel f-text
                                  '(hide-hscroll hide-vscroll))]
                   
                   [replace-panel (make-object horizontal-panel% dialog)]
-                  [replace-message (make-object message% "Replace" replace-panel)]
+                  [replace-message (make-object message% (string-constant replace) replace-panel)]
                   [r-text (make-object text-keymap/editor%)]
                   [replace-canvas (make-object editor-canvas% replace-panel r-text
                                     '(hide-hscroll hide-vscroll))]
                   
                   [button-panel (make-object horizontal-panel% dialog)]
                   [pref-check (make-object check-box%
-                                "Use separate dialog for searching"
+                                (string-constant use-separate-dialog-for-searching)
                                 dialog
                                 (lambda (pref-check evt)
                                   (preferences:set
@@ -889,24 +896,25 @@
                      (send find-edit start-searching)
                      (copy-text r-text replace-edit))]
                   
-                  [find-button (make-object button% "Find" button-panel 
+                  [find-button (make-object button% (string-constant find) button-panel 
                                  (lambda x
                                    (update-texts)
                                    (send frame search-again))
                                  '(border))]
-                  [replace-button (make-object button% "Replace" button-panel
+                  [replace-button (make-object button% (string-constant replace) button-panel
                                     (lambda x
                                       (update-texts)
                                       (send frame replace)))]
-                  [replace-button (make-object button% "Replace && Find Again" button-panel
+                  [replace-button (make-object button% (string-constant replace&find-again)
+                                    button-panel
                                     (lambda x
                                       (update-texts)
                                       (send frame replace&search)))]
-                  [replace-button (make-object button% "Replace to End" button-panel
+                  [replace-button (make-object button% (string-constant replace-to-end) button-panel
                                     (lambda x
                                       (update-texts)
                                       (send frame replace-all)))]
-                  [close-button (make-object button% "Close" button-panel
+                  [close-button (make-object button% (string-constant close) button-panel
                                   (lambda x
                                     (send to-be-searched-canvas force-display-focus #f)
                                     (send dialog show #f)))])
@@ -1393,23 +1401,25 @@
           [define middle-right-panel (make-object vertical-pane% search-panel)]
           
           [define search-button (make-object button% 
-                                  "Search"
+                                  (string-constant find)
                                   middle-left-panel
                                   (lambda args (search-again)))]
           
           [define replace&search-button (make-object button% 
-                                          "Replace && Search"
+                                          (string-constant replace&find-again)
                                           middle-middle-panel 
                                           (lambda x (replace&search)))]
-          [define replace-button (make-object button% "Replace" middle-left-panel (lambda x (replace)))]
+          [define replace-button (make-object button% (string-constant replace)
+                                   middle-left-panel (lambda x (replace)))]
           [define replace-all-button (make-object button% 
-                                       "Replace To End"
+                                       (string-constant replace-to-end)
                                        middle-middle-panel
                                        (lambda x (replace-all)))]
           
           [define dir-radio (make-object radio-box%
                               #f
-                              (list "Forward" "Backward")
+                              (list (string-constant forward)
+                                    (string-constant backward))
                               middle-right-panel
                               (lambda (dir-radio evt)
                                 (let ([forward (if (= (send dir-radio get-selection) 0)
@@ -1417,7 +1427,7 @@
                                                    'backward)])
                                   (set-search-direction forward)
                                   (reset-search-anchor (get-text-to-search)))))]
-          [define close-button (make-object button% "Hide"
+          [define close-button (make-object button% (string-constant hide)
                                  middle-right-panel
                                  (lambda args (hide-search)))]
           [define hidden? #f]
@@ -1476,7 +1486,7 @@
                                    (if (string? fn)
                                        fn
                                        (get-label)))
-                                 "Close"
+                                 (string-constant close)
                                  #t
                                  this)
                             [(continue) #t]

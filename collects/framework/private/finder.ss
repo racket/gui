@@ -1,6 +1,7 @@
 
 (module finder mzscheme
-  (require (lib "unitsig.ss")
+  (require (lib "string-constant.ss" "string-constants")
+           (lib "unitsig.ss")
 	   "sig.ss"
 	   "../gui-utils-sig.ss"
            (lib "class100.ss")
@@ -31,7 +32,7 @@
 	    (if (regexp-match-exact? filter name)
 		#t
 		(begin
-		  (message-box "Error" msg)
+		  (message-box (string-constant error) msg)
 		  #f)))))
       
       (define last-directory #f)
@@ -216,14 +217,14 @@
                           (if (directory-exists? file)
                               (set-directory (normal-case-path (normalize-path file)))
                               (message-box 
-                               "Error"
-                               "You must specify a file name")))]
+                               (string-constant error)
+                               (string-constant must-specify-a-filename))))]
                        
                        [(and save-mode? 
                              non-empty?
                              file-filter 
                              (not (regexp-match-exact? file-filter name)))
-                        (message-box "Error" file-filter-msg)]
+                        (message-box (string-constant error) file-filter-msg)]
                        
                        [else
                         
@@ -248,10 +249,8 @@
                                 
                                 (if (and (not save-mode?) (not file-in-edit))
                                     (message-box 
-                                     "Error"
-                                     (string-append "The file \"" 
-                                                    dir-name
-                                                    "\" does not exist."))
+                                     (string-constant error)
+                                     (format (string-constant file-does-not-exist) dir-name))
                                     
                                     ; saving a file, which may exist, or
                                     ; opening an existing file
@@ -259,25 +258,23 @@
                                     (if (or (not save-mode?)
                                             (not (file-exists? file))
                                             replace-ok?
-                                            (eq? (message-box "Warning"
-                                                              (string-append
-                                                               "The file " 
-                                                               file
-                                                               " already exists. "
-                                                               "Replace it?")
-                                                              #f
-                                                              '(yes-no))
+                                            (eq? (message-box 
+                                                  (string-constant warning)
+                                                  (format
+                                                   (string-constant ask-because-file-exists)
+                                                   file)
+                                                  #f
+                                                  '(yes-no))
                                                  'yes))
                                         (let ([normal-path
                                                (with-handlers 
                                                    ([(lambda (_) #t)
                                                      (lambda (_)
                                                        (message-box
-                                                        "Warning" 
-                                                        (string-append
-                                                         "The file " 
-                                                         file
-                                                         " contains nonexistent directory or cycle."))
+                                                        (string-constant warning)
+                                                        (format
+                                                         (string-constant dne-or-cycle)
+                                                         file))
                                                        #f)])
                                                  (normal-case-path
                                                   (normalize-path file)))])
@@ -329,7 +326,9 @@
             [on-close (lambda () #f)])
 	  
 	  (sequence
-	    (super-init (if save-mode? "Put file" "Get file")
+	    (super-init (if save-mode? 
+                            (string-constant put-file)
+                            (string-constant get-file))
 			parent-win 
 			default-width 
 			default-height
@@ -484,7 +483,7 @@
 	     (keymap:call/text-keymap-initializer
 	      (lambda ()
 		(make-object text-field%
-		  "Full pathname"
+		  (string-constant full-pathname)
 		  directory-panel
 		  (lambda (txt evt)
 		    (when (eq? (send evt get-event-type) 'text-field-enter)
@@ -527,7 +526,7 @@
 	    (when (eq? (system-type) 'unix)
 	      (let ([dot-cb
 		     (make-object check-box%
-		       "Show files and directories that begin with a dot"
+		       (string-constant show-dot-files)
 		       dot-panel
 		       (lambda (x y) (do-period-in/exclusion x y)))])
 		(send dot-panel stretchable-height #f)
@@ -542,7 +541,7 @@
 	      (send result-list stretchable-width #t))
 	    
 	    (make-object button% 
-	      "Up directory"
+              (string-constant up-directory-button-label)
 	      top-panel
 	      (lambda (button evt) (do-updir)))
 	    
@@ -559,29 +558,35 @@
 	    [add-button (when multi-mode?
 			  (make-object horizontal-panel% add-panel)
 			  (make-object button%
-			    "Add"
+			    (string-constant add-button-label)
 			    add-panel
 			    (lambda (x y) (do-add))))]
 	    [add-all-button (when multi-mode?
 			      (begin0
                                 (make-object button%
-                                  "Add all"
+                                  (string-constant add-all-button-label)
                                   add-panel 
                                   (lambda (x y) (do-add-all)))
                                 (make-object horizontal-panel% add-panel)))]
 	    [remove-button (when multi-mode?
 			     (make-object horizontal-panel% remove-panel)
 			     (begin0
-                               (make-object button% "Remove" remove-panel (lambda (x y) (do-remove)))
+                               (make-object button% 
+                                 (string-constant remove-button-label)
+                                 remove-panel
+                                 (lambda (x y) (do-remove)))
                                (make-object horizontal-panel% remove-panel)))])
 	  (sequence
 	    (make-object vertical-panel% bottom-panel)) 
 	  (private-field
 	    [ok-button
-	     (make-object button% "OK" bottom-panel 
+	     (make-object button% (string-constant ok) bottom-panel 
                (lambda (x y) (do-ok))
                (if multi-mode? '() '(border)))]
-	    [cancel-button (make-object button% "Cancel" bottom-panel (lambda (x y) (do-cancel)))])
+	    [cancel-button (make-object button% 
+                             (string-constant cancel)
+                             bottom-panel
+                             (lambda (x y) (do-cancel)))])
 	  (sequence
 	    (make-object grow-box-spacer-pane% bottom-panel)
             
@@ -617,9 +622,9 @@
 		      [name #f]
 		      [in-directory #f]
 		      [replace? #f]
-		      [prompt "Select file"]
+		      [prompt (string-constant select-file)]
 		      [filter #f]
-		      [filter-msg "Invalid form"]
+		      [filter-msg (string-constant file-wrong-form)]
 		      [parent-win (dialog-parent-parameter)])
 	   (let* ([directory (if (and (not in-directory)
 				      (string? name))
@@ -647,9 +652,9 @@
 	 (opt-lambda
 	     (result-box 
 	      [directory #f]
-	      [prompt "Select file"]
+	      [prompt (string-constant select-file)]
 	      [filter #f]
-	      [filter-msg "Bad name"]
+	      [filter-msg (string-constant file-wrong-form)]
 	      [parent-win (dialog-parent-parameter)])
 	   (let ([saved-directory last-directory])
 	     (make-object finder-dialog% 
@@ -669,9 +674,9 @@
 	(make-common
 	 (opt-lambda (result-box 
 		      [directory #f]
-		      [prompt "Select files"]
+		      [prompt (string-constant select-files)]
 		      [filter #f]
-		      [filter-msg "Bad name"]
+		      [filter-msg (string-constant file-wrong-form)]
 		      [parent-win (dialog-parent-parameter)])
 	   (make-object 
 	       finder-dialog% 
@@ -694,9 +699,9 @@
 	(opt-lambda ([name #f]
 		     [directory #f]
 		     [replace? #f]
-		     [prompt "Select file"]
+		     [prompt (string-constant select-file)]
 		     [filter #f]
-		     [filter-msg "That filename does not have the right form."]
+		     [filter-msg (string-constant file-wrong-form)]
 		     [parent-win (dialog-parent-parameter)])
 	  (let* ([directory (if (and (not directory)
 				     (string? name))
@@ -723,18 +728,20 @@
 		       [name (file-name-from-path f)])
 		  (cond
 		   [(not (and (string? dir) (directory-exists? dir)))
-		    (message-box "Error" "That directory does not exist.")
+		    (message-box (string-constant error)
+                                 (string-constant dir-dne))
 		    #f]
 		   [(or (not name) (equal? name ""))
-		    (message-box "Error" "Empty filename.")
+		    (message-box (string-constant error)
+                                 (string-constant empty-filename))
 		    #f]
 		   [else f]))))))
       
       (define std-get-file
 	(opt-lambda ([directory #f]
-		     [prompt "Select file"]
+		     [prompt (string-constant select-file)]
 		     [filter #f]
-		     [filter-msg "That filename does not have the right form."]
+		     [filter-msg (string-constant file-wrong-form)]
 		     [parent-win (dialog-parent-parameter)])
 	  (let ([f (get-file
 		    prompt 
@@ -746,10 +753,12 @@
 		    (let ([f (normalize-path f)])
 		      (cond
 		       [(directory-exists? f)
-			(message-box "Error" "That is a directory name.")
+			(message-box (string-constant error)
+                                     (string-constant that-is-dir-name))
 			#f]
 		       [(not (file-exists? f))
-			(message-box "Error" "File does not exist.")
+			(message-box (string-constant error) 
+                                     (string-constant file-dne))
 			#f]
 		       [else f]))
 		    #f)

@@ -1,5 +1,6 @@
 (module exit mzscheme
   (require (lib "unitsig.ss")
+           (lib "string-constant.ss" "string-constants")
 	   (lib "class.ss")
 	   "sig.ss"
 	   "../gui-utils-sig.ss"
@@ -52,13 +53,14 @@
 	(if (preferences:get 'framework:verify-exit)
 	    (let*-values ([(w capw)
 			   (if (eq? (system-type) 'windows)
-			       (values "exit" "Exit")
-			       (values "quit" "Quit"))]
+			       (values (string-constant exit-lc) (string-constant exit-cap))
+			       (values (string-constant quit-lc) (string-constant quit-cap)))]
 			  [(message)
-			   (string-append "Are you sure you want to "
-					  w
-					  "?")]
-			  [(user-says) (gui-utils:get-choice message capw "Cancel" "Warning" #f
+			   (format (string-constant are-you-sure-format) w)]
+			  [(user-says) (gui-utils:get-choice message capw
+                                                             (string-constant cancel)
+                                                             (string-constant warning)
+                                                             #f
 							     (frame-exiting))])
 	      user-says)
 	    #t))

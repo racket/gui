@@ -1,5 +1,6 @@
 (module text mzscheme
-  (require (lib "unitsig.ss")
+  (require (lib "string-constant.ss" "string-constants")
+           (lib "unitsig.ss")
 	   (lib "class.ss")
 	   (lib "class100.ss")
 	   "sig.ss"
@@ -446,14 +447,18 @@
                   (eq? 'standard (get-file-format))
                   (or (not (preferences:get 'framework:verify-change-format))
                       (gui-utils:get-choice
-                       "Save this file as plain text?" "Yes" "No")))
+                       (string-constant save-as-plain-text) 
+                       (string-constant yes)
+                       (string-constant no))))
              (set-file-format 'text)]
             [(and (not all-strings?)
                   (or (eq? format 'same) (eq? format 'copy))
                   (eq? 'text (get-file-format))
                   (or (not (preferences:get 'framework:verify-change-format))
                       (gui-utils:get-choice
-                       "Save this file in drscheme-specific non-text format?" "Yes" "No")))
+                       (string-constant save-in-drs-format)
+                       (string-constant yes)
+                       (string-constant no))))
              (set-file-format 'standard)]
             [else (void)]))
         (super-on-save-file name format))

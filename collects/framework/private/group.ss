@@ -1,6 +1,7 @@
 
 (module group mzscheme
-  (require (lib "unitsig.ss")
+  (require (lib "string-constant.ss" "string-constants")
+           (lib "unitsig.ss")
 	   (lib "class.ss")
 	   "sig.ss"
 	   (lib "mred-sig.ss" "mred")
@@ -38,7 +39,7 @@
 		(and menu-bar
 		     (let ([menus (send menu-bar get-items)])
 		       (ormap (lambda (x)
-				(if (string=? "&Windows" (send x get-label))
+				(if (string=? (string-constant windows-menu-label) (send x get-label))
 				    x
 				    #f))
 			      menus)))))]
@@ -58,7 +59,7 @@
 
 	  [define (update-windows-menus)
 	    (let* ([windows (length windows-menus)]
-		   [default-name "Untitled"]
+		   [default-name (string-constant untitled)]
 		   [get-name 
 		    (lambda (frame)
 		      (let ([label (send frame get-label)])

@@ -2,6 +2,7 @@
   (require (lib "unitsig.ss")
 	   (lib "class.ss")
 	   (lib "class100.ss")
+           (lib "string-constant.ss" "string-constants")
 	   "sig.ss"
 	   "../gui-utils-sig.ss"
 	   "../macro.ss"
@@ -51,10 +52,10 @@
 	      (and (if (equal? filename (get-filename))
 		       (if (save-file-out-of-date?)
 			   (gui-utils:get-choice 
-			    "The file has beeen modified since it was last saved. Overwrite the modifications?"
-			    "Overwrite"
-			    "Cancel"
-			    "Warning"
+			    (string-constant file-has-been-modified)
+			    (string-constant overwrite-file-button-label)
+                            (string-constant cancel)
+                            (string-constant warning)
 			    #f
 			    (get-top-level-focus-window))
 			   #t)
@@ -403,11 +404,12 @@
                         (set! auto-save-out-of-date? #f))
                       (begin
                         (message-box 
-                         "Warning"
-                         (format "Error autosaving ~s.~n~a~n~a"
-                                 (or orig-name "Untitled")
-                                 "Autosaving is turned off"
-                                 "until the file is saved."))
+                         (string-constant warning)
+                         (string-append
+                          (format (string-constant error-autosaving)
+                                  (or orig-name (string-constant untitled)))
+                          "\n"
+                          (string-constant autosaving-turned-off)))
                         (set! auto-save-error? #t))))))]
           [define remove-autosave
             (lambda ()

@@ -1,4 +1,5 @@
 (module standard-menus-items mzscheme
+
   (provide
    (struct generic (name initializer))
    
@@ -179,7 +180,8 @@
            'file-menu
            '(make-object (get-menu%)
               (if (eq? (system-type) 'windows)
-                  "&File" "F&ile")
+                  (string-constant file-menu-label-windows)
+                  (string-constant file-menu-label-other))
               (get-menu-bar)))
           (make-generic-method
            'get-edit-menu
@@ -190,7 +192,9 @@
              "@ilink frame:standard-menus get-menu\\%"
              ""
              "@return : (instance (derived-from \\iscmclass{menu}))"))
-          (make-generic-private-field 'edit-menu '(make-object (get-menu%) "&Edit" (get-menu-bar)))
+          (make-generic-private-field 
+           'edit-menu
+           '(make-object (get-menu%) (string-constant edit-menu-label) (get-menu-bar)))
           (make-generic-method
            'get-help-menu
            '(lambda () help-menu)
@@ -202,112 +206,165 @@
              "@return : (instance (derived-from \\iscmclass{menu}))"))
           (make-generic-private-field
            'help-menu
-           '(make-object (get-menu%) "&Help" (get-menu-bar)))
+           '(make-object (get-menu%) (string-constant help-menu-label) (get-menu-bar)))
           
-          (make-an-item 'file-menu 'new "Open a new file"
+          (make-an-item 'file-menu 'new 
+                        '(string-constant new-info)
                         '(lambda (item control) (handler:edit-file #f) #t)
-                        #\n "&New" ""
+                        #\n 
+                        '(string-constant new-menu-item-before)
+                        '(string-constant new-menu-item-after)
                         on-demand-do-nothing)
           (make-between 'file-menu 'new 'open 'nothing)
-          (make-an-item 'file-menu 'open "Open a file from disk"
+          (make-an-item 'file-menu 'open '(string-constant open-info)
                         '(lambda (item control) (handler:open-file) #t)
-                        #\o "&Open" "..."
+                        #\o 
+                        '(string-constant open-menu-item-before)
+                        '(string-constant open-menu-item-after)
                         on-demand-do-nothing)
           (make-between 'file-menu 'open 'revert 'nothing)
           (make-an-item 'file-menu 'revert 
-                        "Revert this file to the copy on disk"
-                        #f #f "&Revert" ""
+                        '(string-constant revert-info)
+                        #f #f 
+                        '(string-constant revert-menu-item-before)
+                        '(string-constant revert-menu-item-after)
                         on-demand-do-nothing)
           (make-between 'file-menu 'revert 'save 'nothing)
           (make-an-item 'file-menu 'save
-                        "Save this file to disk"
-                        #f #\s "&Save" ""
+                        '(string-constant save-info)
+                        #f #\s 
+                        '(string-constant save-menu-item-before)
+                        '(string-constant save-menu-item-after)
                         on-demand-do-nothing)
           (make-an-item 'file-menu 'save-as
-                        "Prompt for a filename and save this file to disk"
-                        #f #f "Save" " &As..."
+                        '(string-constant save-as-info)
+                        #f #f 
+                        '(string-constant save-as-menu-item-before)
+                        '(string-constant save-as-menu-item-after)
                         on-demand-do-nothing)
           (make-between 'file-menu 'save-as 'print 'separator)
           (make-an-item 'file-menu 'print
-                        "Print this file"
-                        #f #\p "&Print" "..."
+                        '(string-constant print-info)
+                        #f #\p 
+                        '(string-constant print-menu-item-before)
+                        '(string-constant print-menu-item-after)
                         on-demand-do-nothing)
           (make-between 'file-menu 'print 'close 'separator)
           (make-an-item 'file-menu 'close
-                        "Close this file"
+                        '(string-constant close-info)
                         '(lambda (item control) (when (can-close?) (on-close) (show #f)) #t)
-                        #\w "&Close" ""
+                        #\w
+                        '(string-constant close-menu-item-before)
+                        '(string-constant close-menu-item-after)
                         on-demand-do-nothing)
           (make-between 'file-menu 'close 'quit 'nothing)
           (make-an-item 'file-menu 'quit
-                        "Quit"
-                        '(lambda (item control) (parameterize ([exit:frame-exiting this]) (exit:exit)))
+                        '(string-constant quit-info)
+                        '(lambda (item control) 
+                           (parameterize ([exit:frame-exiting this])
+                             (exit:exit)))
                         #\q
-                        '(if (eq? (system-type) 'windows) "E&xit" "Quit")
-                        ""
+                        '(if (eq? (system-type) 'windows) 
+                             (string-constant quit-menu-item-before-windows)
+                             (string-constant quit-menu-item-before-others))
+                        '(string-constant quit-menu-item-after)
                         on-demand-do-nothing)
           (make-after 'file-menu 'quit 'nothing)
           
-          (make-an-item 'edit-menu 'undo "Undo the most recent action" 
+          (make-an-item 'edit-menu 'undo 
+                        '(string-constant undo-info)
                         (edit-menu:do  'undo)
-                        #\z "&Undo" ""
+                        #\z 
+                        '(string-constant undo-menu-item)
+                        ""
                         (edit-menu:can-do-on-demand 'undo))
-          (make-an-item 'edit-menu 'redo "Redo the most recent undo" 
+          (make-an-item 'edit-menu 'redo 
+                        '(string-constant redo-info)
                         (edit-menu:do 'redo)
-                        #\y "&Redo" ""
+                        #\y 
+                        '(string-constant redo-menu-item)
+                        ""
                         (edit-menu:can-do-on-demand 'redo))
           (make-between 'edit-menu 'redo 'cut 'separator)
-          (make-an-item 'edit-menu 'cut "Cut the selection" 
+          (make-an-item 'edit-menu 'cut '(string-constant cut-info)
                         (edit-menu:do 'cut)
-                        #\x "Cu&t" ""
+                        #\x 
+                        '(string-constant cut-menu-item)
+                        ""
                         (edit-menu:can-do-on-demand 'cut))
           (make-between 'edit-menu 'cut 'copy 'nothing)
-          (make-an-item 'edit-menu 'copy "Copy the selection"
+          (make-an-item 'edit-menu 'copy 
+                        '(string-constant copy-info)
                         (edit-menu:do 'copy)
-                        #\c "&Copy" ""
+                        #\c 
+                        '(string-constant copy-menu-item)
+                        ""
                         (edit-menu:can-do-on-demand 'copy))
           (make-between 'edit-menu 'copy 'paste 'nothing)
-          (make-an-item 'edit-menu 'paste "Paste the most recent copy or cut over the selection"
+          (make-an-item 'edit-menu 'paste 
+                        '(string-constant paste-info)
                         (edit-menu:do 'paste)
-                        #\v "&Paste" ""
+                        #\v 
+                        '(string-constant paste-menu-item)
+                        ""
                         (edit-menu:can-do-on-demand 'paste))
           (make-between 'edit-menu 'paste 'clear 'nothing)
-          (make-an-item 'edit-menu 'clear "Clear the selection without affecting paste" 
+          (make-an-item 'edit-menu 'clear 
+                        '(string-constant clear-info)
                         (edit-menu:do 'clear)
                         #f
-                        '(if (eq? (system-type) 'macos)
-                             "Clear"
-                             "&Delete")
+                        '(if (eq? (system-type) 'windows)
+                             (string-constant clear-menu-item-windows)
+                             (string-constant clear-menu-item-windows))
                         ""
                         (edit-menu:can-do-on-demand 'clear))
           (make-between 'edit-menu 'clear 'select-all 'nothing)
-          (make-an-item 'edit-menu 'select-all "Select the entire document"
+          (make-an-item 'edit-menu 'select-all
+                        '(string-constant select-all-info)
                         (edit-menu:do 'select-all)
-                        #\a "Select A&ll" ""
+                        #\a 
+                        '(string-constant select-all-menu-item)
+                        ""
                         (edit-menu:can-do-on-demand 'select-all))
           (make-between 'edit-menu 'select-all 'find 'separator)
-          (make-an-item 'edit-menu 'find "Search for a string in the window" #f
-                        #\f "Find" "..."
+
+          (make-an-item 'edit-menu 'find  
+                        '(string-constant find-info)
+                        #f
+                        #\f 
+                        '(string-constant find-menu-item-before)
+                        '(string-constant find-menu-item-after)
                         edit-menu:edit-target-on-demand)
-          (make-an-item 'edit-menu 'find-again "Search for the same string as before" #f
-                        #\g "Find Again" ""
+          (make-an-item 'edit-menu 'find-again 
+                        '(string-constant find-again-info)
+                        #f
+                        #\g 
+                        '(string-constant find-menu-item-before)
+                        '(string-constant find-menu-item-after)
                         edit-menu:edit-target-on-demand)
           (make-an-item 'edit-menu 'replace-and-find-again 
-                        "Replace the current text and search for the same string as before"
-                        #f #\h "Replace && Find Again" ""
+                        '(string-constant replace-and-find-again-info)
+                        #f #\h 
+                        '(string-constant replace-and-find-again-menu-item-before)
+                        '(string-constant replace-and-find-again-menu-item-after)
                         edit-menu:edit-target-on-demand)
           (make-between 'edit-menu 'find 'preferences 'separator)
-          (make-an-item 'edit-menu 'preferences "Configure the preferences"
+          (make-an-item 'edit-menu 'preferences 
+                        '(string-constant preferences-info)
                         '(lambda (item control) (preferences:show-dialog) #t)
-                        #\; "Preferences..." ""
+                        #\; 
+                        '(string-constant preferences-menu-item-before)
+                        '(string-constant preferences-menu-item-after)
                         on-demand-do-nothing)
           (make-after 'edit-menu 'preferences 'nothing)
           
           (make-before 'help-menu 'about 'nothing)
-          (make-an-item 'help-menu 'about "Credits and details for this application"
+          (make-an-item 'help-menu 'about 
+                        '(string-constant about-info)
                         #f
                         #f
-                        "About "
-                        "..."
+                        '(string-constant about-menu-item-before)
+                        '(string-constant about-menu-item-after)
+                        
                         on-demand-do-nothing)
           (make-after 'help-menu 'about 'nothing))))
