@@ -596,17 +596,16 @@
 	  [filter-msg "Bad name"]
 	  [parent-win (dialog-parent-parameter)])
        (make-object finder-dialog% 
-		    #f;parent-win   ; parent window
-		    #f           ; save-mode?
-		    #f           ; replace-ok?
-		    #f           ; multi-mode?
-		    result-box   ; boxed results
-		    directory    ; start-dir
-		    #f           ; start-name
-		    prompt       ; prompt
-		    filter       ; file-filter
-		    filter-msg   ; file-filter-msg
-		    ))))
+	 parent-win     ; parent window
+	 #f             ; save-mode?
+	 #f             ; replace-ok?
+	 #f             ; multi-mode?
+	 result-box     ; boxed results
+	 directory      ; start-dir
+	 #f             ; start-name
+	 prompt         ; prompt
+	 filter         ; file-filter
+	 filter-msg)))) ; file-filter-msg
   
   (define common-get-file-list
     (make-common
