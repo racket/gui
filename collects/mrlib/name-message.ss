@@ -152,10 +152,10 @@
   (define button-label-inset 1)
   (define black-color (make-object color% "BLACK"))
   
-  (define right-triangle-bitmap (make-object bitmap% (build-path (collection-path "icons") "turn-up.png") 'unknown/mask))
-  (define down-triangle-bitmap (make-object bitmap% (build-path (collection-path "icons") "turn-down.png") 'unknown/mask))
-  (define triangle-width (send right-triangle-bitmap get-width))
-  (define triangle-height (send right-triangle-bitmap get-height))
+  (define unclicked-triangle (make-object bitmap% (build-path (collection-path "icons") "turn-down.png") 'unknown/mask))
+  (define clicked-triangle (make-object bitmap% (build-path (collection-path "icons") "turn-down-click.png") 'unknown/mask))
+  (define triangle-width (send clicked-triangle get-width))
+  (define triangle-height (send clicked-triangle get-height))
   
   (define triangle-space 2)
   (define circle-spacer 3)
@@ -169,11 +169,11 @@
   (define normal-background "lightgray")
   (define mouse-over/grabbed-background "darkgray")
   
-  (define mouse-over-border-color "black")
-  (define border-color "darkgray")
+  (define border-color "lightgray")
+  (define mouse-over-border-color "darkgray")
   
   (define normal-text-color (send the-color-database find-color "black"))
-  (define mouse-over-text-color (send the-color-database find-color "firebrick"))
+  (define mouse-over-text-color (send the-color-database find-color "black"))
   
   (define (calc-button-min-sizes dc label)
     (send dc set-font button-label-font)
@@ -228,7 +228,7 @@
               (+ circle-spacer button-label-inset)
               (- (/ h 2) (/ th 2)))))
     
-    (let ([bm (if grabbed? down-triangle-bitmap right-triangle-bitmap)])
+    (let ([bm (if grabbed? clicked-triangle unclicked-triangle)])
       (send dc draw-bitmap
             bm
             (- w triangle-width circle-spacer)
