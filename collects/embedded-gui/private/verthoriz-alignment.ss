@@ -29,14 +29,6 @@
        [min-width 0]
        [min-height 0])
       
-      ;; need base class for this method
-      (define (show/hide-child child show?)
-        (if (is-a? child alignment<%>)
-            (send child show show?)
-            (if show?
-                (send pasteboard insert child)
-                (send pasteboard release-snip child))))
-      
       ;; STATUS: This function (through lock-alignment false) invokes a call
       ;; to realign of the pasteboard even when this alignement has show? = false
       ;; so the call is not needed.
@@ -45,27 +37,49 @@
         (send pasteboard lock-alignment true)
         (cond
           [(is-a? child snip%)
-           (when show?
+           (when (get-show?)
              (send pasteboard insert child false))]
           [(is-a? child alignment<%>)
            (send child set-pasteboard pasteboard)])
         (send pasteboard lock-alignment false))
       
       (define/public (get-min-width)
-        (if show? min-width 0))
+        (if (get-show?) min-width 0))
       (define/public (get-min-height)
-        (if show? min-height 0))
+        (if (get-show?) min-height 0))
       (define/public (set-pasteboard pb) (set! pasteboard pb))
       (define/public (stretchable-width?) true)
       (define/public (stretchable-height?) true)
+      
+      #;(boolean? . -> . void?)
+      ;; Shows or hides the alignment
       (define/public (show bool)
-        (unless (boolean=? bool show?)
-          (set! show? bool)
+        (set! show? bool)
+        (when (parent-show?)
           (send pasteboard lock-alignment true)
-          (for-each (lambda (c)
-                      (show/hide-child c bool))
-                    children)
+          (show/hide-snips show?)
           (send pasteboard lock-alignment false)))
+      
+      #;(boolean? . -> . void?)
+      ;; Inserts or deletes all the snips in the tree.
+      (define/public (show/hide-snips bool)
+        (when (boolean=? show? bool)
+          (for-each (show/hide-child bool) children)))
+      
+      (define ((show/hide-child show?) child)
+        (if (is-a? child alignment<%>)
+            (send child show/hide-snips show?)
+            (if show?
+                (send pasteboard insert child)
+                (send pasteboard release-snip child))))
+      
+      (define/public (get-show?)
+        (and show? (parent-show?)))
+      
+      (define (parent-show?)
+        (if (and parent (is-a? parent alignment<%>))
+            (send parent get-show?)
+            true))
       
       (define/public (align x-offset y-offset width height)
           
@@ -84,7 +98,7 @@
                    [(is-a? child alignment<%>)
                     (send child align global-x global-y w h)]))]))
           
-          (when (and show? (not (empty? children)))
+          (when (and (get-show?) (not (empty? children)))
             (for-each move/resize
                       children
                       (a:align type width height
@@ -111,7 +125,9 @@
                               children))))))
       
       (super-new)
-      (when parent (send parent add this))))
+      ;; NOTE: Try to figure out how it's getting a nonalignment<%> parent
+      (when (and parent (is-a? parent alignment<%>))
+        (send parent add this))))
   
   (define vertical-alignment% (vert/horiz-alignment 'vertical))
   (define horizontal-alignment% (vert/horiz-alignment 'horizontal))

@@ -18,6 +18,9 @@
    "verthoriz-alignment.ss"
    "suppress-modify-editor.ss")
   
+  (require
+   (lib "print-debug.ss" "mike-lib"))
+  
   (define aligned-pasteboard%
     (class (click-forwarding-editor-mixin
             (on-show-pasteboard-mixin
@@ -31,11 +34,11 @@
       (field
        [alignment (new (case align
                          [(horizontal) horizontal-alignment%]
-                         [else vertical-alignment%]))]
+                         [(vertical) vertical-alignment%]))]
        [lock-alignment? false]
        [needs-alignment? false])
       
-      (define/public (add i) (send alignment add i))
+      (define/public (get-alignment) alignment)
       
       #|
         snip : snip% object
@@ -64,8 +67,8 @@
         (super-really-resized snip)
         (realign))
       
-      #;(rename [super-on-show on-show])
-      #;(define/override (on-show)
+      (rename [super-on-show on-show])
+      (define/override (on-show)
         (realign)
         (super-on-show))
       
