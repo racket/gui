@@ -105,6 +105,7 @@
      list-box%
      list-control<%>
      make-eventspace
+     make-namespace-with-mred
      menu%
      menu-bar%
      menu-item%
