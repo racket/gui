@@ -56,8 +56,12 @@
     (test-allocate name
 		   `(lambda () (let ([f (make-object ,% ,name)])
 				 (send f show #t)
+				 (yield) (yield)
 				 f))
-		   `(lambda (f) (send f close)))
+		   `(lambda (f)
+		      (yield) (yield)
+		      (send f close)
+		      (yield) (yield)))
     (send-sexp-to-mred '(preferences:set 'framework:exit-when-no-frames #t))))
 
 (test-allocate "frame%"
