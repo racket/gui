@@ -10,7 +10,7 @@
    (lib "verthoriz-alignment.ss" "embedded-gui"))
   
   (define traced-ses%
-    (override/trace stretchable-editor-snip%
+    #;(override/trace stretchable-editor-snip%
                     (stretch
                      get-aligned-min-width
                      get-aligned-min-height

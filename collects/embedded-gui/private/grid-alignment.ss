@@ -17,8 +17,9 @@
   
   (provide grid-alignment%)
   
+  ;; totally broken and not up to date with last revision
   (define grid-alignment%
-    (class* object% (alignment<%>)
+    (class* object% (#;alignment<%>)
       (init-field
        columns
        (parent false))

@@ -3,7 +3,8 @@
   (require (lib "class.ss"))
   
   (provide stretchable-snip<%>
-           alignment<%>)
+           alignment<%>
+           alignment-parent<%>)
   
   (define alignment<%>
     (interface ()
@@ -33,7 +34,28 @@
       
       #;(boolean? . -> . void)
       ;; Tells the alignment to show or hide its children
-      show))
+      show/hide
+      
+      #;(boolean? . -> . void)
+      ;; Tells the alignment that its show state is the given value
+      ;; and it should show or hide its children accordingly.
+      show
+      ))
+  
+  (define alignment-parent<%>
+    (interface ()
+      #;(-> (is-a?/c pasteboard%))
+      ;; The pasteboard that this alignment is being displayed to
+      get-pasteboard
+      
+      #;((is-a?/c alignment<%>) . -> . void?)
+      ;; Add the given alignment as a child
+      add-child
+      
+      #;(-> boolean?)
+      ;; True if the alignment is being shown (accounting for its parent being shown)
+      is-shown?
+      ))
   
   #| the interface that must be implemented by a class to be inserted into an
      aligned-pasteboard<%> and be stretched and shrunk according to the geometry managment.

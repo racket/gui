@@ -1,3 +1,9 @@
+#| Note: It might be a good idea to override insert with an error so that people don't
+   insert or delete from the pasteboard without using the alignment<%>. Then the alignments
+   could go through a different interface for inserting the snips that would call
+   super-insert.
+|#
+
 (module aligned-pasteboard mzscheme
   
   (provide aligned-pasteboard%)
@@ -6,72 +12,66 @@
    (lib "class.ss")
    (lib "mred.ss" "mred")
    (lib "etc.ss")
-   (lib "list.ss")
-   (lib "match.ss")
-   (prefix a: "alignment.ss")
    (lib "click-forwarding-editor.ss" "mrlib")
    "on-show-pasteboard.ss"
    "really-resized-pasteboard.ss"
    "interface.ss"
-   "snip-lib.ss"
    "locked-pasteboard.ss"
-   "verthoriz-alignment.ss"
    "suppress-modify-editor.ss")
   
-  (require
-   (lib "print-debug.ss" "mike-lib"))
-  
   (define aligned-pasteboard%
-    (class (click-forwarding-editor-mixin
-            (on-show-pasteboard-mixin
+    (class* (click-forwarding-editor-mixin
+             (on-show-pasteboard-mixin
               (suppress-modify-editor-mixin
                (locked-pasteboard-mixin
                 (really-resized-pasteboard-mixin pasteboard%)))))
+      (alignment-parent<%>)
       
       (inherit begin-edit-sequence end-edit-sequence
                get-max-view-size refresh-delayed?)
-      (init align)
+      
       (field
-       [alignment (new (case align
-                         [(horizontal) horizontal-alignment%]
-                         [(vertical) vertical-alignment%]))]
+       [alignment false]
        [lock-alignment? false]
        [needs-alignment? false])
       
-      (define/public (get-alignment) alignment)
+      ;;;;;;;;;;
+      ;; alignment-parent<%>
       
-      #|
-        snip : snip% object
-        before : snip% object or #f
-        x : real number
-        y : real number
-      |#
-      (rename [super-after-insert after-insert])
-      (define/override (after-insert snip before x y)
-        (super-after-insert snip before x y)
-        (realign))
+      #;(-> (is-a?/c pasteboard%))
+      ;; The pasteboard that this alignment is being displayed to
+      (define/public (get-pasteboard) this)
       
-      #|
-        snip : snip% object
-      |#
-      (rename [super-after-delete after-delete])
-      (define/override (after-delete snip)
-        (super-after-delete snip)
-        (realign))
+      #;((is-a?/c alignment<%>) . -> . void?)
+      ;; Set the given alignment as a the child
+      (define/public (add-child child)
+        (if alignment
+            (error 'add-child "There may be only one alignment<%> of a pasteboard")
+            (set! alignment child)))
       
-      #|
-        snip : snip% object
-      |#
+      #;(-> boolean?)
+      ;; True if the alignment is being shown (accounting for its parent being shown)
+      ;; NOTE: Pasteboards are always shown and have no show/hide state.
+      (define/public (is-shown?) true)
+      
+      #;((is-a?/c snip%) . -> . void?)
+      ;; Called when a snip in the pasteboard changes its size
+      ;; Overriden because the layout will change when a snip gets bigger.
       (rename [super-really-resized really-resized])
       (define/override (really-resized snip)
         (super-really-resized snip)
         (realign))
       
+      #;(-> void)
+      ;; Called when the pasteboard is first shown.
+      ;; Overriden because I need to know when the snips have their size to lay them out.
       (rename [super-on-show on-show])
       (define/override (on-show)
         (realign)
         (super-on-show))
       
+      #;(boolean? . -> . void?)
+      ;; Locks the pasteboard so that all alignment requests are delayed until after it's done.
       (define/public (lock-alignment lock?)
         (set! lock-alignment? lock?)
         (when (and needs-alignment? (not lock-alignment?))
@@ -80,6 +80,8 @@
             (begin-edit-sequence)
             (end-edit-sequence)))
       
+      #;(-> void?)
+      ;; Realigns the snips in the pasteboard according to the alignment tree.
       (define/public (realign)
         (if lock-alignment?
             (set! needs-alignment? true)
@@ -91,6 +93,5 @@
                   (send alignment align 0 0 width height)
                   (set! needs-alignment? false))))))
       
-      (super-new)
-      (send alignment set-pasteboard this)))
+      (super-new)))
   )

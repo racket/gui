@@ -17,99 +17,26 @@
    vertical-alignment%)
   
   (define (vert/horiz-alignment type)
-    (class* object% (alignment<%>)
+    (class* object% (alignment<%> alignment-parent<%>)
       
-      (init-field
-       [parent false]
-       [show? true])
+      (init-field parent [show? true])
       
       (field
-       [pasteboard false]
+       [pasteboard (send parent get-pasteboard)]
        [children empty]
        [min-width 0]
        [min-height 0])
       
-      ;; STATUS: This function (through lock-alignment false) invokes a call
-      ;; to realign of the pasteboard even when this alignment has show? = false
-      ;; so the call is not needed.
-      (define/public (add child)
-        (set! children (append children (list child)))
-        (send pasteboard lock-alignment true)
-        (cond
-          [(is-a? child snip%)
-           (when (get-show?)
-             (send pasteboard insert child false))]
-          [(is-a? child alignment<%>)
-           (send child set-pasteboard pasteboard)])
-        (send pasteboard lock-alignment false))
+      ;;;;;;;;;;
+      ;; alignment<%>
       
-      (define/public (get-min-width)
-        (if (get-show?) min-width 0))
-      (define/public (get-min-height)
-        (if (get-show?) min-height 0))
-      (define/public (set-pasteboard pb) (set! pasteboard pb))
-      (define/public (stretchable-width?) true)
-      (define/public (stretchable-height?) true)
-      
-      #;(boolean? . -> . void?)
-      ;; Shows or hides the alignment
-      (define/public (show bool)
-        (set! show? bool)
-        (when (parent-show?)
-          (send pasteboard lock-alignment true)
-          (show/hide-snips show?)
-          (send pasteboard lock-alignment false)))
-      
-      #;(boolean? . -> . void?)
-      ;; Inserts or deletes all the snips in the tree.
-      (define/public (show/hide-snips bool)
-        (when (boolean=? show? bool)
-          (for-each (show/hide-child bool) children)))
-      
-      (define ((show/hide-child show?) child)
-        (if (is-a? child alignment<%>)
-            (send child show/hide-snips show?)
-            (if show?
-                (send pasteboard insert child)
-                (send pasteboard release-snip child))))
-      
-      (define/public (get-show?)
-        (and show? (parent-show?)))
-      
-      (define (parent-show?)
-        (if (and parent (is-a? parent alignment<%>))
-            (send parent get-show?)
-            true))
-      
-      (define/public (align x-offset y-offset width height)
-          
-          (define move/resize
-            (match-lambda*
-              [(child ($ a:rect
-                         ($ a:dim x w stretchable-width?)
-                         ($ a:dim y h stretchable-height?)))
-               (let ([global-x (+ x x-offset)]
-                     [global-y (+ y y-offset)])
-                 (cond
-                   [(is-a? child snip%)
-                    (send pasteboard move-to child global-x global-y)
-                    (when (or stretchable-width? stretchable-height?)
-                      (send child stretch w h))]
-                   [(is-a? child alignment<%>)
-                    (send child align global-x global-y w h)]))]))
-          
-          (when (and (get-show?) (not (empty? children)))
-            (for-each move/resize
-                      children
-                      (a:align type width height
-                               (map build-rect children)))))
-      
+      #;(-> void?)
+      ;; Tells the alignment that its sizes should be calculated
       (define/public (set-min-sizes)
         (when show?
           (for-each
            (lambda (child)
-             (when (is-a? child alignment<%>)
-               (send child set-min-sizes)))
+             (send child set-min-sizes))
            children)
           (let-values ([(x-accum y-accum)
                         (if (symbol=? type 'vertical)
@@ -117,31 +44,98 @@
                             (values + vacuous-max))])
             (set! min-width
                   (apply x-accum
-                         (map child-width
+                         (map (lambda (c) (send c get-min-width))
                               children)))
             (set! min-height
                   (apply y-accum
-                         (map child-height
+                         (map (lambda (c) (send c get-min-height))
                               children))))))
       
+      #;(nonnegative? nonnegative? nonnegative? nonnegative? . -> . void?)
+      ;; Tells the alignment to align its children on the pasteboard in the given rectangle
+      (define/public (align x-offset y-offset width height)
+          
+          (define move/resize
+            (match-lambda*
+              [(child ($ a:rect ($ a:dim x w _) ($ a:dim y h _)))
+               (send child align (+ x x-offset) (+ y y-offset) w h)]))
+          
+          (when (and (is-shown?)
+                     (not (empty? children))
+                     (not (zero? width))    ; this should be handled by align later
+                     (not (zero? height)))  ; this one too
+            (for-each move/resize
+                      children
+                      (a:align type width height
+                               (map build-rect children)))))
+      
+      #;(-> nonnegative?)
+      ;; The minimum width this alignment must be
+      (define/public (get-min-width)
+        (if (is-shown?) min-width 0))
+      
+      #;(-> nonnegative?)
+      ;; The minimum height this alignment must be
+      (define/public (get-min-height)
+        (if (is-shown?) min-height 0))
+      
+      #;(-> boolean?)
+      ;; True if the alignment can be stretched in the x dimension
+      (define/public (stretchable-width?) true)
+      
+      #;(-> boolean?)
+      ;; True if the alignment can be stretched in the y dimension
+      (define/public (stretchable-height?) true)
+      
+      #;(boolean? . -> . void)
+      ;; Tells the alignment to show or hide its children
+      (define/public (show/hide bool)
+        (when show? (show/hide-children bool)))
+      
+      #;(boolean? . -> . void)
+      ;; Tells the alignment that its show state is the given value
+      ;; and it should show or hide its children accordingly.
+      (define/public (show bool)
+        (set! show? bool)
+        (show/hide-children bool))
+      
+      ;;;;;;;;;;
+      ;; alignment-parent<%>
+      
+      #;(-> (is-a?/c pasteboard%))
+      ;; The pasteboard that this alignment is being displayed to
+      (define/public (get-pasteboard) pasteboard)
+      
+      #;((is-a?/c alignment<%>) . -> . void?)
+      ;; Add the given alignment as a child
+      (define/public (add-child child)
+        (set! children (append children (list child))))
+      
+      #;(-> boolean?)
+      ;; True if the alignment is being shown (accounting for its parent being shown)
+      (define/public (is-shown?)
+        (and show? (send parent is-shown?)))
+      
+      ;;;;;;;;;;
+      ;; helpers
+      
+      #;(boolean? . -> . void?)
+      ;; Shows or hides the children
+      (define/private (show/hide-children bool)
+        (send pasteboard lock-alignment true)
+        (for-each (lambda (c) (send c show/hide bool)) children)
+        (send pasteboard lock-alignment false))
+      
       (super-new)
-      ;; NOTE: Try to figure out how it's getting a nonalignment<%> parent
-      (when (and parent (is-a? parent alignment<%>))
-        (send parent add this))))
+      (send parent add-child this)))
   
   (define vertical-alignment% (vert/horiz-alignment 'vertical))
   (define horizontal-alignment% (vert/horiz-alignment 'horizontal))
   
-  ;; build-rect ((is-a?/c snip%) . -> . rect?)
+  #;((is-a?/c alignment%) . -> . rect?)
   ;; makes a new default rect out of a snip
   (define (build-rect item)
-    (cond
-      [(is-a? item snip%)
-       (a:make-rect
-        (a:make-dim 0 (snip-min-width item) (stretchable-width? item))
-        (a:make-dim 0 (snip-min-height item) (stretchable-height? item)))]
-      [(is-a? item alignment<%>)
-       (a:make-rect
-        (a:make-dim 0 (send item get-min-width) (send item stretchable-width?))
-        (a:make-dim 0 (send item get-min-height) (send item stretchable-height?)))]))
+    (a:make-rect
+     (a:make-dim 0 (send item get-min-width) (send item stretchable-width?))
+     (a:make-dim 0 (send item get-min-height) (send item stretchable-height?))))
   )

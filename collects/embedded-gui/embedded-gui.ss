@@ -10,7 +10,8 @@
    "private/tabbable-text.ss"
    "private/fixed-width-label-snip.ss"
    "private/grey-editor.ss"
-   "private/verthoriz-alignment.ss")
+   "private/verthoriz-alignment.ss"
+   "private/snip-wrapper.ss")
 
   (provide
    (all-from "private/grid-alignment.ss")
@@ -22,5 +23,6 @@
    (all-from "private/tabbable-text.ss")
    (all-from "private/fixed-width-label-snip.ss")
    (all-from "private/grey-editor.ss")
-   (all-from "private/verthoriz-alignment.ss"))
+   (all-from "private/verthoriz-alignment.ss")
+   (all-from "private/snip-wrapper.ss"))
   )
