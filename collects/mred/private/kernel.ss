@@ -610,6 +610,7 @@
     set-rectangle
     get-dc)
   (define-class dc-path% object% #f
+    get-bounding-box
     append
     reverse
     rotate
