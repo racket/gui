@@ -565,6 +565,7 @@
 				[normal-move
 				 (lambda ()
 				   (let* ([dests (map object->position (container->children panel o))]
+					  [_ (printf "~a~n" (map (lambda (x) (send (wx->proxy (car x)) get-label)) dests))]
 					  [pos (if o (object->position o) (list 'x 0 0 0 0))]
 					  [o (traverse (cadr pos) (caddr pos) (cadddr pos) (list-ref pos 4)
 						       (case code
