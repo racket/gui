@@ -48,18 +48,13 @@
      ;;multi-view-mixin
      ;;multi-view<%>
 
-     vertical-resizable<%>
-     vertical-resizable-mixin
      
      single%
      single-pane%
      ;;multi-view%
-     vertical-resizable%
-     vertical-resizable-pane%
-     
-     vertical-dragable-panel%
-     
-     ))
+
+     vertical-dragable-mixin
+     vertical-dragable%))
 
   (define-signature framework:exn^
     ((struct exn ())
