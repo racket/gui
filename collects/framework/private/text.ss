@@ -383,6 +383,33 @@
                             get-delegate
 			    set-delegate))
 
+      (define small-version-of-snip%
+        (class snip%
+          (init-field big-snip)
+          (field (width 0)
+                 (height 0))
+          (define/override (get-extent dc x y wb hb db sb lb rb)
+            (set/f! db 0)
+            (set/f! sb 0)
+            (set/f! lb 0)
+            (set/f! rb 0)
+            (let ([bwb (box 0)]
+                  [bhb (box 0)])
+              (send big-snip get-extent dc x y bwb bhb #f #f #f #f)
+              (let* ([cw (send dc get-char-width)]
+                     [ch (send dc get-char-height)]
+                     [w (quotient (unbox bwb) cw)]
+                     [h (quotient (unbox bhb) ch)])
+                (set/f! wb w)
+                (set/f! hb h)
+                (set! width w)
+                (set! height h))))
+              
+          (define/override (draw dc x y left top right bottom dx dy draw-caret)
+            (send dc draw-rectangle x y width height))
+          (define/override (copy) (instantiate small-version-of-snip% () (big-snip big-snip)))
+          (super-instantiate ())))
+          
       (define 1-pixel-string-snip%
         (class string-snip%
           (init-rest args)
@@ -441,7 +468,7 @@
 			    (lambda (dc x y)
 			      (send dc draw-line (+ x n) y (+ x n (- len 1)) y)
 			      (res dc x y))))]))])))
-
+          
           (define/override (draw dc x y left top right bottom dx dy draw-caret)
             (let ([str (get-text 0 (get-count))])
 	      (unless cache-function
@@ -502,14 +529,24 @@
           (inherit split-snip find-snip get-snip-position
                    find-first-snip get-style-list set-tabs)
           
+          (field (linked-snips #f))
+          
           (define/private (copy snip)
             (let ([new-snip
-                   (if (is-a? snip tab-snip%)
-                       (let ([snip (make-object 1-pixel-tab-snip%)])
-                         (send snip insert "#\t" 1)
-                         snip)
-                       (make-object 1-pixel-string-snip%
-                         (send snip get-text 0 (send snip get-count))))])
+                   (cond
+                     [(is-a? snip tab-snip%)
+                      (let ([new-snip (make-object 1-pixel-tab-snip%)])
+                        (send new-snip insert (string #\tab) 1)
+                        new-snip)]
+                     [(is-a? snip string-snip%)
+                      (make-object 1-pixel-string-snip%
+                        (send snip get-text 0 (send snip get-count)))]
+                     [else 
+                      (let ([new-snip
+                             (instantiate small-version-of-snip% ()
+                               (big-snip snip))])
+                        (hash-table-put! linked-snips snip new-snip)
+                        new-snip)])])
               (send new-snip set-flags (send snip get-flags))
               new-snip))
 
@@ -518,6 +555,9 @@
           (define/public (get-delegate) delegate)
           (define/public (set-delegate _d)
             (set! delegate _d)
+            (set! linked-snips (if _d
+                                   (make-hash-table)
+                                   #f))
             (when delegate
               (send delegate begin-edit-sequence)
               (send delegate lock #f)
@@ -580,6 +620,16 @@
             (when delegate
               (send delegate end-edit-sequence)))
 
+          (rename [super-resized resized])
+          (define/override (resized snip redraw-now?)
+            (super-resized snip redraw-now?)
+            (when (and delegate
+                       linked-snips
+                       (not (is-a? snip string-snip%)))
+              (let ([delegate-copy (hash-table-get linked-snips snip (lambda () #f))])
+                (when delegate-copy
+                  (send delegate resized delegate-copy redraw-now?)))))
+          
           (rename [super-after-insert after-insert])
           (define/override (after-insert start len)
             (super-after-insert start len)
