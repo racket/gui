@@ -719,9 +719,9 @@
     (make-object button% "Print" hp
 		 (lambda (self event)
 		   (send canvas on-paint 'print)))
-    (make-object check-box% "*2" hp
+    (make-object choice% #f '("1" "*2" "/2") hp
 		 (lambda (self event)
-		   (send canvas set-scale (if (send self get-value) 2 1))))
+		   (send canvas set-scale (list-ref '(1 2 1/2) (send self get-selection)))))
     (make-object check-box% "+10" hp
 		 (lambda (self event)
 		   (send canvas set-offset (if (send self get-value) 10 0))))
