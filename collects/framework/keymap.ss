@@ -9,10 +9,6 @@
   
   (rename [-get-file get-file])
 
-  ; This is a list of keys that are typed with the SHIFT key, but
-  ;  are not normally thought of as shifted. It will have to be
-  ;  changed for different keyboards.
-  
   (define keyerr
     (lambda (str)
       (display str (current-error-port))

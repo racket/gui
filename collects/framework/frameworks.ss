@@ -88,11 +88,13 @@
 
 (define-signature framework:editor^
   (basic<%>
+   keymap<%>
    info<%>
    file<%>
    backup-autosave<%>
    
    basic-mixin
+   keymap-mixin
    info-mixin
    file-mixin
    backup-autosave-mixin))

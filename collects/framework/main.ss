@@ -35,11 +35,8 @@
 	      '(cond 
 		 begin begin0 delay
 		 unit compound-unit compound-unit/sig
-		 public private
-		 inherit inherit-from
-		 rename rename-from
-		 share share-from
-		 sequence))
+		 public private override
+		 inherit sequence))
     (for-each (lambda (x) (hash-table-put! hash-table x 'lambda))
 	      '(lambda let let* letrec recur
 		 let/cc let/ec letcc catch

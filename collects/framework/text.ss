@@ -13,7 +13,7 @@
   ;; unless matthew makes it primitive
 
   (define basic<%>
-    (interface (editor:basic<%> text<%>)
+    (interface (editor:keymap<%> text<%>)
       highlight-range      
       get-styles-fixed
       set-styles-fixed
@@ -21,10 +21,10 @@
       initial-autowrap-bitmap))
 
   (define basic-mixin
-    (mixin (editor:basic<%> text<%>) (basic<%>) args
+    (mixin (editor:keymap<%> text<%>) (basic<%>) args
       (inherit get-canvases get-admin split-snip get-snip-position
 	       delete find-snip invalidate-bitmap-cache
-	       set-autowrap-bitmap get-keymap
+	       set-autowrap-bitmap
 	       set-file-format get-file-format
 	       get-style-list is-modified? change-style set-modified
 	       position-location get-extent)
@@ -296,22 +296,24 @@
 
       (public
 	[initial-autowrap-bitmap (lambda () #f)])
+
+      (rename [super-get-keymaps get-keymaps])
+      (override
+       [get-keymaps
+	(lambda ()
+	  (cons (keymap:get-global) (super-get-keymaps)))])
+
       (sequence
 	(apply super-init args)
-	(set-autowrap-bitmap (initial-autowrap-bitmap))
-	(let ([keymap (get-keymap)])
-	  (keymap:set-keymap-error-handler keymap)
-	  (keymap:set-keymap-implied-shifts keymap)
-	  (send keymap chain-to-keymap (keymap:get-global) #f)))))
+	(set-autowrap-bitmap (initial-autowrap-bitmap)))))
   
   (define searching<%>
     (interface ()
       find-string-embedded))
   (define searching-mixin
-    (mixin (editor:basic<%> text<%>) (searching<%>) args
+    (mixin (basic<%>) (searching<%>) args
       (inherit get-end-position get-start-position last-position 
-	       find-string get-snip-position get-admin find-snip
-	       get-keymap)
+	       find-string get-snip-position get-admin find-snip)
       (public
 	[find-string-embedded
 	 (opt-lambda (str [direction 1] [start -1]
@@ -390,12 +392,15 @@
 			    (next-loop)
 			    (values embedded embedded-pos)))]
 		     [else (next-loop)]))))))])
+
+      (rename [super-get-keymaps get-keymaps])
+      (override
+       [get-keymaps
+	(lambda ()
+	  (cons (keymap:get-search) (super-get-keymaps)))])
+
       (sequence
-	(apply super-init args)
-	(let ([keymap (get-keymap)])
-	  (keymap:set-keymap-error-handler keymap)
-	  (keymap:set-keymap-implied-shifts keymap)
-	  (send keymap chain-to-keymap (keymap:get-search) #f)))))
+	(apply super-init args))))
   
   (define return<%> (interface (text<%>)))
 
@@ -516,7 +521,7 @@
 		   #f))))])
       (sequence (apply super-init args))))
 
-  (define basic% (basic-mixin (editor:basic-mixin text%)))
+  (define basic% (basic-mixin (editor:keymap-mixin (editor:basic-mixin text%))))
   (define return% (return-mixin basic%))
   (define file% (editor:file-mixin basic%))
   (define clever-file-format% (clever-file-format-mixin file%))

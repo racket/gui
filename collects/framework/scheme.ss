@@ -184,20 +184,23 @@
 	 (lambda (pos)
 	   (let loop ([pos pos])
 	     (let ([paren-pos 
-		    (apply max (map (lambda (pair)
-				      (find-string
-				       (car pair)
-				       'backward
-				       pos
-				       'eof
-				       #f))
-				    (scheme-paren:get-paren-pairs)))])
+		    (let loop ([pairs (scheme-paren:get-paren-pairs)]
+			       [curr-max #f])
+		      (cond
+		       [(null? pairs) curr-max]
+		       [else (let* ([pair (car pairs)]
+				    [fnd (find-string (car pair) 'backward pos 'eof #f)])
+			       (if (and fnd curr-max)
+				   (loop (cdr pairs)
+					 (max fnd curr-max))
+				   (loop (cdr pairs)
+					 (or fnd curr-max))))]))])
 	       (cond
-		 [(= -1 paren-pos) #f]
+		 [(not paren-pos) #f]
 		 [else
 		  (let ([semi-pos (find-string ";" 'backward paren-pos)])
 		    (cond
-		      [(or (= -1 semi-pos)
+		      [(or (not semi-pos)
 			   (< semi-pos (paragraph-start-position
 					(position-paragraph paren-pos))))
 		       paren-pos]
@@ -282,9 +285,8 @@
 	
 	[balance-quotes
 	 (lambda (key)
-	   (let* ([code (send key get-key-code)] ;; must be a character because of the mapping setup
-		                                 ;; this function is only bound to ascii-returning keys
-		  [char (integer->char code)])
+	   (let* ([char (send key get-key-code)]) ;; must be a character because of the mapping setup
+		                                  ;; this function is only bound to ascii-returning keys
 	     (insert char)
 	     (let* ([start-pos (get-start-position)]
 		    [limit (get-limit start-pos)]
@@ -376,15 +378,16 @@
 		  [visual-offset
 		   (lambda (pos)
 		     (let loop ([p (sub1 pos)])
-		       (let ([c (get-character p)])
-			 (cond
-			   [(= p -1) 0]
-			   [(char=? c #\null) 0]
-			   [(char=? c #\tab)
-			    (let ([o (loop (sub1 p))])
-			      (+ o (- 8 (modulo o 8))))]
-			   [(char=? c #\newline) 0]
-			   [else (add1 (loop (sub1 p)))]))))]
+		       (if (= p -1)
+			   0
+			   (let ([c (get-character p)])
+			     (cond
+			      [(char=? c #\null) 0]
+			      [(char=? c #\tab)
+			       (let ([o (loop (sub1 p))])
+				 (+ o (- 8 (modulo o 8))))]
+			      [(char=? c #\newline) 0]
+			      [else (add1 (loop (sub1 p)))])))))]
 		  [do-indent
 		   (lambda (amt)
 		     (let* ([pos-start end]
@@ -446,7 +449,7 @@
 			#f))
 		  => (lambda (x) (set-position x))]
 		 [(= para 0) (do-indent 0)]
-		 [(or (not contains) (= contains -1))
+		 [(not contains)
 		  (do-indent 0)]
 		 [(not last) ;; search backwards for the opening parenthesis, and use it to align this line
 		  (let ([enclosing (find-enclosing-paren pos)])
@@ -487,7 +490,7 @@
 		      (loop (add1 para))))
 		  (when (and (>= (position-paragraph start-pos) end-para)
 			     (<= (paren:skip-whitespace 
-				  this (get-start-position) -1)
+				  this (get-start-position) 'backward)
 				 (paragraph-start-position first-para)))
 		    (set-position 
 		     (let loop ([new-pos (get-start-position)])
@@ -544,7 +547,7 @@
 			  (paren:skip-whitespace 
 			   this 
 			   (paragraph-start-position curr-para)
-			   1)])
+			   'forward)])
 		     (delete first-on-para
 			   (+ first-on-para
 			      (let char-loop ([n 0])
@@ -666,7 +669,7 @@
 	     #t))]
 	[remove-parens-forward
 	 (lambda (start-pos)
-	   (let* ([pos (paren:skip-whitespace this start-pos 1)]
+	   (let* ([pos (paren:skip-whitespace this start-pos 'forward)]
 		  [first-char (get-character pos)]
 		  [paren? (or (char=? first-char #\( )
 			      (char=? first-char #\[ ))]
@@ -741,11 +744,11 @@
 	(set-tabs null tab-size #f)
 	(set-style-list style-list)
 	(set-styles-fixed #t)
-	(let ([keymap (or (get-keymap)
-			  (let ([k (make-object keymap%)])
-			    (set-keymap k)
-			    k))])
-	  (send keymap chain-to-keymap keymap #t)))))
+	(let ([k (or (get-keymap)
+		     (let ([k (make-object keymap%)])
+		       (set-keymap k)
+		       k))])
+	  (send k chain-to-keymap keymap #t)))))
 
   (define -text% (text-mixin text:info%))
 

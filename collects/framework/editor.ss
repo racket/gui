@@ -162,7 +162,7 @@
 	(apply super-init args)
 	(auto-wrap (default-auto-wrap?)))))
   
-  (define -keymap<%> (interface (basic<%>)))
+  (define -keymap<%> (interface (basic<%>) get-keymaps))
   (define keymap-mixin
     (mixin (basic<%>) (-keymap<%>) args
       (public
@@ -179,18 +179,20 @@
 	  (add-text-keymap-functions keymap)
 	  (add-pasteboard-keymap-functions keymap)
 	  (for-each (lambda (k)
+		      (keymap:set-keymap-error-handler k)
+		      (keymap:set-keymap-implied-shifts k)
 		      (send keymap chain-to-keymap k #f))
 		    (get-keymaps))))))
 
-  (define file<%> (interface (basic<%>)))
-  (define file-mixin ;; wx - should come from -keymap<%>
-    (mixin (basic<%>) (file<%>) args
-      (inherit get-keymap  
-	       get-filename lock get-style-list 
+  (define file<%> (interface (-keymap<%>)))
+  (define file-mixin
+    (mixin (-keymap<%>) (file<%>) args
+      (inherit get-filename lock get-style-list 
 	       is-modified? change-style set-modified 
 	       get-top-level-window)
       (rename [super-after-save-file after-save-file]
-	      [super-after-load-file after-load-file])
+	      [super-after-load-file after-load-file]
+	      [super-get-keymaps get-keymaps])
       
       (override [editing-this-file? (lambda () #t)])
       (private
@@ -215,11 +217,12 @@
 	 (lambda (sucessful?)
 	   (when sucessful?
 	     (check-lock))
-	   (super-after-load-file sucessful?))])
+	   (super-after-load-file sucessful?))]
+	[get-keymaps
+	 (lambda ()
+	   (cons (keymap:get-file) (super-get-keymaps)))])
       (sequence
-	(apply super-init args)
-	(let ([keymap (get-keymap)])
-	  (send keymap chain-to-keymap (keymap:get-file) #f)))))
+	(apply super-init args))))
   
   (define backup-autosave<%>
     (interface (basic<%>)
