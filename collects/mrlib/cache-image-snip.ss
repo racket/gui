@@ -1,8 +1,9 @@
 (module cache-image-snip mzscheme
   (require (lib "mred.ss" "mred")
            (lib "class.ss")
-           (lib "string.ss"))
-
+           (lib "string.ss")
+           (lib "list.ss"))
+  
   (provide cache-image-snip%
            snip-class
            
@@ -59,6 +60,10 @@
       (init-field argb-proc)
       (define/public (get-argb-proc) argb-proc)
       
+      ;; the pinhole's coordinates
+      (init-field px py)
+      (define/public (get-pinhole) (values px py))
+
       (init-field (width #f)
                   (height #f))
       (define/public (get-size) 
@@ -67,6 +72,7 @@
       ;; argb : (union #f argb)
       (init-field [argb #f])
 
+      
       ;; bitmap : (union #f (is-a?/c bitmap%))
       ;; the way that this image is be drawn, on its own
       (define bitmap #f)
@@ -77,7 +83,9 @@
              (argb-proc argb-proc)
              (width width)
              (height height)
-             (argb argb)))
+             (argb argb)
+             (px px)
+             (py py)))
       
       ;; get-bitmap : -> bitmap
       ;; returns a bitmap showing what the image would look like, 
@@ -114,7 +122,9 @@
       (define/override (write f)
         (let ([str (format "~s"
                            (list (argb-vector (get-argb))
-                                 width))])
+                                 width
+                                 px 
+                                 py))])
           (send f put str)))
       
       (super-new)
@@ -133,7 +143,7 @@
                                       void
                                       (lambda (x) #f))])
           (if data
-              (argb->cache-image-snip (make-argb (car data) (cadr data)))
+              (argb->cache-image-snip (make-argb (first data) (second data)) (third data) (fourth data))
               (make-null-cache-image-snip))))
       (super-new)))
   
@@ -158,6 +168,8 @@
          (width size)
          (height size)
          (draw-proc draw)
+         (px (/ size 2))
+         (py (/ size 2))
          (argb-proc 
           (lambda (argb dx dy)
             (overlay-bitmap argb size size dx dy bm bm)))))
@@ -207,8 +219,8 @@
   ;; argb vector utilties
   ;;
   
-  ;; argb->cache-snip : argb -> cache-image-snip
-  (define (argb->cache-image-snip argb)
+  ;; argb->cache-image-snip : argb number number -> cache-image-snip
+  (define (argb->cache-image-snip argb px py)
     (let* ([width (argb-width argb)]
            [argb-vector (argb-vector argb)]
            [height (quotient (vector-length argb-vector) (* 4 width))]
@@ -218,6 +230,8 @@
            (width width)
            (height height)
            (argb argb)
+           (px px)
+           (py py)
            (argb-proc 
             (lambda (argb dx dy)
               (overlay-bitmap argb dx dy bitmap mask)))
