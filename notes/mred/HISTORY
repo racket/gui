@@ -1,4 +1,12 @@
 
+Version 103.3:
+
+ * Windows: fixed editor scrolling so that it updates the text while
+   a user drags the scrollbar.
+
+ * Windows: fixed refresh bug (Win2k-specific?) exposed by
+   103.2 threading changes.
+
 Version 103.2:
 
  * Windows: fixed dialog% bugs introduced in 103.1.
