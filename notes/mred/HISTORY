@@ -1,4 +1,8 @@
 
+Version 102/11:
+
+ * Fixed post-script-dc% to use PS `curveto' command for splines.
+
 Version 102/10:
 
  * X: Changed dialogs to use the icon of the dialog's parent (if any).
