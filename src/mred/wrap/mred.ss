@@ -921,9 +921,12 @@
 (define wx-editor-canvas% (make-canvas-glue%
 			   (make-editor-canvas% (make-control% wx:editor-canvas%
 							       0 0 #t #t))))
+
+(define internal-editor<%> (interface ()))
+
 (define (make-editor-buffer% % can-wrap?)
   ; >>> This class is instantiated directly by the end-user <<<
-  (class % args
+  (class* % (internal-editor<%>) args
     (inherit get-max-width set-max-width get-admin)
     (rename [super-on-display-size on-display-size])
     (private
@@ -941,16 +944,19 @@
 	   (and c (wx->mred c))))]
       [set-active-canvas
        (lambda (new-canvas)
+	 (check-instance '(method editor<%> set-active-canvas) editor-canvas% "editor-canvas" #t new-canvas)
 	 (set! active-canvas (mred->wx new-canvas)))]
 
       [add-canvas
        (lambda (new-canvas)
+	 (check-instance '(method editor<%> add-canvas) editor-canvas% "editor-canvas" #f new-canvas)
 	 (let ([new-canvas (mred->wx new-canvas)])
 	   (unless (memq new-canvas canvases)
 	     (set! canvases (cons new-canvas canvases)))))]
 
       [remove-canvas
        (lambda (old-canvas)
+	 (check-instance '(method editor<%> remove-canvas) editor-canvas% "editor-canvas" #f old-canvas)
 	 (let ([old-canvas (mred->wx old-canvas)])
 	   (when (eq? old-canvas active-canvas)
 	     (set! active-canvas #f))
@@ -988,6 +994,8 @@
 
       [on-new-box
        (lambda (type)
+	 (unless (memq type '(text pasetboard))
+	   (raise-type-error (who->name '(method editor<%> on-new-box)) "symbol: text or pasteboard" type))
 	 (make-object editor-snip%
 		      (make-object (cond
 				    [(eq? type 'pasteboard-buffer) pasteboard-editor%]
@@ -1646,7 +1654,7 @@
 
 (define (make-wx-text% multi?)
   (class wx-horizontal-panel% (mred proxy parent func label value style)
-    (inherit alignment stretchable-in-y get-button-font)
+    (inherit alignment stretchable-in-y get-control-font)
     (rename [super-place-children place-children])
     (sequence
       (super-init #f proxy parent null))
@@ -1700,7 +1708,7 @@
       (unless horiz? (send p alignment 'left 'top))
       (unless multi? (stretchable-in-y #f))
       (send e auto-wrap multi?)
-      (let ([f (get-button-font)]
+      (let ([f (get-control-font)]
 	    [s (send (send e get-style-list) find-named-style "Standard")])
 	(send s set-delta (font->delta f)))
       (send c set-edit e)
@@ -1764,21 +1772,20 @@
    [() ((ivar/proc (get-obj) method))]
    [(v) ((ivar/proc (get-obj) method) v)]))
 
+(define (constructor-name who)
+  (string->symbol (format "initialization for ~a%" who)))
+
 (define (check-container-parent who p)
   (unless (is-a? p internal-container<%>)
-    (raise-type-error (string->symbol (format "~a-constructor" who))
+    (raise-type-error (string->symbol (constructor-name who))
 		      "built-in container<%> object" p)))
 
+(define (check-top-level-parent/false who p)
+  (unless (or (not p) (is-a? p frame%) (is-a? p dialog%))
+    (raise-type-error who "frame% or dialog% object or #f" p)))
+
 (define (check-orientation who l)
-  (unless (and (list? l) (andmap symbol? l) 
-	       (or (memq 'horizontal l) (memq 'vertical l))
-	       (not (and (memq 'horizontal l) (memq 'vertical l))))
-    (error (string->symbol (format "~a-constructor" who))
-	   (cond
-	    [(not (and (list? l) (andmap symbol? l))) "style specification is not a list of symbols: ~e"]
-	    [(or (memq 'horizontal l) (memq 'vertical l)) "style specification includes both orientations: ~e"]
-	    [else "style specification does not include an orientation: ~e"])
-	   l)))
+  (check-style `(constructor-name ,who) '(vertical horizontal) null l))
 
 (define double-boxed
   (lambda (x y f)
@@ -1949,8 +1956,8 @@
 (define (make-area-container-window% %) ; % implements window<%> (and carea-ontainer<%>)
   (class* % (area-container-window<%>) (mk-wx get-wx-panel label parent cursor) 
     (public
-      [get-control-font (lambda () (send (get-wx-panel) get-button-font))]
-      [set-control-font (lambda (x) (send (get-wx-panel) set-button-font x))]
+      [get-control-font (lambda () (send (get-wx-panel) get-control-font))]
+      [set-control-font (lambda (x) (send (get-wx-panel) set-control-font x))]
       [get-label-font (lambda () (send (get-wx-panel) get-label-font))]
       [set-label-font (lambda (x) (send (get-wx-panel) set-label-font x))]
       [get-label-position (lambda () (send (get-wx-panel) get-label-position))]
@@ -2036,6 +2043,14 @@
     
 (define frame%
   (class basic-top-level-window% (label [parent #f] [width #f] [height #f] [x #f] [y #f] [style null])
+    (sequence
+      (let ([cwho '(constructor frame)])
+	(check-string cwho label)
+	(check-top-level-parent/false cwho parent)
+	(for-each (lambda (x) (check-dimension cwho x)) (list width height x y))
+	(check-style cwho #f '(no-thick-border no-resize-border no-caption no-system-menu
+					       iconize maximize mdi-parent mdi-child) 
+		     style)))
     (private
       [wx #f]
       [status-line? #f])
@@ -2063,6 +2078,11 @@
 (define dialog%
   (class basic-top-level-window% (label [parent #f] [width #f] [height #f] [x #f] [y #f] [style null])
     (sequence
+      (let ([cwho '(constructor dialog)])
+	(check-string cwho label)
+	(check-top-level-parent/false cwho parent)
+	(for-each (lambda (x) (check-dimension cwho x)) (list width height x y))
+	(check-style cwho #f '(no-caption) style))
       (super-init (lambda (finish) (finish (make-object wx-dialog% this this
 							(and parent (mred->wx parent)) (wx:label->plain-label label) #t
 							(or x -1) (or y -1) (or width 0) (or height 0)
@@ -2091,7 +2111,9 @@
 (define message%
   (class basic-control% (label parent [style null])
     (sequence
+      (check-string-or-bitmap '(constructor message) label)
       (check-container-parent 'message parent)
+      (check-style '(constructor message) #f null style)
       (super-init (lambda () (make-object wx-message% this this
 					  (mred->wx-container parent)
 					  label -1 -1 style))
@@ -2100,7 +2122,10 @@
 (define button%
   (class basic-control% (label parent callback [style null])
     (sequence
+      (check-string-or-bitmap '(constructor button) label)
       (check-container-parent 'button parent)
+      (check-callback '(constructor button) callback)
+      (check-style '(constructor button) #f '(border) style)
       (super-init (lambda () (make-object wx-button% this this
 					  (mred->wx-container parent) (wrap-callback callback)
 					  label -1 -1 -1 -1 style))
@@ -2108,7 +2133,11 @@
 
 (define check-box%
   (class basic-control% (label parent callback [style null])
-    (sequence (check-container-parent 'check-box parent))
+    (sequence
+      (check-string-or-bitmap '(constructor check-box) label)
+      (check-container-parent 'check-box parent)
+      (check-callback '(constructor check-box) callback)
+      (check-style '(constructor check-box) #f null style))
     (private
       [wx #f])
     (public
@@ -2124,7 +2153,15 @@
 
 (define radio-box%
   (class basic-control% (label choices parent callback [style '(vertical)])
-    (sequence (check-container-parent 'radio-box parent) (check-orientation 'radio-box style))
+    (sequence 
+      (check-string/false '(constructor radio-box) label)
+      (unless (and (list? choices) (pair? choices)
+		   (or (andmap string? choices)
+		       (andmap (lambda (x) (is-a? x wx:bitmap%)) choices)))
+	(raise-type-error (constructor-name 'radio-box) "non-empty list of strings or bitmap% objects" choices))
+      (check-container-parent 'radio-box parent)
+      (check-callback '(constructor radio-box) callback)
+      (check-orientation 'radio-box style))
     (private
       [wx #f])
     (override
@@ -2153,7 +2190,14 @@
 
 (define slider%
   (class basic-control% (label min-val max-val parent callback [value min-val] [style '(horizontal)])
-    (sequence (check-container-parent 'slider parent) (check-orientation 'slider style))
+    (sequence 
+      (check-string/false '(constructor slider) label)
+      (check-range-integer '(constructor slider) min-val)
+      (check-range-integer '(constructor slider) max-val)
+      (check-container-parent 'slider parent) 
+      (check-callback '(constructor slider) callback)
+      (check-range-integer '(constructor slider) value)
+      (check-orientation 'slider style))
     (private
       [wx #f])
     (public
@@ -2169,7 +2213,11 @@
 
 (define gauge%
   (class basic-control% (label parent range [style '(horizontal)])
-    (sequence (check-container-parent 'gauge parent) (check-orientation 'gauge style))
+    (sequence 
+      (check-string/false '(constructor gauge) label)
+      (check-container-parent 'gauge parent) 
+      (check-range-integer '(constructor gauge) range)
+      (check-orientation 'gauge style))
     (private
       [wx #f])
     (public
@@ -2212,10 +2260,19 @@
     (sequence
       (super-init (lambda () (set! wx (mk-wx)) wx) label parent #f))))
 
+(define (check-list-control-args who label choices parent callback)
+  (let ([cwho `(constructor-name ,who)])
+    (check-string/false cwho label)
+    (unless (and (list? choices) (andmap string? choices))
+      (raise-type-error (who->name cwho) "list of strings" choices))
+    (check-container-parent who parent)
+    (check-callback cwho callback)))
+
 (define choice%
   (class basic-list-control% (label choices parent callback [style null])
     (sequence
-      (check-container-parent 'choice parent)
+      (check-list-control-args 'choice label choices parent callback)
+      (check-style '(constructor choice) #f null style)
       (super-init (lambda () (make-object wx-choice% this this
 					  (mred->wx-container parent) (wrap-callback callback)
 					  label -1 -1 -1 -1 choices style))
@@ -2224,14 +2281,8 @@
 (define list-box%
   (class basic-list-control% (label choices parent callback [style '(single)])
     (sequence 
-      (check-container-parent 'list-box parent)
-      (let ([c (+ (if (memq 'single style) 1 0)
-		  (if (memq 'multiple style) 1 0)
-		  (if (memq 'extended style) 1 0))])
-	(when (zero? c)
-	  (error 'list-box-constructor "style does not specify single, multiple, or extended: ~a" style))
-	(when (> c 1)
-	  (error 'list-box-constructor "style specifies more than one of single, multiple, or extended: ~a" style))))
+      (check-list-control-args 'list-box label choices parent callback)
+      (check-style '(constructor list-box) '(single multiple extended) null style))
     (rename [super-append append])
     (override
       [append (case-lambda
@@ -2273,13 +2324,21 @@
 
 (define (make-text% wx-text% who)
   (class* basic-control% (text-control<%>) (label parent callback [init-val ""] [style null])
-    (sequence (check-container-parent who parent))
+    (sequence 
+      (let ([cwho `(constructor-name ,who)])
+	(check-string/false cwho label)
+	(check-container-parent who parent)
+	(check-callback cwho callback)
+	(check-string cwho init-val)
+	(check-style cwho #f null style)))
     (private
       [wx #f])
     (public
       [get-edit (lambda () (send wx get-edit))]
       [get-value (lambda () (send wx get-value))]
-      [set-value (lambda (v) (send wx set-value v))])
+      [set-value (lambda (v) 
+		   (check-string '(method text-control<%> set-value) v)
+		   (send wx set-value v))])
     (sequence
       (super-init (lambda () 
 		    (set! wx (make-object wx-text% this this
@@ -2308,7 +2367,9 @@
       [on-paint (lambda () (send wx do-on-paint))]
       [on-scroll (lambda (e) (send wx do-on-scroll e))]
       
-      [popup-menu (lambda (m x y) (send wx popup-menu (mred->wx m) x y))]
+      [popup-menu (lambda (m x y) 
+		    (check-instance '(method canvas<%> popup-menu) popup-menu% "popup-menu" #f m)
+		    (send wx popup-menu (mred->wx m) x y))]
       [warp-pointer (lambda (x y) (send wx warp-pointer x y))]
 
       [get-dc (lambda () (send wx get-dc))])
@@ -2319,7 +2380,9 @@
 
 (define canvas%
   (class basic-canvas% (parent [style null])
-    (sequence (check-container-parent 'canvas parent))
+    (sequence 
+      (check-container-parent 'canvas parent)
+      (check-style '(constructor canvas) #f '(border hscroll vscroll) style))
     (public
       [virtual-size (lambda () (double-boxed
 				0 0
@@ -2353,7 +2416,10 @@
     
 (define editor-canvas%
   (class basic-canvas% (parent [buffer #f] [style null] [scrolls-per-page 100])
-    (sequence (check-container-parent 'canvas parent))
+    (sequence 
+      (check-container-parent 'editor-canvas parent)
+      (check-instance '(constructor editor-canvas) internal-editor<%> "text-editor% or pasteboard-editor" #t buffer)
+      (check-style '(constructor editor-canvas) #f '(hide-vscroll hide-hscroll no-vscroll no-hscroll) style))
     (private
       [force-focus? #f]
       [scroll-to-last? #f]
@@ -2381,7 +2447,12 @@
 	       (send wx force-display-focus on?)])]
 
       [set-line-count
-       (lambda (n) (send wx set-line-count n))]
+       (lambda (n) 
+	 (unless (and (number? n) (integer? n) (<= 1 100))
+	   (raise-type-error (who->name '(method editor-canvas% set-line-count))
+			     "integer in [1, 100]"
+			     n))
+	 (send wx set-line-count n))]
 
       [get-edit (lambda () (send wx get-edit))]
       [set-edit (lambda (m) (send wx set-edit m))])
@@ -2415,6 +2486,7 @@
     (private [wx #f])
     (sequence 
       (check-container-parent who parent)
+      (check-style '(constructor panel) #f '(border) style)
       (super-init (lambda () (set! wx (make-object wx-panel% this this (mred->wx-container parent) style)) wx)
 		  (lambda () wx) #f parent #f))))
 
@@ -2435,19 +2507,17 @@
 
 (define (menu-parent-only who p)
   (unless (is-a? p internal-menu<%>)
-    (raise-type-error (string->symbol (format "~a-constructor" who))
-		      "parent menu% or popup-menu% object" p)))
+    (raise-type-error (constructor-name who) "parent menu% or popup-menu% object" p)))
 
 (define (menu-or-bar-parent who p)
   (unless (or (is-a? p internal-menu<%>) (is-a? p menu-bar%))
-    (raise-type-error (string->symbol (format "~a-constructor" who))
-		      "parent menu%, popup-menu%, or menu-bar% object" p)))
+    (raise-type-error (constructor-name who) "built-in menu-item-container<%> object" p)))
 
 (define (barless-frame-parent p)
   (unless (is-a? p frame%)
-    (raise-type-error 'menu-bar-cnostructor "frame% object" p))
+    (raise-type-error (constructor-name 'menu-bar) "frame% object" p))
   (when (send (mred->wx p) get-menu-bar)
-    (error 'menu-bar-constructor "the specified frame already has a menu bar")))
+    (error (constructor-name 'menu-bar) "the specified frame already has a menu bar")))
 
 (define wx-menu-item%
   (class* wx:menu-item% (wx<%>) (mred)
@@ -2602,8 +2672,10 @@
 		   set-label)]
       [get-plain-label (lambda () plain-label)]
       [get-help-string (lambda () help-string)]
-      [set-help-string (lambda (s) (set! help-string s)
-			       (send wx-parent set-help-string (send wx id) s))]
+      [set-help-string (lambda (s) 
+			 (check-string/false '(method labelled-menu-item<%> set-help-string))
+			 (set! help-string s)
+			 (send wx-parent set-help-string (send wx id) s))]
       [enable (lambda (on?) (do-enable on?))]
       [is-enabled? (lambda () enabled?)]
       [restore (lambda ()
@@ -2684,23 +2756,38 @@
 			 (send wx set-keymap keymap)
 			 (send wx swap-keymap menu keymap))))])
     (public
-      [set-shortcut (lambda (c) (set! shortcut c) (set-label (get-label)))]
+      [set-shortcut (lambda (c) 
+		      (check-char/false '(method shortcut-menu-item<%> set-shortcut))
+		      (set! shortcut c) (set-label (get-label)))]
       [get-shortcut (lambda () shortcut)]
       [get-x-shortcut-prefix (lambda () x-prefix)]
-      [set-x-shortcut-prefix (lambda (p) (set! x-prefix p) (set-label (get-label)))])
+      [set-x-shortcut-prefix (lambda (p) 
+			       (unless (memq p '(meta alt ctl-m ctl))
+				 (raise-type-error (who->name '(method shortcut-menu-item<%> set-x-shortcut-prefix))
+						   "symbol: meta, alt, ctl-m, or ctl" p))
+			       (set! x-prefix p) (set-label (get-label)))])
     (sequence
       (let-values ([(new-label keymap) (calc-labels label)])
 	(super-init menu new-label help-string #f checkable? keymap (lambda (x) (set! wx x) (set-wx x)))))))
 
+(define (check-shortcut-args who label menu callback shortcut help-string)
+  (let ([cwho `(constructor ,who)])
+    (check-string cwho label)
+    (menu-parent-only who menu)
+    (check-callback cwho callback)
+    (check-char/false cwho shortcut)
+    (check-string/false cwho help-string)))
+
 (define menu-item%
   (class basic-shortcut-menu-item% (label menu callback [shortcut #f] [help-string #f])
     (sequence 
-      (menu-parent-only 'menu-item menu)
+      (check-shortcut-args 'menu-item label menu callback shortcut help-string)
       (super-init label #f menu callback shortcut help-string (lambda (x) x)))))
 
 (define checkable-menu-item%
   (class basic-shortcut-menu-item% (label menu callback [shortcut #f] [help-string #f])
-    (sequence (menu-parent-only 'checkable-menu-item menu))
+    (sequence
+      (check-shortcut-args 'checkable-menu-item label menu callback shortcut help-string))
     (private
       [wx #f])
     (public
@@ -2731,7 +2818,9 @@
 (define menu%
   (class basic-menu% (label parent [help-string #f])
     (sequence 
+      (check-string '(constructor menu) label)
       (menu-or-bar-parent 'menu parent)
+      (check-string/false '(constructor menu) help-string)
       (super-init #f void))
     (private
       [item (make-object sub-menu-item% this label parent help-string)])
@@ -2741,6 +2830,7 @@
 (define popup-menu%
   (class basic-menu% ([title #f])
     (sequence
+      (check-string/false '(constructor popup-menu) title)
       (super-init title
 		  (lambda (m e)
 		    (let ([wx (wx:id-to-menu-item (send e get-menu-id))])
@@ -2904,6 +2994,11 @@
    [(title message) (message-box title message #f '(ok))]
    [(title message parent) (message-box title message parent '(ok))]
    [(title message parent style)
+    (check-string 'message-box title)
+    (check-string/false 'message-box message)
+    (check-top-level-parent/false 'message-box parent)
+    (check-style 'message-box '(ok ok-cancel yes-no) null style)
+
     (let* ([f (make-object dialog% title parent box-width)]
 	   [result 'ok]
 	   [strings (let loop ([s message])
@@ -2946,6 +3041,13 @@
    [(message parent) (get-ps-setup-from-user message parent #f null)]
    [(message parent pss) (get-ps-setup-from-user message parent pss null)]
    [(message parent pss-in style)
+    (define _
+      (begin
+	(check-string/false 'get-ps-setup-from-user message)
+	(check-top-level-parent/false 'get-ps-setup-from-user parent)
+	(check-instance 'get-ps-setup-from-user wx:ps-setup% 'ps-setup #t pss-in)
+	(check-style 'get-ps-setup-from-user #f null style)))
+    
     (define pss (or pss-in (wx:current-ps-setup)))
     (define f (make-object dialog% "PostScript Setup" parent))
     (define papers 
@@ -3039,10 +3141,15 @@
 
 (define get-text-from-user
   (case-lambda
-   [(title message) (get-text-from-user title message "" #f null)]
-   [(title message init-val) (get-text-from-user title message init-val #f null)]
-   [(title message init-val parent) (get-text-from-user title message init-val parent null)]
-   [(title message init-val parent style)
+   [(title message) (get-text-from-user title message #f "" null)]
+   [(title message parent) (get-text-from-user title message parent "" null)]
+   [(title message parent init-val) (get-text-from-user title message parent init-val null)]
+   [(title message parent init-val style)
+    (check-string 'get-text-from-user title)
+    (check-string/false 'get-text-from-user message)
+    (check-top-level-parent/false 'get-text-from-user parent)
+    (check-string 'get-text-from-user init-val)
+    (check-style 'get-text-from-user #f null style)
     (let* ([f (make-object dialog% title parent box-width)]
 	   [ok? #f]
 	   [done (lambda (?) (lambda (b e) (set! ok? ?) (send f show #f)))])
@@ -3065,6 +3172,12 @@
    [(title message choices parent) (get-choice-from-user title message choices parent null '(single))]
    [(title message choices parent init-vals) (get-choice-from-user title message choices parent init-vals '(single))]
    [(title message choices parent init-vals style)
+    (check-string 'get-choice-from-user title)
+    (check-string/false 'get-choice-from-user message)
+    (unless (andmap string? choices)
+      (raise-type-error 'get-choice-from-user parent "list of strings" choices))
+    (check-top-level-parent/false 'get-choice-from-user parent)
+    (check-style 'get-choice-from-user '(single multiple extended) null style)
     (let* ([f (make-object dialog% title parent box-width)]
 	   [ok-button #f]
 	   [update-ok (lambda (l) (send ok-button enable (not (null? (send l get-selections)))))]
@@ -3087,7 +3200,7 @@
 	(send f show #t)
 	(and ok? (send l get-selections))))]))
 
-(define (mk-file-selector put?)
+(define (mk-file-selector who put?)
   (letrec ([sel
 	    (case-lambda
 	     [() (sel #f #f #f #f #f null)]
@@ -3097,6 +3210,10 @@
 	     [(message parent directory filename) (sel message parent directory filename #f null)]
 	     [(message parent directory filename extension) (sel message parent directory filename extension null)]
 	     [(message parent directory filename extension style)
+	      (check-string/false who message)
+	      (check-top-level-parent/false who parent)
+	      (check-string/false who directory) (check-string/false filename directory) (check-string/false extension directory)
+	      (check-style who #f null style)
 	      (if (not (eq? (system-type) 'unix))
 		  (wx:file-selector message directory filename extension "*.*" (if put? 'put 'get) parent)
 		  (letrec ([ok? #t]
@@ -3214,8 +3331,8 @@
 		    (get-filename)))])])
     sel))
 
-(define get-file (mk-file-selector #f))
-(define put-file (mk-file-selector #t))
+(define get-file (mk-file-selector 'get-file #f))
+(define put-file (mk-file-selector 'put-file #t))
 
 (define get-color-from-user 
   (if (not (eq? (system-type) 'unix))
@@ -3226,6 +3343,10 @@
        [(message parent) (get-color-from-user message parent #f null)]
        [(message parent color) (get-color-from-user message parent #f null)]
        [(message parent color style)
+	(check-string/false 'get-color-from-user message)
+	(check-top-level-parent/false 'get-color-from-user parent)
+	(check-instance 'get-color-from-user wx:color% 'color #t color)
+	(check-style 'get-color-from-user #f null style)
 	(let* ([ok? #t]
 	       [f (make-object dialog% "Choose Color" parent)]
 	       [done (lambda (ok) (lambda (b e) (set! ok? ok) (send f show #f)))]
@@ -3259,6 +3380,10 @@
        [(message parent) (get-font-from-user message parent #f null)]
        [(message parent font) (get-font-from-user message parent #f null)]
        [(message parent font style)
+	(check-string/false 'get-font-from-user message)
+	(check-top-level-parent/false 'get-font-from-user parent)
+	(check-instance 'get-color-from-user wx:font% 'font #t font)
+	(check-style 'get-font-from-user #f null style)
 	(letrec ([ok? #f]
 		 [f (make-object dialog% "Choose Font" parent 500 300)]
 		 [refresh-sample (lambda (b e) (let ([f (get-font)])
@@ -3323,6 +3448,7 @@
        [else (send p get-frame)]))))
 
 (define (append-edit-operation-menu-items m)
+  (check-instance 'append-edit-operation-menu-items menu% 'menu #f m)
   (let ([mk (lambda (name key op)
 	      (make-object menu-item% name m
 			   (lambda (i e)
@@ -3346,6 +3472,7 @@
     (void)))
 
 (define (append-edit-font-menu-items m)
+  (check-instance 'append-edit-font-menu-items menu% 'menu #f m)
   (let ([mk (lambda (name m cb)
 	      (make-object menu-item% name m
 			   (lambda (i e)
@@ -3462,3 +3589,71 @@
 						   (send e change-style d)))))
 		  colors))))))
 
+(define (who->name who)
+  (cond
+   [(symbol? who) who]
+   [(eq? (car who) 'method) (string->symbol (format "~a in ~a" (caddr who) (cadr who)))]
+   [else (constructor-name (cadr who))]))
+
+(define (check-instance who class class-name false-ok? v)
+  (unless (or (and false-ok? (not v)) (is-a? v class))
+    (raise-type-error (who->name who) (format "~a% object~a" class-name (if false-ok? " or #f" "")) v)))
+
+(define (check-string/false who str)
+  (unless (or (not str) (string? str))
+    (raise-type-error (who->name who) "string or #f" str)))
+
+(define (check-string who str)
+  (unless (string? str)
+    (raise-type-error (who->name who) "string" str)))
+
+(define (check-char/false who c)
+  (unless (or (not c) (char? c))
+    (raise-type-error (who->name who) "character or #f" c)))
+
+(define (check-callback who callback)
+  (unless (and (procedure? callback)
+	       (procedure-arity-includes? callback 2))
+    (raise-type-error (who->name who) "procedure of arity 2" callback)))
+
+(define (check-range-integer who range)
+  (unless (and (number? range) (integer? range) (<= 0 range 10000))
+    (raise-type-error (who->name who) "integer in [0, 10000]" range)))
+
+(define (check-dimension who d)
+  (when d (check-range-integer who d)))
+
+(define (check-string-or-bitmap who label)
+  (unless (or (string? label) (is-a? label wx:bitmap%))
+    (raise-type-error (who->name who) "string or bitmap% object" label)))
+
+(define (check-style who reqd other-allowed style)
+  (unless (and (list? style) (andmap symbol? style))
+    (raise-type-error (who->name who) "list of style symbols" style))
+  (when reqd
+    (unless (ormap (lambda (i) (memq i reqd)) style)
+      (raise-type-error (who->name who)
+			(format "style list containing ~a"
+				(if (= (length reqd) 1)
+				    (car reqd)
+				    (string-append
+				     "one of "
+				     (let loop ([l reqd])
+				       (if (null? (cdr l))
+					   (format "or ~a" (car l))
+					   (format "~a, ~a" (car l) (loop (cdr l))))))))
+			style)))
+  (if (and (not reqd) (null? other-allowed))
+      (unless (null? style)
+	(raise-type-error (who->name who) "empty style list" style))
+      (let* ([l (append (or reqd null) other-allowed)]
+	     [bad (ormap (lambda (x) (if (memq x l) #f x)) style)])
+	(when bad
+	  (raise-type-error (who->name who) (format "style list, ~a not allowed" bad) style))
+	(let loop ([l style])
+	  (unless (null? l)
+	    (when (memq (car l) (cdr l))
+	      (raise-type-error (who->name who) (format "style list, ~a allowed only once" (car l)) style))
+	    (loop (cdr l)))))))
+
+  
