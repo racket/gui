@@ -1316,11 +1316,12 @@
     (sequence
       (apply super-init mred proxy args))))
 
+;; Weak boxed:
 (define active-main-frame #f)
 
 (wx:application-file-handler (entry-point
 			      (lambda (f)
-				(let ([af active-main-frame])
+				(let ([af (weak-box-value active-main-frame)])
 				  (when af
 				    (queue-window-callback
 				     af
@@ -1346,7 +1347,7 @@
        [f (entry-point
 	   (lambda ()
 	     (unless running-quit?
-	       (let ([af active-main-frame])
+	       (let ([af (weak-box-value active-main-frame)])
 		 (when af
 		   (set! running-quit? #t)
 		   (queue-window-callback
@@ -1474,7 +1475,7 @@
 			(set! act-date/seconds (current-seconds))
 			(set! act-date/milliseconds (current-milliseconds))
 			(when (wx:main-eventspace? (get-eventspace))
-			  (set! active-main-frame this)))
+			  (set! active-main-frame (make-weak-box this))))
 		      ;; Windows needs trampoline:
 		      (queue-window-callback
 		       this
@@ -7388,47 +7389,54 @@
 	   [lock-semaphore (make-semaphore 1)]
 	   [update-str-to-snip
 	    (lambda ()
-	      (cond
-	       [(not snip)
-		(set! str #f)]
-	       [((send text get-snip-position snip) . >= . end)
-		(set! str #f)]
-	       [(is-a? snip wx:string-snip%)
-		(set! str (send snip get-text 0 (send snip get-count)))]
-	       [else
-		(set! str 'snip)]))]
+	      (if (not snip)
+		  (set! str #f)
+		  (let ([snip-start (send text get-snip-position snip)])
+		    (cond
+		     [(snip-start . >= . end)
+		      (set! str #f)]
+		     [(is-a? snip wx:string-snip%)
+		      (set! str (send snip get-text 0 (min (send snip get-count)
+							   (- end snip-start))))]
+		     [else
+		      (set! str 'snip)]))))]
 	   [next-snip
 	    (lambda ()
 	      (set! snip (send snip next))
 	      (set! pos 0)
 	      (update-str-to-snip))]
-	   [read-char (lambda ()
-			(cond
-			 [(not str) eof]
-			 [(string? str)
-			  (begin0 
-			   (string-ref str pos)
-			   (set! pos (+ pos 1))
-			   (when ((string-length str) . <= . pos)
-			     (next-snip)))]
-			 [(eq? str 'snip)
-			  (let ([the-snip snip])
-			    (lambda (file line col ppos)
-			      (if (is-a? the-snip readable-snip<%>)
-				  (with-handlers ([exn:special-comment?
-						   (lambda (exn)
-						     ;; implies "done"
-						     (next-snip)
-						     (raise exn))])
-				  (let-values ([(val size done?)
-						(send the-snip read-one-special pos file line col ppos)])
-				    (if done?
-					(next-snip)
-					(set! pos (add1 pos)))
-				    (values val size)))
-				  (begin
-				    (next-snip)
-				    (values (send the-snip copy) 1)))))]))]
+	   [read-chars (lambda (to-str)
+			 (cond
+			  [(not str) eof]
+			  [(string? str)
+			   (let* ([sl (string-length str)]
+				  [n (min (- sl pos) (string-length to-str))])
+			     (let loop ([i 0])
+			       (unless (= i n)
+				 (string-set! to-str i (string-ref str (+ i pos)))
+				 (loop (add1 i))))
+			     (set! pos (+ pos n))
+			     (when (sl . <= . pos)
+			       (next-snip))
+			     n)]
+			  [(eq? str 'snip)
+			   (let ([the-snip snip])
+			     (lambda (file line col ppos)
+			       (if (is-a? the-snip readable-snip<%>)
+				   (with-handlers ([exn:special-comment?
+						    (lambda (exn)
+						      ;; implies "done"
+						      (next-snip)
+						      (raise exn))])
+				     (let-values ([(val size done?)
+						   (send the-snip read-one-special pos file line col ppos)])
+				       (if done?
+					   (next-snip)
+					   (set! pos (add1 pos)))
+				       (values val size)))
+				   (begin
+				     (next-snip)
+				     (values (send the-snip copy) 1)))))]))]
 	   [close (lambda () (void))]
 	   ;; We create a slow port for now; in the future, try
 	   ;; grabbing more characters:
@@ -7438,13 +7446,7 @@
 		      (if (semaphore-try-wait? lock-semaphore)
 			  (dynamic-wind
 			      void
-			      (lambda ()
-				(let ([c (read-char)])
-				  (if (char? c)
-				      (begin
-					(string-set! s 0 c)
-					1)
-				      c)))
+			      (lambda () (read-chars s))
 			      (lambda () (semaphore-post lock-semaphore)))
 			  (make-semaphore-peek lock-semaphore))))
 		  #f ; no peek
