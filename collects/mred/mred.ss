@@ -408,7 +408,6 @@
 
 ;; ------------- Mixins for common functionality --------------
 
-
 (define wx-make-window%
   (lambda (% top?)
     (class100 % args
@@ -5688,7 +5687,7 @@
 		       (values new-label keymap)))])
     (private
       [do-set-label (entry-point
-		     (lambda (l) 
+		     (lambda (l)
 		       (check-label-string '(method labelled-menu-item<%> set-label) l)
 		       (let-values ([(new-label keymap) (calc-labels l)])
 			 (set! label (string->immutable-string l))
@@ -5703,7 +5702,9 @@
     (public
       [set-shortcut (lambda (c) 
 		      (check-char/false '(method selectable-menu-item<%> set-shortcut) c)
-		      (set! shortcut c) (do-set-label (super-get-label)))]
+		      (unless (equal? shortcut c)
+			(set! shortcut c) 
+			(do-set-label (super-get-label))))]
       [get-shortcut (lambda () shortcut)]
       [get-x-shortcut-prefix (lambda () x-prefix)]
       [set-x-shortcut-prefix (lambda (p) 
