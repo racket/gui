@@ -2510,8 +2510,10 @@
 
 (define wx-basic-panel<%> (interface ()))
 
-(define tab-h-border 2)
-(define tab-v-border (if (eq? (system-type) 'macosx)
+(define tab-h-border (if (eq? (system-type) 'windows)
+			 3
+			 2))
+(define tab-v-border (if (memq (system-type) '(macosx macos))
 			 5
 			 2))
 
@@ -2876,7 +2878,7 @@
 								      height))
 							    (let ([dy (child-info-y-min (car children-info))])
 							      (map (lambda (i)
-								     (list (+ (car i) tab-h-border) ;; hack! 2-pixel border assumed
+								     (list (+ (car i) tab-h-border)
 									   (+ dy (cadr i) (- tab-v-border) -1)
 									   (caddr i)
 									   (cadddr i)))
