@@ -962,7 +962,7 @@ WARNING: printf is rebound in the body of the unit to always
                       (= start end)
                       (submit-to-port? key))
                  (let ([snips/chars (extract-snips/chars unread-start-point (last-position))])
-                   (printf "sending over usp~s ~s\n" unread-start-point snips/chars)
+                   (printf "tp: sending in ~s usp ~s\n" snips/chars unread-start-point)
                    (for-each (lambda (s/c) 
                                (cond
                                  [(is-a? s/c snip%)
@@ -976,7 +976,7 @@ WARNING: printf is rebound in the body of the unit to always
                    (set! allow-tabify? #t)
                    (set! unread-start-point (last-position))
                    (set! insertion-point (last-position))
-                   (printf "sent over; new usp ~s\n" unread-start-point)
+                   (printf "tp: sent in; new usp ~s\n" unread-start-point)
                    (on-submit))]
                 [else
                  (super-on-local-char key)])))
@@ -1015,6 +1015,9 @@ WARNING: printf is rebound in the body of the unit to always
           ;;                               (channel ...)))
           (define readers-chan (make-channel))
           
+          ;; peek-chan : (channel (channel boolean))
+          (define peek-chan (make-channel))
+          
           ;; queue-insertion : (listof (cons (union string snip) style-delta)) waitable -> void
           ;; txt is in the reverse order of the things to be inserted.
           ;; the waitable is waited on when the text has actually been inserted
@@ -1029,7 +1032,7 @@ WARNING: printf is rebound in the body of the unit to always
           ;; do-insertion : (listof (cons (union string snip) style-delta)) -> void
           ;; thread: eventspace main thread
           (define/private (do-insertion txts)
-            (printf "do-insertion.1 ~s\n" txts)
+            (printf "tp: do-insertion.1 ~s\n" txts)
             (let ([locked? (is-locked?)])
               (begin-edit-sequence)
               (lock #f)
@@ -1055,7 +1058,7 @@ WARNING: printf is rebound in the body of the unit to always
                        (set! unread-start-point (+ unread-start-point inserted-count))))
                    (loop (cdr txts))]))
               (lock locked?)
-              (printf "do-insertion.2 ip ~s usp ~s\n" insertion-point unread-start-point)
+              (printf "tp: do-insertion.2 ip ~s usp ~s\n" insertion-point unread-start-point)
               (end-edit-sequence)))
           
           (define input-buffer-thread
@@ -1064,6 +1067,11 @@ WARNING: printf is rebound in the body of the unit to always
                (define (data-waiting data)
                  (object-wait-multiple
                   #f
+                  (make-wrapped-waitable
+                   peek-chan
+                   (lambda (result)
+                     (channel-put result #t)
+                     (data-waiting data)))
                   (make-wrapped-waitable
                    read-chan
                    (lambda (new-data)
@@ -1076,6 +1084,11 @@ WARNING: printf is rebound in the body of the unit to always
                (define (readers-waiting readers)
                  (object-wait-multiple
                   #f
+                  (make-wrapped-waitable
+                   peek-chan
+                   (lambda (result)
+                     (channel-put result #f)
+                     (readers-waiting readers)))
                   (make-wrapped-waitable
                    read-chan
                    (lambda (new-data)
@@ -1096,8 +1109,14 @@ WARNING: printf is rebound in the body of the unit to always
                            (object-wait-multiple
                             #f
                             (make-wrapped-waitable
+                             peek-chan
+                             (lambda (result)
+                               (channel-put result #t)
+                               (data-and-readers-waiting data readers)))
+                            (make-wrapped-waitable
                              (make-channel-put-waitable reader-succeed data-hd)
                              (lambda (v)
+                               (printf "tp: sent out ~s\n" data-hd)
                                (data-and-readers-waiting (queue-rest data)
                                                          (queue-rest readers))))
                             (make-wrapped-waitable
@@ -1154,25 +1173,31 @@ WARNING: printf is rebound in the body of the unit to always
             ;;
             (define op (current-output-port))
             (define (read-bytes-proc bytes)
-              ;; this shouldn't block. it should return a waitable and 
+              ;; this shouldn't return 0. it should return a waitable and 
               ;; let the system block and then re-call into this thing. 
               ;; yuck.
-              (let ([s/c
-                     (object-wait-multiple
-                      #f
-                      (make-nack-guard-waitable
-                       (lambda (fail-channel)
-                         (let ([return-channel (make-channel)])
-                           (channel-put readers-chan (cons return-channel fail-channel))
-                           return-channel))))])
-                (cond
-                  [(byte? s/c)
-                   (bytes-set! bytes 0 s/c)
-                   1]
-                  [(eof-object? s/c) s/c]
-                  [else
-                   (lambda (src line column position)
-                     (values s/c 1))])))
+              (let ([any-waiting-chan (make-channel)])
+                (channel-put peek-chan any-waiting-chan)
+                (let ([data-waiting? (channel-get any-waiting-chan)])
+                  (printf "data-waiting? ~s\n" data-waiting?)
+                  (if data-waiting?
+                      (let ([s/c
+                             (object-wait-multiple
+                              #f
+                              (make-nack-guard-waitable
+                               (lambda (fail-channel)
+                                 (let ([return-channel (make-channel)])
+                                   (channel-put readers-chan (cons return-channel fail-channel))
+                                   return-channel))))])
+                        (cond
+                          [(byte? s/c)
+                           (bytes-set! bytes 0 s/c)
+                           1]
+                          [(eof-object? s/c) s/c]
+                          [else
+                           (lambda (src line column position)
+                             (values s/c 1))]))
+                      0))))
             
             (define (in-close-proc) (void))
             
