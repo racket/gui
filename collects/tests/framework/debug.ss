@@ -15,7 +15,7 @@
       ;; tests that passed and those that failed
       (define schedule? #t)
       
-      ;; of the sexpression transactions between mz and mred
+      ;; all of the sexpression transactions between mz and mred
       (define messages? #t)
 
       (syntax-case stx (mr-tcp mz-tcp admin schedule messages)

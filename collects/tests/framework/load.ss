@@ -36,7 +36,7 @@
 
   (test/load "macro.ss" '(mixin () () ()))
 
-  (test/load "framework-unit.ss" '(list framework@ framework-no-prefs@ framework-small-part@))
+  (test/load "framework-unit.ss" '(list framework@ framework-no-prefs@ frameworkc@))
   (test/load "framework.ss" '(list prefs-file:get-preferences-filename
 				   test:button-push
 				   gui-utils:next-untitled-name

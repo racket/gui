@@ -87,7 +87,7 @@
 (test
  'windows-menu
  (lambda (x)
-   (equal? x (list "test")))
+   (equal? x (list "Bring frame to front..." #f "test")))
  (lambda ()
    (send-sexp-to-mred
     '(let ([frame (make-object frame:basic% "test")])
@@ -96,14 +96,14 @@
    (send-sexp-to-mred
     '(begin0
       (map
-       (lambda (x) (send x get-label))
+       (lambda (x) (and (is-a? x labelled-menu-item<%>) (send x get-label)))
        (send (car (send (send (get-top-level-focus-window) get-menu-bar) get-items)) get-items))
       (send (get-top-level-focus-window) close)))))
   
 (test
  'windows-menu-unshown
  (lambda (x)
-   (equal? x (list "test")))
+   (equal? x (list "Bring frame to front..." #f "test")))
  (lambda ()
    (send-sexp-to-mred
     '(let ([frame1 (make-object frame:basic% "test")]
@@ -113,14 +113,14 @@
    (send-sexp-to-mred
     '(begin0
       (map
-       (lambda (x) (send x get-label))
+       (lambda (x) (and (is-a? x labelled-menu-item<%>) (send x get-label)))
        (send (car (send (send (get-top-level-focus-window) get-menu-bar) get-items)) get-items))
       (send (get-top-level-focus-window) close)))))
 
 (test
  'windows-menu-sorted1
  (lambda (x)
-   (equal? x (list "aaa" "bbb")))
+   (equal? x (list "Bring frame to front..." #f "aaa" "bbb")))
  (lambda ()
    (send-sexp-to-mred
     '(let ([frame (make-object frame:basic% "aaa")])
@@ -134,14 +134,14 @@
     `(let ([frames (send (group:get-the-frame-group) get-frames)])
        (begin0
 	(map
-	 (lambda (x) (send x get-label))
+	 (lambda (x) (and (is-a? x labelled-menu-item<%>) (send x get-label)))
 	 (send (car (send (send (car frames) get-menu-bar) get-items)) get-items))
 	(for-each (lambda (x) (send x close)) frames))))))
 
 (test
  'windows-menu-sorted2
  (lambda (x)
-   (equal? x (list "aaa" "bbb")))
+   (equal? x (list "Bring frame to front..." #f "aaa" "bbb")))
  (lambda ()
    (send-sexp-to-mred
     '(let ([frame (make-object frame:basic% "bbb")])
@@ -155,6 +155,6 @@
     `(let ([frames (send (group:get-the-frame-group) get-frames)])
        (begin0
 	(map
-	 (lambda (x) (send x get-label))
+	 (lambda (x) (and (is-a? x labelled-menu-item<%>) (send x get-label)))
 	 (send (car (send (send (car frames) get-menu-bar) get-items)) get-items))
 	(for-each (lambda (x) (send x close)) frames)))))))
