@@ -819,7 +819,6 @@ WARNING: printf is rebound in the body of the unit to always
           set-unread-start-point
           set-allow-edits
           get-allow-edits
-          has-between?
           insert-between
           submit-to-port?
           on-submit
@@ -885,12 +884,6 @@ WARNING: printf is rebound in the body of the unit to always
           (define/public-final (insert-between str)
             (insert str unread-start-point unread-start-point)
             (set! unread-start-point (+ unread-start-point (string-length str))))
-          
-          ;; has-between? : -> boolean
-          ;; indicates if there is currently some text after the insertion
-          ;; point, but before the unread region
-          (define/public-final (has-between?)
-            (not (= insertion-point unread-start-point)))
           
           (define/public-final (get-insertion-point) insertion-point)
           (define/public-final (set-insertion-point ip) (set! insertion-point ip))
