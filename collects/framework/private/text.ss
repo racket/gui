@@ -38,9 +38,9 @@ WARNING: printf is rebound in the body of the unit to always
         (void))
       (define-syntax (dprintf stx)
         (syntax-case stx ()
-          [(_ bool . args) 
-           (syntax (when bool (printf . args)))
-           #;(syntax (void))]))
+          [(_ . args) 
+           #;(syntax (printf . args))
+           (syntax (void))]))
       
       (define-struct range (start end b/w-bitmap color caret-space?))
       (define-struct rectangle (left top right bottom b/w-bitmap color))
@@ -891,23 +891,31 @@ WARNING: printf is rebound in the body of the unit to always
           submit-to-port?
           on-submit
           send-eof-to-in-port
+          reset-input-box
           clear-output-ports
           clear-input-port
           get-out-style-delta
           get-err-style-delta
           get-value-style-delta
           get-in-port
-          get-in-port-args
+          get-in-box-port
           get-out-port
           get-err-port
           get-value-port
-          after-io-insertion))
+          after-io-insertion
+          get-box-input-editor-snip%
+          get-box-input-text%))
       
       (define-struct peeker (bytes skip-count pe resp-chan nack) (make-inspector))
       (define-struct committer (kr commit-peeker-evt done-evt resp-chan resp-nack))
       
       (define msec-timeout 500)
       (define output-buffer-full 4096)
+      
+      (define-local-member-name 
+        new-box-input
+        box-input-not-used-anymore
+        set-port-text)
       
       (define ports-mixin
         (mixin ((class->interface text%) #;scheme:text<%>) (ports<%>)
@@ -926,9 +934,9 @@ WARNING: printf is rebound in the body of the unit to always
                    lock
                    paragraph-start-position
                    position-paragraph
+                   release-snip
+                   set-caret-owner
                    split-snip)
-          
-          (init-field [show-dprintf? #f])
           
           ;; private field
           (define eventspace (current-eventspace))
@@ -944,6 +952,10 @@ WARNING: printf is rebound in the body of the unit to always
           ;;      port.
           ;; only updated in `eventspace' (above)'s main thread
           (define unread-start-point 0)
+          
+          ;; box-input : (union #f (is-a?/c editor-snip%))
+          ;; the snip where the user's input is typed for the box input port
+          (define box-input #f)
           
           ;; allow-edits? : boolean
           ;; when this flag is set, only insert/delete after the
@@ -997,9 +1009,9 @@ WARNING: printf is rebound in the body of the unit to always
           (define/public-final (get-in-port)
             (unless in-port (error 'get-in-port "not ready"))
             in-port)
-          (define/public-final (get-in-port-args) 
-            (unless in-port (error 'get-in-port-args "not ready"))
-            in-port-args)
+          (define/public-final (get-in-box-port)
+            (unless in-port (error 'get-in-box-port "not ready"))
+            in-box-port)
           (define/public-final (get-out-port)
             (unless out-port (error 'get-out-port "not ready"))
             out-port)
@@ -1009,7 +1021,7 @@ WARNING: printf is rebound in the body of the unit to always
           (define/public-final (get-value-port)
             (unless err-port (error 'get-value-port "not ready"))
             value-port)
-          
+
           ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
           ;;
           ;;  specialization interface
@@ -1030,6 +1042,9 @@ WARNING: printf is rebound in the body of the unit to always
               (send value-sd set-delta-foreground (make-object color% 0 0 175))
               value-sd))
 
+          (define/public (get-box-input-editor-snip%) editor-snip%)
+          (define/public (get-box-input-text%) input-box%)
+          
           ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
           ;;
           ;;  editor integration
@@ -1068,19 +1083,77 @@ WARNING: printf is rebound in the body of the unit to always
                       [(char? s/c)
                        (for-each (λ (b) (channel-put read-chan (cons b line-col-pos)))
                                  (bytes->list (string->bytes/utf-8 (string s/c))))])))
-                 (set! allow-tabify? #f)
-                 (set! allow-tabify? #t)
                  (set! unread-start-point (last-position))
                  (set! insertion-point (last-position))
                  (on-submit)]
                 [else
                  (super on-local-char key)])))
           
-          (define allow-tabify? #t)
-;          (rename [super-tabify-on-return? tabify-on-return?])
-;          (define/override (tabify-on-return?)
-;            (and (super-tabify-on-return?)
-;                 allow-tabify?))
+          ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+          ;;
+          ;; box input port management
+          ;;
+          
+          (define/public-final (reset-input-box) 
+            (when box-input
+              (let ([l? (is-locked?)]
+                    [old-allow-edits? allow-edits?])
+                (lock #f)
+                (set! allow-edits? #t)
+                (send box-input release-from-owner)
+                (set! unread-start-point (- unread-start-point 1))
+                (set! allow-edits? old-allow-edits?)
+                (lock l?))
+              (set! box-input #f)))
+          
+          (define/private (on-box-peek)
+            (unless box-input
+              (let* ([ed (new (get-box-input-text%))]
+                     [es (new (get-box-input-editor-snip%) 
+                              (editor ed))]
+                     [locked? (is-locked?)])
+                (send ed set-port-text this)
+                (lock #f)
+                (unless (= unread-start-point (paragraph-start-position (position-paragraph unread-start-point)))
+                  (insert-between "\n"))
+                (insert-between es)
+                (set! box-input es)
+                (set-caret-owner es 'display)
+                (lock locked?))))
+          
+          (define/public (new-box-input ed)
+            (when (eq? ed (send box-input get-editor)) ;; just in case things get out of sync.
+              (let ([locked? (is-locked?)])
+                (begin-edit-sequence)
+                (lock #f)
+                
+                (let ([old-insertion-point insertion-point])
+                  (let loop ([snip (send (send box-input get-editor) find-first-snip)])
+                    (when snip
+                      (let ([next (send snip next)])
+                        (send snip release-from-owner)
+                        (do-insertion
+                         (list (cons (cond
+                                       [(is-a? snip string-snip%)
+                                        (send snip get-text 0 (send snip get-count))]
+                                       [else snip])
+                                     (make-object style-delta%))))
+                        (loop next))))
+                  
+                  ;; this is copied code ...
+                  (for-each/snips-chars
+                   old-insertion-point
+                   insertion-point
+                   (λ (s/c line-col-pos) 
+                     (cond
+                       [(is-a? s/c snip%)
+                        (channel-put box-read-chan (cons s/c line-col-pos))]
+                       [(char? s/c)
+                        (for-each (λ (b) (channel-put box-read-chan (cons b line-col-pos)))
+                                  (bytes->list (string->bytes/utf-8 (string s/c))))]))))
+                
+                (lock locked?)
+                (end-edit-sequence))))
           
           ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
           ;;
@@ -1172,28 +1245,28 @@ WARNING: printf is rebound in the body of the unit to always
                         (handle-evt
                          (alarm-evt (+ last-flush msec-timeout))
                          (λ (_)
-                           (dprintf show-dprintf? "o: alarm.1 ~s\n" (queue->list text-to-insert))
+                           (dprintf "o: alarm.1 ~s\n" (queue->list text-to-insert))
                            (let-values ([(viable-bytes remaining-queue) (split-queue converter text-to-insert)])
-                             (dprintf show-dprintf? "o: alarm.2 ~s\n" viable-bytes)
+                             (dprintf "o: alarm.2 ~s\n" viable-bytes)
                              (queue-insertion viable-bytes always-evt)
                              (loop remaining-queue (current-inexact-milliseconds))))))
                     (handle-evt
                      flush-chan
                      (λ (return-evt)
-                       (dprintf show-dprintf? "o: flush.1 ~s\n" (queue->list text-to-insert))
+                       (dprintf "o: flush.1 ~s\n" (queue->list text-to-insert))
                        (let-values ([(viable-bytes remaining-queue) (split-queue converter text-to-insert)])
-                         (dprintf show-dprintf?  "o: flush.2 ~s\n" viable-bytes)
+                         (dprintf  "o: flush.2 ~s\n" viable-bytes)
                          (queue-insertion viable-bytes return-evt)
                          (loop remaining-queue (current-inexact-milliseconds)))))
                     (handle-evt
                      clear-output-chan
                      (λ (_)
-                       (dprintf show-dprintf? "o: clear-output\n")
+                       (dprintf  "o: clear-output\n")
                        (loop (empty-queue) (current-inexact-milliseconds))))
                     (handle-evt
                      write-chan
                      (λ (pr)
-                       (dprintf show-dprintf? "o: write ~s\n" pr)
+                       (dprintf "o: write ~s\n" pr)
                        (let ([new-text-to-insert (enqueue pr text-to-insert)])
                          (cond
                            [((queue-size text-to-insert) . < . output-buffer-full)
@@ -1206,8 +1279,7 @@ WARNING: printf is rebound in the body of the unit to always
                                 (channel-get chan)
                                 (loop remaining-queue (current-inexact-milliseconds))))]))))))))))
           
-          (field [in-port #f]
-                 [in-port-args #f]
+          (field [in-port-args #f]
                  [out-port #f]
                  [err-port #f]
                  [value-port #f])
@@ -1286,325 +1358,10 @@ WARNING: printf is rebound in the body of the unit to always
 
           ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
           ;;
-          ;;  input port sync code
-          ;;
-          
-          ;; type line-col-pos = (list (union #f fixnum) (union #f fixnum) (union #f fixnum)))
-          
-          ;; read-chan : (channel (cons (union byte snip eof) line-col-pos))
-          ;; send input from the editor
-          (define read-chan (make-channel))
-          
-          ;; progress-event-chan : (channel (cons (channel event) nack-evt)))
-          (define progress-event-chan (make-channel))
-
-          ;; peek-chan : (channel peeker)
-          (define peek-chan (make-channel))
-          
-          ;; commit-chan : (channel committer)
-          (define commit-chan (make-channel))
-          
-          ;; clear-input-chan : (channel void)
-          (define clear-input-chan (make-channel))
-          
-          ;; position-chan : (channel (cons (channel void) (channel line-col-pos)))
-          (define position-chan (make-channel))
-          
-          (define input-buffer-thread
-            (thread
-             (λ ()
-               
-               ;; these vars are like arguments to the loop function
-               ;; they are only set right before loop is called.
-               ;; This is done to avoid passing the same arguments
-               ;; over and over to loop.
-               (define peeker-sema (make-semaphore 0))
-               (define peeker-evt (semaphore-peek-evt peeker-sema))
-               (define bytes-peeked 0)
-               (define response-evts '())
-               (define peekers '())     ;; waiting for a peek
-               (define committers '())  ;; waiting for a commit
-               (define positioners '()) ;; waiting for a position
-               (define data (empty-queue)) ;; (queue (cons (union byte snip eof) line-col-pos))
-               (define position #f)
-               
-               ;; loop : -> alpha
-               ;; the main loop for this thread
-               (define (loop)
-                 (let-values ([(not-ready-peekers new-peek-response-evts)
-                               (separate peekers service-waiter)]
-                              [(potential-commits new-commit-response-evts) 
-                               (separate 
-                                committers
-                                (service-committer data peeker-evt))])
-                   (set! peekers not-ready-peekers)
-                   (set! committers potential-commits)
-                   (set! response-evts 
-                         (append response-evts
-                                 new-peek-response-evts
-                                 new-commit-response-evts))
-                   (sync
-                    (handle-evt
-                     position-chan
-                     (λ (pr)
-                       (dprintf show-dprintf? "i: position-chan\n")
-                       (let ([nack-chan (car pr)]
-                             [resp-chan (cdr pr)])
-                         (set! positioners (cons pr positioners))
-                         (loop))))
-                    (if position
-                        (apply choice-evt (map service-positioner positioners))
-                        never-evt)
-                    (handle-evt
-                     read-chan
-                     (λ (ent)
-                       (dprintf show-dprintf? "i: read-chan\n")
-                       (set! data (enqueue ent data))
-                       (unless position
-                         (set! position (cdr ent)))
-                       (loop)))
-                    (handle-evt
-                     clear-input-chan
-                     (λ (_)
-                       (dprintf show-dprintf? "i: clear-input-chan\n")
-                       (semaphore-post peeker-sema)
-                       (set! peeker-sema (make-semaphore 0))
-                       (set! peeker-evt (semaphore-peek-evt peeker-sema))
-                       (set! data (empty-queue))
-                       (set! position #f)
-                       (loop)))
-                    (handle-evt
-                     progress-event-chan
-                     (λ (return-pr)
-                       (dprintf show-dprintf? "i: progress-event-chan\n")
-                       (let ([return-chan (car return-pr)]
-                             [return-nack (cdr return-pr)])
-                         (set! response-evts
-                               (cons (choice-evt
-                                      return-nack
-                                      (channel-put-evt return-chan peeker-evt))
-                                     response-evts))
-                         (loop))))
-                    (handle-evt
-                     peek-chan
-                     (λ (peeker)
-                       (dprintf show-dprintf? "i: peek-chan\n")
-                       (set! peekers (cons peeker peekers))
-                       (loop)))
-                    (handle-evt
-                     commit-chan
-                     (λ (committer)
-                       (dprintf show-dprintf? "i:commit-chan\n")
-                       (set! committers (cons committer committers))
-                       (loop)))
-                    (apply 
-                     choice-evt
-                     (map
-                      (λ (a-committer)
-                        (match a-committer
-                          [($ committer 
-                              kr
-                              commit-peeker-evt
-                              done-evt
-                              resp-chan
-                              resp-nack)
-                           (choice-evt
-                            (handle-evt 
-                             commit-peeker-evt
-                             (λ (_)
-                               (dprintf show-dprintf? "i: commit-peeker-evt\n")
-                               ;; this committer will be thrown out in next iteration
-                               (loop)))
-                            (handle-evt
-                             done-evt
-                             (λ (v)
-                               (dprintf show-dprintf? "i: done-evt\n")
-                               (let ([nth-pos (cdr (peek-n data (- kr 1)))])
-                                 (set! position
-                                       (list (car nth-pos)
-                                             (+ 1 (cadr nth-pos))
-                                             (+ 1 (caddr nth-pos)))))
-                               (set! data (dequeue-n data kr))
-                               (semaphore-post peeker-sema)
-                               (set! peeker-sema (make-semaphore 0))
-                               (set! peeker-evt (semaphore-peek-evt peeker-sema))
-                               (set! committers (remq a-committer committers))
-                               (set! response-evts
-                                     (cons 
-                                      (choice-evt
-                                       resp-nack
-                                       (channel-put-evt resp-chan #t))
-                                      response-evts))
-                               (loop))))]))
-                      committers))
-                    (apply choice-evt 
-                           (map (λ (resp-evt)
-                                  (handle-evt
-                                   resp-evt
-                                   (λ (_)
-                                     (dprintf show-dprintf? "i: resp-evt\n")
-                                     (set! response-evts (remq resp-evt response-evts))
-                                     (loop))))
-                                response-evts)))))
-               
-               ;; service-positioner : (cons (channel void) (channel line-col-pos)) -> evt
-               (define (service-positioner pr)
-                 (let ([nack-evt (car pr)]
-                       [resp-evt (cdr pr)])
-                   (handle-evt
-                    (choice-evt nack-evt 
-                                (channel-put-evt resp-evt position))
-                    (let ([sent-position position])
-                      (λ (_) 
-                        (set! positioners (remq pr positioners))
-                        (loop))))))
-               
-               ;; service-committer : queue evt -> committer -> (union #f evt)
-               ;; if the committer can be dumped, return an evt that
-               ;; does the dumping. otherwise, return #f
-               (define ((service-committer data peeker-evt) a-committer)
-                 (match a-committer
-                   [($ committer
-                       kr commit-peeker-evt
-                       done-evt resp-chan resp-nack)
-                    (let ([size (queue-size data)])
-                      (cond
-                        [(not (eq? peeker-evt commit-peeker-evt))
-                         (choice-evt
-                          resp-nack
-                          (channel-put-evt resp-chan #f))]
-                        [(< size kr)
-                         (choice-evt
-                          resp-nack
-                          (channel-put-evt resp-chan 'commit-failure))]
-                        [else  ;; commit succeeds
-                         #f]))]))
-               
-               ;; service-waiter : peeker -> (union #f evt)
-               ;; if the peeker can be serviced, build an event to service it
-               ;; otherwise return #f
-               (define (service-waiter a-peeker)
-                 (match a-peeker
-                   [($ peeker bytes skip-count pe resp-chan nack-evt)
-                    (cond
-                      [(and pe (not (eq? pe peeker-evt)))
-                       (choice-evt (channel-put-evt resp-chan #f)
-                                   nack-evt)]
-                      [((queue-size data) . > . skip-count)
-                       (let ([nth (car (peek-n data skip-count))])
-                         (choice-evt
-                          nack-evt
-                          (cond
-                            [(byte? nth)
-                             (bytes-set! bytes 0 nth)
-                             (channel-put-evt resp-chan 1)]
-                            [(eof-object? nth)
-                             (channel-put-evt resp-chan nth)]
-                            [else
-                             (channel-put-evt 
-                              resp-chan
-                              (λ (src line col pos)
-                                (if (is-a? nth readable-snip<%>)
-                                    (send nth read-special src line col pos)
-                                    nth)))])))]
-                      [else
-                       #f])]))
-               
-               ;; separate (listof X) (X -> (union #f Y)) -> (values (listof X) (listof Y))
-               ;; separates `eles' into two lists -- those that `f' returns #f for
-               ;; and then the results of calling `f' for those where `f' doesn't return #f
-               (define (separate eles f)
-                 (let loop ([eles eles]
-                            [transformed '()]
-                            [left-alone '()])
-                   (cond
-                     [(null? eles) (values left-alone transformed)]
-                     [else (let* ([ele (car eles)]
-                                  [maybe (f ele)])
-                             (if maybe
-                                 (loop (cdr eles)
-                                       (cons maybe transformed)
-                                       left-alone)
-                                 (loop (cdr eles)
-                                       transformed
-                                       (cons ele left-alone))))])))
-
-               ;;; start things going
-               (loop))))
-          
-          (define/private (init-input-port)
-            
-            ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-            ;;
-            ;;  the following must be able to run
-            ;;  in any thread (even concurrently)
-            ;;
-            (define (read-bytes-proc bstr)
-              (let* ([progress-evt (progress-evt-proc)]
-                     [v (peek-proc bstr 0 progress-evt)])
-                (cond
-                  [(sync/timeout 0 progress-evt) 0]
-                  [else (wrap-evt 
-                         v 
-                         (λ (v) 
-                           (if (and (number? v) (zero? v))
-                               0
-                               (if (commit-proc (if (number? v) v 1)
-                                                progress-evt
-                                                always-evt)
-                                   v
-                                   0))))])))
-            
-            (define (peek-proc bstr skip-count progress-evt)
-              (nack-guard-evt
-               (λ (nack)
-                 (let ([chan (make-channel)])
-                   (channel-put peek-chan (make-peeker bstr skip-count progress-evt chan nack))
-                   chan))))
-            
-            (define (progress-evt-proc)
-              (sync
-               (nack-guard-evt
-                (λ (nack)
-                  (let ([chan (make-channel)])
-                    (channel-put progress-event-chan (cons chan nack))
-                    chan)))))
-            
-            (define (commit-proc kr progress-evt done-evt)
-              (sync
-               (nack-guard-evt
-                (λ (nack)
-                  (let ([chan (make-channel)])
-                    (channel-put commit-chan (make-committer kr progress-evt done-evt chan nack))
-                    chan)))))
-            
-            (define (close-proc) (void))
-            
-            (define (position-proc)
-              (let ([chan (make-channel)])
-                (apply 
-                 values
-                 (sync
-                  (nack-guard-evt
-                   (λ (fail)
-                     (channel-put position-chan (cons fail chan))
-                     chan))))))
-            
-            (set! in-port-args (list this
-                                     read-bytes-proc
-                                     peek-proc
-                                     close-proc
-                                     progress-evt-proc
-                                     commit-proc
-                                     position-proc))
-            (set! in-port (apply make-input-port in-port-args))
-            (port-count-lines! in-port))
-         
-          ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-          ;;
           ;;  helpers
           ;;
 
+          ;; type line-col-pos = (list (union #f fixnum) (union #f fixnum) (union #f fixnum)))
 
           ;; position->line-col-pos : number -> (list number number number)
           (define/private (position->line-col-pos pos)
@@ -1638,31 +1395,7 @@ WARNING: printf is rebound in the body of the unit to always
                       (func (send snip copy) line-col-pos)
                       (loop (send snip next))]))]
                 [else (void)])))
-          
-          ;; dequeue-n : queue number -> queue
-          (define/private (dequeue-n queue n)
-            (let loop ([q queue]
-                       [n n])
-              (cond
-                [(zero? n) q]
-                [(queue-empty? q) (error 'dequeue-n "not enough!")]
-                [else (loop (queue-rest q) (- n 1))])))
-          
-          ;; peek-n : queue number -> queue
-          (define/private (peek-n queue init-n)
-            (let loop ([q queue]
-                       [n init-n])
-              (cond
-                [(zero? n) 
-                 (when (queue-empty? q)
-                   (error 'peek-n "not enough; asked for ~a but only ~a available" 
-                          init-n 
-                          (queue-size queue)))
-                 (queue-first q)]
-                [else 
-                 (when (queue-empty? q)
-                   (error 'dequeue-n "not enough!"))
-                 (loop (queue-rest q) (- n 1))])))
+
                 
           ;; split-queue : converter (queue (cons (union snip bytes) style) 
           ;;            -> (values (listof (queue (cons (union snip bytes) style)) queue)
@@ -1734,9 +1467,357 @@ WARNING: printf is rebound in the body of the unit to always
                      [else (if acc
                                (values (cons acc key) lst)
                                (values fst (cdr lst)))]))])))
+          
           (super-new)
-          (init-input-port)
-          (init-output-ports)))
+          (init-output-ports)
+          (define-values (in-port read-chan clear-input-chan)
+            (start-text-input-port this #f))
+          (define-values (in-box-port box-read-chan box-clear-input-chan) 
+            (start-text-input-port this (lambda () (on-box-peek))))))
+
+      (define input-box<%>
+        (interface ((class->interface text%))
+          box-input-not-used-anymore
+          set-port-text))
+      
+      (define input-box-mixin
+        (mixin ((class->interface text%)) (input-box<%>)
+          (inherit erase lock)
+          
+          (define port-text #f)
+          (define/public (set-port-text pt) (set! port-text pt))
+          
+          (define in-use? #t)
+          (define/public (box-input-not-used-anymore)
+            (lock #t)
+            (set! in-use? #f))
+          
+          (define/override (on-default-char kevt)
+            (super on-default-char kevt)
+            (when in-use?
+              (case (send kevt get-key-code)
+                [(numpad-enter #\return)
+                 (send port-text new-box-input this)]
+                [else (void)])))
+          
+          (super-new)))
+      
+      (define (start-text-input-port source on-peek)
+
+        ;; eventspace at the time this function was called. used for peek callbacks
+        (define eventspace (current-eventspace))
+        
+        ;; read-chan : (channel (cons (union byte snip eof) line-col-pos))
+        ;; send input from the editor
+        (define read-chan (make-channel))
+        
+        ;; clear-input-chan : (channel void)
+        (define clear-input-chan (make-channel))
+        
+        ;; progress-event-chan : (channel (cons (channel event) nack-evt)))
+        (define progress-event-chan (make-channel))
+        
+        ;; peek-chan : (channel peeker)
+        (define peek-chan (make-channel))
+        
+        ;; commit-chan : (channel committer)
+        (define commit-chan (make-channel))
+        
+        ;; position-chan : (channel (cons (channel void) (channel line-col-pos)))
+        (define position-chan (make-channel))
+        
+        (define input-buffer-thread
+          (thread
+           (λ ()
+             
+             ;; these vars are like arguments to the loop function
+             ;; they are only set right before loop is called.
+             ;; This is done to avoid passing the same arguments
+             ;; over and over to loop.
+             (define peeker-sema (make-semaphore 0))
+             (define peeker-evt (semaphore-peek-evt peeker-sema))
+             (define bytes-peeked 0)
+             (define response-evts '())
+             (define peekers '())     ;; waiting for a peek
+             (define committers '())  ;; waiting for a commit
+             (define positioners '()) ;; waiting for a position
+             (define data (empty-queue)) ;; (queue (cons (union byte snip eof) line-col-pos))
+             (define position #f)
+             
+             ;; loop : -> alpha
+             ;; the main loop for this thread
+             (define (loop)
+               (let-values ([(not-ready-peekers new-peek-response-evts)
+                             (separate peekers service-waiter)]
+                            [(potential-commits new-commit-response-evts) 
+                             (separate 
+                              committers
+                              (service-committer data peeker-evt))])
+                 (set! peekers not-ready-peekers)
+                 (set! committers potential-commits)
+                 (set! response-evts 
+                       (append response-evts
+                               new-peek-response-evts
+                               new-commit-response-evts))
+                 (sync
+                  (handle-evt
+                   position-chan
+                   (λ (pr)
+                     (dprintf "i: position-chan\n")
+                     (let ([nack-chan (car pr)]
+                           [resp-chan (cdr pr)])
+                       (set! positioners (cons pr positioners))
+                       (loop))))
+                  (if position
+                      (apply choice-evt (map service-positioner positioners))
+                      never-evt)
+                  (handle-evt
+                   read-chan
+                   (λ (ent)
+                     (dprintf "i: read-chan\n")
+                     (set! data (enqueue ent data))
+                     (unless position
+                       (set! position (cdr ent)))
+                     (loop)))
+                  (handle-evt
+                   clear-input-chan
+                   (λ (_)
+                     (dprintf "i: clear-input-chan\n")
+                     (semaphore-post peeker-sema)
+                     (set! peeker-sema (make-semaphore 0))
+                     (set! peeker-evt (semaphore-peek-evt peeker-sema))
+                     (set! data (empty-queue))
+                     (set! position #f)
+                     (loop)))
+                  (handle-evt
+                   progress-event-chan
+                   (λ (return-pr)
+                     (dprintf "i: progress-event-chan\n")
+                     (let ([return-chan (car return-pr)]
+                           [return-nack (cdr return-pr)])
+                       (set! response-evts
+                             (cons (choice-evt
+                                    return-nack
+                                    (channel-put-evt return-chan peeker-evt))
+                                   response-evts))
+                       (loop))))
+                  (handle-evt
+                   peek-chan
+                   (λ (peeker)
+                     (dprintf "i: peek-chan\n")
+                     (when on-peek
+                       (parameterize ([current-eventspace eventspace])
+                         (queue-callback on-peek)))
+                     (set! peekers (cons peeker peekers))
+                     (loop)))
+                  (handle-evt
+                   commit-chan
+                   (λ (committer)
+                     (dprintf "i:commit-chan\n")
+                     (set! committers (cons committer committers))
+                     (loop)))
+                  (apply 
+                   choice-evt
+                   (map
+                    (λ (a-committer)
+                      (match a-committer
+                        [($ committer 
+                            kr
+                            commit-peeker-evt
+                            done-evt
+                            resp-chan
+                            resp-nack)
+                         (choice-evt
+                          (handle-evt 
+                           commit-peeker-evt
+                           (λ (_)
+                             (dprintf "i: commit-peeker-evt\n")
+                             ;; this committer will be thrown out in next iteration
+                             (loop)))
+                          (handle-evt
+                           done-evt
+                           (λ (v)
+                             (dprintf "i: done-evt\n")
+                             (let ([nth-pos (cdr (peek-n data (- kr 1)))])
+                               (set! position
+                                     (list (car nth-pos)
+                                           (+ 1 (cadr nth-pos))
+                                           (+ 1 (caddr nth-pos)))))
+                             (set! data (dequeue-n data kr))
+                             (semaphore-post peeker-sema)
+                             (set! peeker-sema (make-semaphore 0))
+                             (set! peeker-evt (semaphore-peek-evt peeker-sema))
+                             (set! committers (remq a-committer committers))
+                             (set! response-evts
+                                   (cons 
+                                    (choice-evt
+                                     resp-nack
+                                     (channel-put-evt resp-chan #t))
+                                    response-evts))
+                             (loop))))]))
+                    committers))
+                  (apply choice-evt 
+                         (map (λ (resp-evt)
+                                (handle-evt
+                                 resp-evt
+                                 (λ (_)
+                                   (dprintf "i: resp-evt\n")
+                                   (set! response-evts (remq resp-evt response-evts))
+                                   (loop))))
+                              response-evts)))))
+             
+             ;; service-positioner : (cons (channel void) (channel line-col-pos)) -> evt
+             (define (service-positioner pr)
+               (let ([nack-evt (car pr)]
+                     [resp-evt (cdr pr)])
+                 (handle-evt
+                  (choice-evt nack-evt 
+                              (channel-put-evt resp-evt position))
+                  (let ([sent-position position])
+                    (λ (_) 
+                      (set! positioners (remq pr positioners))
+                      (loop))))))
+             
+             ;; service-committer : queue evt -> committer -> (union #f evt)
+             ;; if the committer can be dumped, return an evt that
+             ;; does the dumping. otherwise, return #f
+             (define ((service-committer data peeker-evt) a-committer)
+               (match a-committer
+                 [($ committer
+                     kr commit-peeker-evt
+                     done-evt resp-chan resp-nack)
+                  (let ([size (queue-size data)])
+                    (cond
+                      [(not (eq? peeker-evt commit-peeker-evt))
+                       (choice-evt
+                        resp-nack
+                        (channel-put-evt resp-chan #f))]
+                      [(< size kr)
+                       (choice-evt
+                        resp-nack
+                        (channel-put-evt resp-chan 'commit-failure))]
+                      [else  ;; commit succeeds
+                       #f]))]))
+             
+             ;; service-waiter : peeker -> (union #f evt)
+             ;; if the peeker can be serviced, build an event to service it
+             ;; otherwise return #f
+             (define (service-waiter a-peeker)
+               (match a-peeker
+                 [($ peeker bytes skip-count pe resp-chan nack-evt)
+                  (cond
+                    [(and pe (not (eq? pe peeker-evt)))
+                     (choice-evt (channel-put-evt resp-chan #f)
+                                 nack-evt)]
+                    [((queue-size data) . > . skip-count)
+                     (let ([nth (car (peek-n data skip-count))])
+                       (choice-evt
+                        nack-evt
+                        (cond
+                          [(byte? nth)
+                           (bytes-set! bytes 0 nth)
+                           (channel-put-evt resp-chan 1)]
+                          [(eof-object? nth)
+                           (channel-put-evt resp-chan nth)]
+                          [else
+                           (channel-put-evt 
+                            resp-chan
+                            (λ (src line col pos)
+                              (if (is-a? nth readable-snip<%>)
+                                  (send nth read-special src line col pos)
+                                  nth)))])))]
+                    [else
+                     #f])]))
+             
+             ;; separate (listof X) (X -> (union #f Y)) -> (values (listof X) (listof Y))
+             ;; separates `eles' into two lists -- those that `f' returns #f for
+             ;; and then the results of calling `f' for those where `f' doesn't return #f
+             (define (separate eles f)
+               (let loop ([eles eles]
+                          [transformed '()]
+                          [left-alone '()])
+                 (cond
+                   [(null? eles) (values left-alone transformed)]
+                   [else (let* ([ele (car eles)]
+                                [maybe (f ele)])
+                           (if maybe
+                               (loop (cdr eles)
+                                     (cons maybe transformed)
+                                     left-alone)
+                               (loop (cdr eles)
+                                     transformed
+                                     (cons ele left-alone))))])))
+             
+             ;;; start things going
+             (loop))))
+        
+        ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        ;;
+        ;;  the following must be able to run
+        ;;  in any thread (even concurrently)
+        ;;
+        (define (read-bytes-proc bstr)
+          (let* ([progress-evt (progress-evt-proc)]
+                 [v (peek-proc bstr 0 progress-evt)])
+            (cond
+              [(sync/timeout 0 progress-evt) 0]
+              [else (wrap-evt 
+                     v 
+                     (λ (v) 
+                       (if (and (number? v) (zero? v))
+                           0
+                           (if (commit-proc (if (number? v) v 1)
+                                            progress-evt
+                                            always-evt)
+                               v
+                               0))))])))
+        
+        (define (peek-proc bstr skip-count progress-evt)
+          (nack-guard-evt
+           (λ (nack)
+             (let ([chan (make-channel)])
+               (channel-put peek-chan (make-peeker bstr skip-count progress-evt chan nack))
+               chan))))
+        
+        (define (progress-evt-proc)
+          (sync
+           (nack-guard-evt
+            (λ (nack)
+              (let ([chan (make-channel)])
+                (channel-put progress-event-chan (cons chan nack))
+                chan)))))
+        
+        (define (commit-proc kr progress-evt done-evt)
+          (sync
+           (nack-guard-evt
+            (λ (nack)
+              (let ([chan (make-channel)])
+                (channel-put commit-chan (make-committer kr progress-evt done-evt chan nack))
+                chan)))))
+        
+        (define (close-proc) (void))
+        
+        (define (position-proc)
+          (let ([chan (make-channel)])
+            (apply 
+             values
+             (sync
+              (nack-guard-evt
+               (λ (fail)
+                 (channel-put position-chan (cons fail chan))
+                 chan))))))
+        
+        (values 
+         (make-input-port source
+                          read-bytes-proc
+                          peek-proc
+                          close-proc
+                          progress-evt-proc
+                          commit-proc
+                          position-proc)
+         read-chan
+         clear-input-chan))
+      
 
       ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
       ;;
@@ -1778,6 +1859,31 @@ WARNING: printf is rebound in the body of the unit to always
           (set-queue-front! q '())
           ans))
       
+      ;; dequeue-n : queue number -> queue
+      (define (dequeue-n queue n)
+        (let loop ([q queue]
+                   [n n])
+          (cond
+            [(zero? n) q]
+            [(queue-empty? q) (error 'dequeue-n "not enough!")]
+            [else (loop (queue-rest q) (- n 1))])))
+      
+      ;; peek-n : queue number -> queue
+      (define (peek-n queue init-n)
+        (let loop ([q queue]
+                   [n init-n])
+          (cond
+            [(zero? n) 
+             (when (queue-empty? q)
+               (error 'peek-n "not enough; asked for ~a but only ~a available" 
+                      init-n 
+                      (queue-size queue)))
+             (queue-first q)]
+            [else 
+             (when (queue-empty? q)
+               (error 'dequeue-n "not enough!"))
+             (loop (queue-rest q) (- n 1))])))
+      
       ;;
       ;;  end queue abstraction
       ;;
@@ -1788,6 +1894,7 @@ WARNING: printf is rebound in the body of the unit to always
       (define nbsp->space% (nbsp->space-mixin basic%))
       (define delegate% (delegate-mixin basic%))
       (define standard-style-list% (editor:standard-style-list-mixin (wide-snip-mixin basic%)))
+      (define input-box% (input-box-mixin standard-style-list%))
       (define -keymap% (editor:keymap-mixin standard-style-list%))
       (define return% (return-mixin -keymap%))
       (define autowrap% (editor:autowrap-mixin -keymap%))

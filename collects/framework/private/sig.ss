@@ -307,6 +307,7 @@
      file<%>
      clever-file-format<%>
      ports<%>
+     input-box<%>
      
      basic% 
      hide-caret/selection%
@@ -323,7 +324,8 @@
      backup-autosave%
      searching%
      info%
-
+     input-box%
+     
      basic-mixin
      foreground-color-mixin
      hide-caret/selection-mixin
@@ -335,7 +337,8 @@
      info-mixin
      file-mixin
      clever-file-format-mixin
-     ports-mixin))
+     ports-mixin
+     input-box-mixin))
   (define-signature framework:text-fun^
     ())
   (define-signature framework:text^

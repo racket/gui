@@ -261,8 +261,8 @@
                       (coroutine
                        (λ (enable-suspend)
                          (parameterize ((port-count-lines-enabled #t))
-                           (re-tokenize (open-input-text-editor this current-pos end-pos
-                                                              (λ (x) #f))
+                           (re-tokenize (open-input-text-editor this current-pos end-pos 
+                                                                (λ (x) #f))
                                         current-pos
                                         enable-suspend)))))
                 (set! rev (get-revision-number)))
