@@ -878,6 +878,43 @@
       
       (define open-here-mixin
         (mixin (-editor<%>) (open-here<%>)
+
+          (rename [super-file-menu:new-on-demand file-menu:new-on-demand])
+          (define/override (file-menu:new-on-demand item)
+            (super-file-menu:new-on-demand item)
+            (send item set-label (if (preferences:get 'framework:open-here?)
+                                     (string-constant new-...-menu-item)
+                                     (string-constant new-menu-item))))
+          
+          (rename [super-file-menu:new-callback file-menu:new-callback])
+          (define/override (file-menu:new-callback item event)
+            (cond
+              [(preferences:get 'framework:open-here?)
+               (let ([clear-current (ask-about-new-here)])
+                 (cond
+                   [(eq? clear-current 'cancel) (void)]
+                   [clear-current
+                    (let ([editor (get-editor)])
+                      (send editor begin-edit-sequence)
+                      (send editor set-filename #f)
+                      (send editor erase)
+                      (send editor set-modified #f)
+                      (send editor end-edit-sequence))]
+                   [else (super-file-menu:new-callback item event)]))]
+              [else (super-file-menu:new-callback item event)]))
+          
+          ;; ask-about-new-here : -> (union 'cancel boolean?)
+          ;; prompts the user about creating a new window
+          ;; or "reusing" the current one.
+          (define/private (ask-about-new-here)
+            (gui-utils:get-choice
+             (string-constant create-new-window-or-clear-current)
+             (string-constant clear-current)
+             (string-constant new-window)
+             (string-constant drscheme)
+             'cancel
+             this))
+            
           (rename [super-file-menu:open-on-demand file-menu:open-on-demand])
           (define/override (file-menu:open-on-demand item)
             (super-file-menu:open-on-demand item)

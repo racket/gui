@@ -152,7 +152,7 @@
     "Anyway\"}. The result symbol indicates the user's choice. If"
     "\\var{can-save-now?} is \\rawscm{\\#f}, this function does not"
     "give the user the ``Save'' option and thus will not return"
-    "\rawscm{'save}.")
+    "\\rawscm{'save}.")
 
    (gui-utils:get-choice
     (opt->
@@ -178,7 +178,7 @@
     "clicks on \\var{false-choice}, \\rawscm{\\#f} is returned."
     ""
     "The argument \\var{default-result} determines how closing the window is"
-    "treated. If the argument is \rawscm{'disallow-close}, closing the window"
+    "treated. If the argument is \\rawscm{'disallow-close}, closing the window"
     "is not allowed. If it is anything else, that value is returned when"
     "the user closes the window."
     ""

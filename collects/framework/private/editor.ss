@@ -319,7 +319,7 @@
            (lambda (name)
              (let ([filename (if name
                                  (file-name-from-path (normalize-path name))
-                                 "")])
+                                 (gui-utils:next-untitled-name))])
                (for-each (lambda (canvas)
                            (let ([tlw (send canvas get-top-level-window)])
                              (when (and (is-a? tlw frame:editor<%>)
