@@ -109,39 +109,34 @@
       
       ;; after-insert ((is-a?/c snip%) (is-a?/c snip%) number? number? . -> . void?)
       ;; called after a snip is inserted to the pasteboard
-      (rename [super-after-insert after-insert])
-      (define/override (after-insert snip before x y)
+      (define/augment (after-insert snip before x y)
         (aligned-min-sizes-invalid)
-        (super-after-insert snip before x y))
+        (inner (void) after-insert snip before x y))
       
       ;; after-delete ((is-a?/c snip%) . -> . void?)
       ;; called after a snip is deleted from the pasteboard%
-      (rename [super-after-delete after-delete])
-      (define/override (after-delete snip)
+      (define/augment (after-delete snip)
         (aligned-min-sizes-invalid)
-        (super-after-delete snip))
+        (inner (void) after-delete snip))
       
       ; after-reorder ((is-a?/c snip%) (is-a?/c snip%) boolean? . -> . void?)
       ;; called after a snip is moved in the front to back snip order
-      (rename [super-after-reorder after-reorder])
-      (define/override (after-reorder snip to-snip before?)
+      (define/augment (after-reorder snip to-snip before?)
         (realign-to-alloted)
-        (super-after-reorder snip to-snip before?))
+        (inner (void) after-reorder snip to-snip before?))
       
       ;; resized ((is-a?/c snip%) . -> . void?)
       ;; called when a snip inside the editor is resized
-      (rename [super-resized resized])
       (define/override (resized snip redraw-now?)
-        (super-resized snip redraw-now?)
+        (super resized snip redraw-now?)
         (unless ignore-resizing?
           (aligned-min-sizes-invalid)))
       
       ;; after-edit-sequence (-> void?)
       ;; called after an edit-sequence ends
-      (rename [super-after-edit-sequence after-edit-sequence])
-      (define/override (after-edit-sequence)
-        (super-after-edit-sequence)
-        (when needs-realign? (aligned-min-sizes-invalid)))
+      (define/augment (after-edit-sequence)
+        (when needs-realign? (aligned-min-sizes-invalid))
+        (inner (void) after-edit-sequence))
       
       (super-new)))
   

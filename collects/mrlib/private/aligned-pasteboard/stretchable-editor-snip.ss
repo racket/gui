@@ -53,9 +53,8 @@
       (define/public (stretch w h)
         (super-resize w h))
       
-      (rename [super-get-extent get-extent])
       (define/override (get-extent dc x y w h descent space lspace rspace)
-        (super-get-extent dc x y w h descent space lspace rspace)
+        (super get-extent dc x y w h descent space lspace rspace)
         (when (is-a? (get-editor) text%)
           (set-box! w (sub1 (unbox w))))
         (go))
@@ -68,8 +67,6 @@
         ;; account for margin !!!!!!
         (send (get-editor) set-min-height h))
       
-      (rename [super-set-min-width set-min-width]
-              [super-set-min-height set-min-height])
       (define/public (super-resize w h)
         (let ((top (box 0))
               (bot (box 0))
@@ -84,8 +81,8 @@
             ;; because the C code has a hack to sub1 to make it look better. I am not
             ;; sure if this change here is sound and works for every part of this
             ;; class.
-            (super-set-min-width w)
-            (super-set-min-height h)
+            (super set-min-width w)
+            (super set-min-height h)
             (when a (send a resized this #t)))))
       
       ;; call this from within get extent and use the values it produces by subtracting the

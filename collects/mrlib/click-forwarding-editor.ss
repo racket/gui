@@ -17,15 +17,14 @@
       
       ;; on-event ((is-a?/c mouse-event%) . -> . void?)
       ;; overridden to give focus to child snips when clicked
-      (rename [super-on-event on-event]) 
       (define/override (on-event event)
         (if (memq (send event get-event-type)
                   '(left-down left-up middle-down middle-up right-down right-up))
             (let ([snip (find-snip/global (send event get-x) (send event get-y))])
               (if (is-a? snip snip%)
                   (forward-event snip event)
-                  (super-on-event event)))
-            (super-on-event event)))
+                  (super on-event event)))
+            (super on-event event)))
       
       ;; forward-event ((is-a?/c snip%) (is-a?/c mouse-event%) . -> . void?)
       ;; send the event to the snip

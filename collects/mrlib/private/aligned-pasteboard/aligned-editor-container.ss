@@ -49,9 +49,8 @@
       
       ;; on-size (number? number? . -> . (void))
       ;; called when the canvas's parent size changes
-      (rename (super-on-size on-size))
       (define/override (on-size width height)
-        (super-on-size width height)
+        (super on-size width height)
         (let ([w (- width width-diff machenrys-constant)]
               [h (- height height-diff machenrys-constant)])
           (when (and (positive? w) (positive? h))
@@ -170,9 +169,8 @@
       
       ;; This code is needed to probe the tree of editors for their real sizes when they
       ;; finally know them. This happens when the top level snip gets an admin.
-      (rename [super-set-admin set-admin])
       (define/override (set-admin admin)
-        (super-set-admin admin)
+        (super set-admin admin)
         (let ([parent (snip-parent this)])
           (when (and parent (not (is-a? parent aligned-pasteboard<%>)))
             (set-aligned-min-sizes)
