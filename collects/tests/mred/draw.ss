@@ -411,7 +411,17 @@
 				      (send dc draw-rectangle (+ x 50) y 20 20)
 				      (send dc set-background obg)
 				      (send dc set-brush ob)
-				      (loop x (+ y 25) (cdr l)))))
+				      (loop x (+ y 25) (cdr l))))
+
+				  (send b set-style 'panel)
+				  (send b set-color (get-panel-background))
+				  (send dc set-brush b)
+				  (send dc draw-rectangle 320 10 20 20)
+				  (send dc draw-ellipse 320 35 20 20)
+				  (send dc draw-arc 320 60 20 20 0 3.14)
+				  (send dc draw-rounded-rectangle 320 85 20 20 2)
+
+				  (send dc set-brush ob))
 				
 				(send dc set-pen op))
 				
