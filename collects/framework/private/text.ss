@@ -33,7 +33,8 @@
       
       (define basic<%>
         (interface (editor:basic<%> (class->interface text%))
-          highlight-range      
+          highlight-range
+          get-highlighted-ranges
           get-styles-fixed
           set-styles-fixed
           move/copy-to-edit
@@ -54,6 +55,8 @@
           
           (define range-rectangles null)
           (define ranges null)
+          
+          (define/public (get-highlighted-ranges) ranges)
           
           (define (invalidate-rectangles rectangles)
             (let ([b1 (box 0)]
@@ -523,6 +526,7 @@
               new-snip))
 
           (field (delegate #f))
+          (inherit get-highlighted-ranges)
           (define/public (get-delegate) delegate)
           (define/public (set-delegate _d)
             (set! delegate _d)
@@ -542,6 +546,16 @@
                           (send delegate last-position)
                           (send delegate last-position))
                     (loop (send snip next)))))
+              (for-each
+               (lambda (range)
+                 (send delegate highlight-range 
+                       (range-start range)
+                       (range-end range)
+                       (range-color range)
+                       (range-b/w-bitmap range)
+                       (range-caret-space? range)
+                       'high))
+               (reverse (get-highlighted-ranges)))
               (send delegate lock #t)
               (send delegate end-edit-sequence)))
           
