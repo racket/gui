@@ -71,7 +71,10 @@
 	      [super-on-close on-close]
 	      [super-on-focus on-focus])
       (public
-        [get-filename (lambda () #f)])
+        [get-filename
+         (case-lambda
+          [() (get-filename #f)]
+          [(b) #f])])
       (private
 	[after-init? #f])
       (override
@@ -577,9 +580,11 @@
 	     
       (override
         [get-filename
-         (lambda ()
+         (case-lambda
+          [() (get-filename #f)]
+          [(b)
            (let ([e (get-editor)])
-             (and e (send e get-filename))))]
+             (and e (send e get-filename b)))])]
 	[on-close
 	 (lambda ()
 	   (super-on-close)
