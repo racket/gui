@@ -279,24 +279,9 @@
 	     (lambda ()
 	       (when mode 
 		 (send mode after-set-position this))
-	       (super-after-set-position))]
+	       (super-after-set-position))])
 	    
-	    [ranges null]
-	    
-	    ;; the bitmap is used in b/w and the color is used in color.
-	    [add-range 
-	     (lambda (start end bitmap color)
-	       (let ([l (make-range start end bitmap color)])
-		 (set! ranges (cons l ranges))
-		 (recompute-range-rectangles)
-		 (lambda () (set! ranges 
-				  (let loop ([r ranges])
-				    (cond
-				      [(null? r) r]
-				      [else (if (eq? (car r) l)
-						(cdr r)
-						(cons (car r) (loop (cdr r))))])))
-		   (recompute-range-rectangles))))]
+	  (private
 	    [range-rectangles null]
 	    [recompute-range-rectangles
 	     (lambda ()
@@ -357,6 +342,24 @@
 		 (for-each invalidate-rectangle old-rectangles)
 		 (for-each invalidate-rectangle range-rectangles)
 		 (end-edit-sequence)))]
+	    [ranges null])
+
+	  (public
+	    ;; the bitmap is used in b/w and the color is used in color.
+	    [highlight-range
+	     (opt-lambda (start end color [bitmap #f])
+	       (let ([l (make-range start end bitmap color)])
+		 (set! ranges (cons l ranges))
+		 (recompute-range-rectangles)
+		 (lambda () (set! ranges 
+				  (let loop ([r ranges])
+				    (cond
+				      [(null? r) r]
+				      [else (if (eq? (car r) l)
+						(cdr r)
+						(cons (car r) (loop (cdr r))))])))
+		   (recompute-range-rectangles))))]
+
 	    [on-paint
 	     (lambda (before dc left top right bottom dx dy draw-caret)
 	       (super-on-paint before dc left top right bottom dx dy draw-caret)
@@ -366,18 +369,34 @@
 				   [brush (make-object wx:brush% "black" wx:const-stipple)]
 				   [old-pen (send dc get-pen)]
 				   [old-brush (send dc get-brush)]
+				   [old-logical-function (send dc get-logical-function)]
 				   [b/w-bitmap (rectangle-b/w-bitmap rectangle)]
+				   [color (rectangle-color rectangle)]
 				   [left (rectangle-left rectangle)]
 				   [top (rectangle-top rectangle)]
 				   [width (rectangle-width rectangle)]
 				   [height (rectangle-height rectangle)])
-			       (send pen set-stipple b/w-bitmap)
-			       (send brush set-stipple b/w-bitmap)
+			       (cond
+				 [(and color
+				       (not (eq? wx:platform 'unix))
+				       (<= 8 (wx:display-depth)))	
+				  (send pen set-style wx:const-solid)
+				  (send brush set-style wx:const-solid)
+				  (send pen set-colour color)
+				  (send brush set-colour color)
+				  (send dc set-logical-function wx:const-or-reverse)]
+				 [b/w-bitmap
+				  (send pen set-stipple b/w-bitmap)
+				  (send brush set-stipple b/w-bitmap)]
+				 [else (send dc set-logical-function wx:const-xor)
+				       (send pen set-style wx:const-solid)
+				       (send brush set-style wx:const-solid)])
 			       (send dc set-pen pen)
 			       (send dc set-brush brush)
 			       (unless (or (zero? width)
 					   (zero? height))
 				 (send dc draw-rectangle (+ left dx) (+ top dy) width height))
+			       (send dc set-logical-function old-logical-function)
 			       (send dc set-pen old-pen)
 			       (send dc set-brush old-brush)))
 			   range-rectangles)))])
