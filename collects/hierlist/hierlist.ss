@@ -45,6 +45,12 @@
 				    (send (send (send d new-item) get-buffer) insert (number->string i))
 				    (loop (sub1 i)))))))
 
+(define x (send c new-list))
+(send (send x get-buffer) insert "x")
+
+(define y (send c new-item))
+(send (send y get-buffer) insert "y")
+
 (send f show #t)
 
 |#
