@@ -237,7 +237,7 @@
 
 (define mred:startup
   (lambda args
-    ; (send mred:the-frame-group set-empty-callback (lambda () #t))
+    (send mred:the-frame-group set-empty-callbacks (lambda () #t) (lambda () #t))
     (do-test)
     (make-object mred:console-frame%)))
 
