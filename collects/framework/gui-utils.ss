@@ -13,6 +13,19 @@
   
   (provide/contract/docs
    
+   (gui-utils:trim-string
+    (string?
+     (and/f number? positive?)
+     . ->d .
+     (lambda (str size)
+       (and/f string?
+	      (lambda (str)
+		((string-length str) . <= . size)))))
+    (str size)
+    "Constructs a string whose size is less"
+    "than \\var{size} by trimming the \\var{str}"
+    "and inserting an ellispses into it.")
+
    (gui-utils:cancel-on-right?
     (-> boolean?)
     ()
@@ -219,6 +232,30 @@
     "See also"
     "@flink gui-utils:get-clicked-clickback-delta %"
     "."))
+
+  (define (trim-string str size)
+    (let ([str-size (string-length str)])
+      (cond
+	[(<= str-size size)
+	 str]
+	[else
+	 (let* ([between "..."]
+		[pre-length (- (quotient size 2)
+			       (quotient (string-length between) 2))]
+		[post-length (- size
+				pre-length
+				(string-length between))])
+	   (cond
+	     [(or (<= pre-length 0)
+		  (<= post-length 0))
+	      (substring str 0 size)]
+	     [else
+	      (string-append
+	       (substring str 0 pre-length)
+	       between
+	       (substring str
+			  (- str-size post-length)
+			  str-size))]))])))
   
   ;; selected-text-color : color
   (define selected-text-color (send the-color-database find-color "black"))
@@ -438,6 +475,7 @@
           [else mb-res]))))
   
   ;; manual renaming
+  (define gui-utils:trim-string trim-string)
   (define gui-utils:next-untitled-name next-untitled-name)
   (define gui-utils:show-busy-cursor show-busy-cursor)
   (define gui-utils:delay-action delay-action)
