@@ -28,15 +28,25 @@ The drawing area should have the following features:
     (strictly on borders for the top polygon, drawn over blue in the
     bottom polygon).
 
-  To the far right should be three columns of boxes. All boxes should
-    have a red border and lines on a background that matches the
-    normal background (i.e., either white or cyan). The lines should
-    be black for the left colum, and green for the remaining two
-    columns.
+  Toward the right should be three columns of boxes, with a fourth
+    column that starts with a box. All boxes should have a red border.
+    In the first thre columns, the boxes shold contain lines on a
+    background that matches the normal background (i.e., either white
+    or cyan). The lines should be black for the left colum, and green
+    for the second and third columns. In the fourth column, the shapes
+    should be filled with the platform-specific panel background
+    pattern; the third shape should be a semi-circle with no outline
+    on the bottm edge.
 
-  Under the three columns of boxes, a black box should be filled with
-    an 25% black B&W bitmap, and a red box frame should be draw with a
-    50% red stipple.
+  On the far right (to the the right of the columns) should appear an
+   X, a cross, and an narrow X tilted NW. Each should be drawn in
+   green (5 pixels wide) with a thin black line centered along each
+   green line.  Scaling the piture should make the green line thicker,
+   but not the black line, and the black line should stay centered.
+
+  Under the columns of boxes, a black box should be filled with an 25%
+    black B&W bitmap, and a red box frame should be draw with a 50%
+    red stipple.
 
   To the right of those two boxes should appear two little boxes,
     black pixels on a tan background, the top one 8x8 and the bottom
