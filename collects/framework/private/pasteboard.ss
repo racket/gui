@@ -1,11 +1,19 @@
-(unit/sig framework:pasteboard^
-  (import mred^
-	  [editor : framework:editor^])
+(module pasteboard mzscheme
+  (require (lib "unitsig.ss")
+	   "sig"
+	   (lib "mred-sig.ss" "mred"))
 
-  (rename [-keymap% keymap%])
+  (provide pasteboard@)
 
-  (define basic% (editor:basic-mixin pasteboard%))
-  (define -keymap% (editor:keymap-mixin basic%))
-  (define file% (editor:file-mixin -keymap%))
-  (define backup-autosave% (editor:backup-autosave-mixin file%))
-  (define info% (editor:info-mixin backup-autosave%)))
+  (define pasteboard@
+    (unit/sig framework:pasteboard^
+      (import mred^
+	      [editor : framework:editor^])
+
+      (rename [-keymap% keymap%])
+
+      (define basic% (editor:basic-mixin pasteboard%))
+      (define -keymap% (editor:keymap-mixin basic%))
+      (define file% (editor:file-mixin -keymap%))
+      (define backup-autosave% (editor:backup-autosave-mixin file%))
+      (define info% (editor:info-mixin backup-autosave%)))))

@@ -1,11 +1,14 @@
 (module canvas mzscheme
   (require (lib "unitsig.ss")
-	   "../sig.ss"
-	   (lib "mred.ss" "mred"))
+	   "sig.ss"
+	   (lib "mred-sig.ss" "mred"))
+
+  (provide canvas@)
 
   (define canvas@
     (unit/sig framework:canvas^
-      (import [preferences : framework:preferences^]
+      (import [mred : mred^]
+	      [preferences : framework:preferences^]
 	      [frame : framework:frame^])
       
       (define basic<%> (interface ((class->interface editor-canvas%))))

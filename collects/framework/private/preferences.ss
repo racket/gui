@@ -1,4 +1,11 @@
-(unit/sig framework:preferences^
+(module preferences mzscheme
+  (require (lib "unitsig.ss")
+	   "sig"
+	   (lib "mred-sig.ss" "mred"))
+
+  (provide preferences@)
+  (define preferences@
+    (unit/sig framework:preferences^
   (import mred^
 	  [prefs-file : framework:prefs-file^]
 	  [exn : framework:exn^]
@@ -642,4 +649,4 @@
 	  (send popup-menu set-selection 0))
 	(send popup-menu focus)
 	(send frame show #t)
-	frame))))
+	frame))))))

@@ -1,3 +1,11 @@
+(module text mzscheme
+  (require (lib "unitsig.ss")
+	   "sig"
+	   (lib "mred-sig.ss" "mred"))
+
+  (provide text@)
+
+  (define text@
 (unit/sig framework:text^
   (import mred^
 	  [icon : framework:icon^]
@@ -470,4 +478,4 @@
   (define clever-file-format% (clever-file-format-mixin file%))
   (define backup-autosave% (editor:backup-autosave-mixin clever-file-format%))
   (define searching% (searching-mixin backup-autosave%))
-  (define info% (info-mixin (editor:info-mixin searching%))))
+  (define info% (info-mixin (editor:info-mixin searching%))))))

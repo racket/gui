@@ -1,12 +1,15 @@
 (module editor mzscheme
   (require (lib "unitsig.ss")
-	   "../sig.ss"
-	   (lib "file.ss")
-	   (lib "mred.ss" "mred"))
+	   "sig.ss"
+	   (lib "mred-sig.ss" "mred")
+	   (lib "file.ss"))
+
+  (provide editor@)
 
   (define editor@
     (unit/sig framework:editor^
-      (import [autosave : framework:autosave^]
+      (import [mred : mred^]
+	      [autosave : framework:autosave^]
 	      [finder : framework:finder^]
 	      [path-utils : framework:path-utils^]
 	      [keymap : framework:keymap^]

@@ -1,6 +1,9 @@
 (module application mzscheme
   (require (lib "unitsig.ss")
-	   "../sig.ss")
+	   "sig.ss"
+	   (lib "mred-sig.ss" "mred"))
+
+  (provide application@)
 
   (define application@
     (unit/sig framework:application^

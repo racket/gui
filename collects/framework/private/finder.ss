@@ -1,9 +1,12 @@
 (module finder mzscheme
   (require (lib "unitsig.ss")
-	   "../sig.ss"
+	   "sig.ss"
+	   (lib "mred-sig.ss" "mred")
 	   (lib "string.ss")
 	   (lib "function.ss")
 	   (lib "file.ss"))
+
+  (provide finder@)
 
   (define finder@
     (unit/sig framework:finder^

@@ -1,3 +1,11 @@
+(module menu mzscheme
+  (require (lib "unitsig.ss")
+	   "sig"
+	   (lib "mred-sig.ss" "mred"))
+
+  (provide menu@)
+
+  (define menu@
 (unit/sig framework:menu^
   (import mred^
           [preferences : framework:preferences^])
@@ -23,4 +31,4 @@
           (set-shortcut #f)))))
   
   (define can-restore-menu-item% (can-restore-mixin menu-item%))
-  (define can-restore-checkable-menu-item% (can-restore-mixin checkable-menu-item%)))
+  (define can-restore-checkable-menu-item% (can-restore-mixin checkable-menu-item%)))))

@@ -1,3 +1,11 @@
+(module panel mzscheme
+  (require (lib "unitsig.ss")
+	   "sig"
+	   (lib "mred-sig.ss" "mred"))
+
+  (provide panel@)
+
+  (define panel@
 (unit/sig framework:panel^
   (import mred^
 	  [mzlib:function : mzlib:function^])
@@ -466,4 +474,4 @@
         (set! thumb-canvas (make-object thumb-canvas% this)))))
 
   (define vertical-resizable% (vertical-resizable-mixin panel%))
-  (define vertical-resizable-pane% (vertical-resizable-mixin pane%)))
+  (define vertical-resizable-pane% (vertical-resizable-mixin pane%)))))

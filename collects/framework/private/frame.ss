@@ -1,6 +1,14 @@
 (module frame mzscheme
-  (require (lib 
-(unit/sig framework:frame^
+  (require (lib "unitsig.ss")
+	   "sig.ss"
+	   (lib "mred-sig.ss" "mred")
+	   (lib "function.ss")
+	   (lib "file.ss"))
+
+  (provide frame@)
+
+  (define frame@
+    (unit/sig framework:frame^
   (import mred^
 	  [group : framework:group^]
 	  [preferences : framework:preferences^]
@@ -16,9 +24,7 @@
 	  [pasteboard : framework:pasteboard^]
 	  [editor : framework:editor^]
 	  [canvas : framework:canvas^]
-          [menu : framework:menu^]
-	  [mzlib:function : mzlib:function^]
-	  [mzlib:file : mzlib:file^])
+          [menu : framework:menu^])
 
   (rename [-editor<%> editor<%>]
 	  [-pasteboard% pasteboard%]
@@ -1516,6 +1522,4 @@
   (define searchable% (searchable-text-mixin (searchable-mixin text-info-file%)))
 
   (define -pasteboard% (pasteboard-mixin editor%))
-  (define pasteboard-info-file% (file-mixin -pasteboard%))
-  
-  )
+  (define pasteboard-info-file% (file-mixin -pasteboard%)))))

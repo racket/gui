@@ -1,12 +1,15 @@
 (module exit mzscheme
   (require (lib "unitsig.ss")
-	   "../sig.ss"
-	   (lib "file.ss")
-	   (lib "mred.ss" "mred"))
+	   "sig.ss"
+	   (lib "mred-sig.ss" "mred")
+	   (lib "file.ss"))
+
+  (provide exit@)
 
   (define exit@
     (unit/sig framework:exit^
-      (import [preferences : framework:preferences^]
+      (import [mred : mred^]
+	      [preferences : framework:preferences^]
 	      [gui-utils : framework:gui-utils^])
       (rename (-exit exit))
       

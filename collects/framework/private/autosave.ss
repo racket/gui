@@ -1,11 +1,14 @@
 (module autosave mzscheme
   (require (lib "unitsig.ss")
-	   "../sig.ss"
-	   (lib "mred.ss" "mred"))
+	   "sig.ss"
+	   (lib "mred-sig.ss" "mred"))
+
+  (provide autosave@)
 
   (define autosave@
     (unit/sig framework:autosave^
-      (import [exit : framework:exit^]
+      (import [mred : mred^]
+	      [exit : framework:exit^]
 	      [preferences : framework:preferences^])
       
       (define objects null)

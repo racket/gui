@@ -3,6 +3,14 @@
 
 ; Scheme mode for MrEd.
 
+(module scheme mzscheme
+  (require (lib "unitsig.ss")
+	   "sig"
+	   (lib "mred-sig.ss" "mred"))
+
+  (provide scheme@)
+
+  (define scheme@
 (unit/sig framework:scheme^
   (import mred^
 	  [preferences : framework:preferences^]
@@ -1021,6 +1029,4 @@
 		     (reset lambda-list-box lambda-keywords)
 		     #t))])
 	   (preferences:add-callback 'framework:tabify (lambda (p v) (update-list-boxes v)))
-	   main-panel)))))
-
-  )
+	   main-panel))))))))
