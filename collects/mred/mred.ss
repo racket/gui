@@ -3679,8 +3679,11 @@
 				  style)))))
     (public
       [swap-gl-buffers (lambda () (send wx swap-buffers))]
-      [grab-gl-context (lambda () (send wx this-context-current))]
-      [restore-gl-context (lambda () (send wx previous-context-current))]
+      [with-gl-context (lambda (thunk) 
+			 (dynamic-wind
+			     (lambda () (send wx this-context-current))
+			     thunk
+			     (lambda () (send wx previous-context-current))))]
 
       [accept-tab-focus (entry-point
 			 (case-lambda
