@@ -797,13 +797,15 @@
 
 	      [find-panel (make-object horizontal-panel% dialog)]
 	      [find-message (make-object message% "Find" find-panel)]
-	      [find-field (make-object text-field% #f find-panel void)]
-	      [f-text (send find-field get-editor)]
+	      [f-text (make-object text%)]
+	      [find-canvas (make-object editor-canvas% find-panel f-text
+					'(hide-hscroll hide-vscroll))]
 
 	      [replace-panel (make-object horizontal-panel% dialog)]
 	      [replace-message (make-object message% "Replace" replace-panel)]
-	      [replace-field (make-object text-field% #f replace-panel void)]
-	      [r-text (send replace-field get-editor)]
+	      [r-text (make-object text%)]
+	      [replace-canvas (make-object editor-canvas% replace-panel r-text
+					   '(hide-hscroll hide-vscroll))]
 
 	      [button-panel (make-object horizontal-panel% dialog)]
 	      [pref-check (make-object check-box%
@@ -844,16 +846,20 @@
 					   (send dialog show #f)))])
 	 (copy-text find-edit f-text)
 	 (copy-text replace-edit r-text)
-	 (send find-field min-width 400)
-	 (send replace-field min-width 400)
+	 (send find-canvas min-width 400)
+	 (send find-canvas set-line-count 2)
+	 (send find-canvas stretchable-height #f)
+	 (send find-canvas allow-tab-exit #t)
+	 (send replace-canvas min-width 400)
+	 (send replace-canvas set-line-count 2)
+	 (send replace-canvas stretchable-height #f)
+	 (send replace-canvas allow-tab-exit #t)
 	 (let ([msg-width (max (send find-message get-width)
 			       (send replace-message get-width))])
 	   (send find-message min-width msg-width)
 	   (send replace-message min-width msg-width))
-	 (send find-field focus)
-	 (send (send find-field get-editor) set-position
-	       0
-	       (send (send find-field get-editor) last-position))
+	 (send find-canvas focus)
+	 (send f-text set-position 0 (send f-text last-position))
 	 (send pref-check set-value (preferences:get 'framework:search-using-dialog?))
 	 (send button-panel set-alignment 'right 'center)
 	 (send dialog center 'both)
