@@ -184,6 +184,9 @@
 
     p))
 
+(define DRAW-WIDTH 550)
+(define DRAW-HEIGHT 375)
+
 (let* ([f (make-object frame% "Graphics Test" #f 600 550)]
        [vp (make-object vertical-panel% f)]
        [hp0 (make-object horizontal-panel% vp)]
@@ -217,19 +220,19 @@
 		 (show-instructions (local-path "draw-info.txt"))))
   (let ([canvas
 	 (make-object
-	  (class100 canvas% args
-	    (inherit get-dc refresh)
-	    (private-field
-	     [no-bitmaps? #f]
-	     [no-stipples? #f]
-	     [pixel-copy? #f]
-	     [kern? #f]
-	     [clip-pre-scale? #f]
-	     [mask-ex-mode 'mred]
-	     [xscale 1]
-	     [yscale 1]
-	     [offset 0])
-	    (public
+	  (class canvas%
+	    (init parent)
+	    (inherit get-dc refresh init-auto-scrollbars)
+	    (define no-bitmaps? #f)
+	    (define no-stipples? #f)
+	    (define pixel-copy? #f)
+	    (define kern? #f)
+	    (define clip-pre-scale? #f)
+	    (define mask-ex-mode 'mred)
+	    (define xscale 1)
+	    (define yscale 1)
+	    (define offset 0)
+	    (public*
 	     [set-bitmaps (lambda (on?) (set! no-bitmaps? (not on?)) (refresh))]
 	     [set-stipples (lambda (on?) (set! no-stipples? (not on?)) (refresh))]
 	     [set-pixel-copy (lambda (on?) (set! pixel-copy? on?) (refresh))]
@@ -238,7 +241,7 @@
 	     [set-mask-ex-mode (lambda (mode) (set! mask-ex-mode mode) (refresh))]
 	     [set-scale (lambda (xs ys) (set! xscale xs) (set! yscale ys) (refresh))]
 	     [set-offset (lambda (o) (set! offset o) (refresh))])
-	    (override
+	    (override*
 	     [on-paint
 	      (case-lambda
 	       [() (on-paint #f)]
@@ -262,7 +265,7 @@
 		       [bm (if use-bitmap?
 			       (if use-bad?
 				   (make-object bitmap% "no such file")
-				   (make-object bitmap% (* xscale 550) (* yscale 375) depth-one?))
+				   (make-object bitmap% (* xscale DRAW-WIDTH) (* yscale DRAW-HEIGHT) depth-one?))
 			       #f)]
 		       [draw-series
 			(lambda (dc pens pent penx size x y flevel last?)
@@ -1054,10 +1057,9 @@
 			(unless (cond
 				 [ps? #t]
 				 [use-bad? #t]
-				 [use-bitmap? (and (= w (* xscale 550)) (= h (* yscale 375)))]
-				 [else (= w (send this get-width)) (= h (send this get-height))])
-			  (error 'x "wrong size reported by get-size: ~a ~a; w & h is ~a ~a" 
-				 w h (send this get-width) (send this get-height))))
+				 [use-bitmap? (and (= w (* xscale DRAW-WIDTH)) (= h (* yscale DRAW-HEIGHT)))]
+				 [else (and (= w (* 2 DRAW-WIDTH)) (= h (* 2 DRAW-HEIGHT)))])
+			  (error 'x "wrong size reported by get-size: ~a ~a" w h)))
 
 		      (send dc set-clipping-region #f)
 
@@ -1069,7 +1071,8 @@
 		    (set! save-filename #f))
 
 		  'done)])])
-	    (sequence (apply super-init args)))
+	    (super-new [parent parent][style '(hscroll vscroll)])
+	    (init-auto-scrollbars (* 2 DRAW-WIDTH) (* 2 DRAW-HEIGHT) 0 0))
 	  vp)])
     (make-object radio-box% #f '("Canvas" "Pixmap" "Bitmap" "Bad") hp0
 		 (lambda (self event)
