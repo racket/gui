@@ -793,7 +793,8 @@
                                     (error 'frame:editor%
                                            "result of get-canvas% method must match ~e interface; got: ~e"
                                            <%> %))
-                                  (make-object % (get-area-container))))]
+                                  (instantiate % ()
+                                    (parent (get-area-container)))))]
           (define (get-editor%)
 	    (error 'editor-frame% "abstract method: no editor% class specified"))
           (define (get-editor<%>)
