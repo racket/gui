@@ -2676,11 +2676,8 @@
 	       (send wx force-display-focus on?)])]
 
       [set-line-count
-       (lambda (n) 
-	 (unless (or (not n) (and (number? n) (integer? n) (exact? n) (<= 1 100)))
-	   (raise-type-error (who->name '(method editor-canvas% set-line-count))
-			     "exact integer in [1, 100]"
-			     n))
+       (lambda (n)
+	 ((check-bounded-integer 1 1000) '(method editor-canvas% set-line-count) n)
 	 (send wx set-line-count n))]
 
       [get-editor (lambda () (send wx get-editor))]

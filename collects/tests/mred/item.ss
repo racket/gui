@@ -1090,7 +1090,7 @@
 			    "Visible Indices" p
 			    (lambda (b e)
 			      (printf "top: ~a~nvisible count: ~a~n"
-				      (send c get-first-visible)
+				      (send c get-first-visible-item)
 				      (send c number-of-visible-items))))))
   (define cdp (make-object horizontal-panel% p))
   (define rb (make-object button% "Clear" cdp
@@ -1178,7 +1178,7 @@
   (define dummy-3 (make-selectors (lambda (p)
 				    (let ([e (make-object control-event% (if list? 'list-box 'choice))])
 				      (send c set-selection p)
-				      (when list? (send c set-first-visible p))
+				      (when list? (send c set-first-visible-item p))
 				      (send c command e)))
 				  " by Simulate" #t))
   (define tb (make-object button%
@@ -1357,9 +1357,9 @@
 	   [small? (send ck-s get-value)]
 	   [swap? (send ck-w get-value)])
       (send c1 set-vsize 10 10)
-      (send c1 set-scrollbars (if h? 1 -1) (if v? 1 -1) 10 10 3 3 1 1 swap?)
+      (send c1 set-scrollbars (if h? 1 0) (if v? 1 0) 10 10 3 3 1 1 swap?)
       (send c2 set-vsize (if small? 50 500) (if small? 20 200))
-      (send c2 set-scrollbars (if h? 25 -1) (if v? 10 -1) (if small? 2 20) (if small? 2 20) 
+      (send c2 set-scrollbars (if h? 25 0) (if v? 10 0) (if small? 2 20) (if small? 2 20) 
 	    3 3 1 1 (not swap?))
       (if for-small?
 	  ; Specifically refresh the bottom canvas
