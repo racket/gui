@@ -907,6 +907,9 @@
 	    (map "middlebutton" "paste-click-region")
 	    (map "c:rightbutton" "copy-clipboard")))))
 
-    (define global-keymap (make-object wx:keymap%))
+    (define global-keymap (make-object 
+			   (class-asi wx:keymap%
+			     (public
+			       [DUMMY (eval '(make-rectangular 1 1))]))))
 					     
     (setup-global-keymap global-keymap))
