@@ -3,8 +3,7 @@
   (require
    (lib "class.ss")
    (lib "list.ss")
-   (lib "mred.ss" "mred")
-   (lib "debug.ss" "mike-lib"))
+   (lib "mred.ss" "mred"))
   
   (provide fixed-width-label-snip)
   
@@ -19,7 +18,7 @@
          (top-margin 5)
          (bottom-margin 5))
         
-        (field [font (make-object font% 12 'roman 'normal 'normal)])
+        (field [font (make-object font% 10 'roman 'normal 'normal)])
         
         (unless (member label labels)
           (error 'fixed-width-label-snip
@@ -101,15 +100,15 @@
   ;;;;;;;;;;
   ;; tests
   
-  (define mylabels (list "Call" "Expected" "Actual"))
-  (define label% (fixed-width-label-snip mylabels))
-  (define align? #t)
-  (define f (new frame% (label "test") (width 175) (height 175)))
-  (define e (new pasteboard%))
-  (define c (new editor-canvas% (editor e) (parent f)))
-  (for-each
-   (lambda (s)
-     (send e insert (new label% (label s))))
-   '("Expected"))
-  (send f show #t)
+  ;(define mylabels (list "Call" "Expected" "Actual"))
+  ;(define label% (fixed-width-label-snip mylabels))
+  ;(define align? #t)
+  ;(define f (new frame% (label "test") (width 175) (height 175)))
+  ;(define e (new pasteboard%))
+  ;(define c (new editor-canvas% (editor e) (parent f)))
+  ;(for-each
+  ; (lambda (s)
+  ;   (send e insert (new label% (label s))))
+  ; '("Expected"))
+  ;(send f show #t)
   )
