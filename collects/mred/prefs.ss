@@ -163,7 +163,8 @@
     (mred:exit:insert-exit-callback 
      (lambda ()
        (with-handlers ((void (lambda (exn)
-			       (wx:message-box (exn-message exn)))))
+			       (mred:message-box (format "exception raied while saving prefs: ~a"
+							 (exn-message exn))))))
 	 (save-user-preferences))))
 
     (define read-user-preferences 
