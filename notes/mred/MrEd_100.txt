@@ -1072,6 +1072,8 @@ canvas%'s get-view-start returns values in pixels, not scroll units.
 dc<%>'s get-text-extent and get-size return multiple values
  instead of mutating boxes.
 
+dc<%>'s get-/set-background-mode changed to get-/set-text-mode.
+
 A text editor's selection caret now blinks; added a blink-caret method
  to editor<%> and snip%.
 
@@ -1109,3 +1111,16 @@ the-color-database only has a find-color method; the others were
  removed. Certain color names with mappings under X (e.g.,
  "FORESTGREEN") are no longer available; instead, the only availabale
  colors are the ones defined in the manual.
+
+
+
+======================================================================
+TODO
+======================================================================
+
+* add grow-box-pane%
+
+* add get-client-inset for canvas<%> and panel<%>
+
+* add get-editor-inset for editor-canvas%
+

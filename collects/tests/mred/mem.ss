@@ -38,6 +38,19 @@
 
 (send sub-collect-frame show #t)
 
+(define (get-panel% n)
+  (case (modulo n 3)
+    [(0) panel%]
+    [(1) vertical-panel%]
+    [(2) horizontal-panel%]))
+
+(define (get-pane% n)
+  (case (modulo n 6)
+    [(0) pane%]
+    [(1) vertical-pane%]
+    [(2) horizontal-pane%]
+    [else (get-panel% n)]))
+
 (define (maker id n)
   (sleep)
   (collect-garbage)
@@ -70,11 +83,15 @@
 		start 100))
 
 	(if frame?
-	    (let* ([f (make-object frame% "Tester" #f 200 200)]
-		   [p (remember tag (make-object panel% f))])
+	    (let* ([f (make-object (if (even? n)
+				       frame% 
+				       dialog%)
+				   "Tester" #f 200 200)]
+		   [p (remember tag (make-object (get-pane% n) f))])
 	      (remember tag (make-object canvas% f))
-	      (if (zero? (modulo n 3))
-		  (send f show #t))
+	      (when (zero? (modulo n 3))
+		(thread (lambda () (send f show #t)))
+		(let loop () (sleep) (unless (send f is-shown?) (loop))))
 	      (remember tag (make-object button% "one" p void))
 	      (let ([class check-box%])
 		(let loop ([m 10])
@@ -90,7 +107,7 @@
 	      (send f show #f)))
 
 	(if subwindows?
-	    (let ([p (make-object panel% sub-collect-frame)]
+	    (let ([p (make-object (get-panel% n) sub-collect-frame)]
 		  [cv (make-object canvas% sub-collect-frame)]
 		  [add-objects
 		   (lambda (p tag hide?)
