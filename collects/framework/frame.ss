@@ -51,7 +51,7 @@
 		 this))]
 	[on-focus
 	 (lambda (on?)
-	   (super-on-focus)
+	   (super-on-focus on?)
 	   (when on?
 	     (send (group:get-the-frame-group) set-active-frame this)))])
       (public
@@ -409,7 +409,7 @@
 	 (lambda (x)
 	   (when x
 	     (send find-edit set-searching-frame (get-top-level-window)))
-	   (on-focus x))])
+	   (super-on-focus x))])
       (sequence
 	(super-init parent #f '(h-scroll))
 	(set-line-count 2))))
@@ -1005,8 +1005,8 @@
 		  (super-can-close?))))])
       (sequence (apply super-init args))))
 
-  (define empty% (basic-mixin frame%))
-  (define standard-menus% (standard-menus-mixin empty%))
+  (define basic% (basic-mixin frame%))
+  (define standard-menus% (standard-menus-mixin basic%))
   (define editor% (editor-mixin standard-menus%))
 
   (define -text% (text-mixin editor%))

@@ -8,4 +8,5 @@
 	[test : framework:test^ ((require-relative-library "testr.ss") mred keys)])
   (export
    (unit test)
-   (unit keys))))
+   (unit keys)
+   (open mred))))

@@ -1,8 +1,13 @@
-(local [(define pref-file (build-path (find-system-path 'pref-dir) ".mred.prefs"))
+(local [(define pref-file (build-path (find-system-path 'pref-dir)
+				      (case (system-type)
+					[(macos) "MrEd Preferences"]
+					[(windows) "mred.pre"]
+					[(unix) ".mred.prefs"]
+					[else (error 'prefs.ss "unknown os: ~a~n" (system-type))])))
 	(define old-prefs (if (file-exists? pref-file)
 			      (call-with-input-file pref-file read)
 			      null))
-	(define (check-eq? m s) (lambda (t) (if (eq? s t) #f m)))
+	(define (check-eq? s) (lambda (t) (eq? s t)))
 	(define pref-sym 'framework:test-suite)]
 
   (call-with-output-file pref-file
@@ -11,23 +16,27 @@
 			  port))
     'truncate)
   (shutdown-mred)
+
   (test
    'preference-unbound
-   (check-eq? "couldn't remove preference binding" 'passed)
+   (check-eq? 'passed)
    `(with-handlers ([exn:unknown-preference?
 		     (lambda (x)
 		       'passed)])
       (preferences:get ',pref-sym)))
   (test 'preference-set-default/get
-	(check-eq? "set-default followed by get didn't work" 'passed)
+	(check-eq? 'passed)
 	`(begin (preferences:set-default ',pref-sym 'passed symbol?)
 		(preferences:get ',pref-sym)))
   (test 'preference-set/get
-	(check-eq? "set followed by get didn't work" 'new-pref)
+	(check-eq? 'new-pref)
 	`(begin (preferences:set ',pref-sym 'new-pref)
 		(preferences:get ',pref-sym)))
-  (send-sexp-to-mred '(exit:exit))
-  (shutdown-mred)
+  (with-handlers ([eof-result? (lambda (x) (void))])
+    (send-sexp-to-mred '(begin (preferences:set 'framework:verify-exit #f) (exit:exit))))
+
   (test 'preference-get-after-restart
-	(check-eq? "get after restart didn't work" 'new-pref)
-	`(preferences:get ',pref-sym)))
+	(check-eq? 'new-pref)
+	`(begin (preferences:set-default ',pref-sym 'passed symbol?)
+		(preferences:get ',pref-sym))))
+

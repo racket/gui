@@ -34,12 +34,17 @@
 	     (let-values ([(base _1 _2) (split-path program)])
 	       ((case (system-type)
 		  [(macos) system*]
-		  [else (lambda (x) (begin (process* x) (void)))])
+		  [else (lambda (x) (thread (lambda () (system* x))))])
 		(mred-program-launcher-path "Framework Test Engine")))
 	     (let-values ([(in out) (tcp-accept listener)])
 	       (set! in-port in)
 	       (set! out-port out))
-	     (send-sexp-to-mred '(require-library "framework.ss" "framework")))])
+	     (send-sexp-to-mred
+	      '(let ([s (make-semaphore 0)])
+		 (queue-callback (lambda ()
+				   (require-library "framework.ss" "framework")
+				   (semaphore-post s)))
+		 (semaphore-wait s))))])
       (values
        (lambda ()
 	 (shutdown-mred)
@@ -61,7 +66,7 @@
 		      (or (not (char-ready? in-port))
 			  (not (eof-object? (peek-char in-port)))))
 	   (restart-mred))
-	 (printf "sending to mred:~n")
+	 (printf "~a: sending to mred:~n" section-name)
 	 (parameterize ([pretty-print-print-line
 			 (let ([prompt "  "]
 			       [old-liner (pretty-print-print-line)])
@@ -101,21 +106,27 @@
 		 [(normal) (second answer)]))))))))
 
 (define section-jump void)
+(define section-name "<<setup>>")
 
 (define test
   (case-lambda
-   [(test-name failed? sexp/proc) (test test-name failed? sexp/proc 'section)]
-   [(test-name failed? sexp/proc jump)
+   [(test-name passed? sexp/proc) (test test-name passed? sexp/proc 'section)]
+   [(test-name passed? sexp/proc jump)
     (let ([failed
 	   (with-handlers ([(lambda (x) #t)
 			    (lambda (x)
 			      (if (exn? x)
 				  (exn-message x)
 				  x))])
-	     (failed?
-	      (if (procedure? sexp/proc)
-		  (sexp/proc)
-		  (eval (send-sexp-to-mred sexp/proc)))))])
+	     (let ([result
+		    (if (procedure? sexp/proc)
+			(sexp/proc)
+			(eval (send-sexp-to-mred sexp/proc)))])
+
+	       ;; this is here to help catch any errors in generated events
+	       (send-sexp-to-mred 'check-for-errors)
+
+	       (not (passed? result))))])
       (when failed
 	(printf "FAILED ~a: ~a~n" test-name failed)
 	(case jump
@@ -139,18 +150,21 @@
   (printf "saved preferences file~n")
   (copy-file preferences-file old-preferences-file))
 
+(load-relative "utils.ss")
+
 (let ([all-files (map symbol->string (load-relative "README"))])
   (for-each (lambda (x)
 	      (when (member x all-files)
 		(let ([oh (error-escape-handler)])
 		  (let/ec k
-		    (error-escape-handler (lambda ()
-					    (error-escape-handler oh)
-					    (k (void))))
-		    (set! section-jump k)
-		    (printf "beginning ~a test suite~n" x)
-		    (load-relative x)
-		    (error-escape-handler oh)))))
+		    (fluid-let ([section-name x]
+				[section-jump k])
+		      (error-escape-handler (lambda ()
+					      (error-escape-handler oh)
+					      (k (void))))
+		      (printf "beginning ~a test suite~n" x)
+		      (load-relative x)
+		      (error-escape-handler oh))))))
 	    (if (equal? (vector) argv)
 		all-files
 		(vector->list argv))))

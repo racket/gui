@@ -16,9 +16,9 @@
 	   [core:file : mzlib:file^]
 	   [core:thread : mzlib:thread^]
 	   [framework:keys : framework:keys^]
-	   [framework:test : framework:test^])
-   (link [M : mred-interfaces^ (mred-interfaces@)]
-	 [F : frameworkc^ ((require-relative-library "frameworkc.ss")
+	   [framework:test : framework:test^]
+	   [M : mred-interfaces^])
+   (link [F : frameworkc^ ((require-relative-library "frameworkc.ss")
 			   core:string
 			   core:function
 			   core:pretty-print
@@ -35,4 +35,5 @@
  mzlib:file^
  mzlib:thread^
  (keys : framework:keys^)
- (test : framework:test^))
+ (test : framework:test^)
+ mred-interfaces^)

@@ -47,12 +47,16 @@ tests.
 - basic connections between classes
 
   | These tests will create objects in various configurations and
-  | trigger situations to test their functionality. Fake user input
-  | expected.
+  | trigger situations to test their functionality. 
 
   - edits to canvases: |# edit-canvas.ss #|
   - canvases to frames: |# canvas-frame.ss #|
   - edits to frames: |# edit-frame.ss #|
+
+- garbage collection: |# gc.ss #|
+
+  | These tests will create objects in various configurations and
+  | make sure that they are garbage collected
 
 - keybindings: |# keys.ss #|
 

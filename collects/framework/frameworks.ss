@@ -164,7 +164,7 @@
    file<%>
    file-mixin
 
-   empty%
+   basic%
    standard-menus%
    editor%
    text%
