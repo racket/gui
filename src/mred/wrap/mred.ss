@@ -2876,8 +2876,7 @@
 	(check-string cwho label)
 	(check-frame-parent/false cwho parent)
 	(for-each (lambda (x) (check-dimension cwho x)) (list width height x y))
-	(check-style cwho #f '(no-thick-border no-resize-border no-caption no-system-menu
-					       iconize maximize mdi-parent mdi-child) 
+	(check-style cwho #f '(no-resize-border no-caption no-system-menu mdi-parent mdi-child) 
 		     style)
 	(when (memq 'mdi-child style)
 	  (when (memq 'mdi-parent style)
@@ -4553,8 +4552,8 @@
 		    (and ok? (get-filename))))])])
     sel))
 
-(define get-file (mk-file-selector 'get-file #f))
-(define put-file (mk-file-selector 'put-file #t))
+(define get-file (lambda x (apply (mk-file-selector 'get-file #f) x)))
+(define put-file (lambda x (apply (mk-file-selector 'put-file #t) x)))
 
 (define get-color-from-user 
   (if (not (eq? (system-type) 'unix))
