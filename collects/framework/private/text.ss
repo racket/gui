@@ -904,6 +904,7 @@ WARNING: printf is rebound in the body of the unit to always
                    get-start-position
                    get-end-position
                    get-snip-position
+                   get-style-list
                    is-locked?
                    last-position
                    lock
@@ -991,7 +992,7 @@ WARNING: printf is rebound in the body of the unit to always
           (define/pubment (submit-to-port? key) (inner #t submit-to-port? key))
           (define/pubment (on-submit) (inner (void) on-submit))
           (define/public (get-out-style-delta) 
-            (let ([out-sd (make-object style-delta% 'change-normal)])
+            (let ([out-sd (make-object style-delta% 'change-nothing)])
               (send out-sd set-delta-foreground (make-object color% 150 0 150))
               out-sd))
           (define/public (get-err-style-delta)
@@ -999,7 +1000,7 @@ WARNING: printf is rebound in the body of the unit to always
               (send err-sd set-delta-foreground (make-object color% 255 0 0))
               err-sd))
           (define/public (get-value-style-delta)
-            (let ([value-sd (make-object style-delta% 'change-family 'modern)])
+            (let ([value-sd (make-object style-delta% 'change-nothing)])
               (send value-sd set-delta-foreground (make-object color% 0 0 175))
               value-sd))
 
@@ -1076,11 +1077,11 @@ WARNING: printf is rebound in the body of the unit to always
           ;;                               (channel ...)))
           (define readers-chan (make-channel))
           
-          ;; queue-insertion : (listof (cons (union string snip) style-delta)) evt -> void
+          ;; queue-insertion : (listof (cons (union string snip) style)) evt -> void
           ;; txt is in the reverse order of the things to be inserted.
           ;; the evt is waited on when the text has actually been inserted
           ;; thread: any thread, except the eventspace main thread
-          (define/private (queue-insertion txts signal) 
+          (define/private (queue-insertion txts signal)
             (parameterize ([current-eventspace eventspace])
               (queue-callback
                (lambda ()
@@ -1100,7 +1101,7 @@ WARNING: printf is rebound in the body of the unit to always
                   [else 
                    (let* ([fst (car txts)]
                           [str/snp (car fst)]
-                          [sd (cdr fst)])
+                          [style (cdr fst)])
                      
                      (let ([inserted-count
                             (if (is-a? str/snp snip%)
@@ -1121,7 +1122,7 @@ WARNING: printf is rebound in the body of the unit to always
                        ;; could have made a string and gotten the style, so you
                        ;; must intend to have your own style.
                        (unless (is-a? str/snp string-snip%)
-                         (change-style sd old-insertion-point insertion-point))))
+                         (change-style style old-insertion-point insertion-point))))
                    (loop (cdr txts))]))
               (set! allow-edits? #f)
               (lock locked?)
@@ -1229,24 +1230,32 @@ WARNING: printf is rebound in the body of the unit to always
                    (channel-put write-chan (cons special style))])
                 #t))
             
-            (let ([out-sd (get-out-style-delta)]
-                  [err-sd (get-err-style-delta)]
-                  [value-sd (get-value-style-delta)])
+            (let* ([add-standard
+                    (lambda (sd)
+                      (let* ([style-list (get-style-list)] 
+                             [std (send style-list find-named-style "Standard")])
+                        (if std
+                            (send style-list find-or-create-style std sd)
+                            (let ([basic (send style-list find-named-style "Basic")])
+                              (send style-list find-or-create-style basic sd)))))]
+                   [out-style (add-standard (get-out-style-delta))]
+                   [err-style (add-standard (get-err-style-delta))]
+                   [value-style (add-standard (get-value-style-delta))])
               (set! out-port (make-output-port #f
                                                always-evt
-                                               (make-write-bytes-proc out-sd)
+                                               (make-write-bytes-proc out-style)
                                                out-close-proc
-                                               (make-write-special-proc out-sd)))
+                                               (make-write-special-proc out-style)))
               (set! err-port (make-output-port #f 
                                                always-evt
-                                               (make-write-bytes-proc err-sd)
+                                               (make-write-bytes-proc err-style)
                                                out-close-proc
-                                               (make-write-special-proc err-sd)))
+                                               (make-write-special-proc err-style)))
               (set! value-port (make-output-port #f
                                                  always-evt
-                                                 (make-write-bytes-proc value-sd)
+                                                 (make-write-bytes-proc value-style)
                                                  out-close-proc
-                                                 (make-write-special-proc value-sd)))))
+                                                 (make-write-special-proc value-style)))))
 
           ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
           ;;
