@@ -101,6 +101,9 @@ The drawing area should have the following features:
           ellipse 40 tall and 30 wide (i.e., stretched slightly in the
           vertical direction from a circle).
 
+  The drawings under 2x2 should be reasonable extensions of the
+  0x0 and 1x1 pictures for a double-wide pen.
+
   Big octagon: The octagon defines the region for octagon clipping.
           Also, it's drawn in xor mode, so it should flip black to
           white wherever the octagon line runs over the shapes of the
@@ -144,16 +147,34 @@ The drawing area should have the following features:
            Short Dash line
            Dot Dash line
 
-   Long line: On the screen, the line should be 1 pixel wide, except
-       that the last 1/9th should be two pixels wide. In postscript or
-       smooth mode, the line should consist of 9 segments, growing in
-       width from 0.0 to 2.0 (inclusive) in 0.25 increments. When the
-       image is scaled by a factor of 2, the first 1/9th on the screen
-       should still be 1 pixel, the next 7/9ths should be 2 pixels,
-       and the last 1/9 should be 4 pixels wide.
+   Long line: On the screen in unsmoothed or aligned mode, the line 
+       should be 1 pixel wide, except that the last 1/9th should be
+       two pixels wide. In postscript or smooth mode, the line should
+       consist of 9 segments, growing in width from 0.0 to 2.0
+       (inclusive) in 0.25 increments. When the image is scaled by a
+       factor of 2, the first 1/9th on the screen should still be 1
+       pixel, the next 7/9ths should be 2 pixels, and the last 1/9
+       should be 4 pixels wide.
 
- The drawings under 2x2 should be reasonable extensions of the
- 0x0 and 1x1 pictures for a double-wide pen.
+   Red shapes with black outlines (below long line): square, round
+      square, circle, and triangle without a top line; these are drawn
+      as paths.
+
+   Four lines (to right of red shapes): in 'unsmoothed or 'aligned
+      mode, the lines should appear euqally spaced at scale 1, but
+      scale 2 should show the middle lines closer by two pixels; the
+      'smoothed mode should approximate this at scale 1. At scale 2,
+      'unsmoothed and 'aligned should look the same.
+
+   Thick blue-line round rects with red center: the left one has pen
+      size 7, and the right pen size 8. At scale 1, the two should be
+      separated by a blank column of pixels in 'unsmoothed and
+      'smoothed mode, but in 'smoothed mode or at scale 2, they should
+      touch.
+
+    Four suqares with overbar (bottom of drawing): the suqares,
+      which are strteched bitmaps, should touch, and the four squares
+      should have the same span as the overbar line.
 
 The image should look the same regardless of the top radio button
 setting --- Canvas, Pixmap, or Bitmap --- except that the Bitmap

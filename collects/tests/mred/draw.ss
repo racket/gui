@@ -184,6 +184,16 @@
 
     p))
 
+(define square-bm
+  (let* ([bm (make-object bitmap% 10 10)]
+	 [dc (make-object bitmap-dc% bm)])
+    (send dc clear)
+    (send dc set-brush "white" 'transparent)
+    (send dc set-pen "black" 1 'solid)
+    (send dc draw-rectangle 0 0 10 10)
+    (send dc set-bitmap #f)
+    bm))
+
 (define DRAW-WIDTH 550)
 (define DRAW-HEIGHT 375)
 
@@ -651,7 +661,7 @@
 								 (send mred-icon get-height)
 								 #f)]
 					    [tmp-dc (make-object bitmap-dc% tmp-bm)])
-				       (send tmp-dc draw-bitmap plt 
+				       (send tmp-dc draw-bitmap plt
 					     (/ (- (send mred-icon get-width)
 						   (send plt get-width))
 						2)
@@ -886,6 +896,18 @@
 			      (send dc draw-line 130 312.5 150 312.5)
 			      (send dc draw-line 130 314.3 150 314.3)
 			      (send dc draw-line 130 316.7 150 316.7)
+
+			      (let-values ([(xs ys) (send dc get-scale)])
+				(send dc set-scale (* xs 1.25) (* ys 1.25))
+				(let ([x (/ 10 1.25)]
+				      [y (/ 340 1.25)])
+				  (send dc draw-bitmap square-bm x y)
+				  (send dc draw-bitmap square-bm (+ x 10) y)
+				  (send dc draw-bitmap square-bm (+ x 20) y)
+				  (send dc draw-bitmap square-bm (+ x 30) y))
+				(send dc set-scale xs ys)
+				(send dc set-pen "black" 0 'solid)
+				(send dc draw-line 10 337 59 337))
 
 			      (let ([p (send dc get-pen)])
 				(send dc set-pen "blue" 8 'solid)
