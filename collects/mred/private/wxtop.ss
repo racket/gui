@@ -2,6 +2,7 @@
   (require (lib "class.ss")
 	   (lib "class100.ss")
 	   (lib "etc.ss")
+	   (lib "list.ss")
 	   (prefix wx: "kernel.ss")
 	   "lock.ss"
 	   "helper.ss"
@@ -516,7 +517,8 @@
     (class100 (make-window-glue% %) (mred proxy . args)
       (inherit is-shown? get-mred queue-visible get-eventspace)
       (private-field 
-       [act-date/seconds 0] [act-date/milliseconds 0] [act-on? #f])
+       [act-date/seconds 0] [act-date/milliseconds 0] [act-on? #f]
+       [activate-refresh-wins null])
       (public 
 	[on-exit (entry-point
 		  (lambda ()
@@ -544,6 +546,13 @@
 			  (set! act-date/milliseconds (current-milliseconds))
 			  (when (wx:main-eventspace? (get-eventspace))
 			    (set! active-main-frame (make-weak-box this))))
+			;; Send refresh to subwindows that need it
+			(set! activate-refresh-wins (filter weak-box-value activate-refresh-wins))
+			(for-each (lambda (b)
+				    (let ([win (weak-box-value b)])
+				      (when win
+					(send win refresh))))
+				  activate-refresh-wins)
 			;; Windows needs trampoline:
 			(queue-window-callback
 			 this
@@ -553,6 +562,9 @@
 			   (super on-activate on?)))))])
       (public
 	[is-act-on? (lambda () act-on?)]
+	[add-activate-update (lambda (win) (set! activate-refresh-wins  
+						 (cons (make-weak-box win)
+						       activate-refresh-wins)))]
 	[get-act-date/seconds (lambda () act-date/seconds)]
 	[get-act-date/milliseconds (lambda () act-date/milliseconds)])
       (sequence (apply super-init mred proxy args))))
