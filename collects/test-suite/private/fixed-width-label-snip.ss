@@ -3,7 +3,6 @@
   (require
    (lib "class.ss")
    (lib "list.ss")
-   (lib "debug.ss" "mike-lib")
    (lib "mred.ss" "mred"))
   
   (provide fixed-width-label-snip)
