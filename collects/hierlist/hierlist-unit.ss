@@ -238,6 +238,7 @@
                (begin0
                  (send (send snip get-content-buffer) new-item . x)
                  (send snip not-empty-anymore)))]
+	    [set-no-sublists (lambda x (send (send snip get-content-buffer) set-no-sublists . x))]
             [new-list 
              (lambda x
                (begin0 
@@ -334,7 +335,8 @@
            [top-select tp-select]
            [depth dpth]
            [parent-snip parent-snp]
-           [children null])
+           [children null]
+	   [no-sublists? #f])
           (private
             [make-whitespace (lambda () (make-object whitespace-snip%))]
             [insert-item 
@@ -343,7 +345,8 @@
                  (begin-edit-sequence)
                  (unless (null? children)
                    (insert #\newline (last-position)))
-                 (when whitespace? (insert (make-whitespace) (last-position)))
+                 (when whitespace?
+		   (insert (make-whitespace) (last-position)))
                  (insert s (last-position))
                  (end-edit-sequence)
                  (set! children (append children (list s)))
@@ -356,12 +359,19 @@
              (case-lambda
               [() (new-item (lambda (x) x))]
               [(mixin)
-               (insert-item mixin hierarchical-item-snip% #t)])]
+               (insert-item mixin hierarchical-item-snip% (not no-sublists?))])]
             [new-list
              (case-lambda
               [() (new-list (lambda (x) x))]
               [(mixin)
+	       (when no-sublists?
+		 (error 'new-list "this list has been designated with `set-no-sublists' as having no sublists"))
                (insert-item mixin hierarchical-list-snip% #f)])]
+	    [set-no-sublists
+	     (lambda (no?)
+	       (unless (null? children)
+		 (error 'set-no-sublists "cannot change sublist mode because the list is non-empty"))
+	       (set! no-sublists? (and no? #t)))]
             [get-items (lambda () (map (lambda (x) (send x get-item)) children))]
             [delete-item
              (lambda (i)
@@ -395,7 +405,8 @@
                              (when (and (is-a? (send s get-item) hierarchical-list-item<%>)
                                         (send (send s get-item) is-selected?))
                                (set! to-scroll-to s)))
-                           (unless (is-a? s hierarchical-list-snip%)
+                           (unless (or no-sublists?
+				       (is-a? s hierarchical-list-snip%))
                              (insert (make-whitespace)))
                            (insert s)
                            (insert #\newline))
@@ -612,6 +623,7 @@
             [on-select (lambda (i) (void))]
             [on-click (lambda (i) (void))]
             [new-item (lambda x (send top-buffer new-item . x))]
+            [set-no-sublists (lambda x (send top-buffer set-no-sublists . x))]
             [new-list (lambda x (send top-buffer new-list . x))]
             [delete-item (lambda (i) (send top-buffer delete-item i))]
             [sort (lambda (less-than?) (send top-buffer sort less-than?))]
