@@ -3510,6 +3510,9 @@
       [c (make-object wx-text-editor-canvas% #f proxy this p
 		      (append
 		       '(control-border)
+		       (if (memq 'combo style)
+			   '(combo)
+			   null)
 		       (if multi?
 			   (if (memq 'hscroll style)
 			       null
@@ -4746,17 +4749,36 @@
 		  label parent (and (pair? choices) selection) callback
 		  choices))))
 
+(define combo-flag (gensym))
+
+(define (check-text-field-args cwho
+			       label
+			       choices? choices
+			       parent
+			       callback
+			       init-value
+			       style req-styles)
+  (check-label-string/false cwho label)
+  (when choices?
+    (unless (and (list? choices) (andmap label-string? choices))
+      (raise-type-error (who->name cwho) "list of strings (up to 200 characters)" choices)))
+  (check-container-parent cwho parent)
+  (check-callback cwho callback)
+  (check-string cwho init-value)
+  (check-style cwho req-styles (cons combo-flag
+				     '(hscroll password vertical-label horizontal-label deleted))
+	       style))
+
 (define text-field%
   (class100*/kw basic-control% () 
 		[(label parent callback [init-value ""] [style '(single)])
 		 control%-keywords]
     (sequence 
-      (let ([cwho '(constructor text-field)])
-	(check-label-string/false cwho label)
-	(check-container-parent cwho parent)
-	(check-callback cwho callback)
-	(check-string cwho init-value)
-	(check-style cwho '(single multiple) '(hscroll password vertical-label horizontal-label deleted) style)))
+      (check-text-field-args '(constructor text-field)
+			     label 
+			     #f #f
+			     parent callback init-value
+			     style '(single multiple)))
     (private-field
       [wx #f])
     (public
@@ -4776,12 +4798,29 @@
 	 (super-init (lambda () 
 		       (set! wx (make-object wx-text-field% this this
 					     (mred->wx-container parent) (wrap-callback callback)
-					     label init-value style))
+					     label init-value 
+					     (if (memq combo-flag style)
+						 (cons 'combo (remq combo-flag style))
+						 style)))
 		       wx)
 		     (lambda ()
 		       (let ([cwho '(constructor text-field)])
 			 (check-container-ready cwho parent)))
 		     label parent callback ibeam))))))
+
+(define text-combo-field%
+  (class100*/kw text-field% () 
+		[(label choices parent callback [init-value ""] [style '()])
+		 control%-keywords]
+    (sequence 
+      (check-text-field-args '(constructor text-combo-field)
+			     label 
+			     #f choices
+			     parent callback init-value
+			     style #f))
+    (sequence
+      (super-init label parent callback init-value (list* combo-flag 'single style)))))
+
 
 ;; Not exported:
 (define tab-group%
@@ -4901,7 +4940,7 @@
     (sequence 
       (let ([cwho '(constructor canvas)])
 	(check-container-parent cwho parent)
-	(check-style cwho #f '(border hscroll vscroll gl deleted control-border no-autoclear transparent resize-corner) 
+	(check-style cwho #f '(border hscroll vscroll gl deleted control-border combo no-autoclear transparent resize-corner) 
 		     style)
 	(check-callback cwho paint-callback)
 	(check-label-string/false cwho label)))
@@ -5000,7 +5039,8 @@
 				     1))])
 		      (set! wx (make-object wx-canvas% this this
 					    (mred->wx-container parent)
-					    -1 -1 ds ds
+					    -1 -1 
+					    (+ ds (if (memq 'combo style) 16 0)) ds
 					    style)))
 		    wx)
 		  (lambda ()
@@ -5022,7 +5062,7 @@
 	(check-container-parent cwho parent)
 	(check-instance cwho internal-editor<%> "text% or pasteboard%" #t editor)
 	(check-style cwho #f '(hide-vscroll hide-hscroll no-vscroll no-hscroll auto-vscroll auto-hscroll
-					    deleted control-border transparent no-border resize-corner)
+					    deleted control-border combo transparent no-border resize-corner)
 		     style)
 	(check-gauge-integer cwho scrolls-per-page)
 	(check-label-string/false cwho label)
@@ -5128,7 +5168,7 @@
 					 [else (+ canvas-scroll-size canvas-default-size)])))])
 		      (set! wx (make-object wx-editor-canvas% this this
 					    (mred->wx-container parent) -1 -1
-					    (get-ds no-h? no-v?)
+					    (+ (get-ds no-h? no-v?) (if (memq 'combo style) 16 0))
 					    (get-ds no-v? no-h?)
 					    #f 
 					    (append
@@ -8035,6 +8075,7 @@
 	 radio-box%
 	 slider%
 	 text-field%
+	 text-combo-field%
 	 window<%>
 	 area<%>
 	 top-level-window<%>
