@@ -3895,7 +3895,7 @@
       (make-object menu-item% "Load File..." m (lambda (i e) (let ([f (get-file)]) (and f (evaluate (format "(load ~s)" f))))))
       (make-object menu-item% "Quit" m (lambda (i e) (send frame on-close) (send frame show #f)) #\q))
     (let ([m (make-object menu% "Edit" mb)])
-      (append-editor-operation-menu-items m)))
+      (append-editor-operation-menu-items m #f)))
 
   ;; Just a few extra key bindings:
   (install-standard-text-bindings repl-buffer)
@@ -4413,29 +4413,33 @@
        [(is-a? p menu%) (loop (send p get-item))]
        [else (send p get-frame)]))))
 
-(define (append-editor-operation-menu-items m)
-  (check-instance 'append-editor-operation-menu-items menu% 'menu% #f m)
-  (let ([mk (lambda (name key op)
-	      (make-object menu-item% name m
-			   (lambda (i e)
-			     (let* ([f (find-item-frame i)]
-				    [o (and f (send f get-edit-target-object))])
-			       (and o (is-a? o wx:editor<%>)
-				    (send o do-edit-operation op))))
-			   key))]
-	[mk-sep (lambda () (make-object separator-menu-item% m))])
-    (mk "Undo" #\z 'undo)
-    (mk "Redo" #f 'redo)
-    (mk-sep)
-    (mk "Clear" #f 'clear)
-    (mk "Copy" #\c 'copy)
-    (mk "Cut" #\x 'cut)
-    (mk "Paste" #\v 'paste)
-    (mk-sep)
-    (mk "Insert Text Box" #f 'insert-text-box)
-    (mk "Insert Pasteboard Box" #f 'insert-pasteboard-box)
-    (mk "Insert Image..." #f 'insert-image)
-    (void)))
+(define append-editor-operation-menu-items
+  (case-lambda
+   [(m) (append-editor-operation-menu-items m #t)]
+   [(m text-only?)
+    (check-instance 'append-editor-operation-menu-items menu% 'menu% #f m)
+    (let ([mk (lambda (name key op)
+		(make-object menu-item% name m
+			     (lambda (i e)
+			       (let* ([f (find-item-frame i)]
+				      [o (and f (send f get-edit-target-object))])
+				 (and o (is-a? o wx:editor<%>)
+				      (send o do-edit-operation op))))
+			     key))]
+	  [mk-sep (lambda () (make-object separator-menu-item% m))])
+      (mk "Undo" #\z 'undo)
+      (mk "Redo" #f 'redo)
+      (mk-sep)
+      (mk "Clear" #f 'clear)
+      (mk "Copy" #\c 'copy)
+      (mk "Cut" #\x 'cut)
+      (mk "Paste" #\v 'paste)
+      (unless text-only?
+	(mk-sep)
+	(mk "Insert Text Box" #f 'insert-text-box)
+	(mk "Insert Pasteboard Box" #f 'insert-pasteboard-box)
+	(mk "Insert Image..." #f 'insert-image))
+      (void))]))
 
 (define (append-editor-font-menu-items m)
   (check-instance 'append-editor-font-menu-items menu% 'menu% #f m)
