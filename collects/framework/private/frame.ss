@@ -564,7 +564,7 @@
                 [(is-a? info-edit editor:file<%>)
                  (unless (send lock-canvas is-shown?)
                    (send lock-canvas show #t))
-                 (let ([locked-now? (send info-edit get-read-write?)])
+                 (let ([locked-now? (not (send info-edit get-read-write?))])
                    (unless (eq? locked-now? icon-currently-locked?)
                      (set! icon-currently-locked? locked-now?)
                      (when (object? lock-canvas)
