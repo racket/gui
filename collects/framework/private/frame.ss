@@ -702,7 +702,7 @@
                      [file (parameterize ([finder:dialog-parent-parameter this])
                              (finder:put-file name))])
                 (when file
-                  (send (get-editor) save-file file format)))))
+                  (send (get-editor) save-file/gui-error file format)))))
           (inherit get-checkable-menu-item% get-menu-item%)
           (override file-menu:save-callback
                     file-menu:create-save? file-menu:save-as-callback file-menu:create-save-as? 
@@ -749,7 +749,7 @@
               #t))
           (define/override file-menu:create-revert? (lambda () #t))
           (define file-menu:save-callback (lambda (item control)
-                                            (send (get-editor) save-file)
+                                            (send (get-editor) save-file/gui-error)
                                             #t))
           
           (define file-menu:create-save? (lambda () #t))
@@ -1321,7 +1321,6 @@
                              (values embedded embedded-pos)))]
                       [else (next-loop)])))))])))
       
-      
       (define searching-frame #f)
       (define (set-searching-frame frame)
         (set! searching-frame frame))
@@ -1487,8 +1486,8 @@
                      [root (make-object % s-root)])
                 (set! super-root s-root)
                 root)))
-          (override on-activate)
-          (define on-activate
+
+          (define/override on-activate
             (lambda (on?)
               (unless hidden?
                 (if on?
@@ -1766,7 +1765,7 @@
                                  #t
                                  this)
                             [(continue) #t]
-                            [(save) (send edit save-file)]
+                            [(save) (send edit save-file/gui-error)]
                             [else #f]))])
                 (and user-allowed-or-not-modified
                      (super-can-close?))))]

@@ -37,12 +37,27 @@
 	  run-after-edit-sequence
 	  get-top-level-window
 	  on-close
-	  save-file-out-of-date?))
+	  save-file-out-of-date?
+          save-file/gui-error))
 
       (define basic-mixin
 	(mixin (editor<%>) (basic<%>)
-	  (inherit get-filename save-file
-		   refresh-delayed? 
+
+          (inherit get-filename save-file)
+          (define/public save-file/gui-error
+            (opt-lambda ([filename #f]
+                         [fmt 'same]
+                         [show-errors? #t])
+              (let ([result (save-file filename fmt #f)])
+                (unless result
+                  (when show-errors?
+                    (message-box
+                     (string-constant error-saving)
+                     (format (string-constant error-saving-file/name)
+                             (get-filename)))))
+                result)))
+
+	  (inherit refresh-delayed? 
 		   get-canvas
 		   get-max-width get-admin)
           
@@ -406,7 +421,7 @@
                 (let* ([orig-name (get-filename)]
                        [old-auto-name auto-saved-name]
                        [auto-name (path-utils:generate-autosave-name orig-name)]
-                       [success (save-file auto-name 'copy)])
+                       [success (save-file auto-name 'copy #f)])
                   (if success
                       (begin
                         (when old-auto-name
