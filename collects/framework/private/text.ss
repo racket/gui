@@ -919,10 +919,12 @@ WARNING: printf is rebound in the body of the unit to always
           (define/public (send-eof-to-in-port) (channel-put read-chan eof))
           
           (define/public (clear-input-port)
-            (channel-put clear-input-chan (void)))
+            (channel-put clear-input-chan (void))
+            (make-input-port))
           
           (define/public (clear-output-ports) 
-            (channel-put clear-output-chan (void)))
+            (channel-put clear-output-chan (void))
+            (init-output-ports))
           
           (define/public (get-in-port)
             (unless in-port (error 'get-in-port "not ready"))
@@ -1005,9 +1007,9 @@ WARNING: printf is rebound in the body of the unit to always
           ;;
           
           
-          ;; flush-chan : (channel (waitable void))
+          ;; flush-chan : (channel (evt void))
           ;; signals that the buffer-thread should flush pending output
-          ;; the waitable inside is waited on to indicate the flush has occurred
+          ;; the evt inside is waited on to indicate the flush has occurred
           (define flush-chan (make-channel))
           
           ;; clear-output-chan, clear-input-chan : (channel void)
@@ -1030,16 +1032,16 @@ WARNING: printf is rebound in the body of the unit to always
           ;; readers-waiting-chan : (channel (channel boolean))
           (define readers-waiting-chan (make-channel))
           
-          ;; queue-insertion : (listof (cons (union string snip) style-delta)) waitable -> void
+          ;; queue-insertion : (listof (cons (union string snip) style-delta)) evt -> void
           ;; txt is in the reverse order of the things to be inserted.
-          ;; the waitable is waited on when the text has actually been inserted
+          ;; the evt is waited on when the text has actually been inserted
           ;; thread: any thread, except the eventspace main thread
           (define/private (queue-insertion txts signal) 
             (parameterize ([current-eventspace eventspace])
               (queue-callback
                (lambda ()
                  (do-insertion txts)
-                 (object-wait-multiple #f signal)))))
+                 (sync signal)))))
           
           ;; do-insertion : (listof (cons (union string snip) style-delta)) -> void
           ;; thread: eventspace main thread
@@ -1075,43 +1077,41 @@ WARNING: printf is rebound in the body of the unit to always
             (thread
              (lambda ()
                (define (data-waiting data)
-                 (object-wait-multiple
-                  #f
-                  (make-wrapped-waitable
+                 (sync
+                  (finish-evt
                    readers-waiting-chan
                    (lambda (result)
                      (channel-put result #t)
                      (data-waiting data)))
-                  (make-wrapped-waitable
+                  (finish-evt
                    clear-input-chan
                    (lambda (_)
                      (data-and-readers-waiting (empty-queue) (empty-queue))))
-                  (make-wrapped-waitable
+                  (finish-evt
                    read-chan
                    (lambda (new-data)
                      (data-waiting (enqueue new-data data))))
-                  (make-wrapped-waitable
+                  (finish-evt
                    readers-chan
                    (lambda (new-reader)
                      (data-and-readers-waiting data (enqueue new-reader (empty-queue)))))))
                
                (define (readers-waiting readers)
-                 (object-wait-multiple
-                  #f
-                  (make-wrapped-waitable
+                 (sync
+                  (finish-evt
                    clear-input-chan
                    (lambda (_)
                      (data-and-readers-waiting (empty-queue) (empty-queue))))
-                  (make-wrapped-waitable
+                  (finish-evt
                    readers-waiting-chan
                    (lambda (result)
                      (channel-put result #f)
                      (readers-waiting readers)))
-                  (make-wrapped-waitable
+                  (finish-evt
                    read-chan
                    (lambda (new-data)
                      (data-and-readers-waiting (enqueue new-data (empty-queue)) readers)))
-                  (make-wrapped-waitable
+                  (finish-evt
                    readers-chan
                    (lambda (new-reader)
                      (readers-waiting (enqueue new-reader readers))))))
@@ -1125,23 +1125,22 @@ WARNING: printf is rebound in the body of the unit to always
                            [reader-hd (queue-first readers)]
                            [reader-succeed (car reader-hd)]
                            [reader-fail (cadr reader-hd)])
-                      (object-wait-multiple
-                       #f
-                       (make-wrapped-waitable
+                      (sync
+                       (finish-evt
                         clear-input-chan
                         (lambda (_)
                           (data-and-readers-waiting (empty-queue) (empty-queue))))
-                       (make-wrapped-waitable
+                       (finish-evt
                         readers-waiting-chan
                         (lambda (result)
                           (channel-put result #t)
                           (data-and-readers-waiting data readers)))
-                       (make-wrapped-waitable
-                        (make-channel-put-waitable reader-succeed data-hd)
+                       (finish-evt
+                        (channel-put-evt reader-succeed data-hd)
                         (lambda (v)
                           (data-and-readers-waiting (queue-rest data)
                                                     (queue-rest readers))))
-                       (make-wrapped-waitable
+                       (finish-evt
                         reader-fail
                         (lambda (v)
                           (data-and-readers-waiting data
@@ -1156,19 +1155,18 @@ WARNING: printf is rebound in the body of the unit to always
                (lambda ()
                  (let loop (;; text-to-insert : (queue (cons (union snip bytes) style))
                             [text-to-insert (empty-queue)])
-                   (object-wait-multiple
-                    #f
-                    (make-wrapped-waitable
+                   (sync
+                    (finish-evt
                      flush-chan
-                     (lambda (return-waitable)
+                     (lambda (return-evt)
                        (let-values ([(viable-bytes remaining-queue) (split-queue converter text-to-insert)])
-                         (queue-insertion viable-bytes return-waitable)
+                         (queue-insertion viable-bytes return-evt)
                          (loop remaining-queue))))
-                    (make-wrapped-waitable
+                    (finish-evt
                      clear-output-chan
                      (lambda (_)
                        (loop (empty-queue))))
-                    (make-wrapped-waitable
+                    (finish-evt
                      write-chan
                      (lambda (pr)
                        (cond
@@ -1177,7 +1175,7 @@ WARNING: printf is rebound in the body of the unit to always
                          [else
                           (let ([chan (make-channel)])
                             (let-values ([(viable-bytes remaining-queue) (split-queue converter text-to-insert)])
-                              (queue-insertion viable-bytes (make-channel-put-waitable chan (void)))
+                              (queue-insertion viable-bytes (channel-put-evt chan (void)))
                               (channel-get chan)
                               (loop remaining-queue)))])))))))))
           
@@ -1185,25 +1183,96 @@ WARNING: printf is rebound in the body of the unit to always
                  [out-port #f]
                  [err-port #f]
                  [value-port #f])
-          (let ()
+          
+          (define/private (init-output-ports)
             
             ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
             ;;
             ;;  the following must be able to run
             ;;  in any thread (even concurrently)
             ;;
-            (define op (current-output-port))
+            (define (make-write-bytes-proc style)
+              (lambda (to-write start end block/buffer?)
+                (cond
+                  [(eq? (current-thread) (eventspace-handler-thread eventspace))
+                   (error 'write-bytes-proc "cannot write to port on eventspace main thread")]
+                  [else
+                   (channel-put write-chan (cons (subbytes to-write start end) style))])
+                (- end start)))
+            
+            (define (flush-proc)
+              (cond
+                [(eq? (current-thread) (eventspace-handler-thread eventspace))
+                 (error 'flush-proc "cannot flush port on eventspace main thread")]
+                [else
+                 (sync
+                  (nack-guard-evt
+                   (lambda (fail-channel)
+                     (let* ([return-channel (make-channel)]
+                            [return-evt
+                             (choice-evt
+                              fail-channel
+                              (channel-put-evt return-channel (void)))])
+                       (channel-put flush-chan return-evt)
+                       return-channel))))]))
+            
+            (define (out-close-proc)
+              (void))
+            
+            (define (make-write-special-proc style)
+              (lambda (bytes start-i end-i can-buffer? enable-breaks?)
+                (cond
+                  [(eq? (current-thread) (eventspace-handler-thread eventspace))
+                   (error 'write-bytes-proc "cannot write to port on eventspace main thread")]
+                  [else
+                   (if (is-a? special snip%)
+                       (channel-put write-chan (cons special style))
+                       (channel-put write-chan (cons (string->bytes/utf-8 (format "~s" special)) style)))])
+                (- start-i end-i)))
+            
+            (define out-sd (make-object style-delta% 'change-normal))
+            (define err-sd (make-object style-delta% 'change-italic))
+            (define value-sd (make-object style-delta% 'change-normal))
+            (send out-sd set-delta-foreground (make-object color% 150 0 150))
+            (send err-sd set-delta-foreground (make-object color% 255 0 0))
+            (send value-sd set-delta-foreground (make-object color% 0 0 175))
+            
+            (set! out-port (make-output-port #f
+                                             always-evt
+                                             (make-write-bytes-proc out-sd)
+                                             flush-proc
+                                             out-close-proc
+                                             (make-write-special-proc out-sd)))
+            (set! err-port (make-output-port #f 
+                                             always-evt
+                                             (make-write-bytes-proc err-sd)
+                                             flush-proc
+                                             out-close-proc
+                                             (make-write-special-proc err-sd)))
+            (set! value-port (make-output-port #f
+                                               always-evt
+                                               (make-write-bytes-proc value-sd)
+                                               flush-proc
+                                               out-close-proc
+                                               (make-write-special-proc value-sd))))
+          
+          (define/private (init-input-port)
+            
+            ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+            ;;
+            ;;  the following must be able to run
+            ;;  in any thread (even concurrently)
+            ;;
             (define (read-bytes-proc bytes)
-              ;; this shouldn't return 0. it should return a waitable and 
+              ;; this shouldn't return 0. it should return a evt and 
               ;; let the system block and then re-call into this thing. 
               ;; yuck.
               (let ([readers-waiting-answer-chan (make-channel)])
                 (channel-put readers-waiting-chan readers-waiting-answer-chan)
                 (if (channel-get readers-waiting-answer-chan)
                     (let ([s/c
-                           (object-wait-multiple
-                            #f
-                            (make-nack-guard-waitable
+                           (sync
+                            (nack-guard-evt
                              (lambda (fail-channel)
                                (let ([return-channel (make-channel)])
                                  (channel-put readers-chan (list return-channel fail-channel))
@@ -1220,73 +1289,11 @@ WARNING: printf is rebound in the body of the unit to always
             
             (define (in-close-proc) (void))
             
-            (define (make-write-bytes-proc style)
-              (lambda (to-write start end block/buffer?)
-                (cond
-                  [(eq? (current-thread) (eventspace-handler-thread eventspace))
-                   (error 'write-bytes-proc "cannot write to port on eventspace main thread")]
-                  [else
-                   (channel-put write-chan (cons (subbytes to-write start end) style))])
-                (- end start)))
-            
-            (define (flush-proc)
-              (cond
-                [(eq? (current-thread) (eventspace-handler-thread eventspace))
-                 (error 'flush-proc "cannot flush port on eventspace main thread")]
-                [else
-                 (object-wait-multiple
-                  #f
-                  (make-nack-guard-waitable
-                   (lambda (fail-channel)
-                     (let* ([return-channel (make-channel)]
-                            [return-waitable
-                             (waitables->waitable-set
-                              fail-channel
-                              (make-channel-put-waitable return-channel (void)))])
-                       (channel-put flush-chan return-waitable)
-                       return-channel))))]))
-            
-            (define (out-close-proc)
-              (void))
-            
-            (define (make-write-special-proc style)
-              (lambda (special can-buffer?)
-                (cond
-                  [(eq? (current-thread) (eventspace-handler-thread eventspace))
-                   (error 'write-bytes-proc "cannot write to port on eventspace main thread")]
-                  [else
-                   (if (is-a? special snip%)
-                       (channel-put write-chan (cons special style))
-                       (channel-put write-chan (cons (string->bytes/utf-8 (format "~s" special)) style)))])
-                #t))
-            
-            (define out-sd (make-object style-delta% 'change-normal))
-            (define err-sd (make-object style-delta% 'change-italic))
-            (define value-sd (make-object style-delta% 'change-normal))
-            (send out-sd set-delta-foreground (make-object color% 150 0 150))
-            (send err-sd set-delta-foreground (make-object color% 255 0 0))
-            (send value-sd set-delta-foreground (make-object color% 0 0 175))
-            
-            (set! in-port (make-custom-input-port read-bytes-proc
-                                                  #f
-                                                  in-close-proc
-                                                  this))
-            (set! out-port (make-custom-output-port #f
-                                                    (make-write-bytes-proc out-sd)
-                                                    flush-proc
-                                                    out-close-proc
-                                                    (make-write-special-proc out-sd)))
-            (set! err-port (make-custom-output-port #f 
-                                                    (make-write-bytes-proc err-sd)
-                                                    flush-proc
-                                                    out-close-proc
-                                                    (make-write-special-proc err-sd)))
-            (set! value-port (make-custom-output-port #f
-                                                      (make-write-bytes-proc value-sd)
-                                                      flush-proc
-                                                      out-close-proc
-                                                      (make-write-special-proc value-sd))))
-          
+            (set! in-port (make-input-port this
+                                           read-bytes-proc
+                                           #f
+                                           in-close-proc)))
+         
           
           ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
           ;;
@@ -1378,6 +1385,8 @@ WARNING: printf is rebound in the body of the unit to always
                                (values (cons acc key) lst)
                                (values fst (cdr lst)))]))])))
           
+          (init-input-port)
+          (init-output-ports)
           (super-new)))
       #|
       (define (drscheme-pretty-print-size-hook x _ port)
