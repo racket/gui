@@ -3566,7 +3566,7 @@
   (class100 basic-control% (label parent [style null])
     (sequence
       (let ([cwho '(constructor message)])
-	(check-label-string-or-bitmap cwho label)
+	(check-label-string/bitmap/iconsym cwho label)
 	(check-container-parent cwho parent)
 	(check-style cwho #f null style)
 	(check-container-ready cwho parent))
@@ -5005,16 +5005,24 @@
       (regexp-replace* re s "\\&\\&"))))
 
 
-
-(define message-box
-  (case-lambda
-   [(title message) (message-box title message #f '(ok))]
-   [(title message parent) (message-box title message parent '(ok))]
-   [(title message parent style)
-    (check-label-string 'message-box title)
-    (check-string/false 'message-box message)
-    (check-top-level-parent/false 'message-box parent)
-    (check-style 'message-box '(ok ok-cancel yes-no) null style)
+(define message-box/buttons
+  (opt-lambda (title message 
+		     button1
+		     button2
+		     button3
+		     [parent #f]
+		     [style '(no-default)]
+		     [close-result #f])
+    (check-label-string 'message-box/buttons title)
+    (check-string/false 'message-box/buttons message)
+    (check-label-string/false 'message-box/buttons button1)
+    (check-label-string/false 'message-box/buttons button2)
+    (check-label-string/false 'message-box/buttons button3)
+    (check-top-level-parent/false 'message-box/buttons parent)
+    (check-style 'message-box/buttons 
+		 '(default=1 default=2 default=3 no-default) 
+		 '(disallow-close number-order)
+		 style)
 
     (let* ([strings (let loop ([s message])
 		      (let ([m (regexp-match (let ([nl (string #\newline #\return)])
@@ -5029,73 +5037,137 @@
 			     (public
 			       [get-message
 				(lambda () message)])
-				  (override
-				    [on-subwindow-event 
-				     (lambda (w e)
-				       (if (send e button-down?)
-					   (if (is-a? w button%)
-					       #f
-					       (if (or single?
-						       (not (is-a? w editor-canvas%))
-						       (let-values ([(w h) (send w get-client-size)])
-							 (< (send e get-x) w)))
-						   (begin
-						     (send w popup-menu
-							   (let ([m (make-object popup-menu%)])
-							     (make-object menu-item%
-									  "Copy Message"
-									  m
-									  (lambda (i e)
-									    (send (wx:get-the-clipboard)
-										  set-clipboard-string
-										  message
-										  (send e get-time-stamp))))
-							     m)
-							   (send e get-x)
-							   (send e get-y))
-						     #t)
-						   #f))
-					   #f))])
-				  (sequence
-				    (super-init title parent box-width))))]
-	   [result 'ok])
-      (if single?
-	  (begin
-	    (send f set-alignment (if (= (length strings) 1) 'center 'left) 'center)
-	    (for-each (lambda (s) (make-object message% (protect& s) f)) strings)
-	    (send f stretchable-width #f)
-	    (send f stretchable-height #f))
-	  (let* ([e (make-object text%)]
-		 [c (make-object editor-canvas% f e '(no-hscroll))])
-	    (send f resize 400 200)
-	    (send c set-line-count (min 5 (length strings)))
-	    (send c allow-tab-exit #t)
-	    (send f reflow-container)
-	    (send e auto-wrap #t)
-	    (send e insert message)
-	    (send e set-position 0)
-	    (send e hide-caret #t)
-	    (send e set-cursor (make-object wx:cursor% 'arrow) #t)
-	    (send e lock #t)))
-      (let* ([p (make-object horizontal-pane% f)]
-	     [mk-button (lambda (title v default?) 
-			  (let ([b (make-object button% title p (lambda (b e) (set! result v) (send f show #f))
-						(if default? '(border) null))])
-			    (when default? (send b focus))))])
-	(send p set-alignment 'center 'center)
-	(send p stretchable-height #f)
-	(send p stretchable-width #t) ; to get panel's centering
-	(case (car style)
-	  [(ok) (mk-button "OK" 'ok #t)]
-	  [(ok-cancel) (set! result 'cancel)
-		       (mk-button "Cancel" 'cancel #f)
-		       (mk-button "OK" 'ok #t)]
-	  [(yes-no) (set! result 'no)
-		    (mk-button "&Yes" 'yes #f)
-		    (mk-button "&No" 'no #f)]))
-      (send f center)
-      (send f show #t)
-      result)]))
+			     (override
+			       [can-close? (lambda ()
+					     (if (memq 'disallow-close style)
+						 (begin
+						   (wx:bell)
+						   #f)
+						 #t))]
+			       [on-subwindow-event 
+				(lambda (w e)
+				  (if (send e button-down?)
+				      (if (is-a? w button%)
+					  #f
+					  (if (or single?
+						  (not (is-a? w editor-canvas%))
+						  (let-values ([(w h) (send w get-client-size)])
+						    (< (send e get-x) w)))
+					      (begin
+						(send w popup-menu
+						      (let ([m (make-object popup-menu%)])
+							(make-object menu-item%
+								     "Copy Message"
+								     m
+								     (lambda (i e)
+								       (send (wx:get-the-clipboard)
+									     set-clipboard-string
+									     message
+									     (send e get-time-stamp))))
+							m)
+						      (send e get-x)
+						      (send e get-y))
+						#t)
+					      #f))
+				      #f))])
+			     (sequence
+			       (super-init title parent box-width))))]
+	   [result close-result])
+      (let-values ([(msg-pnl btn-pnl extra-width btn-h-align msg-h-align msg-v-align)
+		    (case (system-type)
+		      [(macosx) (let ([p (make-object horizontal-pane% f)])
+				  (send f min-width 300)
+				  (send p set-alignment 'center 'top)
+				  (let ([m (make-object message% 'app p)])
+				    (send m horiz-margin 16)
+				    (send m vert-margin 16))
+				  (let* ([rhs-pnl (make-object vertical-pane% p)]
+					 [msg-pnl (make-object vertical-pane% rhs-pnl)]
+					 [btn-pnl (make-object vertical-pane% rhs-pnl)])
+				    (send msg-pnl vert-margin 16)
+				    (send btn-pnl horiz-margin 16)
+				    (send btn-pnl vert-margin 8)
+				    (send msg-pnl min-height 64)
+				    (send btn-pnl stretchable-height #f)
+				    (values msg-pnl btn-pnl 96 'right 'left 'top)))]
+		      [else (values f f 0 'center 'center 'center)])])
+	(if single?
+	    (begin
+	      (send msg-pnl set-alignment (if (= (length strings) 1) msg-h-align 'left) msg-v-align)
+	      (for-each (lambda (s) (make-object message% (protect& s) msg-pnl)) strings)
+	      (send f stretchable-width #f)
+	      (send f stretchable-height #f))
+	    (let* ([e (make-object text%)]
+		   [c (make-object editor-canvas% msg-pnl e '(no-hscroll))])
+	      (send f resize (+ 400 extra-width) 200)
+	      (send c set-line-count (min 5 (length strings)))
+	      (send c allow-tab-exit #t)
+	      (send f reflow-container)
+	      (send e auto-wrap #t)
+	      (send e insert message)
+	      (send e set-position 0)
+	      (send e hide-caret #t)
+	      (send e set-cursor (make-object wx:cursor% 'arrow) #t)
+	      (send e lock #t)))
+	(let* ([p (make-object horizontal-pane% btn-pnl)]
+	       [mk-button (lambda (title v default?) 
+			    (let ([b (make-object button% title p (lambda (b e) (set! result v) (send f show #f))
+						  (if default? '(border) null))])
+			      (when default? (send b focus))))])
+	  (send p set-alignment btn-h-align 'center)
+	  (send p stretchable-height #f)
+	  (send p stretchable-width #t) ; to get panel's centering
+	  (let ([mk-1 (lambda () 
+			(when button1
+			  (mk-button button1 1 (memq 'default=1 style))))]
+		[mk-2 (lambda ()
+			(when button2
+			  (mk-button button2 2 (memq 'default=2 style))))]
+		[mk-3 (lambda ()
+			(when button3
+			  (mk-button button3 3 (memq 'default=3 style))))])
+	    (cond 
+	     [(or (memq 'number-order style)
+		  (not (memq (system-type) '(macos macosx)))) 
+	      (mk-1)
+	      (mk-2)
+	      (mk-3)]
+	     [else
+	      (mk-3)
+	      (make-object horizontal-pane% p)
+	      (mk-2)
+	      (mk-1)])))
+	(send f center)
+	(send f show #t)
+	result))))
+
+(define message-box
+  (case-lambda
+   [(title message) (message-box title message #f '(ok))]
+   [(title message parent) (message-box title message parent '(ok))]
+   [(title message parent style)
+    (check-label-string 'message-box title)
+    (check-string/false 'message-box message)
+    (check-top-level-parent/false 'message-box parent)
+    (check-style 'message-box '(ok ok-cancel yes-no) null style)
+
+    (let-values ([(one two one-v two-v close-val default)
+		  (case (car style)
+		    [(ok) 
+		     (values "OK" #f 'ok #f 1 'default=1)]
+		    [(ok-cancel)
+		     (values "OK" "Cancel" 'ok 'cancel 2 'default=1)]
+		    [(yes-no)
+		     (values "&Yes" "&No" 'yes 'no #f 'no-default)])])
+      (case (message-box/buttons title message
+				 one two #f
+				 parent
+				 (if close-val
+				     (list default)
+				     (list default 'disallow-close))
+				 close-val)
+	[(1) one-v]
+	[(2) two-v]))]))
 
 (define (number->string* n)
   (let ([s (number->string n)])
@@ -6051,6 +6123,11 @@
   (unless (or (label-string? label) (is-a? label wx:bitmap%))
     (raise-type-error (who->name who) "string (up to 200 characters) or bitmap% object" label)))
 
+(define (check-label-string/bitmap/iconsym who label)
+  (unless (or (label-string? label) (is-a? label wx:bitmap%)
+	      (memq label '(app warning error)))
+    (raise-type-error (who->name who) "string (up to 200 characters), bitmap% object, or icon symbol" label)))
+
 (define (check-style who reqd other-allowed style)
   (unless (and (list? style) (andmap symbol? style))
     (raise-type-error (who->name who) "list of style symbols" style))
@@ -6542,6 +6619,7 @@
 	pasteboard%
 	graphical-read-eval-print-loop
 	message-box
+	message-box/buttons
 	get-file
 	get-file-list
 	put-file

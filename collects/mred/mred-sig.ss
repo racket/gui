@@ -111,6 +111,7 @@
      menu-item<%>
      message%
      message-box
+     message-box/buttons
      mouse-event%
      ;; mred@
      mult-color<%>
