@@ -117,24 +117,18 @@
 		  (if f
 		      (cond
                        [(= (position-line f) line)
-                        (let ([f-1 (- f 1)])
+                        (let ([f-1 (- f 2)]) ;; -1 to go back one, -1 to be before char
                           (cond
-                            [(= f 0) 
-                             (prinf "1~n")
-                             #t]
-                            [(and (= (position-line f-1) line)
-                                  (not (char=? (get-character f-1) #\\ )))
-                             (prinf "2~n")
-                             #t]
-                            [else 
-                             (prinf "3~n")
-                             (loop (find-string comment-start 'backward f-1))]))]
+			   [(= f 0)
+			    #t]
+			   [(and (= (position-line f-1) line)
+				 (not (char=? (get-character f-1) #\\ )))
+			    #t]
+			   [else 
+			    (loop (find-string comment-start 'backward f-1))]))]
                        [else 
-                        (prinf "4~n")
                         #f])
-                      (begin
-                        (printf "5~n")
-                        #f))))
+                      #f)))
 	      (scheme-paren:get-comments))))])
       (private
 	[remove-indents-callback
