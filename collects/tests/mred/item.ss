@@ -3,38 +3,31 @@
 (define my-lb #f)
 
 (define special-font (send wx:the-font-list find-or-create-font
-			   20 wx:const-decorative 
-			   wx:const-normal wx:const-bold
+			   20 'decorative 
+			   'normal 'bold
 			   #f))
 
 (define (make-h&s cp f)
-  (make-object mred:button% cp
-	       (lambda (b e) (send f show #f) (send f show #t))
-	       "Hide and Show"))
+  (make-object button% "Hide and Show" cp
+	       (lambda (b e) (send f show #f) (send f show #t))))
 
 (define (add-hide name w cp)
-  (let ([c
-	 (make-object mred:check-box% cp
-		      (lambda (c e) (send w show (send c get-value)))
-		      (format "Show ~a" name))])
+  (let ([c (make-object check-box% (format "Show ~a" name) cp
+			(lambda (c e) (send w show (send c get-value))))])
     (send c set-value #t)))
 
 (define (add-disable name w ep)
-  (let ([c
-	 (make-object mred:check-box% ep
-		      (lambda (c e) (send w enable (send c get-value)))
-		      (format "Enable ~a" name))])
+  (let ([c (make-object check-box% (format "Enable ~a" name) ep
+			(lambda (c e) (send w enable (send c get-value))))])
     (send c set-value #t)))
 
 (define (add-disable-radio name w i ep)
-  (let ([c
-	 (make-object mred:check-box% ep
-		      (lambda (c e) (send w enable i (send c get-value)))
-		      (format "Enable ~a" name))])
+  (let ([c (make-object check-box% (format "Enable ~a" name) ep
+			(lambda (c e) (send w enable i (send c get-value))))])
     (send c set-value #t)))
 
 (define (add-change-label name w lp orig other)
-  (make-object mred:button% lp
+  (make-object button% (format "Relabel ~a" name) lp
 	       (let ([orig-name (if orig orig (send w get-label))]
 		     [changed? #f])
 		 (lambda (b e)
@@ -42,11 +35,10 @@
 		       (unless (null? orig-name)
 			 (send w set-label orig-name))
 		       (send w set-label other))
-		   (set! changed? (not changed?))))
-	       (format "Relabel ~a" name)))
+		   (set! changed? (not changed?))))))
 
 (define (add-focus-note frame panel)
-  (define m (make-object mred:message% panel "focus: ??????????????????????????????"))
+  (define m (make-object message% "focus: ??????????????????????????????" panel))
   (send
    (make-object
     (class-asi wx:timer%
@@ -63,21 +55,18 @@
    start 1000 #t))
 
 (define (add-pre-note frame panel)
-  (define m (make-object mred:message% panel "pre: ??????????????????????????????"))
-  (define cm (make-object mred:check-box% panel void "Drop Mouse Events"))
-  (define ck (make-object mred:check-box% panel void "Drop Key Events"))
+  (define m (make-object message% "pre: ??????????????????????????????" panel))
+  (define cm (make-object check-box% "Drop Mouse Events" panel void))
+  (define ck (make-object check-box% "Drop Key Events" panel void))
   (lambda (win e)
     (let ([m? (is-a? e wx:mouse-event%)])
       (send m set-label
-	    (format "pre: ~a ~a ~a"
+	    (format "pre: ~a ~a"
 		    (if m? "mouse" "key")
 		    (let ([l (send win get-label)])
-		      (if (null? l)
+		      (if (not l)
 			  win
-			  l))
-		    (if (eq? win (send e get-event-object))
-			""
-			"BAD")))
+			  l))))
       (and (not (or (eq? win cm) (eq? win ck)))
 	   (or (and m? (send cm get-value))
 	       (and (not m?) (send ck get-value)))))))
@@ -85,29 +74,31 @@
 (define (add-cursors frame panel ctls)
   (let ([old #f]
 	[f-old #f]
-	[bc (make-object wx:cursor% wx:const-cursor-bullseye)]
-	[cc (make-object wx:cursor% wx:const-cursor-cross)])
-    (make-object mred:check-box% panel
+	[bc (make-object wx:cursor% 'bullseye)]
+	[cc (make-object wx:cursor% 'cross)])
+    (make-object check-box% "Control Bullseye Cursors" panel
 		 (lambda (c e)
 		   (if (send c get-value)
 		       (set! old 
-			     (map (lambda (b) (send b set-cursor bc))
+			     (map (lambda (b) 
+				    (begin0
+				     (send b get-cursor)
+				     (send b set-cursor bc)))
 				  ctls))
 		       (map (lambda (b c) (send b set-cursor c))
-			    ctls old)))
-		 "Control Bullseye Cursors")
-    (make-object mred:check-box% panel
+			    ctls old))))
+    (make-object check-box% "Frame Cross Cursor" panel
 		 (lambda (c e)
 		   (if (send c get-value)
-		       (set! f-old (send frame set-cursor cc))
-		       (send frame set-cursor f-old)))
-		 "Frame Cross Cursor")
-    (make-object mred:check-box% panel
+		       (begin
+			 (set! f-old (send frame get-cursor))
+			 (send frame set-cursor cc))
+		       (send frame set-cursor f-old))))
+    (make-object check-box% "Busy Cursor" panel
 		 (lambda (c e)
 		   (if (send c get-value)
 		       (wx:begin-busy-cursor)
-		       (wx:end-busy-cursor)))
-		 "Busy Cursor")))
+		       (wx:end-busy-cursor))))))
 		       
 (define OTHER-LABEL "XXXXXXXXXXXXXXXXXXXXXX")
 
@@ -120,17 +111,18 @@
        (build-path d n)))))
 
 (define popup-test-canvas%
-  (class mred:canvas% (objects names . args)
-    (inherit popup-menu draw-text clear)
+  (class canvas% (objects names . args)
+    (inherit popup-menu get-dc)
     (public
       [last-m null]
       [last-choice #f]
       [on-paint
        (lambda ()
-	 (clear)
-	 (draw-text "Left: popup hide state" 0 0)
-	 (draw-text "Right: popup previous" 0 20)
-	 (draw-text (format "Last pick: ~s" last-choice) 0 40))]
+	 (let ([dc (get-dc)])
+	   (send dc clear)
+	   (send dc draw-text "Left: popup hide state" 0 0)
+	   (send dc draw-text "Right: popup previous" 0 20)
+	   (send dc draw-text (format "Last pick: ~s" last-choice) 0 40)))]
       [on-event
        (lambda (e)
 	 (if (send e button-down?)
@@ -138,22 +130,25 @@
 		   [y (send e get-y)]
 		   [m (if (or (null? last-m)
 			      (send e button-down? 1))
-			  (let ([m (make-object mred:menu%
-						"Title"
-						(lambda (m e)
-						  (set! last-choice
-							(send e get-command-int))
-						  (on-paint)))]
-				[id 1])
+			  (let ([m (make-object popup-menu% "Title")]
+				[make-callback 
+				 (let ([id 0])
+				   (lambda (m e)
+				     (set! id (add1 id))
+				     (let ([id id])
+				       (lambda ()
+					 (set! last-choice id)
+					 (on-paint)))))])
 			    (for-each
 			     (lambda (obj name)
-			       (send m append
-				     (begin0 id (set! id (add1 id)))
-				     (string-append
-				      name ": "
-				      (if (send obj is-shown?)
-					  "SHOWN"
-					  "<h i d d e n>"))))
+			       (make-object menu-item%
+					    (string-append
+					     name ": "
+					     (if (send obj is-shown?)
+						 "SHOWN"
+						 "<h i d d e n>"))
+					    m
+					    (make-callback)))
 			     objects names)
 			    m)
 			  last-m)])
@@ -173,41 +168,37 @@
 	(printf "bitmap failure: ~s~n" args)))))
 
 (define active-frame%
-  (class-asi mred:frame%
-     (private (pre-on void))
-     (public [pre-on-event (lambda args (apply pre-on args))]
-	     [pre-on-char pre-on-event]
-	     [set-info
-	      (lambda (ep)
-		(set! pre-on (add-pre-note this ep)))])))
+  (class-asi frame%
+    (private (pre-on void))
+    (public [pre-on-event (lambda args (apply pre-on args))]
+	    [pre-on-char pre-on-event]
+	    [set-info
+	     (lambda (ep)
+	       (set! pre-on (add-pre-note this ep)))])))
 
 (define (make-ctls ip cp lp add-testers ep radio-h? label-h? null-label? stretchy?)
   
   (define return-bmp 
-    (make-object bitmap% (icons-path "return.xbm")
-		 wx:const-bitmap-type-xbm))
+    (make-object bitmap% (icons-path "return.xbm") 'xbm))
   (define bb-bmp
-    (make-object bitmap% (icons-path "bb.gif")
-		 wx:const-bitmap-type-gif))
+    (make-object bitmap% (icons-path "bb.gif") 'gif))
   (define mred-bmp
-    (make-object bitmap% (icons-path "mred.xbm")
-		 wx:const-bitmap-type-xbm))
+    (make-object bitmap% (icons-path "mred.xbm") 'xbm))
   (define nruter-bmp
-    (make-object bitmap% (local-path "nruter.xbm")
-		 wx:const-bitmap-type-xbm))
+    (make-object bitmap% (local-path "nruter.xbm") 'xbm))
   
   (define :::dummy:::
     (when (not label-h?)
-      (send ip set-label-position wx:const-vertical)))
+      (send ip set-label-position 'vertical)))
   
   (define-values (l il)
-    (let ([p (make-object mred:horizontal-panel% ip)])
-      (send p stretchable-in-x stretchy?)
-      (send p stretchable-in-y stretchy?)
+    (let ([p (make-object horizontal-panel% ip)])
+      (send p stretchable-width stretchy?)
+      (send p stretchable-height stretchy?)
       
       (begin
-	(define l (make-object mred:message% p "Me&ssage"))
-	(define il (make-object mred:message% p return-bmp))
+	(define l (make-object message% "Me&ssage" p))
+	(define il (make-object message% return-bmp p))
 	
 	(add-testers "Message" l)
 	(add-change-label "Message" l lp #f OTHER-LABEL)
@@ -217,46 +208,46 @@
 	
 	(values l il))))
   
-  (define b (make-object mred:button% ip void "He&llo"))
+  (define b (make-object button% "He&llo" ip void))
   
-  (define ib (make-object mred:button% ip void bb-bmp))
+  (define ib (make-object button% bb-bmp ip void))
   
-  ; (define ib2 (make-object mred:button% ip void return-bmp))
+  ; (define ib2 (make-object button% return-bmp ip void))
   
-  (define lb (make-object mred:list-box% ip void 
-			  (if null-label? null "L&ist")
-			  0 -1 -1 -1 -1
-			  '("Apple" "Banana" "Coconut & Donuts")))
+  (define lb (make-object list-box%
+			  (if null-label? #f "L&ist")
+			  '("Apple" "Banana" "Coconut & Donuts")
+			  ip void))
   
-  (define cb (make-object mred:check-box% ip void "C&heck"))
+  (define cb (make-object check-box% "C&heck" ip void))
   
-  (define icb (make-object mred:check-box% ip void mred-bmp))
+  (define icb (make-object check-box% mred-bmp ip void))
   
-  (define rb (make-object mred:radio-box% ip void 
-			  (if null-label? null "R&adio")
-			  -1 -1 -1 -1
+  (define rb (make-object radio-box%
+			  (if null-label? #f "R&adio")
 			  '("First" "Dos" "T&rio")
-			  0 (if radio-h?
-				wx:const-horizontal
-				wx:const-vertical)))
+			  ip void 
+			  (if radio-h?
+			      '(horizontal)
+			      '(vertical))))
   
-  (define irb (make-object mred:radio-box% ip void 
-			   (if null-label? null "Image Ra&dio")
-			   -1 -1 -1 -1
+  (define irb (make-object radio-box%
+			   (if null-label? #f "Image Ra&dio")
 			   (list return-bmp nruter-bmp)
-			   0 (if radio-h?
-				 wx:const-horizontal
-				 wx:const-vertical)))
+			    ip void 
+			    (if radio-h?
+				'(horizontal)
+				'(vertical))))
   
-  (define ch (make-object mred:choice% ip void 
-			  (if null-label? null "Ch&oice")
-			  -1 -1 -1 -1
-			  '("Alpha" "Beta" "Gamma" "Delta & Rest")))
+  (define ch (make-object choice% 
+			  (if null-label? #f "Ch&oice")
+			  '("Alpha" "Beta" "Gamma" "Delta & Rest")
+			  ip void))
   
-  (define txt (make-object mred:text% ip void 
-			   (if null-label? null "T&ext")
-			   "initial & starting"
-			   -1 -1 -1 -1))
+  (define txt (make-object text%
+			   (if null-label? #f "T&ext")
+			   ip void
+			   "initial & starting"))
   
   (set! my-txt txt)
   (set! my-lb lb)
@@ -313,15 +304,14 @@
 	  items)))
 
 (define (big-frame h-radio? v-label? null-label? stretchy? special-label-font? special-button-font?)
-  (define f (make-object active-frame%
-			 null "Tester"))
+  (define f (make-object active-frame% "Tester"))
   
-  (define hp (make-object mred:horizontal-panel% f))
+  (define hp (make-object horizontal-panel% f))
   
-  (define ip (make-object mred:vertical-panel% hp))
-  (define cp (make-object mred:vertical-panel% hp))
-  (define ep (make-object mred:vertical-panel% hp))
-  (define lp (make-object mred:vertical-panel% hp))
+  (define ip (make-object vertical-panel% hp))
+  (define cp (make-object vertical-panel% hp))
+  (define ep (make-object vertical-panel% hp))
+  (define lp (make-object vertical-panel% hp))
   
   (define (basic-add-testers name w)
     (add-hide name w cp)
@@ -330,14 +320,14 @@
   (define add-testers
     (if stretchy?
 	(lambda (name control)
-	  (send control stretchable-in-x #t)
-	  (send control stretchable-in-y #t)
+	  (send control stretchable-width #t)
+	  (send control stretchable-height #t)
 	  (basic-add-testers name control))
 	basic-add-testers))
   
-  (define fp (make-object mred:vertical-panel% ip))
+  (define fp (make-object vertical-panel% ip))
   
-  (define tp (make-object mred:vertical-panel% fp))
+  (define tp (make-object vertical-panel% fp))
 
   (make-h&s cp f)
   
@@ -348,7 +338,7 @@
   (when special-label-font?
     (send tp set-label-font special-font))
   (when special-button-font?
-    (send tp set-button-font special-font))
+    (send tp set-control-font special-font))
     
   (let ([ctls (make-ctls tp cp lp add-testers ep h-radio? v-label? null-label? stretchy?)])
     (add-focus-note f ep)
@@ -361,14 +351,14 @@
   f)
 
 (define (med-frame radio-h? label-h? null-label? stretchy? special-label-font? special-button-font?)
-  (define f2 (make-object active-frame% null "Tester2"))
+  (define f2 (make-object active-frame% "Tester2"))
 
-  (define hp2 (make-object mred:horizontal-panel% f2))
+  (define hp2 (make-object horizontal-panel% f2))
   
-  (define ip2-0 (make-object mred:vertical-panel% hp2))
-  (define cp2 (make-object mred:vertical-panel% hp2))
-  (define ep2 (make-object mred:vertical-panel% hp2))
-  (define lp2 (make-object mred:vertical-panel% hp2))
+  (define ip2-0 (make-object vertical-panel% hp2))
+  (define cp2 (make-object vertical-panel% hp2))
+  (define ep2 (make-object vertical-panel% hp2))
+  (define lp2 (make-object vertical-panel% hp2))
   
   (define (basic-add-testers2 name w)
     (add-hide name w cp2)
@@ -377,13 +367,13 @@
   (define add-testers2
     (if stretchy?
 	(lambda (name control)
-	  (send control stretchable-in-x #t)
-	  (send control stretchable-in-y #t)
+	  (send control stretchable-width #t)
+	  (send control stretchable-height #t)
 	  (basic-add-testers2 name control))
 	basic-add-testers2))
 
-  (define fp2 (make-object mred:vertical-panel% ip2-0))  
-  (define ip2 (make-object mred:vertical-panel% fp2))
+  (define fp2 (make-object vertical-panel% ip2-0))  
+  (define ip2 (make-object vertical-panel% fp2))
 
   (make-h&s cp2 f2)
   
@@ -394,57 +384,55 @@
     (add-disable "Previous Tester Frame" prev-frame ep2))
   
   (when (not label-h?)
-    (send ip2 set-label-position wx:const-vertical))
+    (send ip2 set-label-position 'vertical))
 
   (when special-label-font?
     (send ip2 set-label-font special-font))
   (when special-button-font?
-    (send ip2 set-button-font special-font))
+    (send ip2 set-control-font special-font))
   
   (begin
-    (define sh (make-object mred:slider% ip2
+    (define sh (make-object slider% 
+			    (if null-label? #f "H S&lider") 0 10 ip2
 			    (lambda (s e)
 			      (send gh set-value (send sh get-value)))
-			    (if null-label? null "H S&lider")
-			    5 0 10 -1 -1 -1
-			    wx:const-horizontal))
+			    5
+			    '(horizontal)))
     
-    (define sv (make-object mred:slider% ip2 
+    (define sv (make-object slider% 
+			    (if null-label? #f "V Sl&ider") 0 10 ip2 
 			    (lambda (s e)
 			      (send gv set-value (send sv get-value)))
-			    (if null-label? null "V Sl&ider")
-			    5 0 10 -1 -1 -1
-			    wx:const-vertical))
+			    5
+			    '(vertical)))
     
-    (define gh (make-object mred:gauge% ip2
-			    (if null-label? null "H G&auge")
-			    10 -1 -1 -1 -1
-			    wx:const-horizontal))
+    (define gh (make-object gauge% 
+			    (if null-label? #f "H G&auge") ip2
+			    10 '(horizontal)))
     
-    (define gv (make-object mred:gauge% ip2
-			    (if null-label? null "V Ga&uge")
-			    10 -1 -1 -1 -1
-			    wx:const-vertical))
+    (define gv (make-object gauge% 
+			    (if null-label? #f "V Ga&uge") ip2
+			    10 '(vertical)))
     
-    (define cmt (make-object mred:canvas-message% ip2
+#|
+    (define cmt (make-object canvas-message% ip2
 			     "Howdy"))
     
     (define cmi (make-object mred:canvas-message% ip2
 			     (make-object bitmap% (icons-path "bb.gif")
 					  wx:const-bitmap-type-gif)))
-    
+|#  
 
-    (define txt (make-object mred:media-text% ip2 void 
-			     (if null-label? null "T&ext")
-			     "initial & starting"
-			     -1 -1 -1 -1))
+    (define txt (make-object multi-text% 
+			     (if null-label? #f "T&ext") ip2 void 
+			     "initial & starting"))
 
     (add-testers2 "Horiz Slider" sh)
     (add-testers2 "Vert Slider" sv)
     (add-testers2 "Horiz Gauge" gh)
     (add-testers2 "Vert Gauge" gv)
-    (add-testers2 "Text Message" cmt)
-    (add-testers2 "Image Message" cmi)
+    ; (add-testers2 "Text Message" cmt)
+    ; (add-testers2 "Image Message" cmi)
     (add-testers2 "Text" txt)
     
     (add-change-label "Horiz Slider" sh lp2 #f OTHER-LABEL)
@@ -456,13 +444,13 @@
 
     (let* ([items (list sh sv
 			gh gv
-			cmt cmi
+			; cmt cmi
 			txt)]
 	   [canvas  (make-object popup-test-canvas% 
 				 items
 				 (list "h slider" "v slider"
 				       "v gauge" "v gauge"
-				       "text msg" "image msg"
+				       ; "text msg" "image msg"
 				       "text")
 				 cp2)])
       
@@ -478,190 +466,210 @@
 ; Need: check, check-test, and enable via menubar
 ; All operations on Submenus
 (define f%
-  (let-enumerate 
-      ([ADD-APPLE
-	ADD-BANANA
-	ADD-COCONUT
-	DELETE-APPLE
-	DELETE-EXTRA-BANANA
-	DELETE-BANANA
-	DELETE-COCONUT-0
-	DELETE-COCONUT
-	DELETE-COCONUT-2
-	COCONUT-ID
-	DELETE-ONCE
-	APPLE-CHECK-ID])
-    (class mred:menu-frame% args
-      (inherit next-menu-id make-menu)
-      (rename
-	[super-make-menu-bar make-menu-bar]
-	[super-on-menu-command on-menu-command])
-      (private
-	offset
-	menu-bar
-	main-menu
-	apple-menu
-	banana-menu
-	coconut-menu
-	baseball-ids
-	hockey-ids
-	enable-item)
-      (public
-	[make-menu-bar
-	 (lambda ()
-	   (let ([mb (super-make-menu-bar)]
-		 [menu (make-menu)])
-	     (set! offset (next-menu-id))
-	     (set! menu-bar mb)
-	     (set! main-menu menu)
-	     
-	     (send menu append (+ offset ADD-APPLE) "Add Apple" "Adds the Apple menu")
-	     (send menu append (+ offset ADD-BANANA) "Add Banana")
-	     (send menu append (+ offset ADD-COCONUT) "Add Coconut")
-	     (send menu append-item "Append Donut"
-		   (lambda () (send apple-menu append-item "Donut" void)))
-	     (send menu append-separator)
-	     (send menu append (+ offset DELETE-COCONUT-0)
-		   "Delete Coconut")
-	     (send menu append-item "Delete Apple"
-		   (lambda () 
-		     (send menu-bar delete apple-menu)
-		     (set! apple-installed? #f)))
-	     
-	     (send menu append-separator)
-	     (set! enable-item
-		   (send menu append-item "Apple Once Disabled"
-			 (lambda ()
-			   (send apple-menu enable DELETE-ONCE
-				 (not (send menu checked? enable-item))))
-			 null #t))
-	     (send menu append-item "Disable Second"
-		   (lambda () (send menu-bar enable-top 1 #f)))
-	     (send menu append-item "Enable Second"
-		   (lambda () (send menu-bar enable-top 1 #t)))
-	     
-	     (send menu append-separator)
-	     (set! baseball-ids
-		   (send menu append-check-set
-			 (list "Astros" "Braves" "Cardinals")
-			 (lambda (which)
-			   (wx:message-box (format "~s Checked" which)))))
-	     (send menu append-separator)
-	     (set! hockey-ids
-		   (send menu append-check-set
-			 `(("Aeros" . Houston) 
-			   ("Bruins" . Boston)
-			   ("Capitols" . Washington))
-			 (lambda (which)
-			   (wx:message-box (format "~s Checked" which)))))
-	     
-	     (set! apple-menu (make-menu))
-	     (set! banana-menu (make-menu))
-	     (set! coconut-menu (make-menu))
-	     
-	     (send apple-menu append (+ offset DELETE-ONCE)
-		   "Delete Once")
-	     (send apple-menu append (+ offset DELETE-APPLE)
-		   "Delete Apple" "Deletes the Apple menu")
-	     (send apple-menu append (+ offset APPLE-CHECK-ID)
-		   "Checkable" null #t)
-	     
-	     (send banana-menu append (+ offset DELETE-BANANA)
-		   "Delete Banana")
-	     (send banana-menu append (+ offset DELETE-EXTRA-BANANA)
-		   "Delete First Banana Item")
-	     (send coconut-menu append (+ offset DELETE-COCONUT)
-		   "Delete Coconut")
-	     (send coconut-menu append (+ offset DELETE-COCONUT-2)
-		   "Delete Coconut By Position")
-	     
-	     (send mb append menu "Tester")
-	     (send mb append apple-menu "Appul")
-	     (send mb enable-top 1 #f)
-	     (send mb set-label-top 1 "Apple")
-	     mb))]
-	[on-menu-command
-	 (lambda (orig-op)
-	   (let ([op (- orig-op offset)])
-	     (cond
-	       [(= op ADD-APPLE)
-		(send menu-bar append apple-menu "Apple")
-		(set! apple-installed? #t)]
-	       [(= op ADD-BANANA)
-		(send menu-bar append banana-menu "Banana")]
-	       [(= op ADD-COCONUT)
-		(send apple-menu append (+ offset COCONUT-ID)
-		      "Coconut" coconut-menu "Submenu")]
-	       [(= op DELETE-ONCE)
-		(send apple-menu delete (+ offset DELETE-ONCE))]
-	       [(= op DELETE-APPLE)
-		(send menu-bar delete apple-menu)
-		(set! apple-installed? #f)]
-	       [(= op DELETE-BANANA)
-		(send menu-bar delete banana-menu)]
-	       [(= op DELETE-EXTRA-BANANA)
-		(send banana-menu delete-by-position 0)]
-	       [(or (= op DELETE-COCONUT) (= op DELETE-COCONUT-0))
-		(send apple-menu delete (+ offset COCONUT-ID))]
-	       [(= op DELETE-COCONUT-2)
-		(send apple-menu delete-by-position 3)]
-	       [else
-		(super-on-menu-command orig-op)])))])
-      (sequence (apply super-init args))
-      (public
-	[mfp (make-object mred:vertical-panel% (ivar this panel))]
-	[mc (make-object mred:wrapping-canvas% mfp -1 -1 200 200)]
-	[restp (make-object mred:vertical-panel% mfp)]
-	[sbp (make-object mred:horizontal-panel% restp)]
-	[mfbp (make-object mred:horizontal-panel% restp)]
-	[lblp (make-object mred:horizontal-panel% restp)]
-	[badp (make-object mred:horizontal-panel% restp)]
-	[e (make-object mred:media-edit%)])
+  (class frame% args
+    (private
+      ADD-APPLE
+      ADD-BANANA
+      ADD-COCONUT
+      DELETE-APPLE
+      DELETE-EXTRA-BANANA
+      DELETE-BANANA
+      DELETE-COCONUT-0
+      DELETE-COCONUT
+      DELETE-COCONUT-2
+      COCONUT-ID
+      DELETE-ONCE
+      APPLE-CHECK-ID)
+    (private
+      menu-bar
+      main-menu
+      apple-menu
+      banana-menu
+      coconut-menu
+      baseball-ids
+      hockey-ids
+      enable-item)
+    (sequence (apply super-init args))
+    (public
+      [make-menu-bar
+       (lambda ()
+	 (let* ([mb (make-object menu-bar% this)]
+		[menu (make-object menu% "Tester" mb)]
+		[new (case-lambda 
+		      [(l help parent) (make-object menu-item% l parent callback #f help)]
+		      [(l help) (make-object menu-item% l menu callback #f help)]
+		      [(l) (make-object menu-item% l menu callback)])]
+		[sep (lambda () (make-object separator-menu-item% menu))])
+	   (set! menu-bar mb)
+	   (set! main-menu menu)
+	   
+	   (set! ADD-APPLE (new "Add Apple" "Adds the Apple menu"))
+	   (set! ADD-BANANA (new "Add Banana"))
+	   (set! ADD-COCONUT (new "Add Coconut"))
+	   
+	   (make-object menu-item% "Append Donut" menu
+			(lambda (m e) 
+			  (make-object menu-item% "Donut" apple-menu void)))
+	   (sep)
+	   (set! DELETE-COCONUT-0 (new "Delete Coconut"))
+	   (make-object menu-item% "Delete Apple" menu
+			(lambda (m e) 
+			  (send (send apple-menu get-item) delete)
+			  (set! apple-installed? #f)))
+	   
+	   (sep)
+	   (set! enable-item
+		 (make-object checkable-menu-item% "Apple Once Disabled" menu
+			      (lambda (m e)
+				(send DELETE-ONCE enable
+				      (not (send enable-item is-checked?))))))
+	   
+	   (let ([mk-enable (lambda (on?)
+			      (lambda (m e)
+				(let ([l (send menu-bar get-items)])
+				  (unless (null? (cdr l))
+				    (send (cadr l) enable on?)))))])
+	     (make-object menu-item% "Disable Second" menu (mk-enable #f))
+	     (make-object menu-item% "Enable Second" menu (mk-enable #t)))
+
+	   (sep)
+	   '(set! baseball-ids
+		  (send menu append-check-set
+			(list "Astros" "Braves" "Cardinals")
+			(lambda (which)
+			  (wx:message-box (format "~s Checked" which)))))
+	   (sep)
+	   '(set! hockey-ids
+		  (send menu append-check-set
+			`(("Aeros" . Houston) 
+			  ("Bruins" . Boston)
+			  ("Capitols" . Washington))
+			(lambda (which)
+			  (wx:message-box (format "~s Checked" which)))))
+	   
+	   (let ([make-menu
+		  (opt-lambda (title parent help-string)
+		    (let ([m (make-object menu% title parent help-string)])
+		      (send (send m get-item) delete)
+		      m))])
+	     (set! apple-menu (make-menu "Apple" mb #f))
+	     (set! banana-menu (make-menu "Banana" mb #f))
+	     (set! coconut-menu (make-menu "Coconut" apple-menu "Submenu")))
+	   
+	   (set! COCONUT-ID (send coconut-menu get-item))
+
+	   (set! DELETE-ONCE (new "Delete Once" #f apple-menu))
+	   (set! DELETE-APPLE (new "Delete Apple" "Deletes the Apple menu" apple-menu))
+	   (set! APPLE-CHECK-ID (make-object checkable-menu-item% "Checkable" apple-menu void))
+
+	   (set! DELETE-BANANA (new "Delete Banana" #f banana-menu))
+	   (set! DELETE-EXTRA-BANANA (new "Delete First Banana Item" #f banana-menu))
+
+	   (set! DELETE-COCONUT (new "Delete Coconut" #f coconut-menu))
+	   (set! DELETE-COCONUT-2 (new "Delete Coconut By Position" #f coconut-menu))))]
+      
+      [callback
+       (lambda (op ev)
+	 (cond
+	  [(eq? op ADD-APPLE)
+	   (send (send apple-menu get-item) restore)
+	   (set! apple-installed? #t)]
+	  [(eq? op ADD-BANANA)
+	   (send (send banana-menu get-item) restore)]
+	  [(eq? op ADD-COCONUT)
+	   (send (send coconut-menu get-item) restore)]
+	  [(eq? op DELETE-ONCE)
+	   (send DELETE-ONCE delete)]
+	  [(eq? op DELETE-APPLE)
+	   (send (send apple-menu get-item) delete)
+	   (set! apple-installed? #f)]
+	  [(eq? op DELETE-BANANA)
+	   (send (send banana-menu get-item) delete)]
+	  [(eq? op DELETE-EXTRA-BANANA)
+	   (send (car (send banana-menu get-items)) delete)]
+	  [(or (eq? op DELETE-COCONUT) (eq? op DELETE-COCONUT-0))
+	   (send COCONUT-ID delete)]
+	  [(eq? op DELETE-COCONUT-2)
+	   (send (list-ref (send apple-menu get-items) 3) delete)]))])
+    (public
+	[mfp (make-object vertical-panel% this)]
+	[mc (make-object media-canvas% mfp)]
+	[restp (make-object vertical-panel% mfp)]
+	[sbp (make-object horizontal-panel% restp)]
+	[mfbp (make-object horizontal-panel% restp)]
+	[lblp (make-object horizontal-panel% restp)]
+	[badp (make-object horizontal-panel% restp)]
+	[e (make-object media-edit%)])
       (sequence
-	(send restp stretchable-in-y #f)
+	(send restp stretchable-height #f)
+	(send mc min-height 250)
 	(send mc set-media e)
 	(send e load-file (local-path "menu-steps.txt")))
       (public
 	[make-test-button
 	 (lambda (name pnl menu id)
-	   (make-object mred:button% pnl 
+	   (make-object button%
+			(format "Test ~a" name) pnl 
 			(lambda (b e)
 			  (wx:message-box
-			   (if (send (via menu) checked? id)
+			   (if (send id is-checked?)
 			       "yes"
 			       "no")
-			   "Checked?"))
-			(format "Test ~a" name)))]
-	[make-bad-test
-	 (lambda (method)
-	   (lambda args
-	     (method 777 #t)
-	     (method 777 #f)
-	     (method -1 #t)
-	     (method -1 #f)))]
+			   "Checked?"))))]
 	[compare
 	 (lambda (expect v kind)
 	   (unless (or (and (string? expect) (string? v)
 			    (string=? expect v))
 		       (eq? expect v))
 	     (error 'test-compare "~a mismatch: ~s != ~s" kind expect v)))]
+	[check-parent
+	 (lambda (menu id)
+	   (unless use-menubar?
+	     (unless (eq? (send id get-parent) menu)
+	       (error 'check-parent "parent mismatch: for ~a, ~a != ~a"
+		      (send id get-label)
+		      (send (send menu get-item) get-label)
+		      (send (send (send id get-parent) get-item) get-label)))))]
 	[label-test
 	 (lambda (menu id expect)
-	   (let ([v (send menu get-label id)])
+	   (check-parent menu id)
+	   (let ([v (send id get-label)])
 	     (compare expect v "label")))]
 	[top-label-test
 	 (lambda (pos expect)
-	   (let ([v (send menu-bar get-label-top pos)])
-	     (compare expect v "top label")))]
+	   (let ([i (send menu-bar get-items)])
+	     (and (> (length i) pos)
+		  (let ([v (send (list-ref i pos) get-label)])
+		    (compare expect v "top label")))))]
 	[help-string-test
 	 (lambda (menu id expect)
-	   (let ([v (send menu get-help-string id)])
+	   (check-parent menu id)
+	   (let ([v (send id get-help-string)])
 	     (compare expect v "help string")))]
 	[find-test
 	 (lambda (menu title expect string)
-	   (let ([v (if use-menubar? 
-			(send menu-bar find-menu-item title string)
-			(send menu find-item string))])
+	   (letrec ([find
+		     (lambda (menu str)
+		       (let ([items (send menu get-items)])
+			 (ormap (lambda (i)
+				  (and (is-a? i labelled-menu-item<%>)
+				       (equal? (send i get-plain-label) str)
+				       i))
+				items)))]
+		    [find-item
+		     (lambda (menu str)
+		       (or (find menu str)
+			   (let ([items (send menu get-items)])
+			     (ormap (lambda (i)
+				      (and (is-a? i submenu-item<%>)
+					   (find-item (send i get-menu) str)))
+				    items))))]
+		    [v (if use-menubar? 
+			   (let ([item (find menu-bar title)])
+			     (if item
+				 (find-item (send item get-menu) string)
+				 -1))
+			   (find-item menu string))])
 	     (compare expect v (format "label search: ~a" string))))]
 	[tell-ok
 	 (lambda ()
@@ -675,62 +683,66 @@
 					x
 					(tmp-pick a b)))])
       (sequence
-	(make-object mred:button% sbp
+	(make-menu-bar)
+
+	(send (send apple-menu get-item) restore)
+
+	(make-object button%
+		     "Delete Tester" sbp 
 		     (lambda args
-		       (send menu-bar delete main-menu))
-		     "Delete Tester")
-	(make-object mred:button% sbp
+		       (send (send main-menu get-item) delete)))
+	(make-object button%
+		     "Delete First Menu" sbp
 		     (lambda args
-		       (send menu-bar delete null 0))
-		     "Delete First Menu")
-	(make-object mred:button% sbp
+		       (send (car (send menu-bar get-items)) delete)))
+	(make-object button%
+		     "Add Tester" sbp
 		     (lambda args
-		       (send menu-bar append main-menu "Tester"))
-		     "Add Tester")
-	(make-object mred:button% sbp
+		       (send (send main-menu get-item) restore)))
+	(make-object button%
+		     "Add Delete Banana" sbp
 		     (lambda args
-		       (send banana-menu append (+ offset DELETE-BANANA)
-			     "Delete Banana"))
-		     "Add Delete Banana")
-	(make-object mred:button% sbp
+		       (send DELETE-BANANA restore)))
+	(make-object button%
+		     "Counts" sbp
 		     (lambda args
 		       (wx:message-box
 			(format "MB: ~a; T: ~a; A: ~a; B: ~a"
-				(send menu-bar number)
-				(send main-menu number)
-				(send apple-menu number)
-				(send banana-menu number))
-			"Counts"))
-		     "Counts")
+				(length (send menu-bar get-items))
+				(length (send main-menu get-items))
+				(length (send apple-menu get-items))
+				(length (send banana-menu get-items)))
+			"Counts")))
 
-	(make-test-button "Aeros" mfbp main-menu (list-ref hockey-ids 0))
-	(make-test-button "Bruins" mfbp main-menu (list-ref hockey-ids 1))
-	(make-test-button "Capitols" mfbp main-menu (list-ref hockey-ids 2))
+	'(make-test-button "Aeros" mfbp main-menu (list-ref hockey-ids 0))
+	'(make-test-button "Bruins" mfbp main-menu (list-ref hockey-ids 1))
+	'(make-test-button "Capitols" mfbp main-menu (list-ref hockey-ids 2))
 	(make-test-button "Apple Item" mfbp apple-menu APPLE-CHECK-ID)
-	(make-object mred:button% mfbp
+	(make-object button%
+		     "Check in Apple" mfbp
 		     (lambda args
-		       (send (via apple-menu) check APPLE-CHECK-ID #t))
-		     "Check in Apple")
+		       (send APPLE-CHECK-ID check #t)))
 	
-	(make-object mred:button% lblp 
+	(make-object button%
+		     "Test Labels" lblp 
 		     (lambda args
 		       (label-test (via main-menu) ADD-APPLE (tmp-pick "Apple Adder" "Add Apple"))
 		       (help-string-test (via main-menu) ADD-APPLE (tmp-pick "ADDER" "Adds the Apple menu"))
-		       (label-test (via main-menu) (car baseball-ids) (tmp-pick "'Stros" "Astros"))
-		       (help-string-test (via main-menu) (car baseball-ids) (tmp-pick "Houston" null))
-		       (label-test (via main-menu) (cadr hockey-ids) "Bruins")
-		       (label-test (via apple-menu) DELETE-APPLE (apple-pick null "Apple Deleter" "Delete Apple"))
-		       (help-string-test (via apple-menu) DELETE-APPLE (apple-pick null "DELETER"
+		       '(label-test (via main-menu) (car baseball-ids) (tmp-pick "'Stros" "Astros"))
+		       '(help-string-test (via main-menu) (car baseball-ids) (tmp-pick "Houston" #f))
+		       '(label-test (via main-menu) (cadr hockey-ids) "Bruins")
+		       (label-test (via apple-menu) DELETE-APPLE (apple-pick #f "Apple Deleter" "Delete Apple"))
+		       (help-string-test (via apple-menu) DELETE-APPLE (apple-pick #f "DELETER"
 										   "Deletes the Apple menu"))
-		       (label-test (via apple-menu) COCONUT-ID (apple-pick null "Coconut!" "Coconut"))
-		       (help-string-test (via apple-menu) COCONUT-ID (apple-pick null "SUBMENU" "Submenu"))
-		       (label-test (via apple-menu) DELETE-COCONUT (apple-pick null "Coconut Deleter" "Delete Coconut")) ; submenu test
-		       (help-string-test (via apple-menu) DELETE-COCONUT (apple-pick null "CDELETER" null))
+		       (label-test (via apple-menu) COCONUT-ID (apple-pick #f "Coconut!" "Coconut"))
+		       (help-string-test (via apple-menu) COCONUT-ID (apple-pick #f "SUBMENU" "Submenu"))
+		       (label-test (via coconut-menu) DELETE-COCONUT (apple-pick #f "Coconut Deleter" "Delete Coconut")) ; submenu test
+		       (help-string-test (via coconut-menu) DELETE-COCONUT (apple-pick #f "CDELETER" #f))
 		       (top-label-test 0 (if temp-labels? "Hi" "Tester"))
-		       (top-label-test 1 (if apple-installed? "Apple" null))
-		       (tell-ok))
-		     "Test Labels")
-	(make-object mred:button% lblp
+		       (top-label-test 1 (if apple-installed? "Apple" #f))
+		       (tell-ok)))
+	(make-object button%
+		     "Find Labels" lblp
 		     (lambda args
 		       (find-test main-menu (tmp-pick "Hi" "Tester")
 				  ADD-APPLE (tmp-pick "Apple Adder" "Add Apple"))
@@ -740,104 +752,80 @@
 				  (tmp-pick "Coconut!" "Coconut"))
 		       (find-test apple-menu "Apple" (apple-pick -1 DELETE-COCONUT DELETE-COCONUT)
 				  (tmp-pick "Coconut Deleter" "Delete Coconut"))
-		       (tell-ok))
-		     "Find Labels")
-	(make-object mred:button% lblp
+		       (tell-ok)))
+	(make-object button%
+		     "Toggle Labels" lblp
 		     (lambda args
 		       (set! temp-labels? (not temp-labels?))
 		       (let ([menu (via main-menu)])
-			 (send menu set-label ADD-APPLE (tmp-pick "Apple Adder" "Add Apple"))
-			 (send menu set-label (car baseball-ids) (tmp-pick "'Stros" "Astros"))
-			 (send apple-menu set-label DELETE-APPLE (tmp-pick "Apple Deleter" "Delete Apple"))
-			 (send apple-menu set-label COCONUT-ID (tmp-pick "Coconut!" "Coconut"))
-			 (send apple-menu set-label DELETE-COCONUT (tmp-pick "Coconut Deleter" "Delete Coconut"))
-			 (send menu set-help-string ADD-APPLE (tmp-pick "ADDER" "Adds the Apple menu"))
-			 (send menu set-help-string (car baseball-ids) (tmp-pick "Houston" null))
-			 (send apple-menu set-help-string DELETE-APPLE (tmp-pick "DELETER" "Deletes the Apple menu"))
-			 (send apple-menu set-help-string COCONUT-ID (tmp-pick "SUBMENU" "Submenu"))
-			 (send apple-menu set-help-string DELETE-COCONUT (tmp-pick "CDELETER" null))
-			 (send menu-bar set-label-top 0 (if temp-labels? "Hi" "Tester"))))
-		     "Toggle Labels")
-	(letrec ([by-bar (make-object mred:check-box% lblp
+			 (send ADD-APPLE set-label (tmp-pick "Apple Adder" "Add Apple"))
+			 '(send (car baseball-ids) set-label (tmp-pick "'Stros" "Astros"))
+			 (send DELETE-APPLE set-label (tmp-pick "Apple Deleter" "Delete Apple"))
+			 (send COCONUT-ID set-label (tmp-pick "Coconut!" "Coconut"))
+			 (send DELETE-COCONUT set-label (tmp-pick "Coconut Deleter" "Delete Coconut"))
+			 (send ADD-APPLE set-help-string (tmp-pick "ADDER" "Adds the Apple menu"))
+			 '(send (car baseball-ids) set-help-string (tmp-pick "Houston" #f))
+			 (send DELETE-APPLE set-help-string (tmp-pick "DELETER" "Deletes the Apple menu"))
+			 (send COCONUT-ID set-help-string (tmp-pick "SUBMENU" "Submenu"))
+			 (send DELETE-COCONUT set-help-string (tmp-pick "CDELETER" #f))
+			 (send (send main-menu get-item) set-label (if temp-labels? "Hi" "Tester")))))
+	(letrec ([by-bar (make-object check-box%
+				      "Via Menubar" lblp
 				      (lambda args
-					(set! use-menubar? (send by-bar get-value)))
-				      "Via Menubar")])
+					(set! use-menubar? (send by-bar get-value))))])
 	  by-bar)
 	
-	(make-test-button "Bad Item" badp apple-menu 777)
-	(make-test-button "Other Bad Item" badp apple-menu -1)
-	(make-object mred:button% badp
-		     (lambda args
-		       (label-test main-menu 777 null)
-		       (label-test main-menu -1 null)
-		       (help-string-test main-menu 777 null)
-		       (help-string-test main-menu -1 null)
-		       (top-label-test -1 null)
-		       (top-label-test 777 null)
-		       (find-test main-menu "No way" -1 "Not in the menus")
-		       (tell-ok))
-		     "Bad Item Labels")
-	(make-object mred:button% badp 
-		     (make-bad-test (ivar main-menu check))
-		     "Check Bad")
-	(make-object mred:button% badp 
-		     (make-bad-test (ivar main-menu enable))
-		     "Enable Bad")
-	(make-object mred:button% badp 
-		     (make-bad-test (lambda (a b) (send main-menu delete a)))
-		     "Delete Bad")
-	
-	#f))))
+	#f)))
 
 (define (menu-frame)
-  (define mf (make-object f% null "Menu Test"))
+  (define mf (make-object f% "Menu Test"))
   (set! prev-frame mf)
   (send mf show #t)
   mf)
 
 (define (check-callback-event orig got e types silent?)
   (unless (eq? orig got)
-	  (error "object not the same"))
-  (unless (is-a? e wx:command-event%)
-	  (error "bad event object"))
-  (unless (eq? got (send e get-event-object))
-	  (error "event object mismatch"))
+    (error "object not the same"))
+  (unless (is-a? e wx:control-event%)
+    (error "bad event object"))
   (let ([type (send e get-event-type)])
-    (unless (member type types)
-	    (error (format "bad event type: ~a" type))))
+    (unless (memq type types)
+      (error (format "bad event type: ~a" type))))
   (unless silent?
-	  (printf "Callback Ok~n")))
+    (printf "Callback Ok~n")))
 
 (define (instructions v-panel file)
-  (define c (make-object mred:media-canvas% v-panel))
-  (define m (make-object mred:media-edit%))
+  (define c (make-object media-canvas% v-panel))
+  (define m (make-object media-edit%))
   (send c set-media m)
   (send m load-file (local-path file))
   (send m lock #t)
-  (send c user-min-width 520)
-  (send c user-min-height 200))
+  (send c min-width 520)
+  (send c min-height 200))
 
-(define (button-frame mred:frame%)
-  (define f (make-object mred:frame% null "Button Test"))
-  (define p (make-object mred:vertical-panel% f))
+(define (button-frame mred:frame% style)
+  (define f (make-object frame% "Button Test"))
+  (define p (make-object vertical-panel% f))
   (define old-list null)
-  (define commands (list wx:const-event-type-button-command))
+  (define commands (list 'button))
   (define hit? #f)
-  (define b (make-object mred:button% p
+  (define b (make-object button%
+			 "Hit Me" p
 			 (lambda (bx e)
 			   (set! hit? #t)
 			   (set! old-list (cons e old-list))
 			   (check-callback-event b bx e commands #f))
-			 "Hit Me"))
-  (define c (make-object mred:button% p
+			 style))
+  (define c (make-object button%
+			 "Check" p
 			 (lambda (c e)
 			   (for-each
 			    (lambda (e)
 			      (check-callback-event b b e commands #t))
 			    old-list)
-			   (printf "All Ok~n"))
-			 "Check"))
-  (define e (make-object mred:button% p
+			   (printf "All Ok~n"))))
+  (define e (make-object button%
+			 "Disable Test" p
 			 (lambda (c e)
 			   (sleep 1)
 			   (set! hit? #f)
@@ -847,139 +835,101 @@
 			     (wx:yield sema)
 			     (when hit?
 			       (printf "un-oh~n"))
-			     (send b enable #t)))
-			 "Disable Test"))
-  (define sd (make-object mred:button% p
-			  (lambda (sd e)
-			    (send b set-default))
-			  "Set Default"))
+			     (send b enable #t)))))
   (instructions p "button-steps.txt")
   (send f show #t))
 
 (define (checkbox-frame)
-  (define f (make-object mred:frame% null "Checkbox Test"))
-  (define p (make-object mred:vertical-panel% f))
+  (define f (make-object frame% "Checkbox Test"))
+  (define p (make-object vertical-panel% f))
   (define old-list null)
-  (define commands (list wx:const-event-type-checkbox-command))
-  (define cb (make-object mred:check-box% p
+  (define commands (list 'check-box))
+  (define cb (make-object check-box%
+			  "On" p
 			  (lambda (cx e)
 			    (set! old-list (cons e old-list))
-			    (unless (eq? (send cb get-value)
-					 (send e checked?))
-				    (error "event checkstate mismatch"))
-			    (check-callback-event cb cx e commands #f))
-			  "On"))
-  (define t (make-object mred:button% p
+			    (check-callback-event cb cx e commands #f))))
+  (define t (make-object button%
+			 "Toggle" p
 			 (lambda (t e)
 			   (let ([on? (send cb get-value)])
-			     (send cb set-value (not on?))))
-			 "Toggle"))
-  (define t2 (make-object mred:button% p
+			     (send cb set-value (not on?))))))
+  (define t2 (make-object button%
+			  "Simulation Toggle" p
 			  (lambda (t e)
 			    (let ([on? (send cb get-value)]
-				  [e (make-object wx:command-event% wx:const-event-type-checkbox-command)])
-			      (send e set-command-int (if on? 0 1))
-			      (send e set-event-object cb)
-			      (send cb command e)))
-			  "Simulation Toggle"))
-  (define c (make-object mred:button% p
+				  [e (make-object wx:control-event% 'check-box)])
+			      (send cb set-value (not on?))
+			      (send cb command e)))))
+  (define c (make-object button%
+			 "Check" p
 			 (lambda (c e)
 			   (for-each
 			    (lambda (e)
 			      (check-callback-event cb cb e commands #t))
 			    old-list)
-			   (printf "All Ok~n"))
-			 "Check"))
+			   (printf "All Ok~n"))))
   (instructions p "checkbox-steps.txt")
   (send f show #t))
 
 (define (radiobox-frame)
-  (define f (make-object mred:frame% null "Radiobox Test"))
-  (define p (make-object mred:vertical-panel% f))
+  (define f (make-object frame% "Radiobox Test"))
+  (define p (make-object vertical-panel% f))
   (define old-list null)
-  (define commands (list wx:const-event-type-radiobox-command))
-  (define hp (make-object mred:horizontal-panel% p))
-  (define _ (send hp stretchable-in-y #f))
+  (define commands (list 'radio-box))
+  (define hp (make-object horizontal-panel% p))
+  (define _ (send hp stretchable-height #f))
   (define callback (lambda (rb e)
-		     (set! old-list (cons e old-list))
-		     (unless (= (send rb get-selection) (send e get-selection))
-		       (error "event selection mismatch"))
-		     (unless (null? (send e get-string))
-		       (error "event string mismatch"))
+		     (set! old-list (cons (cons rb e) old-list))
 		     (check-callback-event rb rb e commands #f)))
   (define rb1-l (list "Singleton"))
-  (define rb1 (make-object mred:radio-box% hp callback "&Left" -1 -1 -1 -1
-			   rb1-l))
+  (define rb1 (make-object radio-box% "&Left" rb1-l hp callback))
   (define rb2-l (list "First" "Last"))
-  (define rb2 (make-object mred:radio-box% hp callback "&Center" -1 -1 -1 -1
-			   rb2-l))
+  (define rb2 (make-object radio-box% "&Center" rb2-l hp callback))
   (define rb3-l (list "Top" "Middle" "Bottom"))
-  (define rb3 (make-object mred:radio-box% hp callback "&Right" -1 -1 -1 -1
-			   rb3-l))
+  (define rb3 (make-object radio-box% "&Right" rb3-l hp callback))
 
   (define rbs (list rb1 rb2 rb3))
   (define rbls (list rb1-l rb2-l rb3-l))
   (define normal-sel (lambda (rb p) (send rb set-selection p)))
-  (define name-sel (lambda (rb p) (send rb set-string-selection (cond
-								 [(= p -1) "Negative"]
-								 [(<= 0 p (sub1 (send rb number)))
-								  (send rb get-string p)]
-								 [else "Too Big"]))))
   (define simulate-sel (lambda (rb p)
-			 (let ([e (make-object wx:command-event% wx:const-event-type-radiobox-command)])
-			   (send e set-selection p)
-			   (send e set-event-object rb)
+			 (let ([e (make-object wx:control-event% 'radio-box)])
+			   (send rb set-selection p)
 			   (send rb command e))))
 
   (define do-sel (lambda (sel n) (for-each (lambda (rb) (sel rb (n rb))) rbs)))
   (define sel-minus (lambda (sel) (do-sel sel (lambda (rb) -1))))
   (define sel-first (lambda (sel) (do-sel sel (lambda (rb) 0))))
-  (define sel-middle (lambda (sel) (do-sel sel (lambda (rb) (floor (/ (send rb number) 2))))))
-  (define sel-last (lambda (sel) (do-sel sel (lambda (rb) (sub1 (send rb number))))))
-  (define sel-N (lambda (sel) (do-sel sel (lambda (rb) (send rb number)))))
+  (define sel-middle (lambda (sel) (do-sel sel (lambda (rb) (floor (/ (send rb get-number) 2))))))
+  (define sel-last (lambda (sel) (do-sel sel (lambda (rb) (sub1 (send rb get-number))))))
+  (define sel-N (lambda (sel) (do-sel sel (lambda (rb) (send rb get-number)))))
   (define (make-selectors title sel)
-    (define hp2 (make-object mred:horizontal-panel% p))
-    (send hp2 stretchable-in-y #f)
-    (make-object mred:button% hp2 (lambda (b e) (sel-minus sel))
-		 (format "Select -1~a" title))
-    (make-object mred:button% hp2 (lambda (b e) (sel-first sel))
-		 (format "Select First~a" title))
-    (make-object mred:button% hp2 (lambda (b e) (sel-middle sel))
-		 (format "Select Middle ~a" title))
-    (make-object mred:button% hp2 (lambda (b e) (sel-last sel))
-		 (format "Select Last~a" title))
-    (make-object mred:button% hp2 (lambda (b e) (sel-N sel))
-		 (format "Select N~a" title)))
+    (define hp2 (make-object horizontal-panel% p))
+    (send hp2 stretchable-height #f)
+    (make-object button% (format "Select -1~a" title) hp2 (lambda (b e) (sel-minus sel)))
+    (make-object button% (format "Select First~a" title) hp2 (lambda (b e) (sel-first sel)))
+    (make-object button% (format "Select Middle ~a" title) hp2 (lambda (b e) (sel-middle sel)))
+    (make-object button% (format "Select Last~a" title) hp2 (lambda (b e) (sel-last sel)))
+    (make-object button% (format "Select N~a" title) hp2 (lambda (b e) (sel-N sel))))
   (make-selectors "" normal-sel)
-  (make-selectors " by Name" name-sel)
   (make-selectors " by Simulate" simulate-sel)
-  (make-object mred:button% p
+  (make-object button% "Check" p
 	       (lambda (c e)
 		 (for-each
 		  (lambda (rb l)
 		    (let loop ([n 0][l l])
 		      (unless (null? l)
 			(let ([a (car l)]
-			      [b (send rb get-string n)])
+			      [b (send rb get-item-label n)])
 			  (unless (string=? a b)
 			    (error "item name mismatch: ~s != ~s" a b)))
-			(unless (= n (send rb find-string (car l)))
-			  (error "find-string failed"))
 			(loop (add1 n) (cdr l)))))
 		  rbs rbls)
 		 (for-each
-		  (lambda (rb)
-		    (unless (string=? (send rb get-string (send rb get-selection))
-				      (send rb get-string-selection))
-		      (error "get-string-selection failure")))
-		  rbs)
-		 (for-each
-		  (lambda (e)
-		    (let ([rb (send e get-event-object)])
-		      (check-callback-event rb rb e commands #t)))
+		  (lambda (rbe)
+		    (check-callback-event (car rbe) (car rbe) (cdr rbe) commands #t))
 		  old-list)
-		 (printf "All Ok~n"))
-	       "Check")
+		 (printf "All Ok~n")))
   (instructions p "radiobox-steps.txt")
   (send f show #t))
 
@@ -1000,7 +950,7 @@
 		     (= list-style wx:const-extended)))
   (define callback
     (lambda (cx e)
-      (when (zero? (send c number))
+      (when (zero? (send c get-number))
 	    (error "Callback for empty choice/list"))
       (set! old-list (cons (list e
 				 (send e get-command-int)
@@ -1132,7 +1082,7 @@
 		   null))
   (define (make-selectors method mname numerical?)
     (define p2 (make-object mred:horizontal-panel% p))
-    (send p2 stretchable-in-y #f)
+    (send p2 stretchable-height #f)
     (when numerical?
 	  (make-object mred:button% p2
 		       (lambda (b e)
@@ -1252,7 +1202,7 @@
       (send s command e)))
   (define p2 (make-object mred:horizontal-panel% p))
   (define p3 (make-object mred:horizontal-panel% p))
-  (send p3 stretchable-in-y #f)
+  (send p3 stretchable-height #f)
   (make-object mred:button% p2
 	       (lambda (c e)
 		 (send s set-value (add1 (send s get-value))))
@@ -1325,9 +1275,9 @@
   (define junk (send p set-label-position wx:const-vertical))
   (define t3 (make-object mred:text% p (handler (lambda () t3)) "Catch Returns" "And, yes, this!"
 			  -1 -1 -1 -1 (+ style wx:const-process-enter)))
-  (send t1 stretchable-in-x #f)
-  (send t2 stretchable-in-x #f)
-  (send t3 stretchable-in-x #f)
+  (send t1 stretchable-width #f)
+  (send t2 stretchable-width #f)
+  (send t3 stretchable-width #f)
   (send f show #t))
 
 (define (canvas-frame flags)
@@ -1389,13 +1339,13 @@
 	  ; Otherwise, we have to specifically refresh the unmanaged canvas
 	  (send (if swap? c2 c1) refresh))))
   (define p2 (make-object mred:horizontal-panel% p))
-  (define junk (send p2 stretchable-in-y #f))
+  (define junk (send p2 stretchable-height #f))
   (define ck-v (make-object mred:check-box% p2 (lambda (b e) (reset-scrolls #f)) "Vertical Scroll"))
   (define ck-h (make-object mred:check-box% p2 (lambda (b e) (reset-scrolls #f)) "Horizontal Scroll"))
   (define ck-s (make-object mred:check-box% p2 (lambda (b e) (reset-scrolls #t)) "Small"))
   (define ck-w (make-object mred:check-box% p2 (lambda (b e) (reset-scrolls #f)) "Swap"))
   (define ip (make-object mred:horizontal-panel% p))
-  (send ip stretchable-in-y #f)
+  (send ip stretchable-height #f)
   (make-object mred:button% ip
 	       (lambda (b e) 
 		 (send (send (mred:edit-file (local-path "canvas-steps.txt")) get-edit) lock #t))
@@ -1406,18 +1356,17 @@
 
 ;----------------------------------------------------------------------
 
-(define selector (make-object mred:frame% null "Test Selector"))
-(define ap (make-object mred:vertical-panel% selector))
+(define selector (make-object frame% "Test Selector"))
+(define ap (make-object vertical-panel% selector))
 
 ; Test timers while we're at it. And create the "Instructions" button.
-(let ([clockp (make-object mred:horizontal-panel% ap)]
+(let ([clockp (make-object horizontal-panel% ap)]
       [selector selector])
-  (make-object mred:button% clockp
+  (make-object button% "Get Instructions" clockp
 	       (lambda (b e) 
-		 (send (send (mred:edit-file (local-path "frame-steps.txt")) get-edit) lock #t))
-	       "Get Instructions")
-  (make-object mred:vertical-panel% clockp) ; filler
-  (let ([time (make-object mred:message% clockp "XX:XX:XX")])
+		 (send (send (mred:edit-file (local-path "frame-steps.txt")) get-edit) lock #t)))
+  (make-object vertical-panel% clockp) ; filler
+  (let ([time (make-object message% "XX:XX:XX" clockp)])
     (make-object
      (class wx:timer% ()
 	    (inherit start)
@@ -1444,69 +1393,61 @@
 	      (super-init)
 	      (start 1000 #t))))))
 
-(define mred:noisy-dialog-box%
-  (class-asi mred:dialog-box%
-    (public
-      [on-default-item
-       (lambda (x)
-	 (printf "Default item hit~n"))])))
+(define bp (make-object vertical-panel% ap '(border)))
+(define bp1 (make-object horizontal-panel% bp))
+(define bp2 (make-object horizontal-pane% bp))
+(define mp (make-object vertical-panel% ap '(border)))
+(define mp1 (make-object horizontal-panel% mp))
+(define mp2 (make-object horizontal-pane% mp))
 
-(define bp (make-object mred:vertical-panel% ap -1 -1 -1 -1 wx:const-border))
-(define bp1 (make-object mred:horizontal-panel% bp))
-(define bp2 (make-object mred:horizontal-panel% bp))
-(define mp (make-object mred:vertical-panel% ap -1 -1 -1 -1 wx:const-border))
-(define mp1 (make-object mred:horizontal-panel% mp))
-(define mp2 (make-object mred:horizontal-panel% mp))
+(send bp1 set-label-position 'vertical)
+(send mp1 set-label-position 'vertical)
 
-(send bp1 set-label-position wx:const-vertical)
-(send mp1 set-label-position wx:const-vertical)
+(make-object button% "Make Menus Frame" ap (lambda (b e) (menu-frame)))
+(define bp (make-object horizontal-pane% ap))
+(send bp stretchable-width #f)
+(make-object button% "Make Button Frame" bp (lambda (b e) (button-frame frame% null)))
+(make-object button% "Make Default Button Frame" bp (lambda (b e) (button-frame frame% '(default))))
+(make-object button% "Make Button Dialog Box" bp (lambda (b e) (button-frame dialog-box% null)))
+(define crp (make-object horizontal-pane% ap))
+(send crp stretchable-height #f)
+(make-object button% "Make Checkbox Frame" crp (lambda (b e) (checkbox-frame)))
+(make-object vertical-pane% crp) ; filler
+(make-object button% "Make Radiobox Frame" crp (lambda (b e) (radiobox-frame)))
+(define cp (make-object horizontal-pane% ap))
+(send cp stretchable-width #f)
+(make-object button% "Make Choice Frame" cp (lambda (b e) (choice-or-list-frame #f 0 #f)))
+(make-object button% "Make Empty Choice Frame" cp (lambda (b e) (choice-or-list-frame #f 0 #t)))
+(define lp (make-object horizontal-pane% ap))
+(send lp stretchable-width #f)
+(make-object button% "Make List Frame" lp (lambda (b e) (choice-or-list-frame #t wx:const-single #f)))
+(make-object button% "Make Empty List Frame" lp (lambda (b e) (choice-or-list-frame #t wx:const-single #t)))
+(make-object button% "Make MultiList Frame" lp (lambda (b e) (choice-or-list-frame #t wx:const-multiple #f)))
+(make-object button% "Make MultiExtendList Frame" lp (lambda (b e) (choice-or-list-frame #t wx:const-extended #f)))
+(define gsp (make-object horizontal-pane% ap))
+(send gsp stretchable-height #f)
+(make-object button% "Make Gauge Frame" gsp (lambda (b e) (gauge-frame)))
+(make-object vertical-pane% gsp) ; filler
+(make-object button% "Make Slider Frame" gsp (lambda (b e) (slider-frame)))
+(define tp (make-object horizontal-pane% ap))
+(send tp stretchable-width #f)
+(make-object button% "Make Text Frame" tp (lambda (b e) (text-frame text% 0)))
+(make-object button% "Make Multitext Frame" tp (lambda (b e) (text-frame multi-text% 0)))
+(define tp2 (make-object horizontal-pane% ap))
+(send tp2 stretchable-width #f)
+(make-object button% "Make Multitext Frame/HScroll" tp2 (lambda (b e) (text-frame multi-text% '(hscroll))))
+(make-object button% "Make Media Multitext Frame/HScroll" tp2 (lambda (b e) (text-frame multi-text% '(hscroll))))
 
-(make-object mred:button% ap (lambda (b e) (menu-frame)) "Make Menus Frame")
-(define bp (make-object mred:horizontal-panel% ap))
-(send bp stretchable-in-x #f)
-(make-object mred:button% bp (lambda (b e) (button-frame mred:frame%)) "Make Button Frame")
-(make-object mred:button% bp (lambda (b e) (button-frame mred:noisy-dialog-box%)) "Make Button Dialog Box")
-(define crp (make-object mred:horizontal-panel% ap))
-(send crp stretchable-in-y #f)
-(make-object mred:button% crp (lambda (b e) (checkbox-frame)) "Make Checkbox Frame")
-(make-object mred:vertical-panel% crp) ; filler
-(make-object mred:button% crp (lambda (b e) (radiobox-frame)) "Make Radiobox Frame")
-(define cp (make-object mred:horizontal-panel% ap))
-(send cp stretchable-in-x #f)
-(make-object mred:button% cp (lambda (b e) (choice-or-list-frame #f 0 #f)) "Make Choice Frame")
-(make-object mred:button% cp (lambda (b e) (choice-or-list-frame #f 0 #t)) "Make Empty Choice Frame")
-(define lp (make-object mred:horizontal-panel% ap))
-(send lp stretchable-in-x #f)
-(make-object mred:button% lp (lambda (b e) (choice-or-list-frame #t wx:const-single #f)) "Make List Frame")
-(make-object mred:button% lp (lambda (b e) (choice-or-list-frame #t wx:const-single #t)) "Make Empty List Frame")
-(make-object mred:button% lp (lambda (b e) (choice-or-list-frame #t wx:const-multiple #f)) "Make MultiList Frame")
-(make-object mred:button% lp (lambda (b e) (choice-or-list-frame #t wx:const-extended #f)) "Make MultiExtendList Frame")
-(define gsp (make-object mred:horizontal-panel% ap))
-(send gsp stretchable-in-y #f)
-(make-object mred:button% gsp (lambda (b e) (gauge-frame)) "Make Gauge Frame")
-(make-object mred:vertical-panel% gsp) ; filler
-(make-object mred:button% gsp (lambda (b e) (slider-frame)) "Make Slider Frame")
-(define tp (make-object mred:horizontal-panel% ap))
-(send tp stretchable-in-x #f)
-(make-object mred:button% tp (lambda (b e) (text-frame mred:text% 0)) "Make Text Frame")
-(make-object mred:button% tp (lambda (b e) (text-frame mred:media-text% 0)) "Make Media Text Frame")
-(make-object mred:button% tp (lambda (b e) (text-frame mred:multi-text% 0)) "Make Multitext Frame")
-(make-object mred:button% tp (lambda (b e) (text-frame mred:media-multi-text% 0)) "Make Media Multitext Frame")
-(define tp2 (make-object mred:horizontal-panel% ap))
-(send tp2 stretchable-in-x #f)
-(make-object mred:button% tp2 (lambda (b e) (text-frame mred:multi-text% wx:const-hscroll)) "Make Multitext Frame/HScroll")
-(make-object mred:button% tp2 (lambda (b e) (text-frame mred:media-multi-text% wx:const-hscroll)) "Make Media Multitext Frame/HScroll")
-
-(define cnp (make-object mred:horizontal-panel% ap))
-(send cnp stretchable-in-x #f)
+(define cnp (make-object horizontal-pane% ap))
+(send cnp stretchable-width #f)
 (let ([mkf (lambda (flags name)
-	     (make-object mred:button% cnp 
-			  (lambda (b e) (canvas-frame flags))
-			  (format "Make ~aCanvas Frame" name)))])
-  (mkf (+ wx:const-hscroll wx:const-vscroll) "HV")
-  (mkf wx:const-hscroll "H")
-  (mkf wx:const-vscroll "V")
-  (mkf 0 ""))
+	     (make-object button%
+			  (format "Make ~aCanvas Frame" name) cnp 
+			  (lambda (b e) (canvas-frame flags))))])
+  (mkf '(hscroll vscroll) "HV")
+  (mkf '(hscroll) "H")
+  (mkf '(vscroll) "V")
+  (mkf null ""))
 
 (define (choose-next radios)
   (let loop ([l radios])
@@ -1524,38 +1465,32 @@
 
 (define make-next-button
   (lambda (p l)
-    (make-object mred:button% p
-		 (lambda (b e) (choose-next l))
-		 "Next Configuration")))
+    (make-object button%
+		 "Next Configuration" p
+		 (lambda (b e) (choose-next l)))))
 
 (define make-selector-and-runner
   (lambda (p1 p2 radios? size maker)
     (define radio-h-radio
       (if radios?
-	  (make-object mred:radio-box% p1 void "Radio Box Orientation"
-		       -1 -1 -1 -1
-		       '("Vertical" "Horizontal"))
+	  (make-object radio-box% "Radio Box Orientation" '("Vertical" "Horizontal")
+		       p1 void)
 	  #f))
     (define label-h-radio
-      (make-object mred:radio-box% p1 void "Label Orientation"
-		   -1 -1 -1 -1
-		   '("Vertical" "Horizontal")))
+      (make-object radio-box% "Label Orientation" '("Vertical" "Horizontal")
+		   p1 void))
     (define label-null-radio
-      (make-object mred:radio-box% p1 void "Optional Labels"
-		   -1 -1 -1 -1
-		   '("Use Label" "No Label")))
+      (make-object radio-box% "Optional Labels" '("Use Label" "No Label")
+		   p1 void))
     (define stretchy-radio
-      (make-object mred:radio-box% p1 void "Stretchiness"
-		   -1 -1 -1 -1
-		   '("Normal" "All Stretchy")))
+      (make-object radio-box% "Stretchiness" '("Normal" "All Stretchy")
+		   p1 void))
     (define label-font-radio
-      (make-object mred:radio-box% p1 void "Label Font"
-		   -1 -1 -1 -1
-		   '("Normal" "Big")))
+      (make-object radio-box% "Label Font" '("Normal" "Big")
+		    p1 void))
     (define button-font-radio
-      (make-object mred:radio-box% p1 void "Button Font"
-		   -1 -1 -1 -1
-		   '("Normal" "Big")))
+      (make-object radio-box% "Button Font" '("Normal" "Big")
+		    p1 void))
     (define next-button
       (let ([basic-set (list label-h-radio label-null-radio stretchy-radio label-font-radio button-font-radio)])
 	(make-next-button p2 
@@ -1563,7 +1498,7 @@
 			      (cons radio-h-radio basic-set)
 			      basic-set))))
     (define go-button
-      (make-object mred:button% p2
+      (make-object button% (format "Make ~a Frame" size) p2
 		   (lambda (b e)
 		     (maker
 		      (if radios?
@@ -1573,8 +1508,7 @@
 		      (positive? (send label-null-radio get-selection))
 		      (positive? (send stretchy-radio get-selection))
 		      (positive? (send label-font-radio get-selection))
-		      (positive? (send button-font-radio get-selection))))
-		   (format "Make ~a Frame" size)))
+		      (positive? (send button-font-radio get-selection))))))
     #t))
 
 (make-selector-and-runner bp1 bp2 #t "Big" big-frame)
