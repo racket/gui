@@ -282,9 +282,9 @@
 	  (send bottom-panel change-children
 		(lambda (l)
 		  (cons (make-object mred:panel% bottom-panel) l)))
-	  (send popup-menu stretchable-in-x? #f)
-	  (send bottom-panel stretchable-in-y? #f)
-	  (send top-panel stretchable-in-y? #f)
+	  (send popup-menu stretchable-in-x #f)
+	  (send bottom-panel stretchable-in-y #f)
+	  (send top-panel stretchable-in-y #f)
 	  (send single-panel change-children (lambda (l) panels))
 	  (send popup-menu set-selection 0)
 	  (send single-panel active-child (car panels))
