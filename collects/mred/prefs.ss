@@ -222,8 +222,7 @@
 		(cond
 		 [(pair? input)
 		  (let/ec k
-		    (let ([first (car input)]
-			  [rest (cdr input)])
+		    (let ([first (car input)])
 		      (when (pair? first)
 			(let ([arg1 (car first)]
 			      [t1 (cdr first)])
@@ -233,7 +232,8 @@
 			      (when (null? t2)
 				(parse-pref arg1 arg2)
 				(k #t)))))))
-		    (err input))]
+		    (err input))
+		  (loop (cdr input))]
 		 [(null? input) (void)]
 		 [else (err input)]))))
 	  (mred:debug:printf 'prefs "read user preferences"))))
