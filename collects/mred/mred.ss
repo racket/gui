@@ -6123,23 +6123,25 @@
     (regexp-replace* #rx"&" s "\\&\\&")))
 
 
-(define message-box/custom
-  (opt-lambda (title message 
-		     button1
-		     button2
-		     button3
-		     [parent #f]
-		     [style '(no-default)]
-		     [close-result #f])
-    (check-label-string 'message-box/custom title)
-    (check-string/false 'message-box/custom message)
-    (check-label-string-or-bitmap/false 'message-box/custom button1)
-    (check-label-string-or-bitmap/false 'message-box/custom button2)
-    (check-label-string-or-bitmap/false 'message-box/custom button3)
-    (check-top-level-parent/false 'message-box/custom parent)
-    (check-style 'message-box/custom 
+(define do-message-box/custom
+  (lambda (who title message
+	       button1 button2 button3
+	       parent style close-result
+	       check? two-results? check-message)
+    (check-label-string who title)
+    (check-string/false who message)
+    (when check?
+      (check-label-string who check-message))
+    (check-label-string-or-bitmap/false who button1)
+    (check-label-string-or-bitmap/false who button2)
+    (check-label-string-or-bitmap/false who button3)
+    (check-top-level-parent/false who parent)
+    (check-style who 
 		 '(default=1 default=2 default=3 no-default) 
-		 '(disallow-close number-order caution stop)
+		 (let ([l '(disallow-close number-order caution stop)])
+		   (if check?
+		       (cons 'checked l)
+		       l))
 		 style)
 
     (let* ([strings (let loop ([s message])
@@ -6248,47 +6250,76 @@
 		      (send c show #f)
 		      (send msg-pnl delete-child c)
 		      (loop #t)))))))
-	(let* ([p (make-object horizontal-pane% btn-pnl)]
-	       [mk-button (lambda (title v default?) 
-			    (let ([b (make-object button% title p (lambda (b e) (set! result v) (send f show #f))
-						  (if default? '(border) null))])
-			      (when default? (send b focus))))])
-	  (send p set-alignment btn-h-align 'center)
-	  (send p stretchable-height #f)
-	  (send p stretchable-width #t) ; to get panel's centering
-	  (let ([mk-1 (lambda () 
-			(when button1
-			  (mk-button button1 1 (memq 'default=1 style))))]
-		[mk-2 (lambda ()
-			(when button2
-			  (mk-button button2 2 (memq 'default=2 style))))]
-		[mk-3 (lambda ()
-			(when button3
-			  (mk-button button3 3 (memq 'default=3 style))))])
-	    (cond 
-	     [(or (memq 'number-order style)
-		  (not (memq (system-type) '(macos macosx)))) 
-	      (mk-1)
-	      (mk-2)
-	      (mk-3)]
-	     [else
-	      (mk-3)
-	      (make-object horizontal-pane% p)
-	      (mk-2)
-	      (mk-1)])))
-	(send f center)
-	(send f show #t)
-	result))))
+	(let ([check (and check?
+			  (let ([p (new horizontal-pane% [parent btn-pnl]
+					[stretchable-height #f]
+					[alignment '(left center)])])
+			    (new check-box% 
+				 [label check-message]
+				 [parent p]
+				 [callback void]
+				 [value (memq 'checked style)])))])
+	  (let* ([p (make-object horizontal-pane% btn-pnl)]
+		 [mk-button (lambda (title v default?) 
+			      (let ([b (make-object button% title p (lambda (b e) (set! result v) (send f show #f))
+						    (if default? '(border) null))])
+				(when default? (send b focus))))])
+	    (send p set-alignment btn-h-align 'center)
+	    (send p stretchable-height #f)
+	    (send p stretchable-width #t) ; to get panel's centering
+	    (let ([mk-1 (lambda () 
+			  (when button1
+			    (mk-button button1 1 (memq 'default=1 style))))]
+		  [mk-2 (lambda ()
+			  (when button2
+			    (mk-button button2 2 (memq 'default=2 style))))]
+		  [mk-3 (lambda ()
+			  (when button3
+			    (mk-button button3 3 (memq 'default=3 style))))])
+	      (cond 
+	       [(or (memq 'number-order style)
+		    (not (memq (system-type) '(macos macosx)))) 
+		(mk-1)
+		(mk-2)
+		(mk-3)]
+	       [else
+		(mk-3)
+		(make-object horizontal-pane% p)
+		(mk-2)
+		(mk-1)])))
+	  (send f center)
+	  (send f show #t)
+	  (if two-results?
+	      (values result (and check? (send check get-value)))
+	      result))))))
 
-(define message-box
-  (case-lambda
-   [(title message) (message-box title message #f '(ok))]
-   [(title message parent) (message-box title message parent '(ok))]
-   [(title message parent style)
-    (check-label-string 'message-box title)
-    (check-string/false 'message-box message)
-    (check-top-level-parent/false 'message-box parent)
-    (check-style 'message-box '(ok ok-cancel yes-no) '(caution stop) style)
+(define message-box/custom
+  (opt-lambda (title message 
+		     button1
+		     button2
+		     button3
+		     [parent #f]
+		     [style '(no-default)]
+		     [close-result #f])
+    (do-message-box/custom 'message-box/custom
+			   title message button1 button2 button3
+			   parent style close-result
+			   #f #f #f)))
+
+(define do-message-box
+  (opt-lambda (who title message parent style check? check-message)
+    (check-label-string who title)
+    (check-string/false who message)
+    (when check?
+      (check-label-string who check-message))
+    (check-top-level-parent/false who parent)
+    (check-style who
+		 '(ok ok-cancel yes-no) 
+		 (let ([l '(caution stop)])
+		   (if check?
+		       (cons 'checked l)
+		       l))
+		 style)
 
     (let-values ([(one two one-v two-v close-val default)
 		  (cond
@@ -6298,20 +6329,53 @@
 		     (values "OK" "Cancel" 'ok 'cancel 2 'default=1)]
 		    [(memq 'yes-no style)
 		     (values "&Yes" "&No" 'yes 'no #f 'no-default)])])
-      (case (message-box/custom title message
-				 one two #f
-				 parent
-				 (append
-				  (cond
-				   [(memq 'stop style) '(stop)]
-				   [(memq 'caution style) '(caution)]
-				   [else null])
-				  (if close-val
-				      (list default)
-				      (list default 'disallow-close)))
-				 close-val)
-	[(1) one-v]
-	[(2) two-v]))]))
+      (let-values ([(result checked?)
+		    (do-message-box/custom who
+					   title message
+					   one two #f
+					   parent
+					   (append
+					    (cond
+					     [(memq 'checked style) '(checked)]
+					     [else null])
+					    (cond
+					     [(memq 'stop style) '(stop)]
+					     [(memq 'caution style) '(caution)]
+					     [else null])
+					    (if close-val
+						(list default)
+						(list default 'disallow-close)))
+					   close-val
+					   check? #t check-message)])
+	(let ([result (case result
+			[(1) one-v]
+			[(2) two-v])])
+	  (if check?
+	      (values result checked?)
+	      result))))))
+
+(define message-box
+  (opt-lambda (title message [parent #f] [style '(ok)])
+    (do-message-box 'message-box title message parent style #f #f)))
+
+(define message+check-box/custom
+  (opt-lambda (title message 
+		     checkbox-message
+		     button1
+		     button2
+		     button3
+		     [parent #f]
+		     [style '(no-default)]
+		     [close-result #f])
+    (do-message-box/custom 'message+check-box/custom
+			   title message button1 button2 button3
+			   parent style close-result
+			   #t #t checkbox-message)))
+
+(define message+check-box
+  (opt-lambda (title message check-message [parent #f] [style '(ok)])
+    (do-message-box 'message-box title message parent style #t check-message)))
+
 
 (define (number->string* n)
   (let ([s (number->string n)])
@@ -7952,7 +8016,9 @@
 	pasteboard%
 	graphical-read-eval-print-loop
 	message-box
+	message+check-box
 	message-box/custom
+	message+check-box/custom
 	get-file
 	get-file-list
 	put-file

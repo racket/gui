@@ -122,7 +122,9 @@
      menu-item<%>
      message%
      message-box
+     message+check-box
      message-box/custom
+     message+check-box/custom
      mouse-event%
      ;; mred@
      mult-color<%>
