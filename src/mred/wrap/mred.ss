@@ -5163,7 +5163,22 @@
       (begin
 	(unless (string? f)
 	  (raise-type-error 'play-sound "string" f))
-	(let ([b (box "cat ~s > /dev/audio")])
+	(let* ([subpath (system-directory-subpath)]
+	       [make-pattern (lambda (s) (string-append ".*" s ".*"))]
+	       [b 
+		(box 
+		 (cond 
+		  [(regexp-match (make-pattern "linux"))
+		   ; use play interface to sox
+		   "play ~s"]
+		  [(regexp-match (make-pattern "solaris"))
+		   "audioplay ~s"]
+		  [else
+		   (raise-mismatch-error
+		    'play-sound
+		    "Don't know how to play sounds on architecture"
+		    subpath)]))])
+          ; see if user has overridden defaults 		  
 	  (wx:get-resource "mred" "playcmd" b)
 	  ((if async? (lambda (x) (process x) #t) system)
 	   (format (unbox b) (expand-path f)))))))
