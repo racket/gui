@@ -155,9 +155,11 @@ highlights of the revision:
    of methods that paint consistently on all platforms. Some drawing
    modes eliminated, ... [still hashing out this part]
 
+   The blit method works directly on bitmaps.
+
    The canvas% class no longer supplies drawing methods. Instead,
-   get-dc to get a drawing context (which always has a more
-   complete set of methods, anyway).
+   get-dc to get a drawing context (which always has a more complete
+   set of methods, anyway).
 
  * American spelling is used everywhere: colour -> color, centre
    -> center.
@@ -221,8 +223,8 @@ menu-item-container<%>
   |- popup-menu% (not created in a menu-bar; for use with canvas%'s popup-menu)
 
 dc<%>
- |- canvas-dc%
- |   |-memory-dc%
+ |- pixel-dc<%>  (replaces canvas-dc%)
+ |   |-bitmap-dc%  (formerly memory-dc%)
  |- printer-dc%
  |- postscript-dc%
 
@@ -321,6 +323,7 @@ top-level-window<%> : area-container-window<%>
     get-eventspace
     on-activate
     can-close? on-close
+    can-exit? on-exit - called when the OS asks MrEd to exit
     get-focus-window - the window with the current focus (or #f)
     get-edit-target-window - the window to last have the focus (or #f)
     get-focus-object - the window/editor with the curent focus (or #f)
@@ -993,7 +996,7 @@ Change post-script-dc% and printer-dc% ininitialization arguments.
  PostScript settings now kept as a ps-setup% object in the
  current-ps-setup parameter.
 
-Changed arguments al default value of fit-on-page? for print in
+Changed arguments and default value of fit-on-page? for print in
  editor<%>
 
 Changed editor<%>'s modified? to is-modified?, added is-locked?
