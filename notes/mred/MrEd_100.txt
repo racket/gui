@@ -37,7 +37,8 @@ MrEd 53 comprised two parts:
 For MrEd 100, we moved the boundary between the core toolbox and the
 application framework. "MrEd" now refers to only the core toolbox,
 which now includes the most useful `mred:' classes from the old
-application framework. We eliminated the `wx:' and `mred:' prefixes.
+application framework. We collapsed the `wx:' and `mred:' classes and
+eliminated the prefixes.
 
 All of the core toolbox classes are built into the MrEd executable.
 The old `mred:' classes that are not part of the core toolbox have
@@ -48,11 +49,11 @@ Running MrEd and Developing MrEd Applications
 ---------------------------------------------
 
 MrEd 100 is more consistent with MzScheme than previous releases. The
-default language for MrEd 100 is the MzScheme's default language,
-whereas MrEd 53's language had different case-sensitivity and
-cond-fallthrough behavior. Command-line handling for MrEd 100 is the
-same as for MzScheme; the only difference is that MrEd executes
-`(graphical-read-eval-print-loop)' on startup instead of
+default language for MrEd 100 is the same as MzScheme's default
+language, whereas MrEd 53's language had different case-sensitivity
+and cond-fallthrough behavior. Command-line handling for MrEd 100 is
+nearly the same as for MzScheme; the only difference is that MrEd
+executes `(graphical-read-eval-print-loop)' on startup instead of
 `(read-eval-print-loop)'. Programmers no longer need to understand
 units and collections to implement a simple MrEd application.
 
@@ -73,9 +74,9 @@ toolbox. Section 2 lists all the methods of the new interfaces and
 classes. Section 3 lists the complete, new set of MrEd procedures,
 showing the arguments for selected new procedures. Section 4 provides
 a mapping from the old `wx:const-XXX' constants to the new
-symbols. Finally, Section 5 lists some of the small and relatively
-subtle changes in MrEd 100 (similar to changes listed in the HISTORY
-notes for an average MrEd release).
+symbols. Finally, Section 5 lists some of the small, relatively
+subtle, and potentially confusing changes in MrEd 100 (similar to
+changes listed in the HISTORY notes for an average MrEd release).
 
 ======================================================================
 0. Highlights of the New MrEd Toolbox
@@ -90,34 +91,32 @@ notes for an average MrEd release).
    longer a subclass of panel%, which is itself no longer a subclass
    of canvas%.
 
- * Interfaces are widely used in the toolbox. The old toolbox had
-   "classes" like wx:window% that could not be instantiated. The new
-   toolbox has a window<%> interface ("<%>" is the conventional suffix
-   for interfaces).
+   Interfaces are widely used in the toolbox. The old toolbox provided
+   many "classes" like wx:window% that could not be instantiated. The
+   new toolbox has a window<%> interface ("<%>" is the conventional
+   suffix for interfaces).
 
  * Instead of null, #f is used for the "no appropriate value" value,
    such as the parent argument for a frame that does not have a parent
    window, or the result for get-label when the window does not have a
    label.
 
- * There are no wx:const-... values. Instead, methods that used to
-   take a single (numerical) wx:const- flag now take a symbol, and
-   methods that used to take bitwise-ior'd wx:const- integers now take
+   There are no wx:const-... values. Instead, a method that used to
+   take a single (numerical) wx:const- flag now takes a symbol, and a
+   method that used to take bitwise-ior'd wx:const- integers now takes
    a list of symbols. For example, wx:const-horizontal was replaced by
    'horizontal, and wx:const-bitmap-type-gif was replaced with 'gif.
 
  * The old documentation described certain methods as consuming "small
    integer" values; the implementation actually accepted any sort of
-   number and coerced it to a machine-word integer.
-
-   Methods now consume an explicitly defined class of numbers. For
-   example, most windowing methods that formerly consumed "small
-   integers" now consume "exact integers in [0,10000]". The
-   implementation signals an exception when provided an inexact
-   number, a non-integer, or an integer outside the range [0,10000]. A
-   few methods consume arbitrary exact non-negative integers; those
-   methods behave correctly when provided an integer represented as a
-   bignum.
+   number and coerced it to a machine-word integer. Methods now
+   consume a precisely defined class of numbers. For example, most
+   windowing methods that formerly consumed "small integers" now
+   consume "exact integers in [0, 10000]". The implementation signals
+   an exception when provided an inexact number, a non-integer, or an
+   integer outside the range [0, 10000]. A few methods consume
+   arbitrary exact non-negative integers; those methods behave
+   correctly when provided an integer represented as a bignum.
 
    In the windowing toolbox, object-specific out-of-range errors are
    now signalled by a mismatch exception. (In previous versions of
@@ -133,18 +132,10 @@ notes for an average MrEd release).
    menu is created by supplying the parent menu bar as an
    initialization argument (or a parent menu to create a submenu). A
    menu item is created by instantiating menu-item% or
-   checkable-menu-item% with a menu argument. There are no integer
-   menu IDs anywhere; when a menu item is selected, a callback
+   checkable-menu-item% with a menu argument. Integer menu IDs have
+   been eliminated; when a menu item is selected, a callback
    associated with the menu item is executed, just as when a button is
    clicked.
-
- * Initialization arguments for creating windows have been re-ordered.
-   In general, the order is as follows:
-
-      label [sub-labels] callback parent [init-value] style
-              ^- e.g., items in a radio box
-
-   where style is a list of symbols.
 
  * The "media" names have changed. Roughly, we replaced "media" with
    "editor", or dropped "media" it when "editor" is not useful. The
@@ -184,7 +175,7 @@ notes for an average MrEd release).
    keyboard focus.
 
  * The text-field% control (formerly wx:text% and wx:multi-text%)
-   works well on all platforms because it is implemented using the
+   works well on all platforms, because it is implemented using the
    editor classes. (The equivalent of a wx:multi-text% is created via
    a style flag for text-field%.)
 
@@ -227,7 +218,13 @@ notes for an average MrEd release).
    canvas drawing must use get-dc to get a drawing context (which
    always had a more complete set of methods, anyway).
 
- * Some methods have been renamed to be either more (accurately)
+ * Initialization arguments for creating windows have been re-ordered.
+   In general, the order is as follows:
+      label [sub-labels] callback parent [init-value] style
+              ^- e.g., items in a radio box
+   where style is a list of symbols.
+
+   Some methods have been renamed to be either more (accurately)
    descriptive or more consistent with other method names. American
    spelling is used everywhere: colour -> color, centre -> center,
    grey -> gray.
@@ -1006,10 +1003,11 @@ get-the-buffer-data-class-list
 
 
 ======================================================================
-5. Relatively subtle changes
+5. Relatively subtle and potentially confusing changes
 ======================================================================
 
 Added queue-callback: (queue-callback proc [hi-priority?])
+ and removed MzScheme's semaphore-callback
 
 key-event%'s key-code method was removed
 
@@ -1019,19 +1017,8 @@ key-event%'s get-key-code returns a character or a symbol
 window<%>'s set-cursor no longer returns the cursor; added get-cursor,
  instead
 
-editor-snip%'s resize method no longer calls the embedded buffer's
- set-max-size and set-min-size; now it calls on-display-size
-
-media-buffer%'s do-edit changed to editor<%>'s do-edit-operation,
- takes a symbol instead of a number
-
-pasteboard%'s {on,after}-interactive-move takes a mouse-event% object
-
-Xt: key-event% for a numpad Enter key reports 'numpad-enter for the
+key-event% for a numpad Enter key in Xt reports 'numpad-enter for the
  key code instead of #\return
-
-An editor's selection caret now blinks; added a blink-caret method to
- editor<%> and snip%
 
 Added 'unknown image kind for bitmap%'s load-file, etc., which
  examines the file to determine the type automatically.
@@ -1043,21 +1030,32 @@ canvas%'s get-view-start returns values in pixels, not scroll units
 For canvas%'s set-scrollbars, #f indicates a disabled scrollbar rather
  than a non-positive number
 
-editor-wordbreak-map%'s get-map and set-map now work on characters
-   instead of integers
-
-text%'s find-string and find-string-all use symbols to specify the
- direction, 'forward or 'backward instead of -1 or 1.
+A text editor's selection caret now blinks; added a blink-caret method
+ to editor<%> and snip%
 
 In editor<%>'s scroll-to, text%'s scroll-to-position and
  set-position-bias-scroll, editor-admin%'s scroll-to, and
  snip-admin%'s scroll-to, bias changed from an integer to a symbol
  (see the docs for details)
 
+media-buffer%'s do-edit changed to editor<%>'s do-edit-operation,
+ which takes a symbol instead of a number
+
+Changed editor<%>'s modified? to is-modified?, added is-locked?
+
+editor-wordbreak-map%'s get-map and set-map now work on characters
+   instead of integers
+
+text%'s find-string and find-string-all use symbols to specify the
+ direction, 'forward or 'backward instead of -1 or 1.
+
 Changed arguments and default value of fit-on-page? for print in
  editor<%>
 
-Changed editor<%>'s modified? to is-modified?, added is-locked?
+pasteboard%'s {on,after}-interactive-move takes a mouse-event% object
+
+editor-snip%'s resize method no longer calls the embedded buffer's
+ set-max-size and set-min-size; now it calls on-display-size
 
 clipboard% changed to clipboard<%> and font-name-directory% changed to
  font-name-directory<%>; there is just once instance, the-clipboard
@@ -1072,6 +1070,8 @@ the-color-database only has a find-color method; the others were
  TODO: Miscellaneous Cleanup
 -----------------------------
 
-Fix pen stipples
+Fix pen stipples under Windows
+
+Enter/leave under Windows
 
 Move the editor margin settings into ps-setup%?
