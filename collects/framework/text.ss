@@ -223,7 +223,7 @@
 					       (and (<= (max (abs (- (send rc red) (send tmpc red)))
 							     (abs (- (send rc blue) (send tmpc blue)))
 							     (abs (- (send rc green) (send tmpc green))))
-							15)
+							50)
 						    rc))
 					rc))]
 			   [first-number (lambda (x y) (if (number? x) x y))]
