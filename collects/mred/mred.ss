@@ -5102,11 +5102,7 @@
 					    (get-ds no-v? no-h?)
 					    #f 
 					    (append
-					     (if (and (memq 'no-border style)
-						      (or (memq 'no-vscroll style)
-							  (memq 'hide-vscroll style))
-						      (or (memq 'no-hscroll style)
-							  (memq 'hide-hscroll style)))
+					     (if (memq 'no-border style)
 						 null
 						 '(border))
 					     (remq 'no-border style))
@@ -6021,7 +6017,7 @@
 				 (apply super-init args) (accept-drop-files #t)))
 			     "MrEd REPL" #f 500 400))
   (define repl-buffer (make-object esq:text%))
-  (define repl-display-canvas (make-object editor-canvas% frame))
+  (define repl-display-canvas (new editor-canvas% [parent frame] [style '(no-border)]))
 
   (define esq-eventspace (wx:current-eventspace))
   (define (queue-output proc)
