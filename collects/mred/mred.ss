@@ -1708,6 +1708,7 @@
 
 (define bg-color (wx:get-panel-background))
 (define tab-v-space 2)
+(define raise-h 2)
 
 (define (scale-color c f)
   (make-object wx:color% 
@@ -1754,7 +1755,7 @@
 	    (set! tab-height (if (even? th) th (add1 th)))))))
     
     (define/private (get-total-width)
-      (apply + tab-height (* (length tabs) tab-height) tab-widths))
+      (apply + tab-height (* (length tabs) (+ raise-h raise-h tab-height)) tab-widths))
     
     (define/private (get-init-x)
       (let-values ([(w h) (my-get-client-size)]
@@ -1819,7 +1820,7 @@
       (let ([dc (get-dc)])
 	(set! regions
 	      (map (lambda (tpl r)
-		     (let ([points (map (lambda (p) (make-object wx:point% (car p) (+ 2 (cadr p))))
+		     (let ([points (map (lambda (p) (make-object wx:point% (car p) (+ 2 raise-h (cadr p))))
 					tpl)])
 		       (send r set-polygon points))
 		     r)
@@ -1840,11 +1841,12 @@
 	(let loop ([x init-x][l tabs][wl tab-widths][pos 0])
 	  (if (null? l)
 	      null
-	      (let ([next-x (+ x tab-height (car wl))])
+	      (let ([next-x (+ x tab-height (car wl))]
+		    [-sel-d (if (= pos selected) (- raise-h) 0)])
 		(cons
 		 (append
 		  ;; start point
-		  (list (list (+ x tab-height inset) (+ 2 tab-height (- inset))))
+		  (list (list (+ x tab-height -sel-d inset) (+ 2 tab-height (- inset))))
 		  ;; left line
 		  (begin
 		    (when (= pos selected)
@@ -1853,33 +1855,38 @@
 			(send dc draw-line 0 (add1 tab-height) x (add1 tab-height))))
 		    (let ([short (if (or (= pos 0) (= pos selected))
 				     0
-				     (/ tab-height 2))])
+				     (+ (/ tab-height 2) 
+					(if (= selected (sub1 pos))
+					    raise-h
+					    0)))])
 		      (when light?
-			(send dc draw-line (+ x short) (- tab-height short) (+ x tab-height) 0)
-			(send dc draw-line (+ x short 1) (- tab-height short) (+ x tab-height 1) 0))
-		      (list (list (+ x short -2 inset) (- tab-height short -2 inset))
-			    (list (+ x tab-height inset) inset))))
+			(send dc draw-line (+ x short -sel-d) (- tab-height short) (+ x tab-height) -sel-d)
+			(send dc draw-line (+ x short -sel-d 1) (- tab-height short) (+ x tab-height 1) -sel-d))
+		      (list (list (+ x short -sel-d -2 inset) (- tab-height short -2 inset))
+			    (list (+ x tab-height inset) (+ -sel-d inset)))))
 		  ;; top line
 		  (begin
 		    (when light?
-		      (send dc draw-line (+ x tab-height) 0 next-x 0)
-		      (send dc draw-line (+ x tab-height) 1 next-x 1))
-		    (list (list (+ 1 next-x (- inset)) inset)))
+		      (send dc draw-line (+ x tab-height) -sel-d next-x -sel-d)
+		      (send dc draw-line (+ x tab-height) (+ 1 -sel-d) next-x (+ 1 -sel-d)))
+		    (list (list (+ 1 next-x (- inset)) (+ inset -sel-d))))
 		  ;; right line
-		  (let ([short (if (= (add1 pos) selected)
-				   (/ tab-height 2)
-				   0)])
+		  (let* ([short (if (= (add1 pos) selected)
+				    (+ (/ tab-height 2) (sub1 raise-h))
+				    0)]
+			 [short-d (if (zero? short) 0 -1)])
 		    (when dark?
-		      (send dc draw-line (add1 next-x) 1 (- (+ next-x tab-height) short 1) (- tab-height short 1))
-		      (send dc draw-line next-x 1 (- (+ next-x tab-height) short 2) (- tab-height short 1)))
-		    (list (list (- (+ next-x tab-height) short -2 inset) (- tab-height short -2 inset))))
+		      (send dc draw-line (+ 1 next-x) (+ -sel-d 1) (- (+ next-x tab-height) short 1 -sel-d) (- tab-height short 1))
+		      (send dc draw-line next-x (+ -sel-d 1) 
+			    (- (+ next-x tab-height) short 2 -sel-d short-d) (- tab-height short 1 short-d)))
+		    (list (list (- (+ next-x tab-height) -sel-d short -2 inset) (- tab-height short -2 inset))))
 		  ;; end point
 		  (begin
 		    (when light?
 		      (when (= pos selected)
 			(send dc draw-line (+ next-x tab-height) tab-height w tab-height)
 			(send dc draw-line (+ next-x tab-height) (add1 tab-height) w (add1 tab-height)))
-		      (send dc draw-text (car l) (+ x tab-height) tab-v-space))
+		      (send dc draw-text (car l) (+ x tab-height) (- tab-v-space (if (= pos selected) raise-h 0))))
 		    (list (list (+ next-x inset) (+ 2 tab-height (- inset))))))
 		 (loop next-x (cdr l) (cdr wl) (add1 pos))))))))
     
@@ -1892,7 +1899,7 @@
 	   (send dc set-background bg-color)
 	   (send dc set-font font)
 	   (send dc clear)
-	   (send dc set-origin 0 2)
+	   (send dc set-origin 0 (+ 2 raise-h))
 	   (when (and tracking-pos tracking-hit?)
 	     (let ([b (send dc get-brush)])
 	       (send dc set-brush dark-brush)
@@ -1968,7 +1975,7 @@
 
     (compute-sizes)
     (set-min-width (inexact->exact (ceiling (get-total-width))))
-    (set-min-height (inexact->exact (ceiling (+ tab-height 9))))))
+    (set-min-height (inexact->exact (ceiling (+ tab-height 9 raise-h))))))
 
 (define wx-tab-group% 
   (if (eq? 'unix (system-type))
@@ -3225,7 +3232,14 @@
       (send e auto-wrap (and multi? (not (memq 'hscroll style))))
       (let ([f (get-control-font)]
 	    [s (send (send e get-style-list) find-named-style "Standard")])
-	(send s set-delta (font->delta f)))
+	(send s set-delta (let ([d (font->delta f)])
+			    (if (memq 'password style)
+				(begin
+				  (send d set-face #f)
+				  (send d set-family 'modern)
+				  (send d set-delta-foreground "darkgray")
+				  (send d set-delta-background "darkgray"))
+				d))))
       (send c set-editor e)
       (send c set-line-count (if multi? 3 1))
       (unless multi? (send c set-single-line))
@@ -4216,7 +4230,7 @@
 	(check-container-parent cwho parent)
 	(check-callback cwho callback)
 	(check-string cwho init-value)
-	(check-style cwho '(single multiple) '(hscroll) style)
+	(check-style cwho '(single multiple) '(hscroll password) style)
 	(check-container-ready cwho parent)))
     (private-field
       [wx #f])
@@ -5704,14 +5718,14 @@
     (check-label-string/false 'get-text-from-user message)
     (check-top-level-parent/false 'get-text-from-user parent)
     (check-string 'get-text-from-user init-val)
-    (check-style 'get-text-from-user #f null style)
+    (check-style 'get-text-from-user #f '(password) style)
     (let* ([f (make-object dialog% title parent box-width)]
 	   [ok? #f]
 	   [done (lambda (?) (lambda (b e) (set! ok? ?) (send f show #f)))])
       (send f set-label-position 'vertical)
       (let ([t (make-object text-field% message f (lambda (t e) (when (eq? (send e get-event-type) 'text-field-enter)
 								  ((done #t) #f #f)))
-			    init-val)]
+			    init-val (cons 'single style))]
 	    [p (make-object horizontal-pane% f)])
 	(send p set-alignment 'right 'center)
 	(send f stretchable-height #f)
