@@ -20,13 +20,11 @@
 
   (define -text<%>
     (interface ()
-      highlight-parens?
       highlight-parens
       get-limit
       balance-quotes
       balance-parens
       tabify-on-return?
-      match-round-to-square?
       tabify
       tabify-selection
       tabify-all
@@ -45,14 +43,14 @@
       find-down-sexp
       down-sexp
       remove-parens-forward
-      standard-style-delta
 
       select-forward-sexp
       select-backward-sexp
       select-up-sexp
       select-down-sexp
       transpose-sexp
-      tab-size))
+      get-tab-size
+      set-tab-size))
 
   (define init-wordbreak-map
     (lambda (map)
@@ -61,9 +59,11 @@
 	      #\-
 	      '(line)))))
   (define wordbreak-map (make-object editor-wordbreak-map%))
+  (define (get-wordbreak-map) wordbreak-map)
   (init-wordbreak-map wordbreak-map)
 
   (define style-list (make-object style-list%))
+  (define (get-style-list) style-list)
   (define standard-style-delta
     (let ([delta (make-object style-delta% 'change-normal)])
       (send delta set-delta 'change-family 'modern)
@@ -115,7 +115,7 @@
 		  (if (= -1 f)
 		      #f
 		      (= (send position-line f) line))))
-	      scheme-paren:comments)))])
+	      (scheme-paren:get-comments))))])
       (private
 	[remove-indents-callback
 	 (preferences:add-callback
@@ -134,7 +134,6 @@
       (rename [super-on-focus on-focus]
 	      [super-on-change-style on-change-style]
 	      [super-after-change-style after-change-style]
-	      [super-on-edit-sequence on-edit-sequence]
 	      [super-after-edit-sequence after-edit-sequence]
 	      [super-on-insert on-insert]
 	      [super-after-insert after-insert]
@@ -159,9 +158,6 @@
 	  (unless (get-styles-fixed)
 	    (highlight-parens))
 	  (super-after-change-style))]
-       [on-edit-sequence
-	(lambda ()
-	  (super-on-edit-sequence))]
        [after-edit-sequence
 	(lambda ()
 	  (unless in-highlight-parens?
@@ -205,11 +201,9 @@
        [after-set-position 
 	(lambda ()
 	  (highlight-parens))])
-      
-      (public
-	[highlight-parens? (preferences:get 'framework:highlight-parens)])
 
       (private
+	[highlight-parens? (preferences:get 'framework:highlight-parens)]
 	[remove-paren-callback (preferences:add-callback
 				'framework:highlight-parens 
 				(lambda (p value)
@@ -219,7 +213,7 @@
 	 (lambda (pos)
 	   (let loop ([pos pos])
 	     (let ([paren-pos (apply max (map (lambda (pair) (find-string (car pair) -1 pos -1 #f))
-					      scheme-paren:paren-pairs))])
+					      (scheme-paren:get-paren-pairs)))])
 	       (cond
 		 [(= -1 paren-pos) #f]
 		 [else
@@ -263,7 +257,7 @@
 			    (lambda (f)
 			      (lambda (char)
 				(ormap (lambda (x) (char=? char (string-ref (f x) 0)))
-				       scheme-paren:paren-pairs)))]
+				       (scheme-paren:get-paren-pairs))))]
 			   [is-left-paren? (is-paren? car)]
 			   [is-right-paren? (is-paren? cdr)])
 		      (when (and (= here there)
@@ -327,7 +321,7 @@
 		      [fixup-parens? (preferences:get 'framework:fixup-parens)]
 		      [find-match
 		       (lambda (pos)
-			 (let loop ([parens scheme-paren:paren-pairs])
+			 (let loop ([parens (scheme-paren:get-paren-pairs)])
 			   (cond
 			     [(null? parens) #f]
 			     [else (let* ([paren (car parens)]
@@ -364,7 +358,6 @@
 		 [else (insert char)])
 	       #t)))]
 	[tabify-on-return? (lambda () #t)]
-	[match-round-to-square? (lambda () #t)]
 	[tabify    
 	 (opt-lambda ([pos (get-start-position)])
 	   (let* ([last-pos (last-position)]
@@ -655,7 +648,7 @@
 
 	     (if (and exp-pos (> exp-pos 0))
 		 (let ([pos (apply max
-				   (map paren-pos scheme-paren:paren-pairs))])
+				   (map paren-pos (scheme-paren:get-paren-pairs)))])
 		   (if (= pos -1)  ;; all finds failed
 		       #f
 		       (- pos 1))) ;; subtract one to move outside the paren
@@ -706,8 +699,7 @@
 			(delete (-  closer 2) (- closer 1))
 			(end-edit-sequence))
 		 (bell))
-	     #t))]
-	[standard-style-delta #f])
+	     #t))])
 
       (private
 	[select-text
@@ -752,8 +744,12 @@
 				     (insert text-1 start-2 end-2)
 				     (insert text-2 start-1 end-1)
 				     (set-position end-2)
-				     (end-edit-sequence)))))))))))]
+				     (end-edit-sequence)))))))))))])
+      (private
 	[tab-size 8])
+      (public
+	[get-tab-size (lambda () tab-size)]
+	[set-tab-size (lambda (s) (set! tab-size s))])
 
       (sequence
 	(apply super-init args)
@@ -895,4 +891,5 @@
 	(send keymap map-function "c:c;c:b" "remove-parens-forward")))
 
   (define keymap (make-object keymap%))
-  (setup-keymap keymap))
+  (setup-keymap keymap)
+  (define (get-keymap) keymap))

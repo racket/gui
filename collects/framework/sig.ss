@@ -80,6 +80,7 @@
 (define-signature framework:editor^
   (basic<%>
    info<%>
+   file<%>
    backup-autosave<%>
    
    basic-mixin
@@ -96,19 +97,23 @@
 (define-signature framework:text^
   (basic<%>
    searching<%>
+   return<%>
+   info<%>
+   clever-file-format<%>
    
    basic-mixin
-   return-mixin
    searching-mixin
+   return-mixin
+   info-mixin
    clever-file-format-mixin
    
    basic% 
    return%
-   searching%
-   info%
    file%
    clever-file-format%
-   backup-autosave%))
+   backup-autosave%
+   searching%
+   info%))
 
 (define-signature framework:pasteboard%
   (pasteboard:basic%
@@ -210,19 +215,19 @@
   (%))
 
 (define-signature framework:scheme-paren^
-  (paren-pairs
-   quote-pairs
-   comments
+  (get-comments
+   get-paren-pairs
+   get-quote-pairs
    forward-match
    backward-match
    balanced?
    backward-containing-sexp))
 
 (define-signature framework:scheme^
-  (wordbreak-map
+  (get-wordbreak-map
    init-wordbreak-map
-   style-list
-   keymap
+   get-style-list
+   get-keymap
    setup-keymap
    text-mixin
    text<%>

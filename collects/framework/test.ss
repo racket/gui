@@ -1,4 +1,5 @@
 (printf "1~n")
+(require-library "errortrace.ss" "errortrace")
 (read-case-sensitive #t)
 (compile-allow-cond-fallthrough #t)
 (compile-allow-set!-undefined #t)

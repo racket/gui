@@ -312,8 +312,6 @@
 	  (keymap:set-keymap-implied-shifts keymap)
 	  (send keymap chain-to-keymap (keymap:get-global) #f)))))
   
-  (define file<%> (interface (basic<%>)))
-
   (define searching<%>
     (interface ()
       find-string-embedded))
@@ -407,8 +405,10 @@
 	  (keymap:set-keymap-implied-shifts keymap)
 	  (send keymap chain-to-keymap (keymap:get-search) #f)))))
   
+  (define return<%> (interface (text<%>)))
+
   (define return-mixin
-    (mixin (text<%>) (text<%>) (return . args)
+    (mixin (text<%>) (return<%>) (return . args)
       (rename [super-on-local-char on-local-char])
       (override
 	[on-local-char
@@ -423,8 +423,10 @@
       (sequence
 	(apply super-init args))))
 
+  (define info<%> (interface (editor:basic<%> text<%>)))
+
   (define info-mixin
-    (mixin (editor:basic<%> text<%>) (editor:basic<%> text<%>) args
+    (mixin (editor:basic<%> text<%>) (info<%>) args
       (inherit get-start-position get-end-position get-canvas
 	       run-after-edit-sequence)
       (rename [super-after-set-position after-set-position]
@@ -471,8 +473,10 @@
 	   (enqueue-for-frame 'edit-position-changed
 			      'framework:edit-position-changed))])))
 
+  (define clever-file-format<%> (interface (text<%>)))
+
   (define clever-file-format-mixin
-    (mixin (text<%>) (text<%>) args
+    (mixin (text<%>) (clever-file-format<%>) args
       (inherit get-file-format set-file-format find-first-snip)
       (rename [super-on-save-file on-save-file]
 	      [super-after-save-file after-save-file])
