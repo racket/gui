@@ -1056,6 +1056,8 @@ media-buffer%'s do-edit changed to editor<%>'s do-edit-operation,
 
 Changed editor<%>'s modified? to is-modified?, added is-locked?.
 
+Added add-undo method to editor<%>, and introduced editor-undo% class.
+
 editor-wordbreak-map%'s get-map and set-map now work on characters
  instead of integers.
 
@@ -1084,7 +1086,5 @@ the-color-database only has a find-color method; the others were
 -----------------------------
 
 Move the editor margin settings into ps-setup%?
-
-Add programmer-installed undo records to editor<%>
 
 Add `on-tab' to canvas<%>?
