@@ -1,3 +1,9 @@
+101/7:
+
+ * Fixed choice% size for X with horizontal label (PR 1213)
+
+ * Fixed bad calls to get-extent in media-edit% (PR 1218)
+
 101/6:
 
  * Added 'symbol font family
