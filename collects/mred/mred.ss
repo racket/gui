@@ -691,8 +691,8 @@
 			[(< frame-h min-h) min-h]
 			[(and (> frame-h min-h) (not (child-info-y-stretch panel-info))) min-h]
 			[else frame-h])])
-		 (values new-w new-h 
-			 min-w min-h
+		 (values (max new-w 1) (max new-h 1)
+			 (max min-w 1) (max min-h 1)
 			 (child-info-x-stretch panel-info) (child-info-y-stretch panel-info))))))]
 
       [set-panel-size
