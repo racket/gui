@@ -114,5 +114,3 @@ test as last time, or `all' to run all of the tests.
 
 	
 |#)
-
-`(load.ss)

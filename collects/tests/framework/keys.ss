@@ -1,3 +1,6 @@
+(module keys mzscheme
+  (require "test-suite-utils.ss")
+
 (test
  'keymap:aug-keymap%/get-table
  (lambda (x)
@@ -121,3 +124,5 @@
 		   (scheme:text-mixin text:basic%))])
 	       (sequence (super-init name)))
 	    scheme-specs)
+
+)

@@ -5,9 +5,12 @@
 	   (lib "mred-sig.ss" "mred")
 	   (lib "mred.ss" "mred"))
 
-  (provide-signature-elements framework:test^)
+  (provide-signature-elements ((unit test : framework:test^)))
 
-  (define-values/invoke-unit/sig framework:test^
-    framework:test@
+  (define-values/invoke-unit/sig ((unit test : framework:test^))
+    (compound-unit/sig
+      (import [m : mred^])
+      (link [test : framework:test^ (framework:test@ m)])
+      (export (unit test)))
     #f
     mred^))

@@ -1,7 +1,10 @@
+(module canvas mzscheme
+  (require "test-suite-utils.ss")
+
 (define (test-creation class name)
   (test
    name
-   (lambda (x) #t)
+   (lambda (x) (eq? 'passed x))
    (lambda ()
      (send-sexp-to-mred
       `(let* ([f (make-object frame:basic% "test canvas" #f 300 300)]
@@ -10,7 +13,8 @@
 	 (send f show #t)))
       (wait-for-frame "test canvas")
       (send-sexp-to-mred
-       `(send (get-top-level-focus-window) show #f)))))
+       `(send (get-top-level-focus-window) show #f))
+      'passed)))
 
 (test-creation '(canvas:basic-mixin editor-canvas%)
 	       'canvas:basic-mixin-creation)
@@ -21,3 +25,4 @@
 	       'canvas:wide-snip-mixin-creation)
 (test-creation 'canvas:wide-snip%
 	       'canvas:wide-snip%-creation)
+)

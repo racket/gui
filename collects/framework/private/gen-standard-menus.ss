@@ -69,11 +69,11 @@
                     (instantiate (get-menu-item%) ()
                       (label ,(join menu-before-string menu-after-string
                                     `(,(an-item->string-name item))))
-                      (parent ,(menu-item-menu-name item))
+                      (menu ,(menu-item-menu-name item))
                       (callback (let ([,callback-name (lambda (item evt) (,callback-name item evt))])
                                   ,callback-name))
                       (shortcut ,key)
-                      (help (,(an-item->help-string-name item)))
+                      (help-string (,(an-item->help-string-name item)))
                       (demand-callback (lambda (menu-item) (,(an-item->on-demand-name item) menu-item)))))))))
   
   ;; build-after-super-clause : ((X -> symbol) -> X -> (listof clause))

@@ -1,3 +1,9 @@
+(module prefs mzscheme
+  (require "test-suite-utils.ss"
+	   (lib "etc.ss")
+	   (lib "list.ss"))
+  
+
 (local [(define pref-file (build-path (find-system-path 'pref-dir)
 				      (case (system-type)
 					[(macos) "MrEd Preferences"]
@@ -34,7 +40,14 @@
 		(preferences:get ',pref-sym)))
 
   (with-handlers ([eof-result? (lambda (x) (void))])
-    (send-sexp-to-mred '(begin (preferences:set 'framework:verify-exit #f) (exit:exit))))
+    (send-sexp-to-mred '(begin (preferences:set 'framework:verify-exit #f)
+			       (exit:exit)
+
+			       ;; do this yield here so that exit:exit
+			       ;; actually exits on this interaction.
+			       ;; right now, exit:exit queue's a new event to exit
+			       ;; instead of just exiting immediately.
+			       (yield (make-semaphore 0)))))
 
   (test 'preference-get-after-restart
 	(check-eq? 'new-pref)
@@ -45,7 +58,8 @@
 (test 'dialog-appears
       (lambda (x) (eq? 'passed x))
       (lambda ()
-	(send-sexp-to-mred '(preferences:show-dialog))
+	(send-sexp-to-mred '(begin (send (make-object frame:basic% "frame") show #t)
+				   (preferences:show-dialog)))
 	(wait-for-frame "Preferences")
 	(send-sexp-to-mred '(begin (preferences:hide-dialog)
 				   (let ([f (get-top-level-focus-window)])
@@ -54,3 +68,5 @@
 					     'failed
 					     'passed)
 					 'passed))))))
+)
+

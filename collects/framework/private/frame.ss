@@ -143,7 +143,7 @@
           (super-instantiate ())
           (accept-drop-files #t)
             
-          (make-object menu% "&Window" (make-object (get-menu-bar%) this))
+          (make-object menu% "&Windows" (make-object (get-menu-bar%) this))
           (reorder-menus this)
           (send (group:get-the-frame-group) insert-frame this)
           [define panel (make-root-area-container (get-area-container%) this)]
@@ -583,7 +583,7 @@
       
       (define editor-mixin
         (mixin (standard-menus<%>) (-editor<%>)
-          (init file-name)
+          (init (file-name #f))
 
           (inherit get-area-container get-client-size 
                    show get-edit-target-window get-edit-target-object)

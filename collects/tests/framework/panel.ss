@@ -1,61 +1,66 @@
+(module panel mzscheme
+  (require "test-suite-utils.ss")
+
 (test 
  'single-panel
  (lambda (x) (eq? x 'passed))
  `(let* ([semaphore (make-semaphore 0)]
 	 [semaphore-frame%
-	  (class frame% args
-	    (override
-	     [on-close (lambda () (semaphore-post semaphore))])
-	    (sequence
-	      (apply super-init args)))]
+	  (class frame% 
+	    (override on-close)
+	    [define on-close (lambda () (semaphore-post semaphore))]
+	    (super-instantiate ()))]
 	 [f (make-object semaphore-frame% "Single Panel Test")]
 	 [blue-brush (send the-brush-list find-or-create-brush "BLUE" 'solid)]
 	 [green-brush (send the-brush-list find-or-create-brush "FOREST GREEN" 'solid)]
 	 [black-pen (send the-pen-list find-or-create-pen "BLACK" 1 'solid)]
 	 [grid-canvas%
-	  (class canvas% (lines parent label stretchable-width? stretchable-height?)
+	  (class canvas% 
+	    (init-field lines)
+	    (init label)
 	    (inherit get-dc get-client-size)
-	    (override
-	     [on-paint
-	      (lambda ()
-		(let-values ([(width height) (get-client-size)])
-		  (let ([dc (get-dc)]
-			[single-width (/ width lines)]
-			[single-height (/ height lines)])
-		    (send dc set-pen black-pen)
-		    (let loop ([i lines])
-		      (cond
-			[(zero? i) (void)]
-			[else
-			 (let loop ([j lines])
-			   (cond
-			     [(zero? j) (void)]
-			     [else 
-			      (send dc set-brush
-				    (if (= 0 (modulo (+ i j) 2))
-					blue-brush green-brush))
-			      (send dc draw-rectangle
-				    (* single-width (- i 1))
-				    (* single-height (- j 1))
-				    single-width
-				    single-height)
-			      (loop (- j 1))]))
-			 (loop (- i 1))])))))])
-	    (inherit set-label min-width min-height stretchable-height stretchable-width)
-	    (sequence
-	      (super-init parent)
-	      (stretchable-width stretchable-width?)
-	      (stretchable-height stretchable-height?)
-	      (min-width 50)
-	      (min-height 50)
-	      (set-label label)))]
-	  
+	    (override on-paint)
+	    (define (on-paint)
+	      (let-values ([(width height) (get-client-size)])
+		(let ([dc (get-dc)]
+		      [single-width (/ width lines)]
+		      [single-height (/ height lines)])
+		  (send dc set-pen black-pen)
+		  (let loop ([i lines])
+		    (cond
+		      [(zero? i) (void)]
+		      [else
+		       (let loop ([j lines])
+			 (cond
+			   [(zero? j) (void)]
+			   [else 
+			    (send dc set-brush
+				  (if (= 0 (modulo (+ i j) 2))
+				      blue-brush green-brush))
+			    (send dc draw-rectangle
+				  (* single-width (- i 1))
+				  (* single-height (- j 1))
+				  single-width
+				  single-height)
+			    (loop (- j 1))]))
+		       (loop (- i 1))])))))
+	    (super-instantiate ())
+
+	    ;; soon to be obsolete, hopefully.
+	    (inherit set-label)
+	    (set-label label)
+
+	    (inherit min-width min-height)
+	    (min-width 50)
+	    (min-height 50))]
 	 [border-panel (make-object horizontal-panel% f '(border))]
 	 [single-panel (make-object panel:single% border-panel)]
-	 [children (list (make-object grid-canvas% 3 single-panel "Small" #f #f)
-			 (make-object grid-canvas% 3 single-panel "Wide" #f #t)
-			 (make-object grid-canvas% 3 single-panel "Tall" #t #f)
-			 (make-object grid-canvas% 3 single-panel "Wide and Tall" #t #t))]
+	 [children
+	  (list
+	   (instantiate grid-canvas% () (lines 3) (parent single-panel) (label "Small") (stretchable-width #f) (stretchable-height #f))
+	   (instantiate grid-canvas% () (lines 3) (parent single-panel) (label "Wide") (stretchable-width #f) (stretchable-height #t))
+	   (instantiate grid-canvas% () (lines 3) (parent single-panel) (label "Tall") (stretchable-width #t) (stretchable-height #f))
+	   (instantiate grid-canvas% () (lines 3) (parent single-panel) (label "Wide and Tall") (stretchable-width #t) (stretchable-height #t)))]
 	 [active-child (car children)]
 	 [radios (make-object horizontal-panel% f)]
 	 [make-radio
@@ -128,3 +133,4 @@
     (yield semaphore)
     (send f show #f)
     result))
+)

@@ -1,23 +1,30 @@
+(module text mzscheme
+  (require "test-suite-utils.ss")
+
 (define (test-creation frame% class name)
   (test
    name
-   (lambda (x) #t)
+   (lambda (x) (eq? x 'passed))
    (lambda ()
-     (send-sexp-to-mred
-      `(let* ([% (class-asi ,frame%
-		   (override
-		    [get-editor% (lambda () ,class)]))]
-	      [f (make-object % "test text")])
-	 (preferences:set 'framework:exit-when-no-frames #f)
-	 (send f show #t)))
-     (wait-for-frame "test text")
-     (send-sexp-to-mred `(test:keystroke #\a))
-     (wait-for `(string=? "a" (send (send (get-top-level-focus-window) get-editor) get-text)))
-     (send-sexp-to-mred
-      `(begin (send (send (get-top-level-focus-window) get-editor) lock #t)
-	      (send (send (get-top-level-focus-window) get-editor) lock #f)))
-     (queue-sexp-to-mred
-      `(send (get-top-level-focus-window) close)))))
+     (let ([label
+	    (send-sexp-to-mred
+	     `(let ([f (instantiate (class ,frame%
+				      (override get-editor%)
+				      [define (get-editor%) ,class]
+				      (super-instantiate ()))
+				    ())])
+		(preferences:set 'framework:exit-when-no-frames #f)
+		(send f show #t)
+		(send f get-label)))])
+       (wait-for-frame label)
+       (send-sexp-to-mred `(test:keystroke #\a))
+       (wait-for `(string=? "a" (send (send (get-top-level-focus-window) get-editor) get-text)))
+       (send-sexp-to-mred
+	`(begin (send (send (get-top-level-focus-window) get-editor) lock #t)
+		(send (send (get-top-level-focus-window) get-editor) lock #f)))
+       (queue-sexp-to-mred
+	`(send (get-top-level-focus-window) close))
+       'passed))))
 
 
 (test-creation 'frame:text%
@@ -26,17 +33,6 @@
 (test-creation 'frame:text%
 	       'text:basic%
 	       'text:basic-creation)
-
-(define (return-args class)
-  `(class ,class ()
-     (sequence
-       (super-init void))))
-(test-creation 'frame:text%
-	       (return-args '(text:return-mixin text:basic%))
-	       'text:return-mixin-creation)
-(test-creation 'frame:text%
-	       (return-args 'text:return%)
-	       'text:return-creation)
 
 (test-creation 'frame:text%
 	       '(editor:file-mixin text:keymap%)
@@ -68,3 +64,5 @@
 (test-creation '(frame:searchable-mixin frame:text%)
 	       'text:info%
 	       'text:info-creation)
+
+)

@@ -63,39 +63,37 @@
   (define listener
     (let loop ()
       (let ([port (load port-filename)])
-	(with-handlers ([(lambda (x) #t)
+	(with-handlers ([not-break-exn?
 			 (lambda (x)
 			   (let ([next (+ port 1)])
 			     (call-with-output-file port-filename
 			       (lambda (p)
 				 (write next p))
 			       'truncate)
-			     (debug-printf tcp "  tcp-listen failed for port ~a, attempting ~a~n"
+			     (debug-printf mz-tcp "  tcp-listen failed for port ~a, attempting ~a~n"
 					   port
 					   next)
 			     (loop)))])
-	  (debug-printf tcp "listening to ~a~n" port)
+	  (debug-printf mz-tcp "listening to ~a~n" port)
 	  (tcp-listen port)))))
 
   (define in-port #f)
   (define out-port #f)
 
-  (define restart-mred
-    (lambda ()
-      (shutdown-mred)
-      ((case (system-type)
-	 [(macos) system*]
-	 [else (lambda (x) (thread (lambda () (system* x))))])
-       (mred-program-launcher-path "Framework Test Engine"))
-      (debug-printf tcp "accepting listener~n")
-      (let-values ([(in out) (tcp-accept listener)])
-	(set! in-port in)
-	(set! out-port out))
-      (when load-framework-automatically?
-	(queue-sexp-to-mred
-	 `(begin
-	    (require (lib "framework.ss" "framework")
-		     (lib "gui.ss" "tests" "utils")))))))
+  (define (restart-mred)
+    (shutdown-mred)
+    ((case (system-type)
+       [(macos) system*]
+       [else (lambda (x) (thread (lambda () (system* x))))])
+     (mred-program-launcher-path "Framework Test Engine"))
+    (debug-printf mz-tcp "accepting listener~n")
+    (let-values ([(in out) (tcp-accept listener)])
+      (set! in-port in)
+      (set! out-port out))
+    (when load-framework-automatically?
+      (queue-sexp-to-mred
+       '(begin (eval '(require (lib "framework.ss" "framework")))
+	       (eval '(require (lib "gui.ss" "tests" "utils")))))))
 
   (define load-framework-automatically
     (case-lambda
@@ -109,16 +107,16 @@
   (define shutdown-listener
     (lambda ()
       (shutdown-mred)
-      (debug-printf tcp "closing listener~n")
+      (debug-printf mz-tcp "closing listener~n")
       (tcp-close listener)))
 
   (define shutdown-mred
     (lambda ()
       (when (and in-port
 		 out-port)
-	(with-handlers ([(lambda (x) #t) (lambda (x) (void))])
+	(with-handlers ([not-break-exn? (lambda (x) (void))])
 	  (close-output-port out-port))
-	(with-handlers ([(lambda (x) #t) (lambda (x) (void))])
+	(with-handlers ([not-break-exn? (lambda (x) (void))])
 	  (close-input-port in-port))
 	(set! in-port #f)
 	(set! in-port #f))))
@@ -145,83 +143,84 @@
     (or (regexp-match re:tcp-read-error (exn-message exn))
 	(regexp-match re:tcp-write-error (exn-message exn))))
 
-  (define send-sexp-to-mred
-    (let ([failed-last-time? #f])
-      (lambda (sexp)
-	(let/ec k
-	  (let ([show-text 
-		 (lambda (sexp)
-		   
-		   (debug-when messages
-		     (parameterize ([pretty-print-print-line
-				     (let ([prompt "  "]
-					   [old-liner (pretty-print-print-line)])
-				       (lambda (ln port ol cols)
-					 (let ([ov (old-liner ln port ol cols)])
-					   (if ln 
-					       (begin (display prompt port)
-						      (+ (string-length prompt) ov))
-					       ov))))])
-		       (pretty-print sexp)
-		       (newline))))])
-	    (unless (and in-port
-			 out-port
-			 (with-handlers ([tcp-error?
-					  (lambda (x) #f)])
-			   (or (not (char-ready? in-port))
-			       (not (eof-object? (peek-char in-port))))))
-	      (restart-mred))
-	    (debug-printf messages "  ~a // ~a: sending to mred:~n" section-name test-name)
-	    (show-text sexp)
-	    (with-handlers ([(lambda (x) #t)
-			     (lambda (x)
-			       (cond
-				;; this means that mred was closed
-				;; so we can restart it and try again.
-				[(tcp-error? x) 
-				 (restart-mred)
-				 (write sexp out-port)
-				 (newline out-port)]
-				[else (raise x)]))])
-	      (write sexp out-port)
-	      (newline out-port))
-	    (let ([answer
-		   (with-handlers ([(lambda (x) #t)
-				    (lambda (x)
-				      (if (tcp-error? x);; assume tcp-error means app closed
-					  eof
-					  (list 'cant-read
-						(string-append
-						 (exn-message x)
-						 "; rest of string: "
-						 (format
-						  "~s"
-						  (apply
-						   string
-						   (let loop ()
-						     (if (char-ready? in-port)
-							 (let ([char (read-char in-port)])
-							   (if (eof-object? char)
-							       null
-							       (cons char (loop))))
-							 null))))))))])
-		     (read in-port))])
-	      (unless (or (eof-object? answer)
-			  (and (list? answer)
-			       (= 2 (length answer))))
-		(error 'send-sexp-to-mred "unpected result from mred: ~s~n" answer))
-	      (if (eof-object? answer)
-		  (raise (make-eof-result))
-		  (case (car answer)
-		    [(error)
-		     (error 'send-sexp-to-mred "mred raised \"~a\"" (second answer))]
-		    [(cant-read) (error 'mred/cant-parse (second answer))]
-		    [(normal) 
-		     (debug-printf messages "  ~a // ~a: received from mred:~n" section-name test-name)
-		     (show-text (second answer))
-		     (eval (second answer))]))))))))
+  (define (send-sexp-to-mred sexp)
+    (let/ec k
+      (let ([show-text 
+	     (lambda (sexp)
+	       
+	       (debug-when messages
+			   (parameterize ([pretty-print-print-line
+					   (let ([prompt "  "]
+						 [old-liner (pretty-print-print-line)])
+					     (lambda (ln port ol cols)
+					       (let ([ov (old-liner ln port ol cols)])
+						 (if ln 
+						     (begin (display prompt port)
+							    (+ (string-length prompt) ov))
+						     ov))))])
+			     (pretty-print sexp)
+			     (newline))))])
+	(unless (and in-port
+		     out-port
+		     (with-handlers ([tcp-error?
+				      (lambda (x) #f)])
+		       (or (not (char-ready? in-port))
+			   (not (eof-object? (peek-char in-port))))))
+	  (restart-mred))
+	(debug-printf messages "  ~a // ~a: sending to mred:~n" section-name test-name)
+	(show-text sexp)
+	(with-handlers ([not-break-exn?
+			 (lambda (x)
+			   (cond
+			     ;; this means that mred was closed
+			     ;; so we can restart it and try again.
+			     [(tcp-error? x) 
+			      (restart-mred)
+			      (write sexp out-port)
+			      (newline out-port)]
+			     [else (raise x)]))])
+	  (write sexp out-port)
+	  (newline out-port))
+	(let ([answer
+	       (with-handlers ([not-break-exn?
+				(lambda (x)
+				  (if (tcp-error? x);; assume tcp-error means app closed
+				      eof
+				      (list 'cant-read
+					    (string-append
+					     (exn-message x)
+					     "; rest of string: "
+					     (format
+					      "~s"
+					      (apply
+					       string
+					       (let loop ()
+						 (if (char-ready? in-port)
+						     (let ([char (read-char in-port)])
+						       (if (eof-object? char)
+							   null
+							   (cons char (loop))))
+						     null))))))))])
+		 (read in-port))])
+	  (debug-printf messages "  ~a // ~a: received from mred:~n" section-name test-name)
+	  (show-text answer)
+	  (unless (or (eof-object? answer)
+		      (and (list? answer)
+			   (= 2 (length answer))
+			   (memq (car answer)
+				 '(error last-error cant-read normal))))
+	    (error 'send-sexp-to-mred "unpected result from mred: ~s~n" answer))
+	  (if (eof-object? answer)
+	      (raise (make-eof-result))
+	      (case (car answer)
+		[(error)
+		 (error 'send-sexp-to-mred "mred raised \"~a\"" (second answer))]
+		[(last-error)
+		 (error 'send-sexp-to-mred "mred (last time) raised \"~a\"" (second answer))]
+		[(cant-read) (error 'mred/cant-parse (second answer))]
+		[(normal) 
+		 (eval (second answer))]))))))
 
-  
   (define test
     (case-lambda
      [(in-test-name passed? sexp/proc) (test in-test-name passed? sexp/proc 'section)]
@@ -230,7 +229,7 @@
 	(when (or (not only-these-tests)
 		  (memq test-name only-these-tests))
 	  (let* ([result
-		  (with-handlers ([(lambda (x) #t)
+		  (with-handlers ([not-break-exn?
 				   (lambda (x)
 				     (if (exn? x)
 					 (exn-message x)
@@ -239,7 +238,14 @@
 			(sexp/proc)
 			(begin0 (send-sexp-to-mred sexp/proc)
 				(send-sexp-to-mred ''check-for-errors))))]
-		 [failed (not (passed? result))])
+		 [failed (with-handlers ([not-break-exn?
+					  (lambda (x)
+					    (string-append
+					     "passed? test raised exn: "
+					     (if (exn? x)
+						 (exn-message x)
+						 (format "~s" x))))])
+			   (not (passed? result)))])
 	    (when failed
 	      (debug-printf schedule "FAILED ~a:~n  ~s~n" test-name result)
 	      (set! failed-tests (cons (cons section-name test-name) failed-tests))

@@ -3,7 +3,7 @@
 	   (lib "mred.ss" "mred")
 	   (lib "mred-sig.ss" "mred")
            
-	   (prefix test: "test.ss")
+	   "test.ss"
 	   "test-sig.ss"
            
 	   (prefix prefs-file: "prefs-file.ss")

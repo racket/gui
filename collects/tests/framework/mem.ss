@@ -1,4 +1,7 @@
-;; mem-boxes : (list-of (list string (list-of (weak-box TST))))
+(module mem mzscheme
+  (require "test-suite-utils.ss")
+
+; mem-boxes : (list-of (list string (list-of (weak-box TST))))
 (send-sexp-to-mred '(define mem-boxes null))
 
 (define mem-count 10)
@@ -32,13 +35,17 @@
             [anything? #f])
         (for-each
          (lambda (boxl)
-           (let* ([tag (first boxl)]
-                  [boxes (second boxl)]
+           (let* ([tag (car boxl)]
+                  [boxes (cadr boxl)]
                   [calc-results
                    (lambda ()
-                     (foldl (lambda (b n) (if (weak-box-value b) (+ n 1) n))
-                            0
-                            boxes))])
+		     (let loop ([boxes boxes]
+				[n 0])
+		       (cond
+			 [(null? boxes) n]
+			 [else (if (weak-box-value (car boxes))
+				   (loop (cdr boxes) (+ n 1))
+				   (loop (cdr boxes) n))])))])
 	     (let loop ([tries 16])
 	       (unless (zero? tries)
 		 (when (> (calc-results) 0)
@@ -117,3 +124,4 @@
 ;(test-frame-allocate 'frame:pasteboard%)
 ;(test-frame-allocate 'frame:pasteboard-info-file%)
 (done)
+)

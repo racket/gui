@@ -1,50 +1,69 @@
-(define (test-creation name class-expression)
+(module frame mzscheme
+  (require "test-suite-utils.ss")
+
+(define (test-creation name class-expression . args)
   (test
    name
-   (lambda (x) x)
+   (lambda (x) (eq? 'passed x))
    (lambda ()
-     (send-sexp-to-mred
-      `(begin (preferences:set 'framework:exit-when-no-frames #f)
-	      (send (make-object ,class-expression "test") show #t)))
-     (wait-for-frame "test")
-     (queue-sexp-to-mred
-      '(send (get-top-level-focus-window) close))
-     #t)))
+     (let ([frame-label
+	    (send-sexp-to-mred
+	     `(let ([f (instantiate ,class-expression () ,@args)])
+		(preferences:set 'framework:exit-when-no-frames #f)
+		(send f show #t)
+		(send f get-label)))])
+       (wait-for-frame frame-label)
+       (queue-sexp-to-mred
+	'(send (get-top-level-focus-window) close))
+       'passed))))
 
 (test-creation
  'basic%-creation
- 'frame:basic%)
+ 'frame:basic%
+ '(label "test"))
 (test-creation
  'basic-mixin-creation
- '(frame:basic-mixin frame%))
+ '(frame:basic-mixin frame%)
+ '(label "test"))
 
 (test-creation
  'info-mixin-creation
- '(frame:info-mixin frame:basic%))
+ '(frame:info-mixin frame:basic%)
+ '(label "test"))
+
 (test-creation
  'info%-creation
- 'frame:info%)
+ 'frame:info%
+ '(label "test"))
 
 (test-creation
  'text-info-mixin-creation
- '(frame:text-info-mixin frame:info%))
+ '(frame:text-info-mixin frame:info%)
+ '(label "test"))
 (test-creation
  'text-info%-creation
- 'frame:text-info%)
+ 'frame:text-info%
+ '(label "test"))
 
 (test-creation
  'pasteboard-info-mixin-creation
- '(frame:pasteboard-info-mixin frame:info%))
+ '(frame:pasteboard-info-mixin frame:info%)
+ '(label "test"))
+
 (test-creation
  'pasteboard-info%-creation
- 'frame:pasteboard-info%)
+ 'frame:pasteboard-info%
+ '(label "test"))
 
 (test-creation
  'standard-menus%-creation
- 'frame:standard-menus%)
+ 'frame:standard-menus%
+ '(label "test"))
+
 (test-creation
  'standard-menus-mixin
- '(frame:standard-menus-mixin frame:basic%))
+ '(frame:standard-menus-mixin frame:basic%)
+ '(label "test"))
 
 (test-creation
  'text%-creation
@@ -95,15 +114,18 @@
     (test
      name
      (lambda (x)
-       (delete-file tmp-file)
+       (when (file-exists? tmp-file)
+	 (delete-file tmp-file))
        (equal? x test-file-contents))
      (lambda ()
-       (send-sexp-to-mred
-	`(begin
-	   (preferences:set 'framework:exit-when-no-frames #f)
-	   (preferences:set 'framework:file-dialogs 'common)
-	   (send (make-object ,class-expression "test open") show #t)))
-       (wait-for-frame "test open")
+       (let ([frame-name 
+	      (send-sexp-to-mred
+	       `(let ([frame (instantiate ,class-expression ())])
+		  (preferences:set 'framework:exit-when-no-frames #f)
+		  (preferences:set 'framework:file-dialogs 'common)
+		  (send frame show #t)
+		  (send frame get-label)))])
+       (wait-for-frame frame-name)
        (send-sexp-to-mred
 	`(test:menu-select "File" "Open..."))
        (wait-for-frame "Get file")
@@ -128,37 +150,10 @@
 		 [t (send (send w get-editor) get-text)])
 	    (test:close-top-level-window w)
 	    t))
-	(wait-for-frame "test open")
+	(wait-for-frame frame-name)
 	(queue-sexp-to-mred
-	 `(send (get-top-level-focus-window) close)))))))
+	 `(send (get-top-level-focus-window) close))))))))
 
 (test-open "frame:editor open" 'frame:text%)
 (test-open "frame:searchable open" 'frame:searchable%)
-(test-open "frame:text-info open" 'frame:text-info-file%)
-
-(test
- "set!-ing menu callback in standard-menus-frame"
- (lambda (x) (eq? x 'passed))
- (lambda ()
-   (send-sexp-to-mred
-    `(let* ([set!-cb-frame%
-             (class frame:standard-menus% ()
-               (private [value 'failed])
-               (public
-                 [get-value
-                  (lambda () value)]
-                 [update-printing-proc 
-                  (lambda ()
-                    (set! file-menu:print 
-                          (lambda x (set! value 'passed))))])
-               (override
-                 [file-menu:print (lambda x (void))])
-               (sequence (super-init "set!-cb frame")))]
-            [f (make-object set!-cb-frame%)])
-       (send f update-printing-proc)
-       (send f show #t)))
-   (wait-for-frame "set!-cb frame")
-   (send-sexp-to-mred
-    `(test:menu-select "File" "Print..."))
-   (send-sexp-to-mred
-    `(send (get-top-level-focus-window) get-value))))
+(test-open "frame:text-info open" 'frame:text-info-file%))

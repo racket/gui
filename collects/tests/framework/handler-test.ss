@@ -1,3 +1,6 @@
+(module handler-test mzscheme
+  (require "test-suite-utils.ss")
+
 (let* ([filename "framework-group-test.ss"]
        [tmp-filename (build-path (find-system-path 'temp-dir) filename)])
 
@@ -40,3 +43,5 @@
      (send-sexp-to-mred
       `(let ([f (car (get-top-level-windows))])
 	 (send (send f get-editor) get-filename))))))
+
+)

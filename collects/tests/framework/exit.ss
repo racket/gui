@@ -1,3 +1,6 @@
+(module exit mzscheme
+  (require "test-suite-utils.ss")
+
 (test 'exit/no-prompt
       (lambda (x)
 	(and (eq? x 'passed)
@@ -99,3 +102,4 @@
 	 (with-handlers ([eof-result? (lambda (x) 'passed)])
 	   (send-sexp-to-mred
 	    `(exit:exit))))))
+)

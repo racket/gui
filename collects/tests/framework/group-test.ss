@@ -1,3 +1,6 @@
+(module group-test mzscheme
+  (require "test-suite-utils.ss")
+
 (test
  'exit-off
  (lambda (x) (not (equal? x "test")))
@@ -140,3 +143,5 @@
 	(for-each (lambda (x) (send x close)) frames))))))
 
 
+
+)

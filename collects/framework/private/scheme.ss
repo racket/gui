@@ -150,6 +150,15 @@
                       #f])
                    #f)))
            (scheme-paren:get-comments))))
+
+
+      (rename [super-on-close on-close])
+      (override on-close)
+      (define (on-close)
+	(remove-indents-callback)
+	(remove-paren-callback)
+	(super-on-close))
+
       (define remove-indents-callback
         (preferences:add-callback
          'framework:tabify
