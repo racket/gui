@@ -1,8 +1,8 @@
 .\" dummy line
-.TH MZSCHEME 1 "8 June 1996"
+.TH MZSCHEME 1 "31 May 1997"
 .UC 4
 .SH NAME
-mzscheme \- The Rice PLT Scheme implementation
+mzscheme \- The PLT Scheme implementation
 .SH SYNOPSIS
 .B mzscheme
 [
@@ -12,46 +12,15 @@ mzscheme \- The Rice PLT Scheme implementation
 ]
 .SH DESCRIPTION
 .I MzScheme
-is Rice University's Programming Languages Group's
+is Rice University's Programming Languages Team's
 primary Scheme implementation.  It implements the language as
 described in the
 .I Revised^4 Report on
-.I the Algorithmic Language Scheme.
-In addition, it includes an object system, thread
-support and some interoperability with code written in C++.
-.I MzScheme
-runs on a variety of platforms.
+.I the Algorithmic Language Scheme,
+plus numerous extensions.
 .SH OPTIONS
-.TP
-.B \-h, --help
-Shows help for command-line arguments.
-.TP
-.B \-g, --case-sens
-Identifiers and symbols are initially case-sensitive.
-.TP
-.B \-c, --esc-cont
-Call/cc is replaced with call/ec.
-.TP
-.B \-k, --const-globs
-Builtin globals are constant.
-.TP
-.B \-s, --set-undef
-Set! works on undefined identifiers.
-.TP
-.B \-a, --no-auto-else
-Fall-through cond or case is an error.
-.TP
-.B \-n, --no-key
-Keywords not enforced.
-.TP
-.B \-y, --hash-percent-syntax
-Only #% syntactic forms are present.
-.TP
-.B \-r, --script
-Script mode: use as last flag for scripts.
-.TP
-.B \-i, --script-cd
-Like -r, but also sets the directory.
+
+Startup file and expression switches:
 .TP
 .BI \-e \ expr
 Evaluates
@@ -87,16 +56,58 @@ Load/cds all remaining arguments after
 starts.
 .TP
 .B \-l \ file
-Shorthand for -e '(require-library file)'.
+Same as -e '(require-library "file")'.
+.TP
+.B \-r, --script
+Script mode: use as last flag for scripts.
+Same as -fmv-.
+.TP
+.B \-i, --script-cd
+Like -r, but also sets the directory.
+Same as -dmv-.
+.PP
+
+Initialization switches:
 .TP
 .B \-x, --no-lib-path
-Does not try to set (current-library-path).
+Does not try to set current-library-collection-paths.
 .TP
 .B \-q, --no-init-file
-Does not load "~/.mzschemerc".
+Does not try to load "~/.mzschemerc".
+.PP
+
+Language setting switches:
+.TP
+.B \-g, --case-sens
+Identifiers and symbols are initially case-sensitive.
+.TP
+.B \-c, --esc-cont
+Call/cc is replaced with call/ec.
+.TP
+.B \-k, --const-globs
+Builtin globals are constant.
+.TP
+.B \-s, --set-undef
+Set! works on undefined identifiers.
+.TP
+.B \-a, --no-auto-else
+Fall-through cond or case is an error.
+.TP
+.B \-n, --no-key
+Keywords are not enforced.
+.TP
+.B \-y, --hash-percent-syntax
+Only #% syntactic forms are present.
 .TP
 .B \-p, --persistent
 Catches AIX SIGDANGER (low page space) signal. (AIX only)
+.PP
+
+Miscellaneous switches:
+.TP
+.B \--
+.br
+No argument following this switch is used as a switch.
 .TP
 .B \-m, --mute-banner
 Suppresses the startup banner.
@@ -104,19 +115,24 @@ Suppresses the startup banner.
 .B \-v, --version
 Suppresses the read-eval-print loop.
 .TP
-.B \--
-.br
-No argument following this switch is used as a switch.
+.B \-h, --help
+Shows help for command-line arguments.
 .PP
-Files loaded with -f, etc. and expressions evaluated by -e
-are loaded and evaluated in the order that they are specified on
-on the command line.
+Multiple single-letter switches can be collapsed, with arguments placed
+after the collapsed switches; the first collapsed switch cannot be --.
+E.g.: `-vfme file expr' is the same as `-v -f file -m -e expr'.
 .PP
-Command-line arguments that are not flags are bound to the
-Scheme global variable `argv' as a vector of strings. The name by which
+Extra arguments following the last switch are put into the Scheme global
+variable `argv' as a vector of strings. The name used to start 
 .I MzScheme
-was invoked is bound to the Scheme global variable `program' as a
-string.
+is put into the global variable `program' as a string.
+.PP
+Expressions/files are evaluated/loaded in order as provided.
+.PP
+The current-library-collections-path is automatically set before any
+expressions/files are evaluated/loaded, unless the -x or --no-lib-path
+switch is used.  
+.PP
 .PP
 For further information on
 .I MzScheme,
@@ -126,13 +142,13 @@ documentation and other information available at
 .ce 1
 http://www.cs.rice.edu/CS/PLT/packages/mzscheme/
 .SH FILES
-The file "~/.mzschemerc" is loaded before any expressions/files are
-evaluated/loaded, unless the -q or --no-init-file flag is used.
-(Under Windows and MacOS, "mzscheme.rc" is loaded from the
-start-up working directory or preferences directory.)
+The file "~/.mzschemerc" is loaded before any provided
+expressions/files are evaluated/loaded, unless the -q or 
+--no-init-file switch is used. (Under Windows and MacOS, "mzscheme.rc" 
+is loaded from the start-up working directory.)
 .PP
 .I MzScheme
-looks for the "mzlib" library directory using the 
+looks for the library collections directory using the 
 following search path:
 .IP
 If
@@ -150,12 +166,12 @@ a file with the name of the program as invoked (usually
 "mzscheme") are checked. Links are followed as in the 
 first case.
 .IP
-The path in the environment variable MZLIB is tried.
+The path in the environment variable MZCOLS is tried.
 .IP
 The path in the environment variable PLTHOME is checked
-for a "mzscheme" and then "mzlib" subdirectory.
+for a "mzscheme" and then "collects" subdirectory.
 .IP
-The "/usr/local/lib/plt/mzscheme/mzlib" directory is 
+The "/usr/local/lib/plt/mzscheme/collects" directory is 
 tried.
 .PP
 Please consult your local administrator to determine whether
@@ -171,4 +187,4 @@ Boehm and extended by John Ellis. MzScheme was originally based
 on libscheme, written by Brent Benson.
 .SH SEE ALSO
 .BR drscheme(1),
-.BR mzscheme(1)
+.BR mred(1)
