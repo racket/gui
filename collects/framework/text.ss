@@ -74,7 +74,11 @@
                     (cond
                       [(null? rectangles)
                        (when left
-                         (invalidate-bitmap-cache left top (- right left) (- bottom top)))]
+                         (let ([width (- right left)]
+                               [height (- bottom top)])
+                           (when (and (> width 0)
+                                      (> height 0))
+                             (invalidate-bitmap-cache left top width height))))]
                       [else (let* ([r (car rectangles)]
                                    
                                    [rleft (rectangle-left r)]
