@@ -1849,8 +1849,9 @@
     (public
       [-format-filter (lambda (f) f)]
       [-set-file-format (lambda (f) (void))]
-      [-get-file-format (lambda () 'standard)]
+      [-get-file-format (lambda () 'standard)])
 
+    (override
       [insert-file
        (opt-lambda ([file #f] [format 'guess] [show-errors? #t])
 	 (dynamic-wind
@@ -1907,8 +1908,9 @@
 		      (lambda ()
 			(after-load-file finished?)
 			;; In case it wasn't closed before:
-			(close-input-port port)))))))))]
+			(close-input-port port)))))))))])
 
+    (public
       [get-canvases (entry-point (lambda () (map wx->mred canvases)))]
       [get-active-canvas (entry-point (lambda () (and active-canvas (wx->mred active-canvas))))]
       [get-canvas

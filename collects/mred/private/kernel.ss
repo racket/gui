@@ -217,6 +217,8 @@
     get-space
     get-descent
     get-extent
+    insert-file
+    load-file
     insert-port
     save-file
     get-flattened-text
@@ -903,7 +905,6 @@
     set-clipboard-bitmap
     get-clipboard-data
     get-clipboard-string
-    get-clipboard-client
     set-clipboard-string
     set-clipboard-client)
   (define-function get-the-clipboard)
@@ -958,9 +959,6 @@
     after-select
     on-select
     can-select?
-    after-reorder
-    on-reorder
-    can-reorder?
     after-resize
     on-resize
     can-resize?
