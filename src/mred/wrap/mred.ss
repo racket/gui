@@ -4918,8 +4918,8 @@
 		  (mk l family 
 		      (lambda (e)
 			(send e change-style (make-object wx:style-delta% 'change-family f)))))
-		'("Standard" "Decorative" "Roman" "Script" "Swiss" "Fixed")
-		'(default decorative roman script swiss fixed))
+		'("Standard" "Decorative" "Roman" "Script" "Swiss" "Fixed" "Symbol")
+		'(default decorative roman script swiss fixed symbol))
       (mk-sep family)
       (mk "Choose..." family (lambda (e) (let ([f (get-font-from-user)])
 					   (when f
@@ -5124,7 +5124,7 @@
 	(values (inexact->exact w) (inexact->exact h)))])))
 
 (define (get-family-builtin-face family)
-  (unless (memq family '(default decorative roman script swiss modern system))
+  (unless (memq family '(default decorative roman script swiss modern system symbol))
     (raise-type-error 'get-default-face "family symbol" family))
   (case (system-type)
     [(unix)
@@ -5135,7 +5135,8 @@
        [(decorative) "-adobe-helvetica"]
        [(modern) "-adobe-courier"]
        [(swiss) "-b&h-lucida"]
-       [(script) "-itc-zapfchancery"])]
+       [(script) "-itc-zapfchancery"]
+       [(symbol) "-adobe-symbol"])]
     [(windows)
      (case family
        [(system) "MS Sans Serif"]
@@ -5144,7 +5145,8 @@
        [(decorative) "Arial"]
        [(modern) "Courier New"]
        [(swiss) "Arial"]
-       [(script) "Arial"])]
+       [(script) "Arial"]
+       [(symbol) "Symbol"])]
     [(macos)
      (case family
        [(system) "systemfont"]
@@ -5153,5 +5155,6 @@
        [(decorative) "Geneva"]
        [(modern) "Monaco"]
        [(swiss) "Helvetica"]
-       [(script) "Geneva"])]))
+       [(script) "Geneva"]
+       [(symbol) "Symbol"])]))
 
