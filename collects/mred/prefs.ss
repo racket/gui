@@ -213,9 +213,29 @@
 	(lambda ()
 	  (mred:debug:printf 'prefs "reading user preferences")
 	  (when (file-exists? preferences-filename)
-	    (let ([input (call-with-input-file preferences-filename read)])
-	      (when (list? input)
-		(for-each (lambda (x) (apply parse-pref x)) input))))
+	    (let ([input (call-with-input-file preferences-filename read)]
+		  [err
+		   (lambda (input)
+		     (wx:message-box (format "found bad pref: ~n~a" input)
+				     "Preferences"))])
+	      (let loop ([input input])
+		(cond
+		 [(pair? input)
+		  (let/ec k
+		    (let ([first (car input)]
+			  [rest (cdr input)])
+		      (when (pair? first)
+			(let ([arg1 (car first)]
+			      [t1 (cdr first)])
+			  (when (pair? t1)
+			    (let ([arg2 (car t1)]
+				  [t2 (cdr t1)])
+			      (when (null? t2)
+				(parse-pref arg1 arg2)
+				(k #t)))))))
+		    (err input))]
+		 [(null? input) (void)]
+		 [else (err input)]))))
 	  (mred:debug:printf 'prefs "read user preferences"))))
     
     (define-struct ppanel (title container))
