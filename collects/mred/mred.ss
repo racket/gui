@@ -4538,7 +4538,9 @@
 (define basic-list-control%
   (class100* basic-control% (list-control<%>) (mk-wx mismatches label parent selection callback)
     (public
-      [append (entry-point (lambda (i) (send wx append i)))]
+      [append (entry-point (lambda (i) 
+			     (check-label-string '(method list-control<%> append) i)
+			     (send wx append i)))]
       [clear (entry-point (lambda () (send wx clear)))]
       [get-number (entry-point (lambda () (send wx number)))]
       [get-string (entry-point (lambda (n) (check-item 'get-string n) (send wx get-string n)))]
@@ -4619,8 +4621,12 @@
     (override
       [append (entry-point
 	       (case-lambda
-		[(i) (super-append i)]
-		[(i d) (send wx append i d)]))])
+		[(i) 
+		 (check-label-string '(method list-control<%> append) i)
+		 (super-append i)]
+		[(i d) 
+		 (check-label-string '(method list-control<%> append) i)
+		 (send wx append i d)]))])
     (public
       [delete (entry-point (lambda (n) (check-item 'delete n) (send wx delete n)))]
       [get-data (entry-point (lambda (n) (check-item 'get-data n) (send wx get-data n)))]
