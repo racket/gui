@@ -98,6 +98,8 @@
        [use-bad? #f]
        [depth-one? #f]
        [cyan? #f]
+       [save-filename #f]
+       [save-file-format #f]
        [clip 'none])
   (send hp0 stretchable-height #f)
   (send hp stretchable-height #f)
@@ -820,6 +822,10 @@
 		      (send dc end-page)
 		      (send dc end-doc)))
 		  
+		  (when save-filename
+		    (send bm save-file save-filename save-file-format)
+		    (set! save-filename #f))
+
 		  'done)])])
 	    (sequence (apply super-init args)))
 	  vp)])
@@ -830,6 +836,20 @@
 		   (set! use-bad? (< 2 (send self get-selection)))
 		   (send canvas on-paint))
 		 '(horizontal))
+    (make-object button% "Save" hp0
+		 (lambda (b e)
+		   (unless use-bitmap?
+		     (error 'save-file "only available for pixmap/bitmap mode"))
+		   (let ([f (get-file)])
+		     (let ([format
+			    (cond 
+			     [(regexp-match "[.]xbm$" f) 'xbm]
+			     [(regexp-match "[.]xpm$" f) 'xpm]
+			     [(regexp-match "[.]jpg$" f) 'jpeg]
+			     [else (error 'save-file "unknown suffix: ~e" f)])])
+		       (set! save-filename f)
+		       (set! save-file-format format)
+		       (send canvas on-paint)))))
     (make-object button% "PS" hp
 		 (lambda (self event)
 		   (send canvas on-paint #t)))
