@@ -639,6 +639,7 @@
 	[unhide-search
 	 (lambda ()
 	   (when hidden?
+	     
 	     (set! hidden? #f)
 	     (send search-panel focus)
 	     (send super-root add-child search-panel)
@@ -730,7 +731,6 @@
 	       (send find-canvas focus)))]
 	[search
 	 (opt-lambda ([direction searching-direction] [beep? #t])
-	   
 	   (send find-edit set-searching-frame this)
 	   (unhide-search)
 	   (set-search-direction direction)
