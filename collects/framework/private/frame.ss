@@ -880,7 +880,7 @@
         (class editor-canvas%
           (rename [super-on-event on-event])
           (init-field delegate-frame)
-          (inherit get-editor)
+          (inherit get-editor get-dc)
           (define/override (on-event evt)
             (super-on-event evt)
             (when (and delegate-frame
@@ -893,7 +893,9 @@
                                       (send evt get-y))])
                     (send delegate-frame click-in-overview 
                           (send text find-position editor-x editor-y)))))))
-          (super-instantiate ())))
+          (super-instantiate ())
+          ;(send (get-dc) set-scale 1/12 1/12)
+          ))
       
       (define delegatee-text%
         (class text:basic%
