@@ -1,4 +1,10 @@
+"frame-edit.ss" checks that various frames match with various
+edits. Under construction.
 
+---------------------------------------------------------------------------
+The "gui.ss" file tests autosaving, opening and closing of frames.
+
+---------------------------------------------------------------------------
 The "item.ss" test (use load/cd) creates a frame to select
 among several types of control-testing frames:
 
