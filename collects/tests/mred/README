@@ -108,7 +108,7 @@ A large number of lines indicates a GC problem.
 
 ---------------------------------------------------------------------------
 
-The "setup.ss" test is a randomized test of the MrEd classes that tests
+The "random.ss" test is a randomized test of the MrEd classes that tests
 MrEd's stability. Load/cd setup.ss, and then run
   (init)
 This attempts to create instances of classes using random
