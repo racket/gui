@@ -94,6 +94,16 @@
                    (parent menu)
                    (callback (lambda (x y) (choose-a-frame (send (send menu get-parent) get-frame))))
                    (shortcut #\j))
+                 (instantiate menu:can-restore-menu-item% ()
+                   (label (string-constant next-window))
+                   (parent menu)
+                   (callback (lambda (x y) (next/prev-window (send (send menu get-parent) get-frame) #t)))
+                   (shortcut #\+))
+                 (instantiate menu:can-restore-menu-item% ()
+                   (label (string-constant previous-window))
+                   (parent menu)
+                   (callback (lambda (x y) (next/prev-window (send (send menu get-parent) get-frame) #f)))
+                   (shortcut #\-))
                  (make-object separator-menu-item% menu)
                  (for-each
                   (lambda (frame)
@@ -105,6 +115,30 @@
                   sorted/visible-frames))
                windows-menus))]
           
+          ;; next/prev-window : (is-a?/c top-level-window<%>) boolean? -> void?
+          ;; brings either the next or previous (alpabetically) window to the
+          ;; front.
+          (define (next/prev-window this-window next?)
+            (let ([sorted 
+                   (quicksort
+                    (get-frames)
+                    (lambda (x y) (string-ci<=? (send x get-label) (send y get-label))))])
+              (let loop ([windows sorted]
+                         [prev (car (last-pair sorted))])
+                (cond
+                  [(null? windows) (void)]
+                  [(eq? (car windows) this-window)
+                   (let ([frame-to-focus
+                          (if next?
+                              (if (null? (cdr windows)) 
+                                  (car sorted)
+                                  (car (cdr windows)))
+                              prev)])
+                     (send frame-to-focus show #t))]
+                  [else (loop (cdr windows)
+                              (car windows))]))))
+                              
+
           [define update-close-menu-item-state
             (lambda ()
               (let* ([set-close-menu-item-state! 
@@ -118,6 +152,8 @@
                     (for-each (lambda (a-frame)
                                 (set-close-menu-item-state! a-frame #t))
                               frames))))]
+          
+          
           
           (field [open-here-frame #f])
           (define/public (set-open-here-frame fr) (set! open-here-frame fr))
