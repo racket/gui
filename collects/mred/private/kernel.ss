@@ -767,6 +767,7 @@
     write-to-file
     read-from-file
     get-character
+    get-unicode
     get-text
     get-snip-position
     get-snip-position-and-location

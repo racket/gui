@@ -6752,7 +6752,7 @@
 				  ;;  ASCII non-letterdigit to the end
 				  (quicksort l (lambda (a b)
 						 (let ([a-sp? (char=? #\space (string-ref a 0))]
-						       [b-sp? (char=? #\space (string-ref a 0))]
+						       [b-sp? (char=? #\space (string-ref b 0))]
 						       [a-ugly? (and (regexp-match re:ugly-start a) #t)]
 						       [b-ugly? (and (regexp-match re:ugly-start b) #t)])
 						   (cond
