@@ -1389,7 +1389,12 @@
   (define c% (class canvas% (name swapped-name p)
 	       (inherit get-dc get-scroll-pos get-scroll-range get-scroll-page
 			get-client-size get-virtual-size get-view-start)
+	       (rename [super-init-manual-scrollbars init-manual-scrollbars]
+		       [super-init-auto-scrollbars init-auto-scrollbars])
 	       (public
+		 [auto? #f]
+		 [incremental? #f]
+		 [inc-mode (lambda (x) (set! incremental? x))]
 		 [vw 10]
 		 [vh 10]
 		 [set-vsize (lambda (w h) (set! vw w) (set! vh h))])
@@ -1408,7 +1413,7 @@
 				  [(w2 h2) (get-virtual-size)]
 				  [(x y) (get-view-start)])
 		       ; (send dc set-clipping-region 0 0 w2 h2)
-		       (send dc clear)
+		       (unless incremental? (send dc clear))
 		       (send dc draw-text (if (send ck-w get-value) swapped-name name) 3 3)
 		       ; (draw-line 3 12 40 12)
 		       (send dc draw-text s 3 15)
@@ -1420,7 +1425,13 @@
 		       (send dc draw-line 0 vh vw vh)
 		       (send dc draw-line vw 0 vw vh))))]
 		[on-scroll
-		 (lambda (e) (on-paint))])
+		 (lambda (e) (unless (and auto? incremental?) (on-paint)))]
+		[init-auto-scrollbars (lambda x
+					(set! auto? #t)
+					(apply super-init-auto-scrollbars x))]
+		[init-manual-scrollbars (lambda x
+					  (set! auto? #f)
+					  (apply super-init-manual-scrollbars x))])
 	       (sequence
 		 (super-init p flags))))
   (define un-name "Unmanaged scroll")
@@ -1464,6 +1475,11 @@
   (make-object button%
 	       "&4/5 Scroll" ip
 	       (lambda (b e) (send c2 scroll 0.8 0.8)))
+  (make-object check-box%
+	       "Inc" ip
+	       (lambda (c e) 
+		 (send c1 inc-mode (send c get-value))
+		 (send c2 inc-mode (send c get-value))))
   (send c1 set-vsize 10 10)
   (send c2 set-vsize 500 200)
   (send f show #t))
