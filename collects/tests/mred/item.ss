@@ -669,6 +669,16 @@
 		       (send banana-menu append (+ offset DELETE-BANANA)
 			     "Delete Banana"))
 		     "Add Delete Banana")
+	(make-object mred:button% sbp
+		     (lambda args
+		       (wx:message-box
+			(format "MB: ~a; T: ~a; A: ~a; B: ~a"
+				(send menu-bar number)
+				(send main-menu number)
+				(send apple-menu number)
+				(send banana-menu number))
+			"Counts"))
+		     "Counts")
 
 	(make-test-button "Aeros" mfbp main-menu (list-ref hockey-ids 0))
 	(make-test-button "Bruins" mfbp main-menu (list-ref hockey-ids 1))
