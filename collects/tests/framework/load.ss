@@ -4,6 +4,37 @@
   (load-framework-automatically #f)
 
   (test
+   'guiutilss.ss
+   pred
+   '(parameterize ([current-namespace (make-namespace 'mred)])
+      (require-library "guiutilss.ss" "framework")
+      (global-defined-value 'framework:gui-utils^)
+      (void)))
+  
+  (test
+   'guiutils.ss
+   pred
+   '(parameterize ([current-namespace (make-namespace 'mred)])
+      (require-library "guiutils.ss" "framework")
+      (global-defined-value 'gui-utils:read-snips/chars-from-text)
+      (void)))
+
+  (test
+   'guiutilsr.ss
+   pred
+   '(parameterize ([current-namespace (make-namespace 'mred)])
+      (require-library "guiutilss.ss" "framework")
+      (eval
+       '(invoke-unit/sig
+         (compound-unit/sig
+           (import)
+           (link [m : mred^ (mred@)]
+                 [g : framework:gui-utils^ ((require-library "guiutilsr.ss" "framework") m)])
+           (export))))
+      (void)))
+
+  
+  (test
    'macro.ss
    pred
    '(parameterize ([current-namespace (make-namespace 'mred)])
