@@ -3221,7 +3221,8 @@
 		   r))))])
     (sequence
       (super-init #f proxy parent (if (memq 'inactive style) '(inactive) null))
-      (send (area-parent) add-child this))
+      (unless (memq 'inactive style)
+	(send (area-parent) add-child this)))
     (private-field
       [multi? (memq 'multiple style)]
       [horiz? (eq? (send (send parent get-window) get-label-position) 'horizontal)]
@@ -4783,7 +4784,8 @@
 		       (lambda () wx) 
 		       (lambda () (check-container-ready cwho parent))
 		       #f parent #f)
-	   (send (send wx area-parent) add-child wx)))
+	   (unless (memq 'inactive style)
+	     (send (send wx area-parent) add-child wx))))
 	(send parent after-new-child this)))))
 
 (define vertical-panel% (class100*/kw panel% () [(parent [style null]) panel%-keywords] (sequence (super-init parent style))))
