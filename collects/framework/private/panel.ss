@@ -96,8 +96,7 @@
       (define single-window-mixin
         (mixin (single<%> window<%>) (single-window<%>)
           (inherit get-client-size get-size)
-          (override container-size)
-          [define container-size
+          [define/override container-size
             (lambda (l)
               (let-values ([(super-width super-height) (super container-size l)]
                            [(client-width client-height) (get-client-size)]
@@ -109,7 +108,7 @@
                 (values
                  (calc-size super-width client-width window-width)
                  (calc-size super-height client-height window-height))))]
-          (super-instantiate ())))
+          (super-new)))
       
       (define multi-view<%>
         (interface (area-container<%>)

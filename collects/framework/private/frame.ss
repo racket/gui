@@ -469,16 +469,14 @@
         (mixin (basic<%>) (info<%>)
           [define rest-panel 'uninitialized-root]
           [define super-root 'uninitialized-super-root]
-          (override make-root-area-container)
-          [define make-root-area-container
-            (lambda (% parent)
-              (let* ([s-root (super make-root-area-container
-                              vertical-panel%
-                              parent)]
-                     [r-root (make-object % s-root)])
-                (set! super-root s-root)
-                (set! rest-panel r-root)
-                r-root))]
+          (define/override (make-root-area-container % parent)
+            (let* ([s-root (super make-root-area-container
+                                  vertical-panel%
+                                  parent)]
+                   [r-root (make-object % s-root)])
+              (set! super-root s-root)
+              (set! rest-panel r-root)
+              r-root))
           
           [define info-canvas #f]
           (public get-info-canvas set-info-canvas get-info-editor)
@@ -836,8 +834,7 @@
                            (failed)])))]
                    [else
                     (failed)])))]
-          (override update-info)
-          [define update-info
+          [define/override update-info
             (lambda ()
               (super update-info)
               (update-macro-recording-icon)
@@ -976,9 +973,8 @@
                         (not (string=? s label-prefix)))
                (set! label-prefix s)
                (do-label)))]
-          (override get-label set-label)
-          [define get-label (lambda () label)]
-          [define set-label
+          [define/override get-label (lambda () label)]
+          [define/override set-label
             (lambda (t)
               (when (and (string? t)
                          (not (string=? t label)))
@@ -1036,10 +1032,7 @@
               base))
           
           (inherit get-checkable-menu-item% get-menu-item%)
-          (override file-menu:save-callback
-                    file-menu:create-save? file-menu:save-as-callback file-menu:create-save-as? 
-                    file-menu:print-callback file-menu:create-print?)
-
+          
           (define/override (file-menu:revert-on-demand item)
             (send item enable (not (send (get-editor) is-locked?))))
 
@@ -1084,23 +1077,23 @@
                         (send edit end-edit-sequence)))))))
           
           (define/override file-menu:create-revert? (lambda () #t))
-          (define file-menu:save-callback (lambda (item control)
-                                            (save)
-                                            #t))
+          (define/override file-menu:save-callback
+            (lambda (item control)
+              (save)
+              #t))
           
-          (define file-menu:create-save? (lambda () #t))
-          (define file-menu:save-as-callback (lambda (item control) (save-as) #t))
-          (define file-menu:create-save-as? (lambda () #t))
-          (define file-menu:print-callback (lambda (item control)
+          (define/override file-menu:create-save? (lambda () #t))
+          (define/override file-menu:save-as-callback (lambda (item control) (save-as) #t))
+          (define/override file-menu:create-save-as? (lambda () #t))
+          (define/override file-menu:print-callback (lambda (item control)
                                              (send (get-editor) print
                                                    #t
                                                    #t
                                                    (preferences:get 'framework:print-output-mode))
                                              #t))
-          (define file-menu:create-print? (lambda () #t))
+          (define/override file-menu:create-print? (lambda () #t))
           
-          (override edit-menu:between-select-all-and-find)
-          (define edit-menu:between-select-all-and-find
+          (define/override edit-menu:between-select-all-and-find
            (lambda (edit-menu)
              (let* ([c% (get-checkable-menu-item%)]
                     [on-demand
@@ -1126,18 +1119,17 @@
              
              (make-object separator-menu-item% edit-menu)))
           
-          (override help-menu:about-callback help-menu:about-string help-menu:create-about?)
-          (define help-menu:about-callback 
+          (define/override help-menu:about-callback 
             (lambda (menu evt) 
               (message-box (application:current-app-name)
                            (format (string-constant welcome-to-something)
                                    (application:current-app-name))
                            #f
                            '(ok app))))
-          (define help-menu:about-string (lambda () (application:current-app-name)))
-          (define help-menu:create-about? (lambda () #t))
+          (define/override help-menu:about-string (lambda () (application:current-app-name)))
+          (define/override help-menu:create-about? (lambda () #t))
           
-	  (super-instantiate () (label (get-entire-label)))
+	  (super-new (label (get-entire-label)))
           
           (define canvas #f)
           (define editor #f)
@@ -1295,18 +1287,16 @@
       (define text<%> (interface (-editor<%>)))
       (define text-mixin
         (mixin (-editor<%>) (text<%>)
-          (override get-editor<%> get-editor%)
-          [define get-editor<%> (lambda () (class->interface text%))]
-          [define get-editor% (lambda () text:keymap%)]
-          (super-instantiate ())))
+          [define/override get-editor<%> (lambda () (class->interface text%))]
+          [define/override get-editor% (lambda () text:keymap%)]
+          (super-new)))
       
       (define pasteboard<%> (interface (-editor<%>)))
       (define pasteboard-mixin
         (mixin (-editor<%>) (pasteboard<%>)
-          (override get-editor<%> get-editor%)
-          [define get-editor<%> (lambda () (class->interface pasteboard%))]
-          [define get-editor% (lambda () pasteboard:keymap%)]
-          (super-instantiate ())))
+          [define/override get-editor<%> (lambda () (class->interface pasteboard%))]
+          [define/override get-editor% (lambda () pasteboard:keymap%)]
+          (super-new)))
       
       (define delegate<%>
         (interface (status-line<%> text<%>)
@@ -1475,8 +1465,7 @@
 
           [define rest-panel 'uninitialized-root]
           [define super-root 'uninitialized-super-root]
-          (override make-root-area-container)
-          [define make-root-area-container
+          [define/override make-root-area-container
             (lambda (% parent)
               (let* ([s-root (super make-root-area-container
                               horizontal-panel%
@@ -1949,20 +1938,15 @@
         (mixin (standard-menus<%>) (searchable<%>)
           (init-find/replace-edits)
           (define super-root 'unitiaialized-super-root)
-          (override edit-menu:find-callback edit-menu:create-find? 
-                    edit-menu:find-again-callback edit-menu:create-find-again? 
-                    edit-menu:replace-and-find-again-callback edit-menu:replace-and-find-again-on-demand
-                    edit-menu:create-replace-and-find-again?)
-          (define edit-menu:find-callback (lambda (menu evt) (move-to-search-or-search) #t))
-          (define edit-menu:create-find? (lambda () #t))
-          (define edit-menu:find-again-callback (lambda (menu evt) (search-again) #t))
-          (define edit-menu:create-find-again? (lambda () #t))
-          (define edit-menu:replace-and-find-again-callback (lambda (menu evt) (replace&search) #t))
-          (define edit-menu:replace-and-find-again-on-demand
+          (define/override edit-menu:find-callback (lambda (menu evt) (move-to-search-or-search) #t))
+          (define/override edit-menu:create-find? (lambda () #t))
+          (define/override edit-menu:find-again-callback (lambda (menu evt) (search-again) #t))
+          (define/override edit-menu:create-find-again? (lambda () #t))
+          (define/override edit-menu:replace-and-find-again-callback (lambda (menu evt) (replace&search) #t))
+          (define/override edit-menu:replace-and-find-again-on-demand
             (lambda (item) (send item enable (can-replace?))))
-          (define edit-menu:create-replace-and-find-again? (lambda () #t))
-          (override make-root-area-container)
-          (define make-root-area-container
+          (define/override edit-menu:create-replace-and-find-again? (lambda () #t))
+          (define/override make-root-area-container
             (lambda (% parent)
               (let* ([s-root (super make-root-area-container
                               vertical-panel%
@@ -2272,12 +2256,10 @@
       (define searchable-text-mixin
         (mixin (text<%> searchable<%>) (searchable-text<%>)
           (inherit get-editor)
-          (override get-text-to-search)
-          (define (get-text-to-search)
+          (define/override (get-text-to-search)
 	    (get-editor))
-          (override get-editor<%> get-editor%)
-          (define (get-editor<%>) text:searching<%>)
-          (define (get-editor%) text:searching%)
+          (define/override (get-editor<%>) text:searching<%>)
+          (define/override (get-editor%) text:searching%)
           (super-instantiate ())))
       
       (define memory-text% (class text% (super-new)))

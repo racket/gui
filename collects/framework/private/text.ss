@@ -249,8 +249,7 @@ WARNING: printf is rebound in the body of the unit to always
                                         (cons (car r) (loop (cdr r))))])))
                     (recompute-range-rectangles)                    
                     (invalidate-rectangles old-rectangles))))))
-          (override on-paint)
-          (define (on-paint before dc left-margin top-margin right-margin bottom-margin dx dy draw-caret)
+          (define/override (on-paint before dc left-margin top-margin right-margin bottom-margin dx dy draw-caret)
             (super on-paint before dc left-margin top-margin right-margin bottom-margin dx dy draw-caret)
             (recompute-range-rectangles)
             (let ([b1 (box 0)]
@@ -396,8 +395,7 @@ WARNING: printf is rebound in the body of the unit to always
       (define searching<%> (interface (editor:keymap<%> basic<%>)))
       (define searching-mixin
         (mixin (editor:keymap<%> basic<%>) (searching<%>)
-          (override get-keymaps)
-          (define (get-keymaps)
+          (define/override (get-keymaps)
             (cons (keymap:get-search) (super get-keymaps)))
           (super-instantiate ())))
       
@@ -405,8 +403,7 @@ WARNING: printf is rebound in the body of the unit to always
       (define return-mixin
         (mixin ((class->interface text%)) (return<%>) 
           (init-field return)
-          (override on-local-char)
-          (define (on-local-char key)
+          (define/override (on-local-char key)
             (let ([cr-code #\return]
                   [lf-code #\newline]
                   [code (send key get-key-code)])
@@ -738,20 +735,17 @@ WARNING: printf is rebound in the body of the unit to always
                   (when (is-a? frame frame:text-info<%>)
                     (call-method frame))))))
           
-          (override set-anchor set-overwrite-mode)
-	  (augment after-set-position after-insert after-delete)
-
-          (define (set-anchor x)
+          (define/override (set-anchor x)
             (super set-anchor x)
             (enqueue-for-frame 
              (lambda (x) (send x anchor-status-changed))
              'framework:anchor-status-changed))
-          (define (set-overwrite-mode x)
+          (define/override (set-overwrite-mode x)
             (super set-overwrite-mode x)
             (enqueue-for-frame
              (lambda (x) (send x overwrite-status-changed))
              'framework:overwrite-status-changed))
-          (define (after-set-position)
+          (define/augment (after-set-position)
             (maybe-queue-editor-position-update)
             (inner (void) after-set-position))
           
@@ -771,13 +765,13 @@ WARNING: printf is rebound in the body of the unit to always
                   #f)))
              'framework:info-frame:update-editor-position))
           
-          (define (after-insert start len)
+          (define/augment (after-insert start len)
             (maybe-queue-editor-position-update)
             (inner (void) after-insert start len))
-          (define (after-delete start len)
+          (define/augment (after-delete start len)
             (maybe-queue-editor-position-update)
             (inner (void) after-delete start len))
-          (super-instantiate ())))
+          (super-new)))
       
       (define clever-file-format<%> (interface ((class->interface text%))))
       

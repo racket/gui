@@ -76,8 +76,7 @@
 	  [define function-table (make-hash-table)]
 	  (public get-function-table)
           [define get-function-table (lambda () function-table)]
-	  (override map-function)
-          [define map-function
+	  [define/override map-function
 	    (lambda (keyname fname)
 	      (super map-function (canonicalize-keybinding-string keyname) fname)
 	      (hash-table-put! function-table (string->symbol keyname) fname))]

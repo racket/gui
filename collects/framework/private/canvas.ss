@@ -33,21 +33,18 @@
       (define info-mixin 
 	(mixin (basic<%>) (info<%>)
 	  (inherit has-focus? get-top-level-window)
-	  (override on-focus set-editor)
-          [define on-focus
-	    (lambda (on?)
-	      (super on-focus on?)
-	      (send (get-top-level-window) set-info-canvas (and on? this))
-	      (when on?
-		(send (get-top-level-window) update-info)))]
-          [define set-editor
-            (lambda (m)
-              (super set-editor m)
-              (let ([tlw (get-top-level-window)])
-                (when (eq? this (send tlw get-info-canvas))
-                  (send tlw update-info))))]
-
-          (super-instantiate ())
+	  (define/override (on-focus on?)
+            (super on-focus on?)
+            (send (get-top-level-window) set-info-canvas (and on? this))
+            (when on?
+              (send (get-top-level-window) update-info)))
+          (define/override (set-editor m)
+            (super set-editor m)
+            (let ([tlw (get-top-level-window)])
+              (when (eq? this (send tlw get-info-canvas))
+                (send tlw update-info))))
+          
+          (super-new)
 
           (unless (is-a? (get-top-level-window) frame:info<%>)
             (error 'canvas:text-info-mixin
@@ -167,12 +164,10 @@
             (lambda (snip)
               (set! tall-snips (cons snip tall-snips))
               ((update-snip-size #f) snip))]
-	  (override on-size)
-          [define on-size
-	    (lambda (width height)
-	      (recalc-snips)
-	      (super on-size width height))]
-          (super-instantiate ())))
+	  (define/override (on-size width height)
+            (recalc-snips)
+            (super on-size width height))
+          (super-new)))
 
       (define basic% (basic-mixin editor-canvas%))
       (define info% (info-mixin basic%))
