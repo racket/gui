@@ -213,12 +213,12 @@
 	(lambda ()
 	  (mred:debug:printf 'prefs "reading user preferences")
 	  (when (file-exists? preferences-filename)
-	    (let ([input (call-with-input-file preferences-filename read)]
-		  [err
+	    (let ([err
 		   (lambda (input)
 		     (wx:message-box (format "found bad pref: ~n~a" input)
 				     "Preferences"))])
-	      (let loop ([input input])
+	      (let loop ([input (call-with-input-file preferences-filename
+				  read)])
 		(cond
 		 [(pair? input)
 		  (let/ec k
