@@ -15,7 +15,6 @@
 (define c (new editor-canvas% (editor p) (parent f)))
 (define a1 (new vertical-alignment% (parent p)))
 (define a2 (new horizontal-alignment% (parent a1)))
-;(new hline% (parent a1))
 (define a3 (new horizontal-alignment% (parent a1)))
 
 (new snip-wrapper%

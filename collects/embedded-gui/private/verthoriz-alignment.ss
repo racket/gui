@@ -65,10 +65,11 @@
               [(child ($ a:rect ($ a:dim x w _) ($ a:dim y h _)))
                (send child align (+ x x-offset) (+ y y-offset) w h)]))
           
-          (when (and (is-shown?)
-                     (not (empty? children)); this and
-                     (not (zero? width))    ; this should be handled by align later
-                     (not (zero? height)))  ; this one too
+          (when (is-shown?)
+            #;(and (is-shown?)
+                   (not (empty? children)); this and
+                   (not (zero? width))    ; this should be handled by align later
+                   (not (zero? height)))  ; this one too
             (for-each move/resize
                       children
                       (a:align type width height

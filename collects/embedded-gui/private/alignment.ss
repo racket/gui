@@ -42,9 +42,8 @@ neck and it is the most readable solution.
    (struct abs-rect ((ondim dim?) (offdim dim?)))
    (struct dim ((pos nonnegative?) (size nonnegative?) (stretchable? boolean?)))
    (align ((symbols 'horizontal 'vertical)
-           positive? positive? (listof rect?)
-           . -> . (listof rect?)))
-   (rect-print ((listof rect?) . -> . void?)))
+           nonnegative? nonnegative? (listof rect?)
+           . -> . (listof rect?))))
   
   ;; align the rectangles within the given space
   (define (align type width height rects)
@@ -121,8 +120,7 @@ neck and it is the most readable solution.
                (loop (rest sizes) (- extra onsize) (sub1 count))
                (values extra/rect (modulo (floor extra) count))))])))
   
-  #;((cons/p nonnegative? nonnegative?) positive? (listof abs-rect?) . -> .
-                                        (listof abs->rect?))
+  #;((cons/p nonnegative? nonnegative?) positive? (listof abs-rect?) . -> . (listof abs->rect?))
   ;; allocate the extra per rectangle to the stretchable rects and move them to their positions
   (define (allocate-evenly/position extra-div extra-mod offsize init-rects)
     (let ([mod (waner extra-mod)])
@@ -149,16 +147,4 @@ neck and it is the most readable solution.
           (begin
             (set! n (sub1 n))
             1))))
-  
-  (define rect-print
-    (match-lambda
-      [() (void)]
-      [(($ rect
-           ($ dim x width stretchable-width?)
-           ($ dim y height stretchable-height?))
-        others ...)
-       (printf "(make-rect (make-dim ~s ~s ~s) (make-dim ~s ~s ~s))~n"
-               x width stretchable-width?
-               y height stretchable-height?)
-       (rect-print others)]))
   )
