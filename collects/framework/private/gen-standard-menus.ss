@@ -1,44 +1,54 @@
 (module gen-standard-menus mzscheme
   (require (lib "pretty.ss"))
   (require (lib "list.ss"))
-  (require (lib "standard-menus-items.ss" "framework" "private"))
+  (require "standard-menus-items.ss")
   
-  ;; build-before-super-item-clause : an-item -> sexp
-  ;; calculates a `public' class expression
+  ;; build-before-super-item-clause : an-item -> (listof clause)
   (define build-before-super-item-clause
     (lambda (item)
-      `(public
-         [,(an-item->callback-name item)
+      (list
+       `(public ,(an-item->callback-name item)
+                ,(an-item->get-item-name item)
+                ,(an-item->string-name item)
+                ,(an-item->help-string-name item)
+                ,(an-item->on-demand-name item)
+                ,(an-item->create-menu-item-name item))
+       `[define ,(an-item->callback-name item)
           ,(or (an-item-proc item) `(lambda (x y) (void)))]
-         [,(an-item->get-item-name item)
+       `[define ,(an-item->get-item-name item)
           (lambda () ,(an-item->item-name item))]
-         [,(an-item->string-name item)
+       `[define ,(an-item->string-name item)
           (lambda () "")]
-         [,(an-item->help-string-name item)
+       `[define ,(an-item->help-string-name item)
           (lambda () ,(an-item-help-string item))]
-         [,(an-item->on-demand-name item)
+       `[define ,(an-item->on-demand-name item)
           ,(an-item-on-demand item)]
-         [,(an-item->create-menu-item-name item)
+       `[define ,(an-item->create-menu-item-name item)
           (lambda () ,(not (not (an-item-proc item))))])))
   
+  ;; build-before-super-clause : ((X -> sym) (X sexp) -> X -> (listof clause))
   (define build-before-super-clause
     (lambda (->name -procedure)
       (lambda (obj)
-        `(public
-           [,(->name obj)
-            ,(case (-procedure obj)
-               [(nothing) '(lambda (menu) (void))]
-               [(separator) '(lambda (menu) (make-object separator-menu-item% menu))])]))))
+        (list `(public ,(->name obj))
+              `[define ,(->name obj)
+                 ,(case (-procedure obj)
+                    [(nothing) '(lambda (menu) (void))]
+                    [(separator) '(lambda (menu) (make-object separator-menu-item% menu))])]))))
   
+  ;; build-before-super-between-clause : between -> (listof clause)
   (define build-before-super-between-clause
     (build-before-super-clause
      between->name
      between-procedure))
+  
+  ;; build-before-super-before/after-clause : before/after -> (listof clause)
   (define build-before-super-before/after-clause
     (build-before-super-clause
      before/after->name
      before/after-procedure))
   
+  ;; build-after-super-item-clause : an-item -> (list clause)
   (define (build-after-super-item-clause item)
     (let* ([callback-name (an-item->callback-name item)]
            [create-menu-item-name (an-item->create-menu-item-name item)]
@@ -53,59 +63,58 @@
                       (if (string=? special "")
                           (string-append base suffix)
                           (string-append base " " special suffix))))])
-      `(private-field
-        [,(an-item->item-name item)
-         (and (,create-menu-item-name)
-              (make-object (class100 (get-menu-item%) args
-                             (rename [super-on-demand on-demand])
-                             (override
-                               [on-demand
-                                (lambda ()
-                                  (,(an-item->on-demand-name item) this)
-                                  (super-on-demand))])
-                             (sequence
-                               (apply super-init args)))
-                ,(join menu-before-string menu-after-string
-                       `(,(an-item->string-name item)))
-                ,(menu-item-menu-name item)
-                (let ([,callback-name (lambda (item evt) (,callback-name item evt))])
-                  ,callback-name)
-                ,key
-                (,(an-item->help-string-name item))))])))
+      (list `(define
+               ,(an-item->item-name item)
+               (and (,create-menu-item-name)
+                    (instantiate (get-menu-item%) ()
+                      (label ,(join menu-before-string menu-after-string
+                                    `(,(an-item->string-name item))))
+                      (parent ,(menu-item-menu-name item))
+                      (callback (let ([,callback-name (lambda (item evt) (,callback-name item evt))])
+                                  ,callback-name))
+                      (shortcut ,key)
+                      (help (,(an-item->help-string-name item)))
+                      (demand-callback (lambda (menu-item) (,(an-item->on-demand-name item) menu-item)))))))))
   
+  ;; build-after-super-clause : ((X -> symbol) -> X -> (listof clause))
   (define build-after-super-clause
     (lambda (->name)
       (lambda (between/after)
-        `(sequence
-           (,(->name between/after)
-            (,(menu-name->get-menu-name between/after)))))))
+        (list 
+         `(,(->name between/after)
+           (,(menu-name->get-menu-name between/after)))))))
   
+  ;; build-after-super-between-clause : between -> (listof clause)
   (define build-after-super-between-clause (build-after-super-clause between->name))
+  ;; build-after-super-before/after-clause : before/after -> (listof clause)
   (define build-after-super-before/after-clause (build-after-super-clause before/after->name))
   
+  ;; build-after-super-generic-clause : generic -> (listof clause)
   (define (build-after-super-generic-clause x) 
     (cond
       [(generic-private-field? x)
-       `(private-field
-         [,(generic-name x)
-          ,(generic-initializer x)])]
+       (list `(define
+                ,(generic-name x)
+                ,(generic-initializer x)))]
       [(generic-override? x)
-       `(rename [,(string->symbol (format "super-~a" (generic-name x)))
-                 ,(generic-name x)])]
+       (list `(rename [,(string->symbol (format "super-~a" (generic-name x)))
+                       ,(generic-name x)]))]
       [(generic-method? x)
-       `(sequence (void))]))
+       null]))
+
+  ;; build-before-super-generic-clause : generic -> (listof clause)
   (define (build-before-super-generic-clause generic)
     (cond
       [(generic-private-field? generic)
-       `(sequence (void))]
+       null]
       [(generic-override? generic)
-       `(override
-          [,(generic-name generic)
-           ,(generic-initializer generic)])]
+       (list `(override ,(generic-name generic))
+             `[define ,(generic-name generic)
+                ,(generic-initializer generic)])]
       [(generic-method? generic)
-       `(public
-          [,(generic-name generic)
-           ,(generic-initializer generic)])]))
+       (list `(public ,(generic-name generic) )
+             `[define ,(generic-name generic)
+                ,(generic-initializer generic)])]))
   
   
   (define standard-menus.ss-filename (build-path (collection-path "framework" "private") "standard-menus.ss"))
@@ -141,10 +150,9 @@
       
       (pretty-print
        `(define standard-menus-mixin
-          (mixin (basic<%>) (standard-menus<%>) args
+          (mixin (basic<%>) (standard-menus<%>)
             (inherit on-menu-char on-traverse-char)
-            (private-field
-             [remove-prefs-callback
+            (define remove-prefs-callback
               (preferences:add-callback
                'framework:menu-bindings
                (lambda (p v)
@@ -157,26 +165,26 @@
                         (when (is-a? menu menu:can-restore<%>)
                           (if v
                               (send menu restore-keybinding)
-                              (send menu set-shortcut #f)))])))))])
+                              (send menu set-shortcut #f)))]))))))
             
             (inherit get-menu-bar show can-close? get-edit-target-object)
-            ,@(map (lambda (x)
-                     (cond
-                       [(between? x) (build-before-super-between-clause x)]
-                       [(or (after? x) (before? x)) (build-before-super-before/after-clause x)]
-                       [(an-item? x) (build-before-super-item-clause x)]
-                       [(generic? x) (build-before-super-generic-clause x)]
-                       [else (printf "~a~n" x)]))
-                   items)
-            (sequence (apply super-init args))
-            ,@(map (lambda (x)
-                     (cond
-                       [(between? x) (build-after-super-between-clause x)]
-                       [(an-item? x) (build-after-super-item-clause x)]
-                       [(or (after? x) (before? x)) (build-after-super-before/after-clause x)]
-                       [(generic? x) (build-after-super-generic-clause x)]))
-                   items)
-            (sequence (reorder-menus this))))
+            ,@(apply append (map (lambda (x)
+                                   (cond
+                                     [(between? x) (build-before-super-between-clause x)]
+                                     [(or (after? x) (before? x)) (build-before-super-before/after-clause x)]
+                                     [(an-item? x) (build-before-super-item-clause x)]
+                                     [(generic? x) (build-before-super-generic-clause x)]
+                                     [else (printf "~a~n" x)]))
+                                 items))
+            (super-instantiate ())
+            ,@(apply append (map (lambda (x)
+                                   (cond
+                                     [(between? x) (build-after-super-between-clause x)]
+                                     [(an-item? x) (build-after-super-item-clause x)]
+                                     [(or (after? x) (before? x)) (build-after-super-before/after-clause x)]
+                                     [(generic? x) (build-after-super-generic-clause x)]))
+                                 items))
+            (reorder-menus this)))
        port))
     'text
     'truncate))

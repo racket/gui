@@ -1,36 +1,23 @@
 (module standard-menus-items mzscheme
   (provide
-   ;(struct generic (name initializer))
-   generic? generic-name generic-initializer
+   (struct generic (name initializer))
    
-   ;(generic/docs (documentation))
-   generic/docs? generic/docs-documentation
+   (struct generic/docs (documentation))
    
-   ;(struct generic-override ())
-   generic-override?
-   ;(struct generic-method ())
-   generic-method?
-   ;(struct generic-private-field ())
-   generic-private-field?
+   (struct generic-override ())
+   (struct generic-method ())
+   (struct generic-private-field ())
    
-   ;(struct menu-item (menu-name))
-   menu-item-menu-name
+   (struct menu-item (menu-name))
    menu-name->get-menu-name ;; : menu-item -> symbol
    
-   ;(struct before/after (name procedure))
-   ;(struct before ())
-   ;(struct after ())
-   before? after?
-   before/after-name before/after-procedure
+   (struct before/after (name procedure))
+   (struct before ())
+   (struct after ())
    
-   ;(struct between (before after procedure))
-   between?
-   between-before between-after between-procedure
+   (struct between (before after procedure))
    
-   ;(struct an-item (item-name help-string proc key menu-string-before menu-string-after on-demand))
-   an-item?
-   an-item-item-name an-item-help-string an-item-proc an-item-key 
-   an-item-menu-string-before an-item-menu-string-after an-item-on-demand
+   (struct an-item (item-name help-string proc key menu-string-before menu-string-after on-demand))
    
    ;; an-item -> symbol
    ;; calcualates the names of various identifiers associated with the item.

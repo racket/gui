@@ -12,7 +12,8 @@
   (define (splash filename title width-default)
     (let/ec k
       (letrec-values
-       ([(no-splash) (lambda () (k void void void))]
+       ([(splash-eventspace) (make-eventspace)]
+        [(no-splash) (lambda () (k #f #f splash-eventspace void void void))]
 	[(funny?) (let ([date (seconds->date (current-seconds))])
 		    (and (= (date-day date) 25)
 			 (= (date-month date) 12)))]
@@ -116,7 +117,6 @@
 	       (when quit-on-close?
 		 (exit)))])
 	   (sequence (super-init title)))]
-        [(splash-eventspace) (make-eventspace)]
 	[(frame) (parameterize ([current-eventspace splash-eventspace])
 		   (make-object splash-frame% title))]
 	[(_0) (send frame accept-drop-files #t)]
@@ -133,7 +133,7 @@
 		  [else 'xpm]))))]
 	[(bitmap) (make-object bitmap% filename bitmap-flag)]
 	[(_2) (unless (send bitmap ok?)
-		(fprintf (current-error-port) "WARNING: bad bitmap ~s" filename)
+		(fprintf (current-error-port) "WARNING: bad bitmap ~s~n" filename)
 		(no-splash))]
 	[(splash-canvas%)
 	 (class100 canvas% args

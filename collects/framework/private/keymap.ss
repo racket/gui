@@ -26,53 +26,52 @@
 			      get-map-function-table/ht))
       
       (define aug-keymap-mixin
-	(mixin ((class->interface keymap%)) (aug-keymap<%>) args
-	  (private-field
-	    [chained-keymaps null])
-	  (public
-	    [get-chained-keymaps
-	     (lambda ()
-	       chained-keymaps)])
+	(mixin ((class->interface keymap%)) (aug-keymap<%>)
+          (define chained-keymaps null)
+	  (public get-chained-keymaps)
+          [define get-chained-keymaps
+            (lambda ()
+              chained-keymaps)]
 	  (rename [super-chain-to-keymap chain-to-keymap])
-	  (override
-	   [chain-to-keymap
+	  (override chain-to-keymap)
+          [define chain-to-keymap
 	    (lambda (keymap prefix?)
 	      (super-chain-to-keymap keymap prefix?)
 	      (set! chained-keymaps
 		    (if prefix?
 			(cons keymap chained-keymaps)
-			(append chained-keymaps (list keymap)))))])
+			(append chained-keymaps (list keymap)))))]
 	  
-	  (private-field [function-table (make-hash-table)])
-	  (public [get-function-table (lambda () function-table)])
+	  [define function-table (make-hash-table)]
+	  (public get-function-table)
+          [define get-function-table (lambda () function-table)]
 	  (rename [super-map-function map-function])
-	  (override
-	   [map-function
+	  (override map-function)
+          [define map-function
 	    (lambda (keyname fname)
 	      (super-map-function (canonicalize-keybinding-string keyname) fname)
-	      (hash-table-put! function-table (string->symbol keyname) fname))])
+	      (hash-table-put! function-table (string->symbol keyname) fname))]
 	  
-	  (public
-	    [get-map-function-table
-	     (lambda ()
-	       (get-map-function-table/ht (make-hash-table)))]
-	    
-	    [get-map-function-table/ht
-	     (lambda (table)
-	       (hash-table-for-each
-		function-table
-		(lambda (keyname fname)
-		  (unless (hash-table-get table keyname (lambda () #f))
-		    (hash-table-put! table keyname fname))))
-	       (for-each
-		(lambda (chained-keymap)
-		  (when (is-a? chained-keymap aug-keymap<%>)
-		    (send chained-keymap get-map-function-table/ht table)))
-		chained-keymaps)
-	       table)])
-	  
-	  (sequence
-	    (apply super-init args))))
+	  (public get-map-function-table get-map-function-table/ht)
+          [define get-map-function-table
+            (lambda ()
+              (get-map-function-table/ht (make-hash-table)))]
+          
+          [define get-map-function-table/ht
+            (lambda (table)
+              (hash-table-for-each
+               function-table
+               (lambda (keyname fname)
+                 (unless (hash-table-get table keyname (lambda () #f))
+                   (hash-table-put! table keyname fname))))
+              (for-each
+               (lambda (chained-keymap)
+                 (when (is-a? chained-keymap aug-keymap<%>)
+                   (send chained-keymap get-map-function-table/ht table)))
+               chained-keymaps)
+              table)]
+
+          (super-instantiate ())))
 
       (define aug-keymap% (aug-keymap-mixin keymap%))
 

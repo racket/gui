@@ -131,18 +131,21 @@
 
   (define-signature framework:text^
     (basic<%>
+     hide/selection<%>
      searching<%>
      return<%>
      info<%>
      clever-file-format<%>
      
      basic-mixin
+     hide/selection-mixin
      searching-mixin
      return-mixin
      info-mixin
      clever-file-format-mixin
      
      basic% 
+     hide/selection%
      keymap%
      return%
      autowrap%

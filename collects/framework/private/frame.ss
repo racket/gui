@@ -1,3 +1,4 @@
+
 (module frame mzscheme
   (require (lib "unitsig.ss")
 	   (lib "class.ss")
@@ -80,88 +81,75 @@
                          get-filename))
       (define basic-mixin
         (mixin ((class->interface frame%)) (basic<%>)
-          (label [parent #f] [width #f] [height #f] [x #f] [y #f] [style null])
           (rename [super-can-close? can-close?]
                   [super-on-close on-close]
                   [super-on-focus on-focus])
-          (public
-            [get-filename
+          (public get-filename)
+          [define get-filename
              (case-lambda
               [() (get-filename #f)]
-              [(b) #f])])
-          (private-field
-           [after-init? #f])
-          (override
-            [can-close?
-             (lambda ()
-               (let ([super (super-can-close?)]
-                     [group
-                      (send (group:get-the-frame-group)
-                            can-remove-frame?
-                            this)])
-                 (and super group)))]
-            [on-close
-             (lambda ()
-               (super-on-close)
-               (send (group:get-the-frame-group)
-                     remove-frame
-                     this))]
-            [on-focus
-             (lambda (on?)
-               (super-on-focus on?)
-               (when on?
-                 (send (group:get-the-frame-group) set-active-frame this)))]
-            
-            [on-drop-file
-             (lambda (filename)
-               (handler:edit-file filename))])
+              [(b) #f])]
+          (define after-init? #f)
+          (override can-close? on-close on-focus on-drop-file)
+          [define can-close?
+            (lambda ()
+              (let ([super (super-can-close?)]
+                    [group
+                     (send (group:get-the-frame-group)
+                           can-remove-frame?
+                           this)])
+                (and super group)))]
+          [define on-close
+            (lambda ()
+              (super-on-close)
+              (send (group:get-the-frame-group)
+                    remove-frame
+                    this))]
+          [define on-focus
+            (lambda (on?)
+              (super-on-focus on?)
+              (when on?
+                (send (group:get-the-frame-group) set-active-frame this)))]
+          
+          [define on-drop-file
+            (lambda (filename)
+              (handler:edit-file filename))]
           
       ;; added call to set label here to hopefully work around a problem in mac mred
           (inherit set-label change-children)
-          (override
-            [after-new-child
-             (lambda (child)
-               (when after-init?
-                 (change-children (lambda (l) (remq child l)))
-                 (error 'frame:basic-mixin
-                        "do not add children directly to a frame:basic (unless using make-root-area-container); use the get-area-container method instead"
-                        )))])
+          (override after-new-child)
+          [define after-new-child
+            (lambda (child)
+              (when after-init?
+                (change-children (lambda (l) (remq child l)))
+                (error 'frame:basic-mixin
+                       "do not add children directly to a frame:basic (unless using make-root-area-container); use the get-area-container method instead"
+                       )))]
           
           (inherit show)
-          (public
-            [get-area-container% (lambda () vertical-panel%)]
-            [get-menu-bar% (lambda () menu-bar%)]
-            [make-root-area-container
-             (lambda (% parent)
-               (make-object % parent))]
-            [close
-             (lambda ()
-               (when (can-close?)
-                 (on-close)
-                 (show #f)))])
+          (public get-area-container% get-menu-bar% make-root-area-container close)
+          [define get-area-container% (lambda () vertical-panel%)]
+          [define get-menu-bar% (lambda () menu-bar%)]
+          [define make-root-area-container
+            (lambda (% parent)
+              (make-object % parent))]
+          [define close
+           (lambda ()
+             (when (can-close?)
+               (on-close)
+               (show #f)))]
           
           (inherit accept-drop-files)
-          (sequence
-            (let ([mdi-parent (send (group:get-the-frame-group) get-mdi-parent)])
-              (super-init label
-                          (or parent mdi-parent)
-                          width height x y
-                          (cond
-                            [parent style]
-                            [mdi-parent (cons 'mdi-child style)]
-                            [else style])))
+          (super-instantiate ())
+          (accept-drop-files #t)
             
-            (accept-drop-files #t)
-            
-            (make-object menu% "&Window" (make-object (get-menu-bar%) this))
-            (reorder-menus this)
-            (send (group:get-the-frame-group) insert-frame this))
-          (private-field
-           [panel (make-root-area-container (get-area-container%) this)])
-          (public
-            [get-area-container (lambda () panel)])
-          (sequence
-            (set! after-init? #t))))
+          (make-object menu% "&Window" (make-object (get-menu-bar%) this))
+          (reorder-menus this)
+          (send (group:get-the-frame-group) insert-frame this)
+          [define panel (make-root-area-container (get-area-container%) this)]
+          (public get-area-container)
+          [define get-area-container (lambda () panel)]
+          (set! after-init? #t)))
       
       (define locked-message "Read only")
       (define unlocked-message "Read/Write")
@@ -217,195 +205,183 @@
       (define magic-space 25)
 
       (define info-mixin
-        (mixin (basic<%>) (info<%>) args
+        (mixin (basic<%>) (info<%>)
           (rename [super-make-root-area-container make-root-area-container])
-          (private-field
-            [rest-panel 'uninitialized-root]
-            [super-root 'uninitialized-super-root])
-          (override
-            [make-root-area-container
-             (lambda (% parent)
-               (let* ([s-root (super-make-root-area-container
-                               vertical-panel%
-                               parent)]
-                      [r-root (make-object % s-root)])
-                 (set! super-root s-root)
-                 (set! rest-panel r-root)
-                 r-root))])
+          [define rest-panel 'uninitialized-root]
+          [define super-root 'uninitialized-super-root]
+          (override make-root-area-container)
+          [define make-root-area-container
+            (lambda (% parent)
+              (let* ([s-root (super-make-root-area-container
+                              vertical-panel%
+                              parent)]
+                     [r-root (make-object % s-root)])
+                (set! super-root s-root)
+                (set! rest-panel r-root)
+                r-root))]
           
-          (private-field
-            [info-canvas #f])
-          (public
-            [get-info-canvas
-             (lambda ()
-               info-canvas)]
-            [set-info-canvas
-             (lambda (c)
-               (set! info-canvas c))]
-            [get-info-editor
-             (lambda ()
-               (and info-canvas
-                    (send info-canvas get-editor)))])
+          [define info-canvas #f]
+          (public get-info-canvas set-info-canvas get-info-editor)
+          [define get-info-canvas
+           (lambda ()
+             info-canvas)]
+          [define set-info-canvas
+           (lambda (c)
+             (set! info-canvas c))]
+          [define get-info-editor
+           (lambda ()
+             (and info-canvas
+                  (send info-canvas get-editor)))]
           
-          (public
-            [determine-width
-             (lambda (string canvas edit)
-               (send edit set-autowrap-bitmap #f)
-               (send canvas call-as-primary-owner
-                     (lambda ()
-                       (let ([lb (box 0)]
-                             [rb (box 0)])
-                         (send edit erase)
-                         (send edit insert string)
-                         (send edit position-location 
-                               (send edit last-position)
-                               rb)
-                         (send edit position-location 0 lb)
-                         (send canvas min-width 
-                               (+ magic-space (- (inexact->exact (floor (unbox rb)))
-                                                 (inexact->exact (floor (unbox lb))))))))))])
+          (public determine-width)
+          [define determine-width
+            (lambda (string canvas edit)
+              (send edit set-autowrap-bitmap #f)
+              (send canvas call-as-primary-owner
+                    (lambda ()
+                      (let ([lb (box 0)]
+                            [rb (box 0)])
+                        (send edit erase)
+                        (send edit insert string)
+                        (send edit position-location 
+                              (send edit last-position)
+                              rb)
+                        (send edit position-location 0 lb)
+                        (send canvas min-width 
+                              (+ magic-space (- (inexact->exact (floor (unbox rb)))
+                                                (inexact->exact (floor (unbox lb))))))))))]
           
           (rename [super-on-close on-close])
-          (private-field
-            [outer-info-panel 'top-info-panel-uninitialized]
-            [close-panel-callback
-             (preferences:add-callback
-              'framework:show-status-line
-              (lambda (p v)
-                (if v 
-                    (register-gc-blit)
-                    (unregister-collecting-blit gc-canvas))
-                (send super-root change-children
-                      (lambda (l)
-                        (if v
-                            (list rest-panel outer-info-panel)
-                            (list rest-panel))))))])
-          (private-field
-            [memory-cleanup void]) ;; only for CVSers; used with memory-text
-          (override
-            [on-close
-             (lambda ()
-               (super-on-close)
-               (unregister-collecting-blit gc-canvas)
-               (close-panel-callback)
-               (memory-cleanup))])
+          [define outer-info-panel 'top-info-panel-uninitialized]
+          [define close-panel-callback
+            (preferences:add-callback
+             'framework:show-status-line
+             (lambda (p v)
+               (if v 
+                   (register-gc-blit)
+                   (unregister-collecting-blit gc-canvas))
+               (send super-root change-children
+                     (lambda (l)
+                       (if v
+                           (list rest-panel outer-info-panel)
+                           (list rest-panel))))))]
+          [define memory-cleanup void] ;; only for CVSers; used with memory-text
+          (override on-close)
+          [define on-close
+            (lambda ()
+              (super-on-close)
+              (unregister-collecting-blit gc-canvas)
+              (close-panel-callback)
+              (memory-cleanup))]
           
-          (private-field
-           [icon-currently-locked? 'uninit])
-          (public
-            [lock-status-changed
-             (lambda ()
-               (let ([info-edit (get-info-editor)])
-                 (cond
-                   [(not (object? lock-canvas))
-                    (void)]
-                   [info-edit
-                    (unless (send lock-canvas is-shown?)
-                      (send lock-canvas show #t))
-                    (let ([locked-now? (send info-edit is-locked?)])
-                      (unless (eq? locked-now? icon-currently-locked?)
-                        (set! icon-currently-locked? locked-now?)
-                        (when (object? lock-canvas)
-                          (send lock-canvas set-locked locked-now?))))]
-                   [else
-                    (when (send lock-canvas is-shown?)
-                      (send lock-canvas show #f))])))])
+          [define icon-currently-locked? 'uninit]
+          (public lock-status-changed)
+          [define lock-status-changed
+            (lambda ()
+              (let ([info-edit (get-info-editor)])
+                (cond
+                  [(not (object? lock-canvas))
+                   (void)]
+                  [info-edit
+                   (unless (send lock-canvas is-shown?)
+                     (send lock-canvas show #t))
+                   (let ([locked-now? (send info-edit is-locked?)])
+                     (unless (eq? locked-now? icon-currently-locked?)
+                       (set! icon-currently-locked? locked-now?)
+                       (when (object? lock-canvas)
+                         (send lock-canvas set-locked locked-now?))))]
+                  [else
+                   (when (send lock-canvas is-shown?)
+                     (send lock-canvas show #f))])))]
           
-          (public
-            [update-info
-             (lambda ()
-               (lock-status-changed))])
+          (public update-info)
+          [define update-info
+            (lambda ()
+              (lock-status-changed))]
           
-          (sequence 
-            (apply super-init args)
-            (set! outer-info-panel (make-object horizontal-panel% super-root))
-            (send outer-info-panel stretchable-height #f))
+          (super-instantiate ())
+          (set! outer-info-panel (make-object horizontal-panel% super-root))
+          (send outer-info-panel stretchable-height #f)
           
-          (private-field
-           [info-panel (make-object horizontal-panel% outer-info-panel)])
-          (sequence
-            (make-object grow-box-spacer-pane% outer-info-panel))
-          (public
-            [get-info-panel
-             (lambda ()
-               info-panel)])
-          (public
-            [update-memory-text
-             (lambda ()
-               (when show-memory-text?
-                 (send memory-text begin-edit-sequence)
-                 (send memory-text lock #f)
-                 (send memory-text erase)
-                 (send memory-text insert (number->string (current-memory-use)))
-                 (send memory-text lock #t)
-                 (send memory-text end-edit-sequence)))])
+          [define info-panel (make-object horizontal-panel% outer-info-panel)]
+          (make-object grow-box-spacer-pane% outer-info-panel)
+          (public get-info-panel)
+          [define get-info-panel
+            (lambda ()
+              info-panel)]
+          (public update-memory-text)
+          [define update-memory-text
+            (lambda ()
+              (when show-memory-text?
+                (send memory-text begin-edit-sequence)
+                (send memory-text lock #f)
+                (send memory-text erase)
+                (send memory-text insert (number->string (current-memory-use)))
+                (send memory-text lock #t)
+                (send memory-text end-edit-sequence)))]
           
-          (sequence
             ; only for CVSers
-            (when show-memory-text?
-              (let* ([panel (make-object horizontal-panel% (get-info-panel) '(border))]
-                     [button (make-object button% "Collect" panel 
-                               (lambda x
-                                 (collect-garbage)
-                                 (update-memory-text)))]
-                     [ec (make-object editor-canvas% panel memory-text '(no-hscroll no-vscroll))])
-                (determine-width "000000000" ec memory-text)
-                (update-memory-text)
-                (set! memory-cleanup
-                      (lambda ()
-                        (send ec set-editor #f)))
-                (send panel stretchable-width #f))))
-          (private-field
-            [lock-canvas (make-object lock-canvas% (get-info-panel))]
-            [gc-canvas (make-object canvas% (get-info-panel) '(border))])
-          (private
-            [register-gc-blit
-             (lambda ()
-               (let ([onb (icon:get-gc-on-bitmap)]
-                     [offb (icon:get-gc-off-bitmap)])
-                 (when (and (send onb ok?)
-                            (send offb ok?))
-                   (register-collecting-blit gc-canvas 
-                                             0 0
-                                             (send onb get-width)
-                                             (send onb get-height)
-                                             onb offb))))])
+          (when show-memory-text?
+            (let* ([panel (make-object horizontal-panel% (get-info-panel) '(border))]
+                   [button (make-object button% "Collect" panel 
+                             (lambda x
+                               (collect-garbage)
+                               (update-memory-text)))]
+                   [ec (make-object editor-canvas% panel memory-text '(no-hscroll no-vscroll))])
+              (determine-width "000000000" ec memory-text)
+              (update-memory-text)
+              (set! memory-cleanup
+                    (lambda ()
+                      (send ec set-editor #f)))
+              (send panel stretchable-width #f)))
+
+          [define lock-canvas (make-object lock-canvas% (get-info-panel))]
+          [define gc-canvas (make-object canvas% (get-info-panel) '(border))]
+          [define register-gc-blit
+            (lambda ()
+              (let ([onb (icon:get-gc-on-bitmap)]
+                    [offb (icon:get-gc-off-bitmap)])
+                (when (and (send onb ok?)
+                           (send offb ok?))
+                  (register-collecting-blit gc-canvas 
+                                            0 0
+                                            (send onb get-width)
+                                            (send onb get-height)
+                                            onb offb))))]
           
-          (sequence
-            (unless (preferences:get 'framework:show-status-line)
-              (send super-root change-children
-                    (lambda (l)
-                      (list rest-panel))))
-            (register-gc-blit)
+          (unless (preferences:get 'framework:show-status-line)
+            (send super-root change-children
+                  (lambda (l)
+                    (list rest-panel))))
+          (register-gc-blit)
             
-            (let* ([gcb (icon:get-gc-on-bitmap)]
-                   [gc-width (if (send gcb ok?)
-                                 (send gcb get-width)
-                                 10)]
-                   [gc-height (if (send gcb ok?)
-                                  (send gcb get-height)
-                                  10)])
-              (send* gc-canvas
-                (min-client-width (max (send gc-canvas min-width) gc-width))
-                (min-client-height (max (send gc-canvas min-height) gc-height))
-                (stretchable-width #f)
-                (stretchable-height #f)))
-            (send* (get-info-panel) 
-              (set-alignment 'right 'center)
-              (stretchable-height #f)
-              (spacing 3)
-              (border 3)))))
+          (let* ([gcb (icon:get-gc-on-bitmap)]
+                 [gc-width (if (send gcb ok?)
+                               (send gcb get-width)
+                               10)]
+                 [gc-height (if (send gcb ok?)
+                                (send gcb get-height)
+                                10)])
+            (send* gc-canvas
+              (min-client-width (max (send gc-canvas min-width) gc-width))
+              (min-client-height (max (send gc-canvas min-height) gc-height))
+              (stretchable-width #f)
+              (stretchable-height #f)))
+          (send* (get-info-panel) 
+            (set-alignment 'right 'center)
+            (stretchable-height #f)
+            (spacing 3)
+            (border 3))))
       
       (define text-info<%> (interface (info<%>)
                              overwrite-status-changed
                              anchor-status-changed
                              editor-position-changed))
       (define text-info-mixin
-        (mixin (info<%>) (text-info<%>) args
+        (mixin (info<%>) (text-info<%>)
           (inherit get-info-editor)
           (rename [super-on-close on-close])
-          (private-field
-           [remove-first
+          [define remove-first
             (preferences:add-callback
              'framework:line-offsets
              (lambda (p v)
@@ -413,26 +389,24 @@
                 v
                 (preferences:get 'framework:display-line-numbers))
                #t))]
-           [remove-second
+          [define remove-second
             (preferences:add-callback
              'framework:display-line-numbers
              (lambda (p v)
                (editor-position-changed-offset/numbers
                 (preferences:get 'framework:line-offsets)
                 v)
-               #t))])          
-          (override
-            [on-close
-             (lambda ()
-               (super-on-close)
-               (remove-first)
-               (remove-second))])
-          (private-field
-           [last-start #f]
-           [last-end #f]
-           [last-params #f])
-          (private
-            [editor-position-changed-offset/numbers
+               #t))]          
+          (override on-close)
+          [define on-close
+            (lambda ()
+              (super-on-close)
+              (remove-first)
+              (remove-second))]
+          [define last-start #f]
+          [define last-end #f]
+          [define last-params #f]
+          [define editor-position-changed-offset/numbers
              (lambda (offset? line-numbers?)
                (let* ([edit (get-info-editor)]
                       [make-one
@@ -480,38 +454,37 @@
                             (lock #t)))))]
                    [else
                     (when (send position-canvas is-shown?)
-                      (send position-canvas show #f))])))])
-          (private-field
-            [anchor-last-state? #f]
-            [overwrite-last-state? #f])
-          (public
-            [anchor-status-changed
-             (lambda ()
-               (let ([info-edit (get-info-editor)]
-                     [failed
-                      (lambda ()
-                        (unless (eq? anchor-last-state? #f)
-                          (set! anchor-last-state? #f)
-                          (send anchor-message show #f)))])
-                 (cond
-                   [info-edit
-                    (let ([anchor-now? (send info-edit get-anchor)])
-                      (unless (eq? anchor-now? anchor-last-state?)
-                        (cond
-                          [(object? anchor-message)
-                           (send anchor-message
-                                 show
-                                 anchor-now?)
-                           (set! anchor-last-state? anchor-now?)]
-                          [else (failed)])))]
-                   [else
-                    (failed)])))]
-            [editor-position-changed
+                      (send position-canvas show #f))])))]
+          [define anchor-last-state? #f]
+          [define overwrite-last-state? #f]
+          (public anchor-status-changed editor-position-changed overwrite-status-changed)
+          [define anchor-status-changed
+           (lambda ()
+             (let ([info-edit (get-info-editor)]
+                   [failed
+                    (lambda ()
+                      (unless (eq? anchor-last-state? #f)
+                        (set! anchor-last-state? #f)
+                        (send anchor-message show #f)))])
+               (cond
+                 [info-edit
+                  (let ([anchor-now? (send info-edit get-anchor)])
+                    (unless (eq? anchor-now? anchor-last-state?)
+                      (cond
+                        [(object? anchor-message)
+                         (send anchor-message
+                               show
+                               anchor-now?)
+                         (set! anchor-last-state? anchor-now?)]
+                        [else (failed)])))]
+                 [else
+                  (failed)])))]
+            [define editor-position-changed
              (lambda ()
                (editor-position-changed-offset/numbers
                 (preferences:get 'framework:line-offsets)
                 (preferences:get 'framework:display-line-numbers)))]
-            [overwrite-status-changed
+            [define overwrite-status-changed
              (lambda ()
                (let ([info-edit (get-info-editor)]
                      [failed
@@ -531,67 +504,63 @@
                           [else
                            (failed)])))]
                    [else
-                    (failed)])))])
+                    (failed)])))]
           (rename [super-update-info update-info])
-          (override
-            [update-info
-             (lambda ()
-               (super-update-info)
-               (overwrite-status-changed)
-               (anchor-status-changed)
-               (editor-position-changed))])
-          (sequence 
-            (apply super-init args))
+          (override update-info)
+          [define update-info
+            (lambda ()
+              (super-update-info)
+              (overwrite-status-changed)
+              (anchor-status-changed)
+              (editor-position-changed))]
+          (super-instantiate ())
           
           (inherit get-info-panel)
-          (private-field
-            [anchor-message
-             (make-object message%
-               (let ([b (icon:get-anchor-bitmap)])
-                 (if (and #f (send b ok?))
-                     b
-                     "Auto-extend Selection"))
-               (get-info-panel))]
-            [overwrite-message 
-             (make-object message%
-               "Overwrite"
-               (get-info-panel))]
-            [position-canvas (make-object editor-canvas% (get-info-panel) #f '(no-hscroll no-vscroll))]
-            [position-edit (make-object text%)])
+          [define anchor-message
+            (make-object message%
+              (let ([b (icon:get-anchor-bitmap)])
+                (if (and #f (send b ok?))
+                    b
+                    "Auto-extend Selection"))
+              (get-info-panel))]
+          [define overwrite-message 
+           (make-object message%
+             "Overwrite"
+             (get-info-panel))]
+          [define position-canvas (make-object editor-canvas% (get-info-panel) #f '(no-hscroll no-vscroll))]
+          [define position-edit (make-object text%)]
           
           (inherit determine-width)
-          (sequence
-            (let ([move-front
-                   (lambda (x l)
-                     (cons x (remq x l)))])
-              (send (get-info-panel) change-children
-                    (lambda (l)
+          (let ([move-front
+                 (lambda (x l)
+                   (cons x (remq x l)))])
+            (send (get-info-panel) change-children
+                  (lambda (l)
+                    (move-front
+                     anchor-message
+                     (move-front
+                      overwrite-message
                       (move-front
-                       anchor-message
-                       (move-front
-                        overwrite-message
-                        (move-front
-                         position-canvas
-                         l))))))
-            (send anchor-message show #f)
-            (send overwrite-message show #f)
-            (send* position-canvas
-              (set-line-count 1)
-              (set-editor position-edit)
-              (stretchable-width #f)
-              (stretchable-height #f))
-            (determine-width "0000:000-0000:000"
-                             position-canvas
-                             position-edit)
-            (editor-position-changed)
-            (send position-edit hide-caret #t)
-            (send position-edit lock #t))))
+                       position-canvas
+                       l))))))
+          (send anchor-message show #f)
+          (send overwrite-message show #f)
+          (send* position-canvas
+            (set-line-count 1)
+            (set-editor position-edit)
+            (stretchable-width #f)
+            (stretchable-height #f))
+          (determine-width "0000:000-0000:000"
+                           position-canvas
+                           position-edit)
+          (editor-position-changed)
+          (send position-edit hide-caret #t)
+          (send position-edit lock #t)))
       
       (define pasteboard-info<%> (interface (info<%>)))
       (define pasteboard-info-mixin
-        (mixin (basic<%>) (pasteboard-info<%>) args
-          (sequence
-            (apply super-init args))))
+        (mixin (basic<%>) (pasteboard-info<%>)
+          (super-instantiate ())))
       
       (include "standard-menus.ss")
       
@@ -614,259 +583,243 @@
       
       (define editor-mixin
         (mixin (standard-menus<%>) (-editor<%>)
-          (file-name
-           [parent #f]
-           [width frame-width]
-           [height frame-height]
-           .
-           args)
+          (init file-name)
+
           (inherit get-area-container get-client-size 
                    show get-edit-target-window get-edit-target-object)
           (rename [super-on-close on-close]
                   [super-set-label set-label])
           
-          (override
-            [get-filename
-             (case-lambda
-              [() (get-filename #f)]
-              [(b)
-               (let ([e (get-editor)])
-                 (and e (send e get-filename b)))])]
-            [on-close
-             (lambda ()
-               (super-on-close)
-               (send (get-editor) on-close))])
-          (private-field
-            [label (if file-name
-                       (file-name-from-path file-name)
-                       (gui-utils:next-untitled-name))]
-            [label-prefix (application:current-app-name)])
-          (private
-            [do-label
-             (lambda ()
-               (super-set-label (get-entire-label))
-               (send (group:get-the-frame-group) frame-label-changed this))])
+          (override get-filename on-close)
+          [define get-filename
+            (case-lambda
+             [() (get-filename #f)]
+             [(b)
+              (let ([e (get-editor)])
+                (and e (send e get-filename b)))])]
+          [define on-close
+           (lambda ()
+             (super-on-close)
+             (send (get-editor) on-close))]
+          [define label (if file-name
+                            (file-name-from-path file-name)
+                            (gui-utils:next-untitled-name))]
+          [define label-prefix (application:current-app-name)]
+          [define do-label
+           (lambda ()
+             (super-set-label (get-entire-label))
+             (send (group:get-the-frame-group) frame-label-changed this))]
           
-          (public
-            [get-entire-label
-             (lambda ()
-               (cond
-                 [(string=? "" label)
-                  label-prefix]
-                 [(string=? "" label-prefix)
-                  label]
-                 [else 
-                  (string-append label " - " label-prefix)]))]
-            [get-label-prefix (lambda () label-prefix)]
-            [set-label-prefix
-             (lambda (s)
-               (when (and (string? s)
-                          (not (string=? s label-prefix)))
-                 (set! label-prefix s)
-                 (do-label)))])
-          (override
-            [get-label (lambda () label)]
-            [set-label
-             (lambda (t)
-               (when (and (string? t)
-                          (not (string=? t label)))
-                 (set! label t)
-                 (do-label)))])
-          (public
-            [get-canvas% (lambda () editor-canvas%)]
-            [get-canvas<%> (lambda () (class->interface editor-canvas%))]
-            [make-canvas (lambda ()
-                           (let ([% (get-canvas%)]
-                                 [<%> (get-canvas<%>)])
-                             (unless (implementation? % <%>)
-                               (error 'frame:editor%
-                                      "result of get-canvas% method must match ~e interface; got: ~e"
-                                      <%> %))
-                             (make-object % (get-area-container))))]
-            [get-editor% (lambda () (error 'editor-frame% "no editor% class specified"))]
-            [get-editor<%> (lambda () editor<%>)]
-            [make-editor (lambda ()
-                           (let ([% (get-editor%)]
-                                 [<%> (get-editor<%>)])
-                             (unless (implementation? % <%>)
-                               (error 'frame:editor%
-                                      "result of get-editor% method must match ~e interface; got: ~e"
-                                      <%> %))
-                             (make-object %)))])
+          (public get-entire-label get-label-prefix set-label-prefix)
+          [define get-entire-label
+            (lambda ()
+              (cond
+                [(string=? "" label)
+                 label-prefix]
+                [(string=? "" label-prefix)
+                 label]
+                [else 
+                 (string-append label " - " label-prefix)]))]
+          [define get-label-prefix (lambda () label-prefix)]
+          [define set-label-prefix
+           (lambda (s)
+             (when (and (string? s)
+                        (not (string=? s label-prefix)))
+               (set! label-prefix s)
+               (do-label)))]
+          (override get-label set-label)
+          [define get-label (lambda () label)]
+          [define set-label
+            (lambda (t)
+              (when (and (string? t)
+                         (not (string=? t label)))
+                (set! label t)
+                (do-label)))]
+
+          (public get-canvas% get-canvas<%> make-canvas get-editor% get-editor<%> make-editor)
+          [define get-canvas% (lambda () editor-canvas%)]
+          [define get-canvas<%> (lambda () (class->interface editor-canvas%))]
+          [define make-canvas (lambda ()
+                                (let ([% (get-canvas%)]
+                                      [<%> (get-canvas<%>)])
+                                  (unless (implementation? % <%>)
+                                    (error 'frame:editor%
+                                           "result of get-canvas% method must match ~e interface; got: ~e"
+                                           <%> %))
+                                  (make-object % (get-area-container))))]
+          [define get-editor% (lambda () (error 'editor-frame% "no editor% class specified"))]
+          [define get-editor<%> (lambda () editor<%>)]
+          [define make-editor (lambda ()
+                                (let ([% (get-editor%)]
+                                      [<%> (get-editor<%>)])
+                                  (unless (implementation? % <%>)
+                                    (error 'frame:editor%
+                                           "result of get-editor% method must match ~e interface; got: ~e"
+                                           <%> %))
+                                  (make-object %)))]
           
           
-          (public
-            [save-as
-             (opt-lambda ([format 'same])
-               (let* ([name (send (get-editor) get-filename)]
-                      [file (parameterize ([finder:dialog-parent-parameter this])
-                              (finder:put-file name))])
-                 (when file
-                   (send (get-editor) save-file file format))))])
+          (public save-as)
+          [define save-as
+            (opt-lambda ([format 'same])
+              (let* ([name (send (get-editor) get-filename)]
+                     [file (parameterize ([finder:dialog-parent-parameter this])
+                             (finder:put-file name))])
+                (when file
+                  (send (get-editor) save-file file format))))]
           (inherit get-checkable-menu-item% get-menu-item%)
-          (override
-            [file-menu:revert-callback 
-             (lambda (item control)
-               (let* ([b (box #f)]
-                      [edit (get-editor)]
-                      [filename (send edit get-filename b)])
-                 (if (or (not filename) (unbox b))
-                     (bell)
-                     (let ([start
-                            (if (is-a? edit text%)
-                                (send edit get-start-position)
-                                #f)])
-                       (send edit begin-edit-sequence)
-                       (let ([status (send edit load-file
-                                           filename
-                                           'same
-                                           #f)])
-                         (if status
+          (override file-menu:revert-callback file-menu:create-revert? file-menu:save-callback
+                    file-menu:create-save? file-menu:save-as-callback file-menu:create-save-as? 
+                    file-menu:print-callback file-menu:create-print?)
+          [define file-menu:revert-callback 
+            (lambda (item control)
+              (let* ([b (box #f)]
+                     [edit (get-editor)]
+                     [filename (send edit get-filename b)])
+                (if (or (not filename) (unbox b))
+                    (bell)
+                    (let ([start
+                           (if (is-a? edit text%)
+                               (send edit get-start-position)
+                               #f)])
+                      (send edit begin-edit-sequence)
+                      (let ([status (send edit load-file
+                                          filename
+                                          'same
+                                          #f)])
+                        (if status
+                            (begin
+                              (when (is-a? edit text%)
+                                (send edit set-position start start))
+                              (send edit end-edit-sequence))
+                            (begin
+                              (send edit end-edit-sequence)
+                              (message-box
+                               "Error Reverting"
+                               (format "could not read ~a" filename)))))))
+                #t))]
+          [define file-menu:create-revert? (lambda () #t)]
+          [define file-menu:save-callback (lambda (item control)
+                                            (send (get-editor) save-file)
+                                            #t)]
+          
+          [define file-menu:create-save? (lambda () #t)]
+          [define file-menu:save-as-callback (lambda (item control) (save-as) #t)]
+          [define file-menu:create-save-as? (lambda () #t)]
+          [define file-menu:print-callback (lambda (item control)
+                                             (send (get-editor) print
+                                                   #t
+                                                   #t
+                                                   (preferences:get 'framework:print-output-mode))
+                                             #t)]
+          [define file-menu:create-print? (lambda () #t)]
+          
+          [define edit-menu:do (lambda (const)
+                                 (lambda (menu evt)
+                                   (let ([edit (get-edit-target-object)])
+                                     (when (and edit
+                                                (is-a? edit editor<%>))
+                                       (send edit do-edit-operation const)))
+                                   #t))]
+          
+          (public add-edit-menu-snip-items)
+          [define add-edit-menu-snip-items
+            (lambda (edit-menu)
+              (let ([c% (get-menu-item%)]
+                    [on-demand
+                     (lambda (menu-item)
+                       (let ([edit (get-edit-target-object)])
+                         (send menu-item enable (and edit (is-a? edit editor<%>)))))])
+                
+                (make-object c% "Insert Text Box" edit-menu (edit-menu:do 'insert-text-box) #f #f on-demand)
+                (make-object c% "Insert Pasteboard Box" edit-menu (edit-menu:do 'insert-pasteboard-box) #f #f on-demand)
+                (make-object c% "Insert Image..." edit-menu (edit-menu:do 'insert-image) #f #f on-demand)))]
+          
+          
+          (override edit-menu:between-select-all-and-find)
+          [define edit-menu:between-select-all-and-find
+           (lambda (edit-menu)
+             (make-object separator-menu-item% edit-menu)
+             
+             (add-edit-menu-snip-items edit-menu)
+             
+             (let* ([c% (get-checkable-menu-item%)]
+                    [on-demand
+                     (lambda (menu-item)
+                       (let ([edit (get-edit-target-object)])
+                         (if (and edit (is-a? edit editor<%>))
                              (begin
-                               (when (is-a? edit text%)
-                                 (send edit set-position start start))
-                               (send edit end-edit-sequence))
-                             (begin
-                               (send edit end-edit-sequence)
-                               (message-box
-                                "Error Reverting"
-                                (format "could not read ~a" filename)))))))
-                 #t))]
-            [file-menu:create-revert? (lambda () #t)]
-            [file-menu:save-callback (lambda (item control)
-                              (send (get-editor) save-file)
-                              #t)]
-            [file-menu:create-save? (lambda () #t)]
-            [file-menu:save-as-callback (lambda (item control) (save-as) #t)]
-            [file-menu:create-save-as? (lambda () #t)]
-            [file-menu:print-callback (lambda (item control)
-                                        (send (get-editor) print
-                                              #t
-                                              #t
-                                              (preferences:get 'framework:print-output-mode))
-                                        #t)]
-            [file-menu:create-print? (lambda () #t)])
+                               (send menu-item enable #t)
+                               (send menu-item check (send edit auto-wrap)))
+                             (begin 
+                               (send menu-item check #f)
+                               (send menu-item enable #f)))))]
+                    [callback
+                     (lambda (item event)
+                       (let ([edit (get-edit-target-object)])
+                         (when (and edit
+                                    (is-a? edit editor<%>))
+                           (send edit auto-wrap (not (send edit auto-wrap))))))])
+               (make-object c% "Wrap Text" edit-menu callback #f #f on-demand))
+             
+             (make-object separator-menu-item% edit-menu))]
           
-          (private
-            [edit-menu:do (lambda (const)
-                            (lambda (menu evt)
-                              (let ([edit (get-edit-target-object)])
-                                (when (and edit
-                                           (is-a? edit editor<%>))
-                                  (send edit do-edit-operation const)))
-                              #t))])
+          (override help-menu:about-callback help-menu:about-string help-menu:create-about?)
+          [define help-menu:about-callback 
+            (lambda (menu evt) 
+              (message-box (application:current-app-name)
+                           (format "Welcome to ~a" (application:current-app-name))))]
+          [define help-menu:about-string (lambda () (application:current-app-name))]
+          [define help-menu:create-about? (lambda () #t)]
           
-          (public
-            [add-edit-menu-snip-items
-             (lambda (edit-menu)
-               (let ([c% (class100 (get-menu-item%) args
-                           (inherit enable)
-                           (rename [super-on-demand on-demand])
-                           (override
-                             [on-demand
-                              (lambda ()
-                                (let ([edit (get-edit-target-object)])
-                                  (enable (and edit (is-a? edit editor<%>)))))])
-                           (sequence (apply super-init args)))])
-                 
-                 (make-object c% "Insert Text Box" edit-menu (edit-menu:do 'insert-text-box))
-                 (make-object c% "Insert Pasteboard Box" edit-menu (edit-menu:do 'insert-pasteboard-box))
-                 (make-object c% "Insert Image..." edit-menu (edit-menu:do 'insert-image))))])
+          (super-instantiate 
+           () 
+           (label (get-entire-label)))
           
-          
-          (override
-            [edit-menu:between-select-all-and-find
-             (lambda (edit-menu)
-               (make-object separator-menu-item% edit-menu)
-               
-               (add-edit-menu-snip-items edit-menu)
-               
-               (let* ([c% (class100 (get-checkable-menu-item%) args
-                            (rename [super-on-demand on-demand])
-                            (inherit check enable)
-                            (override
-                              [on-demand
-                               (lambda ()
-                                 (let ([edit (get-edit-target-object)])
-                                   (if (and edit
-                                            (is-a? edit editor<%>))
-                                       (begin
-                                         (enable #t)
-                                         (check (send edit auto-wrap)))
-                                       (begin 
-                                         (check #f)
-                                         (enable #f)))))])
-                            (sequence (apply super-init args)))])
-                 (make-object c% "Wrap Text" edit-menu
-                   (lambda (item event)
-                     (let ([edit (get-edit-target-object)])
-                       (when (and edit
-                                  (is-a? edit editor<%>))
-                         (send edit auto-wrap (not (send edit auto-wrap))))))))
-               
-               (make-object separator-menu-item% edit-menu))])
-          
-          (override
-            [help-menu:about-callback 
-             (lambda (menu evt) 
-               (message-box (application:current-app-name)
-                            (format "Welcome to ~a" (application:current-app-name))))]
-            [help-menu:about-string (lambda () (application:current-app-name))]
-            [help-menu:create-about? (lambda () #t)])
-          
-          (sequence
-            (apply super-init
-                   (get-entire-label)
-                   parent
-                   width
-                   height
-                   args))
-          
-          (private-field
-           [canvas #f]
-           [editor #f])
-          (public
-            [get-canvas 
-             (lambda () 
-               (unless canvas
-                 (set! canvas (make-canvas))
-                 (send canvas set-editor (get-editor)))
-               canvas)]
-            [get-editor 
-             (lambda () 
-               (unless editor
-                 (set! editor (make-editor))
-                 (send (get-canvas) set-editor editor))
-               editor)])
-          (sequence
-            (do-label)
-            (cond
-              [(and file-name (file-exists? file-name))
-               (send (get-editor) load-file file-name 'guess #f)]
-              [file-name
-               (send (get-editor) set-filename file-name)]
-              [else (void)])
-            (let ([canvas (get-canvas)])
-              (when (is-a? canvas editor-canvas%)
+          [define canvas #f]
+          [define editor #f]
+          (public get-canvas get-editor)
+          [define get-canvas 
+            (lambda () 
+              (unless canvas
+                (set! canvas (make-canvas))
+                (send canvas set-editor (get-editor)))
+              canvas)]
+          [define get-editor 
+            (lambda () 
+              (unless editor
+                (set! editor (make-editor))
+                (send (get-canvas) set-editor editor))
+              editor)]
+
+          (do-label)
+          (cond
+            [(and file-name (file-exists? file-name))
+             (send (get-editor) load-file file-name 'guess #f)]
+            [file-name
+             (send (get-editor) set-filename file-name)]
+            [else (void)])
+          (let ([canvas (get-canvas)])
+            (when (is-a? canvas editor-canvas%)
 	    ;; when get-canvas is overridden,
 	    ;; it might not yet be implemented
-                (send canvas focus))))))
+              (send canvas focus)))))
       
       (define text<%> (interface (-editor<%>)))
       (define text-mixin
-        (mixin (-editor<%>) (text<%>) args
-          (override
-            [get-editor<%> (lambda () (class->interface text%))]
-            [get-editor% (lambda () text:keymap%)])
-          (sequence (apply super-init args))))
+        (mixin (-editor<%>) (text<%>)
+          (override get-editor<%> get-editor%)
+          [define get-editor<%> (lambda () (class->interface text%))]
+          [define get-editor% (lambda () text:keymap%)]
+          (super-instantiate ())))
       
       (define pasteboard<%> (interface (-editor<%>)))
       (define pasteboard-mixin
-        (mixin (-editor<%>) (pasteboard<%>) args
-          (override
-            [get-editor<%> (lambda () (class->interface pasteboard%))]
-            [get-editor% (lambda () pasteboard:keymap%)])
-          (sequence (apply super-init args))))
+        (mixin (-editor<%>) (pasteboard<%>)
+          (override get-editor<%> get-editor%)
+          [define get-editor<%> (lambda () (class->interface pasteboard%))]
+          [define get-editor% (lambda () pasteboard:keymap%)]
+          (super-instantiate ())))
       
       (define (search-dialog frame)
         (init-find/replace-edits)
@@ -1246,102 +1199,106 @@
                           (send replace-edit get-keymap)))))
       
       (define searchable-mixin
-        (mixin (standard-menus<%>) (searchable<%>) args
-          (sequence (init-find/replace-edits))
+        (mixin (standard-menus<%>) (searchable<%>)
+          (init-find/replace-edits)
           (rename [super-make-root-area-container make-root-area-container]
                   [super-on-activate on-activate]
                   [super-on-close on-close])
-          (private-field
-            [super-root 'unitiaialized-super-root])
-          (override
-            [edit-menu:find-callback (lambda (menu evt) (move-to-search-or-search) #t)]
-            [edit-menu:create-find? (lambda () #t)]
-            [edit-menu:find-again-callback (lambda (menu evt) (search-again) #t)]
-            [edit-menu:create-find-again? (lambda () #t)]
-            [edit-menu:replace-and-find-again-callback (lambda (menu evt) (replace&search) #t)]
-            [edit-menu:replace-and-find-again-on-demand
-             (lambda (item) (send item enable (can-replace?)))]
-            [edit-menu:create-replace-and-find-again? (lambda () #t)])
-          (override
-            [make-root-area-container
-             (lambda (% parent)
-               (let* ([s-root (super-make-root-area-container
-                               vertical-panel%
-                               parent)]
-                      [root (make-object % s-root)])
-                 (set! super-root s-root)
-                 root))])
-          (override
-            [on-activate
-             (lambda (on?)
-               (unless hidden?
-                 (if on?
-                     (reset-search-anchor (get-text-to-search))
-                     (clear-search-highlight)))
-               (super-on-activate on?))])
-          (public
-            [get-text-to-search
-             (lambda ()
-               (error 'get-text-to-search "abstract method in searchable-mixin"))]
-            [hide-search
-             (opt-lambda ([startup? #f])
-               (send super-root change-children
-                     (lambda (l)
-                       (remove search-panel l)))
-               (clear-search-highlight)
-               (unless startup?
-                 (send 
-                  (send (get-text-to-search) get-canvas) 
-                  focus))
-               (set! hidden? #t))]
-            [unhide-search
-             (lambda ()
-               (when (and hidden?
-                          (not (preferences:get 'framework:search-using-dialog?)))
-                 (set! hidden? #f)
-                 (send search-panel focus)
-                 (send super-root add-child search-panel)
-                 (reset-search-anchor (get-text-to-search))))])
-          (private-field
-            [remove-callback
-             (preferences:add-callback
-              'framework:search-using-dialog?
-              (lambda (p v)
-                (when p
-                  (hide-search))))])
-          (override
-            [on-close
-             (lambda ()
-               (super-on-close)
-               (remove-callback)
-               (let ([close-canvas
-                      (lambda (canvas edit)
-                        (send canvas set-editor #f))])
-                 (close-canvas find-canvas find-edit)
-                 (close-canvas replace-canvas replace-edit))
-               (when (eq? this searching-frame)
-                 (set-searching-frame #f)))])
-          (public
-            [set-search-direction 
-             (lambda (x) 
-               (set-searching-direction x)
-               (send dir-radio set-selection (if (eq? x 'forward) 0 1)))]
-            [can-replace?
-             (lambda ()
-               (let ([tx (get-text-to-search)])
-                 (and
-                  tx
-                  (not (= 0 (send replace-edit last-position)))
-                  (string=?
-                   (send tx get-text
-                         (send tx get-start-position)
-                         (send tx get-end-position))
-                   (send find-edit get-text 0 (send find-edit last-position))))))]
-            [replace&search
+          [define super-root 'unitiaialized-super-root]
+          (override edit-menu:find-callback edit-menu:create-find? 
+                    edit-menu:find-again-callback edit-menu:create-find-again? 
+                    edit-menu:replace-and-find-again-callback edit-menu:replace-and-find-again-on-demand
+                    edit-menu:create-replace-and-find-again?)
+          [define edit-menu:find-callback (lambda (menu evt) (move-to-search-or-search) #t)]
+          [define edit-menu:create-find? (lambda () #t)]
+          [define edit-menu:find-again-callback (lambda (menu evt) (search-again) #t)]
+          [define edit-menu:create-find-again? (lambda () #t)]
+          [define edit-menu:replace-and-find-again-callback (lambda (menu evt) (replace&search) #t)]
+          [define edit-menu:replace-and-find-again-on-demand
+            (lambda (item) (send item enable (can-replace?)))]
+          [define edit-menu:create-replace-and-find-again? (lambda () #t)]
+          (override make-root-area-container)
+          [define make-root-area-container
+            (lambda (% parent)
+              (let* ([s-root (super-make-root-area-container
+                              vertical-panel%
+                              parent)]
+                     [root (make-object % s-root)])
+                (set! super-root s-root)
+                root))]
+          (override on-activate)
+          [define on-activate
+            (lambda (on?)
+              (unless hidden?
+                (if on?
+                    (reset-search-anchor (get-text-to-search))
+                    (clear-search-highlight)))
+              (super-on-activate on?))]
+          
+          (public get-text-to-search hide-search unhide-search)
+          [define get-text-to-search
+            (lambda ()
+              (error 'get-text-to-search "abstract method in searchable-mixin"))]
+          [define hide-search
+            (opt-lambda ([startup? #f])
+              (send super-root change-children
+                    (lambda (l)
+                      (remove search-panel l)))
+              (clear-search-highlight)
+              (unless startup?
+                (send 
+                 (send (get-text-to-search) get-canvas) 
+                 focus))
+              (set! hidden? #t))]
+          [define unhide-search
+            (lambda ()
+              (when (and hidden?
+                         (not (preferences:get 'framework:search-using-dialog?)))
+                (set! hidden? #f)
+                (send search-panel focus)
+                (send super-root add-child search-panel)
+                (reset-search-anchor (get-text-to-search))))]
+          [define remove-callback
+            (preferences:add-callback
+             'framework:search-using-dialog?
+             (lambda (p v)
+               (when p
+                 (hide-search))))]
+          (override on-close)
+          [define on-close
+            (lambda ()
+              (super-on-close)
+              (remove-callback)
+              (let ([close-canvas
+                     (lambda (canvas edit)
+                       (send canvas set-editor #f))])
+                (close-canvas find-canvas find-edit)
+                (close-canvas replace-canvas replace-edit))
+              (when (eq? this searching-frame)
+                (set-searching-frame #f)))]
+          (public set-search-direction can-replace? replace&search replace-all replace
+                  toggle-search-focus move-to-search-or-search move-to-search-or-reverse-search
+                  search-again)
+          [define set-search-direction 
+            (lambda (x) 
+              (set-searching-direction x)
+              (send dir-radio set-selection (if (eq? x 'forward) 0 1)))]
+          [define can-replace?
+            (lambda ()
+              (let ([tx (get-text-to-search)])
+                (and
+                 tx
+                 (not (= 0 (send replace-edit last-position)))
+                 (string=?
+                  (send tx get-text
+                        (send tx get-start-position)
+                        (send tx get-end-position))
+                  (send find-edit get-text 0 (send find-edit last-position))))))]
+            [define replace&search
              (lambda ()
                (when (replace)
                  (search-again)))]
-            [replace-all
+            [define replace-all
              (lambda ()
                (let* ([replacee-edit (get-text-to-search)]
                       [pos (if (eq? searching-direction 'forward)
@@ -1360,7 +1317,7 @@
                        (replace)
                        (loop))))
                  (send replacee-edit end-edit-sequence)))]
-            [replace
+            [define replace
              (lambda ()
                (let* ([search-text (send find-edit get-text)]
                       [replacee-edit (get-text-to-search)]
@@ -1376,7 +1333,7 @@
                                   (+ replacee-start (string-length new-text)))
                             #t)
                      #f)))]
-            [toggle-search-focus
+            [define toggle-search-focus
              (lambda ()
                (set-searching-frame this)
                (unhide-search)
@@ -1388,7 +1345,7 @@
                        [else
                         find-canvas])
                      focus))]
-            [move-to-search-or-search
+            [define move-to-search-or-search
              (lambda ()
                (set-searching-frame this)
                (unhide-search)
@@ -1400,7 +1357,7 @@
                           (send replace-canvas has-focus?))
                       (search-again 'forward)
                       (send find-canvas focus))]))]
-            [move-to-search-or-reverse-search
+            [define move-to-search-or-reverse-search
              (lambda ()
                (set-searching-frame this)
                (unhide-search)
@@ -1408,87 +1365,86 @@
                        (send replace-canvas has-focus?))
                    (search-again 'backward)
                    (send find-canvas focus)))]
-            [search-again
+            [define search-again
              (opt-lambda ([direction searching-direction] [beep? #t])
                (set-searching-frame this)
                (unhide-search)
                (set-search-direction direction)
-               (send find-edit search #t beep?))])
-          (sequence
-            (apply super-init args))
-          (private-field
-            [search-panel (make-object horizontal-panel% super-root '(border))]
-            
-            [left-panel (make-object vertical-panel% search-panel)]
-            [find-canvas (make-object searchable-canvas% left-panel)]
-            [replace-canvas (make-object searchable-canvas% left-panel)]
-            
-            [middle-left-panel (make-object vertical-pane% search-panel)]
-            [middle-middle-panel (make-object vertical-pane% search-panel)]
-            [middle-right-panel (make-object vertical-pane% search-panel)]
-            
-            [search-button (make-object button% 
-                             "Search"
-                             middle-left-panel
-                             (lambda args (search-again)))]
-            
-            [replace&search-button (make-object button% 
-                                     "Replace && Search"
-                                     middle-middle-panel 
-                                     (lambda x (replace&search)))]
-            [replace-button (make-object button% "Replace" middle-left-panel (lambda x (replace)))]
-            [replace-all-button (make-object button% 
-                                  "Replace To End"
-                                  middle-middle-panel
-                                  (lambda x (replace-all)))]
-            
-            [dir-radio (make-object radio-box%
-                         #f
-                         (list "Forward" "Backward")
-                         middle-right-panel
-                         (lambda (dir-radio evt)
-                           (let ([forward (if (= (send dir-radio get-selection) 0)
-                                              'forward
-                                              'backward)])
-                             (set-search-direction forward)
-                             (reset-search-anchor (get-text-to-search)))))]
-            [close-button (make-object button% "Hide"
-                            middle-right-panel
-                            (lambda args (hide-search)))]
-            [hidden? #f])
-          (sequence
-            (let ([align
-                   (lambda (x y)
-                     (let ([m (max (send x get-width)
-                                   (send y get-width))])
-                       (send x min-width m)
-                       (send y min-width m)))])
-              (align search-button replace-button)
-              (align replace&search-button replace-all-button))
-            (for-each (lambda (x) (send x set-alignment 'center 'center))
-                      (list middle-left-panel middle-middle-panel))
-            (for-each (lambda (x) (send x stretchable-height #f))
-                      (list search-panel left-panel middle-left-panel middle-middle-panel middle-right-panel))
-            (for-each (lambda (x) (send x stretchable-width #f))
-                      (list middle-left-panel middle-middle-panel middle-right-panel))
-            (send find-canvas set-editor find-edit)
-            (send replace-canvas set-editor replace-edit) 
-            (hide-search #t))))
+               (send find-edit search #t beep?))]
+          
+          (super-instantiate ())
+
+          [define search-panel (make-object horizontal-panel% super-root '(border))]
+          
+          [define left-panel (make-object vertical-panel% search-panel)]
+          [define find-canvas (make-object searchable-canvas% left-panel)]
+          [define replace-canvas (make-object searchable-canvas% left-panel)]
+          
+          [define middle-left-panel (make-object vertical-pane% search-panel)]
+          [define middle-middle-panel (make-object vertical-pane% search-panel)]
+          [define middle-right-panel (make-object vertical-pane% search-panel)]
+          
+          [define search-button (make-object button% 
+                                  "Search"
+                                  middle-left-panel
+                                  (lambda args (search-again)))]
+          
+          [define replace&search-button (make-object button% 
+                                          "Replace && Search"
+                                          middle-middle-panel 
+                                          (lambda x (replace&search)))]
+          [define replace-button (make-object button% "Replace" middle-left-panel (lambda x (replace)))]
+          [define replace-all-button (make-object button% 
+                                       "Replace To End"
+                                       middle-middle-panel
+                                       (lambda x (replace-all)))]
+          
+          [define dir-radio (make-object radio-box%
+                              #f
+                              (list "Forward" "Backward")
+                              middle-right-panel
+                              (lambda (dir-radio evt)
+                                (let ([forward (if (= (send dir-radio get-selection) 0)
+                                                   'forward
+                                                   'backward)])
+                                  (set-search-direction forward)
+                                  (reset-search-anchor (get-text-to-search)))))]
+          [define close-button (make-object button% "Hide"
+                                 middle-right-panel
+                                 (lambda args (hide-search)))]
+          [define hidden? #f]
+
+          (let ([align
+                 (lambda (x y)
+                   (let ([m (max (send x get-width)
+                                 (send y get-width))])
+                     (send x min-width m)
+                     (send y min-width m)))])
+            (align search-button replace-button)
+            (align replace&search-button replace-all-button))
+          (for-each (lambda (x) (send x set-alignment 'center 'center))
+                    (list middle-left-panel middle-middle-panel))
+          (for-each (lambda (x) (send x stretchable-height #f))
+                    (list search-panel left-panel middle-left-panel middle-middle-panel middle-right-panel))
+          (for-each (lambda (x) (send x stretchable-width #f))
+                    (list middle-left-panel middle-middle-panel middle-right-panel))
+          (send find-canvas set-editor find-edit)
+          (send replace-canvas set-editor replace-edit) 
+          (hide-search #t)))
       
       (define searchable-text<%> (interface (searchable<%> text<%>)))
       
       (define searchable-text-mixin
-        (mixin (text<%> searchable<%>) (searchable-text<%>) args
+        (mixin (text<%> searchable<%>) (searchable-text<%>)
           (inherit get-editor)
-          (override
-            [get-text-to-search
-             (lambda ()
-               (get-editor))])
-          (override
-            [get-editor<%> (lambda () text:searching<%>)]
-            [get-editor% (lambda () text:searching%)])
-          (sequence (apply super-init args))))
-      
+          (override get-text-to-search)
+          [define get-text-to-search
+            (lambda ()
+              (get-editor))]
+          (override get-editor<%> get-editor%)
+          [define get-editor<%> (lambda () text:searching<%>)]
+          [define get-editor% (lambda () text:searching%)]
+          (super-instantiate ())))
       
       ; to see printouts in memory debugging better.
       (define memory-text% (class100 text% args (sequence (apply super-init args))))
@@ -1498,29 +1454,29 @@
       
       (define file<%> (interface (-editor<%>)))
       (define file-mixin
-        (mixin (-editor<%>) (file<%>) args
+        (mixin (-editor<%>) (file<%>)
           (inherit get-editor get-filename get-label)
           (rename [super-can-close? can-close?])
-          (override
-            [can-close?
-             (lambda ()
-               (let* ([edit (get-editor)]
-                      [user-allowed-or-not-modified
-                       (or (not (send edit is-modified?))
-                           (case (gui-utils:unsaved-warning
-                                  (let ([fn (get-filename)])
-                                    (if (string? fn)
-                                        fn
-                                        (get-label)))
-                                  "Close"
-                                  #t
-                                  this)
-                             [(continue) #t]
-                             [(save) (send edit save-file)]
-                             [else #f]))])
-                 (and user-allowed-or-not-modified
-                      (super-can-close?))))])
-          (sequence (apply super-init args))))
+          (override can-close?)
+          [define can-close?
+            (lambda ()
+              (let* ([edit (get-editor)]
+                     [user-allowed-or-not-modified
+                      (or (not (send edit is-modified?))
+                          (case (gui-utils:unsaved-warning
+                                 (let ([fn (get-filename)])
+                                   (if (string? fn)
+                                       fn
+                                       (get-label)))
+                                 "Close"
+                                 #t
+                                 this)
+                            [(continue) #t]
+                            [(save) (send edit save-file)]
+                            [else #f]))])
+                (and user-allowed-or-not-modified
+                     (super-can-close?))))]
+          (super-instantiate ())))
       
       (define basic% (basic-mixin frame%))
       (define info% (info-mixin basic%))

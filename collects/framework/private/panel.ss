@@ -27,21 +27,21 @@
 
   (define single<%> (interface (area-container<%>) active-child))
   (define single-mixin
-    (mixin (area-container<%>) (single<%>) args
+    (mixin (area-container<%>) (single<%>)
       (inherit get-alignment)
       (rename [super-after-new-child after-new-child])
-      (override
-	[after-new-child
-	 (lambda (c)
-	   (if current-active-child
-	       (send c show #f)
-	       (set! current-active-child c)))]
-       [container-size
-	(lambda (l)
-	  (if (null? l)
-	      (values 0 0)
-	      (values (apply max (map car l)) (apply max (map cadr l)))))]
-       [place-children
+      (override after-new-child container-size place-children)
+      [define after-new-child
+        (lambda (c)
+          (if current-active-child
+              (send c show #f)
+              (set! current-active-child c)))]
+      [define container-size
+       (lambda (l)
+         (if (null? l)
+             (values 0 0)
+             (values (apply max (map car l)) (apply max (map cadr l)))))]
+       [define place-children
 	(lambda (l width height)
 	  (let-values ([(h-align-spec v-align-spec) (get-alignment)])
 	    (let ([align
@@ -61,32 +61,31 @@
 							(values 0 height)
 							(values (align height v-align-spec min-height) min-height))])
 		       (list x y this-width this-height)))
-		   l))))])
+		   l))))]
       
       (inherit get-children)
-      (private-field [current-active-child #f])
-      (public
-	[active-child
-	 (case-lambda
-	  [() current-active-child]
-	  [(x) 
-	   (unless (memq x (get-children))
-	     (error 'active-child "got a panel that is not a child: ~e" x))
-	   (unless (eq? x current-active-child)
-	     (for-each (lambda (x) (send x show #f))
-		       (get-children))
-	     (set! current-active-child x)
-	     (send current-active-child show #t))])])
-      (sequence
-	(apply super-init args))))
+      [define current-active-child #f]
+      (public active-child)
+      [define active-child
+        (case-lambda
+         [() current-active-child]
+         [(x) 
+          (unless (memq x (get-children))
+            (error 'active-child "got a panel that is not a child: ~e" x))
+          (unless (eq? x current-active-child)
+            (for-each (lambda (x) (send x show #f))
+                      (get-children))
+            (set! current-active-child x)
+            (send current-active-child show #t))])]
+      (super-instantiate ())))
 
   (define single-window<%> (interface (single<%> window<%>)))
   (define single-window-mixin
-    (mixin (single<%> window<%>) (single-window<%>) args
+    (mixin (single<%> window<%>) (single-window<%>)
       (inherit get-client-size get-size)
       (rename [super-container-size container-size])
-      (override
-       [container-size
+      (override container-size)
+      [define container-size
 	(lambda (l)
 	  (let-values ([(super-width super-height) (super-container-size l)]
 		       [(client-width client-height) (get-client-size)]
@@ -97,9 +96,8 @@
 			 
 	    (values
 	     (calc-size super-width client-width window-width)
-	     (calc-size super-height client-height window-height))))])
-      (sequence
-	(apply super-init args))))
+	     (calc-size super-height client-height window-height))))]
+      (super-instantiate ())))
 
   (define multi-view<%>
     (interface (area-container<%>)
@@ -108,63 +106,59 @@
       collapse))
 
   (define multi-view-mixin
-    (mixin (area-container<%>) (multi-view<%>) (_parent _editor)
-      
-      (private-field [parent _parent]
-                     [editor _editor])
-      
-      (public
-	[get-editor-canvas%
-	 (lambda ()
-	   editor-canvas%)]
-	[get-vertical%
-	 (lambda ()
-	   vertical-panel%)]
-	[get-horizontal%
-	 (lambda ()
-	   horizontal-panel%)])
-      
+    (mixin (area-container<%>) (multi-view<%>) 
+      (init-field parent editor)
+      (public get-editor-canvas% get-vertical% get-horizontal%)
+      [define get-editor-canvas%
+        (lambda ()
+          editor-canvas%)]
+      [define get-vertical%
+       (lambda ()
+         vertical-panel%)]
+      [define get-horizontal%
+       (lambda ()
+         horizontal-panel%)]
 
-      (private
-	[split
-	 (lambda (p%)
-	   (let ([canvas (send (send parent get-top-level-window) get-edit-target-window)]
-		 [ec% (get-editor-canvas%)])
-	     (when (and canvas
-			(is-a? canvas ec%)
-			(eq? (send canvas get-editor) editor))
-	       (let ([p (send canvas get-parent)])
-		 (send p change-children (lambda (x) null))
-		 (let ([pc (make-object p% p)])
-		   (send (make-object ec% (make-object vertical-panel% pc) editor) focus)
-		   (make-object ec% (make-object vertical-panel% pc) editor))))))])
+      (public split-vertically split-horizontally)
+      
+      [define split
+        (lambda (p%)
+          (let ([canvas (send (send parent get-top-level-window) get-edit-target-window)]
+                [ec% (get-editor-canvas%)])
+            (when (and canvas
+                       (is-a? canvas ec%)
+                       (eq? (send canvas get-editor) editor))
+              (let ([p (send canvas get-parent)])
+                (send p change-children (lambda (x) null))
+                (let ([pc (make-object p% p)])
+                  (send (make-object ec% (make-object vertical-panel% pc) editor) focus)
+                  (make-object ec% (make-object vertical-panel% pc) editor))))))]
+      [define split-vertically
+        (lambda ()
+          (split (get-vertical%)))]
+      [define split-horizontally
+       (lambda ()
+         (split (get-horizontal%)))]
+      
+      (public collapse)
+      (define collapse
+        (lambda ()
+          (let ([canvas (send (send parent get-top-level-window) get-edit-target-window)]
+                [ec% (get-editor-canvas%)])
+            (when (and canvas
+                       (is-a? canvas ec%)
+                       (eq? (send canvas get-editor) editor))
+              (let ([p (send canvas get-parent)])
+                (if (eq? p this)
+                    (bell)
+                    (let* ([sp (send p get-parent)]
+                           [p-to-remain (send sp get-parent)])
+                      (send p-to-remain change-children (lambda (x) null))
+                      (send (make-object ec% p-to-remain editor) focus))))))))
 
-      (public
-	[collapse
-	 (lambda ()
-	   (let ([canvas (send (send parent get-top-level-window) get-edit-target-window)]
-		 [ec% (get-editor-canvas%)])
-	     (when (and canvas
-			(is-a? canvas ec%)
-			(eq? (send canvas get-editor) editor))
-	       (let ([p (send canvas get-parent)])
-		 (if (eq? p this)
-		     (bell)
-		     (let* ([sp (send p get-parent)]
-			    [p-to-remain (send sp get-parent)])
-		       (send p-to-remain change-children (lambda (x) null))
-		       (send (make-object ec% p-to-remain editor) focus)))))))])
 
-      (public
-	[split-vertically
-	 (lambda ()
-	   (split (get-vertical%)))]
-	[split-horizontally
-	 (lambda ()
-	   (split (get-horizontal%)))])
-      (sequence
-	(super-init parent)
-	(make-object (get-editor-canvas%) this editor))))
+      (super-instantiate () (parent parent))
+      (make-object (get-editor-canvas%) this editor)))
 
   (define single% (single-window-mixin (single-mixin panel%)))
   (define single-pane% (single-mixin pane%))
@@ -377,30 +371,29 @@
       set-percentages))
       
   (define vertical-resizable-mixin
-    (mixin (area-container<%>) (vertical-resizable<%>) args
+    (mixin (area-container<%>) (vertical-resizable<%>) 
       (inherit get-children)
 
-      (private-field [thumb-canvas #f])
-      (public
-        [on-between-click
-         (lambda (num pct)
-	   (void))])
+      (define thumb-canvas #f)
+      (public on-between-click)
+      [define on-between-click
+        (lambda (num pct)
+          (void))]
 
       ;; preserve the invariant that the thumb-canvas is
       ;; the first child and that the thumb-canvas percentages
       ;; match up with the children
-      (private
-	[fix-percentage-length
-	 (lambda (children)
-	   (let ([len (length children)])
-	     (unless (= (- len 1) (length (send thumb-canvas get-percentages)))
-	       (send thumb-canvas set-percentages 
-		     (build-list
-		      (- len 1)
-		      (lambda (i) (/ 1 (- len 1))))))))])
+      [define fix-percentage-length
+       (lambda (children)
+         (let ([len (length children)])
+           (unless (= (- len 1) (length (send thumb-canvas get-percentages)))
+             (send thumb-canvas set-percentages 
+                   (build-list
+                    (- len 1)
+                    (lambda (i) (/ 1 (- len 1))))))))]
       (rename [super-change-children change-children])
-      (override
-       [change-children
+      (override change-children after-new-child)
+      [define change-children
 	(lambda (f)
 	  (super-change-children
 	   (lambda (l)
@@ -413,13 +406,13 @@
                    (fix-percentage-length res)
                    res)
                  (f l)))))]
-       [after-new-child
+       [define after-new-child
         (lambda (child)
           (when thumb-canvas
-	    (fix-percentage-length (get-children))))])
+	    (fix-percentage-length (get-children))))]
       
-      (override
-       [container-size
+      (override container-size place-children)
+      [define container-size
 	(lambda (_lst)
 	  ;; remove the thumb canvas from the computation
 	  (let ([lst (if (null? _lst) null (cdr _lst))])
@@ -431,59 +424,58 @@
                 (+ (send thumb-canvas min-width)
                    (apply max (map car lst)))])
              (apply + (map cadr lst)))))]
-       [place-children
+      [define place-children
 	(lambda (_infos width height)
 	  (cond
-	   [(null? _infos) null]
-	   [(null? (cdr _infos)) (list (list 0 0 0 0))]
-	   [(null? (cdr (cdr _infos)))
-	    (list (list 0 0 0 0)
-		  (list 0 0 width height))]
-	   [else
-	    (fix-percentage-length (get-children))
-	    (cons
-	     (list (- width (send thumb-canvas min-width)) 0
-		   (send thumb-canvas min-width)
-		   height)
-	     (let ([main-width (- width (send thumb-canvas min-width))]
-                   [show-error
-                    (lambda ()
-                      (error 'panel:vertical-resizable-mixin:place-children
-                             "expected children list(~a) to be one longer than percentage list(~a), info: ~e percentages ~e"
-                             (length _infos) (length (send thumb-canvas get-percentages))
-                             _infos (send thumb-canvas get-percentages)))])
-	       (let loop ([percentages (send thumb-canvas get-percentages)]
-			  [infos (cdr _infos)]
-			  [y 0])
-		 (cond
-                   [(null? percentages)
-                    (unless (null? infos) (show-error))
-                    null]
-                   [(null? (cdr percentages))
-                    (when (null? infos) (show-error))
-                    (unless (null? (cdr infos)) (show-error))
-                    (list (list 0 y main-width (- height y)))]
-                   [else
-                    (when (null? infos) (show-error))
-                    (let* ([info (car infos)]
-                           [percentage (car percentages)]
-                           [this-space (floor (* percentage height))])
-                      (cons (list 0 y main-width this-space)
-                            (loop (cdr percentages)
-                                  (cdr infos)
-                                  (+ y this-space))))]))))]))])
+            [(null? _infos) null]
+            [(null? (cdr _infos)) (list (list 0 0 0 0))]
+            [(null? (cdr (cdr _infos)))
+             (list (list 0 0 0 0)
+                   (list 0 0 width height))]
+            [else
+             (fix-percentage-length (get-children))
+             (cons
+              (list (- width (send thumb-canvas min-width)) 0
+                    (send thumb-canvas min-width)
+                    height)
+              (let ([main-width (- width (send thumb-canvas min-width))]
+                    [show-error
+                     (lambda ()
+                       (error 'panel:vertical-resizable-mixin:place-children
+                              "expected children list(~a) to be one longer than percentage list(~a), info: ~e percentages ~e"
+                              (length _infos) (length (send thumb-canvas get-percentages))
+                              _infos (send thumb-canvas get-percentages)))])
+                (let loop ([percentages (send thumb-canvas get-percentages)]
+                           [infos (cdr _infos)]
+                           [y 0])
+                  (cond
+                    [(null? percentages)
+                     (unless (null? infos) (show-error))
+                     null]
+                    [(null? (cdr percentages))
+                     (when (null? infos) (show-error))
+                     (unless (null? (cdr infos)) (show-error))
+                     (list (list 0 y main-width (- height y)))]
+                    [else
+                     (when (null? infos) (show-error))
+                     (let* ([info (car infos)]
+                            [percentage (car percentages)]
+                            [this-space (floor (* percentage height))])
+                       (cons (list 0 y main-width this-space)
+                             (loop (cdr percentages)
+                                   (cdr infos)
+                                   (+ y this-space))))]))))]))]
       (inherit reflow-container get-top-level-window set-alignment get-alignment)
-      (public
-        [on-percentage-change (lambda () (void))]
-	[get-percentages (lambda () (send thumb-canvas get-percentages))]
-	[set-percentages
-	 (lambda (p)
-	   (send thumb-canvas set-percentages p)
-	   (refresh-panel this))])
+      (public on-percentage-change get-percentages set-percentages)
+      [define on-percentage-change (lambda () (void))]
+      [define get-percentages (lambda () (send thumb-canvas get-percentages))]
+      [define set-percentages
+       (lambda (p)
+         (send thumb-canvas set-percentages p)
+         (refresh-panel this))]
       
-      (sequence
-	(apply super-init args)
-        (set! thumb-canvas (make-object thumb-canvas% this)))))
+      (super-instantiate ())
+      (set! thumb-canvas (make-object thumb-canvas% this))))
 
   (define vertical-resizable% (vertical-resizable-mixin panel%))
   (define vertical-resizable-pane% (vertical-resizable-mixin pane%)))))
