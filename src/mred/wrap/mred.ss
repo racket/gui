@@ -3895,7 +3895,7 @@
 	 (set! wx-menu (make-object wx-menu% this #f void))
 	 (super-init parent label help-string wx-menu #f (send wx-menu get-keymap) (lambda (x) x))
 	 (let ([wx-item (mred->wx this)])
-	   (set-cdr! (send wx-item get-menu-data) wx-item) ; for meta-shortcuts
+	   (set-cdr! (send wx-item get-menu-data) wx-menu) ; for meta-shortcuts
 	   (send wx-item set-wx-menu wx-menu)))))))
 
 (define popup-menu%
