@@ -1,12 +1,12 @@
 (define mred:edit@
   (unit/sig mred:edit^
-    (import ([unit mred:debug : mred:debug^]
-	     [unit mred:finder : mred:finder^]
-	     [unit mred:path-utils : mred:path-utils^]
-	     [unit mred:mode : mred:mode^]
-	     [unit mred:scheme-paren : mred:scheme-paren^]
-	     [unit mred:keymap : mred:keymap^]
-	     [unit mzlib:function : mzlib:function^]))
+    (import [mred:debug : mred:debug^]
+	    [mred:finder : mred:finder^]
+	    [mred:path-utils : mred:path-utils^]
+	    [mred:mode : mred:mode^]
+	    [mred:scheme-paren : mred:scheme-paren^]
+	    [mred:keymap : mred:keymap^]
+	    [mzlib:function : mzlib:function^])
 	    
     (mred:debug:printf 'invoke "mred:edit@")
 

@@ -7,9 +7,9 @@
 
 (define mred:preferences@
   (unit/sig mred:preferences^
-    (import ([unit mred:debug : mred:debug^]
-	     [unit mred:exn : mred:exn^]
-	     [unit mzlib:function : mzlib:function^]))
+    (import [mred:debug : mred:debug^]
+	    [mred:exn : mred:exn^]
+	    [mzlib:function : mzlib:function^])
     
     (mred:debug:printf 'invoke "mred:preferences@")
     

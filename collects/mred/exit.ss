@@ -1,6 +1,6 @@
 (define mred:exit@
   (unit/sig mred:exit^
-    (import ([unit mred:debug : mred:debug^]))
+    (import [mred:debug : mred:debug^])
     (rename (-exit exit))
 
     (mred:debug:printf 'invoke "mred:exit@")

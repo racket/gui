@@ -1,9 +1,9 @@
 (define mred:finder@
   (unit/sig mred:finder^
-    (import ([unit mred:debug : mred:debug^]
-	     [unit mzlib:string : mzlib:string^]
-	     [unit mzlib:function : mzlib:function^]
-	     [unit mzlib:file : mzlib:file^]))
+    (import [mred:debug : mred:debug^]
+	    [mzlib:string : mzlib:string^]
+	    [mzlib:function : mzlib:function^]
+	    [mzlib:file : mzlib:file^])
 	    
     (mred:debug:printf 'invoke "mred:finder@")
 
