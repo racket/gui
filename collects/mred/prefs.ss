@@ -200,7 +200,7 @@
        (with-handlers ([(lambda (x) #t)
 			(lambda (exn)
 			  (mred:gui-utils:message-box
-			   (format "error while saving prefs: ~a"
+			   (format "Error saving preferences: ~a"
 				   (exn-message exn))
 			   "Saving Prefs"))])
 	 (save-user-preferences))))
