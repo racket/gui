@@ -205,6 +205,6 @@
       
       (define/override (read stream-in)
         (let ([snip (make-snip stream-in)])
-          (send (send snip get-editor) read-from-file stream-in)
+          (send (send snip get-editor) read-from-file stream-in #f)
           snip))
       (super-instantiate ()))))
