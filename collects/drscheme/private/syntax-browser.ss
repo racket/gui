@@ -30,7 +30,7 @@ needed to really make this work:
   (define syntax-snipclass%
     (class snip-class%
       (define/override (read stream)
-        (let ([str (send stream get-str)])
+        (let ([str (send stream get-string)])
           (make-object syntax-snip% (unmarshall-syntax (read-from-string str)))))
       (super-instantiate ())))
   
@@ -101,10 +101,12 @@ needed to really make this work:
         (piece-of-info "Column" (syntax-column stx))
         (piece-of-info "Span" (syntax-span stx))
         (piece-of-info "Original?" (syntax-original? stx))
-        (insert/big "Properties\n")
-        (for-each
-         (lambda (prop) (show-property stx prop))
-         (syntax-properties stx)))
+	(let ([properties (syntax-properties stx)])
+	  (unless (null? properties)
+	    (insert/big "Properties\n")
+	    (for-each
+	     (lambda (prop) (show-property stx prop))
+	     properties))))
       
       (define (show-property stx prop)
         (piece-of-info (format "'~a" prop) (syntax-property stx prop)))
@@ -465,8 +467,8 @@ needed to really make this work:
       (span ,(syntax-span stx))
       (original? ,(syntax-original? stx))
       (properties 
-       ,@(map (lambda (x) `(,x ,(syntax-property x 'bound-in-source)))
-              (syntax-properties x)))
+       ,@(map (lambda (x) `(,x ,(syntax-property stx x)))
+              (syntax-properties stx)))
       (contents
        ,(marshall-object (syntax-e stx)))))
 
@@ -478,7 +480,12 @@ needed to really make this work:
       [(pair? obj) 
        `(pair ,(cons (marshall-object (car obj))
                      (marshall-object (cdr obj))))]
-      [else `(other ,obj)]))
+      [(or (symbol? obj)
+	   (char? obj)
+	   (string? obj)
+	   (boolean? obj))
+       `(other ,obj)]
+      [else 'unknown-object]))
   
   (define (unmarshall-syntax stx)
     (match stx
