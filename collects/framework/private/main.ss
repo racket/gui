@@ -17,6 +17,8 @@
 	      [group : framework:group^]
               [handler : framework:handler^])
       
+      (application-preferences-handler (lambda () (preferences:show-dialog)))
+      
       ;; preferences
       (preferences:set-default 'framework:recent-max-count 
                                50 

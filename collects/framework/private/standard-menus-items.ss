@@ -18,7 +18,7 @@
    
    (struct between (before after procedure))
    
-   (struct an-item (item-name help-string proc key menu-string on-demand))
+   (struct an-item (item-name help-string proc key menu-string on-demand create))
    (struct a-submenu-item ()) 
    
    ;; an-item -> symbol
@@ -71,7 +71,8 @@
                   proc
                   key
                   menu-string
-                  on-demand))
+                  on-demand
+                  create))
   (define-struct (a-submenu-item an-item) ())
   
   (define (an-item->callback-name item)
@@ -214,49 +215,62 @@
                         '(lambda (item control) (handler:edit-file #f) #t)
                         #\n 
                         '(string-constant new-menu-item)
-                        on-demand-do-nothing)
+                        on-demand-do-nothing
+                        #t)
           (make-between 'file-menu 'new 'open 'nothing)
           (make-an-item 'file-menu 'open '(string-constant open-info)
                         '(lambda (item control) (handler:open-file) #t)
                         #\o 
                         '(string-constant open-menu-item)
-                        on-demand-do-nothing)
-          (make-a-submenu-item 'file-menu 'open-recent '(string-constant open-recent-info)
-                               '(lambda (x y) (void)) ;; hack to avoid rewriting lots of stuff (really shouldn't have this)
-                               #f  ;; this also shouldn't need to be here
+                        on-demand-do-nothing
+                        #t)
+          (make-a-submenu-item 'file-menu 'open-recent 
+                               '(string-constant open-recent-info)
+                               '(lambda (x y) (void))
+                               #f
                                '(string-constant open-recent-menu-item)
                                '(lambda (menu)
-                                  (handler:install-recent-items menu)))
+                                  (handler:install-recent-items menu))
+                               #t)
           (make-between 'file-menu 'open 'revert 'nothing)
           (make-an-item 'file-menu 'revert 
                         '(string-constant revert-info)
-                        #f #f 
+                        '(lambda (item control) (void))
+                        #f 
                         '(string-constant revert-menu-item)
-                        on-demand-do-nothing)
+                        on-demand-do-nothing
+                        #f)
           (make-between 'file-menu 'revert 'save 'nothing)
           (make-an-item 'file-menu 'save
                         '(string-constant save-info)
-                        #f #\s 
+                        '(lambda (item control) (void))
+                        #\s 
                         '(string-constant save-menu-item)
-                        on-demand-do-nothing)
+                        on-demand-do-nothing
+                        #f)
           (make-an-item 'file-menu 'save-as
                         '(string-constant save-as-info)
-                        #f #f 
+                        '(lambda (item control) (void))
+                        #f 
                         '(string-constant save-as-menu-item)
-                        on-demand-do-nothing)
+                        on-demand-do-nothing
+                        #f)
           (make-between 'file-menu 'save-as 'print 'separator)
           (make-an-item 'file-menu 'print
                         '(string-constant print-info)
-                        #f #\p 
+                        '(lambda (item control) (void))
+                        #\p 
                         '(string-constant print-menu-item)
-                        on-demand-do-nothing)
+                        on-demand-do-nothing
+                        #f)
           (make-between 'file-menu 'print 'close 'separator)
           (make-an-item 'file-menu 'close
                         '(string-constant close-info)
                         '(lambda (item control) (when (can-close?) (on-close) (show #f)) #t)
                         #\w
                         '(string-constant close-menu-item)
-                        on-demand-do-nothing)
+                        on-demand-do-nothing
+                        #t)
           (make-between 'file-menu 'close 'quit 'nothing)
           (make-an-item 'file-menu 'quit
                         '(string-constant quit-info)
@@ -267,7 +281,8 @@
                         '(if (eq? (system-type) 'windows) 
                              (string-constant quit-menu-item-windows)
                              (string-constant quit-menu-item-others))
-                        on-demand-do-nothing)
+                        on-demand-do-nothing
+                        '(not (eq? (system-type) 'macosx)))
           (make-after 'file-menu 'quit 'nothing)
           
           (make-an-item 'edit-menu 'undo 
@@ -275,33 +290,38 @@
                         (edit-menu:do  'undo)
                         #\z 
                         '(string-constant undo-menu-item)
-                        (edit-menu:can-do-on-demand 'undo))
+                        (edit-menu:can-do-on-demand 'undo)
+                        #t)
           (make-an-item 'edit-menu 'redo 
                         '(string-constant redo-info)
                         (edit-menu:do 'redo)
                         #\y 
                         '(string-constant redo-menu-item)
-                        (edit-menu:can-do-on-demand 'redo))
+                        (edit-menu:can-do-on-demand 'redo)
+                        #t)
           (make-between 'edit-menu 'redo 'cut 'separator)
           (make-an-item 'edit-menu 'cut '(string-constant cut-info)
                         (edit-menu:do 'cut)
                         #\x 
                         '(string-constant cut-menu-item)
-                        (edit-menu:can-do-on-demand 'cut))
+                        (edit-menu:can-do-on-demand 'cut)
+                        #t)
           (make-between 'edit-menu 'cut 'copy 'nothing)
           (make-an-item 'edit-menu 'copy 
                         '(string-constant copy-info)
                         (edit-menu:do 'copy)
                         #\c 
                         '(string-constant copy-menu-item)
-                        (edit-menu:can-do-on-demand 'copy))
+                        (edit-menu:can-do-on-demand 'copy)
+                        #t)
           (make-between 'edit-menu 'copy 'paste 'nothing)
           (make-an-item 'edit-menu 'paste 
                         '(string-constant paste-info)
                         (edit-menu:do 'paste)
                         #\v 
                         '(string-constant paste-menu-item)
-                        (edit-menu:can-do-on-demand 'paste))
+                        (edit-menu:can-do-on-demand 'paste)
+                        #t)
           (make-between 'edit-menu 'paste 'clear 'nothing)
           (make-an-item 'edit-menu 'clear 
                         '(string-constant clear-info)
@@ -310,47 +330,57 @@
                         '(if (eq? (system-type) 'windows)
                              (string-constant clear-menu-item-windows)
                              (string-constant clear-menu-item-windows))
-                        (edit-menu:can-do-on-demand 'clear))
+                        (edit-menu:can-do-on-demand 'clear)
+                        #t)
           (make-between 'edit-menu 'clear 'select-all 'nothing)
           (make-an-item 'edit-menu 'select-all
                         '(string-constant select-all-info)
                         (edit-menu:do 'select-all)
                         #\a 
                         '(string-constant select-all-menu-item)
-                        (edit-menu:can-do-on-demand 'select-all))
+                        (edit-menu:can-do-on-demand 'select-all)
+                        #t)
           (make-between 'edit-menu 'select-all 'find 'separator)
 
           (make-an-item 'edit-menu 'find  
                         '(string-constant find-info)
-                        #f
+                        '(lambda (item control) (void))
                         #\f 
                         '(string-constant find-menu-item)
-                        edit-menu:edit-target-on-demand)
+                        edit-menu:edit-target-on-demand
+                        #f)
           (make-an-item 'edit-menu 'find-again 
                         '(string-constant find-again-info)
-                        #f
+                        '(lambda (item control) (void))
                         #\g 
                         '(string-constant find-again-menu-item)
-                        edit-menu:edit-target-on-demand)
+                        edit-menu:edit-target-on-demand
+                        #f)
           (make-an-item 'edit-menu 'replace-and-find-again 
                         '(string-constant replace-and-find-again-info)
-                        #f #\h 
+                        '(lambda (item control) (void))
+                        #\h 
                         '(string-constant replace-and-find-again-menu-item)
-                        edit-menu:edit-target-on-demand)
-          (make-between 'edit-menu 'find 'preferences 'separator)
+                        edit-menu:edit-target-on-demand
+                        #f)
+          
+          (make-between 'edit-menu 'find 'preferences 
+                        'nothing-on-macosx)
           (make-an-item 'edit-menu 'preferences 
                         '(string-constant preferences-info)
                         '(lambda (item control) (preferences:show-dialog) #t)
                         #\; 
                         '(string-constant preferences-menu-item)
-                        on-demand-do-nothing)
+                        on-demand-do-nothing
+                        '(not (eq? (system-type) 'macosx)))
           (make-after 'edit-menu 'preferences 'nothing)
           
           (make-before 'help-menu 'about 'nothing)
           (make-an-item 'help-menu 'about 
                         '(string-constant about-info)
-                        #f
+                        '(lambda (item control) (void))
                         #f
                         '(string-constant about-menu-item)
-                        on-demand-do-nothing)
+                        on-demand-do-nothing
+                        #f)
           (make-after 'help-menu 'about 'nothing))))

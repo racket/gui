@@ -235,6 +235,10 @@
       (inherit get-dc)
       (define/override (on-paint)
         (let ([dc (get-dc)])
+          (send dc set-brush background-brush)
+          (send dc set-pen background-pen)
+          (let-values ([(cw ch) (get-client-size)])
+            (send dc draw-rectangle 0 0 cw ch))
           (let loop ([names choices]
                      [n 0]
                      [x (get-initial-x dc)])
@@ -374,6 +378,7 @@
                 [(button-down/over) button-down/over-brush]
                 [(unselected) unselected-brush]
                 [else (error 'draw-name "unknown state: ~s\n" state)]))
+        (send dc set-pen name-box-pen)
         (send dc set-clipping-region region)
         (send dc draw-rectangle 
               (bz (min (send p1 get-x)
@@ -507,7 +512,23 @@
        (send the-brush-list find-or-create-brush
              (make-object color% 225 225 255)
              'solid)]))
+
   
+  ;; name-box-pen : pen
+  ;; this pen draws the lines around each individual item
+  (define name-box-pen (send the-pen-list find-or-create-pen "black" 1 'solid))
+
+  ;; background-brush : brush
+  ;; this brush is set when drawing the background for the control
+  (define background-brush 
+    (case (system-type)
+      [(macosx) (send the-brush-list find-or-create-brush (get-panel-background) 'panel)]
+      [else (send the-brush-list find-or-create-brush "white" 'solid)]))
+  
+  ;; background-pen : pen
+  ;; this pen is set when drawing the background for the control
+  (define background-pen (send the-pen-list find-or-create-pen "black" 1 'transparent))
+    
   ;; label-font : font
   (define label-font (send the-font-list find-or-create-font
                            12

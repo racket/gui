@@ -14,8 +14,7 @@
                 ,(an-item->help-string-name item)
                 ,(an-item->on-demand-name item)
                 ,(an-item->create-menu-item-name item))
-       `[define ,(an-item->callback-name item)
-          ,(or (an-item-proc item) `(lambda (x y) (void)))]
+       `[define ,(an-item->callback-name item) ,(an-item-proc item)]
        `[define ,(an-item->get-item-name item)
           (lambda () ,(an-item->item-name item))]
        `[define ,(an-item->string-name item)
@@ -25,7 +24,7 @@
        `[define ,(an-item->on-demand-name item)
           ,(an-item-on-demand item)]
        `[define ,(an-item->create-menu-item-name item)
-          (lambda () ,(not (not (an-item-proc item))))])))
+          (lambda () ,(an-item-create item))])))
   
   ;; build-before-super-clause : ((X -> sym) (X sexp) -> X -> (listof clause))
   (define build-before-super-clause
@@ -35,7 +34,12 @@
               `[define ,(->name obj)
                  ,(case (-procedure obj)
                     [(nothing) '(lambda (menu) (void))]
-                    [(separator) '(lambda (menu) (make-object separator-menu-item% menu))])]))))
+                    [(separator) '(lambda (menu) (make-object separator-menu-item% menu))]
+                    [(nothing-on-macosx)
+                     '(lambda (menu) 
+                        (unless (eq? (system-type) 'macosx)
+                          (make-object separator-menu-item% menu)))]
+                    [else (error 'gen-standard-menus "unknown between sym: ~e" (-procedure obj))])]))))
   
   ;; build-before-super-between-clause : between -> (listof clause)
   (define build-before-super-between-clause
