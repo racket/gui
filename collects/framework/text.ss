@@ -28,6 +28,7 @@
   (define basic-mixin
     (mixin (editor:basic<%> (class->interface text%)) (basic<%>) args
 	   (inherit get-canvases get-admin split-snip get-snip-position
+		    begin-edit-sequence end-edit-sequence
 		    set-autowrap-bitmap
 		    delete find-snip invalidate-bitmap-cache
 		    set-file-format get-file-format
@@ -273,6 +274,7 @@
 	   (rename
 	     [super-on-change-style on-change-style]
 	     [super-after-change-style after-change-style]
+	     [super-on-insert on-insert]
 	     [super-after-insert after-insert])
 	   (override
 	    [on-change-style
@@ -280,13 +282,18 @@
 	       (when styles-fixed?
 		 (set! styles-fixed-edit-modified? (is-modified?)))
 	       (super-on-change-style start len))]
+	    [on-insert
+	     (lambda (start len)
+	       (begin-edit-sequence)
+	       (super-on-insert start len))]
 	    [after-insert
 	     (lambda (start len)
 	       (when styles-fixed?
 		 (change-style (send (get-style-list) find-named-style "Standard")
 			       start
 			       (+ start len)))
-	       (super-after-insert start len))]
+	       (super-after-insert start len)
+	       (end-edit-sequence))]
 	    [after-change-style
 	     (lambda (start len)
 	       (super-after-change-style start len)
