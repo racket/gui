@@ -6993,17 +6993,17 @@
        [(decorative) "Geneva"]
        [(modern) "Monaco"]
        [(swiss) "Helvetica"]
-       [(script) "Geneva"]
+       [(script) "Zaph Chancery"]
        [(symbol) "Symbol"])]
     [(macosx)
      (case family
        [(system) "systemfont"]
        [(default) "applicationfont"]
        [(roman) "Times"]
-       [(decorative) "Lucida Grande"]
-       [(modern) "Monaco"]
+       [(decorative) "Geneva"]
+       [(modern) "Courier New"]
        [(swiss) "Helvetica"]
-       [(script) "Geneva"]
+       [(script) "Apple Chancery"]
        [(symbol) "Symbol"])]))
 
 (define (send-message-to-window x y m)
