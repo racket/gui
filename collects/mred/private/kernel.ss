@@ -1378,8 +1378,11 @@
   ;; Functions defined in wxscheme.cxx
   (define-functions
     special-control-key
+    special-option-key
     application-file-handler
     application-quit-handler
+    application-about-handler
+    application-pref-handler
     get-color-from-user
     get-font-from-user
     get-face-list
@@ -1410,7 +1413,8 @@
     current-gl-context
     send-event
     set-snip-class-getter
-    set-editor-data-class-getter)
+    set-editor-data-class-getter
+    main-eventspace?)
 
 )
 ;; end

@@ -1307,11 +1307,11 @@
     (sequence
       (apply super-init mred proxy args))))
 
-(define active-frame #f)
+(define active-main-frame #f)
 
 (wx:application-file-handler (entry-point
 			      (lambda (f)
-				(let ([af active-frame])
+				(let ([af active-main-frame])
 				  (when af
 				    (queue-window-callback
 				     af
@@ -1321,19 +1321,44 @@
 
 (wx:application-quit-handler (entry-point
 			      (lambda ()
-				(let ([l (hash-table-map top-level-windows (lambda (x y) x))])
-				  (for-each
-				   (lambda (f)
-				     (queue-window-callback
-				      f
-				      (entry-point
-				       (lambda ()
-					 (send f on-exit)))))
-				   l)))))
+				(let ([af active-main-frame])
+				  (when af
+				    (queue-window-callback
+				     af
+				     (entry-point
+				      (lambda ()
+					(send af on-exit)))))))))
+
+(define application-preferences-handler
+  (case-lambda
+   [() (and (wx:main-eventspace? (wx:current-eventspace))
+	    (wx:application-pref-handler))]
+   [(proc)
+    (when proc
+      (unless (and (procedure? proc)
+		   (procedure-arity-includes? proc 0))
+	(raise-type-error 'application-preferences-handler
+			  "procedure (arity 0) or #f"
+			  proc)))
+    (when (wx:main-eventspace? (wx:current-eventspace))
+      (wx:application-pref-handler proc))]))
+
+(define application-about-handler
+  (case-lambda
+   [() (or (and (wx:main-eventspace? (wx:current-eventspace))
+		(wx:application-about-handler))
+	   void)]
+   [(proc)
+    (when (wx:main-eventspace? (wx:current-eventspace))
+      (wx:application-about-handler proc))]))
+
+(define (current-eventspace-has-standard-menus?)
+  (and (eq? 'macosx (system-type))
+       (wx:main-eventspace? (wx:current-eventspace))))
 
 (define (make-top-level-window-glue% %) ; implies make-window-glue%
   (class100 (make-window-glue% %) (mred proxy . args)
-    (inherit is-shown? get-mred queue-visible)
+    (inherit is-shown? get-mred queue-visible get-eventspace)
     (rename [super-on-activate on-activate])
     (private-field 
       [act-date/seconds 0] [act-date/milliseconds 0] [act-on? #f])
@@ -1362,7 +1387,8 @@
 		      (when on?
 			(set! act-date/seconds (current-seconds))
 			(set! act-date/milliseconds (current-milliseconds))
-			(set! active-frame this))
+			(when (wx:main-eventspace? (get-eventspace))
+			  (set! active-main-frame this)))
 		      ;; Delay callback to handle Windows bug:
 		      (queue-window-callback
 		       this
@@ -4931,11 +4957,12 @@
   (let ([mb (make-object menu-bar% frame)])
     (let ([m (make-object menu% "&File" mb)])
       (make-object menu-item% "Load File..." m (lambda (i e) (let ([f (get-file #f frame)]) (and f (evaluate (format "(load ~s)" f))))))
-      (make-object menu-item% 
-		   (if (eq? (system-type) 'windows)
-		       "E&xit"
-		       "&Quit")
-		   m (lambda (i e) (send frame on-close) (send frame show #f)) #\q))
+      (unless (current-eventspace-has-standard-menus?)
+	(make-object menu-item% 
+		     (if (eq? (system-type) 'windows)
+			 "E&xit"
+			 "&Quit")
+		     m (lambda (i e) (send frame on-close) (send frame show #f)) #\q)))
     (let ([m (make-object menu% "&Edit" mb)])
       (append-editor-operation-menu-items m #f)))
 
@@ -6443,6 +6470,7 @@
 	   snip-class%
 	   snip-class-list<%>
 	   special-control-key
+	   special-option-key
 	   label->plain-label
 	   string-snip%
 	   style<%>
@@ -6550,7 +6578,10 @@
 	timer%
 	readable-snip<%>
 	open-input-text-editor
-	text-editor-load-handler)
+	text-editor-load-handler
+	application-about-handler
+	application-preferences-handler
+	current-eventspace-has-standard-menus?)
 
 
 ) ;; end of module

@@ -11,6 +11,8 @@
      add-text-keymap-functions
      append-editor-font-menu-items
      append-editor-operation-menu-items
+     application-about-handler
+     application-preferences-handler
      area-container-window<%>
      area-container<%>
      area<%>
@@ -34,6 +36,7 @@
      control-event%
      control<%>
      current-eventspace
+     current-eventspace-has-standard-menus?
      current-ps-setup
      current-text-keymap-initializer
      cursor%
@@ -143,6 +146,7 @@
      snip-class%
      snip-class-list<%>
      special-control-key
+     special-option-key
      string-snip%
      style-delta%
      style-list%
