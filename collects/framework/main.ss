@@ -53,6 +53,7 @@
                  rec
                  make-object mixin
 		 define-some do opt-lambda send*
+		 define-record
 		 local catch shared
 		 unit/sig unit/lang
 		 with-handlers
