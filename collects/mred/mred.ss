@@ -1756,8 +1756,9 @@
 			     (cons w h)))
 			 tabs)])
 	  (set! tab-widths (map car w+hs))
-	  (let ([th (ceiling (+ (* 2 tab-v-space) (apply max 0 (map cdr w+hs))))])
-	    (set! tab-height (if (even? th) th (add1 th)))))))
+	  (let-values ([(sw sh sd sa) (send dc get-text-extent " " font)])
+	    (let ([th (ceiling (+ (* 2 tab-v-space) (apply max 0 sh (map cdr w+hs))))])
+	      (set! tab-height (if (even? th) th (add1 th))))))))
     
     (define/private (get-total-width)
       (apply + tab-height (* (length tabs) (+ raise-h raise-h tab-height)) tab-widths))
@@ -1923,10 +1924,10 @@
 	     (send dc set-pen dark-pen)
 	     (draw-once dc w #f #t 0)
 	     (when (> h tab-height)
-	       (send dc draw-line (- w 1) tab-height (- w 1) h)
-	       (send dc draw-line (- w 2) tab-height (- w 2) h)
-	       (send dc draw-line 0 (- h 3) w (- h 3))
-	       (send dc draw-line 0 (- h 4) w (- h 4))))
+	       (send dc draw-line (- w 1) tab-height (- w 1) (- h raise-h))
+	       (send dc draw-line (- w 2) (+ 1 tab-height) (- w 2) (- h raise-h))
+	       (send dc draw-line 0 (- h 3 raise-h) w (- h 3 raise-h))
+	       (send dc draw-line 1 (- h 4 raise-h) w (- h 4 raise-h))))
 	   (send dc set-origin 0 0)))))
 
     (define/override (on-size w h)
@@ -2627,7 +2628,7 @@
 				#t)]
 		     [delta-w (- (get-width) client-w)]
 		     [delta-h (- (get-height) client-h)])
-		(list (+ delta-w (car min-client-size))
+		(list (+ delta-w (car min-client-size) (if hidden-child 4 0)) ; hack: 2-pixel border
 		      (+ delta-h (cadr min-client-size)))))))]
       
       ; do-get-min-graphical-size: poll children and return minimum possible
@@ -2762,7 +2763,7 @@
 					(- width 4) ;; hack! 2-pixel border assumed
 					width)
 				    (if hidden-child
-					(- height (child-info-y-min (car children-info)))
+					(- height (child-info-y-min (car children-info))) ;; 2-pixel border here, too
 					height))])
 	     (unless (and (list? l)
 			  (= (length l) (- (length children-info) (if hidden-child 1 0)))
