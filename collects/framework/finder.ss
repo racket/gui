@@ -542,6 +542,7 @@
 	[ok-button
 	 (make-object button% "OK" bottom-panel do-ok '(border))])
       (sequence
+        (printf "start-dir: ~s~n" start-dir)
 	(cond
 	  [(and start-dir
 		(directory-exists? start-dir))
