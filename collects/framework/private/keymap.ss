@@ -822,7 +822,12 @@
                                   (let ([new-pos (send editor get-snip-position snip)])
                                     (send editor set-position new-pos new-pos))
                                   (send editor set-caret-owner #f 'display)))))))))
-		  #t)])
+		  #t)]
+               
+               [make-read-only
+                (lambda (text event)
+                  (send text lock #t)
+                  #t)])
                
 	  (lambda (kmap)
 	    (let* ([map (lambda (key func) 
@@ -894,7 +899,9 @@
 	      (add "delete-key" delete-key)
               
 	      (add "mouse-popup-menu" mouse-popup-menu)
-	      
+
+	      (add "make-read-only" make-read-only)
+              
               ; Map keys to functions
               
               (map-meta "c:down" "down-into-embedded-editor")
@@ -1066,7 +1073,10 @@
 	      (unless (eq? (system-type) 'windows)
 		(map "middlebutton" "paste-click-region"))
               
-	      (map ":rightbuttonseq" "mouse-popup-menu")))))
+	      (map ":rightbuttonseq" "mouse-popup-menu")
+              
+              (map "c:c;c:q" "make-read-only")
+              ))))
       
       (define setup-search
 	(let* ([send-frame
