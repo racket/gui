@@ -2509,9 +2509,9 @@
 (define (constructor-name who)
   (string->symbol (format "initialization for ~a%" who)))
 
-(define (check-container-parent who p)
+(define (check-container-parent cwho p)
   (unless (is-a? p internal-container<%>)
-    (raise-type-error (constructor-name who) "built-in container<%> object" p)))
+    (raise-type-error cwho "built-in container<%> object" p)))
 
 (define (check-top-level-parent/false who p)
   (unless (or (not p) (is-a? p frame%) (is-a? p dialog%))
@@ -2521,8 +2521,16 @@
   (unless (or (not p) (is-a? p frame%))
     (raise-type-error (who->name who) "frame% object or #f" p)))
 
-(define (check-orientation who l)
-  (check-style `(constructor-name ,who) '(vertical horizontal) null l))
+(define (check-orientation cwho l)
+  (check-style cwho '(vertical horizontal) null l))
+
+(define (check-container-ready cwho p)
+  (when p
+    (let ([wx (mred->wx p)])
+      (unless wx
+	(raise-mismatch-error (who->name cwho)
+			      "container is not yet fully initialized: " 
+			      p)))))
 
 (define double-boxed
   (lambda (x y f)
@@ -2889,7 +2897,9 @@
 	  (when (memq 'mdi-parent style)
 	    (raise-type-error (who->name cwho) 
 			      "style list, 'mdi-child and 'mdi-parent are mutually exclusive" 
-			      style))
+			      style)))	
+	(check-container-ready cwho parent)
+	(when (memq 'mdi-child style)
 	  (let ([pwx (and parent (mred->wx parent))])
 	    (unless (and pwx (ivar pwx is-mdi-parent?))
 	      (raise-mismatch-error (who->name cwho) "parent for 'mdi-child frame is not an 'mdi-parent frame: " parent))))))
@@ -2938,7 +2948,8 @@
 	(check-string cwho label)
 	(check-top-level-parent/false cwho parent)
 	(for-each (lambda (x) (check-dimension cwho x)) (list width height x y))
-	(check-style cwho #f '(no-caption) style)))
+	(check-style cwho #f '(no-caption) style)
+	(check-container-ready cwho parent)))
     (rename [super-on-subwindow-char on-subwindow-char])
     (private [wx #f])
     (override
@@ -2979,9 +2990,11 @@
 (define message%
   (class basic-control% (label parent [style null])
     (sequence
-      (check-string-or-bitmap '(constructor message) label)
-      (check-container-parent 'message parent)
-      (check-style '(constructor message) #f null style)
+      (let ([cwho '(constructor message)])
+	(check-string-or-bitmap cwho label)
+	(check-container-parent cwho parent)
+	(check-style cwho #f null style)
+	(check-container-ready cwho parent))
       (as-entry
        (lambda ()
 	 (super-init (lambda () (make-object wx-message% this this
@@ -2992,10 +3005,12 @@
 (define button%
   (class basic-control% (label parent callback [style null])
     (sequence
-      (check-string-or-bitmap '(constructor button) label)
-      (check-container-parent 'button parent)
-      (check-callback '(constructor button) callback)
-      (check-style '(constructor button) #f '(border) style)
+      (let ([cwho '(constructor button)])
+	(check-string-or-bitmap cwho label)
+	(check-container-parent cwho parent)
+	(check-callback cwho callback)
+	(check-style cwho #f '(border) style)
+	(check-container-ready cwho parent))
       (as-entry
        (lambda ()
 	 (super-init (lambda () (make-object wx-button% this this
@@ -3006,10 +3021,12 @@
 (define check-box%
   (class basic-control% (label parent callback [style null])
     (sequence
-      (check-string-or-bitmap '(constructor check-box) label)
-      (check-container-parent 'check-box parent)
-      (check-callback '(constructor check-box) callback)
-      (check-style '(constructor check-box) #f null style))
+      (let ([cwho '(constructor check-box)])
+	(check-string-or-bitmap cwho label)
+	(check-container-parent cwho parent)
+	(check-callback cwho callback)
+	(check-style cwho #f null style)
+	(check-container-ready cwho parent)))
     (private
       [wx #f])
     (public
@@ -3028,14 +3045,16 @@
 (define radio-box%
   (class basic-control% (label choices parent callback [style '(vertical)])
     (sequence 
-      (check-string/false '(constructor radio-box) label)
-      (unless (and (list? choices) (pair? choices)
-		   (or (andmap string? choices)
-		       (andmap (lambda (x) (is-a? x wx:bitmap%)) choices)))
-	(raise-type-error (constructor-name 'radio-box) "non-empty list of strings or bitmap% objects" choices))
-      (check-container-parent 'radio-box parent)
-      (check-callback '(constructor radio-box) callback)
-      (check-orientation 'radio-box style))
+      (let ([cwho '(constructor radio-box)])
+	(check-string/false cwho label)
+	(unless (and (list? choices) (pair? choices)
+		     (or (andmap string? choices)
+			 (andmap (lambda (x) (is-a? x wx:bitmap%)) choices)))
+	  (raise-type-error (who->name cwho) "non-empty list of strings or bitmap% objects" choices))
+	(check-container-parent cwho parent)
+	(check-callback cwho callback)
+	(check-orientation cwho style)
+	(check-container-ready cwho parent)))
     (private
       [wx #f]
       [check-button
@@ -3081,13 +3100,15 @@
 (define slider%
   (class basic-control% (label min-val max-val parent callback [value min-val] [style '(horizontal)])
     (sequence 
-      (check-string/false '(constructor slider) label)
-      (check-slider-integer '(constructor slider) min-val)
-      (check-slider-integer '(constructor slider) max-val)
-      (check-container-parent 'slider parent) 
-      (check-callback '(constructor slider) callback)
-      (check-slider-integer '(constructor slider) value)
-      (check-style '(constructor slider) '(vertical horizontal) '(plain) style))
+      (let ([cwho '(constructor slider)])
+	(check-string/false cwho label)
+	(check-slider-integer cwho min-val)
+	(check-slider-integer cwho max-val)
+	(check-container-parent cwho parent) 
+	(check-callback cwho callback)
+	(check-slider-integer cwho value)
+	(check-style cwho '(vertical horizontal) '(plain) style)
+	(check-container-ready cwho parent)))
     (private
       [wx #f])
     (public
@@ -3114,10 +3135,12 @@
 (define gauge%
   (class basic-control% (label range parent [style '(horizontal)])
     (sequence 
-      (check-string/false '(constructor gauge) label)
-      (check-container-parent 'gauge parent) 
-      (check-gauge-integer '(constructor gauge) range)
-      (check-orientation 'gauge style))
+      (let ([cwho '(constructor gauge)])
+	(check-string/false cwho label)
+	(check-container-parent cwho parent) 
+	(check-gauge-integer cwho range)
+	(check-orientation cwho style)
+	(check-container-ready cwho parent)))
     (private
       [wx #f])
     (public
@@ -3191,19 +3214,20 @@
        (lambda ()
 	 (super-init (lambda () (set! wx (mk-wx)) wx) label parent #f))))))
 
-(define (check-list-control-args who label choices parent callback)
-  (let ([cwho `(constructor-name ,who)])
-    (check-string/false cwho label)
-    (unless (and (list? choices) (andmap string? choices))
-      (raise-type-error (who->name cwho) "list of strings" choices))
-    (check-container-parent who parent)
-    (check-callback cwho callback)))
+(define (check-list-control-args cwho label choices parent callback)
+  (check-string/false cwho label)
+  (unless (and (list? choices) (andmap string? choices))
+    (raise-type-error (who->name cwho) "list of strings" choices))
+  (check-container-parent cwho parent)
+  (check-callback cwho callback))
 
 (define choice%
   (class basic-list-control% (label choices parent callback [style null])
     (sequence
-      (check-list-control-args 'choice label choices parent callback)
-      (check-style '(constructor choice) #f null style)
+      (let ([cwho '(constructor choice)])
+	(check-list-control-args cwho label choices parent callback)
+	(check-style cwho #f null style)
+	(check-container-ready cwho parent))
       (super-init (lambda () (make-object wx-choice% this this
 					  (mred->wx-container parent) (wrap-callback callback)
 					  label -1 -1 -1 -1 choices style))
@@ -3212,8 +3236,10 @@
 (define list-box%
   (class basic-list-control% (label choices parent callback [style '(single)])
     (sequence 
-      (check-list-control-args 'list-box label choices parent callback)
-      (check-style '(constructor list-box) '(single multiple extended) null style))
+      (let ([cwho '(constructor list-box)])
+	(check-list-control-args cwho label choices parent callback)
+	(check-style cwho '(single multiple extended) null style)
+	(check-container-ready cwho parent)))
     (rename [super-append append])
     (override
       [append (entry-point-1-2
@@ -3273,12 +3299,13 @@
 (define text-field%
   (class* basic-control% () (label parent callback [init-val ""] [style '(single)])
     (sequence 
-      (let ([cwho '(constructor-name text-field)])
+      (let ([cwho '(constructor text-field)])
 	(check-string/false cwho label)
-	(check-container-parent 'text-field parent)
+	(check-container-parent cwho parent)
 	(check-callback cwho callback)
 	(check-string cwho init-val)
-	(check-style cwho '(single multiple) '(hscroll) style)))
+	(check-style cwho '(single multiple) '(hscroll) style)
+	(check-container-ready cwho parent)))
     (private
       [wx #f])
     (public
@@ -3338,8 +3365,10 @@
   (class basic-canvas% (parent [style null])
     (inherit get-client-size)
     (sequence 
-      (check-container-parent 'canvas parent)
-      (check-style '(constructor canvas) #f '(border hscroll vscroll) style))
+      (let ([cwho '(constructor canvas)])
+	(check-container-parent cwho parent)
+	(check-style cwho #f '(border hscroll vscroll) style)
+	(check-container-ready cwho parent)))
     (public
       [accept-tab-focus (entry-point-0-1
 			 (case-lambda
@@ -3421,10 +3450,12 @@
 (define editor-canvas%
   (class basic-canvas% (parent [buffer #f] [style null] [scrolls-per-page 100])
     (sequence 
-      (check-container-parent 'editor-canvas parent)
-      (check-instance '(constructor editor-canvas) internal-editor<%> "text% or pasteboard%" #t buffer)
-      (check-style '(constructor editor-canvas) #f '(hide-vscroll hide-hscroll no-vscroll no-hscroll) style)
-      (check-gauge-integer '(constructor editor-canvas) scrolls-per-page))
+      (let ([cwho '(constructor editor-canvas)])
+	(check-container-parent cwho parent)
+	(check-instance cwho internal-editor<%> "text% or pasteboard%" #t buffer)
+	(check-style cwho #f '(hide-vscroll hide-hscroll no-vscroll no-hscroll) style)
+	(check-gauge-integer cwho scrolls-per-page)
+	(check-container-ready cwho parent)))
     (private
       [force-focus? #f]
       [scroll-to-last? #f]
@@ -3496,12 +3527,14 @@
   (class (make-subarea% (make-container% area%)) (parent)
     (private [wx #f])
     (sequence 
-      (let ([who (cond ; yuck! - we do this to make h-p and v-p subclasses of p
-		  [(is-a? this vertical-pane%) 'vertical-pane]
-		  [(is-a? this horizontal-pane%) 'horizontal-pane]
-		  [(is-a? this grow-box-spacer-pane%) 'grow-box-spacer-pane]
-		  [else 'pane])])
-	(check-container-parent who parent)
+      (let* ([who (cond ; yuck! - we do this to make h-p and v-p subclasses of p
+		   [(is-a? this vertical-pane%) 'vertical-pane]
+		   [(is-a? this horizontal-pane%) 'horizontal-pane]
+		   [(is-a? this grow-box-spacer-pane%) 'grow-box-spacer-pane]
+		   [else 'pane])]
+	     [cwho `(constructor ,who)])
+	(check-container-parent cwho parent)
+	(check-container-ready cwho parent)
 	(as-entry
 	 (lambda ()
 	   (super-init (lambda () (set! wx (make-object (case who
@@ -3522,12 +3555,14 @@
   (class* (make-area-container-window% (make-window% #f (make-subarea% (make-container% area%)))) (subwindow<%>) (parent [style null])
     (private [wx #f])
     (sequence 
-      (let ([who (cond ; yuck! - we do this to make h-p and v-p subclasses of p
-		  [(is-a? this vertical-panel%) 'vertical-panel]
-		  [(is-a? this horizontal-panel%) 'horizontal-panel]
-		  [else 'panel])])
-	(check-container-parent who parent)
-	(check-style `(constructor ,who) #f '(border) style)
+      (let* ([who (cond ; yuck! - we do this to make h-p and v-p subclasses of p
+		   [(is-a? this vertical-panel%) 'vertical-panel]
+		   [(is-a? this horizontal-panel%) 'horizontal-panel]
+		   [else 'panel])]
+	     [cwho `(constructor ,who)])
+	(check-container-parent cwho parent)
+	(check-style cwho #f '(border) style)
+	(check-container-ready cwho parent)
 	(as-entry
 	 (lambda ()
 	   (super-init (lambda () (set! wx (make-object (case who
