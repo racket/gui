@@ -177,7 +177,7 @@
 			      (send dc set-text-foreground (make-object color% "RED"))
 			      (send dc set-text-mode 'solid))
 
-			    (send dc draw-text (string-append size " Pen")
+			    (send dc draw-text (string-append size " P\351n") ; 351 is e with '
 				  (+ x 5) (+ y 8))
 			    (send dc set-font ofont)
 			    

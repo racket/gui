@@ -10,7 +10,7 @@ Added value init argument to check%, selection init argument to
  argument follows the style argument
 Added checked init argument for checkable-menu-item%
 Mac OS X: file dialogs use given starting directory, and dialog%s
- with a parent frame as shown as "sheets"
+ with a parent frame are shown as "sheets"
 
 ----------------------------------------------------------------------
 
