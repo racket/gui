@@ -743,10 +743,20 @@
 		     [filter #f]
 		     [filter-msg (string-constant file-wrong-form)]
 		     [parent-win (dialog-parent-parameter)])
-	  (let ([f (get-file
-		    prompt 
-		    parent-win
-		    directory)])
+	  (let ([f 
+                 (if (eq? (system-type) 'windows)
+                     (get-file
+                      prompt 
+                      parent-win
+                      directory
+                      #f
+                      ""
+                      null
+                      '(("Scheme (.scm)" "*.scm") ("Other" "*.*")))
+                     (get-file
+                      prompt 
+                      parent-win
+                      directory))])
 
 	    (if f
 		(if (or (not filter) (filter-match? filter f filter-msg))
