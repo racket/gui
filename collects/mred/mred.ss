@@ -6754,13 +6754,17 @@
 	     [underlined (make-object check-box% "Underlined" p4 refresh-sample)]
 	     [smoothing (make-object choice% "Smoothing:" '("Default" "Some" "Full" "None") p4 refresh-sample)]
 	     [sip (make-object check-box% "Size in Pixels" p4 refresh-sample)]
+	     [sym (make-object check-box% "Map as Symbol" p4 refresh-sample)]
 	     [size (make-object slider% "Size:" 4 127 p2 refresh-sample 12)]
 	     [sample (make-object text-field% "Sample" f void "The quick brown fox jumped over the lazy dog" '(multiple))]
 	     [edit (send sample get-editor)]
 	     [done (lambda (ok) (lambda (b e) (set! ok? ok) (send f show #f)))]
 	     [get-font (lambda () (let ([face (send face get-string-selection)])
 				    (and face
-					 (make-object wx:font% (send size get-value) face 'default
+					 (make-object wx:font% (send size get-value) face 
+						      (if (send sym get-value)
+							  'symbol
+							  'default)
 						      (case (send style get-selection) [(0) 'normal] [(1) 'italic] [(2) 'slant])
 						      (case (send weight get-selection) [(0) 'normal] [(1) 'bold] [(2) 'light])
 						      (send underlined get-value)
@@ -7278,7 +7282,7 @@
 	   [(modern) " Monospace"]
 	   [(swiss) " Nimbus Sans L"]
 	   [(script) " URW Chancery L"]
-	   [(symbol) "-adobe-symbol"])
+	   [(symbol) " Standard Symbols L,Nimbus Sans L"])
 	 (case family
 	   [(system) "-b&h-lucida"]
 	   [(default) "-b&h-lucida"]
