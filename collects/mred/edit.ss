@@ -6,6 +6,7 @@
 	    [mred:mode : mred:mode^]
 	    [mred:scheme-paren : mred:scheme-paren^]
 	    [mred:keymap : mred:keymap^]
+	    [mred:icon : mred:icon^]
 	    [mzlib:function : mzlib:function^])
 	    
     (mred:debug:printf 'invoke "mred:edit@")
@@ -30,7 +31,7 @@
 	    [auto-save-error? #f])
 	  (public
 	    [get-file (lambda (d) 
-			(printf "d: ~aget-filename:~a ~n" d (send this get-filename))
+			'(printf "d: ~aget-filename:~a ~n" d (send this get-filename))
 			(let ([v (mred:finder:get-file d)])
 			  (if v
 			      v
@@ -156,11 +157,14 @@
       (lambda (super%)
 	(class (make-std-buffer% super%) args
 	  (inherit mode canvases
+		   change-style
 		   invalidate-bitmap-cache
 		   begin-edit-sequence end-edit-sequence
 		   flash-on get-keymap get-start-position
 		   on-default-char on-default-event 
 		   set-file-format get-style-list
+		   set-autowrap-bitmap
+		   get-snip-location find-snip get-max-width
 		   lock get-filename)
 	  
 	  (rename [super-on-focus on-focus]
@@ -207,6 +211,9 @@
 		     (send (send (get-style-list) 
 				 find-named-style "Standard")
 			   set-delta (make-object wx:style-delta%)))))]
+	    [styles-fixed? #f]
+	    [set-styles-fixed (lambda (b) (set! styles-fixed? b))]
+
 	    [on-focus
 	     (lambda (on?)
 	       (super-on-focus on?)
@@ -236,13 +243,16 @@
 	       (super-on-edit-sequence))]
 	    [on-set-size-constraint
 	     (lambda ()
-	       (if (or (not mode) (send mode on-set-size-constraint this))
-		   (super-on-set-size-constraint)))]
+	       (and (or (not mode) (send mode on-set-size-constraint this))
+		    (super-on-set-size-constraint)))]
 	    
 	    [after-insert
-	     (lambda (start len)
-	       (if mode (send mode after-insert this start len))
-	       (super-after-insert start len))]
+	     (let ([style (make-object wx:style-delta% wx:const-change-normal 0)])
+	       (lambda (start len)
+		 (when mode (send mode after-insert this start len))
+		 (super-after-insert start len)
+		 (when styles-fixed?
+		   (change-style style start (+ start len)))))]
 	    [after-delete
 	     (lambda (start len)
 	       (if mode (send mode after-delete this start len))
@@ -390,6 +400,7 @@
 			   range-rectangles)))])
 	  (sequence
 	    (apply super-init args)
+	    (set-autowrap-bitmap mred:icon:autowrap-bitmap)
 	    (let ([keymap (get-keymap)])
 	      (mred:keymap:set-keymap-error-handler keymap)
 	      (mred:keymap:set-keymap-implied-shifts keymap)
