@@ -5,6 +5,7 @@
            (lib "mred.ss" "mred")
            (lib "token-tree.ss" "syntax-color")
            (lib "paren-tree.ss" "syntax-color")
+           (lib "default-lexer.ss" "syntax-color")
            "sig.ss"
            "../macro.ss")
            
@@ -388,7 +389,7 @@
           ;;
           ;; matches is a list of lists of matching paren types.
           ;; For example, '((|(| |)|) (|[| |]|))
-          (init-field get-token prefix (matches null))
+          (init-field (get-token default-lexer) (prefix 'default) (matches null))
           
           (rename (super-on-disable-surrogate on-disable-surrogate))
           (define/override (on-disable-surrogate text)
