@@ -5181,7 +5181,7 @@
 					  (map (lambda (s) (format "~a|~a|" (car s) (cadr s)))
 					       filters))
 				   (if put? 'put (if multi? 'multi 'get))
-				   (mred->wx parent))])
+				   (and parent (mred->wx parent)))])
 	  (if (and multi? s)
 	      (files->list s)
 	      s))
