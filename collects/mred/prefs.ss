@@ -228,7 +228,6 @@
 
     (define make-preferences-dialog
       (lambda ()
-	(save-user-preferences)
 	(letrec* ([frame (make-object (class-asi mred:frame% (public [added-pane refresh-menu]))
 				      '() "Preferences")]
 		  [panel (make-object mred:vertical-panel% frame)]
@@ -284,8 +283,7 @@
 	(run-once
 	 (lambda ()
 	   (when preferences-dialog
-	     (send preferences-dialog show #f)
-	     (set! preferences-dialog #f))))))
+	     (send preferences-dialog show #f))))))
 
     (define show-preferences-dialog
       (lambda ()
@@ -293,6 +291,7 @@
 	 (lambda ()
 	   (run-once
 	    (lambda () 
+	      (save-user-preferences)
 	      (if preferences-dialog
 		  (send preferences-dialog show #t)
 		  (set! preferences-dialog (make-preferences-dialog)))))))))
