@@ -164,6 +164,7 @@
 		   set-file-format get-style-list
 		   set-autowrap-bitmap
 		   get-snip-location find-snip get-max-width
+		   modified? set-modified
 		   lock get-filename)
 	  
 	  (rename [super-on-focus on-focus]
@@ -186,6 +187,8 @@
 		  [super-after-insert after-insert]
 		  [super-after-delete after-delete]
 		  [super-after-set-size-constraint after-set-size-constraint])
+	  (private
+	    [styles-fixed-edit-modified? #f])
 	  (public
 	    [autowrap-bitmap mred:icon:autowrap-bitmap]
 	    [after-load-file
@@ -234,6 +237,8 @@
 		   (super-on-delete start len)))]
 	    [on-change-style
 	     (lambda (start len)
+	       (when styles-fixed?
+		 (set! styles-fixed-edit-modified? (modified?)))
 	       (if (or (not mode) (send mode on-change-style this start len))
 		   (super-on-change-style start len)))]
 	    [on-edit-sequence
@@ -260,7 +265,9 @@
 	    [after-change-style
 	     (lambda (start len)
 	       (when mode (send mode after-change-style this start len))
-	       (super-after-change-style start len))]
+	       (super-after-change-style start len)
+	       (when styles-fixed?
+		 (set-modified styles-fixed-edit-modified?)))]
 	    [after-edit-sequence
 	     (lambda ()
 	       (when mode
