@@ -217,7 +217,6 @@
 			    [p (make-object mred:horizontal-panel% h)])
 		      (send* h (spacing 1) (border 1))
 		      (send* p (spacing 1) (border 1))
-		      (printf "~a: ~a ~a~n" title pref-value initial-value)
 		      (send c set-value initial-value)
 		      (add-preference-callback pref
 					       (lambda (p v)
