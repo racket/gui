@@ -786,6 +786,22 @@
 
     'done-lists)
 
+  (let loop ([styles '((single) (multiple) (multiple hscroll))])
+    (unless (null? styles)
+      (let ([t (make-object text-field% "Label" parent void "Starting Value" (car styles))])
+	(st "Starting Value" t get-value)
+	(stv t set-value "different")
+	(st "different" t get-value)
+
+	(test #t 'is-editor? (is-a? (send t get-editor) text%))
+
+	(containee-window-tests t #t 
+				(and (memq 'multiple (car styles)) #t)
+				parent frame 0)
+
+	(send parent delete-child t)
+	(loop (cdr styles)))))
+
   (let ([c (make-object canvas% parent '(hscroll vscroll))])
 
     (printf "Tab Focus~n")
