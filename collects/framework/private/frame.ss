@@ -520,24 +520,41 @@
           
           (rename [super-on-close on-close])
           [define outer-info-panel 'top-info-panel-uninitialized]
+          
+          ;; this flag is specific to this frame
+          ;; the true state of the info panel is
+          ;; the conjunction of this flag and the 
+          ;; the 'framework:show-status-line preference
+          (define info-hidden? #f)
           (define/public (hide-info)
-            (send super-root change-children
-                  (lambda (l)
-                    (list rest-panel))))
+            (set! info-hidden? #t)
+            (update-info-visibility (preferences:get 'framework:show-status-line)))
           (define/public (show-info)
-            (send super-root change-children
-                  (lambda (l)
-                    (list rest-panel outer-info-panel))))
+            (set! info-hidden? #f)
+            (update-info-visibility (preferences:get 'framework:show-status-line)))
+          (define/private (update-info-visibility pref-value)
+            (cond
+              [(or info-hidden? (not pref-value))
+               (send super-root change-children
+                     (lambda (l)
+                       (if (memq outer-info-panel l)
+                           (begin (unregister-collecting-blit gc-canvas)
+                                  (list rest-panel))
+                           l)))]
+              [else
+               (send super-root change-children
+                     (lambda (l)
+                       (if (memq outer-info-panel l)
+                           l
+                           (begin
+                             (register-gc-blit)
+                             (list rest-panel outer-info-panel)))))]))
+          
           [define close-panel-callback
             (preferences:add-callback
              'framework:show-status-line
              (lambda (p v)
-               (if v 
-                   (register-gc-blit)
-                   (unregister-collecting-blit gc-canvas))
-               (if v
-                   (show-info)
-                   (hide-info))))]
+               (update-info-visibility v)))]
           [define memory-cleanup void] ;; only for CVSers; used with memory-text
           (override on-close)
           [define on-close
