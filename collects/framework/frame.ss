@@ -656,7 +656,7 @@
 	 (lambda (item control)
 	   (let* ([b (box #f)]
 		  [edit (get-editor)]
-		  [filename (get-filename b)])
+		  [filename (send edit get-filename b)])
 	     (if (or (not filename) (unbox b))
 		 (bell)
 		 (let ([start
