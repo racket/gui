@@ -61,6 +61,9 @@
            (with-syntax ([method-name (state-desc-method-name (car state-descs))]
                          [super-method-name (build-super-name (state-desc-method-name (car state-descs)))]
                          [(predicate-name ...) (map state-desc-predicate-name state-descs)]
+                         [(predicate-result-name ...)
+                          (generate-temporaries
+                           (map state-desc-predicate-name state-descs))]
                          [(state-name ...) (map state-desc-state-name state-descs)]
                          [((result-predicate-state ...) ...)
                           (map state-desc-result-predicates state-descs)]
@@ -69,9 +72,7 @@
                            (lambda (state-desc)
                              (map state-name->predicate-name
                                   (state-desc-result-predicates state-desc)))
-                           state-descs)]
-                         [(all-state-names ...) state-names]
-                         [(all-predicate-names ...) predicate-names])
+                           state-descs)])
              (with-syntax ([(cases ...)
                             (map (lambda (arity)
                                    (with-syntax ([formals arity])
@@ -86,33 +87,32 @@
                                                           (syntax (list x ...))))])
                                        (syntax
                                         [formals
-                                         (cond
-                                           [(predicate-name)
-                                            call
-                                            
-                                            ;; Doesn't do post-condition checking,
-                                            ;; since it isn't thread safe
-                                            #;
-                                            (begin0
+                                         (let ([predicate-result-name (predicate-name)] ...)
+                                           (cond
+                                             [predicate-result-name
                                               call
-                                              (unless (or (result-predicate-name) ...)
-                                                (sequence-contract-violation 
-                                                 'positive 
-                                                 "expected one of states ~s after calling ~s in state ~s"
-                                                 '(result-predicate-state ...)
-                                                 'method-name
-                                                 'state-name)))
-                                            ]
-                                           ...
-                                           [else
-                                            (sequence-contract-violation 
-                                             'negative
-                                             "method ~s cannot be called, except in states ~s, current state: ~s~a"
-                                             'method-name
-                                             '(state-name ...)
-                                             (find-current-state 
-                                              (list (list 'all-state-names (all-predicate-names)) ...))
-                                             (format-args args-as-list))])]))))
+                                              
+                                              ;; Doesn't do post-condition checking,
+                                              ;; since it isn't thread safe
+                                              #;
+                                              (begin0
+                                                call
+                                                (unless (or (result-predicate-name) ...)
+                                                  (sequence-contract-violation 
+                                                   'positive 
+                                                   "expected one of states ~s after calling ~s in state ~s"
+                                                   '(result-predicate-state ...)
+                                                   'method-name
+                                                   'state-name)))
+                                              ]
+                                             ...
+                                             [else
+                                              (sequence-contract-violation 
+                                               'negative
+                                               "method ~s cannot be called, except in states ~s~a"
+                                               'method-name
+                                               '(state-name ...)
+                                               (format-args args-as-list))]))]))))
                                  (syntax->list (state-desc-arities (car state-descs))))])
                (syntax
                 (begin
@@ -186,14 +186,6 @@
                    (format "~e" fst)
                    " "
                    (loop (car rst) (cdr rst)))])))]))
-  
-  (define (find-current-state l)
-    (let loop ([l l])
-      (cond
-        [(null? l) '<<unknown-state>>]
-        [else (if (cadr (car l))
-                  (car (car l))
-                  (loop (cdr l)))])))
 
   (define (sequence-contract-violation dir fmt . args)
     (apply error
