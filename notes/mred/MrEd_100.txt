@@ -296,18 +296,19 @@ the right.]
                           |- canvas%
                           |- editor-canvas%
 
-menu-item<%>
-  |- separator-menu-item%
-  |- labelled-menu-item<%>
-       |- shortcut-menu-item<%>
-       |  |- menu-item%
-       |  |- checkable-menu-item%
-       |- submenu-item<%> (no classes)
 
-menu-item-container<%>
-  |- menu% (has a submenu-item<%>)
-  |- menu-bar% (all items are submenu-item<%>s)
-  |- popup-menu% (for use with canvas<%>'s popup-menu)
+  menu-item<%>                menu-item-container<%>
+      |                              |
+      |- separator-menu-item%   _____|___
+      |- labelled-menu-item<%>  |       |- menu-bar%
+          _________|_________   |       |- popup-menu%
+          |                 |   | 
+          |                 menu%
+          |
+          |- selectable-menu-item<%>
+              |- menu-item%
+              |- checkable-menu-item%
+
 
 dc<%> (canvas<%>'s get-dc returns a dc<%>)
  |- bitmap-dc%  (formerly memory-dc%)
@@ -535,7 +536,7 @@ labelled-menu-item<%>
    get-help-string set-help-string
    enable is-enabled?
 
-shortcut-menu-item<%>
+selectable-menu-item<%>
    command
    get-shortcut set-shortcut
    get-x-shortcut-prefix set-x-shortcut-prefix
@@ -547,15 +548,11 @@ checkable-menu-item%
    <= label parent callback [shortcut #f] [help-string #f]
    check is-checked?
 
-submenu-item<%>
-   get-menu
-
 menu-item-container<%>
    get-items
 
-menu% (has a submenu-item<%>)
+menu%
    <= label parent [help-string #f]
-   get-item
 
 popup-menu%
    <= title
