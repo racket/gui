@@ -3,12 +3,60 @@
                         *    MrEd 100    *
                         ******************
 
-Between versions 53 and 100 of MrEd, the windowing portion of the MrEd
-toolbox was drastically simplified and Scheme-ified. We didn't try to
-develop an improved windowing model, but instead tried to clean up the
-existing model.
+The entity known as "MrEd" in previous versions has been split
+up. MrEd 53 comprised two parts: 
 
-The following are a few highlights of the revision:
+ * a low-level toolbox (containing names prefixed with wx:) that was
+   too primitive for real programming (no geometry management); and
+
+ * an application framework (containing names prefixed with mred:)
+   that provided useful window classes (with geometry management) but
+   much, much more, making it too heavyweight for simple GUI programs.
+
+In MrEd 100, we split up the core toolbox and the application
+framework. The new toolbox includes the most useful stuff from the
+old mred: domain, such as the windowing classes with geometry
+management.  These mred: classes replace clumsy wx: classes. Useless
+and redundant methods have been eliminated. The overall effect is that
+the MrEd 100 toolbox is both smaller and better than the core toolbox
+in MrEd 53.
+
+The old mred: classes that implement the application framework---with
+its elaborate startup and command-line handling, and esoteric
+variations on editor frame classes---has been moved into a separate,
+optional library. It is no longer necessary to understand units,
+collections, and the framework for bootstrapping large programs to get
+a simple MrEd application going.
+
+Unlike MrEd 53, MrEd 100 is just an extension of MzScheme with a
+graphical toolbox. No extra files are needed to start the MrEd
+executable. Command-line handling for MrEd 100 is the same as for
+MzScheme --- the only difference is that MrEd executes
+'(graphical-read-eval-print-loop)' on startup instead of
+'(read-eval-print-loop)'.
+
+MrEd's `graphical-read-eval-print-loop' implements a *very* primitive
+GUI REPL, not the relatively useful REPL that came with the old MrEd
+toolbox/framework combo.  DrScheme now provides the only development
+environment for MrEd. But unlike previous releases, DrScheme 100
+provides a REPL that matches MrEd's language exactly.
+
+Everything works in MrEd 100. Previous versions of MrEd made all of
+the low-level toolbox (wxWindows) available, regardless of how well
+certain parts worked (or how consistently across platforms). Over many
+releases, we fixed a lot of things that didn't work, but it was still
+hard to say which parts of the toolbox were reliable, even in MrEd
+53. For 100, we've turned the tables: everything that is truly useful
+works (to the best of our testing), and the other junk has been thrown
+away.
+
+======================================================================
+0. Highlights of the New MrEd Toolbox
+======================================================================
+
+We didn't try to develop an improved windowing model, but instead
+tried to clean up the existing model. The following are a few
+highlights of the revision:
 
  * The wx/mred split has been eliminated. The wx methods for
    manually managing the geometry of windows have been eliminated; the
@@ -31,69 +79,72 @@ The following are a few highlights of the revision:
    have a label.
 
  * There are hardly any wx:const-... values. Instead, methods that
-   used to take a single (numerical) flag now take a symbol, and
-   methods that used to take bitwise-ior'd integers now take a list 
-   of symbols. For example, wx:const-horizontal was replaced by
-   'horizontal, and wx:const-bitmap-type-gif was replaced with 'gif.
+   used to take a single (numerical) wx:const- flag now take a symbol,
+   and methods that used to take bitwise-ior'd wx:const- integers now
+   take a list of symbols. For example, wx:const-horizontal was
+   replaced by 'horizontal, and wx:const-bitmap-type-gif was replaced
+   with 'gif.
 
  * The menu system was turned upside-down, giving it a structure more
    like rest of the toolbox. For example, instead of creating a menu
    bar and then calling a frame's set-menu-bar method, the new way to
-   create a menu bar is to provide the frame as a constructor
-   argument. Menus are created by supplying the parent menu bar to the
-   class constructor. Menu items are created by instantiating
-   menu-item% or checkable-menu-item% (or menu% for a submenu) with
-   a menu argument. There are no menu ids anywhere; when a menu item
-   is selected, the callback associated with the menu item is executed
-   (just like when a button is clicked).
+   create a menu bar is to provide the frame as an initialization
+   argument when creating a menu bar. Menus are created by supplying
+   the parent menu bar as an initialization argument (or a parent menu
+   to create a submenu). Menu items are created by instantiating
+   menu-item% or checkable-menu-item% with a menu argument. There are
+   no menu ids anywhere; when a menu item is selected, the callback
+   associated with the menu item is executed (just like when a button
+   is clicked).
 
- * Initialization arguments to window class have been re-ordered.
+ * Initialization arguments for creating windows have been re-ordered.
    In general, the order is something like the following:
+
       label [sub-labels] callback parent [init-value] style
               ^- e.g., items in a radio box
+
    where style is now a list of symbols.
 
  * The "media" names have changed. Roughly, we replaced "media" with
-   "editor". Here's the mapping for some commonly used classes:
+   "editor", or drop it when "editor" isn't useful. Here's the name
+   mapping for some commonly used classes:
 
-            media-canvas%     => editor-canvas%
-            media-buffer%     => editor<%>
-            media-edit%       => text-editor%
-            media-pasteboard% => pasteboard-editor%
-            snip%             => snip%
-            media-snip%       => editor-snip%
+            media-canvas%      =>  editor-canvas%
+            media-buffer%      =>  editor<%>
+            media-edit%        =>  text%
+            media-pasteboard%  =>  pasteboard%
+            snip%              =>  snip%
+            media-snip%        =>  editor-snip%
 
-   Aside from the renaming, little has changed in the editor toolbox,
+   Aside from this renaming, little has changed in the editor toolbox,
    but it is a little better integrated with system-wide keyboard
    focus methods. For example, a frame% has a get-focus-window method,
    which returns the frame's subwindow with the current focus, but it
    also has a get-focus-object method, which will return an editor<%>
    object if an editor-canvas has the keyboard focus.
 
- * The text% and multi-text% controls now work well, because they're
-   now implemented using the editor classes.
+ * The text-field% control (formerly wx:text% and wx:multi-text%) now
+   works well on all platforms because it is implemented using the
+   editor classes. (The equivalent of a wxmulti-text% is specified via
+   a style flag when creating a text-field%.)
 
- * The command-event% class was changed to control-event%. It has
-   very few methods, since the information can always be extracted
-   from the control.
+ * The command-event% class was changed to control-event%. It has very
+   few methods, since the old information can be extracted from the
+   control.
 
  * Some methods have been renamed to be either more (accurately)
    descriptive or more consistent with other method names.
 
- * The device context system has been changed more onservatively.
-   Some drawing modes eliminated, ...
+ * The device context system has been changed to provide a larger set
+   of methods that paint consistently on all platforms. Some drawing
+   modes eliminated, ... [still hashing out this part]
 
    The canvas% class no longer supplies drawing methods. Instead,
    get-dc to get a drawing context (which always has a more
    complete set of methods, anyway).
 
  * American spelling is used everywhere: colour -> color, centre
-   -> center
-
- * Everything works. Originally, we made all of the low-level toolbox
-   available in MrEd, and then started fixing things that didn't work
-   as they became useful. Now, we only include something in the
-   toolbox if it works.
+   -> center.
 
 The next section shows the new interface/class hierarchy for windows a
 few other parts of the toolbox, and the section after that lists all
@@ -107,11 +158,16 @@ that accompany an average MrEd release).
 ======================================================================
 1. Interface/Class Type Hierarchy (Selected Excerpts)
 ======================================================================
-  
+
+[To avoid lines that cross or go in the wrong direction, the following
+type hierarchy picture is drawn on a cylinder, with lines from
+subarea<%. and subwindow<%> wrapping from the left of the diagram to
+the right.]
+
                            area<%>
           ___________________|________________
           |             |                    |
-      subarea<%>     window<%>          area-container<%>      
+      subarea<%>     window<%>       area-container<%>      
 <<<____|____       _____|__________       __|___  ___________________<<<
             |      |              |       |    |  |                  
            subwindow<%>           |       |    |  |                  
@@ -123,13 +179,13 @@ that accompany an average MrEd release).
         |- check-box%       |  area-container-window<%>             |
         |- slider%          |        |                              |
         |- gauge%           |        |            __________________|
-        |- text-control<%>  |        |            |   
-        |   |- text%        |        |-------- panel%       
-        |   |- multi-text%  |        |          |- horizontal-panel%
-        |- radio-box%       |        |          |- vertical-panel%
-        |- list-control<%>  |        |          
-            |- choice%      |        |- top-level-window<%>
-            |- list-box     |           |- frame% 
+        |- text-field%      |        |            |   
+        |- radio-box%       |        |-------- panel%       
+        |- list-control<%>  |        |          |- horizontal-panel%
+            |- choice%      |        |          |- vertical-panel%
+            |- list-box%    |        |          
+                            |        |- top-level-window<%>
+                            |           |- frame% 
                             |           |- dialog%
                          canvas<%>
                           |- canvas%
@@ -155,8 +211,8 @@ dc<%>
  |- postscript-dc%
 
 editor<%> (maybe has an edit-admin% and some editor-canvas<%>s)
- |- text-editor%
- |- pasteboard-editor%
+ |- text%
+ |- pasteboard%
 
 snip% (as a snip-admin%)
  |- text-snip%
@@ -289,16 +345,11 @@ gauge% : control<%>
       styles: 'horizontal 'vertical
    set-value get-value
 
-text-control<%> : control<%>
-   get-value set-value get-edit
-
-text% : control<%>
-   <= label parent callback [init-val ""] [style null]
-      styles: none
-
-multi-text% : control<%>
-   <= label parent callback [init-val ""] [style null]
-      styles: none
+text-field% : control<%>
+   <= label parent callback [init-val ""] [style '(single)]
+      styles: 'single, 'multiple, 'hscroll
+   get-value set-value
+   get-edit
 
 radio-box% : control<%>
    <= label choices parent callback [style '(vertical)]
@@ -485,11 +536,11 @@ get-ps-setup-from-user
    <= [message #f] [parent #f] [init-setup #f] [style null]
       styles: none
 
-get-color-from-user
+get-color-from-user   - now supported for all platforms
    <= [message #f] [parent #f] [init-color #f] [style null]
       styles: none
 
-get-font-from-user
+get-font-from-user   - now supported for all platforms
    <= [message #f] [parent #f] [init-font #f] [style null]
       styles: none
 
@@ -519,8 +570,8 @@ append-edit-operation-menu-items
 append-edit-font-menu-items
 
 add-editor-keymap-functions
-add-text-editor-keymap-functions
-add-pasteboard-editor-keymap-functions
+add-text-keymap-functions
+add-pasteboard-keymap-functions
 
 editor-set-x-selection-mode
 
