@@ -289,6 +289,7 @@
      return<%>
      info<%>
      clever-file-format<%>
+     ports<%>
      
      basic% 
      hide-caret/selection%
@@ -313,7 +314,8 @@
      searching-mixin
      return-mixin
      info-mixin
-     clever-file-format-mixin))
+     clever-file-format-mixin
+     ports-mixin))
   (define-signature framework:text-fun^
     ())
   (define-signature framework:text^

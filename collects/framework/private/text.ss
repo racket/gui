@@ -826,6 +826,476 @@
             (super-on-save-file name format))
           (super-instantiate ())))
       
+      (define ports<%>
+        (interface ()
+          get-insertion-point 
+          get-unread-start-point
+          has-between?
+          submit-to-port?
+          on-submit
+          get-in-port
+          get-out-port
+          get-err-port
+          get-value-port))
+      
+      (define ports-mixin
+        (mixin ((class->interface text%) #;scheme:text<%>) (ports<%>)
+          (inherit begin-edit-sequence
+                   end-edit-sequence
+                   insert
+                   change-style
+                   split-snip
+                   find-snip
+                   get-start-position
+                   get-end-position
+                   get-snip-position
+                   last-position)
+          
+          ;; private field
+          (define eventspace (current-eventspace))
+          
+          ;; insertion-point : number
+          ;; only updated in `eventspace' (above)'s main thread
+          (define insertion-point 0)
+          
+          ;; unread-start-points : number
+          ;; from this position to the end of the buffer is the
+          ;;      users editing that has not been committed to the
+          ;;      port.
+          ;; only updated in `eventspace' (above)'s main thread
+          (define unread-start-point 0)
+          
+          ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+          ;;
+          ;;  public interface
+          ;;
+          
+          ;; insert-between : string -> void
+          ;; inserts something between the insertion point and the unread region
+          (define/public (insert-between str)
+            (insert str unread-start-point unread-start-point)
+            (set! unread-start-point (+ insertion-point 
+                                        ;; string-length is bad here
+                                        (string-length str))))
+          
+          ;; has-between? : -> boolean
+          ;; indicates if there is currently some text after the insertion
+          ;; point, but before the unread region
+          (define/public (has-between?)
+            (not (= insertion-point unread-start-point)))
+          
+          (define/public (get-insertion-point) insertion-point)
+          (define/public (get-unread-start-point) unread-start-point)
+          
+          ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+          ;;
+          ;;  specialization interface
+          ;;
+          
+          (define/public (submit-to-port? key) #t)
+          (define/public (on-submit) (void))
+          
+          ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+          ;;
+          ;;  editor integration
+          ;;
+          
+          (rename [super-can-insert? can-insert?])
+          (define/override (can-insert? start len)
+            (and (super-can-insert? start len)
+                 (start . >= . insertion-point)))
+          
+          (rename [super-can-delete? can-delete?])
+          (define/override (can-delete? start len)
+            (and (super-can-delete? start len)
+                 (start . >= . insertion-point)))
+          
+          (rename [super-on-local-char on-local-char])
+          (define/override (on-local-char key)
+            (let ([start (get-start-position)]
+                  [end (get-end-position)]
+                  [code (send key get-key-code)])
+              (cond
+                [(not (or (eq? code 'numpad-enter)
+                          (equal? code #\return)
+                          (equal? code #\newline)))
+                 (super-on-local-char key)]
+                [(and (insertion-point . <= . start)
+                      (= start end)
+                      (submit-to-port? key))
+                 (let ([snips/chars (extract-snips/chars unread-start-point (last-position))])
+                   (for-each (lambda (s/c) 
+                               (cond
+                                 [(is-a? s/c snip%)
+                                  (channel-put read-chan s/c)]
+                                 [(char? s/c)
+                                  (for-each (lambda (b) (channel-put read-chan b))
+                                            (bytes->list (string->bytes/utf-8 (string s/c))))]))
+                             snips/chars)
+                   (set! allow-tabify? #f)
+                   (super-on-local-char key)
+                   (set! allow-tabify? #t)
+                   (channel-put read-chan (char->integer #\newline))
+                   (set! unread-start-point (last-position))
+                   (set! insertion-point (last-position))
+                   (on-submit))]
+                [else
+                 (super-on-local-char key)])))
+          
+          (define allow-tabify? #t)
+          (rename [super-tabify-on-return? tabify-on-return?])
+          (define/override (tabify-on-return?)
+            (and (super-tabify-on-return?)
+                 allow-tabify?))
+          
+          ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+          ;;
+          ;;  syncronization code
+          ;;
+          
+          
+          ;; flush-chan : (channel (waitable void))
+          ;; signals that the buffer-thread should flush pending output
+          ;; the waitable inside is waited on to indicate the flush has occurred
+          (define flush-chan (make-channel))
+          
+          ;; write-chan : (channel bytes)
+          ;; send output to the editor
+          (define write-chan (make-channel))
+          
+          ;; read-chan : (channel (union byte snip))
+          ;; send input from the editor
+          (define read-chan (make-channel))
+          
+          ;; readers-chan : (channel (cons (channel (union byte snip))
+          ;;                               (channel ...)))
+          (define readers-chan (make-channel))
+          
+          ;; queue-insertion : (listof (cons (union string snip) style-delta)) waitable -> void
+          ;; txt is in the reverse order of the things to be inserted.
+          ;; the waitable is waited on when the text has actually been inserted
+          ;; thread: any thread, except the eventspace main thread
+          (define/private (queue-insertion txts signal) 
+            (parameterize ([current-eventspace eventspace])
+              (queue-callback
+               (lambda ()
+                 (do-insertion txts)
+                 (object-wait-multiple #f signal)))))
+          
+          ;; do-insertion : (listof (cons (union string snip) style-delta)) -> void
+          ;; thread: eventspace main thread
+          (define/private (do-insertion txts)
+            (begin-edit-sequence)
+            (let loop ([txts txts])
+              (cond
+                [(null? txts) (void)]
+                [else 
+                 (let* ([fst (car txts)]
+                        [str/snp (car fst)]
+                        [sd (cdr fst)])
+                   (insert (if (is-a? str/snp snip%)
+                               (send str/snp copy)
+                               str/snp)
+                           insertion-point
+                           insertion-point
+                           #f)
+                   (let ([inserted-count
+                          (if (is-a? str/snp snip%)
+                              1
+                              (string-length str/snp))])
+                     (change-style sd insertion-point (+ insertion-point inserted-count))
+                     (set! insertion-point (+ insertion-point inserted-count))
+                     (set! unread-start-point (+ unread-start-point inserted-count))))
+                 (loop (cdr txts))]))
+            (end-edit-sequence))
+          
+          (define input-buffer-thread
+            (thread
+             (lambda ()
+               (define (data-waiting data)
+                 (object-wait-multiple
+                  #f
+                  (make-wrapped-waitable
+                   read-chan
+                   (lambda (new-data)
+                     (data-waiting (enqueue new-data data))))
+                  (make-wrapped-waitable
+                   readers-chan
+                   (lambda (new-reader)
+                     (data-and-readers-waiting data (enqueue new-reader (empty-queue)))))))
+               
+               (define (readers-waiting readers)
+                 (object-wait-multiple
+                  #f
+                  (make-wrapped-waitable
+                   read-chan
+                   (lambda (new-data)
+                     (data-and-readers-waiting (enqueue new-data (empty-queue)) readers)))
+                  (make-wrapped-waitable
+                   readers-chan
+                   (lambda (new-reader)
+                     (readers-waiting (enqueue new-reader readers))))))
+               
+               (define (data-and-readers-waiting data readers)
+                 (cond
+                   [(queue-empty? data) (readers-waiting readers)]
+                   [(queue-empty? readers) (data-waiting data)]
+                   [else (let* ([data-hd (queue-first data)]
+                                [reader-hd (queue-first readers)]
+                                [reader-succeed (car reader-hd)]
+                                [reader-fail (cdr reader-hd)])
+                           (object-wait-multiple
+                            #f
+                            (make-wrapped-waitable
+                             (make-channel-put-waitable reader-succeed data-hd)
+                             (lambda (v)
+                               (data-and-readers-waiting (queue-rest data)
+                                                         (queue-rest readers))))
+                            (make-wrapped-waitable
+                             reader-fail
+                             (lambda (v)
+                               (data-and-readers-waiting data
+                                                         (queue-rest readers))))))]))
+               (data-waiting (empty-queue)))))
+          
+          (define output-buffer-thread
+            (let ([buffer-full 40]
+                  [converter (bytes-open-converter "UTF-8-permissive" "UTF-8")])
+              (thread
+               (lambda ()
+                 (let loop (;; text-to-insert : (queue (cons (union snip bytes) style))
+                            [text-to-insert (empty-queue)])
+                   (object-wait-multiple
+                    #f
+                    (make-wrapped-waitable
+                     flush-chan
+                     (lambda (return-waitable)
+                       (let-values ([(viable-bytes remaining-queue) (split-queue converter text-to-insert)])
+                         (queue-insertion viable-bytes return-waitable)
+                         (loop remaining-queue))))
+                    (make-wrapped-waitable
+                     write-chan
+                     (lambda (pr)
+                       (cond
+                         [((queue-size text-to-insert) . < . buffer-full)
+                          (loop (enqueue pr text-to-insert))]
+                         [else
+                          (let ([chan (make-channel)])
+                            (let-values ([(viable-bytes remaining-queue) (split-queue converter text-to-insert)])
+                              (queue-insertion viable-bytes (make-channel-put-waitable chan (void)))
+                              (channel-get chan)
+                              (loop remaining-queue)))])))))))))
+          
+          (field [in-port #f]
+                 [out-port #f]
+                 [err-port #f]
+                 [value-port #f])
+          (define/public (get-in-port)
+            (unless in-port (error 'get-in-port "not ready"))
+            in-port)
+          (define/public (get-out-port)
+            (unless out-port (error 'get-out-port "not ready"))
+            out-port)
+          (define/public (get-err-port)
+            (unless err-port (error 'get-err-port "not ready"))
+            err-port)
+          (define/public (get-value-port)
+            (unless err-port (error 'get-value-port "not ready"))
+            value-port)
+          
+          (let ()
+            
+            ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+            ;;
+            ;;  the following must be able to run
+            ;;  in any thread (even concurrently)
+            ;;
+            (define op (current-output-port))
+            (define (read-string-proc bytes)
+              ;; this shouldn't block. it should return a waitable and 
+              ;; let the system block and then re-call into this thing. 
+              ;; yuck.
+              (let ([s/c
+                     (object-wait-multiple
+                      #f
+                      (make-nack-guard-waitable
+                       (lambda (fail-channel)
+                         (let ([return-channel (make-channel)])
+                           (channel-put readers-chan (cons return-channel fail-channel))
+                           return-channel))))])
+                (cond
+                  [(byte? s/c)
+                   (bytes-set! bytes 0 s/c)
+                   1]
+                  [else
+                   (lambda (src line column position)
+                     (values s/c 1))])))
+            
+            (define (in-close-proc)
+              (void))
+            
+            (define (make-write-string-proc style)
+              (lambda (to-write start end block/buffer?)
+                (cond
+                  [(eq? (current-thread) (eventspace-handler-thread eventspace))
+                   (error 'write-string-proc "cannot write to port on eventspace main thread")]
+                  [else
+                   (channel-put write-chan (cons (subbytes to-write start end) style))])
+                (- end start)))
+            
+            (define (flush-proc)
+              (cond
+                [(eq? (current-thread) (eventspace-handler-thread eventspace))
+                 (error 'flush-proc "cannot flush port on eventspace main thread")]
+                [else
+                 (object-wait-multiple
+                  #f
+                  (make-nack-guard-waitable
+                   (lambda (fail-channel)
+                     (let* ([return-channel (make-channel)]
+                            [return-waitable
+                             (waitables->waitable-set
+                              fail-channel
+                              (make-channel-put-waitable return-channel (void)))])
+                       (channel-put flush-chan return-waitable)
+                       return-channel))))]))
+            
+            (define (out-close-proc)
+              (void))
+            
+            ;; disable set-styles-sticky?
+            (define out-sd (make-object style-delta% 'change-normal))
+            (define err-sd (make-object style-delta% 'change-italic))
+            (define value-sd (make-object style-delta% 'change-normal))
+            (send out-sd set-delta-foreground (make-object color% 150 0 150))
+            (send err-sd set-delta-foreground (make-object color% 255 0 0))
+            (send value-sd set-delta-foreground (make-object color% 0 0 175))
+            
+            (set! in-port (make-custom-input-port read-string-proc #f in-close-proc))
+            (set! out-port (make-custom-output-port #f (make-write-string-proc out-sd) flush-proc out-close-proc))
+            (set! err-port (make-custom-output-port #f (make-write-string-proc err-sd) flush-proc out-close-proc))
+            (set! value-port (make-custom-output-port #f (make-write-string-proc value-sd) flush-proc out-close-proc)))
+          
+          
+          ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+          ;;
+          ;;  helpers
+          ;;
+          
+          ;; extract-snips/chars : number number -> (listof (union char snip))
+          (define/private (extract-snips/chars start end)
+            (split-snip start)
+            (split-snip end)
+            (let loop ([snip (find-snip start 'after)])
+              (cond
+                [(not snip) null]
+                [(< (get-snip-position snip) end)
+                 (if (is-a? snip string-snip%)
+                     (append (string->list (send snip get-text 0 (send snip get-count)))
+                             (loop (send snip next)))
+                     (cons (send snip copy)
+                           (loop (send snip next))))]
+                [else null])))
+          
+          ;; split-queue : converter (queue (cons (union snip bytes) style) 
+          ;;            -> (values (listof (queue (cons (union snip bytes) style)) queue)
+          ;; this function must only be called on the output-buffer-thread
+          ;; extracts the viable bytes (and other stuff) from the front of the queue
+          ;; and returns them as strings (and other stuff).
+          (define/private (split-queue converter q)
+            (let loop ([lst (queue->list q)]
+                       [acc null])
+              (let-values ([(front rest) (peel lst)])
+                (cond
+                  [(not front) (values (reverse acc)
+                                       (empty-queue))]
+                  [(bytes? (car front))
+                   (let ([the-bytes (car front)]
+                         [key (cdr front)])
+                     (if (null? rest)
+                         (let-values ([(converted-bytes src-read-k termination)
+                                       (bytes-convert converter the-bytes)])
+                           (if (eq? termination 'aborts)
+                               (values (reverse (cons (cons (bytes->string/utf-8 converted-bytes) key) acc))
+                                       (enqueue 
+                                        (cons (subbytes the-bytes
+                                                        (- (bytes-length the-bytes) src-read-k) 
+                                                        (bytes-length the-bytes))
+                                              key)
+                                        (empty-queue)))
+                               (values (reverse (cons (cons (bytes->string/utf-8 converted-bytes) key) acc))
+                                       (empty-queue))))
+                         (let-values ([(converted-bytes src-read-k termination)
+                                       (bytes-convert converter the-bytes)]
+                                      [(more-bytes more-termination) (bytes-convert-end converter)])
+                           (loop rest
+                                 (cons (bytes->string/utf-8 (bytes-append converted-bytes more-bytes))
+                                       acc)))))]
+                  [else (loop rest
+                              (cons front acc))]))))
+          
+          ;; peel : (listof (cons (union snip bytes) X)
+          ;;     -> (values (cons (union snip bytes) X) (listof (cons (union snip bytes) X)
+          ;; finds the first segment of bytes with the same style and combines them,
+          ;; otherwise a lot like (define (peel x) (values (car x) (cdr x)))
+          (define/private (peel lst)
+            (let loop ([lst lst]
+                       [acc #f]
+                       [key #f])
+              (cond
+                [(null? lst) (values (cons acc key) null)]
+                [else 
+                 (let* ([fst (car lst)]
+                        [fst-key (cdr fst)]
+                        [fst-val (car fst)])
+                   (cond
+                     [(and (not key) (bytes? fst-val))
+                      (loop (cdr lst)
+                            fst-val
+                            fst-key)]
+                     [(and key (bytes? fst-val) (eq? key fst-key))
+                      (loop (cdr lst)
+                            (bytes-append acc fst-val)
+                            key)]
+                     [(not key)
+                      (values fst (cdr lst))]
+                     [else (if acc
+                               (values (cons acc key) lst)
+                               (values fst (cdr lst)))]))])))
+          
+          (super-new)))
+
+      ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+      ;;
+      ;; queues
+      ;;
+      (define-struct queue (eles count))
+      (define (empty-queue) (make-queue '() 0))
+      (define (enqueue e q) (make-queue (append (queue-eles q) (list e))
+                                        (+ (queue-count q) 1)))
+      (define (queue-first q)
+        (let ([eles (queue-eles q)])
+          (if (null? eles)
+              (error 'queue-first "empty queue")
+              (car eles))))
+      (define (queue-rest q)
+        (let ([eles (queue-eles q)])
+          (if (null? eles)
+              (error 'queue-rest "empty queue")
+              (make-queue (cdr eles)
+                          (- (queue-count q) 1)))))
+      (define (queue-empty? q) (null? (queue-eles q)))
+      (define (queue-size q) (queue-count q))
+      
+      ;; queue->list : (queue x) -> (listof x)
+      ;; returns the elements in the order that successive deq's would have
+      (define (queue->list q) (queue-eles q))
+      
+      ;;
+      ;;  end queue abstraction
+      ;;
+      ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+      
       (define basic% (basic-mixin (editor:basic-mixin text%)))
       (define hide-caret/selection% (hide-caret/selection-mixin basic%))
       (define nbsp->space% (nbsp->space-mixin basic%))
