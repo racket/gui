@@ -186,7 +186,7 @@
           
           ;; iterate/reflow : -> void
           ;; iterates the fraction and tells the administrator to redraw the numbers
-          (define (iterate/reflow)
+          (define/private (iterate/reflow)
             (iterate 1)
             (let ([admin (get-admin)])
               (when admin
@@ -262,7 +262,7 @@
           
           ;; extract-cycle : -> (listof digit)
           ;; pre: (number? repeat)
-          (define (extract-cycle)
+          (define/private (extract-cycle)
             (let ([pr (hash-table-get ht repeat)])
               (cons (car pr)
                     (extract-helper (cdr pr)))))
@@ -342,7 +342,7 @@
               [(improper)
                (get-improper-fraction-extent dc x y wb hb descent space lspace rspace)]))
           
-          (define (get-improper-fraction-extent dc x y w h descent space lspace rspace)
+          (define/private (get-improper-fraction-extent dc x y w h descent space lspace rspace)
             (let* ([style (get-style)]
                    [th (send style get-text-height dc)]
                    [old-font (send dc get-font)])
@@ -357,7 +357,7 @@
                 (set-box/f! lspace 0)
                 (set-box/f! rspace 0))))
           
-          (define (get-mixed-fraction-extent dc x y w h descent space lspace rspace)
+          (define/private (get-mixed-fraction-extent dc x y w h descent space lspace rspace)
             (let* ([style (get-style)]
                    [th (send style get-text-height dc)]
                    [old-font (send dc get-font)])
@@ -372,7 +372,7 @@
                 (set-box/f! lspace 0)
                 (set-box/f! rspace 0))))
           
-          (define (get-decimal-extent dc x y wb hb descent space lspace rspace)
+          (define/private (get-decimal-extent dc x y wb hb descent space lspace rspace)
             (let ([font (send (get-style) get-font)])
               (let-values ([(w1 h1 d1 a1) (get-text-extent/f dc unbarred-portion font)]
                            [(w2 h2 d2 a2) (get-text-extent/f dc barred-portion font)]
@@ -400,7 +400,7 @@
               [(improper) (draw-improper-fraction dc x y)]
               [(decimal) (draw-decimals dc x y)]))
           
-          (define (draw-improper-fraction dc x y)
+          (define/private (draw-improper-fraction dc x y)
             (let-values ([(nw nh na nd) (send dc get-text-extent improper-nums)]
                          [(dw dh da dd) (send dc get-text-extent dens)]
                          [(ww wh wa wd) (send dc get-text-extent improper-prefix)])
@@ -412,7 +412,7 @@
                       (+ x ww) (+ y dh)
                       (+ x ww (max nw dw) -1) (+ y dh)))))
           
-          (define (draw-mixed-fraction dc x y)
+          (define/private (draw-mixed-fraction dc x y)
             (let-values ([(nw nh na nd) (send dc get-text-extent nums)]
                          [(dw dh da dd) (send dc get-text-extent dens)]
                          [(ww wh wa wd) (send dc get-text-extent wholes/frac)])
@@ -424,7 +424,7 @@
                       (+ x ww) (+ y dh)
                       (+ x ww (max nw dw) -1) (+ y dh)))))
           
-          (define (draw-decimals dc x y)
+          (define/private (draw-decimals dc x y)
             (define (draw-digits digits x)
               (if digits
                   (let-values ([(w h a d) (send dc get-text-extent digits)])
@@ -458,7 +458,7 @@
                    (iterate/reflow))]
                 [else (void)])))
           
-          (define (make-right-clickable-menu)
+          (define/private (make-right-clickable-menu)
             (let* ([menu (make-object popup-menu%)]
                    [decimal-item
                     (make-object checkable-menu-item% 
@@ -494,7 +494,7 @@
                     (iterate/reflow))))
               menu))
           
-          (define (in-clickable-portion? dc sx sy)
+          (define/private (in-clickable-portion? dc sx sy)
             (and clickable-portion
                  (let ([font (send (get-style) get-font)])
                    (let-values ([(w1 h1 d1 a1) (get-text-extent/f dc unbarred-portion font)]

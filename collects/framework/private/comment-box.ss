@@ -96,13 +96,13 @@
                    (send admin get-editor))))
           
           ;; find-this-position : -> (union #f number)
-          (define (find-this-position)
+          (define/private (find-this-position)
             (let ([ed (find-containing-editor)])
               (and ed
                    (send ed get-snip-position this))))
           
           ;; copy-contents-with-semicolons-to-position : (is-a? text%) number -> void
-          (define (copy-contents-with-semicolons-to-position to-ed from-ed pos)
+          (define/private (copy-contents-with-semicolons-to-position to-ed from-ed pos)
             (let loop ([snip (find-last-snip from-ed)])
               (cond
                 [snip 
@@ -116,7 +116,7 @@
           
           ;; find-last-snip : editor -> snip
           ;; returns the last snip in the editor
-          (define (find-last-snip ed)
+          (define/private (find-last-snip ed)
             (let loop ([snip (send ed find-first-snip)]
                        [acc (send ed find-first-snip)])
               (cond
