@@ -267,6 +267,7 @@
                           cursor-gaps)])
               (set-cursor (and (or gap
                                    resizing-y)
+                               (send (icon:get-up/down-cursor) ok?)
                                (icon:get-up/down-cursor)))
               (cond
                 [(and gap (send evt button-down? 'left))

@@ -32,8 +32,8 @@
 		 [f
 		  (lambda ()
 		    (let ([bitmap (make-object bitmap% p type)])
-		      (set! f (lambda () bitmap))
-		      bitmap))])
+                      (set! f (lambda () bitmap))
+                      bitmap))])
 	  (unless (file-exists? p)
 	    (fprintf (current-error-port) "WARNING: couldn't find ~a~n" p))
 	  (lambda ()

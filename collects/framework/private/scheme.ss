@@ -556,7 +556,8 @@
                                             left
                                             right
                                             (if error? mismatch-color match-color)
-                                            (icon:get-paren-highlight-bitmap)
+                                            (and (send (icon:get-paren-highlight-bitmap) ok?)
+                                                 (icon:get-paren-highlight-bitmap))
                                             (= there here left))])
                                  (set! clear-old-locations
                                        (let ([old clear-old-locations])
