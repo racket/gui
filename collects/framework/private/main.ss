@@ -150,7 +150,8 @@
                      class100 class100* class100-asi class100-asi* class100*/names
                      rec
                      make-object mixin
-                     define-some do opt-lambda send*
+                     define-some do opt-lambda
+		     send* with-method
                      define-record
                      local catch shared
                      unit/sig unit/lang
