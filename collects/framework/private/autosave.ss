@@ -4,6 +4,7 @@
 	   (lib "class.ss")
            (lib "file.ss")
 	   "sig.ss"
+	   "../gui-utils.ss"
 	   (lib "mred-sig.ss" "mred")
            (lib "mred.ss" "mred") ;; remove this!
            (lib "list.ss")
@@ -118,7 +119,8 @@
                    [filtered-table
                     (filter (lambda (x) (file-exists? (cadr x))) table)])
               (unless (null? filtered-table)
-                (let* ([f (make-object final-frame% (string-constant recover-autosave-files-frame-title))]
+                (let* ([f (make-object final-frame%
+			    (string-constant recover-autosave-files-frame-title))]
                        [t (instantiate text% ()
                             (auto-wrap #t))]
                        [ec (instantiate editor-canvas% ()
@@ -128,6 +130,7 @@
                              (style '(no-hscroll)))]
                        [hp (make-object horizontal-panel% (send f get-area-container))]
                        [vp (make-object vertical-panel% hp)])
+		  (send vp set-alignment 'right 'center)
                   (make-object grow-box-spacer-pane% hp)
                   (send t insert (string-constant autosave-explanation))
                   (send t hide-caret #t)
@@ -135,6 +138,13 @@
                   (send t lock #t)
                   
                   (for-each (add-table-line vp f) filtered-table)
+		  (make-object button%
+		    (string-constant autosave-done)
+		    vp
+		    (lambda (x y)
+		      (when (send f can-close?)
+			(send f on-close)
+			(send f show #f))))
                   (send f show #t)
                   (yield done-semaphore)
                   (void))))))
@@ -158,50 +168,88 @@
         ;; adds in a line to the overview table showing this pair of files.
         (define (add-table-line area-container parent)
           (lambda (table-entry)
-            (let* ([orig-file (car table-entry)]
-                   [backup-file (cadr table-entry)]
-                   [hp (instantiate horizontal-panel% ()
-                         (parent area-container)
-                         (style '(border))
-                         (stretchable-height #f))]
-                   [vp (instantiate vertical-panel% ()
-                         (parent hp))]
-                   [msg1-panel (instantiate horizontal-panel% ()
-                                 (parent vp))]
-                   [msg1-label (instantiate message% ()
-                                 (parent msg1-panel)
-                                 (label (string-constant autosave-original-label:)))]
-                   [msg1 (instantiate message% ()
-                           (label (or orig-file (string-constant autosave-unknown-filename)))
-                           (stretchable-width #t)
-                           (parent msg1-panel))]
-                   [msg2-panel (instantiate horizontal-panel% ()
-                                 (parent vp))]
-                   [msg2-label (instantiate message% ()
-                                 (parent msg2-panel)
-                                 (label (string-constant autosave-autosave-label:)))]
-                   [msg2 (instantiate message% ()
-                           (label backup-file)
-                           (stretchable-width #t)
-                           (parent msg2-panel))]
-                   [details
-                    (make-object button% (string-constant autosave-details) hp
-                      (lambda (x y)
-                        (show-files table-entry)))]
-                   [recover
-                    (make-object button% (string-constant autosave-recover) hp
-                      (lambda (recover y)
-                        (let ([filename-result (recover-file parent table-entry)])
-                          (when filename-result
-                            (send recover enable #f)
-                            (send details enable #f)
-                            (send msg2 set-label (string-constant autosave-recovered!))
-                            (send msg1 set-label filename-result)))))])
+            (letrec ([orig-file (car table-entry)]
+		     [backup-file (cadr table-entry)]
+		     [hp (instantiate horizontal-panel% ()
+			   (parent area-container)
+			   (style '(border))
+			   (stretchable-height #f))]
+		     [vp (instantiate vertical-panel% ()
+			   (parent hp))]
+		     [msg1-panel (instantiate horizontal-panel% ()
+				   (parent vp))]
+		     [msg1-label (instantiate message% ()
+				   (parent msg1-panel)
+				   (label (string-constant autosave-original-label:)))]
+		     [msg1 (instantiate message% ()
+			     (label (or orig-file (string-constant autosave-unknown-filename)))
+			     (stretchable-width #t)
+			     (parent msg1-panel))]
+		     [msg2-panel (instantiate horizontal-panel% ()
+				   (parent vp))]
+		     [msg2-label (instantiate message% ()
+				   (parent msg2-panel)
+				   (label (string-constant autosave-autosave-label:)))]
+		     [msg2 (instantiate message% ()
+			     (label backup-file)
+			     (stretchable-width #t)
+			     (parent msg2-panel))]
+		     [details
+		      (make-object button% (string-constant autosave-details) hp
+				   (lambda (x y)
+				     (show-files table-entry)))]
+		     [delete
+		      (make-object button%
+			(string-constant autosave-delete-button)
+			hp
+			(lambda (delete y)
+			  (when (delete-autosave table-entry)
+			    (disable-line)
+			    (send msg2 set-label (string-constant autosave-deleted)))))]
+		     [recover
+		      (make-object button%
+			(string-constant autosave-recover)
+			hp
+			(lambda (recover y)
+			  (let ([filename-result (recover-file parent table-entry)])
+			    (when filename-result
+			      (disable-line)
+			      (send msg2 set-label (string-constant autosave-recovered!))
+			      (send msg1 set-label filename-result)))))]
+		     [disable-line
+		      (lambda ()
+			(send recover enable #f)
+			(send details enable #f)
+			(send delete enable #f))])
               (let ([w (max (send msg1-label get-width) (send msg2-label get-width))])
                 (send msg1-label min-width w)
                 (send msg2-label min-width w))
               (void))))
         
+	;; delete-autosave : (list (union #f string[filename]) string[filename]) -> boolean
+	;; result indicates if delete occurred
+	(define (delete-autosave table-entry)
+	  (let ([autosave-file (cadr table-entry)])
+	    (and (gui-utils:get-choice
+		  (format (string-constant autosave-are-you-sure-delete?)
+			  autosave-file)
+		  (string-constant autosave-delete-title)
+		  (string-constant cancel)
+		  (string-constant warning)
+		  #f)
+		 (with-handlers ([not-break-exn?
+				  (lambda (exn)
+				    (message-box
+				     (string-constant warning)
+				     (format (string-constant autosave-error-deleting)
+					     autosave-file
+					     (if (exn? exn)
+						 (exn-message exn)
+						 (format "~s" exn))))
+				    #f)])
+		   (delete-file autosave-file)
+		   #t))))
+
         ;; show-files : (list (union #f string[filename]) string) -> void
         (define (show-files table-entry)
           (let ([file1 (car table-entry)]

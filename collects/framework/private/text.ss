@@ -718,7 +718,7 @@
         (let ([all-strings? (all-string-snips)])
           (cond
             [(and all-strings?
-                  (or (eq? format 'same) (eq? format 'copy))
+                  (eq? format 'same)
                   (eq? 'standard (get-file-format))
                   (or (not (preferences:get 'framework:verify-change-format))
                       (gui-utils:get-choice
@@ -727,7 +727,7 @@
                        (string-constant no))))
              (set-file-format 'text)]
             [(and (not all-strings?)
-                  (or (eq? format 'same) (eq? format 'copy))
+                  (eq? format 'same)
                   (eq? 'text (get-file-format))
                   (or (not (preferences:get 'framework:verify-change-format))
                       (gui-utils:get-choice

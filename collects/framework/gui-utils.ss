@@ -166,7 +166,7 @@
       (symbols 'app 'caution 'stop))
      any?)
     ((message true-choice false-choice)
-     ((title "Warning")
+     ((title (string-constant warning))
       (default-result 'disallow-close)
       (paren #f)
       (style 'app)))
