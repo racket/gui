@@ -3,7 +3,7 @@
   (require (lib "string-constant.ss" "string-constants")
            (lib "unitsig.ss")
 	   "sig.ss"
-	   "../gui-utils-sig.ss"
+	   "../gui-utils.ss"
            (lib "class100.ss")
            (lib "class.ss")
 	   (lib "mred-sig.ss" "mred")
@@ -18,7 +18,6 @@
     (unit/sig framework:finder^
       (import mred^
               [preferences : framework:preferences^]
-	      [gui-utils : framework:gui-utils^]
 	      [keymap : framework:keymap^])
 
       (rename [-put-file put-file]

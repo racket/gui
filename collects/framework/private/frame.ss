@@ -6,7 +6,7 @@
 	   (lib "class100.ss")
 	   (lib "include.ss")
 	   "sig.ss"
-	   "../gui-utils-sig.ss"
+	   "../gui-utils.ss"
 	   "../macro.ss"
 	   (lib "mred-sig.ss" "mred")
 	   (lib "list.ss")
@@ -24,7 +24,6 @@
               [handler : framework:handler^]
               [application : framework:application^]
               [panel : framework:panel^]
-              [gui-utils : framework:gui-utils^]
               [exit : framework:exit^]
               [finder : framework:finder^]
               [keymap : framework:keymap^]

@@ -5,7 +5,7 @@
 	   (lib "class100.ss")
            (lib "list.ss")
 	   "sig.ss"
-	   "../gui-utils-sig.ss"
+	   "../gui-utils.ss"
 	   (lib "mred-sig.ss" "mred")
 	   (lib "file.ss"))
 
@@ -14,7 +14,6 @@
   (define handler@
     (unit/sig framework:handler^
       (import mred^
-	      [gui-utils : framework:gui-utils^]
 	      [finder : framework:finder^]
 	      [group : framework:group^]
 	      [text : framework:text^]

@@ -3,7 +3,7 @@
            (lib "unitsig.ss")
            (lib "class.ss")
            "sig.ss"
-           "../gui-utils-sig.ss"
+	   "../gui-utils.ss"
            (lib "mred-sig.ss" "mred")
            (lib "list.ss")
            (lib "file.ss"))
@@ -16,7 +16,6 @@
               [application : framework:application^]
               [frame : framework:frame^]
               [preferences : framework:preferences^]
-              [gui-utils : framework:gui-utils^]
               [text : framework:text^]
               [canvas : framework:canvas^]
               [menu : framework:menu^])

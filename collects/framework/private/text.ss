@@ -6,7 +6,7 @@
 	   (lib "class100.ss")
 	   "sig.ss"
 	   "../macro.ss"
-	   "../gui-utils-sig.ss"
+	   "../gui-utils.ss"
 	   (lib "mred-sig.ss" "mred")
 	   (lib "list.ss")
 	   (lib "etc.ss"))
@@ -19,7 +19,6 @@
               [editor : framework:editor^]
               [preferences : framework:preferences^]
               [keymap : framework:keymap^]
-              [gui-utils : framework:gui-utils^]
               [color-model : framework:color-model^]
               [frame : framework:frame^]
               [scheme : framework:scheme^])

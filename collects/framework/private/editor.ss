@@ -4,7 +4,7 @@
 	   (lib "class100.ss")
            (lib "string-constant.ss" "string-constants")
 	   "sig.ss"
-	   "../gui-utils-sig.ss"
+	   "../gui-utils.ss"
 	   "../macro.ss"
            (lib "etc.ss")
 	   (lib "mred-sig.ss" "mred")
@@ -24,7 +24,6 @@
 	      [text : framework:text^]
 	      [pasteboard : framework:pasteboard^]
 	      [frame : framework:frame^]
-	      [gui-utils : framework:gui-utils^]
               [handler : framework:handler^])
       
       (rename [-keymap<%> keymap<%>])

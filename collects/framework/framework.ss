@@ -1,13 +1,11 @@
+
 (module framework mzscheme
   (require (lib "unitsig.ss")
            (lib "mred.ss" "mred")
            (lib "mred-sig.ss" "mred")
            
            "test.ss"
-           "test-sig.ss"
-           
            "gui-utils.ss"
-           "gui-utils-sig.ss"
            
            "framework-unit.ss"
            "framework-sig.ss"
@@ -16,11 +14,11 @@
            "specs.ss")
   
   (provide-signature-elements framework-class^)
-  (provide-signature-elements ((unit test : framework:test^)
-                               (unit gui-utils : framework:gui-utils^)))
-  (provide (all-from "macro.ss"))
-  (provide (all-from "specs.ss"))
-   
+  (provide (all-from "macro.ss")
+           (all-from "specs.ss")
+           (all-from "test.ss")
+           (all-from "gui-utils.ss"))
+
   (provide exn:struct:unknown-preference
            exn:struct:exn)
 
@@ -298,7 +296,7 @@
     "Generates a name for an backup file from \\var{filename}.")
    (finder:dialog-parent-parameter
     (case->
-     ((union false? (is-a?/c top-level-window<%>)) . -> . void)
+     ((union false? (is-a?/c top-level-window<%>)) . -> . void?)
      (-> (union false? (is-a?/c top-level-window<%>))))
     ((parent) ())
     "This is a parameter (see "
@@ -332,7 +330,7 @@
     "Its default value is \\rawscm{\"\"}.")
    (finder:default-filters
     (case->
-     ((listof (list/p string? string?)) . -> . void)
+     ((listof (list/p string? string?)) . -> . void?)
      (-> (listof (list/p string? string?))))
     ((filters) ())
     "This parameter controls the default extension for the framework's "
@@ -606,7 +604,7 @@
     "If \\var{filename} is \\rawscm{\\#f}, \\var{make-default} is used."
     "\\end{itemize}")
    (handler:open-file
-    (-> (is-a?/c frame:basic<%>))
+    (-> (union false? (is-a?/c frame:basic<%>)))
     ()
     "This function queries the user for a filename and opens the file for"
     "editing. It uses "
@@ -724,8 +722,8 @@
 
    (keymap:add-to-right-button-menu
     (case->
-     (((is-a?/c menu%) (is-a?/c editor<%>) (is-a?/c event%) . -> . void) . -> . void)
-     (-> ((is-a?/c menu%) (is-a?/c editor<%>) (is-a?/c event%) . -> . void)))
+     (((is-a?/c menu%) (is-a?/c editor<%>) (is-a?/c event%) . -> . void?) . -> . void?)
+     (-> ((is-a?/c menu%) (is-a?/c editor<%>) (is-a?/c event%) . -> . void?)))
     ((func) ())
     "When the keymap that "
     "@flink keymap:get-global"
@@ -739,6 +737,27 @@
     ""
     "See also"
     "@flink keymap:add-to-right-button-menu/before %"
+    ".")
+
+   (keymap:add-to-right-button-menu/before
+    (case->
+     (((is-a?/c menu%) (is-a?/c editor<%>) (is-a?/c event%) . -> . void?)
+      . -> .
+      void?)
+     (-> ((is-a?/c menu%) (is-a?/c editor<%>) (is-a?/c event%) . -> . void?)))
+    ((func) ())
+    "When the keymap that "
+    "@flink keymap:get-global"
+    "returns is installed into an editor, this function is called"
+    "for right button clicks. "
+    ""
+    "After calling this procedure, the "
+    "function"
+    "@flink append-editor-operation-menu-items"
+    "is called."
+    ""
+    "See also"
+    "@flink keymap:add-to-right-button-menu %"
     ".")
 
    (keymap:call/text-keymap-initializer
@@ -1002,27 +1021,6 @@
     "This extends a "
     "@link keymap"
     "with the bindings for searching.")
-
-   (keymap:add-to-right-button-menu/before
-    (case->
-     (((is-a?/c menu%) (is-a?/c editor<%>) (is-a?/c event%) . -> . void?)
-      . -> .
-      void?)
-     (-> ((is-a?/c menu%) (is-a?/c editor<%>) (is-a?/c event%) . -> . void?)))
-    ((func) ())
-    "When the keymap that "
-    "@flink keymap:get-global"
-    "returns is installed into an editor, this function is called"
-    "for right button clicks. "
-    ""
-    "After calling this procedure, the "
-    "function"
-    "@flink append-editor-operation-menu-items"
-    "is called."
-    ""
-    "See also"
-    "@flink keymap:add-to-right-button-menu %"
-    ".")
 
    (scheme-paren:backward-containing-sexp
     (opt->
@@ -1292,10 +1290,8 @@
      "Extracts the z component of \\var{xyz}."))
   
   (define-values/invoke-unit/sig 
-   frameworkc^ 
-   frameworkc@ 
+   framework^ 
+   framework@ 
    #f
-   mred^
-   (test : framework:test^)
-   (gui-utils : framework:gui-utils^)))
+   mred^))
 

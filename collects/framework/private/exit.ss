@@ -3,7 +3,7 @@
            (lib "string-constant.ss" "string-constants")
 	   (lib "class.ss")
 	   "sig.ss"
-	   "../gui-utils-sig.ss"
+	   "../gui-utils.ss"
 	   (lib "mred-sig.ss" "mred")
 	   (lib "file.ss")
            (lib "etc.ss"))
@@ -13,8 +13,7 @@
   (define exit@
     (unit/sig framework:exit^
       (import mred^
-	      [preferences : framework:preferences^]
-	      [gui-utils : framework:gui-utils^])
+	      [preferences : framework:preferences^])
       (rename (-exit exit))
       
       (define frame-exiting (make-parameter #f))

@@ -2,7 +2,7 @@
   (require (lib "unitsig.ss")
 	   (lib "class.ss")
 	   "sig.ss"
-           "../gui-utils-sig.ss"
+	   "../gui-utils.ss"
 	   "../macro.ss"
            (lib "string-constant.ss" "string-constants")
 	   (lib "mred-sig.ss" "mred"))
@@ -14,8 +14,7 @@
       (import mred^
 	      [preferences : framework:preferences^]
 	      [exit : framework:exit^]
-	      [group : framework:group^]
-              [gui-utils : framework:gui-utils^])
+	      [group : framework:group^])
       
       ;; preferences
       
