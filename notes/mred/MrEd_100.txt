@@ -238,7 +238,7 @@ event%
 
 area<%>
     get-parent
-    get-top-level - returns the area's frame/dialog
+    get-top-level-window - returns the area's frame/dialog
     min-width min-height
     stretchable-width stretchable-height
 
@@ -250,10 +250,12 @@ window<%> : area<%>
     enable is-enabled?
     on-size
     on-subwindow-char on-subwindow-event - formerly pre-on-...
-    client->screen screen->client
+    client->screen screen->client - takes two and returns two values
     get-label set-label
     get-plain-label - e.g., "Button" instead of "&Button"
-    get-client-size get-geometry get-width get-height get-x get-y
+    get-client-size - returns two values
+    get-size - returns two values
+    get-width get-height get-x get-y
     get-cursor set-cursor 
     show is-shown?
     refresh
@@ -308,7 +310,7 @@ frame% : top-level-window<%>
    <= label [parent #f] [width #f] [height #f] [x #f] [y #f] [style null]
       styles: 'no-thick-border 'no-resize-border 'no-caption 'no-system-menu
               'iconize 'maximize 'mdi-parent 'mdi-child
-   create-status-line set-status-line has-status-line?
+   create-status-line set-status-text has-status-line?
    get-menu-bar
    iconize is-iconized? set-icon maximize
 
@@ -549,7 +551,9 @@ bell
 label->plain-label
 get-resource write-resource
 yield flush-display
-get-face-list
+get-face-list - formerly wx:get-font-list
+
+find-graphical-system-path - formerly wx:find-path
 
 current-ps-setup
 

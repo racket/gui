@@ -1815,7 +1815,7 @@
 
 (define area<%>
   (interface ()
-    get-parent get-top-level
+    get-parent get-top-level-window
     min-width min-height
     stretchable-width stretchable-height))
 
@@ -1823,7 +1823,7 @@
   (class* mred% (area<%>) (mk-wx get-wx-panel parent)
     (public
       [get-parent (lambda () parent)]
-      [get-top-level (lambda () (wx->mred (send wx get-top-level)))]
+      [get-top-level-window (lambda () (wx->mred (send wx get-top-level)))]
       [min-width (param get-wx-panel 'min-width)]
       [min-height (param get-wx-panel 'min-height)]
       [stretchable-width (param get-wx-panel 'stretchable-in-x)]
@@ -1880,7 +1880,7 @@
     client->screen screen->client
     enable is-enabled?
     get-label set-label
-    get-client-size get-geometry get-width get-height get-x get-y
+    get-client-size get-size get-width get-height get-x get-y
     get-cursor set-cursor 
     show is-shown?
     refresh))
@@ -1919,12 +1919,10 @@
 			 (double-boxed
 			  0 0
 			  (lambda (x y) (send wx get-client-size x y))))]
-      [get-geometry (lambda ()
-		      (let ([x (box 0)][y (box 0)][w (box 0)][h (box 0)])
-			(send wx get-size w h x y)
-			(values (- (unbox x) (if top? 0 (send wx dx)))
-				(- (unbox y) (if top? 0 (send wx dy)))
-				(unbox w) (unbox h))))]
+      [get-size (lambda ()
+		  (double-boxed
+		   0 0
+		   (lambda (x y) (send wx get-size x y))))]
       
       [get-width (lambda () (send wx get-width))]
       [get-height (lambda () (send wx get-height))]
@@ -2056,7 +2054,7 @@
       [on-subwindow-char (lambda (w event) (send wx handle-menu-key event))])
     (public
       [create-status-line (lambda () (unless status-line? (send wx create-status-line) (set! status-line? #t)))]
-      [set-status-line (lambda (s) (send wx set-status-text s))]
+      [set-status-text (lambda (s) (send wx set-status-text s))]
       [has-status-line? (lambda () status-line?)]
       [iconize (lambda (on?) (send wx iconize on?))]
       [is-iconized? (lambda () (send wx iconized?))]
