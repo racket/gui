@@ -29,10 +29,10 @@
   v)
 
 (when subwindows?
-  (namespace-variable-binding
+  (namespace-set-variable-value!
    'sub-collect-frame
    (make-object frame% "sub-collect"))
-  (namespace-variable-binding
+  (namespace-set-variable-value!
    'sub-collect-panel
    (make-object panel% sub-collect-frame)))
 
