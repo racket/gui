@@ -4,12 +4,54 @@
   
   (rename [-editor<%> editor<%>])
 
-  (define single<%> (interface (panel<%>)))
+  (define single<%> (interface (area-container<%>)))
   (define single-mixin
-    (mixin (panel<%>) (single<%>) args
+    (mixin (area-container<%>) (single<%>) args
+      (inherit get-alignment)
+      (override
+       [container-size
+	(lambda (l)
+	  (values (apply max (map car l)) (apply max (map cadr l))))]
+       [place-children
+	(lambda (l width height)
+	  (printf "place children~n")
+	  (let-values ([(h-align-spec v-align-spec) (get-alignment)])
+	    (let ([align
+		   (lambda (total-size spec item-size)
+		     (floor
+		      (case spec
+			[(center) (- (/ total-size 2) (/ item-size 2))]
+			[(left top) 0]
+			[(right bottom) (- total-size item-size)]
+			[else (error 'place-children "alignment spec is unknown ~a~n" spec)])))])
+	      (map (lambda (l) 
+		     (let*-values ([(min-width min-height v-stretch? h-stretch?) (apply values l)]
+				   [(x this-width) (if h-stretch?
+						       (values 0 width)
+						       (values (align width h-align-spec min-width) min-width))]
+				   [(y this-height) (if v-stretch?
+							(values 0 height)
+							(values (align height v-align-spec min-height) min-height))])
+		       (list x y this-width this-height)))
+		   l))))])
+      
+      (inherit get-children)
+      (private [current-active-child #f])
+      (public
+	[active-child
+	 (case-lambda
+	  [() current-active-child]
+	  [(x) 
+	   (unless (eq? x current-active-child)
+	     (for-each (lambda (x) (send x show #f))
+		       (get-children))
+	     (set! current-active-child x)
+	     (send current-active-child show #t))])])
       (sequence
 	(apply super-init args))))
-  (define single% (single-mixin vertical-panel%))
+  
+  (define single% (single-mixin panel%))
+  (define single-pane% (single-mixin pane%))
   
   (define -editor<%>
     (interface ()

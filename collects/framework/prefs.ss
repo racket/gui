@@ -369,8 +369,9 @@
 	  (make-check 'framework:menu-bindings "Enable keybindings in menus" id id)
 	  (unless (eq? (system-type) 'unix) 
 	    (make-check 'framework:print-output-mode "Automatically print to postscript file"
-			(lambda (b) (if b 1 0))
-			(lambda (n) (= n 1))))
+			(lambda (b) 
+			  (if b 'postscript 'standard))
+			(lambda (n) (eq? 'postscript n))))
 
 	  
 	  (make-check 'framework:display-line-numbers "Display line numbers in buffer; not character offsets" id id)

@@ -100,15 +100,15 @@ tests.
   | these tests perform santiy checks to ensure that the docs are up to
   | date with the code and the mred web browser isn't horribly broken
 
-  - web browers: browse.ss
-
-    | Checks a couple of pages from the documentation. Only checks for
-    | safety violations while opening them. Further tests here will be
-    | post-poned until the implementation itself is cleaned up.
-
   - inheritance: inheritance.ss
 
     | make sure that the super-class relationships in the docs match
     | the code.
 
+- interactive tests
+
+  | these tests require intervention by people. Clicking and whatnot
+  
+  - panel:single |# panel.ss #|
+	
 |#)

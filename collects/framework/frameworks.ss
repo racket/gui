@@ -23,6 +23,7 @@
   (single-mixin
    single<%>
    single%
+   single-pane%
    
    editor-mixin
    editor<%>
