@@ -185,6 +185,7 @@
 	(send dialog show #t)
 	result)]))
 
+  (define text-snip<%> (interface () get-string))
   (define read-snips/chars-from-text
     (letrec ([get-snips
 	      (lambda (text start end)
@@ -210,8 +211,11 @@
 	     [(null? snips)
 	      (set! get-next (lambda () eof))
 	      eof]
-	     [(is-a? (car snips) string-snip%)
-	      (let ([str (send (car snips) get-text 0 (send (car snips) get-count))])
+	     [(or (is-a? (car snips) string-snip%)
+                  (is-a? (car snips) text-snip<%>))
+	      (let ([str (if (is-a? (car snips) text-snip<%>)
+                             (send (car snips) get-string)
+                             (send (car snips) get-text 0 (send (car snips) get-count)))])
 		(let string-loop ([n 0])
 		  (cond
 		   [(< n (string-length str))
