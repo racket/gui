@@ -240,29 +240,31 @@
 		       (call-with-input-file prefs-file:preferences-filename
 			 read
 			 'text))])
-	  (let loop ([input input])
-	    (cond
-	     [(pair? input)
-	      (let ([err-msg
-		     (let/ec k
-		       (let ([first (car input)])
-			 (unless (pair? first)
-			   (k "expected pair of pair"))
-			 (let ([arg1 (car first)]
-			       [t1 (cdr first)])
-			   (unless (pair? t1)
-			     (k "expected pair of two pairs"))
-			   (let ([arg2 (car t1)]
-				 [t2 (cdr t1)])
-			     (unless (null? t2)
-			       (k "expected null after two pairs"))
-			     (parse-pref arg1 arg2)
-			     (k #f)))))])
-		(when err-msg
-		  (err input err-msg)))
-	      (loop (cdr input))]
-	     [(null? input) (void)]
-	     [else (err input "expected a pair")]))))))
+	  (if (eof-object? input)
+	      (void)
+	      (let loop ([input input])
+		(cond
+		 [(pair? input)
+		  (let ([err-msg
+			 (let/ec k
+			   (let ([first (car input)])
+			     (unless (pair? first)
+			       (k "expected pair of pair"))
+			     (let ([arg1 (car first)]
+				   [t1 (cdr first)])
+			       (unless (pair? t1)
+				 (k "expected pair of two pairs"))
+			       (let ([arg2 (car t1)]
+				     [t2 (cdr t1)])
+				 (unless (null? t2)
+				   (k "expected null after two pairs"))
+				 (parse-pref arg1 arg2)
+				 (k #f)))))])
+		    (when err-msg
+		      (err input err-msg)))
+		  (loop (cdr input))]
+		 [(null? input) (void)]
+		 [else (err input "expected a pair")])))))))
   
   ;; read-from-file-to-ht : string hash-table -> void
   (define (read-from-file-to-ht filename ht)
