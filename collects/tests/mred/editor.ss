@@ -208,6 +208,27 @@
   (st "hello" new-snip get-text 0 10))
 
 ;; ----------------------------------------
+;; Check CRLF conversion
+
+(let ([crlf-s (apply
+	       string-append
+	       (let loop ([n 100])
+		 (if (zero? n)
+		     null
+		     (cons (make-string (random 40) #\a)
+			   (cons "\r\n"
+				 (loop (sub1 n)))))))]
+      [e (new text%)])
+  (let ([lf-s (regexp-replace* #rx"\r\n" crlf-s "\n")]
+	[lflf-s (regexp-replace* #rx"\r\n" crlf-s "\n\n")])
+    (st "" e get-text 0 'eof)
+    (send e insert-port (open-input-string crlf-s))
+    (st lf-s e get-text 0 'eof)
+    (send e erase)
+    (send e insert crlf-s)
+    (st lflf-s e get-text 0 'eof)))
+
+;; ----------------------------------------
 
 (report-errs)
 
