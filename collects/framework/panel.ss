@@ -156,11 +156,11 @@
   (define thumb-canvas%
     (class canvas% (parent get-top-min get-bot-min)
       (private
-	[percentage 1/2])
+	[percentages (list 1/3 1/3)])
       (public
-	[get-percentage (lambda () percentage)]
-	[set-percentage (lambda (_p) 
-			  (set! percentage _p)
+	[get-percentages (lambda () percentages)]
+	[set-percentages (lambda (_p) 
+			  (set! percentages _p)
 			  (on-paint))])
       (private
 	[thumb-height 12]
@@ -170,23 +170,23 @@
       (private
 	[grabbed? #f]
 	[get-thumb-middle
-	 (lambda ()
+	 (lambda (percentage)
 	   (let-values ([(w h) (get-client-size)])
 	     (floor (* h percentage))))]
 	[get-thumb-top
-	 (lambda ()
-	   (- (get-thumb-middle) (/ thumb-height 2)))]
+	 (lambda (percentage)
+	   (- (get-thumb-middle percentage) (/ thumb-height 2)))]
 	[get-thumb-bottom
-	 (lambda ()
-	   (+ (get-thumb-top) thumb-height))]
+	 (lambda (percentage)
+	   (+ (get-thumb-top percentage) thumb-height))]
 	[update-percentage/draw
 	 (lambda (mouse-evt)
 	   (let-values ([(w h) (get-client-size)])
 	     (let* ([y (inexact->exact (send mouse-evt get-y))]
 		    [y-min (max thumb-min (get-top-min))]
 		    [y-max (- h (max thumb-min (get-bot-min)))])
-	       (set! percentage (/ (min (max y-min y) y-max) h))
-               (send parent on-percentage percentage)
+					;(set! percentage (/ (min (max y-min y) y-max) h))
+               ;(send parent on-percentage percentage)
 	       (on-paint))))])
       (private
         [point1 (make-object point% 0 0)]
@@ -225,10 +225,20 @@
 	      (if grabbed?
 		  (send dc set-brush grab-brush)
 		  (send dc set-brush reg-brush))
-              (send point1 set-x 2) (send point1 set-y (get-thumb-middle))
-              (send point2 set-x (- w 1)) (send point2 set-y (get-thumb-top))
-              (send point3 set-x (- w 1)) (send point3 set-y (get-thumb-bottom))
-	      (send dc draw-polygon points))))])
+	      (let loop ([percentages percentages]
+			 [percentage-total 0])
+		(cond
+		 [(null? percentages) (void)]
+		 [else
+		  (let ([percentage-total (+ (car percentages) percentage-total)])
+		    (send point1 set-x 2)
+		    (send point1 set-y (get-thumb-middle percentage-total))
+		    (send point2 set-x (- w 1))
+		    (send point2 set-y (get-thumb-top percentage-total))
+		    (send point3 set-x (- w 1))
+		    (send point3 set-y (get-thumb-bottom percentage-total))
+		    (send dc draw-polygon points)
+		    (loop (cdr percentages) percentage-total))])))))])
       
       (inherit min-width stretchable-width)
       (sequence 
@@ -239,8 +249,8 @@
   (define vertical-resizable<%>
     (interface (area-container<%>)
       on-percentage
-      get-percentage
-      set-percentage))
+      get-percentages
+      set-percentages))
       
   (define vertical-resizable-mixin
     (mixin (area-container<%>) (vertical-resizable<%>) args
@@ -274,33 +284,51 @@
 	       (+ (send thumb-canvas min-width)
 		  (apply max (map cadr lst)))]))))]
        [place-children
-	(lambda (info width height)
-	  (let* ([percentage (send thumb-canvas get-percentage)]
-		 [first (floor (* percentage height))]
-		 [second (- height first)]
-		 [main-width (- width (send thumb-canvas min-width))]
-		 [res
-		  (cond
-		   [(null? info) null]
-		   [(null? (cdr info)) (list (list 0 0 0 0))]
-		   [(null? (cdr (cdr info)))
-		    (list (list 0 0 0 0)
-			  (list 0 0 width height))]
-		   [else
-		    (list* (list (- width (send thumb-canvas min-width)) 0
-				 (send thumb-canvas min-width)
-				 height)
-			   (list 0 0 main-width first)
-			   (list 0 first main-width second)
-			   (map (lambda (x) (list 0 0 0 0)) (cdddr info)))])])
-	    res))])
+	(lambda (_infos width height)
+	  (cond
+	   [(null? _infos) null]
+	   [(null? (cdr _infos)) (list (list 0 0 0 0))]
+	   [(null? (cdr (cdr _infos)))
+	    (list (list 0 0 0 0)
+		  (list 0 0 width height))]
+	   [else
+	    (cons
+	     (list (- width (send thumb-canvas min-width)) 0
+		   (send thumb-canvas min-width)
+		   height)
+	     (let ([main-width (- width (send thumb-canvas min-width))])
+	       (let loop ([percentages (send thumb-canvas get-percentages)]
+			  [infos (cdr _infos)]
+			  [y 0])
+		 (cond
+		  [(null? percentages)
+		   (if (or (null? infos)
+			   (not (null? (cdr infos))))
+		       (error 'panel:vertical-resizable-mixin:place-children
+			      "expected children list(~a) to be one longer than percentage list(~a), info: ~e percentages ~e"
+			      (length _infos) (length (send thumb-canvas get-percentages))
+			      _infos (send thumb-canvas get-percentages))
+		       (list (list 0 y main-width (- height y))))]
+		  [else
+		   (when (null? infos)
+		     (error 'panel:vertical-resizable-mixin:place-children
+			    "expected children list(~a) to be one longer than percentage list(~a), info: ~e percentages ~e"
+			    (length _infos) (length (send thumb-canvas get-percentages))
+			    _infos (send thumb-canvas get-percentages)))
+		   (let* ([info (car infos)]
+			  [percentage (car percentages)]
+			  [this-space (floor (* percentage height))])
+		     (cons (list 0 y main-width this-space)
+			   (loop (cdr percentages)
+				 (cdr infos)
+				 (+ y this-space))))]))))]))])
       (inherit reflow-container get-top-level-window set-alignment get-alignment)
       (public
         [on-percentage (lambda (p) (void))]
-	[get-percentage (lambda () (send thumb-canvas get-percentage))]
-	[set-percentage
+	[get-percentages (lambda () (send thumb-canvas get-percentages))]
+	[set-percentages
 	 (lambda (p)
-	   (send thumb-canvas set-percentage p)
+	   (send thumb-canvas set-percentages p)
 	   (refresh-panel this))])
       
       (sequence
