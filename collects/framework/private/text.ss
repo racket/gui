@@ -38,9 +38,9 @@ WARNING: printf is rebound in the body of the unit to always
         (void))
       (define-syntax (dprintf stx)
         (syntax-case stx ()
-          [(_ . args) 
-           #;(syntax (printf . args))
-           (syntax (void))]))
+          [(_ bool . args) 
+           (syntax (when bool (printf . args)))
+           #;(syntax (void))]))
       
       (define-struct range (start end b/w-bitmap color caret-space?))
       (define-struct rectangle (left top right bottom b/w-bitmap color))
@@ -882,12 +882,11 @@ WARNING: printf is rebound in the body of the unit to always
           get-err-style-delta
           get-value-style-delta
           get-in-port
+          get-in-port-args
           get-out-port
           get-err-port
           get-value-port
-          after-io-insertion
-          
-          on-peek))
+          after-io-insertion))
       
       (define-struct peeker (bytes skip-count pe resp-chan nack) (make-inspector))
       (define-struct committer (kr commit-peeker-evt done-evt resp-chan resp-nack))
@@ -914,6 +913,8 @@ WARNING: printf is rebound in the body of the unit to always
                    position-paragraph
                    split-snip)
           
+          (init-field [show-dprintf? #f])
+          
           ;; private field
           (define eventspace (current-eventspace))
           
@@ -939,11 +940,16 @@ WARNING: printf is rebound in the body of the unit to always
           ;;  public interface
           ;;
           
-          ;; insert-between : string -> void
+          ;; insert-between : string/snp -> void
           ;; inserts something between the insertion point and the unread region
-          (define/public-final (insert-between str)
-            (insert str unread-start-point unread-start-point)
-            (set! unread-start-point (+ unread-start-point (string-length str))))
+          (define/public-final (insert-between str/snp)
+            (insert str/snp unread-start-point unread-start-point)
+            (set! unread-start-point (+ unread-start-point 
+                                        (cond
+                                          [(string? str/snp) (string-length str/snp)]
+                                          [(is-a? str/snp snip%)
+                                           (send str/snp get-count)]))))
+                                           
           
           (define/public-final (get-insertion-point) insertion-point)
           (define/public-final (set-insertion-point ip) (set! insertion-point ip))
@@ -976,6 +982,9 @@ WARNING: printf is rebound in the body of the unit to always
           (define/public-final (get-in-port)
             (unless in-port (error 'get-in-port "not ready"))
             in-port)
+          (define/public-final (get-in-port-args) 
+            (unless in-port (error 'get-in-port-args "not ready"))
+            in-port-args)
           (define/public-final (get-out-port)
             (unless out-port (error 'get-out-port "not ready"))
             out-port)
@@ -1006,9 +1015,6 @@ WARNING: printf is rebound in the body of the unit to always
               (send value-sd set-delta-foreground (make-object color% 0 0 175))
               value-sd))
 
-          ;; called by the port thread
-          (define/public (on-peek) (void))
-          
           ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
           ;;
           ;;  editor integration
@@ -1151,28 +1157,28 @@ WARNING: printf is rebound in the body of the unit to always
                         (handle-evt
                          (alarm-evt (+ last-flush msec-timeout))
                          (lambda (_)
-                           (dprintf "o: alarm.1 ~s\n" (queue->list text-to-insert))
+                           (dprintf show-dprintf? "o: alarm.1 ~s\n" (queue->list text-to-insert))
                            (let-values ([(viable-bytes remaining-queue) (split-queue converter text-to-insert)])
-                             (dprintf "o: alarm.2 ~s\n" viable-bytes)
+                             (dprintf show-dprintf? "o: alarm.2 ~s\n" viable-bytes)
                              (queue-insertion viable-bytes always-evt)
                              (loop remaining-queue (current-inexact-milliseconds))))))
                     (handle-evt
                      flush-chan
                      (lambda (return-evt)
-                       (dprintf "o: flush.1 ~s\n" (queue->list text-to-insert))
+                       (dprintf show-dprintf? "o: flush.1 ~s\n" (queue->list text-to-insert))
                        (let-values ([(viable-bytes remaining-queue) (split-queue converter text-to-insert)])
-                         (dprintf "o: flush.2 ~s\n" viable-bytes)
+                         (dprintf show-dprintf?  "o: flush.2 ~s\n" viable-bytes)
                          (queue-insertion viable-bytes return-evt)
                          (loop remaining-queue (current-inexact-milliseconds)))))
                     (handle-evt
                      clear-output-chan
                      (lambda (_)
-                       (dprintf "o: clear-output\n")
+                       (dprintf show-dprintf? "o: clear-output\n")
                        (loop (empty-queue) (current-inexact-milliseconds))))
                     (handle-evt
                      write-chan
                      (lambda (pr)
-                       (dprintf "o: write ~s\n" pr)
+                       (dprintf show-dprintf? "o: write ~s\n" pr)
                        (let ([new-text-to-insert (enqueue pr text-to-insert)])
                          (cond
                            [((queue-size text-to-insert) . < . output-buffer-full)
@@ -1186,6 +1192,7 @@ WARNING: printf is rebound in the body of the unit to always
                                 (loop remaining-queue (current-inexact-milliseconds))))]))))))))))
           
           (field [in-port #f]
+                 [in-port-args #f]
                  [out-port #f]
                  [err-port #f]
                  [value-port #f])
@@ -1325,7 +1332,7 @@ WARNING: printf is rebound in the body of the unit to always
                     (handle-evt
                      position-chan
                      (lambda (pr)
-                       (dprintf "i: position-chan\n")
+                       (dprintf show-dprintf? "i: position-chan\n")
                        (let ([nack-chan (car pr)]
                              [resp-chan (cdr pr)])
                          (set! positioners (cons pr positioners))
@@ -1336,7 +1343,7 @@ WARNING: printf is rebound in the body of the unit to always
                     (handle-evt
                      read-chan
                      (lambda (ent)
-                       (dprintf "i: read-chan\n")
+                       (dprintf show-dprintf? "i: read-chan\n")
                        (set! data (enqueue ent data))
                        (unless position
                          (set! position (cdr ent)))
@@ -1344,7 +1351,7 @@ WARNING: printf is rebound in the body of the unit to always
                     (handle-evt
                      clear-input-chan
                      (lambda (_)
-                       (dprintf "i: clear-input-chan\n")
+                       (dprintf show-dprintf? "i: clear-input-chan\n")
                        (semaphore-post peeker-sema)
                        (set! peeker-sema (make-semaphore 0))
                        (set! peeker-evt (semaphore-peek-evt peeker-sema))
@@ -1354,7 +1361,7 @@ WARNING: printf is rebound in the body of the unit to always
                     (handle-evt
                      progress-event-chan
                      (lambda (return-pr)
-                       (dprintf "i: progress-event-chan\n")
+                       (dprintf show-dprintf? "i: progress-event-chan\n")
                        (let ([return-chan (car return-pr)]
                              [return-nack (cdr return-pr)])
                          (set! response-evts
@@ -1366,14 +1373,13 @@ WARNING: printf is rebound in the body of the unit to always
                     (handle-evt
                      peek-chan
                      (lambda (peeker)
-                       (dprintf "i: peek-chan\n")
-                       (on-peek)
+                       (dprintf show-dprintf? "i: peek-chan\n")
                        (set! peekers (cons peeker peekers))
                        (loop)))
                     (handle-evt
                      commit-chan
                      (lambda (committer)
-                       (dprintf "i:commit-chan\n")
+                       (dprintf show-dprintf? "i:commit-chan\n")
                        (set! committers (cons committer committers))
                        (loop)))
                     (apply 
@@ -1391,13 +1397,13 @@ WARNING: printf is rebound in the body of the unit to always
                             (handle-evt 
                              commit-peeker-evt
                              (lambda (_)
-                               (dprintf "i: commit-peeker-evt\n")
+                               (dprintf show-dprintf? "i: commit-peeker-evt\n")
                                ;; this committer will be thrown out in next iteration
                                (loop)))
                             (handle-evt
                              done-evt
                              (lambda (v)
-                               (dprintf "i: done-evt\n")
+                               (dprintf show-dprintf? "i: done-evt\n")
                                (let ([nth-pos (cdr (peek-n data (- kr 1)))])
                                  (set! position
                                        (list (car nth-pos)
@@ -1421,7 +1427,7 @@ WARNING: printf is rebound in the body of the unit to always
                                   (handle-evt
                                    resp-evt
                                    (lambda (_)
-                                     (dprintf "i: resp-evt\n")
+                                     (dprintf show-dprintf? "i: resp-evt\n")
                                      (set! response-evts (remq resp-evt response-evts))
                                      (loop))))
                                 response-evts)))))
@@ -1569,13 +1575,14 @@ WARNING: printf is rebound in the body of the unit to always
                      (channel-put position-chan (cons fail chan))
                      chan))))))
             
-            (set! in-port (make-input-port this
-                                           read-bytes-proc
-                                           peek-proc
-                                           close-proc
-                                           progress-evt-proc
-                                           commit-proc
-                                           position-proc))
+            (set! in-port-args (list this
+                                     read-bytes-proc
+                                     peek-proc
+                                     close-proc
+                                     progress-evt-proc
+                                     commit-proc
+                                     position-proc))
+            (set! in-port (apply make-input-port in-port-args))
             (port-count-lines! in-port))
          
           ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
