@@ -1153,18 +1153,26 @@
           
           (rename [super-on-enable-surrogate on-enable-surrogate])
           (define/override (on-enable-surrogate text)
-            (super-on-enable-surrogate text)
-            (send (send text get-keymap) chain-to-keymap keymap #t)
-            (unless (send text local-edit-sequence?)
-              (when (send text has-focus?)
-                (send text highlight-parens)))
+	    (send text begin-edit-sequence)
+	    (super-on-enable-surrogate text)
+	    (send (send text get-keymap) chain-to-keymap keymap #t)
+	    (unless (send text local-edit-sequence?)
+	      (when (send text has-focus?)
+		(send text highlight-parens)))
             
             ;; I don't know about these editor flag settings.
             ;; maybe they belong in drscheme?
             (send text set-load-overwrites-styles #f)
             (send text set-wordbreak-map wordbreak-map)
-            (send text set-tabs null (send text get-tab-size) #f)
-            (send text set-styles-fixed #t))
+	    (let ([bw (box 0)]
+		  [bu (box #f)]
+		  [tab-size (send text get-tab-size)])
+	      (unless (and (null? (send text get-tabs #f bw bu))
+			   (= tab-size (unbox bw))
+			   (not (unbox bu)))
+		(send text set-tabs null (send text get-tab-size) #f)))
+            (send text set-styles-fixed #t)
+	    (send text end-edit-sequence))
           
           (super-instantiate ())))
 

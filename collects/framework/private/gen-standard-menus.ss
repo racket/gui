@@ -145,9 +145,6 @@
 	  (mixin (basic<%>) (standard-menus<%>)
 	    (inherit on-menu-char on-traverse-char)
 	    
-	    (set! t (current-milliseconds))
-	    (set! g (current-gc-milliseconds))
-	    
 	    (define remove-prefs-callback
 	      (preferences:add-callback
 	       'framework:menu-bindings
