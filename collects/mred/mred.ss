@@ -62,20 +62,7 @@
      (lambda ()
        ((error-value->string-handler) s n)))))
 
-(define old-handler #f)
-(define old-err-string-handler #f)
-(define old-break #f)
-
-(define (enter-paramz)
-  (set! old-handler (current-exception-handler))
-  (set! old-err-string-handler (error-value->string-handler))
-  (set! old-break (break-enabled))
-  (break-enabled #f)
-  (error-value->string-handler entered-err-string-handler))
-(define (exit-paramz)
-  (current-exception-handler old-handler)
-  (error-value->string-handler old-err-string-handler)
-  (break-enabled old-break))
+(define old-paramz #f)
 
 (define (as-entry f)
   (cond
@@ -84,45 +71,42 @@
    [else
     ((let/ec k
        (dynamic-wind
-	(lambda () 
-	  (wx:in-atomic-region monitor-sema)
-
-	  (set! monitor-owner (current-thread))
-	  (enter-paramz)
-	  (current-exception-handler
-	   (lambda (exn)
-	     (k (lambda () (raise exn))))))
-	(lambda () 
-	  (call-with-values 
-	   f 
-	   (lambda args (lambda () (apply values args)))))
-	(lambda ()
-	  (set! monitor-owner #f)
-	  (exit-paramz)
-	  
-	  (semaphore-post monitor-sema)
-	  (wx:in-atomic-region #f)))))]))
+	   (lambda () 
+	     (wx:in-atomic-region monitor-sema)	     
+	     (set! monitor-owner (current-thread)))
+	   (lambda () 
+	     (set! old-paramz (current-parameterization))
+	     (parameterize ([break-enabled #f]
+			    [error-value->string-handler entered-err-string-handler]
+			    [current-exception-handler
+			     (lambda (exn)
+			       ;; Get out of atomic region before letting
+			       ;;  an exception handler work
+			       (k (lambda () (raise exn))))])
+	       (call-with-values 
+		   f 
+		 (lambda args (lambda () (apply values args))))))
+	   (lambda ()
+	     (set! monitor-owner #f)
+	     (semaphore-post monitor-sema)
+	     (wx:in-atomic-region #f)))))]))
 
 ; entry-point macros in macros.ss
 
 (define (as-exit f)
   ; (unless (eq? monitor-owner (current-thread)) (error 'monitor-exit "not in monitored area"))
-  (let ([eh #f])
-    (dynamic-wind
-     (lambda ()
-       (set! eh (current-exception-handler))
-       (set! monitor-owner #f)
-       (exit-paramz)
-       
-       (semaphore-post monitor-sema)
-       (wx:in-atomic-region #f))
-     f
-     (lambda ()
-       (wx:in-atomic-region monitor-sema)
-
-       (set! monitor-owner (current-thread))
-       (enter-paramz)
-       (current-exception-handler eh)))))
+  (call-with-parameterization
+   old-paramz
+   (lambda ()
+     (dynamic-wind
+	 (lambda ()
+	   (set! monitor-owner #f)	 
+	   (semaphore-post monitor-sema)
+	   (wx:in-atomic-region #f))
+	 f
+	 (lambda ()
+	   (wx:in-atomic-region monitor-sema)
+	   (set! monitor-owner (current-thread)))))))
 
 (define-syntax entry-point 
   (lambda (stx)
