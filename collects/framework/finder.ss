@@ -450,13 +450,12 @@
 	
 	[bottom-panel (make-object horizontal-panel% main-panel)]
 	
-
 	[directory-field
 	 (make-object text-field%
 	   "Full pathname"
 	   directory-panel
-	   (lambda (evt txt)
-	     (when (eq? (send evt get-type) 'text-enter)
+	   (lambda (txt evt)
+	     (when (eq? (send evt get-event-type) 'text-field-enter)
 	       (do-ok))))]
 
 	[result-list

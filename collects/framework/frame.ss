@@ -105,7 +105,9 @@
 	   (send (get-editor) on-close))]
 	[get-area-container%  (lambda () panel:vertical-editor%)])
       (private
-	[label file-name]
+	[label (let-values ([(base name dir?) (split-path file-name)])
+		 (or name
+		     file-name))]
 	[label-prefix (application:current-app-name)]
 	[do-label
 	 (lambda ()

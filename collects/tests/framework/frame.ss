@@ -89,11 +89,9 @@
 			       tmp-file-name)])
     (test
      name
-
      (lambda (x)
        (delete-file tmp-file)
        (equal? x test-file-contents))
-       
      (lambda ()
        (send-sexp-to-mred
 	`(begin
@@ -103,20 +101,31 @@
        (send-sexp-to-mred
 	`(test:menu-select "File" "Open..."))
        (wait-for-frame "Get file")
-       (call-with-output-file tmp-file-name
+       (call-with-output-file tmp-file
 	 (lambda (port)
 	   (display test-file-contents port))
 	 'truncate)
        (send-sexp-to-mred
 	`(begin (send (find-labelled-window "Full pathname") focus)
+		,(case (system-type)
+		   [(macos unix) `(test:keystroke #\a '(meta))]
+		   [(windows) `(test:keystroke #\a '(control))]
+		   [else (error "unknown system type")])
 		(for-each test:keystroke
 			  (string->list ,tmp-file))
 		(test:keystroke #\return)))
-       (wait-for-frame (format "framework - ~a" tmp-file-name))
-       (send-sexp-to-mred
-	`(let* ([w (get-top-level-focus-window)]
-		[t (send (send w get-editor) get-text)])
-	   (test:close-window w)
-	   t))))))
+       (wait-for-frame tmp-file-name)
+       (begin0
+	(send-sexp-to-mred
+	 `(let* ([w (get-top-level-focus-window)]
+		 [t (send (send w get-editor) get-text)])
+	    (test:close-top-level-window w)
+	    t))
+	(wait-for-frame "test open")
+	(send-sexp-to-mred
+	 `(test:close-top-level-window (get-top-level-focus-window))))))))
 
 (test-open "frame:editor open" 'frame:text%)
+(test-open "frame:editor open" 'frame:searchable%)
+(test-open "frame:editor open" 'frame:text-info%)
+(test-open "frame:editor open" 'frame:text-info-file%)

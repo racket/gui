@@ -207,7 +207,6 @@
 
   (define (wait-for-frame name)
     (wait-for `(let ([win (get-top-level-focus-window)])
-		 (printf "name: ~a~n" (and win (box (send win get-label))))
 		 (and win (string=? (send win get-label) ,name)))))))
 
 (define Engine

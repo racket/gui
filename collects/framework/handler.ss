@@ -87,7 +87,7 @@
     (opt-lambda (filename
 		 [make-default
 		  (lambda ()
-		    (make-object frame:text-info-file% filename))])
+		    (send (make-object frame:text-info-file% filename) show #t))])
       (gui-utils:show-busy-cursor
        (lambda ()
 	 (if filename
