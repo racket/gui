@@ -18,7 +18,7 @@
            "macro.ss")
   
   (provide-signature-elements framework^)
-  (provide mixin)
+  (provide (all-from "macro.ss"))
    
   (define-values/invoke-unit/sig 
    frameworkc^ 
