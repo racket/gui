@@ -19,7 +19,7 @@
 		 (begin
 		   (close-input-port in)
 		   (close-output-port out)
-		   (exit))
+		   '(exit))
 		 (begin
 		   (write
 		    (let ([these-errs (protect (lambda () (begin0 errs (set! errs null))))])
