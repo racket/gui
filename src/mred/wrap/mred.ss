@@ -3750,6 +3750,15 @@
     get-shortcut set-shortcut
     get-x-shortcut-prefix set-x-shortcut-prefix))
 
+(define (char-name c)
+  (case c
+    [(#\return) (if (eq? (system-type) 'macos) "Return" "Enter")]
+    [(#\tab) "Tab"]
+    [(#\space) "Space"]
+    [(#\backspace) "Backspace"]
+    [(#\rubout) "Delete"]
+    [else c]))
+
 (define basic-selectable-menu-item%
   (class* basic-labelled-menu-item% (selectable-menu-item<%>) (label checkable? menu callback shortcut help-string set-wx)
     (rename [super-restore restore] [super-set-label set-label]
@@ -3774,9 +3783,12 @@
 								[(alt) "Alt+"]
 								[(ctl-m) "Ctl+M "]
 								[(ctl) "Ctl+"])
-							      (char-upcase shortcut))]
-					      [(windows) (format "~aCtl+~a" #\tab (char-upcase shortcut))]
-					      [(macos) (format "~aCmd+~a" #\tab (char-upcase shortcut))]))
+							      (char-name
+							       (char-upcase shortcut)))]
+					      [(windows) (format "~aCtl+~a" #\tab 
+								 (char-name (char-upcase shortcut)))]
+					      [(macos) (format "~aCmd+~a" #\tab 
+							       (char-name (char-upcase shortcut)))]))
 					   (strip-tab label))]
 			    [key-binding (and shortcut
 					      (case (system-type)
@@ -3786,9 +3798,9 @@
 								  [(alt) "a:"]
 								  [(ctl-m) "c:m;"]
 								  [(ctl) "c:"])
-								(char-downcase shortcut))]
-						[(windows) (format "c:~a" (char-downcase shortcut))]
-						[(macos) (format "d:~a" (char-downcase shortcut))]))]
+								(char-name (char-downcase shortcut)))]
+						[(windows) (format "c:~a" (char-name (char-downcase shortcut)))]
+						[(macos) (format "d:~a" (char-name (char-downcase shortcut)))]))]
 			    [keymap (and key-binding
 					 (let ([keymap (make-object wx:keymap%)])
 					   (send keymap add-key-function "menu-item" 
