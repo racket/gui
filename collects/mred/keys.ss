@@ -219,13 +219,6 @@
     ; Define some useful keyboard functions
     (let* ([ring-bell
 	    (lambda (edit event)
-	      (let ([c (send edit get-canvas)])
-		(when c
-		  (let ([f (let loop ([f c])
-			     (if (is-a? f wx:frame%)
-				 f
-				 (loop (send f get-parent))))])
-		    (send f hide-search))))
 	      (wx:bell))]
 	   
 	   [toggle-anchor

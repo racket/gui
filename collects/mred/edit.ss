@@ -69,7 +69,8 @@
       (class buffer% args
 	(sequence (mred:debug:printf 'creation "creating a buffer"))
 	(inherit modified? get-filename save-file canvases
-		 refresh-delayed?
+		 refresh-delayed? 
+		 get-frame get-keymap
 		 get-max-width get-admin set-filename)
 	(rename [super-after-edit-sequence after-edit-sequence]
 		[super-on-edit-sequence on-edit-sequence]
@@ -80,7 +81,31 @@
 		[super-lock lock])
 	
 	(public [editing-this-file? #f])
-	
+
+	(rename [super-on-set-focus on-set-focus]
+		[super-on-kill-focus on-kill-focus])
+
+	(public
+	  [on-kill-focus
+	   (lambda ()
+	     (super-on-kill-focus)
+	     (let ([frame (get-frame)])
+	       (when (and frame
+			  (is-a? frame mred:frame:empty-frame%))
+		 (send (get-keymap)
+		       remove-chained-keymap
+		       (ivar frame keymap)))))]
+	  [on-set-focus
+	   (lambda ()
+	     (super-on-set-focus)
+	     (let ([frame (get-frame)])
+	       (when (and frame
+			  (is-a? frame mred:frame:empty-frame%))
+		 (send (get-keymap)
+		       chain-to-keymap
+		       (ivar frame keymap)
+		       #t))))])
+
 	(public
 	  [load-file
 	   (opt-lambda ([filename null] 
@@ -101,24 +126,37 @@
 			(set-filename filename)))))])
 
 	(private
-	  [edit-sequence-queue null])
+	  [edit-sequence-queue null]
+	  [edit-sequence-ht (make-hash-table)])
 	(public
 	  [edit-sequence-counter 0]
 	  [run-after-edit-sequence
-	   (lambda (t) 
-	     (unless (and (procedure? t)
-			  (= 0 (arity t)))
-	       (error 'media-buffer::run-after-edit-sequence
-		      "expected procedure of arity zero, got: ~s~n" t))
-	     (mred:debug:printf 'lock-icon
-				"(refresh-delayed?) = ~a"
-				(refresh-delayed?))
-	     (if (refresh-delayed?)
-		 (set! edit-sequence-queue (cons t edit-sequence-queue))
-		 (t))
-	     (void))]
+	   (rec run-after-edit-sequence
+		(case-lambda 
+		 [(t) (run-after-edit-sequence t #f)]
+		 [(t sym)
+		  (unless (and (procedure? t)
+			       (= 0 (arity t)))
+		    (error 'media-buffer::run-after-edit-sequence
+			   "expected procedure of arity zero, got: ~s~n" t))
+		  (unless (or (symbol? sym) (not sym))
+		    (error 'media-buffer::run-after-edit-sequence
+			   "expected second argument to be a symbol, got: ~s~n"
+			   sym))
+		  (if (refresh-delayed?)
+		      (cond
+			[(symbol? sym)
+			 (hash-table-put! edit-sequence-ht sym t)]
+			[else (set! edit-sequence-queue
+				    (cons t edit-sequence-queue))])
+		      (t))
+		  (void)]))]
 	  [extend-edit-sequence-queue
-	   (lambda (l)
+	   (lambda (l ht)
+	     (hash-table-for-each ht (lambda (k t)
+				       (hash-table-put! 
+					edit-sequence-ht
+					k t)))
 	     (set! edit-sequence-queue (append l edit-sequence-queue)))]
 	  [on-edit-sequence
 	   (lambda ()
@@ -139,6 +177,7 @@
 				  "queue: ~a"
 				  edit-sequence-queue)
 	       (let ([queue edit-sequence-queue]
+		     [ht edit-sequence-ht]
 		     [find-enclosing-edit
 		      (lambda (edit)
 			(let ([admin (send edit get-admin)])
@@ -151,6 +190,7 @@
 			   [else #f])))])
 		 (unless (null? queue)
 		   (set! edit-sequence-queue null)
+		   (set! edit-sequence-ht (make-hash-table))
 		   (let loop ([edit (find-enclosing-edit this)])
 		     (cond
 		      [(and edit (= 0 (ivar edit edit-sequence-counter)))
@@ -160,14 +200,12 @@
 					  "passing queue to another edit ~a"
 					  edit
 					  edit-sequence-counter)
-		       (send edit extend-edit-sequence-queue queue)]
+		       (send edit extend-edit-sequence-queue queue ht)]
 		      [else
 		       (mred:debug:printf 'lock-icon
 					  "running queue")
-		       (for-each (lambda (t)
-				   (mred:debug:printf 'lock-icon "running queue entry ~a" t)
-				   (t))
-				 queue)]))))))])
+		       (hash-table-for-each ht (lambda (k t) (t)))
+		       (for-each (lambda (t) (t)) queue)]))))))])
 
 	(public
 	  [locked? #f]
@@ -224,9 +262,6 @@
 	
 	(rename [super-on-focus on-focus]
 		[super-on-local-event on-local-event]
-		
-		[super-on-set-focus on-set-focus]
-		[super-on-kill-focus on-kill-focus]
 		
 		[super-after-set-position after-set-position]
 		
@@ -483,27 +518,6 @@
 		      (send dc set-pen old-pen)
 		      (send dc set-brush old-brush)))))
 	      range-rectangles))])
-	
-	(public
-	  [on-kill-focus
-	   (lambda ()
-	     (super-on-kill-focus)
-	     (let ([frame (get-frame)])
-	       (when (and frame
-			  (is-a? frame mred:frame:empty-frame%))
-		 (send (get-keymap)
-		       remove-chained-keymap
-		       (ivar frame keymap)))))]
-	  [on-set-focus
-	   (lambda ()
-	     (super-on-set-focus)
-	     (let ([frame (get-frame)])
-	       (when (and frame
-			  (is-a? frame mred:frame:empty-frame%))
-		 (send (get-keymap)
-		       chain-to-keymap
-		       (ivar frame keymap)
-		       #t))))])
 	
 	(public
 	  [set-mode
@@ -968,7 +982,8 @@
 					"lock: changing lock status")
 		     (let ([frame (get-frame)])
 		       (when frame
-			 (send frame lock-status-changed)))))))]))))
+			 (send frame lock-status-changed)))))
+	      'mred:update-lock-icon))]))))
   
   (define make-info-edit%
     (lambda (super-info-edit%)
@@ -984,34 +999,40 @@
 		[super-set-anchor set-anchor])
 	(private
 	  [enqueue-for-frame
-	   (lambda (ivar-sym)
+	   (lambda (ivar-sym tag)
 	     (run-after-edit-sequence
 	      (rec from-enqueue-for-frame
 		   (lambda ()
 		     (let ([frame (get-frame)])
 		       (when frame
-			 ((uq-ivar frame ivar-sym))))))))])
+			 ((uq-ivar frame ivar-sym))))))
+	      tag))])
 	(public
 	  [set-anchor
 	   (lambda (x)
 	     (super-set-anchor x)
-	     (enqueue-for-frame 'anchor-status-changed))]
+	     (enqueue-for-frame 'anchor-status-changed
+				'mred:anchor-status-changed))]
 	  [set-overwrite-mode
 	   (lambda (x)
 	     (super-set-overwrite-mode x)
-	     (enqueue-for-frame 'overwrite-status-changed))]
+	     (enqueue-for-frame 'overwrite-status-changed
+				'mred:overwrite-status-changed))]
 	  [after-set-position
 	   (lambda ()
 	     (super-after-set-position)
-	     (enqueue-for-frame 'edit-position-changed))]
+	     (enqueue-for-frame 'edit-position-changed
+				'mred:edit-position-changed))]
 	  [after-insert
 	   (lambda (start len)
 	     (super-after-insert start len)
-	     (enqueue-for-frame 'edit-position-changed))]
+	     (enqueue-for-frame 'edit-position-changed
+				'mred:edit-position-changed))]
 	  [after-delete
 	   (lambda (start len)
 	     (super-after-delete start len)
-	     (enqueue-for-frame 'edit-position-changed))]))))
+	     (enqueue-for-frame 'edit-position-changed
+				'mred:edit-position-changed))]))))
 
   '(define make-trace-edit%
      (trace-methods get-extent
@@ -1042,9 +1063,10 @@
 		    position-location
 		    position-paragraph))
   
-  (define media-edit% (make-media-edit%
-		       (make-std-buffer% 
-			mred:connections:connections-media-edit%)))
+  (define media-edit% ((lambda (x) x) ;make-trace-edit%
+		       (make-media-edit%
+			(make-std-buffer% 
+			 mred:connections:connections-media-edit%))))
   (define searching-edit% (make-searching-edit% media-edit%))
   
   (define info-edit% (make-info-edit% (make-info-buffer% searching-edit%)))
