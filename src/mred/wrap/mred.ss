@@ -3243,7 +3243,9 @@
 	    (send f stretchable-width #f)
 	    (send f stretchable-height #f))
 	  (let ([m (make-object text-field% #f f void "" '(multiple))])
+	    (send f resize 400 200)
 	    (send m set-value message)
+	    (send (send m get-editor) set-position 0)
 	    (send (send m get-editor) lock #t)))
       (let* ([p (make-object horizontal-pane% f)]
 	     [mk-button (lambda (title v default?) 
