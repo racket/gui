@@ -318,7 +318,7 @@
           (send style-list find-named-style "Matching Parenthesis Style")))
 
       (define text-mixin
-        (mixin (text:basic<%> host<%>) (-text<%>)
+        (mixin (text:basic<%> mode:host-text<%>) (-text<%>)
           (inherit begin-edit-sequence
                    delete
                    end-edit-sequence
@@ -1166,7 +1166,17 @@
           
           (super-instantiate ())))
 
-      (define -text% (text-mixin (mode:host-text-mixin text:info%)))
+      (define set-mode-mixin
+        (mixin (-text<%> mode:host-text<%>) ()
+	  (super-new)
+	  (inherit set-surrogate)
+	  (set-surrogate (new text-mode%))))
+
+      (define -text% (set-mode-mixin
+		      (text-mixin
+		       (mode:host-text-mixin
+			text:info%))))
+
       (define text-mode% (text-mode-mixin mode:surrogate-text%))
     
                                                                                            

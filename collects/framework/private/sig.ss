@@ -502,6 +502,8 @@
      text-mode-mixin
      text-mode%
      
+     set-mode-mixin
+
      sexp-snip%
      sexp-snip<%>))
   (define-signature framework:scheme-fun^
@@ -533,6 +535,7 @@
 
   (define-signature framework:mode-class^ 
     (host-text-mixin
+     host-text<%>
      surrogate-text%
      surrogate-text<%>))
   (define-signature framework:mode-fun^ ())

@@ -9,7 +9,7 @@
     (unit/sig framework:mode^
       (import)
       
-      (define-values (host-text-mixin surrogate-text% surrogate-text<%>)
+      (define-values (host-text-mixin host-text<%> surrogate-text% surrogate-text<%>)
         (surrogate
          (on-change ())
          (on-char (event))
