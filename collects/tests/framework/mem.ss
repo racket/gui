@@ -15,11 +15,15 @@
                   (,close o)
                   (cons b (loop (- n 1))))]))])
       (collect-garbage)
+      (collect-garbage)
+      (collect-garbage)
       (set! mem-boxes (cons (list ,tag new-boxes) mem-boxes)))))
 
 (define (done)
   (send-sexp-to-mred
    `(begin
+      (collect-garbage)
+      (collect-garbage)
       (collect-garbage)
       (collect-garbage)
       (collect-garbage)
@@ -38,6 +42,8 @@
 	     (let loop ([tries 4])
 	       (unless (zero? tries)
 		 (when (> (calc-results) 0)
+		   (collect-garbage)
+		   (collect-garbage)
 		   (collect-garbage)
 		   (loop (- tries 1)))))
              (let ([res (calc-results)])
