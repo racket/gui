@@ -1209,14 +1209,15 @@ WARNING: printf is rebound in the body of the unit to always
                (define peeker-evt (semaphore-peek-evt peeker-sema))
                (define bytes-peeked 0)
                (define response-evts '())
-               (define waiters '())
+               (define peekers '())
+               (define committers '())
                (define data (empty-queue))
                
                ;; loop : -> alpha
                ;; the main loop for this thread
                (define (loop)
                  (let-values ([(not-ready-peekers new-peek-response-evts)
-                               (separate service-waiter waiters)]
+                               (separate service-waiter peekers)]
                               [(potential-commits new-commit-response-evts) 
                                (separate 
                                 (service-committer peeker-evt data)
@@ -1224,8 +1225,8 @@ WARNING: printf is rebound in the body of the unit to always
                    (set! peekers not-ready-peekers)
                    (set! committers potential-commits)
                    (set! response-evts (append response-evts
-                                               new-peek-response-events
-                                               new-commit-response-events))
+                                               new-peek-response-evts
+                                               new-commit-response-evts))
                    (sync
                     (handle-evt
                      progress-event-chan
@@ -1239,12 +1240,12 @@ WARNING: printf is rebound in the body of the unit to always
                                      response-evts))
                          (loop))))
                     (handle-evt
-                     peek-evt
+                     peek-chan
                      (lambda (peeker)
-                       (set! peekers (cons peeker waiting-peekers))
+                       (set! peekers (cons peeker peekers))
                        (loop)))
                     (handle-evt
-                     (channel-recv-evt commit-chan)
+                     commit-chan
                      (lambda (committer)
                        (set! committers (cons committer committers))
                        (loop)))
@@ -1332,7 +1333,7 @@ WARNING: printf is rebound in the body of the unit to always
                             [transformed '()]
                             [left-alone '()])
                    (cond
-                     [(null? peekers) (values left-alone transformed)]
+                     [(null? eles) (values left-alone transformed)]
                      [else (let* ([ele (car eles)]
                                   [maybe (f ele)])
                              (if maybe-evt
@@ -1399,7 +1400,7 @@ WARNING: printf is rebound in the body of the unit to always
             ;;  the following must be able to run
             ;;  in any thread (even concurrently)
             ;;
-            (define (read-proc bstr)
+            (define (read-bytes-proc bstr)
               (let* ([progress-evt (progress-evt-proc)]
                      [v (peek-proc bstr 0 progress-evt)])
                 (cond
@@ -1407,9 +1408,9 @@ WARNING: printf is rebound in the body of the unit to always
                   [(evt? v) (wrap-evt v (lambda (x) 0))] ; sync, then try again
                   [(and (number? v) (zero? v)) 0] ; try again
                   [else
-                   (if (optional-commit-proc (if (number? v) v 1)
-                                             progress-evt
-                                             always-evt)
+                   (if (commit-proc (if (number? v) v 1)
+                                    progress-evt
+                                    always-evt)
                        v      ; got a result
                        0)]))) ; try again
             
@@ -1418,29 +1419,31 @@ WARNING: printf is rebound in the body of the unit to always
                (lambda (nack)
                  (let ([chan (make-channel)])
                    (channel-put peek-chan (make-peeker bstr skip-count progress-evt chan nack))
-                   (channel-recv-evt chan)))))
+                   chan))))
             
             (define (progress-evt-proc)
               (nack-guard-evt
                (lambda (nack)
-                 (let ([c (make-channel)])
-                   (channel-put process-event-chan (cons c nack))
-                   (channel-recv-evt c)))))
+                 (let ([chan (make-channel)])
+                   (channel-put progress-event-chan (cons chan nack))
+                   chan))))
             
-            (define (optional-commit-proc kr progress-evt done-evt)
+            (define (commit-proc kr progress-evt done-evt)
               (sync
                (nack-guard-evt
                 (lambda (nack)
                   (let ([chan (make-channel)])
                     (channel-put commit-chan (list kr progress-evt done-evt chan nack))
-                    (channel-recv-evt chan))))))
+                    chan)))))
             
-            (define (in-close-proc) (void))
+            (define (close-proc) (void))
             
             (set! in-port (make-input-port this
                                            read-bytes-proc
-                                           #f
-                                           in-close-proc)))
+                                           peek-proc
+                                           close-proc
+                                           progress-evt-proc
+                                           commit-proc)))
          
           
           ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
