@@ -1,4 +1,8 @@
 
+Version 299.13
+Added 'no-border flag to editor-canvas%
+X: modernized GUI look; new preference |MrEd:hiliteColor|
+
 Version 299.12
 Added 'transparent style to editor-canvas%
 Added background-color argument to editor<%>'s refresh
