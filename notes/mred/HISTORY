@@ -1,8 +1,13 @@
-			 Version 51: ??, 1998
-			 --------------------
+Version 51: ??, 1998
 
-				Engine
-
+Engine:
+-------
+The wx: classes and procedures are no longer ``built-in''
+ with respect to units; instead, all wx: items are now
+ in the wx@ signed unit, with the signature wx^, so
+ the MzScheme and MrEd languages are the same; the
+ wx^ signature is in MrEd's initial environment and
+ in the "wxs.ss" library of the "system" collection
 Added a --pre flag for evaluating an expression in a 
  MzScheme-only namespace at startup. This flag is intended
  for use with image dumps (see the MzScheme manual), which
@@ -75,8 +80,8 @@ X Windows: added .mred.resources option `mred.forceFocus'; if
 MacOS: removed the special -r command-line flag
 
 
-				System
-
+System:
+-------
  - mred:original-output-port is now called mred:constants:original-output-port
    mred:original-input-port is now called mred:constants:original-input-port
 
