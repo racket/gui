@@ -114,7 +114,7 @@
 		    (let ([admin (send edit get-admin)])
 		      (cond
 			[(is-a? admin editor-snip-editor-admin%)
-			 (send (send (send admin get-snip) get-admin) get-media)]
+			 (send (send (send admin get-snip) get-admin) get-editor)]
 			;; assume that any non-media-snip 
 			;; administrator doesn't have embedded edits.
 			[else #f])))])

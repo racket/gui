@@ -48,7 +48,7 @@
 			     (cond
 			       [(not width?) (fallback)]
 			       [(let ([prev (send s previous)])
-				  (and (not prev)
+				  (and prev
 				       (member 'hard-newline (send prev get-flags))))
 				(set-box! left-edge-box 0)]
 			       [else (fallback)]))
