@@ -769,9 +769,11 @@
   (send mf show #t)
   mf)
 
-(define (panel-frame panel%)
-  (define p% (class panel% (parent)
-	       (override
+(define (panel-frame)
+  (define make-p% 
+    (lambda (panel%)
+      (class panel% (parent)
+	     (override
 		 [container-size
 		  (lambda (l)
 		    (values (apply + (map car l))
@@ -791,8 +793,59 @@
 				(loop (cdr l)
 				      (cons (list x y w h) r)
 				      (+ x w) (+ y h))))))))])
-	       (sequence (super-init parent))))
-  (define f (make-object frame% "Diagnonal Container Test"))
+	       (sequence (super-init parent)))))
+  (define f (make-object frame% "Panel Tests"))
+  (define h (make-object horizontal-panel% f))
+  (define kind (begin
+		 (send h set-label-position 'vertical)
+		 (send h set-alignment 'center 'top)
+		 (make-object radio-box%
+			      "Kind"
+			      '("Panel" "Pane")
+			      h
+			      void)))
+  (define direction (make-object radio-box%
+				 "Direction"
+				 '("Horionztal" "Vertical" "Diagonal" "None")
+				 h
+				 void))
+  (define h-align (make-object radio-box%
+			       "H Alignment"
+			       '("Left" "Center" "Right")
+			       h
+			       void))
+  (define v-align (make-object radio-box%
+			       "V Alignment"
+			       '("Top" "Center" "Bottom")
+			       h
+			       void))
+  (make-object button% "Make Container" f
+	       (lambda (b e) (do-panel-frame
+			      (let ([kind (send kind get-selection)]
+				    [direction (send direction get-selection)])
+				(case kind
+				  [(0) (case direction
+					 [(0) horizontal-panel%]
+					 [(1) vertical-panel%]
+					 [(2) (make-p% panel%)]
+					 [else panel%])]
+				  [(1) (case direction
+					 [(0) horizontal-pane%]
+					 [(1) vertical-pane%]
+					 [(2) (make-p% pane%)]
+					 [else pane%])]))
+			      (case (send h-align get-selection)
+				[(0) 'left]
+				[(1) 'center]
+				[(2) 'right])
+			      (case (send v-align get-selection)
+				[(0) 'top]
+				[(1) 'center]
+				[(2) 'bottom]))))
+  (send f show #t))
+
+(define (do-panel-frame p% va ha)
+  (define f (make-object frame% "Container Test"))
   (define p (make-object p% f))
   (define b (make-object button% "Add List or Bad" p
 			 (lambda (b e)
@@ -813,6 +866,7 @@
   (define p2 (make-object vertical-panel% p '(border)))
   (define m1 (make-object message% "1" p2))
   (define m2 (make-object message% "2" p2))
+  (send p set-alignment va ha)
   (send f show #t))
 
 (define (check-callback-event orig got e types silent?)
@@ -1380,8 +1434,7 @@
 (send bp stretchable-height #f)
 (make-object button% "Make Menus Frame" pp (lambda (b e) (menu-frame)))
 (make-object horizontal-pane% pp)
-(make-object button% "Make Panel Frame" pp (lambda (b e) (panel-frame panel%)))
-(make-object button% "Make Pane Frame" pp (lambda (b e) (panel-frame pane%)))
+(make-object button% "Make Panel Frame" pp (lambda (b e) (panel-frame)))
 (define bp (make-object horizontal-pane% ap))
 (send bp stretchable-width #f)
 (make-object button% "Make Button Frame" bp (lambda (b e) (button-frame frame% null)))
