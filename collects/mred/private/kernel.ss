@@ -1380,6 +1380,8 @@
     basic-style)
   (define-function get-the-style-list)
   (define-class tab-group% item% #f
+    delete
+    append
     enable
     set-selection
     number
