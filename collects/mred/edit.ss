@@ -165,6 +165,7 @@
 		   invalidate-bitmap-cache
 		   begin-edit-sequence end-edit-sequence
 		   flash-on get-keymap get-start-position
+		   get-end-position
 		   on-default-char on-default-event 
 		   set-file-format get-style-list
 		   set-autowrap-bitmap
@@ -398,14 +399,7 @@
 	    ;; the bitmap is used in b/w and the color is used in color.
 	    [highlight-range
 	     (opt-lambda (start end color [bitmap #f])
-	       (let ([l (make-range start end bitmap color)]
-		     [colored-delta (make-object wx:style-delta%)]
-		     [uncolored-delta (make-object wx:style-delta%)]
-		     [hack-time? (and (eq? 'unix wx:platform) (<= 8 (wx:display-depth)))])
-		 (when hack-time?
-		 (send uncolored-delta set-delta-background "WHITE")
-		   (send colored-delta set-delta-background color)
-		   (change-style colored-delta start end))
+	       (let ([l (make-range start end bitmap color)])
 		 (set! ranges (cons l ranges))
 		 (recompute-range-rectangles)
 		 (lambda ()
@@ -416,8 +410,6 @@
 			    [else (if (eq? (car r) l)
 				      (cdr r)
 				      (cons (car r) (loop (cdr r))))])))
-		   (when hack-time?
-		     (change-style uncolored-delta start end))
 		   (recompute-range-rectangles))))]
 
 	    [on-paint
