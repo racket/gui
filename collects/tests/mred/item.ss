@@ -1243,6 +1243,7 @@
   (move -1 "-")
   (size 1 "Bigger")
   (size -1 "Smaller")
+  (instructions p "gauge-steps.txt")
   (send f show #t))
 
 (define (text-frame mred:text% style)
