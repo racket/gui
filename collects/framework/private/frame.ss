@@ -217,12 +217,11 @@
             (let ([number-of-frames 
                    (length (send (group:get-the-frame-group)
                                  get-frames))])
-              (if (preferences:get 'framework:exit-when-no-frames)
-                  (and (inner #t can-close?)
-                       (or (exit:exiting?)
-                           (not (= 1 number-of-frames))
-                           (exit:user-oks-exit)))
-                  #t)))
+              (and (inner #t can-close?)
+                   (or (preferences:get 'framework:exit-when-no-frames)
+                       (exit:exiting?)
+                       (not (= 1 number-of-frames))
+                       (exit:user-oks-exit)))))
           (define/augment (on-close)
             (send (group:get-the-frame-group)
                   remove-frame

@@ -40,7 +40,7 @@ WARNING: printf is rebound in the body of the unit to always
         (syntax-case stx ()
           [(_ . args) 
            #;(syntax (printf . args))
-             (syntax (void))]))
+           (syntax (void))]))
       
       (define-struct range (start end b/w-bitmap color caret-space?))
       (define-struct rectangle (left top right bottom b/w-bitmap color))
@@ -1040,7 +1040,7 @@ WARNING: printf is rebound in the body of the unit to always
                      
                      (let ([inserted-count
                             (if (is-a? str/snp snip%)
-                                1
+                                (send str/snp get-count)
                                 (string-length str/snp))]
                            [old-insertion-point insertion-point])
                        (set! insertion-point (+ insertion-point inserted-count))
@@ -1052,7 +1052,12 @@ WARNING: printf is rebound in the body of the unit to always
                                old-insertion-point
                                old-insertion-point
                                #f)
-                       (change-style sd old-insertion-point insertion-point)))
+                       
+                       ;; the idea here is that if you made a string snip, you
+                       ;; could have made a string and gotten the style, so you
+                       ;; must intend to have your own style....
+                       (unless (is-a? str/snp string-snip%)
+                         (change-style sd old-insertion-point insertion-point))))
                    (loop (cdr txts))]))
               (set! allow-edits? #f)
               (lock locked?)
@@ -1072,22 +1077,28 @@ WARNING: printf is rebound in the body of the unit to always
                         (handle-evt
                          (alarm-evt (+ last-flush msec-timeout))
                          (lambda (_)
+                           (dprintf "o: alarm.1 ~s\n" (queue->list text-to-insert))
                            (let-values ([(viable-bytes remaining-queue) (split-queue converter text-to-insert)])
+                             (dprintf "o: alarm.2 ~s\n" viable-bytes)
                              (queue-insertion viable-bytes always-evt)
                              (loop remaining-queue (current-inexact-milliseconds))))))
                     (handle-evt
                      flush-chan
                      (lambda (return-evt)
+                       (dprintf "o: flush.1 ~s\n" (queue->list text-to-insert))
                        (let-values ([(viable-bytes remaining-queue) (split-queue converter text-to-insert)])
+                         (dprintf "o: flush.2 ~s\n" viable-bytes)
                          (queue-insertion viable-bytes return-evt)
                          (loop remaining-queue (current-inexact-milliseconds)))))
                     (handle-evt
                      clear-output-chan
                      (lambda (_)
+                       (dprintf "o: clear-output\n")
                        (loop (empty-queue) (current-inexact-milliseconds))))
                     (handle-evt
                      write-chan
                      (lambda (pr)
+                       (dprintf "o: write ~s\n" pr)
                        (let ([new-text-to-insert (enqueue pr text-to-insert)])
                          (cond
                            [((queue-size text-to-insert) . < . output-buffer-full)
@@ -1236,7 +1247,7 @@ WARNING: printf is rebound in the body of the unit to always
                     (handle-evt
                      position-chan
                      (lambda (pr)
-                       (dprintf "position-chan\n")
+                       (dprintf "i: position-chan\n")
                        (let ([nack-chan (car pr)]
                              [resp-chan (cdr pr)])
                          (set! positioners (cons pr positioners))
@@ -1247,7 +1258,7 @@ WARNING: printf is rebound in the body of the unit to always
                     (handle-evt
                      read-chan
                      (lambda (ent)
-                       (dprintf "read-chan\n")
+                       (dprintf "i: read-chan\n")
                        (set! data (enqueue ent data))
                        (unless position
                          (set! position (cdr ent)))
@@ -1255,7 +1266,7 @@ WARNING: printf is rebound in the body of the unit to always
                     (handle-evt
                      clear-input-chan
                      (lambda (_)
-                       (dprintf "clear-input-chan\n")
+                       (dprintf "i: clear-input-chan\n")
                        (semaphore-post peeker-sema)
                        (set! peeker-sema (make-semaphore 0))
                        (set! peeker-evt (semaphore-peek-evt peeker-sema))
@@ -1265,7 +1276,7 @@ WARNING: printf is rebound in the body of the unit to always
                     (handle-evt
                      progress-event-chan
                      (lambda (return-pr)
-                       (dprintf "progress-event-chan\n")
+                       (dprintf "i: progress-event-chan\n")
                        (let ([return-chan (car return-pr)]
                              [return-nack (cdr return-pr)])
                          (set! response-evts
@@ -1277,13 +1288,13 @@ WARNING: printf is rebound in the body of the unit to always
                     (handle-evt
                      peek-chan
                      (lambda (peeker)
-                       (dprintf "peek-chan\n")
+                       (dprintf "i: peek-chan\n")
                        (set! peekers (cons peeker peekers))
                        (loop)))
                     (handle-evt
                      commit-chan
                      (lambda (committer)
-                       (dprintf "commit-chan\n")
+                       (dprintf "i:commit-chan\n")
                        (set! committers (cons committer committers))
                        (loop)))
                     (apply 
@@ -1301,13 +1312,13 @@ WARNING: printf is rebound in the body of the unit to always
                             (handle-evt 
                              commit-peeker-evt
                              (lambda (_)
-                               (dprintf "commit-peeker-evt\n")
+                               (dprintf "i: commit-peeker-evt\n")
                                ;; this committer will be thrown out in next iteration
                                (loop)))
                             (handle-evt
                              done-evt
                              (lambda (v)
-                               (dprintf "done-evt\n")
+                               (dprintf "i: done-evt\n")
                                (let ([nth-pos (cdr (peek-n data (- kr 1)))])
                                  (set! position
                                        (list (car nth-pos)
@@ -1331,14 +1342,13 @@ WARNING: printf is rebound in the body of the unit to always
                                   (handle-evt
                                    resp-evt
                                    (lambda (_)
-                                     (dprintf "resp-evt\n")
+                                     (dprintf "i: resp-evt\n")
                                      (set! response-evts (remq resp-evt response-evts))
                                      (loop))))
                                 response-evts)))))
                
                ;; service-positioner : (cons (channel void) (channel line-col-pos)) -> evt
                (define (service-positioner pr)
-                 (dprintf "service-position ~s\n" pr)
                  (let ([nack-evt (car pr)]
                        [resp-evt (cdr pr)])
                    (handle-evt
@@ -1405,7 +1415,6 @@ WARNING: printf is rebound in the body of the unit to always
                  (let loop ([eles eles]
                             [transformed '()]
                             [left-alone '()])
-                   (dprintf "separate\n")
                    (cond
                      [(null? eles) (values left-alone transformed)]
                      [else (let* ([ele (car eles)]
