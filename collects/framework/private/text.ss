@@ -661,6 +661,8 @@
                  (call-with-frame call-method)))
              tag))
           
+          ;; call-with-frame : ((is-a?/c frame:text-info<%>) -> void) -> void
+          ;; calls the argument thunk with the frame showing this editor.
           (define (call-with-frame call-method)
             (let ([canvas (get-canvas)])
               (when canvas
