@@ -1153,6 +1153,8 @@ WARNING: printf is rebound in the body of the unit to always
                      (values s/c 1))])))
             
             (define (in-close-proc)
+              (printf "closed port\n")
+              (car)
               (void))
             
             (define (make-write-bytes-proc style)
