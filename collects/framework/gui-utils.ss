@@ -484,10 +484,12 @@
       (min-width (floor (inexact->exact (get-total-width (get-dc)))))))
 
   ;; selected-text-color : color
-  (define selected-text-color (make-object color% "black"))
+  (define selected-text-color (send the-color-database find-color "black"))
 
   ;; unselected-text-color : color
-  (define unselected-text-color (make-object color% "black"))
+  (define unselected-text-color (case (system-type)
+                                  [(macosx) (make-object color% 75 75 75)]
+                                  [else (send the-color-database find-color "black")]))
 
   ;; selected-brush : brush
   (define selected-brush (send the-brush-list find-or-create-brush "WHITE" 'solid))
@@ -496,9 +498,15 @@
   (define unselected-brush (send the-brush-list find-or-create-brush (get-panel-background) 'solid))
 
   ;; button-down/over-brush : brush
-  (define button-down/over-brush (send the-brush-list find-or-create-brush
-                                       (make-object color% 225 225 255)
-                                       'solid))
+  (define button-down/over-brush 
+    (case (system-type)
+      [(macosx) (send the-brush-list find-or-create-brush
+                      "light blue"
+                      'solid)]
+      [else
+       (send the-brush-list find-or-create-brush
+             (make-object color% 225 225 255)
+             'solid)]))
   
   ;; label-font : font
   (define label-font (send the-font-list find-or-create-font

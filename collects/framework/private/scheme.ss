@@ -858,28 +858,34 @@
               #t)) 
           
           (define box-comment-out-selection
-            (opt-lambda ([start-pos (get-start-position)]
-                         [end-pos (get-end-position)])
-              (begin-edit-sequence)
-              (split-snip start-pos)
-              (split-snip end-pos)
-              (let* ([cb (instantiate cb:comment-box-snip% ())]
-                     [text (send cb get-editor)])
-                (send text set-style-list style-list)
-                (let loop ([snip (find-snip start-pos 'after-or-none)])
-                  (cond
-                    [(not snip) (void)]
-                    [((get-snip-position snip) . >= . end-pos) (void)]
-                    [else
-                     (send text insert (send snip copy)
-                           (send text last-position)
-                           (send text last-position))
-                     (loop (send snip next))]))
-                (delete start-pos end-pos)
-                (insert cb start-pos)
-                (set-position start-pos start-pos))
-              (end-edit-sequence)
-              #t)) 
+            (opt-lambda ([_start-pos 'start]
+                         [_end-pos 'end])
+	      (let ([start-pos (if (eq? _start-pos 'start)
+				   (get-start-position)
+				   _start-pos)]
+		    [end-pos (if (eq? _end-pos 'end)
+				 (get-end-position)
+				 _end-pos)])
+		(begin-edit-sequence)
+		(split-snip start-pos)
+		(split-snip end-pos)
+		(let* ([cb (instantiate cb:comment-box-snip% ())]
+		       [text (send cb get-editor)])
+		  (send text set-style-list style-list)
+		  (let loop ([snip (find-snip start-pos 'after-or-none)])
+		    (cond
+		      [(not snip) (void)]
+		      [((get-snip-position snip) . >= . end-pos) (void)]
+		      [else
+		       (send text insert (send snip copy)
+			     (send text last-position)
+			     (send text last-position))
+		       (loop (send snip next))]))
+		  (delete start-pos end-pos)
+		  (insert cb start-pos)
+		  (set-position start-pos start-pos))
+		(end-edit-sequence)
+		#t)))
           
           (define uncomment-selection
             (opt-lambda ([start-pos (get-start-position)]
