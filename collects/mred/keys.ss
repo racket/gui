@@ -150,7 +150,8 @@
 		  (mred:find-string:find-string canvas ()
 						 (- (unbox x-box) 30)
 						 (- (unbox y-box) 30)
-						 (cons 'ignore-case extras))))]
+						 (cons 'ignore-case extras))
+		  #t))]
 	     [find-string-reverse
 	      (lambda (edit event)
 		(find-string edit event 'reverse))]
