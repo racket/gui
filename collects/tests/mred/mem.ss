@@ -4,7 +4,7 @@
 (define source-dir (current-load-relative-directory))
 
 (define num-times 12)
-(define num-threads 1)
+(define num-threads 3)
 
 (define dump-stats? #t)
 
@@ -36,10 +36,12 @@
 		(lambda (x) (void))])))
 
 (when subwindows?
-      (define sub-collect-frame
-	(make-object wx:frame% null "sub-collect" -1 -1 200 200))
-      (define sub-collect-panel
-	(make-object wx:panel% sub-collect-frame 0 0 100 100)))
+  (global-defined-value 
+   'sub-collect-frame
+   (make-object wx:frame% null "sub-collect" -1 -1 200 200))
+  (global-defined-value
+   'sub-collect-panel
+   (make-object wx:panel% sub-collect-frame 0 0 100 100)))
 
 (send sub-collect-frame show #t)
 
