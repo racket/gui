@@ -7,9 +7,13 @@
 	    [mred:scheme-paren : mred:scheme-paren^]
 	    [mred:keymap : mred:keymap^]
 	    [mred:icon : mred:icon^]
+	    [mred:preferences : mred:preferences^]
+	    [mred:gui-utils : mred:gui-utils^]
 	    [mzlib:function : mzlib:function^])
 	    
     (mred:debug:printf 'invoke "mred:edit@")
+
+    (mred:preferences:set-preference-default 'mred:verify-change-format #f)
 
     (define-struct range (start end b/w-bitmap color))
     (define-struct rectangle (left top width height b/w-bitmap color))
@@ -121,16 +125,15 @@
 	    [on-save-file
 	     (lambda (name format)
 	       (set! auto-save-error? #f)
-	       (if (super-on-save-file name format)
-		   (begin
-		     (if (and backup?
-			      (not (= format wx:const-media-ff-copy)))
-			 (if (file-exists? name)
-			     (let ([back-name (mred:path-utils:generate-backup-name name)])
-			       (unless (file-exists? back-name)
-				 (rename-file name back-name)))))
-		     #t)
-		   #f))]
+	       (and (super-on-save-file name format)
+		    (begin
+		      (when (and backup?
+				 (not (= format wx:const-media-ff-copy))
+				 (file-exists? name))
+			(let ([back-name (mred:path-utils:generate-backup-name name)])
+			  (unless (file-exists? back-name)
+			    (rename-file name back-name))))
+		      #t)))]
 	    
 	    [get-canvas
 	     (lambda ()
@@ -155,8 +158,8 @@
     (define make-edit%
       (lambda (super%)
 	(class (make-std-buffer% super%) args
-	  (inherit mode canvases
-		   change-style
+	  (inherit mode canvases get-file-format
+		   change-style save-file
 		   invalidate-bitmap-cache
 		   begin-edit-sequence end-edit-sequence
 		   flash-on get-keymap get-start-position
@@ -171,6 +174,8 @@
 		  [super-on-paint on-paint]
 		  [super-on-local-event on-local-event]
 		  [super-on-local-char on-local-char]
+
+		  [super-on-save-file on-save-file]
 		  
 		  [super-after-set-position after-set-position]
 		  
@@ -190,6 +195,35 @@
 	  (private
 	    [styles-fixed-edit-modified? #f])
 	  (public
+	    [on-save-file
+	     (let ([skip-check #f]
+		   [has-non-text-snips 
+		    (lambda ()
+		      (let loop ([s (find-snip 0 wx:const-snip-after)])
+			(cond
+			  [(null? s) #f]
+			  [(is-a? s wx:text-snip%)
+			   (loop (send s next))]
+			  [else #t])))])
+	       (lambda (name format)
+		 (unless (or skip-check
+			     (= format wx:const-media-ff-std)
+			     (and (or (= format wx:const-media-ff-same)
+				      (= format wx:const-media-ff-guess))
+				  (= (get-file-format) 
+				     wx:const-media-ff-std)))
+		   (dynamic-wind
+		    (lambda () (set! skip-check #t))
+		    (lambda ()
+		      (when (and (has-non-text-snips)
+				 (or (not (mred:preferences:get-preference 'mred:verify-change-format))
+				     (mred:gui-utils:get-choice "Save this file as plain text?" "No" "Yes")))
+			(save-file name wx:const-media-ff-std)))
+		    (lambda () (set! skip-check #f))))
+		 (super-on-save-file name format)))]
+	 
+
+
 	    [autowrap-bitmap mred:icon:autowrap-bitmap]
 	    [after-load-file
 	     (lambda (sucessful?)
