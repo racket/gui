@@ -416,8 +416,9 @@
 			       (lambda ()
 				 (send edit end-edit-sequence))))
 			    (let ([k (send event get-key-code)])
-			      (if (<= (char->integer #\0) k (char->integer #\9))
-				  (set! n (+ (* n 10) (- k (char->integer #\0))))
+			      (if (and (char? k) (char<=? #\0 k #\9))
+				  (set! n (+ (* n 10) (- (char->integer k)
+							 (char->integer #\0))))
 				  (begin
 				    (done)
 				    (dynamic-wind
