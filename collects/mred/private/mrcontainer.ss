@@ -128,21 +128,11 @@
 	(unless (eq? alignment no-val) (set-alignment . alignment)))))
 
   (define area-container-window<%>
-    (interface (window<%> area-container<%>)
-      set-control-font get-control-font
-      set-label-font get-label-font
-      set-label-position get-label-position))
+    (interface (window<%> area-container<%>)))
 
   (define (make-area-container-window% %) ; % implements window<%> (and area-container<%>)
     (class100* % (area-container-window<%>) (mk-wx get-wx-pan mismatches label parent cursor) 
-      (private-field [get-wx-panel get-wx-pan])    
-      (public
-	[get-control-font (entry-point (lambda () (send (get-wx-panel) get-control-font)))]
-	[set-control-font (entry-point (lambda (x) (send (get-wx-panel) set-control-font x)))]
-	[get-label-font (entry-point (lambda () (send (get-wx-panel) get-label-font)))]
-	[set-label-font (entry-point (lambda (x) (send (get-wx-panel) set-label-font x)))]
-	[get-label-position (entry-point (lambda () (send (get-wx-panel) get-label-position)))]
-	[set-label-position (entry-point (lambda (x) (send (get-wx-panel) set-label-position x)))])
+      (private-field [get-wx-panel get-wx-pan])
       (sequence
 	(super-init mk-wx get-wx-panel mismatches label parent cursor)))))
 

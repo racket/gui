@@ -153,10 +153,9 @@
       (let* ([f (make-object dialog% title parent box-width)]
 	     [ok? #f]
 	     [done (lambda (?) (lambda (b e) (set! ok? ?) (send f show #f)))])
-	(send f set-label-position 'vertical)
 	(let ([t (make-object text-field% message f (lambda (t e) (when (eq? (send e get-event-type) 'text-field-enter)
 								    ((done #t) #f #f)))
-			      init-val (cons 'single style))]
+			      init-val (list* 'single 'vertical-label style))]
 	      [p (make-object horizontal-pane% f)])
 	  (send p set-alignment 'right 'center)
 	  (send f stretchable-height #f)
@@ -191,13 +190,12 @@
 	     [update-ok (lambda (l) (send ok-button enable (not (null? (send l get-selections)))))]
 	     [ok? #f]
 	     [done (lambda (?) (lambda (b e) (set! ok? ?) (send f show #f)))])
-	(send f set-label-position 'vertical)
 	(let ([l (make-object list-box% message choices f
 			      (lambda (l e)
 				(update-ok l)
 				(when (eq? (send e get-event-type) 'list-box-dclick)
 				  ((done #t) #f #f)))
-			      style)]
+			      (cons 'vertical-label style))]
 	      [p (make-object horizontal-pane% f)])
 	  (for-each (lambda (i) 
 		      (when (>= i (send l get-number))
