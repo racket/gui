@@ -1,6 +1,6 @@
 
   (unit/sig mred:exit^
-    (import [wx : mred:wx^]
+    (import mred:wx^
 	    [mred:constants : mred:constants^]
 	    [mred:preferences : mred:preferences^]
 	    [mred:gui-utils : mred:gui-utils^])

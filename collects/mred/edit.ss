@@ -1,6 +1,6 @@
 
   (unit/sig mred:edit^
-    (import [wx : mred:wx^]
+    (import mred:wx^
 	    [mred:constants : mred:constants^]
 	    [mred:connections : mred:connections^]
 	    [mred:autosave : mred:autosave^]
@@ -66,7 +66,7 @@
 	  (public
 	    [set-max-width
 	     (lambda (x)
-	       (mred:debug:printf 'rewrap "set-max-width: ~a" x)
+	       (mred:debug:printf 'rewrap "rewrap: set-max-width: ~a" x)
 	       (super-set-max-width x))]
 	    [get-file (lambda (d) 
 			(let ([v (mred:finder:get-file d)])
@@ -81,38 +81,38 @@
 	    [auto-set-wrap? (mred:preferences:get-preference 'mred:auto-set-wrap?)]
 	    [set-auto-set-wrap
 	     (lambda (v)
-	       (mred:debug:printf 'rewrap "set-auto-set-wrap: ~a" v)
+	       (mred:debug:printf 'rewrap 
+				  "rewrap: set-auto-set-wrap: ~a (canvases ~a)"
+				  v canvases)
 	       (set! auto-set-wrap? v)
 	       (for-each (lambda (c) (send c resize-edit)) canvases))]
 	    
 	    [rewrap
-	     (let ([do-wrap
-		    (lambda (new-width)
-		      (let ([current-width (get-max-width)])
-			(mred:debug:printf 'rewrap "do-wrap: new-width ~a  current-width ~a" new-width current-width)
-			(when (and (not (= current-width new-width))
-				   (< 0 new-width))
-			  (set-max-width new-width)
-			  (mred:debug:printf 'rewrap "attempted to wrap to: ~a actually wrapped to ~a" 
-					     new-width (get-max-width)))))])
-	       (lambda ()
-		 (if auto-set-wrap?
-		     (let* ([w-box (box 0)]
-			    [h-box (box 0)]
-			    [update-box
-			     (lambda ()
-			       (send (get-admin)
-				     get-view null null
-				     w-box h-box))])
-		       (do-wrap
-			(mzlib:function:foldl
-			 (lambda (canvas sofar)
-			   (begin
-			     (send canvas call-as-primary-owner update-box)
-			     (max (unbox w-box) sofar)))
-			 0
-			 canvases)))
-		     (do-wrap 0))))]
+	     (lambda ()
+	       (if auto-set-wrap?
+		   (let* ([current-width (get-max-width)]
+			  [w-box (box 0)]
+			  [new-width
+			   (mzlib:function:foldl
+			    (lambda (canvas sofar)
+			      (send canvas call-as-primary-owner
+				    (lambda ()
+				      (send (get-admin)
+					    get-view null null
+					    w-box (box 0))))
+			      (max (unbox w-box) sofar))
+			    0
+			    canvases)])
+		     (mred:debug:printf 'rewrap "rewrap: new-width ~a  current-width ~a" 
+					new-width current-width)
+		     (when (and (not (= current-width new-width))
+				(< 0 new-width))
+		       (set-max-width new-width)
+		       (mred:debug:printf 'rewrap "rewrap: attempted to wrap to: ~a actually wrapped to ~a" 
+					  new-width (get-max-width))))
+		   (begin
+		     (mred:debug:printf 'rewrap "rewrap: wrapping to -1")
+		     (set-max-width -1))))]
 	    [mode #f]
 	    [set-mode-direct (lambda (v) (set! mode v))]
 	    [set-mode

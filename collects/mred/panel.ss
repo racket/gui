@@ -1,6 +1,6 @@
 
   (unit/sig mred:panel^
-    (import [wx : mred:wx^]
+    (import mred:wx^
 	    [mred:constants : mred:constants^]
 	    [mred:container : mred:container^]
 	    [mred:canvas : mred:canvas^]

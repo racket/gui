@@ -1,7 +1,7 @@
 ;; need a preference for pconvert
 
   (unit/sig mred:preferences^
-    (import [wx : mred:wx^]
+    (import mred:wx^
 	    [mred:constants : mred:constants^]
 	    [mred:exn : mred:exn^]
 	    [mred : mred:container^] ;; warning -- to use the mred:panel macros, 

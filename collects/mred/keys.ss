@@ -1,6 +1,6 @@
 
   (unit/sig mred:keymap^
-    (import [wx : mred:wx^]
+    (import mred:wx^
 	    [mred:constants : mred:constants^]
 	    [mred:preferences : mred:preferences^]
 	    [mred:exit : mred:exit^]
