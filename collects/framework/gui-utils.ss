@@ -635,7 +635,7 @@
   
   (define unsaved-warning
     (opt-lambda (filename action-anyway (can-save-now? #f) (parent #f))
-      (let* ([result (void)]
+      (let* ([result 'cancel]
              [unsaved-dialog%
               (class dialog%
                 (inherit show center)
