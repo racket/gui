@@ -749,7 +749,10 @@
               #t))
           (define/override file-menu:create-revert? (lambda () #t))
           (define file-menu:save-callback (lambda (item control)
-                                            (send (get-editor) save-file/gui-error)
+                                            (let ([ed (get-editor)])
+                                              (if (send ed get-filename)
+                                                  (send ed save-file/gui-error)
+                                                  (save-as)))
                                             #t))
           
           (define file-menu:create-save? (lambda () #t))
