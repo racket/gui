@@ -1598,6 +1598,13 @@
 	       (lambda (c e) 
 		 (send c1 inc-mode (send c get-value))
 		 (send c2 inc-mode (send c get-value))))
+  (make-object check-box%
+	       "x2" ip
+	       (lambda (c e) 
+		 (let ([s (if (send c get-value)
+			      2
+			      1)])
+		   (send (send c2 get-dc) set-scale s s))))
   (send c1 set-vsize 10 10)
   (send c2 set-vsize 500 200)
   (send f create-status-line)
