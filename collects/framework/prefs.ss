@@ -187,7 +187,7 @@
 	       (let* ([ht-pref (hash-table-get preferences p (lambda () #f))]
 		      [unmarshall-struct (hash-table-get marshall-unmarshall p (lambda () #f))])
 		 (cond
-		   [(and (pref? ht-pref) unmarshall-struct)
+		   [unmarshall-struct
 		    (set p ((un/marshall-unmarshall unmarshall-struct) marshalled))]
 		   
 		   ;; in this case, assume that no marshalling/unmarshalling 
@@ -196,7 +196,8 @@
 		   [(pref? ht-pref)
 		    (set p marshalled)]
 		   
-		   [(marshalled? ht-pref) (set-marshalled-data! ht-pref marshalled)]
+		   [(marshalled? ht-pref) 
+		    (set-marshalled-data! ht-pref marshalled)]
 		   [(and (not ht-pref) unmarshall-struct)
 		    (set p ((un/marshall-unmarshall unmarshall-struct) marshalled))]
 		   [(not ht-pref)
@@ -217,39 +218,40 @@
 										   (string-length ell)))
 								ell))])
 				    (format "found bad pref: ~a~n~a" msg s2))))])
-	      (let loop ([input (with-handlers
-				    ([(lambda (exn) #t)
-				      (lambda (exn)
-					(message-box
-					 "Error reading preferences"
-					 (format "Error reading preferences~n~a"
-						 (exn-message exn)))
-					(k #f))])
-				  (call-with-input-file preferences-filename
-				    read
-				    'text))])
-		(cond
-		  [(pair? input)
-		   (let ([err-msg
-			  (let/ec k
-			    (let ([first (car input)])
-			      (unless (pair? first)
-				(k "expected pair of pair"))
-			      (let ([arg1 (car first)]
-				    [t1 (cdr first)])
-				(unless (pair? t1)
-				  (k "expected pair of two pairs"))
-				(let ([arg2 (car t1)]
-				      [t2 (cdr t1)])
-				  (unless (null? t2)
-				    (k "expected null after two pairs"))
-				  (parse-pref arg1 arg2)
-				  (k #f)))))])
-		     (when err-msg
-		       (err input err-msg)))
-		   (loop (cdr input))]
-		  [(null? input) (void)]
-		  [else (err input "expected a pair")]))))))))
+	      (let ([input (with-handlers
+			       ([(lambda (exn) #t)
+				 (lambda (exn)
+				   (message-box
+				    "Error reading preferences"
+				    (format "Error reading preferences~n~a"
+					    (exn-message exn)))
+				   (k #f))])
+			     (call-with-input-file preferences-filename
+			       read
+			       'text))])
+		(let loop ([input input])
+		  (cond
+		    [(pair? input)
+		     (let ([err-msg
+			    (let/ec k
+			      (let ([first (car input)])
+				(unless (pair? first)
+				  (k "expected pair of pair"))
+				(let ([arg1 (car first)]
+				      [t1 (cdr first)])
+				  (unless (pair? t1)
+				    (k "expected pair of two pairs"))
+				  (let ([arg2 (car t1)]
+					[t2 (cdr t1)])
+				    (unless (null? t2)
+				      (k "expected null after two pairs"))
+				    (parse-pref arg1 arg2)
+				    (k #f)))))])
+		       (when err-msg
+			 (err input err-msg)))
+		     (loop (cdr input))]
+		    [(null? input) (void)]
+		    [else (err input "expected a pair")])))))))))
   
   (define-struct ppanel (title container panel))
 
@@ -417,7 +419,7 @@
 						name)
 					fonts)])
 				  (when new-value
-				    (set pref-sym new-value) 
+				    (set pref-sym (list-ref fonts (car new-value))) 
 				    (set-edit-font (get font-size-pref-sym))))))]
 			   [canvas (make-object editor-canvas% horiz
 						edit

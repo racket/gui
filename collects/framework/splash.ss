@@ -4,7 +4,7 @@
 (lambda (filename title width-default depth-default)
   (let/ec k
     (letrec-values
-	([(no-splash) (lambda () (k void void void))]
+	([(no-splash) (lambda () (k void void))]
 	 [(splash-get-resource)
 	  (lambda (name default)
 	    (let ([b (box 0)])
