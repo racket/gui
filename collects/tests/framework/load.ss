@@ -7,15 +7,19 @@
     (test
      (string->symbol file)
      void?
-     `(parameterize ([current-namespace (make-namespace 'mred)])
-	(eval '(require (lib ,file "framework")))
-	(with-handlers ([(lambda (x) #t)
-			 (lambda (x)
-			   (if (exn? x)
-			       (exn-message x)
-			       (format "~s" x)))])
-	  (eval ',exp)
-	  (void)))))
+     `(let ([orig-namespace (current-namespace)])
+        (parameterize ([current-namespace (make-namespace)])
+          (namespace-attach-module
+           orig-namespace
+           ((current-module-name-resolver) '(lib "mred.ss" "mred")))
+          (eval '(require (lib ,file "framework")))
+          (with-handlers ([(lambda (x) #t)
+                           (lambda (x)
+                             (if (exn? x)
+                                 (exn-message x)
+                                 (format "~s" x)))])
+            (eval ',exp)
+            (void))))))
 
   (load-framework-automatically #f)
 
