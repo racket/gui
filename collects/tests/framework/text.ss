@@ -9,11 +9,15 @@
 		    [get-editor% (lambda () ,class)]))]
 	      [f (make-object % "test text")])
 	 (send f show #t)))
-      (wait-for-frame "test text")
-      (send-sexp-to-mred `(test:keystroke #\a))
-      (wait-for `(string=? "a" (send (send (get-top-level-focus-window) get-editor) get-text)))
-      (send-sexp-to-mred
-       `(send (get-top-level-focus-window) show #f)))))
+     (wait-for-frame "test text")
+     (send-sexp-to-mred `(test:keystroke #\a))
+     (wait-for `(string=? "a" (send (send (get-top-level-focus-window) get-editor) get-text)))
+     (send-sexp-to-mred
+      `(begin (send (send (get-top-level-focus-window) get-editor) lock #t)
+	      (send (send (get-top-level-focus-window) get-editor) lock #f)))
+     (send-sexp-to-mred
+      `(send (get-top-level-focus-window) show #f)))))
+
 
 (test-creation 'frame:text%
 	       '(text:basic-mixin (editor:basic-mixin text%))

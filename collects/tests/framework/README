@@ -82,13 +82,9 @@ tests.
   | Test to be sure that parenthesis matching engine works
   | No fake user input expected.
 
-- scheme mode
+- scheme mode |# scheme.ss #|
 
   | Make sure that Scheme things work in scheme mode.
-
-  - parens: |# paren.ss #|
-  - keys: |# skeys.ss #|
-  - tabbing: |# tabbing.ss #|
 
 - saving tests:
 
