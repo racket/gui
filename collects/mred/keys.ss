@@ -838,6 +838,7 @@
 
 	    (map-meta "b" "backward-word")
 	    (map "a:LEFT" "backward-word")
+
 	    (map "c:left" "backward-word")
 	    (map-meta "s:b" "backward-select-word")
 	    (map "a:s:LEFT" "backward-select-word")

@@ -54,14 +54,34 @@
       (class buffer% args
 	(sequence (mred:debug:printf 'creation "creating a buffer"))
 	(inherit modified? get-filename save-file canvases
-		 get-max-width get-admin)
+		 get-max-width get-admin set-filename)
 	(rename [super-set-modified set-modified]
 		[super-on-save-file on-save-file]
 		[super-on-focus on-focus]
+		[super-load-file load-file]
 		[super-lock lock])
 	
 	(public [editing-this-file? #f])
 	
+	(public
+	  [load-file
+	   (opt-lambda ([filename null] 
+			[the-format wx:const-media-ff-guess]
+			[show-dialog? #t])
+	     (let ([filename (if (null? filename)
+				 (mred:finder:get-file)
+				 filename)])
+	       (and filename
+		    (if (file-exists? filename)
+			(let ([res (super-load-file filename the-format #f)])
+			  (when (and (not res)
+				     show-dialog?)
+			    (mred:gui-utils:message-box
+			     (format "Error loading file ~a" filename)
+			     "Error Loading File")
+			    res))
+			(set-filename filename)))))])
+
 	(public
 	  [locked? #f]
 	  [lock 
@@ -101,13 +121,15 @@
 	(sequence
 	  (apply super-init args)))))
   
-  (define make-pasteboard% make-std-buffer%)
+  (define make-pasteboard%
+    (lambda (super%)
+      super%))
   
   (define make-media-edit%
     (lambda (super%)
       (class super% args
 	(inherit canvases get-max-width get-admin split-snip get-snip-position
-		 delete find-snip set-filename invalidate-bitmap-cache
+		 delete find-snip invalidate-bitmap-cache
 		 begin-edit-sequence end-edit-sequence
 		 set-autowrap-bitmap get-keymap mode set-mode-direct
 		 set-file-format get-file-format get-frame
@@ -135,7 +157,6 @@
 		[super-after-set-size-constraint after-set-size-constraint]
 		
 		[super-set-max-width set-max-width]
-		[super-load-file load-file]
 		[super-on-paint on-paint])
 	
 	(private [styles-fixed-edit-modified? #f])
@@ -553,19 +574,6 @@
 		      (insert-edit released/copied dest-position dest-position)
 		      '(wx:message-box (format "after: ~a" (eq? snip released/copied)))
 		      (loop prev))]))))])
-	
-	(public
-	  [load-file
-	   (opt-lambda ([filename null] 
-			[format wx:const-media-ff-guess]
-			[show-dialog? #f])
-	     (let ([filename (if (null? filename)
-				 (mred:finder:get-file)
-				 filename)])
-	       (and filename
-		    (if (file-exists? filename)
-			(super-load-file filename format show-dialog?)
-			(set-filename filename)))))])
 	(public
 	  [autowrap-bitmap null])
 	(sequence
@@ -841,6 +849,7 @@
       (class super% (return . args)
 	(rename [super-on-local-char on-local-char])
 	(public
+	  [auto-set-wrap? #f]
 	  [on-local-char
 	   (lambda (key)
 	     (let ([cr-code 13]
@@ -988,7 +997,8 @@
   (define return-edit% (make-return-edit% media-edit%))
   
   (define pasteboard% (make-pasteboard%
-		       mred:connections:connections-media-pasteboard%))
+		       (make-std-buffer%
+			mred:connections:connections-media-pasteboard%)))
   (define info-pasteboard% (make-info-buffer% pasteboard%))
   (define file-pasteboard% (make-file-buffer% info-pasteboard%))
   (define backup-autosave-pasteboard% (make-backup-autosave-buffer% 
