@@ -405,7 +405,9 @@
         (interface (-keymap<%>)
           get-filename/untitled-name
           get-can-close-parent
-          update-frame-filename))
+          update-frame-filename
+          allow-close-with-no-filename?))
+      
       (define file-mixin
         (mixin (-keymap<%>) (file<%>)
           (inherit get-filename lock get-style-list 
@@ -447,9 +449,12 @@
 		(update-frame-filename))]))
 
           (inherit save-file)
+          (define/public (allow-close-with-no-filename?) #f)
           (define/augment (can-close?)
             (let* ([user-allowed-or-not-modified
                     (or (not (is-modified?))
+                        (and (not (get-filename))
+                             (allow-close-with-no-filename?))
                         (case (gui-utils:unsaved-warning
                                (get-filename/untitled-name)
                                (string-constant close-anyway)
