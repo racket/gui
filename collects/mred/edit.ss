@@ -159,7 +159,8 @@
     (define make-edit%
       (lambda (super%)
 	(class (make-std-buffer% super%) args
-	  (inherit mode canvases get-file-format
+	  (inherit mode canvases get-file-format 
+		   set-filename
 		   change-style save-file
 		   invalidate-bitmap-cache
 		   begin-edit-sequence end-edit-sequence
@@ -209,17 +210,24 @@
 	       (lambda (name format)
 		 (unless (or skip-check
 			     (= format wx:const-media-ff-std)
-			     (and (or (= format wx:const-media-ff-same)
-				      (= format wx:const-media-ff-guess))
+			     (= format wx:const-media-ff-guess)
+			     (and (= format wx:const-media-ff-same)
 				  (= (get-file-format) 
 				     wx:const-media-ff-std)))
 		   (dynamic-wind
 		    (lambda () (set! skip-check #t))
 		    (lambda ()
-		      (when (and (has-non-text-snips)
-				 (or (not (mred:preferences:get-preference 'mred:verify-change-format))
-				     (mred:gui-utils:get-choice "Save this file as plain text?" "No" "Yes")))
-			(save-file name wx:const-media-ff-std)))
+		      (cond
+			[(= format wx:const-media-ff-copy)
+			 (let ([format (get-file-format)])
+			   (set-file-format wx:const-media-ff-std)
+			   (save-file name format)
+			   (set-file-format format))]
+			[(and (has-non-text-snips)
+			      (or (not (mred:preferences:get-preference 'mred:verify-change-format))
+				  (mred:gui-utils:get-choice "Save this file as plain text?" "No" "Yes")))
+			 (save-file name wx:const-media-ff-std)]
+			[else (void)]))
 		    (lambda () (set! skip-check #f))))
 		 (super-on-save-file name format)))]
 	 

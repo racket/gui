@@ -128,22 +128,6 @@
 			    "Error")
 			   (do-goto button event orig-dir)))))))]
 	  
-	  [on-default-action
-	   (lambda (which)
-	     (if (eq? which name-list)
-		 (let* ([which (send name-list get-string-selection)]
-			[dir (build-path current-dir
-					 (make-relative which))])
-		   (if (directory-exists? dir)
-		       (set-directory (mzlib:file:normalize-path dir))
-		       (if save-mode?
-			   (send name-field set-value which)
-			   (if multi-mode?
-			       (do-add)
-			       (do-ok)))))
-		 (if (eq? which name-field)
-		     (do-ok))))]
-	  
 	  [do-name
 	   (lambda (text event)
 	     (if (eq? (send event get-event-type)
@@ -265,14 +249,27 @@
 	  [middle-panel (make-object mred:container:horizontal-panel% main-panel)]
 	  [left-middle-panel (make-object mred:container:vertical-panel% middle-panel)]
 	  [right-middle-panel (when multi-mode? (make-object mred:container:vertical-panel% middle-panel))]
-	  [name-list (begin
-		       (new-line)
-		       (make-object mred:container:list-box%
-				    left-middle-panel do-name-list
-				    () wx:const-single
-				    -1 -1
-				    (if multi-mode? (* 1/2 WIDTH) WIDTH) 300
-				    () wx:const-needed-sb))]
+	  [name-list%
+	   (class-asi mred:container:list-box%
+	     (public
+	      [on-default-action
+	       (lambda ()
+		 (let* ([which (send name-list get-string-selection)]
+			[dir (build-path current-dir
+					 (make-relative which))])
+		   (if (directory-exists? dir)
+		       (set-directory (mzlib:file:normalize-path dir))
+		       (if save-mode?
+			   (send name-field set-value which)
+			   (if multi-mode?
+			       (do-add)
+			       (do-ok))))))]))]
+	  [name-list (make-object name-list%
+				  left-middle-panel do-name-list
+				  () wx:const-single
+				  -1 -1
+				  (if multi-mode? (* 1/2 WIDTH) WIDTH) 300
+				  () wx:const-needed-sb)]
 	  [save-panel (when save-mode? (make-object mred:container:horizontal-panel% main-panel))]
 	  [bottom-panel (make-object mred:container:horizontal-panel% main-panel)]
 	  [result-list
@@ -303,12 +300,17 @@
 	(private
 	  [name-field
 	   (when save-mode?
-	     (let ([v (make-object mred:container:text%
-				   save-panel do-name
-				   "Name: " ""
-				   -1 -1
-				   400 -1
-				   wx:const-process-enter)])
+	     (let* ([% (class-asi mred:container:text%
+			 (public
+			  [on-default-action
+			   (lambda ()
+			     (do-ok))]))]
+		    [v (make-object %
+				    save-panel do-name
+				    "Name: " ""
+				    -1 -1
+				    400 -1
+				    wx:const-process-enter)])
 	       (send v stretchable-in-x #t)
 	       (if (string? start-name)
 		   (send v set-value start-name))
