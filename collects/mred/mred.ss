@@ -7605,7 +7605,7 @@
 		 (or (not s)
 		     ((send text get-snip-position s) . >= . end))))
 	  ;; It's all text --- just read it into a string
-	  (let ([port (open-input-string (send text get-text start end))])
+	  (let ([port (open-input-string (send text get-text start end) port-name)])
 	    (port-count-lines! port)
 	    port)
 	  ;; Create the port:

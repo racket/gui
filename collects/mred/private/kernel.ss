@@ -212,8 +212,6 @@
     end-edit-sequence
     begin-edit-sequence
     style-has-changed
-    write-to-file
-    read-from-file
     set-min-height
     set-max-height
     get-min-height
@@ -222,9 +220,6 @@
     set-max-width
     get-min-width
     get-max-width
-    get-space
-    get-descent
-    get-extent
     insert-file
     load-file
     insert-port
@@ -248,6 +243,8 @@
     write-headers-to-file
     read-footer-from-file
     read-header-from-file
+    write-to-file
+    read-from-file
     set-filename
     release-snip
     on-snip-modified
@@ -267,6 +264,9 @@
     on-local-char
     on-local-event
     find-first-snip
+    get-space
+    get-descent
+    get-extent
     blink-caret
     own-caret
     refresh
@@ -863,6 +863,9 @@
     on-local-char
     on-local-event
     find-first-snip
+    get-space
+    get-descent
+    get-extent
     blink-caret
     own-caret
     refresh
@@ -1064,6 +1067,9 @@
     on-local-char
     on-local-event
     find-first-snip
+    get-space
+    get-descent
+    get-extent
     blink-caret
     own-caret
     refresh
