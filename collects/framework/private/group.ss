@@ -192,9 +192,7 @@
                 (send mdi-parent show #t))
               mdi-parent)]
           
-          (define (get-frames)
-            (filter (lambda (x) (send x is-shown?)) 
-                    (map frame-frame frames)))
+          (define (get-frames) (map frame-frame frames))
           
           [define frame-label-changed
             (lambda (frame)

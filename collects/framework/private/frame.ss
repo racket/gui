@@ -131,8 +131,9 @@
         
           (rename [super-show show])
           (define/override (show on?)
-            (when on?
-              (send (group:get-the-frame-group) insert-frame this))
+            (if on?
+                (send (group:get-the-frame-group) insert-frame this)
+                (send (group:get-the-frame-group) remove-frame this))
             (super-show on?))
           
           (define/override (can-exit?)
@@ -159,7 +160,6 @@
 	  (define (on-superwindow-show shown?)
 	    (send (group:get-the-frame-group) frame-shown/hidden this)
 	    (super-on-superwindow-show shown?))
-
 
           (rename [super-can-close? can-close?]
                   [super-on-close on-close]
