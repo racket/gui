@@ -142,6 +142,7 @@
      readable-snip<%>
      read-editor-global-footer
      read-editor-global-header
+     read-editor-version
      region%
      register-collecting-blit
      scroll-event%
@@ -183,6 +184,7 @@
      window<%>
      write-editor-global-footer
      write-editor-global-header
+     write-editor-version
      write-resource
      yield
      )))

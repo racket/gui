@@ -288,6 +288,8 @@
   (define-function write-editor-global-header)
   (define-function read-editor-global-footer)
   (define-function read-editor-global-header)
+  (define-function read-editor-version)
+  (define-function write-editor-version)
   (define-function set-editor-print-margin)
   (define-function get-editor-print-margin)
   (define-class bitmap% object% #f

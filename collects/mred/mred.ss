@@ -7661,6 +7661,7 @@
 	   ps-setup%
 	   read-editor-global-footer
 	   read-editor-global-header
+	   read-editor-version
 	   region%
 	   scroll-event%
 	   snip%
@@ -7677,6 +7678,7 @@
 	   tab-snip%
 	   write-editor-global-footer
 	   write-editor-global-header
+	   write-editor-version
 	   write-resource
 	   queue-callback
 	   yield
