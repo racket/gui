@@ -51,23 +51,24 @@
 						   (eq? x #t))))
 
     (define setup-global-search-keymap
-      (let* ([find-string
-	      (lambda (edit event . extras)
-		(let ([x-box (box (send event get-x))]
-		      [y-box (box (send event get-y))]
-		      [canvas (send event get-event-object)])
-		  (send canvas client-to-screen x-box y-box)
-		  (mred:find-string:find-string canvas ()
-						(- (unbox x-box) 30)
-						(- (unbox y-box) 30)
-						(cons 'ignore-case extras))
-		  #t))]
+      (let* ([find-frame
+	      (lambda (event)
+		(let loop ([p (send event get-event-object)]) 
+		  (if (is-a? p wx:frame%)
+		      p
+		      (loop (send p get-parent)))))]
 	     [find-string-reverse
 	      (lambda (edit event)
-		(find-string edit event 'reverse))]
-	     [find-string-replace
+		(send (find-frame event) search -1)
+                #t)]
+	     [find-string
 	      (lambda (edit event)
-		(find-string edit event 'replace))])
+		(send (find-frame event) search 1)
+                #t)]
+	     [toggle-search-focus
+	      (lambda (edit event)
+		(send (find-frame event) toggle-search-focus)
+                #t)])
 	(lambda (kmap)
 	  (let* ([map (lambda (key func) 
 			(send kmap map-function key func))]
@@ -79,13 +80,14 @@
 			  (send kmap add-mouse-function name func))])
 	    
 
+	    (add "initiate-search" toggle-search-focus)
 	    (add "find-string" find-string)
 	    (add "find-string-reverse" find-string-reverse)
-	    (add "find-string-replace" find-string-replace)
 
+	    (map "c:i" "initiate-search")
             (map "c:s" "find-string")
             (map "c:r" "find-string-reverse")
-            (map-meta "%" "find-string-replace")))))
+            (map-meta "%" "find-string")))))
 
     (define setup-global-file-keymap
       (let* ([rcs
@@ -131,18 +133,19 @@
 						 (send edit get-file-format))]
 				   [(cancel) (k (void))]
 				   [else (void)]))
-			       (let* ([msg (wx:get-text-from-user "Please Enter Log Message"
-								  "Check In"
-								  last-checkin-string)]
+			       (let* ([msg (mred:gui-utils:get-text-from-user
+					    "Please Enter Log Message"
+					    "Check In"
+					    last-checkin-string)]
 				      [result (system* (build-path rcs-pathname "ci")
 						       "-u" (string-append "-m" msg) filename)])
-				 (set! last-checkin-string msg)
+				 (set! last-checkin-string (or msg ""))
 				 (if result
 				     (send edit load-file
 					   (send edit get-filename)
 					   (send edit get-file-format))
-				     (wx:message-box "Checkin Unsucessful")))]
-			      [locked? (wx:message-box "Someone else has the lock")]
+				     (mred:gui-utils:message-box "Checkin Unsucessful")))]
+			      [locked? (mred:gui-utils:message-box "Someone else has the lock")]
 			      [else
 			       (let ([current-dir (current-directory)])
 				 (let-values ([(base name _) (split-path filename)])
@@ -559,7 +562,9 @@
 
 	     [goto-line
 	      (lambda (edit event)
-		(let ([num-str (wx:get-text-from-user "Goto Line:" "Goto Line")])
+		(let ([num-str (mred:gui-utils:get-text-from-user
+				"Goto Line:"
+				"Goto Line")])
 		  (if (string? num-str)
 		      (let ([line-num (string->number num-str)])
 			(if line-num
@@ -569,8 +574,9 @@
 		#t)]
 	     [goto-position
 	      (lambda (edit event)
-		(let ([num-str (wx:get-text-from-user "Goto Position:" 
-						      "Goto Position")])
+		(let ([num-str (mred:gui-utils:get-text-from-user 
+				"Goto Position:" 
+				"Goto Position")])
 		  (if (string? num-str)
 		      (let ([pos (string->number num-str)])
 			(if pos

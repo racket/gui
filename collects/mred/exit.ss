@@ -26,35 +26,33 @@
 
     (define run-exit-callbacks
       (lambda ()
-	(set! exit-callbacks
-	      (let loop ([cb-list exit-callbacks])
-		(cond
-		 [(null? cb-list) ()]
-		 [(not ((car cb-list))) cb-list]
-		 [else (loop (cdr cb-list))])))))
+	(let*-values ([(w capW)
+		       (if (eq? wx:platform 'windows)
+			   (values "exit" "Exit")
+			   (values "quit" "Quit"))]
+		      [(message)
+		       (string-append "Are you sure you want to "
+				      w
+				      "?")])
+	  (let/ec k
+	    (when (mred:preferences:get-preference 'mred:verify-exit)
+	      (unless (mred:gui-utils:get-choice
+		       message capW "Cancel")
+		(k #f)))
+	    (let loop ([cb-list exit-callbacks])
+	      (cond
+		[(null? cb-list) #t]
+		[(not ((car cb-list))) #f]
+		[else (loop (cdr cb-list))]))))))
 
     (define -exit
-      (let*-values ([(exiting?) #f]
-		    [(w capW)
-		     (if (eq? wx:platform 'windows)
-			 (values "exit" "Exit")
-			 (values "quit" "Quit"))]
-		    [(message)
-		     (string-append "Are you sure you want to "
-				    w
-				    "?")])
-	(lambda ()
+      (let*-values ([(exiting?) #f])
+	(opt-lambda ([just-ran-callbacks? #f])
 	  (unless exiting?
 	    (dynamic-wind
 	     (lambda () (set! exiting? #t))
 	     (lambda ()
-	       (let/ec k
-		 (when (mred:preferences:get-preference 'mred:verify-exit)
-		   (unless (mred:gui-utils:get-choice
-			    message capW "Cancel")
-		     (k #f)))
-		 (run-exit-callbacks)
-		 (if (null? exit-callbacks)
-		     (exit)
-		     #f)))
+	       (if (or just-ran-callbacks? (run-exit-callbacks))
+		   (exit)
+		   #f))
 	    (lambda () (set! exiting? #f))))))))
