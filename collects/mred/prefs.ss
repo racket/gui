@@ -16,7 +16,7 @@
     (define preferences-filename
       (case wx:platform
 	[(unix) (build-path (expand-path "~") ".mred.prefs")]
-	[(macintosh) "Mred Preferences"]
+	[(macintosh) "MrEd Preferences"]
 	[else "mred.pre"])) ;; windows 
     
     (define preferences (make-hash-table))
@@ -202,6 +202,14 @@
 			      (horizontal-panel 
 			       #t #f
 			       (list (let ([c (check-box (lambda (_ command) 
+							   (set-preference 'mred:status-line (send command checked?)))
+							 "Display Status Information?")])
+				       (send c set-value (get-preference 'mred:status-line))
+				       c)
+				     (panel #t #t)))
+			      (horizontal-panel 
+			       #t #f
+			       (list (let ([c (check-box (lambda (_ command) 
 							   (set-preference 'mred:verify-exit (send command checked?)))
 							 "Verify Exit?")])
 				       (send c set-value (get-preference 'mred:verify-exit))
@@ -233,7 +241,13 @@
 		  [panel (make-object mred:vertical-panel% frame)]
 		  [top-panel (make-object mred:horizontal-panel% panel)]
 		  [single-panel (make-object mred:single-panel% panel -1 -1 -1 -1 wx:const-border)]
-		  [panels (map (lambda (p) ((ppanel-container p) single-panel)) ppanels)]
+		  [panels (map 
+			   (lambda (p)
+			     (let* ([parent-panel (make-object mred:vertical-panel% single-panel)]
+				    [new-panel ((ppanel-container p) parent-panel)])
+			       (send parent-panel border 0)
+			       parent-panel))
+			   ppanels)]
 		  [bottom-panel (make-object mred:horizontal-panel% panel)]
 		  [popup-callback
 		   (lambda (choice command-event)
