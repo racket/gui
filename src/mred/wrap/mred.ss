@@ -4376,7 +4376,7 @@
 						    (send files enable #t)
 						    (update-ok)
 						    (wx:end-busy-cursor)))))]
-			   [get-filename (lambda () (and ok? (simplify-path (build-path dir (or typed-name (send files get-string-selection))))))]
+			   [get-filename (lambda () (simplify-path (build-path dir (or typed-name (send files get-string-selection)))))]
 			   [done (lambda ()
 				   (let ([name (get-filename)])
 				     (unless (and put? (file-exists? name)
@@ -4387,9 +4387,16 @@
 		    (send bp stretchable-height #f)
 		    (send m stretchable-width #t)
 		    (reset-directory)
+		    (when filename
+		      (let ([d (send dir-text get-value)])
+			(send dir-text set-value (build-path d filename))
+			(set! typed-name filename)
+			(send ok-button enable #t)))
+		    (when put-file
+		      (send dir-text focus))
 		    (send f center)
 		    (send f show #t)
-		    (get-filename)))])])
+		    (and ok? (get-filename))))])])
     sel))
 
 (define get-file (mk-file-selector 'get-file #f))
