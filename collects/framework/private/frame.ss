@@ -848,7 +848,9 @@
             (lambda (menu evt) 
               (message-box (application:current-app-name)
                            (format (string-constant welcome-to-something)
-                                   (application:current-app-name)))))
+                                   (application:current-app-name))
+                           #f
+                           '(ok app))))
           (define help-menu:about-string (lambda () (application:current-app-name)))
           (define help-menu:create-about? (lambda () #t))
           

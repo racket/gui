@@ -68,7 +68,9 @@
                                      (format (string-constant error-saving-file/name) 
                                              filename)
                                      "\n\n"
-				     (format-error-message exn)))
+				     (format-error-message exn))
+                                    #f
+                                    '(stop ok))
                                    #f)])
                   (when filename
                     (save-file filename fmt #f))
@@ -95,7 +97,9 @@
 				     (format (string-constant error-loading-file/name)
 					     filename)
 				     "\n\n"
-				     (format-error-message exn)))
+				     (format-error-message exn))
+                                    #f
+                                    '(stop ok))
                                    #f)])
                   (load-file input-filename fmt show-errors?)
                   #t))))
@@ -475,7 +479,9 @@
                                       "\n\n"
                                       (if (exn? exn)
                                           (exn-message exn)
-                                          (format "~s" exn))))
+                                          (format "~s" exn)))
+                                     #f
+                                     '(caution ok))
                                     (set! auto-save-error? #t)
                                     #f)])
                    (save-file auto-name 'copy #f)
