@@ -8,6 +8,10 @@ mred \- The Rice PLT GUI engine
 [-s
 .I sysfile
 ]
+[-p
+.I image-filename
+.I splash-title
+]
 [-q | --no-init-file]
 [-nu ]
 [-f
@@ -36,13 +40,18 @@ a particular file. This overrides the system directory
 search path described below in FILES and must come before all other
 arguments.
 .PP
+The -p flag specifies a splash screen filename. The splash screen must be
+an image file supported by wx:bitmap% objects. See the mred manual for more
+information on what image types are supported by wx:bitmap% objects. The
+second argument to -p names the splash screen
+.PP
 The -q or --no-init-file flag prevents 
 .I MrEd
 from loading
 the user's startup file ".mredrc" in the user's home
 directory.
 .PP
-Multiple -f
+multiple -f
 and -e flags can be specified. For each -e flag, the corresponding
 expression is evaluated. For each -f flag, the corresponding file
 is loaded (with its directory as the working cirectory).
