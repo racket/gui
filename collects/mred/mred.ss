@@ -7402,78 +7402,72 @@
 				(format "end index outside the range [~a,~a]: " start last)
 				end))))
     ;; Create the port:
-    (let* ([end (if (eq? end 'end) (send text last-position) end)]
-	   [snip (send text find-snip start 'after-or-none)]
-	   [str #f]
-	   [pos 0]
-	   [lock-semaphore (make-semaphore 1)]
-	   [update-str-to-snip
-	    (lambda ()
-	      (if (not snip)
-		  (set! str #f)
-		  (let ([snip-start (send text get-snip-position snip)])
-		    (cond
-		     [(snip-start . >= . end)
-		      (set! str #f)]
-		     [(is-a? snip wx:string-snip%)
-		      (set! str (send snip get-text 0 (min (send snip get-count)
-							   (- end snip-start))))]
-		     [else
-		      (set! str 'snip)]))))]
-	   [next-snip
-	    (lambda ()
-	      (set! snip (send snip next))
-	      (set! pos 0)
-	      (update-str-to-snip))]
-	   [read-chars (lambda (to-str)
-			 (cond
-			  [(not str) eof]
-			  [(string? str)
-			   (let* ([sl (string-length str)]
-				  [n (min (- sl pos) (string-length to-str))])
-			     (let loop ([i 0])
-			       (unless (= i n)
-				 (string-set! to-str i (string-ref str (+ i pos)))
-				 (loop (add1 i))))
-			     (set! pos (+ pos n))
-			     (when (sl . <= . pos)
-			       (next-snip))
-			     n)]
-			  [(eq? str 'snip)
-			   (let ([the-snip snip])
-			     (lambda (file line col ppos)
-			       (if (is-a? the-snip readable-snip<%>)
-				   (with-handlers ([exn:special-comment?
-						    (lambda (exn)
-						      ;; implies "done"
-						      (next-snip)
-						      (raise exn))])
-				     (let-values ([(val size done?)
-						   (send the-snip read-one-special pos file line col ppos)])
-				       (if done?
-					   (next-snip)
-					   (set! pos (add1 pos)))
-				       (values val size)))
-				   (begin
-				     (next-snip)
-				     (values (send the-snip copy) 1)))))]))]
-	   [close (lambda () (void))]
-	   ;; We create a slow port for now; in the future, try
-	   ;; grabbing more characters:
-	   [port (make-custom-input-port 
-		  (lambda (s)
-		    (parameterize ([break-enabled #f])
-		      (if (semaphore-try-wait? lock-semaphore)
-			  (dynamic-wind
-			      void
-			      (lambda () (read-chars s))
-			      (lambda () (semaphore-post lock-semaphore)))
-			  (make-semaphore-peek lock-semaphore))))
-		  #f ; no peek
-		  close)])
-      (update-str-to-snip)
-      (port-count-lines! port)
-      port)]
+    (let-values ([(pipe-r pipe-w) (make-pipe)])
+      (let* ([end (if (eq? end 'end) (send text last-position) end)]
+	     [snip (send text find-snip start 'after-or-none)]
+	     [next? #f]
+	     [pos 0]
+	     [lock-semaphore (make-semaphore 1)]
+	     [update-str-to-snip
+	      (lambda ()
+		(if snip
+		    (let ([snip-start (send text get-snip-position snip)])
+		      (cond
+		       [(snip-start . >= . end)
+			(set! snip #f)
+			(set! next? #f)]
+		       [(is-a? snip wx:string-snip%)
+			(display (send snip get-text 0 (send snip get-count)) pipe-w)
+			(set! next? #t)]
+		       [else
+			(set! next? #f)]))
+		    (set! next? #f)))]
+	     [next-snip
+	      (lambda ()
+		(set! snip (send snip next))
+		(set! pos 0)
+		(update-str-to-snip))]
+	     [read-chars (lambda (to-str)
+			   (cond
+			    [next?
+			     (next-snip)
+			     0]
+			    [snip
+			     (let ([the-snip snip])
+			       (lambda (file line col ppos)
+				 (if (is-a? the-snip readable-snip<%>)
+				     (with-handlers ([exn:special-comment?
+						      (lambda (exn)
+							;; implies "done"
+							(next-snip)
+							(raise exn))])
+				       (let-values ([(val size done?)
+						     (send the-snip read-one-special pos file line col ppos)])
+					 (if done?
+					     (next-snip)
+					     (set! pos (add1 pos)))
+					 (values val size)))
+				     (begin
+				       (next-snip)
+				       (values (send the-snip copy) 1)))))]
+			    [else eof]))]
+	     [close (lambda () (void))]
+	     [port (make-custom-input-port 
+		    (lambda (s)
+		      (if (char-ready? pipe-r)
+			  (read-string-avail!* s pipe-r)
+			  (parameterize ([break-enabled #f])
+			    (if (semaphore-try-wait? lock-semaphore)
+				(dynamic-wind
+				    void
+				    (lambda () (read-chars s))
+				    (lambda () (semaphore-post lock-semaphore)))
+				(make-semaphore-peek lock-semaphore)))))
+		    #f ; no peek
+		    close)])
+	(update-str-to-snip)
+	(port-count-lines! port)
+	port))]
    [(text start) (open-input-text-editor text start 'end)]
    [(text) (open-input-text-editor text 0 'end)]))
 

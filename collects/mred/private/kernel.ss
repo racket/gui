@@ -203,6 +203,7 @@
     num-scroll-lines
     scroll-line-location
     get-snip-location
+    locations-computed?
     in-edit-sequence?
     refresh-delayed?
     end-edit-sequence
@@ -1144,6 +1145,7 @@
     on-event
     size-cache-invalid
     copy
+    get-text!
     get-text
     merge-with
     split
@@ -1181,6 +1183,7 @@
     on-event
     size-cache-invalid
     copy
+    get-text!
     get-text
     merge-with
     split
@@ -1205,6 +1208,7 @@
     on-event
     size-cache-invalid
     copy
+    get-text!
     get-text
     merge-with
     split
@@ -1234,6 +1238,7 @@
     on-event
     size-cache-invalid
     copy
+    get-text!
     get-text
     merge-with
     split
@@ -1276,6 +1281,7 @@
     on-event
     size-cache-invalid
     copy
+    get-text!
     get-text
     merge-with
     split
