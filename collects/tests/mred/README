@@ -1,14 +1,23 @@
----------------------------------------------------------------------------
+
 "startup" tests the startup flags of mred. run "run.ss" from that directory.
 
 ---------------------------------------------------------------------------
+
 "frame-edit.ss" checks that various frames match with various
 edits. Under construction.
 
 ---------------------------------------------------------------------------
-The "gui.ss" file tests autosaving, opening and closing of frames.
+
+"gui.ss" tests:
+ - save prompting (before closing unsaved files) and
+ - autosaving 
+
+evaluate `(load "gui.ss")' in the console to run.
+
+It also overwrites the file "tmp.ss" in the testing directory.
 
 ---------------------------------------------------------------------------
+
 The "item.ss" test (use load/cd) creates a frame to select
 among several types of control-testing frames:
 
