@@ -1708,7 +1708,7 @@
       (alignment 'left 'top)
       (unless horiz? (send p alignment 'left 'top))
       (unless multi? (stretchable-in-y #f))
-      (send e auto-wrap multi?)
+      (send e auto-wrap (and multi? (not (memq 'hscroll style))))
       (let ([f (get-control-font)]
 	    [s (send (send e get-style-list) find-named-style "Standard")])
 	(send s set-delta (font->delta f)))
@@ -2190,17 +2190,19 @@
   (class basic-control% (label min-val max-val parent callback [value min-val] [style '(horizontal)])
     (sequence 
       (check-string/false '(constructor slider) label)
-      (check-range-integer '(constructor slider) min-val)
-      (check-range-integer '(constructor slider) max-val)
+      (check-slider-integer '(constructor slider) min-val)
+      (check-slider-integer '(constructor slider) max-val)
       (check-container-parent 'slider parent) 
       (check-callback '(constructor slider) callback)
-      (check-range-integer '(constructor slider) value)
+      (check-slider-integer '(constructor slider) value)
       (check-orientation 'slider style))
     (private
       [wx #f])
     (public
       [get-value (lambda () (send wx get-value))]
-      [set-value (lambda (v) (send wx set-value v))])
+      [set-value (lambda (v)
+		   (check-slider-integer '(method slider% set-value) v)
+		   (send wx set-value v))])
     (sequence
       (super-init (lambda () 
 		    (set! wx (make-object wx-slider% this this
@@ -2210,7 +2212,7 @@
 		  label parent #f))))
 
 (define gauge%
-  (class basic-control% (label parent range [style '(horizontal)])
+  (class basic-control% (label range parent [style '(horizontal)])
     (sequence 
       (check-string/false '(constructor gauge) label)
       (check-container-parent 'gauge parent) 
@@ -2220,7 +2222,13 @@
       [wx #f])
     (public
       [get-value (lambda () (send wx get-value))]
-      [set-value (lambda (v) (send wx set-value v))])
+      [set-value (lambda (v)
+		   (check-range-integer '(method gauge% set-value) v)
+		   (send wx set-value v))]
+      [get-range (lambda () (send wx get-range))]
+      [set-range (lambda (v)
+		   (check-range-integer '(method gauge% set-range) v)
+		   (send wx set-range v))])
     (sequence
       (super-init (lambda () 
 		    (set! wx (make-object wx-gauge% this this
@@ -2296,7 +2304,7 @@
       [set-string (lambda (n d) (send wx set-string n d))]
       [set-data (lambda (n d) (send wx set-data n d))]
       [get-first-visible (lambda () (send wx get-first-item))]
-      [set-first-visible (lambda () (send wx set-first-item))]
+      [set-first-visible (lambda (n) (send wx set-first-item n))]
       [select (case-lambda 
 	       [(n) (send wx set-selection n)]
 	       [(n on?) (send wx set-selection n on?)])])
@@ -2379,12 +2387,12 @@
       (check-container-parent 'canvas parent)
       (check-style '(constructor canvas) #f '(border hscroll vscroll) style))
     (public
-      [virtual-size (lambda () (double-boxed
-				0 0
-				(lambda (x y) (send wx get-virtual-size))))]
-      [view-start (lambda () (double-boxed
-			      0 0
-			      (lambda (x y) (send wx get-view-start))))]
+      [get-virtual-size (lambda () (double-boxed
+				    0 0
+				    (lambda (x y) (send wx get-virtual-size x y))))]
+      [get-view-start (lambda () (double-boxed
+				  0 0
+				  (lambda (x y) (send wx get-view-start x y))))]
 
       [scroll (lambda (x y) (send wx scroll x y))]
 
@@ -2392,12 +2400,12 @@
 			(send wx set-scrollbars 
 			      h-pixels v-pixels x-len y-len x-page y-page x-val y-val man?))]
 
-      [get-scroll-pos (lambda () (send wx get-scroll-pos))]
-      [set-scroll-pos (lambda (v) (send wx set-scroll-pos v))]
-      [get-scroll-range (lambda () (send wx get-scroll-range))]
-      [set-scroll-range (lambda (v) (send wx set-scroll-range v))]
-      [get-scroll-page (lambda () (send wx get-scroll-page))]
-      [set-scroll-page (lambda (v) (send wx set-scroll-page v))])
+      [get-scroll-pos (lambda (d) (send wx get-scroll-pos d))]
+      [set-scroll-pos (lambda (d v) (send wx set-scroll-pos d v))]
+      [get-scroll-range (lambda (d) (send wx get-scroll-range d))]
+      [set-scroll-range (lambda (d v) (send wx set-scroll-range d v))]
+      [get-scroll-page (lambda (d) (send wx get-scroll-page d))]
+      [set-scroll-page (lambda (d v) (send wx set-scroll-page d v))])
     (private
       [wx #f])
     (sequence
@@ -2668,7 +2676,7 @@
       [get-plain-label (lambda () plain-label)]
       [get-help-string (lambda () help-string)]
       [set-help-string (lambda (s) 
-			 (check-string/false '(method labelled-menu-item<%> set-help-string))
+			 (check-string/false '(method labelled-menu-item<%> set-help-string) s)
 			 (set! help-string s)
 			 (send wx-parent set-help-string (send wx id) s))]
       [enable (lambda (on?) (do-enable on?))]
@@ -3614,6 +3622,10 @@
 (define (check-range-integer who range)
   (unless (and (number? range) (integer? range) (<= 0 range 10000))
     (raise-type-error (who->name who) "integer in [0, 10000]" range)))
+
+(define (check-slider-integer who range)
+  (unless (and (number? range) (integer? range) (<= -10000 range 10000))
+    (raise-type-error (who->name who) "integer in [-10000, 10000]" range)))
 
 (define (check-dimension who d)
   (when d (check-range-integer who d)))
