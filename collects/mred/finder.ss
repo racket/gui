@@ -266,7 +266,7 @@
 	  
 	  [middle-panel (make-object mred:container:horizontal-panel% main-panel)]
 	  [left-middle-panel (make-object mred:container:vertical-panel% middle-panel)]
-	  [right-middle-panel (make-object mred:container:vertical-panel% middle-panel)]
+	  [right-middle-panel (when multi-mode? (make-object mred:container:vertical-panel% middle-panel))]
 	  [name-list (begin
 		       (new-line)
 		       (make-object mred:container:list-box%
@@ -275,10 +275,10 @@
 				    -1 -1
 				    (if multi-mode? (* 1/2 WIDTH) WIDTH) 300
 				    () wx:const-needed-sb))]
-	  [save-panel (make-object mred:container:horizontal-panel% main-panel)]
+	  [save-panel (when save-mode? (make-object mred:container:horizontal-panel% main-panel))]
 	  [bottom-panel (make-object mred:container:horizontal-panel% main-panel)]
 	  [result-list
-	   (if multi-mode?
+	   (when multi-mode?
 	       (make-object mred:container:list-box%
 			    right-middle-panel do-result-list
 			    () 
@@ -288,17 +288,18 @@
 			    -1 -1
 			    (* 1/2 WIDTH) 300
 			    () wx:const-needed-sb))]
-	  [add-panel (make-object mred:container:horizontal-panel% left-middle-panel)]
-	  [remove-panel (make-object mred:container:horizontal-panel% right-middle-panel)])
+	  [add-panel (when multi-mode? (make-object mred:container:horizontal-panel% left-middle-panel))]
+	  [remove-panel (when multi-mode? (make-object mred:container:horizontal-panel% right-middle-panel))])
 	(sequence
-	  (send add-panel stretchable-in-y #f)
-	  (send remove-panel stretchable-in-y #f)
-	  (send name-list stretchable-in-x #t)
 	  (when multi-mode?
+	    (send add-panel stretchable-in-y #f)
+	    (send remove-panel stretchable-in-y #f)
 	    (send result-list stretchable-in-x #t))
+	  (send name-list stretchable-in-x #t)
 	  (send top-panel stretchable-in-y #f)
 	  (send bottom-panel stretchable-in-y #f)
-	  (send save-panel stretchable-in-y #f))
+	  (when save-mode?
+	    (send save-panel stretchable-in-y #f)))
 	
 	(private
 	  [name-field
