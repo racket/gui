@@ -113,9 +113,9 @@ are loaded and evaluated in the order that they are specified on
 on the command line.
 .PP
 Command-line arguments that are not flags are bound to the
-Scheme variable `argv' in a vector. The name by which
+Scheme global variable `argv' as a vector of strings. The name by which
 .I MzScheme
-was invoked is bound to the Scheme variable `program' as a
+was invoked is bound to the Scheme global variable `program' as a
 string.
 .PP
 For further information on
