@@ -249,7 +249,8 @@ implied by
 .BR --main ,
 embedded segments loaded by
 .BR -k ,
-and so on.
+and so on. An uncaught exception during an evaluation/load causes later
+evaluations/loads to be skipped.
 .PP
 The current-library-collections-paths parameter is automatically set before any
 expressions/files are evaluated/loaded, unless the
