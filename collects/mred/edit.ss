@@ -334,7 +334,9 @@
 			 [right (if (number? (rectangle-right rectangle))
 				    (rectangle-right rectangle)
 				    (+ view-x view-width))]
-			 [bottom (rectangle-bottom rectangle)])
+			 [bottom (rectangle-bottom rectangle)]
+			 [width (max 0 (- right left))]
+			 [height (max 0 (- bottom top))])
 		    (let/ec k
 		      (cond
 			[(and (not before)
@@ -366,8 +368,8 @@
 		      (send dc draw-rectangle 
 			    (+ left dx)
 			    (+ top dy)
-			    (- right left)
-			    (- bottom top))
+			    width
+			    height)
 		      (send dc set-logical-function old-logical-function)
 		      (send dc set-pen old-pen)
 		      (send dc set-brush old-brush)))))
