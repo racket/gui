@@ -348,7 +348,11 @@
    (map
     (lambda (i)
       (cond
-       [(is-a? i wx-basic-panel<%>) (container->children i except must-focus?)]
+       [(is-a? i wx-basic-panel<%>) 
+	(if (or (is-a? i wx:windowless-panel%)
+		(send i is-shown?))
+	    (container->children i except must-focus?)
+	    null)]
        [(or (eq? i except) 
 	    (and must-focus? (not (send i gets-focus?)))
 	    (not (send i is-enabled?))
@@ -373,8 +377,10 @@
 			    [py (cadr p)]
 			    [px2 (+ px (caddr p))]
 			    [py2 (+ py (cadddr p))])
-		       (and (or (<= x px x2) (<= x px2 x2))
-			    (or (<= y py y2) (<= y py2 y2)))))
+		       (and (or (<= x px x2) (<= x px2 x2)
+				(<= px x px2) (<= px x2 px2))
+			    (or (<= y py y2) (<= y py2 y2)
+				(<= py y py2) (<= py y2 py2)))))
 		   rest)
 	    rest
 	    (cons first rest)))))
