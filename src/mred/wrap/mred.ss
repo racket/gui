@@ -2056,7 +2056,7 @@
       [on-subwindow-char (lambda (w event) (send wx handle-menu-key event))])
     (public
       [create-status-line (lambda () (unless status-line? (send wx create-status-line) (set! status-line? #t)))]
-      [set-status-line (lambda () (send wx create-status-line))]
+      [set-status-line (lambda (s) (send wx set-status-text s))]
       [has-status-line? (lambda () status-line?)]
       [iconize (lambda (on?) (send wx iconize on?))]
       [is-iconized? (lambda () (send wx iconized?))]
@@ -2370,6 +2370,9 @@
       [on-paint (lambda () (send wx do-on-paint))]
       [on-scroll (lambda (e) (send wx do-on-scroll e))]
       
+      [min-client-width (param (lambda () wx) 'min-client-width)]
+      [min-client-height (param (lambda () wx) 'min-client-height)]
+
       [popup-menu (lambda (m x y) 
 		    (check-instance '(method canvas<%> popup-menu) popup-menu% "popup-menu" #f m)
 		    (send wx popup-menu (mred->wx m) x y))]
