@@ -271,8 +271,8 @@
    open-url
    open-file))
 
-(define-signature mred:icon^
-  (get-icon
+(define-signature framework:icon^
+  (get
 
    get-paren-highlight-bitmap
    get-autowrap-bitmap
@@ -306,8 +306,8 @@
    global-search-keymap
    global-file-keymap))
 
-(define-signature mred:match-cache^
-  (match-cache%))
+(define-signature framework:match-cache^
+  (%))
 
 (define-signature mred:menu^
   (max-manual-menu-id
@@ -322,14 +322,14 @@
    make-project-frame%
    project-frame%))
 
-(define-signature mred:scheme-paren^
-  (scheme-paren-pairs
-   scheme-quote-pairs
-   scheme-comments
-   scheme-forward-match
-   scheme-backward-match
-   scheme-balanced?
-   scheme-backward-containing-sexp))
+(define-signature framework:scheme-paren^
+  (paren-pairs
+   quote-pairs
+   comments
+   forward-match
+   backward-match
+   balanced?
+   backward-containing-sexp))
 
 (define-signature mred:scheme-mode^
   (scheme-mode-allow-console-eval
@@ -347,7 +347,7 @@
    scheme-interaction-mode%
    scheme-mode-style-list))
 
-(define-signature mred:paren^
+(define-signature framework:paren^
   (balanced? 
    forward-match 
    backward-match

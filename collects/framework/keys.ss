@@ -4,7 +4,6 @@
 	  [handler : framework:handler^]
 	  [scheme-paren : framework:scheme-paren^])
   
-  
   ; This is a list of keys that are typed with the SHIFT key, but
   ;  are not normally thought of as shifted. It will have to be
   ;  changed for different keyboards.
@@ -43,11 +42,18 @@
 	    (lambda (method)
 	      (lambda (edit event)
 		(let ([frame
-		       (let loop ([p (send event wx:get-event-object)])  ;;???
-			 (if (is-a? p frame%)
-			     p
-			     (loop (send p get-parent))))])
-		  ((ivar/proc frame method))
+		       (let ([frame
+			      (cond
+				[(is-a? obj editor<%>)
+				 (let ([canvas (send obj get-active-canvas)])
+				   (and canvas
+					(send canvas get-top-level-window)))]
+				[(is-a? obj area<%>)
+				 (send obj get-top-level-window)]
+				[else #f])]))])
+		  (if frame
+		      ((ivar/proc frame method))
+		      (bell))
 		  #t)))])
       (lambda (kmap)
 	(let* ([map (lambda (key func) 

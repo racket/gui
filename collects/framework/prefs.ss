@@ -413,11 +413,15 @@
 			      button% horiz 
 			      (lambda (button evt)
 				(let ([new-value
-				       (get-font-from-user
-					(format "Please choose a new ~a font" name)
-					fonts)])
+				       (mred:gui-utils:get-single-choice
+					(format "Please choose a new ~a font"
+						name)
+					"Fonts"
+					fonts
+					null -1 -1 #t 300 400)])
 				  (when new-value
-				    (set-preference pref-sym (or (send new-value get-face) "<UNKNOWN>"))
+				    (set-preference pref-sym
+						    new-value) 
 				    (set-edit-font (get-preference font-size-pref-sym)))))
 			      "Change")]
 			    ;; WARNING!!! CHECK INIT ARGS wx:
