@@ -351,6 +351,7 @@ area-container<%> : area<%>
     container-size
     get-children change-children place-children
     add-child delete-child
+    on-new-child
     border - parameter-like
     spacing - parameter-like
     set-alignment - takes two syms: 'left/'center/'right 'top/'center/'bottom
@@ -474,7 +475,7 @@ list-box% : list-control<%>
    get-first-visible set-first-visible
 
 canvas<%> : subwindow<%>
-    on-char on-event on-paint on-scroll
+    on-char on-event on-paint on-scroll on-tab-in
     popup-menu warp-pointer get-dc
     client-min-width client-min-height
 
@@ -641,8 +642,10 @@ begin-busy-cursor end-busy-cursor is-busy-cursor?
 bell
 label->plain-label
 get-resource write-resource
-yield sleep/yield flush-display
 get-face-list - formerly wx:get-font-list
+
+yield sleep/yield flush-display
+queue-callback
 
 find-graphical-system-path - formerly wx:find-path
 
@@ -652,8 +655,17 @@ get-top-level-windows
 get-top-level-focus-window
 get-top-level-edit-target-window
 
-get-editor-print-margin
-set-editor-print-margin
+graphical-read-eval-print-loop
+
+make-eventspace
+eventspace?
+current-eventspace
+eventspace-shutdown?
+eventspace-parameterization
+event-dispatch-handler
+
+check-for-break
+special-control-key
 
 read-editor-global-header
 read-editor-global-footer
@@ -673,8 +685,6 @@ editor-set-x-selection-mode
 
 get-the-snip-class-list
 get-the-buffer-data-class-list
-
-graphical-read-eval-print-loop
 
 ======================================================================
 4. Constant Mapping
@@ -1085,16 +1095,4 @@ the-color-database only has a find-color method; the others were
  TODO: Miscellaneous Cleanup
 -----------------------------
 
-Move the editor margin settings into ps-setup%?
-
-Blit: b&w in color -> monochrome
-
-null => #f in class
-
-Filter overlapping controls for tabbing!
-
-Add `on-tab' to canvas<%>?
-
-Add a `shutdown?' predicate.
-
-on-new-child method of area-container<%>
+null superclass => #f
