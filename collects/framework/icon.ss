@@ -36,16 +36,19 @@
   (define get-autowrap-bitmap (load-icon "return.xbm" 'xbm))
   (define get-paren-highlight-bitmap (load-icon "paren.xbm" 'xbm))
   
-  (define get
+  (define (make-get/mask filename type)
     (let ([icon #f]
-	  [p (build-path icon-path "mred.xbm")])
+	  [p (build-path icon-path filename)])
       (unless (file-exists? p)
 	(fprintf (current-error-port) "WARNING: couldn't find ~a~n" p))
       (lambda ()
 	(or icon
 	    (begin
-	      (set! icon (make-object bitmap% p 'xbm))
+	      (set! icon (make-object bitmap% p type))
 	      icon)))))
+  
+  (define get (make-get/mask "plt16x16.bmp" 'bmp))
+  (define get-mask (make-get/mask "dot16x16.xbm" 'xbm))
   
   (define gc-on-bitmap #f)
 

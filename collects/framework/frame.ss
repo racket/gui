@@ -338,9 +338,11 @@
 			  (send (get-canvas) set-editor e))
 			e))])
       (sequence
-	(let ([icon (icon:get)])
-	  (when (send icon ok?)
-	    (set-icon icon)))
+	(let ([icon (icon:get)]
+              [mask (icon:get-mask)])
+	  (when (and (send icon ok?)
+                     (send mask ok?))
+	    (set-icon icon mask)))
 	(do-label)
 	(cond
 	 [(and file-name (file-exists? file-name))

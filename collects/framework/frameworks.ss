@@ -203,7 +203,8 @@
 
 (define-signature framework:icon^
   (get
-
+   get-mask
+   
    get-paren-highlight-bitmap
    get-autowrap-bitmap
 
