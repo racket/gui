@@ -25,7 +25,9 @@ needed to really make this work:
       (define t (make-object text%))
       (define ec (make-object editor-canvas% f t))
       (append-editor-operation-menu-items edit-menu)
+      (send t insert "ac")
       (send t insert es)
+      (send t insert "#<syntax>")
       (send f show #t)))
 
   (define (render-syntax/snip stx) (make-object syntax-snip% stx))
@@ -219,11 +221,12 @@ needed to really make this work:
       
       (define details-shown? #t)
       
-      (inherit show-border)
+      (inherit show-border set-tight-text-fit)
       (define (hide-details)
         (when details-shown?
           (send outer-t lock #f)
           (show-border #f)
+          (set-tight-text-fit #t)
           (send outer-t release-snip inner-es)
           (send outer-t delete (send outer-t last-position))
           (send outer-t lock #t)
@@ -233,6 +236,7 @@ needed to really make this work:
         (unless details-shown?
           (send outer-t lock #f)
           (show-border #t)
+          (set-tight-text-fit #f)
           (send outer-t insert #\newline
                 (send outer-t last-position)
                 (send outer-t last-position))
