@@ -1,7 +1,7 @@
 (define-sigfunctor (mred:keymap@ mred:keymap^)
-  (import mred:finder^ mred:handler^ mred:find-string^ mred:scheme-paren^)
+  (import mred:debug^ mred:finder^ mred:handler^ mred:find-string^ mred:scheme-paren^)
 
-  '(printf "mred:keymap@~n")
+  (mred:debug^:dprintf "mred:keymap@~n")
 
   ; This is a list of keys that are typed with the SHIFT key, but
   ;  are not normally thought of as shifted. It will have to be

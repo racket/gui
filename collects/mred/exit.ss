@@ -2,7 +2,7 @@
 ;; exit doesn't actually exit, now.
 
 (define-sigfunctor (mred:exit@ mred:exit^)
-  (import)
+  (import mred:debug^)
   (rename (-exit exit))
 
   (define exit-callbacks '())
@@ -30,7 +30,8 @@
 	       [(not ((car cb-list))) cb-list]
 	       [else (loop (cdr cb-list))])))
       (if (null? exit-callbacks)
-	  (begin (exit)
+	  (begin (when mred:debug^:exit?
+		   (exit))
 		 #t)
 	  #f))))
 

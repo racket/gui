@@ -1,5 +1,5 @@
 (define-sigfunctor (mred:finder@ mred:finder^)
-  (import mzlib:string^ mzlib:function^ mzlib:file^)
+  (import mred:debug^ mzlib:string^ mzlib:function^ mzlib:file^)
 
   (define filter-match?
     (lambda (filter name msg)

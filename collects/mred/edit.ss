@@ -1,6 +1,11 @@
 (define-sigfunctor (mred:edit@ mred:edit^)
-  (import mred:finder^ mred:path-utils^ mred:mode^ mred:scheme-paren^ 
+  (import mred:debug^ mred:finder^ mred:path-utils^ mred:mode^ mred:scheme-paren^ 
 	  mred:keymap^ mzlib:function^)
+
+  (define first car)
+  (define second cadr)
+  (define third caddr)
+  (define fourth cadddr)
 
   (define make-std-buffer%
     (lambda (buffer%)
@@ -162,6 +167,8 @@
 		 on-default-char on-default-event 
 		 set-file-format get-style-list)
 	(rename [super-on-focus on-focus]
+		[super-on-paint on-paint]
+		[super-after-set-position after-set-position]
 		[super-on-local-event on-local-event]
 		[super-on-local-char on-local-char]
 		[super-on-insert on-insert]
@@ -212,8 +219,82 @@
 	 [after-delete
 	  (lambda (start len)
 	    (if mode (send mode after-delete this start len))
-	    (super-after-delete start len))])
+	    (super-after-delete start len))]
     
+	 [after-set-position
+	  (lambda ()
+	    (when mode 
+	      (send mode after-set-position this))
+	    (super-after-set-position))]
+
+	[ranges (list (list 4 24 '... '...))]
+	[add-range 
+	 (lambda (start end b/w-pattern color-pattern)
+	   (let ([l (list start end b/w-pattern color-pattern)])
+	     (set! ranges (cons l ranges))
+	     (lambda () (set! ranges 
+			      (let loop ([r ranges])
+				(cond
+				  [(null? r) r]
+				  [else (if (eq? (car r) l)
+					    (cdr r)
+					    (cons (car r) (loop (cdr r))))]))))))]
+	[range-rectangles null]
+	[recompute-range-rectangles
+	 (lambda ()
+	   (let ([new-rectangles 
+		  (lambda (start end b/w color)
+		    (let ([left 0]
+			  [right 1000]
+			  [top-start-x (box 0)]
+			  [top-start-y (box 0)]
+			  [bottom-start-x (box 0)]
+			  [bottom-start-y (box 0)]
+			  [top-end-x (box 0)]
+			  [top-end-y (box 0)]
+			  [bottom-end-x (box 0)]
+			  [bottom-end-y (box 0)])
+		      (send this position-location start top-start-x top-start-y #t #f #t)
+		      (send this position-location end top-end-x top-end-y #t #t #t)
+		      (send this position-location start bottom-start-x bottom-start-y #f #f #t)
+		      (send this position-location end bottom-end-x bottom-end-y #f #t #t)
+		      (cond
+			[(= (unbox top-start-y) (unbox top-end-y))
+			 (list (list (unbox top-start-x) (unbox top-start-y)
+				     (- (unbox bottom-end-x) (unbox top-start-x))
+				     (- (unbox bottom-end-y) (unbox top-start-y))))]
+			[else
+			 (list (list (unbox top-start-x) (unbox top-start-y)
+				     (- right (unbox top-start-x))
+				     (- (unbox bottom-start-y) (unbox top-start-y)))
+			       (list (unbox bottom-start-x) left
+				     (- right left) (- (unbox bottom-start-x) (unbox top-end-x)))
+			       (list left (unbox top-end-y)
+				     (- (unbox top-end-x) left)
+				     (- (unbox bottom-end-y) (unbox top-end-y))))])))])
+	     (set! range-rectangles (map (lambda (x) (apply new-rectangles x)) ranges))
+	     (printf "~a~n" range-rectangles)))]
+	[on-paint
+	 (lambda (before dc left top right bottom dx dy draw-caret)
+	   (when #f
+	     (for-each (lambda (rlist)
+			 (for-each (lambda (rectangle)
+				     (let ([pen (make-object wx:pen% "black" 1 1)]
+					   [brush (make-object wx:brush% "black" wx:const-transparent)]
+					   [old-pen (send dc get-pen)]
+					   [old-brush (send dc get-brush)])
+				       (send dc set-pen pen)
+				       (send dc set-brush brush)
+				       (send dc draw-rectangle
+					     (+ (first rectangle) dx)
+					     (+ (second rectangle) dy)
+					     (+ (third rectangle) dx)
+					     (+ (fourth rectangle) dy))
+				       (send dc set-pen old-pen)
+				       (send dc set-brush old-brush)))
+				   rlist))
+		       range-rectangles))
+	   (super-on-paint before dc left top right bottom dx dy draw-caret))])
 	(sequence
 	  (apply super-init args)
 	  (send edits add this)
