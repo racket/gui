@@ -32,6 +32,7 @@
 	(check-eq? 'new-pref)
 	`(begin (preferences:set ',pref-sym 'new-pref)
 		(preferences:get ',pref-sym)))
+
   (with-handlers ([eof-result? (lambda (x) (void))])
     (send-sexp-to-mred '(begin (preferences:set 'framework:verify-exit #f) (exit:exit))))
 

@@ -105,8 +105,10 @@
       (lambda ()
 	(when (and in-port
 		   out-port)
-	  (close-output-port out-port)
-	  (close-input-port in-port)
+          (with-handlers ([(lambda (x) #t) (lambda (x) (void))])
+            (close-output-port out-port))
+          (with-handlers ([(lambda (x) #t) (lambda (x) (void))])
+            (close-input-port in-port))
 	  (set! in-port #f)
 	  (set! in-port #f))))
 
@@ -152,8 +154,10 @@
 		       (newline)))])
 	      (unless (and in-port
 			   out-port
-			   (or (not (char-ready? in-port))
-			       (not (eof-object? (peek-char in-port)))))
+                           (with-handlers ([tcp-error?
+                                            (lambda (x) #f)])
+                             (or (not (char-ready? in-port))
+                                 (not (eof-object? (peek-char in-port))))))
 		(restart-mred))
 	      (printf "  ~a // ~a: sending to mred:~n" section-name test-name)
 	      (show-text sexp)
@@ -194,7 +198,6 @@
 			    (and (list? answer)
 				 (= 2 (length answer))))
 		  (error 'send-sexp-to-mred "unpected result from mred: ~s~n" answer))
-
 		(if (eof-object? answer)
 		    (raise (make-eof-result))
 		    (case (car answer)

@@ -84,7 +84,12 @@
    (lambda (x)
      (or (eq? x 'common)
 	 (eq? x 'std))))
-  
+
+  ;; reset this -- this preference is only for the test suite.
+  ;; it does not need to be set across starting up and shutting down
+  ;; the application.
+  (preferences:set 'framework:file-dialogs 'std)
+
   ;; groups
   
   (preferences:set-default 'framework:exit-when-no-frames #t boolean?)
