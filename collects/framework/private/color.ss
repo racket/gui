@@ -194,9 +194,11 @@
                    (set! tokens valid-tree)
                    (set! invalid-tokens-start (+ change-length invalid-tokens-start))
                    (set! current-pos (+ start-pos tok-start)))))))
+
+          (inherit is-locked?)
           
           (define (colorer-callback)
-            (unless (in-edit-sequence?)
+            (unless (or (in-edit-sequence?) (is-locked?))
               (thread-resume background-thread)
               (sleep .01)    ;; This is when the background thread is working.
               (semaphore-wait lock)
