@@ -696,34 +696,43 @@
 	[edit-menu:between-select-all-and-find
 	 (lambda (edit-menu)
 	   (make-object separator-menu-item% edit-menu)
-	   (make-object (get-menu-item%) "Insert Text Box" edit-menu
-			(edit-menu:do 'insert-text-box))
-	   (make-object (get-menu-item%) "Insert Pasteboard Box" edit-menu
-			(edit-menu:do 'insert-pasteboard-box))
-	   (make-object (get-menu-item%) "Insert Image..." edit-menu
-			(edit-menu:do 'insert-image))
 
-	   (letrec ([c% (class (get-checkable-menu-item%) args
-			  (rename [super-on-demand on-demand])
-			  (override
-			    [on-demand
-			     (lambda ()
-			       (let ([edit (get-edit-target-object)])
-				 (if (and edit
-					  (is-a? edit editor<%>))
-				     (begin
-				       (send wrap-text-item enable #t)
-				       (send wrap-text-item check (send edit auto-wrap)))
-				     (send wrap-text-item enable #f))))])
-			  (sequence (apply super-init args)))]
-		    [wrap-text-item
-		     (make-object c% "Wrap Text" edit-menu
-			(lambda (item event)
-			  (let ([edit (get-edit-target-object)])
-			    (when (and edit
-				       (is-a? edit editor<%>))
-			      (send edit auto-wrap (not (send edit auto-wrap)))))))])
-	     (void))
+           (let ([c% (class (get-menu-item%) args
+                       (inherit enable)
+                       (rename [super-on-demand on-demand])
+                       (override
+                         [on-demand
+                          (lambda ()
+                            (let ([edit (get-edit-target-object)])
+                              (enable (and edit (is-a? edit editor<%>)))))])
+                       (sequence (apply super-init args)))])
+
+             (make-object c% "Insert Text Box" edit-menu (edit-menu:do 'insert-text-box))
+             (make-object c% "Insert Pasteboard Box" edit-menu (edit-menu:do 'insert-pasteboard-box))
+             (make-object c% "Insert Image..." edit-menu (edit-menu:do 'insert-image)))
+
+	   (let* ([c% (class (get-checkable-menu-item%) args
+                        (rename [super-on-demand on-demand])
+                        (inherit check enable)
+                        (override
+                          [on-demand
+                           (lambda ()
+                             (let ([edit (get-edit-target-object)])
+                               (if (and edit
+                                        (is-a? edit editor<%>))
+                                   (begin
+                                     (enable #t)
+                                     (check (send edit auto-wrap)))
+                                   (begin 
+                                     (check #f)
+                                     (enable #f)))))])
+                        (sequence (apply super-init args)))])
+	     (make-object c% "Wrap Text" edit-menu
+               (lambda (item event)
+                 (let ([edit (get-edit-target-object)])
+                   (when (and edit
+                              (is-a? edit editor<%>))
+                     (send edit auto-wrap (not (send edit auto-wrap))))))))
 
 	   (make-object separator-menu-item% edit-menu))])
 	     
