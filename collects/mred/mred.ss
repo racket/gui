@@ -4913,7 +4913,7 @@
       (let ([cwho '(constructor editor-canvas)])
 	(check-container-parent cwho parent)
 	(check-instance cwho internal-editor<%> "text% or pasteboard%" #t editor)
-	(check-style cwho #f '(hide-vscroll hide-hscroll no-vscroll no-hscroll deleted control-border transparent) style)
+	(check-style cwho #f '(hide-vscroll hide-hscroll no-vscroll no-hscroll deleted control-border) style)
 	(check-gauge-integer cwho scrolls-per-page)
 	(check-label-string/false cwho label)
 	(unless (eq? wheel-step no-val)
@@ -6076,10 +6076,11 @@
 				  (if (send e button-down?)
 				      (if (is-a? w button%)
 					  #f
-					  (if (or single?
-						  (not (is-a? w editor-canvas%))
-						  (let-values ([(w h) (send w get-client-size)])
-						    (< (send e get-x) w)))
+					  (if (or (is-a? w message%)
+						  (and
+						   (is-a? w editor-canvas%)
+						   (let-values ([(w h) (send w get-client-size)])
+						     (< (send e get-x) w))))
 					      (begin
 						(send w popup-menu
 						      (let ([m (make-object popup-menu%)])

@@ -23,10 +23,10 @@
 					     (format "~e" exn))))])
 		 (with-input-from-file c-file
 		   (lambda ()
-		     (read-string (file-size c-file)))))])
+		     (read-bytes (file-size c-file)))))])
 	 (register-external-file c-file)
 	 (with-syntax ([content content]
-		       [c-file c-file])
+		       [c-file (path->bytes c-file)])
 	   (syntax/loc stx
 	     (get-or-load-bitmap content c-file))))]))
 
@@ -59,6 +59,6 @@
 			(unless (send bm ok?)
 			  (error 'include-bitmap
 				 "unable to parse image, originated from: ~a"
-				 orig))
+				 (path->string (bytes->path orig))))
 			(hash-table-put! cached content bm)
 			bm)))))
