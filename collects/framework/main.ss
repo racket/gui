@@ -26,21 +26,30 @@
    'standard
    (lambda (x) (or (eq? x 'standard) (eq? x 'postscript))))
   
+  (define (add-#% x)
+    (string->symbol (string-append "#%" (symbol->string x))))
+
   (preferences:set-default 'framework:highlight-parens #t boolean?)
   (preferences:set-default 'framework:fixup-parens #t boolean?)
   (preferences:set-default 'framework:paren-match #t boolean?)
   (let ([hash-table (make-hash-table)])
-    (for-each (lambda (x) (hash-table-put! hash-table x 'define))
+    (for-each (lambda (x) 
+                (hash-table-put! hash-table (add-#% x) 'define)
+                (hash-table-put! hash-table x 'define))
 	      '(define defmacro define-macro
 		 define-values
 		 define-signature define-syntax define-schema))
-    (for-each (lambda (x) (hash-table-put! hash-table x 'begin))
+    (for-each (lambda (x) 
+                (hash-table-put! hash-table (add-#% x) 'begin)
+                (hash-table-put! hash-table x 'begin))
 	      '(cond 
 		 begin begin0 delay
 		 unit compound-unit compound-unit/sig
 		 public private override
 		 inherit sequence))
-    (for-each (lambda (x) (hash-table-put! hash-table x 'lambda))
+    (for-each (lambda (x) 
+                (hash-table-put! hash-table (add-#% x) 'lambda)
+                (hash-table-put! hash-table x 'lambda))
 	      '(lambda let let* letrec recur
 		 let/cc let/ec letcc catch
 		 let-syntax letrec-syntax syntax-case
