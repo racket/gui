@@ -792,7 +792,7 @@
 	     (map "d:f" "move-to-search-or-search")
 	     (map "d:r" "move-to-search-or-reverse-search")
 	     (map "d:g" "find-string")
-	     (map "d:o" "toggle-search-focus")])))))
+	     (map "c:i" "toggle-search-focus")])))))
   
   (define setup-file
     (let* ([save-file-as

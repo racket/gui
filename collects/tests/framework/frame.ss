@@ -129,6 +129,6 @@
 	 `(send (get-top-level-focus-window) close)))))))
 
 (test-open "frame:editor open" 'frame:text%)
-(test-open "frame:editor open" 'frame:searchable%)
-(test-open "frame:editor open" 'frame:text-info%)
-(test-open "frame:editor open" 'frame:text-info-file%)
+(test-open "frame:searchable open" 'frame:searchable%)
+(test-open "frame:text-info open" 'frame:text-info%)
+(test-open "frame:text-info-file open" 'frame:text-info-file%)

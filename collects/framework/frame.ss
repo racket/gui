@@ -488,7 +488,7 @@
     (set! searching-frame frame))
 
   (define find-text%
-    (class-asi text%
+    (class-asi text:keymap%
       (inherit get-text)
       (rename [super-after-insert after-insert]
 	      [super-after-delete after-delete]
@@ -496,7 +496,8 @@
       (private
 	[get-searching-edit
 	 (lambda ()
-	   (send searching-frame get-text-to-search))])
+           (and searching-frame
+                (send searching-frame get-text-to-search)))])
       (public
 	[search
 	 (opt-lambda ([reset-search-anchor? #t] [beep? #t] [wrap? #t])
@@ -557,7 +558,9 @@
 	[on-focus
 	 (lambda (on?)
 	   (when on?
-	     (reset-search-anchor (get-searching-edit)))
+             (let ([edit (get-searching-edit)])
+               (when edit
+                 (reset-search-anchor (get-searching-edit)))))
 	   (super-on-focus on?))]
 	[after-insert
 	 (lambda args
@@ -588,7 +591,7 @@
   (define (init-find/replace-edits)
     (unless find-edit
       (set! find-edit (make-object find-text%))
-      (set! replace-edit (make-object text%))
+      (set! replace-edit (make-object text:keymap%))
       (for-each (lambda (keymap)
 		  (send keymap chain-to-keymap
 			(keymap:get-search)
@@ -632,7 +635,9 @@
 	   (get-editor))]
 	[hide-search
 	 (opt-lambda ([startup? #f])
-	   (send super-root delete-child search-panel)
+	   (send super-root change-children
+                 (lambda (l)
+                   (mzlib:function:remove search-panel l)))
 	   (clear-search-highlight)
 	   (unless startup?
 	     (send 
@@ -827,10 +832,6 @@
 	     (set! rest-panel r-root)
 	     r-root))])
       
-      (override
-        [get-editor<%> (lambda () editor:info<%>)]
-        [get-editor% (lambda () text:info%)])
-
       (public
 	[determine-width
 	 (let ([magic-space 25])
@@ -988,6 +989,11 @@
 	   (lambda ()
 	     (one)
 	     (two)))])
+      
+      (override
+        [get-editor<%> (lambda () editor:info<%>)]
+        [get-editor% (lambda () text:info%)])
+
       (override
 	[on-close
 	 (lambda ()

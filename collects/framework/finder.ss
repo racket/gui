@@ -542,7 +542,6 @@
 	[ok-button
 	 (make-object button% "OK" bottom-panel do-ok '(border))])
       (sequence
-        (printf "start-dir: ~s~n" start-dir)
 	(cond
 	  [(and start-dir
 		(directory-exists? start-dir))
@@ -720,7 +719,6 @@
   
   (define -get-file
     (lambda args
-      (printf "get-file: ~s~n" args)
       (let ([actual-fun
 	     (case (preferences:get 'framework:file-dialogs)
 	       [(std) std-get-file]

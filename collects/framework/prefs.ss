@@ -288,7 +288,7 @@
 	       (add-callback 
 		name 
 		(lambda (p new-value)
-		  '(write-resource 
+		  (write-resource 
 		   font-section
 		   font-entry
 		   (if (and (string? new-value)
