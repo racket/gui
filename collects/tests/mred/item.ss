@@ -1739,35 +1739,38 @@
   (check 'yes (message-box "Title" "Yes, please" #f '(yes-no)))
   (check 'no (message-box "Title" "No, please" #f '(yes-no)))
 
-  (check 1 (message-box/buttons "Title" "Hello"
+  (check 'yes (message-box "Title" "Caution sign?" #f '(yes-no caution)))
+  (check 'yes (message-box "Title" "Stop sign?" #f '(yes-no stop)))
+
+  (check 1 (message-box/custom "Title" "Hello"
 				"Hi" #f #f
 				#f
 				'(default=1)))
-  (check 2 (message-box/buttons "Title" "Hello"
+  (check 2 (message-box/custom "Title" "Hello"
 				#f "Howdy" #f))
-  (check 3 (message-box/buttons "Title" "Hello (response should be on left for Mac OS)"
+  (check 3 (message-box/custom "Title" "Hello (response should be on left for Mac OS)"
 				#f #f "Howdy"))
-  (check #f (message-box/buttons "Title" "Escape to close, please"
+  (check #f (message-box/custom "Title" "Escape to close, please"
 				 "Hi" #f #f))
-  (check 'closed (message-box/buttons "Title" "Escape to close, again, please"
+  (check 'closed (message-box/custom "Title" "Escape to close, again, please"
 				     "Hi" #f #f
 				     #f
 				     '(default=1)
 				     'closed))
-  (check 'closed (message-box/buttons "Title" "Escape to close, again, please"
+  (check 'closed (message-box/custom "Title" "Escape to close, again, please"
 				     #f #f #f
 				     #f
 				     '(default=1)
 				     'closed))
-  (check 1 (message-box/buttons "Title" "Try to escape to close"
+  (check 1 (message-box/custom "Title" "Try to escape to close"
 				"I can't" #f #f
 				#f
 				'(default=1 disallow-close)
 				'closed))
 
-  (message-box/buttons "Title" "Buttons out of order in Mac OS"
+  (message-box/custom "Title" "Buttons out of order in Mac OS"
 		       "One" "Two" "Three")
-  (message-box/buttons "Title" "Buttons in order on all platforms"
+  (message-box/custom "Title" "Buttons in order on all platforms"
 		       "One" "Two" "Three"
 		       #f
 		       '(default=1 number-order))

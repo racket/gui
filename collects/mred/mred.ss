@@ -844,10 +844,13 @@
 					 #t)))
 				objs)
 			       (not (is-a? o wx-editor-canvas%))))))]
-		  [(escape)
+		  [(escape #\.)
 		   (and (is-a? this wx:dialog%)
+			(or (eq? code 'escape)
+			    (and (memq (system-type) '(macos macosx))
+				 (send e get-meta-down)))
 			(let ([o (get-focus-window)])
-			  (if (and o (send o handles-key-code code #f #f))
+			  (if (and o (send o handles-key-code code #f (send e get-meta-down)))
 			      #f
 			      (begin
 				(when (on-close)
@@ -5021,7 +5024,7 @@
     (check-top-level-parent/false 'message-box/custom parent)
     (check-style 'message-box/custom 
 		 '(default=1 default=2 default=3 no-default) 
-		 '(disallow-close number-order)
+		 '(disallow-close number-order caution stop)
 		 style)
 
     (let* ([strings (let loop ([s message])
@@ -5072,13 +5075,17 @@
 				      #f))])
 			     (sequence
 			       (super-init title parent box-width))))]
-	   [result close-result])
+	   [result close-result]
+	   [icon-id (cond
+		     [(memq 'stop style) 'stop]
+		     [(memq 'caution style) 'caution]
+		     [else 'app])])
       (let-values ([(msg-pnl btn-pnl extra-width btn-h-align msg-h-align msg-v-align)
 		    (case (system-type)
 		      [(macosx) (let ([p (make-object horizontal-pane% f)])
 				  (send f min-width 300)
 				  (send p set-alignment 'center 'top)
-				  (let ([m (make-object message% 'app p)])
+				  (let ([m (make-object message% icon-id p)])
 				    (send m horiz-margin 16)
 				    (send m vert-margin 16))
 				  (let* ([rhs-pnl (make-object vertical-pane% p)]
@@ -5091,7 +5098,7 @@
 				    (send btn-pnl stretchable-height #f)
 				    (values msg-pnl btn-pnl 96 'right 'left 'top)))]
 		      [else (let ([p (instantiate horizontal-pane% (f) [alignment '(center top)])])
-			      (make-object message% 'app p)
+			      (make-object message% icon-id p)
 			      (values (make-object vertical-pane% p) f 0 'center 'center 'center))])])
 	(if single?
 	    (begin
@@ -5151,7 +5158,7 @@
     (check-label-string 'message-box title)
     (check-string/false 'message-box message)
     (check-top-level-parent/false 'message-box parent)
-    (check-style 'message-box '(ok ok-cancel yes-no) null style)
+    (check-style 'message-box '(ok ok-cancel yes-no) '(caution stop) style)
 
     (let-values ([(one two one-v two-v close-val default)
 		  (case (car style)
@@ -5164,9 +5171,14 @@
       (case (message-box/custom title message
 				 one two #f
 				 parent
-				 (if close-val
-				     (list default)
-				     (list default 'disallow-close))
+				 (append
+				  (cond
+				   [(memq 'stop style) '(stop)]
+				   [(memq 'caution style) '(caution)]
+				   [else null])
+				  (if close-val
+				      (list default)
+				      (list default 'disallow-close)))
 				 close-val)
 	[(1) one-v]
 	[(2) two-v]))]))
