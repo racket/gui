@@ -12,13 +12,11 @@
            "framework-unit.ss"
            "framework-sig.ss"
            
-           "macro.ss"
            (lib "contract.ss"))
   
   (provide-signature-elements framework-class^)
 
-  (provide (all-from "macro.ss")
-           (all-from "test.ss")
+  (provide (all-from "test.ss")
            (all-from "gui-utils.ss")
            (all-from "decorated-editor-snip.ss"))
 

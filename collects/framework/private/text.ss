@@ -11,7 +11,6 @@ WARNING: printf is rebound in the body of the unit to always
 	   (lib "class.ss")
            (lib "match.ss")
 	   "sig.ss"
-	   "../macro.ss"
 	   "../gui-utils.ss"
 	   (lib "mred-sig.ss" "mred")
 	   (lib "list.ss")

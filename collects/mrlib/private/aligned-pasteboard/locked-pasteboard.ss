@@ -8,8 +8,7 @@
    (lib "class.ss")
    (lib "mred.ss" "mred")
    (lib "etc.ss")
-   (lib "contract.ss")
-   (lib "framework.ss" "framework"))
+   (lib "contract.ss"))
   
   (provide/contract
    (locked-pasteboard-mixin mixin-contract))

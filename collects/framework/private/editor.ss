@@ -5,7 +5,6 @@
            (lib "string-constant.ss" "string-constants")
 	   "sig.ss"
 	   "../gui-utils.ss"
-	   "../macro.ss"
            (lib "etc.ss")
 	   (lib "mred-sig.ss" "mred")
 	   (lib "file.ss"))

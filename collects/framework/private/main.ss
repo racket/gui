@@ -3,7 +3,6 @@
 	   (lib "class.ss")
 	   "sig.ss"
 	   "../gui-utils.ss"
-	   "../macro.ss"
            (lib "string-constant.ss" "string-constants")
 	   (lib "mred-sig.ss" "mred"))
   

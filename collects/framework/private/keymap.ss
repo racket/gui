@@ -2,7 +2,6 @@
 (module keymap mzscheme
   (require (lib "string-constant.ss" "string-constants")
            (lib "unitsig.ss")
-	   "../macro.ss"
 	   (lib "class.ss")
 	   (lib "list.ss")
 	   (lib "mred-sig.ss" "mred")

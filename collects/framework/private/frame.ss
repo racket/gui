@@ -6,7 +6,6 @@
 	   (lib "include.ss")
 	   "sig.ss"
 	   "../gui-utils.ss"
-	   "../macro.ss"
            "bday.ss"
 	   (lib "mred-sig.ss" "mred")
 	   (lib "list.ss")

@@ -3,7 +3,6 @@
   (require (lib "class.ss")
            (lib "list.ss")
            (lib "math.ss")
-           (lib "macro.ss" "framework")
            (lib "mred.ss" "mred")
 	   (lib "contract.ss"))
   

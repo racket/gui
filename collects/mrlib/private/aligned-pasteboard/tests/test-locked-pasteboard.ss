@@ -1,6 +1,5 @@
 (require
  "../locked-pasteboard.ss"
- (lib "framework.ss" "framework")
  (lib "click-forwarding-editor.ss" "mrlib"))
 
 (define f (new frame% (width 400) (height 500) (label "test")))

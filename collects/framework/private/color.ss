@@ -7,8 +7,7 @@
            (lib "token-tree.ss" "syntax-color")
            (lib "paren-tree.ss" "syntax-color")
            (lib "default-lexer.ss" "syntax-color")
-           "sig.ss"
-           "../macro.ss")
+           "sig.ss")
            
   
   (provide color@)
