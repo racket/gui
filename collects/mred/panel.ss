@@ -50,9 +50,12 @@
 		      [parent (send canvas get-parent)]
 		      [new-panel #f]
 		      [left-split #f]
-		      [right-split #f])
+		      [right-split #f]
+		      [before #t])
 		 (dynamic-wind
-		  (lambda () (send frame set-perform-updates #f))
+		  (lambda () 
+		    (set! before (send frame delay-updates))
+		    (send frame delay-updates #t))
 		  (lambda () 
 		    (set! new-panel (make-object panel% parent))
 		    (set! left-split (make-object canvas% new-panel))
@@ -64,7 +67,7 @@
 						   new-panel
 						   x))
 				   before)))))
-		  (lambda () (send frame set-perform-updates #t)))
+		  (lambda () (send frame delay-updates before)))
 		 (send* media (remove-canvas canvas)
 			(add-canvas left-split)
 			(add-canvas right-split))
