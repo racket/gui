@@ -275,7 +275,8 @@
     (get-standard-style-list
      set-standard-style-list-pref-callbacks
      set-standard-style-list-delta
-     update-standard-style))
+     set-default-font-color
+     get-default-color-style-name))
   (define-signature framework:editor^
     ((open framework:editor-class^)
      (open framework:editor-fun^)))
@@ -295,6 +296,7 @@
 
   (define-signature framework:text-class^
     (basic<%>
+     foreground-color<%>
      hide-caret/selection<%>
      nbsp->space<%>
      delegate<%>
@@ -322,6 +324,7 @@
      info%
 
      basic-mixin
+     foreground-color-mixin
      hide-caret/selection-mixin
      nbsp->space-mixin
      delegate-mixin

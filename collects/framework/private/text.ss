@@ -53,6 +53,7 @@ WARNING: printf is rebound in the body of the unit to always
           highlight-range
           get-highlighted-ranges
           get-styles-fixed
+          get-fixed-style
           set-styles-fixed
           move/copy-to-edit
           initial-autowrap-bitmap))
@@ -74,6 +75,8 @@ WARNING: printf is rebound in the body of the unit to always
           (define ranges null)
           
           (define/public-final (get-highlighted-ranges) ranges)
+          (define/public (get-fixed-style)
+            (send (get-style-list) find-named-style "Standard"))
           
           (define (invalidate-rectangles rectangles)
             (let ([b1 (box 0)]
@@ -328,10 +331,7 @@ WARNING: printf is rebound in the body of the unit to always
             (begin-edit-sequence))
           (define/augment (after-insert start len)
             (when styles-fixed?
-              (change-style (send (get-style-list) find-named-style "Standard")
-                            start
-                            (+ start len)
-                            #f))
+              (change-style (get-fixed-style) start (+ start len) #f))
             (end-edit-sequence)
             (inner (void) after-insert start len))
           
@@ -361,12 +361,22 @@ WARNING: printf is rebound in the body of the unit to always
           (super-instantiate ())
           (set-autowrap-bitmap (initial-autowrap-bitmap))))
       
+      (define foreground-color<%>
+        (interface (basic<%> editor:standard-style-list<%>)
+          ))
+          
+      (define foreground-color-mixin
+        (mixin (basic<%> editor:standard-style-list<%>) (foreground-color<%>)
+          (inherit begin-edit-sequence end-edit-sequence change-style)
+          (define/override (get-fixed-style)
+            (send (editor:get-standard-style-list) find-named-style (editor:get-default-color-style-name)))
+          (super-new)))
+      
       (define hide-caret/selection<%> (interface (basic<%>)))
       (define hide-caret/selection-mixin
         (mixin (basic<%>) (hide-caret/selection<%>)
           (inherit get-start-position get-end-position hide-caret)
           (define/augment (after-set-position)
-	    ;; >>> super was not here <<<
             (hide-caret (= (get-start-position) (get-end-position)))
 	    (inner (void) after-set-position))
           (super-instantiate ())))

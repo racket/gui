@@ -251,9 +251,7 @@
                                      (make-object color% (car lst) (cadr lst) (caddr lst))))
       (preferences:add-callback 'framework:default-text-color
                                 (lambda (p v)
-                                  (editor:update-standard-style
-                                   (lambda (style-delta)
-                                     (send style-delta set-delta-foreground v)))))
+                                  (editor:set-default-font-color v)))
       
       ;; groups
       
