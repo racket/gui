@@ -2,6 +2,7 @@
   (unit/sig mred:keymap^
     (import [mred:debug : mred:debug^]
 	    [mred:preferences : mred:preferences^]
+	    [mred:exit : mred:exit^]
 	    [mred:finder : mred:finder^]
 	    [mred:handler : mred:handler^]
 	    [mred:find-string : mred:find-string^]
@@ -21,7 +22,8 @@
 
     (define keyerr
       (lambda (str)
-	(display str (current-error-port))))
+	(display str (current-error-port))
+	(newline (current-error-port))))
 
     (define (set-keymap-error-handler keymap)
       (send keymap set-error-callback keyerr))
@@ -40,6 +42,8 @@
 	(for-each (lambda (key)
 		    (send keymap map-function key func))
 		  (make-meta-prefix-list key))))
+
+    (mred:preferences:set-preference-default 'mred:delete-forward? (not (eq? wx:platform 'windows)))
 
     ; This installs the standard keyboard mapping
     (define setup-global-keymap
@@ -633,7 +637,26 @@
 		  (set! current-macro (reverse building-macro))
 		  (set! build-protect? #f)		    
 		  (send build-macro-km break-sequence))
-		#t)])
+		#t)]
+	     [delete-key
+	      (lambda (edit event)
+		(let ([kmap (send edit get-keymap)])
+		  (send kmap call-function
+			(if (mred:preferences:get-preference 'mred:delete-forward?)
+			    "delete-next-character"
+			    "delete-previous-character"))))]
+	     [select-forward-character
+	      (lambda (edit event)
+		(let ([start (box 0)]
+		      [end (box 0)])
+		  (send edit get-position start end)
+		  (send edit set-position (unbox start) (add1 (unbox end)))))]
+	     [select-backward-character
+	      (lambda (edit event)
+		(let ([start (box 0)]
+		      [end (box 0)])
+		  (send edit get-position start end)
+		  (send edit set-position (sub1 (unbox start)) (unbox end))))])
 	(lambda (kmap)
 	  ; Redirect keymappng error messages to stderr
 	  (send kmap set-error-callback keyerr)
@@ -689,6 +712,8 @@
 		       (make-make-repeater n))
 		  (loop (sub1 n)))))
 
+	    (add "exit" (lambda args (mred:exit:exit)))
+
 	    (add "do-saved-macro" do-macro)
 	    (add "start-macro-record" start-macro)
 	    (add "end-macro-record" end-macro)
@@ -705,6 +730,10 @@
 	    (add "goto-line" goto-line)
 	    (add "goto-position" goto-position)
 
+	    (add "select-forward-character" select-forward-character)
+	    (add "select-backward-character" select-backward-character)
+	    (add "delete-key" delete-key)
+
 	    ; Map keys to functions
 	    (when (eq? wx:platform 'unix)
 	      (map "c:x;c:q" "rcs"))
@@ -720,47 +749,93 @@
 	    (map "\"" "flash-paren-match")
 	    
 	    (map "c:p" "previous-line")
+	    (map "up" "previous-line")
+	    (map "s:c:p" "select-up")
+	    (map "s:up" "select-up")
+
 	    (map "c:n" "next-line")
+	    (map "down" "next-line")
+	    (map "s:c:n" "select-down")
+	    (map "s:down" "select-down")
+
 	    (map "c:e" "end-of-line")
 	    (map "d:RIGHT" "end-of-line")
-	    (map "d:s:RIGHT" "select-to-end-of-line")
 	    (map "m:RIGHT" "end-of-line")
+	    (map "END" "end-of-line")
+	    (map "d:s:RIGHT" "select-to-end-of-line")
 	    (map "m:s:RIGHT" "select-to-end-of-line")
+	    (map "s:END" "select-to-end-of-line")
+	    (map "s:c:e" "select-to-end-of-line")
+
 	    (map "c:a" "beginning-of-line")
 	    (map "d:LEFT" "beginning-of-line")
-	    (map "d:s:LEFT" "select-to-beginning-of-line")
 	    (map "m:LEFT" "beginning-of-line")
-	    (map "m:s:LEFT" "select-to-beginning-of-line")
-	    (map "END" "end-of-line")
 	    (map "HOME" "beginning-of-line")
-	    
-	    (map "c:h" "delete-previous-character")
-	    (map "c:d" "delete-next-character")
+	    (map "d:s:LEFT" "select-to-beginning-of-line")
+	    (map "m:s:LEFT" "select-to-beginning-of-line")
+	    (map "s:HOME" "select-to-beginning-of-line")
+	    (map "s:c:a" "select-to-beginning-of-line")
 
 	    (map "c:f" "forward-character")
+	    (map "right" "forward-character")
+	    (map "s:c:f" "select-forward-character")
+	    (map "s:right" "select-forward-character")
+
 	    (map "c:b" "backward-character")
+	    (map "left" "backward-character")
+	    (map "s:c:b" "select-backward-character")
+	    (map "s:left" "select-backward-character")
 
 	    (map-meta "f" "forward-word")
 	    (map "a:RIGHT" "forward-word")
+	    (map "c:RIGHT" "forward-word")
+	    (map-meta "s:f" "forward-select-word")
 	    (map "a:s:RIGHT" "forward-select-word")
+	    (map "c:s:RIGHT" "forward-select-word")
+
 	    (map-meta "b" "backward-word")
 	    (map "a:LEFT" "backward-word")
+	    (map "c:left" "backward-word")
+	    (map-meta "s:b" "backward-select-word")
 	    (map "a:s:LEFT" "backward-select-word")
+	    (map "c:s:left" "backward-select-word")
+
+	    (map-meta "<" "beginning-of-file")
+	    (map "d:UP" "beginning-of-file")
+	    (map "c:HOME" "beginning-of-file")
+	    (map "s:c:home" "select-to-beginning-of-file")
+	    (map "s:d:up" "select-to-beginning-of-file")
+
+	    (map-meta ">" "end-of-file")
+	    (map "d:DOWN" "end-of-file")
+	    (map "c:DOWN" "end-of-file")
+	    (map "s:c:end" "select-to-end-of-file")
+	    (map "s:d:down" "select-to-end-of-file")
+
+	    (map "c:v" "next-page")
+	    (map "a:DOWN" "next-page")
+	    (map "pagedown" "next-page")
+	    (map "s:c:v" "select-page-down")
+	    (map "a:s:DOWN" "select-page-down")
+	    (map "s:pagedown" "select-page-down")
+
+	    (map-meta "v" "previous-page")
+	    (map "a:up" "previous-page")
+	    (map "pageup" "previous-page")
+	    (map-meta "s:v" "select-page-up")
+	    (map "s:a:up" "select-page-up")
+	    (map "s:pageup" "select-page-up")
+
+	    (map "c:h" "delete-previous-character")
+	    (map "c:d" "delete-next-character")
+	    (map "del" "delete-key")
+
 	    (map-meta "d" "kill-word")
 	    (map-meta "del" "backward-kill-word")
 	    (map-meta "c" "capitalize-word")
 	    (map-meta "u" "upcase-word")
 	    (map-meta "l" "downcase-word")
 
-	    (map-meta "<" "beginning-of-file")
-	    (map "d:UP" "beginning-of-file")
-	    (map-meta ">" "end-of-file")
-	    (map "d:DOWN" "end-of-file")
-
-	    (map "c:v" "next-page")
-	    (map "a:DOWN" "next-page")
-	    (map-meta "v" "previous-page")
-	    (map "a:up" "previous-page")
 	    (map "c:l" "center-view-on-line")
 	    
 	    (map "c:k" "delete-to-end-of-line")
@@ -814,6 +889,8 @@
 
 	    (map "leftbuttontriple" "select-click-line")
 	    (map "leftbuttondouble" "select-click-word")
+
+	    (map "c:x;c:c" "exit")
 
 	    (map "rightbutton" "copy-click-region")
 	    (map "rightbuttondouble" "cut-click-region")
