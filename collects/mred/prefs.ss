@@ -317,6 +317,10 @@
 	      (save-user-preferences)
 	      (if preferences-dialog
 		  (send preferences-dialog show #t)
-		  (set! preferences-dialog (make-preferences-dialog)))))))))
+		  (set! preferences-dialog
+			(let ([cursor-off (mred:gui-utils:delay-action
+					   2 wx:begin-busy-cursor wx:end-busy-cursor)])
+			  (begin0 (make-preferences-dialog)
+				  (cursor-off)))))))))))
 
     (read-user-preferences)))
