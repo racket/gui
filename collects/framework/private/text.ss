@@ -962,7 +962,6 @@ WARNING: printf is rebound in the body of the unit to always
                       (= start end)
                       (submit-to-port? key))
                  (let ([snips/chars (extract-snips/chars unread-start-point (last-position))])
-                   (printf "tp: sending in ~s usp ~s\n" snips/chars unread-start-point)
                    (for-each (lambda (s/c) 
                                (cond
                                  [(is-a? s/c snip%)
@@ -976,7 +975,6 @@ WARNING: printf is rebound in the body of the unit to always
                    (set! allow-tabify? #t)
                    (set! unread-start-point (last-position))
                    (set! insertion-point (last-position))
-                   (printf "tp: sent in; new usp ~s\n" unread-start-point)
                    (on-submit))]
                 [else
                  (super-on-local-char key)])))
@@ -1032,7 +1030,6 @@ WARNING: printf is rebound in the body of the unit to always
           ;; do-insertion : (listof (cons (union string snip) style-delta)) -> void
           ;; thread: eventspace main thread
           (define/private (do-insertion txts)
-            (printf "tp: do-insertion.1 ~s\n" txts)
             (let ([locked? (is-locked?)])
               (begin-edit-sequence)
               (lock #f)
@@ -1058,7 +1055,6 @@ WARNING: printf is rebound in the body of the unit to always
                        (set! unread-start-point (+ unread-start-point inserted-count))))
                    (loop (cdr txts))]))
               (lock locked?)
-              (printf "tp: do-insertion.2 ip ~s usp ~s\n" insertion-point unread-start-point)
               (end-edit-sequence)))
           
           (define input-buffer-thread
@@ -1116,7 +1112,6 @@ WARNING: printf is rebound in the body of the unit to always
                             (make-wrapped-waitable
                              (make-channel-put-waitable reader-succeed data-hd)
                              (lambda (v)
-                               (printf "tp: sent out ~s\n" data-hd)
                                (data-and-readers-waiting (queue-rest data)
                                                          (queue-rest readers))))
                             (make-wrapped-waitable
@@ -1179,7 +1174,6 @@ WARNING: printf is rebound in the body of the unit to always
               (let ([any-waiting-chan (make-channel)])
                 (channel-put peek-chan any-waiting-chan)
                 (let ([data-waiting? (channel-get any-waiting-chan)])
-                  (printf "data-waiting? ~s\n" data-waiting?)
                   (if data-waiting?
                       (let ([s/c
                              (object-wait-multiple
