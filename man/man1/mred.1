@@ -2,89 +2,36 @@
 .TH MRED 1 "25 March 1998"
 .UC 4
 .SH NAME
-mred \- The Rice PLT Scheme GUI engine
+mred \- The Rice PLT Graphical Scheme implementation
 .SH SYNOPSIS
 .B mred
 [
-.B --pre 
-.I expression
+.I X option ...
 ]
 [
-.I X flag ...
+.I option ...
+] [
+.I argument ...
 ]
-[
-.B -s
-.I collection
-]
-[
-.B -a 
-.I collection
-.I unit-filename
-.I sig-filename
-]
-[
-.B -A 
-.I collection
-]
-[
-.B -u
-|
-.B --non-unitized
-]
-[
-.B -p
-.I image-filename
-.I splash-title
-.I splash-count
-]
-[
-.B -b
-|
-.B --no-splash
-]
-[
-.B -w
-.I filename
-]
-[
-.B
---
-[
-.B -q
-|
-.B --no-init-file
-]
-[
-.B -f
-.I file
-]
-[
-.B -e
-.I expr
-]
-[
-.B --
-.I file ...
-] ]
 
 .SH DESCRIPTION
 .I MrEd
-is the Rice University PLT Scheme GUI
-execution engine.
-It extends 
+is the Rice University PLT's graphical Scheme
+implementation.
+It embeds and extends 
 .I MzScheme
-with graphics
-and provides the underlying architecture for
-.I DrScheme.
-.SH SYSTEM SETUP FLAGS
-The
-.B --pre 
-flag directs
-.I MrEd
-to evaluate its argument in an environment without the wx primitives,
-before doing anything else. This must be the first flag.
+with a graphical user interface (GUI) toolbox.
 .PP
-MrEd accepts the standard
+.I DrScheme
+is the graphical development environment for creating
+.I MzScheme
+and
+.I MrEd
+applications.
+
+.SH X OPTIONS
+
+MrEd accepts the following standard
 .I X flags
 :
 .B -display
@@ -118,147 +65,181 @@ MrEd accepts the standard
 .IR lang ,
 .B -xrm
 .IR file .
-These flags must appear after the
-.B --pre
-flag (if present) and before all other flags.
+These flags must appear before all other flags.
 .PP
-The
-.B -s
-flag directs
+
+.SH OPTIONS
+
+Startup file and expression switches:
+.TP
+.BI \-e \ expr
+Evaluates
+.I expr
+after
 .I MrEd
-to load the startup system from
-a particular collection. The default collection is "system".
-This flag must be specified after the
-.B --pre
-and
-.I X flags
-and before all other flags.
-.SH SYSTEM TO APPLICATION FLAGS
-The remaining flags apply when the standard system is used.
-.PP
-The
-.B -A
-flag directs 
-.I MrEd 
-to look in the collection for an application.
-See the Toolbox manual for more information on how to write your own
-application using 
-.IR MrEd .
-.PP
-The
-.B -a
-flag directs 
-.I MrEd 
-to look in the collection for the next two files. The first file should
-contain a unit/sig (not a definition of a unit, just a unit) and the
-second file should contain signatures that the unit/sig needs. That unit
-will be used to start a new appliaction built on top of
-.IR MrEd . 
-See the Toolbox manual for more information on how to write your own
-application using 
-.IR MrEd .
-.PP
-The
-.B -u
-or
-.B --non-unitized
-flag specifies a non-unit startup. See the Toolbox Manual for more
-details on 
-.I MrEd's
-startup and how to build your own application with 
-.IR MrEd .
-.PP
-The
-.B -w
-flag causes filename to be written over with a Static Debugger
-file, which can be used to analyze your application. You must use the
-.B -a
-flag and have written a Static Debugger conformant application to use this
-flag. See the Static Debugger and the Toolbox manuals for more information
-on Static Debugger conformancy and the
-.B -a
-flag, respectively.
-.PP
-The
-.B -p
-flag specifies a splash screen filename. The splash screen must be
-an image file supported by wx:bitmap% objects. See the Toolbox manual for more
-information on what image types are supported by wx:bitmap% objects. The
-second argument to
-.B -p
-names the splash screen, and the third is a count
-indicating how many files will be loaded.
-.PP
-The
-.B -b
-or
-.B --no-splash
-flag supresses the splash screen.
-.SH APPLICATION-SPECIFIC FLAGS
-The remaining flags apply only when an application is not specified
-or the
-.B -u
-flag is used. If an application is specified, other application-specific
-flags may apply. In either case, the
-.B -- 
-flag must be specified before the flags.
-.PP
-The
-.B -q
-or
-.B --no-init-file
-flag prevents 
+starts.
+.TP
+.BI \-f \ file
+Loads
+.I file
+after
 .I MrEd
-from loading
-the user's startup file "~/.mredrc".
+starts.
+.TP
+.BI \-d \ file
+Load/cds
+.I file
+after
+.I MrEd
+starts.
+.TP
+.B \-F
+.br
+Loads all remaining arguments after
+.I MrEd
+starts.
+.TP
+.B \-D
+.br
+Load/cds all remaining arguments after
+.I MrEd
+starts.
+.TP
+.BI \-l \ file
+Same as
+.BR -e \ '(require-library\ "\|\c
+.I file\|\c
+")'.
+.TP
+.BI \-L \ file \ \\ coll
+Same as
+.BR -e \ '(require-library\ "\|\c
+.I file\|\c
+" "\|\c
+.I coll\|\c
+")'.
+.TP
+.B \-r, --script
+Script mode: use as last flag for scripts.
+Same as
+.BR -fmv- .
+.TP
+.B \-i, --script-cd
+Like -r, but also sets the directory.
+Same as 
+.BR -dmv- .
+.TP
+.B \-s, --stdio
+Use stdio REPL. Same as
+.BR -ve \ '(read-eval-print-loop)'.
+.TP
+.B \-w, --awk
+Same as
+.B -l
+.BR awk.ss .
 .PP
-Multiple
-.B
--f
-and
-.B -e
-flags can be specified. For each
-.B -e
-flag, the corresponding
-expression is evaluated. For each
-.B -f
-flag, the corresponding file
-is loaded (with its directory as the working directory).
+
+Initialization switches:
+.TP
+.B \-x, --no-lib-path
+Does not try to set current-library-collection-paths.
+.TP
+.B \-q, --no-init-file
+Does not try to load "~/.MrEdrc".
 .PP
-If a file appears on the command line with no switches, then in the default
-application it is opened for editing in 
-.IR MrEd .
-If the
-.B -u
-flag was specified, then the arguments are passed on to mred:setup.
-The
-.B --
-flag indicates that no remaining arguments are flags (at this level; a program
-loaded with
-.B -u
-may read them as flags).
+
+Language setting switches:
+.TP
+.B \-g, --case-sens
+Identifiers and symbols are initially case-sensitive.
+.TP
+.B \-c, --esc-cont
+Call/cc is replaced with call/ec.
+.TP
+.B \-k, --const-globs
+Builtin globals are constant.
+.TP
+.B \-s, --set-undef
+Set! works on undefined identifiers.
+.TP
+.B \-a, --no-auto-else
+Fall-through cond or case is an error.
+.TP
+.B \-n, --no-key
+Keywords are not enforced.
+.TP
+.B \-y, --hash-percent-syntax
+Only #% syntactic forms are present.
+.TP
+.B \-p, --persistent
+Catches AIX SIGDANGER (low page space) signal. (AIX only)
 .PP
-Once all command line arguments are handled the scheme procedure
-mred:startup is called. This procedure is defined by the standard
-system, but it can be redefined with the
-.B -f
+
+Miscellaneous switches:
+.TP
+.B \--
+.br
+No argument following this switch is used as a switch.
+.TP
+.B \-m, --mute-banner
+Suppresses
+.BR -v / --version
+text.
+.TP
+.B \-v, --version
+Suppresses the read-eval-print loop, prints version.
+.TP
+.B \-h, --help
+Shows help for command-line arguments and exits, ignoring other switches.
+.TP
+.BI \-R file ,\ --restore \ file
+Restores an image; must be the only switch. (Special versions only)
+.PP
+Multiple single-letter switches can be collapsed, with arguments placed
+after the collapsed switches; the first collapsed switch cannot be
+.BR -- .
+E.g.:
+.B -vfme file expr
+is the same as
+.B -v -f file -m -e
+.BR expr .
+.PP
+Extra arguments following the last switch are put into the Scheme global
+variable `argv' as a vector of strings. The name used to start 
+.I MrEd
+is put into the global variable `program' as a string.
+.PP
+Extra arguments after a 
+.B --restore
+file are returned as a vector of
+strings to the continuation of the `write-image-to-file' call that created
+the image.
+.PP
+Expressions/files are evaluated/loaded in order as provided.
+.PP
+The current-library-collections-paths parameter is automatically set before any
+expressions/files are evaluated/loaded, unless the
+.B -x
 or
-.B -e
-flags for
-application-specific startup sequences in conjunction with the
-.B -u
-flag.
+.B --no-lib-path
+switch is used.  
+.PP
 .PP
 For further information on
-.I MrEd,
+.IR MrEd ,
 please consult the on-line
-documentation in the Help menu of the console 
-and other information available at
+documentation and other information available at
 .PP
 .ce 1
-http://www.cs.rice.edu/CS/PLT/packages/mred/
-
+http://www.cs.rice.edu/CS/PLT/packages/MrEd/
 .SH FILES
+The file "~/.mredrc" is loaded before any provided
+expressions/files are evaluated/loaded, unless the
+.B -q 
+or 
+.B --no-init-file 
+switch is used.
+.PP
 The library collections search path is read
 from the PLTCOLLECTS environment variable
 (as a colon-separated list of paths). Wherever the empty path
@@ -285,16 +266,14 @@ If
 is invoked with a relative pathname, the
 directories in the PATH environment variable containing
 a file with the name of the program as invoked (usually
-"mzscheme") are checked. Links are followed as in the 
+"MrEd") are checked. Links are followed as in the 
 first case.
 .IP
 The "/usr/local/lib/plt/collects" directory is 
 tried.
 .PP
-.I MrEd
-also looks for X resources in "~/.mred.resources".
-X resources in that file override any other resources settings.
-
+Please consult your local administrator to determine whether
+the on-line documentation has been installed locally.
 .SH BUGS
 Submit bug reports via
 .ce 1
@@ -304,9 +283,10 @@ or by e-mail to
 plt-bugs@cs.rice.edu (discouraged)
 .SH AUTHOR
 .I MrEd
-was implemented by Matthew Flatt (mflatt@cs.rice.edu) and Robby Findler
-(robby@cs.rice.edu) using wxWindows by Julian Smart et al. and
-the conservative garbage collector by Hans Boehm et al.
+was implemented by Matthew Flatt (mflatt@cs.rice.edu) with
+Robert Bruce Findler (robby@cs.rice.edu), based on
+MzScheme.
 .SH SEE ALSO
+.BR mzscheme(1),
 .BR drscheme(1),
-.BR mzscheme(1)
+.BR drscheme-jr(1)

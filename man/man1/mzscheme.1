@@ -6,24 +6,28 @@ MzScheme \- The PLT Scheme implementation
 .SH SYNOPSIS
 .B mzscheme
 [
-.I flags
+.I option ...
 ] [
-.I arguments
+.I argument ...
 ]
 .SH DESCRIPTION
 .I MzScheme
 is the Rice University PLT
-Scheme implementation.  It implements the language as
+Scheme implementation.  It nearly implements the language as
 described in the
-.I Revised^4 Report on
-.I the Algorithmic Language Scheme\|\c
-, plus numerous extensions.
+.I Revised^5 Report on
+.I the Algorithmic Language Scheme
+(the macro system is not fully supported), and adds numerous extensions.
+.PP
+.I MrEd
+embeds and extends MzScheme with a graphical user interface (GUI) toolbox.
+.PP
+.I DrScheme
+is the graphical development environment for creating
 .I MzScheme
-is the underlying implementation for
-.IR DrScheme ,
-.IR DrScheme\ Jr ,
 and
-.IR MrEd .
+.I MrEd
+applications.
 .SH OPTIONS
 
 Startup file and expression switches:
@@ -62,12 +66,14 @@ Load/cds all remaining arguments after
 starts.
 .TP
 .BI \-l \ file
-Same as -e '(require-library "\|\c
+Same as
+.BR -e \ '(require-library\ "\|\c
 .I file\|\c
 ")'.
 .TP
 .BI \-L \ file \ \\ coll
-Same as -e '(require-library "\|\c
+Same as
+.BR -e \ '(require-library\ "\|\c
 .I file\|\c
 " "\|\c
 .I coll\|\c
@@ -141,7 +147,7 @@ Suppresses the read-eval-print loop.
 Shows help for command-line arguments.
 .TP
 .BI \-R file ,\ --restore \ file
-Restores an image; must be the only switch.
+Restores an image; must be the only switch. (Special versions only)
 .PP
 Multiple single-letter switches can be collapsed, with arguments placed
 after the collapsed switches; the first collapsed switch cannot be
@@ -165,7 +171,7 @@ the image.
 .PP
 Expressions/files are evaluated/loaded in order as provided.
 .PP
-The current-library-collections-path is automatically set before any
+The current-library-collections-paths parameter is automatically set before any
 expressions/files are evaluated/loaded, unless the
 .B -x
 or
@@ -174,7 +180,7 @@ switch is used.
 .PP
 .PP
 For further information on
-.I MzScheme,
+.IR MzScheme ,
 please consult the on-line
 documentation and other information available at
 .PP
@@ -186,8 +192,7 @@ expressions/files are evaluated/loaded, unless the
 .B -q 
 or 
 .B --no-init-file 
-switch is used. (Under Windows and MacOS, "mzscheme.rc" 
-is loaded from the start-up working directory.)
+switch is used.
 .PP
 The library collections search path is read
 from the PLTCOLLECTS environment variable
