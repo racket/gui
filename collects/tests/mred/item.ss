@@ -249,7 +249,7 @@
 			  '("Alpha" "Beta" "Gamma" "Delta & Rest")
 			  ip void))
   
-  (define txt (make-object text%
+  (define txt (make-object text-field%
 			   (if null-label? #f "T&ext")
 			   ip void
 			   "initial & starting"))
@@ -414,16 +414,17 @@
 			    '(vertical)))
     
     (define gh (make-object gauge% 
-			    (if null-label? #f "H G&auge") ip2
-			    10 '(horizontal)))
+			    (if null-label? #f "H G&auge") 10 ip2
+			    '(horizontal)))
     
     (define gv (make-object gauge% 
-			    (if null-label? #f "V Ga&uge") ip2
-			    10 '(vertical)))
+			    (if null-label? #f "V Ga&uge") 10 ip2
+			    '(vertical)))
     
-    (define txt (make-object multi-text% 
+    (define txt (make-object text-field% 
 			     (if null-label? #f "T&ext") ip2 void 
-			     "initial & starting"))
+			     "initial & starting"
+			     '(multiple)))
 
     (add-testers2 "Horiz Slider" sh)
     (add-testers2 "Vert Slider" sv)
@@ -597,7 +598,7 @@
 	[mfbp (make-object horizontal-panel% restp)]
 	[lblp (make-object horizontal-panel% restp)]
 	[badp (make-object horizontal-panel% restp)]
-	[e (make-object text-editor%)])
+	[e (make-object text%)])
       (sequence
 	(send restp stretchable-height #f)
 	(send mc min-height 250)
@@ -794,7 +795,7 @@
 
 (define (instructions v-panel file)
   (define c (make-object editor-canvas% v-panel))
-  (define m (make-object text-editor%))
+  (define m (make-object text%))
   (send c set-edit m)
   (send m load-file (local-path file))
   (send m lock #t)
@@ -943,7 +944,7 @@
     (if empty?
 	(values null null)
 	(values '("Alpha" "Beta" "Gamma")
-		(list null null null))))
+		(list #f #f #f))))
   (define commands 
     (if list?
 	(list 'list-box 'list-box-dclick)
@@ -960,19 +961,17 @@
        [(eq? (send e get-event-type) 'list-box-dclick)
 	; double-click
 	(printf "Double-click~n")
-	(unless (send e get-selection)
+	(unless (send cx get-selection)
 	  (error "no selection for dclick"))]
        [else
 	; misc multi-selection
 	(printf "Changed: ~a~n" (if list?
-				    (send e get-selections)
-				    (send e get-selection)))])
+				    (send cx get-selections)
+				    (send cx get-selection)))])
       (check-callback-event c cx e commands #f)))
   (define c (if list?
-		(make-object list-box% "Tester" actual-content
-			     p list-style)
-		(make-object mred:choice% "Tester" p actual-content
-			     callback)))
+		(make-object list-box% "Tester" actual-content p callback list-style)
+		(make-object choice% "Tester" actual-content p callback)))
   (define counter 0)
   (define append-with-user-data? #f)
   (define ab (make-object button%
@@ -994,7 +993,7 @@
 				  (begin
 				    (send c append naya)
 				    (when list?
-					  (send c set-client-data 
+					  (send c set-data 
 						(sub1 (send c get-number))
 						naya-data))))
 			      (set! append-with-user-data?
@@ -1004,7 +1003,7 @@
 			    "Visible Indices" p
 			    (lambda (b e)
 			      (printf "top: ~a~nvisible count: ~a~n"
-				      (send c get-first-item)
+				      (send c get-first-visible)
 				      (send c number-of-visible-items))))))
   (define cdp (make-object horizontal-panel% p))
   (define rb (make-object button% "Clear" cdp
@@ -1051,10 +1050,10 @@
 				(lambda (b e)
 				  (send c set '("Alpha" "Beta" "Gamma"))
 				  (set! actual-content '("Alpha" "Beta" "Gamma"))
-				  (set! actual-user-data (list null null null))))
+				  (set! actual-user-data (list #f #f #f))))
 		   null))
   (define (make-selectors method mname numerical?)
-    (define p2 (make-object mred:horizontal-panel% p))
+    (define p2 (make-object horizontal-panel% p))
     (send p2 stretchable-height #f)
     (when numerical?
 	  (make-object button%
@@ -1092,35 +1091,36 @@
   (define dummy-3 (make-selectors (lambda (p)
 				    (let ([e (make-object control-event% (if list? 'list-box 'choice))])
 				      (send c set-selection p)
-				      (when list? (send c set-first-item p))
+				      (when list? (send c set-first-visible p))
 				      (send c command e)))
 				  " by Simulate" #t))
   (define tb (make-object button%
 			  "Check" p
 			  (lambda (b e)
-			    (let ([c (send c number)])
+			    (let ([c (send c get-number)])
 			      (unless (= c (length actual-content))
-				      (error "bad number response")))
+				(error "bad number response")))
 			    (let loop ([n 0][l actual-content][lud actual-user-data])
 			      (unless (null? l)
 				      (let ([s (car l)]
 					    [sud (car lud)]
 					    [sv (send c get-string n)]
 					    [sudv (if list?
-						      (send c get-client-data n)
+						      (send c get-data n)
 						      #f)])
 					(unless (string=? s sv)
-						(error "get-string mismatch"))
+					  (error "get-string mismatch"))
 					(unless (or (not list?) (eq? sud sudv))
-						(error "get-user-data mismatch"))
+					  (error 'get-data "mismatch at ~a: ~s != ~s"
+						 n sud sudv))
 					(unless (= n (send c find-string s))
-						(error "bad find-string result")))
+					  (error "bad find-string result")))
 				      (loop (add1 n) (cdr l) (cdr lud))))
-			    (unless (and (null? (send c get-string -1))
-					 (null? (send c get-string (send c number))))
-				    (error "out-of-bounds did not return null"))
-			    (unless (= -1 (send c find-string "nada"))
-				    (error "bad find-string result for nada"))
+			    (unless (and (not (send c get-string -1))
+					 (not (send c get-string (send c get-number))))
+			      (error "out-of-bounds did not return #f"))
+			    (unless (not (send c find-string "nada"))
+			      (error "bad find-string result for nada"))
 			    (for-each
 			     (lambda (e)
 			       (check-callback-event c c e commands #t))
@@ -1128,70 +1128,67 @@
 			    (printf "content: ~s~n" actual-content)
 			    (when multi?
 			      (printf "selections: ~s~n" (send c get-selections))))))
+  (send c stretchable-width #t)
   (instructions p "choice-list-steps.txt")
   (send f show #t))
 
 (define (slider-frame)
-  (define f (make-object mred:frame% null "Slider Test"))
-  (define p (make-object mred:vertical-panel% f))
+  (define f (make-object frame% "Slider Test"))
+  (define p (make-object vertical-panel% f))
   (define old-list null)
   (define commands (list 'slider))
-  (define s (make-object mred:slider% p
+  (define s (make-object slider% "Slide Me" -1 11 p
 			 (lambda (sl e)
-			   (unless (= (send s get-value) (send e get-selection))
-			     (error "slider value mismatch"))
-			   (check-callback-event s sl e commands #f))
-			 "Slide Me"
-			 3 -1 11 -1))
-  (define c (make-object mred:button% p
+			   (check-callback-event s sl e commands #f)
+			   (printf "slid: ~a~n" (send s get-value)))
+			 3))
+  (define c (make-object button% "Check" p
 			 (lambda (c e)
 			   (for-each
 			    (lambda (e)
 			      (check-callback-event s s e commands #t))
 			    old-list)
-			   (printf "All Ok~n"))
-			 "Check"))
+			   (printf "All Ok~n"))))
   (define (simulate v)
-    (let ([e (make-object command-event% 'slider)])
-      (send e set-command-int v)
-      (send e set-event-object s)
+    (let ([e (make-object control-event% 'slider)])
+      (send s set-value v)
       (send s command e)))
-  (define p2 (make-object mred:horizontal-panel% p))
-  (define p3 (make-object mred:horizontal-panel% p))
+  (define p2 (make-object horizontal-panel% p))
+  (define p3 (make-object horizontal-panel% p))
   (send p3 stretchable-height #f)
-  (make-object mred:button% p2
+  (make-object button%
+	       "Up" p2
 	       (lambda (c e)
-		 (send s set-value (add1 (send s get-value))))
-	       "Up")
-  (make-object mred:button% p2
+		 (send s set-value (add1 (send s get-value)))))
+  (make-object button%
+	       "Down" p2
 	       (lambda (c e)
-		 (send s set-value (sub1 (send s get-value))))
-	       "Down")
-  (make-object mred:button% p2
+		 (send s set-value (sub1 (send s get-value)))))
+  (make-object button%
+	       "Simulate Up" p2
 	       (lambda (c e)
-		 (simulate (add1 (send s get-value))))
-	       "Simulate Up")
-  (make-object mred:button% p2
+		 (simulate (add1 (send s get-value)))))
+  (make-object button%
+	       "Simulate Down" p2
 	       (lambda (c e)
-		 (simulate (sub1 (send s get-value))))
-	       "Simulate Down")
+		 (simulate (sub1 (send s get-value)))))
   (instructions p "slider-steps.txt")
   (send f show #t))
 
 (define (gauge-frame)
-  (define f (make-object mred:frame% null "Gauge Test"))
-  (define p (make-object mred:vertical-panel% f))
-  (define g (make-object mred:gauge% p "Tester" 10))
+  (define f (make-object frame% "Gauge Test"))
+  (define p (make-object vertical-panel% f))
+  (define g (make-object gauge% "Tester" 10 p))
   (define (move d name)
-    (make-object mred:button% p
+    (make-object button%
+		 name p
 		 (lambda (c e)
-		   (send g set-value (+ d (send g get-value))))
-		 name))
+		   (send g set-value (+ d (send g get-value))))))
   (define (size d name)
-    (make-object mred:button% p
+    (make-object button%
+		 name p
 		 (lambda (c e)
-		   (send g set-range (+ d (send g get-range))))
-		 name))
+		   (send g set-range (+ d (send g get-range))))))
   (move 1 "+")
   (move -1 "-")
   (size 1 "Bigger")
@@ -1199,83 +1196,68 @@
   (instructions p "gauge-steps.txt")
   (send f show #t))
 
-(define (text-frame mred:text% style)
+(define (text-frame style)
   (define (handler get-this)
     (lambda (c e)
       (unless (eq? c (get-this))
-	      (printf "callback: bad item: ~a~n" c))
-      (unless (eq? c (send e get-event-object))
-	      (printf "callback: bad item in event: ~a~n" (send e get-event-object)))
+	(printf "callback: bad item: ~a~n" c))
       (let ([t (send e get-event-type)])
 	(cond
-	 [(= t wx:const-event-type-text-command)
-	  (printf "Changed: ~a~n" (send e get-command-string))]
-	 [(= t wx:const-event-type-text-enter-command)
-	  (printf "Return: ~a~n" (send e get-command-string))]
-	 [(= t wx:const-event-type-set-focus)
-	  (printf "Focus in~n")]
-	 [(= t wx:const-event-type-kill-focus)
-	  (printf "Focus out~n")]))))
+	 [(eq? t 'text-field)
+	  (printf "Changed: ~a~n" (send c get-value))]
+	 [(eq? t 'text-field-enter)
+	  (printf "Return: ~a~n" (send c get-value))]))))
 
-  (define f (make-object mred:frame% null "Text Test"))
-  (define p (make-object (class-asi mred:vertical-panel%
-			    (public
-			     [on-default-action
-			      (lambda (v)
-				(printf "Panel default action~n"))]))
-			 f))
-  (define t1 (make-object mred:text% p (handler (lambda () t1)) null "This should just fit!"
-			  -1 -1 -1 -1 style))
-  (define t2 (make-object mred:text% p (handler (lambda () t2)) "Another" "This too!"
-			  -1 -1 -1 -1 style))
-  (define junk (send p set-label-position wx:const-vertical))
-  (define t3 (make-object mred:text% p (handler (lambda () t3)) "Catch Returns" "And, yes, this!"
-			  -1 -1 -1 -1 (+ style wx:const-process-enter)))
+  (define f (make-object frame% "Text Test"))
+  (define p (make-object vertical-panel% f))
+  (define t1 (make-object text-field% #f p (handler (lambda () t1)) "This should just fit!" style))
+  (define t2 (make-object text-field% "Another" p (handler (lambda () t2)) "This too!" style))
+  (define junk (send p set-label-position 'vertical))
+  (define t3 (make-object text-field% "Catch Returns" p (handler (lambda () t3)) "And, yes, this!"
+			  (cons 'hscroll style)))
   (send t1 stretchable-width #f)
   (send t2 stretchable-width #f)
   (send t3 stretchable-width #f)
   (send f show #t))
 
 (define (canvas-frame flags)
-  (define f (make-object mred:frame% null "Canvas Test" -1 -1 -1 250))
-  (define p (make-object mred:vertical-panel% f))
-  (define c% (class mred:canvas% (name swapped-name p)
-		    (inherit clear draw-text draw-line set-clipping-region
-			     get-scroll-pos get-scroll-range get-scroll-page
-			     get-client-size get-virtual-size)
-		    (public
-		     [vw 10]
-		     [vh 10]
-		     [set-vsize (lambda (w h) (set! vw w) (set! vh h))])
-		    (override
-		     [on-paint
-		      (lambda ()
-			(let ([s (format "V: p: ~s r: ~s g: ~s H: ~s ~s ~s"
-					 (get-scroll-pos wx:const-vertical)
-					 (get-scroll-range wx:const-vertical)
-					 (get-scroll-page wx:const-vertical)
-					 (get-scroll-pos wx:const-horizontal)
-					 (get-scroll-range wx:const-horizontal)
-					 (get-scroll-page wx:const-horizontal))]
-			      [w (box 0)][w2 (box 0)]
-			      [h (box 0)][h2 (box 0)])
-			  (get-client-size w h)
-			  (get-virtual-size w2 h2)
-			  ; (set-clipping-region 0 0 (unbox w2) (unbox h2))
-			  (clear)
-			  (draw-text (if (send ck-w get-value) swapped-name name) 3 3)
-			  ; (draw-line 3 12 40 12)
-			  (draw-text s 3 15)
-			  (draw-text (format "client: ~s x ~s  virtual: ~s x ~s" 
-					     (unbox w) (unbox h)
-					     (unbox w2) (unbox h2))
-				     3 27)
-			  (draw-line 0 vh vw vh)
-			  (draw-line vw 0 vw vh)))]
-		     [on-scroll
-		      (lambda (e) (on-paint))])
-		    (sequence
-		      (super-init p -1 -1 -1 -1 flags))))
+  (define f (make-object frame% "Canvas Test" #f #f 250))
+  (define p (make-object vertical-panel% f))
+  (define c% (class canvas% (name swapped-name p)
+	       (inherit get-dc get-scroll-pos get-scroll-range get-scroll-page
+			get-client-size get-virtual-size)
+	       (public
+		 [vw 10]
+		 [vh 10]
+		 [set-vsize (lambda (w h) (set! vw w) (set! vh h))])
+	       (override
+		[on-paint
+		 (lambda ()
+		   (let ([s (format "V: p: ~s r: ~s g: ~s H: ~s ~s ~s"
+				    (get-scroll-pos 'vertical)
+				    (get-scroll-range 'vertical)
+				    (get-scroll-page 'vertical)
+				    (get-scroll-pos 'horizontal)
+				    (get-scroll-range 'horizontal)
+				    (get-scroll-page 'horizontal))]
+			 [dc (get-dc)])
+		     (let-values ([(w h) (get-client-size)]
+				  [(w2 h2) (get-virtual-size)])
+		       ; (send dc set-clipping-region 0 0 w2 h2)
+		       (send dc clear)
+		       (send dc draw-text (if (send ck-w get-value) swapped-name name) 3 3)
+		       ; (draw-line 3 12 40 12)
+		       (send dc draw-text s 3 15)
+		       (send dc draw-text (format "client: ~s x ~s  virtual: ~s x ~s" 
+						  w h
+						  w2 h2)
+			     3 27)
+		       (send dc draw-line 0 vh vw vh)
+		       (send dc draw-line vw 0 vw vh))))]
+		[on-scroll
+		 (lambda (e) (on-paint))])
+	       (sequence
+		 (super-init p flags))))
   (define un-name "Unmanaged scroll")
   (define m-name "Automanaged scroll")
   (define c1 (make-object c% un-name m-name p))
@@ -1295,17 +1277,17 @@
 	  (send c2 refresh)
 	  ; Otherwise, we have to specifically refresh the unmanaged canvas
 	  (send (if swap? c2 c1) refresh))))
-  (define p2 (make-object mred:horizontal-panel% p))
+  (define p2 (make-object horizontal-panel% p))
   (define junk (send p2 stretchable-height #f))
-  (define ck-v (make-object mred:check-box% p2 (lambda (b e) (reset-scrolls #f)) "Vertical Scroll"))
-  (define ck-h (make-object mred:check-box% p2 (lambda (b e) (reset-scrolls #f)) "Horizontal Scroll"))
-  (define ck-s (make-object mred:check-box% p2 (lambda (b e) (reset-scrolls #t)) "Small"))
-  (define ck-w (make-object mred:check-box% p2 (lambda (b e) (reset-scrolls #f)) "Swap"))
-  (define ip (make-object mred:horizontal-panel% p))
+  (define ck-v (make-object check-box% "Vertical Scroll" p2 (lambda (b e) (reset-scrolls #f))))
+  (define ck-h (make-object check-box% "Horizontal Scroll" p2 (lambda (b e) (reset-scrolls #f))))
+  (define ck-s (make-object check-box% "Small" p2 (lambda (b e) (reset-scrolls #t))))
+  (define ck-w (make-object check-box% "Swap" p2 (lambda (b e) (reset-scrolls #f))))
+  (define ip (make-object horizontal-panel% p))
   (send ip stretchable-height #f)
-  (make-object mred:button% ip
-	       (lambda (b e) (open-file "canvas-steps.txt"))
-	       "Get Instructions")
+  (make-object button%
+	       "Get Instructions" ip
+	       (lambda (b e) (open-file "canvas-steps.txt")))
   (send c1 set-vsize 10 10)
   (send c2 set-vsize 500 200)
   (send f show #t))
@@ -1372,14 +1354,14 @@
 (make-object button% "Make Radiobox Frame" crp (lambda (b e) (radiobox-frame)))
 (define cp (make-object horizontal-pane% ap))
 (send cp stretchable-width #f)
-(make-object button% "Make Choice Frame" cp (lambda (b e) (choice-or-list-frame #f 0 #f)))
-(make-object button% "Make Empty Choice Frame" cp (lambda (b e) (choice-or-list-frame #f 0 #t)))
+(make-object button% "Make Choice Frame" cp (lambda (b e) (choice-or-list-frame #f null #f)))
+(make-object button% "Make Empty Choice Frame" cp (lambda (b e) (choice-or-list-frame #f null #t)))
 (define lp (make-object horizontal-pane% ap))
 (send lp stretchable-width #f)
-(make-object button% "Make List Frame" lp (lambda (b e) (choice-or-list-frame #t wx:const-single #f)))
-(make-object button% "Make Empty List Frame" lp (lambda (b e) (choice-or-list-frame #t wx:const-single #t)))
-(make-object button% "Make MultiList Frame" lp (lambda (b e) (choice-or-list-frame #t wx:const-multiple #f)))
-(make-object button% "Make MultiExtendList Frame" lp (lambda (b e) (choice-or-list-frame #t wx:const-extended #f)))
+(make-object button% "Make List Frame" lp (lambda (b e) (choice-or-list-frame #t '(single) #f)))
+(make-object button% "Make Empty List Frame" lp (lambda (b e) (choice-or-list-frame #t '(single) #t)))
+(make-object button% "Make MultiList Frame" lp (lambda (b e) (choice-or-list-frame #t '(multiple) #f)))
+(make-object button% "Make MultiExtendList Frame" lp (lambda (b e) (choice-or-list-frame #t '(extended) #f)))
 (define gsp (make-object horizontal-pane% ap))
 (send gsp stretchable-height #f)
 (make-object button% "Make Gauge Frame" gsp (lambda (b e) (gauge-frame)))
@@ -1387,11 +1369,8 @@
 (make-object button% "Make Slider Frame" gsp (lambda (b e) (slider-frame)))
 (define tp (make-object horizontal-pane% ap))
 (send tp stretchable-width #f)
-(make-object button% "Make Text Frame" tp (lambda (b e) (text-frame text% 0)))
-(make-object button% "Make Multitext Frame" tp (lambda (b e) (text-frame multi-text% 0)))
-(define tp2 (make-object horizontal-pane% ap))
-(send tp2 stretchable-width #f)
-(make-object button% "Make Multitext Frame/HScroll" tp2 (lambda (b e) (text-frame multi-text% '(hscroll))))
+(make-object button% "Make Text Frame" tp (lambda (b e) (text-frame '(single))))
+(make-object button% "Make Multitext Frame" tp (lambda (b e) (text-frame '(multiple))))
 
 (define cnp (make-object horizontal-pane% ap))
 (send cnp stretchable-width #f)

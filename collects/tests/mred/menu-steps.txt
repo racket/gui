@@ -35,7 +35,8 @@ Instructions:
   Enable Second - back to normal
   Disable Second
   Delete Apple (from tester menu)
-  Add Apple - NOT gray anymore
+  Add Apple - still gray
+  Enable Second
 
  Item Enabling:
   Disable Apple Once Item -> once item grayed & unselectable
@@ -64,7 +65,7 @@ Instructions:
   Delete First Banana Item (in Banana Menu) - one left
   Delete First Banana Item - none left
   Add Delete Banana - one item again
-  Add Delete Banana - two items
+  Add Delete Banana - still one item
   Delete Banana
 
  Checkable Items & Insertions:
@@ -78,6 +79,14 @@ Instructions:
   Test Apple Item -> "no"
   Delete Apple
   Test Apple Item -> "no"
+  Check in Apple (Button)
+  Test Apple Item -> "yes"
+  Add Apple
+  Apple | Checkable - off
+  Check in Apple (Button) - check is on
+  Test Apple Item -> "yes"
+  Apple | Checkable - off
+  Delete Apple
 
  More Checkable (Apple & Banana currently deleted):
   Test Aeros -> "yes"
@@ -94,22 +103,6 @@ Instructions:
   Test Bruin -> "yes"
   Test Capitols -> "no"
 
- Checkable via Menubar (Apple & Banana currently deleted):
-  Via Menubar - on
-  Test Aeros -> "no"
-  Test Bruin -> "yes"
-  Test Apple Item -> "no"
-  Check in Apple (Button)
-  Add Apple - checkable item *not* checked
-  Check in Apple (Button) - item checked
-  Test Apple Item -> "yes"
-  Delete Apple
-  Test Apple Item -> "no"
-  Add Apple
-  Apple | Checkable
-  Delete Apple
-  Via Menubar - off
-
  Labels (Apple & Banana currently deleted):
   Add Coconut - (coconut item needed for the rest)
   Test Labels - "ok" in console
@@ -124,25 +117,3 @@ Instructions:
   Toggle Labels - "Delete Apple" -> "Apple Deleter"
   Toggle Labels
   Delete Apple
-  Via Menubar - on
-  Test Labels - "ok" in console
-  Find Labels - "ok" in console
-  Toggle Labels - "Add Apple" -> "Apple Adder", "Astros" -> "'Stros"
-  Test Labels - "ok" in console
-  Find Labels - "ok" in console
-  Toggle Labels - original labels
-  Add Apple
-  Test Labels - "ok" in console
-  Find Labels - "ok" in console
-  Via Menubar - off
-
- Handling Bad Requests:
-  Test Bad Item -> "no"
-  Test Other Bad Item -> "no"
-  Bad Item Labels - "ok" in console
-  Via Menubar - on
-  Bad Item Labels - "ok" in console
-  Via Menubar - off
-  Check Bad - nothing
-  Enable Bad - nothing
-  Delete Bad - nothing

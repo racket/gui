@@ -9,9 +9,3 @@ Click "Disable Test" and quickly click "Hit Me". The button should
  click on "Hit Me" should not invoke the callback.
 
 Repeat the first two steps above.
-
-Click "Set Default". If this is a "Button Frame", nothing should
- happen. If this is a "Button Dialog Box", the "Hit Me" button *may*
- become highlighted so that typing Return is the same as hitting the
- button; whether this actually happens is platform-specific.
-
