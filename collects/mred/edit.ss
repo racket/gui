@@ -223,8 +223,18 @@
 		     (begin 
 		       (restore-file-format)
 		       #f))))]
+	    [check-lock
+	     (lambda ()
+	       (let ([filename (get-filename)])
+		 (lock (and (not (null? filename))
+			    (not (member
+				  'write
+				  (file-or-directory-permissions
+				   filename)))))))]
 	    [after-save-file
 	     (lambda (success)
+	       (when success
+		 (check-lock))
 	       (super-after-save-file success)
 	       (restore-file-format))]
 
@@ -237,7 +247,7 @@
 	    [after-load-file
 	     (lambda (sucessful?)
 	       (when sucessful?
-		 (lock (not (member 'write (file-or-directory-permissions (get-filename))))))
+		 (check-lock))
 	       (super-after-load-file sucessful?))]
 
 	    [set-mode
@@ -588,7 +598,7 @@
 
     (define make-backup-autosave-buffer%
       (lambda (super-edit%)
-	(class-asi super-edit%
+	(class super-edit% args
 	  (inherit modified? get-filename save-file)
 	  (rename [super-on-save-file on-save-file]
 		  [super-on-change on-change]
@@ -636,8 +646,8 @@
 			[success (save-file auto-name wx:const-media-ff-copy)])
 		   (if success
 		       (begin
-			 (if auto-saved-name
-			     (delete-file auto-saved-name))
+			 (when auto-saved-name
+			   (delete-file auto-saved-name))
 			 (set! auto-saved-name auto-name)
 			 (set! auto-save-out-of-date? #f))
 		       (begin
@@ -652,7 +662,10 @@
 	     (lambda ()
 	       (when auto-saved-name
 		 (delete-file auto-saved-name)
-		 (set! auto-saved-name #f)))]))))
+		 (set! auto-saved-name #f)))])
+	  (sequence
+	    (apply super-init args)
+	    (mred:autosave:register-autosave this)))))
 
     (define backup-autosave-edit% (make-backup-autosave-buffer% edit%))
 
