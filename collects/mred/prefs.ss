@@ -272,11 +272,7 @@
 			    "Modern" "Swiss" "Script"))
     (define font-size-entry "defaultFontSize")
     (define font-default-string "Default Value")
-    (define font-default-size
-      (case wx:platform
-	[(unix) 14]
-	[(windows) 12]
-	[(macintosh) 12]))
+    (define font-default-size 12)
     (define font-section "mred")
     (define build-font-entry (lambda (x) (string-append "Screen" x "__")))
     (define font-file  (wx:find-path 'setup-file))
@@ -348,6 +344,10 @@
 	    (make-check 'mred:show-status-line "Show status-line?" id id)
 	    (make-check 'mred:line-offsets "Count line and column numbers from one?" id id)
 	    (make-check 'mred:menu-bindings "Enable keybindings in menus?" id id)
+	    (unless (eq? wx:platform 'unix) 
+	      (make-check 'mred:print-output-mode "Automatically print to postscript file?"
+			  (lambda (b) (if b 1 0))
+			  (lambda (n) (= n 1))))
 	    main))
 	#f)
        (make-ppanel
@@ -385,35 +385,44 @@
 				       null -1 -1 #t 300 400)])
 				 (unless (null? new-value)
 				   (set-preference pref-sym
-						   new-value)
-				   (send horiz change-children
-					 (lambda (l)
-					   (list label space 
-						 (make-object
-						  mred:message%
-						  horiz
-						  new-value)
-						 button))))))
+						   new-value))))
 			     "Change")])
+		      (add-preference-callback
+		       pref-sym
+		       (lambda (p new-value)
+			 (send horiz change-children
+			       (lambda (l)
+				 (list label space 
+				       (make-object
+					   mred:message%
+					 horiz
+					 new-value)
+				       button)))))
 		      (void)))])
 	    (for-each make-family-panel font-families)
 	    (let ([size-panel (make-object mred:horizontal-panel% main -1 -1 -1 -1 wx:const-border)])
 	      '(make-object mred:message% size-panel "Size")
 	      '(make-object mred:horizontal-panel% size-panel)
-	      (make-object mred:slider% size-panel 
-			   (let ([sym (build-font-preference-symbol 
-				       font-size-entry)])
-			     (lambda (slider evt)
-			       (set-preference sym
-					       (send slider get-value))))
-			   "Size"
-			   (let ([b (box 0)])
-			     (if (wx:get-resource font-section 
-						  font-size-entry
-						  b)
-				 (unbox b)
-				 font-default-size))
-			   1 127 50))
+	      (let* ([sym (build-font-preference-symbol 
+			   font-size-entry)]
+		     [size-slider
+		      (make-object mred:slider% size-panel 
+				   (lambda (slider evt)
+				     (set-preference sym
+						     (send slider get-value)))
+				   "Size"
+				   (let ([b (box 0)])
+				     (if (wx:get-resource font-section 
+							  font-size-entry
+							  b)
+					 (unbox b)
+					 font-default-size))
+				   1 127 50)])
+		(add-preference-callback
+		 sym
+		 (lambda (p value)
+		   (unless (= value (send size-slider get-value))
+		     (send size-slider set-value value))))))
 	    (make-object mred:message% main
 			 "Restart to see font changes")
 	    main))

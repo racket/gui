@@ -843,6 +843,7 @@
 	       (super-after-delete start len))]
 	    [after-edit-sequence
 	     (lambda ()
+	       (super-after-edit-sequence)
 	       (set! edit-sequence-depth (sub1 edit-sequence-depth))
 	       (when (= 0 edit-sequence-depth)
 		 (let ([frame (get-frame)])
@@ -854,8 +855,7 @@
 		     (update-position-edit))
 		   (when lock-needs-updating
 		     (set! lock-needs-updating #f)
-		     (send frame lock-status-changed))))
-	       (super-after-edit-sequence))]
+		     (send frame lock-status-changed)))))]
 	    [on-edit-sequence
 	     (lambda ()
 	       (set! edit-sequence-depth (add1 edit-sequence-depth))
