@@ -35,6 +35,14 @@ Editors:
  Added an optional argument to begin-edit-sequence in
   editor<%> to treat actions before and after sequence
   as consecutive
+Framework collection:
+ Changed the defaults for frame:standard-menus-mixin;
+  the method file-menu:between-save-as-and-print method no
+  longer creates a separator menu item
+ Changed the overriding method behavior of
+   drscheme:frame:basics-mixin
+ Modes are now based on the language settings, rather than
+   the filename
 
 ----------------------------------------------------------------------
 
