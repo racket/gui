@@ -207,7 +207,9 @@
 	
 	[do-ok
 	 (lambda args
+
 	   (if multi-mode?
+
 	       (let ([dir-name (send directory-edit get-text)])
 		 (if (directory-exists? dir-name)
 		     (set-directory (mzlib:file:normalize-path dir-name))
@@ -219,20 +221,33 @@
 			   (loop (sub1 n) 
 				 (cons (send result-list get-string n)
 				       result))))))
-	       (let ([name (send name-list get-string-selection)])
+	       ; not multi-mode
+
+	       (let ([name (send name-list get-string-selection)]
+		     [non-empty? (> (send name-list number) 0)])
+
 		 (cond
-		   [(and save-mode? (not (string? name))) 'nothing-selected]
-		   [(and save-mode? (string=? name ""))
+
+		   [(and save-mode? 
+			 non-empty?
+			 (not (string? name))) 'nothing-selected]
+
+		   [(and save-mode? 
+			 non-empty?
+			 (string=? name ""))
 		    (let ([file (send directory-edit get-text)])
 		      (if (directory-exists? file)
 			  (set-directory (mzlib:file:normalize-path file))
 			  (mred:gui-utils:message-box 
 			   "You must specify a file name"
 			   "Error")))]
+
 		   [(and save-mode? 
+			 non-empty?
 			 file-filter 
 			 (not (mzlib:string:regexp-match-exact? file-filter name)))
 		    (mred:gui-utils:message-box file-filter-msg "Error")]
+
 		   [else
 		    
 		    ; if dir in edit box, go to that dir
@@ -453,14 +468,15 @@
 	     
 	     [on-default-action
 	      (lambda ()
-		(let* ([which (send name-list get-string-selection)]
-		       [dir (build-path current-dir
-					(make-relative which))])
-		  (if (directory-exists? dir)
-		      (set-directory (mzlib:file:normalize-path dir))
-		      (if multi-mode?
-			  (do-add)
-			  (do-ok)))))]))]
+		(when (> (send name-list number) 0)
+		      (let* ([which (send name-list get-string-selection)]
+			     [dir (build-path current-dir
+					      (make-relative which))])
+			(if (directory-exists? dir)
+			    (set-directory (mzlib:file:normalize-path dir))
+			    (if multi-mode?
+				(do-add)
+				(do-ok))))))]))]
 	
 	[name-list (make-object name-list%
 				left-middle-panel do-name-list
@@ -636,7 +652,7 @@
 		  [replace? #f]
 		  [prompt "Select file"]
 		  [filter #f]
-		  [filter-msg  "Invalid form"]
+		  [filter-msg "Invalid form"]
 		  [parent-win (dialog-parent-parameter)])
        (let* ([directory (if (and (null? directory)
 				  (string? name))
