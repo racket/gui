@@ -3881,6 +3881,7 @@
 
   (let ([mb (make-object menu-bar% frame)])
     (let ([m (make-object menu% "File" mb)])
+      (make-object menu-item% "Load File..." m (lambda (i e) (let ([f (get-file)]) (and f (evaluate (format "(load ~s)" f))))))
       (make-object menu-item% "Quit" m (lambda (i e) (send frame on-close) (send frame show #f)) #\q))
     (let ([m (make-object menu% "Edit" mb)])
       (append-editor-operation-menu-items m)))
