@@ -40,12 +40,13 @@
           (define/override (get-corner-bitmap) bm)
           
           (rename [super-get-text get-text])
-          (define/override (get-text . args)
-            (let* ([super-res (super-get-text . args)]
-                   [replaced (string-append "; " (regexp-replace* "\n" super-res "\n; "))])
-              (if (char=? #\newline (string-ref replaced (- (string-length replaced) 1)))
-                  replaced
-                  (string-append replaced "\n"))))
+          (define/override get-text
+	    (opt-lambda (offset num [flattened? #t])
+	      (let* ([super-res (super-get-text offset num flattened?)]
+		     [replaced (string-append "; " (regexp-replace* "\n" super-res "\n; "))])
+		(if (char=? #\newline (string-ref replaced (- (string-length replaced) 1)))
+		    replaced
+		    (string-append replaced "\n")))))
                               
           
           (define/override (get-menu)
