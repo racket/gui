@@ -3594,6 +3594,7 @@
     (inherit delete-by-position)
     (rename [super-delete delete])
     (public
+      [get-container (lambda () this)]
       [get-keymap (lambda () keymap)]
       [get-mred (lambda () mred)]
       [get-items (lambda () items)]
