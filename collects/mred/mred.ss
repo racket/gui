@@ -2169,7 +2169,8 @@
 	   (send dc clear)
 	   (send dc draw-text lbl group-right-inset 0)
 	   (send dc set-pen light-pen)
-	   (let-values ([(w h) (my-get-client-size)])
+	   (let-values ([(w h) (my-get-client-size)]
+			[(tw th ta td) (send dc get-text-extent lbl)])
 	     (send dc draw-line 
 		   1 (/ lbl-h 2)
 		   (- group-right-inset 2) (/ lbl-h 2))
@@ -2185,8 +2186,8 @@
 	     (send dc draw-line
 		   (- w 2) (/ lbl-h 2)
 		   (min (- w 2)
-			(+ group-right-inset 4 lbl-w))
-		    (/ lbl-h 2)))))))
+			(+ group-right-inset 4 tw))
+		   (/ lbl-h 2)))))))
 
     (define/private (my-get-client-size)
       (get-two-int-values (lambda (a b) (get-client-size a b))))
@@ -2198,7 +2199,7 @@
       (set! lbl l)
       (on-paint))
 
-    (super-instantiate (mred proxy parent -1 -1 -1 -1 null))
+    (super-instantiate (mred proxy parent -1 -1 -1 -1 '(transparent)))
 
     (set-background-to-gray)
 

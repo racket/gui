@@ -118,6 +118,7 @@
     on-size
     on-set-focus
     on-kill-focus
+    set-phantom-size
     get-y
     get-x
     get-width
