@@ -91,8 +91,9 @@
                 ,(generic-name x)
                 ,(generic-initializer x)))]
       [(generic-override? x)
-       (list `(rename [,(string->symbol (format "super-~a" (generic-name x)))
-                       ,(generic-name x)]))]
+       (list)]
+      [(generic-augment? x)
+       (list)]
       [(generic-method? x)
        null]))
 
@@ -103,6 +104,9 @@
        null]
       [(generic-override? generic)
        (list `(define/override ,(generic-name generic)
+                ,(generic-initializer generic)))]
+      [(generic-augment? generic)
+       (list `(define/augment ,(generic-name generic)
                 ,(generic-initializer generic)))]
       [(generic-method? generic)
        (list `(define/public ,(generic-name generic)

@@ -138,11 +138,13 @@
             (super show on?))
           
           (define/override (can-exit?)
-            (exit:set-exiting #t)
-            (let ([res (exit:can-exit?)])
-              (unless res
-                (exit:set-exiting #f))
-              res))
+            (and (exit:user-oks-exit)
+                 (begin
+                   (exit:set-exiting #t)
+                   (let ([res (exit:can-exit?)])
+                     (unless res
+                       (exit:set-exiting #f))
+                     res))))
           (define/override (on-exit) 
             (exit:on-exit)
             (queue-callback
@@ -218,7 +220,7 @@
                    (length (send (group:get-the-frame-group)
                                  get-frames))])
               (and (inner #t can-close?)
-                   (or (preferences:get 'framework:exit-when-no-frames)
+                   (or (not (preferences:get 'framework:exit-when-no-frames))
                        (exit:exiting?)
                        (not (= 1 number-of-frames))
                        (exit:user-oks-exit)))))

@@ -6,6 +6,7 @@
    (struct generic/docs (documentation))
    
    (struct generic-override ())
+   (struct generic-augment ())
    (struct generic-method ())
    (struct generic-private-field ())
    
@@ -39,6 +40,7 @@
   (define-struct generic (name initializer))
   (define-struct (generic/docs generic) (documentation))
   (define-struct (generic-override generic/docs) ())
+  (define-struct (generic-augment generic/docs) ())
   (define-struct (generic-method generic/docs) ())
   (define-struct (generic-private-field generic) ())
   
@@ -123,11 +125,11 @@
   (define on-demand-do-nothing '(lambda (menu-item) (void)))
 
   (define items
-    (list (make-generic-override
-           'on-close 
+    (list (make-generic-augment
+           'on-close
            '(lambda ()
               (remove-prefs-callback)
-              (super-on-close))
+              (inner (void) on-close))
            '("@return : void"
              "Removes the preferences callbacks for the menu items"))
           (make-generic-method 
@@ -275,7 +277,8 @@
           (make-an-item 'file-menu 'quit
                         '(string-constant quit-info)
                         '(lambda (item control) 
-                           (exit:exit))
+                           (when (exit:user-oks-exit)
+                             (exit:exit)))
                         #\q
                         '(if (eq? (system-type) 'windows) 
                              (string-constant quit-menu-item-windows)
