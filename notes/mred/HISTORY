@@ -1,6 +1,7 @@
 Version 101: ??
 
 Showing an inactive child window now raises an exception
+Added set-paragrapgh-alignment to text%
 
 ----------------------------------------------------------------------
 
