@@ -1,7 +1,3 @@
-#!/bin/sh
-
-string=? ; exec mred -qr $0
-
 (module gen-standard-menus mzscheme
   (require (lib "pretty.ss"))
   (require (lib "list.ss"))
@@ -60,14 +56,15 @@ string=? ; exec mred -qr $0
       `(private-field
         [,(an-item->item-name item)
          (and (,create-menu-item-name)
-              (make-object (class (get-menu-item%) args
+              (make-object (class100 (get-menu-item%) args
                              (rename [super-on-demand on-demand])
-                             (override on-demand)
-                             (define (on-demand)
-                               (lambda ()
-                                 (,(an-item->on-demand-name item) this)
-                                 (super-on-demand)))
-                             (apply super-init args))
+                             (override
+                               [on-demand
+                                (lambda ()
+                                  (,(an-item->on-demand-name item) this)
+                                  (super-on-demand))])
+                             (sequence
+                               (apply super-init args)))
                 ,(join menu-before-string menu-after-string
                        `(,(an-item->string-name item)))
                 ,(menu-item-menu-name item)

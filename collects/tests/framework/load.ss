@@ -7,11 +7,13 @@
     (test
      (string->symbol file)
      void?
-     `(let ([orig-namespace (current-namespace)])
+     `(let ([mred-name 
+             ((current-module-name-resolver) '(lib "mred.ss" "mred") #f #f)]
+            [orig-namespace (current-namespace)])
         (parameterize ([current-namespace (make-namespace)])
           (namespace-attach-module
            orig-namespace
-           ((current-module-name-resolver) '(lib "mred.ss" "mred")))
+           mred-name)
           (eval '(require (lib ,file "framework")))
           (with-handlers ([(lambda (x) #t)
                            (lambda (x)

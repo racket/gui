@@ -2,6 +2,7 @@
   (require (lib "launcher.ss" "launcher")
 	   (lib "pretty.ss")
 	   (lib "list.ss")
+           (lib "process.ss")
 	   "debug.ss")
 
   (provide

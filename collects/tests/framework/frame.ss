@@ -1,5 +1,3 @@
-#|
-
 (define (test-creation name class-expression)
   (test
    name
@@ -137,8 +135,6 @@
 (test-open "frame:editor open" 'frame:text%)
 (test-open "frame:searchable open" 'frame:searchable%)
 (test-open "frame:text-info open" 'frame:text-info-file%)
-
-|#
 
 (test
  "set!-ing menu callback in standard-menus-frame"
