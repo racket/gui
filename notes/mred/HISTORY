@@ -1,4 +1,8 @@
 
+Version 199.16:
+
+ * Changed `demand-callback' to take a self argument.
+
 Version 199.15:
 
  * Added initialization arguments for all fields of all event%
