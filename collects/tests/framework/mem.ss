@@ -16,6 +16,15 @@
                   (let* ([o (,open)]
                          [b (make-weak-box o)])
                     (,close o)
+                    
+                    ;; break at least that link.
+                    (set! o #f)
+
+                    ;; flush pending events
+                    (let ([s (make-semaphore 0)])
+                      (queue-callback (lambda () (semaphore-post s)) #f)
+                      (yield s))
+                    
                     (cons b (loop (- n 1))))]))])
         (sleep/yield 1/10) (collect-garbage)
         (sleep/yield 1/10) (collect-garbage)
