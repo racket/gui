@@ -116,21 +116,20 @@ The following are a few highlights of the revision:
            subwindow<%>           |       |    |  |                  
 <<<______________|___________     |       |    |  |                 _<<<
             |               |     |       |    pane%                |
-       control<%>           |     |       |     |- single-pane%     |
-        |- message%         |     |       |     |- horizontal-pane% |
-        |- button%          |     |       |     |- vertical-pane%   |
-        |- check-box%       |     |       |                         |
-        |- slider%          |  area-container-window<%>             |
-        |- gauge%           |       |             _ ________________|
-        |- text-control<%>  |       |             |   
-        |   |- text%        |       |--------- panel%       
-        |   |- multi-text%  |       |           |- single-panel% 
-        |- radio-box%       |       |           |- horizontal-panel%
-        |- list-control<%>  |       |           |- vertical-panel%
-            |- choice%      |       |           
-            |- list-box     |       |- top-level-window<%>
-                            |          |- frame%     
-                            |          |- dialog-box%
+       control<%>           |     |       |     |- horizontal-pane% |
+        |- message%         |     |       |     |- vertical-pane%   |
+        |- button%          |     |       |                         |
+        |- check-box%       |  area-container-window<%>             |
+        |- slider%          |        |                              |
+        |- gauge%           |        |            __________________|
+        |- text-control<%>  |        |            |   
+        |   |- text%        |        |-------- panel%       
+        |   |- multi-text%  |        |          |- horizontal-panel%
+        |- radio-box%       |        |          |- vertical-panel%
+        |- list-control<%>  |        |          
+            |- choice%      |        |- top-level-window<%>
+            |- list-box     |           |- frame% 
+                            |           |- dialog-box%
                          canvas<%>
                           |- canvas%
                           |- editor-canvas%
@@ -203,8 +202,8 @@ subwindow-container<%>
     get-subwindows
 
 top-level-window<%>
+    get-eventspace
     on-activate
-    get-panel
     get-focus-window - the window with the current focus (or #f)
     get-edit-target-window - the window to last have the focus (or #f)
     get-focus-object - the window/editor with the curent focus (or #f)
@@ -212,14 +211,12 @@ top-level-window<%>
     center move resize
 
 frame% 
-   <= label [parent #f] [x #f] [y #f] [width #f] [height #f] 
-            [style wx:const-default-frame-style]
+   <= label [parent #f] [width #f] [height #f] [x #f] [y #f] [style null]
    create-status-line set-status-line
    get-menu-bar
 
 dialog-box%
-   <= label [modal? #t] [parent #f] [x #f] [y #f] [width #f] [height #f] 
-            [style wx:const-default-dialog-style]
+   <= label [modal? #t] [parent #f] [width #f] [height #f] [x #f] [y #f] [style null]
 
 subwindow<%>
    min-width min-height

@@ -1,5 +1,4 @@
 
-
 ;;;;;;;;;;;;;;; Constants ;;;;;;;;;;;;;;;;;;;;
 
 ; default spacing between items.
@@ -598,6 +597,14 @@
   (class (make-window-glue% %) (mred proxy . args)
     (rename [super-on-activate on-activate])
     (public
+      [on-close (lambda ()
+		  (if mred
+		      (if (send mred can-close?)
+			  (begin
+			    (send mred on-close)
+			    #t)
+			  #f)
+		      #t))]
       [on-activate (lambda (on?)
 		     (super-on-activate on?)
 		     (send mred on-activate on?))])
@@ -992,6 +999,9 @@
       ;  if no longer valid.)
       [children-info null]
       
+      ; Not used by linear panels
+      [h-align 'center] [v-align 'center]
+
       [ignore-redraw-request? #f])
     
     (public
@@ -1208,6 +1218,22 @@
 		   (child-info-y-min curr-info))
 		  (loop (cdr children-info)))))))]
       
+      [spacing ; does nothing!
+       (let ([curr-spacing const-default-spacing])
+	 (case-lambda
+	  [() curr-spacing]
+	  [(new-val) (set! curr-spacing new-val)]))]
+
+      [do-align (lambda (h v set-h set-v)
+		  (unless (memq h '(left center right))
+		    (raise-type-error 'alignment "horizontal alignment symbol: left, center, or right" h))
+		  (unless (memq v '(top center bottom))
+		    (raise-type-error 'alignment "vertical alignment symbol: top, center, or bottom" v))
+		  (set-h h)
+		  (set-v (case v [(top) 'left] [(center) 'center] [(bottom) 'right])))]
+      [alignment (lambda (h v) (do-align h v (lambda (h) (set! h-align h)) (lambda (h) (set! v-align v))))]
+      [get-alignment (lambda () (values h-align v-align))]
+
       ; redraw: redraws panel and all children
       ; input: width, height: size of area area in panel.
       ; returns: nothing
@@ -1261,16 +1287,6 @@
     (inherit force-redraw border get-width get-height
 	     get-graphical-min-size)
     (public
-      [do-align (lambda (h v set-h set-v)
-		  (unless (memq h '(left center right))
-		    (raise-type-error 'alignment "horizontal alignment symbol: left, center, or right" h))
-		  (unless (memq v '(top center bottom))
-		    (raise-type-error 'alignment "vertical alignment symbol: top, center, or bottom" v))
-		  (set-h h)
-		  (set-v (case v [(top) 'left] [(center) 'center] [(bottom) 'right])))]
-      [do-get-alignment (lambda (pick) (values (pick major-align-pos minor-align-pos)
-					       (case (pick minor-align-pos major-align-pos)
-						 [(top) 'left] [(center) 'center] [(right) 'bottom])))]
       [minor-align (lambda (a) (set! minor-align-pos a) (force-redraw))]
       [major-align (lambda (a) (set! major-align-pos a) (force-redraw))]
       [major-offset (lambda (space)
@@ -1284,6 +1300,10 @@
 			[(left) 0]
 			[(right) (- width size)]))]
       
+      [do-get-alignment (lambda (pick) (values (pick major-align-pos minor-align-pos)
+					       (case (pick minor-align-pos major-align-pos)
+						 [(top) 'left] [(center) 'center] [(right) 'bottom])))]
+
       [spacing
        (let ([curr-spacing const-default-spacing])
 	 (case-lambda
@@ -1479,110 +1499,15 @@
 				(lambda (major minor) major)))])
     (sequence (apply super-init args))))
 
-; implement a panel which can hold multiple objects but only displays
-; one at a time.  The size of the panel is the smallest size possible
-; for displaying each of the panel's children.
-(define (wx-make-single-panel% wx-panel%)
-  (class wx-panel% args
-    
-    (inherit children set-children force-redraw panel-redraw)
-    
-    (rename
-     [super-add add-child]
-     [super-delete delete-child])
-    
-    (public
-      
-      ; pointer to currently active child
-      [active #f]
-      
-      [add-child
-       (lambda (new-child)
-	 (super-add new-child)
-	 (send new-child show #f))]
-      
-      ; if the child is active, make the next child active (null if
-      ; child was last in list)
-      [delete-child
-       (lambda (child)
-	 (when (eq? child (active-child))
-	   (let ([rest-of-list (cdr (memq child children))])
-	     (active-child (if (null? rest-of-list)
-			       null
-			       (car rest-of-list)))))
-	 (super-delete child))]
-      
-      ; if the active child is removed, make nothing active.
-      [change-children
-       (lambda (f)
-	 (let ([new-children (f children)])
-	   (unless (andmap (lambda (child)
-			     (eq? this (send child area-parent)))
-			   new-children)
-	     (unless (memq (active-child) new-children)
-	       (active-child #f))
-	     (set-children new-children)
-	     (force-redraw))))]
-      
-      [active-child
-       (case-lambda
-	[() active]
-	[(new-child)
-	 (unless (or (not new-child) 
-		     (eq? this (send new-child area-parent)))
-	   (error 'active-child
-		  (string-append
-		   "The child specified (~s) is not "
-		   "a child of this panel (~s)")
-		  new-child this))
-	 (when active (send active show #f))
-	 (when new-child (send new-child show #t))
-	 (set! active new-child)
-	 (force-redraw)])]
-      
-      ; only place the active child.
-      [do-place-children
-       (lambda (children-info width height)
-	 (when active
-	   (let* ([active-info (send active get-info)]
-		  [x-stretch (child-info-x-stretch active-info)]
-		  [x-min (child-info-x-min active-info)]
-		  [y-stretch (child-info-y-stretch active-info)]
-		  [y-min (child-info-y-min active-info)]
-		  [x-posn (if x-stretch
-			      (border)
-			      (/ (- width x-min) 2))]
-		  [x-size (if x-stretch
-			      (- width (* 2 (border)))
-			      x-min)]
-		  [y-posn (if y-stretch
-			      (border)
-			      (/ (- height y-min) 2))]
-		  [y-size (if y-stretch
-			      (- height (* 2 (border)))
-			      y-min)])
-	     (list (list x-posn y-posn x-size y-size)))))]
-      
-      [redraw
-       (lambda (width height)
-	 (when active
-	   (panel-redraw (list active) 
-			 (list (send active get-info))
-			 (place-children null width height))))])
-    (sequence
-      (apply super-init args))))
-
 (define wx-panel% (wx-make-panel% wx:panel%))
 (define wx-linear-panel% (wx-make-linear-panel% wx-panel%))
 (define wx-horizontal-panel% (wx-make-horizontal-panel% wx-linear-panel%))
 (define wx-vertical-panel% (wx-make-vertical-panel% wx-linear-panel%))
-(define wx-single-panel% (wx-make-single-panel% wx-panel%))
 
 (define wx-pane% (wx-make-pane% wx:windowless-panel%))
 (define wx-linear-pane% (wx-make-linear-panel% wx-pane%))
 (define wx-horizontal-pane% (wx-make-horizontal-panel% wx-linear-pane%))
 (define wx-vertical-pane% (wx-make-vertical-panel% wx-linear-pane%))
-(define wx-single-pane% (wx-make-single-panel% wx-pane%))
 
 ;-------------------- Text control simulation -------------------------
 
@@ -1843,7 +1768,8 @@
   (interface (area<%>) 
     get-children change-children place-children
     add-child delete-child
-    border))
+    border spacing 
+    set-alignment get-alignment))
 
 (define internal-container<%> (interface ()))
 
@@ -1852,6 +1778,9 @@
     (public
       [get-children (lambda () (map wx->mred (ivar (get-wx-panel) children)))]
       [border (param get-wx-panel 'border)]
+      [spacing (param get-wx-panel 'spacing)]
+      [set-alignment (lambda (h v) (send (get-wx-panel) alignment h v))]
+      [get-alignment (lambda () (send (get-wx-panel) get-alignment))]
       [change-children (lambda (f)
 			 (map mred->wx
 			      (send (get-wx-panel) change-children
@@ -1862,21 +1791,6 @@
       [delete-child (lambda (c) (send (get-wx-panel) delete-child (mred->wx c)))])
     (sequence
       (super-init mk-wx get-wx-panel parent))))
-
-(define linear-container<%>
-  (interface (container<%>)
-    spacing 
-    set-alignment))
-
-(define (make-linear-container% %) ; % implements container<%>
-  (class* % (linear-container<%>) (mk-wx get-wx-panel parent)
-    (public
-      [spacing (param get-wx-panel 'spacing)]
-      [set-alignment (lambda (h v) (send (get-wx-panel) alignment h v))]
-      [get-alignment (lambda () (send (get-wx-panel) get-alignment))])
-    (sequence
-      (super-init mk-wx get-wx-panel parent))))
-
 
 (define window<%>
   (interface (area<%>)
@@ -1970,22 +1884,28 @@
       (super-init mk-wx get-wx-panel label parent cursor))))
 
 (define top-level-window<%>
-  (interface (linear-container<%> area-container-window<%>)
+  (interface (area-container-window<%>)
+    get-eventspace
     on-activate
+    can-close? on-close
     get-focus-window get-edit-target-window
     get-focus-object get-edit-target-object
     center move resize))
 
 (define basic-top-level-window%
-  (class* (make-area-container-window% (make-window% (make-linear-container% (make-container% area%)))) (top-level-window<%>) (mk-wx label parent)
+  (class* (make-area-container-window% (make-window% (make-container% area%))) (top-level-window<%>) (mk-wx label parent)
     (rename [super-set-label set-label])
     (private
       [wx-object->mred
        (lambda (o)
 	 (or (and (is-a? o wx:window%))
 	     (wx->mred o)
-	     o))])
+	     o))]
+      [eventspace (wx:current-eventspace)])
     (public
+      [get-eventspace (lambda () eventspace)]
+      [can-close? (lambda () #t)]
+      [on-close void]
       [on-activate void]
       [center (case-lambda
 	       [() (send wx center)]
@@ -2038,7 +1958,7 @@
 ;--------------------- Final mred class construction --------------------
     
 (define frame%
-  (class basic-top-level-window% (label [parent #f] [x #f] [y #f] [width #f] [height #f] [style null])
+  (class basic-top-level-window% (label [parent #f] [width #f] [height #f] [x #f] [y #f] [style null])
     (private
       [wx #f])
     (public
@@ -2056,7 +1976,7 @@
 		  label parent))))
 
 (define dialog-box%
-  (class basic-top-level-window% (label [modal? #t] [parent #f] [x #f] [y #f] [width #f] [height #f] [style null])
+  (class basic-top-level-window% (label [modal? #t] [parent #f] [width #f] [height #f] [x #f] [y #f] [style null])
     (sequence
       (super-init (lambda (finish) (finish (make-object wx-dialog-box% this this
 							(and parent (mred->wx parent)) label modal?
@@ -2364,11 +2284,8 @@
 
 (define basic-pane% (make-subarea% (make-container% area%)))
 (define pane% (make-pane% 'pane basic-pane% wx-pane%))
-(define single-pane% (make-pane% 'single-pane basic-pane% wx-single-pane%))
-
-(define basic-linear-pane% (make-subarea% (make-linear-container% (make-container% area%))))
-(define vertical-pane% (make-pane% 'vertical-pane basic-linear-pane% wx-vertical-pane%))
-(define horizontal-pane% (make-pane% 'horizontal-pane basic-linear-pane% wx-horizontal-pane%))
+(define vertical-pane% (make-pane% 'vertical-pane basic-pane% wx-vertical-pane%))
+(define horizontal-pane% (make-pane% 'horizontal-pane basic-pane% wx-horizontal-pane%))
 
 (define (make-panel% who panel% wx-panel%)
   (class panel% (parent [style null])
@@ -2381,11 +2298,8 @@
 
 (define basic-panel% (make-area-container-window% (make-window% (make-subarea% (make-container% area%)))))
 (define panel% (make-panel% 'panel basic-panel% wx-panel%))
-(define single-panel% (make-panel% 'single-panel basic-panel% wx-single-panel%))
-
-(define basic-linear-panel% (make-area-container-window% (make-window% (make-linear-container% (make-subarea% (make-container% area%))))))
-(define vertical-panel% (make-panel% 'vertical-panel basic-linear-panel% wx-vertical-panel%))
-(define horizontal-panel% (make-panel% 'horizontal-panel basic-linear-panel% wx-horizontal-panel%))
+(define vertical-panel% (make-panel% 'vertical-panel basic-panel% wx-vertical-panel%))
+(define horizontal-panel% (make-panel% 'horizontal-panel basic-panel% wx-horizontal-panel%))
 
 ;;;;;;;;;;;;;;;;;;;;;; Menu classes ;;;;;;;;;;;;;;;;;;;;;;
 
@@ -2650,3 +2564,95 @@
     (sequence
       (super-init wx)
       (show #t))))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;; REPL ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(define (graphical-read-eval-print-loop)
+  ;; The REPL buffer class
+  (define esq:media-edit%
+    (class media-edit% ()
+      (inherit insert last-position get-text erase change-style)
+      (rename [super-on-char on-char])
+      (private [prompt-pos 0] [locked? #f])
+      (public ; override
+	[on-insert (lambda (start end) (and (>= start prompt-pos) (not locked?)))]
+	[on-delete (lambda (start end) (and (>= start prompt-pos) (not locked?)))]
+	[on-char (lambda (c)
+		   (super-on-char c)
+		   (when (and (memq (send c get-key-code) '(#\return #\newline #\003))
+			      (not locked?))
+		     (set! locked? #t)
+		     (evaluate (get-text prompt-pos (last-position)))))])
+      (public
+	[new-prompt (lambda ()
+		      (print "> ")
+		      (set! prompt-pos (last-position))
+		      (set! locked? #f))]
+	[print (lambda (str)
+		 (let ([l? locked?])
+		   (set! locked? #f)
+		   (insert str)
+		   (set! locked? l?)))]
+	[reset (lambda ()
+		 (set! locked? #f)
+		 (set! prompt-pos 0)
+		 (erase)
+		 (new-prompt))])
+      (sequence 
+	(super-init)
+	(let ([s (last-position)])
+	  (insert (format "Welcome to MrEd version ~a." (version)))
+	  (let ([e (last-position)])
+	    (insert #\newline)
+	    (change-style (send (make-object wx:style-delta% 'change-bold) set-delta-foreground "BLUE") s e)))
+	(print (format "Copyright (c) 1995-98 PLT (Matthew Flatt and Robby Findler)~n"))
+	(let ([s (last-position)])
+	  (insert "Run DrScheme for a better interaction window.")
+	  (let ([e (last-position)])
+	    (insert #\newline)
+	    (change-style
+	     (send (make-object wx:style-delta% 'change-style 'slant) set-delta-foreground "RED")
+	     s e)))
+	(new-prompt))))
+
+  ;; GUI creation
+  (define frame (make-object (class frame% args
+			       (public [on-close (lambda () (exit))])
+			       (sequence (apply super-init args)))
+			     "MrEd REPL" #f 500 400))
+  (define repl-buffer (make-object esq:media-edit%))
+  (define repl-display-canvas (make-object media-canvas% frame))
+
+  ;; User space initialization
+  (define user-custodian (make-custodian))
+  
+  (define user-eventspace
+    (parameterize ([current-custodian user-custodian])
+      (wx:make-eventspace)))
+  (define user-parameterization (wx:eventspace-parameterization user-eventspace))
+  
+  (define user-output-port
+    (make-output-port (lambda (s) (send repl-buffer print s))
+		      (lambda () 'nothing-to-do)))
+  
+  ;; Evaluation and resetting
+  
+  (define (evaluate expr-str)
+    (parameterize ([wx:current-eventspace user-eventspace])
+      (semaphore-callback
+       (make-semaphore 1)
+       (lambda ()
+	 (current-parameterization user-parameterization)
+	 (with-handlers ([(lambda (exn) #t)
+			  (lambda (exn) (display (exn-message exn)))])
+	   (display (eval (read (open-input-string expr-str)))))
+	 (newline)
+	 (send repl-buffer new-prompt)))))
+
+  ;; Go
+  ((in-parameterization user-parameterization current-output-port) user-output-port)
+  ((in-parameterization user-parameterization current-custodian) user-custodian)
+  (send repl-display-canvas set-media repl-buffer)
+  (send frame show #t)
+
+  (send repl-display-canvas focus))
