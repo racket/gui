@@ -20,7 +20,7 @@
 
       (define transparent (make-object brush% "WHITE" 'transparent))
       (define transparent-pen (make-object pen% "WHITE" 1 'transparent))
-      (define black-xor-pen (make-object pen% "BLACK" 2 'hilite))
+      (define black-xor-pen (make-object pen% "BLACK" 1 'hilite))
       (define red (make-object brush% "RED" 'solid))
       (define blue (make-object brush% "BLUE" 'solid))
       (define black-xor (make-object brush% "BLACK" 'hilite))
@@ -302,6 +302,8 @@
                    (send dc set-brush (if filled? black-xor transparent))
                    (send dc set-pen (if filled? transparent-pen black-xor-pen))
                    (send dc draw-rectangle (+ dx left) (+ dy top_) (- right left) (- bottom top_))
+		   (unless filled?
+		     (send dc draw-rectangle (+ dx left 1) (+ dy top_ 1) (- right left 2) (- bottom top_ 2)))
                    (send dc set-pen p)
                    (send dc set-brush b))))])
           (public
