@@ -85,12 +85,20 @@ Upgraded to gc 13alpha1
 
 System:
 -------
-- parenthesis matching is improved
+- mred console printer improved:
+  - values printer now shows partial results.
+  - last newline inside stdout (purple) boxes ommitted
+  - more efficient
+
+- parenthesis matching is improved. The cache is now used much more
+  heavily.
 
 - turned off the file name printouts on splash screen
 
   evaluate: 
+
   (wx:write-resource "mred" "splashMessages" 1 (wx:find-path 'setup-file))
+
   to turn them back on.
 
 - searching keybindings have changed. There are four distinct actions:
@@ -143,11 +151,8 @@ On windows:
 - fixed mred:radio-box%'s enable method. It now takes two arguments.
 
 - better begin/end-edit-sequence support in mred; used by
-  info-frame. There is a new method of mred:media-edit:
-  "run-after-edit-sequence".
-
-- eval no longer loops forever in mred vocabulary 
-
+  info-frame and to improve the speed in the console io. There is a
+  new method of mred:media-edit: "run-after-edit-sequence".
 
 - set-empty-callback in mred:frame-group% is now set-empty-callbacks
   in mred:frame-group%. See the docs for more details.
