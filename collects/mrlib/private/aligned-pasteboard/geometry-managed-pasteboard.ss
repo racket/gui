@@ -6,13 +6,13 @@
    (lib "list.ss")
    (lib "etc.ss")
    (lib "match.ss")
-   (lib "mred.ss" "mred")  "interface.ss"
+   (lib "mred.ss" "mred")
+   "interface.ss"
    "alignment.ss"
    "snip-lib.ss"
    "pasteboard-lib.ss")
   
-  (provide/contract
-   (make-aligned-pasteboard ((symbols 'vertical 'horizontal) . -> . class?)))
+  (provide/contract (make-aligned-pasteboard ((symbols 'vertical 'horizontal) . -> . class?)))
   
   ;;  mixin to add geometry management to pasteboard with the give type of alignement
   (define (make-aligned-pasteboard type)
@@ -22,16 +22,13 @@
       
       (field
        [needs-realign? false]
+       [my-edit-sequence? false]
        [ignore-resizing? false]
        [alloted-width 0]
        [alloted-height 0]
        [aligned-min-width 0]
        [aligned-min-height 0]
        [aligned-rects empty])
-      
-      ;;temp fix
-      ;(define/public (ignore-resizing ignore?)
-      ;  (set! ignore-resizing? ignore?))
       
       ;; get-aligned-min-width (-> number?)
       ;; the aligned-min-width of the pasteboard
@@ -65,9 +62,11 @@
                 (align type alloted-width alloted-height
                        (map-snip build-rect first-snip)))
           (begin-edit-sequence)
+          (set! my-edit-sequence? true)
           (set! ignore-resizing? true)
           (for-each-snip move/resize first-snip aligned-rects)
           (set! ignore-resizing? false)
+          (set! my-edit-sequence? false)
           (end-edit-sequence)))
       
       ;; set-algined-min-sizes (-> void?)
@@ -94,8 +93,6 @@
            ;  (send (send snip get-editor) set-min-width 'none))
            ]))
       
-      (field [in-edit-sequence? false])
-      
       ;; after-insert ((is-a?/c snip%) (is-a?/c snip%) number? number? . -> . void?)
       ;; called after a snip is inserted to the pasteboard
       (rename [super-after-insert after-insert])
@@ -121,8 +118,8 @@
       ;; called when a snip inside the editor is resized
       (rename [super-resized resized])
       (define/override (resized snip redraw-now?)
-        (super-resized snip redraw-now?)
         (unless ignore-resizing?
+          (super-resized snip redraw-now?)
           (when (or redraw-now?
                     (and (not (refresh-delayed?))
                          (needs-resize? snip)
@@ -133,19 +130,13 @@
       ;; called after an edit-sequence ends
       (rename [super-after-edit-sequence after-edit-sequence])
       (define/override (after-edit-sequence)
-        (set! in-edit-sequence? false)
         (when needs-realign? (calc/realign)))
-      
-      (rename [super-on-edit-sequence on-edit-sequence])
-      (define/override (on-edit-sequence)
-        (set! in-edit-sequence? true)
-        (super-on-edit-sequence))
       
       ;; calc/realign (-> void?)
       ;; sends a message to the pasteboard to recalculate min sizes and realign
       (define/private (calc/realign)
-        (if in-edit-sequence?
-            (set! needs-realign? true)
+        (if (refresh-delayed?)
+            (unless my-edit-sequence? (set! needs-realign? true))
             (let* ([root (pasteboard-root this)]
                    [parent (pasteboard-parent root)])
               (when parent
