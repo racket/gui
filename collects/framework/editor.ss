@@ -22,7 +22,8 @@
       run-after-edit-sequence
       get-top-level-window
       locked?
-      on-close))
+      on-close
+      save-file-out-of-date?))
 
   (define basic-mixin
     (mixin (editor<%>) (basic<%>) args
