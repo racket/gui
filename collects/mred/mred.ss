@@ -5868,7 +5868,7 @@
        [(swiss) "Arial"]
        [(script) "Arial"]
        [(symbol) "Symbol"])]
-    [(macos)
+    [(macos macosx)
      (case family
        [(system) "systemfont"]
        [(default) "applicationfont"]
