@@ -35,6 +35,7 @@
      clipboard<%>
      color%
      color-database<%>
+     combo-text-field%
      control-event%
      control<%>
      current-eventspace
@@ -173,7 +174,6 @@
      tab-snip%
      text%
      text-editor-load-handler
-     text-combo-field%
      text-field%
      the-brush-list
      the-clipboard

@@ -883,6 +883,7 @@
     copy-self)
   (define-class menu% object% #f
     select
+    set-width
     set-title
     set-label
     set-help-string

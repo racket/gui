@@ -643,8 +643,6 @@
   
   (make-object text-field% #f ip2 void "start focus here")
 
-  (make-object text-combo-field% #f '("Hola" "Ni Hao") ip2 void "hello")
-
   (when prev-frame
     (add-disable "Previous Tester Frame" prev-frame ep2))
   
@@ -658,6 +656,9 @@
     (send ip2 set-control-font special-font))
   
   (let ()
+    (define co
+      (make-object combo-text-field% "Greet:" '("Hola" "Ni Hao") ip2 void "hello"))
+
     (define sh (make-object slider% 
 			    (if null-label? #f "H S&lid\uE9r") 0 10 ip2
 			    (lambda (s e)
@@ -706,6 +707,7 @@
     (make-object button% "OK" tab void)
     (make-object button% "Cancel" grp void)
 
+    (add-testers2 "Combo" co)
     (add-testers2 "Horiz Slider" sh)
     (add-testers2 "Vert Slider" sv)
     (add-testers2 "Horiz Gauge" gh)
@@ -716,6 +718,7 @@
     (add-testers2 "Tab" tab)
     (add-testers2 "Group" grp)
     
+    (add-change-label "Combo" co lp2 #f OTHER-LABEL)
     (add-change-label "Horiz Slider" sh lp2 #f OTHER-LABEL)
     (add-change-label "Vert Slider" sv lp2 #f OTHER-LABEL)
     (add-change-label "Horiz Gauge" gh lp2 #f OTHER-LABEL)
@@ -723,7 +726,8 @@
     (add-change-label "Text" txt lp2 #f OTHER-LABEL)
     (add-change-label "Group" grp lp2 #f OTHER-LABEL)
     
-    (let* ([items (list sh sv
+    (let* ([items (list co
+			sh sv
 			gh gv
 			; cmt cmi
 			txt

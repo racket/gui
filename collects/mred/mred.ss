@@ -3467,7 +3467,11 @@
       [set-value (lambda (v) (without-callback
 			      (lambda () (send e insert v 0 (send e last-position)))))]
 
-      [set-label (lambda (str) (when l (send l set-label str)))])
+      [set-label (lambda (str) (when l (send l set-label str)))]
+      [get-canvas-width (lambda ()
+			  (let ([tw (box 0)])
+			    (send c get-size tw (box 0))
+			    (unbox tw)))])
     (override
       ;; These might be called before we are fully initialized
 
@@ -3519,6 +3523,8 @@
 			       '(hide-hscroll))
 			   '(hide-vscroll hide-hscroll))))])
     (sequence
+      (when l
+	(send l x-margin 0))
       (send c set-x-margin 2)
       (send c set-y-margin 2)
       (send e set-line-spacing 0)
@@ -4808,13 +4814,13 @@
 			 (check-container-ready cwho parent)))
 		     label parent callback ibeam))))))
 
-(define text-combo-field%
+(define combo-text-field%
   (class100*/kw text-field% () 
 		[(label choices parent callback [init-value ""] [style '()])
 		 control%-keywords]
     (inherit set-value popup-menu get-size focus get-editor)
     (sequence 
-      (check-text-field-args '(constructor text-combo-field)
+      (check-text-field-args '(constructor combo-text-field)
 			     label 
 			     #f choices
 			     parent callback init-value
@@ -4822,10 +4828,12 @@
     (override
       [on-subwindow-event (lambda (w e)
 			    (and (send e button-down?)
-				 (let-values ([(w h) (get-size)])
-				   (and ((send e get-x) . >= . (- w side-combo-width))
+				 (let-values ([(w h) (get-size)]
+					      [(cw) (send (mred->wx this) get-canvas-width)])
+				   (and ((send e get-x) . >= . (- cw side-combo-width))
 					(begin
-					  (popup-menu menu 0 h)
+					  (send menu set-width cw)
+					  (popup-menu menu (- w cw) h)
 					  #t)))))])
     (private-field
      [menu (new popup-menu%)])
@@ -5882,7 +5890,10 @@
 		    (lambda (i) 
 		      (when (is-a? i labelled-menu-item<%>)
 			(send i on-demand)))
-		    (send wx get-items)))])
+		    (send wx get-items)))]
+      [set-width (lambda (n)
+		   (check-range-integer '(method popup-menu% set-width) n)
+		   (send wx set-width n))])
     (private-field
       [wx #f])
     (sequence
@@ -8097,7 +8108,7 @@
 	 radio-box%
 	 slider%
 	 text-field%
-	 text-combo-field%
+	 combo-text-field%
 	 window<%>
 	 area<%>
 	 top-level-window<%>
