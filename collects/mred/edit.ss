@@ -459,7 +459,16 @@
 			[old-brush (send dc get-brush)]
 			[old-logical-function (send dc get-logical-function)]
 			[b/w-bitmap (rectangle-b/w-bitmap rectangle)]
-			[color (rectangle-color rectangle)]
+			[color (let* ([rc (rectangle-color rectangle)]
+				      [tmpc (make-object wx:colour% 0 0 0)])
+				 (if rc
+				     (begin (send dc try-colour rc tmpc)
+					    (and (<= (max (abs (- (send rc red) (send tmpc red)))
+							  (abs (- (send rc blue) (send tmpc blue)))
+							  (abs (- (send rc green) (send tmpc green))))
+						     15)
+						 rc))
+				     rc))]
 			[left (rectangle-left rectangle)]
 			[top (rectangle-top rectangle)]
 			[width (rectangle-width rectangle)]
