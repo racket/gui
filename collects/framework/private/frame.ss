@@ -281,6 +281,97 @@
               (min-width (inexact->exact (floor (max w1 w2))))
               (min-height (inexact->exact (floor (+ 4 (max h1 h2)))))))))
 
+      (define status-line<%>
+        (interface (basic<%>)
+          open-status-line
+          close-status-line
+          update-status-line))
+      
+      ;; status-line = (make-status-line (is-a?/c message%) symbol number)
+      (define-struct status-line (message id count))
+      
+      (define status-line-mixin
+        (mixin (basic<%>) (status-line<%>)
+          (field (status-line-container-panel #f)
+                 (status-lines null))
+          (rename [super-make-root-area-container make-root-area-container])
+          (define/override (make-root-area-container % parent)
+            (let* ([s-root (super-make-root-area-container vertical-panel% parent)]
+                   [r-root (make-object % s-root)])
+              (set! status-line-container-panel
+                    (instantiate vertical-panel% ()
+                      (parent s-root)
+                      (stretchable-height #f)))
+              r-root))
+          (define/public (open-status-line id)
+            (do-main-thread
+             (lambda ()
+               (when status-line-container-panel
+                 (set! status-lines
+                       (let loop ([status-lines status-lines])
+                         (cond
+                           [(null? status-lines)
+                            (list
+                             (make-status-line (instantiate message% ()
+                                                 (parent status-line-container-panel)
+                                                 (stretchable-width #f))
+                                               id
+                                               1))]
+                           [else (let ([status-line (car status-lines)])
+                                   (if (eq? (status-line-id status-line) id)
+                                       (cons (make-status-line (status-line-message status-line)
+                                                               id
+                                                               (+ 1 (status-line-count status-line)))
+                                             (cdr status-lines))
+                                       (cons status-line (loop (cdr status-lines)))))])))))))
+          (define/public (close-status-line id)
+            (do-main-thread
+             (lambda ()
+               (when status-line-container-panel
+                 (set! status-lines
+                       (let loop ([status-lines status-lines])
+                         (cond
+                           [(null? status-lines) (error 'close-status-line "didn't find status line ~e" id)]
+                           [else
+                            (let* ([status-line (car status-lines)]
+                                   [matched? (eq? (status-line-id status-line) id)])
+                              (cond
+                                [(and matched? (= 1 (status-line-count status-line)))
+                                 (send status-line-container-panel change-children
+                                       (lambda (l)
+                                         (remq (status-line-message status-line) l)))
+                                 (cdr status-lines)]
+                                [matched?
+                                 (cons (make-status-line (status-line-message status-line)
+                                                         id
+                                                         (- (status-line-count status-line) 1))
+                                       (cdr status-lines))]
+                                [else (cons status-line (loop (cdr status-lines)))]))])))))))
+
+          (define/public (update-status-line id msg)
+            (do-main-thread
+             (lambda ()
+               (let ([status-line (find-status-line id msg)])
+                 (send (status-line-message status-line) set-label msg)))))
+          
+          (define/private (find-status-line id msg)
+            (let loop ([status-lines status-lines])
+              (cond
+                [(null? status-lines) (error 'update-status-line "didn't find status line ~e, other arg ~e" id msg)]
+                [else
+                 (let ([status-line (car status-lines)])
+                   (if (eq? (status-line-id status-line) id)
+                       status-line
+                       (loop (cdr status-lines))))])))
+          
+          (field [eventspace-main-thread (current-thread)])
+          (inherit get-eventspace)
+          (define/private (do-main-thread t)
+            (if (eq? (current-thread) eventspace-main-thread)
+                (t)
+                (parameterize ([current-eventspace (get-eventspace)])
+                  (queue-callback t))))))
+      
       (define info<%> (interface (basic<%>)
                         determine-width
                         lock-status-changed
@@ -2082,7 +2173,8 @@
           (super-instantiate ())))
       
       (define basic% (basic-mixin frame%))
-      (define info% (info-mixin basic%))
+      (define status-line% (status-line-mixin basic%))
+      (define info% (info-mixin status-line%))
       (define text-info% (text-info-mixin info%))
       (define pasteboard-info% (pasteboard-info-mixin text-info%))
       (define standard-menus% (standard-menus-mixin pasteboard-info%))
