@@ -407,7 +407,6 @@
                            (not (strict-in-rectangle? point-x point-y 
                                                       (min lt rt) (min tt bt) 
                                                       (max lt rt) (max tt bt)))
-
                            (not (strict-in-rectangle? point-x point-y
                                                       (min lf rf) (min tf bf)
                                                       (max lf rf) (max tf bf)))))
@@ -462,9 +461,9 @@
           (cond
             [(and (from-x . = . to-x)
                   (from-y . < . to-y))
-             pi]
+             (* pi 3/2)]
             [(from-x . = . to-x)
-             (- pi)]
+             (* pi 1/2)]
             [(from-x . < . to-x)
              (+ pi (atan (/ (- from-y to-y) (- from-x to-x))))]
             [else
