@@ -150,8 +150,15 @@ needed to really make this work:
           (pretty-print (replace-syntaxes info) info-port))
         
         (optional-newline)
-        (newline info-port))
+        (small-newline info-port info-text))
       
+      (define (small-newline port text)
+        (let ([before-newline (send text last-position)])
+          (newline port)
+          (send info-text change-style small-style before-newline (+ before-newline 1))))
+      
+      (define small-style (make-object style-delta% 'change-size 4))
+
       (define (replace-syntaxes obj)
         (cond
           [(cons? obj) (cons (replace-syntaxes (car obj))
