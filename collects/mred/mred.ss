@@ -1328,7 +1328,8 @@
 		       (lambda () (send (get-mred) on-activate on?)))
 		      (as-exit
 		       (lambda ()
-			 (super-on-activate on?)))))])
+			 (super-on-activate on?)))))]
+      [is-act-on? (lambda () act-on?)])
     (sequence (apply super-init mred proxy args))))
 
 (define (make-canvas-glue% %) ; implies make-window-glue%
@@ -1861,7 +1862,7 @@
 			(sequence
 			  (apply super-init (or edit (make-object text%)) args))))
 
-(wx:set-editor-snip-maker (lambda args (make-object editor-snip% . args)))
+(wx:set-editor-snip-maker (lambda args (apply make-object editor-snip% args)))
 (wx:set-text-editor-maker (lambda () (make-object text%)))
 (wx:set-pasteboard-editor-maker (lambda () (make-object pasteboard%)))
 
@@ -2735,17 +2736,20 @@
 
 ;------------ More helpers ---------------
 
-(define wx-get-mred (make-generic wx<%> get-mred))
-(define wx-get-proxy (make-generic wx/proxy<%> get-proxy))
+(define wx-get-mred (make-generic wx<%> 'get-mred))
+(define wx-get-proxy (make-generic wx/proxy<%> 'get-proxy))
 
 (define (wx->mred w) ((wx-get-mred w)))
 (define (wx->proxy w) ((wx-get-proxy w)))
 
-(define (param get-obj method)
-  (entry-point
-   (case-lambda
-    [() ((ivar/proc (get-obj) method))]
-    [(v) ((ivar/proc (get-obj) method) v)])))
+(define-syntax (param stx)
+  (syntax-case stx ()
+    [(_ get-obj method)
+     (syntax/loc stx
+      (entry-point
+       (case-lambda
+	[() (send (get-obj) method)]
+	[(v) (send (get-obj) method)])))]))
 
 (define (constructor-name who)
   (string->symbol (format "initialization for ~a%" who)))
@@ -2811,14 +2815,16 @@
     stretchable-width stretchable-height))
 
 (define area%
-  (class100* mred% (area<%>) (mk-wx get-wx-panel parent)
+  (class100* mred% (area<%>) (mk-wx get-wx-pan prnt)
+    (private [get-wx-panel get-wx-pan]
+	     [parent prnt])
     (public
       [get-parent (lambda () parent)]
       [get-top-level-window (entry-point (lambda () (wx->mred (send wx get-top-level))))]
-      [min-width (param get-wx-panel 'min-width)]
-      [min-height (param get-wx-panel 'min-height)]
-      [stretchable-width (param get-wx-panel 'stretchable-in-x)]
-      [stretchable-height (param get-wx-panel 'stretchable-in-y)]
+      [min-width (param get-wx-panel min-width)]
+      [min-height (param get-wx-panel min-height)]
+      [stretchable-width (param get-wx-panel stretchable-in-x)]
+      [stretchable-height (param get-wx-panel stretchable-in-y)]
       [get-graphical-min-size (entry-point (lambda () (send wx get-hard-minimum-size)))])
     (private
       [wx (mk-wx)])
@@ -2831,10 +2837,11 @@
     horiz-margin vert-margin))
 
 (define (make-subarea% %) ; % implements area<%>
-  (class100* % (subarea<%>) (mk-wx get-wx-panel parent)
+  (class100* % (subarea<%>) (mk-wx get-wx-pan parent)
+    (private [get-wx-panel get-wx-pan])
     (public
-      [horiz-margin (param get-wx-panel 'x-margin)]
-      [vert-margin (param get-wx-panel 'y-margin)])
+      [horiz-margin (param get-wx-panel x-margin)]
+      [vert-margin (param get-wx-panel y-margin)])
     (sequence (super-init mk-wx get-wx-panel parent))))
 
 (define area-container<%> 
@@ -2850,15 +2857,16 @@
 (define internal-container<%> (interface ()))
 
 (define (make-container% %) ; % implements area<%>
-  (class100* % (area-container<%> internal-container<%>) (mk-wx get-wx-panel parent) 
+  (class100* % (area-container<%> internal-container<%>) (mk-wx get-wx-pan parent) 
+    (private [get-wx-panel get-wx-pan])
     (public
       [after-new-child (lambda (c) (void))]
       [reflow-container (entry-point (lambda () (send (send (get-wx-panel) get-top-level) force-redraw)))]
       [begin-container-sequence (entry-point (lambda () (send (send (get-wx-panel) get-top-level) begin-container-sequence)))]
       [end-container-sequence (entry-point (lambda () (send (send (get-wx-panel) get-top-level) end-container-sequence)))]
       [get-children (entry-point (lambda () (map wx->proxy (send (get-wx-panel) get-children))))]
-      [border (param get-wx-panel 'border)]
-      [spacing (param get-wx-panel 'spacing)]
+      [border (param get-wx-panel border)]
+      [spacing (param get-wx-panel spacing)]
       [set-alignment (entry-point (lambda (h v) (send (get-wx-panel) alignment h v)))]
       [get-alignment (entry-point (lambda () (send (get-wx-panel) get-alignment)))]
       [change-children (entry-point
@@ -2919,7 +2927,8 @@
     show is-shown? on-superwindow-show refresh))
 
 (define (make-window% top? %) ; % implements area<%>
-  (class100* % (window<%>) (mk-wx get-wx-panel label parent cursor)
+  (class100* % (window<%>) (mk-wx get-wx-panel lbl parent crsr)
+    (private [label lbl][cursor crsr])
     (public
       [popup-menu (entry-point 
 		   (lambda (m x y)
@@ -3030,7 +3039,8 @@
     set-label-position get-label-position))
 
 (define (make-area-container-window% %) ; % implements window<%> (and area-container<%>)
-  (class100* % (area-container-window<%>) (mk-wx get-wx-panel label parent cursor) 
+  (class100* % (area-container-window<%>) (mk-wx get-wx-pan label parent cursor) 
+    (private [get-wx-panel get-wx-pan])    
     (public
       [get-control-font (entry-point (lambda () (send (get-wx-panel) get-control-font)))]
       [set-control-font (entry-point (lambda (x) (send (get-wx-panel) set-control-font x)))]
@@ -3139,8 +3149,9 @@
     command))
 
 (define basic-control%
-  (class100* (make-window% #f (make-subarea% area%)) (control<%>) (mk-wx label parent cursor)
+  (class100* (make-window% #f (make-subarea% area%)) (control<%>) (mk-wx lbl parent cursor)
     (rename [super-set-label set-label])
+    (private [label lbl])
     (override
       [get-label (lambda () label)]
       [get-plain-label (lambda () (and (string? label) (wx:label->plain-label label)))]
@@ -3257,7 +3268,7 @@
   (map wx->mred (wx:get-top-level-windows)))
 
 (define (get-top-level-focus-window)
-  (ormap (lambda (f) (and (ivar f act-on?) (wx->mred f))) (wx:get-top-level-windows)))
+  (ormap (lambda (f) (and (send f is-act-on?) (wx->mred f))) (wx:get-top-level-windows)))
 
 (define (get-top-level-edit-target-window)
   (let loop ([l (wx:get-top-level-windows)][f #f][s 0][ms 0])
@@ -3631,8 +3642,8 @@
       [on-scroll (lambda (e) (send wx do-on-scroll e))]
       [on-tab-in (lambda () (void))]
       
-      [min-client-width (param (lambda () wx) 'min-client-width)]
-      [min-client-height (param (lambda () wx) 'min-client-height)]
+      [min-client-width (param (lambda () wx) min-client-width)]
+      [min-client-height (param (lambda () wx) min-client-height)]
 
       [warp-pointer (entry-point (lambda (x y) (send wx warp-pointer x y)))]
 
