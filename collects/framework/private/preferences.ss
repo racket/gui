@@ -704,17 +704,18 @@
                       (string-constant preferences))]
                    [panel (make-object vertical-panel% frame)]
                    [popup-callback
-                    (lambda (choices-canvas selection)
+                    (lambda (tab-panel evt)
                       (unless (null? ppanels)
                         (send single-panel active-child
-                              (ppanel-panel (list-ref ppanels selection)))))]
+                              (ppanel-panel 
+                               (list-ref ppanels
+                                         (send tab-panel get-selection))))))]
                    [make-popup-menu 
                     (lambda ()
-                      (let ([menu (instantiate gui-utils:choices-canvas% ()
+                      (let ([menu (instantiate tab-panel% ()
                                     (choices (map ppanel-title ppanels))
 				    (parent panel)
 				    (callback popup-callback))])
-                        (send menu stretchable-width #f)
                         menu))]
                    [popup-menu (make-popup-menu)]
                    [single-panel (make-object panel:single% panel)]
