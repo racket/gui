@@ -1104,6 +1104,7 @@
   (define-class snip% object% #f
     previous
     next
+    set-unmodified
     get-scroll-step-offset
     find-scroll-step
     get-num-scroll-steps
@@ -1140,6 +1141,7 @@
   (define-class string-snip% snip% #f
     read
     insert
+    set-unmodified
     get-scroll-step-offset
     find-scroll-step
     get-num-scroll-steps
@@ -1163,6 +1165,7 @@
     partial-offset
     get-extent)
   (define-class tab-snip% string-snip% #f
+    set-unmodified
     get-scroll-step-offset
     find-scroll-step
     get-num-scroll-steps
@@ -1191,6 +1194,7 @@
     get-filetype
     get-filename
     load-file
+    set-unmodified
     get-scroll-step-offset
     find-scroll-step
     get-num-scroll-steps
@@ -1232,6 +1236,7 @@
     get-max-width
     set-max-height
     set-max-width
+    set-unmodified
     get-scroll-step-offset
     find-scroll-step
     get-num-scroll-steps
