@@ -81,8 +81,7 @@
 	[default-height 400]
 	dirs 
 	current-dir
-	last-selected
-	[select-counter 0])
+	last-selected)
       
       (private
 	
@@ -170,7 +169,12 @@
 	[do-name-list
 	 (lambda (list-box evt)
 	   (if (eq? (send evt get-event-type) 'list-box-dclick)
-	       (do-ok)
+	       (let ([dir (send directory-field get-value)])
+		 (if (directory-exists? dir)
+		     (set-directory (mzlib:file:normalize-path dir))
+		     (if multi-mode?
+			 (do-add)
+			 (do-ok))))
 	       (when (send list-box get-string-selection)
 		 (set-edit))))]
 	
@@ -182,17 +186,15 @@
 
 	   (if multi-mode?
 
-	       (let ([dir-name (send directory-field get-value)])
-		 (if (directory-exists? dir-name)
-		     (set-directory (mzlib:file:normalize-path dir-name))
-		     (let loop ([n (sub1 select-counter)][result null])
-		       (if (< n 0)
-			   (begin
-			     (set-box! result-box result)
-			     (show #f))
-			   (loop (sub1 n) 
-				 (cons (send result-list get-string n)
-				       result))))))
+	       (let loop ([n (sub1 (send result-list get-number))]
+			  [result null])
+		 (if (< n 0)
+		     (begin
+		       (set-box! result-box result)
+		       (show #f))
+		     (loop (sub1 n) 
+			   (cons (send result-list get-string n)
+				 result))))
 	       ; not multi-mode
 
 	       (let ([name (send name-list get-string-selection)]
@@ -282,8 +284,7 @@
 	[add-one
 	 (lambda (name)
 	   (unless (or (directory-exists? name)
-		       (> (send result-list find-string name) -1))
-	     (set! select-counter (add1 select-counter))
+		       (send result-list find-string name))
 	     (send result-list append (mzlib:file:normalize-path name))))]
 	
 	[do-add
@@ -297,22 +298,20 @@
 	[do-add-all
 	 (lambda args
 	   (let loop ([n 0])
-	     (let ([name (send name-list get-string n)])
-	       (if (and (string? name)
-			(positive? (string-length name)))
-		   (let ([name (build-path current-dir
-					   (make-relative name))])
-		     (add-one name)
-		     (loop (add1 n)))))))]
+	     (when (< n (send name-list get-number))
+	       (let ([name (send name-list get-string n)])
+		 (let ([name (build-path current-dir
+					 (make-relative name))])
+		   (add-one name)
+		   (loop (add1 n)))))))]
 	
 	[do-remove
 	 (lambda args
 	   (let loop ([n 0])
-	     (if (< n select-counter)
+	     (if (< n (send result-list get-number))
 		 (if (send result-list selected? n)
 		     (begin
 		       (send result-list delete n)
-		       (set! select-counter (sub1 select-counter))
 		       (loop n))
 		     (loop (add1 n))))))]
 	
@@ -366,15 +365,14 @@
 	       (let ([code (send key get-key-code)]
 		     [num-items (get-number)]
 		     [curr-pos (get-selection)])
-		 
 		 (cond 
-		  
 		  [(or (equal? code 'numpad-return)
 		       (equal? code #\return))
-		   (do-ok)]
+		   (if multi-mode?
+		       (do-add)
+		       (do-ok))]
 		  
 		  ; look for letter at beginning of a filename
-		  
 		  [(char? code)
 		   (let loop ([pos (add1 curr-pos)])
 		     (unless (>= pos num-items)
@@ -384,7 +382,6 @@
 			     (loop (add1 pos))))))]
 		  
 		  ; movement keys
-		  
 		  [(and (eq? code 'up) 
 			(> curr-pos 0))
 		   (set-selection-and-edit (sub1 curr-pos))]
@@ -466,15 +463,20 @@
 	      directory-panel
 	      (lambda (txt evt)
 		(when (eq? (send evt get-event-type) 'text-field-enter)
-		  (do-ok))))))]
+		  (let ([dir (send directory-field get-value)])
+		    (if (directory-exists? dir)
+			(set-directory (mzlib:file:normalize-path dir))
+			(if multi-mode?
+			    (do-add)
+			    (do-ok)))))))))]
 
 	[result-list
 	 (when multi-mode?
 	   (make-object list-box%
 			#f
-			do-result-list
+			null
 			right-middle-panel
-			void
+			do-result-list
 			'(multiple)))]
 	[add-panel 
 	 (when multi-mode? 
@@ -543,9 +545,9 @@
       (sequence
 	(make-object vertical-panel% bottom-panel)) 
       (private
-	[cancel-button (make-object button% "Cancel" bottom-panel do-cancel)]
 	[ok-button
-	 (make-object button% "OK" bottom-panel do-ok '(border))])
+	 (make-object button% "OK" bottom-panel do-ok (if multi-mode? '() '(border)))]
+	[cancel-button (make-object button% "Cancel" bottom-panel do-cancel)])
       (sequence
 	(cond
 	  [(and start-dir
