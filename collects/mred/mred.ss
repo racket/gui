@@ -5391,7 +5391,7 @@
 	     (raise-mismatch-error (who->name `(method tab-panel% ,method)) 
 				   (if (zero? m)
 				       "panel has no tabs; given index: " 
-				       (format "panel has only ~a tabls, indexed 0 to ~a; given out-of-range index: " 
+				       (format "panel has only ~a tabs, indexed 0 to ~a; given out-of-range index: " 
 					       m (sub1 m)))
 				   n))))])))
 

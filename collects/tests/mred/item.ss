@@ -1927,17 +1927,22 @@
 			     '(no-border)
 			     '())))
   (define p2 (if no-border?
-		 (make-object vertical-panel% f)
+		 (new vertical-panel% [parent f])
 		 p))
   (define count 3)
   (define on? #t)
-  (define m (make-object message% (format "Selected: ~a" (send p get-selection)) p))
+  (define m (make-object message% (format "Selected: ~a" (send p get-selection)) p2))
+
+  (when no-border?
+    (make-object vertical-pane% p2))
 
   (make-object button% "Append" p2 (lambda (b e) 
 				    (send p append (format "N&ew ~a" count))
 				    (set! count (add1 count))))
   (make-object button% "Delete" p2 (lambda (b e)
 				     (send p delete 0)))
+  (make-object button% "Set First" p2 (lambda (b e)
+					(send p set-selection 0)))
   (when no-border?
     (make-object button% "Toggle" p2 (lambda (b e)
 				       (if on?
