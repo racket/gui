@@ -449,8 +449,9 @@
 					   (if (eq? direction 'forward)
 					       'after-or-none
 					       'before-or-none))])
-	      (printf "searching snips: ~s ~s~n" current-snip 
-		      (and current-snip (send current-snip get-text 0 (send current-snip get-count))))
+	      (printf "searching snips: ~s ~s editor-snip? ~a~n" current-snip
+		      (and current-snip (send current-snip get-text 0 (send current-snip get-count)))
+		      (and current-snip (is-a? current-snip original:editor-snip%)))
 	      (let ([next-loop
 		     (lambda ()
 		       (if (eq? direction 'forward)
@@ -466,6 +467,7 @@
 				       (< flat end))
 				  (and (< start flat)
 				       (<= flat end))))))
+		   (printf "terminating this level~n")
 		   (if (and (not flat) pop-out?)
 		       (pop-out)
 		       (values edit flat))]
