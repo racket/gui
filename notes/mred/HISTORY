@@ -4,7 +4,7 @@ Version 199.15:
  * Added initialization arguments for all fields of all event%
    subclasses.
 
- * Added a `demand-callback' initialization argument all
+ * Added a `demand-callback' initialization argument to all
    menu-item-conatainer<%> and labelled-menu-item<%> classes.
 
 Version 199.14:
