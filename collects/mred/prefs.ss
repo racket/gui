@@ -1,4 +1,3 @@
-;; dynamic adding of panels! (it's halfway in there now)
 ;; need a preference for pconvert
 
 (define mred:preferences@
@@ -177,38 +176,33 @@
 	(lambda (parent)
 	  (let* ([main (make-object mred:vertical-panel% parent)]
 		 [make-check
-		  (lambda (callback title initial-value)
-		    (let*  ([h (make-object mred:horizontal-panel% main)]
+		  (lambda (pref title bool->pref pref->bool)
+		    (let*  ([callback
+			     (lambda (_ command)
+			       (set-preference pref (bool->pref (send command checked?))))]
+			    [initial-value (pref->bool (get-preference pref))]
+			    [h (make-object mred:horizontal-panel% main)]
 			    [c (make-object mred:check-box% h callback title)]
 			    [p (make-object mred:horizontal-panel% h)])
 		      (send* h (spacing 1) (border 1))
 		      (send* p (spacing 1) (border 1))
-		      (send c set-value initial-value)))])
+		      (send c set-value initial-value)))]
+		 [id (lambda (x) x)])
 	    (send main spacing 1)
-	    (make-check (lambda (_ command) 
-			  (set-preference 'mred:highlight-parens (send command checked?)))
-			"Highlight between matching parens?" (get-preference 'mred:highlight-parens))
-	    (make-check (lambda (_ command) 
-			  (set-preference 'mred:autosaving-on? (send command checked?)))
-			"Auto-save files?" (get-preference 'mred:autosaving-on?))
-	    (make-check (lambda (_ command) 
-			  (set-preference 'mred:delete-forward? (not (send command checked?))))
-			"Map delete to backspace?" (not (get-preference 'mred:delete-forward?)))
-	    (make-check (lambda (_ command) 
-			  (set-preference 'mred:file-dialogs (if (send command checked?)
-								 'std
-								 'common)))
-			"Use platform-specific file dialogs?" (eq? (get-preference 'mred:file-dialogs) 'std))
+	    (make-check 'mred:highlight-parens "Highlight between matching parens?" id id)
+	    (make-check 'mred:paren-match/fixup-parens
+			"Flash paren match and correct parens?" id id)
+	    (make-check 'mred:autosaving-on? "Auto-save files?" id id)
+	    (make-check 'mred:delete-forward? "Map delete to backspace?" not not)
+	    (make-check 'mred:file-dialogs "Use platform-specific file dialogs?"
+			(lambda (x) (if x 'std 'common))
+			(lambda (x) (eq? x 'std)))
+
 	    ;; sleep is not effecient, so we wait for the next release to turn this on.
-	    '(make-check (lambda (_ command) 
-			  (set-preference 'mred:status-line (send command checked?)))
-			"Show clock?" (get-preference 'mred:status-line))
-	    (make-check (lambda (_ command) 
-			  (set-preference 'mred:verify-exit (send command checked?)))
-			"Verify exit?" (get-preference 'mred:verify-exit))
-	    (make-check (lambda (_ command) 
-			  (set-preference 'mred:verify-change-format (send command checked?)))
-			"Ask before changing save format?" (get-preference 'mred:verify-change-format))
+	    '(make-check 'mred:status-line "Show clock?" id id)
+
+	    (make-check 'mred:verify-exit "Verify exit?" id id)
+	    (make-check 'mred:verify-change-format "Ask before changing save format?" id id)
 	    main)))))
 
     (define make-run-once
