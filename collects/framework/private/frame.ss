@@ -558,26 +558,28 @@
           ;; column number for that position
           (define/private (find-col text line pos)
             (let ([line-start (send text line-start-position line)])
-              (let loop ([col 0]
-                         [snip (send text find-snip line-start 'after-or-none)])
-                (cond
-                  [(and snip (is-a? snip tab-snip%))
-                   ;; assume cursor isn't in the middle of the tab snip
-                   ;; and that there is no tab array
-                   (let ([twb (box 0)])
-                     (send text get-tabs #f twb #f)
-                     (let ([tw (floor (inexact->exact (unbox twb)))])
-                       (loop (+ col (- tw (modulo col tw)))
-                             (send snip next))))]
-                  [snip 
-                   (let ([snip-position (send text get-snip-position snip)]
-                         [snip-length (send snip get-count)])
-                     (if (<= snip-position pos (+ snip-position snip-length))
-                         (+ col (- pos snip-position))
-                         (loop (+ col snip-length)
-                               (send snip next))))]
-                  [else
-                   col]))))
+              (if (= line-start pos)
+                  0
+                  (let loop ([col 0]
+                             [snip (send text find-snip line-start 'after-or-none)])
+                    (cond
+                      [(and snip (is-a? snip tab-snip%))
+                       ;; assume cursor isn't in the middle of the tab snip
+                       ;; and that there is no tab array
+                       (let ([twb (box 0)])
+                         (send text get-tabs #f twb #f)
+                         (let ([tw (floor (inexact->exact (unbox twb)))])
+                           (loop (+ col (- tw (modulo col tw)))
+                                 (send snip next))))]
+                      [snip 
+                       (let ([snip-position (send text get-snip-position snip)]
+                             [snip-length (send snip get-count)])
+                         (if (<= snip-position pos (+ snip-position snip-length))
+                             (+ col (- pos snip-position))
+                             (loop (+ col snip-length)
+                                   (send snip next))))]
+                      [else
+                       col])))))
                   
 
           [define anchor-last-state? #f]
