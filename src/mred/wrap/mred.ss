@@ -2398,9 +2398,6 @@
       (lambda (w e) (cb (wx->proxy w) e))
       cb))
 
-(define (cb-0) (void))
-(define (cb-1 x) (void))
-
 ;---------------- Window interfaces and base classes ------------
 
 (define area<%>
@@ -2516,7 +2513,7 @@
 (define (make-window% top? %) ; % implements area<%>
   (class* % (window<%>) (mk-wx get-wx-panel label parent cursor)
     (public
-      [on-focus cb-1]
+      [on-focus (lambda (x) (void))]
       [on-size (lambda (w h)
 		 (check-range-integer '(method window<%> on-size) w)
 		 (check-range-integer '(method window<%> on-size) h))]
@@ -2648,9 +2645,9 @@
       [get-eventspace (entry-point (lambda () (ivar wx eventspace)))]
       [can-close? (lambda () #t)]
       [can-exit? (lambda () (can-close?))]
-      [on-close cb-0]
+      [on-close (lambda () (void))]
       [on-exit (lambda () (on-close) (show #f))]
-      [on-activate cb-1]
+      [on-activate (lambda (x) (void))]
       [center (entry-point-0-1
 	       (case-lambda
 		[() (send wx center 'both)]
@@ -3213,7 +3210,7 @@
       (super-init (lambda () 
 		    (let ([ds (if (or (memq 'vscroll style) (memq 'hscroll style))
 				  canvas-default-size
-				  1)])
+				  0)])
 		      (set! wx (make-object wx-canvas% this this
 					    (mred->wx-container parent)
 					    -1 -1 ds ds
@@ -3233,7 +3230,7 @@
       [scroll-to-last? #f]
       [scroll-bottom? #f])
     (public
-      [call-as-primary-owner (entry-point-1 (lambda (f) (send wx call-as-primary-owner f)))]
+      [call-as-primary-owner (entry-point-1 (lambda (f) (send wx call-as-primary-owner (lambda () (as-exit f)))))]
       [allow-scroll-to-last
        (entry-point-0-1 
 	(case-lambda
@@ -3882,8 +3879,12 @@
 	 (dynamic-wind
 	  void
 	  (lambda () 
-	    (write (eval (read (open-input-string expr-str))))
-	    (newline))
+	    (call-with-values
+	     (lambda () (eval (read (open-input-string expr-str))))
+	     (lambda results
+	       (for-each 
+		(lambda (v) (print v) (newline))
+		results))))
 	  (lambda ()
 	    (send repl-buffer new-prompt)))))))
 
@@ -4638,3 +4639,9 @@
 	      (raise-type-error (who->name who) (format "style list, ~e allowed only once" (car l)) style))
 	    (loop (cdr l)))))))
 
+(define (sleep/yield secs)
+  (unless (and (real? secs) (not (negative? secs)))
+    (raise-type-error 'sleep/yield "non-negative real number" secs))
+  (let ([s (make-semaphore)])
+    (thread (lambda () (sleep secs) (semaphore-post s)))
+    (wx:yield s)))
