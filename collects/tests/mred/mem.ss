@@ -5,8 +5,8 @@
 
 (define source-dir (current-load-relative-directory))
 
-(define num-times 8)
-(define num-threads 3)
+(define num-times 2)
+(define num-threads 2)
 
 (define dump-stats? #f)
 

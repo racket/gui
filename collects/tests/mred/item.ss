@@ -1834,7 +1834,8 @@
   (define p (make-object tab-panel% '("App&le" "B&anana" "Co&conut") 
 			 f
 			 (lambda (p e)
-			   (send m set-label (format "Selected: ~a" (send p get-selection))))))
+			   (send m set-label (format "Selected: ~a" (send p get-selection))))
+			 '())) ; could try 'no-border
   (define count 3)
   (define m (make-object message% (format "Selected: ~a" (send p get-selection)) p))
 
