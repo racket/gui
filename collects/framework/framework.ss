@@ -1510,5 +1510,13 @@
     (color-model:xyz-z
      (color-model:xyz? . -> . number?)
      (xyz)
-     "Extracts the z component of \\var{xyz}.")))
-
+     "Extracts the z component of \\var{xyz}.")
+    (color-prefs:make-style-delta
+     ((union string? (is-a?/c color%)) any? any? any? . -> . (is-a?/c style-delta%))
+     (color bold? underline? italic?)
+     "")
+    (color-prefs:add
+     (string? (listof (list/p symbol? (is-a?/c style-delta%))) . -> . any)
+     (tab-name styles/defaults)
+     "")))
+      

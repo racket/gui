@@ -218,7 +218,7 @@
       
       ;; This adds the preferences that scheme:text% needs for coloring
       (color-prefs:add
-       "Scheme Color"
+       "Scheme"
        `((symbol ,(color-prefs:make-style-delta "navy" #f #f #f))
          (keyword ,(color-prefs:make-style-delta (make-object color% 40 25 15) #f #f #f))
          (unbound-variable ,(color-prefs:make-style-delta "red" #f #f #f))

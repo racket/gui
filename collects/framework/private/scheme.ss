@@ -1036,7 +1036,7 @@
 	    (send text end-edit-sequence))
           
           (super-new (get-token scheme-lexer-wrapper)
-                     (prefix "Scheme Color")
+                     (prefix "Scheme")
                      (matches '((|(| |)|)
                                 (|[| |]|)
                                 (|{| |}|))))))

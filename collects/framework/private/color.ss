@@ -11,13 +11,14 @@
            
   
   (provide color@)
-  
+    
   (define color@
     (unit/sig framework:color^
       (import [preferences : framework:preferences^]
               [icon : framework:icon^]
               [mode : framework:mode^]
-              [text : framework:text^])
+              [text : framework:text^]
+              [color-prefs : framework:color-prefs^])
   
       (rename [-text<%> text<%>]
               [-text% text%]
@@ -30,6 +31,11 @@
           reset-region
           update-region-end))
                 
+      (define-local-member-name toggle-color)
+
+      (define (active-cb text on?)
+        (send text toggle-color on?))
+      
       (define text-mixin
         (mixin (text:basic<%>) (-text<%>)
           ;; ---------------------- Lexing state ----------------------------------
@@ -84,7 +90,6 @@
           
           ;; ---------------------- Preferences -----------------------------------
           (define should-color? #t)
-          (define remove-prefs-callback-thunk #f)
           (define prefix #f)
           
           (define/public (coloring-active?)
@@ -269,20 +274,10 @@
               (set! get-token get-token-)
               (set! pairs pairs-)
               (set! parens (new paren-tree% (matches pairs)))
-              (unless remove-prefs-callback-thunk
-                (set! remove-prefs-callback-thunk
-                      (preferences:add-callback
-                       (string->symbol (format "syntax-coloring:~a:active" prefix))
-                       (lambda (_ on?)
-                         (cond
-                           ((and (not should-color?) on?)
-                            (set! should-color? #t)
-                            (reset-tokens)
-                            (do-insert/delete start-pos 0))
-                           ((and should-color? (not on?))
-                            (set! should-color? #f)
-                            (change-style (send (get-style-list) find-named-style "Standard")
-                                          start-pos end-pos #f)))))))
+              (color-prefs:register-active-pref-callback
+               (string->symbol (format "syntax-coloring:~a:active" prefix))
+               this
+               active-cb)
               (unless background-thread
                 (break-enabled #f)
                 (set! background-thread (thread (lambda () (background-colorer-entry))))
@@ -291,9 +286,9 @@
             
           (define/public (stop-colorer)
             (set! stopped? #t)
-            (when remove-prefs-callback-thunk
-              (remove-prefs-callback-thunk)
-              (set! remove-prefs-callback-thunk #f))
+            (color-prefs:remove-active-pref-callback
+             (string->symbol (format "syntax-coloring:~a:active" prefix))
+             this)
             (change-style (send (get-style-list) find-named-style "Standard")
                           start-pos end-pos #f)
             (match-parens #t)
@@ -302,7 +297,18 @@
             (set! prefix #f)
             (set! get-token #f))
           
-          
+          (define/public (toggle-color on?)
+            (cond
+              ((and (not should-color?) on?)
+               (set! should-color? #t)
+               (reset-tokens)
+               (do-insert/delete start-pos 0))
+              ((and should-color? (not on?))
+               (set! should-color? #f)
+               (change-style (send (get-style-list) find-named-style "Standard")
+                             start-pos end-pos #f))))
+
+
           (define/public (force-stop-colorer x)
             (set! force-stop? x)
             (when x
@@ -310,7 +316,7 @@
               (when background-thread
                 (kill-thread background-thread)
 		(set! background-thread #f))))
-            
+          
           
           ;; ----------------------- Match parentheses ----------------------------
           
@@ -414,14 +420,7 @@
           (define/override (after-delete edit-start-pos change-length)
             (do-insert/delete edit-start-pos (- change-length))
             (super-after-delete edit-start-pos change-length))
-          
-          (rename (super-on-close on-close))
-          (define/override (on-close)
-            (when remove-prefs-callback-thunk
-              (remove-prefs-callback-thunk)
-              (set! remove-prefs-callback-thunk #f))
-            (super-on-close))          
-          
+                    
           (rename (super-change-style change-style))
           
           (super-instantiate ())))

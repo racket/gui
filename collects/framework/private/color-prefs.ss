@@ -214,7 +214,6 @@
            symbols)
           ))
       
-      
       (define (add tab-name symbols/defaults)
         (let* ((prefix (string->symbol (format "syntax-coloring:~a" tab-name)))
                (active-pref (string->symbol (format "~a:active" prefix)))
@@ -241,4 +240,31 @@
                                                                  active-pref
                                                                  (send checkbox get-value)))))))
                                        (send cb set-value (preferences:get active-pref)))
-                                     vp))))))))
+                                     vp)))
+          (preferences:add-callback active-pref
+                                    (lambda (_ on?)
+                                      (do-active-pref-callbacks active-pref on?)))))
+      
+      
+      ;; The following 4 defines are a mini-prefs system that uses a weak hash table
+      ;; so the preferences won't hold on to a text when it should otherwise be GCed.
+      (define active-pref-callback-table (make-hash-table))
+            
+      (define (do-active-pref-callbacks pref-sym on?)
+        (hash-table-for-each (hash-table-get active-pref-callback-table pref-sym (lambda () (make-hash-table)))
+                             (lambda (k v)
+                               (v k on?))))
+      
+      (define (remove-active-pref-callback pref-sym k)
+        (let ((ht (hash-table-get active-pref-callback-table pref-sym (lambda () #f))))
+          (when ht
+            (hash-table-remove! ht k))))
+      
+      (define (register-active-pref-callback pref-sym k v)
+        (hash-table-put! (hash-table-get active-pref-callback-table pref-sym
+                                         (lambda ()
+                                           (let ((ht (make-hash-table 'weak)))
+                                             (hash-table-put! active-pref-callback-table pref-sym ht)
+                                             ht)))
+                         k v)))))
+

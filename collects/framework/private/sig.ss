@@ -519,9 +519,9 @@
      (open framework:color-fun^)))
   
   (define-signature framework:color-prefs-class^
-    (make-style-delta add))
-  (define-signature framework:color-prefs-fun^
     ())
+  (define-signature framework:color-prefs-fun^
+    (make-style-delta add register-active-pref-callback remove-active-pref-callback))
   (define-signature framework:color-prefs^
     ((open framework:color-prefs-class^)
      (open framework:color-prefs-fun^)))
