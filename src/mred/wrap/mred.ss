@@ -1572,12 +1572,14 @@
 		    add-canvas remove-canvas
 		    auto-wrap get-max-view-size))
 		    
-(define (make-editor-buffer% % can-wrap?)
+(define (make-editor-buffer% % can-wrap? get-editor%)
   ; >>> This class is instantiated directly by the end-user <<<
   (class* % (editor<%> internal-editor<%>) args
-    (inherit get-max-width set-max-width get-admin get-view-size)
+    (inherit get-max-width set-max-width get-admin get-view-size
+	     get-keymap get-style-list)
     (rename [super-on-display-size on-display-size]
-	    [super-get-view-size get-view-size])
+	    [super-get-view-size get-view-size]
+	    [super-copy-self-to copy-self-to])
     (private
       [canvases null]
       [active-canvas #f]
@@ -1644,6 +1646,14 @@
 				   (set-max-width 'none))))))])]
       [get-max-view-size (entry-point (lambda () (max-view-size)))])
     (override
+      [copy-self
+       (lambda () (let ([e (make-object (get-editor%))])
+		    (copy-self-to e)
+		    e))]
+      [copy-self-to
+       (lambda (e)
+	 (super-copy-self-to e)
+	 (auto-wrap auto-set-wrap?))]
       [on-display-size
        (entry-point
 	(lambda ()
@@ -1662,15 +1672,18 @@
 	  (unless (memq type '(text pasteboard))
 	    (raise-type-error (who->name '(method editor<%> on-new-box)) "symbol: text or pasteboard" type))
 	  (make-object editor-snip%
-		       (make-object (cond
-				     [(eq? type 'pasteboard) pasteboard%]
-				     [else text%])))))])
+		       (let ([e (make-object (cond
+					      [(eq? type 'pasteboard) pasteboard%]
+					      [else text%]))])
+			 (send e set-keymap (get-keymap))
+			 (send e set-style-list (get-style-list))
+			 e))))])
 
     (sequence (as-entry (lambda () (apply super-init args))))))
 
-(define text% (class (make-editor-buffer% wx:text% #t) args
+(define text% (class (make-editor-buffer% wx:text% #t  (lambda () text%)) args
 		(sequence (apply super-init args))))
-(define pasteboard% (class (make-editor-buffer% wx:pasteboard% #f) args
+(define pasteboard% (class (make-editor-buffer% wx:pasteboard% #f (lambda () pasteboard%)) args
 		      (sequence (apply super-init args))))
 
 (define editor-snip% (class wx:editor-snip% ([edit #f] . args)
