@@ -27,7 +27,7 @@
       (define filter-match?
 	(lambda (filter name msg)
 	  (let-values ([(base name dir?) (split-path name)])
-	    (if (regexp-match-exact? filter name)
+	    (if (regexp-match-exact? filter (path->bytes name))
 		#t
 		(begin
 		  (message-box (string-constant error) msg)

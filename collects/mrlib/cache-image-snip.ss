@@ -132,7 +132,7 @@
           (send f put str)))
       
       (define/override (get-num-scroll-steps) (+ (quotient height 20) 1))
-      (define/override (find-scroll-step y) (/ y 20))
+      (define/override (find-scroll-step y) (inexact->exact (floor (/ y 20))))
       (define/override (get-scroll-step-offset offset) (* offset 20))
       
       (super-new)

@@ -946,12 +946,12 @@ WARNING: printf is rebound in the body of the unit to always
           
           (define/augment (can-insert? start len)
             (and (or allow-edits?
-                     (start . >= . insertion-point))
+                     (start . >= . unread-start-point))
                  (inner #t can-insert? start len)))
           
           (define/augment (can-delete? start len)
             (and (or allow-edits?
-                     (start . >= . insertion-point))
+                     ((- start len) . > . insertion-point))
                  (inner #t can-delete? start len)))
           
           (define/override (on-local-char key)
@@ -1640,105 +1640,6 @@ WARNING: printf is rebound in the body of the unit to always
           (init-output-ports)
           (super-new)))
 
-      #|
-      (define (drscheme-pretty-print-size-hook x _ port)
-        (and (or (eq? port this-out)
-                 (eq? port this-err)
-                 (eq? port this-result))
-             (cond
-               [(is-a? x sized-snip<%>) (send x get-character-width)]
-               [(is-a? x snip%) 
-                (let ([dc (get-dc)]
-                      [wbox (box 0)])
-                  (send x get-extent dc 0 0 wbox #f #f #f #f #f)
-                  (let-values ([(xw xh xa xd) (send dc get-text-extent "x")])
-                    (max 1 (inexact->exact (ceiling (/ (unbox wbox) xw))))))]
-               [(syntax? x) 
-                ;; two spaces is about how big the turn down triangle
-                ;; and the extra space accounts for. Of course, when
-                ;; it is opened, this will be all wrong.
-                (+ 2 (string-length (format "~s" x)))]
-               [((use-number-snip) x)
-                (let ([number-snip-type ((which-number-snip) x)])
-                  (cond
-                    [(memq number-snip-type '(repeating-decimal 
-                                              repeating-decimal-e
-                                              mixed-fraction
-                                              mixed-fraction-e))
-                     1] ;; no idea of size yet
-                    [else 
-                     (error 'which-number-snip
-                            "unexpected result from parameter: ~e" 
-                            number-snip-type)]))]
-               [else #f])))
-          
-      (define (drscheme-pretty-print-print-hook x _ port)
-        (let ([port-out-write
-               (cond
-                 [(eq? port this-out) (lambda (x) (this-out-write x))]
-                 [(eq? port this-err) (lambda (x) (this-err-write x))]
-                 [(eq? port this-result) (lambda (x) (this-result-write x))]
-                 ;; this case should only happen if the user's program overrides the pretty-print-size-hook
-                 ;; and doesnt' override the pretty-print-print-hook to match.
-                 [else #f])])
-          (if port-out-write
-              (let ([snip/str
-                     (cond
-                       [(syntax? x) (render-syntax/snip x)]
-                       [((use-number-snip) x)
-                        (let ([number-snip-type ((which-number-snip) x)])
-                          (cond
-                            [(eq? number-snip-type 'repeating-decimal)
-                             (drscheme:number-snip:make-repeating-decimal-snip x #f)]
-                            [(eq? number-snip-type 'repeating-decimal-e)
-                             (drscheme:number-snip:make-repeating-decimal-snip x #t)]
-                            [(eq? number-snip-type 'mixed-fraction)
-                             (drscheme:number-snip:make-fraction-snip x #f)]
-                            [(eq? number-snip-type 'mixed-fraction-e)
-                             (drscheme:number-snip:make-fraction-snip x #t)]
-                            [else
-                             (error 'which-number-snip
-                                    "expected either 'repeating-decimal, 'repeating-decimal-e, 'mixed-fraction, or 'mixed-fraction-e got : ~e"
-                                    number-snip-type)]))]
-                       [else x])])
-                (port-out-write snip/str))
-              (display x))))
-      
-      ;; setup-display/write-handlers : -> void
-      ;; sets the port-display-handler and the port-write-handler
-      ;; for the initial output port, initial error port and the
-      ;; value port.
-      (define (setup-display/write-handlers)
-        (let* ([make-setup-handler
-                (lambda (port port-out-write)
-                  (lambda (port-handler pretty)
-                    (let ([original-handler (port-handler port)])
-                      (port-handler
-                       port
-                       (rec drscheme-port-handler
-                         (lambda (v p)
-                           ;; avoid looping by calling original-handler
-                           ;; for strings, since `pretty' calls write/display with
-                           ;; strings
-                           (if (string? v)
-                               (original-handler v p)
-                               (parameterize ([pretty-print-columns 'infinity])
-                                 (pretty v p)))))))))]
-               
-               [setup-handlers
-                (lambda (setup-handler)
-                  (setup-handler port-display-handler pretty-display)
-                  (setup-handler port-write-handler pretty-print))]
-               
-               [setup-out-handler (make-setup-handler this-out (lambda (x) (this-out-write x)))]
-               [setup-err-handler (make-setup-handler this-err (lambda (x) (this-err-write x)))]
-               [setup-value-handler (make-setup-handler this-result (lambda (x) (this-result-write x)))])
-          (setup-handlers setup-out-handler)
-          (setup-handlers setup-err-handler)
-          (setup-handlers setup-value-handler)))
-      
-      |#
-      
       ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
       ;;
       ;; queues

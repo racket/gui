@@ -498,7 +498,7 @@
       (union false? path?)
       boolean?
       string?
-      (union false? regexp?)
+      (union false? byte-regexp?)
       string?
       (union (is-a?/c top-level-window<%>) false?))
      (union false? path?))
@@ -521,7 +521,7 @@
      ()
      ((union path? false?)
       string?
-      (union regexp? false?)
+      (union byte-regexp? false?)
       string?
       (union false? (is-a?/c top-level-window<%>)))
      (union path? false?))
@@ -544,7 +544,7 @@
       (union false? path?)
       boolean?
       string?
-      (union false? regexp?)
+      (union false? byte-regexp?)
       string?
       (union (is-a?/c top-level-window<%>) false?))
      (union false? path?))
@@ -567,7 +567,7 @@
      ()
      ((union path? false?)
       string?
-      (union regexp? false?)
+      (union byte-regexp? false?)
       string?
       (union false? (is-a?/c top-level-window<%>)))
      (union path? false?))
@@ -590,7 +590,7 @@
       (union false? path?)
       boolean?
       string?
-      (union false? regexp?)
+      (union false? byte-regexp?)
       string?
       (union (is-a?/c top-level-window<%>) false?))
      (union false? path?))
@@ -617,7 +617,7 @@
      ()
      ((union path? false?)
       string?
-      (union regexp? string? false?)
+      (union byte-regexp? string? false?)
       string?
       (union false? (is-a?/c top-level-window<%>)))
      (union path? false?))
@@ -642,7 +642,7 @@
      ()
      ((union false? path?)
       string?
-      (union false? regexp?)
+      (union false? byte-regexp?)
       string?
       (union false? (is-a?/c top-level-window<%>)))
      (union (listof path?) false?))
