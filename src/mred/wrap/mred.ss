@@ -1159,7 +1159,7 @@
 	(entry-point-1
 	 (lambda (id)
 	   (let ([wx (wx:id-to-menu-item id)])
-	     (as-exit (lambda () (send (wx->mred wx) go))))))])
+	     (as-exit (lambda () (send (wx->mred wx) command (make-object wx:control-event% 'menu)))))))])
      (public
        [handle-menu-key
 	(lambda (event)
@@ -1621,10 +1621,10 @@
 	 (unless (eq? this (send new-child area-parent))
 	   (raise-mismatch-error 'add-child 
 				 "not a child of this container: "
-				 (wx->mred new-child)))
+				 (wx->proxy new-child)))
 	 (when (memq new-child children)
 	   (raise-mismatch-error 'add-child "child already active: "
-				 (wx->mred new-child)))
+				 (wx->proxy new-child)))
 	 (change-children
 	  (lambda (l)
 	    (append l (list new-child)))))]
@@ -1645,14 +1645,14 @@
 				    (string-append 
 				     "not all members of the returned list are "
 				     "children of the container ~e; list: ")
-				    (wx->mred this))
-				   (map wx->mred new-children)))
+				    (wx->proxy this))
+				   (map wx->proxy new-children)))
 	   (let loop ([l new-children])
 	     (unless (null? l)
 	       (if (memq (car l) (cdr l))
 		   (raise-mismatch-error 'change-children 
 					 "child in the returned list twice: " 
-					 (wx->mred (car l)))
+					 (wx->proxy (car l)))
 		   (loop (cdr l)))))
 	   ; show all new children, hide all deleted children.
 	   (let ([added-children (list-diff new-children children)]
@@ -1664,7 +1664,7 @@
 	       (when non-window
 		 (raise-mismatch-error 'change-children
 				       (format "cannot make non-window area inactive in ~e: "
-					       (wx->mred this))
+					       (wx->proxy this))
 				       non-window)))
 	     (for-each (lambda (child) (send child show #f))
 		       removed-children)
@@ -1682,7 +1682,7 @@
 	 (unless (memq child children)
 	   (raise-mismatch-error 'delete-child 
 				 "not a child of this container or child is not active: " 
-				 (wx->mred child)))
+				 (wx->proxy child)))
 	 (change-children (lambda (child-list)
 			    (remq child child-list))))]
       
@@ -2149,7 +2149,7 @@
 
 ;-------------------- Text control simulation -------------------------
 
-(define wx-text-text-editor% 
+(define text-field-text% 
   (class text% (cb return-cb control)
       (rename [super-after-insert after-insert]
 	      [super-after-delete after-delete]
@@ -2241,7 +2241,7 @@
 			      null
 			      '(hide-hscroll))
 			  '(hide-vscroll hide-hscroll)))]
-      [e (make-object wx-text-text-editor%
+      [e (make-object text-field-text%
 		      func
 		      (lambda (do-cb)
 			(if multi?
@@ -2252,7 +2252,8 @@
     (public
       [command (lambda (e) 
 		 (check-instance '(method text-field% command) wx:control-event% 'control-event% #f e)
-		 (as-exit (lambda () (func e))))]
+		 (as-exit (lambda () (func this e)))
+		 (void))]
 
       [get-editor (lambda () e)]
       
@@ -2445,7 +2446,7 @@
   (class* % (area-container<%> internal-container<%>) (mk-wx get-wx-panel parent) 
     (public
       [reflow-container (entry-point (lambda () (send (get-wx-panel) force-redraw)))]
-      [get-children (entry-point (lambda () (map wx->mred (ivar (get-wx-panel) children))))]
+      [get-children (entry-point (lambda () (map wx->proxy (ivar (get-wx-panel) children))))]
       [border (param get-wx-panel 'border)]
       [spacing (param get-wx-panel 'spacing)]
       [set-alignment (entry-point-2 (lambda (h v) (send (get-wx-panel) alignment h v)))]
@@ -2459,7 +2460,7 @@
 					      f))
 			  (send (get-wx-panel) change-children
 				(lambda (kids)
-				  (let* ([mred-kids (map wx->mred kids)]
+				  (let* ([mred-kids (map wx->proxy kids)]
 					 [l (as-exit (lambda () (f mred-kids)))])
 				    (unless (and (list? l)
 						 (andmap (lambda (x) (is-a? x internal-subarea<%>)) l))
@@ -2633,8 +2634,8 @@
     (override
       [set-label (entry-point-1
 		  (lambda (l)
-		    (check-string '(method top-level-window<%> set-label) l)
-		    (send wx set-title (wx:label->plain-label l))
+		    (check-string/false '(method top-level-window<%> set-label) l)
+		    (send wx set-title (if l (wx:label->plain-label l) ""))
 		    (super-set-label l)))])
     (public
       [on-traverse-char (lambda (e)
@@ -3004,8 +3005,10 @@
 	 (let ([m (send wx number)])
 	   (unless (< n m)
 	     (raise-mismatch-error (who->name `(method list-control<%> ,method)) 
-				   (format "control has only ~a items, indexed 0 to ~a; given out-of-range index: " 
-					   m (sub1 m))
+				   (if (zero? m)
+				       "control has no items; given index: " 
+				       (format "control has only ~a items, indexed 0 to ~a; given out-of-range index: " 
+					       m (sub1 m)))
 				   n))))])
     (sequence
       (as-entry
@@ -3071,9 +3074,11 @@
 	  (check-non-negative-integer `(method list-box% ,method) n)
 	  (let ([m (send wx number)])
 	    (unless (< n m)
-	      (raise-mismatch-error (who->name `(method list-box% ,method)) 
-				    (format "list has only ~a items, indexed 0 to ~a; given out-of-range index: "
-					    m (sub1 m))
+	      (raise-mismatch-error (who->name `(method list-box% ,method))
+				    (if (zero? m)
+					"list has no items; given index: " 
+					(format "list has only ~a items, indexed 0 to ~a; given out-of-range index: "
+						m (sub1 m)))
 				    n)))))])
     (sequence
       (super-init (lambda () 
@@ -3248,7 +3253,7 @@
       [set-line-count
        (entry-point-1
 	(lambda (n)
-	  ((check-bounded-integer 1 1000) '(method editor-canvas% set-line-count) n)
+	  ((check-bounded-integer 1 1000 #t) '(method editor-canvas% set-line-count) n)
 	  (send wx set-line-count n)))]
 
       [get-editor (entry-point (lambda () (send wx get-editor)))]
@@ -3562,7 +3567,7 @@
 
 (define shortcut-menu-item<%>
   (interface (labelled-menu-item<%>)
-    go
+    command
     get-shortcut set-shortcut
     get-x-shortcut-prefix set-x-shortcut-prefix))
 
@@ -3574,7 +3579,9 @@
     (private
       [wx #f])
     (public
-      [go (lambda () (void (callback this (make-object wx:control-event% 'menu))))])
+      [command (lambda (e)
+		 (check-instance '(method shortcut-menu-item<%> command) wx:control-event% 'control-event% #f e)
+		 (void (callback this e)))])
     (private
       [x-prefix 'meta]
       [calc-labels (lambda (label)
@@ -3605,7 +3612,9 @@
 						[(macos) (format "d:~a" (char-downcase shortcut))]))]
 			    [keymap (and key-binding
 					 (let ([keymap (make-object wx:keymap%)])
-					   (send keymap add-key-function "menu-item" (lambda (edit event) (go)))
+					   (send keymap add-key-function "menu-item" 
+						 (lambda (edit event) 
+						   (callback this (make-object wx:control-event% 'menu))))
 					   (send keymap map-function key-binding "menu-item")
 					   keymap))])
 		       (values new-label keymap)))])
@@ -3706,7 +3715,7 @@
 	 (super-init title
 		     (lambda (m e)
 		       (let ([wx (wx:id-to-menu-item (send e get-menu-id))])
-			 (send (wx->mred wx) go)))))))))
+			 (send (wx->mred wx) command (make-object wx:control-event% 'menu))))))))))
 
 (define menu-bar%
   (class* mred% (menu-item-container<%>) (parent)
@@ -4561,29 +4570,29 @@
 	       (procedure-arity-includes? callback 2))
     (raise-type-error (who->name who) "procedure of arity 2" callback)))
 
-(define (check-bounded-integer min max)
+(define (check-bounded-integer min max false-ok?)
   (lambda (who range)
-    (unless (and (integer? range) (exact? range) (<= min range max))
+    (unless (or (and false-ok? (not range))
+		(and (integer? range) (exact? range) (<= min range max)))
       (raise-type-error (who->name who) 
-			(format "exact integer in [~a, ~a]" min max)
+			(format "exact integer in [~a, ~a]~a"
+				min max
+				(if false-ok? " or #f" ""))
 			range))))
 
-(define check-range-integer (check-bounded-integer 0 10000))
+(define check-range-integer (check-bounded-integer 0 10000 #f))
 
-(define check-slider-integer (check-bounded-integer -10000 10000))
+(define check-slider-integer (check-bounded-integer -10000 10000 #f))
 
-(define check-margin-integer (check-bounded-integer 0 1000))
+(define check-margin-integer (check-bounded-integer 0 1000 #f))
 
-(define check-gauge-integer (check-bounded-integer 1 10000))
+(define check-gauge-integer (check-bounded-integer 1 10000 #f))
 
 (define (check-non-negative-integer who i)
   (unless (and (integer? i) (exact? i) (not (negative? i)))
     (raise-type-error (who->name who) "non-negative exact integer" i)))
 
-(define (check-dimension who d)
-  (when d
-    (unless (and (integer? d) (exact? d) (<= 0 d 10000))
-      (raise-type-error (who->name who) "exact integer in [0, 10000] or #f"))))
+(define check-dimension (check-bounded-integer 0 10000 #t))
 
 (define (check-string-or-bitmap who label)
   (unless (or (string? label) (is-a? label wx:bitmap%))
