@@ -734,6 +734,14 @@
 			   (let ([on? (send cb get-value)])
 			     (send cb set-value (not on?))))
 			 "Toggle"))
+  (define t2 (make-object mred:button% p
+			  (lambda (t e)
+			    (let ([on? (send cb get-value)]
+				  [e (make-object wx:command-event% wx:const-event-type-checkbox-command)])
+			      (send e set-command-int (if on? 0 1))
+			      (send e set-event-object cb)
+			      (send cb command e)))
+			  "Simulation Toggle"))
   (define c (make-object mred:button% p
 			 (lambda (c e)
 			   (for-each
