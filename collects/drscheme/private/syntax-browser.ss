@@ -114,7 +114,7 @@ needed to really make this work:
       (define (show-info stx)
         (insert/big "General Info\n")
         (piece-of-info "Source" (syntax-source stx))
-        (piece-of-info "Source Module" (syntax-source-module stx))
+        (piece-of-info "Source module" (syntax-source-module stx))
         (piece-of-info "Position" (syntax-position stx))
         (piece-of-info "Line" (syntax-line stx))
         (piece-of-info "Column" (syntax-column stx))
@@ -126,7 +126,7 @@ needed to really make this work:
         
 	(let ([properties (syntax-properties stx)])
 	  (unless (null? properties)
-	    (insert/big "Properties\n")
+	    (insert/big "Known properties\n")
 	    (for-each
 	     (lambda (prop) (show-property stx prop))
 	     properties))))
@@ -484,6 +484,7 @@ needed to really make this work:
                 origin
                 disappeared-binding
                 disappeared-use
+                bind-as-variable
                 module-variable-provides
                 module-syntax-provides
                 module-indirect-provides

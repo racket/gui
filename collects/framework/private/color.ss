@@ -613,9 +613,10 @@
               (let ((insert-str (if closer closer (string char))))
                 (insert insert-str)
                 (when flash?
-                  (let ((pos (backward-match (+ (string-length insert-str) pos) 0)))
-                    (when (and pos (send parens is-open-pos? pos))
-                      (flash-on pos (+ 1 pos))))))))
+                  (unless stopped?
+                    (let ((pos (backward-match (+ (string-length insert-str) pos) 0)))
+                      (when (and pos (send parens is-open-pos? pos))
+                        (flash-on pos (+ 1 pos)))))))))
           
           ;; ------------------------- Callbacks to Override ----------------------
           

@@ -262,14 +262,16 @@
                                                                              
  
       (define color-prefs-table
-        `((symbol ,(make-object color% 38 38 128) ,(string-constant scheme-mode-color-symbol))
-          (keyword ,(make-object color% 38 38 128) ,(string-constant scheme-mode-color-keyword))
+        (let ([constant-green (make-object color% 41 128 38)]
+              [symbol-blue (make-object color% 38 38 128)])
+        `((symbol ,symbol-blue ,(string-constant scheme-mode-color-symbol))
+          (keyword ,symbol-blue ,(string-constant scheme-mode-color-keyword))
           (comment ,(make-object color% 194 116 31) ,(string-constant scheme-mode-color-comment))
-          (string ,(make-object color% "forestgreen") ,(string-constant scheme-mode-color-string))
-          (constant ,(make-object color% "forestgreen") ,(string-constant scheme-mode-color-constant))
+          (string ,constant-green ,(string-constant scheme-mode-color-string))
+          (constant ,constant-green ,(string-constant scheme-mode-color-constant))
           (parenthesis ,(make-object color% "brown") ,(string-constant scheme-mode-color-parenthesis))
           (error ,(make-object color% "red") ,(string-constant scheme-mode-color-error))
-          (other ,(make-object color% "black") ,(string-constant scheme-mode-color-other))))
+          (other ,(make-object color% "black") ,(string-constant scheme-mode-color-other)))))
       (define (get-color-prefs-table) color-prefs-table)
       
       (define (short-sym->pref-name sym) (string->symbol (short-sym->style-name sym)))
