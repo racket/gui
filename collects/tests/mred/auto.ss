@@ -81,19 +81,19 @@
     (stv f min-width x)
     (stv f min-height y)))
 
-(define (containee-tests f sw? sh?)
+(define (containee-tests f sw? sh? m)
   (area-tests f sw? sh?)
   (printf "Containee ~a~n" f)
-  (st 2 f horiz-margin)
-  (st 2 f vert-margin)
+  (st m f horiz-margin)
+  (st m f vert-margin)
   (stv f horiz-margin 3)
   (st 3 f horiz-margin)
-  (st 2 f vert-margin)
-  (stv f horiz-margin 2)
+  (st m f vert-margin)
+  (stv f horiz-margin m)
   (stv f vert-margin 3)
-  (st 2 f horiz-margin)
+  (st m f horiz-margin)
   (st 3 f vert-margin)
-  (stv f vert-margin 2))
+  (stv f vert-margin m))
 
 (define (container-tests f)
   (printf "Container ~a~n" f)
@@ -135,13 +135,13 @@
     (st #f f get-cursor)
     (stv f set-cursor c)))
 
-(define (window-tests f sw? sh? parent top)
+(define (window-tests f sw? sh? parent top m)
   (st parent f get-parent)
   (st top f get-top-level-window)
   (enable-tests f)
   (drop-file-tests f)
   (client->screen-tests f)
-  (containee-tests f sw? sh?)
+  (containee-tests f sw? sh? m)
   (cursor-tests f))
 
 (define (test-control-event e types)
@@ -469,7 +469,7 @@
     (stv b command (make-object control-event% 'button))
     (test 'button 'button-callback side-effect)
     
-    (window-tests b #f #f parent frame))
+    (window-tests b #f #f parent frame 2))
 
   (printf "Check Box~n")
   (letrec ([c (make-object check-box% 
@@ -491,7 +491,7 @@
     (stv c set-value #f)
     (st #f c get-value)
     
-    (window-tests c #f #f parent frame))
+    (window-tests c #f #f parent frame 2))
 
   (printf "Radio Box~n")
   (letrec ([r (make-object radio-box%
@@ -553,7 +553,7 @@
     (stv r set-selection 0)
     (st 0 r get-selection)
     
-    (window-tests r #f #f parent frame))
+    (window-tests r #f #f parent frame 2))
 
   (printf "Gauge~n")
   (letrec ([g (make-object gauge% 
@@ -585,7 +585,7 @@
     (st 10 g get-range)
     (st 1 g get-value)
     
-    (window-tests g #t #f parent frame))
+    (window-tests g #t #f parent frame 2))
 
   (printf "Slider~n")
   (letrec ([s (make-object slider% 
@@ -611,7 +611,7 @@
     (stv s set-value 8)
     (st 8 s get-value)
 
-    (window-tests s #t #f parent frame))
+    (window-tests s #t #f parent frame 2))
 
   (let ([test-list-control
 	 (lambda (l choice? multi?)
@@ -748,7 +748,7 @@
 
       (test-list-control c #t #f)
       
-      (window-tests c #f #f parent frame))
+      (window-tests c #f #f parent frame 2))
 
     (let ([mk-list
 	   (lambda (style)
@@ -770,9 +770,11 @@
 	       (stv l set-data 0 'a)
 	       (stv l set-data 2 'c-&-d)
 	       
-	       (test-list-control l #f (memq style '(multiple extended)))
+	       (test-list-control l #f (and (memq style '(multiple extended)) #t))
 	       
-	       (window-tests l #t #t parent frame)))])
+	       (window-tests l #t #t parent frame 2)
+
+	       (stv parent delete-child l)))])
 
       (mk-list 'single)
       (mk-list 'multiple)
@@ -795,7 +797,9 @@
       (st 0 c get-scroll-pos 'horizontal)
       (st 0 c get-scroll-pos 'vertical)
 
-    (window-tests c #f #f parent frame))
+      'done-sb)
+
+    (window-tests c #t #t parent frame 0))
 
   'done)
 
