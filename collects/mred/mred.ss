@@ -2415,14 +2415,17 @@
        (opt-lambda ([file #f] [format 'guess] [show-errors? #t])
 	 (let* ([temp-filename?-box (box #f)]
 		[old-filename (super-get-filename temp-filename?-box)])
-	   (let ([file (if (or (not file) (string=? file ""))
-			   (if (or (equal? file "") (not old-filename) (unbox temp-filename?-box))
-			       (let ([path (if old-filename
-					       (path-only old-filename)
-					       #f)])
-				 (get-file path))
-			       old-filename)
-			   file)])
+	   (let* ([file (cond
+			 [(or (not (path-string? file))
+			      (equal? file ""))
+			  (if (or (equal? file "") (not old-filename) (unbox temp-filename?-box))
+			      (let ([path (if old-filename
+					      (path-only old-filename)
+					      #f)])
+				(get-file path))
+			      old-filename)]
+			 [(path? file) file]
+			 [else (string->path file)])])
 	     (and 
 	      file
 	      (can-load-file? file (-format-filter format))
