@@ -846,18 +846,20 @@ WARNING: printf is rebound in the body of the unit to always
       (define ports-mixin
         (mixin ((class->interface text%) #;scheme:text<%>) (ports<%>)
           (inherit begin-edit-sequence
-                   end-edit-sequence
-                   delete
-                   insert
                    change-style
-                   split-snip
+                   delete
+                   end-edit-sequence
                    find-snip
+                   insert
                    get-start-position
                    get-end-position
                    get-snip-position
+                   is-locked?
                    last-position
                    lock
-                   is-locked?)
+                   paragraph-start-position
+                   position-paragraph
+                   split-snip)
           
           ;; private field
           (define eventspace (current-eventspace))
@@ -904,7 +906,8 @@ WARNING: printf is rebound in the body of the unit to always
           (define/public-final (set-allow-edits allow?) (set! allow-edits? allow?))
           (define/public-final (get-allow-edits) allow-edits?)
           
-          (define/public-final (send-eof-to-in-port) (channel-put read-chan eof))
+          (define/public-final (send-eof-to-in-port) 
+            (channel-put read-chan (cons eof (position->line-col-pos unread-start-point))))
           (define/public-final (clear-input-port) (channel-put clear-input-chan (void)))
           (define/public-final (clear-output-ports) 
             (channel-put clear-output-chan (void))
@@ -972,20 +975,21 @@ WARNING: printf is rebound in the body of the unit to always
                       (= start end)
                       (submit-to-port? key))
                  (insert "\n")
-                 (let ([snips/chars (extract-snips/chars unread-start-point (last-position))])
-                   (for-each (lambda (s/c) 
-                               (cond
-                                 [(is-a? s/c snip%)
-                                  (channel-put read-chan s/c)]
-                                 [(char? s/c)
-                                  (for-each (lambda (b) (channel-put read-chan b))
-                                            (bytes->list (string->bytes/utf-8 (string s/c))))]))
-                             snips/chars)
-                   (set! allow-tabify? #f)
-                   (set! allow-tabify? #t)
-                   (set! unread-start-point (last-position))
-                   (set! insertion-point (last-position))
-                   (on-submit))]
+                 (for-each/snips-chars
+                  unread-start-point
+                  (last-position)
+                  (lambda (s/c line-col-pos) 
+                    (cond
+                      [(is-a? s/c snip%)
+                       (channel-put read-chan (cons s/c line-col-pos))]
+                      [(char? s/c)
+                       (for-each (lambda (b) (channel-put read-chan (cons b line-col-pos)))
+                                 (bytes->list (string->bytes/utf-8 (string s/c))))])))
+                 (set! allow-tabify? #f)
+                 (set! allow-tabify? #t)
+                 (set! unread-start-point (last-position))
+                 (set! insertion-point (last-position))
+                 (on-submit)]
                 [else
                  (super on-local-char key)])))
           
@@ -1049,7 +1053,6 @@ WARNING: printf is rebound in the body of the unit to always
                            [old-insertion-point insertion-point])
                        (set! insertion-point (+ insertion-point inserted-count))
                        (set! unread-start-point (+ unread-start-point inserted-count))
-                       (printf "inc'd unread-start-position to ~s\n" unread-start-point)
                        
                        (insert (if (is-a? str/snp snip%)
                                    (send str/snp copy)
@@ -1070,8 +1073,8 @@ WARNING: printf is rebound in the body of the unit to always
                  (let loop (;; text-to-insert : (queue (cons (union snip bytes) style))
                             [text-to-insert (empty-queue)]
                             [last-flush (current-inexact-milliseconds)])
+                   
                    (sync
-                    
                     (if (queue-empty? text-to-insert)
                         never-evt
                         (handle-evt
@@ -1080,7 +1083,6 @@ WARNING: printf is rebound in the body of the unit to always
                            (let-values ([(viable-bytes remaining-queue) (split-queue converter text-to-insert)])
                              (queue-insertion viable-bytes always-evt)
                              (loop remaining-queue (current-inexact-milliseconds))))))
-                    
                     (handle-evt
                      flush-chan
                      (lambda (return-evt)
@@ -1184,7 +1186,9 @@ WARNING: printf is rebound in the body of the unit to always
           ;;  input port sync code
           ;;
           
-          ;; read-chan : (channel (union byte snip eof))
+          ;; type line-col-pos = (list (union #f fixnum) (union #f fixnum) (union #f fixnum)))
+          
+          ;; read-chan : (channel (cons (union byte snip eof) line-col-pos))
           ;; send input from the editor
           (define read-chan (make-channel))
           
@@ -1200,6 +1204,9 @@ WARNING: printf is rebound in the body of the unit to always
           ;; clear-input-chan : (channel void)
           (define clear-input-chan (make-channel))
           
+          ;; position-chan : (channel (cons (channel void) (channel line-col-pos)))
+          (define position-chan (make-channel))
+          
           (define input-buffer-thread
             (thread
              (lambda ()
@@ -1212,9 +1219,11 @@ WARNING: printf is rebound in the body of the unit to always
                (define peeker-evt (semaphore-peek-evt peeker-sema))
                (define bytes-peeked 0)
                (define response-evts '())
-               (define peekers '())
-               (define committers '())
-               (define data (empty-queue))
+               (define peekers '())     ;; waiting for a peek
+               (define committers '())  ;; waiting for a commit
+               (define positioners '()) ;; waiting for a position
+               (define data (empty-queue)) ;; (queue (cons (union byte snip eof) line-col-pos))
+               (define position #f)
                
                ;; loop : -> alpha
                ;; the main loop for this thread
@@ -1227,26 +1236,44 @@ WARNING: printf is rebound in the body of the unit to always
                                 (service-committer data peeker-evt))])
                    (set! peekers not-ready-peekers)
                    (set! committers potential-commits)
-                   (set! response-evts (append response-evts
-                                               new-peek-response-evts
-                                               new-commit-response-evts))
+                   (set! response-evts 
+                         (append response-evts
+                                 new-peek-response-evts
+                                 new-commit-response-evts))
                    (sync
+                    (handle-evt
+                     position-chan
+                     (lambda (pr)
+                       ;(printf "position-chan\n")
+                       (let ([nack-chan (car pr)]
+                             [resp-chan (cdr pr)])
+                         (set! positioners (cons pr positioners))
+                         (loop))))
+                    (if position
+                        (apply choice-evt (map service-positioner positioners))
+                        never-evt)
                     (handle-evt
                      read-chan
                      (lambda (ent)
+                       ;(printf "read-chan\n")
                        (set! data (enqueue ent data))
+                       (unless position
+                         (set! position (cdr ent)))
                        (loop)))
                     (handle-evt
                      clear-input-chan
                      (lambda (_)
+                       ;(printf "clear-input-chan\n")
                        (semaphore-post peeker-sema)
                        (set! peeker-sema (make-semaphore 0))
                        (set! peeker-evt (semaphore-peek-evt peeker-sema))
                        (set! data (empty-queue))
+                       (set! position #f)
                        (loop)))
                     (handle-evt
                      progress-event-chan
                      (lambda (return-pr)
+                       ;(printf "progress-event-chan\n")
                        (let ([return-chan (car return-pr)]
                              [return-nack (cdr return-pr)])
                          (set! response-evts
@@ -1258,12 +1285,13 @@ WARNING: printf is rebound in the body of the unit to always
                     (handle-evt
                      peek-chan
                      (lambda (peeker)
-                       (print-struct #t)
+                       ;(printf "peek-chan\n")
                        (set! peekers (cons peeker peekers))
                        (loop)))
                     (handle-evt
                      commit-chan
                      (lambda (committer)
+                       ;(printf "commit-chan\n")
                        (set! committers (cons committer committers))
                        (loop)))
                     (apply 
@@ -1281,11 +1309,18 @@ WARNING: printf is rebound in the body of the unit to always
                             (handle-evt 
                              commit-peeker-evt
                              (lambda (_)
+                               ;(printf "commit-peeker-evt\n")
                                ;; this committer will be thrown out in next iteration
                                (loop)))
                             (handle-evt
                              done-evt
                              (lambda (v)
+                               ;(printf "done-evt\n")
+                               (let ([nth-pos (cdr (peek-n data (- kr 1)))])
+                                 (set! position
+                                       (list (car nth-pos)
+                                             (+ 1 (cadr nth-pos))
+                                             (+ 1 (caddr nth-pos)))))
                                (set! data (dequeue-n data kr))
                                (semaphore-post peeker-sema)
                                (set! peeker-sema (make-semaphore 0))
@@ -1304,28 +1339,23 @@ WARNING: printf is rebound in the body of the unit to always
                                   (handle-evt
                                    resp-evt
                                    (lambda (_)
+                                     ;(printf "resp-evt\n")
                                      (set! response-evts (remq resp-evt response-evts))
                                      (loop))))
                                 response-evts)))))
                
-               ;; separate (listof X) (X -> (union #f Y)) -> (values (listof X) (listof Y))
-               ;; separates `eles' into two lists -- those that `f' returns #f for
-               ;; and then the results of calling `f' for those where `f' doesn't return #f
-               (define (separate eles f)
-                 (let loop ([eles eles]
-                            [transformed '()]
-                            [left-alone '()])
-                   (cond
-                     [(null? eles) (values left-alone transformed)]
-                     [else (let* ([ele (car eles)]
-                                  [maybe (f ele)])
-                             (if maybe
-                                 (loop (cdr eles)
-                                       (cons maybe transformed)
-                                       left-alone)
-                                 (loop (cdr eles)
-                                       transformed
-                                       (cons ele left-alone))))])))
+               ;; service-positioner : (cons (channel void) (channel line-col-pos)) -> evt
+               (define (service-positioner pr)
+                 ;(printf "service-position ~s\n" pr)
+                 (let ([nack-evt (car pr)]
+                       [resp-evt (cdr pr)])
+                   (handle-evt
+                    (choice-evt nack-evt 
+                                (channel-put-evt resp-evt position))
+                    (let ([sent-position position])
+                      (lambda (_) 
+                        (set! positioners (remq pr positioners))
+                        (loop))))))
                
                ;; service-committer : queue evt -> committer -> (union #f evt)
                ;; if the committer can be dumped, return an evt that
@@ -1359,7 +1389,7 @@ WARNING: printf is rebound in the body of the unit to always
                        (choice-evt (channel-put-evt resp-chan #f)
                                    nack-evt)]
                       [((queue-size data) . > . skip-count)
-                       (let ([nth (peek-n data skip-count)])
+                       (let ([nth (car (peek-n data skip-count))])
                          (choice-evt
                           nack-evt
                           (cond
@@ -1376,6 +1406,26 @@ WARNING: printf is rebound in the body of the unit to always
                       [else
                        #f])]))
                
+               ;; separate (listof X) (X -> (union #f Y)) -> (values (listof X) (listof Y))
+               ;; separates `eles' into two lists -- those that `f' returns #f for
+               ;; and then the results of calling `f' for those where `f' doesn't return #f
+               (define (separate eles f)
+                 (let loop ([eles eles]
+                            [transformed '()]
+                            [left-alone '()])
+                   (cond
+                     [(null? eles) (values left-alone transformed)]
+                     [else (let* ([ele (car eles)]
+                                  [maybe (f ele)])
+                             (if maybe
+                                 (loop (cdr eles)
+                                       (cons maybe transformed)
+                                       left-alone)
+                                 (loop (cdr eles)
+                                       transformed
+                                       (cons ele left-alone))))])))
+
+               ;;; start things going
                (loop))))
           
           (define/private (init-input-port)
@@ -1426,33 +1476,63 @@ WARNING: printf is rebound in the body of the unit to always
             
             (define (close-proc) (void))
             
+            (define (position-proc)
+              (let ([chan (make-channel)])
+                (apply 
+                 values
+                 (sync
+                  (nack-guard-evt
+                   (lambda (fail)
+                     (channel-put position-chan (cons fail chan))
+                     chan))))))
+            
             (set! in-port (make-input-port this
                                            read-bytes-proc
                                            peek-proc
                                            close-proc
                                            progress-evt-proc
-                                           commit-proc)))
+                                           commit-proc
+                                           position-proc))
+            (port-count-lines! in-port))
          
-          
           ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
           ;;
           ;;  helpers
           ;;
+
+
+          ;; position->line-col-pos : number -> (list number number number)
+          (define/private (position->line-col-pos pos)
+            (let* ([para (position-paragraph pos)]
+                   [para-start (paragraph-start-position para)])
+              (list para
+                    (- pos para-start)
+                    pos)))
           
-          ;; extract-snips/chars : number number -> (listof (union char snip))
-          (define/private (extract-snips/chars start end)
+          ;; for-each/snips-chars : number number ((union char snip) line-col-pos -> void) -> void
+          (define/private (for-each/snips-chars start end func)
             (split-snip start)
             (split-snip end)
             (let loop ([snip (find-snip start 'after-or-none)])
               (cond
-                [(not snip) null]
+                [(not snip) (void)]
                 [(< (get-snip-position snip) end)
-                 (if (is-a? snip string-snip%)
-                     (append (string->list (send snip get-text 0 (send snip get-count)))
-                             (loop (send snip next)))
-                     (cons (send snip copy)
-                           (loop (send snip next))))]
-                [else null])))
+                 (let ([line-col-pos (position->line-col-pos (get-snip-position snip))])
+                   (cond
+                     [(is-a? snip string-snip%)
+                      (let ([str (send snip get-text 0 (send snip get-count))])
+                        (let loop ([i 0])
+                          (when (< i (string-length str))
+                            (func (string-ref str i)
+                                  (list (car line-col-pos)
+                                        (+ i (cadr line-col-pos))
+                                        (+ i (caddr line-col-pos))))
+                            (loop (+ i 1)))))
+                      (loop (send snip next))]
+                     [else
+                      (func (send snip copy) line-col-pos)
+                      (loop (send snip next))]))]
+                [else (void)])))
           
           ;; dequeue-n : queue number -> queue
           (define (dequeue-n queue n)
@@ -1486,10 +1566,11 @@ WARNING: printf is rebound in the body of the unit to always
           ;; and returns them as strings (and other stuff).
           (define/private (split-queue converter q)
             (let ([lst (queue->list q)])
-              (if (null? lst)
-                  (values null (empty-queue))
-                  (let loop ([lst lst]
-                             [acc null])
+              (let loop ([lst lst]
+                         [acc null])
+                (if (null? lst)
+                    (values (reverse acc)
+                            (empty-queue))
                     (let-values ([(front rest) (peel lst)])
                       (cond
                         [(not front) (values (reverse acc)
@@ -1520,7 +1601,7 @@ WARNING: printf is rebound in the body of the unit to always
                         [else (loop rest
                                     (cons front acc))]))))))
           
-          ;; peel : (listof (cons (union snip bytes) X)
+          ;; peel : (cons (cons (union snip bytes) X) (listof (cons (union snip bytes) X))
           ;;     -> (values (cons (union snip bytes) X) (listof (cons (union snip bytes) X)
           ;; finds the first segment of bytes with the same style and combines them,
           ;; otherwise a lot like (define (peel x) (values (car x) (cdr x)))
