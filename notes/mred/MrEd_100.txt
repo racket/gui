@@ -2,7 +2,7 @@
                         ******************
                         *    MrEd 100    *
                         ******************
-                         [alpha1 release]
+                         [alpha2 release]
 
 MrEd 100 is the successor to MrEd 53. For MrEd 100, we preserved the
 underlying windowing model, but redesigned the GUI toolbox interface
@@ -424,8 +424,8 @@ top-level-window<%> : area-container-window<%>
 
 frame% : top-level-window<%>
    <= label [parent #f] [width #f] [height #f] [x #f] [y #f] [style null]
-      styles: 'no-thick-border 'no-resize-border 'no-caption 'no-system-menu
-              'iconize 'maximize 'mdi-parent 'mdi-child
+      styles: 'no-resize-border 'no-caption 'no-system-menu
+              'mdi-parent 'mdi-child
    create-status-line set-status-text has-status-line?
    get-menu-bar
    iconize is-iconized? set-icon maximize
