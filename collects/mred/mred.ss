@@ -4181,7 +4181,7 @@
 	(check-dimension cwho height)
 	(check-init-pos-integer cwho x)
 	(check-init-pos-integer cwho y)
-	(check-style cwho #f '(no-resize-border no-caption no-system-menu mdi-parent mdi-child toolbar-button hide-menu-bar) 
+	(check-style cwho #f '(no-resize-border no-caption no-system-menu mdi-parent mdi-child toolbar-button hide-menu-bar metal) 
 		     style)
 	(when (memq 'mdi-child style)
 	  (when (memq 'mdi-parent style)
@@ -4804,7 +4804,7 @@
     (sequence 
       (let ([cwho '(constructor canvas)])
 	(check-container-parent cwho parent)
-	(check-style cwho #f '(border hscroll vscroll gl deleted control-border no-autoclear) style)
+	(check-style cwho #f '(border hscroll vscroll gl deleted control-border no-autoclear transparent) style)
 	(check-callback cwho paint-callback)
 	(check-label-string/false cwho label)))
     (public
@@ -4909,7 +4909,7 @@
       (let ([cwho '(constructor editor-canvas)])
 	(check-container-parent cwho parent)
 	(check-instance cwho internal-editor<%> "text% or pasteboard%" #t editor)
-	(check-style cwho #f '(hide-vscroll hide-hscroll no-vscroll no-hscroll deleted control-border) style)
+	(check-style cwho #f '(hide-vscroll hide-hscroll no-vscroll no-hscroll deleted control-border transparent) style)
 	(check-gauge-integer cwho scrolls-per-page)
 	(check-label-string/false cwho label)
 	(unless (eq? wheel-step no-val)
