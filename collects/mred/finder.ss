@@ -619,51 +619,29 @@
 		     
 		     (show #t))))
 
-	  ; make-common takes a dialog function
+	  ; make-common takes a dialog-maker
+	  ; used to make one dialog object per session, now created each time
 
 	  (define make-common
 	    (lambda (make-dialog)
-	      (let ([s (make-semaphore 1)]
-		    [v (box #f)]
-		    [d #f])                 ; d is a flag, what does it mean?
-		(lambda x
-		  (semaphore-wait s)
-		  (if d                
-		      (let ([my-d d]        ; this case isn't used currently
-			    [my-v v])
-			(set! d #f)
-			(set! v #f)
-			(semaphore-post s)
-			(send my-d show #t)
-			(begin0 (unbox my-v)
-				(semaphore-wait s)
-				(set! d my-d)
-				(set! v my-v)
-				(semaphore-post s)))
-		      (begin
-			(semaphore-post s)
-			(let* ([my-v (box #f)]
-			       [my-d (apply make-dialog my-v x)])
-			  (semaphore-wait s)
-			  (unless d         ; I don't understand this, since d, v not used - PAS
-				  (set! d my-d)
-				  (set! v my-v))
-			  (begin0 (unbox my-v)
-				  (semaphore-post s)))))))))
+	      (lambda args
+		(let ([result-box (box #f)])
+		  (apply make-dialog result-box args)
+		  (unbox result-box)))))
 
 	  ; the common versions of these functions have their visual
 	  ; interfaces under Scheme control
 
 	  (define common-put-file
 	    (make-common
-	     (opt-lambda (box 
-			  [parent-win null]
+	     (opt-lambda (result-box 
 			  [name ()]
 			  [directory ()]
 			  [replace? #f]
 			  [prompt "Select file"]
 			  [filter #f]
-			  [filter-msg  "Invalid form"])
+			  [filter-msg  "Invalid form"]
+			  [parent-win null])
 			 (let* ([directory (if (and (null? directory)
 						    (string? name))
 					       (or (mzlib:file:path-only name) null)
@@ -676,7 +654,7 @@
 					#t 
 					replace? 
 					#f 
-					box 
+					result-box 
 					directory 
 					name 
 					prompt 
@@ -686,17 +664,18 @@
 	  (define common-get-file
 	    (make-common
 	     (opt-lambda
-	      (box [parent-win null]
-		   [directory ()]
-		   [prompt "Select file"]
-		   [filter #f]
-		   [filter-msg "Bad name"])
+	      (result-box 
+	       [directory ()]
+	       [prompt "Select file"]
+	       [filter #f]
+	       [filter-msg "Bad name"]
+	       [parent-win null])
 	      (make-object finder-dialog% 
 			   parent-win   ; parent window
 			   #f           ; save-mode?
 			   #f           ; replace-ok?
 			   #f           ; multi-mode?
-			   box          ; result-box
+			   result-box   ; boxed results
 			   directory    ; start-dir
 			   '()          ; start-name
 			   prompt       ; prompt
@@ -706,7 +685,9 @@
 
 	  (define common-get-file-list
 	    (make-common
-	     (opt-lambda (box [directory ()][prompt "Select files"][filter #f]
+	     (opt-lambda (box [directory ()]
+			      [prompt "Select files"]
+			      [filter #f]
 			      [filter-msg "Bad name"])
 			 (make-object finder-dialog% #f #f #t box directory '() prompt 
 				      filter filter-msg))))
@@ -775,7 +756,7 @@
 				  directory 
 				  null 
 				  null 
-				  "*" 
+				  "*"
 				  0 
 				  parent-win)])
 			  (if (null? f)
