@@ -183,7 +183,6 @@
 
      save
      silent-save
-     read
      restore-defaults
      
      add-panel

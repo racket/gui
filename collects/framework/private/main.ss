@@ -19,8 +19,6 @@
               [color-prefs : framework:color-prefs^]
               [scheme : framework:scheme^])
       
-      (preferences:read)
-      
       (application-preferences-handler (λ () (preferences:show-dialog)))
       
       (preferences:set-default 'framework:basic-canvas-background

@@ -117,7 +117,21 @@
     "\\rawscm{preferences:get} returns the value for the preference"
     "\\var{symbol}. It raises"
     "\\scmindex{exn:unknown-preference}\\rawscm{exn:unknown-preference}"
-    "if the preference has not been set.")
+    "if the preference's default has not been set.")
+   (preferences:set
+    (symbol? any/c . -> . void?)
+    (symbol value)
+    "See also"
+    "@flink preferences:set-default %"
+    "."
+    ""
+    "\\rawscm{preferences:set-preference} sets the preference"
+    "\\var{symbol} to \\var{value}. This should be called when the"
+    "users requests a change to a preference."
+    ""
+    "It raises"
+    "\\scmindex{exn:unknown-preference}\\rawscm{exn:unknown-preference}"
+    "if the preference's default has not been set.")
    (preferences:add-callback
     (opt-> (symbol? (symbol? any/c . -> . any/c))
            (boolean?)
@@ -142,20 +156,14 @@
     "This function raises"
     "\\scmindex{exn:unknown-preference}\\rawscm{exn:unknown-preference}"
     "if the preference has not been set.")
-   (preferences:set
-    (symbol? any/c . -> . void?)
-    (symbol value)
-    "\\rawscm{preferences:set-preference} sets the preference"
-    "\\var{symbol} to \\var{value}. This should be called when the"
-    "users requests a change to a preference.")
    (preferences:set-default
     (symbol? any/c (any/c . -> . any) . -> . void?)
     (symbol value test)
     "This function must be called every time your application starts up, before any call to"
     "@flink preferences:get %"
     ", "
-    "@flink preferences:set %"
-    "."
+    "@flink preferences:set"
+    "(for any given preference)."
     ""
     "If you use"
     "@flink preferences:set-un/marshall %"
@@ -170,10 +178,7 @@
     "called to determine if a preference read in from a file is a valid"
     "preference. If \\var{test} returns \\rawscm{\\#t}, then the preference is"
     "treated as valid. If \\var{test} returns \\rawscm{\\#f} then the default is"
-    "used."
-    ""
-    "If there is a site-wide default preferences file, the default"
-    "preference in that file is used instead of \\var{value}.")
+    "used.")
    (preferences:set-un/marshall
     (symbol? (any/c . -> . printable/c) (printable/c . -> . any/c) . -> . void?)
     (symbol marshall unmarshall)
@@ -216,10 +221,6 @@
     "Same as"
     "@flink preferences:save"
     "except that it does not put display a message if it fails.")
-   (preferences:read
-    (-> void?)
-    ()
-    "Reads the preferences from the preferences file and installs their values.")
    (preferences:restore-defaults
     (-> void?)
     ()

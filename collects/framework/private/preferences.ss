@@ -21,13 +21,13 @@ the state transitions / contracts are:
 
   set is just like get.
 
-  set-default(true, false, _, true) -> set-default(true, true, _, true)
+  set-default(true, false, true, true) -> set-default(true, true, _, true)
   set-default(false, _, _, _) -> error not yet read from disk
   set-default(_, true, _, _) -> error default already set
   set-default(_, _, _, false) -> initialization not okay anymore  /* cannot happen, I think */
 
-  set-marshallingfn(true, _, false, true) -> (true, _, true, true)
-   ... similar to set-default ...
+  set-un/marshall(true, true, false, true) -> (true, true, true, true)
+  .. otherwise error
 
   read(false, _, _, true) -> (true, _, _, true)
   read(true, _, _, _) -> error, already read from disk
@@ -86,7 +86,7 @@ for the last one, need a global "no more initialization can happen" flag.
       
       ;; these four functions determine the state of a preference
       (define (pref-read?) read?)
-      (define (pref-marshall-set? pref) (hash-table-bound? marshall-unmarshall pref))
+      (define (pref-un/marshall-set? pref) (hash-table-bound? marshall-unmarshall pref))
       (define (pref-default-set? pref) (hash-table-bound? defaults pref))
       (define (pref-can-init? pref) 
         (and (not snapshot-grabbed?)
@@ -108,46 +108,62 @@ for the last one, need a global "no more initialization can happen" flag.
       ;; get : symbol -> any
       ;; return the current value of the preference `p'
       ;; exported
-      (define (get p) 
-        (unless (hash-table-bound? defaults p)
-          (raise-unknown-preference-error
-           "preferences:get: tried to get a preference but no default set for ~e"
-           p))
-        (hash-table-get preferences
-                        p
-                        (λ ()
-                          (cond
-                            [(hash-table-bound? marshalled p)
-                             (hash-table-put! preferences p (unmarshall p (hash-table-get marshalled p)))
-                             (hash-table-remove! marshalled p)]
-                            [else
-                             (let* ([def (hash-table-get defaults p)]
-                                    [def-val (default-value def)])
-                               (hash-table-put! preferences p def-val))])
-                          (hash-table-get preferences p))))
+      (define (get p)
+        (cond
+          [(and (pref-read?)
+                (pref-default-set? p))
+           (hash-table-get preferences
+                           p
+                           (λ ()
+                             (cond
+                               [(hash-table-bound? marshalled p)
+                                (hash-table-put! preferences p (unmarshall p (hash-table-get marshalled p)))
+                                (hash-table-remove! marshalled p)]
+                               [else
+                                (let* ([def (hash-table-get defaults p)]
+                                       [def-val (default-value def)])
+                                  (hash-table-put! preferences p def-val))])
+                             (hash-table-get preferences p)))]
+          [(not (pref-read?))
+           (error
+            'preferences:get
+            "tried to get a preference but the disk preferences have not been read yet ~e"
+            p)]
+          [(not (pref-default-set? p))
+           (raise-unknown-preference-error
+            'preferences:get
+            "tried to get a preference but no default set for ~e"
+            p)]))
           
       ;; set : symbol any -> void
       ;; updates the preference
       ;; exported
       (define (set p value)
-        (let ([default (hash-table-get
-                        defaults p
-                        (λ ()
-                          (raise-unknown-preference-error
-                           "preferences:set: tried to set the preference ~e to ~e, but no default is set"
-                           p
-                           value)))])
-          (unless ((default-checker default) value)
-            (error 'preferences:set
-                   "tried to set preference ~e to ~e but it does not meet test from preferences:set-default"
-                   p value))
-          (check-callbacks p value)
-          (hash-table-remove! marshalled p)
-          (hash-table-put! preferences p value)))
+        (cond
+          [(and (pref-read?)
+                (pref-default-set? p))
+           (let ([default (hash-table-get defaults p)])
+             (unless ((default-checker default) value)
+               (error 'preferences:set
+                      "tried to set preference ~e to ~e but it does not meet test from preferences:set-default"
+                      p value))
+             (check-callbacks p value)
+             (hash-table-remove! marshalled p)
+             (hash-table-put! preferences p value))]
+          [(not (pref-read?))
+           (error
+            'preferences:set
+            "tried to get a preference but the disk preferences have not been read yet ~e"
+            p)]
+          [(not (pref-default-set? p))
+           (raise-unknown-preference-error
+            'preferences:set "tried to set the preference ~e to ~e, but no default is set"
+            p
+            value)]))
 
-      (define (raise-unknown-preference-error fmt . args)
+      (define (raise-unknown-preference-error sym fmt . args)
         (raise (exn:make-unknown-preference
-                (string->immutable-string (apply format fmt args))
+                (string->immutable-string (string-append (format "~a: ") (apply format fmt args)))
                 (current-continuation-marks))))
       
       ;; unmarshall : symbol marshalled -> any
@@ -214,14 +230,27 @@ for the last one, need a global "no more initialization can happen" flag.
               (hash-table-remove! callbacks p)
               (hash-table-put! callbacks p new-callbacks))))
       
-      (define set-un/marshall
-        (λ (p marshall unmarshall)
-          (unless (hash-table-bound? defaults p)
-            (error 'set-un/marshall "must call set-default for ~s before calling set-un/marshall for ~s"
-                   p p))
-          (unless (pref-can-init? p)
-            (error 'preferences:set-un/marshall "the preference ~e cannot be configured any more" p))
-          (hash-table-put! marshall-unmarshall p (make-un/marshall marshall unmarshall))))
+      (define (set-un/marshall p marshall unmarshall)
+        (cond
+          [(and (pref-read?)
+                (pref-default-set? p)
+                (not (pref-un/marshall-set? p))
+                (pref-can-init? p))
+           (hash-table-put! marshall-unmarshall p (make-un/marshall marshall unmarshall))]
+          [(not (pref-read?))
+           (error 'preferences:set-un/marshall
+                  "preferences not yet read from disk for ~e" 
+                  p)]
+          [(not (pref-default-set? p))
+           (error 'preferences:set-un/marshall
+                  "must call set-default for ~s before calling set-un/marshall for ~s"
+                  p p)]
+          [(pref-un/marshall-set? p)
+           (error 'preferences:set-un/marshall
+                  "already set un/marshall for ~e" 
+                  p)]
+          [(not (pref-can-init? p))
+           (error 'preferences:set-un/marshall "the preference ~e cannot be configured any more" p)]))
       
       (define (hash-table-bound? ht s)
         (let/ec k
@@ -236,15 +265,28 @@ for the last one, need a global "no more initialization can happen" flag.
       
       ;; set-default : (sym TST (TST -> boolean) -> void
       (define (set-default p default-value checker)
-        (unless (pref-can-init? p)
-          (error 'preferences:set-default
-                 "tried to call set-default for preference ~e but it cannot be configured any more"
-                 p))
-        (let ([default-okay? (checker default-value)])
-          (unless default-okay?
-            (error 'set-default "~s: checker (~s) returns ~s for ~s, expected #t~n"
-                   p checker default-okay? default-value))
-          (hash-table-put! defaults p (make-default default-value checker))))
+        (cond
+          [(and (pref-read?)
+                (not (pref-default-set? p))
+                (pref-can-init? p))
+           (let ([default-okay? (checker default-value)])
+             (unless default-okay?
+               (error 'set-default "~s: checker (~s) returns ~s for ~s, expected #t~n"
+                      p checker default-okay? default-value))
+             (hash-table-put! defaults p (make-default default-value checker)))]
+          [(not (pref-can-init? p))
+           (error 'preferences:set-default
+                  "tried to call set-default for preference ~e but it cannot be configured any more"
+                  p)]
+          [(not (pref-read?))
+           (error 'preferences:set-default
+                  "preferences not yet read from disk for ~e" p)]
+          [(pref-default-set? p)
+           (error 'preferences:set-default
+                  "preferences default already set for ~e" p)]
+          [(not (pref-can-init? p))
+           (error 'preferences:set-default
+                  "can no longer set the default for ~e" p)]))
       
       (define (save) (raw-save #f))
       (define (silent-save) (raw-save #f))
@@ -315,26 +357,36 @@ for the last one, need a global "no more initialization can happen" flag.
       
       ;; read : -> void
       (define (-read) 
-        (set! read? #t)
-        (let/ec k
-          (let ([sexp (get-preference main-preferences-symbol (λ () (k (void))))])
-            (when (andmap (lambda (x)
-                            (and (pair? x)
-                                 (symbol? (car x))
-                                 (pair? (cdr x))
-                                 (null? (cddr x))))
-                          sexp)
-              (for-each (lambda (pr)
-                          (let ([sym (car pr)]
-                                [pref (cadr pr)])
-                            (hash-table-put! marshalled sym pref)))
-                        sexp)))))
+        (cond
+          [(not (pref-read?))
+           (set! read? #t)
+           (let/ec k
+             (let ([sexp (get-preference main-preferences-symbol (λ () (k (void))))])
+               (when (andmap (lambda (x)
+                               (and (pair? x)
+                                    (symbol? (car x))
+                                    (pair? (cdr x))
+                                    (null? (cddr x))))
+                             sexp)
+                 (for-each (lambda (pr)
+                             (let ([sym (car pr)]
+                                   [pref (cadr pr)])
+                               (hash-table-put! marshalled sym pref)))
+                           sexp))))]
+          [(pref-read?)
+           (error 'preferences:read "preferences already read from disk")]))
+      
       (define read? #f)
       
       (define snapshot-grabbed? #f)
       (define (get-prefs-snapshot)
-        (set! snapshot-grabbed? #t)
-        (hash-table-map preferences cons))
+        (cond
+          [(pref-read?)
+           (set! snapshot-grabbed? #t)
+           (hash-table-map preferences cons)]
+          [(not (pref-read?))
+           (error 'get-prefs-snapshot
+                  "cannot grab snapshot until preferences have been read from disk")]))
       
       (define (restore-prefs-snapshot snapshot)
         (for-each (lambda (lst) (set (car lst) (cdr lst)))
@@ -863,4 +915,6 @@ for the last one, need a global "no more initialization can happen" flag.
                main))))
         (set! local-add-font-panel void))
       
-      (define (add-font-panel) (local-add-font-panel)))))
+      (define (add-font-panel) (local-add-font-panel))
+      
+      (-read))))
