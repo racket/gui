@@ -263,7 +263,8 @@ subarea<%> : area<%>
     horiz-margin vert-margin
 
 window<%> : area<%>
-    focus on-focus - on-focus replaces on-set-focus and on-kill-focus
+    focus has-focus? - focus replaces set-focus
+    on-focus - on-focus replaces on-set-focus and on-kill-focus
     enable is-enabled?
     on-size
     on-subwindow-char on-subwindow-event - formerly pre-on-...
@@ -996,6 +997,9 @@ Changed arguments al default value of fit-on-page? for print in
 clipboard% changed to clipboard<%> and font-name-directory% changed to
  font-name-directory<%>; there is just once instance, the-clipboard
  and the-font-name-directory
+
+the-color-database only has a find-color method; the others were
+ removed.
 
 -----------------------------
  TODO: Miscellaneous Cleanup
