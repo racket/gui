@@ -2606,7 +2606,9 @@
 		  ((void) after-set-position)
 		  (#t can-set-size-constraint?)
 		  ((void) on-set-size-constraint)
-		  ((void) after-set-size-constraint))
+		  ((void) after-set-size-constraint)
+		  ((void) after-split-snip s)
+		  ((void) after-merge-snips s))
       
       (super-make-object line-spacing tab-stops)
       (when aw?

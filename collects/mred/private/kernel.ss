@@ -749,6 +749,8 @@
     find-wordbreak
     set-region-data
     get-region-data
+    after-merge-snips
+    after-split-snip
     after-set-size-constraint
     on-set-size-constraint
     can-set-size-constraint?
