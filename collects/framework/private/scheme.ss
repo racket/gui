@@ -374,7 +374,6 @@
                    get-style-list
                    get-end-position
                    flash-on
-                   highlight-range
                    insert
                    kill
                    last-position
@@ -395,7 +394,6 @@
                    forward-match
                    skip-whitespace
                    insert-close-paren)
-          
           
           (inherit get-styles-fixed)
           (inherit has-focus? find-snip split-snip)
@@ -423,7 +421,6 @@
                             (semi-pos . < . (paragraph-start-position (position-paragraph paren-pos))))
                         paren-pos]
                        [else (loop (- semi-pos 1))]))]))))
-          
           
           (public get-limit balance-parens tabify-on-return? tabify tabify-selection
                   tabify-all insert-return calc-last-para 
