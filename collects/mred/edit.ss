@@ -76,7 +76,7 @@
 	     (lambda (v)
 	       (mred:debug:printf 'rewrap "set-auto-set-wrap: ~a" v)
 	       (set! auto-set-wrap? v)
-	       (rewrap))]
+	       (for-each (lambda (c) (send c resize-edit)) canvases))]
 	    
 	    [rewrap
 	     (let ([do-wrap
