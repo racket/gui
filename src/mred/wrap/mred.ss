@@ -94,6 +94,8 @@
 (define top-x 1)
 (define top-y 1)
 
+(define top-level-windows (make-hash-table))
+
 ;;;;;;;;;;;;;;; wx- Class Construction ;;;;;;;;;;;;;;;;;;;;
 
 ; ------------- Mixins for common functionality --------------
@@ -344,6 +346,9 @@
 	     (move x y)
 	     (set! top-x (if x-reset? 0 (+ top-x 10)))
 	     (set! top-y (if y-reset? 0 (+ top-y 20)))))
+	 (if on?
+	     (hash-table-put! top-level-windows this #t)
+	     (hash-table-remove! top-level-windows this))
 	 (super-show on?))]
       
       [move (lambda (x y) (set! use-default-position? #f) (super-move x y))]
@@ -683,10 +688,26 @@
 				  (lambda () (when (ivar active-frame accept-drag?)
 					       (send active-frame on-drop-file f)))))))
 
+(wx:application-quit-handler (lambda ()
+			       (let ([l (hash-table-map top-level-windows (lambda (x y) x))])
+				 (for-each
+				  (lambda (f)
+				    (queue-window-callback
+				     f
+				     (lambda ()
+				       (send f on-exit))))
+				  l))))
+
 (define (make-top-level-window-glue% %) ; implies make-window-glue%
   (class (make-window-glue% %) (mred proxy . args)
+    (inherit is-shown?)
     (rename [super-on-activate on-activate])
-    (public [act-date/seconds 0] [act-date/milliseconds 0] [act-on? #f])
+    (public 
+      [act-date/seconds 0] [act-date/milliseconds 0] [act-on? #f]
+      [on-exit (lambda ()
+		 (when (and mred is-shown?
+			    (send mred can-exit?))
+		   (send mred on-exit)))])      
     (override
       [on-close (lambda ()
 		  (if mred
@@ -2118,12 +2139,14 @@
     get-eventspace
     on-activate
     can-close? on-close
+    can-exit? on-exit
     get-focus-window get-edit-target-window
     get-focus-object get-edit-target-object
     center move resize))
 
 (define basic-top-level-window%
   (class* (make-area-container-window% (make-window% #t (make-container% area%))) (top-level-window<%>) (mk-wx label parent)
+    (inherit show)
     (rename [super-set-label set-label])
     (private
       [wx-object->proxy
@@ -2139,7 +2162,9 @@
     (public
       [get-eventspace (lambda () (ivar wx eventspace))]
       [can-close? (lambda () #t)]
+      [can-exit? (lambda () (can-close?))]
       [on-close cb-0]
+      [on-exit (lambda () (on-close) (show #f))]
       [on-activate cb-1]
       [center (case-lambda
 	       [() (send wx center 'both)]
