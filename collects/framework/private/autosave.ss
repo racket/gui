@@ -4,11 +4,12 @@
 	   (lib "class.ss")
 	   "sig.ss"
 	   (lib "mred-sig.ss" "mred")
+           (lib "mred.ss" "mred") ;; remove this!
            (lib "list.ss")
            (lib "string-constant.ss" "string-constants"))
 
   (provide autosave@)
-
+  
   (define autosave@
     (unit/sig framework:autosave^
       (import mred^
@@ -134,7 +135,7 @@
                                (parent vp))]
                  [msg1-label (instantiate message% ()
                                (parent msg1-panel)
-                               (label (string-constant autosave-original-label)))]
+                               (label (string-constant autosave-original-label:)))]
                  [msg1 (instantiate message% ()
                          (label (or orig-file (string-constant autosave-unknown-filename)))
                          (stretchable-width #t)
@@ -143,7 +144,7 @@
                                (parent vp))]
                  [msg2-label (instantiate message% ()
                                (parent msg2-panel)
-                               (label (string-constant autosave-autosave-label)))]
+                               (label (string-constant autosave-autosave-label:)))]
                  [msg2 (instantiate message% ()
                          (label backup-file)
                          (stretchable-width #t)
@@ -154,8 +155,40 @@
             (send compare enable orig-file)
             (void))))
       
-      (define (show-differences table-entry)
-        (void))
+      ;; show-files : (list (union #f string[filename]) string) -> void
+      (define (show-files table-entry)
+        (let ([file1 (car table-entry)]
+              [file2 (cadr table-entry)])
+          (define frame (make-object show-files-frame% 
+                          (if file1
+                              (string-constant autosave-compare-files)
+                              (string-constant autosave-show-autosave))
+                          #f
+                          (if file1 600 300)
+                          600))
+          (define hp (instantiate horizontal-panel%  ()
+                       (parent (send frame get-area-container))))
+          (when file1
+            (add-file-viewer file1 (string-constant autosave-original-label) hp))
+          (add-file-viewer file2 (string-constant autosave-autosave-label) hp)
+          (send frame show #t)))
+      
+      ;; add-file-viewer : string[filename] -> void
+      (define (add-file-viewer filename parent label)
+        (define vp (make-object vertical-panel% parent))
+        (define t (make-object show-files-text%))
+        (define msg1 (make-object message% label vp))
+        (define msg2 (make-object message% filename vp))
+        (define ec (make-object editor-canvas% vp t))
+        (send t load-file filename)
+        (send t hide-caret #t)
+        (send t lock #t))
+      
+      (define show-files-frame% frame:basic%)
+      (define show-files-text%
+        (scheme:text-mixin
+         (editor:keymap-mixin
+          text:basic%)))
       
       (define (recover-file parent child table-entry)
         (void)))))
