@@ -135,6 +135,7 @@
 	     [no-stipples? #f]
 	     [pixel-copy? #f]
 	     [kern? #f]
+	     [clip-pre-scale? #f]
 	     [mask-ex-mode 'mred]
 	     [xscale 1]
 	     [yscale 1]
@@ -144,6 +145,7 @@
 	     [set-stipples (lambda (on?) (set! no-stipples? (not on?)) (on-paint))]
 	     [set-pixel-copy (lambda (on?) (set! pixel-copy? on?) (on-paint))]
 	     [set-kern (lambda (on?) (set! kern? on?) (on-paint))]
+	     [set-clip-pre-scale (lambda (on?) (set! clip-pre-scale? on?) (on-paint))]
 	     [set-mask-ex-mode (lambda (mode) (set! mask-ex-mode mode) (on-paint))]
 	     [set-scale (lambda (xs ys) (set! xscale xs) (set! yscale ys) (on-paint))]
 	     [set-offset (lambda (o) (set! offset o) (on-paint))])
@@ -785,8 +787,13 @@
 		      (send dc start-doc "Draw Test")
 		      (send dc start-page)
 
-		      (send dc set-scale xscale yscale)
-		      (send dc set-origin offset offset)
+		      (if clip-pre-scale?
+			  (begin
+			    (send dc set-scale 1 1)
+			    (send dc set-origin 0 0))
+			  (begin
+			    (send dc set-scale xscale yscale)
+			    (send dc set-origin offset offset)))
 		      (send dc set-smoothing smoothing)
 		      
 		      (send dc set-background
@@ -850,11 +857,19 @@
 					       (send r union r2)
 					       (yloop (+ y w s))))))))
 			       (send dc clear)])))
+
+		      (when clip-pre-scale?
+			(send dc set-scale xscale yscale)
+			(send dc set-origin offset offset)
+
+			(let ([r (send dc get-clipping-region)])
+			  (send dc set-clipping-rect 0 0 20 20)
+			  (send dc set-clipping-region r)))
 		      
 		      ; check default pen/brush:
 		      (send dc draw-rectangle 0 0 5 5)
 		      (send dc draw-line 0 0 20 6)
-		      
+
 		      (draw-series dc pen0s pen0t pen0x "0 x 0" 5 0 0 #f)
 		      
 		      (draw-series dc pen1s pen1t pen1x "1 x 1" 70 0 1 #f)
@@ -867,16 +882,25 @@
 			      (when r
 				(error 'draw-test "shouldn't have been a clipping region"))
 			      (let*-values ([(x y w h) (send r get-bounding-box)]
-					    [(l) (list x y w h)])
-				(unless (andmap = l
-						(case clip
-						  [(rect) '(100. -25. 10. 400.)]
-						  [(rect2) '(50. -25. 10. 400.)]
-						  [(poly circle poly-rect) '(0. 60. 180. 180.)]
-						  [(rect+poly rect+circle) '(0. -25. 180. 400.)]
-						  [(poly&rect) '(100. 60. 10. 180.)]
-						  [(roundrect) '(80. 200. 125. 40.)]
-						  [(polka) '(0. 0. 310. 510.)]))
+					    [(l) (list x y w h)]
+					    [(=~) (lambda (x y)
+						    (<= (- x 2) y (+ x 2)))])
+				(unless (andmap =~ l
+						(let ([l
+						       (case clip
+							 [(rect) '(100. -25. 10. 400.)]
+							 [(rect2) '(50. -25. 10. 400.)]
+							 [(poly circle poly-rect) '(0. 60. 180. 180.)]
+							 [(rect+poly rect+circle) '(0. -25. 180. 400.)]
+							 [(poly&rect) '(100. 60. 10. 180.)]
+							 [(roundrect) '(80. 200. 125. 40.)]
+							 [(polka) '(0. 0. 310. 510.)])])
+						  (if clip-pre-scale?
+						      (list (- (/ (car l) xscale) offset)
+							    (- (/ (cadr l) yscale) offset)
+							    (- (/ (caddr l) xscale) offset)
+							    (- (/ (cadddr l) yscale) offset))
+						      l)))
 				  (error 'draw-test "clipping region changed badly: ~a" l))))))
 
 		      (let-values ([(w h) (send dc get-size)])
@@ -957,6 +981,18 @@
 		   (set! smoothing (list-ref '(unsmoothed smoothed compatible)
 					     (send self get-selection)))
 		   (send canvas on-paint)))
+    (make-object button% "Clock" hp2.5 (lambda (b e) (clock #f)))
+    (make-object choice% #f
+		 '("MrEd XOR" "PLT Middle" "PLT ^ MrEd" "MrEd ^ PLT" "MrEd ^ MrEd" 
+		   "MrEd~" "MrEd ^ MrEd~" "M^M~ Opaque" "M^M~ Red"
+		   "PLT^PLT")
+		 hp2.5
+		 (lambda (self event)
+		   (send canvas set-mask-ex-mode 
+			 (list-ref '(mred plt plt-mask mred^plt mred^mred 
+					  mred~ mred^mred~ opaque-mred^mred~ red-mred^mred~
+					  plt^plt)
+				   (send self get-selection)))))
     (make-object check-box% "Kern" hp2.5
 		 (lambda (self event)
 		   (send canvas set-kern (send self get-value))))
@@ -970,6 +1006,9 @@
 		               '(none rect rect2 poly circle roundrect rect+poly rect+circle poly-rect poly&rect polka)
 		               (send self get-selection)))
 		   (send canvas on-paint)))
+    (make-object check-box% "Clip Pre-Scale" hp3
+		 (lambda (self event)
+		   (send canvas set-clip-pre-scale (send self get-value))))
     (let ([clock (lambda (clip?)
 		   (thread (lambda ()
 			     (set! clock-clip? clip?)
@@ -988,19 +1027,7 @@
 			     (set! clock-start #f)
 			     (set! clock-end #f)
 			     (send canvas on-paint))))])
-      (make-object button% "Clock" hp3 (lambda (b e) (clock #f)))
-      (make-object button% "Clip Clock" hp3 (lambda (b e) (clock #t)))
-      (make-object choice% #f
-                   '("MrEd XOR" "PLT Middle" "PLT ^ MrEd" "MrEd ^ PLT" "MrEd ^ MrEd" 
-                     "MrEd~" "MrEd ^ MrEd~" "M^M~ Opaque" "M^M~ Red"
-		     "PLT^PLT")
-                   hp3
-		   (lambda (self event)
-		     (send canvas set-mask-ex-mode 
-                           (list-ref '(mred plt plt-mask mred^plt mred^mred 
-                                            mred~ mred^mred~ opaque-mred^mred~ red-mred^mred~
-					    plt^plt)
-                                     (send self get-selection)))))))
+      (make-object button% "Clip Clock" hp3 (lambda (b e) (clock #t)))))
 
   (send f show #t))
 
