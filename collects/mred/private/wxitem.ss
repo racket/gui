@@ -219,15 +219,24 @@
 
   (define wx-button% (make-window-glue% 
 		      (class100 (make-simple-control% wx:button%) (parent cb label x y w h style font)
-			(inherit command)
-			(private-field [border? (memq 'border style)])
-			(public [has-border? (lambda () border?)])
+			(inherit command set-border get-top-level)
+			(private-field 
+			 [border? (memq 'border style)]
+			 [border-on? border?])
+			(public 
+			  [defaulting (lambda (on?)
+					(set! border-on? on?)
+					(when border?
+					  (set-border border-on?)))] 
+			  [has-border? (lambda () border-on?)])
 			(override
 			  [char-to (lambda ()
 				     (as-exit
 				      (lambda ()
 					(command (make-object wx:control-event% 'button)))))])
-			(sequence (super-init style parent cb label x y w h style font)))))
+			(sequence (super-init style parent cb label x y w h style font)
+				  (when border?
+				    (send (get-top-level) add-border-button this))))))
   (define wx-check-box% (class100 (make-window-glue% (make-simple-control% wx:check-box%)) (mred proxy parent cb label x y w h style font)
 			  (inherit set-value get-value command)
 			  (override

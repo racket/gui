@@ -79,6 +79,8 @@
        [focus #f]
        [target #f]
 
+       [border-buttons null]
+
        [show-ht (make-hash-table)])
       
       (override
@@ -99,6 +101,23 @@
 
 	[set-focus-window
 	 (lambda (w)
+	   (unless (eq? 'macosx (system-type))
+	     (set! border-buttons (filter weak-box-value border-buttons))
+	     (if (not w)
+		 ;; Non-border button losing focus?
+		 (when (and (focus . is-a? . wx:button%)
+			    (not (memq focus (map weak-box-value border-buttons))))
+		   (send focus defaulting #f))
+		 ;; Something gaining focus... adjust border buttons
+		 (begin
+		   (for-each (lambda (bb)
+			       (let ([b (weak-box-value bb)])
+				 (when b
+				   (send b defaulting (or (not (w . is-a? . wx:button%))
+							  (eq? b w))))))
+			     border-buttons)
+		   (when (w . is-a? . wx:button%)
+		     (send w defaulting #t)))))
 	   (set! focus w)
 	   (when w
 	     (set! target w)))]
@@ -127,6 +146,10 @@
 				m))
 			  w))
 		    focus)))]
+
+	[add-border-button
+	 (lambda (b)
+	   (set! border-buttons (cons (make-weak-box b) border-buttons)))]
 
 	;; add-child: update panel pointer.
 	;; input: new-panel: panel in frame (descendant of
