@@ -2793,7 +2793,8 @@
 		 (send (send wx-panel area-parent) add-child wx-panel)
 		 (send top-level set-container wx-panel)
 		 top-level))])
-    (sequence (super-init (lambda () (set! wx (mk-wx finish)) wx) (lambda () wx-panel) label parent arrow-cursor))))
+    (sequence 
+      (super-init (lambda () (set! wx (mk-wx finish)) wx) (lambda () wx-panel) label parent arrow-cursor))))
 
 (define subwindow<%> 
   (interface (window<%> subarea<%>)))
@@ -3795,16 +3796,16 @@
 					      (case (system-type)
 						[(unix) (format "~a~a" 
 								(case x-prefix
-								  [(meta) "m:"]
-								  [(alt) "a:"]
-								  [(ctl-m) "c:m;"]
-								  [(ctl) "c:"])
+								  [(meta) ":m:"]
+								  [(alt) ":a:"]
+								  [(ctl-m) ":c:m;:"]
+								  [(ctl) ":c:"])
 								(char-name (char-downcase shortcut)))]
-						[(windows) (format "c:~a" (char-name (char-downcase shortcut)))]
-						[(macos) (format "d:~a" (char-name (char-downcase shortcut)))]))]
+						[(windows) (format ":c:~a" (char-name (char-downcase shortcut)))]
+						[(macos) (format ":d:~a" (char-name (char-downcase shortcut)))]))]
 			    [keymap (and key-binding
 					 (let ([keymap (make-object wx:keymap%)])
-					   (send keymap add-key-function "menu-item" 
+					   (send keymap add-function "menu-item" 
 						 ;; keymap function callback already in exit mode:
 						 (lambda (edit event) 
 						   (callback this (make-object wx:control-event% 'menu))))
@@ -3955,20 +3956,20 @@
 			 [else (void)])
 			(send edit paste)))])
   (wx:add-text-keymap-functions k)
-  (send k add-mouse-function "mouse-paste" mouse-paste)
+  (send k add-function "mouse-paste" mouse-paste)
   (map
    (lambda (key func) (send k map-function key func))
    (append
     (case (system-type)
-      [(windows) '("c:c" "c:x" "c:v" "c:k" "c:z" "c:a")]
-      [(macos) '("d:c" "d:x" "d:v" "d:k" "d:z" "d:a")]
-      [(unix) '("m:w" "c:w" "c:y" "c:k" "c:s:_" "m:a")])
-    '("middlebutton"))
+      [(windows) '(":c:c" ":c:x" ":c:v" ":c:k" ":c:z" ":c:a")]
+      [(macos) '(":d:c" ":d:x" ":d:v" ":d:k" ":d:z" ":d:a")]
+      [(unix) '(":m:w" ":c:w" ":c:y" ":c:k" ":c:s:_" ":m:a")])
+    '(":middlebutton"))
    '("copy-clipboard" "cut-clipboard" "paste-clipboard" "delete-to-end-of-line" 
 		      "undo" "select-all" "mouse-paste"))
   (when (eq? (system-type) 'unix)
-    (send k map-function "c:a" "beginning-of-line")
-    (send k map-function "c:e" "end-of-line")))
+    (send k map-function ":c:a" "beginning-of-line")
+    (send k map-function ":c:e" "end-of-line")))
 
 (define (install-standard-text-bindings e)
   (check-instance 'install-standard-text-bindings wx:text% 'text% #f e)
