@@ -2508,7 +2508,7 @@
 				(lambda (s) (major-offset s))
 				car    ; child-info-x-min
 				caddr  ; child-info-x-stretch
-				(lambda (s) (minor-offset s))
+				(lambda (s t) (minor-offset s t))
 				(lambda (width height) height)
 				(lambda (width height) width)
 				(lambda (major minor) minor)
@@ -2752,7 +2752,7 @@
       (entry-point
        (case-lambda
 	[() (send (get-obj) method)]
-	[(v) (send (get-obj) method)])))]))
+	[(v) (send (get-obj) method v)])))]))
 
 (define (constructor-name who)
   (string->symbol (format "initialization for ~a%" who)))
