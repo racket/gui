@@ -450,7 +450,7 @@
               (when (has-focus?)
                 (highlight-parens)))
             (super-after-set-size-constraint))
-          (define (after-set-position )
+          (define (after-set-position)
             (unless (local-edit-sequence?)
               (when (has-focus?)
                 (highlight-parens)))
