@@ -1,5 +1,5 @@
 .\" dummy line
-.TH MZSCHEME 1 "16 March 2000"
+.TH MZSCHEME 1 "November 2001"
 .UC 4
 .SH NAME
 MzScheme \- The PLT Scheme implementation
@@ -13,11 +13,11 @@ MzScheme \- The PLT Scheme implementation
 .SH DESCRIPTION
 .I MzScheme
 is the PLT
-Scheme implementation.  It nearly implements the language as
+Scheme implementation.  It implements the language as
 described in the
 .I Revised^5 Report on
 .I the Algorithmic Language Scheme
-(the macro system is not fully supported), and adds numerous extensions.
+and adds numerous extensions.
 .PP
 .I MrEd
 embeds and extends MzScheme with a graphical user interface (GUI) toolbox.
@@ -33,6 +33,8 @@ applications.
 Startup file and expression switches:
 .TP
 .BI \-e \ expr
+.TP
+.BI \--eval \ expr
 Evaluates
 .I expr
 after
@@ -40,6 +42,8 @@ after
 starts.
 .TP
 .BI \-f \ file
+.TP
+.BI \--load \ file
 Loads
 .I file
 after
@@ -47,85 +51,122 @@ after
 starts.
 .TP
 .BI \-d \ file
+.TP
+.BI \--load-cd \ file
 Load/cds
 .I file
 after
 .I MzScheme
 starts.
 .TP
+.BI \-t \ file
+.TP
+.BI \--require \ file
+Requires
+.I file
+after
+.I MzScheme
+starts.
+.TP
 .B \-F
+.TP
+.B \--Load
 .br
 Loads all remaining arguments after
 .I MzScheme
 starts.
 .TP
 .B \-D
+.TP
+.B \--Load-cd
 .br
 Load/cds all remaining arguments after
 .I MzScheme
 starts.
 .TP
+.B \-T
+.TP
+.B \--Require
+.br
+Requires all remaining arguments after
+.I MzScheme
+starts.
+.TP
 .BI \-l \ file
+.TP
+.BI \--mzlib \ file
 Same as
-.BR -e \ '(require-library\ "\|\c
+.BR -e \ '(require\ (lib\ "\|\c
 .I file\|\c
-")'.
+"))'.
 .TP
 .BI \-L \ file \  coll
 Same as
-.BR -e \ '(require-library\ "\|\c
+.BR -e \ '(require\ (lib\ "\|\c
 .I file\|\c
 " "\|\c
 .I coll\|\c
-")'.
+"))'.
 .TP
-.B \-r, --script
+.BI \-M \ coll
+Same as
+.BR -e \ '(require\ (lib\ "\|\c
+.I coll\|\c
+\|.ss" "\|\c
+.I coll\|\c
+"))'.
+.TP
+.B \-r
+.TP
+.B --script
 Script mode: use as last flag for scripts.
 Same as
 .BR -fmv- .
 .TP
-.B \-i, --script-cd
+.B \-i
+.TP
+.B --script-cd
 Like -r, but also sets the directory.
 Same as 
 .BR -dmv- .
 .TP
-.B \-w, --awk
+.B \-w
+.TP
+.B \--awk
 Same as
 .B -l
 .BR awk.ss .
+.TP
+.BI \-k \ n \  m
+Load executable-embedded code from file offset
+.I n
+to
+.IR m .
 .PP
 
 Initialization switches:
 .TP
-.B \-x, --no-lib-path
+.B \-x
+.TP
+.B \--no-lib-path
 Does not try to set current-library-collection-paths.
 .TP
-.B \-q, --no-init-file
+.B \-q
+.TP
+.B \--no-init-file
 Does not try to load "~/.mzschemerc".
 .PP
 
 Language setting switches:
 .TP
-.B \-g, --case-sens
+.B \-g
+.TP
+.B \--case-sens
 Identifiers and symbols are initially case-sensitive.
+.B \-s
 .TP
-.B \-c, --esc-cont
-Call/cc is replaced with call/ec.
-.TP
-.B \-s, --set-undef
+.B \--set-undef
 Set! works on undefined identifiers.
-.TP
-.B \-a, --no-auto-else
-Fall-through cond or case is an error.
-.TP
-.B \-n, --no-key
-Keywords are not enforced.
-.TP
-.B \-y, --hash-percent-syntax
-Only #% syntactic forms are present.
-.TP
-.B \-p, --persistent
-Catches AIX SIGDANGER (low page space) signal. (AIX only)
 .PP
 
 Miscellaneous switches:
@@ -134,16 +175,29 @@ Miscellaneous switches:
 .br
 No argument following this switch is used as a switch.
 .TP
-.B \-m, --mute-banner
+.B \-p
+.TP
+.B \--persistent
+Catches AIX SIGDANGER (low page space) signal. (AIX only)
+.TP
+.B \-m
+.TP
+.B \--mute-banner
 Suppresses the startup banner.
 .TP
-.B \-v, --version
+.B \-v
+.TP
+.B \--version
 Suppresses the read-eval-print loop.
 .TP
-.B \-h, --help
+.B \-h
+.TP
+.B \--help
 Shows help for command-line arguments.
 .TP
-.BI \-R file ,\ --restore \ file
+.BI \-R file
+.TP
+.BI \--restore \ file
 Restores an image; must be the only switch. (Special versions only)
 .PP
 Multiple single-letter switches can be collapsed, with arguments placed
@@ -207,18 +261,22 @@ for a "collects" subdirectory.
 .IP
 If
 .I MzScheme
-was invoked with an absolute pathname, the directory
-of the invoked executable is checked. If the executable 
-is a link, the directory of the referenced file is also 
-checked, recursively following links.
+was invoked with an absolute pathname, the directory of the invoked
+executable is checked. If the executable is a link, the directory of
+the referenced file is also checked, recursively following links. The
+parent directories and the parent's parent directories are also
+checked (in case
+.I MzScheme
+is in a "bin" directory or a ".bin/\c
+.I platform\|\c
+" directory).
 .IP
 If
 .I MzScheme
-is invoked with a relative pathname, the
-directories in the PATH environment variable containing
-a file with the name of the program as invoked (usually
-"mzscheme") are checked. Links are followed as in the 
-first case.
+is invoked with a relative pathname, the directories in the PATH
+environment variable containing a file with the name of the program as
+invoked (usually "mzscheme") are checked. Links and parent directories
+are followed as in the first case.
 .IP
 The "/usr/local/lib/plt/collects" directory is 
 tried.
@@ -240,5 +298,4 @@ Boehm and extended by John Ellis. MzScheme was originally based
 on libscheme, written by Brent Benson.
 .SH SEE ALSO
 .BR drscheme(1),
-.BR drscheme-jr(1),
 .BR mred(1)
