@@ -847,16 +847,18 @@
                           [first-para (position-paragraph start-pos)]
                           [last-para (calc-last-para end-pos)])
                      (let para-loop ([curr-para first-para])
-                       (if (<= curr-para last-para)
-                           (let ([first-on-para
-                                  (paren:skip-whitespace 
-                                   this 
-                                   (paragraph-start-position curr-para)
-                                   'forward)])
-                             (when (and (< first-on-para last-pos)
-                                        (char=? #\; (get-character first-on-para)))
-                               (delete first-on-para (+ first-on-para 1)))
-                             (para-loop (add1 curr-para))))))])
+                       (when (<= curr-para last-para)
+                         (let ([first-on-para
+                                (paren:skip-whitespace 
+                                 this 
+                                 (paragraph-start-position curr-para)
+                                 'forward)])
+                           (split-snip first-on-para)
+                           (when (and (< first-on-para last-pos)
+                                      (char=? #\; (get-character first-on-para))
+                                      (is-a? (find-snip first-on-para 'after-or-none) string-snip%))
+                             (delete first-on-para (+ first-on-para 1)))
+                           (para-loop (add1 curr-para))))))])
                 (end-edit-sequence))
               #t))
           

@@ -34,11 +34,9 @@
       
       (preferences:set-default
        'framework:standard-style-list:font-smoothing
-       (case (system-type)
-         [(macosx) 'partly-smoothed]
-         [else 'unsmoothed])
+       'default
        (lambda (x) 
-         (memq x '(unsmoothed partly-smoothed smoothed))))
+         (memq x '(unsmoothed partly-smoothed smoothed default))))
       
       (editor:set-standard-style-list-pref-callbacks)
       
