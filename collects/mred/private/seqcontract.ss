@@ -181,11 +181,11 @@
      (state-machine
       [in-edit-sequence
        (in-edit-sequence?)
-       (begin-edit-sequence [() (x)] in-edit-sequence)
+       (begin-edit-sequence [() (x) (x y)] in-edit-sequence)
        (end-edit-sequence [()] in-edit-sequence out-of-edit-sequence)]
       [out-of-edit-sequence
        (not (in-edit-sequence?))
-       (begin-edit-sequence [() (x)] in-edit-sequence)])
+       (begin-edit-sequence [() (x) (x y)] in-edit-sequence)])
      
      (inherit in-edit-sequence?)
      (super-new)))
