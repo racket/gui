@@ -3882,11 +3882,12 @@
    (lambda (key func) (send k map-function key func))
    (append
     (case (system-type)
-      [(windows) '("c:c" "c:x" "c:v" "c:k" "c:z")]
-      [(macos) '("d:c" "d:x" "d:v" "d:k" "d:z")]
-      [(unix) '("m:w" "c:w" "c:y" "c:k" "c:s:_")])
+      [(windows) '("c:c" "c:x" "c:v" "c:k" "c:z" "c:a")]
+      [(macos) '("d:c" "d:x" "d:v" "d:k" "d:z" "d:a")]
+      [(unix) '("m:w" "c:w" "c:y" "c:k" "c:s:_" "m:a")])
     '("middlebutton"))
-   '("copy-clipboard" "cut-clipboard" "paste-clipboard" "delete-to-end-of-line" "undo" "mouse-paste"))
+   '("copy-clipboard" "cut-clipboard" "paste-clipboard" "delete-to-end-of-line" 
+		      "undo" "select-all" "mouse-paste"))
   (when (eq? (system-type) 'unix)
     (send k map-function "c:a" "beginning-of-line")
     (send k map-function "c:e" "end-of-line")))
@@ -4227,7 +4228,7 @@
       (raise-mismatch-error 'get-choices-from-user 
 			    (format "multiple initial-selection indices provided with ~e style: " 'single)
 			    init-vals))
-    (let* ([f (make-object dialog% title parent box-width)]
+    (let* ([f (make-object dialog% title parent box-width (min 300 (max 150 (* 14 (length choices)))))]
 	   [ok-button #f]
 	   [update-ok (lambda (l) (send ok-button enable (not (null? (send l get-selections)))))]
 	   [ok? #f]
@@ -4392,7 +4393,7 @@
 			(send dir-text set-value (build-path d filename))
 			(set! typed-name filename)
 			(send ok-button enable #t)))
-		    (when put-file
+		    (when put?
 		      (send dir-text focus))
 		    (send f center)
 		    (send f show #t)
@@ -4554,6 +4555,7 @@
       (if (eq? (system-type) 'windows)
 	  (mk "Delete" #f 'clear)
 	  (mk "Clear" #f 'clear))
+      (mk "Select &All" #\a 'select-all)
       (unless text-only?
 	(mk-sep)
 	(mk "Insert Text Box" #f 'insert-text-box)
