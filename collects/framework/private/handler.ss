@@ -1,6 +1,7 @@
 (module handle mzscheme
   (require (lib "unitsig.ss")
 	   "sig.ss"
+	   "../gui-utils-sig.ss"
 	   (lib "mred-sig.ss" "mred")
 	   (lib "file.ss"))
 

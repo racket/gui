@@ -1,6 +1,7 @@
 (module finder mzscheme
   (require (lib "unitsig.ss")
 	   "sig.ss"
+	   "../gui-utils-sig.ss"
 	   (lib "mred-sig.ss" "mred")
 	   (lib "string.ss")
 	   (lib "list.ss")
@@ -32,19 +33,6 @@
       
       (define make-relative
 	(lambda (s) s))
-      
-      (define current-find-file-directory
-	(opt-lambda ([dir 'get])
-	  (cond
-	   [(eq? dir 'get)
-	    (if (not last-directory)
-		(set! last-directory (current-directory)))
-	    last-directory]
-	   [(and (string? dir)
-		 (directory-exists? dir))
-	    (set! last-directory dir)
-	    #t]
-	   [else #f])))
       
       (define build-updir
 	(lambda (dir)
