@@ -438,10 +438,10 @@
 		     (loop (send s next))]
 		    [else #f])))])
 	  (lambda (name format)
-	    (when (and (or (eq? format 'same) (eq? format 'copy))
-		       (eq? (get-file-format) 'standard))
+	    (let ([all-strings? (all-string-snips)])
 	      (cond
-	       [(and (all-string-snips)
+	       [(and all-strings?
+		     (or (eq? format 'same) (eq? format 'copy))
 		     (eq? 'standard (get-file-format))
 		     (or (not (preferences:get 'framework:verify-change-format))
 			 (gui-utils:get-choice "Save this file as plain text?" "No" "Yes")))
@@ -451,6 +451,17 @@
 			  (set! restore-file-format void)
 			  (set-file-format ff))))
 		(set-file-format 'text)]
+	       [(and (not all-strings?)
+		     (or (eq? format 'same) (eq? format 'copy))
+		     (eq? 'text (get-file-format))
+		     (or (not (preferences:get 'framework:verify-change-format))
+			 (gui-utils:get-choice "Save this file in drscheme-specific non-text format?" "No" "Yes")))
+		(set! restore-file-format 
+		      (let ([ff (get-file-format)])
+			(lambda ()
+			  (set! restore-file-format void)
+			  (set-file-format ff))))
+		(set-file-format 'standard)]
 	       [else (void)]))
 	    (super-on-save-file name format)))])
       (sequence
