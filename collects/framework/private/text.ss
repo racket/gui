@@ -1,3 +1,9 @@
+#|
+
+WARNING: printf is rebound in the body of the unit to always
+         print to the original output port.
+
+|#
 
 (module text mzscheme
   (require (lib "string-constant.ss" "string-constants")
@@ -24,6 +30,9 @@
               [number-snip : framework:number-snip^])
       
       (rename [-keymap% keymap%])
+      
+      (define original-output-port (current-output-port))
+      (define (printf . args) (apply fprintf original-output-port args))
       
       (define-struct range (start end b/w-bitmap color caret-space?))
       (define-struct rectangle (left top right bottom b/w-bitmap color))
@@ -851,7 +860,9 @@
                    get-start-position
                    get-end-position
                    get-snip-position
-                   last-position)
+                   last-position
+                   lock
+                   is-locked?)
           
           ;; private field
           (define eventspace (current-eventspace))
@@ -988,29 +999,32 @@
           ;; do-insertion : (listof (cons (union string snip) style-delta)) -> void
           ;; thread: eventspace main thread
           (define/private (do-insertion txts)
-            (begin-edit-sequence)
-            (let loop ([txts txts])
-              (cond
-                [(null? txts) (void)]
-                [else 
-                 (let* ([fst (car txts)]
-                        [str/snp (car fst)]
-                        [sd (cdr fst)])
-                   (insert (if (is-a? str/snp snip%)
-                               (send str/snp copy)
-                               str/snp)
-                           insertion-point
-                           insertion-point
-                           #f)
-                   (let ([inserted-count
-                          (if (is-a? str/snp snip%)
-                              1
-                              (string-length str/snp))])
-                     (change-style sd insertion-point (+ insertion-point inserted-count))
-                     (set! insertion-point (+ insertion-point inserted-count))
-                     (set! unread-start-point (+ unread-start-point inserted-count))))
-                 (loop (cdr txts))]))
-            (end-edit-sequence))
+            (let ([locked? (is-locked?)])
+              (begin-edit-sequence)
+              (lock #f)
+              (let loop ([txts txts])
+                (cond
+                  [(null? txts) (void)]
+                  [else 
+                   (let* ([fst (car txts)]
+                          [str/snp (car fst)]
+                          [sd (cdr fst)])
+                     (insert (if (is-a? str/snp snip%)
+                                 (send str/snp copy)
+                                 str/snp)
+                             insertion-point
+                             insertion-point
+                             #f)
+                     (let ([inserted-count
+                            (if (is-a? str/snp snip%)
+                                1
+                                (string-length str/snp))])
+                       (change-style sd insertion-point (+ insertion-point inserted-count))
+                       (set! insertion-point (+ insertion-point inserted-count))
+                       (set! unread-start-point (+ unread-start-point inserted-count))))
+                   (loop (cdr txts))]))
+              (lock locked?)
+              (end-edit-sequence)))
           
           (define input-buffer-thread
             (thread
