@@ -62,7 +62,7 @@
 		    (hash-table-put! hash-table (add-#% x) 'lambda)
 		    (hash-table-put! hash-table x 'lambda))
 		  '(
-                    instantiate
+                    instantiate super-instantiate
                     lambda let let* letrec recur
                      with-syntax
                      module
