@@ -1,6 +1,17 @@
 
+Version 299.16
+Added hide-cursor-until-moved
+Changed text%'s on-char to call hide-cursor-until-moved
+Improved performance of bitmap scaling when Xrender is 
+ available
+Improved performance of get-argb-pixels, set-argb-pixels,
+ and loading of PNG and JPG files
+
 Version 299.15
 Added message+check-box and message+check-box/custom
+Framework collection:
+ Applications must explicitly call preferences:read
+  after calls to preferences:set-default are all complete
 
 Version 299.13
 Added 'no-border flag to editor-canvas%
