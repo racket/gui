@@ -10,7 +10,7 @@
 
   (define exit@
     (unit/sig framework:exit^
-      (import [mred : mred^]
+      (import mred^
 	      [preferences : framework:preferences^]
 	      [gui-utils : framework:gui-utils^])
       (rename (-exit exit))

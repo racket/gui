@@ -1,18 +1,13 @@
-(require-relative-library "tests.ss")
+(module test mzscheme
+  (require (lib "unitsig.ss")
+	   "test-sig.ss"
+	   "test-unit.ss"
+	   (lib "mred-sig.ss" "mred")
+	   (lib "mred.ss" "mred"))
 
-(begin-elaboration-time
- (require-library "invoke.ss"))
+  (provide-signature-elements framework:test^)
 
-(define-values/invoke-unit/sig ((open mred^)
-				(unit keys : framework:keys^)
-				(unit test : framework:test^))
-  (compound-unit/sig
-   (import)
-   (link [mred : mred^ (mred@)]
-	 [keys : framework:keys^ ((require-relative-library "keys.ss"))]
-	 [test : framework:test^ ((require-relative-library "testr.ss") mred keys)])
-   (export
-    (unit test)
-    (unit keys)
-    (open mred))))
-
+  (define-values/invoke-unit/sig framework:test^
+    test@
+    #f
+    mred^))

@@ -1,5 +1,7 @@
 (module keymap mzscheme
   (require (lib "unitsig.ss")
+	   "sig.ss"
+	   "../macro.ss"
 	   (lib "class.ss")
 	   (lib "list.ss")
 	   (lib "mred-sig.ss" "mred"))
@@ -9,7 +11,6 @@
   (define keymap@ 
     (unit/sig framework:keymap^
       (import mred^
-	      [keys : framework:keys^]
 	      [preferences : framework:preferences^]
 	      [finder : framework:finder^]
 	      [handler : framework:handler^]

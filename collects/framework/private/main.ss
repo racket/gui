@@ -2,6 +2,7 @@
   (require (lib "unitsig.ss")
 	   (lib "class.ss")
 	   "sig.ss"
+	   "../macro"
 	   (lib "mred-sig.ss" "mred"))
   
   (provide main@)

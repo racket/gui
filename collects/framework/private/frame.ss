@@ -3,6 +3,7 @@
 	   (lib "class.ss")
 	   "sig.ss"
 	   "../gui-utils-sig.ss"
+	   "../macro.ss"
 	   (lib "mred-sig.ss" "mred")
 	   (lib "list.ss")
 	   (lib "file.ss"))

@@ -2,6 +2,7 @@
   (require (lib "unitsig.ss")
 	   (lib "class.ss")
 	   "sig"
+	   "../macro.ss"
 	   "../gui-utils-sig.ss"
 	   (lib "mred-sig.ss" "mred")
 	   (lib "list.ss"))
