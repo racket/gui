@@ -49,7 +49,7 @@
 		 case when unless match
 		 let-enumerate
 		 class class* class-asi class-asi* class*/names
-                 class/d class*/d class*/names/d
+                 class/d class/d* class/d*/names
                  rec
                  make-object mixin
 		 define-some do opt-lambda send*
