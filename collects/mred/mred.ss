@@ -1840,7 +1840,7 @@
     (inherit get-dc get-client-size get-mred
 	     set-min-width set-min-height
 	     set-tab-focus
-	     set-background-to-gray)
+	     set-background-to-gray refresh)
     
     (define selected 0)
     (define tracking-pos #f)
@@ -2063,10 +2063,12 @@
 	       (send dc set-clipping-region #f)))))))
 
     (define/public (set-label i s)
-      (set-car! (list-tail tabs i) (wx:label->plain-label s))
-      (set! tab-widths #f)
-      (set! regions #f)
-      (on-paint))
+      (as-entry
+       (lambda ()
+	 (set-car! (list-tail tabs i) (wx:label->plain-label s))
+	 (set! tab-widths #f)
+	 (set! regions #f)
+	 (refresh))))
 
     (define -append
       (entry-point
@@ -2074,7 +2076,7 @@
 	 (set! tabs (append tabs (list (wx:label->plain-label s))))
 	 (set! tab-widths #f)
 	 (set! regions #f)
-	 (on-paint))))
+	 (refresh))))
     (public (-append append))
 
     (define/public (delete i)
@@ -2084,10 +2086,13 @@
 		      (if (= i pos)
 			  (cdr tabs)
 			  (cons (car tabs) (loop (add1 pos) (cdr tabs))))))
-	 (set! selected (min selected (max 0 (sub1 (length tabs)))))
+	 (set! selected (min (if (selected . <= . i)
+				 selected
+				 (sub1 selected))
+			     (max 0 (sub1 (length tabs)))))
 	 (set! regions #f)
 	 (set! tab-widths #f)
-	 (on-paint))))
+	 (refresh))))
 
     (define/override (handles-key-code code alpha? meta?) 
       #f)
