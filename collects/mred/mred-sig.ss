@@ -13,6 +13,7 @@
      append-editor-operation-menu-items
      application-about-handler
      application-preferences-handler
+     application-quit-handler
      area-container-window<%>
      area-container<%>
      area<%>

@@ -1333,38 +1333,74 @@
 				      (lambda () (when (send af accept-drag?)
 						   (send af on-drop-file f))))))))))
 
-(wx:application-quit-handler (entry-point
-			      (lambda ()
-				(let ([af active-main-frame])
-				  (when af
-				    (queue-window-callback
-				     af
-				     (entry-point
-				      (lambda ()
-					(send af on-exit)))))))))
+;; An app-handler record keeps a wrapped procedure with
+;; its original wrappee.
+(define-values (struct:app-handler
+		make-app-handler
+		app-handler?
+		app-handler-ref
+		app-handler-set!)
+  (make-struct-type 'app-handler
+		    #f 2 0
+		    #f null (current-inspector)
+		    0))
+(define (app-handler-orig ah)
+  (app-handler-ref ah 1))
+
+(let ([f (entry-point
+	  (lambda ()
+	    (let ([af active-main-frame])
+	      (when af
+		(queue-window-callback
+		 af
+		 (entry-point
+		  (lambda ()
+		    (send af on-exit))))))))])
+  (wx:application-quit-handler (make-app-handler f f)))
+
+(define (set-handler! who proc param)
+  (when proc
+    (unless (and (procedure? proc)
+		 (procedure-arity-includes? proc 0))
+      (raise-type-error who
+			"procedure (arity 0) or #f"
+			proc)))
+  (let ([e (wx:current-eventspace)])
+    (when (wx:main-eventspace? e)
+      (param (make-app-handler
+	      (lambda ()
+		(parameterize ([wx:current-eventspace e])
+		  (wx:queue-callback
+		   proc
+		   wx:middle-queue-key)))
+	      param)))))
 
 (define application-preferences-handler
   (case-lambda
    [() (and (wx:main-eventspace? (wx:current-eventspace))
-	    (wx:application-pref-handler))]
+	    (app-handler-orig (wx:application-pref-handler)))]
    [(proc)
-    (when proc
-      (unless (and (procedure? proc)
-		   (procedure-arity-includes? proc 0))
-	(raise-type-error 'application-preferences-handler
-			  "procedure (arity 0) or #f"
-			  proc)))
-    (when (wx:main-eventspace? (wx:current-eventspace))
-      (wx:application-pref-handler proc))]))
+    (set-handler! 'application-preferences-handler proc
+		  wx:application-pref-handler)]))
 
 (define application-about-handler
   (case-lambda
    [() (or (and (wx:main-eventspace? (wx:current-eventspace))
-		(wx:application-about-handler))
+		(app-handler-orig (wx:application-about-handler)))
 	   void)]
    [(proc)
-    (when (wx:main-eventspace? (wx:current-eventspace))
-      (wx:application-about-handler proc))]))
+    (set-handler! 'application-about-handler proc
+		  wx:application-about-handler)]))
+
+(define application-quit-handler
+  (case-lambda
+   [() (or (and (wx:main-eventspace? (wx:current-eventspace))
+		(app-handler-orig (wx:application-quit-handler)))
+	   void)]
+   [(proc)
+    (set-handler! 'application-pquit-handler proc
+		  wx:application-quit-handler)]))
+
 
 (define (current-eventspace-has-standard-menus?)
   (and (eq? 'macosx (system-type))
@@ -7392,6 +7428,7 @@
 	text-editor-load-handler
 	application-about-handler
 	application-preferences-handler
+	application-quit-handler
 	current-eventspace-has-standard-menus?
 	make-namespace-with-mred
 	file-creator-and-type)
