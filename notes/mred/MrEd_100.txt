@@ -756,7 +756,7 @@ get-the-buffer-data-class-list
   wx:const-event-type-set-focus              'set-focus
   wx:const-event-type-slider-command         'slider
   wx:const-event-type-text-command           'text
-  wx:const-event-type-text-enter-command     'text-enter
+  wx:const-event-type-text-enter-command     'text-field-enter
   wx:const-event-type-virt-listbox-command   (NO LONGER USED)
   wx:const-extended                          'extended
   wx:const-fdiagonal-hatch                   'fdiagonal-hatch
