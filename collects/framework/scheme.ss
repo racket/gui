@@ -69,7 +69,6 @@
     (let ([delta (make-object style-delta% 'change-normal)])
       (send delta set-delta 'change-family 'modern)
       delta))
-  (define (get-delta) delta)
   (let ([style (send style-list find-named-style "Standard")])
     (if style
 	(send style set-delta delta)

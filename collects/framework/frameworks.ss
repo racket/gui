@@ -239,7 +239,6 @@
    init-wordbreak-map
 
    get-style-list
-   get-delta
 
    get-keymap
    setup-keymap

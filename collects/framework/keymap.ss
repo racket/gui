@@ -724,6 +724,10 @@
 	  (map "a:c" "copy-clipboard")
 	  (map "d:c" "copy-clipboard")
 	  
+	  (map "s:delete" "cut-clipboard")
+	  (map "c:insert" "copy-clipboard")
+	  (map "s:insert" "paste-clipboard")
+
 	  (map-meta "space" "collapse-space")
 	  (map-meta "\\" "remove-space")
 	  (map "c:x;c:o" "collapse-newline")
