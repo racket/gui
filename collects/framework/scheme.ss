@@ -225,15 +225,13 @@
 		      [else (loop (- semi-pos 1))]))]))))])
       (public
 	[highlight-parens
-	 (let* ([clear-old-location void]
+	 (let* ([clear-old-locations void]
 		[old-gray-level 192]
 		[gray-level (if (eq? (system-type) 'windows)
 				(* 3/4 256)
 				(- (* 7/8 256) 1))]
-		[color (make-object color% 
-			 gray-level 
-			 gray-level
-			 gray-level)])
+		[match-color (make-object color% gray-level gray-level gray-level)]
+                [mismatch-color (make-object color% "PINK")])
 	   (opt-lambda ([just-clear? #f])
 	     (when highlight-parens?
 	       (dynamic-wind
@@ -241,8 +239,8 @@
 		  (set! in-highlight-parens? #t)
 		  (begin-edit-sequence))
 		(lambda ()
-		  (clear-old-location)
-		  (set! clear-old-location void)
+		  (clear-old-locations)
+		  (set! clear-old-locations void)
 		  (unless just-clear?
 		    (let* ([here (get-start-position)]
 			   [there (get-end-position)]
@@ -263,38 +261,63 @@
 			   [is-right-paren? (is-paren? cdr)])
 		      (when (and (= here there)
 				 (not (in-single-line-comment? here)))
+
 			(let/ec k
-			  (let-values
-			      ([(left right)
-				(cond
-				  [(and (> here 0)
-					(is-right-paren? (get-character (sub1 here))))
-				   (cond
-				     [(slash? (- here 2) (- here 1)) (k (void))]
-				     [(scheme-paren:backward-match
-				       this here (get-limit here)
-				       backward-cache)
-				      =>
-				      (lambda (end-pos) 
-					(values end-pos here))]
-				     [else (k (void))])]
-				  [(is-left-paren? (get-character here))
-				   (cond
-				     [(slash? (- here 1) here) (k (void))]
-				     [(scheme-paren:forward-match
-				       this here (last-position)
-				       forward-cache)
-				      =>
-				      (lambda (end-pos)
-					(values here end-pos))]
-				     [else (k (void))])]
-				  [else (k (void))])])
-			    (clear-old-location)
-			    (set! clear-old-location
-				  (highlight-range left right
-						   color
-						   (icon:get-paren-highlight-bitmap)
-						   (= there here left)))))))))
+
+			  ;; before, after : (list number number boolean) 
+                          ;;  numbers indicate the range to highlight
+                          ;;  boolean indicates if it is an errorneous highlight
+                          (let ([before
+                                 (cond
+                                   [(and (> here 0)
+                                         (is-right-paren? (get-character (sub1 here))))
+                                    (cond
+                                      [(slash? (- here 2) (- here 1)) #f]
+                                      [(scheme-paren:backward-match
+                                        this here (get-limit here)
+                                        backward-cache)
+                                       =>
+                                       (lambda (end-pos) 
+                                         (list end-pos here #f))]
+                                      [else (list (- here 1) here #t)])]
+                                   [else #f])]
+                                [after
+                                 (cond
+                                   [(is-left-paren? (get-character here))
+                                    (cond
+                                      [(slash? (- here 1) here) #f]
+                                      [(scheme-paren:forward-match
+                                        this here (last-position)
+                                        forward-cache)
+                                       =>
+                                       (lambda (end-pos)
+                                         (list here end-pos #f))]
+                                      [else (list here (+ here 1) #t)])]
+                                   [else #f])]
+                                [handle-single
+                                 (lambda (single)
+                                   (let* ([left (mzlib:function:first single)]
+                                          [right (mzlib:function:second single)]
+                                          [error? (mzlib:function:third single)]
+                                          [off (highlight-range 
+                                                left
+                                                right
+                                                (if error? mismatch-color match-color)
+                                                (icon:get-paren-highlight-bitmap)
+                                                (= there here left))])
+                                     (set! clear-old-locations
+                                           (let ([old clear-old-locations])
+                                             (lambda ()
+                                               (old)
+                                               (off))))))])
+                                         
+                            (cond
+                              [(and after before)
+                               (handle-single after)
+                               (handle-single before)]
+                              [after (handle-single after)]
+                              [before (handle-single before)]
+                              [else (void)])))))))
 		(lambda ()
 		  (end-edit-sequence)
 		  (set! in-highlight-parens? #f))))))]
