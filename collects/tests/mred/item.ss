@@ -848,40 +848,52 @@
 							(list-tail actual-user-data (add1 p))))))))
 			      "Delete")
 		 null))
-  (define (make-selectors method numerical?)
+  (define (make-selectors method mname numerical?)
     (define p2 (make-object mred:horizontal-panel% p))
     (when numerical?
 	  (make-object mred:button% p2
 		       (lambda (b e)
 			 (method -1))
-		       "Select Bad -1"))
+		       (string-append "Select Bad -1" mname)))
     (make-object mred:button% p2
 		 (lambda (b e)
 		   (method 0))
-		 "Select First")
+		 (string-append "Select First" mname))
     (make-object mred:button% p2
 		 (lambda (b e)
 		   (method (floor (/ (send c number) 2))))
-		 "Select Middle")
+		 (string-append "Select Middle" mname))
     (make-object mred:button% p2
 		 (lambda (b e)
 		   (method (sub1 (send c number))))
-		 "Select Last")
+		 (string-append  "Select Last" mname))
     (make-object mred:button% p2
 		 (lambda (b e)
 		   (method (if numerical?
 			       (send c number)
 			       #f)))
-		 "Select Bad X")
+		 (string-append "Select Bad X" mname))
     #f)
-  (define dummy-1 (make-selectors (ivar c set-selection) #t))
+  (define dummy-1 (make-selectors (ivar c set-selection) "" #t))
   (define dummy-2 (make-selectors (lambda (p) 
 				    (if p
 					(when (positive? (length actual-content))
 					      (send c set-string-selection 
 						    (list-ref actual-content p)))
 					(send c set-string-selection "nada")))
+				  " by Name"
 				  #f))
+  (define dummy-3 (make-selectors (lambda (p)
+				    (let ([e (make-object wx:command-event%
+							  (if list?
+							      wx:const-event-type-listbox-command
+							      wx:const-event-type-choice-command))])
+				      (send e set-command-int p)
+				      (send e set-extra-long 1)
+				      (send e set-event-object c)
+				      (send e set-command-string (list-ref actual-content p))
+				      (send c command e)))
+				  " by Simulate" #t))
   (define tb (make-object mred:button% p
 			  (lambda (b e)
 			    (let ([c (send c number)])
