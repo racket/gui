@@ -69,50 +69,50 @@
 			(k (wx:message-box "no file associated with this edit")))
 		      (let-values ([(my-out my-in my-pid my-err)
 				    (apply values (process* (build-path rcs-pathname "rlog")
-							    "-L" "-R" (string-append "-l" username) filename))]
-				   [(their-out their-in their-pid their-err)
-				    (apply values (process* (build-path rcs-pathname "rlog")
-							    "-L" "-R" "-l" filename))])
-			(let ([my-lock? (not (eof-object? (read my-out)))]
-			      [locked? (not (eof-object? (read their-out)))])
-			  (for-each close-input-port (list my-out my-err their-out their-err))
-			  (for-each close-output-port (list my-in their-in))
-			  (cond
-			    [(not (system* (build-path rcs-pathname "rlog") "-h" "-q" filename))
-			     (system* (build-path rcs-pathname "ci") "-t-" filename)
-			     (wx:message-box "Initial Checkin Completed")]
-			    [my-lock?
-			     (when (send edit modified?)
-			       (case (mred:gui-utils:unsaved-warning (send edit get-filename) "Checkin" #t)
-				 [(save) (send edit save-file (send edit get-filename) 
-					       (send edit get-file-format))]
-				 [(cancel) (k (void))]
-				 [else (void)]))
-			     (let* ([msg (wx:get-text-from-user "Please Enter Log Message"
-								"Check In"
-								last-checkin-string)]
-				    [result (system* (build-path rcs-pathname "ci")
-						     "-u" (string-append "-m" msg) filename)])
-			       (set! last-checkin-string msg)
-			       (if result
-				   (send edit load-file
-					 (send edit get-filename)
-					 (send edit get-file-format))
-				   (wx:message-box "Checkin Unsucessful")))]
-			    [locked? (wx:message-box "Someone else has the lock")]
-			    [else
-			     (let ([current-dir (current-directory)])
-			       (let-values ([(base name _) (split-path filename)])
-				 (unless (eq? 'relative base)
-				   (current-directory base))
-				 (let ([res (system* (build-path rcs-pathname "co")
-						     "-q" "-l" name)])
-				   (current-directory current-dir)
-				   (if res
-				       (send edit load-file
-					     (send edit get-filename)
-					     (send edit get-file-format))
-				       (wx:message-box "Checkout Failed")))))])))))))]
+							    "-L" "-R" (string-append "-l" username) filename))])
+			(let-values ([(their-out their-in their-pid their-err)
+				      (apply values (process* (build-path rcs-pathname "rlog")
+							      "-L" "-R" "-l" filename))])
+			  (let ([my-lock? (not (eof-object? (read my-out)))]
+				[locked? (not (eof-object? (read their-out)))])
+			    (for-each close-input-port (list my-out my-err their-out their-err))
+			    (for-each close-output-port (list my-in their-in))
+			    (cond
+			      [(not (system* (build-path rcs-pathname "rlog") "-h" "-q" filename))
+			       (system* (build-path rcs-pathname "ci") "-t-" filename)
+			       (wx:message-box "Initial Checkin Completed")]
+			      [my-lock?
+			       (when (send edit modified?)
+				 (case (mred:gui-utils:unsaved-warning (send edit get-filename) "Checkin" #t)
+				   [(save) (send edit save-file (send edit get-filename) 
+						 (send edit get-file-format))]
+				   [(cancel) (k (void))]
+				   [else (void)]))
+			       (let* ([msg (wx:get-text-from-user "Please Enter Log Message"
+								  "Check In"
+								  last-checkin-string)]
+				      [result (system* (build-path rcs-pathname "ci")
+						       "-u" (string-append "-m" msg) filename)])
+				 (set! last-checkin-string msg)
+				 (if result
+				     (send edit load-file
+					   (send edit get-filename)
+					   (send edit get-file-format))
+				     (wx:message-box "Checkin Unsucessful")))]
+			      [locked? (wx:message-box "Someone else has the lock")]
+			      [else
+			       (let ([current-dir (current-directory)])
+				 (let-values ([(base name _) (split-path filename)])
+				   (unless (eq? 'relative base)
+				     (current-directory base))
+				   (let ([res (system* (build-path rcs-pathname "co")
+						       "-q" "-l" name)])
+				     (current-directory current-dir)
+				     (if res
+					 (send edit load-file
+					       (send edit get-filename)
+					       (send edit get-file-format))
+					 (wx:message-box "Checkout Failed")))))]))))))))]
 	     
 	     [ring-bell
 	      (lambda (edit event)
