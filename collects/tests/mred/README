@@ -1,3 +1,7 @@
+---------------------------------------------------------------------------
+"startup" tests the startup flags of mred. run "run.ss" from that directory.
+
+---------------------------------------------------------------------------
 "frame-edit.ss" checks that various frames match with various
 edits. Under construction.
 
