@@ -315,7 +315,6 @@
             (do-main-thread
              (lambda ()
                (when status-line-container-panel
-                 (printf "open-status-line.1: ~s ~a\n" id (length status-lines))
                  (set! status-lines
                        (let loop ([status-lines status-lines])
                          (cond
@@ -325,14 +324,12 @@
                                    (if (eq? id (status-line-id status-line))
                                        (cons (make-status-line id (+ (status-line-count status-line) 1))
                                              (cdr status-lines))
-                                       (cons status-line (loop (cdr status-lines)))))])))
-                 (printf "open-status-line.2: ~s ~a\n" id (length status-lines))))))
+                                       (cons status-line (loop (cdr status-lines)))))])))))))
           
           (define/public (close-status-line id)
             (do-main-thread
              (lambda ()
                (when status-line-container-panel
-                 (printf "close-status-line.1: ~s ~s ~s\n" id (length status-lines) (length status-line-msgs))
                  
                  ;; decrement counter in for status line, or remove it if
                  ;; counter goes to zero.
@@ -351,33 +348,38 @@
                                      [else (cons status-line (loop (cdr status-lines)))]))])))
                  
                  ;; make sure that there are only as many messages as different status lines, in total
-                 (update-statue-line id #f)
-                 (let ([msgs-that-can-be-removed (filter (lambda (x) (not (status-line-msg-id x))) status-line-msgs-id)]
-                       [max-to-include (length status-line-msgs)]
-                   (let loop (
-                 (set! status-line-msgs
-                       (let loop ([status-lines status-lines]
-                                  [status-line-msgs status-line-msgs])
-                         (cond
-                           [(null? status-line-msgs) null]
-                           [(null? status-lines)
-                            (send status-line-container-panel
-                                  change-children
-                                  (lambda (l)
-                                    (foldl (lambda (status-line-msg l)
-                                             (remq (status-line-msg-message status-line-msg) l))
-                                           l
-                                           status-line-msgs)))
-                            null]
-                           [else (loop (cdr status-lines) (cdr status-line-msgs))])))
-                 
-                 (printf "close-status-line.2: ~s ~s ~s\n" id (length status-lines) (length status-line-msgs))))))
+                 (let ([status-line-msg (find-status-line-msg id)])
+                   (when status-line-msg
+                     (send (status-line-msg-message status-line-msg) set-label "")
+                     (set-status-line-msg-id! status-line-msg #f)))
+                 (let* ([msgs-that-can-be-removed (filter (lambda (x) (not (status-line-msg-id x))) status-line-msgs)]
+                        [max-to-include (length status-lines)]
+                        [msgs-to-remove
+                         (let loop ([n max-to-include]
+                                    [l msgs-that-can-be-removed])
+                           (cond
+                             [(null? l) l]
+                             [(zero? n) l]
+                             [else (loop (- n 1) (cdr l))]))])
+                   (send status-line-container-panel
+                         change-children
+                         (lambda (old-children)
+                           (foldl (lambda (status-line-msg l)
+                                    (remq (status-line-msg-message status-line-msg) l))
+                                  old-children
+                                  msgs-to-remove)))
+                   (set! status-line-msgs
+                         (let loop ([l msgs-to-remove]
+                                    [status-line-msgs status-line-msgs])
+                           (cond
+                             [(null? l) status-line-msgs]
+                             [else (loop (cdr l)
+                                         (remq (car l) status-line-msgs))]))))))))
 
           ;; update-status-line : symbol (union #f string)
           (define/public (update-status-line id msg-txt)
             (do-main-thread
              (lambda ()
-               (printf "update-status-line: ~a ~s\n" id msg-txt)
                (unless (open-status-line? id)
                  (error 'update-status-line "unknown id ~e, other arg ~e" id msg-txt))
                (if msg-txt
@@ -447,7 +449,8 @@
             (if (eq? (current-thread) eventspace-main-thread)
                 (t)
                 (parameterize ([current-eventspace (get-eventspace)])
-                  (queue-callback t #f))))
+                  ;; need high priority callbacks to ensure ordering wrt other callbacks
+                  (queue-callback t #t))))
           
           (super-instantiate ())))
       
