@@ -30,7 +30,7 @@
               [-text-mode<%> text-mode<%>])
       
       (define -text<%>
-        (interface ()
+        (interface (text:basic<%>)
           start-colorer
           stop-colorer
           force-stop-colorer

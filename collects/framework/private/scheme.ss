@@ -307,7 +307,7 @@
       (define-struct string/pos (string pos))
       
       (define -text<%>
-        (interface ()
+        (interface (text:basic<%> mode:host-text<%> color:text<%>)
           get-limit
           balance-parens
           tabify-on-return?
