@@ -1,3 +1,30 @@
+Version 51: March 25, 1998
+
+Engine:
+-------
+Removed wx:concat-files, wx:string-match?, wx:get-temp-file-name
+ (see MzLib's new make-temporary-file)
+Removed some constants:
+  wx:const-bitmap-type-default
+  wx:const-bitmap-discard-colourmap
+  wx:const-allow-auto-resize
+  wx:const-needed-sb
+  wx:const-event-type-char
+  wx:const-conter (use wx:const-centre)
+All methods that operate on bitmap files now require that the 
+ bitmap type is specified
+Removed wx:key-event%'s get-event-type, since there was only
+ one possible result
+Added wx:const-print-postscript, wx:const-print-standard, and
+ wx:const-print-ask
+Restricted wx:find-path to fewer paths; see MzScheme's new
+ find-system-path
+
+System:
+-------
+
+----------------------------------------------------------------------
+
 Version 52: May 25, 1998
 
 IMPORTANT: Expect major changes in the MrEd toolbox with version 53 or
