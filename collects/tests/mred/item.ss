@@ -657,7 +657,7 @@
   
   (let ()
     (define co
-      (make-object combo-text-field% "Greet:" '("Hola" "Ni Hao") ip2 void "hello"))
+      (make-object combo-field% "Greet:" '("Hola" "Ni Hao") ip2 void "hello"))
 
     (define sh (make-object slider% 
 			    (if null-label? #f "H S&lid\uE9r") 0 10 ip2

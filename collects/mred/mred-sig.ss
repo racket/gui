@@ -35,7 +35,7 @@
      clipboard<%>
      color%
      color-database<%>
-     combo-text-field%
+     combo-field%
      control-event%
      control<%>
      current-eventspace

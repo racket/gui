@@ -4771,9 +4771,12 @@
   (check-container-parent cwho parent)
   (check-callback cwho callback)
   (check-string cwho init-value)
-  (check-style cwho req-styles (cons combo-flag
-				     '(hscroll password vertical-label horizontal-label deleted))
-	       style))
+  (check-style cwho 
+	       req-styles 
+	       (append
+		(if choices? null '(hscroll password))
+		'(vertical-label horizontal-label deleted))
+	       (remq combo-flag style)))
 
 (define text-field%
   (class100*/kw basic-control% () 
@@ -4814,36 +4817,45 @@
 			 (check-container-ready cwho parent)))
 		     label parent callback ibeam))))))
 
-(define combo-text-field%
+(define combo-field%
   (class100*/kw text-field% () 
 		[(label choices parent callback [init-value ""] [style '()])
 		 control%-keywords]
     (inherit set-value popup-menu get-size focus get-editor)
     (sequence 
-      (check-text-field-args '(constructor combo-text-field)
+      (check-text-field-args '(constructor combo-field)
 			     label 
 			     #f choices
 			     parent callback init-value
 			     style #f))
+    (public
+      [on-popup (lambda (e)
+		  (let-values ([(w h) (get-size)]
+			       [(cw) (send (mred->wx this) get-canvas-width)])
+		    (send menu set-min-width cw)
+		    (popup-menu menu (- w cw) h)))]
+      [get-menu (lambda () menu)]
+      [append (lambda (item)
+		(check-label-string '(method combo-field% append) item)
+		(make-object menu-item% item menu 
+			     (lambda (i e)
+			       (focus)
+			       (set-value item)
+			       (let ([e (get-editor)])
+				 (send e set-position 0 (send e last-position))))))])
     (override
       [on-subwindow-event (lambda (w e)
 			    (and (send e button-down?)
-				 (let-values ([(w h) (get-size)]
-					      [(cw) (send (mred->wx this) get-canvas-width)])
+				 (let-values ([(cw) (send (mred->wx this) get-canvas-width)])
 				   (and ((send e get-x) . >= . (- cw side-combo-width))
 					(begin
-					  (send menu set-width cw)
-					  (popup-menu menu (- w cw) h)
+					  (on-popup e)
 					  #t)))))])
     (private-field
      [menu (new popup-menu%)])
     (sequence
-      (for-each (lambda (item) (make-object menu-item% item menu 
-					    (lambda (i e)
-					      (focus)
-					      (set-value item)
-					      (let ([e (get-editor)])
-						(send e set-position 0 (send e last-position))))))
+      (for-each (lambda (item) 
+		  (append item))
 		choices)
       (super-init label parent callback init-value (list* combo-flag 'single style)))))
 
@@ -5891,9 +5903,9 @@
 		      (when (is-a? i labelled-menu-item<%>)
 			(send i on-demand)))
 		    (send wx get-items)))]
-      [set-width (lambda (n)
-		   (check-range-integer '(method popup-menu% set-width) n)
-		   (send wx set-width n))])
+      [set-min-width (lambda (n)
+		       (check-range-integer '(method popup-menu% set-min-width) n)
+		       (send wx set-width n))])
     (private-field
       [wx #f])
     (sequence
@@ -8108,7 +8120,7 @@
 	 radio-box%
 	 slider%
 	 text-field%
-	 combo-text-field%
+	 combo-field%
 	 window<%>
 	 area<%>
 	 top-level-window<%>
