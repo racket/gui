@@ -1,5 +1,5 @@
 .\" dummy line
-.TH MZSCHEME 1 "31 May 1997"
+.TH MZSCHEME 1 "24 March 1998"
 .UC 4
 .SH NAME
 MzScheme \- The PLT Scheme implementation
@@ -188,9 +188,19 @@ or
 switch is used. (Under Windows and MacOS, "mzscheme.rc" 
 is loaded from the start-up working directory.)
 .PP
+The library collections search path is read
+from the PLTCOLLECTS environment variable
+(as a colon-separated list of paths). Wherever the empty path
+appears appears in PLTCOLLECTS, it is replaced with the default
+collections directory. If PLTCOLLECTS is not defined, the default
+collections directory is used as the only element in the search path.
+.PP
 .I MzScheme
-looks for the library collections directory using the 
-following search path:
+looks for the default collections directory as one of the 
+following (tried in order):
+.IP
+The path in the environment variable PLTHOME is checked
+for a "collects" subdirectory.
 .IP
 If
 .I MzScheme
@@ -207,12 +217,7 @@ a file with the name of the program as invoked (usually
 "mzscheme") are checked. Links are followed as in the 
 first case.
 .IP
-The path in the environment variable MZCOLS is tried.
-.IP
-The path in the environment variable PLTHOME is checked
-for a "mzscheme" and then "collects" subdirectory.
-.IP
-The "/usr/local/lib/plt/mzscheme/collects" directory is 
+The "/usr/local/lib/plt/collects" directory is 
 tried.
 .PP
 Please consult your local administrator to determine whether
