@@ -14,12 +14,15 @@
     
     (mred:debug:printf 'invoke "mred:preferences@")
     
+    (define preferences-filename (wx:find-path 'pref-file))
+ #|
     (define preferences-filename
       (build-path (wx:find-directory 'pref)
 		  (case wx:platform
 		    [(unix)  ".mred.prefs"]
 		    [(macintosh) "MrEd Preferences"]
 		    [else "mred.pre"])))
+ |#
     
     (define preferences (make-hash-table))
     (define marshall-unmarshall (make-hash-table))
