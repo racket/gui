@@ -91,6 +91,9 @@
 
 (define ibeam (make-object wx:cursor% 'ibeam))
 
+(define top-x 1)
+(define top-y 1)
+
 ;;;;;;;;;;;;;;; wx- Class Construction ;;;;;;;;;;;;;;;;;;;;
 
 ; ------------- Mixins for common functionality --------------
@@ -100,12 +103,14 @@
   (lambda (%)
     (class % args
       (rename [super-on-set-focus on-set-focus]
-	      [super-on-kill-focus on-kill-focus])
+	      [super-on-kill-focus on-kill-focus]
+	      [super-drag-accept-files drag-accept-files])
       (private
 	[top-level #f]
 	[focus? #f]
 	[container this])
       (public
+	[accept-drag? #f]
 	[get-container (lambda () container)]
 	[set-container (lambda (c) (set! container c))]
 	[get-window (lambda () this)]
@@ -123,6 +128,10 @@
 		[else (loop (send window get-parent))])))
 	   top-level)])
       (override
+	[drag-accept-files
+	 (lambda (on?)
+	   (set! accept-drag? (and on? #t))
+	   (super-drag-accept-files on?))]
 	[on-set-focus
 	 (lambda ()
 	   (send (get-top-level) set-focus-window this)
@@ -153,7 +162,7 @@
   (class (wx-make-container% (wx-make-window% base%)) args
     (inherit get-x get-y get-width get-height
 	     get-client-size is-shown?)
-    (rename [super-show show]
+    (rename [super-show show] [super-move move] [super-center center]
 	    [super-on-size on-size]
 	    [super-set-size set-size]
 	    [super-enable enable])
@@ -171,6 +180,8 @@
       
       ; pointer to panel in the frame for use in on-size
       [panel #f]
+
+      [use-default-position? #t]
       
       [enabled? #f]
       [focus #f]
@@ -313,10 +324,30 @@
       ;            and force an update.  If we're hiding, block updates.
       ;          pass now to superclass's show.
       [show
-       (lambda (now)
-	 (when (and now pending-redraws?)
+       (lambda (on?)
+	 (when (and on? pending-redraws?)
 	   (force-redraw))
-	 (super-show now))]
+	 (when (and on? use-default-position?)
+	   (set! use-default-position? #f)
+	   (let*-values ([(w) (get-width)]
+			 [(h) (get-height)]
+			 [(sw sh) (get-display-size)]
+			 [(x x-reset?) (if (< (+ top-x w) sw)
+					   (values top-x #f)
+					   (values (max 0 (- sw w 10)) #t))]
+			 [(y y-reset?) (if (< (+ top-y h) sh)
+					   (values top-y #f)
+					   (values (max 0 (- sh h 20)) #t))])
+	     (move x y)
+	     (set! top-x (if x-reset? 0 (+ top-x 10)))
+	     (set! top-y (if y-reset? 0 (+ top-y 20)))))
+	 (super-show on?))]
+      
+      [move (lambda (x y) (set! use-default-position? #f) (super-move x y))]
+      [center (lambda (dir)
+		(when pending-redraws? (force-redraw))
+		(set! use-default-position? #f)
+		(super-center dir))]
       
       [set-size
        (lambda (x y width height)
@@ -576,6 +607,8 @@
 			       (pre-wx->proxy (send w get-parent) k))
 			   #f))])
     (override
+      [on-drop-file (lambda (f)
+		      (send proxy on-drop-file f))]
       [on-size (lambda (x y)
 		 (super-on-size x y)
 		 (and mred (send mred on-size x y)))]
@@ -606,21 +639,15 @@
 
 (define active-frame #f)
 
-(define application-file-handler (make-parameter
-				  void
-				  (lambda (f)
-				    (unless (procedure-arity-includes? f 1)
-				      (raise-syntax-error 'application-file-handler "procedure, arity 2" f))
-				    f)))
-
 (wx:application-file-handler (lambda (f)
-			       (and active-frame
-				    (let* ([e (send (wx->mred active-frame) get-eventspace)]
-					   [p (wx:eventspace-parameterization e)])
-				      (parameterize ([wx:current-eventspace e])
-					(semaphore-callback
-					 (make-semaphore 1)
-					 (((in-parameterization p application-file-handler)) f)))))))
+			       (when active-frame
+				 (let* ([e (send (wx->mred active-frame) get-eventspace)]
+					[p (wx:eventspace-parameterization e)])
+				   (parameterize ([wx:current-eventspace e])
+				     (semaphore-callback
+				      (make-semaphore 1)
+				      (lambda () (when (ivar active-frame accept-drag?)
+						   (send active-frame on-drop-file f)))))))))
 
 (define (make-top-level-window-glue% %) ; implies make-window-glue%
   (class (make-window-glue% %) (mred proxy . args)
@@ -981,6 +1008,8 @@
     (private
       [pos-x 0] [pos-y 0] [width 1] [height 1])
     (public
+      [drag-accept-files void]
+      [on-drop-file void]
       [on-set-focus void]
       [on-kill-focus void]
       [set-focus void]
@@ -1827,6 +1856,7 @@
   (interface (area<%>)
     on-focus focus
     on-size
+    accept-drop-files on-drop-file
     pre-on-char pre-on-event
     client->screen screen->client
     enable is-enabled?
@@ -1844,6 +1874,7 @@
       [on-size void]
       [pre-on-char (lambda (w e) #f)]
       [pre-on-event (lambda (w e) #f)]
+      [on-drop-file void]
 
       [focus (lambda () (send wx set-focus))]
       [has-focus? (lambda () (send wx has-focus?))]
@@ -1852,6 +1883,11 @@
       
       [get-label (lambda () label)]
       [set-label (lambda (l) (set! label l))]
+
+      [accept-drop-files
+       (case-lambda
+	[() (ivar wx accept-drag?)]
+	[(on?) (send wx drag-accept-files on?)])]
       
       [client->screen (lambda (x y)
 			(double-boxed
@@ -1945,7 +1981,7 @@
       [on-close void]
       [on-activate void]
       [center (case-lambda
-	       [() (send wx center)]
+	       [() (send wx center 'both)]
 	       [(dir) (send wx center dir)])]
       [move (lambda (x y)
 	      (send wx move x y))]
@@ -2722,8 +2758,6 @@
 
   (define waiting (make-semaphore 0))
 
-  (application-file-handler (lambda (f) (send repl-buffer print (format "ignoring file: ~a~n" f))))
-
   ;; Just a few key bindings:
   (let* ([k (send repl-buffer get-keymap)]
 	 [mouse-paste (lambda (edit event) 
@@ -2887,6 +2921,11 @@
 	  (send s set-scaling (gv xscale xsb) (gv yscale ysb))
 	  (send s set-translation (gv xoffset xtb) (gv yoffset ytb))
 	  (send s set-level-2 (send l2 get-value))
+	  
+	  (when (eq? (system-type) 'unix)
+	    (send s set-command (send command get-value))
+	    (send s set-options (send options get-value)))
+
 	  s)
 	#f)]))
 
@@ -3079,3 +3118,8 @@
 	  ((if async? (lambda (x) (process x) #t) system)
 	   (format (unbox b) (expand-path f)))))))
 
+(define (get-display-size)
+  (let ([xb (box 0)]
+	[yb (box 0)])
+    (wx:display-size xb yb)
+    (values (unbox xb) (unbox yb))))
