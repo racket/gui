@@ -799,24 +799,22 @@
     (stv c accept-tab-focus #f)
     (st #f c accept-tab-focus)
 
-    (stv c set-scrollbars 100 101 5 6 2 3 10 20 #t)
+    (stv c init-auto-scrollbars 500 606 .02 .033)
+    ; (stv c set-scrollbars 100 101 5 6 2 3 10 20 #t)
     (let-values ([(w h) (send c get-virtual-size)]
-		 [(cw ch) (send c get-client-size)]
-		 [(s1x s1y) (values 0 0)])
+		 [(cw ch) (send c get-client-size)])
       (printf "Canvas size: Virtual: ~a x ~a  Client: ~a x ~a~n" w h cw ch)
       (let ([check-scroll
 	     (lambda (xpos ypos)
 	       (let-values ([(x y) (send c get-view-start)])
-		 (test (* xpos s1x) `(canvas-view-x ,xpos ,ypos ,x ,cw) x)
-		 (test (* ypos s1y) `(canvas-view-y ,xpos ,ypos ,y ,ch) y)))])
-	(test (* 100 5) 'canvas-virt-w-size w)
-	(test (* 101 6) 'canvas-virt-h-size h)
+		 (let ([coerce (lambda (x) (inexact->exact (floor x)))])
+		   (test (coerce (* xpos (- 500 cw))) `(canvas-view-x ,xpos ,ypos ,x ,cw) x)
+		   (test (coerce (* ypos (- 606 ch))) `(canvas-view-y ,xpos ,ypos ,y ,ch) y))))])
+	(test 500 'canvas-virt-w-size w)
+	(test 606 'canvas-virt-h-size h)
 	
-	(let-values ([(x y) (send c get-view-start)])
-	  (printf "Canvas Init View: ~a ~a~n" x y)
-	  (test #t 'canvas-view-x (<= (- w cw) x (+ cw (- w cw))))
-	  (test #t 'canvas-view-y (<= (- h ch) y (+ ch (- h ch)))))
-	
+	(check-scroll 0.02 0.033)
+
 	(st 0 c get-scroll-pos 'horizontal)
 	(st 0 c get-scroll-pos 'vertical)
 	(st 0 c get-scroll-page 'horizontal)
@@ -824,19 +822,16 @@
 	(st 0 c get-scroll-range 'horizontal)
 	(st 0 c get-scroll-range 'vertical)
 	
-	(stv c scroll 1 1)
-	(let-values ([(x y) (send c get-view-start)])
-	  (set! s1x x)
-	  (set! s1y y))
-	(check-scroll 1 1)
-	(stv c scroll #f 2)
-	(check-scroll 1 2)
-	(stv c scroll 0 #f)
-	(check-scroll 0 2)
+	(stv c scroll 0.1 0.1)
+	(check-scroll 0.1 0.1)
+	(stv c scroll #f 0.2)
+	(check-scroll 0.1 0.2)
+	(stv c scroll 0.0 #f)
+	(check-scroll 0.0 0.2)
 	
 	'done-sb))
 
-    (stv c set-scrollbars 100 101 5 6 2 3 10 20 #f)
+    (stv c init-manual-scrollbars 5 6 2 3 4 5)
     (let-values ([(w h) (send c get-virtual-size)]
 		 [(cw ch) (send c get-client-size)])
       (let ([check-scroll
@@ -851,7 +846,7 @@
 		 (test 0 'canvas-view-x x)
 		 (test 0 'canvas-view-y y)))])
 	
-	(check-scroll 5 6)
+	(check-scroll 4 5)
 	
 	(st 2 c get-scroll-page 'horizontal)
 	(st 3 c get-scroll-page 'vertical)
@@ -859,14 +854,10 @@
 	(st 6 c get-scroll-range 'vertical)
 	
 	(stv c scroll 1 1)
-	(check-scroll 1 1)
-	(stv c scroll #f 2)
-	(check-scroll 1 2)
-	(stv c scroll 0 #f)
-	(check-scroll 0 2)
+	(check-scroll 4 5)
 
 	(stv c set-scroll-pos 'horizontal 1)
-	(check-scroll 1 2)
+	(check-scroll 1 5)
 	(stv c set-scroll-pos 'vertical 0)
 	(check-scroll 1 0)
 	

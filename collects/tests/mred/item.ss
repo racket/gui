@@ -200,6 +200,7 @@
 	      [on-subwindow-char (lambda args 
 				   (or (apply pre-on args)
 				       (apply super-on-subwindow-char args)))]
+	      [on-activate (lambda (on?) (printf "active: ~a~n" on?))]
 	      [on-move (lambda (x y) (printf "moved: ~a ~a~n" x y))]
 	      [on-size (lambda (x y) (printf "sized: ~a ~a~n" x y))])
     (public [set-info
@@ -531,7 +532,7 @@
       [make-menu-bar
        (lambda ()
 	 (let* ([mb (make-object menu-bar% this)]
-		[menu (make-object menu% "Tester" mb)]
+		[menu (make-object menu% "&Tester" mb)]
 		[new (case-lambda 
 		      [(l help parent) (make-object menu-item% l parent callback #f help)]
 		      [(l help) (make-object menu-item% l menu callback #f help)]
@@ -762,13 +763,13 @@
 		       (help-string-test (via apple-menu) COCONUT-ID (apple-pick #f "SUBMENU" "Submenu"))
 		       (label-test (via coconut-menu) DELETE-COCONUT (apple-pick #f "Coconut Deleter" "Delete Coconut")) ; submenu test
 		       (help-string-test (via coconut-menu) DELETE-COCONUT (apple-pick #f "CDELETER" #f))
-		       (top-label-test 0 (if temp-labels? "Hi" "Tester"))
+		       (top-label-test 0 (if temp-labels? "Hi" "&Tester"))
 		       (top-label-test 1 (if apple-installed? "Apple" #f))
 		       (tell-ok)))
 	(make-object button%
 		     "Find Labels" lblp
 		     (lambda args
-		       (find-test main-menu (tmp-pick "Hi" "Tester")
+		       (find-test main-menu (tmp-pick "Hi" "&Tester")
 				  ADD-APPLE (tmp-pick "Apple Adder" "Add Apple"))
 		       (find-test apple-menu "Apple" (apple-pick -1 DELETE-APPLE DELETE-APPLE)
 				  (tmp-pick "Apple Deleter" "Delete Apple"))
@@ -790,7 +791,7 @@
 			 (send DELETE-APPLE set-help-string (tmp-pick "DELETER" "Deletes the Apple menu"))
 			 (send COCONUT-ID set-help-string (tmp-pick "SUBMENU" "Submenu"))
 			 (send DELETE-COCONUT set-help-string (tmp-pick "CDELETER" #f))
-			 (send (send main-menu get-item) set-label (if temp-labels? "Hi" "Tester")))))
+			 (send (send main-menu get-item) set-label (if temp-labels? "Hi" "&Tester")))))
 	(letrec ([by-bar (make-object check-box%
 				      "Via Menubar" lblp
 				      (lambda args
@@ -1420,10 +1421,15 @@
 	   [small? (send ck-s get-value)]
 	   [swap? (send ck-w get-value)])
       (send c1 set-vsize 10 10)
-      (send c1 set-scrollbars (and h? 1) (and v? 1) 10 10 3 3 1 1 swap?)
+      (if swap?
+	  (send c1 init-auto-scrollbars (and h? 10) (and v? 10) .1 .1)
+	  (send c1 init-manual-scrollbars (and h? 10) (and v? 10) 3 3 1 1))
+      ; (send c1 set-scrollbars (and h? 1) (and v? 1) 10 10 3 3 1 1 swap?)
       (send c2 set-vsize (if small? 50 500) (if small? 20 200))
-      (send c2 set-scrollbars (and h? 25) (and v? 10) (if small? 2 20) (if small? 2 20) 
-	    3 3 1 1 (not swap?))
+      (if swap?
+	  (send c2 init-manual-scrollbars (if small? 2 20) (if small? 2 20) 3 3 1 1)
+	  (send c2 init-auto-scrollbars (and h? (if small? 50 500)) (and v? (if small? 20 200)) .2 .2))
+      ; (send c2 set-scrollbars (and h? 25) (and v? 10) (if small? 2 20) (if small? 2 20) 3 3 1 1 (not swap?))
       (if for-small?
 	  ; Specifically refresh the bottom canvas
 	  (send c2 refresh)
@@ -1440,6 +1446,12 @@
   (make-object button%
 	       "Get Instructions" ip
 	       (lambda (b e) (open-file "canvas-steps.txt")))
+  (make-object button%
+	       "&1/5 Scroll" ip
+	       (lambda (b e) (send c2 scroll 0.2 0.2)))
+  (make-object button%
+	       "&4/5 Scroll" ip
+	       (lambda (b e) (send c2 scroll 0.8 0.8)))
   (send c1 set-vsize 10 10)
   (send c2 set-vsize 500 200)
   (send f show #t))
