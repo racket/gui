@@ -120,6 +120,9 @@ Suppresses the read-eval-print loop.
 .TP
 .B \-h, --help
 Shows help for command-line arguments.
+.TP
+.BI \-R file, --restore \ file
+Restores an image; must be the only switch.
 .PP
 Multiple single-letter switches can be collapsed, with arguments placed
 after the collapsed switches; the first collapsed switch cannot be --.
@@ -129,6 +132,10 @@ Extra arguments following the last switch are put into the Scheme global
 variable `argv' as a vector of strings. The name used to start 
 .I MzScheme
 is put into the global variable `program' as a string.
+.PP
+Extra arguments after a `--restore' file are returned as a vector of
+strings to the continuation of the `write-image-to-file' call that created
+the image.
 .PP
 Expressions/files are evaluated/loaded in order as provided.
 .PP
