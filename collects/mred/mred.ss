@@ -7648,26 +7648,15 @@
 				     (next-snip to-str)]
 				    [snip
 				     (let ([the-snip (snip-filter snip)])
+				       (next-snip empty-string)
 				       (lambda (file line col ppos)
 					 (if (is-a? the-snip wx:snip%)
 					     (if (is-a? the-snip readable-snip<%>)
-						 (with-handlers ([void
-								  (lambda (exn)
-								    ;; Give up after an exception
-								    (next-snip empty-string)
-								    (raise exn))])
-						   (let-values ([(val done?)
-								 (send the-snip read-one-special pos file line col ppos)])
-						     (if done?
-							 (next-snip empty-string)
-							 (set! pos (add1 pos)))
-						     val))
-						 (begin
-						   (next-snip empty-string)
-						   (send the-snip copy)))
-					     (begin
-					       (next-snip empty-string)
-					       the-snip))))]
+						 (let-values ([(val done?)
+							       (send the-snip read-one-special pos file line col ppos)])
+						   val)
+						 (send the-snip copy))
+					     the-snip)))]
 				    [else eof]))]
 		     [close (lambda () (void))]
 		     [port (make-input-port/read-to-peek
