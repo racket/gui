@@ -3688,13 +3688,6 @@
 				  stx
 				  'super-init
 				  stx)]
-		     [super-instantiate (datum->syntax-object 
-					 stx
-					 'super-instantiate
-					 stx)]
-		     [this (datum->syntax-object 
-			    stx
-			    'this)]
 		     [(new-keyword ...) (map car kws)]
 		     [(new-init ...) (datum->syntax-object 
 				      stx
@@ -3716,9 +3709,9 @@
 						  '(new-keyword ...))])
 				#'(super-instantiate (arg (... ...))
 						     [new-kw new-kw] (... ...)))]))])
-	     (class100*/names (this -hide-super-init super-instantiate)
-			      base (intf ...) (base-init ... new-init ...)
-			      . rest))))]))
+	     (class100*
+		 base (intf ...) (base-init ... new-init ...)
+		 . rest))))]))
 
 ;---------------- Window interfaces and base classes ------------
 

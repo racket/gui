@@ -157,17 +157,11 @@
          (with-syntax ([(predicate-names ...) predicate-names]
                        [(overriding-method ...) (mapping-map
                                                  (lambda (k vs) (build-overriding-method table vs))
-                                                 table)]
-                       
-                       ;; syntax system stuff for super-instantiate, super-make-object, and this
-                       [this (datum->syntax-object (syntax _) 'this stx)]
-                       [super-instantiate (datum->syntax-object (syntax _) 'super-instantiate stx)]
-                       [super-make-object (datum->syntax-object (syntax _) 'super-make-object stx)]
-                       [super-new (datum->syntax-object (syntax _) 'super-new stx)])
+                                                 table)])
            
            (syntax
             (lambda (%)
-              (class*/names (this super-instantiate super-make-object super-new) % ()
+              (class* % ()
                 (define/private predicate-names (lambda () exp)) ...
                 overriding-method ... 
                 clauses ...)))))]))
