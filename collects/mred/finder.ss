@@ -776,7 +776,7 @@
 		null 
 		null 
 		"*"
-		0 
+		wx:const-open 
 		parent-win)])
 	(if (null? f)
 	    #f
