@@ -1863,9 +1863,35 @@
 (define pasteboard% (class100 (make-editor-buffer% wx:pasteboard% #f (lambda () pasteboard%)) args
 		      (sequence (apply super-init args))))
 
-(define editor-snip% (class100 wx:editor-snip% ([edit #f] . args)
-			(sequence
-			  (apply super-init (or edit (make-object text%)) args))))
+(define editor-snip% (class100 wx:editor-snip% ([editor #f]
+						[with-border? #t]
+						[left-margin 5]
+						[top-margin 5]
+						[right-margin 5]
+						[bottom-margin 5]
+						[left-inset 1]
+						[top-inset 1]
+						[right-inset 1]
+						[bottom-inset 1]
+						[min-width 'none]
+						[max-width 'none]
+						[min-height 'none]
+						[max-height 'none])
+		       (sequence
+			 (super-init (or editor (make-object text%))
+				     with-border?
+				     left-margin
+				     top-margin
+				     right-margin
+				     bottom-margin
+				     left-inset
+				     top-inset
+				     right-inset
+				     bottom-inset
+				     min-width
+				     max-width
+				     min-height
+				     max-height))))
 
 (wx:set-editor-snip-maker (lambda args (apply make-object editor-snip% args)))
 (wx:set-text-editor-maker (lambda () (make-object text%)))
@@ -3344,15 +3370,15 @@
 		     label parent #f))))))
 
 (define radio-box%
-  (class100 basic-control% (label chcs parent callback [style '(vertical)])
-    (private-field [choices chcs])
+  (class100 basic-control% (label choices parent callback [style '(vertical)])
+    (private-field [chcs choices])
     (sequence 
       (let ([cwho '(constructor radio-box)])
 	(check-string/false cwho label)
-	(unless (and (list? choices) (pair? choices)
-		     (or (andmap string? choices)
-			 (andmap (lambda (x) (is-a? x wx:bitmap%)) choices)))
-	  (raise-type-error (who->name cwho) "non-empty list of strings or bitmap% objects" choices))
+	(unless (and (list? chcs) (pair? chcs)
+		     (or (andmap string? chcs)
+			 (andmap (lambda (x) (is-a? x wx:bitmap%)) chcs)))
+	  (raise-type-error (who->name cwho) "non-empty list of strings or bitmap% objects" chcs))
 	(check-container-parent cwho parent)
 	(check-callback cwho callback)
 	(check-orientation cwho style)
@@ -3363,7 +3389,7 @@
       [check-button
        (lambda (method n)
 	 (check-non-negative-integer `(method radio-box% ,method) n)
-	 (unless (< n (length choices))
+	 (unless (< n (length chcs))
 	   (raise-mismatch-error (who->name `(method radio-box% ,method)) "no such button: " n)))])
     (override
       [enable (entry-point
@@ -3377,13 +3403,13 @@
 		     [(which) (check-button 'is-enabled? which)
 			      (send wx is-enabled? which)]))])
     (public
-      [get-number (lambda () (length choices))]
+      [get-number (lambda () (length chcs))]
       [get-item-label (lambda (n) 
 			(check-button 'get-item-label n)
-			(list-ref choices n))]
+			(list-ref chcs n))]
       [get-item-plain-label (lambda (n) 
 			      (check-button 'get-item-plain-label n)
-			      (wx:label->plain-label (list-ref choices n)))]
+			      (wx:label->plain-label (list-ref chcs n)))]
        
       [get-selection (entry-point (lambda () (send wx get-selection)))]
       [set-selection (entry-point
@@ -3393,26 +3419,26 @@
     (sequence
       (as-entry
        (lambda ()
-	 (when (andmap string? choices)
-	   (set! choices (map string->immutable-string choices)))
+	 (when (andmap string? chcs)
+	   (set! chcs (map string->immutable-string chcs)))
 	 (super-init (lambda () 
 		       (set! wx (make-object wx-radio-box% this this
 					     (mred->wx-container parent) (wrap-callback callback)
-					     label -1 -1 -1 -1 choices 0 style))
+					     label -1 -1 -1 -1 chcs 0 style))
 		       wx)
 		     label parent #f))))))
 
 (define slider%
-  (class100 basic-control% (label minv maxv parent callback [value min-val] [style '(horizontal)])
-    (private-field [min-val minv][max-val maxv])
+  (class100 basic-control% (label min-value max-value parent callback [init-value min-value] [style '(horizontal)])
+    (private-field [minv min-value][maxv max-value])
     (sequence 
       (let ([cwho '(constructor slider)])
 	(check-string/false cwho label)
-	(check-slider-integer cwho min-val)
-	(check-slider-integer cwho max-val)
+	(check-slider-integer cwho minv)
+	(check-slider-integer cwho maxv)
 	(check-container-parent cwho parent) 
 	(check-callback cwho callback)
-	(check-slider-integer cwho value)
+	(check-slider-integer cwho init-value)
 	(check-style cwho '(vertical horizontal) '(plain) style)
 	(check-container-ready cwho parent)))
     (private-field
@@ -3422,10 +3448,10 @@
       [set-value (entry-point
 		  (lambda (v)
 		    (check-slider-integer '(method slider% set-value) v)
-		    (unless (<= min-val v max-val)
+		    (unless (<= minv v maxv)
 		      (raise-mismatch-error (who->name '(method slider% set-value))
 					    (format "slider's range is ~a to ~a; cannot set the value to: "
-						    min-val max-val)
+						    minv maxv)
 					    v))
 		    (send wx set-value v)))])
     (sequence
@@ -3434,7 +3460,7 @@
 	 (super-init (lambda () 
 		       (set! wx (make-object wx-slider% this this
 					     (mred->wx-container parent) (wrap-callback callback)
-					     label value min-val max-val style))
+					     label init-value minv maxv style))
 		       wx)
 		     label parent #f))))))
 
@@ -3605,13 +3631,13 @@
 		  label parent))))
 
 (define text-field%
-  (class100* basic-control% () (label parent callback [init-val ""] [style '(single)])
+  (class100* basic-control% () (label parent callback [init-value ""] [style '(single)])
     (sequence 
       (let ([cwho '(constructor text-field)])
 	(check-string/false cwho label)
 	(check-container-parent cwho parent)
 	(check-callback cwho callback)
-	(check-string cwho init-val)
+	(check-string cwho init-value)
 	(check-style cwho '(single multiple) '(hscroll) style)
 	(check-container-ready cwho parent)))
     (private-field
@@ -3629,7 +3655,7 @@
 	 (super-init (lambda () 
 		       (set! wx (make-object wx-text-field% this this
 					     (mred->wx-container parent) (wrap-callback callback)
-					     label init-val style))
+					     label init-value style))
 		       wx)
 		     label parent ibeam))))))
 
@@ -3666,8 +3692,9 @@
 	 (super-init (lambda () (set! wx (mk-wx)) wx) (lambda () wx) #f parent #f))))))
 
 (define canvas%
-  (class100 basic-canvas% (parent [style null])
-    (inherit get-client-size)
+  (class100 basic-canvas% (parent [style null] [paint-callback (lambda (dc) (void))])
+    (private-field [paint-cb paint-callback])
+    (inherit get-client-size get-dc)
     (sequence 
       (let ([cwho '(constructor canvas)])
 	(check-container-parent cwho parent)
@@ -3745,6 +3772,8 @@
       [set-scroll-range (entry-point (lambda (d v) (send wx set-scroll-range d v)))]
       [get-scroll-page (entry-point (lambda (d) (send wx get-scroll-page d)))]
       [set-scroll-page (entry-point (lambda (d v) (send wx set-scroll-page d v)))])
+    (override
+      [on-paint (lambda () (paint-cb (get-dc)))])
     (private-field
       [wx #f])
     (sequence
@@ -3895,8 +3924,8 @@
 	   (send (send wx area-parent) add-child wx)))
 	(send parent after-new-child this)))))
 
-(define vertical-panel% (class100 panel% args (sequence (apply super-init args))))
-(define horizontal-panel% (class100 panel% args (sequence (apply super-init args))))
+(define vertical-panel% (class100 panel% (parent [style null]) (sequence (super-init parent style))))
+(define horizontal-panel% (class100 panel% (parent [style null]) (sequence (super-init parent style))))
 
 ;;;;;;;;;;;;;;;;;;;;;; Menu classes ;;;;;;;;;;;;;;;;;;;;;;
 
@@ -4108,15 +4137,15 @@
   (interface (labelled-menu-item<%>) get-menu))
 
 (define separator-menu-item%
-  (class100* mred% (menu-item<%>) (prnt)
-    (sequence (menu-parent-only 'separator-menu-item prnt))
+  (class100* mred% (menu-item<%>) (parent)
+    (sequence (menu-parent-only 'separator-menu-item parent))
     (private-field
-      [parent prnt]
+      [prnt parent]
       [wx #f]
       [shown? #f]
       [wx-parent #f])
     (public
-      [get-parent (lambda () parent)]
+      [get-parent (lambda () prnt)]
       [restore (entry-point
 		(lambda ()
 		  (unless shown?
@@ -4133,7 +4162,7 @@
       (as-entry
        (lambda ()
 	 (set! wx (make-object wx-menu-item% this #f))
-	 (set! wx-parent (send (mred->wx parent) get-container))
+	 (set! wx-parent (send (mred->wx prnt) get-container))
 	 (super-init wx)))
       (restore))))
 
@@ -4332,17 +4361,17 @@
       (super-init label #f menu callback shortcut help-string (lambda (x) x)))))
 
 (define checkable-menu-item%
-  (class100 basic-selectable-menu-item% (label mnu callback [shortcut #f] [help-string #f])
+  (class100 basic-selectable-menu-item% (label menu callback [shortcut #f] [help-string #f])
     (sequence
-      (check-shortcut-args 'checkable-menu-item label mnu callback shortcut help-string))
+      (check-shortcut-args 'checkable-menu-item label menu callback shortcut help-string))
     (private-field
-      [menu mnu]
+      [mnu menu]
       [wx #f])
     (public
-      [check (entry-point (lambda (on?) (send (send (mred->wx menu) get-container) check (send wx id) on?)))]
-      [is-checked? (entry-point (lambda () (send (send (mred->wx menu) get-container) checked? (send wx id))))])
+      [check (entry-point (lambda (on?) (send (send (mred->wx mnu) get-container) check (send wx id) on?)))]
+      [is-checked? (entry-point (lambda () (send (send (mred->wx mnu) get-container) checked? (send wx id))))])
     (sequence
-      (super-init label #t menu callback shortcut help-string (lambda (x) (set! wx x) x)))))
+      (super-init label #t mnu callback shortcut help-string (lambda (x) (set! wx x) x)))))
 
 (define menu-item-container<%> (interface () get-items on-demand))
 (define internal-menu<%> (interface ()))
@@ -4409,15 +4438,15 @@
 	 (super-init wx))))))
 
 (define menu-bar%
-  (class100* mred% (menu-item-container<%>) (prnt)
-    (sequence (barless-frame-parent prnt))
+  (class100* mred% (menu-item-container<%>) (parent)
+    (sequence (barless-frame-parent parent))
     (private-field 
-      [parent prnt]
+      [prnt parent]
       [wx #f]
       [wx-parent #f]
       [shown? #f])
     (public
-      [get-frame (lambda () parent)]
+      [get-frame (lambda () prnt)]
       [get-items (entry-point (lambda () (send wx get-items)))]
       [enable (entry-point (lambda (on?) (send wx enable-all on?)))]
       [is-enabled? (entry-point (lambda () (send wx all-enabled?)))]
@@ -4429,7 +4458,7 @@
       (as-entry
        (lambda ()
 	 (set! wx (make-object wx-menu-bar% this))
-	 (set! wx-parent (mred->wx parent))
+	 (set! wx-parent (mred->wx prnt))
 	 (super-init wx)
 	 (send wx-parent set-menu-bar wx)
 	 (send wx-parent self-redraw-request))))))
