@@ -12,11 +12,6 @@
   
   (provide color@)
     
-  (define (nat-sub1 x)
-    (if (= 0 x)
-        0
-        (sub1 x)))
-  
   (define (should-color-type? type)
     (not (memq type '(white-space no-color))))
   
@@ -215,12 +210,9 @@
               (modify)
               (cond
                 (up-to-date?
-                 ;; Subtract 1 because if the edit falls on a token boundary
-                 ;; we need the token before the boundary not the one after
-                 (send tokens search! (nat-sub1 (- edit-start-pos start-pos)))
                  (let-values 
                      (((orig-token-start orig-token-end valid-tree invalid-tree)
-                       (send tokens split)))
+                       (send tokens split edit-start-pos)))
                    (send parens split-tree orig-token-start)
                    (set! invalid-tokens invalid-tree)
                    (set! tokens valid-tree)
@@ -232,18 +224,16 @@
                    (set! up-to-date? #f)
                    (queue-callback (lambda () (colorer-callback)) #f)))
                 ((>= edit-start-pos invalid-tokens-start)
-                 (send invalid-tokens search! (- edit-start-pos invalid-tokens-start))
                  (let-values (((tok-start tok-end valid-tree invalid-tree)
-                               (send invalid-tokens split)))
+                               (send invalid-tokens split edit-start-pos)))
                    (set! invalid-tokens invalid-tree)
                    (set! invalid-tokens-start
                          (+ invalid-tokens-start tok-end change-length))))
                 ((>= edit-start-pos current-pos)
                  (set! invalid-tokens-start (+ change-length invalid-tokens-start)))
                 (else
-                 (send tokens search! (nat-sub1 (- edit-start-pos start-pos)))
                  (let-values (((tok-start tok-end valid-tree invalid-tree)
-                               (send tokens split)))
+                               (send tokens split edit-start-pos)))
                    (send parens truncate tok-start)
                    (set! tokens valid-tree)
                    (set! invalid-tokens-start (+ change-length invalid-tokens-start))
