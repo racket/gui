@@ -312,7 +312,7 @@
           (make-between 'edit-menu 'find 'preferences 'separator)
           (make-an-item 'edit-menu 'preferences "Configure the preferences"
                         '(lambda (item control) (preferences:show-dialog) #t)
-                        #f "Preferences..." ""
+                        #\; "Preferences..." ""
                         on-demand-do-nothing)
           (make-after 'edit-menu 'preferences 'nothing)
           

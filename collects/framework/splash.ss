@@ -116,7 +116,8 @@
 	       (when quit-on-close?
 		 (exit)))])
 	   (sequence (super-init title)))]
-	[(frame) (parameterize ([current-eventspace (make-eventspace)])
+        [(splash-eventspace) (make-eventspace)]
+	[(frame) (parameterize ([current-eventspace splash-eventspace])
 		   (make-object splash-frame% title))]
 	[(_0) (send frame accept-drop-files #t)]
 	[(bitmap-flag)
@@ -189,6 +190,9 @@
 	   (set! quit-on-close? #f)
 	   (send frame show #f))])
        (values
+        bitmap
+        logo-canvas
+        splash-eventspace
 	get-dropped-files
 	shutdown-splash
 	close-splash)))))

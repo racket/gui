@@ -153,7 +153,7 @@
             
             (accept-drop-files #t)
             
-            (make-object menu% "&Windows" (make-object (get-menu-bar%) this))
+            (make-object menu% "&Window" (make-object (get-menu-bar%) this))
             (reorder-menus this)
             (send (group:get-the-frame-group) insert-frame this))
           (private-field
