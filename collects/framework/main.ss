@@ -52,7 +52,7 @@
                  make-object mixin
 		 define-some do opt-lambda send*
 		 local catch shared
-		 unit/sig
+		 unit/sig unit/lang
 		 with-handlers
 		 interface
 		 parameterize
