@@ -4834,7 +4834,7 @@
    [(title message parent) (message-box title message parent '(ok))]
    [(title message parent style)
     (check-label-string 'message-box title)
-    (check-label-string/false 'message-box message)
+    (check-string/false 'message-box message)
     (check-top-level-parent/false 'message-box parent)
     (check-style 'message-box '(ok ok-cancel yes-no) null style)
 
