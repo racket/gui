@@ -598,7 +598,7 @@
               (else
                (let* ((c (car closers))
                       (l (string-length c)))
-                 (insert c)
+                 (insert c pos)
                  (let ((m (backward-match (+ l pos) start-pos)))
                    (cond
                      ((and m
