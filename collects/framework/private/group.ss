@@ -29,6 +29,7 @@
         (class object%
           
           [define active-frame #f]
+          [define most-recent-window-box (make-weak-box #f)]
           [define frame-counter 0]
           [define frames null]
           [define todo-to-new-frames void]
@@ -95,6 +96,11 @@
                    (callback (lambda (x y) (choose-a-frame (send (send menu get-parent) get-frame))))
                    (shortcut #\j))
                  (instantiate menu:can-restore-menu-item% ()
+                   (label (string-constant most-recent-window))
+                   (parent menu)
+                   (callback (lambda (x y) (most-recent-window-to-front)))
+                   (shortcut #\'))
+                 (instantiate menu:can-restore-menu-item% ()
                    (label (string-constant next-window))
                    (parent menu)
                    (callback (lambda (x y) (next/prev-window (send (send menu get-parent) get-frame) #t)))
@@ -114,6 +120,13 @@
                           (send frame show #t)))))
                   sorted/visible-frames))
                windows-menus))]
+
+          ;; most-recent-window-to-front : -> void?
+          ;; brings the most recent window to the front
+          (define (most-recent-window-to-front)
+            (let ([most-recent-window (weak-box-value most-recent-window-box)])
+              (when most-recent-window
+                (send most-recent-window show #t))))
           
           ;; next/prev-window : (is-a?/c top-level-window<%>) boolean? -> void?
           ;; brings either the next or previous (alpabetically) window to the
@@ -213,6 +226,8 @@
                 [else (frame-frame (car frames))]))]
           [define set-active-frame
             (lambda (f)
+              (when active-frame
+                (set! most-recent-window-box (make-weak-box active-frame)))
               (set! active-frame f))]
           [define insert-frame
             (lambda (f)
