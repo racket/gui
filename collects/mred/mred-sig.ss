@@ -182,6 +182,7 @@
      the-font-name-directory
      the-pen-list
      the-style-list
+     the-x-selection-clipboard
      timer%
      top-level-window<%>
      unregister-collecting-blit

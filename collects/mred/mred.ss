@@ -2191,6 +2191,13 @@
 			     (let ([edit (get-editor)])
 			       (when edit
 				 (as-exit (lambda () (send edit on-display-size-when-ready))))))]
+      [on-scroll-on-change (lambda ()
+			     (queue-window-callback
+			      this
+			      (lambda ()
+				(let ([edit (get-editor)])
+				  (when edit
+				    (send edit on-display-size-when-ready))))))]
       [on-set-focus
        (entry-point
 	(lambda ()
@@ -4882,7 +4889,9 @@
   (class100*/kw basic-canvas% ()
 		[(parent [style null] [paint-callback default-paint-cb] [label #f])
 		 canvas%-keywords]
-    (private-field [paint-cb paint-callback])
+    (private-field [paint-cb paint-callback]
+		   [has-x? (memq 'hscroll style)]
+		   [has-y? (memq 'vscroll style)])
     (inherit get-client-size get-dc set-label)
     (rename [super-on-paint on-paint])
     (sequence 
@@ -4948,6 +4957,20 @@
 	 (send wx set-scrollbars (if x-len 1 0) (if y-len 1 0)
 	       (or x-len 0) (or y-len 0) x-page y-page x-val y-val #f))]
 
+      [show-scrollbars
+       (lambda (x-on? y-on?)
+	 (let ([bad (lambda (which what)
+		      (raise-mismatch-error 
+		       (who->name '(method canvas% show-scrollbars))
+		       (format
+			"cannot show ~a scrollbars, because the canvas style did not include ~a: "
+			which
+			what)
+		       this))])
+	   (when x-on? (unless has-x? (bad "horizontal" 'hscroll)))
+	   (when y-on? (unless has-y? (bad "vertical" 'vscroll)))
+	   (send wx show-scrollbars x-on? y-on?)))]
+
       [get-scroll-pos (entry-point (lambda (d) (send wx get-scroll-pos d)))]
       [set-scroll-pos (entry-point (lambda (d v) (send wx set-scroll-pos d v)))]
       [get-scroll-range (entry-point (lambda (d) (send wx get-scroll-range d)))]
@@ -4967,7 +4990,7 @@
 				  [(memq 'control-border style) (+ 4 canvas-control-border-extra)]
 				  [(memq 'border style) 4]
 				  [else 0])
-				 (if (or (memq 'vscroll style) (memq 'hscroll style))
+				 (if (or has-x? has-y?)
 				     canvas-default-size
 				     1))])
 		      (set! wx (make-object wx-canvas% this this
@@ -4993,7 +5016,9 @@
       (let ([cwho '(constructor editor-canvas)])
 	(check-container-parent cwho parent)
 	(check-instance cwho internal-editor<%> "text% or pasteboard%" #t editor)
-	(check-style cwho #f '(hide-vscroll hide-hscroll no-vscroll no-hscroll deleted control-border transparent no-border) style)
+	(check-style cwho #f '(hide-vscroll hide-hscroll no-vscroll no-hscroll auto-vscroll auto-hscroll
+					    deleted control-border transparent no-border)
+		     style)
 	(check-gauge-integer cwho scrolls-per-page)
 	(check-label-string/false cwho label)
 	(unless (eq? wheel-step no-val)
@@ -5893,7 +5918,7 @@
 						   eol-box)])
 			      (send edit set-position click-pos)))]
 			 [else (void)])
-			(send edit paste)))]
+			(send edit paste-x-selection)))]
        [mouse-popup-menu (lambda (edit event)
 			   (when (send event button-up?)
 			     (let ([a (send edit get-admin)])
@@ -6017,7 +6042,7 @@
 				 (apply super-init args) (accept-drop-files #t)))
 			     "MrEd REPL" #f 500 400))
   (define repl-buffer (make-object esq:text%))
-  (define repl-display-canvas (new editor-canvas% [parent frame] [style '(no-border)]))
+  (define repl-display-canvas (new editor-canvas% [parent frame] [style '(no-border auto-hscroll)]))
 
   (define esq-eventspace (wx:current-eventspace))
   (define (queue-output proc)
@@ -7969,6 +7994,7 @@
 (define the-color-database (wx:get-the-color-database))
 (define the-font-name-directory (wx:get-the-font-name-directory))
 (define the-clipboard (wx:get-the-clipboard))
+(define the-x-selection-clipboard (wx:get-the-x-selection))
 (define the-font-list (wx:get-the-font-list))
 (define the-pen-list (wx:get-the-pen-list))
 (define the-brush-list (wx:get-the-brush-list))
@@ -8061,6 +8087,7 @@
 	 get-family-builtin-face
 	 send-message-to-window
 	 the-clipboard
+	 the-x-selection-clipboard
 	 the-editor-wordbreak-map
 	 the-brush-list
 	 the-color-database

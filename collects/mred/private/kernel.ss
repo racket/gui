@@ -276,6 +276,7 @@
     copy-self-to
     copy-self
     kill
+    paste-x-selection
     paste
     copy
     cut
@@ -355,6 +356,7 @@
     scroll
     warp-pointer
     view-start
+    show-scrollbars
     set-scrollbars
     get-virtual-size
     get-dc
@@ -663,6 +665,7 @@
     allow-scroll-to-last
     force-display-focus
     is-focus-on?
+    on-scroll-on-change
     get-editor
     set-editor
     get-wheel-step
@@ -802,10 +805,12 @@
     find-position
     split-snip
     change-style
+    do-paste-x-selection
     do-paste
     do-copy
     kill
     paste-next
+    paste-x-selection
     paste
     copy
     cut
@@ -941,6 +946,7 @@
     get-clipboard-string
     set-clipboard-string
     set-clipboard-client)
+  (define-function get-the-x-selection)
   (define-function get-the-clipboard)
   (define-class clipboard-client% object% ()
     get-types
@@ -1024,6 +1030,7 @@
     move-to
     remove
     erase
+    do-paste-x-selection
     do-paste
     do-copy
     delete
@@ -1080,6 +1087,7 @@
     copy-self-to
     copy-self
     kill
+    paste-x-selection
     paste
     copy
     cut)
