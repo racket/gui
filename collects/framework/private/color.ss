@@ -256,10 +256,13 @@
 
           (inherit is-locked?)
           
+	  (define done-sema (make-semaphore))
+
           (define/private (colorer-driver)
             (unless up-to-date?
+	      (set! done-sema (make-semaphore))
               (thread-resume background-thread)
-              (sleep .01)    ;; This is when the background thread is working.
+              (sync/timeout 0.01 done-sema)
               (semaphore-wait mutex-lock)
               (thread-suspend background-thread)
               (semaphore-post mutex-lock)
@@ -300,6 +303,7 @@
 			       current-pos))
                 (set! up-to-date? #t)
                 ;(printf "~a~n" (- (current-milliseconds) timer))
+		(semaphore-post done-sema)
                 (semaphore-post mutex-lock)
                 (thread-suspend (current-thread))))
             (background-colorer))
