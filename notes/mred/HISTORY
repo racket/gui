@@ -1,3 +1,9 @@
+Version 101: ??
+
+Showing an inactive child window now raises an exception
+
+----------------------------------------------------------------------
+
 Version 100: August 9, 1999
 
 MrEd 100 is the successor to MrEd 53. For MrEd 100, we preserved the
