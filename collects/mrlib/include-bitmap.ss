@@ -2,7 +2,8 @@
   (require (lib "mred.ss" "mred")
 	   (lib "class.ss")
 	   (lib "file.ss"))
-  (require-for-syntax (lib "path-spec.ss" "syntax"))
+  (require-for-syntax (lib "path-spec.ss" "syntax")
+		      (lib "cm-accomplice.ss"))
 
   (provide include-bitmap
            include-bitmap/relative-to)
@@ -23,6 +24,7 @@
 		 (with-input-from-file c-file
 		   (lambda ()
 		     (read-string (file-size c-file)))))])
+	 (register-external-file c-file)
 	 (with-syntax ([content content]
 		       [c-file c-file])
 	   (syntax/loc stx
