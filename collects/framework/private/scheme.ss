@@ -958,7 +958,7 @@
 	      (unless (and (null? (send text get-tabs #f bw bu))
 			   (= tab-size (unbox bw))
 			   (not (unbox bu)))
-		(send text set-tabs null (send text get-tab-size) #f)))
+                	(send text set-tabs null (send text get-tab-size) #f)))
             (send text set-styles-fixed #t)
 	    (send text end-edit-sequence))
           
