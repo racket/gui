@@ -77,17 +77,13 @@ If the -s flag is not specified,
 looks for its standard system file "mrsystem.ss" with the following 
 search path:
 .IP
-* the current working directory
-.IP
 * the search path defined by the MREDSYS system evironment 
 variable
 .IP
-* the "system" sub-directory in the current working directory
+* In PLTHOME/mred/system where PLTHOME is replaced with the value of the
+PLTHOME environment variable.
 .IP
-* "PLTHOME/mred/system" directory, where "PLTHOME" is replaced
-with value of the PLTHOME environment variable
-.IP
-* "/usr/local/lib/plt/mred/system"
+* "/usr/local/lib/plt/mred/system" 
 .IP
 * "/usr/lib/plt/mred/system"
 .IP
@@ -117,8 +113,8 @@ Email bug reports to plt-bugs@cs.rice.edu.  Please mention
 "MrEd" in the subject line or the message.
 .SH AUTHOR
 .I MrEd
-was implemented by Matthew Flatt (mflatt@cs.rice.edu)
-using wxWindows by Julian Smart et al. and
+was implemented by Matthew Flatt (mflatt@cs.rice.edu) and Robby Findler
+(robby@cs.rice.edu) using wxWindows by Julian Smart et al. and
 the conservative garbage collector by Hans Boehm et al.
 .SH SEE ALSO
 .BR drscheme(1),
