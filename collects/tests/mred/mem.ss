@@ -171,6 +171,7 @@
 	  (let* ([mb (remember tag (make-object menu-bar% ef))]
 		 [m (remember tag (make-object menu% "Ok" mb))])
 	    (remember tag (make-object menu-item% "Hi" m void))
+	    (remember tag (make-object menu-item% "There" m void #\t))
 	    (remember tag
 		      (make-object checkable-menu-item%
 				   "Checkable"
