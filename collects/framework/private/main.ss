@@ -149,7 +149,7 @@
                      define-schema define/contract))
 	(for-each (lambda (x) 
 		    (hash-table-put! hash-table x 'begin))
-		  '(case-lambda
+		  '(case-lambda case-lambda*
 		    cond
 		    begin begin0 delay
 		    unit compound-unit compound-unit/sig

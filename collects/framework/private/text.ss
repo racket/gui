@@ -1146,16 +1146,13 @@ WARNING: printf is rebound in the body of the unit to always
               (void))
             
             (define (make-write-special-proc style)
-              (lambda (bytes start-i end-i can-buffer? enable-breaks?)
-                #;
+              (lambda (special can-buffer? enable-breaks?)
                 (cond
-                   [(eq? (current-thread) (eventspace-handler-thread eventspace))
-                    (error 'write-bytes-proc "cannot write to port on eventspace main thread")]
-                   [else
-                    (if (is-a? special snip%)
-                        (channel-put write-chan (cons special style))
-                        (channel-put write-chan (cons (string->bytes/utf-8 (format "~s" special)) style)))])
-                (- start-i end-i)))
+                  [(eq? (current-thread) (eventspace-handler-thread eventspace))
+                   (error 'write-bytes-proc "cannot write to port on eventspace main thread")]
+                  [else
+                   (channel-put write-chan (cons special style))])
+                #t))
             
             (define out-sd (make-object style-delta% 'change-normal))
             (define err-sd (make-object style-delta% 'change-italic))
@@ -1167,19 +1164,16 @@ WARNING: printf is rebound in the body of the unit to always
             (set! out-port (make-output-port #f
                                              always-evt
                                              (make-write-bytes-proc out-sd)
-                                             flush-proc
                                              out-close-proc
                                              (make-write-special-proc out-sd)))
             (set! err-port (make-output-port #f 
                                              always-evt
                                              (make-write-bytes-proc err-sd)
-                                             flush-proc
                                              out-close-proc
                                              (make-write-special-proc err-sd)))
             (set! value-port (make-output-port #f
                                                always-evt
                                                (make-write-bytes-proc value-sd)
-                                               flush-proc
                                                out-close-proc
                                                (make-write-special-proc value-sd))))
 
@@ -1217,17 +1211,24 @@ WARNING: printf is rebound in the body of the unit to always
                ;; the main loop for this thread
                (define (loop)
                  (let-values ([(not-ready-peekers new-peek-response-evts)
-                               (separate service-waiter peekers)]
+                               (separate peekers service-waiter)]
                               [(potential-commits new-commit-response-evts) 
                                (separate 
-                                (service-committer peeker-evt data)
-                                committers)])
+                                committers
+                                (service-committer peeker-evt data))])
                    (set! peekers not-ready-peekers)
                    (set! committers potential-commits)
                    (set! response-evts (append response-evts
                                                new-peek-response-evts
                                                new-commit-response-evts))
                    (sync
+                    (handle-evt
+                     clear-input-chan
+                     (lambda (_)
+                       (semaphore-post peeker-sema)
+                       (set! peeker-sema (make-semaphore 0))
+                       (set! peeker-evt (semaphore-peek-evt peeker-sema))
+                       (loop)))
                     (handle-evt
                      progress-event-chan
                      (lambda (return-pr)
