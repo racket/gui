@@ -50,12 +50,12 @@
   (define cache-image-snip%
     (class snip%
       
-      ;; draw-proc : (union #f ((is-a?/c dc<%>) int[dx] int[dy] -> void))
+      ;; dc-proc : (union #f ((is-a?/c dc<%>) int[dx] int[dy] -> void))
       ;; used for direct drawing
       (init-field dc-proc)
       (define/public (get-dc-proc) dc-proc)
       
-      ;; bitmap-proc : ((vectorof rational[0 <= x <= 255]) int[dx] int[dy] -> void)
+      ;; argb-proc : ((vectorof rational[0 <= x <= 255]) int[dx] int[dy] -> void)
       ;; used for drawing into a bitmap
       (init-field argb-proc)
       (define/public (get-argb-proc) argb-proc)
@@ -124,11 +124,12 @@
           [else (void)]))
       
       (define/override (write f)
-        (let ([str (format "~s"
-                           (list (argb-vector (get-argb))
-                                 width
-                                 px 
-                                 py))])
+        (let ([str (string->bytes/utf-8
+                    (format "~s"
+                            (list (argb-vector (get-argb))
+                                  width
+                                  px 
+                                  py)))])
           (send f put str)))
       
       (define/override (get-num-scroll-steps) (+ (quotient height 20) 1))
@@ -147,7 +148,7 @@
   (define cache-image-snip-class%
     (class snip-class%
       (define/override (read f)
-        (let ([data (read-from-string (send f get-string)
+        (let ([data (read-from-string (bytes->string/utf-8 (send f get-bytes))
                                       void
                                       (lambda (x) #f))])
           (if data
@@ -301,23 +302,28 @@
                       [str-i str-i])
             (if (= x w)
                 (yloop (add1 y) str-i)
-                (let* ([argb-i (* 4 (+ (+ dx x) (* (+ dy y) argb-w)))]
-                       [m1 (vector-ref argb-vector argb-i)]
-                       [m2 (bytes-ref mask-bytes (+ str-i 1))] ;; get red coordinate
-                       [m3 (build-m3 m1 m2)]
-                       [do-b
-                        (lambda (off)
-                          (vector-set! argb-vector
-                                       (+ argb-i off)
-                                       (build-b3 m1
-                                                 (vector-ref argb-vector (+ argb-i off))
-                                                 m2
-                                                 (bytes-ref color-bytes (+ str-i off))
-                                                 m3)))])
-                  (vector-set! argb-vector argb-i m3)
-                  (do-b 1)
-                  (do-b 2)
-                  (do-b 3)
+                (begin
+                  (when (and (<= 0 (+ x dx))
+                             (< (+ x dx) argb-w))
+                    (let ([argb-i (* 4 (+ (+ dx x) (* (+ dy y) argb-w)))])
+                      (when (and (<= 0 argb-i)
+                                 (< argb-i (vector-length argb-vector)))
+                        (let* ([m1 (vector-ref argb-vector argb-i)]
+                               [m2 (bytes-ref mask-bytes (+ str-i 1))] ;; get red coordinate
+                               [m3 (build-m3 m1 m2)]
+                               [do-b
+                                (lambda (off)
+                                  (vector-set! argb-vector
+                                               (+ argb-i off)
+                                               (build-b3 m1
+                                                         (vector-ref argb-vector (+ argb-i off))
+                                                         m2
+                                                         (bytes-ref color-bytes (+ str-i off))
+                                                         m3)))])
+                          (vector-set! argb-vector argb-i m3)
+                          (do-b 1)
+                          (do-b 2)
+                          (do-b 3)))))
                   (xloop (+ x 1) (+ str-i 4)))))))))
   
 #|
