@@ -74,7 +74,9 @@
                      define-schema))
 	(for-each (lambda (x) 
 		    (hash-table-put! hash-table x 'begin))
-		  '(cond case-lambda
+		  '(case-lambda
+		    cond
+		    match-lambda match-lambda*
 		    begin begin0 delay
 		    unit compound-unit compound-unit/sig
 		    public private override
@@ -88,7 +90,7 @@
                      with-syntax
 		     with-continuation-mark
                      module
-                     match match-lambda match-lambda* match-let match-let* match-letrec
+		     match match-let match-let* match-letrec
                      let/cc let/ec letcc catch
                      let-syntax letrec-syntax 
                      syntax-case syntax-case* syntax-rules
