@@ -1990,8 +1990,7 @@
     (set-min-height (inexact->exact (ceiling (+ tab-height 9 raise-h))))))
 
 (define wx-tab-group% 
-  (if 
-(eq? 'unix (system-type))
+  (if (eq? 'unix (system-type))
       canvas-based-tab-group%
       (make-window-glue%
        (make-control% wx:tab-group% 0 0 #t #t))))
@@ -7279,6 +7278,11 @@
 (define the-style-list (wx:get-the-style-list))
 (define the-editor-wordbreak-map (wx:get-the-editor-wordbreak-map))
 
+(define file-creator-and-type
+  (case-lambda
+   [(fn) (wx:file-creator-and-type fn)]
+   [(fn c t) (wx:file-creator-and-type fn c t)]))
+
 (provide button%
 	canvas%
 	check-box%
@@ -7368,7 +7372,8 @@
 	application-about-handler
 	application-preferences-handler
 	current-eventspace-has-standard-menus?
-	make-namespace-with-mred)
+	make-namespace-with-mred
+	file-creator-and-type)
 
 
 ) ;; end of module

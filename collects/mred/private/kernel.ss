@@ -1432,6 +1432,7 @@
     set-executer
     current-gl-context
     send-event
+    file-creator-and-type
     set-snip-class-getter
     set-editor-data-class-getter
     main-eventspace?)

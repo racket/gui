@@ -63,6 +63,7 @@
      event-dispatch-handler
      eventspace-shutdown?
      eventspace?
+     file-creator-and-type
      find-graphical-system-path
      flush-display
      font%
