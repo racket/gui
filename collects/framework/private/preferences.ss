@@ -163,7 +163,7 @@ for the last one, need a global "no more initialization can happen" flag.
 
       (define (raise-unknown-preference-error sym fmt . args)
         (raise (exn:make-unknown-preference
-                (string->immutable-string (string-append (format "~a: ") (apply format fmt args)))
+                (string->immutable-string (string-append (format "~a: " sym) (apply format fmt args)))
                 (current-continuation-marks))))
       
       ;; unmarshall : symbol marshalled -> any
@@ -304,7 +304,8 @@ for the last one, need a global "no more initialization can happen" flag.
                                       (exn-message exn))))
                            #f)])
           (let ([syms (list main-preferences-symbol)]
-                [vals (list (hash-table-map preferences marshall-pref))]
+                [vals (list (append (hash-table-map preferences marshall-pref)
+                                    (hash-table-map marshalled list)))]
                 [res #t])
             (put-preferences
              syms vals

@@ -6,6 +6,7 @@
   (define ((check-eq? x) y) (eq? x y))
   (define pref-sym 'plt:not-a-real-preference)
   (define marshalling-pref-sym 'plt:not-a-real-preference-marshalling)
+  (define default-test-sym 'plt:not-a-real-preference-default-test)
   
   (define saved-prefs-file 
     (let loop ([n 0])
@@ -73,6 +74,23 @@
         (check-eq? 'new-pref)
         `(begin (preferences:set-default ',pref-sym 'passed symbol?)
                 (preferences:get ',pref-sym)))
+
+  (test 'preference-no-set-default-stage1
+        (check-eq? 'stage1)
+        `(begin (preferences:set-default ',default-test-sym 'default symbol?)
+                (preferences:set ',default-test-sym 'new-value)
+                (preferences:save)
+                'stage1))
+  (shutdown-mred)
+  (test 'preference-no-set-default-stage2
+        (check-eq? 'stage2)
+        `(begin (preferences:save)
+                'stage2))
+  (shutdown-mred)
+  (test 'preference-no-set-default-stage3
+        (check-eq? 'new-value)
+        `(begin (preferences:set-default ',default-test-sym 'default symbol?)
+                (preferences:get ',default-test-sym)))
   
   (test 'dialog-appears
         (lambda (x) (eq? 'passed x))
