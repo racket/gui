@@ -68,9 +68,8 @@ MrEd accepts the following standard
 These flags must appear before all other flags.
 .PP
 
-.SH OPTIONS
+.SH STARTUP FILE AND EXPRESSION OPTIONS
 
-Startup file and expression switches:
 .TP
 .BI \-e \ expr
 .TP
@@ -200,27 +199,33 @@ Load executable-embedded code from file offset
 .I n
 to
 .IR m .
+.TP
+.B \-C
+.TP
+.B \--main
+Call `main' with a list of argument strings,  but only if
+there have been no uncaught exceptions from previous file loads or evaluations.
 .PP
 
-Initialization switches:
+.SH INITIALIZATION OPTIONS
 .TP
 .B \-x
 .TP
 .B \--no-lib-path
-Does not try to set current-library-collection-paths.
+Skips trying to set current-library-collection-paths.
 .TP
 .B \-q
 .TP
 .B \--no-init-file
-Does not try to load "~/.mredrc".
+Skips trying to load "~/.mredrc".
 .TP
 .B \-A
 .TP
 .B \--no-argv
-Does not set `argv' or `program'.
+Skips defining `argv' and `program'.
 .PP
 
-Language setting switches:
+.SH LANGUAGE SETTING OPTIONS
 .TP
 .B \-g
 .TP
@@ -233,7 +238,7 @@ Identifiers and symbols are initially case-sensitive.
 Set! works on undefined identifiers.
 .PP
 
-Miscellaneous switches:
+.SH MISCELLANEOUS OPTIONS
 .TP
 .B \--
 .br
@@ -270,7 +275,8 @@ Shows help for command-line arguments and exits, ignoring other switches.
 .TP
 .BI \--restore \ file
 Restores an image; must be the only switch. (Special versions only)
-.PP
+
+.SH OPTION CONVENTIONS
 Multiple single-letter switches can be collapsed, with arguments placed
 after the collapsed switches; the first collapsed switch cannot be
 .BR -- .
@@ -299,15 +305,20 @@ expressions/files are evaluated/loaded, unless the
 or
 .B --no-lib-path
 switch is used.  
-.PP
-.PP
-For further information on
-.IR MrEd ,
-please consult the on-line
-documentation and other information available at
-.PP
+
+.SH EXECUTABLE NAME
+If the executable name has the form scheme-\|\c
+.I dialect\|\c
+, then the command line is effectively prefixed with
 .ce 1
-http://www.plt-scheme.org/software/mred/
+-qAerC '(require (lib "init.ss" "script-lang" "\|\c
+.I dialect\|\c
+"))'
+so that the first actual command-line argument is the name of a file
+to load; the file should define `main', which is called with the 
+remaining arguments in a list.
+
+
 .SH FILES
 The file "~/.mredrc" is loaded before any provided
 expressions/files are evaluated/loaded, unless the
@@ -351,9 +362,14 @@ followed as in the first case.
 .IP
 The "/usr/local/lib/plt/collects" directory is 
 tried.
+.SH FURTHER INFORMATION
+For further information on
+.IR MrEd ,
+please consult the on-line
+documentation and other information available at
 .PP
-Please consult your local administrator to determine whether
-the on-line documentation has been installed locally.
+.ce 1
+http://www.plt-scheme.org/software/mred/
 .SH BUGS
 Submit bug reports via
 .ce 1
