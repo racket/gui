@@ -107,6 +107,7 @@
 			 canvases)))
 		     (do-wrap 0))))]
 	    [mode #f]
+	    [set-mode-direct (lambda (v) (set! mode v))]
 	    [set-mode
 	     (lambda (m)
 	       #f)]
@@ -182,7 +183,7 @@
     (define make-edit%
       (lambda (super%)
 	(class (make-std-buffer% super%) args
-	  (inherit mode canvases get-file-format 
+	  (inherit mode set-mode-direct canvases get-file-format 
 		   set-filename
 		   change-style save-file
 		   invalidate-bitmap-cache
@@ -273,14 +274,14 @@
 		   (send mode deinstall this))
 	       (if (is-a? m mred:mode:mode%)
 		   (begin
-		     (set! mode m)
+		     (set-mode-direct m)
 		     (set-file-format (ivar m file-format))
 		     (send (send (get-style-list) 
 				 find-named-style "Standard")
 			   set-delta (ivar m standard-style-delta))
 		     (send m install this))
 		   (begin
-		     (set! mode #f)
+		     (set-mode-direct #f)
 		     (send (send (get-style-list) 
 				 find-named-style "Standard")
 			   set-delta (make-object wx:style-delta%)))))]
