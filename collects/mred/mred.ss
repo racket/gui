@@ -6787,12 +6787,12 @@
     (wx:unregister-collecting-blit (mred->wx canvas))))
 
 (define bitmap-dc%
-  (class100 wx:bitmap-dc% ([bm #f])
+  (class100 wx:bitmap-dc% ([bitmap #f])
     (inherit set-bitmap)
     (sequence
       (super-init)
-      (when bm
-	(set-bitmap bm)))))
+      (when bitmap
+	(set-bitmap bitmap)))))
 
 (define post-script-dc%
   (class100 wx:post-script-dc% ([interactive? #t][parent #f][use-paper-bbox? #f])
