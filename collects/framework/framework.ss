@@ -1335,6 +1335,7 @@
      ".")
     (editor:get-default-color-style-name
      (-> string?)
+     ()
      "The name of the style (in the list returned by "
      "@flink editor:get-standard-style-list %"
      ") that holds the default color.")
