@@ -884,7 +884,11 @@
 					      (memq code '(right down)))]
 				[normal-move
 				 (lambda ()
-				   (let* ([o (if (or (is-a? o wx:canvas%) (is-a? o wx:item%)) o #f)]
+				   (let* ([o (if (or (is-a? o wx:canvas%) (is-a? o wx:item%)) 
+						 (if (is-a? o wx-tab-group%)
+						     #f
+						     o)
+						 #f)]
 					  [dests (filter-overlapping 
 						  (map object->position (container->children panel o #t)))]
 					  [pos (if o (object->position o) (list 'x 0 0 1 1))]
@@ -1734,7 +1738,8 @@
     (define font (send parent get-control-font))
     
     (inherit get-dc get-client-size get-mred
-	     set-min-width set-min-height)
+	     set-min-width set-min-height
+	     set-tab-focus)
     (rename [super-on-size on-size])
     
     (define selected 0)
@@ -1761,6 +1766,8 @@
       (let-values ([(w h) (my-get-client-size)]
 		   [(tw) (get-total-width)])
 	(/ (- w tw) 2)))
+
+    (define/override (on-char e) (void))
 
     (define/override on-event
       (entry-point
@@ -1879,7 +1886,7 @@
 		      (send dc draw-line (+ 1 next-x) (+ -sel-d 1) (- (+ next-x tab-height) short 1 -sel-d) (- tab-height short 1))
 		      (send dc draw-line next-x (+ -sel-d 1) 
 			    (- (+ next-x tab-height) short 2 -sel-d short-d) (- tab-height short 1 short-d)))
-		    (list (list (- (+ next-x tab-height) -sel-d short -2 inset) (- tab-height short -2 inset))))
+		    (list (list (- (+ next-x tab-height) -sel-d short (- short-d) -2 inset) (- tab-height short -2 inset))))
 		  ;; end point
 		  (begin
 		    (when light?
@@ -1887,7 +1894,7 @@
 			(send dc draw-line (+ next-x tab-height) tab-height w tab-height)
 			(send dc draw-line (+ next-x tab-height) (add1 tab-height) w (add1 tab-height)))
 		      (send dc draw-text (car l) (+ x tab-height) (- tab-v-space (if (= pos selected) raise-h 0))))
-		    (list (list (+ next-x inset) (+ 2 tab-height (- inset))))))
+		    (list (list (+ next-x inset (if (= selected (add1 pos)) -2 0)) (+ 2 tab-height (- inset))))))
 		 (loop next-x (cdr l) (cdr wl) (add1 pos))))))))
     
     (define/override on-paint
@@ -1970,6 +1977,9 @@
 	 (set! regions #f)
 	 (set! tab-widths #f)
 	 (on-paint))))
+
+    (define/override (handles-key-code code alpha? meta?) 
+      #f)
 
     (super-instantiate (mred proxy parent))
 
