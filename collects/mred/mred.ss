@@ -541,7 +541,7 @@
 (define (make-top-container% base% dlg?)
   (class100 (wx-make-container% (wx-make-window% base% #t)) (parent . args)
     (inherit get-x get-y get-width get-height set-size
-	     get-client-size is-shown? on-close)
+	     get-client-size is-shown? on-close enforce-size)
     (rename [super-show show] [super-move move] [super-center center]
 	    [super-on-size on-size]
 	    [super-enable enable]
@@ -714,7 +714,9 @@
 			[(< frame-h min-h) min-h]
 			[(and (> frame-h min-h) (not (child-info-y-stretch panel-info))) min-h]
 			[else frame-h])])
-		 (values new-w new-h)))))]
+		 (values new-w new-h 
+			 min-w min-h
+			 (child-info-x-stretch panel-info) (child-info-y-stretch panel-info))))))]
 
       [set-panel-size
        (lambda ()
@@ -741,11 +743,14 @@
 	  (unless already-trying?
 	    (let ([new-width (get-width)]
 		  [new-height (get-height)])
-	      (let-values ([(correct-w correct-h) (correct-size new-width new-height)])
+	      (let-values ([(correct-w correct-h min-w min-h sx? sy?) (correct-size new-width new-height)])
 		(cond
 		 [(and (= new-width correct-w) (= new-height correct-h))
 		  ;; Good size; do panel
 		  (set! was-bad? #f)
+		  (enforce-size min-w min-h
+				(if sx? -1 min-w) (if sy? -1 min-h)
+				1 1)
 		  (set-panel-size)]
 		 [(and (= last-width correct-w) (= last-height correct-h)
 		       was-bad?)
@@ -757,7 +762,11 @@
 		  (set! last-width correct-w)
 		  (set! last-height correct-h)
 		  (set! already-trying? #t)
+		  (enforce-size -1 -1 -1 -1 1 1)
 		  (set-size -1 -1 correct-w correct-h)
+		  (enforce-size min-w min-h
+				(if sx? -1 min-w) (if sy? -1 min-h)
+				1 1)
 		  (set! already-trying? #f)
 		  (resized)]))))))])
     

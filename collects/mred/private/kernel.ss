@@ -490,6 +490,7 @@
     on-toolbar-click
     on-menu-click
     on-menu-command
+    enforce-size
     on-close
     on-activate
     designate-root-frame
@@ -1105,6 +1106,7 @@
     on-size
     on-set-focus
     on-kill-focus
+    enforce-size
     on-close
     on-activate)
   (define-class radio-box% item% #f
