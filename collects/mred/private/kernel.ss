@@ -391,6 +391,8 @@
     get-char-width
     get-char-height
     get-text-extent
+    get-anti-alias
+    set-anti-alias
     set-text-foreground
     set-text-background
     set-pen
