@@ -4603,14 +4603,30 @@
 
 (define last-visted-directory #f)
 
-(define (mk-file-selector who put?)
+(define (files->list s)
+  (let ([s (open-input-string s)])
+    (let loop ()
+      (let ([n (read s)])
+	(if (eof-object? n)
+	    null
+	    (begin
+	      (read-char s) ; drop space
+	      (cons (read-string n s)
+		    (loop))))))))
+
+(define (mk-file-selector who put? multi?)
   (lambda (message parent directory filename extension style)
     (check-string/false who message)
     (check-top-level-parent/false who parent)
     (check-string/false who directory) (check-string/false who filename) (check-string/false who extension)
     (check-style who #f null style)
     (if (not (eq? (system-type) 'unix))
-	(wx:file-selector message directory filename extension "*.*" (if put? 'put 'get) (mred->wx parent))
+	(let ([s (wx:file-selector message directory filename extension "*.*"
+				   (if put? 'put (if multi? 'multi 'get))
+				   (mred->wx parent))])
+	  (if multi?
+	      (files->list s)
+	      s))
 	(letrec ([ok? #f]
 		 [typed-name #f]
 		 [dir (or directory last-visted-directory (current-directory))]
@@ -4629,7 +4645,8 @@
 		 [files (make-object list-box% #f null lp (lambda (d e)
 							    (update-ok)
 							    (when (eq? (send e get-event-type) 'list-box-dclick)
-							      (done))))]
+							      (done)))
+				     (if multi? '(multiple) '(single)))]
 		 [do-text-name (lambda ()
 				 (let ([v (send dir-text get-value)])
 				   (if (directory-exists? v)
@@ -4715,7 +4732,13 @@
 					  (send files enable #t)
 					  (update-ok)
 					  (wx:end-busy-cursor)))))]
-		 [get-filename (lambda () (simplify-path (build-path dir (or typed-name (send files get-string-selection)))))]
+		 [get-filename (lambda () 
+				 (let ([mk (lambda (f) (simplify-path (build-path dir f)))])
+				   (let ([l (map mk (if typed-name
+							(list typed-name)
+							(map (lambda (p) (send files get-string p))
+							     (send files get-selections))))])
+				     (if multi? l (car l)))))]
 		 [done (lambda ()
 			 (let ([name (get-filename)])
 			   (unless (and put? (file-exists? name)
@@ -4737,7 +4760,7 @@
 	  (send f show #t)
 	  (and ok? (get-filename))))))
 
-; We duplicate the case-lambda for both `get-file' and `put-file' so that they have the
+; We duplicate the case-lambda for `get-file', `get-file-list', and `put-file' so that they have the
 ;   right arities and names
 
 (define get-file
@@ -4749,7 +4772,18 @@
    [(message parent directory filename) (get-file message parent directory filename #f null)]
    [(message parent directory filename extension) (get-file message parent directory filename extension null)]
    [(message parent directory filename extension style)
-    ((mk-file-selector 'get-file #f) message parent directory filename extension style)]))
+    ((mk-file-selector 'get-file #f #f) message parent directory filename extension style)]))
+
+(define get-file-list
+  (case-lambda
+   [() (get-file-list #f #f #f #f #f null)]
+   [(message) (get-file-list message #f #f #f #f null)]
+   [(message parent) (get-file-list message parent #f #f #f null)]
+   [(message parent directory) (get-file-list message parent directory #f #f null)]
+   [(message parent directory filename) (get-file-list message parent directory filename #f null)]
+   [(message parent directory filename extension) (get-file-list message parent directory filename extension null)]
+   [(message parent directory filename extension style)
+    ((mk-file-selector 'get-file-list #f #t) message parent directory filename extension style)]))
 
 (define put-file
   (case-lambda
@@ -4760,7 +4794,7 @@
    [(message parent directory filename) (put-file message parent directory filename #f null)]
    [(message parent directory filename extension) (put-file message parent directory filename extension null)]
    [(message parent directory filename extension style)
-    ((mk-file-selector 'put-file #t) message parent directory filename extension style)]))
+    ((mk-file-selector 'put-file #t #f) message parent directory filename extension style)]))
 
 (define get-color-from-user 
   (case-lambda
