@@ -608,6 +608,7 @@
   (define-function display-origin)
   (define-function display-size)
   (define-function bell)
+  (define-function hide-cursor)
   (define-function end-busy-cursor)
   (define-function is-busy?)
   (define-function begin-busy-cursor)

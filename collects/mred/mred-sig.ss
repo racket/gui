@@ -101,6 +101,7 @@
      graphical-read-eval-print-loop
      group-box-panel%
      grow-box-spacer-pane%
+     hide-cursor-until-moved
      horizontal-pane%
      horizontal-panel%
      tab-panel%
