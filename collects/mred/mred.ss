@@ -5092,7 +5092,8 @@
 					 [msg-pnl (make-object vertical-pane% rhs-pnl)]
 					 [btn-pnl (make-object vertical-pane% rhs-pnl)])
 				    (send msg-pnl vert-margin 16)
-				    (send btn-pnl horiz-margin 16)
+				    (when single?
+				      (send msg-pnl horiz-margin 8))
 				    (send btn-pnl vert-margin 8)
 				    (send msg-pnl min-height 64)
 				    (send btn-pnl stretchable-height #f)
