@@ -42,7 +42,8 @@ tests.
 
   - frames: |# frame.ss #|
   - canvases: |# canvas.ss #|
-  - edits: |# edit.ss #|
+  - texts: |# text.ss #|
+  - pasteboards: |# text.ss #|
 
 - basic connections between classes
 

@@ -166,8 +166,8 @@
 	     (invalidate-rectangles (append old-rectangles
 					    range-rectangles))))]
 	[ranges null]
-	[pen (make-object pen% "BLACK" 0 'stipple)]
-	[brush (make-object brush% "black" 'stipple)])
+	[pen (make-object pen% "BLACK" 0 'solid)]
+	[brush (make-object brush% "black" 'solid)])
       (public
 	;; the bitmap is used in b/w and the color is used in color.
 	[highlight-range
@@ -200,7 +200,6 @@
 				      (unbox b4)))])
 		(let* ([old-pen (send dc get-pen)]
 		       [old-brush (send dc get-brush)]
-		       [old-logical-function (send dc get-logical-function)]
 		       [b/w-bitmap (rectangle-b/w-bitmap rectangle)]
 		       [color (let* ([rc (rectangle-color rectangle)]
 				     [tmpc (make-object color% 0 0 0)])
@@ -225,17 +224,11 @@
 		  (let/ec k
 		    (cond
 		      [(and before color)
-		       (send pen set-style 'solid)
-		       (send brush set-style 'solid)
 		       (send pen set-colour color)
-		       (send brush set-colour color)
-		       (send dc set-logical-function 'copy)]
+		       (send brush set-colour color)]
 		      [(and (not before) (not color) b/w-bitmap)
 		       (send pen set-stipple b/w-bitmap)
-		       (send pen set-style 'stipple)
-		       (send brush set-stipple b/w-bitmap)
-		       (send brush set-style 'stipple)
-		       (send dc set-logical-function 'and)]
+		       (send brush set-stipple b/w-bitmap)]
 		      [else (k (void))])
 		    (send dc set-pen pen)
 		    (send dc set-brush brush)
@@ -244,7 +237,6 @@
 			  (+ top dy)
 			  width
 			  height)
-		    (send dc set-logical-function old-logical-function)
 		    (send dc set-pen old-pen)
 		    (send dc set-brush old-brush)))))
 	    range-rectangles))])

@@ -2,9 +2,17 @@
   (test
    name
    (lambda (x) #t)
-   `(let ([f (make-object frame:basic%)]
-	  [c (make-object ,class f)])
-      (send f show #t))))
+   (lambda ()
+     (send-sexp-to-mred
+      `(let* ([f (make-object frame:basic% "test canvas" #f 300 300)]
+	      [c (make-object ,class (send f get-area-container))])
+	 (send c set-editor (make-object text:basic%))
+	 (send f show #t)))
+      (wait-for-frame "test canvas")
+      (send-sexp-to-mred
+       `(send (get-top-level-focus-window) show #f)))))
 
-(test-creation 'canvas:wide-snip-mixin-creation '(canvas:wide-snip-mixin editor-canvas%))
-(test-creation 'canvas:wide-snip%-creation 'canvas:wide-snip%)
+(test-creation '(canvas:wide-snip-mixin editor-canvas%)
+	       'canvas:wide-snip-mixin-creation)
+(test-creation 'canvas:wide-snip%
+	       'canvas:wide-snip%-creation)
