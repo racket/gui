@@ -4535,26 +4535,64 @@
 
 (define (-1=>false v) (if (negative? v) #f v))
 
+(define-local-member-name 
+  -append-list-string
+  -set-list-strings
+  -set-list-string
+  -delete-list-item)
+
 (define basic-list-control%
-  (class100* basic-control% (list-control<%>) (mk-wx mismatches label parent selection callback)
+  (class100* basic-control% (list-control<%>) (mk-wx mismatches label parent selection callback init-choices)
+    (private-field
+      [content (map string->immutable-string init-choices)])
     (public
-      [append (entry-point (lambda (i) 
-			     (check-label-string '(method list-control<%> append) i)
-			     (send wx append i)))]
-      [clear (entry-point (lambda () (send wx clear)))]
+      [(-append append) (entry-point (lambda (i) 
+				       (check-label-string '(method list-control<%> append) i)
+				       (-append-list-string i)
+				       (send wx append i)))]
+      [clear (entry-point (lambda () (send wx clear) (set! content null)))]
       [get-number (entry-point (lambda () (send wx number)))]
-      [get-string (entry-point (lambda (n) (check-item 'get-string n) (send wx get-string n)))]
+      [get-string (entry-point (lambda (n) (check-item 'get-string n) (list-ref content n)))]
       [get-selection (entry-point (lambda () (and (positive? (send wx number)) (-1=>false (send wx get-selection)))))]
-      [get-string-selection (entry-point (lambda () (and (positive? (send wx number)) (send wx get-string-selection))))]
+      [get-string-selection (entry-point (lambda () (and (positive? (send wx number)) 
+							 (let ([v (send wx get-selection)])
+							   (if (= v -1)
+							       #f
+							       (list-ref content v))))))]
       [set-selection (entry-point (lambda (s) (check-item 'set-selection s) (send wx set-selection s)))]
       [set-string-selection (entry-point
-			     (lambda (s) (unless (send wx set-string-selection s)
-					   (raise-mismatch-error (who->name '(method list-control<%> set-string-selection))
-								 "no item matching the given string: " s))))]
-      [find-string (entry-point (lambda (x) (-1=>false (send wx find-string x))))])
+			     (lambda (s)
+			       (check-label-string '(method list-control<%> set-string-selection) s)
+			       (let ([pos (do-find-string s)])
+				 (if pos
+				     (send wx set-selection pos)
+				     (raise-mismatch-error (who->name '(method list-control<%> set-string-selection))
+							   "no item matching the given string: " s)))))]
+      [find-string (entry-point (lambda (x)
+				  (check-label-string '(method list-control<%> find-string) x)
+				  (do-find-string x)))]
+      
+      [-append-list-string (lambda (i)
+			     (set! content (append content (list i))))]
+      [-set-list-string (lambda (i s)
+			  (set-car! (list-tail content i) (string->immutable-string s)))]
+      [-delete-list-item (lambda (pos)
+			   (if (zero? pos)
+			       (set! content (cdr content))
+			       (set-cdr! (list-tail content (sub1 pos)) 
+					 (list-tail content (add1 pos)))))]
+      [-set-list-strings (lambda (l)
+			   (set! content (map string->immutable-string l)))])
     (private-field
       [wx #f])
     (private
+      [do-find-string
+       (lambda (s)
+	 (let loop ([l content][pos 0])
+	   (cond
+	    [(null? l) #f]
+	    [(string=? s (car l)) pos]
+	    [else (loop (cdr l) (add1 pos))])))]
       [check-item
        (lambda (method n)
 	 (check-non-negative-integer `(method list-control<%> ,method) n)
@@ -4606,7 +4644,8 @@
 			(check-list-control-selection cwho choices selection))))
 		  label parent 
 		  (and (positive? selection) selection)
-		  callback))))
+		  callback
+		  choices))))
 
 (define list-box%
   (class100*/kw basic-list-control%  ()
@@ -4622,13 +4661,16 @@
       [append (entry-point
 	       (case-lambda
 		[(i) 
-		 (check-label-string '(method list-control<%> append) i)
 		 (super-append i)]
 		[(i d) 
 		 (check-label-string '(method list-control<%> append) i)
+		 (send this -append-list-string i)
 		 (send wx append i d)]))])
     (public
-      [delete (entry-point (lambda (n) (check-item 'delete n) (send wx delete n)))]
+      [delete (entry-point (lambda (n) 
+			     (check-item 'delete n) 
+			     (send this -delete-list-item n)
+			     (send wx delete n)))]
       [get-data (entry-point (lambda (n) (check-item 'get-data n) (send wx get-data n)))]
       [get-selections (entry-point (lambda () (send wx get-selections)))]
       [number-of-visible-items (entry-point (lambda () (send wx number-of-visible-items)))]
@@ -4637,12 +4679,14 @@
 			  (unless (and (list? l) (andmap label-string? l))
 			    (raise-type-error (who->name '(method list-box% set)) 
 					      "list of strings (up to 200 characters)" l))
+			  (send this -set-list-strings l)
 			  (send wx set l)))]
       [set-string (entry-point
 		   (lambda (n d)
 		     (check-non-negative-integer '(method list-box% set-string) n) ; int error before string
 		     (check-label-string '(method list-box% set-string) d) ; string error before range mismatch
 		     (check-item 'set-string n)
+		     (send this -set-list-string n d)
 		     (send wx set-string n d)))]
       [set-data (entry-point (lambda (n d) (check-item 'set-data n) (send wx set-data n d)))]
       [get-first-visible-item (entry-point (lambda () (send wx get-first-item)))]
@@ -4685,7 +4729,8 @@
 		      (check-container-ready cwho parent)
 		      (when selection
 			(check-list-control-selection cwho choices selection))))
-		  label parent (and (pair? choices) selection) callback))))
+		  label parent (and (pair? choices) selection) callback
+		  choices))))
 
 (define text-field%
   (class100*/kw basic-control% () 

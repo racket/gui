@@ -312,12 +312,9 @@
     on-set-focus
     on-kill-focus)
   (define-class choice% item% #f
-    get-string
-    set-string-selection
     set-selection
     get-string-selection
     get-selection
-    find-string
     number
     clear
     append
@@ -617,7 +614,6 @@
   (define-class list-box% item% #f
     set-string
     get-string
-    set-string-selection
     set-first-visible-item
     set
     get-selections
@@ -625,10 +621,8 @@
     number-of-visible-items
     number
     get-selection
-    find-string
     set-data
     get-data
-    get-string-selection
     selected?
     set-selection
     select
@@ -1110,13 +1104,9 @@
   (define-class radio-box% item% #f
     button-focus
     enable
-    get-string
     set-selection
-    set-string-selection
     number
-    get-string-selection
     get-selection
-    find-string
     on-drop-file
     pre-on-event
     pre-on-char
