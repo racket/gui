@@ -15,7 +15,7 @@
      [(text filename-or-bitmap)
       (lambda (area-container-window)
 	(let*-values ([(outside-margin) 2]
-		      [(font) (send area-container-window get-control-font)]
+		      [(font) normal-control-font]
 		      [(img-bitmap-dc img-bitmap img-width img-height)
 		       (let ([mdc (make-object bitmap-dc%)]
 			     [q (if (filename-or-bitmap . is-a? . bitmap%)

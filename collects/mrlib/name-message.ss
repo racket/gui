@@ -142,14 +142,7 @@
       (stretchable-width #f)
       (stretchable-height #f)))
   
-  (define button-label-font
-    (case (system-type)
-      [(windows)
-       (send the-font-list find-or-create-font 8 'decorative 'normal 'normal #f)]
-      [(macosx)
-       (send the-font-list find-or-create-font 11 'system 'normal 'bold #f)]
-      [else
-       (send the-font-list find-or-create-font 10 'decorative 'normal 'normal #f)]))
+  (define button-label-font small-control-font)
   
   (define button-label-inset 1)
   (define black-color (make-object color% "BLACK"))
