@@ -5161,12 +5161,12 @@
     (check-style 'message-box '(ok ok-cancel yes-no) '(caution stop) style)
 
     (let-values ([(one two one-v two-v close-val default)
-		  (case (car style)
-		    [(ok) 
+		  (cond
+		    [(memq 'ok style) 
 		     (values "OK" #f 'ok #f 1 'default=1)]
-		    [(ok-cancel)
+		    [(memq 'ok-cancel style)
 		     (values "OK" "Cancel" 'ok 'cancel 2 'default=1)]
-		    [(yes-no)
+		    [(memq 'yes-no style)
 		     (values "&Yes" "&No" 'yes 'no #f 'no-default)])])
       (case (message-box/custom title message
 				 one two #f
