@@ -142,7 +142,8 @@
        (let ([old (keymap:add-to-right-button-menu)])
          (lambda (menu text event)
            (old menu text event)
-           (split/collapse-text menu text event))))
+           (split/collapse-text menu text event)
+	   (void))))
       
       ;; split/collapse-text : (instanceof menu%) (instanceof editor<%>) (instanceof mouse-event%) -> void
       (define (split/collapse-text menu text event)
