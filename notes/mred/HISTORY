@@ -4,6 +4,15 @@ Version 103.4:
  * Changed text% so that later-installed clickbacks take precedence
    over earlier-installed clickbacks.
 
+ * Fixed several problems with regions, especially arc regions.
+   Documented the fact that regions created with the `subtract'
+   method are not reliable for post-script-dc% use.
+
+ * Removed ps-setup%'s get-options and set-options. (Wasn't needed,
+   since the command string can contain option flags.)
+
+ * X: changed default preview command from "ghostview" to "gv".
+
 Version 103.3:
 
  * Windows: fixed editor scrolling so that it updates the text while
@@ -73,9 +82,11 @@ Changed text% so that later-installed clickbacks take precedence
 Added optional filters argument to get-file, put-file, and
  get-file-list (used by Windows, only)
 Fixed internal lock handling on focus and activation events
+Removed ps-setup%'s get-options and set-options
 Windows: removed special handling of Ctl-m, Ctl-i, and Ctl-h
 X: Default keymap double-click time determined via the standard Xt
  function
+X: changed default preview command from "ghostview" to "gv"
 
 ----------------------------------------------------------------------
 
