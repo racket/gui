@@ -331,69 +331,141 @@
       
       (define ppanels null)
       
-      (define (local-add-general-panel)
+      (define (add-to-scheme-checkbox-panel f)
+        (set! scheme-panel-procs 
+              (let ([old scheme-panel-procs])
+                (lambda (parent) (old parent) (f parent)))))
+      
+      (define (add-to-editor-checkbox-panel f)
+        (set! editor-panel-procs 
+              (let ([old editor-panel-procs])
+                (lambda (parent) (old parent) (f parent)))))
+      
+      (define (add-to-misc-checkbox-panel f)
+        (set! misc-panel-procs 
+              (let ([old misc-panel-procs])
+                (lambda (parent) (old parent) (f parent)))))
+
+      (define scheme-panel-procs void)
+      (define editor-panel-procs void)
+      (define misc-panel-procs void)
+      
+      (define (add-checkbox-panel label proc)
         (add-panel
-         (string-constant general-prefs-panel-label)
+         label
          (lambda (parent)
-           (let* ([main (make-object vertical-panel% parent)]
-                  [make-check
-                   (lambda (pref title bool->pref pref->bool)
-                     (let*  ([callback
-                              (lambda (check-box _)
-                                (set pref (bool->pref (send check-box get-value))))]
-                             [pref-value (get pref)]
-                             [initial-value (pref->bool pref-value)]
-                             [c (make-object check-box% title main callback)])
-                       (send c set-value initial-value)
-                       (add-callback pref
-                                     (lambda (p v)
-                                       (send c set-value (pref->bool v))))))]
-                  [id (lambda (x) x)])
+           (let* ([main (make-object vertical-panel% parent)])
              (send main set-alignment 'left 'center)
-             (make-check 'framework:highlight-parens (string-constant highlight-parens) id id)
-             (make-check 'framework:fixup-parens (string-constant fixup-parens) id id)
-             (make-check 'framework:paren-match (string-constant flash-paren-match) id id)
-             (make-check 'framework:autosaving-on? (string-constant auto-save-files) id id)
-             (make-check 'framework:backup-files? (string-constant backup-files) id id)
-             (make-check 'framework:delete-forward? (string-constant map-delete-to-backspace)
-                         not not)
-             
-             (make-check 'framework:verify-exit (string-constant verify-exit) id id)
-             (make-check 'framework:verify-change-format 
-                         (string-constant ask-before-changing-format)
-                         id id)
-             (make-check 'framework:auto-set-wrap? (string-constant wrap-words-in-editor-buffers)
-                         id id)
-             
-             (make-check 'framework:show-status-line (string-constant show-status-line) id id)
-             (make-check 'framework:line-offsets (string-constant count-from-one) id id)
-             (make-check 'framework:display-line-numbers
-                         (string-constant display-line-numbers)
-                         id id)
-             (make-check 'framework:menu-bindings (string-constant enable-keybindings-in-menus)
-                         id id)
-             (unless (eq? (system-type) 'unix) 
-               (make-check 'framework:print-output-mode 
-                           (string-constant automatically-to-ps)
-                           (lambda (b) 
-                             (if b 'postscript 'standard))
-                           (lambda (n) (eq? 'postscript n))))
-             
-             
-             '(when (eq? (system-type) 'windows)
-                (make-check 'framework:windows-mdi (string-constant use-mdi) id id))
-             (make-check 'framework:search-using-dialog?
-                         (string-constant separate-dialog-for-searching)
-                         id id)
-             (make-check 'framework:open-here?
-                         (string-constant reuse-existing-frames)
-                         id id)
-             
-             main)))
-        (set! local-add-general-panel void))
+             (proc main)
+             main))))
       
-      (define (add-general-panel) (local-add-general-panel))
+      ;; make-check : panel symbol string (boolean -> any) (any -> boolean)
+      ;; adds a check box preference to `main'.
+      (define (make-check main pref title bool->pref pref->bool)
+        (let* ([callback
+                (lambda (check-box _)
+                  (set pref (bool->pref (send check-box get-value))))]
+               [pref-value (get pref)]
+               [initial-value (pref->bool pref-value)]
+               [c (make-object check-box% title main callback)])
+          (send c set-value initial-value)
+          (add-callback pref
+                        (lambda (p v)
+                          (send c set-value (pref->bool v))))))
+
+      (define (add-scheme-checkbox-panel)
+        (letrec ([add-scheme-checkbox-panel
+                  (lambda ()
+                    (set! add-scheme-checkbox-panel void)
+                    (add-checkbox-panel
+                     (string-constant scheme-prefs-panel-label)
+                     (lambda (scheme-panel)
+                       (make-check scheme-panel
+                                   'framework:highlight-parens
+                                   (string-constant highlight-parens)
+                                   values values)
+                       (make-check scheme-panel
+                                   'framework:fixup-parens
+                                   (string-constant fixup-parens)
+                                   values values)
+                       (make-check scheme-panel
+                                   'framework:paren-match
+                                   (string-constant flash-paren-match)
+                                   values values)
+                       (scheme-panel-procs scheme-panel))))])
+          (add-scheme-checkbox-panel)))
       
+      (define (add-editor-checkbox-panel)
+        (letrec ([add-editor-checkbox-panel
+                  (lambda ()
+                    (set! add-editor-checkbox-panel void)
+                    (add-checkbox-panel 
+                     (string-constant editor-prefs-panel-label)
+                     (lambda (editor-panel)
+                       (make-check editor-panel
+                                   'framework:autosaving-on? 
+                                   (string-constant auto-save-files)
+                                   values values)
+                       (make-check editor-panel  'framework:backup-files? (string-constant backup-files) values values)
+                       (make-check editor-panel  'framework:delete-forward? (string-constant map-delete-to-backspace)
+                                   not not)
+                       
+                       (make-check editor-panel 
+                                   'framework:verify-change-format 
+                                   (string-constant ask-before-changing-format)
+                                   values values)
+                       (make-check editor-panel 'framework:show-status-line (string-constant show-status-line) values values)
+                       (make-check editor-panel 'framework:line-offsets (string-constant count-from-one) values values)
+                       (make-check editor-panel 
+                                   'framework:display-line-numbers
+                                   (string-constant display-line-numbers)
+                                   values values)
+                       
+                       (make-check editor-panel 
+                                   'framework:auto-set-wrap?
+                                   (string-constant wrap-words-in-editor-buffers)
+                                   values values)
+                       (make-check editor-panel 
+                                   'framework:search-using-dialog?
+                                   (string-constant separate-dialog-for-searching)
+                                   values values)
+                       (make-check editor-panel 
+                                   'framework:open-here?
+                                   (string-constant reuse-existing-frames)
+                                   values values)
+                       (editor-panel-procs editor-panel))))])
+          (add-editor-checkbox-panel)))
+
+      (define (add-misc-checkbox-panel)
+        (letrec ([add-misc-checkbox-panel
+                  (lambda ()
+                    (set! add-misc-checkbox-panel void)
+                    (add-checkbox-panel 
+                     (string-constant misc-prefs-panel-label)
+                     (lambda (misc-panel)
+                       (make-check misc-panel 
+                                   'framework:verify-exit
+                                   (string-constant verify-exit)
+                                   values values)
+                       (make-check misc-panel 
+                                   'framework:menu-bindings
+                                   (string-constant enable-keybindings-in-menus)
+                                   values values)
+                       (unless (eq? (system-type) 'unix) 
+                         (make-check misc-panel 
+                                     'framework:print-output-mode 
+                                     (string-constant automatically-to-ps)
+                                     (lambda (b) 
+                                       (if b 'postscript 'standard))
+                                     (lambda (n) (eq? 'postscript n))))
+                       '(when (eq? (system-type) 'windows) 
+                          (make-check misc-panel 
+                                      'framework:windows-mdi
+                                      (string-constant use-mdi)
+                                      values values))
+                       (misc-panel-procs misc-panel))))])
+          (add-misc-checkbox-panel)))
+                  
       (define (local-add-font-panel)
         (let* ([font-families-name/const
                 (list (list "Default" 'default)

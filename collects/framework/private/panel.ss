@@ -189,27 +189,41 @@
       ;; type percentage : (make-percentage number)
       (define-struct percentage (%))
       
+      (define dragable<%>
+        (interface ()
+          after-percentage-change
+          set-percentages
+          get-percentages
+          get-vertical?))
+      
       (define vertical-dragable<%>
-        (interface ((class->interface vertical-panel%))
-          after-percentage-change
-          set-percentages
-          get-percentages))
-
+        (interface (dragable<%>)))
+      
       (define horizontal-dragable<%>
-        (interface ((class->interface horizontal-panel%))
-          after-percentage-change
-          set-percentages
-          get-percentages))
+        (interface (dragable<%>)))
 
-       (define (make-dragable-mixin vertical?
- 				   panel% dragable<%>
- 				   min-extent
- 				   event-get-dim
- 				   get-cursor)
+      (define dragable-mixin
  	(mixin ((class->interface panel%)) (dragable<%>)
- 	       (init parent)
- 	  (super-instantiate (parent))
- 	  (inherit get-client-size container-flow-modified)
+          (init parent)
+ 
+	  (define/public (get-vertical?)
+            (error 'get-vertical "abstract method"))
+          (define/private (min-extent child) 
+            (if (get-vertical?)
+                (send child min-height)
+                (send child min-width)))
+          (define/private (event-get-dim evt)
+            (if (get-vertical?)
+                (send evt get-y)
+                (send evt get-x)))
+          (define/private (get-gap-cursor)
+            (if (get-vertical?)
+                (icon:get-up/down-cursor)
+                (icon:get-left/right-cursor)))
+          
+          (super-instantiate (parent))
+ 	  
+          (inherit get-client-size container-flow-modified)
            
  	  (init-field [bar-thickness 5])
            
@@ -250,7 +264,7 @@
            
  	  (define/private (get-available-extent)
  	    (let-values ([(width height) (get-client-size)])
- 	      (- (if vertical? height width)
+ 	      (- (if (get-vertical?) height width)
  		 (* bar-thickness (- (length (get-children)) 1)))))
  
  	  (inherit get-children)
@@ -282,7 +296,7 @@
  		  (set-cursor (and (or gap
  				       resizing-dim)
  				   (send (icon:get-up/down-cursor) ok?)
- 				   (get-cursor)))
+ 				   (get-gap-cursor)))
  		  (cond
  		   [(and gap (send evt button-down? 'left))
  		    (set! resizing-dim (event-get-dim evt))
@@ -338,7 +352,7 @@
  		    (when (null? children) (show-error 4))
  		    (unless (null? (cdr infos)) (show-error 5))
  		    (unless (null? (cdr children)) (show-error 6))
- 		    (if vertical?
+ 		    (if (get-vertical?)
  			(list (list 0 dim width (- height dim)))
  			(list (list dim 0 (- width dim) height)))]
  		   [else
@@ -356,7 +370,7 @@
  							(+ dim this-space bar-thickness)
  							(cadr percentages))
  					      cursor-gaps))
- 		      (cons (if vertical?
+ 		      (cons (if (get-vertical?)
  				(list 0 dim width this-space)
  				(list dim 0 this-space height))
  			    (loop (cdr percentages)
@@ -365,21 +379,17 @@
  				  (+ dim this-space bar-thickness))))])))]))))
  	    
  
-        (define vertical-dragable-mixin
-         (make-dragable-mixin #t
- 			     vertical-panel% vertical-dragable<%>
- 			     (lambda (child) (send child min-height))
- 			     (lambda (evt) (send evt get-y))
- 			     icon:get-up/down-cursor))
- 
-       (define horizontal-dragable-mixin
-         (make-dragable-mixin #f
- 			     horizontal-panel% horizontal-dragable<%>
- 			     (lambda (child) (send child min-width))
- 			     (lambda (evt) (send evt get-x))
- 			     icon:get-left/right-cursor))
+      (define vertical-dragable-mixin
+        (mixin (dragable<%>) (vertical-dragable<%>)
+          (define/override (get-vertical?) #t)
+          (super-instantiate ())))
+      
+      (define horizontal-dragable-mixin
+        (mixin (dragable<%>) (vertical-dragable<%>)
+          (define/override (get-vertical?) #f)
+          (super-instantiate ())))
         
-       (define vertical-dragable% (vertical-dragable-mixin vertical-panel%))
+       (define vertical-dragable% (vertical-dragable-mixin (dragable-mixin vertical-panel%)))
  
-       (define horizontal-dragable% (horizontal-dragable-mixin horizontal-panel%)))))
+       (define horizontal-dragable% (horizontal-dragable-mixin (dragable-mixin horizontal-panel%))))))
 

@@ -1703,8 +1703,11 @@
                   (send find-edit get-text 0 (send find-edit last-position)))))))
             (define replace&search
              (lambda ()
-               (when (replace)
-                 (search-again))))
+               (let ([text (get-text-to-search)])
+                 (send text begin-edit-sequence)
+                 (when (replace)
+                   (search-again))
+                 (send text end-edit-sequence))))
             (define replace-all
              (lambda ()
                (let* ([replacee-edit (get-text-to-search)]

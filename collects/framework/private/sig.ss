@@ -116,9 +116,13 @@
      single-pane%
      ;;multi-view%
 
+     dragable<%>
+     dragable-mixin
+
      vertical-dragable<%>
      vertical-dragable-mixin
      vertical-dragable%
+
      horizontal-dragable<%>
      horizontal-dragable-mixin
      horizontal-dragable%))
@@ -160,7 +164,15 @@
 
      add-panel
      add-font-panel
-     add-general-panel
+
+     add-editor-checkbox-panel
+     add-misc-checkbox-panel
+     add-scheme-checkbox-panel
+
+     add-to-editor-checkbox-panel
+     add-to-misc-checkbox-panel
+     add-to-scheme-checkbox-panel
+     
      show-dialog
      hide-dialog))
   (define-signature framework:preferences^

@@ -182,6 +182,7 @@
     ()
     "\\rawscm{(preferences:restore-defaults)} restores the users's configuration to the"
     "default preferences.")
+
    (preferences:add-panel
     (string?
      ((is-a?/c area-container-window<%>) . -> . (is-a?/c area-container-window<%>))
@@ -195,14 +196,50 @@
    "\\var{f} is expected to add a new child panel to it and add"
    "whatever preferences configuration controls it wants to that"
    "panel. Then, \\var{f}'s should return the panel it added.")
+
+   (preferences:add-editor-checkbox-panel
+    (-> void?)
+    ()
+    "Adds a preferences panel for configuring options"
+    "related to editing.")
+   (preferences:add-misc-checkbox-panel
+    (-> void?)
+    ()
+    "Adds a preferences panel for configuring"
+    "misc. options")
+   (preferences:add-scheme-checkbox-panel
+    (-> void?)
+    ()
+    "Adds a preferences panel for configuring"
+    "options related to Scheme.")
+   
+   (preferences:add-to-misc-checkbox-panel
+    (((is-a?/c vertical-panel%) . -> . void?) . -> . void?)
+    (proc)
+    "Saves \\var{proc} until the preferences panel is"
+    "created, when it is called with the Misc. panel to"
+    "add new children to the panel.")
+   
+   (preferences:add-to-scheme-checkbox-panel
+    (((is-a?/c vertical-panel%) . -> . void?) . -> . void?)
+    (proc)
+    "Saves \\var{proc} until the preferences panel is "
+    "created, when it is called with the Scheme "
+    "preferences panel to "
+    "add new children to the panel.")
+   
+   (preferences:add-to-editor-checkbox-panel
+    (((is-a?/c vertical-panel%) . -> . void?) . -> . void?)
+    (proc)
+    "Saves \\var{proc} until the preferences panel is "
+    "created, when it is called with the Echeme "
+    "preferences panel to "
+    "add new children to the panel.")
+
    (preferences:add-font-panel
     (-> void?)
     ()
     "Adds a font selection preferences panel to the preferences dialog.")
-   (preferences:add-general-panel
-    (-> void?)
-    ()
-    "Adds a general preferences panel to the preferences dialog.")
    (preferences:show-dialog
     (-> void?)
     ()
