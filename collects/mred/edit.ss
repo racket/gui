@@ -228,7 +228,7 @@
 	(class (make-std-buffer% super%) args
 	  (inherit mode set-mode-direct canvases get-file-format 
 		   set-filename find-string
-		   change-style save-file
+		   change-style save-file get-admin
 		   invalidate-bitmap-cache
 		   begin-edit-sequence end-edit-sequence
 		   flash-on get-keymap get-start-position
@@ -548,13 +548,19 @@
 	    [find-string-embedded
 	     (opt-lambda (str [direction 1] [start -1]
 			      [end -1] [get-start #t]
-			      [case-sensitive? #t])
+			      [case-sensitive? #t] [pop-out? #f])
 	       (let/ec k
 		 (let*-values
-		     ([(end) (if (= -1 end)
+		     ([(start) (if (= -1 start)
+				   (if (= direction 1)
+				       (get-end-position)
+				       (get-start-position))
+				   start)]
+		      [(end) (if (= -1 end)
 				 (if (= direction 1)
 				     (last-position)
-				     0))]
+				     0)
+				 end)]
 		      [(flat) (find-string str direction
 					   start end get-start
 					   case-sensitive?)]
@@ -572,20 +578,43 @@
 					    [(and (not (= -1 flat))
 						  (<= x flat))
 					     flat]
-					    [(<= start x) -1]
+					    [(<= x end) -1]
 					    [else #f]))))]
+		      [(pop-out)
+		       (lambda ()
+			 (let ([admin (get-admin)])
+			   (if (is-a? admin wx:media-snip-media-admin%)
+			       (let* ([snip (send admin get-snip)]
+				      [edit-above (send (send snip get-admin) get-media)]
+				      [pos (send edit-above get-snip-position snip)])
+				 (send edit-above
+				       find-string-embedded 
+				       str
+				       direction 
+				       (if (= direction 1) (add1 pos) pos)
+				       -1 get-start
+				       case-sensitive? pop-out?))
+			       (values this -1))))]
 		      [(check-snip)
-		       (opt-lambda (p)
-			 (let* ([b (box 0)]
-				[s (find-snip p wx:const-snip-after b)])
+		       (opt-lambda (pos)
+			 (let*
+			     ([dir (if (= direction 1) wx:const-snip-after wx:const-snip-before)]
+			      [b (box 0)]
+			      [s (find-snip pos dir b)]
+			      [p (if (= direction 1)
+				       pos
+				       (- pos (send s get-count)))])
 			   (and (is-a? s wx:media-snip%)
 				(= p (unbox b))
-				s)))])			       
+				s)))])
 		   (let loop ([current-pos (if (< start 0)
 					       (get-start-position)
 					       start)])
 		     (cond
-		       [(end-test current-pos) => (lambda (x) (values this x))]
+		       [(end-test current-pos) => (lambda (x)
+						    (if (and (= x -1) pop-out?)
+							(pop-out)
+							(values this x)))]
 		       [(check-snip current-pos) =>
 			(lambda (snip)
 			  (let-values ([(embedded embedded-pos)
@@ -598,7 +627,6 @@
 							 (send media last-position))
 						     -1
 						     get-start case-sensitive?)))])
-			    (printf "found snip: ~a ~a~n" current-pos embedded-pos)
 			    (if (= -1 embedded-pos)
 				(loop (increment current-pos))
 				(values embedded embedded-pos))))]
@@ -633,7 +661,5 @@
 
     (define return-edit% (make-return-edit% edit%))
 		  
-		      
-
     (define make-pasteboard% make-std-buffer%)
     (define pasteboard% (make-pasteboard% mred:connections:connections-media-pasteboard%))))
