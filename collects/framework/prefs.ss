@@ -87,7 +87,7 @@
 				 (lambda () 
 				   (raise (exn:make-unknown-preference
 					   (format "attempted to get unknown preference: ~a" p)
-					   ((debug-info-handler))))))])
+					   (current-continuation-marks)))))])
 	(cond
 	  [(marshalled? ans)
 	   (let* ([default-s
