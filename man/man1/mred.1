@@ -187,6 +187,12 @@ Skip "class.ss" and "mred.ss" require.
 Use stdio REPL. Same as
 .BR -ve \ '(read-eval-print-loop)'.
 .TP
+.B \-K
+.TP
+.B \--back
+Under Mac OS X, skip bringing the application to
+the foreground (in case it was started from a command line).
+.TP
 .B \-w
 .TP
 .B \--awk
@@ -231,7 +237,12 @@ Skips defining `argv' and `program'.
 .B \-g
 .TP
 .B \--case-sens
-Identifiers and symbols are initially case-sensitive.
+Identifiers and symbols are initially case-sensitive (the default).
+.TP
+.B \-G
+.TP
+.B \--case-insens
+Identifiers and symbols are initially case-insensitive.
 .TP
 .B \-s
 .TP
