@@ -7481,22 +7481,22 @@
 			       (next-snip to-str)]
 			      [snip
 			       (let ([the-snip snip])
+				 ;; Increment the snip now, because the
+				 ;;  system promises to use the procedure
+				 ;;  below before another read
+				 (next-snip empty-string)
 				 (lambda (file line col ppos)
 				   (if (is-a? the-snip readable-snip<%>)
 				       (with-handlers ([exn:special-comment?
 							(lambda (exn)
 							  ;; implies "done"
-							  (next-snip empty-string)
 							  (raise exn))])
 					 (let-values ([(val size done?)
 						       (send the-snip read-one-special pos file line col ppos)])
-					   (if done?
-					       (next-snip empty-string)
-					       (set! pos (add1 pos)))
+					   (unless done?
+					     (set! pos (add1 pos)))
 					   (values val size)))
-				       (begin
-					 (next-snip empty-string)
-					 (values (send the-snip copy) 1)))))]
+				       (values (send the-snip copy) 1))))]
 			      [else eof]))]
 	       [close (lambda () (void))]
 	       [port (make-custom-input-port 

@@ -62,4 +62,37 @@
 (test #t 'undone? undone?)
 (st "Hello" e get-text)
 
+;; Editor ports
+
+(let ([e (make-object text%)])
+  (stv e insert "hello")
+  (let ([p (open-input-text-editor e)])
+    (test 'hello 'read (read p))
+    (test eof 'read (read p)))
+  (stv e insert " there")
+  (let ([p (open-input-text-editor e)])
+    (test 'hello 'read (read p))
+    (test 'there 'read (read p))
+    (test eof 'read (read p)))
+  (stv e insert (make-object
+		 (class* snip% 
+		   (readable-snip<%>)
+		   (define/public (read-one-special idx src line col pos)
+		     (error 'ack))
+		   (super-new))))
+  (let ([p (open-input-text-editor e)])
+    (port-count-lines! p)
+    (test '(1 0 1) 'pos (call-with-values (lambda () (port-next-location p)) list))
+    (test 'hello 'read (read p))
+    (test '(1 5 6) 'pos (call-with-values (lambda () (port-next-location p)) list))
+    (test 'there 'read (read p))
+    (test '(1 11 12) 'pos (call-with-values (lambda () (port-next-location p)) list))
+    (test 'got-ack 'read (with-handlers ([not-break-exn? (lambda (x)
+							   'got-ack)])
+			   (read p)))
+    (test '(1 12 13) 'pos (call-with-values (lambda () (port-next-location p)) list))
+    (test eof 'read (read p))))
+		 
+
+
 (report-errs)
