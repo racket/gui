@@ -1454,7 +1454,7 @@
   (let ([t (wx:eventspace-handler-thread e)])
     (or t
 	;; eventspace dead, or just no thread, yet?
-	(with-handlers ([not-break-exn?
+	(with-handlers ([exn:fail?
 			 (lambda (x)
 			   (if (wx:eventspace-shutdown? e)
 			       (raise-mismatch-error
@@ -7588,12 +7588,12 @@
 				 (lambda (file line col ppos)
 				   (if (is-a? the-snip wx:snip%)
 				       (if (is-a? the-snip readable-snip<%>)
-					   (with-handlers ([exn:special-comment?
+					   (with-handlers ([special-comment?
 							    (lambda (exn)
 							      ;; implies "done"
 							      (next-snip empty-string)
 							      (raise exn))]
-							   [not-break-exn?
+							   [void
 							    (lambda (exn)
 							      ;; Give up after an exception
 							      (next-snip empty-string)
@@ -7691,7 +7691,7 @@
       (let loop ()
 	;; Wrap regexp check with `with-handlers' in case the file
 	;;  starts with non-text input
-	(when (with-handlers ([not-break-exn? (lambda (x) #f)])
+	(when (with-handlers ([exn:fail? (lambda (x) #f)])
 		(regexp-match-peek #rx"^#!" p))
 	  ;; Throw away chars/specials up to eol,
 	  ;;  and continue if line ends in backslash

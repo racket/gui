@@ -27,12 +27,12 @@
       (define arrow-cursor (make-object cursor% 'arrow))
       
       (define-values (up-bitmap down-bitmap up-click-bitmap down-click-bitmap)
-	(with-handlers ([not-break-exn? (lambda (x)
-					  (values
-					   (make-object bitmap% 10 10)
-					   (make-object bitmap% 10 10)
-					   (make-object bitmap% 10 10)
-					   (make-object bitmap% 10 10)))])
+	(with-handlers ([exn:fail? (lambda (x)
+				     (values
+				      (make-object bitmap% 10 10)
+				      (make-object bitmap% 10 10)
+				      (make-object bitmap% 10 10)
+				      (make-object bitmap% 10 10)))])
 	  (values
 	   (make-object bitmap% (build-path (collection-path "icons") "turn-up.gif"))
 	   (make-object bitmap% (build-path (collection-path "icons") "turn-down.gif"))

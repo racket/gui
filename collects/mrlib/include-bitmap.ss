@@ -13,7 +13,7 @@
       [(_ orig-stx source path-spec)
        (let* ([c-file (resolve-path-spec #'path-spec #'source #'orig-stx #'build-path)]
 	      [content
-	       (with-handlers ([not-break-exn?
+	       (with-handlers ([exn:fail?
 				(lambda (exn)
 				  (error 'include-bitmap
 					 "could not load ~e: ~a"
