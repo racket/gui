@@ -190,7 +190,7 @@
       (define-struct percentage (%))
       
       (define dragable<%>
-        (interface ()
+        (interface (window<%> area-container<%>)
           after-percentage-change
           set-percentages
           get-percentages
@@ -203,7 +203,7 @@
         (interface (dragable<%>)))
 
       (define dragable-mixin
- 	(mixin ((class->interface panel%)) (dragable<%>)
+ 	(mixin (window<%> area-container<%>) (dragable<%>)
           (init parent)
  
 	  (define/public (get-vertical?)
