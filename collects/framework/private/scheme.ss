@@ -947,15 +947,15 @@
                                 (|{| |}|))))))
       
       (define (scheme-lexer-wrapper in)
-        (let-values (((type lex start end) (scheme-lexer in)))
+        (let-values (((lexeme type paren start end) (scheme-lexer in)))
           (cond
             ((and (eq? type 'symbol)
                   (hash-table-get (preferences:get 'framework:tabify)
-                                  (string->symbol lex)
+                                  (string->symbol lexeme)
                                   (lambda () #f)))
-             (values 'keyword lex start end))
+             (values lexeme 'keyword paren start end))
             (else
-             (values type lex start end)))))
+             (values lexeme type paren start end)))))
       
       (define set-mode-mixin
         (mixin (-text<%> mode:host-text<%>) ()

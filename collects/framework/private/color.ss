@@ -174,7 +174,7 @@
           ;; breaks disabled re-tokenize should be called when lock is not
           ;; held.  When it exits, the lock will be held.
           (define/private (re-tokenize in in-start-pos)
-            (let-values (((type data new-token-start new-token-end) (get-token in)))
+            (let-values (((lexeme type data new-token-start new-token-end) (get-token in)))
               ;; breaks must be disabled before the semaphore wait so we can't be
               ;; broken out of the critical section
               (break-enabled #f)
@@ -289,7 +289,8 @@
                 (break-enabled #t)
                 (with-handlers ((not-break-exn?
                                  (lambda (exn)
-                                   (printf "colorer thread: ~s\n" exn)
+                                   (parameterize ((print-struct #t))
+                                     (printf "colorer thread: ~s\n" exn))
                                    (break-enabled #f)
                                    (semaphore-wait mutex-lock))))
                   (re-tokenize (open-input-text-editor this current-pos end-pos
