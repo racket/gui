@@ -612,7 +612,6 @@
   (define-function file-selector)
   (define-class list-box% item% #f
     set-string
-    get-string
     set-first-visible-item
     set
     get-selections

@@ -386,7 +386,7 @@
 			  (add-label-direction label-h? '(single))
 			  (if alt-inits? 2 #f)))
   
-  (define cb (make-object (trace-mixin check-box%) "C&h\u0000E9ck" ip void null alt-inits?)) ; \uE9 is e with '
+  (define cb (make-object (trace-mixin check-box%) "C&h\u00E9ck" ip void null alt-inits?)) ; \uE9 is e with '
   
   (define icb (make-object (trace-mixin check-box%) mred-bmp ip void null alt-inits?))
   
@@ -413,7 +413,7 @@
 			  (if alt-inits? 1 0)))
   
   (define ch (make-object (trace-mixin choice%)
-			  (if null-label? #f "Ch&o\u0000EDce") ; \uED is i with '
+			  (if null-label? #f "Ch&o\u00EDce") ; \uED is i with '
 			  '("Alpha" "Beta" "Gamma" "Delta & R\uE9st") ; \uE9 is e with '
 			  ip void
 			  (add-label-direction label-h? null)
