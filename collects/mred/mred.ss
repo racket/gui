@@ -3438,11 +3438,13 @@
       [l (and label
 	      (make-object wx-message% #f proxy p label -1 -1 null))]
       [c (make-object wx-text-editor-canvas% #f proxy this p
-		      (if multi?
-			  (if (memq 'hscroll style)
-			      null
-			      '(hide-hscroll))
-			  '(hide-vscroll hide-hscroll)))])
+		      (append
+		       '(control-border)
+		       (if multi?
+			   (if (memq 'hscroll style)
+			       null
+			       '(hide-hscroll))
+			   '(hide-vscroll hide-hscroll))))])
     (sequence
       (send c set-x-margin 2)
       (send c set-y-margin 2)
@@ -4704,6 +4706,10 @@
 ;-------------------- Canvas class constructions --------------------
 
 (define canvas-default-size 20) ; a default size for canvases tht fits borders without losing client sizes
+(define canvas-scroll-size 10)
+(define canvas-control-border-extra (case (system-type)
+				      [(windows) 2]
+				      [else 0]))
 
 (define canvas<%>
   (interface (subwindow<%>)
@@ -4750,7 +4756,7 @@
     (sequence 
       (let ([cwho '(constructor canvas)])
 	(check-container-parent cwho parent)
-	(check-style cwho #f '(border hscroll vscroll gl deleted) style)
+	(check-style cwho #f '(border hscroll vscroll gl deleted control-border no-autoclear) style)
 	(check-callback cwho paint-callback)
 	(check-label-string/false cwho label)))
     (public
@@ -4826,9 +4832,10 @@
       [wx #f])
     (sequence
       (super-init (lambda () 
-		    (let ([ds (+ (if (memq 'border style)
-				     4 
-				     0)
+		    (let ([ds (+ (cond
+				  [(memq 'control-border style) (+ 4 canvas-control-border-extra)]
+				  [(memq 'border style) 4]
+				  [else 0])
 				 (if (or (memq 'vscroll style) (memq 'hscroll style))
 				     canvas-default-size
 				     1))])
@@ -4861,7 +4868,7 @@
       (let ([cwho '(constructor editor-canvas)])
 	(check-container-parent cwho parent)
 	(check-instance cwho internal-editor<%> "text% or pasteboard%" #t editor)
-	(check-style cwho #f '(hide-vscroll hide-hscroll no-vscroll no-hscroll deleted) style)
+	(check-style cwho #f '(hide-vscroll hide-hscroll no-vscroll no-hscroll deleted control-border) style)
 	(check-gauge-integer cwho scrolls-per-page)
 	(check-label-string/false cwho label)
 	(unless (eq? wheel-step no-val)
@@ -4957,10 +4964,13 @@
 			   [no-v? (or (memq 'no-hscroll style)
 				      (memq 'hide-hscroll style))]
 			   [get-ds (lambda (no-this? no-other?)
-				     (cond
-				      [(and no-this? no-other?) 14]
-				      [no-this? canvas-default-size]
-				      [else (+ 10 canvas-default-size)]))])
+				     (+ (if (memq 'control-border style)
+					    canvas-control-border-extra
+					    0)
+					(cond
+					 [(and no-this? no-other?) 14]
+					 [no-this? canvas-default-size]
+					 [else (+ canvas-scroll-size canvas-default-size)])))])
 		      (set! wx (make-object wx-editor-canvas% this this
 					    (mred->wx-container parent) -1 -1
 					    (get-ds no-h? no-v?)

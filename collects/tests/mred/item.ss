@@ -546,7 +546,7 @@
   
   (define fp (make-object vertical-panel% ip))
   
-  (define tp (make-object vertical-panel% fp))
+  (define tp (make-object group-box-panel% "Sub" fp))
 
   (when initially-disabled?
     (send tp enable #f))
@@ -601,8 +601,8 @@
 	  (basic-add-testers2 name control))
 	basic-add-testers2))
 
-  (define fp2 (make-object vertical-panel% ip2-0))  
-  (define ip2 (make-object vertical-panel% fp2))
+  (define fp2 (make-object vertical-panel% ip2-0))
+  (define ip2 (make-object group-box-panel% "Sub" fp2))
 
   (when initially-disabled?
     (send ip2 enable #f))
@@ -1717,6 +1717,31 @@
   (send f create-status-line)
   (send f show #t))
 
+(define (no-clear-canvas-frame)
+  (define f (make-frame frame% "No-Clear Canvas Test" #f #f 250))
+  (define p (make-object vertical-panel% f))
+  (define c% (class canvas%
+               (inherit get-dc refresh)
+	       (define/override (on-paint)
+		 (let ([red (send the-brush-list find-or-create-brush "RED" 'solid)]
+		       [blue (send the-brush-list find-or-create-brush "BLUE" 'solid)]
+		       [dc (get-dc)])
+		   (let loop ([x 0])
+		     (unless (= x 300)
+		       (send dc set-brush red)
+		       (send dc draw-rectangle x 0 25 400)
+		       (send dc set-brush blue)
+		       (send dc draw-rectangle (+ x 25) 0 25 400)
+		       (loop (+ x 50))))))
+	       (define/override (on-event evt)
+		 (when (send evt dragging?)
+		   (refresh)))
+	       (super-new)))
+  (new c% [parent p][style '(border)])
+  (new c% [parent p][style '(no-autoclear border)])
+  (send f show #t)
+  f)
+
 (define (editor-canvas-oneline-frame)
   (define f (make-frame frame% "x" #f 200 #f))
   
@@ -2006,6 +2031,9 @@
   (mkf '(vscroll) "V")
   (mkf null "")
   (make-object grow-box-spacer-pane% cnp))
+(make-object button%
+	     "Make No-Clear Canvas" cnp 
+	     (lambda (b e) (no-clear-canvas-frame)))
 
 (define (choose-next radios)
   (let loop ([l radios])
