@@ -149,6 +149,7 @@
 
 	[add-border-button
 	 (lambda (b)
+	   (set! border-buttons (filter weak-box-value border-buttons))
 	   (set! border-buttons (cons (make-weak-box b) border-buttons)))]
 
 	;; add-child: update panel pointer.
