@@ -42,6 +42,7 @@
 	  (send (get-top-level-window) update-info)))))
 
   (define wide-snip<%> (interface (basic<%>)
+			 recalc-snips
 			 add-wide-snip
 			 add-tall-snip))
 
@@ -74,14 +75,20 @@
                          (send edit get-snip-location s bl #f #f)
                          (send edit get-snip-location s br #f #t)
                          (- (unbox br) (unbox bl))))]
-                    [fetch-after-width
+                    [calc-after-width
                      (lambda (s)
-                       (+ 10
-                          (let loop ([s s])
-                            (printf "s: ~s~n" s)
-                            (if s
-                                (+ (get-width s) (loop (send s next)))
-                                0))))])
+		       (+ 4 ;; this is compensate for an autowrapping bug
+			  (let loop ([s s])
+			    (cond
+			     [(not s) 0]
+			     [(member 'hard-newline (send s get-flags)) 0]
+			     [(member 'newline (send s get-flags)) 0]
+			     [else
+			      (if s
+				  (+ (get-width s)
+				     2 ;; for the caret
+				     (loop (send s next)))
+				  0)]))))])
 	       (when edit
 		 (send edit
 		       run-after-edit-sequence
@@ -97,8 +104,8 @@
 			   ;; console printer
 			   (let ([fallback
 				  (lambda ()
-				    (send edit get-snip-position-and-location
-					  s #f left-edge-box top-edge-box))])
+				    (send edit get-snip-position
+					  s left-edge-box top-edge-box))])
 			     (cond
 			       [(not width?) (fallback)]
 			       [(let ([prev (send s previous)])
@@ -107,19 +114,17 @@
 				(set-box! left-edge-box 0)]
 			       [else (fallback)]))
 
-
 			   (if width?
-			       (let* ([after-width (fetch-after-width (send s next))]
+			       (let* ([after-width (calc-after-width (send s next))]
                                       [snip-width (max 0 (- (unbox width)
                                                             (unbox left-edge-box)
                                                             (unbox leftm)
                                                             (unbox rightm)
                                                             after-width
-						    ;; this two is the space that 
-						    ;; the caret needs at the right of
-						    ;; a buffer.
+							    ;; this two is the space that 
+							    ;; the caret needs at the right of
+							    ;; a buffer.
                                                             2))])
-                                 (printf "after-width: ~s~n" after-width)
 				 (send* s 
 					(set-min-width snip-width)
 					(set-max-width snip-width))
@@ -136,6 +141,11 @@
 					(set-min-height snip-height)
 					(set-max-height snip-height)))))))))))])
       (public
+	[recalc-snips
+	 (lambda ()
+	   (for-each (update-snip-size #t) wide-snips)
+	   (for-each (update-snip-size #f) tall-snips))])
+      (public
 	[add-wide-snip
 	 (lambda (snip)
 	   (set! wide-snips (cons snip wide-snips))
@@ -147,9 +157,8 @@
       (override
 	[on-size
 	 (lambda (width height)
-	   (super-on-size width height)
-	   (for-each (update-snip-size #t) wide-snips)
-	   (for-each (update-snip-size #f) tall-snips))])
+	   (recalc-snips)
+	   (super-on-size width height))])
       (sequence
 	(apply super-init args))))
 
