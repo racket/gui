@@ -640,6 +640,8 @@
   
   (make-object text-field% #f ip2 void "start focus here")
 
+  (make-object text-combo-field% #f '("Hola" "Ni Hao") ip2 void "hello")
+
   (when prev-frame
     (add-disable "Previous Tester Frame" prev-frame ep2))
   
