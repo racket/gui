@@ -626,6 +626,7 @@
     on-kill-focus
     popup-for-editor
     call-as-primary-owner
+    scroll-to
     set-lazy-refresh
     get-lazy-refresh
     scroll-with-bottom-base

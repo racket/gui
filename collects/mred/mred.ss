@@ -1868,8 +1868,13 @@
 
     (sequence (apply super-init args))))
 
-(define text% (class100 (make-editor-buffer% wx:text% #t  (lambda () text%)) ([line-spacing 1.0] [tab-stops null])
-		(sequence (super-init line-spacing tab-stops))))
+(define text% (class100 (make-editor-buffer% wx:text% #t  (lambda () text%)) ([line-spacing 1.0] 
+									      [tab-stops null]
+									      [auto-wrap #f])
+		(rename (super-auto-wrap auto-wrap))
+		(sequence (super-init line-spacing tab-stops)
+			  (when auto-wrap
+			    (super-auto-wrap #t)))))
 (define pasteboard% (class100 (make-editor-buffer% wx:pasteboard% #f (lambda () pasteboard%)) ()
 		      (sequence (super-init))))
 
@@ -3921,8 +3926,12 @@
 	  ((check-bounded-integer 1 1000 #t) '(method editor-canvas% set-line-count) n)
 	  (send wx set-line-count n)))]
 
+      [scroll-to (case-lambda 
+		  [(x y w h refresh?) (send wx scroll-to x y w h refresh?)]
+		  [(x y w h refresh? bias) (send wx scroll-to x y w h refresh? bias)])]
+
       [get-editor (entry-point (lambda () (send wx get-editor)))]
-      [set-editor (entry-point
+      [set-editor (entry-point 
 		   (case-lambda 
 		    [(m) (send wx set-editor m)]
 		    [(m upd?) (send wx set-editor m upd?)]))])
