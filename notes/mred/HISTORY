@@ -4,8 +4,12 @@ Version 199.26:
  * Added a `use-paper-bbox?' initialization argument to
    post-script-dc%. When it's #t (the default is #f), the bounding box
    for the PostScript output is determined by the paper size (from
-   `current-ps-setup'), instead of from the location of drawing
+   `current-ps-setup'), instead of from the history of drawing
    commands.
+
+ * `play-sound' in Linux now uses the `play' function, and under
+   Solaris it uses the `audioplay' function. Default commands for
+   other OSes are welcome.
 
 Version 199.25:
 

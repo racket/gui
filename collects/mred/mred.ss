@@ -5440,21 +5440,20 @@
 	  (raise-type-error 'play-sound "string" f))
 	(let* ([subpath (system-library-subpath)]
 	       [make-pattern (lambda (s) (string-append ".*" s ".*"))]
-	       [b 
-		(box 
-		 (cond 
-		  [(regexp-match (make-pattern "linux") subpath)
-		   ; use play interface to sox
-		   "play ~s"]
-		  [(regexp-match (make-pattern "solaris") subpath)
-		   "audioplay ~s"]
-		  [(regexp-match (make-pattern "ppc-macosx") subpath)
-		   'use-play-sound]
-		  [else
-		   (raise-mismatch-error
-		    'play-sound
-		    "Don't know how to play sounds on architecture"
-		    subpath)]))])
+	       [b (box 
+		   (cond 
+		    [(regexp-match (make-pattern "linux") subpath)
+		     ;; use play interface to sox
+		     "play ~s"]
+		    [(regexp-match (make-pattern "solaris") subpath)
+		     "audioplay ~s"]
+		    [(regexp-match (make-pattern "ppc-macosx") subpath)
+		     'use-play-sound]
+		    [else
+		     (raise-mismatch-error
+		      'play-sound
+		      "not supported by default on this platform"
+		      subpath)]))])
 	  (if (eq? (unbox b) 'use-play-sound)
 	      (wx:play-sound f async?)
 	      (begin
