@@ -547,7 +547,9 @@
       
       [enabled? #t]
       [focus #f]
-      [target #f])
+      [target #f]
+
+      [show-ht (make-hash-table)])
     
     (override
       [enable
@@ -623,7 +625,14 @@
 	[() (not perform-updates?)]
 	[(f) (set! perform-updates? (not f))
 	     (when pending-redraws?
-	       (force-redraw))])]
+	       (force-redraw))
+	     (when (positive? (hash-table-count show-ht))
+	       (let ([t show-ht])
+		 (set! show-ht (make-hash-table))
+		 (hash-table-for-each
+		  show-ht
+		  (lambda (win v?)
+		    (send win show v?)))))])]
       [begin-container-sequence
        (lambda ()
 	 (when (zero? seq-count)
@@ -635,6 +644,11 @@
 	 (when (zero? seq-count)
 	   (delay-updates #f)))]
 
+      [show-child
+       (lambda (child show?)
+	 (if perform-updates?
+	     (send child show show?)
+	     (hash-table-put! show-ht child show?)))]
 
       ; force-redraw: receives a message from to redraw the
       ; entire frame.
@@ -2694,7 +2708,8 @@
 	     min-width min-height set-min-width set-min-height
 	     x-margin y-margin
 	     get-client-size area-parent
-	     get-hard-minimum-size)
+	     get-hard-minimum-size
+	     get-top-level)
     
     (rename [super-set-focus set-focus])
     
@@ -2817,12 +2832,13 @@
 	     (for-each (lambda (child) (send child queue-active))
 		       added-children)
 
-	     (for-each (lambda (child) (send child show #f))
-		       removed-children)
-	     (set! children new-children)
-	     (force-redraw)
-	     (for-each (lambda (child) (send child show #t))
-		       added-children))))]
+	     (let ([top (get-top-level)])
+	       (for-each (lambda (child) (send top show-child child #f))
+			 removed-children)
+	       (set! children new-children)
+	       (force-redraw)
+	       (for-each (lambda (child) (send top show-child child #t))
+			 added-children)))))]
       
       ; delete-child: removes a child from the panel.
       ; input: child: child to delete.
