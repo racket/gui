@@ -743,23 +743,25 @@
 	    (let ([new-width (get-width)]
 		  [new-height (get-height)])
 	      (let-values ([(correct-w correct-h) (correct-size new-width new-height)])
-		(if (or (and (= new-width correct-w) (= new-height correct-h))
-			(and (= last-width correct-w) (= last-height correct-h)
-			     was-bad?))
-		    ;; Good size or we give up; do panel
-		    (begin
-		      (set! was-bad? #f)
-		      (set-panel-size))
-		    ;; Too large/small; try to fix it, but give up after a while
-		    (begin
-		      (set! was-bad? #t)
-		      (set! last-width correct-w)
-		      (set! last-height correct-h)
-		      (set! already-trying? #t)
-		      (set-size -1 -1 correct-w correct-h)
-		      (set! already-trying? #f)
-		      (resized))))))))])
-      
+		(cond
+		 [(and (= new-width correct-w) (= new-height correct-h))
+		  ;; Good size; do panel
+		  (set! was-bad? #f)
+		  (set-panel-size)]
+		 [(and (= last-width correct-w) (= last-height correct-h)
+		       was-bad?)
+		  ;; We give up; do panel
+		  (set-panel-size)]
+		 [else
+		  ;; Too large/small; try to fix it, but give up after a while
+		  (set! was-bad? #t)
+		  (set! last-width correct-w)
+		  (set! last-height correct-h)
+		  (set! already-trying? #t)
+		  (set-size -1 -1 correct-w correct-h)
+		  (set! already-trying? #f)
+		  (resized)]))))))])
+    
     (override
       ; show: add capability to set perform-updates
       ; input: now : boolean
