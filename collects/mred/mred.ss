@@ -5690,7 +5690,7 @@
    [else (constructor-name (cadr who))]))
 
 (define (label-string? s)
-  (and (string? s) #t)) ; (<= 0 (string-length s) 200)))
+  (and (string? s) (<= 0 (string-length s) 200)))
 
 (define (check-instance who class class-name false-ok? v)
   (unless (or (and false-ok? (not v)) (is-a? v class))
