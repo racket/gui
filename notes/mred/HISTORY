@@ -4,7 +4,8 @@ Version 202.1
 Added message-box/custom
 Added 'app, 'caution, and 'stop styles to message-box
 Added 'app, 'caution, and 'stop labels for message%
-
+Mac OS X: file dialogs use given starting directory, and dialog%s
+ with a parent frame as shown as "sheets"
 
 ----------------------------------------------------------------------
 
