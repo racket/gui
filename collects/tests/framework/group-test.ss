@@ -99,6 +99,23 @@
        (lambda (x) (send x get-label))
        (send (car (send (send (get-top-level-focus-window) get-menu-bar) get-items)) get-items))
       (send (get-top-level-focus-window) close)))))
+  
+(test
+ 'windows-menu-unshown
+ (lambda (x)
+   (equal? x (list "test")))
+ (lambda ()
+   (send-sexp-to-mred
+    '(let ([frame1 (make-object frame:basic% "test")]
+           [frame2 (make-object frame:basic% "test-not-shown")])
+       (send frame1 show #t)))
+   (wait-for-frame "test")
+   (send-sexp-to-mred
+    '(begin0
+      (map
+       (lambda (x) (send x get-label))
+       (send (car (send (send (get-top-level-focus-window) get-menu-bar) get-items)) get-items))
+      (send (get-top-level-focus-window) close)))))
 
 (test
  'windows-menu-sorted1
@@ -140,8 +157,4 @@
 	(map
 	 (lambda (x) (send x get-label))
 	 (send (car (send (send (car frames) get-menu-bar) get-items)) get-items))
-	(for-each (lambda (x) (send x close)) frames))))))
-
-
-
-)
+	(for-each (lambda (x) (send x close)) frames)))))))

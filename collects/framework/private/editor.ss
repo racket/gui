@@ -64,6 +64,7 @@
 	  (rename [super-after-save-file after-save-file]
 		  [super-after-load-file after-load-file])
           [define last-saved-file-time #f]
+
 	  (override after-save-file after-load-file)
           [define after-save-file
 	    (lambda (sucess?)

@@ -583,7 +583,7 @@
       
       (define editor-mixin
         (mixin (standard-menus<%>) (-editor<%>)
-          (init (file-name #f))
+          (init (filename #f))
 
           (inherit get-area-container get-client-size 
                    show get-edit-target-window get-edit-target-object)
@@ -601,8 +601,8 @@
            (lambda ()
              (super-on-close)
              (send (get-editor) on-close))]
-          [define label (if file-name
-                            (file-name-from-path file-name)
+          [define label (if filename
+                            (file-name-from-path filename)
                             (gui-utils:next-untitled-name))]
           [define label-prefix (application:current-app-name)]
           [define do-label
@@ -794,10 +794,10 @@
 
           (do-label)
           (cond
-            [(and file-name (file-exists? file-name))
-             (send (get-editor) load-file file-name 'guess #f)]
-            [file-name
-             (send (get-editor) set-filename file-name)]
+            [(and filename (file-exists? filename))
+             (send (get-editor) load-file filename 'guess #f)]
+            [filename
+             (send (get-editor) set-filename filename)]
             [else (void)])
           (let ([canvas (get-canvas)])
             (when (is-a? canvas editor-canvas%)
