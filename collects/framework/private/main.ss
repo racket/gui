@@ -22,6 +22,10 @@
       
       (application-preferences-handler (lambda () (preferences:show-dialog)))
       
+      (preferences:set-default 'framework:special-option-key #f boolean?)
+      (preferences:add-callback 'framework:special-option-key (lambda (p v) (special-option-key v)))
+      (special-option-key (preferences:get 'framework:special-option-key))
+      
       (preferences:set-default 'framework:fraction-snip-style 'mixed (lambda (x) (memq x '(mixed improper))))
       
       (preferences:set-default 'framework:standard-style-list:font-name

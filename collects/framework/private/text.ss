@@ -848,7 +848,8 @@ WARNING: printf is rebound in the body of the unit to always
           submit-to-port?
           on-submit
           send-eof-to-in-port
-          clear-ports
+          clear-output-ports
+          clear-input-port
           get-in-port
           get-out-port
           get-err-port
@@ -917,9 +918,11 @@ WARNING: printf is rebound in the body of the unit to always
           
           (define/public (send-eof-to-in-port) (channel-put read-chan eof))
           
-          (define/public (clear-ports) 
-            (channel-put clear-output-chan (void))
+          (define/public (clear-input-port)
             (channel-put clear-input-chan (void)))
+          
+          (define/public (clear-output-ports) 
+            (channel-put clear-output-chan (void)))
           
           (define/public (get-in-port)
             (unless in-port (error 'get-in-port "not ready"))
@@ -934,7 +937,6 @@ WARNING: printf is rebound in the body of the unit to always
             (unless err-port (error 'get-value-port "not ready"))
             value-port)
           
-  
           ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
           ;;
           ;;  specialization interface
@@ -1021,12 +1023,13 @@ WARNING: printf is rebound in the body of the unit to always
           ;; send input from the editor
           (define read-chan (make-channel))
           
-          ;; readers-chan : (channel (cons (channel (union byte snip))
-          ;;                               (channel ...)))
+          ;; readers-chan : (channel (list (channel (union byte snip))
+          ;;                               (channel ...)
+          ;;                               (union #f number)))
           (define readers-chan (make-channel))
           
-          ;; peek-chan : (channel (channel boolean))
-          (define peek-chan (make-channel))
+          ;; readers-waiting-chan : (channel (channel boolean))
+          (define readers-waiting-chan (make-channel))
           
           ;; queue-insertion : (listof (cons (union string snip) style-delta)) waitable -> void
           ;; txt is in the reverse order of the things to be inserted.
@@ -1073,10 +1076,11 @@ WARNING: printf is rebound in the body of the unit to always
             (thread
              (lambda ()
                (define (data-waiting data)
+                 (printf "data-waiting ~s\n" (queue->list data))
                  (object-wait-multiple
                   #f
                   (make-wrapped-waitable
-                   peek-chan
+                   readers-waiting-chan
                    (lambda (result)
                      (channel-put result #t)
                      (data-waiting data)))
@@ -1094,6 +1098,7 @@ WARNING: printf is rebound in the body of the unit to always
                      (data-and-readers-waiting data (enqueue new-reader (empty-queue)))))))
                
                (define (readers-waiting readers)
+                 (printf "readers-waiting ~s\n" (queue->list readers))
                  (object-wait-multiple
                   #f
                   (make-wrapped-waitable
@@ -1101,7 +1106,7 @@ WARNING: printf is rebound in the body of the unit to always
                    (lambda (_)
                      (data-and-readers-waiting (empty-queue) (empty-queue))))
                   (make-wrapped-waitable
-                   peek-chan
+                   readers-waiting-chan
                    (lambda (result)
                      (channel-put result #f)
                      (readers-waiting readers)))
@@ -1118,10 +1123,11 @@ WARNING: printf is rebound in the body of the unit to always
                  (cond
                    [(queue-empty? data) (readers-waiting readers)]
                    [(queue-empty? readers) (data-waiting data)]
-                   [else (let* ([data-hd (queue-first data)]
-                                [reader-hd (queue-first readers)]
-                                [reader-succeed (car reader-hd)]
-                                [reader-fail (cdr reader-hd)])
+                   [else 
+                    (let-values ([(reader datum new-readers new-data)
+                                  (find-matching-reader/datum readers data)])
+                      (let* ([reader-succeed (car reader-hd)]
+                             [reader-fail (cadr reader-hd)])
                            (object-wait-multiple
                             #f
                             (make-wrapped-waitable
@@ -1129,20 +1135,28 @@ WARNING: printf is rebound in the body of the unit to always
                              (lambda (_)
                                (data-and-readers-waiting (empty-queue) (empty-queue))))
                             (make-wrapped-waitable
-                             peek-chan
+                             readers-waiting-chan
                              (lambda (result)
                                (channel-put result #t)
                                (data-and-readers-waiting data readers)))
                             (make-wrapped-waitable
                              (make-channel-put-waitable reader-succeed data-hd)
                              (lambda (v)
-                               (data-and-readers-waiting (queue-rest data)
-                                                         (queue-rest readers))))
+                               (data-and-readers-waiting
+                                new-readers
+                                new-data)))
                             (make-wrapped-waitable
                              reader-fail
                              (lambda (v)
                                (data-and-readers-waiting data
-                                                         (queue-rest readers))))))]))
+                                                         (queue-rest readers)))))))]))
+               
+               (define (find-matching-reader/datum readers data)
+                 (let ([data-size (queue-size data)])
+                   (let loop ([readers readers])
+                     (cond
+                       [(null? readers) 
+               
                (data-and-readers-waiting (empty-queue) (empty-queue)))))
           
           (define output-buffer-thread
@@ -1189,31 +1203,33 @@ WARNING: printf is rebound in the body of the unit to always
             ;;  in any thread (even concurrently)
             ;;
             (define op (current-output-port))
-            (define (read-bytes-proc bytes)
+            (define (peek-bytes-proc bytes to-skip) (do-peek/read bytes to-skip))
+            (define (read-bytes-proc bytes) (do-peek/read bytes #f))
+            
+            (define (do-peek/read bytes peek/count)
               ;; this shouldn't return 0. it should return a waitable and 
               ;; let the system block and then re-call into this thing. 
               ;; yuck.
-              (let ([any-waiting-chan (make-channel)])
-                (channel-put peek-chan any-waiting-chan)
-                (let ([data-waiting? (channel-get any-waiting-chan)])
-                  (if data-waiting?
-                      (let ([s/c
-                             (object-wait-multiple
-                              #f
-                              (make-nack-guard-waitable
-                               (lambda (fail-channel)
-                                 (let ([return-channel (make-channel)])
-                                   (channel-put readers-chan (cons return-channel fail-channel))
-                                   return-channel))))])
-                        (cond
-                          [(byte? s/c)
-                           (bytes-set! bytes 0 s/c)
-                           1]
-                          [(eof-object? s/c) s/c]
-                          [else
-                           (lambda (src line column position)
-                             (values s/c 1))]))
-                      0))))
+              (let ([readers-waiting-answer-chan (make-channel)])
+                (channel-put readers-waiting-chan readers-waiting-answer-chan)
+                (if (channel-get readers-waiting-answer-chan)
+                    (let ([s/c
+                           (object-wait-multiple
+                            #f
+                            (make-nack-guard-waitable
+                             (lambda (fail-channel)
+                               (let ([return-channel (make-channel)])
+                                 (channel-put readers-chan (list return-channel fail-channel peek/count))
+                                 return-channel))))])
+                      (cond
+                        [(byte? s/c)
+                         (bytes-set! bytes 0 s/c)
+                         1]
+                        [(eof-object? s/c) s/c]
+                        [else
+                         (lambda (src line column position)
+                           (values s/c 1))]))
+                    0)))
             
             (define (in-close-proc) (void))
             
@@ -1254,7 +1270,7 @@ WARNING: printf is rebound in the body of the unit to always
             (send value-sd set-delta-foreground (make-object color% 0 0 175))
             
             (set! in-port (make-custom-input-port read-bytes-proc
-                                                  #f
+                                                  peek-bytes-proc
                                                   in-close-proc))
             (set! out-port (make-custom-output-port #f
                                                     (make-write-bytes-proc out-sd)

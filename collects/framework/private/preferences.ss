@@ -776,6 +776,11 @@
                                    'framework:coloring-active
                                    (string-constant online-coloring-active)
                                    values values)
+                       (when (memq (system-type) '(macos macosx))
+                         (make-check editor-panel 
+                                     'framework:special-option-key
+                                     (string-constant option-as-meta)
+                                     values values))
                        (unless (eq? (system-type) 'unix) 
                          (make-check editor-panel 
                                      'framework:print-output-mode 
