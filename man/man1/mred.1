@@ -8,6 +8,13 @@ mred \- The Rice PLT GUI engine
 [-s
 .I sysfile
 ]
+[-a 
+.I unit-filename
+.I sig-filename
+]
+[-w
+.I filename
+]
 [-p
 .I image-filename
 .I splash-title
@@ -40,6 +47,23 @@ to load the startup system from
 a particular file. This overrides the system directory
 search path described below in FILES and must come before all other
 arguments.
+.PP
+The -a flag directs 
+.I MrEd 
+to look in the first file for a unit/sig (not a
+definition of a unit, just a plain unit) and the second file for signatures
+that the unit/sig needs. That unit will be used to start a new appliaction
+built on top of
+.I MrEd. 
+See the Toolbox manual for more information on how to write your own
+application using 
+.I MrEd.
+.PP
+The -w flag causes filename to be written over with a Static Debugger
+file, which can be used to analyze your application. You must use the -a
+flag and have written a Static Debugger conformant application to use this
+flag. See the Static Debugger and the Toolbox manuals for more information
+on Static Debugger conformancy and the -a flag respectively.
 .PP
 The -p flag specifies a splash screen filename. The splash screen must be
 an image file supported by wx:bitmap% objects. See the mred manual for more
