@@ -1095,9 +1095,9 @@
     (make-object check-box% "Pixset" hp2
 		 (lambda (self event)
 		   (send canvas set-pixel-copy (send self get-value))))
-    (make-object choice% #f '("Unsmoothed" "Smoothed" "Compatible") hp2.5
+    (make-object choice% #f '("Unsmoothed" "Smoothed" "Aligned") hp2.5
 		 (lambda (self event)
-		   (set! smoothing (list-ref '(unsmoothed smoothed compatible)
+		   (set! smoothing (list-ref '(unsmoothed smoothed aligned)
 					     (send self get-selection)))
 		   (send canvas refresh)))
     (make-object button% "Clock" hp2.5 (lambda (b e) (clock #f)))
