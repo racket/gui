@@ -55,7 +55,11 @@
      single-pane%
      ;;multi-view%
      vertical-resizable%
-     vertical-resizable-pane%))
+     vertical-resizable-pane%
+     
+     vertical-dragable-panel%
+     
+     ))
 
   (define-signature framework:exn^
     ((struct exn ())

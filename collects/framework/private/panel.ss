@@ -530,27 +530,124 @@
           
           (set-cursor (make-object cursor% (if vertical? 'size-n/s 'size-e/w)))))
     
-      (define two-panel-mixin
+      (define up/down-cursor (make-object cursor% 'size-n/s))
+
+      (define-struct gap (start finish percentage-before percentage-after))
+      (define-struct percentage (%))
+      
+      (define draggable-panel-mixin
         (mixin ((class->interface panel%)) ()
           (init parent)
           (super-instantiate (parent))
           (inherit get-client-size container-flow-modified)
           
-          (init-field [bar-thickness 6]
+          (init-field [bar-thickness 16]
                       [min-pane-size 5])
+          
+          (define percentages null)
           
           (define size 0)
           (define start-percent 0.0)
           
-          (define/override (after-new-child child)
-            '(refresh-bars (get-children)))
+          (inherit get-children)
           
-          (define bar-gaps null)
+          (define/override (after-new-child child)
+            (set! percentages (build-list (length (get-children))
+                                          (lambda (i) 
+                                            (make-percentage (/ 1 (length (get-children))))))))
+          
+          (define/public (get-percentages) percentages)
+          
+          (define resizing-y #f)
+          (define resizing-gap #f)
+          
+          (rename [super-on-subwindow-event on-subwindow-event])
+          (inherit set-cursor)
+          (define/override (on-subwindow-event receiver evt)
+            (let ([gap
+                   (ormap (lambda (gap) 
+                            (and (<= (gap-start gap) (send evt get-y) (gap-finish gap))
+                                 gap))
+                          cursor-gaps)])
+              (set-cursor (and gap up/down-cursor))
+              (cond
+                [(and gap (send evt button-down? 'left))
+                 (set! resizing-y (send evt get-y))
+                 (set! resizing-gap gap)]
+                [(and resizing-y (send evt button-up?))
+                 (set! resizing-y #f)
+                 (set! resizing-gap #f)]
+                [(and resizing-y (send evt moving?))
+                 (let-values ([(width height) (get-client-size)])
+                   (let* ([before-percentage (gap-percentage-before resizing-gap)]
+                          [after-percentage (gap-percentage-after resizing-gap)]
+                          [available-height (- height (* bar-thickness (- (length (get-children)) 1)))]
+                          [change-in-percentage (/ (- resizing-y (send evt get-y)) available-height)])
+                     (set-percentage-%! before-percentage
+                                        (- (percentage-% before-percentage) change-in-percentage))
+                     (set-percentage-%! after-percentage
+                                        (+ (percentage-% after-percentage) change-in-percentage))
+                     (set! resizing-y (send evt get-y))
+                     (container-flow-modified)))]
+                [else (super-on-subwindow-event receiver evt)])))
+          
+          (define cursor-gaps null)
+          
           (rename [super-place-children place-children])
-          (define/override (place-children info w h)
-            'hm
-            ;; cannot use the super-method, since I want to use
-            ;; percentages.
-            ;; just assume that all children are stretchable and
-            ;; what about minimum sizes?
-            ))))))
+          (define/override (place-children _infos width height)
+            (set! cursor-gaps null)
+            (cond
+              [(null? _infos) null]
+              [(null? (cdr _infos)) (list (list 0 0 width height))]
+              [else
+               (let ([available-height (- height (* bar-thickness (- (length _infos) 1)))]
+                     [show-error
+                      (lambda (n)
+                        (error 'panel.ss::dragable-panel "internal error.~a" n))])
+                 (let loop ([percentages percentages]
+                            [infos _infos]
+                            [y 0])
+                   (cond
+                     [(null? percentages)
+                      (unless (null? infos) (show-error 1))
+                      null]
+                     [(null? (cdr percentages))
+                      (when (null? infos) (show-error 2))
+                      (unless (null? (cdr infos)) (show-error 3))
+                      (list (list 0 y width (- height y)))]
+                     [else
+                      (when (null? infos) (show-error 4))
+                      (let* ([info (car infos)]
+                             [percentage (car percentages)]
+                             [this-space (floor (* (percentage-% percentage) available-height))])
+                        (set! cursor-gaps (cons (make-gap (+ y this-space)
+                                                          (+ y this-space bar-thickness)
+                                                          percentage
+                                                          (cadr percentages))
+                                                cursor-gaps))
+                        (cons (list 0 y width this-space)
+                              (loop (cdr percentages)
+                                    (cdr infos)
+                                    (+ y this-space bar-thickness))))])))]))))
+      
+      (define vertical-dragable-panel% (draggable-panel-mixin vertical-panel%)))))
+
+#|
+(require panel
+         "sig.ss"
+         (lib "unitsig.ss")
+         (lib "mred-sig.ss" "mred"))
+(define-values/invoke-unit/sig framework:panel^ panel@ #f mred^)
+(define f (make-object frame% "frame" #f 300 600))
+(define p (make-object vertical-dragable-panel% f))
+(define t1 (make-object text%))
+(define ec1 (make-object editor-canvas% p t1))
+(define t2 (make-object text%))
+(define ec2 (make-object editor-canvas% p t2))
+(send t1 insert "text\none")
+(send t2 insert "text\ntwo")
+(send ec1 set-line-count 2)
+(send ec2 set-line-count 2)
+(send f show #t)
+
+|#
