@@ -14,7 +14,6 @@
 	  (values (apply max (map car l)) (apply max (map cadr l))))]
        [place-children
 	(lambda (l width height)
-	  (printf "place children~n")
 	  (let-values ([(h-align-spec v-align-spec) (get-alignment)])
 	    (let ([align
 		   (lambda (total-size spec item-size)

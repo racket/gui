@@ -13,7 +13,7 @@
 	 [green-brush (send the-brush-list find-or-create-brush "FOREST GREEN" 'solid)]
 	 [black-pen (send the-pen-list find-or-create-pen "BLACK" 1 'solid)]
 	 [grid-canvas%
-	  (class canvas% (lines parent label)
+	  (class canvas% (lines parent label stretchable-width? stretchable-height?)
 	    (inherit get-dc get-client-size)
 	    (override
 	     [on-paint
@@ -41,19 +41,21 @@
 				    single-height)
 			      (loop (- j 1))]))
 			 (loop (- i 1))])))))])
-	    (inherit set-label stretchable-width stretchable-height)
+	    (inherit set-label min-width min-height stretchable-height stretchable-width)
 	    (sequence
 	      (super-init parent)
-	      (stretchable-width #t)
-	      (stretchable-height #t)
+	      (stretchable-width stretchable-width?)
+	      (stretchable-height stretchable-height?)
+	      (min-width 50)
+	      (min-height 50)
 	      (set-label label)))]
 	  
 	 [border-panel (make-object horizontal-panel% f '(border))]
 	 [single-panel (make-object panel:single% border-panel)]
-	 [children (list (make-object button% "Button" single-panel void)
-			 (make-object message% "Message" single-panel)
-			 (make-object grid-canvas% 3 single-panel "9 squares")
-			 (make-object grid-canvas% 5 single-panel "25 squares"))]
+	 [children (list (make-object grid-canvas% 3 single-panel "Small" #f #f)
+			 (make-object grid-canvas% 3 single-panel "Wide" #f #t)
+			 (make-object grid-canvas% 3 single-panel "Tall" #t #f)
+			 (make-object grid-canvas% 3 single-panel "Wide and Tall" #t #t))]
 	 [active-child (car children)]
 	 [radios (make-object horizontal-panel% f)]
 	 [make-radio
@@ -81,10 +83,7 @@
 	 [vertical-alignment 'center]
 	 [horizontal-alignment 'center]
 	 [update-alignment (lambda () 
-			     (send single-panel set-alignment horizontal-alignment vertical-alignment)
-			     (printf "set alignment~n")
-			     (send single-panel reflow-container)
-			     (printf "reflowed container~n"))]
+			     (send single-panel set-alignment horizontal-alignment vertical-alignment))]
 	 [horiz
 	  (make-radio 
 	   "Horizontal Alignment"
@@ -105,6 +104,8 @@
 	 [passed (make-object button% "Passed" buttons (lambda (_1 _2) 
 							 (set! result 'passed)
 							 (semaphore-post semaphore)))])
+    (send border-panel min-width 100)
+    (send border-panel min-height 100)
     (send vert set-selection 1)
     (send horiz set-selection 1)
     (send buttons stretchable-height #f)
