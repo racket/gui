@@ -19,9 +19,9 @@
 
   (define make-basic%
     (mixin (editor<%>) (basic<%>) args
-      (inherit modified? get-filename save-file
+      (inherit get-filename save-file
 	       refresh-delayed? 
-	       get-frame
+	       get-canvas
 	       get-keymap
 	       get-max-width get-admin set-filename)
       (rename [super-set-modified set-modified]
@@ -39,8 +39,9 @@
 		      [show-dialog? #t])
 	   (let ([filename (or filename
 			       (parameterize ([finder:dialog-parent-parameter
-					       (or (get-frame)
-						   #f)])
+					       (let ([canvas (get-canvas)])
+						 (and canvas
+						      (send canvas get-top-level-window)))])
 				 (finder:get-file)))])
 	     (and filename
 		  (if (file-exists? filename)
@@ -142,15 +143,15 @@
       (public
 	[get-file (lambda (d) 
 		    (let ([v (parameterize ([finder:dialog-parent-parameter
-					     (or (get-frame)
-						 null)])
+					     (and (get-canvas)
+						  (send (get-canvas) get-top-level-window))])
 			       (finder:get-file d))])
 		      (if v
 			  v
 			  null)))]
 	[put-file (lambda (d f) (let ([v (parameterize ([finder:dialog-parent-parameter
-							 (or (get-frame)
-							     null)])
+							 (and (get-canvas)
+							      (send (get-canvas) get-top-level-window))])
 					   (finder:put-file f d))])
 				  (if v
 				      v
@@ -167,9 +168,9 @@
   (define file<%> (interface (basic<%>)))
   (define make-file%
     (mixin (basic<%>) (file<%>) args
-      (inherit get-keymap find-snip  
+      (inherit get-keymap  
 	       get-filename lock get-style-list 
-	       modified? change-style set-modified 
+	       is-modified? change-style set-modified 
 	       get-frame)
       (rename [super-after-save-file after-save-file]
 	      [super-after-load-file after-load-file])
@@ -217,7 +218,7 @@
   ;     opened?
   (define make-backup-autosave%
     (mixin (basic<%>) (backup-autosave<%>) args
-      (inherit modified? get-filename save-file)
+      (inherit is-modified? get-filename save-file)
       (rename [super-on-save-file on-save-file]
 	      [super-on-change on-change]
 	      [super-do-close do-close]
@@ -271,7 +272,7 @@
 	 (lambda ()
 	   (when (and auto-save?
 		      (not auto-save-error?)
-		      (modified?)
+		      (is-modified?)
 		      (or (not auto-saved-name)
 			  auto-save-out-of-date?))
 	     (let* ([orig-name (get-filename)]
@@ -320,7 +321,8 @@
 
   (define make-clever-file-format%
     (mixin (editor<%>) (editor<%>) args
-      (inherit get-file-format set-file-format find-snip)
+      (inherit get-file-format set-file-format ;find-first-snip wx:
+	       )
       (rename [super-on-save-file on-save-file]
 	      [super-after-save-file after-save-file])
       
@@ -332,12 +334,14 @@
 	   (restore-file-format)
 	   (super-after-save-file success))]
 	[on-save-file
-	 (let ([has-non-text-snips 
+	 (let ([has-non-string-snips 
 		(lambda ()
-		  (let loop ([s (find-snip 0 'after)])
+		  (let loop ([s (if (is-a? this pasteboard%)
+				    (send this find-first-snip)
+				    (send this find-snip 0 'after))]) ;; wx:
 		    (cond
 		      [(null? s) #f]
-		      [(is-a? s text-snip%)
+		      [(is-a? s string-snip%)
 		       (loop (send s next))]
 		      [else #t])))])
 	   (lambda (name format)
@@ -353,7 +357,7 @@
 			    (set! restore-file-format void)
 			    (set-file-format f))))
 		  (set-file-format 'std)]
-		 [(and (has-non-text-snips)
+		 [(and (has-non-string-snips)
 		       (or (not (preferences:get 'framework:verify-change-format))
 			   (gui-utils:get-choice "Save this file as plain text?" "No" "Yes")))
 		  (set-file-format 'std)]

@@ -1222,7 +1222,7 @@
 	 (lambda ()
 	   (let* ([edit (get-editor)]
 		  [user-allowed-or-not-modified
-		   (or (not (send edit modified?))
+		   (or (not (send edit is-modified?))
 		       (case (gui-utils:unsaved-warning
 			      (let ([fn (send edit get-filename)])
 				(if (string? fn)

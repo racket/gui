@@ -24,8 +24,8 @@
       (inherit canvases get-max-width get-admin split-snip get-snip-position
 	       delete find-snip invalidate-bitmap-cache
 	       set-autowrap-bitmap get-keymap mode set-mode-direct
-	       set-file-format get-file-format get-frame
-	       get-style-list modified? change-style set-modified
+	       set-file-format get-file-format
+	       get-style-list is-modified? change-style set-modified
 	       position-location get-extent)
       
       (private
@@ -262,7 +262,7 @@
 	[on-change-style
 	 (lambda (start len)
 	   (when styles-fixed?
-	     (set! styles-fixed-edit-modified? (modified?)))
+	     (set! styles-fixed-edit-modified? (is-modified?)))
 	   (super-on-change-style start len))]
 	[after-insert
 	 (lambda (start len)
@@ -423,7 +423,7 @@
 
   (define make-info%
     (mixin (editor:basic<%> text<%>) (editor:basic<%> text<%>) args
-      (inherit get-frame get-start-position get-end-position
+      (inherit get-start-position get-end-position get-canvas
 	       run-after-edit-sequence)
       (rename [super-after-set-position after-set-position]
 	      [super-after-edit-sequence after-edit-sequence]
@@ -438,9 +438,9 @@
 	   (run-after-edit-sequence
 	    (rec from-enqueue-for-frame
 		 (lambda ()
-		   (let ([frame (get-frame)])
-		     (when frame
-		       ((ivar/proc frame ivar-sym))))))
+		   (let ([canvas (get-canvas)])
+		     (when canvas
+		       ((ivar/proc (send canvas get-top-level-window) ivar-sym))))))
 	    tag))])
       (override
 	[set-anchor
