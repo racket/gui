@@ -280,7 +280,7 @@
                           (let ([color (get-color-from-user
                                         (string-constant choose-a-background-color)
                                         (send hp get-top-level-window)
-                                        (preferences:get 'framework:basic-canvas-background))])
+                                        (preferences:get pref-id))])
                             (when color
                               (preferences:set pref-id color))))))])
           (preferences:add-callback
