@@ -700,7 +700,7 @@
 		 directory 
 		 name
 		 (default-extension))])
- 
+
 	(if (or (not f)
 		(and filter 
 		     (not (filter-match? filter 
@@ -729,6 +729,7 @@
 		prompt 
 		parent-win
 		directory)])
+
 	(if f
 	    (if (or (not filter) (filter-match? filter f filter-msg))
 		(let ([f (mzlib:file:normalize-path f)])
