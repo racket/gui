@@ -161,6 +161,7 @@
      [else (cons (car l) (loop (cdr l)))])))
 
 (define ibeam (make-object wx:cursor% 'ibeam))
+(define arrow-cursor (make-object wx:cursor% 'arrow))
 
 (define top-x 1)
 (define top-y 1)
@@ -408,7 +409,7 @@
 ; returns: a new class, descended from base%, which possesses the added
 ;            capabilities necessary to serve as the frame/dialog which
 ;            contains container classes.
-(define (make-top-container% base%)
+(define (make-top-container% base% dlg?)
   (class (wx-make-container% (wx-make-window% base%)) args
     (inherit get-x get-y get-width get-height set-size
 	     get-client-size is-shown? on-close)
@@ -431,9 +432,10 @@
       ; pointer to panel in the frame for use in on-size
       [panel #f]
 
-      [use-default-position? #t]
+      [use-default-position? (and (= -1 (list-ref args 3))
+				  (= -1 (list-ref args (if dlg? 4 2))))]
       
-      [enabled? #f]
+      [enabled? #t]
       [focus #f]
       [target #f])
     
@@ -1146,7 +1148,7 @@
 
 (define wx-frame%
   (make-top-level-window-glue% 
-   (class (make-top-container% wx:frame%) args
+   (class (make-top-container% wx:frame% #f) args
      (rename [super-set-menu-bar set-menu-bar])
      (public
        [menu-bar #f])
@@ -1169,7 +1171,7 @@
 
 (define wx-dialog%
   (make-top-level-window-glue% 
-   (class (make-top-container% wx:dialog%) args
+   (class (make-top-container% wx:dialog% #t) args
      (sequence
        (apply super-init args)))))
 
@@ -1178,7 +1180,9 @@
 		      (public [has-border? (lambda () (memq 'border style))])
 		      (sequence (super-init parent cb label x y w h style)))))
 (define wx-check-box% (make-window-glue% (make-simple-control% wx:check-box%)))
-(define wx-choice% (make-window-glue% (make-simple-control% wx:choice%)))
+(define wx-choice% (class (make-window-glue% (make-simple-control% wx:choice%)) args
+		     (override [handles-key-code (lambda (x) (memq x '(up down)))])
+		     (sequence (apply super-init args))))
 (define wx-message% (class (make-window-glue% (make-simple-control% wx:message%)) args
 		      (override [gets-focus? (lambda () #f)])
 		      (sequence (apply super-init args))))
@@ -2683,7 +2687,7 @@
 		 (send (send wx-panel area-parent) add-child wx-panel)
 		 (send top-level set-container wx-panel)
 		 top-level))])
-    (sequence (super-init (lambda () (set! wx (mk-wx finish)) wx) (lambda () wx-panel) label parent #f))))
+    (sequence (super-init (lambda () (set! wx (mk-wx finish)) wx) (lambda () wx-panel) label parent arrow-cursor))))
 
 (define subwindow<%> 
   (interface (window<%> subarea<%>)))
@@ -2697,6 +2701,7 @@
     (rename [super-set-label set-label])
     (override
       [get-label (lambda () label)]
+      [get-plain-label (lambda () (and (string? label) (wx:label->plain-label label)))]
       [set-label (entry-point-1
 		  (lambda (l)
 		    (send wx set-label l)
@@ -3064,8 +3069,8 @@
 					       (send wx set-first-visible-item n)))]
       [select (entry-point-1-2 
 	       (case-lambda 
-		[(n) (check-item 'select n) (send wx set-selection n)]
-		[(n on?) (check-item 'select n) (send wx set-selection n on?)]))])
+		[(n) (check-item 'select n) (send wx select n #t)]
+		[(n on?) (check-item 'select n) (send wx select n on?)]))])
     (private
       [wx #f]
       [check-item
@@ -3623,11 +3628,13 @@
 		     (lambda (l) 
 		       (check-string '(method labelled-menu-item<%> set-label) l)
 		       (let-values ([(new-label keymap) (calc-labels l)])
+			 (set! label l)
 			 (super-set-label new-label)
 			 (if (super-is-deleted?)
 			     (send wx set-keymap keymap)
 			     (send wx swap-keymap menu keymap)))))])
     (override
+      [get-label (lambda () label)]
       [set-label do-set-label])
     (public
       [set-shortcut (lambda (c) 
