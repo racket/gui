@@ -3987,7 +3987,9 @@
 			    (semaphore-post semaphore))
 			  (lambda () 'nothing-to-do)))))
 
-  (define user-output-port (make-user-output-port #f))
+  (define user-output-port (make-user-output-port
+			    (send (make-object wx:style-delta%)
+				  set-delta-foreground "PURPLE")))
   (define user-error-port (make-user-output-port
 			    (send (make-object wx:style-delta% 'change-style 'slant)
 				  set-delta-foreground "RED")))
