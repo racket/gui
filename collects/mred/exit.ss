@@ -23,6 +23,15 @@
 		 [(eq? cb (car cb-list)) (cdr cb-list)]
 		 [else (cons (car cb-list) (loop (cdr cb-list)))])))))
 
+    (define run-exit-callbacks
+      (lambda ()
+	(set! exit-callbacks
+	      (let loop ([cb-list exit-callbacks])
+		(cond
+		 [(null? cb-list) ()]
+		 [(not ((car cb-list))) cb-list]
+		 [else (loop (cdr cb-list))])))))
+
     (define -exit
       (lambda ()
 	(let/ec k
@@ -37,12 +46,7 @@
 			     (string-append "Are you sure you want to " w "?")
 			     capW "Cancel"))))
 		     (k #f))
-	  (set! exit-callbacks
-		(let loop ([cb-list exit-callbacks])
-		  (cond
-		   [(null? cb-list) ()]
-		   [(not ((car cb-list))) cb-list]
-		   [else (loop (cdr cb-list))])))
+	  (run-exit-callbacks)
 	  (if (null? exit-callbacks)
 	      (begin (when mred:debug:exit?
 		       (exit))
