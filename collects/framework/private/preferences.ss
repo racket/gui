@@ -389,6 +389,7 @@
                [font-default-string "Default Value"]
                [font-default-size (case (system-type)
                                     [(windows) 10]
+                                    [(macosx) 13]
                                     [else 12])]
                [font-section "mred"]
                [build-font-entry (lambda (x) (string-append "Screen" x "__"))]
