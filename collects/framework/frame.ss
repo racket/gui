@@ -62,13 +62,16 @@
 		     get-area-container
 		     get-menu-bar%
 		     make-root-area-container
-		     close))
+		     close
+                     get-filename))
   (define basic-mixin
     (mixin ((class->interface frame%)) (basic<%>)
 	   (label [parent #f] [width #f] [height #f] [x #f] [y #f] [style null])
       (rename [super-can-close? can-close?]
 	      [super-on-close on-close]
 	      [super-on-focus on-focus])
+      (public
+        [get-filename (lambda () #f)])
       (private
 	[after-init? #f])
       (override
@@ -573,6 +576,10 @@
 	      [super-set-label set-label])
 	     
       (override
+        [get-filename
+         (lambda ()
+           (let ([e (get-editor)])
+             (and e (send e get-filename))))]
 	[on-close
 	 (lambda ()
 	   (super-on-close)
