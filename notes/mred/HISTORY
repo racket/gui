@@ -1,4 +1,9 @@
 
+Version 103.4:
+
+ * Changed text% so that later-installed clickbacks take precedence
+   over earlier-installed clickbacks.
+
 Version 103.3:
 
  * Windows: fixed editor scrolling so that it updates the text while
@@ -64,6 +69,7 @@ Changed methods in dc<%> classes to raise an exception if the
 Changed dc<%>'s draw-bitmap and draw-bitmap-section to
  scale the bitmap if the dc<%> has a scale
 Changed text% undo to restore the pre-modification selection
+Changed text% so that later-installed clickbacks take precedence
 Added optional filters argument to get-file, put-file, and
  get-file-list (used by Windows, only)
 Fixed internal lock handling on focus and activation events
