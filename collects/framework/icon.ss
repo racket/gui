@@ -5,7 +5,7 @@
     (with-handlers ([void (lambda (x) (collection-path "system"))]) 
       (collection-path "icons")))
   
-  (define (load-icon % name type)
+  (define (load-icon name type)
     (let ([p (build-path icon-path name)]
 	  [bitmap #f])
       (unless (file-exists? p)
@@ -13,16 +13,16 @@
       (lambda ()
 	(if bitmap
 	    bitmap
-	    (begin (set! bitmap (make-object % p type))
+	    (begin (set! bitmap (make-object bitmap% p type))
 		   bitmap)))))
   
-  (define (load-bitmap/bdc % name type)
+  (define (load-bitmap/bdc name type)
     (let* ([p (build-path icon-path name)]
 	   [bitmap #f]
 	   [bitmap-dc #f]
 	   [force
 	    (lambda ()
-	      (set! bitmap (make-object % p type))
+	      (set! bitmap (make-object bitmap% p type))
 	      (set! bitmap-dc (make-object bitmap-dc%))
 	      (when (send bitmap ok?)
 		(send bitmap-dc select-object bitmap)))])
@@ -39,14 +39,14 @@
 		    bitmap-dc))))))
   
   (define-values (get-anchor-bitmap get-anchor-bdc)
-    (load-bitmap/bdc bitmap% "anchor.gif" 'gif))
+    (load-bitmap/bdc "anchor.gif" 'gif))
   (define-values (get-lock-bitmap get-lock-bdc)
-    (load-bitmap/bdc bitmap% "lock.gif" 'gif))
+    (load-bitmap/bdc "lock.gif" 'gif))
   (define-values (get-unlock-bitmap get-unlock-bdc)
-    (load-bitmap/bdc bitmap% "unlock.gif" 'gif))
+    (load-bitmap/bdc "unlock.gif" 'gif))
   
-  (define get-autowrap-bitmap (load-icon bitmap% "return.xbm" 'xbm))
-  (define get-paren-highlight-bitmap (load-icon bitmap% "paren.xbm" 'xbm))
+  (define get-autowrap-bitmap (load-icon "return.xbm" 'xbm))
+  (define get-paren-highlight-bitmap (load-icon "paren.xbm" 'xbm))
   
   (define get
     (let ([icon #f]
@@ -64,7 +64,7 @@
   (define (fetch)
     (unless gc-on-bdc
       (set! gc-on-bdc (make-object bitmap-dc%))
-      (set! gc-on-bitmap ((load-icon bitmap% "recycle.gif" 'gif)))
+      (set! gc-on-bitmap ((load-icon "recycle.gif" 'gif)))
       (send gc-on-bdc select-object gc-on-bitmap)))
 
   (define (get-gc-on-dc) (fetch) gc-on-bdc)
