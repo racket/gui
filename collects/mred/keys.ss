@@ -647,7 +647,11 @@
 			(if (mred:preferences:get-preference 'mred:delete-forward?)
 			    "delete-next-character"
 			    "delete-previous-character")
-			edit event #t)))])
+			edit event #t)))]
+	     [toggle-overwrite
+	      (lambda (edit event)
+		(send edit set-overwrite-mode
+		      (not (send edit get-overwrite-mode))))])
 	(lambda (kmap)
 	  ; Redirect keymapping error messages to stderr
 	  (send kmap set-error-callback keyerr)
@@ -668,6 +672,8 @@
 	    (wx:add-media-pasteboard-functions kmap)
 
 	    ; Map names to keyboard functions
+	    (add "toggle-overwrite" toggle-overwrite)
+
 	    (add "rcs" rcs)
 
 	    (add "exit" (lambda (edit event)
@@ -872,6 +878,9 @@
 	    (map-meta "t" "transpose-words")
 
 	    (map "c:space" "toggle-anchor")
+
+	    (map "insert" "toggle-overwrite")
+	    (map-meta "o" "toggle-overwrite")
 
 	    (map-meta "g" "goto-line")
 	    (map-meta "p" "goto-position")

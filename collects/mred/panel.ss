@@ -12,7 +12,7 @@
 	(class-asi super%
 	  (rename [super-change-children change-children])
 	  (inherit children get-parent)
-	  (public [get-canvas% (lambda () mred:canvas:editor-canvas%)])
+	  (public [get-canvas% (lambda () mred:canvas:frame-title-canvas%)])
 	  (private
 	    [edit-mapping (make-hash-table)]
 	    [bind
@@ -30,7 +30,6 @@
 			      p))])
 		     (hash-table-get edit-mapping child add-new))
 		   child))])
-						     
 	  (public
 
 	    ; this contains the edits and panels that are children of
@@ -38,7 +37,6 @@
 	    ; necessarily immediate children, since they may be split.
 	    [actual-children null]
 	   
-
 	    [collapse
 	     (lambda (canvas)
 	       (letrec* ([media (send canvas get-media)]
@@ -60,30 +58,34 @@
 
 	    [split
 	     (opt-lambda (canvas [panel% mred:container:horizontal-panel%])
-	       (let ([frame (ivar canvas frame)])
+	       (let* ([frame (ivar canvas frame)]
+		      [media (send canvas get-media)]
+		      [canvas% (object-class canvas)]
+		      [parent (send canvas get-parent)]
+		      [new-panel #f]
+		      [left-split #f]
+		      [right-split #f])
 		 (dynamic-wind
 		  (lambda () (send frame set-perform-updates #f))
-		  (lambda () (letrec* ([media (send canvas get-media)]
-				       [canvas% (object-class canvas)]
-				       [parent (send canvas get-parent)]
-				       [new-panel (make-object panel% parent)]
-				       [left-split (make-object canvas% new-panel)]
-				       [right-split (make-object canvas% new-panel)])
-			       (send parent change-children
-				     (lambda (l)
-				       (let ([before (remq new-panel l)])
-					 (map (lambda (x) (if (eq? x canvas)
-							      new-panel
-							      x))
-					      before))))
-			       (send* media (remove-canvas canvas)
-				            (add-canvas left-split)
-					    (add-canvas right-split))
-			       (send* left-split (set-media media) (set-frame frame) (set-focus))
-			       (send* right-split (set-media media) (set-frame frame))
-			       (when (eq? this parent)
-				 (bind media new-panel))))
-		  (lambda () (send frame set-perform-updates #t)))))]
+		  (lambda () 
+		    (set! new-panel (make-object panel% parent))
+		    (set! left-split (make-object canvas% new-panel))
+		    (set! right-split (make-object canvas% new-panel))
+		    (send parent change-children
+			  (lambda (l)
+			    (let ([before (remq new-panel l)])
+			      (map (lambda (x) (if (eq? x canvas)
+						   new-panel
+						   x))
+				   before)))))
+		  (lambda () (send frame set-perform-updates #t)))
+		 (send* media (remove-canvas canvas)
+			(add-canvas left-split)
+			(add-canvas right-split))
+		 (send* left-split (set-media media) (set-focus))
+		 (send* right-split (set-media media))
+		 (when (eq? this parent)
+		   (bind media new-panel))))]
 	    [change-children
 	     (lambda (f)
 	       (let ([new-children (f actual-children)])

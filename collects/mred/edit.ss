@@ -1,6 +1,8 @@
+
 (define mred:edit@
   (unit/sig mred:edit^
     (import [mred:debug : mred:debug^]
+	    [mred:connections : mred:connections^]
 	    [mred:finder : mred:finder^]
 	    [mred:path-utils : mred:path-utils^]
 	    [mred:mode : mred:mode^]
@@ -18,11 +20,13 @@
     (define-struct range (start end b/w-bitmap color))
     (define-struct rectangle (left top width height b/w-bitmap color))
 
+    (mred:preferences:set-preference-default 'mred:auto-set-wrap? #f)
+
     (define make-std-buffer%
       (lambda (buffer%)
 	(class buffer% args
 	  (sequence (mred:debug:printf 'creation "creating a buffer"))
-	  (inherit modified? get-filename save-file
+	  (inherit modified? get-filename save-file canvases
 		   get-max-width get-admin)
 	  (rename
 	    [super-set-filename set-filename]
@@ -52,17 +56,12 @@
 					  v
 					  '())))]
 	    
-	    [auto-set-wrap? #f]
+	    [auto-set-wrap? (mred:preferences:get-preference 'mred:auto-set-wrap?)]
 	    [set-auto-set-wrap
 	     (lambda (v)
 	       (mred:debug:printf 'rewrap "set-auto-set-wrap: ~a~n" v)
 	       (set! auto-set-wrap? v)
 	       (rewrap))]
-	    
-	    [active-canvas #f]
-	    [set-active-canvas
-	     (lambda (c)
-	       (set! active-canvas c))]
 	    
 	    [rewrap
 	     (let ([do-wrap
@@ -93,14 +92,6 @@
 			 0
 			 canvases)))
 		     (do-wrap -1))))]
-	    [canvases '()]
-	    [add-canvas
-	     (lambda (canvas)
-	       (set! canvases (cons canvas canvases)))]
-	    [remove-canvas
-	     (lambda (canvas)
-	       (set! canvases (mzlib:function:remove canvas canvases)))]
-	    
 	    [mode #f]
 	    [set-mode
 	     (lambda (m)
@@ -170,25 +161,7 @@
 			(let ([back-name (mred:path-utils:generate-backup-name name)])
 			  (unless (file-exists? back-name)
 			    (rename-file name back-name))))
-		      #t)))]
-	    
-	    [get-canvas
-	     (lambda ()
-	       (cond
-		 [(and active-canvas
-		       (member active-canvas canvases))
-		  active-canvas]
-		 [(null? canvases) #f]
-		 [else (car canvases)]))]
-	    [get-frame
-	     (lambda ()
-	       (let ([c (get-canvas)])
-		 (if c
-		     (let ([f (ivar c frame)])
-		       (if (null? f)
-			   #f
-			   f))
-		     #f)))])
+		      #t)))])
 	  (sequence
 	    (apply super-init args)))))
 
@@ -234,7 +207,7 @@
 		  [super-after-set-size-constraint after-set-size-constraint])
 	  (private
 	    [styles-fixed-edit-modified? #f]
-	    [restore-file-format void]) ; the function void, not #<void>
+	    [restore-file-format void])
 	  (public
 	    [on-save-file
 	     (let ([has-non-text-snips 
@@ -515,8 +488,7 @@
 	      (mred:keymap:set-keymap-implied-shifts keymap)
 	      (send keymap chain-to-keymap mred:keymap:global-keymap #f))))))
 
-    (define edit% (make-edit% wx:media-edit%))
+    (define edit% (make-edit% mred:connections:connections-media-edit%))
 
     (define make-pasteboard% make-std-buffer%)
-
-    (define pasteboard% (make-pasteboard% wx:media-pasteboard%))))
+    (define pasteboard% (make-pasteboard% mred:connections:connections-media-pasteboard%))))

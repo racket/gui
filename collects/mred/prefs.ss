@@ -15,10 +15,11 @@
     (mred:debug:printf 'invoke "mred:preferences@")
     
     (define preferences-filename
-      (case wx:platform
-	[(unix) (build-path (expand-path "~") ".mred.prefs")]
-	[(macintosh) "MrEd Preferences"]
-	[else "mred.pre"])) ;; windows 
+      (build-path (wx:find-directory 'pref)
+		  (case wx:platform
+		    [(unix)  ".mred.prefs"]
+		    [(macintosh) "MrEd Preferences"]
+		    [else "mred.pre"])))
     
     (define preferences (make-hash-table))
     (define marshall-unmarshall (make-hash-table))
@@ -237,6 +238,7 @@
 
 	    (make-check 'mred:verify-exit "Verify exit?" id id)
 	    (make-check 'mred:verify-change-format "Ask before changing save format?" id id)
+	    (make-check 'mred:auto-set-wrap? "Wordwrap editor buffers?" id id)
 	    main)))))
 
     (define make-run-once
