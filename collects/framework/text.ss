@@ -6,6 +6,8 @@
 	  [gui-utils : framework:gui-utils^]
 	  [mzlib:function : mzlib:function^])
 
+  (rename [-keymap% keymap%])
+
   (define-struct range (start end b/w-bitmap color caret-space?))
   (define-struct rectangle (left top right bottom b/w-bitmap color))
 
@@ -516,9 +518,9 @@
       (sequence (apply super-init args))))
 
   (define basic% (basic-mixin (editor:basic-mixin text%)))
-  (define keymap% (editor:keymap-mixin basic))
-  (define return% (return-mixin keymap%))
-  (define file% (editor:file-mixin keymap%))
+  (define -keymap% (editor:keymap-mixin basic%))
+  (define return% (return-mixin -keymap%))
+  (define file% (editor:file-mixin -keymap%))
   (define clever-file-format% (clever-file-format-mixin file%))
   (define backup-autosave% (editor:backup-autosave-mixin clever-file-format%))
   (define searching% (searching-mixin backup-autosave%))

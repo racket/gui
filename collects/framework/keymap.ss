@@ -28,9 +28,7 @@
   
   (define send-map-function-meta
     (lambda (keymap key func)
-      (for-each (lambda (key)
-		  ;(printf "mapping ~a to ~a~n" key func)
-		  (send keymap map-function key func))
+      (for-each (lambda (key) (send keymap map-function key func))
 		(make-meta-prefix-list key))))
   
   (define setup-global
