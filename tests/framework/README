@@ -4,7 +4,7 @@ Each tests will rely on the sucessfully completion of all of the ones
 before it. In addition, all test suites rely on the sucessful
 completion of the engine test suites and the mzscheme test suites.
 
-All of these tests reside in PLTHOME/tests/system/
+All of these tests reside in PLTHOME/tests/framework/
 
 There will be a main mzscheme process which will start up a new mred
 as necessary for the test suites. Since some tests actually require
