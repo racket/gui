@@ -26,8 +26,8 @@
    (snip-min-height (snip? . -> . number?))
    (snip-parent (snip? . -> . editor?))
    (fold-snip ((snip? any? . -> . any?) any? linked-snip? . -> . any?))
-   (for-each-snip ((snip-visitor? linked-snip?) rest-lists? . ->* . (void)))
-   (map-snip ((snip-visitor? linked-snip?) rest-lists? . ->* . ((listof any?))))
+   (for-each-snip any? #;((snip-visitor? linked-snip?) rest-lists? . ->* . (void)))
+   (map-snip any? #;((snip-visitor? linked-snip?) rest-lists? . ->* . ((listof any?))))
    (stretchable-width? (snip? . -> . boolean?))
    (stretchable-height? (snip? . -> . boolean?)))
   
