@@ -1225,6 +1225,53 @@
   (instructions p "choice-list-steps.txt")
   (send f show #t))
 
+(define (slider-frame)
+  (define f (make-object mred:frame% null "Slider Test"))
+  (define p (make-object mred:vertical-panel% f))
+  (define old-list null)
+  (define commands (list wx:const-event-type-slider-command))
+  (define s (make-object mred:slider% p
+			 (lambda (sl e)
+			   (unless (= (send s get-value) (send e get-selection))
+			     (error "slider value mismatch"))
+			   (check-callback-event s sl e commands #f))
+			 "Slide Me"
+			 3 -1 11 -1))
+  (define c (make-object mred:button% p
+			 (lambda (c e)
+			   (for-each
+			    (lambda (e)
+			      (check-callback-event s s e commands #t))
+			    old-list)
+			   (printf "All Ok~n"))
+			 "Check"))
+  (define (simulate v)
+    (let ([e (make-object wx:command-event% wx:const-event-type-slider-command)])
+      (send e set-command-int v)
+      (send e set-event-object s)
+      (send s command e)))
+  (define p2 (make-object mred:horizontal-panel% p))
+  (define p3 (make-object mred:horizontal-panel% p))
+  (send p3 stretchable-in-y #f)
+  (make-object mred:button% p2
+	       (lambda (c e)
+		 (send s set-value (add1 (send s get-value))))
+	       "Up")
+  (make-object mred:button% p2
+	       (lambda (c e)
+		 (send s set-value (sub1 (send s get-value))))
+	       "Down")
+  (make-object mred:button% p2
+	       (lambda (c e)
+		 (simulate (add1 (send s get-value))))
+	       "Simulate Up")
+  (make-object mred:button% p2
+	       (lambda (c e)
+		 (simulate (sub1 (send s get-value))))
+	       "Simulate Down")
+  (instructions p "slider-steps.txt")
+  (send f show #t))
+
 (define (gauge-frame)
   (define f (make-object mred:frame% null "Gauge Test"))
   (define p (make-object mred:vertical-panel% f))
