@@ -4539,6 +4539,11 @@
 (define box-width 300)
 (define (no-stretch a) (send a stretchable-width #f) (send a stretchable-height #f))
 
+(define protect&
+  (let ([re (regexp "&")])
+    (lambda (s)
+      (regexp-replace* re s "\\&\\&"))))
+
 (define message-box
   (case-lambda
    [(title message) (message-box title message #f '(ok))]
@@ -4561,7 +4566,7 @@
       (if (and (< (length strings) 10) (andmap (lambda (s) (< (string-length s) 60)) strings))
 	  (begin
 	    (send f set-alignment (if (= (length strings) 1) 'center 'left) 'center)
-	    (for-each (lambda (s) (make-object message% s f)) strings)
+	    (for-each (lambda (s) (make-object message% (protect& s) f)) strings)
 	    (send f stretchable-width #f)
 	    (send f stretchable-height #f))
 	  (let* ([e (make-object text%)]
@@ -4818,8 +4823,8 @@
 		 [__ (when message
 		       (let ([p (make-object vertical-pane% f)])
 			 (send p stretchable-height #f)
-			 (make-object message% message p)))]
-		 [m (make-object message% dir f)]
+			 (make-object message% (protect& message) p)))]
+		 [m (make-object message% (protect& dir) f)]
 		 [lp (make-object horizontal-pane% f)]
 		 [dirs (make-object list-box% #f null lp (lambda (d e)
 							   (when (eq? (send e get-event-type) 'list-box-dclick)
@@ -4881,7 +4886,7 @@
 							  (begin
 							    (unless directory
 							      (set! last-visted-directory dir))
-							    dir)
+							    (protect& dir))
 							  (string-append "BAD DIRECTORY: " dir)))
 				    (send dir-text set-value dir)
 				    (let ([l (with-handlers ([void (lambda (x) null)])
