@@ -487,11 +487,7 @@
   (define selected-text-color (make-object color% "black"))
 
   ;; unselected-text-color : color
-  (define unselected-text-color (let ([bkg (get-panel-background)])
-                                  (make-object color%
-                                    (floor (/ (send bkg red) 2))
-                                    (floor (/ (send bkg green) 2))
-                                    (floor (/ (send bkg blue) 2)))))
+  (define unselected-text-color (make-object color% "black"))
 
   ;; selected-brush : brush
   (define selected-brush (send the-brush-list find-or-create-brush "WHITE" 'solid))
