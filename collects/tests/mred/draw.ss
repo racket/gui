@@ -62,6 +62,7 @@
        [clock-end #f]
        [clock-clip? #f]
        [use-bitmap? #f]
+       [use-bad? #f]
        [depth-one? #f]
        [cyan? #f]
        [clip 'none])
@@ -108,7 +109,9 @@
 				   (make-object bitmap-dc%)
 				   #f)]
 		       [bm (if use-bitmap?
-			       (make-object bitmap% (* scale 350) (* scale 300) depth-one?)
+			       (if use-bad?
+				   (make-object bitmap% "no such file")
+				   (make-object bitmap% (* scale 350) (* scale 300) depth-one?))
 			       #f)]
 		       [draw-series
 			(lambda (dc pens pent penx size x y flevel last?)
@@ -421,19 +424,6 @@
 					(loop (cdr fam) (cdr stl) (cdr wgt) (cdr sze) x (+ y h))))))
 				(send dc set-pen save-pen)))
 
-			    (when last?
-			      (let ([m (send dc get-text-mode)]
-				    [b (send dc get-brush)]
-				    [p (send dc get-pen)])
-				(send dc set-pen pen1t)
-				(send dc set-brush brushs)
-				(send dc draw-rectangle 295 210 30 20)
-				(send dc set-text-mode 'xor)
-				(send dc draw-text "xor" 290 210)
-				(send dc set-text-mode m)
-				(send dc set-pen p)
-				(send dc set-brush b)))
-			    
 			    ; Bitmap copying:
 			    (when (and (not no-bitmaps?) last?)
 			      (let ([x 5] [y 165])
@@ -575,9 +565,10 @@
 				    (send pens set-style 'solid)
 				    (loop (cdr s) (+ y 8))))))
 
-			    (when (and last? (not (or ps? (eq? dc can-dc))))
+			    (when (and last? (not (or ps? (eq? dc can-dc)))
+				       (send mem-dc get-bitmap))
 			      (send can-dc draw-bitmap (send mem-dc get-bitmap) 0 0 'opaque)))
-
+			  
 			  'done)])
 
 		  (send (get-dc) set-scale 1 1)
@@ -586,7 +577,7 @@
 		  (let ([dc (if ps?
 				(let ([dc (make-object post-script-dc%)])
 				  (and (send dc ok?) dc))
-				(if (and use-bitmap? (send bm ok?))
+				(if (and use-bitmap?)
 				    (begin
 				      (send mem-dc set-bitmap bm)
 				      mem-dc)
@@ -689,6 +680,7 @@
 		      (let-values ([(w h) (send dc get-size)])
 			(unless (cond
 				 [ps? #t]
+				 [use-bad? #t]
 				 [use-bitmap? (and (= w (* scale 350)) (= h (* scale 300)))]
 				 [else (= w (send this get-width)) (= h (send this get-height))])
 			  (error 'x "wrong size reported by get-size: ~a ~a; w & h is ~a ~a" 
@@ -702,14 +694,13 @@
 		  'done)])])
 	    (sequence (apply super-init args)))
 	  vp)])
-    (make-object radio-box% #f '("Canvas" "Pixmap" "Bitmap") hp0
+    (make-object radio-box% #f '("Canvas" "Pixmap" "Bitmap" "Bad") hp0
 		 (lambda (self event)
 		   (set! use-bitmap? (< 0 (send self get-selection)))
 		   (set! depth-one? (< 1 (send self get-selection)))
+		   (set! use-bad? (< 2 (send self get-selection)))
 		   (send canvas on-paint))
 		 '(horizontal))
-    (make-object button% "Hide" hp0
-		 (lambda (self event) (send vp change-children (lambda (l) (list canvas)))))
     (make-object button% "PostScript" hp
 		 (lambda (self event)
 		   (send canvas on-paint #t)))
