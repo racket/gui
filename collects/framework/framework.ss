@@ -1327,13 +1327,17 @@
      "@flink editor:get-standard-style-list %"
      ".")
     
-    (editor:update-standard-style
-     (-> (-> (is-a?/c style-delta%) void?) void?)
-     (change-delta)
-     "Calls \\var{change-delta} with the \"Standard\" style delta from"
-     "the result of"
-     "@flink editor:get-standard-style-list %"
+    (editor:set-default-font-color
+     (-> (is-a?/c color%) void?)
+     (color)
+     "Sets the color of the style named"
+     "@flink editor:get-default-color-style-name %"
      ".")
+    (editor:get-default-color-style-name
+     (-> string?)
+     "The name of the style (in the list returned by "
+     "@flink editor:get-standard-style-list %"
+     ") that holds the default color.")
     (editor:set-standard-style-list-delta 
      (string? (is-a?/c style-delta%) . -> . void?)
      (name delta)

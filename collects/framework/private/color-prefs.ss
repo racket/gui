@@ -210,8 +210,8 @@
                                      vp
                                      'framework:paren-match-color)
              (build-text-foreground-selection-panel vp
-                                                    'framework:default-text-color 
-                                                    "Standard"
+                                                    'framework:default-text-color
+                                                    (editor:get-default-color-style-name)
                                                     (string-constant default-text-color))))))
       
       (define (build-text-foreground-selection-panel parent pref-sym style-name example-text)

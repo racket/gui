@@ -46,7 +46,9 @@
           backward-containing-sexp
           forward-match
           insert-close-paren
-	  classify-position))
+	  classify-position
+          
+          get-colorer-blank-style))
 
       (define text-mixin
         (mixin (text:basic<%>) (-text<%>)
@@ -134,7 +136,8 @@
           
           (inherit change-style begin-edit-sequence end-edit-sequence highlight-range
                    get-style-list in-edit-sequence? get-start-position get-end-position
-                   local-edit-sequence? get-styles-fixed has-focus?)
+                   local-edit-sequence? get-styles-fixed has-focus?
+                   get-fixed-style)
 
           (define/private (reset-tokens)
             (send tokens reset-tree)
@@ -187,12 +190,12 @@
 		  (when (and should-color? (should-color-type? type) (not frozen?))
 		    (set! colors
 			  (cons
-			   (let ((color (send (get-style-list) find-named-style
-					      (token-sym->style type)))
-				 (sp (+ in-start-pos (sub1 new-token-start)))
-				 (ep (+ in-start-pos (sub1 new-token-end))))
+			   (let* ([style-name (token-sym->style type)]
+                                  (color (send (get-style-list) find-named-style style-name))
+                                  (sp (+ in-start-pos (sub1 new-token-start)))
+                                  (ep (+ in-start-pos (sub1 new-token-end))))
 			     (lambda ()
-			       (change-style color sp ep #f)))
+                               (change-style color sp ep #f)))
 			   colors)))
 		  (insert-last! tokens (new token-tree% (length len) (data type)))
 		  (send parens add-token data len)
@@ -323,14 +326,15 @@
               (set! stopped? #t)
               (when (and clear-colors (not frozen?))
                 (begin-edit-sequence #f #f)
-                (change-style (send (get-style-list) find-named-style "Standard")
-                              start-pos end-pos #f)
+                (change-style (get-fixed-style) start-pos end-pos #f)
                 (end-edit-sequence))
               (match-parens #t)
               (reset-tokens)
               (set! pairs null)
               (set! token-sym->style #f)
               (set! get-token #f)))
+          
+          (define/public (get-colorer-blank-style) (send (get-style-list) find-named-style "Standard"))
           
           (define/public (is-frozen?) frozen?)
           
@@ -385,8 +389,7 @@
               ((and should-color? (not on?))
                (set! should-color? on?)
                (begin-edit-sequence #f #f)
-               (change-style (send (get-style-list) find-named-style "Standard")
-                             start-pos end-pos #f)
+               (change-style (get-fixed-style) start-pos end-pos #f)
                (end-edit-sequence))))
 
           ;; see docs
