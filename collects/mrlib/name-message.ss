@@ -212,19 +212,24 @@
 	    [xh (- h (* 2 border-inset))])
 	(case (system-type)
 	  [(macosx)
-	   (send dc set-pen (send the-pen-list find-or-create-pen color 1 'solid))
-	   (send dc set-brush (send the-brush-list find-or-create-brush color 'solid))
-	   (send dc draw-ellipse (+ dx border-inset) (+ dy border-inset) xh xh)
-	   (send dc draw-ellipse (+ dx (- w xh)) (+ dy border-inset) xh xh)
-	   (send dc set-pen (send the-pen-list find-or-create-pen "black" 1 'transparent))
-	   (send dc draw-rectangle (+ dx (quotient xh 2)) (+ dy border-inset) (- w xh) xh)
-	   (send dc set-pen (send the-pen-list find-or-create-pen color 1 'solid))
-	   (send dc draw-line 
+           (send dc set-pen (send the-pen-list find-or-create-pen color 1 'solid))
+           (send dc set-brush (send the-brush-list find-or-create-brush color 'solid))
+           
+           (let ([old-smooth (send dc get-smoothing)])
+             (send dc set-smoothing 'aligned)
+             (send dc draw-ellipse (+ dx border-inset) (+ dy border-inset) xh xh)
+             (send dc draw-ellipse (+ dx (- w xh)) (+ dy border-inset) xh xh)
+             (send dc set-smoothing old-smooth))
+           
+           (send dc set-pen (send the-pen-list find-or-create-pen "black" 1 'transparent))
+           (send dc draw-rectangle (+ dx (quotient xh 2)) (+ dy border-inset) (- w xh) xh)
+           (send dc set-pen (send the-pen-list find-or-create-pen color 1 'solid))
+           (send dc draw-line 
                  (+ dx (quotient xh 2))
                  (+ dy border-inset)
                  (+ dx (- w (quotient xh 2)))
                  (+ dy border-inset))
-	   (send dc draw-line 
+           (send dc draw-line 
                  (+ dx (quotient xh 2))
                  (+ dy (- h 1 border-inset))
                  (+ dx (- w (quotient xh 2)))
