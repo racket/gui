@@ -136,3 +136,5 @@
 	 (lambda (x) (send x get-label))
 	 (send (car (send (send (car frames) get-menu-bar) get-items)) get-items))
 	(for-each (lambda (x) (send x close)) frames))))))
+
+
