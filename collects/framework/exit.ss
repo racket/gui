@@ -1,5 +1,6 @@
 (unit/sig framework:exit^
-  (import [preferences : framework:preferences^]
+  (import mred^
+          [preferences : framework:preferences^]
 	  [gui-utils : framework:gui-utils^])
   (rename (-exit exit))
   
@@ -54,5 +55,5 @@
 	(set! exiting? #t)
 	(when (can-exit?)
 	  (on-exit)
-	  (exit))
+	  (queue-callback (lambda () (exit))))
 	(set! exiting? #f)))))
