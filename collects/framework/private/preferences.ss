@@ -63,7 +63,7 @@
                           (raise exn)))
                        (message-box (format (string-constant error-unmarshalling) p)
                                     (if (exn? exn)
-                                        (exn-message exn)
+                                        (format "~a" (exn-message exn))
                                         (format "~s" exn)))))))))
       
       ;; get-callbacks : sym -> (listof (-> void))

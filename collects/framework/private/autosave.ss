@@ -244,7 +244,7 @@
 				     (format (string-constant autosave-error-deleting)
 					     autosave-file
 					     (if (exn? exn)
-						 (exn-message exn)
+						 (format "~a" (exn-message exn))
 						 (format "~s" exn))))
 				    #f)])
 		   (delete-file autosave-file)

@@ -253,19 +253,19 @@
           (define/override (on-paint)
             (let* ([dc (get-dc)]
                    [draw
-                    (lambda (str bg-color bg-style line-color)
+                    (lambda (str bg-color bg-style line-color line-style)
                       (send dc set-font lock-canvas-font)
                       (let-values ([(w h) (get-client-size)]
                                    [(tw th ta td) (send dc get-text-extent str)])
-                        (send dc set-pen (send the-pen-list find-or-create-pen line-color 1 'solid))
+                        (send dc set-pen (send the-pen-list find-or-create-pen line-color 1 line-style))
                         (send dc set-brush (send the-brush-list find-or-create-brush bg-color bg-style))
                         (send dc draw-rectangle 0 0 w h)
                         (send dc draw-text str
                               (- (/ w 2) (/ tw 2))
                               (- (/ h 2) (/ th 2)))))])
               (if locked?
-                  (draw locked-message "yellow" 'solid "black")
-                  (draw unlocked-message (get-panel-background) 'panel (get-panel-background)))))
+                  (draw locked-message "yellow" 'solid "black" 'solid)
+                  (draw unlocked-message (get-panel-background) 'panel (get-panel-background) 'transparent))))
           (inherit get-parent min-width min-height stretchable-width stretchable-height)
           (super-instantiate ())
           (let ([dc (get-dc)])

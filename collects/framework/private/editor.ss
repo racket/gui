@@ -108,7 +108,9 @@
 	    (let ([sp (open-output-string)])
 	      (parameterize ([current-output-port sp])
 		((error-display-handler)
-		 (if (exn? exn) (exn-message exn) (format "uncaught exn: ~s" exn))
+		 (if (exn? exn)
+		     (format "~a" (exn-message exn))
+		     (format "uncaught exn: ~s" exn))
 		 exn))
 	      (get-output-string sp)))
 
@@ -501,7 +503,7 @@
 	      (string-constant autosaving-turned-off)
 	      "\n\n"
 	      (if (exn? exn)
-		  (exn-message exn)
+		  (format "~a" (exn-message exn))
 		  (format "~s" exn)))
 	     #f
 	     '(caution ok)))

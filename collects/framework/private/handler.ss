@@ -120,7 +120,9 @@
 				       (or filename
 					   (string-constant unknown-filename)))
 			       "\n\n"
-			       (if (exn? exn) (exn-message exn) (format "~s" exn))))
+			       (if (exn? exn)
+				   (format "~a" (exn-message exn))
+				   (format "~s" exn))))
 			     #f)])
 	    (gui-utils:show-busy-cursor
 	     (lambda ()
