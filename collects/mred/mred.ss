@@ -4831,7 +4831,8 @@
   (interface (subwindow<%>)
     min-client-width min-client-height
     on-char on-event on-paint on-scroll on-tab-in
-    warp-pointer get-dc))
+    warp-pointer get-dc
+    set-canvas-background get-canvas-background))
 
 (define-keywords canvas%-keywords
   window%-keywords
@@ -4852,7 +4853,24 @@
 
       [warp-pointer (entry-point (lambda (x y) (send wx warp-pointer x y)))]
 
-      [get-dc (entry-point (lambda () (send wx get-dc)))])
+      [get-dc (entry-point (lambda () (send wx get-dc)))]
+
+      [set-canvas-background
+       (entry-point
+	(lambda (c)
+	  (unless (c . is-a? . wx:color%)
+	    (raise-type-error (who->name '(method canvas<%> set-canvas-background))
+			      "color% object"
+			      c))
+	  (unless (send wx get-canvas-background)
+	    (raise-mismatch-error (who->name '(method canvas<%> set-canvas-background))
+				  "cannot set a transparent canvas's background color: "
+				  c))
+	  (send wx set-canvas-background c)))]
+      [get-canvas-background
+       (entry-point
+	(lambda ()
+	  (send wx get-canvas-background)))])
     (private-field
       [wx #f])
     (sequence
@@ -4977,7 +4995,7 @@
       (let ([cwho '(constructor editor-canvas)])
 	(check-container-parent cwho parent)
 	(check-instance cwho internal-editor<%> "text% or pasteboard%" #t editor)
-	(check-style cwho #f '(hide-vscroll hide-hscroll no-vscroll no-hscroll deleted control-border) style)
+	(check-style cwho #f '(hide-vscroll hide-hscroll no-vscroll no-hscroll deleted control-border transparent) style)
 	(check-gauge-integer cwho scrolls-per-page)
 	(check-label-string/false cwho label)
 	(unless (eq? wheel-step no-val)

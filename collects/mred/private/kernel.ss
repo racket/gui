@@ -342,6 +342,8 @@
     on-size
     on-set-focus
     on-kill-focus
+    get-canvas-background
+    set-canvas-background
     set-background-to-gray
     on-scroll
     set-scroll-page
@@ -647,6 +649,8 @@
     on-kill-focus
     popup-for-editor
     call-as-primary-owner
+    get-canvas-background
+    set-canvas-background
     set-y-margin
     set-x-margin
     get-y-margin
