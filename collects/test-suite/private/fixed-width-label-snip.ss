@@ -96,7 +96,7 @@
       (send (get-the-snip-class-list) add lsc))
     
     label-snip%)
-  
+
   ;;;;;;;;;;
   ;; tests
   
