@@ -9,8 +9,8 @@ Added value init argument to check%, selection init argument to
  radio-box%, choice%, and list-box%; in the argument order, the new
  argument follows the style argument
 Added checked init argument for checkable-menu-item%
-Added and 'inactive style to every subwindow<%> class; a window
- created with 'inactive is initially invisible and takes no
+Added and 'deleted style to every subwindow<%> class; a window
+ created with 'deleted is initially invisible and takes no
  space in its container
 Mac OS X: file dialogs use given starting directory, and dialog%s
  with a parent frame are shown as "sheets"

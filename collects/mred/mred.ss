@@ -1152,7 +1152,7 @@
 	 (set-min-width (init-min (get-width)))
 	 (set-min-height (init-min (get-height)))
 
-	 (unless (memq 'inactive window-style)
+	 (unless (memq 'deleted window-style)
 	   ;; For a pane[l], the creator must call the equivalent of the following,
 	   ;;  delaying to let the panel's wx field get initialized before
 	   ;;  panel-sizing methods are called
@@ -2546,7 +2546,7 @@
 				      removed-children)])
 	       (when non-window
 		 (raise-mismatch-error 'change-children
-				       (format "cannot make non-window area inactive in ~e: "
+				       (format "cannot delete non-window area in ~e: "
 					       (wx->proxy this))
 				       non-window)))
 
@@ -3221,8 +3221,8 @@
 			 (cdr r))
 		   r))))])
     (sequence
-      (super-init #f proxy parent (if (memq 'inactive style) '(inactive) null))
-      (unless (memq 'inactive style)
+      (super-init #f proxy parent (if (memq 'deleted style) '(deleted) null))
+      (unless (memq 'deleted style)
 	(send (area-parent) add-child this)))
     (private-field
       [multi? (memq 'multiple style)]
@@ -3347,7 +3347,7 @@
     (raise-type-error (who->name who) "frame% object or #f" p)))
 
 (define (check-orientation cwho l)
-  (check-style cwho '(vertical horizontal) '(inactive) l))
+  (check-style cwho '(vertical horizontal) '(deleted) l))
 
 (define (check-container-ready cwho p)
   (when p
@@ -4036,7 +4036,7 @@
       (let ([cwho '(constructor message)])
 	(check-label-string/bitmap/iconsym cwho label)
 	(check-container-parent cwho parent)
-	(check-style cwho #f '(inactive) style))
+	(check-style cwho #f '(deleted) style))
       (as-entry
        (lambda ()
 	 (super-init (lambda () (make-object wx-message% this this
@@ -4056,7 +4056,7 @@
 	(check-label-string-or-bitmap cwho label)
 	(check-container-parent cwho parent)
 	(check-callback cwho callback)
-	(check-style cwho #f '(border inactive) style))
+	(check-style cwho #f '(border deleted) style))
       (as-entry
        (lambda ()
 	 (super-init (lambda () (make-object wx-button% this this
@@ -4074,7 +4074,7 @@
 	(check-label-string-or-bitmap cwho label)
 	(check-container-parent cwho parent)
 	(check-callback cwho callback)
-	(check-style cwho #f '(inactive) style)))
+	(check-style cwho #f '(deleted) style)))
     (override
       [label-checker  (lambda () check-label-string-or-bitmap)]) ; module-local method
     (private-field
@@ -4179,7 +4179,7 @@
 	(check-container-parent cwho parent) 
 	(check-callback cwho callback)
 	(check-slider-integer cwho init-value)
-	(check-style cwho '(vertical horizontal) '(plain inactive) style)))
+	(check-style cwho '(vertical horizontal) '(plain deleted) style)))
     (private-field
       [wx #f])
     (public
@@ -4315,7 +4315,7 @@
     (sequence
       (let ([cwho '(constructor choice)])
 	(check-list-control-args cwho label choices parent callback)
-	(check-style cwho #f '(inactive) style)
+	(check-style cwho #f '(deleted) style)
 	(check-non-negative-integer cwho selection))
       (super-init (lambda () (make-object wx-choice% this this
 					  (mred->wx-container parent) (wrap-callback callback)
@@ -4335,7 +4335,7 @@
     (sequence 
       (let ([cwho '(constructor list-box)])
 	(check-list-control-args cwho label choices parent callback)
-	(check-style cwho '(single multiple extended) '(inactive) style)
+	(check-style cwho '(single multiple extended) '(deleted) style)
 	(check-non-negative-integer/false cwho selection)))
     (rename [super-append append])
     (override
@@ -4413,7 +4413,7 @@
 	(check-container-parent cwho parent)
 	(check-callback cwho callback)
 	(check-string cwho init-value)
-	(check-style cwho '(single multiple) '(hscroll password inactive) style)))
+	(check-style cwho '(single multiple) '(hscroll password deleted) style)))
     (private-field
       [wx #f])
     (public
@@ -4444,7 +4444,7 @@
     (sequence
       (let ([cwho '(constructor tab-group)])
 	(check-list-control-args cwho label choices parent callback)
-	(check-style cwho #f '(inactive) style))
+	(check-style cwho #f '(deleted) style))
       (super-init (lambda () (make-object wx-tab-group% this this
 					  style
 					  (mred->wx-container parent)
@@ -4506,7 +4506,7 @@
     (sequence 
       (let ([cwho '(constructor canvas)])
 	(check-container-parent cwho parent)
-	(check-style cwho #f '(border hscroll vscroll gl inactive) style)
+	(check-style cwho #f '(border hscroll vscroll gl deleted) style)
 	(check-callback cwho paint-callback)
 	(check-label-string/false cwho label)))
     (public
@@ -4616,7 +4616,7 @@
       (let ([cwho '(constructor editor-canvas)])
 	(check-container-parent cwho parent)
 	(check-instance cwho internal-editor<%> "text% or pasteboard%" #t editor)
-	(check-style cwho #f '(hide-vscroll hide-hscroll no-vscroll no-hscroll inactive) style)
+	(check-style cwho #f '(hide-vscroll hide-hscroll no-vscroll no-hscroll deleted) style)
 	(check-gauge-integer cwho scrolls-per-page)
 	(check-label-string/false cwho label)
 	(unless (eq? wheel-step no-val)
@@ -4774,7 +4774,7 @@
 		   [else 'panel])]
 	     [cwho `(constructor ,who)])
 	(check-container-parent cwho parent)
-	(check-style cwho #f '(border inactive) style)
+	(check-style cwho #f '(border deleted) style)
 	(as-entry
 	 (lambda ()
 	   (super-init (lambda () (set! wx (make-object (case who
@@ -4785,7 +4785,7 @@
 		       (lambda () wx) 
 		       (lambda () (check-container-ready cwho parent))
 		       #f parent #f)
-	   (unless (memq 'inactive style)
+	   (unless (memq 'deleted style)
 	     (send (send wx area-parent) add-child wx))))
 	(send parent after-new-child this)))))
 
@@ -4803,7 +4803,7 @@
 	  (raise-type-error (who->name cwho) "list of strings (up to 200 characters)" choices))
 	(check-callback cwho callback)
 	(check-container-parent cwho parent)
-	(check-style cwho #f '(inactive) style))
+	(check-style cwho #f '(deleted) style))
       (super-init parent style))
 
     (private-field

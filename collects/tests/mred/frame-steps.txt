@@ -208,17 +208,17 @@ Also, while the busy cursor is on, try creating a new Big/Medium Frame
 and make sure that the busy cursor is active in the new frame and over
 all controls in the new frame.
 
-Inactive Adds
+Deleted Adds
 -------------
 
-The "New Inactive" popup creates subwindow<%>s and adds them to the
-same panel as the "New Inactive" control, but each subwindow<%> is
-created with the 'inactive style, which means that the subwindow<%> is
-initially hidden and inactive. The "*Activate Last*" item activates
+The "New Deleted" popup creates subwindow<%>s and adds them to the
+same panel as the "New Deleted" control, but each subwindow<%> is
+created with the 'deleted style, which means that the subwindow<%> is
+initially hidden and deleted. The "*Activate Last*" item activates
 the last-created subwindow<%>, i.e., it shows the subwindow<%> and
 adjusts the panel size to accomodate the activated window<%>. The key
-part of this test is that no inactive subwindow<%> is shown, and no
-inactive subwindow<%> affects the panel's geometry.
+part of this test is that no deleted subwindow<%> is shown, and no
+deleted subwindow<%> affects the panel's geometry.
       
 Popup Menus (Big Frame)
 -----------
