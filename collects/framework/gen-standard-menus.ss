@@ -150,4 +150,5 @@ string=? ; exec mred -mgaqvf $0
 		      [(generic? x) (build-generic-clause x)]))
 		  items))))
      port))
+  'text
   'truncate)

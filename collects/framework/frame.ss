@@ -33,7 +33,8 @@
 		     get-area-container%
 		     get-area-container
 		     get-menu-bar%
-		     make-root-area-container))
+		     make-root-area-container
+		     close))
   (define basic-mixin
     (mixin (frame<%>) (basic<%>) args
       (rename [super-can-close? can-close?]
@@ -57,12 +58,19 @@
 	   (super-on-focus on?)
 	   (when on?
 	     (send (group:get-the-frame-group) set-active-frame this)))])
+
+      (inherit show)
       (public
 	[get-area-container% (lambda () vertical-panel%)]
 	[get-menu-bar% (lambda () menu-bar%)]
 	[make-root-area-container
 	 (lambda (% parent)
-	   (make-object % parent))])
+	   (make-object % parent))]
+	[close
+	 (lambda ()
+	   (when (can-close?)
+	     (on-close)
+	     (show #f)))])
       (sequence
 	(apply super-init args)
 	(send (group:get-the-frame-group) insert-frame this)
