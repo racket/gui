@@ -3207,6 +3207,8 @@
 	(send f show #t)
 	(and ok? (send l get-selections))))]))
 
+(define last-visted-directory #f)
+
 (define (mk-file-selector who put?)
   (letrec ([sel
 	    (case-lambda
@@ -3219,13 +3221,13 @@
 	     [(message parent directory filename extension style)
 	      (check-string/false who message)
 	      (check-top-level-parent/false who parent)
-	      (check-string/false who directory) (check-string/false filename directory) (check-string/false extension directory)
+	      (check-string/false who directory) (check-string/false who filename) (check-string/false who extension)
 	      (check-style who #f null style)
 	      (if (not (eq? (system-type) 'unix))
 		  (wx:file-selector message directory filename extension "*.*" (if put? 'put 'get) parent)
 		  (letrec ([ok? #t]
 			   [typed-name #f]
-			   [dir (or directory (current-directory))]
+			   [dir (or directory last-visted-directory (current-directory))]
 			   [f (make-object dialog% (if put? "Put File" "Get File") parent 500 300)]
 			   [__ (when message
 				 (let ([p (make-object vertical-pane% f)])
@@ -3289,7 +3291,9 @@
 			   [reset-directory (lambda ()
 					      (wx:begin-busy-cursor)
 					      (send m set-label (if (directory-exists? dir)
-								    dir
+								    (begin
+								      (set! last-visted-directory dir)
+								      dir)
 								    (string-append "BAD DIRECTORY: " dir)))
 					      (send dir-text set-value dir)
 					      (let ([l (with-handlers ([void (lambda (x) null)])
@@ -3475,7 +3479,7 @@
     (mk-sep)
     (mk "Insert Text Box" #f 'insert-text-box)
     (mk "Insert Pasteboard Box" #f 'insert-pasteboard-box)
-    (mk "Insert Image Box" #f 'insert-image)
+    (mk "Insert Image..." #f 'insert-image)
     (void)))
 
 (define (append-edit-font-menu-items m)
