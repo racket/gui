@@ -160,39 +160,10 @@
 	  (define (on-superwindow-show shown?)
 	    (send (group:get-the-frame-group) frame-shown/hidden this)
 	    (super-on-superwindow-show shown?))
-
-          (rename [super-can-close? can-close?]
-                  [super-on-close on-close]
-                  [super-on-focus on-focus])
-          
+         
           (define after-init? #f)
-          (override can-close? on-close on-focus on-drop-file)
-          (define (can-close?)
-            (let ([number-of-frames 
-                   (length (send (group:get-the-frame-group)
-                                 get-frames))])
-              (if (preferences:get 'framework:exit-when-no-frames)
-                  (and (super-can-close?)
-                       (or (exit:exiting?)
-                           (not (= 1 number-of-frames))
-                           (exit:user-oks-exit)))
-                  #t)))
-          (define (on-close)
-            (super-on-close)
-            (send (group:get-the-frame-group)
-                  remove-frame
-                  this)
-            (when (preferences:get 'framework:exit-when-no-frames)
-              (unless (exit:exiting?)
-                (when (null? (send (group:get-the-frame-group) get-frames))
-                  (exit:exit)))))
           
-          (define (on-focus on?)
-            (super-on-focus on?)
-            (when on?
-              (send (group:get-the-frame-group) set-active-frame this)))
-          
-          [define on-drop-file
+          [define/override on-drop-file
             (lambda (filename)
               (handler:edit-file filename))]
           
@@ -213,6 +184,8 @@
           [define make-root-area-container
             (lambda (% parent)
               (make-object % parent))]
+          
+          (inherit can-close? on-close)
           [define close
            (lambda ()
              (when (can-close?)
@@ -232,12 +205,46 @@
 			   mb)))
           
           (reorder-menus this)
-	  (send (group:get-the-frame-group) insert-frame this)
 	  
           [define panel (make-root-area-container (get-area-container%) this)]
           (public get-area-container)
           [define get-area-container (lambda () panel)]
           (set! after-init? #t)))
+
+      (define register-group<%> (interface ()))
+      (define register-group-mixin
+        (mixin (basic<%>) (register-group<%>)
+          (rename [super-can-close? can-close?]
+                  [super-on-close on-close]
+                  [super-on-focus on-focus])
+          
+          (define/override (can-close?)
+            (let ([number-of-frames 
+                   (length (send (group:get-the-frame-group)
+                                 get-frames))])
+              (if (preferences:get 'framework:exit-when-no-frames)
+                  (and (super-can-close?)
+                       (or (exit:exiting?)
+                           (not (= 1 number-of-frames))
+                           (exit:user-oks-exit)))
+                  #t)))
+          (define/override (on-close)
+            (super-on-close)
+            (send (group:get-the-frame-group)
+                  remove-frame
+                  this)
+            (when (preferences:get 'framework:exit-when-no-frames)
+              (unless (exit:exiting?)
+                (when (null? (send (group:get-the-frame-group) get-frames))
+                  (exit:exit)))))
+          
+          (define/override (on-focus on?)
+            (super-on-focus on?)
+            (when on?
+              (send (group:get-the-frame-group) set-active-frame this)))
+          
+          (super-new)
+          (send (group:get-the-frame-group) insert-frame this)))
       
       (define locked-message (string-constant read-only))
       (define unlocked-message (string-constant read/write))
@@ -2317,7 +2324,7 @@
               [else (super-on-event evt)]))
           (super-instantiate ())))
       
-      (define basic% (basic-mixin frame%))
+      (define basic% (register-group-mixin (basic-mixin frame%)))
       (define info% (info-mixin basic%))
       (define text-info% (text-info-mixin info%))
       (define pasteboard-info% (pasteboard-info-mixin text-info%))

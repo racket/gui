@@ -343,6 +343,7 @@
 
   (define-signature framework:frame-class^
     (basic<%>
+     register-group<%>
      status-line<%>
      standard-menus<%>
      editor<%>
@@ -373,6 +374,7 @@
      pasteboard-info-file%
      
      basic-mixin
+     register-group-mixin
      status-line-mixin
      standard-menus-mixin
      editor-mixin

@@ -2,7 +2,6 @@
 (module handler mzscheme
   (require (lib "unitsig.ss")
 	   (lib "class.ss")
-	   (lib "class100.ss")
            (lib "list.ss")
            (lib "hierlist.ss" "hierlist")
 	   "sig.ss"
@@ -361,21 +360,17 @@
             (super-instantiate ()))))
       
       (define *open-directory* ; object to remember last directory
-	(make-object 
-	    (class100 object% ()
-	      (private-field
-		[the-dir #f])
-	      (public
-		[get (lambda () the-dir)]
-		[set-from-file!
-		 (lambda (file) 
-		   (set! the-dir (path-only file)))]
-		[set-to-default
-		 (lambda ()
-		   (set! the-dir (current-directory)))])
-	      (sequence
-		(set-to-default)
-		(super-init)))))
+	(new (class object%
+               (field [the-dir #f])
+               [define/public get (lambda () the-dir)]
+               [define/public set-from-file!
+                 (lambda (file) 
+                   (set! the-dir (path-only file)))]
+               [define/public set-to-default
+                 (lambda ()
+                   (set! the-dir (current-directory)))]
+               (set-to-default)
+               (super-new))))
 
       (define open-file
 	(lambda ()
