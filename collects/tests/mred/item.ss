@@ -149,6 +149,15 @@
      (lambda (n)
        (build-path d n)))))
 
+(define on-demand-menu-item%
+  (class menu-item% (name . args)
+	 (override
+	   [on-demand
+	    (lambda ()
+	      (printf "Menu item ~a demanded~n" name))])
+	 (sequence
+	   (apply super-init name args))))
+
 (define popup-test-canvas%
   (class canvas% (objects names . args)
     (inherit popup-menu get-dc refresh)
@@ -201,6 +210,10 @@
 					    m
 					    (make-callback)))
 			     objects names)
+			    (make-object on-demand-menu-item%
+					 "[on-demand hook]"
+					 m
+					 void)
 			    m)
 			  last-m)])
 	       (set! last-m m)
@@ -589,7 +602,7 @@
 	   (set! ADD-BANANA (new "Add Banana"))
 	   (set! ADD-COCONUT (new "Add Coconut"))
 	   
-	   (make-object menu-item% "Append Donut" menu
+	   (make-object on-demand-menu-item% "Append Donut" menu
 			(lambda (m e) 
 			  (make-object menu-item% "Donut" apple-menu void)))
 	   (sep)
