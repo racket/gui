@@ -1,4 +1,10 @@
 
+Version 205.8
+Changed get-argb-pixels and set-argb-pixels to row-major order:
+ left to right then top to bottom
+Added optional 'mono argument to get-face-list
+Added get-bitmap and get-bitmap-mask to image-snip%
+
 Version 205.5
 Added an optional argument to begin-edit-sequence in
  editor<%> to treat actions before and after sequence
