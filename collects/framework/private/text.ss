@@ -427,8 +427,8 @@
               (send big-snip get-extent dc x y bwb bhb #f #f #f #f)
               (let* ([cw (send dc get-char-width)]
                      [ch (send dc get-char-height)]
-                     [w (quotient (unbox bwb) cw)]
-                     [h (quotient (unbox bhb) ch)])
+                     [w (floor (/ (unbox bwb) cw))]
+                     [h (floor (/ (unbox bhb) ch))])
                 (set/f! wb w)
                 (set/f! hb h)
                 (set! width w)
