@@ -3,7 +3,7 @@
 
 ; Scheme mode for MrEd.
 
-(dunit/sig framework:scheme^
+(unit/sig framework:scheme^
   (import mred-interfaces^
 	  [preferences : framework:preferences^]
 	  [match-cache : framework:match-cache^]

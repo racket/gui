@@ -1,4 +1,4 @@
-(dunit/sig framework:text^
+(unit/sig framework:text^
   (import mred-interfaces^
 	  [editor : framework:editor^]
 	  [preferences : framework:preferences^]

@@ -1,4 +1,4 @@
-(dunit/sig framework:version^
+(unit/sig framework:version^
   (import [mzlib:string : mzlib:string^]
 	  [mzlib:function : mzlib:function^])
 

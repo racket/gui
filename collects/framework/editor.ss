@@ -1,4 +1,4 @@
-(dunit/sig framework:editor^
+(unit/sig framework:editor^
   (import mred-interfaces^
 	  [autosave : framework:autosave^]
 	  [finder : framework:finder^]

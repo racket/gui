@@ -1,4 +1,4 @@
-(dunit/sig framework:group^
+(unit/sig framework:group^
   (import mred-interfaces^
 	  [exit : framework:exit^]
 	  [frame : framework:frame^]

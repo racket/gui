@@ -1,4 +1,4 @@
-(dunit/sig framework:icon^
+(unit/sig framework:icon^
   (import mred-interfaces^)
 
   (define icon-path 

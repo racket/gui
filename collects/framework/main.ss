@@ -1,4 +1,4 @@
-(dunit/sig framework:main^
+(unit/sig framework:main^
   (import mred-interfaces^
 	  [preferences : framework:preferences^]
 	  [exit : framework:exit^]

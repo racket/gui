@@ -1,4 +1,4 @@
-(dunit/sig framework:exit^
+(unit/sig framework:exit^
   (import [preferences : framework:preferences^]
 	  [gui-utils : framework:gui-utils^])
   (rename (-exit exit))

@@ -1,4 +1,4 @@
-(dunit/sig framework:pasteboard^
+(unit/sig framework:pasteboard^
   (import mred-interfaces^
 	  [editor : framework:editor^])
 

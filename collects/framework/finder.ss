@@ -2,7 +2,7 @@
 
 ;;; Authors: Matthew Flatt, Robby Findler, Paul Steckler 
 
-(dunit/sig framework:finder^
+(unit/sig framework:finder^
   (import mred-interfaces^
 	  [preferences : framework:preferences^]
 	  [gui-utils : framework:gui-utils^]

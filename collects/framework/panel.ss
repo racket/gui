@@ -1,4 +1,4 @@
-(dunit/sig framework:panel^
+(unit/sig framework:panel^
   (import mred-interfaces^
 	  [mzlib:function : mzlib:function^])
   
