@@ -1174,7 +1174,7 @@
 	   (let ([added-children (list-diff new-children children)]
 		 [removed-children (list-diff children new-children)])
 	     (unless (andmap (lambda (child)
-			     (is-a? wx:window% child))
+			     (is-a? child wx:window%))
 			     removed-children)
 	       (error 'change-children
 		      "cannot make non-window areas inactive in ~e"
@@ -1761,14 +1761,17 @@
 		      this)]
       [dy 0])
     (public
+      [command (lambda (e) 
+		 (check-instance '(method text-field% command) wx:control-event% "control-event" #f e)
+		 (func e))]
+
       [get-editor (lambda () e)]
       
       [get-value (lambda () (send e get-text))]
       [set-value (lambda (v) (send e without-callback
 				   (lambda () (send e insert v 0 (send e last-position)))))]
 
-      [get-label (lambda () (send l get-label))]
-      [set-label (lambda (str) (send l set-label str))])
+      [set-label (lambda (str) (when l (send l set-label str)))])
     (override
       [set-cursor (lambda (c) (send e set-cursor c #t))]
       [on-char (lambda (ev) (send c continue-on-char ev))]
@@ -2255,7 +2258,7 @@
        (lambda (method n k)
 	 (if (< -1 n (get-number))
 	     (k)
-	     (error (who->name `(method radio-box% ,method)) "no such button: %d" n)))])
+	     (error (who->name `(method radio-box% ,method)) "no such button: ~a" n)))])
     (override
       [enable (case-lambda
 	       [(on?) (send wx enable on?)]
@@ -2820,7 +2823,8 @@
       [set-help-string (lambda (s) 
 			 (check-string/false '(method labelled-menu-item<%> set-help-string) s)
 			 (set! help-string s)
-			 (send wx-parent set-help-string (send wx id) s))]
+			 (when in-menu?
+			   (send wx-parent set-help-string (send wx id) s)))]
       [enable (lambda (on?) (do-enable on?))]
       [is-enabled? (lambda () enabled?)]
       [restore (lambda ()
@@ -2904,7 +2908,7 @@
 			 (send wx swap-keymap menu keymap))))])
     (public
       [set-shortcut (lambda (c) 
-		      (check-char/false '(method shortcut-menu-item<%> set-shortcut))
+		      (check-char/false '(method shortcut-menu-item<%> set-shortcut) c)
 		      (set! shortcut c) (set-label (get-label)))]
       [get-shortcut (lambda () shortcut)]
       [get-x-shortcut-prefix (lambda () x-prefix)]
