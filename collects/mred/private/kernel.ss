@@ -907,7 +907,7 @@
     tell)
   (define-class editor-stream-in-bytes-base% editor-stream-in-base% #f)
   (define-class editor-stream-out-bytes-base% editor-stream-out-base% #f
-    get-string)
+    get-bytes)
   (define-class editor-stream-in% object% #f
     ok?
     jump-to
@@ -935,8 +935,8 @@
     get-clipboard-bitmap
     set-clipboard-bitmap
     get-clipboard-data
-    get-clipboard-bytes
-    set-clipboard-bytes
+    get-clipboard-string
+    set-clipboard-string
     set-clipboard-client)
   (define-function get-the-clipboard)
   (define-class clipboard-client% object% ()

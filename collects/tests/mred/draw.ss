@@ -1,6 +1,15 @@
 
 (require (lib "class100.ss"))
 
+(define manual-chinese? #f)
+
+(when manual-chinese?
+  (send the-font-name-directory set-post-script-name 
+	(send the-font-name-directory find-or-create-font-id "MOESung-Regular" 'default)
+	'normal
+	'normal
+	"MOESung-Regular"))
+
 (define sys-path 
   (lambda (f)
     (build-path (collection-path "icons") f)))
@@ -488,7 +497,8 @@
 					   [wgt '(normal  bold    normal normal bold       normal)]
 					   [sze '(12      12      12     12     12         32)]
 					   [x 244]
-					   [y 210])
+					   [y 210]
+					   [chinese? #t])
 				  (unless (null? fam)
 				    (let ([fnt (make-object font% (car sze) (car fam) (car stl) (car wgt))]
 					  [s "AgMh"])
@@ -498,7 +508,20 @@
 				      (let-values ([(w h d a) (send dc get-text-extent s fnt)])
 					(send dc draw-rectangle x y w h)
 					(send dc draw-line x (+ y (- h d)) (+ x w) (+ y (- h d)))
-					(loop (cdr fam) (cdr stl) (cdr wgt) (cdr sze) x (+ y h))))))
+					(when chinese?
+					  (let ([s "\u7238"]
+						[x (+ x (* 1.5 w))]
+						[cfnt (if (and (dc . is-a? . post-script-dc%)
+							       manual-chinese?)
+							  (make-object font% 12 "MOESung-Regular" 'default)
+							  fnt)])
+					    (send dc set-font cfnt)
+					    (send dc draw-text s x y)
+					    (send dc set-font fnt)
+					    (let-values ([(w h d a) (send dc get-text-extent s cfnt)])
+					      (send dc draw-rectangle x y w h)
+					      (send dc draw-line x (+ y (- h d)) (+ x w) (+ y (- h d))))))
+					(loop (cdr fam) (cdr stl) (cdr wgt) (cdr sze) x (+ y h) #f)))))
 				(send dc set-pen save-pen)))
 
 			    ; Bitmap copying:

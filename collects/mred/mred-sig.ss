@@ -39,6 +39,8 @@
      control<%>
      current-eventspace
      current-eventspace-has-standard-menus?
+     current-ps-afm-file-paths
+     current-ps-cmap-file-paths
      current-ps-setup
      current-text-keymap-initializer
      cursor%

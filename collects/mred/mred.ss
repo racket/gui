@@ -7895,7 +7895,9 @@
 	current-eventspace-has-menu-root?
 	eventspace-handler-thread
 	make-namespace-with-mred
-	file-creator-and-type)
+	file-creator-and-type
+	current-ps-afm-file-paths
+	current-ps-cmap-file-paths)
 
 
 ) ;; end of module
