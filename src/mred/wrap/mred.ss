@@ -983,7 +983,7 @@
 		 (get-size (box 0) h)
 		 (let ([new-min-height (+ (* fixed-height-lines height) 
 					  (- (unbox h) (unbox ch)))])
-		   (set-min-height new-min-height)
+		   (set-min-height (inexact->exact (round new-min-height)))
 		   (force-redraw)))))))])
     
     (sequence
@@ -1395,8 +1395,8 @@
 	 (unless (and (list? children-info)
 		      (andmap (lambda (x) (and (list? x)
 					       (= 4 (length x))
-					       (number? (car x)) (not (negative? (car x))) (integer? (car x))
-					       (number? (cadr x)) (not (negative? (cadr x))) (integer? (cadr x))))
+					       (number? (car x)) (not (negative? (car x))) (integer? (car x)) (exact? (car x))
+					       (number? (cadr x)) (not (negative? (cadr x))) (integer? (cadr x)) (exact? (cadr x))))
 			      children-info))
 	   (raise-type-error (who->name '(method area-container-window<%> place-children))
 			     "list of (list of non-negative-integer non-negative-integer boolean boolean)"
@@ -1449,7 +1449,7 @@
 			  (= (length l) (length children-info))
 			  (andmap (lambda (x) (and (list? x)
 						   (= 4 (length x))
-						   (andmap (lambda (x) (and (number? x) (integer? x))) x)))
+						   (andmap (lambda (x) (and (number? x) (integer? x) (exact? x))) x)))
 				  l))
 	       (raise-mismatch-error 'container-redraw 
 				     "result from place-children is not a list of 4-integer lists with the correct length: "
@@ -1884,7 +1884,10 @@
 	  (set! dy (- dy (- (unbox hbox) (unbox ybox))))
 	  
 	  ; Subtract space above label
-	  (set! dy (- dy (quotient (- (send l get-height) (unbox hbox)) 2)))))
+	  (set! dy (- dy (quotient (- (send l get-height) (unbox hbox)) 2)))
+
+	  ; Exact
+	  (set! dy (inexact->exact dy))))
       
       (when value
 	(set-value value)
@@ -1896,7 +1899,7 @@
 	    (send (send e get-admin) get-view #f #f cw #f)
 	    (send c get-size tw (box 0))
 	    (let ([new-min-width (+ (unbox ew) (- (unbox tw) (unbox cw)))])
-	      (send c set-min-width new-min-width)))))
+	      (send c set-min-width (inexact->exact new-min-width))))))
       (send e callback-ready))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;; mred Class Construction ;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -2077,10 +2080,14 @@
 	[(on?) (send wx drag-accept-files on?)])]
       
       [client->screen (lambda (x y)
+			(check-slider-integer '(method window<%> client->screen) x)
+			(check-slider-integer '(method window<%> client->screen) y)
 			(double-boxed
 			 x y
 			 (lambda (x y) (send wx client-to-screen x y))))]
       [screen->client (lambda (x y)
+			(check-slider-integer '(method window<%> screen->client) x)
+			(check-slider-integer '(method window<%> screen->client) y)
 			(double-boxed
 			 x y
 			 (lambda (x y) (send wx screen-to-client x y))))]
@@ -2166,8 +2173,12 @@
 	       [() (send wx center 'both)]
 	       [(dir) (send wx center dir)])]
       [move (lambda (x y)
+	      (check-slider-integer '(method top-level-window<%> move) x)
+	      (check-slider-integer '(method top-level-window<%> move) y)
 	      (send wx move x y))]
       [resize (lambda (w h)
+		(check-range-integer '(method top-level-window<%> resize) w)
+		(check-range-integer '(method top-level-window<%> resize) h)
 		(send wx set-size -1 -1 w h))]
 
       [get-focus-window (lambda () (let ([w (send wx get-focus-window)])
@@ -2333,30 +2344,33 @@
       (check-orientation 'radio-box style))
     (private
       [wx #f]
-      [per-button
-       (lambda (method n k)
-	 (if (< -1 n (get-number))
-	     (k)
-	     (raise-mismatch-error (who->name `(method radio-box% ,method)) "no such button: " n)))])
+      [check-button
+       (lambda (method n)
+	 (check-non-negative-integer `(method radio-box% ,method) n)
+	 (unless (< n (length choices))
+	   (raise-mismatch-error (who->name `(method radio-box% ,method)) "no such button: " n)))])
     (override
       [enable (case-lambda
 	       [(on?) (send wx enable on?)]
-	       [(which on?) (per-button 'enable which (lambda () (send wx enable which on?)))])]
+	       [(which on?) (check-button 'enable which)
+			    (send wx enable which on?)])]
       [is-enabled? (case-lambda
 		    [() (send wx is-enabled?)]
-		    [(which) (per-button 'is-enabled? which
-					 (lambda () (send wx is-enabled? which)))])])
+		    [(which) (check-button 'is-enabled? which)
+			     (send wx is-enabled? which)])])
     (public
       [get-number (lambda () (length choices))]
       [get-item-label (lambda (n) 
-			(per-button 'get-item-label n
-				    (lambda () (list-ref choices n))))]
+			(check-button 'get-item-label n)
+			(list-ref choices n))]
       [get-item-plain-label (lambda (n) 
-			      (per-button 'get-item-plain-label n
-					  (lambda () (wx:label->plain-label (list-ref choices n)))))]
+			      (check-button 'get-item-plain-label n)
+			      (wx:label->plain-label (list-ref choices n)))]
        
       [get-selection (lambda () (send wx get-selection))]
-      [set-selection (lambda (v) (send wx set-selection v))])
+      [set-selection (lambda (v) 
+		       (check-button 'set-selection v)
+		       (send wx set-selection v))])
     (sequence
       (super-init (lambda () 
 		    (set! wx (make-object wx-radio-box% this this
@@ -2381,6 +2395,11 @@
       [get-value (lambda () (send wx get-value))]
       [set-value (lambda (v)
 		   (check-slider-integer '(method slider% set-value) v)
+		   (unless (<= min-val v max-val)
+		     (raise-mismatch-error (who->name '(method slider% set-value))
+					   (format "slider's range is ~a to ~a; cannot set the value to: "
+						   min-val max-val)
+					   v))
 		   (send wx set-value v))])
     (sequence
       (super-init (lambda () 
@@ -2403,6 +2422,11 @@
       [get-value (lambda () (send wx get-value))]
       [set-value (lambda (v)
 		   (check-range-integer '(method gauge% set-value) v)
+		   (when (> v (send wx get-range))
+		     (raise-mismatch-error (who->name '(method gauge% set-value))
+					   (format "gauge's range is only ~a; cannot set the value to: "
+						   (send wx get-range))
+					   v))
 		   (send wx set-value v))]
       [get-range (lambda () (send wx get-range))]
       [set-range (lambda (v)
@@ -2434,14 +2458,24 @@
       [append (lambda (i) (send wx append i))]
       [clear (lambda () (send wx clear))]
       [get-number (lambda () (send wx number))]
-      [get-string (lambda (n) (send wx get-string n))]
-      [get-selection (lambda () (and (positive? (get-number)) (-1=>false (send wx get-selection))))]
-      [get-string-selection (lambda () (and (positive? (get-number)) (send wx get-string-selection)))]
-      [set-selection (lambda (s) (send wx set-selection s))]
-      [set-string-selection (lambda (s) (send wx set-string-selection s))]
+      [get-string (lambda (n) (check-item 'get-string n) (send wx get-string n))]
+      [get-selection (lambda () (and (positive? (send wx number)) (-1=>false (send wx get-selection))))]
+      [get-string-selection (lambda () (and (positive? (send wx number)) (send wx get-string-selection)))]
+      [set-selection (lambda (s) (check-item 'set-selection s) (send wx set-selection s))]
+      [set-string-selection (lambda (s) (unless (send wx set-string-selection s)
+					  (raise-mismatch-error (who->name '(method list-control<%> set-string-selection))
+								"no item matching the given string: " s)))]
       [find-string (lambda (x) (-1=>false (send wx find-string x)))])
     (private
-      [wx #f])
+      [wx #f]
+      [check-item
+       (lambda (method n)
+	 (check-non-negative-integer `(method list-control<%> ,method) n)
+	 (let ([m (send wx number)])
+	   (unless (< n m)
+	     (raise-mismatch-error (who->name `(method list-control<%> ,method)) 
+				   (format "control only has ~a items; given: " m)
+				   n))))])
     (sequence
       (super-init (lambda () (set! wx (mk-wx)) wx) label parent #f))))
 
@@ -2474,21 +2508,29 @@
 	       [(i) (super-append i)]
 	       [(i d) (send wx append i d)])])
     (public
-      [delete (lambda (n) (send wx delete n))]
-      [get-data (lambda (n) (send wx get-data n))]
+      [delete (lambda (n) (check-item 'delete n) (send wx delete n))]
+      [get-data (lambda (n) (check-item 'get-data n) (send wx get-data n))]
       [get-selections (lambda () (send wx get-selections))]
       [number-of-visible-items (lambda () (send wx number-of-visible-items))]
-      [is-selected? (lambda (n) (send wx selected? n))]
+      [is-selected? (lambda (n) (check-item 'is-selected? n) (send wx selected? n))]
       [set (lambda (l) (send wx set l))]
-      [set-string (lambda (n d) (send wx set-string n d))]
-      [set-data (lambda (n d) (send wx set-data n d))]
+      [set-string (lambda (n d) (check-item 'set-string n) (send wx set-string n d))]
+      [set-data (lambda (n d) (check-item 'set-data n) (send wx set-data n d))]
       [get-first-visible-item (lambda () (send wx get-first-item))]
-      [set-first-visible-item (lambda (n) (send wx set-first-visible-item n))]
+      [set-first-visible-item (lambda (n) (check-item 'set-first-visible-item n) (send wx set-first-visible-item n))]
       [select (case-lambda 
-	       [(n) (send wx set-selection n)]
-	       [(n on?) (send wx set-selection n on?)])])
+	       [(n) (check-item 'select n) (send wx set-selection n)]
+	       [(n on?) (check-item 'select n) (send wx set-selection n on?)])])
     (private
-      [wx #f])
+      [wx #f]
+      [check-item
+       (lambda (method n)
+	 (check-non-negative-integer `(method list-box% ,method) n)
+	 (let ([m (send wx number)])
+	   (unless (< n m)
+	     (raise-mismatch-error (who->name `(method list-box% ,method)) 
+				   (format "list only has ~a items; given: " m)
+				   n))))])
     (sequence
       (super-init (lambda () 
 		    (let-values ([(kind style)
@@ -2580,8 +2622,7 @@
 				 [(h-pixels v-pixels x-len y-len x-page y-page x-val y-val)
 				  (set-scrollbars h-pixels v-pixels x-len y-len x-page y-page x-val y-val #t)]
 				 [(h-pixels v-pixels x-len y-len x-page y-page x-val y-val man?)
-				  (send wx set-scrollbars 
-					h-pixels v-pixels x-len y-len x-page y-page x-val y-val man?)])])
+				  (send wx set-scrollbars h-pixels v-pixels x-len y-len x-page y-page x-val y-val man?)])])
 			set-scrollbars)]
 
       [get-scroll-pos (lambda (d) (send wx get-scroll-pos d))]
@@ -2606,7 +2647,8 @@
     (sequence 
       (check-container-parent 'editor-canvas parent)
       (check-instance '(constructor editor-canvas) internal-editor<%> "text% or pasteboard%" #t buffer)
-      (check-style '(constructor editor-canvas) #f '(hide-vscroll hide-hscroll no-vscroll no-hscroll) style))
+      (check-style '(constructor editor-canvas) #f '(hide-vscroll hide-hscroll no-vscroll no-hscroll) style)
+      ((check-bounded-integer 1 10000) '(constructor editor-canvas) scrolls-per-page))
     (private
       [force-focus? #f]
       [scroll-to-last? #f]
@@ -2635,9 +2677,9 @@
 
       [set-line-count
        (lambda (n) 
-	 (unless (or (not n) (and (number? n) (integer? n) (<= 1 100)))
+	 (unless (or (not n) (and (number? n) (integer? n) (exact? n) (<= 1 100)))
 	   (raise-type-error (who->name '(method editor-canvas% set-line-count))
-			     "integer in [1, 100]"
+			     "exact integer in [1, 100]"
 			     n))
 	 (send wx set-line-count n))]
 
@@ -3868,9 +3910,9 @@
 
 (define (check-bounded-integer min max)
   (lambda (who range)
-    (unless (and (number? range) (integer? range) (<= min range max))
+    (unless (and (number? range) (integer? range) (exact? range) (<= min range max))
       (raise-type-error (who->name who) 
-			(format "integer in [~a, ~a]" min max)
+			(format "exact integer in [~a, ~a]" min max)
 			range))))
 
 (define (check-range-integer who range) (check-bounded-integer 0 10000))
@@ -3880,8 +3922,8 @@
 (define (check-margin-integer who range) (check-bounded-integer 0 1000))
 
 (define (check-non-negative-integer who i)
-  (unless (and (number? i) (integer? i) (not (negative? i)))
-    (raise-type-error (who->name who) "non-negative integer" i)))
+  (unless (and (number? i) (integer? i) (exact? i) (not (negative? i)))
+    (raise-type-error (who->name who) "non-negative exact integer" i)))
 
 (define (check-dimension who d)
   (when d (check-range-integer who d)))
