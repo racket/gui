@@ -163,6 +163,27 @@ string=? ; exec mred -qr $0
 		   (super-on-subwindow-char receiver event)
                    (on-traverse-char event)))])
           
+;         need to save old keybindings...
+;	  (rename [super-on-close on-close])
+;	  (private
+;	    [remove-prefs-callback
+;	     (preferences:add-callback
+;	      'framework:menu-bindings
+;	      (lambda (p v)
+;		(let ([mb (get-menu-bar)])
+;		  (let loop ([menu (get-menu-bar)])
+;		    (cond
+;		     [(is-a? menu menu-item-container<%>)
+;		      (for-each loop (send menu get-items))]
+;		     [(is-a? menu selectable-menu-item<%>)
+;		      (void)])))))])
+
+;	  (override
+;	   [on-close
+;	    (lambda ()
+;	      (remove-prefs-callback)
+;	      (super-on-close))])
+
 	  (inherit get-menu-bar can-close? on-close show get-edit-target-object)
 	  (sequence (apply super-init args))
 	  ,@(append 
