@@ -1078,10 +1078,13 @@
       (define setup-file
 	(let* ([save-file-as
 		(lambda (edit event)
-		  (let ([file (finder:put-file)])
-		    (if file
-			(send edit save-file file)))
-		  #t)]
+		  (parameterize ([finder:dialog-parent-parameter 
+				  (and (is-a? edit editor:basic<%>)
+				       (send edit get-top-level-window))])
+		    (let ([file (finder:put-file)])
+		      (if file
+			  (send edit save-file file)))
+		    #t))]
 	       [save-file
 		(lambda (edit event)
 		  (if (send edit get-filename)
