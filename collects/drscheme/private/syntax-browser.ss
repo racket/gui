@@ -1,6 +1,9 @@
 #|
 
-need to put all state into snipclass saveable form. yuck.
+needed to really make this work:
+
+  - marshallable syntax objects
+  - support for generic ports that are editors
 
 |#
 
@@ -8,7 +11,9 @@ need to put all state into snipclass saveable form. yuck.
   (require (lib "pretty.ss")
            (lib "list.ss")
            (lib "class.ss")
-           (lib "mred.ss" "mred"))
+           (lib "mred.ss" "mred")
+           (lib "match.ss")
+           (lib "string.ss"))
   
   (provide render-syntax/snip render-syntax/window)
   
@@ -20,206 +25,266 @@ need to put all state into snipclass saveable form. yuck.
       (send t insert es)
       (send f show #t)))
 
-  (define (render-syntax/snip main-stx)
-    (define-values (datum stx-ht) (syntax-object->datum/ht main-stx))
+  (define (render-syntax/snip stx) (make-object syntax-snip% stx))
+  
+  (define syntax-snipclass%
+    (class snip-class%
+      (define/override (read stream)
+        (let ([str (send stream get-str)])
+          (make-object syntax-snip% (unmarshall-syntax (read-from-string str)))))
+      (super-instantiate ())))
+  
+  (define syntax-snipclass (make-object syntax-snipclass%))
+  (send syntax-snipclass set-version 1)
+  (send syntax-snipclass set-classname "drscheme:syntax-snipclass%")
+  (send (get-the-snip-class-list) add syntax-snipclass)
+  
+  (define syntax-snip%
+    (class editor-snip%
+      (init-field main-stx)
     
-    (define output-text (make-object text%))
-    (define output-port (make-text-port output-text))
-    (define info-text (make-object text%))
-    (define info-port (make-text-port info-text))
-    
-    ;; assume that there aren't any eq? sub structures, only eq? flat stuff (symbols, etc)
-    ;; this is guaranteed by syntax-object->datum/ht
-    (define range-start-ht (make-hash-table))
-    (define range-ht (make-hash-table))
-    (define original-output-port (current-output-port))
-    (define (range-pretty-print-pre-hook x v)
-      (hash-table-put! range-start-ht x (send output-text last-position)))
-    (define (range-pretty-print-post-hook x v)
-      (hash-table-put! range-ht x 
-                       (cons
-                        (cons
-                         (hash-table-get range-start-ht x)
-                         (send output-text last-position))
-                        (hash-table-get range-ht x (lambda () null)))))
-    
-    (define (make-modern text)
-      (send text change-style
-            (make-object style-delta% 'change-family 'modern)
-            0
-            (send text last-position)))
-    
-    (define dummy
-      (begin (parameterize ([current-output-port output-port]
-                            [pretty-print-pre-print-hook range-pretty-print-pre-hook]
-                            [pretty-print-post-print-hook range-pretty-print-post-hook]
-                            [pretty-print-columns 30])
-               (pretty-print datum))
-             (make-modern output-text)))
-    
-    (define ranges 
-      (quicksort 
-       (apply append (hash-table-map range-ht (lambda (k vs) (map (lambda (v) (cons k v)) vs))))
-       (lambda (x y)
-         (<= (- (car (cdr x)) (cdr (cdr x)))
-             (- (car (cdr y)) (cdr (cdr y)))))))
-    
-    (define (show-info stx)
-      (insert/big "General Info\n")
-      (piece-of-info "Source" (syntax-source stx))
-      (piece-of-info "Source Module" (syntax-source-module stx))
-      (piece-of-info "Position" (syntax-position stx))
-      (piece-of-info "Line" (syntax-line stx))
-      (piece-of-info "Column" (syntax-column stx))
-      (piece-of-info "Span" (syntax-span stx))
-      (piece-of-info "Original?" (syntax-original? stx))
-      (insert/big "Properties\n")
-      (show-property stx 'bound-in-source)
-      (show-property stx 'origin))
-    
-    (define (show-property stx prop)
-      (piece-of-info (format "'~a" prop) (syntax-property stx prop)))
-    
-    (define (piece-of-info label info)
-      (insert/bold label)
-      (newline info-port)
-      (print info info-port)
-      (optional-newline)
-      (newline info-port))
-    
-    (define (insert/bold str)
-      (let ([pos (send info-text last-position)])
-        (send info-text insert str 
-              (send info-text last-position)
-              (send info-text last-position))
-        (send info-text change-style
-              (make-object style-delta% 'change-bold)
-               pos 
-               (send info-text last-position))))
-    
-    (define (insert/big str)
-      (let ([sd (make-object style-delta% 'change-bold)])
-        (send sd set-delta-foreground "Navy")
+      (define/public (get-syntax) main-stx)
+      
+      (define/override (copy) (make-object syntax-snip% main-stx))
+      (define/override (write stream)
+        (send stream put (format "~s" (marshall-syntax main-stx))))
+      
+      (define-values (datum stx-ht) (syntax-object->datum/ht main-stx))
+      
+      (define output-text (make-object text%))
+      (define output-port (make-text-port output-text))
+      (define info-text (make-object text%))
+      (define info-port (make-text-port info-text))
+      
+      ;; assume that there aren't any eq? sub structures, only eq? flat stuff (symbols, etc)
+      ;; this is guaranteed by syntax-object->datum/ht
+      (define range-start-ht (make-hash-table))
+      (define range-ht (make-hash-table))
+      (define original-output-port (current-output-port))
+      (define (range-pretty-print-pre-hook x v)
+        (hash-table-put! range-start-ht x (send output-text last-position)))
+      (define (range-pretty-print-post-hook x v)
+        (hash-table-put! range-ht x 
+                         (cons
+                          (cons
+                           (hash-table-get range-start-ht x)
+                           (send output-text last-position))
+                          (hash-table-get range-ht x (lambda () null)))))
+      
+      (define (make-modern text)
+        (send text change-style
+              (make-object style-delta% 'change-family 'modern)
+              0
+              (send text last-position)))
+      
+      (define dummy
+        (begin (parameterize ([current-output-port output-port]
+                              [pretty-print-pre-print-hook range-pretty-print-pre-hook]
+                              [pretty-print-post-print-hook range-pretty-print-post-hook]
+                              [pretty-print-columns 30])
+                 (pretty-print datum))
+               (make-modern output-text)))
+      
+      (define ranges 
+        (quicksort 
+         (apply append (hash-table-map range-ht (lambda (k vs) (map (lambda (v) (cons k v)) vs))))
+         (lambda (x y)
+           (<= (- (car (cdr x)) (cdr (cdr x)))
+               (- (car (cdr y)) (cdr (cdr y)))))))
+      
+      (define (show-info stx)
+        (insert/big "General Info\n")
+        (piece-of-info "Source" (syntax-source stx))
+        (piece-of-info "Source Module" (syntax-source-module stx))
+        (piece-of-info "Position" (syntax-position stx))
+        (piece-of-info "Line" (syntax-line stx))
+        (piece-of-info "Column" (syntax-column stx))
+        (piece-of-info "Span" (syntax-span stx))
+        (piece-of-info "Original?" (syntax-original? stx))
+        (insert/big "Properties\n")
+        (for-each
+         (lambda (prop) (show-property stx prop))
+         (syntax-properties stx)))
+      
+      (define (show-property stx prop)
+        (piece-of-info (format "'~a" prop) (syntax-property stx prop)))
+      
+      (define (piece-of-info label info)
+        (insert/bold label)
+        (newline info-port)
+        
+        ;; should just be using generic `print'
+        ;; but won't work without built-in support for
+        ;; editors as output ports
+        (parameterize ([pretty-print-size-hook
+                        (lambda (val d/p port)
+                          (if (is-a? val syntax-snip%)
+                              (+ (string-length (format "~a" (send val get-syntax))) 2)
+                              #f))]
+                       [pretty-print-print-hook
+                        (lambda (val d/p port)
+                          (send info-text insert (send val copy) 
+                                (send info-text last-position)
+                                (send info-text last-position)))])
+          (pretty-print (replace-syntaxes info) info-port))
+        
+        (optional-newline)
+        (newline info-port))
+      
+      (define (replace-syntaxes obj)
+        (cond
+          [(cons? obj) (cons (replace-syntaxes (car obj))
+                             (replace-syntaxes (cdr obj)))]
+          [(syntax? obj) (make-object syntax-snip% obj)]
+          [else obj]))
+      
+      (define (insert/bold str)
         (let ([pos (send info-text last-position)])
           (send info-text insert str 
                 (send info-text last-position)
                 (send info-text last-position))
           (send info-text change-style
-                sd
+                (make-object style-delta% 'change-bold)
                 pos 
-                (send info-text last-position)))))
-    
-    (define (optional-newline)
-      (unless (equal?
-               (send info-text get-character (- (send info-text last-position) 1))
-               #\newline)
-        (send info-text insert "\n" (send info-text last-position))))
-    
-    (define (show-range stx start end)
-      (send output-text begin-edit-sequence)
-      (send output-text lock #f)
-      (send output-text change-style black-style-delta 0 (send output-text last-position))
-      (send output-text change-style green-style-delta start end)
-      (send output-text lock #t)
-      (send output-text end-edit-sequence)
+                (send info-text last-position))))
       
-      (send info-text begin-edit-sequence)
-      (send info-text lock #f)
-      (send info-text erase)
-      (show-info stx)
-      (make-modern info-text)
+      (define (insert/big str)
+        (let ([sd (make-object style-delta% 'change-bold)])
+          (send sd set-delta-foreground "Navy")
+          (let ([pos (send info-text last-position)])
+            (send info-text insert str 
+                  (send info-text last-position)
+                  (send info-text last-position))
+            (send info-text change-style
+                  sd
+                  pos 
+                  (send info-text last-position)))))
+      
+      (define (optional-newline)
+        (unless (equal?
+                 (send info-text get-character (- (send info-text last-position) 1))
+                 #\newline)
+          (send info-text insert "\n" (send info-text last-position))))
+      
+      (define (show-range stx start end)
+        (send output-text begin-edit-sequence)
+        (send output-text lock #f)
+        (send output-text change-style black-style-delta 0 (send output-text last-position))
+        (send output-text change-style green-style-delta start end)
+        (send output-text lock #t)
+        (send output-text end-edit-sequence)
+        
+        (send info-text begin-edit-sequence)
+        (send info-text lock #f)
+        (send info-text erase)
+        (show-info stx)
+        (make-modern info-text)
+        (send info-text lock #t)
+        (send info-text end-edit-sequence))
+      
+      (define outer-t (make-object text%))
+      
+      (super-instantiate ()
+        (editor outer-t)
+        (with-border? #f)
+        (left-margin 3)
+        (top-margin 0)
+        (right-margin 0)
+        (bottom-margin 0)
+        (left-inset 1)
+        (top-inset 0)
+        (right-inset 0)
+        (bottom-inset 0))
+      
+      (define inner-t (make-object text%))
+      (define inner-es (instantiate editor-snip% ()
+                         (editor inner-t)
+                         (with-border? #f)
+                         (left-margin 0)
+                         (top-margin 0)
+                         (right-margin 0)
+                         (bottom-margin 0)
+                         (left-inset 0)
+                         (top-inset 0)
+                         (right-inset 0)
+                         (bottom-inset 0)))
+      
+      (define details-shown? #t)
+      
+      (inherit show-border)
+      (define (hide-details)
+        (when details-shown?
+          (send outer-t lock #f)
+          (show-border #f)
+          (send outer-t release-snip inner-es)
+          (send outer-t delete (send outer-t last-position))
+          (send outer-t lock #t)
+          (set! details-shown? #f)))
+      
+      (define (show-details)
+        (unless details-shown?
+          (send outer-t lock #f)
+          (show-border #t)
+          (send outer-t insert #\newline
+                (send outer-t last-position)
+                (send outer-t last-position))
+          (send outer-t insert inner-es
+                (send outer-t last-position)
+                (send outer-t last-position))
+          (send outer-t lock #t)
+          (set! details-shown? #t)))
+      
+      (for-each
+       (lambda (range)
+         (let* ([obj (car range)]
+                [stx (hash-table-get stx-ht obj)]
+                [start (cadr range)]
+                [end (cddr range)])
+           (when (syntax? stx)
+             (send output-text set-clickback start end 
+                   (lambda (_1 _2 _3)
+                     (show-range stx start end))))))
+       ranges)
+      
+      (send outer-t insert (make-object turn-snip% hide-details show-details))
+      (send outer-t insert (format "~s\n" main-stx))
+      (send outer-t insert inner-es)
+      (make-modern outer-t)
+      
+      (send inner-t insert (instantiate editor-snip% ()
+                             (editor output-text)
+                             (with-border? #f)
+                             (left-margin 0)
+                             (top-margin 0)
+                             (right-margin 0)
+                             (bottom-margin 0)
+                             (left-inset 0)
+                             (top-inset 0)
+                             (right-inset 0)
+                             (bottom-inset 0)))
+      (send inner-t insert (make-object editor-snip% info-text))
+      (send inner-t change-style (make-object style-delta% 'change-alignment 'top) 0 2)
+      
+      (send info-text auto-wrap #t)
+      (send info-text set-styles-sticky #f)
+      (let ([rng (car ranges)])
+        (show-range (hash-table-get stx-ht (car rng))
+                    (cadr rng)
+                    (cddr rng)))
+      
+      (send output-text hide-caret #t)
+      (send info-text hide-caret #t)
+      (send inner-t hide-caret #t)
+      (send outer-t hide-caret #t)
+      (send output-text lock #t)
       (send info-text lock #t)
-      (send info-text end-edit-sequence))
-    
-    (define outer-t (make-object text%))
-    (define inner-t (make-object text%))
-    (define outer-es (instantiate editor-snip% ()
-                       (editor outer-t)
-                       (with-border? #f)
-                       (left-margin 3)
-                       (top-margin 0)
-                       (right-margin 0)
-                       (bottom-margin 0)
-                       (left-inset 1)
-                       (top-inset 0)
-                       (right-inset 0)
-                       (bottom-inset 0)))
-    (define inner-es (instantiate editor-snip% ()
-                       (editor inner-t)
-                       (with-border? #f)
-                       (left-margin 0)
-                       (top-margin 0)
-                       (right-margin 0)
-                       (bottom-margin 0)
-                       (left-inset 0)
-                       (top-inset 0)
-                       (right-inset 0)
-                       (bottom-inset 0)))
-    
-    (define details-shown? #t)
-    
-    (define (hide-details)
-      (when details-shown?
-        (send outer-t lock #f)
-        (send outer-es show-border #f)
-        (send outer-t release-snip inner-es)
-        (send outer-t delete (send outer-t last-position))
-        (send outer-t lock #t)
-        (set! details-shown? #f)))
-    
-    (define (show-details)
-      (unless details-shown?
-        (send outer-t lock #f)
-        (send outer-es show-border #t)
-        (send outer-t insert #\newline
-              (send outer-t last-position)
-              (send outer-t last-position))
-        (send outer-t insert inner-es
-              (send outer-t last-position)
-              (send outer-t last-position))
-        (send outer-t lock #t)
-        (set! details-shown? #t)))
-    
-    (for-each
-     (lambda (range)
-       (let* ([obj (car range)]
-              [stx (hash-table-get stx-ht obj)]
-              [start (cadr range)]
-              [end (cddr range)])
-         (when (syntax? stx)
-           (send output-text set-clickback start end 
-                 (lambda (_1 _2 _3)
-                   (show-range stx start end))))))
-     ranges)
-
-    (send outer-t insert (make-object turn-snip% hide-details show-details))
-    (send outer-t insert (format "~s\n" main-stx))
-    (send outer-t insert inner-es)
-    (make-modern outer-t)
-    
-    (send inner-t insert (make-object editor-snip% output-text))
-    (send inner-t insert (make-object editor-snip% info-text))
-    (send inner-t change-style (make-object style-delta% 'change-alignment 'top) 0 2)
-    
-    (send info-text auto-wrap #t)
-    (send info-text set-styles-sticky #f)
-    (let ([rng (car ranges)])
-      (show-range (hash-table-get stx-ht (car rng))
-                  (cadr rng)
-                  (cddr rng)))
-    
-    (send output-text hide-caret #t)
-    (send info-text hide-caret #t)
-    (send inner-t hide-caret #t)
-    (send outer-t hide-caret #t)
-    (send output-text lock #t)
-    (send info-text lock #t)
-    (send inner-t lock #t)
-    (send outer-t lock #t)
-    
-    (hide-details)
-    
-    outer-es)
+      (send inner-t lock #t)
+      (send outer-t lock #t)
+      
+      (hide-details)
+      
+      (inherit set-snipclass)
+      (set-snipclass syntax-snipclass)))
   
   (define black-style-delta (make-object style-delta% 'change-normal-color))
   (define green-style-delta (make-object style-delta%))
@@ -364,6 +429,19 @@ need to put all state into snipclass saveable form. yuck.
                        res)])))
               ht)))
   
+  (define (syntax-properties stx)
+    (let ([is-property?
+           (lambda (prop) (syntax-property stx prop))])
+      (filter is-property?
+              '(inferred-name
+                bound-in-source
+                origin
+                module-variable-provides
+                module-syntax-provides
+                module-indirect-provides
+                module-kernel-reprovide-hint
+                module-self-path-index))))
+
   ;; make-text-port : text -> port
   ;; builds a port from a text object.  
   (define (make-text-port text)
@@ -374,4 +452,85 @@ need to put all state into snipclass saveable form. yuck.
 				     (send text last-position))
 			       (- end start))
 			     void
-			     void)))
+			     void))
+  
+  ;; marshall-syntax : syntax -> printable
+  (define (marshall-syntax stx)
+    `(syntax
+      (source ,(marshall-object (syntax-source stx)))
+      (source-module ,(syntax-source-module stx))
+      (position ,(syntax-position stx))
+      (line ,(syntax-line stx))
+      (column ,(syntax-column stx))
+      (span ,(syntax-span stx))
+      (original? ,(syntax-original? stx))
+      (properties 
+       ,@(map (lambda (x) `(,x ,(syntax-property x 'bound-in-source)))
+              (syntax-properties x)))
+      (contents
+       ,(marshall-object (syntax-e stx)))))
+
+  ;; marshall-object : any -> printable
+  ;; really only intended for use with marshall-syntax
+  (define (marshall-object obj)
+    (cond
+      [(syntax? obj) (marshall-syntax obj)]
+      [(pair? obj) 
+       `(pair ,(cons (marshall-object (car obj))
+                     (marshall-object (cdr obj))))]
+      [else `(other ,obj)]))
+  
+  (define (unmarshall-syntax stx)
+    (match stx
+      [`(syntax
+         (source ,src)
+         (source-module ,source-module)
+         (position ,pos)
+         (line ,line)
+         (column ,col)
+         (span ,span)
+         (original? ,original?)
+         (properties ,@properties)
+         (contents ,contents))
+       ;(printf "a\n")
+       (foldl
+        add-properties
+        (datum->syntax-object
+         #'here ;; ack
+         (unmarshall-object contents)
+         (list (unmarshall-object src)
+               line
+               col
+               pos
+               span))
+        properties)]
+      [else 'unknown-syntax-object]))
+
+  ;; add-properties : syntax any -> syntax
+  (define (add-properties prop-spec stx)
+    (match prop-spec
+      [`(,(and sym (? symbol?))
+         ,prop)
+       (syntax-property stx sym (unmarshall-object prop))]
+      [else stx]))
+  
+  (define (unmarshall-object obj)
+    (let ([unknown (lambda () (string->symbol (format "unknown: ~s" obj)))])
+      (if (and (pair? obj)
+               (symbol? (car obj)))
+          (case (car obj)
+            [(pair) 
+             (if (pair? (cdr obj))
+                 (let ([raw-obj (cadr obj)])
+                   (if (pair? raw-obj)
+                       (cons (unmarshall-object (car raw-obj))
+                             (unmarshall-object (cdr raw-obj)))
+                       (unknown)))
+                 (unknown))]
+            [(other) 
+             (if (pair? (cdr obj))
+                 (cadr obj)
+                 (unknown))]
+            [(syntax) (unmarshall-syntax obj)]
+            [else (unknown)])
+          (unknown)))))
