@@ -30,8 +30,8 @@
        [aligned-rects empty])
       
       ;;temp fix
-      (define/public (ignore-resizing ignore?)
-        (set! ignore-resizing? ignore?))
+      ;(define/public (ignore-resizing ignore?)
+      ;  (set! ignore-resizing? ignore?))
       
       ;; get-aligned-min-width (-> number?)
       ;; the aligned-min-width of the pasteboard
