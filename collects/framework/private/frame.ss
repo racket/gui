@@ -636,11 +636,12 @@
              (lambda ()
                (super-on-close)
                (send (get-editor) on-close))])
-          (private
+          (private-field
             [label (if file-name
                        (file-name-from-path file-name)
                        (gui-utils:next-untitled-name))]
-            [label-prefix (application:current-app-name)]
+            [label-prefix (application:current-app-name)])
+          (private
             [do-label
              (lambda ()
                (super-set-label (get-entire-label))
@@ -704,7 +705,7 @@
                    (send (get-editor) save-file file format))))])
           (inherit get-checkable-menu-item% get-menu-item%)
           (override
-            [file-menu:revert 
+            [file-menu:revert-callback 
              (lambda (item control)
                (let* ([b (box #f)]
                       [edit (get-editor)]
@@ -731,16 +732,16 @@
                                 "Error Reverting"
                                 (format "could not read ~a" filename)))))))
                  #t))]
-            [file-menu:save (lambda (item control)
+            [file-menu:save-callback (lambda (item control)
                               (send (get-editor) save-file)
                               #t)]
-            [file-menu:save-as (lambda (item control) (save-as) #t)]
-            [file-menu:print (lambda (item control)
-                               (send (get-editor) print
-                                     #t
-                                     #t
-                                     (preferences:get 'framework:print-output-mode))
-                               #t)])
+            [file-menu:save-as-callback (lambda (item control) (save-as) #t)]
+            [file-menu:print-callback (lambda (item control)
+                                        (send (get-editor) print
+                                              #t
+                                              #t
+                                              (preferences:get 'framework:print-output-mode))
+                                        #t)])
           
           (private
             [edit-menu:do (lambda (const)
@@ -802,7 +803,7 @@
                (make-object separator-menu-item% edit-menu))])
           
           (override
-            [help-menu:about 
+            [help-menu:about-callback 
              (lambda (menu evt) 
                (message-box (application:current-app-name)
                             (format "Welcome to ~a" (application:current-app-name))))]
@@ -1195,27 +1196,27 @@
                      (reset-search-anchor (get-searching-edit)))))
                (super-on-focus on?))]
             [after-insert
-             (lambda args
-               (apply super-after-insert args)
+             (lambda ()
+               (super-after-insert)
                (unless dont-search
                  (search #f)))]
             [after-delete
-             (lambda args
-               (apply super-after-delete args)
+             (lambda ()
+               (super-after-delete)
                (unless dont-search
                  (search #f)))])
           (sequence (apply super-init args))))
       
       ; this is here for when editors are printed.
       (define replace-text%
-        (class text:keymap% args
+        (class100 text:keymap% args
           (sequence (apply super-init args))))
       
       (define find-edit #f)
       (define replace-edit #f)
       
       (define searchable-canvas% 
-        (class editor-canvas% (parent)
+        (class100 editor-canvas% (parent)
           (inherit get-top-level-window set-line-count)
           (rename [super-on-focus on-focus])
           (override
@@ -1248,9 +1249,9 @@
           (private-field
             [super-root 'unitiaialized-super-root])
           (override
-            [edit-menu:find (lambda (menu evt) (move-to-search-or-search) #t)]
-            [edit-menu:find-again (lambda (menu evt) (search-again) #t)]
-            [edit-menu:replace-and-find-again (lambda (menu evt) (replace&search) #t)]
+            [edit-menu:find-callback (lambda (menu evt) (move-to-search-or-search) #t)]
+            [edit-menu:find-again-callback (lambda (menu evt) (search-again) #t)]
+            [edit-menu:replace-and-find-again-callback (lambda (menu evt) (replace&search) #t)]
             [edit-menu:replace-and-find-again-on-demand
              (lambda (item) (send item enable (can-replace?)))])
           (override
@@ -1293,7 +1294,7 @@
                  (send search-panel focus)
                  (send super-root add-child search-panel)
                  (reset-search-anchor (get-text-to-search))))])
-          (private
+          (private-field
             [remove-callback
              (preferences:add-callback
               'framework:search-using-dialog?
@@ -1482,7 +1483,7 @@
       
       
       ; to see printouts in memory debugging better.
-      (define memory-text% (class text% args (sequence (apply super-init args))))
+      (define memory-text% (class100 text% args (sequence (apply super-init args))))
       (define memory-text (make-object memory-text%))
       (send memory-text hide-caret #t)
       (define show-memory-text? (directory-exists? (build-path (collection-path "framework") "CVS")))

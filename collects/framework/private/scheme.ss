@@ -87,6 +87,15 @@
 		    (send style-list find-named-style "Basic")
 		    delta))))
 
+  (define match-color 
+    (let ([gray-level
+           ;; old gray-level 192
+           (if (eq? (system-type) 'windows)
+               (* 3/4 256)
+               (- (* 7/8 256) 1))])
+      (make-object color% gray-level gray-level gray-level)))
+  (define mismatch-color (make-object color% "PINK"))
+  
   (define text-mixin 
     (mixin (text:basic<%>) (-text<%>) args
       (inherit begin-edit-sequence
@@ -140,19 +149,18 @@
                         #f])
                       #f)))
 	      (scheme-paren:get-comments))))])
-      (private
+      (private-field
 	[remove-indents-callback
 	 (preferences:add-callback
 	  'framework:tabify
 	  (lambda (p value)
-	    (set! indents value)))])
-      (private
+	    (set! indents value)))]
 	[indents (preferences:get 'framework:tabify)]
 	[backward-cache (make-object match-cache:%)]
-	[forward-cache (make-object match-cache:%)])
+	[forward-cache (make-object match-cache:%)]
+	[in-highlight-parens? #f])
       
       (private
-	[in-highlight-parens? #f]
 	[delay-highlight? (lambda () (local-edit-sequence?))])
 			    
 
@@ -213,13 +221,13 @@
 	      (highlight-parens)))
 	  (super-after-set-position))])
 
-      (private
+      (private-field
 	[highlight-parens? (preferences:get 'framework:highlight-parens)]
 	[remove-paren-callback (preferences:add-callback
 				'framework:highlight-parens 
 				(lambda (p value)
-				  (set! highlight-parens? value)))]
-
+				  (set! highlight-parens? value)))])
+      (private
 	[find-enclosing-paren
 	 (lambda (pos)
 	   (let loop ([pos pos])
@@ -245,50 +253,45 @@
 					(position-paragraph paren-pos))))
 		       paren-pos]
 		      [else (loop (- semi-pos 1))]))]))))])
+      (private-field
+       [clear-old-locations void])
       (public
 	[highlight-parens
-	 (let* ([clear-old-locations void]
-		[old-gray-level 192]
-		[gray-level (if (eq? (system-type) 'windows)
-				(* 3/4 256)
-				(- (* 7/8 256) 1))]
-		[match-color (make-object color% gray-level gray-level gray-level)]
-                [mismatch-color (make-object color% "PINK")])
-	   (opt-lambda ([just-clear? #f])
-	     (when highlight-parens?
-	       (set! in-highlight-parens? #t)
-	       (begin-edit-sequence)
-	       (clear-old-locations)
-	       (set! clear-old-locations void)
-	       (unless just-clear?
-		 (let* ([here (get-start-position)]
-			[there (get-end-position)]
-			[slash?
-			 (lambda (before after)
-			   (and (>= before 0)
-				(>= after 0)
-				(let ([text (get-text before after)])
-				  (and (string? text)
-				       (>= (string-length text) 1)
-				       (char=? #\\ (string-ref text 0))))))]
-			[is-paren?
-			 (lambda (f)
-			   (lambda (char)
-			     (ormap (lambda (x) (char=? char (string-ref (f x) 0)))
-				    (scheme-paren:get-paren-pairs))))]
-			[is-left-paren? (is-paren? car)]
-			[is-right-paren? (is-paren? cdr)])
-		   (when (= here there)
-
+         (opt-lambda ([just-clear? #f])
+           (when highlight-parens?
+             (set! in-highlight-parens? #t)
+             (begin-edit-sequence)
+             (clear-old-locations)
+             (set! clear-old-locations void)
+             (unless just-clear?
+               (let* ([here (get-start-position)]
+                      [there (get-end-position)]
+                      [slash?
+                       (lambda (before after)
+                         (and (>= before 0)
+                              (>= after 0)
+                              (let ([text (get-text before after)])
+                                (and (string? text)
+                                     (>= (string-length text) 1)
+                                     (char=? #\\ (string-ref text 0))))))]
+                      [is-paren?
+                       (lambda (f)
+                         (lambda (char)
+                           (ormap (lambda (x) (char=? char (string-ref (f x) 0)))
+                                  (scheme-paren:get-paren-pairs))))]
+                      [is-left-paren? (is-paren? car)]
+                      [is-right-paren? (is-paren? cdr)])
+                 (when (= here there)
+                   
 		     ;; before, after : (list number number boolean) 
 		     ;;  numbers indicate the range to highlight
 		     ;;  boolean indicates if it is an errorneous highlight
-		     (let ([before
-			    (cond
-			     [(and (> here 0)
-				   (is-right-paren? (get-character (sub1 here)))
-				   (not (in-single-line-comment? here)))
-			      (cond
+                   (let ([before
+                          (cond
+                            [(and (> here 0)
+                                  (is-right-paren? (get-character (sub1 here)))
+                                  (not (in-single-line-comment? here)))
+                             (cond
 			       [(slash? (- here 2) (- here 1)) #f]
 			       [(scheme-paren:backward-match
 				 this here (get-limit here)
@@ -297,12 +300,12 @@
 				(lambda (end-pos) 
 				  (list end-pos here #f))]
 			       [else (list (- here 1) here #t)])]
-			     [else #f])]
-			   [after
-			    (cond
-			     [(and (is-left-paren? (get-character here))
-				   (not (in-single-line-comment? here)))
-			      (cond
+                            [else #f])]
+                         [after
+                          (cond
+                            [(and (is-left-paren? (get-character here))
+                                  (not (in-single-line-comment? here)))
+                             (cond
 			       [(slash? (- here 1) here) #f]
 			       [(scheme-paren:forward-match
 				 this here (last-position)
@@ -311,33 +314,33 @@
 				(lambda (end-pos)
 				  (list here end-pos #f))]
 			       [else (list here (+ here 1) #t)])]
-			     [else #f])]
-			   [handle-single
-			    (lambda (single)
-			      (let* ([left (first single)]
-				     [right (second single)]
-				     [error? (third single)]
-				     [off (highlight-range 
-					   left
-					   right
-					   (if error? mismatch-color match-color)
-					   (icon:get-paren-highlight-bitmap)
-					   (= there here left))])
-				(set! clear-old-locations
-				      (let ([old clear-old-locations])
-					(lambda ()
-					  (old)
-					  (off))))))])
-		       
-		       (cond
-			[(and after before)
-			 (handle-single after)
-			 (handle-single before)]
-			[after (handle-single after)]
-			[before (handle-single before)]
-			[else (void)])))))
-	       (end-edit-sequence)
-	       (set! in-highlight-parens? #f))))]
+                            [else #f])]
+                         [handle-single
+                          (lambda (single)
+                            (let* ([left (first single)]
+                                   [right (second single)]
+                                   [error? (third single)]
+                                   [off (highlight-range 
+                                         left
+                                         right
+                                         (if error? mismatch-color match-color)
+                                         (icon:get-paren-highlight-bitmap)
+                                         (= there here left))])
+                              (set! clear-old-locations
+                                    (let ([old clear-old-locations])
+                                      (lambda ()
+                                        (old)
+                                        (off))))))])
+                     
+                     (cond
+                       [(and after before)
+                        (handle-single after)
+                        (handle-single before)]
+                       [after (handle-single after)]
+                       [before (handle-single before)]
+                       [else (void)])))))
+             (end-edit-sequence)
+             (set! in-highlight-parens? #f)))]
 	
 	[get-limit (lambda (pos) 0)]
 	
@@ -353,8 +356,8 @@
 	       (when match
 		 (flash-on match (add1 match))))))]
 	[balance-parens
-	 (let-struct string/pos (string pos)
-	   (lambda (key-event)
+         (lambda (key-event)
+           (let-struct string/pos (string pos)
 	     (letrec ([char (send key-event get-key-code)] ;; must be a character. See above.
 		      [here (get-start-position)]
 		      [limit (get-limit here)]
@@ -388,7 +391,7 @@
 					  (find-match left-paren-pos))])
 			 (cond
 			   [match
-			     (insert (if fixup-parens? match char))
+                               (insert (if fixup-parens? match char))
 			     (when paren-match?
 			       (flash-on
 				left-paren-pos
@@ -763,22 +766,21 @@
       (private
 	[select-text
 	 (lambda (f forward?)
-	   (lambda ()
-	     (let* ([start-pos (get-start-position)]
-		    [end-pos (get-end-position)])
-	       (let-values ([(new-start new-end)
-			     (if forward?
-				 (values start-pos (f end-pos))
-				 (values (f start-pos) end-pos))])
-		 (if (and new-start new-end) 
-		     (set-position new-start new-end)
-		     (bell))
-		 #t))))])
+           (let* ([start-pos (get-start-position)]
+                  [end-pos (get-end-position)])
+             (let-values ([(new-start new-end)
+                           (if forward?
+                               (values start-pos (f end-pos))
+                               (values (f start-pos) end-pos))])
+               (if (and new-start new-end) 
+                   (set-position new-start new-end)
+                   (bell))
+               #t)))])
       (public
-	[select-forward-sexp (select-text get-forward-sexp #t)]
-	[select-backward-sexp (select-text get-backward-sexp #f)]
-	[select-up-sexp (select-text find-up-sexp #f)]
-	[select-down-sexp (select-text find-down-sexp #t)]
+	[select-forward-sexp (lambda () (select-text (lambda (x) (get-forward-sexp x)) #t))]
+	[select-backward-sexp (lambda () (select-text (lambda (x) (get-backward-sexp x)) #f))]
+	[select-up-sexp (lambda () (select-text (lambda (x) (find-up-sexp x)) #f))]
+	[select-down-sexp (lambda () (select-text (lambda (x) (find-down-sexp x)) #t))]
 
 	[transpose-sexp
 	 (lambda (pos)
@@ -804,8 +806,8 @@
 				     (insert text-2 start-1 end-1)
 				     (set-position end-2)
 				     (end-edit-sequence)))))))))))])
-      (private
-	[tab-size 8])
+      (private-field 
+       [tab-size 8])
       (public
 	[get-tab-size (lambda () tab-size)]
 	[set-tab-size (lambda (s) (set! tab-size s))])

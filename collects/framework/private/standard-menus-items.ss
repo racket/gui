@@ -1,78 +1,111 @@
 (module standard-menus-items mzscheme
   (provide
-   ;(struct generic (name initializer documentation))
-   generic? generic-name generic-initializer generic-documentation
-   ;(struct generic-override (name initializer documentation))
-   generic-override? generic-override-name generic-override-initializer generic-override-documentation
-
+   ;(struct generic (name initializer))
+   generic? generic-name generic-initializer
    
-   ;(struct before/after (menu name procedure))
+   ;(generic/docs (documentation))
+   generic/docs? generic/docs-documentation
+   
+   ;(struct generic-override ())
+   generic-override?
+   ;(struct generic-method ())
+   generic-method?
+   ;(struct generic-private-field ())
+   generic-private-field?
+   
+   ;(struct menu-item (menu-name))
+   menu-item-menu-name
+   menu-name->get-menu-name ;; : menu-item -> symbol
+   
+   ;(struct before/after (name procedure))
    ;(struct before ())
    ;(struct after ())
    before? after?
-   before/after-menu before/after-name before/after-procedure
+   before/after-name before/after-procedure
    
-   ;(struct between (menu before after procedure))
+   ;(struct between (before after procedure))
    between?
-   between-menu between-before between-after between-procedure
+   between-before between-after between-procedure
    
-   ;(struct an-item (menu-name item-name help-string proc key menu-string-before menu-string-after on-demand))
+   ;(struct an-item (item-name help-string proc key menu-string-before menu-string-after on-demand))
    an-item?
-   an-item-menu-name an-item-item-name an-item-help-string an-item-proc an-item-key 
+   an-item-item-name an-item-help-string an-item-proc an-item-key 
    an-item-menu-string-before an-item-menu-string-after an-item-on-demand
+   
+   ;; an-item -> symbol
+   ;; calcualates the names of various identifiers associated with the item.
+   an-item->callback-name
+   an-item->create-menu-item-name
+   an-item->get-item-name
+   an-item->item-name
+   an-item->on-demand-name
+   an-item->string-name
+   an-item->help-string-name
    
    before/after->name
    between->name
    
-   an-item->name
-   an-item->create-menu-item-name
-   
-   items
-   ;edit-menu:do
-   ;edit-menu:can-do-on-demand
-   ;edit-menu:edit-target-on-demand
-   )
+   items)
   
-  (define-struct generic (name initializer documentation))
-  (define-struct generic-override (name initializer documentation))
+  (define-struct generic (name initializer))
+  (define-struct (generic/docs struct:generic) (documentation))
+  (define-struct (generic-override struct:generic/docs) ())
+  (define-struct (generic-method struct:generic/docs) ())
+  (define-struct (generic-private-field struct:generic) ())
   
-  (define-struct before/after (menu name procedure))
+  (define-struct menu-item (menu-name))
+  (define (menu-name->get-menu-name menu-item)
+    (string->symbol
+     (format "get-~a" (menu-item-menu-name menu-item))))
+  
+  (define-struct (before/after struct:menu-item) (name procedure))
   (define-struct (before struct:before/after) ())
   (define-struct (after struct:before/after) ())
   (define (before/after->name before/after)
     (string->symbol (format "~a:~a-~a"
-                            (before/after-menu before/after)
+                            (menu-item-menu-name before/after)
                             (if (before? before/after)
                                 "before"
                                 "after")
                             (before/after-name before/after))))
   
-  (define-struct between (menu before after procedure))
+  (define-struct (between struct:menu-item) (before after procedure))
   (define (between->name between)
     (string->symbol (format "~a:between-~a-and-~a"
-                            (between-menu between)
+                            (menu-item-menu-name between)
                             (between-before between)
                             (between-after between))))
   
-  (define-struct an-item (menu-name
-                          item-name
-                          help-string
-                          proc
-                          key
-                          menu-string-before
-                          menu-string-after
-                          on-demand))
-  (define an-item->name
-    (case-lambda
-     [(item) (an-item->name item "")]
-     [(item middle)
-      (string->symbol (format "~a:~a~a"
-                              (an-item-menu-name item)
-                              middle
-                              (an-item-item-name item)))]))
+  (define-struct (an-item struct:menu-item)
+                 (item-name
+                  help-string
+                  proc
+                  key
+                  menu-string-before
+                  menu-string-after
+                  on-demand))
   
+  (define (an-item->callback-name item)
+    (string->symbol
+     (format "~a:~a-callback" (menu-item-menu-name item) (an-item-item-name item))))
   (define (an-item->create-menu-item-name item)
-    (format "~a:create-~a?" (an-item-menu-name item) (an-item-item-name item)))
+    (string->symbol
+     (format "~a:create-~a?" (menu-item-menu-name item) (an-item-item-name item))))
+  (define (an-item->get-item-name item)
+    (string->symbol
+     (format "~a:get-~a-item" (menu-item-menu-name item) (an-item-item-name item))))
+  (define (an-item->item-name item)
+    (string->symbol
+     (format "~a:~a-item" (menu-item-menu-name item) (an-item-item-name item))))
+  (define (an-item->on-demand-name item)
+    (string->symbol
+     (format "~a:~a-on-demand" (menu-item-menu-name item) (an-item-item-name item))))
+  (define (an-item->string-name item)
+    (string->symbol
+     (format "~a:~a-string" (menu-item-menu-name item) (an-item-item-name item))))
+  (define (an-item->help-string-name item)
+    (string->symbol
+     (format "~a:~a-help-string" (menu-item-menu-name item) (an-item-item-name item))))
   
   (define (edit-menu:do const)
     `(lambda (menu evt)
@@ -99,112 +132,123 @@
   
   (define items
     (list (make-generic-override
-           'on-close '(lambda ()
-                        (remove-prefs-callback)
-                        (super-on-close))
+           'on-close 
+           '(lambda ()
+              (remove-prefs-callback)
+              (super-on-close))
            '("@return : void"
              "Removes the preferences callbacks for the menu items"))
-          (make-generic 'get-menu% '(lambda () menu%)
-                        '("The result of this method is used as the class"
-                          "for creating the result of these methods:"
-                          "@ilink frame:standard-menus get-file-menu %"
-                          ", "
-                          "@ilink frame:standard-menus get-edit-menu %"
-                          ", "
-                          "@ilink frame:standard-menus get-help-menu %"
-                          ". "
-                          ""
-                          "@return : (derived-from \\iscmclass{menu})"
-                          ""
-                          "defaultly returns"
-                          "@link menu"))
-          (make-generic 'get-menu-item% '(lambda () menu:can-restore-menu-item%)
-                        '("The result of this method is used as the class for creating"
-                          "the menu items in this class (see "
-                          "@link frame:standard-menus"
-                          "for a list)."
-                          ""
-                          "@return : (derived-from \\iscmclass{menu-item})"
-                          ""
-                          "defaultly returns"
-                          "@link menu:can-restore-menu-item %"
-                          "."))
-          (make-generic 'get-checkable-menu-item% '(lambda () menu:can-restore-checkable-menu-item%)
-                        '("The result of this method is used as the class for creating"
-                          "checkable menu items in this class (see "
-                          "@link frame:standard-menus"
-                          "for a list)."
-                          ""
-                          "@return : (derived-from \\iscmclass{checkable-menu-item})"
-                          ""
-                          "defaultly returns"
-                          "@link menu:can-restore-checkable-menu-item %"
-                          "."))
+          (make-generic-method 
+           'get-menu% '(lambda () menu%)
+           '("The result of this method is used as the class"
+             "for creating the result of these methods:"
+             "@ilink frame:standard-menus get-file-menu %"
+             ", "
+             "@ilink frame:standard-menus get-edit-menu %"
+             ", "
+             "@ilink frame:standard-menus get-help-menu %"
+             ". "
+             ""
+             "@return : (derived-from \\iscmclass{menu})"
+             ""
+             "defaultly returns"
+             "@link menu"))
+          (make-generic-method 
+           'get-menu-item% '(lambda () menu:can-restore-menu-item%)
+           '("The result of this method is used as the class for creating"
+             "the menu items in this class (see "
+             "@link frame:standard-menus"
+             "for a list)."
+             ""
+             "@return : (derived-from \\iscmclass{menu-item})"
+             ""
+             "defaultly returns"
+             "@link menu:can-restore-menu-item %"
+             "."))
+          (make-generic-method 
+           'get-checkable-menu-item% '(lambda () menu:can-restore-checkable-menu-item%)
+           '("The result of this method is used as the class for creating"
+             "checkable menu items in this class (see "
+             "@link frame:standard-menus"
+             "for a list)."
+             ""
+             "@return : (derived-from \\iscmclass{checkable-menu-item})"
+             ""
+             "defaultly returns"
+             "@link menu:can-restore-checkable-menu-item %"
+             "."))
           
-          (make-generic 'get-file-menu
-                        '(let ([m (make-object (get-menu%)
-                                    (if (eq? (system-type) 'windows)
-                                        "&File" "F&ile")
-                                    (get-menu-bar))])
-                           (lambda () m))
-                        '("Returns the file menu"
-                          "See also"
-                          "@ilink frame:standard-menus get-menu\\%"
-                          ""
-                          "@return : (instance (derived-from \\iscmclass{menu}))"))
-          (make-generic 'get-edit-menu
-                        '(let ([m (make-object (get-menu%) "&Edit" (get-menu-bar))])
-                           (lambda () m))
-                        
-                        '("Returns the edit menu"
-                          "See also"
-                          "@ilink frame:standard-menus get-menu\\%"
-                          ""
-                          "@return : (instance (derived-from \\iscmclass{menu}))"))
-          (make-generic 'get-help-menu
-                        '(let ([m (make-object (get-menu%) "&Help" (get-menu-bar))])
-                           (lambda () m))
-                        
-                        '("Returns the help menu"
-                          "See also"
-                          "@ilink frame:standard-menus get-menu\\%"
-                          ""
-                          "@return : (instance (derived-from \\iscmclass{menu}))"))
+          (make-generic-method 
+           'get-file-menu
+           '(lambda () file-menu)
+           '("Returns the file menu"
+             "See also"
+             "@ilink frame:standard-menus get-menu\\%"
+             ""
+             "@return : (instance (derived-from \\iscmclass{menu}))"))
+          (make-generic-private-field 
+           'file-menu
+           '(make-object (get-menu%)
+              (if (eq? (system-type) 'windows)
+                  "&File" "F&ile")
+              (get-menu-bar)))
+          (make-generic-method
+           'get-edit-menu
+           '(lambda () edit-menu)
+           
+           '("Returns the edit menu"
+             "See also"
+             "@ilink frame:standard-menus get-menu\\%"
+             ""
+             "@return : (instance (derived-from \\iscmclass{menu}))"))
+          (make-generic-private-field 'edit-menu '(make-object (get-menu%) "&Edit" (get-menu-bar)))
+          (make-generic-method
+           'get-help-menu
+           '(lambda () help-menu)
+           
+           '("Returns the help menu"
+             "See also"
+             "@ilink frame:standard-menus get-menu\\%"
+             ""
+             "@return : (instance (derived-from \\iscmclass{menu}))"))
+          (make-generic-private-field
+           'help-menu
+           '(make-object (get-menu%) "&Help" (get-menu-bar)))
           
           (make-an-item 'file-menu 'new "Open a new file"
                         '(lambda (item control) (handler:edit-file #f) #t)
                         #\n "&New" ""
-                        'void)
+                        '(lambda () (void)))
           (make-between 'file-menu 'new 'open 'nothing)
           (make-an-item 'file-menu 'open "Open a file from disk"
                         '(lambda (item control) (handler:open-file) #t)
                         #\o "&Open" "..."
-                        'void)
+                        '(lambda () (void)))
           (make-between 'file-menu 'open 'revert 'nothing)
           (make-an-item 'file-menu 'revert 
                         "Revert this file to the copy on disk"
                         #f #f "&Revert" ""
-                        'void)
+                        '(lambda () (void)))
           (make-between 'file-menu 'revert 'save 'nothing)
           (make-an-item 'file-menu 'save
                         "Save this file to disk"
                         #f #\s "&Save" ""
-                        'void)
+                        '(lambda () (void)))
           (make-an-item 'file-menu 'save-as
                         "Prompt for a filename and save this file to disk"
                         #f #f "Save" " &As..."
-                        'void)
+                        '(lambda () (void)))
           (make-between 'file-menu 'save-as 'print 'separator)
           (make-an-item 'file-menu 'print
                         "Print this file"
                         #f #\p "&Print" "..."
-                        'void)
+                        '(lambda () (void)))
           (make-between 'file-menu 'print 'close 'separator)
           (make-an-item 'file-menu 'close
                         "Close this file"
                         '(lambda (item control) (when (can-close?) (on-close) (show #f)) #t)
                         #\w "&Close" ""
-                        'void)
+                        '(lambda () (void)))
           (make-between 'file-menu 'close 'quit 'nothing)
           (make-an-item 'file-menu 'quit
                         "Quit"
@@ -212,7 +256,7 @@
                         #\q
                         '(if (eq? (system-type) 'windows) "E&xit" "Quit")
                         ""
-                        'void)
+                        '(lambda () (void)))
           (make-after 'file-menu 'quit 'nothing)
           
           (make-an-item 'edit-menu 'undo "Undo the most recent action" 
@@ -267,7 +311,7 @@
           (make-an-item 'edit-menu 'preferences "Configure the preferences"
                         '(lambda (item control) (preferences:show-dialog) #t)
                         #f "Preferences..." ""
-                        'void)
+                        '(lambda () (void)))
           (make-after 'edit-menu 'preferences 'nothing)
           
           (make-before 'help-menu 'about 'nothing)
@@ -276,5 +320,5 @@
                         #f
                         "About "
                         "..."
-                        'void)
+                        '(lambda () (void)))
           (make-after 'help-menu 'about 'nothing))))
