@@ -778,7 +778,7 @@
 		[sep (lambda () (make-object separator-menu-item% menu))])
 	   (set! menu-bar mb)
 	   (set! main-menu menu)
-	   
+
 	   (set! ADD-APPLE (new "Add Apple" "Adds the Apple menu"))
 	   (set! ADD-BANANA (new "Add Banana"))
 	   (set! ADD-COCONUT (new "Add Coconut"))
@@ -808,6 +808,8 @@
 	     (make-object menu-item% "Disable Second" menu (mk-enable #f))
 	     (make-object menu-item% "Enable Second" menu (mk-enable #t)))
 
+	   (make-object menu-item% "Chinese: \U7238" menu void)
+	   
 	   (let ([make-menu
 		  (opt-lambda (title parent help-string)
 		    (let ([m (make-object menu% title parent help-string)])

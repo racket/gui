@@ -313,7 +313,6 @@
     on-kill-focus)
   (define-class choice% item% #f
     set-selection
-    get-string-selection
     get-selection
     number
     clear
