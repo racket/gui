@@ -6,12 +6,17 @@
 	   (lib "mred-sig.ss" "mred")
 	   "hierlist-sig.ss")
 
-  (require (lib "list.ss"))
+  (require (lib "list.ss")
+	   (lib "etc.ss"))
 
   (provide hierlist@)
   (define hierlist@
     (unit/sig hierlist^
       (import mred^)
+
+      (define-local-member-name 
+	;; In hierarchical-list%
+	ensure-not-selected)
 
       (define transparent (make-object brush% "WHITE" 'transparent))
       (define transparent-pen (make-object pen% "WHITE" 1 'transparent))
@@ -307,7 +312,9 @@
             [double-select (lambda () (send top on-double-select item))]
             [select-prev (lambda () (send top select-prev))])
           (override
-            [on-default-char (lambda (x) (void))])
+            [on-default-char (lambda (x) (void))]
+	    [can-do-edit-operation? (opt-lambda (x [r? #t]) (send top can-do-edit-operation? x r?))]
+	    [do-edit-operation (opt-lambda (x [r? #t] [time 0]) (send top do-edit-operation x r? time))])
           (sequence
             (super-init)
             (hide-caret #t)
@@ -360,6 +367,7 @@
                  (cond
                    [(null? l) (error 'hierarchical-list-compound-item::delete-item "item not found: ~a" i)]
                    [(eq? (send (car l) get-item) i)
+		    (send top ensure-not-selected i)
                     (send (car l) deselect-all)
                     (set! children (append (reverse others) (cdr l)))
                     (let ([s (line-start-position pos)]
@@ -404,7 +412,9 @@
                 children))])
           (override
             [on-default-char (lambda (x) (void))]
-            [on-default-event (lambda (x) (void))])
+            [on-default-event (lambda (x) (void))]
+	    [can-do-edit-operation? (opt-lambda (x [r? #t]) (send top can-do-edit-operation? x r?))]
+	    [do-edit-operation (opt-lambda (x [r? #t] [time 0]) (send top do-edit-operation x r? time))])
           (sequence
             (super-init)
             (hide-caret #t)
@@ -444,7 +454,9 @@
 	    [get-main-text% (lambda () (class100 text% args
 					 (override
 					   [on-default-char (lambda (x) (void))]
-					   [on-default-event (lambda (x) (void))])
+					   [on-default-event (lambda (x) (void))]
+					   [can-do-edit-operation? (opt-lambda (x [r? #t]) (send top can-do-edit-operation? x r?))]
+					   [do-edit-operation (opt-lambda (x [r? #t] [time 0]) (send top do-edit-operation x r? time))])
 					 (sequence 
 					   (apply super-init args))))]
 	    [get-title-text% (lambda () hierarchical-item-text%)]
@@ -650,7 +662,15 @@
             [show-focus
              (case-lambda
               [() show-focus?]
-              [(on?) (set! show-focus? on?)])])
+              [(on?) (set! show-focus? on?)])]
+	    [can-do-edit-operation? (opt-lambda (x [r? #t]) #f)]
+	    [do-edit-operation (opt-lambda (x [r? #t] [time 0]) (void))])
+	  (public ;; ---- local to this module! ----
+	    [ensure-not-selected (lambda (i)
+				   (when (eq? i selected)
+				     (set! selected #f))
+				   (when (eq? i selected-item)
+				     (set! selected-item #f)))])
           (override
             [on-char
              (lambda (e)

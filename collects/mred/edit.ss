@@ -38,6 +38,10 @@
 		 (lambda (item event) 
 		   (send e save-file ""))
 		 #\S)
+    (when (eq? editor% text%)
+      (make-object menu-item% "Save As Text..." file-menu
+		   (lambda (item event) 
+		     (send e save-file "" 'text))))
     (make-object separator-menu-item% file-menu)
     (make-object menu-item% "Print..." file-menu
 		 (lambda (item event)
