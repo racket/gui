@@ -143,7 +143,7 @@
   (define black-color (make-object color% "BLACK"))
   
   (define triangle-width 10)
-  (define triangle-height 16)
+  (define triangle-height 14)
   (define triangle-color (make-object color% 50 50 50))
   
   (define border-inset 1)
@@ -219,7 +219,7 @@
 			   1 'solid))
     (let ([x (- w triangle-width circle-spacer)]
 	  [y (- (/ h 2) (/ triangle-height 2))])
-      (let loop ([dx 0][dy 6])
+      (let loop ([dx 0][dy 5])
 	(unless (= 5 dx)
 	  (send dc draw-line 
 		(+ x 1 dx) (+ y dy)
