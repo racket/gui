@@ -95,6 +95,7 @@
      (lambda ()
        (send-sexp-to-mred
 	`(begin
+	   (preferences:set 'framework:exit-when-no-frames #f)
 	   (preferences:set 'framework:file-dialogs 'common)
 	   (send (make-object ,class-expression "test open") show #t)))
        (wait-for-frame "test open")
@@ -123,7 +124,9 @@
 	    t))
 	(wait-for-frame "test open")
 	(send-sexp-to-mred
-	 `(test:close-top-level-window (get-top-level-focus-window))))))))
+	 `(begin
+	    (preferences:set 'framework:exit-when-no-frames #t)
+	    (test:close-top-level-window (get-top-level-focus-window)))))))))
 
 (test-open "frame:editor open" 'frame:text%)
 (test-open "frame:editor open" 'frame:searchable%)

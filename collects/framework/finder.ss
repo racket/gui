@@ -149,14 +149,16 @@
 	
 	[do-dir
 	 (lambda (choice event)
-	   (let ([which (send event get-selection)])
+	   (let ([which (send choice get-selection)])
 	     (if (< which (length dirs))
 		 (set-directory (list-ref dirs which)))))]
 	
 	[do-name-list
-	 (lambda (list-box _)
-	   (when (send list-box get-string-selections)
-	     (set-edit)))]
+	 (lambda (list-box evt)
+	   (if (eq? (send evt get-event-type) 'list-box-dclick)
+	       (do-ok)
+	       (when (send list-box get-string-selection)
+		 (set-edit))))]
 	
 	[do-result-list
 	 (lambda args #f)]
@@ -328,110 +330,106 @@
 	[left-middle-panel (make-object vertical-panel% middle-panel)]
 	[right-middle-panel (when multi-mode? 
 			      (make-object vertical-panel% middle-panel))]
+
 	[name-list%
 	 
 	 (class-asi list-box%
 	   
 	   (inherit 
-	     get-first-visible-item
-	     get-string
-	     get-selection
-	     get-string-selection
-	     get-number
-	     number-of-visible-items
-	     set-first-visible-item
-	     focus
-	     set-selection)
+	    get-string-selection
+	    get-string
+	    get-selection
+	    get-number
+	    get-first-visible-item
+	    number-of-visible-items
+	    set-first-visible-item
+	    set-selection)
+
+	   (override
+	    [on-subwindow-char
+	     
+	     (lambda (_ key) 
+	       (let ([code (send key get-key-code)]
+		     [num-items (get-number)]
+		     [curr-pos (get-selection)])
+		 
+		 (cond 
+		  
+		  [(or (equal? code 'numpad-return)
+		       (equal? code #\return))
+		   (do-ok)]
+		  
+		  ; look for letter at beginning of a filename
+		  
+		  [(char? code)
+		   (letrec 
+		       ([loop
+			 (lambda (pos)
+			   (unless 
+			       (>= pos num-items)
+			     (let ([first-char (string-ref (get-string pos) 0)])
+			       (if (char=? code first-char)
+				   (set-selection-and-edit pos)
+				   (loop (add1 pos))))))])
+		     (loop (add1 curr-pos)))]
+		  
+		  ; movement keys
+		  
+		  [(and (eq? code 'up) 
+			(> curr-pos 0))
+		   (set-selection-and-edit (sub1 curr-pos))]
+		  
+		  [(and (eq? code 'down)
+			(< curr-pos (sub1 num-items)))
+		   (let* ([num-vis (number-of-visible-items)] 
+			  [curr-first (get-first-visible-item)]
+			  [new-curr-pos (add1 curr-pos)]
+			  [new-first (if (< new-curr-pos (+ curr-first num-vis))
+					 curr-first ; no scroll needed
+					 (add1 curr-first))])
+		     (set-first-visible-item new-first)
+		     (set-selection-and-edit new-curr-pos))]
+		  
+		  [(and (eq? code 'prior)
+			(> curr-pos 0))
+		   (let* ([num-vis (number-of-visible-items)]
+			  [new-first (- (get-first-visible-item) num-vis)])
+		     (set-first-visible-item (max new-first 0))
+		     (set-selection-and-edit (max 0 (- curr-pos num-vis))))]
+		  
+		  [(and (eq? code 'next)
+			(< curr-pos (sub1 num-items)))
+		   (let* ([num-vis (number-of-visible-items)]
+			  [new-first (+ (get-first-visible-item) num-vis)])
+		     (set-first-visible-item
+		      (min new-first (- (get-number) num-vis)))
+		     (set-selection-and-edit 
+		      (min (sub1 num-items) (+ curr-pos num-vis))))]
+		  
+		  [else #f])))])
 	   
 	   (public
-	     
-	     [set-selection-and-edit ; set selection, update edit box
-	      
-	      (lambda (pos)
-		(when (> (get-number) 0)
-		  (let* ([first-item (get-first-visible-item)]
-			 [last-item (sub1 (+ (number-of-visible-items) 
-					     first-item))])
-		    (if (or (< pos first-item) (> pos last-item))
-			(set-first-visible-item pos))
-		    (set-selection pos)))
-		(set-edit))]
-	     
-	     [pre-on-char ; set selection according to keystroke
-	      
-	      (lambda (_ key) 
-		(let ([code (send key get-key-code)]
-		      [num-items (get-number)]
-		      [curr-pos (get-selection)])
-		  
-		  (cond 
-		    
-		    [(or (equal? code 'numpad-return)
-			 (equal? code #\return))
-		     (do-ok)]
-		    
-		    [(equal? code #\tab)
-		     (send directory-field focus)]
-		    
-		    ; look for letter at beginning of a filename
-		    
-		    [(char? code)
-		     (letrec 
-			 ([loop
-			   (lambda (pos)
-			     (unless 
-				 (>= pos num-items)
-			       (let ([first-char (string-ref (get-string pos) 0)])
-				 (if (char=? code first-char)
-				     (set-selection-and-edit pos)
-				     (loop (add1 pos))))))])
-		       (loop (add1 curr-pos)))]
-		    
-		    ; movement keys
-		    
-		    [(and (eq? code 'up) 
-			  (> curr-pos 0))
-		     (set-selection-and-edit (sub1 curr-pos))]
-		    
-		    [(and (eq? code 'down)
-			  (< curr-pos (sub1 num-items)))
-		     (let* ([num-vis (number-of-visible-items)] 
-			    [curr-first (get-first-visible-item)]
-			    [new-curr-pos (add1 curr-pos)]
-			    [new-first (if (< new-curr-pos (+ curr-first num-vis))
-					   curr-first ; no scroll needed
-					   (add1 curr-first))])
-		       (set-first-visible-item new-first)
-		       (set-selection-and-edit new-curr-pos))]
-		    
-		    [(and (eq? code 'prior)
-			  (> curr-pos 0))
-		     (let* ([num-vis (number-of-visible-items)]
-			    [new-first (- (get-first-visible-item) num-vis)])
-		       (set-first-visible-item (max new-first 0))
-		       (set-selection-and-edit (max 0 (- curr-pos num-vis))))]
-		    
-		    [(and (eq? code 'next)
-			  (< curr-pos (sub1 num-items)))
-		     (let* ([num-vis (number-of-visible-items)]
-			    [new-first (+ (get-first-visible-item) num-vis)])
-		       (set-first-visible-item (min new-first (- (get-number) num-vis)))
-		       (set-selection-and-edit 
-			(min (sub1 num-items) (+ curr-pos num-vis))))]
-		    
-		    [else #f])))]
-	     
+	    [set-selection-and-edit
+	     (lambda (pos)
+	       (when (> (get-number) 0)
+		 (let* ([first-item (get-first-visible-item)]
+			[last-item (sub1 (+ (number-of-visible-items) 
+					    first-item))])
+		   (if (or (< pos first-item) (> pos last-item))
+		       (set-first-visible-item pos))
+		   (set-selection pos)))
+	       (set-edit))]
 	     [on-default-action
 	      (lambda ()
-		(when (> (send name-list get-number) 0)
-		      (let* ([which (send name-list get-string-selection)]
-			     [dir (build-path current-dir
-					      (make-relative which))])
-			(if (directory-exists? dir)
-			    (set-directory (mzlib:file:normalize-path dir))
-			    (if multi-mode?
-				(do-add)
-				(do-ok))))))]))]
+		(when (> (get-number) 0)
+		  (let* ([which (get-string-selection)]
+			 [dir (build-path current-dir
+					  (make-relative which))])
+		    (if (directory-exists? dir)
+			(set-directory (mzlib:file:normalize-path dir))
+			(if multi-mode?
+			    (do-add)
+			    (do-ok))))))]))]
 	
 	[name-list (make-object name-list%
 				#f null left-middle-panel do-name-list
@@ -503,10 +501,9 @@
 		     top-panel
 		     (lambda (button evt) (do-updir)))
 	
+	(send dir-choice stretchable-width #t)
 	(send name-list stretchable-width #t)
-	
 	(send top-panel stretchable-height #f)
-	
 	(send bottom-panel stretchable-height #f)
 	
 	(when save-mode?
@@ -536,9 +533,7 @@
       (private
 	[cancel-button (make-object button% "Cancel" bottom-panel do-cancel)]
 	[ok-button
-	 (make-object button%
-				"OK"
-				bottom-panel do-ok)])
+	 (make-object button% "OK" bottom-panel do-ok '(border))])
       (sequence
 	(cond
 	  [(and start-dir

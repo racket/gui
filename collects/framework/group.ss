@@ -1,6 +1,5 @@
 (unit/sig framework:group^
   (import mred-interfaces^
-	  [exit : framework:exit^]
 	  [frame : framework:frame^]
 	  [mzlib:function : mzlib:function^]
 	  [mzlib:file : mzlib:file^])

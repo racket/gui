@@ -178,16 +178,22 @@
 			(set! test #f)
 			(semaphore-post s))))))))
   
+  (preferences:set-default 'framework:just-exit-when-no-frames #t boolean?)
+
   (let ([at-most-one (at-most-one-maker)])
     (send (group:get-the-frame-group) set-empty-callbacks
 	  (lambda () 
-	    (at-most-one (void) 
-			 (lambda () (exit:exit #t))))
-	  (lambda () 
-	    (at-most-one #t
-			 (lambda ()
-			   (exit:run-callbacks)))))
-  
+	    (if (preferences:get 'framework:just-exit-when-no-frames)
+		(void)
+		(at-most-one (void) 
+			     (lambda () (exit:exit #t)))))
+	  (lambda ()
+	    (if (preferences:get 'framework:just-exit-when-no-frames)
+		#t
+		(at-most-one #t
+			     (lambda ()
+			       (exit:run-callbacks))))))
+    
     (exit:insert-callback
      (lambda ()
        (at-most-one
