@@ -28,10 +28,10 @@
               [text : framework:text^]
               [editor : framework:editor^]
               [frame : framework:frame^]
-              [comment-box : framework:comment-box^])
+              [comment-box : framework:comment-box^]
+              [mode : framework:mode^])
       
-      (rename [-text% text%]
-              [-text<%> text<%>])
+      (rename [-text-mode<%> text-mode<%>])
       
       ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
       ;;                                                                  ;;
@@ -327,8 +327,8 @@
                       matching-parenthesis-delta))
           (send style-list find-named-style "Matching Parenthesis Style")))
 
-      (define text-mixin 
-        (mixin (text:basic<%> editor:keymap<%>) (-text<%>)
+      (define text-mixin
+        (mixin (...? editor:keymap<%>) (-text<%>)
           (inherit begin-edit-sequence
                    delete
                    end-edit-sequence
@@ -356,7 +356,6 @@
                    set-styles-fixed
                    change-style
                    get-snip-position)
-          (rename [super-on-char on-char])
           
           (define (in-single-line-comment? position)
             (let ([para (position-paragraph position)])
@@ -382,80 +381,13 @@
                (scheme-paren:get-comments))))
           
           
-          (rename [super-on-close on-close])
-          (override on-close)
-          (define (on-close)
-            (remove-indents-callback)
-            (remove-paren-callback)
-            (super-on-close))
-          
-          (define remove-indents-callback
-            (preferences:add-callback
-             'framework:tabify
-             (lambda (p value)
-               (set! indents value))))
-          (define indents (preferences:get 'framework:tabify))
           [define backward-cache (make-object match-cache:%)]
           [define forward-cache (make-object match-cache:%)]
           [define in-highlight-parens? #f]
           
           (inherit get-styles-fixed)
-          (rename [super-on-focus on-focus]
-                  [super-after-change-style after-change-style]
-                  [super-after-edit-sequence after-edit-sequence]
-                  [super-after-insert after-insert]
-                  [super-after-delete after-delete]
-                  [super-after-set-size-constraint after-set-size-constraint]
-                  [super-after-set-position after-set-position])
           (inherit has-focus? find-snip split-snip)
-          (override on-focus after-change-style after-edit-sequence
-                    after-insert after-delete
-                    after-set-size-constraint after-set-position)
-          (define (on-focus on?)
-            (super-on-focus on?)
-            (highlight-parens (not on?)))
-          (define (after-change-style start len)
-            (unless (local-edit-sequence?)
-              (unless (get-styles-fixed)
-                (when (has-focus?)
-                  (highlight-parens))))
-            (super-after-change-style start len))
-          (define (after-edit-sequence)
-            (super-after-edit-sequence)
-            (unless (local-edit-sequence?)
-              (when (has-focus?)
-                (unless in-highlight-parens?
-                  (highlight-parens)))))
-          (define (after-insert start size)
-            (send backward-cache invalidate start)
-            (send forward-cache forward-invalidate start size)
-            (unless (local-edit-sequence?)
-              (when (has-focus?)
-                (highlight-parens)))
-            (super-after-insert start size))
-          (define (after-delete start size)
-            (super-after-delete start size)
-            (send backward-cache invalidate start)
-            (send forward-cache forward-invalidate (+ start size) (- size))
-            (unless (local-edit-sequence?)
-              (when (has-focus?)
-                (highlight-parens))))
-          (define (after-set-size-constraint)
-            (unless (local-edit-sequence?)
-              (when (has-focus?)
-                (highlight-parens)))
-            (super-after-set-size-constraint))
-          (define (after-set-position)
-            (unless (local-edit-sequence?)
-              (when (has-focus?)
-                (highlight-parens)))
-            (super-after-set-position))
           
-          [define highlight-parens? (preferences:get 'framework:highlight-parens)]
-          [define remove-paren-callback (preferences:add-callback
-                                         'framework:highlight-parens 
-                                         (lambda (p value)
-                                           (set! highlight-parens? value)))]
           (define (find-enclosing-paren pos)
             (let loop ([pos pos])
               (let ([paren-pos 
@@ -1157,19 +1089,98 @@
             (lambda ()
               (cons keymap (super-get-keymaps)))]
           
-          (super-instantiate ())
+          (define/override (enable)
+            (highlight-parens #t)
+            (set-load-overwrites-styles #f)
+            (set-wordbreak-map wordbreak-map)
+            (set-tabs null tab-size #f)
+            (set-style-list style-list)
+            (set-styles-fixed #t))
           
-          (highlight-parens #t)
-          (set-load-overwrites-styles #f)
-          (set-wordbreak-map wordbreak-map)
-          (set-tabs null tab-size #f)
-          (set-style-list style-list)
-          (set-styles-fixed #t)))
-      
-      (define -text% (text-mixin text:info%))
+          (super-instantiate ())))
 
-      
+      (define text-mode-mixin
+        (mixin (text:mode<%> editor:keymap<%>) (-text-mode<%>)
+          
+          (rename [super-on-close on-close])
+          (override on-close)
+          (define (on-close)
+            (remove-indents-callback)
+            (remove-paren-callback)
+            (super-on-close))
+          
+          (define remove-indents-callback
+            (preferences:add-callback
+             'framework:tabify
+             (lambda (p value)
+               (set! indents value))))
+          (define indents (preferences:get 'framework:tabify))
+          [define backward-cache (make-object match-cache:%)]
+          [define forward-cache (make-object match-cache:%)]
+          [define in-highlight-parens? #f]
+          
+          (inherit get-styles-fixed)
+          (rename [super-on-focus on-focus]
+                  [super-after-change-style after-change-style]
+                  [super-after-edit-sequence after-edit-sequence]
+                  [super-after-insert after-insert]
+                  [super-after-delete after-delete]
+                  [super-after-set-size-constraint after-set-size-constraint]
+                  [super-after-set-position after-set-position])
+          (inherit has-focus? find-snip split-snip)
+          (override on-focus after-change-style after-edit-sequence
+                    after-insert after-delete
+                    after-set-size-constraint after-set-position)
+          (define (on-focus on?)
+            (super-on-focus on?)
+            (highlight-parens (not on?)))
+          (define (after-change-style start len)
+            (unless (local-edit-sequence?)
+              (unless (get-styles-fixed)
+                (when (has-focus?)
+                  (highlight-parens))))
+            (super-after-change-style start len))
+          (define (after-edit-sequence)
+            (super-after-edit-sequence)
+            (unless (local-edit-sequence?)
+              (when (has-focus?)
+                (unless in-highlight-parens?
+                  (highlight-parens)))))
+          (define (after-insert start size)
+            (send backward-cache invalidate start)
+            (send forward-cache forward-invalidate start size)
+            (unless (local-edit-sequence?)
+              (when (has-focus?)
+                (highlight-parens)))
+            (super-after-insert start size))
+          (define (after-delete start size)
+            (super-after-delete start size)
+            (send backward-cache invalidate start)
+            (send forward-cache forward-invalidate (+ start size) (- size))
+            (unless (local-edit-sequence?)
+              (when (has-focus?)
+                (highlight-parens))))
+          (define (after-set-size-constraint)
+            (unless (local-edit-sequence?)
+              (when (has-focus?)
+                (highlight-parens)))
+            (super-after-set-size-constraint))
+          (define (after-set-position)
+            (unless (local-edit-sequence?)
+              (when (has-focus?)
+                (highlight-parens)))
+            (super-after-set-position))
+          
+          [define highlight-parens? (preferences:get 'framework:highlight-parens)]
+          [define remove-paren-callback (preferences:add-callback
+                                         'framework:highlight-parens 
+                                         (lambda (p value)
+                                           (set! highlight-parens? value)))]
+          
+          (super-instantiate ())))
 
+      (define -text% (-text-mixin ...))
+      
                                                                                            
               ;;                                 ;;                                        
                ;                                  ;                                        

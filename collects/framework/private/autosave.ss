@@ -281,9 +281,8 @@
         
         (define show-files-frame% frame:basic%)
         (define show-files-text%
-          (scheme:text-mixin
-           (editor:keymap-mixin
-            text:basic%)))
+          (editor:keymap-mixin
+           text:basic%))
         
         (main))
         

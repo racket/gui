@@ -74,7 +74,10 @@
 	   framework:main^
 	   framework:main-class^
 	   framework:main-fun^
-	   framework:color-model^
+	   framework:mode^
+           framework:mode-class^
+           framework:mode-fun^
+           framework:color-model^
 	   framework:color-model-class^
 	   framework:color-model-fun^
            framework:comment-box-fun^
@@ -485,8 +488,9 @@
 
   (define-signature framework:scheme-class^
     (text<%>
-     text%
      text-mixin
+     text%
+     text-mode-mixin
      sexp-snip%
      sexp-snip<%>))
   (define-signature framework:scheme-fun^
@@ -516,6 +520,15 @@
   (define-signature framework:main^
     ((open framework:main-class^)
      (open framework:main-fun^)))
+
+  (define-signature framework:mode-class^ 
+    (delegating-text-mixin
+     text%
+     text<%>))
+  (define-signature framework:mode-fun^ ())
+  (define-signature framework:mode^
+    ((open framework:mode-class^)
+     (open framework:mode-fun^)))
 
   (define-signature framework:color-model-class^
     ())
