@@ -312,7 +312,7 @@
 		       (lambda (button evt)
 			 (let ([t (send directory-edit get-text)])
 			   (if (directory-exists? t)
-			       (set-directory (normalize-path t))
+			       (set-directory (mzlib:file:normalize-path t))
 			       (wx:bell))))
 		       "Go")
 
