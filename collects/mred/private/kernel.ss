@@ -391,8 +391,8 @@
     get-char-width
     get-char-height
     get-text-extent
-    get-anti-alias
-    set-anti-alias
+    get-smoothing
+    set-smoothing
     set-text-foreground
     set-text-background
     set-pen
@@ -935,6 +935,7 @@
     get-exact
     get-fixed
     get-bytes
+    get-terminated-bytes
     get)
   (define-class editor-stream-out% object% #f
     ok?
