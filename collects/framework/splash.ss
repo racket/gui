@@ -205,7 +205,10 @@
                       (send dc draw-bitmap
                             (icon-bm icon)
                             (icon-x icon)
-                            (icon-y icon)))
+                            (icon-y icon)
+			    'solid
+			    (make-object color% "black")
+			    (send (icon-bm icon) get-loaded-mask)))
                     icons)))
       (super-instantiate ())))
   
