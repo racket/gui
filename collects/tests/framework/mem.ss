@@ -40,7 +40,7 @@
                (collect-garbage))
              (let ([res (calc-results)])
                (when (<= res ,mem-cutoff)
-                 (set! anything #t)
+                 (set! anything? #t)
                  (make-object message% (format "~a: ~a of ~a~n" tag res ,mem-count) f)))))
          mem-boxes)
         (cond
