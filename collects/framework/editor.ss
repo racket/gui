@@ -263,9 +263,10 @@
 	     (let ([back-name (path-utils:generate-backup-name name)])
 	       (when (or (not (file-exists? back-name))
 			 (file-old? back-name))
-		 (delete-file back-name))
-	       (with-handlers ([(lambda (x) #t) void])
-		 (copy-file name back-name)))))]
+		 (when (file-exists? back-name)
+		   (delete-file back-name))
+		 (with-handlers ([(lambda (x) #t) void])
+		   (copy-file name back-name))))))]
 	[on-close
 	 (lambda ()
 	   (super-on-close)
