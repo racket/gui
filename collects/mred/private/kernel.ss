@@ -309,6 +309,7 @@
     get-height
     get-depth)
   (define-class button% item% #f
+    set-border
     set-label
     on-drop-file
     pre-on-event
@@ -367,6 +368,8 @@
     on-event
     on-paint)
   (define-private-class dc% dc<%> object% #f
+    draw-tab
+    draw-tab-base
     glyph-exists?
     end-page
     end-doc
