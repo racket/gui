@@ -354,7 +354,7 @@
 
       ; what about checking the autosave files when a file is opened?
       (define backup-autosave-mixin
-	(mixin (basic<%>) (backup-autosave<%>)
+	(mixin (basic<%>) (backup-autosave<%> autosave:autosavable<%>)
 	  (inherit is-modified? get-filename save-file)
 	  (rename [super-on-save-file on-save-file]
 		  [super-on-change on-change]

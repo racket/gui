@@ -13,6 +13,10 @@
 	      [exit : framework:exit^]
 	      [preferences : framework:preferences^])
       
+      (define autosavable<%>
+	(interface ()
+	  do-autosave))
+
       (define objects null)
 
       (define autosave-timer%

@@ -129,8 +129,7 @@
     ())
   (define-signature framework:exn-fun^
     ((struct exn ())
-     (struct unknown-preference ())
-     (struct during-preferences ())))
+     (struct unknown-preference ())))
   (define-signature framework:exn^
     ((open framework:exn-class^)
      (open framework:exn-fun^)))
@@ -166,7 +165,7 @@
      (open framework:preferences-fun^)))
 
   (define-signature framework:autosave-class^
-    ())
+    (autosavable<%>))
   (define-signature framework:autosave-fun^
     (register))
   (define-signature framework:autosave^
@@ -218,14 +217,15 @@
      autowrap<%>
      info<%>
      file<%>
-     backup-autosave<%>))
-  (define-signature framework:editor-fun^
-    (basic-mixin
+     backup-autosave<%>
+     basic-mixin
      keymap-mixin
      autowrap-mixin
      info-mixin
      file-mixin
      backup-autosave-mixin))
+  (define-signature framework:editor-fun^
+    ())
   (define-signature framework:editor^
     ((open framework:editor-class^)
      (open framework:editor-fun^)))
@@ -263,15 +263,17 @@
      clever-file-format%
      backup-autosave%
      searching%
-     info%))
-  (define-signature framework:text-fun^
-    (basic-mixin
+     info%
+
+     basic-mixin
      hide-caret/selection-mixin
      delegate-mixin
      searching-mixin
      return-mixin
      info-mixin
      clever-file-format-mixin))
+  (define-signature framework:text-fun^
+    ())
   (define-signature framework:text^
     ((open framework:text-class^)
      (open framework:text-fun^)))
@@ -283,12 +285,14 @@
      wide-snip<%>
      wide-snip%   
      basic%
-     info%))
-  (define-signature framework:canvas-fun^
-    (basic-mixin
+     info%
+
+     basic-mixin
      delegate-mixin
      info-mixin
      wide-snip-mixin))
+  (define-signature framework:canvas-fun^
+    ())
   (define-signature framework:canvas^
     ((open framework:canvas-class^)
      (open framework:canvas-fun^)))
@@ -317,9 +321,8 @@
      searchable%
      delegate%
      pasteboard%
-     pasteboard-info-file%))
-  (define-signature framework:frame-fun^
-    (reorder-menus
+     pasteboard-info-file%
+     
      basic-mixin
      standard-menus-mixin
      editor-mixin
@@ -332,6 +335,8 @@
      text-info-mixin
      pasteboard-info-mixin
      file-mixin))
+  (define-signature framework:frame-fun^
+    (reorder-menus))
   (define-signature framework:frame^
     ((open framework:frame-class^)
      (open framework:frame-fun^)))
@@ -383,13 +388,12 @@
 
   (define-signature framework:keymap-class^
     (aug-keymap%
-     aug-keymap<%>))
+     aug-keymap<%>
+     aug-keymap-mixin))
   (define-signature framework:keymap-fun^
     (send-map-function-meta
      make-meta-prefix-list
 
-     aug-keymap-mixin
-     
      canonicalize-keybinding-string
 
      add-to-right-button-menu
@@ -434,7 +438,9 @@
 
   (define-signature framework:scheme-class^
     (text<%>
-     text%))
+     text%
+     text-mixin
+     sexp-snip%))
   (define-signature framework:scheme-fun^
     (get-wordbreak-map
      init-wordbreak-map
@@ -443,7 +449,6 @@
      get-sexp-snip-class
      get-keymap
      setup-keymap
-     text-mixin
      add-preferences-panel))
   (define-signature framework:scheme^
     ((open framework:scheme-class^)
@@ -469,7 +474,11 @@
   (define-signature framework:color-model-class^
     ())
   (define-signature framework:color-model-fun^
-    (rgb-color-distance
+    (xyz?
+     xyz-x
+     xyz-y
+     xyz-z
+     rgb-color-distance
      rgb->xyz
      xyz->rgb))
   (define-signature framework:color-model^

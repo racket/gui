@@ -1,163 +1,1285 @@
 (module framework mzscheme
   (require (lib "unitsig.ss")
-	   (lib "mred.ss" "mred")
-	   (lib "mred-sig.ss" "mred")
+           (lib "mred.ss" "mred")
+           (lib "mred-sig.ss" "mred")
            
-	   "test.ss"
-	   "test-sig.ss"
+           "test.ss"
+           "test-sig.ss"
            
-	   "gui-utils.ss"
-	   "gui-utils-sig.ss"
+           "gui-utils.ss"
+           "gui-utils-sig.ss"
            
            "framework-unit.ss"
-	   "framework-sig.ss"
+           "framework-sig.ss"
            
            "macro.ss"
            "specs.ss")
   
   (provide-signature-elements framework-class^)
   (provide-signature-elements ((unit test : framework:test^)
-			       (unit gui-utils : framework:gui-utils^)))
+                               (unit gui-utils : framework:gui-utils^)))
   (provide (all-from "macro.ss"))
   (provide (all-from "specs.ss"))
    
-  (provide exn:struct:during-preferences
-	   exn:struct:unknown-preference
-	   exn:struct:exn)
+  (provide exn:struct:unknown-preference
+           exn:struct:exn)
 
-  (provide version:version)
+  (define-syntax (provide/contract/docs stx)
+    (syntax-case stx ()
+      [(_ (name contract docs ...) ...)
+       (syntax (provide/contract (name contract) ...))]))
 
-  (provide/contract
-   (version:add-spec any?)
-   ;(version:version any?)
-   (exn:make-exn any?)
-   (exn:exn? any?)
-   (exn:make-unknown-preference any?)
-   (exn:unknown-preference? any?)
-   (exn:make-during-preferences any?)
-   (exn:during-preferences? any?)
-   (application:current-app-name any?)
-   (preferences:get any?)
-   (preferences:add-callback any?)
-   (preferences:set any?)
-   (preferences:set-default any?)
-   (preferences:set-un/marshall any?)
-   (preferences:save any?)
-   (preferences:read any?)
-   (preferences:restore-defaults any?)
-   (preferences:add-panel any?)
-   (preferences:add-font-panel any?)
-   (preferences:add-general-panel any?)
-   (preferences:show-dialog any?)
-   (preferences:hide-dialog any?)
-   (autosave:register any?)
-   (exit:frame-exiting any?)
-   (exit:insert-on-callback any?)
-   (exit:insert-can?-callback any?)
-   (exit:can-exit? any?)
-   (exit:on-exit any?)
-   (exit:exit any?)
-   (path-utils:generate-autosave-name any?)
-   (path-utils:generate-backup-name any?)
-   (finder:dialog-parent-parameter any?)
-   (finder:default-extension any?)
-   (finder:default-filters any?)
-   (finder:common-put-file  any?)
-   (finder:common-get-file  any?)
-   (finder:std-put-file  any?)
-   (finder:std-get-file  any?)
-   (finder:common-get-file-list any?)
-   (finder:get-file any?)
-   (finder:put-file any?)
-   (editor:basic-mixin any?)
-   (editor:keymap-mixin any?)
-   (editor:autowrap-mixin any?)
-   (editor:info-mixin any?)
-   (editor:file-mixin any?)
-   (editor:backup-autosave-mixin any?)
-   (text:basic-mixin any?)
-   (text:hide-caret/selection-mixin any?)
-   (text:delegate-mixin any?)
-   (text:searching-mixin any?)
-   (text:return-mixin any?)
-   (text:info-mixin any?)
-   (text:clever-file-format-mixin any?)
-   (canvas:basic-mixin any?)
-   (canvas:delegate-mixin any?)
-   (canvas:info-mixin any?)
-   (canvas:wide-snip-mixin any?)
-   (frame:reorder-menus any?)
-   (frame:basic-mixin any?)
-   (frame:standard-menus-mixin any?)
-   (frame:editor-mixin any?)
-   (frame:text-mixin any?)
-   (frame:pasteboard-mixin any?)
-   (frame:delegate-mixin any?)
-   (frame:searchable-mixin any?)
-   (frame:searchable-text-mixin any?)
-   (frame:info-mixin any?)
-   (frame:text-info-mixin any?)
-   (frame:pasteboard-info-mixin any?)
-   (frame:file-mixin any?)
-   (group:get-the-frame-group any?)
-   (handler:handler? any?)
-   (handler:handler-name any?)
-   (handler:handler-extension any?)
-   (handler:handler-handler any?)
-   (handler:insert-format-handler any?)
-   (handler:find-format-handler  any?)
-   (handler:find-named-format-handler  any?)
-   (handler:edit-file any?)
-   (handler:open-file any?)
-   (handler:install-recent-items any?)
-   (handler:add-to-recent any?)
-   (icon:get-paren-highlight-bitmap any?)
-   (icon:get-autowrap-bitmap any?)
-   (icon:get-lock-bitmap any?)
-   (icon:get-unlock-bitmap any?)
-   (icon:get-anchor-bitmap any?)
-   (icon:get-left/right-cursor any?)
-   (icon:get-up/down-cursor any?)
-   (icon:get-gc-on-bitmap any?)
-   (icon:get-gc-off-bitmap any?)
-   (keymap:send-map-function-meta any?)
-   (keymap:make-meta-prefix-list any?)
-   (keymap:aug-keymap-mixin any?)
-   (keymap:canonicalize-keybinding-string any?)
-   (keymap:add-to-right-button-menu any?)
-   (keymap:add-to-right-button-menu/before any?)
-   (keymap:setup-global any?)
-   (keymap:setup-search any?)
-   (keymap:setup-file any?)
-   (keymap:setup-editor any?)
-   (keymap:get-global any?)
-   (keymap:get-search any?)
-   (keymap:get-file any?)
-   (keymap:get-editor any?)
-   (keymap:call/text-keymap-initializer any?)
-   (scheme-paren:get-comments any?)
-   (scheme-paren:get-paren-pairs any?)
-   (scheme-paren:get-quote-pairs any?)
-   (scheme-paren:forward-match any?)
-   (scheme-paren:backward-match any?)
-   (scheme-paren:balanced? any?)
-   (scheme-paren:backward-containing-sexp any?)
-   (scheme:get-wordbreak-map any?)
-   (scheme:init-wordbreak-map any?)
-   (scheme:get-style-list any?)
-   (scheme:set-sexp-snip-class any?)
-   (scheme:get-sexp-snip-class any?)
-   (scheme:get-keymap any?)
-   (scheme:setup-keymap any?)
-   (scheme:text-mixin any?)
-   (scheme:add-preferences-panel any?)
-   (paren:balanced?  any?)
-   (paren:forward-match  any?)
-   (paren:backward-match any?)
-   (paren:skip-whitespace any?)
-   (color-model:rgb-color-distance any?)
-   (color-model:rgb->xyz any?)
-   (color-model:xyz->rgb any?))
+  (provide/contract/docs
+   (version:add-spec
+    (any? any? . -> . void?)
+    (spec revision)
+    "These two values are appended to the version string. \\rawscm{write} is"
+    "used to transform them to strings. For example:"
+    ""
+    "\\rawscm{(version:add-version-spec 's 1)}"
+    ""
+    "in version 201 will make the version string be \rawscm{"201s1"}. The"
+    "symbols \rawscm{'f} and \rawscm{'d} are used internally for framework and"
+    "drscheme revisions.")
+   (version:version
+    (-> string?)
+    ()
+    "This function returns a string describing the version of this"
+    "application. See also "
+    "@flink version:add-spec %"
+    ".")
+
+   (exn:make-exn
+    (string? continuation-mark-set? . -> . exn?)
+    (message continuation-marks)
+    "Creates a framework exception.")
+   (exn:exn?
+    (any? . -> . boolean?)
+    (exn)
+    "Tests if a value is a framework exception.")
+   (exn:make-unknown-preference 
+    (string? continuation-mark-set? . -> . exn:unknown-preference?)
+    (message continuation-marks)
+    "Creates an unknown preference exception.")
+   (exn:unknown-preference? 
+    (any? . -> . boolean?)
+    (exn)
+    "Determines if a value is an unknown preference exn.")
+
+   (application:current-app-name
+    (case-> (-> string?)
+            (string? . -> . void?))
+    (() (name))
+    "This is a parameter specifying the name of the current application. It"
+    "is used in the help menu (see \\iscmclass{frame:standard-menus}) and in"
+    "frame titles (see \\iscmclass{frame:editor})."
+    ""
+    "The first case in the case-lambda returns"
+    "the current name, and"
+    "the second case in the case-lambda sets"
+    "the name of the application to \\var{name}.")
+
+   (preferences:get
+    (symbol? . -> . any?)
+    (symbol)
+    "See also"
+    "@flink preferences:set-default %"
+    "."
+    ""
+    "\\rawscm{preferences:get} returns the value for the preference"
+    "\\var{symbol}. It raises"
+    "\\scmindex{exn:unknown-preference}\\rawscm{exn:unknown-preference}"
+    "if the preference has not been set.")
+   (preferences:add-callback
+    (symbol? (symbol? any? . -> . boolean?) . -> . (-> void?))
+    (p f)
+    "This function adds a callback which is called with a symbol naming a"
+    "preference and it's value, when the preference changes. If the"
+    "callback function returns \\rawscm{\\#f}, the preference is not changed."
+    "\\rawscm{preferences:add-callback} returns a thunk, which when"
+    "invoked, removes the callback from this preference."
+    ""
+    "The callbacks will be called in the order in which they were added."
+    ""
+    "If you are adding a callback for a preference that requires"
+    "marshalling and unmarshalling, you must set the marshalling and"
+    "unmarshalling functions by calling"
+    "\\iscmprocedure{preferences:set-un/marshall} before adding a callback."
+    ""
+    "This function raises"
+    "\\scmindex{exn:unknown-preference}\\rawscm{exn:unknown-preference}"
+    "if the preference has not been set.")
+   (preferences:set
+    (symbol? any? . -> . void?)
+    (symbol value)
+    "\\rawscm{preferences:set-preference} sets the preference"
+    "\\var{symbol} to \\var{value}. This should be called when the"
+    "users requests a change to a preference.")
+   (preferences:set-default
+    (symbol? any? (any? . -> . any?) . -> . void?)
+    (symbol value test)
+    "This function must be called every time your application starts up, before any call to"
+    "@flink preferences:get %"
+    "."
+    ""
+    "If you use"
+    "@flink preferences:set-un/marshall %"
+    ", you must also call it before calling this function."
+    ""
+    "This sets the default value of the preference \\var{symbol} to"
+    "\\var{value}. If the user has chosen a different setting,"
+    "the user's setting"
+    "will take precedence over the default value."
+    ""
+    "The last argument, \\var{test} is used as a safeguard. That function is"
+    "called to determine if a preference read in from a file is a valid"
+    "preference. If \\var{test} returns \rawscm{\\#t}, then the preference is"
+    "treated as valid. If \\var{test} returns \\rawscm{\\#f} then the default is"
+    "used."
+
+    "If there is a site-wide default preferences file, the default"
+    "preference in that file is used instead of \\var{value}.")
+   (preferences:set-un/marshall
+    (symbol? (any? . -> . printable?) (printable? . -> . any?) . -> . void?)
+    (symbol marshall unmarshall)
+    "\\rawscm{preference:set-un/marshall} is used to specify marshalling and"
+    "unmarshalling functions for the preference"
+    "\\var{symbol}. \\var{marshall} will be called when the users saves their"
+    "preferences to turn the preference value for \\var{symbol} into a"
+    "printable value. \\var{unmarshall} will be called when the user's"
+    "preferences are read from the file to transform the printable value"
+    "into it's internal representation. If \\rawscm{preference:set-un/marshall}"
+    "is never called for a particular preference, the values of that"
+    "preference are assumed to be printable."
+    ""
+    "If the unmarshalling function returns a value that does not meet the"
+    "guard passed to "
+    "@flink preferences:set-default"
+    "for this preference, the default value is used."
+    ""
+    "\\rawscm{preference:set-un/marshall} must be called before calling"
+    "@flink preferences:get "
+    "or "
+    "@flink preferences:set-default %"
+    ".")
+   (preferences:save
+    (-> boolean?)
+    ()
+    "\rawscm{(preferences:save-user-preferences)} saves the user's preferences to disk,"
+    "potentially marshalling some of the preferences."
+    ""
+    "Returns \\scm{\\#f} if saving the preferences fails and \\scm{\\#t} otherwise.")
+   (preferences:read
+    (-> void?)
+    ()
+    "Reads the preferences from the preferences file and installs their values.")
+   (preferences:restore-defaults
+    (-> void?)
+    ()
+    "\\rawscm{(preferences:restore-defaults)} restores the users's configuration to the"
+    "default preferences.")
+   (preferences:add-panel
+    (string?
+     ((is-a?/c area-container-window<%>) . -> . (is-a?/c area-container-window<%>))
+     . -> .
+     void?)
+   "\\rawscm{preferences:add-preference-panel} adds the result of"
+   "\\var{f} with name \\var{name} to the preferences dialog"
+   "box. When the preference dialog is opened for the first"
+   "time, the function \\var{f} is called with a panel, and"
+   "\\var{f} is expected to add a new child panel to it and add"
+   "whatever preferences configuration controls it wants to that"
+   "panel. Then, \\var{f}'s should return the panel it added.")
+   (preferences:add-font-panel
+    (-> void?)
+    ()
+    "Adds a font selection preferences panel to the preferences dialog.")
+   (preferences:add-general-panel
+    (-> void?)
+    ()
+    "Adds a general preferences panel to the preferences dialog.")
+   (preferences:show-dialog
+    (-> void?)
+    ()
+    "Shows the preferences dialog.")
+   (preferences:hide-dialog
+    (-> void?)
+    ()
+    "Hides the preferences dialog.")
+
+   (autosave:register
+    ((is-a?/c autosave:autosavable<%>) . -> . void?)
+    (obj)
+    "Adds \\var{obj} to the list of objects to be autosaved. When it is time"
+    "to autosave, the \\rawscm{do-autosave} method of the object is"
+    "called. This method is responsible for performing the autosave."
+    ""
+    "There is no need to"
+    "de-register an object because the autosaver keeps a ``weak'' pointer"
+    "to the object; i.e., the autosaver does not keep an object from"
+    "garbage collection.")
+
+   (exit:frame-exiting
+    (case->
+     ((union false? (is-a?/c frame%) (is-a?/c dialog%))
+      . -> .
+      void?)
+     (-> (union false? (is-a?/c frame%) (is-a?/c dialog%))))
+    "This is a parameter whose value is used as the parent of the ``Are you"
+    "sure you want to exit'' dialog."
+    ""
+    "The first case of the case-lambda sets"
+    "the value of the parameter to \\var{frame}."
+    "The second case of the case-lambda "
+    "returns the current value of the parameter.")
+   (exit:insert-on-callback
+    ((-> void?) . -> . void?)
+    (callback)
+    "Adds a callback to be called when exiting. This callback must not"
+    "fail. If a callback should stop an exit from happening, use"
+    "@flink exit:insert-can?-callback %"
+    ".")
+   (exit:insert-can?-callback
+    ((-> boolean?) . -> . void?)
+    (callback)
+    "Use this function to add a callback that determines if an attempted"
+    "exit can proceed. This callback should not clean up any state, since"
+    "another callback may veto the exit. Use"
+    "@flink exit:insert-on-callback"
+    "for callbacks that clean up state.")
+   (exit:can-exit?
+    (boolean? . -> . void?)
+    (skip-user-query?)
+    "Calls the ``can-callbacks''. See"
+    "@flink exit:insert-can?-callback"
+    "for more information."
+    ""
+    "If \\var{skip-user-query?} is \\rawscm{\\#f}, "
+    "and the preference \\rawscm{'framework:verify-exit} is not \\rawscm{\\#f},"
+    "(see \\hyperref{the preferences section}{section~}{ for more info about"
+    "preferences}{fw:preferences})"
+    "this procedure asks the user if they want to exit."
+    "Otherwise it doesn't ask the user.")
+   (exit:on-exit
+    (-> void?)
+    ()
+    "Calls the ``on-callbacks''. See"
+    "@flink exit:insert-on-callback"
+    "for more information.")
+   (exit:exit
+    (boolean? . -> . void?)
+    (skip-user-query?)
+    "\\rawscm{exit:exit} performs three actions:"
+    "\\begin{itemize}"
+    "\\item invokes the exit-callbacks, with "
+    "@flink exit:can-exit? %"
+    "If none of the ``can?'' callbacks return \\rawscm{\\#f}, "
+    "\\item"
+    "invokes"
+    "@flink exit:on-exit %"
+    "and then "
+    "\\item"
+    "\\rawscm{exit} (a mzscheme procedure)."
+    "\\end{itemize}"
+    ""
+    "Passes \\var{skip-user-query?} to "
+    "@flink exit:can-exit? %"
+    ".")
+
+   (path-utils:generate-autosave-name
+    (string? . -> . string?)
+    (filename)
+    "Generates a name for an autosave file from \\var{filename}.")
+   (path-utils:generate-backup-name
+    (string? . -> . string?)
+    (filename)
+    "Generates a name for an backup file from \\var{filename}.")
+   (finder:dialog-parent-parameter
+    (case->
+     ((union false? (is-a?/c top-level-window<%>)) . -> . void)
+     (-> (union false? (is-a?/c top-level-window<%>))))
+    ((parent) ())
+    "This is a parameter (see "
+    "\\Mzhyperref{parameters}{mz:parameters} for information about parameters)"
+    "which determines the parent of the dialogs created by"
+    "@flink finder:get-file %"
+    ", "
+    "@flink finder:put-file %"
+    ","
+    "@flink finder:common-get-file %"
+    ","
+    "@flink finder:common-put-file %"
+    ","
+    "@flink finder:common-get-file-list %"
+    ","
+    "@flink finder:std-get-file %"
+    ", and"
+    "@flink finder:std-put-file %"
+    ".")
+   (finder:default-extension
+    (case-> (-> string?)
+            (string? . -> . void?))
+    (() (extension))
+    "This parameter controls the default extension for the framework's "
+    "@flink finder:put-file"
+    "dialog. Its value gets passed as the"
+    "\\var{default-extension} argument to"
+    "@flink put-file %"
+    "."
+    ""
+    "Its default value is \rawscm{\"\"}.")
+   (finder:default-filters
+    (case->
+     ((listof (list/p string? string?)) . -> . void)
+     (-> (listof (list/p string? string?))))
+    ((filters) ())
+    "This parameter controls the default extension for the framework's "
+    "@flink finder:put-file"
+    "dialog. Its value gets passed as the"
+    "\\var{default-filters} argument to"
+    "@flink put-file %"
+    "."
+    ""
+    "Its default value is \\rawscm{'((\"Any\" \"*.*\"))}.")
+
+   (finder:common-put-file
+    (opt->
+     ()
+     (string?
+      (union false? string?)
+      boolean?
+      string?
+      (union false? regexp?)
+      string?
+      (union (is-a?/c top-level-window<%>) false?))
+     (union false? string?))
+    (()
+     (name "Untitled")
+     (directory #f)
+     (replace? #f)
+     (prompt "Select File")
+     (filter #f)
+     (filter-msg "That filename does not have the right form.")
+     (parent (finder:dialog-parent-parameter)))
+    "This procedure queries the user for a single filename, using a"
+    "platform-independent dialog box. Consider using"
+    "@flink finder:put-file "
+    "instead of this function."
+    ""
+    "See section \\ref{selecting-a-filename} for more information.")
+   (finder:common-get-file
+    (opt->
+     ()
+     ((union string? false?)
+      string?
+      (union regexp? false?)
+      string?
+      (union false? (is-a?/c top-level-window<%>)))
+     (union string? false?))
+    (()
+     ((directory #f)
+      (prompt "Select File")
+      (filter #f)
+      (filter-msg "That filename does not have the right form.")
+      (parent #f)))
+    "This procedure queries the user for a single filename, using a"
+    "platform-independent dialog box. Consider using"
+    "@flink finder:get-file "
+    "instead of this function."
+    ""
+    "See section \\ref{selecting-a-filename} for more information.")
+   (finder:std-put-file
+    (opt->
+     ()
+     (string?
+      (union false? string?)
+      boolean?
+      string?
+      (union false? regexp?)
+      string?
+      (union (is-a?/c top-level-window<%>) false?))
+     (union false? string?))
+    (()
+     (name "Untitled")
+     (directory #f)
+     (replace? #f)
+     (prompt "Select File")
+     (filter #f)
+     (filter-msg "That filename does not have the right form.")
+     (parent (finder:dialog-parent-parameter)))
+    "This procedure queries the user for a single filename, using a"
+    "platform-dependent dialog box. Consider using"
+    "@flink finder:put-file "
+    "instead of this function."
+    ""
+    "See section \\ref{selecting-a-filename} for more information.")
+   (finder:std-get-file
+    (opt->
+     ()
+     ((union string? false?)
+      string?
+      (union regexp? false?)
+      string?
+      (union false? (is-a?/c top-level-window<%>)))
+     (union string? false?))
+    (()
+     ((directory #f)
+      (prompt "Select File")
+      (filter #f)
+      (filter-msg "That filename does not have the right form.")
+      (parent #f)))
+    "This procedure queries the user for a single filename, using a"
+    "platform-dependent dialog box. Consider using"
+    "@flink finder:get-file "
+    "instead of this function."
+    ""
+    "See section \ref{selecting-a-filename} for more information.")
+   (finder:put-file
+    (opt->
+     ()
+     (string?
+      (union false? string?)
+      boolean?
+      string?
+      (union false? regexp?)
+      string?
+      (union (is-a?/c top-level-window<%>) false?))
+     (union false? string?))
+    (()
+     (name "Untitled")
+     (directory #f)
+     (replace? #f)
+     (prompt "Select File")
+     (filter #f)
+     (filter-msg "That filename does not have the right form.")
+     (parent (finder:dialog-parent-parameter)))
+    "Queries the user for a filename."
+    ""
+    "If the result of \rawscm{(%"
+    "@flink preferences:get"
+    "'framework:file-dialogs)}"
+    "is \rawscm{'std} this calls "
+    "@flink finder:std-put-file %"
+    ", and if it is \rawscm{'common}, "
+    "@flink finder:common-put-file"
+    "is called.")
+   (finder:get-file
+    (opt->
+     ()
+     ((union string? false?)
+      string?
+      (union regexp? false?)
+      string?
+      (union false? (is-a?/c top-level-window<%>)))
+     (union string? false?))
+    (()
+     ((directory #f)
+      (prompt "Select File")
+      (filter #f)
+      (filter-msg "That filename does not have the right form.")
+      (parent #f)))    
+    "Queries the user for a filename."
+    ""
+    "If the result of \rawscm{(%"
+    "@flink preferences:get"
+    "'framework:file-dialogs)}"
+    "is \rawscm{'std} this calls "
+    "@flink finder:std-get-file %"
+    ", and if it is \rawscm{'common}, "
+    "@flink finder:common-get-file"
+    "is called.")
+   (finder:common-get-file-list
+    (opt->
+     ()
+     ((union false? string?)
+      string?
+      (union false? regexp?)
+      string?
+      (union false? (is-a?/c top-level-window<%>)))
+     (union string? false?))
+    (()
+     (directory #f)
+     (prompt "Select File")
+     (filter #f)
+     (filter-msg "That filename does not have the right form.")
+     (parent #f))
+    "This procedure queries the user for a list of filenames, using a"
+    "platform-independent dialog box."
+    ""
+    "See section \\ref{selecting-a-filename} for more information.")
+
+   (frame:reorder-menus
+    ((is-a?/c frame%) . -> . void?)
+    "Re-orders the menus in a frame. This is useful in conjunction with the "
+    "@link frame:standard-menus "
+    "class. After instantiating that class and adding menus, the menus will"
+    "be mis-ordered. This will put the File and Edit menus at the front of"
+    "the menubar and the Help menu at the end.")
+   (group:get-the-frame-group
+    (-> (is-a?/c group:%))
+    "This returns the frame group.")
+   (handler:handler?
+    (any? . -> . boolean?)
+    (obj)
+    "This predicate determines if its input is a handler")
+   (handler:handler-name
+    (handler:handler? . -> . string?)
+    (handler)
+    "Extracts the name from a handler.")
+   (handler:handler-extension
+    (handler:handler? . -> . string?)
+    (handler)
+    "Extracts the extension from a handler.")
+   (handler:handler-handler
+    (handler:handler? . -> . (string? . -> . (is-a?/c frame:editor<%>)))
+    (handler)
+    "Extracs the handler's handling function")
+   (handler:insert-format-handler
+    (string?
+     (union string? (listof string?) (string? . -> . boolean?))
+     (string? . -> . (is-a?/c frame:editor<%>))
+     . -> .
+     void?)
+    (name pred handler)
+    "This function inserts a format handler."
+    ""
+    "The string, \\var{name} names the format handler for use with"
+    "@flink handler:find-named-format-handler %"
+    ". If \\var{pred} is a string, it is matched with the extension of a filename by"
+    "@flink handler:find-format-handler %"
+    ". If \\var{pred} is a list of strings, they are each matched with the extension of a filename by"
+    "@flink handler:find-format-handler %"
+    ". If it is a function, the filename is applied to the function and the"
+    "functions result determines if this is the handler to use.")
+   (handler:find-named-format-handler
+    (string? . -> . (string? . -> . (is-a?/c frame:editor<%>)))
+    (name)
+    "This function selects a format handler. See also"
+    "@flink handler:insert-format-handler %"
+    "."
+    ""
+    "It finds a handler based on \var{name}.")
+   (handler:find-format-handler
+    (string? . -> . (string? . -> . (is-a?/c frame:editor<%>)))
+    (filename)
+    "This function selects a format handler. See also"
+    "@flink handler:insert-format-handler %"
+    "."
+    ""
+    "It finds a handler based on \var{filename}.")
+   (handler:edit-file
+    (opt->
+     ((union string? false?))
+     ((-> (is-a?/c frame:editor<%>)))
+     (is-a?/c frame:editor<%>))
+    ((filename)
+     (make-default (lambda () (make-object frame:text-info-file\% filename))))
+    "This function creates a frame to edit a file. "
+    ""
+    "It invokes the appropriate format handler to open the file (see"
+    "@flink handler:insert-format-handler %"
+    ")."
+    ""
+    "\\begin{itemize}"
+    "\\item If \\var{filename} is a string, this function checks the result of"
+    "@flink group:get-the-frame-group"
+    "to see if the \\var{filename} is already open by a frame in the"
+    "group. "
+    "\\begin{itemize}"
+    "\\item If so, it returns the frame. "
+    "\\item If not, this function calls "
+    "@flink handler:find-format-handler"
+    "with \\var{filename}. "
+    "\\begin{itemize}"
+    "\\item"
+    "If a handler is found, it is applied to"
+    "\\var{filename} and it's result is the final result. "
+    "\\item"
+    "If not, \\var{make-default} is used."
+    "\\end{itemize}"
+    "\\end{itemize}"
+    "\\item"
+    "If \\var{filename} is \\rawscm{\\#f}, \\var{make-default} is used."
+    "\\end{itemize}")
+   (handler:open-file
+    (-> (is-a?/c frame:basic<%>))
+    ()
+    "This function queries the user for a filename and opens the file for"
+    "editing. It uses "
+    "@flink handler:edit-file"
+    "to open the file, once the user has chosen it."
+    ""
+    "Calls"
+    "@flink finder:get-file"
+    "and"
+    "@flink handler:edit-file %"
+    ".")
+   (handler:install-recent-items
+    ((is-a?/c menu%) . -> . void?)
+    (menu)
+    "This function deletes all of the items in the given menu and"
+    "adds one menu item for each recently opened file. These menu"
+    "items, when selected, call"
+    "@flink handler:edit-file"
+    "with the filename of the recently opened file."
+    ""
+    "The menu's size is limited to 10.")
+   (handler:add-to-recent
+    (string? . -> . void?)
+    (filename)
+    "Adds a filename to the list of recently opened files.")
+   (icon:get-paren-highlight-bitmap
+    (-> (is-a?/c bitmap%))
+    ()
+    "This returns the parenthesis highlight "
+    "@link bitmap %"
+    ". It is only used on black and white screens.")
+   (icon:get-autowrap-bitmap
+    (-> (is-a?/c bitmap%))
+    ()
+    "This returns the autowrap's "
+    "@link bitmap %"
+    "."
+    ""
+    "The bitmap may not respond \\scm{\\#t} to the"
+    "@link bitmap ok?"
+    "method.")
+   (icon:get-lock-bitmap 
+    (-> (is-a?/c bitmap%))
+    ()
+    "This returns the lock's "
+    "@link bitmap %"
+    "."
+    ""
+    "The bitmap may not respond \\scm{\\#t} to the"
+    "@link bitmap ok?"
+    "method.")
+   (icon:get-unlock-bitmap
+    (-> (is-a?/c bitmap%))
+    ()
+    "This returns the reset unlocked"
+    "@link bitmap %"
+    "."
+    ""
+    "The bitmap may not respond \\scm{\\#t} to the"
+    "@link bitmap ok?"
+    "method."
+    "")
+   (icon:get-anchor-bitmap
+    (-> (is-a?/c bitmap%))
+    ()
+    "This returns the anchor's "
+    "@link bitmap %"
+    "."
+    ""
+    "The bitmap may not respond \\scm{\\#t} to the"
+    "@link bitmap ok?"
+    "method.")
+   (icon:get-left/right-cursor
+    (-> (is-a?/c cursor%))
+    ()
+    "This function returns a "
+    "@link cursor"
+    "object that indicates left/right sizing is possible,"
+    "for use with columns inside a window."
+    ""
+    "The cursor may not respond \\scm{\\#t} to the"
+    "@link cursor ok?"
+    "method.")
+   (icon:get-up/down-cursor
+    (-> (is-a?/c cursor%))
+    ()
+    "This function returns a "
+    "@link cursor"
+    "object that indicates up/down sizing is possible,"
+    "for use with columns inside a window."
+    ""
+    "The cursor may not respond \\scm{\\#t} to the"
+    "@link cursor ok?"
+    "method.")
+   (icon:get-gc-on-bitmap
+    (-> (is-a?/c bitmap%))
+    ()
+    "This returns a bitmap to be displayed in an"
+    "@ilink frame:info"
+    "frame when garbage collection is taking place."
+    ""
+    "The bitmap may not respond \\scm{\\#t} to the"
+    "@link bitmap ok?"
+    "method.")
+   (icon:get-gc-off-bitmap
+    (-> (is-a?/c bitmap%))
+    ()
+    "This returns a bitmap to be displayed in an"
+    "@ilink frame:info"
+    "frame when garbage collection is {\\em not\\/} taking place."
+    ""
+    "The bitmap may not respond \\scm{\\#t} to the"
+    "@link bitmap ok?"
+    "method.")
+
+   (keymap:add-to-right-button-menu
+    (case->
+     (((is-a?/c menu%) (is-a?/c editor<%>) (is-a?/c event%) . -> . void) . -> . void)
+     (-> ((is-a?/c menu%) (is-a?/c editor<%>) (is-a?/c event%) . -> . void)))
+    ((func) ())
+    "When the keymap that "
+    "@flink keymap:get-global"
+    "returns is installed into an editor, this parameter's value"
+    "is used for right button clicks. "
+    ""
+    "Before calling this procedure, the "
+    "function"
+    "@flink append-editor-operation-menu-items"
+    "is called."
+    ""
+    "See also"
+    "@flink keymap:add-to-right-button-menu/before %"
+    ".")
+
+   (keymap:call/text-keymap-initializer
+    ((-> any?) . -> . any?)
+    (thunk-proc)
+    "Thus function parameterizes the call to \\var{thunk-proc} by"
+    " setting the keymap-initialization procedure (see"
+    "%"
+    "@flink current-text-keymap-initializer  %"
+    "%"
+    ") to install the framework's standard text bindings.")
+
+   (keymap:canonicalize-keybinding-string
+    (string? . -> . string?)
+    (keybinding-string)
+    "Returns a string that denotes the same keybindings as the input"
+    "string, except that it is in canonical form; two canonical keybinding"
+    "strings can be compared with \\rawscm{string=?}.")
+
+   (keymap:get-editor
+    (-> (is-a?/c keymap%))
+    ()
+    "This returns a keymap for handling standard editing operations.  It"
+    "binds these keys:"
+    "\\begin{itemize}"
+    "\\item {\\bf z}: undo"
+    "\\item {\\bf y}: redo"
+    "\\item {\\bf x}: cut"
+    "\\item {\\bf c}: copy"
+    "\\item {\\bf v}: paste"
+    "\\item {\\bf a}: select all"
+    "\\end{itemize}"
+    "where each key is prefixed with the menu-shortcut key, based on the"
+    "platform. Under unix, the shortcut is scm{\"a:\"}; under windows the"
+    "shortcut key is \\rawscm{\"c:\"} and under MacOS, the shortcut key is"
+    "\\rawscm{\"d:\"}.")
+
+   (keymap:get-file
+    (-> (is-a?/c keymap%))
+    ()
+    "This returns a keymap for handling file operations.")
+
+   (keymap:get-global
+    (-> (is-a?/c keymap%))
+    ()
+    "This returns a keymap for general operations. See"
+    "@flink keymap:setup-global"
+    "for a list of the bindings this keymap contains.")
+
+   (keymap:get-search
+    (-> (is-a?/c keymap%))
+    ()
+    "This returns a keymap for searching operations")
+
+   (keymap:make-meta-prefix-list
+    (string? . -> . (listof string?))
+    (key)
+    "This prefixes a key with all of the different meta prefixes and"
+    "returns a list of the prefixed strings."
+    ""
+    "takes a keymap, a base key specification, and a function name; it"
+    "prefixes the base key with all ``meta'' combination prefixes, and"
+    "installs the new combinations into the keymap. For example,"
+    "\\rawscm{(\\iscmprocedure{keymap:send-map-function-meta} \\var{keymap} \"a\""
+    "\\var{func})} maps all of ``m:a'' and ``ESC;a'' to"
+    "\\var{func}.")
+
+   (keymap:send-map-function-meta
+    ((is-a?/c keymap%) string? string? . -> . void?)
+    (keymap key func)
+    "\\index{Meta}"
+    "Most keyboard and mouse mappings are inserted into a keymap by calling"
+    "the keymap's \\rawscm{map-function} method. However, ``meta'' combinations"
+    "require special attention. The ``m:'' prefix recognized by"
+    "\\rawscm{map-function} applies only to the Meta key that exists on"
+    "some keyboards. By convention, however, ``meta'' combinations can also be"
+    "accessed by using ``ESC'' as a prefix."
+    ""
+    "This procedure binds all of the key-bindings obtained by prefixing"
+    "\\var{key} with a meta-prefix to \\var{func} in \\var{keymap}.")
+
+   (keymap:setup-editor
+    ((is-a?/c keymap%) . -> . void?)
+    (keymap)
+    "This sets up the input keymap with the bindings described in "
+    "@flink keymap:get-editor %"
+    ".")
+
+   (keymap:setup-file
+    ((is-a?/c keymap%) . -> . void?)
+    (keymap)
+    "This extends a "
+    "@link keymap"
+    "with the bindings for files.")
+
+   (keymap:setup-global
+    ((is-a?/c keymap%) . -> . void?)
+    (keymap)
+    "This extends a "
+    "@link keymap"
+    "with the general bindings."
+    ""
+    "This function extends a \\iscmclass{keymap} with the following functions:"
+    "\\begin{itemize}"
+    "\\CloseLines"
+    "\\item \\mapdesc{ring-bell}{any} --- Rings the bell (using \\iscmprocedure{bell}) and"
+    "removes the search panel from the frame, if there."
+    "\\item \\mapdesc{save-file}{key} --- Saves the buffer. If the buffer has "
+    "no name, then \\scmfirst{finder:put-file} is invoked."
+    "\\item \\mapdesc{save-file-as}{key} --- Calls \\scmfirst{finder:put-file} to save"
+    "the buffer."
+    "\\item \\mapdesc{load-file}{key} --- Invokes \\scmfirst{finder:open-file}."
+    "\\item \\mapdesc{find-string}{key} --- Opens the search buffer at the bottom"
+    "of the frame, unless it is already open, in which case it searches for the"
+    "text in the search buffer."
+    "\\item \\mapdesc{find-string-reverse}{key} --- Same a ``find-string'', but in"
+    "the reverse direction."
+    "\\item \\mapdesc{find-string-replace}{key} --- Opens a replace string dialog"
+    "box. "
+    "\\item \\mapdesc{toggle-anchor}{key} --- Turns selection-anchoring on or off."
+    "\\item \\mapdesc{center-view-on-line}{key} --- Centers the buffer in its"
+    "display using the currently selected line."
+    "\\item \\mapdesc{collapse-space}{key} --- Collapses all non-return whitespace"
+    "around the caret into a single space."
+    "\\item \\mapdesc{remove-space}{key} --- Removes all non-return whitespace"
+    "around the caret."
+    "\\item \\mapdesc{collapse-newline}{key} --- Collapses all empty lines"
+    "around the caret into a single empty line. If there is only"
+    "one empty line, it is removed."
+    "\\item \\mapdesc{open-line}{key} --- Inserts a new line."
+    "\\item \\mapdesc{transpose-chars}{key} --- Transposes the characters before"
+    "and after the caret and moves forward one position."
+    "\\item \\mapdesc{transpose-words}{key} --- Transposes words before"
+    "and after the caret and moves forward one word."
+    "\\item \\mapdesc{capitalize-word}{key} --- Changes the first character"
+    "of the next word to a capital letter and moves to the end of the"
+    "word."
+    "\\item \\mapdesc{upcase-word}{key} --- Changes all characters"
+    "of the next word to capital letters and moves to the end of the"
+    "word."
+    "\\item \\mapdesc{downcase-word}{key} --- Changes all characters"
+    "of the next word to lowercase letters and moves to the end of the"
+    "word."
+    "\\item \\mapdesc{kill-word}{key} --- Kills the next word."
+    "\\item \\mapdesc{backward-kill-word}{key} --- Kills the previous word."
+    "\\item \\mapdesc{goto-line}{any} --- Queries the user for a line number and moves"
+    "the caret there."
+    "\\item \\mapdesc{goto-position}{any}  --- Queries the user for a position number "
+    "and moves the caret there."
+    "\\item \\mapdesc{copy-clipboard}{mouse} --- Copies the current selection to the"
+    "clipboard."
+    "\\item \\mapdesc{cut-clipboard}{mouse} --- Cuts the current selection to the"
+    "clipboard."
+    "\\item \\mapdesc{paste-clipboard}{mouse} --- Patses the clipboard to the current"
+    "selection."
+    "\\item \\mapdesc{copy-click-region}{mouse} --- Copies the region between the"
+    "caret and the input mouse event."
+    "\\item \\mapdesc{cut-click-region}{mouse} --- Cuts the  region between the"
+    "caret and the input mouse event."
+    "\\item \\mapdesc{paste-click-region}{mouse} --- Pastes the clipboard into the"
+    "position of the input mouse event."
+    "\\item \\mapdesc{select-click-word}{mouse} --- Selects the word under the"
+    "input mouse event."
+    "\\item \\mapdesc{select-click-line}{mouse} --- Selects the line under the"
+    "input mouse event."
+    "\\item \\mapdesc{start-macro}{key} -- Starts building a keyboard macro"
+    "\\item \\mapdesc{end-macro}{key} --- Stops building a keyboard macro"
+    "\\item \\mapdesc{do-macro}{key} --- Executes the last keyboard macro"
+    "\\item \\mapdesc{toggle-overwrite}{key} --- Toggles overwriting mode"
+    "\\end{itemize}"
+    ""
+    "These functions are bound to the following keys (C = control, S ="
+    "shift, A = alt, M = ``meta'', D = command):"
+    "\\begin{itemize}"
+    "\\CloseLines"
+    "\\item C-g : ``ring-bell''"
+    "\\item M-C-g : ``ring-bell''"
+    "\\item C-c C-g : ``ring-bell''"
+    "\\item C-x C-g : ``ring-bell''"
+    "\\item C-p : ``previous-line''"
+    "\\item S-C-p : ``select-previous-line''"
+    "\\item C-n : ``next-line''"
+    "\\item S-C-n : ``select-next-line''"
+    "\\item C-e : ``end-of-line''"
+    "\\item S-C-e : ``select-to-end-of-line''"
+    "\\item D-RIGHT : ``end-of-line''"
+    "\\item S-D-RIGHT : ``select-to-end-of-line''"
+    "\\item M-RIGHT : ``end-of-line''"
+    "\\item S-M-RIGHT : ``select-to-end-of-line''"
+    "\\item C-a : ``beginning-of-line''"
+    "\\item S-C-a : ``select-to-beginning-of-line''"
+    "\\item D-LEFT : ``beginning-of-line''"
+    "\\item D-S-LEFT : ``select-to-beginning-of-line''"
+    "\\item M-LEFT : ``beginning-of-line''"
+    "\\item M-S-LEFT : ``select-to-beginning-of-line''"
+    "\\item C-h : ``delete-previous-character''"
+    "\\item C-d : ``delete-next-character''"
+    "\\item C-f : ``forward-character''"
+    "\\item S-C-f : ``select-forward-character''"
+    "\\item C-b : ``backward-character''"
+    "\\item S-C-b : ``select-backward-character''"
+    "\\item M-f : ``forward-word''"
+    "\\item S-M-f : ``select-forward-word''"
+    "\\item A-RIGHT : ``forward-word''"
+    "\\item A-S-RIGHT : ``forward-select-word''"
+    "\\item M-b : ``backward-word''"
+    "\\item S-M-b : ``select-backward-word''"
+    "\\item A-LEFT : ``backward-word''"
+    "\\item A-S-LEFT : ``backward-select-word''"
+    "\\item M-d : ``kill-word''"
+    "\\item M-DELETE : ``backward-kill-word''"
+    "\\item M-c : ``capitalize-word''"
+    "\\item M-u : ``upcase-word''"
+    "\\item M-l : ``downcase-word''"
+    "\\item M-$<$ : ``beginning-of-file''"
+    "\\item S-M-$<$ : ``select-to-beginning-of-file''"
+    "\\item M-$>$ : ``end-of-file''"
+    "\\item S-M-$>$ : ``select-to-end-of-file''"
+    "\\item C-v : ``next-page''"
+    "\\item S-C-v : ``select-next-page''"
+    "\\item M-v : ``previous-page''"
+    "\\item S-M-v : ``select-previous-page''"
+    "\\item C-l : ``center-view-on-line''"
+    "\\item C-k : ``delete-to-end-of-line''"
+    "\\item C-y : ``paste-clipboard'' (Except Windows)"
+    "\\item A-v : ``paste-clipboard''"
+    "\\item D-v : ``paste-clipboard''"
+    "\\item C-\\_ : ``undo''"
+    "\\item C-x u : ``undo''"
+    "\\item C-+ : ``redo''"
+    "\\item C-w : ``cut-clipboard''"
+    "\\item M-w : ``copy-clipboard''"
+    "\\item C-x C-s : ``save-file''"
+    "\\item C-x C-w : ``save-file-as''"
+    "\\item C-x C-f : ``load-file''"
+    "\\item C-s : ``find-string''"
+    "\\item C-r : ``find-string-reverse''"
+    "\\item M-\\% : ``find-string-replace''"
+    "\\item SPACE : ``collapse-space''"
+    "\\item M-{\\Backslash} : ``remove-space''"
+    "\\item C-x C-o : ``collapse-newline''"
+    "\\item C-o : ``open-line''"
+    "\\item C-t : ``transpose-chars''"
+    "\\item M-t : ``transpose-words''"
+    "\\item C-SPACE : ``toggle-anchor''"
+    "\\item M-g : ``goto-line''"
+    "\\item M-p : ``goto-position''"
+    "\\item LEFTBUTTONTRIPLE : ``select-click-line''"
+    "\\item LEFTBUTTONDOUBLE : ``select-click-word''"
+    "\\item RIGHTBUTTON : ``copy-click-region''"
+    "\\item RIGHTBUTTONDOUBLE : ``cut-click-region''"
+    "\\item MIDDLEBUTTON : ``paste-click-region''"
+    "\\item C-RIGHTBUTTON : ``copy-clipboard''"
+    "\\item INSERT : ``toggle-overwrite''"
+    "\\item M-o : ``toggle-overwrite''"
+    "\\end{itemize}")
+
+   (keymap:setup-search
+    ((is-a?/c keymap%) . -> . void?)
+    (keymap)
+    "This extends a "
+    "@link keymap"
+    "with the bindings for searching.")
+
+   (keymap:add-to-right-button-menu/before
+    (case->
+     (((is-a?/c menu%) (is-a?/c editor<%>) (is-a?/c event%) . -> . void?)
+      . -> .
+      void?)
+     (-> ((is-a?/c menu%) (is-a?/c editor<%>) (is-a?/c event%) . -> . void?)))
+    ((func) ())
+    "When the keymap that "
+    "@flink keymap:get-global"
+    "returns is installed into an editor, this function is called"
+    "for right button clicks. "
+    ""
+    "After calling this procedure, the "
+    "function"
+    "@flink append-editor-operation-menu-items"
+    "is called."
+    ""
+    "See also"
+    "@flink keymap:add-to-right-button-menu %"
+    ".")
+
+   (scheme-paren:backward-containing-sexp
+    (opt->
+     ((is-a?/c text%)
+      (and/f exact? integer?)
+      (and/f exact? integer?))
+     ((union false? (is-a?/c match-cache:%)))
+     (and/f exact? integer?))
+    ((text start end) ((cache #f)))
+    "Returns the beginning of the interior of the (non-atomic) S-expression"
+    "containing \\var{start}.")
+
+   (scheme-paren:backward-match
+    (opt->
+     ((is-a?/c text%)
+      (and/f exact? integer?)
+      (and/f exact? integer?))
+     ((union false? (is-a?/c match-cache:%)))
+     (and/f exact? integer?))
+    ((text start end) ((cache #f)))
+    "Specializes "
+    "@flink paren:backward-match"
+    "to Scheme.")
+
+   (scheme-paren:balanced?
+    ((is-a?/c text%) (and/f exact? integer?) (and/f exact? integer?) . -> . boolean?)
+    (text start end)
+    "Specializes "
+    "@flink paren:balanced?"
+    "to Scheme.")
+
+   (scheme-paren:forward-match
+    (opt->
+     ((is-a?/c text%)
+      (and/f exact? integer?)
+      (and/f exact? integer?))
+     ((union false? (is-a?/c match-cache:%)))
+     (and/f exact? integer?))
+    ((text start end) ((cache #f)))
+    "Specializes"
+    "@flink paren:forward-match"
+    "to Scheme.")
+
+    (scheme-paren:get-comments
+     (-> (listof string?))
+     ()
+     "Returns the comment characters for Scheme.")
+
+    (scheme-paren:get-paren-pairs
+     (-> (listof (cons/p string? string?)))
+     ()
+     "Returns the paren pairs for Scheme.")
+
+    (scheme-paren:get-quote-pairs
+     (-> (listof (cons/p string? string?)))
+     ()
+     "Returns the quote pairs for Scheme.")
+
+    (scheme:add-preferences-panel
+     (-> void?)
+     ()
+     "Adds a tabbing preferences panel to the preferences dialog.")
+
+    (scheme:get-keymap
+     (-> (is-a?/c keymap%))
+     ()
+     "Returns a keymap with binding suitable for Scheme.")
+
+    (scheme:get-style-list
+     (-> (is-a?/c style-list%))
+     ()
+     "Returns a style list that is used for all Scheme buffers.")
+
+    (scheme:get-wordbreak-map
+     (-> (is-a?/c editor-wordbreak-map%))
+     ()
+     "This method returns a"
+     "@link editor-wordbreak-map"
+     "that is suitable for Scheme.")
+
+    (scheme:init-wordbreak-map
+     ((is-a?/c keymap%) . -> . void?)
+     (key)
+     "Initializes the workdbreak map for \\var{keymap}.")
+
+    (scheme:setup-keymap
+     ((is-a?/c keymap%) . -> . void?)
+     (keymap)
+     "Initializes \\var{keymap} with Scheme-mode keybindings.")
+
+    (scheme:get-sexp-snip-class
+     (-> (subclass?/c scheme:sexp-snip%))
+     "Returns the class used for the collapsing sexpression.")
+
+    (scheme:set-sexp-snip-class
+     ((subclass?/c scheme:sexp-snip%) . -> . void?)
+     (c)
+     "Updates the class used for the collapsing sexpression.")
+
+    (paren:backward-match
+     (opt->
+      ((is-a?/c text%)
+       (and/f exact? integer?)
+       (and/f exact? integer?)
+       (listof (cons/p string? string?))
+       (listof (cons/p string? string?))
+       (listof string?))
+      (boolean?
+       (union false? (is-a?/c match-cache:%)))
+      (union false? (and/f exact? integer?)))
+     ((text start end parens quotes comments) ((containing? #f) (cache #f)))
+     "Returns the position in \\var{text} that ``opens'' the text ending at "
+     "\\var{start}, or \\rawscm{\\#f} if no opening position is found (either because a "
+     "parenthesis mis-match is discovered or the \\var{end} boundary was"
+     "reached). The match must occur before \\var{end} (inclusive). Note that"
+     "\\var{start} $>$ \\var{end}, since \\var{start} specifies the starting position"
+     "of the search, not the earliest buffer position to be considered."
+     ""
+     "Spaces immediately preceding \\var{start} are skipped.  If the text at"
+     "\\var{start} is a close parenthesis or close quote, then the matching"
+     "position is the opening parenthesis or quote. If a comment immediately"
+     "precedes \\var{start}, then the comment is skipped as whitespace. If an"
+     "opening parenthesis immediately precedes \\var{start}, then the"
+     "matching position is \\var{start} - 1. Otherwise, the matching position"
+     "is the first whitespace or parenthesis character before"
+     "\\var{start}."
+     ""
+     "If \\var{containing?} is not \\rawscm{\\#f}, then the matching procedure"
+     "is modified as follows:"
+     "\\begin{itemize}"
+     "\\item Searching iterates backwards until some search fails. Then, the"
+     "  location of the last successful search is returned."
+     "\\item If a mis-match is detected, then \\rawscm{\\#f} is returned."
+     "\\item If there are no matches (and no mis-matches) before \\var{start},"
+     "  \\var{start} itself is returned. "
+     "\\end{itemize}"
+     ""
+     "If \\var{cache} is not \\rawscm{\\#f}, it must be an instance of "
+     "\\iscmclass{match-cache:}. A cache"
+     "object can be used to speed up successive calls to "
+     "\\iscmprocedure{paren:backward-match}. However, a buffer using a cache"
+     "must call the cache's"
+     "@link match-cache: invalidate"
+     "method when the buffer is"
+     "modified. Different caches should be used for forward and backward"
+     "matching. See"
+     "\\hyperref{the match cache section}{section~}{}{fw:matchcache}"
+     "for more information.")
+
+    (paren:balanced?
+     ((is-a?/c text%)
+      (and/f exact? integer?)
+      (and/f exact? integer?)
+      (listof (cons/p string? string?))
+      (listof (cons/p string? string?))
+      (listof string?)
+      . -> .
+      boolean?)
+     (text start end parens quotes comments)
+     "Returns \\rawscm{\\#t} if the text in \\var{text} between positions"
+     "\\var{start} and \\var{end} is \\defterm{balanced}. The text is balanced"
+     "if there are no unclosed parenthses or quotes, there are no closing"
+     "parentheses that do not match an open parenthesis, and there are no"
+     "mis-matched parentheses."
+     ""
+     "This uses "
+     "@flink paren:forward-match %"
+     ".")
+
+    (paren:forward-match
+     (opt->
+      ((is-a?/c text%)
+       (and/f exact? integer?)
+       (and/f exact? integer?)
+       (listof (cons/p string? string?))
+       (listof (cons/p string? string?))
+       (listof string?))
+      ((union false? (is-a?/c match-cache:%)))
+      (union false? (and/f exact? integer?)))
+     ((text start end parens quotes comments) ((cache #f)))
+     "This function returns the position in \\var{text} that ``closes'' the"
+     "text at \\var{start}, or \\rawscm{\\#f} if no closing position is found"
+     "(either because a parenthesis mis-match is discovered or the \\var{end}"
+     "boundary was reached). The match must occur before \\var{end}"
+     "(inclusive)."
+     ""
+     "Spaces immediately following \\var{start} are skipped.  If the text at"
+     "\\var{start} is an open parenthesis or open quote, then the matching"
+     "position is the closing parenthesis or quote. If a comment immediately"
+     "follows \\var{start}, it is skipped over as whitespace. If a closing"
+     "parenthesis immediately follows \\var{start} (after skipping"
+     "whitespace), then \\rawscm{\\#f} is returned. Otherwise, the matching"
+     "position is the position before the first whitespace, parenthesis,"
+     "quote, or comment character after \\var{start}."
+     ""
+     "If \\var{cache} is not \\rawscm{\\#f}, it must be an instance of "
+     "\\iscmclass{match-cache:}. "
+     "\\scmclassindex{match-cache:} A cache"
+     "object can be used to speed up successive calls to "
+     "\\rawscm{paren:forwardward-match}. However, a buffer using a cache"
+     "must call the cache's \\rawscm{forward-invalidate} method when the buffer is"
+     "modified. Different caches should be used for forward and backward"
+     "matching. See "
+     "\\hyperref{the match cache section}{section~}{}{fw:matchcache}"
+     "for more information."
+     "")
+
+    (paren:skip-whitespace
+     ((is-a?/c text%) (and/f exact? integer?) (symbols 'forward 'backward)
+      . -> .
+      (and/f exact? integer?))
+     (text pos dir)
+     "If \\var{dir} is \\rawscm{'forward}, this returns the position of the first"
+     "non-whitespace character in \\var{text} after \\var{pos}. If \\var{dir}"
+     "is \\rawscm{'backward}, it returns the first non-whitespace character before"
+     "\\var{pos}.")
+
+    (color-model:rgb->xyz
+     (number? number? number? . -> . color-model:xyz?)
+     (r g b)
+     "Converts a color represented as a red-green-blue tuple (each value"
+     "from 0 to 255) into an XYZ tuple. This describes a point in the"
+     "CIE XYZ color space.")
+
+    (color-model:rgb-color-distance
+     (number? number? number? number? number? number? . -> . number?)
+     (red-a green-a blue-a red-b green-b blue-b)
+     "This calculates a distance between two colors. The smaller the"
+     "distance, the closer the colors should appear to the human eye. A"
+     "distance of 10 is reasonably close that it could be called the same"
+     "color."
+     ""
+     "This function is not symmetric in red, green, and blue, so it is"
+     "important to pass red, green, and blue components of the colors in the"
+     "the proper order. The first three arguments are red, green and blue"
+     "for the first color, respectively, and the second three arguments are"
+     "red green and blue for the second color, respectively.")
+
+    (color-model:xyz->rgb
+     (number? number? number? . -> . (list/p number? number? number?))
+     (x y z)
+     "Converts an XYZ-tuple (in the CIE XYZ colorspace) into a list of"
+     "values representing an RGB-tuple.")
+
+    (color-model:xyz?
+     (any? . -> . boolean?)
+     (val)
+     "Determines if \\arg{val} an xyz color record.")
+
+    (color-model:xyz-x
+     (color-model:xyz? . -> . number?)
+     (xyz)
+     "Extracts the x component of \\var{xyz}.")
+    (color-model:xyz-y
+     (color-model:xyz? . -> . number?)
+     (xyz)
+     "Extracts the y component of \\var{xyz}.")
+    (color-model:xyz-z
+     (color-model:xyz? . -> . number?)
+     (xyz)
+     "Extracts the z component of \\var{xyz}."))
   
   (define-values/invoke-unit/sig 
    frameworkc^ 
