@@ -1728,7 +1728,7 @@
 
 (define canvas-based-tab-group%
   (class wx-canvas%
-    (init mred proxy parent call-back label tab-labels)
+    (init mred proxy style parent call-back label tab-labels style-again)
     
     (define callback call-back)
 
@@ -1983,7 +1983,7 @@
     (define/override (handles-key-code code alpha? meta?) 
       #f)
 
-    (super-instantiate (mred proxy parent))
+    (super-instantiate (mred proxy parent -1 -1 -1 -1 null))
 
     (compute-sizes)
     (set-min-width (inexact->exact (ceiling (get-total-width))))
@@ -4803,7 +4803,7 @@
 	(check-callback cwho callback)
 	(check-container-parent cwho parent)
 	(check-style cwho #f '(inactive) style))
-      (super-init parent null))
+      (super-init parent style))
 
     (private-field
      [tabs (make-object tab-group% #f choices this (lambda (c e) (callback this e)))])
