@@ -770,11 +770,12 @@
 			    (if locked-now?
 				(icon:get-lock-bitmap)
 				(icon:get-unlock-bitmap))])
-		       (send lock-message
-			     set-label
-			     (if (send label ok?)
-				 label
-				 (if locked-now? "Locked" "Unlocked"))))))))))])
+		       (when (object? lock-message)
+			 (send lock-message
+			       set-label
+			       (if (send label ok?)
+				   label
+				   (if locked-now? "Locked" "Unlocked")))))))))))])
       (public
 	[update-info
 	 (lambda ()
@@ -927,9 +928,10 @@
 	       (when info-edit
 		 (let ([anchor-now? (send info-edit get-anchor)])
 		   (unless (eq? anchor-now? last-state?)
-		     (send anchor-message
-			   show
-			   anchor-now?)
+		     (when (object? anchor-message)
+		       (send anchor-message
+			     show
+			     anchor-now?))
 		     (set! last-state? anchor-now?)))))))]
 	[editor-position-changed
 	 (lambda ()
@@ -943,9 +945,10 @@
 	       (when info-edit
 		 (let ([overwrite-now? (send info-edit get-overwrite-mode)])
 		   (unless (eq? overwrite-now? last-state?)
-		     (send overwrite-message
-			   show
-			   overwrite-now?)
+		     (when (object? overwrite-message)
+		       (send overwrite-message
+			     show
+			     overwrite-now?))
 		     (set! last-state? overwrite-now?)))))))])
       (rename [super-update-info update-info])
       (override
