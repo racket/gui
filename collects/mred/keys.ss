@@ -51,9 +51,6 @@
 					     (or (not x)
 						 (eq? x #t))))
   
-  (mred:preferences:set-preference-default 'mred:esc-closes-search-under-windows
-					   #t
-					   boolean?)
   (define setup-global-search-keymap
     (let* ([send-frame
 	    (lambda (method)
@@ -93,17 +90,13 @@
 	     (map "c:f" "move-to-search-or-search")
 	     (map "c:r" "move-to-search-or-reverse-search")
 	     (map "f3" "find-string")
-	     (map "c:i" "toggle-search-focus")
-	     (if (mred:preferences:get-preference 'mred:esc-closes-search-under-windows)
-		 (begin (map "c:g" "find-string")
-			(map "esc" "hide-search"))
-		 (begin (map "c:g" "hide-search")))]
+	     (map "c:g" "find-string")
+	     (map "c:i" "toggle-search-focus")]
 	    [(macintosh)
 	     (map "d:f" "move-to-search-or-search")
 	     (map "d:r" "move-to-search-or-reverse-search")
 	     (map "d:g" "find-string")
-	     (map "d:o" "toggle-search-focus")
-	     (map "d:." "hide-search")])))))
+	     (map "d:o" "toggle-search-focus")])))))
   
   (define setup-global-file-keymap
     (let* ([rcs
