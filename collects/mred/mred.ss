@@ -376,8 +376,8 @@
 	    null)]
        [(or (eq? i except) 
 	    (and must-focus? (not (send i gets-focus?)))
-	    (not (send i is-enabled?))
-	    (not (send i is-shown?)))
+	    (not (send i is-enabled-to-root?))
+	    (not (send i is-shown-to-root?)))
 	null]
        [else (list i)]))
     (send f get-children))))
