@@ -2,6 +2,7 @@
   (require (lib "launcher.ss" "launcher")
 	   (lib "cmdline.ss")
 	   (lib "unitsig.ss")
+	   "debug.ss"
 	   "test-suite-utils.ss")
 
   ;; must be run in the right context...
@@ -46,7 +47,7 @@
 	(if (file-exists? saved-command-line-file)
 	    (begin
 	      (let ([result (call-with-input-file saved-command-line-file read)])
-		(printf "reusing command-line arguments: ~s~n" result)
+		(debug-printf admin "reusing command-line arguments: ~s~n" result)
 		result))
 	    (vector))
 	argv))
@@ -62,11 +63,11 @@
     'truncate)
 
   (when (file-exists? preferences-file)
-    (printf "  saving preferences file ~s to ~s~n" preferences-file old-preferences-file)
+    (debug-printf admin "  saving preferences file ~s to ~s~n" preferences-file old-preferences-file)
     (if (file-exists? old-preferences-file)
-	(printf "  backup preferences file exists, using that one~n")
+	(debug-printf admin "  backup preferences file exists, using that one~n")
 	(begin (copy-file preferences-file old-preferences-file)
-	       (printf "  saved preferences file~n"))))
+	       (debug-printf admin "  saved preferences file~n"))))
       
   (with-handlers ([(lambda (x) #f)
 		   (lambda (x) (display (exn-message x)) (newline))])
@@ -82,30 +83,29 @@
 	    (lambda ()
 	      (with-handlers ([(lambda (x) #t)
 			       (lambda (exn)
-				 (printf "~a~n" (if (exn? exn) (exn-message exn) exn)))])
-		(printf "beginning ~a test suite~n" x)
+				 (debug-printf schedule "~a~n" (if (exn? exn) (exn-message exn) exn)))])
 
+		(debug-printf schedule "beginning ~a test suite~n" x)
 		(dynamic-require `(lib ,x "tests" "framework") #f)
-		
-		(printf "PASSED ~a test suite~n" x)))
+		(debug-printf schedule "PASSED ~a test suite~n" x)))
 	    (lambda ()
 	      (reset-section-name!)
 	      (reset-section-jump!))))))
      files-to-process))
 
-  (printf "  restoring preferences file ~s to ~s~n" old-preferences-file preferences-file)
+  (debug-printf admin "  restoring preferences file ~s to ~s~n" old-preferences-file preferences-file)
   (when (file-exists? preferences-file)
     (unless (file-exists? old-preferences-file)
       (error 'framework-test "lost preferences file backup!"))
     (delete-file preferences-file)
     (copy-file old-preferences-file preferences-file)
     (delete-file old-preferences-file))
-  (printf "  restored preferences file~n")
+  (debug-printf admin "  restored preferences file~n")
 
   (shutdown-listener)
 
   (unless (null? failed-tests)
-    (printf "FAILED tests:~n")
+    (debug-printf schedule "FAILED tests:~n")
     (for-each (lambda (failed-test)
-		(printf "  ~a // ~a~n" (car failed-test) (cdr failed-test)))
+		(debug-printf schedule "  ~a // ~a~n" (car failed-test) (cdr failed-test)))
 	      failed-tests)))

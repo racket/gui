@@ -7,14 +7,19 @@
     (test
      (string->symbol file)
      void?
-     `(parameterize ([current-namespace (make-namespace 'mred)])
-	(require (lib ,file "framework"))
-	,exp
-	(void))))
+     `(parameterize ([current-namespace (make-namespace)])
+	(eval '(require (lib ,file "framework")))
+	(with-handlers ([(lambda (x) #t)
+			 (lambda (x)
+			   (if (exn? x)
+			       (exn-message x)
+			       (format "~s" x)))])
+	  (eval ',exp)
+	  (void)))))
 
   (load-framework-automatically #f)
 
-  (test/load "prefs-file-unit.ss" 'framework:preferences@)
+  (test/load "prefs-file-unit.ss" 'framework:prefs-file@)
   (test/load "prefs-file.ss" 'get-preferences-filename)
 
   (test/load "gui-utils-unit.ss" 'framework:gui-utils@)

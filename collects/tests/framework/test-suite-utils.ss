@@ -1,7 +1,8 @@
 (module test-suite-utils mzscheme
   (require (lib "launcher.ss" "launcher")
 	   (lib "pretty.ss")
-	   (lib "list.ss"))
+	   (lib "list.ss")
+	   "debug.ss")
 
   (provide
    test-name
@@ -68,9 +69,11 @@
 			       (lambda (p)
 				 (write next p))
 			       'truncate)
-			     (printf "  tcp-listen failed for port ~a, attempting ~a~n"
-				     port next)
+			     (debug-printf tcp "  tcp-listen failed for port ~a, attempting ~a~n"
+					   port
+					   next)
 			     (loop)))])
+	  (debug-printf tcp "listening to ~a~n" port)
 	  (tcp-listen port)))))
 
   (define in-port #f)
@@ -83,6 +86,7 @@
 	 [(macos) system*]
 	 [else (lambda (x) (thread (lambda () (system* x))))])
        (mred-program-launcher-path "Framework Test Engine"))
+      (debug-printf tcp "accepting listener~n")
       (let-values ([(in out) (tcp-accept listener)])
 	(set! in-port in)
 	(set! out-port out))
@@ -104,6 +108,7 @@
   (define shutdown-listener
     (lambda ()
       (shutdown-mred)
+      (debug-printf tcp "closing listener~n")
       (tcp-close listener)))
 
   (define shutdown-mred
@@ -146,17 +151,18 @@
 	  (let ([show-text 
 		 (lambda (sexp)
 		   
-		   (parameterize ([pretty-print-print-line
-				   (let ([prompt "  "]
-					 [old-liner (pretty-print-print-line)])
-				     (lambda (ln port ol cols)
-				       (let ([ov (old-liner ln port ol cols)])
-					 (if ln 
-					     (begin (display prompt port)
-						    (+ (string-length prompt) ov))
-					     ov))))])
-		     (pretty-print sexp)
-		     (newline)))])
+		   (debug-when messages
+		     (parameterize ([pretty-print-print-line
+				     (let ([prompt "  "]
+					   [old-liner (pretty-print-print-line)])
+				       (lambda (ln port ol cols)
+					 (let ([ov (old-liner ln port ol cols)])
+					   (if ln 
+					       (begin (display prompt port)
+						      (+ (string-length prompt) ov))
+					       ov))))])
+		       (pretty-print sexp)
+		       (newline))))])
 	    (unless (and in-port
 			 out-port
 			 (with-handlers ([tcp-error?
@@ -164,7 +170,7 @@
 			   (or (not (char-ready? in-port))
 			       (not (eof-object? (peek-char in-port))))))
 	      (restart-mred))
-	    (printf "  ~a // ~a: sending to mred:~n" section-name test-name)
+	    (debug-printf messages "  ~a // ~a: sending to mred:~n" section-name test-name)
 	    (show-text sexp)
 	    (with-handlers ([(lambda (x) #t)
 			     (lambda (x)
@@ -210,7 +216,7 @@
 		     (error 'send-sexp-to-mred "mred raised \"~a\"" (second answer))]
 		    [(cant-read) (error 'mred/cant-parse (second answer))]
 		    [(normal) 
-		     (printf "  ~a // ~a: received from mred:~n" section-name test-name)
+		     (debug-printf messages "  ~a // ~a: received from mred:~n" section-name test-name)
 		     (show-text (second answer))
 		     (eval (second answer))]))))))))
 
@@ -235,7 +241,7 @@
 				      (send-sexp-to-mred ''check-for-errors)))])
 		     (not (passed? result))))])
 	    (when failed
-	      (printf "FAILED ~a: ~a~n" failed test-name)
+	      (debug-printf schedule "FAILED ~a: ~a~n" failed test-name)
 	      (set! failed-tests (cons (cons section-name test-name) failed-tests))
 	      (case jump
 		[(section) (section-jump)]
