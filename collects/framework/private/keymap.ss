@@ -7,9 +7,9 @@
 	   (lib "class100.ss")
 	   (lib "list.ss")
 	   (lib "mred-sig.ss" "mred"))
-
+  
   (provide keymap@)
-
+  
   (define keymap@ 
     (unit/sig framework:keymap^
       (import mred^
@@ -72,17 +72,17 @@
                    (send chained-keymap get-map-function-table/ht table)))
                chained-keymaps)
               table)]
-
+          
           (super-instantiate ())))
-
+      
       (define aug-keymap% (aug-keymap-mixin keymap%))
-
-  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-  ;;;;;;;                                                     ;;;;;;;;
-  ;;;;;;;           canonicalize-keybinding-string            ;;;;;;;;
-  ;;;;;;;                                                     ;;;;;;;;
-  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
+      
+      ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+      ;;;;;;;                                                     ;;;;;;;;
+      ;;;;;;;           canonicalize-keybinding-string            ;;;;;;;;
+      ;;;;;;;                                                     ;;;;;;;;
+      ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+      
       ;; canonicalize-keybinding-string : string -> string
       ;; The result can be used with string=? to determine
       ;; if two key bindings refer to the same key.
@@ -106,12 +106,12 @@
 	      (car strs)
 	      (let loop ([sepd-strs (cdr strs)])
 		(cond
-		 [(null? sepd-strs) null]
-		 [else (list*
-			sep
-			(car sepd-strs)
-			(loop (cdr sepd-strs)))]))))))
-
+                  [(null? sepd-strs) null]
+                  [else (list*
+                         sep
+                         (car sepd-strs)
+                         (loop (cdr sepd-strs)))]))))))
+      
       ;; canonicalize-single-keybinding-string : (listof char) -> string
       (define (canonicalize-single-keybinding-string chars)
 	(let* ([neg? (char=? (car chars) #\:)]
@@ -119,23 +119,23 @@
 	       [mods
 		(let loop ([mods mods/key])
 		  (cond
-		   [(null? mods) null]
-		   [(null? (cdr mods)) null]
-		   [else (cons (car mods) (loop (cdr mods)))]))]
+                    [(null? mods) null]
+                    [(null? (cdr mods)) null]
+                    [else (cons (car mods) (loop (cdr mods)))]))]
 	       [key (car (last-pair mods/key))]
 	       [shift (if neg? #f 'd/c)]
 	       [control (if neg? #f 'd/c)]
 	       [alt (if neg? #f 'd/c)]
 	       [meta (if neg? #f 'd/c)]
 	       [command (if neg? #f 'd/c)]
-
+               
 	       [do-key
 		(lambda (char val)
 		  (cond
-		   [(eq? val #t) (string char)]
-		   [(eq? val #f) (string #\~ char)]
-		   [(eq? val 'd/c) #f]))])
-
+                    [(eq? val #t) (string char)]
+                    [(eq? val #f) (string #\~ char)]
+                    [(eq? val 'd/c) #f]))])
+          
 	  (for-each (lambda (mod)
 		      (let ([val (not (char=? (car mod) #\~))])
 			(case (if (char=? (car mod) #\~)
@@ -167,29 +167,29 @@
 		   [this-split null]
 		   [all-split null])
 	  (cond
-	   [(null? chars)
-	    (reverse (cons (reverse this-split) all-split))]
-	   [else (let ([char (car chars)])
-		   (cond
-		    [(char=? split-char char)
-                     (if (null? (cdr chars))
-                         (loop null
-                               (cons char this-split)
-                               all-split)
-                         (loop (cdr chars)
-                               null
-                               (cons (reverse this-split) all-split)))]
-		    [else
-		     (loop (cdr chars)
-			   (cons char this-split)
-			   all-split)]))])))
-
-  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-  ;;;;;;;                                                     ;;;;;;;;
-  ;;;;;;;         end canonicalize-keybinding-string          ;;;;;;;;
-  ;;;;;;;                                                     ;;;;;;;;
-  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
+            [(null? chars)
+             (reverse (cons (reverse this-split) all-split))]
+            [else (let ([char (car chars)])
+                    (cond
+                      [(char=? split-char char)
+                       (if (null? (cdr chars))
+                           (loop null
+                                 (cons char this-split)
+                                 all-split)
+                           (loop (cdr chars)
+                                 null
+                                 (cons (reverse this-split) all-split)))]
+                      [else
+                       (loop (cdr chars)
+                             (cons char this-split)
+                             all-split)]))])))
+      
+      ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+      ;;;;;;;                                                     ;;;;;;;;
+      ;;;;;;;         end canonicalize-keybinding-string          ;;;;;;;;
+      ;;;;;;;                                                     ;;;;;;;;
+      ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+      
       (define (make-meta-prefix-list key)
 	(list (string-append "m:" key)
 	      (string-append "ESC;" key)))
@@ -201,9 +201,9 @@
       
       (define add-to-right-button-menu (make-parameter void))
       (define add-to-right-button-menu/before (make-parameter void))
-
+      
       (define setup-global
-					; Define some useful keyboard functions
+        ; Define some useful keyboard functions
 	(let* ([ring-bell
 		(lambda (edit event)
 		  (bell))]
@@ -214,24 +214,24 @@
 		    (let ([a (send edit get-admin)])
 		      (when a
 			(let ([m (make-object popup-menu%)])
-
+                          
                           ((add-to-right-button-menu/before) m edit event)
-
+                          
 			  (append-editor-operation-menu-items m)
 			  (for-each
 			   (lambda (i)
 			     (when (is-a? i selectable-menu-item<%>)
 			       (send i set-shortcut #f)))
 			   (send m get-items))
-
+                          
 			  ((add-to-right-button-menu) m edit event)
-
+                          
 			  (let-values ([(x y) (send edit
 						    dc-location-to-editor-location
 						    (send event get-x)
 						    (send event get-y))])
 			    (send a popup-menu m (+ x 1) (+ y 1))))))))]
-
+               
 	       [up-out-of-editor-snip
 		(lambda (text event)
 		  (let ([editor-admin (send text get-admin)])
@@ -248,7 +248,7 @@
 				(send editor set-position new-pos new-pos))
 			      (send editor set-caret-owner #f 'display)))))))
 		  #t)]
-
+               
 	       [down-into-editor-snip
 		(lambda (dir get-pos)
 		  (lambda (text event)
@@ -263,10 +263,10 @@
 			      (send embedded-editor set-position (get-pos embedded-editor)))
 			    (send text set-caret-owner snip 'display)))))
 		    #t))]
-
+               
 	       [right-into-editor-snip (down-into-editor-snip 'after-or-none (lambda (x) 0))]
 	       [left-into-editor-snip (down-into-editor-snip 'before-or-none (lambda (x) (send x last-position)))]
-
+               
 	       [toggle-anchor
 		(lambda (edit event)
 		  (send edit set-anchor
@@ -302,47 +302,56 @@
 		      (send edit flash-on pos (+ 1 pos))))
 		  #t)]
 	       [collapse-variable-space
+                ;; As per emacs: collapse tabs & spaces around the point,
+                ;; perhaps leaving a single space.
+                ;; drscheme bonus: if at end-of-line, collapse into the next line.
 		(lambda (leave-one? edit event)
-		  (letrec ([end-pos (send edit last-position)]
-			   [find-nonwhite
-			    (lambda (pos d)
+		  (letrec ([last-pos  (send edit last-position)]
+		           [sel-start (send edit get-start-position)]
+			   [sel-end   (send edit get-end-position)]
+                           [collapsible? (lambda (c) (and (char-whitespace? c)
+                                                          (not (char=? #\newline c))))]
+			   [find-noncollapsible
+                            ; Return index of next non-collapsible char,
+                            ; starting at pos in direction dir.
+                            ; NB returns -1 or last-pos, if examining
+                            ; initial/final whitespace
+                            ; (or, when initial pos is outside of [0,last-pos).)
+			    (lambda (pos dir)
 			      (let loop ([pos pos])
-				(if (or (and (= d -1)
-					     (= pos 0))
-					(and (= pos end-pos)
-					     (= d 1)))
-				    pos
-				    (let ([c (send edit get-character pos)])
-				      (cond
-				       [(char=? #\newline c) pos]
-				       [(char-whitespace? c) (loop (+ pos d))]
-				       [else pos])))))])
-		    (let ([sel-start (send edit get-start-position)]
-			  [sel-end (send edit get-end-position)])
-		      (when (= sel-start sel-end)
-			(let ([start 
-			       (if (= sel-start 0)
-				   0
-				   (+ (find-nonwhite (- sel-start 1) -1) 1))]
-			      [end (find-nonwhite sel-start 1)])
-			  (send edit begin-edit-sequence)
-			  (cond
-			   ;; funny case when to delete the newline
-			   [(and leave-one?
-				 (= (+ start 1) end)
-				 (< end end-pos)
-				 (char=? #\space (send edit get-character start))
-				 (char=? #\newline (send edit get-character end)))                         
-			    (send edit delete end (+ end 1))]
-			   [else
-			    (send edit delete start end)
-			    (cond
-			     [leave-one?
-			      (send edit insert #\space start)
-			      (send edit set-position (+ start 1))]
-			     [else 
-			      (send edit set-position start)])])
-			  (send edit end-edit-sequence))))))]
+                                (cond [(<  pos 0) -1]
+                                      [(>= pos last-pos) last-pos]
+                                      [(collapsible? (send edit get-character pos))
+                                       (loop (+ pos dir))]
+                                      [else pos])))])
+                    (when (= sel-start sel-end) ; Only when no selection:
+                      (let* ([start (add1 (find-noncollapsible (sub1 sel-start) -1))]
+                             [end-heeding-eol (find-noncollapsible sel-start +1)]
+                             ; This is the end of the range, were we to always heed newlines.
+                             
+                             ; Special case: if we're sitting at EOL,
+                             ; and we're not affecting much else,
+                             ; then delete that EOL and collapse spaces
+                             ; at the start of next line, too:
+                             [end (if (and (<= (- end-heeding-eol start)
+                                               (if leave-one? 1 0))
+                                           (char=? #\newline (send edit get-character end-heeding-eol))
+                                           ; If you wish to avoid deleting an newline at EOF, do so here.
+                                           )
+                                      (find-noncollapsible (add1 end-heeding-eol) +1)
+                                      end-heeding-eol)]
+                             [making-no-difference?
+                              ; Don't introduce edits into undo-chain, if no effect.
+                              (if leave-one?
+                                  (and (= (- end start) 1)
+                                       (char=? #\space (send edit get-character start)))
+                                  (= (- end start) 0))])
+                        (unless making-no-difference?
+                          (send edit begin-edit-sequence)
+                          (send edit set-position end) ; Even after delete, caret will be at "end".
+                          (send edit delete start end)
+                          (when leave-one? (send edit insert #\space start))
+                          (send edit end-edit-sequence))))))]
 	       
 	       [collapse-space
 		(lambda (edit event)
@@ -365,12 +374,12 @@
 					(escape pos)
 					(let ([c (send edit get-character (+ pos offset))])
 					  (cond
-					   [(char=? #\newline c)
-					    (loop (+ pos d))
-					    (escape pos)]
-					   [(char-whitespace? c) 
-					    (loop (+ pos d))]
-					   [else pos])))))))])
+                                            [(char=? #\newline c)
+                                             (loop (+ pos d))
+                                             (escape pos)]
+                                            [(char-whitespace? c) 
+                                             (loop (+ pos d))]
+                                            [else pos])))))))])
 		    (let ([sel-start (send edit get-start-position)]
 			  [sel-end (send edit get-end-position)])
 		      (when (= sel-start sel-end)
@@ -397,22 +406,22 @@
 			       [end-line-start
 				(send edit line-start-position (add1 end-line))])
 			  (cond
-			   [(and whiteline?
-				 (= start-line pos-line)
-				 (= end-line pos-line))
-					; Special case: just delete this line
-			    (send edit delete pos-line-start (add1 pos-line-end))]
-			   [(and whiteline? (< start-line pos-line))
-					; Can delete before & after
-			    (send* edit 
-				   (begin-edit-sequence)
-				   (delete (add1 pos-line-end) end-line-start)
-				   (delete start-line-start pos-line-start)
-				   (end-edit-sequence))]
-			   [else
-					; Only delete after
-			    (send edit delete (add1 pos-line-end) 
-				  end-line-start)]))))))]
+                            [(and whiteline?
+                                  (= start-line pos-line)
+                                  (= end-line pos-line))
+                             ; Special case: just delete this line
+                             (send edit delete pos-line-start (add1 pos-line-end))]
+                            [(and whiteline? (< start-line pos-line))
+                             ; Can delete before & after
+                             (send* edit 
+                               (begin-edit-sequence)
+                               (delete (add1 pos-line-end) end-line-start)
+                               (delete start-line-start pos-line-start)
+                               (end-edit-sequence))]
+                            [else
+                             ; Only delete after
+                             (send edit delete (add1 pos-line-end) 
+                                   end-line-start)]))))))]
 	       
 	       [open-line
 		(lambda (edit event)
@@ -420,8 +429,8 @@
 			[sel-end (send edit get-end-position)])
 		    (if (= sel-start sel-end)
 			(send* edit 
-			       (insert #\newline)
-			       (set-position sel-start)))))]
+                          (insert #\newline)
+                          (set-position sel-start)))))]
 	       
 	       [transpose-chars
 		(lambda (edit event)
@@ -440,11 +449,11 @@
 			(let ([s (send edit get-text
 				       sel-start (add1 sel-start))])
 			  (send* edit
-				 (begin-edit-sequence)
-				 (delete sel-start (add1 sel-start))
-				 (insert s (- sel-start 1))
-				 (set-position (add1 sel-start))
-				 (end-edit-sequence)))))))]
+                            (begin-edit-sequence)
+                            (delete sel-start (add1 sel-start))
+                            (insert s (- sel-start 1))
+                            (set-position (add1 sel-start))
+                            (end-edit-sequence)))))))]
 	       
 	       [transpose-words
 		(lambda (edit event)
@@ -466,15 +475,15 @@
 						  (unbox word-2-start)
 						  (unbox word-2-end))])
 				(send* edit
-				       (begin-edit-sequence)
-				       (insert text-1 
-					       (unbox word-2-start)
-					       (unbox word-2-end))
-				       (insert text-2 
-					       (unbox word-1-start)
-					       (unbox word-1-end))
-				       (set-position (unbox word-2-end))
-				       (end-edit-sequence))))))))))]
+                                  (begin-edit-sequence)
+                                  (insert text-1 
+                                          (unbox word-2-start)
+                                          (unbox word-2-end))
+                                  (insert text-2 
+                                          (unbox word-1-start)
+                                          (unbox word-1-end))
+                                  (set-position (unbox word-2-end))
+                                  (end-edit-sequence))))))))))]
 	       
 	       [capitalize-it
 		(lambda (edit char-case1 char-case2)
@@ -491,17 +500,17 @@
 			  (when (< pos word-end)
 			    (let ([c (send edit get-character pos)])
 			      (cond
-			       [(char-alphabetic? c)
-				(send edit insert 
-				      (list->string
-				       (list (char-case c)))
-				      pos (add1 pos))
-				(loop (add1 pos) char-case2)]
-			       [else 
-				(loop (add1 pos) char-case)]))))
+                                [(char-alphabetic? c)
+                                 (send edit insert 
+                                       (list->string
+                                        (list (char-case c)))
+                                       pos (add1 pos))
+                                 (loop (add1 pos) char-case2)]
+                                [else 
+                                 (loop (add1 pos) char-case)]))))
 			(send* edit 
-			       (end-edit-sequence)
-			       (set-position word-end))))))]
+                          (end-edit-sequence)
+                          (set-position word-end))))))]
 	       
 	       [capitalize-word
 		(lambda (edit event)
@@ -613,20 +622,20 @@
 		    (when (string? num-str)
 		      (let ([line-num (inexact->exact (string->number num-str))])
 			(cond
-			 [(and (number? line-num)
-			       (= line-num (floor line-num))
-			       (<= 1 line-num (+ (send edit last-line) 1)))
-			  (let ([pos (send edit line-start-position 
-					   (sub1 line-num))])
-			    (send edit set-position pos))]
-			 [else
-			  (message-box
-                           (string-constant goto-line)
-			   (format 
-                            (string-constant goto-line-invalid-number)
-                            num-str
-                            (+ (send edit last-line) 1)))]))))
-
+                          [(and (number? line-num)
+                                (= line-num (floor line-num))
+                                (<= 1 line-num (+ (send edit last-line) 1)))
+                           (let ([pos (send edit line-start-position 
+                                            (sub1 line-num))])
+                             (send edit set-position pos))]
+                          [else
+                           (message-box
+                            (string-constant goto-line)
+                            (format 
+                             (string-constant goto-line-invalid-number)
+                             num-str
+                             (+ (send edit last-line) 1)))]))))
+                  
 		  #t)]
 	       [goto-position
 		(lambda (edit event)
@@ -695,10 +704,10 @@
                       (when (is-a? frame frame:text-info<%>)
                         (send frame set-macro-recording on?)
                         (send frame update-shown)))))]
-                    
+               
 	       [do-macro
 		(lambda (edit event)
-					; If c:x;e during record, copy the old macro
+                  ; If c:x;e during record, copy the old macro
 		  (when building-macro
 		    (set! building-macro (append (reverse current-macro) 
 						 (cdr building-macro))))
@@ -773,7 +782,7 @@
 			      "delete-next-character"
 			      "delete-previous-character")
 			  edit event #t)))]
-
+               
 	       [toggle-overwrite
 		(lambda (edit event)
 		  (send edit set-overwrite-mode
@@ -788,7 +797,7 @@
 		   [add-m (lambda (name func)
 			    (send kmap add-function name func))])
 	      
-					; Map names to keyboard functions
+              ; Map names to keyboard functions
 	      (add "toggle-overwrite" toggle-overwrite)
 	      
 	      (add "exit" (lambda (edit event)
@@ -805,7 +814,7 @@
 	      (add "left-into-editor-snip" left-into-editor-snip)
 	      (add "right-into-editor-snip" right-into-editor-snip)
 	      (add "up-out-of-editor-snip" up-out-of-editor-snip)
-
+              
 	      (add "toggle-anchor" toggle-anchor)
 	      (add "center-view-on-line" center-view-on-line)
 	      (add "collapse-space" collapse-space)
@@ -844,10 +853,10 @@
 	      (add "goto-position" goto-position)
 	      
 	      (add "delete-key" delete-key)
-
+              
 	      (add "mouse-popup-menu" mouse-popup-menu)
 	      
-					; Map keys to functions
+              ; Map keys to functions
 	      (map "c:g" "ring-bell")
 	      (map-meta "c:g" "ring-bell")
 	      (map "c:x;c:g" "ring-bell")
@@ -974,9 +983,9 @@
 	      (map "s:delete" "cut-clipboard")
 	      (map "c:insert" "copy-clipboard")
 	      (map "s:insert" "paste-clipboard")
-
+              
 	      (map-meta "space" "collapse-space")
-					;(map-meta "\\" "remove-space") ;; conflicts with european keyboards
+              ;(map-meta "\\" "remove-space") ; Conflicts with european keyboards.
 	      (map "c:x;c:o" "collapse-newline")
 	      (map "c:o" "open-line")
 	      (map "c:t" "transpose-chars")
@@ -987,7 +996,7 @@
 	      (map-meta "c:left" "left-into-editor-snip")
 	      (map-meta "c:right" "right-into-editor-snip")
 	      (map-meta "c:up" "up-out-of-editor-snip")
-
+              
 	      (map "insert" "toggle-overwrite")
 	      (map-meta "o" "toggle-overwrite")
 	      
@@ -1020,13 +1029,13 @@
 		  (lambda (edit event)
 		    (let ([frame
 			   (cond
-			    [(is-a? edit editor<%>)
-			     (let ([canvas (send edit get-active-canvas)])
-			       (and canvas
-				    (send canvas get-top-level-window)))]
-			    [(is-a? edit area<%>)
-			     (send edit get-top-level-window)]
-			    [else #f])])
+                             [(is-a? edit editor<%>)
+                              (let ([canvas (send edit get-active-canvas)])
+                                (and canvas
+                                     (send canvas get-top-level-window)))]
+                             [(is-a? edit area<%>)
+                              (send edit get-top-level-window)]
+                             [else #f])])
 		      (if frame
 			  (invoke-method frame)
 			  (bell)))
@@ -1064,18 +1073,18 @@
 		 (map "c:r" "move-to-search-or-reverse-search")
 		 (map "f3" "find-string-again")
 		 (map "c:g" "find-string-again")	     
-
+                 
 		 ;; covered by menu
-					;(map "c:f" "move-to-search-or-search")
-
+                 ;(map "c:f" "move-to-search-or-search")
+                 
 		 (map "c:i" "toggle-search-focus")]
 		[(macos macosx)
 		 (map "c:s" "move-to-search-or-search")
 		 (map "c:g" "hide-search")
-
+                 
 		 ;; covered by menu
-					;(map "d:f" "move-to-search-or-search")
-
+                 ;(map "d:f" "move-to-search-or-search")
+                 
 		 (map "d:r" "move-to-search-or-reverse-search")
 		 (map "d:g" "find-string-again")
 		 (map "c:i" "toggle-search-focus")])))))
@@ -1141,12 +1150,12 @@
 	  (add/map "editor-copy" 'copy "c")
 	  (add/map "editor-paste" 'paste "v")
 	  (add/map "editor-select-all" 'select-all "a")))
-
+      
       (define (generic-setup keymap)
 	(add-editor-keymap-functions keymap)
 	(add-pasteboard-keymap-functions keymap)
 	(add-text-keymap-functions keymap))
-
+      
       (define global (make-object aug-keymap%))
       (setup-global global)
       (generic-setup global)
@@ -1161,11 +1170,11 @@
       (generic-setup search)
       (setup-search search)
       (define (get-search) search)
-
+      
       (define editor (make-object aug-keymap%))
       (setup-editor editor)
       (define (get-editor) editor)
-
+      
       (define (call/text-keymap-initializer thunk)
 	(let ([ctki (current-text-keymap-initializer)])
 	  (parameterize ([current-text-keymap-initializer
