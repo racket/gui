@@ -2112,7 +2112,7 @@
     (define/override (handles-key-code code alpha? meta?) 
       #f)
 
-    (super-instantiate (mred proxy parent -1 -1 -1 -1 null))
+    (super-instantiate (mred proxy parent -1 -1 -1 -1 '(transparent)))
 
     (set-background-to-gray)
 
@@ -3017,6 +3017,9 @@
 	       (raise-mismatch-error 'container-redraw 
 				     "result from place-children is not a list of 4-integer lists with the correct length: "
 				     l))
+	     (when hidden-child
+	       ;; This goes with the hack for macos and macosx below
+	       (send hidden-child set-phantom-size width height))
 	     (panel-redraw children children-info (if hidden-child
 						      (cons (list 0 0 width 
 								  (if (memq (system-type) '(macos macosx)) ;; Yucky hack
