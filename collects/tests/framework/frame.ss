@@ -136,10 +136,10 @@
        (send-sexp-to-mred
 	`(begin (send (find-labelled-window "Full pathname") focus)
 		,(case (system-type)
-		   [(macos) `(test:keystroke #\a '(meta))]
+		   [(macos macosx) `(test:keystroke #\a '(meta))]
 		   [(unix) `(test:keystroke #\a '(meta))]
 		   [(windows) `(test:keystroke #\a '(control))]
-		   [else (error "unknown system type: ~a" (system-type))])
+		   [else (error 'file-open-dialog "unknown system type: ~a" (system-type))])
 		(for-each test:keystroke
 			  (string->list ,tmp-file))
 		(test:keystroke #\return)))

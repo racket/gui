@@ -23,7 +23,6 @@
             (void))))))
 
  
-  (test/load "specs.ss" '(contract (lambda (x) #t) 1 'pos 'neg))
   (test/load "gui-utils.ss" 'gui-utils:next-untitled-name)
   (test/load "test.ss" 'test:run-interval)
   (test/load "macro.ss" '(mixin () () ()))
@@ -34,8 +33,7 @@
   (test/load "framework.ss" '(list test:button-push
 				   gui-utils:next-untitled-name
 				   frame:basic-mixin
-                                   (mixin () () ())
-                                   (contract (lambda (x) #t) 1 'pos 'neg)))
+                                   (mixin () () ())))
   
   ;; ensures that all of the names in the signature are provided
   ;; by (require (lib "framework.ss" "framework"))

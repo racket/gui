@@ -1,3 +1,4 @@
+
 (module test-suite-utils mzscheme
   (require (lib "launcher.ss" "launcher")
 	   (lib "pretty.ss")
@@ -82,10 +83,17 @@
 
   (define (restart-mred)
     (shutdown-mred)
-    ((case (system-type)
-       [(macos) system*]
-       [else (lambda (x) (thread (lambda () (system* x))))])
-     (mred-program-launcher-path "Framework Test Engine"))
+    (case (system-type)
+      [(macos) (system* (mred-program-launcher-path "Framework Test Engine"))]
+      [(macosx)
+       (thread
+        (lambda ()
+          (system*
+           (build-path (collection-path "mzlib") 'up 'up "bin" "mred")
+           "-mvqt"
+           (build-path (collection-path "tests" "framework")
+                       "framework-test-engine.ss"))))]
+      [else (thread (lambda () (system* (mred-program-launcher-path "Framework Test Engine"))))])
     (debug-printf mz-tcp "accepting listener~n")
     (let-values ([(in out) (tcp-accept listener)])
       (set! in-port in)

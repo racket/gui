@@ -669,7 +669,8 @@
   
   (define key-tag 'test:keystroke)
   (define legal-keystroke-modifiers
-    (list 'alt 'control 'meta 'shift 'noalt 'nocontrol 'nometa 'noshift))
+    (list 'alt 'control 'meta 'shift
+          'noalt 'nocontrol 'nometa 'noshift))
 
   (define valid-key-symbols
     (list 'start 'cancel 'clear 'shift 'control 'menu 'pause 'capital

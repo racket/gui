@@ -35,27 +35,10 @@
 					(or (get-only-these-tests) null))))
 	("Only run test named <test-name>" "test-name")])))
       
-  (define saved-command-line-file (build-path (collection-path "tests" "framework")
-					      "saved-command-line.ss"))
-  (define parsed-argv
-    (if (equal? argv (vector))
-	(if (file-exists? saved-command-line-file)
-	    (begin
-	      (let ([result (call-with-input-file saved-command-line-file read)])
-		(debug-printf admin "reusing command-line arguments: ~s~n" result)
-		result))
-	    (vector))
-	argv))
-
-  (parse-command-line "framework-test" parsed-argv command-line-flags
+  (parse-command-line "framework-test" argv command-line-flags
 		      (lambda (collected . files)
 			(set! files-to-process (if (or all? (null? files)) all-files files)))
 		      `("Names of the tests; defaults to all tests"))
-
-  (call-with-output-file saved-command-line-file
-    (lambda (port)
-      (write parsed-argv port))
-    'truncate)
 
   (when (file-exists? preferences-file)
     (debug-printf admin "  saving preferences file ~s to ~s~n" preferences-file old-preferences-file)

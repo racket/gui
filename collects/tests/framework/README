@@ -58,7 +58,7 @@ test as last time, or `all' to run all of the tests.
   - edits to canvases: |# edit-canvas.ss #|
   - canvases to frames: |# canvas-frame.ss #|
   - edits to frames: |# edit-frame.ss #|
-  - handler |# handler-test.ss #|
+  - handler: handler-test.ss
 
 - keybindings: |# keys.ss #|
 
