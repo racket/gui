@@ -2058,7 +2058,7 @@
     (define/public (delete i)
       (as-entry
        (lambda ()
-	 (set! tabs (let loop ([pos 0][l tabs])
+	 (set! tabs (let loop ([pos 0][tabs tabs])
 		      (if (= i pos)
 			  (cdr tabs)
 			  (cons (car tabs) (loop (add1 pos) (cdr tabs))))))
