@@ -3460,7 +3460,7 @@
 	      [abox (box 0)])
 	  ; To bottom of first line
 	  (send (send e get-admin) get-dc #f ybox)
-	  (set! dy (+ -3 (abs (unbox ybox)) (send e line-location 0 #f))) ; -3 is fudge factor
+	  (set! dy (+ -2 (abs (unbox ybox)) (send e line-location 0 #f))) ; -2 is fudge factor
 	    
 	  ; Add diff for client size
 	  (send c get-client-size wbox hbox)
