@@ -10,5 +10,7 @@
     aligned-editor-canvas%
     aligned-pasteboard<%>
     aligned-pasteboard-parent<%>
-    aligned-snip<%>
-    aligned-snip-mixin))
+    stretchable-snip<%>
+    ;stretchable-text-snip%
+    ;stretchable-text-snip-mixin
+    ))
