@@ -491,7 +491,8 @@
                       (when (and (or (equal? (unbox len-b) 0)
                                      (equal? (unbox len-b) null))
                                  (not (unbox in-units-b)))
-                        (set/f! wb (unbox tab-width-b))))))))
+                        (let ([tabspace (unbox tab-width-b)])
+                          (set/f! wb (tabspace . - . (x . modulo . tabspace))))))))))
             
             (set/f! hb 0)
             (set/f! db 0)
@@ -513,13 +514,15 @@
                    find-first-snip get-style-list set-tabs)
           
           (define/private (copy snip)
-            (let ([res 
+            (let ([new-snip
                    (if (is-a? snip tab-snip%)
-                       (make-object 1-pixel-tab-snip%)
+                       (let ([snip (make-object 1-pixel-tab-snip%)])
+                         (send snip insert "#\t" 1)
+                         snip)
                        (make-object 1-pixel-string-snip%
                          (send snip get-text 0 (send snip get-count))))])
-              (send res set-flags (send snip get-flags))
-              res))
+              (send new-snip set-flags (send snip get-flags))
+              new-snip))
 
           (field (delegate #f))
           (define/public (get-delegate) delegate)
