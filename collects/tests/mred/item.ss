@@ -1818,7 +1818,7 @@
 
 ;----------------------------------------------------------------------
 
-(define (message-boxes)
+(define (message-boxes parent)
   (define (check expected got)
     (unless (eq? expected got)
       (fprintf (current-error-port) "bad result: - expected ~e, got ~e~n"
@@ -1829,50 +1829,54 @@
 	    (make-string 500 #\x)
 	    (make-string 500 #\x)))
 
-  (check 'ok (message-box "Title" "Message OK!" #f '(ok)))
-  (check 'ok (message-box "Title" (big "Message OK!") #f '(ok)))
+  (check 'ok (message-box "Title" "Message OK!" parent '(ok)))
+  (check 'ok (message-box "Title" (big "Message OK!") parent '(ok)))
 
-  (check 'cancel (message-box "Title" "Cancel Me" #f '(ok-cancel)))
-  (check 'ok (message-box "Title" "Ok Me" #f '(ok-cancel)))
-  (check 'ok (message-box "Title" (big "Ok Me") #f '(ok-cancel)))
+  (check 'cancel (message-box "Title" "Cancel Me" parent '(ok-cancel)))
+  (check 'ok (message-box "Title" "Ok Me" parent '(ok-cancel)))
+  (check 'ok (message-box "Title" (big "Ok Me") parent '(ok-cancel)))
 
-  (check 'yes (message-box "Title" "Yes, please" #f '(yes-no)))
-  (check 'no (message-box "Title" "No, please" #f '(yes-no)))
+  (check 'yes (message-box "Title" "Yes, please" parent '(yes-no)))
+  (check 'no (message-box "Title" "No, please" parent '(yes-no)))
 
-  (check 'yes (message-box "Title" "Caution sign?" #f '(yes-no caution)))
-  (check 'yes (message-box "Title" "Stop sign?" #f '(yes-no stop)))
+  (check 'yes (message-box "Title" "Caution sign?" parent '(yes-no caution)))
+  (check 'yes (message-box "Title" "Stop sign?" parent '(yes-no stop)))
 
   (check 1 (message-box/custom "Title" "Hello"
 				"Hi" #f #f
-				#f
+				parent
 				'(default=1)))
   (check 2 (message-box/custom "Title" "Hello"
-				#f "Howdy" #f))
+			       #f "Howdy" #f
+			       parent))
   (check 3 (message-box/custom "Title" "Hello (response should be on left for Mac OS)"
-				#f #f "Howdy"))
+				#f #f "Howdy"
+				parent))
   (check #f (message-box/custom "Title" "Escape to close, please"
-				 "Hi" #f #f))
+				 "Hi" #f #f
+				 parent))
   (check 'closed (message-box/custom "Title" "Escape to close, again, please"
 				     "Hi" #f #f
-				     #f
+				     parent
 				     '(default=1)
 				     'closed))
   (check 'closed (message-box/custom "Title" "Escape to close, again, please"
 				     #f #f #f
-				     #f
+				     parent
 				     '(default=1)
 				     'closed))
   (check 1 (message-box/custom "Title" "Try to escape to close"
 				"I can't" #f #f
-				#f
+				parent
 				'(default=1 disallow-close)
 				'closed))
 
   (message-box/custom "Title" "Buttons out of order in Mac OS"
-		       "One" "Two" "Three")
+		       "One" "Two" "Three"
+		       parent)
   (message-box/custom "Title" "Buttons in order on all platforms"
 		       "One" "Two" "Three"
-		       #f
+		       parent
 		       '(default=1 number-order))
 		       
   )
@@ -1947,7 +1951,7 @@
 (send crp stretchable-height #f)
 (make-object button% "Make Checkbox Frame" crp (lambda (b e) (checkbox-frame)))
 (make-object vertical-pane% crp) ; filler
-(make-object button% "Message Boxes" crp (lambda (b e) (message-boxes)))
+(make-object button% "Message Boxes" crp (lambda (b e) (message-boxes #f)))
 (make-object vertical-pane% crp) ; filler
 (make-object button% "Make Radiobox Frame" crp (lambda (b e) (radiobox-frame)))
 (define cp (make-object horizontal-pane% ap))

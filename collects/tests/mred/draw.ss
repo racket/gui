@@ -147,7 +147,7 @@
 		       [bm (if use-bitmap?
 			       (if use-bad?
 				   (make-object bitmap% "no such file")
-				   (make-object bitmap% (* scale 350) (* scale 300) depth-one?))
+				   (make-object bitmap% (* scale 400) (* scale 350) depth-one?))
 			       #f)]
 		       [draw-series
 			(lambda (dc pens pent penx size x y flevel last?)
@@ -810,7 +810,7 @@
 			(unless (cond
 				 [ps? #t]
 				 [use-bad? #t]
-				 [use-bitmap? (and (= w (* scale 350)) (= h (* scale 300)))]
+				 [use-bitmap? (and (= w (* scale 400)) (= h (* scale 350)))]
 				 [else (= w (send this get-width)) (= h (send this get-height))])
 			  (error 'x "wrong size reported by get-size: ~a ~a; w & h is ~a ~a" 
 				 w h (send this get-width) (send this get-height))))
