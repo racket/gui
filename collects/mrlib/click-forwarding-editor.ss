@@ -2,7 +2,7 @@
   
   (require
    (lib "class.ss")
-   (lib "contracts.ss")
+   (lib "contract.ss")
    (lib "etc.ss")
    (lib "mred.ss" "mred"))
   
