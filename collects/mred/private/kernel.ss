@@ -333,6 +333,9 @@
     on-size
     on-set-focus
     on-kill-focus
+    previous-context-current
+    this-context-current
+    swap-buffers
     on-scroll
     set-scroll-page
     set-scroll-range

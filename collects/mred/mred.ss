@@ -3670,9 +3670,18 @@
     (sequence 
       (let ([cwho '(constructor canvas)])
 	(check-container-parent cwho parent)
-	(check-style cwho #f '(border hscroll vscroll) style)
-	(check-container-ready cwho parent)))
+	(check-style cwho #f '(border hscroll vscroll gl) style)
+	(check-container-ready cwho parent)
+	(when (memq 'gl style)
+	  (unless (eq? (system-type) 'windows)
+	    (raise-mismatch-error (who->name cwho)
+				  "the 'gl style flag is not supported on this platform: "
+				  style)))))
     (public
+      [swap-gl-buffers (lambda () (send wx swap-buffers))]
+      [grab-gl-context (lambda () (send wx this-context-current))]
+      [restore-gl-context (lambda () (send wx previous-context-current))]
+
       [accept-tab-focus (entry-point
 			 (case-lambda
 			  [() (send wx get-tab-focus)]
