@@ -4812,13 +4812,31 @@
   (class100*/kw text-field% () 
 		[(label choices parent callback [init-value ""] [style '()])
 		 control%-keywords]
+    (inherit set-value popup-menu get-size focus get-editor)
     (sequence 
       (check-text-field-args '(constructor text-combo-field)
 			     label 
 			     #f choices
 			     parent callback init-value
 			     style #f))
+    (override
+      [on-subwindow-event (lambda (w e)
+			    (and (send e button-down?)
+				 (let-values ([(w h) (get-size)])
+				   (and ((send e get-x) . >= . (- w side-combo-width))
+					(begin
+					  (popup-menu menu 0 h)
+					  #t)))))])
+    (private-field
+     [menu (new popup-menu%)])
     (sequence
+      (for-each (lambda (item) (make-object menu-item% item menu 
+					    (lambda (i e)
+					      (focus)
+					      (set-value item)
+					      (let ([e (get-editor)])
+						(send e set-position 0 (send e last-position))))))
+		choices)
       (super-init label parent callback init-value (list* combo-flag 'single style)))))
 
 
@@ -4870,6 +4888,10 @@
 (define canvas-control-border-extra (case (system-type)
 				      [(windows) 2]
 				      [else 0]))
+(define side-combo-width (case (system-type)
+			   [(windows) 20]
+			   [(macosx) 18]
+			   [else 16]))
 
 (define canvas<%>
   (interface (subwindow<%>)
@@ -5040,7 +5062,7 @@
 		      (set! wx (make-object wx-canvas% this this
 					    (mred->wx-container parent)
 					    -1 -1 
-					    (+ ds (if (memq 'combo style) 16 0)) ds
+					    (+ ds (if (memq 'combo style) side-combo-width 0)) ds
 					    style)))
 		    wx)
 		  (lambda ()
@@ -5168,7 +5190,7 @@
 					 [else (+ canvas-scroll-size canvas-default-size)])))])
 		      (set! wx (make-object wx-editor-canvas% this this
 					    (mred->wx-container parent) -1 -1
-					    (+ (get-ds no-h? no-v?) (if (memq 'combo style) 16 0))
+					    (+ (get-ds no-h? no-v?) (if (memq 'combo style) side-combo-width 0))
 					    (get-ds no-v? no-h?)
 					    #f 
 					    (append
