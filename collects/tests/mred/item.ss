@@ -45,7 +45,7 @@
    (make-object
     (class-asi timer%
       (inherit start)
-      (public
+      (override
 	[notify
 	 (lambda ()
 	   (when (send frame is-shown?)
@@ -117,7 +117,8 @@
     (inherit popup-menu get-dc)
     (public
       [last-m null]
-      [last-choice #f]
+      [last-choice #f])
+    (override
       [on-paint
        (lambda ()
 	 (let ([dc (get-dc)])
@@ -172,9 +173,9 @@
 (define active-frame%
   (class-asi frame%
     (private (pre-on void))
-    (public [pre-on-event (lambda args (apply pre-on args))]
-	    [pre-on-char pre-on-event]
-	    [set-info
+    (override [pre-on-event (lambda args (apply pre-on args))]
+	      [pre-on-char pre-on-event])
+    (public [set-info
 	     (lambda (ep)
 	       (set! pre-on (add-pre-note this ep)))])))
 
@@ -1283,6 +1284,8 @@
 		    (public
 		     [vw 10]
 		     [vh 10]
+		     [set-vsize (lambda (w h) (set! vw w) (set! vh h))])
+		    (override
 		     [on-paint
 		      (lambda ()
 			(let ([s (format "V: p: ~s r: ~s g: ~s H: ~s ~s ~s"
@@ -1307,7 +1310,6 @@
 				     3 27)
 			  (draw-line 0 vh vw vh)
 			  (draw-line vw 0 vw vh)))]
-		     [set-vsize (lambda (w h) (set! vw w) (set! vh h))]
 		     [on-scroll
 		      (lambda (e) (on-paint))])
 		    (sequence
@@ -1363,7 +1365,7 @@
     (make-object
      (class timer% ()
 	    (inherit start)
-	    (public
+	    (override
 	     [notify
 	      (lambda ()
 		(let* ([now (seconds->date (current-seconds))]

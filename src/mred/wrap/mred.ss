@@ -379,7 +379,8 @@
 	       [super-on-kill-focus on-kill-focus])
        (inherit get-width get-height get-x get-y
 		get-parent get-client-size)
-       (rename [super-enable enable])
+       (rename [super-enable enable]
+	       [super-set-size set-size])
        (private [enabled? #t])
        (override
 	 [enable
@@ -411,9 +412,6 @@
 	 [is-enabled?
 	  (lambda () enabled?)])
 
-       (rename
-	[super-set-size set-size])
-       
        (public
 	 ; Store minimum size of item.  
 	 ; This will never change after the item is created.
@@ -515,6 +513,8 @@
 		(send parent child-redraw-request this))))]
 	 
 	 [on-container-resize void] ; This object doesn't contain anything
+
+	 [init-min (lambda (x) x)]
 	 
 	 ; get-min-size: computes the minimum size the item can
 	 ;   reasonably assume.
@@ -528,8 +528,8 @@
        
        (sequence
 	 (apply super-init (send (car args) get-window) (cdr args))
-	 (set-min-width (get-width))
-	 (set-min-height (get-height))
+	 (set-min-width (init-min (get-width)))
+	 (set-min-height (init-min (get-height)))
 	 
 	 (send (area-parent) add-child this)))))
 
@@ -1213,7 +1213,9 @@
 	     (set! curr-width client-width)
 	     (set! curr-height client-height)
 	     (set! move-children? #f)
-	     (redraw client-width client-height))))])
+	     (redraw client-width client-height))))]
+
+      [init-min (lambda (x) 0)])
       
     (public
       ; place-children: determines where each child of panel should be
@@ -1285,8 +1287,7 @@
 	  child-infos
 	  placements))])
     (sequence
-      (super-init parent -1 -1 0 0 style)
-      (set-min-width 0) (set-min-height 0))))
+      (super-init parent -1 -1 0 0 style))))
 
 (define (wx-make-pane% wx:panel%)
   (class (make-container-glue% (make-glue% (wx-make-basic-panel% wx:panel%))) args

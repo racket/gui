@@ -406,7 +406,7 @@
 		      (send dc set-background
 			    (if cyan?
 				(make-object wx:brush% "CYAN" wx:const-solid)
-				(make-object wx:brush% "WHILE" wx:const-solid)))
+				(make-object wx:brush% "WHITE" wx:const-solid)))
 
 		      (send dc destroy-clipping-region)
 		      (send dc clear)
@@ -444,7 +444,8 @@
 				   [ps? #t]
 				   [use-bitmap? (and (= w (* scale 350)) (= h (* scale 300)))]
 				   [else (= w (send this get-width)) (= h (send this get-height))])
-			    (error "wrong size reported by get-size: ~a ~a" w h))))
+			    (error 'x "wrong size reported by get-size: ~a ~a; w & h is ~a ~a" 
+				   w h (send this get-width) (send this get-height)))))
 
 		      (send dc end-page)
 		      (send dc end-doc)))
