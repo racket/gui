@@ -371,6 +371,17 @@
         (unless (member (preferences:get 'framework:standard-style-list:font-name) (get-face-list 'mono))
           (preferences:set 'framework:standard-style-list:font-name (get-family-builtin-face 'modern))))
       
+      ;; set-standard-style-list-delta : string (is-a?/c style-delta<%>) -> void
+      (define (set-standard-style-list-delta name delta)
+        (let* ([style-list (editor:get-standard-style-list)]
+               [style (send style-list find-named-style name)])
+          (if style
+              (send style set-delta delta)
+              (send style-list new-named-style name
+                    (send style-list find-or-create-style
+                          (send style-list find-named-style "Standard")
+                          delta)))))
+      
       (define -keymap<%> (interface (basic<%>) get-keymaps))
       (define keymap-mixin
 	(mixin (basic<%>) (-keymap<%>)

@@ -33,6 +33,7 @@
       
       ;; build-color-selection-panel : (is-a?/c area-container<%>) symbol string string -> void
       ;; constructs a panel containg controls to configure the preferences panel.
+      ;; BUG: style changes don't update the check boxes.
       (define (build-color-selection-panel parent pref-sym style-name example-text)
         (define hp (new horizontal-panel% (parent parent) (style '(border))))
         (define delta (preferences:get pref-sym))
@@ -111,9 +112,9 @@
         
         (preferences:add-callback pref-sym
                                   (lambda (sym v)
-                                    (set-slatex-style style-name v)
+                                    (editor:set-standard-style-list-delta style-name v)
                                     #t))
-        (set-slatex-style style-name delta)
+        (editor:set-standard-style-list-delta style-name delta)
         
         (send c set-editor e)
         (send e insert example-text)
@@ -181,17 +182,6 @@
          code-style
          (lambda (x)
            (is-a? x style-delta%))))
-      
-      ; a string naming the style  and a delta to set it to
-      (define (set-slatex-style name delta)
-        (let* ([style-list (editor:get-standard-style-list)]
-               [style (send style-list find-named-style name)])
-          (if style
-              (send style set-delta delta)
-              (send style-list new-named-style name
-                    (send style-list find-or-create-style
-                          (send style-list find-named-style "Standard")
-                          delta)))))
       
       (define (make-style-delta color bold? underline? italic?)
         (let ((sd (make-object style-delta%)))
@@ -326,8 +316,9 @@
                                                    marshall-style unmarshall-style))
                     symbols/defaults)
           (for-each (lambda (s/d)
-                      (set-slatex-style (get-full-style-name tab-name (car s/d))
-                                        (preferences:get (get-full-pref-name tab-name (car s/d)))))
+                      (editor:set-standard-style-list-delta 
+                       (get-full-style-name tab-name (car s/d))
+                       (preferences:get (get-full-pref-name tab-name (car s/d)))))
                     symbols/defaults)
           (hash-table-put! prefs-table
                            tab-name-symbol

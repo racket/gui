@@ -270,7 +270,8 @@
      backup-autosave-mixin))
   (define-signature framework:editor-fun^
     (get-standard-style-list
-     set-standard-style-list-pref-callbacks))
+     set-standard-style-list-pref-callbacks
+     set-standard-style-list-delta))
   (define-signature framework:editor^
     ((open framework:editor-class^)
      (open framework:editor-fun^)))

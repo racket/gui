@@ -1310,6 +1310,17 @@
      "Installs the ``Scheme'' preferences panel in the ``Syntax Coloring''"
      "section.")
     
+    (editor:set-standard-style-list-delta 
+     (string? (is-a?/c style-delta%) . -> . void?)
+     (name delta)
+     "Finds (or creates) the style named by \\var{name} in"
+     "the result of "
+     "@flink editor:get-standard-style-list"
+     "and sets its delta to \\var{delta}."
+     ""
+     "If the style named by \\var{name} is already in"
+     "the style list, it must be a delta style.")
+    
     (editor:set-standard-style-list-pref-callbacks
      (-> any)
      ()
