@@ -1,4 +1,18 @@
 
+Version 203.5
+
+Mac OS X: tab-panel% draws a border around its content by default
+Added 'no-border style to tab-panel%
+Windows: removed border around radio-box% buttons, changed label
+ to follow requested positioning
+Added group-box-panel%
+Added eventspace-handler-thread
+Added vertical-inset and horizontal-inset methods to editor-canvas%
+Changed text-field% to have margins of 2, reduced space between
+ the edit-box border and the editable text
+Windows: switched to XP-style controls under XP
+
+
 Version 203.2
 
 Added application-quit-handler

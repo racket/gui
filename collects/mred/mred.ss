@@ -7354,7 +7354,7 @@
 					1)
 				      c)))
 			      (lambda () (semaphore-post lock-semaphore)))
-			  (make-semaphore-repost-waitable lock-semaphore))))
+			  (make-semaphore-peek lock-semaphore))))
 		  #f ; no peek
 		  close)])
       (update-str-to-snip)
