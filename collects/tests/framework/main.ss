@@ -61,8 +61,17 @@
 		      (or (not (char-ready? in-port))
 			  (not (eof-object? (peek-char in-port)))))
 	   (restart-mred))
-	 (printf "send-sexp-to-mred.sending:~n")
-	 (pretty-print sexp)
+	 (printf "sending to mred:~n")
+	 (parameterize ([pretty-print-print-line
+			 (let ([prompt "  "]
+			       [old-liner (pretty-print-print-line)])
+			   (lambda (ln port ol cols)
+			     (let ([ov (old-liner ln port ol cols)])
+			       (if ln 
+				   (begin (display prompt port)
+					  (+ (string-length prompt) ov))
+				   ov))))])
+	   (pretty-print sexp))
 	 (write sexp out-port)
 	 (newline out-port)
 	 (let ([answer
@@ -79,7 +88,6 @@
 								 (loop))
 							   null))))))])
 		  (read in-port))])
-	   (printf "send-sexp-to-mred.received result~n")
 	   (unless (or (eof-object? answer)
 		       (and (list? answer)
 			    (= 2 (length answer))))
@@ -88,14 +96,16 @@
 	       (raise (make-eof-result))
 	       (case (car answer)
 		 [(error)
-		  (error 'send-sexp-to-mred (format "mred raised \"~a\" with input: ~s" (second answer) sexp))]
+		  (error 'send-sexp-to-mred (format "mred raised \"~a\"" (second answer)))]
 		 [(cant-read) (error 'mred/cant-parse (second answer))]
 		 [(normal) (second answer)]))))))))
 
 (define section-jump void)
 
 (define test
-  (opt-lambda (test-name failed? test [jump 'section])
+  (case-lambda
+   [(test-name failed? sexp/proc) (test test-name failed? sexp/proc 'section)]
+   [(test-name failed? sexp/proc jump)
     (let ([failed
 	   (with-handlers ([(lambda (x) #t)
 			    (lambda (x)
@@ -103,15 +113,15 @@
 				  (exn-message x)
 				  x))])
 	     (failed?
-	      (if (procedure? test)
-		  (test)
-		  (eval (send-sexp-to-mred test)))))])
+	      (if (procedure? sexp/proc)
+		  (sexp/proc)
+		  (eval (send-sexp-to-mred sexp/proc)))))])
       (when failed
 	(printf "FAILED ~a: ~a~n" test-name failed)
 	(case jump
 	  [(section) (section-jump)]
 	  [(continue) (void)]
-	  [else (jump)])))))
+	  [else (jump)])))]))
 
 (define preferences-file (build-path (find-system-path 'pref-dir)
 				     (case (system-type)

@@ -12,12 +12,8 @@
 (require-library "macro.ss")
 (require-relative-library "macro.ss")
 
+(require-relative-library "mred-interfaces.ss")
 (require-relative-library "tests.ss")
-
-(define-signature framework:keys^
-  (shifted-key-list
-   get-shifted-key-list))
-
 
 (define-signature framework:version^
   (add-spec

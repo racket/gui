@@ -1,5 +1,4 @@
-(require-library "mred-interfaces.ss" "framework")
-(require-library "frameworks.ss" "framework")
+(require-relative-library "frameworks.ss")
 
 (require-library "string.ss")
 (require-library "function.ss")
@@ -19,7 +18,7 @@
 	   [framework:keys : framework:keys^]
 	   [framework:test : framework:test^])
    (link [M : mred-interfaces^ (mred-interfaces@)]
-	 [F : frameworkc^ ((require-library "frameworkc.ss" "framework")
+	 [F : frameworkc^ ((require-relative-library "frameworkc.ss")
 			   core:string
 			   core:function
 			   core:pretty-print
