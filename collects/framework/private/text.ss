@@ -818,6 +818,7 @@ WARNING: printf is rebound in the body of the unit to always
       
       (define ports<%>
         (interface ()
+          delete/io
           get-insertion-point 
           set-insertion-point
           get-unread-start-point
@@ -846,6 +847,7 @@ WARNING: printf is rebound in the body of the unit to always
         (mixin ((class->interface text%) #;scheme:text<%>) (ports<%>)
           (inherit begin-edit-sequence
                    end-edit-sequence
+                   delete
                    insert
                    change-style
                    split-snip
@@ -861,6 +863,7 @@ WARNING: printf is rebound in the body of the unit to always
           (define eventspace (current-eventspace))
           
           ;; insertion-point : number
+          ;; the place where the output ports insert data
           ;; only updated in `eventspace' (above)'s main thread
           (define insertion-point 0)
           
@@ -909,6 +912,22 @@ WARNING: printf is rebound in the body of the unit to always
             (channel-put clear-output-chan (void))
             (init-output-ports))
           
+          ;; delete/io: number number -> void
+          (define/public-final (delete/io start end)
+            (unless (<= start end insertion-point)
+              (error 'delete/io "expected start (~a) <= end (~a) <= insertion-point (~a)"
+                     start end insertion-point))
+            (let ([before-allowed? allow-edits?])
+              (set! allow-edits? #t)
+              (printf "deleting ~s to ~s\n" start end)
+              (delete start end #f)
+              (printf "before ip ~s usp ~s\n" insertion-point unread-start-point)
+              (let ([dist (- end start)])
+                (set! insertion-point (- insertion-point dist))
+                (set! unread-start-point (- unread-start-point dist)))
+              (printf "after ip ~s usp ~s\n" insertion-point unread-start-point)
+              (set! allow-edits? before-allowed?)))
+                
           (define/public-final (get-in-port)
             (unless in-port (error 'get-in-port "not ready"))
             in-port)
