@@ -12,7 +12,7 @@ Added an optional argument to begin-edit-sequence in
 Changed the default radius for dc<%>'s draw-rounded-rectangle
  to -0.25, and added checking and a mismatch exception
  when the radius is out of range
-X, Mac OS X: minimum size and non-stretchiness of a frame
+X, Mac OS: minimum size and non-stretchiness of a frame
  or dialog is enforced by the window manager
 
 Version 205.4
