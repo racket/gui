@@ -460,6 +460,7 @@
 	ADD-BANANA
 	ADD-COCONUT
 	DELETE-APPLE
+	DELETE-EXTRA-BANANA
 	DELETE-BANANA
 	DELETE-COCONUT-0
 	DELETE-COCONUT
@@ -544,6 +545,8 @@
 	     
 	     (send banana-menu append (+ offset DELETE-BANANA)
 		   "Delete Banana")
+	     (send banana-menu append (+ offset DELETE-EXTRA-BANANA)
+		   "Delete First Banana Item")
 	     (send coconut-menu append (+ offset DELETE-COCONUT)
 		   "Delete Coconut")
 	     (send coconut-menu append (+ offset DELETE-COCONUT-2)
@@ -573,6 +576,8 @@
 		(set! apple-installed? #f)]
 	       [(= op DELETE-BANANA)
 		(send menu-bar delete banana-menu)]
+	       [(= op DELETE-EXTRA-BANANA)
+		(send banana-menu delete-by-position 0)]
 	       [(or (= op DELETE-COCONUT) (= op DELETE-COCONUT-0))
 		(send apple-menu delete (+ offset COCONUT-ID))]
 	       [(= op DELETE-COCONUT-2)
@@ -584,6 +589,7 @@
 	[mfp (make-object mred:vertical-panel% (ivar this panel))]
 	[mc (make-object mred:wrapping-canvas% mfp -1 -1 200 200)]
 	[restp (make-object mred:vertical-panel% mfp)]
+	[sbp (make-object mred:horizontal-panel% restp)]
 	[mfbp (make-object mred:horizontal-panel% restp)]
 	[lblp (make-object mred:horizontal-panel% restp)]
 	[badp (make-object mred:horizontal-panel% restp)]
@@ -646,91 +652,109 @@
 					x
 					(tmp-pick a b)))])
       (sequence
-(make-test-button "Aeros" mfbp main-menu (list-ref hockey-ids 0))
-      (make-test-button "Bruins" mfbp main-menu (list-ref hockey-ids 1))
-      (make-test-button "Capitols" mfbp main-menu (list-ref hockey-ids 2))
-      (make-test-button "Apple Item" mfbp apple-menu APPLE-CHECK-ID)
-      (make-object mred:button% mfbp
-		   (lambda args
-		     (send (via apple-menu) check APPLE-CHECK-ID #t))
-		   "Check in Apple")
-			   
-      (make-object mred:button% lblp 
-		   (lambda args
-		     (label-test (via main-menu) ADD-APPLE (tmp-pick "Apple Adder" "Add Apple"))
-		     (help-string-test (via main-menu) ADD-APPLE (tmp-pick "ADDER" "Adds the Apple menu"))
-		     (label-test (via main-menu) (car baseball-ids) (tmp-pick "'Stros" "Astros"))
-		     (help-string-test (via main-menu) (car baseball-ids) (tmp-pick "Houston" null))
-		     (label-test (via main-menu) (cadr hockey-ids) "Bruins")
-		     (label-test (via apple-menu) DELETE-APPLE (apple-pick null "Apple Deleter" "Delete Apple"))
-		     (help-string-test (via apple-menu) DELETE-APPLE (apple-pick null "DELETER"
-										 "Deletes the Apple menu"))
-		     (label-test (via apple-menu) COCONUT-ID (apple-pick null "Coconut!" "Coconut"))
-		     (help-string-test (via apple-menu) COCONUT-ID (apple-pick null "SUBMENU" "Submenu"))
-		     (label-test (via apple-menu) DELETE-COCONUT (apple-pick null "Coconut Deleter" "Delete Coconut")) ; submenu test
-		     (help-string-test (via apple-menu) DELETE-COCONUT (apple-pick null "CDELETER" null))
-		     (top-label-test 0 (if temp-labels? "Hi" "Tester"))
-		     (top-label-test 1 (if apple-installed? "Apple" null))
-		     (tell-ok))
-		   "Test Labels")
-      (make-object mred:button% lblp
-		   (lambda args
-		     (find-test main-menu (tmp-pick "Hi" "Tester")
-				ADD-APPLE (tmp-pick "Apple Adder" "Add Apple"))
-		     (find-test apple-menu "Apple" (apple-pick -1 DELETE-APPLE DELETE-APPLE)
-				(tmp-pick "Apple Deleter" "Delete Apple"))
-		     (find-test apple-menu "Apple" (apple-pick -1 COCONUT-ID COCONUT-ID)
-				(tmp-pick "Coconut!" "Coconut"))
-		     (find-test apple-menu "Apple" (apple-pick -1 DELETE-COCONUT DELETE-COCONUT)
-				(tmp-pick "Coconut Deleter" "Delete Coconut"))
-		     (tell-ok))
-		   "Find Labels")
-      (make-object mred:button% lblp
-		   (lambda args
-		     (set! temp-labels? (not temp-labels?))
-		     (let ([menu (via main-menu)])
-		       (send menu set-label ADD-APPLE (tmp-pick "Apple Adder" "Add Apple"))
-		       (send menu set-label (car baseball-ids) (tmp-pick "'Stros" "Astros"))
-		       (send apple-menu set-label DELETE-APPLE (tmp-pick "Apple Deleter" "Delete Apple"))
-		       (send apple-menu set-label COCONUT-ID (tmp-pick "Coconut!" "Coconut"))
-		       (send apple-menu set-label DELETE-COCONUT (tmp-pick "Coconut Deleter" "Delete Coconut"))
-		       (send menu set-help-string ADD-APPLE (tmp-pick "ADDER" "Adds the Apple menu"))
-		       (send menu set-help-string (car baseball-ids) (tmp-pick "Houston" null))
-		       (send apple-menu set-help-string DELETE-APPLE (tmp-pick "DELETER" "Deletes the Apple menu"))
-		       (send apple-menu set-help-string COCONUT-ID (tmp-pick "SUBMENU" "Submenu"))
-		       (send apple-menu set-help-string DELETE-COCONUT (tmp-pick "CDELETER" null))
-		       (send menu-bar set-label-top 0 (if temp-labels? "Hi" "Tester"))))
-		   "Toggle Labels")
-      (letrec ([by-bar (make-object mred:check-box% lblp
-				    (lambda args
-				      (set! use-menubar? (send by-bar get-value)))
-				    "Via Menubar")])
-	by-bar)
+	(make-object mred:button% sbp
+		     (lambda args
+		       (send menu-bar delete main-menu))
+		     "Delete Tester")
+	(make-object mred:button% sbp
+		     (lambda args
+		       (send menu-bar delete null 0))
+		     "Delete First Menu")
+	(make-object mred:button% sbp
+		     (lambda args
+		       (send menu-bar append main-menu "Tester"))
+		     "Add Tester")
+	(make-object mred:button% sbp
+		     (lambda args
+		       (send banana-menu append (+ offset DELETE-BANANA)
+			     "Delete Banana"))
+		     "Add Delete Banana")
 
-      (make-test-button "Bad Item" badp apple-menu 777)
-      (make-test-button "Other Bad Item" badp apple-menu -1)
-      (make-object mred:button% badp
-		   (lambda args
-		     (label-test main-menu 777 null)
-		     (label-test main-menu -1 null)
-		     (help-string-test main-menu 777 null)
-		     (help-string-test main-menu -1 null)
-		     (top-label-test -1 null)
-		     (top-label-test 777 null)
-		     (find-test main-menu "No way" -1 "Not in the menus")
-		     (tell-ok))
-		   "Bad Item Labels")
-      (make-object mred:button% badp 
-		   (make-bad-test (ivar main-menu check))
-		   "Check Bad")
-      (make-object mred:button% badp 
-		   (make-bad-test (ivar main-menu enable))
-		   "Enable Bad")
-      (make-object mred:button% badp 
-		   (make-bad-test (lambda (a b) (send main-menu delete a)))
-		   "Delete Bad")
-
-      #f))))
+	(make-test-button "Aeros" mfbp main-menu (list-ref hockey-ids 0))
+	(make-test-button "Bruins" mfbp main-menu (list-ref hockey-ids 1))
+	(make-test-button "Capitols" mfbp main-menu (list-ref hockey-ids 2))
+	(make-test-button "Apple Item" mfbp apple-menu APPLE-CHECK-ID)
+	(make-object mred:button% mfbp
+		     (lambda args
+		       (send (via apple-menu) check APPLE-CHECK-ID #t))
+		     "Check in Apple")
+	
+	(make-object mred:button% lblp 
+		     (lambda args
+		       (label-test (via main-menu) ADD-APPLE (tmp-pick "Apple Adder" "Add Apple"))
+		       (help-string-test (via main-menu) ADD-APPLE (tmp-pick "ADDER" "Adds the Apple menu"))
+		       (label-test (via main-menu) (car baseball-ids) (tmp-pick "'Stros" "Astros"))
+		       (help-string-test (via main-menu) (car baseball-ids) (tmp-pick "Houston" null))
+		       (label-test (via main-menu) (cadr hockey-ids) "Bruins")
+		       (label-test (via apple-menu) DELETE-APPLE (apple-pick null "Apple Deleter" "Delete Apple"))
+		       (help-string-test (via apple-menu) DELETE-APPLE (apple-pick null "DELETER"
+										   "Deletes the Apple menu"))
+		       (label-test (via apple-menu) COCONUT-ID (apple-pick null "Coconut!" "Coconut"))
+		       (help-string-test (via apple-menu) COCONUT-ID (apple-pick null "SUBMENU" "Submenu"))
+		       (label-test (via apple-menu) DELETE-COCONUT (apple-pick null "Coconut Deleter" "Delete Coconut")) ; submenu test
+		       (help-string-test (via apple-menu) DELETE-COCONUT (apple-pick null "CDELETER" null))
+		       (top-label-test 0 (if temp-labels? "Hi" "Tester"))
+		       (top-label-test 1 (if apple-installed? "Apple" null))
+		       (tell-ok))
+		     "Test Labels")
+	(make-object mred:button% lblp
+		     (lambda args
+		       (find-test main-menu (tmp-pick "Hi" "Tester")
+				  ADD-APPLE (tmp-pick "Apple Adder" "Add Apple"))
+		       (find-test apple-menu "Apple" (apple-pick -1 DELETE-APPLE DELETE-APPLE)
+				  (tmp-pick "Apple Deleter" "Delete Apple"))
+		       (find-test apple-menu "Apple" (apple-pick -1 COCONUT-ID COCONUT-ID)
+				  (tmp-pick "Coconut!" "Coconut"))
+		       (find-test apple-menu "Apple" (apple-pick -1 DELETE-COCONUT DELETE-COCONUT)
+				  (tmp-pick "Coconut Deleter" "Delete Coconut"))
+		       (tell-ok))
+		     "Find Labels")
+	(make-object mred:button% lblp
+		     (lambda args
+		       (set! temp-labels? (not temp-labels?))
+		       (let ([menu (via main-menu)])
+			 (send menu set-label ADD-APPLE (tmp-pick "Apple Adder" "Add Apple"))
+			 (send menu set-label (car baseball-ids) (tmp-pick "'Stros" "Astros"))
+			 (send apple-menu set-label DELETE-APPLE (tmp-pick "Apple Deleter" "Delete Apple"))
+			 (send apple-menu set-label COCONUT-ID (tmp-pick "Coconut!" "Coconut"))
+			 (send apple-menu set-label DELETE-COCONUT (tmp-pick "Coconut Deleter" "Delete Coconut"))
+			 (send menu set-help-string ADD-APPLE (tmp-pick "ADDER" "Adds the Apple menu"))
+			 (send menu set-help-string (car baseball-ids) (tmp-pick "Houston" null))
+			 (send apple-menu set-help-string DELETE-APPLE (tmp-pick "DELETER" "Deletes the Apple menu"))
+			 (send apple-menu set-help-string COCONUT-ID (tmp-pick "SUBMENU" "Submenu"))
+			 (send apple-menu set-help-string DELETE-COCONUT (tmp-pick "CDELETER" null))
+			 (send menu-bar set-label-top 0 (if temp-labels? "Hi" "Tester"))))
+		     "Toggle Labels")
+	(letrec ([by-bar (make-object mred:check-box% lblp
+				      (lambda args
+					(set! use-menubar? (send by-bar get-value)))
+				      "Via Menubar")])
+	  by-bar)
+	
+	(make-test-button "Bad Item" badp apple-menu 777)
+	(make-test-button "Other Bad Item" badp apple-menu -1)
+	(make-object mred:button% badp
+		     (lambda args
+		       (label-test main-menu 777 null)
+		       (label-test main-menu -1 null)
+		       (help-string-test main-menu 777 null)
+		       (help-string-test main-menu -1 null)
+		       (top-label-test -1 null)
+		       (top-label-test 777 null)
+		       (find-test main-menu "No way" -1 "Not in the menus")
+		       (tell-ok))
+		     "Bad Item Labels")
+	(make-object mred:button% badp 
+		     (make-bad-test (ivar main-menu check))
+		     "Check Bad")
+	(make-object mred:button% badp 
+		     (make-bad-test (ivar main-menu enable))
+		     "Enable Bad")
+	(make-object mred:button% badp 
+		     (make-bad-test (lambda (a b) (send main-menu delete a)))
+		     "Delete Bad")
+	
+	#f))))
 
 (define (menu-frame)
   (define mf (make-object f% null "Menu Test"))

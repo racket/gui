@@ -2,6 +2,14 @@ Instructions:
  Initial Setup:
   - Second menu is enabled "Apple"
   Delete Apple
+  Add Apple - apple menu appears
+  Delete Tester (button)
+  Delete First Menu (button) - empty menu bar
+  Add Tester (button)
+  Add Apple
+  Delete Tester
+  Add Tester - tester now the second menu
+  Delete Apple - only tester left
 
  Menu Inserting & Deleting:
   Add Apple - apple menu appears
@@ -51,13 +59,22 @@ Instructions:
   Append Donut
   Add Apple - three donuts total
 
+ Emptying a Menu
+  Add Banana
+  Delete First Banana Item (in Banana Menu) - one left
+  Delete First Banana Item - none left
+  Add Delete Banana - one item again
+  Add Delete Banana - two items
+  Delete Banana
+
  Checkable Items & Insertions:
   Test Apple Item -> "no"
-  Apple Checkable
+  Apple | Checkable - on
   Test Apple Item -> "yes"
   Delete Apple
   Test Apple Item -> "yes"
-  Apple Checkable
+  Add Apple
+  Apple | Checkable - off
   Test Apple Item -> "no"
   Delete Apple
   Test Apple Item -> "no"
@@ -78,7 +95,7 @@ Instructions:
   Test Capitols -> "no"
 
  Checkable via Menubar (Apple & Banana currently deleted):
-  Via Menubar
+  Via Menubar - on
   Test Aeros -> "no"
   Test Bruin -> "yes"
   Test Apple Item -> "no"
@@ -91,7 +108,7 @@ Instructions:
   Add Apple
   Apple | Checkable
   Delete Apple
-  Via Menubar
+  Via Menubar - off
 
  Labels (Apple & Banana currently deleted):
   Add Coconut - (coconut item needed for the rest)
@@ -107,7 +124,7 @@ Instructions:
   Toggle Labels - "Delete Apple" -> "Apple Deleter"
   Toggle Labels
   Delete Apple
-  Via Menubar 
+  Via Menubar - on
   Test Labels - "ok" in console
   Find Labels - "ok" in console
   Toggle Labels - "Add Apple" -> "Apple Adder", "Astros" -> "'Stros"
@@ -120,11 +137,12 @@ Instructions:
   Via Menubar - off
 
  Handling Bad Requests:
-  Test Bad Item -> #f
-  Test Other Bad Item -> #f
+  Test Bad Item -> "no"
+  Test Other Bad Item -> "no"
   Bad Item Labels - "ok" in console
-  Via Menubar 
+  Via Menubar - on
   Bad Item Labels - "ok" in console
-  Via Menubar 
-  Bad Check - nothing
-  Bad Enable - nothing
+  Via Menubar - off
+  Check Bad - nothing
+  Enable Bad - nothing
+  Delete Bad - nothing
