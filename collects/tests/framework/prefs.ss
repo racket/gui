@@ -41,7 +41,7 @@
 		(preferences:get ',pref-sym))))
 
 
-(test 'preference-dialog-appears
+(test 'dialog-appears
       (lambda (x) (eq? 'passed x))
       (lambda ()
 	(send-sexp-to-mred '(preferences:show-dialog))
