@@ -1,3 +1,5 @@
+#|
+
 (define (test-creation name class-expression)
   (test
    name
@@ -135,3 +137,32 @@
 (test-open "frame:editor open" 'frame:text%)
 (test-open "frame:searchable open" 'frame:searchable%)
 (test-open "frame:text-info open" 'frame:text-info-file%)
+
+|#
+
+(test
+ "set!-ing menu callback in standard-menus-frame"
+ (lambda (x) (eq? x 'passed))
+ (lambda ()
+   (send-sexp-to-mred
+    `(let* ([set!-cb-frame%
+             (class frame:standard-menus% ()
+               (private [value 'failed])
+               (public
+                 [get-value
+                  (lambda () value)]
+                 [update-printing-proc 
+                  (lambda ()
+                    (set! file-menu:print 
+                          (lambda x (set! value 'passed))))])
+               (override
+                 [file-menu:print (lambda x (void))])
+               (sequence (super-init "set!-cb frame")))]
+            [f (make-object set!-cb-frame%)])
+       (send f update-printing-proc)
+       (send f show #t)))
+   (wait-for-frame "set!-cb frame")
+   (send-sexp-to-mred
+    `(test:menu-select "File" "Print..."))
+   (send-sexp-to-mred
+    `(send (get-top-level-focus-window) get-value))))
