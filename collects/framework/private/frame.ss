@@ -2069,7 +2069,7 @@
               [(and (mrf-bday?)
                     (send evt button-up?))
                (message-box (string-constant drscheme)
-                            "Happy Birthday, Matthew!")]
+                            (string-constant happy-birthday-matthew))]
               [else (super-on-event evt)]))
           (super-instantiate ())))
       
