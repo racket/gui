@@ -104,6 +104,7 @@
 	(for-each (lambda (x) 
 		    (hash-table-put! hash-table x 'define))
 		  '(define defmacro define-macro
+                     match-lambda match-lambda*
                      define-syntax-set
 		     define-values
                      define/public define/override define/private define/field
@@ -129,7 +130,6 @@
 
                      
                      lambda let let* letrec recur
-                     match-lambda match-lambda*
                      letrec-values
                      with-syntax
 		     with-continuation-mark
