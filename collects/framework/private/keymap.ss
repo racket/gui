@@ -265,7 +265,7 @@
 					    (send edit get-start-position))]
 			[bt (box 0)]
 			[bb (box 0)])
-		    (send edit get-visible-line-range bt bb)
+		    (send edit get-visible-line-range bt bb #f)
 		    (let* ([half (sub1 (quotient (- (unbox bb) (unbox bt)) 2))]
 			   [last-pos (send edit position-line (send edit last-position))]
 			   [top-pos (send edit line-start-position 
