@@ -5220,7 +5220,7 @@
     (check-label-string/false who message)
     (check-top-level-parent/false who parent)
     (check-string/false who directory) (check-string/false who filename) (check-string/false who extension)
-    (check-style who #f null style)
+    (check-style who #f (if (or put?) null '(packages-ok)) style)
     (unless (and (list? filters)
 		 (andmap (lambda (p)
 			   (and (list? p)
@@ -5232,10 +5232,21 @@
     (if (not (or (eq? (system-type) 'unix)
 		 force-unix?))
 	(let ([s (wx:file-selector message directory filename extension 
+				   ;; file types:
 				   (apply string-append
 					  (map (lambda (s) (format "~a|~a|" (car s) (cadr s)))
 					       filters))
-				   (if put? 'put (if multi? 'multi 'get))
+				   ;; style:
+				   (cons
+				    (cond
+				     [dir? 'dir]
+				     [put? 'put]
+				     [multi? 'multi]
+				     [else 'get])
+				    (if (memq 'packages-ok style)
+					'(bundles-ok)
+					null))
+				   ;; parent:
 				   (and parent (mred->wx parent)))])
 	  (if (and multi? s)
 	      (files->list s)
@@ -5446,18 +5457,7 @@
    [(message parent) (get-directory message parent #f null)]
    [(message parent directory) (get-directory message parent directory null)]
    [(message parent directory style)
-
-    (check-label-string/false 'get-directory message)
-    (check-top-level-parent/false 'get-directory parent)
-    (check-string/false 'get-directory directory)
-    (check-style 'get-directory #f null style)
-
-    (if (eq? 'windows (system-type))
-	(wx:file-selector
-	 message directory #f #f #f
-	 'dir
-	 (and parent (mred->wx parent)))
-        ((mk-file-selector 'get-directory #f #f #t #t) message parent directory #f #f style null))]))
+    ((mk-file-selector 'get-directory #f #f #t #f) message parent directory #f #f style null)]))
 
 (define get-color-from-user 
   (case-lambda
