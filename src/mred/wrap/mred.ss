@@ -96,7 +96,7 @@
 ; ------------- Mixins for common functionality --------------
 
 
-(define make-window%
+(define wx-make-window%
   (lambda (%)
     (class % args
       (rename [super-on-set-focus on-set-focus]
@@ -148,7 +148,7 @@
 ;            capabilities necessary to serve as the frame/dialog which
 ;            contains container classes.
 (define (make-top-container% base%)
-  (class (make-container% (make-window% base%)) args
+  (class (make-container% (wx-make-window% base%)) args
     (inherit get-x get-y get-width get-height
 	     get-client-size is-shown?)
     (rename [super-show show]
@@ -372,7 +372,7 @@
 (define make-item%
   (polymorphic
    (lambda (item% x-margin-w y-margin-h stretch-x stretch-y)
-     (class (make-window% item%) args
+     (class (wx-make-window% item%) args
        (rename [super-on-set-focus on-set-focus]
 	       [super-on-kill-focus on-kill-focus])
        (inherit get-width get-height get-x get-y
@@ -1002,9 +1002,14 @@
       ; Not used by linear panels
       [h-align 'center] [v-align 'center]
 
+      ; Needed for windowless panes
+      [move-children? #f]
+
       [ignore-redraw-request? #f])
     
     (public
+      [need-move-children (lambda () (set! move-children? #t))]
+
       [border
        (let ([curr-border const-default-border])
 	 (case-lambda
@@ -1189,9 +1194,11 @@
 	   (unless (and (number? curr-width)
 			(number? curr-height)
 			(= curr-width client-width)
-			(= curr-height client-height))
+			(= curr-height client-height)
+			(not move-children?))
 	     (set! curr-width client-width)
 	     (set! curr-height client-height)
+	     (set! move-children? #f)
 	     (redraw client-width client-height))))]
       
       ; place-children: determines where each child of panel should be
@@ -1268,9 +1275,13 @@
 
 (define (wx-make-pane% wx:panel%)
   (class (make-container-glue% (make-glue% (wx-make-basic-panel% wx:panel%))) args
-    (inherit get-parent get-x get-y)
+    (inherit get-parent get-x get-y need-move-children)
+    (rename [super-set-size set-size])
     (public
       [get-window (lambda () (send (get-parent) get-window))]
+      [set-size (lambda (x y w h) 
+		  (super-set-size x y w h)
+		  (need-move-children))]
       [dx (lambda () (get-x))]
       [dy (lambda () (get-y))])
     (sequence
@@ -1521,10 +1532,9 @@
       (private
 	[block-callback 1]
 	[callback
-	 (lambda (type str?)
+	 (lambda (type)
 	   (when (zero? block-callback)
-	     (let ([str (if str? (get-text 0 (last-position)) #f)]
-		   [e (make-object wx:control-event% type)])
+	     (let ([e (make-object wx:control-event% type)])
 	       (cb control e))))])
       (public
 	[on-char
@@ -1532,16 +1542,16 @@
 	   (let ([c (send e get-key-code)])
 	     (unless (and (or (eq? c #\return) (eq? c #\newline))
 			  return-cb
-			  (return-cb (lambda () (callback 'text-enter #t))))
+			  (return-cb (lambda () (callback 'text-enter) #t)))
 	       (super-on-char e))))]
 	[after-insert
 	 (lambda args
 	   (apply super-after-insert args)
-	   (callback 'text #t))]
+	   (callback 'text))]
 	[after-delete
 	 (lambda args
 	   (apply super-after-delete args)
-	   (callback 'text #t))]
+	   (callback 'text))]
 	[callback-ready
 	 (lambda () 
 	   (set! block-callback 0))]
@@ -1580,8 +1590,8 @@
 		      (if multi?
 			  (if (memq 'hscroll style)
 			      null
-			      '(hide-h-scroll))
-			  '(hide-v-scroll hide-h-scroll)))]
+			      '(hide-hscroll))
+			  '(hide-vscroll hide-hscroll)))]
       [e (make-object wx-text-media-edit%
 		      func
 		      (lambda (do-cb)
@@ -1604,6 +1614,7 @@
       [get-label (lambda () (send l get-label))]
 
       [set-cursor (lambda (c) (send e set-cursor c #t))]
+      [set-focus (lambda () (send c set-focus))]
 	
       [place-children
        (lambda (children-info width height)
@@ -1722,7 +1733,7 @@
 (define (wrap-callback cb)
   (if (and (procedure? cb)
 	     (procedure-arity-includes? cb 2))
-      (lambda (w e) (cb (wx->mred w) e))
+      (lambda (w e) (cb (wx->proxy w) e))
       cb))
 
 (define mred-get-low-level-window (make-generic mred% get-low-level-window))
@@ -1805,7 +1816,7 @@
     show is-shown?
     refresh))
 
-(define (make-window% %) ; % implements area<%>
+(define (make-window% top? %) ; % implements area<%>
   (class* % (window<%>) (mk-wx get-wx-panel label parent cursor)
     (public
       [on-focus void]
@@ -1836,15 +1847,15 @@
       [get-geometry (lambda ()
 		      (let ([x (box 0)][y (box 0)][w (box 0)][h (box 0)])
 			(send wx get-size w h x y)
-			(values (- (unbox x) (send wx dx)) 
-				(- (unbox y) (send wx dy))
+			(values (- (unbox x) (if top? 0 (send wx dx)))
+				(- (unbox y) (if top? 0 (send wx dy)))
 				(unbox w) (unbox h))))]
       
       [get-width (lambda () (send wx get-width))]
       [get-height (lambda () (send wx get-height))]
-      [get-x (lambda () (- (send wx get-x) (send wx dx)))]
-      [get-y (lambda () (- (send wx get-y) (send wx dy)))]
-
+      [get-x (lambda () (- (send wx get-x) (if top? 0 (send (send wx get-parent) dx))))]
+      [get-y (lambda () (- (send wx get-y) (if top? (send (send wx get-parent) dy))))]
+      
       [get-text-extent (letrec ([l (case-lambda 
 				    [(s w h) (l s w h #f #f #f)]
 				    [(s w h d) (l s w h d #f #f)]
@@ -1894,7 +1905,7 @@
     center move resize))
 
 (define basic-top-level-window%
-  (class* (make-area-container-window% (make-window% (make-container% area%))) (top-level-window<%>) (mk-wx label parent)
+  (class* (make-area-container-window% (make-window% #t (make-container% area%))) (top-level-window<%>) (mk-wx label parent)
     (rename [super-set-label set-label])
     (private
       [wx-object->mred
@@ -1944,7 +1955,7 @@
     command))
 
 (define basic-control%
-  (class* (make-window% (make-subarea% area%)) (control<%>) (mk-wx label parent cursor)
+  (class* (make-window% #f (make-subarea% area%)) (control<%>) (mk-wx label parent cursor)
     (rename [super-set-label set-label])
     (public
       [set-label (lambda (l)
@@ -2195,7 +2206,7 @@
     popup-menu warp-pointer get-dc))
 
 (define basic-canvas%
-  (class* (make-window% (make-subarea% area%)) (canvas<%>) (mk-wx parent)
+  (class* (make-window% #f (make-subarea% area%)) (canvas<%>) (mk-wx parent)
     (public
       [on-char (lambda (e) (send wx do-on-char e))]
       [on-event (lambda (e) (send wx do-on-event e))]
@@ -2317,7 +2328,7 @@
 		  (lambda () wx) #f parent #f))))
 
 
-(define basic-panel% (make-area-container-window% (make-window% (make-subarea% (make-container% area%)))))
+(define basic-panel% (make-area-container-window% (make-window% #f (make-subarea% (make-container% area%)))))
 (define panel% (make-panel% 'panel basic-panel% wx-panel%))
 (define vertical-panel% (make-panel% 'vertical-panel basic-panel% wx-vertical-panel%))
 (define horizontal-panel% (make-panel% 'horizontal-panel basic-panel% wx-horizontal-panel%))
@@ -2678,74 +2689,258 @@
 
   (send repl-display-canvas focus))
 
-(define (get-ps-setup-from-user)
-  (define pss (wx:current-ps-setup))
-  (define f (make-object dialog-box% "PostScript Setup" #t))
-  (define papers 
-    '("A4 210 x 297 mm" "A3 297 x 420 mm" "Letter 8 1/2 x 11 in" "Legal 8 1/2 x 14 in"))
-  (define p (make-object horizontal-pane% f))
-  (define paper (make-object choice% #f papers p void))
-  (define _0 (make-object vertical-pane% p))
-  (define ok (make-object button% "Ok" p (lambda (b e) (done #t)) '(default)))
-  (define cancel (make-object button% "Cancel" p (lambda (b e) (done #f))))
-  (define unix? (eq? (system-type) 'unix))
-  (define dp (make-object horizontal-pane% f))
-  (define orientation (make-object radio-box% "Orientation:" '("Portrait" "Landscape") dp void))
-  (define destination (and unix? (make-object radio-box% "Destination:" 
-					      '("Printer" "Preview" "File") dp void)))
-  (define cp (and unix? (make-object horizontal-pane% f)))
-  (define command (and unix? (make-object text% "Printer Command:" cp void)))
-  (define options (and unix? (make-object text% "Printer Options:" cp void)))
+(define box-width 300)
 
-  (define ssp (make-object horizontal-pane% f))
-  (define sp (make-object vertical-pane% ssp))
-  (define def-scale "100.00")
-  (define def-offset "0000.00")
-  (define xscale (make-object text% "Horizontal Scale:" sp void def-scale))
-  (define xoffset (make-object text% "Horizontal Translation:" sp void def-offset))
-  (define sp2 (make-object vertical-pane% ssp))
-  (define yscale (make-object text% "Vertical Scale:" sp2 void def-scale))
-  (define yoffset (make-object text% "Vertical Translation:" sp2 void def-offset))
+(define message-box
+  (case-lambda
+   [(title message) (message-box title message #f '(ok))]
+   [(title message parent) (message-box title message parent '(ok))]
+   [(title message parent style)
+    (let* ([f (make-object dialog-box% title #t parent box-width)]
+	   [result 'ok]
+	   [strings (let loop ([s message])
+		      (let ([m (regexp-match (let ([nl (string #\newline #\return)])
+					       (format "([^~a]*)[~a](.*)" nl nl))
+					     s)])
+			(if m
+			    (cons (cadr m) (loop (caddr m)))
+			    (list s))))])
+      (if (and (< (length strings) 10) (andmap (lambda (s) (< (string-length s) 60)) strings))
+	  (begin
+	    (send f set-alignment (if (= (length strings) 1) 'center 'left) 'top)
+	    (for-each (lambda (s) (make-object message% s f)) strings)
+	    (send f stretchable-width #f)
+	    (send f stretchable-height #f))
+	  (let ([m (make-object multi-text% #f f void)])
+	    (send m set-value message)
+	    (send (send m get-edit) lock #t)))
+      (let* ([p (make-object horizontal-pane% f)]
+	     [mk-button (lambda (title v default?) 
+			  (let ([b (make-object button% title p (lambda (b e) (set! result v) (send f show #f))
+						(if default? '(default) null))])
+			    (when default? (send b focus))))])
+	(send p stretchable-height #f)
+	(send p stretchable-width #f)
+	(case (car style)
+	  [(ok) (mk-button "&Ok" 'ok #t)]
+	  [(ok-cancel) (mk-button "&Cancel" 'cancel #f)
+		       (mk-button "&Ok" 'ok #t)]
+	  [(yes-no) (mk-button "&Yes" 'yes #f)
+		    (mk-button "&No" 'no #f)]))
+      (send f center)
+      (send f show #t)
+      result)]))
 
-  (define l2 (make-object check-box% "PostScript Level 2" f void))
+(define get-ps-setup-from-user
+  (case-lambda
+   [() (get-ps-setup-from-user parent null)]
+   [(parent) (get-ps-setup-from-user parent null)]
+   [(parent style)
+    (define pss (wx:current-ps-setup))
+    (define f (make-object dialog-box% "PostScript Setup" #t parent))
+    (define papers 
+      '("A4 210 x 297 mm" "A3 297 x 420 mm" "Letter 8 1/2 x 11 in" "Legal 8 1/2 x 14 in"))
+    (define p (make-object horizontal-pane% f))
+    (define paper (make-object choice% #f papers p void))
+    (define _0 (make-object vertical-pane% p))
+    (define ok (make-object button% "Ok" p (lambda (b e) (done #t)) '(default)))
+    (define cancel (make-object button% "Cancel" p (lambda (b e) (done #f))))
+    (define unix? (eq? (system-type) 'unix))
+    (define dp (make-object horizontal-pane% f))
+    (define orientation (make-object radio-box% "Orientation:" '("Portrait" "Landscape") dp void))
+    (define destination (and unix? (make-object radio-box% "Destination:" 
+						'("Printer" "Preview" "File") dp void)))
+    (define cp (and unix? (make-object horizontal-pane% f)))
+    (define command (and unix? (make-object text% "Printer Command:" cp void)))
+    (define options (and unix? (make-object text% "Printer Options:" cp void)))
 
-  (define (done ok?)
-    (send f show #f))
+    (define ssp (make-object horizontal-pane% f))
+    (define sp (make-object vertical-pane% ssp))
+    (define def-scale "100.00")
+    (define def-offset "0000.00")
+    (define xscale (make-object text% "Horizontal Scale:" sp void def-scale))
+    (define xoffset (make-object text% "Horizontal Translation:" sp void def-offset))
+    (define sp2 (make-object vertical-pane% ssp))
+    (define yscale (make-object text% "Vertical Scale:" sp2 void def-scale))
+    (define yoffset (make-object text% "Vertical Translation:" sp2 void def-offset))
 
-  (define (no-stretch a) 
-    (send a stretchable-width #f) (send a stretchable-height #f))
+    (define l2 (make-object check-box% "PostScript Level 2" f void))
 
-  (define-values (xb yb) (values (box 0) (box 0)))
+    (define (done ok?)
+      (send f show #f)
+      (set! ok ok?))
 
-  (send paper set-selection (or (find-pos papers (send pss get-paper-name) equal?) 0))
-  (send orientation set-selection (if (eq? (send pss get-orientation) 'vertical) 1 0))
-  (when unix?
-    (send destination set-selection (case (send pss get-mode)
-				      [(printer) 0] [(preview) 1] [(file) 2]))
+    (define (no-stretch a) (send a stretchable-width #f) (send a stretchable-height #f))
 
-    (send command set-value (send pss get-command))
-    (send options set-value (send pss get-options)))
+    (define-values (xsb ysb xtb ytb) (values (box 0) (box 0) (box 0) (box 0)))
 
-  (send sp set-alignment 'right 'top)
-  (send sp2 set-alignment 'right 'top)
-  (send pss get-scaling xb yb)
-  (send xscale set-value (number->string (unbox xb)))
-  (send yscale set-value (number->string (unbox yb)))
-  (send pss get-translation xb yb)
-  (send xoffset set-value (number->string (unbox xb)))
-  (send yoffset set-value (number->string (unbox yb)))
-  (send xscale stretchable-width #f)
-  (send yscale stretchable-width #f)
-  (send xoffset stretchable-width #f)
-  (send yoffset stretchable-width #f)
+    (send paper set-selection (or (find-pos papers (send pss get-paper-name) equal?) 0))
+    (send orientation set-selection (if (eq? (send pss get-orientation) 'vertical) 1 0))
+    (when unix?
+      (send destination set-selection (case (send pss get-mode)
+					[(printer) 0] [(preview) 1] [(file) 2]))
+      (send command set-value (send pss get-command))
+      (send options set-value (send pss get-options)))
 
-  (send l2 set-value (send pss get-level-2))
+    (send sp set-alignment 'right 'top)
+    (send sp2 set-alignment 'right 'top)
+    (send pss get-scaling xsb ysb)
+    (send xscale set-value (number->string (unbox xsb)))
+    (send yscale set-value (number->string (unbox ysb)))
+    (send pss get-translation xtb ytb)
+    (send xoffset set-value (number->string (unbox xtb)))
+    (send yoffset set-value (number->string (unbox ytb)))
+    (send xscale stretchable-width #f)
+    (send yscale stretchable-width #f)
+    (send xoffset stretchable-width #f)
+    (send yoffset stretchable-width #f)
 
-  (send f set-alignment 'center 'top)
+    (send l2 set-value (send pss get-level-2))
 
-  (map no-stretch (list f xscale yscale xoffset yoffset dp))
+    (send f set-alignment 'center 'top)
 
-  (send f show #t)
+    (map no-stretch (list f xscale yscale xoffset yoffset dp))
 
-  (printf "~a~n" (send orientation get-selection)))
+    (send f center)
 
+    (send f show #t)
+
+    (if ok
+	(let ([s (make-object wx:ps-setup%)]
+	      [gv (lambda (c b)
+		    (or (string->number (send c get-value)) (unbox b)))])
+	  (send s set-paper-name (send paper get-string-selection))
+	  (send s set-orientation (if (positive? (send orientation get-selection))
+				      'landscape
+				      'portrait))
+	  (when unix?
+	    (send s set-mode (case (send destination get-selection)
+			       [(0) 'printer]
+			       [(1) 'preview]
+			       [(2) 'file])))
+	  (send s set-scaling (gv xscale xsb) (gv yscale ysb))
+	  (send s set-translation (gv xoffset xtb) (gv yoffset ytb))
+	  (send s set-level-2 (send l2 get-value))
+	  s)
+	#f)]))
+
+(define get-text-from-user
+  (case-lambda
+   [(title message) (get-text-from-user title message "" #f null)]
+   [(title message init-val) (get-text-from-user title message init-val #f null)]
+   [(title message init-val parent) (get-text-from-user title message init-val parent null)]
+   [(title message init-val parent style)
+    (let* ([f (make-object dialog-box% title #t parent box-width)]
+	   [ok? #f]
+	   [done (lambda (?) (lambda (b e) (set! ok? ?) (send f show #f)))])
+      (send f set-label-position 'vertical)
+      (let ([t (make-object text% message f (lambda (t e) (when (eq? (send e get-event-type) 'text-enter)
+							    ((done #t) #f #f)))
+			    init-val)]
+	    [p (make-object horizontal-pane% f)])
+	(send p set-alignment 'right 'center)
+	(send p stretchable-height #f)
+	(make-object button% "Cancel" p (done #f))
+	(make-object button% "Ok" p (done #t) '(default))
+	(send t focus)
+	(send f show #t)
+	(and ok? (send t get-value))))]))
+
+(define get-choice-from-user
+  (case-lambda
+   [(title message choices) (get-choice-from-user title message choices null #f '(single))]
+   [(title message choices parent) (get-choice-from-user title message choices parent null '(single))]
+   [(title message choices parent init-vals) (get-choice-from-user title message choices parent init-val '(single))]
+   [(title message choices parent init-vals style)
+    (let* ([f (make-object dialog-box% title #t parent box-width)]
+	   [ok-button #f]
+	   [update-ok (lambda (l) (send ok-button enable (not (null? (send l get-selections)))))]
+	   [ok? #f]
+	   [done (lambda (?) (lambda (b e) (set! ok? ?) (send f show #f)))])
+      (send f set-label-position 'vertical)
+      (let ([l (make-object list-box% message choices f
+			    (lambda (l e)
+			      (update-ok l)
+			      (when (eq? (send e get-event-type) 'list-box-dclick)
+				((done #t) #f #f)))
+			    style)]
+	    [p (make-object horizontal-pane% f)])
+	(for-each (lambda (i) (send l select i #t)) init-vals)
+	(send p set-alignment 'right 'center)
+	(send p stretchable-height #f)
+	(make-object button% "Cancel" p (done #f))
+	(set! ok-button (make-object button% "Ok" p (done #t) '(default)))
+	(update-ok l)
+	(send f show #t)
+	(and ok? (send l get-selections))))]))
+
+(define file-selector
+  (case-lambda
+   [(directory filename) (file-selector directory filename #f '(get) #f)]
+   [(directory filename parent) (file-selector directory filename parent '(get) #f)]
+   [(directory filename parent style) (file-selector directory filename parent style #f)]
+   [(directory filename parent style extension)
+    (letrec ([put? (memq 'put style)]
+	     [ok? #t]
+	     [dir (or directory (current-directory))]
+	     [f (make-object dialog-box% (if put? "Put File" "Get File") #t parent 500 300)]
+	     [m (make-object message% dir f)]
+	     [lp (make-object horizontal-pane% f)]
+	     [dirs (make-object list-box% #f null lp (lambda (d e)
+						      (when (eq? (send e get-event-type) 'list-box-dclick)
+							(let ([sd (send d get-string-selection)])
+							  (set! dir (simplify-path (build-path dir sd)))
+							  (reset-directory)))))]
+	     [files (make-object list-box% #f null lp (lambda (d e)
+						       (update-ok)
+						       (when (eq? (send e get-event-type) 'list-box-dclick)
+							 (send ok-button command (make-object wx:control-event% 'button)))))]
+	     [dir-text (make-object text% #f f (lambda (t e)
+						 (when (eq? (send e get-event-type) 'text-enter)
+						   (set! dir (send t get-value))
+						   (reset-directory))))]
+	     [bp (make-object horizontal-pane% f)]
+	     [cancel-button (make-object button% "&Cancel" bp (lambda (b e) (set! ok? #f) (send f show #f)))]
+	     [ok-button (make-object button% "&Ok" bp (lambda (b e) (send f show #f)) '(default))]
+	     [update-ok (lambda () (send ok-button enable (not (null? (send files get-selections)))))]
+	     [reset-directory (lambda ()
+				(wx:begin-busy-cursor)
+				(send m set-label (if (directory-exists? dir)
+						      dir
+						      (string-append "BAD DIRECTORY: " dir)))
+				(send dir-text set-value dir)
+				(let ([l (with-handlers ([void (lambda (x) null)])
+					   (directory-list dir))])
+				  (letrec ([sort (lambda (l)
+						   (if (or (null? l) (null? (cdr l)))
+						       l
+						       (let-values ([(l1 l2) (split l null null)])
+							 (merge (sort l1) (sort l2)))))]
+					   [split (lambda (l l1 l2)
+						    (cond
+						     [(null? l) (values l1 l2)]
+						     [(null? (cdr l)) (values (cons (car l) l1) l2)]
+						     [else (split (cddr l) (cons (car l) l1) (cons (cadr l) l2))]))]
+					   [merge (lambda (l1 l2)
+						    (cond
+						     [(null? l1) l2]
+						     [(null? l2) l1]
+						     [(string<? (car l1) (car l2)) (cons (car l1) (merge (cdr l1) l2))]
+						     [else (merge l2 l1)]))])
+				    (let-values ([(ds fs)
+						  (let loop ([l l][ds null][fs null])
+						    (cond
+						     [(null? l) (values (cons ".." (sort (reverse! ds))) (sort (reverse! fs)))]
+						     [(file-exists? (build-path dir (car l))) (loop (cdr l) ds (cons (car l) fs))]
+						     [else (loop (cdr l) (cons (car l) ds) fs)]))])
+				      (send dirs set ds)
+				      (send files set fs)
+				      (update-ok)
+				      (wx:end-busy-cursor)))))])
+      (send bp set-alignment 'right 'center)
+      (send bp stretchable-height #f)
+      (send m stretchable-width #t)
+      (reset-directory)
+      (send f center)
+      (send f show #t)
+      (and ok? (simplify-path (build-path dir (send files get-string-selection)))))]))
