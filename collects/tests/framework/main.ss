@@ -18,7 +18,8 @@
 
 (define-signature internal-TestSuite^
   ((open TestSuite^)
-   test-name))
+   test-name
+   failed-tests))
 
 (define-signature Engine^
   (only-these-tests
@@ -34,6 +35,7 @@
 	    mzlib:function^)
 
     (define test-name "<<setup>>")
+    (define failed-tests null)
 
     (define-struct eof-result ())
 
@@ -175,6 +177,7 @@
 		       (not (passed? result))))])
 	      (when failed
 		(printf "FAILED ~a: ~a~n" failed test-name)
+		(set! failed-tests (cons (cons section-name test-name) failed-tests))
 		(case jump
 		  [(section) (section-jump)]
 		  [(continue) (void)]
@@ -250,7 +253,7 @@
 				    [section-jump k])
 			  (with-handlers ([(lambda (x) #t)
 					   (lambda (exn)
-					     (printf "~a" (if (exn? exn) (exn-message exn) exn)))])
+					     (printf "~a~n" (if (exn? exn) (exn-message exn) exn)))])
 			    (printf "beginning ~a test suite~n" x)
 			    (invoke-unit/sig
 			     (eval
@@ -278,7 +281,13 @@
       (delete-file old-preferences-file))
     (printf "  restored preferences file~n")
 
-    (shutdown-listener)))
+    (shutdown-listener)
+
+    (unless (null? failed-tests)
+      (printf "FAILED tests:~n")
+      (for-each (lambda (failed-test)
+		  (printf "  ~a // ~a~n" (car failed-test) (cdr failed-test)))
+		failed-tests))))
 
 (invoke-unit/sig
  (compound-unit/sig

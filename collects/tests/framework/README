@@ -67,7 +67,7 @@ tests.
 
   | This tests the seaching frame.
 
-- info: |# info.ss #|
+- info: |# info-frame.ss #|
 
   | This tests the info frame. (ie that toolbar on the bottom of the
                                 screen)
