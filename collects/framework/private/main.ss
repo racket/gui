@@ -53,7 +53,7 @@
 	(for-each (lambda (x) 
 		    (hash-table-put! hash-table (add-#% x) 'begin)
 		    (hash-table-put! hash-table x 'begin))
-		  '(cond 
+		  '(cond case-lambda
 		    begin begin0 delay
 		    unit compound-unit compound-unit/sig
 		    public private override

@@ -1,3 +1,4 @@
+
 (module panel mzscheme
   (require (lib "unitsig.ss")
 	   (lib "class.ss")
@@ -51,15 +52,21 @@
                             [(center) (- (/ total-size 2) (/ item-size 2))]
                             [(left top) 0]
                             [(right bottom) (- total-size item-size)]
-                            [else (error 'place-children "alignment spec is unknown ~a~n" spec)])))])
+                            [else (error 'place-children
+                                         "alignment spec is unknown ~a~n" spec)])))])
                   (map (lambda (l) 
-                         (let*-values ([(min-width min-height v-stretch? h-stretch?) (apply values l)]
-                                       [(x this-width) (if h-stretch?
-                                                           (values 0 width)
-                                                           (values (align width h-align-spec min-width) min-width))]
-                                       [(y this-height) (if v-stretch?
-                                                            (values 0 height)
-                                                            (values (align height v-align-spec min-height) min-height))])
+                         (let*-values ([(min-width min-height v-stretch? h-stretch?)
+                                        (apply values l)]
+                                       [(x this-width)
+                                        (if h-stretch?
+                                            (values 0 width)
+                                            (values (align width h-align-spec min-width)
+                                                    min-width))]
+                                       [(y this-height)
+                                        (if v-stretch?
+                                            (values 0 height)
+                                            (values (align height v-align-spec min-height)
+                                                    min-height))])
                            (list x y this-width this-height)))
                        l))))]
           
@@ -262,7 +269,8 @@
                (let loop ([percentages percentages]
                           [i i])
                  (cond
-                   [(null? percentages) (error 'panel:vertical-resizable "internal error: sub-percentages")]
+                   [(null? percentages) 
+                    (error 'panel:vertical-resizable "internal error: sub-percentages")]
                    [(= i 0) (car percentages)]
                    [else (+ (car percentages) (loop (cdr percentages) (- i 1)))])))]
             [update-percentage/draw
@@ -274,7 +282,9 @@
                           [y-min 
                            (let ([min-child-height
                                   (max thumb-height
-                                       (let-values ([(w h) (send (list-ref (send parent get-children) (+ grabbed 1)) get-graphical-min-size)])
+                                       (let-values ([(w h) (send (list-ref (send parent get-children)
+                                                                           (+ grabbed 1))
+                                                                 get-graphical-min-size)])
                                          h))])
                              (if (= grabbed 0)
                                  min-child-height
@@ -480,6 +490,11 @@
       (define vertical-resizable% (vertical-resizable-mixin panel%))
       (define vertical-resizable-pane% (vertical-resizable-mixin pane%))
 
+      
+      ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+      ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+      ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+      
       (define bar-canvas%
         (class canvas%
           (init vertical?)
@@ -529,67 +544,24 @@
           (super-instantiate (parent))
           (inherit get-client-size container-flow-modified)
           
-          (define/public (vertical?) (error 'vertical? "abstract"))
-          (define/public (get-sub-panel%) (error 'get-sub-panel% "abstract"))
-          
-          (init-field [first-percent 0.30]
-                      [bar-thickness 5]
+          (init-field [bar-thickness 6]
                       [min-pane-size 5])
           
           (define size 0)
           (define start-percent 0.0)
           
-          (define/private (pick-dir w h)
-            (if (vertical?) h w))
-          (define/private (rotate l)
-            (if (vertical?)
-                l
-                (list (cadr l) (car l)
-                      (cadddr l) (caddr l))))
+          (define/override (after-new-child child)
+            (refresh-bars (get-children)))
           
-          (define first-pane (make-object (get-sub-panel%) this))
-          (define bar-canvas (instantiate bar-canvas% ()
-                               [parent this]
-                               [min-height bar-thickness]
-                               [stretchable-height #f]
-                               [vertical? (vertical?)]
-                               [bar-start
-                                (lambda ()
-                                  (set! start-percent first-percent)
-                                  (let-values ([(w h) (get-client-size)])
-                                    (set! size (pick-dir w h))))]
-                               [bar-move
-                                (lambda (dx dy)
-                                  (set! first-percent
-                                        (/ (+ (* size start-percent) (pick-dir dx dy))
-                                           size))
-                                  
-                                  (container-flow-modified))]
-                               [bar-done
-                                (lambda ()
-                                  'ok)]))
-          (define second-pane (make-object (get-sub-panel%) this))
-          
+          (define bar-gaps null)
+          (rename [super-place-children place-children])
           (define/override (place-children info w h)
-            (if (= 3 (length info))
-                (let* ([min-first-size (max min-pane-size
-                                            (list-ref (car info) (pick-dir 0 1)))]
-                       [min-second-size (max min-pane-size
-                                             (list-ref (caddr info) (pick-dir 0 1)))]
-                       [first-size
-                        (min (max min-first-size
-                                  (inexact->exact (floor (* (- (pick-dir w h) bar-thickness) 
-                                                            first-percent))))
-                             (- (pick-dir w h) bar-thickness min-second-size))]
-                       [common-size (pick-dir h w)])
-                  (list
-                   (rotate (list 0 0 common-size first-size))
-                   (rotate (list 0 first-size common-size bar-thickness))
-                   (rotate (list 0 (+ first-size bar-thickness) 
-                                 common-size (- (pick-dir w h)
-                                                first-size 
-                                                bar-thickness)))))
-                (map (lambda (i) (list 0 0 w h)) info)))
+            'hm
+            ;; cannot use the super-method, since I want to use
+            ;; percentages.
+            ;; just assume that all children are stretchable and
+            ;; what about minimum sizes?
+            )
           
           (inherit change-children)
           (define/public (show-both-panels)
