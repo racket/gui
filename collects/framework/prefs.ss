@@ -361,7 +361,7 @@
 
 	  
 	  (make-check 'framework:display-line-numbers "Display line numbers in buffer; not character offsets" id id)
-	  (when (eq? (system-type) 'windows)
+	  '(when (eq? (system-type) 'windows)
 	    (make-check 'framework:windows-mdi "Use MDI Windows" id id))
 
 	  main))
