@@ -1516,7 +1516,8 @@
 		  (lambda (e)
 		    (let ([mred (get-mred)])
 		      (if mred
-			  ; Delay callback for Windows scrollbar grab
+			  ;; Delay callback for Windows scrollbar 
+			  ;; and Windows/Mac trampoiline
 			  (queue-window-callback
 			   this
 			   (lambda () (send mred on-scroll e)))
@@ -1829,6 +1830,8 @@
     
     (define regions #f)
     (define redo-regions? #f)
+
+    (define border? (memq 'border style))
     
     (define/private (compute-sizes)
       (let ([dc (get-dc)])
@@ -1999,16 +2002,18 @@
 	   (let-values ([(w h) (my-get-client-size)])
 	     (send dc set-pen light-pen)
 	     (draw-once dc w #t #f 0)
-	     (when (> h tab-height)
-	       (send dc draw-line 0 tab-height 0 h)
-	       (send dc draw-line 1 tab-height 1 h))
+	     (when border?
+	       (when (> h tab-height)
+		 (send dc draw-line 0 tab-height 0 h)
+		 (send dc draw-line 1 tab-height 1 h)))
 	     (send dc set-pen dark-pen)
 	     (draw-once dc w #f #t 0)
-	     (when (> h tab-height)
-	       (send dc draw-line (- w 1) tab-height (- w 1) (- h raise-h))
-	       (send dc draw-line (- w 2) (+ 1 tab-height) (- w 2) (- h raise-h))
-	       (send dc draw-line 0 (- h 3 raise-h) w (- h 3 raise-h))
-	       (send dc draw-line 1 (- h 4 raise-h) w (- h 4 raise-h))))
+	     (when border?
+	       (when (> h tab-height)
+		 (send dc draw-line (- w 1) tab-height (- w 1) (- h raise-h))
+		 (send dc draw-line (- w 2) (+ 1 tab-height) (- w 2) (- h raise-h))
+		 (send dc draw-line 0 (- h 3 raise-h) w (- h 3 raise-h))
+		 (send dc draw-line 1 (- h 4 raise-h) w (- h 4 raise-h)))))
 	   (send dc set-origin 0 0)))))
 
     (define/override (on-size w h)
@@ -2505,6 +2510,11 @@
 
 (define wx-basic-panel<%> (interface ()))
 
+(define tab-h-border 2)
+(define tab-v-border (if (eq? (system-type) 'macosx)
+			 5
+			 2))
+
 (define (wx-make-basic-panel% wx:panel% stretch?)
   (class100* (wx-make-container% (make-item% wx:panel% 0 0 stretch? stretch?)) (wx-basic-panel<%>) (parent style)
     (inherit get-x get-y get-width get-height
@@ -2541,11 +2551,11 @@
 	     (send (car children) set-focus)))]
 
       [ext-dx (lambda () (if hidden-child
-			     2 ;; hack!
+			     tab-h-border
 			     0))]
       [ext-dy (lambda () (if hidden-child
 			     (let-values ([(mw mh) (get-hard-minimum-size)])
-			       (- mh 3)) ;; hack!
+			       (- mh tab-v-border 1))
 			     0))])
     
     (private-field
@@ -2711,7 +2721,7 @@
 				#t)]
 		     [delta-w (- (get-width) client-w)]
 		     [delta-h (- (get-height) client-h)])
-		(list (+ delta-w (car min-client-size) (if hidden-child 4 0)) ; hack: 2-pixel border
+		(list (+ delta-w (car min-client-size) (if hidden-child (* 2 tab-h-border) 0))
 		      (+ delta-h (cadr min-client-size)))))))]
       
       ; do-get-min-graphical-size: poll children and return minimum possible
@@ -2845,7 +2855,7 @@
 					     (cdr children-info)
 					     children-info))
 				    (if hidden-child
-					(- width 4) ;; hack! 2-pixel border assumed
+					(- width (* 2 tab-h-border))
 					width)
 				    (if hidden-child
 					(- height (child-info-y-min (car children-info))) ;; 2-pixel border here, too
@@ -2866,8 +2876,8 @@
 								      height))
 							    (let ([dy (child-info-y-min (car children-info))])
 							      (map (lambda (i)
-								     (list (+ (car i) 2) ;; hack! 2-pixel border assumed
-									   (+ dy (cadr i) -3) ;; hack! 2-pixel border assumed
+								     (list (+ (car i) tab-h-border) ;; hack! 2-pixel border assumed
+									   (+ dy (cadr i) (- tab-v-border) -1)
 									   (caddr i)
 									   (cadddr i)))
 								   l)))
@@ -3457,8 +3467,10 @@
 (define (wrap-callback cb)
   (if (and (procedure? cb)
 	     (procedure-arity-includes? cb 2))
-      (lambda (w e) (if (eq? 'windows (system-type))
-			;; Windows: need trampoline
+      (lambda (w e) (if (or (eq? 'windows (system-type))
+			    (and (memq (system-type) '(macos macosx))
+				 (eq? (send e get-event-type) 'slider)))
+			;; Mac OS slider and Windows (all): need trampoline
 			(wx:queue-callback
 			 (lambda ()
 			   (cb (wx->proxy w) e))
@@ -4533,7 +4545,7 @@
     (sequence
       (let ([cwho '(constructor tab-group)])
 	(check-list-control-args cwho label choices parent callback)
-	(check-style cwho #f '(deleted) style))
+	(check-style cwho #f '(deleted border) style))
       (super-init (lambda () (make-object wx-tab-group% this this
 					  style
 					  (mred->wx-container parent)
@@ -4892,11 +4904,16 @@
 	  (raise-type-error (who->name cwho) "list of strings (up to 200 characters)" choices))
 	(check-callback cwho callback)
 	(check-container-parent cwho parent)
-	(check-style cwho #f '(deleted) style))
-      (super-init parent style))
+	(check-style cwho #f '(deleted border) style))
+      (super-init parent (if (memq 'deleted style)
+			     '(deleted)
+			     null)))
 
     (private-field
-     [tabs (make-object tab-group% #f choices this (lambda (c e) (callback this e)))])
+     [tabs (make-object tab-group% #f choices this (lambda (c e) (callback this e)) 
+			(if (memq 'border style)
+			     '(border)
+			     null))])
     (sequence
       (send (mred->wx this) set-first-child-is-hidden))
 
