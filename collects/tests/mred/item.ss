@@ -459,7 +459,9 @@
       (send f2 set-info ep2)
       
       (add-cursors f2 lp2 (cons canvas items)))
-    
+
+    (send f2 create-status-line)
+    (send f2 set-status-text "This is the status line")
     (send f2 show #t)
     (set! prev-frame f2)
     f2))
