@@ -1,4 +1,8 @@
 
+Version 299.29
+Changed the default mapping for the 'default font in PostScript
+ from Times to Helvetica
+
 Version 299.28
 Added get-bounding-box to dc-path%
 Added optional for-label? argument to font%'s screen-glyph-exists?
