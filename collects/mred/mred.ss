@@ -907,7 +907,7 @@
 				     (when o
 				       (if (or (is-a? o wx:radio-box%)
 					       (is-a? o wx-tab-group%))
-					   (send o button-focus (if forward? 0 (sub1 (send o number))))
+					   (send o button-focus (max 0 (send o button-focus -1)))
 					   (begin
 					     (send o set-focus)
 					     (if (and (is-a? o wx-text-editor-canvas%)
@@ -920,8 +920,9 @@
 						 (when (or (is-a? o wx-canvas%)
 							   (is-a? o wx-editor-canvas%))
 						   (as-exit (lambda () (send o on-tab-in))))))))))])
-			   (if (or (is-a? o wx:radio-box%)
-				   (is-a? o wx-tab-group%))
+			   (if (and (not (eqv? code #\tab))
+				    (or (is-a? o wx:radio-box%)
+					(is-a? o wx-tab-group%)))
 			       (let ([n (send o number)]
 				     [s (send o button-focus -1)]
 				     [v-move? (memq code '(up down))]
