@@ -36,11 +36,14 @@
      ((confirm-label (string-constant ok))
       (cancel-label (string-constant cancel))))
     "Adds an Ok and a cancel button to a panel, changing the order"
-    "to suit the platform. Under MacOS and unix, the confirmation action"
+    "to suit the platform. Under \\MacOSBoth{} and unix, the confirmation action"
     "is on the right (or bottom) and under Windows, the canceling action is on the"
     "right (or bottom)."
     "The confirmation action button has the \\scheme|'(border)| style."
     "The buttons are also sized to be the same width."
+    ""
+    "The first result is be the OK button and the second is"
+    "the cancel button."
     ""
     "See also"
     "@flink gui-utils:cancel-on-right? %"
