@@ -3869,7 +3869,7 @@
   (interface (subwindow<%>)
     command))
 
-(define-local-member-name hidden-child?)
+(define-local-member-name hidden-child? label-checker)
 
 (define-keywords control%-keywords
   window%-keywords
@@ -3885,7 +3885,8 @@
       [get-plain-label (lambda () (and (string? label) (wx:label->plain-label label)))]
       [set-label (entry-point
 		  (lambda (l)
-		    (check-label-string/false '(method control<%> set-label) l)
+		    ((label-checker)
+		     '(method control<%> set-label) l)
 		    (let ([l (if (string? l) 
 				 (string->immutable-string l)
 				 l)])
@@ -3893,6 +3894,7 @@
 		      (set! label l))))])
     (public
       [hidden-child? (lambda () #f)] ; module-local method
+      [label-checker  (lambda () check-label-string/false)] ; module-local method
       [command (lambda (e) (send wx command e))]) ; no entry/exit needed
     (private-field
       [wx #f])
@@ -4025,6 +4027,8 @@
 
 (define message%
   (class100*/kw basic-control% () [(label parent [style null]) control%-keywords]
+    (override
+      [label-checker  (lambda () check-label-string-or-bitmap)]) ; module-local method
     (sequence
       (let ([cwho '(constructor message)])
 	(check-label-string/bitmap/iconsym cwho label)
@@ -4042,6 +4046,8 @@
 
 (define button%
   (class100*/kw basic-control% () [(label parent callback [style null]) control%-keywords]
+    (override
+      [label-checker  (lambda () check-label-string-or-bitmap)]) ; module-local method
     (sequence
       (let ([cwho '(constructor button)])
 	(check-label-string-or-bitmap cwho label)
@@ -4066,6 +4072,8 @@
 	(check-container-parent cwho parent)
 	(check-callback cwho callback)
 	(check-style cwho #f null style)))
+    (override
+      [label-checker  (lambda () check-label-string-or-bitmap)]) ; module-local method
     (private-field
       [wx #f])
     (public
