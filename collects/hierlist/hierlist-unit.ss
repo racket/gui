@@ -652,11 +652,12 @@
                         (let* ([l (if selected
                                       (send (send selected get-parent) get-items)
                                       (get-items))]
-                               [pos (if selected-item
-                                        (+ dir (find selected-item l))
-                                        (if (negative? dir)
-                                            (sub1 (length l))
-                                            0))])
+                               [pos (let ([found (find selected-item l)])
+                                      (if (and selected-item found)
+                                          (+ dir found)
+                                          (if (negative? dir)
+                                              (sub1 (length l))
+                                              0)))])
                           (when (< -1 pos (length l))
                             (let ([i (list-ref l pos)])
                               (send i select #t)
