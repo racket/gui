@@ -1,5 +1,6 @@
 (module const mzscheme
   (require (lib "class.ss")
+	   (lib "file.ss")
 	   (prefix wx: "kernel.ss"))
   (provide (protect (all-defined)))
 
@@ -35,6 +36,18 @@
 
   (define ibeam (make-object wx:cursor% 'ibeam))
   (define arrow-cursor (make-object wx:cursor% 'arrow))
+
+  (define default-x-prefix (if (eq? 'unix (system-type))
+			       (let ([v (get-preference '|MrEd:defaultMenuPrefix| (lambda () 'ctl))])
+				 (if (memq v '(meta ctl alt ctl-m))
+				     v
+				     'ctl))
+			       'ctl))
+
+  (define (menu-shortcut-in-label?)
+    (case (system-type)
+      [(unix) (not (memq default-x-prefix '(alt meta)))]
+      [else (wx:shortcut-visible-in-label? #t)]))
 
   (define bg-color (wx:get-panel-background))
 

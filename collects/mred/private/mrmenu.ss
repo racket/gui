@@ -65,7 +65,14 @@
 	   (super-init wx)))
 	(restore))))
 
-  (define (strip-tab s) (car (regexp-match #rx"^[^\t]*" s)))
+  (define strip-tab 
+    (if (menu-shortcut-in-label?)
+	(lambda (s) 
+	  (car (regexp-match #rx"^[^\t]*" s)))
+	(lambda (s) 
+	  (regexp-replace* "&"
+			   (regexp-replace* "&(.)" (car (regexp-match #rx"^[^\t]*" s)) "\\1")
+			   "\\&\\&"))))
 
   (define basic-labelled-menu-item%
     (class100* mred% (labelled-menu-item<%>) (prnt lbl help-str wx-sub chkble? keymap set-wx demand-callback)
@@ -122,7 +129,7 @@
 				(send wx-parent append (send wx id) label wx-submenu help-string)
 				(send wx-parent append (send wx id) label help-string checkable?))
 			    (send wx-parent append-item this wx))
-			  (send wx-parent append-item this wx-submenu label))
+			  (send wx-parent append-item this wx-submenu (strip-tab label)))
 		      (set! shown? #t)
 		      (do-enable enabled?))))]
 	[delete (entry-point
@@ -173,7 +180,7 @@
 		   (check-instance '(method selectable-menu-item<%> command) wx:control-event% 'control-event% #f e)
 		   (void (callback this e)))])
       (private-field
-       [x-prefix 'meta])
+       [x-prefix default-x-prefix])
       (private
 	[calc-labels (lambda (label)
 		       (let* ([new-label (if shortcut

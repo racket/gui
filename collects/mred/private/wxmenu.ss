@@ -54,7 +54,7 @@
 		      (as-exit 
 		       (lambda () 
 			 (or (send keymap handle-key-event this event)
-			     (and (wx:shortcut-visible-in-label? #t)
+			     (and (menu-shortcut-in-label?)
 				  (send event get-meta-down)
 				  (char? (send event get-key-code))
 				  (let ([c (send event get-key-code)])
@@ -68,7 +68,7 @@
 						     [menu (cdr data)])
 						(if (regexp-match re label)
 						    (begin
-						      (send menu select)
+						      (send menu select this)
 						      #t)
 						    #f)))
 					    items)))))))))]
