@@ -522,7 +522,16 @@
 					    (send dc set-font fnt)
 					    (let-values ([(w h d a) (send dc get-text-extent s cfnt kern?)])
 					      (send dc draw-rectangle x y w h)
-					      (send dc draw-line x (+ y (- h d)) (+ x w) (+ y (- h d))))))
+					      (send dc draw-line x (+ y (- h d)) (+ x w) (+ y (- h d)))
+					      ;; Alien-in-a-box character (beyond UCS-2)
+					      (let ([s "\U1D670"]
+						    [x (+ x (* 1.5 w))])
+						(send dc set-font fnt)
+						(send dc draw-text s x y kern?)
+						(send dc set-font fnt)
+						(let-values ([(w h d a) (send dc get-text-extent s cfnt kern?)])
+						  (send dc draw-rectangle x y w h)
+						  (send dc draw-line x (+ y (- h d)) (+ x w) (+ y (- h d))))))))
 					(loop (cdr fam) (cdr stl) (cdr wgt) (cdr sze) x (+ y h) #f)))))
 				(send dc set-pen save-pen)))
 
