@@ -1,7 +1,8 @@
-Version 51: ??, 1998
+			 Version 51: ??, 1998
+			 --------------------
 
-Engine:
--------
+				Engine
+
 Added a --pre flag for evaluating an expression in a 
  MzScheme-only namespace at startup. This flag is intended
  for use with image dumps (see the MzScheme manual), which
@@ -73,8 +74,9 @@ X Windows: added .mred.resources option `mred.forceFocus'; if
  not follow the pointer); the default is 0, the old behavior
 MacOS: removed the special -r command-line flag
 
-System:
--------
+
+				System
+
  - mred:original-output-port is now called mred:constants:original-output-port
    mred:original-input-port is now called mred:constants:original-input-port
 
@@ -82,17 +84,21 @@ System:
 
  - the collection paths are not normalized anymore
 
- - the application startup procedure is new (again). The unit/sig
-   version is improved, and the non unitized approach now receives all
-   of the arguments, even the processed ones.
 
- - the splash screen flag has changed.
+ - The command line flags have changed. Specifically:
+   the -nu flag is now called either "--non-unitized" or "-u".
+   the splash screen flag has changed.
 
  - mred no longer imports a unit of the mred:application signature. Instead, 
    the parameter mred:current-app-name is used to get and set the
    applications name. The eval-string and frame are not used.
 
  - CACHE-WRITE-COUNT in a console-edit is no longer used.
+
+ - set-empty-callback is now set-empty-callbacks. It sets two
+   callbacks, one for when the group is about to become empty and one
+   for when the group is actually empty. See the documentation for
+   more info.
 
  - do not use the frame method on-close anymore. Use can-close? and
    do-close.
@@ -105,14 +111,14 @@ System:
    a -A flag has been added. See the startup documentation for more
    information.
 
-   Also, if you define mred:startup and use the -nu flag, the
+   Also, if you define mred:startup and use the -u (previously -nu) flag, the
    definition of mred:startup must come after the flag on the command
    line. For example:
      mred -e "(define mred:startup (lambda ...))" -nu
    no longer works.
 
    Redefinition of mred:initialize and mred:make-invokeable-unit are
-   no longer supported. Create a new system instead.
+   no longer supported. Create a new system instead, using the -s flag.
 
 ----------------------------------------------------------------------
 
