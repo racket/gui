@@ -395,7 +395,8 @@
 		  [visual-offset
 		   (lambda (pos)
 		     (let loop ([p (sub1 pos)])
-		       (if p
+		       (if (= p -1)
+			   0
 			   (let ([c (get-character p)])
 			     (cond
 			      [(char=? c #\null) 0]
@@ -403,8 +404,7 @@
 			       (let ([o (loop (sub1 p))])
 				 (+ o (- 8 (modulo o 8))))]
 			      [(char=? c #\newline) 0]
-			      [else (add1 (loop (sub1 p)))]))
-			   0)))]
+			      [else (add1 (loop (sub1 p)))])))))]
 		  [do-indent
 		   (lambda (amt)
 		     (let* ([pos-start end]
@@ -454,7 +454,7 @@
 			  (not (char=? (get-character (sub1 end))
 				       #\newline)))
 		 (insert #\newline (paragraph-start-position para)))
-	       (cond   
+	       (cond
 		 [(let ([real-start (cdr (find-offset end))]) 
 		    (if (and (<= (+ 3 real-start) (last-position))
 			     (string=? ";;;"
