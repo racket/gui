@@ -119,13 +119,6 @@
 		      '(if (eq? (system-type) 'windows) "E&xit" "Quit")
 		      "")
 	(make-after 'file-menu 'quit 'nothing)
-<<<<<<< standard-menus-items.ss
-	
-	(make-an-item 'edit-menu 'undo "Undo the most recent action" #f #\z "&Undo" "")
-	(make-an-item 'edit-menu 'redo "Redo the most recent undo" #f #\y "&Redo" "")
-	(make-between 'edit-menu 'redo 'cut 'separator)
-	(make-an-item 'edit-menu 'cut "Cut the selection" #f #\x "Cu&t" "")
-=======
 
 	(make-an-item 'edit-menu 'undo "Undo the most recent action" 
                       (edit-menu:do  'undo)
@@ -137,7 +130,6 @@
 	(make-an-item 'edit-menu 'cut "Cut the selection" 
                       (edit-menu:do 'cut)
                       #\x "Cu&t" "")
->>>>>>> 1.9
 	(make-between 'edit-menu 'cut 'copy 'nothing)
 	(make-an-item 'edit-menu 'copy "Copy the selection"
                       (edit-menu:do 'copy)
