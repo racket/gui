@@ -715,7 +715,7 @@
 	  (map-meta "w" "copy-clipboard")
 	  (map "a:c" "copy-clipboard")
 	  (map "d:c" "copy-clipboard")
-	  
+	 
 	  (map "s:delete" "cut-clipboard")
 	  (map "c:insert" "copy-clipboard")
 	  (map "s:insert" "paste-clipboard")

@@ -566,7 +566,7 @@
 		  (= (paragraph-start-position (position-paragraph start-pos))
 		     start-pos)])
 	     (let* ([first-para (position-paragraph start-pos)]
-		    [last-para (position-paragraph end-pos)])
+		    [last-para (position-paragraph end-pos #t)])
 	       (let para-loop ([curr-para first-para])
 		 (if (<= curr-para last-para)
 		     (let ([first-on-para (paragraph-start-position curr-para)])
@@ -584,7 +584,7 @@
 	   (begin-edit-sequence)
 	   (let ([last-pos (last-position)]
 		 [first-para (position-paragraph start-pos)]
-		 [last-para (position-paragraph end-pos)])
+		 [last-para (position-paragraph end-pos #t)])
 	     (let para-loop ([curr-para first-para])
 	       (if (<= curr-para last-para)
 		   (let ([first-on-para
