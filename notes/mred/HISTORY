@@ -130,6 +130,11 @@ System:
    Redefinition of mred:initialize and mred:make-invokeable-unit are
    no longer supported. Create a new system instead, using the -s flag.
 
+   mred:get-file and mred:put-file now take a parent window as optional
+   last argument.  Also, in Unix, these calls now create a dialog
+   object on each call, because a single object retains too much state
+   (such as the prompt) between invocations.
+
 ----------------------------------------------------------------------
 
 Version 50: August 26, 1997
