@@ -680,6 +680,12 @@
 	    ; Map names to keyboard functions
 	    (add "rcs" rcs)
 
+	    (add "exit" (lambda (edit event)
+			  (let ([frame (send edit get-frame)])
+			    (if frame
+				((ivar frame file-menu:quit))
+				(wx:bell)))))
+
 	    (add "ring-bell" ring-bell)
 
 	    (add "save-file" save-file)
@@ -712,8 +718,6 @@
 		  (add (string-append "command-repeat-" s)
 		       (make-make-repeater n))
 		  (loop (sub1 n)))))
-
-	    (add "exit" (lambda args (mred:exit:exit)))
 
 	    (add "do-saved-macro" do-macro)
 	    (add "start-macro-record" start-macro)
