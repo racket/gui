@@ -1533,7 +1533,6 @@
 (define wx-message% (class100 (make-window-glue% (make-simple-control% wx:message%)) args
 		      (override [gets-focus? (lambda () #f)])
 		      (sequence (apply super-init args))))
-			
 
 (define wx-gauge%
  (make-window-glue% 
@@ -1699,6 +1698,221 @@
 			   (or meta? (not tabable?)))])
 		      (sequence
 			(apply super-init args)))))
+
+;--------------------- tab group -------------------------
+
+(define bg-color (wx:get-panel-background))
+(define tab-v-space 2)
+
+(define (scale-color c f)
+  (make-object wx:color% 
+	       (min 255 (floor (* f (send c red)))) 
+	       (min 255 (floor (* f (send c green)))) 
+	       (min 255 (floor (* f (send c blue))))))
+
+(define trans-pen (send (wx:get-the-pen-list) find-or-create-pen "white" 0 'transparent))
+(define light-pen (send (wx:get-the-pen-list) find-or-create-pen (scale-color bg-color #e1.35) 0 'solid))
+(define dark-pen (send (wx:get-the-pen-list) find-or-create-pen (scale-color bg-color #e0.6) 0 'solid)) 
+(define dark-brush (send (wx:get-the-brush-list) find-or-create-brush (scale-color bg-color #e0.8) 'solid))
+
+(define canvas-based-tab-group%
+  (class wx-canvas%
+    (init mred proxy parent call-back label tab-labels)
+    
+    (define callback call-back)
+
+    (define tabs tab-labels)
+    (define tab-widths #f)
+    (define tab-height #f)
+    
+    (define font (send parent get-control-font))
+    
+    (inherit get-dc get-client-size get-mred
+	     set-min-width set-min-height)
+    
+    (define selected 1)
+    (define tracking-pos #f)
+    (define tracking-hit? #f)
+    
+    (define regions #f)
+    
+    (define/private (compute-sizes)
+      (let ([dc (get-dc)])
+	(let ([w+hs (map (lambda (lbl)
+			   (let-values ([(w h d a) (send dc get-text-extent lbl font)])
+			     (cons w h)))
+			 tabs)])
+	  (set! tab-widths (map car w+hs))
+	  (let ([th (ceiling (+ (* 2 tab-v-space) (apply max (map cdr w+hs))))])
+	    (set! tab-height (if (even? th) th (add1 th)))))))
+    
+    (define/private (get-total-width)
+      (apply + tab-height (* (length tabs) tab-height) tab-widths))
+    
+    (define/private (get-init-x)
+      (let-values ([(w h) (my-get-client-size)]
+		   [(tw) (get-total-width)])
+	(/ (- w tw) 2)))
+
+    (define/override (on-event e)
+      (cond
+       [(and (send e button-down?) tab-widths)
+	(set! tracking-pos (find-click (send e get-x) (send e get-y)))
+	(when tracking-pos
+	  (set! tracking-hit? #t)
+	  (update-tracking))]
+       [(and (send e dragging?) tracking-pos)
+	(let ([hit? (equal? tracking-pos (find-click (send e get-x) (send e get-y)))])
+	  (unless (eq? tracking-hit? hit?)
+	    (set! tracking-hit? hit?)
+	    (update-tracking)))]
+       [(and (send e button-up?) tracking-pos
+	     (equal? tracking-pos (find-click (send e get-x) (send e get-y)))
+	     (not (= tracking-pos selected)))
+	;; Button released for final selection
+	(let* ([dc (get-dc)]
+	       [r (make-object wx:region% dc)]
+	       [old-rgn (list-ref regions selected)])
+	  (set! selected tracking-pos)
+	  (set! tracking-pos #f)
+	  (set! tracking-hit? #f)
+	  (send r union old-rgn)
+	  (setup-regions)
+	  (let ([new-rgn (list-ref regions selected)])
+	    ;; Union the new and old regions and repaint:
+	    (send r union new-rgn)
+	    (send dc set-clipping-region r)
+	    (on-paint)
+	    (send dc set-clipping-region #f)
+	    (callback this (make-object wx:control-event% 'tab-group))))]
+       ;; otherwise, turn off tracking...
+       [else
+	(when tracking-hit?
+	  (set! tracking-hit? #f)
+	  (update-tracking))
+	(set! tracking-pos #f)]))
+    
+    (define/private (update-tracking)
+      (let ([dc (get-dc)])
+	(send dc set-clipping-region (list-ref regions tracking-pos))
+	(on-paint)
+	(send dc set-clipping-region #f)))
+    
+    (define tmp-rgn #f)
+    
+    (define/private (find-click x y)
+      (unless regions (setup-regions))
+      (unless tmp-rgn
+	(set! tmp-rgn (make-object wx:region% (get-dc))))
+      (let loop ([rl regions][pos 0])
+	(if (null? rl)
+	    #f
+	    (begin
+	      (send tmp-rgn set-rectangle x y 1 1)
+	      (send tmp-rgn intersect (car rl))
+	      (if (send tmp-rgn is-empty?)
+		  (loop (cdr rl) (add1 pos))
+		  pos)))))
+    
+    (define/private (setup-regions)
+      (let ([dc (get-dc)])
+	(set! regions
+	      (map (lambda (tpl r)
+		     (let ([points (map (lambda (p) (make-object wx:point% (car p) (+ 2 (cadr p))))
+					tpl)])
+		       (send r set-polygon points))
+		     r)
+		   (draw-once #f 0 #f #f 0)
+		   (if regions
+		       regions
+		       (map (lambda (x)
+			      (make-object wx:region% dc))
+			    tabs))))))
+
+    
+    (define (draw-once dc w light? dark? inset)
+      (let ([init-x (get-init-x)])
+	(let loop ([x init-x][l tabs][wl tab-widths][pos 0])
+	  (if (null? l)
+	      null
+	      (let ([next-x (+ x tab-height (car wl))])
+		(cons
+		 (append
+		  ;; start point
+		  (list (list (+ x tab-height inset) (+ 2 tab-height (- inset))))
+		  ;; left line
+		  (begin
+		    (when (= pos selected)
+		      (when light?
+			(send dc draw-line 0 tab-height x tab-height)
+			(send dc draw-line 0 (add1 tab-height) x (add1 tab-height))))
+		    (let ([short (if (not (= (sub1 pos) selected))
+				     0
+				     (/ tab-height 2))])
+		      (when light?
+			(send dc draw-line (+ x short) (- tab-height short) (+ x tab-height) 0)
+			(send dc draw-line (+ x short 1) (- tab-height short) (+ x tab-height 1) 0))
+		      (list (list (+ x short inset) (- tab-height short -2 inset))
+			    (list (+ x tab-height inset) inset))))
+		  ;; top line
+		  (begin
+		    (when light?
+		      (send dc draw-line (+ x tab-height) 0 next-x 0)
+		      (send dc draw-line (+ x tab-height) 1 next-x 1))
+		    (list (list (+ 1 next-x (- inset)) inset)))
+		  ;; right line
+		  (let ([short (if (or (= pos selected) (null? (cdr l)))
+				   0
+				   (/ tab-height 2))])
+		    (when dark?
+		      (send dc draw-line (add1 next-x) 1 (- (+ next-x tab-height) short 1) (- tab-height short 1))
+		      (send dc draw-line next-x 1 (- (+ next-x tab-height) short 2) (- tab-height short 1)))
+		    (list (list (- (+ next-x tab-height) short -2 inset) (- tab-height short -2 inset))))
+		  ;; end point
+		  (begin
+		    (when light?
+		      (when (= pos selected)
+			(send dc draw-line (+ next-x tab-height) tab-height w tab-height)
+			(send dc draw-line (+ next-x tab-height) (add1 tab-height) w (add1 tab-height)))
+		      (send dc draw-text (car l) (+ x tab-height) tab-v-space))
+		    (list (list (+ next-x inset) (+ 2 tab-height (- inset))))))
+		 (loop next-x (cdr l) (cdr wl) (add1 pos))))))))
+    
+    (define/override (on-paint)
+      (unless tab-widths
+	(compute-sizes))
+      (let ([dc (get-dc)])
+	(send dc set-background bg-color)
+	(send dc set-font font)
+	(send dc clear)
+	(send dc set-origin 0 2)
+	(when (and tracking-pos tracking-hit?)
+	  (let ([b (send dc get-brush)])
+	    (send dc set-brush dark-brush)
+	    (send dc set-pen trans-pen)
+	    (send dc draw-polygon (map (lambda (x) (make-object wx:point% (car x) (cadr x)))
+				       (list-ref (draw-once #f 0 #f #f 1) tracking-pos)))
+	    (send dc set-brush b)))
+	(let-values ([(w h) (my-get-client-size)])
+	  (send dc set-pen light-pen)
+	  (draw-once dc w #t #f 0)
+	  (send dc set-pen dark-pen)
+	  (draw-once dc w #f #t 0))
+	(send dc set-origin 0 0)))
+
+    (define/private (my-get-client-size)
+      (get-two-int-values (lambda (a b) (get-client-size a b))))
+    
+    (super-instantiate (mred proxy parent))
+
+    (compute-sizes)
+    (set-min-width (inexact->exact (ceiling (get-total-width))))
+    (set-min-height (inexact->exact (ceiling (+ tab-height 4))))))
+
+(define wx-tab-group% 
+  (if (eq? 'unix (system-type))
+      canvas-based-tab-group%
+      (make-window-glue% (make-simple-control% wx:tab-group%))))
 
 ;--------------------- wx media Classes -------------------------
 
@@ -3913,6 +4127,21 @@
 					     label init-value style))
 		       wx)
 		     label parent ibeam))))))
+
+(define tab-group%
+  (class100 basic-control% (label choices parent callback [style null])
+    (sequence
+      (let ([cwho '(constructor tab-group)])
+	(check-list-control-args cwho label choices parent callback)
+	(check-style cwho #f null style)
+	(check-container-ready cwho parent))
+      (super-init (lambda () (make-object wx-tab-group% this this
+					  (mred->wx-container parent)
+					  (wrap-callback callback)
+					  label
+					  choices))
+		  label parent #f))))
+
 
 ;-------------------- Canvas class constructions --------------------
 
@@ -6618,6 +6847,7 @@
 	dialog%
 	frame%
 	gauge%
+	tab-group%
 	list-box%
 	editor-canvas%
 	message%

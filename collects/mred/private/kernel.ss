@@ -642,6 +642,7 @@
     get-wheel-step
     set-wheel-step)
   (define-class editor-admin% object% #f
+    modified
     refresh-delayed?
     popup-menu
     update-cursor
@@ -655,6 +656,7 @@
   (define-private-class editor-snip-editor-admin% editor-snip-editor-admin<%> editor-admin% #f
     get-snip)
   (define-class snip-admin% object% #f
+    modified
     popup-menu
     update-cursor
     release-snip
@@ -818,6 +820,7 @@
     read-header-from-file
     set-filename
     release-snip
+    on-snip-modified
     set-modified
     set-snip-data
     get-snip-data
@@ -1376,6 +1379,17 @@
     number
     basic-style)
   (define-function get-the-style-list)
+  (define-class tab-group% item% #f
+    enable
+    set-selection
+    number
+    get-selection
+    on-drop-file
+    pre-on-event
+    pre-on-char
+    on-size
+    on-set-focus
+    on-kill-focus)
 
   ;; Functions defined in wxscheme.cxx
   (define-functions
