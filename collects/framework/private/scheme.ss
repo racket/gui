@@ -1111,9 +1111,9 @@
           
           (rename [super-after-edit-sequence after-edit-sequence])
           (define/override (after-edit-sequence text super-call)
-             (super-after-edit-sequence text super-call)
-             (when (send text has-focus?)
-               (send text highlight-parens)))
+            (super-after-edit-sequence text super-call)
+            (when (send text has-focus?)
+              (send text highlight-parens)))
           
           (rename [super-after-insert after-insert])
           (define/override (after-insert text super-call start size)

@@ -181,10 +181,10 @@
 	  
 	  [define has-focus #f]
 	  (rename [super-on-focus on-focus])
-	  (override on-focus)
-	  [define on-focus
+	  [define/override on-focus
 	    (lambda (x)
-	      (set! has-focus x))]
+              (set! has-focus x)
+              (super-on-focus x))]
 	  (public has-focus?)
 	  [define has-focus?
 	    (lambda ()
@@ -213,9 +213,8 @@
 	  [define edit-sequence-queue null]
 	  [define edit-sequence-ht (make-hash-table)]
 	  [define in-local-edit-sequence? #f]
-	  (public local-edit-sequence? run-after-edit-sequence extend-edit-sequence-queue)
-	  [define local-edit-sequence? (lambda () in-local-edit-sequence?)]
-	  [define run-after-edit-sequence
+	  [define/public local-edit-sequence? (lambda () in-local-edit-sequence?)]
+	  [define/public run-after-edit-sequence
 	    (case-lambda 
 	     [(t) (run-after-edit-sequence t #f)]
 	     [(t sym)
@@ -249,7 +248,7 @@
                            (void)])))
 		  (t))
 	      (void)])]
-	  [define extend-edit-sequence-queue
+	  [define/public extend-edit-sequence-queue
 	    (lambda (l ht)
 	      (hash-table-for-each ht (lambda (k t)
 					(hash-table-put! 
