@@ -1,6 +1,17 @@
 
 Version 102/11:
 
+ * Added `get-file-list', which gives the user a dialog for selecting
+   multiple existing files (using the platform-specific dialog, where
+   possible).
+
+ * Added `on-superwindow-show' and `on-superwindow-enable' to
+   window<%>.
+
+ * Added `on-message' to top-level-window<%>, and added the procedure
+   `send-message-to-window', which calls the `on-message' method of a
+   top-level window at a particular screen location.
+
  * Fixed post-script-dc% to use PS `curveto' command for splines.
 
 Version 102/10:
@@ -133,20 +144,24 @@ Version 102/1:
 Version 102: ??, 2000
 Changed the interaction of face and familiy settings in a font for
  drawing text
-Removed `get-afm-name' and `set-afm-name' from
- `font-name-directory<%>', and changed post-script-dc% to use the
- PostScript font name as the AFM file name
+Removed get-afm-name and set-afm-name from font-name-directory<%>,
+ and changed post-script-dc% to use the PostScript font name as the
+ AFM file name
 Changed pen%'s width from integer to real number (used for PS)
+Added on-superwindow-show and on-superwindow-enable to window<%>
+Added get-file-list procedure
+Added on-message to top-level-window<%>
+Added send-message-to-window procedure
 Added pop-down callback initialization argument to popup-menu%, and
  added 'menu-popdown and 'menu-popdown-none event types to
  control-event%
-Changed the meaning of the `on-change' method in editor<%>; see the
+Changed the meaning of the on-change method in editor<%>; see the
  manual for details
 Editor reading/writing/cuting/pasting no longer relies on global
  state, so exceptions raised for one editor do not affect other
  editors
-Removed `read-done' and `write-done' from snip-class%
-Moved `reading-version' to snip-class% (from snip-class-list%)
+Removed read-done and write-done from snip-class%
+Moved reading-version to snip-class% (from snip-class-list%)
 X: Fixed list-box% to handle arbitrarily many list items.
 X: Fixed input of keypad characters and dead characters (such as
  accent marks)
