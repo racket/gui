@@ -477,8 +477,7 @@ needed to really make this work:
               ht)))
   
   (define (syntax-properties stx)
-    (let ([is-property?
-           (lambda (prop) (syntax-property stx prop))])
+    (let ([is-property? (lambda (prop) (syntax-property stx prop))])
       (filter is-property?
               '(inferred-name
                 bound-in-source
