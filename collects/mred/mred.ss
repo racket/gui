@@ -4879,7 +4879,7 @@
 	  (send wx get-canvas-background)))]
 
       [set-resize-corner (lambda (on?)
-			   (send wx set-resize-corner))])
+			   (send wx set-resize-corner on?))])
     (private-field
       [wx #f])
     (sequence
