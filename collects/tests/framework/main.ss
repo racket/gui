@@ -104,8 +104,11 @@
 
   (shutdown-listener)
 
-  (unless (null? failed-tests)
+  (cond
+   [(null? failed-tests)
+    (printf "All tests passed.~n")]
+   [else
     (debug-printf schedule "FAILED tests:~n")
     (for-each (lambda (failed-test)
 		(debug-printf schedule "  ~a // ~a~n" (car failed-test) (cdr failed-test)))
-	      failed-tests)))
+	      failed-tests)]))

@@ -17,8 +17,9 @@
   (define-syntax debug-printf
     (lambda (stx)
       (syntax-case stx ()
-	[(_ flag rest ...)
-	 (syntax (debug-when flag (printf rest ...)))])))
+	[(_ flag fmt-string rest ...)
+	 (with-syntax ([flag-name (format ">> ~a: " (syntax-object->datum (syntax flag)))])
+	   (syntax (debug-when flag (printf (string-append flag-name fmt-string) rest ...))))])))
 
     (define-syntax debug-when
       (lambda (stx)
