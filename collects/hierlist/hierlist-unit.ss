@@ -336,6 +336,7 @@
            [depth dpth]
            [parent-snip parent-snp]
            [children null]
+	   [last-child #f]
 	   [no-sublists? #f])
           (private
             [make-whitespace (lambda () (make-object whitespace-snip%))]
@@ -349,7 +350,11 @@
 		   (insert (make-whitespace) (last-position)))
                  (insert s (last-position))
                  (end-edit-sequence)
-                 (set! children (append children (list s)))
+		 (let ([p (list s)])
+		   (if last-child
+		       (set-cdr! last-child p)
+		       (set! children (append children p)))
+		   (set! last-child p))
                  (send s get-item)))])
           (public
             [get-parent-snip (lambda () parent-snip)]
@@ -382,6 +387,7 @@
 		    (send top ensure-not-selected i)
                     (send (car l) deselect-all)
                     (set! children (append (reverse others) (cdr l)))
+		    (set! last-child #f)
                     (let ([s (line-start-position pos)]
                           [e (line-end-position pos)])
                       (delete (if (zero? s) s (sub1 s)) (if (zero? s) (add1 e) e)))]
@@ -414,6 +420,7 @@
                         (unless (null? l)
                           (delete)) ; delete last #\newline
                         (set! children l)
+			(set! last-child #f)
                         (when to-scroll-to
                           (send (send to-scroll-to get-item) scroll-to)))
                       (end-edit-sequence)))]
