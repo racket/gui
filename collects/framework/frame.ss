@@ -361,14 +361,6 @@
 		(eq? x 'backward))
       (error 'set-searching-direction "expected ~e or ~e, got ~e" 'forward 'backward x))
     (set! searching-direction x))
-  (define get-active-embedded-edit
-    (lambda (edit)
-      (let loop ([edit edit])
-	(let ([snip (send edit get-focus-snip)])
-	  (if (or (not snip)
-		  (not (is-a? snip original:editor-snip%)))
-	      edit
-	      (loop (send snip get-editor)))))))
 
   (define old-search-highlight void)
   (define clear-search-highlight
@@ -433,7 +425,6 @@
 				 [edit-above (send (send snip get-admin) get-editor)]
 				 [pos (send edit-above get-snip-position snip)]
 				 [pop-out-pos (if (eq? direction 'forward) (add1 pos) pos)])
-			    (printf "popping out to ~a~n" pop-out-pos)
 			    (find-string-embedded
 			     edit-above
 			     str
@@ -444,14 +435,10 @@
 			     case-sensitive?
 			     pop-out?))
 			  (values edit #f))))])
-	    (printf "flat: ~a start: ~a end: ~a~n" flat start end)
 	    (let loop ([current-snip (send edit find-snip start
 					   (if (eq? direction 'forward)
 					       'after-or-none
 					       'before-or-none))])
-	      (printf "searching snips: ~s ~s editor-snip? ~a~n" current-snip
-		      (and current-snip (send current-snip get-text 0 (send current-snip get-count)))
-		      (and current-snip (is-a? current-snip original:editor-snip%)))
 	      (let ([next-loop
 		     (lambda ()
 		       (if (eq? direction 'forward)
@@ -467,18 +454,15 @@
 				       (< flat end))
 				  (and (< start flat)
 				       (<= flat end))))))
-		   (printf "terminating this level~n")
 		   (if (and (not flat) pop-out?)
 		       (pop-out)
 		       (values edit flat))]
 		  [(is-a? current-snip original:editor-snip%)
-		   (printf "found embedded editor~n")
 		   (let-values ([(embedded embedded-pos)
 				 (let ([media (send current-snip get-editor)])
 				   (if (and media
 					    (is-a? media original:text%))
 				       (begin
-					 (printf "searching in embedded editor~n")
 					 (find-string-embedded 
 					  media 
 					  str
@@ -489,7 +473,6 @@
 					  'eof
 					  get-start case-sensitive?))
 				       (values #f #f)))])
-		     (printf "embedded: ~a embedded-pos ~a~n" embedded embedded-pos)
 		     (if (not embedded-pos)
 			 (next-loop)
 			 (values embedded embedded-pos)))]
@@ -508,8 +491,7 @@
 	   (set! searching-frame frame))]
 	[get-searching-edit
 	 (lambda ()
-	   (get-active-embedded-edit
-	    (send searching-frame get-text-to-search)))]
+	   (send searching-frame get-text-to-search))]
 	[search
 	 (opt-lambda ([reset-search-anchor? #t] [beep? #t] [wrap? #t])
 	   (when searching-frame
@@ -552,7 +534,7 @@
 		      (if wrap?
 			  (let-values ([(found-edit pos)
 					(find-string-embedded
-					 searching-edit
+					 top-searching-edit
 					 string 
 					 searching-direction
 					 (if (eq? 'forward searching-direction)
