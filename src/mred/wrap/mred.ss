@@ -1,4 +1,3 @@
-
 ;;;;;;;;;;;;;;; Constants ;;;;;;;;;;;;;;;;;;;;
 
 ; default spacing between items.
@@ -327,7 +326,7 @@
 (define (make-top-container% base%)
   (class (wx-make-container% (wx-make-window% base%)) args
     (inherit get-x get-y get-width get-height set-size
-	     get-client-size is-shown?)
+	     get-client-size is-shown? on-close)
     (rename [super-show show] [super-move move] [super-center center]
 	    [super-on-size on-size]
 	    [super-enable enable])
@@ -342,6 +341,7 @@
       [ignore-redraw-request? #f]
       
       [already-trying? #f] ; hack around stubborn Motif bug
+      [was-bad? #f] ; hack around min-frame-size limitations
       
       ; pointer to panel in the frame for use in on-size
       [panel #f]
@@ -404,6 +404,7 @@
       [add-child
        (lambda (new-panel)
 	 (set! panel new-panel)
+	 (set! pending-redraws? #t)
 	 (let-values ([(client-w client-h)
 		       (get-two-int-values get-client-size)])
 	   (send panel set-size 0 0 client-w client-h))
@@ -441,12 +442,13 @@
 	     (set! pending-redraws? #t)))]
       [force-redraw
        (lambda ()
-	 (when panel
-	   (dynamic-wind
-	    (lambda () (set! ignore-redraw-request? #t))
-	    resized
-	    (lambda () (set! ignore-redraw-request? #f))))
-	 (set! pending-redraws? #f))]
+	 (if panel
+	     (dynamic-wind
+	      (lambda () (set! ignore-redraw-request? #t))
+	      resized
+	      (lambda () (set! ignore-redraw-request? #f)))
+	     
+	     (set! pending-redraws? #f)))]
 
       [correct-size
        (lambda (frame-w frame-h)
@@ -482,6 +484,7 @@
 	 (when panel
 	   (let-values ([(f-client-w f-client-h) (get-two-int-values get-client-size)])
 	     (send panel set-size 0 0 f-client-w f-client-h)
+	     (set! pending-redraws? #f)
 	     (send panel on-container-resize))))]
 
 
@@ -491,11 +494,15 @@
 	   (let ([new-width (get-width)]
 		 [new-height (get-height)])
 	     (let-values ([(correct-w correct-h) (correct-size new-width new-height)])
-	       (if (and (= new-width correct-w) (= new-height correct-h))
+	       (if (or (and (= new-width correct-w) (= new-height correct-h))
+		       was-bad?)
 		   ;; Good size; do panel
-		   (set-panel-size)
-		   ;; Too small; fix it
 		   (begin
+		     (set! was-bad? #f)
+		     (set-panel-size))
+		   ;; Too large/small; try to fix it, but give up after a while
+		   (begin
+		     (set! was-bad? #t)
 		     (set! already-trying? #t)
 		     (set-size -1 -1 correct-w correct-h)
 		     (set! already-trying? #f)))))))])
@@ -569,6 +576,12 @@
 				     #t)))
 			    objs)
 			   #t)))]
+		  [(escape)
+		   (let ([o (get-focus-window)])
+		     (if (and o (send o handles-key-code code))
+			 #f
+			 (when (on-close)
+			   (show #f))))]
 		  [(#\space)
 		   (let ([o (get-focus-window)])
 		     (cond
@@ -592,8 +605,9 @@
 					      (memq code '(right down)))]
 				[normal-move
 				 (lambda ()
-				   (let* ([dests (map object->position (container->children panel o))]
-					  [pos (if o (object->position o) (list 'x 0 0 0 0))]
+				   (let* ([o (if (is-a? o wx:item%) o #f)]
+					  [dests (map object->position (container->children panel o))]
+					  [pos (if o (object->position o) (list 'x 0 0 1 1))]
 					  [o (traverse (cadr pos) (caddr pos) (cadddr pos) (list-ref pos 4)
 						       (case code
 							 [(#\tab) (if shift? 'prev 'next)]
@@ -1055,10 +1069,10 @@
 			const-default-x-margin const-default-y-margin 
 			#t #f)
       (parent label range style)
-    (inherit get-client-size get-width get-height
-	     set-size 
+    (inherit get-client-size get-width get-height set-size 
 	     stretchable-in-x stretchable-in-y set-min-height set-min-width
 	     get-parent)
+    (override [gets-focus? (lambda () #f)])
     (private
       ; # pixels per unit of value.
       [pixels-per-value 1])
@@ -1221,7 +1235,7 @@
       [handles-key-code 
        (lambda (x)
 	 (case x
-	   [(#\tab #\return) (not single-line-canvas?)]
+	   [(#\tab #\return escape) (not single-line-canvas?)]
 	   [else #t]))])
     (public
       [set-single-line (lambda () (set! single-line-canvas? #t))]
@@ -1411,8 +1425,7 @@
 	     x-margin y-margin
 	     get-client-size area-parent)
     
-    (rename [super-set-focus set-focus]
-	    [super-set-size set-size])
+    (rename [super-set-focus set-focus])
     
     (private
       ; cache to prevent on-size from recomputing its result every
@@ -1619,15 +1632,6 @@
 		 (+ (* 2 (y-margin))
 		    (max (cadr graphical-min-size) (min-height))))))]
     
-      ; set-size:
-      [set-size
-       (lambda (x y width height)
-	 (unless (and (same-dimension? x (get-x))
-		      (same-dimension? y (get-y))
-		      (same-dimension? width (get-width))
-		      (same-dimension? height (get-height)))
-	   (super-set-size x y width height)))]
-      
       [on-container-resize
        (lambda ()
 	 (let-values ([(client-width client-height)
@@ -3644,10 +3648,12 @@
 	(send p stretchable-height #f)
 	(send p stretchable-width #f)
 	(case (car style)
-	  [(ok) (mk-button "&Ok" 'ok #t)]
-	  [(ok-cancel) (mk-button "&Cancel" 'cancel #f)
-		       (mk-button "&Ok" 'ok #t)]
-	  [(yes-no) (mk-button "&Yes" 'yes #f)
+	  [(ok) (mk-button "Ok" 'ok #t)]
+	  [(ok-cancel) (set! result 'cancel)
+		       (mk-button "Cancel" 'cancel #f)
+		       (mk-button "Ok" 'ok #t)]
+	  [(yes-no) (set! result 'no)
+		    (mk-button "&Yes" 'yes #f)
 		    (mk-button "&No" 'no #f)]))
       (send f center)
       (send f show #t)
@@ -3697,9 +3703,10 @@
 
     (define l2 (make-object check-box% "PostScript Level 2" f void))
 
-    (define (done ok?)
+    (define ok? #f)
+    (define (done ?)
       (send f show #f)
-      (set! ok ok?))
+      (set! ok? ?))
 
     (define-values (xsb ysb xtb ytb) (values (box 0) (box 0) (box 0) (box 0)))
 
@@ -3734,7 +3741,7 @@
 
     (send f show #t)
 
-    (if ok
+    (if ok?
 	(let ([s (make-object wx:ps-setup%)]
 	      [gv (lambda (c b)
 		    (or (string->number (send c get-value)) (unbox b)))])
@@ -3837,7 +3844,7 @@
 	      (check-style who #f null style)
 	      (if (not (eq? (system-type) 'unix))
 		  (wx:file-selector message directory filename extension "*.*" (if put? 'put 'get) parent)
-		  (letrec ([ok? #t]
+		  (letrec ([ok? #f]
 			   [typed-name #f]
 			   [dir (or directory last-visted-directory (current-directory))]
 			   [f (make-object dialog% (if put? "Put File" "Get File") parent 500 300)]
@@ -3893,11 +3900,11 @@
 			   [bp (make-object horizontal-pane% f)]
 			   [dot-check (make-object check-box% "Show files/directories that start with \".\"" bp (lambda (b e) (reset-directory)))]
 			   [spacer (make-object vertical-pane% bp)]
-			   [cancel-button (make-object button% "&Cancel" bp (lambda (b e) (set! ok? #f) (send f show #f)))]
-			   [ok-button (make-object button% "&Ok" bp (lambda (b e) 
-								      (if (send files is-enabled?)
-									  (done) ; normal mode
-									  (do-text-name))) ; handle typed text
+			   [cancel-button (make-object button% "Cancel" bp (lambda (b e) (set! ok? #f) (send f show #f)))]
+			   [ok-button (make-object button% "Ok" bp (lambda (b e) 
+								     (if (send files is-enabled?)
+									 (done) ; normal mode
+									 (do-text-name))) ; handle typed text
 						   '(border))]
 			   [update-ok (lambda () (send ok-button enable (not (null? (send files get-selections)))))]
 			   [reset-directory (lambda ()
@@ -3945,6 +3952,7 @@
 				     (unless (and put? (file-exists? name)
 						  (eq? (message-box "Warning" (format "Replace ~s?" name) f '(yes-no)) 'no)
 						  (set! typed-name #f))
+				       (set! ok? #t)
 				       (send f show #f))))])
 		    (send bp stretchable-height #f)
 		    (send m stretchable-width #t)
@@ -3970,7 +3978,7 @@
 	(check-top-level-parent/false 'get-color-from-user parent)
 	(check-instance 'get-color-from-user wx:color% 'color% #t color)
 	(check-style 'get-color-from-user #f null style)
-	(let* ([ok? #t]
+	(let* ([ok? #f]
 	       [f (make-object dialog% "Choose Color" parent)]
 	       [done (lambda (ok) (lambda (b e) (set! ok? ok) (send f show #f)))]
 	       [p (make-object vertical-pane% f)]
