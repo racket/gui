@@ -8,6 +8,22 @@ Added {set,get}-line-spacing and {set,get}-styles-sticky to text%
 Added {set,get}-tight-text-fit to editor-snip%
 A text-field%'s text% is in paste-text-only mode by default
 
+Framework changes:
+
+- gui-utils:get-choice accepts a new (final) parameter that controls the 
+ result when the user cancels the dialog. 
+
+- added color-model:rgb-color-distance that accepts six numbers representing 
+ two colors in rgb form and returns the distance between those colors. 
+ Larger numbers mean that the human eye will see larger differences. 
+
+- when the framework collection has a "CVS" subdirectory, 
+  info frames show the current memory usage in the info panel.
+  Clicking the button performs three gcs and updates the memory count.
+
+- editor:basic-mixin no longer has a `default-auto-wrap?' method.
+  Just set the parameter method `auto-wrap' directly.
+ 
 ----------------------------------------------------------------------
 
 Version 100: August 9, 1999
