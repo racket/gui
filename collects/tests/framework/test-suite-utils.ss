@@ -15,6 +15,7 @@
 
    load-framework-automatically
    shutdown-listener shutdown-mred mred-running?
+   use-3m
    send-sexp-to-mred queue-sexp-to-mred
    test
    wait-for-frame
@@ -31,6 +32,8 @@
    set-section-name!
    set-only-these-tests!
    get-only-these-tests)
+  
+  (define use-3m (make-parameter #f))
 
   (define section-jump void)
   (define (set-section-jump! _s) (set! section-jump _s))
@@ -84,16 +87,32 @@
   (define (restart-mred)
     (shutdown-mred)
     (case (system-type)
-      [(macos) (system* (mred-program-launcher-path "Framework Test Engine"))]
+      [(macos) (system* 
+                (mred-program-launcher-path
+                 (if (use-3m)
+                     "Framework Test Engine3m"
+                    "Framework Test Engine")))]
       [(macosx)
        (thread
         (lambda ()
           (system*
-           (build-path (collection-path "mzlib") 'up 'up "bin" "mred")
+           (build-path (collection-path "mzlib")
+                       'up
+                       'up
+                       "bin" 
+                       (if (use-3m)
+                           "mred3m"
+                           "mred"))
            "-mvqt"
            (build-path (collection-path "tests" "framework")
                        "framework-test-engine.ss"))))]
-      [else (thread (lambda () (system* (mred-program-launcher-path "Framework Test Engine"))))])
+      [else (thread 
+             (lambda () 
+               (system*
+                (mred-program-launcher-path 
+                 (if (use-3m)
+                     "Framework Test Engine3m"
+                     "Framework Test Engine")))))])
     (debug-printf mz-tcp "accepting listener~n")
     (let-values ([(in out) (tcp-accept listener)])
       (set! in-port in)
