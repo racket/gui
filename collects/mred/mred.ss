@@ -2915,7 +2915,7 @@
 
 (define area-container<%> 
   (interface (area<%>) 
-    reflow-container container-modified begin-container-sequence end-container-sequence
+    reflow-container container-flow-modified begin-container-sequence end-container-sequence
     container-size
     get-children change-children place-children
     after-new-child
@@ -2945,10 +2945,10 @@
     (public
       [after-new-child (lambda (c) (void))]
       [reflow-container (entry-point (lambda () (send (send (get-wx-panel) get-top-level) force-redraw)))]
-      [container-modified (entry-point (lambda () 
-					 (let ([p (get-wx-panel)])
-					   (send p need-move-children)
-					   (send p force-redraw))))]
+      [container-flow-modified (entry-point (lambda () 
+					      (let ([p (get-wx-panel)])
+						(send p need-move-children)
+						(send p force-redraw))))]
       [begin-container-sequence (entry-point (lambda () (send (send (get-wx-panel) get-top-level) begin-container-sequence)))]
       [end-container-sequence (entry-point (lambda () (send (send (get-wx-panel) get-top-level) end-container-sequence)))]
       [get-children (entry-point (lambda () (map wx->proxy (send (get-wx-panel) get-children))))]
