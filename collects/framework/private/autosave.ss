@@ -114,7 +114,22 @@
         ;; start everything going
         (define (main)
           (when (file-exists? autosave-toc-filename)
-            (let* ([table (call-with-input-file autosave-toc-filename read)]
+	    ;; Load table from file, and check that the file was not corrupted
+            (let* ([table (let ([v (with-handlers ([not-break-exn? (lambda (x) null)])
+				     (call-with-input-file autosave-toc-filename read))]
+				[path? (lambda (x)
+					 (and (string? x)
+					      (absolute-path? x)))])
+			    (if (and (list? v)
+				     (andmap (lambda (i)
+					       (and (list? i) 
+						    (= 2 (length i))
+						    (or (not (car i))
+							(path? (car i)))
+						    (path? (cadr i))))
+					     v))
+				v
+				null))]
                    ;; assume that the autosave file was deleted due to the file being saved
                    [filtered-table
                     (filter (lambda (x) (file-exists? (cadr x))) table)])
