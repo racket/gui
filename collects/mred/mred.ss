@@ -7008,13 +7008,13 @@
 	(set-bitmap bitmap)))))
 
 (define post-script-dc%
-  (class100 wx:post-script-dc% ([interactive? #t][parent #f][use-paper-bbox? #f])
+  (class100 wx:post-script-dc% ([interactive #t][parent #f][use-paper-bbox #f][as-eps #t])
     (sequence
       (check-top-level-parent/false '(constructor post-script-dc) parent)
       (as-entry
        (lambda ()
 	 (let ([p (and parent (mred->wx parent))])
-	   (as-exit (lambda () (super-init interactive? p use-paper-bbox?)))))))))
+	   (as-exit (lambda () (super-init interactive p use-paper-bbox as-eps)))))))))
 
 (define printer-dc%
   (class100 wx:printer-dc% ([parent #f])

@@ -411,7 +411,7 @@
     get-argb-pixels
     set-pixel
     get-pixel)
-  (define-class post-script-dc% dc% ([interactive? #t] [parent #f] [use-paper-bbox? #f]))
+  (define-class post-script-dc% dc% ([interactive #t] [parent #f] [use-paper-bbox #f] [eps #t]))
   (define-class printer-dc% dc% ([parent #f]))
   (define-private-class gl-context% gl-context<%> object% #f
     call-as-current
