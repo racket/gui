@@ -1,6 +1,7 @@
 (define mred:finder@
   (unit/sig mred:finder^
     (import [mred:debug : mred:debug^]
+	    [mred:preferences : mred:preferences^]
 	    [mzlib:string : mzlib:string^]
 	    [mzlib:function : mzlib:function^]
 	    [mzlib:file : mzlib:file^])
@@ -433,6 +434,17 @@
 		     [else f]))
 		  #f)))))
 
-    ; By default, use platform-specific get/put
-    (define put-file std-put-file)
-    (define get-file std-get-file)))
+    (mred:preferences:set-preference-default 'mred:file-dialogs
+					     (if (eq? wx:platform 'unix)
+						 'common
+						 'std))
+    (define put-file
+      (lambda ()
+	((case (mred:preferences:get-preference 'mred:file-dialogs)
+	   [(std) std-put-file]
+	   [(common) common-put-file]))))
+    (define get-file
+      (lambda ()
+	((case (mred:preferences:get-preference 'mred:file-dialogs)
+	   [(std) std-get-file]
+	   [(common) common-get-file]))))))
