@@ -29,7 +29,7 @@
       (define paths #f)
       
       ;; label : string
-      (define label (string-constant untitled))
+      (init-field [label (string-constant untitled)])
       
       (define full-name-window #f)
       
@@ -57,52 +57,58 @@
             (set! label new-label)
             (update-min-sizes)
             (refresh))))
-      
+
+      (define/public (fill-popup menu reset)
+	(if (and paths (not (null? paths)))
+	    (let loop ([paths (cdr (reverse paths))])
+	      (cond
+	       [(null? paths) (void)]
+	       [else 
+		(make-object menu-item% (car paths) menu
+			     (lambda (evt item)
+			       (reset)
+			       (on-choose-directory (apply build-path (reverse paths)))))
+		(loop (cdr paths))]))
+	    (let ([i (make-object menu-item% 
+				  (string-constant no-full-name-since-not-saved)
+				  menu void)])
+	      (send i enable #f))))
+	
       (define/override (on-event evt)
-        (let* ([needs-update? #f]
-               [do-update
-                (lambda ()
-                  (when needs-update?
-                    (refresh)
-		    (yield)))])
-          
-          (let-values ([(max-x max-y) (get-size)])
-            (let ([inside? (and (not (send evt leaving?))
-                                (<= 0 (send evt get-x) max-x)
-                                (<= 0 (send evt get-y) max-y))])
-              (unless (eq? inside? mouse-over?)
-                (set! mouse-over? inside?)
-                (set! needs-update? #t))))
-          
-          (cond
-	   [(send evt button-down?)
-	    (let-values ([(width height) (get-size)])
-	      (set! mouse-over? #t)
-	      (set! needs-update? #t)
-	      (set! mouse-grabbed? #t)
-	      (let ([menu (make-object popup-menu% #f
-				       (lambda x
-					 (set! mouse-over? #f)
-					 (set! mouse-grabbed? #f)
-					 (refresh)))])
-		(if (and paths (not (null? paths)))
-		    (let loop ([paths (cdr (reverse paths))])
-		      (cond
-		       [(null? paths) (void)]
-		       [else 
-			(make-object menu-item% (car paths) menu
-				     (lambda (evt item)
-				       (on-choose-directory (apply build-path (reverse paths)))))
-			(loop (cdr paths))]))
-		    (let ([i (make-object menu-item% 
-					  (string-constant no-full-name-since-not-saved)
-					  menu void)])
-		      (send i enable #f)))
-		(do-update)
-		(popup-menu menu
-			    0
-			    height)))]
-	   [else (do-update)])))
+	(let-values ([(max-x max-y) (get-size)])
+	  (let ([inside? (and (not (send evt leaving?))
+			      (<= 0 (send evt get-x) max-x)
+			      (<= 0 (send evt get-y) max-y))])
+	    (unless (eq? inside? mouse-over?)
+	      (set! mouse-over? inside?)
+	      (refresh))))
+	
+	(cond
+	 [(send evt button-down?)
+	  (let-values ([(width height) (get-size)]
+		       [(reset) (lambda ()
+				  (set! mouse-grabbed? #f)
+				  (set! mouse-over? #f)
+				  (refresh))])
+	    (set! mouse-over? #t)
+	    (set! mouse-grabbed? #t)
+	    (let ([menu (make-object popup-menu% #f
+				     (lambda x
+				       (reset)))])
+	      (fill-popup menu reset)
+	      
+	      ;; Refresh the screen (wait for repaint)
+	      (set! paint-sema (make-semaphore))
+	      (refresh) 
+	      (yield paint-sema)
+	      (set! paint-sema #f)
+
+	      ;; Popup menu
+	      (popup-menu menu
+			  0
+			  height)))]))
+
+      (define paint-sema #f)
       
       (inherit get-parent)
       (define/private (update-min-sizes)
@@ -112,6 +118,8 @@
           (send (get-parent) reflow-container)))
       
       (define/override (on-paint)
+	(when paint-sema
+	  (semaphore-post paint-sema))
         (let ([dc (get-dc)])
           (let-values ([(w h) (get-client-size)])
             (when (and (> w 5) (> h 5))
