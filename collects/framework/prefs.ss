@@ -1,10 +1,12 @@
-(unit/sig framework:preferences^
+(dunit/sig framework:preferences^
   (import mred-interfaces^
 	  [exn : framework:exn^]
 	  [exit : framework:exit^]
 	  [panel : framework:panel^]
 	  [mzlib:pretty-print : mzlib:pretty-print^]
 	  [mzlib:function : mzlib:function^])
+
+  (rename [-read read])
   
   (define preferences-filename (build-path (find-system-path 'pref-dir)
 					   (case (system-type)
@@ -192,7 +194,7 @@
 	       (hash-table-map preferences marshall-pref) p))
 	    'truncate 'text)))))
   
-  (define read
+  (define -read
     (let ([parse-pref
 	   (lambda (p marshalled)
 	     (let/ec k
@@ -595,7 +597,7 @@
 	       [ok-button (make-object button% bottom-panel ok-callback "OK")]
 	       [cancel-callback (lambda args
 				  (hide-dialog)
-				  (read))]
+				  (-read))]
 	       [cancel-button (make-object button% bottom-panel cancel-callback "Cancel")])
 	(send ok-button user-min-width (send cancel-button get-width))
 	(send* bottom-panel

@@ -3,7 +3,7 @@
 
 ; Scheme mode for MrEd.
 
-(unit/sig framework:scheme^
+(dunit/sig framework:scheme^
   (import mred-interfaces^
 	  [preferences : framework:preferences^]
 	  [match-cache : framework:match-cache^]
@@ -11,7 +11,7 @@
 	  [scheme-paren : framework:scheme-paren^]
 	  [icon : framework:icon^]
 	  [keymap : framework:keymap^]
-	  [editor : framework:editor^]
+	  [text : framework:text^]
 	  [frame : framework:frame^]
 	  [mzlib:thread : mzlib:thread^])
   
@@ -56,9 +56,9 @@
 
   (define init-wordbreak-map
     (lambda (map)
-      (let ([v (send map get-map (char->integer #\-))])
+      (let ([v (send map get-map #\-)])
 	(send map set-map 
-	      (char->integer #\-)
+	      #\-
 	      '(line)))))
   (define wordbreak-map (make-object editor-wordbreak-map%))
   (init-wordbreak-map wordbreak-map)
@@ -69,22 +69,21 @@
       (send delta set-delta 'change-family 'modern)
       delta))
   (let ([style (send style-list find-named-style "Standard")])
-    (if (null? style)
+    (if style
+	(send style set-delta standard-style-delta)
 	(send style-list new-named-style "Standard"
 	      (send style-list find-or-create-style
 		    (send style-list find-named-style "Basic")
-		    standard-style-delta))
-	(send style set-delta standard-style-delta)))
+		    standard-style-delta))))
 
-  (define make-text% 
-    (mixin (editor:basic<%>) (-text<%>) args
+  (define text-mixin 
+    (mixin (text:basic<%>) (-text<%>) args
       (inherit begin-edit-sequence
 	       delete
 	       end-edit-sequence
 	       find-string
 	       get-character
 	       get-keymap
-	       get-key-code
 	       get-text
 	       get-start-position
 	       get-end-position
@@ -104,9 +103,7 @@
 	       set-tabs
 	       set-style-list
 	       set-styles-fixed)
-      (rename [super-on-char on-char]
-	      [super-deinstall deinstall]
-	      [super-install install])
+      (rename [super-on-char on-char])
 
       (private
 	[in-single-line-comment?
@@ -133,7 +130,7 @@
       (private
 	[in-highlight-parens? #f])
 
-      (inherit styles-fixed?)
+      (inherit get-styles-fixed)
       (rename [super-on-focus on-focus]
 	      [super-on-change-style on-change-style]
 	      [super-after-change-style after-change-style]
@@ -159,7 +156,7 @@
        [after-change-style
 	(lambda (start len)
 	  (end-edit-sequence)
-	  (unless styles-fixed?
+	  (unless (get-styles-fixed)
 	    (highlight-parens))
 	  (super-after-change-style))]
        [on-edit-sequence
@@ -773,7 +770,7 @@
 			    k))])
 	  (send keymap chain-to-keymap keymap #t)))))
 
-  (define -text% (make-text% frame:text-info-file%))
+  (define -text% (text-mixin text:info%))
 
   (define setup-keymap
     (lambda (keymap)
@@ -896,7 +893,6 @@
 	  (map-meta "c:space" "select-forward-sexp")
 	  (map-meta "c:t" "transpose-sexp"))
 	(send keymap map-function "c:c;c:b" "remove-parens-forward")))
-
 
   (define keymap (make-object keymap%))
   (setup-keymap keymap))

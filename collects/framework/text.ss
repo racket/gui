@@ -1,8 +1,9 @@
-(unit/sig framework:text^
+(dunit/sig framework:text^
   (import mred-interfaces^
 	  [editor : framework:editor^]
 	  [preferences : framework:preferences^]
 	  [keymap : framework:keymap^]
+	  [gui-utils : framework:gui-utils^]
 	  [mzlib:function : mzlib:function^])
 
   (define-struct range (start end b/w-bitmap color caret-space?))
@@ -14,16 +15,16 @@
   (define basic<%>
     (interface (editor:basic<%> text<%>)
       highlight-range      
-      styles-fixed?
+      get-styles-fixed
       set-styles-fixed
       move/copy-to-edit
-      autowrap-bitmap))
+      initial-autowrap-bitmap))
 
-  (define make-basic%
+  (define basic-mixin
     (mixin (editor:basic<%> text<%>) (basic<%>) args
-      (inherit canvases get-max-width get-admin split-snip get-snip-position
+      (inherit get-canvases get-admin split-snip get-snip-position
 	       delete find-snip invalidate-bitmap-cache
-	       set-autowrap-bitmap get-keymap mode set-mode-direct
+	       set-autowrap-bitmap get-keymap
 	       set-file-format get-file-format
 	       get-style-list is-modified? change-style set-modified
 	       position-location get-extent)
@@ -100,7 +101,7 @@
 		    (let-values ([(min-left max-right)
 				  (let loop ([left #f]
 					     [right #f]
-					     [canvases canvases])
+					     [canvases (get-canvases)])
 				    (cond
 				      [(null? canvases)
 				       (values left right)]
@@ -250,9 +251,10 @@
 
 
       (private
+	[styles-fixed? #f]
 	[styles-fixed-edit-modified? #f])
       (public
-	[styles-fixed? #f]
+	[get-styles-fixed (lambda () styles-fixed?)]
 	[set-styles-fixed (lambda (b) (set! styles-fixed? b))])
       (rename
 	[super-on-change-style on-change-style]
@@ -285,7 +287,7 @@
 	     (split-snip end)
 	     (let loop ([snip (find-snip end 'before)])
 	       (cond
-		 [(or (null? snip) (< (get-snip-position snip) start))
+		 [(or (not snip) (< (get-snip-position snip) start))
 		  (void)]
 		 [else
 		  (let ([prev (send snip previous)]
@@ -301,10 +303,10 @@
 
 
       (public
-	[autowrap-bitmap #f])
+	[initial-autowrap-bitmap (lambda () #f)])
       (sequence
 	(apply super-init args)
-	(set-autowrap-bitmap autowrap-bitmap)
+	(set-autowrap-bitmap (initial-autowrap-bitmap))
 	(let ([keymap (get-keymap)])
 	  (keymap:set-keymap-error-handler keymap)
 	  (keymap:set-keymap-implied-shifts keymap)
@@ -315,7 +317,7 @@
   (define searching<%>
     (interface ()
       find-string-embedded))
-  (define make-searching%
+  (define searching-mixin
     (mixin (editor:basic<%> text<%>) (searching<%>) args
       (inherit get-end-position get-start-position last-position 
 	       find-string get-snip-position get-admin find-snip
@@ -405,7 +407,7 @@
 	  (keymap:set-keymap-implied-shifts keymap)
 	  (send keymap chain-to-keymap keymap:search #f)))))
   
-  (define make-return%
+  (define return-mixin
     (mixin (text<%>) (text<%>) (return . args)
       (rename [super-on-local-char on-local-char])
       (override
@@ -421,7 +423,7 @@
       (sequence
 	(apply super-init args))))
 
-  (define make-info%
+  (define info-mixin
     (mixin (editor:basic<%> text<%>) (editor:basic<%> text<%>) args
       (inherit get-start-position get-end-position get-canvas
 	       run-after-edit-sequence)
@@ -469,10 +471,56 @@
 	   (enqueue-for-frame 'edit-position-changed
 			      'framework:edit-position-changed))])))
 
-  (define basic% (make-basic% (editor:make-basic% text%)))
-  (define return% (make-return% basic%))
-  (define file% (editor:make-file% basic%))
-  (define clever-file-format% (editor:make-clever-file-format% file%))
-  (define backup-autosave% (editor:make-backup-autosave% clever-file-format%))
-  (define searching% (make-searching% backup-autosave%))
-  (define info% (make-info% (editor:make-info% searching%))))
+  (define clever-file-format-mixin
+    (mixin (text<%>) (text<%>) args
+      (inherit get-file-format set-file-format find-first-snip)
+      (rename [super-on-save-file on-save-file]
+	      [super-after-save-file after-save-file])
+      
+      (private [restore-file-format void])
+      
+      (override
+	[after-save-file
+	 (lambda (success)
+	   (restore-file-format)
+	   (super-after-save-file success))]
+	[on-save-file
+	 (let ([has-non-string-snips 
+		(lambda ()
+		  (let loop ([s (find-first-snip)])
+		    (cond
+		      [(null? s) #f]
+		      [(is-a? s string-snip%)
+		       (loop (send s next))]
+		      [else #t])))])
+	   (lambda (name format)
+	     (when (and (or (eq? format 'same)
+			    (eq? format 'copy))
+			(not (eq? (get-file-format) 
+				  'std)))
+	       (cond
+		 [(eq? format 'copy)
+		  (set! restore-file-format 
+			(let ([f (get-file-format)])
+			  (lambda ()
+			    (set! restore-file-format void)
+			    (set-file-format f))))
+		  (set-file-format 'std)]
+		 [(and (has-non-string-snips)
+		       (or (not (preferences:get 'framework:verify-change-format))
+			   (gui-utils:get-choice "Save this file as plain text?" "No" "Yes")))
+		  (set-file-format 'std)]
+		 [else (void)]))
+	     (or (super-on-save-file name format)
+		 (begin 
+		   (restore-file-format)
+		   #f))))])
+      (sequence (apply super-init args))))
+
+  (define basic% (basic-mixin (editor:basic-mixin text%)))
+  (define return% (return-mixin basic%))
+  (define file% (editor:file-mixin basic%))
+  (define clever-file-format% (clever-file-format-mixin file%))
+  (define backup-autosave% (editor:backup-autosave-mixin clever-file-format%))
+  (define searching% (searching-mixin backup-autosave%))
+  (define info% (info-mixin (editor:info-mixin searching%))))

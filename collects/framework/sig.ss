@@ -11,14 +11,14 @@
    version))
 
 (define-signature framework:panel^
-  (make-single%
+  (single-mixin
    single<%>
    single%
    
-   make-edit%
-   edit<%>
-   horizontal-edit%
-   vertical-edit%))
+   editor-mixin
+   editor<%>
+   horizontal-editor%
+   vertical-editor%))
 
 (define-signature framework:exn^
   ((struct exn ())
@@ -67,8 +67,7 @@
    generate-backup-name))
 
 (define-signature framework:finder^
-  (filter-match?
-   dialog-parent-parameter
+  (dialog-parent-parameter
    common-put-file 
    common-get-file 
    std-put-file 
@@ -83,16 +82,14 @@
    info<%>
    backup-autosave<%>
    
-   make-clever-file-format%
-   make-basic%
-   make-info%
-   make-file%
-   make-backup-autosave%))
+   basic-mixin
+   info-mixin
+   file-mixin
+   backup-autosave-mixin))
 
 (define-signature framework:pasteboard^
   (basic%
    file%
-   clever-file-format%
    backup-autosave%
    info%))
 
@@ -100,9 +97,10 @@
   (basic<%>
    searching<%>
    
-   make-basic%
-   make-return%
-   make-searching%
+   basic-mixin
+   return-mixin
+   searching-mixin
+   clever-file-format-mixin
    
    basic% 
    return%
@@ -120,36 +118,37 @@
 
 
 (define-signature framework:canvas^
-  (make-wide-snip%
+  (wide-snip-mixin
+   wide-snip<%>
    wide-snip%))
 
 (define-signature framework:frame^
   (basic<%>
-   make-basic%
+   basic-mixin
 
    standard-menus<%>
-   make-standard-menus%
+   standard-menus-mixin
 
    editor<%>
-   make-editor%
+   editor-mixin
 
    text<%>
-   make-text%
+   text-mixin
 
    pasteboard<%>
-   make-pasteboard%
+   pasteboard-mixin
 
    searchable<%>
-   make-searchable%
+   searchable-mixin
 
    info<%>
-   make-info%
+   info-mixin
 
-   edit-info<%>
-   make-edit-info%
+   editor-info<%>
+   editor-info-mixin
 
    file<%>
-   make-file%
+   file-mixin
 
    empty%
    standard-menus%
@@ -183,11 +182,11 @@
    get-reset-console-bitmap
 
    get-lock-bitmap
-   get-lock-mdc
+   get-lock-bdc
    get-unlock-bitmap
-   get-unlock-mdc
+   get-unlock-bdc
    get-anchor-bitmap
-   get-anchor-mdc
+   get-anchor-bdc
    
    get-gc-on-dc
    get-gc-off-dc
@@ -229,7 +228,7 @@
    style-list
    keymap
    setup-keymap
-   make-text%
+   text-mixin
    text<%>
    text%))
 
@@ -238,6 +237,8 @@
    forward-match 
    backward-match
    skip-whitespace))
+
+(define-signature framework:main^ ())
 
 (define-signature framework^
   ([unit application : framework:application^]
@@ -269,4 +270,5 @@
    [unit panel : framework:panel^]
 
    [unit frame : framework:frame^]
-   [unit scheme : framework:scheme^]))
+   [unit scheme : framework:scheme^]
+   [unit main : framework:main^]))

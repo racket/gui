@@ -2,11 +2,6 @@
 (read-case-sensitive #t)
 (compile-allow-cond-fallthrough #t)
 (compile-allow-set!-undefined #t)
-(begin
-  (require-library "launcher.ss" "launcher")
-  (make-mred-launcher (list "-mvL" "test.ss" "framework")
-		      (mred-program-launcher-path "Test Framework")))
-
 (printf "2~n")
 (require-library "loader.ss" "system")
 (printf "3~n")

@@ -1,9 +1,8 @@
-(unit/sig framework:pasteboard^
+(dunit/sig framework:pasteboard^
   (import mred-interfaces^
 	  [editor : framework:editor^])
 
-  (define basic% (editor:make-basic% pasteboard%))
-  (define file% (editor:make-file% basic%))
-  (define clever-file-format% (editor:make-clever-file-format% file%))
-  (define backup-autosave% (editor:make-backup-autosave% clever-file-format%))
-  (define info% (editor:make-info% backup-autosave%)))
+  (define basic% (editor:basic-mixin pasteboard%))
+  (define file% (editor:file-mixin basic%))
+  (define backup-autosave% (editor:backup-autosave-mixin file%))
+  (define info% (editor:info-mixin backup-autosave%)))
