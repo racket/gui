@@ -257,7 +257,7 @@
     "dialog, all of the \\var{cb} functions"
     "are called, assuming that each of the callbacks"
     "passed to"
-    "@flink preferences:add-on-close-dialog-callback"
+    "@flink preferences:add-can-close-dialog-callback"
     "succeed.")
    (preferences:add-can-close-dialog-callback
     ((-> boolean?) . -> . void?)
