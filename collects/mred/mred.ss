@@ -2044,7 +2044,7 @@
 			(super-set-position set-position))
 		(override
 		  [-get-file-format (lambda ()
-				      (super-get-file-format format))]
+				      (super-get-file-format))]
 		  [-set-file-format (lambda (format)
 				      (super-set-file-format format)
 				      (super-set-position 0 0))])
