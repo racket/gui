@@ -16,9 +16,9 @@
       (define (get-anchor-bitmap) (force anchor-bitmap))
       
       (define lock-bitmap (delay (include-bitmap (lib "lock.gif" "icons"))))
-      (define-values (get-lock-bitmap) (force lock-bitmap))
+      (define (get-lock-bitmap) (force lock-bitmap))
       (define unlock-bitmap (delay (include-bitmap (lib "unlock.gif" "icons"))))
-      (define-values (get-unlock-bitmap) (force unlock-bitmap))
+      (define (get-unlock-bitmap) (force unlock-bitmap))
       
       (define autowrap-bitmap (delay (include-bitmap (lib "return.xbm" "icons"))))
       (define (get-autowrap-bitmap) (force autowrap-bitmap))

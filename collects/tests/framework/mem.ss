@@ -117,11 +117,11 @@
 (test-frame-allocate 'frame:pasteboard-info%)
 (test-frame-allocate 'frame:standard-menus%)
 
-;(test-frame-allocate 'frame:text%)
-;(test-frame-allocate 'frame:text-info-file%)
-;(test-frame-allocate 'frame:searchable%)
+(test-frame-allocate 'frame:text%)
+(test-frame-allocate 'frame:text-info-file%)
+(test-frame-allocate 'frame:searchable%)
 
-;(test-frame-allocate 'frame:pasteboard%)
-;(test-frame-allocate 'frame:pasteboard-info-file%)
+(test-frame-allocate 'frame:pasteboard%)
+(test-frame-allocate 'frame:pasteboard-info-file%)
 (done)
 )

@@ -74,7 +74,7 @@
   (test
    'windows-menu
    (lambda (x)
-     (equal? x (list "Bring Frame to Front..." "Most Recent Window" "Next Window" "Previous Window" 
+     (equal? x (list "Bring Frame to Front..." "Most Recent Window" 
                      #f "first" "test")))
    (lambda ()
      (send-sexp-to-mred
@@ -91,7 +91,7 @@
   (test
    'windows-menu-unshown
    (lambda (x)
-     (equal? x (list "Bring Frame to Front..." "Most Recent Window" "Next Window" "Previous Window" 
+     (equal? x (list "Bring Frame to Front..." "Most Recent Window"
                      #f "first" "test")))
    (lambda ()
      (send-sexp-to-mred
@@ -109,7 +109,7 @@
   (test
    'windows-menu-sorted1
    (lambda (x)
-     (equal? x (list "Bring Frame to Front..." "Most Recent Window" "Next Window" "Previous Window" 
+     (equal? x (list "Bring Frame to Front..." "Most Recent Window"
                      #f "aaa" "bbb" "first")))
    (lambda ()
      (send-sexp-to-mred
@@ -134,7 +134,7 @@
   (test
    'windows-menu-sorted2
    (lambda (x)
-     (equal? x (list "Bring Frame to Front..." "Most Recent Window" "Next Window" "Previous Window"
+     (equal? x (list "Bring Frame to Front..." "Most Recent Window"
                      #f "aaa" "bbb" "first")))
    (lambda ()
      (send-sexp-to-mred
