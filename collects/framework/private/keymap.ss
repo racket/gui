@@ -1216,7 +1216,7 @@
 		 ;; covered by menu
                  ;(map "d:f" "move-to-search-or-search")
                  
-		 (map "d:r" "move-to-search-or-reverse-search")
+		 (map "c:r" "move-to-search-or-reverse-search")
 		 (map "d:g" "find-string-again")
 		 (map "c:i" "toggle-search-focus")])))))
       

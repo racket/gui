@@ -2147,10 +2147,15 @@
             (λ ()
               (set-searching-frame this)
               (unhide-search)
-              (if (or (send find-canvas has-focus?)
-                      (send replace-canvas has-focus?))
-                  (search-again 'backward)
-                  (send find-canvas focus))))
+              (cond
+                [(preferences:get 'framework:search-using-dialog?)
+                 (search-again 'backward)
+                 (set-searching-direction 'forward)]
+                [else
+		 (if (or (send find-canvas has-focus?)
+                         (send replace-canvas has-focus?))
+                     (search-again 'backward)
+                     (send find-canvas focus))])))
           (define search-again
             (opt-lambda ([direction searching-direction] [beep? #t])
               (set-searching-frame this)
