@@ -12,7 +12,7 @@
 
  * Added {set,get}-paste-text-only to editor<%>
 
- * Added {set,get}-line-spacing and {set,get}-styles-sticky ro text%
+ * Added {set,get}-line-spacing and {set,get}-styles-sticky to text%
 
  * Added {set,get}-tight-text-fit to editor-snip%
 

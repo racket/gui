@@ -11,18 +11,19 @@ The "draw.ss" test (use load/cd) tests drawing commands. Click the
 ---------------------------------------------------------------------------
 
 The "mem.ss" test is loaded at startup:
-  mred -u -- -f mem.ss
+  mred -r mem.ss
 Creates a lot of frames and instance of other objects, reporting
 memory information along the way. At the end, before the last memory
 dump, objects that are still allocated are displayed like this:
   (frame (1 . 5))
 This means that the frame allocated by thread #1 at cycle 5
 (counting down from some number) hasn't been garbage-collected.
-If there's a few of these lines (less than 10), that's ok.
-A large number of lines indicates a GC problem.
+If there's a few of these lines (around 10), that's ok.
+A large number of lines (say, 50) indicates a GC problem.
 
 ---------------------------------------------------------------------------
 
+[Out of date:]
 The "random.ss" test is a randomized test of the MrEd classes that tests
 MrEd's stability. Load "random.ss", and then run
   (init)
