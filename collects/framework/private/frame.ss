@@ -240,16 +240,6 @@
       (define locked-message (string-constant read-only))
       (define unlocked-message (string-constant read/write))
       
-      (define lock-canvas-font 
-        (if (eq? (system-type) 'macosx)
-            (send the-font-list find-or-create-font 
-                  13
-                  'system
-                  'normal
-                  'normal
-                  #f)
-            (send the-font-list find-or-create-font 12 'system 'normal 'normal #f)))
-      
       (define lock-canvas%
         (class canvas%
           (field [locked? #f])
@@ -261,7 +251,7 @@
             (let* ([dc (get-dc)]
                    [draw
                     (lambda (str bg-color bg-style line-color line-style)
-                      (send dc set-font lock-canvas-font)
+                      (send dc set-font (send (get-parent) get-label-font))
                       (let-values ([(w h) (get-client-size)]
                                    [(tw th ta td) (send dc get-text-extent str)])
                         (send dc set-pen (send the-pen-list find-or-create-pen line-color 1 line-style))
@@ -277,8 +267,8 @@
           (super-instantiate ())
           (let ([dc (get-dc)])
             (send dc set-font (send (get-parent) get-label-font))
-            (let-values ([(w1 h1 _1 _2) (send dc get-text-extent locked-message lock-canvas-font)]
-                         [(w2 h2 _3 _4) (send dc get-text-extent unlocked-message lock-canvas-font)])
+            (let-values ([(w1 h1 _1 _2) (send dc get-text-extent locked-message)]
+                         [(w2 h2 _3 _4) (send dc get-text-extent unlocked-message)])
               (stretchable-width #f)
               (stretchable-height #t)
               (min-width (inexact->exact (floor (max w1 w2))))
