@@ -37,9 +37,9 @@
 	       'pasteboard:backup-autosave%
 	       'pasteboard:backup-autosave-creation)
 
-(test-creation 'frame:pasteboard-info%
+(test-creation 'frame:pasteboard%
 	       '(editor:info-mixin pasteboard:backup-autosave%)
 	       'editor:info-mixin-creation)
-(test-creation 'frame:pasteboard-info%
+(test-creation 'frame:pasteboard%
 	       'pasteboard:info%
 	       'pasteboard:info-creation)

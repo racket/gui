@@ -126,7 +126,11 @@
 			      (semaphore-post sema)))
 	    (semaphore-wait sema)))))
 
-    (define re:tcp-error (regexp "tcp-read:"))
+    (define re:tcp-read-error (regexp "tcp-read:"))
+    (define re:tcp-write-error (regexp "tcp-write:"))
+    (define (tcp-error? exn)
+      (or (regexp-match re:tcp-read-error (exn-message exn))
+	  (regexp-match re:tcp-write-error (exn-message exn))))
 
     (define send-sexp-to-mred
       (lambda (sexp)
@@ -156,7 +160,7 @@
 	  (let ([answer
 		 (with-handlers ([(lambda (x) #t)
 				  (lambda (x)
-				    (if (regexp-match re:tcp-error (exn-message x))
+				    (if (tcp-error? x);; assume tcp-error means app closed
 					eof
 					(list 'cant-read
 					      (string-append

@@ -16,7 +16,10 @@
 	  (send-sexp-to-mred '(begin (preferences:set 'framework:verify-exit #t)
 				     (test:run-one (lambda () (exit:exit)))))
 	  (wait-for-frame "Warning")
-	  (wait-for-new-frame '(test:button-push "Quit"))
+	  (wait-for-new-frame `(test:button-push
+				,(case (system-type)
+				   [(windows) "Exit"]
+				   [else "Quit"])))
 	  'failed)))
 
 (test 'exit/prompt/no-twice
@@ -32,7 +35,9 @@
 	  (exit/push-button "Cancel")
 	  (exit/push-button "Cancel")
 	  (with-handlers ([eof-result? (lambda (x) 'passed)])
-	    (exit/push-button "Quit")
+	    (exit/push-button (case (system-type)
+				[(windows) "Exit"]
+				[else "Quit"]))
 	    'failed))))
 
 (test 'exit/esc-cancel
@@ -48,7 +53,10 @@
 	  (wait-for-new-frame `(test:close-top-level-window (get-top-level-focus-window)))
 	  (exit/wait-for-warning)
 	  (with-handlers ([eof-result? (lambda (x) 'passed)])
-	    (wait-for-new-frame '(test:button-push "Quit"))
+	    (wait-for-new-frame `(test:button-push
+				  ,(case (system-type)
+				     [(windows) "Exit"]
+				     [else "Quit"])))
 	    'failed))))
 
 (define tmp-file (build-path (find-system-path 'temp-dir) "framework-exit-test-suite"))
