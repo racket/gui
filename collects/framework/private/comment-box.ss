@@ -42,7 +42,7 @@
         (class* decorated-editor-snip% (readable-snip<%>)
           (inherit get-editor get-style)
           
-          (define/override (make-editor) (make-object (editor-keymap-mixin text:keymap%)))
+          (define/override (make-editor) (new scheme:text%))
           (define/override (make-snip) (make-object -snip%))
           (define/override (get-corner-bitmap) bm)
           (define/override (get-position) 'left-top)
