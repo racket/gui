@@ -1,4 +1,15 @@
 
+103/3:
+
+ * Added 'wait as a possible argument to `yield'. When called in the
+   handler thread of an eventspace, `(yield 'wait)' yields until no
+   top-level windows in the eventspace are visible, no timers in the
+   eventspace are running, and no callbacks are queued in the
+   eventspace.
+
+ * Fixed set-max-undo-history; it wasn't actually resizing the undo
+   history buffer.
+
 103/2:
 
  * Fixed unreliable menu keybindings, especially cut-and-paste. More

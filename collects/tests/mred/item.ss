@@ -1277,9 +1277,15 @@
                                  (make-object button%
                                               "Change Name" cdp
                                               (lambda (b e)
-                                                (send c set-string
-                                                      (send c get-selection)
-                                                      "New Name")))
+						(let ([p (send c get-selection)])
+						  (when p
+						    (send c set-string p "New Name")
+						    (set! actual-content
+							  (let loop ([ac actual-content][p p])
+							    (if (zero? p)
+								(cons "New Name" (cdr ac))
+								(cons (car ac)
+								      (loop (cdr ac) (sub1 p))))))))))
                                  null))
   (define (make-selectors method mname numerical?)
     (define p2 (make-object horizontal-panel% p))
