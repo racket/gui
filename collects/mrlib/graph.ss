@@ -17,11 +17,12 @@
       remove-child
       
       get-parents
-      get-parent-links
       add-parent
       remove-parent
       
       find-shortest-path))
+  
+  (define-local-member-name get-parent-links)
   
   (provide/contract (add-links
 		     (case->

@@ -183,9 +183,7 @@
           (make-generic-private-field 
            'file-menu
            '(make-object (get-menu%)
-              (if (eq? (system-type) 'windows)
-                  (string-constant file-menu-label-windows)
-                  (string-constant file-menu-label-other))
+              (string-constant file-menu-label)
               (get-menu-bar)))
           (make-generic-method
            'get-edit-menu
