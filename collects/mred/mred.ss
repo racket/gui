@@ -7427,7 +7427,9 @@
 ;; Initialize AFM/PS:
 (wx:set-ps-draw-text/get-text-extent
  afm-draw-text
- afm-get-text-extent)
+ afm-get-text-extent
+ afm-expand-name
+ afm-glyph-exists?)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
