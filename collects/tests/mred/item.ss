@@ -2009,7 +2009,7 @@
 (define make-selector-and-runner
   (lambda (p1 p2 radios? size maker)
     (define (make-radio-box lbl choices panel cb)
-      (let ([g (instantiate group-box-panel% (lbl panel) [horiz-margin 2] [vert-margin 2])])
+      (let ([g (instantiate group-box-panel% (lbl panel))])
 	(make-object radio-box% #f choices g cb)))
     (define radio-h-radio
       (make-radio-box 
