@@ -575,16 +575,22 @@
           ;; Lifted from scheme-paren.ss
           ;; See docs
           (define/public (balanced? region-start region-end)
-            (if (or (> region-end (if (eq? end-pos 'end) (last-position) end-pos))
-                    (<= region-end region-start))
-                #f
-                (let* ([balance-point (forward-match region-start region-end)]
-                       [end-point 
-                        (and balance-point
-                             (skip-whitespace balance-point 'forward #t))])
-                  (and balance-point
-                       (or (and (<= balance-point region-end) (>= end-point region-end))
-                           (balanced? end-point region-end))))))
+	    (or 
+	     ;; If it's all whitespace between region-start and region-end,
+	     ;;  treat it as balanced
+	     (>= (skip-whitespace region-start 'forward #t)
+		 region-end)
+	     ;; Otherwise, make sure the content is balanced
+	     (if (or (> region-end (if (eq? end-pos 'end) (last-position) end-pos))
+		     (<= region-end region-start))
+		 #f
+		 (let* ([balance-point (forward-match region-start region-end)]
+			[end-point 
+			 (and balance-point
+			      (skip-whitespace balance-point 'forward #t))])
+		   (and balance-point
+			(or (and (<= balance-point region-end) (>= end-point region-end))
+			    (balanced? end-point region-end)))))))
 
           (define (get-close-paren pos closers)
             (cond
