@@ -73,15 +73,15 @@
 			     (loop base-dir dir-list menu-list)
 			     ; No more
 			     (values dir-list menu-list)))))])
-	       (set! dirs dir-list)
+	       (set! dirs (reverse dir-list))
 	       
 	       (send dir-choice clear)
-	       (let loop ([choices menu-list])
+	       (let loop ([choices (reverse menu-list)])
 		 (unless (null? choices)
 		   (send dir-choice append (car choices))
 		   (loop (cdr choices))))
-	       (send dir-choice set-selection (sub1 (length dirs)))
-	       (send dir-choice set-size -1 -1 -1 -1))
+	       (send dir-choice set-selection 0)
+	       (send top-panel force-redraw))
 	     
 	     (send name-list clear)
 	     (send name-list set
@@ -259,11 +259,9 @@
 	(private
 	  [main-panel (make-object mred:container:vertical-panel% this)]
 	  [top-panel (make-object mred:container:horizontal-panel% main-panel)]
-	  [_ (make-object mred:container:message% top-panel prompt)]
-	  [dir-choice (make-object mred:container:choice%
-				   top-panel do-dir '() -1 -1 -1 -1
-				   '("XXXXXXXXXXXXXXXXXXXXXXXXXXX"))]
-	  
+	  [_1 (make-object mred:container:message% top-panel prompt)]
+	  [dir-choice (make-object mred:container:choice% top-panel do-dir '())]
+
 	  [middle-panel (make-object mred:container:horizontal-panel% main-panel)]
 	  [left-middle-panel (make-object mred:container:vertical-panel% middle-panel)]
 	  [right-middle-panel (when multi-mode? (make-object mred:container:vertical-panel% middle-panel))]
@@ -291,6 +289,7 @@
 	  [add-panel (when multi-mode? (make-object mred:container:horizontal-panel% left-middle-panel))]
 	  [remove-panel (when multi-mode? (make-object mred:container:horizontal-panel% right-middle-panel))])
 	(sequence
+	  (send main-panel spacing 1)
 	  (when multi-mode?
 	    (send add-panel stretchable-in-y #f)
 	    (send remove-panel stretchable-in-y #f)
