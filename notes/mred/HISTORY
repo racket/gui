@@ -1,4 +1,23 @@
 
+Version 103.1:
+
+ * Changed methods in dc<%> classes to raise an exception if the
+   DC is not ok (except for the `ok?' method).
+
+ * Changed text% undo to restore the pre-modification selection.
+   (Previously, undo would move the caret to the end of the
+   restored area.)
+
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+Version 104: August 28, 2000
+
+Changed methods in dc<%> classes to raise an exception if the
+ DC is not ok (except for the `ok?' method).
+Changed text% undo to restore the pre-modification selection.
+
+----------------------------------------------------------------------
+
 Version 103: August 28, 2000
 
 Added 'wait as a possible argument to `yield', and changed startup
