@@ -158,7 +158,7 @@
 	(fluid-let ([test-name in-test-name])
 	  (when (or (not only-these-tests)
 		    (memq test-name only-these-tests))
-	    (let ([passed
+	    (let ([failed
 		   (with-handlers ([(lambda (x) #t)
 				    (lambda (x)
 				      (if (exn? x)
@@ -170,9 +170,9 @@
 				(begin0 (send-sexp-to-mred sexp/proc)
 					(send-sexp-to-mred ''check-for-errors)))])
 
-		       (passed? result)))])
-	      (unless passed
-		(printf "FAILED ~a~n" test-name)
+		       (not (passed? result))))])
+	      (when failed
+		(printf "FAILED ~a: ~a~n" failed test-name)
 		(case jump
 		  [(section) (section-jump)]
 		  [(continue) (void)]
