@@ -265,7 +265,7 @@
     (stv f iconize #t)
     (pause)
     (pause)
-    (st #t f is-iconized?)
+    (st #t f is-iconized?)  ; NB: test will fail on MacOS
     (stv f show #t)
     (pause)
     (st #f f is-iconized?)
