@@ -683,8 +683,8 @@
 	     filter-msg  ; file-filter-msg
 	     ))))
       
-					; the std- and common- forms both have opt-lambda's, with the same
-					; list of args.  Should the opt-lambda's be placed in the dispatching function?
+      ; the std- and common- forms both have opt-lambda's, with the same
+      ; list of args.  Should the opt-lambda's be placed in the dispatching function?
       
       (define std-put-file
 	(opt-lambda ([name #f]

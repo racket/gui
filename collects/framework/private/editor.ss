@@ -92,17 +92,27 @@
 		  [super-after-load-file after-load-file])
           [define last-saved-file-time #f]
 
-	  (override after-save-file after-load-file)
-          [define after-save-file
+          [define/override after-save-file
 	    (lambda (sucess?)
-	      (when sucess?
+	      
+              ;; update recently opened file names
+              (let* ([temp-b (box #f)]
+                     [filename (get-filename temp-b)])
+                (unless (unbox temp-b)
+                  (when filename
+                    (handler:add-to-recent filename))))
+              
+              ;; update last-saved-file-time
+              (when sucess?
 		(let ([filename (get-filename)])
 		  (set! last-saved-file-time
 			(and filename
 			     (file-exists? filename)
 			     (file-or-directory-modify-seconds filename)))))
+
 	      (super-after-save-file sucess?))]
-          [define after-load-file
+          
+          [define/override after-load-file
 	    (lambda (sucess?)
 	      (when sucess?
 		(let ([filename (get-filename)])
@@ -121,15 +131,6 @@
                       (file-exists? fn)
                       (let ([ms (file-or-directory-modify-seconds fn)])
                         (< last-saved-file-time ms))))))]
-          
-          (rename [super-on-save-file on-save-file])
-          (define/override (on-save-file filename format)
-            (let* ([temp-b (box #f)]
-                   [filename (get-filename temp-b)])
-              (unless (unbox temp-b)
-                (when filename
-                  (handler:add-to-recent filename))))
-            (super-on-save-file filename format))
           
           [define has-focus #f]
 	  (rename [super-on-focus on-focus])
