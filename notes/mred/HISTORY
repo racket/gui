@@ -12,6 +12,9 @@ wx:begin-busy-cursor no longer takes a cursor argument, but it
 set-cursor in wx:window% now accepts and returns null, indicating
  that the window's cursor is the same as its parents; most
  windows start out with the null cursor
+Added number method to wx:menu% and wx:menu-bar
+The delete methods of wx:menu% and wx:menu-bar return #t if the
+ delete suceeded, #f otherwise
 
 System:
 -------
