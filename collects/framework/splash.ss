@@ -80,9 +80,8 @@
 	      (apply super-init args)))]
 	 [(panel) (make-object vertical-pane% frame)]
 	 [(logo-canvas) (make-object splash-canvas% panel)]
-	 [(h-panel) (make-object vertical-pane% panel)]
-	 [(gauge) (make-object gauge% #f splash-max-width h-panel
-			       '(horizontal))]
+	 [(h-panel) (make-object horizontal-pane% panel)]
+	 [(gauge) (make-object gauge% #f splash-max-width h-panel '(horizontal))]
 	 [(spacer) (make-object grow-box-spacer-pane% h-panel)]
 	 [(_3) (begin
 		(send frame set-alignment 'center 'center)

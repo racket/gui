@@ -801,8 +801,11 @@
 
       (public
 	[get-info-panel
-	 (let ([info-panel (make-object horizontal-panel% super-root)])
+	 (let* ([outer-info-panel (make-object horizontal-panel% super-root)]
+		[info-panel (make-object horizontal-panel% outer-info-panel)]
+		[spacer (make-object grow-box-spacer-pane% outer-info-panel)])
 	   (lambda ()
+	     (send outer-info-panel stretchable-height #f)
 	     info-panel))])
       (private
 	[lock-message (make-object message%
