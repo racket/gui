@@ -4189,7 +4189,7 @@
 		  (and (positive? selection) selection)))))
 
 (define list-box%
-  (class100 basic-list-control% (label choices parent callback [style '(single)] [selection 0])
+  (class100 basic-list-control% (label choices parent callback [style '(single)] [selection #f])
     (sequence 
       (let ([cwho '(constructor list-box)])
 	(check-list-control-args cwho label choices parent callback)
