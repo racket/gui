@@ -252,48 +252,55 @@
 	      #t)]
 	   [collapse-variable-space
 	    (lambda (leave-one? edit event)
-	      (letrec ([find-nonwhite
+	      (letrec ([end-pos (send edit last-position)]
+		       [find-nonwhite
 			(lambda (pos d)
 			  (let ([c (send edit get-character pos)])
 			    (cond
 			      [(char=? #\newline c) pos]
+			      [(or (and (< pos 0) (= d -1))
+				   (and (> pos end-pos) (= d 1)))
+			       (if (= d -1)
+				   -1
+				   end-pos)]
 			      [(char-whitespace? c) 
 			       (find-nonwhite (+ pos d) d)]
 			      [else pos])))])
 		(let ([sel-start (send edit get-start-position)]
 		      [sel-end (send edit get-end-position)])
-		  (if (= sel-start sel-end)
-		      (let ([start (+ (find-nonwhite (- sel-start 1) -1)
-				      (if leave-one? 2 1))]
-			    [end (find-nonwhite sel-start 1)])
-			(if (< start end)
-			    (begin
-			      (send edit begin-edit-sequence)
-			      (send edit delete start end)
-			      (if (and leave-one?
-				       (not (char=? #\space
-						    (send edit get-character
-							  (sub1 start)))))
-				  (send edit insert " " (sub1 start) start))
-			      (send edit set-position start)
-			      (send edit end-edit-sequence))
-			    (if leave-one?
-				(let ([at-start
-				       (send edit get-character sel-start)]
-				      [after-start
-				       (send edit get-character 
-					     (sub1 sel-start))])
-				  (cond
-				    [(char-whitespace? at-start)
-				     (if (not (char=? at-start #\space))
-					 (send edit insert " " sel-start 
-					       (add1 sel-start)))
-				     (send edit set-position (add1 sel-start))]
-				    [(char-whitespace? after-start)
-				     (if (not (char=? after-start #\space))
-					 (send edit insert " " (sub1 sel-start)
-					       sel-start))]
-				    [else (send edit insert " ")])))))))))]
+		  (when (= sel-start sel-end)
+		    (let ([start (+ (find-nonwhite (- sel-start 1) -1)
+				    (if leave-one? 2 1))]
+			  [end (find-nonwhite sel-start 1)])
+		      (if (< start end)
+			  (begin
+			    (send edit begin-edit-sequence)
+			    (send edit delete start end)
+			    (if (and leave-one?
+				     (not (char=? #\space
+						  (send edit get-character
+							(sub1 start)))))
+				(send edit insert " " (sub1 start) start))
+			    (send edit set-position start)
+			    (send edit end-edit-sequence))
+			  (when leave-one?
+			    (let ([at-start
+				   (send edit get-character sel-start)]
+				  [after-start
+				   (send edit get-character 
+					 (sub1 sel-start))])
+			      (cond
+			       [(char-whitespace? at-start)
+				(if (not (char=? at-start #\space))
+				    (send edit insert " " sel-start 
+					  (add1 sel-start)))
+				(send edit set-position (add1 sel-start))]
+			       [(char-whitespace? after-start)
+				(if (not (char=? after-start #\space))
+				    (send edit insert " " (sub1 sel-start)
+					  sel-start))]
+			       [else
+				(send edit insert " ")])))))))))]
 	   
 	   [collapse-space
 	    (lambda (edit event)
