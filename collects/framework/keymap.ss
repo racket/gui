@@ -380,12 +380,22 @@
 			(get-text-from-user
 			 "Goto Line"
 			 "Goto Line:")))])
-		(if (string? num-str)
-		    (let ([line-num (string->number num-str)])
-		      (if line-num
-			  (let ([pos (send edit line-start-position 
-					   (sub1 line-num))])
-			    (send edit set-position pos))))))
+		(when (string? num-str)
+		  (let ([line-num (inexact->exact (string->number num-str))])
+		    (cond
+		     [(and (number? line-num)
+			   (= line-num (floor line-num))
+			   (<= 1 line-num (+ (send edit last-line) 1)))
+		      (let ([pos (send edit line-start-position 
+				       (sub1 line-num))])
+			(send edit set-position pos))]
+		     [else
+		      (message-box
+		       "Goto Line"
+		       (format "~a is not an integer between 1 and ~a"
+			       num-str
+			       (+ (send edit last-line) 1)))]))))
+
 	      #t)]
 	   [goto-position
 	    (lambda (edit event)

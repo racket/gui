@@ -114,7 +114,7 @@
 		(at-most-one (void) 
 			     (lambda ()
 			       (exit:on-exit)
-			       (exit)))
+			       (queue-callback (lambda () (exit)))))
 		(void))))
     
     (exit:insert-can?-callback
