@@ -1,26 +1,63 @@
 
 Version 103.1:
 
+ * Added `popup-menu' to area-container-window<%>.
+
+ * Added a popup menu to the `message-box' dialog (pops up with any
+   click not on a button) that copies the contained message to the
+   clipboard. Also, disabled the caret of the text box used for
+   large messages. (PR 1416)
+
  * Changed methods in dc<%> classes to raise an exception if the
-   DC is not ok (except for the `ok?' method).
+   DC is not ok (except for the `ok?' method). (PR 1014)
+
+ * Changed dc<%>'s `draw-bitmap' and `draw-bitmap-section' to
+   scale the bitmap if the dc<%> has a scale. (PR 1185)
 
  * Changed text% undo to restore the pre-modification selection.
    (Previously, undo would move the caret to the end of the
-   restored area.)
+   restored area.) (PR 778)
+
+ * Fixed internal lock handling on focus and activation events. (PR
+   1624, hopefully)
+
+ * Windows: removed special handling of Ctl-m, Ctl-i, and Ctl-h
+   (which produced return, tab, and backspace instead of the
+   control characters). (PR 1382)
+
+ * Fixed click-handling in text% with embedded editors, when the
+   click is on the embedded editor's line but above or below the
+   embedded editor. (PR 1303)
+
+ * Changed selection extension via the keyboard to maintain its state
+   across focus changes and mouse clicks that do not move the
+   selection. (PR 1586)
+
+ * X: Default keymap double-click time determined via the standard Xt
+   function. (PR 1580)
 
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 Version 104: August 28, 2000
 
+Added popup-menu to area-container-window<%>
+Added a popup menu to the message-box dialog that copies the contained
+ message to the clipboard
 Changed methods in dc<%> classes to raise an exception if the
- DC is not ok (except for the `ok?' method).
-Changed text% undo to restore the pre-modification selection.
+ DC is not ok (except for the ok? method)
+Changed dc<%>'s draw-bitmap and draw-bitmap-section to
+ scale the bitmap if the dc<%> has a scale
+Changed text% undo to restore the pre-modification selection
+Fixed internal lock handling on focus and activation events
+Windows: removed special handling of Ctl-m, Ctl-i, and Ctl-h
+X: Default keymap double-click time determined via the standard Xt
+ function
 
 ----------------------------------------------------------------------
 
 Version 103: August 28, 2000
 
-Added 'wait as a possible argument to `yield', and changed startup
+Added 'wait as a possible argument to yield, and changed startup
  to call (yield 'wait), with new meaning for -V flag
 Removed 'anchored flag for snip% (wasn't implemented)
 Added support for loading JPEG file (but not saving)
