@@ -341,9 +341,21 @@
 						 (set! x (+ x w 10))))
 					     (printf "bad bitmap~n")))])
 				  (do-one bb 'solid black)
-				  (do-one return 'solid black)
-				  (do-one return 'solid red)
-				  (do-one return 'opaque red)
+				  (let ([start x])
+				    (do-one return 'solid black)
+				    (do-one return 'solid red)
+				    (do-one return 'opaque red)
+				    (let ([end x]
+					  [b (send dc get-brush)])
+				      (send dc set-brush (make-object brush% "BLUE" 'solid))
+				      (send dc draw-rectangle (- start 5) (+ y 15) (- end start) 15)
+				      (send dc set-brush b)
+				      (set! x start)
+				      (set! y (+ y 18))
+				      (do-one return 'solid black)
+				      (do-one return 'solid red)
+				      (do-one return 'opaque red)
+				      (set! y (- y 18))))
 				  (do-one bb 'solid red)
 				  (let ([bg (send dc get-background)])
 				    (send dc set-background (send the-color-database find-color "BLACK"))
@@ -435,12 +447,25 @@
 		      (send dc set-clipping-region #f)
 		      (send dc clear)
 
-		      (case clip
-			[(none) (void)]
-			[(rect) (send dc set-clipping-rect 100 -25 10 400)]
-			[(poly) (let ([r (make-object region% dc)])
-				  (send r set-polygon octagon)
-				     (send dc set-clipping-region r))])
+		      (let ([mk-poly (lambda ()
+				       (let ([r (make-object region% dc)])
+					 (send r set-polygon octagon) r))]
+			    [mk-rect (lambda ()
+				       (let ([r (make-object region% dc)])
+					 (send r set-rectangle 100 -25 10 400) r))])
+			(case clip
+			  [(none) (void)]
+			  [(rect) (send dc set-clipping-rect 100 -25 10 400)]
+			  [(poly) (send dc set-clipping-region (mk-poly))]
+			  [(rect+poly) (let ([r (mk-poly)])
+					 (send r union (mk-rect))
+					 (send dc set-clipping-region r))]
+			  [(poly-rect) (let ([r (mk-poly)])
+					 (send r subtract (mk-rect))
+					 (send dc set-clipping-region r))]
+			  [(poly&rect) (let ([r (mk-poly)])
+					 (send r intersect (mk-rect))
+					 (send dc set-clipping-region r))]))
 		      
 		      ; check default pen/brush:
 		      (send dc draw-rectangle 0 0 5 5)
@@ -458,9 +483,12 @@
 			      (error 'draw-test "shouldn't have been a clipping region"))
 			    (let*-values ([(x y w h) (send r get-bounding-box)]
 					  [(l) (list x y w h)])
-			      (unless (equal? l (case clip
-						  [(rect) '(100. -25. 10. 400.)]
-						  [(poly) '(0. 60. 180. 180.)]))
+			      (unless (equal? l
+					      (case clip
+						[(rect) '(100. -25. 10. 400.)]
+						[(poly poly-rect) '(0. 60. 180. 180.)]
+						[(rect+poly) '(0. -25. 180. 400.)]
+						[(poly&rect) '(100. 60. 10. 180.)]))
 				(error 'draw-test "clipping region changed badly: ~a" l)))))
 
 		      (let ([w (box 0)]
@@ -510,12 +538,18 @@
 		       (lambda (self event)
 			 (send canvas set-stipples (send self get-value))))
 	  set-value #t)
-    (make-object choice% "Clip" '("None" "Rectangle" "Octagon") hp3
+    (make-object choice% "Clip" 
+		 '("None" "Rectangle" "Octagon" 
+		   "Rectangle + Octagon" "Octagon - Rectangle" "Rectangle & Octagon")
+		 hp3
 		 (lambda (self event)
 		   (set! clip (case (send self get-selection)
 				[(0) 'none]
 				[(1) 'rect]
-				[(2) 'poly]))
+				[(2) 'poly]
+				[(3) 'rect+poly]
+				[(4) 'poly-rect]
+				[(5) 'poly&rect]))
 		   (send canvas on-paint))))
   (send f show #t))
 
