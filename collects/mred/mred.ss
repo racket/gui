@@ -360,7 +360,7 @@
   (let-values ([(x y) (double-boxed 0 0 (lambda (x y) (send o client-to-screen x y)))]
 	       [(w h) (double-boxed 0 0 (lambda (x y) (send o get-client-size x y)))])
     (if (is-a? o wx-tab-group%)
-	(send o tab-group-position x y)
+	(send o tab-group-position x y w)
 	(list o x y w h))))
 
 (define (container->children f except must-focus?)
@@ -1979,7 +1979,7 @@
 	(setup-regions)))
 
     (define/override (gets-focus?) #t)    
-    (define/public (tab-group-position x y)
+    (define/public (tab-group-position x y w)
       (list this (+ x (get-init-x)) y (get-total-width) tab-height))
     (define/public (number) (length tabs))
     
@@ -2155,6 +2155,10 @@
       canvas-based-tab-group%
       (class (make-window-glue%
 	      (make-control% wx:tab-group% 0 0 #t #t))
+	(inherit min-height)
+	(define/public (tab-group-position x y w)
+	  (list this x y w (min-height)))
+	(define/override (handles-key-code code alpha? meta?) #f)
 	(super-instantiate ()))))
 
 (define group-right-inset 4)
