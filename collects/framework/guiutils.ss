@@ -115,9 +115,23 @@
 	result)))
   
   (define get-choice
-    (opt-lambda (message true-choice false-choice [title "Warning"])
+    (case-lambda 
+     [(message true-choice false-choice)
+      (get-choice message true-choice false-choice "Warning")]
+     [(message true-choice false-choice title)
       (letrec ([result #f]
-	       [dialog (make-object dialog% title)]
+	       [dialog (make-object 
+                        (class dialog% ()
+                          (override
+                            [can-close?
+                             (lambda ()
+                               (bell)
+                               (message-box title
+                                            (format "Please choose either \"~a\" or \"~a\""
+                                                    true-choice false-choice))
+                               #f)])
+                          (sequence
+                            (super-init title))))]
 	       [on-true
 		(lambda args
 		  (set! result #t)
@@ -128,7 +142,7 @@
 		  (send dialog show #f))]
 	       [vp (make-object vertical-panel% dialog)]
 	       [hp (make-object horizontal-panel% dialog)])
-
+        
 	(let loop ([m message])
 	  (let ([match (regexp-match (format "^([^~n]*)~n(.*)")
 				     m)])
@@ -136,14 +150,14 @@
 		(begin (make-object message% (cadr match) vp)
 		       (loop (caddr match)))
 		(make-object message% m vp))))
-
+        
 	(send vp set-alignment 'left 'center)
 	(send hp set-alignment 'right 'center)
 	(send (make-object button% true-choice hp on-true '(border)) focus)
 	(make-object button% false-choice hp on-false)
 	(send dialog center 'both)
 	(send dialog show #t)
-	result)))
+	result)]))
 
   (define read-snips/chars-from-buffer
     (opt-lambda (edit [start 0] [end (send edit last-position)])

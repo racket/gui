@@ -11,7 +11,6 @@
   
   (define (make-meta-prefix-list key)
     (list (string-append "m:" key)
-	  (string-append "c:[;" key)
 	  (string-append "ESC;" key)))
   
   (define send-map-function-meta
