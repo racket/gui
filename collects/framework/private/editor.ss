@@ -311,19 +311,42 @@
 	  
 	  (super-instantiate ())))
 
-      (define standard-style-list (make-object style-list%))
+      (define standard-style-list (new style-list%))
       (define (get-standard-style-list) standard-style-list)
-      (define delta
-        (let ([delta (make-object style-delta% 'change-normal)])
-          (send delta set-delta 'change-family 'modern)
-          delta))
-      (let ([style (send standard-style-list find-named-style "Standard")])
-        (if style
-            (send style set-delta delta)
-            (send standard-style-list new-named-style "Standard"
-                  (send standard-style-list find-or-create-style
-                        (send standard-style-list find-named-style "Basic")
-                        delta))))
+      
+      (let ([delta (make-object style-delta% 'change-normal)])
+        (send delta set-delta 'change-family 'modern)
+        (let ([style (send standard-style-list find-named-style "Standard")])
+          (if style
+              (send style set-delta delta)
+              (send standard-style-list new-named-style "Standard"
+                    (send standard-style-list find-or-create-style
+                          (send standard-style-list find-named-style "Basic")
+                          delta)))))
+      
+      (define (set-font-size size)
+        (update-standard-style
+         (lambda (scheme-delta)
+           (send scheme-delta set-size-mult 0)
+           (send scheme-delta set-size-add size))))
+      
+      (define (set-font-name name)
+        (update-standard-style
+         (lambda (scheme-delta)
+           (send scheme-delta set-delta-face name)
+           (send scheme-delta set-family 'modern))))
+      
+      (define (set-font-smoothing sym)
+        (update-standard-style
+         (lambda (scheme-delta)
+           (send scheme-delta set-smoothing-on sym))))
+      
+      (define (update-standard-style cng-delta)
+        (let* ([scheme-standard (send standard-style-list find-named-style "Standard")]
+               [scheme-delta (make-object style-delta%)])
+          (send scheme-standard get-delta scheme-delta)
+          (cng-delta scheme-delta)
+          (send scheme-standard set-delta scheme-delta)))
       
       (define standard-style-list<%>
         (interface (editor<%>)
@@ -336,6 +359,43 @@
           (set-style-list standard-style-list)
 	  (set-load-overwrites-styles #f)))
           
+      (define (set-standard-style-list-pref-callbacks)
+        (set-font-size (preferences:get 'framework:standard-style-list:font-size))
+        (set-font-name (preferences:get 'framework:standard-style-list:font-name))
+        (set-font-smoothing (preferences:get 'framework:standard-style-list:font-smoothing))
+        (preferences:add-callback 'framework:standard-style-list:font-size (lambda (p v) (set-font-size v)))
+        (preferences:add-callback 'framework:standard-style-list:font-name (lambda (p v) (set-font-name v)))
+        (preferences:add-callback 'framework:standard-style-list:font-smoothing (lambda (p v) (set-font-smoothing v)))
+        
+        (unless (member (preferences:get 'framework:standard-style-list:font-name) (get-fixed-faces))
+          (preferences:set 'framework:standard-style-list:font-name (get-family-builtin-face 'modern))))
+      
+      (define get-fixed-faces
+        (cond
+          [(eq? (system-type) 'unix) 
+           (lambda () (get-face-list))]
+          [else
+           (let ([compute-ans
+                  (lambda ()
+                    (let* ([canvas (make-object canvas% (make-object frame% "bogus"))]
+                           [dc (send canvas get-dc)])
+                      (let loop ([faces (get-face-list)])
+                        (cond
+                          [(null? faces) null]
+                          [else (let* ([face (car faces)]
+                                       [font (make-object font% 12 face 'default 'normal 'normal #f)])
+                                  (let*-values ([(wi _1 _2 _3) (send dc get-text-extent "i" font)]
+                                                [(ww _1 _2 _3) (send dc get-text-extent "w" font)])
+                                    (if (and (= ww wi) 
+                                             (not (zero? ww)))
+                                        (cons face (loop (cdr faces)))
+                                        (loop (cdr faces)))))]))))]
+                 [ans #f])
+             (lambda ()
+               (unless ans
+                 (set! ans (compute-ans)))
+               ans))]))
+      
       (define -keymap<%> (interface (basic<%>) get-keymaps))
       (define keymap-mixin
 	(mixin (basic<%>) (-keymap<%>)

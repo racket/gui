@@ -15,9 +15,32 @@
 	      [preferences : framework:preferences^]
 	      [exit : framework:exit^]
 	      [group : framework:group^]
-              [handler : framework:handler^])
+              [handler : framework:handler^]
+              [editor : framework:editor^])
       
       (application-preferences-handler (lambda () (preferences:show-dialog)))
+      
+      (preferences:set-default 'framework:standard-style-list:font-name
+                               (get-family-builtin-face 'modern)
+                               string?)
+      
+      (preferences:set-default
+       'framework:standard-style-list:font-size
+       (let* ([txt (make-object text%)]
+              [stl (send txt get-style-list)]
+              [bcs (send stl basic-style)])
+         (send bcs get-size))
+       (lambda (x) (and (number? x) (exact? x) (integer? x) (positive? x))))
+      
+      (preferences:set-default
+       'framework:standard-style-list:font-smoothing
+       (case (system-type)
+         [(macosx) 'partly-smoothed]
+         [else 'unsmoothed])
+       (lambda (x) 
+         (memq x '(unsmoothed partly-smoothed smoothed))))
+      
+      (editor:set-standard-style-list-pref-callbacks)
       
       (preferences:set-default 'framework:paren-match-color
                                (let ([gray-level
