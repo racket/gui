@@ -1,4 +1,5 @@
 (define-struct generic (name initializer documentation))
+(define-struct generic-override (name initializer documentation))
 
 (define-struct before/after (menu name procedure))
 (define-struct (before struct:before/after) ())
@@ -59,8 +60,15 @@
 	     (and target (is-a? target editor<%>))))))
 
 (define items
-  (list (make-generic 'get-menu% '(lambda () menu%)
-		      '("The result of this method is used as the class for creating the result of these methods:"
+  (list (make-generic-override
+	 'on-close '(lambda ()
+		      (remove-prefs-callback)
+		      (super-on-close))
+	 '("@return : void"
+	   "Removes the preferences callbacks for the menu items"))
+	(make-generic 'get-menu% '(lambda () menu%)
+		      '("The result of this method is used as the class"
+			"for creating the result of these methods:"
 			"@ilink frame:standard-menus get-file-menu %"
 			", "
 			"@ilink frame:standard-menus get-edit-menu %"

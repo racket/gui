@@ -175,6 +175,9 @@
    searchable<%>
    searchable-mixin
 
+   searchable-text<%>
+   searchable-text-mixin
+
    info<%>
    info-mixin
 

@@ -130,10 +130,23 @@ string=? ; exec mred -qr $0
 
 (define (build-generic-clause x) '(sequence (void)))
 (define (build-fill-in-generic-clause generic)
-  `(public [,(generic-name generic)
-	    ,(generic-initializer generic)]))
+  `(public
+    [,(generic-name generic)
+     ,(generic-initializer generic)]))
 
-(call-with-output-file (build-path (collection-path "framework") "standard-menus.ss")
+(define (build-generic-override-clause x)
+  `(rename [,(string->symbol (format "super-~a" (generic-override-name x)))
+	    ,(generic-override-name x)]))
+(define (build-fill-in-generic-override-clause generic)
+  `(override
+    [,(generic-override-name generic)
+     ,(generic-override-initializer generic)]))
+
+
+(define standard-menus.ss-filename (build-path (collection-path "framework") "standard-menus.ss"))
+(printf "writing to ~a~n" standard-menus.ss-filename)  
+
+(call-with-output-file standard-menus.ss-filename
   (lambda (port)
     (pretty-print
      `(define standard-menus<%>
@@ -145,6 +158,7 @@ string=? ; exec mred -qr $0
 			       [(between? x) (list (between->name x))]
 			       [(or (after? x) (before? x))
 				(list (before/after->name x))]
+			       [(generic-override? x) null]
 			       [(generic? x) (list (generic-name x))])) 
 			   items))))
      port)
@@ -155,7 +169,6 @@ string=? ; exec mred -qr $0
      `(define standard-menus-mixin
 	(mixin (basic<%>) (standard-menus<%>) args
           (inherit on-menu-char on-traverse-char)
-	  (rename [super-on-close on-close])
 	  (private
 	    [remove-prefs-callback
 	     (preferences:add-callback
@@ -172,12 +185,6 @@ string=? ; exec mred -qr $0
                              (send menu restore-keybinding)
                              (send menu set-shortcut #f)))])))))])
           
-	  (override
-            [on-close
-             (lambda ()
-               (remove-prefs-callback)
-               (super-on-close))])
-          
 	  (inherit get-menu-bar show can-close? get-edit-target-object)
 	  (sequence (apply super-init args))
 	  ,@(append 
@@ -188,6 +195,7 @@ string=? ; exec mred -qr $0
 		       (build-fill-in-before/after-clause x)]
 		      [(an-item? x) (build-fill-in-item-clause x)]
 		      [(generic? x) (build-fill-in-generic-clause x)]
+		      [(generic-override? x) (build-fill-in-generic-override-clause x)]
 		      [else (printf "~a~n" x)]))
 		  items)
 	     (map (lambda (x)
@@ -196,7 +204,8 @@ string=? ; exec mred -qr $0
 		      [(an-item? x) (build-item-menu-clause x)]
 		      [(or (after? x) (before? x))
 		       (build-before/after-menu-clause x)]
-		      [(generic? x) (build-generic-clause x)]))
+		      [(generic? x) (build-generic-clause x)]
+		      [(generic-override? x) (build-generic-override-clause x)]))
 		  items)
 	     (list `(sequence (reorder-menus this))))))
      port))
