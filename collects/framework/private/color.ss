@@ -208,6 +208,8 @@
           (define/private (do-insert/delete edit-start-pos change-length)
             (unless (or stopped? force-stop?)
               (modify)
+              (unless up-to-date?
+                (sync-invalid))
               (cond
                 (up-to-date?
                  (let-values 
