@@ -97,7 +97,7 @@
     (let ([ans (hash-table-get preferences p
 			       (lambda () 
 				 (raise (exn:make-unknown-preference
-					 (format "attempted to get unknown preference: ~a" p)
+					 (format "preferences:get: attempted to get unknown preference: ~e" p)
 					 (current-continuation-marks)))))])
       (cond
        [(marshalled? ans)
@@ -105,9 +105,9 @@
 		 (hash-table-get
 		  defaults p
 		  (lambda ()
-		    (error 'preferences:get
-			   "no default pref for: ~a~n"
-			   p)))]
+		    (raise (exn:make-unknown-preference
+			    (format "preferences:get: no default pref for: ~e" p)
+			    (current-continuation-marks)))))]
 	       [default (default-value default-s)]
 	       [checker (default-checker default-s)]
 	       [unmarshalled (let ([unmarsh (unmarshall p ans)])
