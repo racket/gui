@@ -55,6 +55,7 @@
 	  [define remove-windows-menu
 	    (lambda (frame)
 	      (let* ([menu (get-windows-menu frame)])
+		(map (lambda (i) (send i delete)) (send menu get-items))
 		(set! windows-menus
 		      (remove
 		       menu
