@@ -4988,7 +4988,7 @@
 
       ; Alignment
       (for-each (lambda (name s)
-		  (mk name alignment (mk-cg 'change-weight s)))
+		  (mk name alignment (mk-cg 'change-alignment s)))
 		'("Top" "Center" "Bottom")
 		'(top center bottom))
 
