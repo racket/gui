@@ -94,7 +94,8 @@
          (lambda (filename)
            (handler:edit-file filename))])
 
-      (inherit change-children)
+      ;; added call to set label here to hopefully work around a problem in mac mred
+      (inherit set-label change-children)
       (override
 	[after-new-child
 	 (lambda (child)
@@ -127,7 +128,7 @@
 		       [parent style]
 		       [mdi-parent (cons 'mdi-child style)]
 		       [else style])))
-
+        
         (accept-drop-files #t)
 
 	(make-object menu% "&Windows" (make-object (get-menu-bar%) this))

@@ -309,7 +309,7 @@
 	 (lambda args
 	   (let loop ([n 0])
 	     (if (< n (send result-list get-number))
-		 (if (send result-list selected? n)
+		 (if (send result-list is-selected? n)
 		     (begin
 		       (send result-list delete n)
 		       (loop n))

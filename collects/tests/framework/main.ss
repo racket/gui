@@ -142,33 +142,43 @@
 					   ov))))])
 		   (pretty-print sexp)
 		   (newline)))])
+	  (printf "1~n")
 	  (unless (and in-port
 		       out-port
 		       (or (not (char-ready? in-port))
 			   (not (eof-object? (peek-char in-port)))))
 	    (restart-mred))
 	  (printf "  ~a // ~a: sending to mred:~n" section-name test-name)
+	  (printf "2~n")
 	  (show-text sexp)
+	  (printf "3~n")
 	  (write sexp out-port)
+	  (printf "4~n")
 	  (newline out-port)
+	  (printf "5~n")
 	  (let ([answer
 		 (with-handlers ([(lambda (x) #t)
-				  (lambda (x) (list 'cant-read
-						    (string-append
-						     (exn-message x)
-						     "; rest of string: "
-						     (apply
-						      string
-						      (let loop ()
-							(if (char-ready? in-port)
-							    (cons (read-char in-port)
-								  (loop))
-							    null))))))])
+				  (lambda (x)
+				    (printf "8 ~a~n" (exn-message x))
+				    (list 'cant-read
+					  (string-append
+					   (exn-message x)
+					   "; rest of string: "
+					   (apply
+					    string
+					    (let loop ()
+					      (if (char-ready? in-port)
+						  (cons (read-char in-port)
+							(loop))
+						  null))))))])
+		   (printf "6~n")
 		   (read in-port))])
 	    (unless (or (eof-object? answer)
 			(and (list? answer)
 			     (= 2 (length answer))))
 	      (error 'send-sexp-to-mred "unpected result from mred: ~s~n" answer))
+
+	  (printf "7~n")
 
 	    (if (eof-object? answer)
 		(raise (make-eof-result))
