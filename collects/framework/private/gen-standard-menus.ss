@@ -1,13 +1,9 @@
 #!/bin/sh
 
 string=? ; exec mred -qr $0
-
-(require-library "pretty.ss")
-(require-library "function.ss")
-
-(require-library "errortrace.ss" "errortrace")
-
-(require-library "standard-menus-items.ss" "framework")
+(require (lib "pretty.ss"))
+(require (lib "list.ss"))
+(require (lib "standard-menus-items.ss" "framework" "private"))
 
 (define build-id
   (case-lambda
@@ -83,7 +79,7 @@ string=? ; exec mred -qr $0
 		    (if (string=? special "")
 			(string-append base suffix)
 			(string-append base " " special suffix))))])
-    `(private
+    `(private-field
        [,(build-id item "-item")
 	(and ,name
 	     (make-object (class (get-menu-item%) args
@@ -143,7 +139,7 @@ string=? ; exec mred -qr $0
      ,(generic-override-initializer generic)]))
 
 
-(define standard-menus.ss-filename (build-path (collection-path "framework") "standard-menus.ss"))
+(define standard-menus.ss-filename (build-path (collection-path "framework" "private") "standard-menus.ss"))
 (printf "writing to ~a~n" standard-menus.ss-filename)  
 
 (call-with-output-file standard-menus.ss-filename
@@ -169,7 +165,7 @@ string=? ; exec mred -qr $0
      `(define standard-menus-mixin
 	(mixin (basic<%>) (standard-menus<%>) args
           (inherit on-menu-char on-traverse-char)
-	  (private
+	  (private-field
 	    [remove-prefs-callback
 	     (preferences:add-callback
 	      'framework:menu-bindings
