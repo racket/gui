@@ -886,6 +886,7 @@ WARNING: printf is rebound in the body of the unit to always
           submit-to-port?
           on-submit
           send-eof-to-in-port
+          send-eof-to-box-in-port
           reset-input-box
           clear-output-ports
           clear-input-port
@@ -912,6 +913,22 @@ WARNING: printf is rebound in the body of the unit to always
         new-box-input
         box-input-not-used-anymore
         set-port-text)
+      
+      (define (set-box/f! b v) (when (box? b) (set-box! b v)))
+      
+      (define eof-snip%
+        (class image-snip%
+          (init-field port-text)
+          (define/override (get-extent dc x y w h descent space lspace rspace)
+            (super get-extent dc x y w h descent space lspace rspace)
+            (set-box/f! descent 7)) ;; depends on actual bitmap used ...
+          
+          (define/override (on-event dc x y editorx editory event)
+            (when (send event button-up? 'left)
+              (send port-text send-eof-to-box-in-port)))
+          (super-make-object (icon:get-eof-bitmap))
+          (inherit set-flags get-flags)
+          (set-flags (list* 'handles-events 'hard-newline (get-flags)))))
       
       (define ports-mixin
         (mixin (wide-snip<%>) (ports<%>)
@@ -953,6 +970,7 @@ WARNING: printf is rebound in the body of the unit to always
           ;; box-input : (union #f (is-a?/c editor-snip%))
           ;; the snip where the user's input is typed for the box input port
           (define box-input #f)
+          (define eof-button (new eof-snip% (port-text this)))
           
           ;; allow-edits? : boolean
           ;; when this flag is set, only insert/delete after the
@@ -978,13 +996,20 @@ WARNING: printf is rebound in the body of the unit to always
           (define/public-final (get-insertion-point) insertion-point)
           (define/public-final (set-insertion-point ip) (set! insertion-point ip))
           (define/public-final (get-unread-start-point) unread-start-point)
-          (define/public-final (set-unread-start-point u) (set! unread-start-point u))
+          (define/public-final (set-unread-start-point u) 
+            (unless (<= u (last-position))
+              (error 'set-unread-start-point "~e is too large, last-position is ~e"
+                     unread-start-point 
+                     (last-position)))
+            (set! unread-start-point u))
           
           (define/public-final (set-allow-edits allow?) (set! allow-edits? allow?))
           (define/public-final (get-allow-edits) allow-edits?)
           
           (define/public-final (send-eof-to-in-port) 
             (channel-put read-chan (cons eof (position->line-col-pos unread-start-point))))
+          (define/public-final (send-eof-to-box-in-port) 
+            (channel-put box-read-chan (cons eof (position->line-col-pos unread-start-point))))
           (define/public-final (clear-input-port) (channel-put clear-input-chan (void)))
           (define/public-final (clear-box-input-port) (channel-put box-clear-input-chan (void)))
           (define/public-final (clear-output-ports) 
@@ -996,13 +1021,15 @@ WARNING: printf is rebound in the body of the unit to always
             (unless (<= start end insertion-point)
               (error 'delete/io "expected start (~a) <= end (~a) <= insertion-point (~a)"
                      start end insertion-point))
+              
+            (let ([dist (- end start)])
+                (set! insertion-point (- insertion-point dist))
+                (set! unread-start-point (- unread-start-point dist)))
+              
             (let ([before-allowed? allow-edits?])
               (set! allow-edits? #t)
               (delete start end #f)
-              (set! allow-edits? before-allowed?)
-              (let ([dist (- end start)])
-                (set! insertion-point (- insertion-point dist))
-                (set! unread-start-point (- unread-start-point dist)))))
+              (set! allow-edits? before-allowed?)))
                 
           (define/public-final (get-in-port)
             (unless in-port (error 'get-in-port "not ready"))
@@ -1099,7 +1126,8 @@ WARNING: printf is rebound in the body of the unit to always
                 (lock #f)
                 (set! allow-edits? #t)
                 (send box-input release-from-owner)
-                (set! unread-start-point (- unread-start-point 1))
+                (send eof-button release-from-owner)
+                (set! unread-start-point (- unread-start-point 2))
                 (set! allow-edits? old-allow-edits?)
                 (lock l?))
               (set! box-input #f)))
@@ -1112,10 +1140,10 @@ WARNING: printf is rebound in the body of the unit to always
                      [locked? (is-locked?)])
                 (send ed set-port-text this)
                 (lock #f)
-                (send es set-flags (cons 'hard-newline (send es get-flags)))
                 (unless (= unread-start-point (paragraph-start-position (position-paragraph unread-start-point)))
                   (insert-between "\n"))
                 (insert-between es)
+                (insert-between eof-button)
                 (send (get-canvas) add-wide-snip es)
                 (set! box-input es)
                 (set-caret-owner es 'display)
@@ -1712,7 +1740,9 @@ WARNING: printf is rebound in the body of the unit to always
                                   (send nth read-special src line col pos)
                                   nth)))])))]
                     [polling? 
-                     (wrap-evt always-evt (λ (_) 0))]
+                     (choice-evt
+                      nack-evt
+                      (channel-put-evt resp-chan 0))]
                     [else
                      #f])]))
              
@@ -1744,19 +1774,15 @@ WARNING: printf is rebound in the body of the unit to always
         ;;  in any thread (even concurrently)
         ;;
         (define (read-bytes-proc bstr)
-          ;(when on-peek (printf "read-bytes-proc\n"))
           (let* ([progress-evt (progress-evt-proc)]
                  [v (peek-proc bstr 0 progress-evt)])
             (cond
               [(sync/timeout 0 progress-evt)
-               ;(when on-peek (printf "read-bytes-proc.1\n"))
                0]
               [else 
-               ;(when on-peek (printf "read-bytes-proc.2\n"))
                (wrap-evt 
                 v 
                 (λ (v) 
-                  ;(when on-peek (printf "read-bytes.3 v ~s\n" v))
                   (if (and (number? v) (zero? v))
                       0
                       (if (commit-proc (if (number? v) v 1)
@@ -1768,8 +1794,6 @@ WARNING: printf is rebound in the body of the unit to always
         (define (peek-proc bstr skip-count progress-evt)
           (poll-guard-evt
            (lambda (polling?)
-             (when polling?
-               (printf "polling\n"))
              (if polling?
                  (let ([answer 
                         (sync

@@ -12,6 +12,9 @@
     (unit/sig framework:icon^
       (import mred^)
 
+      (define eof-bitmap (delay (include-bitmap (lib "eof.gif" "icons"))))
+      (define (get-eof-bitmap) (force eof-bitmap))
+      
       (define anchor-bitmap (delay (include-bitmap (lib "anchor.gif" "icons"))))
       (define (get-anchor-bitmap) (force anchor-bitmap))
       

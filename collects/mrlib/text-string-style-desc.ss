@@ -1,21 +1,27 @@
 (module text-string-style-desc mzscheme
   (provide get-string/style-desc)
   (require (lib "mred.ss" "mred")
+           (lib "etc.ss")
            (lib "class.ss"))
   
   ;; get-string/style-desc : text -> (listof str/ann)
-  (define (get-string/style-desc text)
-    (let* ([snips (get-snips text)]
-           [str/ann (map snip->str/ann snips)]
-           [joined-str/ann (join-like str/ann)])
-      joined-str/ann))
+  (define get-string/style-desc
+    (opt-lambda (text [start 0] [end (send text last-position)])
+      (let* ([snips (get-snips text start end)]
+             [str/ann (map snip->str/ann snips)]
+             [joined-str/ann (join-like str/ann)])
+        joined-str/ann)))
   
   ;; get-snips : text -> (listof snip)
   ;; extracts the snips from a text
-  (define (get-snips text)
-    (let loop ([snip (send text find-first-snip)])
+  (define (get-snips text start end)
+    (send text split-snip start)
+    (send text split-snip end)
+    (let loop ([snip (send text find-snip start 'after-or-none)])
       (cond
-        [snip (cons snip (loop (send snip next)))]
+        [(not snip) null]
+        [(< (send text get-snip-position snip) end)
+         (cons snip (loop (send snip next)))]
         [else null])))
   
   ;; snip->str/ann : snip -> str/ann

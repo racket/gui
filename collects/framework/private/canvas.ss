@@ -99,14 +99,12 @@
                          (let loop ([s s])
                            (cond
                              [(not s) 0]
-                             [(member 'hard-newline (send s get-flags)) 0]
-                             [(member 'newline (send s get-flags)) 0]
+                             [(member 'hard-newline (send s get-flags)) (get-width s)]
+                             [(member 'newline (send s get-flags)) (get-width s)]
                              [else
-                              (if s
-                                  (+ (get-width s)
-                                     2 ;; for the caret
-                                     (loop (send s next)))
-                                  0)]))))])
+                              (+ (get-width s)
+                                 2 ;; for the caret
+                                 (loop (send s next)))]))))])
               (when edit
                 (send edit
                       run-after-edit-sequence
@@ -122,8 +120,7 @@
                           ;; console printer
                           (let ([fallback
                                  (λ ()
-                                   (send edit get-snip-location
-                                         s left-edge-box top-edge-box))])
+                                   (send edit get-snip-location s left-edge-box top-edge-box))])
                             (cond
                               [(not width?) (fallback)]
                               [(let ([prev (send s previous)])

@@ -458,7 +458,8 @@
   (define-signature framework:icon-fun^
     (get-paren-highlight-bitmap
      get-autowrap-bitmap
-
+     get-eof-bitmap
+     
      get-lock-bitmap
      get-unlock-bitmap
      get-anchor-bitmap
