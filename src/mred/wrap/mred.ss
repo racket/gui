@@ -2443,7 +2443,7 @@
       [set-scrollbars (letrec ([set-scrollbars
 				(case-lambda 
 				 [(h-pixels v-pixels x-len y-len x-page y-page x-val y-val)
-				  (set-scrollbars h-pixels v-pixels x-len y-len x-page y-page x-val y-val #f)]
+				  (set-scrollbars h-pixels v-pixels x-len y-len x-page y-page x-val y-val #t)]
 				 [(h-pixels v-pixels x-len y-len x-page y-page x-val y-val man?)
 				  (send wx set-scrollbars 
 					h-pixels v-pixels x-len y-len x-page y-page x-val y-val man?)])])
@@ -2926,8 +2926,8 @@
       (rename [super-on-char on-char])
       (private [prompt-pos 0] [locked? #f])
       (override
-	[on-insert (lambda (start end) (and (>= start prompt-pos) (not locked?)))]
-	[on-delete (lambda (start end) (and (>= start prompt-pos) (not locked?)))]
+	[can-insert? (lambda (start end) (and (>= start prompt-pos) (not locked?)))]
+	[can-delete? (lambda (start end) (and (>= start prompt-pos) (not locked?)))]
 	[on-char (lambda (c)
 		   (super-on-char c)
 		   (when (and (memq (send c get-key-code) '(#\return #\newline #\003))

@@ -114,12 +114,29 @@ highlights of the revision:
             snip%              =>  snip%
             media-snip%        =>  editor-snip%
 
-   Aside from this renaming, little has changed in the editor toolbox,
-   but it is a little better integrated with system-wide keyboard
-   focus methods. For example, a frame% has a get-focus-window method,
-   which returns the frame's subwindow with the current focus, but it
-   also has a get-focus-object method, which will return an editor<%>
-   object if an editor-canvas has the keyboard focus.
+   Methods of text% (formerly media-edit%) check that position, line,
+   and paragraph arguments are non-negative. In methods where -1
+   (really any negative value) had a special meaning, a symbol is now
+   used. For example, the old call
+       (send (make-object media-edit%) insert "Hello" 0 -1)
+   translates to a use of 'same instead of -1:
+       (send (make-object text%) insert "Hello" 0 'same)
+
+   Many of the old on-XXX methods for editors used to return a Boolean
+   value to indicate whether the action should proceed (e.g.,
+   on-insert in media-edit%). This did not work well with composing
+   class extensions. In MrEd 100, there is a parallel set of can-XXX?
+   methods (e.g., can-insert? in text%) that first determine whether
+   the opration should proceed; if so, on-XXX is called (its result is
+   ignored), the operation is performed, and after-XXX is called.
+
+   Aside from the renaming and checking, little has changed in the
+   editor toolbox, but it is a little better integrated with
+   system-wide keyboard focus methods. For example, a frame% has a
+   get-focus-window method, which returns the frame's subwindow with
+   the current focus, but it also has a get-focus-object method, which
+   will return an editor<%> object if an editor-canvas has the
+   keyboard focus.
 
  * The text-field% control (formerly wx:text% and wx:multi-text%) now
    works well on all platforms because it is implemented using the
@@ -259,6 +276,7 @@ window<%> : area<%>
     get-cursor set-cursor 
     show is-shown?
     refresh
+    accept-drop-files on-drop-file
 
 area-container<%> : area<%>
     get-children change-children place-children
@@ -570,8 +588,8 @@ read-editor-global-footer
 write-editor-global-header
 write-editor-global-footer
 
-append-edit-operation-menu-items
-append-edit-font-menu-items
+append-editor-operation-menu-items
+append-editor-font-menu-items
 
 add-editor-keymap-functions
 add-text-keymap-functions
@@ -835,10 +853,10 @@ get-the-buffer-data-class-list
   wx:const-move-page                         'page
   wx:const-move-simple                       'simple
   wx:const-move-word                         'word
-  wx:const-msnipbox-xinset                   (NOT A SYMBOL: const-editor-snip-xinset)
-  wx:const-msnipbox-xmargin                  (NOT A SYMBOL: const-editor-snip-xmargin)
-  wx:const-msnipbox-yinset                   (NOT A SYMBOL: const-editor-snip-yinset)
-  wx:const-msnipbox-ymargin                  (NOT A SYMBOL: const-editor-snip-ymargin)
+  wx:const-msnipbox-xinset                   (NO LONGER USED: use 1)
+  wx:const-msnipbox-xmargin                  (NO LONGER USED: use 5)
+  wx:const-msnipbox-yinset                   (NO LONGER USED: use 1)
+  wx:const-msnipbox-ymargin                  (NO LONGER USED: use 5)
   wx:const-multiple                          'multiple
   wx:const-nand                              'nand
   wx:const-no                                'no
@@ -957,6 +975,18 @@ Added 'unknown image kind for bitmap%'s load-file, etc., which
 'wx flag for make-namespace changed to 'mred
 
 canvas%'s get-view-start returns values in pixels, not scroll units
+
+text%'s find-string and find-string-all use symbols to specify the
+ direction, 'forward or 'backward instead of -1 or 1.
+
+In editor<%>'s scroll-to, text%'s scroll-to-position and
+ set-position-bias-scroll, editor-admin%'s scroll-to, and
+ snip-admin%'s scroll-to, bias changed from an integer to a symbol
+ (see the docs for details)
+
+clipboard% changed to clipboard<%> and font-name-directory% changed to
+ font-name-directory<%>; there is just once instance, the-clipboard
+ and the-font-name-directory
 
 -----------------------------
  TODO: Miscellaneous Cleanup
