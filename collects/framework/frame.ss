@@ -445,7 +445,7 @@
 		 [pop-out
 		  (lambda ()
 		    (let ([admin (send edit get-admin)])
-		      (if (is-a? admin editor-snip-editor-admin%)
+		      (if (is-a? admin editor-snip-editor-admin<%>)
 			  (let* ([snip (send admin get-snip)]
 				 [edit-above (send (send snip get-admin) get-editor)]
 				 [pos (send edit-above get-snip-position snip)]
