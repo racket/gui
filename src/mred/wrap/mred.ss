@@ -53,14 +53,14 @@
 
 (define (check-reasonable-min who v)
   (unless (<= 0 v max-min)
-    (error (who->name who) "not a reasaonable minimum width: ~a" v)))
+    (error (who->name who) "not a reasaonable minimum width: ~e" v)))
 
 (define (check-reasonable-margin who v)
   (unless (<= 0 v max-margin)
-    (error (who->name who) "not a reasaonable margin size: ~a" v)))
+    (error (who->name who) "not a reasaonable margin size: ~e" v)))
 
 (define (range-error who v hard-min-width max-min)
-  (error (who->name who) "value out-of-range: ~a not in: ~a to ~a"
+  (error (who->name who) "value out-of-range: ~e not in: ~e to ~e"
 	 v hard-min-width max-min))
 
 ; list-diff: computes the difference between two lists
@@ -654,8 +654,17 @@
 
 (define (make-container-glue% %)
   (class % (mred proxy . args)
-    (inherit do-place-children)
+    (inherit do-place-children do-get-graphical-min-size get-children-info)
     (override
+      [get-graphical-min-size (lambda () 
+				(cond
+				 [mred (let-values ([(w h) (send mred container-size 
+								 (map (lambda (i)
+									(list (child-info-x-min i) (child-info-y-min i)
+									      (child-info-x-stretch i) (child-info-y-stretch i)))
+								      (get-children-info)))])
+					 (list w h))]
+				 [else (do-get-graphical-min-size)]))]
       [place-children (lambda (l w h) (cond
 				       [(null? l) null]
 				       [mred (send mred place-children l w h)]
@@ -973,12 +982,30 @@
 (define (make-editor-buffer% % can-wrap?)
   ; >>> This class is instantiated directly by the end-user <<<
   (class* % (editor<%> internal-editor<%>) args
-    (inherit get-max-width set-max-width get-admin)
-    (rename [super-on-display-size on-display-size])
+    (inherit get-max-width set-max-width get-admin get-view-size)
+    (rename [super-on-display-size on-display-size]
+	    [super-get-view-size get-view-size])
     (private
       [canvases null]
       [active-canvas #f]
-      [auto-set-wrap? #f])
+      [auto-set-wrap? #f]
+      [max-view-size
+       (lambda ()
+	 (let ([wb (box 0)]
+	       [hb (box 0)])
+	   (super-get-view-size wb hb)
+	   (unless (or (null? canvases) (null? (cdr canvases)))
+	     (for-each
+	      (lambda (canvas)
+		(send canvas call-as-primary-owner
+		      (lambda ()
+			(let ([wb2 (box 0)]
+			      [hb2 (box 0)])
+			  (super-get-view-size wb2 hb2)
+			  (set-box! wb (max (unbox wb) (unbox wb2)))
+			  (set-box! hb (max (unbox hb) (unbox hb2)))))))
+	      canvases))
+	   (values (unbox wb) (unbox hb))))])
     (public
       [get-canvases (lambda () (map wx->mred canvases))]
       [get-active-canvas (lambda () (and active-canvas (wx->mred active-canvas)))]
@@ -990,19 +1017,19 @@
 	   (and c (wx->mred c))))]
       [set-active-canvas
        (lambda (new-canvas)
-	 (check-instance '(method editor<%> set-active-canvas) editor-canvas% "editor-canvas" #t new-canvas)
+	 (check-instance '(method editor<%> set-active-canvas) editor-canvas% 'editor-canvas% #t new-canvas)
 	 (set! active-canvas (mred->wx new-canvas)))]
 
       [add-canvas
        (lambda (new-canvas)
-	 (check-instance '(method editor<%> add-canvas) editor-canvas% "editor-canvas" #f new-canvas)
+	 (check-instance '(method editor<%> add-canvas) editor-canvas% 'editor-canvas% #f new-canvas)
 	 (let ([new-canvas (mred->wx new-canvas)])
 	   (unless (memq new-canvas canvases)
 	     (set! canvases (cons new-canvas canvases)))))]
 
       [remove-canvas
        (lambda (old-canvas)
-	 (check-instance '(method editor<%> remove-canvas) editor-canvas% "editor-canvas" #f old-canvas)
+	 (check-instance '(method editor<%> remove-canvas) editor-canvas% 'editor-canvas% #f old-canvas)
 	 (let ([old-canvas (mred->wx old-canvas)])
 	   (when (eq? old-canvas active-canvas)
 	     (set! active-canvas #f))
@@ -1011,32 +1038,19 @@
       [auto-wrap (case-lambda
 		  [() auto-set-wrap?]
 		  [(on?) (set! auto-set-wrap? (and on? #t))
-			 (on-display-size)])])
+			 (on-display-size)])]
+      [get-max-view-size (lambda () (max-view-size))])
     (override
       [on-display-size
        (lambda ()
 	 (super-on-display-size)
-	 (when (and can-wrap? auto-set-wrap?)
-	   (let* ([current-width (get-max-width)]
-		  [admin-width (lambda (a)
-				 (let ([w-box (box 0)])
-				   (send a get-view #f #f w-box (box 0))
-				   (unbox w-box)))]
-		  [new-width
-		   (apply max
-			  (let ([a (get-admin)])
-			    (if a
-				(admin-width a)
-				-1))
-			  (map
-			   (lambda (canvas)
-			     (send canvas call-as-primary-owner
-				   (lambda ()
-				     (admin-width (get-admin)))))
-			   canvases))])
-	     (when (and (not (= current-width new-width))
-			(< 0 new-width))
-	       (set-max-width new-width)))))]
+	 (when (get-admin)
+	   (when (and can-wrap? auto-set-wrap?)
+	     (let-values ([(current-width) (get-max-width)]
+			  [(new-width new-height) (max-view-size)])
+	       (when (and (not (= current-width new-width))
+			  (< 0 new-width))
+		 (set-max-width new-width))))))]
 
       [on-new-box
        (lambda (type)
@@ -1146,7 +1160,11 @@
       [add-child
        (lambda (new-child)
 	 (unless (eq? this (send new-child area-parent))
-	   (error 'add-child "not a child window"))
+	   (error 'add-child "not a child of this container: ~e"
+		  (wx->mred new-child)))
+	 (when (memq new-child children)
+	   (error 'add-child "child already active: ~e"
+		  (wx->mred new-child)))
 	 (change-children
 	  (lambda (l)
 	    (append l (list new-child)))))]
@@ -1159,17 +1177,20 @@
       [change-children
        (lambda (f)
 	 (let ([new-children (f children)])
-	   (unless (list? new-children)
-	     (error 'change-children
-		    "result of given procedure was not a list"))
 	   (unless (andmap (lambda (child)
 			     (eq? this (send child area-parent)))
 			   new-children)
 	     (error 'change-children
 		    (string-append 
-		     "not all members of the new list are "
+		     "not all members of the returned list are "
 		     "children of the container ~e; list: ~e")
-		    this new-children))
+		    (wx->mred this) (map wx->mred new-children)))
+	   (let loop ([l new-children])
+	     (unless (null? l)
+	       (if (memq (car l) (cdr l))
+		   (error 'change-children "child in the returned list twice: ~e" 
+			  (wx->mred (car l)))
+		   (loop (cdr l)))))
 	   ; show all new children, hide all deleted children.
 	   (let ([added-children (list-diff new-children children)]
 		 [removed-children (list-diff children new-children)])
@@ -1178,7 +1199,7 @@
 			     removed-children)
 	       (error 'change-children
 		      "cannot make non-window areas inactive in ~e"
-		      this))
+		      (wx->mred this)))
 	     (for-each (lambda (child) (send child show #f))
 		       removed-children)
 	     (set! children new-children)
@@ -1192,6 +1213,9 @@
       ; effects: removes child from list; forces redraw.
       [delete-child
        (lambda (child)
+	 (unless (memq child children)
+	   (error 'delete-child "not a child of this container or child is not active: ~e" 
+		  (wx->mred child)))
 	 (change-children (lambda (child-list)
 			    (remq child child-list))))]
       
@@ -1245,14 +1269,15 @@
 		(list (+ delta-w (car min-client-size))
 		      (+ delta-h (cadr min-client-size)))))))]
       
-      ; get-min-graphical-size: poll children and return minimum possible
+      ; do-get-min-graphical-size: poll children and return minimum possible
       ;   size, as required by the graphical representation of the tree,
       ;   of the panel.
       ; input: none
       ; returns: minimum full size (as a list, width & height) of the
       ;   container.
       ; effects: none
-      [get-graphical-min-size
+      [get-graphical-min-size void]
+      [do-get-graphical-min-size
        (lambda ()
 	 (do-graphical-size 
 	  (lambda (x-accum kid-info)
@@ -1391,7 +1416,7 @@
 						   (andmap (lambda (x) (and (number? x) (integer? x))) x)))
 				  l))
 	       (error 'container-redraw 
-		      "result from place-children is not a list of 4-integer lists with the correct length: ~a"
+		      "result from place-children is not a list of 4-integer lists with the correct length: ~e"
 		      l))
 	     (panel-redraw children children-info l))))]
       [panel-redraw
@@ -1589,7 +1614,7 @@
       [alignment (lambda (h v) (do-align h v major-align minor-align))]
       [get-alignment (lambda () (do-get-alignment (lambda (x y) x)))]
     
-      [get-graphical-min-size
+      [do-get-graphical-min-size
        (lambda ()
 	 (do-graphical-size 
 	  (lambda (x-accum kid-info)
@@ -1627,7 +1652,7 @@
       [alignment (lambda (h v) (do-align h v minor-align major-align))]
       [get-alignment (lambda () (do-get-alignment (lambda (x y) y)))]
 
-      [get-graphical-min-size
+      [do-get-graphical-min-size
        (lambda ()
 	 (do-graphical-size
 	  (lambda (x-accum kid-info)
@@ -1762,7 +1787,7 @@
       [dy 0])
     (public
       [command (lambda (e) 
-		 (check-instance '(method text-field% command) wx:control-event% "control-event" #f e)
+		 (check-instance '(method text-field% command) wx:control-event% 'control-event% #f e)
 		 (func e))]
 
       [get-editor (lambda () e)]
@@ -1877,13 +1902,12 @@
       (f x y)
       (values (unbox x) (unbox y)))))
 
+(define widget-table (make-hash-table-weak))
+
 (define mred%
   (class null (wx)
-    (public
-      [get-low-level-window (lambda (key)
-			      (unless (eq? key wx-key)
-				(error 'get-low-level-window "bad key"))
-			      wx)])))
+    (sequence
+      (hash-table-put! widget-table this wx))))
 
 (define (wrap-callback cb)
   (if (and (procedure? cb)
@@ -1891,9 +1915,7 @@
       (lambda (w e) (cb (wx->proxy w) e))
       cb))
 
-(define mred-get-low-level-window (make-generic mred% get-low-level-window))
-(define wx-key (gensym))
-(define (mred->wx w) ((mred-get-low-level-window w) wx-key))
+(define (mred->wx w) (hash-table-get widget-table w (lambda () #f)))
 
 (define (mred->wx-container w) (send (mred->wx w) get-container))
 
@@ -1907,8 +1929,7 @@
   (interface ()
     get-parent get-top-level-window
     min-width min-height
-    stretchable-width stretchable-height
-    get-low-level-window))
+    stretchable-width stretchable-height))
 
 (define area%
   (class* mred% (area<%>) (mk-wx get-wx-panel parent)
@@ -1923,8 +1944,10 @@
       [wx (mk-wx)])
     (sequence (super-init wx))))
 
+(define internal-subarea<%> (interface ()))
+
 (define subarea<%> 
-  (interface (area<%>)
+  (interface (area<%> internal-subarea<%>)
     horiz-margin vert-margin))
 
 (define (make-subarea% %) ; % implements area<%>
@@ -1936,6 +1959,7 @@
 
 (define area-container<%> 
   (interface (area<%>) 
+    container-size
     get-children change-children place-children
     add-child delete-child
     border spacing 
@@ -1952,13 +1976,29 @@
       [set-alignment (lambda (h v) (send (get-wx-panel) alignment h v))]
       [get-alignment (lambda () (send (get-wx-panel) get-alignment))]
       [change-children (lambda (f)
-			 (map mred->wx
-			      (send (get-wx-panel) change-children
-				    (lambda (kids)
-				      (f (map wx->mred kids))))))]
+			 (unless (and (procedure? f)
+				      (procedure-arity-includes? f 1))
+			   (raise-type-error (who->name '(method container<%> change-chidlren))
+					     "procedure or arity 1"
+					     f))
+			 (send (get-wx-panel) change-children
+			       (lambda (kids)
+				 (let ([l (f (map wx->mred kids))])
+				   (unless (and (list? l)
+						(andmap (lambda (x) (is-a? x internal-subarea<%>)) l))
+				     (error 'change-children
+					    "result of given procedure was not a list of subareas: ~e"
+					    l))
+				   (map mred->wx l)))))]
+      [container-size (lambda (l) (let ([l (send (get-wx-panel) do-get-graphical-min-size)])
+				    (apply values l)))]
       [place-children (lambda (l w h) (send (get-wx-panel) do-place-children l w h))]
-      [add-child (lambda (c) (send (get-wx-panel) add-child (mred->wx c)))]
-      [delete-child (lambda (c) (send (get-wx-panel) delete-child (mred->wx c)))])
+      [add-child (lambda (c) 
+		   (check-instance '(method area-container<%> add-child) subwindow<%> 'subwindow<%> #f c)
+		   (send (get-wx-panel) add-child (mred->wx c)))]
+      [delete-child (lambda (c) 
+		      (check-instance '(method area-container<%> delete-child) subwindow<%> 'subwindow<%> #f c)
+		      (send (get-wx-panel) delete-child (mred->wx c)))])
     (sequence
       (super-init mk-wx get-wx-panel parent))))
 
@@ -2257,7 +2297,7 @@
        (lambda (method n k)
 	 (if (< -1 n (get-number))
 	     (k)
-	     (error (who->name `(method radio-box% ,method)) "no such button: ~a" n)))])
+	     (error (who->name `(method radio-box% ,method)) "no such button: ~e" n)))])
     (override
       [enable (case-lambda
 	       [(on?) (send wx enable on?)]
@@ -2470,7 +2510,7 @@
       [min-client-height (param (lambda () wx) 'min-client-height)]
 
       [popup-menu (lambda (m x y) 
-		    (check-instance '(method canvas<%> popup-menu) popup-menu% "popup-menu" #f m)
+		    (check-instance '(method canvas<%> popup-menu) popup-menu% popup-menu% #f m)
 		    (send wx popup-menu (mred->wx m) x y))]
       [warp-pointer (lambda (x y) (send wx warp-pointer x y))]
 
@@ -2525,7 +2565,7 @@
   (class basic-canvas% (parent [buffer #f] [style null] [scrolls-per-page 100])
     (sequence 
       (check-container-parent 'editor-canvas parent)
-      (check-instance '(constructor editor-canvas) internal-editor<%> "text% or pasteboard" #t buffer)
+      (check-instance '(constructor editor-canvas) internal-editor<%> "text% or pasteboard%" #t buffer)
       (check-style '(constructor editor-canvas) #f '(hide-vscroll hide-hscroll no-vscroll no-hscroll) style))
     (private
       [force-focus? #f]
@@ -2754,8 +2794,7 @@
 (define menu-item<%>
   (interface ()
     get-parent
-    delete restore is-deleted?
-    get-low-level-window))
+    delete restore is-deleted?))
 
 (define labelled-menu-item<%>
   (interface (menu-item<%>)
@@ -2954,7 +2993,7 @@
     (sequence
       (super-init parent label help-string menu #f (send (mred->wx menu) get-keymap) (lambda (x) x)))))
 
-(define menu-item-container<%> (interface () get-items get-low-level-window))
+(define menu-item-container<%> (interface () get-items))
 (define internal-menu<%> (interface ()))
 
 (define basic-menu%
@@ -3191,7 +3230,7 @@
       (begin
 	(check-string/false 'get-ps-setup-from-user message)
 	(check-top-level-parent/false 'get-ps-setup-from-user parent)
-	(check-instance 'get-ps-setup-from-user wx:ps-setup% 'ps-setup #t pss-in)
+	(check-instance 'get-ps-setup-from-user wx:ps-setup% 'ps-setup% #t pss-in)
 	(check-style 'get-ps-setup-from-user #f null style)))
     
     (define pss (or pss-in (wx:current-ps-setup)))
@@ -3495,7 +3534,7 @@
        [(message parent color style)
 	(check-string/false 'get-color-from-user message)
 	(check-top-level-parent/false 'get-color-from-user parent)
-	(check-instance 'get-color-from-user wx:color% 'color #t color)
+	(check-instance 'get-color-from-user wx:color% 'color% #t color)
 	(check-style 'get-color-from-user #f null style)
 	(let* ([ok? #t]
 	       [f (make-object dialog% "Choose Color" parent)]
@@ -3532,7 +3571,7 @@
        [(message parent font style)
 	(check-string/false 'get-font-from-user message)
 	(check-top-level-parent/false 'get-font-from-user parent)
-	(check-instance 'get-color-from-user wx:font% 'font #t font)
+	(check-instance 'get-color-from-user wx:font% 'font% #t font)
 	(check-style 'get-font-from-user #f null style)
 	(letrec ([ok? #f]
 		 [f (make-object dialog% "Choose Font" parent 500 300)]
@@ -3597,12 +3636,12 @@
    [(canvas x y w h on off on-x on-y) (register-collecting-blit canvas x y w h on off on-x on-y 0 0)]
    [(canvas x y w h on off on-x on-y off-x) (register-collecting-blit canvas x y w h on off on-x on-y off-x 0)]
    [(canvas x y w h on off on-x on-y off-x off-y)
-    (check-instance 'register-collecting-blit canvas% "canvas" #f canvas)
+    (check-instance 'register-collecting-blit canvas% 'canvas% #f canvas)
     (wx:register-collecting-blit (mred->wx canvas) x y w h on off on-x on-y off-x off-y)]))
 
 (define unregister-collecting-blit
   (lambda (canvas)
-    (check-instance 'unregister-collecting-blit canvas% "canvas" #f canvas)
+    (check-instance 'unregister-collecting-blit canvas% 'canvas% #f canvas)
     (wx:unregister-collecting-blit (mred->wx canvas))))
 
 (define (find-item-frame item)
@@ -3614,7 +3653,7 @@
        [else (send p get-frame)]))))
 
 (define (append-editor-operation-menu-items m)
-  (check-instance 'append-editor-operation-menu-items menu% 'menu #f m)
+  (check-instance 'append-editor-operation-menu-items menu% 'menu% #f m)
   (let ([mk (lambda (name key op)
 	      (make-object menu-item% name m
 			   (lambda (i e)
@@ -3638,7 +3677,7 @@
     (void)))
 
 (define (append-editor-font-menu-items m)
-  (check-instance 'append-editor-font-menu-items menu% 'menu #f m)
+  (check-instance 'append-editor-font-menu-items menu% 'menu% #f m)
   (let ([mk (lambda (name m cb)
 	      (make-object menu-item% name m
 			   (lambda (i e)
@@ -3763,7 +3802,7 @@
 
 (define (check-instance who class class-name false-ok? v)
   (unless (or (and false-ok? (not v)) (is-a? v class))
-    (raise-type-error (who->name who) (format "~a% object~a" class-name (if false-ok? " or #f" "")) v)))
+    (raise-type-error (who->name who) (format "~a object~a" class-name (if false-ok? " or #f" "")) v)))
 
 (define (check-string/false who str)
   (unless (or (not str) (string? str))
@@ -3823,10 +3862,10 @@
       (let* ([l (append (or reqd null) other-allowed)]
 	     [bad (ormap (lambda (x) (if (memq x l) #f x)) style)])
 	(when bad
-	  (raise-type-error (who->name who) (format "style list, ~a not allowed" bad) style))
+	  (raise-type-error (who->name who) (format "style list, ~e not allowed" bad) style))
 	(let loop ([l style])
 	  (unless (null? l)
 	    (when (memq (car l) (cdr l))
-	      (raise-type-error (who->name who) (format "style list, ~a allowed only once" (car l)) style))
+	      (raise-type-error (who->name who) (format "style list, ~e allowed only once" (car l)) style))
 	    (loop (cdr l)))))))
 
