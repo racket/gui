@@ -2167,6 +2167,8 @@
     set-selection
     set-string-selection))
 
+(define (-1=>false v) (if (negative? v) #f v))
+
 (define basic-list-control%
   (class* basic-control% (list-control<%>) (mk-wx label parent)
     (public
@@ -2174,11 +2176,11 @@
       [clear (lambda () (send wx clear))]
       [get-number (lambda () (send wx number))]
       [get-string (lambda (n) (send wx get-string n))]
-      [get-selection (lambda () (send wx get-selection))]
+      [get-selection (lambda () (-1=>false (send wx get-selection)))]
       [get-string-selection (lambda () (send wx get-string-selection))]
       [set-selection (lambda (s) (send wx set-selection s))]
       [set-string-selection (lambda (s) (send wx set-string-selection s))]
-      [find-string (lambda (x) (send wx find-string x))])
+      [find-string (lambda (x) (-1=>false (send wx find-string x)))])
     (private
       [wx #f])
     (sequence
@@ -2790,6 +2792,7 @@
   (wx:yield waiting))
 
 (define box-width 300)
+(define (no-stretch a) (send a stretchable-width #f) (send a stretchable-height #f))
 
 (define message-box
   (case-lambda
@@ -2833,9 +2836,10 @@
 
 (define get-ps-setup-from-user
   (case-lambda
-   [() (get-ps-setup-from-user #f null)]
-   [(parent) (get-ps-setup-from-user parent null)]
-   [(parent style)
+   [() (get-ps-setup-from-user #f #f null)]
+   [(message) (get-ps-setup-from-user message #f null)]
+   [(message parent) (get-ps-setup-from-user message parent null)]
+   [(message parent style)
     (define pss (wx:current-ps-setup))
     (define f (make-object dialog-box% "PostScript Setup" #t parent))
     (define papers 
@@ -2869,8 +2873,6 @@
     (define (done ok?)
       (send f show #f)
       (set! ok ok?))
-
-    (define (no-stretch a) (send a stretchable-width #f) (send a stretchable-height #f))
 
     (define-values (xsb ysb xtb ytb) (values (box 0) (box 0) (box 0) (box 0)))
 
@@ -2989,123 +2991,205 @@
 	     [(message parent directory filename) (sel message parent directory filename #f null)]
 	     [(message parent directory filename extension) (sel message parent directory filename extension null)]
 	     [(message parent directory filename extension style)
-	      (letrec ([ok? #t]
-		       [typed-name #f]
-		       [dir (or directory (current-directory))]
-		       [f (make-object dialog-box% (if put? "Put File" "Get File") #t parent 500 300)]
-		       [__ (when message
-			     (let ([p (make-object vertical-pane% f)])
-			       (send p stretchable-height #f)
-			       (make-object message% message p)))]
-		       [m (make-object message% dir f)]
-		       [lp (make-object horizontal-pane% f)]
-		       [dirs (make-object list-box% #f null lp (lambda (d e)
-								 (when (eq? (send e get-event-type) 'list-box-dclick)
-								   (let ([sd (send d get-string-selection)])
-								     (set! dir (simplify-path (build-path dir sd)))
-								     (reset-directory)))))]
-		       [files (make-object list-box% #f null lp (lambda (d e)
-								  (update-ok)
-								  (when (eq? (send e get-event-type) 'list-box-dclick)
-								    (done))))]
-		       [do-text-name (lambda ()
-				       (let ([v (send dir-text get-value)])
-					 (if (directory-exists? v)
-					     (begin
-					       (set! dir v)
-					       (reset-directory))
-					     ; Maybe specifies a file:
-					     (let-values ([(super file) 
-							   (with-handlers ([void #f])
-							     (let-values ([(base name dir?) (split-path v)])
-							       (let ([super (and (not dir?) 
-										 (or (and (string? base) 
-											  (directory-exists? base)
-											  base)
-										     (and (eq? base 'relative) 
-											  (directory-exists? dir) dir)))])
-								 (if super
-								     (values super name)
-								     (values #f #f)))))])
-					       (if super
-						   (begin
-						     (set! dir super)
-						     (set! typed-name file)
-						     (done))
-						   (begin
-						     (set! dir v)
-						     (reset-directory)))))))]
-		       [dir-text (make-object text% #f f (lambda (t e)
-							   (if (eq? (send e get-event-type) 'text-enter)
-							       (do-text-name)
-							       (begin
-								 ; typing in the box; disable the file list and enable ok
-								 (send files enable #f)
-								 (send ok-button enable #t)))))]
-		       [bp (make-object horizontal-pane% f)]
-		       [dot-check (make-object check-box% "Show files/directories that start with \".\"" bp (lambda (b e) (reset-directory)))]
-		       [spacer (make-object vertical-pane% bp)]
-		       [cancel-button (make-object button% "&Cancel" bp (lambda (b e) (set! ok? #f) (send f show #f)))]
-		       [ok-button (make-object button% "&Ok" bp (lambda (b e) 
-								  (if (send files is-enabled?)
-								      (done) ; normal mode
-								      (do-text-name))) ; handle typed text
-					       '(default))]
-		       [update-ok (lambda () (send ok-button enable (not (null? (send files get-selections)))))]
-		       [reset-directory (lambda ()
-					  (wx:begin-busy-cursor)
-					  (send m set-label (if (directory-exists? dir)
-								dir
-								(string-append "BAD DIRECTORY: " dir)))
-					  (send dir-text set-value dir)
-					  (let ([l (with-handlers ([void (lambda (x) null)])
-						     (directory-list dir))]
-						[dot? (send dot-check get-value)])
-					    (letrec ([sort (lambda (l)
-							     (if (or (null? l) (null? (cdr l)))
-								 l
-								 (let-values ([(l1 l2) (split l null null)])
-								   (merge (sort l1) (sort l2)))))]
-						     [split (lambda (l l1 l2)
-							      (cond
-							       [(null? l) (values l1 l2)]
-							       [(null? (cdr l)) (values (cons (car l) l1) l2)]
-							       [else (split (cddr l) (cons (car l) l1) (cons (cadr l) l2))]))]
-						     [merge (lambda (l1 l2)
-							      (cond
-							       [(null? l1) l2]
-							       [(null? l2) l1]
-							       [(string<? (car l1) (car l2)) (cons (car l1) (merge (cdr l1) l2))]
-							       [else (merge l2 l1)]))])
-					      (let-values ([(ds fs)
-							    (let loop ([l l][ds null][fs null])
-							      (cond
-							       [(null? l) (values (cons ".." (sort (reverse! ds))) (sort (reverse! fs)))]
-							       [(and (not dot?) (char=? (string-ref (car l) 0) #\.)) (loop (cdr l) ds fs)]
-							       [(file-exists? (build-path dir (car l))) (loop (cdr l) ds (cons (car l) fs))]
-							       [else (loop (cdr l) (cons (car l) ds) fs)]))])
-						(send dirs set ds)
-						(send files set fs)
-						(send files enable #t)
-						(update-ok)
-						(wx:end-busy-cursor)))))]
-		       [get-filename (lambda () (and ok? (simplify-path (build-path dir (or typed-name (send files get-string-selection))))))]
-		       [done (lambda ()
-			       (let ([name (get-filename)])
-				 (unless (and put? (file-exists? name)
-					      (eq? (message-box "Warning" (format "Replace ~s?" name) f '(yes-no)) 'no)
-					      (set! typed-name #f))
-				   (send f show #f))))])
-		(send bp stretchable-height #f)
-		(send m stretchable-width #t)
-		(reset-directory)
-		(send f center)
-		(send f show #t)
-		(get-filename))])])
+	      (if (not (eq? (system-type) 'unix))
+		  (wx:file-selector message directory filename extension "*.*" (if put? '(put) '(get)) parent)
+		  (letrec ([ok? #t]
+			   [typed-name #f]
+			   [dir (or directory (current-directory))]
+			   [f (make-object dialog-box% (if put? "Put File" "Get File") #t parent 500 300)]
+			   [__ (when message
+				 (let ([p (make-object vertical-pane% f)])
+				   (send p stretchable-height #f)
+				   (make-object message% message p)))]
+			   [m (make-object message% dir f)]
+			   [lp (make-object horizontal-pane% f)]
+			   [dirs (make-object list-box% #f null lp (lambda (d e)
+								     (when (eq? (send e get-event-type) 'list-box-dclick)
+								       (let ([sd (send d get-string-selection)])
+									 (set! dir (simplify-path (build-path dir sd)))
+									 (reset-directory)))))]
+			   [files (make-object list-box% #f null lp (lambda (d e)
+								      (update-ok)
+								      (when (eq? (send e get-event-type) 'list-box-dclick)
+									(done))))]
+			   [do-text-name (lambda ()
+					   (let ([v (send dir-text get-value)])
+					     (if (directory-exists? v)
+						 (begin
+						   (set! dir v)
+						   (reset-directory))
+						 ; Maybe specifies a file:
+						 (let-values ([(super file) 
+							       (with-handlers ([void #f])
+								 (let-values ([(base name dir?) (split-path v)])
+								   (let ([super (and (not dir?) 
+										     (or (and (string? base) 
+											      (directory-exists? base)
+											      base)
+											 (and (eq? base 'relative) 
+											      (directory-exists? dir) dir)))])
+								     (if super
+									 (values super name)
+									 (values #f #f)))))])
+						   (if super
+						       (begin
+							 (set! dir super)
+							 (set! typed-name file)
+							 (done))
+						       (begin
+							 (set! dir v)
+							 (reset-directory)))))))]
+			   [dir-text (make-object text% #f f (lambda (t e)
+							       (if (eq? (send e get-event-type) 'text-enter)
+								   (do-text-name)
+								   (begin
+								     ; typing in the box; disable the file list and enable ok
+								     (send files enable #f)
+								     (send ok-button enable #t)))))]
+			   [bp (make-object horizontal-pane% f)]
+			   [dot-check (make-object check-box% "Show files/directories that start with \".\"" bp (lambda (b e) (reset-directory)))]
+			   [spacer (make-object vertical-pane% bp)]
+			   [cancel-button (make-object button% "&Cancel" bp (lambda (b e) (set! ok? #f) (send f show #f)))]
+			   [ok-button (make-object button% "&Ok" bp (lambda (b e) 
+								      (if (send files is-enabled?)
+									  (done) ; normal mode
+									  (do-text-name))) ; handle typed text
+						   '(default))]
+			   [update-ok (lambda () (send ok-button enable (not (null? (send files get-selections)))))]
+			   [reset-directory (lambda ()
+					      (wx:begin-busy-cursor)
+					      (send m set-label (if (directory-exists? dir)
+								    dir
+								    (string-append "BAD DIRECTORY: " dir)))
+					      (send dir-text set-value dir)
+					      (let ([l (with-handlers ([void (lambda (x) null)])
+							 (directory-list dir))]
+						    [dot? (send dot-check get-value)])
+						(letrec ([sort (lambda (l)
+								 (if (or (null? l) (null? (cdr l)))
+								     l
+								     (let-values ([(l1 l2) (split l null null)])
+								       (merge (sort l1) (sort l2)))))]
+							 [split (lambda (l l1 l2)
+								  (cond
+								   [(null? l) (values l1 l2)]
+								   [(null? (cdr l)) (values (cons (car l) l1) l2)]
+								   [else (split (cddr l) (cons (car l) l1) (cons (cadr l) l2))]))]
+							 [merge (lambda (l1 l2)
+								  (cond
+								   [(null? l1) l2]
+								   [(null? l2) l1]
+								   [(string<? (car l1) (car l2)) (cons (car l1) (merge (cdr l1) l2))]
+								   [else (merge l2 l1)]))])
+						  (let-values ([(ds fs)
+								(let loop ([l l][ds null][fs null])
+								  (cond
+								   [(null? l) (values (cons ".." (sort (reverse! ds))) (sort (reverse! fs)))]
+								   [(and (not dot?) (char=? (string-ref (car l) 0) #\.)) (loop (cdr l) ds fs)]
+								   [(file-exists? (build-path dir (car l))) (loop (cdr l) ds (cons (car l) fs))]
+								   [else (loop (cdr l) (cons (car l) ds) fs)]))])
+						    (send dirs set ds)
+						    (send files set fs)
+						    (send files enable #t)
+						    (update-ok)
+						    (wx:end-busy-cursor)))))]
+			   [get-filename (lambda () (and ok? (simplify-path (build-path dir (or typed-name (send files get-string-selection))))))]
+			   [done (lambda ()
+				   (let ([name (get-filename)])
+				     (unless (and put? (file-exists? name)
+						  (eq? (message-box "Warning" (format "Replace ~s?" name) f '(yes-no)) 'no)
+						  (set! typed-name #f))
+				       (send f show #f))))])
+		    (send bp stretchable-height #f)
+		    (send m stretchable-width #t)
+		    (reset-directory)
+		    (send f center)
+		    (send f show #t)
+		    (get-filename)))])])
     sel))
 
 (define get-file (mk-file-selector #f))
 (define put-file (mk-file-selector #t))
+
+(define get-color-from-user 
+  (if (not (eq? (system-type) 'unix))
+      wx:get-color-from-user
+      (case-lambda
+       [() (get-color-from-user #f #f #f)]
+       [(message) (get-color-from-user message #f #f)]
+       [(message parent) (get-color-from-user message parent #f)]
+       [(message parent color)
+	(let* ([ok? #t]
+	       [f (make-object dialog-box% "Choose Color" #t parent)]
+	       [done (lambda (ok) (lambda (b e) (set! ok? ok) (send f show #f)))]
+	       [p (make-object vertical-pane% f)]
+	       [make-color-slider (lambda (l) (make-object slider% l 0 255 p void))]
+	       [red (make-color-slider "Red:")]
+	       [green (make-color-slider "Green:")]
+	       [blue (make-color-slider "Blue:")]
+	       [bp (make-object horizontal-pane% f)])
+	  (when color
+	    (send red set-value (send color red))
+	    (send green set-value (send color green))
+	    (send blue set-value (send color blue)))
+	  (make-object button% "Cancel" bp (done #f))
+	  (make-object button% "Ok" bp (done #t) '(default))
+	  (send bp set-alignment 'right 'center)
+	  (send p set-alignment 'right 'center)
+	  (send f show #t)
+	  (and ok?
+	       (make-object wx:color% 
+                            (send red get-value)
+                            (send green get-value)
+			    (send blue get-value))))])))
+
+(define get-font-from-user 
+  (if (eq? (system-type) 'windows)
+      wx:get-font-from-user
+      (case-lambda
+       [() (get-font-from-user #f #f #f)]
+       [(message) (get-font-from-user message #f #f)]
+       [(message parent) (get-font-from-user message parent #f)]
+       [(message parent font)
+	(letrec ([ok? #f]
+		 [f (make-object dialog-box% "Choose Font" #t parent 500 300)]
+		 [refresh-sample (lambda (b e) (let ([f (get-font)])
+						 (send ok-button enable f)
+						 (when f
+						   (let ([s (send (send edit get-style-list) find-named-style "Standard")]
+							 [d (make-object wx:style-delta%)])
+						     (send d set-delta-face (send f get-face))
+						     (send d set-delta 'change-size (send f get-point-size))
+						     (send d set-delta 'change-style (send f get-style))
+						     (send d set-delta 'change-weight (send f get-weight))
+						     (send s set-delta d)))))]
+		 [p (make-object horizontal-pane% f)]
+		 [face (make-object list-box% "Font:" (wx:get-font-list) p refresh-sample)]
+		 [p2 (make-object vertical-pane% p)]
+		 [style (make-object radio-box% "Style:" '("Normal" "Italic" "Slant") p2 refresh-sample)]
+		 [weight (make-object radio-box% "Weight:" '("Normal" "Bold" "Light") p2 refresh-sample)]
+		 [size (make-object slider% "Size:" 4 127 p2 refresh-sample 12)]
+		 [sample (make-object multi-text% "Sample" f void "The quick brown fox jumped over the lazy dog")]
+		 [edit (send sample get-edit)]
+		 [done (lambda (ok) (lambda (b e) (set! ok? ok) (send f show #f)))]
+		 [get-font (lambda () (let ([face (send face get-string-selection)])
+					(and face
+					     (make-object wx:font% (send size get-value) face 'default
+							  (case (send style get-selection) [(0) 'normal] [(1) 'italic] [(2) 'slant])
+							  (case (send weight get-selection) [(0) 'normal] [(1) 'bold] [(2) 'light])))))]
+		 [bp (make-object horizontal-pane% f)]
+		 [cancel-button (make-object button% "Cancel" bp (done #f))]
+		 [ok-button (make-object button% "Ok" bp (done #t) '(default))])
+	  (when font
+	    (let ([f (send face find-string (send font get-face))])
+	      (and f (>= f 0) (send face set-selection f)))
+	    (send style set-selection (case (send font get-style) [(normal) 0] [(italic) 1] [(slant) 2]))
+	    (send weight set-selection (case (send font get-weight) [(normal) 0] [(bold) 1] [(light) 2]))
+	    (send size set-value (send font get-point-size)))
+	  (send bp set-alignment 'right 'center)
+	  (refresh-sample (void) (void))
+	  (send f show #t)
+	  (and ok? (get-font)))])))
 
 (define (play-sound f async?)
   (if (not (eq? (system-type) 'unix))
