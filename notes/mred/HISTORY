@@ -1,4 +1,19 @@
 
+Version 299.21
+X: clipboard now supported, and the X clipboard and X selection
+ are properly distinguished; set the MrEd:selectionAsClipboard
+ preference to obtain the old behavior
+Added the-x-selection-clipboard
+Added paste-x-selection and do-paste-x-selection to editor<%>
+Added "paste-x-selection" to add-editor-keymap-functions
+Changed "middlebutton" mapping in the default text keymap
+ initializer's map to use paste-x-selection
+Added 'auto-vscroll and 'auto-hscroll styles to editor-canvas%
+Added show-scrollbars method to canvas%
+Added 'resize-corner style to canvas% and editor-canvas%
+Added set-resize-corner to canvas<%>
+Added 'blank cursor%
+
 Version 299.17
 Changed read-one-special in readable-snip<%> to read-special
 
