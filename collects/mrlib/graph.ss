@@ -20,7 +20,9 @@
       get-parents
       get-parent-links
       add-parent
-      remove-parent))
+      remove-parent
+      
+      find-shortest-path))
   
   (provide/contract (add-links
 		     (case->
@@ -121,6 +123,29 @@
                  parent
                  parent-links
                  (lambda (parent parent-link) (eq? (link-snip parent-link) parent))))))
+      
+      (define/public (find-shortest-path other)
+        (define visited-ht (make-hash-table))
+        (define (first-view? n) 
+          (hash-table-get visited-ht n (lambda () 
+                                         (hash-table-put! visited-ht n #f)
+                                         #t)))
+        (let loop ((horizon (list (list this))))
+          (cond
+            [(null? horizon) #f]
+            [(assq other horizon) => (lambda (winner) winner)]
+            [else
+             (let inner-loop ((paths horizon)
+                              (acc '()))
+               (cond
+                 [(null? paths) (loop (apply append acc))]
+                 [else
+                  (let ((path (car paths)))
+                    (inner-loop 
+                     (cdr paths)
+                     (cons 
+                      (map (lambda (child) (cons child path)) (filter first-view? (send (car path) get-children)))
+                      acc)))]))])))
       
       (super-instantiate ())
       
