@@ -359,7 +359,7 @@
 (define (object->position o)
   (let-values ([(x y) (double-boxed 0 0 (lambda (x y) (send o client-to-screen x y)))]
 	       [(w h) (double-boxed 0 0 (lambda (x y) (send o get-client-size x y)))])
-    (if (is-a? o wx-tab-group%)
+    (if (is-a? o wx-tab-group<%>)
 	(send o tab-group-position x y w)
 	(list o x y w h))))
 
@@ -874,7 +874,7 @@
 			   (send o set-selection s)
 			   (do-command o (make-object wx:control-event% 'radio-box))))
 		       #t]
-		      [(is-a? o wx-tab-group%)
+		      [(is-a? o wx-tab-group<%>)
 		       (let ([s (send o button-focus -1)])
 			 (unless (negative? s)
 			   (send o set-selection s)
@@ -906,7 +906,7 @@
 						       dests)])
 				     (when o
 				       (if (or (is-a? o wx:radio-box%)
-					       (is-a? o wx-tab-group%))
+					       (is-a? o wx-tab-group<%>))
 					   (send o button-focus (max 0 (send o button-focus -1)))
 					   (begin
 					     (send o set-focus)
@@ -922,7 +922,7 @@
 						   (as-exit (lambda () (send o on-tab-in))))))))))])
 			   (if (and (not (eqv? code #\tab))
 				    (or (is-a? o wx:radio-box%)
-					(is-a? o wx-tab-group%)))
+					(is-a? o wx-tab-group<%>)))
 			       (let ([n (send o number)]
 				     [s (send o button-focus -1)]
 				     [v-move? (memq code '(up down))]
@@ -1818,9 +1818,11 @@
 
 ;--------------------- tab group -------------------------
 
+(define mac-tab? (eq? 'macosx (system-type)))
+
 (define bg-color (wx:get-panel-background))
 (define tab-v-space 2)
-(define raise-h 2)
+(define raise-h (if mac-tab? 0 2))
 
 (define (scale-color c f)
   (make-object wx:color% 
@@ -1833,8 +1835,10 @@
 (define dark-pen (send (wx:get-the-pen-list) find-or-create-pen (scale-color bg-color #e0.6) 0 'solid)) 
 (define dark-brush (send (wx:get-the-brush-list) find-or-create-brush (scale-color bg-color #e0.8) 'solid))
 
+(define wx-tab-group<%> (interface ()))
+
 (define canvas-based-tab-group%
-  (class wx-canvas%
+  (class* wx-canvas% (wx-tab-group<%>)
     (init mred proxy style parent call-back label tab-labels style-again)
     
     (define callback call-back)
@@ -1871,10 +1875,12 @@
 			     (cons w h)))
 			 tabs)])
 	  (set! tab-widths (map car w+hs))
-	  (let-values ([(sw sh sd sa) (send dc get-text-extent " " font)])
-	    (let ([th (ceiling (+ (* 2 tab-v-space) (apply max 0 sh (map cdr w+hs))))])
-	      (set! tab-height (if (even? th) th (add1 th))))))))
-    
+	  (if mac-tab?
+	      (set! tab-height 27)
+	      (let-values ([(sw sh sd sa) (send dc get-text-extent " " font)])
+		(let ([th (ceiling (+ (* 2 tab-v-space) (apply max 0 sh (map cdr w+hs))))])
+		  (set! tab-height (if (even? th) th (add1 th)))))))))
+      
     (define/private (get-total-width)
       (compute-sizes)
       (apply + tab-height (* (length tabs) (+ raise-h raise-h tab-height)) tab-widths))
@@ -1984,6 +1990,8 @@
       (list this (+ x (get-init-x)) y (get-total-width) tab-height))
     (define/public (number) (length tabs))
     
+    ;; Returns a list of point lists, which define polygons for hit-testing
+    ;;  and updating
     (define/private (draw-once dc w light? dark? inset)
       (let ([init-x (get-init-x)])
 	(let loop ([x init-x][l tabs][wl tab-widths][pos 0])
@@ -1992,58 +2000,68 @@
 	      (let ([next-x (+ x tab-height (car wl))]
 		    [-sel-d (if (= pos selected) (- raise-h) 0)])
 		(cons
-		 (append
-		  ;; start point
-		  (list (list (+ x tab-height -sel-d inset) (+ 2 tab-height (- inset))))
-		  ;; left line
-		  (begin
-		    (when (= pos selected)
-		      (when light?
-			(send dc draw-line 0 tab-height x tab-height)
-			(send dc draw-line 0 (add1 tab-height) x (add1 tab-height))))
-		    (let ([short (if (or (= pos 0) (= pos selected))
-				     0
-				     (+ (/ tab-height 2) 
-					(if (= selected (sub1 pos))
-					    raise-h
-					    0)))])
-		      (when light?
-			(send dc draw-line (+ x short -sel-d) (- tab-height short) (+ x tab-height) -sel-d)
-			(send dc draw-line (+ x short -sel-d 1) (- tab-height short) (+ x tab-height 1) -sel-d))
-		      (list (list (+ x short -sel-d -2 inset) (- tab-height short -2 inset))
-			    (list (+ x tab-height inset) (+ -sel-d inset)))))
-		  ;; top line
-		  (begin
-		    (when light?
-		      (send dc draw-line (+ x tab-height) -sel-d next-x -sel-d)
-		      (send dc draw-line (+ x tab-height) (+ 1 -sel-d) next-x (+ 1 -sel-d)))
-		    (list (list (+ 1 next-x (- inset)) (+ inset -sel-d))))
-		  ;; right line
-		  (let* ([short (if (= (add1 pos) selected)
-				    (+ (/ tab-height 2) (sub1 raise-h))
-				    0)]
-			 [short-d (if (zero? short) 0 -1)])
-		    (when dark?
-		      (send dc draw-line (+ 1 next-x) (+ -sel-d 1) (- (+ next-x tab-height) short 1 -sel-d) (- tab-height short 1))
-		      (send dc draw-line next-x (+ -sel-d 1) 
-			    (- (+ next-x tab-height) short 2 -sel-d short-d) (- tab-height short 1 short-d)))
-		    (list (list (- (+ next-x tab-height) -sel-d short (- short-d) -2 inset) (- tab-height short -2 inset))))
-		  ;; end point
-		  (begin
-		    (when light?
-		      (when (= pos selected)
-			(send dc draw-line (+ next-x tab-height) tab-height w tab-height)
-			(send dc draw-line (+ next-x tab-height) (add1 tab-height) w (add1 tab-height)))
-		      (let ([x (+ x tab-height)]
-			    [y (- tab-v-space (if (= pos selected) raise-h 0))])
-			(send dc draw-text (car l) x y)
-			(when (and (has-focus?)
-				   (= pos current-focus-tab))
-			  (let ([p (send dc get-pen)])
-			    (send dc set-pen "black" 1 'hilite)
-			    (send dc draw-rectangle (- x 1) (+ y 2) (+ (car wl) 2) (- tab-height (* 2 tab-v-space) 2))
-			    (send dc set-pen p)))))
-		    (list (list (+ next-x inset (if (= selected (add1 pos)) -2 0)) (+ 2 tab-height (- inset))))))
+		 (if mac-tab?
+		     ;; ----- Mac drawing -----
+		     (let ([w (+ tab-height (car wl))]
+			   [h tab-height])
+		       (when dc
+			 (send dc draw-tab (car l) x 3 w 24
+			       (if (= pos selected) 3 0)))
+		       (list (list x 3) (list (+ x w) 3)
+			     (list (+ x w) 21) (list x 21)))
+		     ;; ----- X-style drawing -----
+		     (append
+		      ;; start point
+		      (list (list (+ x tab-height -sel-d inset) (+ 2 tab-height (- inset))))
+		      ;; left line
+		      (begin
+			(when (= pos selected)
+			  (when light?
+			    (send dc draw-line 0 tab-height x tab-height)
+			    (send dc draw-line 0 (add1 tab-height) x (add1 tab-height))))
+			(let ([short (if (or (= pos 0) (= pos selected))
+					 0
+					 (+ (/ tab-height 2) 
+					    (if (= selected (sub1 pos))
+						raise-h
+						0)))])
+			  (when light?
+			    (send dc draw-line (+ x short -sel-d) (- tab-height short) (+ x tab-height) -sel-d)
+			    (send dc draw-line (+ x short -sel-d 1) (- tab-height short) (+ x tab-height 1) -sel-d))
+			  (list (list (+ x short -sel-d -2 inset) (- tab-height short -2 inset))
+				(list (+ x tab-height inset) (+ -sel-d inset)))))
+		      ;; top line
+		      (begin
+			(when light?
+			  (send dc draw-line (+ x tab-height) -sel-d next-x -sel-d)
+			  (send dc draw-line (+ x tab-height) (+ 1 -sel-d) next-x (+ 1 -sel-d)))
+			(list (list (+ 1 next-x (- inset)) (+ inset -sel-d))))
+		      ;; right line
+		      (let* ([short (if (= (add1 pos) selected)
+					(+ (/ tab-height 2) (sub1 raise-h))
+					0)]
+			     [short-d (if (zero? short) 0 -1)])
+			(when dark?
+			  (send dc draw-line (+ 1 next-x) (+ -sel-d 1) (- (+ next-x tab-height) short 1 -sel-d) (- tab-height short 1))
+			  (send dc draw-line next-x (+ -sel-d 1) 
+				(- (+ next-x tab-height) short 2 -sel-d short-d) (- tab-height short 1 short-d)))
+			(list (list (- (+ next-x tab-height) -sel-d short (- short-d) -2 inset) (- tab-height short -2 inset))))
+		      ;; end point
+		      (begin
+			(when light?
+			  (when (= pos selected)
+			    (send dc draw-line (+ next-x tab-height) tab-height w tab-height)
+			    (send dc draw-line (+ next-x tab-height) (add1 tab-height) w (add1 tab-height)))
+			  (let ([x (+ x tab-height)]
+				[y (- tab-v-space (if (= pos selected) raise-h 0))])
+			    (send dc draw-text (car l) x y)
+			    (when (and (has-focus?)
+				       (= pos current-focus-tab))
+			      (let ([p (send dc get-pen)])
+				(send dc set-pen "black" 1 'hilite)
+				(send dc draw-rectangle (- x 1) (+ y 2) (+ (car wl) 2) (- tab-height (* 2 tab-v-space) 2))
+				(send dc set-pen p)))))
+			(list (list (+ next-x inset (if (= selected (add1 pos)) -2 0)) (+ 2 tab-height (- inset)))))))
 		 (loop next-x (cdr l) (cdr wl) (add1 pos))))))))
 
     
@@ -2054,24 +2072,29 @@
 	 (let ([dc (get-dc)])
 	   (send dc set-background bg-color)
 	   (send dc set-font font)
-	   (send dc clear)
-	   (send dc set-origin 0 (+ 2 raise-h))
-	   (when (and tracking-pos tracking-hit?)
-	     (let ([b (send dc get-brush)])
-	       (send dc set-brush dark-brush)
-	       (send dc set-pen trans-pen)
-	       (send dc draw-polygon (map (lambda (x) (make-object wx:point% (car x) (cadr x)))
-					  (list-ref (draw-once #f 0 #f #f 1) tracking-pos)))
-	       (send dc set-brush b)))
+	   (unless mac-tab?
+	     (send dc clear)
+	     (send dc set-origin 0 (+ 2 raise-h))
+	     (when (and tracking-pos tracking-hit?)
+	       (let ([b (send dc get-brush)])
+		 (send dc set-brush dark-brush)
+		 (send dc set-pen trans-pen)
+		 (send dc draw-polygon (map (lambda (x) (make-object wx:point% (car x) (cadr x)))
+					    (list-ref (draw-once #f 0 #f #f 1) tracking-pos)))
+		 (send dc set-brush b))))
 	   (let-values ([(w h) (my-get-client-size)])
-	     (send dc set-pen light-pen)
+	     (unless mac-tab?
+	       (send dc set-pen light-pen))
+	     (when mac-tab?
+	       (send dc draw-tab-base 0 (- tab-height 3) w 3 1))
 	     (draw-once dc w #t #f 0)
 	     (when border?
 	       (when (> h tab-height)
 		 (send dc draw-line 0 tab-height 0 h)
 		 (send dc draw-line 1 tab-height 1 h)))
-	     (send dc set-pen dark-pen)
-	     (draw-once dc w #f #t 0)
+	     (unless mac-tab?
+	       (send dc set-pen dark-pen)
+	       (draw-once dc w #f #t 0))
 	     (when border?
 	       (when (> h tab-height)
 		 (send dc draw-line (- w 1) tab-height (- w 1) (- h raise-h))
@@ -2154,8 +2177,8 @@
 (define wx-tab-group% 
   (if (eq? 'unix (system-type))
       canvas-based-tab-group%
-      (class (make-window-glue%
-	      (make-control% wx:tab-group% 0 0 #t #t))
+      (class* (make-window-glue%
+	       (make-control% wx:tab-group% 0 0 #t #t)) (wx-tab-group<%>)
 	(inherit min-height)
 	(define/public (tab-group-position x y w)
 	  (list this x y w (min-height)))
@@ -4952,7 +4975,11 @@
       (let ([cwho '(constructor tab-group)])
 	(check-list-control-args cwho label choices parent callback)
 	(check-style cwho #f '(deleted border) style))
-      (super-init (lambda () (make-object wx-tab-group% this this
+      (super-init (lambda () (make-object (if (and (eq? 'macosx (system-type))
+						   (not (memq 'border style)))
+					      canvas-based-tab-group%
+					      wx-tab-group%)
+					  this this
 					  style
 					  (mred->wx-container parent)
 					  (wrap-callback callback)
