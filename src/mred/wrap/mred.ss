@@ -136,7 +136,7 @@
       (sequence (apply super-init args)))))
 
 ; make-container% - for panels and top-level windows
-(define (make-container% %) %)
+(define (wx-make-container% %) %)
 
 ; make-top-container%: adds the necessary functionality to wx:frame% and 
 ; wx:dialog-box%.
@@ -148,7 +148,7 @@
 ;            capabilities necessary to serve as the frame/dialog which
 ;            contains container classes.
 (define (make-top-container% base%)
-  (class (make-container% (wx-make-window% base%)) args
+  (class (wx-make-container% (wx-make-window% base%)) args
     (inherit get-x get-y get-width get-height
 	     get-client-size is-shown?)
     (rename [super-show show]
@@ -203,13 +203,13 @@
       [window->focus-object
        (lambda (w)
 	 (and w
-	      (if (is-a? focus wx:media-edit%)
-		  (let loop ([m (send focus get-media)]
+	      (if (is-a? focus wx:text-editor%)
+		  (let loop ([m (send focus get-edit)]
 			     [prev w])
 		    (if m
 			(let ([snip (send m get-focus-snip)])
-			  (if (and snip (is-a? snip wx:media-snip%))
-			      (loop (send snip get-media) m)
+			  (if (and snip (is-a? snip wx:editor-snip%))
+			      (loop (send snip get-edit) m)
 			      m))
 			w)))))]
 
@@ -340,7 +340,7 @@
       ;            contents.  Each direction is handled
       ;            independently.
       [on-size
-       (opt-lambda (new-width new-height [force? #f])
+       (lambda (new-width new-height)
 	 (super-on-size new-width new-height)
 	 (unless already-trying?
 	   (let ([new-width (get-width)]
@@ -348,8 +348,7 @@
 	     (let-values ([(correct-w correct-h)
 			   (correct-size new-width new-height)])
 	       (unless (and (= new-width correct-w)
-			    (= new-height correct-h)
-			    (not force?))
+			    (= new-height correct-h))
 		 (set! already-trying? #t)
 		 (set-size -1 -1 correct-w correct-h)
 		 (set! already-trying? #f))))))])
@@ -370,7 +369,6 @@
 ; through this function to create panel%.
 
 (define make-item%
-  (polymorphic
    (lambda (item% x-margin-w y-margin-h stretch-x stretch-y)
      (class (wx-make-window% item%) args
        (rename [super-on-set-focus on-set-focus]
@@ -420,8 +418,8 @@
 	   [(new-width) (min-width (+ new-width (client-inset #f)))])]
 	 [min-client-height
 	  (case-lambda 
-	   [() (- (user-min-height) (client-inset #t))]
-	   [(new-height) (user-min-height (+ new-height (client-inset #t)))])]
+	   [() (- (min-height) (client-inset #t))]
+	   [(new-height) (min-height (+ new-height (client-inset #t)))])]
 
 	 [mk-param
 	  (lambda (val filter check)
@@ -527,7 +525,7 @@
 	   (set-min-width (get-width))
 	   (set-min-height (get-height))
 	   
-	   (send (area-parent) add-child this))))))
+	   (send (area-parent) add-child this)))))
 
 ; make-control% - for non-panel items
 (define (make-control% item% x-margin y-margin
@@ -776,9 +774,9 @@
 
 ;--------------------- wx media Classes -------------------------
 
-(define (make-media-canvas% %)
+(define (make-editor-canvas% %)
   (class % (parent x y w h name style spp init-buffer)
-    (inherit get-media force-redraw
+    (inherit get-edit force-redraw
 	     call-as-primary-owner min-height get-size
 	     hard-min-height set-min-height)
     (private
@@ -788,24 +786,24 @@
       [orig-hard #f])
     (public
       [on-container-resize (lambda ()
-			     (let ([edit (get-media)])
+			     (let ([edit (get-edit)])
 			       (when edit
 				 (send edit on-display-size))))])
-    (rename [super-set-media set-media]
+    (rename [super-set-edit set-edit]
 	    [super-on-set-focus on-set-focus])
     (public       
       [set-edit-target (lambda (t) (set! edit-target t))]
       [get-edit-target (lambda () edit-target)]
 
-      [set-media
+      [set-edit
        (letrec ([l (case-lambda
-		    [(media) (l media #t)]
-		    [(media redraw?)
-		     (super-set-media media redraw?)
+		    [(edit) (l edit #t)]
+		    [(edit redraw?)
+		     (super-set-edit edit redraw?)
 		     
 		     (let ([mred (wx->mred this)])
 		       (when mred
-			 (send media add-canvas mred)))
+			 (send edit add-canvas mred)))
 
 		     (update-size)
 		     
@@ -818,7 +816,7 @@
       [on-set-focus
        (lambda ()
 	 (super-on-set-focus)
-	 (let ([m (get-media)])
+	 (let ([m (get-edit)])
 	   (when m 
 	     (let ([mred (wx->mred this)])
 	       (when mred
@@ -838,16 +836,16 @@
 
       [update-size
        (lambda ()
-	 (let ([media (get-media)])
-	   (when (and media fixed-height?)
-	     (let* ([top (send media line-location 0 #t)]
-		    [bottom (send media line-location 0 #f)]
+	 (let ([edit (get-edit)])
+	   (when (and edit fixed-height?)
+	     (let* ([top (send edit line-location 0 #t)]
+		    [bottom (send edit line-location 0 #f)]
 		    [height (- bottom top)])
 	       (let* ([ch (box 0)]
 		      [h (box 0)])
 		 (call-as-primary-owner
 		  (lambda ()
-		    (send (send media get-admin) 
+		    (send (send edit get-admin) 
 			  get-view #f #f #f ch)))
 		 (get-size (box 0) h)
 		 (let ([new-min-height (+ (* fixed-height-lines height) 
@@ -861,11 +859,11 @@
 	  (when mred
 	    (send init-buffer add-canvas mred)))))))
 
-(define wx-media-canvas% (make-canvas-glue%
-			  (make-media-canvas% (make-control% wx:media-canvas%
-							     0 0 #t #t))))
+(define wx-editor-canvas% (make-canvas-glue%
+			   (make-editor-canvas% (make-control% wx:editor-canvas%
+							       0 0 #t #t))))
 
-(define (make-media-buffer% % can-wrap?)
+(define (make-editor-buffer% % can-wrap?)
   ; >>> This class is instantiated directly by the end-user <<<
   (class % args
     (inherit get-max-width set-max-width get-admin)
@@ -940,16 +938,18 @@
 
       [on-new-box
        (lambda (type)
-	 (make-object wx-media-snip%
+	 (make-object editor-snip%
 		      (make-object
 		       (cond
-			[(eq? type 'pasteboard-buffer) (make-object media-pasteboard%)]
-			[else (make-object media-edit%)]))))])
+			[(eq? type 'pasteboard-buffer) (make-object pasteboard-editor%)]
+			[else (make-object text-editor%)]))))])
 
     (sequence (apply super-init args))))
 
-(define media-edit% (make-media-buffer% wx:media-edit% #t))
-(define media-pasteboard% (make-media-buffer% wx:media-edit% #f))
+(define text-editor% (make-editor-buffer% wx:text-editor% #t))
+(define pasteboard-editor% (make-editor-buffer% wx:pasteboard-editor% #f))
+
+(define editor-snip% wx:editor-snip%)
 
 ;--------------------- wx Panel Classes -------------------------
 
@@ -979,7 +979,7 @@
       [get-height (lambda () height)])))
 
 (define (wx-make-basic-panel% wx:panel%)
-  (class (make-container% (make-item% wx:panel% 0 0 #t #t)) (parent style)
+  (class (wx-make-container% (make-item% wx:panel% 0 0 #t #t)) (parent style)
     (inherit get-x get-y get-width get-height
 	     min-width min-height set-min-width set-min-height
 	     x-margin y-margin
@@ -1523,8 +1523,8 @@
 
 ;-------------------- Text control simulation -------------------------
 
-(define wx-text-media-edit% 
-  (class media-edit% (cb return-cb control)
+(define wx-text-text-editor% 
+  (class text-editor% (cb return-cb control)
       (rename [super-after-insert after-insert]
 	      [super-after-delete after-delete]
 	      [super-on-char on-char])
@@ -1564,8 +1564,8 @@
       (sequence
 	(super-init))))
   
-(define wx-text-media-canvas% 
-  (class wx-media-canvas% (mred proxy control parent style)
+(define wx-text-editor-canvas% 
+  (class wx-editor-canvas% (mred proxy control parent style)
     (rename [super-on-char on-char])
     (public
       [on-char (lambda (e) (send control on-char e))]
@@ -1586,13 +1586,13 @@
 	     (make-object wx-vertical-pane% #f proxy this null))]
       [l (and label
 	      (make-object wx-message% #f proxy p label -1 -1 null))]
-      [c (make-object wx-text-media-canvas% #f proxy this p
+      [c (make-object wx-text-editor-canvas% #f proxy this p
 		      (if multi?
 			  (if (memq 'hscroll style)
 			      null
 			      '(hide-hscroll))
 			  '(hide-vscroll hide-hscroll)))]
-      [e (make-object wx-text-media-edit%
+      [e (make-object wx-text-text-editor%
 		      func
 		      (lambda (do-cb)
 			(if multi?
@@ -1607,7 +1607,6 @@
       [set-value (lambda (v) (send e without-callback
 				   (lambda () (send e insert v 0 (send e last-position)))))]
 
-      ;; wx:text% and wx:multi-text%
       [on-char (lambda (ev) (send c continue-on-char ev))]
       
       [set-label (lambda (str) (send l set-label str))]
@@ -1639,7 +1638,7 @@
 	(send d set-delta 'change-style (send f get-style))
 	(send d set-delta 'change-weight (send f get-weight))
 	(send s set-delta d))
-      (send c set-media e)
+      (send c set-edit e)
       (send c set-line-count (if multi? 3 1))
 
       (when (and l horiz?)
@@ -1774,7 +1773,7 @@
       [vert-margin (param get-wx-panel 'y-margin)])
     (sequence (super-init mk-wx get-wx-panel parent))))
 
-(define container<%> 
+(define area-container<%> 
   (interface (area<%>) 
     get-children change-children place-children
     add-child delete-child
@@ -1784,7 +1783,7 @@
 (define internal-container<%> (interface ()))
 
 (define (make-container% %) ; % implements area<%>
-  (class* % (container<%> internal-container<%>) (mk-wx get-wx-panel parent) 
+  (class* % (area-container<%> internal-container<%>) (mk-wx get-wx-panel parent) 
     (public
       [get-children (lambda () (map wx->mred (ivar (get-wx-panel) children)))]
       [border (param get-wx-panel 'border)]
@@ -1878,12 +1877,12 @@
       (super-init (lambda () (set! wx (mk-wx)) wx) get-wx-panel parent))))
 
 (define area-container-window<%>
-  (interface (window<%> container<%>)
+  (interface (window<%> area-container<%>)
     set-control-font get-control-font
     set-label-font get-label-font
     set-label-position get-label-position))
 
-(define (make-area-container-window% %) ; % implements window<%> (and container<%>)
+(define (make-area-container-window% %) ; % implements window<%> (and carea-ontainer<%>)
   (class* % (area-container-window<%>) (mk-wx get-wx-panel label parent cursor) 
     (public
       [get-control-font (lambda () (send (get-wx-panel) get-button-font))]
@@ -1972,10 +1971,14 @@
 (define frame%
   (class basic-top-level-window% (label [parent #f] [width #f] [height #f] [x #f] [y #f] [style null])
     (private
-      [wx #f])
+      [wx #f]
+      [status-line? #f])
     (public
-      [create-status-line (lambda () (send wx create-status-line))]
+      [create-status-line (lambda () (unless status-line? (send wx create-status-line) (set! status-line? #t)))]
       [set-status-line (lambda () (send wx create-status-line))]
+      [has-status-line? (lambda () status-line?)]
+      [iconize (lambda () (send wx iconize))]
+      [maximize (lambda () (send wx maximize))]
       [get-menu-bar (lambda () (let ([mb (ivar wx menu-bar)])
 				 (and mb (wx->mred mb))))])
     (sequence
@@ -1995,6 +1998,9 @@
 							(or x -1) (or y -1) (or width 0) (or height 0)
 							style)))
 		  label parent))))
+
+(define (get-top-level-windows)
+  (map wx->mred (wx:get-top-level-windows)))
 
 (define message%
   (class basic-control% (label parent [style null])
@@ -2256,7 +2262,7 @@
 		    wx)
 		  parent))))
     
-(define media-canvas%
+(define editor-canvas%
   (class basic-canvas% (parent [buffer #f] [style null] [scrolls-per-page 100])
     (sequence (check-container-parent 'canvas parent))
     (private
@@ -2292,13 +2298,13 @@
       [set-line-count
        (lambda (n) (send wx set-line-count n))]
 
-      [get-media (lambda () (send wx get-media))]
-      [set-media (lambda (m) (send wx set-media m))])
+      [get-edit (lambda () (send wx get-edit))]
+      [set-edit (lambda (m) (send wx set-edit m))])
     (private
       [wx #f])
     (sequence
       (super-init (lambda () 
-		    (set! wx (make-object wx-media-canvas% this this
+		    (set! wx (make-object wx-editor-canvas% this this
 					  (mred->wx-container parent) -1 -1 canvas-default-size canvas-default-size
 					  #f style scrolls-per-page buffer))
 		    wx)
@@ -2442,10 +2448,10 @@
 		   (send wx-parent append-item this)
 		   (set! shown? #t)))]
       [delete (lambda ()
-		(when in-menu?
+		(when shown?
 		  (send wx-parent delete-sep this)
 		  (set! shown? #f)))]
-      [is-deleted? (lambda () (not in-menu?))])
+      [is-deleted? (lambda () (not shown?))])
     (sequence
       (super-init wx)
       (restore))))
@@ -2455,21 +2461,22 @@
     (private
       [wx (set-wx (make-object wx-menu-item% this))]
       [wx-parent (mred->wx parent)]
-      [plain-label (wx:strip-menu-codes label)]
+      [plain-label (wx:label->plain-label label)]
       [in-menu? (is-a? parent basic-menu%)]
       [shown? #f]
       [enabled? #t]
       [do-enable (lambda (on?)
-		   (if in-menu?
-		       (send wx-parent enable (send wx id) on?)
-		       (send wx-parent enable-top (send wx-parent position-of this) on?))
+		   (when shown?
+		     (if in-menu?
+			 (send wx-parent enable (send wx id) on?)
+			 (send wx-parent enable-top (send wx-parent position-of this) on?)))
 		   (set! enabled? (and on? #t)))])
     (public
       [get-parent (lambda () parent)]
       [get-label (lambda () label)]
       [set-label (lambda (l)
 		   (set! label l)
-		   (set! plain-label (wx:strip-menu-codes l))
+		   (set! plain-label (wx:label->plain-label l))
 		   (when shown?
 		     (if in-menu?
 			 (send wx-parent set-label (send wx id) label)
@@ -2601,8 +2608,8 @@
 
 (define (graphical-read-eval-print-loop)
   ;; The REPL buffer class
-  (define esq:media-edit%
-    (class media-edit% ()
+  (define esq:text-editor%
+    (class text-editor% ()
       (inherit insert last-position get-text erase change-style)
       (rename [super-on-char on-char])
       (private [prompt-pos 0] [locked? #f])
@@ -2652,8 +2659,8 @@
 			       (public [on-close (lambda () (exit))])
 			       (sequence (apply super-init args)))
 			     "MrEd REPL" #f 500 400))
-  (define repl-buffer (make-object esq:media-edit%))
-  (define repl-display-canvas (make-object media-canvas% frame))
+  (define repl-buffer (make-object esq:text-editor%))
+  (define repl-display-canvas (make-object editor-canvas% frame))
 
   ;; User space initialization
   (define user-custodian (make-custodian))
@@ -2681,10 +2688,28 @@
 	 (newline)
 	 (send repl-buffer new-prompt)))))
 
+  ;; Just a few key bindings:
+  (let* ([k (send repl-buffer get-keymap)]
+	 [mouse-paste (lambda (edit event) 
+			(send edit set-position (send edit last-position))
+			(send edit paste))])
+    (wx:add-text-editor-functions k)
+    (send k add-mouse-function "mouse-paste" mouse-paste)
+    (map
+     (lambda (key func) (send k map-function key func))
+     (append
+      (case (system-type)
+	[(windows) '("c:c" "c:x" "c:v" "c:k")]
+	[(macos) '("d:c" "d:x" "d:v" "d:k")]
+	[(unix) '("m:w" "c:w" "c:y" "c:k")])
+      '("middlebutton"))
+     '("copy-clipboard" "cut-clipboard" "paste-clipboard" "delete-to-end-of-line" "mouse-paste")))
+  (send repl-buffer auto-wrap #t)
+
   ;; Go
   ((in-parameterization user-parameterization current-output-port) user-output-port)
   ((in-parameterization user-parameterization current-custodian) user-custodian)
-  (send repl-display-canvas set-media repl-buffer)
+  (send repl-display-canvas set-edit repl-buffer)
   (send frame show #t)
 
   (send repl-display-canvas focus))
@@ -2850,7 +2875,7 @@
   (case-lambda
    [(title message choices) (get-choice-from-user title message choices null #f '(single))]
    [(title message choices parent) (get-choice-from-user title message choices parent null '(single))]
-   [(title message choices parent init-vals) (get-choice-from-user title message choices parent init-val '(single))]
+   [(title message choices parent init-vals) (get-choice-from-user title message choices parent init-vals '(single))]
    [(title message choices parent init-vals style)
     (let* ([f (make-object dialog-box% title #t parent box-width)]
 	   [ok-button #f]
@@ -2874,73 +2899,142 @@
 	(send f show #t)
 	(and ok? (send l get-selections))))]))
 
-(define file-selector
-  (case-lambda
-   [(directory filename) (file-selector directory filename #f '(get) #f)]
-   [(directory filename parent) (file-selector directory filename parent '(get) #f)]
-   [(directory filename parent style) (file-selector directory filename parent style #f)]
-   [(directory filename parent style extension)
-    (letrec ([put? (memq 'put style)]
-	     [ok? #t]
-	     [dir (or directory (current-directory))]
-	     [f (make-object dialog-box% (if put? "Put File" "Get File") #t parent 500 300)]
-	     [m (make-object message% dir f)]
-	     [lp (make-object horizontal-pane% f)]
-	     [dirs (make-object list-box% #f null lp (lambda (d e)
-						      (when (eq? (send e get-event-type) 'list-box-dclick)
-							(let ([sd (send d get-string-selection)])
-							  (set! dir (simplify-path (build-path dir sd)))
-							  (reset-directory)))))]
-	     [files (make-object list-box% #f null lp (lambda (d e)
-						       (update-ok)
-						       (when (eq? (send e get-event-type) 'list-box-dclick)
-							 (send ok-button command (make-object wx:control-event% 'button)))))]
-	     [dir-text (make-object text% #f f (lambda (t e)
-						 (when (eq? (send e get-event-type) 'text-enter)
-						   (set! dir (send t get-value))
-						   (reset-directory))))]
-	     [bp (make-object horizontal-pane% f)]
-	     [cancel-button (make-object button% "&Cancel" bp (lambda (b e) (set! ok? #f) (send f show #f)))]
-	     [ok-button (make-object button% "&Ok" bp (lambda (b e) (send f show #f)) '(default))]
-	     [update-ok (lambda () (send ok-button enable (not (null? (send files get-selections)))))]
-	     [reset-directory (lambda ()
-				(wx:begin-busy-cursor)
-				(send m set-label (if (directory-exists? dir)
-						      dir
-						      (string-append "BAD DIRECTORY: " dir)))
-				(send dir-text set-value dir)
-				(let ([l (with-handlers ([void (lambda (x) null)])
-					   (directory-list dir))])
-				  (letrec ([sort (lambda (l)
-						   (if (or (null? l) (null? (cdr l)))
-						       l
-						       (let-values ([(l1 l2) (split l null null)])
-							 (merge (sort l1) (sort l2)))))]
-					   [split (lambda (l l1 l2)
-						    (cond
-						     [(null? l) (values l1 l2)]
-						     [(null? (cdr l)) (values (cons (car l) l1) l2)]
-						     [else (split (cddr l) (cons (car l) l1) (cons (cadr l) l2))]))]
-					   [merge (lambda (l1 l2)
-						    (cond
-						     [(null? l1) l2]
-						     [(null? l2) l1]
-						     [(string<? (car l1) (car l2)) (cons (car l1) (merge (cdr l1) l2))]
-						     [else (merge l2 l1)]))])
-				    (let-values ([(ds fs)
-						  (let loop ([l l][ds null][fs null])
-						    (cond
-						     [(null? l) (values (cons ".." (sort (reverse! ds))) (sort (reverse! fs)))]
-						     [(file-exists? (build-path dir (car l))) (loop (cdr l) ds (cons (car l) fs))]
-						     [else (loop (cdr l) (cons (car l) ds) fs)]))])
-				      (send dirs set ds)
-				      (send files set fs)
-				      (update-ok)
-				      (wx:end-busy-cursor)))))])
-      (send bp set-alignment 'right 'center)
-      (send bp stretchable-height #f)
-      (send m stretchable-width #t)
-      (reset-directory)
-      (send f center)
-      (send f show #t)
-      (and ok? (simplify-path (build-path dir (send files get-string-selection)))))]))
+(define (mk-file-selector put?)
+  (letrec ([sel
+	    (case-lambda
+	     [() (sel #f #f #f #f #f null)]
+	     [(message) (sel message #f #f #f #f null)]
+	     [(message parent) (sel message parent #f #f #f null)]
+	     [(message parent directory) (sel message parent directory #f #f null)]
+	     [(message parent directory filename) (sel message parent directory filename #f null)]
+	     [(message parent directory filename extension) (sel message parent directory filename extension null)]
+	     [(message parent directory filename extension style)
+	      (letrec ([ok? #t]
+		       [typed-name #f]
+		       [dir (or directory (current-directory))]
+		       [f (make-object dialog-box% (if put? "Put File" "Get File") #t parent 500 300)]
+		       [__ (when message
+			     (let ([p (make-object vertical-pane% f)])
+			       (send p stretchable-height #f)
+			       (make-object message% message p)))]
+		       [m (make-object message% dir f)]
+		       [lp (make-object horizontal-pane% f)]
+		       [dirs (make-object list-box% #f null lp (lambda (d e)
+								 (when (eq? (send e get-event-type) 'list-box-dclick)
+								   (let ([sd (send d get-string-selection)])
+								     (set! dir (simplify-path (build-path dir sd)))
+								     (reset-directory)))))]
+		       [files (make-object list-box% #f null lp (lambda (d e)
+								  (update-ok)
+								  (when (eq? (send e get-event-type) 'list-box-dclick)
+								    (done))))]
+		       [do-text-name (lambda ()
+				       (let ([v (send dir-text get-value)])
+					 (if (directory-exists? v)
+					     (begin
+					       (set! dir v)
+					       (reset-directory))
+					     ; Maybe specifies a file:
+					     (let-values ([(super file) 
+							   (with-handlers ([void #f])
+							     (let-values ([(base name dir?) (split-path v)])
+							       (let ([super (and (not dir?) 
+										 (or (and (string? base) 
+											  (directory-exists? base)
+											  base)
+										     (and (eq? base 'relative) 
+											  (directory-exists? dir) dir)))])
+								 (if super
+								     (values super name)
+								     (values #f #f)))))])
+					       (if super
+						   (begin
+						     (set! dir super)
+						     (set! typed-name file)
+						     (done))
+						   (begin
+						     (set! dir v)
+						     (reset-directory)))))))]
+		       [dir-text (make-object text% #f f (lambda (t e)
+							   (if (eq? (send e get-event-type) 'text-enter)
+							       (do-text-name)
+							       (begin
+								 ; typing in the box; disable the file list and enable ok
+								 (send files enable #f)
+								 (send ok-button enable #t)))))]
+		       [bp (make-object horizontal-pane% f)]
+		       [dot-check (make-object check-box% "Show files/directories that start with \".\"" bp (lambda (b e) (reset-directory)))]
+		       [spacer (make-object vertical-pane% bp)]
+		       [cancel-button (make-object button% "&Cancel" bp (lambda (b e) (set! ok? #f) (send f show #f)))]
+		       [ok-button (make-object button% "&Ok" bp (lambda (b e) 
+								  (if (send files is-enabled?)
+								      (done) ; normal mode
+								      (do-text-name))) ; handle typed text
+					       '(default))]
+		       [update-ok (lambda () (send ok-button enable (not (null? (send files get-selections)))))]
+		       [reset-directory (lambda ()
+					  (wx:begin-busy-cursor)
+					  (send m set-label (if (directory-exists? dir)
+								dir
+								(string-append "BAD DIRECTORY: " dir)))
+					  (send dir-text set-value dir)
+					  (let ([l (with-handlers ([void (lambda (x) null)])
+						     (directory-list dir))]
+						[dot? (send dot-check get-value)])
+					    (letrec ([sort (lambda (l)
+							     (if (or (null? l) (null? (cdr l)))
+								 l
+								 (let-values ([(l1 l2) (split l null null)])
+								   (merge (sort l1) (sort l2)))))]
+						     [split (lambda (l l1 l2)
+							      (cond
+							       [(null? l) (values l1 l2)]
+							       [(null? (cdr l)) (values (cons (car l) l1) l2)]
+							       [else (split (cddr l) (cons (car l) l1) (cons (cadr l) l2))]))]
+						     [merge (lambda (l1 l2)
+							      (cond
+							       [(null? l1) l2]
+							       [(null? l2) l1]
+							       [(string<? (car l1) (car l2)) (cons (car l1) (merge (cdr l1) l2))]
+							       [else (merge l2 l1)]))])
+					      (let-values ([(ds fs)
+							    (let loop ([l l][ds null][fs null])
+							      (cond
+							       [(null? l) (values (cons ".." (sort (reverse! ds))) (sort (reverse! fs)))]
+							       [(and (not dot?) (char=? (string-ref (car l) 0) #\.)) (loop (cdr l) ds fs)]
+							       [(file-exists? (build-path dir (car l))) (loop (cdr l) ds (cons (car l) fs))]
+							       [else (loop (cdr l) (cons (car l) ds) fs)]))])
+						(send dirs set ds)
+						(send files set fs)
+						(send files enable #t)
+						(update-ok)
+						(wx:end-busy-cursor)))))]
+		       [get-filename (lambda () (and ok? (simplify-path (build-path dir (or typed-name (send files get-string-selection))))))]
+		       [done (lambda ()
+			       (let ([name (get-filename)])
+				 (unless (and put? (file-exists? name)
+					      (eq? (message-box "Warning" (format "Replace ~s?" name) f '(yes-no)) 'no)
+					      (set! typed-name #f))
+				   (send f show #f))))])
+		(send bp stretchable-height #f)
+		(send m stretchable-width #t)
+		(reset-directory)
+		(send f center)
+		(send f show #t)
+		(get-filename))])])
+    sel))
+
+(define get-file (mk-file-selector #f))
+(define put-file (mk-file-selector #t))
+
+(define (play-sound f async?)
+  (if (not (eq? (system-type) 'unix))
+      (wx:play-sound f async?)
+      (begin
+	(unless (string? f)
+	  (raise-type-error 'play-sound "string" f))
+	(let ([b (box "cat ~s > /dev/audio")])
+	  (wx:get-resource "mred" "playcmd" b)
+	  ((if async? (lambda (x) (process x) #t) system)
+	   (format (unbox b) (expand-path f)))))))
+
