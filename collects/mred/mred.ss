@@ -5729,9 +5729,9 @@
   (when (and wheel-step
 	     (not (and (integer? wheel-step)
 		       (exact? wheel-step)
-		       (<= 1 wheel-step 1000))))
+		       (<= 1 wheel-step 10000))))
     (raise-type-error (who->name cwho)
-		      "#f or exact integer in [1,1000]"
+		      "#f or exact integer in [1,10000]"
 		      wheel-step)))
 
 (define (check-fraction who x)
