@@ -228,7 +228,7 @@
       (send p stretchable-width stretchy?)
       (send p stretchable-height stretchy?)
       
-      (begin
+      (let ()
 	(define l (make-object message% "Me&ssage" p))
 	(define il (make-object message% return-bmp p))
 	
@@ -435,7 +435,7 @@
   (when special-button-font?
     (send ip2 set-control-font special-font))
   
-  (begin
+  (let ()
     (define sh (make-object slider% 
 			    (if null-label? #f "H S&lider") 0 10 ip2
 			    (lambda (s e)

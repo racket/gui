@@ -1928,7 +1928,9 @@
 		    (raise-type-error 'set-alignment "vertical alignment symbol: top, center, or bottom" v))
 		  (set-h h)
 		  (set-v (case v [(top) 'left] [(center) 'center] [(bottom) 'right])))]
-      [alignment (lambda (h v) (do-align h v (lambda (h) (set! h-align h)) (lambda (h) (set! v-align v))))]
+      [alignment (lambda (h v) 
+		   (do-align h v (lambda (h) (set! h-align h)) (lambda (h) (set! v-align v)))
+		   (force-redraw))]
       [get-alignment (lambda () (values h-align v-align))]
 
       ; redraw: redraws panel and all children
