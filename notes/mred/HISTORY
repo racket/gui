@@ -1,7 +1,12 @@
-Version 53: August 1, 1998
+Version 53: July 25, 1998
 
 IMPORTANT: Expect further major changes in the MrEd toolbox with
-version 54. See the note for version 51, below.
+version 54. See the note for version 51, below. Here are some
+more expected changes:
+ * wx:text%, wx:multi-text%, wx:text-window%, mred:text%, and
+   mred:multi-text% will be removed and replaced with 
+   wx:media%-based tools, i.e., the current mred:media-text% and
+   mred:media-multi-text%
 
 Engine:
 -------
@@ -10,6 +15,10 @@ Removed wx:concat-files, wx:string-match?, wx:get-temp-file-name
 Procedures and methods that accept wx:const-XXX bit combinations
  now check their arguments more thoroughly; junk values are
  no longer ignored
+The wx:style-delta% initialization and wx:style-delta% set-delta
+ method no longer allow a second argument with command flags
+ where it used to be ignored; the second argument with 
+ wx:const-change-underline is now a Boolean rather than 0 or 1
 Removed some constants:
   wx:const-bitmap-type-default
   wx:const-bitmap-discard-colourmap
@@ -35,6 +44,8 @@ The following wx:command-event% methods are deprecated and
 Cleaned up wx:list-box% multiple-selection (wx:const-multiple
  and wx:const-extended standardized across platforms)
 Cleaned up wx:command-event% field values for list-box events
+Cleaned up canvas scrollbar handling for all platforms;
+ the get-scroll-units method was removed
 wx:panel%'s set-button-font and set-label-font work consistenly
 Windows: cleaned up structure of sliders and gauges
 
