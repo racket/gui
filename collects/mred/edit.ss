@@ -46,7 +46,6 @@
 			  (make-object pasteboard%)))]
 	    [on-new-box
 	     (lambda (type)
-	       (wx:message-box (format "insert-box ~a" type))
 	       (cond
 		 [(= type wx:const-edit-buffer)
 		  (get-edit-snip)]
