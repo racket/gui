@@ -457,6 +457,7 @@
           [define do-autosave? #t]
 	  (public autosave? do-autosave remove-autosave)
           [define autosave? (lambda () do-autosave?)]
+
           [define (do-autosave)
             (cond
               [(and (autosave?)
@@ -466,31 +467,46 @@
                         auto-save-out-of-date?))
                (let* ([orig-name (get-filename)]
                       [old-auto-name auto-saved-name]
-                      [auto-name (path-utils:generate-autosave-name orig-name)])
+                      [auto-name (path-utils:generate-autosave-name orig-name)]
+		      [orig-format (and (is-a? this text%)
+					(send this get-file-format))])
+		 (when (is-a? this text%)
+		   (send this set-file-format 'standard))
                  (with-handlers ([not-break-exn?
                                   (lambda (exn)
-                                    (message-box 
-                                     (string-constant warning)
-                                     (string-append
-                                      (format (string-constant error-autosaving)
-                                              (or orig-name (string-constant untitled)))
-                                      "\n"
-                                      (string-constant autosaving-turned-off)
-                                      "\n\n"
-                                      (if (exn? exn)
-                                          (exn-message exn)
-                                          (format "~s" exn)))
-                                     #f
-                                     '(caution ok))
+                                    (show-autosave-error orig-name exn)
                                     (set! auto-save-error? #t)
+				    (when (is-a? this text%)
+				      (send this set-file-format orig-format))
                                     #f)])
                    (save-file auto-name 'copy #f)
+		   (when (is-a? this text%)
+		     (send this set-file-format orig-format))
                    (when old-auto-name
                      (delete-file old-auto-name))
                    (set! auto-saved-name auto-name)
                    (set! auto-save-out-of-date? #f)
                    auto-name))]
               [else auto-saved-name])]
+
+	  ;; show-autosave-error : any (union #f string) -> void
+	  ;; opens a message box displaying the exn and the filename
+	  ;; to the user.
+	  (define/private (show-autosave-error exn orig-name)
+	    (message-box 
+	     (string-constant warning)
+	     (string-append
+	      (format (string-constant error-autosaving)
+		      (or orig-name (string-constant untitled)))
+	      "\n"
+	      (string-constant autosaving-turned-off)
+	      "\n\n"
+	      (if (exn? exn)
+		  (exn-message exn)
+		  (format "~s" exn)))
+	     #f
+	     '(caution ok)))
+	  
           [define remove-autosave
             (lambda ()
               (when auto-saved-name
