@@ -27,13 +27,7 @@ runs on a variety of platforms.
 Shows help for command-line arguments.
 .TP
 .B \-g, --case-sens
-Identifiers and symbols are case-sensitive.
-.TP
-.B \-b, --no-brackets
-Square brackets are not read as parentheses.
-.TP
-.B \-B, --no-braces
-Curly braces are not read as parentheses.
+Identifiers and symbols are initially case-sensitive.
 .TP
 .B \-c, --esc-cont
 Call/cc is replaced with call/ec.
@@ -102,7 +96,7 @@ Does not try to set (current-library-path).
 Does not load "~/.mzschemerc".
 .TP
 .B \-p, --persistent
-Catches AIX SIGDANGER (low page space) signal.
+Catches AIX SIGDANGER (low page space) signal. (AIX only)
 .TP
 .B \-m, --mute-banner
 Suppresses the startup banner.
@@ -132,6 +126,11 @@ documentation and other information available at
 .ce 1
 http://www.cs.rice.edu/CS/PLT/packages/mzscheme/
 .SH FILES
+The file "~/.mzschemerc" is loaded before any expressions/files are
+evaluated/loaded, unless the -q or --no-init-file flag is used.
+(Under Windows and MacOS, "mzscheme.rc" is loaded from the
+start-up working directory or preferences directory.)
+.PP
 .I MzScheme
 looks for the "mzlib" library directory using the 
 following search path:
