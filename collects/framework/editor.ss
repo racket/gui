@@ -56,12 +56,20 @@
         [after-save-file
          (lambda (sucess?)
            (when sucess?
-             (set! last-saved-file-time (file-or-directory-modify-seconds (get-filename))))
+	     (let ([filename (get-filename)])
+	       (set! last-saved-file-time
+		     (and filename
+			  (file-exists? filename)
+			  (file-or-directory-modify-seconds filename)))))
            (super-after-save-file sucess?))]
 	[after-load-file
          (lambda (sucess?)
            (when sucess?
-             (set! last-saved-file-time (file-or-directory-modify-seconds (get-filename))))
+	     (let ([filename (get-filename)])
+	       (set! last-saved-file-time
+		     (and filename
+			  (file-exists? filename)
+			  (file-or-directory-modify-seconds filename)))))
            (super-after-load-file sucess?))])
       (public
         [save-file-out-of-date?
@@ -70,6 +78,7 @@
             last-saved-file-time
             (let ([fn (get-filename)])
               (and fn
+		   (file-exists? fn)
                    (let ([ms (file-or-directory-modify-seconds fn)])
                      (< last-saved-file-time ms))))))])
 
@@ -348,9 +357,12 @@
 	[auto-save-error? #f]
 	[file-old?
 	 (lambda (filename)
-	   (let ([modified-seconds (file-or-directory-modify-seconds filename)]
-		 [old-seconds (- (current-seconds) (* 7 24 60 60))])
-	     (< modified-seconds old-seconds)))])
+	   (if (and filename
+		    (file-exists? filename))
+	       (let ([modified-seconds (file-or-directory-modify-seconds filename)]
+		     [old-seconds (- (current-seconds) (* 7 24 60 60))])
+		 (< modified-seconds old-seconds))
+	       #t))])
       (public
 	[backup? (lambda () #t)])
       (override
