@@ -483,7 +483,7 @@
 				() wx:const-single
 				-1 -1
 				(if multi-mode? (/ WIDTH 2) WIDTH) 300
-				() wx:const-needed-sb)]
+				())]
 	
 	[set-focus-to-name-list
 	 (lambda ()
@@ -529,7 +529,7 @@
 			    wx:const-multiple)
 			-1 -1
 			(/ WIDTH 2) 300
-			() wx:const-needed-sb))]
+			()))]
 	[add-panel 
 	 (when multi-mode? 
 	   (make-object mred:container:horizontal-panel% left-middle-panel))]
