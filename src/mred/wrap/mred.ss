@@ -5143,9 +5143,9 @@
      (case family
        [(system) "systemfont"]
        [(default) "applicationfont"]
-       [(roman) "times"]
-       [(decorative) "geneva"]
-       [(modern) "monaco"]
-       [(swiss) "helvetica"]
-       [(script) "geneva"])]))
+       [(roman) "Times"]
+       [(decorative) "Geneva"]
+       [(modern) "Monaco"]
+       [(swiss) "Helvetica"]
+       [(script) "Geneva"])]))
 
