@@ -169,41 +169,39 @@
           ;; breaks disabled re-tokenize should be called when lock is not
           ;; held.  When it exits, the lock will be held.
           (define/private (re-tokenize in in-start-pos)
-            (let-values (((lexeme type data new-token-start new-token-end) (get-token in)))
-              ;; breaks must be disabled before the semaphore wait so we can't be
-              ;; broken out of the critical section
-              (break-enabled #f)
-              ;; If a break occurs while we are suspended, the break will occur
-              ;; and the critical section will not be entered
-              (semaphore-wait/enable-break mutex-lock)
-              (unless (eq? 'eof type)
-                (let ((len (- new-token-end new-token-start)))
-                  (set! current-pos (+ len current-pos))
-                  (sync-invalid)
-                  (when (and should-color? (should-color-type? type) (not frozen?))
-                    (set! colors
-                          (cons
-                           (let ((color (send (get-style-list) find-named-style
-                                              (token-sym->style type)))
-                                 (sp (+ in-start-pos (sub1 new-token-start)))
-                                 (ep (+ in-start-pos (sub1 new-token-end))))
-                             (lambda ()
-                               (change-style color sp ep #f)))
-                           colors)))
-                  (insert-last! tokens (new token-tree% (length len) (data type)))
-                  (send parens add-token data len)
-                  (cond
-                    ((and (not (send invalid-tokens is-empty?))
-                          (= invalid-tokens-start current-pos))
-                     (send invalid-tokens search-max!)
-                     (send parens merge-tree
-                           (send invalid-tokens get-root-end-position))
-                     (insert-last! tokens invalid-tokens)
-                     (set! invalid-tokens-start +inf.0))
-                    (else
-                     (semaphore-post mutex-lock)
-                     (break-enabled #t)
-                     (re-tokenize in in-start-pos)))))))
+            (let-values ([(lexeme type data new-token-start new-token-end) 
+			  ;; Allow breaks while getting tokens
+			  (parameterize-break #t
+			    (get-token in))])
+	      ;; Also allow breaks while trying to enter the critical region:
+	      (semaphore-wait/enable-break mutex-lock)
+	      (unless (eq? 'eof type)
+		(let ((len (- new-token-end new-token-start)))
+		  (set! current-pos (+ len current-pos))
+		  (sync-invalid)
+		  (when (and should-color? (should-color-type? type) (not frozen?))
+		    (set! colors
+			  (cons
+			   (let ((color (send (get-style-list) find-named-style
+					      (token-sym->style type)))
+				 (sp (+ in-start-pos (sub1 new-token-start)))
+				 (ep (+ in-start-pos (sub1 new-token-end))))
+			     (lambda ()
+			       (change-style color sp ep #f)))
+			   colors)))
+		  (insert-last! tokens (new token-tree% (length len) (data type)))
+		  (send parens add-token data len)
+		  (cond
+		   ((and (not (send invalid-tokens is-empty?))
+			 (= invalid-tokens-start current-pos))
+		    (send invalid-tokens search-max!)
+		    (send parens merge-tree
+			  (send invalid-tokens get-root-end-position))
+		    (insert-last! tokens invalid-tokens)
+		    (set! invalid-tokens-start +inf.0))
+		   (else
+		    (semaphore-post mutex-lock)
+		    (re-tokenize in in-start-pos)))))))
           
           (define/private (do-insert/delete edit-start-pos change-length)
             (unless (or stopped? force-stop?)
@@ -274,22 +272,15 @@
             (let/ec restart
               (parameterize ((current-exception-handler
                               (lambda (exn)
-                                ;; Lock is not held here because breaks are disabled
-                                ;; whenever lock is held
-                                (break-enabled #f)
                                 (restart))))
-                (break-enabled #t)
-                (with-handlers ((exn:fail?
-                                 (lambda (exn)
-                                   (parameterize ((print-struct #t))
-                                     (printf "colorer thread: ~s\n" exn))
-                                   (break-enabled #f)
-                                   (semaphore-wait mutex-lock))))
-                  (re-tokenize (open-input-text-editor this current-pos end-pos
-                                                       (lambda (x) (values #f 1)))
-                               current-pos))
-                ;; Breaks should be disabled from exit of re-tokenize
-                ;; lock will be held
+		(with-handlers ((exn:fail?
+				 (lambda (exn)
+				   (parameterize ((print-struct #t))
+				     (printf "colorer thread: ~s\n" exn))
+				   (semaphore-wait mutex-lock))))
+		  (re-tokenize (open-input-text-editor this current-pos end-pos
+						       (lambda (x) (values #f 1)))
+			       current-pos))
                 (set! up-to-date? #t)
                 (semaphore-post mutex-lock)
                 (thread-suspend (current-thread))))
@@ -313,10 +304,10 @@
               (set! pairs pairs-)
               (set! parens (new paren-tree% (matches pairs)))
               (unless background-thread
-                (break-enabled #f)
-                (set! background-thread
-                      (thread (lambda () (background-colorer-entry))))
-                (break-enabled #t))
+		;; Create background thread with breaks initially disabled:
+		(parameterize-break #f
+		  (set! background-thread
+			(thread (lambda () (background-colorer-entry))))))
               (do-insert/delete start-pos 0)))
             
           ;; See docs
