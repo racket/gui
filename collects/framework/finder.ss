@@ -720,6 +720,7 @@
   
   (define -get-file
     (lambda args
+      (printf "get-file: ~s~n" args)
       (let ([actual-fun
 	     (case (preferences:get 'framework:file-dialogs)
 	       [(std) std-get-file]
