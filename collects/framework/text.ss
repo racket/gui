@@ -317,7 +317,7 @@
 			       [case-sensitive? #t] [pop-out? #f])
 		(unless (member direction '(forward backward))
 		  (error 'find-string-embedded
-			 "expected 'forward or 'backward as first argument, got: ~e" direction))
+			 "expected ~e or ~e as first argument, got: ~e" 'forward 'backward direction))
 		(let/ec k
 		  (let* ([start (if (eq? start 'start) 
 				    (get-start-position)
@@ -355,24 +355,21 @@
 				   (loop (send current-snip next))
 				   (loop (send current-snip previous))))])
 			(cond
-			  [(not current-snip)
-			   (if (and (not flat) pop-out?)
-			       (pop-out)
-			       (values this flat))]
-			  [(and (not flat)
+			  [(or (not current-snip)
+			       (and flat
 				(let* ([start (get-snip-position current-snip)]
 				       [end (+ start (send current-snip get-count))])
 				  (if (eq? direction 'forward)
 				      (and (<= start flat)
 					   (< flat end))
 				      (and (< start flat)
-					   (<= flat end)))))
-			    (if pop-out?
-				(pop-out)
-				(values this #f))]
+					   (<= flat end))))))
+			   (if (and (not flat) pop-out?)
+			       (pop-out)
+			       (values this flat))]
 			  [(is-a? current-snip original:editor-snip%)
 			   (let-values ([(embedded embedded-pos)
-					 (let ([media (send current-snip get-this-media)])
+					 (let ([media (send current-snip get-editor)])
 					   (and (not (null? media))
 						(send media find-string-embedded str
 						      direction

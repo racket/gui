@@ -356,6 +356,11 @@
 			  search))
   (define search-anchor 0)
   (define searching-direction 'forward)
+  (define (set-searching-direction x) 
+    (unless (or (eq? x 'forward)
+		(eq? x 'backward))
+      (error 'set-searching-direction "expected ~e or ~e, got ~e" 'forward 'backward x))
+    (set! searching-direction x))
   (define old-search-highlight void)
   (define get-active-embedded-edit
     (lambda (edit)
@@ -409,45 +414,41 @@
 		       #f)]
 		    [found
 		     (lambda (edit first-pos)
-		       (let ([last-pos (+ first-pos (* (if (eq? searching-direction 'forward) 1 -1)
-						       (string-length string)))])
+		       (let ([last-pos ((if (eq? searching-direction 'forward) + -)
+					first-pos (string-length string))])
 			 (send* edit 
 				(set-caret-owner #f 'display)
 				(set-position
 				 (min first-pos last-pos)
 				 (max first-pos last-pos)))
 			 #t))])
-	       (when reset-search-anchor?
-		 (reset-search-anchor searching-edit))
-	       (let-values ([(found-edit first-pos)
-			     (send searching-edit
-				   find-string-embedded
-				   string
-				   searching-direction
-				   search-anchor
-				   'eof #t #t #t)])
-		 (cond
-		   [(not first-pos)
-		    (if wrap?
-			(let-values ([(found-edit pos)
-				      (send searching-edit
-					    find-string-embedded
-					    string 
-					    searching-direction
-					    (if (eq? 'forward searching-direction)
-						0
-						(send searching-edit last-position)))])
-			  (if (not pos)
-			      (not-found found-edit)
-			      (found found-edit 
-				     ((if (eq? searching-direction 'forward)
-					  +
-					  -)
-				      pos
-				      (string-length string)))))
-			(not-found found-edit))]
-		   [else
-		    (found found-edit first-pos)])))))])
+	       (unless (string=? string "")
+		 (when reset-search-anchor?
+		   (reset-search-anchor searching-edit))
+		 (let-values ([(found-edit first-pos)
+			       (send searching-edit
+				     find-string-embedded
+				     string
+				     searching-direction
+				     search-anchor
+				     'eof #t #t #t)])
+		   (cond
+		     [(not first-pos)
+		      (if wrap?
+			  (let-values ([(found-edit pos)
+					(send searching-edit
+					      find-string-embedded
+					      string 
+					      searching-direction
+					      (if (eq? 'forward searching-direction)
+						  0
+						  (send searching-edit last-position)))])
+			    (if (not pos)
+				(not-found found-edit)
+				(found found-edit pos)))
+			  (not-found found-edit))]
+		     [else
+		      (found found-edit first-pos)]))))))])
       (override
 	[on-focus
 	 (lambda (on?)
@@ -477,7 +478,7 @@
 	     (send find-edit set-searching-frame (get-top-level-window)))
 	   (super-on-focus x))])
       (sequence
-	(super-init parent #f)
+	(super-init parent #f '(hide-hscroll hide-vscroll))
 	(set-line-count 2))))
 
   (define (init-find/replace-edits)
@@ -503,7 +504,7 @@
       (override
         [get-editor<%> (lambda () text:searching<%>)]
 	[get-editor% (lambda () text:searching%)]
-	[edit-menu:find (lambda (menu evt) (search))])
+	[edit-menu:find (lambda (menu evt) (move-to-search-or-search))])
       (override
 	[make-root-area-container
 	 (lambda (% parent)
@@ -538,6 +539,7 @@
 	 (lambda ()
 	   (when hidden?
 	     (set! hidden? #f)
+	     (send search-panel focus)
 	     (send super-root add-child search-panel)
 	     (reset-search-anchor (get-text-to-search))))])
       (override
@@ -555,7 +557,7 @@
       (public
 	[set-search-direction 
 	 (lambda (x) 
-	   (set! searching-direction x)
+	   (set-searching-direction x)
 	   (send dir-radio set-selection (if (eq? x 'forward) 0 1)))]
 	[replace&search
 	 (lambda ()
@@ -616,14 +618,14 @@
 	   (unhide-search)
 	   (if (or (send find-canvas has-focus?)
 		   (send replace-canvas has-focus?))
-	       (search 1)
+	       (search 'forward)
 	       (send find-canvas focus)))]
 	[move-to-search-or-reverse-search
 	 (lambda ()
 	   (unhide-search)
 	   (if (or (send find-canvas has-focus?)
 		   (send replace-canvas has-focus?))
-	       (search -1)
+	       (search 'backward)
 	       (send find-canvas focus)))]
 	[search
 	 (opt-lambda ([direction searching-direction] [beep? #t])
@@ -635,15 +637,15 @@
       (sequence
 	(apply super-init args))
       (private
-	[search-panel (make-object horizontal-panel% super-root)]
+	[search-panel (make-object horizontal-panel% super-root '(border))]
 	
 	[left-panel (make-object vertical-panel% search-panel)]
 	[find-canvas (make-object searchable-canvas% left-panel)]
 	[replace-canvas (make-object searchable-canvas% left-panel)]
 	
-	[middle-left-panel (make-object vertical-panel% search-panel)]
-	[middle-middle-panel (make-object vertical-panel% search-panel)]
-	[middle-right-panel (make-object vertical-panel% search-panel)]
+	[middle-left-panel (make-object vertical-pane% search-panel)]
+	[middle-middle-panel (make-object vertical-pane% search-panel)]
+	[middle-right-panel (make-object vertical-pane% search-panel)]
 	
 	[search-button (make-object button% 
 			 "Search"
@@ -665,7 +667,7 @@
 		     (list "Forward" "Backward")
 		     middle-right-panel
 		     (lambda (dir-radio evt)
-		       (let ([forward (if (= 0 (send evt get-command-int))
+		       (let ([forward (if (= (send dir-radio get-selection) 0)
 					  'forward
 					  'backward)])
 			 (set-search-direction forward)

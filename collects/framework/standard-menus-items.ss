@@ -129,8 +129,7 @@
 	(make-between 'edit-menu 'clear 'select-all 'nothing)
 	(make-an-item 'edit-menu 'select-all "Select the entire document" #f #\a "Select A&ll" "")
 	(make-between 'edit-menu 'select-all 'find 'nothing)
-	(make-an-item 'edit-menu 'find "Search for a string in the window"
-		      '(lambda (item control) (send this move-to-search-or-search) #t)
+	(make-an-item 'edit-menu 'find "Search for a string in the window" #f
 		      #\f "Find" "")
 	(make-between 'edit-menu 'find 'preferences 'separator)
 	(make-an-item 'edit-menu 'preferences "Configure the preferences"
