@@ -97,7 +97,8 @@
       ;; and it should show or hide its children accordingly.
       (define/public (show bool)
         (set! show? bool)
-        (show/hide-children bool))
+        (when (send parent is-shown?)
+          (show/hide-children bool)))
       
       ;;;;;;;;;;
       ;; alignment-parent<%>
