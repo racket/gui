@@ -21,12 +21,10 @@ and redundant methods have been eliminated. The overall effect is that
 the MrEd 100 toolbox is both smaller and better than the core toolbox
 in MrEd 53.
 
-The old mred: classes that implement the application framework---with
-its elaborate startup and command-line handling, and esoteric
-variations on editor frame classes---has been moved into a separate,
-optional library. It is no longer necessary to understand units,
-collections, and the framework for bootstrapping large programs to get
-a simple MrEd application going.
+The old mred: classes that implement the application framework has been
+moved into a separate, optional library. It is no longer necessary to
+understand units, collections, and the framework for bootstrapping large
+programs to get a simple MrEd application going.
 
 Unlike MrEd 53, MrEd 100 is just an extension of MzScheme with a
 graphical toolbox. No extra files are needed to start the MrEd
