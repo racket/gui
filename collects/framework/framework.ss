@@ -474,7 +474,7 @@
      ()
      ((union string? false?)
       string?
-      (union regexp? false?)
+      (union regexp? string? false?)
       string?
       (union false? (is-a?/c top-level-window<%>)))
      (union string? false?))
