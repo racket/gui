@@ -66,7 +66,22 @@
 		    [left-edge-box (box 0)]
 		    [top-edge-box (box 0)]
 		    [snip-media (send s get-editor)]
-		    [edit (get-editor)])
+		    [edit (get-editor)]        
+                    [get-width
+                     (let ([bl (box 0)]
+                           [br (box 0)])
+                       (lambda (s)
+                         (send edit get-snip-location s bl #f #f)
+                         (send edit get-snip-location s br #f #t)
+                         (- (unbox br) (unbox bl))))]
+                    [fetch-after-width
+                     (lambda (s)
+                       (+ 10
+                          (let loop ([s s])
+                            (printf "s: ~s~n" s)
+                            (if s
+                                (+ (get-width s) (loop (send s next)))
+                                0))))])
 	       (when edit
 		 (send edit
 		       run-after-edit-sequence
@@ -94,15 +109,17 @@
 
 
 			   (if width?
-			       (let ([snip-width (max 0 (- (unbox width)
-                                                           (unbox left-edge-box)
-                                                           (unbox leftm)
-                                                           (unbox rightm)
-                                                           
+			       (let* ([after-width (fetch-after-width (send s next))]
+                                      [snip-width (max 0 (- (unbox width)
+                                                            (unbox left-edge-box)
+                                                            (unbox leftm)
+                                                            (unbox rightm)
+                                                            after-width
 						    ;; this two is the space that 
 						    ;; the caret needs at the right of
 						    ;; a buffer.
-                                                           2))])
+                                                            2))])
+                                 (printf "after-width: ~s~n" after-width)
 				 (send* s 
 					(set-min-width snip-width)
 					(set-max-width snip-width))
