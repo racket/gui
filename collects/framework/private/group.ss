@@ -18,7 +18,8 @@
               [preferences : framework:preferences^]
               [gui-utils : framework:gui-utils^]
               [text : framework:text^]
-              [canvas : framework:canvas^])
+              [canvas : framework:canvas^]
+              [menu : framework:menu^])
       
       (define-struct frame (frame id))
       
@@ -88,7 +89,7 @@
                (lambda (menu)
                  (for-each (lambda (item) (send item delete))
                            (send menu get-items))
-                 (instantiate menu-item% ()
+                 (instantiate menu:can-restore-checkable-menu-item% ()
                    (label (string-constant bring-frame-to-front...))
                    (parent menu)
                    (callback (lambda (x y) (choose-a-frame (send (send menu get-parent) get-frame))))

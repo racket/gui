@@ -917,6 +917,9 @@
                    position-location invalidate-bitmap-cache scroll-to-position
                    get-visible-position-range position-paragraph)
 
+          (define/override (on-new-string-snip)
+            (instantiate text:1-pixel-string-snip% ()))
+          
           ;; set-start/end-para : (union (#f #f -> void) (number number -> void))
           (define/public (set-start/end-para _start-para _end-para)
             (unless (and (equal? _start-para start-para)
@@ -994,7 +997,10 @@
                   [b (box 0)])
               (position-location pos #f b top? #f #t)
               (unbox b)))
-          (super-instantiate ())))
+          (super-instantiate ())
+
+          (inherit set-line-spacing)
+          (set-line-spacing 0)))
       
       (define delegate-mixin
         (mixin (text<%>) (delegate<%>)

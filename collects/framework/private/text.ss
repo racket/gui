@@ -378,15 +378,62 @@
       
       (define delegate<%> (interface (basic<%>) 
                             get-delegate
-			    set-delegate
-                            get-delegate-style-delta
-                            set-delegate-style-delta))
-      (define small-style-delta (make-object style-delta% 'change-size 2))
+			    set-delegate))
+
+      ;; this won't work properly for tab snips. probably need another subclass, or something.
+      (define 1-pixel-string-snip%
+        (class string-snip%
+          (init-rest args)
+          (inherit get-text get-count set-count get-flags)
+          (define/override (split position first second)
+            (let* ([str (get-text 0 (get-count))]
+                   [new-second (make-object 1-pixel-string-snip%
+                                 (substring str position (string-length str)))])
+              (set-box! first this)
+              (set-box! second new-second)
+              (set-count position)
+              (void)))
+          (define/override (copy)
+            (let ([cpy (make-object 1-pixel-string-snip%
+                         (get-text 0 (get-count)))])
+              (send cpy set-flags (get-flags))))
+          (define/override (get-extent dc x y wb hb db sb lb rb)
+            (let ([set/f!
+                   (lambda (b n)
+                     (when (box? b)
+                       (set-box! b n)))])
+              (cond
+                [(memq 'invisible (get-flags))
+                 (set/f! wb 0)
+                 (set/f! hb 0)]
+                [else
+                 (set/f! wb (get-count))
+                 (set/f! hb 1)])
+              (set/f! db 0)
+              (set/f! sb 0)
+              (set/f! lb 0)
+              (set/f! rb 0)))
+          (define/override (draw dc x y left right top bottom dx dy draw-caret)
+            (let ([str (get-text 0 (get-count))])
+              (let loop ([n (string-length str)])
+                (unless (zero? n)
+                  (let ([char (string-ref str (- n 1))])
+                    (unless (char-whitespace? char)
+                      (send dc draw-point (+ x (- n 1)) y)))
+                  (loop (- n 1))))))
+          (apply super-make-object args)))
+
       (define delegate-mixin
         (mixin (basic<%>) (delegate<%>) 
           (inherit split-snip find-snip get-snip-position
                    find-first-snip get-style-list set-tabs)
           
+          (define/private (copy snip)
+            (let ([res (make-object 1-pixel-string-snip%
+                         (send snip get-text 0 (send snip get-count)))])
+              (send res set-flags (send snip get-flags))
+              res))
+
           (field (delegate #f))
           (define/public (get-delegate) delegate)
           (define/public (set-delegate _d)
@@ -402,14 +449,10 @@
               (let loop ([snip (find-first-snip)])
                 (when snip
                   (send delegate insert 
-                        (send snip copy)
+                        (copy snip)
                         (send delegate last-position)
                         (send delegate last-position))
                   (loop (send snip next))))
-              (send delegate change-style
-                    delegate-style-delta
-                    0
-                    (send delegate last-position))
               (send delegate lock #t)
               (send delegate end-edit-sequence)))
           
@@ -422,12 +465,6 @@
                 (when canvas
                   (send (send canvas get-top-level-window) delegate-moved)))))
 
-          (define delegate-style-delta (make-object style-delta% 'change-size 1))
-          (define/public (get-delegate-style-delta)
-            delegate-style-delta)
-          (define/public (set-delegate-style-delta _sd)
-            (set! delegate-style-delta _sd))
-            
           (rename [super-on-edit-sequence on-edit-sequence])
           (define/override (on-edit-sequence)
             (super-on-edit-sequence)
@@ -451,9 +488,8 @@
               (let loop ([snip (find-snip (+ start len) 'before)])
                 (when snip
                   (unless ((get-snip-position snip) . < . start)
-                    (send delegate insert (send snip copy) start start)
+                    (send delegate insert (copy snip) start start)
                     (loop (send snip previous)))))
-              (send delegate change-style delegate-style-delta start (+ start len))
               (send delegate lock #t)
               (send delegate end-edit-sequence)))
           
@@ -477,9 +513,9 @@
               (let* ([snip (find-snip start 'after)]
                      [style (send snip get-style)]
                      [other-style 
-                      (send (send delegate get-style-list) find-or-create-style
-                            style delegate-style-delta)])
-                (send delegate change-style other-style start (+ start len)))
+                      '(send (send delegate get-style-list) find-or-create-style
+                             style delegate-style-delta)])
+                (send delegate change-style style start (+ start len)))
               (send delegate lock #f)
               (send delegate end-edit-sequence)))
           
@@ -498,10 +534,6 @@
               (send delegate lock #f)
               (send delegate load-file filename format)
               (send delegate set-filename #f)
-              (send delegate change-style 
-                    delegate-style-delta
-                    0
-                    (send delegate last-position))
               (send delegate lock #t)
               (send delegate end-edit-sequence)))
           (super-instantiate ())))

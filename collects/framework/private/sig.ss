@@ -149,6 +149,7 @@
      
      basic% 
      hide-caret/selection%
+     1-pixel-string-snip%
      delegate%
      keymap%
      return%
