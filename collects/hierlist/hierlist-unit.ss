@@ -377,7 +377,7 @@
                       (delete (if (zero? s) s (sub1 s)) (if (zero? s) (add1 e) e)))]
                    [else (loop (add1 pos) (cdr l) (cons (car l) others))])))]
             [sort (lambda (less-than?)
-                    (let ([l (mergesort children (lambda (a b)
+                    (let ([l (quicksort children (lambda (a b)
                                                    (less-than? (send a get-item)
                                                                (send b get-item))))])
                       (begin-edit-sequence)
