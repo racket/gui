@@ -1,6 +1,6 @@
 (module mred mzscheme
   (require (prefix wx: (lib "kernel.ss" "mred" "private")))
-  (require (lib "class.ss"))
+  (require (lib "class2.ss"))
 
 ;;;;;;;;;;;;;;; Constants ;;;;;;;;;;;;;;;;;;;;
 
