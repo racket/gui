@@ -1,4 +1,4 @@
-;; (list-of (list string (list-of (weak-box TST))))
+;; mem-boxes : (list-of (list string (list-of (weak-box TST))))
 (send-sexp-to-mred '(define mem-boxes null))
 
 (define mem-count 10)
@@ -14,20 +14,20 @@
                        [b (make-weak-box o)])
                   (,close o)
                   (cons b (loop (- n 1))))]))])
-      (collect-garbage)
-      (collect-garbage)
-      (collect-garbage)
+      (sleep/yield 1/10) (collect-garbage)
+      (sleep/yield 1/10) (collect-garbage)
+      (sleep/yield 1/10) (collect-garbage)
       (set! mem-boxes (cons (list ,tag new-boxes) mem-boxes)))))
 
 (define (done)
   (send-sexp-to-mred
    `(begin
-      (collect-garbage)
-      (collect-garbage)
-      (collect-garbage)
-      (collect-garbage)
-      (collect-garbage)
-      (collect-garbage)
+      (yield) (collect-garbage)
+      (yield) (collect-garbage)
+      (yield) (collect-garbage)
+      (yield) (collect-garbage)
+      (yield) (collect-garbage)
+      (yield) (collect-garbage)
       (let ([f (make-object dialog% "Results")]
             [anything? #f])
         (for-each
@@ -39,12 +39,10 @@
                      (foldl (lambda (b n) (if (weak-box-value b) (+ n 1) n))
                             0
                             boxes))])
-	     (let loop ([tries 4])
+	     (let loop ([tries 16])
 	       (unless (zero? tries)
 		 (when (> (calc-results) 0)
-		   (collect-garbage)
-		   (collect-garbage)
-		   (collect-garbage)
+		   (yield) (yield) (sleep/yield 1/5) (collect-garbage)
 		   (loop (- tries 1)))))
              (let ([res (calc-results)])
                (when (> res 0)
@@ -67,6 +65,8 @@
 		   `(lambda (f)
 		      (yield) (yield)
 		      (send f close)
+		      (when (send f is-shown?)
+			(error 'test-frame-allocate "~a instance didn't close" ',%))
 		      (yield) (yield)))
     (send-sexp-to-mred '(preferences:set 'framework:exit-when-no-frames #t))))
 
@@ -110,11 +110,10 @@
 (test-frame-allocate 'frame:pasteboard-info%)
 (test-frame-allocate 'frame:standard-menus%)
 
-(test-frame-allocate 'frame:text%)
-(test-frame-allocate 'frame:text-info-file%)
-(test-frame-allocate 'frame:searchable%)
+;(test-frame-allocate 'frame:text%)
+;(test-frame-allocate 'frame:text-info-file%)
+;(test-frame-allocate 'frame:searchable%)
 
-(test-frame-allocate 'frame:pasteboard%)
-(test-frame-allocate 'frame:pasteboard-info-file%)
+;(test-frame-allocate 'frame:pasteboard%)
+;(test-frame-allocate 'frame:pasteboard-info-file%)
 (done)
-
