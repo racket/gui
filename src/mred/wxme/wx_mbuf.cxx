@@ -711,7 +711,6 @@ Bool wxMediaBuffer::ReadHeaderFromFile(wxMediaStreamIn *, char *headerName)
 Bool wxMediaBuffer::ReadFooterFromFile(wxMediaStreamIn *, char *headerName)
 {
   char buffer[256];
-  int i;
 
   sprintf(buffer, "Unknown header data: \"%.100s\"."
 	  " The file will be loaded anyway.", headerName);
@@ -1259,7 +1258,7 @@ void wxMediaPrintout::OnEndDocument()
 # define WXUNUSED_X(x) x
 #endif
 
-void wxMediaBuffer::Print(Bool interactive, Bool fitToPage, int WXUNUSED_X(output_mode))
+void wxMediaBuffer::Print(Bool interactive, Bool fitToPage, int WXUNUSED_X(output_mode), wxWindow *parent)
 {
   int ps;
 
@@ -1273,7 +1272,7 @@ void wxMediaBuffer::Print(Bool interactive, Bool fitToPage, int WXUNUSED_X(outpu
     wxDC *dc;
     void *data;
     
-    dc = new wxPostScriptDC(interactive);
+    dc = new wxPostScriptDC(interactive, parent);
 
     if (dc->Ok()) { 
       dc->StartDoc("Printing buffer");
@@ -1300,7 +1299,7 @@ void wxMediaBuffer::Print(Bool interactive, Bool fitToPage, int WXUNUSED_X(outpu
   wxPrinter *p = new wxPrinter();
   wxPrintout *o = new wxMediaPrintout(this, fitToPage);
   
-  p->Print(NULL, o, interactive);
+  p->Print(parent, o, interactive);
 
   DELETE_OBJ o;
   DELETE_OBJ p;
