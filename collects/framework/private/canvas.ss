@@ -13,11 +13,19 @@
 	      [preferences : framework:preferences^]
 	      [frame : framework:frame^])
       
+      (rename [-color% color%])
+      
       (define basic<%> (interface ((class->interface editor-canvas%))))
       (define basic-mixin
 	(mixin ((class->interface editor-canvas%)) (basic<%>)
-          (super-new)
+          (super-new)))
+      
+      (define color<%> (interface (basic<%>)))
+      
+      (define color-mixin
+        (mixin (basic<%>) (color<%>)
           (define callback (lambda (p v) (set-canvas-background v)))
+          (super-new)
           (inherit set-canvas-background)
           (set-canvas-background (preferences:get 'framework:basic-canvas-background))
           (preferences:add-callback 'framework:basic-canvas-background callback #t)))
@@ -174,6 +182,7 @@
           (super-new)))
 
       (define basic% (basic-mixin editor-canvas%))
+      (define -color% (color-mixin basic%))
       (define info% (info-mixin basic%))
-      (define delegat% (delegate-mixin basic%))
+      (define delegate% (delegate-mixin basic%))
       (define wide-snip% (wide-snip-mixin basic%)))))

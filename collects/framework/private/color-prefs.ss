@@ -37,7 +37,7 @@
                                               style-name)])
                              (change-style style pos (+ pos offset) #f)))
                          (super-new))))
-        (define c (new canvas:basic%
+        (define c (new canvas:color%
                        (parent hp)
                        (editor e)
                        (style '(hide-hscroll

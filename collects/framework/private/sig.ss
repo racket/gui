@@ -338,14 +338,19 @@
 
   (define-signature framework:canvas-class^
     (basic<%>
+     color<%>
      delegate<%>
      info<%>
      wide-snip<%>
-     wide-snip%   
+     
      basic%
+     color%
      info%
+     delegate%
+     wide-snip%
 
      basic-mixin
+     color-mixin
      delegate-mixin
      info-mixin
      wide-snip-mixin))
