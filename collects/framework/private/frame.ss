@@ -464,7 +464,9 @@
                         set-info-canvas
                         get-info-canvas
                         get-info-editor
-                        get-info-panel))
+                        get-info-panel
+                        show-info
+                        hide-info))
       
       (define magic-space 25)
 
@@ -517,6 +519,14 @@
           
           (rename [super-on-close on-close])
           [define outer-info-panel 'top-info-panel-uninitialized]
+          (define/public (hide-info)
+            (send super-root change-children
+                  (lambda (l)
+                    (list rest-panel))))
+          (define/public (show-info)
+            (send super-root change-children
+                  (lambda (l)
+                    (list rest-panel outer-info-panel))))
           [define close-panel-callback
             (preferences:add-callback
              'framework:show-status-line
@@ -524,11 +534,9 @@
                (if v 
                    (register-gc-blit)
                    (unregister-collecting-blit gc-canvas))
-               (send super-root change-children
-                     (lambda (l)
-                       (if v
-                           (list rest-panel outer-info-panel)
-                           (list rest-panel))))))]
+               (if v
+                   (show-info)
+                   (hide-info))))]
           [define memory-cleanup void] ;; only for CVSers; used with memory-text
           (override on-close)
           [define on-close
