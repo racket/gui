@@ -672,7 +672,8 @@
       ;            independently.
       [on-size
        (lambda (bad-width bad-height)
-	 (wx:queue-callback resized #t))])
+	 (parameterize ([wx:current-eventspace eventspace])
+	   (wx:queue-callback resized #t)))])
 
     (public
       [handle-traverse-key
