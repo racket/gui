@@ -1015,7 +1015,7 @@ WARNING: printf is rebound in the body of the unit to always
           (define clear-output-chan (make-channel))
           (define clear-input-chan (make-channel))
           
-          ;; write-chan : (channel (cons bytes style))
+          ;; write-chan : (channel (cons (union snip bytes) style))
           ;; send output to the editor
           (define write-chan (make-channel))
           
@@ -1075,7 +1075,6 @@ WARNING: printf is rebound in the body of the unit to always
             (thread
              (lambda ()
                (define (data-waiting data)
-                 (printf "data-waiting ~s\n" (queue->list data))
                  (object-wait-multiple
                   #f
                   (make-wrapped-waitable
@@ -1097,7 +1096,6 @@ WARNING: printf is rebound in the body of the unit to always
                      (data-and-readers-waiting data (enqueue new-reader (empty-queue)))))))
                
                (define (readers-waiting readers)
-                 (printf "readers-waiting ~s\n" (queue->list readers))
                  (object-wait-multiple
                   #f
                   (make-wrapped-waitable
@@ -1251,6 +1249,17 @@ WARNING: printf is rebound in the body of the unit to always
             (define (out-close-proc)
               (void))
             
+            (define (make-write-special-proc style)
+              (lambda (special can-buffer?)
+                (cond
+                  [(eq? (current-thread) (eventspace-handler-thread eventspace))
+                   (error 'write-bytes-proc "cannot write to port on eventspace main thread")]
+                  [else
+                   (if (is-a? special snip%)
+                       (channel-put write-chan (cons special style))
+                       (channel-put write-chan (cons (string->bytes/utf-8 (format "~s" special)) style)))])
+                #t))
+            
             (define out-sd (make-object style-delta% 'change-normal))
             (define err-sd (make-object style-delta% 'change-italic))
             (define value-sd (make-object style-delta% 'change-normal))
@@ -1260,19 +1269,23 @@ WARNING: printf is rebound in the body of the unit to always
             
             (set! in-port (make-custom-input-port read-bytes-proc
                                                   #f
-                                                  in-close-proc))
+                                                  in-close-proc
+                                                  this))
             (set! out-port (make-custom-output-port #f
                                                     (make-write-bytes-proc out-sd)
                                                     flush-proc
-                                                    out-close-proc))
+                                                    out-close-proc
+                                                    (make-write-special-proc out-sd)))
             (set! err-port (make-custom-output-port #f 
                                                     (make-write-bytes-proc err-sd)
                                                     flush-proc
-                                                    out-close-proc))
+                                                    out-close-proc
+                                                    (make-write-special-proc err-sd)))
             (set! value-port (make-custom-output-port #f
                                                       (make-write-bytes-proc value-sd)
                                                       flush-proc
-                                                      out-close-proc)))
+                                                      out-close-proc
+                                                      (make-write-special-proc value-sd))))
           
           
           ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
