@@ -26,7 +26,8 @@
    set-section-jump!
    reset-section-name!
    set-section-name!
-   set-only-these-tests!)
+   set-only-these-tests!
+   get-only-these-tests)
 
   (define section-jump void)
   (define (set-section-jump! _s) (set! section-jump _s))
@@ -37,6 +38,7 @@
   (define (reset-section-name!) (set! section-name "<<setup>>"))
 
   (define only-these-tests #f)
+  (define (get-only-these-tests) only-these-tests)
   (define (set-only-these-tests! _t) (set! only-these-tests _t))
 
   (define test-name "<<setup>>")
@@ -46,14 +48,23 @@
 
   (define load-framework-automatically? #t)
 
+  (define initial-port 6012)
+  (define port-filename (build-path
+			 (collection-path "tests" "framework")
+			 "receive-sexps-port.ss"))
+
+  (unless (file-exists? port-filename)
+    (call-with-output-file port-filename
+      (lambda (port)
+	(write initial-port port))))
+
   (define listener
     (let loop ()
-      (let ([port (load-relative "receive-sexps-port.ss")])
+      (let ([port (load port-filename)])
 	(with-handlers ([(lambda (x) #t)
 			 (lambda (x)
 			   (let ([next (+ port 1)])
-			     (call-with-output-file (build-path (current-load-relative-directory)
-								"receive-sexps-port.ss")
+			     (call-with-output-file port-filename
 			       (lambda (p)
 				 (write next p))
 			       'truncate)
@@ -203,7 +214,7 @@
 		     (show-text (second answer))
 		     (eval (second answer))]))))))))
 
-
+  
   (define test
     (case-lambda
      [(in-test-name passed? sexp/proc) (test in-test-name passed? sexp/proc 'section)]

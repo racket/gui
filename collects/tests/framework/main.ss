@@ -2,91 +2,96 @@
   (require (lib "launcher.ss" "launcher")
 	   (lib "cmdline.ss")
 	   (lib "unitsig.ss")
-	   "test-suite-utils.ss"
-	   (lib "guis.ss" "tests" "utils"))
+	   "test-suite-utils.ss")
 
-  (define initial-port 6012)
-
-  (unless (file-exists? (build-path (current-load-relative-directory) "receive-sexps-port.ss"))
-    (call-with-output-file (build-path (current-load-relative-directory) "receive-sexps-port.ss")
-      (lambda (port)
-	(write initial-port port))))
+  ;; must be run in the right context...
+  (define argv (namespace-variable-binding 'argv))
 
   (define preferences-file (build-path (find-system-path 'pref-dir)
 				       (case (system-type)
 					 [(macos) "MrEd Preferences"]
 					 [(windows) "mred.pre"]
 					 [(unix) ".mred.prefs"])))
+
   (define old-preferences-file (let-values ([(base name _2) (split-path preferences-file)])
 				 (build-path base (string-append name ".save"))))
   
 
+  (define all-files
+    (map symbol->string
+	 (load
+	  (build-path
+	   (collection-path "tests" "framework")
+	   "README"))))
+
+  (define all? #f)
+  (define files-to-process null)
+  (define command-line-flags
+    `((once-each
+       [("-a" "--all")
+	,(lambda (flag)
+	   (set! all? #t))
+	("Run all of the tests")])
+      (multi
+       [("-o" "--only")
+	,(lambda (flag _only-these-tests)
+	   (set-only-these-tests! (cons (string->symbol _only-these-tests)
+					(or (get-only-these-tests) null))))
+	("Only run test named <test-name>" "test-name")])))
+      
+  (define saved-command-line-file (build-path (collection-path "tests" "framework")
+					      "saved-command-line.ss"))
+  (define parsed-argv
+    (if (equal? argv (vector))
+	(if (file-exists? saved-command-line-file)
+	    (begin
+	      (let ([result (call-with-input-file saved-command-line-file read)])
+		(printf "reusing command-line arguments: ~s~n" result)
+		result))
+	    (vector))
+	argv))
+
+  (parse-command-line "framework-test" parsed-argv command-line-flags
+		      (lambda (collected . files)
+			(set! files-to-process (if (or all? (null? files)) all-files files)))
+		      `("Names of the tests; defaults to all tests"))
+
+  (call-with-output-file saved-command-line-file
+    (lambda (port)
+      (write parsed-argv port))
+    'truncate)
+
+  (when (file-exists? preferences-file)
+    (printf "  saving preferences file ~s to ~s~n" preferences-file old-preferences-file)
+    (if (file-exists? old-preferences-file)
+	(printf "  backup preferences file exists, using that one~n")
+	(begin (copy-file preferences-file old-preferences-file)
+	       (printf "  saved preferences file~n"))))
+      
   (with-handlers ([(lambda (x) #f)
 		   (lambda (x) (display (exn-message x)) (newline))])
-    (let* ([all-files (map symbol->string (load-relative "README"))]
-	   [all? #f]
-	   [files-to-process null]
-	   [command-line-flags
-	    `((once-each
-	       [("-a" "--all")
-		,(lambda (flag)
-		   (set! all? #t))
-		("Run all of the tests")])
-	      (multi
-	       [("-o" "--only")
-		,(lambda (flag _only-these-tests)
-		   (set-only-these-tests (cons (string->symbol _only-these-tests)
-					       (or only-these-tests null))))
-		("Only run test named <test-name>" "test-name")]))])
-      
-      (let* ([saved-command-line-file (build-path (collection-path "tests" "framework") "saved-command-line.ss")]
-	     [parsed-argv (if (equal? argv (vector))
-			      (if (file-exists? saved-command-line-file)
-				  (begin
-				    (let ([result (call-with-input-file saved-command-line-file read)])
-				      (printf "reusing command-line arguments: ~s~n" result)
-				      result))
-				  (vector))
-			      argv)])
-	(parse-command-line "framework-test" parsed-argv command-line-flags
-			    (lambda (collected . files)
-			      (set! files-to-process (if (or all? (null? files)) all-files files)))
-			    `("Names of the tests; defaults to all tests"))
-	(call-with-output-file saved-command-line-file
-	  (lambda (port)
-	    (write parsed-argv port))
-	  'truncate))
+    (for-each
+     (lambda (x)
+       (when (member x all-files)
+	 (shutdown-mred)
+	 (let/ec k
+	   (dynamic-wind
+	    (lambda ()
+	      (set-section-name! x)
+	      (set-section-jump! k))
+	    (lambda ()
+	      (with-handlers ([(lambda (x) #t)
+			       (lambda (exn)
+				 (printf "~a~n" (if (exn? exn) (exn-message exn) exn)))])
+		(printf "beginning ~a test suite~n" x)
 
-      
-      (when (file-exists? preferences-file)
-	(printf "  saving preferences file ~s to ~s~n" preferences-file old-preferences-file)
-	(if (file-exists? old-preferences-file)
-	    (printf "  backup preferences file exists, using that one~n")
-	    (begin (copy-file preferences-file old-preferences-file)
-		   (printf "  saved preferences file~n"))))
-      
-      (for-each
-       (lambda (x)
-	 (when (member x all-files)
-	   (shutdown-mred)
-	   (let/ec k
-	     (dynamic-wind
-	      (lambda ()
-		(set-section-name! x)
-		(set-section-jump k))
-	      (lambda ()
-		(with-handlers ([(lambda (x) #t)
-				 (lambda (exn)
-				   (printf "~a~n" (if (exn? exn) (exn-message exn) exn)))])
-		  (printf "beginning ~a test suite~n" x)
-
-		  (eval `(require ,x))
-		  
-		  (printf "PASSED ~a test suite~n" x)))
-	      (lambda ()
-		(reset-section-name!)
-		(reset-section-jump!))))))
-       files-to-process)))
+		(dynamic-require `(lib ,x "tests" "framework") #f)
+		
+		(printf "PASSED ~a test suite~n" x)))
+	    (lambda ()
+	      (reset-section-name!)
+	      (reset-section-jump!))))))
+     files-to-process))
 
   (printf "  restoring preferences file ~s to ~s~n" old-preferences-file preferences-file)
   (when (file-exists? preferences-file)
