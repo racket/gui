@@ -11,6 +11,8 @@ Subtle Changes:
 
  - overriding `windows-menu' with #f no longer eliminates the windows
    menu. Now, it is an error.
+ - mred:original-output-port, mred:original-error-port, and 
+   mred:original-input-port are gone
 
 The eliminated classes are:
 
@@ -78,6 +80,8 @@ The eliminated classes are:
   mred:editor-frame%
   mred:transparent-io-edit% 
 
+  mred:autoload
+
 The moved functions and classes are:
   
   :: web browswer
@@ -141,6 +145,37 @@ The remaining existant classes:
   match-cache:%
 
 Old to new name mapping:
+
+  mred:handler? -> handler:handler?
+  mred:handler-name -> handler:handler-name
+  mred:handler-extension -> handler:handler-extension
+  mred:handler-handler -> handler:handler-handler
+  mred:format-handlers -> handler:format-handlers
+  mred:insert-format-handler -> handler:insert-format-handler
+  mred:find-format-handler  -> handler:find-format-handler 
+  mred:find-named-format-handler  -> handler:find-named-format-handler 
+  mred:edit-file -> handler:edit-file
+  mred:open-url -> handler:open-url
+  mred:open-file -> handler:open-file
+  
+  mred:register-autosave -> autosave:register
+
+  mred:make-exn -> exn:make-exn
+  mred:exn? -> exn:exn?
+  mred:make-exn:unkown-preference -> exn:make-unkown-preference
+  mred:exn:unkown-preference? -> exn:unkown-preference?
+  mred:exn:make-during-preferences -> exn:make-during-preferences
+  mred:exn:during-preferences? -> exn:during-preferences?
+  mred:exn:make-url -> exn:make-url
+  mred:exn:url? -> exn:url?
+
+  mred:insert-exit-callback -> exit:insert-callback
+  mred:remove-exit-callback -> exit:remove-callback
+  mred:run-exit-callbacks -> exit:run-callbacks
+  mred:exit -> exit:exit
+
+  mred:add-version-spec -> version:add-spec
+  mred:version -> version:version
 
   mred:empty-frame% -> frame:empty%
   mred:standard-menus-frame% -> frame:standard-menus%
