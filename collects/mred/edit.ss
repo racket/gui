@@ -312,10 +312,10 @@
 		   (begin
 		     (set-mode-direct m)
 		     (set-file-format (ivar m file-format))
+		     (send m install this)
 		     (send (send (get-style-list) 
 				 find-named-style "Standard")
-			   set-delta (ivar m standard-style-delta))
-		     (send m install this))
+			   set-delta (ivar m standard-style-delta)))
 		   (begin
 		     (set-mode-direct #f)
 		     (send (send (get-style-list) 
