@@ -99,7 +99,7 @@
       (define current-create-new-window
 	(make-parameter
 	 (lambda (filename)
-	   (let ([frame (make-object frame:text-info-file% filename)])
+	   (let ([frame (make-object frame:text% filename)])
 	     (send frame show #t)
 	     frame))))
 

@@ -37,14 +37,22 @@
 	  local-edit-sequence?
 	  run-after-edit-sequence
 	  get-top-level-window
-	  on-close
 	  save-file-out-of-date?
           save-file/gui-error
-          load-file/gui-error))
+          load-file/gui-error
+          on-close
+          can-close?
+          close))
 
       (define basic-mixin
 	(mixin (editor<%>) (basic<%>)
 	  
+          (define/public (can-close?) #t)
+          (define/public (on-close) (void))
+          (define/public (close) (if (can-close?)
+                                     (begin (on-close) #t)
+                                     #f))
+          
 	  (inherit get-filename save-file)
 	  (define/public save-file/gui-error
 	    (opt-lambda ([input-filename #f]
@@ -176,7 +184,6 @@
             (super-on-focus x))
 	  (define/public (has-focus?) has-focus)
 	  
-	  (define/public (on-close) (void))
 	  (define/public (get-top-level-window)
             (let loop ([text this])
               (let ([editor-admin (send text get-admin)])
@@ -451,9 +458,25 @@
 	      (unless temp?
 		(update-frame-filename))]))
 
+          (inherit save-file)
+          (rename [super-can-close? can-close?])
+          (define/override (can-close?)
+            (let* ([user-allowed-or-not-modified
+                    (or (not (is-modified?))
+                        (case (gui-utils:unsaved-warning
+                               (get-filename/untitled-name)
+                               (string-constant close-anyway)
+                               #t
+                               this)
+                          [(continue) #t]
+                          [(save) (save-file)]
+                          [else #f]))])
+              (and user-allowed-or-not-modified
+                   (super-can-close?))))
+          
           (define/override (get-keymaps)
             (cons (keymap:get-file) (super-get-keymaps)))
-          (super-instantiate ())))
+          (super-new)))
       
       (define backup-autosave<%>
 	(interface (basic<%>)

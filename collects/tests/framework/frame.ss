@@ -88,9 +88,6 @@
   (test-creation
    'text-info-file%-creation
    'frame:text-info-file%)
-  (test-creation
-   'text-info-file-mixin-creation
-   '(frame:file-mixin frame:text%))
   
   (test-creation
    'pasteboard-mixin-creation
@@ -102,9 +99,6 @@
    'pasteboard%-creation
    'frame:pasteboard%)
   
-  (test-creation
-   'pasteboard-info-file-mixin-creation
-   '(frame:file-mixin frame:pasteboard%))
   (test-creation
    'pasteboard-info-file%-creation
    'frame:pasteboard-info-file%)

@@ -938,8 +938,7 @@
 
           (inherit get-area-container get-client-size 
                    show get-edit-target-window get-edit-target-object)
-          (rename [super-on-close on-close]
-                  [super-set-label set-label])
+          (rename [super-set-label set-label])
           
           (define/override get-filename
             (case-lambda
@@ -957,9 +956,16 @@
                 (and this-fn
                      (path-equal? filename (get-filename))))))
           
+          (rename [super-on-close on-close])
           (define/override (on-close)
             (super-on-close)
             (send (get-editor) on-close))
+          
+          (rename [super-can-close? can-close?])
+          (define/override (can-close?)
+            (and (super-can-close?)
+                 (send (get-editor) can-close?)))
+          
           [define label ""]
           [define label-prefix (application:current-app-name)]
           (define (do-label)
@@ -2313,32 +2319,6 @@
 			 (lambda (x) #f)])
 	  (directory-exists? (build-path (collection-path "framework") "CVS"))))
       
-      (define file<%> (interface (-editor<%>)))
-      (define file-mixin
-        (mixin (-editor<%>) (file<%>)
-          (inherit get-editor get-filename get-label save)
-          (rename [super-can-close? can-close?])
-          (override can-close?)
-          [define can-close?
-            (lambda ()
-              (let* ([edit (get-editor)]
-                     [user-allowed-or-not-modified
-                      (or (not (send edit is-modified?))
-                          (case (gui-utils:unsaved-warning
-                                 (let ([fn (get-filename)])
-                                   (if (string? fn)
-                                       fn
-                                       (get-label)))
-                                 (string-constant close-anyway)
-                                 #t
-                                 this)
-                            [(continue) #t]
-                            [(save) (save)]
-                            [else #f]))])
-                (and user-allowed-or-not-modified
-                     (super-can-close?))))]
-	  (super-instantiate ())))
-      
       (define bday-click-canvas%
         (class canvas%
           (rename [super-on-event on-event])
@@ -2361,9 +2341,7 @@
       (define open-here% (open-here-mixin editor%))
       
       (define -text% (text-mixin open-here%))
-      (define text-info-file% (file-mixin -text%))
-      (define searchable% (searchable-text-mixin (searchable-mixin text-info-file%)))
+      (define searchable% (searchable-text-mixin (searchable-mixin -text%)))
       (define delegate% (delegate-mixin searchable%))
       
-      (define -pasteboard% (pasteboard-mixin open-here%))
-      (define pasteboard-info-file% (file-mixin -pasteboard%)))))
+      (define -pasteboard% (pasteboard-mixin open-here%)))))

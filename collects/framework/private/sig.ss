@@ -354,7 +354,6 @@
      info<%>
      text-info<%>
      pasteboard-info<%>
-     file<%>
      
      basic%
      status-line%
@@ -365,11 +364,9 @@
      editor%
      open-here%
      text%
-     text-info-file%
      searchable%
      delegate%
      pasteboard%
-     pasteboard-info-file%
      
      basic-mixin
      register-group-mixin
@@ -384,8 +381,7 @@
      searchable-text-mixin
      info-mixin
      text-info-mixin
-     pasteboard-info-mixin
-     file-mixin))
+     pasteboard-info-mixin))
   (define-signature framework:frame-fun^
     (reorder-menus
      add-snip-menu-items))
