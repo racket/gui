@@ -904,9 +904,7 @@
                                       (send evt get-y))])
                     (send delegate-frame click-in-overview 
                           (send text find-position editor-x editor-y)))))))
-          (super-instantiate ())
-          ;(send (get-dc) set-scale 1/12 1/12)
-          ))
+          (super-instantiate ())))
       
       (define delegatee-text%
         (class text:basic%
@@ -967,6 +965,7 @@
                       (invalidate-bitmap-cache x y w h)))))))
 
           (define/override (on-paint before? dc left top right bottom dx dy draw-caret)
+            (super-on-paint before? dc left top right bottom dx dy draw-caret)
             (when (and before?
                        start-para
                        end-para)
@@ -984,8 +983,7 @@
                           w
                           h)))
                 (send dc set-pen old-pen)
-                (send dc set-brush old-brush)))
-            (super-on-paint before? dc left top right bottom dx dy draw-caret))
+                (send dc set-brush old-brush))))
           
           
           ;; get-rectangle : number number -> 
@@ -1155,13 +1153,6 @@
                                     '(hide-hscroll hide-vscroll))]
                   
                   [button-panel (make-object horizontal-panel% dialog)]
-                  [pref-check (make-object check-box%
-                                (string-constant use-separate-dialog-for-searching)
-                                dialog
-                                (lambda (pref-check evt)
-                                  (preferences:set
-                                   'framework:search-using-dialog?
-                                   (send pref-check get-value))))]
                   
                   [update-texts
                    (lambda ()
@@ -1189,11 +1180,31 @@
                      (lambda x
                        (update-texts)
                        (send frame replace-all)))]
+                  
+                  [dock-button (make-object button%
+                                 (string-constant dock)
+                                 button-panel
+                                 (lambda (btn evt)
+                                   (update-texts)
+                                   (preferences:set 'framework:search-using-dialog? #f)
+                                   (send frame unhide-search)))]
+                  
+                  [close
+                   (lambda ()
+                     (send to-be-searched-canvas force-display-focus #f)
+                     (send dialog show #f))]
+                  
                   [close-button (make-object button% (string-constant close) button-panel
-                                  (lambda x
-                                    (send to-be-searched-canvas force-display-focus #f)
-                                    (send dialog show #f)))])
+                                  (lambda (x y)
+                                    (close)))]
 
+                  [remove-pref-callback
+                   (preferences:add-callback 
+                    'framework:search-using-dialog?
+                    (lambda (p v)
+                      (unless v
+                        (close))))])
+             
              (unless allow-replace?
                (send button-panel change-children
                      (lambda (l)
@@ -1224,11 +1235,11 @@
                (send replace-message min-width msg-width))
              (send find-canvas focus)
              (send f-text set-position 0 (send f-text last-position))
-             (send pref-check set-value (preferences:get 'framework:search-using-dialog?))
              (send button-panel set-alignment 'right 'center)
              (send dialog center 'both)
              (send to-be-searched-canvas force-display-focus #t)
-             (send dialog show #t)))))
+             (send dialog show #t)
+             (remove-pref-callback)))))
       
       (define searchable<%> (interface (basic<%>)
                               get-text-to-search
@@ -1266,106 +1277,94 @@
                        (send edit get-start-position))])
               (set! search-anchor position)
               
-	  ;; don't draw the anchor
+              ;; don't draw the anchor
               '(set! old-search-highlight
                      (send edit highlight-range position position color #f))))))
       
       (define find-string-embedded
-        (let ([default-direction 'forward]
-              [default-start 'start]
-              [default-end 'eof]
-              [default-get-start #t]
-              [default-case-sensitive? #t]
-              [default-pop-out? #f])
-          (case-lambda
-           [(edit str)
-            (find-string-embedded edit str default-direction default-start default-end default-get-start default-case-sensitive? default-pop-out?)]
-           [(edit str direction) 
-            (find-string-embedded edit str direction default-start default-end default-get-start default-case-sensitive? default-pop-out?)]
-           [(edit str direction start) 
-            (find-string-embedded edit str direction start default-end default-get-start default-case-sensitive? default-pop-out?)]
-           [(edit str direction start end) 
-            (find-string-embedded edit str direction start end default-get-start default-case-sensitive? default-pop-out?)]
-           [(edit str direction start end get-start) 
-            (find-string-embedded edit str direction start end get-start default-case-sensitive? default-pop-out?)]
-           [(edit str direction start end get-start case-sensitive?) 
-            (find-string-embedded edit str direction start end get-start case-sensitive? default-pop-out?)]
-           [(edit str direction start end get-start case-sensitive? pop-out?)
-            (unless (member direction '(forward backward))
-              (error 'find-string-embedded
-                     "expected ~e or ~e as first argument, got: ~e" 'forward 'backward direction))
-            (let/ec k
-              (let* ([start (if (eq? start 'start) 
-                                (send edit get-start-position)
-                                start)]
-                     [end (if (eq? 'eof end)
-                              (if (eq? direction 'forward)
-                                  (send edit last-position)
-                                  0)
-                              end)]
-                     [flat (send edit find-string str direction
-                                 start end get-start
-                                 case-sensitive?)]
-                     [pop-out
-                      (lambda ()
-                        (let ([admin (send edit get-admin)])
-                          (if (is-a? admin editor-snip-editor-admin<%>)
-                              (let* ([snip (send admin get-snip)]
-                                     [edit-above (send (send snip get-admin) get-editor)]
-                                     [pos (send edit-above get-snip-position snip)]
-                                     [pop-out-pos (if (eq? direction 'forward) (add1 pos) pos)])
-                                (find-string-embedded
-                                 edit-above
-                                 str
-                                 direction 
-                                 pop-out-pos
-                                 (if (eq? direction 'forward) 'eof 0)
-                                 get-start
-                                 case-sensitive?
-                                 pop-out?))
-                              (values edit #f))))])
-                (let loop ([current-snip (send edit find-snip start
-                                               (if (eq? direction 'forward)
-                                                   'after-or-none
-                                                   'before-or-none))])
-                  (let ([next-loop
-                         (lambda ()
-                           (if (eq? direction 'forward)
-                               (loop (send current-snip next))
-                               (loop (send current-snip previous))))])
-                    (cond
-                      [(or (not current-snip)
-                           (and flat
-                                (let* ([start (send edit get-snip-position current-snip)]
-                                       [end (+ start (send current-snip get-count))])
-                                  (if (eq? direction 'forward)
-                                      (and (<= start flat)
-                                           (< flat end))
-                                      (and (< start flat)
-                                           (<= flat end))))))
-                       (if (and (not flat) pop-out?)
-                           (pop-out)
-                           (values edit flat))]
-                      [(is-a? current-snip editor-snip%)
-                       (let-values ([(embedded embedded-pos)
-                                     (let ([media (send current-snip get-editor)])
-                                       (if (and media
-                                                (is-a? media text%))
-                                           (begin
-                                             (find-string-embedded 
-                                              media 
-                                              str
-                                              direction
-                                              (if (eq? 'forward direction)
-                                                  0
-                                                  (send media last-position))
-                                              'eof
-                                              get-start case-sensitive?))
-                                           (values #f #f)))])
-                         (if (not embedded-pos)
-                             (next-loop)
-                             (values embedded embedded-pos)))]
-                      [else (next-loop)])))))])))
+        (opt-lambda (edit
+                     str
+                     [direction 'forward]
+                     [start 'start]
+                     [end 'eof]
+                     [get-start #t]
+                     [case-sensitive? #t]
+                     [pop-out? #f])
+          (unless (member direction '(forward backward))
+            (error 'find-string-embedded
+                   "expected ~e or ~e as first argument, got: ~e" 'forward 'backward direction))
+          (let/ec k
+            (let* ([start (if (eq? start 'start) 
+                              (send edit get-start-position)
+                              start)]
+                   [end (if (eq? 'eof end)
+                            (if (eq? direction 'forward)
+                                (send edit last-position)
+                                0)
+                            end)]
+                   [flat (send edit find-string str direction
+                               start end get-start
+                               case-sensitive?)]
+                   [pop-out
+                    (lambda ()
+                      (let ([admin (send edit get-admin)])
+                        (if (is-a? admin editor-snip-editor-admin<%>)
+                            (let* ([snip (send admin get-snip)]
+                                   [edit-above (send (send snip get-admin) get-editor)]
+                                   [pos (send edit-above get-snip-position snip)]
+                                   [pop-out-pos (if (eq? direction 'forward) (add1 pos) pos)])
+                              (find-string-embedded
+                               edit-above
+                               str
+                               direction 
+                               pop-out-pos
+                               (if (eq? direction 'forward) 'eof 0)
+                               get-start
+                               case-sensitive?
+                               pop-out?))
+                            (values edit #f))))])
+              (let loop ([current-snip (send edit find-snip start
+                                             (if (eq? direction 'forward)
+                                                 'after-or-none
+                                                 'before-or-none))])
+                (let ([next-loop
+                       (lambda ()
+                         (if (eq? direction 'forward)
+                             (loop (send current-snip next))
+                             (loop (send current-snip previous))))])
+                  (cond
+                    [(or (not current-snip)
+                         (and flat
+                              (let* ([start (send edit get-snip-position current-snip)]
+                                     [end (+ start (send current-snip get-count))])
+                                (if (eq? direction 'forward)
+                                    (and (<= start flat)
+                                         (< flat end))
+                                    (and (< start flat)
+                                         (<= flat end))))))
+                     (if (and (not flat) pop-out?)
+                         (pop-out)
+                         (values edit flat))]
+                    [(is-a? current-snip editor-snip%)
+                     (let-values ([(embedded embedded-pos)
+                                   (let ([media (send current-snip get-editor)])
+                                     (if (and media
+                                              (is-a? media text%))
+                                         (begin
+                                           (find-string-embedded 
+                                            media 
+                                            str
+                                            direction
+                                            (if (eq? 'forward direction)
+                                                0
+                                                (send media last-position))
+                                            'eof
+                                            get-start case-sensitive?))
+                                         (values #f #f)))])
+                       (if (not embedded-pos)
+                           (next-loop)
+                           (values embedded embedded-pos)))]
+                    [else (next-loop)])))))))
       
       (define searching-frame #f)
       (define (set-searching-frame frame)
@@ -1471,10 +1470,10 @@
                  (search #f)))])
           (sequence (apply super-init args))))
       
-      ; this is here for when editors are printed.
+      ; this is here for when editors are printed, during debugging
       (define replace-text%
-        (class100 text:keymap% args
-          (sequence (apply super-init args))))
+        (class text:keymap%
+          (super-instantiate ())))
       
       (define find-edit #f)
       (define replace-edit #f)
@@ -1552,19 +1551,28 @@
                       (remove search-panel l)))
               (clear-search-highlight)
               (unless startup?
-                (send 
-                 (send (get-text-to-search) get-canvas) 
-                 focus))
+                (let ([canvas (send (get-text-to-search) get-canvas)])
+                  (send canvas force-display-focus #f)
+                  (send canvas focus)))
               (set! hidden? #t)))
-          (define unhide-search
-            (lambda ()
-              (when (and hidden?
-                         (not (preferences:get 'framework:search-using-dialog?)))
-                (set! hidden? #f)
-                (show/hide-replace (send (get-text-to-search) is-locked?))
-                (send search-panel focus)
-                (send super-root add-child search-panel)
-                (reset-search-anchor (get-text-to-search)))))
+          
+          (define (unhide-search)
+            (when (and hidden?
+                       (not (preferences:get 'framework:search-using-dialog?)))
+              (set! hidden? #f)
+              (let ([canvas (send (get-text-to-search) get-canvas)])
+                (when canvas
+                  (send canvas force-display-focus #t)))
+              (show/hide-replace (send (get-text-to-search) is-locked?))
+              (send search-panel focus)
+              (send find-edit set-position 0 (send find-edit last-position))
+              (send super-root add-child search-panel)
+              (reset-search-anchor (get-text-to-search))))
+
+          (define (undock)
+            (preferences:set 'framework:search-using-dialog? #t)
+            (hide-search)
+            (search-dialog this))
 
           (define (show/hide-replace hide?)
             (cond
@@ -1748,9 +1756,13 @@
                                                    'backward)])
                                   (set-search-direction forward)
                                   (reset-search-anchor (get-text-to-search))))))
-          (define close-button (make-object button% (string-constant hide)
-                                 middle-right-panel
+          (define hide/undock-pane (make-object horizontal-panel% middle-right-panel))
+          (define hide-button (make-object button% (string-constant hide)
+                                 hide/undock-pane
                                  (lambda args (hide-search))))
+          (define undock-button (make-object button% (string-constant undock)
+                                  hide/undock-pane
+                                  (lambda args (undock))))
           (define hidden? #f)
 
           (let ([align

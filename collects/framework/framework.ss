@@ -6,9 +6,6 @@
 	   "test.ss"
 	   "test-sig.ss"
            
-	   "prefs-file.ss"
-	   "prefs-file-sig.ss"
-           
 	   "gui-utils.ss"
 	   "gui-utils-sig.ss"
            
@@ -26,6 +23,5 @@
    #f
    mred^
    (test : framework:test^)
-   (prefs-file : framework:prefs-file^)
    (gui-utils : framework:gui-utils^)))
 

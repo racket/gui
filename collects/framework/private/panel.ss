@@ -30,46 +30,53 @@
       (define single<%> (interface (area-container<%>) active-child))
       (define single-mixin
         (mixin (area-container<%>) (single<%>)
-          (inherit get-alignment)
+          (inherit get-alignment change-children)
           (rename [super-after-new-child after-new-child])
-          (override after-new-child container-size place-children)
-          [define after-new-child
-            (lambda (c)
-              (if current-active-child
-                  (send c show #f)
-                  (set! current-active-child c)))]
-          [define container-size
-            (lambda (l)
-              (if (null? l)
-                  (values 0 0)
-                  (values (apply max (map car l)) (apply max (map cadr l)))))]
-          [define place-children
-            (lambda (l width height)
-              (let-values ([(h-align-spec v-align-spec) (get-alignment)])
-                (let ([align
-                       (lambda (total-size spec item-size)
-                         (floor
-                          (case spec
-                            [(center) (- (/ total-size 2) (/ item-size 2))]
-                            [(left top) 0]
-                            [(right bottom) (- total-size item-size)]
-                            [else (error 'place-children
-                                         "alignment spec is unknown ~a~n" spec)])))])
-                  (map (lambda (l) 
-                         (let*-values ([(min-width min-height v-stretch? h-stretch?)
-                                        (apply values l)]
-                                       [(x this-width)
-                                        (if h-stretch?
-                                            (values 0 width)
-                                            (values (align width h-align-spec min-width)
-                                                    min-width))]
-                                       [(y this-height)
-                                        (if v-stretch?
-                                            (values 0 height)
-                                            (values (align height v-align-spec min-height)
-                                                    min-height))])
-                           (list x y this-width this-height)))
-                       l))))]
+          (define/override (after-new-child c)
+	    (unless (is-a? c window<%>)
+
+	      ;; would like to remove the child here, waiting on a PR submitted
+	      ;; about change-children during after-new-child
+	      (change-children
+	       (lambda (l)
+		 (remq c l)))
+
+	      (error 'single-mixin::after-new-child
+		     "all children must implement window<%>, got ~e"
+		     c))
+	    (if current-active-child
+		(send c show #f)
+		(set! current-active-child c)))
+          [define/override (container-size l)
+	    (if (null? l)
+		(values 0 0)
+		(values (apply max (map car l)) (apply max (map cadr l))))]
+          [define/override (place-children l width height)
+	    (let-values ([(h-align-spec v-align-spec) (get-alignment)])
+	      (let ([align
+		     (lambda (total-size spec item-size)
+		       (floor
+			(case spec
+			  [(center) (- (/ total-size 2) (/ item-size 2))]
+			  [(left top) 0]
+			  [(right bottom) (- total-size item-size)]
+			  [else (error 'place-children
+				       "alignment spec is unknown ~a~n" spec)])))])
+		(map (lambda (l) 
+		       (let*-values ([(min-width min-height v-stretch? h-stretch?)
+				      (apply values l)]
+				     [(x this-width)
+				      (if h-stretch?
+					  (values 0 width)
+					  (values (align width h-align-spec min-width)
+						  min-width))]
+				     [(y this-height)
+				      (if v-stretch?
+					  (values 0 height)
+					  (values (align height v-align-spec min-height)
+						  min-height))])
+			 (list x y this-width this-height)))
+		     l)))]
           
           (inherit get-children)
           [define current-active-child #f]

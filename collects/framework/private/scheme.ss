@@ -50,13 +50,14 @@
           (field [sizing-text (format "~a   ~a" left-bracket right-bracket)])
 
           (rename [super-get-text get-text])
-          (define/override (get-text offset num flattened?)
-            (if flattened?
-                (apply string-append
-                       (map (lambda (snip)
-                              (send snip get-text 0 (send snip get-count) flattened?))
-                            saved-snips))
-                (super-get-text offset num flattened?)))
+          (define/override get-text
+            (opt-lambda (offset num [flattened? #f])
+              (if flattened?
+                  (apply string-append
+                         (map (lambda (snip)
+                                (send snip get-text 0 (send snip get-count) flattened?))
+                              saved-snips))
+                  (super-get-text offset num flattened?))))
               
           (define/override (copy)
             (instantiate (get-sexp-snip-class) ()
@@ -237,11 +238,20 @@
                   left-pos left-pos)
             (send text end-edit-sequence))))
       
-      ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-      ;;                                                                  ;;
-      ;;                            Text                                  ;;
-      ;;                                                                  ;;
-      ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+                                                                             
+              ;;                                                             
+               ;                                   ;                    ;    
+               ;                                   ;                    ;    
+  ;;;    ;;;   ; ;;    ;;;  ;;; ;    ;;;          ;;;;;   ;;;  ;;; ;;; ;;;;; 
+ ;   ;  ;   ;  ;;  ;  ;   ;  ; ; ;  ;   ;    ;     ;     ;   ;   ; ;    ;    
+  ;;;   ;      ;   ;  ;;;;;  ; ; ;  ;;;;;          ;     ;;;;;    ;     ;    
+     ;  ;      ;   ;  ;      ; ; ;  ;              ;     ;       ; ;    ;    
+ ;   ;  ;   ;  ;   ;  ;   ;  ; ; ;  ;   ;          ;   ; ;   ;  ;   ;   ;   ;
+  ;;;    ;;;  ;;; ;;;  ;;;  ;; ; ;;  ;;;     ;      ;;;   ;;;  ;;   ;;   ;;; 
+                                                                             
+                                                                             
+                                                                             
       
       (define-struct string/pos (string pos))
       
@@ -467,8 +477,7 @@
           [define clear-old-locations 'dummy]
           (set! clear-old-locations void)
           
-          (public highlight-parens)
-          (define highlight-parens
+          (define/public highlight-parens
             (opt-lambda ([just-clear? #f])
               (when highlight-parens?
                 (set! in-highlight-parens? #t)
@@ -1046,13 +1055,22 @@
           (set-styles-fixed #t)))
       
       (define -text% (text-mixin text:info%))
+
       
-      ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-      ;;                                                                  ;;
-      ;;                      Scheme Keymap                               ;;
-      ;;                                                                  ;;
-      ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-      
+
+                                                                                           
+              ;;                                 ;;                                        
+               ;                                  ;                                        
+               ;                                  ;                                        
+  ;;;    ;;;   ; ;;    ;;;  ;;; ;    ;;;          ;  ;;   ;;;  ;;; ;;;;;; ;   ;;;;  ; ;;;  
+ ;   ;  ;   ;  ;;  ;  ;   ;  ; ; ;  ;   ;         ; ;    ;   ;  ;   ;  ; ; ;      ;  ;   ; 
+  ;;;   ;      ;   ;  ;;;;;  ; ; ;  ;;;;;         ;;     ;;;;;  ;   ;  ; ; ;   ;;;;  ;   ; 
+     ;  ;      ;   ;  ;      ; ; ;  ;             ; ;    ;       ; ;   ; ; ;  ;   ;  ;   ; 
+ ;   ;  ;   ;  ;   ;  ;   ;  ; ; ;  ;   ;         ;  ;   ;   ;   ;;;   ; ; ;  ;   ;  ;   ; 
+  ;;;    ;;;  ;;; ;;;  ;;;  ;; ; ;;  ;;;         ;;   ;;  ;;;     ;   ;; ; ;;  ;;; ; ;;;;  
+                                                                  ;                  ;     
+                                                                  ;                  ;     
+                                                                ;;                  ;;;    
       (define setup-keymap
         (lambda (keymap)
           
@@ -1180,12 +1198,29 @@
             (map-meta "s:c:n" "flash-forward-sexp")
             
             (map-meta "c:space" "select-forward-sexp")
-            (map-meta "c:t" "transpose-sexp"))
+            (map-meta "c:t" "transpose-sexp")
+            
+            (map-meta "c:m" "mark-matching-parenthesis"))
           (send keymap map-function "c:c;c:b" "remove-parens-forward")))
       
       (define keymap (make-object keymap:aug-keymap%))
       (setup-keymap keymap)
       (define (get-keymap) keymap)
+      
+                                                                             
+                        ;;;                                            ;;;   
+                       ;                                                 ;   
+                       ;                                                 ;   
+; ;;;   ; ;;;   ;;;   ;;;;;   ;;;         ; ;;;   ;;;;  ; ;;;    ;;;     ;   
+ ;   ;   ;     ;   ;   ;     ;   ;         ;   ;      ;  ;;  ;  ;   ;    ;   
+ ;   ;   ;     ;;;;;   ;      ;;;          ;   ;   ;;;;  ;   ;  ;;;;;    ;   
+ ;   ;   ;     ;       ;         ;         ;   ;  ;   ;  ;   ;  ;        ;   
+ ;   ;   ;     ;   ;   ;     ;   ;         ;   ;  ;   ;  ;   ;  ;   ;    ;   
+ ;;;;   ;;;;    ;;;   ;;;;    ;;;          ;;;;    ;;; ;;;;  ;;  ;;;   ;;;;;;
+ ;                                         ;                                 
+ ;                                         ;                                 
+;;;                                       ;;;                                
+
       
       (define (add-preferences-panel)
         (preferences:add-panel

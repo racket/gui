@@ -57,7 +57,7 @@
 		     x))
 	    (set! val x)])))
       
-					; the finder-dialog% class controls the user interface for dialogs
+      ; the finder-dialog% class controls the user interface for dialogs
       
       (define finder-dialog%
 	(class100 dialog% (parent-win

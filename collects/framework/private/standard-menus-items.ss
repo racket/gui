@@ -140,7 +140,7 @@
              "@ilink frame:standard-menus get-help-menu %"
              ". "
              ""
-             "@return : (derived-from \\iscmclass{menu:can-restore-underscore-menu%})"
+             "@return : (derived-from \\iscmclass{menu:can-restore-underscore-menu})"
              ""
              "defaultly returns"
              "@link menu"))

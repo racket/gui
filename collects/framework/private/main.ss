@@ -2,7 +2,9 @@
   (require (lib "unitsig.ss")
 	   (lib "class.ss")
 	   "sig.ss"
+           "../gui-utils-sig.ss"
 	   "../macro"
+           (lib "string-constant.ss" "string-constants")
 	   (lib "mred-sig.ss" "mred"))
   
   (provide main@)
@@ -12,7 +14,8 @@
       (import mred^
 	      [preferences : framework:preferences^]
 	      [exit : framework:exit^]
-	      [group : framework:group^])
+	      [group : framework:group^]
+              [gui-utils : framework:gui-utils^])
       
       ;; preferences
       
@@ -149,9 +152,17 @@
 	    (lambda ()
 	      (send (group:get-the-frame-group) on-close-all))))))
       
-      (exit:insert-on-callback 
+      (exit:insert-can?-callback 
        (lambda ()
-         (preferences:save)))
+         (or (preferences:save)
+             (exit-anyway?))))
+      
+      (define (exit-anyway?)
+        (gui-utils:get-choice
+         (string-constant still-locked-exit-anyway?)
+         (string-constant yes)
+         (string-constant no)
+         (string-constant drscheme)))
       
       (preferences:read)
 

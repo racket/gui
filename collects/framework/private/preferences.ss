@@ -6,7 +6,6 @@
            (lib "file.ss")
 	   (lib "class100.ss")
 	   "sig.ss"
-	   "../prefs-file-sig.ss"
 	   (lib "mred-sig.ss" "mred")
 	   (lib "pretty.ss")
 	   (lib "list.ss"))
@@ -15,16 +14,13 @@
   (define preferences@
     (unit/sig framework:preferences^
       (import mred^
-              [prefs-file : framework:prefs-file^]
               [exn : framework:exn^]
               [exit : framework:exit^]
               [panel : framework:panel^])
       
       (rename [-read read])
       
-      ;; default-preferences-filename
-      (define default-preferences-filename
-        (build-path (collection-path "defaults") "prefs.ss"))
+      (define main-preferences-symbol 'plt:framework-prefs)
       
       ;; preferences : sym -o> (union marshalled pref)
       (define preferences (make-hash-table))
@@ -34,9 +30,6 @@
       
       ;; callbacks : sym -o> (listof (sym TST -> boolean))
       (define callbacks (make-hash-table))
-      
-      ;; saved-defaults : sym -o> (union marshalled pref)
-      (define saved-defaults (make-hash-table))
       
       ;; defaults : sym -o> default
       (define defaults (make-hash-table))
@@ -78,32 +71,38 @@
                         p
                         (lambda () null)))
       
+      ;; pref-callback : (make-pref-callback (sym tst -> void))
+      ;; this is used as a wrapped to hack around the problem
+      ;; that different procedures might be eq?.
+      (define-struct pref-callback (cb))
+
       ;; add-callback : sym (-> void) -> void
       (define (add-callback p callback)
-        (hash-table-put! callbacks p 
-                         (append 
-                          (hash-table-get callbacks p (lambda () null))
-                          (list callback)))
-        (lambda ()
-          (hash-table-put!
-           callbacks
-           p
-           (let loop ([callbacks (hash-table-get callbacks p (lambda () null))])
-             (cond
-               [(null? callbacks) null]
-               [else 
-                (let ([callback (car callbacks)])
-                  (cond
-                    [(eq? callback callback)
-                     (loop (cdr callbacks))]
-                    [else
-                     (cons (car callbacks) (loop (cdr callbacks)))]))])))))
+        (let ([new-cb (make-pref-callback callback)])
+          (hash-table-put! callbacks p 
+                           (append 
+                            (hash-table-get callbacks p (lambda () null))
+                            (list new-cb)))
+          (lambda ()
+            (hash-table-put!
+             callbacks
+             p
+             (let loop ([callbacks (hash-table-get callbacks p (lambda () null))])
+               (cond
+                 [(null? callbacks) null]
+                 [else 
+                  (let ([callback (car callbacks)])
+                    (cond
+                      [(eq? callback new-cb)
+                       (loop (cdr callbacks))]
+                      [else
+                       (cons (car callbacks) (loop (cdr callbacks)))]))]))))))
       
       (define check-callbacks
         (lambda (p value)
           (andmap (lambda (x)
                     (guard "calling callback" p value
-                           (lambda () (x p value))
+                           (lambda () ((pref-callback-cb x) p value))
                            raise))
                   (get-callbacks p))))
       
@@ -137,9 +136,17 @@
              (pref-value ans)]
             [else (error 'prefs.ss "robby error.1: ~a" ans)])))
       
+      (define (default-set? p)
+        (let/ec k
+          (hash-table-get defaults p (lambda () (k #f)))
+          #t))
+
       (define (set p value)
         (let* ([pref (hash-table-get preferences p (lambda () #f))])
-          (cond 
+          (unless (default-set? p)
+            (error 'preferences:set "tried to set a preference but no default set for ~e, with ~e"
+                   p value))
+          (cond
             [(pref? pref)
              (when (check-callbacks p value)
                (set-pref-value! pref value))]
@@ -152,8 +159,7 @@
       
       (define set-un/marshall
         (lambda (p marshall unmarshall)
-          (when (let ([b (box #f)])
-                  (eq? b (hash-table-get defaults p (lambda () b))))
+          (unless (default-set? p)
             (error 'set-un/marshall "must call set-default for ~s before calling set-un/marshall for ~s"
                    p p))
           (hash-table-put! marshall-unmarshall p (make-un/marshall marshall unmarshall))))
@@ -165,27 +171,8 @@
            (lambda (p v) (set p v)))))
       
       ;; set-default : (sym TST (TST -> boolean) -> void
-      (define (set-default p in-default-value checker)
-        (let* ([default-value
-                (let/ec k
-                  (let ([saved-default
-                         (hash-table-get saved-defaults p (lambda ()
-                                                            (k in-default-value)))])
-                    (cond
-                      [(marshalled? saved-default)
-                       (let* ([unmarsh (unmarshall p saved-default)]
-                              [unmarshalled 
-                               (if (checker unmarsh)
-                                   unmarsh
-                                   in-default-value)]
-                              [pref (if (check-callbacks p unmarshalled)
-                                        unmarshalled
-                                        in-default-value)])
-                         (hash-table-put! saved-defaults p (make-pref pref))
-                         pref)]
-                      [(pref? saved-default)
-                       (pref-value saved-default)])))]
-               [default-okay? (checker default-value)])
+      (define (set-default p default-value checker)
+        (let ([default-okay? (checker default-value)])
           (unless default-okay?
             (error 'set-default "~s: checker (~s) returns ~s for ~s, expected #t~n"
                    p checker default-okay? default-value))
@@ -194,38 +181,55 @@
                             (hash-table-put! preferences p (make-pref default-value))))
           (hash-table-put! defaults p (make-default default-value checker))))
       
-      (define save
-        (let ([marshall-pref
-               (lambda (p ht-value)
-                 (cond
-                   [(marshalled? ht-value) (list p (marshalled-data ht-value))]
-                   [(pref? ht-value)
-                    (let* ([value (pref-value ht-value)]
-                           [marshalled
-                            (let/ec k
-                              (guard "marshalling" p value
-                                     (lambda ()
-                                       ((un/marshall-marshall
-                                         (hash-table-get marshall-unmarshall p
-                                                         (lambda ()
-                                                           (k value))))
-                                        value))
-                                     raise))])
-                      (list p marshalled))]
-                   [else (error 'prefs.ss "robby error.2: ~a" ht-value)]))])
-          (lambda () 
-            (with-handlers ([(lambda (x) #t)
-                             (lambda (exn)
-                               (message-box
-                                (string-constant error-saving-preferences)
-                                (exn-message exn)))])
-              (call-with-output-file (prefs-file:get-preferences-filename)
-                (lambda (p)
-                  (pretty-print
-                   (hash-table-map preferences marshall-pref) p))
-                'truncate 'text)))))
+      (define (save)
+        (with-handlers ([(lambda (x) #t)
+                         (lambda (exn)
+                           (message-box
+                            (string-constant preferences)
+                            (format (string-constant error-saving-preferences)
+                                    (exn-message exn)))
+                           #f)])
+          (let ([syms (list main-preferences-symbol)]
+                [vals (list (hash-table-map preferences marshall-pref))]
+                [res #t])
+            (put-preferences
+             syms vals
+             (lambda (filename)
+               (let* ([d (make-object dialog% (string-constant preferences))]
+                      [m (make-object message% (string-constant waiting-for-pref-lock) d)])
+                 (thread
+                  (lambda ()
+                    (sleep 2)
+                    (send d show #f)))
+                 (send d show #t)
+                 (put-preferences 
+                  syms vals
+                  (lambda (filename)
+                    (set! res #f)
+                    (message-box
+                     (string-constant preferences)
+                     (format (string-constant pref-lock-not-gone) filename)))))))
+            res)))
       
-      (define (err input msg)
+      (define (marshall-pref p ht-value)
+        (cond
+          [(marshalled? ht-value) (list p (marshalled-data ht-value))]
+          [(pref? ht-value)
+           (let* ([value (pref-value ht-value)]
+                  [marshalled
+                   (let/ec k
+                     (guard "marshalling" p value
+                            (lambda ()
+                              ((un/marshall-marshall
+                                (hash-table-get marshall-unmarshall p
+                                                (lambda ()
+                                                  (k value))))
+                               value))
+                            raise))])
+             (list p marshalled))]
+          [else (error 'prefs.ss "robby error.2: ~a" ht-value)]))
+      
+      (define (read-err input msg)
         (message-box 
          (string-constant preferences)
          (let* ([max-len 150]
@@ -268,17 +272,9 @@
                 (if (and (list? pre-pref)
                          (= 2 (length pre-pref)))
                     (parse-pref (car pre-pref) (cadr pre-pref))
-                    (begin (err input (string-constant expected-list-of-length2))
+                    (begin (read-err input (string-constant expected-list-of-length2))
                            (k #f))))
               (loop (cdr input))))))
-      
-      ;; read-from-file-to-ht : string hash-table -> void
-      (define (read-from-file-to-ht filename ht)
-        (let* ([parse-pref
-                (lambda (p marshalled)
-                  (add-raw-pref-to-ht ht p marshalled))])
-          (when (file-exists? filename)
-            (for-each-pref-in-file parse-pref filename))))
       
       ;; add-raw-pref-to-ht : hash-table symbol marshalled-preference -> void
       (define (add-raw-pref-to-ht ht p marshalled)
@@ -305,22 +301,12 @@
       ;; read : -> void
       (define (-read)
         (let/ec k
-          (let ([sexp (get-preference 
-                       'drscheme:preferences
-                       (lambda ()
-                         (k #f)))])
+          (let ([sexp (get-preference main-preferences-symbol (lambda () (k #f)))])
             (for-each-pref-in-sexp 
              sexp
              (lambda (p marshalled)
-               (add-raw-pref-to-ht preferences p marshalled)))))
-        ;(read-from-file-to-ht (prefs-file:get-preferences-filename) preferences)
-        )
-      
-      ;; read in the saved defaults. These should override the
-      ;; values used with set-default.
-      (read-from-file-to-ht default-preferences-filename saved-defaults)
-      
-      
+               (add-raw-pref-to-ht preferences p marshalled))))))
+            
       ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
       ;;;                                                 ;;;
       ;;;               preferences dialog                ;;;
@@ -571,6 +557,12 @@
       
       (define add-panel
         (lambda (title container)
+	  (unless (and (string? title)
+		       (procedure? container)
+		       (procedure-arity-includes? container 1))
+	    (error 'preferences:add-panel
+		   "expected a string and a function that can accept one argument, got ~e and ~e"
+		   title container))
           (set! ppanels
                 (append ppanels (list (make-ppanel title container #f))))
           (when preferences-dialog

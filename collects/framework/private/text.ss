@@ -60,32 +60,42 @@
             (let ([b1 (box 0)]
                   [b2 (box 0)]
                   [b3 (box 0)]
-                  [b4 (box 0)])
+                  [b4 (box 0)]
+                  [canvases (get-canvases)])
               (let-values ([(min-left max-right)
-                            (let loop ([left #f]
-                                       [right #f]
-                                       [canvases (get-canvases)])
-                              (cond
-                                [(null? canvases)
-                                 (values left right)]
-                                [else
-                                 (let-values ([(this-left this-right)
-                                               (send (car canvases)
-                                                     call-as-primary-owner
-                                                     (lambda ()
-                                                       (send (get-admin) get-view b1 b2 b3 b4)
-                                                       (let* ([this-left (unbox b1)]
-                                                              [this-width (unbox b3)]
-                                                              [this-right (+ this-left this-width)])
-                                                         (values this-left
-                                                                 this-right))))])
-                                   (if (and left right)
-                                       (loop (min this-left left)
-                                             (max this-right right)
-                                             (cdr canvases))
-                                       (loop this-left
-                                             this-right
-                                             (cdr canvases))))]))])
+                            (cond
+                              [(null? canvases) 
+                               (send (get-admin) get-view b1 b2 b3 b4)
+                               (let* ([this-left (unbox b1)]
+                                      [this-width (unbox b3)]
+                                      [this-right (+ this-left this-width)])
+                                 (values this-left
+                                         this-right))]
+                              [else 
+                               (let loop ([left #f]
+                                          [right #f]
+                                          [canvases canvases])
+                                 (cond
+                                   [(null? canvases)
+                                    (values left right)]
+                                   [else
+                                    (let-values ([(this-left this-right)
+                                                  (send (car canvases)
+                                                        call-as-primary-owner
+                                                        (lambda ()
+                                                          (send (get-admin) get-view b1 b2 b3 b4)
+                                                          (let* ([this-left (unbox b1)]
+                                                                 [this-width (unbox b3)]
+                                                                 [this-right (+ this-left this-width)])
+                                                            (values this-left
+                                                                    this-right))))])
+                                      (if (and left right)
+                                          (loop (min this-left left)
+                                                (max this-right right)
+                                                (cdr canvases))
+                                          (loop this-left
+                                                this-right
+                                                (cdr canvases))))]))])])
                 (when (and min-left max-right)
                   (let loop ([left #f]
                              [top #f]
@@ -196,7 +206,7 @@
           
           (public highlight-range)
           (define highlight-range
-            (opt-lambda (start end color bitmap [caret-space? #f] [priority 'low])
+            (opt-lambda (start end color [bitmap #f] [caret-space? #f] [priority 'low])
               (unless (let ([exact-pos-int?
                              (lambda (x) (and (integer? x) (exact? x) (x . >= . 0)))])
                         (and (exact-pos-int? start)
@@ -380,7 +390,6 @@
                             get-delegate
 			    set-delegate))
 
-      ;; this won't work properly for tab snips. probably need another subclass, or something.
       (define 1-pixel-string-snip%
         (class string-snip%
           (init-rest args)
@@ -416,16 +425,17 @@
             (set! cache-function #f)
             (super-insert s len pos))
 
-	  ;; for-each/sections : string -> (number number -> void) -> void
-          (define (for-each/sections make-f str)
+	  ;; for-each/sections : string -> dc number number -> void
+          (define (for-each/sections str)
             (let loop ([n (string-length str)]
                        [len 0]
                        [blank? #t])
               (cond
                 [(zero? n)
                  (if blank?
-		     (lambda (f) (void))
-		     (lambda (f) (f n len)))]
+		     (lambda (dc x y) (void))
+		     (lambda (dc x y)
+                       (send dc draw-line (+ x n) y (+ x n (- len 1)) y)))]
                 [else
                  (let ([white? (char-whitespace? (string-ref str (- n 1)))])
                    (cond
@@ -435,22 +445,16 @@
 		      (let ([res (loop (- n 1) 1 (not blank?))])
 			(if blank?
 			    res
-			    (lambda (f)
-			      (f n len)
-			      (res f))))]))])))
+			    (lambda (dc x y)
+			      (send dc draw-line (+ x n) y (+ x n (- len 1)) y)
+			      (res dc x y))))]))])))
 
           (define/override (draw dc x y left top right bottom dx dy draw-caret)
             (let ([str (get-text 0 (get-count))])
 	      (unless cache-function
 		(set! cache-function (for-each/sections str)))
               (when (<= top y bottom)
-		(cache-function
-                 (lambda (start len)
-                   (send dc draw-line
-                         (+ x start)
-                         y
-                         (+ x start (- len 1))
-                         y))))))
+		(cache-function dc x y))))
           (apply super-make-object args)))
       
       (define 1-pixel-tab-snip%
@@ -531,6 +535,18 @@
                   (loop (send snip next))))
               (send delegate lock #t)
               (send delegate end-edit-sequence)))
+          
+          (rename [super-highlight-range highlight-range])
+          (define/override highlight-range
+            (opt-lambda (start end color bitmap [caret-space? #f] [priority 'low])
+              (let ([res (super-highlight-range start end color bitmap caret-space? priority)])
+                (if delegate
+                    (let ([delegate-res (send delegate highlight-range 
+                                              start end color bitmap caret-space? priority)]) 
+                      (lambda ()
+                        (res)
+                        (delegate-res)))
+                    res))))
           
           (rename [super-on-paint on-paint])
           (inherit get-canvas)
