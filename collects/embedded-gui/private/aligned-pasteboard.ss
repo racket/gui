@@ -13,9 +13,11 @@
    (lib "mred.ss" "mred")
    (lib "etc.ss")
    (lib "click-forwarding-editor.ss" "mrlib")
+   (lib "pasteboard-lib.ss" "mrlib" "private" "aligned-pasteboard")
    "on-show-pasteboard.ss"
    "really-resized-pasteboard.ss"
    "interface.ss"
+   "snip-lib.ss"
    "locked-pasteboard.ss"
    "suppress-modify-editor.ss")
   
@@ -32,7 +34,7 @@
       
       (field
        [alignment false]
-       [lock-alignment? false]
+       [lock-alignment-depth 0]
        [needs-alignment? false])
       
       ;;;;;;;;;;
@@ -84,26 +86,30 @@
       
       #;(boolean? . -> . void?)
       ;; Locks the pasteboard so that all alignment requests are delayed until after it's done.
+      ;; STATUS: I can still observe inserts of the interactions when I paste an interactions box.
+      ;; I need to figure out why these edit-sequences are not hiding them.
       (define/public (lock-alignment lock?)
-        (set! lock-alignment? lock?)
-        (when (and needs-alignment? (not lock-alignment?))
-          (realign))
-        (if lock?
-            (begin-edit-sequence)
-            (end-edit-sequence)))
+        (set! lock-alignment-depth ((if lock? add1 sub1) lock-alignment-depth))
+        (case lock-alignment-depth
+          [(0) (when needs-alignment? (realign))
+               (unless lock? (end-edit-sequence))]
+          [(1) (when lock? (begin-edit-sequence))]
+          [else (void)]))
       
       #;(-> void?)
       ;; Realigns the snips in the pasteboard according to the alignment tree.
       (define/public (realign)
-        (if lock-alignment?
-            (set! needs-alignment? true)
-            (fluid-let ([lock-alignment? true])
+        (if (zero? lock-alignment-depth)
+            (fluid-let ([lock-alignment-depth (add1 lock-alignment-depth)])
+              (begin-edit-sequence)
               (send alignment set-min-sizes)
               (let ([width (send alignment get-min-width)]
                     [height (send alignment get-min-height)])
                 (unless (or (zero? width) (zero? height))
                   (send alignment align 0 0 width height)
-                  (set! needs-alignment? false))))))
+                  (set! needs-alignment? false)))
+              (end-edit-sequence))
+            (set! needs-alignment? true)))
       
       (super-new)))
   )
