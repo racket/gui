@@ -2946,11 +2946,23 @@
   (interface (window<%> area-container<%>)
     set-control-font get-control-font
     set-label-font get-label-font
-    set-label-position get-label-position))
+    set-label-position get-label-position
+    popup-menu))
 
-(define (make-area-container-window% %) ; % implements window<%> (and carea-ontainer<%>)
+
+(define (do-popup-menu m x y intf this wx)
+  (check-instance `(method ,intf popup-menu) popup-menu% 'popup-menu% #f m)
+  (let ([mwx (mred->wx m)])
+    (and (send mwx popup-grab this)
+	 (as-exit
+	  (lambda ()
+	    (send m on-demand)
+	    (send wx popup-menu mwx x y))))))
+
+(define (make-area-container-window% %) ; % implements window<%> (and area-container<%>)
   (class* % (area-container-window<%>) (mk-wx get-wx-panel label parent cursor) 
     (public
+      [popup-menu (entry-point-3 (lambda (m x y) (do-popup-menu m x y 'area-container-window<%> this (get-wx-panel))))]
       [get-control-font (entry-point (lambda () (send (get-wx-panel) get-control-font)))]
       [set-control-font (entry-point-1 (lambda (x) (send (get-wx-panel) set-control-font x)))]
       [get-label-font (entry-point (lambda () (send (get-wx-panel) get-label-font)))]
@@ -3555,13 +3567,7 @@
 
       [popup-menu (entry-point-3
 		   (lambda (m x y) 
-		     (check-instance '(method canvas<%> popup-menu) popup-menu% 'popup-menu% #f m)
-		     (let ([mwx (mred->wx m)])
-		       (and (send mwx popup-grab this)
-			    (as-exit
-			     (lambda ()
-			       (send m on-demand)
-			       (send wx popup-menu mwx x y)))))))]
+		     (do-popup-menu m x y 'canvas<%> this wx)))]
       [warp-pointer (entry-point-2 (lambda (x y) (send wx warp-pointer x y)))]
 
       [get-dc (entry-point (lambda () (send wx get-dc)))])
@@ -4559,7 +4565,9 @@
     (check-top-level-parent/false 'message-box parent)
     (check-style 'message-box '(ok ok-cancel yes-no) null style)
 
-    (let* ([f (make-object dialog% title parent box-width)]
+    (let* ([f (make-object (class dialog% ()
+				  (sequence
+				    (super-init title parent box-width))))]
 	   [result 'ok]
 	   [strings (let loop ([s message])
 		      (let ([m (regexp-match (let ([nl (string #\newline #\return)])
