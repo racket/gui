@@ -1,3 +1,4 @@
+
 (module keymap mzscheme
   (require (lib "string-constant.ss" "string-constants")
            (lib "unitsig.ss")
@@ -1090,20 +1091,31 @@
 		 (map "c:i" "toggle-search-focus")])))))
       
       (define setup-file
-	(let* ([save-file-as
-		(lambda (edit event)
-		  (parameterize ([finder:dialog-parent-parameter 
-				  (and (is-a? edit editor:basic<%>)
-				       (send edit get-top-level-window))])
-		    (let ([file (finder:put-file)])
-		      (if file
-			  (send edit save-file file)))
-		    #t))]
+	(let* ([get-outer-editor ;; : text% -> text%
+                ;; returns the outermost editor, if this editor is nested in an editor snip.
+                (lambda (edit)
+                  (let loop ([edit edit])
+                    (let ([admin (send edit get-admin)])
+                      (cond
+                        [(is-a? admin editor-snip-editor-admin<%>)
+                         (loop (send (send (send admin get-snip) get-admin) get-editor))]
+                        [else edit]))))]
+               [save-file-as
+		(lambda (this-edit event)
+                  (let ([edit (get-outer-editor this-edit)])
+                    (parameterize ([finder:dialog-parent-parameter 
+                                    (and (is-a? edit editor:basic<%>)
+                                         (send edit get-top-level-window))])
+                      (let ([file (finder:put-file)])
+                        (when file
+                          (send edit save-file file)))))
+                  #t)]
 	       [save-file
-		(lambda (edit event)
-		  (if (send edit get-filename)
-		      (send edit save-file)
-		      (save-file-as edit event))
+		(lambda (this-edit event)
+                  (let ([edit (get-outer-editor this-edit)])
+                    (if (send edit get-filename)
+                        (send edit save-file)
+                        (save-file-as edit event)))
 		  #t)]
 	       [load-file
 		(lambda (edit event)
