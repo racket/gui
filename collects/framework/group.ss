@@ -75,8 +75,7 @@
 				   menu
 				   (lambda (_1 _2)
 				     (send frame show #t)))))
-		  sorted-frames)
-		 (newline))
+		  sorted-frames))
 	       windows-menus)))])
       
       (private
