@@ -719,7 +719,7 @@
 					 (do-command x v)
 					 #t)))
 				objs)
-			       (not (is-a? o wx-text-editor-canvas%))))))]
+			       (not (is-a? o wx-editor-canvas%))))))]
 		  [(escape)
 		   (and (is-a? this wx:dialog%)
 			(let ([o (get-focus-window)])
@@ -1059,9 +1059,7 @@
     (inherit get-x get-y get-width get-height area-parent get-mred get-proxy)
     (rename [super-on-size on-size]
 	    [super-on-set-focus on-set-focus]
-	    [super-on-kill-focus on-kill-focus]
-	    [super-pre-on-char pre-on-char]
-	    [super-pre-on-event pre-on-event])
+	    [super-on-kill-focus on-kill-focus])
     (private
       [pre-wx->proxy (lambda (w k) ; MacOS: w may not be something the user knows
 		       (if w
@@ -1118,13 +1116,11 @@
 			 (lambda () (send (get-proxy) on-focus #f)))))]
       [pre-on-char (entry-point-2
 		    (lambda (w e)
-		      (super-pre-on-char w e)
 		      (pre-wx->proxy w (lambda (m)
 					 (as-exit (lambda () 
 						    (send (get-proxy) on-subwindow-char m e)))))))]
       [pre-on-event (entry-point-2
 		     (lambda (w e)
-		       (super-pre-on-event w e)
 		       (pre-wx->proxy w (lambda (m) 
 					  (as-exit (lambda () 
 						     (send (get-proxy) on-subwindow-event m e)))))))])
