@@ -36,7 +36,7 @@
 		      "expected to be placed into a frame or dialog implementing frame:info<%>, got: ~e" 
 		      (get-top-level-window)))
 	     (when (has-focus?)
-		   (send (get-top-level-window) update-info)))))
+	       (send (get-top-level-window) update-info)))))
 
   (define wide-snip<%> (interface (basic<%>)
 			 add-wide-snip

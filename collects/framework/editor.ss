@@ -7,7 +7,9 @@
 	  [icon : framework:icon^]
 	  [preferences : framework:preferences^]
 	  [text : framework:text^]
-	  [pasteboard : framework:pasteboard^])
+	  [pasteboard : framework:pasteboard^]
+	  [frame : framework:frame^]
+	  [mzlib:file : mzlib:file^])
   
   (rename [-keymap<%> keymap<%>])
 
@@ -237,6 +239,8 @@
 	      [super-get-keymaps get-keymaps])
       
       (override [editing-this-file? (lambda () #t)])
+
+      (inherit get-canvases)
       (private
 	[check-lock
 	 (lambda ()
@@ -247,18 +251,29 @@
 				    'write
 				    (file-or-directory-permissions
 				     filename))))])
-	     (lock lock?)))])
+	     (lock lock?)))]
+	[update-filename
+	 (lambda ()
+	   (for-each (lambda (canvas)
+		       (let ([tlw (send canvas get-top-level-window)])
+			 (when (is-a? tlw frame:editor<%>)
+			   (let ([filename (mzlib:file:normalize-path (get-filename))])
+			     (let-values ([(base name dir) (split-path filename)])
+			       (send tlw set-label name))))))
+		     (get-canvases)))])
       (override
 	[after-save-file
 	 (lambda (success)
 	   (when success
-	     (check-lock))
+	     (check-lock)
+	     (update-filename))
 	   (super-after-save-file success))]
 	
 	[after-load-file
 	 (lambda (sucessful?)
 	   (when sucessful?
-	     (check-lock))
+	     (check-lock)
+	     (update-filename))
 	   (super-after-load-file sucessful?))]
 	[get-keymaps
 	 (lambda ()
