@@ -523,7 +523,7 @@
 	(do-title)
 	(let ([canvas (get-canvas)])
 	  (send (get-edit) load-file filename)
-	  (send canvas set-focus)))))
+	  (send canvas focus)))))
   
   (define searchable<%> (interface ()
 			  get-edit-to-search
@@ -702,7 +702,7 @@
 	     (unless startup?
 	       (send 
 		(send (get-edit-to-search) get-canvas) 
-		set-focus))
+		focus))
 	     (set! hidden? #t))]
 	  [unhide-search
 	   (lambda ()
@@ -779,7 +779,7 @@
 		      (send (get-edit-to-search) get-canvas)]
 		     [else
 		      find-canvas])
-		   set-focus))]
+		   focus))]
 	  [move-to-search-or-search
 	   (lambda ()
 	     (when hidden?
@@ -787,7 +787,7 @@
 	     (if (or (send find-canvas is-focus-on?)
 		     (send replace-canvas is-focus-on?))
 		 (search 1)
-		 (send find-canvas set-focus)))]
+		 (send find-canvas focus)))]
 	  [move-to-search-or-reverse-search
 	   (lambda ()
 	     (when hidden?
@@ -795,7 +795,7 @@
 	     (if (or (send find-canvas is-focus-on?)
 		     (send replace-canvas is-focus-on?))
 		 (search -1)
-		 (send find-canvas set-focus)))]
+		 (send find-canvas focus)))]
 	  [search
 	   (opt-lambda ([direction searching-direction] [beep? #t])
 	     

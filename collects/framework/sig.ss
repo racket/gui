@@ -1,10 +1,10 @@
-
 (require-library "refer.ss")
 (require-library "cores.ss")
 (require-library "match.ss")
 (require-library "dates.ss")
 (require-library "functios.ss")
 (require-library "macro.ss")
+(require-relative-library "macro.ss")
 
 (define-signature framework:frame^
   (empty<%>
@@ -102,14 +102,15 @@
    put-file))
 
 (define-signature framework:editor^
-  (editor:basic<%>
-   editor:info<%>
-   editor:autosave<%>
+  (basic<%>
+   info<%>
+   backup-autosave<%>
    
-   editor:make-basic%
-   editor:make-info%
-   editor:make-file%
-   editor:make-backup-autosave%))
+   make-clever-file-format%
+   make-basic%
+   make-info%
+   make-file%
+   make-backup-autosave%))
 
 (define-signature framework:pasteboard^
   (basic%
@@ -119,23 +120,20 @@
    info%))
 
 (define-signature framework:text^
-  (text:basic<%>
-   text:searching<%>
+  (basic<%>
+   searching<%>
    
-   text:make-basic%
-   text:make-return%
-   text:make-searching%
-   text:make-clever-file-format%
-   text:make-scheme%
+   make-basic%
+   make-return%
+   make-searching%
    
-   text:basic% 
-   text:return%
-   text:searching%
-   text:info%
-   text:clever-file-format%
-   text:file%
-   text:backup-autosave%
-   text:scheme%))
+   basic% 
+   return%
+   searching%
+   info%
+   file%
+   clever-file-format%
+   backup-autosave%))
 
 (define-signature framework:pasteboard%
   (pasteboard:basic%
@@ -267,7 +265,7 @@
    balanced?
    backward-containing-sexp))
 
-(define-signature framework:scheme-mode^
+(define-signature framework:scheme^
   (wordbreak-map
    init-wordbreak-map
    style-list
@@ -313,4 +311,4 @@
    [unit panel : framework:panel^]
 
    [unit frame : framework:frame^]
-   [unit scheme-mode : framework:scheme-mode^]))
+   [unit scheme : framework:scheme^]))

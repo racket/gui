@@ -38,7 +38,7 @@
 				       (if (<= num-children 1)
 					   (helper parent)
 					   (begin (send parent delete-child canvas/panel)
-						  (send (car (ivar parent children)) set-focus))))))])
+						  (send (car (ivar parent children)) focus))))))])
 		       (send media remove-canvas canvas)
 		       (helper canvas))
 		     (bell))))]
@@ -72,7 +72,7 @@
 		 (send* media (remove-canvas canvas)
 			(add-canvas left-split)
 			(add-canvas right-split))
-		 (send* left-split (set-media media) (set-focus))
+		 (send* left-split (set-media media) (focus))
 		 (send* right-split (set-media media))))]))))
     
     (define horizontal-edit%

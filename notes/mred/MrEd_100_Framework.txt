@@ -9,6 +9,7 @@ into a separate application.
 
 Subtle Changes:
 
+ - the editor `auto-save?' ivar is now called `autosave?'
  - overriding `windows-menu' with #f no longer eliminates the windows
    menu. Now, it is an error.
  - mred:original-output-port, mred:original-error-port, and 
@@ -148,6 +149,22 @@ The remaining existant classes:
 
 Old to new name mapping:
 
+  mred:scheme-paren-pairs -> scheme-paren:paren-pairs
+  mred:scheme-quote-pairs -> scheme-paren:quote-pairs
+  mred:scheme-comments -> scheme-paren:comments
+  mred:scheme-backward-match -> scheme-paren:forward-match
+  mred:scheme-forward-match-> scheme-paren:backward-match
+  mred:scheme-balanced? -> scheme-paren:balanced?
+  mred:scheme-backward-containing-sexp -> scheme-paren:backward-containing-sexp
+
+  mred:setup-global-keymap -> keymap:setup-global
+  mred:setup-global-search -> keymap:setup-search
+  mred:setup-global-file -> keymap:setup-file
+	
+  mred:global-keymap -> keymap:global
+  mred:global-search-keymap -> keymap:serach
+  mred:global-file-keymap -> keyamp:file
+
   mred:match-cache% -> match-cache:%
 
   mred:handler? -> handler:handler?
@@ -248,9 +265,10 @@ NOTE: some used but non-existant interfaces from mred engine:
   
   ; text:make-basic% adds ranges, wrapping, move/copy-to-edit
   text:make-basic% : (interface (editor:basic<%> text<%>)) -> text:basic<%>
-  text:make-return% : text<%> -> editor:basic<%>
+  text:make-return% : editor:basic<%> -> editor:basic<%>
   text:make-searching% : (interface (editor:basic<%> text<%>)) -> text:searching<%>
-  text:make-clever-file-format% : text<%> -> editor<%>
+  text:make-info% : (interface (editor:basic<%> text<%>)) -> (interface (editor:basic<%> text<%>))
+  text:make-clever-file-format% : text<%> -> clever-file-format<%>
   text:make-scheme% : (interface (editor:basic<%> text<%>)) -> editor:scheme<%>
   
   editor-canvas:make-frame-title% : editor-canvas<%> -> editor-canvas<%>

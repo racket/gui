@@ -5,6 +5,7 @@
 	  [group : framework:group^]
 	  [text : framework:text^]
 	  [preferences : framework:preferences^]
+	  [frame : framework:frame^]
 	  [mzlib:file : mzlib:file^])
   
   (define-struct handler (name extension handler))
@@ -88,7 +89,7 @@
     (opt-lambda (filename
 		 [make-default
 		  (lambda (filename)
-		    (make-object frame:info-file-frame% filename))]
+		    (make-object frame:info-file% filename))]
 		 [consult-group? (edit-file-consult-group)])
       (gui-utils:show-busy-cursor
        (lambda ()

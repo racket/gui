@@ -1,14 +1,18 @@
 (unit/sig framework:text^
-  (import mred^
+  (import mred-interfaces^
 	  [editor : framework:editor^]
 	  [preferences : framework:preferences^]
-	  [keymap : framework:keymap^])
+	  [keymap : framework:keymap^]
+	  [mzlib:function : mzlib:function^])
+
+  (define-struct range (start end b/w-bitmap color caret-space?))
+  (define-struct rectangle (left top right bottom b/w-bitmap color))
 
   ;; wx: `default-wrapping?', add as the initial value for auto-wrap bitmap,
   ;; unless matthew makes it primitive
 
   (define basic<%>
-    (interface ()
+    (interface (editor:basic<%> text<%>)
       highlight-range      
       styles-fixed?
       set-styles-fixed
@@ -16,7 +20,7 @@
       autowrap-bitmap))
 
   (define make-basic%
-    (mixin (interface (editor:basic<%> text<%>)) basic<%> args
+    (mixin (editor:basic<%> text<%>) (basic<%>) args
       (inherit canvases get-max-width get-admin split-snip get-snip-position
 	       delete find-snip invalidate-bitmap-cache
 	       set-autowrap-bitmap get-keymap mode set-mode-direct
@@ -304,59 +308,15 @@
 	(let ([keymap (get-keymap)])
 	  (keymap:set-keymap-error-handler keymap)
 	  (keymap:set-keymap-implied-shifts keymap)
-	  (send keymap chain-to-keymap keymap:global-keymap #f)))))
+	  (send keymap chain-to-keymap keymap:global #f)))))
   
-  (define make-clever-file-format%
-    (mixin text<%> text<%> args
-      (inherit get-file-format set-file-format find-snip)
-      (rename [super-on-save-file on-save-file]
-	      [super-after-save-file after-save-file])
-      
-      (private [restore-file-format void])
-      
-      (public
-	[after-save-file
-	 (lambda (success)
-	   (restore-file-format)
-	   (super-after-save-file success))]
-	[on-save-file
-	 (let ([has-non-text-snips 
-		(lambda ()
-		  (let loop ([s (find-snip 0 'after)])
-		    (cond
-		      [(null? s) #f]
-		      [(is-a? s text-snip%)
-		       (loop (send s next))]
-		      [else #t])))])
-	   (lambda (name format)
-	     (when (and (or (eq? format 'same)
-			    (eq? format 'copy))
-			(not (eq? (get-file-format) 
-				  'std)))
-	       (cond
-		 [(eq? format 'copy)
-		  (set! restore-file-format 
-			(let ([f (get-file-format)])
-			  (lambda ()
-			    (set! restore-file-format void)
-			    (set-file-format f))))
-		  (set-file-format 'std)]
-		 [(and (has-non-text-snips)
-		       (or (not (preferences:get-preference 'framework:verify-change-format))
-			   (gui-utils:get-choice "Save this file as plain text?" "No" "Yes")))
-		  (set-file-format 'std)]
-		 [else (void)]))
-	     (or (super-on-save-file name format)
-		 (begin 
-		   (restore-file-format)
-		   #f))))])
-      (sequence (apply super-init args))))
+  (define file<%> (interface (basic<%>)))
 
   (define searching<%>
     (interface ()
       find-string-embedded))
   (define make-searching%
-    (mixin (interface (editor:basic<%> text<%>)) searching<%> args
+    (mixin (editor:basic<%> text<%>) (searching<%>) args
       (inherit get-end-position get-start-position last-position 
 	       find-string get-snip-position get-admin find-snip
 	       get-keymap)
@@ -443,10 +403,10 @@
 	(let ([keymap (get-keymap)])
 	  (keymap:set-keymap-error-handler keymap)
 	  (keymap:set-keymap-implied-shifts keymap)
-	  (send keymap chain-to-keymap keymap:global-search-keymap #f)))))
+	  (send keymap chain-to-keymap keymap:search #f)))))
   
   (define make-return%
-    (mixin text<%> text<%> args
+    (mixin (text<%>) (text<%>) (return . args)
       (rename [super-on-local-char on-local-char])
       (override
 	[on-local-char
@@ -462,7 +422,7 @@
 	(apply super-init args))))
 
   (define make-info%
-    (mixin (interface (editor:basic<%> text<%>)) (interface (editor:basic<%> text<%>)) args
+    (mixin (editor:basic<%> text<%>) (editor:basic<%> text<%>) args
       (inherit get-frame get-start-position get-end-position
 	       run-after-edit-sequence)
       (rename [super-after-set-position after-set-position]
@@ -509,11 +469,10 @@
 	   (enqueue-for-frame 'edit-position-changed
 			      'framework:edit-position-changed))])))
 
-
-  (define basic% (make-basic (editor:make-basic% text%)))
+  (define basic% (make-basic% (editor:make-basic% text%)))
   (define return% (make-return% basic%))
   (define file% (editor:make-file% basic%))
   (define clever-file-format% (editor:make-clever-file-format% file%))
   (define backup-autosave% (editor:make-backup-autosave% clever-file-format%))
-  (define searching% (make-searching backup-autosave%))
+  (define searching% (make-searching% backup-autosave%))
   (define info% (make-info% (editor:make-info% searching%))))

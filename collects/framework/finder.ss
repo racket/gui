@@ -9,6 +9,9 @@
 	  [mzlib:string : mzlib:string^]
 	  [mzlib:function : mzlib:function^]
 	  [mzlib:file : mzlib:file^])
+
+  (rename [put-file -put-file]
+	  [get-file -get-file])
   
   (define dialog-parent-parameter (make-parameter #f))
 
@@ -344,7 +347,7 @@
 	     number
 	     number-of-visible-items
 	     set-first-item
-	     set-focus
+	     focus
 	     set-selection)
 	   
 	   (public
@@ -371,7 +374,7 @@
 		  (cond 
 		    
 		    [(or (equal? code 'numpad-return)
-			 (equal? code #\return))) 
+			 (equal? code #\return))
 		     (do-ok)]
 		    
 		    [(equal? code #\tab)
@@ -423,7 +426,7 @@
 		       (set-selection-and-edit 
 			(min (sub1 num-items) (+ curr-pos num-vis))))]
 		    
-		    [else #f]))]
+		    [else #f])))]
 	     
 	     [on-default-action
 	      (lambda ()
@@ -443,10 +446,10 @@
 	
 	[set-focus-to-name-list
 	 (lambda ()
-	   (send name-list set-focus))]
+	   (send name-list focus))]
 	[set-focus-to-directory-edit
 	 (lambda ()
-	   (send directory-panel set-focus))]
+	   (send directory-panel focus))]
 	
 	[save-panel (when save-mode? (make-object horizontal-panel% main-panel))]
 	
@@ -515,7 +518,7 @@
 	  (send* canvas
 	    (set-line-count 1)
 	    (set-media directory-edit)
-	    (set-focus)
+	    (focus)
 	    (user-min-height 20)))
 	
 	(when multi-mode?
@@ -731,7 +734,7 @@
   
   ; external interfaces to file functions
   
-  (define put-file
+  (define -put-file
     (lambda args
       (let ([actual-fun 
 	     (case (preferences:get 'framework:file-dialogs)
@@ -739,7 +742,7 @@
 	       [(common) common-put-file])])
 	(apply actual-fun args))))
   
-  (define get-file
+  (define -get-file
     (lambda args
       (let ([actual-fun
 	     (case (preferences:get 'framework:file-dialogs)

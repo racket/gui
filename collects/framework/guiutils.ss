@@ -55,8 +55,8 @@
   (define unsaved-warning
     (opt-lambda (filename action [can-save-now? #f])
       (let* ([result (void)]
-	     [dialog%
-	      (class dialog-box% ()
+	     [unsaved-dialog%
+	      (class dialog% ()
 		(inherit show center)
 		(private
 		  [on-dont-save
@@ -95,22 +95,22 @@
 				    button-panel
 				    on-cancel)])
 		      (if (not can-save-now?)
-			  (begin (send cancel set-focus)
+			  (begin (send cancel focus)
 				 (send now show #f))
-			  (send now set-focus))))
+			  (send now focus))))
 		  
 		  (center 'both)
 		  
 		  (show #t)))])
-	(make-object dialog%)
+	(make-object unsaved-dialog%)
 	result)))
   
   (define get-choice
     (opt-lambda (message true-choice false-choice 
 			 [title "Warning"][x -1][y -1])
       (let* ([result (void)]
-	     [dialog%
-	      (class dialog-box% ()
+	     [choice-dialog%
+	      (class dialog% ()
 		(inherit show center)
 		(private
 		  [on-true
@@ -143,7 +143,7 @@
 		  (center 'both)
 		  
 		  (show #t))))])
-	(make-object dialog%)
+	(make-object choice-dialog%)
 	result)))
 
   (define read-snips/chars-from-buffer

@@ -210,5 +210,5 @@
 				 (exn-message exn))))])
        (save-user-preferences))))
   
-  ;(wx:application-file-handler edit-file)
+  ;(wx:application-file-handler edit-file) ;; how to handle drag and drop?
   )

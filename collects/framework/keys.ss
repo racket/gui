@@ -3,7 +3,8 @@
 	  [preferences : framework:preferences^]
 	  [finder : framework:finder^]
 	  [handler : framework:handler^]
-	  [scheme-paren : framework:scheme-paren^])
+	  [scheme-paren : framework:scheme-paren^]
+	  [frame : framework:frame^])
   
   ; This is a list of keys that are typed with the SHIFT key, but
   ;  are not normally thought of as shifted. It will have to be
@@ -70,7 +71,7 @@
 	   [flash-paren-match
 	    (lambda (edit event)
 	      (send edit on-default-char event)
-	      (let ([pos (scheme-paren:scheme-backward-match 
+	      (let ([pos (scheme-paren:backward-match 
 			  edit
 			  (send edit get-start-position)
 			  0)])
@@ -488,15 +489,15 @@
 	    (lambda (edit event)
 	      (if building-macro
 		  (send build-macro-km break-sequence)
-		  (letrec* ([km (send edit get-keymap)]
-			    [done
-			     (lambda ()
-			       (if build-protect?
-				   (send km set-break-sequence-callback done)
-				   (begin
-				     (set! building-macro #f)
-				     (send km set-break-sequence-callback void)
-				     (send km remove-grab-key-function))))])
+		  (letrec ([km (send edit get-keymap)]
+			   [done
+			    (lambda ()
+			      (if build-protect?
+				  (send km set-break-sequence-callback done)
+				  (begin
+				    (set! building-macro #f)
+				    (send km set-break-sequence-callback void)
+				    (send km remove-grab-key-function))))])
 		    (set! building-macro '())
 		    (set! build-macro-km km)
 		    (send km set-grab-key-function
@@ -772,19 +773,18 @@
 	    (lambda (method)
 	      (lambda (edit event)
 		(let ([frame
-		       (let ([frame
-			      (cond
-				[(is-a? obj editor<%>)
-				 (let ([canvas (send obj get-active-canvas)])
-				   (and canvas
-					(send canvas get-top-level-window)))]
-				[(is-a? obj area<%>)
-				 (send obj get-top-level-window)]
-				[else #f])]))])
+		       (cond
+			 [(is-a? edit editor<%>)
+			  (let ([canvas (send edit get-active-canvas)])
+			    (and canvas
+				 (send canvas get-top-level-window)))]
+			 [(is-a? edit area<%>)
+			  (send edit get-top-level-window)]
+			 [else #f])])
 		  (if frame
 		      ((ivar/proc frame method))
-		      (bell))
-		  #t)))])
+		      (bell)))
+		  #t))])
       (lambda (kmap)
 	(let* ([map (lambda (key func) 
 		      (send kmap map-function key func))]

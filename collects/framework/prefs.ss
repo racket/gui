@@ -383,7 +383,7 @@
 		    (let* ([pref-sym (build-font-preference-symbol name)]
 			   [family-const-pair (assoc name font-families-name/const)]
 			   
-			   [edit (make-object edit%)]
+			   [edit (make-object text%)]
 			   [_ (send edit insert ex-string)]
 			   [set-edit-font
 			    (lambda (size)
@@ -537,60 +537,61 @@
   
   (define make-preferences-dialog
     (lambda ()
-      (letrec* ([frame 
-		 (make-object (class-asi frame%
-				(public [added-pane (lambda () 
-						      (ensure-constructed)
-						      (refresh-menu)
-						      (send popup-menu set-selection (sub1 (length ppanels)))
-						      (send single-panel active-child 
-							    (ppanel-panel (car (list-tail ppanels (sub1 (length ppanels)))))))]))
-			      '() "Preferences")]
-		[panel (make-object vertical-panel% frame)]
-		[popup-callback
-		 (lambda (choice command-event)
-		   (send single-panel active-child
-			 (ppanel-panel (list-ref ppanels (send command-event get-command-int)))))]
-		[make-popup-menu 
-		 (lambda ()
-		   (let ([menu (make-object choice% "Category"
-					    (map ppanel-title ppanels)
-					    panel popup-callback)])
-		     (send menu stretchable-in-x #f)
-		     menu))]
-		[popup-menu (make-popup-menu)]
-		[single-panel (make-object single-panel% panel '(border))]
-		[bottom-panel (make-object horizontal-panel% panel)]
-		[ensure-constructed
-		 (lambda ()
-		   (for-each (lambda (ppanel)
-			       (unless (ppanel-panel ppanel)
-				 (let ([panel ((ppanel-container ppanel) single-panel)])
-				   (unless (is-a? panel panel%)
-				     (error 'preferences-dialog
-					    "expected the preference panel to be a panel%. Got ~a instead~n"
-					    panel))
-				   (set-ppanel-panel! ppanel panel))))
-			     ppanels)
-		   (send single-panel change-children (lambda (l) (map ppanel-panel ppanels)))
-		   (send single-panel active-child (ppanel-panel (car ppanels))))]
-		[refresh-menu
-		 (lambda ()
-		   (let ([new-popup (make-popup-menu)])
-		     (send new-popup set-selection (send popup-menu get-selection))
-		     (set! popup-menu new-popup)
-		     (send panel change-children
-			   (lambda (l) (list new-popup
-					     single-panel
-					     bottom-panel)))))]
-		[ok-callback (lambda args
-			       (save)
-			       (hide-dialog))]
-		[ok-button (make-object button% bottom-panel ok-callback "OK")]
-		[cancel-callback (lambda args
-				   (hide-dialog)
-				   (read))]
-		[cancel-button (make-object button% bottom-panel cancel-callback "Cancel")])
+      (letrec ([frame 
+		(make-object (class-asi frame%
+			       (public [added-pane (lambda () 
+						     (ensure-constructed)
+						     (refresh-menu)
+						     (send popup-menu set-selection (sub1 (length ppanels)))
+						     (send single-panel active-child 
+							   (ppanel-panel (car (list-tail ppanels (sub1 (length ppanels)))))))]))
+		  '() "Preferences")]
+	       [panel (make-object vertical-panel% frame)]
+	       [popup-callback
+		(lambda (choice command-event)
+		  (send single-panel active-child
+			(ppanel-panel (list-ref ppanels (send command-event get-command-int)))))]
+	       [make-popup-menu 
+		(lambda ()
+		  (let ([menu (make-object choice% "Category"
+					   (map ppanel-title ppanels)
+					   panel popup-callback)])
+		    (send menu stretchable-in-x #f)
+		    menu))]
+	       [popup-menu (make-popup-menu)]
+	       [single-panel (make-object vertical-panel%; This should be single-panel%. wx:
+			       panel '(border))]
+	       [bottom-panel (make-object horizontal-panel% panel)]
+	       [ensure-constructed
+		(lambda ()
+		  (for-each (lambda (ppanel)
+			      (unless (ppanel-panel ppanel)
+				(let ([panel ((ppanel-container ppanel) single-panel)])
+				  (unless (is-a? panel panel%)
+				    (error 'preferences-dialog
+					   "expected the preference panel to be a panel%. Got ~a instead~n"
+					   panel))
+				  (set-ppanel-panel! ppanel panel))))
+			    ppanels)
+		  (send single-panel change-children (lambda (l) (map ppanel-panel ppanels)))
+		  (send single-panel active-child (ppanel-panel (car ppanels))))]
+	       [refresh-menu
+		(lambda ()
+		  (let ([new-popup (make-popup-menu)])
+		    (send new-popup set-selection (send popup-menu get-selection))
+		    (set! popup-menu new-popup)
+		    (send panel change-children
+			  (lambda (l) (list new-popup
+					    single-panel
+					    bottom-panel)))))]
+	       [ok-callback (lambda args
+			      (save)
+			      (hide-dialog))]
+	       [ok-button (make-object button% bottom-panel ok-callback "OK")]
+	       [cancel-callback (lambda args
+				  (hide-dialog)
+				  (read))]
+	       [cancel-button (make-object button% bottom-panel cancel-callback "Cancel")])
 	(send ok-button user-min-width (send cancel-button get-width))
 	(send* bottom-panel
 	  (stretchable-in-y #f)

@@ -1,5 +1,6 @@
 (unit/sig framework:editor^
-  (import [autosave : framework:autosave^]
+  (import mred^
+	  [autosave : framework:autosave^]
 	  [finder : framework:finder^]
 	  [path-utils : framework:path-utils^]
 	  [keymap : framework:keymap^]
@@ -8,7 +9,7 @@
 	  [gui-utils : framework:gui-utils^])
   
   (define basic<%>
-    (interface ()
+    (interface (editor<%>)
       editing-this-file?
       local-edit-sequence?
       run-after-edit-sequence
@@ -17,7 +18,7 @@
       default-auto-wrap?))
 
   (define make-basic%
-    (mixin editor<%> basic<%> args
+    (mixin (editor<%>) (basic<%>) args
       (inherit modified? get-filename save-file canvases
 	       refresh-delayed? 
 	       get-frame get-keymap
@@ -127,8 +128,8 @@
 	   (super-lock x))])
       
       (public
-	[get-text-snip (lambda () (make-object media-snip% (make-object edit%)))]
-	[get-pasteboard-snip (lambda () (make-object media-snip% (make-object pasteboard%)))])
+	[get-text-snip (lambda () (make-object editor-snip% (make-object text%)))]
+	[get-pasteboard-snip (lambda () (make-object editor-snip% (make-object pasteboard%)))])
       (override
 	[on-new-box
 	 (lambda (type)
@@ -159,10 +160,12 @@
       (inherit auto-wrap)
       (sequence
 	(apply super-init args)
-	(auto-wrap default-auto-wrap))))
+	(auto-wrap default-auto-wrap?))))
   
+
+  (define file<%> (interface (basic<%>)))
   (define make-file%
-    (mixin basic<%> basic<%> args
+    (mixin (basic<%>) (file<%>) args
       (inherit get-keymap find-snip  
 	       get-filename lock get-style-list 
 	       modified? change-style set-modified 
@@ -170,7 +173,7 @@
       (rename [super-after-save-file after-save-file]
 	      [super-after-load-file after-load-file])
       
-      (public [editing-this-file? #t])
+      (override [editing-this-file? #t])
       (private
 	[check-lock
 	 (lambda ()
@@ -182,7 +185,7 @@
 				    (file-or-directory-permissions
 				     filename))))])
 	     (lock lock?)))])
-      (public
+      (override
 	[after-save-file
 	 (lambda (success)
 	   (when success
@@ -193,20 +196,26 @@
 	 (lambda (sucessful?)
 	   (when sucessful?
 	     (check-lock))
-	   (super-after-load-file sucessful?))]
-	[autowrap-bitmap (icon:get-autowrap-bitmap)])
+	   (super-after-load-file sucessful?))])
       (sequence
 	(apply super-init args)
 	(let ([keymap (get-keymap)])
 	  (keymap:set-keymap-error-handler keymap)
 	  (keymap:set-keymap-implied-shifts keymap)
-	  (send keymap chain-to-keymap keymap:global-file-keymap #f)))))
+	  (send keymap chain-to-keymap keymap:file #f)))))
   
+  (define backup-autosave<%>
+    (interface (basic<%>)
+      backup?
+      autosave?
+      do-autosave
+      remove-autosave))
+
   ; wx: when should autosave files be removed?
   ;     also, what about checking the autosave files when a file is
   ;     opened?
   (define make-backup-autosave%
-    (mixin basic<%> autosave<%> args
+    (mixin (basic<%>) (backup-autosave<%>) args
       (inherit modified? get-filename save-file)
       (rename [super-on-save-file on-save-file]
 	      [super-on-change on-change]
@@ -218,6 +227,7 @@
 	[auto-save-out-of-date? #t]
 	[auto-save-error? #f])
       (public
+	[auto-save? #t]
 	[backup? #t])
       (override
 	[on-save-file
@@ -233,7 +243,7 @@
 			(set! freshen-backup? #f)
 			(when (file-exists? back-name)
 			  (delete-file back-name)))
-		      (with-handlers ([exn:i/o:filesystem:rename? void])
+		      (with-handlers ([(lambda (x) #t) void])
 			(copy-file name back-name))))
 		  #t)))]
 	[do-close
@@ -245,7 +255,6 @@
 	 (lambda ()
 	   (super-on-change)
 	   (set! auto-save-out-of-date? #t))]
-	[auto-save? #t]
 	[set-modified
 	 (lambda (modified?)
 	   (when auto-saved-name
@@ -254,7 +263,9 @@
 		 (begin
 		   (delete-file auto-saved-name)
 		   (set! auto-saved-name #f))))
-	   (super-set-modified modified?))]
+	   (super-set-modified modified?))])
+      (public
+	[autosave? #t]
 	[do-autosave
 	 (lambda ()
 	   (when (and auto-save?
@@ -286,21 +297,68 @@
 	     (set! auto-saved-name #f)))])
       (sequence
 	(apply super-init args)
-	(autosave:register-autosave this))))
-  
+	(autosave:register this))))
+
+  (define info<%> (interface (basic<%>)))
   (define make-info%
-    (lambda (super-info-edit%)
-      (class-asi super-info-edit%
-	(inherit get-frame run-after-edit-sequence)
-	(rename [super-lock lock])
-	(public
-	  [lock
-	   (lambda (x)
-	     (super-lock x)
-	     (run-after-edit-sequence
-	      (rec send-frame-update-lock-icon
-		   (lambda ()
-		     (let ([frame (get-frame)])
-		       (when frame
-			 (send frame lock-status-changed)))))
-	      'framework:update-lock-icon))])))))
+    (mixin (basic<%>) (info<%>) args
+      (inherit get-frame run-after-edit-sequence)
+      (rename [super-lock lock])
+      (override
+	[lock
+	 (lambda (x)
+	   (super-lock x)
+	   (run-after-edit-sequence
+	    (rec send-frame-update-lock-icon
+		 (lambda ()
+		   (let ([frame (get-frame)])
+		     (when frame
+		       (send frame lock-status-changed)))))
+	    'framework:update-lock-icon))])
+      (sequence (apply super-init args))))
+
+  (define make-clever-file-format%
+    (mixin (editor<%>) (editor<%>) args
+      (inherit get-file-format set-file-format find-snip)
+      (rename [super-on-save-file on-save-file]
+	      [super-after-save-file after-save-file])
+      
+      (private [restore-file-format void])
+      
+      (override
+	[after-save-file
+	 (lambda (success)
+	   (restore-file-format)
+	   (super-after-save-file success))]
+	[on-save-file
+	 (let ([has-non-text-snips 
+		(lambda ()
+		  (let loop ([s (find-snip 0 'after)])
+		    (cond
+		      [(null? s) #f]
+		      [(is-a? s text-snip%)
+		       (loop (send s next))]
+		      [else #t])))])
+	   (lambda (name format)
+	     (when (and (or (eq? format 'same)
+			    (eq? format 'copy))
+			(not (eq? (get-file-format) 
+				  'std)))
+	       (cond
+		 [(eq? format 'copy)
+		  (set! restore-file-format 
+			(let ([f (get-file-format)])
+			  (lambda ()
+			    (set! restore-file-format void)
+			    (set-file-format f))))
+		  (set-file-format 'std)]
+		 [(and (has-non-text-snips)
+		       (or (not (preferences:get 'framework:verify-change-format))
+			   (gui-utils:get-choice "Save this file as plain text?" "No" "Yes")))
+		  (set-file-format 'std)]
+		 [else (void)]))
+	     (or (super-on-save-file name format)
+		 (begin 
+		   (restore-file-format)
+		   #f))))])
+      (sequence (apply super-init args)))))

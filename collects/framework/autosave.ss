@@ -1,5 +1,6 @@
 (unit/sig framework:autosave^
-  (import [exit : framework:exit^]
+  (import mred^
+	  [exit : framework:exit^]
 	  [preferences : framework:preferences^])
   
   (define register
@@ -11,7 +12,7 @@
 	       (override
 		 [notify
 		  (lambda ()
-		    (when (preferences:get-preference 'framework:autosaving-on?)
+		    (when (preferences:get 'framework:autosaving-on?)
 		      (set! objects
 			    (let loop ([list objects])
 			      (if (null? list)

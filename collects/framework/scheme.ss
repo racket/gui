@@ -3,7 +3,7 @@
 
 ; Scheme mode for MrEd.
 
-(unit/sig framework:scheme-mode^
+(unit/sig framework:scheme^
   (import mred^
 	  [preferences : framework:preferences^]
 	  [match-cache : framework:match-cache^]
@@ -51,10 +51,9 @@
   (define init-wordbreak-map
     (lambda (map)
       (let ([v (send map get-map (char->integer #\-))])
-	(unless (zero? (bitwise-and v wx:const-break-for-line))
-	  (send map set-map 
-		(char->integer #\-)
-		(- v wx:const-break-for-line))))))
+	(send map set-map 
+	      (char->integer #\-)
+	      '(line)))))
   (define wordbreak-map (make-object editor-wordbreak-map%))
   (init-wordbreak-map scheme-media-wordbreak-map)
 
@@ -760,7 +759,7 @@
 			  (let ([k (make-object keymap%)])
 			    (set-keymap k)
 			    k))])
-	  (send keymap chain-to-keymap scheme-keymap #t))))))
+	  (send keymap chain-to-keymap scheme-keymap #t)))))
 
   (define setup-keymap
     (lambda (keymap)
@@ -882,7 +881,7 @@
 
 	  (map-meta "c:space" "select-forward-sexp")
 	  (map-meta "c:t" "transpose-sexp"))
-	(send keymap map-function "c:c;c:b" "remove-parens-forward"))))
+	(send keymap map-function "c:c;c:b" "remove-parens-forward")))
 
   (define keymap (make-object keymap%))
   (setup-keymap keymap))
