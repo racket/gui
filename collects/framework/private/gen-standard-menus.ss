@@ -18,7 +18,7 @@
        `[define ,(an-item->get-item-name item)
           (lambda () ,(an-item->item-name item))]
        `[define ,(an-item->string-name item)
-          (lambda () "")]
+          (lambda () ,(an-item-menu-string item))]
        `[define ,(an-item->help-string-name item)
           (lambda () ,(an-item-help-string item))]
        `[define ,(an-item->on-demand-name item)
@@ -53,22 +53,12 @@
     (let* ([callback-name (an-item->callback-name item)]
            [create-menu-item-name (an-item->create-menu-item-name item)]
            [callback-name-string (symbol->string callback-name)]
-           [menu-before-string (an-item-menu-string-before item)]
-           [menu-after-string (an-item-menu-string-after item)]
-           [key (an-item-key item)]
-           [join (lambda (base-text suffix-text special-text)
-                   `(let ([special ,special-text]
-                          [base ,base-text]
-                          [suffix ,suffix-text])
-                      (if (string=? special "")
-                          (string-append base suffix)
-                          (string-append base " " special suffix))))])
+           [key (an-item-key item)])
       (list `(define
                ,(an-item->item-name item)
                (and (,create-menu-item-name)
                     (instantiate (get-menu-item%) ()
-                      (label ,(join menu-before-string menu-after-string
-                                    `(,(an-item->string-name item))))
+                      (label (,(an-item->string-name item)))
                       (parent ,(menu-item-menu-name item))
                       (callback (let ([,callback-name (lambda (item evt) (,callback-name item evt))])
                                   ,callback-name))
