@@ -1,6 +1,12 @@
 (module embedded-gui mzscheme
   
-  (require
+  (define-syntax (require/provide stx)
+    (syntax-case stx ()
+      [(_ filename ...)
+      #'(begin (require filename ...)
+               (provide (all-from filename) ...))]))
+  
+  (require/provide
    "private/grid-alignment.ss"
    "private/aligned-pasteboard.ss"
    "private/interface.ss"
@@ -13,20 +19,6 @@
    "private/verthoriz-alignment.ss"
    "private/snip-wrapper.ss"
    "private/single-line-text.ss"
-   "private/embedded-message.ss")
-
-  (provide
-   (all-from "private/grid-alignment.ss")
-   (all-from "private/aligned-pasteboard.ss")
-   (all-from "private/interface.ss")
-   (all-from "private/snip-lib.ss")
-   (all-from "private/button-snip.ss")
-   (all-from "private/stretchable-editor-snip.ss")
-   (all-from "private/tabbable-text.ss")
-   (all-from "private/fixed-width-label-snip.ss")
-   (all-from "private/grey-editor.ss")
-   (all-from "private/verthoriz-alignment.ss")
-   (all-from "private/snip-wrapper.ss")
-   (all-from "private/single-line-text.ss")
-   (all-from "private/embedded-message.ss"))
+   "private/embedded-message.ss"
+   "private/lines.ss")
   )

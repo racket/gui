@@ -55,14 +55,14 @@ get text deteleted from them, etc.
       |#
       (define/augment (after-insert snip before x y)
         (hash-table-put! snip-cache snip (snip-size snip))
-        (inner (void) snip before x y))
+        (inner (void) after-insert snip before x y))
       
       #|
       snip : snip% object
       |#
       (define/augment (after-delete snip)
         (hash-table-remove! snip-cache snip)
-        (inner (void) snip))
+        (inner (void) after-delete snip))
       
       #;((is-a?/c snip%) . -> . (cons/p natural-number? natural-number?))
       ;; The width and height of the given snip in this pasteboard.

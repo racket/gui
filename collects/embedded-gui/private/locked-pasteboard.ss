@@ -23,8 +23,8 @@
       (define/override (on-default-event event) (void))
       ;; The rest of the methods I believe to be redundant but
       ;; are overriden anyway for consistancy.
-      (define/override (can-interactive-move? event) false)
-      (define/override (can-interactive-resize? snip) false)
+      (define/augment-final (can-interactive-move? event) false)
+      (define/augment-final (can-interactive-resize? snip) false)
       (define/override (get-dragable) false)
       (define/override (get-selection-visible) false)
       (super-new)))
