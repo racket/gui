@@ -16,7 +16,7 @@
   
   (mred:debug:printf 'invoke "mred:edit@")
   
-  (define-struct range (start end b/w-bitmap color))
+  (define-struct range (start end b/w-bitmap color caret-space?))
   (define-struct rectangle (left top right bottom b/w-bitmap color))
   
   (mred:preferences:set-preference-default 'mred:verify-change-format #f 
@@ -154,13 +154,17 @@
 			     [end (range-end range)]
 			     [b/w-bitmap (range-b/w-bitmap range)]
 			     [color (range-color range)]
+			     [caret-space? (range-caret-space? range)]
 			     [start-eol? #f]
 			     [end-eol? (if (= start end)
 					   start-eol?
 					   #t)])
 			(let-values ([(start-x top-start-y)
 				      (begin (position-location start b1 b2 #t start-eol? #t)
-					     (values (unbox b1) (unbox b2)))]
+					     (values (if caret-space?
+							 (+ 1 (unbox b1))
+							 (unbox b1))
+						     (unbox b2)))]
 				     [(end-x top-end-y)
 				      (begin (position-location end b1 b2 #t end-eol? #t)
 					     (values (unbox b1) (unbox b2)))]
@@ -282,9 +286,9 @@
 	(public
 	  ;; the bitmap is used in b/w and the color is used in color.
 	  [highlight-range
-	   (opt-lambda (start end color [bitmap #f])
+	   (opt-lambda (start end color bitmap [caret-space? #f])
 	     (mred:debug:printf 'highlight-range "highlight-range: adding range: ~a ~a" start end)
-	     (let ([l (make-range start end bitmap color)])
+	     (let ([l (make-range start end bitmap color caret-space?)])
 	       (set! ranges (cons l ranges))
 	       (recompute-range-rectangles)
 	       (lambda ()
