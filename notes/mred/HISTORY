@@ -1,4 +1,15 @@
 
+Version 102/7:
+
+ * Added `{get,set}-align-top-line' methods to editor-snip%.
+
+ * Added `get-top-line-base' method to text%.
+
+ * Fixed button disabling so that it pops the button back up if the
+   user is in the middle of a click (PR 1333). Also fixed event
+   dispatching in the case that `on-subwindow-{event,char}' disables
+   the target (in which case the event shouldn't be dispatched).
+
 Version 102/6:
 
  * Fixed pasting and file-loading with objects that use a style other
