@@ -12,8 +12,14 @@
 			  (between-after between))))
 			  
 (define-struct an-item (menu-name item-name help-string proc key menu-string-before menu-string-after))
-(define (an-item->name item)
-  (string->symbol (format "~a:~a" (an-item-menu-name item) (an-item-item-name item))))
+(define an-item->name
+  (case-lambda
+   [(item) (an-item->name item "")]
+   [(item middle)
+    (string->symbol (format "~a:~a~a"
+			    (an-item-menu-name item)
+			    middle
+			    (an-item-item-name item)))]))
 
 (define items
   (list (make-generic 'get-menu% '(lambda () menu%)

@@ -3,14 +3,18 @@
 string=? ; exec mred -mgaqvf $0
 
 (require-library "pretty.ss")
+(require-library "function.ss")
 
 (load-relative "standard-menus-items.ss")
 
 (define build-id
-  (lambda (name post)
-    (let* ([name-string (symbol->string name)]
+  (case-lambda
+   [(name post) (build-id name post "")]
+   [(item post pre)
+    (let* ([name (an-item->name item pre)]
+	   [name-string (symbol->string name)]
 	   [answer (string->symbol (string-append name-string post))])
-      answer)))
+      answer)]))
 
 (define menu-name->id
   (lambda (name-string)
@@ -27,8 +31,10 @@ string=? ; exec mred -mgaqvf $0
 		 'get-file-menu])))))
 
 (define (an-item->names item)
-  (let ([name (an-item->name item)])
-    (list name (build-id name "-string") (build-id name "-help-string"))))
+  (list (an-item->name item)
+	(build-id item "-item" "get-")
+	(build-id item "-string")
+	(build-id item "-help-string")))
 
 (define build-fill-in-item-clause
   (lambda (item)
@@ -37,7 +43,10 @@ string=? ; exec mred -mgaqvf $0
       `(public 
 	 ,@(map (lambda (x y) `[,x ,y])
 		(an-item->names item)
-		(list proc `(lambda () "") `(lambda () ,help-string)))))))
+		(list proc
+		      `(lambda () ,(build-id item "-item"))
+		      `(lambda () "")
+		      `(lambda () ,help-string)))))))
 
 (define build-fill-in-between/after-clause
   (lambda (->name -procedure)
@@ -51,29 +60,27 @@ string=? ; exec mred -mgaqvf $0
 (define build-fill-in-between-clause (build-fill-in-between/after-clause between->name between-procedure))
 (define build-fill-in-after-clause (build-fill-in-between/after-clause after->name after-procedure))
 
-(define build-item-menu-clause
-  (lambda (item)
-    (let* ([name (an-item->name item)]
-	   [name-string (symbol->string name)]
-	   [menu-before-string (an-item-menu-string-before item)]
-	   [menu-after-string (an-item-menu-string-after item)]
-	   [key (an-item-key item)]
-	   [join '(lambda (base special suffix)
-		    (if (string=? special "")
-			(string-append base suffix)
-			(string-append base " " special suffix)))])
-      `(public
-	 [,(build-id name "-menu")
-	  (and ,name
-	       (make-object
-		   (get-menu-item%)
-		 (,join ,menu-before-string
-			(,(build-id name "-string"))
-			,menu-after-string)
-		 ,(menu-name->id name-string)
-		 ,name
-		 ,key
-		 (,(build-id name "-help-string"))))]))))
+(define (build-item-menu-clause item)
+  (let* ([name (an-item->name item)]
+	 [name-string (symbol->string name)]
+	 [menu-before-string (an-item-menu-string-before item)]
+	 [menu-after-string (an-item-menu-string-after item)]
+	 [key (an-item-key item)]
+	 [join '(lambda (base special suffix)
+		  (if (string=? special "")
+		      (string-append base suffix)
+		      (string-append base " " special suffix)))])
+    `(private
+       [,(build-id item "-item")
+	(and ,name
+	     (make-object (get-menu-item%)
+	       (,join ,menu-before-string
+		      (,(build-id item "-string"))
+		      ,menu-after-string)
+	       ,(menu-name->id name-string)
+	       ,name
+	       ,key
+	       (,(build-id item "-help-string"))))])))
 
 (define build-between/after-menu-clause
   (lambda (->name -menu)
