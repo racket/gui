@@ -1,4 +1,14 @@
 
+Version 299.1
+Added 'transparent flag for canvas%
+Added 'metal flag to frame%
+mio: Removed >> and <<, changed "string" to "bytes"
+Made weight and style args for font% optional
+Added [screen-]glyph-exists?
+
+----------------------------------------------------------------------
+
+
 Version 206p1, February 2004
 
  Fixed printing scale for Windows NT/2000/XP
