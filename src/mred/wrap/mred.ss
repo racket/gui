@@ -2081,6 +2081,7 @@
       (unless horiz? (send p alignment 'left 'top))
       (unless multi? (stretchable-in-y #f))
       (send e auto-wrap (and multi? (not (memq 'hscroll style))))
+      (install-standard-text-bindings e)
       (let ([f (get-control-font)]
 	    [s (send (send e get-style-list) find-named-style "Standard")])
 	(send s set-delta (font->delta f)))
@@ -3394,6 +3395,47 @@
       (send wx-parent set-menu-bar wx)
       (send wx-parent self-redraw-request))))
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Standard Key Bindings ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(define std-keymap (make-object wx:keymap%))
+
+(let* ([k std-keymap]
+       [mouse-paste (lambda (edit event) 
+		      (when (send event button-down?)
+			(cond
+			 [(is-a? edit wx:text%)
+			  (let ([x-box (box (send event get-x))]
+				[y-box (box (send event get-y))]
+				[eol-box (box #f)])
+			    (send edit global-to-local x-box y-box)
+			    (let ([click-pos (send edit find-position 
+						   (unbox x-box)
+						   (unbox y-box)
+						   eol-box)])
+			      (send edit set-position click-pos)))]
+			 [else (void)])
+			(send edit paste)))])
+  (wx:add-text-keymap-functions k)
+  (send k add-mouse-function "mouse-paste" mouse-paste)
+  (map
+   (lambda (key func) (send k map-function key func))
+   (append
+    (case (system-type)
+      [(windows) '("c:c" "c:x" "c:v" "c:k" "c:z")]
+      [(macos) '("d:c" "d:x" "d:v" "d:k" "d:z")]
+      [(unix) '("m:w" "c:w" "c:y" "c:k" "c:s:_")])
+    '("middlebutton"))
+   '("copy-clipboard" "cut-clipboard" "paste-clipboard" "delete-to-end-of-line" "undo" "mouse-paste"))
+  (when (eq? (system-type) 'unix)
+    (send k map-function "c:a" "beginning-of-line")
+    (send k map-function "c:e" "end-of-line")))
+
+(define (install-standard-text-bindings e)
+  (check-instance 'install-standard-text-bindings wx:text% 'text% #f e)
+  (let ([k (send e get-keymap)])
+    (when k
+      (send k chain-to-keymap std-keymap #f))))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;; REPL ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define (graphical-read-eval-print-loop)
@@ -3496,22 +3538,7 @@
       (append-editor-operation-menu-items m)))
 
   ;; Just a few extra key bindings:
-  (let* ([k (send repl-buffer get-keymap)]
-	 [mouse-paste (lambda (edit event) 
-			(when (send event button-down?)
-			  (send edit set-position (send edit last-position))
-			  (send edit paste)))])
-    (wx:add-text-keymap-functions k)
-    (send k add-mouse-function "mouse-paste" mouse-paste)
-    (map
-     (lambda (key func) (send k map-function key func))
-     (append
-      (case (system-type)
-	[(windows) '("c:c" "c:x" "c:v" "c:k")]
-	[(macos) '("d:c" "d:x" "d:v" "d:k")]
-	[(unix) '("m:w" "c:w" "c:y" "c:k")])
-      '("middlebutton"))
-     '("copy-clipboard" "cut-clipboard" "paste-clipboard" "delete-to-end-of-line" "mouse-paste")))
+  (install-standard-text-bindings repl-buffer)
   (send repl-buffer auto-wrap #t)
 
   ;; Go
