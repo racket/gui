@@ -1,4 +1,3 @@
-
   (unit/sig mred:edit^
     (import mred:wx^
 	    [mred:constants : mred:constants^]
@@ -50,6 +49,8 @@
 		  [super-lock lock])
 
 	  (public
+	    [on-close (lambda () #t)]
+
 	    [get-edit-snip
 	     (lambda () (make-object media-snip%
 			  (make-object edit%)))]
@@ -225,12 +226,18 @@
 		       #f))))]
 	    [check-lock
 	     (lambda ()
-	       (let ([filename (get-filename)])
-		 (lock (and (not (null? filename))
-			    (not (member
-				  'write
-				  (file-or-directory-permissions
-				   filename)))))))]
+	       (let* ([filename (get-filename)]
+		      [lock? (and (not (null? filename))
+				  (file-exists? filename)
+				  (not (member
+					'write
+					(file-or-directory-permissions
+					 filename))))])
+		 (mred:debug:printf 'permissions 
+				    "locking: ~a (filename: ~a)"
+				    lock?
+				    filename)
+		 (lock lock?)))]
 	    [after-save-file
 	     (lambda (success)
 	       (when success
@@ -602,6 +609,7 @@
 	  (inherit modified? get-filename save-file)
 	  (rename [super-on-save-file on-save-file]
 		  [super-on-change on-change]
+		  [super-on-close on-close]
 		  [super-set-modified set-modified])
 	  (private
 	    [auto-saved-name #f]
@@ -619,6 +627,13 @@
 				 (file-exists? name))
 			(let ([back-name (mred:path-utils:generate-backup-name name)])
 			  (wx:copy-file name back-name)))
+		      #t)))]
+	    [on-close
+	     (lambda ()
+	       (and (super-on-close)
+		    (begin
+		      (remove-autosave)
+		      (set! auto-save? #f)
 		      #t)))]
 	    [on-change
 	     (lambda ()
