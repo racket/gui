@@ -39,7 +39,7 @@
       (override
         [map-function
          (lambda (keyname fname)
-           (super-map-function keyname fname)
+           (super-map-function (canonicalize-keybinding-string keyname) fname)
            (hash-table-put! function-table (string->symbol keyname) fname))])
       
       (public
@@ -64,18 +64,18 @@
       (sequence
         (apply super-init args))))
 
-  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-  ;;;;;;;                                   ;;;;;;;;
-  ;;;;;;;           canonicalize            ;;;;;;;;
-  ;;;;;;;                                   ;;;;;;;;
-  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  ;;;;;;;                                                     ;;;;;;;;
+  ;;;;;;;           canonicalize-keybinding-string            ;;;;;;;;
+  ;;;;;;;                                                     ;;;;;;;;
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
   ;; canonicalize-keybinding-string : string -> string
   ;; The result can be used with string=? to determine
   ;; if two key bindings refer to the same key.
   ;; Assumes a well-formed keystring.
   (define (canonicalize-keybinding-string str)
-    (let* ([chars (string->list str)]
+    (let* ([chars (map char-downcase (string->list str))]
 	   [separated-keys
 	    (map
 	     canonicalize-single-keybinding-string
@@ -91,12 +91,13 @@
 	 string-append
 	 (cons
 	  (car strs)
-	  (let loop ([keys (cdr strs)])
+	  (let loop ([sepd-strs (cdr strs)])
 	    (cond
-	     [(null? keys) null]
-	     [else (list* sep
-			  (car keys)
-			  (loop (cdr keys)))]))))))
+	     [(null? sepd-strs) null]
+	     [else (list*
+		    sep
+		    (car sepd-strs)
+		    (loop (cdr sepd-strs)))]))))))
 
   ;; canonicalize-single-keybinding-string : (listof char) -> string
   (define (canonicalize-single-keybinding-string chars)
@@ -108,7 +109,7 @@
 	       [(null? mods) null]
 	       [(null? (cdr mods)) null]
 	       [else (cons (car mods) (loop (cdr mods)))]))]
-	   [key (cdr (mzlib:function:last-pair mods/key))]
+	   [key (car (mzlib:function:last-pair mods/key))]
 	   [shift (if neg? #f 'd/c)]
 	   [control (if neg? #f 'd/c)]
 	   [alt (if neg? #f 'd/c)]
@@ -120,7 +121,7 @@
 	      (cond
 	       [(eq? val #t) (string char)]
 	       [(eq? val #f) (string #\~ char)]
-	       [(eq? val 'd/c) ""]))])
+	       [(eq? val 'd/c) #f]))])
 
       (for-each (lambda (mod)
 		  (let ([val (not (char=? (car mod) #\~))])
@@ -133,13 +134,16 @@
 		      [(#\d) (set! command val)]
 		      [(#\m) (set! meta val)])))
 		mods)
-      (join-strings #\: (list
-			 (do-key #\a alt)
-			 (do-key #\c control)
-			 (do-key #\d command)
-			 (do-key #\m meta)
-			 (do-key #\s shift)
-			 (apply string-append key)))))
+      (join-strings ":"
+		    (mzlib:function:filter
+		     (lambda (x) x)
+		     (list
+		      (do-key #\a alt)
+		      (do-key #\c control)
+		      (do-key #\d command)
+		      (do-key #\m meta)
+		      (do-key #\s shift)
+		      (apply string key))))))
 		   
   ;; split-out : char (listof char) -> (listof (listof char))
   ;; splits a list of characters at its first argument
@@ -148,10 +152,11 @@
 	       [this-split null]
 	       [all-split null])
       (cond
-       [(null? chars) (reverse all-split)]
+       [(null? chars)
+	(reverse (cons (reverse this-split) all-split))]
        [else (let ([char (car chars)])
 	       (cond
-		[(char=? split-char chars)
+		[(char=? split-char char)
 		 (loop (cdr chars)
 		       null
 		       (cons (reverse this-split) all-split))]
@@ -160,11 +165,11 @@
 		       (cons char this-split)
 		       all-split)]))])))
 
-  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-  ;;;;;;;                                   ;;;;;;;;
-  ;;;;;;;         end canonicalize          ;;;;;;;;
-  ;;;;;;;                                   ;;;;;;;;
-  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  ;;;;;;;                                                     ;;;;;;;;
+  ;;;;;;;         end canonicalize-keybinding-string          ;;;;;;;;
+  ;;;;;;;                                                     ;;;;;;;;
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
   (define (make-meta-prefix-list key)
     (list (string-append "m:" key)
