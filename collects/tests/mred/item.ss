@@ -321,16 +321,16 @@
     (sequence
       (apply super-init name args))))
 
+(define return-bmp 
+  (make-object bitmap% (icons-path "return.xbm") 'xbm))
+(define bb-bmp
+  (make-object bitmap% (icons-path "bb.gif") 'gif))
+(define mred-bmp
+  (make-object bitmap% (icons-path "mred.xbm") 'xbm))
+(define nruter-bmp
+  (make-object bitmap% (local-path "nruter.xbm") 'xbm))
+
 (define (make-ctls ip cp lp add-testers ep radio-h? label-h? null-label? stretchy? alt-inits?)
-  
-  (define return-bmp 
-    (make-object bitmap% (icons-path "return.xbm") 'xbm))
-  (define bb-bmp
-    (make-object bitmap% (icons-path "bb.gif") 'gif))
-  (define mred-bmp
-    (make-object bitmap% (icons-path "mred.xbm") 'xbm))
-  (define nruter-bmp
-    (make-object bitmap% (local-path "nruter.xbm") 'xbm))
   
   (define :::dummy:::
     (when (not label-h?)
@@ -469,6 +469,46 @@
 		       cp)
 	  items)))
 
+(define (add-inactive-adds panel l)
+  (define v #f)
+  
+  (make-object choice% "New Inactive"
+	       (list*
+		"..."
+		"*Activate Last*"
+		(map car l))
+	       panel
+	       (lambda (c e)
+		 (let ([i (send c get-selection)])
+		   (send c set-selection 0)
+		   (case i
+		     [(0) (void)]
+		     [(1) (send (send v get-parent) add-child v)]
+		     [else (set! v ((cadr (list-ref l (- i 2)))))])))))
+
+(define (add-big-inactive-adds panel)
+  (add-inactive-adds
+   panel
+   (list (list "Message" (lambda () (instantiate message% ("Hello" panel) [style '(inactive)])))
+	 (list "Bitmap Message" (lambda () (instantiate message% (bb-bmp panel) [style '(inactive)])))
+	 (list "Icon Message" (lambda () (instantiate message% ('app panel) [style '(inactive)])))
+	 (list "Button" (lambda () (instantiate button% ("Hello" panel void) [style '(inactive)])))
+	 (list "Bitmap Button" (lambda () (instantiate button% (bb-bmp panel void) [style '(inactive)])))
+	 (list "Checkbox" (lambda () (instantiate check-box% ("Hello" panel void) [style '(inactive)])))
+	 (list "Bitmap Checkbox" (lambda () (instantiate check-box% (bb-bmp panel void) [style '(inactive)])))
+	 (list "Radio Box" (lambda () (instantiate radio-box% ("Hello" (list "A" "B" "C") panel void) [style '(vertical inactive)])))
+	 (list "Bitmap Radio Box" (lambda () (instantiate radio-box% ("Hello" (list bb-bmp bb-bmp) panel void) [style '(vertical inactive)]))))))
+
+(define (add-med-inactive-adds panel)
+  (add-inactive-adds
+   panel
+   (list (list "Canvas" (lambda () (instantiate canvas% (panel) [style '(inactive)])))
+	 (list "Editor Canvas" (lambda () (instantiate editor-canvas% (panel) [style '(inactive)])))
+	 (list "Slider" (lambda () (instantiate slider% ("Hello" 1 3 panel void) [style '(inactive vertical)])))
+	 (list "Gauge" (lambda () (instantiate gauge% ("Hello" 3 panel) [style '(inactive vertical)])))
+	 (list "Tab Panel" (lambda () (instantiate tab-panel% ('("Hello" "Bye") panel void) [style '(inactive)])))
+	 (list "Panel" (lambda () (instantiate panel% (panel) [style '(inactive border)]))))))
+
 (define (big-frame h-radio? v-label? null-label? stretchy? special-label-font? special-button-font? 
 		   initially-disabled? alternate-init?)
   (define f (make-frame active-frame% "T\351ster")) ; 351 is e with '
@@ -515,7 +555,9 @@
     (add-focus-note f ep)
     (send f set-info ep)
     
-    (add-cursors f lp ctls))
+    (add-cursors f lp ctls)
+
+    (add-big-inactive-adds lp))
 
   (send f show #t)
   (set! prev-frame f)
@@ -635,7 +677,9 @@
       (add-focus-note f2 ep2)
       (send f2 set-info ep2)
       
-      (add-cursors f2 lp2 (cons canvas items)))
+      (add-cursors f2 lp2 (cons canvas items))
+
+      (add-med-inactive-adds lp2))
 
     (send f2 create-status-line)
     (send f2 set-status-text "This is the status line")
