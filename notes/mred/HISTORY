@@ -85,9 +85,6 @@ Upgraded to gc 13alpha1
 
 System:
 -------
-- mzlib now has empty? and empty. The print converter is now
-  parameterized over the symbol that represents the empty list.
-
 - parenthesis matching is improved
 
 - turned off the file name printouts on splash screen
@@ -135,9 +132,19 @@ On windows:
 
 - provide "simple" interface to unitized apps
 
+- mred:edit-file used to return (void) when the file was already
+  open. Now it returns the (already open) frame.
+
 - fixed callback printfs from frames. They now appear in the console.
 
-- better begin/end-edit-sequence support in mred; used by info-frame.
+- the paren shader used to fail on very large regions. It does not
+  anymore.
+
+- fixed mred:radio-box%'s enable method. It now takes two arguments.
+
+- better begin/end-edit-sequence support in mred; used by
+  info-frame. There is a new method of mred:media-edit:
+  "run-after-edit-sequence".
 
 - eval no longer loops forever in mred vocabulary 
 
@@ -149,8 +156,6 @@ On windows:
   mred:original-input-port is now called mred:constants:original-input-port
 
 - MrEd's collections are now documented.
-
-- the collection paths are not normalized anymore
 
 - The command line flags have changed. Specifically:
   the -nu flag is now called either "--non-unitized" or "-u".
@@ -189,6 +194,13 @@ On windows:
 
 -  mred:get-file and mred:put-file now take a parent window as optional
    last argument.
+
+- the collection paths are not normalized anymore
+
+- fixed bugs in the meta-u and meta-l keybindings
+
+- if unmarshalling preferences caused an exception at startup, MrEd
+  would open up EdJr; now it recovers and uses the default value.
 
 ----------------------------------------------------------------------
 
