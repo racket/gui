@@ -505,6 +505,11 @@
     (st #f c get-value)
     
     (containee-window-tests c #f #f parent frame 2))
+  (let ([c (make-object check-box% "True"
+			parent void
+			null
+			#t)])
+    (st #t c get-value))
 
   (printf "Radio Box~n")
   (letrec ([r (make-object radio-box%
@@ -567,6 +572,19 @@
     (st 0 r get-selection)
     
     (containee-window-tests r #f #f parent frame 2))
+  (letrec ([r (make-object radio-box%"Radio Two"
+			   (list "O&ne" "T&wo" "T&hree")
+			   parent
+			   void
+			   '(vertical)
+			   2)])
+    (st 2 r get-selection))
+  (mismatch (make-object radio-box%"Radio Two"
+			 (list "O&ne" "T&wo" "T&hree")
+			 parent
+			 void
+			 '(vertical)
+			 3))
 
   (printf "Gauge~n")
   (letrec ([g (make-object gauge% 
@@ -776,6 +794,17 @@
       (test-list-control c #t #f)
       
       (containee-window-tests c #f #f parent frame 2))
+    (letrec ([c (make-object choice% "Choice 2"
+			     '("A" "B" "C & D")
+			     parent void
+			     null
+			     2)])
+      (st 2 c get-selection))
+    (mismatch (make-object choice% "Choice 2"
+			   '("A" "B" "C & D")
+			   parent void
+			   null
+			   3))
 
     (let ([mk-list
 	   (lambda (style)
@@ -808,6 +837,19 @@
       (mk-list 'extended))
 
     'done-lists)
+  (let ([l (make-object list-box% "List Two"
+			'("A" "B" "C & D")
+			parent
+			void
+			(list 'single)
+			2)])
+    (st 2 l get-selection))
+  (mismatch (make-object list-box% "List Two"
+			 '("A" "B" "C & D")
+			 parent
+			 void
+			 (list 'single)
+			 3))
 
   (let loop ([styles '((single) (multiple) (multiple hscroll))])
     (unless (null? styles)

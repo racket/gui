@@ -13,6 +13,18 @@
       (printf "ERROR: ~a~n" s)
       (set! errs (cons s errs)))))
 
+(define-syntax mismatch
+  (lambda (stx)
+    (syntax-case stx ()
+      [(_ expr)
+       (syntax
+	(test 'was-mismatch 'mismtach
+	      (with-handlers ([exn:application:mismatch?
+			       (lambda (x)
+				 (fprintf (current-error-port) "~a~n" (exn-message x))
+				 'was-mismatch)]
+			      [not-break-exn? values])
+		expr)))])))
 
 (define-syntax st
   (lambda (stx)
