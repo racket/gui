@@ -34,8 +34,8 @@
 		  (message-box (string-constant error) msg)
 		  #f)))))
       
-      (define (set-last-directory dir) (preferences:set 'framework:directory dir))
-      (define (get-last-directory) (preferences:get 'framework:directory))
+      (define (set-last-directory dir) (preferences:set 'framework:last-directory dir))
+      (define (get-last-directory) (preferences:get 'framework:last-directory))
       
       (define make-relative
 	(lambda (s) s))
