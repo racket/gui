@@ -10,6 +10,9 @@
 	   (lib "mred-sig.ss" "mred")
 	   (lib "file.ss"))
 
+  ;; renaming, for editor-mixin where get-file is shadowed by a method.
+  (define mred:get-file get-file) 
+
   (provide editor@)
 
   (define editor@
@@ -40,224 +43,223 @@
           save-file/gui-error))
 
       (define basic-mixin
-        (let ([mred:get-file get-file])
-          (mixin (editor<%>) (basic<%>)
-            
-            (inherit get-filename save-file)
-            (define/public save-file/gui-error
-              (opt-lambda ([input-filename #f]
-                           [fmt 'same]
-                           [show-errors? #t])
-                (let ([filename (if (or (not input-filename)
-                                        (equal? input-filename ""))
-                                    (let ([internal-filename (get-filename)])
-                                      (if (or (not internal-filename)
-                                              (equal? internal-filename ""))
-                                          (mred:get-file)
-                                          internal-filename))
-                                    input-filename)])
-                  (if filename
-                      (let ([result (save-file filename fmt #f)])
-                        (unless result
-                          (when show-errors?
-                            (message-box
-                             (string-constant error-saving)
-                             (format (string-constant error-saving-file/name)
-                                     filename))))
-                        result)
-                      #f))))
-            
-            (inherit refresh-delayed? 
-                     get-canvas
-                     get-max-width get-admin)
-            
-            (rename [super-can-save-file? can-save-file?])
-            (override can-save-file?)
-            [define can-save-file?
-              (lambda (filename format)
-                (and (if (equal? filename (get-filename))
-                         (if (save-file-out-of-date?)
-                             (gui-utils:get-choice 
-                              (string-constant file-has-been-modified)
-                              (string-constant overwrite-file-button-label)
-                              (string-constant cancel)
-                              (string-constant warning)
-                              #f
-                              (get-top-level-focus-window))
-                             #t)
-                         #t)
-                     (super-can-save-file? filename format)))]
-            
-            (rename [super-after-save-file after-save-file]
-                    [super-after-load-file after-load-file])
-            [define last-saved-file-time #f]
-            
-            [define/override after-save-file
-              (lambda (sucess?)
-                
-                ;; update recently opened file names
-                (let* ([temp-b (box #f)]
-                       [filename (get-filename temp-b)])
-                  (unless (unbox temp-b)
-                    (when filename
-                      (handler:add-to-recent filename))))
-                
-                ;; update last-saved-file-time
-                (when sucess?
-                  (let ([filename (get-filename)])
-                    (set! last-saved-file-time
-                          (and filename
-                               (file-exists? filename)
-                               (file-or-directory-modify-seconds filename)))))
-                
-                (super-after-save-file sucess?))]
-            
-            [define/override after-load-file
-              (lambda (sucess?)
-                (when sucess?
-                  (let ([filename (get-filename)])
-                    (set! last-saved-file-time
-                          (and filename
-                               (file-exists? filename)
-                               (file-or-directory-modify-seconds filename)))))
-                (super-after-load-file sucess?))]
-            (public save-file-out-of-date?)
-            [define save-file-out-of-date?
-              (lambda ()
-                (and 
-                 last-saved-file-time
-                 (let ([fn (get-filename)])
-                   (and fn
-                        (file-exists? fn)
-                        (let ([ms (file-or-directory-modify-seconds fn)])
-                          (< last-saved-file-time ms))))))]
-            
-            [define has-focus #f]
-            (rename [super-on-focus on-focus])
-            (override on-focus)
-            [define on-focus
-              (lambda (x)
-                (set! has-focus x))]
-            (public has-focus?)
-            [define has-focus?
-              (lambda ()
-                has-focus)]
-            
-            (public on-close get-top-level-window)
-            [define on-close (lambda () (void))]
-            [define get-top-level-window
-              (lambda ()
-                (let loop ([text this])
-                  (let ([editor-admin (send text get-admin)])
-                    (cond
-                      [(is-a? editor-admin editor-snip-editor-admin<%>)
-                       (let* ([snip (send editor-admin get-snip)]
-                              [snip-admin (send snip get-admin)])
-                         (loop (send snip-admin get-editor)))]
-                      [(send text get-canvas) => (lambda (canvas)
-                                                   (send canvas get-top-level-window))]
-                      [else
-                       #f]))))]
-            
-            (public editing-this-file?)
-            [define editing-this-file? (lambda () #f)]
-            
-            [define edit-sequence-queue null]
-            [define edit-sequence-ht (make-hash-table)]
-            [define in-local-edit-sequence? #f]
-            (public local-edit-sequence? run-after-edit-sequence extend-edit-sequence-queue)
-            [define local-edit-sequence? (lambda () in-local-edit-sequence?)]
-            [define run-after-edit-sequence
-              (case-lambda 
-                [(t) (run-after-edit-sequence t #f)]
-                [(t sym)
-                 (unless (and (procedure? t)
-                              (= 0 (procedure-arity t)))
-                   (error 'editor:basic::run-after-edit-sequence
-                          "expected procedure of arity zero, got: ~s~n" t))
-                 (unless (or (symbol? sym) (not sym))
-                   (error 'editor:basic::run-after-edit-sequence
-                          "expected second argument to be a symbol or #f, got: ~s~n"
-                          sym))
-                 (if (refresh-delayed?)
-                     (if in-local-edit-sequence?
-                         (cond
-                           [(symbol? sym)
-                            (hash-table-put! edit-sequence-ht sym t)]
-                           [else (set! edit-sequence-queue
-                                       (cons t edit-sequence-queue))])
-                         (let ([snip-admin (get-admin)])
-                           (cond
-                             [(not snip-admin)
-                              (t)] ;; refresh-delayed? is always #t when there is no admin.
-                             [(is-a? snip-admin editor-snip-editor-admin<%>)
-                              (send (send (send (send snip-admin get-snip) get-admin) get-editor)
-                                    run-after-edit-sequence t sym)]
-                             [else
-                              (message-box "run-after-edit-sequence error"
-                                           (format "refresh-delayed? is #t but snip admin, ~s, is not an editor-snip-editor-admin<%>"
-                                                   snip-admin))
-                              '(t)])))
-                     (t))
-                 (void)])]
-            [define extend-edit-sequence-queue
-              (lambda (l ht)
-                (hash-table-for-each ht (lambda (k t)
-                                          (hash-table-put! 
-                                           edit-sequence-ht
-                                           k t)))
-                (set! edit-sequence-queue (append l edit-sequence-queue)))]
-            (rename
-             [super-after-edit-sequence after-edit-sequence]
-             [super-on-edit-sequence on-edit-sequence])
-            (override on-edit-sequence after-edit-sequence)
-            [define on-edit-sequence
-              (lambda ()
-                (super-on-edit-sequence)
-                (set! in-local-edit-sequence? #t))]
-            [define after-edit-sequence
-              (lambda ()
-                (set! in-local-edit-sequence? #f)
-                (super-after-edit-sequence)
-                (let ([queue edit-sequence-queue]
-                      [ht edit-sequence-ht]
-                      [find-enclosing-edit
-                       (lambda (edit)
-                         (let ([admin (send edit get-admin)])
-                           (cond
-                             [(is-a? admin editor-snip-editor-admin<%>)
-                              (send (send (send admin get-snip) get-admin) get-editor)]
-                             [else #f])))])
-                  (set! edit-sequence-queue null)
-                  (set! edit-sequence-ht (make-hash-table))
-                  (let loop ([edit (find-enclosing-edit this)])
-                    (cond
-                      [(and edit (not (send edit local-edit-sequence?)))
-                       (loop (find-enclosing-edit edit))]
-                      [edit (send edit extend-edit-sequence-queue queue ht)]
-                      [else
-                       (hash-table-for-each ht (lambda (k t) (t)))
-                       (for-each (lambda (t) (t)) queue)]))))]
-            
-            (override on-new-box)
-            [define on-new-box
-              (lambda (type)
-                (cond
-                  [(eq? type 'text) (make-object editor-snip% (make-object text:basic%))]
-                  [else (make-object editor-snip% (make-object pasteboard:basic%))]))]
-            
-            
-            (override get-file put-file)
-            [define get-file (lambda (d) 
-                               (parameterize ([finder:dialog-parent-parameter
-                                               (get-top-level-window)])
-                                 (finder:get-file d)))]
-            [define put-file (lambda (d f) (parameterize ([finder:dialog-parent-parameter
-                                                           (get-top-level-window)])
-                                             (finder:put-file f d)))]
-            
-            
-            (super-instantiate ()))))
+	(mixin (editor<%>) (basic<%>)
+	  
+	  (inherit get-filename save-file)
+	  (define/public save-file/gui-error
+	    (opt-lambda ([input-filename #f]
+			 [fmt 'same]
+			 [show-errors? #t])
+	      (let ([filename (if (or (not input-filename)
+				      (equal? input-filename ""))
+				  (let ([internal-filename (get-filename)])
+				    (if (or (not internal-filename)
+					    (equal? internal-filename ""))
+					(mred:get-file)
+					internal-filename))
+				  input-filename)])
+		(if filename
+		    (let ([result (save-file filename fmt #f)])
+		      (unless result
+			(when show-errors?
+			  (message-box
+			   (string-constant error-saving)
+			   (format (string-constant error-saving-file/name)
+				   filename))))
+		      result)
+		    #f))))
+	  
+	  (inherit refresh-delayed? 
+		   get-canvas
+		   get-max-width get-admin)
+	  
+	  (rename [super-can-save-file? can-save-file?])
+	  (override can-save-file?)
+	  [define can-save-file?
+	    (lambda (filename format)
+	      (and (if (equal? filename (get-filename))
+		       (if (save-file-out-of-date?)
+			   (gui-utils:get-choice 
+			    (string-constant file-has-been-modified)
+			    (string-constant overwrite-file-button-label)
+			    (string-constant cancel)
+			    (string-constant warning)
+			    #f
+			    (get-top-level-focus-window))
+			   #t)
+		       #t)
+		   (super-can-save-file? filename format)))]
+	  
+	  (rename [super-after-save-file after-save-file]
+		  [super-after-load-file after-load-file])
+	  [define last-saved-file-time #f]
+	  
+	  [define/override after-save-file
+	    (lambda (sucess?)
+	      
+	      ;; update recently opened file names
+	      (let* ([temp-b (box #f)]
+		     [filename (get-filename temp-b)])
+		(unless (unbox temp-b)
+		  (when filename
+		    (handler:add-to-recent filename))))
+	      
+	      ;; update last-saved-file-time
+	      (when sucess?
+		(let ([filename (get-filename)])
+		  (set! last-saved-file-time
+			(and filename
+			     (file-exists? filename)
+			     (file-or-directory-modify-seconds filename)))))
+	      
+	      (super-after-save-file sucess?))]
+	  
+	  [define/override after-load-file
+	    (lambda (sucess?)
+	      (when sucess?
+		(let ([filename (get-filename)])
+		  (set! last-saved-file-time
+			(and filename
+			     (file-exists? filename)
+			     (file-or-directory-modify-seconds filename)))))
+	      (super-after-load-file sucess?))]
+	  (public save-file-out-of-date?)
+	  [define save-file-out-of-date?
+	    (lambda ()
+	      (and 
+	       last-saved-file-time
+	       (let ([fn (get-filename)])
+		 (and fn
+		      (file-exists? fn)
+		      (let ([ms (file-or-directory-modify-seconds fn)])
+			(< last-saved-file-time ms))))))]
+	  
+	  [define has-focus #f]
+	  (rename [super-on-focus on-focus])
+	  (override on-focus)
+	  [define on-focus
+	    (lambda (x)
+	      (set! has-focus x))]
+	  (public has-focus?)
+	  [define has-focus?
+	    (lambda ()
+	      has-focus)]
+	  
+	  (public on-close get-top-level-window)
+	  [define on-close (lambda () (void))]
+	  [define get-top-level-window
+	    (lambda ()
+	      (let loop ([text this])
+		(let ([editor-admin (send text get-admin)])
+		  (cond
+		    [(is-a? editor-admin editor-snip-editor-admin<%>)
+		     (let* ([snip (send editor-admin get-snip)]
+			    [snip-admin (send snip get-admin)])
+		       (loop (send snip-admin get-editor)))]
+		    [(send text get-canvas) => (lambda (canvas)
+						 (send canvas get-top-level-window))]
+		    [else
+		     #f]))))]
+	  
+	  (public editing-this-file?)
+	  [define editing-this-file? (lambda () #f)]
+	  
+	  [define edit-sequence-queue null]
+	  [define edit-sequence-ht (make-hash-table)]
+	  [define in-local-edit-sequence? #f]
+	  (public local-edit-sequence? run-after-edit-sequence extend-edit-sequence-queue)
+	  [define local-edit-sequence? (lambda () in-local-edit-sequence?)]
+	  [define run-after-edit-sequence
+	    (case-lambda 
+	     [(t) (run-after-edit-sequence t #f)]
+	     [(t sym)
+	      (unless (and (procedure? t)
+			   (= 0 (procedure-arity t)))
+		(error 'editor:basic::run-after-edit-sequence
+		       "expected procedure of arity zero, got: ~s~n" t))
+	      (unless (or (symbol? sym) (not sym))
+		(error 'editor:basic::run-after-edit-sequence
+		       "expected second argument to be a symbol or #f, got: ~s~n"
+		       sym))
+	      (if (refresh-delayed?)
+		  (if in-local-edit-sequence?
+		      (cond
+			[(symbol? sym)
+			 (hash-table-put! edit-sequence-ht sym t)]
+			[else (set! edit-sequence-queue
+				    (cons t edit-sequence-queue))])
+		      (let ([snip-admin (get-admin)])
+			(cond
+			  [(not snip-admin)
+			   (t)] ;; refresh-delayed? is always #t when there is no admin.
+			  [(is-a? snip-admin editor-snip-editor-admin<%>)
+			   (send (send (send (send snip-admin get-snip) get-admin) get-editor)
+				 run-after-edit-sequence t sym)]
+			  [else
+			   (message-box "run-after-edit-sequence error"
+					(format "refresh-delayed? is #t but snip admin, ~s, is not an editor-snip-editor-admin<%>"
+						snip-admin))
+			   '(t)])))
+		  (t))
+	      (void)])]
+	  [define extend-edit-sequence-queue
+	    (lambda (l ht)
+	      (hash-table-for-each ht (lambda (k t)
+					(hash-table-put! 
+					 edit-sequence-ht
+					 k t)))
+	      (set! edit-sequence-queue (append l edit-sequence-queue)))]
+	  (rename
+	   [super-after-edit-sequence after-edit-sequence]
+	   [super-on-edit-sequence on-edit-sequence])
+	  (override on-edit-sequence after-edit-sequence)
+	  [define on-edit-sequence
+	    (lambda ()
+	      (super-on-edit-sequence)
+	      (set! in-local-edit-sequence? #t))]
+	  [define after-edit-sequence
+	    (lambda ()
+	      (set! in-local-edit-sequence? #f)
+	      (super-after-edit-sequence)
+	      (let ([queue edit-sequence-queue]
+		    [ht edit-sequence-ht]
+		    [find-enclosing-edit
+		     (lambda (edit)
+		       (let ([admin (send edit get-admin)])
+			 (cond
+			   [(is-a? admin editor-snip-editor-admin<%>)
+			    (send (send (send admin get-snip) get-admin) get-editor)]
+			   [else #f])))])
+		(set! edit-sequence-queue null)
+		(set! edit-sequence-ht (make-hash-table))
+		(let loop ([edit (find-enclosing-edit this)])
+		  (cond
+		    [(and edit (not (send edit local-edit-sequence?)))
+		     (loop (find-enclosing-edit edit))]
+		    [edit (send edit extend-edit-sequence-queue queue ht)]
+		    [else
+		     (hash-table-for-each ht (lambda (k t) (t)))
+		     (for-each (lambda (t) (t)) queue)]))))]
+	  
+	  (override on-new-box)
+	  [define on-new-box
+	    (lambda (type)
+	      (cond
+		[(eq? type 'text) (make-object editor-snip% (make-object text:basic%))]
+		[else (make-object editor-snip% (make-object pasteboard:basic%))]))]
+	  
+	  
+	  (override get-file put-file)
+	  [define get-file (lambda (d) 
+			     (parameterize ([finder:dialog-parent-parameter
+					     (get-top-level-window)])
+			       (finder:get-file d)))]
+	  [define put-file (lambda (d f) (parameterize ([finder:dialog-parent-parameter
+							 (get-top-level-window)])
+					   (finder:put-file f d)))]
+	  
+	  
+	  (super-instantiate ())))
 
       (define -keymap<%> (interface (basic<%>) get-keymaps))
       (define keymap-mixin
