@@ -1,17 +1,44 @@
 
 (unit/sig framework:canvas^
   (import mred-interfaces^
-	  [preferences : framework:preferences^])
+	  [preferences : framework:preferences^]
+	  [frame : framework:frame^])
   
   (define basic<%> (interface (editor-canvas<%>)))
   (define basic-mixin
     (mixin (editor-canvas<%>) (basic<%>) args
-           (inherit get-editor)
-           
            (sequence
              (apply super-init args))))
            
-  
+  (define info<%> (interface (basic<%>)))
+  (define info-mixin 
+    (mixin (basic<%>) (info<%>) (parent [editor #f] . args)
+	   (inherit has-focus? get-top-level-window)
+	   (rename [super-on-focus on-focus]
+		   [super-set-editor set-editor])
+	   (override
+	    [on-focus
+	     (lambda (on?)
+	       (super-on-focus on?)
+	       (send (get-top-level-window) set-info-canvas (and on? this))
+	       (when on?
+		     (send (get-top-level-window) update-info)))]
+	    [set-editor
+	     (lambda (m)
+	       (super-set-editor m)
+	       (let ([tlw (get-top-level-window)])
+		 (cond
+		  [(eq? this (send tlw get-info-canvas))
+		   (send tlw update-info)])))])
+	   (sequence
+	     (apply super-init parent editor args)
+	     (unless (is-a? (get-top-level-window) frame:info<%>)
+	       (error 'canvas:text-info-mixin
+		      "expected to be placed into a frame or dialog implementing frame:info<%>, got: ~e" 
+		      (get-top-level-window)))
+	     (when (has-focus?)
+		   (send (get-top-level-window) update-info)))))
+
   (define wide-snip<%> (interface (basic<%>)
 			 add-wide-snip
 			 add-tall-snip))
@@ -108,4 +135,5 @@
 	(apply super-init args))))
 
   (define basic% (basic-mixin editor-canvas%))
+  (define info% (info-mixin basic%))
   (define wide-snip% (wide-snip-mixin basic%)))

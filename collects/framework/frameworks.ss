@@ -1,6 +1,3 @@
-;; language specification
-(compile-allow-cond-fallthrough #t)
-
 (require-library "refer.ss")
 (require-library "macro.ss")
 (require-library "cores.ss")
@@ -133,20 +130,19 @@
    searching%
    info%))
 
-(define-signature framework:pasteboard%
-  (pasteboard:basic%
-   pasteboard:info%
-   pasteboard:file%
-   pasteboard:backup-autosave%))
-
-
 (define-signature framework:canvas^
   (basic-mixin
    basic<%>
-   basic%
+
+   info-mixin
+   info<%>
+
    wide-snip-mixin
    wide-snip<%>
-   wide-snip%))
+
+   wide-snip%   
+   basic%
+   info%))
 
 (define-signature framework:frame^
   (reorder-menus

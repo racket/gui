@@ -13,6 +13,7 @@
 	  [text : framework:text^]
 	  [pasteboard : framework:pasteboard^]
 	  [editor : framework:editor^]
+	  [canvas : framework:canvas^]
 	  [mzlib:function : mzlib:function^])
 
   (rename [-editor<%> editor<%>]
@@ -119,7 +120,7 @@
 
         (accept-drop-files #t)
 
-	(make-object menu% "Windows" (make-object (get-menu-bar%) this))
+	(make-object menu% "&Windows" (make-object (get-menu-bar%) this))
 	(reorder-menus this)
 	(send (group:get-the-frame-group) insert-frame this))
       (private
@@ -137,6 +138,7 @@
 		       set-label-prefix
 
 		       get-canvas%
+		       get-canvas<%>
 		       get-editor%
 		       get-editor<%>
 		       
@@ -199,17 +201,25 @@
 	     (set! label t)
 	     (do-label)))])
       (public
-	[get-canvas% (lambda () editor-canvas%)]
+	[get-canvas% (lambda () editor-canvas<%>)]
+	[get-canvas<%> (lambda () editor-canvas%)]
+	[make-canvas (lambda ()
+		       (let ([% (get-canvas%)]
+			     [<%> (get-canvas<%>)])
+			 (unless (implementation? % <%>)
+				 (error 'frame:editor%
+					"result of get-canvas% method must match ~e interface; got: ~e"
+					<%> %))
+			 (make-object % (get-area-container))))]
 	[get-editor% (lambda () (error 'editor-frame% "no editor% class specified"))]
 	[get-editor<%> (lambda () editor<%>)]
 	[make-editor (lambda ()
 		       (let ([% (get-editor%)]
 			     [<%> (get-editor<%>)])
 			 (unless (implementation? % <%>)
-			   (let ([name (inferred-name this)])
-			     (error (or name 'frame:editor%)
-				    "result of get-editor% method must match ~e interface; got: ~e"
-				    <%> %)))
+				 (error 'frame:editor%
+					"result of get-editor% method must match ~e interface; got: ~e"
+					<%> %))
 			 (make-object %)))])
 				  
 	     
@@ -317,7 +327,7 @@
 	[get-canvas (let ([c #f])
 		      (lambda () 
 			(unless c
-			  (set! c (make-object (get-canvas%) (get-area-container)))
+			  (set! c (make-canvas))
 			  (send c set-editor (get-editor)))
 			c))]
 	[get-editor (let ([e #f])
@@ -820,9 +830,11 @@
   
   (define info<%> (interface (-editor<%>)
 		    determine-width
-		    get-info-editor
 		    lock-status-changed
 		    update-info
+		    set-info-canvas
+		    get-info-canvas
+		    get-info-editor
 		    get-info-panel))
 
   (define info-mixin
@@ -842,6 +854,26 @@
 	     (set! rest-panel r-root)
 	     r-root))])
       
+      (override
+       [get-canvas<%>
+	(lambda () canvas:info<%>)]
+       [get-canvas%
+	(lambda () canvas:info%)])
+
+      (private
+       [info-canvas #f])
+      (public
+        [get-info-canvas
+	 (lambda ()
+	   info-canvas)]
+	[set-info-canvas
+	 (lambda (c)
+	   (set! info-canvas c))]
+	[get-info-editor
+	 (lambda ()
+	   (and info-canvas
+		(send info-canvas get-editor)))])
+
       (public
 	[determine-width
 	 (let ([magic-space 25])
@@ -883,19 +915,17 @@
 	   (unregister-collecting-blit gc-canvas)
 	   (close-panel-callback))])
       
-      (inherit get-editor)
-      (public
-	[get-info-editor
-	 (lambda ()
-	   (and (procedure? get-editor)
-		(get-editor)))])
-      
       (public
 	[lock-status-changed
 	 (let ([icon-currently-locked? #f])
 	   (lambda ()
 	     (let ([info-edit (get-info-editor)])
-	       (when info-edit
+	       (cond
+		[(not (object? lock-message))
+		 (void)]
+		[info-edit
+		 (unless (send lock-message is-shown?)
+			 (send lock-message show #t))
 		 (let ([locked-now? (ivar info-edit locked?)])
 		   (unless (eq? locked-now? icon-currently-locked?)
 		     (set! icon-currently-locked? locked-now?)
@@ -908,7 +938,10 @@
 			       set-label
 			       (if (send label ok?)
 				   label
-				   (if locked-now? "Locked" "Unlocked")))))))))))])
+				   (if locked-now? "Locked" "Unlocked")))))))]
+		[else
+		 (when (send lock-message is-shown?)
+		       (send lock-message show #f))]))))])
       (public
 	[update-info
 	 (lambda ()
@@ -1033,7 +1066,12 @@
 				     (if offset?
 					 (+ pos 1)
 					 pos)))))])
-	       (when edit
+	       (cond
+		[(not (object? position-canvas))
+		 (void)]
+		[edit
+		 (unless (send position-canvas is-shown?)
+			 (send position-canvas show #t))
 		 (let ([start (send edit get-start-position)]
 		       [end (send edit get-end-position)])
 		   (unless (and last-start
@@ -1051,20 +1089,33 @@
 				   (string-append (make-one start)
 						  "-"
 						  (make-one end))))
-			      (lock #t)))))))))])
+			      (lock #t)))))]
+		[else
+		 (when (send position-canvas is-shown?)
+		       (send position-canvas show #f))]))))])
       (public
 	[anchor-status-changed
 	 (let ([last-state? #f])
 	   (lambda ()
-	     (let ([info-edit (get-info-editor)])
-	       (when info-edit
+	     (let ([info-edit (get-info-editor)]
+		   [failed
+		    (lambda ()
+		      (unless (eq? last-state? #f)
+			(set! last-state? #f)
+			(send anchor-message show #f)))])
+	       (cond
+		[info-edit
 		 (let ([anchor-now? (send info-edit get-anchor)])
 		   (unless (eq? anchor-now? last-state?)
-		     (when (object? anchor-message)
+		     (cond
+		      [(object? anchor-message)
 		       (send anchor-message
 			     show
-			     anchor-now?))
-		     (set! last-state? anchor-now?)))))))]
+			     anchor-now?)
+		       (set! last-state? anchor-now?)]
+		      [else (failed)])))]
+		[else
+		 (failed)]))))]
 	[editor-position-changed
 	 (lambda ()
 	   (editor-position-changed-offset/numbers
@@ -1073,15 +1124,25 @@
 	[overwrite-status-changed
 	 (let ([last-state? #f])
 	   (lambda ()
-	     (let ([info-edit (get-info-editor)])
-	       (when info-edit
+	     (let ([info-edit (get-info-editor)]
+		   [failed
+		    (lambda ()
+		      (set! last-state? #f)
+		      (send overwrite-message show #f))])
+	       (cond
+		[info-edit
 		 (let ([overwrite-now? (send info-edit get-overwrite-mode)])
 		   (unless (eq? overwrite-now? last-state?)
-		     (when (object? overwrite-message)
+		     (cond
+		      [(object? overwrite-message)
 		       (send overwrite-message
 			     show
-			     overwrite-now?))
-		     (set! last-state? overwrite-now?)))))))])
+			     overwrite-now?)
+		       (set! last-state? overwrite-now?)]
+		      [else
+		       (failed)])))]
+		[else
+		 (failed)]))))])
       (rename [super-update-info update-info])
       (override
 	[update-info

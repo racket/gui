@@ -303,22 +303,6 @@
 		  number?)
      font-size-entry))
   
-  (define (later-on)
-    (local [(define sema (make-semaphore 1))
-	    (define running #f)
-	    (define (start-one thunk)
-	      (local [(define (do-one)
-			(thunk)
-			(semaphore-wait sema)
-			(set! running #f)
-			(semaphore-post sema))]
-		(semaphore-wait sema)
-		(when running
-		  (kill-thread running))
-		(set! running (thread do-one))
-		(semaphore-post sema)))]
-      start-one))
-
   (define ppanels 
     (list 
      (make-ppanel
@@ -441,13 +425,15 @@
 					 new-message
 					 button
 					 canvas))))))
+		      (send canvas set-line-count 1)
 		      (vector set-edit-font
 			      (lambda () (send message get-width))
 			      (lambda (width) (send message min-width width))
 			      (lambda () (send label get-width))
 			      (lambda (width) (send label min-width width)))))]
 		 [set-edit-fonts/messages (map make-family-panel font-families)]
-		 [collect (lambda (n) (map (lambda (x) (vector-ref x n)) set-edit-fonts/messages))]
+		 [collect (lambda (n) (map (lambda (x) (vector-ref x n))
+					   set-edit-fonts/messages))]
 		 [set-edit-fonts (collect 0)]
 		 [font-message-get-widths (collect 1)]
 		 [font-message-user-min-sizes (collect 2)]
@@ -458,6 +444,13 @@
 		    (let ([width (mzlib:function:foldl (lambda (x l) (max l (x))) 0 gets)])
 		      (for-each (lambda (set) (set width)) sets)))]
 		 [size-panel (make-object horizontal-panel% main '(border))]
+		 [initial-font-size
+		  (let ([b (box 0)])
+		    (if (get-resource font-section 
+				      font-size-entry
+				      b)
+			(unbox b)
+			font-default-size))]
 		 [size-slider
 		  (make-object slider%
 		    "Size"
@@ -465,24 +458,17 @@
 		    size-panel
 		    (lambda (slider evt)
 		      (set font-size-pref-sym (send slider get-value)))
-		    (let ([b (box 0)])
-		      (if (get-resource font-section 
-					font-size-entry
-					b)
-			  (unbox b)
-			  font-default-size)))]
-		 [guard-change-font (later-on)])
+		    initial-font-size)])
 	  (update-message-sizes font-message-get-widths font-message-user-min-sizes)
 	  (update-message-sizes category-message-get-widths category-message-user-min-sizes)
 	  (add-callback
 	   font-size-pref-sym
 	   (lambda (p value)
-	     (guard-change-font
-	      (lambda ()
-		(map (lambda (f) (f value)) set-edit-fonts)))
+	     (for-each (lambda (f) (f value)) set-edit-fonts)
 	     (unless (= value (send size-slider get-value))
 	       (send size-slider set-value value))
 	     #t))
+	  (for-each (lambda (f) (f initial-font-size)) set-edit-fonts)
 	  (make-object message% "Restart to see font changes" main)
 	  main))
       #f)))

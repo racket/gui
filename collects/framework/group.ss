@@ -29,7 +29,7 @@
 	     (and menu-bar
 		  (let ([menus (send menu-bar get-items)])
 		    (ormap (lambda (x)
-			     (if (string=? "Windows" (send x get-label))
+			     (if (string=? "&Windows" (send x get-label))
 				 x
 				 #f))
 			   menus)))))]
