@@ -7425,7 +7425,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;; Initialize AFM/PS:
-(wx:set-ps-draw-text/get-text-extent
+(wx:set-ps-procs
  afm-draw-text
  afm-get-text-extent
  afm-expand-name
