@@ -95,7 +95,7 @@
 	       (list->bytes '(#xcc #x33 #xcc #x33 #xcc #x33 #xcc #x33))
 	       8 8))
 
-(let* ([f (make-object frame% "Graphics Test" #f 300 550)]
+(let* ([f (make-object frame% "Graphics Test" #f 600 550)]
        [vp (make-object vertical-panel% f)]
        [hp0 (make-object horizontal-panel% vp)]
        [hp (make-object horizontal-panel% vp)]
@@ -171,7 +171,7 @@
 		       [bm (if use-bitmap?
 			       (if use-bad?
 				   (make-object bitmap% "no such file")
-				   (make-object bitmap% (* xscale 400) (* yscale 350) depth-one?))
+				   (make-object bitmap% (* xscale 550) (* yscale 375) depth-one?))
 			       #f)]
 		       [draw-series
 			(lambda (dc pens pent penx size x y flevel last?)
@@ -883,7 +883,7 @@
 			(unless (cond
 				 [ps? #t]
 				 [use-bad? #t]
-				 [use-bitmap? (and (= w (* xscale 400)) (= h (* yscale 350)))]
+				 [use-bitmap? (and (= w (* xscale 550)) (= h (* yscale 375)))]
 				 [else (= w (send this get-width)) (= h (send this get-height))])
 			  (error 'x "wrong size reported by get-size: ~a ~a; w & h is ~a ~a" 
 				 w h (send this get-width) (send this get-height))))
