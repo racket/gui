@@ -1103,7 +1103,9 @@
             (map-meta "c:space" "select-forward-sexp")
             (map-meta "c:t" "transpose-sexp")
             
-            (map-meta "c:m" "mark-matching-parenthesis"))
+            ;(map-meta "c:m" "mark-matching-parenthesis")
+            ; this keybinding doesn't interact with the paren colorer
+            )
           (send keymap map-function "c:c;c:b" "remove-parens-forward")))
       
       (define keymap (make-object keymap:aug-keymap%))
