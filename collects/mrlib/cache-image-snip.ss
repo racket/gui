@@ -104,13 +104,11 @@
       
       (define/override (draw dc x y left top right bottom dx dy draw-caret)
         (cond
-          [argb
-           (let ([bitmap (get-bitmap)])
-             (send dc draw-bitmap bitmap x y 'solid 
-                   (send the-color-database find-color "black")
-                   (send bitmap get-loaded-mask)))]
-          [dc-proc
-           (dc-proc dc x y)]
+          [argb (let ([bitmap (get-bitmap)])
+                  (send dc draw-bitmap bitmap x y 'solid 
+                        (send the-color-database find-color "black")
+                        (send bitmap get-loaded-mask)))]
+          [dc-proc (dc-proc dc x y)]
           [else (void)]))
       
       (define/override (write f)
