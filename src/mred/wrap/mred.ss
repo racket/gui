@@ -2793,7 +2793,7 @@
 			(lambda (f)
 			  (unless (and (procedure? f)
 				       (procedure-arity-includes? f 1))
-			    (raise-type-error (who->name '(method container<%> change-chidlren))
+			    (raise-type-error (who->name '(method container<%> change-children))
 					      "procedure or arity 1"
 					      f))
 			  (send (get-wx-panel) change-children
@@ -4869,7 +4869,7 @@
 	(letrec ([ok? #f]
 		 [typed-name #f]
 		 [dir (or directory last-visted-directory (current-directory))]
-		 [f (make-object dialog% (if put? "Put File" "Get File") parent 500 300)]
+		 [f (make-object dialog% (if put? "Save" "Open") parent 500 300)]
 		 [__ (when message
 		       (let ([p (make-object vertical-pane% f)])
 			 (send p stretchable-height #f)
