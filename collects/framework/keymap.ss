@@ -972,7 +972,11 @@
 	  (map "leftbuttontriple" "select-click-line")
 	  (map "leftbuttondouble" "select-click-word")
 	  
-	  (map "middlebutton" "paste-click-region")
+	  ;; the "roller ball" mice map clicking the ball to button 2.
+          (unless (eq? (system-type) 'windows)
+            (map "middlebutton" "paste-click-region"))
+          
+          
 	  (map ":rightbuttonseq" "mouse-popup-menu")))))
   
   (define setup-search
