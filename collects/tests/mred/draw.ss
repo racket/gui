@@ -19,7 +19,31 @@
       (unless i
 	(set! i (make-object bitmap% (sys-path "plt.gif"))))
       i)))
-      
+
+(define get-rotated
+  (let ([i #f])
+    (lambda ()
+      (unless i
+	(set! i (let* ([icon (get-icon)]
+                       [w (send icon get-width)]
+                       [h (send icon get-height)])
+                  (let ([bm (make-object bitmap% w h #t)])
+                    (let ([src (make-object bitmap-dc% icon)]
+                          [dest (make-object bitmap-dc% bm)]
+                          [c (make-object color%)])
+                      (let loop ([i 0])
+                        (unless (= i w)
+                          (let loop ([j 0])
+                            (unless (= j h)
+                              (send src get-pixel i j c)
+                              (send dest set-pixel i (- h j 1) c)
+                              (loop (add1 j))))
+                          (loop (add1 i))))
+                      (send src set-bitmap #f)
+                      (send dest set-bitmap #f)
+                      bm)))))
+      i)))
+
 (define (show-instructions file)
   (letrec ([f (make-object frame% file #f 400 400)]
 	   [print (make-object button% "Print" f
@@ -89,14 +113,14 @@
 	     [no-bitmaps? #f]
 	     [no-stipples? #f]
 	     [pixel-copy? #f]
-	     [mask? #f]
+	     [mask-ex-mode 'mred]
 	     [scale 1]
 	     [offset 0])
 	    (public
 	     [set-bitmaps (lambda (on?) (set! no-bitmaps? (not on?)) (on-paint))]
 	     [set-stipples (lambda (on?) (set! no-stipples? (not on?)) (on-paint))]
 	     [set-pixel-copy (lambda (on?) (set! pixel-copy? on?) (on-paint))]
-	     [set-use-mask (lambda (on?) (set! mask? on?) (on-paint))]
+	     [set-mask-ex-mode (lambda (mode) (set! mask-ex-mode mode) (on-paint))]
 	     [set-scale (lambda (s) (set! scale s) (on-paint))]
 	     [set-offset (lambda (o) (set! offset o) (on-paint))])
 	    (override
@@ -440,8 +464,8 @@
 			    (when (and (not no-bitmaps?) last?)
 			      (let ([x 5] [y 165])
 				(let ([mred-icon (get-icon)])
-				  (cond
-				   [mask?
+				  (case mask-ex-mode
+				   [(plt plt-mask)
 				    (let* ([plt (get-plt)]
 					   [tmp-bm (make-object bitmap% 
 								(send mred-icon get-width)
@@ -457,10 +481,28 @@
 					       2))
 				      (send dc draw-bitmap tmp-bm x y 'solid 
 					    (send the-color-database find-color "BLACK")
-					    mred-icon))]
-				   [else
-				    ;; simple draw
-				    (send dc draw-bitmap mred-icon x y 'xor)]))
+                                            (and (eq? mask-ex-mode 'plt-mask)
+                                                 mred-icon)))]
+                                    [(mred^mred)
+                                     (send dc draw-bitmap mred-icon x y
+                                           'solid
+                                           (send the-color-database find-color "BLACK")
+                                           mred-icon)]
+                                    [(mred~)
+                                     (send dc draw-bitmap (get-rotated) x y)]                                    
+                                    [(mred^mred~ opaque-mred^mred~ red-mred^mred~)
+                                     (send dc draw-bitmap mred-icon x y 
+                                           (if (eq? mask-ex-mode 'opaque-mred^mred~)
+                                               'opaque
+                                               'solid)
+                                           (send the-color-database find-color 
+                                                 (if (eq? mask-ex-mode 'red-mred^mred~)
+                                                     "RED"
+                                                     "BLACK"))
+                                           (get-rotated))]
+                                    [else
+                                     ;; simple draw
+                                     (send dc draw-bitmap mred-icon x y 'xor)]))
 				(set! x (+ x (send (get-icon) get-width)))
 				(let ([black (send the-color-database find-color "BLACK")]
 				      [red (send the-color-database find-color "RED")]
@@ -805,9 +847,15 @@
 			     (send canvas on-paint))))])
       (make-object button% "Clock" hp3 (lambda (b e) (clock #f)))
       (make-object button% "Clip Clock" hp3 (lambda (b e) (clock #t)))
-      (make-object check-box% "Mask" hp3
+      (make-object choice% #f
+                   '("MrEd XOR" "PLT Middle" "PLT ^ MrEd" "MrEd ^ MrEd" 
+                     "MrEd~" "MrEd ^ MrEd~" "M^M~ Opaque" "M^M~ Red")
+                   hp3
 		   (lambda (self event)
-		     (send canvas set-use-mask (send self get-value))))))
+		     (send canvas set-mask-ex-mode 
+                           (list-ref '(mred plt plt-mask mred^mred 
+                                            mred~ mred^mred~ opaque-mred^mred~ red-mred^mred~)
+                                     (send self get-selection)))))))
 
   (send f show #t))
 

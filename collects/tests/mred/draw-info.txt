@@ -91,7 +91,8 @@ The drawing area should have the following features:
 
     Images: MrEd logo (b & w), drawn in XOR mode, so the octagin line
               should be toggled where the black part of the MrEd logo
-              intersects with the line.
+              intersects with the line. This changes with the
+              "MrEd XOR" choice control (see below).
             BB logo (color)
             Top subrow:
               Down-left arrow (with a thin horizontal line), black on
@@ -207,6 +208,29 @@ PostScript file.
 The "icons" and "stipple" boxes enable those parts of the
 drawing. These checkboxes are provided because PostScript drawing of
 icons and stipples can be slow.
+
+The "MrEd XOR" menu selects a icon:
+
+  - "MrEd XOR" : initial icon, as described above
+
+  - "PLT Middle" : middle area of the PLT logo (used when starting
+    DrScheme), same size as the MrEd icon. Make sure scaling works
+    right (i.e., same section shown and scaled).
+
+ - "PLT ^ MrEd" : "PLT Middle" masked by the MrEd icon.
+
+ - "MrEd ^ MrEd" : MrEd icon masked by itself... non-black parts
+   should be transparent.
+
+ - "MrEd~" - Upside-down MrEd icon.
+
+ - "MrEd ^ MrEd~" - MrEd icons masked by upside-down MrEd icon.
+   Note that the parens should be fully intact.
+
+ - "M^M~ Opaque" - Same as previous; drawn with 'opaque, but that
+   should have no visible effect.
+
+ - "M^M~ Red" - Same as two previous, but drawn red instead of black.
 
 ----------
 
