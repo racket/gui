@@ -162,12 +162,14 @@
       string?)
      (string?
       any?
-      (union false? (is-a?/c frame%) (is-a?/c dialog%)))
+      (union false? (is-a?/c frame%) (is-a?/c dialog%))
+      (symbols 'app 'caution 'stop))
      any?)
     ((message true-choice false-choice)
      ((title "Warning")
       (default-result 'disallow-close)
-      (paren #f)))
+      (paren #f)
+      (style 'app)))
 
     "Opens a dialog that presents a binary choice to the user. The user is forced"
     "to choose between these two options, ie cancelling or closing the dialog"
@@ -186,7 +188,11 @@
     "If "
     "@flink gui-utils:cancel-on-right?"
     "returns \\scheme|#t|, the false choice is on the right."
-    "Otherwise, the true choice is on the right.")
+    "Otherwise, the true choice is on the right."
+    ""
+    "The \\var{style} parameter is (eventually) passed to"
+    "@link message"
+    "as an icon in the dialog.")
 
    (gui-utils:get-clicked-clickback-delta
     (-> (is-a?/c style-delta%))
@@ -668,8 +674,8 @@
                      action-anyway
                      parent
                      (if can-save-now?
-                         '(default=1)
-                         '(default=2))
+                         '(default=1 caution)
+                         '(default=2 caution))
                      2)])
         (case mb-res
           [(1) 'save]
@@ -682,7 +688,8 @@
                  false-choice 
                  (title (string-constant warning))
                  (default-result 'disallow-close)
-                 (parent #f))
+                 (parent #f)
+                 (style 'app))
       (let ([mb-res (message-box/custom
                      title
                      message
@@ -691,13 +698,18 @@
                      #f
                      parent
                      (case default-result
-                       [(disallow-close) '(default=1 disallow-close)]
-                       [else '(default=1)])
+                       [(disallow-close) 
+                        (if (eq? style 'app)
+                            `(default=1 disallow-close)
+                            `(default=1 disallow-close ,style))]
+                       [else (if (eq? style 'app)
+                                 `(default=1)
+                                 `(default=1 ,style))])
                      default-result)])
         (case mb-res
           [(1) #t]
           [(2) #f]
-          [else mb-res])))) 
+          [else mb-res]))))
   
   ;; manual renaming
   (define gui-utils:next-untitled-name next-untitled-name)
