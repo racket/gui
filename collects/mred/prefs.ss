@@ -169,7 +169,7 @@
 			(list (horizontal-panel #t #f
 						(list (let ([c (check-box (lambda (_ command) 
 									    (set-preference 'mred:highlight-parens (send command checked?)))
-									  "Highlight to matching paren?")])
+									  "Highlight between matching parens?")])
 							(send c set-value (get-preference 'mred:highlight-parens))
 							c)
 						      (panel #t #t)))
