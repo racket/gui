@@ -2645,7 +2645,7 @@
 								[(ctl) "Ctl+"])
 							      (char-upcase shortcut))]
 					      [(windows) (format "~aCtl+~a" #\tab (char-upcase shortcut))]
-					      [(macos) (format "~aCmd-~a" #\tab (char-upcase shortcut))]))
+					      [(macos) (format "~aCmd+~a" #\tab (char-upcase shortcut))]))
 					   (strip-tab label))]
 			    [key-binding (and shortcut
 					      (case (system-type)
