@@ -4640,7 +4640,7 @@
 			    init-val)]
 	    [p (make-object horizontal-pane% f)])
 	(send p set-alignment 'right 'center)
-	(send p stretchable-height #f)
+	(send f stretchable-height #f)
 	(make-object button% "Cancel" p (done #f))
 	(make-object button% "Ok" p (done #t) '(border))
 	(send (send t get-editor) select-all)
