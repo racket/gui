@@ -1,6 +1,5 @@
 (module name-message mzscheme
   (require (lib "string-constant.ss" "string-constants")
-           (lib "framework.ss" "framework")
            (lib "class.ss")
            (lib "file.ss")
            (lib "list.ss")
