@@ -17,11 +17,18 @@
        [hp2 hp]
        [bb (make-object wx:bitmap% (sys-path "bb.gif")
 			wx:const-bitmap-type-gif)]
-       [return (make-object wx:bitmap% (sys-path "return.xbm")
-			    wx:const-bitmap-type-xbm)]
+       [return (let ([bm (make-object wx:bitmap% (sys-path "return.xbm")
+				      wx:const-bitmap-type-xbm)]
+		     [dc (make-object wx:memory-dc%)])
+		 (send dc select-object bm)
+		 (send dc draw-line 0 3 20 3)
+		 (send dc select-object null)
+		 bm)]
        [tmp-mdc (make-object wx:memory-dc%)]
        [use-bitmap? #f]
-       [depth-one? #f])
+       [depth-one? #f]
+       [cyan? #f]
+       [clip? #f])
   (send hp0 stretchable-in-y #f)
   (send hp stretchable-in-y #f)
   (make-object mred:button% hp0
@@ -65,7 +72,10 @@
 			       #f)]
 		       [draw-series
 			(lambda (dc pens pent size x y flevel last?)
-			  (let* ([ofont (send dc get-font)])
+			  (let* ([ofont (send dc get-font)]
+				 [otfg (send dc get-text-foreground)]
+				 [otbg (send dc get-text-background)]
+				 [obm (send dc get-background-mode)])
 			    (if (positive? flevel)
 				(send dc set-font
 				      (make-object wx:font%
@@ -75,18 +85,27 @@
 						       wx:const-bold
 						       wx:const-normal)
 						   #t)))
-
 			    (send dc set-pen pens)
 			    (send dc set-brush brusht)
 			    
-			    ; Test should overlay this line:
+			    ; Text should overlay this line (except for 2x2)
 			    (send dc draw-line 
 				  (+ x 3) (+ y 12)
 				  (+ x 40) (+ y 12))
 
+			    (send dc set-text-background (make-object wx:colour% "YELLOW"))
+			    (when (= flevel 2)
+			      (send dc set-text-foreground (make-object wx:colour% "RED"))
+			      (send dc set-background-mode wx:const-solid))
+
 			    (send dc draw-text (string-append size " Pen")
 				  (+ x 5) (+ y 8))
 			    (send dc set-font ofont)
+			    
+			    (when (= flevel 2)
+			      (send dc set-text-foreground otfg)
+			      (send dc set-background-mode obm))
+			    (send dc set-text-background otbg)
 			    
 			    (send dc draw-line
 				  (+ x 5) (+ y 27) (+ x 10) (+ 27 y))
@@ -228,7 +247,25 @@
 				  (+ x 60) (+ y 150))		
 			    (send dc set-brush brusht)      
 
-			    (unless (or no-bitmaps? (not last?))
+			    (when last?
+			      ; Splines
+			      (define op (send dc get-pen))
+			      (define (draw-ess dx dy)
+				(send dc draw-spline 
+				      (+ dx 200) (+ dy 10)
+				      (+ dx 218) (+ dy 12)
+				      (+ dx 220) (+ dy 20))
+				(send dc draw-spline 
+				      (+ dx 220) (+ dy 20)
+				      (+ dx 222) (+ dy 28)
+				      (+ dx 240) (+ dy 30)))
+			      (send dc set-pen pen0s)
+			      (draw-ess 0 0)
+			      (send dc set-pen (make-object wx:pen% "RED" 0 wx:const-solid))
+			      (draw-ess -2 2)
+			      (send dc set-pen op))
+
+			    (when (and (not no-bitmaps?) last?)
 			      (let ([x 5] [y 165])
 				(send dc draw-icon
 				      (mred:get-icon) x y)
@@ -258,25 +295,41 @@
 				    (do-one return wx:const-colour)
 				    (send dc set-background bg))
 				  (send dc set-pen pens))))
-			    
-			    (unless (or no-stipples? (not last?))
+
+			    (when (and (not no-stipples?) last?)
+			      ; Blue box as background:
 			      (send dc set-brush brushb)
-			      (send dc draw-rectangle 80 200 100 40)
+			      (send dc draw-rectangle 80 200 125 40)
 			      (when (send return ok?)
 				(let ([b (make-object wx:brush% "GREEN" wx:const-stipple)])
 				  (send b set-stipple return)
 				  (send dc set-brush b)
+				  ; First stipple (transparent background)
 				  (send dc draw-rectangle 85 205 30 30)
 				  (send dc set-brush brushs)
 				  (send b set-style wx:const-opaque-stipple)
 				  (send dc set-brush b)
+				  ; Second stipple (opaque)
 				  (send dc draw-rectangle 120 205 30 30)
 				  (send dc set-brush brushs)
 				  (send b set-stipple bb)
 				  (send dc set-brush b)
+				  ; Third stipple (BB logo)
 				  (send dc draw-rectangle 155 205 20 30)
 				  (send dc set-brush brushs)
-				  (send b set-stipple null))))
+				  (send b set-stipple null)
+				  (send b set-style wx:const-cross-hatch)
+				  (send dc set-brush b)
+				  ; Green cross hatch on blue (white BG)
+				  (send dc draw-rectangle 180 205 20 20)
+				  ; Green cross hatch on while
+				  (send dc draw-rectangle 210 205 20 20)
+				  (send dc set-brush brushs)
+				  (send b set-colour "BLACK")
+				  (send dc set-brush b)
+				  ; Black cross hatch
+				  (send dc draw-rectangle 235 205 20 20)
+				  (send dc set-brush brushs))))
 
 			    (let ([styles (list wx:const-solid
 						wx:const-dot
@@ -314,27 +367,57 @@
 				      mem-dc)
 				    (get-dc)))])
 		    (when dc
-			  (when ps?
-				(send dc start-doc "Draw Test")
-				(send dc start-page))
+		      (send dc start-doc "Draw Test")
+		      (send dc start-page)
 
-			  (send dc set-user-scale scale scale)
-			  (send dc set-device-origin offset offset)
+		      (send dc set-user-scale scale scale)
+		      (send dc set-device-origin offset offset)
+		      
+		      (send dc set-background
+			    (if cyan?
+				(make-object wx:brush% "CYAN" wx:const-solid)
+				(make-object wx:brush% "WHILE" wx:const-solid)))
 
-			  (send dc clear)
-			  ; check default pen/brush:
-			  (send dc draw-rectangle 0 0 5 5)
-			  (send dc draw-line 0 0 20 6)
+		      (send dc destroy-clipping-region)
+		      (send dc clear)
 
-			  (draw-series dc pen0s pen0t "0 x 0" 5 0 0 #f)
-			  
-			  (draw-series dc pen1s pen1t "1 x 1" 70 0 1 #f)
-			  
-			  (draw-series dc pen2s pen2t "2 x 2" 135 0 2 #t)
+		      (when clip?
+			(send dc set-clipping-region 100 -25 10 400))
+		      
+		      ; check default pen/brush:
+		      (send dc draw-rectangle 0 0 5 5)
+		      (send dc draw-line 0 0 20 6)
+		      
+		      (draw-series dc pen0s pen0t "0 x 0" 5 0 0 #f)
+		      
+		      (draw-series dc pen1s pen1t "1 x 1" 70 0 1 #f)
+		      
+		      (draw-series dc pen2s pen2t "2 x 2" 135 0 2 #t)
 
-			  (when ps?
-				(send dc end-page)
-				(send dc end-doc))))
+		      (let ([x (box 0)]
+			    [y (box 0)]
+			    [w (box 0)]
+			    [h (box 0)])
+			(send dc get-clipping-region x y w h)
+			(unless (equal? (map unbox (list x y w h))
+					(if clip?
+					    '(100. -25. 10. 400.)
+					    '(0. 0. -1. -1.)))
+			  (error 'draw-test "clipping region changed badly: ~a" (list x y w h))))
+
+		      (let ([w (box 0)]
+			    [h (box 0)])
+			(send dc get-size w h)
+			(let ([w (unbox w)]
+			      [h (unbox h)])
+			  (unless (cond
+				   [ps? #t]
+				   [use-bitmap? (and (= w (* scale 300)) (= h (* scale 300)))]
+				   [else (= w (send this get-width)) (= h (send this get-height))])
+			    (error "wrong size reported by get-size: ~a ~a" w h))))
+
+		      (send dc end-page)
+		      (send dc end-doc)))
 		  
 		  'done)])]))
 	  vp 0 50 300 300)])
@@ -359,6 +442,16 @@
 		 (lambda (self event)
 		   (send canvas set-offset (if (send event checked?) 10 0)))
 		 "+10")
+    (make-object mred:check-box% hp
+		 (lambda (self event)
+		   (set! clip? (send self get-value))
+		   (send canvas on-paint))
+		 "Clip")
+    (make-object mred:check-box% hp
+		 (lambda (self event)
+		   (set! cyan? (send self get-value))
+		   (send canvas on-paint))
+		 "Cyan")
     (send (make-object mred:check-box% hp2
 		       (lambda (self event)
 			 (send canvas set-bitmaps (send event checked?)))
@@ -371,3 +464,13 @@
 	  set-value #t))
 
   (send f show #t))
+
+;; Still to do:
+
+; set-logical-function
+
+; Canvas, Pixmaps, and Bitmaps:
+;  get-pixel
+;  begin-set-pixel
+;  end-set-pixel
+;  set-pixel

@@ -8,15 +8,22 @@ The drawing area should have the following features:
     should always produce the hollow box and line.
 
   At the top, "Pen 0 x 0" in a consistent font (i.e., re-painting
-    should not change the font)
+    should not change the font; clicking *2 should make it twice
+    a big, and unclicking should restore it)
   "Pen 1 x 1" in a possibly different font
-  "Pen 2 x 2" in a bold font (bold version of 1x1 font)
+  "Pen 2 x 2" in a bold red font (bold version of 1x1 font) on yellow
   
-  A line should appear across each of "Pen 0 x 0", etc.
+  A line should appear across each of "Pen 0 x 0" and "Pen 1 x 1"
     (if the line is missing, it was probably erased when the text
      was repainted, and that is bad)
+  A little bit of a black line should appear before "Pen 2 x 2",
+    but the yellow background should have covered up the line
 
-  The drawings under 0x0 and 1x1 should look the same:
+  At the far right, a black and red pair of splines should form
+    a squashed "S", twice as wide as high. The "S" is formed
+    by two splines.
+
+  The drawings under 0x0 and 1x1 should look nearly the same:
     TopLeft: h-line should be left-aligned with box below it,
              but extend 1 extra pixel. v-line similarly should be
              top-aligned and 1 pixel longer. The lines should not 
@@ -47,9 +54,17 @@ The drawing area should have the following features:
             Down-left arrow - red with *white* background
     Stippled boxes: In a blue box w/black border, three boxes:
                     Black and white/blue stippled arrow 
-                      (white vs. blue: depends on platform and DC)
+                      (white vs. blue: depends on platform, but
+                       consistent across canvas & pixmap)
+		     [Click "cyan" => replace "white" with "cyan"]
                     Black and white stippled arrow
+		     [Click "cyan" => replace "white" with "cyan"]
                     BB stippled
+		    Green cross-hatch on {white,cyan}/blue
+	Outside of blue box:
+	            Green cross-hatch on {white,cyan}
+		    Black cross-hatch on {white,cyan}
+		    
     Dashed lines: each half green, half black:
            Solid line
            Dot line
@@ -57,15 +72,34 @@ The drawing area should have the following features:
            Short Dash line
            Dot Dash line
 
+ The drawings under 2x2 should be reasonable extensions of the
+ 0x0 and 1x1 pictures for a double-wide pen.
+
 The image should look the same regardless of the top radio button
 setting --- Canvas, Pixmap, or Bitmap --- except that the Bitmap
-setting might produce a black-and-white image.
+setting might produce a black-and-white image.  When you go from
+Pixmap-&-*2 ("*2" is described next) back to Pixmap, there may be junk
+from the *2 drawing left around the right and bottom. That's ok. Same
+for going from Canvas-&-Cyan ("Cyan" is described later) to
+Pixmap-&-Cyan.
 
-Clicking on the "*2" checkbox should double the size of everything
-except the pen widths and bitmaps.
+Clicking on the "*2" checkbox should double the size of everything,
+including the pen widths, but not the bitmaps. The 0x0 pen should
+be the same width as before.
 
 Clicking on "+10" should shift everything 10 pixels down and across.
 (Even when "*2" is checked, it should be a 10 pixel offset).
+
+Clicking on "Clip" should clip drawing to a 10-pixel strip 100 pixels
+from the left. When "*2" is also clickied, the strip should grow
+appropriately. "+10" should move the clipping region. (In either the
+"*2" or "+10" case, the content of the strip should be the same.)
+
+Clicking on "Cyan" should change the background to cyan instead of
+white. When Pixmap or Bitmap is used, the background will be set in
+the Pixmap/Bitmap, not the canvas, so a white background should frame
+the cyan area to the right and bottom (if you make the window big
+enough).
 
 Clicking on "PostScript" should produce the same image in a PostScript
 file.
