@@ -6055,6 +6055,32 @@
 
 (wx:set-dialogs get-file put-file get-ps-setup-from-user message-box)
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;; snip-class% and editor-data-class% loaders
+
+(let ([load-one
+       (lambda (str id %)
+	 (let ([m (with-handlers ([void (lambda (x) #f)])
+		    (and (regexp-match "^[(].*[)]$" str)
+			 (read (open-input-string str))))])
+	   (if (and (list? m)
+		    (eq? 'lib (car m))
+		    (andmap string? (cdr m)))
+	       (let ([result (dynamic-require m id)])
+		 (if (is-a? result %)
+		     result
+		     (error 'load-class "not a ~a% instance" id))))))])
+  ;; install the getters:
+  (wx:set-snip-class-getter 
+   (lambda (name)
+     (load-one name 'snip-class wx:snip-class%)))
+  (wx:set-editor-data-class-getter 
+   (lambda (name)
+     (load-one name 'editor-data-class wx:editor-data-class%))))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 (define-syntax propagate
   (lambda (stx)
     (syntax-case stx ()
