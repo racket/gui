@@ -202,9 +202,7 @@
    get-anchor-bdc
    
    get-gc-on-bitmap
-   get-gc-off-bitmap
-   get-gc-width
-   get-gc-height))
+   get-gc-off-bitmap))
 
 (define-signature framework:keymap^
   (set-keymap-error-handler

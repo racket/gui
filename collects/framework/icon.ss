@@ -66,12 +66,6 @@
       (set! gc-on-bitmap ((load-icon "recycle.gif" 'gif)))))
 
   (define (get-gc-on-bitmap) (fetch) gc-on-bitmap)
-  (define (get-gc-width) (fetch) (if (send gc-on-bitmap ok?)
-				     (send gc-on-bitmap get-width)
-				     10))
-  (define (get-gc-height) (fetch) (if (send gc-on-bitmap ok?)
-				      (send gc-on-bitmap get-height)
-				      10))
   
   (define get-gc-off-bitmap
     (let ([bitmap #f])
@@ -79,8 +73,11 @@
 	(if bitmap
 	    bitmap
 	    (begin
-	      (let ([bdc (make-object bitmap-dc%)])
-		(set! bitmap (make-object bitmap% (get-gc-width) (get-gc-height)))
+	      (let ([bdc (make-object bitmap-dc%)]
+		    [onb (get-gc-on-bitmap)])
+		(set! bitmap (make-object bitmap%
+			       (send onb get-width)
+			       (send onb get-height)))
 		(send bdc set-bitmap bitmap)
 		(send bdc clear)
 		(send bdc set-bitmap #f)

@@ -11,6 +11,9 @@
 	 (send f show #t)))
       (wait-for-frame "test text")
       (send-sexp-to-mred
+       `(test:keypress #\a))
+      (wait-for `(string=? "a" (send (send (get-top-level-focus-window) get-editor) get-text)))
+      (send-sexp-to-mred
        `(send (get-top-level-focus-window) show #f)))))
 
 (test-creation 'frame:text%

@@ -12,7 +12,9 @@
   ((struct eof-result ())
    load-framework-automatically
    shutdown-listener shutdown-mred mred-running? send-sexp-to-mred
-   test wait-for-frame))
+   test
+   wait-for-frame
+   wait-for))
 
 (define-signature internal-TestSuite^
   ((open TestSuite^)
@@ -178,18 +180,21 @@
 		  [(continue) (void)]
 		  [else (jump)])))))]))
 
-    (define (wait-for-frame name)
+    (define (wait-for sexp)
       (let ([timeout 10]
 	    [pause-time 1/2])
 	(send-sexp-to-mred
 	 `(let loop ([n ,(/ timeout pause-time)])
 	    (if (zero? n)
-		(error 'wait-for-mred-frame
-		       ,(format "after ~a seconds, frame labelled ~s didn't appear" timeout name))
-		(let ([win (get-top-level-focus-window)])
-		  (unless (and win (string=? (send win get-label) ,name))
-		    (sleep ,pause-time)
-		    (loop (- n 1)))))))))))
+		(error 'wait-for
+		       ,(format "after ~a seconds, ~s didn't come true" timeout sexp))
+		(unless ,sexp
+		  (sleep ,pause-time)
+		  (loop (- n 1))))))))
+
+    (define (wait-for-frame name)
+      (wait-for `(let ([win (get-top-level-focus-window)])
+		   (and win (string=? (send win get-label) ,name)))))))
 
 (define Engine
   (unit/sig Engine^

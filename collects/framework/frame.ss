@@ -787,8 +787,8 @@
 			(send offb ok?))
 	       (register-collecting-blit gc-canvas 
 					 0 0
-					 (icon:get-gc-width)
-					 (icon:get-gc-height)
+					 (send onb get-width)
+					 (send onb get-height)
 					 onb offb))))])
       
       (sequence
@@ -798,13 +798,18 @@
 		  (list rest-panel))))
 	(register-gc-blit)
 	
-	(let ([gc-width (icon:get-gc-width)]
-	      [gc-height (icon:get-gc-height)])
-	  (send* gc-canvas
-		 (min-client-width gc-width)
-		 (min-client-height gc-height)
-		 (stretchable-width #f)
-		 (stretchable-height #f)))
+	(let* ([gcb (icon:get-gc-on-bitmap)]
+	       [gc-width (if (send gcb ok?)
+			     (send gcb get-width)
+			     10)]
+	       [gc-height (if (send gcb ok?)
+			      (send gcb get-height)
+			      10)])
+	  '(send* gc-canvas
+		  (min-client-width gc-width)
+		  (min-client-height gc-height)
+		  (stretchable-width #f)
+		  (stretchable-height #f)))
 	(send* (get-info-panel) 
 	       (set-alignment 'right 'center)
 	       (stretchable-height #f)
