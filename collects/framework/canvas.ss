@@ -104,7 +104,7 @@
 			   ;; console printer
 			   (let ([fallback
 				  (lambda ()
-				    (send edit get-snip-position
+				    (send edit get-snip-location
 					  s left-edge-box top-edge-box))])
 			     (cond
 			       [(not width?) (fallback)]
