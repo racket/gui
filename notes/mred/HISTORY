@@ -1,4 +1,7 @@
 
+Version 299.15
+Added message+check-box and message+check-box/custom
+
 Version 299.13
 Added 'no-border flag to editor-canvas%
 X: modernized GUI look; new preference |MrEd:hiliteColor|
