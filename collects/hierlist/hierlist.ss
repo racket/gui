@@ -1,16 +1,19 @@
-(begin-elaboration-time
- (require-library "hierlists.ss" "hierlist"))
 
-(begin-elaboration-time
-  (require-library "invoke.ss"))
+(module hierlist mzscheme
+  (import (lib "unitsig.ss")
+	  (lib "sig.ss" "mred")
+	  (lib "mred.ss" "mred"))
 
-(require-library "functio.ss")
+  (import "hierlist-sig.ss"
+	  "hierlist-unit.ss")
 
-(define-values/invoke-unit/sig hierlist^
-  (require-library "hierlistr.ss" "hierlist")
-  #f
-  mzlib:function^
-  mred^)
+
+  (define-values/invoke-unit/sig hierlist^
+    hierlist@
+    #f
+    mred^)
+
+  (export-signature-elements hierlist^))
 
 #|
 
@@ -19,17 +22,17 @@
 (define p (make-object horizontal-panel% f))
 (define c (make-object (class hierarchical-list% args
 			 (override
-			   [item-opened
+			   [on-item-opened
 			    (lambda (i)
 			      (let ([f (send i user-data)])
 				(when f (f i))))]
-			   [select
+			   [on-select
 			    (lambda (i)
 			      (printf "Selected: ~a~n"
 				      (if i 
 					  (send (send i get-editor) get-flattened-text)
 					  i)))]
-			   [double-select
+			   [on-double-select
 			    (lambda (s)
 			      (printf "Double-click: ~a~n"
 				      (send (send s get-editor) get-flattened-text)))])
