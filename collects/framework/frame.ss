@@ -1081,7 +1081,7 @@
                     (send memory-text end-edit-sequence))]
                  [button (make-object button% "Memory" panel 
                            (lambda x
-                             (collect-garbage)(collect-garbage)(collect-garbage)
+                             (collect-garbage)
                              (update-text)))]
                  [ec (make-object editor-canvas% panel memory-text '(no-hscroll no-vscroll))])
             (determine-width "000000000" ec memory-text)
