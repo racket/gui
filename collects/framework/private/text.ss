@@ -894,6 +894,7 @@ WARNING: printf is rebound in the body of the unit to always
           reset-input-box
           clear-output-ports
           clear-input-port
+          clear-box-input-port
           get-out-style-delta
           get-err-style-delta
           get-value-style-delta
@@ -918,13 +919,14 @@ WARNING: printf is rebound in the body of the unit to always
         set-port-text)
       
       (define ports-mixin
-        (mixin ((class->interface text%) #;scheme:text<%>) (ports<%>)
+        (mixin (wide-snip<%>) (ports<%>)
           (inherit begin-edit-sequence
                    change-style
                    delete
                    end-edit-sequence
                    find-snip
                    insert
+                   get-canvas
                    get-start-position
                    get-end-position
                    get-snip-position
@@ -989,6 +991,7 @@ WARNING: printf is rebound in the body of the unit to always
           (define/public-final (send-eof-to-in-port) 
             (channel-put read-chan (cons eof (position->line-col-pos unread-start-point))))
           (define/public-final (clear-input-port) (channel-put clear-input-chan (void)))
+          (define/public-final (clear-box-input-port) (channel-put box-clear-input-chan (void)))
           (define/public-final (clear-output-ports) 
             (channel-put clear-output-chan (void))
             (init-output-ports))
@@ -1114,9 +1117,11 @@ WARNING: printf is rebound in the body of the unit to always
                      [locked? (is-locked?)])
                 (send ed set-port-text this)
                 (lock #f)
+                (send es set-flags (cons 'hard-newline (send es get-flags)))
                 (unless (= unread-start-point (paragraph-start-position (position-paragraph unread-start-point)))
                   (insert-between "\n"))
                 (insert-between es)
+                (send (get-canvas) add-wide-snip es)
                 (set! box-input es)
                 (set-caret-owner es 'display)
                 (lock locked?))))
@@ -1553,6 +1558,10 @@ WARNING: printf is rebound in the body of the unit to always
                              (separate 
                               committers
                               (service-committer data peeker-evt))])
+                 (when (and on-peek
+                            (not (null? not-ready-peekers)))
+                   (parameterize ([current-eventspace eventspace])
+                     (queue-callback on-peek)))
                  (set! peekers not-ready-peekers)
                  (set! committers potential-commits)
                  (set! response-evts 
@@ -1605,9 +1614,6 @@ WARNING: printf is rebound in the body of the unit to always
                    peek-chan
                    (λ (peeker)
                      (dprintf "i: peek-chan\n")
-                     (when on-peek
-                       (parameterize ([current-eventspace eventspace])
-                         (queue-callback on-peek)))
                      (set! peekers (cons peeker peekers))
                      (loop)))
                   (handle-evt
