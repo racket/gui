@@ -630,7 +630,8 @@
   (when prev-frame
     (add-disable "Previous Tester Frame" prev-frame ep2))
   
-  (when (not label-h?)
+  (when (and (not label-h?)
+	     (not position-via-style?))
     (send ip2 set-label-position 'vertical))
 
   (when special-label-font?
