@@ -107,9 +107,11 @@
           
           ;; See docs
           (define/public (reset-region start end)
-            (set! start-pos start)
-            (set! end-pos end)
-            (reset-tokens))
+            (unless (and (= start start-pos) (eqv? end end-pos))
+              (set! start-pos start)
+              (set! end-pos end)
+              (reset-tokens)
+              (do-insert/delete start 0)))
 
           (define/public (get-region) (values start-pos end-pos))
           
