@@ -5,10 +5,7 @@ Added on-display-size-when-ready and lock for refresh that blocks an
 Added get-text! to snip%
 Added locations-computed? to editor<%>
 X with Xft: changed default 'modern mapping to " Courier 10 Pitch"
-Finally fixed Mac OS X menu-bar flashing bug, thanks Paul Schlie's
- detective work. (I blame Mac OS X for having a refresh bug, but I
- wasn't able to find the sequence of MrEd actions that triggered the
- bug.  Paul found it.)
+Mac OS X: fixed X menu-bar flashing bug, thanks to Paul Schlie
 
 Version 204.6
 Changed canvas% so that 'gl style is no longer needed
