@@ -21,6 +21,10 @@ The delete methods of wx:menu% and wx:menu-bar return #t if the
 
 System:
 -------
+- mred:standard-menus-frame now has a windows menu. To
+  eliminate it, ovveride "windows-meun" with #f. It
+  is updated by mred:the-frame-group
+
 - added documentation for:
     mred:constants:original-output-port, 
     mred:constants:original-error-port, and
@@ -133,6 +137,10 @@ System:
   - last newline inside stdout (purple) boxes ommitted
   - more efficient
 
+- killing and breaking read (finally) works.
+
+- printing dialogs for windows and mac work better now
+
 - parenthesis matching is improved. The cache is now used much more
   heavily.
 
@@ -236,6 +244,9 @@ On windows:
 
   Redefinition of mred:initialize and mred:make-invokeable-unit are
   no longer supported. Create a new system instead, using the -s flag.
+
+- added "set-display/write-handlers" method of mred:console-edit. This
+  work used to happen during a call to the "takeover" method.
 
 -  mred:get-file and mred:put-file now take a parent window as optional
    last argument.
