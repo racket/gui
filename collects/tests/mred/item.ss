@@ -55,26 +55,59 @@
 	 (lambda ()
 	   (when (send frame is-shown?)
 	     (send m set-label
-		   (format "focus: ~s" (mred:test:get-focused-window)))
+		   (let* ([w (mred:test:get-focused-window)]
+			  [l (and w (send w get-label))])
+		     (format "focus: ~a ~a" (or l "") w)))
 	     (start 1000 #t)))])))
    start 1000 #t))
 
 (define (add-pre-note frame panel)
   (define m (make-object mred:message% panel "pre: ??????????????????????????????"))
-  (define c (make-object mred:check-box% panel void "Drop Events"))
+  (define cm (make-object mred:check-box% panel void "Drop Mouse Events"))
+  (define ck (make-object mred:check-box% panel void "Drop Key Events"))
   (lambda (win e)
-    (send m set-label
-	  (format "pre: ~s ~s ~s"
-		  (if (is-a? e wx:mouse-event%)
-		      "mouse"
-		      "key")
-		  win
-		  (if (eq? win (send e get-event-object))
-		      ""
-		      "BAD")))
-    (and (not (eq? win c))
-	 (send c get-value))))
+    (let ([m? (is-a? e wx:mouse-event%)])
+      (send m set-label
+	    (format "pre: ~a ~a ~a"
+		    (if m? "mouse" "key")
+		    (let ([l (send win get-label)])
+		      (if (null? l)
+			  win
+			  l))
+		    (if (eq? win (send e get-event-object))
+			""
+			"BAD")))
+      (and (not (or (eq? win cm) (eq? win ck)))
+	   (or (and m? (send cm get-value))
+	       (and (not m?) (send ck get-value)))))))
 
+(define (add-cursors frame panel ctls)
+  (let ([old #f]
+	[f-old #f]
+	[bc (make-object wx:cursor% wx:const-cursor-bullseye)]
+	[cc (make-object wx:cursor% wx:const-cursor-cross)])
+    (make-object mred:check-box% panel
+		 (lambda (c e)
+		   (if (send c get-value)
+		       (set! old 
+			     (map (lambda (b) (send b set-cursor bc))
+				  ctls))
+		       (map (lambda (b c) (send b set-cursor c))
+			    ctls old)))
+		 "Bullseye Cursors")
+    (make-object mred:check-box% panel
+		 (lambda (c e)
+		   (if (send c get-value)
+		       (set! f-old (send frame set-cursor cc))
+		       (send frame set-cursor f-old)))
+		 "Frame Cross Cursor")
+    (make-object mred:check-box% panel
+		 (lambda (c e)
+		   (if (send c get-value)
+		       (wx:begin-busy-cursor)
+		       (wx:end-busy-cursor)))
+		 "Busy Cursor")))
+		       
 (define OTHER-LABEL "XXXXXXXXXXXXXXXXXXXXXX")
 
 (define-values (icons-path local-path)
@@ -137,6 +170,15 @@
       (apply super-init args)
       (unless (ok?)
 	(printf "bitmap failure: ~s~n" args)))))
+
+(define active-frame%
+  (class-asi mred:frame%
+     (private (pre-on void))
+     (public [pre-on-event (lambda args (apply pre-on args))]
+	     [pre-on-char pre-on-event]
+	     [set-info
+	      (lambda (ep)
+		(set! pre-on (add-pre-note this ep)))])))
 
 (define (make-ctls ip cp lp add-testers ep radio-h? label-h? null-label? stretchy?)
   
@@ -216,7 +258,7 @@
 			   -1 -1 -1 -1))
   
   (set! my-txt txt)
-  
+
   (add-testers "Button" b)
   (add-change-label "Button" b lp #f OTHER-LABEL)
   
@@ -249,31 +291,28 @@
   (add-testers "Text" txt)
   (add-change-label "Text" txt lp #f OTHER-LABEL)
   
-  (make-object popup-test-canvas% 
-	       (list l il 
-		     b ib
+  (let ([items (list l il 
+		     b ib 
 		     lb
-		     cb icb
-		     rb irb
+		     cb icb 
+		     rb irb 
 		     ch
-		     txt)
-	       (list "label" "image label"
-		     "button" "image button"
-		     "list box"
-		     "checkbox" "image checkbox"
-		     "radio box" "image radiobox"
-		     "choice"
-		     "text")
-	       cp))
+		     txt)])
+    (cons (make-object popup-test-canvas% 
+		       items
+		     (list "label" "image label"
+			   "button" "image button"
+			   "list box"
+			   "checkbox" "image checkbox"
+			   "radio box" "image radiobox"
+			   "choice"
+			   "text")
+		     cp)
+	  items)))
 
 (define (big-frame h-radio? v-label? null-label? stretchy? special-font?)
-  (define pre-on void)
-
-  (define f (make-object 
-	     (class-asi mred:frame%
-			(public [pre-on-event (lambda args (apply pre-on args))]
-				[pre-on-char pre-on-event]))
-	     null "Tester"))
+  (define f (make-object active-frame%
+			 null "Tester"))
   
   (define hp (make-object mred:horizontal-panel% f))
   
@@ -307,18 +346,19 @@
   (when special-font?
     (send tp set-label-font special-font))
     
-  (make-ctls tp cp lp add-testers ep h-radio? v-label? null-label? stretchy?)
-  
-  (add-focus-note f ep)
-  (set! pre-on (add-pre-note f ep))
+  (let ([ctls (make-ctls tp cp lp add-testers ep h-radio? v-label? null-label? stretchy?)])
+    (add-focus-note f ep)
+    (send f set-info ep)
+    
+    (add-cursors f lp ctls))
 
   (send f show #t)
   (set! prev-frame f)
   f)
 
 (define (med-frame radio-h? label-h? null-label? stretchy? special-font?)
-  (define f2 (make-object mred:frame% null "Tester2"))
-  
+  (define f2 (make-object active-frame% null "Tester2"))
+
   (define hp2 (make-object mred:horizontal-panel% f2))
   
   (define ip2 (make-object mred:vertical-panel% hp2))
@@ -401,7 +441,13 @@
     (add-change-label "Text" txt lp2 #f OTHER-LABEL)
     
     (add-focus-note f2 ep2)
-    
+    (send f2 set-info ep2)
+
+    (add-cursors f2 lp2 (list sh sv
+			      gh gv
+			      cmt cmi 
+			      txt))
+
     (send f2 show #t)
     (set! prev-frame f2)
     f2))
