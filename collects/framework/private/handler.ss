@@ -151,8 +151,6 @@
 			      (make-default)))]))
 		   (make-default)))))]))
       
-					; Query the user for a file and then edit it
-
       ;; type recent-list-item = (list/p string? number? number?)
       
       ;; add-to-recent : string -> void
@@ -378,7 +376,8 @@
 	(lambda ()
 	  (let ([file 
 		 (parameterize ([finder:dialog-parent-parameter
-				 (get-top-level-focus-window)])
+				 (and (preferences:get 'framework:open-here?)
+                                      (get-top-level-focus-window))])
 		   (finder:get-file
 		    (send *open-directory* get)))])
 	    (when file
