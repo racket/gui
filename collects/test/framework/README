@@ -1,4 +1,4 @@
-		      System Test Suite Overview
+		      Framework Test Suite Overview
 
 Each tests will rely on the sucessfully completion of all of the ones
 before it. In addition, all test suites rely on the sucessful
