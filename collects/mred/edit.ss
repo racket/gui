@@ -54,6 +54,11 @@
 		 #\Q)
 
     (append-editor-operation-menu-items edit-menu #f)
+    (when (eq? editor% text%)
+      (make-object separator-menu-item% edit-menu)
+      (make-object checkable-menu-item% "Wrap Lines" edit-menu
+		   (lambda (item event)
+		     (send e auto-wrap (send item is-checked?)))))
 
     (append-editor-font-menu-items font-menu)
     (let ([m (make-object menu% "Smoothing" font-menu)])
