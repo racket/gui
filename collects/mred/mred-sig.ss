@@ -69,6 +69,7 @@
      gauge%
      get-choices-from-user
      get-color-from-user
+     get-directory
      get-display-depth
      get-display-size
      get-face-list
