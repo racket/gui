@@ -14,36 +14,39 @@
 	  (rename [super-change-children change-children])
 	  (inherit get-parent change-children children)
 	  (public [get-canvas% (lambda () mred:canvas:frame-title-canvas%)])
+	  (private
+	    [split-edits null])
 	  (public
 	    [collapse
 	     (lambda (canvas)
-	       (letrec* ([media (send canvas get-media)]
-			 [helper
-			  (lambda (canvas/panel)
-			    (if (eq? canvas/panel this)
-				(begin (cond
-					 [(and (= (length children) 1)
-					       (eq? canvas (car children)))
-					  (void)]
-					 [(member canvas children)
-					  (change-children (lambda (l) (list canvas)))]
-					 [else
-					  (change-children
-					   (lambda (l)
-					     (let ([c (make-object (object-class canvas) this)])
-					       (send c set-media media)
-					       (list c))))])
-				       (wx:bell))
-				(let* ([parent (send canvas/panel get-parent)]
-				       [parents-children (ivar parent children)]
-				       [num-children (length parents-children)])
-				  (if (<= num-children 1)
-				      (helper parent)
-				      (begin (send parent delete-child canvas/panel)
-					     (send (car (ivar parent children)) set-focus))))))])
-		 (send media remove-canvas canvas)
-		 (helper canvas)))]
-
+	       (let ([media (send canvas get-media)])
+		 (if (memq media split-edits)
+		     (letrec ([helper
+			       (lambda (canvas/panel)
+				 (if (eq? canvas/panel this)
+				     (begin (cond
+					     [(and (= (length children) 1)
+						   (eq? canvas (car children)))
+					      (void)]
+					     [(member canvas children)
+					      (change-children (lambda (l) (list canvas)))]
+					     [else
+					      (change-children
+					       (lambda (l)
+						 (let ([c (make-object (object-class canvas) this)])
+						   (send c set-media media)
+						   (list c))))])
+					    (wx:bell))
+				     (let* ([parent (send canvas/panel get-parent)]
+					    [parents-children (ivar parent children)]
+					    [num-children (length parents-children)])
+				       (if (<= num-children 1)
+					   (helper parent)
+					   (begin (send parent delete-child canvas/panel)
+						  (send (car (ivar parent children)) set-focus))))))])
+		       (send media remove-canvas canvas)
+		       (helper canvas))
+		     (wx:bell))))]
 	    [split
 	     (opt-lambda (canvas [panel% mred:container:horizontal-panel%])
 	       (let* ([frame (ivar canvas frame)]
@@ -54,6 +57,7 @@
 		      [left-split #f]
 		      [right-split #f]
 		      [before #t])
+		 (set! split-edits (cons media split-edits))
 		 (dynamic-wind
 		  (lambda () 
 		    (set! before (send frame delay-updates))
