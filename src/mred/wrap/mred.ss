@@ -2789,7 +2789,15 @@
 		     (send wx set-cursor x)
 		     (set! cursor x)))]
 
-      [show (entry-point-1 (lambda (on?) (send wx show on?)))]
+      [show (entry-point-1 (lambda (on?) 
+			     (when on?
+			       (unless top?
+				 (unless (memq wx (ivar (send wx get-parent) children))
+				   (raise-mismatch-error 
+				    (who->name '(method window<%> show))
+				    "cannot show a child window that is not active in its parent: "
+				    this))))
+			     (send wx show on?)))]
       [is-shown? (entry-point (lambda () (send wx is-shown?)))]
 
       [refresh (entry-point (lambda () (send wx refresh)))])
