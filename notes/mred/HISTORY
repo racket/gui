@@ -1,3 +1,12 @@
+Version 205.4
+X with fontconfig/Xft: Added remapping for the 'symbol family
+ to match Adobe symbols (like Mac OS X)
+X with fontconfig/Xft: Added substitution support via
+ comma-separated font names
+X with fontconfig/Xft: Changed default 'symbol face mapping
+ to " Standard Symbols L,Nimbus Sans L"
+PostScript `draw-bitmap' now uses a supplied mask
+
 Version 205.3
 Added optional argument to draw-text in dc% for rotation
 
