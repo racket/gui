@@ -3,7 +3,6 @@
 	   (lib "class.ss")
 	   "bday.ss"
            "sig.ss"
-	   (lib "mred-sig.ss" "mred")
 	   (lib "mred-sig.ss" "mred"))
 
   (provide icon@)
