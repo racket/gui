@@ -1,9 +1,10 @@
 
 (module hierlist-unit mzscheme
   (require (lib "unitsig.ss")
-	  (lib "class.ss")
-	  (lib "mred-sig.ss" "mred")
-	  "hierlist-sig.ss")
+	   (lib "class.ss")
+	   (lib "class100.ss")
+	   (lib "mred-sig.ss" "mred")
+	   "hierlist-sig.ss")
 
   (require (lib "list.ss"))
 
@@ -27,7 +28,7 @@
       (define arrow-snip-class (make-object snip-class%))
       (send arrow-snip-class set-classname "hier-arrow")
       (define arrow-snip%
-	(class snip% (click-callback)
+	(class100 snip% (callback)
 	       (inherit get-admin set-flags get-flags set-count set-snipclass get-style)
 	       (rename [super-get-extent get-extent])
 	       (private 
@@ -61,6 +62,7 @@
 	       (private
 		 [get-width (lambda () (+ 2 size))]
 		 [get-height (lambda () (+ 2 size))]
+		 [click-callback callback]
 		 [clicked? #f]
 		 [update
 		  (lambda ()
@@ -131,11 +133,11 @@
       ;; Hack to get whitespace matching width of arrow: derive a new
       ;; class that overrides the `draw' method to do nothing. 
       (define whitespace-snip%
-	(class arrow-snip% ()
-	       (override [draw void])
-	       (sequence (super-init void))))
+	(class100 arrow-snip% ()
+	  (override [draw (lambda (dc x y left top right bottom dx dy draw-caret) (void))])
+	  (sequence (super-init void))))
 
-					; Keymap to map clicks and double-clicks
+      ;; Keymap to map clicks and double-clicks
       (define item-keymap (make-object keymap%))
 
       (send item-keymap add-function "mouse-select"
@@ -155,8 +157,9 @@
 	  get-editor is-selected? select user-data))
 
       (define hierarchical-list-item%
-	(class* object% (hierarchical-list-item<%>) (snip)
+	(class100* object% (hierarchical-list-item<%>) (snp)
 		(private
+		  [snip snp]
 		  [data #f])
 		(public
 		  [get-editor (lambda () (send snip get-item-buffer))]
@@ -178,7 +181,8 @@
 	  new-item new-list delete-item get-items))
 
       (define hierarchical-list-compound-item%
-	(class* hierarchical-list-item% (hierarchical-list-compound-item<%>) (snip)
+	(class100* hierarchical-list-item% (hierarchical-list-compound-item<%>) (snp)
+		(private [snip snp])
 		(override
 		  [get-editor (lambda () (send snip get-title-buffer))])
 		(public
@@ -197,12 +201,12 @@
 		  [new-item 
 		   (lambda x
 		     (begin0
-		      (apply (ivar (send snip get-content-buffer) new-item) x)
+		      (send (send snip get-content-buffer) new-item . x)
 		      (send snip not-empty-anymore)))]
 		  [new-list 
 		   (lambda x
 		     (begin0 
-		      (apply (ivar (send snip get-content-buffer) new-list) x)
+		      (send (send snip get-content-buffer) new-list . x)
 		      (send snip not-empty-anymore)))]
 		  [delete-item (lambda (i) (begin0
 					    (send (send snip get-content-buffer) delete-item i)
@@ -213,7 +217,7 @@
 
       ;; Buffer for a single list item
       (define hierarchical-item-text%
-	(class text% (top top-select item snip depth)
+	(class100 text% (tp tp-select itm snp dpth)
 	       (inherit set-max-undo-history hide-caret
 			last-position set-position set-keymap
 			invalidate-bitmap-cache set-max-width
@@ -221,6 +225,11 @@
 	       (rename [super-auto-wrap auto-wrap]
 		       [super-on-default-event on-default-event])
 	       (private
+		 [top tp]
+		 [top-select tp-select]
+		 [item itm]
+		 [snip snp]
+		 [depth dpth]
 		 [selected? #f])
 	       (public
 		 [is-selected? (lambda () selected?)]
@@ -267,7 +276,7 @@
 		 [double-select (lambda () (send top on-double-select item))]
 		 [select-prev (lambda () (send top select-prev))])
 	       (override
-		 [on-default-char void])
+		 [on-default-char (lambda (x) (void))])
 	       (sequence
 		 (super-init)
 		 (hide-caret #t)
@@ -276,11 +285,12 @@
 
       ;; Buffer for a compound list item (and the top-level list)
       (define (make-hierarchical-list-text% super%)
-	(class super% (top top-select depth parent-snip)
+	(class100 super% (top top-select depth parent-snp)
 	       (inherit set-max-undo-history hide-caret erase
 			last-position insert delete line-start-position line-end-position
 			begin-edit-sequence end-edit-sequence get-style-list)
 	       (private
+		 [parent-snip parent-snp]
 		 [children null]
 		 [make-whitespace (lambda () (make-object whitespace-snip%))]
 		 [insert-item 
@@ -351,8 +361,8 @@
 		       (send c reflow-item))
 		     children))])
 	       (override
-		 [on-default-char void]
-		 [on-default-event void])
+		 [on-default-char (lambda (x) (void))]
+		 [on-default-event (lambda (x) (void))])
 	       (sequence
 		 (super-init)
 		 (hide-caret #t)
@@ -362,133 +372,135 @@
 
       ;; Snip for a single list item
       (define hierarchical-item-snip%
-	(class editor-snip% (parent top top-select depth mixin)
-	       (public
-		 [get-parent (lambda () parent)]
-		 [get-item-text% (lambda () hierarchical-item-text%)]
-		 [select (lambda (on?) (send item-buffer select on?))]
-		 [deselect-all (lambda () (select #f))]
-		 [show-select (lambda (on?) (send item-buffer show-select on?))]
-		 [get-item-buffer (lambda () item-buffer)]
-		 [get-item (lambda () item)]
-		 [reflow-item (lambda () 
-				(when (send item-buffer auto-wrap)
-				  (send item-buffer auto-wrap #t)))])
-	       (private
-		 [item (make-object (mixin hierarchical-list-item%) this)]
-		 [item-buffer (make-object (get-item-text%) top top-select item this depth)])
-	       (sequence
-		 (super-init item-buffer #f 0 0 0 0 0 0 0 0))))
+	(class100 editor-snip% (prnt top top-select depth mixin)
+	  (private [parent prnt])
+	  (public
+	    [get-parent (lambda () parent)]
+	    [get-item-text% (lambda () hierarchical-item-text%)]
+	    [select (lambda (on?) (send item-buffer select on?))]
+	    [deselect-all (lambda () (select #f))]
+	    [show-select (lambda (on?) (send item-buffer show-select on?))]
+	    [get-item-buffer (lambda () item-buffer)]
+	    [get-item (lambda () item)]
+	    [reflow-item (lambda () 
+			   (when (send item-buffer auto-wrap)
+			     (send item-buffer auto-wrap #t)))])
+	  (private
+	    [item (make-object (mixin hierarchical-list-item%) this)]
+	    [item-buffer (make-object (get-item-text%) top top-select item this depth)])
+	  (sequence
+	    (super-init item-buffer #f 0 0 0 0 0 0 0 0))))
 
       ;; Snip for a compound list item
       (define hierarchical-list-snip%
-	(class editor-snip% (parent top top-select depth mixin [title #f][content #f])
-	       (public
-		 [get-parent (lambda () parent)]
-		 [get-main-text% (lambda () (class text% args
-						   (override
-						     [on-default-char void]
-						     [on-default-event void])
-						   (sequence 
-						     (apply super-init args))))]
-		 [get-title-text% (lambda () hierarchical-item-text%)]
-		 [get-content-text% (lambda () hierarchical-list-text%)]
-		 [get-arrow-snip% (lambda () arrow-snip%)]
-		 [select (lambda (on?)
-			   (if on?
-			       (send title-buffer select #t)
-			       (send title-buffer select #f)))]
-		 [deselect-all (lambda ()
-				 (select #f)
-				 (send content-buffer deselect-all))]
-		 [show-select (lambda (on?) (send title-buffer show-select on?))]
-		 [not-empty-anymore (lambda ()
-				      (when was-empty?
-					(set! was-empty? #f)
-					(set! was-non-empty? #t)
-					(send main-buffer begin-edit-sequence)
-					(send main-buffer insert #\newline 2)
-					(send main-buffer insert whitespace 3)
-					(send main-buffer insert content-snip 4)
-					(send main-buffer end-edit-sequence)))]
-		 [check-empty-now (lambda ()
-				    (when (and was-non-empty? 
-					       (zero? (send content-buffer last-position)))
-				      (set! was-empty? #t)
-				      (set! was-non-empty? #f)
-				      (send main-buffer delete 2 5)))]
-		 [open (lambda () (handle-open #t))]
-		 [close (lambda () (handle-close #t))]
-		 [is-open? (lambda () open?)]
-		 [toggle-open/closed
-		  (lambda ()
-		    (if open?
-			(handle-close #t)
-			(handle-open #t)))]
-		 [on-arrow (lambda (a)
-			     (if (send a on)
-				 (handle-open #f)
-				 (handle-close #f)))]
-		 [get-title-buffer (lambda () title-buffer)]
-		 [get-content-buffer (lambda () content-buffer)]
-		 [get-item (lambda () item)]
-		 [reflow-item (lambda () 
-				(when (send title-buffer auto-wrap)
-				  (send title-buffer auto-wrap #t))
-				(send (send content-snip get-editor) reflow-items))])
-	       (private
-		 [open? #f]
-		 [handle-open
-		  (lambda (update-arrow?)
-		    (unless open?
-		      (set! open? #t)
-		      (when update-arrow? (send arrow on #t))
-		      (send main-buffer begin-edit-sequence)
-		      (send top on-item-opened (get-item))
-		      (if (zero? (send content-buffer last-position))
-			  (set! was-empty? #t)
-			  (begin
-			    (set! was-non-empty? #t)
-			    (send main-buffer insert #\newline 2)
-			    (send main-buffer insert whitespace 3)
-			    (send main-buffer insert content-snip 4)))
-		      (send main-buffer scroll-to-position 0
-			    #f
-			    (send main-buffer last-position)
-			    'start)
-		      (send main-buffer end-edit-sequence)))]
-		 [handle-close
-		  (lambda (update-arrow?)
-		    (when open?
-		      (set! open? #f)
-		      (when update-arrow? (send arrow on #f))
-		      (set! was-empty? #f)
-		      (set! was-non-empty? #f)
-		      (send main-buffer begin-edit-sequence)
-		      (send content-buffer deselect-all)
-		      (send main-buffer delete 2 5)
-		      (send top on-item-closed (get-item))
-		      (send main-buffer end-edit-sequence)))])
-	       (private
-		 [was-empty? #f]
-		 [was-non-empty? #f]
-		 [item (make-object (mixin hierarchical-list-compound-item%) this)]
-		 [main-buffer (make-object (get-main-text%))]
-		 [title-buffer (make-object (get-title-text%) top top-select item this depth)]
-		 [content-buffer (make-object (get-content-text%) top top-select depth this)]
-		 [title-snip (make-object editor-snip% title-buffer #f 0 0 0 0 0 0 0 0)]
-		 [content-snip (make-object editor-snip% content-buffer #f 4 0 0 0 0 0 0 0)]
-		 [arrow (make-object (get-arrow-snip%) on-arrow)]
-		 [whitespace (make-object whitespace-snip%)])
-	       (sequence
-		 (super-init main-buffer #f 0 0 0 0 0 0 0 0)
-		 (send main-buffer set-max-undo-history 0)
-		 (send main-buffer hide-caret #t)
-		 (send main-buffer insert arrow)
-		 (when title (send title-buffer insert title))
-		 (when content (send content-buffer insert content))
-		 (send main-buffer insert title-snip)
-		 (send main-buffer change-style (make-object style-delta% 'change-alignment 'top) 0 2))))
+	(class100 editor-snip% (prnt top top-select depth mixin [title #f][content #f])
+	  (private [parent prnt])
+	  (public
+	    [get-parent (lambda () parent)]
+	    [get-main-text% (lambda () (class100 text% args
+					 (override
+					   [on-default-char (lambda (x) (void))]
+					   [on-default-event (lambda (x) (void))])
+					 (sequence 
+					   (apply super-init args))))]
+	    [get-title-text% (lambda () hierarchical-item-text%)]
+	    [get-content-text% (lambda () hierarchical-list-text%)]
+	    [get-arrow-snip% (lambda () arrow-snip%)]
+	    [select (lambda (on?)
+		      (if on?
+			  (send title-buffer select #t)
+			  (send title-buffer select #f)))]
+	    [deselect-all (lambda ()
+			    (select #f)
+			    (send content-buffer deselect-all))]
+	    [show-select (lambda (on?) (send title-buffer show-select on?))]
+	    [not-empty-anymore (lambda ()
+				 (when was-empty?
+				   (set! was-empty? #f)
+				   (set! was-non-empty? #t)
+				   (send main-buffer begin-edit-sequence)
+				   (send main-buffer insert #\newline 2)
+				   (send main-buffer insert whitespace 3)
+				   (send main-buffer insert content-snip 4)
+				   (send main-buffer end-edit-sequence)))]
+	    [check-empty-now (lambda ()
+			       (when (and was-non-empty? 
+					  (zero? (send content-buffer last-position)))
+				 (set! was-empty? #t)
+				 (set! was-non-empty? #f)
+				 (send main-buffer delete 2 5)))]
+	    [open (lambda () (handle-open #t))]
+	    [close (lambda () (handle-close #t))]
+	    [is-open? (lambda () open?)]
+	    [toggle-open/closed
+	     (lambda ()
+	       (if open?
+		   (handle-close #t)
+		   (handle-open #t)))]
+	    [on-arrow (lambda (a)
+			(if (send a on)
+			    (handle-open #f)
+			    (handle-close #f)))]
+	    [get-title-buffer (lambda () title-buffer)]
+	    [get-content-buffer (lambda () content-buffer)]
+	    [get-item (lambda () item)]
+	    [reflow-item (lambda () 
+			   (when (send title-buffer auto-wrap)
+			     (send title-buffer auto-wrap #t))
+			   (send (send content-snip get-editor) reflow-items))])
+	  (private
+	    [open? #f]
+	    [handle-open
+	     (lambda (update-arrow?)
+	       (unless open?
+		 (set! open? #t)
+		 (when update-arrow? (send arrow on #t))
+		 (send main-buffer begin-edit-sequence)
+		 (send top on-item-opened (get-item))
+		 (if (zero? (send content-buffer last-position))
+		     (set! was-empty? #t)
+		     (begin
+		       (set! was-non-empty? #t)
+		       (send main-buffer insert #\newline 2)
+		       (send main-buffer insert whitespace 3)
+		       (send main-buffer insert content-snip 4)))
+		 (send main-buffer scroll-to-position 0
+		       #f
+		       (send main-buffer last-position)
+		       'start)
+		 (send main-buffer end-edit-sequence)))]
+	    [handle-close
+	     (lambda (update-arrow?)
+	       (when open?
+		 (set! open? #f)
+		 (when update-arrow? (send arrow on #f))
+		 (set! was-empty? #f)
+		 (set! was-non-empty? #f)
+		 (send main-buffer begin-edit-sequence)
+		 (send content-buffer deselect-all)
+		 (send main-buffer delete 2 5)
+		 (send top on-item-closed (get-item))
+		 (send main-buffer end-edit-sequence)))])
+	  (private
+	    [was-empty? #f]
+	    [was-non-empty? #f]
+	    [item (make-object (mixin hierarchical-list-compound-item%) this)]
+	    [main-buffer (make-object (get-main-text%))]
+	    [title-buffer (make-object (get-title-text%) top top-select item this depth)]
+	    [content-buffer (make-object (get-content-text%) top top-select depth this)]
+	    [title-snip (make-object editor-snip% title-buffer #f 0 0 0 0 0 0 0 0)]
+	    [content-snip (make-object editor-snip% content-buffer #f 4 0 0 0 0 0 0 0)]
+	    [arrow (make-object (get-arrow-snip%) (lambda (a) (on-arrow a)))]
+	    [whitespace (make-object whitespace-snip%)])
+	  (sequence
+	    (super-init main-buffer #f 0 0 0 0 0 0 0 0)
+	    (send main-buffer set-max-undo-history 0)
+	    (send main-buffer hide-caret #t)
+	    (send main-buffer insert arrow)
+	    (when title (send title-buffer insert title))
+	    (when content (send content-buffer insert content))
+	    (send main-buffer insert title-snip)
+	    (send main-buffer change-style (make-object style-delta% 'change-alignment 'top) 0 2))))
 
       (define list-keymap (make-object keymap%))
 
@@ -523,7 +535,7 @@
       (send list-keymap map-function "return" "toggle-open/closed")
 
       (define hierarchical-list%
-	(class editor-canvas% (parent)
+	(class100 editor-canvas% (parent)
 	       (inherit min-width min-height)
 	       (rename [super-on-char on-char]
 		       [super-on-focus on-focus])
@@ -533,12 +545,12 @@
 		   [() selectable?]
 		   [(on?) (set! selectable? on?)])]
 		 [get-selected (lambda () selected-item)]
-		 [on-item-opened void]
-		 [on-item-closed void]
-		 [on-double-select void]
-		 [on-select void]
-		 [new-item (lambda x (apply (ivar top-buffer new-item) x))]
-		 [new-list (lambda x (apply (ivar top-buffer new-list) x))]
+		 [on-item-opened (lambda (i) (void))]
+		 [on-item-closed (lambda (i) (void))]
+		 [on-double-select (lambda (i) (void))]
+		 [on-select (lambda (i) (void))]
+		 [new-item (lambda x (send top-buffer new-item . x))]
+		 [new-list (lambda x (send top-buffer new-list . x))]
 		 [delete-item (lambda (i) (send top-buffer delete-item i))]
 		 [sort (lambda (less-than?) (send top-buffer sort less-than?))]
 		 [get-items (lambda () (send top-buffer get-items))]

@@ -1,6 +1,6 @@
 (module mred mzscheme
   (require (prefix wx: (lib "kernel.ss" "mred" "private")))
-  (require (lib "class2.ss")
+  (require (lib "class.ss")
 	   (lib "class100.ss"))
 
 ;;;;;;;;;;;;;;; Constants ;;;;;;;;;;;;;;;;;;;;
@@ -1884,7 +1884,7 @@
       [set-focus (lambda () (void))]
       [on-size (lambda () (void))]
       [enable (lambda () (void))]
-      [show (lambda () (void))]
+      [show (lambda (on?) (void))]
       [get-parent (lambda () parent)]
       [get-client-size (lambda (wb hb)
 			 (when wb (set-box! wb width))
@@ -2467,7 +2467,7 @@
 				(lambda (s) (major-offset s))
 				cadr   ; child-info-y-min
 				cadddr ; child-info-y-stretch
-				(lambda (s) (minor-offset s))
+				(lambda (s t) (minor-offset s t))
 				(lambda (width height) width)
 				(lambda (width height) height)
 				(lambda (major minor) major)
