@@ -616,10 +616,10 @@
 		      (send proxy on-focus #f))]
       [pre-on-char (lambda (w e)
 		     (super-pre-on-char w e)
-		     (pre-wx->proxy w (lambda (m) (send proxy pre-on-char m e))))]
+		     (pre-wx->proxy w (lambda (m) (send proxy on-subwindow-char m e))))]
       [pre-on-event (lambda (w e)
 		      (super-pre-on-event w e)
-		      (pre-wx->proxy w (lambda (m) (send proxy pre-on-event m e))))])
+		      (pre-wx->proxy w (lambda (m) (send proxy on-subwindow-event m e))))])
     (sequence (apply super-init mred proxy args))))
 
 (define (make-container-glue% %)
@@ -1871,7 +1871,7 @@
     on-focus focus
     on-size
     accept-drop-files on-drop-file
-    pre-on-char pre-on-event
+    on-subwindow-char on-subwindow-event
     client->screen screen->client
     enable is-enabled?
     get-label set-label
@@ -1885,8 +1885,8 @@
     (public
       [on-focus void]
       [on-size void]
-      [pre-on-char (lambda (w e) #f)]
-      [pre-on-event (lambda (w e) #f)]
+      [on-subwindow-char (lambda (w e) #f)]
+      [on-subwindow-event (lambda (w e) #f)]
       [on-drop-file void]
 
       [focus (lambda () (send wx set-focus))]
@@ -2040,7 +2040,7 @@
       [wx #f]
       [status-line? #f])
     (override
-      [pre-on-char (lambda (w event) (send wx handle-menu-key event))])
+      [on-subwindow-char (lambda (w event) (send wx handle-menu-key event))])
     (public
       [create-status-line (lambda () (unless status-line? (send wx create-status-line) (set! status-line? #t)))]
       [set-status-line (lambda () (send wx create-status-line))]
@@ -2942,10 +2942,10 @@
 (define get-ps-setup-from-user
   (case-lambda
    [() (get-ps-setup-from-user #f #f null)]
-   [(message) (get-ps-setup-from-user message #f null)]
-   [(message parent) (get-ps-setup-from-user message parent null)]
-   [(message parent style)
-    (define pss (wx:current-ps-setup))
+   [(message) (get-ps-setup-from-user message #f (wx:current-ps-setup) null)]
+   [(message parent) (get-ps-setup-from-user message parent (wx:current-ps-setup) null)]
+   [(message parent pss) (get-ps-setup-from-user message parent pss null)]
+   [(message parent pss style)
     (define f (make-object dialog% "PostScript Setup" parent))
     (define papers 
       '("A4 210 x 297 mm" "A3 297 x 420 mm" "Letter 8 1/2 x 11 in" "Legal 8 1/2 x 14 in"))
@@ -3220,10 +3220,11 @@
   (if (not (eq? (system-type) 'unix))
       wx:get-color-from-user
       (case-lambda
-       [() (get-color-from-user #f #f #f)]
-       [(message) (get-color-from-user message #f #f)]
-       [(message parent) (get-color-from-user message parent #f)]
-       [(message parent color)
+       [() (get-color-from-user #f #f #f null)]
+       [(message) (get-color-from-user message #f #f null)]
+       [(message parent) (get-color-from-user message parent #f null)]
+       [(message parent color) (get-color-from-user message parent #f null)]
+       [(message parent color style)
 	(let* ([ok? #t]
 	       [f (make-object dialog% "Choose Color" parent)]
 	       [done (lambda (ok) (lambda (b e) (set! ok? ok) (send f show #f)))]
@@ -3252,10 +3253,11 @@
   (if (eq? (system-type) 'windows)
       wx:get-font-from-user
       (case-lambda
-       [() (get-font-from-user #f #f #f)]
-       [(message) (get-font-from-user message #f #f)]
-       [(message parent) (get-font-from-user message parent #f)]
-       [(message parent font)
+       [() (get-font-from-user #f #f #f null)]
+       [(message) (get-font-from-user message #f #f null)]
+       [(message parent) (get-font-from-user message parent #f null)]
+       [(message parent font) (get-font-from-user message parent #f null)]
+       [(message parent font style)
 	(letrec ([ok? #f]
 		 [f (make-object dialog% "Choose Font" parent 500 300)]
 		 [refresh-sample (lambda (b e) (let ([f (get-font)])
@@ -3264,7 +3266,7 @@
 						   (let ([s (send (send edit get-style-list) find-named-style "Standard")])
 						     (send s set-delta (font->delta f))))))]
 		 [p (make-object horizontal-pane% f)]
-		 [face (make-object list-box% "Font:" (wx:get-font-list) p refresh-sample)]
+		 [face (make-object list-box% "Font:" (wx:get-face-list) p refresh-sample)]
 		 [p2 (make-object vertical-pane% p)]
 		 [style (make-object radio-box% "Style:" '("Normal" "Italic" "Slant") p2 refresh-sample)]
 		 [weight (make-object radio-box% "Weight:" '("Normal" "Bold" "Light") p2 refresh-sample)]
