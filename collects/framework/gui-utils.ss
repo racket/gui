@@ -404,28 +404,28 @@
           (semaphore-post semaphore)))))
   
   (define local-busy-cursor
-        (let ([watch (make-object cursor% 'watch)])
-          (case-lambda
-           [(win thunk) (local-busy-cursor win thunk (cursor-delay))]
-           [(win thunk delay)
-            (let* ([old-cursor #f]
-                   [cursor-off void])
-              (dynamic-wind
-               (lambda ()
-                 (set! cursor-off
-                       (delay-action
-                        delay
-                        (lambda ()
-                          (if win
-                              (begin (set! old-cursor (send win get-cursor))
-                                     (send win set-cursor watch))
-                              (begin-busy-cursor)))
-                        (lambda ()
-                          (if win
-                              (send win set-cursor old-cursor)
-                              (end-busy-cursor))))))
-               (lambda () (thunk))
-               (lambda () (cursor-off))))])))
+    (let ([watch (make-object cursor% 'watch)])
+      (case-lambda
+        [(win thunk) (local-busy-cursor win thunk (cursor-delay))]
+        [(win thunk delay)
+         (let* ([old-cursor #f]
+                [cursor-off void])
+           (dynamic-wind
+            (lambda ()
+              (set! cursor-off
+                    (delay-action
+                     delay
+                     (lambda ()
+                       (if win
+                           (begin (set! old-cursor (send win get-cursor))
+                                  (send win set-cursor watch))
+                           (begin-busy-cursor)))
+                     (lambda ()
+                       (if win
+                           (send win set-cursor old-cursor)
+                           (end-busy-cursor))))))
+            (lambda () (thunk))
+            (lambda () (cursor-off))))])))
   
   (define unsaved-warning
     (opt-lambda (filename action-anyway (can-save-now? #f) (parent #f))

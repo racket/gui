@@ -7,11 +7,23 @@
            (lib "mred.ss" "mred")
            (lib "contract.ss"))
   
+  ;; min-w, min-h : number -> contract
+  ;; determines if the widths and heights are suitable
+  (define (min-w h) (flat-named-contract "draw-button-label-width" (lambda (w) (w . > . (- h (* 2 border-inset))))))
+  (define (min-h w) (flat-named-contract "draw-button-label-height" (lambda (h) (h . > . (* 2 border-inset)))))
+  
   (provide/contract
+   (pad-xywh (number? number? (>=/c 0) (>=/c 0) . -> . (values number? number? (>=/c 0) (>=/c 0))))
    (draw-button-label
-    ((is-a?/c dc<%>) (union false/c string?) number? number? (>/c 5) (>/c 5) boolean? boolean?
-     . -> .
-     void?))
+    (->r ([dc (is-a?/c dc<%>)]
+          [label (union false/c string?)]
+          [x number?]
+          [y number?]
+          [w (and/c number? (min-w h))]
+          [h (and/c number? (min-h w))]
+          [mouse-over? boolean?]
+          [grabbed? boolean?])
+         void?))
 
    (calc-button-min-sizes
     (->*
@@ -164,24 +176,33 @@
   (define grabbed-fg-color (make-object color% 220 220 220))
   
   (define (calc-button-min-sizes dc label)
-    (send dc set-font button-label-font)
     (let-values ([(w h a d) (send dc get-text-extent label button-label-font)])
-      (let ([ans-w
+      (let-values ([(px py pw ph) (pad-xywh 0 0 w h)])
+        (values pw ph))))
+  
+  (define (pad-xywh tx ty tw th)
+    (let* ([ans-h
+            (+ button-label-inset
+               (max 0 
+                    (+ 2 (inexact->exact (ceiling th)))
+                    (+ 2 triangle-height))
+               button-label-inset)]
+           [ans-w
+            (max
+             (+ ans-h ans-h)
              (+ circle-spacer
                 button-label-inset
                 1 ;; becuase "(define ...)" has the wrong size under windows
-                (max 0 (inexact->exact (ceiling w)))
+                (max 0 (inexact->exact (ceiling tw)))
                 triangle-space
                 triangle-width
-                button-label-inset
-                circle-spacer)]
-            [ans-h
-             (+ button-label-inset
-                (max 0 
-                     (+ 2 (inexact->exact (ceiling h)))
-                     (+ 2 triangle-height))
-                button-label-inset)])
-        (values ans-w ans-h))))
+                circle-spacer 
+                button-label-inset))])
+      (values 
+       (- tx (quotient (- ans-w tw) 2))
+       (- ty (quotient (- ans-h th) 2))
+       ans-w
+       ans-h)))
   
   (define (draw-button-label dc label dx dy w h mouse-over? grabbed?)
     (when (or mouse-over? grabbed?)
@@ -194,7 +215,7 @@
 	   (send dc set-pen (send the-pen-list find-or-create-pen color 1 'solid))
 	   (send dc set-brush (send the-brush-list find-or-create-brush color 'solid))
 	   (send dc draw-ellipse (+ dx border-inset) (+ dy border-inset) xh xh)
-	   (send dc draw-ellipse (+ dx (- w xh)) border-inset xh xh)
+	   (send dc draw-ellipse (+ dx (- w xh)) (+ dy border-inset) xh xh)
 	   (send dc set-pen (send the-pen-list find-or-create-pen "black" 1 'transparent))
 	   (send dc draw-rectangle (+ dx (quotient xh 2)) (+ dy border-inset) (- w xh) xh)
 	   (send dc set-pen (send the-pen-list find-or-create-pen color 1 'solid))
