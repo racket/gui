@@ -360,10 +360,30 @@
 
   (define (search-dialog frame)
     (init-find/replace-edits)
-    (let* ([dialog (make-object dialog% "Find String")]
-           [canvas-panel (make-object horizontal-panel% dialog)]
-           [text (make-object text%)]
-           [canvas (make-object editor-canvas% canvas-panel text)]
+    (let* ([to-be-searched-text (send frame get-text-to-search)]
+	   [to-be-searched-canvas (send to-be-searched-text get-canvas)]
+
+	   [dialog (make-object dialog% "Find and Replace")]
+
+	   [copy-text
+	    (lambda (from to)
+	      (send to erase)
+	      (let loop ([snip (send from find-first-snip)])
+		(when snip
+		  (send to insert (send snip copy))
+		  (loop (send snip next)))))]
+	    
+
+           [find-panel (make-object horizontal-panel% dialog)]
+	   [find-message (make-object message% "Find" find-panel)]
+           [find-field (make-object text-field% #f find-panel void)]
+           [f-text (send find-field get-editor)]
+
+           [replace-panel (make-object horizontal-panel% dialog)]
+	   [replace-message (make-object message% "Replace" replace-panel)]
+           [replace-field (make-object text-field% #f replace-panel void)]
+           [r-text (send replace-field get-editor)]
+
            [button-panel (make-object horizontal-panel% dialog)]
 	   [pref-check (make-object check-box%
 			 "Use separate dialog for searching"
@@ -372,30 +392,47 @@
 			   (preferences:set
 			    'framework:search-using-dialog?
 			    (send pref-check get-value))))]
-           [cancel-button (make-object button% "Cancel" button-panel 
-                                       (lambda x
-                                         (send dialog show #f)))]
+
+	   [update-texts
+	    (lambda ()
+	      (send find-edit stop-searching)
+	      (copy-text f-text find-edit)
+	      (send find-edit start-searching)
+	      (copy-text r-text replace-edit))]
+
            [find-button (make-object button% "Find" button-panel 
                                      (lambda x
-				       (send find-edit stop-searching)
-				       (send find-edit erase)
-                                       (let loop ([snip (send text find-first-snip)])
-                                         (when snip
-                                           (send find-edit insert (send snip copy))
-                                           (loop (send snip next))))
-                                       (send dialog show #f)
-                                       (send find-edit start-searching)
-                                       (send find-edit search #t #t)))])
-      (let loop ([snip (send find-edit find-first-snip)])
-        (when snip
-          (send text insert (send snip copy))
-          (loop (send snip next))))
-      (send canvas min-width 400)
-      (send canvas set-line-count 2)
-      (send canvas focus)
+				       (update-texts)
+                                       (send frame search-again)))]
+	   [replace-button (make-object button% "Replace" button-panel
+					(lambda x
+					  (update-texts)
+					  (send frame replace)))]
+	   [replace-button (make-object button% "Replace && Find Again" button-panel
+					(lambda x
+					  (update-texts)
+					  (send frame replace&search)))]
+	   [replace-button (make-object button% "Replace to End" button-panel
+					(lambda x
+					  (update-texts)
+					  (send frame replace-all)))]
+	   [close-button (make-object button% "Close" button-panel
+				      (lambda x
+					(send to-be-searched-canvas force-display-focus #f)
+					(send dialog show #f)))])
+      (copy-text find-edit f-text)
+      (copy-text replace-edit r-text)
+      (send find-field min-width 400)
+      (send replace-field min-width 400)
+      (let ([msg-width (max (send find-message get-width)
+			    (send replace-message get-width))])
+	(send find-message min-width msg-width)
+	(send replace-message min-width msg-width))
+      (send find-field focus)
       (send pref-check set-value (preferences:get 'framework:search-using-dialog?))
       (send button-panel set-alignment 'right 'center)
       (send dialog center 'both)
+      (send to-be-searched-canvas force-display-focus #t)
       (send dialog show #t)))
       
   (define searchable<%> (interface (text<%>)
