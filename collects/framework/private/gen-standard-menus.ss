@@ -35,9 +35,9 @@
                  ,(case (-procedure obj)
                     [(nothing) '(lambda (menu) (void))]
                     [(separator) '(lambda (menu) (make-object separator-menu-item% menu))]
-                    [(nothing-on-macosx)
+                    [(nothing-with-standard-menus)
                      '(lambda (menu) 
-                        (unless (eq? (system-type) 'macosx)
+                        (unless (current-eventspace-has-standard-menus?)
                           (make-object separator-menu-item% menu)))]
                     [else (error 'gen-standard-menus "unknown between sym: ~e" (-procedure obj))])]))))
   

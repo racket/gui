@@ -282,7 +282,7 @@
                              (string-constant quit-menu-item-windows)
                              (string-constant quit-menu-item-others))
                         on-demand-do-nothing
-                        '(not (eq? (system-type) 'macosx)))
+                        '(not (current-eventspace-has-standard-menus?)))
           (make-after 'file-menu 'quit 'nothing)
           
           (make-an-item 'edit-menu 'undo 
@@ -364,15 +364,14 @@
                         edit-menu:edit-target-on-demand
                         #f)
           
-          (make-between 'edit-menu 'find 'preferences 
-                        'nothing-on-macosx)
+          (make-between 'edit-menu 'find 'preferences 'nothing-with-standard-menus)
           (make-an-item 'edit-menu 'preferences 
                         '(string-constant preferences-info)
                         '(lambda (item control) (preferences:show-dialog) #t)
                         #\; 
                         '(string-constant preferences-menu-item)
                         on-demand-do-nothing
-                        '(not (eq? (system-type) 'macosx)))
+                        '(not (current-eventspace-has-standard-menus?)))
           (make-after 'edit-menu 'preferences 'nothing)
           
           (make-before 'help-menu 'about 'nothing)

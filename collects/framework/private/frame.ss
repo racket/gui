@@ -130,7 +130,7 @@
         (mixin ((class->interface frame%)) (basic<%>)
         
           (define/override (can-exit?) (exit:can-exit?))
-          (define/override (on-exit) (exit:exit #t))
+          (define/override (on-exit) (exit:on-exit) (exit))
           
           (rename [super-can-close? can-close?]
                   [super-on-close on-close]
