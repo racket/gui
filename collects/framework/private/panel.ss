@@ -182,14 +182,14 @@
       ;; type percentage : (make-percentage number)
       (define-struct percentage (%))
       
-      (define dragable<%>
+      (define vertical-dragable<%>
         (interface ((class->interface vertical-panel%))
           after-percentage-change
           set-percentages
           get-percentages))
 
       (define vertical-dragable-mixin
-        (mixin ((class->interface vertical-panel%)) (dragable<%>)
+        (mixin ((class->interface vertical-panel%)) (vertical-dragable<%>)
           (init parent)
           (super-instantiate (parent))
           (inherit get-client-size container-flow-modified)

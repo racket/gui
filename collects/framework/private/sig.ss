@@ -53,6 +53,7 @@
      single-pane%
      ;;multi-view%
 
+     vertical-dragable<%>
      vertical-dragable-mixin
      vertical-dragable%))
 
