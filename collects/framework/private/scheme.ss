@@ -39,20 +39,33 @@
 
       (define (set-box/f! b v) (when (box? b) (set-box! b v)))
 
+      (define sexp-snip<%>
+        (interface ()
+          get-saved-snips))
+
       (define sexp-snip%
-        (class snip%
-          (field [sizing-text "(   )"])
+        (class* snip% (sexp-snip<%>)
+          (init-field left-bracket right-bracket saved-snips)
+          (define/public (get-saved-snips) saved-snips)
+          (field [sizing-text (format "~a   ~a" left-bracket right-bracket)])
+
+          (define/override (copy)
+            (instantiate sexp-snip% ()
+              (left-bracket left-bracket)
+              (right-bracket right-bracket)
+              (saved-snips saved-snips)))
+          
           (define/override (draw dc x y left top right bottom dx dy draw-caret)
             (send dc draw-text sizing-text x y)
-            (let-values ([(lpw lph lpa lpd) (send dc get-text-extent "(")]
-                         [(rpw rph rpa rpd) (send dc get-text-extent ")")]
+            (let-values ([(lpw lph lpa lpd) (send dc get-text-extent (string left-bracket))]
+                         [(rpw rph rpa rpd) (send dc get-text-extent (string right-bracket))]
                          [(sw sh sa sd) (send dc get-text-extent sizing-text)])
               (let* ([dtw (- sw lpw rpw)]
                      [dot-start (+ x lpw)]
                      [dt1x (+ dot-start (* dtw 1/5))]
                      [dt2x (+ dot-start (* dtw 1/2))]
                      [dt3x (+ dot-start (* dtw 4/5))]
-                     [dty (/ sh 2)])
+                     [dty (+ y (/ sh 2))])
                 (send dc draw-rectangle dt1x dty 2 2)
                 (send dc draw-rectangle dt2x dty 2 2)
                 (send dc draw-rectangle dt3x dty 2 2))))
@@ -80,43 +93,105 @@
       (send sexp-snipclass set-version 0)
       (send (get-the-snip-class-list) add sexp-snipclass)
       
-      ;; leave this for next version...
-      '(keymap:add-to-right-button-menu
+      (keymap:add-to-right-button-menu
        (let ([old (keymap:add-to-right-button-menu)])
          (lambda (menu text event)
            (old menu text event)
-           (when (is-a? text -text<%>)
-             (let* ([pos 
-                     (call-with-values
-                      (lambda ()
-                        (send text dc-location-to-editor-location
-                              (send event get-x)
-                              (send event get-y)))
-                      (lambda (x y)
-                        (send text find-position x y)))]
-                    [char (send text get-character pos)]
-                    [left? (memq char '(#\( #\{ #\[))]
-                    [right? (memq char '(#\) #\} #\]))])
-               (when (or left? right?)
-                 (let* ([other-pos (if left?
-                                       (send text get-forward-sexp pos)
-                                       (send text get-backward-sexp (+ pos 1)))])
-                   (when other-pos
-                     (let ([left-pos (min pos other-pos)]
-                           [right-pos (max pos other-pos)])
-                       (instantiate separator-menu-item% ()
-                         (parent menu))
-                       (instantiate menu-item% ()
-                         (parent menu)
-                         (label "Collapse sexp")
-                         (callback (lambda (item evt) 
-                                     (collapse-from text left-pos right-pos)))))))))))))
+           (split/collapse-text menu text event))))
+      
+      ;; split/collapse-text : (instanceof menu%) (instanceof editor<%>) (instanceof mouse-event%) -> void
+      (define (split/collapse-text menu text event)
+        (when (is-a? text -text<%>)
+          (let* ([on-it-box (box #f)]
+                 [click-pos 
+                  (call-with-values
+                   (lambda ()
+                     (send text dc-location-to-editor-location
+                           (send event get-x)
+                           (send event get-y)))
+                   (lambda (x y)
+                     (send text find-position x y #f on-it-box)))]
+                 [snip (send text find-snip click-pos 'after)]
+                 [char (send text get-character click-pos)]
+                 [left? (memq char '(#\( #\{ #\[))]
+                 [right? (memq char '(#\) #\} #\]))])
+            (cond
+              [(and snip (is-a? snip sexp-snip<%>))
+               (make-expand-item text snip menu)]
+              [(not (unbox on-it-box))
+               ;; clicking in nowhere land, just ignore
+               (void)]
+              [(or left? right?)
+               ;; clicking on left or right paren
+               (let* ([pos (if left?
+                               click-pos
+                               (+ click-pos 1))]
+                      [other-pos (if left?
+                                     (send text get-forward-sexp pos)
+                                     (send text get-backward-sexp pos))])
+                 (when other-pos
+                   (let ([left-pos (min pos other-pos)]
+                         [right-pos (max pos other-pos)])
+                     (make-collapse-item text left-pos right-pos menu))))]
+              [else 
+               ;; clicking on some other text -> collapse containing sexp
+               (let ([up-sexp (send text find-up-sexp click-pos)])
+                 (when up-sexp 
+                   (let ([fwd (send text get-forward-sexp up-sexp)])
+                     (make-collapse-item text up-sexp fwd menu))))]))))
+      
+      ;; make-expand-item : (instanceof text%) (instanceof sexp-snip<%>) (instanceof menu%) -> void
+      (define (make-expand-item text snip menu)
+        (instantiate separator-menu-item% ()
+          (parent menu))
+        (instantiate menu-item% ()
+          (parent menu)
+          (label (string-constant expand-sexp))
+          (callback (lambda (item evt) (expand-from text snip)))))
+      
+      ;; expand-from : (instanceof text%) (instanceof sexp-snip<%>) -> void
+      (define (expand-from text snip)
+        (let ([snips (send snip get-saved-snips)])
+          (send text begin-edit-sequence)
+          (let ([pos (send text get-snip-position snip)])
+            (send text delete pos (+ pos 1))
+            (let loop ([snips (reverse snips)])
+              (cond
+                [(null? snips) (void)]
+                [else (send text insert (car snips) pos pos)
+                      (loop (cdr snips))])))
+          (send text end-edit-sequence)))
+
+      ;; make-collapse-item : (instanceof text%) number number (instanceof menu%) -> void
+      ;; adds a collapse menu item to the menu
+      (define (make-collapse-item text left-pos right-pos menu)
+        (instantiate separator-menu-item% ()
+          (parent menu))
+        (instantiate menu-item% ()
+          (parent menu)
+          (label (string-constant collapse-sexp))
+          (callback (lambda (item evt)
+                      (collapse-from text left-pos right-pos)))))
       
       (define (collapse-from text left-pos right-pos)
-        (send text begin-edit-sequence)
-        (send text delete left-pos right-pos)
-        (send text insert (make-object sexp-snip%) left-pos left-pos)
-        (send text end-edit-sequence))
+        (let ([left-bracket (send text get-character left-pos)]
+              [right-bracket (send text get-character (- right-pos 1))])
+          (send text begin-edit-sequence)
+          (send text split-snip left-pos)
+          (send text split-snip right-pos)
+          (let ([snips (let loop ([snip (send text find-snip left-pos 'after)])
+                         (cond
+                           [(not snip) null]
+                           [((send text get-snip-position snip) . >= . right-pos)
+                            null]
+                           [else (cons (send snip copy) (loop (send snip next)))]))])
+            (send text delete left-pos right-pos)
+            (send text insert (instantiate sexp-snip% () 
+                                (left-bracket left-bracket)
+                                (right-bracket right-bracket)
+                                (saved-snips snips))
+                  left-pos left-pos)
+            (send text end-edit-sequence))))
       
       ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
       ;;                                                                  ;;
