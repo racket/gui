@@ -8,30 +8,23 @@
   (define build-before-super-item-clause
     (lambda (item)
       (list
-       `(public ,(an-item->callback-name item)
-                ,(an-item->get-item-name item)
-                ,(an-item->string-name item)
-                ,(an-item->help-string-name item)
-                ,(an-item->on-demand-name item)
-                ,(an-item->create-menu-item-name item))
-       `[define ,(an-item->callback-name item) ,(an-item-proc item)]
-       `[define ,(an-item->get-item-name item)
+       `[define/public ,(an-item->callback-name item) ,(an-item-proc item)]
+       `[define/public ,(an-item->get-item-name item)
           (lambda () ,(an-item->item-name item))]
-       `[define ,(an-item->string-name item)
+       `[define/public ,(an-item->string-name item)
           (lambda () ,(an-item-menu-string item))]
-       `[define ,(an-item->help-string-name item)
+       `[define/public ,(an-item->help-string-name item)
           (lambda () ,(an-item-help-string item))]
-       `[define ,(an-item->on-demand-name item)
+       `[define/public ,(an-item->on-demand-name item)
           ,(an-item-on-demand item)]
-       `[define ,(an-item->create-menu-item-name item)
+       `[define/public ,(an-item->create-menu-item-name item)
           (lambda () ,(an-item-create item))])))
   
   ;; build-before-super-clause : ((X -> sym) (X sexp) -> X -> (listof clause))
   (define build-before-super-clause
     (lambda (->name -procedure)
       (lambda (obj)
-        (list `(public ,(->name obj))
-              `[define ,(->name obj)
+        (list `(define/public ,(->name obj)
                  ,(case (-procedure obj)
                     [(nothing) '(lambda (menu) (void))]
                     [(separator) '(lambda (menu) (make-object separator-menu-item% menu))]
@@ -39,7 +32,7 @@
                      '(lambda (menu) 
                         (unless (current-eventspace-has-standard-menus?)
                           (make-object separator-menu-item% menu)))]
-                    [else (error 'gen-standard-menus "unknown between sym: ~e" (-procedure obj))])]))))
+                    [else (error 'gen-standard-menus "unknown between sym: ~e" (-procedure obj))]))))))
   
   ;; build-before-super-between-clause : between -> (listof clause)
   (define build-before-super-between-clause
@@ -109,13 +102,11 @@
       [(generic-private-field? generic)
        null]
       [(generic-override? generic)
-       (list `(override ,(generic-name generic))
-             `[define ,(generic-name generic)
-                ,(generic-initializer generic)])]
+       (list `(define/override ,(generic-name generic)
+                ,(generic-initializer generic)))]
       [(generic-method? generic)
-       (list `(public ,(generic-name generic) )
-             `[define ,(generic-name generic)
-                ,(generic-initializer generic)])]))
+       (list `(define/public ,(generic-name generic)
+                ,(generic-initializer generic)))]))
   
   
   (define standard-menus.ss-filename (build-path (collection-path "framework" "private") "standard-menus.ss"))
@@ -151,43 +142,51 @@
       
       (pretty-print
        `(define standard-menus-mixin
-          (mixin (basic<%>) (standard-menus<%>)
-            (inherit on-menu-char on-traverse-char)
-            
-            (define remove-prefs-callback
-              (preferences:add-callback
-               'framework:menu-bindings
-               (lambda (p v)
-                 (let loop ([menu (get-menu-bar)])
-                   (when (is-a? menu menu:can-restore<%>)
-                     (if v
-                         (send menu restore-keybinding)
-                         (send menu set-shortcut #f)))
-                   (when (is-a? menu menu:can-restore-underscore<%>)
-                     (if v
-                         (send menu restore-underscores)
-                         (send menu erase-underscores)))
-                   (when (is-a? menu menu-item-container<%>)
-                     (for-each loop (send menu get-items)))))))
-            
-            (inherit get-menu-bar show can-close? get-edit-target-object)
-            ,@(apply append (map (lambda (x)
-                                   (cond
-                                     [(between? x) (build-before-super-between-clause x)]
-                                     [(or (after? x) (before? x)) (build-before-super-before/after-clause x)]
-                                     [(an-item? x) (build-before-super-item-clause x)]
-                                     [(generic? x) (build-before-super-generic-clause x)]
-                                     [else (printf "~a~n" x)]))
-                                 items))
-            (super-instantiate ())
-            ,@(apply append (map (lambda (x)
-                                   (cond
-                                     [(between? x) (build-after-super-between-clause x)]
-                                     [(an-item? x) (build-after-super-item-clause x)]
-                                     [(or (after? x) (before? x)) (build-after-super-before/after-clause x)]
-                                     [(generic? x) (build-after-super-generic-clause x)]))
-                                 items))
-            (reorder-menus this)))
+	  (let ([t 0])
+	    (mixin (basic<%>) (standard-menus<%>)
+	      (inherit on-menu-char on-traverse-char)
+	  
+	      (set! t (current-milliseconds))
+    
+	      (define remove-prefs-callback
+		(preferences:add-callback
+		 'framework:menu-bindings
+		 (lambda (p v)
+		   (let loop ([menu (get-menu-bar)])
+		     (when (is-a? menu menu:can-restore<%>)
+		       (if v
+			   (send menu restore-keybinding)
+			   (send menu set-shortcut #f)))
+		     (when (is-a? menu menu:can-restore-underscore<%>)
+		       (if v
+			   (send menu restore-underscores)
+			   (send menu erase-underscores)))
+		     (when (is-a? menu menu-item-container<%>)
+		       (for-each loop (send menu get-items)))))))
+	      
+	      (inherit get-menu-bar show can-close? get-edit-target-object)
+	      ,@(apply append (map (lambda (x)
+				     (cond
+				       [(between? x) (build-before-super-between-clause x)]
+				       [(or (after? x) (before? x)) (build-before-super-before/after-clause x)]
+				       [(an-item? x) (build-before-super-item-clause x)]
+				       [(generic? x) (build-before-super-generic-clause x)]
+				       [else (printf "~a~n" x)]))
+				   items))
+	      (printf "before instantiation: ~s\n" (- (current-milliseconds) t))
+	      (super-instantiate ())
+	      (printf "after instantiation: ~s\n" (- (current-milliseconds) t))
+	      ,@(apply append (map (lambda (x)
+				     (cond
+				       [(between? x) (build-after-super-between-clause x)]
+				       [(an-item? x) (build-after-super-item-clause x)]
+				       [(or (after? x) (before? x)) (build-after-super-before/after-clause x)]
+				       [(generic? x) (build-after-super-generic-clause x)]))
+				   items))
+	      (reorder-menus this)
+
+	      (printf "total time: ~s\n" (- (current-milliseconds) t))
+	      )))
        port))
     'text
     'truncate))

@@ -2267,7 +2267,7 @@
 
 	  (super-instantiate ())
 
-	  (hide-search)))
+	  (hide-search #t)))
       
       (define searchable-text<%> (interface (searchable<%> text<%>)))
       
