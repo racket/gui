@@ -12,7 +12,16 @@ Version 102/11:
    `send-message-to-window', which calls the `on-message' method of a
    top-level window at a particular screen location.
 
+ * Fixed `draw-bitmap' in post-script-dc%.
+
  * Fixed post-script-dc% to use PS `curveto' command for splines.
+
+ * Fixed text editor printing to break up lines that are longer than
+   a page on scroll boundaries. (This is particularly relevant
+   for printing editors containing embedded editors.)
+
+ * X: Fixed choice item bug when the user pops up the choice and doesn't
+   select anything. (PR 1426)
 
 Version 102/10:
 
