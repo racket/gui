@@ -30,32 +30,29 @@
   
   (define exiting? #f)
 
-  (define (can-exit?) (andmap (lambda (cb) (cb)) can?-callbacks))
+  (define (can-exit?) (and (andmap (lambda (cb) (cb)) can?-callbacks)
+			   (user-oks-exit)))
   (define (on-exit) (for-each (lambda (cb) (cb)) on-callbacks))
 
+  (define (user-oks-exit)
+    (if (preferences:get 'framework:verify-exit)
+	(let*-values ([(w capw)
+		       (if (eq? (system-type) 'windows)
+			   (values "exit" "Exit")
+			   (values "quit" "Quit"))]
+		      [(message)
+		       (string-append "Are you sure you want to "
+				      w
+				      "?")]
+		      [(user-says) (gui-utils:get-choice message capw "Cancel")])
+	  user-says)
+	#t))
+
   (define -exit
-    (opt-lambda ([just-ran-callbacks? #f])
+    (opt-lambda ()
       (unless exiting?
-	(dynamic-wind
-	 (lambda () (set! exiting? #t))
-	 (lambda ()
-	   (if (and (can-exit?)
-		    (let*-values ([(w capw)
-				   (if (eq? (system-type) 'windows)
-				       (values "exit" "Exit")
-				       (values "quit" "Quit"))]
-				  [(message)
-				   (string-append "Are you sure you want to "
-						  w
-						  "?")])
-		      (printf "showing dialog~n")
-		      (if (preferences:get 'framework:verify-exit)
-			  (if (gui-utils:get-choice message capw "Cancel")
-			      #f
-			      #t)
-			  #t)))
-	       (begin
-		 (on-exit)
-		 (printf "~a~n" '(exit)))
-	       #f))
-	 (lambda () (set! exiting? #f)))))))
+	(set! exiting? #t)
+	(when (can-exit?)
+	  (on-exit)
+	  (exit))
+	(set! exiting? #f)))))

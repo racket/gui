@@ -59,6 +59,7 @@
   (insert-on-callback
    insert-can?-callback
    can-exit?
+   on-exit
    exit))
 
 (define-signature framework:gui-utils^

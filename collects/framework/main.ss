@@ -166,7 +166,6 @@
   (let ([at-most-one
 	 (let ([skip? #f])
 	   (lambda (answer thunk)
-	     (printf "at most one: skip? ~a~n" skip?)
 	     (if skip?
 		 answer
 		 (begin
@@ -178,29 +177,23 @@
 
 	  ;; empty test
 	  (lambda ()
-	    (printf "empty test~n")
-	    (begin0
-	     (if (preferences:get 'framework:exit-when-no-frames)
-		 (at-most-one #t
-			      (lambda ()
-				(printf "empty test.1~n")
-				(exit:can-exit?)))
-		 #t)
-	     (printf "empty test done~n")))
-
+	    (if (preferences:get 'framework:exit-when-no-frames)
+		(at-most-one #t
+			     (lambda ()
+			       (exit:can-exit?)))
+		#t))
+	  
 	  ;; empty close down
 	  (lambda () 
-	    (printf "empty close down~n")
 	    (if (preferences:get 'framework:exit-when-no-frames)
 		(at-most-one (void) 
 			     (lambda ()
-			       (printf "empty close down.1~n")
-			       (exit:exit)))
+			       (exit:on-exit)
+			       (exit)))
 		(void))))
     
     (exit:insert-can?-callback
      (lambda ()
-       (printf "exit callback~n")
        (at-most-one
 	#t
 	(lambda ()
@@ -214,7 +207,6 @@
 			 "Saving Prefs"
 			 (format "Error saving preferences: ~a"
 				 (exn-message exn))))])
-       (printf "saving preferences~n")
        (preferences:save))))
   
   ;(wx:application-file-handler edit-file) ;; how to handle drag and drop?
