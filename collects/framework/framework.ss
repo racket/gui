@@ -17,17 +17,17 @@
 	   [core:thread : mzlib:thread^]
 	   [framework:keys : framework:keys^]
 	   [framework:test : framework:test^]
-	   [M : mred-interfaces^])
-   (link [F : frameworkc^ ((require-relative-library "frameworkc.ss")
+	   [m : mred-interfaces^])
+   (link [f : frameworkc^ ((require-relative-library "frameworkc.ss")
 			   core:string
 			   core:function
 			   core:pretty-print
 			   core:file
 			   core:thread
-			   M
+			   m
 			   framework:keys
 			   framework:test)])
-   (export (open F)))
+   (export (open f)))
  #f
  mzlib:string^
  mzlib:function^

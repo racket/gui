@@ -65,8 +65,8 @@
       (inherit center show)
       
       (private
-	[WIDTH 500]
-	[HEIGHT 400]
+	[default-width 500]
+	[default-height 400]
 	dirs 
 	current-dir
 	last-selected
@@ -313,8 +313,8 @@
       (sequence
 	(super-init (if save-mode? "Put file" "Get file")
 		    parent-win 
-		    WIDTH 
-		    HEIGHT))
+		    default-width 
+		    default-height))
       
       (private
 	

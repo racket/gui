@@ -32,7 +32,7 @@
 	(dynamic-wind
 	 (lambda () (set! exiting? #t))
 	 (lambda ()
-	   (if (and (let*-values ([(w capW)
+	   (if (and (let*-values ([(w capw)
 				   (if (eq? (system-type) 'windows)
 				       (values "exit" "Exit")
 				       (values "quit" "Quit"))]
@@ -41,7 +41,7 @@
 						  w
 						  "?")])
 		      (if (preferences:get 'framework:verify-exit)
-			  (if (gui-utils:get-choice message capW "Cancel")
+			  (if (gui-utils:get-choice message capw "Cancel")
 			      #t
 			      #f)
 			  #t))

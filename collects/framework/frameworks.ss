@@ -1,7 +1,5 @@
 ;; language specification
-(read-case-sensitive #t)
 (compile-allow-cond-fallthrough #t)
-(compile-allow-set!-undefined #t)
 
 (require-library "refer.ss")
 (require-library "macro.ss")
