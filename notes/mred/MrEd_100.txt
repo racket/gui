@@ -1085,10 +1085,6 @@ the-color-database only has a find-color method; the others were
 
 Move the editor margin settings into ps-setup%?
 
-MacOS: Menu titles
+Add programmer-installed undo records to editor<%>
 
-Motif: Mnemonics?
-
-Motif: menu titles?
-
-Add programmer-installed undo records to editor<%>>
+Add `on-tab' to canvas<%>?
