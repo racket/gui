@@ -48,7 +48,7 @@
 				 (lambda ()
 				   (set-pref-callbacks! pref (mzlib:function:remove callback (pref-callbacks pref) eq?))))]
 	    [(pref? ans)
-	     (set-pref-callbacks! ans (cons callback (pref-callbacks ans)))
+	     (set-pref-callbacks! ans (append (pref-callbacks ans) (list callback)))
 	     (lambda ()
 	       (set-pref-callbacks! ans (mzlib:function:remove callback (pref-callbacks ans) eq?)))]
 	    [(not ans) (raise (mred:exn:make-exn:unknown-preference
@@ -83,8 +83,8 @@
 	(let ([pref (hash-table-get preferences p (lambda () #f))])
 	    (cond 
 	      [(pref? pref)
-	       (set-pref-value! pref value)
-	       (for-each (lambda (x) (x p value)) (pref-callbacks pref))]
+	       (when (andmap (lambda (x) (x p value)) (pref-callbacks pref))
+		 (set-pref-value! pref value))]
 	      [(or (marshalled? pref) 
 		   (not pref))
 	       (hash-table-put! preferences p (make-pref value null))]
@@ -206,6 +206,9 @@
 	    (make-check (lambda (_ command) 
 			  (set-preference 'mred:verify-exit (send command checked?)))
 			"Verify exit?" (get-preference 'mred:verify-exit))
+	    (make-check (lambda (_ command) 
+			  (set-preference 'mred:verify-change-format (send command checked?)))
+			"Ask before changing save format?" (get-preference 'mred:verify-change-format))
 	    main)))))
 
     (define make-run-once
