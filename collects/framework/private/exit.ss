@@ -55,18 +55,17 @@
 
       (define (user-oks-exit)
 	(if (preferences:get 'framework:verify-exit)
-	    (let*-values ([(w capw)
-			   (if (eq? (system-type) 'windows)
-			       (values (string-constant exit-lc) (string-constant exit-cap))
-			       (values (string-constant quit-lc) (string-constant quit-cap)))]
-			  [(message)
-			   (format (string-constant are-you-sure-format) w)]
-			  [(user-says) (gui-utils:get-choice message capw
-                                                             (string-constant cancel)
-                                                             (string-constant warning)
-                                                             #f
-							     (frame-exiting))])
-	      user-says)
+	    (gui-utils:get-choice
+	     (if (eq? (system-type) 'windows)
+		 (string-constant are-you-sure-exit)
+		 (string-constant are-you-sure-quit))
+	     (if (eq? (system-type) 'windows)
+		 (string-constant exit)
+		 (string-constant quit))
+	     (string-constant cancel)
+	     (string-constant warning)
+	     #f
+	     (frame-exiting))
 	    #t))
 
       (define -exit

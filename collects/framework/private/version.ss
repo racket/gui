@@ -1,6 +1,6 @@
 (module version mzscheme
   (require (lib "unitsig.ss")
-	   "sig"
+	   "sig.ss"
 	   (lib "mred-sig.ss" "mred")
 	   (lib "string.ss")
 	   (lib "list.ss"))
