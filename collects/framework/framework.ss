@@ -621,7 +621,7 @@
       (union false? regexp?)
       string?
       (union false? (is-a?/c top-level-window<%>)))
-     (union string? false?))
+     (union (listof string?) false?))
     (()
      ((directory #f)
       (prompt "Select File")

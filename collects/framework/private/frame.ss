@@ -518,7 +518,6 @@
                               (+ magic-space (- (inexact->exact (floor (unbox rb)))
                                                 (inexact->exact (floor (unbox lb))))))))))]
           
-          (rename [super-on-close on-close])
           [define outer-info-panel 'top-info-panel-uninitialized]
           
           ;; this flag is specific to this frame
@@ -556,8 +555,9 @@
              (lambda (p v)
                (update-info-visibility v)))]
           [define memory-cleanup void] ;; only for CVSers; used with memory-text
-          (override on-close)
-          [define on-close
+
+          (rename [super-on-close on-close])
+          [define/override on-close
             (lambda ()
               (super-on-close)
               (unregister-collecting-blit gc-canvas)
@@ -687,7 +687,6 @@
       (define text-info-mixin
         (mixin (info<%>) (text-info<%>)
           (inherit get-info-editor)
-          (rename [super-on-close on-close])
           [define remove-first
             (preferences:add-callback
              'framework:col-offsets
@@ -703,9 +702,9 @@
                (editor-position-changed-offset/numbers
                 (preferences:get 'framework:col-offsets)
                 v)
-               #t))]          
-          (override on-close)
-          [define on-close
+               #t))]
+          (rename [super-on-close on-close])
+          [define/override on-close
             (lambda ()
               (super-on-close)
               (remove-first)
@@ -2065,8 +2064,7 @@
              (lambda (p v)
                (when p
                  (hide-search)))))
-          (override on-close)
-          (define on-close
+          (define/override on-close
             (lambda ()
               (super-on-close)
               (remove-callback)

@@ -1,9 +1,6 @@
 (module pasteboard mzscheme
   (require (lib "unitsig.ss")
-	   (lib "class.ss")
-	   (lib "class100.ss")
 	   "sig.ss"
-	   "../macro.ss"
 	   (lib "mred-sig.ss" "mred"))
 
   (provide pasteboard@)

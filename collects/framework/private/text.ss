@@ -3,7 +3,6 @@
   (require (lib "string-constant.ss" "string-constants")
            (lib "unitsig.ss")
 	   (lib "class.ss")
-	   (lib "class100.ss")
 	   "sig.ss"
 	   "../macro.ss"
 	   "../gui-utils.ss"
