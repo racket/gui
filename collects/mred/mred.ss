@@ -7210,6 +7210,7 @@
       (let-values ([(w h d a) (send dc get-text-extent string font)])
 	(values (inexact->exact w) (inexact->exact h)))])))
 
+(define x-has-xft? 'unknown)
 (define mswin-system #f)
 (define mswin-default #f)
 (define (look-for-font name)
@@ -7222,15 +7223,28 @@
     (raise-type-error 'get-default-face "family symbol" family))
   (case (system-type)
     [(unix)
-     (case family
-       [(system) "-b&h-lucida"]
-       [(default) "-b&h-lucida"]
-       [(roman) "-adobe-times"]
-       [(decorative) "-adobe-helvetica"]
-       [(modern) "-adobe-courier"]
-       [(swiss) "-b&h-lucida"]
-       [(script) "-itc-zapfchancery"]
-       [(symbol) "-adobe-symbol"])]
+     ;; Detect Xft by looking for a font with a space in front of its name:
+     (when (eq? x-has-xft? 'unknown)
+       (set! x-has-xft? (ormap (lambda (s) (regexp-match #rx"^ " s)) (wx:get-face-list))))
+     (if x-has-xft?
+	 (case family
+	   [(system) " Luxi Sans"]
+	   [(default) " Luxi Sans"]
+	   [(roman) " Luxi Serif"]
+	   [(decorative) " Nimbus Sans L"]
+	   [(modern) " Luxi Mono"]
+	   [(swiss) " Nimbus Sans L"]
+	   [(script) " URW Chancery L"]
+	   [(symbol) "-adobe-symbol"])
+	 (case family
+	   [(system) "-b&h-lucida"]
+	   [(default) "-b&h-lucida"]
+	   [(roman) "-adobe-times"]
+	   [(decorative) "-adobe-helvetica"]
+	   [(modern) "-adobe-courier"]
+	   [(swiss) "-b&h-lucida"]
+	   [(script) "-itc-zapfchancery"]
+	   [(symbol) "-adobe-symbol"]))]
     [(windows)
      (case family
        [(system) 
