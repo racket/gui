@@ -1368,8 +1368,12 @@
                      (send delegate-frame update-status-line 'plt:delegate #f)])))))
           (super-instantiate ())))
       
+      (define delegatee-text<%>
+        (interface ()
+          set-start/end-para))
+      
       (define delegatee-text%
-        (class text:basic%
+        (class* text:basic% (delegatee-text<%>)
           (rename [super-on-paint on-paint])
           (inherit get-admin)
           (define start-para #f)
@@ -1470,7 +1474,7 @@
                   [b (box 0)])
               (position-location pos #f b top? #f #t)
               (unbox b)))
-	  (super-instantiate ())
+	  (super-new)
 
 	  (inherit set-cursor)
 	  (set-cursor (make-object cursor% 'arrow))
