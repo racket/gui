@@ -4,6 +4,8 @@
 	  [gui-utils : framework:gui-utils^])
   (rename (-exit exit))
   
+  (define frame-exiting (make-parameter #f))
+
   (define can?-callbacks '())
   (define on-callbacks '())
   
@@ -45,7 +47,8 @@
 		       (string-append "Are you sure you want to "
 				      w
 				      "?")]
-		      [(user-says) (gui-utils:get-choice message capw "Cancel" "Warning" #f)])
+		      [(user-says) (gui-utils:get-choice message capw "Cancel" "Warning" #f
+							 (frame-exiting))])
 	  user-says)
 	#t))
 

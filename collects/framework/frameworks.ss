@@ -61,7 +61,8 @@
   (register))
 
 (define-signature framework:exit^
-  (insert-on-callback
+  (frame-exiting
+   insert-on-callback
    insert-can?-callback
    can-exit?
    on-exit

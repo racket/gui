@@ -29,6 +29,9 @@
 # include "wx_cmdlg.h"
 #endif
 #include "wx_print.h"
+#ifdef wx_xt
+# include "wx_types.h"
+#endif
 
 #include "wx_media.h"
 #ifndef OLD_WXWINDOWS
@@ -1267,6 +1270,19 @@ void wxMediaBuffer::Print(Bool interactive, Bool fitToPage, int WXUNUSED_X(outpu
 #else
   ps = 1;
 #endif
+
+  if (!parent) {
+    if (admin && (admin->standard > 0)) {
+      wxWindow *w = ((wxCanvasMediaAdmin *)admin)->GetCanvas();
+
+      while (w && !wxSubType(w->__type, wxTYPE_FRAME)
+	     && !wxSubType(w->__type, wxTYPE_DIALOG_BOX))
+	w = w->GetParent();
+
+      if (w)
+	parent = w;
+    }
+  }
 
   if (ps) {
     wxDC *dc;

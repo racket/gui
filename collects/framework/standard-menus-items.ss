@@ -131,7 +131,7 @@
 	(make-between 'file-menu 'close 'quit 'nothing)
 	(make-an-item 'file-menu 'quit
 		      "Quit"
-		      '(lambda (item control) (exit:exit))
+		      '(lambda (item control) (parameterize ([exit:frame-exiting this]) (exit:exit)))
 		      #\q
 		      '(if (eq? (system-type) 'windows) "E&xit" "Quit")
 		      "")
@@ -169,7 +169,7 @@
                       #\a "Select A&ll" "")
 	(make-between 'edit-menu 'select-all 'find 'separator)
 	(make-an-item 'edit-menu 'find "Search for a string in the window" #f
-		      #\f "Find..." "")
+		      #\f "Find" "...")
 	(make-an-item 'edit-menu 'find-again "Search for the same string as before" #f
 		      #\g "Find Again" "")
 	(make-an-item 'edit-menu 'replace-and-find-again 
