@@ -481,20 +481,22 @@
 			 (values embedded embedded-pos)))]
 		  [else (next-loop)])))))])))
   
+
+  (define searching-frame #f)
+  (define (set-searching-frame frame)
+    (set! searching-frame frame))
+
   (define find-text%
     (class-asi text%
       (inherit get-text)
       (rename [super-after-insert after-insert]
 	      [super-after-delete after-delete]
 	      [super-on-focus on-focus])
-      (public
-	[searching-frame #f]
-	[set-searching-frame
-	 (lambda (frame)
-	   (set! searching-frame frame))]
+      (private
 	[get-searching-edit
 	 (lambda ()
-	   (send searching-frame get-text-to-search))]
+	   (send searching-frame get-text-to-search))])
+      (public
 	[search
 	 (opt-lambda ([reset-search-anchor? #t] [beep? #t] [wrap? #t])
 	   (when searching-frame
@@ -576,7 +578,7 @@
 	[on-focus
 	 (lambda (x)
 	   (when x
-	     (send find-edit set-searching-frame (get-top-level-window)))
+	     (set-searching-frame (get-top-level-window)))
 	   (super-on-focus x))])
       (sequence
 	(super-init parent #f '(hide-hscroll hide-vscroll))
@@ -639,7 +641,6 @@
 	[unhide-search
 	 (lambda ()
 	   (when hidden?
-	     
 	     (set! hidden? #f)
 	     (send search-panel focus)
 	     (send super-root add-child search-panel)
@@ -654,8 +655,8 @@
 		    (send canvas set-editor #f))])
 	     (close-canvas find-canvas find-edit)
 	     (close-canvas replace-canvas replace-edit))
-	   (when (eq? this (ivar find-edit searching-frame))
-	     (send find-edit set-searching-frame #f)))])
+	   (when (eq? this searching-frame)
+	     (set-searching-frame #f)))])
       (public
 	[set-search-direction 
 	 (lambda (x) 
@@ -706,6 +707,7 @@
 		 #f)))]
 	[toggle-search-focus
 	 (lambda ()
+	   (set-searching-frame this)
 	   (unhide-search)
 	   (send (cond
 		   [(send find-canvas has-focus?)
@@ -717,6 +719,7 @@
 		 focus))]
 	[move-to-search-or-search
 	 (lambda ()
+	   (set-searching-frame this)
 	   (unhide-search)
 	   (if (or (send find-canvas has-focus?)
 		   (send replace-canvas has-focus?))
@@ -724,6 +727,7 @@
 	       (send find-canvas focus)))]
 	[move-to-search-or-reverse-search
 	 (lambda ()
+	   (set-searching-frame this)
 	   (unhide-search)
 	   (if (or (send find-canvas has-focus?)
 		   (send replace-canvas has-focus?))
@@ -731,7 +735,7 @@
 	       (send find-canvas focus)))]
 	[search
 	 (opt-lambda ([direction searching-direction] [beep? #t])
-	   (send find-edit set-searching-frame this)
+	   (set-searching-frame this)
 	   (unhide-search)
 	   (set-search-direction direction)
 	   (send find-edit search #t beep?))])
