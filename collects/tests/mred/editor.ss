@@ -175,7 +175,6 @@
   (st 1/2 s get-number)
   (st "" s get-prefix))
 
-
 (let ()
   (define orig-snip (make-object string-snip% "hello"))
   
@@ -198,3 +197,4 @@
 ;; ----------------------------------------
 
 (report-errs)
+
