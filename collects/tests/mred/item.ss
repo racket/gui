@@ -176,7 +176,9 @@
   (class-asi frame%
     (private (pre-on void))
     (override [on-subwindow-event (lambda args (apply pre-on args))]
-	      [on-subwindow-char on-subwindow-event])
+	      [on-subwindow-char on-subwindow-event]
+	      [on-move (lambda (x y) (printf "moved: ~a ~a~n" x y))]
+	      [on-size (lambda (x y) (printf "sized: ~a ~a~n" x y))])
     (public [set-info
 	     (lambda (ep)
 	       (set! pre-on (add-pre-note this ep)))])))
@@ -1225,7 +1227,7 @@
   (define p (make-object vertical-panel% f))
   (define c% (class canvas% (name swapped-name p)
 	       (inherit get-dc get-scroll-pos get-scroll-range get-scroll-page
-			get-client-size get-virtual-size)
+			get-client-size get-virtual-size get-view-start)
 	       (public
 		 [vw 10]
 		 [vh 10]
@@ -1242,15 +1244,17 @@
 				    (get-scroll-page 'horizontal))]
 			 [dc (get-dc)])
 		     (let-values ([(w h) (get-client-size)]
-				  [(w2 h2) (get-virtual-size)])
+				  [(w2 h2) (get-virtual-size)]
+				  [(x y) (get-view-start)])
 		       ; (send dc set-clipping-region 0 0 w2 h2)
 		       (send dc clear)
 		       (send dc draw-text (if (send ck-w get-value) swapped-name name) 3 3)
 		       ; (draw-line 3 12 40 12)
 		       (send dc draw-text s 3 15)
-		       (send dc draw-text (format "client: ~s x ~s  virtual: ~s x ~s" 
+		       (send dc draw-text (format "client: ~s x ~s  virtual: ~s x ~s  view: ~s x ~s" 
 						  w h
-						  w2 h2)
+						  w2 h2
+						  x y)
 			     3 27)
 		       (send dc draw-line 0 vh vw vh)
 		       (send dc draw-line vw 0 vw vh))))]

@@ -350,7 +350,7 @@ text-field% : control<%>
    <= label parent callback [init-val ""] [style '(single)]
       styles: 'single, 'multiple, 'hscroll
    get-value set-value
-   get-edit
+   get-editor
 
 radio-box% : control<%>
    <= label choices parent callback [style '(vertical)]
@@ -387,6 +387,7 @@ list-box% : list-control<%>
 canvas<%> : subwindow<%>
     on-char on-event on-paint on-scroll
     popup-menu warp-pointer get-dc
+    client-min-width client-min-height
 
 canvas% : canvas<%>
     <= parent [style null]
@@ -405,7 +406,7 @@ editor-canvas% : canvas<%>
    scroll-with-bottom-base - parameter-like
    lazy-refresh - parameter-like
    force-display-focus - parameter-like
-   get-edit set-edit - formerly get-media and set-media
+   get-editor set-editor - formerly get-media and set-media
    set-line-count
 
 menu-item<%>
@@ -923,6 +924,8 @@ get-the-buffer-data-class-list
 5. Subtle changes
 ======================================================================
 
+Added queue-callback: (queue-callback proc [hi-priority?])
+
 key-event%'s key-code method was removed
 
 key-event%'s get-key-code returns a character or a symbol
@@ -941,6 +944,19 @@ media-buffer%'s do-edit changed to editor<%>'s do-edit-operation,
  takes a symbol instead of a number
 
 pasteboard%'s {on,after}-interactive-move takes a mouse-event% object
+
+Xt: key-event% for a numpad ENTER key reports 'numpad-enter for the
+ key code instead of #\return
+
+An editor's selection caret now blinks; added a blink-caret method to
+ editor<%> and snip%
+
+Added 'unknown image kind for bitmap%'s load-file, etc., which
+ examines the file to determine the type automatically.
+
+'wx flag for make-namespace changed to 'mred
+
+canvas%'s get-view-start returns values in pixels, not scroll units
 
 -----------------------------
  TODO: Miscellaneous Cleanup
