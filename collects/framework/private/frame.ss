@@ -462,7 +462,8 @@
                         get-info-editor
                         get-info-panel
                         show-info
-                        hide-info))
+                        hide-info
+                        is-info-hidden?))
       
       (define magic-space 25)
 
@@ -514,8 +515,9 @@
           
           ;; this flag is specific to this frame
           ;; the true state of the info panel is
-          ;; the conjunction of this flag and the 
+          ;; the combination of this flag and the 
           ;; the 'framework:show-status-line preference
+          ;; as shown in update-info-visibility
           (define info-hidden? #f)
           (define/public (hide-info)
             (set! info-hidden? #t)
@@ -523,6 +525,7 @@
           (define/public (show-info)
             (set! info-hidden? #f)
             (update-info-visibility (preferences:get 'framework:show-status-line)))
+          (define/public (is-info-hidden?) info-hidden?)
           (define/private (update-info-visibility pref-value)
             (cond
               [(or info-hidden? (not pref-value))
