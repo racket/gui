@@ -1,6 +1,7 @@
 
   (unit/sig mred:finder^
-    (import [mred:container : mred:container^]
+    (import [mred:constants : mred:constants^]
+	    [mred:container : mred:container^]
 	    [mred:preferences : mred:preferences^]
 	    [mred:gui-utils : mred:gui-utils^]
 	    [mred:edit : mred:edit^]

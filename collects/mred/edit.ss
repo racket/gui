@@ -1,6 +1,7 @@
 
   (unit/sig mred:edit^
-    (import [mred:connections : mred:connections^]
+    (import [mred:constants : mred:constants^]
+	    [mred:connections : mred:connections^]
 	    [mred:finder : mred:finder^]
 	    [mred:path-utils : mred:path-utils^]
 	    [mred:mode : mred:mode^]

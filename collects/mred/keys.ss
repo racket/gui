@@ -1,6 +1,7 @@
 
   (unit/sig mred:keymap^
-    (import [mred:preferences : mred:preferences^]
+    (import [mred:constants : mred:constants^]
+	    [mred:preferences : mred:preferences^]
 	    [mred:exit : mred:exit^]
 	    [mred:finder : mred:finder^]
 	    [mred:handler : mred:handler^]

@@ -1,7 +1,8 @@
 ;; need a preference for pconvert
 
   (unit/sig mred:preferences^
-    (import [mred:exn : mred:exn^]
+    (import [mred:constants : mred:constants^]
+	    [mred:exn : mred:exn^]
 	    [mred : mred:container^] ;; warning -- to use the mred:panel macros, 
 	                             ;; need to have mred:container be prefixed with "mred"
 	    [mred:exit : mred:exit^]
