@@ -116,14 +116,15 @@
 	     [no-stipples? #f]
 	     [pixel-copy? #f]
 	     [mask-ex-mode 'mred]
-	     [scale 1]
+	     [xscale 1]
+	     [yscale 1]
 	     [offset 0])
 	    (public
 	     [set-bitmaps (lambda (on?) (set! no-bitmaps? (not on?)) (on-paint))]
 	     [set-stipples (lambda (on?) (set! no-stipples? (not on?)) (on-paint))]
 	     [set-pixel-copy (lambda (on?) (set! pixel-copy? on?) (on-paint))]
 	     [set-mask-ex-mode (lambda (mode) (set! mask-ex-mode mode) (on-paint))]
-	     [set-scale (lambda (s) (set! scale s) (on-paint))]
+	     [set-scale (lambda (xs ys) (set! xscale xs) (set! yscale ys) (on-paint))]
 	     [set-offset (lambda (o) (set! offset o) (on-paint))])
 	    (override
 	     [on-paint
@@ -149,7 +150,7 @@
 		       [bm (if use-bitmap?
 			       (if use-bad?
 				   (make-object bitmap% "no such file")
-				   (make-object bitmap% (* scale 400) (* scale 350) depth-one?))
+				   (make-object bitmap% (* xscale 400) (* yscale 350) depth-one?))
 			       #f)]
 		       [draw-series
 			(lambda (dc pens pent penx size x y flevel last?)
@@ -717,7 +718,7 @@
 		      (send dc start-doc "Draw Test")
 		      (send dc start-page)
 
-		      (send dc set-scale scale scale)
+		      (send dc set-scale xscale yscale)
 		      (send dc set-origin offset offset)
 		      
 		      (send dc set-background
@@ -814,7 +815,7 @@
 			(unless (cond
 				 [ps? #t]
 				 [use-bad? #t]
-				 [use-bitmap? (and (= w (* scale 400)) (= h (* scale 350)))]
+				 [use-bitmap? (and (= w (* xscale 400)) (= h (* yscale 350)))]
 				 [else (= w (send this get-width)) (= h (send this get-height))])
 			  (error 'x "wrong size reported by get-size: ~a ~a; w & h is ~a ~a" 
 				 w h (send this get-width) (send this get-height))))
@@ -860,9 +861,11 @@
     (make-object button% "Print" hp
 		 (lambda (self event)
 		   (send canvas on-paint 'print)))
-    (make-object choice% #f '("1" "*2" "/2") hp
+    (make-object choice% #f '("1" "*2" "/2" "1,*2" "*2,1") hp
 		 (lambda (self event)
-		   (send canvas set-scale (list-ref '(1 2 1/2) (send self get-selection)))))
+		   (send canvas set-scale 
+			 (list-ref '(1 2 1/2 1 2) (send self get-selection))
+			 (list-ref '(1 2 1/2 2 1) (send self get-selection)))))
     (make-object check-box% "+10" hp
 		 (lambda (self event)
 		   (send canvas set-offset (if (send self get-value) 10 0))))
