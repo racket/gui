@@ -1,5 +1,6 @@
 (unit/sig framework:text^
   (import mred-interfaces^
+	  [icon : framework:icon^]
 	  [editor : framework:editor^]
 	  [preferences : framework:preferences^]
 	  [keymap : framework:keymap^]
@@ -297,7 +298,7 @@
 	   
 	   
 	   (public
-	     [initial-autowrap-bitmap (lambda () #f)])
+	     [initial-autowrap-bitmap (lambda () (icon:get-autowrap-bitmap))])
 	   
 	   (sequence
 	     (apply super-init args)
