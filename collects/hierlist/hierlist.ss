@@ -10,6 +10,10 @@
 (define p (make-object mred:horizontal-panel% f))
 (define c (make-object (class-asi mred:hierarchical-list%
 				  (public
+				   [item-opened
+				    (lambda (i)
+				      (let ([f (send i user-data)])
+					(when f (f i))))]
 				   [double-select
 				    (lambda (s)
 				      (printf "Selected: ~a~n"
@@ -26,6 +30,14 @@
 
 (define b (send c new-item))
 (send (send b get-buffer) insert "Second Item")
+
+(define d (send c new-list))
+(send (send d get-buffer) insert "dynamic")
+(send d user-data (lambda (d)
+		    (time (let loop ([i 30])
+			    (unless (zero? i)
+				    (send (send (send d new-item) get-buffer) insert (number->string i))
+				    (loop (sub1 i)))))))
 
 (send f show #t)
 
