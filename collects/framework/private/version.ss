@@ -27,5 +27,5 @@
 
       (define add-spec
 	(lambda (sep num)
-	  (set! specs (cons (list (expr->string sep) (expr->string num))
+	  (set! specs (cons (list (expr->string sep) (format "~a" num))
 			    specs)))))))
