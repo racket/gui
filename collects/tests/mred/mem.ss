@@ -3,10 +3,10 @@
 
 (define source-dir (current-load-relative-directory))
 
-(define num-times 12)
+(define num-times 8)
 (define num-threads 3)
 
-(define dump-stats? #t)
+(define dump-stats? #f)
 
 (define edit? #t)
 (define insert? #t)
@@ -26,27 +26,17 @@
 	      allocated))
   v)
 
-(define frame%
-  ; Leave this as the (obsolete) make-class form for macro testing
-  (make-class mred:editor-frame%
-	      (rename [super-show show])
-	      (public
-		[prim-show (lambda (arg) (super-show arg))]
-		[show
-		 (lambda (x) (void))])))
-
 (when subwindows?
   (global-defined-value 
    'sub-collect-frame
-   (make-object wx:frame% null "sub-collect" -1 -1 200 200))
+   (make-object frame% "sub-collect"))
   (global-defined-value
    'sub-collect-panel
-   (make-object wx:panel% sub-collect-frame 0 0 100 100)))
+   (make-object panel% sub-collect-frame)))
+
+(define htw (make-hash-table-weak))
 
 (send sub-collect-frame show #t)
-
-; The creator for mred:editor-frame% is apparently not tread-safe
-(define sm (make-semaphore 100))
 
 (define (maker id n)
   (sleep)
@@ -58,71 +48,63 @@
   ;    (dump-memory-stats))
   (unless (zero? n)
     (let ([tag (cons id n)])
-      (let* ([f (if edit? (begin
-			    (semaphore-wait sm)
-			    (begin0
-			     (remember tag (make-object frame%))
-			     (semaphore-post sm))))]
+      (let* ([edit (remember tag (make-object text%))]
+	     [ef (let ([f (make-object frame% "Editor Frame")])
+		   (send (make-object editor-canvas% f) set-editor edit)
+		   (remember tag f))]
 	     [c (make-custodian)]
 	     [es (parameterize ([current-custodian c])
-		   (wx:make-eventspace))])
+		   (make-eventspace))])
 
-	(parameterize ([wx:current-eventspace es])
+	(when edit?
+	  (send ef show #t)
+	  (sleep 0.1))
+
+	(parameterize ([current-eventspace es])
 	  (send (remember 
 		 tag
 		 (make-object
-		  (class-asi wx:timer%
-			     (public
-			       [notify void]))))
+		  (class timer% args
+		    (override [notify void])
+		    (sequence (apply super-init args)))))
 		start 100))
 
-	(when edit?
-	  (remember tag (send f get-edit)))
-
-	(when (and edit? (zero? (modulo n 2)))
-	  (send f prim-show #t)
-	  (sleep 0.5))
-	
 	(if frame?
-	    (let* ([f (make-object wx:frame% '() "Tester" -1 -1 200 200)]
-		   [p (remember tag (make-object wx:panel% f))])
-	      (remember tag (make-object wx:canvas% f))
+	    (let* ([f (make-object frame% "Tester" #f 200 200)]
+		   [p (remember tag (make-object panel% f))])
+	      (remember tag (make-object canvas% f))
 	      (if (zero? (modulo n 3))
 		  (send f show #t))
-	      (remember tag (make-object wx:button% p (lambda args #t) "one"))
-	      (let ([class wx:check-box%])
+	      (remember tag (make-object button% "one" p void))
+	      (let ([class check-box%])
 		(let loop ([m 10])
 		  (unless (zero? m)
 		    (remember (cons tag m)
-			      (make-object class p (lambda args #t) "another"))
+			      (make-object class "another" p void))
 		    (loop (sub1 m)))))
-	      (send p new-line)
-	      (remember tag (make-object wx:check-box% p (lambda args #t) "check"))
-	      (remember tag (make-object wx:choice% p (lambda args #t) "choice"))
-	      (remember tag (make-object wx:list-box% p (lambda args #t) "list"
-					 wx:const-single -1 -1 -1 -1
-					 '("apple" "banana" "coconut")))
-	      (remember tag (make-object wx:button% p (lambda args #t) "two"))
+	      (remember tag (make-object check-box% "check" p void))
+	      (remember tag (make-object choice% "choice" '("a" "b" "c") p void))
+	      (remember tag (make-object list-box% "list" '("apple" "banana" "coconut")
+					 p void))
+	      (remember tag (make-object button% "two" p void))
 	      (send f show #f)))
 
 	(if subwindows?
-	    (let ([p (make-object wx:panel% sub-collect-frame 100 100 50 50)]
-		  [cv (make-object wx:canvas% sub-collect-frame 150 150 50 50)]
+	    (let ([p (make-object panel% sub-collect-frame)]
+		  [cv (make-object canvas% sub-collect-frame)]
 		  [add-objects
 		   (lambda (p tag hide?)
-		     (let ([b (make-object wx:button% p (lambda args #t) "one" 0 0)]
-			   [c (make-object wx:check-box% p (lambda args #t) "check" 0 0)]
-			   [co (make-object wx:choice% p (lambda args #t) "choice" 0 0)]
-			   [cv (make-object wx:canvas% p 0 0 50 50)]
-			   [lb (make-object wx:list-box% p (lambda args #t) "list"
-					    wx:const-single 0 0 -1 -1
-					    '("apple" "banana" "coconut"))])
+		     (let ([b (make-object button% "one" p void)]
+			   [c (make-object check-box% "check" p void)]
+			   [co (make-object choice% "choice" '("a" "b" "c") p void)]
+			   [cv (make-object canvas% p)]
+			   [lb (make-object list-box% "list" '("apple" "banana" "coconut") p void)])
 		       (when hide?
-			 (send b show #f)
-			 (send c show #f)
-			 (send cv show #f)
-			 (send co show #f)
-			 (send lb show #f))
+			 (send p delete-child b)
+			 (send p delete-child c)
+			 (send p delete-child cv)
+			 (send p delete-child co)
+			 (send p delete-child lb))
 		       (remember tag b)
 		       (remember tag c)
 		       (remember tag cv)
@@ -132,68 +114,68 @@
 	      (add-objects p (cons 'sc2 tag) #f)
 	      (remember (cons 'sc0 tag) p)
 	      (remember (cons 'sc0 tag) cv)
-	      (send p show #f)
-	      (send cv show #f)))
-	
+	      (send sub-collect-frame delete-child p)
+	      (send sub-collect-frame delete-child cv)))
 
 	(if (and edit? insert?)
-	    (let ([e (send f get-edit)])
+	    (let ([e edit])
 	      (when load-file?
 		(send e load-file (build-path source-dir "mem.ss")))
 	      (let loop ([i 20])
 		(send e insert (number->string i))
 		(unless (zero? i)
 		  (loop (sub1 i))))
-	      (let ([s (make-object wx:media-snip%)])
-		(send (send s get-this-media) insert "Hello!")
+	      (let ([s (make-object editor-snip%)])
+		(send (send s get-editor) insert "Hello!")
 		(send e insert s))
 	      (send e insert #\newline)
 	      (send e insert "done")
 	      (send e set-modified #f)))
 	
 	(when menus?
-	  (remember tag (make-object wx:menu-bar%))
-	  (remember tag (make-object wx:menu%))
-	  (let ([mb (remember tag (make-object wx:menu-bar%))]
-		[m (remember tag (make-object wx:menu%))])
-	    (send m append 5 "Hi" (remember tag (make-object wx:menu%)))
-	    (send mb append m "x"))
-	  
-	  (if edit?
-	      (let ([m (remember tag (make-object mred:menu%))]
-		    [m2 (remember tag (make-object mred:menu%))]
-		    [mb (send f get-menu-bar)])
-		(send m append 4 "ok")
-		(send m2 append 4 "hao")
-		(send m append 5 "Hi" (remember tag (make-object mred:menu%)))
-		(send mb append m "Extra")
-		(send mb append m2 "Other")
-		(send m delete 5)
-		(send mb delete m))))
+	  (let ([f (remember tag (make-object frame% "MB Frame 0"))])
+	    (remember tag (make-object menu% "TM1" (remember (cons 'q tag) (make-object menu-bar% f)))))
+	  (let* ([mb (remember tag (make-object menu-bar% ef))]
+		 [m (remember tag (make-object menu% "Ok" mb))])
+	    (remember tag (make-object menu-item% "Hi" m void))
+	    (remember tag
+		      (make-object checkable-menu-item%
+				   "Checkable"
+				   (remember tag (make-object menu% "Hello" m))
+				   void))
+	    (let ([i (remember tag (make-object menu-item% "Delete Me" m void))])
+	      (send i delete)))
 
+	  (when subwindows?
+	    (unless (send sub-collect-frame get-menu-bar)
+	      (let ([mb (make-object menu-bar% sub-collect-frame)])
+		(make-object menu% "Permanent" mb)))
+	    (let* ([mb (send sub-collect-frame get-menu-bar)]
+		   [mm (send (car (send mb get-items)) get-menu)])
+	      (send (remember tag (make-object menu-item% "Delete Me" mm void)) delete)
+	      (let ([m (make-object menu% "Temporary" mb)])
+		(remember tag (make-object menu-item% "Temp Hi" m void))
+		(send (send m get-item) delete)))))
+	  	  
 	(when atomic?
 	  (let loop ([m 8])
 	    (unless (zero? m)
-	      (remember (cons tag m) (make-object wx:point% n m))
-	      (remember (cons tag m) (make-object wx:int-point% n m))
-	      (remember (cons tag m) (make-object wx:brush%))
-	      (remember (cons tag m) (make-object wx:pen%))
+	      (remember (cons tag m) (make-object point% n m))
+	      (let ([br (make-object brush%)])
+		(remember (cons tag m) br)
+		(hash-table-put! htw br 'ok))
+	      (remember (cons tag m) (make-object pen%))
 	      (loop (sub1 m)))))
 	
 	(when offscreen?
-	  (let ([m (remember tag (make-object wx:memory-dc%))]
-		[b (remember (cons tag 'u) (make-object wx:bitmap% 100 100))]
-		[b2 (remember (cons tag 'x) (make-object wx:bitmap% 100 100))])
-	    (send m select-object b)))
-	
+	  (let ([m (remember tag (make-object bitmap-dc%))]
+		[b (remember (cons tag 'u) (make-object bitmap% 100 100))]
+		[b2 (remember (cons tag 'x) (make-object bitmap% 100 100))])
+	    (send m set-bitmap b)))
 	
 	(when edit?
-	  (let ([name (make-temporary-file "hi~a")])
-	    (send (send f get-edit) save-file name)
-	    (send f on-close) 
-	    (send f prim-show #f)
-	    (delete-file name)))
-
+	  (send ef show #f))
+	
 	(custodian-shutdown-all c)
 
 	(collect-garbage)
@@ -204,7 +186,7 @@
   (map (lambda (x)
 	 (let ([v (weak-box-value (cdr x))])
 	   (if v
-	       (printf "~s ~s~n" (send v get-class-name) (car x)))))
+	       (printf "~s ~s~n" (car x) v))))
        allocated)
   (void))
 
@@ -227,7 +209,7 @@
 	(loop (sub1 n))))
     (let loop ([n num-threads])
       (unless (zero? n)
-	(wx:yield sema)
+	(yield sema)
 	(loop (sub1 n)))))
   
   (collect-garbage)
@@ -244,9 +226,5 @@
     (dump-memory-stats)
     (still)))
 
-(define mred:startup
-  (lambda args
-    (send mred:the-frame-group set-empty-callbacks (lambda () #t) (lambda () #t))
-    (do-test)
-    (make-object mred:console-frame%)))
+(do-test)
 
