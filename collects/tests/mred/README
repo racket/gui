@@ -1,51 +1,47 @@
-Under construction.
 
----------------------------------------------------------------------------
-
-"startup" tests the startup flags of mred. run "run.ss" from that directory.
-
----------------------------------------------------------------------------
-
-"frame-edit.ss" checks that various frames match with various
-edits. Under construction.
-
----------------------------------------------------------------------------
-
-"gui.ss" tests:
- - save prompting (before closing unsaved files) and
- - autosaving 
-
-evaluate `(load "gui.ss")' in the console to run.
-
-It also overwrites the file "tmp.ss" in the testing directory.
-
----------------------------------------------------------------------------
-
-The "item.ss" test (use load/cd) creates a frame to select
-among several types of control-testing frames:
-
- * Big - Tests basic controls; try everything
-
- * Medium - Tests sliders & gauges; keep a new Big or
-         Medium frame open while getting a new Medium
-         frame to use the "Enable Previous Frame" test
-
- * Menu - contains its own test instructions
-
- * Button, Checkbox, etc. - Test everything, watching for
-         messages in the console
-
-For Big & Medium, verify that hide & disbale work (via the checkboxes
-on the right). Hiding or disabling a panel should hde or disable all
-its contained controls. Disbaling a frame (a "Previous" frame) should
-also disbale all of the contained controls.  When "Null label" is
-used, there should *not* be extra space left where a label might have
-gone.
+The "item.ss" test (use load/cd) creates a frame to select among
+several types of control-testing frames. Click the `Get Instructions'
+button in the top-left for more information.
 
 ---------------------------------------------------------------------------
 
 The "draw.ss" test (use load/cd) tests drawing commands. Click the
 "What Should I See?" button for further details.
+
+---------------------------------------------------------------------------
+
+The "mem.ss" test is loaded at startup:
+  mred -u -- -f mem.ss
+Creates a lot of frames and instance of other objects, reporting
+memory information along the way. At the end, before the last memory
+dump, objects that are still allocated are displayed like this:
+  (frame (1 . 5))
+This means that the frame allocated by thread #1 at cycle 5
+(counting down from some number) hasn't been garbage-collected.
+If there's a few of these lines (less than 10), that's ok.
+A large number of lines indicates a GC problem.
+
+---------------------------------------------------------------------------
+
+The "random.ss" test is a randomized test of the MrEd classes that tests
+MrEd's stability. Load "random.ss", and then run
+  (init)
+This attempts to create instances of classes using random
+intialization arguments. (init) can be run any number of times. 
+(2 is a good number) Then run
+  (call-all-random) 
+This calls every method of every class (skipping some "dangerous" ones
+that modify the file system) with a random instance and with random
+arguments.
+
+To avoid testing much of the wxMedia toolbox, which is likely to be
+platform-independent, (define skip-media? #t) before loading
+"random.ss".
+
+
+==================================================
+Old Stuff
+==================================================
 
 ---------------------------------------------------------------------------
 
@@ -69,32 +65,22 @@ of symbol flags:
 
 ---------------------------------------------------------------------------
 
-The "mem.ss" test is loaded at startup:
-  mred -u -- -f mem.ss
-It will create a lot of frames and instance of other objects, 
-reporting memory information along the way. At the end,
-before the last memory dump, objects that are still allocated
-are displayed like this:
-  (frame (1 . 5))
-This means that the frame allocated by thread #1 at cycle 5
-(counting down from some number) hasn't been garbage-collected.
-If there's a few of these lines (less than 10), that's ok.
-A large number of lines indicates a GC problem.
+"startup" tests the startup flags of mred. run "run.ss" from that directory.
 
 ---------------------------------------------------------------------------
 
-The "random.ss" test is a randomized test of the MrEd classes that tests
-MrEd's stability. Load "random.ss", and then run
-  (init)
-This attempts to create instances of classes using random
-intialization arguments. (init) can be run any number of times. 
-(2 is a good number) Then run
-  (call-all-random) 
-This calls every method of every class (skipping some "dangerous" ones
-that modify the file system) with a random instance and with random
-arguments.
+"frame-edit.ss" checks that various frames match with various
+edits. Under construction.
 
-To avoid testing much of the wxMedia toolbox, which is likely to be
-platform-independent, (define skip-media? #t) before loading
-"random.ss".
+---------------------------------------------------------------------------
+
+"gui.ss" tests:
+ - save prompting (before closing unsaved files) and
+ - autosaving 
+
+evaluate `(load "gui.ss")' in the console to run.
+
+It also overwrites the file "tmp.ss" in the testing directory.
+
+---------------------------------------------------------------------------
 
