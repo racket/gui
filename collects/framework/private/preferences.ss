@@ -6,6 +6,7 @@
            (lib "file.ss")
 	   (lib "class100.ss")
 	   "sig.ss"
+           "../gui-utils.ss"
 	   (lib "mred-sig.ss" "mred")
 	   (lib "pretty.ss")
 	   (lib "list.ss"))
@@ -731,15 +732,14 @@
                    [ok-callback (lambda args
                                   (save)
                                   (hide-dialog))]
-                   [ok-button (make-object button% (string-constant ok)
-                                bottom-panel ok-callback '(border))]
                    [cancel-callback (lambda (_1 _2)
                                       (hide-dialog)
-                                      (install-stashed-preferences stashed-prefs))]
-                   [cancel-button (make-object button% (string-constant cancel)
-                                    bottom-panel cancel-callback)]
-                   [grow-box-space (make-object grow-box-spacer-pane% bottom-panel)])
-            (send ok-button min-width (send cancel-button get-width))
+                                      (install-stashed-preferences stashed-prefs))])
+            (gui-utils:ok/cancel-buttons
+             bottom-panel
+             cancel-callback
+             ok-callback)
+            (make-object grow-box-spacer-pane% bottom-panel)
             (send* bottom-panel
               (stretchable-height #f)
               (set-alignment 'right 'center))

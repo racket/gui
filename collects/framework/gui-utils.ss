@@ -11,6 +11,41 @@
        (syntax (provide/contract (name contract) ...))]))
   
   (provide/contract/docs
+   
+   (gui-utils:cancel-on-right?
+    (-> boolean?)
+    ()
+    "Returns \\scheme{#t} if cancel should be on the right-hand side (or below)"
+    "in a dialog and \\scheme{#f} otherwise."
+    ""
+    "See also"
+    "@flink gui-utils:ok/cancel-buttons %"
+    ".")
+   (gui-utils:ok/cancel-buttons
+    (opt->*
+     ((is-a?/c area-container<%>)
+      ((is-a?/c button%) (is-a?/c event%) . -> . any)
+      ((is-a?/c button%) (is-a?/c event%) . -> . any))
+     (string?
+      string?)
+     ((is-a?/c button%)
+      (is-a?/c button%)))
+    ((parent
+      confirm-callback
+      cancel-callback)
+     ((confirm-label (string-constant ok))
+      (cancel-label (string-constant cancel))))
+    "Adds an Ok and a cancel button to a panel, changing the order"
+    "to suit the platform. Under MacOS and unix, the confirmation action"
+    "is on the right (or bottom) and under Windows, the canceling action is on the"
+    "right (or bottom)."
+    "The confirmation action button has the \\scheme|'(border)| style."
+    "The buttons are also sized to be the same width."
+    ""
+    "See also"
+    "@flink gui-utils:cancel-on-right? %"
+    ".")
+   
    (gui-utils:next-untitled-name
     (-> string?)
     ()
@@ -142,9 +177,12 @@
     "The argument \\var{default-result} determines how closing the window is"
     "treated. If the argument is \rawscm{'disallow-close}, closing the window"
     "is not allowed. If it is anything else, that value is returned when"
-    "the user closes the window.")
-
-   ;; (gui-utils:open-input-buffer any?) ;; who uses this?!?!
+    "the user closes the window."
+    ""
+    "If "
+    "@flink gui-utils:cancel-on-right?"
+    "returns \\scheme|#t|, the false choice is on the right."
+    "Otherwise, the true choice is on the right.")
 
    (gui-utils:get-clicked-clickback-delta
     (-> (is-a?/c style-delta%))
@@ -171,6 +209,38 @@
     "See also"
     "@flink gui-utils:get-clicked-clickback-delta %"
     "."))
+  
+  (define (cancel-on-right?) (eq? (system-type) 'windows))
+  
+  (define ok/cancel-buttons
+    (opt-lambda (parent 
+                 confirm-callback
+                 cancel-callback 
+                 [confirm-str (string-constant ok)]
+                 [cancel-str (string-constant cancel)])
+      (let ([confirm (lambda ()
+                       (instantiate button% ()
+                         (parent parent)
+                         (callback confirm-callback)
+                         (label confirm-str)
+                         (style '(border))))]
+            [cancel (lambda ()
+                      (instantiate button% ()
+                        (parent parent)
+                        (callback cancel-callback)
+                        (label cancel-str)))])
+        (let-values ([(b1 b2)
+                      (cond
+                        [(cancel-on-right?)
+                         (values (confirm) (cancel))]
+                        [else
+                         (values (cancel) (confirm))])])
+          (let ([w (max (send b1 get-width)
+                        (send b2 get-width))])
+            (send b1 min-width w)
+            (send b2 min-width w)
+            (values b1 b2))))))
+
   
   (define clickback-delta (make-object style-delta% 'change-underline #t))
   (send clickback-delta set-delta-foreground "BLUE")
@@ -243,63 +313,64 @@
                (lambda () (cursor-off))))])))
   
   (define unsaved-warning
-    (case-lambda
-      [(filename action-anyway) (unsaved-warning filename action-anyway #f)]
-      [(filename action-anyway can-save-now?) (unsaved-warning filename action-anyway can-save-now? #f)]
-      [(filename action-anyway can-save-now? parent)
-       (let* ([result (void)]
-              [unsaved-dialog%
-               (class dialog%
-                 (inherit show center)
-                 
-                 (define/private (on-dont-save)
-                   (set! result 'continue)
-                   (show #f))
-                 (define/private (on-save-now)
-                   (set! result 'save)
-                   (show #f))
-                 (define/private (on-cancel)
-                   (set! result 'cancel)
-                   (show #f))
-                 
-                 (super-make-object (string-constant warning) parent)
-                 
-                 (let* ([panel (make-object vertical-panel% this)]
-                        [msg
-                         (make-object message%
-                           (format (string-constant file-is-not-saved) filename)
-                           panel)]
-                        [button-panel
-                         (make-object horizontal-panel% panel)])
-                   (make-object button% 
-                     (string-append action-anyway)
-                     button-panel
-                     (lambda (x y) (on-dont-save)))
-                   
-                   (let ([now (make-object button% 
-                                (string-constant save)
-                                button-panel
-                                (lambda (x y) (on-save-now))
-                                (if can-save-now?
-                                    '(border)
-                                    '()))]
-                         [cancel (make-object button%
-                                   (string-constant cancel)
-                                   button-panel
-                                   (lambda (x y) (on-cancel))
-                                   (if can-save-now?
-                                       '()
-                                       '(border)))])
-                     (if can-save-now?
-                         (send now focus)
-                         (begin (send cancel focus)
-                                (send now show #f))))
-                   
-                   (center 'both)
-                   
-                   (show #t)))])
-         (make-object unsaved-dialog%)
-         result)]))
+    (opt-lambda (filename action-anyway (can-save-now? #f) (parent #f))
+      (let* ([result (void)]
+             [unsaved-dialog%
+              (class dialog%
+                (inherit show center)
+                
+                (define/private (on-dont-save)
+                  (set! result 'continue)
+                  (show #f))
+                (define/private (on-save-now)
+                  (set! result 'save)
+                  (show #f))
+                (define/private (on-cancel)
+                  (set! result 'cancel)
+                  (show #f))
+                
+                (super-make-object (string-constant warning) parent)
+                
+                (let* ([panel (make-object vertical-panel% this)]
+                       [msg
+                        (make-object message%
+                          (format (string-constant file-is-not-saved) filename)
+                          panel)]
+                       [button-panel
+                        (make-object horizontal-panel% panel)]
+                       [anyway (make-object button% 
+                                 (string-append action-anyway)
+                                 button-panel
+                                 (lambda (x y) (on-dont-save)))]
+                       [now (make-object button% 
+                              (string-constant save)
+                              button-panel
+                              (lambda (x y) (on-save-now))
+                              (if can-save-now?
+                                  '(border)
+                                  '()))]
+                       [cancel (make-object button%
+                                 (string-constant cancel)
+                                 button-panel
+                                 (lambda (x y) (on-cancel))
+                                 (if can-save-now?
+                                     '()
+                                     '(border)))])
+                    (send button-panel change-children
+                          (lambda (l)
+                            (if (cancel-on-right?)
+                                (list anyway now cancel)
+                                (list anyway cancel now))))
+                    (if can-save-now?
+                        (send now focus)
+                        (begin (send cancel focus)
+                               (send now show #f)))
+                  
+                  (center 'both)
+                  
+                  (show #t)))])
+        (make-object unsaved-dialog%)
+        result)))
   
   (define get-choice
     (opt-lambda (message 
@@ -356,41 +427,20 @@
         
         (send vp set-alignment 'left 'center)
         (send hp set-alignment 'right 'center)
-        (send (make-object button% true-choice hp on-true '(border)) focus)
-        (make-object button% false-choice hp on-false)
+        (let ([make-true
+               (lambda ()
+                 (send (make-object button% true-choice hp on-true '(border)) focus))]
+              [make-false
+               (lambda ()
+                 (make-object button% false-choice hp on-false))])
+          (if (cancel-on-right?)
+              (begin (make-true) (make-false))
+              (begin (make-false) (make-true))))
         (send hp stretchable-height #f)
         (send dialog center 'both)
         (send dialog show #t)
         result)))
-  
-  (define open-input-buffer
-    (lambda (buffer)
-      (let ([pos 0]
-            [lock (make-semaphore 1)])
-        (make-custom-input-port
-         lock
-         (lambda (s)
-           (if (semaphore-try-wait? lock)
-               (dynamic-wind
-                void
-                (lambda ()
-                  (let* ([len (send buffer last-position)]
-                         [count (min (string-length s)
-                                     (- len pos))])
-                    (if (zero? count)
-                        eof
-                        (let ([got (send buffer get-text pos (+ pos count))])
-                          (let loop ([count count])
-                            (unless (zero? count)
-                              (let ([count (sub1 count)])
-                                (string-set! s count (string-ref got count))
-                                (loop (sub1 count)))))
-                          (set! pos (+ pos count))
-                          count))))
-                (lambda () (semaphore-post lock)))
-               0))
-         #f
-         void))))
+ 
   
   ;; manual renaming
   (define gui-utils:next-untitled-name next-untitled-name)
@@ -399,6 +449,7 @@
   (define gui-utils:local-busy-cursor local-busy-cursor)
   (define gui-utils:unsaved-warning unsaved-warning)
   (define gui-utils:get-choice get-choice)
-  (define gui-utils:open-input-buffer open-input-buffer)
   (define gui-utils:get-clicked-clickback-delta get-clicked-clickback-delta)
-  (define gui-utils:get-clickback-delta get-clickback-delta))
+  (define gui-utils:get-clickback-delta get-clickback-delta)
+  (define gui-utils:ok/cancel-buttons ok/cancel-buttons)
+  (define gui-utils:cancel-on-right? cancel-on-right?))

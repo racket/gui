@@ -17,6 +17,7 @@
 	      [group : framework:group^])
       
       ;; preferences
+      (preferences:set-default 'framework:last-url-string "" string?)
       (preferences:set-default 'framework:recently-opened-sort-by 'age 
                                (lambda (x) (or (eq? x 'age) (eq? x 'name))))
       (preferences:set-default 'framework:recent-items-window-w 400 number?)

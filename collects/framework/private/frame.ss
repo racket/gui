@@ -95,8 +95,6 @@
           
           (make-object c% (string-constant insert-text-box-item)
             edit-menu (edit-menu:do 'insert-text-box) #f #f on-demand)
-          (make-object c% (string-constant insert-pb-box-item)
-            edit-menu (edit-menu:do 'insert-pasteboard-box) #f #f on-demand)
           (make-object c% (string-constant insert-image-item)
             edit-menu (edit-menu:do 'insert-image) #f #f on-demand)
           (void)))
