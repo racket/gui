@@ -389,7 +389,10 @@
            (preferences:get
             'framework:auto-set-wrap?))))
       
-      (define file<%> (interface (-keymap<%>)))
+      (define file<%> 
+        (interface (-keymap<%>)
+          get-filename/untitled-name
+          update-frame-filename))
       (define file-mixin
 	(mixin (-keymap<%>) (file<%>)
 	  (inherit get-filename lock get-style-list 
@@ -412,16 +415,31 @@
                                      (file-or-directory-permissions
                                       filename))))])
               (lock lock?)))
-          (define/private (update-filename name)
-            (let ([filename (if name
-                                (file-name-from-path (normalize-path name))
-                                (gui-utils:next-untitled-name))])
+          
+          (define/public (update-frame-filename)
+            (let* ([filename (get-filename)]
+                   [name (if filename
+                             (file-name-from-path (normalize-path filename))
+                             (get-filename/untitled-name))])
               (for-each (lambda (canvas)
                           (let ([tlw (send canvas get-top-level-window)])
                             (when (and (is-a? tlw frame:editor<%>)
                                        (eq? this (send tlw get-editor)))
-                              (send tlw set-label filename))))
+                              (send tlw set-label name))))
                         (get-canvases))))
+          
+          ;; get-filename/untitled-name : -> string
+          ;; returns a string representing the visible name for this file,
+          ;; or "Untitled <n>" for some n.
+          (define untitled-name #f)
+          (define/public (get-filename/untitled-name)
+            (let ([filename (get-filename)])
+              (if filename
+                  filename
+                  (begin
+                    (unless untitled-name
+                      (set! untitled-name (gui-utils:next-untitled-name)))
+                    untitled-name))))
 	  (define/override (after-save-file success)
             (when success
               (check-lock))
@@ -438,7 +456,7 @@
 	     [(name temp?)
 	      (super-set-filename name temp?)
 	      (unless temp?
-		(update-filename name))]))
+		(update-frame-filename))]))
 
           (define/override (get-keymaps)
             (cons (keymap:get-file) (super-get-keymaps)))

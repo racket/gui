@@ -1166,10 +1166,9 @@
 	    [else (void)])
 
           (let ([ed-fn (send (get-editor) get-filename)])
-            (set! label (if ed-fn
-                            (or (file-name-from-path ed-fn)
-                                (gui-utils:next-untitled-name))
-                            (gui-utils:next-untitled-name))))
+            (set! label (or (and ed-fn
+                                 (file-name-from-path ed-fn))
+                            (send (get-editor) get-filename/untitled-name))))
           (do-label)
           (let ([canvas (get-canvas)])
             (when (is-a? canvas editor-canvas%)
