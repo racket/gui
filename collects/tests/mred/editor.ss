@@ -65,7 +65,7 @@
 ;; Editor ports
 
 (let ([e (make-object text%)]
-      [multi-mode? #f])
+      [res-mode? #f])
   (stv e insert "hello")
   (let ([p (open-input-text-editor e)])
     (test 'hello 'read (read p))
@@ -78,9 +78,9 @@
   (stv e insert (make-object
 		 (class* snip% 
 		   (readable-snip<%>)
-		   (define/public (read-one-special index src line col pos)
-		     (if multi-mode?
-			 (values 'multi (= index 1))
+		   (define/public (read-special src line col pos)
+		     (if res-mode?
+			 'res
 			 (error 'ack)))
 		   (super-new))))
   (let ([p (open-input-text-editor e)])
@@ -95,15 +95,13 @@
 			   (read p)))
     (test '(1 12 13) 'pos (call-with-values (lambda () (port-next-location p)) list))
     (test eof 'read (read p)))
-  (set! multi-mode? #t)
+  (set! res-mode? #t)
   (let ([p (open-input-text-editor e)])
     (port-count-lines! p)
     (test 'hello 'read (read p))
     (test 'there 'read (read p))
-    (test 'multi 'read (read p))
+    (test 'res 'read (read p))
     (test '(1 12 13) 'pos (call-with-values (lambda () (port-next-location p)) list))
-    (test 'multi 'read (read p))
-    (test '(1 13 14) 'pos (call-with-values (lambda () (port-next-location p)) list))
     (test eof 'read (read p)))
   (stv e insert (make-object image-snip% (build-path
 					  (collection-path "icons") 
@@ -111,9 +109,24 @@
   (let ([p (open-input-text-editor e)])
     (test 'hello 'read (read p))
     (test 'there 'read (read p))
-    (test 'multi 'read (read p))
-    (test 'multi 'read (read p))
+    (test 'res 'read (read p))
     (test #t 'read (is-a? (read p) image-snip%))))
+
+(let ()
+  (define x (new text%))
+  (define s (make-object image-snip% "no-such-image.jpg" 
+			 'unknown #f #f))
+  (define t (make-object image-snip% "no-such-image.jpg" 
+			 'unknown #f #f))
+  (send x insert s 0 'same #t)
+  (send x insert t 1 'same #t)
+  (send x insert "1" 2 'same #t)
+  
+  (let ([i (open-input-text-editor x 0 'end (lambda (x) (eq? x s)))])
+    (test #t 'peek-s (peek-byte-or-special i 0))
+    (test #t 'read-s (read-byte-or-special i))
+    (test #f 'peek-t (peek-byte-or-special i 0))
+    (test 49 'read-1 (peek-byte-or-special i 1))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;                            Snips and Streams                               ;;
