@@ -3620,7 +3620,8 @@
   (class* wx:menu-item% (wx<%>) (mred menu-data)
     (private 
       [keymap #f]
-      [wx-menu #f])
+      [wx-menu #f]
+      [enabled? #t])
     (public
       [get-keymap (lambda () keymap)]
       [set-keymap (lambda (k) (set! keymap k))]
@@ -3630,7 +3631,9 @@
       [get-mred (lambda () mred)]
       [get-menu-data (lambda () menu-data)]  ; for meta-shortcuts
       [get-container (lambda () wx-menu)]
-      [set-wx-menu (lambda (wx) (set! wx-menu wx))])
+      [set-wx-menu (lambda (wx) (set! wx-menu wx))]
+      [is-enabled? (lambda () enabled?)]
+      [set-enabled (lambda (on?) (set! enabled? on?))])
     (sequence
       (super-init))))
 
@@ -3675,7 +3678,8 @@
 		     (when disabled?
 		       (super-enable-top (length items) #f))
 		     (set! items (append items (list item)))
-		     (send keymap chain-to-keymap (send (mred->wx item) get-keymap) #f))]
+		     (when (send (mred->wx item) is-enabled?)
+		       (send keymap chain-to-keymap (send (mred->wx item) get-keymap) #f)))]
       [all-enabled? (lambda () (not disabled?))]
       [enable-all (lambda (on?)
 		    (set! disabled? (not on?))
@@ -3697,12 +3701,14 @@
       [enable-top (lambda (p on?)
 		    (let ([i (list-ref items p)])
 		      (if on?
-			  (begin
+			  (when (memq i disabled)
 			    (set! disabled (remq i disabled))
+			    (send keymap add-chained-keymap (send (mred->wx i) get-keymap) #t)
 			    (unless disabled?
 			      (super-enable-top p #t)))
 			  (unless (memq i disabled)
 			    (set! disabled (cons i disabled))
+			    (send keymap remove-chained-keymap (send (mred->wx i) get-keymap))
 			    (super-enable-top p #f)))))])
     (sequence
       (super-init null null))))
@@ -3713,7 +3719,8 @@
       [items null]
       [keymap (make-object wx:keymap%)])
     (inherit delete-by-position)
-    (rename [super-delete delete])
+    (rename [super-delete delete]
+	    [super-enable enable])
     (public
       [get-container (lambda () this)]
       [get-keymap (lambda () keymap)]
@@ -3721,7 +3728,8 @@
       [get-items (lambda () items)]
       [append-item (lambda (i iwx) 
 		     (set! items (append items (list i)))
-		     (unless (is-a? i separator-menu-item%)
+		     (unless (or (is-a? i separator-menu-item%)
+				 (not (send iwx is-enabled?)))
 		       (let ([k (send iwx get-keymap)])
 			 (when k
 			   (send keymap chain-to-keymap k #f)))))]
@@ -3737,7 +3745,17 @@
 		(set! items (remq i items))
 		(let ([k (send (mred->wx i) get-keymap)])
 		  (when k
-		    (send keymap remove-chained-keymap k))))])
+		    (send keymap remove-chained-keymap k))))]
+      [enable (lambda (iwx id on?)
+		; Only called if the item is not deleted
+		(unless (eq? (send iwx is-enabled?) (and on? #t))
+		  (send iwx set-enabled (and on? #t))
+		  (super-enable id on?)
+		  (let ([k (send iwx get-keymap)])
+		    (when k
+		      (if on?
+			  (send keymap chain-to-keymap k #f)
+			  (send keymap remove-chained-keymap k))))))])
     (sequence
       (super-init popup-label popup-callback))))
 
@@ -3811,7 +3829,7 @@
       [do-enable (lambda (on?)
 		   (when shown?
 		     (if in-menu?
-			 (send wx-parent enable (send wx id) on?)
+			 (send wx-parent enable wx (send wx id) on?)
 			 (send wx-parent enable-top (send wx-parent position-of this) on?)))
 		   (set! enabled? (and on? #t)))])
     (public
@@ -3885,6 +3903,7 @@
   (class* basic-labelled-menu-item% (selectable-menu-item<%>) (label checkable? menu callback shortcut help-string set-wx)
     (rename [super-restore restore] [super-set-label set-label]
 	    [super-is-deleted? is-deleted?]
+	    [super-is-enabled? is-enabled?]
 	    [super-get-label get-label])
     (private
       [wx #f])
@@ -3939,7 +3958,8 @@
 		       (let-values ([(new-label keymap) (calc-labels l)])
 			 (set! label l)
 			 (super-set-label new-label)
-			 (if (super-is-deleted?)
+			 (if (or (super-is-deleted?)
+				 (not (super-is-enabled?)))
 			     (send wx set-keymap keymap)
 			     (send wx swap-keymap menu keymap)))))])
     (override
