@@ -13,6 +13,12 @@
   (send mdi-frame maximize #t)
   (send mdi-frame show #t))
 
+(define default-parent-frame #f)
+(define (parent-frame)
+  (set! default-parent-frame (make-object frame% "Item Test Parent" #f
+			       100 100))
+  (send default-parent-frame show #t))
+
 (when (defined? 'mdi?)
   (when mdi?
     (mdi)))
@@ -20,7 +26,7 @@
 (define make-frame
   (opt-lambda (% name [parent #f] [x #f] [y #f] [w #f] [h #f] [style '()])
     (make-object % name
-		 (or parent mdi-frame)
+		 (or parent mdi-frame default-parent-frame)
 		 x y w h
 		 (if mdi-frame
 		     (cons 'mdi-child style)
