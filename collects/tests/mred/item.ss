@@ -1996,6 +1996,20 @@
 
 ;----------------------------------------------------------------------
 
+(define (cursors)
+  (define f (make-object frame% "Cursors"))
+  (for-each (lambda (s)
+	      (make-object button%
+			   (format "~a" s)
+			   f
+			   (lambda (b e)
+			     (send f set-cursor (make-object cursor% s)))))
+	    '(arrow bullseye cross hand ibeam watch blank size-n/s size-e/w size-ne/sw size-nw/se))
+  (send f show #t))
+
+
+;----------------------------------------------------------------------
+
 (define selector (make-frame frame% "Test Selector"))
 (define ap (make-object vertical-panel% selector))
 
@@ -2071,6 +2085,8 @@
 (make-object button% "Make Checkbox Frame" crp (lambda (b e) (checkbox-frame)))
 (make-object vertical-pane% crp) ; filler
 (make-object button% "Message Boxes" crp (lambda (b e) (message-boxes #f)))
+(make-object vertical-pane% crp) ; filler
+(make-object button% "Cursors" crp (lambda (b e) (cursors)))
 (make-object vertical-pane% crp) ; filler
 (make-object button% "Make Radiobox Frame" crp (lambda (b e) (radiobox-frame)))
 (define cp (make-object horizontal-pane% ap))
