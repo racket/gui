@@ -262,9 +262,9 @@
                           [left (max left-margin (first-number (rectangle-left rectangle) view-x))]
                           [top (max top-margin (rectangle-top rectangle))]
                           [right (min right-margin
-                                      (if (number? (rectangle-right rectangle))
-                                          (rectangle-right rectangle)
-                                          (+ view-x view-width)))]
+                                      (first-number 
+                                       (rectangle-right rectangle)
+                                       (+ view-x view-width)))]
                           [bottom (min bottom-margin (rectangle-bottom rectangle))]
                           [width (max 0 (- right left))]
                           [height (max 0 (- bottom top))])
@@ -412,6 +412,15 @@
                     (send delegate last-position))
               (send delegate lock #t)
               (send delegate end-edit-sequence)))
+          
+          (rename [super-on-paint on-paint])
+          (inherit get-canvas)
+          (define/override (on-paint before? dc left top right bottom dx dy draw-caret?)
+            (super-on-paint before? dc left top right bottom dx dy draw-caret?)
+            (unless before?
+              (let ([canvas (get-canvas)])
+                (when canvas
+                  (send (send canvas get-top-level-window) delegate-moved)))))
 
           (define delegate-style-delta (make-object style-delta% 'change-size 1))
           (define/public (get-delegate-style-delta)

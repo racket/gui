@@ -873,9 +873,10 @@
           get-delegated-text
           delegated-text-shown?
           hide-delegated-text
-          show-delegated-text))
+          show-delegated-text
+          delegate-moved))
       
-      (define delegate-editor-canvas%
+      (define delegatee-editor-canvas%
         (class editor-canvas%
           (rename [super-on-event on-event])
           (init-field delegate-frame)
@@ -892,6 +893,73 @@
                                       (send evt get-y))])
                     (send delegate-frame click-in-overview 
                           (send text find-position editor-x editor-y)))))))
+          (super-instantiate ())))
+      
+      (define delegatee-text%
+        (class text:basic%
+          (rename [super-on-paint on-paint])
+          (inherit get-admin)
+          (define start-para 0)
+          (define end-para 0)
+          (define view-x-b (box 0))
+          (define view-width-b (box 0))
+          (inherit paragraph-start-position position-location invalidate-bitmap-cache)
+          (define/public (set-start/end-para _start-para _end-para)
+            (unless (and (= _start-para start-para)
+                         (= _end-para end-para))
+              (let ([old-start-para start-para]
+                    [old-end-para end-para])
+                (set! start-para _start-para)
+                (set! end-para _end-para)
+                (let-values ([(x y w h) (get-rectangle old-start-para old-end-para)])
+                  (when x
+                    (invalidate-bitmap-cache x y w h)))
+                (let-values ([(x y w h) (get-rectangle start-para end-para)])
+                  (when x
+                    (invalidate-bitmap-cache x y w h))))))
+
+          (define/override (on-paint before? dc left top right bottom dx dy draw-caret)
+            (when before?
+              (let ([old-pen (send dc get-pen)]
+                    [old-brush (send dc get-brush)])
+                (send dc set-pen
+                      (send the-pen-list find-or-create-pen "light blue" 1 'solid))
+                (send dc set-brush
+                      (send the-brush-list find-or-create-brush "light blue" 'solid))
+                (let-values ([(x y w h) (get-rectangle start-para end-para)])
+                  (when x
+                    (send dc draw-rectangle 
+                          (+ dx x)
+                          (+ dy y)
+                          w
+                          h)))
+                (send dc set-pen old-pen)
+                (send dc set-brush old-brush)))
+            (super-on-paint before? dc left top right bottom dx dy draw-caret))
+          
+          
+          ;; get-rectangle : number number -> 
+          ;;                (values (union #f number) (union #f number) (union #f number) (union #f number))
+          ;; computes the rectangle corresponding the input paragraphs
+          (define/private (get-rectangle start-para end-para)
+            (let ([start (get-line-y start-para #t)]
+                  [end (get-line-y end-para #f)]
+                  [admin (get-admin)])
+              (if admin
+                  (begin
+                    (send admin get-view view-x-b #f view-width-b #f)
+                    (send admin get-view view-x-b #f view-width-b #f)
+                    (values (unbox view-x-b)
+                            start
+                            (unbox view-width-b)
+                            (- end start)))
+                  (values #f #f #f #f))))
+
+          (define/private (get-line-y para top?)
+            (let ([pos (paragraph-start-position para)]
+                  [b (box 0)])
+              (position-location pos #f b top? #f #t)
+              (unbox b)))
           (super-instantiate ())))
       
       (define delegate-mixin
@@ -951,11 +1019,20 @@
                         cw
                         ch
                         #t)))))
+          
+          (define/public (delegate-moved)
+            (let ([startb (box 0)]
+                  [endb (box 0)]
+                  [delegate-text (get-delegated-text)])
+              (send delegate-text get-visible-position-range startb endb #f)
+              (send delegatee set-start/end-para
+                    (send delegate-text position-paragraph (unbox startb)) 
+                    (send delegate-text position-paragraph (unbox endb)))))
 
           (super-instantiate ())
           
-          (define delegatee (instantiate text:basic% ()))
-          (define delegate-ec (instantiate delegate-editor-canvas% ()
+          (define delegatee (instantiate delegatee-text% ()))
+          (define delegate-ec (instantiate delegatee-editor-canvas% ()
                                 (editor delegatee)
                                 (parent super-root)
                                 (delegate-frame this)
