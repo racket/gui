@@ -174,9 +174,12 @@
 	   (public
 	     ;; the bitmap is used in b/w and the color is used in color.
 	     [highlight-range
-	      (opt-lambda (start end color bitmap [caret-space? #f])
+	      (opt-lambda (start end color bitmap [caret-space? #f] [priority 'low])
 		(let ([l (make-range start end bitmap color caret-space?)])
-		  (set! ranges (cons l ranges))
+                  (unless (or (eq? priority 'high) (eq? priority 'low))
+		    (error 'highlight-range "expected last argument to be either 'high or 'low, got: ~e"
+                           priority))
+		  (set! ranges (if (eq? priority 'high) (cons l ranges) (append ranges (list l))))
 		  (recompute-range-rectangles)
 		  (lambda ()
 		    (set! ranges 
