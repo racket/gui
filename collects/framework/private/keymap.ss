@@ -287,13 +287,6 @@
 			    #f
 			    bottom-pos)))
 		  #t)]
-	       [flash-paren-match
-		(lambda (edit event)
-		  (send edit on-default-char event)
-		  (let ([pos (send edit backward-match (send edit get-start-position) 0)])
-		    (when pos
-		      (send edit flash-on pos (+ 1 pos))))
-		  #t)]
 
 	       [make-insert-brace-pair
 		(lambda (open-brace close-brace)
@@ -907,8 +900,6 @@
 	      
 	      (add "ring-bell" ring-bell)
 	      
-	      (add "flash-paren-match" flash-paren-match)
-
 	      (add "insert-()-pair" (make-insert-brace-pair "(" ")"))
 	      (add "insert-[]-pair" (make-insert-brace-pair "[" "]"))
 	      (add "insert-{}-pair" (make-insert-brace-pair "{" "}"))
@@ -975,10 +966,6 @@
 	      (map "c:x;c:g" "ring-bell")
 	      (map "c:c;c:g" "ring-bell")
 	      
-	      (map ")" "flash-paren-match")
-	      (map "]" "flash-paren-match")
-	      (map "}" "flash-paren-match")
-
 	      (map-meta "(" "insert-()-pair")
 	      (map-meta "[" "insert-[]-pair")
 	      (map-meta "{" "insert-{}-pair")
