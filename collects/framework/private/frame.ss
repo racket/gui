@@ -474,9 +474,9 @@
           
           (field (macro-recording? #f))
           (define (update-macro-recording-icon)
-            (unless (eq? (send macro-recording-panel is-shown?)
+            (unless (eq? (send macro-recording-message is-shown?)
                          macro-recording?)
-              (send macro-recording-panel show macro-recording?)))
+              (send macro-recording-message show macro-recording?)))
           (define (set-macro-recording on?)
             (set! macro-recording? on?)
             (update-macro-recording-icon))
@@ -541,16 +541,6 @@
 
           (inherit get-info-panel)
           
-          (define macro-recording-panel
-            (instantiate horizontal-panel% ()
-              (parent (get-info-panel))
-              (stretchable-width #f)
-              (stretchable-height #f)
-              (style '(border))))
-          (instantiate message% ()
-            (label "c-x;(")
-            (parent macro-recording-panel))
-          
           [define anchor-message
             (make-object message%
               (let ([b (icon:get-anchor-bitmap)])
@@ -565,6 +555,12 @@
           [define position-canvas (make-object editor-canvas% (get-info-panel) #f '(no-hscroll no-vscroll))]
           [define position-edit (make-object text%)]
           
+          
+          (define macro-recording-message
+            (instantiate message% ()
+              (label "c-x;(")
+              (parent (get-info-panel))))
+          
           (inherit determine-width)
           (let ([move-front
                  (lambda (x l)
@@ -572,13 +568,15 @@
             (send (get-info-panel) change-children
                   (lambda (l)
                     (move-front
-                     anchor-message
+                     macro-recording-message
                      (move-front
-                      overwrite-message
+                      anchor-message
                       (move-front
-                       position-canvas
-                       l))))))
-          (send macro-recording-panel show #f)
+                       overwrite-message
+                       (move-front
+                        position-canvas
+                        l)))))))
+          (send macro-recording-message show #f)
           (send anchor-message show #f)
           (send overwrite-message show #f)
           (send* position-canvas

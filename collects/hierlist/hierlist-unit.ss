@@ -163,7 +163,10 @@
             
             [get-clickable-snip (lambda () snip)]
             [get-editor (lambda () (send snip get-item-buffer))]
-            [is-selected? (lambda () (send (send snip get-editor) is-selected?))]
+            
+            ;; the `get-editor' method is overridden
+            [is-selected? (lambda () (send (get-editor) is-selected?))]
+            
             [select (lambda (on?) (send snip select on?))]
             [scroll-to (lambda () (let* ([admin (send snip get-admin)]
                                          [dc (send admin get-dc)]
@@ -292,7 +295,7 @@
             (hide-caret #t)
             (set-max-undo-history 0)
             (set-keymap item-keymap))))
-
+      
       ;; Buffer for a compound list item (and the top-level list)
       (define (make-hierarchical-list-text% super%)
 	(class100 super% (tp tp-select dpth parent-snp)
@@ -350,12 +353,19 @@
                                                    (less-than? (send a get-item)
                                                                (send b get-item))))])
                       (begin-edit-sequence)
+                      (for-each (lambda (child)
+                                  (when (is-a? child hierarchical-list-snip%)
+                                    (let ([ed (send child get-content-buffer)])
+                                      (when (is-a? ed hierarchical-list-text%)
+                                        (send ed sort less-than?)))))
+                                children)
                       (erase)
                       (let ([to-scroll-to #f])
                         (for-each
                          (lambda (s)
                            (unless to-scroll-to
-                             (when (send (send s get-item) is-selected?)
+                             (when (and (is-a? (send s get-item) hierarchical-list-item<%>)
+                                        (send (send s get-item) is-selected?))
                                (set! to-scroll-to s)))
                            (unless (is-a? s hierarchical-list-snip%)
                              (insert (make-whitespace)))

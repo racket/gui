@@ -89,7 +89,7 @@
                    (label (string-constant bring-frame-to-front...))
                    (parent menu)
                    (callback (lambda (x y) (choose-a-frame (send (send menu get-parent) get-frame))))
-                   (shortcut #\b))
+                   (shortcut #\h))
                  (make-object separator-menu-item% menu)
 		 (for-each
 		  (lambda (frame)
