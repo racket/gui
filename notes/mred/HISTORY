@@ -1,7 +1,7 @@
 
 Version 103.1:
 
- * Added `popup-menu' to area-container-window<%>.
+ * Added `popup-menu' to window<%>.
 
  * Added a popup menu to the `message-box' dialog (pops up with any
    click not on a button) that copies the contained message to the
@@ -17,6 +17,9 @@ Version 103.1:
  * Changed text% undo to restore the pre-modification selection.
    (Previously, undo would move the caret to the end of the
    restored area.) (PR 778)
+
+ * Added optional filters argument to `get-file', `put-file',
+   and `get-file-list' (used by Windows, only). (PR 1501)
 
  * Fixed internal lock handling on focus and activation events. (PR
    1624, hopefully)
@@ -40,7 +43,7 @@ Version 103.1:
 
 Version 104: August 28, 2000
 
-Added popup-menu to area-container-window<%>
+Added popup-menu to window<%>
 Added a popup menu to the message-box dialog that copies the contained
  message to the clipboard
 Changed methods in dc<%> classes to raise an exception if the
@@ -48,6 +51,8 @@ Changed methods in dc<%> classes to raise an exception if the
 Changed dc<%>'s draw-bitmap and draw-bitmap-section to
  scale the bitmap if the dc<%> has a scale
 Changed text% undo to restore the pre-modification selection
+Added optional filters argument to get-file, put-file, and
+ get-file-list (used by Windows, only)
 Fixed internal lock handling on focus and activation events
 Windows: removed special handling of Ctl-m, Ctl-i, and Ctl-h
 X: Default keymap double-click time determined via the standard Xt
