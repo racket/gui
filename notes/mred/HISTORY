@@ -1,6 +1,7 @@
 
-Version 202.x
+Version 203: December, 2002
 
+Windows: corrected a source of much instability
 Added tab-panel%
 Added message-box/custom
 Added 'app, 'caution, and 'stop styles to message-box
