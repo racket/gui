@@ -3345,14 +3345,19 @@
       [wx #f])
     (sequence
       (super-init (lambda () 
-		    (let ([ds (if (and (or (memq 'no-vscroll style)
-					   (memq 'hide-vscroll style))
-				       (or (memq 'no-hscroll style)
-					   (memq 'hide-hscroll style)))
-				  0
-				  canvas-default-size)])
+		    (let* ([no-h? (or (memq 'no-vscroll style)
+				      (memq 'hide-vscroll style))]
+			   [no-v? (or (memq 'no-hscroll style)
+				      (memq 'hide-hscroll style))]
+			   [get-ds (lambda (no-this? no-other?)
+				     (cond
+				      [(and no-this? no-other?) 0]
+				      [no-this? canvas-default-size]
+				      [else (+ 10 canvas-default-size)]))])
 		      (set! wx (make-object wx-editor-canvas% this this
-					    (mred->wx-container parent) -1 -1 ds ds
+					    (mred->wx-container parent) -1 -1
+					    (get-ds no-h? no-v?)
+					    (get-ds no-v? no-h?)
 					    #f style scrolls-per-page #f))
 		      wx))
 		  parent)
