@@ -86,7 +86,7 @@
    
   (define funny?
     (let ([date (seconds->date (current-seconds))])
-      (and (with-handlers ([not-break-exn? (lambda (x) #f)])
+      (and (with-handlers ([exn:fail:filesystem? (lambda (x) #f)])
 	     (collection-path "icons")
 	     #t)
 	     (= (date-day date) 25)
