@@ -414,6 +414,7 @@
   (define-class bitmap-dc% dc% ()
     get-bitmap
     set-bitmap
+    draw-scaled-section
     set-argb-pixels
     get-argb-pixels
     set-pixel

@@ -7837,9 +7837,7 @@
 	  (if (or expect-to-read-all?
 		  ((- end start) . < . 4096))
 	      ;; It's all text, and it's short enough: just read it into a string
-	      (let ([port (open-input-string (send text get-text start end) port-name)])
-		(port-count-lines! port)
-		port)
+	      (open-input-string (send text get-text start end) port-name)
 	      ;; It's all text, so the reading process is simple:
 	      (let ([start start])
 		(let-values ([(pipe-r pipe-w) (make-pipe)])
@@ -7940,7 +7938,6 @@
 		      (set! next? #t)
 		      (display (send-generic snip get-text-generic skip c) pipe-w))
 		    (update-str-to-snip empty-string))
-		(port-count-lines! port)
 		port)))))))
 
 (define (text-editor-load-handler filename expected-module)
