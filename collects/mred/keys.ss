@@ -250,9 +250,9 @@
 	      (lambda (edit event)
 		(letrec ([find-nonwhite
 			  (lambda (pos d offset)
-			    (catch
-			     escape
-			     (let ([max (if (> offset 0)
+			    (call/ec
+                              (lambda (escape)
+                                (let ([max (if (> offset 0)
 					    (send edit last-position)
 					    -1)])
 			       (let loop ([pos pos])
@@ -266,7 +266,7 @@
 					 (escape pos)]
 					[(char-whitespace? c) 
 					 (loop (+ pos d))]
-					[else pos])))))))])
+					[else pos]))))))))])
 		  (let ([sel-start (send edit get-start-position)]
 			[sel-end (send edit get-end-position)])
 		    (if (= sel-start sel-end)
