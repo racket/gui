@@ -1329,7 +1329,9 @@
 		      (as-exit
 		       (lambda ()
 			 (super-on-activate on?)))))]
-      [is-act-on? (lambda () act-on?)])
+      [is-act-on? (lambda () act-on?)]
+      [get-act-date/seconds (lambda () act-date/seconds)]
+      [get-act-date/milliseconds (lambda () act-date/milliseconds)])
     (sequence (apply super-init mred proxy args))))
 
 (define (make-canvas-glue% %) ; implies make-window-glue%
@@ -3275,8 +3277,8 @@
     (if (null? l)
 	(and f (wx->mred f))
 	(let* ([f2 (car l)]
-	       [s2 (ivar f2 act-date/seconds)]
-	       [ms2 (ivar f2 act-date/milliseconds)])
+	       [s2 (send f2 get-act-date/seconds)]
+	       [ms2 (send f2 get-act-date/milliseconds)])
 	  (if (or (not f)
 		  (> s2 s)
 		  (and (= s2 s) (> ms2 ms)))
