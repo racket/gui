@@ -225,11 +225,10 @@
 		  [filename (send edit get-filename b)])
 	     (if (or (not filename) (unbox b))
 		 (bell)
-		 (let-values ([(start end)
-			       (if (is-a? edit original:text%)
-				   (values (send edit get-start-position)
-					   (send edit get-end-position))
-				   (values #f #f))])
+		 (let ([start
+                        (if (is-a? edit original:text%)
+                            (send edit get-start-position)
+                            #f)])
 		   (send edit begin-edit-sequence)
 		   (let ([status (send edit load-file
 				       filename
@@ -238,7 +237,7 @@
 		     (if status
 			 (begin
 			   (when (is-a? edit original:text%)
-			     (send edit set-position start end))
+			     (send edit set-position start start))
 			   (send edit end-edit-sequence))
 			 (begin
 			   (send edit end-edit-sequence)
