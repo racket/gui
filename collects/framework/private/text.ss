@@ -609,6 +609,7 @@ WARNING: printf is rebound in the body of the unit to always
                         (hash-table-put! linked-snips snip new-snip)
                         new-snip)])])
               (send new-snip set-flags (send snip get-flags))
+              (send new-snip set-style (send snip get-style))
               new-snip))
 
           (define delegate #f)
