@@ -2266,6 +2266,11 @@
 					  (- (unbox h) (unbox ch)))])
 		   (set-min-height (inexact->exact (round new-min-height)))
 		   (force-redraw)))))))])
+    (rename [super-set-y-margin set-y-margin])
+    (override
+      [set-y-margin (lambda (m)
+		      (super-set-y-margin m)
+		      (when fixed-height? (update-size)))])
     
     (sequence
       (super-init style parent x y w h (or name "") style spp init-buffer)
@@ -4815,7 +4820,8 @@
 (define editor-canvas%
   (class100*/kw basic-canvas% ()
 		[(parent [editor #f] [style null] [scrolls-per-page 100] [label #f]
-			 [wheel-step no-val] [line-count no-val])
+			 [wheel-step no-val] [line-count no-val]
+			 [horizontal-inset no-val] [vertical-inset no-val])
 		 canvas%-keywords]
     (sequence 
       (let ([cwho '(constructor editor-canvas)])
@@ -4889,7 +4895,21 @@
 	      (if (zero? v) #f v))]
 	[(wheel-step)
 	 (check-wheel-step '(method editor-canvas% wheel-step) wheel-step)
-	 (send wx set-wheel-step (or wheel-step 0))])])
+	 (send wx set-wheel-step (or wheel-step 0))])]
+      [(vi vertical-inset)
+       (entry-point
+	(case-lambda
+	 [() (send wx get-y-margin)]
+	 [(m) 
+	  (check-margin-integer '(method editor-canvas% vertical-inset) m)
+	  (as-exit (lambda () (send wx set-y-margin m)))]))]
+      [(hi horizontal-inset)
+       (entry-point
+	(case-lambda
+	 [() (send wx get-x-margin)]
+	 [(m) 
+	  (check-margin-integer '(method editor-canvas% horizontal-inset) m)
+	  (as-exit (lambda () (send wx set-x-margin m)))]))])
     (private-field
       [wx #f])
     (sequence
@@ -4921,7 +4941,11 @@
 	(set-editor editor))
       (send parent after-new-child this)
       (unless (or (not line-count) (eq? line-count no-val))
-	(set-line-count line-count)))))
+	(set-line-count line-count))
+      (unless (eq? vertical-inset no-val)
+	(vi vertical-inset))
+      (unless (eq? horizontal-inset no-val)
+	(hi horizontal-inset)))))
 
 ;-------------------- Final panel interfaces and class constructions --------------------
 
