@@ -331,7 +331,6 @@
     on-size
     on-set-focus
     on-kill-focus
-    previous-context-current
     this-context-current
     swap-buffers
     on-scroll
@@ -1397,7 +1396,8 @@
     set-menu-tester
     location->window
     set-dialogs
-    set-executer)
+    set-executer
+    current-gl-context)
 
 )
 ;; end
