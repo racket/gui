@@ -386,6 +386,7 @@
       
       (define file<%> 
         (interface (-keymap<%>)
+          get-read-write?
           get-filename/untitled-name
           get-can-close-parent
           update-frame-filename))
@@ -397,6 +398,8 @@
             get-top-level-window)
 
           (inherit get-canvases)
+          (define read-write? #f)
+          (define/public (get-read-write?) read-write?)
           (define/private (check-lock)
             (let* ([filename (get-filename)]
                    [lock? (and filename
@@ -405,7 +408,10 @@
                                      'write
                                      (file-or-directory-permissions
                                       filename))))])
-              (lock lock?)))
+              (set! read-write? (not lock?))))
+          
+          ;(define/augment (can-insert? x y) (and read-write? (inner #t can-insert? x y)))
+          ;(define/augment (can-delete? x y) (and read-write? (inner #t can-delete? x y)))
           
           (define/public (update-frame-filename)
             (let* ([filename (get-filename)]

@@ -556,24 +556,22 @@
 	      (inner (void) on-close))]
           
           [define icon-currently-locked? 'uninit]
-          (public lock-status-changed)
-          [define lock-status-changed
-            (lambda ()
-              (let ([info-edit (get-info-editor)])
-                (cond
-                  [(not (object? lock-canvas))
-                   (void)]
-                  [info-edit
-                   (unless (send lock-canvas is-shown?)
-                     (send lock-canvas show #t))
-                   (let ([locked-now? (send info-edit is-locked?)])
-                     (unless (eq? locked-now? icon-currently-locked?)
-                       (set! icon-currently-locked? locked-now?)
-                       (when (object? lock-canvas)
-                         (send lock-canvas set-locked locked-now?))))]
-                  [else
-                   (when (send lock-canvas is-shown?)
-                     (send lock-canvas show #f))])))]
+          (define/public (lock-status-changed)
+            (let ([info-edit (get-info-editor)])
+              (cond
+                [(not (object? lock-canvas))
+                 (void)]
+                [(is-a? info-edit editor:file<%>)
+                 (unless (send lock-canvas is-shown?)
+                   (send lock-canvas show #t))
+                 (let ([locked-now? (send info-edit get-read-write?)])
+                   (unless (eq? locked-now? icon-currently-locked?)
+                     (set! icon-currently-locked? locked-now?)
+                     (when (object? lock-canvas)
+                       (send lock-canvas set-locked locked-now?))))]
+                [else
+                 (when (send lock-canvas is-shown?)
+                   (send lock-canvas show #f))])))
           
           (public update-info)
           [define update-info

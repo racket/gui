@@ -951,7 +951,7 @@ WARNING: printf is rebound in the body of the unit to always
           
           (define/augment (can-delete? start len)
             (and (or allow-edits?
-                     ((- start len) . > . insertion-point))
+                     (start . >= . unread-start-point))
                  (inner #t can-delete? start len)))
           
           (define/override (on-local-char key)
