@@ -1189,12 +1189,38 @@
 	    [super-on-kill-focus on-kill-focus]
 	    [super-pre-on-char pre-on-char])
     (private-field
-      [pre-wx->proxy (lambda (w k) ; MacOS: w may not be something the user knows
-		       (if w
-			   (if (is-a? w wx/proxy<%>)
-			       (k (wx->proxy w))
-			       (pre-wx->proxy (send w get-parent) k))
-			   #f))]
+      [pre-wx->proxy (lambda (orig-w e k)
+		       ;; MacOS: w may not be something the user knows
+		       ;; Look for a parent, and shift coordinates
+		       (let loop ([w orig-w])
+			 (if w
+			     (if (is-a? w wx/proxy<%>)
+				 (if (eq? w orig-w)
+				     (k (wx->proxy w) e)
+				     (let ([bx (box (send e get-x))]
+					   [by (box (send e get-y))])
+				       (send orig-w client-to-screen bx by)
+				       (send w screen-to-client bx by)
+				       (let ([new-e (if (e . is-a? . wx:key-event%)
+							(instantiate wx:key-event% ()
+								     [key-code (send e get-key-code)])
+							(instantiate wx:mouse-event% ()
+								     [event-type (send e get-event-type)]
+								     [left-down (send e get-left-down)]
+								     [right-down (send e get-right-down)]
+								     [middle-down (send e get-middle-down)]))])
+					 (when (e . is-a? . wx:key-event%)
+					   (send new-e set-key-release-code (send e get-key-release-code)))
+					 (send new-e set-time-stamp (send e get-time-stamp))
+					 (send new-e set-alt-down (send e get-alt-down))
+					 (send new-e set-control-down (send e get-control-down))
+					 (send new-e set-meta-down (send e get-meta-down))
+					 (send new-e set-shift-down (send e get-shift-down))
+					 (send new-e set-x (unbox bx))
+					 (send new-e set-y (unbox by))
+					 (k (wx->proxy w) new-e))))
+				 (loop (send w get-parent)))
+			     #f)))]
       [old-w -1]
       [old-h -1]
       [old-x -1]
@@ -1246,14 +1272,16 @@
 		     (or (super-pre-on-char w e)
 			 (as-entry
 			  (lambda ()
-			    (pre-wx->proxy w (lambda (m)
-					       (as-exit (lambda () 
-							  (send (get-proxy) on-subwindow-char m e)))))))))]
+			    (pre-wx->proxy w e
+					   (lambda (m e)
+					     (as-exit (lambda () 
+							(send (get-proxy) on-subwindow-char m e)))))))))]
       [pre-on-event (entry-point
 		     (lambda (w e)
-		       (pre-wx->proxy w (lambda (m) 
-					  (as-exit (lambda () 
-						     (send (get-proxy) on-subwindow-event m e)))))))])
+		       (pre-wx->proxy w e
+				      (lambda (m e) 
+					(as-exit (lambda () 
+						   (send (get-proxy) on-subwindow-event m e)))))))])
     (sequence (apply super-init mred proxy args))))
 
 (define (make-container-glue% %)
@@ -4930,6 +4958,7 @@
 	    (send e insert message)
 	    (send e set-position 0)
 	    (send e hide-caret #t)
+	    (send e set-cursor (make-object wx:cursor% 'arrow) #t)
 	    (send e lock #t)))
       (let* ([p (make-object horizontal-pane% f)]
 	     [mk-button (lambda (title v default?) 
