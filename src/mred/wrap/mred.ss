@@ -4350,7 +4350,9 @@
 	(send p stretchable-height #f)
 	(make-object button% "Cancel" p (done #f))
 	(make-object button% "Ok" p (done #t) '(border))
+	(send (send t get-editor) select-all)
 	(send t focus)
+	(send f center)
 	(send f show #t)
 	(and ok? (send t get-value))))]))
 
@@ -4398,6 +4400,7 @@
 	(make-object button% "Cancel" p (done #f))
 	(set! ok-button (make-object button% "Ok" p (done #t) '(border)))
 	(update-ok l)
+	(send f center)
 	(send f show #t)
 	(and ok? (send l get-selections))))]))
 
@@ -4577,6 +4580,7 @@
 	  (make-object button% "Ok" bp (done #t) '(border))
 	  (send bp set-alignment 'right 'center)
 	  (send p set-alignment 'right 'center)
+	  (send f center)
 	  (send f show #t)
 	  (and ok?
 	       (make-object wx:color% 
@@ -4633,6 +4637,7 @@
 	    (send size set-value (send font get-point-size)))
 	  (send bp set-alignment 'right 'center)
 	  (refresh-sample (void) (void))
+	  (send f center)
 	  (send f show #t)
 	  (and ok? (get-font)))])))
 
