@@ -1863,6 +1863,7 @@
 	      (set! tab-height (if (even? th) th (add1 th))))))))
     
     (define/private (get-total-width)
+      (compute-sizes)
       (apply + tab-height (* (length tabs) (+ raise-h raise-h tab-height)) tab-widths))
     
     (define/private (get-init-x)
@@ -2032,7 +2033,7 @@
 		 (send dc draw-line (- w 2) (+ 1 tab-height) (- w 2) (- h raise-h))
 		 (send dc draw-line 0 (- h 3 raise-h) w (- h 3 raise-h))
 		 (send dc draw-line 1 (- h 4 raise-h) w (- h 4 raise-h)))))
-	   (send dc set-origin 0 0)))))    
+	   (send dc set-origin 0 0)))))
 
     (define/override (on-size w h)
       (set! redo-regions? #t)
@@ -2045,55 +2046,54 @@
       selected)
 
     (define/public (set-selection i)
-      (as-entry
-       (lambda ()
-	 (ready-regions)
-	 (when (< -1 i (length regions))
-	   (let* ([dc (get-dc)]
-		  [r (make-object wx:region% dc)]
-		  [old-rgn (list-ref regions selected)])
-	     (set! selected i)
-	     (send r union old-rgn)
-	     (setup-regions)
-	     (let ([new-rgn (list-ref regions selected)])
-	       ;; Union the new and old regions and repaint:
-	       (send r union new-rgn)
-	       (send dc set-clipping-region r)
-	       (on-paint)
-	       (send dc set-clipping-region #f)))))))
+      (ready-regions)
+      (when (< -1 i (length regions))
+	(let* ([dc (get-dc)]
+	       [r (make-object wx:region% dc)]
+	       [old-rgn (list-ref regions selected)])
+	  (set! selected i)
+	  (send r union old-rgn)
+	  (setup-regions)
+	  (let ([new-rgn (list-ref regions selected)])
+	    ;; Union the new and old regions and repaint:
+	    (send r union new-rgn)
+	    (send dc set-clipping-region r)
+	    (on-paint)
+	    (send dc set-clipping-region #f)))))
 
     (define/public (set-label i s)
-      (as-entry
-       (lambda ()
-	 (set-car! (list-tail tabs i) (wx:label->plain-label s))
-	 (set! tab-widths #f)
-	 (set! regions #f)
-	 (refresh))))
+      (set-car! (list-tail tabs i) (wx:label->plain-label s))
+      (set! tab-widths #f)
+      (set! regions #f)
+      (refresh))
 
-    (define -append
-      (entry-point
-       (lambda (s)
-	 (set! tabs (append tabs (list (wx:label->plain-label s))))
-	 (set! tab-widths #f)
-	 (set! regions #f)
-	 (refresh))))
+    (define/public (set tab-labels)
+      (set! tabs (map wx:label->plain-label tab-labels))
+      (set! tab-widths #f)
+      (set! regions #f)
+      (set! selected (max 0 (min selected (sub1 (length tabs)))))
+      (refresh))
+
+    (define (-append s)
+      (set! tabs (append tabs (list (wx:label->plain-label s))))
+      (set! tab-widths #f)
+      (set! regions #f)
+      (refresh))
     (public (-append append))
 
     (define/public (delete i)
-      (as-entry
-       (lambda ()
-	 (set! tabs (let loop ([pos 0][tabs tabs])
-		      (if (= i pos)
-			  (cdr tabs)
-			  (cons (car tabs) (loop (add1 pos) (cdr tabs))))))
-	 (set! selected (min (if (selected . <= . i)
-				 selected
-				 (sub1 selected))
-			     (max 0 (sub1 (length tabs)))))
-	 (set! regions #f)
-	 (set! tab-widths #f)
-	 (refresh))))
-
+      (set! tabs (let loop ([pos 0][tabs tabs])
+		   (if (= i pos)
+		       (cdr tabs)
+		       (cons (car tabs) (loop (add1 pos) (cdr tabs))))))
+      (set! selected (min (if (selected . <= . i)
+			      selected
+			      (sub1 selected))
+			  (max 0 (sub1 (length tabs)))))
+      (set! regions #f)
+      (set! tab-widths #f)
+      (refresh))
+    
     (define/override (handles-key-code code alpha? meta?) 
       #f)
 
@@ -2441,9 +2441,13 @@
 			      (let ([format (if (eq? format 'same)
 						(-get-file-format)
 						format)])
-				(let ([new-format (super-insert-port port 
-								     (-format-filter format) 
-								     (super-get-load-overwrites-styles))])
+				(let ([new-format 
+				       (with-handlers ([values (lambda (x)
+								 (set-filename #f #f)
+								 (raise x))])
+					 (super-insert-port port 
+							    (-format-filter format) 
+							    (super-get-load-overwrites-styles)))])
 				  (close-input-port port) ; close as soon as possible
 				  (-set-file-format new-format)))) ; text% only
 			    (lambda ()
@@ -5377,13 +5381,13 @@
 		(check-label-string '(method tab-panel% append) n)
 		(let ([n (string->immutable-string n)])
 		  (set! save-choices (list-append save-choices (list n)))
-		  (as-exit (lambda () (send (mred->wx tabs) append n))))))]
+		  (send (mred->wx tabs) append n))))]
      [get-selection (lambda () (and (pair? save-choices)
 				    (send (mred->wx tabs) get-selection)))]
      [set-selection (entry-point
 		     (lambda (i)
 		       (check-item 'set-selection i)
-		       (as-exit (lambda () (send (mred->wx tabs) set-selection i)))))]
+		       (send (mred->wx tabs) set-selection i)))]
      [delete (entry-point
 	      (lambda (i)
 		(check-item 'delete i)
@@ -5391,14 +5395,20 @@
 				     (if (= p i)
 					 (cdr l)
 					 (cons (car l) (loop (add1 p) (cdr l))))))
-		(as-exit (lambda () (send (mred->wx tabs) delete i)))))]
+		(send (mred->wx tabs) delete i)))]
      [set-item-label (entry-point
 		      (lambda (i s)
 			(check-item 'set-item-label i)
 			(check-label-string '(method tab-panel% set-item-label) s)
 			(let ([s (string->immutable-string s)])
 			  (set-car! (list-tail save-choices i) s)
-			  (as-exit (lambda () (send (mred->wx tabs) set-label i s))))))]
+			  (send (mred->wx tabs) set-label i s))))]
+     [set
+      (entry-point (lambda (l) 
+		     (unless (and (list? l) (andmap label-string? l))
+		       (raise-type-error (who->name '(method tab-panel% set)) 
+					 "list of strings (up to 200 characters)" l))
+		     (send (mred->wx tabs) set l)))]
      [get-item-label (entry-point
 		      (lambda (i)
 			(check-item 'get-item-label i)
