@@ -1,3 +1,13 @@
+101/6:
+
+ * Changed font-search meachnism to try normal-weight and
+   normal-style before resorting to a default font
+
+ * Added set-screen-name, set-post-script-name, and set-afm-name to
+   font-name-directory<%>.
+
+ * Fixed region% and font problems for post-script-dc%
+
 101/5:
 
  * Fixed PR 1170, `alignment' menu item from MrEd's
