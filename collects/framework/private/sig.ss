@@ -300,6 +300,7 @@
      hide-caret/selection<%>
      nbsp->space<%>
      delegate<%>
+     wide-snip<%>
      searching<%>
      return<%>
      info<%>
@@ -327,6 +328,7 @@
      foreground-color-mixin
      hide-caret/selection-mixin
      nbsp->space-mixin
+     wide-snip-mixin
      delegate-mixin
      searching-mixin
      return-mixin

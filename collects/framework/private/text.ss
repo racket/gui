@@ -429,7 +429,22 @@ WARNING: printf is rebound in the body of the unit to always
                            (char=? cr-code code))
                        (return))
                   (super on-local-char key))))
-          (super-instantiate ())))
+          (super-new)))
+      
+      (define wide-snip<%>
+        (interface (basic<%>)
+          add-wide-snip
+          add-tall-snip))
+      
+      (define wide-snip-mixin
+        (mixin (basic<%>) (wide-snip<%>)
+          (define wide-snips '())
+          (define tall-snips '())
+          (define/public (add-wide-snip s) (set! wide-snips (cons s wide-snips)))
+          (define/public (get-wide-snips) wide-snips)
+          (define/public (add-tall-snip s) (set! tall-snips (cons s tall-snips)))
+          (define/public (get-tall-snips) tall-snips)
+          (super-new)))
       
       (define delegate<%> (interface (basic<%>) 
                             get-delegate
@@ -1772,7 +1787,7 @@ WARNING: printf is rebound in the body of the unit to always
       (define hide-caret/selection% (hide-caret/selection-mixin basic%))
       (define nbsp->space% (nbsp->space-mixin basic%))
       (define delegate% (delegate-mixin basic%))
-      (define standard-style-list% (editor:standard-style-list-mixin basic%))
+      (define standard-style-list% (editor:standard-style-list-mixin (wide-snip-mixin basic%)))
       (define -keymap% (editor:keymap-mixin standard-style-list%))
       (define return% (return-mixin -keymap%))
       (define autowrap% (editor:autowrap-mixin -keymap%))
