@@ -234,7 +234,7 @@
                                           (symbols (map car symbols/defaults)))
                                      (let ((cb (new check-box%
                                                     (parent vp)
-                                                    (label "Activate Coloring?")
+                                                    (label "Color syntax interactively")
                                                     (callback (lambda (checkbox y)
                                                                 (preferences:set 
                                                                  active-pref
