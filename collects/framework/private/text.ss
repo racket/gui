@@ -825,6 +825,7 @@ WARNING: printf is rebound in the body of the unit to always
           set-allow-edits
           get-allow-edits
           has-between?
+          insert-between
           submit-to-port?
           on-submit
           send-eof-to-in-port

@@ -99,21 +99,30 @@
          (send gauge set-value splash-current-width))
        (old-load f expected)))
   
-  (let ([addl-load-handler
-         (and (or (getenv "PLTDRDEBUG")
-                  (getenv "PLTDRCM"))
-              (parameterize ([current-namespace (make-namespace)])
-                (dynamic-require '(lib "cm.ss") 'make-compilation-manager-load/use-compiled-handler)))])
+  (let-values ([(make-compilation-manager-load/use-compiled-handler
+                 manager-trace-handler)
+                (if (or (getenv "PLTDRCM")
+                        (getenv "PLTDRDEBUG"))
+                    (parameterize ([current-namespace (make-namespace)])
+                      (values
+                       (dynamic-require '(lib "cm.ss") 'make-compilation-manager-load/use-compiled-handler)
+                       (dynamic-require '(lib "cm.ss") 'manager-trace-handler)))
+                    (values #f #f))])
+    
     (current-load
      (let ([old-load (current-load)])
        (lambda (f expected)
          (splash-load-handler old-load f expected))))
     
-    ;; abstraction breaking -- matthew will change cm
-    ;; so that I don't need this here(?).
-    (when addl-load-handler
+    (when (and make-compilation-manager-load/use-compiled-handler
+               manager-trace-handler)
       (printf "PLTDRCM/PLTDRDEBUG: reinstalling CM load handler after setting splash load handler\n")
-      (current-load/use-compiled (addl-load-handler))))
+      (current-load/use-compiled (make-compilation-manager-load/use-compiled-handler))
+      (when (or (equal? (getenv "PLTDRCM") "trace")
+                (equal? (getenv "PLTDRDEBUG") "trace"))
+        (printf "PLTDRCM/PLTDRDEBUG: reinstalling CM trace handler after setting splash load handler\n")
+        (manager-trace-handler
+         (lambda (x) (display "2: ") (display x) (newline))))))
   
   (define funny-gauge%
     (class canvas% 
