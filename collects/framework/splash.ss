@@ -2,18 +2,21 @@
 (module splash mzscheme
   (require (lib "class.ss")
            (lib "file.ss")
-           (lib "mred.ss" "mred")
-           (lib "contract.ss"))
+           (lib "mred.ss" "mred"))
   
-  (provide get-splash-bitmap set-splash-bitmap
-           get-splash-canvas get-splash-eventspace get-dropped-files 
-           start-splash shutdown-splash close-splash add-splash-icon set-splash-char-observer)
-
+  (provide get-splash-bitmap
+           set-splash-bitmap
+           get-splash-canvas
+           get-splash-eventspace
+           start-splash 
+           shutdown-splash
+           close-splash
+           add-splash-icon
+           set-splash-char-observer)
   
   (define splash-filename #f)
   (define splash-bitmap #f)
   (define splash-eventspace (make-eventspace))
-  (define dropped-files null)
   
   (define (get-splash-bitmap) splash-bitmap)
   (define (set-splash-bitmap bm) 
@@ -21,7 +24,6 @@
     (send splash-canvas on-paint))
   (define (get-splash-canvas) splash-canvas)
   (define (get-splash-eventspace) splash-eventspace)
-  (define (get-dropped-files) dropped-files)
 
   (define char-observer void)
   (define (set-splash-char-observer proc)
@@ -44,7 +46,6 @@
         (set! splash-bitmap #f)
         (set! splash-canvas #f)
         (set! splash-eventspace #f)
-        (set! dropped-files null)
         (k (void)))
       
       (unless splash-filename
@@ -186,10 +187,7 @@
   
   (define splash-frame%
     (class frame%
-      (override on-drop-file on-close)
-      (define (on-drop-file filename)
-        (set! dropped-files (cons filename dropped-files)))
-      (define (on-close)
+      (define/override (on-close)
         (when quit-on-close?
           (exit)))
       (super-instantiate ())))
@@ -217,7 +215,6 @@
         (label splash-title)
         (style '(no-resize-border)))))
   (send splash-frame set-alignment 'center 'center)
-  (send splash-frame accept-drop-files #t)
   
   (define panel (make-object vertical-pane% splash-frame))
   (define splash-canvas (make-object splash-canvas% panel))
