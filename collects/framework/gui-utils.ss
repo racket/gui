@@ -88,9 +88,9 @@
     "\\iscmprocedure{gui-utils:show-busy-cursor} is called.")
    (gui-utils:show-busy-cursor
     (opt->
-     ((-> any?))
+     ((-> any/c))
      (integer?)
-     any?)
+     any/c)
     ((thunk)
      ((delay (gui-utils:cursor-delay))))
     "Evaluates \\rawscm{(\\var{thunk})} with a watch cursor. The argument"
@@ -131,9 +131,9 @@
    (gui-utils:local-busy-cursor
     (opt->
      ((is-a?/c window<%>)
-      (-> any?))
+      (-> any/c))
      (integer?)
-     any?)
+     any/c)
     ((window thunk)
      ((delay (gui-utils:cursor-delay))))
     "Evaluates \\rawscm{(\\var{thunk})} with a watch cursor in \\var{window}. If"
@@ -150,7 +150,7 @@
      (string?
       string?)
      (boolean?
-      (union false?
+      (union false/c
 	     (is-a?/c frame%)
 	     (is-a?/c dialog%)))
      (symbols 'continue 'save 'cancel))
@@ -174,10 +174,10 @@
       string?
       string?)
      (string?
-      any?
-      (union false? (is-a?/c frame%) (is-a?/c dialog%))
+      any/c
+      (union false/c (is-a?/c frame%) (is-a?/c dialog%))
       (symbols 'app 'caution 'stop))
-     any?)
+     any/c)
     ((message true-choice false-choice)
      ((title (string-constant warning))
       (default-result 'disallow-close)

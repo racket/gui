@@ -61,7 +61,7 @@
     "@flink number-snip:make-repeating-decimal-snip %"
     ".")   
    (version:add-spec
-    (any? any? . -> . void?)
+    (any/c any/c . -> . void?)
     (spec revision)
     "These two values are appended to the version string. \\rawscm{write} is"
     "used to transform them to strings. For example:"
@@ -84,7 +84,7 @@
     (message continuation-marks)
     "Creates a framework exception.")
    (exn:exn?
-    (any? . -> . boolean?)
+    (any/c . -> . boolean?)
     (exn)
     "Tests if a value is a framework exception.")
    (exn:make-unknown-preference 
@@ -92,7 +92,7 @@
     (message continuation-marks)
     "Creates an unknown preference exception.")
    (exn:unknown-preference? 
-    (any? . -> . boolean?)
+    (any/c . -> . boolean?)
     (exn)
     "Determines if a value is an unknown preference exn.")
 
@@ -110,7 +110,7 @@
     "the name of the application to \\var{name}.")
 
    (preferences:get
-    (symbol? . -> . any?)
+    (symbol? . -> . any/c)
     (symbol)
     "See also"
     "@flink preferences:set-default %"
@@ -121,7 +121,7 @@
     "\\scmindex{exn:unknown-preference}\\rawscm{exn:unknown-preference}"
     "if the preference has not been set.")
    (preferences:add-callback
-    (opt-> (symbol? (symbol? any? . -> . any?))
+    (opt-> (symbol? (symbol? any/c . -> . any/c))
            (boolean?)
            (-> void?))
     ((p f)
@@ -145,13 +145,13 @@
     "\\scmindex{exn:unknown-preference}\\rawscm{exn:unknown-preference}"
     "if the preference has not been set.")
    (preferences:set
-    (symbol? any? . -> . void?)
+    (symbol? any/c . -> . void?)
     (symbol value)
     "\\rawscm{preferences:set-preference} sets the preference"
     "\\var{symbol} to \\var{value}. This should be called when the"
     "users requests a change to a preference.")
    (preferences:set-default
-    (symbol? any? (any? . -> . any) . -> . void?)
+    (symbol? any/c (any/c . -> . any) . -> . void?)
     (symbol value test)
     "This function must be called every time your application starts up, before any call to"
     "@flink preferences:get %"
@@ -177,7 +177,7 @@
     "If there is a site-wide default preferences file, the default"
     "preference in that file is used instead of \\var{value}.")
    (preferences:set-un/marshall
-    (symbol? (any? . -> . printable?) (printable? . -> . any?) . -> . void?)
+    (symbol? (any/c . -> . printable/c) (printable/c . -> . any/c) . -> . void?)
     (symbol marshall unmarshall)
     "\\rawscm{preference:set-un/marshall} is used to specify marshalling and"
     "unmarshalling functions for the preference"
@@ -446,7 +446,7 @@
     (filename)
     "Generates a name for an backup file from \\var{filename}.")
    (finder:dialog-parent-parameter
-    any?
+    any/c
     ()
     "This is a parameter (see "
     "\\Mzhyperref{parameters}{mz:parameters} for information about parameters)"
@@ -495,13 +495,13 @@
     (opt->
      ()
      (string?
-      (union false? path?)
+      (union false/c path?)
       boolean?
       string?
-      (union false? byte-regexp?)
+      (union false/c byte-regexp?)
       string?
-      (union (is-a?/c top-level-window<%>) false?))
-     (union false? path?))
+      (union (is-a?/c top-level-window<%>) false/c))
+     (union false/c path?))
     (()
      ((name "Untitled")
       (directory #f)
@@ -519,12 +519,12 @@
    (finder:common-get-file
     (opt->
      ()
-     ((union path? false?)
+     ((union path? false/c)
       string?
-      (union byte-regexp? false?)
+      (union byte-regexp? false/c)
       string?
-      (union false? (is-a?/c top-level-window<%>)))
-     (union path? false?))
+      (union false/c (is-a?/c top-level-window<%>)))
+     (union path? false/c))
     (()
      ((directory #f)
       (prompt "Select File")
@@ -541,13 +541,13 @@
     (opt->
      ()
      (string?
-      (union false? path?)
+      (union false/c path?)
       boolean?
       string?
-      (union false? byte-regexp?)
+      (union false/c byte-regexp?)
       string?
-      (union (is-a?/c top-level-window<%>) false?))
-     (union false? path?))
+      (union (is-a?/c top-level-window<%>) false/c))
+     (union false/c path?))
     (()
      ((name "Untitled")
       (directory #f)
@@ -565,12 +565,12 @@
    (finder:std-get-file
     (opt->
      ()
-     ((union path? false?)
+     ((union path? false/c)
       string?
-      (union byte-regexp? false?)
+      (union byte-regexp? false/c)
       string?
-      (union false? (is-a?/c top-level-window<%>)))
-     (union path? false?))
+      (union false/c (is-a?/c top-level-window<%>)))
+     (union path? false/c))
     (()
      ((directory #f)
       (prompt "Select File")
@@ -587,13 +587,13 @@
     (opt->
      ()
      (string?
-      (union false? path?)
+      (union false/c path?)
       boolean?
       string?
-      (union false? byte-regexp?)
+      (union false/c byte-regexp?)
       string?
-      (union (is-a?/c top-level-window<%>) false?))
-     (union false? path?))
+      (union (is-a?/c top-level-window<%>) false/c))
+     (union false/c path?))
     (()
      ((name "Untitled")
       (directory #f)
@@ -615,12 +615,12 @@
    (finder:get-file
     (opt->
      ()
-     ((union path? false?)
+     ((union path? false/c)
       string?
-      (union byte-regexp? string? false?)
+      (union byte-regexp? string? false/c)
       string?
-      (union false? (is-a?/c top-level-window<%>)))
-     (union path? false?))
+      (union false/c (is-a?/c top-level-window<%>)))
+     (union path? false/c))
     (()
      ((directory #f)
       (prompt "Select File")
@@ -640,12 +640,12 @@
    (finder:common-get-file-list
     (opt->
      ()
-     ((union false? path?)
+     ((union false/c path?)
       string?
-      (union false? byte-regexp?)
+      (union false/c byte-regexp?)
       string?
-      (union false? (is-a?/c top-level-window<%>)))
-     (union (listof path?) false?))
+      (union false/c (is-a?/c top-level-window<%>)))
+     (union (listof path?) false/c))
     (()
      ((directory #f)
       (prompt "Select File")
@@ -683,7 +683,7 @@
     "This returns the frame group.")
    
    (handler:handler?
-    (any? . -> . boolean?)
+    (any/c . -> . boolean?)
     (obj)
     "This predicate determines if its input is a handler")
    (handler:handler-name
@@ -701,7 +701,7 @@
    (handler:insert-format-handler
     (string?
      (union string? (listof string?) (path? . -> . boolean?))
-     (path? . -> . (union false? (is-a?/c frame:editor<%>)))
+     (path? . -> . (union false/c (is-a?/c frame:editor<%>)))
      . -> .
      void?)
     (name pred handler)
@@ -734,9 +734,9 @@
 
    (handler:edit-file
     (opt->
-     ((union path? false?))
+     ((union path? false/c))
      ((-> (is-a?/c frame:editor<%>)))
-     (union false? (is-a?/c frame:editor<%>)))
+     (union false/c (is-a?/c frame:editor<%>)))
     ((filename)
      ((make-default (lambda () ((handler:current-create-new-window) filename)))))
     "This function creates a frame or re-uses an existing frame to edit a file. "
@@ -780,8 +780,8 @@
 
    (handler:current-create-new-window
     (case->
-     (((union false? path?) . -> . (is-a?/c frame%)) . -> . void)
-     (-> ((union false? string?) . -> . (is-a?/c frame%))))
+     (((union false/c path?) . -> . (is-a?/c frame%)) . -> . void)
+     (-> ((union false/c string?) . -> . (is-a?/c frame%))))
     ((new-window-handler) ())
     "This is a parameter that controls how the framework"
     "creates new application windows."
@@ -795,7 +795,7 @@
     "\\end{schemedisplay}")
 
    (handler:open-file
-    (-> (union false? (is-a?/c frame:basic<%>)))
+    (-> (union false/c (is-a?/c frame:basic<%>)))
     ()
     "This function queries the user for a filename and opens the file for"
     "editing. It uses "
@@ -975,7 +975,7 @@
     ".")
 
    (keymap:call/text-keymap-initializer
-    ((-> any?) . -> . any?)
+    ((-> any/c) . -> . any/c)
     (thunk-proc)
     "Thus function parameterizes the call to \\var{thunk-proc} by"
     " setting the keymap-initialization procedure (see"
@@ -1267,7 +1267,7 @@
    (scheme:text-balanced?
     (opt->
      ((is-a?/c text%))
-     (number? (union false? number?))
+     (number? (union false/c number?))
      boolean?)
    ((text)
     ((start 0) (end #f)))
@@ -1408,7 +1408,7 @@
      "values representing an RGB-tuple.")
 
     (color-model:xyz?
-     (any? . -> . boolean?)
+     (any/c . -> . boolean?)
      (val)
      "Determines if \\var{val} an xyz color record.")
 

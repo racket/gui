@@ -32,12 +32,12 @@
                #;(((is-a?/c dc<%>)
                    number?
                    number?)
-                  ((union nonnegative? false?)
-                   (union nonnegative? false?)
-                   (union nonnegative? false?)
-                   (union nonnegative? false?)
-                   (union nonnegative? false?)
-                   (union nonnegative? false?))
+                  ((union nonnegative? false/c)
+                   (union nonnegative? false/c)
+                   (union nonnegative? false/c)
+                   (union nonnegative? false/c)
+                   (union nonnegative? false/c)
+                   (union nonnegative? false/c))
                   . opt-> .
                   void?)
                (define/override (get-extent dc x y w h descent space lspace rspace)

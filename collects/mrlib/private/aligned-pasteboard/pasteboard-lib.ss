@@ -11,7 +11,7 @@
   (provide/contract
    (pasteboard-root ((is-a?/c aligned-pasteboard<%>) . -> . (is-a?/c aligned-pasteboard<%>)))
    (pasteboard-parent
-    ((is-a?/c pasteboard%) . -> . (union (is-a?/c editor-canvas%) (is-a?/c editor-snip%) false?))))
+    ((is-a?/c pasteboard%) . -> . (union (is-a?/c editor-canvas%) (is-a?/c editor-snip%) false/c))))
   
   ;; gets the top most aligned pasteboard in the tree of pasteboards and containers
   (define (pasteboard-root pasteboard)

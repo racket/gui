@@ -8,7 +8,7 @@
   
   (provide/contract
    (draw-button-label
-    ((is-a?/c dc<%>) (union false? string?) (>/c 5) (>/c 5) boolean?
+    ((is-a?/c dc<%>) (union false/c string?) (>/c 5) (>/c 5) boolean?
      . -> .
      void?))
 

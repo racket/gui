@@ -11,11 +11,11 @@
   ;; a snip
   (define snip? (is-a?/c snip%))
   ;; a snip to act as the varying argument to a recursive functions
-  (define linked-snip? (union snip? false?))
+  (define linked-snip? (union snip? false/c))
   ;; a function to act on snips being mapped
-  (define snip-visitor? any? #;((snip?) (listof any?) . ->* . (void)))
+  (define snip-visitor? any/c #;((snip?) (listof any/c) . ->* . (void)))
   ;; the rest of the lists passed to a snip mapping function
-  (define rest-lists? (listof (listof any?)))
+  (define rest-lists? (listof (listof any/c)))
   ;; a class that contains a snip
   (define editor? (is-a?/c editor<%>))
   
@@ -24,10 +24,10 @@
    (snip-height (snip? . -> . number?))
    (snip-min-width (snip? . -> . number?))
    (snip-min-height (snip? . -> . number?))
-   (snip-parent (snip? . -> . (union editor? false?)))
-   (fold-snip ((snip? any? . -> . any?) any? linked-snip? . -> . any?))
-   (for-each-snip any? #;((snip-visitor? linked-snip?) rest-lists? . ->* . (void)))
-   (map-snip any? #;((snip-visitor? linked-snip?) rest-lists? . ->* . ((listof any?))))
+   (snip-parent (snip? . -> . (union editor? false/c)))
+   (fold-snip ((snip? any/c . -> . any/c) any/c linked-snip? . -> . any/c))
+   (for-each-snip any/c #;((snip-visitor? linked-snip?) rest-lists? . ->* . (void)))
+   (map-snip any/c #;((snip-visitor? linked-snip?) rest-lists? . ->* . ((listof any/c))))
    (stretchable-width? (snip? . -> . boolean?))
    (stretchable-height? (snip? . -> . boolean?)))
   

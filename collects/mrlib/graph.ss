@@ -30,10 +30,10 @@
 		       void?)
 		      ((is-a?/c graph-snip<%>)
 		       (is-a?/c graph-snip<%>)
-		       (union false? (is-a?/c pen%))
-		       (union false? (is-a?/c pen%))
-		       (union false? (is-a?/c brush%))
-		       (union false? (is-a?/c brush%))
+		       (union false/c (is-a?/c pen%))
+		       (union false/c (is-a?/c pen%))
+		       (union false/c (is-a?/c brush%))
+		       (union false/c (is-a?/c brush%))
 		       . -> .
 		       void?))))
   

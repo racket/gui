@@ -13,8 +13,8 @@
    (vacuous-max (() (listof number?) . ->* . (number?)))
    (child-height ((union (is-a?/c alignment<%>) (is-a?/c snip%)) . -> . number?))
    (child-width ((union (is-a?/c alignment<%>) (is-a?/c snip%)) . -> . number?))
-   (insert-before (any? (listof any?) any? . -> . (listof any?)))
-   (insert-after (any? (listof any?) any? . -> . (listof any?))))
+   (insert-before (any/c (listof any/c) any/c . -> . (listof any/c)))
+   (insert-after (any/c (listof any/c) any/c . -> . (listof any/c))))
   
   (define (vacuous-max . n)
     (if (empty? n)
