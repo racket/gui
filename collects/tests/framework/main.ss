@@ -27,14 +27,15 @@
     (lambda (port)
       (write 6012 port))))
 
-(define-values (shutdown-listener shutdown-mred send-sexp-to-mred)
+(define-values (shutdown-listener shutdown-mred mred-running? send-sexp-to-mred)
   (let ([listener
 	 (let loop ()
 	   (let ([port (load-relative "receive-sexps-port.ss")])
 	     (with-handlers ([(lambda (x) #t)
 			      (lambda (x)
 				(let ([next (+ port 1)])
-				  (call-with-output-file "receive-sexps-port.ss"
+				  (call-with-output-file (build-path (current-load-relative-directory)
+								     "receive-sexps-port.ss")
 				    (lambda (p)
 				      (write next p))
 				    'truncate)
@@ -67,6 +68,8 @@
 	   (close-input-port in-port)
 	   (set! in-port #f)
 	   (set! in-port #f)))
+       (lambda ()
+	 (not (eof-object? (peek-char in-port))))
        (lambda (sexp)
 	 (unless (and in-port out-port)
 	   (restart-mred))
@@ -90,7 +93,7 @@
 			(= 2 (length answer)))
 	     (error 'framework-test-suite "unpected result from mred: ~s~n" answer))
 	   (case (car answer)
-	     [(error) (error 'mred (second answer))]
+	     [(error) (error 'mred (format "~a; input: ~s" (second answer) sexp))]
 	     [(cant-read) (error 'mred/cant-parse (second answer))]
 	     [(normal) (second answer)])))))))
 

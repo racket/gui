@@ -9,6 +9,12 @@ into a separate application.
 
 Subtle Changes:
 
+ - get-edit -> get-editor
+ - get-panel -> get-??-container
+ - other mred-sympathetic names changes
+
+ - menus
+
  - the built in keymap functions no longer call: 
      add-editor-keymap-functions
      add-text-keymap-functions and

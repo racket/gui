@@ -1,1 +1,7 @@
 (send-sexp-to-mred '(exit:exit))
+(let loop ()
+  (sleep 3)
+  (when (mred-running?)
+    (printf "still running~n")
+    (loop)))
+(printf "not running~n")
