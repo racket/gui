@@ -2938,13 +2938,14 @@
 		       (check-instance '(method frame% on-menu-char) wx:key-event% 'key-event% #f e)
 		       (send wx handle-menu-key e)))]
       [create-status-line (entry-point (lambda () (unless status-line? (send wx create-status-line) (set! status-line? #t))))]
-      [set-status-text (entry-point-1 (lambda (s) (send wx set-status-text s)))]
+      [set-status-text (lambda (s) (send wx set-status-text s))]
       [has-status-line? (lambda () status-line?)]
       [iconize (entry-point-1 (lambda (on?) (send wx iconize on?)))]
       [is-iconized? (entry-point (lambda () (send wx iconized?)))]
-      [set-icon (entry-point-1-2 (case-lambda 
-				  [(i) (send wx set-icon i)]
-				  [(i b) (send wx set-icon i b)]))]
+      [set-icon (case-lambda 
+		 [(i) (send wx set-icon i)]
+		 [(i b) (send wx set-icon i b)]
+		 [(i b l?) (send wx set-icon i b l?)])]
       [maximize (entry-point-1 (lambda (on?) (send wx maximize on?)))]
       [get-menu-bar (entry-point (lambda () (let ([mb (ivar wx menu-bar)])
 					      (and mb (wx->mred mb)))))])
