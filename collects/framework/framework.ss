@@ -43,9 +43,9 @@
     "These two values are appended to the version string. \\rawscm{write} is"
     "used to transform them to strings. For example:"
     ""
-    "\\rawscm{(version:add-version-spec 's 1)}"
+    "\\rawscm{(version:add-spec 's 1)}"
     ""
-    "in version 201 will make the version string be \\rawscm{\"201s1\"}. The"
+    "in version 205 will make the version string be \\rawscm{\"205s1\"}. The"
     "symbols \\rawscm{'f} and \\rawscm{'d} are used internally for framework and"
     "drscheme revisions.")
    (version:version
