@@ -1,4 +1,12 @@
 
+Version 200.1
+
+Removed get-clipboard-client from clipboard<%>
+
+set-clipboard-client associates a clipboard-client% object to
+ the current eventspace, and the-clipboard calls methods
+ within the eventspace through event callbacks
+
 Version 200: June, 2002
 
 Changed mouse-event% and key-event% positions (x and y) to be
