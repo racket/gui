@@ -357,7 +357,7 @@
       (send p stretchable-height stretchy?)
       
       (let ()
-	(define l (make-object (trace-mixin message%) "Me&ssag\303\251" p)) ; \303\251 is e with '
+	(define l (make-object (trace-mixin message%) "Me&ssag\uE9" p)) ; \uE9 is e with '
 	(define il (make-object (trace-mixin message%) return-bmp p))
 	
 	(add-testers "Message" l)
@@ -369,7 +369,7 @@
 	(values l il))))
   
   (define b (make-object (trace-mixin button%)
-			 "H\303\251&llo" ip ; \303\251 is e with '
+			 "H\uE9&llo" ip ; \uE9 is e with '
 			 (lambda (b e)
 			   (send b enable #f)
 			   (sleep/yield 5)
@@ -380,19 +380,19 @@
   ; (define ib2 (make-object button% return-bmp ip void))
   
   (define lb (make-object (trace-mixin list-box%)
-			  (if null-label? #f "L\303\255&st") ; \303\255 is i with '
-			  '("Appl\303\251" "Banana" "Coconut & Donuts" "Eclair" "French Fries" "Gatorade" "Huevos Rancheros") ; \303\251 is e with '
+			  (if null-label? #f "L\uED&st") ; \uED is i with '
+			  '("Appl\uE9" "Banana" "Coconut & Donuts" "Eclair" "French Fries" "Gatorade" "Huevos Rancheros") ; \uE9 is e with '
 			  ip void
 			  (add-label-direction label-h? '(single))
 			  (if alt-inits? 2 #f)))
   
-  (define cb (make-object (trace-mixin check-box%) "C&h\303\251ck" ip void null alt-inits?)) ; \303\251 is e with '
+  (define cb (make-object (trace-mixin check-box%) "C&h\uE9ck" ip void null alt-inits?)) ; \uE9 is e with '
   
   (define icb (make-object (trace-mixin check-box%) mred-bmp ip void null alt-inits?))
   
   (define rb (make-object (trace-mixin radio-box%)
-			  (if null-label? #f "R&ad\303\255o") ; \303\255 is i with '
-			  '("F\303\255rst" "Dos" "T&rio")
+			  (if null-label? #f "R&ad\uEDo") ; \uED is i with '
+			  '("F\uEDrst" "Dos" "T&rio")
 			  ip void 
 			  (add-label-direction 
 			   label-h? 
@@ -413,14 +413,14 @@
 			  (if alt-inits? 1 0)))
   
   (define ch (make-object (trace-mixin choice%)
-			  (if null-label? #f "Ch&o\303\255ce") ; \303\255 is i with '
-			  '("Alpha" "Beta" "Gamma" "Delta & R\303\251st") ; \303\251 is e with '
+			  (if null-label? #f "Ch&o\uEDce") ; \uED is i with '
+			  '("Alpha" "Beta" "Gamma" "Delta & R\uE9st") ; \uE9 is e with '
 			  ip void
 			  (add-label-direction label-h? null)
 			  (if alt-inits? 3 0)))
   
   (define txt (make-object (trace-mixin text-field%)
-			   (if null-label? #f "T\303\251&xt") ; \303\251 is e with '
+			   (if null-label? #f "T\uE9&xt") ; \uE9 is e with '
 			   ip void
 			   "initial & starting"
 			   (add-label-direction label-h? '(single))))
@@ -538,7 +538,7 @@
   (define f (make-frame (if use-dialogs?
 			    active-dialog%
 			    active-frame%)
-			"T\303\251ster")) ; \303\251 is e with '
+			"T\uE9ster")) ; \uE9 is e with '
   
   (define hp (make-object horizontal-panel% f))
   
@@ -681,11 +681,11 @@
 			      '(multiple))))
 
     (define tab (make-object tab-panel% 
-			     '("Appl\303\251" "B&anana") ip2 void
+			     '("Appl\uE9" "B&anana") ip2 void
 			     null))
 
     (define grp (make-object group-box-panel% 
-			     "Group\303\251" ip2))
+			     "Group\uE9" ip2))
 
     (make-object button% "OK" tab void)
     (make-object button% "Cancel" grp void)
