@@ -6,6 +6,7 @@
            (lib "string-constant.ss" "string-constants")
            "sig.ss")
            
+  (define sc-syntax-coloring "Syntax Coloring")
   
   (provide color-prefs@)
   
@@ -214,6 +215,70 @@
           ))
       
       
+      ;; prefs-panel-mapping : (union #f 
+      ;;                              hash-table[symbol -o> (is-a?/c vertical-panel)])
+      ;; #f => prefs panel not yet opened
+      ;; hash-table => prefs panel opened
+      ;;   the table maps from the name of the color preference to
+      ;;   the corresponding subpanel
+      (define prefs-panel-mapping #f)
+      
+      ;; prefs-panel-todo : (union #f hash-table[symbol -o> (vertical-panel -> void)])
+      ;; hash-table => prefs panel not opened yet
+      ;; #f => prefs panel already opened.
+      (define prefs-panel-todo (make-hash-table))
+      
+      ;; prefs-panel-tab-panel : (union #f group-box-panel)
+      (define prefs-panel-tab-panel #f)
+      ;; prefs-panel-single : (union #f single-panel%))
+      (define prefs-panel-single #f)
+      (define mapping-table '())
+      
+      ;; update-panel-single : -> void
+      ;; callback for the prefs-panel-group-box
+      (define (update-panel-single)
+        (send prefs-panel-group-box get-selection
+      
+      ;; add-prefs-panel : -> void
+      ;; calls preferences:add-panel to add the coloring configuration panels
+      (define (add-prefs-panel)
+        (preferences:add-panel
+         (list sc-syntax-coloring)
+         (lambda (parent)
+           (set! prefs-panel-group-box (new group-box-panel% 
+                                            (parent parent)
+                                            (callback (lambda (x y) (update-panel-single)))))
+           (set! prefs-panel-single (new panel:single% (parent prefs-panel-group-box)))
+           (set! prefs-panel-mapping (make-hash-table))
+           (for-each
+            (lambda (pr)
+              (let ([name (car pr)]
+                    [proc (cdr pr)])
+                (let ([
+              (hash-table-map prefs-panel-todo cons)))
+           (set! prefs-panel-todo #f))))
+      
+      ;; add-to-prefs-panel : string (vertical-panel -> void) -> void
+      (define (add-to-prefs-panel panel-name func)
+        (let ([key (string->symbol panel-name)])
+          (cond
+            [prefs-panel-todo
+             (let ([prev-fun (hash-table-get prefs-panel-todo key (lambda () void))])
+               (hash-table-put! prefs-panel-todo key
+                                (lambda (parent)
+                                  (prev-fun parent)
+                                  (fun parent))))]
+            [else
+             (let ([prev-panel (hash-table-get prefs-panel-mapping key (lambda () #f))])
+               (cond
+                 [prev-panel (func prev-panel)]
+                 [else
+                  (preferences:add-panel
+                   (list sc-syntax-coloring)
+                   (lambda (parent)
+                     (func parent)
+                     (hash-table-put! prefs-panel-mapping key parent)))]))])))
+      
       ;; prefs-table maps tab-name symbols to either 'too-late or a listof symbols/defaults.
       ;; 'too-late indicates that the preference window has been created and 
       ;; additions can no longer be made.
@@ -254,7 +319,7 @@
             (unless (hash-table-get pref-added-table tab-name-symbol (lambda () #f))
               (hash-table-put! pref-added-table tab-name-symbol #t)
               (preferences:add-panel 
-               `("Syntax Coloring" ,tab-name)
+               `(,sc-syntax-coloring ,tab-name)
                (lambda (p)
                  (let ((vp (new vertical-panel% (parent p))))
                    (new color-selection-panel%
