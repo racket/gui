@@ -943,6 +943,8 @@
 		    get-info-editor
 		    get-info-panel))
 
+  (define memory-text (make-object text%))
+
   (define info-mixin
     (mixin (-editor<%>) (info<%>) args
       (rename [super-make-root-area-container make-root-area-container])
@@ -1064,6 +1066,19 @@
 	     (lambda ()
 	       (send outer-info-panel stretchable-height #f)
 	       info-panel)))])
+      (sequence
+        ;; only for PLTers
+        (when (directory-exists? (build-path (collection-path "framework") "CVS"))
+          (let* ([panel (make-object horizontal-panel% (get-info-panel) '(border))]
+                 [button (make-object button% "Memory" panel (lambda x
+                                                               (send memory-text begin-edit-sequence)
+                                                               (send memory-text erase)
+                                                               (collect-garbage)(collect-garbage)(collect-garbage)
+                                                               (send memory-text insert (number->string (current-memory-use)))
+                                                               (send memory-text end-edit-sequence)))]
+                 [ec (make-object editor-canvas% panel memory-text '(no-hscroll no-vscroll))])
+            (determine-width "000000000" ec memory-text)
+            (send panel stretchable-width #f))))
       (private
 	[lock-message (make-object message%
 			(let ([b (icon:get-unlock-bitmap)])
