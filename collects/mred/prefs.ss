@@ -25,18 +25,16 @@
     (define-struct pref (value))
     (define-struct default (value checker))
 
+
     (define guard
-      (lambda (when p value thunk)
+      (lambda (when p value thunk failure)
 	(let ([h
                 (lambda (x)
                   (let ([msg
                           (format "exception raised ~a for ~a with ~a: ~a~n"
                             when p value
                             (exn-message x))])
-                    (raise (mred:exn:make-exn:during-preferences
-                             msg
-                             ((debug-info-handler))))))])
-
+		    (failure x)))])
           (with-handlers ([(lambda (x) #t) h])
              (thunk)))))
 
@@ -48,7 +46,21 @@
 						        p
 							(lambda () (k data))))])
 	    (guard "unmarshalling" p marshalled
-		   (lambda () (unmarshall-fn data)))))))
+		   (lambda () (unmarshall-fn data))
+		   (lambda (exn)
+		      (hash-table-get
+		       defaults
+		       p
+		       (lambda ()
+			 (wx:message-box
+			  (format
+			   "no default for ~a"
+			   p))
+			 (raise (mred:exn:make-exn:during-preferences
+				 (if (exn? exn)
+				     (exn-message exn)
+				     (format "~s" exn))
+				 ((debug-info-handler))))))))))))
 
     (define get-callbacks
       (lambda (p)
@@ -70,7 +82,13 @@
       (lambda (p value)
 	(andmap (lambda (x)
 		  (guard "calling callback" p value
-			 (lambda () (x p value))))
+			 (lambda () (x p value))
+			 (lambda (exn)
+			   (raise (mred:exn:make-exn:during-preferences
+				   (if (exn? exn)
+				       (exn-message exn)
+				       (format "~s" exn))
+				   ((debug-info-handler)))))))
 		(get-callbacks p))))
 
     (define get-preference
@@ -176,7 +194,13 @@
 				       (hash-table-get marshall-unmarshall p
 						       (lambda ()
 							 (k value))))
-				      value))))])
+				      value))
+				   (lambda (exn)
+				     (raise (mred:exn:make-exn:during-preferences
+					     (if (exn? exn)
+						 (exn-message exn)
+						 (format "~s" exn))
+					     ((debug-info-handler)))))))])
 		    (list p marshalled))]
 		 [else (error 'prefs.ss "robby error.2: ~a" ht-value)]))])
 	(lambda () 
@@ -340,24 +364,24 @@
 						 (send c set-value (pref->bool v))))))]
 		 [id (lambda (x) x)])
 	    (send main minor-align-left)
-	    (make-check 'mred:highlight-parens "Highlight between matching parens?" id id)
-	    (make-check 'mred:fixup-parens "Correct parens?" id id)
-	    (make-check 'mred:paren-match "Flash paren match?" id id)
-	    (make-check 'mred:autosaving-on? "Auto-save files?" id id)
-	    (make-check 'mred:delete-forward? "Map delete to backspace?" not not)
-	    (make-check 'mred:file-dialogs "Use platform-specific file dialogs?"
+	    (make-check 'mred:highlight-parens "Highlight between matching parens" id id)
+	    (make-check 'mred:fixup-parens "Correct parens" id id)
+	    (make-check 'mred:paren-match "Flash paren match" id id)
+	    (make-check 'mred:autosaving-on? "Auto-save files" id id)
+	    (make-check 'mred:delete-forward? "Map delete to backspace" not not)
+	    (make-check 'mred:file-dialogs "Use platform-specific file dialogs"
 			(lambda (x) (if x 'std 'common))
 			(lambda (x) (eq? x 'std)))
 
-	    (make-check 'mred:verify-exit "Verify exit?" id id)
-	    (make-check 'mred:verify-change-format "Ask before changing save format?" id id)
-	    (make-check 'mred:auto-set-wrap? "Wordwrap editor buffers?" id id)
+	    (make-check 'mred:verify-exit "Verify exit" id id)
+	    (make-check 'mred:verify-change-format "Ask before changing save format" id id)
+	    (make-check 'mred:auto-set-wrap? "Wordwrap editor buffers" id id)
 
-	    (make-check 'mred:show-status-line "Show status-line?" id id)
-	    (make-check 'mred:line-offsets "Count line and column numbers from one?" id id)
-	    (make-check 'mred:menu-bindings "Enable keybindings in menus?" id id)
+	    (make-check 'mred:show-status-line "Show status-line" id id)
+	    (make-check 'mred:line-offsets "Count line and column numbers from one" id id)
+	    (make-check 'mred:menu-bindings "Enable keybindings in menus" id id)
 	    (unless (eq? wx:platform 'unix) 
-	      (make-check 'mred:print-output-mode "Automatically print to postscript file?"
+	      (make-check 'mred:print-output-mode "Automatically print to postscript file"
 			  (lambda (b) (if b 1 0))
 			  (lambda (n) (= n 1))))
 	    main))
