@@ -1,4 +1,28 @@
 
+Version 102/4:
+
+ * Hijacked `on-change' method of editor%, which wasn't doing anything
+   useful, to serve a new purpose.
+
+   The new `on-change' is called whenever any change occurs to an
+   editor that affects the way it is drawn or the values reported for
+   the location/size of any snip. The `on-change' method is called
+   just before the editor calls its administrator's `needs-update'
+   method to refresh the editor's display. The editor is locked for
+   writing and reflowing during the call to `on-change'.
+
+   This change enables a fix for PR 1171.
+
+ * Fixed scrolling (PR 1174 et al.).
+
+ * Added an initializer to string-snip% that accepts a string.
+
+ * Added `call-clickback' method to text%.
+
+Version 102/3:
+
+ * MrEd2k works.
+
 Version 102/2:
 
  * Changed the interaction of face and familiy settings in a font for
@@ -32,6 +56,8 @@ Changed the interaction of face and familiy settings in a font for
 Removed `get-afm-name' and `set-afm-name' from
  `font-name-directory<%>', and changed post-script-dc% to use the
  PostScript font name as the AFM file name
+Changed the meaning of the `on-change' method in editor%. See the
+ manual for details.
 
 Version 101: October 25, 1999
 
