@@ -1,4 +1,14 @@
 
+Version 199.25:
+
+ * Restricted all label string arguments to <= 200 characters (so that
+   MrEd doesn't trip over label size constraints in the underlying GUI
+   toolbox).
+
+ * X: changed the default "forceFocus" resource value back to 0.
+   Making sawfish 0.37 work the way I expect looks hopeless, and
+   forcing the focus interacted badly with other window managers.
+
 Version 199.24:
 
  * Added a `wheel-step' instantiation keyword and method to
