@@ -84,10 +84,9 @@
 	    (add "find-string-reverse" find-string-reverse)
 	    (add "find-string-replace" find-string-replace)
 
-	    (map "c:x;c:s" "save-file")
-	    (map "d:s" "save-file")
-	    (map "c:x;c:w" "save-file-as")
-	    (map "c:x;c:f" "load-file")))))
+            (map "c:s" "find-string")
+            (map "c:r" "find-string-reverse")
+            (map-meta "%" "find-string-replace")))))
 
     (define setup-global-file-keymap
       (let* ([rcs
