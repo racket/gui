@@ -259,16 +259,17 @@
         (when (is-a? snip graph-snip<%>)
           (let* ([children (get-all-children snip)]
                  [parents (get-all-parents snip)]
-                 [rects (get-rectangles snip (append children parents))]
+                 [rects (eliminate-redundancies (get-rectangles snip (append children parents)))]
                  [union (union-rects rects)]
                  [invalidate-rect
                   (lambda (rect)
-                    (invalidate-bitmap-cache (rect-left rect)
-                                             (rect-top rect)
-                                             (- (rect-right rect)
-                                                (rect-left rect))
-                                             (- (rect-bottom rect)
-                                                (rect-top rect))))])
+                    (time
+                     (invalidate-bitmap-cache (rect-left rect)
+                                              (rect-top rect)
+                                              (- (rect-right rect)
+                                                 (rect-left rect))
+                                              (- (rect-bottom rect)
+                                                 (rect-top rect)))))])
             (cond
               [(< (rect-area union)
                   (apply + (map (lambda (x) (rect-area x)) rects)))
@@ -276,6 +277,31 @@
               [else
                (for-each invalidate-rect rects)]))))
       
+      ;; (listof rect) -> (listof rect)
+      (define/private (eliminate-redundancies rects)
+        (let loop ([rects rects]
+                   [acc null])
+          (cond
+            [(null? rects) acc]
+            [else (let ([r (car rects)])
+                    (cond
+                      [(or (ormap (lambda (other-rect) (rect-included-in? r other-rect))
+                                  (cdr rects))
+                           (ormap (lambda (other-rect) (rect-included-in? r other-rect))
+                                  acc))
+                       (loop (cdr rects)
+                             acc)]
+                      [else 
+                       (loop (cdr rects) 
+                             (cons r acc))]))])))
+      
+      ;; rect-included-in? : rect rect -> boolean
+      (define/private (rect-included-in? r1 r2)
+        (and ((rect-left r1) . >= . (rect-left r2))
+             ((rect-top r1) . >= . (rect-top r2))
+             ((rect-right r1) . <= . (rect-right r2))
+             ((rect-bottom r1) . <= . (rect-bottom r2))))
+                    
       ;; get-rectangles : snip (listof snip) -> rect
       ;; computes the rectangles that need to be invalidated for connecting 
       (define/private (get-rectangles main-snip c/p-snips)
@@ -422,7 +448,7 @@
           
           (update-polygon s4x s4y sx s4y)
           (let ([os (send dc get-smoothing)])
-            (send dc set-smoothing 'aligned)
+            ;(send dc set-smoothing 'aligned)
             (cond
               [arrow-heads?
                (send dc draw-polygon points dx dy)]
@@ -454,7 +480,6 @@
                              (y2 . <= . top))
                         (and (y1 . >= . bottom)
                              (y2 . >= . bottom)))
-              
               (let-values ([(from-x from-y)
                             (or-2v (find-intersection x1 y1 x2 y2 
                                                       lf tf rf tf)
@@ -498,7 +523,7 @@
                        ;; the arrowhead is not overlapping the snips, so draw it
                        ;; (this is only an approximate test, but probably good enough)
                        (let ([os (send dc get-smoothing)])
-                         (send dc set-smoothing 'aligned)
+                         ;(send dc set-smoothing 'aligned)
                          (cond
                            [arrow-heads?
                             (send dc draw-polygon points dx dy)]
@@ -514,7 +539,7 @@
                          [arrow-heads? (void)]
                          [else 
                           (let ([os (send dc get-smoothing)])
-                            (send dc set-smoothing 'aligned)
+                            ;(send dc set-smoothing 'aligned)
                             (send dc draw-line
                                   (+ dx from-x) (+ dy from-y) 
                                   (+ dx to-x) (+ dy to-y))
