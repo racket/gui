@@ -3,7 +3,7 @@
 	  [mzlib:function : mzlib:function^]
 	  [mzlib:file : mzlib:file^])
   
-  (define frame-group%
+  (define %
     (let-struct frame (frame id)
       (class null ()
 	(private
@@ -194,39 +194,4 @@
 			  frame
 			  (loop (cdr frames))))]))))]))))
   
-  (define the-frame-group (make-object frame-group%))
-  
-  (define at-most-one-maker
-    (lambda ()
-      (let ([s (make-semaphore 1)]
-	    [test #f])
-	(lambda (return thunk)
-	  (semaphore-wait s)
-	  (if test
-	      (begin (semaphore-post s)
-		     return)
-	      (begin
-		(set! test #t)
-		(semaphore-post s)
-		(begin0 (thunk)
-			(semaphore-wait s)
-			(set! test #f)
-			(semaphore-post s))))))))
-  
-  (define at-most-one (at-most-one-maker))
-  
-  (send the-frame-group set-empty-callbacks
-	(lambda () 
-	  (at-most-one (void) 
-		       (lambda () (exit:exit #t))))
-	(lambda () 
-	  (at-most-one #t
-		       (lambda ()
-			 (exit:run-exit-callbacks)))))
-  
-  (exit:insert-exit-callback
-   (lambda ()
-     (at-most-one
-      #t
-      (lambda ()
-	(send the-frame-group close-all))))))
+  (define the-frame-group (make-object %)))

@@ -32,51 +32,15 @@
    pasteboard-info%
    pasteboard-info-file%))
 
-(define-signature mred:graph^
-  (node-snip%
-   make-node-snip%
-   graph-pasteboard%
-   make-graph-pasteboard%))
-
-(define-signature mred:connections^
-  (connections-frame%
-   connections-dialog-box%
-   connections-media-edit%
-   connections-media-pasteboard%
-   connections-media-canvas%
-   connections-panel%
-
-   make-connections-frame%
-   make-connections-media-buffer%
-   make-connections-media-canvas%
-   make-connections-panel%))
-
-(define-signature mred:version^
-  (add-version-spec
+(define-signature framework:version^
+  (add-spec
    version))
 
-(define-signature mred:html^
-  (html-convert))
-
 (define-signature mred:panel^
-  (make-edit-panel%
-   horizontal-edit-panel%
-   vertical-edit-panel%))
-
-(define-signature mred:url^
-  ((struct url (scheme host port path params query fragment))
-   unixpath->path
-   get-pure-port			; url [x list (str)] -> in-port
-   get-impure-port			; url [x list (str)] -> in-port
-   display-pure-port			; in-port -> ()
-   purify-port				; in-port -> list (mime-header)
-   netscape/string->url			; (string -> url)
-   string->url				; str -> url
-   url->string
-   call/input-url			; url x (url -> in-port) x
-					; (in-port -> ())
-					; [x list (str)] -> ()
-   combine-url/relative))		; url x str -> url
+  (make-edit%
+   edit<%>
+   horizontal-edit%
+   vertical-edit%))
 
 (define-signature framework:exn^
   ((struct exn ())
@@ -84,16 +48,8 @@
    (struct exn:during-preferences ())
    (struct exn:url ())))
 
-(define-signature mred:hyper-loader^
-  (open-hyper-make
-   open-hyper-view
-   hyper-text-require))
-
 (define-signature framework:application^
   (current-app-name))
-
-(define-signature mred:exn-external^
-  (exn? exn:unknown-preference? exn:during-preferences? exn:url?))
 
 (define-signature framework:preferences^
   (get
@@ -113,57 +69,26 @@
 (define-signature framework:autosave^
   (register))
 
-(define-signature mred:exit^
+(define-signature framework:exit^
   (insert-callback
    remove-callback
    run-callbacks
    exit))
 
-(define-signature mred:gui-utils^
-  (get-font-from-user
-   get-colour-from-user
-   get-text-from-user
-   message-box
-   cursor-delay
+(define-signature framework:gui-utils^
+  (cursor-delay
    show-busy-cursor
    delay-action
    local-busy-cursor
-   get-choice
    unsaved-warning
    read-snips/chars-from-buffer
-   open-input-buffer
-   print-paper-names
-   get-single-choice))
+   open-input-buffer))
 
-(define-signature mred:console^
-  (credits-proc
-   credits
-   copyright-string
-   welcome-message
-
-   separator-snip%
-
-   console-max-save-previous-exprs
-   
-   show-interactions-history
-
-   make-scheme-mode-edit%
-   scheme-mode-edit%
-   
-   make-console-edit%
-   console-edit%
-
-   transparent-io-edit%
-   make-transparent-io-edit%
-
-   make-console-frame%
-   console-frame%))
-
-(define-signature mred:path-utils^
+(define-signature framework:path-utils^
   (generate-autosave-name 
    generate-backup-name))
 
-(define-signature mred:finder^
+(define-signature framework:finder^
   (filter-match?
    dialog-parent-parameter
    common-put-file 
@@ -175,12 +100,43 @@
    get-file
    put-file))
 
-(define-signature mred:find-string^
-  (make-find-frame%
-   find-frame%
-   find-string))
+(define framework:editor^
+  (editor:basic<%>
+   editor:info<%>
+   editor:autosave<%>
+   
+   editor:make-basic%
+   editor:make-info%
+   editor:make-file%
+   editor:make-backup-autosave%))
 
-(define-signature mred:edit^
+(define-signature framework:text^
+  (text:basic<%>
+   text:searching<%>
+   
+   text:make-basic%
+   text:make-return%
+   text:make-searching%
+   text:make-clever-file-format%
+   text:make-scheme%
+   
+   text:basic% 
+   text:return%
+   text:searching%
+   text:info%
+   text:clever-file-format%
+   text:file%
+   text:backup-autosave%
+   text:scheme%))
+
+(define-signature framework:pasteboard%
+  (pasteboard:basic%
+   pasteboard:info%
+   pasteboard:file%
+   pasteboard:backup-autosave%))
+
+
+(define-signature framework:edit^
   (make-std-buffer%
    make-pasteboard%
    make-info-buffer%
@@ -212,39 +168,33 @@
   (make-wide-snip-canvas%
    wide-snip-canvas%))
 
-(define-signature mred:frame^
-  (frame-width
-   frame-height
+(define-signature framework:frame^
+  (empty<%>
+   standard-menus<%>
+   empty-standard-menus<%>
+   edit<%>
+   searchable<%>
+   pasteboard<%>
+   info<%>
+   info-file<%>
 
-   make-simple-frame%
-   make-menu-frame%
-   make-standard-menus-frame%
-   make-searchable-frame%
-
-   make-info-frame%
-   make-edit-info-frame%
-
-   make-file-frame%
-
-   make-pasteboard-frame%
-   make-pasteboard-file-frame%
-   make-pasteboard-info-frame%
-
-   empty-frame%
-   menu-frame%
-   standard-menus-frame%
-   simple-menu-frame%
-   searchable-frame%
-   info-frame%
-   info-file-frame%
-   pasteboard-frame%
-   pasteboard-info-frame%
-   pasteboard-info-file-frame%))
-
-(define-signature mred:editor-frame^
-  (make-editor-frame%
-   editor-frame%
-   make-status-frame%))
+   make-empty%
+   make-standard-menus%
+   make-edit%
+   make-searchable%
+   make-pasteboard%
+   make-info%
+   make-file%
+   
+   empty%
+   standard-menus%
+   edit%
+   searchable%
+   info%
+   info-file%
+   pasteboard%
+   pasteboard-info%
+   pasteboard-info-file%))
 
 (define-signature mred:group^
   (frame-group%

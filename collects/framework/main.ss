@@ -4,6 +4,25 @@
   
   ;; preferences
 
+  
+  (preferences:set-default 'framework:display-line-numbers #t boolean?)
+  
+  (preferences:set-preference-default 'mred:show-status-line
+				      #t
+				      boolean?)
+  (preferences:set-preference-default 'mred:line-offsets
+				      #t
+				      boolean?)
+  
+  
+  
+  
+  (preferences:set 'framework:print-output-mode
+		   0
+		   (lambda (x) (or (= x 0) (= x 1))))
+  
+  
+  
   (preferences:set-default 'framework:highlight-parens #t boolean?)
   (preferences:set-default 'framework:fixup-parens #t boolean?)
   (preferences:set-default 'framework:paren-match #t boolean?)
@@ -23,22 +42,22 @@
 		 sequence))
     (for-each (lambda (x) (hash-table-put! hash-table x 'lambda))
 	      '(lambda let let* letrec letrec* recur
-		       let/cc let/ec letcc catch
-		       let-syntax letrec-syntax syntax-case
-		       let-signature fluid-let
-		       let-struct let-macro let-values let*-values
-		       case when unless match
-		       let-enumerate
-		       class class* class-asi class-asi*
-		       define-some do opt-lambda send*
-		       local catch shared
-		       unit/sig
-		       with-handlers with-parameterization
-		       interface
-		       parameterize
-		       call-with-input-file with-input-from-file
-		       with-input-from-port call-with-output-file
-		       with-output-to-file with-output-to-port))
+		 let/cc let/ec letcc catch
+		 let-syntax letrec-syntax syntax-case
+		 let-signature fluid-let
+		 let-struct let-macro let-values let*-values
+		 case when unless match
+		 let-enumerate
+		 class class* class-asi class-asi*
+		 define-some do opt-lambda send*
+		 local catch shared
+		 unit/sig
+		 with-handlers with-parameterization
+		 interface
+		 parameterize
+		 call-with-input-file with-input-from-file
+		 with-input-from-port call-with-output-file
+		 with-output-to-file with-output-to-port))
     (mred:preferences:set-preference-un/marshall
      'mred:tabify 
      (lambda (t) (hash-table-map t list))
@@ -46,8 +65,8 @@
 		   (for-each (lambda (x) (apply hash-table-put! h x)) l)
 		   h)))
     (mred:preferences:set-preference-default 'mred:tabify hash-table hash-table?))
-
-
+  
+  
   (preferences:set-default 'framework:autosave-delay 300 number?)
   (preferences:set-default 'framework:autosaving-on? #t boolean?)
   (preferences:set-default 'framework:verify-exit #t boolean?)
@@ -120,8 +139,8 @@
 			[add-button (make-object mred:button% button-panel (add-callback string symbol box) "Add")]
 			[delete-button (make-object mred:button% button-panel (delete-callback box) "Remove")])
 		   (send* button-panel 
-			  (major-align-center)
-			  (stretchable-in-y #f))
+		     (major-align-center)
+		     (stretchable-in-y #f))
 		   (send add-button user-min-width (send delete-button get-width))
 		   box))]
 	      [begin-list-box (make-column "Begin" 'begin begin-keywords)]
@@ -139,11 +158,49 @@
 		   #t))])
 	 (mred:preferences:add-preference-callback 'mred:tabify (lambda (p v) (update-list-boxes v)))
 	 main-panel))))
-
+  
   (preferences:read)
-
+  
+  ;; groups
+  
+  (define at-most-one-maker
+    (lambda ()
+      (let ([s (make-semaphore 1)]
+	    [test #f])
+	(lambda (return thunk)
+	  (semaphore-wait s)
+	  (if test
+	      (begin (semaphore-post s)
+		     return)
+	      (begin
+		(set! test #t)
+		(semaphore-post s)
+		(begin0 (thunk)
+			(semaphore-wait s)
+			(set! test #f)
+			(semaphore-post s))))))))
+  
+  (let ([at-most-one (at-most-one-maker)])
+    (send the-frame-group set-empty-callbacks
+	  (lambda () 
+	    (at-most-one (void) 
+			 (lambda () (exit:exit #t))))
+	  (lambda () 
+	    (at-most-one #t
+			 (lambda ()
+			   (exit:run-exit-callbacks)))))
+  
+    (exit:insert-exit-callback
+     (lambda ()
+       (at-most-one
+	#t
+	(lambda ()
+	  (send the-frame-group close-all))))))
+  
+  
+  
   ;; misc other stuff
-
+  
   (exit:insert-callback 
    (lambda ()
      (with-handlers ([(lambda (x) #t)
@@ -153,5 +210,5 @@
 				 (exn-message exn))
 			 "Saving Prefs"))])
        (save-user-preferences))))
-
+  
   (wx:application-file-handler edit-file))

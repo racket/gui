@@ -1,7 +1,5 @@
   (unit/sig mred:version^
-    (import [wx : wx^]
-	    [mzlib:function : mzlib:function^]
-	    [mzlib:string^ : mzlib:string^])
+    (import [mzlib:string^ : mzlib:string^])
 
     (rename [-version version])
 
