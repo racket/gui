@@ -362,14 +362,10 @@
                 [x2 (+ xt (/ wt 2))]
                 [y2 (+ yt (/ ht 2))])
             
-            (unless (or (and (x1 . <= . left)
-                             (x2 . <= . left))
-                        (and (x1 . >= . right)
-                             (x2 . >= . right))
-                        (and (y1 . <= . top)
-                             (y2 . <= . top))
-                        (and (y1 . >= . bottom)
-                             (y2 . >= . bottom)))
+            (when (or (and (<= left x1 right)
+                           (<= top y1 bottom))
+                      (and (<= left x2 right)
+                           (<= top y2 bottom)))
               
               (let-values ([(from-x from-y)
                             (or-2v (find-intersection x1 y1 x2 y2 
