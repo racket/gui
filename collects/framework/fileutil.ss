@@ -5,9 +5,9 @@
   (define generate-autosave-name 
     (lambda (name)
       (let-values ([(base name dir?)
-		    (if (null? name)
-			(values (current-directory) "mredauto" #f)
-			(split-path name))])
+		    (if name
+			(split-path name)
+			(values (current-directory) "mredauto" #f))])
 	(let* ([base (if (string? base) 
 			 base
 			 (current-directory))]

@@ -46,16 +46,9 @@ when adding a frame, do this:
 
 
 (unit/sig mred:group^
-  (import [mred:preferences : mred:preferences^]
-	  [mred:editor-frame : mred:editor-frame^]
-	  [mred:gui-utils : mred:gui-utils^]
-	  [mred:exit : mred:exit^]
-	  [mred:autosave : mred:autosave^]
-	  [mred:handler : mred:handler^]
+  (import [exit : framework:exit^]
 	  [mzlib:function : mzlib:function^]
 	  [mzlib:file : mzlib:file^])
-  
-  (mred:debug:printf 'invoke "mred:group@")
   
   (define frame-group%
     (let-struct frame (frame id)
@@ -136,8 +129,6 @@ when adding a frame, do this:
 	     (set! empty-test test)
 	     (set! empty-close-down close-down))]
 	  [get-frames (lambda () (map frame-frame frames))]
-	  [frame% mred:editor-frame:editor-frame%]
-	  [get-frame% (lambda () frame%)]
 	  
 	  [frame-title-changed
 	   (lambda (frame)
@@ -207,14 +198,6 @@ when adding a frame, do this:
 				 (escape #f))))
 			 frames)
 	       #t))]
-	  [new-frame
-	   (lambda (filename)
-	     (if (string? filename)
-		 (mred:handler:edit-file filename this #f
-					 (lambda (fn group)
-					   (make-object (get-frame%)
-							fn #t group)))
-		 (make-object (get-frame%) filename #t this)))]
 	  [locate-file
 	   (lambda (name)
 	     (let* ([normalized
@@ -267,13 +250,13 @@ when adding a frame, do this:
   (send the-frame-group set-empty-callbacks
 	(lambda () 
 	  (at-most-one (void) 
-		       (lambda () (mred:exit:exit #t))))
+		       (lambda () (exit:exit #t))))
 	(lambda () 
 	  (at-most-one #t
 		       (lambda ()
-			 (mred:exit:run-exit-callbacks)))))
+			 (exit:run-exit-callbacks)))))
   
-  (mred:exit:insert-exit-callback
+  (exit:insert-exit-callback
    (lambda ()
      (at-most-one
       #t

@@ -378,13 +378,11 @@
 		  
 		  (cond 
 		    
-		    [(and (char? code)
-			  (or (char=? code #\newline)
-			      (char=? code #\return)))     ; CR or LF
+		    [(or (equal? code 'numpad-return)
+			 (equal? code #\return))) 
 		     (do-ok)]
 		    
-		    [(and (char? code)
-			  (char=? code #\tab))
+		    [(equal? code #\tab)
 		     (set-focus-to-directory-edit)]
 		    
 		    ; look for letter at beginning of a filename
@@ -471,7 +469,7 @@
 			     (let ([code (send key get-key-code)])
 			       (cond
 				 [(or (equal? code #\return)
-				      (equal? code #\newline))
+				      (equal? code 'numpad-enter))
 				  (do-ok)
 				  (set-focus-to-name-list)]
 				 [(equal? code #\tab)
@@ -680,8 +678,8 @@
   ; list of args.  Should the opt-lambda's be placed in the dispatching function?
   
   (define std-put-file
-    (opt-lambda ([name ()]
-		 [directory ()]
+    (opt-lambda ([name #f]
+		 [directory #f]
 		 [replace? #f]
 		 [prompt "Select file"]
 		 [filter #f]
@@ -694,13 +692,13 @@
 	     [name (or (and (string? name)
 			    (mzlib:file:file-name-from-path name))
 		       name)]
-	     [f (wx:put-file 
+	     [f (put-file 
 		 prompt 
 		 parent-win
 		 directory 
 		 name
 		 ".ss")])
-	(if (or (null? f)
+	(if (or (not f)
 		(and filter 
 		     (not (filter-match? filter 
 					 f
@@ -719,19 +717,15 @@
 		[else f]))))))
   
   (define std-get-file
-    (opt-lambda ([directory ()]
+    (opt-lambda ([directory #f]
 		 [prompt "Select file"]
 		 [filter #f]
 		 [filter-msg "That filename does not have the right form."]
 		 [parent-win (dialog-parent-parameter)])
-      (let ([f (wx:file-selector 
+      (let ([f (get-file
 		prompt 
-		directory 
-		null 
-		null 
-		"*"
-		wx:const-open 
-		parent-win)])
+		parent-win
+		directory)])
 	(if (null? f)
 	    #f
 	    (if (or (not filter) (filter-match? filter f filter-msg))
