@@ -95,6 +95,76 @@
 	       (list->bytes '(#xcc #x33 #xcc #x33 #xcc #x33 #xcc #x33))
 	       8 8))
 
+
+(define lambda-path
+  (let ()
+    (define left-lambda-path
+      (let ([p (new dc-path%)])
+	(send p move-to 148 670)
+
+	;; top corner
+	(send p line-to 156.5 654)
+	
+	;; left edge spline
+	(send p curve-to 197.5 665 225 672 240 653)
+	(send p curve-to 275.06 608.59 282.5 573 291.5 528)
+	(send p curve-to 296.12 504.92 294.11 490.62 288.96 470)
+	(send p curve-to 276.34 419.46 254.18 382.39 228.5 339)
+	(send p curve-to 193.21 279.37 159.68 208.41 120.5 150)
+	
+	(send p line-to 130 142)
+
+	p))
+
+    (define bottom-lambda-path
+      (let ([p (new dc-path%)])
+	(send p move-to 130 142)
+
+	;; bottom left foot
+	(send p line-to 183.5 150)
+	
+	;; bottom middle spline
+	(send p curve-to 203.5 197 225.91 248.79 246 294)
+	(send p curve-to 262 330 273.5 366 291.5 402)
+	(send p curve-to 296.01 411.02 313 456 324 440)
+	(send p curve-to 333.89 425.61 346 400 353 382)
+	(send p curve-to 372.28 332.42 390.57 284.39 409 237)
+	(send p curve-to 423 201 431.5 174 444.5 141)
+	
+	;; bottom right foot
+	(send p line-to 460 134)
+	(send p line-to 524 169)
+
+	p))
+
+    (define right-lambda-path
+      (let ([p (new dc-path%)])
+	(send p move-to 148 670)
+
+	;; right edge spline
+	(send p curve-to 187.21 683.31 228.21 699.77 270 694)
+	(send p curve-to 323.6 686.6 345.23 610.92 359 563)
+	(send p curve-to 373.75 511.68 395.5 470 413 420)
+	(send p curve-to 441.56 338.4 489.5 258 525.5 177)
+
+	(send p line-to 524 169)
+
+	(send p reverse)
+
+	p))
+
+    (let ([p (new dc-path%)])
+      (send p append left-lambda-path)
+      (send p append bottom-lambda-path)
+      (send p append right-lambda-path)
+      
+      (send p translate -5 -86)
+      (send p scale 1 -1)
+      (send p translate 0 630)
+      (send p scale 0.5 0.5)
+      p)))
+
+
 (define fancy-path
   (let ([p (new dc-path%)]
 	[p2 (new dc-path%)])
@@ -110,7 +180,7 @@
     (send p line-to 1 90)
     (send p close)
     (send p append p2)
-    (send p arc 50 50 100 120 0 (* pi 1/2) #f)
+    (send p arc 50 50 100 120 0 (* pi 1/2) #t)
 
     p))
 
@@ -789,7 +859,15 @@
 						   (send p append fancy-path)
 						   (send p scale 0.5 0.5)
 						   (send p translate 410 230)
-						   p)))
+						   p))
+			      (send dc set-pen (make-object pen% "black" 0 'solid))
+			      (send dc set-brush (make-object brush% "red" 'solid))
+			      (send dc draw-path (let ([p (new dc-path%)])
+						   (send p append lambda-path)
+						   (send p scale 0.3 0.3)
+						   p)
+				    465 230))
+			      
 
 			    (when (and last? (not (or ps? (eq? dc can-dc)))
 				       (send mem-dc get-bitmap))
@@ -850,6 +928,9 @@
 			      [(rect2) (send dc set-clipping-rect 50 -25 10 400)]
 			      [(poly) (send dc set-clipping-region (mk-poly 'odd-even))]
 			      [(circle) (send dc set-clipping-region (mk-circle))]
+			      [(lam) (let ([r (make-object region% dc)])
+				       (send r set-path lambda-path)
+				       (send dc set-clipping-region r))]
 			      [(rect+poly) (let ([r (mk-poly 'winding)])
 					     (send r union (mk-rect))
 						(send dc set-clipping-region r))]
@@ -927,6 +1008,7 @@
 							 [(rect) '(100. -25. 10. 400.)]
 							 [(rect2) '(50. -25. 10. 400.)]
 							 [(poly circle poly-rect) '(0. 60. 180. 180.)]
+							 [(lam) '(58. 10. 202. 281.)]
 							 [(rect+poly rect+circle poly^rect) '(0. -25. 180. 400.)]
 							 [(poly&rect) '(100. 60. 10. 180.)]
 							 [(roundrect) '(80. 200. 125. 40.)]
@@ -1033,13 +1115,13 @@
 		 (lambda (self event)
 		   (send canvas set-kern (send self get-value))))
     (make-object choice% "Clip" 
-		 '("None" "Rectangle" "Rectangle2" "Octagon" "Circle" "Round Rectangle"
+		 '("None" "Rectangle" "Rectangle2" "Octagon" "Circle" "Round Rectangle" "Lambda"
 		   "Rectangle + Octagon" "Rectangle + Circle" 
 		   "Octagon - Rectangle" "Rectangle & Octagon" "Rectangle ^ Octagon" "Polka")
 		 hp3
 		 (lambda (self event)
 		   (set! clip (list-ref
-		               '(none rect rect2 poly circle roundrect rect+poly rect+circle poly-rect poly&rect poly^rect polka)
+		               '(none rect rect2 poly circle roundrect lam rect+poly rect+circle poly-rect poly&rect poly^rect polka)
 		               (send self get-selection)))
 		   (send canvas refresh)))
     (make-object check-box% "Clip Pre-Scale" hp3
