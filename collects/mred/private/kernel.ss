@@ -419,7 +419,7 @@
     set-direction
     get-position
     set-position)
-  (define-class key-event% event% ([key-code #\nul] [shift-down #f] [control-down #f] [meta-down #f] [alt-down #f] [x 0.0] [y 0.0] [time-stamp 0])
+  (define-class key-event% event% ([key-code #\nul] [shift-down #f] [control-down #f] [meta-down #f] [alt-down #f] [x 0] [y 0] [time-stamp 0])
     get-key-code
     set-key-code
     get-shift-down
@@ -434,7 +434,7 @@
     set-x
     get-y
     set-y)
-  (define-class mouse-event% event% (event-type [left-down #f] [middle-down #f] [right-down #f] [x 0.0] [y 0.0] [shift-down #f] [control-down #f] [meta-down #f] [alt-down #f] [time-stamp 0])
+  (define-class mouse-event% event% (event-type [left-down #f] [middle-down #f] [right-down #f] [x 0] [y 0] [shift-down #f] [control-down #f] [meta-down #f] [alt-down #f] [time-stamp 0])
     moving?
     leaving?
     entering?
