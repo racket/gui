@@ -6,7 +6,9 @@
   (let/ec k
     (letrec-values
 	([(no-splash) (lambda () (k void void))]
-	 [(funny?) (zero? (random 1000))]
+	 [(funny?) (let ([date (seconds->date (current-seconds))])
+		     (and (= (date-day date) 25)
+			  (= (date-month date) 12)))]
 	 [(funny-gauge%)
 	  (class canvas% (max-value parent)
 	    (inherit get-dc min-width min-height stretchable-width stretchable-height)
