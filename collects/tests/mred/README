@@ -1,3 +1,7 @@
+"console-io.ss" is a set of manual tests that makes sure that the
+console io is working properly.
+
+---------------------------------------------------------------------------
 
 "startup" tests the startup flags of mred. run "run.ss" from that directory.
 

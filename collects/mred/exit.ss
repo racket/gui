@@ -23,6 +23,8 @@
 		[(eq? cb (car cb-list)) (cdr cb-list)]
 		[else (cons (car cb-list) (loop (cdr cb-list)))])))))
   
+  (define exiting? #f)
+
   (define run-exit-callbacks
     (lambda ()
       (let*-values ([(w capW)
@@ -45,13 +47,12 @@
 	      [else (loop (cdr cb-list))]))))))
   
   (define -exit
-    (let ([exiting? #f])
-      (opt-lambda ([just-ran-callbacks? #f])
-	(unless exiting?
-	  (dynamic-wind
-	   (lambda () (set! exiting? #t))
-	   (lambda ()
-	     (if (or just-ran-callbacks? (run-exit-callbacks))
-		 (exit)
-		 #f))
-	   (lambda () (set! exiting? #f))))))))
+    (opt-lambda ([just-ran-callbacks? #f])
+      (unless exiting?
+	(dynamic-wind
+	 (lambda () (set! exiting? #t))
+	 (lambda ()
+	   (if (or just-ran-callbacks? (run-exit-callbacks))
+	       (exit)
+	       #f))
+	 (lambda () (set! exiting? #f)))))))

@@ -80,15 +80,17 @@ X Windows: added .mred.resources option `mred.forceFocus'; if
 MacOS: removed the special -r command-line flag
 
 
-System:
--------
+				System
+
+ - set-empty-callback in mred:frame-group% is now set-empty-callbacks
+   in mred:frame-group%. See the docs for more details.
+
  - mred:original-output-port is now called mred:constants:original-output-port
    mred:original-input-port is now called mred:constants:original-input-port
 
  - MrEd's collections are now documented.
 
  - the collection paths are not normalized anymore
-
 
  - The command line flags have changed. Specifically:
    the -nu flag is now called either "--non-unitized" or "-u".

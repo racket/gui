@@ -1,3 +1,24 @@
+(define-macro trace-methods 
+  (lambda methods
+    (let ([super 
+	   (lambda (method)
+	     (string->symbol 
+	      (string-append "super-"
+			     (symbol->string method))))])
+      `(lambda (%)
+	 (class-asi %
+	   (rename ,@(map (lambda (method)
+			    `(,(super method) ,method))
+			  methods))
+	   (public
+	     ,@(map (lambda (method)
+		      `[,method
+			(lambda args
+			  (fprintf mred:constants:original-output-port
+				   "trace:: ~a~n" (list* 'send this ',method args))
+			  (apply ,(super method) args))])
+		    methods)))))))
+
 (unit/sig mred:edit^
   (import [wx : wx^]
 	  [mred:constants : mred:constants^]
@@ -19,15 +40,9 @@
   (define-struct range (start end b/w-bitmap color caret-space?))
   (define-struct rectangle (left top right bottom b/w-bitmap color))
   
-  (mred:preferences:set-preference-default 'mred:verify-change-format #f 
-					   (lambda (x)
-					     (or (not x)
-						 (eq? x #t))))
+  (mred:preferences:set-preference-default 'mred:verify-change-format #f boolean?)
   
-  (mred:preferences:set-preference-default 'mred:auto-set-wrap? #f
-					   (lambda (x)
-					     (or (not x)
-						 (eq? x #t))))
+  (mred:preferences:set-preference-default 'mred:auto-set-wrap? #f boolean?)
   
   (define make-snip%
     (let ([sl (make-object wx:style-list%)])
@@ -54,8 +69,11 @@
       (class buffer% args
 	(sequence (mred:debug:printf 'creation "creating a buffer"))
 	(inherit modified? get-filename save-file canvases
+		 refresh-delayed?
 		 get-max-width get-admin set-filename)
-	(rename [super-set-modified set-modified]
+	(rename [super-after-edit-sequence after-edit-sequence]
+		[super-on-edit-sequence on-edit-sequence]
+		[super-set-modified set-modified]
 		[super-on-save-file on-save-file]
 		[super-on-focus on-focus]
 		[super-load-file load-file]
@@ -81,6 +99,75 @@
 			     "Error Loading File")
 			    res))
 			(set-filename filename)))))])
+
+	(private
+	  [edit-sequence-queue null])
+	(public
+	  [edit-sequence-counter 0]
+	  [run-after-edit-sequence
+	   (lambda (t) 
+	     (unless (and (procedure? t)
+			  (= 0 (arity t)))
+	       (error 'media-buffer::run-after-edit-sequence
+		      "expected procedure of arity zero, got: ~s~n" t))
+	     (mred:debug:printf 'lock-icon
+				"(refresh-delayed?) = ~a"
+				(refresh-delayed?))
+	     (if (refresh-delayed?)
+		 (set! edit-sequence-queue (cons t edit-sequence-queue))
+		 (t))
+	     (void))]
+	  [extend-edit-sequence-queue
+	   (lambda (l)
+	     (set! edit-sequence-queue (append l edit-sequence-queue)))]
+	  [on-edit-sequence
+	   (lambda ()
+	     (super-on-edit-sequence)
+	     (set! edit-sequence-counter (+ edit-sequence-counter 1)))]
+	  [after-edit-sequence
+	   (lambda ()
+	     (set! edit-sequence-counter (- edit-sequence-counter 1))
+	     (mred:debug:printf 'lock-icon
+				"after edit sequence (count: ~a)"
+				edit-sequence-counter)
+	     (when (< edit-sequence-counter 0)
+	       (error 'after-edit-sequence
+		      "extra call to after-edit-sequence"))
+	     (super-after-edit-sequence)
+	     (when (= 0 edit-sequence-counter)
+	       (mred:debug:printf 'lock-icon
+				  "queue: ~a"
+				  edit-sequence-queue)
+	       (let ([queue edit-sequence-queue]
+		     [find-enclosing-edit
+		      (lambda (edit)
+			(let ([admin (send edit get-admin)])
+			  (cond
+			   [(is-a? admin wx:media-snip-media-admin%)
+			    (send (send admin get-snip) get-media)]
+
+			   ;; assume that any non-media-snip 
+			   ;; administrator doesn't have embedded edits.
+			   [else #f])))])
+		 (unless (null? queue)
+		   (set! edit-sequence-queue null)
+		   (let loop ([edit (find-enclosing-edit this)])
+		     (cond
+		      [(and edit (= 0 (ivar edit edit-sequence-counter)))
+		       (loop (find-enclosing-edit edit))]
+		      [edit 
+		       (mred:debug:printf 'lock-icon
+					  "passing queue to another edit ~a"
+					  edit
+					  edit-sequence-counter)
+		       (send edit extend-edit-sequence-queue queue)]
+		      [else
+		       (mred:debug:printf 'lock-icon
+					  "running queue")
+		       (for-each (lambda (t)
+				   (mred:debug:printf 'lock-icon "running queue entry ~a" t)
+				   (t))
+				 queue)]))))))])
 
 	(public
 	  [locked? #f]
@@ -130,7 +217,6 @@
       (class super% args
 	(inherit canvases get-max-width get-admin split-snip get-snip-position
 		 delete find-snip invalidate-bitmap-cache
-		 begin-edit-sequence end-edit-sequence
 		 set-autowrap-bitmap get-keymap mode set-mode-direct
 		 set-file-format get-file-format get-frame
 		 get-style-list modified? change-style set-modified
@@ -181,7 +267,8 @@
 					   start-eol?
 					   #t)])
 			(let-values ([(start-x top-start-y)
-				      (begin (position-location start b1 b2 #t start-eol? #t)
+				      (begin 
+					(position-location start b1 b2 #t start-eol? #t)
 					     (values (if caret-space?
 							 (+ 1 (unbox b1))
 							 (unbox b1))
@@ -324,8 +411,8 @@
 		 (recompute-range-rectangles))))]
 	  
 	  [on-paint
-	   (lambda (before dc left top right bottom dx dy draw-caret)
-	     (super-on-paint before dc left top right bottom dx dy draw-caret)
+	   (lambda (before dc left-margin top-margin right-margin bottom-margin dx dy draw-caret)
+	     (super-on-paint before dc left-margin top-margin right-margin bottom-margin dx dy draw-caret)
 	     (for-each
 	      (lambda (rectangle)
 		(let-values ([(view-x view-y view-width view-height)
@@ -350,12 +437,13 @@
 						  rc))
 				      rc))]
 			 [first-number (lambda (x y) (if (number? x) x y))]
-			 [left (first-number (rectangle-left rectangle) view-x)]
-			 [top (rectangle-top rectangle)]
-			 [right (if (number? (rectangle-right rectangle))
-				    (rectangle-right rectangle)
-				    (+ view-x view-width))]
-			 [bottom (rectangle-bottom rectangle)]
+			 [left (max left-margin (first-number (rectangle-left rectangle) view-x))]
+			 [top (max top-margin (rectangle-top rectangle))]
+			 [right (min right-margin
+				     (if (number? (rectangle-right rectangle))
+					 (rectangle-right rectangle)
+					 (+ view-x view-width)))]
+			 [bottom (min bottom-margin (rectangle-bottom rectangle))]
 			 [width (max 0 (- right left))]
 			 [height (max 0 (- bottom top))])
 		    (let/ec k
@@ -466,16 +554,21 @@
 	     (and (or (not mode) 
 		      (send mode on-change-style this start len))
 		  (super-on-change-style start len)))]
+	  [on-set-size-constraint
+	   (lambda ()
+	     (and (or (not mode) (send mode on-set-size-constraint this))
+		  (super-on-set-size-constraint)))]
 	  [on-edit-sequence
 	   (lambda ()
 	     (when mode
 	       (send mode on-edit-sequence this))
 	     (super-on-edit-sequence))]
-	  [on-set-size-constraint
+
+	  [after-edit-sequence
 	   (lambda ()
-	     (and (or (not mode) (send mode on-set-size-constraint this))
-		  (super-on-set-size-constraint)))]
-	  
+	     (when mode
+	       (send mode after-edit-sequence this))
+	     (super-after-edit-sequence))]
 	  [after-insert
 	   (lambda (start len)
 	     (when styles-fixed?
@@ -494,11 +587,6 @@
 	     (super-after-change-style start len)
 	     (when styles-fixed?
 	       (set-modified styles-fixed-edit-modified?)))]
-	  [after-edit-sequence
-	   (lambda ()
-	     (when mode
-	       (send mode after-edit-sequence this))
-	     (super-after-edit-sequence))]
 	  [after-set-size-constraint
 	   (lambda ()
 	     (when mode
@@ -865,47 +953,28 @@
   (define make-info-buffer%
     (lambda (super-info-edit%)
       (class-asi super-info-edit%
-	(inherit get-frame)
-	(rename ;[super-after-edit-sequence after-edit-sequence]
-	        ;[super-on-edit-sequence on-edit-sequence]
-		[super-lock lock])
-	(private
-	  [edit-sequence-depth 0]
-	  [lock-needs-updating #f]
-	  [maybe-update-lock-icon
-	   (lambda ()
-	     (if (= edit-sequence-depth 0)
-		 (let ([frame (get-frame)])
-		   (when frame
-		     (send frame lock-status-changed)))
-		 (set! lock-needs-updating #t)))])
-#|
-	(public
-	  [after-edit-sequence
-	   (lambda ()
-	     (super-after-edit-sequence)
-	     (set! edit-sequence-depth (sub1 edit-sequence-depth))
-	     (when (= 0 edit-sequence-depth)
-	       (let ([frame (get-frame)])
-		 (when lock-needs-updating
-		   (set! lock-needs-updating #f)
-		   (send frame lock-status-changed)))))]
-	  [on-edit-sequence
-	   (lambda ()
-	     (set! edit-sequence-depth (add1 edit-sequence-depth))
-	     (super-on-edit-sequence))])
-|#
+	(inherit get-frame run-after-edit-sequence)
+	(rename [super-lock lock])
 	(public
 	  [lock
 	   (lambda (x)
 	     (super-lock x)
-	     (maybe-update-lock-icon))]))))
+	     (mred:debug:printf 'lock-icon 
+				"lock: queueing change lock status")
+	     (run-after-edit-sequence
+	      (rec send-frame-update-lock-icon
+		   (lambda ()
+		     (mred:debug:printf 'lock-icon 
+					"lock: changing lock status")
+		     (let ([frame (get-frame)])
+		       (when frame
+			 (send frame lock-status-changed)))))))]))))
   
   (define make-info-edit%
     (lambda (super-info-edit%)
       (class-asi super-info-edit%
 	(inherit get-frame get-start-position get-end-position
-		 position-line line-start-position)
+		 run-after-edit-sequence)
 	(rename [super-after-set-position after-set-position]
 		[super-after-edit-sequence after-edit-sequence]
 		[super-on-edit-sequence on-edit-sequence]
@@ -914,73 +983,64 @@
 		[super-set-overwrite-mode set-overwrite-mode]
 		[super-set-anchor set-anchor])
 	(private
-	  [edit-sequence-depth 0]
-	  [position-needs-updating #f]
-	  [anchor-needs-updating #f]
-	  [overwrite-needs-updating #f]
-	  [maybe-update-anchor
-	   (lambda ()
-	     (if (= edit-sequence-depth 0)
-		 (let ([frame (get-frame)])
-		   (when frame
-		     (send frame anchor-status-changed)))
-		 (set! anchor-needs-updating #t)))]
-	  [maybe-update-overwrite
-	   (lambda ()
-	     (if (= edit-sequence-depth 0)
-		 (let ([frame (get-frame)])
-		   (when frame
-		     (send frame overwrite-status-changed)))
-		 (set! overwrite-needs-updating #t)))]
-	  [maybe-update-position-edit
-	   (lambda ()
-	     (if (= edit-sequence-depth 0)
-		 (update-position-edit)
-		 (set! position-needs-updating #t)))]
-	  [update-position-edit
-	   (lambda ()
-	     (let ([frame (get-frame)])
-	       (when frame
-		 (send frame edit-position-changed))))])
-	
+	  [enqueue-for-frame
+	   (lambda (ivar-sym)
+	     (run-after-edit-sequence
+	      (rec from-enqueue-for-frame
+		   (lambda ()
+		     (let ([frame (get-frame)])
+		       (when frame
+			 ((uq-ivar frame ivar-sym))))))))])
 	(public
 	  [set-anchor
 	   (lambda (x)
 	     (super-set-anchor x)
-	     (maybe-update-anchor))]
+	     (enqueue-for-frame 'anchor-status-changed))]
 	  [set-overwrite-mode
 	   (lambda (x)
 	     (super-set-overwrite-mode x)
-	     (maybe-update-overwrite))]
+	     (enqueue-for-frame 'overwrite-status-changed))]
 	  [after-set-position
 	   (lambda ()
-	     (maybe-update-position-edit)
-	     (super-after-set-position))]
+	     (super-after-set-position)
+	     (enqueue-for-frame 'edit-position-changed))]
 	  [after-insert
 	   (lambda (start len)
-	     (maybe-update-position-edit)
-	     (super-after-insert start len))]
+	     (super-after-insert start len)
+	     (enqueue-for-frame 'edit-position-changed))]
 	  [after-delete
 	   (lambda (start len)
-	     (maybe-update-position-edit)
-	     (super-after-delete start len))]
-	  [after-edit-sequence
-	   (lambda ()
-	     (super-after-edit-sequence)
-	     (set! edit-sequence-depth (sub1 edit-sequence-depth))
-	     (when (= 0 edit-sequence-depth)
-	       (let ([frame (get-frame)])
-		 (when anchor-needs-updating
-		   (set! anchor-needs-updating #f)
-		   (send frame overwrite-status-changed))
-		 (when position-needs-updating
-		   (set! position-needs-updating #f)
-		   (update-position-edit)))))]
-	  [on-edit-sequence
-	   (lambda ()
-	     (set! edit-sequence-depth (add1 edit-sequence-depth))
-	     (super-on-edit-sequence))]))))
-  
+	     (super-after-delete start len)
+	     (enqueue-for-frame 'edit-position-changed))]))))
+
+  (define make-trace-edit%
+    (trace-methods get-extent
+		   get-descent
+		   get-snip-location
+		   get-space
+		   scroll-line-location
+		   find-scroll-line
+		   num-scroll-lines
+		   find-line
+		   find-position
+		   find-position-in-line
+		   get-snip-position-and-location
+		   get-visible-line-range
+		   get-visible-position-range
+		   last-line
+		   last-paragraph
+		   line-end-position
+		   line-length
+		   line-location
+		   line-paragraph
+		   line-start-position
+		   ;paragraph-end-line
+		   paragraph-end-position
+		   paragraph-start-line
+		   paragraph-start-position
+		   position-line
+		   position-location
+		   position-paragraph))
   
   (define media-edit% (make-media-edit%
 		       (make-std-buffer% 
