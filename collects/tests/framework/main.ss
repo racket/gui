@@ -2,6 +2,7 @@
 (require-library "cores.ss")
 (require-library "cmdlines.ss")
 (require-library "macro.ss")
+(require-library "function.ss")
 
 (unless (file-exists? (build-path (current-load-relative-directory) "receive-sexps-port.ss"))
   (call-with-output-file (build-path (current-load-relative-directory) "receive-sexps-port.ss")
