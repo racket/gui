@@ -33,7 +33,9 @@
 		 x y w h
 		 (if mdi-frame
 		     (cons 'mdi-child style)
-		     style))))
+		     (if use-metal?
+			 (cons 'metal style)
+			 style)))))
 
 (define special-font (send the-font-list find-or-create-font
 			   20 'decorative 
@@ -529,6 +531,7 @@
 	 (list "Panel" (lambda () (instantiate panel% (panel) [style '(deleted border)]))))))
 
 (define use-dialogs? #f)
+(define use-metal? #f)
 
 (define (big-frame h-radio? v-label? null-label? stretchy? special-label-font? special-button-font? 
 		   initially-disabled? alternate-init?)
@@ -1744,7 +1747,8 @@
   (define f (new frame% 
 		 [label "No-Clear Canvas Test"]
 		 [height 250]
-		 [width 300]))
+		 [width 300]
+		 [style '(metal)]))
   (define p (make-object vertical-panel% f))
   (define c% (class canvas%
                (inherit get-dc refresh)
@@ -1756,9 +1760,11 @@
 		   (let loop ([x 0])
 		     (unless (= x 500)
 		       (send dc set-brush red)
-		       (send dc draw-rectangle (- x delta) 0 25 400)
+		       (send dc draw-rectangle (- x delta) 0 25 30)
+		       (send dc draw-rectangle (- x delta) 40 25 390)
 		       (send dc set-brush blue)
-		       (send dc draw-rectangle (- (+ x 25) delta) 0 25 400)
+		       (send dc draw-rectangle (- (+ x 25) delta) 0 25 30)
+		       (send dc draw-rectangle (- (+ x 25) delta) 40 25 390)
 		       (loop (+ x 50))))))
 	       (define/override (on-event evt)
 		 (when (send evt dragging?)
@@ -1766,6 +1772,7 @@
 		   (refresh)))
 	       (super-new)))
   (new c% [parent p][style '(border)])
+  (new c% [parent p][style '(transparent)])
   (new c% [parent p][style '(no-autoclear border)])
   (send f show #t)
   f)
@@ -1967,6 +1974,9 @@
   (make-object check-box% "Position via Style" clockp
 	       (lambda (c e)
 		 (set! position-via-style? (send c get-value))))
+  (make-object check-box% "Metal" clockp
+	       (lambda (c e)
+		 (set! use-metal? (send c get-value))))
   (make-object vertical-panel% clockp) ; filler
   (let ([time (make-object message% "XX:XX:XX" clockp)])
     (make-object
