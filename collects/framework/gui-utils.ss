@@ -239,7 +239,9 @@
                         (send b2 get-width))])
             (send b1 min-width w)
             (send b2 min-width w)
-            (values b1 b2))))))
+	    (if (cancel-on-right?)
+		(values b1 b2)
+		(values b2 b1)))))))
 
   
   (define clickback-delta (make-object style-delta% 'change-underline #t))
