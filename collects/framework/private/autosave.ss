@@ -8,7 +8,7 @@
 
   (define autosave@
     (unit/sig framework:autosave^
-      (import [mred : mred^]
+      (import mred^
 	      [exit : framework:exit^]
 	      [preferences : framework:preferences^])
       

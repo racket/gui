@@ -3,7 +3,8 @@
 	   (lib "class.ss")
 	   "sig"
 	   (lib "mred-sig.ss" "mred")
-	   (lib "pretty.ss"))
+	   (lib "pretty.ss")
+	   (lib "list.ss"))
 
   (provide preferences@)
   (define preferences@
@@ -322,7 +323,7 @@
   
   (define ppanels null)
 
-  (define (add-general-panel)
+  (define (local-add-general-panel)
     (add-panel
      "General"
      (lambda (parent)
@@ -348,9 +349,9 @@
 	 (make-check 'framework:delete-forward? "Map delete to backspace" not not)
 
 	 ;; not exposed to the user anymore. Only left in for automated testing.
-	 ;(make-check 'framework:file-dialogs "Use platform-specific file dialogs"
-	 ;(lambda (x) (if x 'std 'common))
-	 ;(lambda (x) (eq? x 'std)))
+					;(make-check 'framework:file-dialogs "Use platform-specific file dialogs"
+					;(lambda (x) (if x 'std 'common))
+					;(lambda (x) (eq? x 'std)))
 	 
 	 (make-check 'framework:verify-exit "Verify exit" id id)
 	 (make-check 'framework:verify-change-format "Ask before changing save format" id id)
@@ -374,9 +375,11 @@
 		     id id)
 
 	 main)))
-    (set! add-general-panel void))
+    (set! local-add-general-panel void))
 
-  (define (add-font-panel)
+  (define (add-general-panel) (local-add-general-panel))
+
+  (define (local-add-font-panel)
     (let* ([font-families-name/const
 	    (list (list "Default" 'default)
 		  (list "Decorative" 'decorative)
@@ -517,7 +520,7 @@
 		  [category-message-user-min-sizes (collect 4)]
 		  [update-message-sizes
 		   (lambda (gets sets)
-		     (let ([width (mzlib:function:foldl (lambda (x l) (max l (x))) 0 gets)])
+		     (let ([width (foldl (lambda (x l) (max l (x))) 0 gets)])
 		       (for-each (lambda (set) (set width)) sets)))]
 		  [size-panel (make-object horizontal-panel% main '(border))]
 		  [initial-font-size
@@ -547,8 +550,10 @@
 	   (for-each (lambda (f) (f initial-font-size)) set-edit-fonts)
 	   (make-object message% "Restart to see font changes" main)
 	   main))))
-    (set! add-font-panel void))
+    (set! local-add-font-panel void))
   
+  (define (add-font-panel) (local-add-font-panel))
+
   (define preferences-dialog #f)
   
   (define add-panel

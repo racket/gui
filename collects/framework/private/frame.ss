@@ -6,7 +6,8 @@
 	   "../macro.ss"
 	   (lib "mred-sig.ss" "mred")
 	   (lib "list.ss")
-	   (lib "file.ss"))
+	   (lib "file.ss")
+	   (lib "etc.ss"))
 
   (provide frame@)
 

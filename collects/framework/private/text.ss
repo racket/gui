@@ -5,7 +5,8 @@
 	   "../macro.ss"
 	   "../gui-utils-sig.ss"
 	   (lib "mred-sig.ss" "mred")
-	   (lib "list.ss"))
+	   (lib "list.ss")
+	   (lib "etc.ss"))
   (provide text@)
 
   (define text@

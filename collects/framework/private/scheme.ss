@@ -1,8 +1,6 @@
 ;; originally by Dan Grossman
 ;; 6/30/95
 
-; Scheme mode for MrEd.
-
 (module scheme mzscheme
   (require (lib "unitsig.ss")
 	   (lib "class.ss")
@@ -10,7 +8,8 @@
 	   "../macro.ss"
 	   (lib "mred-sig.ss" "mred")
 	   (lib "list.ss")
-	   (lib "thread.ss"))
+	   (lib "thread.ss")
+	   (lib "etc.ss"))
 
   (provide scheme@)
 

@@ -160,7 +160,7 @@
 	       (todo-to-new-frames f))]
 	    
 	    [can-remove-frame?
-	     (opt-lambda (f)
+	     (lambda (f)
 	       (let ([new-frames 
 		      (remove
 		       f frames
@@ -169,7 +169,7 @@
 		     (empty-test)
 		     #t)))]
 	    [remove-frame
-	     (opt-lambda (f)
+	     (lambda (f)
 	       (when (eq? f active-frame)
 		 (set! active-frame #f))
 	       (let ([new-frames

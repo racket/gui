@@ -6,7 +6,8 @@
 	   (lib "mred-sig.ss" "mred")
 	   (lib "string.ss")
 	   (lib "list.ss")
-	   (lib "file.ss"))
+	   (lib "file.ss")
+	   (lib "etc.ss"))
 
   (provide finder@)
 

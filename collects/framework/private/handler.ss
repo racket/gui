@@ -94,12 +94,14 @@
 
 					; Open a file for editing
       (define edit-file
-	(opt-lambda (filename
-		     [make-default
+	(case-lambda
+	 [(filename) (edit-file
+		      filename
 		      (lambda ()
 			(let ([frame (make-object frame:text-info-file% filename)])
 			  (send frame show #t)
-			  frame))])
+			  frame)))]
+	 [(filename make-default)
 	  (gui-utils:show-busy-cursor
 	   (lambda ()
 	     (if filename
@@ -117,7 +119,7 @@
 			 (if handler
 			     (handler filename)
 			     (make-default)))))
-		 (make-default))))))
+		 (make-default))))]))
       
 					; Query the user for a file and then edit it
 
