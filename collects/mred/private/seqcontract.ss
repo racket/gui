@@ -191,11 +191,9 @@
     (let loop ([l l])
       (cond
         [(null? l) '<<unknown-state>>]
-        [else
-	 (let ([test (cadr (car l))])
-	 (if test
-	     (format "~s (~s)" (car (car l)) test)
-	     (loop (cdr l))))])))
+        [else (if (cadr (car l))
+                  (car (car l))
+                  (loop (cdr l)))])))
 
   (define (sequence-contract-violation dir fmt . args)
     (apply error
@@ -332,8 +330,8 @@ Matthew
        (style-has-changed [(style)] write-lock)]
       
       [flow-lock
-       (and (not (locked-for-read?))
-	    (locked-for-flow?))
+       (and (locked-for-flow?)
+            (not (locked-for-read?)))
 
        (get-text [() (x) (x y) (x y z) (x y z p)] flow-lock)
        (get-character [(start)] flow-lock)
