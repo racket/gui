@@ -5248,7 +5248,7 @@
                               '(border))]
 		 [update-ok (lambda () (send ok-button enable (not (null? (send (if dir? dirs files) get-selections)))))]
 		 [select-this-dir (and dir?
-                                (make-object button% "<- Select" dir-pane
+                                (make-object button% "<- &Select" dir-pane
                                   (lambda (b e)
                                     (send f show #f)
                                     (done))))]
