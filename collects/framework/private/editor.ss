@@ -197,10 +197,11 @@
 			   (send (send (send (send snip-admin get-snip) get-admin) get-editor)
 				 run-after-edit-sequence t sym)]
 			  [else
-			   (message-box "run-after-edit-sequence error"
-					(format "refresh-delayed? is #t but snip admin, ~s, is not an editor-snip-editor-admin<%>"
-						snip-admin))
-			   '(t)])))
+			   '(message-box "run-after-edit-sequence error"
+                                         (format "refresh-delayed? is #t but snip admin, ~s, is not an editor-snip-editor-admin<%>"
+                                                 snip-admin))
+			   '(t)
+                           (void)])))
 		  (t))
 	      (void)])]
 	  [define extend-edit-sequence-queue
