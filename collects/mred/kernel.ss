@@ -1401,6 +1401,5 @@
     set-menu-tester
     location->window
     set-dialogs)
-
 )
 ;; end
