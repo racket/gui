@@ -148,23 +148,6 @@
 	  (sequence
 	    (apply super-init args)))))
 
-    (define edits%
-      (class-asi wx:snip%
-	(private
-	  [edits null])
-	(public
-	  [add
-	   (lambda (edit)
-	     (unless (let loop ([e edits])
-		       (cond
-			 [(null? e) #f]
-			 [else (if (eq? this (car e))
-				   #t
-				   (loop (cdr e)))]))
-	       (set! edits (cons edit edits))))])))
-
-    (define edits (make-object edits%))
-
     (define make-edit%
       (lambda (super%)
 	(class (make-std-buffer% super%) args
@@ -403,7 +386,6 @@
 			   range-rectangles)))])
 	  (sequence
 	    (apply super-init args)
-	    (send edits add this)
 	    (let ([keymap (get-keymap)])
 	      (mred:keymap:set-keymap-error-handler keymap)
 	      (mred:keymap:set-keymap-implied-shifts keymap)
