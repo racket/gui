@@ -1085,6 +1085,12 @@ the-color-database only has a find-color method; the others were
  TODO: Miscellaneous Cleanup
 -----------------------------
 
+Filter overlapping controls for tabbing!
+
 Move the editor margin settings into ps-setup%?
 
 Add `on-tab' to canvas<%>?
+
+Add a `shutdown?' predicate.
+
+Blit: b&w in color -> monochrome
