@@ -247,7 +247,7 @@
 							   " already exists. "
 							   "Replace it?")
 							  #f
-							  'yes-no)
+							  '(yes-no))
 					     'yes))
 				    (let ([normal-path
 					   (with-handlers 

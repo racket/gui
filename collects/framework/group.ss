@@ -184,8 +184,9 @@
 	   (let/ec escape
 	     (for-each (lambda (f)
 			 (let ([frame (frame-frame f)])
-			   (if (send frame on-close)
-			       (send frame show #f)
+			   (if (send frame can-close?)
+			       (begin (send frame on-close)
+				      (send frame show #f))
 			       (escape #f))))
 		       frames)
 	     #t))]

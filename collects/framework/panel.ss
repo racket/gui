@@ -17,7 +17,9 @@
 	       (set! current-active-child c)))]
        [container-size
 	(lambda (l)
-	  (values (apply max (map car l)) (apply max (map cadr l))))]
+	  (if (null? l)
+	      (values 0 0)
+	      (values (apply max (map car l)) (apply max (map cadr l)))))]
        [place-children
 	(lambda (l width height)
 	  (let-values ([(h-align-spec v-align-spec) (get-alignment)])

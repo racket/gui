@@ -3,36 +3,44 @@
 	  [gui-utils : framework:gui-utils^])
   (rename (-exit exit))
   
-  (define callbacks '())
+  (define can?-callbacks '())
+  (define on-callbacks '())
   
-  (define insert-callback
+  (define insert-can?-callback
     (lambda (cb)
-      (set! callbacks (cons cb callbacks))
+      (set! can?-callbacks (cons cb can?-callbacks))
       (lambda ()
-	(set! callbacks
-	      (let loop ([cb-list callbacks])
+	(set! can?-callbacks
+	      (let loop ([cb-list can?-callbacks])
 		(cond
 		  [(null? cb-list) ()]
 		  [(eq? cb (car cb-list)) (cdr cb-list)]
 		  [else (cons (car cb-list) (loop (cdr cb-list)))]))))))
+
+  (define insert-on-callback
+    (lambda (cb)
+      (set! on-callbacks (cons cb on-callbacks))
+      (lambda ()
+	(set! on-callbacks
+	      (let loop ([cb-list on-callbacks])
+		(cond
+		 [(null? cb-list) ()]
+		 [(eq? cb (car cb-list)) (cdr cb-list)]
+		 [else (cons (car cb-list) (loop (cdr cb-list)))]))))))
   
   (define exiting? #f)
 
-  (define run-callbacks
-    (lambda ()
-      (let loop ([cb-list callbacks])
-	    (cond
-	      [(null? cb-list) #t]
-	      [(not ((car cb-list))) #f]
-	      [else (loop (cdr cb-list))]))))
-  
+  (define (can-exit?) (andmap (lambda (cb) (cb)) can?-callbacks))
+  (define (on-exit) (for-each (lambda (cb) (cb)) on-callbacks))
+
   (define -exit
     (opt-lambda ([just-ran-callbacks? #f])
       (unless exiting?
 	(dynamic-wind
 	 (lambda () (set! exiting? #t))
 	 (lambda ()
-	   (if (and (let*-values ([(w capw)
+	   (if (and (can-exit?)
+		    (let*-values ([(w capw)
 				   (if (eq? (system-type) 'windows)
 				       (values "exit" "Exit")
 				       (values "quit" "Quit"))]
@@ -40,13 +48,14 @@
 				   (string-append "Are you sure you want to "
 						  w
 						  "?")])
+		      (printf "showing dialog~n")
 		      (if (preferences:get 'framework:verify-exit)
 			  (if (gui-utils:get-choice message capw "Cancel")
-			      #t
-			      #f)
-			  #t))
-		    (or just-ran-callbacks?
-			(run-callbacks)))
-	       (exit)
+			      #f
+			      #t)
+			  #t)))
+	       (begin
+		 (on-exit)
+		 (printf "~a~n" '(exit)))
 	       #f))
 	 (lambda () (set! exiting? #f)))))))

@@ -56,8 +56,9 @@
   (register))
 
 (define-signature framework:exit^
-  (insert-callback
-   run-callbacks
+  (insert-on-callback
+   insert-can?-callback
+   can-exit?
    exit))
 
 (define-signature framework:gui-utils^

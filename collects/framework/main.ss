@@ -159,62 +159,67 @@
 	 (preferences:add-callback 'framework:tabify (lambda (p v) (update-list-boxes v)))
 	 main-panel))))
   
-  (preferences:read)
-  
   ;; groups
-  
-  (define at-most-one-maker
-    (lambda ()
-      (let ([s (make-semaphore 1)]
-	    [test #f])
-	(lambda (return thunk)
-	  (semaphore-wait s)
-	  (if test
-	      (begin (semaphore-post s)
-		     return)
-	      (begin
-		(set! test #t)
-		(semaphore-post s)
-		(begin0 (thunk)
-			(semaphore-wait s)
-			(set! test #f)
-			(semaphore-post s))))))))
   
   (preferences:set-default 'framework:exit-when-no-frames #t boolean?)
 
-  (let ([at-most-one (at-most-one-maker)])
+  (let ([at-most-one
+	 (let ([skip? #f])
+	   (lambda (answer thunk)
+	     (printf "at most one: skip? ~a~n" skip?)
+	     (if skip?
+		 answer
+		 (begin
+		   (set! skip? #t)
+		   (begin0 (thunk)
+			   (set! skip? #f))))))])
+
     (send (group:get-the-frame-group) set-empty-callbacks
+
+	  ;; empty test
+	  (lambda ()
+	    (printf "empty test~n")
+	    (begin0
+	     (if (preferences:get 'framework:exit-when-no-frames)
+		 (at-most-one #t
+			      (lambda ()
+				(printf "empty test.1~n")
+				(exit:can-exit?)))
+		 #t)
+	     (printf "empty test done~n")))
+
+	  ;; empty close down
 	  (lambda () 
+	    (printf "empty close down~n")
 	    (if (preferences:get 'framework:exit-when-no-frames)
 		(at-most-one (void) 
-			     (lambda () (exit:exit #t)))
-		(void)))
-	  (lambda ()
-	    (if (preferences:get 'framework:exit-when-no-frames)
-		(at-most-one #t
 			     (lambda ()
-			       (exit:run-callbacks)))
-		#t)))
+			       (printf "empty close down.1~n")
+			       (exit:exit)))
+		(void))))
     
-    (exit:insert-callback
+    (exit:insert-can?-callback
      (lambda ()
+       (printf "exit callback~n")
        (at-most-one
 	#t
 	(lambda ()
 	  (send (group:get-the-frame-group) close-all))))))
   
-  ;; misc other stuff
-  
-  (exit:insert-callback 
+  (exit:insert-on-callback 
    (lambda ()
-     (with-handlers ([(lambda (x) #t)
+     (with-handlers ([(lambda (x) (void))
 		      (lambda (exn)
 			(message-box
 			 "Saving Prefs"
 			 (format "Error saving preferences: ~a"
 				 (exn-message exn))))])
+       (printf "saving preferences~n")
        (preferences:save))))
   
   ;(wx:application-file-handler edit-file) ;; how to handle drag and drop?
 
+  (preferences:read)
+  (preferences:set 'framework:exit-when-no-frames #t)
+  
   (void))
