@@ -608,10 +608,10 @@
                       (delete pos (+ l pos))
                       c)
                      (else
-                      (delete pos (+ l pos))                      
+                      (delete pos (+ l pos))
                       (get-close-paren pos (cdr closers)))))))))
           
-          (inherit insert delete flash-on)
+          (inherit insert delete flash-on on-default-char)
           ;; See docs
           (define/public (insert-close-paren pos char flash? fixup?)
             (let ((closer
@@ -620,7 +620,9 @@
                      (get-close-paren pos (if fixup? (map symbol->string (map cadr pairs)) null)))))
               (end-edit-sequence)
               (let ((insert-str (if closer closer (string char))))
-                (for-each (lambda (c) (insert c)) (string->list insert-str))
+                (for-each (lambda (c)
+                            (on-default-char (new key-event% (key-code c))))
+                          (string->list insert-str))
                 (when flash?
                   (unless stopped?
                     (let ((to-pos (backward-match (+ (string-length insert-str) pos) 0)))
@@ -631,8 +633,7 @@
           
           (define/public (debug-printout)
             (let* ((x null)
-                   (f (λ (a b c)
-                        (set! x (cons (list a b c) x)))))
+                   (f (λ (a b c) (set! x (cons (list a b c) x)))))
               (send tokens for-each f)
               (printf "tokens: ~e~n" (reverse x))
               (set! x null)
