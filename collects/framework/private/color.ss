@@ -279,10 +279,12 @@
 		(with-handlers ((exn:fail?
 				 (lambda (exn)
 				   (parameterize ((print-struct #t))
-				     (printf "colorer thread: ~s\n" exn))
+				     ((error-display-handler) 
+                                      (format "exception in colorer thread: ~s" exn)
+                                      exn))
 				   (semaphore-wait mutex-lock))))
 		  (re-tokenize (open-input-text-editor this current-pos end-pos
-						       (lambda (x) (values #f 1)))
+						       (lambda (x) #f))
 			       current-pos))
                 (set! up-to-date? #t)
                 (semaphore-post mutex-lock)
