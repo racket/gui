@@ -21,7 +21,8 @@
 	   [framework:keys : framework:keys^]
 	   [framework:test : framework:test^]
 	   [m : mred^])
-   (link [f : frameworkc^ ((require-relative-library "frameworkc.ss")
+   (link [prefs-file : framework:prefs-file^ ((require-relative-library "prefs-file.ss"))]
+	 [f : frameworkc^ ((require-relative-library "frameworkc.ss")
 			   core:string
 			   core:function
 			   core:pretty-print
@@ -29,7 +30,8 @@
 			   core:thread
 			   m
 			   framework:keys
-			   framework:test)])
+			   framework:test
+			   prefs-file)])
    (export (open f)))
   #f
   mzlib:string^

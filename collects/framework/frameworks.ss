@@ -9,7 +9,10 @@
 (require-relative-library "macro.ss")
 
 (require-relative-library "tests.ss")
-(Require-relative-library "guiutilss.ss")
+(require-relative-library "guiutilss.ss")
+
+(define-signature framework:prefs-file^
+  (preferences-filename))
 
 (define-signature framework:version^
   (add-spec

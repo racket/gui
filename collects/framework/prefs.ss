@@ -1,5 +1,6 @@
 (unit/sig framework:preferences^
   (import mred^
+	  [prefs-file : framework:prefs-file^]
 	  [exn : framework:exn^]
 	  [exit : framework:exit^]
 	  [panel : framework:panel^]
@@ -8,11 +9,6 @@
 
   (rename [-read read])
   
-  (define preferences-filename (build-path (find-system-path 'pref-dir)
-					   (case (system-type)
-					     [(macos) "MrEd Preferences"]
-					     [(windows) "mred.pre"]
-					     [else ".mred.prefs"])))
   (define default-preferences-filename (build-path (collection-path "defaults") "prefs.ss"))
   
   ;; preferences : sym -o> (union marshalled pref)
@@ -211,13 +207,13 @@
 			   (message-box
 			    "Error saving preferences"
 			    (exn-message exn)))])
-	  (call-with-output-file preferences-filename
+	  (call-with-output-file prefs-file:preferences-filename
 	    (lambda (p)
 	      (mzlib:pretty-print:pretty-print
 	       (hash-table-map preferences marshall-pref) p))
 	    'truncate 'text)))))
 
-  (define (for-each-pref-in-file parse-pref preferences-filename)
+  (define (for-each-pref-in-file parse-pref prefs-file:preferences-filename)
     (let/ec k
       (let ([err
 	     (lambda (input msg)
@@ -232,7 +228,7 @@
 							       (string-length ell)))
 					    ell))])
 			      (format "found bad pref in ~a: ~a~n~a"
-				      preferences-filename msg s2))))])
+				      prefs-file:preferences-filename msg s2))))])
 	(let ([input (with-handlers
 			 ([(lambda (exn) #t)
 			   (lambda (exn)
@@ -241,7 +237,7 @@
 			      (format "Error reading preferences~n~a"
 				      (exn-message exn)))
 			     (k #f))])
-		       (call-with-input-file preferences-filename
+		       (call-with-input-file prefs-file:preferences-filename
 			 read
 			 'text))])
 	  (let loop ([input input])
@@ -296,7 +292,7 @@
 
   ;; read : -> void
   (define (-read)
-    (read-from-file-to-ht preferences-filename preferences))
+    (read-from-file-to-ht prefs-file:preferences-filename preferences))
 
 
   ;; read in the saved defaults. These should override the
@@ -364,7 +360,8 @@
 		     "Use separate dialog for searching"
 		     id id)
 
-	 main))))
+	 main)))
+    (set! add-general-panel void))
 
   (define (add-font-panel)
     (let* ([font-families-name/const
@@ -536,7 +533,8 @@
 	      #t))
 	   (for-each (lambda (f) (f initial-font-size)) set-edit-fonts)
 	   (make-object message% "Restart to see font changes" main)
-	   main)))))
+	   main))))
+    (set! add-font-panel void))
   
   (define preferences-dialog #f)
   

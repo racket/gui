@@ -45,16 +45,22 @@
 		  name)))]
 
 	 [(quit-on-close?) #t]
+	 [(dropped-files) null]
+	 [(get-dropped-files) (lambda () dropped-files)]
 	 [(splash-frame%)
 	  (class frame% (title)
 	    (override
-	      [on-close
-	       (lambda ()
-		 (when quit-on-close?
-		   (exit)))])
+	     [on-drop-file
+	      (lambda (filename)
+		(set! dropped-files (cons filename dropped-files)))]
+	     [on-close
+	      (lambda ()
+		(when quit-on-close?
+		  (exit)))])
 	    (sequence (super-init title)))]
 	 [(frame) (parameterize ([current-eventspace (make-eventspace)])
 		    (make-object splash-frame% title))]
+	 [(_0) (send frame accept-drop-files #t)]
 	 [(bitmap-flag)
 	  (let ([len (string-length filename)])
 	    (if (<= len 4)
@@ -122,5 +128,6 @@
 	    (set! quit-on-close? #f)
 	    (send frame show #f))])
       (values
+       get-dropped-files
        shutdown-splash
        close-splash))))
