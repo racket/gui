@@ -45,7 +45,9 @@
 		  '(define defmacro define-macro
 		     define-values
                      define/public define/override define/private define/field
-		     define-signature define-syntax define-schema))
+		     define-signature 
+                     define-syntax define-syntaxes
+                     define-schema))
 	(for-each (lambda (x) 
 		    (hash-table-put! hash-table x 'begin))
 		  '(cond case-lambda
