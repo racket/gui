@@ -490,7 +490,7 @@
 	  [default-end 'eof]
 	  [default-get-start #t]
 	  [default-case-sensitive? #t]
-	  [default-pop-out? #t])
+	  [default-pop-out? #f])
       (case-lambda
        [(edit str)
 	(find-string-embedded edit str default-direction default-start default-end default-get-start default-case-sensitive? default-pop-out?)]
