@@ -556,13 +556,15 @@
 	
 	(public
 	  [load-file
-	   (opt-lambda ([filename null] [format wx:const-media-ff-guess])
+	   (opt-lambda ([filename null] 
+			[format wx:const-media-ff-guess]
+			[show-dialog? #f])
 	     (let ([filename (if (null? filename)
 				 (mred:finder:get-file)
 				 filename)])
 	       (and filename
 		    (if (file-exists? filename)
-			(super-load-file filename format)
+			(super-load-file filename format show-dialog?)
 			(set-filename filename)))))])
 	(public
 	  [autowrap-bitmap null])
@@ -851,6 +853,45 @@
 	(sequence
 	  (apply super-init args)))))
   
+  (define make-info-buffer%
+    (lambda (super-info-edit%)
+      (class-asi super-info-edit%
+	(inherit get-frame)
+	(rename ;[super-after-edit-sequence after-edit-sequence]
+	        ;[super-on-edit-sequence on-edit-sequence]
+		[super-lock lock])
+	(private
+	  [edit-sequence-depth 0]
+	  [lock-needs-updating #f]
+	  [maybe-update-lock-icon
+	   (lambda ()
+	     (if (= edit-sequence-depth 0)
+		 (let ([frame (get-frame)])
+		   (when frame
+		     (send frame lock-status-changed)))
+		 (set! lock-needs-updating #t)))])
+#|
+	(public
+	  [after-edit-sequence
+	   (lambda ()
+	     (super-after-edit-sequence)
+	     (set! edit-sequence-depth (sub1 edit-sequence-depth))
+	     (when (= 0 edit-sequence-depth)
+	       (let ([frame (get-frame)])
+		 (when lock-needs-updating
+		   (set! lock-needs-updating #f)
+		   (send frame lock-status-changed)))))]
+	  [on-edit-sequence
+	   (lambda ()
+	     (set! edit-sequence-depth (add1 edit-sequence-depth))
+	     (super-on-edit-sequence))])
+|#
+	(public
+	  [lock
+	   (lambda (x)
+	     (super-lock x)
+	     (maybe-update-lock-icon))]))))
+  
   (define make-info-edit%
     (lambda (super-info-edit%)
       (class-asi super-info-edit%
@@ -861,13 +902,11 @@
 		[super-on-edit-sequence on-edit-sequence]
 		[super-after-insert after-insert]
 		[super-after-delete after-delete]
-		[super-lock lock]
 		[super-set-overwrite-mode set-overwrite-mode]
 		[super-set-anchor set-anchor])
 	(private
 	  [edit-sequence-depth 0]
 	  [position-needs-updating #f]
-	  [lock-needs-updating #f]
 	  [anchor-needs-updating #f]
 	  [overwrite-needs-updating #f]
 	  [maybe-update-anchor
@@ -884,13 +923,6 @@
 		   (when frame
 		     (send frame overwrite-status-changed)))
 		 (set! overwrite-needs-updating #t)))]
-	  [maybe-update-lock-icon
-	   (lambda ()
-	     (if (= edit-sequence-depth 0)
-		 (let ([frame (get-frame)])
-		   (when frame
-		     (send frame lock-status-changed)))
-		 (set! lock-needs-updating #t)))]
 	  [maybe-update-position-edit
 	   (lambda ()
 	     (if (= edit-sequence-depth 0)
@@ -911,10 +943,6 @@
 	   (lambda (x)
 	     (super-set-overwrite-mode x)
 	     (maybe-update-overwrite))]
-	  [lock
-	   (lambda (x)
-	     (super-lock x)
-	     (maybe-update-lock-icon))]
 	  [after-set-position
 	   (lambda ()
 	     (maybe-update-position-edit)
@@ -938,10 +966,7 @@
 		   (send frame overwrite-status-changed))
 		 (when position-needs-updating
 		   (set! position-needs-updating #f)
-		   (update-position-edit))
-		 (when lock-needs-updating
-		   (set! lock-needs-updating #f)
-		   (send frame lock-status-changed)))))]
+		   (update-position-edit)))))]
 	  [on-edit-sequence
 	   (lambda ()
 	     (set! edit-sequence-depth (add1 edit-sequence-depth))
@@ -953,7 +978,7 @@
 			mred:connections:connections-media-edit%)))
   (define searching-edit% (make-searching-edit% media-edit%))
   
-  (define info-edit% (make-info-edit% searching-edit%))
+  (define info-edit% (make-info-edit% (make-info-buffer% searching-edit%)))
   (define clever-file-format-edit% (make-clever-file-format-edit% info-edit%))
   (define file-edit% (make-file-buffer% clever-file-format-edit%))
   (define backup-autosave-edit% (make-backup-autosave-buffer% file-edit%))
@@ -964,6 +989,7 @@
   
   (define pasteboard% (make-pasteboard%
 		       mred:connections:connections-media-pasteboard%))
-  (define file-pasteboard% (make-file-buffer% pasteboard%))
+  (define info-pasteboard% (make-info-buffer% pasteboard%))
+  (define file-pasteboard% (make-file-buffer% info-pasteboard%))
   (define backup-autosave-pasteboard% (make-backup-autosave-buffer% 
 				       file-pasteboard%)))
