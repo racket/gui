@@ -1,6 +1,7 @@
 (module mred mzscheme
   (require (prefix wx: (lib "kernel.ss" "mred" "private")))
-  (require (lib "class2.ss"))
+  (require (lib "class2.ss")
+	   (lib "class100.ss"))
 
 ;;;;;;;;;;;;;;; Constants ;;;;;;;;;;;;;;;;;;;;
 
@@ -425,7 +426,7 @@
 	    (not (send i is-shown?)))
 	null]
        [else (list i)]))
-    (ivar f children))))
+    (send f get-children))))
 
 (define (filter-overlapping l)
   (if (null? l)
@@ -458,7 +459,7 @@
 
 (define wx-make-window%
   (lambda (% top?)
-    (class % args
+    (class100 % args
       (rename [super-on-set-focus on-set-focus]
 	      [super-on-kill-focus on-kill-focus]
 	      [super-drag-accept-files drag-accept-files]
@@ -490,8 +491,8 @@
 		  (send (wx->proxy this) on-superwindow-show vis?))))))]
 	[queue-visible
 	 (lambda ()
-	   (parameterize ([wx:current-eventspace (ivar (get-top-level) eventspace)])
-	     (wx:queue-callback (entry-point on-visible) wx:middle-queue-key)))])
+	   (parameterize ([wx:current-eventspace (send (get-top-level) get-eventspace)])
+	     (wx:queue-callback (entry-point (lambda () (on-visible))) wx:middle-queue-key)))])
       (public
 	[on-active
 	 (lambda ()
@@ -503,22 +504,25 @@
 		  (send (wx->proxy this) on-superwindow-enable act?))))))]
 	[queue-active
 	 (lambda ()
-	   (parameterize ([wx:current-eventspace (ivar (get-top-level) eventspace)])
-	     (wx:queue-callback (entry-point on-active) wx:middle-queue-key)))]
+	   (parameterize ([wx:current-eventspace (send (get-top-level) get-eventspace)])
+	     (wx:queue-callback (entry-point (lambda () (on-active))) wx:middle-queue-key)))]
 
 	;; Needed for radio boxes:
 	[orig-enable
-	 (lambda args (apply super-enable args))])
+	 (lambda args (super-enable . args))])
       
+      (private
+	[can-accept-drag? #f])
+
       (public
-	[accept-drag? #f]
+	[accept-drag? (lambda () can-accept-drag?)]
 	[get-container (lambda () container)]
 	[set-container (lambda (c) (set! container c))]
 	[get-window (lambda () this)]
 	[dx (lambda () 0)]
 	[dy (lambda () 0)]
 	[handles-key-code (lambda (x alpha? meta?) #f)]
-	[char-to void]
+	[char-to (lambda () (void))]
 	[get-top-level
 	 (lambda ()
 	   (unless top-level
@@ -541,20 +545,20 @@
 
 	[drag-accept-files
 	 (lambda (on?)
-	   (set! accept-drag? (and on? #t))
+	   (set! can-accept-drag? (and on? #t))
 	   (super-drag-accept-files on?))]
 	[on-set-focus
 	 (entry-point
 	  (lambda ()
 	    (send (get-top-level) set-focus-window this)
 	    (set! focus? #t)
-	    (as-exit super-on-set-focus)))]
+	    (as-exit (lambda () (super-on-set-focus)))))]
 	[on-kill-focus
 	 (entry-point
 	  (lambda ()
 	    (send (get-top-level) set-focus-window #f)
 	    (set! focus? #f)
-	    (as-exit super-on-kill-focus)))])
+	    (as-exit (lambda () (super-on-kill-focus)))))])
       (public
 	[has-focus? (lambda () focus?)])
       (sequence 
@@ -614,10 +618,13 @@
        (lambda (b)
 	 (set! enabled? (and b #t))
 	 (super-enable b))])
-    (public
+    (private
       [eventspace (if parent
 		      (ivar parent eventspace)
-		      (wx:current-eventspace))]
+		      (wx:current-eventspace))])
+
+    (public
+      [get-eventspace (lambda () eventspace)]
 
       [is-enabled?
        (lambda () enabled?)]
@@ -1307,7 +1314,7 @@
 				    (queue-window-callback
 				     af
 				     (entry-point
-				      (lambda () (when (ivar af accept-drag?)
+				      (lambda () (when (send af accept-drag?)
 						   (send af on-drop-file f))))))))))
 
 (wx:application-quit-handler (entry-point
@@ -1951,8 +1958,14 @@
 	     (super-set-focus)
 	     (send (car children) set-focus)))])
     
+    (private
+      ;; list of panel's contents.
+      [children null])
+      
     (public
       [need-move-children (lambda () (set! move-children? #t))]
+
+      [get-children (lambda () children)]
 
       [border
        (let ([curr-border const-default-border])
@@ -1963,9 +1976,6 @@
 	   (set! curr-border new-val)
 	   (force-redraw)]))]
 
-      ; list of panel's contents.
-      [children null]
-      
       ; add-child: adds an existing child to the panel.
       ; input: new-child: item% descendant to add
       ; returns: nothing
@@ -2970,7 +2980,7 @@
       [accept-drop-files
        (entry-point-0-1
 	(case-lambda
-	 [() (ivar wx accept-drag?)]
+	 [() (send wx accept-drag?)]
 	 [(on?) (send wx drag-accept-files on?)]))]
       
       [client->screen (entry-point-2
