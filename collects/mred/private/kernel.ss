@@ -10,8 +10,6 @@
   
   (define kernel:initialize-primitive-object
     (dynamic-require '#%mred-kernel 'initialize-primitive-object))
-  (define kernel:find-in-primitive-class
-    (dynamic-require '#%mred-kernel 'find-in-primitive-class))
   (define kernel:primitive-class-find-method
     (dynamic-require '#%mred-kernel 'primitive-class-find-method))
   (define kernel:primitive-class-prepare-struct-type!
@@ -411,7 +409,7 @@
   (define-class control-event% event% (event-type [time-stamp 0])
     get-event-type
     set-event-type)
-  (define-class popup-event% control-event% ([menu-id 0] [time-stamp 0])
+  (define-class popup-event% control-event% #f
     get-menu-id
     set-menu-id)
   (define-class scroll-event% event% ([event-type 'thumb] [direction 'vertical] [position 0] [time-stamp 0])
