@@ -631,7 +631,7 @@ begin-busy-cursor end-busy-cursor is-busy-cursor?
 bell
 label->plain-label
 get-resource write-resource
-yield flush-display
+yield sleep/yield flush-display
 get-face-list - formerly wx:get-font-list
 
 find-graphical-system-path - formerly wx:find-path

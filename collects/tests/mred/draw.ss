@@ -622,7 +622,7 @@
 				(error 'draw-test "shouldn't have been a clipping region"))
 			      (let*-values ([(x y w h) (send r get-bounding-box)]
 					    [(l) (list x y w h)])
-				(unless (equal? l
+				(unless (andmap = l
 						(case clip
 						  [(rect) '(100. -25. 10. 400.)]
 						  [(poly circle poly-rect) '(0. 60. 180. 180.)]
