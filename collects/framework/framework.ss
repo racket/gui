@@ -38,8 +38,8 @@
     ""
     "\\rawscm{(version:add-version-spec 's 1)}"
     ""
-    "in version 201 will make the version string be \rawscm{"201s1"}. The"
-    "symbols \rawscm{'f} and \rawscm{'d} are used internally for framework and"
+    "in version 201 will make the version string be \\rawscm{\"201s1\"}. The"
+    "symbols \\rawscm{'f} and \\rawscm{'d} are used internally for framework and"
     "drscheme revisions.")
    (version:version
     (-> string?)
@@ -133,7 +133,7 @@
     ""
     "The last argument, \\var{test} is used as a safeguard. That function is"
     "called to determine if a preference read in from a file is a valid"
-    "preference. If \\var{test} returns \rawscm{\\#t}, then the preference is"
+    "preference. If \\var{test} returns \\rawscm{\\#t}, then the preference is"
     "treated as valid. If \\var{test} returns \\rawscm{\\#f} then the default is"
     "used."
 
@@ -165,7 +165,7 @@
    (preferences:save
     (-> boolean?)
     ()
-    "\rawscm{(preferences:save-user-preferences)} saves the user's preferences to disk,"
+    "\\rawscm{(preferences:save-user-preferences)} saves the user's preferences to disk,"
     "potentially marshalling some of the preferences."
     ""
     "Returns \\scm{\\#f} if saving the preferences fails and \\scm{\\#t} otherwise.")
@@ -183,6 +183,7 @@
      ((is-a?/c area-container-window<%>) . -> . (is-a?/c area-container-window<%>))
      . -> .
      void?)
+    (name f)
    "\\rawscm{preferences:add-preference-panel} adds the result of"
    "\\var{f} with name \\var{name} to the preferences dialog"
    "box. When the preference dialog is opened for the first"
@@ -225,6 +226,7 @@
       . -> .
       void?)
      (-> (union false? (is-a?/c frame%) (is-a?/c dialog%))))
+    ((frame) ())
     "This is a parameter whose value is used as the parent of the ``Are you"
     "sure you want to exit'' dialog."
     ""
@@ -327,7 +329,7 @@
     "@flink put-file %"
     "."
     ""
-    "Its default value is \rawscm{\"\"}.")
+    "Its default value is \\rawscm{\"\"}.")
    (finder:default-filters
     (case->
      ((listof (list/p string? string?)) . -> . void)
@@ -354,13 +356,13 @@
       (union (is-a?/c top-level-window<%>) false?))
      (union false? string?))
     (()
-     (name "Untitled")
-     (directory #f)
-     (replace? #f)
-     (prompt "Select File")
-     (filter #f)
-     (filter-msg "That filename does not have the right form.")
-     (parent (finder:dialog-parent-parameter)))
+     ((name "Untitled")
+      (directory #f)
+      (replace? #f)
+      (prompt "Select File")
+      (filter #f)
+      (filter-msg "That filename does not have the right form.")
+      (parent (finder:dialog-parent-parameter))))
     "This procedure queries the user for a single filename, using a"
     "platform-independent dialog box. Consider using"
     "@flink finder:put-file "
@@ -400,13 +402,13 @@
       (union (is-a?/c top-level-window<%>) false?))
      (union false? string?))
     (()
-     (name "Untitled")
-     (directory #f)
-     (replace? #f)
-     (prompt "Select File")
-     (filter #f)
-     (filter-msg "That filename does not have the right form.")
-     (parent (finder:dialog-parent-parameter)))
+     ((name "Untitled")
+      (directory #f)
+      (replace? #f)
+      (prompt "Select File")
+      (filter #f)
+      (filter-msg "That filename does not have the right form.")
+      (parent (finder:dialog-parent-parameter))))
     "This procedure queries the user for a single filename, using a"
     "platform-dependent dialog box. Consider using"
     "@flink finder:put-file "
@@ -433,7 +435,7 @@
     "@flink finder:get-file "
     "instead of this function."
     ""
-    "See section \ref{selecting-a-filename} for more information.")
+    "See section \\ref{selecting-a-filename} for more information.")
    (finder:put-file
     (opt->
      ()
@@ -446,21 +448,21 @@
       (union (is-a?/c top-level-window<%>) false?))
      (union false? string?))
     (()
-     (name "Untitled")
-     (directory #f)
-     (replace? #f)
-     (prompt "Select File")
-     (filter #f)
-     (filter-msg "That filename does not have the right form.")
-     (parent (finder:dialog-parent-parameter)))
+     ((name "Untitled")
+      (directory #f)
+      (replace? #f)
+      (prompt "Select File")
+      (filter #f)
+      (filter-msg "That filename does not have the right form.")
+      (parent (finder:dialog-parent-parameter))))
     "Queries the user for a filename."
     ""
-    "If the result of \rawscm{(%"
+    "If the result of \\rawscm{(%"
     "@flink preferences:get"
     "'framework:file-dialogs)}"
-    "is \rawscm{'std} this calls "
+    "is \\rawscm{'std} this calls "
     "@flink finder:std-put-file %"
-    ", and if it is \rawscm{'common}, "
+    ", and if it is \\rawscm{'common}, "
     "@flink finder:common-put-file"
     "is called.")
    (finder:get-file
@@ -480,12 +482,12 @@
       (parent #f)))    
     "Queries the user for a filename."
     ""
-    "If the result of \rawscm{(%"
+    "If the result of \\rawscm{(%"
     "@flink preferences:get"
     "'framework:file-dialogs)}"
-    "is \rawscm{'std} this calls "
+    "is \\rawscm{'std} this calls "
     "@flink finder:std-get-file %"
-    ", and if it is \rawscm{'common}, "
+    ", and if it is \\rawscm{'common}, "
     "@flink finder:common-get-file"
     "is called.")
    (finder:common-get-file-list
@@ -498,11 +500,11 @@
       (union false? (is-a?/c top-level-window<%>)))
      (union string? false?))
     (()
-     (directory #f)
-     (prompt "Select File")
-     (filter #f)
-     (filter-msg "That filename does not have the right form.")
-     (parent #f))
+     ((directory #f)
+      (prompt "Select File")
+      (filter #f)
+      (filter-msg "That filename does not have the right form.")
+      (parent #f)))
     "This procedure queries the user for a list of filenames, using a"
     "platform-independent dialog box."
     ""
@@ -510,6 +512,7 @@
 
    (frame:reorder-menus
     ((is-a?/c frame%) . -> . void?)
+    (frame)
     "Re-orders the menus in a frame. This is useful in conjunction with the "
     "@link frame:standard-menus "
     "class. After instantiating that class and adding menus, the menus will"
@@ -517,6 +520,7 @@
     "the menubar and the Help menu at the end.")
    (group:get-the-frame-group
     (-> (is-a?/c group:%))
+    ()
     "This returns the frame group.")
    (handler:handler?
     (any? . -> . boolean?)
@@ -558,7 +562,7 @@
     "@flink handler:insert-format-handler %"
     "."
     ""
-    "It finds a handler based on \var{name}.")
+    "It finds a handler based on \\var{name}.")
    (handler:find-format-handler
     (string? . -> . (string? . -> . (is-a?/c frame:editor<%>)))
     (filename)
@@ -566,14 +570,14 @@
     "@flink handler:insert-format-handler %"
     "."
     ""
-    "It finds a handler based on \var{filename}.")
+    "It finds a handler based on \\var{filename}.")
    (handler:edit-file
     (opt->
      ((union string? false?))
      ((-> (is-a?/c frame:editor<%>)))
      (is-a?/c frame:editor<%>))
     ((filename)
-     (make-default (lambda () (make-object frame:text-info-file\% filename))))
+     ((make-default (lambda () (make-object frame:text-info-file\% filename)))))
     "This function creates a frame to edit a file. "
     ""
     "It invokes the appropriate format handler to open the file (see"
@@ -1027,7 +1031,8 @@
       (and/f exact? integer?))
      ((union false? (is-a?/c match-cache:%)))
      (and/f exact? integer?))
-    ((text start end) ((cache #f)))
+    ((text start end)
+     ((cache #f)))
     "Returns the beginning of the interior of the (non-atomic) S-expression"
     "containing \\var{start}.")
 
@@ -1038,7 +1043,8 @@
       (and/f exact? integer?))
      ((union false? (is-a?/c match-cache:%)))
      (and/f exact? integer?))
-    ((text start end) ((cache #f)))
+    ((text start end)
+     ((cache #f)))
     "Specializes "
     "@flink paren:backward-match"
     "to Scheme.")
@@ -1057,7 +1063,8 @@
       (and/f exact? integer?))
      ((union false? (is-a?/c match-cache:%)))
      (and/f exact? integer?))
-    ((text start end) ((cache #f)))
+    ((text start end)
+     ((cache #f)))
     "Specializes"
     "@flink paren:forward-match"
     "to Scheme.")
@@ -1111,6 +1118,7 @@
 
     (scheme:get-sexp-snip-class
      (-> (subclass?/c scheme:sexp-snip%))
+     ()
      "Returns the class used for the collapsing sexpression.")
 
     (scheme:set-sexp-snip-class
@@ -1129,7 +1137,8 @@
       (boolean?
        (union false? (is-a?/c match-cache:%)))
       (union false? (and/f exact? integer?)))
-     ((text start end parens quotes comments) ((containing? #f) (cache #f)))
+     ((text start end parens quotes comments)
+      ((containing? #f) (cache #f)))
      "Returns the position in \\var{text} that ``opens'' the text ending at "
      "\\var{start}, or \\rawscm{\\#f} if no opening position is found (either because a "
      "parenthesis mis-match is discovered or the \\var{end} boundary was"
@@ -1198,7 +1207,8 @@
        (listof string?))
       ((union false? (is-a?/c match-cache:%)))
       (union false? (and/f exact? integer?)))
-     ((text start end parens quotes comments) ((cache #f)))
+     ((text start end parens quotes comments)
+      ((cache #f)))
      "This function returns the position in \\var{text} that ``closes'' the"
      "text at \\var{start}, or \\rawscm{\\#f} if no closing position is found"
      "(either because a parenthesis mis-match is discovered or the \\var{end}"
@@ -1266,7 +1276,7 @@
     (color-model:xyz?
      (any? . -> . boolean?)
      (val)
-     "Determines if \\arg{val} an xyz color record.")
+     "Determines if \\var{val} an xyz color record.")
 
     (color-model:xyz-x
      (color-model:xyz? . -> . number?)

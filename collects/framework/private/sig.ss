@@ -440,7 +440,8 @@
     (text<%>
      text%
      text-mixin
-     sexp-snip%))
+     sexp-snip%
+     sexp-snip<%>))
   (define-signature framework:scheme-fun^
     (get-wordbreak-map
      init-wordbreak-map

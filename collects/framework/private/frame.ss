@@ -1550,11 +1550,9 @@
                     (clear-search-highlight)))
               (super-on-activate on?)))
           
-          (public get-text-to-search hide-search unhide-search)
-          (define get-text-to-search
-            (lambda ()
-              (error 'get-text-to-search "abstract method in searchable-mixin")))
-          (define hide-search
+          (define/public (get-text-to-search)
+	    (error 'get-text-to-search "abstract method in searchable-mixin"))
+          (define/public hide-search
             (opt-lambda ([startup? #f])
               (send super-root change-children
                     (lambda (l)
@@ -1566,7 +1564,7 @@
                   (send canvas focus)))
               (set! hidden? #t)))
           
-          (define (unhide-search)
+          (define/public (unhide-search)
             (when (and hidden?
                        (not (preferences:get 'framework:search-using-dialog?)))
               (set! hidden? #f)
