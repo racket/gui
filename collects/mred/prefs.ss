@@ -235,12 +235,12 @@
 	    (when (file-exists? preferences-filename)
 	      (let ([err
 		     (lambda (input)
-		       (mred:gui-utils:message-box (format "found bad pref: ~n~a" input)
-						   "Preferences"))])
+		       (wx:message-box (format "found bad pref: ~n~a" input)
+				       "Preferences"))])
 		(let loop ([input (with-handlers
 				      ([(lambda (exn) #t)
 					(lambda (exn)
-					  (mred:gui-utils:message-box
+					  (wx:message-box
 					   (format "Error saving preferences~n~a"
 						   (exn-message exn))
 					   "Error reading preferences")
