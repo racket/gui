@@ -14,9 +14,20 @@
       (import mred^
 	      [preferences : framework:preferences^]
 	      [exit : framework:exit^]
-	      [group : framework:group^])
+	      [group : framework:group^]
+              [handler : framework:handler^])
       
       ;; preferences
+      (preferences:set-default 'framework:recent-max-count 
+                               50 
+                               (lambda (x) (and (number? x)
+                                                (x . > . 0) 
+                                                (integer? x))))
+      (preferences:add-callback
+       'framework:recent-max-count
+       (lambda (p v)
+         (handler:size-recently-opened-files v)))
+      
       (preferences:set-default 'framework:last-url-string "" string?)
       (preferences:set-default 'framework:recently-opened-sort-by 'age 
                                (lambda (x) (or (eq? x 'age) (eq? x 'name))))

@@ -374,6 +374,21 @@
                         (lambda (p v)
                           (send c set-value (pref->bool v))))))
 
+      (define (make-recent-items-slider parent)
+        (let ([slider (instantiate slider% ()
+                        (parent parent)
+                        (label (string-constant number-of-open-recent-items))
+                        (min-value 1)
+                        (max-value 100)
+                        (init-value (get 'framework:recent-max-count))
+                        (callback (lambda (slider y)
+                                    (set 'framework:recent-max-count
+                                         (send slider get-value)))))])
+          (add-callback
+           'framework:recent-max-count
+           (lambda (p v)
+             (send slider set-value v)))))
+      
       (define (add-scheme-checkbox-panel)
         (letrec ([add-scheme-checkbox-panel
                   (lambda ()
@@ -403,6 +418,7 @@
                     (add-checkbox-panel 
                      (string-constant editor-prefs-panel-label)
                      (lambda (editor-panel)
+                       (make-recent-items-slider editor-panel)
                        (make-check editor-panel
                                    'framework:autosaving-on? 
                                    (string-constant auto-save-files)

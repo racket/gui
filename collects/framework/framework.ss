@@ -732,6 +732,12 @@
     (filename start end)
     "Sets the selection of the recently opened file to"
     "\\var{start} and \\var{end}.")
+   
+   (handler:size-recently-opened-files
+    (number? . -> . void?)
+    (num)
+    "Sizes the 'framework:recently-opened-files/pos preference"
+    "list length to \\var{num}.")
 
    (icon:get-paren-highlight-bitmap
     (-> (is-a?/c bitmap%))

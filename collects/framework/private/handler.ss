@@ -144,8 +144,6 @@
 
       ;; type recent-list-item = (list/p string? number? number?)
       
-      (define recent-max-count 50)
-
       ;; add-to-recent : string -> void
       (define (add-to-recent filename)
         (let* ([old-list (preferences:get 'framework:recently-opened-files/pos)]
@@ -157,7 +155,7 @@
                               (if old-ent (cadr old-ent) 0)
                               (if old-ent (caddr old-ent) 0))]
                [added-in (cons new-ent (remove new-ent old-list compare-recent-list-items))]
-               [new-recent (size-down added-in)])
+               [new-recent (size-down added-in (preferences:get 'framework:recent-max-count))])
           (preferences:set 'framework:recently-opened-files/pos new-recent)))
       
       ;; compare-recent-list-items : recent-list-item recent-list-item -> boolean
@@ -167,8 +165,8 @@
       ;; size-down : (listof X) -> (listof X)[< recent-max-count]
       ;; takes a list of stuff and returns the
       ;; front of the list, up to `recent-max-count' items
-      (define (size-down new-recent)
-        (let loop ([n recent-max-count]
+      (define (size-down new-recent n)
+        (let loop ([n n]
                    [new-recent new-recent])
           (cond
             [(zero? n) null]
@@ -177,6 +175,15 @@
              (cons (car new-recent)
                    (loop (- n 1)
                          (cdr new-recent)))])))
+      
+      ;; size-recently-opened-files : number -> void
+      ;; sets the recently-opened-files/pos preference
+      ;; to a size limited by `n'
+      (define (size-recently-opened-files n)
+         (preferences:set
+          'framework:recently-opened-files/pos
+          (size-down (preferences:get 'framework:recently-opened-files/pos)
+                     n)))       
       
       ;; set-recent-position : string number number -> void
       ;; updates the recent menu preferences 

@@ -897,6 +897,7 @@
                            [canceled? (cancel-due-to-unsaved-changes editor)])
                       (unless canceled?
                         (send editor begin-edit-sequence)
+                        (send editor lock #f)
                         (send editor set-filename #f)
                         (send editor erase)
                         (send editor set-modified #f)
@@ -965,7 +966,10 @@
                          filename 
                          (send editor get-start-position)
                          (send editor get-end-position))))))
+                (send editor begin-edit-sequence)
+                (send editor lock #f)
                 (send editor load-file filename)
+                (send editor end-edit-sequence)
 		(void))))
           
           (inherit get-label)
