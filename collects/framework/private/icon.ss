@@ -1,7 +1,8 @@
 (module icon mzscheme
   (require (lib "unitsig.ss")
 	   (lib "class.ss")
-	   "sig.ss"
+	   "bday.ss"
+           "sig.ss"
 	   (lib "mred-sig.ss" "mred")
 	   (lib "mred-sig.ss" "mred"))
 
@@ -80,11 +81,6 @@
                     ((load-icon "mrf.jpg" 'jpeg))
                     ((load-icon "recycle.gif" 'gif))))))
       
-      (define (mrf-bday?)
-        (let ([d (seconds->date (current-seconds))])
-          (and (= (date-month d) 11)
-               (= (date-day d) 1))))
-
       (define (get-gc-on-bitmap) (fetch) gc-on-bitmap)
       
       (define get-gc-off-bitmap

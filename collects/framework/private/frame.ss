@@ -8,6 +8,7 @@
 	   "sig.ss"
 	   "../gui-utils.ss"
 	   "../macro.ss"
+           "bday.ss"
 	   (lib "mred-sig.ss" "mred")
 	   (lib "list.ss")
 	   (lib "file.ss")
@@ -441,7 +442,7 @@
               (send panel stretchable-width #f)))
 
           [define lock-canvas (make-object lock-canvas% (get-info-panel))]
-          [define gc-canvas (make-object canvas% (get-info-panel) '(border))]
+          [define gc-canvas (make-object bday-click-canvas% (get-info-panel) '(border))]
           [define register-gc-blit
             (lambda ()
               (let ([onb (icon:get-gc-on-bitmap)]
@@ -2058,6 +2059,18 @@
                             [else #f]))])
                 (and user-allowed-or-not-modified
                      (super-can-close?))))]
+          (super-instantiate ())))
+      
+      (define bday-click-canvas%
+        (class canvas%
+          (rename [super-on-event on-event])
+          (define/override (on-event evt)
+            (cond
+              [(and (mrf-bday?)
+                    (send evt button-up?))
+               (message-box (string-constant drscheme)
+                            "Happy Birthday, Matthew!")]
+              [else (super-on-event evt)]))
           (super-instantiate ())))
       
       (define basic% (basic-mixin frame%))
