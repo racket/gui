@@ -50,7 +50,7 @@
   (st #t d is-shown?)
   (thread-suspend t)
   (stv d show #f)
-  (st #t d is-shown?)
+  (st #f d is-shown?)
   (thread-resume t)
   (thread-wait t)
   (st #f d is-shown?)
