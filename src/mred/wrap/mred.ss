@@ -1204,7 +1204,7 @@
 		   (let ([mred (get-mred)])
 		     (if mred
 			 (as-exit (lambda () (send mred on-event e)))
-			 (super-on-event e)))))]
+			 (as-exit (lambda () (super-on-event e)))))))]
       [on-scroll (entry-point-1
 		  (lambda (e)
 		    (let ([mred (get-mred)])
@@ -1215,13 +1215,13 @@
 			   (entry-point
 			    (lambda ()
 			      (as-exit (lambda () (send mred on-scroll e))))))
-			  (super-on-scroll e)))))]
+			  (as-exit (lambda () (super-on-scroll e)))))))]
       [on-paint (entry-point
 		 (lambda ()
 		   (let ([mred (get-mred)])
 		     (if mred
 			 (as-exit (lambda () (send mred on-paint)))
-			 (super-on-paint)))))])
+			 (as-exit (lambda () (super-on-paint)))))))])
     (sequence (apply super-init mred proxy args))))
 
 ;------------- Create the actual wx classes -----------------
@@ -2283,18 +2283,18 @@
 	      (unless (and (or (eq? c #\return) (eq? c #\newline))
 			   return-cb
 			   (return-cb (lambda () (callback 'text-field-enter) #t)))
-		(super-on-char e)))))]
+		(as-exit (lambda () (super-on-char e)))))))]
 	[after-insert
 	 (lambda args
 	   (as-entry
 	    (lambda ()
-	      (apply super-after-insert args)
+	      (as-exit (lambda () (apply super-after-insert args)))
 	      (callback 'text-field))))]
 	[after-delete
 	 (lambda args
 	   (as-entry
 	    (lambda ()
-	      (apply super-after-delete args)
+	      (as-exit (lambda () (apply super-after-delete args)))
 	      (callback 'text-field))))])
       (public
 	[callback-ready
@@ -2311,11 +2311,6 @@
   
 (define wx-text-editor-canvas% 
   (class wx-editor-canvas% (mred proxy control parent style)
-    (rename [super-on-char on-char])
-    (override
-      [on-char (entry-point-1 (lambda (e) (send control on-char e)))])
-    (public
-      [continue-on-char (lambda (e) (super-on-char e))])
     (sequence
       (super-init mred proxy parent -1 -1 100 30 #f style 100 #f))))
   
@@ -2377,7 +2372,6 @@
       [set-label (lambda (str) (when l (send l set-label str)))])
     (override
       [set-cursor (lambda (c) (send e set-cursor c #t))]
-      [on-char (entry-point-1 (lambda (ev) (send c continue-on-char ev)))]
       [set-focus (lambda () (send c set-focus))]
 	
       [place-children
