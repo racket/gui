@@ -2733,7 +2733,7 @@
 
 (define get-ps-setup-from-user
   (case-lambda
-   [() (get-ps-setup-from-user parent null)]
+   [() (get-ps-setup-from-user #f null)]
    [(parent) (get-ps-setup-from-user parent null)]
    [(parent style)
     (define pss (wx:current-ps-setup))
