@@ -874,8 +874,7 @@
       (define open-here<%>
         (interface (-editor<%>)
           get-open-here-editor
-	  open-here
-          create-empty-window))
+	  open-here))
       
       (define open-here-mixin
         (mixin (-editor<%>) (open-here<%>)
@@ -931,11 +930,6 @@
              'cancel
              this))
  
-          ;; create-empty-window : -> void
-          (define/public (create-empty-window) 
-            (make-object text-info-file%)
-            (void))
-          
           (rename [super-file-menu:open-on-demand file-menu:open-on-demand])
           (define/override (file-menu:open-on-demand item)
             (super-file-menu:open-on-demand item)
