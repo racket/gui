@@ -4,7 +4,7 @@
 (define source-dir (current-load-relative-directory))
 
 (define num-times 12)
-(define num-threads 1)
+(define num-threads 3)
 
 (define dump-stats? #t)
 
@@ -45,6 +45,9 @@
 
 (send sub-collect-frame show #t)
 
+; The creator for mred:editor-frame% is apparently not tread-safe
+(define sm (make-semaphore 100))
+
 (define (maker id n)
   (sleep)
   (collect-garbage)
@@ -55,7 +58,11 @@
   ;    (dump-memory-stats))
   (unless (zero? n)
     (let ([tag (cons id n)])
-      (let* ([f (if edit? (remember tag (make-object frame%)))]
+      (let* ([f (if edit? (begin
+			    (semaphore-wait sm)
+			    (begin0
+			     (remember tag (make-object frame%))
+			     (semaphore-post sm))))]
 	     [c (make-custodian)]
 	     [es (parameterize ([current-custodian c])
 		   (wx:make-eventspace))])
