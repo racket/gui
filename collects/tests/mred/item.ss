@@ -1519,7 +1519,7 @@
   (define containers null)
 
   (define (make-container p)
-    (let ([p (make-object vertical-panel% p '(border))])
+    (let ([p (make-object vertical-panel% p '())])
       (send p stretchable-width #f)
       (send p stretchable-height #f)
       (set! containers (cons p containers))
