@@ -23,11 +23,25 @@
     (send c set-editor e)
     (send f show #t)))
 
+(define pi (atan 0 -1))
+
+(define octagon
+  (list (make-object point% 60 60)
+	(make-object point% 120 60)
+	(make-object point% 180 120)
+	(make-object point% 180 180)
+	(make-object point% 120 240)
+	(make-object point% 60 240)
+	(make-object point% 0 180)
+	(make-object point% 0 120)
+	(make-object point% 60 60)))
+
 (let* ([f (make-object frame% "Graphics Test" #f 300 450)]
        [vp (make-object vertical-panel% f)]
        [hp0 (make-object horizontal-panel% vp)]
        [hp (make-object horizontal-panel% vp)]
        [hp2 hp]
+       [hp3 (make-object horizontal-pane% vp)]
        [bb (make-object bitmap% (sys-path "bb.gif") 'gif)]
        [return (let ([bm (make-object bitmap% (sys-path "return.xbm") 'xbm)]
 		     [dc (make-object bitmap-dc%)])
@@ -38,9 +52,10 @@
        [use-bitmap? #f]
        [depth-one? #f]
        [cyan? #f]
-       [clip? #f])
+       [clip 'none])
   (send hp0 stretchable-height #f)
   (send hp stretchable-height #f)
+  (send hp3 stretchable-height #f)
   (make-object button% "What Should I See?" hp0
 	       (lambda (b e)
 		 (show-instructions (local-path "draw-info.txt"))))
@@ -241,19 +256,24 @@
 
 			    (send dc set-brush brusht)
 			    (send dc draw-arc 
-				  (+ x 20) (+ y 135)
-				  (+ x 5) (+ y 150)
-				  (+ x 20) (+ y 150))
+				  (+ x 5) (+ y 135)
+				  30 40
+				  0 (/ pi 2))
 			    (send dc draw-arc 
-				  (+ x 35) (+ y 150)
-				  (+ x 20) (+ y 135)
-				  (+ x 20) (+ y 150))
+				  (+ x 5) (+ y 135)
+				  30 40
+				  (/ pi 2) pi)
 			    (send dc set-brush brushs)
 			    (send dc draw-arc 
-				  (+ x 60) (+ y 135)
-				  (+ x 36) (+ y 150)
-				  (+ x 60) (+ y 150))		
+				  (+ x 45) (+ y 135)
+				  30 40
+				  (/ pi 2) pi)
 			    (send dc set-brush brusht)      
+
+			    
+			    (when last?
+			      (send dc set-pen pen0s)
+			      (send dc draw-polygon octagon))
 
 			    (when last?
 			      ; Splines
@@ -412,11 +432,15 @@
 				(send the-color-database find-color "CYAN")
 				(send the-color-database find-color "WHITE")))
 
-		      (send dc destroy-clipping-region)
+		      (send dc set-clipping-region #f)
 		      (send dc clear)
 
-		      (when clip?
-			(send dc set-clipping-region 100 -25 10 400))
+		      (case clip
+			[(none) (void)]
+			[(rect) (send dc set-clipping-rect 100 -25 10 400)]
+			[(poly) (let ([r (make-object region% dc)])
+				  (send r set-polygon octagon)
+				     (send dc set-clipping-region r))])
 		      
 		      ; check default pen/brush:
 		      (send dc draw-rectangle 0 0 5 5)
@@ -428,16 +452,16 @@
 		      
 		      (draw-series dc pen2s pen2t "2 x 2" 135 0 2 #t)
 
-		      (let ([x (box 0)]
-			    [y (box 0)]
-			    [w (box 0)]
-			    [h (box 0)])
-			(send dc get-clipping-region x y w h)
-			(unless (equal? (map unbox (list x y w h))
-					(if clip?
-					    '(100. -25. 10. 400.)
-					    '(0. 0. -1. -1.)))
-			  (error 'draw-test "clipping region changed badly: ~a" (list x y w h))))
+		      (let ([r (send dc get-clipping-region)])
+			(if (eq? clip 'none)
+			    (when r
+			      (error 'draw-test "shouldn't have been a clipping region"))
+			    (let*-values ([(x y w h) (send r get-bounding-box)]
+					  [(l) (list x y w h)])
+			      (unless (equal? l (case clip
+						  [(rect) '(100. -25. 10. 400.)]
+						  [(poly) '(0. 60. 180. 180.)]))
+				(error 'draw-test "clipping region changed badly: ~a" l)))))
 
 		      (let ([w (box 0)]
 			    [h (box 0)])
@@ -474,10 +498,6 @@
     (make-object check-box% "+10" hp
 		 (lambda (self event)
 		   (send canvas set-offset (if (send self get-value) 10 0))))
-    (make-object check-box% "Clip" hp
-		 (lambda (self event)
-		   (set! clip? (send self get-value))
-		   (send canvas on-paint)))
     (make-object check-box% "Cyan" hp
 		 (lambda (self event)
 		   (set! cyan? (send self get-value))
@@ -489,8 +509,14 @@
     (send (make-object check-box% "Stipples" hp2
 		       (lambda (self event)
 			 (send canvas set-stipples (send self get-value))))
-	  set-value #t))
-
+	  set-value #t)
+    (make-object choice% "Clip" '("None" "Rectangle" "Octagon") hp3
+		 (lambda (self event)
+		   (set! clip (case (send self get-selection)
+				[(0) 'none]
+				[(1) 'rect]
+				[(2) 'poly]))
+		   (send canvas on-paint))))
   (send f show #t))
 
 ; Canvas, Pixmaps, and Bitmaps:
