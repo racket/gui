@@ -7633,7 +7633,7 @@
 
 (define readable-snip<%>
   (interface ()
-    read-one-special))
+    read-special))
 
 (define empty-string (make-bytes 0))
       
@@ -7678,7 +7678,6 @@
 		     [get-count-generic (generic wx:snip% get-count)]
 		     [next-generic (generic wx:snip% next)]
 		     [next? #f]
-		     [pos 0]
 		     [lock-semaphore (make-semaphore 1)]
 		     [update-str-to-snip
 		      (lambda (to-str)
@@ -7703,7 +7702,6 @@
 		     [next-snip
 		      (lambda (to-str)
 			(set! snip (send-generic snip next-generic))
-			(set! pos 0)
 			(update-str-to-snip to-str))]
 		     [read-chars (lambda (to-str)
 				   (cond
@@ -7715,9 +7713,7 @@
 				       (lambda (file line col ppos)
 					 (if (is-a? the-snip wx:snip%)
 					     (if (is-a? the-snip readable-snip<%>)
-						 (let-values ([(val done?)
-							       (send the-snip read-one-special pos file line col ppos)])
-						   val)
+						 (send the-snip read-special file line col ppos)
 						 (send the-snip copy))
 					     the-snip)))]
 				    [else eof]))]
