@@ -2870,19 +2870,15 @@
       (f x y)
       (values (unbox x) (unbox y)))))
 
-(define widget-table (make-hash-table 'weak))
+
+(declare-local-member-name private-wx)
 
 (define mred%
-  (class100 object% (wx)
-    (sequence
-      ; (unless (eq? monitor-owner (current-thread)) (error 'init-mred% "not in monitored area"))
-      (hash-table-put! widget-table this (make-weak-box wx))
-      (super-init))))
+  (class object%
+    (init-field private-wx)
+    (super-make-object)))
 
-(define (mred->wx w) 
-  ; (unless (eq? monitor-owner (current-thread)) (error 'mred->wx "not in monitored area"))
-  (let ([v (hash-table-get widget-table w (lambda () #f))])
-    (and v (weak-box-value v))))
+(define mred->wx (class-field-accessor mred% private-wx))
 
 (define (mred->wx-container w) (send (mred->wx w) get-container))
 
