@@ -17,7 +17,8 @@
 	      [group : framework:group^]
               [handler : framework:handler^]
               [editor : framework:editor^]
-              [color-prefs : framework:color-prefs^])
+              [color-prefs : framework:color-prefs^]
+              [scheme : framework:scheme^])
       
       (application-preferences-handler (lambda () (preferences:show-dialog)))
       
@@ -216,5 +217,5 @@
       (preferences:set 'framework:file-dialogs 'std)
       (preferences:set 'framework:exit-when-no-frames #t)
       
-      
+      (scheme:add-coloring-preferences-panel)
       (void))))

@@ -257,21 +257,30 @@
  ;   ;  ;   ;  ;   ;  ;   ;  ; ; ;  ;   ;          ;   ; ;   ;  ;   ;   ;   ;
   ;;;    ;;;  ;;; ;;;  ;;;  ;; ; ;;  ;;;     ;      ;;;   ;;;  ;;   ;;   ;;; 
                                                                              
-                                                         
+                      
       ;; This adds the preferences that scheme:text% needs for coloring
       ;; It returns a thunk that, when invoked will setup the panel in the
       ;; preferences dialog.
-      (define add-coloring-preferences-panel
-        (color-prefs:add-staged
-         "Scheme"
-         `((symbol ,(color-prefs:make-style-delta "navy" #f #f #f))
-           (keyword ,(color-prefs:make-style-delta "navy" #f #f #f))
-           (comment ,(color-prefs:make-style-delta (make-object color% 0 105 255) #f #f #f))
-           (string ,(color-prefs:make-style-delta "ForestGreen" #f #f #f))
-           (constant ,(color-prefs:make-style-delta (make-object color% 51 135 39) #f #f #f))
-           (parenthesis ,(color-prefs:make-style-delta "brown" #f #f #f))
-           (error ,(color-prefs:make-style-delta "red" #f #f #f))
-           (other ,(color-prefs:make-style-delta "black" #f #f #f)))))
+      ;; It uses the set! trick because it needs to not call add-staged
+      ;; until the preferences has been turned on in main.ss
+      (define add-coloring-pref-state #f)
+      (define (add-coloring-preferences-panel)
+        (cond
+          (add-coloring-pref-state
+           (add-coloring-pref-state))
+          (else
+           (set! add-coloring-pref-state
+                 (color-prefs:add-staged
+                  "Scheme"
+                  `((symbol ,(color-prefs:make-style-delta "navy" #f #f #f))
+                    (keyword ,(color-prefs:make-style-delta "navy" #f #f #f))
+                    (comment ,(color-prefs:make-style-delta (make-object color% 0 105 255) #f #f #f))
+                    (string ,(color-prefs:make-style-delta "ForestGreen" #f #f #f))
+                    (constant ,(color-prefs:make-style-delta (make-object color% 51 135 39) #f #f #f))
+                    (parenthesis ,(color-prefs:make-style-delta "brown" #f #f #f))
+                    (error ,(color-prefs:make-style-delta "red" #f #f #f))
+                    (other ,(color-prefs:make-style-delta "black" #f #f #f))))))))
+        
 
       ;; for  check syntax (to be moved elsewhere)
       (color-prefs:add-staged

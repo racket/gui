@@ -24,7 +24,7 @@
           (define sym (get-full-pref-name tab-name symbol))
           
           (define delta (preferences:get sym))
-          (define style-name (symbol->string sym))
+          (define style-name (get-full-style-name tab-name symbol))
           (define c (make-object editor-canvas% this
                       #f
                       (list 'hide-hscroll
@@ -44,9 +44,9 @@
                            (super-instantiate ()))))
           (preferences:add-callback sym
                                     (lambda (sym v)
-                                      (set-slatex-style sym v)
+                                      (set-slatex-style style-name v)
                                       #t))
-          (set-slatex-style sym delta)
+          (set-slatex-style style-name delta)
           (define (make-check name on off)
             (let* ([c (lambda (check command)
                         (if (send check get-value)
@@ -167,10 +167,9 @@
          (lambda (x)
            (is-a? x style-delta%))))
       
-      ; a symbol naming the style  and a delta to set it to
-      (define (set-slatex-style sym delta)
+      ; a string naming the style  and a delta to set it to
+      (define (set-slatex-style name delta)
         (let* ([style-list (editor:get-standard-style-list)]
-               [name (symbol->string sym)]
                [style (send style-list find-named-style name)])
           (if style
               (send style set-delta delta)
@@ -228,9 +227,7 @@
       (define (add-staged tab-name symbols/defaults)
         (let* ((tab-name-symbol (string->symbol tab-name))
                (active-pref (get-full-pref-name tab-name "active"))
-               (current (hash-table-get prefs-table tab-name-symbol (lambda () #f)))
-               (syms (map (lambda (s/d) (get-full-pref-name tab-name (car s/d)))
-                          symbols/defaults)))
+               (current (hash-table-get prefs-table tab-name-symbol (lambda () #f))))
           (when (eq? 'too-late current)
             (error 'color-prefs:add-staged
                    "cannot be invoked after the preferences have already been created for this tab."))
@@ -239,11 +236,17 @@
             (preferences:add-callback active-pref
                                       (lambda (_ on?)
                                         (do-active-pref-callbacks tab-name on?))))
-          (for-each set-default syms (map cadr symbols/defaults))
-          (for-each (lambda (s)
-                      (preferences:set-un/marshall s marshall-style unmarshall-style))
-                    syms)
-          (for-each set-slatex-style syms (map preferences:get syms))
+          (for-each (lambda (s/d) 
+                      (set-default (get-full-pref-name tab-name (car s/d)) (cadr s/d)))
+                    symbols/defaults)
+          (for-each (lambda (s/d)
+                      (preferences:set-un/marshall (get-full-pref-name tab-name (car s/d))
+                                                   marshall-style unmarshall-style))
+                    symbols/defaults)
+          (for-each (lambda (s/d)
+                      (set-slatex-style (get-full-style-name tab-name (car s/d))
+                                        (preferences:get (get-full-pref-name tab-name (car s/d)))))
+                    symbols/defaults)
           (hash-table-put! prefs-table
                            tab-name-symbol
                            (append (if current current null) symbols/defaults))
