@@ -1,3 +1,4 @@
+
 (module tabbable-text mzscheme
   
   (require
@@ -8,7 +9,19 @@
    (lib "mred.ss" "mred")
    (lib "contract.ss"))
   
-  (define tabbable-text<%> (interface () set-caret-owner))
+  (define tabbable-text<%>
+    (interface ()
+      #;(-> void)
+      ;; Takes the caret into this text
+      
+      set-caret-owner
+      #;((-> void) . -> . void)
+      ;; The thunk to execute when tabbing ahead
+      set-ahead
+      
+      #;((-> void) . -> . void)
+      ;; The thunk to execute when tabbing back
+      set-back))
   
   (provide/contract
    (tabbable-text<%> interface?)
