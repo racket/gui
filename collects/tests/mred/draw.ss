@@ -95,6 +95,25 @@
 	       (list->bytes '(#xcc #x33 #xcc #x33 #xcc #x33 #xcc #x33))
 	       8 8))
 
+(define fancy-path
+  (let ([p (new dc-path%)]
+	[p2 (new dc-path%)])
+    (send p2 move-to 10 80)
+    (send p2 line-to 80 80)
+    (send p2 line-to 80 10)
+    (send p2 line-to 10 10)
+    (send p2 close)
+    
+    (send p move-to 1 1)
+    (send p line-to 90 1)
+    (send p line-to 90 90)
+    (send p line-to 1 90)
+    (send p close)
+    (send p append p2)
+    (send p arc 50 50 100 120 0 (* pi 1/2) #f)
+
+    p))
+
 (let* ([f (make-object frame% "Graphics Test" #f 600 550)]
        [vp (make-object vertical-panel% f)]
        [hp0 (make-object horizontal-panel% vp)]
@@ -129,7 +148,7 @@
   (let ([canvas
 	 (make-object
 	  (class100 canvas% args
-	    (inherit get-dc)
+	    (inherit get-dc refresh)
 	    (private-field
 	     [no-bitmaps? #f]
 	     [no-stipples? #f]
@@ -141,14 +160,14 @@
 	     [yscale 1]
 	     [offset 0])
 	    (public
-	     [set-bitmaps (lambda (on?) (set! no-bitmaps? (not on?)) (on-paint))]
-	     [set-stipples (lambda (on?) (set! no-stipples? (not on?)) (on-paint))]
-	     [set-pixel-copy (lambda (on?) (set! pixel-copy? on?) (on-paint))]
-	     [set-kern (lambda (on?) (set! kern? on?) (on-paint))]
-	     [set-clip-pre-scale (lambda (on?) (set! clip-pre-scale? on?) (on-paint))]
-	     [set-mask-ex-mode (lambda (mode) (set! mask-ex-mode mode) (on-paint))]
-	     [set-scale (lambda (xs ys) (set! xscale xs) (set! yscale ys) (on-paint))]
-	     [set-offset (lambda (o) (set! offset o) (on-paint))])
+	     [set-bitmaps (lambda (on?) (set! no-bitmaps? (not on?)) (refresh))]
+	     [set-stipples (lambda (on?) (set! no-stipples? (not on?)) (refresh))]
+	     [set-pixel-copy (lambda (on?) (set! pixel-copy? on?) (refresh))]
+	     [set-kern (lambda (on?) (set! kern? on?) (refresh))]
+	     [set-clip-pre-scale (lambda (on?) (set! clip-pre-scale? on?) (refresh))]
+	     [set-mask-ex-mode (lambda (mode) (set! mask-ex-mode mode) (refresh))]
+	     [set-scale (lambda (xs ys) (set! xscale xs) (set! yscale ys) (refresh))]
+	     [set-offset (lambda (o) (set! offset o) (refresh))])
 	    (override
 	     [on-paint
 	      (case-lambda
@@ -762,7 +781,15 @@
 				(send dc draw-polygon star 480 80)
 				(pen 'butt 'bevel)
 				(send dc draw-lines star 410 150)
-				(send dc draw-polygon star 480 150)))
+				(send dc draw-polygon star 480 150))
+
+			      (send dc set-pen (make-object pen% "green" 3 'solid))
+			      (send dc set-brush (make-object brush% "yellow" 'solid))
+			      (send dc draw-path (let ([p (new dc-path%)])
+						   (send p append fancy-path)
+						   (send p scale 0.5 0.5)
+						   (send p translate 410 230)
+						   p)))
 
 			    (when (and last? (not (or ps? (eq? dc can-dc)))
 				       (send mem-dc get-bitmap))
@@ -808,9 +835,9 @@
 			  (let ([r (make-object  region% dc)])
 			    (send r set-arc 0. 60. 180. 180. clock-start clock-end)
 			       (send dc set-clipping-region r))
-			  (let ([mk-poly (lambda ()
+			  (let ([mk-poly (lambda (mode)
 					   (let ([r (make-object region% dc)])
-					     (send r set-polygon octagon) r))]
+					     (send r set-polygon octagon 0 0 mode) r))]
 				[mk-circle (lambda ()
 					     (let ([r (make-object region% dc)])
 					       (send r set-ellipse 0. 60. 180. 180.) r))]
@@ -821,20 +848,23 @@
 			      [(none) (void)]
 			      [(rect) (send dc set-clipping-rect 100 -25 10 400)]
 			      [(rect2) (send dc set-clipping-rect 50 -25 10 400)]
-			      [(poly) (send dc set-clipping-region (mk-poly))]
+			      [(poly) (send dc set-clipping-region (mk-poly 'odd-even))]
 			      [(circle) (send dc set-clipping-region (mk-circle))]
-			      [(rect+poly) (let ([r (mk-poly)])
+			      [(rect+poly) (let ([r (mk-poly 'winding)])
 					     (send r union (mk-rect))
 						(send dc set-clipping-region r))]
 			      [(rect+circle) (let ([r (mk-circle)])
 					       (send r union (mk-rect))
-						  (send dc set-clipping-region r))]
-			      [(poly-rect) (let ([r (mk-poly)])
+					       (send dc set-clipping-region r))]
+			      [(poly-rect) (let ([r (mk-poly 'odd-even)])
 					     (send r subtract (mk-rect))
-						(send dc set-clipping-region r))]
-			      [(poly&rect) (let ([r (mk-poly)])
+					     (send dc set-clipping-region r))]
+			      [(poly&rect) (let ([r (mk-poly 'odd-even)])
 					     (send r intersect (mk-rect))
 						(send dc set-clipping-region r))]
+			      [(poly^rect) (let ([r (mk-poly 'odd-even)])
+					     (send r xor (mk-rect))
+					     (send dc set-clipping-region r))]
 			      [(roundrect) (let ([r (make-object region% dc)])
 					     (send r set-rounded-rectangle 80 200 125 40 -0.25)
 					     (send dc set-clipping-region r))]
@@ -864,9 +894,15 @@
 
 			(let ([r (send dc get-clipping-region)])
 			  (send dc set-clipping-rect 0 0 20 20)
-			  (send dc set-clipping-region r)))
+			  (if r
+			      (let ([r2 (make-object region% dc)])
+				(send r2 set-rectangle 0 0 10 10)
+				(send r xor r2)
+				(send r2 xor r)
+				(send dc set-clipping-region r2))
+			      (send dc set-clipping-region #f))))
 		      
-		      ; check default pen/brush:
+		      ;; check default pen/brush:
 		      (send dc draw-rectangle 0 0 5 5)
 		      (send dc draw-line 0 0 20 6)
 
@@ -891,7 +927,7 @@
 							 [(rect) '(100. -25. 10. 400.)]
 							 [(rect2) '(50. -25. 10. 400.)]
 							 [(poly circle poly-rect) '(0. 60. 180. 180.)]
-							 [(rect+poly rect+circle) '(0. -25. 180. 400.)]
+							 [(rect+poly rect+circle poly^rect) '(0. -25. 180. 400.)]
 							 [(poly&rect) '(100. 60. 10. 180.)]
 							 [(roundrect) '(80. 200. 125. 40.)]
 							 [(polka) '(0. 0. 310. 510.)])])
@@ -929,7 +965,7 @@
 		   (set! use-bitmap? (< 0 (send self get-selection)))
 		   (set! depth-one? (< 1 (send self get-selection)))
 		   (set! use-bad? (< 2 (send self get-selection)))
-		   (send canvas on-paint))
+		   (send canvas refresh))
 		 '(horizontal))
     (make-object button% "Save" hp0
 		 (lambda (b e)
@@ -946,7 +982,7 @@
 			       [else (error 'save-file "unknown suffix: ~e" f)])])
 			 (set! save-filename f)
 			 (set! save-file-format format)
-			 (send canvas on-paint))))))
+			 (send canvas refresh))))))
     (make-object button% "PS" hp
 		 (lambda (self event)
 		   (send canvas on-paint #t)))
@@ -964,7 +1000,7 @@
     (make-object check-box% "Cyan" hp
 		 (lambda (self event)
 		   (set! cyan? (send self get-value))
-		   (send canvas on-paint)))
+		   (send canvas refresh)))
     (send (make-object check-box% "Icons" hp2
 		       (lambda (self event)
 			 (send canvas set-bitmaps (send self get-value))))
@@ -980,7 +1016,7 @@
 		 (lambda (self event)
 		   (set! smoothing (list-ref '(unsmoothed smoothed compatible)
 					     (send self get-selection)))
-		   (send canvas on-paint)))
+		   (send canvas refresh)))
     (make-object button% "Clock" hp2.5 (lambda (b e) (clock #f)))
     (make-object choice% #f
 		 '("MrEd XOR" "PLT Middle" "PLT ^ MrEd" "MrEd ^ PLT" "MrEd ^ MrEd" 
@@ -999,13 +1035,13 @@
     (make-object choice% "Clip" 
 		 '("None" "Rectangle" "Rectangle2" "Octagon" "Circle" "Round Rectangle"
 		   "Rectangle + Octagon" "Rectangle + Circle" 
-		   "Octagon - Rectangle" "Rectangle & Octagon" "Polka")
+		   "Octagon - Rectangle" "Rectangle & Octagon" "Rectangle ^ Octagon" "Polka")
 		 hp3
 		 (lambda (self event)
 		   (set! clip (list-ref
-		               '(none rect rect2 poly circle roundrect rect+poly rect+circle poly-rect poly&rect polka)
+		               '(none rect rect2 poly circle roundrect rect+poly rect+circle poly-rect poly&rect poly^rect polka)
 		               (send self get-selection)))
-		   (send canvas on-paint)))
+		   (send canvas refresh)))
     (make-object check-box% "Clip Pre-Scale" hp3
 		 (lambda (self event)
 		   (send canvas set-clip-pre-scale (send self get-value))))
@@ -1026,7 +1062,7 @@
 			     (set! clock-clip? #f)
 			     (set! clock-start #f)
 			     (set! clock-end #f)
-			     (send canvas on-paint))))])
+			     (send canvas refresh))))])
       (make-object button% "Clip Clock" hp3 (lambda (b e) (clock #t)))))
 
   (send f show #t))

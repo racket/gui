@@ -46,6 +46,7 @@
      current-text-keymap-initializer
      cursor%
      dc<%>
+     dc-path%
      dialog%
      editor-admin%
      editor-canvas%

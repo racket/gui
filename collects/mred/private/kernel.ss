@@ -404,6 +404,7 @@
     set-clipping-rect
     draw-polygon
     draw-lines
+    draw-path
     draw-ellipse
     draw-arc
     draw-text
@@ -579,17 +580,33 @@
   (define-class cursor% object% #f
     ok?)
   (define-class region% object% (dc)
+    in-region?
     is-empty?
     get-bounding-box
+    xor
     subtract
     intersect
     union
+    set-path
     set-arc
     set-polygon
     set-ellipse
     set-rounded-rectangle
     set-rectangle
     get-dc)
+  (define-class dc-path% object% #f
+    append
+    reverse
+    rotate
+    scale
+    translate
+    curve-to
+    arc
+    line-to
+    move-to
+    open?
+    close
+    reset)
   (define-private-class font-name-directory% font-name-directory<%> object% #f
     find-family-default-font-id
     find-or-create-font-id

@@ -8075,6 +8075,7 @@
 	   current-ps-setup
 	   cursor%
 	   dc<%>
+	   dc-path%
 	   get-display-depth
 	   end-busy-cursor
 	   event%
