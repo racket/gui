@@ -61,12 +61,13 @@
                      letrec-values
                      with-syntax
                      module
+                     match match-lambda match-lambda* match-let match-let* match-letrec
                      let/cc let/ec letcc catch
                      let-syntax letrec-syntax 
                      syntax-case syntax-case*
                      let-signature fluid-let
                      let-struct let-macro let-values let*-values
-                     case when unless match
+                     case when unless 
                      let-enumerate
                      class class* class-asi class-asi* class*/names
                      class100 class100* class100-asi class100-asi* class100*/names
