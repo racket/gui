@@ -66,7 +66,7 @@
 					(put-file #f #f)
 					internal-filename))
 				  input-filename)])
-                (with-handlers ([not-break-exn?
+                (with-handlers ([exn:fail?
                                  (lambda (exn)
                                    (message-box
                                     (string-constant error-saving)
@@ -95,7 +95,7 @@
                                         (get-file #f)
                                         internal-filename))
                                   input-filename)])
-                (with-handlers ([not-break-exn?
+                (with-handlers ([exn:fail?
                                  (lambda (exn)
                                    (message-box 
                                     (string-constant error-loading)
@@ -551,7 +551,7 @@
 					(send this get-file-format))])
 		 (when (is-a? this text%)
 		   (send this set-file-format 'standard))
-                 (with-handlers ([not-break-exn?
+                 (with-handlers ([exn:fail?
                                   (lambda (exn)
                                     (show-autosave-error exn orig-name)
                                     (set! auto-save-error? #t)

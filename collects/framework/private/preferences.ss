@@ -98,7 +98,7 @@
 
       (define guard
         (lambda (when p value thunk)
-          (with-handlers ([not-break-exn? 
+          (with-handlers ([exn:fail? 
                            (lambda (exn)
                              (error "excetion raised ~s, pref ~s val ~s, msg: ~a"
                                     when
@@ -116,7 +116,7 @@
                                  (hash-table-get marshall-unmarshall
                                                  p
                                                  (lambda () (k data))))])
-            (with-handlers ([not-break-exn?
+            (with-handlers ([exn:fail?
                              (lambda (exn)
                                (begin0
                                  (hash-table-get defaults p (lambda () (raise exn)))
@@ -268,7 +268,7 @@
       ;; input determines if there is a dialog box showing the errors (and other msgs)
       ;; and result indicates if there was an error
       (define (raw-save silent?)
-        (with-handlers ([not-break-exn?
+        (with-handlers ([exn:fail?
                          (lambda (exn)
                            (unless silent?
                              (message-box
@@ -337,7 +337,7 @@
       (define (for-each-pref-in-file parse-pref preferences-filename)
         (let/ec k
           (let ([input (with-handlers
-                           ([not-break-exn?
+                           ([exn:fail?
                              (lambda (exn)
                                (message-box
                                 (string-constant error-reading-preferences)

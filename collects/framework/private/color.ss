@@ -279,7 +279,7 @@
                                 (break-enabled #f)
                                 (restart))))
                 (break-enabled #t)
-                (with-handlers ((not-break-exn?
+                (with-handlers ((exn:fail?
                                  (lambda (exn)
                                    (parameterize ((print-struct #t))
                                      (printf "colorer thread: ~s\n" exn))

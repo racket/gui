@@ -125,9 +125,7 @@
                 [else acc])))
           
           (define/public (read-one-special index source line column position)
-            (raise (make-exn:special-comment
-                    "msg"
-                    (current-continuation-marks)
+            (raise (make-special-comment
                     1)))
           (super-instantiate ())
           (inherit set-snipclass)

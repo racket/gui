@@ -2314,10 +2314,10 @@
       (define memory-text (make-object memory-text%))
       (send memory-text hide-caret #t)
       (define show-memory-text?
-        (or (with-handlers ([not-break-exn?
+        (or (with-handlers ([exn:fail:filesystem?
                              (lambda (x) #f)])
               (directory-exists? (collection-path "cvs-time-stamp")))
-            (with-handlers ([not-break-exn?
+            (with-handlers ([exn:fail:filesystem?
                              (lambda (x) #f)])
               (directory-exists? (build-path (collection-path "framework") "CVS")))))
       

@@ -47,8 +47,8 @@
         (opt-lambda (text [start 0] [in-end #f])
           (let* ([end (or in-end (send text last-position))]
                  [port (open-input-text-editor text start end)])
-            (with-handlers ([exn:read:eof? (lambda (x) #f)]
-                            [exn:read? (lambda (x) #t)])
+            (with-handlers ([exn:fail:read:eof? (lambda (x) #f)]
+                            [exn:fail:read? (lambda (x) #t)])
               (let loop ()
                 (let ([s (read port)])
                   (or (eof-object? s)
@@ -1183,7 +1183,7 @@
                                       (format (string-constant enter-new-keyword) keyword-type)
                                       (format (string-constant x-keyword) keyword-type))))])
                              (when new-one
-                               (let ([parsed (with-handlers ((exn:read? (lambda (x) #f)))
+                               (let ([parsed (with-handlers ((exn:fail:read? (lambda (x) #f)))
                                                (read (open-input-string new-one)))])
                                  (cond
                                    [(and (symbol? parsed)

@@ -115,7 +115,7 @@
         (define (main)
           (when (file-exists? autosave-toc-filename)
 	    ;; Load table from file, and check that the file was not corrupted
-            (let* ([table (let ([v (with-handlers ([not-break-exn? (lambda (x) null)])
+            (let* ([table (let ([v (with-handlers ([exn:fail? (lambda (x) null)])
 				     (call-with-input-file autosave-toc-filename read))]
 				[path? (lambda (x)
 					 (and (string? x)
@@ -252,7 +252,7 @@
 		  (string-constant cancel)
 		  (string-constant warning)
 		  #f)
-		 (with-handlers ([not-break-exn?
+		 (with-handlers ([exn:fail?
 				  (lambda (exn)
 				    (message-box
 				     (string-constant warning)

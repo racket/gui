@@ -110,7 +110,7 @@
 		      (lambda ()
 			((current-create-new-window) filename)))]
 	 [(filename make-default)
-	  (with-handlers ([not-break-exn?
+	  (with-handlers ([exn:fail?
 			   (lambda (exn)
 			     (message-box
 			      (string-constant error-loading)
