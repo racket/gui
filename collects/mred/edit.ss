@@ -424,8 +424,13 @@
 	       (super-on-paint before dc left top right bottom dx dy draw-caret)
 	       (for-each
 		(lambda (rectangle)
-		  (let ([pen (make-object wx:pen% "black" 1 wx:const-stipple)]
-			[brush (make-object wx:brush% "black" wx:const-stipple)]
+		  (let ([pen (make-object wx:pen%
+				   "BLACK"
+				   0
+				   wx:const-stipple)]
+			[brush (make-object wx:brush%
+					    "black"
+					    wx:const-stipple)]
 			[old-pen (send dc get-pen)]
 			[old-brush (send dc get-brush)]
 			[old-logical-function (send dc get-logical-function)]
