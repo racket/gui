@@ -5371,17 +5371,22 @@
        (lambda ()
 	 (set! wx (make-object wx-menu% this title
 			       (lambda (mwx e)
-				 (let ([wx (wx:id-to-menu-item (send e get-menu-id))])
-				   (when wx
-				     (send (wx->mred wx) command (make-object wx:control-event% 'menu)))
-				   (dynamic-wind
-				       void
-				       (lambda ()
-					 (popdown-callback this (make-object wx:control-event% 
-									     (if wx 
-										 'menu-popdown
+				 (let ([go
+					(lambda ()
+					  (let ([wx (wx:id-to-menu-item (send e get-menu-id))])
+					    (when wx
+						  (send (wx->mred wx) command (make-object wx:control-event% 'menu)))
+					    (dynamic-wind
+					     void
+					     (lambda ()
+					       (popdown-callback this (make-object wx:control-event% 
+										   (if wx 
+										       'menu-popdown
 										 'menu-popdown-none))))
-				       (lambda () (send mwx popup-release)))))))
+					     (lambda () (send mwx popup-release)))))])
+				   (if (eq? 'windows (system-type))
+				       (wx:queue-callback go wx:middle-queue-key)
+				       (go))))))
 	 (super-init wx))))))
 
 (define menu-bar%
