@@ -654,8 +654,8 @@
 		      
 		      ; difference between panel's full size & 
 		      ; frame's full size
-		      [delta-w (- (get-width) f-client-w)]
-		      [delta-h (- (get-height) f-client-h)]
+		      [delta-w (max 0 (- (get-width) f-client-w))]
+		      [delta-h (max 0 (- (get-height) f-client-h))]
 
 		      ; minimum frame size:
 		      [min-w (+ delta-w (child-info-x-min panel-info))]
@@ -2515,9 +2515,9 @@
 	     get-min-size set-min-width set-min-height)
     (rename [super-place-children place-children])
     (public
-      [command (lambda (e) 
+      [command (lambda (e)  ; No entry/exit needed
 		 (check-instance '(method text-field% command) wx:control-event% 'control-event% #f e)
-		 (as-exit (lambda () (func this e)))
+		 (func this e)
 		 (void))]
 
       [get-editor (lambda () e)]
@@ -4929,7 +4929,7 @@
 	    (send green set-value (send color green))
 	    (send blue set-value (send color blue)))
 	  (make-object button% "Cancel" bp (done #f))
-	  (make-object button% "Ok" bp (done #t) '(border))
+	  (send (make-object button% "Ok" bp (done #t) '(border)) focus)
 	  (send bp set-alignment 'right 'center)
 	  (send p set-alignment 'right 'center)
 	  (send p stretchable-height #f)
