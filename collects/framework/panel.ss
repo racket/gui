@@ -4,7 +4,7 @@
   
   (rename [-editor<%> editor<%>])
 
-  (define single<%> (interface (area-container<%>)))
+  (define single<%> (interface (area-container<%>) active-child))
   (define single-mixin
     (mixin (area-container<%>) (single<%>) args
       (inherit get-alignment)
