@@ -1737,7 +1737,7 @@
 
 (define area<%>
   (interface ()
-    get-parent
+    get-parent get-top-level
     min-width min-height
     stretchable-width stretchable-height))
 
@@ -1745,6 +1745,7 @@
   (class* mred% (area<%>) (mk-wx get-wx-panel parent)
     (public
       [get-parent (lambda () parent)]
+      [get-top-level (lambda () (wx->mred (send wx get-top-level)))]
       [min-width (param get-wx-panel 'min-width)]
       [min-height (param get-wx-panel 'min-height)]
       [stretchable-width (param get-wx-panel 'stretchable-in-x)]
@@ -1837,12 +1838,14 @@
       [get-geometry (lambda ()
 		      (let ([x (box 0)][y (box 0)][w (box 0)][h (box 0)])
 			(send wx get-size w h x y)
-			(values (unbox x) (unbox y) (unbox w) (unbox h))))]
+			(values (- (unbox x) (send wx dx)) 
+				(- (unbox y) (send wx dy))
+				(unbox w) (unbox h))))]
       
       [get-width (lambda () (send wx get-width))]
       [get-height (lambda () (send wx get-height))]
-      [get-x (lambda () (send wx get-x))]
-      [get-y (lambda () (send wx get-y))]
+      [get-x (lambda () (- (send wx get-x) (send wx dx))]
+      [get-y (lambda () (- (send wx get-y) (send wx dy))]
 
       [get-text-extent (letrec ([l (case-lambda 
 				    [(s w h) (l s w h #f #f #f)]
@@ -2247,18 +2250,38 @@
 (define media-canvas%
   (class basic-canvas% (parent [buffer #f] [style null] [scrolls-per-page 100])
     (sequence (check-container-parent 'canvas parent))
+    (private
+      [force-focus? #f]
+      [scroll-to-last? #f]
+      [scroll-bottom? #f])
     (public
       [call-as-primary-owner (lambda (f) (send wx call-as-primary-owner f))]
-      [allow-scroll-to-last (lambda (on?) (send wx allow-scroll-to-last on?))]
-      [scroll-with-bottom-base (lambda (on?) (send wx scroll-with-bottom-base on?))]
-      
-      [has-lazy-refresh? (lambda () (send wx get-lazy-refresh))]
-      [lazy-refresh (lambda (on?) (send wx set-lazy-referesh))]
-      
-      [force-display-focus (lambda (on?) (send wx force-display-focus on?))]
+      [allow-scroll-to-last
+       (case-lambda
+	[() scroll-to-last?]
+	[(on?) (set! scroll-to-last? (and on? #t))
+	       (send wx allow-scroll-to-last on?)])]
+      [scroll-with-bottom-base
+       (case-lambda
+	[() scroll-bottom?]
+	[(on?) (set! scroll-bottom? (and on? #t))
+	       (send wx scroll-with-bottom-base on?)])]
+      [lazy-refresh
+       (case-lambda
+	[() (send wx get-lazy-refresh)]
+	[(on?) (send wx set-lazy-refresh)])]
+      [force-display-focus
+       (case-lambda
+	[() force-focus?]
+	[(on?) (set! force-focus? (and on? #t))
+	       (send wx force-display-focus on?)])]
+      [edit-target 
+       (case-lambda 
+	[() (and (send wx get-edit-target) #t)]
+	[(on?) (send wx set-edit-target (and on? wx))])]
 
-      [edit-target (lambda (on?) (send x set-edit-target (and on? wx)))]
-      [is-edit-target? (lambda () (and #t (send x get-edit-target)))]
+      [set-line-count
+       (lambda (n) (send wx set-line-count n))]
 
       [get-media (lambda () (send wx get-media))]
       [set-media (lambda (m) (send wx set-media m))])

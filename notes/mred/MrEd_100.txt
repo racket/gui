@@ -5,7 +5,7 @@
 
                          >>> Proposal <<<
 
-Between version 53 and 100 or MrEd, the windowing portion of the MrEd
+Between version 53 and 100 of MrEd, the windowing portion of the MrEd
 toolbox was drastically simplified and Scheme-ified. In general, we
 did not try to develop an improved windowing model, but instead tried
 to clean up the existing model.
@@ -63,8 +63,8 @@ The following are a few highlights of the revision:
    "editor". Here's the mapping for some commonly used classes:
             media-canvas      => editor-canvas
             media-buffer      => editor  (now an interface)
-            media-edit        => buffer
-            media-pasteboard  => pasteboard
+            media-edit        => text-editor
+            media-pasteboard  => pasteboard-editor
             snip              => snip
             media-snip        => editor-snip
    One nice thing about this renaming is that matches a lot of the
@@ -153,8 +153,8 @@ dc<%>
  |- postscript-dc%
 
 editor<%> (maybe has an edit-admin% and some editor-canvas<%>s)
- |- buffer%
- |- pasteboard%
+ |- text-editor%
+ |- pasteboard-editor%
 
 snip% (as a snip-admin%)
  |- text-snip%
@@ -167,13 +167,11 @@ editor-admin%  (formerly media-admin%)
 
 snip-admin%
 
-(pens, styles, fonts, etc. as before)
-
 event%
  |- control-event% (formerly command-event%; for control/menu-item callbacks)
  |- mouse-event%
  |- key-event%
- |- scroll-event%
+ |- scroll-event% (new; used for on-scroll)
 
 ======================================================================
 2. Interface/Class Methods (Selected Excerpts)
@@ -182,120 +180,134 @@ event%
  arguments are listed after "<=" for classes.
 ======================================================================
 
-window<%>
+area<%>
+    get-parent
+    get-top-level - returns the area's frame/dialog-box
+    min-width min-height
+    stretchable-width stretchable-height
+
+subarea<%> : area<%>
+    horiz-margin vert-margin
+
+window<%> : area<%>
     focus on-focus
     enable is-enabled?
     on-size
     pre-on-char pre-on-event
-    client-to-screen screen-to-client
+    client->screen screen->client
     get-label set-label
     get-plain-label - e.g., "Button" instead of "&Button"
-    get-parent
     get-client-size get-geometry get-width get-height get-x get-y
     get-text-extent
     get-cursor set-cursor 
     show is-shown?
     refresh
-    get-top-level  *
 
-subwindow-container<%>
-    get-subwindows
+container<%> : area<%>
+    get-children change-children place-children
+    add-child delete-child
+    border - parameter-like
+    spacing - parameter-like
+    set-alignment - takes two syms: 'left/'center/'right 'top/'center/'bottom
+    get-alignment - returns two syms...
 
-top-level-window<%>
+area-container-window<%> : container<%> window<%>
+    set-control-font get-control-font
+    set-label-font get-label-font
+    set-label-position get-label-position
+
+subwindow<%> : subarea<%> window<%>
+
+panel% : area-container-window<%> subwindow<%>
+    <= parent [style null]
+       styles: 'border
+
+horizontal-panel%: panel%
+    <= parent [style null]
+       styles: 'border
+
+vertical-panel%: panel%
+    <= parent [style null]
+       styles: 'border
+
+pane% : container<%> subwindow<%>
+    <= parent
+
+horizontal-pane%: pane%
+    <= parent
+
+vertical-pane%: pane%
+    <= parent
+
+top-level-window<%> : area-container-window<%>
     get-eventspace
     on-activate
+    can-close? on-close
     get-focus-window - the window with the current focus (or #f)
     get-edit-target-window - the window to last have the focus (or #f)
     get-focus-object - the window/editor with the curent focus (or #f)
     get-edit-target-object - the window/editor to last have the focus (or #f)
     center move resize
 
-frame% 
+frame% : top-level-window<%>
    <= label [parent #f] [width #f] [height #f] [x #f] [y #f] [style null]
+      styles: 'no-thick-border 'no-resize-border 'no-caption 'no-system-menu
+              'iconize 'maximize 'mdi-parent 'mdi-child
    create-status-line set-status-line
    get-menu-bar
 
-dialog-box%
-   <= label [modal? #t] [parent #f] [width #f] [height #f] [x #f] [y #f] [style null]
+dialog-box% : top-level-window<%>
+   <= label [modal? #t] [parent #f] [width #f] [height #f] [x #f] [y #f] 
+            [style null]
+      styles: 'no-caption
 
-subwindow<%>
-   min-width min-height
-   stretchable-width stretchable-height
-   horiz-margin vert-margin
+control<%> : subwindow<%>
+   command - just invokes the callback; no longer changes the control value
 
-panel<%>
-    set-control-font get-control-font
-    set-label-font get-label-font
-    set-label-position get-label-position
-    change-children place-children add-child delete-child
-    border - parameter-like
-
-panel%
-    <= parent [style null]
-
-panel% : containee<%> window<%> container<%>
-single-panel%: containee<%> window<%> single-container<%>
-horizontal-panel%: containee<%> window<%> linear-container<%>
-vertical-panel%: containee<%> window<%> linear-container<%>
-
-pane% : containee<%> container<%>
-single-pane%: containee<%> single-container<%>
-horizontal-pane%: containee<%> linear-container<%>
-vertical-pane%: containee<%> linear-container<%>
-
-
-single-panel%
-    <= parent [style null]
-
-linear-panel<%>
-   spacing - parameter-like
-   set-alignment - takes two syms: 'left/'center/'right 'top/'center/'bottom
-   get-alignment - returns two syms...
-
-vertical-panel%
-    <= parent [style null]
-
-horizontal-panel
-    <= parent [style null]
-
-control<%>
-   command - just invokes the callback; no longer changes the control
-
-message%
+message% : control<%>
    <= label parent [style null]
+      styles: none
 
-button%
+button% : control<%>
    <= label parent callback [style null]
+      styles: 'default
 
-check-box%
+check-box% : control<%>
    <= label parent callback [style null]
+      styles: none
    set-value get-value
 
-slider%
-   <= label min-val max-val parent callback [value min-val] [style '(horizontal)]
+slider% : control<%>
+   <= label min-val max-val parent callback [value min-val]
+            [style '(horizontal)]
+      styles: 'horizontal 'vertical
    set-value get-value
 
-gauge%
+gauge% : control<%>
    <= label parent range [style '(horizontal)]
+      styles: 'horizontal 'vertical
    set-value get-value
 
-text-control<%>
+text-control<%> : control<%>
    get-value set-value get-edit
 
-text%
+text% : control<%>
    <= label parent callback [init-val ""] [style null]
+      styles: none
 
-multi-text%
+multi-text% : control<%>
    <= label parent callback [init-val ""] [style null]
+      styles: non
 
-radio-box%
+radio-box% : control<%>
    <= label choices parent callback [style '(vertical)]
+      styles: 'horizontal 'vertical
    get-number
    get-item-label - label for one of the choices
    get-item-plain-label - e.g., "Cut" intsead of "Cut  Cmd-X"
    get-selection set-selection
 
-list-control<%>
+list-control<%> : control<%>
    clear append
    get-number
    get-string find-string
@@ -304,11 +316,13 @@ list-control<%>
    set-selection
    set-string-selection
 
-choice%
+choice% : list-control<%>
    <= label choices parent callback [style null]
+      styles: none
 
-list-box%
+list-box% : list-control<%>
    <= label choices parent callback [style '(single)]
+      styles: 'single 'multiple 'extended 'always-vscroll 'hscroll
    delete
    get-data
    get-selections
@@ -317,28 +331,30 @@ list-box%
    number-of-visible-items
    get-first-visible set-first-visible
 
-canvas<%>
+canvas<%> : subwindow<%>
     on-char on-event on-paint on-scroll
     popup-menu warp-pointer get-dc
 
-canvas%
+canvas% : canvas<%>
     <= parent [style null]
+       styles: 'border 'vscroll 'hscroll
     virtual-size view-start
     set-scrollbars scroll
     get-scroll-pos set-scroll-pos
     get-scroll-range set-scroll-range
     get-scroll-page set-scroll-page
 
-editor-canvas%
-   <= parent [buffer #f] [style null] [scrolls-per-page 100]
+editor-canvas% : canvas<%>
+   <= parent [editor #f] [style null] [scrolls-per-page 100]
+      styles: 'no-hscroll 'no-vscroll 'hide-hscroll 'hide-vscroll
    call-as-primary-owner
-   allow-scroll-to-last - parameter-like *
-   scroll-with-bottom-base - parameter-like *
-   lazy-refresh - parameter-like *
-   force-display-focus - parameter-like *
-   edit-target  - parameter-like *
+   allow-scroll-to-last - parameter-like
+   scroll-with-bottom-base - parameter-like
+   lazy-refresh - parameter-like
+   force-display-focus - parameter-like
+   edit-target  - parameter-like
    get-edit set-edit - formerly get-media and set-media
-   set-line-count *
+   set-line-count
 
 menu-item<%>
    get-parent
@@ -426,8 +442,41 @@ key-event%
 
 scroll-event%
    <=
+   get-position set-position
    get-event-type set-event-type
    get-direction set-direction
+
+======================================================================
+3. Procedures
+
+  If an old procedure isn't listed here, we got rid of it.
+======================================================================
+
+file-selector
+   <= directory filename [parent #f] [style '(get)] [extension #f]
+      styles: 'get 'put
+
+message-box
+   <= title message [parent #f] [style '(ok)]
+      styles: 'yes-no 'ok 'ok-cancel
+
+get-text-from-user
+   <= title message [init-val #f] [parent #f] [style null]
+      styles: none
+
+get-choice-from-user (returns an integer, not the value)
+   <= title message choices [init-choice 0] [parent #f] [style null]
+
+get-choices-from-user
+   <= title message choices [init-choices null] [parent #f] [style null]
+
+color-display? display-size
+begin-busy-cursor end-busy-cursor is-busy-cursor?
+bell
+label->plain-label
+get-resource write-resource
+yield flush-display
+get-top-level-windows
 
 ======================================================================
 3. Subtle changes
@@ -455,14 +504,13 @@ wx:media-buffer%'s do-edit takes a symbol instead of a number; extract
 ======================================================================
 4. Constant Mapping
 
- The following atble details the conversion from the old wx:const-
- identifiers to symbols.
+ The following table maps old wx:const- identifiers to new symbols.
 ======================================================================
 
   wx:const-align-bottom                      'bottom
   wx:const-align-center                      'center
   wx:const-align-top                         'top
-  wx:const-always-sb                         'always-sb
+  wx:const-always-sb                         'always-hscroll
   wx:const-and                               'and
   wx:const-and-invert                        'and-invert
   wx:const-and-reverse                       'and-reverse
@@ -536,12 +584,10 @@ wx:media-buffer%'s do-edit takes a symbol instead of a number; extract
   wx:const-cursor-watch                      'watch
   wx:const-decorative                        'decorative
   wx:const-default                           'default
-  wx:const-default-dialog-style              (NOT A SYMBOL: wx:wx:const-default-dialog-style)
-  wx:const-default-frame                     (NOT A SYMBOL: wx:wx:const-default-frame-style)
   wx:const-default-select                    'default
   wx:const-dot                               'dot
   wx:const-dot-dash                          'dot-dash
-  wx:const-edit-buffer                       'edit-buffer
+  wx:const-edit-buffer                       'text
   wx:const-edit-clear                        'clear
   wx:const-edit-copy                         'copy
   wx:const-edit-cut                          'cut
@@ -684,10 +730,10 @@ wx:media-buffer%'s do-edit takes a symbol instead of a number; extract
   wx:const-long-dash                         'long-dash
   wx:const-maximize                          'maximize
   wx:const-maximize-box                      'maximize-box
-  wx:const-mcanvas-hide-h-scroll             'hide-h-scroll
-  wx:const-mcanvas-hide-v-scroll             'hide-v-scroll
-  wx:const-mcanvas-no-h-scroll               'no-h-scroll
-  wx:const-mcanvas-no-v-scroll               'no-v-scroll
+  wx:const-mcanvas-hide-h-scroll             'hide-hscroll
+  wx:const-mcanvas-hide-v-scroll             'hide-vscroll
+  wx:const-mcanvas-no-h-scroll               'no-hscroll
+  wx:const-mcanvas-no-v-scroll               'no-vscroll
   wx:const-mdi-child                         'mdi-child
   wx:const-mdi-parent                        'mdi-parent
   wx:const-media-ff-copy                     'copy
@@ -727,7 +773,7 @@ wx:media-buffer%'s do-edit takes a symbol instead of a number; extract
   wx:const-or-reverse                        'or-reverse
   wx:const-overwrite-prompt                  'overwrite-prompt
   wx:const-password                          (NO LONGER USED)
-  wx:const-pasteboard-buffer                 'pasteboard-buffer
+  wx:const-pasteboard-buffer                 'pasteboard
   wx:const-pos-use-minus-one                 (NO LONGER USED)
   wx:const-print-ask                         'ask
   wx:const-print-postscript                  'postscript
@@ -822,3 +868,5 @@ screen's depth, #f means a B&W bitmap).
 Remove add-edit-items and add-font-items from the wx:media-buffer%
 class, re-implementing them (as necessary) as Scheme top-level
 procedures.
+
+Enable/cursor support with exclusions?
