@@ -99,6 +99,7 @@
      get-top-level-focus-window
      get-top-level-windows
      get-window-text-extent
+     gl-config%
      gl-context<%>
      graphical-read-eval-print-loop
      group-box-panel%

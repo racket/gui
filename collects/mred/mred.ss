@@ -1790,7 +1790,7 @@
 	   (stretchable-in-y (not horizontal?))))))))
 
 (define wx-canvas% (make-canvas-glue%
-		    (class100 (make-control% wx:canvas% 0 0 #t #t) (parent x y w h style)
+		    (class100 (make-control% wx:canvas% 0 0 #t #t) (parent x y w h style gl-config)
 		      (private-field
 			[tabable? #f])
 		      (public
@@ -1803,7 +1803,7 @@
 			 (lambda (code alpha? meta?)
 			   (or meta? (not tabable?)))])
 		      (sequence
-			(super-init style parent x y w h style)))))
+			(super-init style parent x y w h style "canvas" gl-config)))))
 
 ;--------------------- tab group -------------------------
 
@@ -5007,7 +5007,7 @@
 
 (define canvas%
   (class100*/kw basic-canvas% ()
-		[(parent [style null] [paint-callback default-paint-cb] [label #f])
+		[(parent [style null] [paint-callback default-paint-cb] [label #f] [gl-config #f])
 		 canvas%-keywords]
     (private-field [paint-cb paint-callback]
 		   [has-x? (memq 'hscroll style)]
@@ -5118,7 +5118,8 @@
 					    (mred->wx-container parent)
 					    -1 -1 
 					    (+ ds (if (memq 'combo style) side-combo-width 0)) ds
-					    style)))
+					    style
+					    gl-config)))
 		    wx)
 		  (lambda ()
 		    (let ([cwho '(constructor canvas)])
@@ -8140,7 +8141,8 @@
 	   eventspace-shutdown?
 	   get-panel-background
 	   send-event
-	   gl-context<%>)
+	   gl-context<%>
+	   gl-config%)
 
 (define the-color-database (wx:get-the-color-database))
 (define the-font-name-directory (wx:get-the-font-name-directory))

@@ -297,6 +297,8 @@
   (define-function set-editor-print-margin)
   (define-function get-editor-print-margin)
   (define-class bitmap% object% #f
+    get-gl-config
+    set-gl-config
     set-loaded-mask
     get-loaded-mask
     save-file
@@ -428,6 +430,33 @@
     call-as-current
     swap-buffers
     ok?)
+  (define-class gl-config% object% #f
+    sizeof-bitfield
+    sizeof-enum
+    sizeof-clampd
+    sizeof-clampf
+    sizeof-sizei
+    sizeof-boolean
+    sizeof-double
+    sizeof-float
+    sizeof-uint
+    sizeof-int
+    sizeof-ushort
+    sizeof-short
+    sizeof-ubyte
+    sizeof-byte
+    get-double-buffered
+    set-double-buffered
+    get-stereo
+    set-stereo
+    get-stencil-size
+    set-stencil-size
+    get-accum-size
+    set-accum-size
+    get-depth-size
+    set-depth-size
+    get-multisample-size
+    set-multisample-size)
   (define-class event% object% ([time-stamp 0])
     get-time-stamp
     set-time-stamp)
