@@ -6,7 +6,7 @@
            (lib "unitsig.ss")
 	   (lib "class.ss")
 	   (lib "class100.ss")
-	   "sig"
+	   "sig.ss"
 	   "../macro.ss"
 	   (lib "mred-sig.ss" "mred")
 	   (lib "list.ss")

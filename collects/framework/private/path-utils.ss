@@ -1,6 +1,6 @@
 (module path-utils mzscheme
   (require (lib "unitsig.ss")
-	   "sig"
+	   "sig.ss"
 	   (lib "mred-sig.ss" "mred"))
 
   (provide path-utils@)
