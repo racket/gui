@@ -1,0 +1,4 @@
+
+To run these demos, load/cd the file "demo.ss" and
+click on the buttons that appear. Watch for messages
+in MrEd's console.
