@@ -1,4 +1,9 @@
 
+Version 204.10
+Added write-editor-version and read-editor-version
+Changed cut-and-paste WXME format to include version
+X with Xft: changed default 'modern mapping back to " Monospace"
+
 Version 204.8
 Added on-display-size-when-ready and lock for refresh that blocks an
  edit sequence
