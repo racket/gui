@@ -239,13 +239,12 @@
     
 	(for-each (lambda (x)
 		    (when (member x all-files)
-		      (let ([oh (error-escape-handler)])
-			(let/ec k
-			  (fluid-let ([section-name x]
-				      [section-jump k])
-			    (error-escape-handler (lambda ()
-						    (error-escape-handler oh)
-						    (k (void))))
+		      (let/ec k
+			(fluid-let ([section-name x]
+				    [section-jump k])
+			  (with-handlers ([(lambda (x) #t)
+					   (lambda (exn)
+					     (printf "~a" (if (exn? exn) (exn-message exn) exn)))])
 			    (printf "beginning ~a test suite~n" x)
 			    (invoke-unit/sig
 			     (eval
@@ -261,7 +260,6 @@
 			     mzlib:file^
 			     mzlib:string^
 			     mzlib:pretty-print^)
-			    (error-escape-handler oh)
 			    (printf "PASSED ~a test suite~n" x))))))
 		  files-to-process)))
 
