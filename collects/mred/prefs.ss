@@ -4,8 +4,7 @@
     (import mred:wx^
 	    [mred:constants : mred:constants^]
 	    [mred:exn : mred:exn^]
-	    [mred : mred:container^] ;; warning -- to use the mred:panel macros, 
-	                             ;; need to have mred:container be prefixed with "mred"
+	    [mred : mred:container^]
 	    [mred:exit : mred:exit^]
 	    [mred:gui-utils : mred:gui-utils^]
 	    [mred:edit : mred:edit^]
@@ -269,6 +268,49 @@
     
     (define-struct ppanel (title container panel))
     
+    (define font-families (list  "Default" "Roman" "Decorative"
+			    "Modern" "Swiss" "Script"))
+    (define font-size-entry "defaultFontSize")
+    (define font-default-string "Default Value")
+    (define font-default-size
+      (case wx:platform
+	[(unix) 14]
+	[(windows) 12]
+	[(macintosh) 12]))
+    (define font-section "mred")
+    (define build-font-entry (lambda (x) (string-append "Screen" x "__")))
+    (define font-file  (wx:find-path 'setup-file))
+    (define (build-font-preference-symbol family)
+      (string->symbol (string-append "mred:" family)))
+
+    (let ([set-default
+	   (lambda (build-font-entry default pred)
+	     (lambda (family)
+	       (let ([name (build-font-preference-symbol family)]
+		     [font-entry (build-font-entry family)])
+		 (set-preference-default name
+					 default
+					 string?)
+		 (add-preference-callback 
+		  name 
+		  (lambda (p new-value)
+		    (wx:write-resource 
+		     font-section
+		     font-entry
+		     (if (and (string? new-value)
+			      (string=? font-default-string new-value))
+			 ""
+			 new-value)
+		     font-file))))))])
+      (for-each (set-default build-font-entry
+			     font-default-string 
+			     string?)
+		font-families)
+      ((set-default (lambda (x) x)
+		    font-default-size
+		    number?)
+       font-size-entry))
+
     (define ppanels 
       (list 
        (make-ppanel
@@ -312,30 +354,24 @@
 	"Default Fonts"
 	(lambda (parent)
 	  (let* ([main (make-object mred:vertical-panel% parent)]
-		 [families (list  "Default" "Roman" "Decorative"
-				  "Modern" "Swiss" "Script")]
-		 [font-size-entry "defaultFontSize"]
-		 [default-string "Default Value"]
-		 [fonts (cons default-string (wx:get-font-list))]
-		 [file  (wx:find-path 'setup-file)]
-		 [section "mred"]
-		 [build-entry (lambda (x) (string-append "Screen" x "__"))]
+		 [fonts (cons font-default-string (wx:get-font-list))]
 		 [make-family-panel
 		  (lambda (name)
-		    (let* ([horiz (make-object mred:horizontal-panel% main
+		    (let* ([pref-sym (build-font-preference-symbol name)]
+			   [horiz (make-object mred:horizontal-panel% main
 					       -1 -1 -1 -1 wx:const-border)]
 			   [label (make-object mred:message% horiz name)]
 			   [space (make-object mred:horizontal-panel% horiz)]
 			   [_ (make-object mred:message% horiz 
 					   (let ([b (box "")])
 					     (if (and (wx:get-resource 
-						       section 
-						       (build-entry name)
+						       font-section 
+						       (build-font-entry name)
 						       b)
 						      (not (string=? (unbox b) 
 								     "")))
 						 (unbox b)
-						 default-string)))]
+						 font-default-string)))]
 			   [button 
 			    (make-object 
 			     mred:button% horiz 
@@ -348,13 +384,8 @@
 				       fonts
 				       null -1 -1 #t 300 400)])
 				 (unless (null? new-value)
-				   (wx:write-resource 
-				    section
-				    (build-entry name)
-				    (if (string=? default-string new-value)
-					""
-					new-value)
-				    file)
+				   (set-preference pref-sym
+						   new-value)
 				   (send horiz change-children
 					 (lambda (l)
 					   (list label space 
@@ -365,29 +396,23 @@
 						 button))))))
 			     "Change")])
 		      (void)))])
-	    (for-each make-family-panel families)
-	    (let ([size-panel (make-object mred:horizontal-panel% main -1 -1 -1 -1 wx:const-border)]
-		  [default-font-size
-		   (case wx:platform
-		     [(unix) 12]
-		     [(windows) 10]
-		     [(macintosh) 9])])
+	    (for-each make-family-panel font-families)
+	    (let ([size-panel (make-object mred:horizontal-panel% main -1 -1 -1 -1 wx:const-border)])
 	      '(make-object mred:message% size-panel "Size")
 	      '(make-object mred:horizontal-panel% size-panel)
 	      (make-object mred:slider% size-panel 
-			   (lambda (slider evt)
-			     (wx:write-resource 
-			      section
-			      font-size-entry
-			      (send slider get-value)
-			      file))
+			   (let ([sym (build-font-preference-symbol 
+				       font-size-entry)])
+			     (lambda (slider evt)
+			       (set-preference sym
+					       (send slider get-value))))
 			   "Size"
 			   (let ([b (box 0)])
-			     (if (wx:get-resource section 
+			     (if (wx:get-resource font-section 
 						  font-size-entry
 						  b)
 				 (unbox b)
-				 default-font-size))
+				 font-default-size))
 			   1 127 50))
 	    (make-object mred:message% main
 			 "Restart to see font changes")
