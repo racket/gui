@@ -24,9 +24,7 @@
 
 ; this structure holds the information that a child will need to send
 ; to its parent when the parent must resize itself.
-(define-struct child-info (x-posn                ; current x position w.r.t parent
-			   y-posn                ; current y position
-			   x-min y-min           ; includes margins!
+(define-struct child-info (x-min y-min           ; includes margins!
 			   x-margin y-margin     ; requested margin space
 			   x-stretch y-stretch)) ; booleans indicating strechability
 
@@ -122,7 +120,7 @@
 	     (let loop ([window this])
 	       (cond
 		[(or (is-a? window wx:frame%)
-		     (is-a? window wx:dialog-box%)) 
+		     (is-a? window wx:dialog%)) 
 		 (set! top-level window)]
 		[else (loop (send window get-parent))])))
 	   top-level)])
@@ -149,9 +147,9 @@
 (define (wx-make-container% %) %)
 
 ; make-top-container%: adds the necessary functionality to wx:frame% and 
-; wx:dialog-box%.
+; wx:dialog%.
 ; input: base%: the base class from which to descend the new class.
-;          Intended to be either wx:frame% or wx:dialog-box%, but can
+;          Intended to be either wx:frame% or wx:dialog%, but can
 ;          be anything which contains all methods in the inherit section
 ;          below.
 ; returns: a new class, descended from base%, which possesses the added
@@ -204,7 +202,7 @@
       [get-focus-window
        (lambda () focus)]
       [get-edit-target-window
-       (lambda () target)]
+       (lambda () (and target (send (wx->proxy target) is-shown?) target))]
       [get-focus-object
        (lambda ()
 	 (window->focus-object focus))]
@@ -521,8 +519,7 @@
 	 [get-info
 	  (lambda ()
 	    (let* ([min-size (get-min-size)]
-		   [result (make-child-info (get-x) (get-y)
-					    (car min-size) (cadr min-size)
+		   [result (make-child-info (car min-size) (cadr min-size)
 					    (x-margin) (y-margin)
 					    (stretchable-in-x)
 					    (stretchable-in-y))])
@@ -725,9 +722,9 @@
      (sequence
        (apply super-init args)))))
 
-(define wx-dialog-box%
+(define wx-dialog%
   (make-top-level-window-glue% 
-   (class (make-top-container% wx:dialog-box%) args
+   (class (make-top-container% wx:dialog%) args
      (sequence
        (apply super-init args)))))
 
@@ -1112,11 +1109,17 @@
 	     (error 'change-children
 		    (string-append 
 		     "Not all members of the new list are "
-		     "children of this panel ~s~nlist: ~s")
+		     "children of the container ~e; list: ~e")
 		    this new-children))
 	   ; show all new children, hide all deleted children.
 	   (let ([added-children (list-diff new-children children)]
 		 [removed-children (list-diff children new-children)])
+	     (unless (andmap (lambda (child)
+			     (is-a? wx:window% child))
+			     removed-children)
+	       (error 'change-children
+		      "Cannot make non-window areas inactive in ~e"
+		      this))
 	     (for-each (lambda (child) (send child show #f))
 		       removed-children)
 	     (set! children new-children)
@@ -1276,10 +1279,9 @@
 	       (let ([curr-info (car children-info)])
 		 (cons
 		  (list
-		   (child-info-x-margin curr-info)
-		   (child-info-y-margin curr-info)
-		   (child-info-x-min curr-info)
-		   (child-info-y-min curr-info))
+		   0 0
+		   (car curr-info) ; child-info-x-min
+		   (cadr curr-info)) ; child-info-y-min
 		  (loop (cdr children-info)))))))]
       
       [spacing ; does nothing!
@@ -1306,7 +1308,11 @@
        (lambda (width height)
 	 (let ([children-info (get-children-info)])
 	   (panel-redraw children children-info
-			 (place-children children-info width height))))]
+			 (place-children (map (lambda (i)
+						(list (child-info-x-min i) (child-info-y-min i)
+						      (child-info-x-stretch i) (child-info-y-stretch i)))
+					      children-info)
+					 width height))))]
       [panel-redraw
        (lambda (childs child-infos placements)
 	 (for-each
@@ -1515,11 +1521,11 @@
       [do-place-children
        (lambda (l w h)
 	 (place-linear-children l w h
-				child-info-x-min
-				child-info-x-stretch
+				car    ; child-info-x-min
+				caddr  ; child-info-x-stretch
 				major-offset
-				child-info-y-min
-				child-info-y-stretch
+				cadr   ; child-info-y-min
+				cadddr ; child-info-y-stretch
 				minor-offset
 				(lambda (width height) width)
 				(lambda (width height) height)
@@ -1553,11 +1559,11 @@
       [do-place-children
        (lambda (l w h)
 	 (place-linear-children l w h
-				child-info-y-min
-				child-info-y-stretch
+				cadr   ; child-info-y-min
+				cadddr ; child-info-y-stretch
 				major-offset
-				child-info-x-min
-				child-info-x-stretch
+				car    ; child-info-x-min
+				caddr  ; child-info-x-stretch
 				minor-offset
 				(lambda (width height) height)
 				(lambda (width height) width)
@@ -1870,7 +1876,6 @@
     enable is-enabled?
     get-label set-label
     get-client-size get-geometry get-width get-height get-x get-y
-    get-text-extent
     get-cursor set-cursor 
     show is-shown?
     refresh))
@@ -1920,13 +1925,6 @@
       [get-height (lambda () (send wx get-height))]
       [get-x (lambda () (- (send wx get-x) (if top? 0 (send (send wx get-parent) dx))))]
       [get-y (lambda () (- (send wx get-y) (if top? (send (send wx get-parent) dy))))]
-      
-      [get-text-extent (letrec ([l (case-lambda 
-				    [(s w h) (l s w h #f #f #f)]
-				    [(s w h d) (l s w h d #f #f)]
-				    [(s w h d a) (l s w h d a #f)]
-				    [(s w h d a f) (send wx get-text-extent s w h d a f)])])
-			 l)]
       
       [get-cursor (lambda () cursor)]
       [set-cursor (lambda (x)
@@ -1981,8 +1979,8 @@
       [eventspace (wx:current-eventspace)])
     (override
       [set-label (lambda (l)
-		   (send wx set-title l)
-		   (super-set-label))])
+		   (send wx set-title (wx:label->plain-label l))
+		   (super-set-label l))])
     (public
       [get-eventspace (lambda () eventspace)]
       [can-close? (lambda () #t)]
@@ -2047,24 +2045,26 @@
       [create-status-line (lambda () (unless status-line? (send wx create-status-line) (set! status-line? #t)))]
       [set-status-line (lambda () (send wx create-status-line))]
       [has-status-line? (lambda () status-line?)]
-      [iconize (lambda () (send wx iconize))]
+      [iconize (lambda (on?) (send wx iconize on?))]
+      [is-iconized? (lambda () (send wx iconized?))]
+      [set-icon (lambda (i) (send wx set-icon i))]
       [maximize (lambda () (send wx maximize))]
       [get-menu-bar (lambda () (let ([mb (ivar wx menu-bar)])
 				 (and mb (wx->mred mb))))])
     (sequence
       (super-init (lambda (finish) 
 		    (set! wx (finish (make-object wx-frame% this this
-						  (and parent (mred->wx parent)) label 
+						  (and parent (mred->wx parent)) (wx:label->plain-label label)
 						  (or x -1) (or y -1) (or width -1) (or height -1)
 						  style)))
 		    wx)
 		  label parent))))
 
-(define dialog-box%
-  (class basic-top-level-window% (label [modal? #t] [parent #f] [width #f] [height #f] [x #f] [y #f] [style null])
+(define dialog%
+  (class basic-top-level-window% (label [parent #f] [width #f] [height #f] [x #f] [y #f] [style null])
     (sequence
-      (super-init (lambda (finish) (finish (make-object wx-dialog-box% this this
-							(and parent (mred->wx parent)) label modal?
+      (super-init (lambda (finish) (finish (make-object wx-dialog% this this
+							(and parent (mred->wx parent)) (wx:label->plain-label label) #t
 							(or x -1) (or y -1) (or width 0) (or height 0)
 							style)))
 		  label parent))))
@@ -2202,8 +2202,8 @@
       [clear (lambda () (send wx clear))]
       [get-number (lambda () (send wx number))]
       [get-string (lambda (n) (send wx get-string n))]
-      [get-selection (lambda () (-1=>false (send wx get-selection)))]
-      [get-string-selection (lambda () (send wx get-string-selection))]
+      [get-selection (lambda () (and (positive? (get-number)) (-1=>false (send wx get-selection))))]
+      [get-string-selection (lambda () (and (positive? (get-number)) (send wx get-string-selection)))]
       [set-selection (lambda (s) (send wx set-selection s))]
       [set-string-selection (lambda (s) (send wx set-string-selection s))]
       [find-string (lambda (x) (-1=>false (send wx find-string x)))])
@@ -2739,7 +2739,7 @@
       [get-item (lambda () item)])))
 
 (define popup-menu%
-  (class basic-menu% (title)
+  (class basic-menu% ([title #f])
     (sequence
       (super-init title
 		  (lambda (m e)
@@ -2904,7 +2904,7 @@
    [(title message) (message-box title message #f '(ok))]
    [(title message parent) (message-box title message parent '(ok))]
    [(title message parent style)
-    (let* ([f (make-object dialog-box% title #t parent box-width)]
+    (let* ([f (make-object dialog% title parent box-width)]
 	   [result 'ok]
 	   [strings (let loop ([s message])
 		      (let ([m (regexp-match (let ([nl (string #\newline #\return)])
@@ -2925,7 +2925,7 @@
       (let* ([p (make-object horizontal-pane% f)]
 	     [mk-button (lambda (title v default?) 
 			  (let ([b (make-object button% title p (lambda (b e) (set! result v) (send f show #f))
-						(if default? '(default) null))])
+						(if default? '(border) null))])
 			    (when default? (send b focus))))])
 	(send p stretchable-height #f)
 	(send p stretchable-width #f)
@@ -2946,13 +2946,13 @@
    [(message parent) (get-ps-setup-from-user message parent null)]
    [(message parent style)
     (define pss (wx:current-ps-setup))
-    (define f (make-object dialog-box% "PostScript Setup" #t parent))
+    (define f (make-object dialog% "PostScript Setup" parent))
     (define papers 
       '("A4 210 x 297 mm" "A3 297 x 420 mm" "Letter 8 1/2 x 11 in" "Legal 8 1/2 x 14 in"))
     (define p (make-object horizontal-pane% f))
     (define paper (make-object choice% #f papers p void))
     (define _0 (make-object vertical-pane% p))
-    (define ok (make-object button% "Ok" p (lambda (b e) (done #t)) '(default)))
+    (define ok (make-object button% "Ok" p (lambda (b e) (done #t)) '(border)))
     (define cancel (make-object button% "Cancel" p (lambda (b e) (done #f))))
     (define unix? (eq? (system-type) 'unix))
     (define dp (make-object horizontal-pane% f))
@@ -3042,7 +3042,7 @@
    [(title message init-val) (get-text-from-user title message init-val #f null)]
    [(title message init-val parent) (get-text-from-user title message init-val parent null)]
    [(title message init-val parent style)
-    (let* ([f (make-object dialog-box% title #t parent box-width)]
+    (let* ([f (make-object dialog% title parent box-width)]
 	   [ok? #f]
 	   [done (lambda (?) (lambda (b e) (set! ok? ?) (send f show #f)))])
       (send f set-label-position 'vertical)
@@ -3053,7 +3053,7 @@
 	(send p set-alignment 'right 'center)
 	(send p stretchable-height #f)
 	(make-object button% "Cancel" p (done #f))
-	(make-object button% "Ok" p (done #t) '(default))
+	(make-object button% "Ok" p (done #t) '(border))
 	(send t focus)
 	(send f show #t)
 	(and ok? (send t get-value))))]))
@@ -3064,7 +3064,7 @@
    [(title message choices parent) (get-choice-from-user title message choices parent null '(single))]
    [(title message choices parent init-vals) (get-choice-from-user title message choices parent init-vals '(single))]
    [(title message choices parent init-vals style)
-    (let* ([f (make-object dialog-box% title #t parent box-width)]
+    (let* ([f (make-object dialog% title parent box-width)]
 	   [ok-button #f]
 	   [update-ok (lambda (l) (send ok-button enable (not (null? (send l get-selections)))))]
 	   [ok? #f]
@@ -3081,7 +3081,7 @@
 	(send p set-alignment 'right 'center)
 	(send p stretchable-height #f)
 	(make-object button% "Cancel" p (done #f))
-	(set! ok-button (make-object button% "Ok" p (done #t) '(default)))
+	(set! ok-button (make-object button% "Ok" p (done #t) '(border)))
 	(update-ok l)
 	(send f show #t)
 	(and ok? (send l get-selections))))]))
@@ -3101,7 +3101,7 @@
 		  (letrec ([ok? #t]
 			   [typed-name #f]
 			   [dir (or directory (current-directory))]
-			   [f (make-object dialog-box% (if put? "Put File" "Get File") #t parent 500 300)]
+			   [f (make-object dialog% (if put? "Put File" "Get File") parent 500 300)]
 			   [__ (when message
 				 (let ([p (make-object vertical-pane% f)])
 				   (send p stretchable-height #f)
@@ -3159,7 +3159,7 @@
 								      (if (send files is-enabled?)
 									  (done) ; normal mode
 									  (do-text-name))) ; handle typed text
-						   '(default))]
+						   '(border))]
 			   [update-ok (lambda () (send ok-button enable (not (null? (send files get-selections)))))]
 			   [reset-directory (lambda ()
 					      (wx:begin-busy-cursor)
@@ -3225,7 +3225,7 @@
        [(message parent) (get-color-from-user message parent #f)]
        [(message parent color)
 	(let* ([ok? #t]
-	       [f (make-object dialog-box% "Choose Color" #t parent)]
+	       [f (make-object dialog% "Choose Color" parent)]
 	       [done (lambda (ok) (lambda (b e) (set! ok? ok) (send f show #f)))]
 	       [p (make-object vertical-pane% f)]
 	       [make-color-slider (lambda (l) (make-object slider% l 0 255 p void))]
@@ -3238,7 +3238,7 @@
 	    (send green set-value (send color green))
 	    (send blue set-value (send color blue)))
 	  (make-object button% "Cancel" bp (done #f))
-	  (make-object button% "Ok" bp (done #t) '(default))
+	  (make-object button% "Ok" bp (done #t) '(border))
 	  (send bp set-alignment 'right 'center)
 	  (send p set-alignment 'right 'center)
 	  (send f show #t)
@@ -3257,7 +3257,7 @@
        [(message parent) (get-font-from-user message parent #f)]
        [(message parent font)
 	(letrec ([ok? #f]
-		 [f (make-object dialog-box% "Choose Font" #t parent 500 300)]
+		 [f (make-object dialog% "Choose Font" parent 500 300)]
 		 [refresh-sample (lambda (b e) (let ([f (get-font)])
 						 (send ok-button enable f)
 						 (when f
@@ -3281,7 +3281,7 @@
 							  (send underlined get-value)))))]
 		 [bp (make-object horizontal-pane% f)]
 		 [cancel-button (make-object button% "Cancel" bp (done #f))]
-		 [ok-button (make-object button% "Ok" bp (done #t) '(default))])
+		 [ok-button (make-object button% "Ok" bp (done #t) '(border))])
 	  (when font
 	    (let ([f (send face find-string (send font get-face))])
 	      (and f (>= f 0) (send face set-selection f)))
