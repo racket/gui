@@ -24,89 +24,90 @@
 	(class object%
 
 	  [define active-frame #f]
-	    [define frame-counter 0]
-	    [define frames null]
-	    [define todo-to-new-frames void]
-	    [define empty-close-down (lambda () (void))]
-	    [define empty-test (lambda () #t)]
-	    
-	    [define windows-menus null]
+	  [define frame-counter 0]
+	  [define frames null]
+	  [define todo-to-new-frames void]
+	  [define empty-close-down (lambda () (void))]
+	  [define empty-test (lambda () #t)]
 	  
-	    [define get-windows-menu
-	     (lambda (frame)
-	       (let ([menu-bar (send frame get-menu-bar)])
-		 (and menu-bar
-		      (let ([menus (send menu-bar get-items)])
-			(ormap (lambda (x)
-				 (if (string=? "&Windows" (send x get-label))
-				     x
-				     #f))
-			       menus)))))]
-	    [define insert-windows-menu
-	     (lambda (frame)
-	       (let ([menu (get-windows-menu frame)])
-		 (when menu
-		   (set! windows-menus (cons menu windows-menus)))))]
-	    [define remove-windows-menu
-	     (lambda (frame)
-	       (let* ([menu (get-windows-menu frame)])
-		 (set! windows-menus
-		       (remove
-			menu
-			windows-menus
-			eq?))))]
+	  [define windows-menus null]
+	  
+	  [define get-windows-menu
+	    (lambda (frame)
+	      (let ([menu-bar (send frame get-menu-bar)])
+		(and menu-bar
+		     (let ([menus (send menu-bar get-items)])
+		       (ormap (lambda (x)
+				(if (string=? "&Windows" (send x get-label))
+				    x
+				    #f))
+			      menus)))))]
+	  [define insert-windows-menu
+	    (lambda (frame)
+	      (let ([menu (get-windows-menu frame)])
+		(when menu
+		  (set! windows-menus (cons menu windows-menus)))))]
+	  [define remove-windows-menu
+	    (lambda (frame)
+	      (let* ([menu (get-windows-menu frame)])
+		(set! windows-menus
+		      (remove
+		       menu
+		       windows-menus
+		       eq?))))]
 
-	    [define update-windows-menus
-	     (lambda ()
-	       (let* ([windows (length windows-menus)]
-		      [default-name "Untitled"]
-		      [get-name 
-		       (lambda (frame)
-			 (let ([label (send frame get-label)])
-			   (if (string=? label "")
-			       (if (method-in-interface? 'get-entire-label (object-interface frame))
-				   (let ([label (send frame get-entire-label)])
-				     (if (string=? label "")
-					 default-name
-					 label))
-				   default-name)
-			       label)))]
-		      [sorted-frames
-		       (quicksort
-			frames
-			(lambda (f1 f2)
-			  (string-ci<=? (get-name (frame-frame f1))
-					(get-name (frame-frame f2)))))])
+	  [define (update-windows-menus)
+	    (printf "update-windows-menus~n")
+	    (let* ([windows (length windows-menus)]
+		   [default-name "Untitled"]
+		   [get-name 
+		    (lambda (frame)
+		      (let ([label (send frame get-label)])
+			(if (string=? label "")
+			    (if (method-in-interface? 'get-entire-label (object-interface frame))
+				(let ([label (send frame get-entire-label)])
+				  (if (string=? label "")
+				      default-name
+				      label))
+				default-name)
+			    label)))]
+		   [sorted/visible-frames
+		    (quicksort
+		     (filter (lambda (x) (send (frame-frame x) is-shown?)) frames)
+		     (lambda (f1 f2)
+		       (string-ci<=? (get-name (frame-frame f1))
+				     (get-name (frame-frame f2)))))])
+	      (for-each
+	       (lambda (menu)
+		 (for-each (lambda (item) (send item delete))
+			   (send menu get-items))
 		 (for-each
-		  (lambda (menu)
-		    (for-each (lambda (item) (send item delete))
-			      (send menu get-items))
-		    (for-each
-		     (lambda (frame)
-		       (let ([frame (frame-frame frame)])
-			 (make-object menu-item% (get-name frame)
-				      menu
-				      (lambda (_1 _2)
-					(send frame show #t)))))
-		     sorted-frames))
-		  windows-menus)))]
+		  (lambda (frame)
+		    (let ([frame (frame-frame frame)])
+		      (make-object menu-item% (get-name frame)
+				   menu
+				   (lambda (_1 _2)
+				     (send frame show #t)))))
+		  sorted/visible-frames))
+	       windows-menus))]
 	  
-	    [define update-close-menu-item-state
-	     (lambda ()
-	       (let* ([set-close-menu-item-state! 
-		       (lambda (frame state)
-			 (when (is-a? frame frame:standard-menus<%>)
-			   (let ([close-menu-item (send frame file-menu:get-close-menu)])
-			     (when close-menu-item
-			       (send close-menu-item enable state)))))])
-		 (if (eq? (length frames) 1)
-		     (set-close-menu-item-state! (car frames) #f)
-		     (for-each (lambda (a-frame)
-				 (set-close-menu-item-state! a-frame #t))
-			       frames))))]
+	  [define update-close-menu-item-state
+	    (lambda ()
+	      (let* ([set-close-menu-item-state! 
+		      (lambda (frame state)
+			(when (is-a? frame frame:standard-menus<%>)
+			  (let ([close-menu-item (send frame file-menu:get-close-menu)])
+			    (when close-menu-item
+			      (send close-menu-item enable state)))))])
+		(if (eq? (length frames) 1)
+		    (set-close-menu-item-state! (car frames) #f)
+		    (for-each (lambda (a-frame)
+				(set-close-menu-item-state! a-frame #t))
+			      frames))))]
 	  (public get-mdi-parent set-empty-callbacks frame-label-changed for-each-frame
 		  get-active-frame set-active-frame insert-frame can-remove-frame?
-		  remove-frame clear on-close-all can-close-all? locate-file get-frames)
+		  remove-frame clear on-close-all can-close-all? locate-file get-frames
+		  frame-shown/hidden)
 	  [define get-mdi-parent
 	    (lambda ()
 	      (when (and (eq? (system-type) 'windows)
@@ -123,12 +124,18 @@
 	      (set! empty-test test)
 	      (set! empty-close-down close-down))]
 	  [define get-frames (lambda () (map frame-frame frames))]
-	    
+	  
 	  [define frame-label-changed
 	    (lambda (frame)
 	      (when (member frame (map frame-frame frames))
 		(update-windows-menus)))]
-	    
+
+	  [define frame-shown/hidden
+	    (lambda (frame)
+	      (printf "frame-shown/hidden: ~s~n" frame)
+	      (when (member frame (map frame-frame frames))
+		(update-windows-menus)))]
+	  
 	  [define for-each-frame
 	    (lambda (f)
 	      (for-each (lambda (x) (f (frame-frame x))) frames)
@@ -154,7 +161,7 @@
 		(insert-windows-menu f)
 		(update-windows-menus))
 	      (todo-to-new-frames f))]
-	    
+	  
 	  [define can-remove-frame?
 	    (lambda (f)
 	      (let ([new-frames 

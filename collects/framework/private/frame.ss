@@ -89,6 +89,15 @@
              (case-lambda
               [() (get-filename #f)]
               [(b) #f])]
+
+	  (override on-superwindow-show)
+	  (rename [super-on-superwindow-show on-superwindow-show])
+	  (define (on-superwindow-show shown?)
+	    (printf "on-superwindow-show ~s~n" shown?)
+	    (send (group:get-the-frame-group) frame-shown/hidden this)
+	    (super-on-superwindow-show shown?))
+
+
           (define after-init? #f)
           (override can-close? on-close on-focus on-drop-file)
           [define can-close?
