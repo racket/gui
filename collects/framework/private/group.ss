@@ -142,9 +142,8 @@
 
 	  [define frame-shown/hidden
 	    (lambda (frame)
-	      (let ([frame-frames (map frame-frame frames)])
-		(when (memq frame frame-frames)
-		  (update-windows-menus))))]
+	      (when (memq frame (map frame-frame frames))
+	        (update-windows-menus)))]
 	  
 	  [define for-each-frame
 	    (lambda (f)
@@ -244,13 +243,6 @@
 	  
           (super-instantiate ())))
       
-      (define (in-list? ele lst)
-	(let loop ([lst lst])
-	  (cond
-	    [(null? lst) #f]
-	    [else (or (eq? (car lst) ele)
-		      (loop (cdr lst)))])))
-
       (define (choose-a-frame parent)
         (letrec ([sorted-frames
                   (quicksort
