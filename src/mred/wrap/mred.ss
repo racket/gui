@@ -1426,9 +1426,8 @@
 			   [(and horizontal? (not vertical-labels?)) (- (get-width) client-w)]
 			   [(and (not horizontal?) vertical-labels?) (- (get-height) client-h)]
 			   [else 0]))])
-	   (when (not horizontal?)
-	     (stretchable-in-x #f)
-	     (stretchable-in-y #t))
+	   (stretchable-in-x horizontal?)
+	   (stretchable-in-y (not horizontal?))
 	   ((if horizontal? set-min-width set-min-height) 
 	    (max ((if horizontal? get-width get-height))
 		 (min const-max-gauge-length range)))))))))
@@ -4986,4 +4985,3 @@
 	(error 'get-window-text-extent "couldn't allocate sizing bitmap"))
       (let-values ([(w h d a) (send dc get-text-extent string font)])
 	(values (inexact->exact w) (inexact->exact h)))])))
-
