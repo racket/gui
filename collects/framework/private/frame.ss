@@ -221,8 +221,12 @@
           (super-instantiate ())
           (accept-drop-files #t)
             
-          (make-object menu:can-restore-underscore-menu% (string-constant windows-menu-label)
-            (make-object (get-menu-bar%) this))
+          (let ([mb (make-object (get-menu-bar%) this)])
+            (when (or (eq? (system-type) 'macos)
+                      (eq? (system-type) 'macosx))
+              (make-object menu:can-restore-underscore-menu% (string-constant windows-menu-label)
+                mb)))
+          
           (reorder-menus this)
           (send (group:get-the-frame-group) insert-frame this)
           [define panel (make-root-area-container (get-area-container%) this)]

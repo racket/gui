@@ -2,10 +2,13 @@
 (module splash mzscheme
   (require (lib "class.ss")
            (lib "file.ss")
-           (lib "mred.ss" "mred"))
+           (lib "mred.ss" "mred")
+           (lib "contracts.ss"))
   
-  (provide get-splash-bitmap get-splash-canvas get-splash-eventspace get-dropped-files 
-           start-splash shutdown-splash close-splash)
+  (provide get-splash-bitmap set-splash-bitmap
+           get-splash-canvas get-splash-eventspace get-dropped-files 
+           start-splash shutdown-splash close-splash add-splash-icon set-splash-char-observer)
+
   
   (define splash-filename #f)
   (define splash-bitmap #f)
@@ -13,9 +16,22 @@
   (define dropped-files null)
   
   (define (get-splash-bitmap) splash-bitmap)
+  (define (set-splash-bitmap bm) 
+    (set! splash-bitmap bm)
+    (send splash-canvas on-paint))
   (define (get-splash-canvas) splash-canvas)
   (define (get-splash-eventspace) splash-eventspace)
   (define (get-dropped-files) dropped-files)
+
+  (define char-observer void)
+  (define (set-splash-char-observer proc)
+    (set! char-observer proc))
+  
+  (define-struct icon (bm x y))
+  (define icons null)
+  (define (add-splash-icon bm x y)
+    (set! icons (cons (make-icon bm x y) icons))
+    (send splash-canvas on-paint))
   
   (define (start-splash _splash-filename _splash-title width-default)
     (set! splash-title _splash-title)
@@ -170,10 +186,18 @@
   (define splash-canvas%
     (class canvas%
       (inherit get-dc)
+      (define/override (on-char evt) (char-observer evt))
       (define/override (on-paint)
-        (if splash-bitmap
-            (send (get-dc) draw-bitmap splash-bitmap 0 0)
-            (send (get-dc) clear)))
+        (let ([dc (get-dc)])
+          (if splash-bitmap
+              (send dc draw-bitmap splash-bitmap 0 0)
+              (send dc clear))
+          (for-each (lambda (icon)
+                      (send dc draw-bitmap
+                            (icon-bm icon)
+                            (icon-x icon)
+                            (icon-y icon)))
+                    icons)))
       (super-instantiate ())))
   
   (define splash-frame

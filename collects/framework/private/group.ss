@@ -36,6 +36,7 @@
 
           [define windows-menus null]
           
+          ;; get-windows-menu : (is-a?/c frame%) -> (union false? (is-a?/c menu%))
           [define get-windows-menu
             (lambda (frame)
               (let ([menu-bar (send frame get-menu-bar)])
@@ -54,16 +55,17 @@
                   (set! windows-menus (cons menu windows-menus)))))]
           [define remove-windows-menu
             (lambda (frame)
-              (let* ([menu (get-windows-menu frame)])
+              (let ([menu (get-windows-menu frame)])
                 
-                ;; to help the (conservative) gc.
-                (for-each (lambda (i) (send i delete)) (send menu get-items))
+                (when menu
+                  ;; to help the (conservative) gc.
+                  (for-each (lambda (i) (send i delete)) (send menu get-items))
                 
-                (set! windows-menus
-                      (remove
-                       menu
-                       windows-menus
-                       eq?))))]
+                  (set! windows-menus
+                        (remove
+                         menu
+                         windows-menus
+                         eq?)))))]
           
           [define (update-windows-menus)
             (let* ([windows (length windows-menus)]
