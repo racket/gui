@@ -274,21 +274,26 @@
     "This function doesn't return until the user has finished"
     "restoring the autosave files. (It uses yield to handle events"
     "however).")
-    
-   (exit:frame-exiting
-    (case->
-     ((union false? (is-a?/c frame%) (is-a?/c dialog%))
-      . -> .
-      void?)
-     (-> (union false? (is-a?/c frame%) (is-a?/c dialog%))))
-    ((frame) ())
-    "This is a parameter whose value is used as the parent of the ``Are you"
-    "sure you want to exit'' dialog."
+
+   (exit:exiting? 
+    (-> boolean?)
+    ()
+    "Returns \\rawscm{\\#t} to indicate that an exit"
+    "operation is taking place. Does not indicate that the"
+    "app will actually exit, since the user may cancel"
+    "the exit."
     ""
-    "The first case of the case-lambda sets"
-    "the value of the parameter to \\var{frame}."
-    "The second case of the case-lambda "
-    "returns the current value of the parameter.")
+    "See also"
+    "@flink exit:insert-on-callback"
+    "and"
+    "@flink exit:insert-can?-callback %"
+    ".")
+   (exit:set-exiting
+    (boolean? . -> . void?)
+    (exiting?)
+    "Sets a flag that affects the result of"
+    "@flink exit:exiting? %"
+    ".")
    (exit:insert-on-callback
     ((-> void?) . -> . (-> void?))
     (callback)
@@ -305,18 +310,12 @@
     "@flink exit:insert-on-callback"
     "for callbacks that clean up state.")
    (exit:can-exit?
-    (boolean? . -> . void?)
-    (skip-user-query?)
-    "Calls the ``can-callbacks''. See"
+    (-> boolean?)
+    ()
+    "Calls the ``can-callbacks'' and returns their results."
+    "See"
     "@flink exit:insert-can?-callback"
-    "for more information."
-    ""
-    "If \\var{skip-user-query?} is \\rawscm{\\#f}, "
-    "and the preference \\rawscm{'framework:verify-exit} is not \\rawscm{\\#f},"
-    "(see \\hyperref{the preferences section}{section~}{ for more info about"
-    "preferences}{fw:preferences})"
-    "this procedure asks the user if they want to exit."
-    "Otherwise it doesn't ask the user.")
+    "for more information.")
    (exit:on-exit
     (-> void?)
     ()
@@ -324,13 +323,13 @@
     "@flink exit:insert-on-callback"
     "for more information.")
    (exit:exit
-    (opt->
-     ()
-     (boolean?)
-     any?)
-    (() ((skip-user-query? #f)))
-    "\\rawscm{exit:exit} performs three actions:"
+    (-> any)
+    ()
+    "\\rawscm{exit:exit} performs four actions:"
     "\\begin{itemize}"
+    "\\item sets the result of the"
+    "@flink exit:exiting?"
+    "function to \\rawscm{\\#t}."
     "\\item invokes the exit-callbacks, with "
     "@flink exit:can-exit? %"
     "If none of the ``can?'' callbacks return \\rawscm{\\#f}, "
@@ -339,13 +338,20 @@
     "@flink exit:on-exit %"
     "and then "
     "\\item"
-    "\\rawscm{exit} (a mzscheme procedure)."
-    "\\end{itemize}"
-    ""
-    "Passes \\var{skip-user-query?} to "
-    "@flink exit:can-exit? %"
-    ".")
-
+    "queues a callback that calls"
+    "\\rawscm{exit} (a mzscheme procedure)"
+    "and (if \\rawscm{exit} returns) sets the"
+    "result of"
+    "@flink exit:exiting?"
+    "back to \\rawscm{\\#t}."
+    "\\end{itemize}")
+   (exit:user-oks-exit
+    (-> boolean?)
+    ()
+    "Opens a dialog that queries the user"
+    "about exiting. Returns the user's decision.")
+   
+   
    (path-utils:generate-autosave-name
     (string? . -> . string?)
     (filename)

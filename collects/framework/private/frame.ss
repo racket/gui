@@ -129,12 +129,18 @@
       (define basic-mixin
         (mixin ((class->interface frame%)) (basic<%>)
         
-          (define/override (can-exit?) (exit:can-exit?))
-          (define/override (on-exit) (exit:on-exit) (exit))
-          
-          (rename [super-can-close? can-close?]
-                  [super-on-close on-close]
-                  [super-on-focus on-focus])
+          (define/override (can-exit?)
+            (exit:set-exiting #t)
+            (let ([res (exit:can-exit?)])
+              (unless res
+                (exit:set-exiting #f))
+              res))
+          (define/override (on-exit) 
+            (exit:on-exit)
+            (queue-callback
+             (lambda ()
+               (exit)
+               (exit:set-exiting #f))))
           
           (public get-filename)
           [define get-filename
@@ -149,22 +155,30 @@
 	    (super-on-superwindow-show shown?))
 
 
+          (rename [super-can-close? can-close?]
+                  [super-on-close on-close]
+                  [super-on-focus on-focus])
+          
           (define after-init? #f)
           (override can-close? on-close on-focus on-drop-file)
           [define can-close?
             (lambda ()
-              (let ([super (super-can-close?)]
-                    [group
-                     (send (group:get-the-frame-group)
-                           can-remove-frame?
-                           this)])
-                (and super group)))]
+              (let ([number-of-frames 
+                     (length (send (group:get-the-frame-group)
+                                   get-frames))])
+                (and (super-can-close?)
+                     (or (exit:exiting?)
+                         (not (= 1 number-of-frames))
+                         (exit:user-oks-exit)))))]
           [define on-close
             (lambda ()
               (super-on-close)
               (send (group:get-the-frame-group)
                     remove-frame
-                    this))]
+                    this)
+              (unless (exit:exiting?)
+                (when (null? (send (group:get-the-frame-group) get-frames))
+                  (exit:exit))))]
           [define on-focus
             (lambda (on?)
               (super-on-focus on?)

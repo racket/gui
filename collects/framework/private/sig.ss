@@ -202,7 +202,9 @@
   (define-signature framework:exit-class^
     ())
   (define-signature framework:exit-fun^
-    (frame-exiting
+    (set-exiting
+     exiting?
+     user-oks-exit
      insert-on-callback
      insert-can?-callback
      can-exit?

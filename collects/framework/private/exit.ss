@@ -16,8 +16,6 @@
 	      [preferences : framework:preferences^])
       (rename (-exit exit))
       
-      (define frame-exiting (make-parameter #f))
-
       (define can?-callbacks '())
       (define on-callbacks '())
       
@@ -43,13 +41,11 @@
 		     [(eq? cb (car cb-list)) (cdr cb-list)]
 		     [else (cons (car cb-list) (loop (cdr cb-list)))]))))))
       
-      (define exiting? #f)
-
-      (define can-exit?
-        (opt-lambda ([skip-user-query? #f])
-          (and (or skip-user-query?
-                   (user-oks-exit))
-               (andmap (lambda (cb) (cb)) can?-callbacks))))
+      (define is-exiting? #f)
+      (define (set-exiting b) (set! is-exiting? b))
+      (define (exiting?) is-exiting?)
+      
+      (define (can-exit?) (andmap (lambda (cb) (cb)) can?-callbacks))
       (define (on-exit) (for-each (lambda (cb) (cb)) on-callbacks))
 
       (define (user-oks-exit)
@@ -63,15 +59,17 @@
 		 (string-constant quit))
 	     (string-constant cancel)
 	     (string-constant warning)
-	     #f
-	     (frame-exiting))
+	     #f)
 	    #t))
 
-      (define -exit
-        (opt-lambda ([skip-user-query? #f])
-          (unless exiting?
-            (set! exiting? #t)
-            (when (can-exit? skip-user-query?)
-              (on-exit)
-              (queue-callback (lambda () (exit))))
-            (set! exiting? #f)))))))
+      (define (-exit)
+        (set! is-exiting? #t)
+        (cond
+          [(can-exit?)
+           (on-exit)
+           (queue-callback 
+            (lambda () 
+              (exit)
+              (set! is-exiting? #f)))]
+          [else
+           (set! is-exiting? #f)])))))

@@ -20,7 +20,8 @@
               [scheme : framework:scheme^]
               [editor : framework:editor^]
               [text : framework:text^]
-              [finder : framework:finder^])
+              [finder : framework:finder^]
+              [group : framework:group^])
       
       (define autosavable<%>
 	(interface ()
@@ -143,8 +144,11 @@
         (define final-frame%
           (class frame:basic%
             (rename [super-on-close on-close])
+            (define/override (can-close?) #t)
             (define/override (on-close)
-              (super-on-close)
+              (send (group:get-the-frame-group)
+                    remove-frame
+                    this)
               (semaphore-post done-semaphore))
             (super-instantiate ())))
         

@@ -143,48 +143,13 @@
       
       (preferences:set-default 'framework:exit-when-no-frames #t boolean?)
 
-      (let ([at-most-one
-	     (let ([skip? #f])
-	       (lambda (answer thunk)
-		 (if skip?
-		     answer
-		     (begin
-		       (set! skip? #t)
-		       (begin0 (thunk)
-			       (set! skip? #f))))))])
-
-	(send (group:get-the-frame-group) set-empty-callbacks
-
-	      ;; empty test
-	      (lambda ()
-		(if (preferences:get 'framework:exit-when-no-frames)
-		    (at-most-one #t
-				 (lambda ()
-				   (exit:can-exit?)))
-		    #t))
-	      
-	      ;; empty close down
-	      (lambda () 
-		(if (preferences:get 'framework:exit-when-no-frames)
-		    (at-most-one (void) 
-				 (lambda ()
-				   (exit:on-exit)
-				   (queue-callback (lambda () (exit)))))
-		    (void))))
-	
-	(exit:insert-can?-callback
-	 (lambda ()
-	   (at-most-one
-	    #t
-	    (lambda ()
-	      (send (group:get-the-frame-group) can-close-all?)))))    
-
-	(exit:insert-on-callback
-	 (lambda ()
-	   (at-most-one
-	    #t
-	    (lambda ()
-	      (send (group:get-the-frame-group) on-close-all))))))
+      (exit:insert-can?-callback
+       (lambda ()
+         (send (group:get-the-frame-group) can-close-all?)))    
+      
+      (exit:insert-on-callback
+       (lambda ()
+         (send (group:get-the-frame-group) on-close-all)))
       
       (exit:insert-can?-callback 
        (lambda ()

@@ -34,10 +34,6 @@
           [define frames null]
           [define todo-to-new-frames void]
 
-          (define ignore-empty-test? #f)
-          [define empty-close-down (lambda () (void))]
-          [define empty-test (lambda () #t)]
-          
           [define windows-menus null]
           
           [define get-windows-menu
@@ -181,8 +177,8 @@
 		     #f
 		     (frame-frame (car candidates))))]))
           
-          (public get-mdi-parent set-empty-callbacks frame-label-changed for-each-frame
-                  get-active-frame set-active-frame insert-frame can-remove-frame?
+          (public get-mdi-parent frame-label-changed for-each-frame
+                  get-active-frame set-active-frame insert-frame
                   remove-frame clear on-close-all can-close-all? locate-file get-frames
                   frame-shown/hidden)
           [define get-mdi-parent
@@ -196,13 +192,6 @@
                 (send mdi-parent show #t))
               mdi-parent)]
           
-          [define set-empty-callbacks
-            (lambda (test close-down) 
-              (set! empty-test test)
-              (set! empty-close-down close-down))]
-          (define/public (set-ignore-empty-test b)
-            (set! ignore-empty-test? b))
-
           [define get-frames (lambda () (map frame-frame frames))]
           
           [define frame-label-changed
@@ -243,16 +232,6 @@
                 (update-windows-menus))
               (todo-to-new-frames f))]
           
-          [define can-remove-frame?
-            (lambda (f)
-              (let ([new-frames 
-                     (remove
-                      f frames
-                      (lambda (f fr) (eq? f (frame-frame fr))))])
-                (if (null? new-frames)
-		    (or ignore-empty-test?
-			(empty-test))
-                    #t)))]
           [define remove-frame
             (lambda (f)
               (when (eq? f active-frame)
@@ -264,16 +243,11 @@
                 (set! frames new-frames)
                 (update-close-menu-item-state)
                 (remove-windows-menu f)
-                (update-windows-menus)
-                (when (null? frames)
-                  (unless ignore-empty-test?
-                    (empty-close-down)))))]
+                (update-windows-menus)))]
           [define clear
             (lambda ()
-              (and (empty-test)
-                   (begin (set! frames null)
-                          (empty-close-down)
-                          #t)))]
+              (set! frames null)
+              #t)]
           [define on-close-all
             (lambda ()
               (for-each (lambda (f)

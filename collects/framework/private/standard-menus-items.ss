@@ -275,8 +275,7 @@
           (make-an-item 'file-menu 'quit
                         '(string-constant quit-info)
                         '(lambda (item control) 
-                           (parameterize ([exit:frame-exiting this])
-                             (exit:exit)))
+                           (exit:exit))
                         #\q
                         '(if (eq? (system-type) 'windows) 
                              (string-constant quit-menu-item-windows)
