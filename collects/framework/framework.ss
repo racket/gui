@@ -698,6 +698,7 @@
    
    (handler:set-recent-items-frame-superclass
     ((implementation?/c frame:standard-menus<%>) . -> . void?)
+    (frame)
     "Sets the superclass for the recently opened files frame."
     "It must be derived from"
     "@ilink frame:standard-menus %"
