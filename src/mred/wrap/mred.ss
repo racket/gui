@@ -1356,7 +1356,9 @@
      (public
        [handle-menu-key
 	(lambda (event)
-	  (and menu-bar (send menu-bar handle-key event)))])
+	  (and menu-bar 
+	       (begin (send menu-bar on-demand) #t)
+	       (send menu-bar handle-key event)))])
      (sequence
        (apply super-init args)))))
 
