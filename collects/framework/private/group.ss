@@ -247,14 +247,7 @@
                      [test-frame
                       (lambda (frame)
                         (and (is-a? frame frame:basic<%>)
-                             (let* ([filename (send frame get-filename)])
-                               (and (string? filename)
-                                    (string=? normalized
-                                              (with-handlers ([(lambda (x) #t)
-                                                               (lambda (x) filename)])
-                                                (normal-case-path
-                                                 (normalize-path 
-                                                  filename))))))))])
+                             (send frame editing-this-file? normalized)))])
                 (let loop ([frames frames])
                   (cond
                     [(null? frames) #f]

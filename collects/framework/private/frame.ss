@@ -125,7 +125,9 @@
                          get-menu-bar%
                          make-root-area-container
                          close
-                         get-filename))
+                         editing-this-file?
+                         get-filename
+                         make-visible))
       (define basic-mixin
         (mixin ((class->interface frame%)) (basic<%>)
         
@@ -148,53 +150,52 @@
              (lambda ()
                (exit)
                (exit:set-exiting #f))))
-          
-          (public get-filename)
-          [define get-filename
+                    
+          (define/public (make-visible filename) (void))
+          (define/public get-filename
              (case-lambda
               [() (get-filename #f)]
-              [(b) #f])]
+              [(b) #f]))
 
-	  (override on-superwindow-show)
+          (define/public (editing-this-file? filename) #f)
+
 	  (rename [super-on-superwindow-show on-superwindow-show])
-	  (define (on-superwindow-show shown?)
+	  (define/override (on-superwindow-show shown?)
 	    (send (group:get-the-frame-group) frame-shown/hidden this)
 	    (super-on-superwindow-show shown?))
          
           (define after-init? #f)
           
-          [define/override on-drop-file
+          (define/override on-drop-file
             (lambda (filename)
-              (handler:edit-file filename))]
+              (handler:edit-file filename)))
           
           ;; added call to set label here to hopefully work around a problem in mac mred
           (inherit set-label change-children)
-          (override after-new-child)
-          [define after-new-child
+          (define/override after-new-child
             (lambda (child)
               (when after-init?
                 (change-children (lambda (l) (remq child l)))
                 (error 'frame:basic-mixin
                        "do not add children directly to a frame:basic (unless using make-root-area-container); use the get-area-container method instead"
-                       )))]
+                       ))))
           
-          (public get-area-container% get-menu-bar% make-root-area-container close)
-          [define get-area-container% (lambda () vertical-panel%)]
-          [define get-menu-bar% (lambda () menu-bar%)]
-          [define make-root-area-container
+          (define/public get-area-container% (lambda () vertical-panel%))
+          (define/public get-menu-bar% (lambda () menu-bar%))
+          (define/public make-root-area-container
             (lambda (% parent)
-              (make-object % parent))]
+              (make-object % parent)))
           
           (inherit can-close? on-close)
-          [define close
+          (define/public close
            (lambda ()
              (when (can-close?)
                (on-close)
-               (show #f)))]
+               (show #f))))
           
           (inherit accept-drop-files)
 
-	  (super-instantiate ())
+	  (super-new)
 
           (accept-drop-files #t)
             
@@ -207,8 +208,7 @@
           (reorder-menus this)
 	  
           [define panel (make-root-area-container (get-area-container%) this)]
-          (public get-area-container)
-          [define get-area-container (lambda () panel)]
+          (define/public (get-area-container) panel)
           (set! after-init? #t)))
 
       (define register-group<%> (interface ()))
@@ -942,17 +942,25 @@
           (rename [super-on-close on-close]
                   [super-set-label set-label])
           
-          (override get-filename on-close)
-          [define get-filename
+          (define/override get-filename
             (case-lambda
              [() (get-filename #f)]
              [(b)
               (let ([e (get-editor)])
-                (and e (send e get-filename b)))])]
-          [define on-close
-           (lambda ()
-             (super-on-close)
-             (send (get-editor) on-close))]
+                (and e (send e get-filename b)))]))
+          
+          (define/override (editing-this-file? filename)
+            (let ([path-equal?
+                   (lambda (x y)
+                     (equal? (normal-case-path (normalize-path x))
+                             (normal-case-path (normalize-path y))))])
+              (let ([this-fn (get-filename)])
+                (and this-fn
+                     (path-equal? filename (get-filename))))))
+          
+          (define/override (on-close)
+            (super-on-close)
+            (send (get-editor) on-close))
           [define label ""]
           [define label-prefix (application:current-app-name)]
           (define (do-label)

@@ -2,15 +2,13 @@
 (module editor mzscheme
   (require (lib "unitsig.ss")
 	   (lib "class.ss")
-	   (lib "class100.ss")
            (lib "string-constant.ss" "string-constants")
 	   "sig.ss"
 	   "../gui-utils.ss"
 	   "../macro.ss"
            (lib "etc.ss")
 	   (lib "mred-sig.ss" "mred")
-	   (lib "file.ss")
-           (lib "list.ss"))
+	   (lib "file.ss"))
 
   (provide editor@)
 
@@ -36,7 +34,6 @@
       (define basic<%>
 	(interface (editor<%>)
 	  has-focus?
-	  editing-this-file?
 	  local-edit-sequence?
 	  run-after-edit-sequence
 	  get-top-level-window
@@ -193,8 +190,6 @@
                    (lambda (canvas)
                      (send canvas get-top-level-window))]
                   [else #f]))))
-	  
-	  [define/public editing-this-file? (lambda () #f)]
 	  
 	  [define edit-sequence-queue null]
 	  [define edit-sequence-ht (make-hash-table)]
@@ -402,8 +397,6 @@
 		  [super-after-load-file after-load-file]
 		  [super-get-keymaps get-keymaps]
 		  [super-set-filename set-filename])
-	  
-          (define/override (editing-this-file?) #t)
 
 	  (inherit get-canvases)
           (define/private (check-lock)

@@ -131,7 +131,8 @@
 					     filename)])
 		     (cond
 		       [already-open
-			(send already-open show #t)
+			(send already-open make-visible filename)
+                        (send already-open show #t)
 			already-open]
 		       [(and (preferences:get 'framework:open-here?)
 			     (send (group:get-the-frame-group) get-open-here-frame))
