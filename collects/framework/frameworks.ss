@@ -195,7 +195,6 @@
 
 (define-signature framework:handler^
   (handler? handler-name handler-extension handler-handler
-   format-handlers
    insert-format-handler
    find-format-handler 
    find-named-format-handler 
