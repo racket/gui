@@ -1,3 +1,8 @@
+;; language specification
+(read-case-sensitive #t)
+(compile-allow-cond-fallthrough #t)
+(compile-allow-set!-undefined #t)
+
 (require-library "refer.ss")
 (require-library "cores.ss")
 (require-library "dates.ss")
@@ -7,7 +12,7 @@
 (require-library "macro.ss")
 (require-relative-library "macro.ss")
 
-(require-relative-library "stsig.ss")
+(require-relative-library "tests.ss")
 
 (define-signature framework:version^
   (add-spec
