@@ -95,14 +95,14 @@
 	(make-between 'file-menu 'revert 'save 'nothing)
 	(make-an-item 'file-menu 'save
 		      "Save this file to disk"
-		      #f "s" "&Save" "")
+		      #f #\s "&Save" "")
 	(make-an-item 'file-menu 'save-as
 		      "Prompt for a filename and save this file to disk"
 		      #f #f "Save" " &As...")
 	(make-between 'file-menu 'save-as 'print 'separator)
 	(make-an-item 'file-menu 'print
 		      "Print this file"
-		      #f "p" "&Print" "...")
+		      #f #\p "&Print" "...")
 	(make-between 'file-menu 'print 'close 'separator)
 	(make-an-item 'file-menu 'close
 		      "Close this file"

@@ -158,8 +158,8 @@
    info<%>
    info-mixin
 
-   editor-info<%>
-   editor-info-mixin
+   text-info<%>
+   text-info-mixin
 
    file<%>
    file-mixin
@@ -167,6 +167,7 @@
    basic%
    standard-menus%
    editor%
+
    text%
    searchable%
    text-info%
@@ -201,8 +202,8 @@
    get-anchor-bitmap
    get-anchor-bdc
    
-   get-gc-on-dc
-   get-gc-off-dc
+   get-gc-on-bitmap
+   get-gc-off-bitmap
    get-gc-width
    get-gc-height))
 

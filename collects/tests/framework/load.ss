@@ -1,4 +1,8 @@
-(let ([pred (lambda (x) (void? x))])
+(let ([pred (lambda (x) (void? x))]
+      [old-load-framework-automatically? (load-framework-automatically)])
+
+  (load-framework-automatically #f)
+
   (test
    'macro.ss
    pred
@@ -17,13 +21,14 @@
    pred
    '(parameterize ([current-namespace (make-namespace 'mred)])
       (require-library "tests.ss" "framework")
-      (invoke-open-unit/sig
-       (compound-unit/sig
-	 (import)
-	 (link [mred : mred-interfaces^ (mred-interfaces@)]
-	       [keys : framework:keys^ ((require-library "keys.ss" "framework"))]
-	       [test : framework:test^ ((require-library "testr.ss" "framework") mred keys)])
-	 (export (unit test))))
+      (eval
+       '(invoke-open-unit/sig
+	 (compound-unit/sig
+	   (import)
+	   (link [mred : mred-interfaces^ (mred-interfaces@)]
+		 [keys : framework:keys^ ((require-library "keys.ss" "framework"))]
+		 [test : framework:test^ ((require-library "testr.ss" "framework") mred keys)])
+	   (export (unit test)))))
       (global-defined-value 'test:run-one)
       (global-defined-value 'test:button-push)
       (void)))
@@ -48,25 +53,27 @@
    (lambda (x) x)
    '(parameterize ([current-namespace (make-namespace 'mred)])
       (require-library "mred-interfaces.ss" "framework")
-      (let ([orig-button% (global-defined-value 'button%)])
-	(invoke-open-unit/sig mred-interfaces@)
-	(let ([first-button% (global-defined-value 'button%)])
+      (eval
+       '(let ([orig-button% (global-defined-value 'button%)])
 	  (invoke-open-unit/sig mred-interfaces@)
-	  (let ([second-button% (global-defined-value 'button%)])
-	    (and (eq? second-button% first-button%)
-		 (not (eq? first-button% orig-button%))))))))
+	  (let ([first-button% (global-defined-value 'button%)])
+	    (invoke-open-unit/sig mred-interfaces@)
+	    (let ([second-button% (global-defined-value 'button%)])
+	      (and (eq? second-button% first-button%)
+		   (not (eq? first-button% orig-button%)))))))))
   (test
    'frameworkr.ss
    pred
    '(parameterize ([current-namespace (make-namespace 'mred)])
       (require-library "frameworks.ss" "framework")
-      (invoke-open-unit/sig
-       (compound-unit/sig
-	 (import)
-	 (link [mred : mred-interfaces^ (mred-interfaces@)]
-	       [core : mzlib:core^ ((require-library "corer.ss"))]
-	       [framework : framework^ ((require-library "frameworkr.ss" "framework") core mred)])
-	 (export (open framework))))
+      (eval
+       '(invoke-open-unit/sig
+	 (compound-unit/sig
+	   (import)
+	   (link [mred : mred-interfaces^ (mred-interfaces@)]
+		 [core : mzlib:core^ ((require-library "corer.ss"))]
+		 [framework : framework^ ((require-library "frameworkr.ss" "framework") core mred)])
+	   (export (open framework)))))
       (global-defined-value 'test:run-one)
       (global-defined-value 'test:button-push)
       (global-defined-value 'frame:basic-mixin)
@@ -89,7 +96,7 @@
    (lambda (x) x)
    '(parameterize ([current-namespace (make-namespace 'mred)])
       (require-library "pretty.ss")
-      (let* ([op (pretty-print-print-line)]
+      (let* ([op ((global-defined-value 'pretty-print-print-line))]
 	     [np  (lambda x (apply op x))])
 	((global-defined-value 'pretty-print-print-line) np)
 	(require-library "framework.ss" "framework")
@@ -104,4 +111,7 @@
 	  (require-library "framework.ss" "framework")
 	  (let* ([fw-button% (global-defined-value 'button%)])
 	    (and (eq? fw-button% test-button%)
-		 (not (eq? fw-button% orig-button%)))))))))
+		 (not (eq? fw-button% orig-button%))))))))
+
+  (load-framework-automatically old-load-framework-automatically?))
+

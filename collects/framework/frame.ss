@@ -20,11 +20,11 @@
 
   (define frame-width 600)
   (define frame-height 650)
-  (let-values ([(w h) (get-display-size)])
-    (when (< w frame-width)
-      (set! frame-width (- (unbox w) 65)))
-    (when (< w frame-height)
-      (set! frame-height (- (unbox h) 65))))
+  (let ([window-trimming-upper-bound-width 20]
+	[window-trimming-upper-bound-height 50])
+    (let-values ([(w h) (get-display-size)])
+      (set! frame-width (min frame-width (- w window-trimming-upper-bound-width)))
+      (set! frame-height (min frame-height (- h window-trimming-upper-bound-height)))))
 
   (define basic<%> (interface (frame<%>)
 		     get-area-container%
@@ -141,9 +141,10 @@
 			 (finder:put-file))])
 	     (when file
 	       (send (get-editor) save-file file format))))])
+      (inherit get-menu-item%)
       (override
 	[file-menu:revert 
-	 (lambda () 
+	 (lambda (item control)
 	   (let* ([b (box #f)]
 		  [edit (get-editor)]
 		  [filename (send edit get-filename b)])
@@ -170,29 +171,29 @@
 			    "Error Reverting"
 			    (format "could not read ~a" filename)))))))
 	     #t))]
-	[file-menu:save (lambda ()
+	[file-menu:save (lambda (item control)
 			  (send (get-editor) save-file)
 			  #t)]
-	[file-menu:save-as (lambda () (save-as) #t)]
+	[file-menu:save-as (lambda (item control) (save-as) #t)]
 	[file-menu:between-print-and-close
 	 (lambda (file-menu)
 	   (make-object separator-menu-item% file-menu)
 	   (let ([split
 		  (lambda (panel%)
-		    (lambda ()
+		    (lambda (item control)
 		      (let ([win (get-edit-target-object)])
 			(when (and win
 				   (is-a? win canvas<%>))
 			  (send (get-area-container) split win panel%)))))])
-	     (send file-menu append-item "Split Horizontally" (split horizontal-panel%))
-	     (send file-menu append-item "Split Vertically" (split vertical-panel%))
-	     (send file-menu append-item "Collapse"
-		   (lambda ()
+	     (make-object (get-menu-item%) "Split Horizontally" file-menu (split horizontal-panel%))
+	     (make-object (get-menu-item%) "Split Vertically" file-menu (split vertical-panel%))
+	     (make-object (get-menu-item%) "Collapse" file-menu
+		   (lambda (item control)
 		     (let ([canvas (get-edit-target-window)])
 		       (when canvas
 			 (send (get-area-container) collapse canvas))))))
 	   (make-object separator-menu-item% file-menu))]
-	[file-menu:print (lambda ()
+	[file-menu:print (lambda (item control)
 			   (send (get-editor) print
 				 #t
 				 #t
@@ -219,20 +220,20 @@
 	
 	[edit-menu:between-find-and-preferences
 	 (lambda (edit-menu)
-	   (send edit-menu append-separator)
-	   (send edit-menu append-item "Insert Text Box"
-		 (edit-menu:do 'insert-text-box))
-	   (send edit-menu append-item "Insert Graphic Box"
-		 (edit-menu:do 'insert-graphic-box))
-	   (send edit-menu append-item "Insert Image..."
-		 (edit-menu:do 'insert-image))
-	   (send edit-menu append-item "Toggle Wrap Text"
-		 (lambda ()
-		   (let ([edit (get-edit-target-object)])
-		     (when (and edit
-				(is-a? edit editor<%>))
-		       (send edit auto-wrap (not (send edit auto-wrap)))))))
-	   (send edit-menu append-separator))])
+	   (make-object separator-menu-item% edit-menu)
+	   (make-object (get-menu-item%) "Insert Text Box" edit-menu
+			(edit-menu:do 'insert-text-box))
+	   (make-object (get-menu-item%) "Insert Graphic Box" edit-menu
+			(edit-menu:do 'insert-graphic-box))
+	   (make-object (get-menu-item%) "Insert Image..." edit-menu
+			(edit-menu:do 'insert-image))
+	   (make-object (get-menu-item%) "Toggle Wrap Text" edit-menu
+			(lambda (item event)
+			  (let ([edit (get-edit-target-object)])
+			    (when (and edit
+				       (is-a? edit editor<%>))
+			      (send edit auto-wrap (not (send edit auto-wrap)))))))
+	   (make-object separator-menu-item% edit-menu))])
 	     
       (override
 	[help-menu:about (lambda (menu evt) (message-box (format "Welcome to ~a" (application:current-app-name))))]
@@ -245,13 +246,13 @@
 		      (lambda () 
 			(unless c
 			  (set! c (make-object (get-canvas%) (get-area-container)))
-			  (send c set-media (get-editor)))
+			  (send c set-editor (get-editor)))
 			c))]
 	[get-editor (let ([e #f])
 		      (lambda () 
 			(unless e 
 			  (set! e (make-editor))
-			  (send (get-canvas) set-media e))
+			  (send (get-canvas) set-editor e))
 			e))])
       (sequence
 	(let ([icon (icon:get)])
@@ -259,7 +260,7 @@
 	    (set-icon icon)))
 	(do-label)
 	(let ([canvas (get-canvas)])
-	  (send (get-editor) load-file file-name)
+	  (send (get-editor) load-file file-name 'guess #f)
 	  (send canvas focus)))))
   
   (define -text<%> (interface (-editor<%>)))
@@ -411,7 +412,7 @@
 	     (send find-edit set-searching-frame (get-top-level-window)))
 	   (super-on-focus x))])
       (sequence
-	(super-init parent #f '(h-scroll))
+	(super-init parent #f)
 	(set-line-count 2))))
 
   (define (init-find/replace-edits)
@@ -479,7 +480,7 @@
 	   (let ([close-canvas
 		  (lambda (canvas edit)
 		    (send edit remove-canvas canvas)
-		    (send canvas set-media #f))])
+		    (send canvas set-editor #f))])
 	     (close-canvas find-canvas find-edit)
 	     (close-canvas replace-canvas replace-edit))
 	   (when (eq? this (ivar find-edit searching-frame))
@@ -602,26 +603,27 @@
 					  -1)])
 			 (set-search-direction forward)
 			 (reset-search-anchor (get-text-to-search)))))]
-	[close-button (make-object button% middle-right-panel
-				   (lambda args (hide-search)) "Hide")]
+	[close-button (make-object button% "Hide"
+				   middle-right-panel
+				   (lambda args (hide-search)))]
 	[hidden? #f])
       (sequence
 	(let ([align
 	       (lambda (x y)
 		 (let ([m (max (send x get-width)
 			       (send y get-width))])
-		   (send x user-min-width m)
-		   (send y user-min-width m)))])
+		   (send x min-width m)
+		   (send y min-width m)))])
 	  (align search-button replace-button)
 	  (align replace&search-button replace-all-button))
-	(for-each (lambda (x) (send x major-align-center))
+	(for-each (lambda (x) (send x set-alignment 'center 'center))
 		  (list middle-left-panel middle-middle-panel))
-	(for-each (lambda (x) (send x stretchable-in-y #f))
+	(for-each (lambda (x) (send x stretchable-height #f))
 		  (list search-panel left-panel middle-left-panel middle-middle-panel middle-right-panel))
-	(for-each (lambda (x) (send x stretchable-in-x #f))
+	(for-each (lambda (x) (send x stretchable-width #f))
 		  (list middle-left-panel middle-middle-panel middle-right-panel))
-	(send find-canvas set-media find-edit)
-	(send replace-canvas set-media replace-edit) 
+	(send find-canvas set-editor find-edit)
+	(send replace-canvas set-editor replace-edit) 
 	(send find-edit add-canvas find-canvas)
 	(send replace-edit add-canvas replace-canvas)
 	(hide-search #t))))
@@ -703,7 +705,8 @@
 			     rb)
 		       (send edit position-location 0 lb)
 		       (send canvas min-width 
-			     (+ magic-space (- (unbox rb) (unbox lb)))))))))])
+			     (+ magic-space (- (inexact->exact (floor (unbox rb)))
+					       (inexact->exact (floor (unbox lb)))))))))))])
       
       (rename [super-on-close on-close])
       (private
@@ -723,7 +726,7 @@
 	[on-close
 	 (lambda ()
 	   (super-on-close)
-	   (send time-canvas set-media #f)
+	   (send time-canvas set-editor #f)
 	   (unregister-collecting-blit gc-canvas)
 	   (close-panel-callback))])
       
@@ -763,31 +766,30 @@
 
       (public
 	[get-info-panel
-	 (let ([info-panel (make-object horizontal-panel% 
-			     super-root)])
+	 (let ([info-panel (make-object horizontal-panel% super-root)])
 	   (lambda ()
 	     info-panel))])
       (private
 	[lock-message (make-object message%
 			(let ([b (icon:get-unlock-bitmap)])
-			  (if (send b ok?)
-			      (cons (icon:get-unlock-bdc) b)
-			      "Unlocked")) 
-			(get-info-panel)
-			'(border))]
-	[time-canvas (make-object editor-canvas% (get-info-panel))]
+			  (if (and #f (send b ok?))
+			      b
+			      "Unlocked"))
+			(get-info-panel))]
+	[time-canvas (make-object editor-canvas% (get-info-panel) #f '(no-hscroll no-vscroll))]
 	[_ (send time-canvas set-line-count 1)]
 	[gc-canvas (make-object canvas% (get-info-panel) '(border))]
 	[register-gc-blit
 	 (lambda ()
-	   (let ([bdc (icon:get-gc-on-dc)])
-	     (when (send bdc ok?)
+	   (let ([onb (icon:get-gc-on-bitmap)]
+		 [offb (icon:get-gc-off-bitmap)])
+	     (when (and (send onb ok?)
+			(send offb ok?))
 	       (register-collecting-blit gc-canvas 
 					 0 0
 					 (icon:get-gc-width)
 					 (icon:get-gc-height)
-					 (icon:get-gc-on-dc)
-					 (icon:get-gc-off-dc)))))])
+					 onb offb))))])
       
       (sequence
 	(unless (preferences:get 'framework:show-status-line)
@@ -796,37 +798,32 @@
 		  (list rest-panel))))
 	(register-gc-blit)
 	
-	(let ([bw (box 0)]
-	      [bh (box 0)]
-	      [gc-width (icon:get-gc-width)]
+	(let ([gc-width (icon:get-gc-width)]
 	      [gc-height (icon:get-gc-height)])
 	  (send* gc-canvas
-		 (set-size 0 0 gc-width gc-height)
-		 (get-client-size bw bh))
-	  (send* gc-canvas
-		 (user-min-client-width gc-width)
-		 (user-min-client-height gc-height)
-		 (stretchable-in-x #f)
-		 (stretchable-in-y #f)))
+		 (min-client-width gc-width)
+		 (min-client-height gc-height)
+		 (stretchable-width #f)
+		 (stretchable-height #f)))
 	(send* (get-info-panel) 
-	       (major-align-right)
-	       (stretchable-in-y #f)
+	       (set-alignment 'right 'center)
+	       (stretchable-height #f)
 	       (spacing 3)
 	       (border 3))
 	(send* time-canvas 
-	       (set-media time-edit)
-	       (stretchable-in-x #f))
+	       (set-editor time-edit)
+	       (stretchable-width #f))
 	(semaphore-wait time-semaphore)
 	(determine-width wide-time time-canvas time-edit)
 	(semaphore-post time-semaphore)
 	(update-time))))
 
-  (define editor-info<%> (interface (info<%>)
+  (define text-info<%> (interface (info<%>)
 			   overwrite-status-changed
 			   anchor-status-changed
 			   editor-position-changed))
-  (define editor-info-mixin
-    (mixin (info<%>) (editor-info<%>) args
+  (define text-info-mixin
+    (mixin (info<%>) (text-info<%>) args
       (inherit get-info-editor)
       (rename [super-on-close on-close])
       (private
@@ -942,16 +939,15 @@
 	[anchor-message 
 	 (make-object message%
 	   (let ([b (icon:get-anchor-bitmap)])
-	     (if (send b ok?)
-		 (cons (icon:get-anchor-bdc) b)
+	     (if (and #f (send b ok?))
+		 b
 		 "Anchor"))
-	   (get-info-panel) '(border))]
+	   (get-info-panel))]
 	[overwrite-message 
 	 (make-object message%
 	   "Overwrite"
-	   (get-info-panel)
-	   '(border))]
-	[position-canvas (make-object editor-canvas% (get-info-panel))]
+	   (get-info-panel))]
+	[position-canvas (make-object editor-canvas% (get-info-panel) #f '(no-hscroll no-vscroll))]
 	[_2 (send position-canvas set-line-count 1)]
 	[position-edit (make-object text%)])
       
@@ -972,8 +968,8 @@
 	(send anchor-message show #f)
 	(send overwrite-message show #f)
 	(send* position-canvas
-	       (set-media position-edit)
-	       (stretchable-in-x #f))
+	       (set-editor position-edit)
+	       (stretchable-width #f))
 	(determine-width "0000:000-0000:000" 
 			 position-canvas
 			 position-edit)
@@ -1011,11 +1007,9 @@
 
   (define -text% (text-mixin editor%))
   (define searchable% (searchable-mixin -text%))
-  (define text-info% (info-mixin searchable%))
+  (define text-info% (text-info-mixin (info-mixin searchable%)))
   (define text-info-file% (file-mixin text-info%))
 
   (define -pasteboard% (pasteboard-mixin editor%))
   (define pasteboard-info% (info-mixin -pasteboard%))
   (define pasteboard-info-file% (file-mixin pasteboard-info%)))
-  
-  

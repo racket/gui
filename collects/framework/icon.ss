@@ -25,7 +25,7 @@
 	      (set! bitmap (make-object bitmap% p type))
 	      (set! bitmap-dc (make-object bitmap-dc%))
 	      (when (send bitmap ok?)
-		(send bitmap-dc select-object bitmap)))])
+		(send bitmap-dc set-bitmap bitmap)))])
       (unless (file-exists? p)
 	(fprintf (current-error-port) "WARNING: couldn't find ~a~n" p))
       (values 
@@ -60,14 +60,11 @@
 	      icon)))))
   
   (define gc-on-bitmap #f)
-  (define gc-on-bdc #f)
   (define (fetch)
-    (unless gc-on-bdc
-      (set! gc-on-bdc (make-object bitmap-dc%))
-      (set! gc-on-bitmap ((load-icon "recycle.gif" 'gif)))
-      (send gc-on-bdc select-object gc-on-bitmap)))
+    (unless gc-on-bitmap
+      (set! gc-on-bitmap ((load-icon "recycle.gif" 'gif)))))
 
-  (define (get-gc-on-dc) (fetch) gc-on-bdc)
+  (define (get-gc-on-bitmap) (fetch) gc-on-bitmap)
   (define (get-gc-width) (fetch) (if (send gc-on-bitmap ok?)
 				     (send gc-on-bitmap get-width)
 				     10))
@@ -75,16 +72,15 @@
 				      (send gc-on-bitmap get-height)
 				      10))
   
-  (define get-gc-off-dc 
-    (let ([bdc #f])
+  (define get-gc-off-bitmap
+    (let ([bitmap #f])
       (lambda ()
-	(if bdc
-	    bdc
+	(if bitmap
+	    bitmap
 	    (begin
-	      (set! bdc (make-object bitmap-dc%))
-	      (send bdc select-object
-		    (make-object bitmap%
-				 (get-gc-width)
-				 (get-gc-height)))
-	      (send bdc clear)
-	      bdc))))))
+	      (let ([bdc (make-object bitmap-dc%)])
+		(set! bitmap (make-object bitmap% (get-gc-width) (get-gc-height)))
+		(send bdc set-bitmap bitmap)
+		(send bdc clear)
+		(send bdc set-bitmap #f)
+		bitmap)))))))

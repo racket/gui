@@ -68,7 +68,7 @@ string=? ; exec mred -mgaqvf $0
 	       (make-object
 		   (get-menu-item%)
 		 (,join ,menu-before-string
-			,(build-id name "-string")
+			(,(build-id name "-string"))
 			,menu-after-string)
 		 ,(menu-name->id name-string)
 		 ,name

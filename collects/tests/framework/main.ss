@@ -10,8 +10,9 @@
 
 (define-struct eof-result ())
 
-(define-values (shutdown-listener shutdown-mred mred-running? send-sexp-to-mred)
-  (let ([listener
+(define-values (load-framework-automatically shutdown-listener shutdown-mred mred-running? send-sexp-to-mred)
+  (let ([load-framework-automatically? #t]
+	[listener
 	 (let loop ()
 	   (let ([port (load-relative "receive-sexps-port.ss")])
 	     (with-handlers ([(lambda (x) #t)
@@ -39,13 +40,22 @@
 	     (let-values ([(in out) (tcp-accept listener)])
 	       (set! in-port in)
 	       (set! out-port out))
-	     (send-sexp-to-mred
-	      '(let ([s (make-semaphore 0)])
-		 (queue-callback (lambda ()
-				   (require-library "framework.ss" "framework")
-				   (semaphore-post s)))
-		 (semaphore-wait s))))])
+	     (when load-framework-automatically?
+	       (send-sexp-to-mred
+		'(let ([s (make-semaphore 0)])
+		   (queue-callback (lambda ()
+				     (require-library "framework.ss" "framework")
+				     (test:run-interval 11)
+				     (semaphore-post s)))
+		   (semaphore-wait s)))))])
       (values
+       (case-lambda
+	[(new-load-framework-automatically?)
+	 (unless (eq? (not (not new-load-framework-automatically?))
+		      load-framework-automatically?)
+	   (set! load-framework-automatically? (not (not new-load-framework-automatically?)))
+	   (shutdown-mred))]
+	[() load-framework-automatically?])	 
        (lambda ()
 	 (shutdown-mred)
 	 (tcp-close listener))
