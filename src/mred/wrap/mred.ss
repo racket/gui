@@ -2446,7 +2446,7 @@
 (define (make-container% %) ; % implements area<%>
   (class* % (area-container<%> internal-container<%>) (mk-wx get-wx-panel parent) 
     (public
-      [reflow-container (entry-point (lambda () (send (get-wx-panel) force-redraw)))]
+      [reflow-container (entry-point (lambda () (send (send (get-wx-panel) get-top-level) force-redraw)))]
       [get-children (entry-point (lambda () (map wx->proxy (ivar (get-wx-panel) children))))]
       [border (param get-wx-panel 'border)]
       [spacing (param get-wx-panel 'spacing)]
@@ -3137,10 +3137,10 @@
 (define basic-canvas%
   (class* (make-window% #f (make-subarea% area%)) (canvas<%>) (mk-wx parent)
     (public
-      [on-char (entry-point-1 (lambda (e) (send wx do-on-char e)))]
-      [on-event (entry-point-1 (lambda (e) (send wx do-on-event e)))]
-      [on-paint (entry-point (lambda () (when wx (send wx do-on-paint))))]
-      [on-scroll (entry-point-1 (lambda (e) (send wx do-on-scroll e)))]
+      [on-char (lambda (e) (send wx do-on-char e))]
+      [on-event (lambda (e) (send wx do-on-event e))]
+      [on-paint (lambda () (when wx (send wx do-on-paint)))]
+      [on-scroll (lambda (e) (send wx do-on-scroll e))]
       
       [min-client-width (param (lambda () wx) 'min-client-width)]
       [min-client-height (param (lambda () wx) 'min-client-height)]
@@ -3230,7 +3230,7 @@
       [scroll-to-last? #f]
       [scroll-bottom? #f])
     (public
-      [call-as-primary-owner (entry-point-1 (lambda (f) (send wx call-as-primary-owner (lambda () (as-exit f)))))]
+      [call-as-primary-owner (lambda (f) (send wx call-as-primary-owner f))]
       [allow-scroll-to-last
        (entry-point-0-1 
 	(case-lambda
