@@ -546,16 +546,15 @@
              'framework:show-status-line
              (lambda (p v)
                (update-info-visibility v)))]
-          [define memory-cleanup void] ;; only for CVSers and nightly build users; used with memory-text
+          (define memory-cleanup void) ;; only for CVSers and nightly build users; used with memory-text
 
-          [define/augment on-close
-            (lambda ()
-              (unregister-collecting-blit gc-canvas)
-              (close-panel-callback)
-              (memory-cleanup)
-	      (inner (void) on-close))]
+          (define/augment (on-close)
+            (unregister-collecting-blit gc-canvas)
+            (close-panel-callback)
+            (memory-cleanup)
+            (inner (void) on-close))
           
-          [define icon-currently-locked? 'uninit]
+          (define icon-currently-locked? 'uninit)
           (define/public (lock-status-changed)
             (let ([info-edit (get-info-editor)])
               (cond

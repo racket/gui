@@ -300,6 +300,7 @@
      searching<%>
      return<%>
      info<%>
+     file<%>
      clever-file-format<%>
      ports<%>
      
@@ -326,6 +327,7 @@
      searching-mixin
      return-mixin
      info-mixin
+     file-mixin
      clever-file-format-mixin
      ports-mixin))
   (define-signature framework:text-fun^
@@ -502,8 +504,8 @@
   (define-signature framework:color-prefs-fun^
     (register-color-pref
      add-to-preferences-panel
-     add-preferences-panel
-     build-color-selection-panel))
+     build-color-selection-panel
+     add-background-preferences-panel))
   (define-signature framework:color-prefs^
     ((open framework:color-prefs-class^)
      (open framework:color-prefs-fun^)))

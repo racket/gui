@@ -9,14 +9,14 @@
   (provide color-prefs@)
   
   (define sc-color-syntax-interactively (string-constant color-syntax-interactively))
-  (define sc-syntax-coloring (string-constant syntax-coloring))
   (define sc-choose-color (string-constant syntax-coloring-choose-color))
   
   (define color-prefs@
     (unit/sig framework:color-prefs^
       (import [preferences : framework:preferences^]
               [editor : framework:editor^]
-              [panel : framework:panel^])
+              [panel : framework:panel^]
+              [canvas : framework:canvas^])
       
       (define standard-style-list-text% (editor:standard-style-list-mixin text%))
       
@@ -37,7 +37,7 @@
                                               style-name)])
                              (change-style style pos (+ pos offset) #f)))
                          (super-new))))
-        (define c (new editor-canvas%
+        (define c (new canvas:basic%
                        (parent hp)
                        (editor e)
                        (style '(hide-hscroll
@@ -188,87 +188,51 @@
              (send sd set-style-off 'italic)))
           sd))
       
-      
-      ;; prefs-panel-mapping : (union #f 
-      ;;                              hash-table[symbol -o> (is-a?/c vertical-panel)])
-      ;; #f => prefs panel not yet opened
-      ;; hash-table => prefs panel opened
-      ;;   the table maps from the name of the color preference to
-      ;;   the corresponding subpanel
-      (define prefs-panel-mapping #f)
-      
-      ;; prefs-panel-todo : (union #f (listof (cons string (vertical-panel -> void))))
-      ;; list => prefs panel not opened yet
-      ;; #f => prefs panel already opened.
-      (define prefs-panel-todo '())
-      
-      ;; prefs-panel-tab-panel : (union #f tab-panel)
-      (define prefs-panel-tab-panel #f)
-      ;; prefs-panel-single : (union #f single-panel%))
-      (define prefs-panel-single #f)
-      
-      (define prefs-panel-children '())
-      
-      ;; update-panel-single : -> void
-      ;; callback for the prefs-panel-tab-panel
-      (define (update-panel-single)
-        (let ([sel (send prefs-panel-tab-panel get-selection)])
-          (when sel
-            (let* ([label (list-ref prefs-panel-children sel)]
-                   [panel (hash-table-get prefs-panel-mapping (string->symbol label))])
-              (send prefs-panel-single active-child panel)))))
-      
-      ;; add-preferences-panel : -> void
-      ;; calls preferences:add-panel to add the coloring configuration panels
-      (define (add-preferences-panel)
+      (define (add-background-preferences-panel)
         (preferences:add-panel
-         (list sc-syntax-coloring)
+         (list (string-constant preferences-colors)
+               (string-constant background-color))
          (lambda (parent)
-           (set! prefs-panel-tab-panel (new tab-panel% 
-                                            (parent parent)
-                                            (choices (map car prefs-panel-todo))
-                                            (callback (lambda (x y) (update-panel-single)))))
-           (set! prefs-panel-single (new panel:single% (parent prefs-panel-tab-panel)))
-           (set! prefs-panel-mapping (make-hash-table))
-           (for-each
-            (lambda (pr)
-              (let* ([name (car pr)]
-                     [proc (cdr pr)]
-                     [panel (build-new-prefs-panel name)])
-                (proc panel)))
-            prefs-panel-todo)
-           (set! prefs-panel-todo #f)
-           prefs-panel-tab-panel)))
+           (letrec ([panel (new vertical-panel% (parent parent))]
+                    [hp (new horizontal-panel% (parent panel))]
+                    [canvas
+                     (new canvas%
+                          (parent hp)
+                          (paint-callback
+                           (lambda (c dc)
+                             (draw (preferences:get 'framework:basic-canvas-background)))))]
+                    [draw
+                     (lambda (clr)
+                       (let ([dc (send canvas get-dc)])
+                         (let-values ([(w h) (send canvas get-client-size)])
+                           (send dc set-brush (send the-brush-list find-or-create-brush clr 'solid))
+                           (send dc set-pen (send the-pen-list find-or-create-pen clr 1 'solid))
+                           (send dc draw-rectangle 0 0 w h))))]
+                    [button
+                     (new button% 
+                          (label (string-constant cs-change-color))
+                          (parent hp)
+                          (callback
+                           (lambda (x y)
+                             (let ([color (get-color-from-user
+                                           (string-constant choose-a-background-color)
+                                           (send hp get-top-level-window)
+                                           (preferences:get 'framework:basic-canvas-background))])
+                               (when color
+                                 (preferences:set 'framework:basic-canvas-background color))))))])
+             (preferences:add-callback
+              'framework:basic-canvas-background
+              (lambda (p v) (draw v)))
+             panel))))
       
       ;; add-to-preferences-panel : string (vertical-panel -> void) -> void
       (define (add-to-preferences-panel panel-name func)
-        (let ([key (string->symbol panel-name)])
-          (cond
-            [prefs-panel-todo
-             (let ([prev-pr (assq key prefs-panel-todo)])
-               (if prev-pr
-                   (let ([proc (cdr prev-pr)])
-                     (set-cdr! prev-pr 
-                               (lambda (parent)
-                                 (proc parent)
-                                 (func parent))))
-                   (set! prefs-panel-todo
-                         (append prefs-panel-todo (list (cons panel-name func))))))]
-            [else
-             (let ([prev-panel (hash-table-get prefs-panel-mapping key (lambda () #f))])
-               (cond
-                 [prev-panel (func prev-panel)]
-                 [else
-                  (send prefs-panel-tab-panel append panel-name)
-                  (let ([new-panel (build-new-prefs-panel panel-name)])
-                    (func new-panel))]))])))
-      
-      ;; build-new-prefs-panel : string -> horizontal-panel
-      (define (build-new-prefs-panel name)
-        (let ([panel (new vertical-panel% (parent prefs-panel-single))])
-          (set! prefs-panel-children (append prefs-panel-children (list name)))
-          (hash-table-put! prefs-panel-mapping (string->symbol name) panel)
-          panel))
+        (preferences:add-panel
+         (list (string-constant preferences-colors) panel-name)
+         (lambda (parent)
+           (let ([panel (new vertical-panel% (parent parent))])
+             (func panel)
+             panel))))
       
       ;; see docs
       (define (register-color-pref pref-name style-name color)

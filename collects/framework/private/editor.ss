@@ -47,7 +47,7 @@
       (define basic-mixin
 	(mixin (editor<%>) (basic<%>)
 	  
-          (define/public (can-close?) #t)
+          (define/pubment (can-close?) (inner #t can-close?))
           (define/pubment (on-close) (inner (void) on-close))
           (define/public (close) (if (can-close?)
                                      (begin (on-close) #t)
@@ -386,33 +386,16 @@
       
       (define file<%> 
         (interface (-keymap<%>)
-          get-read-write?
           get-filename/untitled-name
           get-can-close-parent
           update-frame-filename))
       (define file-mixin
         (mixin (-keymap<%>) (file<%>)
-          (inherit
-            get-filename lock get-style-list 
-            is-modified? set-modified 
-            get-top-level-window)
+          (inherit get-filename lock get-style-list 
+                   is-modified? set-modified 
+                   get-top-level-window)
 
           (inherit get-canvases)
-          (define read-write? #t)
-          (define/public (get-read-write?) read-write?)
-          (define/private (check-lock)
-            (let* ([filename (get-filename)]
-                   [can-edit? (if (and filename
-                                       (file-exists? filename))
-                                  (and (member 'write (file-or-directory-permissions filename)) 
-                                       #t)
-                                  #t)])
-              (set! read-write? can-edit?)))
-          
-          (define/augment (can-insert? x y)
-            (and read-write? (inner #t can-insert? x y)))
-          (define/augment (can-delete? x y) (and read-write? (inner #t can-delete? x y)))
-          
           (define/public (update-frame-filename)
             (let* ([filename (get-filename)]
                    [name (if filename
@@ -437,15 +420,6 @@
                     (unless untitled-name
                       (set! untitled-name (gui-utils:next-untitled-name)))
                     untitled-name))))
-	  (define/augment (after-save-file success)
-            (when success
-              (check-lock))
-            (inner (void) after-save-file success))
-	   
-          (define/augment (after-load-file sucessful?)
-            (when sucessful?
-              (check-lock))
-            (inner (void) after-load-file sucessful?))
 
           (define/override set-filename
 	    (case-lambda
@@ -456,7 +430,7 @@
 		(update-frame-filename))]))
 
           (inherit save-file)
-          (define/override (can-close?)
+          (define/augment (can-close?)
             (let* ([user-allowed-or-not-modified
                     (or (not (is-modified?))
                         (case (gui-utils:unsaved-warning
@@ -469,7 +443,7 @@
                           [(save) (save-file)]
                           [else #f]))])
               (and user-allowed-or-not-modified
-                   (super can-close?))))
+                   (inner #t can-close?))))
           
           (define/public (get-can-close-parent) #f)
           

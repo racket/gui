@@ -22,6 +22,18 @@
       
       (application-preferences-handler (lambda () (preferences:show-dialog)))
       
+      (preferences:set-default 'framework:basic-canvas-background
+                               (send the-color-database find-color "pink")
+                               (lambda (x) (is-a? x color%)))
+      (preferences:set-un/marshall 
+       'framework:basic-canvas-background
+       (lambda (clr) (list (send clr red) (send clr green) (send clr blue)))
+       (lambda (lst) (and (pair? lst)
+                          (pair? (cdr lst))
+                          (pair? (cddr lst))
+                          (null? (cdddr lst))
+                          (make-object color% (car lst) (cadr lst) (caddr lst)))))
+      
       (preferences:set-default 'framework:special-option-key #f boolean?)
       (preferences:add-callback 'framework:special-option-key (lambda (p v) (special-option-key v)))
       (special-option-key (preferences:get 'framework:special-option-key))

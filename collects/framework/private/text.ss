@@ -815,6 +815,42 @@ WARNING: printf is rebound in the body of the unit to always
             (inner (void) on-save-file name format))
           (super-instantiate ())))
       
+      
+      (define file<%>
+        (interface (editor:file<%> basic<%>)
+          get-read-write?))
+      
+      (define file-mixin
+        (mixin (editor:file<%> basic<%>) (file<%>)
+          (inherit get-filename)
+          (define read-write? #t)
+          (define/public (get-read-write?) read-write?)
+          (define/private (check-lock)
+            (let* ([filename (get-filename)]
+                   [can-edit? (if (and filename
+                                       (file-exists? filename))
+                                  (and (member 'write (file-or-directory-permissions filename)) 
+                                       #t)
+                                  #t)])
+              (set! read-write? can-edit?)))
+          
+          (define/augment (can-insert? x y)
+            (and read-write? (inner #t can-insert? x y)))
+          (define/augment (can-delete? x y) 
+            (and read-write? (inner #t can-delete? x y)))
+          
+          (define/augment (after-save-file success)
+            (when success
+              (check-lock))
+            (inner (void) after-save-file success))
+	   
+          (define/augment (after-load-file sucessful?)
+            (when sucessful?
+              (check-lock))
+            (inner (void) after-load-file sucessful?))
+          (super-new)))
+
+      
       (define ports<%>
         (interface ()
           delete/io
@@ -833,7 +869,8 @@ WARNING: printf is rebound in the body of the unit to always
           get-in-port
           get-out-port
           get-err-port
-          get-value-port))
+          get-value-port
+          after-io-insertion))
       
       (define-struct peeker (bytes skip-count pe resp-chan nack) (make-inspector))
       (define-struct committer (kr commit-peeker-evt done-evt resp-chan resp-nack))
@@ -1693,7 +1730,7 @@ WARNING: printf is rebound in the body of the unit to always
       (define -keymap% (editor:keymap-mixin standard-style-list%))
       (define return% (return-mixin -keymap%))
       (define autowrap% (editor:autowrap-mixin -keymap%))
-      (define file% (editor:file-mixin autowrap%))
+      (define file% (file-mixin (editor:file-mixin autowrap%)))
       (define clever-file-format% (clever-file-format-mixin file%))
       (define backup-autosave% (editor:backup-autosave-mixin clever-file-format%))
       (define searching% (searching-mixin backup-autosave%))

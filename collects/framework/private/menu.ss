@@ -19,11 +19,10 @@
       (define can-restore-mixin
         (mixin (selectable-menu-item<%>) (can-restore<%>)
           (inherit set-shortcut get-shortcut)
-          [define saved-shortcut 'not-yet]
-          [define/public restore-keybinding
-            (lambda ()
-              (unless (eq? saved-shortcut 'not-yet)
-                (set-shortcut saved-shortcut)))]
+          (define saved-shortcut 'not-yet)
+          (define/public (restore-keybinding)
+            (unless (eq? saved-shortcut 'not-yet)
+              (set-shortcut saved-shortcut)))
           
           (super-instantiate ())
           (set! saved-shortcut (get-shortcut))

@@ -47,7 +47,7 @@
     "on the number."
     ""
     "See also"
-    "@flink number-snip:number-snip:make-fraction-snip %"
+    "@flink number-snip:make-fraction-snip %"
     ".")
    (number-snip:make-fraction-snip
     (number? boolean? . -> . (is-a?/c snip%))
@@ -58,7 +58,7 @@
     "on the number, when shown in the decimal state."
     ""
     "See also"
-    "@flink drscheme:number-snip:make-repeating-decimal-snip %"
+    "@flink number-snip:make-repeating-decimal-snip %"
     ".")   
    (version:add-spec
     (any? any? . -> . void?)
@@ -229,7 +229,7 @@
     "default preferences.")
 
    (preferences:add-panel
-    ((union string? (cons/p string? (listof string?)))
+    ((union string? (cons/c string? (listof string?)))
      ((is-a?/c area-container-window<%>) 
       . ->d .
       (lambda (parent)
@@ -479,8 +479,8 @@
     "Its default value is \\rawscm{\"\"}.")
    (finder:default-filters
     (case->
-     ((listof (list/p string? string?)) . -> . void?)
-     (-> (listof (list/p string? string?))))
+     ((listof (list/c string? string?)) . -> . void?)
+     (-> (listof (list/c string? string?))))
     ((filters) ())
     "This parameter controls the default extension for the framework's "
     "@flink finder:put-file"
@@ -1296,7 +1296,7 @@
      "section.")
     
     (scheme:get-color-prefs-table
-     (-> (listof (list/p symbol? (is-a?/c color%))))
+     (-> (listof (list/c symbol? (is-a?/c color%))))
      ()
      "Returns a table mapping from symbols (naming the categories that"
      "the online colorer uses for Scheme mode coloring) to their"
@@ -1390,7 +1390,7 @@
      "red green and blue for the second color, respectively.")
 
     (color-model:xyz->rgb
-     (number? number? number? . -> . (list/p number? number? number?))
+     (number? number? number? . -> . (list/c number? number? number?))
      (x y z)
      "Converts an XYZ-tuple (in the CIE XYZ colorspace) into a list of"
      "values representing an RGB-tuple.")
@@ -1437,10 +1437,13 @@
      "to set a callback for \\var{pref-name} that"
      "updates the style list when the preference changes.")
       
-    (color-prefs:add-preferences-panel 
+    (color-prefs:add-background-preferences-panel
      (-> void?)
      ()
-     "Adds in a preferences panel that configures colors (typically of text)")
+     "Adds a preferences panel that configures the background"
+     "color for"
+     "@mixin-link editor:basic-mixin %"
+     ".")
     (color-prefs:add-to-preferences-panel
      (string? ((is-a?/c vertical-panel%) . -> . void?) . -> . void?)
      (name func)

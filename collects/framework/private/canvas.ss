@@ -16,7 +16,11 @@
       (define basic<%> (interface ((class->interface editor-canvas%))))
       (define basic-mixin
 	(mixin ((class->interface editor-canvas%)) (basic<%>)
-          (super-instantiate ())))
+          (super-new)
+          (define callback (lambda (p v) (set-canvas-background v)))
+          (inherit set-canvas-background)
+          (set-canvas-background (preferences:get 'framework:basic-canvas-background))
+          (preferences:add-callback 'framework:basic-canvas-background callback #t)))
       
       (define delegate<%> (interface (basic<%>)))
 
