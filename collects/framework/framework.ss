@@ -576,6 +576,7 @@
     (-> (is-a?/c group:%))
     ()
     "This returns the frame group.")
+   
    (handler:handler?
     (any? . -> . boolean?)
     (obj)
@@ -683,6 +684,7 @@
     "and"
     "@flink handler:edit-file %"
     ".")
+   
    (handler:install-recent-items
     ((is-a?/c menu%) . -> . void?)
     (menu)
@@ -693,6 +695,13 @@
     "with the filename of the recently opened file."
     ""
     "The menu's size is limited to 10.")
+   
+   (handler:set-recent-items-frame-superclass
+    ((implementation?/c frame:standard-menus<%>) . -> . void?)
+    "Sets the superclass for the recently opened files frame."
+    "It must be derived from"
+    "@ilink frame:standard-menus %"
+    ".")
 
    (handler:add-to-recent
     (string? . -> . void?)

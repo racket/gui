@@ -228,7 +228,7 @@
       
       ;; make-recent-items-window : -> frame
       (define (make-recent-items-window)
-        (make-object recent-items-window%
+        (make-object (get-recent-items-window%)
           (string-constant show-recent-items-window-label)
           #f
           (preferences:get 'framework:recent-items-window-w) 
@@ -243,8 +243,13 @@
             (send item open-item))
           (super-instantiate ())))
       
-      (define recent-items-window%
-        (class (frame:standard-menus-mixin frame:basic%)
+      (define recent-items-super% (frame:standard-menus-mixin frame:basic%))
+
+      (define (set-recent-items-frame-superclass super%)
+        (set! recent-items-super% super%))
+      
+      (define (get-recent-items-window%)
+        (class recent-items-super%
 
           ;; remove extraneous separators
           (define/override (file-menu:between-print-and-close menu) (void))

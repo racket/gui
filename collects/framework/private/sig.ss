@@ -382,7 +382,8 @@
      open-file
      install-recent-items
      add-to-recent
-     set-recent-position))
+     set-recent-position
+     set-recent-items-frame-superclass))
   (define-signature framework:handler^
     ((open framework:handler-class^)
      (open framework:handler-fun^)))
