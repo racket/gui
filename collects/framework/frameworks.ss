@@ -258,9 +258,13 @@
 
 (define-signature framework:main^ ())
 
+(define-signature framework:color-model^
+  (rgb-color-distance))
+
 (define-signature frameworkc^
   ([unit application : framework:application^]
    [unit version : framework:version^]
+   [unit color-model : framework:color-model^]
    [unit exn : framework:exn^]
    [unit exit : framework:exit^]
    [unit preferences : framework:preferences^]

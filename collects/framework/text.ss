@@ -4,7 +4,8 @@
 	  [editor : framework:editor^]
 	  [preferences : framework:preferences^]
 	  [keymap : framework:keymap^]
-	  [gui-utils : framework:gui-utils^]
+          [gui-utils : framework:gui-utils^]
+	  [color-model : framework:color-model^]
 	  [mzlib:function : mzlib:function^])
   
   (rename [-keymap% keymap%])
@@ -220,11 +221,16 @@
 					 [tmpc (make-object color% 0 0 0)])
                                      (if rc
                                          (begin (send dc try-color rc tmpc)
-                                                (and (<= (max (abs (- (send rc red) (send tmpc red)))
-                                                              (abs (- (send rc blue) (send tmpc blue)))
-                                                              (abs (- (send rc green) (send tmpc green))))
-                                                         50)
-                                                     rc))
+                                                (if (<= (color-model:rgb-color-distance
+                                                         (send rc red)
+                                                         (send rc green)
+                                                         (send rc blue)
+                                                         (send tmpc red)
+                                                         (send tmpc green)
+                                                         (send tmpc blue))
+                                                        7)
+                                                    rc
+                                                    #f))
                                          rc))]
 			   [first-number (lambda (x y) (if (number? x) x y))]
 			   [left (max left-margin (first-number (rectangle-left rectangle) view-x))]

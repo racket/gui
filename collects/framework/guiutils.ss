@@ -119,17 +119,29 @@
      [(message true-choice false-choice)
       (get-choice message true-choice false-choice "Warning")]
      [(message true-choice false-choice title)
-      (letrec ([result #f]
+      (get-choice message true-choice false-choice title 'disallow-close)]
+     [(message true-choice false-choice title default-result)
+      (letrec ([result default-result]
 	       [dialog (make-object 
                         (class dialog% ()
+                          (rename [super-on-close on-close]
+                                  [super-can-close? can-close?])
                           (override
                             [can-close?
                              (lambda ()
-                               (bell)
-                               (message-box title
-                                            (format "Please choose either \"~a\" or \"~a\""
-                                                    true-choice false-choice))
-                               #f)])
+                               (cond
+                                 [(eq? default-result 'disallow-close)
+                                  (bell)
+                                  (message-box title
+                                               (format "Please choose either \"~a\" or \"~a\""
+                                                       true-choice false-choice))
+                                  #f]
+                                 [else
+                                  (super-can-close?)]))]
+                            [on-close
+                             (lambda ()
+                               (set! result default-result)
+                               (super-on-close))])
                           (sequence
                             (super-init title))))]
 	       [on-true
