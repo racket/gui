@@ -43,18 +43,22 @@
       (define autosave-timer%
 	(class timer%
 	  (inherit start)
+          (field [last-name-mapping #f])
 	  (define/override (notify)
             (when (preferences:get 'framework:autosaving-on?)
               (let-values ([(new-objects new-name-mapping) (rebuild-object-list)])
-                (when (file-exists? autosave-toc-save-filename)
-                  (delete-file autosave-toc-save-filename))
-                (when (file-exists? autosave-toc-filename)
-                  (copy-file autosave-toc-filename autosave-toc-save-filename))
-                (call-with-output-file autosave-toc-filename
-                  (lambda (port)
-                    (write new-name-mapping port))
-                  'truncate
-                  'text)))
+                (set! objects new-objects)
+                (unless (equal? last-name-mapping new-name-mapping)
+                  (set! last-name-mapping new-name-mapping)
+                  (when (file-exists? autosave-toc-save-filename)
+                    (delete-file autosave-toc-save-filename))
+                  (when (file-exists? autosave-toc-filename)
+                    (copy-file autosave-toc-filename autosave-toc-save-filename))
+                  (call-with-output-file autosave-toc-filename
+                    (lambda (port)
+                      (write new-name-mapping port))
+                    'truncate
+                    'text))))
             (let ([seconds (preferences:get 'framework:autosave-delay)])
               (start (* 1000 seconds) #t)))
           (super-instantiate ())
