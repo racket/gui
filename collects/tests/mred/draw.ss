@@ -887,6 +887,8 @@
 			      (let ([p (send dc get-pen)])
 				(send dc set-pen "blue" 8 'solid)
 				(send dc draw-rectangle 160 310 20 20)
+				(send dc set-pen "blue" 7 'solid)
+				(send dc draw-rectangle 187 310 20 20)
 				(send dc set-pen p)))
 			      
 			    (when (and last? (not (or ps? (eq? dc can-dc)))
