@@ -182,6 +182,7 @@
      set-un/marshall
 
      save
+     silent-save
      read
      restore-defaults
      

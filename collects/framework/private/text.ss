@@ -963,6 +963,7 @@ WARNING: printf is rebound in the body of the unit to always
                                   (for-each (lambda (b) (channel-put read-chan b))
                                             (bytes->list (string->bytes/utf-8 (string s/c))))]))
                              snips/chars)
+                   (channel-put read-chan (bytes-ref #"\n" 0))
                    (set! allow-tabify? #f)
                    (super on-local-char key)
                    (set! allow-tabify? #t)

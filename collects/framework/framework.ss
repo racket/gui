@@ -212,6 +212,12 @@
     "potentially marshalling some of the preferences."
     ""
     "Returns \\scm{\\#f} if saving the preferences fails and \\scm{\\#t} otherwise.")
+   (preferences:silent-save
+    (-> boolean?)
+    ()
+    "Same as"
+    "@flink preferences:save"
+    "except that it does not put display a message if it fails.")
    (preferences:read
     (-> void?)
     ()

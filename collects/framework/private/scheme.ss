@@ -592,11 +592,14 @@
           
           (define (tabify-all) (tabify-selection 0 (last-position)))
           (define (insert-return)
+            (printf "insert-return ~s\n" (tabify-on-return?))
             (if (tabify-on-return?)
                 (begin 
                   (begin-edit-sequence)
                   (insert #\newline)
+                  (printf "calling tabify\n")
                   (tabify (get-start-position))
+                  (printf "called tabify\n")
                   (set-position 
                    (let loop ([new-pos (get-start-position)])
                      (if (let ([next (get-character new-pos)])
@@ -1043,7 +1046,8 @@
             (add-edit-function "tabify-at-caret"  
                                (lambda (x) (send x tabify-selection)))
             (add-edit-function "do-return"  
-                               (lambda (x) (send x insert-return)))
+                               (lambda (x) 
+                                 (send x insert-return)))
             (add-edit-function "comment-out"  
                                (lambda (x) (send x comment-out-selection)))
             (add-edit-function "box-comment-out"  

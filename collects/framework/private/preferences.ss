@@ -210,6 +210,7 @@
 
       
       (define (save) (raw-save #f))
+      (define (silent-save) (raw-save #f))
       
       ;; raw-save : boolean -> boolean
       ;; input determines if there is a dialog box showing the errors (and other msgs)

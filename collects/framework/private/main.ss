@@ -238,7 +238,9 @@
       
       (exit:insert-on-callback
        (lambda ()
-         (send (group:get-the-frame-group) on-close-all)))
+         (send (group:get-the-frame-group) on-close-all)
+         (preferences:silent-save) ;; the prefs may have changed as a result of closing the windows...
+         ))
       
       (exit:insert-can?-callback 
        (lambda ()
