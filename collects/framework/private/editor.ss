@@ -372,7 +372,7 @@
                     (< modified-seconds old-seconds))
                   #t))]
 	  (public backup?)
-          [define backup? (lambda () #t)]
+          [define backup? (lambda () (preferences:get 'framework:backup-files?))]
 	  (override on-save-file on-close on-change set-modified)
           [define on-save-file
 	    (lambda (name format)

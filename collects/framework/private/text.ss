@@ -208,8 +208,7 @@
                     (foldl (lambda (x l) (append (new-rectangles x) l))
                            null ranges))))
           
-          (public highlight-range)
-          (define highlight-range
+          (define/public highlight-range
             (opt-lambda (start end color [bitmap #f] [caret-space? #f] [priority 'low])
               (unless (let ([exact-pos-int?
                              (lambda (x) (and (integer? x) (exact? x) (x . >= . 0)))])
@@ -549,7 +548,7 @@
           
           (rename [super-highlight-range highlight-range])
           (define/override highlight-range
-            (opt-lambda (start end color bitmap [caret-space? #f] [priority 'low])
+            (opt-lambda (start end color [bitmap #f] [caret-space? #f] [priority 'low])
               (let ([res (super-highlight-range start end color bitmap caret-space? priority)])
                 (if delegate
                     (let ([delegate-res (send delegate highlight-range 

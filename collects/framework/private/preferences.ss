@@ -356,6 +356,7 @@
              (make-check 'framework:fixup-parens (string-constant fixup-parens) id id)
              (make-check 'framework:paren-match (string-constant flash-paren-match) id id)
              (make-check 'framework:autosaving-on? (string-constant auto-save-files) id id)
+             (make-check 'framework:backup-files? (string-constant backup-files) id id)
              (make-check 'framework:delete-forward? (string-constant map-delete-to-backspace)
                          not not)
              

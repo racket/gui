@@ -96,6 +96,7 @@
       
       (preferences:set-default 'framework:autosave-delay 300 number?)
       (preferences:set-default 'framework:autosaving-on? #t boolean?)
+      (preferences:set-default 'framework:backup-files? #t boolean?)
       (preferences:set-default 'framework:verify-exit #t boolean?)
       (preferences:set-default 'framework:delete-forward? 
 			       (not (eq? (system-type) 'unix))
