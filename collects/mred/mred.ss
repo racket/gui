@@ -5005,7 +5005,7 @@
       (regexp-replace* re s "\\&\\&"))))
 
 
-(define message-box/buttons
+(define message-box/custom
   (opt-lambda (title message 
 		     button1
 		     button2
@@ -5013,13 +5013,13 @@
 		     [parent #f]
 		     [style '(no-default)]
 		     [close-result #f])
-    (check-label-string 'message-box/buttons title)
-    (check-string/false 'message-box/buttons message)
-    (check-label-string/false 'message-box/buttons button1)
-    (check-label-string/false 'message-box/buttons button2)
-    (check-label-string/false 'message-box/buttons button3)
-    (check-top-level-parent/false 'message-box/buttons parent)
-    (check-style 'message-box/buttons 
+    (check-label-string 'message-box/custom title)
+    (check-string/false 'message-box/custom message)
+    (check-label-string-or-bitmap/false 'message-box/custom button1)
+    (check-label-string-or-bitmap/false 'message-box/custom button2)
+    (check-label-string-or-bitmap/false 'message-box/custom button3)
+    (check-top-level-parent/false 'message-box/custom parent)
+    (check-style 'message-box/custom 
 		 '(default=1 default=2 default=3 no-default) 
 		 '(disallow-close number-order)
 		 style)
@@ -5159,7 +5159,7 @@
 		     (values "OK" "Cancel" 'ok 'cancel 2 'default=1)]
 		    [(yes-no)
 		     (values "&Yes" "&No" 'yes 'no #f 'no-default)])])
-      (case (message-box/buttons title message
+      (case (message-box/custom title message
 				 one two #f
 				 parent
 				 (if close-val
@@ -6123,6 +6123,10 @@
   (unless (or (label-string? label) (is-a? label wx:bitmap%))
     (raise-type-error (who->name who) "string (up to 200 characters) or bitmap% object" label)))
 
+(define (check-label-string-or-bitmap/false who label)
+  (unless (or (not label) (label-string? label) (is-a? label wx:bitmap%))
+    (raise-type-error (who->name who) "string (up to 200 characters), bitmap% object, or #f" label)))
+
 (define (check-label-string/bitmap/iconsym who label)
   (unless (or (label-string? label) (is-a? label wx:bitmap%)
 	      (memq label '(app warning error)))
@@ -6619,7 +6623,7 @@
 	pasteboard%
 	graphical-read-eval-print-loop
 	message-box
-	message-box/buttons
+	message-box/custom
 	get-file
 	get-file-list
 	put-file
