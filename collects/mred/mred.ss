@@ -6741,15 +6741,24 @@
 						 (send s set-delta (font->delta f))))))]
 	     [p (make-object horizontal-pane% f)]
 	     [face (make-object list-box% #f
-				(let ([l (wx:get-face-list)])
-				  (if (memq (system-type) '(macos macosx))
-				      (quicksort l (lambda (a b)
+				(let ([l (wx:get-face-list)]
+				      [re:ugly-start #rxb"^[^a-zA-Z0-9\200-\377]"])
+				  ;; Sort space-starting first (for Xft), and
+				  ;;  otherwise push names that start with an
+				  ;;  ASCII non-letterdigit to the end
+				  (quicksort l (lambda (a b)
+						 (let ([a-sp? (char=? #\space (string-ref a 0))]
+						       [b-sp? (char=? #\space (string-ref a 0))]
+						       [a-ugly? (and (regexp-match re:ugly-start a) #t)]
+						       [b-ugly? (and (regexp-match re:ugly-start b) #t)])
+						   (cond
+						    [(eq? a-sp? b-sp?)
 						     (cond
-						      [(eq? (char-alphabetic? (string-ref a 0))
-							    (char-alphabetic? (string-ref b 0)))
-						       (string-locale<? a b)]
-						      [else (char-alphabetic? (string-ref a 0))])))
-				      (quicksort l string-ci<?)))
+						      [(eq? a-ugly? b-ugly?)
+						       (string-locale-ci<? a b)]
+						      [else
+						       b-ugly?])]
+						    [else a-sp?])))))
 				p refresh-sample)]
 	     [p2 (make-object vertical-pane% p)]
 	     [p3 (instantiate horizontal-pane% (p2) [stretchable-width #f])]
@@ -7107,7 +7116,10 @@
    [else (constructor-name (cadr who))]))
 
 (define (label-string? s)
-  (and (string? s) (<= 0 (string-length s) 200)))
+  (and (string? s) 
+       (let ([l (string-unicode-length s)])
+	 (and l
+	      (<= 0 l 200)))))
 
 (define (check-instance who class class-name false-ok? v)
   (unless (or (and false-ok? (not v)) (is-a? v class))
