@@ -51,6 +51,7 @@
                 (hash-table-put! hash-table (add-#% x) 'lambda)
                 (hash-table-put! hash-table x 'lambda))
 	      '(lambda let let* letrec recur
+                 module
 		 let/cc let/ec letcc catch
 		 let-syntax letrec-syntax syntax-case
 		 let-signature fluid-let
