@@ -83,6 +83,11 @@
                                         [formals
                                          (cond
                                            [(predicate-name)
+                                            call
+                                            
+                                            ;; Doesn't do post-condition checking,
+                                            ;; since it isn't thread safe
+                                            #;
                                             (begin0
                                               call
                                               (unless (or (result-predicate-name) ...)
@@ -91,7 +96,8 @@
                                                  "expected one of states ~s after calling ~s in state ~s"
                                                  '(result-predicate-state ...)
                                                  'method-name
-                                                 'state-name)))]
+                                                 'state-name)))
+                                            ]
                                            ...
                                            [else
                                             (sequence-contract-violation 
