@@ -269,8 +269,6 @@
 					      (sel-h-stripe-loop s fail-start fail-start #f)
 					      (fail))))])
 
-			    ; (printf "in ~a stripe ~a: ~a~n" (if (eq? get-x cadr) 'h 'v) init-h-stripe in-init-h-stripe)
-					
 			    (if (null? in-init-h-stripe)
 
 				;; no items in this stripe; try the next one
