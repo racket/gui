@@ -2942,7 +2942,7 @@
     (sequence
       (let ([cwho '(iconstructor subarea)])
 	(unless (eq? horiz-margin no-val) (check-margin-integer cwho horiz-margin))
-	(unless (eq? horiz-margin no-val) (check-margin-integer cwho vert-margin))))
+	(unless (eq? vert-margin no-val) (check-margin-integer cwho vert-margin))))
     (private-field [get-wx-panel get-wx-pan])
     (public
       [(hm horiz-margin) (param get-wx-panel x-margin)]
