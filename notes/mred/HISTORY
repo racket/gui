@@ -1,4 +1,10 @@
 
+Version 199.22:
+
+ * Removed the cursor% constructor that takes a filename (it never
+   worked on any platform), and added a constrcutor that takes image
+   and mask bitmaps, 16x16 monochrome.
+
 Version 199.18:
 
  * Changed mouse-event% and key-event% positions (x and y) to be
@@ -162,6 +168,8 @@ Changed dc<%>'s draw-bitmap and draw-bitmap-section to
  scale the bitmap if the dc<%> has a scale
 Changed text% undo to restore the pre-modification selection
 Changed text% so that later-installed clickbacks take precedence
+Changed cursor% constructor to take image and mask bitmaps instead of
+ a filename
 Added optional filters argument to get-file, put-file, and
  get-file-list (used by Windows, only)
 Fixed internal lock handling on focus and activation events
