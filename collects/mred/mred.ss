@@ -5868,12 +5868,22 @@
        [(swiss) "Arial"]
        [(script) "Arial"]
        [(symbol) "Symbol"])]
-    [(macos macosx)
+    [(macos)
      (case family
        [(system) "systemfont"]
        [(default) "applicationfont"]
        [(roman) "Times"]
        [(decorative) "Geneva"]
+       [(modern) "Monaco"]
+       [(swiss) "Helvetica"]
+       [(script) "Geneva"]
+       [(symbol) "Symbol"])]
+    [(macosx)
+     (case family
+       [(system) "systemfont"]
+       [(default) "applicationfont"]
+       [(roman) "Times"]
+       [(decorative) "Lucida Grande"]
        [(modern) "Monaco"]
        [(swiss) "Helvetica"]
        [(script) "Geneva"]
