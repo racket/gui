@@ -167,7 +167,7 @@ changes normally listed in the HISTORY notes).
 
    Many of the old on-XXX methods for editors formerly returned a
    Boolean value to indicate whether the action should proceed (e.g.,
-   on-insert in media-edit%), but that convetion does not work well
+   on-insert in media-edit%), but that convention does not work well
    with composing class extensions. MrEd 100 provides a parallel set
    of can-XXX?  methods (e.g., can-insert? in text%) that first
    determines whether an operation should proceed; if so, on-XXX is
@@ -233,7 +233,7 @@ changes normally listed in the HISTORY notes).
 
  * Initialization arguments for creating windows have been re-ordered.
    In general, the order is as follows:
-      label [sub-labels] callback parent [init-value] style
+      label [sub-labels] parent callback [init-value] style
               ^- e.g., items in a radio box
    where style is a list of symbols.
 
@@ -272,15 +272,15 @@ the right.]
                            area<%>
         _____________________|_______________
         |               |                   |
-      subarea<%>     window<%>       area-container<%>      
-<<<____|____       _____|__________       __|___  ___________________<<<
-            |      |              |       |    |  |                  
-           subwindow<%>           |       |    |  |                  
-<<<______________|___________     |       |    |  |                 _<<<
-            |               |     |       |    pane%                |
-       control<%>           |     |       |     |- horizontal-pane% |
-        |- message%         |     |       |     |- vertical-pane%   |
-        |- button%          |     |       |                         |
+      subarea<%>     window<%>     area-container<%>      
+<<<____|____       _____|_________     _|__  ________________________<<<
+            |      |             |    |   |  |                  
+           subwindow<%>          |    |   |  |                  
+<<<______________|___________    |    |   pane%                     _<<<
+            |               |    |    |    |- horizontal-pane%      |
+       control<%>           |    |    |    |- vertical-pane%        |
+        |- message%         |    |    |    |- grow-box-spacer-pane% |
+        |- button%          |    |    |                             |
         |- check-box%       |  area-container-window<%>             |
         |- slider%          |        |                              |
         |- gauge%           |        |            __________________|
@@ -406,6 +406,9 @@ horizontal-pane%: pane%
     <= parent
 
 vertical-pane%: pane%
+    <= parent
+
+gorw-box-spacer-pane%: pane%
     <= parent
 
 top-level-window<%> : area-container-window<%>
@@ -673,6 +676,8 @@ current-ps-setup
 get-top-level-windows
 get-top-level-focus-window
 get-top-level-edit-target-window
+current-new-top-level-window-handler
+get-window-text-extent
 
 graphical-read-eval-print-loop
 
@@ -680,7 +685,6 @@ make-eventspace
 eventspace?
 current-eventspace
 eventspace-shutdown?
-eventspace-parameterization
 event-dispatch-handler
 
 check-for-break
@@ -1112,15 +1116,16 @@ the-color-database only has a find-color method; the others were
  "FORESTGREEN") are no longer available; instead, the only availabale
  colors are the ones defined in the manual.
 
+Changed the syntax for keymap%'s map-function. f a modifier is not
+ mentioned in a state string, it matches states where the modifier is
+ pressed or not pressed. A tilde (~) preceding a modifier makes the
+ string match only states where the corresponding modifier is not
+ pressed.
 
+Changed keymap%'s add-key-function and add-mouse-function to
+ add-function (eliminating the different namespaces for key and mouse
+ event functions).
 
-======================================================================
-TODO
-======================================================================
-
-* add grow-box-pane%
-
-* add get-client-inset for canvas<%> and panel<%>
-
-* add get-editor-inset for editor-canvas%
-
+Removed keymap%'s set-error-callback; the keymap errors are instead
+ reported by raising an exception. The exception handler can't escape,
+ but it can at least print the error to the current error port.
