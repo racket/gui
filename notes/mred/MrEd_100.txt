@@ -3,16 +3,10 @@
                         *    MrEd 100    *
                         ******************
 
-                         >>> Proposal <<<
-
-Between version 53 and 100 of MrEd, the windowing portion of the MrEd
-toolbox was drastically simplified and Scheme-ified. In general, we
-did not try to develop an improved windowing model, but instead tried
-to clean up the existing model.
-
-The next section shows the new interface/class hierarchy for windows a
-few other parts of the toolbox, and the last section lists all the
-methods of the new interfaces and classes. 
+Between versions 53 and 100 of MrEd, the windowing portion of the MrEd
+toolbox was drastically simplified and Scheme-ified. We didn't try to
+develop an improved windowing model, but instead tried to clean up the
+existing model.
 
 The following are a few highlights of the revision:
 
@@ -21,7 +15,7 @@ The following are a few highlights of the revision:
    only way to set control positions explicitly is to derive a new
    panel class.
 
-   The class hierarchy has been rerranged. For example, dialog-box%
+   The class hierarchy has been rerranged. For example, dialog%
    is no longer a subclass of panel%, which is itself no longer
    a subclass of canvas%.
 
@@ -46,7 +40,7 @@ The following are a few highlights of the revision:
    like rest of the toolbox. For example, instead of creating a menu
    bar and then calling a frame's set-menu-bar method, the new way to
    create a menu bar is to provide the frame as a constructor
-   argument. Menu are created by supplying the parent menu bar to the
+   argument. Menus are created by supplying the parent menu bar to the
    class constructor. Menu items are created by instantiating
    menu-item% or checkable-menu-item% (or menu% for a submenu) with
    a menu argument. There are no menu ids anywhere; when a menu item
@@ -55,28 +49,26 @@ The following are a few highlights of the revision:
 
  * Initialization arguments to window class have been re-ordered.
    In general, the order is something like the following:
-      label [sub-labels] callback parent style
+      label [sub-labels] callback parent [init-value] style
               ^- e.g., items in a radio box
    where style is now a list of symbols.
 
  * The "media" names have changed. Roughly, we replaced "media" with
    "editor". Here's the mapping for some commonly used classes:
-            media-canvas      => editor-canvas
-            media-buffer      => editor  (now an interface)
-            media-edit        => text-editor
-            media-pasteboard  => pasteboard-editor
-            snip              => snip
-            media-snip        => editor-snip
-   One nice thing about this renaming is that matches a lot of the
-   old method names, e.g. `active-edit', make more sense. Still,
-   some old method names have changed.
+
+            media-canvas%     => editor-canvas%
+            media-buffer%     => editor<%>
+            media-edit%       => text-editor%
+            media-pasteboard% => pasteboard-editor%
+            snip%             => snip%
+            media-snip%       => editor-snip%
 
    Aside from the renaming, little has changed in the editor toolbox,
    but it is a little better integrated with system-wide keyboard
    focus methods. For example, a frame% has a get-focus-window method,
    which returns the frame's subwindow with the current focus, but it
-   also has a get-focus-object, which will return an editor<%> object
-   if an editor-canvas has the keyboard focus.
+   also has a get-focus-object method, which will return an editor<%>
+   object if an editor-canvas has the keyboard focus.
 
  * The text% and multi-text% controls now work well, because they're
    now implemented using the editor classes.
@@ -95,20 +87,29 @@ The following are a few highlights of the revision:
    get-dc to get a drawing context (which always has a more
    complete set of methods, anyway).
 
- * Everything works. In previous releases of MrEd, we made all of
-   wxWindows available and then started fixing things that didn't
-   work. We've made it far enough to reverse the process: we only
-   expose things that work (i.e., that we've tested), and there's
-   a little bit more that might be exposed in the future (but not
-   much).
+ * American spelling is used everywhere: colour -> color, centre
+   -> center
+
+ * Everything works. Originally, we made all of the low-level toolbox
+   available in MrEd, and then started fixing things that didn't work
+   as they became useful. Now, we only include something in the
+   toolbox if it works.
+
+The next section shows the new interface/class hierarchy for windows a
+few other parts of the toolbox, and the section after that lists all
+the methods of the new interfaces and classes. Section 3 lists the new
+complete set of MrEd procedures, showing the arguments for selected
+new procedures. Section 4 provides a mapping from the old wx:const-XXX
+constants to the new symbols. Finally, Section 5 lists some of the
+small and relatively subtle changes in 100 (like the HISTORY notes
+that accompany an average MrEd release).
 
 ======================================================================
 1. Interface/Class Type Hierarchy (Selected Excerpts)
 ======================================================================
   
                            area<%>
-                             |
-          ------------------------------------
+          ___________________|________________
           |             |                    |
       subarea<%>     window<%>          area-container<%>      
 <<<____|____       _____|__________       __|___  ___________________<<<
@@ -129,7 +130,7 @@ The following are a few highlights of the revision:
         |- list-control<%>  |        |          
             |- choice%      |        |- top-level-window<%>
             |- list-box     |           |- frame% 
-                            |           |- dialog-box%
+                            |           |- dialog%
                          canvas<%>
                           |- canvas%
                           |- editor-canvas%
@@ -137,8 +138,9 @@ The following are a few highlights of the revision:
 menu-item<%>
   |- separator-menu-item%
   |- labelled-menu-item<%>
-       |- menu-item%
-       |- checkable-menu-item%
+       |- shortcut-menu-item<%>
+       |  |- menu-item%
+       |  |- checkable-menu-item%
        |- submenu-item<%> (no classes)
 
 menu-item-container<%>
@@ -182,7 +184,7 @@ event%
 
 area<%>
     get-parent
-    get-top-level - returns the area's frame/dialog-box
+    get-top-level - returns the area's frame/dialog
     min-width min-height
     stretchable-width stretchable-height
 
@@ -190,20 +192,19 @@ subarea<%> : area<%>
     horiz-margin vert-margin
 
 window<%> : area<%>
-    focus on-focus
+    focus on-focus - on-focus replaces on-set-focus and on-kill-focus
     enable is-enabled?
     on-size
-    pre-on-char pre-on-event
+    on-subwindow-char on-subwindow-event - formerly pre-on-...
     client->screen screen->client
     get-label set-label
     get-plain-label - e.g., "Button" instead of "&Button"
     get-client-size get-geometry get-width get-height get-x get-y
-    get-text-extent
     get-cursor set-cursor 
     show is-shown?
     refresh
 
-container<%> : area<%>
+area-container<%> : area<%>
     get-children change-children place-children
     add-child delete-child
     border - parameter-like
@@ -253,12 +254,12 @@ frame% : top-level-window<%>
    <= label [parent #f] [width #f] [height #f] [x #f] [y #f] [style null]
       styles: 'no-thick-border 'no-resize-border 'no-caption 'no-system-menu
               'iconize 'maximize 'mdi-parent 'mdi-child
-   create-status-line set-status-line
+   create-status-line set-status-line has-status-line?
    get-menu-bar
+   iconize is-iconized? set-icon maximize
 
-dialog-box% : top-level-window<%>
-   <= label [modal? #t] [parent #f] [width #f] [height #f] [x #f] [y #f] 
-            [style null]
+dialog% : top-level-window<%>
+   <= label [parent #f] [width #f] [height #f] [x #f] [y #f] [style null]
       styles: 'no-caption
 
 control<%> : subwindow<%>
@@ -297,7 +298,7 @@ text% : control<%>
 
 multi-text% : control<%>
    <= label parent callback [init-val ""] [style null]
-      styles: non
+      styles: none
 
 radio-box% : control<%>
    <= label choices parent callback [style '(vertical)]
@@ -324,7 +325,7 @@ list-box% : list-control<%>
    <= label choices parent callback [style '(single)]
       styles: 'single 'multiple 'extended 'always-vscroll 'hscroll
    delete
-   get-data
+   get-data set-data
    get-selections
    select is-selected?
    set set-string set-data
@@ -352,7 +353,6 @@ editor-canvas% : canvas<%>
    scroll-with-bottom-base - parameter-like
    lazy-refresh - parameter-like
    force-display-focus - parameter-like
-   edit-target  - parameter-like
    get-edit set-edit - formerly get-media and set-media
    set-line-count
 
@@ -368,6 +368,10 @@ labelled-menu-item<%>
    get-plain-label
    get-help-string set-help-string
    enable is-enabled?
+
+shortcut-menu-item<%>
+   get-shortcut set-shortcut
+   get-x-shortcut-prefix set-x-shortcut-prefix
 
 menu-item%
    <= label parent callback [shortcut #f] [help-string #f]
@@ -390,7 +394,8 @@ popup-menu%
    <= title
 
 menu-bar%
-   <= parent
+   <= frame
+   get-frame
    show is-shown?
    enable is-enabled?
 
@@ -414,8 +419,7 @@ control-event%
 mouse-event%
    <= event-type
    get-event-type set-event-type
-   button-dclick?  - specify a button with 'left, 'middle, 'right, or 'all
-   button-down?
+   button-down?  - specify a button with 'left, 'middle, 'right, or 'all
    button-up?
    dragging?
    entering?
@@ -449,12 +453,21 @@ scroll-event%
 ======================================================================
 3. Procedures
 
+  This is a complete list, although the arguments are only shown for a
+  few procedures. 
+
   If an old procedure isn't listed here, we got rid of it.
 ======================================================================
 
-file-selector
-   <= directory filename [parent #f] [style '(get)] [extension #f]
-      styles: 'get 'put
+get-file
+   <= [message #f] [parent #f] [directory #f] [filename #f] [extension #f]
+      [style null]
+      styles: none
+
+put-file
+   <= [message #f] [parent #f] [directory #f] [filename #f] [extension #f]
+      [style null]
+      styles: none
 
 message-box
    <= title message [parent #f] [style '(ok)]
@@ -464,42 +477,55 @@ get-text-from-user
    <= title message [init-val #f] [parent #f] [style null]
       styles: none
 
-get-choice-from-user (returns an integer, not the value)
-   <= title message choices [init-choice 0] [parent #f] [style null]
+get-choice-from-user (returns integers, not the values)
+   <= title message choices [parent #f] [init-choices null] [style null]
+      styles: 'single 'multiple 'extended
 
-get-choices-from-user
-   <= title message choices [init-choices null] [parent #f] [style null]
+get-ps-setup-from-user
+   <= [message #f] [parent #f] [init-setup #f] [style null]
+      styles: none
 
-color-display? display-size
+get-color-from-user
+   <= [message #f] [parent #f] [init-color #f] [style null]
+      styles: none
+
+get-font-from-user
+   <= [message #f] [parent #f] [init-font #f] [style null]
+      styles: none
+
+color-display? get-display-depth get-display-size
 begin-busy-cursor end-busy-cursor is-busy-cursor?
 bell
 label->plain-label
 get-resource write-resource
 yield flush-display
+get-face-list
+
+current-ps-setup
+
 get-top-level-windows
+get-top-level-focus-window
+get-top-level-edit-target-window
 
-======================================================================
-3. Subtle changes
-======================================================================
+get-editor-print-margin
+set-editor-print-margin
 
- * key-event%'s key-code method was removed
+read-editor-global-header
+read-editor-global-footer
+write-editor-global-header
+write-editor-global-footer
 
- * key-event%'s get-key-code returns a character or a symbol 
-   instead of a number
+append-edit-operation-menu-items
+append-edit-font-menu-items
 
- * window%'s set-cursor no longer returns the cursor; added get-cursor,
-   instead
+add-editor-keymap-functions
+add-text-editor-keymap-functions
+add-pasteboard-editor-keymap-functions
 
- * editor-snip%'s resize method no longer calls the embedded buffer's
-   set-max-size and set-min-size; now it calls on-display-size
+editor-set-x-selection-mode
 
-wx:{get-set}-{...} PS configuration bundled into an object, an instance of
-  wx:ps-setup%. Added wx:current-ps-setup parameter.
-
-wx:media-buffer%'s do-edit takes a symbol instead of a number; extract
- the symbol from a menu item using get-edit-command; do-font still takes
- a number; extract it with get-font-command
-
+get-the-snip-class-list
+get-the-buffer-data-class-list
 
 ======================================================================
 4. Constant Mapping
@@ -543,7 +569,7 @@ wx:media-buffer%'s do-edit takes a symbol instead of a number; extract
   wx:const-change-family                     'change-family
   wx:const-change-italic                     'change-italic
   wx:const-change-normal                     'change-normal
-  wx:const-change-normal-colour              'change-normal-colour
+  wx:const-change-normal-colour              'change-normal-color
   wx:const-change-nothing                    'change-nothing
   wx:const-change-size                       'change-size
   wx:const-change-smaller                    'change-smaller
@@ -554,7 +580,7 @@ wx:media-buffer%'s do-edit takes a symbol instead of a number; extract
   wx:const-change-underline                  'change-underline
   wx:const-change-weight                     'change-weight
   wx:const-clear                             'clear
-  wx:const-colour                            'colour
+  wx:const-colour                            'color
   wx:const-copy                              'copy
   wx:const-cross-hatch                       'cross-hatch
   wx:const-crossdiag-hatch                   'crossdiag-hatch
@@ -754,10 +780,10 @@ wx:media-buffer%'s do-edit takes a symbol instead of a number; extract
   wx:const-move-page                         'page
   wx:const-move-simple                       'simple
   wx:const-move-word                         'word
-  wx:const-msnipbox-xinset                   (NOT A SYMBOL: wx:wx:const-msnipbox-xinset)
-  wx:const-msnipbox-xmargin                  (NOT A SYMBOL: wx:wx:const-msnipbox-xmargin)
-  wx:const-msnipbox-yinset                   (NOT A SYMBOL: wx:wx:const-msnipbox-yinset)
-  wx:const-msnipbox-ymargin                  (NOT A SYMBOL: wx:wx:const-msnipbox-ymargin)
+  wx:const-msnipbox-xinset                   (NOT A SYMBOL: const-editor-snip-xinset)
+  wx:const-msnipbox-xmargin                  (NOT A SYMBOL: const-editor-snip-xmargin)
+  wx:const-msnipbox-yinset                   (NOT A SYMBOL: const-editor-snip-yinset)
+  wx:const-msnipbox-ymargin                  (NOT A SYMBOL: const-editor-snip-ymargin)
   wx:const-multiple                          'multiple
   wx:const-nand                              'nand
   wx:const-no                                'no
@@ -775,7 +801,7 @@ wx:media-buffer%'s do-edit takes a symbol instead of a number; extract
   wx:const-password                          (NO LONGER USED)
   wx:const-pasteboard-buffer                 'pasteboard
   wx:const-pos-use-minus-one                 (NO LONGER USED)
-  wx:const-print-ask                         'ask
+  wx:const-print-ask                         (NO LONGER USED)
   wx:const-print-postscript                  'postscript
   wx:const-print-standard                    'standard
   wx:const-process-enter                     (NO LONGER USED)
@@ -839,34 +865,38 @@ wx:media-buffer%'s do-edit takes a symbol instead of a number; extract
   wx:const-yes-no                            'yes-no
 
 
+======================================================================
+5. Subtle changes
+======================================================================
 
-TODO Miscellaneous Cleanup
---------------------------
+key-event%'s key-code method was removed
 
-Need a method to get the frames of an eventspace.
+key-event%'s get-key-code returns a character or a symbol
+ instead of a number
 
-Add something like a send-event method to mred:window<%> classes,
-which registers a callback to be evaluated on an event boundary (in
-the Window's eventspace). This is handy for inter-thread
-communication.
+window%'s set-cursor no longer returns the cursor; added get-cursor,
+ instead
 
-Put the PS printing options into an object and make it a
-parameter. (The PS dialog will be re-implemented in Scheme.)
+editor-snip%'s resize method no longer calls the embedded buffer's
+ set-max-size and set-min-size; now it calls on-display-size
 
-Eventually, implement keyboard-based movement in frames/dialogs
+{get-set}-{...} PS configuration bundled into an object, an instance of
+ ps-setup%; added current-ps-setup parameter.
+
+media-buffer%'s do-edit changed to do-edit-operation, takes a symbol
+ instead of a number
+
+
+-----------------------------
+ TODO: Miscellaneous Cleanup
+-----------------------------
+
+DC cleanup. Change dc set-background to take a color instead of a
+brush. Choose a small set of logical drawing modes to implement
+consistently, and perhaps make the drawing mode a property of a
+pen/brush instead of the DC.
+
+Implement keyboard-based movement in frames/dialogs
 (implemented in Scheme using on-pre-char).
 
-Change dc set-background to take a color instead of a brush. Choose a
-small set of logical drawing modes to implement consistently, and
-perhaps make the drawing mode a property of a pen/brush instead of the
-DC.
-
-Eliminate anything to do with colormaps. Change the mred:bitmap%
-constructors, replacing `depth' with `color?' (#t means the current
-screen's depth, #f means a B&W bitmap).
-
-Remove add-edit-items and add-font-items from the wx:media-buffer%
-class, re-implementing them (as necessary) as Scheme top-level
-procedures.
-
-Enable/cursor support with exclusions?
+Move editor margin settings into ps-setup%?

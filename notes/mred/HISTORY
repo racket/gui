@@ -1,3 +1,11 @@
+Version 100: ??, 1998
+MAJOR revision: see MrEd_100.txt in the current directory.
+
+The Engine and System distinction is gone. MrEd Engine is now just
+MrEd. MrEd System turned into the Framework libraries.
+
+----------------------------------------------------------------------
+
 Version 53: July 25, 1998
 
 IMPORTANT: Expect further major changes in the MrEd toolbox with
