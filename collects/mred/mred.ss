@@ -5435,7 +5435,7 @@
 	 (super-init wx)))
       (restore))))
 
-(define (strip-tab s) (car (regexp-match (format "^[^~a]*" #\tab) s)))
+(define (strip-tab s) (car (regexp-match #rxb"^[^\t]*" s)))
 
 (define basic-labelled-menu-item%
   (class100* mred% (labelled-menu-item<%>) (prnt lbl help-str wx-sub chkble? keymap set-wx demand-callback)
@@ -5894,7 +5894,7 @@
       (sequence 
 	(super-init)
 	(let ([s (last-position)]
-	      [m (regexp-match "^(.*), (Copyright.*)$" (banner))])
+	      [m (regexp-match #rxb"^(.*), (Copyright.*)$" (banner))])
 	  (insert (format "Welcome to ~a." (cadr m)))
 	  (let ([e (last-position)])
 	    (insert #\newline)
@@ -6019,9 +6019,8 @@
 (define (no-stretch a) (send a stretchable-width #f) (send a stretchable-height #f))
 
 (define protect&
-  (let ([re (regexp "&")])
-    (lambda (s)
-      (regexp-replace* re s "\\&\\&"))))
+  (lambda (s)
+    (regexp-replace* #rxb"&" s "\\&\\&")))
 
 
 (define message-box/custom
@@ -6044,9 +6043,7 @@
 		 style)
 
     (let* ([strings (let loop ([s message])
-		      (let ([m (regexp-match (let ([nl (string #\newline #\return)])
-					       (format "([^~a]*)[~a](.*)" nl nl))
-					     s)])
+		      (let ([m (regexp-match #rxb"([^\n]*)[\n](.*)" s)])
 			(if m
 			    (cons (cadr m) (loop (caddr m)))
 			    (list s))))]
@@ -6202,7 +6199,7 @@
 
 (define (number->string* n)
   (let ([s (number->string n)])
-    (regexp-replace "[.]([0-9][0-9][0-9])[0-9]*$"
+    (regexp-replace #rxb"[.]([0-9][0-9][0-9])[0-9]*$"
 		    s
 		    ".\\1")))
 
@@ -7282,7 +7279,7 @@
     [(unix)
      ;; Detect Xft by looking for a font with a space in front of its name:
      (when (eq? x-has-xft? 'unknown)
-       (set! x-has-xft? (ormap (lambda (s) (regexp-match #rx"^ " s)) (wx:get-face-list))))
+       (set! x-has-xft? (ormap (lambda (s) (regexp-match #rxb"^ " s)) (wx:get-face-list))))
      (if x-has-xft?
 	 (case family
 	   [(system) " Sans"]
@@ -7389,7 +7386,7 @@
 (let ([load-one
        (lambda (str id %)
 	 (let ([m (with-handlers ([void (lambda (x) #f)])
-		    (and (regexp-match "^[(].*[)]$" str)
+		    (and (regexp-match #rxb"^[(].*[)]$" str)
 			 (read (open-input-string str))))])
 	   (if (and (list? m)
 		    (eq? 'lib (car m))
@@ -7579,7 +7576,7 @@
   (let ([p (open-input-file filename)])
     (port-count-lines! p)
     (let ([p (cond
-	      [(regexp-match-peek "^WXME01[0-9][0-9] ## " p)
+	      [(regexp-match-peek #rxb"^WXME01[0-9][0-9] ## " p)
 	       (let ([t (make-object text%)])
 		 (send t insert-file p 'standard)
 		 (close-input-port p)
@@ -7590,7 +7587,7 @@
 	;; Wrap regexp check with `with-handlers' in case the file
 	;;  starts with non-text input
 	(when (with-handlers ([not-break-exn? (lambda (x) #f)])
-		(regexp-match-peek "^#!" p))
+		(regexp-match-peek #rxb"^#!" p))
 	  ;; Throw away chars/specials up to eol,
 	  ;;  and continue if line ends in backslash
 	  (let lloop ([prev #f])

@@ -1154,7 +1154,6 @@
     on-event
     size-cache-invalid
     copy
-    get-text!
     get-text
     merge-with
     split
@@ -1192,7 +1191,6 @@
     on-event
     size-cache-invalid
     copy
-    get-text!
     get-text
     merge-with
     split
@@ -1217,7 +1215,6 @@
     on-event
     size-cache-invalid
     copy
-    get-text!
     get-text
     merge-with
     split
@@ -1249,7 +1246,6 @@
     on-event
     size-cache-invalid
     copy
-    get-text!
     get-text
     merge-with
     split
@@ -1292,7 +1288,6 @@
     on-event
     size-cache-invalid
     copy
-    get-text!
     get-text
     merge-with
     split
