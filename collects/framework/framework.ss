@@ -11,12 +11,11 @@
            "framework-sig.ss"
            
            "macro.ss"
-           "specs.ss")
+           (lib "contracts.ss"))
   
   (provide-signature-elements framework-class^)
 
   (provide (all-from "macro.ss")
-           (all-from "specs.ss")
            (all-from "test.ss")
            (all-from "gui-utils.ss"))
 
@@ -1222,16 +1221,6 @@
      ((is-a?/c keymap%) . -> . void?)
      (keymap)
      "Initializes \\var{keymap} with Scheme-mode keybindings.")
-
-    (scheme:get-sexp-snip-class
-     (-> (subclass?/c scheme:sexp-snip%))
-     ()
-     "Returns the class used for the collapsing sexpression.")
-
-    (scheme:set-sexp-snip-class
-     ((subclass?/c scheme:sexp-snip%) . -> . void?)
-     (c)
-     "Updates the class used for the collapsing sexpression.")
 
     (paren:backward-match
      (opt->

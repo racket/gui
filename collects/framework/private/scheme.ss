@@ -2,16 +2,17 @@
 ;; 6/30/95
 
 (module scheme mzscheme
-  (require (lib "string-constant.ss" "string-constants")
+  (require "collapsed-snipclass-helpers.ss"
+           (lib "string-constant.ss" "string-constants")
            (lib "unitsig.ss")
 	   (lib "class.ss")
-	   (lib "class100.ss")
 	   "sig.ss"
 	   "../macro.ss"
 	   (lib "mred-sig.ss" "mred")
+           (lib "mred.ss" "mred")
 	   (lib "list.ss")
 	   (lib "thread.ss")
-	   (lib "etc.ss"))
+           (lib "etc.ss"))
   
   (provide scheme@)
   
@@ -44,11 +45,25 @@
           get-saved-snips))
 
       (define sexp-snip%
-        (class* snip% (sexp-snip<%>)
+        (class* snip% (sexp-snip<%> readable-snip<%>)
           (init-field left-bracket right-bracket saved-snips)
           (define/public (get-saved-snips) saved-snips)
           (field [sizing-text (format "~a   ~a" left-bracket right-bracket)])
 
+          (define/public (read-one-special index file line col pos)
+            (let ([text (make-object text:basic%)])
+              (for-each
+               (lambda (s) (send text insert (send s copy)
+                                 (send text last-position)
+                                 (send text last-position)))
+               saved-snips)
+              (values (datum->syntax-object
+                       #f
+                       (read (open-input-text-editor text))
+                       (list file line col pos 1))
+                      1
+                      #t)))
+          
           (rename [super-get-text get-text])
           (define/override get-text
             (opt-lambda (offset num [flattened? #f])
@@ -60,7 +75,7 @@
                   (super-get-text offset num flattened?))))
               
           (define/override (copy)
-            (instantiate (get-sexp-snip-class) ()
+            (instantiate sexp-snip% ()
               (left-bracket left-bracket)
               (right-bracket right-bracket)
               (saved-snips saved-snips)))
@@ -104,40 +119,22 @@
               (set-box/f! rspaceb 0)))
           (super-instantiate ())
           (inherit set-snipclass)
-          (set-snipclass sexp-snipclass)))
-      
-      (define-values (get-sexp-snip-class set-sexp-snip-class)
-        (let ([cached-sexp-snip% sexp-snip%])
-          (values
-           (lambda () cached-sexp-snip%)
-           (lambda (_s%) (set! cached-sexp-snip% _s%)))))
+          (set-snipclass lib-snip-class)))
 
-      (define sexp-snipclass%
-        (class snip-class%
-          (define/override (read in)
-            (let* ([left-bracket (string-ref (send in get-string) 0)]
-                   [right-bracket (string-ref (send in get-string) 0)]
-                   [snip-count (send in get-exact)]
-                   [saved-snips
-                    (let loop ([n snip-count])
-                      (cond
-                        [(zero? n) null]
-                        [else
-                         (let* ([classname (send in get-string)]
-                                [snipclass (send (get-the-snip-class-list) find classname)])
-                           (cons (send snipclass read in)
-                                 (loop (- n 1))))]))])
-              (instantiate (get-sexp-snip-class) ()
-                (left-bracket left-bracket)
-                (right-bracket right-bracket)
-                (saved-snips saved-snips))))
-          (super-instantiate ())))
+      (define sexp-snipclass% (make-sexp-snipclass% sexp-snip%))
       
-      (define sexp-snipclass (make-object sexp-snipclass%))
-      (send sexp-snipclass set-classname "drscheme:sexp-snip")
-      (send sexp-snipclass set-version 0)
-      (send (get-the-snip-class-list) add sexp-snipclass)
-      
+      ;; old snips (from old versions of drscheme) use this snipclass
+      (define lib-snip-class (make-object sexp-snipclass%))
+      (send lib-snip-class set-classname (format "~s" '(lib "collapsed-snipclass.ss" "framework")))
+      (send lib-snip-class set-version 0)
+      (send (get-the-snip-class-list) add lib-snip-class)
+
+      ;; new snips use this snipclass
+      (define old-snip-class (make-object sexp-snipclass%))
+      (send old-snip-class set-classname "drscheme:sexp-snip")
+      (send old-snip-class set-version 0)
+      (send (get-the-snip-class-list) add old-snip-class)
+
       (keymap:add-to-right-button-menu
        (let ([old (keymap:add-to-right-button-menu)])
          (lambda (menu text event)
@@ -232,12 +229,12 @@
                             null]
                            [else (cons (send snip copy) (loop (send snip next)))]))])
             (send text delete left-pos right-pos)
-            (send text insert (instantiate (get-sexp-snip-class) () 
+            (send text insert (instantiate sexp-snipclass% () 
                                 (left-bracket left-bracket)
                                 (right-bracket right-bracket)
                                 (saved-snips snips))
                   left-pos left-pos)
-            (send text end-edit-sequence))))
+            (send text end-edit-sequence)))) 
       
 
                                                                              
@@ -1281,68 +1278,68 @@
                               (pick-out 'lambda all-keywords null))))]
                 [(begin-keywords define-keywords lambda-keywords)
                  (get-keywords (preferences:get 'framework:tabify))])
-             (let* ([add-callback
-                     (lambda (keyword-type keyword-symbol list-box)
-                       (lambda (button command)
-                         (let ([new-one
-                                (keymap:call/text-keymap-initializer
-                                 (lambda ()
-                                   (get-text-from-user
-                                    (format (string-constant enter-new-keyword) keyword-type)
-                                    (format (string-constant x-keyword) keyword-type))))])
-                           (when new-one
-                             (let ([parsed (with-handlers ((exn:read? (lambda (x) #f)))
-                                             (read (open-input-string new-one)))])
-                               (cond
-                                 [(and (symbol? parsed)
-                                       (hash-table-get (preferences:get 'framework:tabify)
-parsed
-						  (lambda () #f)))
-			     (message-box (string-constant error)
-					  (format (string-constant already-used-keyword) parsed))]
-			    [(symbol? parsed)
-			     (hash-table-put! (preferences:get 'framework:tabify)
-					      parsed keyword-symbol)
-			     (send list-box append (symbol->string parsed))]
-			    [else (message-box 
-                                   (string-constant error)
-                                   (format (string-constant expected-a-symbol) new-one))]))))))]
-		[delete-callback
-		 (lambda (list-box)
-		   (lambda (button command)
-		     (let* ([selections (send list-box get-selections)]
-			    [symbols (map (lambda (x) (string->symbol (send list-box get-string x))) selections)])
-		       (for-each (lambda (x) (send list-box delete x)) (reverse selections))
-		       (let ([ht (preferences:get 'framework:tabify)])
-			 (for-each (lambda (x) (hash-table-remove! ht x)) symbols)))))]
-		[main-panel (make-object horizontal-panel% p)]
-		[make-column
-		 (lambda (string symbol keywords)
-		   (let* ([vert (make-object vertical-panel% main-panel)]
-			  [_ (make-object message% (format (string-constant x-like-keywords) string) vert)]
-			  [box (make-object list-box% #f keywords vert void '(multiple))]
-			  [button-panel (make-object horizontal-panel% vert)]
-			  [add-button (make-object button% (string-constant add-keyword)
-                                        button-panel (add-callback string symbol box))]
-			  [delete-button (make-object button% (string-constant remove-keyword)
-                                           button-panel (delete-callback box))])
-		     (send* button-panel 
-			    (set-alignment 'center 'center)
-			    (stretchable-height #f))
-		     (send add-button min-width (send delete-button get-width))
-		     box))]
-		[begin-list-box (make-column "Begin" 'begin begin-keywords)]
-		[define-list-box (make-column "Define" 'define define-keywords)]
-		[lambda-list-box (make-column "Lambda" 'lambda lambda-keywords)]
-		[update-list-boxes
-		 (lambda (hash-table)
-		   (let-values ([(begin-keywords define-keywords lambda-keywords) (get-keywords hash-table)]
-				[(reset) (lambda (list-box keywords)
-					   (send list-box clear)
-					   (for-each (lambda (x) (send list-box append x)) keywords))])
-		     (reset begin-list-box begin-keywords)
-		     (reset define-list-box define-keywords)
-		     (reset lambda-list-box lambda-keywords)
-		     #t))])
+             (letrec ([add-button-callback
+                       (lambda (keyword-type keyword-symbol list-box)
+                         (lambda (button command)
+                           (let ([new-one
+                                  (keymap:call/text-keymap-initializer
+                                   (lambda ()
+                                     (get-text-from-user
+                                      (format (string-constant enter-new-keyword) keyword-type)
+                                      (format (string-constant x-keyword) keyword-type))))])
+                             (when new-one
+                               (let ([parsed (with-handlers ((exn:read? (lambda (x) #f)))
+                                               (read (open-input-string new-one)))])
+                                 (cond
+                                   [(and (symbol? parsed)
+                                         (hash-table-get (preferences:get 'framework:tabify)
+                                                         parsed
+                                                         (lambda () #f)))
+                                    (message-box (string-constant error)
+                                                 (format (string-constant already-used-keyword) parsed))]
+                                   [(symbol? parsed)
+                                    (let ([ht (preferences:get 'framework:tabify)])
+                                      (hash-table-put! ht parsed keyword-symbol)
+                                      (update-list-boxes ht))]
+                                   [else (message-box 
+                                          (string-constant error)
+                                          (format (string-constant expected-a-symbol) new-one))]))))))]
+                      [delete-callback
+                       (lambda (list-box)
+                         (lambda (button command)
+                           (let* ([selections (send list-box get-selections)]
+                                  [symbols (map (lambda (x) (string->symbol (send list-box get-string x))) selections)])
+                             (for-each (lambda (x) (send list-box delete x)) (reverse selections))
+                             (let ([ht (preferences:get 'framework:tabify)])
+                               (for-each (lambda (x) (hash-table-remove! ht x)) symbols)))))]
+                      [main-panel (make-object horizontal-panel% p)]
+                      [make-column
+                       (lambda (string symbol keywords)
+                         (let* ([vert (make-object vertical-panel% main-panel)]
+                                [_ (make-object message% (format (string-constant x-like-keywords) string) vert)]
+                                [box (make-object list-box% #f keywords vert void '(multiple))]
+                                [button-panel (make-object horizontal-panel% vert)]
+                                [add-button (make-object button% (string-constant add-keyword)
+                                              button-panel (add-button-callback string symbol box))]
+                                [delete-button (make-object button% (string-constant remove-keyword)
+                                                 button-panel (delete-callback box))])
+                           (send* button-panel 
+                             (set-alignment 'center 'center)
+                             (stretchable-height #f))
+                           (send add-button min-width (send delete-button get-width))
+                           box))]
+                      [begin-list-box (make-column "Begin" 'begin begin-keywords)]
+                      [define-list-box (make-column "Define" 'define define-keywords)]
+                      [lambda-list-box (make-column "Lambda" 'lambda lambda-keywords)]
+                      [update-list-boxes
+                       (lambda (hash-table)
+                         (let-values ([(begin-keywords define-keywords lambda-keywords) (get-keywords hash-table)]
+                                      [(reset) (lambda (list-box keywords)
+                                                 (send list-box clear)
+                                                 (for-each (lambda (x) (send list-box append x)) keywords))])
+                           (reset begin-list-box begin-keywords)
+                           (reset define-list-box define-keywords)
+                           (reset lambda-list-box lambda-keywords)
+                           #t))])
                (preferences:add-callback 'framework:tabify (lambda (p v) (update-list-boxes v)))
                main-panel))))))))

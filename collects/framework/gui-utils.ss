@@ -3,7 +3,7 @@
   (require (lib "class.ss")
 	   (lib "mred.ss" "mred")
            (lib "etc.ss")
-           "specs.ss"
+           (lib "contracts.ss")
            (lib "string-constant.ss" "string-constants"))
   
   (define-syntax (provide/contract/docs stx)
@@ -410,6 +410,14 @@
             (bz (send p3 get-y))
             (bz (send p4 get-x))
             (bz (send p4 get-y)))
+      (case state
+        [(selected) (void)]
+        [else 
+         (send dc draw-line 
+               (bz (send p4 get-x))
+               (bz (send p4 get-y))
+               (bz (send p1 get-x))
+               (bz (send p1 get-y)))])
       
       (let-values ([(w h a d) (send dc get-text-extent name label-font)])
         (let ([wid (get-width dc name)])
@@ -479,13 +487,17 @@
 (define selected-text-color (make-object color% "black"))
 
 ;; unselected-text-color : color
-(define unselected-text-color (make-object color% "light gray"))
+  (define unselected-text-color (let ([bkg (get-panel-background)])
+                                  (make-object color%
+                                    (floor (/ (+ (send bkg red) 255) 2))
+                                    (floor (/ (+ (send bkg red) 255) 2))
+                                    (floor (/ (+ (send bkg red) 255) 2)))))
 
 ;; selected-brush : brush
 (define selected-brush (send the-brush-list find-or-create-brush (get-panel-background) 'solid))
 
 ;; unselected-brush : brush
-(define unselected-brush (send the-brush-list find-or-create-brush "white" 'solid))
+(define unselected-brush (send the-brush-list find-or-create-brush (get-panel-background) 'solid))
 
 ;; button-down/over-brush : brush
 (define button-down/over-brush (send the-brush-list find-or-create-brush

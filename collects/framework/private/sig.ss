@@ -469,8 +469,6 @@
     (get-wordbreak-map
      init-wordbreak-map
      get-style-list
-     set-sexp-snip-class
-     get-sexp-snip-class
      get-keymap
      setup-keymap
      add-preferences-panel))
