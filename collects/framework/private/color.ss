@@ -212,7 +212,7 @@
                 (up-to-date?
                  (let-values 
                      (((orig-token-start orig-token-end valid-tree invalid-tree)
-                       (send tokens split edit-start-pos)))
+                       (send tokens split (- edit-start-pos start-pos))))
                    (send parens split-tree orig-token-start)
                    (set! invalid-tokens invalid-tree)
                    (set! tokens valid-tree)
@@ -225,7 +225,7 @@
                    (queue-callback (lambda () (colorer-callback)) #f)))
                 ((>= edit-start-pos invalid-tokens-start)
                  (let-values (((tok-start tok-end valid-tree invalid-tree)
-                               (send invalid-tokens split edit-start-pos)))
+                               (send invalid-tokens split (- edit-start-pos start-pos))))
                    (set! invalid-tokens invalid-tree)
                    (set! invalid-tokens-start
                          (+ invalid-tokens-start tok-end change-length))))
@@ -233,7 +233,7 @@
                  (set! invalid-tokens-start (+ change-length invalid-tokens-start)))
                 (else
                  (let-values (((tok-start tok-end valid-tree invalid-tree)
-                               (send tokens split edit-start-pos)))
+                               (send tokens split (- edit-start-pos start-pos))))
                    (send parens truncate tok-start)
                    (set! tokens valid-tree)
                    (set! invalid-tokens-start (+ change-length invalid-tokens-start))
