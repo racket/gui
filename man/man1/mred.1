@@ -1,0 +1,107 @@
+.\" dummy line
+.TH MRED 1 "8 June 1996"
+.UC 4
+.SH NAME
+mred \- The Rice PLT GUI engine
+.SH SYNOPSIS
+.B mred
+[-s
+.I sysfile
+]
+[-q | --no-init-file]
+[-f
+.I file
+]
+[-e
+.I expr
+]
+[--
+.I arguments
+]
+.SH DESCRIPTION
+.I MrEd
+is Rice University's Programming Languages Group's GUI
+execution engine.
+.I MrEd
+runs on a variety of platforms.
+.PP
+The -s flag directs
+.I MrEd
+to load the startup system from
+a particular file. This overrides the system directory
+search path described below in FILES.
+.PP
+The -q or --no-init-file flag prevents MrEd from loading
+the user's startup file ".mredrc" in the user's home
+directory.
+.PP
+After the -s and -q or --no-init-file flags, multiple -f
+and -e flags can be specified. For each -e flag, the corresponding
+expression is evaluated. For each -f flag, the corresponding file
+is loaded (with its directory as the working cirectory).
+.PP
+Other arguments before the -- flag are ignored. Once all
+flags are handled or the -- flag is encountered, the scheme procedure
+mred:startup is called. This procedure is defined by the standard
+system, but it can be redefined with the -f or -e flags for
+application-specific startup sequences. 
+.PP
+For further information on
+.I MrEd,
+please consult the on-line
+documentation and other information available at
+.PP
+.ce 1
+http://www.cs.rice.edu/CS/PLT/packages/mred/
+.SH FILES
+If the -s flag is not specified, 
+.I MrEd
+looks for its standard system file "mrsystem.ss" with the following 
+search path:
+.IP
+* the current working directory
+.IP
+* the search path defined by the MREDSYS system evironment 
+variable
+.IP
+* the "system" sub-directory in the current working directory
+.IP
+* "PLTHOME/mred/system" directory, where "PLTHOME" is replaced
+with value of the PLTHOME environment variable
+.IP
+* "/usr/local/lib/plt/mred/system"
+.IP
+* "/usr/lib/plt/mred/system"
+.IP
+* "/usr/local/lib/mred/system"
+.IP
+* "/usr/lib/mred/system"
+.PP
+
+The standard system loads in the core or the mzlib library,
+using the following search path:
+.IP
+* "../mzlib"
+.IP
+* "../mzscheme/mzlib"
+.IP
+* "../../mzscheme/mzlib"
+.IP
+* "PLTHOME/mzscheme/mzlib", where "PLTHOME" is replaced
+with the value of the PLTHOME environment variable. 
+If the environment variable is undefined, 
+"/usr/local/lib/plt/home" is used
+.PP
+Please consult your local administrator to determine whether
+the on-line documentation has been installed locally.
+.SH BUGS
+Email bug reports to plt-bugs@cs.rice.edu.  Please mention
+"MrEd" in the subject line or the message.
+.SH AUTHOR
+.I MrEd
+was implemented by Matthew Flatt (mflatt@cs.rice.edu)
+using wxWindows by Julian Smart et al. and
+the conservative garbage collector by Hans Boehm et al.
+.SH SEE ALSO
+.BR drscheme(1),
+.BR mzscheme(1)

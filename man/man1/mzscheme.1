@@ -1,0 +1,157 @@
+.\" dummy line
+.TH MZSCHEME 1 "8 June 1996"
+.UC 4
+.SH NAME
+mzscheme \- The Rice PLT Scheme implementation
+.SH SYNOPSIS
+.B mzscheme
+[
+.I flags
+] [
+.I arguments
+]
+.SH DESCRIPTION
+.I MzScheme
+is Rice University's Programming Languages Group's
+primary Scheme implementation.  It implements the language as
+described in the
+.I Revised^4 Report on
+.I the Algorithmic Language Scheme.
+In addition, it includes an object system, thread
+support and some interoperability with code written in C++.
+.I MzScheme
+runs on a variety of platforms.
+.SH OPTIONS
+.TP
+.B \-h, --help
+Shows help for command-line arguments.
+.TP
+.B \-c, --esc-cont
+Call/cc is replaced with call/ec.
+.TP
+.B \-k, --const-globs
+Builtin globals are constant.
+.TP
+.B \-s, --set-undef
+Set! works on undefined identifiers.
+.TP
+.B \-a, --no-auto-else
+Fall-through cond or case is an error.
+.TP
+.B \-n, --no-key
+Keywords not enforced.
+.TP
+.B \-r, --script
+Script mode: use as last flag for scripts.
+.TP
+.B \-i, --script-cd
+Like -r, but also sets the directory.
+.TP
+.BI \-e \ expr
+Evaluates
+.I expr
+after
+.I MzScheme
+starts.
+.TP
+.BI \-f \ file
+Loads
+.I file
+after
+.I MzScheme
+starts.
+.TP
+.BI \-d \ file
+Load/cds
+.I file
+after
+.I MzScheme
+starts.
+.TP
+.B \-F
+.br
+Loads all remaining arguments after
+.I MzScheme
+starts.
+.TP
+.B \-D
+.br
+Load/cds all remaining arguments after
+.I MzScheme
+starts.
+.TP
+.B \-x, --no-lib-path
+Does not try to set (current-library-path).
+.TP
+.B \-q, --no-init-file
+Does not load "~/.mzschemerc".
+.TP
+.B \-p, --persistent
+Catches AIX SIGDANGER (low page space) signal.
+.TP
+.B \-v, --version
+Suppresses the read-eval-print loop.
+.TP
+.B \--
+.br
+No argument following this switch is used as a switch.
+.PP
+Files loaded with -f, etc. and expressions evaluated by -e
+are loaded and evaluated in the order that they are specified on
+on the command line.
+.PP
+Command-line arguments that are not flags are bound to the
+Scheme variable `argv' in a vector. The name by which
+.I MzScheme
+was invoked is bound to the Scheme variable `program' as a
+string.
+.PP
+For further information on
+.I MzScheme,
+please consult the on-line
+documentation and other information available at
+.PP
+.ce 1
+http://www.cs.rice.edu/CS/PLT/packages/mzscheme/
+.SH FILES
+.I MzScheme
+looks for the "mzlib" library directory using the 
+following search path:
+.IP
+If
+.I MzScheme
+was invoked with a pathname, the directory
+of the invoked executable is checked. If the executable 
+is a link, the directory of the referenced file is also 
+checked, recursively following links.
+.IP
+If
+.I MzScheme
+is not invoked with a pathname, the
+directories in the PATH environment variable containing
+a file with the name of the program as invoked (usually
+"mzscheme") are checked. Links are followed as in the 
+first case.
+.IP
+The path in the environment variable MZLIB is tried.
+.IP
+The path in the environment variable PLTHOME is checked
+for a "mzscheme" and then "mzlib" subdirectory.
+.IP
+The "/usr/local/lib/plt/mzscheme/mzlib" directory is 
+tried.
+.PP
+Please consult your local administrator to determine whether
+the on-line documentation has been installed locally.
+.SH BUGS
+Email bug reports to plt-bugs@cs.rice.edu.  Please mention
+"MzScheme" in the subject line or the message.
+.SH AUTHOR
+.I MzScheme
+was implemented by Matthew Flatt (mflatt@cs.rice.edu).
+It uses the conservative garbage collector implemented by Hans 
+Boehm and extended by John Ellis. MzScheme was originally based 
+on libscheme, written by Brent Benson.
+.SH SEE ALSO
+.BR drscheme(1),
+.BR mzscheme(1)
