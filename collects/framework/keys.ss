@@ -12,10 +12,9 @@
   ;  are not normally thought of as shifted. It will have to be
   ;  changed for different keyboards.
   (define shifted-key-list
-    '("?" ":" "~" "\""
+    '("?" ":" "~" "\"" "|"
       "<" ">" "{" "}" "[" "]" "(" ")"
-      "!" "@" "#" "$" "%" "^" "&" "*" "_" "+"
-      "|"))
+      "!" "@" "#" "$" "%" "^" "&" "*" "_" "+"))
   
   (define keyerr
     (lambda (str)
@@ -552,11 +551,6 @@
 		      (send kmap add-key-function name func))]
 	       [add-m (lambda (name func)
 			(send kmap add-mouse-function name func))])
-	  
-	  ; Standards
-	  (add-editor-keymap-functions kmap)
-	  (add-text-keymap-functions kmap)
-	  (add-pasteboard-keymap-functions kmap)
 	  
 	  ; Map names to keyboard functions
 	  (add "toggle-overwrite" toggle-overwrite)

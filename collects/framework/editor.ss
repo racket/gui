@@ -9,6 +9,8 @@
 	  [text : framework:text^]
 	  [pasteboard : framework:pasteboard^])
   
+  (rename [-keymap<%> keymap<%>])
+
   (define basic<%>
     (interface (editor<%>)
       editing-this-file?
@@ -24,7 +26,6 @@
       (inherit get-filename save-file
 	       refresh-delayed? 
 	       get-canvas
-	       get-keymap
 	       get-max-width get-admin set-filename)
       (rename [super-set-modified set-modified]
 	      [super-on-focus on-focus]
@@ -140,9 +141,28 @@
 	(apply super-init args)
 	(auto-wrap (default-auto-wrap?)))))
   
+  (define -keymap<%> (interface (basic<%>)))
+  (define keymap-mixin
+    (mixin (basic<%>) (-keymap<%>) args
+      (public
+	[get-keymaps
+	 (lambda ()
+	   (list (keymap:get-global)))])
+      (inherit get-keymap)
+      (sequence
+	(apply super-init args)
+	(let ([keymap (get-keymap)])
+	  (keymap:set-keymap-error-handler keymap)
+	  (keymap:set-keymap-implied-shifts keymap)
+	  (add-editor-keymap-functions keymap)
+	  (add-text-keymap-functions keymap)
+	  (add-pasteboard-keymap-functions keymap)
+	  (for-each (lambda (k)
+		      (send keymap chain-to-keymap k #f))
+		    (get-keymaps))))))
 
   (define file<%> (interface (basic<%>)))
-  (define file-mixin
+  (define file-mixin ;; wx - should come from -keymap<%>
     (mixin (basic<%>) (file<%>) args
       (inherit get-keymap  
 	       get-filename lock get-style-list 
@@ -178,8 +198,6 @@
       (sequence
 	(apply super-init args)
 	(let ([keymap (get-keymap)])
-	  (keymap:set-keymap-error-handler keymap)
-	  (keymap:set-keymap-implied-shifts keymap)
 	  (send keymap chain-to-keymap (keymap:get-file) #f)))))
   
   (define backup-autosave<%>
