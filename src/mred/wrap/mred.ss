@@ -2987,7 +2987,7 @@
 	(check-string cwho label)
 	(check-top-level-parent/false cwho parent)
 	(for-each (lambda (x) (check-dimension cwho x)) (list width height x y))
-	(check-style cwho #f '(no-caption) style)
+	(check-style cwho #f '(no-caption resize-border) style)
 	(check-container-ready cwho parent)))
     (rename [super-on-subwindow-char on-subwindow-char])
     (private [wx #f])
