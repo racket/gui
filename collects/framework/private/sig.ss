@@ -248,25 +248,28 @@
 
   (define-signature framework:editor-class^
     (basic<%>
+     standard-style-list<%>
      keymap<%>
      autowrap<%>
      info<%>
      file<%>
      backup-autosave<%>
      basic-mixin
+     standard-style-list-mixin
      keymap-mixin
      autowrap-mixin
      info-mixin
      file-mixin
      backup-autosave-mixin))
   (define-signature framework:editor-fun^
-    ())
+    (get-standard-style-list))
   (define-signature framework:editor^
     ((open framework:editor-class^)
      (open framework:editor-fun^)))
 
   (define-signature framework:pasteboard-class^
     (basic%
+     standard-style-list%
      keymap%
      file%
      backup-autosave%
@@ -293,6 +296,7 @@
      1-pixel-string-snip%
      1-pixel-tab-snip%
      delegate%
+     standard-style-list%
      keymap%
      return%
      autowrap%
@@ -496,7 +500,6 @@
   (define-signature framework:scheme-fun^
     (get-wordbreak-map
      init-wordbreak-map
-     get-style-list
      get-keymap
      setup-keymap
      add-preferences-panel))

@@ -303,25 +303,12 @@
       (define (get-wordbreak-map) wordbreak-map)
       (init-wordbreak-map wordbreak-map)
       
-      (define style-list (make-object style-list%))
-      (define (get-style-list) style-list)
-      (define delta
-        (let ([delta (make-object style-delta% 'change-normal)])
-          (send delta set-delta 'change-family 'modern)
-          delta))
-      (let ([style (send style-list find-named-style "Standard")])
-        (if style
-            (send style set-delta delta)
-            (send style-list new-named-style "Standard"
-                  (send style-list find-or-create-style
-                        (send style-list find-named-style "Basic")
-                        delta))))
-      
       (define (get-match-color) (preferences:get 'framework:paren-match-color))
       (define mismatch-color (make-object color% "PINK"))
       
       (define matching-parenthesis-style 
-        (let ([matching-parenthesis-delta (make-object style-delta% 'change-bold)])
+        (let ([matching-parenthesis-delta (make-object style-delta% 'change-bold)]
+              [style-list (editor:get-standard-style-list)])
           (send matching-parenthesis-delta set-delta-foreground "forest green")
           (send style-list new-named-style "Matching Parenthesis Style"
                 (send style-list find-or-create-style
@@ -340,6 +327,7 @@
                    get-keymap
                    get-text
                    get-start-position
+                   get-style-list
                    get-end-position
                    flash-on
                    highlight-range
@@ -1051,7 +1039,7 @@
                       (cond
                         [(and (eq? matching-parenthesis-style start-style)
                               (eq? matching-parenthesis-style end-style))
-                         (let ([standard-style (send style-list find-named-style "Standard")])
+                         (let ([standard-style (send (get-style-list) find-named-style "Standard")])
                            (change-style standard-style pos (+ pos 1))
                            (change-style standard-style (- end 1) end))]
                         [else
@@ -1114,66 +1102,65 @@
       
       (define text-mode-mixin
         (mixin (mode:text<%>) (-text-mode<%>)
-          
-          (inherit get-styles-fixed)
-          (rename [super-on-focus on-focus]
-                  [super-after-change-style after-change-style]
-                  [super-after-edit-sequence after-edit-sequence]
-                  [super-after-insert after-insert]
-                  [super-after-delete after-delete]
-                  [super-after-set-size-constraint after-set-size-constraint]
-                  [super-after-set-position after-set-position])
-          (inherit has-focus? find-snip split-snip)
-          (override on-focus after-change-style after-edit-sequence
-                    after-insert after-delete
-                    after-set-size-constraint after-set-position)
-          (define (on-focus text on?)
+          (rename [super-on-focus on-focus])
+          (define/override (on-focus text on?)
             (super-on-focus text on?)
             (send text highlight-parens (not on?)))
-          (define (after-change-style text start len)
+          
+          (rename [super-after-change-style after-change-style])
+          (define/override (after-change-style text start len)
             (unless (send text local-edit-sequence?)
               (unless (send text get-styles-fixed)
                 (when (send text has-focus?)
                   (send text highlight-parens))))
             (super-after-change-style text start len))
-          (define (after-edit-sequence text)
+          
+          (rename [super-after-edit-sequence after-edit-sequence])
+          (define/override (after-edit-sequence text)
             (super-after-edit-sequence text)
             (unless (send text local-edit-sequence?)
               (when (send text has-focus?)
                 (send text highlight-parens))))
-          (define (after-insert text start size)
+          
+          (rename [super-after-insert after-insert])
+          (define/override (after-insert text start size)
             (unless (send text local-edit-sequence?)
               (when (send text has-focus?)
                 (send text highlight-parens)))
             (super-after-insert text start size))
-          (define (after-delete text start size)
+          
+          (rename [super-after-delete after-delete])
+          (define/override (after-delete text start size)
             (unless (send text local-edit-sequence?)
               (when (send text has-focus?)
                 (send text highlight-parens))))
-          (define (after-set-size-constraint text)
+          
+          (rename [super-after-set-size-constraint after-set-size-constraint])
+          (define/override (after-set-size-constraint text)
             (unless (send text local-edit-sequence?)
               (when (send text has-focus?)
                 (send text highlight-parens)))
             (super-after-set-size-constraint text))
-          (define (after-set-position text)
+          
+          (rename [super-after-set-position after-set-position])
+          (define/override (after-set-position text)
             (unless (send text local-edit-sequence?)
               (when (send text has-focus?)
                 (send text highlight-parens)))
             (super-after-set-position text))
 
-          (rename [super-on-disable on-disable])
-          (define/override (on-disable text)
+          (rename [super-on-disable-delegate on-disable-delegate])
+          (define/override (on-disable-delegate text)
             (send text highlight-parens #t)
-            (super-on-disable text))
+            (super-on-disable-delegate text))
           
-          (rename [super-on-enable on-enable])
-          (define/override (on-enable text)
-            (super-on-enable text)
+          (rename [super-on-enable-delegate on-enable-delegate])
+          (define/override (on-enable-delegate text)
+            (super-on-enable-delegate text)
             (send text highlight-parens #t)
             (send text set-load-overwrites-styles #f)
             (send text set-wordbreak-map wordbreak-map)
             (send text set-tabs null (send text get-tab-size) #f)
-            (send text set-style-list style-list)
             (send text set-styles-fixed #t))
           
           (super-instantiate ())))

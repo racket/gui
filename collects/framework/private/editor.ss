@@ -311,6 +311,30 @@
 	  
 	  (super-instantiate ())))
 
+      (define standard-style-list (make-object style-list%))
+      (define (get-standard-style-list) standard-style-list)
+      (define delta
+        (let ([delta (make-object style-delta% 'change-normal)])
+          (send delta set-delta 'change-family 'modern)
+          delta))
+      (let ([style (send standard-style-list find-named-style "Standard")])
+        (if style
+            (send style set-delta delta)
+            (send standard-style-list new-named-style "Standard"
+                  (send standard-style-list find-or-create-style
+                        (send standard-style-list find-named-style "Basic")
+                        delta))))
+      
+      (define standard-style-list<%>
+        (interface (editor<%>)
+          ))
+      
+      (define standard-style-list-mixin
+        (mixin (editor<%>) (standard-style-list<%>)
+          (super-instantiate ())
+          (inherit set-style-list)
+          (set-style-list standard-style-list)))
+          
       (define -keymap<%> (interface (basic<%>) get-keymaps))
       (define keymap-mixin
 	(mixin (basic<%>) (-keymap<%>)

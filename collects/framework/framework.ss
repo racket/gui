@@ -1265,10 +1265,10 @@
      ()
      "Returns a keymap with binding suitable for Scheme.")
 
-    (scheme:get-style-list
+    (editor:get-standard-style-list
      (-> (is-a?/c style-list%))
      ()
-     "Returns a style list that is used for all Scheme buffers.")
+     "Returns a style list that is used for all instances of \\iscmintf{editor:standard-style-list}.")
 
     (scheme:get-wordbreak-map
      (-> (is-a?/c editor-wordbreak-map%))
