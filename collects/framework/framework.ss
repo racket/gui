@@ -12,10 +12,13 @@
 	   (prefix gui-utils: "gui-utils.ss")
 	   "gui-utils-sig.ss"
            
-	   "framework-unit.ss"
-	   "framework-sig.ss")
+           "framework-unit.ss"
+	   "framework-sig.ss"
+           
+           "macro.ss")
   
   (provide-signature-elements framework^)
+  (provide mixin)
    
   (define-values/invoke-unit/sig 
    frameworkc^ 
