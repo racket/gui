@@ -23,21 +23,15 @@
               [-text% text%]
               [-text-mode<%> text-mode<%>])
       
-      (define-local-member-name set-start-pos set-end-pos reset-tokens)
-      
       (define -text<%>
         (interface ()
           start-colorer
-          stop-colorer))
-      
-      (define interactions-mixin<%>
-        (interface ()
-          reset-tokens 
-          set-start-pos
-          set-end-pos))
-          
+          stop-colorer
+          reset-region
+          update-region-end))
+                
       (define text-mixin
-        (mixin (text:basic<%>) (-text<%> interactions-mixin<%>)
+        (mixin (text:basic<%>) (-text<%>)
           ;; ---------------------- Lexing state ----------------------------------
           
           ;; The tree of valid tokens, starting at start-pos
@@ -72,10 +66,13 @@
           (define start-pos 0)
           (define end-pos 'end)
           
-          (define/public (set-start-pos x)
-            (set! start-pos x))
-          (define/public (set-end-pos x)
-            (set! end-pos x))
+          (define/public (reset-region start end)
+            (set! start-pos start)
+            (set! end-pos end)
+            (reset-tokens))
+          
+          (define/public (update-region-end end)
+            (set! end-pos end))
           
           ;; ---------------------- Preferences -----------------------------------
           (define should-color? #t)
@@ -408,37 +405,6 @@
   
       (define text-mode% (text-mode-mixin mode:surrogate-text%))
       
-      (define (interactions-mixin %)
-        (class % 
-            
-          (rename (super-do-eval do-eval)
-                  (super-insert-prompt insert-prompt)
-                  (super-initialize-console initialize-console)
-                  (super-reset-console reset-console))
-          
-          (inherit reset-tokens get-prompt-position set-start-pos set-end-pos)
-          
-          (define/override (do-eval start end)
-            (super-do-eval start end)
-            (set-end-pos this end))
-          
-          (define/override (insert-prompt)
-            (super-insert-prompt)
-            (set-end-pos 'end)
-            (set-start-pos (get-prompt-position))
-            (reset-tokens))
-          
-          (define/override (initialize-console)
-            (super-initialize-console)
-            (set-start-pos 0)
-            (set-end-pos 'end)
-            (reset-tokens))
-          
-          (define/override (reset-console)
-            (super-reset-console)
-            (set-start-pos 0)
-            (set-end-pos 'end)
-            (reset-tokens))
-          (super-instantiate ())))
+      
     )))
     

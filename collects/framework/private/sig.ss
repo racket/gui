@@ -510,9 +510,7 @@
 
      text-mode<%>
      text-mode-mixin
-     text-mode%
-     
-     interactions-mixin))
+     text-mode%))
   (define-signature framework:color-fun^
     ())
   (define-signature framework:color^
