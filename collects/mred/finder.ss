@@ -222,8 +222,8 @@
 			    (send name-field get-value)
 			    (send name-list get-string-selection))])
 		   (cond
-		     [(not (string? name)) 'nothing-selected]
-		     [(string=? name "")
+		     [(and save-mode? (not (string? name))) 'nothing-selected]
+		     [(and save-mode? (string=? name ""))
 		      (let ([file (send directory-edit get-text)])
 			(if (directory-exists? file)
 			    (set-directory (mzlib:file:normalize-path file))
@@ -235,25 +235,47 @@
 			   (not (mzlib:string:regexp-match-exact? file-filter name)))
 		      (wx:message-box file-filter-msg "Error")]
 		     [else
-		      (let ([file (build-path current-dir
-					      (make-relative name))])
-			(if (directory-exists? file)
-			    (set-directory (mzlib:file:normalize-path file))
-			    (if (or (not save-mode?)
-				    (not (file-exists? file))
-				    replace-ok?
-				    (= (wx:message-box
-					(string-append
-					 "The file " 
-					 name 
-					 " already exists. "
-					 "Replace it?")
-					"Warning"
-					wx:const-yes-no)
-				       wx:const-yes))
-				(begin
-				  (set-box! result-box (mzlib:file:normalize-path file))
-				  (show #f)))))]))))]
+
+		      ; if dir in edit box, go to that dir
+
+		      (let ([dir-name (send directory-edit get-text)])
+			(if (directory-exists? dir-name)
+			    (set-directory (mzlib:file:normalize-path dir-name))
+
+			    ; otherwise, try to return absolute path
+
+			    (let* ([relative-name (make-relative name)]
+				   [file (if relative-name
+					     (build-path current-dir relative-name)
+					     dir-name)])
+			      (let ([dir-name-len (string-length dir-name)])
+				(if (and (not save-mode?)
+				         relative-name
+					 (not (string=? relative-name
+							(substring dir-name
+								   (- dir-name-len
+								      (string-length relative-name))
+								   dir-name-len))))
+				    (wx:message-box 
+				     (string-append "File \"" 
+						    dir-name
+						    "\" does not exist"))
+				    (if (or (not save-mode?)
+					    (not (file-exists? file))
+					    replace-ok?
+					    (= (wx:message-box
+						(string-append
+						 "The file " 
+						 name 
+						 " already exists. "
+						 "Replace it?")
+						"Warning"
+						wx:const-yes-no)
+					       wx:const-yes))
+					(begin
+					  (set-box! 
+					   result-box (mzlib:file:normalize-path file))
+					  (show #f))))))))]))))]
 	  
 	  [add-one
 	   (lambda (name)
@@ -334,6 +356,7 @@
 		 number
 		 number-of-visible-items
 		 set-first-item
+		 set-focus
 	         set-selection)
 
 	     (public
@@ -341,20 +364,14 @@
 	      [set-selection-and-edit ; set selection, update edit box
 
 	       (lambda (pos)
-		 
-		 (if (> (number) 0)
+		 (when (> (number) 0)
 		     (let* ([first-item (get-first-item)]
 			    [last-item (sub1 (+ (number-of-visible-items) 
 						first-item))])
-		       (if (or (< pos first-item)
-				(> pos last-item))
+		       (if (or (< pos first-item) (> pos last-item))
 			   (set-first-item pos))
-		       (set-selection pos)
-		       (set-edit))
-		     (send* directory-edit
-			    (begin-edit-sequence)
-			    (erase)
-			    (end-edit-sequence))))]
+		       (set-selection pos)))
+		 (set-edit))]
 
               [pre-on-char ; set selection according to keystroke
 
@@ -437,6 +454,10 @@
 				  (if multi-mode? (/ WIDTH 2) WIDTH) 300
 				  () wx:const-needed-sb)]
 
+	  [set-focus-to-name-list
+	   (lambda ()
+	     (send name-list set-focus))]
+
 	  [save-panel (when save-mode? (make-object mred:container:horizontal-panel% main-panel))]
 
 	  [directory-panel (make-object mred:container:horizontal-panel% main-panel)]
@@ -480,7 +501,8 @@
 
 	  [do-updir
 	   (lambda () 
-	     (set-directory (build-updir current-dir)))
+	     (set-directory (build-updir current-dir))
+	     (set-focus-to-name-list))
 	   ])
 			
 	(sequence
@@ -509,7 +531,7 @@
 
 	  (make-object mred:container:button% top-panel
 		       (lambda (button evt) (do-updir))
-		       "Up")
+		       "Up directory")
 
 	  (send name-list stretchable-in-x #t)
 
