@@ -4843,7 +4843,7 @@
   (class100*/kw basic-canvas% ()
 		[(parent [editor #f] [style null] [scrolls-per-page 100] [label #f]
 			 [wheel-step no-val] [line-count no-val]
-			 [horizontal-inset no-val] [vertical-inset no-val])
+			 [horizontal-inset 5] [vertical-inset 5])
 		 canvas%-keywords]
     (sequence 
       (let ([cwho '(constructor editor-canvas)])
@@ -4855,7 +4855,11 @@
 	(unless (eq? wheel-step no-val)
 	  (check-wheel-step cwho wheel-step))
 	(unless (or (not line-count) (eq? line-count no-val))
-	  ((check-bounded-integer 1 1000 #t) cwho line-count))))
+	  ((check-bounded-integer 1 1000 #t) cwho line-count))
+	(unless (eq? horizontal-inset 5)
+	  (check-margin-integer cwho horizontal-inset))
+	(unless (eq? vertical-inset 5)
+	  (check-margin-integer cwho vertical-inset))))
     (inherit set-label)
     (private-field
       [force-focus? #f]
@@ -4964,9 +4968,9 @@
       (send parent after-new-child this)
       (unless (or (not line-count) (eq? line-count no-val))
 	(set-line-count line-count))
-      (unless (eq? vertical-inset no-val)
+      (unless (or (eq? vertical-inset 5))
 	(vi vertical-inset))
-      (unless (eq? horizontal-inset no-val)
+      (unless (or (eq? horizontal-inset 5))
 	(hi horizontal-inset)))))
 
 ;-------------------- Final panel interfaces and class constructions --------------------
