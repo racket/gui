@@ -83,7 +83,7 @@
 (define top-x 1)
 (define top-y 1)
 
-(define top-level-windows (make-hash-table))
+(define top-level-windows (make-hash-table-weak))
 
 ;;;;;;;;;;;;;;; Focus-tabbing helpers ;;;;;;;;;;;;;;;;;;;;
 
@@ -844,7 +844,7 @@
 
 (define (make-window-glue% %)  ; implies make-glue%
   (class (make-glue% %) (mred proxy . args)
-    (inherit get-x get-y get-width get-height area-parent)
+    (inherit get-x get-y get-width get-height area-parent get-mred get-proxy)
     (rename [super-on-size on-size]
 	    [super-on-set-focus on-set-focus]
 	    [super-on-kill-focus on-kill-focus]
@@ -863,39 +863,40 @@
       [old-y -1])
     (override
       [on-drop-file (lambda (f)
-		      (send proxy on-drop-file f))]
+		      (send (get-proxy) on-drop-file f))]
       [on-size (lambda (w h)
 		 (super-on-size w h)
 		 ; Delay callback to make sure X structures (position) are updated, first
 		 (queue-window-callback
 		  this
 		  (lambda ()
-		    (when mred 
-		      (let* ([w (get-width)]
-			     [h (get-height)])
-			(when (not (and (= w old-w) (= h old-h)))
-			  (set! old-w w)
-			  (set! old-h h)
-			  (send mred on-size w h)))
-		      (let* ([p (area-parent)]
-			     [x (- (get-x) (or (and p (send p dx)) 0))]
-			     [y (- (get-y) (or (and p (send p dy)) 0))])
-			(when (not (and (= x old-x) (= y old-y)))
-			  (set! old-x x)
-			  (set! old-y y)
-			  (send mred on-move x y)))))))]
+		    (let ([mred (get-mred)])
+		      (when mred 
+			(let* ([w (get-width)]
+			       [h (get-height)])
+			  (when (not (and (= w old-w) (= h old-h)))
+			    (set! old-w w)
+			    (set! old-h h)
+			    (send mred on-size w h)))
+			(let* ([p (area-parent)]
+			       [x (- (get-x) (or (and p (send p dx)) 0))]
+			       [y (- (get-y) (or (and p (send p dy)) 0))])
+			  (when (not (and (= x old-x) (= y old-y)))
+			    (set! old-x x)
+			    (set! old-y y)
+			    (send mred on-move x y))))))))]
       [on-set-focus (lambda ()
 		      (super-on-set-focus)
-		      (send proxy on-focus #t))]
+		      (send (get-proxy) on-focus #t))]
       [on-kill-focus (lambda ()
 		      (super-on-kill-focus)
-		      (send proxy on-focus #f))]
+		      (send (get-proxy) on-focus #f))]
       [pre-on-char (lambda (w e)
 		     (super-pre-on-char w e)
-		     (pre-wx->proxy w (lambda (m) (send proxy on-subwindow-char m e))))]
+		     (pre-wx->proxy w (lambda (m) (send (get-proxy) on-subwindow-char m e))))]
       [pre-on-event (lambda (w e)
 		      (super-pre-on-event w e)
-		      (pre-wx->proxy w (lambda (m) (send proxy on-subwindow-event m e))))])
+		      (pre-wx->proxy w (lambda (m) (send (get-proxy) on-subwindow-event m e))))])
     (sequence (apply super-init mred proxy args))))
 
 (define (make-container-glue% %)
@@ -939,23 +940,25 @@
 
 (define (make-top-level-window-glue% %) ; implies make-window-glue%
   (class (make-window-glue% %) (mred proxy . args)
-    (inherit is-shown?)
+    (inherit is-shown? get-mred)
     (rename [super-on-activate on-activate])
     (public 
       [act-date/seconds 0] [act-date/milliseconds 0] [act-on? #f]
       [on-exit (lambda ()
-		 (when (and mred is-shown?
-			    (send mred can-exit?))
-		   (send mred on-exit)))])      
+		 (and is-shown?
+		      (let ([mred (get-mred)])
+			(and (and mred (send mred can-exit?))
+			     (send mred on-exit)))))])
     (override
       [on-close (lambda ()
-		  (if mred
-		      (if (send mred can-close?)
-			  (begin
-			    (send mred on-close)
-			    #t)
-			  #f)
-		      #t))]
+		  (let ([mred (get-mred)])
+		    (if mred
+			(if (send mred can-close?)
+			    (begin
+			      (send mred on-close)
+			      #t)
+			    #f)
+			#t)))]
       [on-activate (lambda (on?)
 		     (set! act-on? on?)
 		     (when on?
@@ -963,11 +966,12 @@
 		       (set! act-date/milliseconds (current-milliseconds))
 		       (set! active-frame this))
 		     (super-on-activate on?)
-		     (send mred on-activate on?))])
+		     (send (get-mred) on-activate on?))])
     (sequence (apply super-init mred proxy args))))
 
 (define (make-canvas-glue% %) ; implies make-window-glue%
   (class (make-window-glue% %) (mred proxy . args)
+    (inherit get-mred)
     (rename [super-on-char on-char]
 	    [super-on-event on-event]
 	    [super-on-paint on-paint]
@@ -979,25 +983,29 @@
       [do-on-paint (lambda () (super-on-paint))])
     (override
       [on-char (lambda (e)
-		 (if mred
-		     (send mred on-char e)
-		     (super-on-char e)))]
+		 (let ([mred (get-mred)])
+		   (if mred
+		       (send mred on-char e)
+		       (super-on-char e))))]
       [on-event (lambda (e)
-		 (if mred
-		     (send mred on-event e)
-		     (super-on-event e)))]
+		  (let ([mred (get-mred)])
+		    (if mred
+			(send mred on-event e)
+			(super-on-event e))))]
       [on-scroll (lambda (e)
-		 (if mred
-		     ; Delay callback for windows scrollbar grab
-		     (queue-window-callback
-		      this
-		      (lambda ()
-			(send mred on-scroll e)))
-		     (super-on-scroll e)))]
+		   (let ([mred (get-mred)])
+		     (if mred
+			 ; Delay callback for windows scrollbar grab
+			 (queue-window-callback
+			  this
+			  (lambda ()
+			    (send mred on-scroll e)))
+			 (super-on-scroll e))))]
       [on-paint (lambda ()
-		 (if mred
-		     (send mred on-paint)
-		     (super-on-paint)))])
+		  (let ([mred (get-mred)])
+		    (if mred
+			(send mred on-paint)
+			(super-on-paint))))])
     (sequence (apply super-init mred proxy args))))
 
 ;------------- Create the actual wx classes -----------------
@@ -2207,17 +2215,19 @@
 (define mred%
   (class null (wx)
     (sequence
-      (hash-table-put! widget-table this wx))))
+      (hash-table-put! widget-table this (make-weak-box wx)))))
+
+(define (mred->wx w) 
+  (let ([v (hash-table-get widget-table w (lambda () #f))])
+    (and v (weak-box-value v))))
+
+(define (mred->wx-container w) (send (mred->wx w) get-container))
 
 (define (wrap-callback cb)
   (if (and (procedure? cb)
 	     (procedure-arity-includes? cb 2))
       (lambda (w e) (cb (wx->proxy w) e))
       cb))
-
-(define (mred->wx w) (hash-table-get widget-table w (lambda () #f)))
-
-(define (mred->wx-container w) (send (mred->wx w) get-container))
 
 (define (cb-0) (void))
 (define (cb-1 x) (void))
@@ -2892,7 +2902,7 @@
     (public
       [on-char (lambda (e) (send wx do-on-char e))]
       [on-event (lambda (e) (send wx do-on-event e))]
-      [on-paint (lambda () (send wx do-on-paint))]
+      [on-paint (lambda () (when wx (send wx do-on-paint)))]
       [on-scroll (lambda (e) (send wx do-on-scroll e))]
       
       [min-client-width (param (lambda () wx) 'min-client-width)]
