@@ -395,9 +395,9 @@
     set-smoothing
     set-text-foreground
     set-text-background
+    set-brush
     set-pen
     set-font
-    set-brush
     set-background
     get-clipping-region
     set-clipping-region
@@ -600,6 +600,10 @@
     rotate
     scale
     translate
+    lines
+    ellipse
+    rounded-rectangle
+    rectangle
     curve-to
     arc
     line-to

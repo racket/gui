@@ -185,12 +185,16 @@ Clipping should slip the drawing to a particular shape:
    circle - a circle inscribed in the octagon's bounding
      box
 
+   wedge - pi/4 to 3pi/4 of circle
+
    round rectangle - a rounded rect inscrobed in the the blue box for
      testing stipples
 
    unions, intersects, subtracts - hopefully obvious
 
    polka - purple field with holes showing the normal drawing
+
+   lambda - a region in the shape of a lambda
 
 When the "Clip Pre-Scale" checkbox is not checked, then when a scale
 such as "*2" is selected, the clipping region should scale

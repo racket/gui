@@ -180,7 +180,7 @@
     (send p line-to 1 90)
     (send p close)
     (send p append p2)
-    (send p arc 50 50 100 120 0 (* pi 1/2) #t)
+    (send p arc 50 50 100 120 0 (* pi 1/2) #f)
 
     p))
 
@@ -189,8 +189,8 @@
        [hp0 (make-object horizontal-panel% vp)]
        [hp (make-object horizontal-panel% vp)]
        [hp2 hp]
-       [hp2.5 (make-object horizontal-panel% vp)]
-       [hp3 (make-object horizontal-pane% vp)]
+       [hp2.5 hp0]
+       [hp3 hp]
        [bb (make-object bitmap% (sys-path "bb.gif") 'gif)]
        [return (let* ([bm (make-object bitmap% (sys-path "return.xbm") 'xbm)]
 		      [dc (make-object bitmap-dc% bm)])
@@ -866,9 +866,19 @@
 						   (send p append lambda-path)
 						   (send p scale 0.3 0.3)
 						   p)
-				    465 230))
-			      
+				    465 230)
 
+			      (send dc draw-path (let ([p (new dc-path%)])
+						   (send p rectangle 10 310 20 20)
+						   (send p rounded-rectangle 40 310 20 20 5)
+						   (send p ellipse 70 310 20 20)
+						   (send p move-to 100 310)
+						   (send p lines (list (make-object point% 0 0)
+								       (make-object point% 0 20)
+								       (make-object point% 20 10))
+							 100 310)
+						   p)))
+			      
 			    (when (and last? (not (or ps? (eq? dc can-dc)))
 				       (send mem-dc get-bitmap))
 			      (send can-dc draw-bitmap (send mem-dc get-bitmap) 0 0 'opaque)))
@@ -928,6 +938,9 @@
 			      [(rect2) (send dc set-clipping-rect 50 -25 10 400)]
 			      [(poly) (send dc set-clipping-region (mk-poly 'odd-even))]
 			      [(circle) (send dc set-clipping-region (mk-circle))]
+			      [(wedge) (let ([r (make-object region% dc)])
+					 (send r set-arc 0. 60. 180. 180. (* 1/4 pi) (* 3/4 pi))
+					 (send dc set-clipping-region r))]
 			      [(lam) (let ([r (make-object region% dc)])
 				       (send r set-path lambda-path)
 				       (send dc set-clipping-region r))]
@@ -979,7 +992,7 @@
 			  (send dc set-clipping-rect 0 0 20 20)
 			  (if r
 			      (let ([r2 (make-object region% dc)])
-				(send r2 set-rectangle 0 0 10 10)
+				(send r2 set-rectangle 0 0 0 0)
 				(send r xor r2)
 				(send r2 xor r)
 				(send dc set-clipping-region r2))
@@ -1010,6 +1023,7 @@
 							 [(rect) '(100. -25. 10. 400.)]
 							 [(rect2) '(50. -25. 10. 400.)]
 							 [(poly circle poly-rect) '(0. 60. 180. 180.)]
+							 [(wedge) '(26. 60. 128. 90.)]
 							 [(lam) '(58. 10. 202. 281.)]
 							 [(rect+poly rect+circle poly^rect) '(0. -25. 180. 400.)]
 							 [(poly&rect) '(100. 60. 10. 180.)]
@@ -1052,22 +1066,6 @@
 		   (set! use-bad? (< 2 (send self get-selection)))
 		   (send canvas refresh))
 		 '(horizontal))
-    (make-object button% "Save" hp0
-		 (lambda (b e)
-		   (unless use-bitmap?
-		     (error 'save-file "only available for pixmap/bitmap mode"))
-		   (let ([f (put-file)])
-		     (when f
-		       (let ([format
-			      (cond 
-			       [(regexp-match "[.]xbm$" f) 'xbm]
-			       [(regexp-match "[.]xpm$" f) 'xpm]
-			       [(regexp-match "[.]jpe?g$" f) 'jpeg]
-			       [(regexp-match "[.]png$" f) 'png]
-			       [else (error 'save-file "unknown suffix: ~e" f)])])
-			 (set! save-filename f)
-			 (set! save-file-format format)
-			 (send canvas refresh))))))
     (make-object button% "PS" hp
 		 (lambda (self event)
 		   (send canvas on-paint #t)))
@@ -1117,15 +1115,32 @@
     (make-object check-box% "Kern" hp2.5
 		 (lambda (self event)
 		   (send canvas set-kern (send self get-value))))
+    (make-object button% "Save" hp0
+		 (lambda (b e)
+		   (unless use-bitmap?
+		     (error 'save-file "only available for pixmap/bitmap mode"))
+		   (let ([f (put-file)])
+		     (when f
+		       (let ([format
+			      (cond 
+			       [(regexp-match "[.]xbm$" f) 'xbm]
+			       [(regexp-match "[.]xpm$" f) 'xpm]
+			       [(regexp-match "[.]jpe?g$" f) 'jpeg]
+			       [(regexp-match "[.]png$" f) 'png]
+			       [else (error 'save-file "unknown suffix: ~e" f)])])
+			 (set! save-filename f)
+			 (set! save-file-format format)
+			 (send canvas refresh))))))
     (make-object choice% "Clip" 
-		 '("None" "Rectangle" "Rectangle2" "Octagon" "Circle" "Round Rectangle" "Lambda"
+		 '("None" "Rectangle" "Rectangle2" "Octagon" 
+		   "Circle" "Wedge" "Round Rectangle" "Lambda"
 		   "Rectangle + Octagon" "Rectangle + Circle" 
 		   "Octagon - Rectangle" "Rectangle & Octagon" "Rectangle ^ Octagon" "Polka"
 		   "Empty")
 		 hp3
 		 (lambda (self event)
 		   (set! clip (list-ref
-		               '(none rect rect2 poly circle roundrect lam 
+		               '(none rect rect2 poly circle wedge roundrect lam 
 				      rect+poly rect+circle poly-rect poly&rect poly^rect 
 				      polka empty)
 		               (send self get-selection)))
