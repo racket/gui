@@ -326,6 +326,27 @@
 				(send dc set-pen (make-object pen% "RED" 0 'solid))
 				(draw-ess -2 2)
 			      
+				; Polygons: odd-even vs. winding
+				(let ([polygon
+				       (list (make-object point% 12 0)
+					     (make-object point% 40 0)
+					     (make-object point% 40 28)
+					     (make-object point% 0 28)
+					     (make-object point% 0 12)
+					     (make-object point% 28 12)
+					     (make-object point% 28 40)
+					     (make-object point% 12 40)
+					     (make-object point% 12 0))]
+				      [ob (send dc get-brush)]
+				      [op (send dc get-pen)])
+				  (send dc set-pen pen1s)
+				  (send dc set-brush (make-object brush% "BLUE" 'solid))
+				  (send dc draw-polygon polygon 200 40 'odd-even)
+				  (send dc draw-polygon polygon 200 90 'winding)
+				  (send dc set-pen op)
+				  (send dc set-brush ob))
+
+
 				; Brush patterns:
 				(let ([pat-list (list 'bdiagonal-hatch
 						      'crossdiag-hatch

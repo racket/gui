@@ -22,6 +22,12 @@ The drawing area should have the following features:
     form a squashed "S", twice as wide as high. The "S" is formed by
     two splines.
 
+  Under the splines should be two blue polygons, the top with a square
+    hole (odd-even fill) and the bottom all solid (winding fill). The
+    black lines forming the polygon should be the same in each shape
+    (strictly on borders for the top polygon, drawn over blue in the
+    bottom polygon).
+
   To the far right should be three columns of boxes. All boxes should
     have a red border and lines on a background that matches the
     normal background (i.e., either white or cyan). The lines should
