@@ -32,13 +32,28 @@
                                     (format "~a:~a" src pos))])
                       (send #%keymap add-function name 
                             (lambda (x y)
+                              (let ([end-edit-sequence
+                                     (lambda ()
+                                       (when (is-a? x editor<%>)
+                                         (let loop ()
+                                           (when (send x in-edit-sequence?)
+                                             (send x end-edit-sequence)
+                                             (loop)))))])
                               (with-handlers ([exn:fail? 
                                                (lambda (x)
+                                                 (end-edit-sequence)
                                                  (message-box (string-constant drscheme)
                                                               (format (string-constant user-defined-keybinding-error) 
                                                                       name
                                                                       (exn-message x))))])
-                                (proc x y))))
+                                (proc x y)
+                                (when (is-a? x editor<%>)
+                                  (when (send x in-edit-sequence?)
+                                    (end-edit-sequence)
+                                    (message-box (string-constant drscheme)
+                                                 (format (string-constant user-defined-keybinding-error) 
+                                                                      name
+                                                                      "Editor left in edit-sequence"))))))))
                       (send #%keymap map-function key name)))
                   (define-syntax (keybinding stx)
                     (syntax-case stx ()
