@@ -4,7 +4,7 @@ Added an optional argument to begin-edit-sequence in
  editor<%> to treat actions before and after sequence
  as consecutive
 Changed the default radius for dc<%>'s draw-rounded-rectangle
- to -0.25, and adding checking and a mismatch exception
+ to -0.25, and added checking and a mismatch exception
  when the radius is out of range
 X, Mac OS X: minimum size and non-stretchiness of a frame
  or dialog is enforced by the window manager
