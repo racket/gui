@@ -5396,7 +5396,13 @@
 		      (lambda (i s)
 			(check-item 'set-item-label i)
 			(check-label-string '(method tab-panel% set-item-label) s)
-			(as-exit (lambda () (send (mred->wx tabs) set-label i s)))))])
+			(let ([s (string->immutable-string s)])
+			  (set-car! (list-tail save-choices i) s)
+			  (as-exit (lambda () (send (mred->wx tabs) set-label i s))))))]
+     [get-item-label (entry-point
+		      (lambda (i)
+			(check-item 'get-item-label i)
+			(list-ref save-choices i)))])
     
     (private
       [check-item
