@@ -2941,11 +2941,12 @@
 
 (define get-ps-setup-from-user
   (case-lambda
-   [() (get-ps-setup-from-user #f #f null)]
-   [(message) (get-ps-setup-from-user message #f (wx:current-ps-setup) null)]
-   [(message parent) (get-ps-setup-from-user message parent (wx:current-ps-setup) null)]
+   [() (get-ps-setup-from-user #f #f #f null)]
+   [(message) (get-ps-setup-from-user message #f #f null)]
+   [(message parent) (get-ps-setup-from-user message parent #f null)]
    [(message parent pss) (get-ps-setup-from-user message parent pss null)]
-   [(message parent pss style)
+   [(message parent pss-in style)
+    (define pss (or pss-in (wx:current-ps-setup)))
     (define f (make-object dialog% "PostScript Setup" parent))
     (define papers 
       '("A4 210 x 297 mm" "A3 297 x 420 mm" "Letter 8 1/2 x 11 in" "Legal 8 1/2 x 14 in"))

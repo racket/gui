@@ -175,8 +175,8 @@
 (define active-frame%
   (class-asi frame%
     (private (pre-on void))
-    (override [pre-on-event (lambda args (apply pre-on args))]
-	      [pre-on-char pre-on-event])
+    (override [on-subwindow-event (lambda args (apply pre-on args))]
+	      [on-subwindow-char on-subwindow-event])
     (public [set-info
 	     (lambda (ep)
 	       (set! pre-on (add-pre-note this ep)))])))
