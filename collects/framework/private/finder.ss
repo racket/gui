@@ -70,7 +70,7 @@
 	  
 	  (inherit center show)
 	  
-	  (private
+	  (private-field
 	    [default-width 500]
 	    [default-height 400]
 	    dirs 
@@ -78,9 +78,7 @@
 	    last-selected)
 	  
 	  (private
-	    
 	    [set-directory ; sets directory in listbox 
-	     
 	     (lambda (dir) ; dir is normalized
 	       (when (directory-exists? dir)
 		 (gui-utils:show-busy-cursor
