@@ -8,43 +8,43 @@
    (import)
    (export)
    
-   (define (overlay-bitmap/ret argb-str dx dy b1 b2)
-     (overlay-bitmap argb-str dx dy b1 b2)
-     argb-str)
+   (define (overlay-bitmap/ret argb dx dy b1 b2)
+     (overlay-bitmap argb dx dy b1 b2)
+     (argb-vector argb))
 
-   (let ([argb-str (vector 100 10 20 30)]
+   (let ([argb (make-argb (vector 100 10 20 30) 1)]
          [bm (build-bitmap void 1 1)])
-     (test #(100 10 20 30) overlay-bitmap/ret argb-str 0 0 bm bm))
+     (test #(100 10 20 30) overlay-bitmap/ret argb 0 0 bm bm))
 
-   (let ([argb-str (make-vector 4 0)]
+   (let ([argb (make-argb (make-vector 4 0) 1)]
          [bm (build-bitmap 
               (lambda (dc)
                 (send dc set-pen (send the-pen-list find-or-create-pen "black" 1 'solid))
                 (send dc draw-line 0 0 0 0))
               1 1)])
-     (test #4(0) overlay-bitmap/ret argb-str 0 0 bm bm))
+     (test #4(0) overlay-bitmap/ret argb 0 0 bm bm))
    
-   (let ([argb-str (make-vector 4 100)]
+   (let ([argb (make-argb (make-vector 4 100) 1)]
          [bm (build-bitmap 
               (lambda (dc)
                 (send dc set-pen (send the-pen-list find-or-create-pen "black" 1 'solid))
                 (send dc draw-line 0 0 0 0))
               1 1)])
-     (test #4(0) overlay-bitmap/ret argb-str 0 0 bm bm))
+     (test #4(0) overlay-bitmap/ret argb 0 0 bm bm))
    
-   (let ([argb-str (make-vector 8 254)]
+   (let ([argb (make-argb (make-vector 8 254) 1)]
          [bm (build-bitmap void 1 2)])
-     (test #8(254) overlay-bitmap/ret argb-str 0 0 bm bm))
+     (test #8(254) overlay-bitmap/ret argb 0 0 bm bm))
    
-   (let ([argb-str (make-vector 8 0)]
+   (let ([argb (make-argb (make-vector 8 0) 1)]
          [bm (build-bitmap 
               (lambda (dc)
                 (send dc set-pen (send the-pen-list find-or-create-pen "black" 1 'solid))
                 (send dc draw-line 0 0 0 1))
               1 2)])
-     (test #8(0) overlay-bitmap/ret argb-str 0 0 bm bm))
+     (test #8(0) overlay-bitmap/ret argb 0 0 bm bm))
       
-   (let ([argb-str (make-vector 16 100)]
+   (let ([argb (make-argb (make-vector 16 100) 2)]
          [bm (build-bitmap 
               (lambda (dc)
                 (send dc set-pen (send the-pen-list find-or-create-pen "black" 1 'solid))
@@ -54,9 +54,9 @@
                100 100 100 100
                100 100 100 100
                100 100 100 100)
-           overlay-bitmap/ret argb-str 0 0 bm bm))
+           overlay-bitmap/ret argb 0 0 bm bm))
    
-   (let ([argb-str (make-vector 16 100)]
+   (let ([argb (make-argb (make-vector 16 100) 2)]
          [bm (build-bitmap 
               (lambda (dc)
                 (send dc set-pen (send the-pen-list find-or-create-pen "black" 1 'solid))
@@ -66,9 +66,9 @@
                0 0 0 0
                100 100 100 100
                100 100 100 100)
-           overlay-bitmap/ret argb-str 0 0 bm bm))
+           overlay-bitmap/ret argb 0 0 bm bm))
    
-   (let ([argb-str (make-vector 16 100)]
+   (let ([argb (make-argb (make-vector 16 100) 2)]
          [bm (build-bitmap 
               (lambda (dc)
                 (send dc set-pen (send the-pen-list find-or-create-pen "black" 1 'solid))
@@ -78,9 +78,9 @@
                100 100 100 100
                0 0 0 0
                100 100 100 100)
-           overlay-bitmap/ret argb-str 0 0 bm bm))
+           overlay-bitmap/ret argb 0 0 bm bm))
    
-   (let ([argb-str (make-vector 16 100)]
+   (let ([argb (make-argb (make-vector 16 100) 2)]
          [bm (build-bitmap 
               (lambda (dc)
                 (send dc set-pen (send the-pen-list find-or-create-pen "black" 1 'solid))
@@ -90,9 +90,9 @@
                100 100 100 100
                100 100 100 100
                0 0 0 0)
-           overlay-bitmap/ret argb-str 0 0 bm bm))
+           overlay-bitmap/ret argb 0 0 bm bm))
    
-   (let ([argb-str (make-vector 4 200)]
+   (let ([argb (make-argb (make-vector 4 200) 1)]
          [c (build-bitmap 
              (lambda (dc)
                (send dc set-pen 
@@ -104,9 +104,9 @@
                (send dc set-pen (send the-pen-list find-or-create-pen "black" 1 'solid))
                (send dc draw-line 0 0 0 0))
              1 1)])
-     (test #4(0 0 0 100) overlay-bitmap/ret argb-str 0 0 c m))
+     (test #4(0 0 0 100) overlay-bitmap/ret argb 0 0 c m))
    
-   (let ([argb-str (make-vector 4 200)]
+   (let ([argb (make-argb (make-vector 4 200) 1)]
          [c (build-bitmap 
              (lambda (dc)
                (send dc set-pen 
@@ -118,9 +118,9 @@
                (send dc set-pen (send the-pen-list find-or-create-pen "black" 1 'solid))
                (send dc draw-line 0 0 0 0))
              1 1)])
-     (test #4(0 0 100 0) overlay-bitmap/ret argb-str 0 0 c m))
+     (test #4(0 0 100 0) overlay-bitmap/ret argb 0 0 c m))
    
-   (let ([argb-str (make-vector 4 200)]
+   (let ([argb (make-argb (make-vector 4 200) 1)]
          [c (build-bitmap 
              (lambda (dc)
                (send dc set-pen 
@@ -132,11 +132,39 @@
                (send dc set-pen (send the-pen-list find-or-create-pen "black" 1 'solid))
                (send dc draw-line 0 0 0 0))
              1 1)])
-     (test #4(0 100 0 0) overlay-bitmap/ret argb-str 0 0 c m))
+     (test #4(0 100 0 0) overlay-bitmap/ret argb 0 0 c m))
    
-   ;; used to test argb-vector->bitmap
-   (define (argb-vector->bitmap->string argb-vector w h)
-     (bitmap->string (argb-vector->bitmap argb-vector w h)))
+   (let ([argb (make-argb (make-vector (* 2 2 4) 200) 2)]
+         [bm (build-bitmap 
+              (lambda (dc)
+                (send dc set-pen 
+                      (send the-pen-list find-or-create-pen "black" 1 'solid))
+                (send dc draw-line 0 0 0 1))
+             1 1)])
+     (test #(200 200 200 200 000 000 000 000 
+             200 200 200 200 200 200 200 200)
+           overlay-bitmap/ret
+           argb
+           1 0
+           bm bm))
+   
+   (let ([argb (make-argb (make-vector (* 2 2 4) 200) 2)]
+         [bm (build-bitmap 
+              (lambda (dc)
+                (send dc set-pen 
+                      (send the-pen-list find-or-create-pen "black" 1 'solid))
+                (send dc draw-line 0 0 0 1))
+             1 1)])
+     (test #(200 200 200 200 200 200 200 200 
+             000 000 000 000 200 200 200 200)
+           overlay-bitmap/ret
+           argb
+           0 1
+           bm bm))
+   
+   ;; used to test argb->bitmap
+   (define (argb->bitmap->string argb)
+     (bitmap->string (argb->bitmap argb)))
    
    ;; extracts the argb strings from the bitmap and its mask for comparison
    (define (bitmap->string main-bm)
@@ -153,17 +181,17 @@
                   (get-one (send main-bm get-loaded-mask)))
              (get-one main-bm))))
    
-   (test '("\377\377\377\377" "\377\377\377\377") argb-vector->bitmap->string #(255 255 255 255) 1 1)
-   (test '("\377\377\377\377" "\377\0\0\0") argb-vector->bitmap->string #(255 0 0 0) 1 1)
-   (test '("\377\1\1\1" "\377\100\100\100") argb-vector->bitmap->string #(1 64 64 64) 1 1)
+   (test '("\377\377\377\377" "\377\377\377\377") argb->bitmap->string (make-argb #(255 255 255 255) 1))
+   (test '("\377\377\377\377" "\377\0\0\0") argb->bitmap->string (make-argb #(255 0 0 0) 1))
+   (test '("\377\1\1\1" "\377\100\100\100") argb->bitmap->string (make-argb #(1 64 64 64) 1))
    (test '("\377\001\001\001\377\010\010\010\377\377\377\377\377\000\000\000"
            "\377\100\100\100\377\001\010\100\377\377\377\377\377\000\000\000") 
-         argb-vector->bitmap->string
-         #(1 64 64 64 
-           8 1 8 64
-           255 255 255 255
-           0 0 0 0)
-         2 2)
+         argb->bitmap->string
+         (make-argb #(1 64 64 64 
+                      8 1 8 64
+                      255 255 255 255
+                      0 0 0 0)
+                    2))
    
    (define (show-bitmap bm mask title)
      (define f (new frame% (label title) (width 200) (height 200)))
@@ -183,7 +211,8 @@
           [str "xXxXx"]
           [w 100]
           [h 30]
-          [argb-str (make-vector (* w h 4) 0)]
+          [argb-vector (make-vector (* w h 4) 0)]
+          [argb (make-argb argb-vector w)]
           [c1 (build-bitmap 
                (lambda (dc)
                  (send dc set-pen (send the-pen-list find-or-create-pen "black" 1 'solid))
@@ -221,10 +250,10 @@
               (send dc draw-text str 2 2))
             w h)])
      
-     (overlay-bitmap argb-str 0 0 c1 m1)
-     (overlay-bitmap argb-str 0 0 c2 m2)
+     (overlay-bitmap argb 0 0 c1 m1)
+     (overlay-bitmap argb 0 0 c2 m2)
 
-     ;; at this point, the `final' bitmap should be the same as argb-str,
+     ;; at this point, the `final' bitmap should be the same as argb,
      ;; but it isn't, due to rounding error (final is actually wrong!)
      ;; the stuff below just makes sure that each entry is within 3
      
@@ -232,7 +261,7 @@
      ;; the expression below shows the truncated bitmap, 
      ;; the true bitmap (after rounding) and the difference, as a bitmap
      #;
-     (let* ([argb-bitmap (flatten-bitmap (argb-vector->bitmap argb-str w h))]
+     (let* ([argb-bitmap (flatten-bitmap (argb->bitmap argb))]
             [argb-str (cadr (bitmap->string argb-bitmap))]
             [bitmap-str (cadr (bitmap->string final))]
             [new-bitmap-str (make-string (string-length argb-str) #\000)]
@@ -250,13 +279,11 @@
        (show-bitmap final #f "final")
        (show-bitmap new-bitmap #f "difference"))
      
-     (let* ([argb-bitmap (flatten-bitmap (argb-vector->bitmap argb-str w h))]
+     (let* ([argb-bitmap (flatten-bitmap (argb->bitmap argb))]
             [argb-ents (map char->integer (string->list (cadr (bitmap->string argb-bitmap))))]
             [bitmap-ents (map char->integer (string->list (cadr (bitmap->string final))))])
        (test #t (lambda (x) x) (andmap (lambda (x y) (<= (abs (- x y)) 3))
                                        argb-ents
                                        bitmap-ents))))
   
-   (report-errs)
-   
-))
+   (report-errs)))
