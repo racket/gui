@@ -13,6 +13,7 @@ Added checked init argument for checkable-menu-item%
 Added and 'deleted style to every subwindow<%> class; a window
  created with 'deleted is initially invisible and takes no
  space in its container
+Added `file-creator-and-type', useful in Mac OS
 Mac OS X: file dialogs use given starting directory, and dialog%s
  with a parent frame are shown as "sheets"
 Mac OS X: MrEd3m is now supported
