@@ -579,7 +579,7 @@
             (lambda ()
               (lock-status-changed))]
           
-	  (super-instantiate ())
+	  (super-new)
           (set! outer-info-panel (make-object horizontal-panel% super-root))
           (send outer-info-panel stretchable-height #f)
           
@@ -749,7 +749,7 @@
           ;; given a line number and a position, finds the
           ;; column number for that position
           (define/private (find-col text line pos)
-            (let ([line-start (send text line-start-position line)])
+            (let ([line-start (send text paragraph-start-position line)])
               (if (= line-start pos)
                   0
                   (let loop ([col 0]
