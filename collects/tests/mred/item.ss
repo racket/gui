@@ -358,7 +358,7 @@
   (set! prev-frame f)
   f)
 
-(define (med-frame radio-h? label-h? null-label? stretchy? special-label-font? special-button-font?)
+(define (med-frame plain-slider? label-h? null-label? stretchy? special-label-font? special-button-font?)
   (define f2 (make-object active-frame% "Tester2"))
 
   (define hp2 (make-object horizontal-panel% f2))
@@ -406,14 +406,14 @@
 			    (lambda (s e)
 			      (send gh set-value (send sh get-value)))
 			    5
-			    '(horizontal)))
+			    (if plain-slider? '(horizontal plain) '(horizontal))))
     
     (define sv (make-object slider% 
 			    (if null-label? #f "V Sl&ider") 0 10 ip2 
 			    (lambda (s e)
 			      (send gv set-value (send sv get-value)))
 			    5
-			    '(vertical)))
+			    (if plain-slider? '(vertical plain) '(vertical))))
     
     (define gh (make-object gauge% 
 			    (if null-label? #f "H G&auge") 10 ip2
@@ -1446,10 +1446,10 @@
 (define make-selector-and-runner
   (lambda (p1 p2 radios? size maker)
     (define radio-h-radio
-      (if radios?
-	  (make-object radio-box% "Radio Box Orientation" '("Vertical" "Horizontal")
-		       p1 void)
-	  #f))
+      (make-object radio-box% 
+		   (if radios? "Radio Box Orientation" "Slider Style")
+		   (if radios? '("Vertical" "Horizontal") '("Numbers" "Plain"))
+		   p1 void))
     (define label-h-radio
       (make-object radio-box% "Label Orientation" '("Vertical" "Horizontal")
 		   p1 void))
@@ -1466,18 +1466,13 @@
       (make-object radio-box% "Button Font" '("Normal" "Big")
 		    p1 void))
     (define next-button
-      (let ([basic-set (list label-h-radio label-null-radio stretchy-radio label-font-radio button-font-radio)])
-	(make-next-button p2 
-			  (if radios?
-			      (cons radio-h-radio basic-set)
-			      basic-set))))
+      (make-next-button p2 (list radio-h-radio label-h-radio label-null-radio 
+				 stretchy-radio label-font-radio button-font-radio)))
     (define go-button
       (make-object button% (format "Make ~a Frame" size) p2
 		   (lambda (b e)
 		     (maker
-		      (if radios?
-			  (positive? (send radio-h-radio get-selection))
-			  #f)
+		      (positive? (send radio-h-radio get-selection))
 		      (positive? (send label-h-radio get-selection))
 		      (positive? (send label-null-radio get-selection))
 		      (positive? (send stretchy-radio get-selection))
