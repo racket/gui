@@ -556,7 +556,7 @@
 	[set-search-direction 
 	 (lambda (x) 
 	   (set! searching-direction x)
-	   (send dir-radio set-selection (if (= x 1) 0 1)))]
+	   (send dir-radio set-selection (if (eq? x 'forward) 0 1)))]
 	[replace&search
 	 (lambda ()
 	   (when (replace)

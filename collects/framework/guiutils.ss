@@ -130,7 +130,7 @@
 
 	(send vp set-alignment 'left 'center)
 	(send hp set-alignment 'right 'top)
-	(send (make-object button% true-choice hp on-true) focus)
+	(send (make-object button% true-choice hp on-true '(border)) focus)
 	(make-object button% false-choice hp on-false)
 	(send dialog center 'both)
 	(send dialog show #t)
