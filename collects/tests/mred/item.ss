@@ -244,6 +244,17 @@
 					 "[on-demand hook]"
 					 m
 					 void)
+			    (let mloop ([m m][sub-at-50? #t])
+			      (let ([sm (make-object menu% "Too Tall" m)])
+				(let loop ([n 1])
+				  (unless (= n 101)
+				    (if (and sub-at-50? (= n 50))
+					(let ([m (make-object menu% "Item 50" sm)])
+					  (mloop m #f))
+					(make-object menu-item% (format "Item ~a" n) sm void))
+				    (when (zero? (modulo (- n 5) 10))
+				      (make-object separator-menu-item% sm))
+				    (loop (add1 n))))))
 			    m)
 			  last-m)])
 	       (set! last-m m)
