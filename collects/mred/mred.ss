@@ -7362,9 +7362,9 @@
 (define (sleep/yield secs)
   (unless (and (real? secs) (not (negative? secs)))
     (raise-type-error 'sleep/yield "non-negative real number" secs))
-  (let ([s (make-semaphore)])
-    (thread (lambda () (sleep secs) (semaphore-post s)))
-    (wx:yield s)))
+  (wx:yield (alarm-evt (+ (current-inexact-milliseconds)
+			  (* secs 1000))))
+  (void))
 
 (define get-window-text-extent
   (let ([bm #f][dc #f])
