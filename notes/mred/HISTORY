@@ -1,65 +1,58 @@
 
-Version 204.10
-Added write-editor-version and read-editor-version
-Changed cut-and-paste WXME format to include version
-X with Xft: changed default 'modern mapping back to " Monospace"
+Version 205: August, 2003
 
-Version 204.8
-Added on-display-size-when-ready and lock for refresh that blocks an
- edit sequence
-Added get-text! to snip%
-Added locations-computed? to editor<%>
-X with Xft: changed default 'modern mapping to " Courier 10 Pitch"
-Mac OS X: fixed X menu-bar flashing bug, thanks to Paul Schlie
+Anti-aliased text:
+ Text rendering uses smoothing (anti-aliasing) for Mac OS X,
+ Windows, and X with Xft/fontconfig/RENDER
+PNG format and image masks:
+ Added 'png and 'png/mask as load bitmap types, and added
+  optional background color argument for loading 'png
+ Added 'jpeg and 'png as save bitmap types
+ Changed draw-bitmap and draw-bitmap-section to accept
+  a non-monochrome bitmap as a mask (serving roughly 
+  as an inverted alpha channel)
+ Changed image-snip% to use a mask attached to a
+  bitmap, if any, and to preserve the mask bitmap
+  when the file is saved
+OpenGL:
+ OpenGL support now available on all platforms; see also the
+  "sgl" collection
+ Changed canvas% so that 'gl style is no longer needed
+  to enable OpenGL drawing in the canvas
+ Added get-gl-context method to dc<%>, which returns a
+  gl-context<%> for canvas and bitmap DCs
+ Changed with-gl-context method of canvas% to use
+  call-as-current for its gl-context<%>; the difference
+  from the old behavior is that such context-setting
+  is serialized across all eventspaces
+GUI:
+ Added 'no-autoclear style to canvas%
+ Added 'control-border style to canvas% and editor-canvas%
+ Added 'hilite style for pen% and brush%
+ Windows: Use XP theme controls (under Windows XP)
+ Windows: system font is Tahoma when available,
+  default font is Microsoft Sans Serif when available
+ Mac OS X: Added 'toolbar-button style, on-toolbar-button-click
+  method, and modified method to frame%; the 'toolbar-button style
+  only affects the frame under OS X
+ Mac OS: Added current-eventspace-has-menu-root? and support for
+  'root parent of a menu-bar% instance
+ Mac OS: Added application-file-handler
+ Mac OS: Key-release events now reported
+ Mac OS X: Fixed menu-bar flashing bug, thanks to Paul Schlie
+Editor:
+ Added write-editor-version and read-editor-version
+ Changed cut-and-paste WXME format to include version
+ Added on-display-size-when-ready and lock for refresh that blocks
+  an edit sequence
+ Added get-text! to snip%
+ Added locations-computed? to editor<%>
+ Added locked-for-write?, locked-for-flow?, and
+  locked-for-read? to editor<%>
+Misc:
+ Handling of --main/-C command-line flag changed
 
-Version 204.6
-Changed canvas% so that 'gl style is no longer needed
- to enable OpenGL drawing in the canvas
-Added get-gl-context method to dc<%>, which returns a
- gl-context<%> for canvas and bitmap DCs
-Changed with-gl-context method of canvas% to use
- call-as-current for its gl-context<%>; the difference
- from the old behavior is that such context-setting
- is serialized across all eventspaces
-Added application-file-handler (for Mac OS)
-
-Version 204.5
-Mac OS: canvas% 'gl style flag supported
-Handling of --main/-C command-line flag changed
-
-Version 204.4
-Added 'png and 'png/mask as load bitmap types, and added
- optional background color argument for loading 'png
-Added 'jpeg and 'png as save bitmap types
-Changed draw-bitmap and draw-bitmap-section to accept
- a non-monochrome bitmap as a mask (serving roughly 
- as an inverted alpha channel)
-Changed image-snip% to use a mask attached to a
- bitmap, if any, and to preserve the mask bitmap
- when the file is saved
-
-Version 204.3
-Added 'no-autoclear style to canvas%
-Added 'control-border style to canvas% and editor-canvas%
-Added 'hilite style for pen% and brush%
-Added locked-for-write?, locked-for-flow?, and
- locked-for-read? to editor<%>
-OS X: key-release events are now reported
-Windows: system font is Tahoma when available,
- default font is Microsoft Sans Serif when available
-
-Version 204.2
-Added 'toolbar-button style, on-toolbar-button-click method, and
- modified method to frame%; the 'toolbar-button style only
- affects the frame under OS X
-Added current-eventspace-has-menu-root? and support for 'root 
- parent of a menu-bar% instance
-
-Version 204.1
-Added "smoothing" to font%, style-delta%, and style<%>
-Mac OS X, 10.2 and up: default text rendering uses Quartz smoothing
-
-----------------------------------------
+----------------------------------------------------------------------
 
 Version 204: May, 2003
 
