@@ -10,7 +10,7 @@
   
   (rename [-get-file get-file])
   
-  (define aug-keymap<%> (interface ()
+  (define aug-keymap<%> (interface ((class->interface keymap%))
 			  get-chained-keymaps
 			  get-map-function-table
 			  get-map-function-table/ht))
