@@ -45,11 +45,11 @@ and `mred:' classes, we eliminated the prefixes.
 
 All of the core toolbox classes are built into the MrEd executable.
 The old `mred:' classes that are not part of the core toolbox have
-been moved into a separate framework library [NOT INCLUDED WITH
-100alpha1]. The framework library is designed for use in large and
-polished applications (as opposed to small or prototype applications),
-and particularly in applications that require coordinated groups of
-frames, editor frames with searching, or user preference dialogs.
+been moved into a separate framework library. The framework library is
+designed for use in large and polished applications (as opposed to
+small or prototype applications), and particularly in applications
+that require coordinated groups of frames, editor frames with
+searching, or user preference dialogs.
 
 Running MrEd and Developing MrEd Applications
 ---------------------------------------------
