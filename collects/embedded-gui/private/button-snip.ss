@@ -1,3 +1,5 @@
+#| Rewrite these to use snip-wrapper% automatically |#
+
 (module button-snip mzscheme
   
   (require
@@ -88,20 +90,34 @@
   (define toggle-button-snip%
     (class button-snip%
       (inherit set-images)
-      (init-field images-off images-on callback-off callback-on (state 'on))
+      (init-field images-off images-on turn-off turn-on (state 'on))
+      
+      ;; Emulates clicking the button to a certain state
+      (define/public (turn astate)
+        (case astate
+          [(off) (set-state 'off)
+                 (turn-on this #f)]
+          [(on) (set-state 'on)
+                (turn-off this #f)]))
+      
+      (define/public (set-state value)
+        (case value
+          [(off) (set-images images-off)
+                 (set! state 'off)]
+          [(on) (set-images images-on)
+                (set! state 'on)]))
+      
       (super-new
-       (images (if (symbol=? state 'on) images-on images-off))
+       (images (case state
+                 [(on) images-on]
+                 [(off) images-off]))
        (callback
         (lambda (b e)
-          (if (symbol=? state 'on)
-              (begin
-                (set-images images-off)
-                (set! state 'off)
-                (callback-on b e))
-              (begin
-                (set-images images-on)
-                (set! state 'on)
-                (callback-off b e))))))))
+          ;; NOTE: I lose the event right here, but turn can't require it.
+          ;; Since it's public.
+          (case state
+            [(on) (turn 'off)]
+            [(off) (turn 'on)]))))))
   
   ;;;;;;;;;;
   ;; tests
@@ -132,17 +148,18 @@
     (define t (new text%))
     (define es (new editor-snip% (editor t)))
     (define b (new toggle-button-snip%
-                   (images1 (cons (build-path (collection-path "icons") "turn-up.gif")
+                   (images-on (cons (build-path (collection-path "icons") "turn-up.gif")
                                   (build-path (collection-path "icons") "turn-up-click.gif")))
-                   (images2 (cons (build-path (collection-path "icons") "turn-down.gif")
+                   (images-off (cons (build-path (collection-path "icons") "turn-down.gif")
                                   (build-path (collection-path "icons") "turn-down-click.gif")))
-                   (callback1
+                   (turn-on
                     (lambda (b e)
                       (send* t (erase) (insert "Up"))))
-                   (callback2
+                   (turn-off
                     (lambda (b e)
                       (send* t (erase) (insert "Down"))))))
     (send e insert es 50 0)
     (send e insert b)
     (send f show #t))
+  
 )

@@ -40,7 +40,11 @@ get text deteleted from them, etc.
         (super-resized snip redraw-now?)
         (unless ignore-resizing?
           (let ([size (snip-size snip)])
-            (unless (equal? size (hash-table-get snip-cache snip))
+            ;; The snip is getting remove from hash table in  a way I
+            ;; am not antisipating. I need to find it and then I can
+            ;; remove this error catcher.
+            (unless (equal? size (with-handlers ([exn? (lambda x 0)])
+                                   (hash-table-get snip-cache snip)))
               (hash-table-put! snip-cache snip size)
               (really-resized snip)))))
       
@@ -76,8 +80,7 @@ get text deteleted from them, etc.
           (cons (- (unbox right) (unbox left))
                 (- (unbox bottom) (unbox top)))))
       
-      (super-new)
-      ))
+      (super-new)))
   
   (define really-resized-pasteboard%
     (really-resized-pasteboard-mixin
