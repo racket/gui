@@ -3698,6 +3698,8 @@
   (interface (subwindow<%>)
     command))
 
+(define-local-member-name hidden-child?)
+
 (define basic-control%
   (class100* (make-window% #f (make-subarea% area%)) (control<%>) (mk-wx lbl parent cursor)
     (rename [super-set-label set-label])
@@ -3713,6 +3715,7 @@
 		      (send wx set-label l)
 		      (set! label l))))])
     (public
+      [hidden-child? (lambda () #f)] ; module-local method
       [command (lambda (e) (send wx command e))]) ; no entry/exit needed
     (private-field
       [wx #f])
@@ -3720,7 +3723,8 @@
       (when (string? label)
 	(set! label (string->immutable-string label)))
       (super-init (lambda () (set! wx (mk-wx)) wx) (lambda () wx) label parent cursor)
-      (as-exit (lambda () (send parent after-new-child this))))))
+      (unless (hidden-child?)
+	(as-exit (lambda () (send parent after-new-child this)))))))
 
 ;--------------------- Final mred class construction --------------------
     
@@ -4185,6 +4189,8 @@
 ;; Not exported:
 (define tab-group%
   (class100 basic-control% (label choices parent callback [style null])
+    (override
+     [hidden-child? (lambda () #t)])
     (sequence
       (let ([cwho '(constructor tab-group)])
 	(check-list-control-args cwho label choices parent callback)
@@ -4476,6 +4482,7 @@
     (private-field [wx #f])
     (sequence 
       (let* ([who (cond ; yuck! - we do this to make h-p and v-p subclasses of p
+		   [(is-a? this tab-panel%) 'tab-panel]
 		   [(is-a? this vertical-panel%) 'vertical-panel]
 		   [(is-a? this horizontal-panel%) 'horizontal-panel]
 		   [else 'panel])]
@@ -4486,7 +4493,7 @@
 	(as-entry
 	 (lambda ()
 	   (super-init (lambda () (set! wx (make-object (case who
-							  [(vertical-panel) wx-vertical-panel%]
+							  [(vertical-panel tab-panel) wx-vertical-panel%]
 							  [(horizontal-panel) wx-horizontal-panel%]
 							  [else wx-panel%])
 							this this (mred->wx-container parent) style)) wx)
@@ -4497,12 +4504,47 @@
 (define vertical-panel% (class100 panel% (parent [style null]) (sequence (super-init parent style))))
 (define horizontal-panel% (class100 panel% (parent [style null]) (sequence (super-init parent style))))
 
+(define list-append append)
+
 (define tab-panel%
   (class vertical-panel%
     (init choices callback) 
+    (let ([cwho '(constructor tab-panel)])
+      (unless (and (list? choices) (andmap label-string? choices))
+	(raise-type-error (who->name cwho) "list of strings (up to 200 characters)" choices))
+      (check-callback cwho callback))
     (super-instantiate ())
-    (make-object tab-group% #f choices this callback)
-    (send (mred->wx this) set-first-child-is-hidden)))
+    (define tabs (make-object tab-group% #f choices this (lambda (c e) (callback this e))))
+    (send (mred->wx this) set-first-child-is-hidden)
+
+    (define save-choices (map string->immutable-string choices))
+
+    (public*
+     [get-number (lambda () (length save-choices))]
+     [append (lambda (n) 
+	       (check-label-string '(method tab-group% append) n)
+	       (set! save-choices (list-append save-choices (list (string->immutable-string n))))
+	       (send (mred->wx tabs) append n))]
+     [get-selection (lambda () (send (mred->wx tabs) get-selection))]
+     [set-selection (entry-point
+		     (lambda (i)
+		       (check-item 'set-selection i)
+		       (as-exit (lambda () (send (mred->wx tabs) set-selection i)))))]
+     [delete (lambda (i)
+	       (check-item 'delete i)
+	       (as-exit (lambda () (send (mred->wx tabs) delete i))))])
+    
+    (define/private (check-item method n)
+      (lambda (method n)
+	(check-non-negative-integer `(method tab-panel% ,method) n)
+	(let ([m (length save-choices)])
+	  (unless (< n m)
+            (raise-mismatch-error (who->name `(method tab-panel% ,method)) 
+		(if (zero? m)
+		    "panel has no tabs; given index: " 
+		    (format "panel has only ~a tabls, indexed 0 to ~a; given out-of-range index: " 
+			    m (sub1 m)))
+		n)))))))
 
 ;;;;;;;;;;;;;;;;;;;;;; Menu classes ;;;;;;;;;;;;;;;;;;;;;;
 
