@@ -10,6 +10,7 @@
 	  [exit : framework:exit^]
 	  [finder : framework:finder^]
 	  [keymap : framework:keymap^]
+	  [text : framework:text^]
 	  [mzlib:function : mzlib:function^])
 
   (rename [-editor<%> editor<%>]
@@ -79,6 +80,7 @@
 
 		       get-canvas%
 		       get-editor%
+		       get-editor<%>
 		       make-editor
 		       save-as		      
 		       get-canvas
@@ -132,7 +134,17 @@
       (public
 	[get-canvas% (lambda () editor-canvas%)]
 	[get-editor% (lambda () (error 'editor-frame% "no editor% class specified"))]
-	[make-editor (lambda () (make-object (get-editor%)))])
+	[get-editor<%> (lambda () editor<%>)]
+	[make-editor (lambda ()
+		       (let ([% (get-editor%)]
+			     [<%> (get-editor<%>)])
+			 (unless (implementation? % <%>)
+			   (let ([name (inferred-name this)])
+			     (error (or name 'frame:editor%)
+				    "result of get-editor% method must match ~e class; got: ~e"
+				    % <%>)))
+			 (make-object %)))])
+				  
 	     
       (public
 	[save-as
@@ -267,6 +279,7 @@
   (define text-mixin
     (mixin (-editor<%>) (-text<%>) args
       (override
+        [get-editor<%> (lambda () text<%>)]
 	[get-editor% (lambda () text%)])
       (sequence (apply super-init args))))
 
@@ -274,6 +287,7 @@
   (define pasteboard-mixin
     (mixin (-editor<%>) (-pasteboard<%>) args
       (override
+        [get-editor<%> (lambda () pasteboard<%>)]
 	[get-editor% (lambda () pasteboard%)])
       (sequence (apply super-init args))))
 
@@ -436,6 +450,7 @@
       (private
 	[super-root 'unitiaialized-super-root])
       (override
+        [get-editor<%> (lambda () text:searching<%>)]
 	[edit-menu:find (lambda (menu evt) (search))])
       (override
 	[make-root-area-container
@@ -689,6 +704,9 @@
 	     (set! rest-panel r-root)
 	     r-root))])
       
+      (override
+        [get-editor<%> (lambda () text:info<%>)])
+
       (public
 	[determine-width
 	 (let ([magic-space 25])

@@ -8,16 +8,7 @@
 		   (override
 		    [get-editor% (lambda () ,class)]))]
 	      [f (make-object % "test text")])
-	 
-	 (let loop ([f f][l " "])
-	   (printf "~a~a ~a~n" l f (send f get-label))
-	   (when (is-a? f area-container<%>)
-	     (for-each (lambda (c)
-			 (loop c (string-append " " l)))
-		       (send f get-children))))
-	 (send f show #t)
-	 (sleep/yield 1)
-	 (printf "focus: ~a~n" (get-top-level-focus-window))))
+	 (send f show #t)))
       (wait-for-frame "test text")
       (send-sexp-to-mred `(test:keystroke #\a))
       (wait-for `(string=? "a" (send (send (get-top-level-focus-window) get-editor) get-text)))

@@ -453,18 +453,18 @@
 	[after-set-position
 	 (lambda ()
 	   (super-after-set-position)
-	   (enqueue-for-frame 'edit-position-changed
-			      'framework:edit-position-changed))]
+	   (enqueue-for-frame 'editor-position-changed
+			      'framework:editor-position-changed))]
 	[after-insert
 	 (lambda (start len)
 	   (super-after-insert start len)
-	   (enqueue-for-frame 'edit-position-changed
-			      'framework:edit-position-changed))]
+	   (enqueue-for-frame 'editor-position-changed
+			      'framework:editor-position-changed))]
 	[after-delete
 	 (lambda (start len)
 	   (super-after-delete start len)
-	   (enqueue-for-frame 'edit-position-changed
-			      'framework:edit-position-changed))])
+	   (enqueue-for-frame 'editor-position-changed
+			      'framework:editor-position-changed))])
       (sequence
 	(apply super-init args))))
 

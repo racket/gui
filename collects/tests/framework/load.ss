@@ -21,6 +21,7 @@
    pred
    '(parameterize ([current-namespace (make-namespace 'mred)])
       (require-library "tests.ss" "framework")
+      (require-library "mred-interfaces.ss" "framework")
       (eval
        '(invoke-open-unit/sig
 	 (compound-unit/sig
@@ -39,6 +40,13 @@
       (require-library "test.ss" "framework")
       (global-defined-value 'test:run-one)
       (global-defined-value 'test:button-push)
+      (void)))
+  (test
+   'mred-interfacess.ss
+   pred
+   '(parameterize ([current-namespace (make-namespace 'mred)])
+      (require-library "mred-interfacess.ss" "framework")
+      (global-defined-value 'mred-interfaces^)
       (void)))
   (test
    'mred-interfaces.ss
@@ -66,6 +74,7 @@
    pred
    '(parameterize ([current-namespace (make-namespace 'mred)])
       (require-library "frameworks.ss" "framework")
+      (require-library "mred-interfaces.ss" "framework")
       (eval
        '(invoke-open-unit/sig
 	 (compound-unit/sig
