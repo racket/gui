@@ -24,6 +24,7 @@
 	  [icon : framework:icon^]
 	  [keymap : framework:keymap^]
 	  [text : framework:text^]
+          [editor : framework:editor^]
 	  [frame : framework:frame^])
   
   (rename [-text% text%]
@@ -97,7 +98,7 @@
   (define mismatch-color (make-object color% "PINK"))
   
   (define text-mixin 
-    (mixin (text:basic<%>) (-text<%>) args
+    (mixin (text:basic<%> editor:keymap<%>) (-text<%>) args
       (inherit begin-edit-sequence
 	       delete
 	       end-edit-sequence
@@ -812,6 +813,12 @@
 	[get-tab-size (lambda () tab-size)]
 	[set-tab-size (lambda (s) (set! tab-size s))])
 
+      (rename [super-get-keymaps get-keymaps])
+      (override
+        [get-keymaps
+         (lambda ()
+           (cons keymap (super-get-keymaps)))])
+      
       (sequence
 	(apply super-init args)
 	
@@ -820,12 +827,7 @@
 	(set-wordbreak-map wordbreak-map)
 	(set-tabs null tab-size #f)
 	(set-style-list style-list)
-	(set-styles-fixed #t)
-	(let ([k (or (get-keymap)
-		     (let ([k (make-object keymap%)])
-		       (set-keymap k)
-		       k))])
-	  (send k chain-to-keymap keymap #t)))))
+	(set-styles-fixed #t))))
 
   (define -text% (text-mixin text:info%))
 
