@@ -604,7 +604,7 @@
       (sequence
 	(send restp stretchable-height #f)
 	(send mc min-height 250)
-	(send mc set-edit e)
+	(send mc set-editor e)
 	(send e load-file (local-path "menu-steps.txt")))
       (public
 	[make-test-button
@@ -798,7 +798,7 @@
 (define (instructions v-panel file)
   (define c (make-object editor-canvas% v-panel))
   (define m (make-object text%))
-  (send c set-edit m)
+  (send c set-editor m)
   (send m load-file (local-path file))
   (send m lock #t)
   (send c min-width 520)
