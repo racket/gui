@@ -2407,26 +2407,6 @@
     (inherit alignment stretchable-in-y get-control-font area-parent
 	     get-min-size set-min-width set-min-height)
     (rename [super-place-children place-children])
-    (sequence
-      (super-init #f proxy parent null)
-      (send (area-parent) add-child this))
-    (private
-      [multi? (memq 'multiple style)]
-      [horiz? (eq? (send (send parent get-window) get-label-position) 'horizontal)]
-      [p (if horiz?
-	     this
-	     (let ([p (make-object wx-vertical-pane% #f proxy this null)])
-	       (send (send p area-parent) add-child p)
-	       p))]
-      [l (and label
-	      (make-object wx-message% #f proxy p label -1 -1 null))]
-      [c (make-object wx-text-editor-canvas% #f proxy this p
-		      (if multi?
-			  (if (memq 'hscroll style)
-			      null
-			      '(hide-hscroll))
-			  '(hide-vscroll hide-hscroll)))]
-      [dy 0])
     (public
       [command (lambda (e) 
 		 (check-instance '(method text-field% command) wx:control-event% 'control-event% #f e)
@@ -2441,23 +2421,47 @@
 
       [set-label (lambda (str) (when l (send l set-label str)))])
     (override
+      ; These might be called before we are fully initialized
+
       [set-cursor (lambda (c) (send e set-cursor c #t))]
-      [set-focus (lambda () (send c set-focus))]
-	
+      [set-focus (lambda () (when (object? c) (send c set-focus)))]
+      
       [place-children
        (lambda (children-info width height)
-	 (let ([r (super-place-children children-info width height)])
-	   (if horiz?
-	       ;; Line up label right with text:
-	       (if (null? r)
-		   r
+	 (if (null? children-info)
+	     null
+	     (let ([r (super-place-children children-info width height)])
+	       (if horiz?
+		   ;; Line up label right with text:
 		   (cons (list* (caar r) (+ (cadar r) dy) (cddar r))
-			 (cdr r)))
-	       r)))])
+			 (cdr r))
+		   r))))])
+    (sequence
+      (super-init #f proxy parent null)
+      (send (area-parent) add-child this))
+    (private
+      [multi? (memq 'multiple style)]
+      [horiz? (eq? (send (send parent get-window) get-label-position) 'horizontal)]
+      [dy 0]
+      [p (if horiz?
+	     this
+	     (let ([p (make-object wx-vertical-pane% #f proxy this null)])
+	       (send (send p area-parent) add-child p)
+	       p))])
     (sequence
       (alignment 'left 'top)
       (unless horiz? (send p alignment 'left 'top))
-      (unless multi? (stretchable-in-y #f))
+      (unless multi? (stretchable-in-y #f)))
+    (private
+      [l (and label
+	      (make-object wx-message% #f proxy p label -1 -1 null))]
+      [c (make-object wx-text-editor-canvas% #f proxy this p
+		      (if multi?
+			  (if (memq 'hscroll style)
+			      null
+			      '(hide-hscroll))
+			  '(hide-vscroll hide-hscroll)))])
+    (sequence
       (send e auto-wrap (and multi? (not (memq 'hscroll style))))
       (let ([f (get-control-font)]
 	    [s (send (send e get-style-list) find-named-style "Standard")])
