@@ -243,7 +243,7 @@
       
       (public
 	[lock-status-changed
-	 (let ([icon-currently-locked? #f])
+	 (let ([icon-currently-locked? 'uninit])
 	   (lambda ()
 	     (let ([info-edit (get-info-editor)])
 	       (cond
@@ -251,8 +251,8 @@
 		 (void)]
 		[info-edit
 		 (unless (send lock-message is-shown?)
-			 (send lock-message show #t))
-		 (let ([locked-now? (ivar info-edit locked?)])
+		   (send lock-message show #t))
+		 (let ([locked-now? (send info-edit is-locked?)])
 		   (unless (eq? locked-now? icon-currently-locked?)
 		     (set! icon-currently-locked? locked-now?)
 		     (let ([label
@@ -262,12 +262,12 @@
 		       (when (object? lock-message)
 			 (send lock-message
 			       set-label
-			       (if (send label ok?)
+			       (if (and (object? label) (send label ok?))
 				   label
 				   (if locked-now? "Locked" "Unlocked")))))))]
 		[else
 		 (when (send lock-message is-shown?)
-		       (send lock-message show #f))]))))])
+		   (send lock-message show #f))]))))])
       (public
 	[update-info
 	 (lambda ()
@@ -313,7 +313,7 @@
       (private
 	[lock-message (make-object message%
 			(let ([b (icon:get-unlock-bitmap)])
-			  (if (and #f (send b ok?))
+			  (if (send b ok?)
 			      b
 			      "Unlocked"))
 			(get-info-panel))]

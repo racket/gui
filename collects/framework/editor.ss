@@ -21,7 +21,6 @@
       local-edit-sequence?
       run-after-edit-sequence
       get-top-level-window
-      locked?
       on-close
       save-file-out-of-date?))
 
@@ -202,16 +201,7 @@
 		(hash-table-for-each ht (lambda (k t) (t)))
 		(for-each (lambda (t) (t)) queue)]))))])
       
-      (rename [super-lock lock])
-      (private
-	[is-locked? #f])
-      (public
-	[locked? (lambda () is-locked?)])
       (override
-       [lock
-	(lambda (x)
-	  (set! is-locked? x)
-	  (super-lock x))]
        [on-new-box
 	(lambda (type)
 	  (cond
