@@ -1075,7 +1075,7 @@
               
 	      (map ":rightbuttonseq" "mouse-popup-menu")
               
-              (map "c:c;c:q" "make-read-only")
+              (map "c:c;c:r" "make-read-only")
               ))))
       
       (define setup-search
