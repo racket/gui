@@ -81,7 +81,7 @@
             (opt-lambda ([input-filename #f]
                          [fmt 'guess]
                          [show-errors? #t])
-              (let ([filename (if (or (not input-filename)
+	      (let ([filename (if (or (not input-filename)
                                       (equal? input-filename ""))
                                   (let ([internal-filename (get-filename)])
                                     (if (or (not internal-filename)
@@ -201,10 +201,11 @@
 		     (let* ([snip (send editor-admin get-snip)]
 			    [snip-admin (send snip get-admin)])
 		       (loop (send snip-admin get-editor)))]
-		    [(send text get-canvas) => (lambda (canvas)
-						 (send canvas get-top-level-window))]
-		    [else
-		     #f]))))]
+		    [(send text get-canvas) 
+                     => 
+                     (lambda (canvas)
+                       (send canvas get-top-level-window))]
+		    [else #f]))))]
 	  
 	  (public editing-this-file?)
 	  [define editing-this-file? (lambda () #f)]
