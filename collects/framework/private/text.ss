@@ -878,6 +878,9 @@ WARNING: printf is rebound in the body of the unit to always
           send-eof-to-in-port
           clear-output-ports
           clear-input-port
+          get-out-style-delta
+          get-err-style-delta
+          get-value-style-delta
           get-in-port
           get-out-port
           get-err-port
@@ -987,7 +990,19 @@ WARNING: printf is rebound in the body of the unit to always
           
           (define/pubment (submit-to-port? key) (inner #t submit-to-port? key))
           (define/pubment (on-submit) (inner (void) on-submit))
-          
+          (define/public (get-out-style-delta) 
+            (let ([out-sd (make-object style-delta% 'change-normal)])
+              (send out-sd set-delta-foreground (make-object color% 150 0 150))
+              out-sd))
+          (define/public (get-err-style-delta)
+            (let ([err-sd (make-object style-delta% 'change-italic)])
+              (send err-sd set-delta-foreground (make-object color% 255 0 0))
+              err-sd))
+          (define/public (get-value-style-delta)
+            (let ([value-sd (make-object style-delta% 'change-family 'modern)])
+              (send value-sd set-delta-foreground (make-object color% 0 0 175))
+              value-sd))
+
           ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
           ;;
           ;;  editor integration
@@ -1214,28 +1229,24 @@ WARNING: printf is rebound in the body of the unit to always
                    (channel-put write-chan (cons special style))])
                 #t))
             
-            (define out-sd (make-object style-delta% 'change-normal))
-            (define err-sd (make-object style-delta% 'change-italic))
-            (define value-sd (make-object style-delta% 'change-family 'modern))
-            (send out-sd set-delta-foreground (make-object color% 150 0 150))
-            (send err-sd set-delta-foreground (make-object color% 255 0 0))
-            (send value-sd set-delta-foreground (make-object color% 0 0 175))
-            
-            (set! out-port (make-output-port #f
-                                             always-evt
-                                             (make-write-bytes-proc out-sd)
-                                             out-close-proc
-                                             (make-write-special-proc out-sd)))
-            (set! err-port (make-output-port #f 
-                                             always-evt
-                                             (make-write-bytes-proc err-sd)
-                                             out-close-proc
-                                             (make-write-special-proc err-sd)))
-            (set! value-port (make-output-port #f
+            (let ([out-sd (get-out-style-delta)]
+                  [err-sd (get-err-style-delta)]
+                  [value-sd (get-value-style-delta)])
+              (set! out-port (make-output-port #f
                                                always-evt
-                                               (make-write-bytes-proc value-sd)
+                                               (make-write-bytes-proc out-sd)
                                                out-close-proc
-                                               (make-write-special-proc value-sd))))
+                                               (make-write-special-proc out-sd)))
+              (set! err-port (make-output-port #f 
+                                               always-evt
+                                               (make-write-bytes-proc err-sd)
+                                               out-close-proc
+                                               (make-write-special-proc err-sd)))
+              (set! value-port (make-output-port #f
+                                                 always-evt
+                                                 (make-write-bytes-proc value-sd)
+                                                 out-close-proc
+                                                 (make-write-special-proc value-sd)))))
 
           ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
           ;;
@@ -1684,10 +1695,9 @@ WARNING: printf is rebound in the body of the unit to always
                      [else (if acc
                                (values (cons acc key) lst)
                                (values fst (cdr lst)))]))])))
-          
+          (super-new)
           (init-input-port)
-          (init-output-ports)
-          (super-new)))
+          (init-output-ports)))
 
       ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
       ;;
