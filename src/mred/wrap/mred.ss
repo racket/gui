@@ -2803,7 +2803,7 @@
 (define top-level-window<%>
   (interface (area-container-window<%>)
     get-eventspace
-    on-activate on-traverse-char
+    on-activate on-traverse-char on-system-menu-char
     can-close? on-close
     can-exit? on-exit
     get-focus-window get-edit-target-window
@@ -2829,8 +2829,17 @@
     (public
       [on-traverse-char (entry-point-1
 			 (lambda (e)
-			   (check-instance '(method top-level-window<%> on-traverse-char) wx:key-event% 'key-event% #f e)
+			   (check-instance '(method top-level-window<%> on-traverse-char)
+					   wx:key-event% 'key-event% #f e)
 			   (send wx handle-traverse-key e)))]
+      [on-system-menu-char (entry-point-1
+			    (lambda (e)
+			      (check-instance '(method top-level-window<%> on-system-menu-char) 
+					      wx:key-event% 'key-event% #f e)
+			      (and (eq? #\space (send e get-key-code))
+				   (send e get-meta-down)
+				   (eq? 'windows (system-type))
+				   (send wx system-menu) #t)))]
       [get-eventspace (entry-point (lambda () (ivar wx eventspace)))]
       [can-close? (lambda () #t)]
       [can-exit? (lambda () (can-close?))]
@@ -2907,7 +2916,7 @@
     
 (define frame%
   (class basic-top-level-window% (label [parent #f] [width #f] [height #f] [x #f] [y #f] [style null])
-    (inherit on-traverse-char)
+    (inherit on-traverse-char on-system-menu-char)
     (sequence
       (let ([cwho '(constructor frame)])
 	(check-string cwho label)
@@ -2933,6 +2942,7 @@
       [on-subwindow-char (lambda (w event)
 			   (super-on-subwindow-char w event)
 			   (or (on-menu-char event)
+			       (on-system-menu-char event)
 			       (on-traverse-char event)))])
     (public
       [on-menu-char (entry-point-1
@@ -2967,7 +2977,7 @@
 
 (define dialog%
   (class basic-top-level-window% (label [parent #f] [width #f] [height #f] [x #f] [y #f] [style null])
-    (inherit on-traverse-char)
+    (inherit on-traverse-char on-system-menu-char)
     (sequence
       (let ([cwho '(constructor dialog)])
 	(check-string cwho label)
@@ -2980,7 +2990,8 @@
     (override
       [on-subwindow-char (lambda (w event)
 			   (super-on-subwindow-char w event)
-			   (on-traverse-char event))])
+			   (or (on-system-menu-char event)
+			       (on-traverse-char event)))])
     (sequence
       (as-entry
        (lambda ()
@@ -3653,7 +3664,7 @@
 
 (define wx-menu-bar%
   (class* wx:menu-bar% (wx<%>) (mred)
-    (inherit delete select-system)
+    (inherit delete)
     (rename [super-append append]
 	    [super-enable-top enable-top])
     (private
@@ -3671,24 +3682,20 @@
 				(send event get-meta-down)
 				(char? (send event get-key-code))
 				(let ([c (send event get-key-code)])
-				  (or (and (char=? #\space c)
-					   (eq? 'windows (system-type))
-					   (select-system)
-					   #t)
-				      (and (or (char-alphabetic? c)
-					       (char-numeric? c))
-					   (let ([re (key-regexp c)])
-					     (ormap
-					      (lambda (i)
-						(let* ([data (send (mred->wx i) get-menu-data)]
-						       [label (car data)]
-						       [menu (cdr data)])
-						  (if (regexp-match re label)
-						      (begin
-							(send menu select)
-							#t)
-						      #f)))
-					      items))))))))))]
+				  (and (or (char-alphabetic? c)
+					   (char-numeric? c))
+				       (let ([re (key-regexp c)])
+					 (ormap
+					  (lambda (i)
+					    (let* ([data (send (mred->wx i) get-menu-data)]
+						   [label (car data)]
+						   [menu (cdr data)])
+					      (if (regexp-match re label)
+						  (begin
+						    (send menu select)
+						    #t)
+						  #f)))
+					  items)))))))))]
       [get-mred (lambda () mred)]
       [get-items (lambda () items)]
       [append-item (lambda (item menu title)
