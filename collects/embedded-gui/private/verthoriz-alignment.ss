@@ -7,26 +7,36 @@
    (lib "match.ss")
    (prefix a: "alignment.ss")
    "interface.ss"
-   "alignment-helpers.ss")
+   "alignment-helpers.ss"
+   "dllist.ss")
    
   (provide
    horizontal-alignment%
    vertical-alignment%)
   
+  ;;;;;;;;;;
+  ;; alignment
+    
   (define (vert/horiz-alignment type)
-    (class* object% (alignment<%> alignment-parent<%>)
+    (class* dllist% (alignment<%> alignment-parent<%>)
       
-      (init-field parent [show? true])
+      (init-field parent [show? true] [after #f])
       (init [stretchable-width true]
             [stretchable-height true])
       
       (field
        [pasteboard (send parent get-pasteboard)]
-       [children empty]
        [min-width 0]
        [min-height 0]
        [stretchable-width? stretchable-width]
        [stretchable-height? stretchable-height])
+      
+      (field
+       [head (new head%)]
+       [tail (new tail%)])
+      
+      (send head next tail)
+      (send tail prev head)
       
       ;;;;;;;;;;
       ;; alignment<%>
@@ -39,22 +49,21 @@
       ;; Tells the alignment that its sizes should be calculated
       (define/public (set-min-sizes)
         (when show?
-          (for-each
-           (lambda (child)
-             (send child set-min-sizes))
-           children)
+          (send head for-each
+                (lambda (child)
+                  (send child set-min-sizes)))
           (let-values ([(x-accum y-accum)
                         (if (symbol=? type 'vertical)
                             (values vacuous-max +)
                             (values + vacuous-max))])
             (set! min-width
                   (apply x-accum
-                         (map (lambda (c) (send c get-min-width))
-                              children)))
+                         (send head map-to-list
+                               (lambda (c) (send c get-min-width)))))
             (set! min-height
                   (apply y-accum
-                         (map (lambda (c) (send c get-min-height))
-                              children))))))
+                         (send head map-to-list
+                               (lambda (c) (send c get-min-height))))))))
       
       #;(nonnegative? nonnegative? nonnegative? nonnegative? . -> . void?)
       ;; Tells the alignment to align its children on the pasteboard in the given rectangle
@@ -66,14 +75,10 @@
                (send child align (+ x x-offset) (+ y y-offset) w h)]))
           
           (when (is-shown?)
-            #;(and (is-shown?)
-                   (not (empty? children)); this and
-                   (not (zero? width))    ; this should be handled by align later
-                   (not (zero? height)))  ; this one too
-            (for-each move/resize
-                      children
-                      (a:align type width height
-                               (map build-rect children)))))
+            (send head for-each
+                  move/resize
+                  (a:align type width height
+                           (send head map-to-list build-rect)))))
       
       #;(-> nonnegative?)
       ;; The minimum width this alignment must be
@@ -114,40 +119,31 @@
         (when (send parent is-shown?)
           (show/hide-children bool)))
       
-      ;;;;;;;;;;
-      ;; alignment-parent<%>
-      
       #;(-> (is-a?/c pasteboard%))
       ;; The pasteboard that this alignment is being displayed to
       (define/public (get-pasteboard) pasteboard)
       
-      #;(((is-a?/c alignment<%>)) ((is-a?/c alignment<%>)) . opt-> . void?)
+      #;(((is-a?/c alignment<%>)) ((union (is-a?/c alignment<%>) false?)) . opt-> . void?)
       ;; Add the given alignment as a child before the existing child
-      (define/public (add-child child)
-        (set! children (append children (list child))))
+      (define/public add-child
+        (opt-lambda (child (after #f))
+          (define (link p item n)
+            (send p next child)
+            (send child prev p)
+            (send n prev child)
+            (send child next n))
+          (if after
+              (link after child (send after next))
+              (link (send tail prev) child tail))))
       
       #;((is-a?/c alignment<%>) . -> . void?)
       ;; Deletes a child from the the alignments
       (define/public (delete-child child)
         (send child show/hide false)
-        (set! children (filter (lambda (c) (not (eq? child c)))
-                               children)))
-      
-      #;(-> (listof (is-a?/c alignment<%>)))
-      ;; A list of the children of this alignment parent
-      (define/public (get-children) children)
-      
-      #;((is-a?/c alignment<%>) (is-a?/c alignment<%>) . -> . void?)
-      ;; Moves a snip to a position after the other
-      (define/public (move-after child reference)
-        (let ([r (remove child children)])
-          (set! children (insert-after child r reference))))
-      
-      #;((is-a?/c alignment<%>) (is-a?/c alignment<%>) . -> . void?)
-      ;; Moves a snip to a position before the other
-      (define/public (move-before child reference)
-        (let ([r (remove child children)])
-          (set! children (insert-before child r reference))))
+        (let ([p (send child prev)]
+              [n (send child next)])
+          (send p next n)
+          (send n prev p)))
       
       #;(-> boolean?)
       ;; True if the alignment is being shown (accounting for its parent being shown)
@@ -161,11 +157,11 @@
       ;; Shows or hides the children
       (define/private (show/hide-children bool)
         (send pasteboard lock-alignment true)
-        (for-each (lambda (c) (send c show/hide bool)) children)
+        (send head for-each (lambda (c) (send c show/hide bool)))
         (send pasteboard lock-alignment false))
       
       (super-new)
-      (send parent add-child this)))
+      (send parent add-child this after)))
   
   (define vertical-alignment% (vert/horiz-alignment 'vertical))
   (define horizontal-alignment% (vert/horiz-alignment 'horizontal))

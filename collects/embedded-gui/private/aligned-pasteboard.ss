@@ -42,12 +42,13 @@
       ;; The pasteboard that this alignment is being displayed to
       (define/public (get-pasteboard) this)
       
-      #;((is-a?/c alignment<%>) . -> . void?)
-      ;; Set the given alignment as a the child
-      (define/public (add-child child)
-        (if alignment
-            (error 'add-child "There may be only one alignment<%> of a pasteboard")
-            (set! alignment child)))
+      #;(((is-a?/c alignment<%>)) ((union (is-a?/c alignment<%>) false?)) . opt-> . void?)
+      ;; Add the given alignment as a child before the existing child
+      (define/public add-child
+        (opt-lambda (child (after #f))
+          (if alignment
+              (error 'add-child "There may be only one alignment<%> of a pasteboard")
+              (set! alignment child))))
       
       #;((is-a?/c alignment<%>) . -> . void?)
       ;; Deletes a child from the the alignments

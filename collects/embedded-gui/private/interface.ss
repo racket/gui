@@ -4,10 +4,18 @@
   
   (provide stretchable-snip<%>
            alignment<%>
-           alignment-parent<%>)
+           alignment-parent<%>
+           dllist<%>)
+  
+  (define dllist<%>
+    (interface ()
+      next
+      prev
+      for-each
+      map-to-list))
   
   (define alignment<%>
-    (interface ()
+    (interface (dllist<%>)
       
       #;(-> alignment-parent<%>)
       ;; The parent of this alignment
@@ -53,17 +61,13 @@
       ;; The pasteboard that this alignment is being displayed to
       get-pasteboard
       
-      #;((is-a?/c alignment<%>) . -> . void?)
-      ;; Add the given alignment as a child
+      #;(((is-a?/c alignment<%>)) ((union (is-a?/c alignment<%>) false?)) . opt-> . void?)
+      ;; Add the given alignment as a child before the existing child
       add-child
       
       #;((is-a?/c alignment<%>) . -> . void?)
       ;; Deletes a child from the the alignments
       delete-child
-      
-      #;(-> (listof (is-a?/c alignment<%>)))
-      ;; A list of the children of this alignment parent
-      get-children
       
       #;(-> boolean?)
       ;; True if the alignment is being shown (accounting for its parent being shown)

@@ -4,12 +4,13 @@
    (lib "etc.ss")
    (lib "class.ss")
    "interface.ss"
-   (prefix sl: "snip-lib.ss"))
+   (prefix sl: "snip-lib.ss")
+   "dllist.ss")
   
   (provide snip-wrapper%)
   
   (define snip-wrapper%
-    (class* object% (alignment<%>)
+    (class* dllist% (alignment<%>)
       (init-field snip parent)
       (field [pasteboard (send parent get-pasteboard)]
              [show? true]
