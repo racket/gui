@@ -4078,7 +4078,7 @@
 
   (let ([mb (make-object menu-bar% frame)])
     (let ([m (make-object menu% "&File" mb)])
-      (make-object menu-item% "Load File..." m (lambda (i e) (let ([f (get-file)]) (and f (evaluate (format "(load ~s)" f))))))
+      (make-object menu-item% "Load File..." m (lambda (i e) (let ([f (get-file #f frame)]) (and f (evaluate (format "(load ~s)" f))))))
       (make-object menu-item% 
 		   (if (eq? (system-type) 'windows)
 		       "E&xit"

@@ -115,7 +115,7 @@
 			  (let* ([ofont (send dc get-font)]
 				 [otfg (send dc get-text-foreground)]
 				 [otbg (send dc get-text-background)]
-				 [obm (send dc get-background-mode)])
+				 [obm (send dc get-text-mode)])
 			    (if (positive? flevel)
 				(send dc set-font
 				      (make-object font%
@@ -136,7 +136,7 @@
 			    (send dc set-text-background (make-object color% "YELLOW"))
 			    (when (= flevel 2)
 			      (send dc set-text-foreground (make-object color% "RED"))
-			      (send dc set-background-mode 'solid))
+			      (send dc set-text-mode 'solid))
 
 			    (send dc draw-text (string-append size " Pen")
 				  (+ x 5) (+ y 8))
@@ -144,7 +144,7 @@
 			    
 			    (when (= flevel 2)
 			      (send dc set-text-foreground otfg)
-			      (send dc set-background-mode obm))
+			      (send dc set-text-mode obm))
 			    (send dc set-text-background otbg)
 			    
 			    (send dc draw-line
@@ -421,6 +421,19 @@
 					(loop (cdr fam) (cdr stl) (cdr wgt) (cdr sze) x (+ y h))))))
 				(send dc set-pen save-pen)))
 
+			    (when last?
+			      (let ([m (send dc get-text-mode)]
+				    [b (send dc get-brush)]
+				    [p (send dc get-pen)])
+				(send dc set-pen pen1t)
+				(send dc set-brush brushs)
+				(send dc draw-rectangle 295 210 30 20)
+				(send dc set-text-mode 'xor)
+				(send dc draw-text "xor" 290 210)
+				(send dc set-text-mode m)
+				(send dc set-pen p)
+				(send dc set-brush b)))
+			    
 			    ; Bitmap copying:
 			    (when (and (not no-bitmaps?) last?)
 			      (let ([x 5] [y 165])
