@@ -307,6 +307,87 @@
 	    (make-check 'mred:line-offsets "Count line and column numbers from one?" id id)
 	    (make-check 'mred:menu-bindings "Enable keybindings in menus?" id id)
 	    main))
+	#f)
+       (make-ppanel
+	"Default Fonts"
+	(lambda (parent)
+	  (let* ([main (make-object mred:vertical-panel% parent)]
+		 [families (list  "Default" "Roman" "Decorative"
+				  "Modern" "Swiss" "Script")]
+		 [font-size-entry "defaultFontSize"]
+		 [default-string "Default Value"]
+		 [fonts (cons default-string (wx:get-font-list))]
+		 [file  (wx:find-path 'setup-file)]
+		 [section "mred"]
+		 [build-entry (lambda (x) (string-append "Screen" x "__"))]
+		 [make-family-panel
+		  (lambda (name)
+		    (let* ([horiz (make-object mred:horizontal-panel% main
+					       -1 -1 -1 -1 wx:const-border)]
+			   [label (make-object mred:message% horiz name)]
+			   [space (make-object mred:horizontal-panel% horiz)]
+			   [_ (make-object mred:message% horiz 
+					   (let ([b (box "")])
+					     (if (and (wx:get-resource 
+						       section 
+						       (build-entry name)
+						       b)
+						      (not (string=? (unbox b) 
+								     "")))
+						 (unbox b)
+						 default-string)))]
+			   [button 
+			    (make-object 
+			     mred:button% horiz 
+			     (lambda (button evt)
+			       (let ([new-value
+				      (mred:gui-utils:get-single-choice
+				       "message"
+				       "caption"
+				       fonts)])
+				 (unless (null? new-value)
+				   (wx:write-resource 
+				    section
+				    (build-entry name)
+				    (if (string=? default-string new-value)
+					""
+					new-value)
+				    file)
+				   (send horiz change-children
+					 (lambda (l)
+					   (list label space 
+						 (make-object
+						  mred:message%
+						  horiz
+						  new-value)
+						 button))))))
+			     "Change")])
+		      (void)))])
+	    (for-each make-family-panel families)
+	    (let ([size-panel (make-object mred:horizontal-panel% main -1 -1 -1 -1 wx:const-border)]
+		  [default-font-size
+		   (case wx:platform
+		     [(unix) 12]
+		     [(windows) 10]
+		     [(macintosh) 9])])
+	      '(make-object mred:message% size-panel "Size")
+	      '(make-object mred:horizontal-panel% size-panel)
+	      (make-object mred:slider% size-panel 
+			   (lambda (slider evt)
+			     (wx:write-resource 
+			      section
+			      font-size-entry
+			      (send slider get-value)
+			      file))
+			   "Size"
+			   (let ([b (box 0)])
+			     (if (wx:get-resource section 
+						  font-size-entry
+						  b)
+				 (unbox b)
+				 default-font-size))
+			   1 127 50))
+	    main))
 	#f)))
 
     (define make-run-once
@@ -321,7 +402,6 @@
 
     (define preferences-dialog #f)
 
-    
     (define add-preference-panel
       (lambda (title container)
 	(run-once
@@ -357,7 +437,8 @@
 		  (send preferences-dialog show #t)
 		  (set! preferences-dialog
 			(let ([cursor-off (mred:gui-utils:delay-action
-					   2 wx:begin-busy-cursor wx:end-busy-cursor)])
+					   2 wx:begin-busy-cursor
+					   wx:end-busy-cursor)])
 			  (begin0 (make-preferences-dialog)
 				  (cursor-off)))))))))))
 
@@ -394,7 +475,12 @@
 		   (lambda ()
 		     (for-each (lambda (ppanel)
 				 (unless (ppanel-panel ppanel)
-				   (set-ppanel-panel! ppanel ((ppanel-container ppanel) single-panel))))
+				   (let ([panel ((ppanel-container ppanel) single-panel)])
+				     (unless (is-a? panel mred:panel%)
+				       (error 'preferences-dialog
+					      "expected the preference panel to be a mred:panel%. Got ~a instead~n"
+					      panel))
+				     (set-ppanel-panel! ppanel panel))))
 			       ppanels)
 		     (send single-panel change-children (lambda (l) (map ppanel-panel ppanels)))
 		     (send single-panel active-child (ppanel-panel (car ppanels))))]
