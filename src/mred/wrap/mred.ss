@@ -53,15 +53,17 @@
 
 (define (check-reasonable-min who v)
   (unless (<= 0 v max-min)
-    (error (who->name who) "not a reasaonable minimum width: ~e" v)))
+    (raise-mismatch-error (who->name who) "not a reasaonable minimum width: " v)))
 
 (define (check-reasonable-margin who v)
   (unless (<= 0 v max-margin)
-    (error (who->name who) "not a reasaonable margin size: ~e" v)))
+    (raise-mismatch-error (who->name who) "not a reasaonable margin size: " v)))
 
 (define (range-error who v hard-min-width max-min)
-  (error (who->name who) "value out-of-range: ~e not in: ~e to ~e"
-	 v hard-min-width max-min))
+  (raise-mismatch-error (who->name who) 
+			(format "value out-of-range ~e to ~e: "
+				hard-min-width max-min)
+			v))
 
 ; list-diff: computes the difference between two lists
 ; input: l1, l2: two lists
@@ -795,8 +797,8 @@
 	      [delta-h (- (get-height) client-height)]
 	      [vertical-labels? (eq? (send (get-parent) get-label-position)
 				     'vertical)]
-	      [horizontal (eq? 'horizontal style)])
-	  (set-min-width (if horizontal
+	      [horizontal? (eq? 'horizontal style)])
+	  (set-min-width (if horizontal?
 			     (let ([cw (min const-max-gauge-length
 					    (* range pixels-per-value))])
 			       (if vertical-labels?
@@ -805,7 +807,7 @@
 			     ; client-height is the default
 			     ; dimension in the minor direction.
 			     (+ client-width delta-w)))
-	  (set-min-height (if horizontal
+	  (set-min-height (if horizontal?
 			      (+ client-height delta-h)
 			      (let ([ch (min const-max-gauge-length
 					     (* range pixels-per-value))])
@@ -1038,7 +1040,9 @@
       [auto-wrap (case-lambda
 		  [() auto-set-wrap?]
 		  [(on?) (set! auto-set-wrap? (and on? #t))
-			 (on-display-size)])]
+			 (if on?
+			     (on-display-size)
+			     (set-max-width 'none))])]
       [get-max-view-size (lambda () (max-view-size))])
     (override
       [on-display-size
@@ -1160,11 +1164,12 @@
       [add-child
        (lambda (new-child)
 	 (unless (eq? this (send new-child area-parent))
-	   (error 'add-child "not a child of this container: ~e"
-		  (wx->mred new-child)))
+	   (raise-mismatch-error 'add-child 
+				 "not a child of this container: "
+				 (wx->mred new-child)))
 	 (when (memq new-child children)
-	   (error 'add-child "child already active: ~e"
-		  (wx->mred new-child)))
+	   (raise-mismatch-error 'add-child "child already active: "
+				 (wx->mred new-child)))
 	 (change-children
 	  (lambda (l)
 	    (append l (list new-child)))))]
@@ -1180,26 +1185,32 @@
 	   (unless (andmap (lambda (child)
 			     (eq? this (send child area-parent)))
 			   new-children)
-	     (error 'change-children
-		    (string-append 
-		     "not all members of the returned list are "
-		     "children of the container ~e; list: ~e")
-		    (wx->mred this) (map wx->mred new-children)))
+	     (raise-mismatch-error 'change-children
+				   (format
+				    (string-append 
+				     "not all members of the returned list are "
+				     "children of the container ~e; list: ")
+				    (wx->mred this))
+				   (map wx->mred new-children)))
 	   (let loop ([l new-children])
 	     (unless (null? l)
 	       (if (memq (car l) (cdr l))
-		   (error 'change-children "child in the returned list twice: ~e" 
-			  (wx->mred (car l)))
+		   (raise-mismatch-error 'change-children 
+					 "child in the returned list twice: " 
+					 (wx->mred (car l)))
 		   (loop (cdr l)))))
 	   ; show all new children, hide all deleted children.
 	   (let ([added-children (list-diff new-children children)]
 		 [removed-children (list-diff children new-children)])
-	     (unless (andmap (lambda (child)
-			     (is-a? child wx:window%))
-			     removed-children)
-	       (error 'change-children
-		      "cannot make non-window areas inactive in ~e"
-		      (wx->mred this)))
+	     (let ([non-window (ormap (lambda (child)
+					(and (not (is-a? child wx:window%))
+					     child))
+				      removed-children)])
+	       (when non-window
+		 (raise-mismatch-error 'change-children
+				       (format "cannot make non-window area inactive in ~e: "
+					       (wx->mred this))
+				       non-window)))
 	     (for-each (lambda (child) (send child show #f))
 		       removed-children)
 	     (set! children new-children)
@@ -1214,8 +1225,9 @@
       [delete-child
        (lambda (child)
 	 (unless (memq child children)
-	   (error 'delete-child "not a child of this container or child is not active: ~e" 
-		  (wx->mred child)))
+	   (raise-mismatch-error 'delete-child 
+				 "not a child of this container or child is not active: ~e" 
+				 (wx->mred child)))
 	 (change-children (lambda (child-list)
 			    (remq child child-list))))]
       
@@ -1415,9 +1427,9 @@
 						   (= 4 (length x))
 						   (andmap (lambda (x) (and (number? x) (integer? x))) x)))
 				  l))
-	       (error 'container-redraw 
-		      "result from place-children is not a list of 4-integer lists with the correct length: ~e"
-		      l))
+	       (raise-mismatch-error 'container-redraw 
+				     "result from place-children is not a list of 4-integer lists with the correct length: "
+				     l))
 	     (panel-redraw children children-info l))))]
       [panel-redraw
        (lambda (childs child-infos placements)
@@ -1986,9 +1998,9 @@
 				 (let ([l (f (map wx->mred kids))])
 				   (unless (and (list? l)
 						(andmap (lambda (x) (is-a? x internal-subarea<%>)) l))
-				     (error 'change-children
-					    "result of given procedure was not a list of subareas: ~e"
-					    l))
+				     (raise-mismatch-error 'change-children
+							   "result of given procedure was not a list of subareas: "
+							   l))
 				   (map mred->wx l)))))]
       [container-size (lambda (l) (let ([l (send (get-wx-panel) do-get-graphical-min-size)])
 				    (apply values l)))]
@@ -2297,7 +2309,7 @@
        (lambda (method n k)
 	 (if (< -1 n (get-number))
 	     (k)
-	     (error (who->name `(method radio-box% ,method)) "no such button: ~e" n)))])
+	     (raise-mismatch-error (who->name `(method radio-box% ,method)) "no such button: " n)))])
     (override
       [enable (case-lambda
 	       [(on?) (send wx enable on?)]
@@ -2334,7 +2346,7 @@
       (check-container-parent 'slider parent) 
       (check-callback '(constructor slider) callback)
       (check-slider-integer '(constructor slider) value)
-      (check-orientation 'slider style))
+      (check-style '(constructor slider) '(vertical horizontal) '(plain) style))
     (private
       [wx #f])
     (public
@@ -2679,7 +2691,7 @@
   (unless (is-a? p frame%)
     (raise-type-error (constructor-name 'menu-bar) "frame% object" p))
   (when (send (mred->wx p) get-menu-bar)
-    (error (constructor-name 'menu-bar) "the specified frame already has a menu bar")))
+    (raise-mismatch-error (constructor-name 'menu-bar) "the specified frame already has a menu bar: " p)))
 
 (define wx-menu-item%
   (class* wx:menu-item% (wx<%>) (mred)
