@@ -226,8 +226,7 @@
 			(public 
 			  [defaulting (lambda (on?)
 					(set! border-on? on?)
-					(when border?
-					  (set-border border-on?)))] 
+					(set-border border-on?))] 
 			  [has-border? (lambda () border-on?)])
 			(override
 			  [char-to (lambda ()
