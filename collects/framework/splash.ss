@@ -218,5 +218,6 @@
   (send panel stretchable-width #f)
   (send panel stretchable-height #f)
   (send h-panel set-alignment 'center 'top)
+  (send splash-canvas focus)
   (send splash-canvas stretchable-width #f)
   (send splash-canvas stretchable-height #f))
