@@ -78,7 +78,12 @@
                                      (with-syntax ([call (if (identifier? arity)
                                                              (syntax (super-method-name . formals))
                                                              (with-syntax ([(x ...) arity])
-                                                               (syntax (super-method-name x ...))))])
+                                                               (syntax (super-method-name x ...))))]
+                                                   [args-as-list
+                                                    (if (identifier? arity)
+                                                        arity
+                                                        (with-syntax ([(x ...) arity])
+                                                          (syntax (list x ...))))])
                                        (syntax
                                         [formals
                                          (cond
@@ -102,15 +107,12 @@
                                            [else
                                             (sequence-contract-violation 
                                              'negative
-                                             "method ~s cannot be called, except in states ~s, current state: ~s"
+                                             "method ~s cannot be called, except in states ~s, current state: ~s~a"
                                              'method-name
                                              '(state-name ...)
-                                             (let loop ([l (list (list 'all-state-names (all-predicate-names)) ...)])
-                                               (cond
-                                                 [(null? l) '<<unknown-state>>]
-                                                 [else (if (cadr (car l))
-                                                           (car (car l))
-                                                           (loop (cdr l)))])))])]))))
+                                             (find-current-state 
+                                              (list (list 'all-state-names (all-predicate-names)) ...))
+                                             (format-args args-as-list))])]))))
                                  (syntax->list (state-desc-arities (car state-descs))))])
                (syntax
                 (begin
@@ -169,6 +171,29 @@
                 (define/private predicate-names (lambda () exp)) ...
                 overriding-method ... 
                 clauses ...)))))]))
+  
+  (define (format-args l)
+    (cond
+      [(null? l) ""]
+      [else
+       (string-append
+        ", args "
+        (let loop ([fst (car l)]
+                   [rst (cdr l)])
+          (cond
+            [(null? rst) (format "~e" fst)]
+            [else (string-append
+                   (format "~e" fst)
+                   " "
+                   (loop (car rst) (cdr rst)))])))]))
+  
+  (define (find-current-state l)
+    (let loop ([l l])
+      (cond
+        [(null? l) '<<unknown-state>>]
+        [else (if (cadr (car l))
+                  (car (car l))
+                  (loop (cdr l)))])))
 
   (define (sequence-contract-violation dir fmt . args)
     (apply error
