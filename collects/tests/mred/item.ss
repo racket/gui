@@ -753,7 +753,8 @@
       DELETE-COCONUT-2
       COCONUT-ID
       DELETE-ONCE
-      APPLE-CHECK-ID)
+      APPLE-CHECK-ID
+      CHINESE)
     (private-field
       menu-bar
       main-menu
@@ -806,7 +807,7 @@
 	     (make-object menu-item% "Disable Second" menu (mk-enable #f))
 	     (make-object menu-item% "Enable Second" menu (mk-enable #t)))
 
-	   (make-object menu-item% "Chinese: \U7238" menu void)
+	   (set! CHINESE (make-object menu-item% "Chinese: \U7238" menu void))
 	   
 	   (let ([make-menu
 		  (opt-lambda (title parent help-string)
@@ -1031,6 +1032,8 @@
 			 (send DELETE-APPLE set-help-string (tmp-pick "DELETER" "Deletes the Apple menu"))
 			 (send COCONUT-ID set-help-string (tmp-pick "SUBMENU" "Submenu"))
 			 (send DELETE-COCONUT set-help-string (tmp-pick "CDELETER" #f))
+			 (send CHINESE set-label (tmp-pick "Chinese: \U7239" "Chinese: \U7238"))
+			 (send CHINESE set-shortcut (tmp-pick #\C #\K))
 			 (send main-menu set-label (if temp-labels? "Hi" "&Tester")))))
 	(letrec ([by-bar (make-object check-box%
 				      "Via Menubar" lblp
