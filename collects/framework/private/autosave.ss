@@ -293,7 +293,8 @@
       (define (recover-file parent table-entry)
         (let ([orig-name (or (car table-entry)
                              (parameterize ([finder:dialog-parent-parameter parent])
-                               (finder:put-file)))])
+                               (finder:put-file #f #f #f
+						(string-constant autosave-restore-to-where?))))])
           (and orig-name
                (let ([autosave-name (cadr table-entry)])
                  (let ([tmp-name (and (file-exists? orig-name)
