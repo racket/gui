@@ -917,27 +917,19 @@
 				 (send e get-command-string))
 			   old-list))
       (cond
-       [(send e is-selection?)
+       [(or (not list?) (send e is-selection?))
 	; selection
 	(printf "Selected ~a~n" (send e get-command-int))
-	(if (or (not multi?) (<= (length (send c get-selections)) 1))
-	    (begin
-	      (unless (= (send e get-command-int)
-			 (send c get-selection))
-		(error "event selection value mismatch"))
-	      (unless (string=? (send e get-command-string)
-				(send c get-string-selection)
-				(send c get-string (send c get-selection)))
-		(error "selection string mismatch")))
-	    (begin
-	      (unless (memv (send e get-command-int)
-			    (send c get-selections))
-		(error "event selection value mismatch"))
-	      (unless (string=? (send e get-command-string)
-				(send c get-string (send e get-command-int)))
-		(error "selection string mismatch"))
-	      (unless (null? (send c get-string-selection))
-		(error "string selection not null"))))]
+	(when multi?
+	  (error "Single-selection message for multi-selection list"))
+	(unless (or (not list?) (= (length (send c get-selections)) 1))
+	  (error "Single-selection message with zero/multiple selections"))
+	(unless (= (send e get-command-int) (send c get-selection))
+	  (error "event selection value mismatch"))
+	(unless (string=? (send e get-command-string)
+			  (send c get-string-selection)
+			  (send c get-string (send c get-selection)))
+	  (error "selection string mismatch"))]
        [(send e is-double-click?)
 	; double-click
 	(printf "Double-click~n")
@@ -1292,6 +1284,13 @@
 	      (super-init)
 	      (start 1000 #t))))))
 
+(define mred:noisy-dialog-box%
+  (class-asi mred:dialog-box%
+    (public
+      [on-default-item
+       (lambda (x)
+	 (printf "Default item hit~n"))])))
+
 (define bp (make-object mred:vertical-panel% ap -1 -1 -1 -1 wx:const-border))
 (define bp1 (make-object mred:horizontal-panel% bp))
 (define bp2 (make-object mred:horizontal-panel% bp))
@@ -1306,8 +1305,9 @@
 (define bp (make-object mred:horizontal-panel% ap))
 (send bp stretchable-in-x #f)
 (make-object mred:button% bp (lambda (b e) (button-frame mred:frame%)) "Make Button Frame")
-(make-object mred:button% bp (lambda (b e) (button-frame mred:dialog-box%)) "Make Button Dialog Box")
+(make-object mred:button% bp (lambda (b e) (button-frame mred:noisy-dialog-box%)) "Make Button Dialog Box")
 (make-object mred:button% ap (lambda (b e) (checkbox-frame)) "Make Checkbox Frame")
+(make-object mred:button% ap (lambda (b e) (radiobox-frame)) "Make Radiobox Frame")
 (define cp (make-object mred:horizontal-panel% ap))
 (send cp stretchable-in-x #f)
 (make-object mred:button% cp (lambda (b e) (choice-or-list-frame #f 0 #f)) "Make Choice Frame")
@@ -1319,6 +1319,7 @@
 (make-object mred:button% lp (lambda (b e) (choice-or-list-frame #t wx:const-multiple #f)) "Make MultiList Frame")
 (make-object mred:button% lp (lambda (b e) (choice-or-list-frame #t wx:const-extended #f)) "Make MultiExtendList Frame")
 (make-object mred:button% ap (lambda (b e) (gauge-frame)) "Make Gauge Frame")
+(make-object mred:button% ap (lambda (b e) (slider-frame)) "Make Slider Frame")
 (define tp (make-object mred:horizontal-panel% ap))
 (send tp stretchable-in-x #f)
 (make-object mred:button% tp (lambda (b e) (text-frame mred:text% 0)) "Make Text Frame")
