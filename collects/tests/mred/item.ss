@@ -175,8 +175,14 @@
 (define active-frame%
   (class-asi frame%
     (private (pre-on void))
-    (override [on-subwindow-event (lambda args (apply pre-on args))]
-	      [on-subwindow-char on-subwindow-event]
+    (rename [super-on-subwindow-event on-subwindow-event]
+	    [super-on-subwindow-char on-subwindow-char])
+    (override [on-subwindow-event (lambda args 
+				    (or (apply pre-on args)
+					(apply super-on-subwindow-event args)))]
+	      [on-subwindow-char (lambda args 
+				   (or (apply pre-on args)
+				       (apply super-on-subwindow-char args)))]
 	      [on-move (lambda (x y) (printf "moved: ~a ~a~n" x y))]
 	      [on-size (lambda (x y) (printf "sized: ~a ~a~n" x y))])
     (public [set-info
