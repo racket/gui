@@ -19,9 +19,10 @@
 
   (define make-basic%
     (mixin (editor<%>) (basic<%>) args
-      (inherit modified? get-filename save-file canvases
+      (inherit modified? get-filename save-file
 	       refresh-delayed? 
-	       get-frame get-keymap
+	       get-frame
+	       get-keymap
 	       get-max-width get-admin set-filename)
       (rename [super-set-modified set-modified]
 	      [super-on-save-file on-save-file]
