@@ -3870,11 +3870,11 @@
       (send parent after-new-child this))))
     
 (define editor-canvas%
-  (class100 basic-canvas% (parent [buffer #f] [style null] [scrolls-per-page 100] [label #f])
+  (class100 basic-canvas% (parent [editor #f] [style null] [scrolls-per-page 100] [label #f])
     (sequence 
       (let ([cwho '(constructor editor-canvas)])
 	(check-container-parent cwho parent)
-	(check-instance cwho internal-editor<%> "text% or pasteboard%" #t buffer)
+	(check-instance cwho internal-editor<%> "text% or pasteboard%" #t editor)
 	(check-style cwho #f '(hide-vscroll hide-hscroll no-vscroll no-hscroll) style)
 	(check-gauge-integer cwho scrolls-per-page)
 	(check-string/false cwho label)
@@ -3948,8 +3948,8 @@
 		  parent)
       (when label
 	(set-label label))
-      (when buffer
-	(set-editor buffer))
+      (when editor
+	(set-editor editor))
       (send parent after-new-child this))))
 
 ;-------------------- Final panel interfaces and class constructions --------------------
