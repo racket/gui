@@ -606,7 +606,7 @@
 	       (when sucessful?
 		 (check-lock))
 	       (super-after-load-file sucessful?))]
-	    [autowrap-bitmap mred:icon:autowrap-bitmap])
+	    [autowrap-bitmap (mred:icon:get-autowrap-bitmap)])
 	  (sequence
 	    (apply super-init args)
 	    (let ([keymap (get-keymap)])
