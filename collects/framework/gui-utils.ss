@@ -677,7 +677,9 @@
                 
                 (super-make-object (string-constant warning) parent)
                 
-                (let* ([panel (make-object vertical-panel% this)]
+                (let* ([outer-panel (make-object horizontal-panel% this)]
+                       [warning-msg (make-object message% 'caution outer-panel)]
+                       [panel (make-object vertical-panel% outer-panel)]
                        [msg
                         (make-object message%
                           (format (string-constant file-is-not-saved) filename)
