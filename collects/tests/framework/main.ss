@@ -1,4 +1,4 @@
-(require-library "launchers.ss" "launcher")
+(require-library "launcher.ss" "launcher")
 (require-library "cores.ss")
 (require-library "cmdlines.ss")
 (require-library "macro.ss")
@@ -126,6 +126,8 @@
 			      (semaphore-post sema)))
 	    (semaphore-wait sema)))))
 
+    (define re:tcp-error (regexp "tcp-read:"))
+
     (define send-sexp-to-mred
       (lambda (sexp)
 	(let ([show-text 
@@ -154,21 +156,23 @@
 	  (let ([answer
 		 (with-handlers ([(lambda (x) #t)
 				  (lambda (x)
-				    (list 'cant-read
-					  (string-append
-					   (exn-message x)
-					   "; rest of string: "
-					   (format
-					    "~s"
-					    (apply
-					     string
-					     (let loop ()
-					       (if (char-ready? in-port)
-						   (let ([char (read-char in-port)])
-						     (if (eof-object? char)
-							 null
-							 (cons char (loop))))
-						   null)))))))])
+				    (if (regexp-match re:tcp-error (exn-message x))
+					eof
+					(list 'cant-read
+					      (string-append
+					       (exn-message x)
+					       "; rest of string: "
+					       (format
+						"~s"
+						(apply
+						 string
+						 (let loop ()
+						   (if (char-ready? in-port)
+						       (let ([char (read-char in-port)])
+							 (if (eof-object? char)
+							     null
+							     (cons char (loop))))
+						       null))))))))])
 		   (read in-port))])
 	    (unless (or (eof-object? answer)
 			(and (list? answer)
@@ -355,16 +359,18 @@
 		  (printf "  ~a // ~a~n" (car failed-test) (cdr failed-test)))
 		failed-tests))))
 
+
 (invoke-unit/sig
  (compound-unit/sig
    (import (P : (program))
-	   (A : (argv)))
+	   (A : (argv))
+	   [launcher : launcher-maker^])
    (link
     [core : mzlib:core^ ((require-library "corer.ss"))]
-    [launcher : launcher-maker^ ((require-library "launcherr.ss" "launcher") (core file))]
     [M : mzlib:command-line^ ((require-library "cmdliner.ss"))]
     [T : internal-TestSuite^ (TestSuite P E launcher (core pretty-print) (core function))]
     [E : Engine^ (Engine A T M (core function) (core file) (core string) (core pretty-print))])
    (export))
  (program)
- (argv))
+ (argv)
+ launcher-maker^)

@@ -89,7 +89,7 @@
 		  [pf : framework:prefs-file^
 		      ((let ([tf (make-temporary-file)])
 			 (unit/sig framework:prefs-file^ (import)
-				   (define preferences-filename tf))))]
+				   (define (get-preferences-filename) tf))))]
 		  [framework : framework^ ((require-library "frameworkp.ss" "framework")
 					   core mred pf)])
 	    (export (open framework)))))
