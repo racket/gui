@@ -4,6 +4,9 @@
   
   ;; preferences
 
+  (mred:preferences:set-preference-default 'mred:verify-change-format #f boolean?)
+  
+  (mred:preferences:set-preference-default 'mred:auto-set-wrap? #f boolean?)
   
   (preferences:set-default 'framework:display-line-numbers #t boolean?)
   
@@ -18,8 +21,8 @@
   
   
   (preferences:set 'framework:print-output-mode
-		   0
-		   (lambda (x) (or (= x 0) (= x 1))))
+		   'standard
+		   (lambda (x) (or (eq? x 'standard) (eq? x 'postscript))))
   
   
   

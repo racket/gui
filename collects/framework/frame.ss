@@ -1,11 +1,71 @@
 (unit/sig framework:frame^
-  (import [group framework:group^])
+  (import mred^
+	  [group framework:group^]
+	  [preferences : framework:preferences^]
+	  [icon : framework:icon^]
+	  [handler : framework:handler^]
+	  [application : framework:application^]
+	  [panel : framework:panel^]
+	  [gui-utils : framework:gui-utils^]
+	  [mzlib:function : mzlib:function^])
+
+
+  (define frame-width 600)
+  (define frame-height 650)
+  (let-values ([(w h) (get-display-size)])
+    (when (< w frame-width)
+      (set! frame-width (- (unbox w) 65)))
+    (when (< w frame-height)
+      (set! frame-height (- (unbox h) 65))))
 
   (define empty<%> (interface ()
 		     get-panel%
 		     make-root-panel))
+  (define make-empty%
+    (mixin frame% empty<%> args
+      (rename [super-on-activate on-activate])
+
+      (override
+	[can-close?
+	 (lambda ()
+	   (send group:the-frame-group
+		 can-remove-frame?
+		 this))]
+	[on-close
+	 (lambda ()
+	   (send group:the-frame-group
+		 remove-frame
+		 this))])
+      (public
+	[get-panel% (lambda () vertical-panel%)]
+	[get-menu-bar% (lambda () menu-bar%)]
+	[make-root-panel
+	 (lambda (% parent)
+	   (make-object % parent))])
+      (rename [super-show show])
+      (override
+       [show 
+	(lambda (on?)
+	  (super-show on?)
+	  (when on?
+	    '(unless (member this (send group:the-frame-group 
+				       get-frames))
+	      (send group:the-frame-group 
+		    insert-frame this))))]
+	[on-activate
+	 (lambda (active?)
+	   (super-on-activate active?)
+	   '(when active?
+	     (send group:the-frame-group set-active-frame this)))])
+
+      (sequence
+	(apply super-init args))
+      (public
+	[menu-bar (make-object (get-menu-bar%) this)]
+	[panel (make-root-panel (get-panel%) this)])))
+
   (define standard-menus<%>
-    (interface () 
+    (interface (empty<%>)
       get-menu%
       get-menu-item%
 
@@ -16,7 +76,7 @@
       edit-menu:between-cut-and-copy
       edit-menu:between-paste-and-clear
       edit-menu:between-redo-and-cut
-      edit-menu:between-replace-and-preferences
+      edit-menu:between-find-and-preferences
       edit-menu:between-select-all-and-find
       edit-menu:clear
       edit-menu:clear-help-string
@@ -45,10 +105,6 @@
       edit-menu:redo-help-string
       edit-menu:redo-menu
       edit-menu:redo-string
-      edit-menu:replace
-      edit-menu:replace-help-string
-      edit-menu:replace-menu
-      edit-menu:replace-string
       edit-menu:select-all
       edit-menu:select-all-help-string
       edit-menu:select-all-menu
@@ -107,66 +163,6 @@
       help-menu:about-string
       help-menu:after-about
       windows-menu))
-
-  (define empty-standard-menus<%> (interface (standard-menus<%> empty<%>)))
-  (define edit<%> (interface () FILL-ME-IN))
-  (define searchable<%> (interface ()))
-  (define pasteboard<%> (interface ()))
-  (define info<%> (interface ()))
-  (define info-file<%> (interface ()))
-
-  (define frame-width 600)
-  (define frame-height 650)
-  (let ([w (box 0)]
-	[h (box 0)])
-    (wx:display-size w h)
-    (when (< (unbox w) frame-width)
-      (set! frame-width (- (unbox w) 65)))
-    (when (< (unbox h) frame-height)
-      (set! frame-height (- (unbox h) 65))))
-
-  (define make-empty%
-    (mixin frame% empty<%> args
-      (rename [super-on-activate on-activate])
-
-      (override
-	[can-close?
-	 (lambda ()
-	   (send group:the-frame-group
-		 can-remove-frame?
-		 this))]
-	[on-close
-	 (lambda ()
-	   (send group:the-frame-group
-		 remove-frame
-		 this))])
-      (public
-	[get-panel% (lambda () vertical-panel%)]
-	[get-menu-bar% (lambda () menu-bar%)]
-	[make-root-panel
-	 (lambda (% parent)
-	   (make-object % parent))])
-      (rename [super-show show])
-      (override
-       [show 
-	(lambda (on?)
-	  (super-show on?)
-	  (when on?
-	    '(unless (member this (send group:the-frame-group 
-				       get-frames))
-	      (send group:the-frame-group 
-		    insert-frame this))))]
-	[on-activate
-	 (lambda (active?)
-	   (super-on-activate active?)
-	   '(when active?
-	     (send group:the-frame-group set-active-frame this)))])
-
-      (sequence
-	(apply super-init args))
-      (public
-	[menu-bar (make-object (get-menu-bar%) this)]
-	[panel (make-root-panel (get-panel%) this)])))
 
   (define make-standard-menus%
     (begin-elaboration-time
@@ -248,14 +244,14 @@
 		   (let ([between-nothing (lambda (menu) (void))]
 			 [between-separator (lambda (menu) (make-object separator-menu-item% menu))])
 		     (list (make-an-item 'file-menu:new "Open a new file"
-					 '(lambda (item control) (mred:handler:edit-file #f) #t)
+					 '(lambda (item control) (handler:edit-file #f) #t)
 					 #\n "&New" "")
 			   (make-between 'file-menu 'between-new-and-open between-nothing)
 			   (make-an-item 'file-menu:open "Open a file from disk"
-					 '(lambda (item control) (mred:handler:open-file) #t)
+					 '(lambda (item control) (handler:open-file) #t)
 					 #\o "&Open" "...")
 			   (make-an-item 'file-menu:open-url "Open a Uniform Resource Locater"
-					 '(lambda (item control) (mred:handler:open-url) #t)
+					 '(lambda (item control) (handler:open-url) #t)
 					 #f "Open &URL" "...")
 			   (make-an-item 'file-menu:revert 
 					 "Revert this file to the copy on disk"
@@ -296,16 +292,14 @@
 			   (make-an-item 'edit-menu:find "Search for a string in the buffer"
 					 '(lambda (item control) (send this move-to-search-or-search) #t)
 					 #\f "Find" "")
-			   (make-an-item 'edit-menu:replace "Search and replace a string in the buffer"
-					 #f #f "Replace" "")
-			   (make-between 'edit-menu 'between-replace-and-preferences between-separator)
+			   (make-between 'edit-menu 'between-find-and-preferences between-separator)
 			   (make-an-item 'edit-menu:preferences "Configure your preferences"
-					 '(lambda (item control) (mred:preferences:show-preferences-dialog) #t)
+					 '(lambda (item control) (preferences:show-dialog) #t)
 					 #f "Preferences..." "")
 			   (make-between 'edit-menu 'after-standard-items between-nothing)
 			   
 			   (make-an-item 'help-menu:about "About this application"
-					 '(lambda (item control) (mred:console:credits))
+					 #f
 					 #f
 					 "About "
 					 "...")
@@ -336,8 +330,23 @@
 			    (build-item-menu-clause x)))
 		      items))))))))
 
-  (define make-edit%
-    (mixin empty-standard-menus<%> frame:simple-menu<%> ([name (mred:application:current-app-name)])
+  (define editor<%> (interface (standard-menus<%>)
+		      WIDTH
+		      HEIGHT
+		      title-prefix
+		      get-entire-label
+		      get-label-prefix
+		      set-label-prefix
+
+		      get-canvas%
+		      get-edit%
+		      make-edit
+		      save-as		      
+		      get-canvas
+		      get-edit))
+
+  (define make-editor%
+    (mixin standard-menus<%> simple-menu<%> (file-name)
       (inherit panel get-client-size set-icon get-menu-bar
 	       make-menu show active-edit active-canvas)
       (rename [super-can-close? can-close?]
@@ -352,9 +361,9 @@
 	 (lambda ()
 	   (and (send (get-edit) do-close)
 		(super-can-close?)))]
-	[get-panel%  (lambda () mred:panel:vertical-edit-panel%)])
+	[get-panel%  (lambda () panel:vertical-edit-panel%)])
       (public
-	[title-prefix name])
+	[title-prefix (application:current-app-name)])
 	     
       (private
 	[label ""]
@@ -387,38 +396,38 @@
 	     (set! label t)
 	     (do-label)))])
       (public
-	[get-canvas% (lambda () mred:canvas:frame-title-canvas%)]
-	[get-edit% (lambda () mred:edit:media-edit%)]
+	[get-canvas% (lambda () editor-canvas%)]
+	[get-edit% (lambda () text%)]
 	[make-edit (lambda () (make-object (get-edit%)))])
 	     
       (public
 	[save-as
 	 (opt-lambda ([format 'same])
-	   (let ([file (parameterize ([mred:finder:dialog-parent-parameter
-				       this])
+	   (let ([file (parameterize ([finder:dialog-parent-parameter this])
 			 (finder:put-file))])
 	     (when file
-	       (send (get-edit) save-file file format))))]
+	       (send (get-edit) save-file file format))))])
+      (override
 	[file-menu:revert 
 	 (lambda () 
 	   (let* ([b (box #f)]
 		  [edit (get-edit)]
 		  [filename (send edit get-filename b)])
-	     (if (or (null? filename) (unbox b))
-		 (wx:bell)
+	     (if (or (not filename) (unbox b))
+		 (bell)
 		 (let-values ([(start end)
-			       (if (is-a? edit wx:media-edit%)
+			       (if (is-a? edit text%)
 				   (values (send edit get-start-position)
 					   (send edit get-end-position))
 				   (values #f #f))])
 		   (send edit begin-edit-sequence)
 		   (let ([status (send edit load-file
 				       filename
-				       wx:const-media-ff-same
+				       'same
 				       #f)])
 		     (if status
 			 (begin
-			   (when (is-a? edit wx:media-edit%)
+			   (when (is-a? edit text%)
 			     (send edit set-position start end))
 			   (send edit end-edit-sequence))
 			 (begin
@@ -448,7 +457,7 @@
 	   (send file-menu append-separator))]
 	[file-menu:print (lambda ()
 			   (send (get-edit) print
-				 '()
+				 #f
 				 #t
 				 #t
 				 (preferences:get 'framework:print-output-mode))
@@ -459,95 +468,40 @@
 			(lambda (menu evt)
 			  (let ([edit (active-edit)])
 			    (when edit
-			      (send edit do-edit const)))
+			      (send edit do-edit-operation const)))
 			  #t))])
 	     
-      (public
-	[edit-menu:undo (edit-menu:do wx:const-edit-undo)]
-	[edit-menu:redo (edit-menu:do wx:const-edit-redo)]
-	[edit-menu:cut (edit-menu:do wx:const-edit-cut)]
-	[edit-menu:clear (edit-menu:do wx:const-edit-clear)]
-	[edit-menu:copy (edit-menu:do wx:const-edit-copy)]
-	[edit-menu:paste (edit-menu:do wx:const-edit-paste)]
-	[edit-menu:select-all (edit-menu:do wx:const-edit-select-all)]
-	[edit-menu:replace (lambda (menu evt)
-			     (when (active-canvas)
-			       (mred:find-string:find-string
-				(active-canvas)
-				(active-edit)
-				-1 -1 (list 'replace 'ignore-case))))]
+      (override
+	[edit-menu:undo (edit-menu:do 'undo)]
+	[edit-menu:redo (edit-menu:do 'redo)]
+	[edit-menu:cut (edit-menu:do 'cut)]
+	[edit-menu:clear (edit-menu:do 'clear)]
+	[edit-menu:copy (edit-menu:do 'copy)]
+	[edit-menu:paste (edit-menu:do 'paste)]
+	[edit-menu:select-all (edit-menu:do 'select-all)]
 	
-	[edit-menu:between-replace-and-preferences
+	[edit-menu:between-find-and-preferences
 	 (lambda (edit-menu)
 	   (send edit-menu append-separator)
 	   (send edit-menu append-item "Insert Text Box"
-		 (edit-menu:do wx:const-edit-insert-text-box))
+		 (edit-menu:do 'insert-text-box))
 	   (send edit-menu append-item "Insert Graphic Box"
-		 (edit-menu:do wx:const-edit-insert-graphic-box))
+		 (edit-menu:do 'insert-graphic-box))
 	   (send edit-menu append-item "Insert Image..."
-		 (edit-menu:do wx:const-edit-insert-image))
+		 (edit-menu:do 'insert-image))
 	   (send edit-menu append-item "Toggle Wrap Text"
 		 (lambda ()
 		   (let ([edit (active-edit)])
 		     (when edit
-		       (send edit set-auto-set-wrap (not (ivar edit auto-set-wrap?)))
-		       (send (active-canvas) force-redraw)))))
+		       (send edit auto-wrap (not (send edit auto-wrap)))))))
 	   (send edit-menu append-separator))])
 	     
-      (public
-	[help-menu:about (lambda (menu evt) (mred:console:credits))]
-	[help-menu:about-string (mred:application:current-app-name)]
-	[help-menu:compare string-ci<?]
-	[help-menu:insert-items
-	 (lambda (items)
-	   (for-each (lambda (x) (apply (ivar (ivar this help-menu) append-item) x))
-		     items))]
-	[help-menu:after-about
-	 (let ([reg (regexp "<TITLE>(.*)</TITLE>")])
-	   (lambda (help-menu)
-	     (let* ([dir (with-handlers ([void (lambda (x) #f)]) (collection-path "doc"))])
-	       (if (and dir (directory-exists? dir))
-		   (let* ([dirs (directory-list dir)]
-			  [find-title
-			   (lambda (name)
-			     (lambda (port)
-			       (let loop ([l (read-line port)])
-				 (if (eof-object? l)
-				     name
-				     (let ([match (regexp-match reg l)])
-				       (if match
-					   (cadr match)
-					   (loop (read-line port))))))))]
-			  [build-item
-			   (lambda (local-dir output)
-			     (let* ([f (build-path dir local-dir "index.htm")])
-			       (if (file-exists? f)
-				   (let ([title (call-with-input-file f (find-title local-dir))])
-				     (cons 
-				      (list title
-					    (lambda ()
-					      (let* ([f (make-object mred:hyper-frame:hyper-view-frame%
-							  (string-append "file:" f))])
-						(send f set-title-prefix title)
-						f)))
-				      output))
-				   (begin (mred:debug:printf 'help-menu "couldn't find ~a" f)
-					  output))))]
-			  [item-pairs 
-			   (mzlib:function:quicksort
-			    (mzlib:function:foldl build-item null dirs)
-			    (lambda (x y) (help-menu:compare (car x) (car y))))])
-		     (unless (null? item-pairs)
-		       (send help-menu append-separator))
-		     (help-menu:insert-items item-pairs))
-		   (mred:debug:printf 'help-menu "couldn't find PLTHOME/doc directory")))))])
+      (override
+	[help-menu:about (lambda (menu evt) (message-box (format "Welcome to ~a" (application:current-app-name))))]
+	[help-menu:about-string (application:current-app-name)])
 	     
       (sequence
-	(mred:debug:printf 'super-init "before simple-frame%")
-	(super-init () name -1 -1 WIDTH HEIGHT
-		    (+ wx:const-default-frame wx:const-sdi)
-		    name)
-	(mred:debug:printf 'super-init "after simple-frame%"))
+	(super-init name #f WIDTH HEIGHT '(default-frame sdi)))
 	     
       (public
 	[get-canvas (let ([c #f])
@@ -563,13 +517,26 @@
 			(send (get-canvas) set-media e))
 		      e))])
       (sequence
-	(let ([icon (mred:icon:get-icon)])
+	(let ([icon (icon:get-icon)])
 	  (when (send icon ok?)
 	    (set-icon icon)))
 	(do-title)
 	(let ([canvas (get-canvas)])
+	  (send (get-edit) load-file filename)
 	  (send canvas set-focus)))))
   
+  (define searchable<%> (interface ()
+			  get-edit-to-search
+			  hide-search
+			  unhide-search
+			  set-search-direction
+			  replace&search
+			  replace-all
+			  replace
+			  toggle-search-focus
+			  move-to-search-or-show-search
+			  move-to-search-or-reverse-search
+			  search))
   (define make-searchable%
     (let* ([anchor 0]
 	   [searching-direction 1]
@@ -578,8 +545,8 @@
 	    (lambda (edit)
 	      (let loop ([edit edit])
 		(let ([snip (send edit get-focus-snip)])
-		  (if (or (null? snip)
-			  (not (is-a? snip wx:media-snip%)))
+		  (if (or (not snip)
+			  (not (is-a? snip editor-snip%)))
 		      edit
 		      (loop (send snip get-this-media))))))]
 	   [clear-highlight
@@ -587,7 +554,7 @@
 	      (begin (old-highlight)
 		     (set! old-highlight void)))]
 	   [reset-anchor
-	    (let ([color (make-object wx:colour% "BLUE")])
+	    (let ([color (make-object color% "BLUE")])
 	      (lambda (edit)
 		(old-highlight)
 		(let ([position 
@@ -623,14 +590,14 @@
 			      (lambda (found-edit)
 				(send found-edit set-position anchor)
 				(when beep?
-				  (wx:bell))
+				  (bell))
 				#f)]
 			     [found
 			      (lambda (edit first-pos)
 				(let ([last-pos (+ first-pos (* searching-direction 
 								(string-length string)))])
 				  (send* edit 
-				    (set-caret-owner null wx:const-focus-display)
+				    (set-caret-owner #f 'display)
 				    (set-position
 				     (min first-pos last-pos)
 				     (max first-pos last-pos)))
@@ -683,30 +650,31 @@
 	    (class editor-canvas% args
 	      (inherit get-parent frame set-line-count)
 	      (rename [super-on-set-focus on-set-focus])
-	      (public
-		[lines 2]
-		[style-flags wx:const-mcanvas-hide-h-scroll]
+	      (override
+		[style-flags '(h-scroll)]
 		[on-set-focus
 		 (lambda ()
 		   (send find-edit set-searching-frame frame)
 		   (super-on-set-focus))])
 	      (sequence
 		(apply super-init args)
-		(set-line-count 1)))])
+		(set-line-count 2)))])
       (for-each (lambda (keymap)
 		  (send keymap chain-to-keymap
 			keymap:global-search-keymap
 			#t))
 		(list (send find-edit get-keymap)
 		      (send replace-edit get-keymap)))
-      (mixin frame:edit<%> frame:searchable<%> args
+      (mixin edit<%> searchable<%> args
 	(inherit active-edit active-canvas get-edit)
 	(rename [super-make-root-panel make-root-panel]
 		[super-on-activate on-activate]
 		[super-do-close do-close])
 	(private
 	  [super-root 'unitiaialized-super-root])
-	(public
+	(override
+	 [edit-menu:find (lambda (menu evt) (search))])
+	(override
 	  [make-root-panel
 	   (lambda (% parent)
 	     (let* ([s-root (super-make-root-panel
@@ -715,14 +683,15 @@
 		    [root (make-object % s-root)])
 	       (set! super-root s-root)
 	       root))])
-	(public
+	(override
 	  [on-activate
 	   (lambda (on?)
 	     (unless hidden?
 	       (if on?
 		   (reset-anchor (get-edit-to-search))
 		   (clear-highlight)))
-	     (super-on-activate on?))]	
+	     (super-on-activate on?))])
+	(public
 	  [get-edit-to-search
 	   (lambda () 
 	     (get-edit))]
@@ -740,18 +709,18 @@
 	     (set! hidden? #f)
 	     (send super-root add-child search-panel)
 	     (reset-anchor (get-edit-to-search)))])
-	(public
+	(override
 	  [do-close
 	   (lambda ()
 	     (super-do-close)
 	     (let ([close-canvas
 		    (lambda (canvas edit)
 		      (send edit remove-canvas canvas)
-		      (send canvas set-media ()))])
+		      (send canvas set-media #f))])
 	       (close-canvas find-canvas find-edit)
 	       (close-canvas replace-canvas replace-edit))
 	     (when (eq? this (ivar find-edit searching-frame))
-	       (send find-edit set-searching-frame #f)))]
+	       (send find-edit set-searching-frame #f)))])
 	  [set-search-direction 
 	   (lambda (x) 
 	     (set! searching-direction x)
@@ -863,16 +832,16 @@
 					   middle-middle-panel
 					   (lambda x (replace-all)))]
 	  
-	  [dir-radio (make-object radio-box% middle-right-panel
-				  (lambda (dir-radio evt)
-				    (let ([forward (if (= 0 (send evt get-command-int))
-						       1
-						       -1)])
-				      (set-search-direction forward)
-				      (reset-anchor (get-edit-to-search))))
-				  null
-				  -1 -1 -1 -1
-				  (list "Forward" "Backward"))]
+	  [dir-radio (make-object radio-box%
+		       #f
+		       (list "Forward" "Backward")
+		       middle-right-panel
+		       (lambda (dir-radio evt)
+			 (let ([forward (if (= 0 (send evt get-command-int))
+					    1
+					    -1)])
+			   (set-search-direction forward)
+			   (reset-anchor (get-edit-to-search)))))]
 	  [close-button (make-object button% middle-right-panel
 				     (lambda args (hide-search)) "Hide")]
 	  [hidden? #f])
@@ -897,6 +866,12 @@
 	  (send replace-edit add-canvas replace-canvas)
 	  (hide-search #t)))))
   
+  (define info<%> (interface (edit<%>)
+		    determine-width
+		    get-info-edit
+		    lock-status-changed
+		    update-info
+		    info-panel))
   (define make-info%
     (let* ([time-edit (make-object text%)]
 	   [time-semaphore (make-semaphore 1)]
@@ -934,12 +909,12 @@
 		    (update-time)
 		    (sleep 30)
 		    (loop))))])
-      (mixin frame:edit<%> frame:info<%> args
+      (mixin edit<%> info<%> args
 	(rename [super-make-root-panel make-root-panel])
 	(private
 	  [rest-panel 'uninitialized-root]
 	  [super-root 'uninitialized-super-root])
-	(public
+	(override
 	  [make-root-panel
 	   (lambda (% parent)
 	     (let* ([s-root (super-make-root-panel
@@ -954,7 +929,7 @@
 	  [determine-width
 	   (let ([magic-space 25])
 	     (lambda (string canvas edit)
-	       (send edit set-autowrap-bitmap null)
+	       (send edit set-autowrap-bitmap #f)
 	       (send canvas call-as-primary-owner
 		     (lambda ()
 		       (let ([lb (box 0)]
@@ -965,7 +940,7 @@
 			       (send edit last-position)
 			       rb)
 			 (send edit position-location 0 lb)
-			 (send canvas user-min-width 
+			 (send canvas min-width 
 			       (+ magic-space (- (unbox rb) (unbox lb)))))))))])
 	
 	(rename [super-do-close do-close])
@@ -976,17 +951,17 @@
 	    (lambda (p v)
 	      (if v 
 		  (register-gc-blit)
-		  (wx:unregister-collecting-blit gc-canvas))
+		  (unregister-collecting-blit gc-canvas))
 	      (send super-root change-children
 		    (lambda (l)
 		      (if v
 			  (list rest-panel info-panel)
 			  (list rest-panel))))))])
-	(public
+	(override
 	  [do-close
 	   (lambda ()
 	     (super-do-close)
-	     (send time-canvas set-media null)
+	     (send time-canvas set-media #f)
 	     (unregister-collecting-blit gc-canvas)
 	     (close-panel-callback))])
 	
@@ -1029,9 +1004,9 @@
 				   super-root)])
 	(private
 	  [lock-message (make-object message%
-				     (let ([b (mred:icon:get-unlock-bitmap)])
+				     (let ([b (icon:get-unlock-bitmap)])
 				       (if (send b ok?)
-					   (cons (mred:icon:get-unlock-mdc) b)
+					   (cons (icon:get-unlock-mdc) b)
 					   "Unlocked")) 
 				     info-panel
 				     '(border))]
@@ -1040,17 +1015,17 @@
 	  [gc-canvas (make-object canvas% info-panel '(border))]
 	  [register-gc-blit
 	   (lambda ()
-	     (let ([mdc (mred:icon:get-gc-on-dc)])
+	     (let ([mdc (icon:get-gc-on-dc)])
 	       (when (send mdc ok?)
 		 (register-collecting-blit gc-canvas 
 					   0 0
-					   (mred:icon:get-gc-width)
-					   (mred:icon:get-gc-height)
-					   (mred:icon:get-gc-on-dc)
-					   (mred:icon:get-gc-off-dc)))))])
+					   (icon:get-gc-width)
+					   (icon:get-gc-height)
+					   (icon:get-gc-on-dc)
+					   (icon:get-gc-off-dc)))))])
 	
 	(sequence
-	  (unless (mred:preferences:get-preference 'mred:show-status-line)
+	  (unless (preferences:get-preference 'framework:show-status-line)
 	    (send super-root change-children
 		  (lambda (l)
 		    (list rest-panel))))
@@ -1081,170 +1056,175 @@
 	  (semaphore-post time-semaphore)
 	  (update-time)))))
 
+  (define edit-info<%> (interface (info<%>)
+			 overwrite-status-changed
+			 anchor-status-changed
+			 edit-position-changed-offset
+			 edit-position-changed))
   (define make-edit-info%
-    (mixin (interface (frame:info<%> frame:edit<%>)) frame:edit-info<%> args
-	     (inherit get-info-edit)
-	     (rename [super-do-close do-close])
-	     (private
-	       [remove-pref-callback
-		(preferences:add-callback
-		 'framework:line-offsets
-		 (lambda (p v)
-		   (edit-position-changed-offset v)
-		   #t))])
-	     (public
-	       [do-close
-		(lambda ()
-		  (super-do-close)
-		  (remove-pref-callback))])
-	     
-	     (public
-	       [overwrite-status-changed
-		(let ([last-state? #f])
-		  (lambda ()
-		    (let ([info-edit (get-info-edit)])
-		      (when info-edit
-			(let ([overwrite-now? (send info-edit get-overwrite-mode)])
-			  (unless (eq? overwrite-now? last-state?)
-			    (send overwrite-message
-				  show
-				  overwrite-now?)
-			    (set! last-state? overwrite-now?)))))))]
-	       [anchor-status-changed
-		(let ([last-state? #f])
-		  (lambda ()
-		    (let ([info-edit (get-info-edit)])
-		      (when info-edit
-			(let ([anchor-now? (send info-edit get-anchor)])
-			  (unless (eq? anchor-now? last-state?)
-			    (send anchor-message
-				  show
-				  anchor-now?)
-			    (set! last-state? anchor-now?)))))))]
-	       
-	       [edit-position-changed-offset
-		(let ([last-start #f]
-		      [last-end #f])
-		  (lambda (offset?)
-		    (let* ([edit (get-info-edit)]
-			   [make-one
-			    (lambda (pos)
-			      (let* ([line (send edit position-line pos)]
-				     [line-start (send edit line-start-position line)]
-				     [char (- pos line-start)])
-				(if (preferences:get 'framework:display-line-numbers)
-				    (format "~a:~a"
-					    (if offset?
-						(add1 line)
-						line)
-					    (if offset?
-						(add1 char)
-						char))
-				    (format "~a"
-					    (if offset?
-						(+ pos 1)
-						pos)))))])
-		      (when edit
-			(let ([start (send edit get-start-position)]
-			      [end (send edit get-end-position)])
-			  (unless (and last-start
-				       (= last-start start)
-				       (= last-end end))
-			    (set! last-start start)
-			    (set! last-end end)
-			    (when (object? position-edit)
-			      (send* position-edit
-				(lock #f)
-				(erase)
-				(insert 
-				 (if (= start end)
-				     (make-one start)
-				     (string-append (make-one start)
-						    "-"
-						    (make-one end))))
-				(lock #t)))))))))]
-	       [edit-position-changed
-		(lambda ()
-		  (edit-position-changed-offset
-		   (preferences:get 'framework:line-offsets)))])
-	     (rename [super-update-info update-info])
-	     (public
-	       [update-info
-		(lambda ()
-		  (super-update-info)
-		  (overwrite-status-changed)
-		  (anchor-status-changed)
-		  (edit-position-changed))])
-	     (sequence 
-	       (apply super-init args))
-	     
-	     (inherit info-panel)
-	     (private
-	       [anchor-message 
-		(make-object message%
-			     (let ([b (mred:icon:get-anchor-bitmap)])
-			       (if (send b ok?)
-				   (cons (mred:icon:get-anchor-mdc) b)
-				   "Anchor"))
-			     info-panel '(border))]
-	       [overwrite-message 
-		(make-object mred:container:canvas-message%
-			     "Overwrite"
-			     info-panel
-			     '(border))]
-	       [position-canvas (make-object editor-canvas% info-panel)]
-	       [_2 (send position-canvas set-line-count 1)]
-	       [position-edit (make-object text%)])
-	     
-	     (inherit determine-width)
-	     (sequence
-	       (let ([move-front
-		      (lambda (x l)
-			(cons x (mzlib:function:remq x l)))])
-		 (send info-panel change-children
-		       (lambda (l)
-			 (move-front
-			  anchor-message
-			  (move-front
-			   overwrite-message
-			   (move-front
-			    position-canvas
-			    l))))))
-	       (send anchor-message show #f)
-	       (send overwrite-message show #f)
-	       (send* position-canvas
-		 (set-media position-edit)
-		 (stretchable-in-x #f))
-	       (determine-width "0000:000-0000:000" 
-				position-canvas
-				position-edit)
-	       (edit-position-changed)
-	       (send position-edit lock #t))))
+    (mixin info<%> edit-info<%> args
+      (inherit get-info-edit)
+      (rename [super-do-close do-close])
+      (private
+	[remove-pref-callback
+	 (preferences:add-callback
+	  'framework:line-offsets
+	  (lambda (p v)
+	    (edit-position-changed-offset v)
+	    #t))])
+      (override
+	[do-close
+	 (lambda ()
+	   (super-do-close)
+	   (remove-pref-callback))])
+      
+      (public
+	[overwrite-status-changed
+	 (let ([last-state? #f])
+	   (lambda ()
+	     (let ([info-edit (get-info-edit)])
+	       (when info-edit
+		 (let ([overwrite-now? (send info-edit get-overwrite-mode)])
+		   (unless (eq? overwrite-now? last-state?)
+		     (send overwrite-message
+			   show
+			   overwrite-now?)
+		     (set! last-state? overwrite-now?)))))))]
+	[anchor-status-changed
+	 (let ([last-state? #f])
+	   (lambda ()
+	     (let ([info-edit (get-info-edit)])
+	       (when info-edit
+		 (let ([anchor-now? (send info-edit get-anchor)])
+		   (unless (eq? anchor-now? last-state?)
+		     (send anchor-message
+			   show
+			   anchor-now?)
+		     (set! last-state? anchor-now?)))))))]
+	
+	[edit-position-changed-offset
+	 (let ([last-start #f]
+	       [last-end #f])
+	   (lambda (offset?)
+	     (let* ([edit (get-info-edit)]
+		    [make-one
+		     (lambda (pos)
+		       (let* ([line (send edit position-line pos)]
+			      [line-start (send edit line-start-position line)]
+			      [char (- pos line-start)])
+			 (if (preferences:get 'framework:display-line-numbers)
+			     (format "~a:~a"
+				     (if offset?
+					 (add1 line)
+					 line)
+				     (if offset?
+					 (add1 char)
+					 char))
+			     (format "~a"
+				     (if offset?
+					 (+ pos 1)
+					 pos)))))])
+	       (when edit
+		 (let ([start (send edit get-start-position)]
+		       [end (send edit get-end-position)])
+		   (unless (and last-start
+				(= last-start start)
+				(= last-end end))
+		     (set! last-start start)
+		     (set! last-end end)
+		     (when (object? position-edit)
+		       (send* position-edit
+			      (lock #f)
+			      (erase)
+			      (insert 
+			       (if (= start end)
+				   (make-one start)
+				   (string-append (make-one start)
+						  "-"
+						  (make-one end))))
+			      (lock #t)))))))))]
+	[edit-position-changed
+	 (lambda ()
+	   (edit-position-changed-offset
+	    (preferences:get 'framework:line-offsets)))])
+      (rename [super-update-info update-info])
+      (override
+	[update-info
+	 (lambda ()
+	   (super-update-info)
+	   (overwrite-status-changed)
+	   (anchor-status-changed)
+	   (edit-position-changed))])
+      (sequence 
+	(apply super-init args))
+      
+      (inherit info-panel)
+      (private
+	[anchor-message 
+	 (make-object message%
+	   (let ([b (icon:get-anchor-bitmap)])
+	     (if (send b ok?)
+		 (cons (icon:get-anchor-mdc) b)
+		 "Anchor"))
+	   info-panel '(border))]
+	[overwrite-message 
+	 (make-object message%
+	   "Overwrite"
+	   info-panel
+	   '(border))]
+	[position-canvas (make-object editor-canvas% info-panel)]
+	[_2 (send position-canvas set-line-count 1)]
+	[position-edit (make-object text%)])
+      
+      (inherit determine-width)
+      (sequence
+	(let ([move-front
+	       (lambda (x l)
+		 (cons x (mzlib:function:remq x l)))])
+	  (send info-panel change-children
+		(lambda (l)
+		  (move-front
+		   anchor-message
+		   (move-front
+		    overwrite-message
+		    (move-front
+		     position-canvas
+		     l))))))
+	(send anchor-message show #f)
+	(send overwrite-message show #f)
+	(send* position-canvas
+	       (set-media position-edit)
+	       (stretchable-in-x #f))
+	(determine-width "0000:000-0000:000" 
+			 position-canvas
+			 position-edit)
+	(edit-position-changed)
+	(send position-edit lock #t))))
   
+  (define file<%> (interface (edit<%>)))
   (define make-file%
-    (lambda (super%)
-      (rec mred:file-frame%
-	   (class-asi super%
-	     (inherit get-edit)
-	     (rename [super-can-close? can-close?])
-	     (public
-	       [can-close?
-		(lambda ()
-		  (let* ([edit (get-edit)]
-			 [user-allowed-or-not-modified
-			  (or (not (send edit modified?))
-			      (case (mred:gui-utils:unsaved-warning
-				     (let ([fn (send edit get-filename)])
-				       (if (string? fn)
-					   fn
-					   "Untitled"))
-				     "Close"
-				     #t)
-				[(continue) #t]
-				[(save) (send edit save-file)]
-				[else #f]))])
-		    (and user-allowed-or-not-modified
-			 (super-can-close?))))])))))
+    (mixin edit<%> file<%> args
+      (inherit get-edit)
+      (rename [super-can-close? can-close?])
+      (override
+	[on-close?
+	 (lambda ()
+	   (let* ([edit (get-edit)]
+		  [user-allowed-or-not-modified
+		   (or (not (send edit modified?))
+		       (case (gui-utils:unsaved-warning
+			      (let ([fn (send edit get-filename)])
+				(if (string? fn)
+				    fn
+				    "Untitled"))
+			      "Close"
+			      #t)
+			 [(continue) #t]
+			 [(save) (send edit save-file)]
+			 [else #f]))])
+	     (and user-allowed-or-not-modified
+		  (super-can-close?))))])
+      (sequence (apply super-init args))))
 
   (define empty% (make-empty% frame%))
   (define standard-menus% (make-standard-menus% empty%))

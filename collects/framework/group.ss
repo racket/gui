@@ -1,5 +1,6 @@
 (unit/sig mred:group^
-  (import [exit : framework:exit^]
+  (import mred^
+	  [exit : framework:exit^]
 	  [mzlib:function : mzlib:function^]
 	  [mzlib:file : mzlib:file^])
   

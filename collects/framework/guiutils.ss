@@ -1,155 +1,205 @@
+(unit/sig framework:gui-utils^
+  (import mred^)
 
-  (unit/sig framework:gui-utils^
-    (import)
+  (define cursor-delay
+    (let ([x 0.25])
+      (case-lambda
+       [() x]
+       [(v) (set! x v) x])))
 
-    (define cursor-delay
-      (let ([x 0.25])
-	(case-lambda
-	 [() x]
-	 [(v) (set! x v) x])))
+  (define show-busy-cursor
+    (lambda (thunk)
+      (local-busy-cursor #f thunk)))
 
-    (define show-busy-cursor
-      (lambda (thunk)
-	(local-busy-cursor #f thunk)))
+  (define delay-action
+    (lambda (delay-time open close)
+      (let ([semaphore (make-semaphore 1)]
+	    [open? #f]
+	    [skip-it? #f])
+	(thread 
+	 (lambda ()
+	   (sleep delay-time)
+	   (semaphore-wait semaphore)
+	   (unless skip-it?
+	     (set! open? #t)
+	     (open))
+	   (semaphore-post semaphore)))
+	(lambda ()
+	  (semaphore-wait semaphore)
+	  (set! skip-it? #t)
+	  (when open?
+	    (close))
+	  (semaphore-post semaphore)))))
 
-    (define delay-action
-      (lambda (delay-time open close)
-	(let ([semaphore (make-semaphore 1)]
-	      [open? #f]
-	      [skip-it? #f])
-	  (thread 
+  (define local-busy-cursor
+    (let ([watch (make-object wx:cursor% wx:const-cursor-watch)])
+      (opt-lambda (win thunk [delay (cursor-delay)])
+	(let* ([old-cursor #f]
+	       [cursor-off void])
+	  (dynamic-wind
 	   (lambda ()
-	     (sleep delay-time)
-	     (semaphore-wait semaphore)
-	     (unless skip-it?
-	       (set! open? #t)
-	       (open))
-	     (semaphore-post semaphore)))
-	  (lambda ()
-	    (semaphore-wait semaphore)
-	    (set! skip-it? #t)
-	    (when open?
-	      (close))
-	    (semaphore-post semaphore)))))
+	     (set! cursor-off
+		   (delay-action
+		    delay
+		    (lambda ()
+		      (if win
+			  (set! old-cursor (send win set-cursor watch))
+			  (wx:begin-busy-cursor)))
+		    (lambda ()
+		      (if win
+			  (send win set-cursor old-cursor)
+			  (wx:end-busy-cursor))))))
+	   (lambda () (thunk))
+	   (lambda () (cursor-off)))))))
 
-    (define local-busy-cursor
-      (let ([watch (make-object wx:cursor% wx:const-cursor-watch)])
-	(opt-lambda (win thunk [delay (cursor-delay)])
-	  (let* ([old-cursor #f]
-		 [cursor-off void])
-	    (dynamic-wind
-	     (lambda ()
-	       (set! cursor-off
-		     (delay-action
-		      delay
-		      (lambda ()
-			(if win
-			    (set! old-cursor (send win set-cursor watch))
-			    (wx:begin-busy-cursor)))
-		      (lambda ()
-			(if win
-			    (send win set-cursor old-cursor)
-			    (wx:end-busy-cursor))))))
-	     (lambda () (thunk))
-	     (lambda () (cursor-off)))))))
+  (define unsaved-warning
+    (opt-lambda (filename action [can-save-now? #f])
+      (let* ([result (void)]
+	     [dialog%
+	      (class dialog-box% ()
+		(inherit show new-line fit tab center set-size)
+		(private
+		  [on-dont-save
+		   (lambda args
+		     (set! result 'continue)
+		     (show #f))]
+		  [on-save-now
+		   (lambda rags
+		     (set! result 'save)
+		     (show #f))]
+		  [on-cancel
+		   (lambda args
+		     (set! result 'cancel)
+		     (show #f))])
+		(sequence
+		  (super-init "Warning")
+		  (let* ([panel (make-object vertical-panel% this)]
+			 [msg
+			  (make-object message% 
+			    (string-append "The file \""
+					   filename
+					   "\" is not saved.")
+			    panel)]
+			 [button-panel
+			  (make-object horizontal-panel% panel)])
+		    (make-object button% 
+		      (string-append action " Anyway")
+		      button-panel
+		      on-dont-save)
+		    (let ([now (make-object button% 
+				 "Save"
+				 button-panel
+				 on-save-now)]
+			  [cancel (make-object button%
+				    "Cancel"
+				    button-panel
+				    on-cancel)])
+		      (if (not can-save-now?)
+			  (begin (send cancel set-focus)
+				 (send now show #f))
+			  (send now set-focus)))
+		    (send msg center wx:const-horizontal))
+		  
+		  (set-size -1 -1 10 10)
+		  (center wx:const-both)
+		  
+		  (show #t)))])
+	(make-object dialog%)
+	result)))
+  
+  (define read-snips/chars-from-buffer
+    (opt-lambda (edit [start 0] [end (send edit last-position)])
+      (let ([pos start]
+	    [box (box 0)])
+	(lambda ()
+	  (let* ([snip (send edit find-snip pos
+			     wx:const-snip-after-or-null box)]
+		 [ans
+		  (cond
+		    [(<= end pos) eof]
+		    [(null? snip) eof]
+		    [(is-a? snip wx:text-snip%)
+		     (let ([t (send snip get-text (- pos (unbox box)) 1)])
+		       (unless (= (string-length t) 1)
+			 (error 'read-snips/chars-from-buffer
+				"unexpected string, t: ~s; pos: ~a box: ~a"
+				t pos box))
+		       (string-ref t 0))]
+		    [else snip])])
+	    (set! pos (add1 pos))
+	    ans)))))
 
-    (define unsaved-warning
-      (opt-lambda (filename action [can-save-now? #f])
-	(let* ([result (void)]
-	       [dialog%
-		(class dialog-box% ()
-		  (inherit show new-line fit tab center set-size)
-		  (private
-		    [on-dont-save
-		     (lambda args
-		       (set! result 'continue)
-		       (show #f))]
-		    [on-save-now
-		     (lambda rags
-		       (set! result 'save)
-		       (show #f))]
-		    [on-cancel
-		     (lambda args
-		       (set! result 'cancel)
-		       (show #f))])
-		  (sequence
-		    (super-init "Warning")
-		    (let* ([panel (make-object vertical-panel% this)]
-			   [msg
-			    (make-object message% 
-					 (string-append "The file \""
-							filename
-							"\" is not saved.")
-					 panel)]
-			   [button-panel
-			    (make-object horizontal-panel% panel)])
-		      (make-object button% 
-				   (string-append action " Anyway")
-				   button-panel
-				   on-dont-save)
-		      (let ([now (make-object button% 
-					      "Save"
-					      button-panel
-					      on-save-now)]
-			    [cancel (make-object button%
-						 "Cancel"
-						 button-panel
-						 on-cancel)])
-			(if (not can-save-now?)
-			    (begin (send cancel set-focus)
-				   (send now show #f))
-			    (send now set-focus)))
-		      (send msg center wx:const-horizontal))
+  (define get-choice
+    (opt-lambda (message true-choice false-choice 
+			 [title "Warning"][x -1][y -1])
+      (let* ([result (void)]
+	     [dialog%
+	      (class wx:dialog-box% ()
+		(inherit show new-line fit tab center)
+		(private
+		  [on-true
+		   (lambda args
+		     (set! result #t)
+		     (show #f))]
+		  [on-false
+		   (lambda rags
+		     (set! result #f)
+		     (show #f))])
+		(sequence
+		  (super-init () title #t x y)
+		  (let* ([messages
+			  (let loop ([m message])
+			    (let ([match (regexp-match (format "([^~n]*)~n(.*)")
+						       m)])
+			      (if match
+				  (cons (cadr match)
+					(loop (caddr match)))
+				  (list m))))]
+			 [msgs (map
+				(lambda (message)
+				  (begin0
+				   (make-object wx:message% this message)
+				   (new-line)))
+				messages)])
 		    
-		    (set-size -1 -1 10 10)
-		    (center wx:const-both)
+		    (send (make-object wx:button% this
+				       on-true true-choice)
+			  set-focus)
+		    (tab 50)
+		    (make-object wx:button% this on-false false-choice)
+		    (fit)
 		    
-		    (show #t)))])
-	  (make-object dialog%)
-	  result)))
-    
-    (define read-snips/chars-from-buffer
-      (opt-lambda (edit [start 0] [end (send edit last-position)])
-        (let ([pos start]
-	      [box (box 0)])
-	  (lambda ()
-	    (let* ([snip (send edit find-snip pos
-			       wx:const-snip-after-or-null box)]
-		   [ans
-		    (cond
-		      [(<= end pos) eof]
-		      [(null? snip) eof]
-		      [(is-a? snip wx:text-snip%)
-		       (let ([t (send snip get-text (- pos (unbox box)) 1)])
-			 (unless (= (string-length t) 1)
-			   (error 'read-snips/chars-from-buffer
-				  "unexpected string, t: ~s; pos: ~a box: ~a"
-				  t pos box))
-			 (string-ref t 0))]
-		      [else snip])])
-	      (set! pos (add1 pos))
-	      ans)))))
+		    (if (and (< x 0) (< y 0))
+			(map (lambda (msg)
+			       (send msg center wx:const-horizontal))
+			     msgs)))
+		  
+		  (center wx:const-both)
+		  
+		  (show #t)))])
+	(make-object dialog%)
+	result)))
 
-    (define open-input-buffer
-      (lambda (buffer)
-	(let ([pos 0])
-	  (make-input-port
-	   (lambda ()
-	     (let ([c (send buffer get-character pos)])
-	       (if (char=? c #\null)
-		   eof
-		   (begin
-		     (set! pos (add1 pos))
-		     c))))
-	   (lambda ()
-	     #t)
-	   (lambda ()
-	     (void))))))
-    
-    ; For use with wx:set-print-paper-name
-    (define print-paper-names
-      (list
-       "A4 210 x 297 mm"
-       "A3 297 x 420 mm"
-       "Letter 8 1/2 x 11 in"
-       "Legal 8 1/2 x 14 in")))
+  (define open-input-buffer
+    (lambda (buffer)
+      (let ([pos 0])
+	(make-input-port
+	 (lambda ()
+	   (let ([c (send buffer get-character pos)])
+	     (if (char=? c #\null)
+		 eof
+		 (begin
+		   (set! pos (add1 pos))
+		   c))))
+	 (lambda ()
+	   #t)
+	 (lambda ()
+	   (void))))))
+  
+  ; For use with wx:set-print-paper-name
+  (define print-paper-names
+    (list
+     "A4 210 x 297 mm"
+     "A3 297 x 420 mm"
+     "Letter 8 1/2 x 11 in"
+     "Legal 8 1/2 x 14 in")))

@@ -1,3 +1,4 @@
+
 (require-library "refer.ss")
 (require-library "cores.ss")
 (require-library "match.ss")
@@ -9,7 +10,7 @@
   (empty<%>
    standard-menus<%>
    empty-standard-menus<%>
-   edit<%>
+   editor<%>
    searchable<%>
    pasteboard<%>
    info<%>
@@ -17,14 +18,14 @@
 
    make-empty%
    make-standard-menus%
-   make-edit%
+   make-editor%
    make-searchable%
    make-info%
    make-file%
 
    empty%
    standard-menus%
-   edit%
+   editor%
    searchable%
    info%
    info-file%
@@ -36,7 +37,7 @@
   (add-spec
    version))
 
-(define-signature mred:panel^
+(define-signature framework:panel^
   (make-edit%
    edit<%>
    horizontal-edit%
@@ -44,9 +45,8 @@
 
 (define-signature framework:exn^
   ((struct exn ())
-   (struct exn:unknown-preference ())
-   (struct exn:during-preferences ())
-   (struct exn:url ())))
+   (struct unknown-preference ())
+   (struct during-preferences ())))
 
 (define-signature framework:application^
   (current-app-name))
@@ -82,6 +82,7 @@
    local-busy-cursor
    unsaved-warning
    read-snips/chars-from-buffer
+   get-choice
    open-input-buffer))
 
 (define-signature framework:path-utils^
@@ -100,7 +101,7 @@
    get-file
    put-file))
 
-(define framework:editor^
+(define-signature framework:editor^
   (editor:basic<%>
    editor:info<%>
    editor:autosave<%>
@@ -109,6 +110,13 @@
    editor:make-info%
    editor:make-file%
    editor:make-backup-autosave%))
+
+(define-signature framework:pasteboard^
+  (basic%
+   file%
+   clever-file-format%
+   backup-autosave%
+   info%))
 
 (define-signature framework:text^
   (text:basic<%>
@@ -196,7 +204,7 @@
    pasteboard-info%
    pasteboard-info-file%))
 
-(define-signature mred:group^
+(define-signature framework:group^
   (frame-group%
    the-frame-group))
 
@@ -207,7 +215,6 @@
    find-format-handler 
    find-named-format-handler 
    edit-file
-   open-url
    open-file))
 
 (define-signature framework:icon^
@@ -229,21 +236,22 @@
    get-gc-width
    get-gc-height))
 
-(define-signature mred:keymap^
-  (keyerr
+(define-signature framework:keymap^
+  (shifted-key-list
+
+   keyerr
    set-keymap-error-handler
-   shifted-key-list
    set-keymap-implied-shifts
    make-meta-prefix-list
    send-map-function-meta
 
-   setup-global-keymap
-   setup-global-search-keymap
-   setup-global-file-keymap
+   setup-global
+   setup-search
+   setup-file
 
-   global-keymap
-   global-search-keymap
-   global-file-keymap))
+   global
+   search
+   file))
 
 (define-signature framework:match-cache^
   (%))
@@ -286,52 +294,34 @@
    backward-match
    skip-whitespace))
 
-
-(define-signature mred:hyper-edit^
-  ((struct hypertag (name position))
-   (struct hyperlink (anchor-start anchor-end url-string))
-   hyper-buffer-data%
-   hyper-data-class
-   make-hyper-edit%
-   hyper-edit%))
-
-(define-signature mred:hyper-dialog^
-  (hyper-tag-dialog%
-   hyper-get-current-tags))
-
-(define-signature mred:hyper-frame^
-  (hyper-frame-group
-   make-hyper-canvas%
-   hyper-canvas%
-   make-hyper-basic-frame%
-   hyper-basic-frame%
-   make-hyper-view-frame%
-   hyper-view-frame%
-   make-hyper-make-frame%
-   hyper-make-frame%
-   open-hyper-view
-   open-hyper-make
-   hyper-text-require))
-
 (define-signature mred^
-  ((unit constants : mred:constants^)
-   (open mred:version^)
-   (open mred:exn-external^)
-   (open mred:connections^) (open mred:container^) (open mred:preferences^)
-   (open mred:autoload^) (open mred:autosave^) (open mred:exit^)
-   (open mred:gui-utils^) (open mred:console^) (open mred:path-utils^)
-   (open mred:finder^)
-   (open mred:find-string^) (open mred:edit^) (open mred:canvas^)
-   (open mred:frame^) (open mred:editor-frame^)
-   (open mred:group^) (open mred:handler^) (open mred:icon^) (open mred:keymap^)
-   (open mred:match-cache^) (open mred:menu^) (open mred:mode^) 
-   (open mred:panel^) (open mred:paren^) (open mred:project^)
-   (open mred:scheme-paren^) (open mred:scheme-mode^) 
-   (open mred:hyper-edit^) (open mred:hyper-dialog^) (open mred:hyper-frame^)
-   (open mred:testable-window^)
-   (unit test : mred:self-test-export^)
-   (open mred:url^)
-   (open mred:graph^)
-   (open mred:application^)
-   (open mred:control^)))
+  ([unit application : framework:application^]
+   [unit version : framework:version^]
+   [unit exn : framework:exn^]
+   [unit exit : framework:exit^]
+   [unit preferences : framework:preferences^]
+   [unit autosave : framework:autosave^]
+   [unit handler : framework:handler^] 
+   [unit keymap : framework:keymap^]
+   [unit match-cache : framework:match-cache^]
+   [unit paren : framework:paren^]
+   [unit scheme-paren : framework:scheme-paren^]
+   [unit path-utils : framework:path-utils^]
+   [unit icon : framework:icon^]
 
+   [unit editor : framework:editor^]
+   [unit pasteboard : framework:pasteboard^]
+   [unit text : framework:text^]
+
+   [unit gui-utils : framework:gui-utils^]
+
+   [unit finder : framework:finder^]
+
+   [unit group : framework:group^]
+
+   [unit canvas : framework:canvas^]
+
+   [unit panel : framework:panel^]
+
+   [unit frame : framework:frame^]
+   [unit scheme-mode : framework:scheme-mode^]))

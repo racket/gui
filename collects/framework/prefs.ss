@@ -1,5 +1,6 @@
 (unit/sig framework:preferences^
-  (import [exn : framework:exn^]
+  (import mred^
+	  [exn : framework:exn^]
 	  [exit : framework:exit^]
 	  [mzlib:pretty-print : mzlib:pretty-print^]
 	  [mzlib:function : mzlib:function^])

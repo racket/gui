@@ -1,5 +1,6 @@
 (unit/sig framework:keymap^
-  (import [preferences : framework:preferences^]
+  (import mred^
+	  [preferences : framework:preferences^]
 	  [finder : framework:finder^]
 	  [handler : framework:handler^]
 	  [scheme-paren : framework:scheme-paren^])
@@ -37,101 +38,7 @@
 		  (send keymap map-function key func))
 		(make-meta-prefix-list key))))
   
-  (define setup-global-search-keymap
-    (let* ([send-frame
-	    (lambda (method)
-	      (lambda (edit event)
-		(let ([frame
-		       (let ([frame
-			      (cond
-				[(is-a? obj editor<%>)
-				 (let ([canvas (send obj get-active-canvas)])
-				   (and canvas
-					(send canvas get-top-level-window)))]
-				[(is-a? obj area<%>)
-				 (send obj get-top-level-window)]
-				[else #f])]))])
-		  (if frame
-		      ((ivar/proc frame method))
-		      (bell))
-		  #t)))])
-      (lambda (kmap)
-	(let* ([map (lambda (key func) 
-		      (send kmap map-function key func))]
-	       [map-meta (lambda (key func)
-			   (send-map-function-meta kmap key func))]
-	       [add (lambda (name func)
-		      (send kmap add-key-function name func))]
-	       [add-m (lambda (name func)
-			(send kmap add-mouse-function name func))])
-	  
-	  (add "move-to-search-or-search" (send-frame 'move-to-search-or-search)) ;; key 1
-	  (add "move-to-search-or-reverse-search" (send-frame 'move-to-search-or-reverse-search)) ;; key 1b, backwards
-	  (add "find-string" (send-frame 'search)) ;; key 2
-	  (add "toggle-search-focus" (send-frame 'toggle-search-focus)) ;; key 3
-	  (add "hide-search" (send-frame 'hide-search)) ;; key 4
-	  
-	  (case (system-type)
-	    [(unix)
-	     (map "c:s" "move-to-search-or-search")
-	     (map-meta "%" "move-to-search-or-search")
-	     (map "c:r" "move-to-search-or-reverse-search")
-	     (map "f3" "find-string")
-	     (map "c:i" "toggle-search-focus")
-	     (map "c:g" "hide-search")]
-	    [(windows)
-	     (map "c:f" "move-to-search-or-search")
-	     (map "c:r" "move-to-search-or-reverse-search")
-	     (map "f3" "find-string")
-	     (map "c:g" "find-string")
-	     (map "c:i" "toggle-search-focus")]
-	    [(macos)
-	     (map "c:s" "move-to-search-or-search")
-	     (map "c:g" "hide-search")
-	     (map "d:f" "move-to-search-or-search")
-	     (map "d:r" "move-to-search-or-reverse-search")
-	     (map "d:g" "find-string")
-	     (map "d:o" "toggle-search-focus")])))))
-  
-  (define setup-global-file-keymap
-    (let* ([save-file-as
-	    (lambda (edit event)
-	      (let ([file (finder:put-file)])
-		(if file
-		    (send edit save-file file)))
-	      #t)]
-	   [save-file
-	    (lambda (edit event)
-	      (if (send edit get-filename)
-		  (send edit save-file)
-		  (save-file-as edit event))
-	      #t)]
-	   [load-file
-	    (lambda (edit event)
-	      (handler:open-file)
-	      #t)])
-      (lambda (kmap)
-	(map (lambda (k) (send kmap implies-shift k)) shifted-key-list)
-	(let* ([map (lambda (key func) 
-		      (send kmap map-function key func))]
-	       [map-meta (lambda (key func)
-			   (send-map-function-meta kmap key func))]
-	       [add (lambda (name func)
-		      (send kmap add-key-function name func))]
-	       [add-m (lambda (name func)
-			(send kmap add-mouse-function name func))])
-	  
-	  (add "save-file" save-file)
-	  (add "save-file-as" save-file-as)
-	  (add "load-file" load-file)
-	  
-	  (map "c:x;c:s" "save-file")
-	  (map "d:s" "save-file")
-	  (map "c:x;c:w" "save-file-as")
-	  (map "c:x;c:f" "load-file")))))
-  
-  ; This installs the standard keyboard mapping
-  (define setup-global-keymap
+  (define setup-global
     ; Define some useful keyboard functions
     (let* ([ring-bell
 	    (lambda (edit event)
@@ -860,11 +767,104 @@
 	  (map "middlebutton" "paste-click-region")
 	  (map "c:rightbutton" "copy-clipboard")))))
   
-  (define global-keymap (make-object keymap%))
-  (setup-global-keymap global-keymap)
+  (define setup-search
+    (let* ([send-frame
+	    (lambda (method)
+	      (lambda (edit event)
+		(let ([frame
+		       (let ([frame
+			      (cond
+				[(is-a? obj editor<%>)
+				 (let ([canvas (send obj get-active-canvas)])
+				   (and canvas
+					(send canvas get-top-level-window)))]
+				[(is-a? obj area<%>)
+				 (send obj get-top-level-window)]
+				[else #f])]))])
+		  (if frame
+		      ((ivar/proc frame method))
+		      (bell))
+		  #t)))])
+      (lambda (kmap)
+	(let* ([map (lambda (key func) 
+		      (send kmap map-function key func))]
+	       [map-meta (lambda (key func)
+			   (send-map-function-meta kmap key func))]
+	       [add (lambda (name func)
+		      (send kmap add-key-function name func))]
+	       [add-m (lambda (name func)
+			(send kmap add-mouse-function name func))])
+	  
+	  (add "move-to-search-or-search" (send-frame 'move-to-search-or-search)) ;; key 1
+	  (add "move-to-search-or-reverse-search" (send-frame 'move-to-search-or-reverse-search)) ;; key 1b, backwards
+	  (add "find-string" (send-frame 'search)) ;; key 2
+	  (add "toggle-search-focus" (send-frame 'toggle-search-focus)) ;; key 3
+	  (add "hide-search" (send-frame 'hide-search)) ;; key 4
+	  
+	  (case (system-type)
+	    [(unix)
+	     (map "c:s" "move-to-search-or-search")
+	     (map-meta "%" "move-to-search-or-search")
+	     (map "c:r" "move-to-search-or-reverse-search")
+	     (map "f3" "find-string")
+	     (map "c:i" "toggle-search-focus")
+	     (map "c:g" "hide-search")]
+	    [(windows)
+	     (map "c:f" "move-to-search-or-search")
+	     (map "c:r" "move-to-search-or-reverse-search")
+	     (map "f3" "find-string")
+	     (map "c:g" "find-string")
+	     (map "c:i" "toggle-search-focus")]
+	    [(macos)
+	     (map "c:s" "move-to-search-or-search")
+	     (map "c:g" "hide-search")
+	     (map "d:f" "move-to-search-or-search")
+	     (map "d:r" "move-to-search-or-reverse-search")
+	     (map "d:g" "find-string")
+	     (map "d:o" "toggle-search-focus")])))))
   
-  (define global-file-keymap (make-object keymap%))
-  (setup-global-file-keymap global-file-keymap)
+  (define setup-file
+    (let* ([save-file-as
+	    (lambda (edit event)
+	      (let ([file (finder:put-file)])
+		(if file
+		    (send edit save-file file)))
+	      #t)]
+	   [save-file
+	    (lambda (edit event)
+	      (if (send edit get-filename)
+		  (send edit save-file)
+		  (save-file-as edit event))
+	      #t)]
+	   [load-file
+	    (lambda (edit event)
+	      (handler:open-file)
+	      #t)])
+      (lambda (kmap)
+	(map (lambda (k) (send kmap implies-shift k)) shifted-key-list)
+	(let* ([map (lambda (key func) 
+		      (send kmap map-function key func))]
+	       [map-meta (lambda (key func)
+			   (send-map-function-meta kmap key func))]
+	       [add (lambda (name func)
+		      (send kmap add-key-function name func))]
+	       [add-m (lambda (name func)
+			(send kmap add-mouse-function name func))])
+	  
+	  (add "save-file" save-file)
+	  (add "save-file-as" save-file-as)
+	  (add "load-file" load-file)
+	  
+	  (map "c:x;c:s" "save-file")
+	  (map "d:s" "save-file")
+	  (map "c:x;c:w" "save-file-as")
+	  (map "c:x;c:f" "load-file")))))
   
-  (define global-search-keymap (make-object keymap%))
-  (setup-global-search-keymap global-search-keymap))
+  (define global (make-object keymap%))
+  (setup-global global)
+  
+  (define file (make-object keymap%))
+  (setup-file file)
+  
+  (define search (make-object keymap%))
+  (setup-search search))

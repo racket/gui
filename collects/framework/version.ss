@@ -1,15 +1,14 @@
-  (unit/sig mred:version^
-    (import [mzlib:string^ : mzlib:string^])
+  (unit/sig framework:version^
+    (import [mzlib:string : mzlib:string^]
+	    [mzlib:function : mzlib:function^])
 
     (rename [-version version])
-
-    (mred:debug:printf 'invoke "mred:version@")
 
     (define specs null)
 
     (define -version
       (lambda ()
-	(mzlib:functionfoldr
+	(mzlib:function:foldr
 	 (lambda (entry sofar)
 	   (match entry
 	     [(sep num) (string-append sofar sep num)]))

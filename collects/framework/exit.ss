@@ -1,4 +1,4 @@
-(unit/sig mred:exit^
+(unit/sig framework:exit^
   (import [preferences : framework:preferences^]
 	  [gui-utils : framework:gui-utils^])
   (rename (-exit exit))
@@ -36,14 +36,14 @@
 	 (lambda () (set! exiting? #t))
 	 (lambda ()
 	   (if (and (let*-values ([(w capW)
-				   (if (eq? wx:platform 'windows)
+				   (if (eq? (system-type) 'windows)
 				       (values "exit" "Exit")
 				       (values "quit" "Quit"))]
 				  [(message)
 				   (string-append "Are you sure you want to "
 						  w
 						  "?")])
-		      (if (preferences:get-preference 'mred:verify-exit)
+		      (if (preferences:get 'framework:verify-exit)
 			  (if (gui-utils:get-choice message capW "Cancel")
 			      #t
 			      #f)
