@@ -229,7 +229,7 @@
                                                          (send tmpc red)
                                                          (send tmpc green)
                                                          (send tmpc blue))
-                                                        7)
+                                                        18)
                                                     rc
                                                     #f))
                                          rc))]
