@@ -369,7 +369,7 @@
        (let* ([to-be-searched-text (send frame get-text-to-search)]
 	      [to-be-searched-canvas (send to-be-searched-text get-canvas)]
 
-	      [dialog (make-object dialog% "Find and Replace")]
+	      [dialog (make-object dialog% "Find and Replace" frame)]
 
 	      [copy-text
 	       (lambda (from to)
