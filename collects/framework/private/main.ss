@@ -20,6 +20,7 @@
       (application-preferences-handler (lambda () (preferences:show-dialog)))
       
       ;; preferences
+      (preferences:set-default 'framework:last-directory (find-system-path 'home-dir) string?)
       (preferences:set-default 'framework:recent-max-count 
                                50 
                                (lambda (x) (and (number? x)

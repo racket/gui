@@ -34,7 +34,8 @@
 		  (message-box (string-constant error) msg)
 		  #f)))))
       
-      (define last-directory #f)
+      (define (set-last-directory dir) (preferences:set 'framework:directory dir))
+      (define (get-last-directory) (preferences:get 'framework:directory))
       
       (define make-relative
 	(lambda (s) s))
@@ -79,13 +80,13 @@
            last-selected)
 	  
 	  (private
-	    [set-directory ; sets directory in listbox 
+	    [set-listbox-directory ; sets directory in listbox 
 	     (lambda (dir) ; dir is normalized
 	       (when (directory-exists? dir)
 		 (gui-utils:show-busy-cursor
 		  (lambda ()
 		    (set! current-dir dir)
-		    (set! last-directory dir)
+		    (set-last-directory dir)
 		    (let-values 
 			([(dir-list menu-list)
 			  (let loop ([this-dir dir]
@@ -152,20 +153,20 @@
 	       (preferences:set
 		'framework:show-periods-in-dirlist
 		(send check-box get-value))
-	       (set-directory current-dir))]
+	       (set-listbox-directory current-dir))]
 	    
 	    [do-dir
 	     (lambda (choice event)
 	       (let ([which (send choice get-selection)])
 		 (if (< which (length dirs))
-		     (set-directory (list-ref dirs which)))))]
+		     (set-listbox-directory (list-ref dirs which)))))]
 	    
 	    [do-name-list
 	     (lambda (list-box evt)
 	       (if (eq? (send evt get-event-type) 'list-box-dclick)
 		   (let ([dir (send directory-field get-value)])
 		     (if (directory-exists? dir)
-			 (set-directory (normal-case-path (normalize-path dir)))
+			 (set-listbox-directory (normal-case-path (normalize-path dir)))
 			 (if multi-mode?
 			     (do-add)
 			     (do-ok))))
@@ -205,7 +206,7 @@
                              (string=? name ""))
                         (let ([file (send directory-field get-value)])
                           (if (directory-exists? file)
-                              (set-directory (normal-case-path (normalize-path file)))
+                              (set-listbox-directory (normal-case-path (normalize-path file)))
                               (message-box 
                                (string-constant error)
                                (string-constant must-specify-a-filename))))]
@@ -223,7 +224,7 @@
                         (let ([dir-name (send directory-field get-value)])
                           
                           (if (directory-exists? dir-name)
-                              (set-directory (normal-case-path (normalize-path dir-name)))
+                              (set-listbox-directory (normal-case-path (normalize-path dir-name)))
                               
                               ; otherwise, try to return absolute path
                               
@@ -450,7 +451,7 @@
 			     [dir (build-path current-dir
 					      (make-relative which))])
 			(if (directory-exists? dir)
-			    (set-directory (normal-case-path
+			    (set-listbox-directory (normal-case-path
 					    (normalize-path dir)))
 			    (if multi-mode?
 				(do-add)
@@ -479,7 +480,7 @@
 		    (when (eq? (send evt get-event-type) 'text-field-enter)
 		      (let ([dir (send directory-field get-value)])
 			(if (directory-exists? dir)
-			    (set-directory (normal-case-path
+			    (set-listbox-directory (normal-case-path
 					    (normalize-path dir)))
 			    (if multi-mode?
 				(do-add)
@@ -503,7 +504,7 @@
 	    
 	    [do-updir
 	     (lambda () 
-	       (set-directory (build-updir current-dir))
+	       (set-listbox-directory (build-updir current-dir))
 	       (set-focus-to-name-list))])
           
           (private
@@ -583,10 +584,13 @@
 	    (cond
               [(and start-dir
                     (directory-exists? start-dir))
-               (set-directory (normal-case-path
+               (set-listbox-directory (normal-case-path
                                (normalize-path start-dir)))]
-              [last-directory (set-directory last-directory)]
-              [else (set-directory (current-directory))])
+              [(get-last-directory)
+               =>
+               (lambda (dir)
+                 (set-listbox-directory dir))]
+              [else (set-listbox-directory (current-directory))])
 	    
 	    (send ok-button min-width (send cancel-button get-width))
 	    
@@ -620,7 +624,7 @@
 				      (string? name))
 				 (path-only name)
 				 in-directory)]
-		  [saved-directory last-directory]
+		  [saved-directory (get-last-directory)]
 		  [name (or (and (string? name)
 				 (file-name-from-path name))
 			    name)])
@@ -635,7 +639,7 @@
 	       prompt 
 	       filter 
 	       filter-msg)
-	     (when in-directory (set! last-directory saved-directory))))))
+	     (when in-directory (set-last-directory saved-directory))))))
       
       (define common-get-file
 	(make-common
@@ -646,7 +650,7 @@
 	      [filter #f]
 	      [filter-msg (string-constant file-wrong-form)]
 	      [parent-win (dialog-parent-parameter)])
-	   (let ([saved-directory last-directory])
+	   (let ([saved-directory (get-last-directory)])
 	     (make-object finder-dialog% 
 	       parent-win     ; parent window
 	       #f             ; save-mode?
@@ -658,7 +662,7 @@
 	       prompt         ; prompt
 	       filter         ; file-filter
 	       filter-msg)    ; file-filter-msg
-	     (when directory (set! last-directory saved-directory))))))
+	     (when directory (set-last-directory saved-directory))))))
       
       (define common-get-file-list
 	(make-common
