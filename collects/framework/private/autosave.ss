@@ -231,7 +231,7 @@
 	(define (delete-autosave table-entry)
 	  (let ([autosave-file (cadr table-entry)])
 	    (and (gui-utils:get-choice
-		  (format (string-constant autosave-are-you-sure-delete?)
+		  (format (string-constant are-you-sure-delete?)
 			  autosave-file)
 		  (string-constant autosave-delete-title)
 		  (string-constant cancel)
