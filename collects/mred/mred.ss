@@ -5090,7 +5090,9 @@
 				    (send msg-pnl min-height 64)
 				    (send btn-pnl stretchable-height #f)
 				    (values msg-pnl btn-pnl 96 'right 'left 'top)))]
-		      [else (values f f 0 'center 'center 'center)])])
+		      [else (let ([p (make-object horizontal-pane% f)])
+			      (make-object message% 'app p)
+			      (values (make-object vertical-pane% p) f 0 'center 'center 'center))])])
 	(if single?
 	    (begin
 	      (send msg-pnl set-alignment (if (= (length strings) 1) msg-h-align 'left) msg-v-align)
@@ -6129,7 +6131,7 @@
 
 (define (check-label-string/bitmap/iconsym who label)
   (unless (or (label-string? label) (is-a? label wx:bitmap%)
-	      (memq label '(app warning error)))
+	      (memq label '(app caution stop)))
     (raise-type-error (who->name who) "string (up to 200 characters), bitmap% object, or icon symbol" label)))
 
 (define (check-style who reqd other-allowed style)
