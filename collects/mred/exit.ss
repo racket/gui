@@ -36,9 +36,9 @@
     (define -exit
       (let*-values ([(exiting?) #f]
 		    [(w capW)
-		     (if (eq? wx:platform 'macintosh)
-			 (values "quit" "Quit")
-			 (values "exit" "Exit"))]
+		     (if (eq? wx:platform 'windows)
+			 (values "exit" "Exit")
+			 (values "quit" "Quit"))]
 		    [(message)
 		     (string-append "Are you sure you want to "
 				    w

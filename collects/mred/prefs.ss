@@ -342,9 +342,11 @@
 			     (lambda (button evt)
 			       (let ([new-value
 				      (mred:gui-utils:get-single-choice
-				       "message"
-				       "caption"
-				       fonts)])
+				       (format "Please choose a new ~a font"
+					       name)
+				       "Fonts"
+				       fonts
+				       null -1 -1 #t 300 400)])
 				 (unless (null? new-value)
 				   (wx:write-resource 
 				    section
@@ -387,6 +389,8 @@
 				 (unbox b)
 				 default-font-size))
 			   1 127 50))
+	    (make-object mred:message% main
+			 "Restart to see font changes")
 	    main))
 	#f)))
 
