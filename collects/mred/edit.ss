@@ -562,7 +562,6 @@
 		       (if (= direction 1)
 			   (values add1 (lambda (x) 
 					  (cond
-					    [#t flat]
 					    [(and (not (= -1 flat))
 						  (<= flat x))
 					     flat]
@@ -570,7 +569,6 @@
 					    [else #f])))
 			   (values sub1 (lambda (x)
 					  (cond
-					    [#t flat]
 					    [(and (not (= -1 flat))
 						  (<= x flat))
 					     flat]
@@ -600,6 +598,7 @@
 							 (send media last-position))
 						     -1
 						     get-start case-sensitive?)))])
+			    (printf "found snip: ~a ~a~n" current-pos embedded-pos)
 			    (if (= -1 embedded-pos)
 				(loop (increment current-pos))
 				(values embedded embedded-pos))))]
