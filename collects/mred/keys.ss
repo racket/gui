@@ -53,10 +53,9 @@
     (define setup-global-search-keymap
       (let* ([find-string
 	      (lambda (edit event . extras)
-		(let ([x-box (box 0)]
-		      [y-box (box 0)]
+		(let ([x-box (box (send event get-x))]
+		      [y-box (box (send event get-y))]
 		      [canvas (send event get-event-object)])
-		  (send event position x-box y-box)
 		  (send canvas client-to-screen x-box y-box)
 		  (mred:find-string:find-string canvas ()
 						(- (unbox x-box) 30)
