@@ -377,7 +377,7 @@
 				  (send b set-style 'opaque)
 				  (send dc set-brush b)
 				  ; Second stipple (opaque)
-				  (send dc draw-rectangle 120 205 30 30)
+				  (send dc draw-ellipse 120 205 30 30)
 				  (send dc set-brush brushs)
 				  (send b set-stipple bb)
 				  (send dc set-brush b)
@@ -450,6 +450,9 @@
 		      (let ([mk-poly (lambda ()
 				       (let ([r (make-object region% dc)])
 					 (send r set-polygon octagon) r))]
+			    [mk-circle (lambda ()
+				         (let ([r (make-object region% dc)])
+					   (send r set-ellipse 0. 60. 180. 180.) r))]
 			    [mk-rect (lambda ()
 				       (let ([r (make-object region% dc)])
 					 (send r set-rectangle 100 -25 10 400) r))])
@@ -457,9 +460,13 @@
 			  [(none) (void)]
 			  [(rect) (send dc set-clipping-rect 100 -25 10 400)]
 			  [(poly) (send dc set-clipping-region (mk-poly))]
+			  [(circle) (send dc set-clipping-region (mk-circle))]
 			  [(rect+poly) (let ([r (mk-poly)])
 					 (send r union (mk-rect))
 					 (send dc set-clipping-region r))]
+			  [(rect+circle) (let ([r (mk-circle)])
+					   (send r union (mk-rect))
+					   (send dc set-clipping-region r))]
 			  [(poly-rect) (let ([r (mk-poly)])
 					 (send r subtract (mk-rect))
 					 (send dc set-clipping-region r))]
@@ -486,8 +493,8 @@
 			      (unless (equal? l
 					      (case clip
 						[(rect) '(100. -25. 10. 400.)]
-						[(poly poly-rect) '(0. 60. 180. 180.)]
-						[(rect+poly) '(0. -25. 180. 400.)]
+						[(poly circle poly-rect) '(0. 60. 180. 180.)]
+						[(rect+poly rect+circle) '(0. -25. 180. 400.)]
 						[(poly&rect) '(100. 60. 10. 180.)]))
 				(error 'draw-test "clipping region changed badly: ~a" l)))))
 
@@ -539,17 +546,14 @@
 			 (send canvas set-stipples (send self get-value))))
 	  set-value #t)
     (make-object choice% "Clip" 
-		 '("None" "Rectangle" "Octagon" 
-		   "Rectangle + Octagon" "Octagon - Rectangle" "Rectangle & Octagon")
+		 '("None" "Rectangle" "Octagon" "Circle"
+		   "Rectangle + Octagon" "Rectangle + Circle" 
+		   "Octagon - Rectangle" "Rectangle & Octagon")
 		 hp3
 		 (lambda (self event)
-		   (set! clip (case (send self get-selection)
-				[(0) 'none]
-				[(1) 'rect]
-				[(2) 'poly]
-				[(3) 'rect+poly]
-				[(4) 'poly-rect]
-				[(5) 'poly&rect]))
+		   (set! clip (list-ref
+		               '(none rect poly circle rect+poly rect+circle poly-rect poly&rect)
+		               (send self get-selection)))
 		   (send canvas on-paint))))
   (send f show #t))
 
