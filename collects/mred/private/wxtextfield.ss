@@ -15,7 +15,7 @@
 	   "editor.ss"
 	   "mrpopup.ss")
 
-  (provide wx-text-field%)
+  (provide (protect wx-text-field%))
 
   (define text-field-text% 
     (class100 text% (cb ret-cb control set-cb-mgrs!)

@@ -3,10 +3,11 @@
 	   (lib "class100.ss")
 	   (prefix wx: "kernel.ss")
 	   "lock.ss"
+	   "helper.ss"
 	   "wx.ss")
 
-  (provide wx-make-window%
-	   make-window-glue%)
+  (provide (protect wx-make-window%
+		    make-window-glue%))
 
   (define wx-make-window%
     (lambda (% top?)

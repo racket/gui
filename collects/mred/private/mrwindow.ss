@@ -12,16 +12,16 @@
 	   "mrpopup.ss")
 
   (provide area<%>
-	   area%-keywords 
+	   (protect area%-keywords)
 	   area%
-	   internal-subarea<%>
+	   (protect internal-subarea<%>)
 	   subarea<%>
-	   subarea%-keywords
-	   make-subarea%
+	   (protect subarea%-keywords
+		    make-subarea%)
 	   window<%>
-	   window%-keywords
+	   (protect window%-keywords)
 	   subwindow<%>
-	   make-window%)
+	   (protect make-window%))
 
   (define area<%>
     (interface ()

@@ -7,8 +7,8 @@
 	   "helper.ss"
 	   "wx.ss")
 
-  (provide make-container-glue%
-	   wx-make-container%)
+  (provide (protect make-container-glue%
+		    wx-make-container%))
 
   (define (make-container-glue% %)
     (class100 % (mr prxy . args)

@@ -18,7 +18,8 @@
 	   normal-control-font
 	   small-control-font
 	   tiny-control-font
-	   view-control-font)
+	   view-control-font
+	   menu-control-font)
 
   (define register-collecting-blit
     (case-lambda
@@ -159,4 +160,7 @@
   (define tiny-control-font (make-object wx:font% (- (wx:get-control-font-size) 2 small-delta) 'system))
   (define view-control-font (if (eq? 'macosx (system-type))
 				(make-object wx:font% (- (wx:get-control-font-size) 1) 'system)
+				normal-control-font))
+  (define menu-control-font (if (eq? 'macosx (system-type))
+				(make-object wx:font% (+ (wx:get-control-font-size) 1) 'system)
 				normal-control-font)))

@@ -5,15 +5,14 @@
 	   "lock.ss"
 	   "helper.ss")
 
-  (provide wx<%>
-	   wx/proxy<%>
-	   make-glue%
-	   wx->mred
-	   wx->proxy
-	   mred%
-	   mred->wx
-	   mred->wx-container
-	   queue-window-callback)
+  (provide (protect wx<%>
+		    wx/proxy<%>
+		    make-glue%
+		    wx->mred
+		    wx->proxy
+		    mred%
+		    mred->wx
+		    mred->wx-container))
 
   ;; The windowing wx classes are not exposed directly.
   ;; Instead, we expose wrapper classes that have wx instances.

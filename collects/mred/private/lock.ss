@@ -1,9 +1,9 @@
 (module lock mzscheme
   (require (prefix wx: "kernel.ss"))
-  (provide as-entry
-	   as-exit
-	   entry-point
-	   mk-param)
+  (provide (protect as-entry
+		    as-exit
+		    entry-point
+		    mk-param))
 
   ;; ;;;;;;;;;;;;; Thread Safety ;;;;;;;;;;;;;;;;;;;;
   

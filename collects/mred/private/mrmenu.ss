@@ -19,8 +19,8 @@
 	   checkable-menu-item%
 	   menu%
 	   menu-bar%
-	   menu-parent-only
-	   menu-or-bar-parent)
+	   (protect menu-parent-only
+		    menu-or-bar-parent))
 
   ;; Most of the work is in the item. Anything that appears in a menubar or
   ;;  menu has an item. Submenus are created as instances of menu%, but

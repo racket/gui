@@ -11,17 +11,17 @@
 	   "check.ss"
 	   "wxwindow.ss")
 
-  (provide make-item%
-	   make-control%
-	   make-simple-control%
-	   wx-button%
-	   wx-check-box%
-	   wx-choice%
-	   wx-message%
-	   wx-gauge%
-	   wx-list-box%
-	   wx-radio-box%
-	   wx-slider%)
+  (provide (protect make-item%
+		    make-control%
+		    make-simple-control%
+		    wx-button%
+		    wx-check-box%
+		    wx-choice%
+		    wx-message%
+		    wx-gauge%
+		    wx-list-box%
+		    wx-radio-box%
+		    wx-slider%))
 
   ;; make-item%: creates items which are suitable for placing into
   ;;  containers.

@@ -13,13 +13,13 @@
 	   "wxwindow.ss"
 	   "wxcontainer.ss")
 
-  (provide active-main-frame
+  (provide (protect active-main-frame)
 	   get-display-size
 	   get-display-left-top-inset
-	   make-top-container%
-	   make-top-level-window-glue%
-	   wx-frame%
-	   wx-dialog%)
+	   (protect make-top-container%
+		    make-top-level-window-glue%
+		    wx-frame%
+		    wx-dialog%))
 
   ;; Weak boxed:
   (define active-main-frame (make-weak-box #f))

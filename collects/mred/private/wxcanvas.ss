@@ -3,13 +3,14 @@
 	   (lib "class100.ss")
 	   (prefix wx: "kernel.ss")
 	   "lock.ss"
+	   "helper.ss"
 	   "wx.ss"
 	   "wxwindow.ss"
 	   "wxitem.ss")
 
-  (provide make-canvas-glue%
-	   wx-canvas%
-	   wx-editor-canvas%)
+  (provide (protect make-canvas-glue%
+		    wx-canvas%
+		    wx-editor-canvas%))
 
   (define (make-canvas-glue% %) ; implies make-window-glue%
     (class100 (make-window-glue% %) (mred proxy . args)

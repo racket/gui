@@ -18,14 +18,14 @@
   (provide top-level-window<%>
 	   frame%
 	   dialog%
-	   root-menu-frame
-	   set-root-menu-frame!
+	   (protect root-menu-frame
+		    set-root-menu-frame!)
 	   get-top-level-windows
 	   get-top-level-focus-window
 	   get-top-level-edit-target-window
 	   send-message-to-window
-	   check-top-level-parent/false
-	   check-frame-parent/false)
+	   (protect check-top-level-parent/false
+		    check-frame-parent/false))
 
   (define top-level-window<%>
     (interface (area-container-window<%>)

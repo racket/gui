@@ -13,12 +13,12 @@
 	   "mrwindow.ss")
 
   (provide area-container<%>
-	   internal-container<%>
-	   check-container-parent
-	   container%-keywords
-	   make-container%
+	   (protect internal-container<%>
+		    check-container-parent
+		    container%-keywords
+		    make-container%)
 	   area-container-window<%>
-	   make-area-container-window%)
+	   (protect make-area-container-window%))
 
   (define area-container<%> 
     (interface (area<%>) 

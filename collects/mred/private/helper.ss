@@ -3,24 +3,24 @@
 	   (prefix wx: "kernel.ss")
 	   "lock.ss")
 
-  (provide (struct child-info (x-min y-min x-margin y-margin x-stretch y-stretch))
-	   get-two-int-values
-	   non-negative-number?
-	   same-dimension?
-	   list-diff
-	   key-regexp
-	   do-command
-	   double-boxed
-	   queue-window-callback
-	   param
-	   protect&
-	   find-pos
-	   no-stretch
-	   font->delta
-	   traverse
-	   object->position
-	   container->children
-	   filter-overlapping)
+  (provide (protect (struct child-info (x-min y-min x-margin y-margin x-stretch y-stretch))
+		    get-two-int-values
+		    non-negative-number?
+		    same-dimension?
+		    list-diff
+		    key-regexp
+		    do-command
+		    double-boxed
+		    queue-window-callback
+		    param
+		    protect&
+		    find-pos
+		    no-stretch
+		    font->delta
+		    traverse
+		    object->position
+		    container->children
+		    filter-overlapping))
 
   ;; this structure holds the information that a child will need to send
   ;; to its parent when the parent must resize itself.

@@ -12,13 +12,13 @@
 	   "wxitem.ss"
 	   "wxcontainer.ss")
 
-  (provide wx-panel%
-	   wx-vertical-panel%
-	   wx-horizontal-panel%
-	   wx-pane%
-	   wx-vertical-pane%
-	   wx-horizontal-pane%
-	   wx-grow-box-pane%)
+  (provide (protect wx-panel%
+		    wx-vertical-panel%
+		    wx-horizontal-panel%
+		    wx-pane%
+		    wx-vertical-pane%
+		    wx-horizontal-pane%
+		    wx-grow-box-pane%))
 
   (define wx:windowless-panel%
     (class100 object% (prnt x y w h style)

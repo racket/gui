@@ -3,7 +3,7 @@
 	   (prefix wx: "kernel.ss")
 	   "wx.ss"
 	   "const.ss")
-  (provide (all-defined))
+  (provide (protect (all-defined)))
 
   (define (who->name who)
     (cond

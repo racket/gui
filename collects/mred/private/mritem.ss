@@ -14,8 +14,8 @@
 	   "mrcontainer.ss")
 
   (provide control<%>
-	   control%-keywords
-	   basic-control%
+	   (protect control%-keywords
+		    basic-control%)
 	   message%
 	   button%
 	   check-box%
@@ -27,13 +27,13 @@
 	   choice%
 	   list-box%
 
-	   wrap-callback
-	   check-list-control-args
-	   check-list-control-selection
-	   
-	   ;; Local methods:
-	   hidden-child?
-	   label-checker)
+	   (protect wrap-callback
+		    check-list-control-args
+		    check-list-control-selection
+		    
+		    ;; Local methods:
+		    hidden-child?
+		    label-checker))
 
   (define control<%>
     (interface (subwindow<%>)

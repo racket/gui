@@ -8,9 +8,9 @@
 	   "helper.ss"
 	   "wx.ss")
   
-  (provide wx-menu-item%
-	   wx-menu-bar%
-	   wx-menu%)
+  (provide (protect wx-menu-item%
+		    wx-menu-bar%
+		    wx-menu%))
 
   (define wx-menu-item%
     (class100* wx:menu-item% (wx<%>) (mr mn-dat can-enable?)
