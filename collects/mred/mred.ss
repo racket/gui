@@ -1821,7 +1821,8 @@
     
     (inherit get-dc get-client-size get-mred
 	     set-min-width set-min-height
-	     set-tab-focus)
+	     set-tab-focus
+	     set-background-to-gray)
     (rename [super-on-size on-size])
     
     (define selected 0)
@@ -2069,6 +2070,8 @@
 
     (super-instantiate (mred proxy parent -1 -1 -1 -1 null))
 
+    (set-background-to-gray)
+
     (compute-sizes)
     (set-min-width (inexact->exact (ceiling (get-total-width))))
     (set-min-height (inexact->exact (ceiling (+ tab-height 9 raise-h))))))
@@ -2089,7 +2092,8 @@
     
     (inherit get-dc get-client-size get-mred
 	     set-min-width set-min-height
-	     set-tab-focus)
+	     set-tab-focus
+	     set-background-to-gray)
     (rename [super-on-size on-size])
     
     (define lbl label)
@@ -2145,6 +2149,8 @@
       (on-paint))
 
     (super-instantiate (mred proxy parent -1 -1 -1 -1 null))
+
+    (set-background-to-gray)
 
     (compute-sizes)
     (set-min-width (inexact->exact (ceiling (+ lbl-w group-right-inset 4))))

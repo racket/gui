@@ -335,6 +335,7 @@
     on-size
     on-set-focus
     on-kill-focus
+    set-background-to-gray
     this-context-current
     swap-buffers
     on-scroll
