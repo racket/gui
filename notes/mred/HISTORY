@@ -1,4 +1,9 @@
 
+Version 204.3
+Added 'no-autoclear style to canvas%
+Added 'control-border style to canvas% and editor-canvas%
+OS X: key-release events are now reported
+
 Version 204.2
 Added 'toolbar-button style, on-toolbar-button-click method, and
  modified method to frame%; the 'toolbar-button style only
