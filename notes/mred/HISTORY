@@ -1,4 +1,7 @@
 
+Version 299.17
+Changed read-one-special in readable-snip<%> to read-special
+
 Version 299.16
 Added hide-cursor-until-moved
 Changed text%'s on-char to call hide-cursor-until-moved
