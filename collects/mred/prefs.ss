@@ -169,7 +169,7 @@
 			(list (horizontal-panel #t #f
 						(list (let ([c (check-box (lambda (_ command) 
 									    (set-preference 'mred:highlight-parens (send command checked?)))
-									  "Highlight Parens?")])
+									  "Highlight to matching paren?")])
 							(send c set-value (get-preference 'mred:highlight-parens))
 							c)
 						      (panel #t #t)))
@@ -177,7 +177,7 @@
 			       #t #f
 			       (list (let ([c (check-box (lambda (_ command) 
 							   (set-preference 'mred:autosaving-on? (send command checked?)))
-							 "Autosave?")])
+							 "Auto-save files?")])
 				       (send c set-value (get-preference 'mred:autosaving-on?))
 				       c)
 				     (panel #t #t)))
@@ -185,7 +185,7 @@
 			       #t #f
 			       (list (let ([c (check-box (lambda (_ command) 
 							   (set-preference 'mred:delete-forward? (not (send command checked?))))
-							 "Remap delete to backspace?")])
+							 "Map delete to backspace?")])
 				       (send c set-value (not (get-preference 'mred:delete-forward?)))
 				       c)
 				     (panel #t #t)))
@@ -258,6 +258,7 @@
 				     (read-user-preferences)
 				     (hide-preferences-dialog))]
 		  [cancel-button (make-object mred:button% bottom-panel cancel-callback "Cancel")])
+	  (send ok-button user-min-width (send cancel-button get-width))
 	  (send single-panel change-children (lambda (l) panels))
 	  (send top-panel change-children
 		(lambda (l) 
