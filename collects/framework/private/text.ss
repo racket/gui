@@ -13,6 +13,7 @@ WARNING: printf is rebound in the body of the unit to always
 	   "sig.ss"
 	   "../gui-utils.ss"
 	   (lib "mred-sig.ss" "mred")
+           (lib "interactive-value-port.ss" "mrlib")
 	   (lib "list.ss")
 	   (lib "etc.ss"))
   (provide text@)
@@ -1043,7 +1044,7 @@ WARNING: printf is rebound in the body of the unit to always
             (unless err-port (error 'get-err-port "not ready"))
             err-port)
           (define/public-final (get-value-port)
-            (unless err-port (error 'get-value-port "not ready"))
+            (unless value-port (error 'get-value-port "not ready"))
             value-port)
 
           ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -1375,7 +1376,15 @@ WARNING: printf is rebound in the body of the unit to always
                                                  always-evt
                                                  (make-write-bytes-proc value-style)
                                                  out-close-proc
-                                                 (make-write-special-proc value-style)))))
+                                                 (make-write-special-proc value-style)))
+              (let ([install-handlers
+                     (λ (port)
+                       (set-interactive-print-handler port)
+                       (set-interactive-write-handler port)
+                       (set-interactive-display-handler port))])
+                (install-handlers out-port)
+                (install-handlers err-port)
+                (install-handlers value-port))))
 
           ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
           ;;

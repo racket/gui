@@ -15,7 +15,7 @@ needed to really make this work:
            (lib "match.ss")
            (lib "string.ss"))
   
-  (provide render-syntax/snip render-syntax/window)
+  (provide render-syntax/snip render-syntax/window snip-class)
   
   (define (render-syntax/window syntax)
     (let ([es (render-syntax/snip syntax)])
@@ -37,10 +37,10 @@ needed to really make this work:
           (make-object syntax-snip% (unmarshall-syntax (read-from-string (bytes->string/utf-8 str))))))
       (super-instantiate ())))
   
-  (define syntax-snipclass (make-object syntax-snipclass%))
-  (send syntax-snipclass set-version 1)
-  (send syntax-snipclass set-classname "drscheme:syntax-snipclass%")
-  (send (get-the-snip-class-list) add syntax-snipclass)
+  (define snip-class (make-object syntax-snipclass%))
+  (send snip-class set-version 1)
+  (send snip-class set-classname (format "~s" '(lib "syntax-browser.ss" "mrlib")))
+  (send (get-the-snip-class-list) add snip-class)
   
   (define-struct range (obj start end))
 
@@ -339,7 +339,7 @@ needed to really make this work:
       (hide-details)
       
       (inherit set-snipclass)
-      (set-snipclass syntax-snipclass)))
+      (set-snipclass snip-class)))
   
   (define black-style-delta (make-object style-delta% 'change-normal-color))
   (define green-style-delta (make-object style-delta%))
