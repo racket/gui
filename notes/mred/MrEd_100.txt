@@ -467,7 +467,6 @@ popup-menu%
 menu-bar%
    <= frame
    get-frame
-   show is-shown?
    enable is-enabled?
 
 editor<%>
@@ -705,18 +704,18 @@ get-the-buffer-data-class-list
   wx:const-event-type-enter-window           'enter
   wx:const-event-type-kill-focus             'kill-focus
   wx:const-event-type-leave-window           'leave
-  wx:const-event-type-left-dclick            'left-dclick
+  wx:const-event-type-left-dclick            (NO LONGER USED)
   wx:const-event-type-left-down              'left-down
   wx:const-event-type-left-up                'left-up
   wx:const-event-type-listbox-command        'list-box
   wx:const-event-type-menu-command           (NO LONGER USED)
-  wx:const-event-type-middle-dclick          'middle-dclick
+  wx:const-event-type-middle-dclick          (NO LONGER USED)
   wx:const-event-type-middle-down            'middle-down
   wx:const-event-type-middle-up              'middle-up
   wx:const-event-type-motion                 'motion
   wx:const-event-type-multitext-command      (NO LONGER USED)
   wx:const-event-type-radiobox-command       'radio-box
-  wx:const-event-type-right-dclick           'right-dclick
+  wx:const-event-type-right-dclick           (NO LONGER USED)
   wx:const-event-type-right-down             'right-down
   wx:const-event-type-right-up               'right-up
   wx:const-event-type-scroll-bottom          'scroll-bottom
