@@ -59,12 +59,6 @@
 	   framework:keymap^
 	   framework:keymap-class^
 	   framework:keymap-fun^
-	   framework:match-cache^
-	   framework:match-cache-class^
-	   framework:match-cache-fun^
-	   framework:scheme-paren^
-	   framework:scheme-paren-class^
-	   framework:scheme-paren-fun^
            framework:color^
            framework:color-class^
            framework:color-fun^
@@ -74,9 +68,6 @@
 	   framework:scheme^
 	   framework:scheme-class^
 	   framework:scheme-fun^
-	   framework:paren^
-	   framework:paren-class^
-	   framework:paren-fun^
 	   framework:main^
 	   framework:main-class^
 	   framework:main-fun^
@@ -482,28 +473,6 @@
     ((open framework:keymap-class^)
      (open framework:keymap-fun^)))
 
-  (define-signature framework:match-cache-class^
-    (%))
-  (define-signature framework:match-cache-fun^
-    ())
-  (define-signature framework:match-cache^
-    ((open framework:match-cache-class^)
-     (open framework:match-cache-fun^)))
-
-  (define-signature framework:scheme-paren-class^
-    ())
-  (define-signature framework:scheme-paren-fun^
-    (get-comments
-     get-paren-pairs
-     get-quote-pairs
-     forward-match
-     backward-match
-     balanced?
-     backward-containing-sexp))
-  (define-signature framework:scheme-paren^
-    ((open framework:scheme-paren-class^)
-     (open framework:scheme-paren-fun^)))
-
   (define-signature framework:color-class^
     (text<%>
      text-mixin
@@ -557,17 +526,6 @@
   (define-signature framework:scheme^
     ((open framework:scheme-class^)
      (open framework:scheme-fun^)))
-
-  (define-signature framework:paren-class^
-    ())
-  (define-signature framework:paren-fun^
-    (balanced? 
-     forward-match 
-     backward-match
-     skip-whitespace))
-  (define-signature framework:paren^
-    ((open framework:paren-class^)
-     (open framework:paren-fun^)))
 
   (define-signature framework:main-class^ ())
   (define-signature framework:main-fun^ ())

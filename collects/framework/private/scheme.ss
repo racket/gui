@@ -18,13 +18,16 @@
   
   (provide scheme@)
 
+  (define (scheme-paren:get-paren-pairs)
+    '(("(" . ")")
+      ("[" . "]")
+      ("{" . "}")))
+  
+  
   (define scheme@
     (unit/sig framework:scheme^
       (import mred^
               [preferences : framework:preferences^]
-              [match-cache : framework:match-cache^]
-              [paren : framework:paren^] 
-              [scheme-paren : framework:scheme-paren^]
               [icon : framework:icon^]
               [keymap : framework:keymap^]
               [text : framework:text^]
@@ -291,7 +294,6 @@
       (define -text<%>
         (interface ()
           get-limit
-          balance-quotes
           balance-parens
           tabify-on-return?
           tabify
@@ -375,33 +377,13 @@
                    set-style-list
                    set-styles-fixed
                    change-style
-                   get-snip-position)
+                   get-snip-position
+                   backward-match
+                   backward-containing-sexp
+                   forward-match
+                   skip-whitespace
+                   in-single-line-comment?)
           
-          (define (in-single-line-comment? position)
-            (let ([para (position-paragraph position)])
-              (ormap
-               (lambda (comment-start)
-                 (let loop ([f (find-string comment-start 'backward position)])
-                   (cond
-                     [(not f)
-                      #f]
-                     [(= (position-paragraph f) para)
-                      (let ([f-1 (- f 2)]) ;; -1 to go back one, -1 to be before char
-                        (cond
-                          [(< f-1 0)
-                           #t]
-                          [(not (= (position-paragraph f-1) para))
-                           #t]
-                          [(not (char=? (get-character f-1) #\\ ))
-                           #t]
-                          [else 
-                           (loop (find-string comment-start 'backward f-1))]))]
-                     [else 
-                      #f])))
-               (scheme-paren:get-comments))))
-          
-          [define backward-cache (make-object match-cache:%)]
-          [define forward-cache (make-object match-cache:%)]
           
           (inherit get-styles-fixed)
           (inherit has-focus? find-snip split-snip)
@@ -431,7 +413,7 @@
                        [else (loop (- semi-pos 1))]))]))))
           
           
-          (public get-limit balance-quotes balance-parens tabify-on-return? tabify tabify-selection
+          (public get-limit balance-parens tabify-on-return? tabify tabify-selection
                   tabify-all insert-return calc-last-para 
                   box-comment-out-selection comment-out-selection uncomment-selection
                   get-forward-sexp remove-sexp forward-sexp flash-forward-sexp get-backward-sexp
@@ -439,24 +421,7 @@
                   remove-parens-forward)
           (define (get-limit pos) 0)
           
-          (inherit get-visible-position-range)
-          (define (balance-quotes key)
-            (void)
-            #;(let* ([char (send key get-key-code)]) ;; must be a character because of the mapping setup
-              ;; this function is only bound to ascii-returning keys
-              (insert char)
-              (let* ([start-pos (get-start-position)]
-                     [limit (get-limit start-pos)]
-                     [match (scheme-paren:backward-match
-                             this start-pos limit backward-cache)])
-                (when match
-                  (let ([start-b (box 0)]
-                        [end-b (box 0)]
-                        [to-flash-point (add1 match)])
-                    (get-visible-position-range start-b end-b #f)
-                    (when (<= (unbox start-b) to-flash-point (unbox end-b))
-                      (flash-on match (add1 match))))))))
-          
+        
           (define (balance-parens key-event)
             (letrec ([char (send key-event get-key-code)] ;; must be a character. See above.
                      [here (get-start-position)]
@@ -481,9 +446,7 @@
                       (char=? (string-ref (get-text (- here 1) here) 0) #\\))
                  (insert char)]
                 [(or paren-match? fixup-parens?)
-                 (let* ([end-pos (scheme-paren:backward-containing-sexp 
-                                  this here limit
-                                  backward-cache)])
+                 (let* ([end-pos (backward-containing-sexp here limit)])
                    (cond
                      [end-pos
                       (let* ([left-paren-pos (find-enclosing-paren end-pos)]
@@ -512,14 +475,13 @@
                      [limit (get-limit pos)]
                      [contains 
                       (if okay
-                          (scheme-paren:backward-containing-sexp 
-                           this end limit backward-cache)
+                          (backward-containing-sexp end limit)
                           #f)]
                      [contain-para (and contains
                                         (position-paragraph contains))]
                      [last 
                       (if contains
-                          (scheme-paren:backward-match this end limit backward-cache)
+                          (backward-match end limit)
                           #f)]
                      [last-para (and last
                                      (position-paragraph last))])
@@ -649,8 +611,7 @@
                          (dynamic-enable-break (lambda () (break-enabled)))
                          (loop (add1 para))))
                      (when (and (>= (position-paragraph start-pos) end-para)
-                                (<= (paren:skip-whitespace 
-                                     this (get-start-position) 'backward)
+                                (<= (skip-whitespace (get-start-position) 'backward #f)
                                     (paragraph-start-position first-para)))
                        (set-position 
                         (let loop ([new-pos (get-start-position)])
@@ -787,10 +748,9 @@
                      (let para-loop ([curr-para first-para])
                        (when (<= curr-para last-para)
                          (let ([first-on-para
-                                (paren:skip-whitespace 
-                                 this 
-                                 (paragraph-start-position curr-para)
-                                 'forward)])
+                                (skip-whitespace  (paragraph-start-position curr-para)
+                                                  'forward
+                                                  #f)])
                            (split-snip first-on-para)
                            (when (and (< first-on-para last-pos)
                                       (char=? #\; (get-character first-on-para))
@@ -817,10 +777,7 @@
           
           [define get-forward-sexp
             (lambda (start-pos)
-              (scheme-paren:forward-match 
-               this start-pos
-               (last-position)
-               forward-cache))]
+              (forward-match start-pos (last-position)))]
           [define remove-sexp
             (lambda (start-pos)
               (let ([end-pos (get-forward-sexp start-pos)])
@@ -846,11 +803,9 @@
             (lambda (start-pos)
               (let* ([limit (get-limit start-pos)]
                      [end-pos
-                      (scheme-paren:backward-match 
-                       this start-pos limit backward-cache)]
+                      (backward-match start-pos limit)]
                      [min-pos
-                      (scheme-paren:backward-containing-sexp 
-                       this start-pos limit backward-cache)]
+                      (backward-containing-sexp start-pos limit)]
                      [ans
                       (if (and end-pos 
                                (or (not min-pos)
@@ -875,10 +830,7 @@
           [define find-up-sexp
             (lambda (start-pos)
               (let* ([exp-pos
-                      (scheme-paren:backward-containing-sexp 
-                       this start-pos
-                       (get-limit start-pos) 
-                       backward-cache)]
+                      (backward-containing-sexp start-pos (get-limit start-pos))]
                      [paren-pos ;; find the closest open paren from this pair, behind exp-pos
                       (lambda (paren-pair)
                         (find-string
@@ -910,13 +862,10 @@
             (lambda (start-pos)
               (let ([last (last-position)])
                 (let loop ([pos start-pos])
-                  (let ([next-pos (scheme-paren:forward-match 
-                                   this pos last
-                                   forward-cache)])
+                  (let ([next-pos (forward-match pos last)])
                     (if (and next-pos (> next-pos pos))
                         (let ([back-pos
-                               (scheme-paren:backward-containing-sexp 
-                                this (sub1 next-pos) pos backward-cache)])
+                               (backward-containing-sexp (sub1 next-pos) pos)])
                           (if (and back-pos
                                    (> back-pos pos))
                               back-pos
@@ -931,14 +880,12 @@
                 #t))]
           [define remove-parens-forward
             (lambda (start-pos)
-              (let* ([pos (paren:skip-whitespace this start-pos 'forward)]
+              (let* ([pos (skip-whitespace start-pos 'forward #f)]
                      [first-char (get-character pos)]
                      [paren? (or (char=? first-char #\( )
                                  (char=? first-char #\[ ))]
                      [closer (if paren? 
-                                 (scheme-paren:forward-match 
-                                  this pos (last-position)
-                                  forward-cache))])
+                                 (forward-match pos (last-position)))])
                 (if (and paren? closer)
                     (begin (begin-edit-sequence)
                            (delete pos (add1 pos))
@@ -1014,20 +961,7 @@
           (public get-tab-size set-tab-size)
           [define get-tab-size (lambda () tab-size)]
           [define set-tab-size (lambda (s) (set! tab-size s))]
-          
-          (rename [super-after-delete after-delete])
-          (define/override (after-delete start size)
-            (send backward-cache invalidate start)
-            (send forward-cache forward-invalidate (+ start size) (- size))
-            ;; must call super after invalidating cache -- super calls surrogate object
-            (super-after-delete start size))
-          (rename [super-after-insert after-insert])
-          (define/override (after-insert start size)
-            (send backward-cache invalidate start)
-            (send forward-cache forward-invalidate start size)
-            ;; must call super after invalidating cache -- super calls surrogate object
-            (super-after-insert start size))
-          
+                    
           (super-instantiate ())))
 
       (define -text-mode<%>
@@ -1065,7 +999,6 @@
           (super-new (get-token scheme-lexer-wrapper)
                      (token-sym->style short-sym->style-name)
                      (matches '((|(| |)|)
-                                (#\| \|#)
                                 (|[| |]|)
                                 (|{| |}|))))))
       
@@ -1155,9 +1088,6 @@
           (send keymap add-function "balance-parens"
                 (lambda (edit event)
                   (send edit balance-parens event)))
-          #;(send keymap add-function "balance-quotes"
-                (lambda (edit event)
-                  (send edit balance-quotes event)))
           
           (send keymap map-function "TAB" "tabify-at-caret")
           
@@ -1174,8 +1104,6 @@
           (send keymap map-function ")" "balance-parens")
           (send keymap map-function "]" "balance-parens")
           (send keymap map-function "}" "balance-parens")
-          #;(send keymap map-function "\"" "balance-quotes")
-          #;(send keymap map-function "|" "balance-quotes")
           
           (let ([map-meta
                  (lambda (key func)

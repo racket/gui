@@ -16,7 +16,6 @@
 	      [preferences : framework:preferences^]
 	      [finder : framework:finder^]
 	      [handler : framework:handler^]
-	      [scheme-paren : framework:scheme-paren^]
 	      [frame : framework:frame^]
               [editor : framework:editor^])
       
@@ -291,10 +290,7 @@
 	       [flash-paren-match
 		(lambda (edit event)
 		  (send edit on-default-char event)
-		  (let ([pos (scheme-paren:backward-match 
-			      edit
-			      (send edit get-start-position)
-			      0)])
+		  (let ([pos (send edit backward-match (send edit get-start-position) 0)])
 		    (when pos
 		      (send edit flash-on pos (+ 1 pos))))
 		  #t)]
@@ -982,7 +978,6 @@
 	      (map ")" "flash-paren-match")
 	      (map "]" "flash-paren-match")
 	      (map "}" "flash-paren-match")
-	      (map "\"" "flash-paren-match")
 
 	      (map-meta "(" "insert-()-pair")
 	      (map-meta "[" "insert-[]-pair")

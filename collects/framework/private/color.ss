@@ -35,7 +35,14 @@
           thaw-colorer
 
           reset-region
-          update-region-end))
+          update-region-end
+          
+          skip-whitespace
+          backward-match
+          backward-containing-sexp
+          forward-match
+          balanced?
+          in-single-line-comment?))
 
       (define text-mixin
         (mixin (text:basic<%>) (-text<%>)
@@ -491,9 +498,14 @@
                 (end-edit-sequence)
                 (set! in-match-parens? #f))))
                     
-          
+          ;; forward-match: natural-number? natural-number? -> (union natural-number? false?)
+          ;; Skip all consecutive white-space and comments immediately following position.
+          ;; If the token at the new position is an open,
+          ;;    return the position of the matching close, or #f if there is none.
+          ;; For any other token, return the start of the next token.
+ 
           (define/public (forward-match position cutoff)
-            (do-forward-match position cutoff #f))
+            (do-forward-match position cutoff #t))
           
           (define (do-forward-match position cutoff skip-whitespace?)
             (let ((position 
@@ -511,21 +523,72 @@
                      (cond
                        ((<= match-pos cutoff) match-pos)
                        (else #f))))
-                  (else #f)))))
+                  ((and start end error) #f)
+                  (else
+                   (let-values (((tok-start tok-end)
+                                 (begin
+                                   (tokenize-to-pos position)
+                                   (send tokens search! (- position start-pos))
+                                   (values (send tokens get-root-start-position)
+                                           (send tokens get-root-end-position)))))
+                     (cond
+                       ((or (send parens is-close-pos? tok-start)
+                            (= (+ start-pos tok-end) position))
+                        #f)
+                       (else
+                        (+ start-pos tok-end)))))))))
           
-          
+                    
+          ;; backward-match: natural-number? natural-number? -> (union natural-number? false?)
+          ;; Skip all consecutive white-space and comments immediately preceeding position.
+          ;; If the token at the new position is a close,
+          ;;    return the position of the matching open, or #f if there is none.
+          ;; For any other token, return the start of that token.
           (define/public (backward-match position cutoff)
+            (let ((x (internal-backward-match position cutoff)))
+              (cond
+                ((eq? x 'open) #f)
+                (else x))))
+          
+          (define (internal-backward-match position cutoff)
+            (when stopped?
+              (error 'backward-match "called on a color:text<%> whose colorer is stopped."))
             (let ((position (skip-whitespace position 'backward #t)))
               (let-values (((start end error)
                             (send parens match-backward (- position start-pos))))
                 (cond
                   ((and start end (not error))
-                   (let ((match-pos (+ start-pos end)))
+                   (let ((match-pos (+ start-pos start)))
                      (cond
                        ((>= match-pos cutoff) match-pos)
                        (else #f))))
-                  (else #f)))))
-          
+                  ((and start end error) #f)
+                  (else
+                   (let-values (((tok-start tok-end)
+                                 (begin
+                                   (send tokens search!
+                                         (if (> position start-pos)
+                                             (- position start-pos 1)
+                                             0))
+                                   (values (send tokens get-root-start-position)
+                                           (send tokens get-root-end-position)))))
+                     (cond
+                       ((or (send parens is-open-pos? tok-start)
+                            (= (+ start-pos tok-start) position))
+                        'open)
+                       (else
+                        (+ start-pos tok-start)))))))))
+
+          (define/public (backward-containing-sexp position cutoff)
+            (when stopped?
+              (error 'backward-containing-sexp "called on a color:text<%> whose colorer is stopped."))
+            (let loop ((cur-pos position))
+              (let ((p (internal-backward-match cur-pos cutoff)))
+                (cond
+                  ((eq? 'open p) cur-pos)
+                  ((not p) #f)
+                  (else (loop p))))))
+            
           (define (tokenize-to-pos position)
             (when (and (not up-to-date?) (<= current-pos position))
               (colorer-driver)
@@ -533,7 +596,14 @@
           
           (inherit last-position)
           
+          
+          ;; skip-whitespace: natural-number? (symbols 'forward 'backward) boolean -> natural-number?
+          ;; If dir is 'forward, this returns the position of the first non-whitespace character
+          ;; after pos. If dir is 'backward, it returns the first non-whitespace character before pos.
+          ;; Must only be called while the tokenizer is started.
           (define/public (skip-whitespace position direction comments?)
+            (when stopped?
+              (error 'skip-whitespace "called on a color:text<%> whose colorer is stopped."))
             (cond
               ((and (eq? direction 'forward)
                     (>= position (if (eq? 'end end-pos) (last-position) end-pos)))
@@ -541,9 +611,9 @@
               ((and (eq? direction 'backward) (<= position start-pos))
                position)
               (else
-               (let ((p (if (eq? direction 'backward) (sub1 position) position)))
-                 (tokenize-to-pos p)
-                 (send tokens search! (- p start-pos))
+               (tokenize-to-pos position)
+               (send tokens search! (- (if (eq? direction 'backward) (sub1 position) position)
+                                       start-pos))
                  (cond
                    ((or (eq? 'white-space (send tokens get-root-data))
                         (and comments? (eq? 'comment (send tokens get-root-data))))
@@ -551,10 +621,30 @@
                                         (if (eq? direction 'forward)
                                             (send tokens get-root-end-position)
                                             (send tokens get-root-start-position)))
-                                     direction))
-                   (else p))))))
+                                     direction
+                                     comments?))
+                   (else position)))))
           
-           
+          
+          ;; Lifted from scheme-paren.ss
+          (define/public (balanced? region-start region-end)
+            (if (or (> region-end (if (eq? end-pos 'end) (last-position) end-pos))
+                    (<= region-end region-start))
+                #f
+                (let* ([balance-point (forward-match region-start region-end)]
+                       [end-point 
+                        (and balance-point
+                             (skip-whitespace balance-point 'forward #t))])
+                  (and balance-point
+                       (or (and (<= balance-point region-end) (>= end-point region-end))
+                           (balanced? end-point region-end))))))
+
+          
+          (define/public (in-single-line-comment? pos)
+            (send tokens search! (sub1 pos))
+            (eq? 'comment (send tokens get-root-data)))
+          
+          
           ;; ------------------------- Callbacks to Override ----------------------
           
           (rename (super-lock lock))
