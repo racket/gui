@@ -163,10 +163,9 @@
 			  (set! percentage _p)
 			  (on-paint))])
       (private
-	[gray-region 18]
-	[canvas-width 18]
-	[thumb-height 16]
-	[thumb-min 16])
+	[thumb-height 12]
+	[canvas-width (+ thumb-height 3)]
+        [thumb-min thumb-height])
       
       (private
 	[grabbed? #f]
@@ -188,7 +187,15 @@
 		    [y-max (- h (max thumb-min (get-bot-min)))])
 	       (set! percentage (/ (min (max y-min y) y-max) h))
 	       (on-paint))))])
-      (inherit get-dc get-client-size)
+      (private
+        [point1 (make-object point% 0 0)]
+        [point2 (make-object point% 0 0)]
+        [point3 (make-object point% 0 0)]
+        [points (list point1 point2 point3)]
+        [grab-brush (send the-brush-list find-or-create-brush "blue" 'solid)]
+        [reg-brush (send the-brush-list find-or-create-brush "black" 'solid)]
+        [reg-pen (send the-pen-list find-or-create-pen "black" 1 'solid)]
+      (inherit get-dc get-client-size get-top-level-window)
       (rename [super-on-event on-event])
       (override
        [on-event
@@ -213,14 +220,14 @@
 	      (send dc set-brush (send the-brush-list find-or-create-brush panel-color 'solid))
 	      (send dc draw-rectangle 0 0 w h)
 	      
-	      (send dc set-pen (send the-pen-list find-or-create-pen "black" 1 'solid))
+	      (send dc set-pen reg-pen)
 	      (if grabbed?
-		  (send dc set-brush (send the-brush-list find-or-create-brush "blue" 'solid))
-		  (send dc set-brush (send the-brush-list find-or-create-brush "black" 'solid)))
-	      (send dc draw-polygon
-		    (list (make-object point% 2 (get-thumb-middle))
-			  (make-object point% (- w 1) (get-thumb-top))
-			  (make-object point% (- w 1) (get-thumb-bottom)))))))])
+		  (send dc set-brush grab-brush)
+		  (send dc set-brush reg-brush))
+              (send point1 set-x 2) (send point1 set-y (get-thumb-middle))
+              (send point2 set-x (- w 1)) (send point2 set-y (get-thumb-top))
+              (send point3 set-x (- w 1)) (send point3 set-y (get-thumb-bottom))
+	      (send dc draw-polygon points))))])
       
       (inherit min-width stretchable-width)
       (sequence 
@@ -248,14 +255,12 @@
 			 (mzlib:function:filter
 			  (lambda (c) (not (eq? c thumb-canvas)))
 			  (f l)))])
-	       (printf "change-children to ~s~n" res)
 	       res))))])
 
       (override
        [container-size
 	(lambda (_lst)
 	  ;; remove the thumb canvas from the computation
-	  (printf "container-size: ~n")
 	  (let ([lst (if (null? _lst) null (cdr _lst))])
 	    (values
 	     (apply + (map car lst))
@@ -285,8 +290,6 @@
 			   (list 0 0 main-width first)
 			   (list 0 first main-width second)
 			   (map (lambda (x) (list 0 0 0 0)) (cdddr info)))])])
-
-	    (printf "place-children: ~s~n" res)
 	    res))])
       (inherit reflow-container get-top-level-window set-alignment get-alignment)
       (public
