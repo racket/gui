@@ -4773,9 +4773,14 @@
   (define user-custodian (make-custodian))
   
   (define user-output-port
-    (make-output-port
-     (lambda (s) (queue-output (lambda () (send repl-buffer output s))))
-     (lambda () 'nothing-to-close)))
+    (let ([lock (make-semaphore 1)])
+      (make-custom-output-port
+       #f      ; always ready for a non-blocking write
+       (lambda (s start end flush?) 
+	 (queue-output (lambda () (send repl-buffer output (substring s start end))))
+	 (- end start))
+       void    ; no flush action
+       void))) ; no close action
    
   (define user-eventspace
     (or user-esp
@@ -4827,7 +4832,7 @@
        (lambda ()
 	 (current-output-port user-output-port)
 	 (current-error-port user-output-port)
-	 (current-input-port (make-input-port (lambda () eof) void void)))
+	 (current-input-port (make-custom-input-port #f (lambda (s) eof) #f void)))
        #t)))
 
   (send repl-display-canvas set-editor repl-buffer)
