@@ -1,7 +1,7 @@
 
 (require-library "hierlists.ss" "hierlist")
 
-(invoke-open-unit/sig (require-library "hierlistr.ss" "hierlist") mred (mred : mred^))
+(invoke-open-unit/sig (require-library "hierlistr.ss" "hierlist") mred (mred : mred^) (wx: wx^))
 
 #|
 
