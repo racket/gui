@@ -993,7 +993,6 @@
           [define get-label (lambda () label)]
           [define set-label
             (lambda (t)
-              (printf "set-label ~s\n" t)
               (when (and (string? t)
                          (not (string=? t label)))
                 (set! label t)
