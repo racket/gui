@@ -876,7 +876,6 @@
 	      (add "insert-{}-pair" (make-insert-brace-pair "{" "}"))
 	      (add "insert-\"\"-pair" (make-insert-brace-pair "\"" "\""))
 	      (add "insert-||-pair" (make-insert-brace-pair "|" "|"))
-	      (add "insert-##-pair" (make-insert-brace-pair "#" "#"))
 	     
 	      (add "toggle-anchor" toggle-anchor)
 	      (add "center-view-on-line" center-view-on-line)
@@ -947,7 +946,6 @@
 	      (map-meta "{" "insert-{}-pair")
 	      (map-meta "\"" "insert-\"\"-pair")
 	      (map-meta "|" "insert-||-pair")
-	      (map-meta "#" "insert-##-pair")
 	      
 	      (map "c:p" "previous-line")
 	      (map "up" "previous-line")
