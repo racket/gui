@@ -12,6 +12,7 @@
    (lib "mred.ss" "mred")
    (lib "etc.ss")
    (lib "list.ss")
+   "snip-lib.ss"
    "interface.ss"
    "constants.ss")
   
@@ -80,8 +81,8 @@
   ;; a snip that can contain an aligned-pasteboard<%> and also be stretched within an aligned-pasteboard<%>
   (define aligned-editor-snip%
     (class* editor-snip% (aligned-pasteboard-parent<%> aligned-snip<%>)
-      (inherit get-editor get-margin)
-
+      (inherit get-editor get-margin set-min-width set-min-height)
+      
       (init
        (stretchable-width true)
        (stretchable-height true))
@@ -150,7 +151,9 @@
       ;; set-aligned-min-size (-> (void))
       ;; calculates and stores the minimum height and width of the snip
       (define/public (set-aligned-min-sizes)
-        (send (get-editor) set-aligned-min-sizes))
+        (send (get-editor) set-aligned-min-sizes)
+        (set-min-width (get-aligned-min-width))
+        (set-min-height (get-aligned-min-height)))
       
       (super-instantiate ())
       ))
@@ -192,7 +195,15 @@
               [right (box 0)]
               [bottom (box 0)])
           (get-margin left top right bottom)
-          (+ (unbox left) (unbox right))))
+          (+ (unbox left)
+             (let* ([ed (get-editor)]
+                    [last (send ed last-line)])
+               (let loop ([line 0])
+                 (if (= line last)
+                     0
+                     (max (send ed line-length line)
+                          (loop (add1 line))))))
+             (unbox right))))
       
       ;; get-aligned-min-height (-> number?)
       ;; the minimum height of the snip based on the children
@@ -206,6 +217,70 @@
           (+ (unbox top) (unbox bottom)
              (* (send editor line-location 0 false)
                 (add1 (send editor last-line))))))
+      
+;      ; get-aligned-min-width (-> number?)
+;      ; the minimum width of the snip based on the children
+;      (inherit get-max-width set-max-width get-min-width set-min-width)
+;      (define/public (get-aligned-min-width)
+;        (let* ([parent (snip-parent this)]
+;               [ed (get-editor)]
+;               [ed-max (send ed get-max-width)]
+;               [ed-min (send ed get-min-width)]
+;               [this-max (get-max-width)]
+;               [this-min (get-min-width)])
+;          (when (is-a? parent aligned-pasteboard<%>)
+;            (send parent ignore-resizing true))
+;          (send parent begin-edit-sequence)
+;          (send ed begin-edit-sequence)
+;          (send ed set-max-width 'none)
+;          (send ed set-min-width 'none)
+;          (set-max-width 'none)
+;          (set-min-width 'none)
+;          (begin0
+;            (let ([left (box 0)]
+;                  [top (box 0)]
+;                  [right (box 0)]
+;                  [bottom (box 0)])
+;              (get-margin left top right bottom)
+;              (+ (unbox left)
+;                 (snip-width this)))
+;            (send ed set-max-width ed-max)
+;            (send ed set-max-width ed-min)
+;            (set-min-width this-min)
+;            (set-max-width this-max)
+;            (send ed end-edit-sequence)
+;            (send parent end-edit-sequence)
+;            (when (is-a? parent aligned-pasteboard<%>)
+;              (send parent ignore-resizing false)))))
+;      
+;      ; get-aligned-min-height (-> number?)
+;      ; the minimum height of the snip based on the children
+;      (inherit get-max-height set-max-height get-min-height set-min-height)
+;      (define/public (get-aligned-min-height)
+;        (let* ([parent (snip-parent this)]
+;               [ed (get-editor)]
+;               [ed-max (send ed get-max-height)]
+;               [ed-min (send ed get-min-height)]
+;               [this-max (get-max-height)]
+;               [this-min (get-min-height)])
+;          (when (is-a? parent aligned-pasteboard<%>)
+;            (send parent ignore-resizing true))
+;          (send parent begin-edit-sequence)
+;          (send ed begin-edit-sequence)
+;          (send ed set-max-height 'none)
+;          (send ed set-min-height 'none)
+;          (set-max-height 'none)
+;          (set-min-height 'none)
+;          (begin0
+;            (snip-height this)
+;            (send ed set-max-height ed-max)
+;            (send ed set-min-height ed-min)
+;            (set-min-height this-min)
+;            (set-max-height this-max)
+;            (send ed end-edit-sequence)
+;            (send parent end-edit-sequence)
+;            (when (is-a? parent aligned-pasteboard<%>)
+;              (send parent ignore-resizing false)))))
       
       (super-instantiate ())
       ))

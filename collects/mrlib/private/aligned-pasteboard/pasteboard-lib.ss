@@ -3,7 +3,7 @@
   (require
    (lib "class.ss")
    (lib "mred.ss" "mred")
-   (lib "contracts.ss")
+   (lib "contract.ss")
    (lib "etc.ss")
    "interface.ss"
    "snip-lib.ss")

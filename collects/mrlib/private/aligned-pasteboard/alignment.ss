@@ -22,7 +22,7 @@
   
   (require
    (lib "match.ss")
-   (lib "contracts.ss")
+   (lib "contract.ss")
    (lib "etc.ss")
    (lib "list.ss"))
   

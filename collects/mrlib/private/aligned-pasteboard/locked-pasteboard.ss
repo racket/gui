@@ -3,7 +3,7 @@
   (require
    (lib "class.ss")
    (lib "etc.ss")
-   (lib "contracts.ss"))
+   (lib "contract.ss"))
   
   (provide/contract
    (locked-pasteboard-mixin mixin-contract))

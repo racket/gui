@@ -5,7 +5,7 @@
    (lib "etc.ss")
    (lib "mred.ss" "mred")
    (lib "list.ss")
-   (lib "contracts.ss")
+   (lib "contract.ss")
    "interface.ss")
   
   ;; a snip

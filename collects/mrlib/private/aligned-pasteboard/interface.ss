@@ -12,6 +12,9 @@
   ;; the interface that must be implemented for a pasteboard to be contained in an aligned-pasteboard-parent<%>
   (define aligned-pasteboard<%>
     (interface (editor<%>)
+      ;; temp fix
+      ignore-resizing
+      
       ;; get-alignment (-> (values symbol? symbol?))
       ;; get the pasteboards current alignment specification
       ;; status: possible future feature
