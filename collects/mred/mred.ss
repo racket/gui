@@ -3427,6 +3427,7 @@
     (sequence
       (send c set-x-margin 2)
       (send c set-y-margin 2)
+      (send e set-line-spacing 0)
       (send e set-paste-text-only #t)
       (send e auto-wrap (and multi? (not (memq 'hscroll style))))
       (let ([f (get-control-font)]
