@@ -505,5 +505,26 @@
 
     (define edit% (make-edit% mred:connections:connections-media-edit%))
 
+    (define make-return-edit%
+      (lambda (super%)
+	(class super% (return . args)
+	  (rename [super-on-local-char on-local-char])
+	  (public
+	    [on-local-char
+	     (lambda (key)
+	       (let ([cr-code 13]
+		     [lf-code 10]
+		     [code (send key get-key-code)])
+		 (or (and (or (= lf-code code)
+			      (= cr-code code))
+			  (return))
+		     (super-on-local-char key))))])
+	  (sequence
+	    (apply super-init args)))))
+
+    (define return-edit% (make-return-edit% edit%))
+		  
+		      
+
     (define make-pasteboard% make-std-buffer%)
     (define pasteboard% (make-pasteboard% mred:connections:connections-media-pasteboard%))))
