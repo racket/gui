@@ -5526,10 +5526,22 @@
 								 ; typing in the box; disable the lists and enable ok
 								 (send dirs enable #f)
                                                                  (send files enable #f)
+								 (when create-button
+								   (send create-button enable #t))
 								 (send ok-button enable #t)))))]
 		 [bp (make-object horizontal-pane% f)]
 		 [dot-check (make-object check-box% "Show files/directories that start with \".\"" bp (lambda (b e) (reset-directory)))]
 		 [spacer (make-object vertical-pane% bp)]
+		 [create-button (and dir? (make-object button% "Create" bp
+						       (lambda (b e)
+							 (with-handlers ([void
+									  (lambda (exn)
+									    (message-box "Error"
+											 (exn-message exn)
+											 f
+											 '(ok stop)))])
+							   (make-directory (send dir-text get-value))
+							   (do-text-name)))))]
 		 [cancel-button (make-object button% "Cancel" bp (lambda (b e) (set! ok? #f) (send f show #f)))]
 		 [ok-button (make-object button% 
                               (if dir? "Goto" "OK")
@@ -5544,10 +5556,10 @@
                               '(border))]
 		 [update-ok (lambda () (send ok-button enable (not (null? (send (if dir? dirs files) get-selections)))))]
 		 [select-this-dir (and dir?
-                                (make-object button% "<- &Select" dir-pane
-                                  (lambda (b e)
-                                    (send f show #f)
-                                    (done))))]
+				       (make-object button% "<- &Select" dir-pane
+						    (lambda (b e)
+						      (send f show #f)
+						      (done))))]
 		 [reset-directory (lambda ()
 				    (wx:begin-busy-cursor)
                                     (let ([dir-exists? (directory-exists? dir)])
@@ -5558,7 +5570,9 @@
                                                               (protect& dir))
                                                             (string-append "BAD DIRECTORY: " dir)))
                                       (when select-this-dir
-                                        (send select-this-dir enable dir-exists?)))
+                                        (send select-this-dir enable dir-exists?))
+				      (when create-button
+					(send create-button enable (not dir-exists?))))
 				    (send dir-text set-value dir)
 				    (let ([l (with-handlers ([void (lambda (x) null)])
 					       (directory-list dir))]
