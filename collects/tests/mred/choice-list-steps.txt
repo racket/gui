@@ -194,3 +194,27 @@ Click "Check" and inspect the item list in the console.
 Multiple Selections >> Multiple-Selection Lists Only <<
 -------------------
 
+Click on each of the three items and make sure that "Selected N"
+ and "Callback Ok" are printed in the console.
+
+Click "Check" and verify the item list *and* the selection list.  Only
+ one item should be selected, and the only position of that item
+ (counting frmo 0) should be in the selection list.
+
+Use the shift key to select a second item. The console should show
+ "Selected N" and "Callback Ok" as usual.
+
+Click "Check" and verify that the selection list now has the right
+ two items.
+
+Shift-click on a selected item. The console should show "Selected N"
+ and "Callback Ok" as usual.
+
+Shift-click to select the remaining item. The console should show
+ "Selected N" and "Callback Ok" as usual.
+
+Control-click on a selected item. It should become unselected (and the
+ other two selected items should remain so). The console should report
+ "Selected -1", "Deselect", and "Callback Ok".
+
+

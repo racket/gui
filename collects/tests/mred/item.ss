@@ -1133,7 +1133,9 @@
 				   (error "selection string mismatch"))
 				 (check-callback-event c c e commands #t)))
 			     old-list)
-			    (printf "content: ~s~n" actual-content))
+			    (printf "content: ~s~n" actual-content)
+			    (when multi?
+			      (printf "selections: ~s~n" (send c get-selections))))
 			  "Check"))
   (instructions p "choice-list-steps.txt")
   (send f show #t))
