@@ -159,7 +159,7 @@
     (private
       ; have we had any redraw requests while the window has been
       ; hidden?
-      [pending-redraws? #f]
+      [pending-redraws? #t]
 
       [perform-updates? #t]
       
