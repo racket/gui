@@ -24,6 +24,8 @@
 
 (define o (current-output-port))
 
+(define no-val (gensym)) ; indicates init arg not supplied
+
 ;;;;;;;;;;;;;;; Security ("thread safety") ;;;;;;;;;;;;;;;;;;;;
 
 ;; When the user creates an object or calls a method, or when the
@@ -2785,6 +2787,9 @@
 (define (constructor-name who)
   (string->symbol (format "initialization for ~a%" who)))
 
+(define (iconstructor-name who)
+  (string->symbol (format "initialization for a ~a<%> class" who)))
+
 (define (check-container-parent who p)
   (unless (is-a? p internal-container<%>)
     (raise-type-error (who->name who) "built-in container<%> object" p)))
@@ -2846,20 +2851,35 @@
     stretchable-width stretchable-height))
 
 (define area%
-  (class100* mred% (area<%>) (mk-wx get-wx-pan prnt)
-    (private-field [get-wx-panel get-wx-pan]
-	     [parent prnt])
+  (class100* mred% (area<%>) (mk-wx get-wx-pan prnt
+				    ;; for keyword use:
+				    [min-width no-val]
+				    [min-height no-val]
+				    [stretchable-width no-val]
+				    [stretchable-height no-val])
+    (sequence
+      (let ([cwho '(iconstructor area)])
+	(unless (eq? min-width no-val) (check-non#f-dimension cwho min-width))
+	(unless (eq? min-height no-val) (check-non#f-dimension cwho min-height))))
+    (private-field 
+      [get-wx-panel get-wx-pan]
+      [parent prnt])
     (public
       [get-parent (lambda () parent)]
       [get-top-level-window (entry-point (lambda () (wx->mred (send wx get-top-level))))]
-      [min-width (param get-wx-panel min-width)]
-      [min-height (param get-wx-panel min-height)]
-      [stretchable-width (param get-wx-panel stretchable-in-x)]
-      [stretchable-height (param get-wx-panel stretchable-in-y)]
+      [(minw min-width) (param get-wx-panel min-width)]
+      [(minh min-height) (param get-wx-panel min-height)]
+      [(sw stretchable-width) (param get-wx-panel stretchable-in-x)]
+      [(sh stretchable-height) (param get-wx-panel stretchable-in-y)]
       [get-graphical-min-size (entry-point (lambda () (send wx get-hard-minimum-size)))])
     (private-field
       [wx (mk-wx)])
-    (sequence (super-init wx))))
+    (sequence
+      (super-init wx)
+      (unless (eq? min-width no-val) (minw min-width))
+      (unless (eq? min-height no-val) (minh min-height))
+      (unless (eq? stretchable-width no-val) (sw stretchable-width))
+      (unless (eq? stretchable-height no-val) (sh stretchable-height)))))
 
 (define internal-subarea<%> (interface ()))
 
@@ -2868,12 +2888,22 @@
     horiz-margin vert-margin))
 
 (define (make-subarea% %) ; % implements area<%>
-  (class100* % (subarea<%>) (mk-wx get-wx-pan parent)
+  (class100* % (subarea<%>) (mk-wx get-wx-pan parent
+				      ;; for keyword use
+				      [horiz-margin no-val]
+				      [vert-margin no-val])
+    (sequence
+      (let ([cwho '(iconstructor subarea)])
+	(unless (eq? horiz-margin no-val) (check-margin-integer cwho horiz-margin))
+	(unless (eq? horiz-margin no-val) (check-margin-integer cwho vert-margin))))
     (private-field [get-wx-panel get-wx-pan])
     (public
-      [horiz-margin (param get-wx-panel x-margin)]
-      [vert-margin (param get-wx-panel y-margin)])
-    (sequence (super-init mk-wx get-wx-panel parent))))
+      [(hm horiz-margin) (param get-wx-panel x-margin)]
+      [(vm vert-margin) (param get-wx-panel y-margin)])
+    (sequence 
+      (super-init mk-wx get-wx-panel parent)
+      (unless (eq? horiz-margin no-val) (hm horiz-margin))
+      (unless (eq? vert-margin no-val) (vm vert-margin)))))
 
 (define area-container<%> 
   (interface (area<%>) 
@@ -2888,7 +2918,21 @@
 (define internal-container<%> (interface ()))
 
 (define (make-container% %) ; % implements area<%>
-  (class100* % (area-container<%> internal-container<%>) (mk-wx get-wx-pan parent) 
+  (class100* % (area-container<%> internal-container<%>) (mk-wx get-wx-pan parent
+								   ;; for keyword use
+								   [border no-val]
+								   [spacing no-val]
+								   [alignment no-val])
+    (sequence
+      (let ([cwho '(iconstructor area-container)])
+	(unless (eq? border no-val) (check-margin-integer cwho border))
+	(unless (eq? spacing no-val) (check-margin-integer cwho spacing))
+	(unless (eq? alignment no-val)
+	  (unless (and (list? alignment)
+		       (= 2 (length alignment))
+		       (memq (car alignment) '(left center right))
+		       (memq (cadr alignment) '(top center bottom)))
+	    (raise-type-error (who->name cwho) "alignment list" alignment)))))
     (private-field [get-wx-panel get-wx-pan])
     (public
       [after-new-child (lambda (c) (void))]
@@ -2896,8 +2940,8 @@
       [begin-container-sequence (entry-point (lambda () (send (send (get-wx-panel) get-top-level) begin-container-sequence)))]
       [end-container-sequence (entry-point (lambda () (send (send (get-wx-panel) get-top-level) end-container-sequence)))]
       [get-children (entry-point (lambda () (map wx->proxy (send (get-wx-panel) get-children))))]
-      [border (param get-wx-panel border)]
-      [spacing (param get-wx-panel spacing)]
+      [(bdr border) (param get-wx-panel border)]
+      [(spc spacing) (param get-wx-panel spacing)]
       [set-alignment (entry-point (lambda (h v) (send (get-wx-panel) alignment h v)))]
       [get-alignment (entry-point (lambda () (send (get-wx-panel) get-alignment)))]
       [change-children (entry-point
@@ -2942,7 +2986,10 @@
 		       (check-instance '(method area-container<%> delete-child) subwindow<%> 'subwindow<%> #f c)
 		       (send (get-wx-panel) delete-child (mred->wx c))))])
     (sequence
-      (super-init mk-wx get-wx-panel parent))))
+      (super-init mk-wx get-wx-panel parent)
+      (unless (eq? border no-val) (bdr border))
+      (unless (eq? spacing no-val) (spc spacing))
+      (unless (eq? alignment no-val) (set-alignment . alignment)))))
 
 (define window<%>
   (interface (area<%>)
@@ -2958,7 +3005,9 @@
     show is-shown? on-superwindow-show refresh))
 
 (define (make-window% top? %) ; % implements area<%>
-  (class100* % (window<%>) (mk-wx get-wx-panel lbl parent crsr)
+  (class100* % (window<%>) (mk-wx get-wx-panel lbl parent crsr
+				     ;; for keyword use
+				     [enabled #t])
     (private-field [label lbl][cursor crsr])
     (public
       [popup-menu (entry-point 
@@ -3061,7 +3110,8 @@
     (private-field
       [wx #f])
     (sequence
-      (super-init (lambda () (set! wx (mk-wx)) wx) get-wx-panel parent))))
+      (super-init (lambda () (set! wx (mk-wx)) wx) get-wx-panel parent)
+      (unless enabled (enable #f)))))
 
 (define area-container-window<%>
   (interface (window<%> area-container<%>)
@@ -5559,6 +5609,7 @@
   (cond
    [(symbol? who) who]
    [(eq? (car who) 'method) (string->symbol (format "~a in ~a" (caddr who) (cadr who)))]
+   [(eq? (car who) 'iconstructor) (iconstructor-name (cadr who))]
    [else (constructor-name (cadr who))]))
 
 (define (check-instance who class class-name false-ok? v)
@@ -5611,6 +5662,7 @@
     (raise-type-error (who->name who) "non-negative exact integer" i)))
 
 (define check-dimension (check-bounded-integer 0 10000 #t))
+(define check-non#f-dimension (check-bounded-integer 0 10000 #f))
 
 (define (check-string-or-bitmap who label)
   (unless (or (string? label) (is-a? label wx:bitmap%))
