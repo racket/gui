@@ -463,8 +463,10 @@
       
       [ignore-redraw-request? #f]
       
-      [already-trying? #f] ; hack around stubborn Motif bug
+      [already-trying? #f]
       [was-bad? #f] ; hack around min-frame-size limitations
+      [last-width -1]
+      [last-height -1]
       
       ; pointer to panel in the frame for use in on-size
       [panel #f]
@@ -620,9 +622,12 @@
 		  [new-height (get-height)])
 	      (let-values ([(correct-w correct-h) (correct-size new-width new-height)])
 		(if (or (and (= new-width correct-w) (= new-height correct-h))
+			(and (= last-width correct-w) (= last-height correct-h))
 			was-bad?)
-		    ;; Good size; do panel
+		    ;; Good size or we give up; do panel
 		    (begin
+		      (set! last-width correct-w)
+		      (set! last-height correct-h)
 		      (set! was-bad? #f)
 		      (set-panel-size))
 		    ;; Too large/small; try to fix it, but give up after a while
@@ -1088,11 +1093,18 @@
       [on-set-focus (entry-point
 		     (lambda ()
 		       (super-on-set-focus)
-		       (as-exit (lambda () (send (get-proxy) on-focus #t)))))]
+		       ; Windows circumvents the event queue to call on-focus
+		       ;  when you click on the window's icon in the task bar.
+		       (queue-window-callback
+			this 
+			(lambda () (send (get-proxy) on-focus #t)))))]
       [on-kill-focus (entry-point
 		      (lambda ()
 			(super-on-kill-focus)
-			(as-exit (lambda () (send (get-proxy) on-focus #f)))))]
+			; see on-set-focus:
+			(queue-window-callback
+			 this
+			 (lambda () (send (get-proxy) on-focus #f)))))]
       [pre-on-char (entry-point-2
 		    (lambda (w e)
 		      (super-pre-on-char w e)
