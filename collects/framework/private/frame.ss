@@ -66,6 +66,41 @@
           (for-each (lambda (item) (send item delete)) items)
           (for-each (lambda (item) (send item restore)) re-ordered)))
       
+      (define (add-snip-menu-items edit-menu c%)
+        (let* ([get-edit-target-object
+                (lambda ()
+                  (let ([menu-bar
+                         (let loop ([p (send edit-menu get-parent)])
+                           (cond
+                             [(is-a? p menu-bar%)
+                              p]
+                             [(is-a? p menu%)
+                              (loop (send p get-parent))]
+                             [else #f]))])
+                    (and menu-bar
+                         (let ([frame (send menu-bar get-frame)])
+                           (send frame get-edit-target-object)))))]
+               [edit-menu:do 
+                (lambda (const)
+                  (lambda (menu evt)
+                    (let ([edit (get-edit-target-object)])
+                      (when (and edit
+                                 (is-a? edit editor<%>))
+                        (send edit do-edit-operation const)))
+                    #t))]
+               [on-demand
+                (lambda (menu-item)
+                  (let ([edit (get-edit-target-object)])
+                    (send menu-item enable (and edit (is-a? edit editor<%>)))))])
+          
+          (make-object c% (string-constant insert-text-box-item)
+            edit-menu (edit-menu:do 'insert-text-box) #f #f on-demand)
+          (make-object c% (string-constant insert-pb-box-item)
+            edit-menu (edit-menu:do 'insert-pasteboard-box) #f #f on-demand)
+          (make-object c% (string-constant insert-image-item)
+            edit-menu (edit-menu:do 'insert-image) #f #f on-demand)
+          (void)))
+      
       (define frame-width 600)
       (define frame-height 650)
       (let ([window-trimming-upper-bound-width 20]
@@ -611,9 +646,7 @@
                            save
                            save-as
                            get-canvas
-                           get-editor
-                           
-                           add-edit-menu-snip-items))
+                           get-editor))
       
       (define editor-mixin
         (mixin (standard-menus<%>) (-editor<%>)
@@ -770,38 +803,9 @@
                                              #t))
           (define file-menu:create-print? (lambda () #t))
           
-          (define edit-menu:do (lambda (const)
-                                 (lambda (menu evt)
-                                   (let ([edit (get-edit-target-object)])
-                                     (when (and edit
-                                                (is-a? edit editor<%>))
-                                       (send edit do-edit-operation const)))
-                                   #t)))
-          
-          (public add-edit-menu-snip-items)
-          (define add-edit-menu-snip-items
-            (lambda (edit-menu)
-              (let ([c% (get-menu-item%)]
-                    [on-demand
-                     (lambda (menu-item)
-                       (let ([edit (get-edit-target-object)])
-                         (send menu-item enable (and edit (is-a? edit editor<%>)))))])
-                
-                (make-object c% (string-constant insert-text-box-item)
-                  edit-menu (edit-menu:do 'insert-text-box) #f #f on-demand)
-                (make-object c% (string-constant insert-pb-box-item)
-                  edit-menu (edit-menu:do 'insert-pasteboard-box) #f #f on-demand)
-                (make-object c% (string-constant insert-image-item)
-                  edit-menu (edit-menu:do 'insert-image) #f #f on-demand))))
-          
-          
           (override edit-menu:between-select-all-and-find)
           (define edit-menu:between-select-all-and-find
            (lambda (edit-menu)
-             (make-object separator-menu-item% edit-menu)
-             
-             (add-edit-menu-snip-items edit-menu)
-             
              (let* ([c% (get-checkable-menu-item%)]
                     [on-demand
                      (lambda (menu-item)

@@ -339,7 +339,8 @@
      pasteboard-info-mixin
      file-mixin))
   (define-signature framework:frame-fun^
-    (reorder-menus))
+    (reorder-menus
+     add-snip-menu-items))
   (define-signature framework:frame^
     ((open framework:frame-class^)
      (open framework:frame-fun^)))

@@ -289,12 +289,12 @@
                  [hl (make-object recent-items-hierarchical-list% (get-area-container) '())]
                  [sort-by-name-button
                   (make-object button% 
-                    (string-constant sort-by-name) 
+                    (string-constant recent-items-sort-by-name) 
                     bp
                     (lambda (x y) (set-sort-by 'name)))]
                  [sort-by-age-button
                   (make-object button% 
-                    (string-constant sort-by-age) 
+                    (string-constant recent-items-sort-by-age) 
                     bp
                     (lambda (x y) (set-sort-by 'age)))])
           

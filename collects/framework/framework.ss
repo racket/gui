@@ -514,6 +514,16 @@
     ""
     "See section \\ref{selecting-a-filename} for more information.")
 
+   (frame:add-snip-menu-items
+    ((is-a?/c menu%) (subclass?/c menu-item%) . -> . void?)
+    (menu menu-item%)
+    "Inserts three menu items into \\var{menu},"
+    "one that inserts a text box, one that inserts a"
+    "pasteboard box, and one that inserts an image"
+    "into the currently focused editor (if there is one)."
+    "Uses \\var{menu-item\\%} as the class for"
+    "the menu items.")
+   
    (frame:reorder-menus
     ((is-a?/c frame%) . -> . void?)
     (frame)
