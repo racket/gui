@@ -437,6 +437,18 @@
 				  (send dc set-brush orig-b)
 				  (send dc set-pen orig-pen))))
 			    
+			    (unless no-bitmaps?
+			      (let ([obg (send dc get-background)]
+				    [tan (make-object color% "TAN")])
+				(send dc set-background tan)
+				(let* ([bits "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789/+"]
+				       [bm (make-object bitmap% bits 8 8)])
+				  (send dc draw-bitmap bm 306 164 'opaque))
+				(let* ([bits "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz01234567"]
+				       [bm (make-object bitmap% bits 6 10)])
+				  (send dc draw-bitmap bm 306 184 'opaque))
+				(send dc set-background obg)))
+
 			    (when last?
 			      ; Test get-text-extent
 			      (let ([save-pen (send dc get-pen)]

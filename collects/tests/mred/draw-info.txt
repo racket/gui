@@ -38,6 +38,13 @@ The drawing area should have the following features:
     an 25% black B&W bitmap, and a red box frame should be draw with a
     50% red stipple.
 
+  To the right of those two boxes should appear two little boxes,
+    black pixels on a tan background, the top one 8x8 and the bottom
+    on 6x10.  The black pixels in the top one should form a vertical
+    line right or center with a kind of semi-spring on the left
+    edge. The black pixels in 6x10 should be just a longer semi-spring
+    to the left.
+
   The drawings under "0 x 0" and "1 x 1" should look nearly the same:
 
     TopLeft: h-line should be left-aligned with box below it, but
