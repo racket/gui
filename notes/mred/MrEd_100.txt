@@ -113,6 +113,7 @@ highlights of the revision:
             media-pasteboard%  =>  pasteboard%
             snip%              =>  snip%
             media-snip%        =>  editor-snip%
+            text-snip%         =>  string-snip% (to avoid confusion)
 
    Methods of text% (formerly media-edit%) check that position, line,
    and paragraph arguments are non-negative. In methods where -1
