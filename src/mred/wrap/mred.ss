@@ -998,17 +998,17 @@
 	   (raise-type-error (who->name '(method editor<%> on-new-box)) "symbol: text or pasteboard" type))
 	 (make-object editor-snip%
 		      (make-object (cond
-				    [(eq? type 'pasteboard-buffer) pasteboard-editor%]
-				    [else text-editor%]))))])
+				    [(eq? type 'pasteboard) pasteboard%]
+				    [else text%]))))])
 
     (sequence (apply super-init args))))
 
-(define text-editor% (make-editor-buffer% wx:text-editor% #t))
-(define pasteboard-editor% (make-editor-buffer% wx:pasteboard-editor% #f))
+(define text% (make-editor-buffer% wx:text% #t))
+(define pasteboard% (make-editor-buffer% wx:pasteboard% #f))
 
 (define editor-snip% (class wx:editor-snip% ([edit #f] . args)
 			(sequence
-			  (apply super-init (or edit (make-object text-editor%)) args))))
+			  (apply super-init (or edit (make-object text%)) args))))
 
 ;--------------------- wx Panel Classes -------------------------
 
@@ -1592,7 +1592,7 @@
 ;-------------------- Text control simulation -------------------------
 
 (define wx-text-text-editor% 
-  (class text-editor% (cb return-cb control)
+  (class text% (cb return-cb control)
       (rename [super-after-insert after-insert]
 	      [super-after-delete after-delete]
 	      [super-on-char on-char])
@@ -1610,16 +1610,16 @@
 	   (let ([c (send e get-key-code)])
 	     (unless (and (or (eq? c #\return) (eq? c #\newline))
 			  return-cb
-			  (return-cb (lambda () (callback 'text-enter) #t)))
+			  (return-cb (lambda () (callback 'text-field-enter) #t)))
 	       (super-on-char e))))]
 	[after-insert
 	 (lambda args
 	   (apply super-after-insert args)
-	   (callback 'text))]
+	   (callback 'text-field))]
 	[after-delete
 	 (lambda args
 	   (apply super-after-delete args)
-	   (callback 'text))])
+	   (callback 'text-field))])
       (public
 	[callback-ready
 	 (lambda () 
@@ -1641,7 +1641,7 @@
     (public
       [continue-on-char (lambda (e) (super-on-char e))])
     (sequence
-      (super-init mred proxy parent -1 -1 100 20 #f style 100 #f))))
+      (super-init mred proxy parent -1 -1 100 30 #f style 100 #f))))
   
 (define (font->delta f)
   (define d (make-object wx:style-delta%))
@@ -1652,13 +1652,14 @@
   (send d set-delta 'change-underline (send f get-underlined))
   d)
 
-(define (make-wx-text% multi?)
+(define wx-text-field%
   (class wx-horizontal-panel% (mred proxy parent func label value style)
     (inherit alignment stretchable-in-y get-control-font)
     (rename [super-place-children place-children])
     (sequence
       (super-init #f proxy parent null))
     (private
+      [multi? (memq 'multiple style)]
       [horiz? (eq? (send (send parent get-window) get-label-position) 'horizontal)]
       [p (if horiz?
 	     this
@@ -1753,9 +1754,6 @@
 	    (let ([new-min-width (+ (unbox ew) (- (unbox tw) (unbox cw)))])
 	      (send c set-min-width new-min-width)))))
       (send e callback-ready))))
-
-(define wx-text% (make-wx-text% #f))
-(define wx-multi-text% (make-wx-text% #t))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;; mred Class Construction ;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -2322,15 +2320,15 @@
   (interface (control<%>)
     get-edit get-value set-value))
 
-(define (make-text% wx-text% who)
-  (class* basic-control% (text-control<%>) (label parent callback [init-val ""] [style null])
+(define text-field%
+  (class* basic-control% (text-control<%>) (label parent callback [init-val ""] [style '(single)])
     (sequence 
-      (let ([cwho `(constructor-name ,who)])
+      (let ([cwho '(constructor-name text-field)])
 	(check-string/false cwho label)
-	(check-container-parent who parent)
+	(check-container-parent 'text-field parent)
 	(check-callback cwho callback)
 	(check-string cwho init-val)
-	(check-style cwho #f null style)))
+	(check-style cwho '(single multiple) '(hscroll) style)))
     (private
       [wx #f])
     (public
@@ -2341,14 +2339,11 @@
 		   (send wx set-value v))])
     (sequence
       (super-init (lambda () 
-		    (set! wx (make-object wx-text% this this
+		    (set! wx (make-object wx-text-field% this this
 					  (mred->wx-container parent) (wrap-callback callback)
 					  label init-val style))
 		    wx)
 		  label parent ibeam))))
-
-(define text% (make-text% wx-text% 'text))
-(define multi-text% (make-text% wx-multi-text% 'multi-text))
 
 ;-------------------- Canvas class constructions --------------------
 
@@ -2418,7 +2413,7 @@
   (class basic-canvas% (parent [buffer #f] [style null] [scrolls-per-page 100])
     (sequence 
       (check-container-parent 'editor-canvas parent)
-      (check-instance '(constructor editor-canvas) internal-editor<%> "text-editor% or pasteboard-editor" #t buffer)
+      (check-instance '(constructor editor-canvas) internal-editor<%> "text% or pasteboard" #t buffer)
       (check-style '(constructor editor-canvas) #f '(hide-vscroll hide-hscroll no-vscroll no-hscroll) style))
     (private
       [force-focus? #f]
@@ -2448,7 +2443,7 @@
 
       [set-line-count
        (lambda (n) 
-	 (unless (and (number? n) (integer? n) (<= 1 100))
+	 (unless (or (not n) (and (number? n) (integer? n) (<= 1 100)))
 	   (raise-type-error (who->name '(method editor-canvas% set-line-count))
 			     "integer in [1, 100]"
 			     n))
@@ -2860,8 +2855,8 @@
 
 (define (graphical-read-eval-print-loop)
   ;; The REPL buffer class
-  (define esq:text-editor%
-    (class text-editor% ()
+  (define esq:text%
+    (class text% ()
       (inherit insert last-position get-text erase change-style clear-undos)
       (rename [super-on-char on-char])
       (private [prompt-pos 0] [locked? #f])
@@ -2916,7 +2911,7 @@
 						     (semaphore-post waiting))])
 			       (sequence (apply super-init args)))
 			     "MrEd REPL" #f 500 400))
-  (define repl-buffer (make-object esq:text-editor%))
+  (define repl-buffer (make-object esq:text%))
   (define repl-display-canvas (make-object editor-canvas% frame))
 
   ;; User space initialization
@@ -2961,7 +2956,7 @@
 			(when (send event button-down?)
 			  (send edit set-position (send edit last-position))
 			  (send edit paste)))])
-    (wx:add-text-editor-keymap-functions k)
+    (wx:add-text-keymap-functions k)
     (send k add-mouse-function "mouse-paste" mouse-paste)
     (map
      (lambda (key func) (send k map-function key func))
@@ -3014,7 +3009,7 @@
 	    (for-each (lambda (s) (make-object message% s f)) strings)
 	    (send f stretchable-width #f)
 	    (send f stretchable-height #f))
-	  (let ([m (make-object multi-text% #f f void)])
+	  (let ([m (make-object text-field% #f f void "" '(multiple))])
 	    (send m set-value message)
 	    (send (send m get-edit) lock #t)))
       (let* ([p (make-object horizontal-pane% f)]
@@ -3063,18 +3058,18 @@
     (define destination (and unix? (make-object radio-box% "Destination:" 
 						'("Printer" "Preview" "File") dp void)))
     (define cp (and unix? (make-object horizontal-pane% f)))
-    (define command (and unix? (make-object text% "Printer Command:" cp void)))
-    (define options (and unix? (make-object text% "Printer Options:" cp void)))
+    (define command (and unix? (make-object text-field% "Printer Command:" cp void)))
+    (define options (and unix? (make-object text-field% "Printer Options:" cp void)))
 
     (define ssp (make-object horizontal-pane% f))
     (define sp (make-object vertical-pane% ssp))
     (define def-scale "100.00")
     (define def-offset "0000.00")
-    (define xscale (make-object text% "Horizontal Scale:" sp void def-scale))
-    (define xoffset (make-object text% "Horizontal Translation:" sp void def-offset))
+    (define xscale (make-object text-field% "Horizontal Scale:" sp void def-scale))
+    (define xoffset (make-object text-field% "Horizontal Translation:" sp void def-offset))
     (define sp2 (make-object vertical-pane% ssp))
-    (define yscale (make-object text% "Vertical Scale:" sp2 void def-scale))
-    (define yoffset (make-object text% "Vertical Translation:" sp2 void def-offset))
+    (define yscale (make-object text-field% "Vertical Scale:" sp2 void def-scale))
+    (define yoffset (make-object text-field% "Vertical Translation:" sp2 void def-offset))
 
     (define l2 (make-object check-box% "PostScript Level 2" f void))
 
@@ -3154,8 +3149,8 @@
 	   [ok? #f]
 	   [done (lambda (?) (lambda (b e) (set! ok? ?) (send f show #f)))])
       (send f set-label-position 'vertical)
-      (let ([t (make-object text% message f (lambda (t e) (when (eq? (send e get-event-type) 'text-enter)
-							    ((done #t) #f #f)))
+      (let ([t (make-object text-field% message f (lambda (t e) (when (eq? (send e get-event-type) 'text-field-enter)
+								  ((done #t) #f #f)))
 			    init-val)]
 	    [p (make-object horizontal-pane% f)])
 	(send p set-alignment 'right 'center)
@@ -3262,13 +3257,13 @@
 						       (begin
 							 (set! dir v)
 							 (reset-directory)))))))]
-			   [dir-text (make-object text% #f f (lambda (t e)
-							       (if (eq? (send e get-event-type) 'text-enter)
-								   (do-text-name)
-								   (begin
-								     ; typing in the box; disable the file list and enable ok
-								     (send files enable #f)
-								     (send ok-button enable #t)))))]
+			   [dir-text (make-object text-field% #f f (lambda (t e)
+								     (if (eq? (send e get-event-type) 'text-field-enter)
+									 (do-text-name)
+									 (begin
+									   ; typing in the box; disable the file list and enable ok
+									   (send files enable #f)
+									   (send ok-button enable #t)))))]
 			   [bp (make-object horizontal-pane% f)]
 			   [dot-check (make-object check-box% "Show files/directories that start with \".\"" bp (lambda (b e) (reset-directory)))]
 			   [spacer (make-object vertical-pane% bp)]
@@ -3398,7 +3393,7 @@
 		 [weight (make-object radio-box% "Weight:" '("Normal" "Bold" "Light") p2 refresh-sample)]
 		 [underlined (make-object check-box% "Underlined" p2 refresh-sample)]
 		 [size (make-object slider% "Size:" 4 127 p2 refresh-sample 12)]
-		 [sample (make-object multi-text% "Sample" f void "The quick brown fox jumped over the lazy dog")]
+		 [sample (make-object text-field% "Sample" f void "The quick brown fox jumped over the lazy dog" '(multiple))]
 		 [edit (send sample get-edit)]
 		 [done (lambda (ok) (lambda (b e) (set! ok? ok) (send f show #f)))]
 		 [get-font (lambda () (let ([face (send face get-string-selection)])
