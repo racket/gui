@@ -81,27 +81,26 @@
 		(send (get-dc) draw-bitmap bitmap 0 0))])
 	    (sequence
 	      (apply super-init args)))]
-	 [(box1) (box 0.)]
-	 [(box2) (box 0.)]
-	 [(c-x-offset) 0]
-	 [(c-y-offset) 0]
-	 
-	 [(logo-canvas) (make-object canvas% frame)]
 	 [(show-messages?) (let ([b (box 0)])
 			     (if (get-resource "mred" "splashMessages" b)
 				 (not (zero? (unbox b)))
 				 #f))]
-	 [(gauge) (make-object gauge% #f splash-max-width frame)]
+	 [(logo-canvas) (make-object canvas% frame)]
+	 [(h-panel) (make-object (if show-messages? horizontal-panel% vertical-panel%)
+		      frame)]
+	 [(gauge) (make-object gauge% #f splash-max-width h-panel '(vertical))]
+	 [(v-panel) (make-object vertical-panel% h-panel)]
 	 [(splash-messages)
 	  (and show-messages?
-	       (cons (make-object message% (format "Welcome to ~a" title) frame)
+	       (cons (make-object message% (format "Welcome to ~a" title) v-panel)
 		     (let loop ([n (- splash-max-depth 1)])
 		       (cond
 			[(zero? n) null]
-			[else (cons (make-object message% "" frame)
+			[else (cons (make-object message% "" v-panel)
 				    (loop (sub1 n)))]))))]
 	 [(_) (begin
 		(send frame set-alignment 'left 'center)
+		(send v-panel set-alignment 'left 'top)
 		(send logo-canvas min-width (send bitmap get-width))
 		(send logo-canvas min-height (send bitmap get-height))
 		(send logo-canvas stretchable-width #f)
