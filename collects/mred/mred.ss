@@ -5807,6 +5807,14 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+;; Initialize AFM path:
+(with-handlers ([not-break-exn? void])
+  (let ([pss (wx:current-ps-setup)])
+    (unless (send pss get-afm-path)
+      (send pss set-afm-path (collection-path "afm")))))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 (wx:set-dialogs get-file put-file get-ps-setup-from-user message-box)
 
 (define-syntax propagate
