@@ -117,6 +117,7 @@
                      let/cc let/ec letcc catch
                      let-syntax letrec-syntax fluid-let-syntax letrec-syntaxes+values
                      
+                     kernel-syntax-case
                      syntax-case syntax-case* syntax-rules
                      let-signature fluid-let
                      let-struct let-macro let-values let*-values
