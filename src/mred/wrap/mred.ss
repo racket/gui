@@ -638,7 +638,7 @@
 		   (let ([o (get-focus-window)])
 		     (if (and o (send o handles-key-code code #f #f))
 			 #f
-			 (let ([objs (container->children panel #f)])
+			 (let ([objs (container->children panel #f #f)])
 			   (or (ormap
 				(lambda (x)
 				  (and (is-a? x wx:button%)
