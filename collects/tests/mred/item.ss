@@ -211,7 +211,8 @@
 	     (let ([x (send e get-x)]
 		   [y (send e get-y)]
 		   [m (if (or (null? last-m)
-			      (send e button-down? 'left))
+			      (send e button-down? 'left)
+			      (send e button-down? 'middle))
 			  (let ([m (make-object popup-menu% "T&itle"
 						(lambda (m e)
 						  (unless (is-a? m popup-menu%)
@@ -245,7 +246,10 @@
 					 m
 					 void)
 			    (let mloop ([m m][sub-at-50? #t])
-			      (let ([sm (make-object menu% "Too Tall" m)])
+			      (let ([sm (if (and sub-at-50?
+						 (send e button-down? 'middle))
+					    m
+					    (make-object menu% "Too Tall" m))])
 				(let loop ([n 1])
 				  (unless (= n 101)
 				    (if (and sub-at-50? (= n 50))
