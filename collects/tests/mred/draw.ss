@@ -87,6 +87,9 @@
 		       [pen0t (make-object pen% "BLACK" 0 'transparent)]
 		       [pen1t (make-object pen% "BLACK" 1 'transparent)]
 		       [pen2t (make-object pen% "BLACK" 2 'transparent)]
+		       [pen0x (make-object pen% "BLACK" 0 'xor)]
+		       [pen1x (make-object pen% "BLACK" 1 'xor)]
+		       [pen2x (make-object pen% "BLACK" 2 'xor)]
 		       [brushs (make-object brush% "BLACK" 'solid)]
 		       [brusht (make-object brush% "BLACK" 'transparent)]
 		       [brushb (make-object brush% "BLUE" 'solid)]
@@ -97,7 +100,7 @@
 			       (make-object bitmap% (* scale 350) (* scale 300) depth-one?)
 			       #f)]
 		       [draw-series
-			(lambda (dc pens pent size x y flevel last?)
+			(lambda (dc pens pent penx size x y flevel last?)
 			  (let* ([ofont (send dc get-font)]
 				 [otfg (send dc get-text-foreground)]
 				 [otbg (send dc get-text-background)]
@@ -196,7 +199,14 @@
 			    (send dc draw-ellipse
 				  (+ x 29) (+ y 80) 10 10)
 			    
-
+			    (send dc set-pen penx)
+			    (send dc draw-rectangle
+				  (+ x 41) (+ y 50) 10 10)
+			    (send dc draw-rounded-rectangle
+				  (+ x 41) (+ y 65) 10 10 3)
+			    (send dc draw-ellipse
+				  (+ x 41) (+ y 80) 10 10)
+			    
 			    (send dc set-pen pens)
 			    (send dc draw-rectangle
 				  (+ x 17) (+ y 95) 10 10)
@@ -251,6 +261,7 @@
 				  (+ x 12) (+ y 15))
 
 			    (send dc draw-point (+ x 35) (+ y 115))
+			    (send dc draw-line (+ x 35) (+ y 120) (+ x 35) (+ y 120))
 			    
 			    (send dc draw-line
 				  (+ x 5) (+ y 125) (+ x 10) (+ y 125))
@@ -515,11 +526,11 @@
 		      (send dc draw-rectangle 0 0 5 5)
 		      (send dc draw-line 0 0 20 6)
 		      
-		      (draw-series dc pen0s pen0t "0 x 0" 5 0 0 #f)
+		      (draw-series dc pen0s pen0t pen0x "0 x 0" 5 0 0 #f)
 		      
-		      (draw-series dc pen1s pen1t "1 x 1" 70 0 1 #f)
+		      (draw-series dc pen1s pen1t pen1x "1 x 1" 70 0 1 #f)
 		      
-		      (draw-series dc pen2s pen2t "2 x 2" 135 0 2 #t)
+		      (draw-series dc pen2s pen2t pen2x "2 x 2" 135 0 2 #t)
 
 		      (unless clock-clip?
 			(let ([r (send dc get-clipping-region)])
