@@ -1048,7 +1048,7 @@
 					;(map "c:f" "move-to-search-or-search")
 
 		 (map "c:i" "toggle-search-focus")]
-		[(macos)
+		[(macos macosx)
 		 (map "c:s" "move-to-search-or-search")
 		 (map "c:g" "hide-search")
 
@@ -1105,7 +1105,7 @@
 		 (send kmap map-function
 		       (string-append
 			(case (system-type)
-			  [(macos) "d:"]
+			  [(macosx macos) "d:"]
 			  [(windows) "c:"]
 			  [(unix) "a:"]
 			  [else (error 'keymap.ss "unknown platform: ~s" (system-type))])
