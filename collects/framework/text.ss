@@ -307,14 +307,13 @@
     (mixin (editor:keymap<%> basic<%>) (searching<%>) args
 	   (inherit get-end-position get-start-position last-position 
 		    find-string get-snip-position get-admin find-snip)
-	   (rename [super-on-new-box on-new-box])
-	   (override
-	    [on-new-box
-	     (lambda (type)
-	       (if (eq? type 'text)
-		   (make-object editor-snip% (make-object searching%))
-		   (super-on-new-box)))])
-	   (public)
+	   ;(rename [super-on-new-box on-new-box])
+	   ;(override
+	   ; [on-new-box
+	   ;  (lambda (type)
+	   ;    (if (eq? type 'text)
+	;	   (make-object editor-snip% (make-object searching%))
+	;	   (super-on-new-box)))])
 	   
 	   (rename [super-get-keymaps get-keymaps])
 	   (override

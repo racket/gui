@@ -21,6 +21,8 @@
 (define-signature framework:panel^
   (single-mixin
    single<%>
+   single-window<%>
+   single-window-mixin
    single%
    single-pane%
    

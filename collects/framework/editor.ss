@@ -25,13 +25,13 @@
   (define basic-mixin
     (mixin (editor<%>) (basic<%>) args
 
-      (inherit copy-self-to)
-      (override
-       [copy-self
-	(lambda ()
-	  (let ([editor (make-object (object-class this))])
-	    (copy-self-to editor)
-	    editor))])
+;      (inherit copy-self-to)
+;     (override
+;      [copy-self
+;	(lambda ()
+;	  (let ([editor (make-object (object-class this))])
+;	   (copy-self-to editor)
+;	    editor))])
 	   
       (inherit get-filename save-file
 	       refresh-delayed? 
