@@ -18,6 +18,7 @@ mred \- The Rice PLT GUI engine
 [-p
 .I image-filename
 .I splash-title
+.I splash-count
 ]
 [-b ]
 [-q | --no-init-file]
@@ -68,7 +69,8 @@ on Static Debugger conformancy and the -a flag respectively.
 The -p flag specifies a splash screen filename. The splash screen must be
 an image file supported by wx:bitmap% objects. See the mred manual for more
 information on what image types are supported by wx:bitmap% objects. The
-second argument to -p names the splash screen
+second argument to -p names the splash screen, and the third is a count
+indicating how many files will be loaded.
 .PP
 The -b flags supresses the splash screen.
 .PP
