@@ -48,15 +48,19 @@
 		  (if (file-exists? new-name)
 		      (loop (add1 n))
 		      new-name)))))))
+
+      (define re:backup (regexp "(.*)\\.[^.]*"))
+      
       (define generate-backup-name
 	(lambda (name)
-	  (if (eq? (system-type) 'windows)
-	      (list->string
-	       (let loop ([list (string->list name)])
-		 (if (or (null? list)
-			 (char=? (car list) #\.))
-		     '(#\. #\b #\a #\k)
-		     (cons (car list)
-			   (loop (cdr list))))))
-	      (string-append name "~")))))))
+	  (cond
+            [(and (eq? (system-type) 'windows)
+                  (regexp-match re:backup name))
+             =>
+             (lambda (m)
+               (string-append (cadr m) ".bak"))]
+            [(eq? (system-type) 'windows)
+             (string-append name ".bak")]
+            [else
+             (string-append name "~")]))))))
 
