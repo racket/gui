@@ -1,3 +1,4 @@
+
 (define mred:finder@
   (unit/sig mred:finder^
     (import [mred:debug : mred:debug^]
@@ -301,8 +302,11 @@
 			 do-period-in/exclusion
 			 "Show files and directories that begin with a period"))
 
-	  (send directory-panel stretchable-in-y #f)
-	  (let ([canvas (make-object mred:canvas:editor-canvas% directory-panel -1 -1 -1 20 ""
+	  (send* directory-panel 
+	    (stretchable-in-y #f)
+	    (border 0)
+	    (spacing 0))
+	  (let ([canvas (make-object mred:canvas:one-line-canvas% directory-panel -1 -1 -1 20 ""
 			      (+ wx:const-mcanvas-hide-h-scroll
 				 wx:const-mcanvas-hide-v-scroll))])
 	    (send* canvas
