@@ -3,6 +3,7 @@
     (import [wx : mred:wx^]
 	    [mred:constants : mred:constants^]
 	    [mred:connections : mred:connections^]
+	    [mred:autosave : mred:autosave^]
 	    [mred:finder : mred:finder^]
 	    [mred:path-utils : mred:path-utils^]
 	    [mred:mode : mred:mode^]
@@ -183,7 +184,8 @@
 			    (rename-file name back-name))))
 		      #t)))])
 	  (sequence
-	    (apply super-init args)))))
+	    (apply super-init args)
+	    (mred:autosave:register-autosave this)))))
 
     (define make-edit%
       (lambda (super%)
