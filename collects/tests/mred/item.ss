@@ -1357,9 +1357,9 @@
 	   [small? (send ck-s get-value)]
 	   [swap? (send ck-w get-value)])
       (send c1 set-vsize 10 10)
-      (send c1 set-scrollbars (if h? 1 0) (if v? 1 0) 10 10 3 3 1 1 swap?)
+      (send c1 set-scrollbars (and h? 1) (and v? 1) 10 10 3 3 1 1 swap?)
       (send c2 set-vsize (if small? 50 500) (if small? 20 200))
-      (send c2 set-scrollbars (if h? 25 0) (if v? 10 0) (if small? 2 20) (if small? 2 20) 
+      (send c2 set-scrollbars (and h? 25) (and v? 10) (if small? 2 20) (if small? 2 20) 
 	    3 3 1 1 (not swap?))
       (if for-small?
 	  ; Specifically refresh the bottom canvas
