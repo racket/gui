@@ -27,7 +27,7 @@ Version 102/4:
  * Editor reading/writing/cuting/pasting used to rely on global
    state. Consequently, only one editor could be read/written/etc.  at
    a time, and exceptions raised during the read/write/etc. (e.g., by
-   a michevious snip object) could kill reading/writing/etc. for all
+   a mischevious snip object) could kill reading/writing/etc. for all
    editors in the system. This is fixed; all state resides in the
    stream, now. (PR 1201 et al.)
 
