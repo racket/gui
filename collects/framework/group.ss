@@ -2,6 +2,7 @@
   (import mred-interfaces^
 	  [application : framework:application^]
 	  [frame : framework:frame^]
+	  [preferences : framework:preferences^]
 	  [mzlib:function : mzlib:function^]
 	  [mzlib:file : mzlib:file^])
 
@@ -99,7 +100,8 @@
 
 	[get-mdi-parent
 	 (lambda ()
-	   (if (eq? (system-type) 'windows)
+	   (if (and (eq? (system-type) 'windows)
+		    (preferences:get 'framework:windows-mdi))
 	       (begin
 		 (set! get-mdi-parent (lambda () mdi-parent))
 		 (set! mdi-parent (make-object frame% (application:current-app-name)

@@ -753,6 +753,7 @@
       
       (rename [super-on-close on-close])
       (private
+	[outer-info-panel 'top-info-panel-uninitialized]
 	[close-panel-callback
 	 (preferences:add-callback
 	  'framework:show-status-line
@@ -763,7 +764,7 @@
 	    (send super-root change-children
 		  (lambda (l)
 		    (if v
-			(list rest-panel (get-info-panel))
+			(list rest-panel outer-info-panel)
 			(list rest-panel))))))])
       (override
 	[on-close
@@ -808,12 +809,13 @@
 
       (public
 	[get-info-panel
-	 (let* ([outer-info-panel (make-object horizontal-panel% super-root)]
-		[info-panel (make-object horizontal-panel% outer-info-panel)]
-		[spacer (make-object grow-box-spacer-pane% outer-info-panel)])
-	   (lambda ()
-	     (send outer-info-panel stretchable-height #f)
-	     info-panel))])
+	 (begin
+	   (set! outer-info-panel (make-object horizontal-panel% super-root))
+	   (let ([info-panel (make-object horizontal-panel% outer-info-panel)]
+		 [spacer (make-object grow-box-spacer-pane% outer-info-panel)])
+	     (lambda ()
+	       (send outer-info-panel stretchable-height #f)
+	       info-panel)))])
       (private
 	[lock-message (make-object message%
 			(let ([b (icon:get-unlock-bitmap)])

@@ -55,11 +55,7 @@
 		       (format
 			"no default for ~a"
 			p))
-		      (raise (exn:make-during-preferences
-			      (if (exn? exn)
-				  (exn-message exn)
-				  (format "~s" exn))
-			      ((debug-info-handler))))))))))))
+		      (raise exn)))))))))
   
   (define get-callbacks
     (lambda (p)
@@ -82,12 +78,7 @@
       (andmap (lambda (x)
 		(guard "calling callback" p value
 		       (lambda () (x p value))
-		       (lambda (exn)
-			 (raise (exn:make-during-preferences
-				 (if (exn? exn)
-				     (exn-message exn)
-				     (format "~s" exn))
-				 ((debug-info-handler)))))))
+		       raise))
 	      (get-callbacks p))))
   
   (define get
@@ -173,12 +164,7 @@
 						     (lambda ()
 						       (k value))))
 				    value))
-				 (lambda (exn)
-				   (raise (exn:make-during-preferences
-					   (if (exn? exn)
-					       (exn-message exn)
-					       (format "~s" exn))
-					   ((debug-info-handler)))))))])
+				 raise))])
 		  (list p marshalled))]
 	       [else (error 'prefs.ss "robby error.2: ~a" ht-value)]))])
       (lambda () 
@@ -340,8 +326,8 @@
 	       [make-check
 		(lambda (pref title bool->pref pref->bool)
 		  (let*  ([callback
-			   (lambda (_ command)
-			     (set pref (bool->pref (send command checked?))))]
+			   (lambda (check-box _)
+			     (set pref (bool->pref (send check-box get-value))))]
 			  [pref-value (get pref)]
 			  [initial-value (pref->bool pref-value)]
 			  [c (make-object check-box% title main callback)])
@@ -375,6 +361,8 @@
 
 	  
 	  (make-check 'framework:display-line-numbers "Display line numbers in buffer; not character offsets" id id)
+	  (when (eq? (system-type) 'windows)
+	    (make-check 'framework:windows-mdi "Use MDI Windows" id id))
 
 	  main))
       #f)

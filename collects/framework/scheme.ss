@@ -156,6 +156,7 @@
        [after-insert
 	(lambda (start size)
 	  (send backward-cache invalidate start)
+	  (send forward-cache forward-invalidate start size)
 	  (highlight-parens)
 	  (super-after-insert start size))]
        [after-delete

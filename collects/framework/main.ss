@@ -7,6 +7,8 @@
   
   ;; preferences
 
+  (preferences:set-default 'framework:windows-mdi #t boolean?)
+
   (preferences:set-default 'framework:menu-bindings #t boolean?)
 
   (preferences:set-default 'framework:verify-change-format #f boolean?)
