@@ -1007,7 +1007,7 @@
 		    get-active-canvas set-active-canvas
 		    get-canvas
 		    add-canvas remove-canvas
-		    auto-wrap))
+		    auto-wrap get-max-view-size))
 		    
 (define (make-editor-buffer% % can-wrap?)
   ; >>> This class is instantiated directly by the end-user <<<
