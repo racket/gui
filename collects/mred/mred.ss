@@ -7253,7 +7253,7 @@
 	   [(default) " Sans"]
 	   [(roman) " Serif"]
 	   [(decorative) " Nimbus Sans L"]
-	   [(modern) " Courier 10 Pitch"]
+	   [(modern) " Monospace"]
 	   [(swiss) " Nimbus Sans L"]
 	   [(script) " URW Chancery L"]
 	   [(symbol) "-adobe-symbol"])
