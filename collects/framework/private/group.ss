@@ -1,3 +1,15 @@
+#|
+
+these should line up!
+
+	aaa
+        aaa
+	aaa
+        aaa
+	aaa
+        aaa
+
+|#
 
 (module group mzscheme
   (require (lib "string-constant.ss" "string-constants")
@@ -40,7 +52,7 @@
           [define get-windows-menu
             (lambda (frame)
               (let ([menu-bar (send frame get-menu-bar)])
-                (and menu-bar
+		(and menu-bar
                      (let ([menus (send menu-bar get-items)])
                        (ormap (lambda (x)
                                 (if (string=? (string-constant windows-menu-label) (send x get-label))

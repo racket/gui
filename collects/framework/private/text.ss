@@ -21,7 +21,8 @@
               [keymap : framework:keymap^]
               [gui-utils : framework:gui-utils^]
               [color-model : framework:color-model^]
-              [frame : framework:frame^])
+              [frame : framework:frame^]
+              [scheme : framework:scheme^])
       
       (rename [-keymap% keymap%])
       
@@ -383,7 +384,7 @@
       (define delegate-mixin
         (mixin (basic<%>) (delegate<%>) 
           (inherit split-snip find-snip get-snip-position
-                   find-first-snip get-style-list)
+                   find-first-snip get-style-list set-tabs)
           
           (field (delegate #f))
           (define/public (get-delegate) delegate)
@@ -392,6 +393,8 @@
             (when delegate
               (send delegate begin-edit-sequence)
               (send delegate lock #f)
+              (when (is-a? this scheme:text<%>)
+                (send delegate set-tabs null (send this get-tab-size) #f))
               (send delegate hide-caret #t)
               (send delegate erase)
               (send delegate set-style-list (get-style-list))
