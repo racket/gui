@@ -3,7 +3,8 @@
   (require
    (lib "class.ss")
    (lib "list.ss")
-   (lib "mred.ss" "mred"))
+   (lib "mred.ss" "mred")
+   (lib "debug.ss" "mike-lib"))
   
   (provide fixed-width-label-snip)
   
@@ -18,45 +19,59 @@
          (top-margin 5)
          (bottom-margin 5))
         
+        (field [font (make-object font% 12 'roman 'normal 'normal)])
+        
         (unless (member label labels)
           (error 'fixed-width-label-snip
                  "Instantiation of label-snip expected one of ~s. Given ~s"
                  labels
                  label))
         
-        (define (get-string-size dc string)
+        (define (get-string-width dc string)
           (let-values ([(width height baseline vspace)
-                        (send dc get-text-extent string)])
-            (cons width height)))
+                        (send dc get-text-extent string font)])
+            width))
         
-        (define (get-max-string-size dc strings)
+        (define (get-string-height dc string)
+          (let-values ([(width height baseline vspace)
+                        (send dc get-text-extent string font)])
+            height))
+        
+        (define (get-max-string-width dc strings)
           (foldl
-           (lambda (str sizes)
-             (let ([these-sizes (get-string-size dc str)])
-               (cons (max (car these-sizes)
-                          (car sizes))
-                     (max (cdr these-sizes)
-                          (cdr sizes)))))
-           (get-string-size dc (car strings))
-           (cdr strings)))
+           (lambda (str max-width)
+             (max (get-string-width dc str) max-width))
+           (get-string-width dc (first strings))
+           (rest strings)))
+        
+        (define (get-max-string-height dc strings)
+          (foldl
+           (lambda (str max-height)
+             (max (get-string-height dc str) max-height))
+           (get-string-height dc (first strings))
+           (rest strings)))
         
         (define/override (get-extent dc x y w h descent space lspace rspace)
-          (let ([maxes (get-max-string-size dc labels)])
-            (when w (set-box! w (+ left-margin (car maxes) right-margin)))
-            (when h (set-box! h (+ top-margin (cdr maxes) bottom-margin)))))
+          (let ([width (get-max-string-width dc labels)]
+                [height (get-max-string-height dc labels)])
+            (when w (set-box! w (+ left-margin width right-margin)))
+            (when h (set-box! h (+ top-margin height bottom-margin)))))
         
         (rename [super-draw draw])
         (define/override (draw dc x y left top right bottom dx dy draw-caret)
           (super-draw dc x y left top right bottom dx dy draw-caret)
-          (let ([max-sizes (get-max-string-size dc labels)]
-                [sizes (get-string-size dc label)])
-            (send dc draw-text label
-                  (+ left-margin x (- (car max-sizes) (car sizes)))
-                  (+ y top-margin))))
+          (let ([max-width (get-max-string-width dc labels)]
+                [width (get-string-width dc label)])
+            (let ([f (send dc get-font)])
+              (send dc set-font font)
+              (send dc draw-text label
+                    (+ left-margin x (- max-width width))
+                    (+ y top-margin))
+              (send dc set-font f))))
         
-        (rename [super-copy copy])
-        (define/override (copy)
-          (super-copy))
+        ;(rename [super-copy copy])
+        ;(define/override (copy)
+        ;  (super-copy))
         
         (define/override (resize w h) #f)
         
@@ -83,16 +98,18 @@
     
     label-snip%)
   
-  (define (test)
-    (define mylabels (list "Call" "Expected" "Actual"))
-    (define label% (fixed-width-label-snip mylabels))
-    (define align? #t)
-    (define f (new frame% (label "test") (width 175) (height 175)))
-    (define e (new pasteboard%))
-    (define c (new editor-canvas% (editor e) (parent f)))
-    (for-each
-     (lambda (s)
-       (send e insert (new label% (label s))))
-     '("Expected"))
-    (send f show #t))
+  ;;;;;;;;;;
+  ;; tests
+  
+  (define mylabels (list "Call" "Expected" "Actual"))
+  (define label% (fixed-width-label-snip mylabels))
+  (define align? #t)
+  (define f (new frame% (label "test") (width 175) (height 175)))
+  (define e (new pasteboard%))
+  (define c (new editor-canvas% (editor e) (parent f)))
+  (for-each
+   (lambda (s)
+     (send e insert (new label% (label s))))
+   '("Expected"))
+  (send f show #t)
   )
