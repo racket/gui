@@ -140,7 +140,7 @@
 	     (lambda ()
 	       (let ([c (get-canvas)])
 		 (if c
-		     (let ([f (send c get-parent)])
+		     (let ([f (ivar c frame)])
 		       (if (null? f)
 			   #f
 			   f))

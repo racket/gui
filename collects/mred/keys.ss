@@ -116,12 +116,13 @@
 	     
 	     [ring-bell
 	      (lambda (edit event)
-		(send (let loop ([p (send event get-event-object)])
-			(let ([parent (send p get-parent)])
-			  (if (null? parent)
-			      p
-			      (loop parent))))
-		      clear-mini-panel%)
+		(let ([c (send edit get-canvas)])
+		  (when c
+		    (let ([f (let loop ([f c])
+			       (if (is-a? f wx:frame%)
+				   f
+				   (loop (send f get-parent))))])
+		      (send f hide-search))))
 		(wx:bell))]
 	     [save-file-as
 	      (lambda (edit event)
@@ -813,23 +814,27 @@
 
 	    (map-meta ">" "end-of-file")
 	    (map "d:DOWN" "end-of-file")
-	    (map "c:DOWN" "end-of-file")
+	    (map "c:end" "end-of-file")
 	    (map "s:c:end" "select-to-end-of-file")
 	    (map "s:d:down" "select-to-end-of-file")
 
 	    (map "c:v" "next-page")
 	    (map "a:DOWN" "next-page")
 	    (map "pagedown" "next-page")
+	    (map "c:DOWN" "next-page")
 	    (map "s:c:v" "select-page-down")
 	    (map "a:s:DOWN" "select-page-down")
 	    (map "s:pagedown" "select-page-down")
+	    (map "s:c:DOWN" "select-page-down")
 
 	    (map-meta "v" "previous-page")
 	    (map "a:up" "previous-page")
 	    (map "pageup" "previous-page")
+	    (map "c:up" "previous-page")
 	    (map-meta "s:v" "select-page-up")
 	    (map "s:a:up" "select-page-up")
 	    (map "s:pageup" "select-page-up")
+	    (map "s:c:up" "select-page-up")
 
 	    (map "c:h" "delete-previous-character")
 	    (map "c:d" "delete-next-character")

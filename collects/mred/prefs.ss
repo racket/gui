@@ -25,46 +25,67 @@
     (define-struct un/marshall (marshall unmarshall))
     
     (define-struct marshalled (data))
-    
-    (define get-preference-box
+    (define-struct pref (value callbacks))
+
+    (define unmarshall
+      (lambda (p marshalled)
+	(let/ec k
+	  (let ([unmarshall (un/marshall-unmarshall (hash-table-get marshall-unmarshall
+						   p
+						   (lambda () (k marshalled))))])
+	    (unmarshall (marshalled-data marshalled))))))
+
+    (define add-preference-callback
+      (lambda (p callback)
+	(let ([ans (hash-table-get preferences p (lambda () #f))])
+	  (cond
+	    [(marshalled? ans) (let* ([value (unmarshall p ans)]
+				      [pref (make-pref value (list callback))])
+				 (hash-table-put! preferences p pref)
+				 (callback p value)
+				 (lambda ()
+				   (set-pref-callbacks! pref (mzlib:function:remove callback (pref-callbacks pref) eq?))))]
+	    [(pref? ans)
+	     (set-pref-callbacks! ans (cons callback (pref-callbacks ans)))
+	     (lambda ()
+	       (set-pref-callbacks! ans (mzlib:function:remove callback (pref-callbacks ans) eq?)))]
+	    [(not ans) (raise (mred:exn:make-exn:unknown-preference
+			       (format "adding callback to unknown preference: ~a" p)
+			       ((debug-info-handler))))]
+	    [else (error 'prefs.ss "robby error.4: ~a ~a" p ans)]))))
+
+    (define get-preference
       (lambda (p) 
 	(let ([ans (hash-table-get preferences p
 				   (lambda () 
 				     (raise (mred:exn:make-exn:unknown-preference
-					     (format "unknown preference: ~a" p)
+					     (format "attempted to get unknown preference: ~a" p)
 					     ((debug-info-handler))))))])
 	  (cond
 	    [(marshalled? ans)
 	     (let* ([marshalled (marshalled-data ans)]
-		    [unmarshalled
-		     (let/ec k
-		       ((un/marshall-unmarshall
-			 (hash-table-get marshall-unmarshall p
-					 (lambda () (k marshalled))))
-			marshalled))]
-		    [boxed (box unmarshalled)])
-	       (hash-table-put! preferences p boxed)
-	       boxed)]
-	    [(box? ans) ans]
+		    [unmarshalled (unmarshall p marshalled)]
+		    [pref (make-pref unmarshalled null)])
+	       (hash-table-put! preferences p pref)
+	       unmarshalled)]
+	    [(pref? ans) (pref-value ans)]
 	    [else (error 'prefs.ss "robby error.1: ~a" ans)]))))
-    
-    (define get-preference (mzlib:function:compose unbox get-preference-box))
     
     (define set-preference
       (lambda (p value)
 	(let/ec k
-	  (set-box! (hash-table-get preferences p 
-				    (lambda () 
-				      (let ([box (box value)])
-					(hash-table-put! preferences p box)
-					(k box))))
-		    value))))
+	  (let ([pref (hash-table-get preferences p 
+				      (lambda () 
+					(let ([pref (make-pref value null)])
+					  (k (hash-table-put! preferences p pref)))))])
+	    (set-pref-value! pref value)
+	    (for-each (lambda (x) (x p value)) (pref-callbacks pref))))))
     
     (define set-preference-default
       (lambda (p value)
 	(hash-table-get preferences p 
 			(lambda () 
-			  (hash-table-put! preferences p (box value))))
+			  (hash-table-put! preferences p (make-pref value null))))
 	(set! defaults (cons (list p value) defaults))))
     
     (define set-preference-un/marshall
@@ -75,16 +96,15 @@
     
     (define restore-defaults
       (lambda ()
-	(for-each (lambda (x) (apply set-preference x)) 
-		  defaults)))
+	(for-each (lambda (x) (apply set-preference x)) defaults)))
     
     (define save-user-preferences 
       (let ([marshall-pref
 	     (lambda (p ht-value)
 	       (cond
 		 [(marshalled? ht-value) (list p (marshalled-data ht-value))]
-		 [(box? ht-value)
-		  (let* ([value (unbox ht-value)]
+		 [(pref? ht-value)
+		  (let* ([value (pref-value ht-value)]
 			 [marshalled
 			  (let/ec k
 			    ((un/marshall-marshall
@@ -108,18 +128,18 @@
       (let ([parse-pref
 	     (lambda (p marshalled)
 	       (let/ec k
-		 (let* ([ht-pref (hash-table-get preferences p (lambda () 'not-in-table))]
+		 (let* ([ht-pref (hash-table-get preferences p (lambda () #f))]
 			[unmarshall-struct (hash-table-get marshall-unmarshall p (lambda () #f))])
 		   (cond
-		     [(box? ht-pref)
-		      (if unmarshall-struct
-			  (set-box! ht-pref ((un/marshall-unmarshall unmarshall-struct) marshalled))
-			  (set-box! ht-pref marshalled))]
+		     [(and (pref? ht-pref) unmarshall-struct)
+		      (set-preference p ((un/marshall-unmarshall unmarshall-struct) marshalled))]
+		     [(pref? ht-pref)
+		      (hash-table-put! preferences p (make-marshalled marshalled))]
 		     [(marshalled? ht-pref) (set-marshalled-data! ht-pref marshalled)]
-		     [(eq? 'not-in-table ht-pref)
-		      (if unmarshall-struct
-			  (hash-table-put! preferences p (box ((un/marshall-unmarshall unmarshall-struct) marshalled)))
-			  (hash-table-put! preferences p (make-marshalled marshalled)))]
+		     [(and (not ht-pref) unmarshall-struct)
+		      (set-preference p ((un/marshall-unmarshall unmarshall-struct) marshalled))]
+		     [(not ht-pref)
+		      (hash-table-put! preferences p (make-marshalled marshalled))]
 		     [else (error 'prefs.ss "robby error.3: ~a" ht-pref)]))))])
 	(lambda ()
 	  (mred:debug:printf 'startup "reading user preferences")
