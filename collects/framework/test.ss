@@ -1,4 +1,5 @@
 (require-relative-library "tests.ss")
+(require-relative-library "mred-interfaces.ss")
 
 (invoke-open-unit/sig
  (compound-unit/sig
