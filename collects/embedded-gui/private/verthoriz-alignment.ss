@@ -30,7 +30,7 @@
        [min-height 0])
       
       ;; STATUS: This function (through lock-alignment false) invokes a call
-      ;; to realign of the pasteboard even when this alignement has show? = false
+      ;; to realign of the pasteboard even when this alignment has show? = false
       ;; so the call is not needed.
       (define/public (add child)
         (set! children (append children (list child)))

@@ -4,13 +4,15 @@
    (lib "list.ss")
    (lib "class.ss")
    (lib "mred.ss" "mred")
+   (lib "contract.ss")
    
    "interface.ss"
    "snip-lib.ss")
   
-  (provide vacuous-max
-           child-height
-           child-width)
+  (provide/contract
+   (vacuous-max (() (listof number?) . ->* . (number?)))
+   (child-height ((union (is-a?/c alignment<%>) (is-a?/c snip%)) . -> . number?))
+   (child-width ((union (is-a?/c alignment<%>) (is-a?/c snip%)) . -> . number?)))
   
   (define (vacuous-max . n)
     (if (empty? n)

@@ -7,12 +7,32 @@
   
   (define alignment<%>
     (interface ()
+      #;(-> void?)
+      ;; Tells the alignment that its sizes should be calculated
       set-min-sizes
+      
+      #;(nonnegative? nonnegative? nonnegative? nonnegative? . -> . void?)
+      ;; Tells the alignment to align its children on the pasteboard in the given rectangle
       align
+      
+      #;(-> nonnegative?)
+      ;; The minimum width this alignment must be
       get-min-width
+      
+      #;(-> nonnegative?)
+      ;; The minimum height this alignment must be
       get-min-height
+      
+      #;(-> boolean?)
+      ;; True if the alignment can be stretched in the x dimension
       stretchable-width?
+      
+      #;(-> boolean?)
+      ;; True if the alignment can be stretched in the y dimension
       stretchable-height?
+      
+      #;(boolean? . -> . void)
+      ;; Tells the alignment to show or hide its children
       show))
   
   #| the interface that must be implemented by a class to be inserted into an
