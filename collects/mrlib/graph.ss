@@ -447,7 +447,7 @@
           
           (update-polygon s4x s4y sx s4y)
           (let ([os (send dc get-smoothing)])
-            ;(send dc set-smoothing 'aligned)
+            (send dc set-smoothing 'aligned)
             (cond
               [arrow-heads?
                (send dc draw-polygon points dx dy)]
@@ -522,7 +522,7 @@
                        ;; the arrowhead is not overlapping the snips, so draw it
                        ;; (this is only an approximate test, but probably good enough)
                        (let ([os (send dc get-smoothing)])
-                         ;(send dc set-smoothing 'aligned)
+                         (send dc set-smoothing 'aligned)
                          (cond
                            [arrow-heads?
                             (send dc draw-polygon points dx dy)]
@@ -538,7 +538,7 @@
                          [arrow-heads? (void)]
                          [else 
                           (let ([os (send dc get-smoothing)])
-                            ;(send dc set-smoothing 'aligned)
+                            (send dc set-smoothing 'aligned)
                             (send dc draw-line
                                   (+ dx from-x) (+ dy from-y) 
                                   (+ dx to-x) (+ dy to-y))
