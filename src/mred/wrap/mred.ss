@@ -597,6 +597,24 @@
     (sequence
       (apply super-init mred proxy args))))
 
+(define active-frame #f)
+
+(define application-file-handler (make-parameter
+				  void
+				  (lambda (f)
+				    (unless (procedure-arity-includes? f 1)
+				      (raise-syntax-error 'application-file-handler "procedure, arity 2" f))
+				    f)))
+
+(wx:application-file-handler (lambda (f)
+			       (and active-frame
+				    (let* ([e (send (wx->mred active-frame) get-eventspace)]
+					   [p (wx:eventspace-parameterization e)])
+				      (parameterize ([wx:current-eventspace e])
+					(semaphore-callback
+					 (make-semaphore 1)
+					 (((in-parameterization p application-file-handler)) f)))))))
+
 (define (make-top-level-window-glue% %) ; implies make-window-glue%
   (class (make-window-glue% %) (mred proxy . args)
     (rename [super-on-activate on-activate])
@@ -610,6 +628,7 @@
 			  #f)
 		      #t))]
       [on-activate (lambda (on?)
+		     (set! active-frame this)
 		     (super-on-activate on?)
 		     (send mred on-activate on?))])
     (sequence (apply super-init mred proxy args))))
@@ -2694,6 +2713,8 @@
 	    (send repl-buffer new-prompt)))))))
 
   (define waiting (make-semaphore 0))
+
+  (application-file-handler (lambda (f) (send repl-buffer print (format "ignoring file: ~a~n" f))))
 
   ;; Just a few key bindings:
   (let* ([k (send repl-buffer get-keymap)]
