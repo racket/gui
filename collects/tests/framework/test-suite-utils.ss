@@ -1,0 +1,242 @@
+(module test-suite-utils mzscheme
+  (require (lib "launcher.ss" "launcher")
+	   (lib "pretty.ss")
+	   (lib "list.ss"))
+
+  (provide
+   test-name
+   failed-tests
+   (struct eof-result ())
+   load-framework-automatically
+   shutdown-listener shutdown-mred mred-running?
+   send-sexp-to-mred queue-sexp-to-mred
+   test
+   wait-for-frame
+
+   ;; sexp -> void
+   ;; grabs the frontmost window, executes the sexp and waits for a new frontmost window
+   wait-for-new-frame
+
+   wait-for)
+
+  (define test-name "<<setup>>")
+  (define failed-tests null)
+
+  (define-struct eof-result ())
+
+  (define load-framework-automatically? #t)
+
+  (define listener
+    (let loop ()
+      (let ([port (load-relative "receive-sexps-port.ss")])
+	(with-handlers ([(lambda (x) #t)
+			 (lambda (x)
+			   (let ([next (+ port 1)])
+			     (call-with-output-file (build-path (current-load-relative-directory)
+								"receive-sexps-port.ss")
+			       (lambda (p)
+				 (write next p))
+			       'truncate)
+			     (printf "  tcp-listen failed for port ~a, attempting ~a~n"
+				     port next)
+			     (loop)))])
+	  (tcp-listen port)))))
+
+  (define in-port #f)
+  (define out-port #f)
+
+  (define restart-mred
+    (lambda ()
+      (shutdown-mred)
+      (let-values ([(base _1 _2) (split-path program)])
+	((case (system-type)
+	   [(macos) system*]
+	   [else (lambda (x) (thread (lambda () (system* x))))])
+	 (mred-program-launcher-path "Framework Test Engine")))
+      (let-values ([(in out) (tcp-accept listener)])
+	(set! in-port in)
+	(set! out-port out))
+      (when load-framework-automatically?
+	(queue-sexp-to-mred
+	 `(begin
+	    (require (lib "framework.ss" "framework")
+		     (lib "gui.ss" "tests" "utils")))))))
+
+  (define load-framework-automatically
+    (case-lambda
+     [(new-load-framework-automatically?)
+      (unless (eq? (not (not new-load-framework-automatically?))
+		   load-framework-automatically?)
+	(set! load-framework-automatically? (not (not new-load-framework-automatically?)))
+	(shutdown-mred))]
+     [() load-framework-automatically?]))
+
+  (define shutdown-listener
+    (lambda ()
+      (shutdown-mred)
+      (tcp-close listener)))
+
+  (define shutdown-mred
+    (lambda ()
+      (when (and in-port
+		 out-port)
+	(with-handlers ([(lambda (x) #t) (lambda (x) (void))])
+	  (close-output-port out-port))
+	(with-handlers ([(lambda (x) #t) (lambda (x) (void))])
+	  (close-input-port in-port))
+	(set! in-port #f)
+	(set! in-port #f))))
+
+  (define mred-running?
+    (lambda ()
+      (if (char-ready? in-port)
+	  (not (eof-object? (peek-char in-port)))
+	  #t)))
+
+  (define queue-sexp-to-mred
+    (lambda (sexp)
+      (send-sexp-to-mred
+       `(let ([thunk (lambda () ,sexp)]
+	      [sema (make-semaphore 0)])
+	  (queue-callback (lambda ()
+			    (thunk)
+			    (semaphore-post sema)))
+	  (semaphore-wait sema)))))
+
+  (define re:tcp-read-error (regexp "tcp-read:"))
+  (define re:tcp-write-error (regexp "tcp-write:"))
+  (define (tcp-error? exn)
+    (or (regexp-match re:tcp-read-error (exn-message exn))
+	(regexp-match re:tcp-write-error (exn-message exn))))
+
+  (define send-sexp-to-mred
+    (let ([failed-last-time? #f])
+      (lambda (sexp)
+	(let/ec k
+	  (let ([show-text 
+		 (lambda (sexp)
+		   
+		   (parameterize ([pretty-print-print-line
+				   (let ([prompt "  "]
+					 [old-liner (pretty-print-print-line)])
+				     (lambda (ln port ol cols)
+				       (let ([ov (old-liner ln port ol cols)])
+					 (if ln 
+					     (begin (display prompt port)
+						    (+ (string-length prompt) ov))
+					     ov))))])
+		     (pretty-print sexp)
+		     (newline)))])
+	    (unless (and in-port
+			 out-port
+			 (with-handlers ([tcp-error?
+					  (lambda (x) #f)])
+			   (or (not (char-ready? in-port))
+			       (not (eof-object? (peek-char in-port))))))
+	      (restart-mred))
+	    (printf "  ~a // ~a: sending to mred:~n" section-name test-name)
+	    (show-text sexp)
+	    (with-handlers ([(lambda (x) #t)
+			     (lambda (x)
+			       (cond
+				;; this means that mred was closed
+				;; so we can restart it and try again.
+				[(tcp-error? x) 
+				 (restart-mred)
+				 (write sexp out-port)
+				 (newline out-port)]
+				[else (raise x)]))])
+	      (write sexp out-port)
+	      (newline out-port))
+	    (let ([answer
+		   (with-handlers ([(lambda (x) #t)
+				    (lambda (x)
+				      (if (tcp-error? x);; assume tcp-error means app closed
+					  eof
+					  (list 'cant-read
+						(string-append
+						 (exn-message x)
+						 "; rest of string: "
+						 (format
+						  "~s"
+						  (apply
+						   string
+						   (let loop ()
+						     (if (char-ready? in-port)
+							 (let ([char (read-char in-port)])
+							   (if (eof-object? char)
+							       null
+							       (cons char (loop))))
+							 null))))))))])
+		     (read in-port))])
+	      (unless (or (eof-object? answer)
+			  (and (list? answer)
+			       (= 2 (length answer))))
+		(error 'send-sexp-to-mred "unpected result from mred: ~s~n" answer))
+	      (if (eof-object? answer)
+		  (raise (make-eof-result))
+		  (case (car answer)
+		    [(error)
+		     (error 'send-sexp-to-mred "mred raised \"~a\"" (second answer))]
+		    [(cant-read) (error 'mred/cant-parse (second answer))]
+		    [(normal) 
+		     (printf "  ~a // ~a: received from mred:~n" section-name test-name)
+		     (show-text (second answer))
+		     (eval (second answer))]))))))))
+
+
+  (define test
+    (case-lambda
+     [(in-test-name passed? sexp/proc) (test in-test-name passed? sexp/proc 'section)]
+     [(in-test-name passed? sexp/proc jump)
+      (fluid-let ([test-name in-test-name])
+	(when (or (not only-these-tests)
+		  (memq test-name only-these-tests))
+	  (let ([failed
+		 (with-handlers ([(lambda (x) #t)
+				  (lambda (x)
+				    (if (exn? x)
+					(exn-message x)
+					x))])
+		   (let ([result
+			  (if (procedure? sexp/proc)
+			      (sexp/proc)
+			      (begin0 (send-sexp-to-mred sexp/proc)
+				      (send-sexp-to-mred ''check-for-errors)))])
+		     (not (passed? result))))])
+	    (when failed
+	      (printf "FAILED ~a: ~a~n" failed test-name)
+	      (set! failed-tests (cons (cons section-name test-name) failed-tests))
+	      (case jump
+		[(section) (section-jump)]
+		[(continue) (void)]
+		[else (jump)])))))]))
+
+  (define (wait-for/wrapper wrapper sexp)
+    (let ([timeout 10]
+	  [pause-time 1/2])
+      (send-sexp-to-mred
+       (wrapper
+	`(let ([test (lambda () ,sexp)])
+	   (let loop ([n ,(/ timeout pause-time)])
+	     (if (zero? n)
+		 (error 'wait-for
+			,(format "after ~a seconds, ~s didn't come true" timeout sexp))
+		 (unless (test)
+		   (sleep ,pause-time)
+		   (loop (- n 1))))))))))
+
+  (define (wait-for sexp) (wait-for/wrapper (lambda (x) x) sexp))
+
+  (define (wait-for-new-frame sexp)
+    (wait-for/wrapper
+     (lambda (w)
+       `(let ([frame (get-top-level-focus-window)])
+	  ,sexp
+	  ,w))
+     `(not (eq? frame (get-top-level-focus-window)))))
+
+  (define (wait-for-frame name)
+    (wait-for `(let ([win (get-top-level-focus-window)])
+		 (and win
+		      (string=? (send win get-label) ,name))))))
