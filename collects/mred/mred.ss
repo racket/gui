@@ -7638,8 +7638,7 @@
 ;; starting at position `start-in'
 ;; and ending at position `end'.
 (define open-input-text-editor 
-  (case-lambda
-   [(text start end snip-filter port-name)
+  (opt-lambda (text [start 0] [end 'end] [snip-filter values] [port-name text] [expect-to-read-all? #f])
     ;; Check arguments:
     (unless (text . is-a? . text%)
       (raise-type-error 'open-input-text-editor "text% object" text))
@@ -7662,23 +7661,47 @@
       ;; If the region is small enough, and if the editor contains
       ;; only string snips, then it's probably better to move
       ;; all of the text into a string port:
-      (if (and ((- end start) . < . 4096)
+      (if (and expect-to-read-all?
 	       (is-a? snip wx:string-snip%)
 	       (let ([s (send text find-next-non-string-snip snip)])
 		 (or (not s)
 		     ((send text get-snip-position s) . >= . end))))
-	  ;; It's all text --- just read it into a string
-	  (let ([port (open-input-string (send text get-text start end) port-name)])
-	    (port-count-lines! port)
-	    port)
-	  ;; Create the port:
+	  (if ((- end start) . < . 4096)
+	      ;; It's all text, and it's short: just read it into a string
+	      (let ([port (open-input-string (send text get-text start end) port-name)])
+		(port-count-lines! port)
+		port)
+	      ;; It's all text, so the reading process is simple:
+	      (let ([start start])
+		(let-values ([(pipe-r pipe-w) (make-pipe)])
+		  (make-input-port/read-to-peek
+		   port-name
+		   (lambda (s)
+		     (let ([v (read-bytes-avail!* s pipe-r)])
+		       (if (eq? v 0)
+			   (let ([n (min 4096 (- end start))])
+			     (if (zero? n)
+				 (begin
+				   (close-output-port pipe-w)
+				   eof)
+				 (begin
+				   (write-string (send text get-text start (+ start n)) pipe-w)
+				   (set! start (+ start n))
+				   (read-bytes-avail!* s pipe-r))))
+			   v)))
+		   (lambda (s skip general-peek)
+		     (let ([v (peek-bytes-avail!* s skip #f pipe-r)])
+		       (if (eq? v 0)
+			   (general-peek s skip)
+			   v)))
+		   void))))
+	  ;; General case, which handles non-text context:
 	  (with-method ([gsp (text get-snip-position)])
 	    (let-values ([(pipe-r pipe-w) (make-pipe)])
 	      (let* ([get-text-generic (generic wx:snip% get-text)]
 		     [get-count-generic (generic wx:snip% get-count)]
 		     [next-generic (generic wx:snip% next)]
 		     [next? #f]
-		     [lock-semaphore (make-semaphore 1)]
 		     [update-str-to-snip
 		      (lambda (to-str)
 			(if snip
@@ -7721,20 +7744,13 @@
 		     [port (make-input-port/read-to-peek
 			    port-name
 			    (lambda (s)
-			      (if (char-ready? pipe-r)
-				  (read-bytes-avail!* s pipe-r)
-				  (if (semaphore-try-wait? lock-semaphore)
-				      ;; If there's an error here, the
-				      ;; port will remain locked.
-				      (let ([v (read-chars s)])
-					(semaphore-post lock-semaphore)
-					v)
-				      (wrap-evt
-				       (semaphore-peek-evt lock-semaphore)
-				       (lambda (x) 0)))))
+			      (let ([v (read-bytes-avail!* s pipe-r)])
+				(if (eq? v 0)
+				    (read-chars s)
+				    v)))
 			    (lambda (s skip general-peek)
 			      (let ([v (peek-bytes-avail!* s skip #f pipe-r)])
-				(if (zero? v)
+				(if (eq? v 0)
 				    (general-peek s skip)
 				    v)))
 			    close)])
@@ -7749,11 +7765,7 @@
 		      (display (send-generic snip get-text-generic skip c) pipe-w))
 		    (update-str-to-snip empty-string))
 		(port-count-lines! port)
-		port)))))]
-   [(text start end filter) (open-input-text-editor text start end filter text)]
-   [(text start end) (open-input-text-editor text start end (lambda (x) x))]
-   [(text start) (open-input-text-editor text start 'end)]
-   [(text) (open-input-text-editor text 0 'end)]))
+		port)))))))
 
 (define (text-editor-load-handler filename expected-module)
   (unless (path? filename)

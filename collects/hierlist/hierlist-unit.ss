@@ -316,7 +316,9 @@
             [select-prev (lambda () (send top select-prev))])
           (override
             [on-default-char (lambda (x) (void))]
-	    [can-do-edit-operation? (opt-lambda (x [r? #t]) (send top can-do-edit-operation? x r?))]
+	    [can-do-edit-operation? (opt-lambda (x [r? #t]) 
+				      (and (super can-do-edit-operation? x r?)
+					   (send top can-do-edit-operation? x r?)))]
 	    [do-edit-operation (opt-lambda (x [r? #t] [time 0]) (send top do-edit-operation x r? time))])
           (sequence
             (super-init)
@@ -433,7 +435,9 @@
           (override
             [on-default-char (lambda (x) (void))]
             [on-default-event (lambda (x) (void))]
-	    [can-do-edit-operation? (opt-lambda (x [r? #t]) (send top can-do-edit-operation? x r?))]
+	    [can-do-edit-operation? (opt-lambda (x [r? #t]) 
+				      (and (super can-do-edit-operation? x r?)
+					   (send top can-do-edit-operation? x r?)))]
 	    [do-edit-operation (opt-lambda (x [r? #t] [time 0]) (send top do-edit-operation x r? time))])
           (sequence
             (super-init)
@@ -475,7 +479,9 @@
 					 (override
 					   [on-default-char (lambda (x) (void))]
 					   [on-default-event (lambda (x) (void))]
-					   [can-do-edit-operation? (opt-lambda (x [r? #t]) (send top can-do-edit-operation? x r?))]
+					   [can-do-edit-operation? (opt-lambda (x [r? #t]) 
+								     (and (super can-do-edit-operation? x r?)
+									  (send top can-do-edit-operation? x r?)))]
 					   [do-edit-operation (opt-lambda (x [r? #t] [time 0]) (send top do-edit-operation x r? time))])
 					 (sequence 
 					   (apply super-init args))))]

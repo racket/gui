@@ -49,6 +49,6 @@
          (augment #t can-delete? (start len))
          (augment #t can-insert? (start len))
          (augment #t can-set-size-constraint? ())
-         (augment #t can-do-edit-operation? (op) (op recursive?))
+         (override can-do-edit-operation? (op) (op recursive?))
          (augment #t can-load-file? (filename format))
          (augment #t can-save-file? (filename format)))))))

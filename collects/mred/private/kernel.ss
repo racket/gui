@@ -78,9 +78,9 @@
 		   (syntax
 		    (define name (let ([c (dynamic-require '#%mred-kernel 'name)])
 				   (make-primitive-class
-				    (lambda (class prop:object dispatcher)
+				    (lambda (class prop:object preparer dispatcher)
 				      (kernel:primitive-class-prepare-struct-type! 
-				       c prop:object class dispatcher))
+				       c prop:object class preparer dispatcher))
 				    kernel:initialize-primitive-object
 				    'print-name super 'args
 				    '(old ...)
