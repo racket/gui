@@ -5,7 +5,6 @@
  (lib "list.ss")
  "../aligned-pasteboard.ss"
  "../aligned-editor-container.ss"
- (lib "devel.ss" "mike")
  "snip-dumper.ss")
 
 ;                                                          

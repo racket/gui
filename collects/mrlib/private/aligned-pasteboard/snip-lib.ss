@@ -6,7 +6,8 @@
    (lib "mred.ss" "mred")
    (lib "list.ss")
    (lib "contract.ss")
-   "interface.ss")
+   "interface.ss"
+   (lib "debug.ss" "mike-lib"))
   
   ;; a snip
   (define snip? (is-a?/c snip%))
@@ -24,7 +25,7 @@
    (snip-height (snip? . -> . number?))
    (snip-min-width (snip? . -> . number?))
    (snip-min-height (snip? . -> . number?))
-   (snip-parent (snip? . -> . editor?))
+   (snip-parent (snip? . -> . (union editor? false?)))
    (fold-snip ((snip? any? . -> . any?) any? linked-snip? . -> . any?))
    (for-each-snip any? #;((snip-visitor? linked-snip?) rest-lists? . ->* . (void)))
    (map-snip any? #;((snip-visitor? linked-snip?) rest-lists? . ->* . ((listof any?))))
@@ -39,7 +40,7 @@
       (send pasteboard get-snip-location snip left (box 0) false)
       (send pasteboard get-snip-location snip right (box 0) true)
       (- (unbox right) (unbox left))))
-  
+    
   ;; the height of a snip in the parent pasteboard
   (define (snip-height snip)
     (let ([top (box 0)]
@@ -65,7 +66,10 @@
   
   ;; the pasteboard that contains the snip
   (define (snip-parent snip)
-    (send (send snip get-admin) get-editor))
+    (let ([admin (send snip get-admin)])
+      (if admin
+          (send admin get-editor)
+          false)))
   
   ;; the application of f on all snips from snip to the end in a foldl foldr mannor
   (define (fold-snip f init-acc snip)

@@ -1,10 +1,3 @@
-;; notes:   When resize of the editor snip is called, the child pasteboard gets sizes for its get-view-size
-;;        method set. These values are based on the snips size and it's margin. Since the snips can be
-;;        invisable at times (often due to scroll bars) using get-view-size is not sufficient. I have
-;;        calculated the view size myself in the snips resize method. It is possible for the margins to
-;;        change size after the resize callback is invoked. This would cause inconsistencies so I may have
-;;        to override set-margin (and any other methods that may change the margin) to maintain consistency.
-
 (module aligned-editor-container mzscheme
   
   (require
@@ -22,6 +15,13 @@
    aligned-snip-mixin)
   
   ;; a canvas that can contain an aligned-pasteboard<%>
+  ;; STATUS: When both min-width and min-height change the size of the canvas
+  ;;         I might be getting two on-size method invocations inside
+  ;;         set-aligned-min-sizes.
+  ;;           Also, I might not need to call realign-to-alloted in
+  ;;         set-aligned-min-sizes of the canvas because realign is called from
+  ;;         within on-size. This is true if and only if realignment needs to
+  ;;         be called only when the canvas size changes.
   (define aligned-editor-canvas%
     (class* editor-canvas% (aligned-pasteboard-parent<%>)
       (inherit get-editor get-size min-width min-height)
@@ -33,9 +33,8 @@
       
       ;; set-aligned-min-size (-> (void))
       ;; sets the aligned min width and height of all aligned children
-      (define/public (set-aligned-min-sizes)
+      (define/public (aligned-min-sizes-invalid)
         (let ([editor (get-editor)])
-          (send editor set-aligned-min-sizes)
           (when (memq 'no-hscroll style)
             (min-width
              (+ (inexact->exact
@@ -45,16 +44,21 @@
             (min-height
              (+ (inexact->exact
                  (send editor get-aligned-min-height))
-                machenrys-constant height-diff)))))
+                machenrys-constant height-diff)))
+          ;; I might need to call realign not realign-to-alloted, but with what values?
+          (send editor realign-to-alloted)))
       
       ;; on-size (number? number? . -> . (void))
       ;; called when the canvas's parent size changes
       (rename (super-on-size on-size))
       (define/override (on-size width height)
         (super-on-size width height)
-        (send (get-editor) realign
-              (- width width-diff machenrys-constant)
-              (- height height-diff machenrys-constant)))
+        (let ([w (- width width-diff machenrys-constant)]
+              [h (- height height-diff machenrys-constant)])
+          (when (and (positive? w) (positive? h))
+            (send* (get-editor)
+              (set-aligned-min-sizes)
+              (realign w h)))))
       
       ;; calc-view-client-diff (-> (void))
       ;; calculates and sets the difference between client-size and view-size of the editor
@@ -73,10 +77,8 @@
                      (inexact->exact
                       (unbox view-height)))))))
       
-      (super-instantiate ()
-        (style style))
-      (calc-view-client-diff)
-      ))
+      (super-new (style style))
+      (calc-view-client-diff)))
   
   ;; a snip that can contain an aligned-pasteboard<%> and also be stretched within an aligned-pasteboard<%>
   (define aligned-editor-snip%
@@ -111,16 +113,17 @@
       ;; resize (number? number? . -> . boolean?)
       ;; called to resize the snip
       (rename [super-resize resize])
-      (define/override (resize width height)        
+      (define/override (resize width height)
         (super-resize width height)
         (let ([left (box 0)]
               [top (box 0)]
               [right (box 0)]
               [bottom (box 0)])
           (get-margin left top right bottom)
-          (send (get-editor) realign
-                (- width (unbox left) (unbox right))
-                (- height (unbox top) (unbox bottom)))))
+          (let ([w (- width (unbox left) (unbox right))]
+                [h (- height (unbox top) (unbox bottom))])
+            (when (and (positive? w) (positive? h))
+              (send (get-editor) realign w h)))))
       
       ;; get-aligned-min-width (-> number?)
       ;; the minimum width of the snip based on the children
@@ -148,140 +151,48 @@
              (send (get-editor) get-aligned-min-height)
              machenrys-constant)))
       
-      ;; set-aligned-min-size (-> (void))
-      ;; calculates and stores the minimum height and width of the snip
+      ;; (-> void?)
+      ;; sets the aligned-min-sizes of all the editors and snips in this snip
       (define/public (set-aligned-min-sizes)
-        (send (get-editor) set-aligned-min-sizes)
-        (set-min-width (get-aligned-min-width))
-        (set-min-height (get-aligned-min-height)))
+        (send (get-editor) set-aligned-min-sizes))
       
-      (super-instantiate ())
-      ))
+      ;; (-> void?)
+      ;; calculates and stores the minimum height and width of the snip
+      ;; note: more efficient to check for parent ahead of time and not
+      ;; calculate the margins when I don't have one.
+      (define/public (aligned-min-sizes-invalid)
+        (let ([parent (snip-parent this)])
+          (cond
+            [(not parent) (void)]
+            [(is-a? parent aligned-pasteboard<%>)
+             (send parent aligned-min-sizes-invalid)]
+            [else (align-to-min)])))
+      
+      ;; This code is needed to probe the tree of editors for their real sizes when they
+      ;; finally know them. This happens when the top level snip gets an admin.
+      (rename [super-set-admin set-admin])
+      (define/override (set-admin admin)
+        (super-set-admin admin)
+        (let ([parent (snip-parent this)])
+          (when (and parent (not (is-a? parent aligned-pasteboard<%>)))
+            (set-aligned-min-sizes)
+            (align-to-min))))
+      
+      (define (align-to-min)
+        ;; Note: Not setting the min-width might improve efficientcy and
+        ;;       may not be necessary since snips grow to the size of
+        ;;       the things they contain. I'm going to try it so the
+        ;;       following two lines are commented out.
+        ;(set-min-width aligned-min-width)
+        ;(set-min-height aligned-min-height)
+        (let* ([ed (get-editor)]
+               [w (send ed get-aligned-min-width)]
+               [h (send ed get-aligned-min-height)])
+          (when (and (positive? w) (positive? h))
+            (send ed realign w h))))
+      
+      (super-new)))
   
-  (define (aligned-snip-mixin super%)
-    (class* super% (aligned-snip<%>)
-      (inherit get-editor get-margin)
-      
-      (init
-       (stretchable-width true)
-       (stretchable-height true))
-      
-      (field
-       (stretchable-width-field stretchable-width)
-       (stretchable-height-field stretchable-height))
-      
-      (public (stretchable-width-method stretchable-width)
-              (stretchable-height-method stretchable-height))
-      
-      ;; stretchable-width (case-> (Boolean . -> . (void)) (-> Boolean))
-      ;; get or set the stretchablity of the pasteboards width
-      (define stretchable-width-method
-        (case-lambda
-          [(value) (set! stretchable-width-field value)]
-          [() stretchable-width-field]))
-      
-      ;; stretchable-height (case-> (Boolean . -> .(void)) (-> Boolean))
-      ;; get or set the stretchablity of the pasteboards height
-      (define stretchable-height-method
-        (case-lambda
-          [(value) (set! stretchable-height-field value)]
-          [() stretchable-height-field]))
-      
-      ;; get-aligned-min-width (-> number?)
-      ;; the minimum width of the snip based on the children
-      (define/public (get-aligned-min-width)
-        (let ([left (box 0)]
-              [top (box 0)]
-              [right (box 0)]
-              [bottom (box 0)])
-          (get-margin left top right bottom)
-          (+ (unbox left)
-             (let* ([ed (get-editor)]
-                    [last (send ed last-line)])
-               (let loop ([line 0])
-                 (if (= line last)
-                     0
-                     (max (send ed line-length line)
-                          (loop (add1 line))))))
-             (unbox right))))
-      
-      ;; get-aligned-min-height (-> number?)
-      ;; the minimum height of the snip based on the children
-      (define/public (get-aligned-min-height)
-        (let ([left (box 0)]
-              [top (box 0)]
-              [right (box 0)]
-              [bottom (box 0)]
-              [editor (get-editor)])
-          (get-margin left top right bottom)
-          (+ (unbox top) (unbox bottom)
-             (* (send editor line-location 0 false)
-                (add1 (send editor last-line))))))
-      
-;      ; get-aligned-min-width (-> number?)
-;      ; the minimum width of the snip based on the children
-;      (inherit get-max-width set-max-width get-min-width set-min-width)
-;      (define/public (get-aligned-min-width)
-;        (let* ([parent (snip-parent this)]
-;               [ed (get-editor)]
-;               [ed-max (send ed get-max-width)]
-;               [ed-min (send ed get-min-width)]
-;               [this-max (get-max-width)]
-;               [this-min (get-min-width)])
-;          (when (is-a? parent aligned-pasteboard<%>)
-;            (send parent ignore-resizing true))
-;          (send parent begin-edit-sequence)
-;          (send ed begin-edit-sequence)
-;          (send ed set-max-width 'none)
-;          (send ed set-min-width 'none)
-;          (set-max-width 'none)
-;          (set-min-width 'none)
-;          (begin0
-;            (let ([left (box 0)]
-;                  [top (box 0)]
-;                  [right (box 0)]
-;                  [bottom (box 0)])
-;              (get-margin left top right bottom)
-;              (+ (unbox left)
-;                 (snip-width this)))
-;            (send ed set-max-width ed-max)
-;            (send ed set-max-width ed-min)
-;            (set-min-width this-min)
-;            (set-max-width this-max)
-;            (send ed end-edit-sequence)
-;            (send parent end-edit-sequence)
-;            (when (is-a? parent aligned-pasteboard<%>)
-;              (send parent ignore-resizing false)))))
-;      
-;      ; get-aligned-min-height (-> number?)
-;      ; the minimum height of the snip based on the children
-;      (inherit get-max-height set-max-height get-min-height set-min-height)
-;      (define/public (get-aligned-min-height)
-;        (let* ([parent (snip-parent this)]
-;               [ed (get-editor)]
-;               [ed-max (send ed get-max-height)]
-;               [ed-min (send ed get-min-height)]
-;               [this-max (get-max-height)]
-;               [this-min (get-min-height)])
-;          (when (is-a? parent aligned-pasteboard<%>)
-;            (send parent ignore-resizing true))
-;          (send parent begin-edit-sequence)
-;          (send ed begin-edit-sequence)
-;          (send ed set-max-height 'none)
-;          (send ed set-min-height 'none)
-;          (set-max-height 'none)
-;          (set-min-height 'none)
-;          (begin0
-;            (snip-height this)
-;            (send ed set-max-height ed-max)
-;            (send ed set-min-height ed-min)
-;            (set-min-height this-min)
-;            (set-max-height this-max)
-;            (send ed end-edit-sequence)
-;            (send parent end-edit-sequence)
-;            (when (is-a? parent aligned-pasteboard<%>)
-;              (send parent ignore-resizing false)))))
-      
-      (super-instantiate ())
-      ))
+  ;not-yet-implemented
+  (define aligned-snip-mixin (lambda (x) x))
   )

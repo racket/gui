@@ -12,6 +12,19 @@
    "snip-lib.ss"
    "pasteboard-lib.ss")
   
+  (define f 0)
+  (define rect-print
+    (match-lambda
+      [() (void)]
+      [(($ rect
+           ($ dim x width stretchable-width?)
+           ($ dim y height stretchable-height?))
+        others ...)
+       (printf "(make-rect (make-dim ~s ~s ~s) (make-dim ~s ~s ~s))~n"
+               x width stretchable-width?
+               y height stretchable-height?)
+       (rect-print others)]))
+  
   (provide/contract (make-aligned-pasteboard ((symbols 'vertical 'horizontal) . -> . class?)))
   
   ;;  mixin to add geometry management to pasteboard with the give type of alignement
@@ -22,60 +35,65 @@
       
       (field
        [needs-realign? false]
-       [my-edit-sequence? false]
        [ignore-resizing? false]
-       [alloted-width 0]
-       [alloted-height 0]
+       [alloted-width false]
+       [alloted-height false]
        [aligned-min-width 0]
        [aligned-min-height 0]
        [aligned-rects empty])
       
       ;; get-aligned-min-width (-> number?)
       ;; the aligned-min-width of the pasteboard
-      (define/public (get-aligned-min-width)
-        aligned-min-width)
+      (define/public (get-aligned-min-width) aligned-min-width)
       
       ;; get-aligned-min-height (-> number?)
       ;; the aligned-min-height of the pasteboard
-      (define/public (get-aligned-min-height)
-        aligned-min-height)
+      (define/public (get-aligned-min-height) aligned-min-height)
       
-      ;; realign (case-> (-> void?) (positive? positive? . -> . void?))
-      ;; called by the parent to realign the pasteboard's children
-      (define/public realign
-        (case-lambda
-          [(width height)
-           (set! alloted-width width)
-           (set! alloted-height height)
-           (realign)]
-          [()
-           (when (and (positive? alloted-width)
-                      (positive? alloted-height))
-             (set! needs-realign? false)
-             (realign-to-alloted))]))
-      
-      ;; realign-to-alloted (-> void?)
-      ;; realign the snips to fill the alloted width and height
-      (define/private (realign-to-alloted)
-        (let ([first-snip (find-first-snip)])
-          (set! aligned-rects
-                (align type alloted-width alloted-height
-                       (map-snip build-rect first-snip)))
-          (begin-edit-sequence)
-          (set! my-edit-sequence? true)
-          (set! ignore-resizing? true)
-          (for-each-snip move/resize first-snip aligned-rects)
-          (set! ignore-resizing? false)
-          (set! my-edit-sequence? false)
-          (end-edit-sequence)))
+      (define/public (set-aligned-min-sizes)
+        (dynamic-let ([ignore-resizing? true])
+          (for-each-snip
+           (lambda (s)
+             (if (is-a? s aligned-snip<%>)
+                 (send s set-aligned-min-sizes)))
+           (find-first-snip))
+          (set!-values (aligned-min-width aligned-min-height)
+                       (get-aligned-min-sizes type (find-first-snip)))))
       
       ;; set-algined-min-sizes (-> void?)
       ;; set the aligned min width and height of the pasteboard based on it's children snips
-      (define/public (set-aligned-min-sizes)
-        (set! ignore-resizing? true)
-        (set!-values (aligned-min-width aligned-min-height)
-                     (get-aligned-min-sizes type (find-first-snip)))
-        (set! ignore-resizing? false))
+      (define/public (aligned-min-sizes-invalid)
+        ;; Do I need to dynamic-let ignore-resizing? in here?
+        (if (refresh-delayed?)
+            (set! needs-realign? true)
+            (begin
+              (set! needs-realign? false)
+              (set!-values (aligned-min-width aligned-min-height)
+                           (get-aligned-min-sizes type (find-first-snip)))
+              (let ([parent (pasteboard-parent this)])
+                (when parent (send parent aligned-min-sizes-invalid))))))
+      
+      ;; realign (case-> (-> void?) (positive? positive? . -> . void?))
+      ;; called by the parent to realign the pasteboard's children
+      (define/public (realign width height)
+        (set! alloted-width width)
+        (set! alloted-height height)
+        (realign-to-alloted))
+      
+      ;; realign-to-alloted (-> void?)
+      ;; realign the snips to fill the alloted width and height
+      (define/public (realign-to-alloted)
+        (when (and alloted-width alloted-height)
+          (when (not (and (positive? alloted-width) (positive? alloted-height)))
+            (error 'here "I am"))
+          (dynamic-let ([ignore-resizing? true])
+            (let* ([first-snip (find-first-snip)]
+                   [aligned-rects
+                    (align type alloted-width alloted-height
+                           (map-snip build-rect first-snip))])
+              (begin-edit-sequence)
+              (for-each-snip move/resize first-snip aligned-rects)
+              (end-edit-sequence)))))
       
       ;;move/resize (snip-pos? rect? . -> . void?)
       ;;moves and resizes the snips with in pasteboard
@@ -85,13 +103,10 @@
                     ($ dim x width stretchable-width?)
                     ($ dim y height stretchable-height?)))
            (move-to snip x y)
+           ;; Maybe I don't need to resize it if it's aligned-pasteboard-parent<%> and only if it's
+           ;; a stretchable snip.
            (when (or stretchable-height? stretchable-width? (is-a? snip aligned-pasteboard-parent<%>))
-             (resize snip width height))
-           ;(resize snip width height)
-           ;(when (is-a? snip editor-snip%)
-           ;  (send snip set-min-width 'none)
-           ;  (send (send snip get-editor) set-min-width 'none))
-           ]))
+             (resize snip width height))]))
       
       ;;;;;;;;;;
       ;; Events
@@ -100,21 +115,21 @@
       ;; called after a snip is inserted to the pasteboard
       (rename [super-after-insert after-insert])
       (define/override (after-insert snip before x y)
-        (calc/realign)
+        (aligned-min-sizes-invalid)
         (super-after-insert snip before x y))
       
       ;; after-delete ((is-a?/c snip%) . -> . void?)
       ;; called after a snip is deleted from the pasteboard%
       (rename [super-after-delete after-delete])
       (define/override (after-delete snip)
-        (calc/realign)
+        (aligned-min-sizes-invalid)
         (super-after-delete snip))
       
-      ;; after-reorder ((is-a?/c snip%) (is-a?/c snip%) boolean? . -> . void?)
+      ; after-reorder ((is-a?/c snip%) (is-a?/c snip%) boolean? . -> . void?)
       ;; called after a snip is moved in the front to back snip order
       (rename [super-after-reorder after-reorder])
       (define/override (after-reorder snip to-snip before?)
-        (realign)
+        (realign-to-alloted)
         (super-after-reorder snip to-snip before?))
       
       ;; resized ((is-a?/c snip%) . -> . void?)
@@ -123,82 +138,16 @@
       (define/override (resized snip redraw-now?)
         (super-resized snip redraw-now?)
         (unless ignore-resizing?
-          (when (or redraw-now?
-                    (and (not (refresh-delayed?))
-                         (needs-resize? snip)))
-            (calc/realign))))
+          (aligned-min-sizes-invalid)))
       
       ;; after-edit-sequence (-> void?)
       ;; called after an edit-sequence ends
       (rename [super-after-edit-sequence after-edit-sequence])
       (define/override (after-edit-sequence)
-        (when needs-realign? (calc/realign)))
+        (super-after-edit-sequence)
+        (when needs-realign? (aligned-min-sizes-invalid)))
       
-      ;; calc/realign (-> void?)
-      ;; sends a message to the pasteboard to recalculate min sizes and realign
-      (define/private (calc/realign)
-        (unless ignore-resizing?
-          (if (refresh-delayed?)
-              (unless my-edit-sequence? (set! needs-realign? true))
-              (let* ([root (pasteboard-root this)]
-                     [parent (pasteboard-parent root)])
-                (when parent
-                  (send parent set-aligned-min-sizes)
-                  (send root realign))))))
-      
-      ;; needs-resize? ((is-a?/c snip%) . -> . boolean?)
-      ;; determines if the snip's size is smaller than it's min size
-      (define/private (needs-resize? snip)
-        (with-handlers ([exn? (lambda a false)])
-        (match-let ([($ rect
-                        ($ dim _ alloted-width _)
-                        ($ dim _ alloted-height _))
-                     (find-rect snip)])
-          (if (is-a? snip aligned-snip<%>)
-              (or (< alloted-width (send snip get-aligned-min-width))
-                  (< alloted-height (send snip get-aligned-min-height)))
-              (if (empty? aligned-rects)
-                  false
-                  
-                    (match-let ([($ rect
-                                  ($ dim _ actual-width _)
-                                  ($ dim _ actual-height _))
-                               (build-rect snip)])
-                    (not (and (= alloted-width actual-width)
-                              (= alloted-height actual-height)))))))))
-      
-      ;(define/private (needs-resize? snip)
-      ;  (cond
-      ;    [(is-a? snip aligned-snip<%>)
-      ;     (or (< (snip-width snip)
-      ;            (send snip get-aligned-min-width))
-      ;         (< (snip-height snip)
-      ;            (send snip get-aligned-min-height))
-      ;         (and (not (send snip stretchable-width))
-      ;              (> (snip-width snip)
-      ;                 (send snip get-aligned-min-width)))
-      ;         (and (not (send snip stretchable-height))
-      ;              (> (snip-height snip)
-      ;                 (send snip get-aligned-min-height))))]
-      ;    [else false]))
-      
-      ;; find-rect ((is-a?/c snip%) . -> . rect?)
-      ;; finds the rect that corresponds to the given snip
-      (define/private (find-rect target-snip)
-        (letrec ([find-rect-aux
-                  (lambda (snip rects)
-                    (cond
-                      [(or (equal? snip false) (empty? rects))
-                       (error 'find-rect "Snip not found")]
-                      [else
-                       (if (equal? snip target-snip)
-                           (car rects)
-                           (find-rect-aux (send snip next)
-                                          (rest rects)))]))])
-          (find-rect-aux (find-first-snip) aligned-rects)))
-      
-      (super-instantiate ())
-      ))
+      (super-new)))
   
   ;; build-rect ((is-a?/c snip%) . -> . rect?)
   ;; makes a new default rect out of a snip
@@ -218,12 +167,24 @@
                  [width 0]
                  [height 0])
         (cond
-          [(boolean? snip)
-           (values width height)]
+          [(boolean? snip) (values width height)]
           [else
-           (when (is-a? snip aligned-pasteboard-parent<%>)
-             (send snip set-aligned-min-sizes))
            (loop (send snip next)
                  (x-func (snip-min-width snip) width)
                  (y-func (snip-min-height snip) height))]))))
+  
+  ;; dynamic-let is just like fluid-let but is less expensive and not safe over continuations
+  (define-syntax (dynamic-let stx)
+    (syntax-case stx ()
+      [(_ ((x y) ...) body body2 ...)
+       (andmap identifier? (syntax-e #'(x ...)))
+       (with-syntax ([(old-x ...) (generate-temporaries #'(x ...))])
+         #'(let ((old-x x) ...)
+             (begin
+               (set! x y) ...
+               (begin0
+                 (begin
+                   body
+                   body2 ...)
+                 (set! x old-x) ...))))]))
   )
