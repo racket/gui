@@ -40,7 +40,10 @@
 	  #t]
 	 [else #f])))
 
-    (mred:preferences:set-preference-default 'mred:show-periods-in-dirlist #f)
+    (mred:preferences:set-preference-default 'mred:show-periods-in-dirlist #f
+					     (lambda (x)
+					       (or (not x)
+						   (eq? x #t))))
 
     (define finder-dialog%
       (class mred:container:dialog-box% (save-mode? replace-ok? multi-mode? 
@@ -538,7 +541,11 @@
     (mred:preferences:set-preference-default 'mred:file-dialogs
 					     (if (eq? wx:platform 'unix)
 						 'common
-						 'std))
+						 'std)
+					     (lambda (x)
+					       (or (eq? x 'common)
+						   (eq? x 'std))))
+
     (define put-file
       (lambda args
 	(apply (case (mred:preferences:get-preference 'mred:file-dialogs)

@@ -44,7 +44,11 @@
 		    (send keymap map-function key func))
 		  (make-meta-prefix-list key))))
 
-    (mred:preferences:set-preference-default 'mred:delete-forward? (not (eq? wx:platform 'unix)))
+    (mred:preferences:set-preference-default 'mred:delete-forward? 
+					     (not (eq? wx:platform 'unix))
+					     (lambda (x)
+					       (or (not x)
+						   (eq? x #t))))
 
     ; This installs the standard keyboard mapping
     (define setup-global-keymap
@@ -52,7 +56,10 @@
       (let* ([rcs
 	      (let ([last-checkin-string ""])
 		(mred:preferences:set-preference-default 
-		 'rcs-pathname (list "/usr/local/RCS/" "/usr/bin/" "/usr/local/bin/"))
+		 'rcs-pathname (list "/usr/local/RCS/" "/usr/bin/" "/usr/local/bin/")
+		 (lambda (x)
+		   (and (list? x)
+			(andmap string? x))))
 		(lambda (edit event)
 		  (let/ec k
 		    (let* ([rcs-binaries (list "ci" "co" "rlog")]

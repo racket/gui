@@ -24,6 +24,7 @@
     (define-struct un/marshall (marshall unmarshall))
     (define-struct marshalled (data))
     (define-struct pref (value))
+    (define-struct default (value checker))
 
     (define guard
       (lambda (when p value thunk)
@@ -83,14 +84,22 @@
 					     ((debug-info-handler))))))])
 	  (cond
 	    [(marshalled? ans)
-	     (let* ([unmarshalled (unmarshall p ans)]
-		    [default
+	     (let* ([default-s
 		      (hash-table-get
 		       defaults p
 		       (lambda ()
 			 (error 'get-preference
 				"no default pref for: ~a~n"
 				p)))]
+		    [default (default-value default-s)]
+		    [checker (default-checker default-s)]
+		    [unmarshalled (let ([unmarsh (unmarshall p ans)])
+				    (if (checker unmarsh)
+					unmarsh
+					(begin
+					  (printf "WARNING: ~s rejecting invalid pref ~s in favor of ~s~n"
+						  p unmarsh default)
+					  default)))]
 		    [_ (mred:debug:printf 'prefs "get-preference checking callbacks: ~a to ~a"
 					  p unmarshalled)]
 		    [pref (if (check-callbacks p unmarshalled)
@@ -140,16 +149,19 @@
 	(mred:debug:printf 'prefs "finished setting prefs to default values")))
     
     (define set-preference-default
-      (lambda (p value)
+      (lambda (p value checker)
 	(mred:debug:printf 'prefs "setting default value for ~a to ~a" p value)
 	(hash-table-get preferences p 
 			(lambda () 
 			  (hash-table-put! preferences p (make-pref value))))
-	(hash-table-put! defaults p value)))
+	(hash-table-put! defaults p (make-default value checker))))
     
     ;; this is here becuase exit has to come before
     ;; prefs.ss in the loading order.
-    (set-preference-default 'mred:verify-exit #t)
+    (set-preference-default 'mred:verify-exit #t
+			    (lambda (x)
+			      (or (not x)
+				  (eq? x #t))))
 
     (define save-user-preferences 
       (let ([marshall-pref

@@ -15,12 +15,18 @@
 	    
     (mred:debug:printf 'invoke "mred:edit@")
 
-    (mred:preferences:set-preference-default 'mred:verify-change-format #f)
+    (mred:preferences:set-preference-default 'mred:verify-change-format #f 
+					     (lambda (x)
+					       (or (not x)
+						   (eq? x #t))))
 
     (define-struct range (start end b/w-bitmap color))
     (define-struct rectangle (left top width height b/w-bitmap color))
 
-    (mred:preferences:set-preference-default 'mred:auto-set-wrap? #f)
+    (mred:preferences:set-preference-default 'mred:auto-set-wrap? #f
+					     (lambda (x)
+					       (or (not x)
+						   (eq? x #t))))
 
     (define make-snip%
       (let ([sl (make-object wx:style-list%)])
