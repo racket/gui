@@ -132,7 +132,7 @@
 	  [edit-sequence-queue null]
 	  [edit-sequence-ht (make-hash-table)])
 	(public
-	  [edit-sequence-counter 0]
+	  [local-edit-sequence? #f]
 	  [run-after-edit-sequence
 	   (rec run-after-edit-sequence
 		(case-lambda 
@@ -164,16 +164,10 @@
 	  [on-edit-sequence
 	   (lambda ()
 	     (super-on-edit-sequence)
-	     (set! edit-sequence-counter (+ edit-sequence-counter 1)))]
+	     (set! local-edit-sequence? #t))]
 	  [after-edit-sequence
 	   (lambda ()
-	     (set! edit-sequence-counter (- edit-sequence-counter 1))
-	     (mred:debug:printf 'lock-icon
-				"after edit sequence (count: ~a)"
-				edit-sequence-counter)
-	     (when (< edit-sequence-counter 0)
-	       (error 'after-edit-sequence
-		      "extra call to after-edit-sequence"))
+	     (set! local-edit-sequence? #f)
 	     (super-after-edit-sequence)
 	     (let ([queue edit-sequence-queue]
 		   [ht edit-sequence-ht]
