@@ -621,7 +621,7 @@
 	   (unless (or (and (string? expect) (string? v)
 			    (string=? expect v))
 		       (eq? expect v))
-	     (error 'test-compare "~a mistmatch: ~s != ~s" kind expect v)))]
+	     (error 'test-compare "~a mismatch: ~s != ~s" kind expect v)))]
 	[label-test
 	 (lambda (menu id expect)
 	   (let ([v (send menu get-label id)])
@@ -882,7 +882,7 @@
       (unless (string=? (send e get-command-string)
 			(send c get-string-selection)
 			(send c get-string (send c get-selection)))
-	      (error "selection string mistmatch"))
+	      (error "selection string mismatch"))
       (check-callback-event c cx e commands #f)))
   (define c (if list?
 		(make-object mred:list-box% p
@@ -1034,7 +1034,7 @@
 				 (unless (= (send e get-command-int) i)
 					 (error "event selection value mismatch"))
 				 (unless (string=? (send e get-command-string) s)
-					 (error "selection string mistmatch"))
+					 (error "selection string mismatch"))
 				 (check-callback-event c c e commands #t)))
 			     old-list)
 			    (printf "content: ~s~n" actual-content))
