@@ -4995,7 +4995,7 @@
       (let ([cwho '(constructor editor-canvas)])
 	(check-container-parent cwho parent)
 	(check-instance cwho internal-editor<%> "text% or pasteboard%" #t editor)
-	(check-style cwho #f '(hide-vscroll hide-hscroll no-vscroll no-hscroll deleted control-border transparent) style)
+	(check-style cwho #f '(hide-vscroll hide-hscroll no-vscroll no-hscroll deleted control-border transparent no-border) style)
 	(check-gauge-integer cwho scrolls-per-page)
 	(check-label-string/false cwho label)
 	(unless (eq? wheel-step no-val)
@@ -5102,7 +5102,17 @@
 					    (mred->wx-container parent) -1 -1
 					    (get-ds no-h? no-v?)
 					    (get-ds no-v? no-h?)
-					    #f style scrolls-per-page #f))
+					    #f 
+					    (append
+					     (if (and (memq 'no-border style)
+						      (or (memq 'no-vscroll style)
+							  (memq 'hide-vscroll style))
+						      (or (memq 'no-hscroll style)
+							  (memq 'hide-hscroll style)))
+						 null
+						 '(border))
+					     (remq 'no-border style))
+					    scrolls-per-page #f))
 		      wx))
 		  (lambda () 
 		    (let ([cwho '(constructor editor-canvas)])
@@ -6217,18 +6227,32 @@
 	      (for-each (lambda (s) (make-object message% (protect& s) msg-pnl)) strings)
 	      (send f stretchable-width #f)
 	      (send f stretchable-height #f))
-	    (let* ([e (make-object text%)]
-		   [c (make-object editor-canvas% msg-pnl e '(no-hscroll transparent))])
-	      (send f resize (+ 400 extra-width) 200)
-	      (send c set-line-count (min 5 (length strings)))
-	      (send c allow-tab-exit #t)
-	      (send f reflow-container)
-	      (send e auto-wrap #t)
-	      (send e insert message)
-	      (send e set-position 0)
-	      (send e hide-caret #t)
-	      (send e set-cursor (make-object wx:cursor% 'arrow) #t)
-	      (send e lock #t)))
+	    ;; Try without scrollbar, then add one if necessary:
+	    (let loop ([scroll? #f])
+	      (let* ([e (make-object text%)]
+		     [c (make-object editor-canvas% msg-pnl e (if scroll?
+								  '(no-hscroll transparent)
+								  '(no-hscroll no-vscroll transparent no-border)))])
+		(send c min-width 400)
+		(send c set-line-count 5)
+		(send c allow-tab-exit #t)
+		(send f reflow-container)
+		(send e auto-wrap #t)
+		(send e insert message)
+		(send e set-position 0)
+		(send e hide-caret #t)
+		(send e set-cursor (make-object wx:cursor% 'arrow) #t)
+		(send e lock #t)
+		(when (not scroll?)
+		  ;; Check whether it actually fits
+		  (let ([vh (box 0)]
+			[eh (box 0)])
+		    (send e get-view-size #f vh)
+		    (send e get-extent #f eh)
+		    (unless ((unbox eh) . <= . (unbox vh))
+		      (send c show #f)
+		      (send msg-pnl delete-child c)
+		      (loop #t)))))))
 	(let* ([p (make-object horizontal-pane% btn-pnl)]
 	       [mk-button (lambda (title v default?) 
 			    (let ([b (make-object button% title p (lambda (b e) (set! result v) (send f show #f))
