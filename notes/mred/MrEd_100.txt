@@ -152,13 +152,14 @@ highlights of the revision:
    descriptive or more consistent with other method names.
 
  * The device context system has been changed to provide a larger set
-   of methods that paint consistently on all platforms. Most drawing
-   modes (all except xor and copy) have been eliminated, but
-   non-rectangular clipping regions and region operations (e.g., union
-   and intersect) were added.
+   of methods that paint consistently on all platforms. Most "logical
+   functions" (e.g., 'invert, 'src-and, 'no-op) have been eliminated,
+   but non-rectangular clipping regions and region operations (e.g.,
+   union and intersect) were added.
 
-   The old canvas-dc% class is replced by pixel-dc<%>. The memory-dc%
-   class was renamed to bitmap-dc% (which implements pixel-dc<%>).
+   The old canvas-dc% class was replaced by pixel-dc<%>. The
+   memory-dc% class was renamed to bitmap-dc% (which implements
+   pixel-dc<%>).
 
    The blit method was replaced by draw-bitmap and draw-bitmap-region,
    which operate directly on bitmaps. Monochrome bitmaps can be drawn
