@@ -1425,9 +1425,9 @@
 
       [do-align (lambda (h v set-h set-v)
 		  (unless (memq h '(left center right))
-		    (raise-type-error 'alignment "horizontal alignment symbol: left, center, or right" h))
+		    (raise-type-error 'set-alignment "horizontal alignment symbol: left, center, or right" h))
 		  (unless (memq v '(top center bottom))
-		    (raise-type-error 'alignment "vertical alignment symbol: top, center, or bottom" v))
+		    (raise-type-error 'set-alignment "vertical alignment symbol: top, center, or bottom" v))
 		  (set-h h)
 		  (set-v (case v [(top) 'left] [(center) 'center] [(bottom) 'right])))]
       [alignment (lambda (h v) (do-align h v (lambda (h) (set! h-align h)) (lambda (h) (set! v-align v))))]
@@ -1960,7 +1960,6 @@
 
 (define (cb-0) (void))
 (define (cb-1 x) (void))
-(define (cb-2 x y) (void))
 
 ;---------------- Window interfaces and base classes ------------
 
@@ -2029,8 +2028,20 @@
 							   "result of given procedure was not a list of subareas: "
 							   l))
 				   (map mred->wx l)))))]
-      [container-size (lambda (l) (let ([l (send (get-wx-panel) do-get-graphical-min-size)])
-				    (apply values l)))]
+      [container-size (lambda (l) 
+			; Check l, even though we don't use it
+			(unless (and (list? l) 
+				     (andmap
+				      (lambda (l)
+					(and (list? l) (= (length l) 4)
+					     (exact? (car l)) (integer? (car l)) (<= 0 (car l) 10000)
+					     (exact? (cadr l)) (integer? (cadr l)) (<= 0 (cadr l) 10000)))
+				      l))
+			  (raise-type-error (who->name '(method area-container<%> container-size))
+					    "list of lists containing two exact integers in [0, 10000] and two booleans"
+					    l))
+			(let ([l (send (get-wx-panel) do-get-graphical-min-size)])
+			  (apply values l)))]
       [place-children (lambda (l w h) (send (get-wx-panel) do-place-children l w h))]
       [add-child (lambda (c) 
 		   (check-instance '(method area-container<%> add-child) subwindow<%> 'subwindow<%> #f c)
@@ -2059,11 +2070,23 @@
   (class* % (window<%>) (mk-wx get-wx-panel label parent cursor)
     (public
       [on-focus cb-1]
-      [on-size cb-2]
-      [on-move cb-2]
-      [on-subwindow-char (lambda (w e) #f)]
-      [on-subwindow-event (lambda (w e) #f)]
-      [on-drop-file cb-1]
+      [on-size (lambda (w h)
+		 (check-range-integer '(method window<%> on-size) w)
+		 (check-range-integer '(method window<%> on-size) h))]
+      [on-move (lambda (x y)
+		 (check-slider-integer '(method window<%> on-move) x)
+		 (check-slider-integer '(method window<%> on-move) y))]
+      [on-subwindow-char (lambda (w e)
+			   (check-instance '(method window<%> on-subwindow-char) window<%> 'window<%> #f w)
+			   (check-instance '(method window<%> on-subwindow-char) wx:key-event% 'key-event% #f e)
+			   #f)]
+      [on-subwindow-event (lambda (w e)
+			   (check-instance '(method window<%> on-subwindow-event) window<%> 'window<%> #f w)
+			   (check-instance '(method window<%> on-subwindow-event) wx:mouse-event% 'mouse-event% #f e)
+			   #f)]
+      [on-drop-file (lambda (s)
+		      (unless (string? s)
+			(raise-type-error (who->name '(method window<%> on-drop-file)) "pathname string" s)))]
 
       [focus (lambda () (send wx set-focus))]
       [has-focus? (lambda () (send wx has-focus?))]
@@ -2071,7 +2094,9 @@
       [is-enabled? (lambda () (send wx is-enabled?))]
       
       [get-label (lambda () label)]
-      [set-label (lambda (l) (set! label l))]
+      [set-label (lambda (l)
+		   (check-string '(method window<%> set-label) l)
+		   (set! label l))]
       [get-plain-label (lambda () (and (string? label) (wx:label->plain-label label)))]
 
       [accept-drop-files
@@ -2209,9 +2234,10 @@
   (class* (make-window% #f (make-subarea% area%)) (control<%>) (mk-wx label parent cursor)
     (rename [super-set-label set-label])
     (override
+      [get-label (lambda () label)]
       [set-label (lambda (l)
 		   (send wx set-label l)
-		   (super-set-label l))])
+		   (set! label l))])
     (public
       [command (lambda (e) (send wx command e))])
     (private
@@ -2235,7 +2261,10 @@
       [wx #f]
       [status-line? #f])
     (override
-      [on-subwindow-char (lambda (w event) (send wx handle-menu-key event))])
+      [on-subwindow-char (lambda (w event) 
+			   (check-instance '(method top-level-window<%> on-subwindow-char) window<%> 'window<%> #f w)
+			   (check-instance '(method top-level-window<%> on-subwindow-char) wx:key-event% 'key-event% #f event)
+			   (send wx handle-menu-key event))])
     (public
       [create-status-line (lambda () (unless status-line? (send wx create-status-line) (set! status-line? #t)))]
       [set-status-text (lambda (s) (send wx set-status-text s))]
@@ -2414,7 +2443,7 @@
     (sequence 
       (check-string/false '(constructor gauge) label)
       (check-container-parent 'gauge parent) 
-      (check-range-integer '(constructor gauge) range)
+      (check-gauge-integer '(constructor gauge) range)
       (check-orientation 'gauge style))
     (private
       [wx #f])
@@ -2424,13 +2453,13 @@
 		   (check-range-integer '(method gauge% set-value) v)
 		   (when (> v (send wx get-range))
 		     (raise-mismatch-error (who->name '(method gauge% set-value))
-					   (format "gauge's range is only ~a; cannot set the value to: "
+					   (format "gauge's range is 0 to ~a; cannot set the value to: "
 						   (send wx get-range))
 					   v))
 		   (send wx set-value v))]
       [get-range (lambda () (send wx get-range))]
       [set-range (lambda (v)
-		   (check-range-integer '(method gauge% set-range) v)
+		   (check-gauge-integer '(method gauge% set-range) v)
 		   (send wx set-range v))])
     (sequence
       (super-init (lambda () 
@@ -2474,7 +2503,8 @@
 	 (let ([m (send wx number)])
 	   (unless (< n m)
 	     (raise-mismatch-error (who->name `(method list-control<%> ,method)) 
-				   (format "control only has ~a items; given: " m)
+				   (format "control has only ~a items, indexed 0 to ~a; given out-of-range index: " 
+					   m (sub1 m))
 				   n))))])
     (sequence
       (super-init (lambda () (set! wx (mk-wx)) wx) label parent #f))))
@@ -2514,7 +2544,11 @@
       [number-of-visible-items (lambda () (send wx number-of-visible-items))]
       [is-selected? (lambda (n) (check-item 'is-selected? n) (send wx selected? n))]
       [set (lambda (l) (send wx set l))]
-      [set-string (lambda (n d) (check-item 'set-string n) (send wx set-string n d))]
+      [set-string (lambda (n d)
+		    (check-non-negative-integer '(method list-box% set-string) n) ; int error before string
+		    (check-string '(method list-box% set-string) d) ; string error before range mismatch
+		    (check-item 'set-string n)
+		    (send wx set-string n d))]
       [set-data (lambda (n d) (check-item 'set-data n) (send wx set-data n d))]
       [get-first-visible-item (lambda () (send wx get-first-item))]
       [set-first-visible-item (lambda (n) (check-item 'set-first-visible-item n) (send wx set-first-visible-item n))]
@@ -2529,7 +2563,8 @@
 	 (let ([m (send wx number)])
 	   (unless (< n m)
 	     (raise-mismatch-error (who->name `(method list-box% ,method)) 
-				   (format "list only has ~a items; given: " m)
+				   (format "list has only ~a items, indexed 0 to ~a; given out-of-range index: "
+					   m (sub1 m))
 				   n))))])
     (sequence
       (super-init (lambda () 
@@ -2592,7 +2627,7 @@
       [min-client-height (param (lambda () wx) 'min-client-height)]
 
       [popup-menu (lambda (m x y) 
-		    (check-instance '(method canvas<%> popup-menu) popup-menu% popup-menu% #f m)
+		    (check-instance '(method canvas<%> popup-menu) popup-menu% 'popup-menu% #f m)
 		    (send wx popup-menu (mred->wx m) x y))]
       [warp-pointer (lambda (x y) (send wx warp-pointer x y))]
 
@@ -2622,7 +2657,12 @@
 				 [(h-pixels v-pixels x-len y-len x-page y-page x-val y-val)
 				  (set-scrollbars h-pixels v-pixels x-len y-len x-page y-page x-val y-val #t)]
 				 [(h-pixels v-pixels x-len y-len x-page y-page x-val y-val man?)
-				  (send wx set-scrollbars h-pixels v-pixels x-len y-len x-page y-page x-val y-val man?)])])
+				  (let ([rc (lambda (x)
+					      (when x (check-gauge-integer '(method canvas% set-scrollbars) x)))])
+				    (rc h-pixels)
+				    (rc v-pixels)
+				    (send wx set-scrollbars (or h-pixels 0) (or v-pixels 0)
+					  x-len y-len x-page y-page x-val y-val man?))])])
 			set-scrollbars)]
 
       [get-scroll-pos (lambda (d) (send wx get-scroll-pos d))]
@@ -2648,7 +2688,7 @@
       (check-container-parent 'editor-canvas parent)
       (check-instance '(constructor editor-canvas) internal-editor<%> "text% or pasteboard%" #t buffer)
       (check-style '(constructor editor-canvas) #f '(hide-vscroll hide-hscroll no-vscroll no-hscroll) style)
-      ((check-bounded-integer 1 10000) '(constructor editor-canvas) scrolls-per-page))
+      (check-gauge-integer '(constructor editor-canvas) scrolls-per-page))
     (private
       [force-focus? #f]
       [scroll-to-last? #f]
@@ -2718,7 +2758,7 @@
 (define horizontal-pane% (class pane% (parent) (sequence (super-init parent))))
 
 (define panel%
-  (class (make-area-container-window% (make-window% #f (make-subarea% (make-container% area%)))) (parent [style null])
+  (class* (make-area-container-window% (make-window% #f (make-subarea% (make-container% area%)))) (subwindow<%>) (parent [style null])
     (private [wx #f])
     (sequence 
       (let ([who (cond ; yuck! - we do this to make h-p and v-p subclasses of p
@@ -3912,11 +3952,13 @@
 			(format "exact integer in [~a, ~a]" min max)
 			range))))
 
-(define (check-range-integer who range) (check-bounded-integer 0 10000))
+(define check-range-integer (check-bounded-integer 0 10000))
 
-(define (check-slider-integer who range) (check-bounded-integer -10000 10000))
+(define check-slider-integer (check-bounded-integer -10000 10000))
 
-(define (check-margin-integer who range) (check-bounded-integer 0 1000))
+(define check-margin-integer (check-bounded-integer 0 1000))
+
+(define check-gauge-integer (check-bounded-integer 1 10000))
 
 (define (check-non-negative-integer who i)
   (unless (and (number? i) (integer? i) (exact? i) (not (negative? i)))
@@ -3935,7 +3977,7 @@
   (when reqd
     (unless (ormap (lambda (i) (memq i reqd)) style)
       (raise-type-error (who->name who)
-			(format "style list containing ~a"
+			(format "style list including ~a"
 				(if (= (length reqd) 1)
 				    (car reqd)
 				    (string-append
