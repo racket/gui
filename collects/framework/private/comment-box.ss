@@ -1,7 +1,8 @@
 
 (module comment-box mzscheme
   (require (lib "class.ss")
-           (lib "mred.ss" "mred")
+           (lib "etc.ss")
+	   (lib "mred.ss" "mred")
            (lib "unitsig.ss")
            "sig.ss"
            "../decorated-editor-snip.ss"
