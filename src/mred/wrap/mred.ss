@@ -310,15 +310,15 @@
 	       [(w h) (double-boxed 0 0 (lambda (x y) (send o get-client-size x y)))])
     (list o x y w h)))
 
-(define (container->children f except)
+(define (container->children f except must-focus?)
   (apply
    append
    (map
     (lambda (i)
       (cond
-       [(is-a? i wx-basic-panel<%>) (container->children i except)]
+       [(is-a? i wx-basic-panel<%>) (container->children i except must-focus?)]
        [(or (eq? i except) 
-	    (not (send i gets-focus?))
+	    (and must-focus? (not (send i gets-focus?)))
 	    (not (send i is-enabled?))
 	    (not (send i is-shown?)))
 	null]
@@ -684,7 +684,7 @@
 				[normal-move
 				 (lambda ()
 				   (let* ([o (if (or (is-a? o wx:canvas%) (is-a? o wx:item%)) o #f)]
-					  [dests (map object->position (container->children panel o))]
+					  [dests (map object->position (container->children panel o #t))]
 					  [pos (if o (object->position o) (list 'x 0 0 1 1))]
 					  [o (traverse (cadr pos) (caddr pos) (cadddr pos) (list-ref pos 4)
 						       (case code
@@ -730,7 +730,7 @@
 			      (if (and o (send o handles-key-code code #t meta?))
 				  #f
 				  ;; Move selection/hit control based on & shortcuts
-				  (let* ([objs (container->children panel #f)]
+				  (let* ([objs (container->children panel #f #t)]
 					 [re (key-regexp code)])
 				    (ormap
 				     (lambda (o)
