@@ -3,8 +3,8 @@
 
 (define source-dir (current-load-relative-directory))
 
-(define num-times 8)
-(define num-threads 3)
+(define num-times 10)
+(define num-threads 6)
 
 (define dump-stats? #f)
 
@@ -196,16 +196,27 @@
 (define (stw t n)
   (thread-weight t (floor (/ (thread-weight t) n))))
 
+(define (breakable t)
+  (if #t
+      (thread (lambda ()
+		(read)
+		(printf "breaking~n")
+		(break-thread t)
+		(thread-wait t)
+		(printf "done~n")))
+      (void)))
+
 (define (do-test)
   (let ([sema (make-semaphore)])
     (let loop ([n num-threads])
       (unless (zero? n)
-	(thread (lambda () 
-		  (stw (current-thread) n)
-		  (dynamic-wind
-		   void
-		   (lambda () (maker n num-times))
-		   (lambda () (semaphore-post sema)))))
+	(breakable
+	 (thread (lambda () 
+		   (stw (current-thread) n)
+		   (dynamic-wind
+		    void
+		    (lambda () (maker n num-times))
+		    (lambda () (semaphore-post sema))))))
 	(loop (sub1 n))))
     (let loop ([n num-threads])
       (unless (zero? n)
