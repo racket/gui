@@ -309,7 +309,7 @@
 			  move-to-search-or-reverse-search
 			  search))
   (define search-anchor 0)
-  (define searching-direction 1)
+  (define searching-direction 'forward)
   (define old-search-highlight void)
   (define get-active-embedded-edit
     (lambda (edit)
@@ -328,7 +328,7 @@
       (lambda (edit)
 	(old-search-highlight)
 	(let ([position 
-	       (if (= 1 searching-direction)
+	       (if (eq? 'forward searching-direction)
 		   (send edit get-end-position)
 		   (send edit get-start-position))])
 	  (set! search-anchor position)
@@ -363,7 +363,7 @@
 		       #f)]
 		    [found
 		     (lambda (edit first-pos)
-		       (let ([last-pos (+ first-pos (* searching-direction 
+		       (let ([last-pos (+ first-pos (* (if (eq? searching-direction 'forward) 1 -1)
 						       (string-length string)))])
 			 (send* edit 
 				(set-caret-owner #f 'display)
@@ -379,22 +379,22 @@
 				   string
 				   searching-direction
 				   search-anchor
-				   -1 #t #t #t)])
+				   'eof #t #t #t)])
 		 (cond
-		   [(= -1 first-pos)
+		   [(not first-pos)
 		    (if wrap?
 			(let-values ([(found-edit pos)
 				      (send searching-edit
 					    find-string-embedded
 					    string 
 					    searching-direction
-					    (if (= 1 searching-direction)
+					    (if (eq? 'forward searching-direction)
 						0
 						(send searching-edit last-position)))])
-			  (if (= -1 pos)
+			  (if (not pos)
 			      (not-found found-edit)
 			      (found found-edit 
-				     ((if (= searching-direction 1)
+				     ((if (eq? searching-direction 'forward)
 					  +
 					  -)
 				      pos
@@ -518,14 +518,14 @@
 	[replace-all
 	 (lambda ()
 	   (let* ([replacee-edit (get-text-to-search)]
-		  [pos (if (= searching-direction 1)
+		  [pos (if (eq? searching-direction 'forward)
 			   (send replacee-edit get-start-position)
 			   (send replacee-edit get-end-position))]
 		  [get-pos 
-		   (if (= searching-direction 1)
+		   (if (eq? searching-direction 'forward)
 		       (ivar replacee-edit get-end-position)
 		       (ivar replacee-edit get-start-position))]
-		  [done? (if (= 1 searching-direction)
+		  [done? (if (eq? 'forward searching-direction)
 			     (lambda (x) (>= x (send replacee-edit last-position)))
 			     (lambda (x) (<= x 0)))])
 	     (send* replacee-edit 
@@ -558,9 +558,9 @@
 	 (lambda ()
 	   (unhide-search)
 	   (send (cond
-		   [(send find-canvas is-focus-on?)
+		   [(send find-canvas has-focus?)
 		    replace-canvas]
-		   [(send replace-canvas is-focus-on?)
+		   [(send replace-canvas has-focus?)
 		    (send (get-text-to-search) get-canvas)]
 		   [else
 		    find-canvas])
@@ -568,15 +568,15 @@
 	[move-to-search-or-search
 	 (lambda ()
 	   (unhide-search)
-	   (if (or (send find-canvas is-focus-on?)
-		   (send replace-canvas is-focus-on?))
+	   (if (or (send find-canvas has-focus?)
+		   (send replace-canvas has-focus?))
 	       (search 1)
 	       (send find-canvas focus)))]
 	[move-to-search-or-reverse-search
 	 (lambda ()
 	   (unhide-search)
-	   (if (or (send find-canvas is-focus-on?)
-		   (send replace-canvas is-focus-on?))
+	   (if (or (send find-canvas has-focus?)
+		   (send replace-canvas has-focus?))
 	       (search -1)
 	       (send find-canvas focus)))]
 	[search
@@ -620,8 +620,8 @@
 		     middle-right-panel
 		     (lambda (dir-radio evt)
 		       (let ([forward (if (= 0 (send evt get-command-int))
-					  1
-					  -1)])
+					  'forward
+					  'backward)])
 			 (set-search-direction forward)
 			 (reset-search-anchor (get-text-to-search)))))]
 	[close-button (make-object button% "Hide"
