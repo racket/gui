@@ -81,25 +81,23 @@ notes for an average MrEd release).
 0. Highlights of the New MrEd Toolbox
 ======================================================================
 
- * The wx/mred split has been eliminated. The wx methods for
-   manually managing the geometry of windows have been eliminated; the
-   only way to set control positions explicitly is to derive a new
-   panel class.
+ * The wx/mred split has been eliminated. The wx methods for manually
+   managing the geometry of windows have been eliminated; the only way
+   to set control positions explicitly is to derive a new panel class.
 
-   The class hierarchy has been rerranged. For example, dialog%
-   is no longer a subclass of panel%, which is itself no longer
-   a subclass of canvas%.
+   The class hierarchy has been rerranged. For example, dialog% is no
+   longer a subclass of panel%, which is itself no longer a subclass
+   of canvas%.
 
  * Interfaces are widely used in the toolbox. The old toolbox had
-   "classes" like wx:window% that could not be instantiated. The
-   new toolbox has a window<%> interface ("<%>" is the conventional
-   suffix for interfaces), and all buit-in classes can be
-   instantiated.
+   "classes" like wx:window% that could not be instantiated. The new
+   toolbox has a window<%> interface ("<%>" is the conventional suffix
+   for interfaces), and all buit-in classes can be instantiated.
 
  * Instead of null, #f is used for the `no appropriate value' value,
-   such as the parent argument for a frame that doesn't have a
-   parent window, or the result for get-label when the menu doesn't
-   have a label.
+   such as the parent argument for a frame that doesn't have a parent
+   window, or the result for get-label when the menu doesn't have a
+   label.
 
  * There are hardly any wx:const-... values. Instead, methods that
    used to take a single (numerical) wx:const- flag now take a symbol,
