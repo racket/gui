@@ -9,7 +9,6 @@
  
   (provide color-prefs@)
   
-  (define sc-color-syntax-interactively (string-constant color-syntax-interactively))
   (define sc-choose-color (string-constant syntax-coloring-choose-color))
   
   (define color-prefs@
