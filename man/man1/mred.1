@@ -1,5 +1,5 @@
 \" dummy line
-.TH MRED 1 "December 2002"
+.TH MRED 1 "June 2003"
 .UC 4
 .SH NAME
 mred \- The PLT Graphical Scheme implementation
@@ -203,8 +203,9 @@ to
 .B \-C
 .TP
 .B \--main
-Call `main' with a list of argument strings,  but only if
-there have been no uncaught exceptions from previous file loads or evaluations.
+Call `main' with a list of argument strings, where the first string is
+the name of the file most recently loaded from the command line, and
+the rest of the list contains leftover command-line arguments.
 .PP
 
 .SH INITIALIZATION OPTIONS
@@ -322,11 +323,11 @@ If the executable name has the form scheme-\|\c
 -qAerC '(require (lib "init.ss" "script-lang" "\|\c
 .I dialect\|\c
 "))'
-In addition, the first command-line argument is duplicated, so that it
-serves as both the name of a file and  the first argument to that file;
-the file should define
+The first actual command-line argument thus serves as the name of a file
+to load. The file should define
 .BR main ,
-which is called with the arguments in a list.
+which is called with the command-line arguments---starting with the
+loaded file name---as a list of immutable strings.
 
 .SH FILES
 The file "~/.mredrc" is loaded before any provided
@@ -388,9 +389,9 @@ or by e-mail to
 bugs@plt-scheme.org (discouraged)
 .SH AUTHOR
 .I MrEd
-was implemented by Matthew Flatt (mflatt@cs.utah.edu),
-Robert Bruce Findler (robby@cs.rice.edu), and
-John Clements (clements@ccs.neu.edu), based on
+was implemented by Matthew Flatt (mflatt@plt-scheme.org),
+Robert Bruce Findler (robby@plt-scheme.org), and
+John Clements (clements@plt-scheme.org), based on
 MzScheme.
 .SH SEE ALSO
 .BR help-desk(1),
