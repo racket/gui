@@ -20,6 +20,11 @@
       (define blue (make-object brush% "BLUE" 'solid))
       (define black-xor (make-object brush% "BLACK" 'xor))
       (define arrow-cursor (make-object cursor% 'arrow))
+      
+      (define up-bitmap (make-object bitmap% (build-path (collection-path "icons") "turn-up.gif")))
+      (define down-bitmap (make-object bitmap% (build-path (collection-path "icons") "turn-down.gif")))
+      (define up-click-bitmap (make-object bitmap% (build-path (collection-path "icons") "turn-up-click.gif")))
+      (define down-click-bitmap (make-object bitmap% (build-path (collection-path "icons") "turn-down-click.gif")))
 
       ;; Hack for implementing auto-wrapping items:
       (define arrow-size 0)
@@ -33,10 +38,8 @@
 	       (rename [super-get-extent get-extent])
 	       (private-field 
 		 [size-calculated? #f]
-		 [size 10]
+		 [size (max (send up-click-bitmap get-width) (send up-click-bitmap get-height))]
 		 [width-fraction 1/2]
-		 [right-points #f]
-		 [down-points #f]
 		 [on? #f]
 		 [click-callback callback]
 		 [clicked? #f])
@@ -44,24 +47,12 @@
 		 [set-sizes
 		  (lambda (dc)
 		    (let* ([s (get-style)]
-			   [h (send s get-text-height dc)]
+                           [h (send s get-text-height dc)]
 			   [d (send s get-text-descent dc)]
 			   [a (send s get-text-space dc)])
 		      (set! size (- h d a))
 		      (set! size-calculated? #t)
-		      (set! arrow-size (+ size 2))
-		      (let* ([voffset (floor (/ d 2))]
-			     [s (floor (- h d a))]
-			     [sz (if (even? s) s (sub1 s))]
-			     [offset (ceiling (* (/ (- 1 width-fraction) 2) sz))]
-			     [width (floor (* width-fraction sz))])
-			(set! right-points (list (make-object point% offset voffset)
-						 (make-object point% offset (+ voffset sz))
-						 (make-object point% (+ offset width) (+ voffset (quotient sz 2)))))
-			(set! down-points 
-			      (list (make-object point% 0 (+ voffset offset))
-				    (make-object point% sz (+ voffset offset))
-				    (make-object point% (quotient sz 2) (+ width offset voffset)))))))]
+		      (set! arrow-size (+ size 2))))]
 		 [get-width (lambda () (+ 2 size))]
 		 [get-height (lambda () (+ 2 size))]
 		 [update
@@ -82,16 +73,14 @@
 				       (get-width)))]
 		 [draw (lambda (dc x y left top right bottom dx dy draw-caret)
 			 (unless size-calculated? (set-sizes dc))
-			 (let ([b (send dc get-brush)])
-			   (send dc set-brush (if clicked? blue red))
-			   (let ([points (if on? down-points right-points)])
-			     (send dc draw-polygon points x y)
-			     (send dc draw-line 
-				   (+ x (send (car points) get-x))
-				   (+ y (send (car points) get-y))
-				   (+ x (send (cadr points) get-x))
-				   (+ y (send (cadr points) get-y))))
-			   (send dc set-brush b)))]
+			 (let* ([bitmap (if clicked?
+                                            (if on? down-click-bitmap up-click-bitmap)
+                                            (if on? down-bitmap up-bitmap))]
+                                [bw (send bitmap get-width)]
+                                [bh (send bitmap get-height)])
+                           (send dc draw-bitmap bitmap 
+                                 (+ x (- (/ size 2) (/ bw 2))) 
+                                 (+ y (- (/ size 2) (/ bh 2))))))]
 		 [size-cache-invalid (lambda () (set! size-calculated? #f))]
 		 [on-event
 		  (lambda (dc x y mediax mediay event)
