@@ -49,6 +49,7 @@
 			   20 'decorative 
 			   'normal 'bold
 			   #f))
+(define ($ font) (or font normal-control-font))
 
 (define (make-h&s cp f)
   (make-object button% "Hide and Show" cp
@@ -346,18 +347,12 @@
 (define nruter-bmp
   (make-object bitmap% (local-path "nruter.xbm") 'xbm))
 
-(define position-via-style? #f)
 (define (add-label-direction label-h? l)
-  (if (and position-via-style? (not label-h?))
+  (if (not label-h?)
       (cons 'vertical-label l)
       l))
 
 (define (make-ctls ip cp lp add-testers ep radio-h? label-h? null-label? stretchy? alt-inits? font)
-  
-  (define :::dummy:::
-    (when (and (not label-h?)
-	       (not position-via-style?))
-      (send ip set-label-position 'vertical)))
   
   (define-values (l il)
     (let ([p (make-object horizontal-panel% ip)])
@@ -365,8 +360,8 @@
       (send p stretchable-height stretchy?)
       
       (let ()
-	(define l (make-object (trace-mixin message%) "Messag&\uE9" p null font)) ; \uE9 is e with '
-	(define il (make-object (trace-mixin message%) return-bmp p null font))
+	(define l (make-object (trace-mixin message%) "Messag&\uE9" p null ($ font))) ; \uE9 is e with '
+	(define il (make-object (trace-mixin message%) return-bmp p null ($ font)))
 	
 	(add-testers "Message" l)
 	(add-change-label "Message" l lp #f OTHER-LABEL)
@@ -382,9 +377,9 @@
 			   (send b enable #f)
 			   (sleep/yield 5)
 			   (send b enable #t))
-			 null font))
+			 null ($ font)))
   
-  (define ib (make-object (trace-mixin button%) bb-bmp ip void null font))
+  (define ib (make-object (trace-mixin button%) bb-bmp ip void null ($ font)))
   
   ; (define ib2 (make-object button% return-bmp ip void))
   
@@ -394,11 +389,11 @@
 			  ip void
 			  (add-label-direction label-h? '(single))
 			  (if alt-inits? 2 #f)
-			  font font))
+			  (or font view-control-font) ($ font)))
   
-  (define cb (make-object (trace-mixin check-box%) "C&h\u00E9ck" ip void null alt-inits? font)) ; \uE9 is e with '
+  (define cb (make-object (trace-mixin check-box%) "C&h\u00E9ck" ip void null alt-inits? ($ font))) ; \uE9 is e with '
   
-  (define icb (make-object (trace-mixin check-box%) mred-bmp ip void null alt-inits? font))
+  (define icb (make-object (trace-mixin check-box%) mred-bmp ip void null alt-inits? ($ font)))
   
   (define rb (make-object (trace-mixin radio-box%)
 			  (if null-label? #f "R&ad\uEDo") ; \uED is i with '
@@ -410,7 +405,7 @@
 			       '(horizontal)
 			       '(vertical)))
 			  (if alt-inits? 2 0)
-			  font))
+			  ($ font)))
   
   (define irb (make-object (trace-mixin radio-box%)
 			   (if null-label? #f "Image Ra&dio")
@@ -422,7 +417,7 @@
 				 '(horizontal)
 				 '(vertical)))
 			  (if alt-inits? 1 0)
-			  font))
+			  ($ font)))
   
   (define ch (make-object (trace-mixin choice%)
 			  (if null-label? #f "Ch&o\u00EDce") ; \uED is i with '
@@ -430,14 +425,14 @@
 			  ip void
 			  (add-label-direction label-h? null)
 			  (if alt-inits? 3 0)
-			  font))
+			  ($ font)))
   
   (define txt (make-object (trace-mixin text-field%)
 			   (if null-label? #f "T\uE9&xt") ; \uE9 is e with '
 			   ip void
 			   "initial & starting"
 			   (add-label-direction label-h? '(single))
-			   font))
+			   ($ font)))
   
   (set! my-txt txt)
   (set! my-lb lb)
@@ -578,8 +573,8 @@
   
   (define tp 
     (if #f
-	(make-object group-box-panel% "Sub" fp null font)
-	(make-object tab-panel% '("Sub" "Panel") fp void null font)))
+	(make-object group-box-panel% "Sub" fp null (or font small-control-font))
+	(make-object tab-panel% '("Sub" "Panel") fp void '(no-border) ($ font))))
 
   (when initially-disabled?
     (send tp enable #f))
@@ -645,13 +640,9 @@
   (when prev-frame
     (add-disable "Previous Tester Frame" prev-frame ep2))
   
-  (when (and (not label-h?)
-	     (not position-via-style?))
-    (send ip2 set-label-position 'vertical))
-
   (let ()
     (define co
-      (make-object combo-field% "Greet:" '("Hola" "Ni Hao") ip2 void "hello" null font))
+      (make-object combo-field% "Greet:" '("Hola" "Ni Hao") ip2 void "hello" null ($ font)))
 
     (define sh (make-object slider% 
 			    (if null-label? #f "H S&lid\uE9r") 0 10 ip2
@@ -661,7 +652,7 @@
 			    (add-label-direction 
 			     label-h? 
 			     (if plain-slider? '(horizontal plain) '(horizontal)))
-			    font))
+			    ($ font)))
     
     (define sv (make-object slider% 
 			    (if null-label? #f "V Sl&id\uE9r") 0 10 ip2 
@@ -671,21 +662,21 @@
 			    (add-label-direction 
 			     label-h? 
 			     (if plain-slider? '(vertical plain) '(vertical)))
-			    font))
+			    ($ font)))
     
     (define gh (make-object gauge% 
 			    (if null-label? #f "H G&aug\uE9") 100 ip2
 			    (add-label-direction 
 			     label-h? 
 			     '(horizontal))
-			    font))
+			    ($ font)))
     
     (define gv (make-object gauge% 
 			    (if null-label? #f "V Ga&ug\uE9") 100 ip2
 			    (add-label-direction 
 			     label-h? 
 			     '(vertical))
-			    font))
+			    ($ font)))
     
     (define txt (make-object text-field% 
 			     (if null-label? #f "T&ext \u7238") ; \u7238 is Chinese "father"
@@ -694,16 +685,16 @@
 			     (add-label-direction 
 			      label-h? 
 			      '(multiple))
-			     font))
+			     ($ font)))
 
     (define tab (make-object tab-panel% 
 			     '("Appl\uE9" "B&anana") ip2 void
 			     null
-			     font))
+			     ($ font)))
 
     (define grp (make-object group-box-panel% 
 			     "Group\uE9" ip2
-			     null font))
+			     null (or font small-control-font)))
 
     (make-object button% "OK" tab void)
     (make-object button% "Cancel" grp void)
@@ -1099,7 +1090,6 @@
   (define f (make-frame frame% "Panel Tests"))
   (define h (make-object horizontal-panel% f))
   (define kind (begin
-		 (send h set-label-position 'vertical)
 		 (send h set-alignment 'center 'top)
 		 (make-object radio-box%
 			      "Kind"
@@ -1642,7 +1632,6 @@
   (define p (make-object vertical-panel% f))
   (define t1 (make-object text-field% #f p (handler (lambda () t1)) "This should just fit!" style))
   (define t2 (make-object text-field% "Another" p (handler (lambda () t2)) "This too!" style))
-  (define junk (send p set-label-position 'vertical))
   (define t3 (make-object text-field% "Catch Returns" p (handler (lambda () t3)) "And, yes, this!"
 			  (cons 'hscroll style)))
   (send t1 stretchable-width #f)
@@ -2088,9 +2077,6 @@
   (make-object check-box% "Use Dialogs" clockp
 	       (lambda (c e)
 		 (set! use-dialogs? (send c get-value))))
-  (make-object check-box% "Position via Style" clockp
-	       (lambda (c e)
-		 (set! position-via-style? (send c get-value))))
   (make-object check-box% "Metal" clockp
 	       (lambda (c e)
 		 (set! use-metal? (send c get-value))))
@@ -2134,9 +2120,6 @@
 (define mp (make-object vertical-panel% ap '(border)))
 (define mp1 (make-object horizontal-panel% mp))
 (define mp2 (make-object horizontal-pane% mp))
-
-(send bp1 set-label-position 'vertical)
-(send mp1 set-label-position 'vertical)
 
 (define pp (make-object horizontal-pane% ap))
 (send bp stretchable-height #f)
@@ -2278,10 +2261,10 @@
 		      (positive? (send label-h-radio get-selection))
 		      (positive? (send label-null-radio get-selection))
 		      (positive? (send stretchy-radio get-selection))
-		      (list-ref (list normal-control-font
+		      (list-ref (list #f
 				      small-control-font
 				      tiny-control-font
-				      (make-object font% 20 'system))
+				      special-font)
 				(send font-radio get-selection))
 		      (positive? (send enabled-radio get-selection))
 		      (positive? (send selection-radio get-selection))))))
