@@ -31,8 +31,11 @@
     (define-signature framework:menu^
     (can-restore<%>
      can-restore-mixin
+     can-restore-underscore<%>
+     can-restore-underscore-mixin
      can-restore-menu-item%
-     can-restore-checkable-menu-item%))
+     can-restore-checkable-menu-item%
+     can-restore-underscore-menu%))
 
   (define-signature framework:version^
     (add-spec

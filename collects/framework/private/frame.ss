@@ -1036,7 +1036,7 @@
 
 	  (rename [super-get-editor<%> get-editor<%>])
 	  (define/override (get-editor<%>)
-	    (interface ((super-get-editor<%>) text:delegate<%>)))
+            text:delegate<%>)
 
           (rename [super-get-editor% get-editor%])
           (define/override (get-editor%)

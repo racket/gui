@@ -59,7 +59,7 @@
                ,(an-item->item-name item)
                (and (,create-menu-item-name)
                     ,(if (a-submenu-item? item)
-                         `(instantiate menu% ()
+                         `(instantiate (get-menu%) ()
                            (label (,(an-item->string-name item)))
                            (parent ,(menu-item-menu-name item))
                            (help-string (,(an-item->help-string-name item)))
@@ -149,20 +149,22 @@
        `(define standard-menus-mixin
           (mixin (basic<%>) (standard-menus<%>)
             (inherit on-menu-char on-traverse-char)
+            
             (define remove-prefs-callback
               (preferences:add-callback
                'framework:menu-bindings
                (lambda (p v)
-                 (let ([mb (get-menu-bar)])
-                   (let loop ([menu (get-menu-bar)])
-                     (cond
-                       [(is-a? menu menu-item-container<%>)
-                        (for-each loop (send menu get-items))]
-                       [(is-a? menu selectable-menu-item<%>)
-                        (when (is-a? menu menu:can-restore<%>)
-                          (if v
-                              (send menu restore-keybinding)
-                              (send menu set-shortcut #f)))]))))))
+                 (let loop ([menu (get-menu-bar)])
+                   (when (is-a? menu menu:can-restore<%>)
+                     (if v
+                         (send menu restore-keybinding)
+                         (send menu set-shortcut #f)))
+                   (when (is-a? menu menu:can-restore-underscore<%>)
+                     (if v
+                         (send menu restore-underscores)
+                         (send menu erase-underscores)))
+                   (when (is-a? menu menu-item-container<%>)
+                     (for-each loop (send menu get-items)))))))
             
             (inherit get-menu-bar show can-close? get-edit-target-object)
             ,@(apply append (map (lambda (x)

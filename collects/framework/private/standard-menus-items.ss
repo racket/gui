@@ -130,7 +130,7 @@
            '("@return : void"
              "Removes the preferences callbacks for the menu items"))
           (make-generic-method 
-           'get-menu% '(lambda () menu%)
+           'get-menu% '(lambda () menu:can-restore-underscore-menu%)
            '("The result of this method is used as the class"
              "for creating the result of these methods:"
              "@ilink frame:standard-menus get-file-menu %"
@@ -140,14 +140,14 @@
              "@ilink frame:standard-menus get-help-menu %"
              ". "
              ""
-             "@return : (derived-from \\iscmclass{menu})"
+             "@return : (derived-from \\iscmclass{menu:can-restore-underscore-menu%})"
              ""
              "defaultly returns"
              "@link menu"))
           (make-generic-method 
            'get-menu-item% '(lambda () menu:can-restore-menu-item%)
            '("The result of this method is used as the class for creating"
-             "the menu items in this class (see "
+             "the menu items in this frame (see "
              "@link frame:standard-menus"
              "for a list)."
              ""

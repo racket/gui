@@ -1,8 +1,8 @@
 
 (module splash mzscheme
-  (require (lib "class100.ss")
-           (lib "class.ss")
-	   (lib "mred.ss" "mred"))
+  (require (lib "class.ss")
+           (lib "etc.ss")
+           (lib "mred.ss" "mred"))
   
   (provide get-splash-bitmap get-splash-canvas get-splash-eventspace get-dropped-files 
            start-splash shutdown-splash close-splash)
@@ -84,51 +84,50 @@
        (splash-load-handler old-load f expected))))
   
   (define funny-gauge%
-    (class100 canvas% (parent)
+    (class canvas% 
       (inherit get-dc min-width min-height stretchable-width stretchable-height)
-      (private-field
+      (field
        [funny-value 0]
        [funny-bitmap (make-object bitmap%
                        (build-path (collection-path "icons") "touch.bmp"))]
        [max-value 1])
-      (public
-        [set-range (lambda (r) (set! max-value r))]
-        [set-value
-         (lambda (new-value)
-           (let* ([before-x
-                   (floor (* (send funny-bitmap get-width) (/ funny-value max-value)))]
-                  [after-x
-                   (ceiling (* (send funny-bitmap get-width) (/ new-value max-value)))]
-                  [width (- after-x before-x)])
-             (send (get-dc) draw-line
-                   (+ before-x 2) 0
-                   (+ width 2) 0)
-             (send (get-dc) draw-line
-                   (+ before-x 2) (+ (send funny-bitmap get-height) 4)
-                   (+ width 2) (+ (send funny-bitmap get-height) 4))
-             (send (get-dc) draw-bitmap-section funny-bitmap
-                   (+ 2 before-x) 2
-                   before-x 0
-                   width (send funny-bitmap get-height)))
-           (set! funny-value new-value))])
-      (override
-        [on-paint
-         (lambda ()
-           (let ([dc (get-dc)])
-             (send dc clear)
-             (send dc draw-rectangle 0 0
-                   (+ (send funny-bitmap get-width) 4)
-                   (+ (send funny-bitmap get-height) 4))
-             (send dc draw-bitmap-section funny-bitmap
-                   2 2 0 0
-                   (* (send funny-bitmap get-width) (/ funny-value max-value))
-                   (send funny-bitmap get-height))))])
-      (sequence
-        (super-init parent)
-        (min-width (+ (send funny-bitmap get-width) 4))
-        (min-height (+ (send funny-bitmap get-height) 4))
-        (stretchable-width #f)
-        (stretchable-height #f))))
+
+      [define/public set-range (lambda (r) (set! max-value r))]
+      [define/public set-value
+        (lambda (new-value)
+          (let* ([before-x
+                  (floor (* (send funny-bitmap get-width) (/ funny-value max-value)))]
+                 [after-x
+                  (ceiling (* (send funny-bitmap get-width) (/ new-value max-value)))]
+                 [width (- after-x before-x)])
+            (send (get-dc) draw-line
+                  (+ before-x 2) 0
+                  (+ width 2) 0)
+            (send (get-dc) draw-line
+                  (+ before-x 2) (+ (send funny-bitmap get-height) 4)
+                  (+ width 2) (+ (send funny-bitmap get-height) 4))
+            (send (get-dc) draw-bitmap-section funny-bitmap
+                  (+ 2 before-x) 2
+                  before-x 0
+                  width (send funny-bitmap get-height)))
+          (set! funny-value new-value))]
+
+      [define/override (on-paint)
+        (let ([dc (get-dc)])
+          (send dc clear)
+          (send dc draw-rectangle 0 0
+                (+ (send funny-bitmap get-width) 4)
+                (+ (send funny-bitmap get-height) 4))
+          (send dc draw-bitmap-section funny-bitmap
+                2 2 0 0
+                (* (send funny-bitmap get-width) (/ funny-value max-value))
+                (send funny-bitmap get-height)))]
+
+      (super-instantiate ())
+      (min-width (+ (send funny-bitmap get-width) 4))
+      (min-height (+ (send funny-bitmap get-height) 4))
+      (stretchable-width #f)
+      (stretchable-height #f)))
   
   (define (splash-get-resource name default)
     (let ([b (box 0)])
@@ -165,16 +164,13 @@
       (super-instantiate ())))
   
   (define splash-canvas%
-    (class100 canvas% args
+    (class canvas%
       (inherit get-dc)
-      (override
-        [on-paint
-         (lambda ()
-           (if splash-bitmap
-               (send (get-dc) draw-bitmap splash-bitmap 0 0)
-               (send (get-dc) clear)))])
-      (sequence
-        (apply super-init args))))
+      (define/override (on-paint)
+        (if splash-bitmap
+            (send (get-dc) draw-bitmap splash-bitmap 0 0)
+            (send (get-dc) clear)))
+      (super-instantiate ())))
   
   (define splash-frame
     (parameterize ([current-eventspace splash-eventspace])
