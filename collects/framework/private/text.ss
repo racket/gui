@@ -844,6 +844,7 @@ WARNING: printf is rebound in the body of the unit to always
           has-between?
           submit-to-port?
           on-submit
+          send-eof-to-in-port
           get-in-port
           get-out-port
           get-err-port
@@ -900,6 +901,8 @@ WARNING: printf is rebound in the body of the unit to always
           (define/public (get-insertion-point) insertion-point)
           (define/public (get-unread-start-point) unread-start-point)
           (define/public (set-unread-start-point u) (set! unread-start-point u))
+          
+          (define/public (send-eof-to-in-port) (channel-put read-chan eof))
           
           ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
           ;;
@@ -973,11 +976,11 @@ WARNING: printf is rebound in the body of the unit to always
           ;; the waitable inside is waited on to indicate the flush has occurred
           (define flush-chan (make-channel))
           
-          ;; write-chan : (channel bytes)
+          ;; write-chan : (channel (cons bytes style))
           ;; send output to the editor
           (define write-chan (make-channel))
           
-          ;; read-chan : (channel (union byte snip))
+          ;; read-chan : (channel (union byte snip eof))
           ;; send input from the editor
           (define read-chan (make-channel))
           
@@ -999,7 +1002,6 @@ WARNING: printf is rebound in the body of the unit to always
           ;; do-insertion : (listof (cons (union string snip) style-delta)) -> void
           ;; thread: eventspace main thread
           (define/private (do-insertion txts)
-            (printf "do-insertion ~s\n" txts)
             (let ([locked? (is-locked?)])
               (begin-edit-sequence)
               (lock #f)
@@ -1089,7 +1091,6 @@ WARNING: printf is rebound in the body of the unit to always
                      flush-chan
                      (lambda (return-waitable)
                        (let-values ([(viable-bytes remaining-queue) (split-queue converter text-to-insert)])
-                         (printf "viable-bytes.1 ~s\n" viable-bytes)
                          (queue-insertion viable-bytes return-waitable)
                          (loop remaining-queue))))
                     (make-wrapped-waitable
@@ -1101,7 +1102,6 @@ WARNING: printf is rebound in the body of the unit to always
                          [else
                           (let ([chan (make-channel)])
                             (let-values ([(viable-bytes remaining-queue) (split-queue converter text-to-insert)])
-                              (printf "viable-bytes.2 ~s\n" viable-bytes)
                               (queue-insertion viable-bytes (make-channel-put-waitable chan (void)))
                               (channel-get chan)
                               (loop remaining-queue)))])))))))))
@@ -1131,7 +1131,7 @@ WARNING: printf is rebound in the body of the unit to always
             ;;  in any thread (even concurrently)
             ;;
             (define op (current-output-port))
-            (define (read-string-proc bytes)
+            (define (read-bytes-proc bytes)
               ;; this shouldn't block. it should return a waitable and 
               ;; let the system block and then re-call into this thing. 
               ;; yuck.
@@ -1147,6 +1147,7 @@ WARNING: printf is rebound in the body of the unit to always
                   [(byte? s/c)
                    (bytes-set! bytes 0 s/c)
                    1]
+                  [(eof-object? s/c) s/c]
                   [else
                    (lambda (src line column position)
                      (values s/c 1))])))
@@ -1154,11 +1155,11 @@ WARNING: printf is rebound in the body of the unit to always
             (define (in-close-proc)
               (void))
             
-            (define (make-write-string-proc style)
+            (define (make-write-bytes-proc style)
               (lambda (to-write start end block/buffer?)
                 (cond
                   [(eq? (current-thread) (eventspace-handler-thread eventspace))
-                   (error 'write-string-proc "cannot write to port on eventspace main thread")]
+                   (error 'write-bytes-proc "cannot write to port on eventspace main thread")]
                   [else
                    (channel-put write-chan (cons (subbytes to-write start end) style))])
                 (- end start)))
@@ -1190,19 +1191,19 @@ WARNING: printf is rebound in the body of the unit to always
             (send err-sd set-delta-foreground (make-object color% 255 0 0))
             (send value-sd set-delta-foreground (make-object color% 0 0 175))
             
-            (set! in-port (make-custom-input-port read-string-proc
+            (set! in-port (make-custom-input-port read-bytes-proc
                                                   #f
                                                   in-close-proc))
             (set! out-port (make-custom-output-port #f
-                                                    (make-write-string-proc out-sd)
+                                                    (make-write-bytes-proc out-sd)
                                                     flush-proc
                                                     out-close-proc))
             (set! err-port (make-custom-output-port #f 
-                                                    (make-write-string-proc err-sd)
+                                                    (make-write-bytes-proc err-sd)
                                                     flush-proc
                                                     out-close-proc))
             (set! value-port (make-custom-output-port #f
-                                                      (make-write-string-proc value-sd)
+                                                      (make-write-bytes-proc value-sd)
                                                       flush-proc
                                                       out-close-proc)))
           
@@ -1259,7 +1260,8 @@ WARNING: printf is rebound in the body of the unit to always
                                        (bytes-convert converter the-bytes)]
                                       [(more-bytes more-termination) (bytes-convert-end converter)])
                            (loop rest
-                                 (cons (bytes->string/utf-8 (bytes-append converted-bytes more-bytes))
+                                 (cons (cons (bytes->string/utf-8 (bytes-append converted-bytes more-bytes))
+                                             key)
                                        acc)))))]
                   [else (loop rest
                               (cons front acc))]))))
