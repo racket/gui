@@ -6,6 +6,52 @@
   (let/ec k
     (letrec-values
 	([(no-splash) (lambda () (k void void))]
+	 [(funny?) (zero? (random 1000))]
+	 [(funny-gauge%)
+	  (class canvas% (max-value parent)
+	    (inherit get-dc min-width min-height stretchable-width stretchable-height)
+	    (private
+	      [bitmap
+	       (make-object bitmap%
+		 (build-path (collection-path "icons") "touch.bmp"))]
+	      [value 0])
+	    (public
+	      [set-value
+	       (lambda (new-value)
+		 (let ([before-x
+			(floor (* (send bitmap get-width) (/ value max-value)))]
+		       [after-x
+			(ceiling (* (send bitmap get-width) (/ (- new-value value) max-value)))])
+		   (send (get-dc) draw-line
+			 (+ before-x 2) 0
+			 (+ after-x 2) 0)
+		   (send (get-dc) draw-line
+			 (+ before-x 2) (+ (send bitmap get-height) 4)
+			 (+ after-x 2) (+ (send bitmap get-height) 4))
+		   (send (get-dc) draw-bitmap-section bitmap
+			 (+ 2 before-x) 2
+			 before-x 0
+			 after-x (send bitmap get-height)))
+		 (set! value new-value))])
+	    (override
+	     [on-paint
+	      (lambda ()
+		(let ([dc (get-dc)])
+		  (send dc clear)
+		  (send dc draw-rectangle 0 0
+			(+ (send bitmap get-width) 4)
+			(+ (send bitmap get-height) 4))
+		  (send dc draw-bitmap-section bitmap
+			2 2 0 0
+			(* (send bitmap get-width) (/ value max-value))
+			(send bitmap get-height))))])
+	    (sequence
+	      (super-init parent)
+	      (min-width (+ (send bitmap get-width) 4))
+	      (min-height (+ (send bitmap get-height) 4))
+	      (stretchable-width #f)
+	      (stretchable-height #f)))]
+
 	 [(splash-get-resource)
 	  (lambda (name default)
 	    (let ([b (box 0)])
@@ -88,21 +134,24 @@
 	 [(panel) (make-object vertical-pane% frame)]
 	 [(logo-canvas) (make-object splash-canvas% panel)]
 	 [(h-panel) (make-object horizontal-pane% panel)]
-	 [(gauge) (make-object gauge% #f splash-max-width h-panel '(horizontal))]
+	 [(gauge)
+	  (if funny?
+	      (make-object funny-gauge% splash-max-width h-panel)
+	      (make-object gauge% #f splash-max-width h-panel '(horizontal)))]
 	 [(spacer) (make-object grow-box-spacer-pane% h-panel)]
 	 [(_3) (begin
-		(send frame set-alignment 'center 'center)
-		(send panel stretchable-width #f)
-		(send panel stretchable-height #f)
-		(send h-panel set-alignment 'center 'top)
-		(send logo-canvas min-width (send bitmap get-width))
-		(send logo-canvas min-height (send bitmap get-height))
-		(send logo-canvas stretchable-width #f)
-		(send logo-canvas stretchable-height #f)
-		(send frame center 'both)
-		(send frame show #t)
-		(flush-display) (yield) (sleep)
-		(flush-display) (yield) (sleep))]
+		 (send frame set-alignment 'center 'center)
+		 (send panel stretchable-width #f)
+		 (send panel stretchable-height #f)
+		 (send h-panel set-alignment 'center 'top)
+		 (send logo-canvas min-width (send bitmap get-width))
+		 (send logo-canvas min-height (send bitmap get-height))
+		 (send logo-canvas stretchable-width #f)
+		 (send logo-canvas stretchable-height #f)
+		 (send frame center 'both)
+		 (send frame show #t)
+		 (flush-display) (yield) (sleep)
+		 (flush-display) (yield) (sleep))]
 	 [(inc-splash)
 	  (lambda ()
 	    (set! splash-current-width (+ splash-current-width 1))
