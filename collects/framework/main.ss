@@ -48,7 +48,9 @@
 		 let-struct let-macro let-values let*-values
 		 case when unless match
 		 let-enumerate
-		 class class* class-asi class-asi*
+		 class class* class-asi class-asi* class*/names
+                 class/d class*/d class*/names/d
+                 rec
                  make-object mixin
 		 define-some do opt-lambda send*
 		 local catch shared
