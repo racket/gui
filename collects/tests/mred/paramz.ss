@@ -1,6 +1,5 @@
 
-(when (not (defined? 'test))
-  (load-relative "testing.ss"))
+(load-relative "loadtest.ss")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;                        Parameterization Tests                              ;;

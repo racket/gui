@@ -1,6 +1,8 @@
 
 ;; MrEd automatic testing basic functions and macros
 
+(require (lib "class.ss"))
+
 (define errs null)
 (define test-count 0)
 
@@ -12,18 +14,25 @@
       (set! errs (cons s errs)))))
 
 
-(define-macro st
-  (lambda (val obj method . args)
-    `(test ,val ',method (send ,obj ,method ,@args))))
+(define-syntax st
+  (lambda (stx)
+    (syntax-case stx ()
+      [(_ val obj method . args)
+       (syntax
+	(test val 'method (send obj method . args)))])))
 
-(define-macro stv
-  (lambda args
-    `(st (void) ,@args)))
+(define-syntax stv
+  (lambda (stx)
+    (syntax-case stx ()
+      [(_ . args)
+       (syntax (st (void) . args))])))
 
-(define-macro stvals
-  (lambda (vals obj method . args)
-    `(test ,vals ',method (call-with-values (lambda () (send ,obj ,method ,@args)) list))))
-
+(define-syntax stvals
+  (lambda (stx)
+    (syntax-case stx ()
+      [(_ vals obj method . args)
+       (syntax
+	(test vals 'method (call-with-values (lambda () (send obj method . args)) list)))])))
 
 (define (report-errs)
   (newline)

@@ -1,5 +1,5 @@
-(when (not (defined? 'test))
-  (load-relative "testing.ss"))
+
+(load-relative "loadtest.ss")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;                               DC Tests                                     ;;
@@ -14,7 +14,7 @@
 		     (test '("ok")
 			   `(send <bad-dc> ,m ...)
 			   (regexp-match "ok" (exn-message x))))])
-    (apply (ivar/proc mdc m) args)
+    (send-generic mdc (make-generic (object-interface mdc) m) . args)
     (error 'bad-dc "~a shouldn't succeed" `(send <bad-dc> ,m ...))))
 
 (define (test-all mdc try)
@@ -68,5 +68,5 @@
 
 (send mdc set-bitmap bm)
 (test-all mdc (lambda (m . args)
-		(apply (ivar/proc mdc m) args)))
+		(send-generic mdc (make-generic (object-interface mdc) m) . args)))
 

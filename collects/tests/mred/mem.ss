@@ -1,6 +1,8 @@
 
 ; run with mred -u -- -f mem.ss
 
+(require (lib "class100.ss"))
+
 (define source-dir (current-load-relative-directory))
 
 (define num-times 8)
@@ -27,10 +29,10 @@
   v)
 
 (when subwindows?
-  (global-defined-value 
+  (namespace-variable-binding
    'sub-collect-frame
    (make-object frame% "sub-collect"))
-  (global-defined-value
+  (namespace-variable-binding
    'sub-collect-panel
    (make-object panel% sub-collect-frame)))
 
@@ -88,8 +90,8 @@
 	  (send (remember 
 		 tag
 		 (make-object
-		  (class timer% args
-		    (override [notify void])
+		  (class100 timer% args
+		    (override [notify (lambda () (void))])
 		    (sequence (apply super-init args)))))
 		start 100))
 

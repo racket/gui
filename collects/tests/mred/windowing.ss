@@ -1,6 +1,5 @@
 
-(when (not (defined? 'test))
-  (load-relative "testing.ss"))
+(load-relative "loadtest.ss")
 
 ; These message boxes mustn't survive
 (let ([c (make-custodian)])
@@ -21,7 +20,7 @@
 ;;                           Windowing Tests                                  ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(define-macro FAILS void)
+(define-syntax FAILS (lambda (stx) (syntax (void))))
 
 (define (pause)
   (let ([s (make-semaphore)])
