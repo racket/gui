@@ -565,6 +565,16 @@
 				    (send pens set-style 'solid)
 				    (loop (cdr s) (+ y 8))))))
 
+			    (when (= flevel 2)
+			      (let ([lens '(0 0.25 0.5 0.75 1.0 1.25 1.5 1.75 2.0)])
+				(let loop ([l lens][x 10])
+				  (unless (null? l)
+				    (let ([p (make-object pen% "BLACK" (car l) 'solid)])
+				      (send dc set-pen p)
+				      (send dc draw-line x 300 (+ x 19) 300)
+				      (send dc set-pen pent)
+				      (loop (cdr l) (+ x 20)))))))
+
 			    (when (and last? (not (or ps? (eq? dc can-dc)))
 				       (send mem-dc get-bitmap))
 			      (send can-dc draw-bitmap (send mem-dc get-bitmap) 0 0 'opaque)))

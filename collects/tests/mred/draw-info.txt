@@ -121,6 +121,14 @@ The drawing area should have the following features:
            Short Dash line
            Dot Dash line
 
+   Long line: On the screen, the line should be 1 pixel wide, except
+       that the last 1/9th should be two pixels wide. In postscript,
+       the line should consist of 9 segments, growing in width from 
+       0.0 to 2.0 (inclusive) in 0.25 increments. When the image
+       is scaled by a factor of 2, the first 1/9th on the screen
+       should still be 1 pixel, the next 7/9ths should be 2 pixels,
+       and the last 1/9 should be 4 pixels wide.
+
  The drawings under 2x2 should be reasonable extensions of the
  0x0 and 1x1 pictures for a double-wide pen.
 
