@@ -91,7 +91,7 @@
 
 (define mask (new choice%
 		  [label "Alpha"]
-		  [choices '("Auto" "Mask" "Alpha")]
+		  [choices '("Auto" "Mask")]
 		  [parent f]
 		  [callback (lambda (c e) (refresh))]))
 (define bg (new choice%
@@ -131,8 +131,7 @@
 (define (get-mask-mode)
   (case (send mask get-selection)
     [(0) 'unknown]
-    [(1) 'unknown/mask]
-    [(2) 'unknown/alpha]))
+    [(1) 'unknown/mask]))
 
 (define get-bg-color
   (let ([white (make-object color% 255 255 255)]
