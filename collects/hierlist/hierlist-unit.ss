@@ -2,7 +2,7 @@
 (module hierlist-unit mzscheme
   (import (lib "unitsig.ss")
 	  (lib "class.ss")
-	  (lib "sig.ss" "mred")
+	  (lib "mred-sig.ss" "mred")
 	  "hierlist-sig.ss")
 
   (import (lib "list.ss"))
