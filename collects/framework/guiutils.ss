@@ -177,41 +177,48 @@
 	(send dialog show #t)
 	result)]))
 
-  ;; better to treat all snips uniformly -- always processes text
-  ;; snips, etc. in certain way, rather than just the top-level ones.
-  ;; process sexp-snip<%> returned text%s as if top-level.
   (define read-snips/chars-from-text
-    (case-lambda
-     [(text) (read-snips/chars-from-text text 0)]
-     [(text start) (read-snips/chars-from-text text start (send text last-position))]
-     [(text start end)
-      (define pos-box (box 0))
-      (define (get-next)
-	(let loop ([snip (send text find-snip start 'after-or-none pos-box)])
-	  (cond
-	   [(not snip)
-	    (set! get-next (lambda () eof))
-	    eof]
-	   [(not (<= (+ (unbox pos-box) (send snip get-count)) end))
-	    (set! get-next (lambda () eof))
-	    eof]
-	   [(is-a? snip string-snip%)
-	    (let ([str (send snip get-text 0 (send snip get-count))])
-	      (let string-loop ([n 0])
-		(cond
-		 [(< n (string-length str))
-		  (set! get-next (lambda () (string-loop (+ n 1))))
-		  (string-ref str n)]
-		 [else
-		  (loop (send snip next))])))]
-	   [else
-	    (set! get-next (lambda () (loop (send snip next))))
-	    snip])))
-      (let ([read-snips/chars-from-text-thunk
-	     (lambda ()
-	       (get-next))])
-	read-snips/chars-from-text-thunk)]))
+    (letrec ([get-snips
+	      (lambda (text start end)
+		(let* ([pos-box (box 0)]
+		       [snip (send text find-snip start 'after-or-none pos-box)])
+		  (cond
+		   [(not snip) null]
+		   [(> (+ (unbox pos-box) (send snip get-count)) end) null]
+		   [else (cons snip (get-snips text (+ start (send snip get-count)) end))])))])
+      (case-lambda
+       [(text) (read-snips/chars-from-text text 0)]
+       [(text start) (read-snips/chars-from-text text start (send text last-position))]
+       [(text start end)
+	(define pos-box (box 0))
+	(define (get-next)
+	  (send text split-snip start)
+	  (send text split-snip end)
 
+	  ;; must get all of the snips out of the buffer before reading -- they may change.
+	  (let loop ([snips (get-snips text start end)])
+
+	    (cond
+	     [(null? snips)
+	      (set! get-next (lambda () eof))
+	      eof]
+	     [(is-a? (car snips) string-snip%)
+	      (let ([str (send (car snips) get-text 0 (send (car snips) get-count))])
+		(let string-loop ([n 0])
+		  (cond
+		   [(< n (string-length str))
+		    (set! get-next (lambda () (string-loop (+ n 1))))
+		    (string-ref str n)]
+		   [else
+		    (loop (cdr snips))])))]
+	     [else
+	      (set! get-next (lambda () (loop (cdr snips))))
+	      (car snips)])))
+	(let ([read-snips/chars-from-text-thunk
+	       (lambda ()
+		 (get-next))])
+	  read-snips/chars-from-text-thunk)])))
+  
   (define open-input-buffer
     (lambda (buffer)
       (let ([pos 0])
