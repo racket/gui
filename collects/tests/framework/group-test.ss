@@ -87,7 +87,7 @@
 (test
  'windows-menu
  (lambda (x)
-   (equal? x (list "Bring frame to front..." #f "test")))
+   (equal? x (list "Bring Frame to Front..." #f "test")))
  (lambda ()
    (send-sexp-to-mred
     '(let ([frame (make-object frame:basic% "test")])
@@ -103,7 +103,7 @@
 (test
  'windows-menu-unshown
  (lambda (x)
-   (equal? x (list "Bring frame to front..." #f "test")))
+   (equal? x (list "Bring Frame to Front..." #f "test")))
  (lambda ()
    (send-sexp-to-mred
     '(let ([frame1 (make-object frame:basic% "test")]
@@ -120,7 +120,7 @@
 (test
  'windows-menu-sorted1
  (lambda (x)
-   (equal? x (list "Bring frame to front..." #f "aaa" "bbb")))
+   (equal? x (list "Bring Frame to Front..." #f "aaa" "bbb")))
  (lambda ()
    (send-sexp-to-mred
     '(let ([frame (make-object frame:basic% "aaa")])
@@ -141,7 +141,7 @@
 (test
  'windows-menu-sorted2
  (lambda (x)
-   (equal? x (list "Bring frame to front..." #f "aaa" "bbb")))
+   (equal? x (list "Bring Frame to Front..." #f "aaa" "bbb")))
  (lambda ()
    (send-sexp-to-mred
     '(let ([frame (make-object frame:basic% "bbb")])

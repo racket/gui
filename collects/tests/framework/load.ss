@@ -24,17 +24,13 @@
 
  
   (test/load "specs.ss" '(contract (lambda (x) #t) 1 'pos 'neg))
-  
-  (test/load "gui-utils-unit.ss" 'framework:gui-utils@)
   (test/load "gui-utils.ss" 'gui-utils:next-untitled-name)
-
-  (test/load "test-unit.ss" 'framework:test@)
   (test/load "test.ss" 'test:run-interval)
-
   (test/load "macro.ss" '(mixin () () ()))
-
-  (test/load "framework-unit.ss" '(list framework@ frameworkc@))
-  
+  (test/load "splash.ss" 'start-splash)
+  (test/load "framework-sig.ss" '(begin (eval '(require (lib "unitsig.ss")))
+                                        (eval '(define-signature dummy-signature^ framework^))))
+  (test/load "framework-unit.ss" 'framework@)
   (test/load "framework.ss" '(list test:button-push
 				   gui-utils:next-untitled-name
 				   frame:basic-mixin

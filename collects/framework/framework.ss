@@ -239,14 +239,14 @@
     "The second case of the case-lambda "
     "returns the current value of the parameter.")
    (exit:insert-on-callback
-    ((-> void?) . -> . void?)
+    ((-> void?) . -> . (-> void?))
     (callback)
     "Adds a callback to be called when exiting. This callback must not"
     "fail. If a callback should stop an exit from happening, use"
     "@flink exit:insert-can?-callback %"
     ".")
    (exit:insert-can?-callback
-    ((-> boolean?) . -> . void?)
+    ((-> boolean?) . -> . (-> void?))
     (callback)
     "Use this function to add a callback that determines if an attempted"
     "exit can proceed. This callback should not clean up any state, since"
@@ -273,8 +273,11 @@
     "@flink exit:insert-on-callback"
     "for more information.")
    (exit:exit
-    (boolean? . -> . void?)
-    (skip-user-query?)
+    (opt->
+     ()
+     (boolean?)
+     any?)
+    (() ((skip-user-query? #f)))
     "\\rawscm{exit:exit} performs three actions:"
     "\\begin{itemize}"
     "\\item invokes the exit-callbacks, with "
@@ -1060,10 +1063,10 @@
    (scheme-paren:backward-containing-sexp
     (opt->
      ((is-a?/c text%)
-      (and/f exact? integer?)
-      (and/f exact? integer?))
+      (and/f integer? exact?)
+      (and/f integer? exact?))
      ((union false? (is-a?/c match-cache:%)))
-     (and/f exact? integer?))
+     (union false? (and/f integer? exact?)))
     ((text start end)
      ((cache #f)))
     "Returns the beginning of the interior of the (non-atomic) S-expression"
@@ -1072,10 +1075,10 @@
    (scheme-paren:backward-match
     (opt->
      ((is-a?/c text%)
-      (and/f exact? integer?)
-      (and/f exact? integer?))
+      (and/f integer? exact?)
+      (and/f integer? exact?))
      ((union false? (is-a?/c match-cache:%)))
-     (and/f exact? integer?))
+     (union false? (and/f integer? exact?)))
     ((text start end)
      ((cache #f)))
     "Specializes "
@@ -1083,7 +1086,7 @@
     "to Scheme.")
 
    (scheme-paren:balanced?
-    ((is-a?/c text%) (and/f exact? integer?) (and/f exact? integer?) . -> . boolean?)
+    ((is-a?/c text%) (and/f integer? exact?) (and/f integer? exact?) . -> . boolean?)
     (text start end)
     "Specializes "
     "@flink paren:balanced?"
@@ -1092,10 +1095,10 @@
    (scheme-paren:forward-match
     (opt->
      ((is-a?/c text%)
-      (and/f exact? integer?)
-      (and/f exact? integer?))
+      (and/f integer? exact?)
+      (and/f integer? exact?))
      ((union false? (is-a?/c match-cache:%)))
-     (and/f exact? integer?))
+     (union false? (and/f integer? exact?)))
     ((text start end)
      ((cache #f)))
     "Specializes"
@@ -1162,14 +1165,14 @@
     (paren:backward-match
      (opt->
       ((is-a?/c text%)
-       (and/f exact? integer?)
-       (and/f exact? integer?)
+       (and/f integer? exact?)
+       (and/f integer? exact?)
        (listof (cons/p string? string?))
        (listof (cons/p string? string?))
        (listof string?))
       (boolean?
        (union false? (is-a?/c match-cache:%)))
-      (union false? (and/f exact? integer?)))
+      (union false? (and/f integer? exact?)))
      ((text start end parens quotes comments)
       ((containing? #f) (cache #f)))
      "Returns the position in \\var{text} that ``opens'' the text ending at "
@@ -1212,8 +1215,8 @@
 
     (paren:balanced?
      ((is-a?/c text%)
-      (and/f exact? integer?)
-      (and/f exact? integer?)
+      (and/f integer? exact?)
+      (and/f integer? exact?)
       (listof (cons/p string? string?))
       (listof (cons/p string? string?))
       (listof string?)
@@ -1233,13 +1236,13 @@
     (paren:forward-match
      (opt->
       ((is-a?/c text%)
-       (and/f exact? integer?)
-       (and/f exact? integer?)
+       (and/f integer? exact?)
+       (and/f integer? exact?)
        (listof (cons/p string? string?))
        (listof (cons/p string? string?))
        (listof string?))
       ((union false? (is-a?/c match-cache:%)))
-      (union false? (and/f exact? integer?)))
+      (union false? (and/f integer? exact?)))
      ((text start end parens quotes comments)
       ((cache #f)))
      "This function returns the position in \\var{text} that ``closes'' the"
@@ -1270,9 +1273,9 @@
      "")
 
     (paren:skip-whitespace
-     ((is-a?/c text%) (and/f exact? integer?) (symbols 'forward 'backward)
+     ((is-a?/c text%) (and/f integer? exact?) (symbols 'forward 'backward)
       . -> .
-      (and/f exact? integer?))
+      (and/f integer? exact?))
      (text pos dir)
      "If \\var{dir} is \\rawscm{'forward}, this returns the position of the first"
      "non-whitespace character in \\var{text} after \\var{pos}. If \\var{dir}"
