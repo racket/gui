@@ -278,8 +278,7 @@ Matthew
        (scroll-line-location [(pos)] write-lock)
        (num-scroll-lines [()] write-lock)
        (find-scroll-line [(location)] write-lock)
-       (style-has-changed [(style)] write-lock)
-       ]
+       (style-has-changed [(style)] write-lock)]
       
       [flow-lock
        (and (locked-for-flow?)
@@ -294,9 +293,7 @@ Matthew
        (scroll-line-location [(pos)] flow-lock)
        (num-scroll-lines [()] flow-lock)
        (find-scroll-line [(location)] flow-lock)
-       (style-has-changed [(style)] flow-lock)
-       
-       ]
+       (style-has-changed [(style)] flow-lock)]
 
       [read-lock
        (locked-for-read?)])
