@@ -575,7 +575,9 @@
 		  (send (get-dc) set-origin 0 0)
 
 		  (let ([dc (if ps?
-				(let ([dc (make-object post-script-dc%)])
+				(let ([dc (if (eq? ps? 'print)
+					      (make-object printer-dc%)
+					      (make-object post-script-dc%))])
 				  (and (send dc ok?) dc))
 				(if (and use-bitmap?)
 				    (begin
@@ -701,9 +703,12 @@
 		   (set! use-bad? (< 2 (send self get-selection)))
 		   (send canvas on-paint))
 		 '(horizontal))
-    (make-object button% "PostScript" hp
+    (make-object button% "PS" hp
 		 (lambda (self event)
 		   (send canvas on-paint #t)))
+    (make-object button% "Print" hp
+		 (lambda (self event)
+		   (send canvas on-paint 'print)))
     (make-object check-box% "*2" hp
 		 (lambda (self event)
 		   (send canvas set-scale (if (send self get-value) 2 1))))

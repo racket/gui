@@ -2,6 +2,21 @@
 (when (not (defined? 'test))
   (load-relative "testing.ss"))
 
+; These message boxes mustn't survive
+(let ([c (make-custodian)])
+  (parameterize ([current-custodian c])
+    (parameterize ([current-eventspace (make-eventspace)])
+      (queue-callback
+       (lambda ()
+	 (queue-callback
+	  (lambda ()
+	    (sleep/yield 0.1)
+	    (queue-callback
+	     (lambda ()
+	       (custodian-shutdown-all c)))
+	    (message-box "w" "q")))
+	 (message-box "x" "y"))))))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;                           Windowing Tests                                  ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
