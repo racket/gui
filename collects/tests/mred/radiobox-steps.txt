@@ -19,9 +19,10 @@ Click "Select First", "Select Middle", "Select Last" then
  in all radioboxes each time. (For the two-button box, the
  second one counts as `middle'.)
 
-Click "Select -1" and "Select N". Nothing should happen. Select the
- last button in each box and try "Select -1" again. Nothing
- should happen. Return the selection to the first item in each box.
+Click "Select -1" and "Select N". Nothing should happen (because the
+ appropriate exceptions are caught). Select the last button in each
+ box and try "Select -1" again. Nothing should happen. Return the
+ selection to the first item in each box.
 
 Repeat the two steps for the "Select XXX by Simulate" buttons. In this
  case, "Callback Ok" should be printed three times when any button
