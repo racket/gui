@@ -1274,7 +1274,7 @@
           (super-instantiate ())))
       
       (define delegate<%>
-        (interface (text<%>)
+        (interface (status-line<%> text<%>)
           get-delegated-text
           delegated-text-shown?
           hide-delegated-text
@@ -1289,16 +1289,36 @@
           
           (define/override (on-event evt)
             (super-on-event evt)
-            (when (and delegate-frame
-                       (send evt button-down?))
+            (when delegate-frame
               (let ([text (get-editor)])
                 (when (is-a? text text%)
-                  (let-values ([(editor-x editor-y)
-                                (send text dc-location-to-editor-location 
-                                      (send evt get-x)
-                                      (send evt get-y))])
-                    (send delegate-frame click-in-overview 
-                          (send text find-position editor-x editor-y)))))))
+                  (cond
+                    [(send evt button-down?)
+                     (let-values ([(editor-x editor-y)
+                                   (send text dc-location-to-editor-location 
+                                         (send evt get-x)
+                                         (send evt get-y))])
+                       (send delegate-frame click-in-overview 
+                             (send text find-position editor-x editor-y)))]
+                    [(or (send evt entering?)
+                         (send evt moving?))
+                     (let-values ([(editor-x editor-y)
+                                   (send text dc-location-to-editor-location 
+                                         (send evt get-x)
+                                         (send evt get-y))])
+                       (let* ([b (box #f)]
+                              [pos (send text find-position editor-x editor-y #f b)])
+                         (cond
+                           [(unbox b)
+                            (let* ([para (send text position-paragraph pos)]
+                                   [start-pos (send text paragraph-start-position para)]
+                                   [end-pos (send text paragraph-end-position para)])
+                              (send delegate-frame update-status-line 'plt:delegate
+                                    (send text get-text start-pos end-pos)))]
+                           [else
+                            (send delegate-frame update-status-line 'plt:delegate #f)])))]
+                    [(send evt leaving?)
+                     (send delegate-frame update-status-line 'plt:delegate #f)])))))
           (super-instantiate ())))
       
       (define delegatee-text%
@@ -1412,7 +1432,7 @@
           (set-line-spacing 0)))
       
       (define delegate-mixin
-        (mixin (text<%>) (delegate<%>)
+        (mixin (status-line<%> text<%>) (delegate<%>)
 
           (define/public (get-delegated-text) (get-editor))
 
@@ -1442,12 +1462,15 @@
           (define/public (delegated-text-shown?) 
             shown?)
 
+          (inherit close-status-line open-status-line)
           (define/public (hide-delegated-text)
+            (close-status-line 'plt:delegate)
             (set! shown? #f)
             (send (get-delegated-text) set-delegate #f)
             (send super-root change-children
                   (lambda (l) (list rest-panel))))
           (define/public (show-delegated-text)
+            (open-status-line 'plt:delegate)
             (set! shown? #t)
             (send (get-delegated-text) set-delegate delegatee)
             (send super-root change-children
@@ -1492,6 +1515,7 @@
           (inherit get-editor)
           (if (preferences:get 'framework:show-delegate?)
               (begin
+                (open-status-line 'plt:delegate)
                 (send (get-delegated-text) set-delegate delegatee)
                 (send super-root change-children
                       (lambda (l) (list rest-panel delegate-ec))))
