@@ -43,7 +43,7 @@
 		    (send keymap map-function key func))
 		  (make-meta-prefix-list key))))
 
-    (mred:preferences:set-preference-default 'mred:delete-forward? (not (eq? wx:platform 'windows)))
+    (mred:preferences:set-preference-default 'mred:delete-forward? (not (eq? wx:platform 'unix)))
 
     ; This installs the standard keyboard mapping
     (define setup-global-keymap
@@ -643,8 +643,8 @@
 		(let ([kmap (send edit get-keymap)])
 		  (send kmap call-function
 			(if (mred:preferences:get-preference 'mred:delete-forward?)
-			    "delete-previous-character"
-			    "delete-next-character")
+			    "delete-next-character"
+			    "delete-previous-character")
 			edit event #t)))]
 	     [select-forward-character
 	      (lambda (edit event)
