@@ -30,7 +30,7 @@
 ; maximum reasonable minimum width/height
 (define max-min 10000)
 
-(define o (current-output-port))
+(define err (current-error-port))
 
 (define no-val (gensym)) ; indicates init arg not supplied
 
@@ -359,7 +359,9 @@
 (define (object->position o)
   (let-values ([(x y) (double-boxed 0 0 (lambda (x y) (send o client-to-screen x y)))]
 	       [(w h) (double-boxed 0 0 (lambda (x y) (send o get-client-size x y)))])
-    (list o x y w h)))
+    (if (is-a? o wx-tab-group%)
+	(send o tab-group-position x y)
+	(list o x y w h))))
 
 (define (container->children f except must-focus?)
   (apply
@@ -872,6 +874,12 @@
 			   (send o set-selection s)
 			   (do-command o (make-object wx:control-event% 'radio-box))))
 		       #t]
+		      [(is-a? o wx-tab-group%)
+		       (let ([s (send o button-focus -1)])
+			 (unless (negative? s)
+			   (send o set-selection s)
+			   (do-command (wx->mred o) (make-object wx:control-event% 'tab-panel))))
+		       #t]
 		      [else #f]))]
 		  [(#\tab left up down right) 
 		   (let ([o (get-focus-window)])
@@ -883,8 +891,7 @@
 				[normal-move
 				 (lambda ()
 				   (let* ([o (if (or (is-a? o wx:canvas%) (is-a? o wx:item%)) 
-						 (if (or (is-a? o wx-tab-group%)
-							 (is-a? o wx-group-box%))
+						 (if (is-a? o wx-group-box%)
 						     #f
 						     o)
 						 #f)]
@@ -898,7 +905,8 @@
 							 [else code])
 						       dests)])
 				     (when o
-				       (if (is-a? o wx:radio-box%)
+				       (if (or (is-a? o wx:radio-box%)
+					       (is-a? o wx-tab-group%))
 					   (send o button-focus (if forward? 0 (sub1 (send o number))))
 					   (begin
 					     (send o set-focus)
@@ -912,12 +920,14 @@
 						 (when (or (is-a? o wx-canvas%)
 							   (is-a? o wx-editor-canvas%))
 						   (as-exit (lambda () (send o on-tab-in))))))))))])
-			   (if (is-a? o wx:radio-box%)
+			   (if (or (is-a? o wx:radio-box%)
+				   (is-a? o wx-tab-group%))
 			       (let ([n (send o number)]
 				     [s (send o button-focus -1)]
 				     [v-move? (memq code '(up down))]
 				     [h-move? (memq code '(left right))]
-				     [v? (send o vertical?)])
+				     [v? (and (is-a? o wx:radio-box%)
+					      (send o vertical?))])
 				 (cond
 				  [(or (negative? s) 
 				       (and v? h-move?) 
@@ -1831,6 +1841,8 @@
     (define tabs (map wx:label->plain-label tab-labels))
     (define tab-widths #f)
     (define tab-height #f)
+
+    (define current-focus-tab 0)
     
     (define font (let loop ([p parent])
 		   (if (not (p . is-a? . wx:window%))
@@ -1839,7 +1851,7 @@
     
     (inherit get-dc get-client-size get-mred
 	     set-min-width set-min-height
-	     set-tab-focus
+	     set-tab-focus set-focus has-focus?
 	     set-background-to-gray refresh)
     
     (define selected 0)
@@ -1850,7 +1862,7 @@
     (define redo-regions? #f)
 
     (define border? (memq 'border style))
-    
+
     (define/private (compute-sizes)
       (let ([dc (get-dc)])
 	(let ([w+hs (map (lambda (lbl)
@@ -1880,6 +1892,7 @@
 	  [(and (send e button-down?) tab-widths)
 	   (set! tracking-pos (find-click (send e get-x) (send e get-y)))
 	   (when tracking-pos
+	     (set! current-focus-tab tracking-pos)
 	     (set! tracking-hit? #t)
 	     (update-tracking))]
 	  [(and (send e dragging?) tracking-pos)
@@ -1912,6 +1925,24 @@
 	(send dc set-clipping-region #f)))
     
     (define tmp-rgn #f)
+
+    (define/public (button-focus n)
+      (if (< n 0)
+	  current-focus-tab
+	  (begin
+	    (set! current-focus-tab n)
+	    (refresh)
+	    (set-focus)
+	    current-focus-tab)))
+
+    (define/override on-set-focus
+      (lambda ()
+	(refresh)
+	(super on-set-focus)))
+    (define/override on-kill-focus
+      (lambda ()
+	(refresh)
+	(super on-kill-focus)))
     
     (define/private (find-click x y)
       (ready-regions)
@@ -1946,6 +1977,11 @@
     (define/private (ready-regions)
       (unless (and regions (not redo-regions?)) 
 	(setup-regions)))
+
+    (define/override (gets-focus?) #t)    
+    (define/public (tab-group-position x y)
+      (list this (+ x (get-init-x)) y (get-total-width) tab-height))
+    (define/public (number) (length tabs))
     
     (define (draw-once dc w light? dark? inset)
       (let ([init-x (get-init-x)])
@@ -1997,7 +2033,15 @@
 		      (when (= pos selected)
 			(send dc draw-line (+ next-x tab-height) tab-height w tab-height)
 			(send dc draw-line (+ next-x tab-height) (add1 tab-height) w (add1 tab-height)))
-		      (send dc draw-text (car l) (+ x tab-height) (- tab-v-space (if (= pos selected) raise-h 0))))
+		      (let ([x (+ x tab-height)]
+			    [y (- tab-v-space (if (= pos selected) raise-h 0))])
+			(send dc draw-text (car l) x y)
+			(when (and (has-focus?)
+				   (= pos current-focus-tab))
+			  (let ([p (send dc get-pen)])
+			    (send dc set-pen "black" 1 'hilite)
+			    (send dc draw-rectangle (- x 1) (+ y 2) (+ (car wl) 2) (- tab-height (* 2 tab-v-space) 2))
+			    (send dc set-pen p)))))
 		    (list (list (+ next-x inset (if (= selected (add1 pos)) -2 0)) (+ 2 tab-height (- inset))))))
 		 (loop next-x (cdr l) (cdr wl) (add1 pos))))))))
 
@@ -2097,22 +2141,21 @@
     (define/override (handles-key-code code alpha? meta?) 
       #f)
 
-    (super-instantiate (mred proxy parent -1 -1 -1 -1 '(transparent)))
+    (super-instantiate (mred proxy parent -1 -1 -1 -1 '(transparent) #f))
 
     (set-background-to-gray)
 
     (compute-sizes)
     (set-min-width (inexact->exact (ceiling (get-total-width))))
     (set-min-height (inexact->exact (ceiling (+ tab-height 9 raise-h))))
-    (set-tab-focus #f)))
+    (set-tab-focus #t)))
 
 (define wx-tab-group% 
   (if (eq? 'unix (system-type))
       canvas-based-tab-group%
       (class (make-window-glue%
 	      (make-control% wx:tab-group% 0 0 #t #t))
-	     (define/override (gets-focus?) #f)
-	     (super-instantiate ()))))
+	(super-instantiate ()))))
 
 (define group-right-inset 4)
 
@@ -2183,7 +2226,7 @@
       (set! lbl l)
       (on-paint))
 
-    (super-instantiate (mred proxy parent -1 -1 -1 -1 '(transparent)))
+    (super-instantiate (mred proxy parent -1 -1 -1 -1 '(transparent) #f))
 
     (set-background-to-gray)
 
