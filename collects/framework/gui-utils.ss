@@ -9,6 +9,6 @@
 
   (define-values/invoke-unit/sig 
     framework:gui-utils^
-    gui-utils@
+    framework:gui-utils@
     #f
     mred^))

@@ -1,4 +1,4 @@
-(module debug-printf mzscheme
+(module debug mzscheme
   (provide debug-printf debug-when)
 
   ;; all of the steps in the tcp connection
@@ -12,7 +12,7 @@
   (define schedule? #t)
 
   ;; of the sexpression transactions between mz and mred
-  (define messages? #f)
+  (define messages? #t)
 
   (define-syntax debug-printf
     (lambda (stx)

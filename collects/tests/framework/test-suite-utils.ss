@@ -228,20 +228,19 @@
       (fluid-let ([test-name in-test-name])
 	(when (or (not only-these-tests)
 		  (memq test-name only-these-tests))
-	  (let ([failed
-		 (with-handlers ([(lambda (x) #t)
-				  (lambda (x)
-				    (if (exn? x)
-					(exn-message x)
-					x))])
-		   (let ([result
-			  (if (procedure? sexp/proc)
-			      (sexp/proc)
-			      (begin0 (send-sexp-to-mred sexp/proc)
-				      (send-sexp-to-mred ''check-for-errors)))])
-		     (not (passed? result))))])
+	  (let* ([result
+		  (with-handlers ([(lambda (x) #t)
+				   (lambda (x)
+				     (if (exn? x)
+					 (exn-message x)
+					 x))])
+		    (if (procedure? sexp/proc)
+			(sexp/proc)
+			(begin0 (send-sexp-to-mred sexp/proc)
+				(send-sexp-to-mred ''check-for-errors))))]
+		 [failed (not (passed? result))])
 	    (when failed
-	      (debug-printf schedule "FAILED ~a: ~a~n" failed test-name)
+	      (debug-printf schedule "FAILED ~a:~n  ~s~n" test-name result)
 	      (set! failed-tests (cons (cons section-name test-name) failed-tests))
 	      (case jump
 		[(section) (section-jump)]

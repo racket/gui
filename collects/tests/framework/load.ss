@@ -7,7 +7,7 @@
     (test
      (string->symbol file)
      void?
-     `(parameterize ([current-namespace (make-namespace)])
+     `(parameterize ([current-namespace (make-namespace 'mred)])
 	(eval '(require (lib ,file "framework")))
 	(with-handlers ([(lambda (x) #t)
 			 (lambda (x)
