@@ -90,11 +90,8 @@
           
           ;; ---------------------- Preferences -----------------------------------
           (define should-color? #t)
-          (define prefix #f)
-          
-          (define/public (coloring-active?)
-            should-color?)
-          
+          (define tab-name #f)
+                    
           ;; ---------------------- Multi-threading -------------------------------
           ;; A list of thunks that color the buffer
           (define colors null)
@@ -156,9 +153,7 @@
                     (set! colors
                           (cons
                            (let ((color (send (get-style-list) find-named-style
-                                              (format "syntax-coloring:~a:~a"
-                                                      prefix
-                                                      type)))
+                                              (color-prefs:get-full-style-name tab-name type)))
                                  (sp (+ in-start-pos (sub1 new-token-start)))
                                  (ep (+ in-start-pos (sub1 new-token-end))))
                              (lambda ()
@@ -264,20 +259,17 @@
                 (thread-suspend (current-thread))))
             (background-colorer))
           
-          (define/public (start-colorer prefix- get-token- pairs-)
+          (define/public (start-colorer tab-name- get-token- pairs-)
             (unless force-stop?
               (set! stopped? #f)
               (reset-tokens)
               (set! should-color?
-                    (preferences:get (string->symbol (format "syntax-coloring:~a:active" prefix-))))
-              (set! prefix prefix-)
+                    (preferences:get (color-prefs:get-full-pref-name tab-name- "active")))
+              (set! tab-name tab-name-)
               (set! get-token get-token-)
               (set! pairs pairs-)
               (set! parens (new paren-tree% (matches pairs)))
-              (color-prefs:register-active-pref-callback
-               (string->symbol (format "syntax-coloring:~a:active" prefix))
-               this
-               active-cb)
+              (color-prefs:register-active-pref-callback tab-name this active-cb)
               (unless background-thread
                 (break-enabled #f)
                 (set! background-thread (thread (lambda () (background-colorer-entry))))
@@ -286,15 +278,13 @@
             
           (define/public (stop-colorer)
             (set! stopped? #t)
-            (color-prefs:remove-active-pref-callback
-             (string->symbol (format "syntax-coloring:~a:active" prefix))
-             this)
+            (color-prefs:remove-active-pref-callback tab-name this)
             (change-style (send (get-style-list) find-named-style "Standard")
                           start-pos end-pos #f)
             (match-parens #t)
             (reset-tokens)
             (set! pairs null)
-            (set! prefix #f)
+            (set! tab-name #f)
             (set! get-token #f))
           
           (define/public (toggle-color on?)
@@ -439,7 +429,7 @@
           ;;
           ;; matches is a list of lists of matching paren types.
           ;; For example, '((|(| |)|) (|[| |]|))
-          (init-field (get-token default-lexer) (prefix 'default) (matches null))
+          (init-field (get-token default-lexer) (tab-name 'default) (matches null))
           
           (rename (super-on-disable-surrogate on-disable-surrogate))
           (define/override (on-disable-surrogate text)
@@ -449,7 +439,7 @@
           (rename (super-on-enable-surrogate on-enable-surrogate))
           (define/override (on-enable-surrogate text)
             (super-on-enable-surrogate text)
-            (send text start-colorer prefix get-token matches))
+            (send text start-colorer tab-name get-token matches))
           
           (super-instantiate ())))
   

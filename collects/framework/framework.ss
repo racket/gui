@@ -1507,16 +1507,31 @@
     (color-prefs:make-style-delta
      ((union string? (is-a?/c color%)) any? any? any? . -> . (is-a?/c style-delta%))
      (color bold? underline? italic?)
-     "")
+     "Soon to be deprecated.")
     (color-prefs:add-staged
      (string? (listof (list/p symbol? (is-a?/c style-delta%))) . -> . (-> any))
      (tab-name styles/defaults)
      "Sets up the preferences defaults for \\var{tab-name} and returns a"
      "function that will install a panel named \\var{tab-name} in the"
-     "``Syntax Coloring'' section of the preferences dialog.")
+     "``Syntax Coloring'' section of the preferences dialog."
+     ""
+     "\\rawscm{color:prefs-add-staged} can be invoked many times to incrementally add"
+     "styles to a particular tab.  However, \\rawscm{color:prefs-add-staged} cannot be"
+     "called after the preferences window is created.  Repeated calls to funtions returned"
+     "by \\rawscm{color:prefs-add-staged} for a particular \\var{tab-name} have no effect"
+     "after the first call.")
     (color-prefs:add
      (string? (listof (list/p symbol? (is-a?/c style-delta%))) . -> . any)
      (tab-name styles/defaults)
      "Same as \\rawscm{color-prefs:add-staged}, except that it immediately"
-     "installs the preferences panel")))
-      
+     "calls the function for installing the preferences panel.")
+    (color-prefs:get-full-pref-name
+     (string? printable? . -> . symbol?)
+     (tab-name preference-name)
+     "Returns the name of the preference that color-prefs uses for preference"
+     "\\var{preference-name} in \\var{tab-name}.")
+    (color-prefs:get-full-style-name
+     (string? printable? . -> . string?)
+     (tab-name preference-name)
+     "Returns the name of the style that color-prefs uses for preference"
+     "\\var{preference-name} in \\var{tab-name}.")))

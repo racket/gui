@@ -257,7 +257,7 @@
  ;   ;  ;   ;  ;   ;  ;   ;  ; ; ;  ;   ;          ;   ; ;   ;  ;   ;   ;   ;
   ;;;    ;;;  ;;; ;;;  ;;;  ;; ; ;;  ;;;     ;      ;;;   ;;;  ;;   ;;   ;;; 
                                                                              
-                                                                             
+                                                         
       ;; This adds the preferences that scheme:text% needs for coloring
       ;; It returns a thunk that, when invoked will setup the panel in the
       ;; preferences dialog.
@@ -265,25 +265,27 @@
         (color-prefs:add-staged
          "Scheme"
          `((symbol ,(color-prefs:make-style-delta "navy" #f #f #f))
-           (keyword ,(color-prefs:make-style-delta (make-object color% 40 25 15) #f #f #f))
+           (keyword ,(color-prefs:make-style-delta "navy" #f #f #f))
            (comment ,(color-prefs:make-style-delta (make-object color% 0 105 255) #f #f #f))
            (string ,(color-prefs:make-style-delta "ForestGreen" #f #f #f))
            (constant ,(color-prefs:make-style-delta (make-object color% 51 135 39) #f #f #f))
            (parenthesis ,(color-prefs:make-style-delta "brown" #f #f #f))
            (error ,(color-prefs:make-style-delta "red" #f #f #f))
-           (other ,(color-prefs:make-style-delta "black" #f #f #f))
-           
-           ;; for  check syntax (to be moved elsewhere)
-           (lexically-bound-variable 
-            ,(color-prefs:make-style-delta (make-object color% 255 0 0) #f #f #f))
-           (lexically-bound-syntax
-            ,(color-prefs:make-style-delta (make-object color% 0 0 255) #f #f #f))
-           (imported-syntax
-            ,(color-prefs:make-style-delta (make-object color% 255 0 255) #f #f #f))
-           (imported-variable
-            ,(color-prefs:make-style-delta (make-object color% 0 255 255) #f #f #f)))))
+           (other ,(color-prefs:make-style-delta "black" #f #f #f)))))
+
+      ;; for  check syntax (to be moved elsewhere)
+      (color-prefs:add-staged
+       "Scheme"
+       `((lexically-bound-variable 
+          ,(color-prefs:make-style-delta (make-object color% 255 0 0) #f #f #f))
+         (lexically-bound-syntax
+          ,(color-prefs:make-style-delta (make-object color% 0 0 255) #f #f #f))
+         (imported-syntax
+          ,(color-prefs:make-style-delta (make-object color% 255 0 255) #f #f #f))
+         (imported-variable
+          ,(color-prefs:make-style-delta (make-object color% 0 255 255) #f #f #f))))
         
-      
+
       (define-struct string/pos (string pos))
       
       (define -text<%>
@@ -1060,7 +1062,7 @@
 	    (send text end-edit-sequence))
           
           (super-new (get-token scheme-lexer-wrapper)
-                     (prefix "Scheme")
+                     (tab-name "Scheme")
                      (matches '((|(| |)|)
                                 (|[| |]|)
                                 (|{| |}|))))))

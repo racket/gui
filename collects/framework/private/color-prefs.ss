@@ -18,10 +18,10 @@
 
       (define color-selection%
         (class horizontal-panel%
-          (init symbol prefix)
+          (init symbol tab-name)
           (super-instantiate () (style '(border)))
           
-          (define sym (string->symbol (format "~a:~a" prefix symbol)))
+          (define sym (get-full-pref-name tab-name symbol))
           
           (define delta (preferences:get sym))
           (define style-name (symbol->string sym))
@@ -204,72 +204,110 @@
       
       (define color-selection-panel%
         (class vertical-panel%
-          (init symbols prefix)
+          (init symbols tab-name)
           
           (super-instantiate ())
           
           (for-each
            (lambda (s)
-             (new color-selection% (prefix prefix) (symbol s) (parent this)))
+             (new color-selection% (tab-name tab-name) (symbol s) (parent this)))
            symbols)
           ))
       
+      
+      ;; prefs-table maps tab-name symbols to either 'too-late or a listof symbols/defaults.
+      ;; 'too-late indicates that the preference window has been created and 
+      ;; additions can no longer be made.
+      (define prefs-table (make-hash-table))
+      
+      ;; pref-added-table maps tab-name symbols to booleans.
+      ;; #t iff the preferences:add call has been made.  This is to avoid
+      ;; calling add multiple times.
+      (define pref-added-table (make-hash-table))
+            
       (define (add-staged tab-name symbols/defaults)
-        (let* ((prefix (string->symbol (format "syntax-coloring:~a" tab-name)))
-               (active-pref (string->symbol (format "~a:active" prefix)))
-               (syms (map (lambda (s/d) (string->symbol (format "~a:~a" prefix (car s/d))))
+        (let* ((tab-name-symbol (string->symbol tab-name))
+               (active-pref (get-full-pref-name tab-name "active"))
+               (current (hash-table-get prefs-table tab-name-symbol (lambda () #f)))
+               (syms (map (lambda (s/d) (get-full-pref-name tab-name (car s/d)))
                           symbols/defaults)))
+          (when (eq? 'too-late current)
+            (error 'color-prefs:add-staged
+                   "cannot be invoked after the preferences have already been created for this tab."))
+          (unless current
+            (preferences:set-default active-pref #t (lambda (x) #t))
+            (preferences:add-callback active-pref
+                                      (lambda (_ on?)
+                                        (do-active-pref-callbacks tab-name on?))))
           (for-each set-default syms (map cadr symbols/defaults))
           (for-each (lambda (s)
                       (preferences:set-un/marshall s marshall-style unmarshall-style))
                     syms)
           (for-each set-slatex-style syms (map preferences:get syms))
-          (preferences:set-default active-pref #t (lambda (x) #t))
+          (hash-table-put! prefs-table
+                           tab-name-symbol
+                           (append (if current current null) symbols/defaults))
           (lambda ()
-            (preferences:add-panel `("Syntax Coloring" ,tab-name)
-                                   (lambda (p)
-                                     (let ((vp (new vertical-panel% (parent p))))
-                                       (new color-selection-panel%
-                                            (parent vp)
-                                            (prefix prefix)
-                                            (symbols (map car symbols/defaults)))
-                                       (let ((cb (new check-box%
-                                                      (parent vp)
-                                                      (label "Color syntax interactively")
-                                                      (callback (lambda (checkbox y)
-                                                                  (preferences:set 
-                                                                   active-pref
-                                                                   (send checkbox get-value)))))))
-                                         (send cb set-value (preferences:get active-pref)))
-                                       vp)))
-            (preferences:add-callback active-pref
-                                      (lambda (_ on?)
-                                        (do-active-pref-callbacks active-pref on?))))))
-      
+            (unless (hash-table-get pref-added-table tab-name-symbol (lambda () #f))
+              (hash-table-put! pref-added-table tab-name-symbol #t)
+              (preferences:add-panel 
+               `("Syntax Coloring" ,tab-name)
+               (lambda (p)
+                 (let ((vp (new vertical-panel% (parent p))))
+                   (new color-selection-panel%
+                        (parent vp)
+                        (tab-name tab-name)
+                        (symbols (map car (hash-table-get prefs-table
+                                                          tab-name-symbol
+                                                          (lambda () null)))))
+                   (let ((cb (new check-box%
+                                  (parent vp)
+                                  (label "Color syntax interactively")
+                                  (callback (lambda (checkbox y)
+                                              (preferences:set 
+                                               active-pref
+                                               (send checkbox get-value)))))))
+                     (send cb set-value (preferences:get active-pref)))
+                   (hash-table-put! prefs-table tab-name-symbol 'too-late)
+                   vp)))))))
+    
       (define (add tab-name symbols/defaults)
         ((add-staged tab-name symbols/defaults)))
        
+      (define (get-full-pref-name tab-name pref-name)
+        (string->symbol (get-full-style-name tab-name pref-name)))
       
-      
+      (define (get-full-style-name tab-name pref-name)
+        (format "syntax-coloring:~a:~a" tab-name pref-name))
+            
       ;; The following 4 defines are a mini-prefs system that uses a weak hash table
       ;; so the preferences won't hold on to a text when it should otherwise be GCed.
       (define active-pref-callback-table (make-hash-table))
             
-      (define (do-active-pref-callbacks pref-sym on?)
-        (hash-table-for-each (hash-table-get active-pref-callback-table pref-sym (lambda () (make-hash-table)))
+      ;; string? any? -> 
+      (define (do-active-pref-callbacks tab-name on?)
+        (hash-table-for-each (hash-table-get active-pref-callback-table
+                                             (string->symbol tab-name)
+                                             (lambda () (make-hash-table)))
                              (lambda (k v)
                                (v k on?))))
       
-      (define (remove-active-pref-callback pref-sym k)
-        (let ((ht (hash-table-get active-pref-callback-table pref-sym (lambda () #f))))
+      ;; string? any? ->
+      (define (remove-active-pref-callback tab-name k)
+        (let ((ht (hash-table-get active-pref-callback-table
+                                  (string->symbol tab-name)
+                                  (lambda () #f))))
           (when ht
             (hash-table-remove! ht k))))
       
-      (define (register-active-pref-callback pref-sym k v)
-        (hash-table-put! (hash-table-get active-pref-callback-table pref-sym
+      ;; string? any? any? -> 
+      (define (register-active-pref-callback tab-name k v)
+        (hash-table-put! (hash-table-get active-pref-callback-table (string->symbol tab-name)
                                          (lambda ()
                                            (let ((ht (make-hash-table 'weak)))
-                                             (hash-table-put! active-pref-callback-table pref-sym ht)
+                                             (hash-table-put! active-pref-callback-table
+                                                              (string->symbol tab-name)
+                                                              ht)
                                              ht)))
                          k v)))))
 
