@@ -74,7 +74,7 @@
                      define/public define/override define/private define/field
 		     define-signature 
                      define-syntax define-syntaxes
-                     define-schema))
+                     define-schema define/contract))
 	(for-each (lambda (x) 
 		    (hash-table-put! hash-table x 'begin))
 		  '(case-lambda
