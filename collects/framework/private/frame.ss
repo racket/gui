@@ -912,6 +912,11 @@
                 (set! super-root s-root)
                 (set! rest-panel r-root)
                 r-root))]
+
+	  (rename [super-get-editor<%> get-editor<%>])
+	  (define/override (get-editor<%>)
+	    (interface ((super-get-editor<%>) text:delegate<%>)))
+
           (rename [super-get-editor% get-editor%])
           (define/override (get-editor%)
             (text:delegate-mixin (super-get-editor%)))
