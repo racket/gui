@@ -13,14 +13,14 @@ and method names are more consistent; useless and redundant methods
 have been eliminated; and methods check their arguments more
 precisely.  Key portions of the documentation have been re-written,
 and a new help system called "Help Desk" makes locating information
-far easier than before.
+much easier than before.
 
-The implementation behind the revised interface is reliable. Previous
-versions of MrEd were plagued by bugs and inconsistently implemented
-features, but the new interface is consistently implemented across
-platforms and thoroughly tested. Of course, bugs will always slip
-through, but MrEd 100 is far more robust than its predecessors as a
-result of new testing techniques.
+The revised implementation behind the revised interface is
+reliable. Whereas previous versions of MrEd were plagued by bugs and
+inconsistently implemented features, the new interface is consistently
+implemented across platforms and thoroughly tested. Of course, bugs
+will always slip through, but MrEd 100 is far more robust than its
+predecessors as a result of new testing techniques.
 
 New Application Architecture
 ----------------------------
@@ -38,9 +38,9 @@ MrEd 53 comprised two parts:
 
 For MrEd 100, we moved the boundary between the core toolbox and the
 application framework. The name "MrEd" now refers to only the core
-toolbox, which now includes the most useful `mred:' classes from the
-old application framework. We collapsed the `wx:' and `mred:' classes
-and eliminated the prefixes.
+toolbox, but the core toolbox now includes the most useful `mred:'
+classes from the old application framework. While merging the `wx:'
+and `mred:' classes, we eliminated the prefixes.
 
 All of the core toolbox classes are built into the MrEd executable.
 The old `mred:' classes that are not part of the core toolbox have
@@ -52,12 +52,12 @@ Running MrEd and Developing MrEd Applications
 
 MrEd 100 is more consistent with MzScheme than previous releases. The
 default language for MrEd 100 is the same as MzScheme's default
-language, whereas MrEd 53's language had different case-sensitivity
-and cond-fallthrough behavior. Command-line handling for MrEd 100 is
-nearly the same as for MzScheme; the only difference is that MrEd
-executes `(graphical-read-eval-print-loop)' on startup instead of
-`(read-eval-print-loop)'. MrEd 100 programmers do not need to
-understand units and collections to implement a simple MrEd
+language. In contrast, MrEd 53's language had different
+case-sensitivity and cond-fallthrough behavior. Command-line handling
+for MrEd 100 is nearly the same as for MzScheme; the only difference
+is that MrEd executes `(graphical-read-eval-print-loop)' on startup
+instead of `(read-eval-print-loop)'. MrEd 100 programmers do not need
+to understand units and collections to implement a simple MrEd
 application.
 
 MrEd's `graphical-read-eval-print-loop' implements a rather primitive
@@ -86,18 +86,19 @@ changes normally listed in the HISTORY notes).
 ======================================================================
 
  * The wx/mred split has been eliminated. The wx methods for manually
-   managing the geometry of windows have been eliminated; the only way
-   to set control positions explicitly is to derive a new container
+   managing the position and size of windows have been eliminated;
+   containers manage all window positions and sizes. The only way to
+   set control positions explicitly is to derive a new container
    class.
 
-   The class hierarchy has been rerranged. For example, dialog% is no
-   longer a subclass of panel%, which is itself no longer a subclass
-   of canvas%.
+   The windowing class hierarchy has been rerranged. For example,
+   dialog% (formerly dialog-box%) is no longer a subclass of panel%,
+   which is itself no longer a subclass of canvas%.
 
    Interfaces are widely used in the toolbox. The old toolbox provided
    many "classes" like wx:window% that could not be instantiated. The
-   new toolbox has a window<%> interface ("<%>" is the conventional
-   suffix for interfaces).
+   new toolbox has a window<%> interface (where "<%>" is the
+   conventional suffix for interfaces).
 
  * Instead of null, #f is used for the "no appropriate value" value,
    such as the parent argument for a frame that does not have a parent
@@ -179,12 +180,12 @@ changes normally listed in the HISTORY notes).
 
  * The text-field% control (formerly wx:text% and wx:multi-text%) now
    works well on all platforms, because it is implemented using the
-   editor classes. (The equivalent of a wx:multi-text% is created via
-   a style flag for text-field%.)
+   editor classes. (The equivalent of a wx:multi-text% instance is
+   created via a style flag for text-field%.)
 
  * The command-event% class was changed to control-event%. It has very
-   few methods, since the information that used to be encapsulated in
-   a command-event% object can just as easily be extracted from the
+   few methods, since the information that was formerly encapsulated
+   in a command-event% object can be extracted just as easily from the
    control.
 
  * Navigating controls (in a frame or dialog) with the keyboard works
@@ -199,7 +200,7 @@ changes normally listed in the HISTORY notes).
    but non-rectangular clipping regions and region operations (e.g.,
    union and intersect) were added.
 
-   The old canvas-dc% class was elimniated. The memory-dc% class was
+   The old canvas-dc% class was eliminated. The memory-dc% class was
    renamed to bitmap-dc%.
 
    The blit method was replaced by draw-bitmap and draw-bitmap-region,
@@ -237,6 +238,23 @@ changes normally listed in the HISTORY notes).
    spelling is used everywhere: colour -> color, centre -> center,
    grey -> gray.
 
+MzScheme's class syntax also changed slightly:
+
+ * In MzScheme 53, the empty list could be provided as a class's
+   "superclass", indicating that the class has no superclass. In 100,
+   every new class must have a superclass (and super-init must always
+   be called). MzScheme 100 provides a built-in empty class called
+   object%.
+
+ * In MzScheme 53, a `public' instance variable declaration would
+   either override an existing instance variable or declare a new one,
+   depending on the set of instance variables provided by the
+   superclass. In 100, a `public' declaration always introduces a new
+   instance variable; if the superclass already provides the instance
+   variable, and exception is raised. The new `override' clause
+   declares instance variables to override existing definitions; an
+   exception is raised if the superclass does not provide the instance
+   variable to override.
 
 ======================================================================
 1. Interface/Class Type Hierarchy (Selected Excerpts)
@@ -1090,9 +1108,3 @@ the-color-database only has a find-color method; the others were
  removed. Certain color names with mappings under X (e.g.,
  "FORESTGREEN") are no longer available; instead, the only availabale
  colors are the ones defined in the manual.
-
------------------------------
- TODO: Miscellaneous Cleanup
------------------------------
-
-null superclass => #f
