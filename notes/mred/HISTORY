@@ -4,7 +4,7 @@ Version 199.7:
  * Added a 'gl style flag to canvas%, for use with extensions that
    draw to the current OpenGL context. The canvas% class also has two
    new methods: `with-gl-context' and `swap-gl-buffers'. The 'gl style
-   is only support in Windows for now.
+   is only supported in Windows for now.
 
 Version 199.1:
 
