@@ -9,6 +9,12 @@ into a separate application.
 
 Subtle Changes:
 
+ - the built in keymap functions no longer call: 
+     add-editor-keymap-functions
+     add-text-keymap-functions and
+     add-pasteboard-keymap-functions
+   automatically. Instead, the pasteboards and editor classes add them in.
+
  - the editor `auto-save?' ivar is now called `autosave?'
  - overriding `windows-menu' with #f no longer eliminates the windows
    menu. Now, it is an error.
@@ -278,3 +284,5 @@ NOTE: some used but non-existant interfaces from mred engine:
   panel:make-edit% : panel<%> -> panel:edit<%>
   
   snip:make-basic-style% : snip<%> -> snip<%>
+
+  scheme:make-text% : text:basic<%> -> scheme:text<%>
