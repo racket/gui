@@ -129,9 +129,13 @@
       (define basic-mixin
         (mixin ((class->interface frame%)) (basic<%>)
         
+          (define/override (can-exit?) (exit:can-exit?))
+          (define/override (on-exit) (exit:exit #t))
+          
           (rename [super-can-close? can-close?]
                   [super-on-close on-close]
                   [super-on-focus on-focus])
+          
           (public get-filename)
           [define get-filename
              (case-lambda
@@ -211,13 +215,15 @@
       (define locked-message (string-constant read-only))
       (define unlocked-message (string-constant read/write))
       
-      (define lock-canvas-font (send the-font-list find-or-create-font 
-                                     (if (eq? (system-type) 'macosx)
-                                         13
-                                         12) 
-                                     'system 'normal
-                                     'normal
-                                     #f))
+      (define lock-canvas-font 
+        (if (eq? (system-type) 'macosx)
+            (send the-font-list find-or-create-font 
+                  13
+                  'system
+                  'normal
+                  'normal
+                  #f)
+            (send the-font-list find-or-create-font 12 'system 'normal 'normal #f)))
       
       (define lock-canvas%
         (class100 canvas% (parent . args)
