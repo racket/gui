@@ -7376,6 +7376,8 @@
 (define readable-snip<%>
   (interface ()
     read-one-special))
+
+(define empty-string (make-string 0))
       
 ;; open-input-text-editor : (instanceof text%) num num -> input-port
 ;; creates a user port whose input is taken from the text%,
@@ -7425,7 +7427,7 @@
 			  (set! next? #t)
 			  (let ([c (min (send-generic snip get-count-generic) (- end snip-start))])
 			    (display (send-generic snip get-text-generic 0 c) pipe-w)
-			    0)]
+			    (read-string-avail!* to-str pipe-r))]
 			 [else
 			  (set! next? #f)
 			  0]))
@@ -7448,16 +7450,16 @@
 				       (with-handlers ([exn:special-comment?
 							(lambda (exn)
 							  ;; implies "done"
-							  (next-snip "")
+							  (next-snip empty-string)
 							  (raise exn))])
 					 (let-values ([(val size done?)
 						       (send the-snip read-one-special pos file line col ppos)])
 					   (if done?
-					       (next-snip "")
+					       (next-snip empty-string)
 					       (set! pos (add1 pos)))
 					   (values val size)))
 				       (begin
-					 (next-snip "")
+					 (next-snip empty-string)
 					 (values (send the-snip copy) 1)))))]
 			      [else eof]))]
 	       [close (lambda () (void))]
@@ -7475,7 +7477,7 @@
 				  (make-semaphore-peek lock-semaphore)))))
 		      #f ; no peek
 		      close)])
-	  (update-str-to-snip "")
+	  (update-str-to-snip empty-string)
 	  (port-count-lines! port)
 	  port)))]
    [(text start) (open-input-text-editor text start 'end)]
