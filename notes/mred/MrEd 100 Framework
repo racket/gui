@@ -13,6 +13,9 @@ to start old-style mred.
 
 The eliminated classes and functions are:
 
+  :: classes that used to improve the wx: toolbox 
+  :: interface and are no longer needed
+
   mred:basic-mode% 
   mred:button% 
   mred:check-box% 
@@ -26,6 +29,12 @@ The eliminated classes and functions are:
   mred:message% 
   mred:multi-text% 
   mred:panel% 
+  mred:radio-box% 
+  mred:single-panel% 
+  mred:slider% 
+  mred:text% 
+  mred:text-window%
+  mred:vertical-panel% 
   
   mred:menu% 
   mred:menu-bar% 
@@ -35,14 +44,18 @@ The eliminated classes and functions are:
   mred:media-text-canvas%
   mred:media-multi-text%
   
-  mred:mode% 
+  :: modes have just become mixins
+
+  mred:mode%                       
+  mred:scheme-interaction-mode% 
+  mred:scheme-mode% 
   
 The moved functions and classes are:
   
   mred:console-edit% 
   mred:console-frame%
   mred:editor-frame%
-  mred:graph-pasteboard% 
+  mred:transparent-io-edit% 
   
   :: web browswer
   
@@ -54,87 +67,89 @@ The moved functions and classes are:
   
   :: graph
   
+  mred:graph-pasteboard% 
   mred:node-snip% 
   
-The remaining existant functions and classes are:
+The remaining existant functions and classes follow. 
 
-  mred:backup-autosave-edit%
-  mred:backup-autosave-pasteboard%
-  
-  mred:canvas% 
-  mred:canvas-message% 
+  testable-frame% = (add-get-focus (add-get-focus frame%))
+  connections-frame% = (make-connections-frame% testable-frame%)
+  empty-frame% = (make-empty-frame% frame%)
+  menu-frame% = (make-menu-frame% empty-frame%)
+  standard-menus-frame% = (make-standard-menus-frame% menu-frame%)
+  simple-menu-frame% = (make-simple-menu-frame% standard-menus-frame%)
+  searchable-frame% = (make-searchable-frame% simple-menu-frame%)
+  info-frame% = (make-info-frame% searchable-frame%)
+  info-file-frame% = (make-info-file-frame% info-frame%)
+  pasteboard-frame% = (make-pasteboard-frame% simple-menu-frame%)
+  pasteboard-info-frame% = (make-info-frame% pasteboard-frame%)
+  pasteboard-info-file-frame% = (make-info-file-frame% pasteboard-info-frame%)
 
-  mred:clever-file-format-edit% 
-  mred:connections-dialog-box% 
-  mred:connections-frame% 
-  mred:connections-media-canvas% 
-  mred:connections-media-edit% 
-  mred:connections-media-pasteboard% 
-  mred:connections-panel% 
+  testable-frame% = (add-get-focus (add-get-focus dialog-box%))
+  connections-dialog-box% = (make-connections-frame% dialog-bo%)
 
-  mred:empty-frame% 
+  connections-media-edit% = (make-connections-media-buffer% (make-std-buffer% edit%))
+  media-edit% = (make-media-edit% connections-media-edit%)
+  return-edit% = (make-return-edit% media-edit%)
+  searching-edit% = (make-searching-edit% return-edit%)
+  info-edit% = (make-info-edit% (make-info-buffer% searching-edit%))
+  clever-file-format-edit% = (make-clever-file-format-edit% info-edit%)
+  file-edit% = (make-file-buffer% clever-file-format-edit%)
+  backup-autosave-edit% = (make-backup-autosave-edit% scheme-edit%)
+  scheme-edit% = (make-scheme-edit% backup-autosave-edit%)
+    (was scheme-mode-edit%)
+
+  connections-media-pasteboard% = (make-connections-buffer% pasteboard%)
+  pasteboard% = (make-pasteboard% (make-std-buffer% connections-media-pasteboard%))
+  info-pasteboard% = (make-info-buffer% pasteboard%)
+  file-pasteboard% = (make-file-buffer% info-pasteboard%)
+  backup-autosave-pasteboard% = (make-backup-autosave-buffer info-pasteboard%)
   
-  mred:file-edit% 
-  mred:file-pasteboard% 
+  canvas% 
+  connections-media-canvas% 
+
+  canvas-message% 
+
+  connections-dialog-box% 
+
+  connections-panel% 
+
   
-   
-  mred:frame-group% 
+  frame-group% 
   
-  mred:frame-title-canvas% 
+  frame-title-canvas% 
     
-  mred:horizontal-edit-panel% 
+  horizontal-edit-panel% 
               
-			  
-              
-  mred:info-edit% 
-  mred:info-file-frame% 
-  mred:info-frame% 
-  mred:info-pasteboard% 
-  mred:keymap-canvas% 
+  keymap-canvas% 
                
-  mred:match-cache% 
-  mred:media-canvas% 
-  mred:media-edit% 
+  match-cache% 
+  media-canvas% 
   
-  mred:media-snip%          (needs better docs)
-  mred:one-line-canvas% 
+  media-snip%          (needs better docs)
+  one-line-canvas% 
               
-              mred:pasteboard% 
-              mred:pasteboard-frame% 
-              mred:pasteboard-info-file-frame% 
-              mred:pasteboard-info-frame% 
-              mred:radio-box% 
-              mred:return-edit% 
-              mred:scheme-interaction-mode% 
-              mred:scheme-mode% 
-              mred:scheme-mode-edit% 
-              mred:searchable-frame% 
-              mred:searching-edit% 
-              mred:simple-menu-frame% 
-              mred:single-panel% 
-              mred:slider% 
-              mred:snip% 
-              mred:standard-menus-frame% 
-              mred:testable-button% 
-              mred:testable-canvas% 
-              mred:testable-check-box% 
-              mred:testable-choice% 
-              mred:testable-dialog-box% 
-              mred:testable-frame% 
-              mred:testable-gauge% 
-              mred:testable-list-box% 
-              mred:testable-media-canvas% 
-              mred:testable-message% 
-              mred:testable-multi-text% 
-              mred:testable-panel% 
-              mred:testable-radio-box% 
-              mred:testable-slider% 
-              mred:testable-text% 
-              mred:testable-text-window% 
-              mred:text% 
-              mred:text-window% 
-              mred:transparent-io-edit% 
-              mred:vertical-edit-panel% 
-              mred:vertical-panel% 
-              mred:wide-snip-canvas% 
-              mred:wrapping-canvas% 
+
+
+  snip% 
+
+
+  testable-button% 
+  testable-canvas% 
+  testable-check-box% 
+  testable-choice% 
+  testable-dialog-box% 
+  testable-gauge% 
+  testable-list-box% 
+  testable-media-canvas% 
+  testable-message% 
+  testable-multi-text% 
+  testable-panel% 
+  testable-radio-box% 
+  testable-slider% 
+  testable-text% 
+  testable-text-window% 
+
+  vertical-edit-panel% 
+  wide-snip-canvas% 
+  wrapping-canvas% 
