@@ -193,6 +193,9 @@
     get-dc
     local-to-global
     global-to-local
+    locked-for-flow?
+    locked-for-write?
+    locked-for-read?
     set-admin
     get-admin
     print-to-dc
