@@ -439,12 +439,14 @@
 						 'common
 						 'std))
     (define put-file
-      (lambda ()
-	((case (mred:preferences:get-preference 'mred:file-dialogs)
-	   [(std) std-put-file]
-	   [(common) common-put-file]))))
+      (lambda args
+	(apply (case (mred:preferences:get-preference 'mred:file-dialogs)
+		 [(std) std-put-file]
+		 [(common) common-put-file])
+	       args)))
     (define get-file
-      (lambda ()
-	((case (mred:preferences:get-preference 'mred:file-dialogs)
-	   [(std) std-get-file]
-	   [(common) common-get-file]))))))
+      (lambda args
+	(apply (case (mred:preferences:get-preference 'mred:file-dialogs)
+		 [(std) std-get-file]
+		 [(common) common-get-file])
+	       args)))))
