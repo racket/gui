@@ -6072,7 +6072,8 @@
 	       (let ([result (dynamic-require m id)])
 		 (if (is-a? result %)
 		     result
-		     (error 'load-class "not a ~a% instance" id))))))])
+		     (error 'load-class "not a ~a% instance" id)))
+	       #f)))])
   ;; install the getters:
   (wx:set-snip-class-getter 
    (lambda (name)
