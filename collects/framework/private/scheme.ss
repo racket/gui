@@ -533,7 +533,7 @@
 		      [end-pos (get-end-position)])
 	   (let ([first-para (position-paragraph start-pos)]
 		 [end-para (position-paragraph end-pos)])
-	     (with-handlers ([exn:misc:user-break?
+	     (with-handlers ([exn:break?
 			      (lambda (x) #t)])
 	       (dynamic-wind
 		(lambda () 
