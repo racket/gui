@@ -609,6 +609,7 @@
                            get-editor<%>
                            
                            make-editor
+                           save
                            save-as
                            get-canvas
                            get-editor
@@ -694,15 +695,22 @@
 		       <%> %))
 	      (make-object %)))
           
+          (define/public save
+            (opt-lambda ([format 'same])
+              (let* ([ed (get-editor)]
+                     [filename (send ed get-filename)])
+                (if filename
+                    (send ed save-file/gui-error filename format)
+                    (save-as format)))))
           
-          (public save-as)
-          (define save-as
+          (define/public save-as
             (opt-lambda ([format 'same])
               (let* ([name (send (get-editor) get-filename)]
                      [file (parameterize ([finder:dialog-parent-parameter this])
                              (finder:put-file name))])
-                (when file
-                  (send (get-editor) save-file/gui-error file format)))))
+                (if file
+                    (send (get-editor) save-file/gui-error file format)
+                    #f))))
           (inherit get-checkable-menu-item% get-menu-item%)
           (override file-menu:save-callback
                     file-menu:create-save? file-menu:save-as-callback file-menu:create-save-as? 
@@ -749,10 +757,7 @@
               #t))
           (define/override file-menu:create-revert? (lambda () #t))
           (define file-menu:save-callback (lambda (item control)
-                                            (let ([ed (get-editor)])
-                                              (if (send ed get-filename)
-                                                  (send ed save-file/gui-error)
-                                                  (save-as)))
+                                            (save)
                                             #t))
           
           (define file-menu:create-save? (lambda () #t))
@@ -1811,7 +1816,7 @@
       (define file<%> (interface (-editor<%>)))
       (define file-mixin
         (mixin (-editor<%>) (file<%>)
-          (inherit get-editor get-filename get-label)
+          (inherit get-editor get-filename get-label save)
           (rename [super-can-close? can-close?])
           (override can-close?)
           [define can-close?
@@ -1828,7 +1833,7 @@
                                  #t
                                  this)
                             [(continue) #t]
-                            [(save) (send edit save-file/gui-error)]
+                            [(save) (save)]
                             [else #f]))])
                 (and user-allowed-or-not-modified
                      (super-can-close?))))]
