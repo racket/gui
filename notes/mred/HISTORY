@@ -18,6 +18,11 @@ The delete methods of wx:menu% and wx:menu-bar return #t if the
 
 System:
 -------
+- added documentation for:
+    mred:constants:original-output-port, 
+    mred:constants:original-error-port, and
+    mred:constants:original-input-port.
+
 - added get-title-prefix to mred:simple-menu-frame% class
   documented get-title, etc. in mred:simple-menu-frame% class
   added get-complete-title to mred:simple-menu-frame% class
