@@ -33,17 +33,27 @@
 		     make-root-area-container))
   (define basic-mixin
     (mixin (frame<%>) (basic<%>) args
+      (rename [super-can-close? can-close?]
+	      [super-on-close on-close]
+	      [super-on-focus on-focus])
       (override
 	[can-close?
 	 (lambda ()
-	   (send group:the-frame-group
-		 can-remove-frame?
-		 this))]
+	   (and (super-can-close?)
+		(send (group:get-the-frame-group)
+		      can-remove-frame?
+		      this)))]
 	[on-close
 	 (lambda ()
-	   (send group:the-frame-group
+	   (super-on-close)
+	   (send (group:get-the-frame-group)
 		 remove-frame
-		 this))])
+		 this))]
+	[on-focus
+	 (lambda (on?)
+	   (super-on-focus)
+	   (when on?
+	     (send (group:get-the-frame-group) set-active-frame this)))])
       (public
 	[get-area-container% (lambda () vertical-panel%)]
 	[get-menu-bar% (lambda () menu-bar%)]
@@ -95,7 +105,7 @@
 	[do-label
 	 (lambda ()
 	   (super-set-label (get-entire-label))
-	   (send group:the-frame-group frame-label-changed this))])
+	   (send (group:get-the-frame-group) frame-label-changed this))])
 	     
       (public
 	[get-entire-label
@@ -410,7 +420,7 @@
       (set! replace-edit (make-object text%))
       (for-each (lambda (keymap)
 		  (send keymap chain-to-keymap
-			keymap:search
+			(keymap:get-search)
 			#t))
 		(list (send find-edit get-keymap)
 		      (send replace-edit get-keymap)))))

@@ -93,7 +93,7 @@
 			     (set-close-menu-item-state! a-frame #t))
 			   frames))))])
       (public
-	[set-empty-callbacks 
+	[set-empty-callbacks
 	 (lambda (test close-down) 
 	   (set! empty-test test)
 	   (set! empty-close-down close-down))]
@@ -197,4 +197,10 @@
 			frame
 			(loop (cdr frames))))]))))])))
   
-  (define the-frame-group (make-object %)))
+  (define the-frame-group #f)
+  
+  (define get-the-frame-group
+    (lambda ()
+      (set! the-frame-group (make-object %))
+      (set! get-the-frame-group (lambda () the-frame-group))
+      (get-the-frame-group))))

@@ -180,7 +180,7 @@
 			(semaphore-post s))))))))
   
   (let ([at-most-one (at-most-one-maker)])
-    (send group:the-frame-group set-empty-callbacks
+    (send (group:get-the-frame-group) set-empty-callbacks
 	  (lambda () 
 	    (at-most-one (void) 
 			 (lambda () (exit:exit #t))))
@@ -194,7 +194,7 @@
        (at-most-one
 	#t
 	(lambda ()
-	  (send group:the-frame-group close-all))))))
+	  (send (group:get-the-frame-group) close-all))))))
   
   ;; misc other stuff
   

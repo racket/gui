@@ -180,7 +180,7 @@
 	(let ([keymap (get-keymap)])
 	  (keymap:set-keymap-error-handler keymap)
 	  (keymap:set-keymap-implied-shifts keymap)
-	  (send keymap chain-to-keymap keymap:file #f)))))
+	  (send keymap chain-to-keymap (keymap:get-file) #f)))))
   
   (define backup-autosave<%>
     (interface (basic<%>)

@@ -82,22 +82,18 @@
     (lambda (name)
       (find-named-handler name format-handlers)))
 
-  (define edit-file-consult-group (make-parameter #t))
-
   ; Open a file for editing
   (define edit-file
     (opt-lambda (filename
 		 [make-default
-		  (lambda (filename)
-		    (make-object frame:text-info-file% filename))]
-		 [consult-group? (edit-file-consult-group)])
+		  (lambda ()
+		    (make-object frame:text-info-file% filename))])
       (gui-utils:show-busy-cursor
        (lambda ()
 	 (if filename
-	     (let ([already-open (and consult-group?
-				      (send group:the-frame-group
-					    locate-file
-					    filename))])
+	     (let ([already-open (send (group:get-the-frame-group)
+				       locate-file
+				       filename)])
 	       (if already-open
 		   (begin
 		     (send already-open show #t)
@@ -108,8 +104,8 @@
 			      #f)])
 		     (if handler
 			 (handler filename)
-			 (make-default filename)))))
-	     (make-default filename))))))
+			 (make-default)))))
+	     (make-default))))))
   
   ; Query the user for a file and then edit it
 

@@ -47,7 +47,6 @@
   
   (define get-autowrap-bitmap (load-icon bitmap% "return.xbm" 'xbm))
   (define get-paren-highlight-bitmap (load-icon bitmap% "paren.xbm" 'xbm))
-  (define get-reset-console-bitmap (load-icon bitmap% "reset.xbm" 'xbm))
   
   (define get
     (let ([icon #f]
@@ -60,25 +59,21 @@
 	      (set! icon (make-object bitmap% p 'xbm))
 	      icon)))))
   
-  (define-values (get-gc-on-dc get-gc-width get-gc-height)
-    (let* ([get-bitmap (load-icon bitmap% 
-				  "recycle.gif"
-				  'gif)]
-	   [bitmap #f]
-	   [bdc #f]
-	   [fetch
-	    (lambda ()
-	      (unless bdc
-		(set! bdc (make-object bitmap-dc%))
-		(set! bitmap (get-bitmap))
-		(send bdc select-object bitmap)))])
-      (values (lambda () (fetch) bdc)
-	      (lambda () (fetch) (if (send bitmap ok?)
-				     (send bitmap get-width)
+  (define gc-on-bitmap #f)
+  (define gc-on-bdc #f)
+  (define (fetch)
+    (unless gc-on-bdc
+      (set! gc-on-bdc (make-object bitmap-dc%))
+      (set! gc-on-bitmap ((load-icon bitmap% "recycle.gif" 'gif)))
+      (send gc-on-bdc select-object gc-on-bitmap)))
+
+  (define (get-gc-on-dc) (fetch) gc-on-bdc)
+  (define (get-gc-width) (fetch) (if (send gc-on-bitmap ok?)
+				     (send gc-on-bitmap get-width)
 				     10))
-	      (lambda () (fetch) (if (send bitmap ok?)
-				     (send bitmap get-height)
-				     10)))))
+  (define (get-gc-height) (fetch) (if (send gc-on-bitmap ok?)
+				      (send gc-on-bitmap get-height)
+				      10))
   
   (define get-gc-off-dc 
     (let ([bdc #f])

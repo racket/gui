@@ -6,6 +6,8 @@
 	  [scheme-paren : framework:scheme-paren^]
 	  [frame : framework:frame^])
   
+  (rename [-get-file get-file])
+
   ; This is a list of keys that are typed with the SHIFT key, but
   ;  are not normally thought of as shifted. It will have to be
   ;  changed for different keyboards.
@@ -862,9 +864,12 @@
   
   (define global (make-object keymap%))
   (setup-global global)
+  (define (get-global) global)
   
   (define file (make-object keymap%))
   (setup-file file)
+  (define (-get-file) file)
   
   (define search (make-object keymap%))
-  (setup-search search))
+  (setup-search search)
+  (define (get-search) search))

@@ -310,7 +310,7 @@
 	(let ([keymap (get-keymap)])
 	  (keymap:set-keymap-error-handler keymap)
 	  (keymap:set-keymap-implied-shifts keymap)
-	  (send keymap chain-to-keymap keymap:global #f)))))
+	  (send keymap chain-to-keymap (keymap:get-global) #f)))))
   
   (define file<%> (interface (basic<%>)))
 
@@ -405,7 +405,7 @@
 	(let ([keymap (get-keymap)])
 	  (keymap:set-keymap-error-handler keymap)
 	  (keymap:set-keymap-implied-shifts keymap)
-	  (send keymap chain-to-keymap keymap:search #f)))))
+	  (send keymap chain-to-keymap (keymap:get-search) #f)))))
   
   (define return-mixin
     (mixin (text<%>) (text<%>) (return . args)

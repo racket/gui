@@ -106,8 +106,7 @@
 	result)))
   
   (define get-choice
-    (opt-lambda (message true-choice false-choice 
-			 [title "Warning"][x -1][y -1])
+    (opt-lambda (message true-choice false-choice [title "Warning"])
       (let* ([result (void)]
 	     [choice-dialog%
 	      (class dialog% ()
@@ -122,7 +121,7 @@
 		     (set! result #f)
 		     (show #f))])
 		(sequence
-		  (super-init () title #t x y)
+		  (super-init () title #t -1 -1)
 		  (let* ([messages
 			  (let loop ([m message])
 			    (let ([match (regexp-match (format "([^~n]*)~n(.*)")

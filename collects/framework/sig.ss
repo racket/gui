@@ -163,7 +163,7 @@
 
 (define-signature framework:group^
   (%
-   the-frame-group))
+   get-the-frame-group))
 
 (define-signature framework:handler^
   (handler? handler-name handler-extension handler-handler
@@ -179,7 +179,6 @@
 
    get-paren-highlight-bitmap
    get-autowrap-bitmap
-   get-reset-console-bitmap
 
    get-lock-bitmap
    get-lock-bdc
@@ -194,21 +193,18 @@
    get-gc-height))
 
 (define-signature framework:keymap^
-  (shifted-key-list
-
-   keyerr
-   set-keymap-error-handler
+  (set-keymap-error-handler
    set-keymap-implied-shifts
-   make-meta-prefix-list
    send-map-function-meta
+   make-meta-prefix-list
 
    setup-global
    setup-search
    setup-file
 
-   global
-   search
-   file))
+   get-global
+   get-search
+   get-file))
 
 (define-signature framework:match-cache^
   (%))
