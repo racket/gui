@@ -5163,15 +5163,15 @@
       (begin
 	(unless (string? f)
 	  (raise-type-error 'play-sound "string" f))
-	(let* ([subpath (system-directory-subpath)]
+	(let* ([subpath (system-library-subpath)]
 	       [make-pattern (lambda (s) (string-append ".*" s ".*"))]
 	       [b 
 		(box 
 		 (cond 
-		  [(regexp-match (make-pattern "linux"))
+		  [(regexp-match (make-pattern "linux") subpath)
 		   ; use play interface to sox
 		   "play ~s"]
-		  [(regexp-match (make-pattern "solaris"))
+		  [(regexp-match (make-pattern "solaris") subpath)
 		   "audioplay ~s"]
 		  [else
 		   (raise-mismatch-error
