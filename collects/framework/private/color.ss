@@ -662,10 +662,13 @@
             (super on-focus on?)
             (match-parens (not on?)))
           
-          (define/augment (on-change)
-	    ;; >>> super was not here <<<
+          (define/augment (after-split-snip pos)
             (modify)
-	    (inner (void) on-change))
+	    (inner (void) after-split-snip pos))
+          
+          (define/augment (after-merge-snips pos)
+            (modify)
+	    (inner (void) after-merge-snips pos))
           
           (define/augment (after-edit-sequence)
             (when (has-focus?)
@@ -676,7 +679,6 @@
             (unless (local-edit-sequence?)
               (when (has-focus?)
                 (match-parens)))
-            (modify)
             (inner (void) after-set-position))
           
           (define/augment (after-change-style a b)
@@ -684,14 +686,12 @@
               (unless (local-edit-sequence?)
                 (when (has-focus?)
                   (match-parens))))
-            (modify)
             (inner (void) after-change-style a b))
           
           (define/augment (on-set-size-constraint)
             (unless (local-edit-sequence?)
               (when (has-focus?)
                 (match-parens)))
-            (modify)
             (inner (void) on-set-size-constraint))
           
           (define/augment (after-insert edit-start-pos change-length)
