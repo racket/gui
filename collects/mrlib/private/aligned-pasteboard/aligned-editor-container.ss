@@ -109,12 +109,10 @@
           [(value) (set! stretchable-height-field value)]
           [() stretchable-height-field]))
       
-      ;; resize (number? number? . -> . boolean?)
-      ;; called to resize the snip
-      (rename [super-resize resize])
-      (define/override (resize width height)
-        (super-resize width height))
-        
+      ;; (positive? positive? . -> . void?)
+      ;; called to resize the snip to a given size without effecting its alignd-min-sizes
+      ;; STATUS: Do I need to override resize and have it set the aligned-min-sizes?
+      (inherit resize)
       (define/public (stretch width height)
         (resize width height)
         (let ([left (box 0)]

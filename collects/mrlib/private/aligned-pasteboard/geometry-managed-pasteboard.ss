@@ -18,8 +18,9 @@
   ;;  mixin to add geometry management to pasteboard with the give type of alignement
   (define (make-aligned-pasteboard type)
     (class* pasteboard% (aligned-pasteboard<%>)
+      
       (inherit resize move-to find-first-snip refresh-delayed?
-               begin-edit-sequence end-edit-sequence)
+               begin-edit-sequence end-edit-sequence is-locked? lock)
       
       (field
        [needs-realign? false]
@@ -50,9 +51,15 @@
       
       ;; set-algined-min-sizes (-> void?)
       ;; set the aligned min width and height of the pasteboard based on it's children snips
+      (inherit in-edit-sequence?)
       (define/public (aligned-min-sizes-invalid)
-        ;; Do I need to dynamic-let ignore-resizing? in here?
-        (if (refresh-delayed?)
+        ;; This in-edit-sequence? is not sound. It causes me to percollate invalidation
+        ;; up the spin of my tree even when it is not visible (which refresh-delayed?
+        ;; checks for. However, for some types of refreshed-delayed? blocks, like a
+        ;; parent editor's edit-sequence, I have not yet figured out a way to reshedule
+        ;; an alignment. With in-edit-sequence? blocking, I know I'll always get the
+        ;; after-edit-sequence call where I can invoke alignment.
+        (if (in-edit-sequence?) ;(refresh-delayed?)
             (set! needs-realign? true)
             (begin
               (set! needs-realign? false)
@@ -80,7 +87,10 @@
                     (align type alloted-width alloted-height
                            (map-snip build-rect first-snip))])
               (begin-edit-sequence)
-              (for-each-snip move/resize first-snip aligned-rects)
+              (let ([was-locked? (is-locked?)])
+                (lock false)
+                (for-each-snip move/resize first-snip aligned-rects)
+                (lock was-locked?))
               (end-edit-sequence)))))
       
       ;;move/resize (snip-pos? rect? . -> . void?)
