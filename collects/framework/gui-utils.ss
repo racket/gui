@@ -660,65 +660,21 @@
   
   (define unsaved-warning
     (opt-lambda (filename action-anyway (can-save-now? #f) (parent #f))
-      (let* ([result 'cancel]
-             [unsaved-dialog%
-              (class dialog%
-                (inherit show center)
-                
-                (define/private (on-dont-save)
-                  (set! result 'continue)
-                  (show #f))
-                (define/private (on-save-now)
-                  (set! result 'save)
-                  (show #f))
-                (define/private (on-cancel)
-                  (set! result 'cancel)
-                  (show #f))
-                
-                (super-make-object (string-constant warning) parent)
-                
-                (let* ([outer-panel (make-object horizontal-panel% this)]
-                       [warning-msg (make-object message% 'caution outer-panel)]
-                       [panel (make-object vertical-panel% outer-panel)]
-                       [msg
-                        (make-object message%
-                          (format (string-constant file-is-not-saved) filename)
-                          panel)]
-                       [button-panel
-                        (make-object horizontal-panel% panel)]
-                       [anyway (make-object button% 
-                                 (string-append action-anyway)
-                                 button-panel
-                                 (lambda (x y) (on-dont-save)))]
-                       [now (make-object button% 
-                              (string-constant save)
-                              button-panel
-                              (lambda (x y) (on-save-now))
-                              (if can-save-now?
-                                  '(border)
-                                  '()))]
-                       [cancel (make-object button%
-                                 (string-constant cancel)
-                                 button-panel
-                                 (lambda (x y) (on-cancel))
-                                 (if can-save-now?
-                                     '()
-                                     '(border)))])
-                    (send button-panel change-children
-                          (lambda (l)
-                            (if (cancel-on-right?)
-                                (list anyway now cancel)
-                                (list anyway cancel now))))
-                    (if can-save-now?
-                        (send now focus)
-                        (begin (send cancel focus)
-                               (send now show #f)))
-                  
-                  (center 'both)
-                  
-                  (show #t)))])
-        (make-object unsaved-dialog%)
-        result)))
+      (let ([mb-res (message-box/custom 
+                     (string-constant warning)
+                     (format (string-constant file-is-not-saved) filename)
+                     (string-constant save)
+                     (string-constant cancel)
+                     action-anyway
+                     parent
+                     (if can-save-now?
+                         '(default=1)
+                         '(default=2))
+                     2)])
+        (case mb-res
+          [(1) 'save]
+          [(2) 'cancel]
+          [(3) 'continue]))))
   
   (define get-choice
     (opt-lambda (message 
@@ -727,69 +683,21 @@
                  (title (string-constant warning))
                  (default-result 'disallow-close)
                  (parent #f))
-      (letrec ([result default-result]
-               [dialog (make-object 
-                           (class dialog%
-                             (rename [super-on-close on-close]
-                                     [super-can-close? can-close?])
-                             (define/override (can-close?)
-                               (cond
-                                 [(eq? default-result 'disallow-close)
-                                  (bell)
-                                  (message-box title
-                                               (format (string-constant please-choose-either)
-                                                       true-choice false-choice))
-                                  #f]
-                                 [else
-                                  (super-can-close?)]))
-                             (define/override (on-close)
-                               (set! result default-result)
-                               (super-on-close))
-                             (super-make-object title parent)))]
-               [on-true
-                (lambda args
-                  (set! result #t)
-                  (send dialog show #f))]
-               [on-false
-                (lambda rags
-                  (set! result #f)
-                  (send dialog show #f))]
-               [vp (make-object vertical-panel% dialog)]
-               [hp (make-object horizontal-panel% dialog)])
-        
-        (if ((string-length message) . < . 200)
-            (let loop ([m message])
-              (let ([match (regexp-match (format "^([^~n]*)~n(.*)")
-                                         m)])
-                (if match
-                    (begin (make-object message% (cadr match) vp)
-                           (loop (caddr match)))
-                    (make-object message% m vp))))
-            (let* ([t (make-object text%)]
-                   [ec (make-object editor-canvas% vp t)])
-              (send ec min-width 400)
-              (send ec min-height 200)
-              (send t insert message)
-	      (send t set-position 0)
-              (send t auto-wrap #t)
-              (send t lock #t)))
-        
-        (send vp set-alignment 'left 'center)
-        (send hp set-alignment 'right 'center)
-        (let ([make-true
-               (lambda ()
-                 (send (make-object button% true-choice hp on-true '(border)) focus))]
-              [make-false
-               (lambda ()
-                 (make-object button% false-choice hp on-false))])
-          (if (cancel-on-right?)
-              (begin (make-true) (make-false))
-              (begin (make-false) (make-true))))
-        (send hp stretchable-height #f)
-        (send dialog center 'both)
-        (send dialog show #t)
-        result)))
- 
+      (let ([mb-res (message-box/custom
+                     title
+                     message
+                     true-choice
+                     false-choice
+                     #f
+                     parent
+                     (case default-result
+                       [(disallow-close) '(default=1 disallow-close)]
+                       [else '(default=1)])
+                     default-result)])
+        (case mb-res
+          [(1) #t]
+          [(2) #f]
+          [else mb-res])))) 
   
   ;; manual renaming
   (define gui-utils:next-untitled-name next-untitled-name)
