@@ -646,19 +646,7 @@
 			(if (mred:preferences:get-preference 'mred:delete-forward?)
 			    "delete-next-character"
 			    "delete-previous-character")
-			edit event #t)))]
-	     [select-forward-character
-	      (lambda (edit event)
-		(let ([start (box 0)]
-		      [end (box 0)])
-		  (send edit get-position start end)
-		  (send edit set-position (unbox start) (add1 (unbox end)))))]
-	     [select-backward-character
-	      (lambda (edit event)
-		(let ([start (box 0)]
-		      [end (box 0)])
-		  (send edit get-position start end)
-		  (send edit set-position (sub1 (unbox start)) (unbox end))))])
+			edit event #t)))])
 	(lambda (kmap)
 	  ; Redirect keymapping error messages to stderr
 	  (send kmap set-error-callback keyerr)
@@ -736,8 +724,6 @@
 	    (add "goto-line" goto-line)
 	    (add "goto-position" goto-position)
 
-	    (add "select-forward-character" select-forward-character)
-	    (add "select-backward-character" select-backward-character)
 	    (add "delete-key" delete-key)
 
 	    ; Map keys to functions
@@ -787,13 +773,13 @@
 
 	    (map "c:f" "forward-character")
 	    (map "right" "forward-character")
-	    (map "s:c:f" "select-forward-character")
-	    (map "s:right" "select-forward-character")
+	    (map "s:c:f" "forward-select")
+	    (map "s:right" "forward-select")
 
 	    (map "c:b" "backward-character")
 	    (map "left" "backward-character")
-	    (map "s:c:b" "select-backward-character")
-	    (map "s:left" "select-backward-character")
+	    (map "s:c:b" "backward-select")
+	    (map "s:left" "backward-select")
 
 	    (map-meta "f" "forward-word")
 	    (map "a:RIGHT" "forward-word")
