@@ -248,7 +248,11 @@
 	
 	(values l il))))
   
-  (define b (make-object button% "He&llo" ip void))
+  (define b (make-object button% "He&llo" ip 
+			 (lambda (b e)
+			   (send b enable #f)
+			   (sleep/yield 5)
+			   (send b enable #t))))
   
   (define ib (make-object button% bb-bmp ip void))
   
