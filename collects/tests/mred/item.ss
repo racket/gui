@@ -591,6 +591,11 @@
 			     "initial & starting"
 			     '(multiple)))
 
+    (define tab (make-object tab-panel% 
+			     '("Appl\351" "B&anana") ip2 void))
+
+    (make-object button% "OK" tab void)
+
     (add-testers2 "Horiz Slider" sh)
     (add-testers2 "Vert Slider" sv)
     (add-testers2 "Horiz Gauge" gh)
@@ -598,6 +603,7 @@
     ; (add-testers2 "Text Message" cmt)
     ; (add-testers2 "Image Message" cmi)
     (add-testers2 "Text" txt)
+    (add-testers2 "Tab" tab)
     
     (add-change-label "Horiz Slider" sh lp2 #f OTHER-LABEL)
     (add-change-label "Vert Slider" sv lp2 #f OTHER-LABEL)
@@ -1718,6 +1724,25 @@
 
 ;----------------------------------------------------------------------
 
+(define (test-tab-panel)
+  (define f (make-object frame% "Tabby"))
+  (define p (make-object tab-panel% '("App&le" "B&anana" "Co&conut") 
+			 f
+			 (lambda (p e)
+			   (send m set-label (format "Selected: ~a" (send p get-selection))))))
+  (define count 3)
+  (define m (make-object message% (format "Selected: ~a" (send p get-selection)) p))
+
+  (make-object button% "Append" p (lambda (b e) 
+				    (send p append (format "N&ew ~a" count))
+				    (set! count (add1 count))))
+  (make-object button% "Delete" p (lambda (b e)
+				    (send p delete 0)))
+
+  (send f show #t))
+
+;----------------------------------------------------------------------
+
 (define (message-boxes)
   (define (check expected got)
     (unless (eq? expected got)
@@ -1862,6 +1887,9 @@
 (make-object button% "Make Gauge Frame" gsp (lambda (b e) (gauge-frame)))
 (make-object vertical-pane% gsp) ; filler
 (make-object button% "Make Slider Frame" gsp (lambda (b e) (slider-frame)))
+(make-object vertical-pane% gsp) ; filler
+(make-object button% "Make Tab Panel" gsp (lambda (b e) (test-tab-panel)))
+
 (define tp (make-object horizontal-pane% ap))
 (send tp stretchable-width #f)
 (make-object button% "Make Text Frame" tp (lambda (b e) (text-frame '(single))))

@@ -1726,7 +1726,7 @@
     
     (define callback call-back)
 
-    (define tabs tab-labels)
+    (define tabs (map wx:label->plain-label tab-labels))
     (define tab-widths #f)
     (define tab-height #f)
     
@@ -1734,12 +1734,14 @@
     
     (inherit get-dc get-client-size get-mred
 	     set-min-width set-min-height)
+    (rename [super-on-size on-size])
     
-    (define selected 1)
+    (define selected 0)
     (define tracking-pos #f)
     (define tracking-hit? #f)
     
     (define regions #f)
+    (define redo-regions? #f)
     
     (define/private (compute-sizes)
       (let ([dc (get-dc)])
@@ -1748,7 +1750,7 @@
 			     (cons w h)))
 			 tabs)])
 	  (set! tab-widths (map car w+hs))
-	  (let ([th (ceiling (+ (* 2 tab-v-space) (apply max (map cdr w+hs))))])
+	  (let ([th (ceiling (+ (* 2 tab-v-space) (apply max 0 (map cdr w+hs))))])
 	    (set! tab-height (if (even? th) th (add1 th)))))))
     
     (define/private (get-total-width)
@@ -1759,43 +1761,37 @@
 		   [(tw) (get-total-width)])
 	(/ (- w tw) 2)))
 
-    (define/override (on-event e)
-      (cond
-       [(and (send e button-down?) tab-widths)
-	(set! tracking-pos (find-click (send e get-x) (send e get-y)))
-	(when tracking-pos
-	  (set! tracking-hit? #t)
-	  (update-tracking))]
-       [(and (send e dragging?) tracking-pos)
-	(let ([hit? (equal? tracking-pos (find-click (send e get-x) (send e get-y)))])
-	  (unless (eq? tracking-hit? hit?)
-	    (set! tracking-hit? hit?)
-	    (update-tracking)))]
-       [(and (send e button-up?) tracking-pos
-	     (equal? tracking-pos (find-click (send e get-x) (send e get-y)))
-	     (not (= tracking-pos selected)))
-	;; Button released for final selection
-	(let* ([dc (get-dc)]
-	       [r (make-object wx:region% dc)]
-	       [old-rgn (list-ref regions selected)])
-	  (set! selected tracking-pos)
-	  (set! tracking-pos #f)
-	  (set! tracking-hit? #f)
-	  (send r union old-rgn)
-	  (setup-regions)
-	  (let ([new-rgn (list-ref regions selected)])
-	    ;; Union the new and old regions and repaint:
-	    (send r union new-rgn)
-	    (send dc set-clipping-region r)
-	    (on-paint)
-	    (send dc set-clipping-region #f)
-	    (callback this (make-object wx:control-event% 'tab-group))))]
-       ;; otherwise, turn off tracking...
-       [else
-	(when tracking-hit?
-	  (set! tracking-hit? #f)
-	  (update-tracking))
-	(set! tracking-pos #f)]))
+    (define/override on-event
+      (entry-point
+       (lambda (e)
+	 (cond
+	  [(and (send e button-down?) tab-widths)
+	   (set! tracking-pos (find-click (send e get-x) (send e get-y)))
+	   (when tracking-pos
+	     (set! tracking-hit? #t)
+	     (update-tracking))]
+	  [(and (send e dragging?) tracking-pos)
+	   (let ([hit? (equal? tracking-pos (find-click (send e get-x) (send e get-y)))])
+	     (unless (eq? tracking-hit? hit?)
+	       (set! tracking-hit? hit?)
+	       (update-tracking)))]
+	  [(and (send e button-up?) tracking-pos
+		(equal? tracking-pos (find-click (send e get-x) (send e get-y)))
+		(not (= tracking-pos selected)))
+	   ;; Button released for final selection
+	   (let ([new tracking-pos])
+	     (set! tracking-pos #f)
+	     (set! tracking-hit? #f)
+	     (set-selection new)
+	     (as-exit
+	      (lambda ()
+		(callback this (make-object wx:control-event% 'tab-panel)))))]
+	  ;; otherwise, turn off tracking...
+	  [else
+	   (when tracking-hit?
+	     (set! tracking-hit? #f)
+	     (update-tracking))
+	   (set! tracking-pos #f)]))))
     
     (define/private (update-tracking)
       (let ([dc (get-dc)])
@@ -1806,7 +1802,7 @@
     (define tmp-rgn #f)
     
     (define/private (find-click x y)
-      (unless regions (setup-regions))
+      (ready-regions)
       (unless tmp-rgn
 	(set! tmp-rgn (make-object wx:region% (get-dc))))
       (let loop ([rl regions][pos 0])
@@ -1832,8 +1828,12 @@
 		       regions
 		       (map (lambda (x)
 			      (make-object wx:region% dc))
-			    tabs))))))
+			    tabs))))
+	(set! redo-regions? #f)))
 
+    (define/private (ready-regions)
+      (unless (and regions (not redo-regions?)) 
+	(setup-regions)))
     
     (define (draw-once dc w light? dark? inset)
       (let ([init-x (get-init-x)])
@@ -1851,13 +1851,13 @@
 		      (when light?
 			(send dc draw-line 0 tab-height x tab-height)
 			(send dc draw-line 0 (add1 tab-height) x (add1 tab-height))))
-		    (let ([short (if (not (= (sub1 pos) selected))
+		    (let ([short (if (or (= pos 0) (= pos selected))
 				     0
 				     (/ tab-height 2))])
 		      (when light?
 			(send dc draw-line (+ x short) (- tab-height short) (+ x tab-height) 0)
 			(send dc draw-line (+ x short 1) (- tab-height short) (+ x tab-height 1) 0))
-		      (list (list (+ x short inset) (- tab-height short -2 inset))
+		      (list (list (+ x short -2 inset) (- tab-height short -2 inset))
 			    (list (+ x tab-height inset) inset))))
 		  ;; top line
 		  (begin
@@ -1866,9 +1866,9 @@
 		      (send dc draw-line (+ x tab-height) 1 next-x 1))
 		    (list (list (+ 1 next-x (- inset)) inset)))
 		  ;; right line
-		  (let ([short (if (or (= pos selected) (null? (cdr l)))
-				   0
-				   (/ tab-height 2))])
+		  (let ([short (if (= (add1 pos) selected)
+				   (/ tab-height 2)
+				   0)])
 		    (when dark?
 		      (send dc draw-line (add1 next-x) 1 (- (+ next-x tab-height) short 1) (- tab-height short 1))
 		      (send dc draw-line next-x 1 (- (+ next-x tab-height) short 2) (- tab-height short 1)))
@@ -1883,39 +1883,87 @@
 		    (list (list (+ next-x inset) (+ 2 tab-height (- inset))))))
 		 (loop next-x (cdr l) (cdr wl) (add1 pos))))))))
     
-    (define/override (on-paint)
-      (unless tab-widths
-	(compute-sizes))
-      (let ([dc (get-dc)])
-	(send dc set-background bg-color)
-	(send dc set-font font)
-	(send dc clear)
-	(send dc set-origin 0 2)
-	(when (and tracking-pos tracking-hit?)
-	  (let ([b (send dc get-brush)])
-	    (send dc set-brush dark-brush)
-	    (send dc set-pen trans-pen)
-	    (send dc draw-polygon (map (lambda (x) (make-object wx:point% (car x) (cadr x)))
-				       (list-ref (draw-once #f 0 #f #f 1) tracking-pos)))
-	    (send dc set-brush b)))
-	(let-values ([(w h) (my-get-client-size)])
-	  (send dc set-pen light-pen)
-	  (draw-once dc w #t #f 0)
-	  (when (> h tab-height)
-	    (send dc draw-line 0 tab-height 0 h)
-	    (send dc draw-line 1 tab-height 1 h))
-	  (send dc set-pen dark-pen)
-	  (draw-once dc w #f #t 0)
-	  (when (> h tab-height)
-	    (send dc draw-line (- w 1) tab-height (- w 1) h)
-	    (send dc draw-line (- w 2) tab-height (- w 2) h)
-	    (send dc draw-line 0 (- h 3) w (- h 3))
-	    (send dc draw-line 0 (- h 4) w (- h 4))))
-	(send dc set-origin 0 0)))
+    (define/override on-paint
+      (entry-point
+       (lambda ()
+	 (unless tab-widths
+	   (compute-sizes))
+	 (let ([dc (get-dc)])
+	   (send dc set-background bg-color)
+	   (send dc set-font font)
+	   (send dc clear)
+	   (send dc set-origin 0 2)
+	   (when (and tracking-pos tracking-hit?)
+	     (let ([b (send dc get-brush)])
+	       (send dc set-brush dark-brush)
+	       (send dc set-pen trans-pen)
+	       (send dc draw-polygon (map (lambda (x) (make-object wx:point% (car x) (cadr x)))
+					  (list-ref (draw-once #f 0 #f #f 1) tracking-pos)))
+	       (send dc set-brush b)))
+	   (let-values ([(w h) (my-get-client-size)])
+	     (send dc set-pen light-pen)
+	     (draw-once dc w #t #f 0)
+	     (when (> h tab-height)
+	       (send dc draw-line 0 tab-height 0 h)
+	       (send dc draw-line 1 tab-height 1 h))
+	     (send dc set-pen dark-pen)
+	     (draw-once dc w #f #t 0)
+	     (when (> h tab-height)
+	       (send dc draw-line (- w 1) tab-height (- w 1) h)
+	       (send dc draw-line (- w 2) tab-height (- w 2) h)
+	       (send dc draw-line 0 (- h 3) w (- h 3))
+	       (send dc draw-line 0 (- h 4) w (- h 4))))
+	   (send dc set-origin 0 0)))))
+
+    (define/override (on-size w h)
+      (set! redo-regions? #t)
+      (super-on-size w h))
 
     (define/private (my-get-client-size)
       (get-two-int-values (lambda (a b) (get-client-size a b))))
     
+    (define/public (get-selection)
+      selected)
+
+    (define/public (set-selection i)
+      (as-entry
+       (lambda ()
+	 (ready-regions)
+	 (when (< -1 i (length regions))
+	   (let* ([dc (get-dc)]
+		  [r (make-object wx:region% dc)]
+		  [old-rgn (list-ref regions selected)])
+	     (set! selected i)
+	     (send r union old-rgn)
+	     (setup-regions)
+	     (let ([new-rgn (list-ref regions selected)])
+	       ;; Union the new and old regions and repaint:
+	       (send r union new-rgn)
+	       (send dc set-clipping-region r)
+	       (on-paint)
+	       (send dc set-clipping-region #f)))))))
+
+    (define -append
+      (entry-point
+       (lambda (s)
+	 (set! tabs (append tabs (list (wx:label->plain-label s))))
+	 (set! tab-widths #f)
+	 (set! regions #f)
+	 (on-paint))))
+    (public (-append append))
+
+    (define/public (delete i)
+      (as-entry
+       (lambda ()
+	 (set! tabs (let loop ([pos 0][l tabs])
+		      (if (= i pos)
+			  (cdr tabs)
+			  (cons (car tabs) (loop (add1 pos) (cdr tabs))))))
+	 (set! selected (min selected (max 0 (sub1 (length tabs)))))
+	 (set! regions #f)
+	 (set! tab-widths #f)
+	 (on-paint))))
+
     (super-instantiate (mred proxy parent))
 
     (compute-sizes)
@@ -4511,12 +4559,14 @@
 
 (define tab-panel%
   (class vertical-panel%
-    (init choices callback) 
+    (init choices parent callback [style null])
     (let ([cwho '(constructor tab-panel)])
       (unless (and (list? choices) (andmap label-string? choices))
 	(raise-type-error (who->name cwho) "list of strings (up to 200 characters)" choices))
-      (check-callback cwho callback))
-    (super-instantiate ())
+      (check-callback cwho callback)
+      (check-container-parent cwho parent)
+      (check-style cwho #f '() style))
+    (super-instantiate (parent null))
     (define tabs (make-object tab-group% #f choices this (lambda (c e) (callback this e))))
     (send (mred->wx this) set-first-child-is-hidden)
 
@@ -4526,9 +4576,10 @@
      [get-number (lambda () (length save-choices))]
      [append (entry-point
 	      (lambda (n) 
-		(check-label-string '(method tab-group% append) n)
-		(set! save-choices (list-append save-choices (list (string->immutable-string n))))
-		(as-exit (lambda () (send (mred->wx tabs) append n)))))]
+		(check-label-string '(method tab-panel% append) n)
+		(let ([n (string->immutable-string n)])
+		  (set! save-choices (list-append save-choices (list n)))
+		  (as-exit (lambda () (send (mred->wx tabs) append n))))))]
      [get-selection (lambda () (and (pair? save-choices)
 				    (send (mred->wx tabs) get-selection)))]
      [set-selection (entry-point
