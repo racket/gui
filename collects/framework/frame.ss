@@ -1070,14 +1070,19 @@
         ;; only for PLTers
         (when (directory-exists? (build-path (collection-path "framework") "CVS"))
           (let* ([panel (make-object horizontal-panel% (get-info-panel) '(border))]
-                 [button (make-object button% "Memory" panel (lambda x
-                                                               (send memory-text begin-edit-sequence)
-                                                               (send memory-text erase)
-                                                               (collect-garbage)(collect-garbage)(collect-garbage)
-                                                               (send memory-text insert (number->string (current-memory-use)))
-                                                               (send memory-text end-edit-sequence)))]
+                 [update-text
+                  (lambda ()
+                    (send memory-text begin-edit-sequence)
+                    (send memory-text erase)
+                    (send memory-text insert (number->string (current-memory-use)))
+                    (send memory-text end-edit-sequence))]
+                 [button (make-object button% "Memory" panel 
+                           (lambda x
+                             (collect-garbage)(collect-garbage)(collect-garbage)
+                             (update-text)))]
                  [ec (make-object editor-canvas% panel memory-text '(no-hscroll no-vscroll))])
             (determine-width "000000000" ec memory-text)
+            (update-text)
             (send panel stretchable-width #f))))
       (private
 	[lock-message (make-object message%
