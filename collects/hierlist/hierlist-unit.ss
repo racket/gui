@@ -597,8 +597,9 @@
                               (cond
                                 [parent-snip
                                  (let ([parent (send parent-snip get-item)])
-                                   (send parent select #t)
-                                   (send parent scroll-to))]
+                                   (when (send parent get-allow-selection?)
+                                     (send parent select #t)
+                                     (send parent scroll-to)))]
                                 [else
                                  (void)]))))]
             [select-in (lambda () 
@@ -656,22 +657,34 @@
                             (if (eq? (car l) i)
                                 pos
                                 (loop (cdr l) (add1 pos))))))
+                    (define (find-next-selectable-item i vec)
+                      (let loop ([pos (+ i dir)])
+                        (cond
+                          [(= pos -1)
+                           i]
+                          [(= pos (vector-length vec))
+                           i]
+                          [(send (vector-ref vec pos) get-allow-selection?)
+                           pos]
+                          [else (loop (+ pos dir))])))
                     ;; Scrolling works differently depending on whether selections
                     ;;  are involved:
                     (if selectable?
                         (let* ([l (if selected
                                       (send (send selected get-parent) get-items)
                                       (get-items))]
+                               [vec (list->vector l)]
                                [pos (let ([found (find selected-item l)])
                                       (if (and selected-item found)
-                                          (+ dir found)
+                                          (find-next-selectable-item found vec)
                                           (if (negative? dir)
                                               (sub1 (length l))
                                               0)))])
                           (when (< -1 pos (length l))
-                            (let ([i (list-ref l pos)])
-                              (send i select #t)
-                              (send i scroll-to))))
+                            (let ([i (vector-ref vec pos)])
+                              (when (send i get-allow-selection?)
+                                (send i select #t)
+                                (send i scroll-to)))))
                         (let ([y-box (box 0.0)]
                               [x-box (box 0.0)]
                               [w-box (box 0.0)]
