@@ -899,11 +899,15 @@
        (letrec ([l (case-lambda
 		    [(edit) (l edit #t)]
 		    [(edit redraw?)
-		     (super-set-editor edit redraw?)
-		     
-		     (let ([mred (wx->mred this)])
-		       (when mred
-			 (send edit add-canvas mred)))
+		     (let ([old-edit (get-editor)])
+		       (super-set-editor edit redraw?)
+		 
+		       (let ([mred (wx->mred this)])
+			 (when mred
+			   (when old-edit
+			     (send old-edit remove-canvas mred))
+			   (when edit
+			     (send edit add-canvas mred)))))
 
 		     (update-size)
 		     
@@ -920,7 +924,7 @@
 				(set! orig-hard hard-min-height))
 			      (set! fixed-height? #t)
 			      (set! fixed-height-lines n))
-			    (begin
+			    (when orig-hard
 			      (set! fixed-height? #f)
 			      (set-min-height orig-hard)))
 			(update-size))]
@@ -928,8 +932,12 @@
        (lambda ()
 	 (let ([edit (get-editor)])
 	   (when (and edit fixed-height?)
-	     (let* ([top (send edit line-location 0 #t)]
-		    [bottom (send edit line-location 0 #f)]
+	     (let* ([top (if (is-a? edit text%)
+			     (send edit line-location 0 #t)
+			     0)]
+		    [bottom (if (is-a? edit text%)
+				(send edit line-location 0 #f)
+				14)]
 		    [height (- bottom top)])
 	       (let* ([ch (box 0)]
 		      [h (box 0)])
@@ -940,7 +948,8 @@
 		 (get-size (box 0) h)
 		 (let ([new-min-height (+ (* fixed-height-lines height) 
 					  (- (unbox h) (unbox ch)))])
-		   (set-min-height new-min-height)))))))])
+		   (set-min-height new-min-height)
+		   (force-redraw)))))))])
     
     (sequence
       (super-init parent x y w h (or name "") style spp init-buffer)
@@ -1032,7 +1041,7 @@
       [on-new-box
        (lambda (type)
 	 (unless (memq type '(text pasteboard))
-	   (raise-type-error (who->name '(method editor<%> on-new-box)) "symbol: 'text or 'pasteboard" type))
+	   (raise-type-error (who->name '(method editor<%> on-new-box)) "symbol: text or pasteboard" type))
 	 (make-object editor-snip%
 		      (make-object (cond
 				    [(eq? type 'pasteboard) pasteboard%]
@@ -1150,12 +1159,15 @@
       [change-children
        (lambda (f)
 	 (let ([new-children (f children)])
+	   (unless (list? new-children)
+	     (error 'change-children
+		    "result of given procedure was not a list"))
 	   (unless (andmap (lambda (child)
 			     (eq? this (send child area-parent)))
 			   new-children)
 	     (error 'change-children
 		    (string-append 
-		     "Not all members of the new list are "
+		     "not all members of the new list are "
 		     "children of the container ~e; list: ~e")
 		    this new-children))
 	   ; show all new children, hide all deleted children.
@@ -1165,7 +1177,7 @@
 			     (is-a? wx:window% child))
 			     removed-children)
 	       (error 'change-children
-		      "Cannot make non-window areas inactive in ~e"
+		      "cannot make non-window areas inactive in ~e"
 		      this))
 	     (for-each (lambda (child) (send child show #f))
 		       removed-children)
@@ -1310,16 +1322,29 @@
     (public
       ; place-children: determines where each child of panel should be
       ; placed.
-      ; input: children-info: list of child-info structs
-      ;          corresponding to children.
+      ; input: children-info: list of (int int bool bool)
       ;        width/height: size of panel's client area.
       ; returns: list of placement info for children; each item in list
       ;   is a list of 4 elements, consisting of child's x-posn,
       ;   y-posn, x-size, y-size (including margins).  Items are in same 
       ;   order as children-info list.
       [place-children void]
+      [check-place-children
+       (lambda (children-info width height)
+	 (unless (and (list? children-info)
+		      (andmap (lambda (x) (and (list? x)
+					       (= 4 (length x))
+					       (number? (car x)) (not (negative? (car x))) (integer? (car x))
+					       (number? (cadr x)) (not (negative? (cadr x))) (integer? (cadr x))))
+			      children-info))
+	   (raise-type-error (who->name '(method area-container-window<%> place-children))
+			     "list of (list of non-negative-integer non-negative-integer boolean boolean)"
+			     children-info))
+	 (check-non-negative-integer '(method area-container-window<%> place-children) width)
+	 (check-non-negative-integer '(method area-container-window<%> place-children) height))]
       [do-place-children
        (lambda (children-info width height)
+	 (check-place-children children-info width height)
 	 (let loop ([children-info children-info])
 	   (if (null? children-info)
 	       null
@@ -1354,26 +1379,37 @@
       [redraw
        (lambda (width height)
 	 (let ([children-info (get-children-info)])
-	   (panel-redraw children children-info
-			 (place-children (map (lambda (i)
-						(list (child-info-x-min i) (child-info-y-min i)
-						      (child-info-x-stretch i) (child-info-y-stretch i)))
-					      children-info)
-					 width height))))]
+	   (let ([l (place-children (map (lambda (i)
+					   (list (child-info-x-min i) (child-info-y-min i)
+						 (child-info-x-stretch i) (child-info-y-stretch i)))
+					 children-info)
+				    width height)])
+	     (unless (and (list? l)
+			  (= (length l) (length children-info))
+			  (andmap (lambda (x) (and (list? x)
+						   (= 4 (length x))
+						   (andmap (lambda (x) (and (number? x) (integer? x))) x)))
+				  l))
+	       (error 'container-redraw 
+		      "result from place-children is not a list of 4-integer lists with the correct length: ~a"
+		      l))
+	     (panel-redraw children children-info l))))]
       [panel-redraw
        (lambda (childs child-infos placements)
 	 (for-each
 	  (lambda (child info placement)
 	    (let-values ([(x y w h) (apply values placement)])
-	      (let ([xm (child-info-x-margin info)]
+	      (let ([minw (child-info-x-min info)]
+		    [minh (child-info-y-min info)]
+		    [xm (child-info-x-margin info)]
 		    [ym (child-info-y-margin info)])
 		(dynamic-wind
 		 (lambda () (set! ignore-redraw-request? #t))
 		 (lambda ()
 		   (send child set-size
-			 (+ x xm) (+ y ym)
-			 (max 1 (- w (* 2 xm)))
-			 (max 1 (- h (* 2 ym)))))
+			 (max 0 (+ x xm)) (max 0 (+ y ym))
+			 (max minw (- w (* 2 xm)))
+			 (max minh (- h (* 2 ym)))))
 		 (lambda () (set! ignore-redraw-request? #f)))
 		(send child on-container-resize))))
 	  childs
@@ -1548,7 +1584,7 @@
 (define (wx-make-horizontal-panel% wx-linear-panel%)
   (class wx-linear-panel% args
     (inherit major-align minor-align do-align do-get-alignment major-offset minor-offset
-	     spacing border do-graphical-size place-linear-children)
+	     spacing border do-graphical-size place-linear-children check-place-children)
     (override
       [alignment (lambda (h v) (do-align h v major-align minor-align))]
       [get-alignment (lambda () (do-get-alignment (lambda (x y) x)))]
@@ -1567,6 +1603,7 @@
 		    (* 2 (border)))))))]
       [do-place-children
        (lambda (l w h)
+	 (check-place-children l w h)
 	 (place-linear-children l w h
 				car    ; child-info-x-min
 				caddr  ; child-info-x-stretch
@@ -1585,7 +1622,7 @@
 (define (wx-make-vertical-panel% wx-linear-panel%)
   (class wx-linear-panel% args
     (inherit major-align minor-align do-align do-get-alignment major-offset minor-offset
-	     spacing border do-graphical-size place-linear-children)
+	     spacing border do-graphical-size place-linear-children check-place-children)
     (override
       [alignment (lambda (h v) (do-align h v minor-align major-align))]
       [get-alignment (lambda () (do-get-alignment (lambda (x y) y)))]
@@ -1605,6 +1642,7 @@
       
       [do-place-children
        (lambda (l w h)
+	 (check-place-children l w h)
 	 (place-linear-children l w h
 				cadr   ; child-info-y-min
 				cadddr ; child-info-y-stretch
@@ -1952,7 +1990,7 @@
       [is-enabled? (lambda () (send wx is-enabled?))]
       
       [get-label (lambda () label)]
-      [set-label (lambda (l) (check-string/false '(method window<%> set-label) l) (set! label l))]
+      [set-label (lambda (l) (set! label l))]
       [get-plain-label (lambda () (and (string? label) (wx:label->plain-label label)))]
 
       [accept-drop-files
@@ -2034,6 +2072,7 @@
 	     o))])
     (override
       [set-label (lambda (l)
+		   (check-string '(method top-level-window<%> set-label) l)
 		   (send wx set-title (wx:label->plain-label l))
 		   (super-set-label l))])
     (public
@@ -2211,22 +2250,28 @@
       (check-callback '(constructor radio-box) callback)
       (check-orientation 'radio-box style))
     (private
-      [wx #f])
+      [wx #f]
+      [per-button
+       (lambda (method n k)
+	 (if (< -1 n (get-number))
+	     (k)
+	     (error (who->name `(method radio-box% ,method)) "no such button: %d" n)))])
     (override
       [enable (case-lambda
 	       [(on?) (send wx enable on?)]
-	       [(which on?) (send wx enable which on?)])]
+	       [(which on?) (per-button 'enable which (lambda () (send wx enable which on?)))])]
       [is-enabled? (case-lambda
 		    [() (send wx is-enabled?)]
-		    [(which) (send wx is-enabled? which)])])
+		    [(which) (per-button 'is-enabled? which
+					 (lambda () (send wx is-enabled? which)))])])
     (public
       [get-number (lambda () (length choices))]
       [get-item-label (lambda (n) 
-			(and (< -1 n (get-number))
-			     (list-ref choices n)))]
+			(per-button 'get-item-label n
+				    (lambda () (list-ref choices n))))]
       [get-item-plain-label (lambda (n) 
-			      (and (< -1 n (get-number))
-				   (wx:label->plain-label (list-ref choices n))))]
+			      (per-button 'get-item-plain-label n
+					  (lambda () (wx:label->plain-label (list-ref choices n)))))]
        
       [get-selection (lambda () (send wx get-selection))]
       [set-selection (lambda (v) (send wx set-selection v))])
@@ -2356,7 +2401,7 @@
       [set-string (lambda (n d) (send wx set-string n d))]
       [set-data (lambda (n d) (send wx set-data n d))]
       [get-first-visible-item (lambda () (send wx get-first-item))]
-      [set-first-visible-item (lambda (n) (send wx set-first-item n))]
+      [set-first-visible-item (lambda (n) (send wx set-first-visible-item n))]
       [select (case-lambda 
 	       [(n) (send wx set-selection n)]
 	       [(n on?) (send wx set-selection n on?)])])
@@ -2499,7 +2544,7 @@
       [lazy-refresh
        (case-lambda
 	[() (send wx get-lazy-refresh)]
-	[(on?) (send wx set-lazy-refresh)])]
+	[(on?) (send wx set-lazy-refresh on?)])]
       [force-display-focus
        (case-lambda
 	[() force-focus?]
@@ -2763,6 +2808,7 @@
       [get-parent (lambda () parent)]
       [get-label (lambda () label)]
       [set-label (lambda (l)
+		   (check-string '(method labelled-menu-item<%> set-label) l)
 		   (set! label l)
 		   (set! plain-label (wx:label->plain-label l))
 		   (when shown?
@@ -2850,6 +2896,7 @@
 		       (values new-label keymap)))])
     (override
       [set-label (lambda (l) 
+		   (check-string '(method labelled-menu-item<%> set-label) l)
 		   (let-values ([(new-label keymap) (calc-labels l)])
 		     (super-set-label new-label)
 		     (if (is-deleted?)
@@ -2947,14 +2994,10 @@
       [get-frame (lambda () parent)]
       [get-items (lambda () (send wx get-items))]
       [enable (lambda (on?) (send wx enable-all on?))]
-      [is-enabled? (lambda () (send wx all-enabled?))]
-      [show (lambda (on?) 
-	      (set! shown? (and on? #t))
-	      (send wx-parent set-menu-bar (and on? wx)))]
-      [is-shown? (lambda () shown?)])
+      [is-enabled? (lambda () (send wx all-enabled?))])
     (sequence
       (super-init wx)
-      (show #t))))
+      (send wx-parent set-menu-bar wx))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;; REPL ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -3267,7 +3310,7 @@
 
 (define get-choice-from-user
   (case-lambda
-   [(title message choices) (get-choice-from-user title message choices null #f '(single))]
+   [(title message choices) (get-choice-from-user title message choices #f null '(single))]
    [(title message choices parent) (get-choice-from-user title message choices parent null '(single))]
    [(title message choices parent init-vals) (get-choice-from-user title message choices parent init-vals '(single))]
    [(title message choices parent init-vals style)
@@ -3514,7 +3557,8 @@
 		 [cancel-button (make-object button% "Cancel" bp (done #f))]
 		 [ok-button (make-object button% "Ok" bp (done #t) '(border))])
 	  (when font
-	    (let ([f (send face find-string (send font get-face))])
+	    (let* ([face (send font get-face)]
+		   [f (and face (send face find-string face))])
 	      (and f (>= f 0) (send face set-selection f)))
 	    (send style set-selection (case (send font get-style) [(normal) 0] [(italic) 1] [(slant) 2]))
 	    (send weight set-selection (case (send font get-weight) [(normal) 0] [(bold) 1] [(light) 2]))
@@ -3541,6 +3585,21 @@
 	[yb (box 0)])
     (wx:display-size xb yb)
     (values (unbox xb) (unbox yb))))
+
+(define register-collecting-blit
+  (case-lambda
+   [(canvas x y w h on off) (register-collecting-blit canvas x y w h on off 0 0 0 0)]
+   [(canvas x y w h on off on-x) (register-collecting-blit canvas x y w h on off on-x 0 0 0)]
+   [(canvas x y w h on off on-x on-y) (register-collecting-blit canvas x y w h on off on-x on-y 0 0)]
+   [(canvas x y w h on off on-x on-y off-x) (register-collecting-blit canvas x y w h on off on-x on-y off-x 0)]
+   [(canvas x y w h on off on-x on-y off-x off-y)
+    (check-instance 'register-collecting-blit canvas% "canvas" #f canvas)
+    (wx:register-collecting-blit (mred->wx canvas) x y w h on off on-x on-y off-x off-y)]))
+
+(define unregister-collecting-blit
+  (lambda (canvas)
+    (check-instance 'unregister-collecting-blit canvas% "canvas" #f canvas)
+    (wx:unregister-collecting-blit (mred->wx canvas))))
 
 (define (find-item-frame item)
   (let loop ([i item])
@@ -3727,6 +3786,10 @@
   (unless (and (number? range) (integer? range) (<= -10000 range 10000))
     (raise-type-error (who->name who) "integer in [-10000, 10000]" range)))
 
+(define (check-non-negative-integer who i)
+  (unless (and (number? i) (integer? i) (not (negative? i)))
+    (raise-type-error (who->name who) "non-negative integer" i)))
+
 (define (check-dimension who d)
   (when d (check-range-integer who d)))
 
@@ -3763,4 +3826,3 @@
 	      (raise-type-error (who->name who) (format "style list, ~a allowed only once" (car l)) style))
 	    (loop (cdr l)))))))
 
-  
