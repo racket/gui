@@ -6,6 +6,7 @@
    (lib "etc.ss"))
   
   (provide
+   text-button-snip%
    button-snip%
    toggle-button-snip%)
   
@@ -55,6 +56,35 @@
       (super-new)
       (load-file image)))
   
+  ;; a textual button of the same type
+  (define text-button-snip%
+    (class string-snip%
+      (init label)
+      (init-field callback)
+      (field
+       [got-click? false]
+       [inside? false])
+      
+      (rename [super-on-event on-event])
+      (define/override (on-event dc x y editorx editory event)
+        (case (send event get-event-type)
+          [(left-down)
+           (set! got-click? true)
+           (set! inside? true)]
+          [(left-up)
+           (when (and got-click? inside?)
+             (callback this event))
+           (set! got-click? false)
+           (set! inside? false)]
+          [(enter)
+           (set! inside? true)]
+          [(leave)
+           (set! inside? false)]
+          [else (void)]))
+      
+      (super-make-object label)))
+  
+  ;; a toggle button that displays different images
   (define toggle-button-snip%
     (class button-snip%
       (inherit set-images)

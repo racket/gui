@@ -1,22 +1,24 @@
-;;note:   This code computes the sizees for the rectangles in the space using the on dimention
-;;      off dimention method of referencing sizes. This means for example instead of saying
-;;      width we say off dimention for vertical alignment. Inorder to consume and return
-;;      the values in terms of width and height manipulation had to be done. I chose to create
-;;      a struct abs-rect (abstract rectangle) and have code map horizontal and vertical rect
-;;      stucts on to them. This code is a bit long but more readable than the other two options
-;;      I came up with.
-;;        1) define all functions to be letrec bound functions inside align. align then take
-;;           accessors for the rect struct. The caller of align swaps the order of ondimention
-;;           and off dimention accessors for vertical or horizontal code. This method does not
-;;           allow the use of the readable, sort, consis pattern matching code. As some of the
-;;           matching code is easily removed this may be a good option but a large letrec
-;;           is harder to write tests for.
-;;        2) define a pattern matcher syntax that will match the struct rect but swap the fields
-;;           based on wich on is the on or off dimention. This would have been shorter but much
-;;           more confusing.
-;;     The current implementation requires align to map over the rects and allocate new stucts
-;;     for each one on both passing into and returning from stretch-to-fit; This is not a bottle
-;;     neck and it is the most readable solution.
+#|
+This code computes the sizees for the rectangles in the space using the on dimention
+off dimention method of referencing sizes. This means for example instead of saying
+width we say off dimention for vertical alignment. Inorder to consume and return
+the values in terms of width and height manipulation had to be done. I chose to create
+a struct abs-rect (abstract rectangle) and have code map horizontal and vertical rect
+stucts on to them. This code is a bit long but more readable than the other two options
+I came up with.
+  1) define all functions to be letrec bound functions inside align. align then take
+     accessors for the rect struct. The caller of align swaps the order of ondimention
+     and off dimention accessors for vertical or horizontal code. This method does not
+     allow the use of the readable, short, consis pattern matching code. As some of the
+     matching code is easily removed this may be a good option but a large letrec
+     is harder to write tests for.
+  2) define a pattern matcher syntax that will match the struct rect but swap the fields
+     based on wich on is the on or off dimention. This would have been shorter but much
+     more confusing.
+The current implementation requires align to map over the rects and allocate new stucts
+for each one on both passing into and returning from stretch-to-fit; This is not a bottle
+neck and it is the most readable solution.
+|#
 
 (module alignment mzscheme
   
@@ -29,15 +31,16 @@
   (define-struct rect (x y))
   (define-struct abs-rect (ondim offdim))
   (define-struct dim (pos size stretchable?))
-  ;; make-rect (dim? dim? . -> . rect?)
-  ;; make-abs-rect (dim? dim? . -> . rect?)
-  ;; make-dim (nonnegative? nonnegative? boolean? . -> . dim?)
   
-  (provide
-   (struct rect (x y))
-   (struct dim (pos size stretchable?)))
+  (define (nonnegative? n)
+    (and (number? n)
+         (or (positive? n)
+             (zero? n))))
   
   (provide/contract
+   (struct rect ((x dim?) (y dim?)))
+   (struct abs-rect ((ondim dim?) (offdim dim?)))
+   (struct dim ((pos nonnegative?) (size nonnegative?) (stretchable? boolean?)))
    (align ((symbols 'horizontal 'vertical)
            positive? positive? (listof rect?)
            . -> . (listof rect?)))
@@ -137,7 +140,7 @@
                                   (make-dim 0 offsize offstretch?))
                    (loop rest-rects (+ onpos onsize))))]))))
   
-  ;; waner (nonnegative? . -> . (-> (union 1 0)))
+  ;; waner (natural-number? . -> . (-> (union 1 0)))
   ;; makes a thunk that returns 1 for it's first n applications, zero otherwise
   (define (waner n)
     (lambda ()
