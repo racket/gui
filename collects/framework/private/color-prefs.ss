@@ -19,28 +19,15 @@
               [panel : framework:panel^])
       
       (define standard-style-list-text% (editor:standard-style-list-mixin text%))
-            
-      (define (build-many-color-selection-panels symbols tab-name parent)
-        (let ([vp (new vertical-panel% (parent parent))])
-          (for-each
-           (lambda (symbol)
-             (build-color-selection-panel
-              vp
-              (get-full-pref-name tab-name symbol)
-              (get-full-style-name tab-name symbol)
-              (symbol->string symbol)))
-           symbols)))
       
       ;; build-color-selection-panel : (is-a?/c area-container<%>) symbol string string -> void
       ;; constructs a panel containg controls to configure the preferences panel.
       ;; BUG: style changes don't update the check boxes.
       (define (build-color-selection-panel parent pref-sym style-name example-text)
-        (define hp (new horizontal-panel% (parent parent) (style '(border))))
-        (define delta (preferences:get pref-sym))
-        (define c (make-object editor-canvas% hp
-                    #f
-                    (list 'hide-hscroll
-                          'hide-vscroll)))
+        (define hp (new horizontal-panel% 
+                        (parent parent)
+                        (style '(border))
+                        (stretchable-height #f)))
         (define e (new (class standard-style-list-text%
                          (inherit change-style get-style-list)
                          (rename [super-after-insert after-insert])
@@ -52,7 +39,13 @@
                                               style-name)])
                              (change-style style pos (+ pos offset) #f)))
                          (super-instantiate ()))))
+        (define c (new editor-canvas%
+                       (parent hp)
+                       (editor e)
+                       (style '(hide-hscroll
+                                hide-vscroll))))
         
+        (define delta (preferences:get pref-sym))
         (define (make-check name on off)
           (let* ([c (lambda (check command)
                       (if (send check get-value)
@@ -116,7 +109,6 @@
                                     #t))
         (editor:set-standard-style-list-delta style-name delta)
         
-        (send c set-editor e)
         (send e insert example-text)
         (send e set-position 0)
         
@@ -286,75 +278,14 @@
           (hash-table-put! prefs-panel-mapping (string->symbol name) panel)
           panel))
       
-      ;; prefs-table maps tab-name symbols to either 'too-late or a listof symbols/defaults.
-      ;; 'too-late indicates that the preference window has been created and 
-      ;; additions can no longer be made.
-      (define prefs-table (make-hash-table))
       
-      ;; pref-added-table maps tab-name symbols to booleans.
-      ;; #t iff the preferences:add call has been made.  This is to avoid
-      ;; calling add multiple times.
-      (define pref-added-table (make-hash-table))
-
-      (define (add-staged tab-name symbols/defaults)
-        (let* ((tab-name-symbol (string->symbol tab-name))
-               (active-pref (get-full-pref-name tab-name "active"))
-               (current (hash-table-get prefs-table tab-name-symbol (lambda () #f))))
-          (when (eq? 'too-late current)
-            (error 'color-prefs:add-staged
-                   "cannot be invoked after the preferences have already been created for this tab."))
-          (unless current
-            (preferences:set-default active-pref #t (lambda (x) #t))
-            (preferences:add-callback active-pref
-                                      (lambda (_ on?)
-                                        (do-active-pref-callbacks tab-name on?))))
-          (for-each (lambda (s/d) 
-                      (set-default (get-full-pref-name tab-name (car s/d)) (cadr s/d)))
-                    symbols/defaults)
-          (for-each (lambda (s/d)
-                      (preferences:set-un/marshall (get-full-pref-name tab-name (car s/d))
-                                                   marshall-style unmarshall-style))
-                    symbols/defaults)
-          (for-each (lambda (s/d)
-                      (editor:set-standard-style-list-delta 
-                       (get-full-style-name tab-name (car s/d))
-                       (preferences:get (get-full-pref-name tab-name (car s/d)))))
-                    symbols/defaults)
-          (hash-table-put! prefs-table
-                           tab-name-symbol
-                           (append (if current current null) symbols/defaults))
-          (lambda ()
-            (unless (hash-table-get pref-added-table tab-name-symbol (lambda () #f))
-              (hash-table-put! pref-added-table tab-name-symbol #t)
-              (preferences:add-panel 
-               (list "Junk" sc-syntax-coloring tab-name)
-               (lambda (p)
-                 (let ((vp (new vertical-panel% (parent p))))
-                   (build-many-color-selection-panels
-                    (map car (hash-table-get prefs-table
-                                             tab-name-symbol
-                                             (lambda () null)))
-                    tab-name
-                    vp)
-                   (let ((cb (new check-box%
-                                  (parent vp)
-                                  (label sc-color-syntax-interactively)
-                                  (callback (lambda (checkbox y)
-                                              (preferences:set 
-                                               active-pref
-                                               (send checkbox get-value)))))))
-                     (send cb set-value (preferences:get active-pref)))
-                   (hash-table-put! prefs-table tab-name-symbol 'too-late)
-                   vp)))))))
-    
-      (define (add tab-name symbols/defaults)
-        ((add-staged tab-name symbols/defaults)))
-       
-      (define (get-full-pref-name tab-name pref-name)
-        (string->symbol (get-full-style-name tab-name pref-name)))
-      
-      (define (get-full-style-name tab-name pref-name)
-        (format "syntax-coloring:~a:~a" tab-name pref-name))
+      ;; see docs
+      (define (register-color-pref pref-name style-name color)
+        (let ([sd (new style-delta%)])
+          (send sd set-delta-foreground color)
+          (preferences:set-default pref-name sd (lambda (x) (is-a? x style-delta%)))
+          (preferences:set-un/marshall pref-name marshall-style unmarshall-style)
+          (editor:set-standard-style-list-delta style-name sd)))
             
       ;; The following 4 defines are a mini-prefs system that uses a weak hash table
       ;; so the preferences won't hold on to a text when it should otherwise be GCed.

@@ -521,16 +521,12 @@
   (define-signature framework:color-prefs-class^
     ())
   (define-signature framework:color-prefs-fun^
-    (make-style-delta ;; to be gone
-     add ;; to be gone
-     add-staged ;; to be gone
+    (register-color-pref
      add-to-preferences-panel
      add-preferences-panel
      build-color-selection-panel
      register-active-pref-callback
-     remove-active-pref-callback
-     get-full-pref-name
-     get-full-style-name))
+     remove-active-pref-callback))
   (define-signature framework:color-prefs^
     ((open framework:color-prefs-class^)
      (open framework:color-prefs-fun^)))
@@ -555,7 +551,11 @@
      get-keymap
      setup-keymap
      add-preferences-panel
-     add-coloring-preferences-panel))
+     add-coloring-preferences-panel
+     
+     get-color-prefs-table
+     short-sym->pref-name
+     short-sym->style-name))
   (define-signature framework:scheme^
     ((open framework:scheme-class^)
      (open framework:scheme-fun^)))

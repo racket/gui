@@ -184,6 +184,19 @@
        (lambda (x)
 	 (or (eq? x 'common)
 	     (eq? x 'std))))
+      
+      ;; scheme prefs
+      
+      (for-each (lambda (line)
+                  (let ([sym (car line)]
+                        [color (cadr line)])
+                    (color-prefs:register-color-pref (scheme:short-sym->pref-name sym)
+                                                     (scheme:short-sym->style-name sym)
+                                                     color)))
+                (scheme:get-color-prefs-table))
+      (preferences:set-default 'framework:coloring-active #t boolean?)
+      ;; need to add in the editor checkbox.
+
 
       ;; groups
       
@@ -217,5 +230,4 @@
       (preferences:set 'framework:file-dialogs 'std)
       (preferences:set 'framework:exit-when-no-frames #t)
       
-      (scheme:add-coloring-preferences-panel)
       (void))))

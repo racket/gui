@@ -1310,6 +1310,38 @@
      "Installs the ``Scheme'' preferences panel in the ``Syntax Coloring''"
      "section.")
     
+    (scheme:get-color-prefs-table
+     (-> (listof (list/p symbol? (is-a?/c color%))))
+     ()
+     "Returns a table mapping from symbols (naming the categories that"
+     "the online colorer uses for Scheme mode coloring) to their"
+     "colors."
+     ""
+     "These symbols are suitable for input to"
+     "@flink scheme:short-sym->pref-name"
+     "and"
+     "@flink scheme:short-sym->style-name %"
+     ".")
+    
+    (scheme:short-sym->pref-name
+     (symbol? . -> . symbol?)
+     (short-sym)
+     "Builds the symbol naming the preference from one of the symbols"
+     "in the table returned by"
+     "@flink scheme:get-color-prefs-table %"
+     ".")
+    
+    (scheme:short-sym->style-name
+     (symbol? . -> . string?)
+     (short-sym)
+     "Builds the symbol naming the editor style from one of the symbols"
+     "in the table returned by"
+     "@flink scheme:get-color-prefs-table %"
+     ". This style is a named style in the style list"
+     "returned by"
+     "@flink editor:get-standard-style-list %"
+     ".")
+    
     (editor:set-standard-style-list-delta 
      (string? (is-a?/c style-delta%) . -> . void?)
      (name delta)
@@ -1516,7 +1548,25 @@
      (xyz)
      "Extracts the z component of \\var{xyz}.")
     
-    
+    (color-prefs:register-color-pref 
+     (symbol? string? (is-a?/c color%) . -> . void?)
+     (pref-name style-name color)
+     "This function registers a color preference and initializes the"
+     "style list returned from"
+     "@flink editor:get-standard-style-list %"
+     ". In particular, it calls "
+     "@flink preferences:set-default "
+     "and "
+     "@flink preferences:set-un/marshall "
+     "to install the pref for \\var{pref-name}, using"
+     "\\var{color} as the default color. The preference"
+     "is bound to a \\iscmclass{style-delta}, and initially the \\iscmclass{style-delta}"
+     "changes the foreground color to \\var{color}."
+     "Then, it calls "
+     "@flink editor:set-standard-style-list-delta"
+     "passing the \\var{style-name} and the newly"
+     "created \\iscmclass{style-delta}.")
+      
     (color-prefs:add-preferences-panel 
      (-> void?)
      ()
@@ -1532,34 +1582,4 @@
      (parent pref-sym style-name example-text)
      "...")
     
-    (color-prefs:make-style-delta
-     ((union string? (is-a?/c color%)) any? any? any? . -> . (is-a?/c style-delta%))
-     (color bold? underline? italic?)
-     "Soon to be deprecated.")
-    (color-prefs:add-staged
-     (string? (listof (list/p symbol? (is-a?/c style-delta%))) . -> . (-> any))
-     (tab-name styles/defaults)
-     "Sets up the preferences defaults for \\var{tab-name} and returns a"
-     "function that will install a panel named \\var{tab-name} in the"
-     "``Syntax Coloring'' section of the preferences dialog."
-     ""
-     "\\rawscm{color:prefs-add-staged} can be invoked many times to incrementally add"
-     "styles to a particular tab.  However, \\rawscm{color:prefs-add-staged} cannot be"
-     "called after the preferences window is created.  Repeated calls to funtions returned"
-     "by \\rawscm{color:prefs-add-staged} for a particular \\var{tab-name} have no effect"
-     "after the first call.")
-    (color-prefs:add
-     (string? (listof (list/p symbol? (is-a?/c style-delta%))) . -> . any)
-     (tab-name styles/defaults)
-     "Same as \\rawscm{color-prefs:add-staged}, except that it immediately"
-     "calls the function for installing the preferences panel.")
-    (color-prefs:get-full-pref-name
-     (string? printable? . -> . symbol?)
-     (tab-name preference-name)
-     "Returns the name of the preference that color-prefs uses for preference"
-     "\\var{preference-name} in \\var{tab-name}.")
-    (color-prefs:get-full-style-name
-     (string? printable? . -> . string?)
-     (tab-name preference-name)
-     "Returns the name of the style that color-prefs uses for preference"
-     "\\var{preference-name} in \\var{tab-name}.")))
+    ))

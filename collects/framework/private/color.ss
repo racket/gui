@@ -18,7 +18,8 @@
               [icon : framework:icon^]
               [mode : framework:mode^]
               [text : framework:text^]
-              [color-prefs : framework:color-prefs^])
+              [color-prefs : framework:color-prefs^]
+              [scheme : framework:scheme^])
   
       (rename [-text<%> text<%>]
               [-text% text%]
@@ -169,7 +170,7 @@
                     (set! colors
                           (cons
                            (let ((color (send (get-style-list) find-named-style
-                                              (color-prefs:get-full-style-name tab-name type)))
+                                              (scheme:short-sym->style-name type)))
                                  (sp (+ in-start-pos (sub1 new-token-start)))
                                  (ep (+ in-start-pos (sub1 new-token-end))))
                              (lambda ()
@@ -292,8 +293,7 @@
             (unless force-stop?
               (set! stopped? #f)
               (reset-tokens)
-              (set! should-color?
-                    (preferences:get (color-prefs:get-full-pref-name tab-name- "active")))
+              (set! should-color? (preferences:get 'framework:coloring-active))
               (set! tab-name tab-name-)
               (set! get-token get-token-)
               (set! pairs pairs-)
@@ -321,8 +321,8 @@
           (define/public (freeze-colorer)
             (when (is-locked?)
               (error 'freeze-colorer "called on a locked color:text<%>."))
-            (when (in-edit-sequence?)
-              (error 'freeze-colorer "called on a color:text<%> while in an edit sequence."))
+            #;(when (in-edit-sequence?)
+                (error 'freeze-colorer "called on a color:text<%> while in an edit sequence."))
             (unless frozen?
               (finish-now)
               (set! frozen? #t)))
