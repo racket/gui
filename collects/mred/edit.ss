@@ -477,7 +477,7 @@
 			 (send brush set-style wx:const-solid)
 			 (send pen set-colour color)
 			 (send brush set-colour color)
-			 (send dc set-logical-function wx:const-and)]
+			 (send dc set-logical-function wx:const-copy)]
 			[(and (not before) (not color) b/w-bitmap)
 			 (send pen set-stipple b/w-bitmap)
 			 (send pen set-style wx:const-stipple)
