@@ -226,7 +226,10 @@
                       (let ([filename (car recent-list-item)])
                         (instantiate menu-item% ()
                           (parent menu)
-                          (label (gui-utils:trim-string filename 200))
+                          (label (regexp-replace*
+                                  "&"
+                                  (gui-utils:trim-string filename 200)
+                                  "&&"))
                           (callback (lambda (x y) (open-recent-list-item recent-list-item))))))
                     recently-opened-files)))
 

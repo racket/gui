@@ -113,7 +113,10 @@
                   (lambda (frame)
                     (let ([frame (frame-frame frame)])
                       (make-object menu-item% 
-                        (gui-utils:trim-string (get-name frame) 200)
+                        (regexp-replace*
+                         "&"
+                         (gui-utils:trim-string (get-name frame) 200)
+                         "&&")
                         menu
                         (lambda (_1 _2)
                           (send frame show #t)))))
