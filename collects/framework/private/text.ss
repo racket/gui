@@ -885,7 +885,9 @@ WARNING: printf is rebound in the body of the unit to always
           get-out-port
           get-err-port
           get-value-port
-          after-io-insertion))
+          after-io-insertion
+          
+          on-peek))
       
       (define-struct peeker (bytes skip-count pe resp-chan nack) (make-inspector))
       (define-struct committer (kr commit-peeker-evt done-evt resp-chan resp-nack))
@@ -1004,6 +1006,9 @@ WARNING: printf is rebound in the body of the unit to always
               (send value-sd set-delta-foreground (make-object color% 0 0 175))
               value-sd))
 
+          ;; called by the port thread
+          (define/public (on-peek) (void))
+          
           ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
           ;;
           ;;  editor integration
@@ -1362,6 +1367,7 @@ WARNING: printf is rebound in the body of the unit to always
                      peek-chan
                      (lambda (peeker)
                        (dprintf "i: peek-chan\n")
+                       (on-peek)
                        (set! peekers (cons peeker peekers))
                        (loop)))
                     (handle-evt
