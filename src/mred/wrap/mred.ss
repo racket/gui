@@ -3142,7 +3142,7 @@
 				 [on-close (lambda () 
 					     (custodian-shutdown-all user-custodian)
 					     (semaphore-post waiting))]
-				 [on-drop-file (lambda (f) (evaluate `(load ,f)))])
+				 [on-drop-file (lambda (f) (evaluate (format "(load ~s)" f)))])
 			       (sequence (apply super-init args) (accept-drop-files #t)))
 			     "MrEd REPL" #f 500 400))
   (define repl-buffer (make-object esq:text%))
