@@ -570,8 +570,7 @@
             [(is-a? s string-snip%)
              (loop (send s next))]
             [else #f])))
-      (override on-save-file)
-      (define (on-save-file name format)
+      (define/override (on-save-file name format)
         (let ([all-strings? (all-string-snips)])
           (cond
             [(and all-strings?

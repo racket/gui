@@ -304,7 +304,8 @@
                                  "")])
                (for-each (lambda (canvas)
                            (let ([tlw (send canvas get-top-level-window)])
-                             (when (is-a? tlw frame:editor<%>)
+                             (when (and (is-a? tlw frame:editor<%>)
+                                        (eq? this (send tlw get-editor)))
                                (send tlw set-label filename))))
                          (get-canvases))))]
 	  (override after-save-file after-load-file set-filename get-keymaps)
