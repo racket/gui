@@ -657,6 +657,15 @@
     ""
     "See section \\ref{selecting-a-filename} for more information.")
 
+   (frame:setup-size-pref
+    (symbol? number? number? . -> . void)
+    (size-pref-sym width height)
+    "Initializes a preference for the"
+    "@mixin-link frame:size-pref"
+    "mixin."
+    ""
+    "The first argument should be the preferences symbol, and the second an third"
+    "should be the default width and height, respectively.")
    (frame:add-snip-menu-items
     ((is-a?/c menu%) (subclass?/c menu-item%) . -> . void?)
     (menu menu-item%)

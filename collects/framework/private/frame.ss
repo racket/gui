@@ -222,6 +222,16 @@
           (let ([lst (preferences:get size-preferences-key)])
             (super-new [width (car lst)] [height (cadr lst)]))))
 
+      (define (setup-size-pref size-preferences-key w h)
+        (preferences:set-default size-preferences-key 
+                                 (list w h)
+                                 (lambda (x)
+                                   (and (pair? x)
+                                        (pair? (cdr x))
+                                        (null? (cddr x))
+                                        (number? (car x))
+                                        (number? (cadr x))))))
+      
       (define register-group<%> (interface ()))
       (define register-group-mixin
         (mixin (basic<%>) (register-group<%>)
