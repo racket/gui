@@ -2,6 +2,7 @@
   (require (lib "class.ss")
            (lib "etc.ss")
            (lib "unitsig.ss")
+	   (lib "thread.ss")
            (lib "mred.ss" "mred")
            (lib "token-tree.ss" "syntax-color")
            (lib "paren-tree.ss" "syntax-color")
@@ -97,7 +98,7 @@
           ;; The lexer
           (define get-token #f)
                               
-          ;; ---------------------- Parnethesis matching ----------------------
+          ;; ---------------------- Parenethesis matching ----------------------
           
           ;; The pairs of matching parens
           (define pairs '())
@@ -130,11 +131,11 @@
           ;; ---------------------- Multi-threading ---------------------------
           ;; A list of thunks that color the buffer
           (define colors null)
-          ;; The thread handle to the background colorer
-          (define background-thread #f)
-          ;; Prevent the background thread from being put to sleep while modifying
-          ;; global state
-          (define mutex-lock (make-semaphore 1))
+          ;; The coroutine object for tokenizing the buffer
+          (define tok-cor #f)
+          ;; The editor revision when tok-cor was created
+          (define rev #f)
+          
           
           (inherit change-style begin-edit-sequence end-edit-sequence highlight-range
                    get-style-list in-edit-sequence? get-start-position get-end-position
@@ -151,12 +152,10 @@
             (set! parens (new paren-tree% (matches pairs)))
             (set! current-pos start-pos)
             (set! colors null)
-            (modify))
-          
-          ;; Let the background thread know the text has been modified.
-          (define/private (modify)
-            (when background-thread
-              (break-thread background-thread)))
+            (when tok-cor
+              (coroutine-kill tok-cor))
+            (set! tok-cor #f)
+            (set! rev #f))
           
           ;; Actually color the buffer.
           (define/private (color)
@@ -165,7 +164,7 @@
               (set! colors (cdr colors))
               (color)))
           
-          ;; Discard extra tokens at the first of invalie-tokens
+          ;; Discard extra tokens at the first of invalid-tokens
           (define/private (sync-invalid)
             (when (and (not (send invalid-tokens is-empty?))
                        (< invalid-tokens-start current-pos))
@@ -175,18 +174,12 @@
                 (set! invalid-tokens-start (+ invalid-tokens-start length)))
               (sync-invalid)))
           
-          ;; re-tokenize should be called with breaks disabled, and
-          ;; should be called when lock is not held.  When it exits,
-          ;; the lock will be held.
-          (define/private (re-tokenize in in-start-pos)
+          (define/private (re-tokenize in in-start-pos enable-suspend)
             (let-values ([(lexeme type data new-token-start new-token-end) 
-			  ;; Allow breaks while getting tokens
-			  (parameterize-break #t
-			    (get-token in))])
+                          (get-token in)])
               ;(printf "~a~n" lexeme)
-	      ;; Also allow breaks while trying to enter the critical region:
-	      (semaphore-wait/enable-break mutex-lock)
 	      (unless (eq? 'eof type)
+                (enable-suspend #f)
 		(let ((len (- new-token-end new-token-start)))
 		  (set! current-pos (+ len current-pos))
 		  (sync-invalid)
@@ -213,14 +206,14 @@
 		    (send parens merge-tree
 			  (send invalid-tokens get-root-end-position))
 		    (insert-last! tokens invalid-tokens)
-		    (set! invalid-tokens-start +inf.0))
+		    (set! invalid-tokens-start +inf.0)
+                    (enable-suspend #t))
 		   (else
-		    (semaphore-post mutex-lock)
-		    (re-tokenize in in-start-pos)))))))
+		    (enable-suspend #t)
+		    (re-tokenize in in-start-pos enable-suspend)))))))
           
           (define/private (do-insert/delete edit-start-pos change-length)
             (unless (or stopped? force-stop?)
-              (modify)
               (unless up-to-date?
                 (sync-invalid))
               (cond
@@ -254,18 +247,30 @@
                    (set! invalid-tokens-start (+ change-length invalid-tokens-start))
                    (set! current-pos (+ start-pos tok-start)))))))
 
-          (inherit is-locked?)
+          (inherit is-locked? get-revision-number)
           
-	  (define done-sema (make-semaphore))
-
           (define/private (colorer-driver)
             (unless up-to-date?
-	      (set! done-sema (make-semaphore))
-              (thread-resume background-thread)
-              (sync/timeout 0.01 done-sema)
-              (semaphore-wait mutex-lock)
-              (thread-suspend background-thread)
-              (semaphore-post mutex-lock)
+              (unless (and tok-cor (= rev (get-revision-number)))
+                (when tok-cor
+                  (coroutine-kill tok-cor))
+                (set! tok-cor
+                      (coroutine
+                       (lambda (enable-suspend)
+                         (re-tokenize (open-input-text-editor this current-pos end-pos
+                                                              (lambda (x) #f))
+                                      current-pos
+                                      enable-suspend))))
+                (set! rev (get-revision-number)))
+              (with-handlers ((exn:fail?
+                               (lambda (exn)
+                                 (parameterize ((print-struct #t))
+                                   ((error-display-handler) 
+                                    (format "exception in colorer thread: ~s" exn)
+                                    exn))
+                                 (set! tok-cor #f))))
+                (when (coroutine-run 10 tok-cor)
+                  (set! up-to-date? #t)))
               (unless (null? colors)
                 (begin-edit-sequence #f #f)
                 (color)
@@ -280,35 +285,7 @@
                  (colorer-driver))
                (unless up-to-date?
                  (queue-callback (lambda () (colorer-callback)) #f)))))
-          
-          ;; Breaks should be disabled on entry
-          (define/private (background-colorer-entry)
-            (thread-suspend (current-thread))
-            (background-colorer))
-          
-          ;; Breaks should be disabled on entry
-          (define/private (background-colorer)
-            (let/ec restart
-              (parameterize ((current-exception-handler
-                              (lambda (exn)
-                                (restart))))
-		(with-handlers ((exn:fail?
-				 (lambda (exn)
-				   (parameterize ((print-struct #t))
-				     ((error-display-handler) 
-                                      (format "exception in colorer thread: ~s" exn)
-                                      exn))
-				   (semaphore-wait mutex-lock))))
-		  (re-tokenize (open-input-text-editor this current-pos end-pos
-						       (lambda (x) #f))
-			       current-pos))
-                (set! up-to-date? #t)
-		;; (printf "~a~n" (- (current-milliseconds) timer))
-		(semaphore-post done-sema)
-                (semaphore-post mutex-lock)
-                (thread-suspend (current-thread))))
-            (background-colorer))
-          
+                    
           ;; Must not be called when the editor is locked
           (define/private (finish-now)
             (unless stopped?
@@ -316,6 +293,7 @@
                 (unless up-to-date?
                   (colorer-driver)
                   (loop)))))
+
           ;; See docs
           (define/public (start-colorer token-sym->style- get-token- pairs-)
             (unless force-stop?
@@ -326,11 +304,6 @@
               (set! get-token get-token-)
               (set! pairs pairs-)
               (set! parens (new paren-tree% (matches pairs)))
-              (unless background-thread
-		;; Create background thread with breaks initially disabled:
-		(parameterize-break #f
-		  (set! background-thread
-			(thread (lambda () (background-colorer-entry))))))
 	      ;; (set! timer (current-milliseconds))
               (do-insert/delete start-pos 0)))
             
@@ -408,10 +381,7 @@
           (define/public (force-stop-colorer stop?)
             (set! force-stop? stop?)
             (when stop?
-              (stop-colorer)
-              (when background-thread
-                (kill-thread background-thread)
-		(set! background-thread #f))))
+              (stop-colorer)))
           
           
           ;; ----------------------- Match parentheses ----------------------------
@@ -662,15 +632,7 @@
           (define/override (on-focus on?)
             (super on-focus on?)
             (match-parens (not on?)))
-          
-          (define/augment (after-split-snip pos)
-            (modify)
-	    (inner (void) after-split-snip pos))
-          
-          (define/augment (after-merge-snips pos)
-            (modify)
-	    (inner (void) after-merge-snips pos))
-          
+                    
           (define/augment (after-edit-sequence)
             (when (has-focus?)
               (match-parens))
