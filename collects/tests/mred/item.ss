@@ -1,5 +1,7 @@
 
-(require-library "core.ss")
+(require (lib "class.ss")
+	 (lib "class100.ss")
+	 (lib "etc.ss"))
 
 (define my-txt #f)
 (define my-lb #f)
@@ -19,9 +21,10 @@
 			       100 100))
   (send default-parent-frame show #t))
 
-(when (defined? 'mdi?)
-  (when mdi?
-    (mdi)))
+(when (with-handlers ([not-break-exn? (lambda (x) #f)])
+	 (namespace-variable-binding 'mid?)
+	 mdi?)
+  (mdi))
 
 (define make-frame
   (opt-lambda (% name [parent #f] [x #f] [y #f] [w #f] [h #f] [style '()])
@@ -71,7 +74,7 @@
   (define m (make-object message% "focus: ??????????????????????????????" panel))
   (send
    (make-object
-    (class-asi timer%
+    (class100-asi timer%
       (inherit start)
       (override
 	[notify
@@ -173,18 +176,22 @@
        (build-path d n)))))
 
 (define on-demand-menu-item%
-  (class menu-item% (name . args)
-	 (override
-	   [on-demand
-	    (lambda ()
-	      (printf "Menu item ~a demanded~n" name))])
-	 (sequence
-	   (apply super-init name args))))
+  (class100 menu-item% (-name . args)
+    (private-field
+     [name -name])
+    (override
+      [on-demand
+       (lambda ()
+	 (printf "Menu item ~a demanded~n" name))])
+    (sequence
+      (apply super-init name args))))
 
 (define popup-test-canvas%
-  (class canvas% (objects names . args)
+  (class100 canvas% (-objects -names . args)
     (inherit popup-menu get-dc refresh)
-    (public
+    (private-field
+      [objects -objects]
+      [names -names]
       [tab-in? #f]
       [last-m null]
       [last-choice #f])
@@ -252,7 +259,7 @@
 (define prev-frame #f)
 
 (define bitmap%
-  (class bitmap% args
+  (class100 bitmap% args
     (inherit ok?)
     (sequence
       (apply super-init args)
@@ -260,8 +267,8 @@
 	(printf "bitmap failure: ~s~n" args)))))
 
 (define active-frame%
-  (class-asi frame%
-    (private 
+  (class100-asi frame%
+    (private-field
       [pre-on void]
       [click-i void]
       [el void])
@@ -271,10 +278,10 @@
 				    (apply el args)
 				    (or (apply pre-on args)
 					(apply click-i args)
-					(apply super-on-subwindow-event args)))]
+					(super-on-subwindow-event . args)))]
 	      [on-subwindow-char (lambda args 
 				   (or (apply pre-on args)
-				       (apply super-on-subwindow-char args)))]
+				       (super-on-subwindow-char . args)))]
 	      [on-activate (lambda (on?) (printf "active: ~a~n" on?))]
 	      [on-move (lambda (x y) (printf "moved: ~a ~a~n" x y))]
 	      [on-size (lambda (x y) (printf "sized: ~a ~a~n" x y))])
@@ -285,7 +292,8 @@
 	       (set! el (add-enter/leave-note this ep)))])))
 
 (define (trace-mixin c%)
-  (class c% (name . args)
+  (class100 c% (-name . args)
+    (private-field [name -name])
     (override
       [on-superwindow-show
        (lambda (on?)
@@ -601,8 +609,8 @@
 ; Need: check, check-test, and enable via menubar
 ; All operations on Submenus
 (define f%
-  (class frame% args
-    (private
+  (class100 frame% args
+    (private-field
       ADD-APPLE
       ADD-BANANA
       ADD-COCONUT
@@ -615,7 +623,7 @@
       COCONUT-ID
       DELETE-ONCE
       APPLE-CHECK-ID)
-    (private
+    (private-field
       menu-bar
       main-menu
       apple-menu
@@ -631,9 +639,9 @@
 	 (let* ([mb (make-object menu-bar% this)]
 		[menu (make-object menu% "&Tester" mb)]
 		[new (case-lambda 
-		      [(l help parent) (make-object menu-item% l parent callback #f help)]
-		      [(l help) (make-object menu-item% l menu callback #f help)]
-		      [(l) (make-object menu-item% l menu callback)])]
+		      [(l help parent) (make-object menu-item% l parent (lambda (o e) (callback o e)) #f help)]
+		      [(l help) (make-object menu-item% l menu (lambda (o e) (callback o e)) #f help)]
+		      [(l) (make-object menu-item% l menu (lambda (o e) (callback o e)))])]
 		[sep (lambda () (make-object separator-menu-item% menu))])
 	   (set! menu-bar mb)
 	   (set! main-menu menu)
@@ -711,7 +719,7 @@
 	   (send COCONUT-ID delete)]
 	  [(eq? op DELETE-COCONUT-2)
 	   (send (list-ref (send apple-menu get-items) 3) delete)]))])
-    (public
+    (private-field
 	[mfp (make-object vertical-panel% this)]
 	[mc (make-object editor-canvas% mfp)]
 	[restp (make-object vertical-panel% mfp)]
@@ -793,10 +801,12 @@
 	     (compare expect v (format "label search: ~a" string))))]
 	[tell-ok
 	 (lambda ()
-	   (printf "ok~n"))]
+	   (printf "ok~n"))])
+      (private-field
 	[temp-labels? #f]
 	[use-menubar? #f]
-	[apple-installed? #f]
+	[apple-installed? #f])
+      (public
 	[via (lambda (menu) (if use-menubar? menu-bar menu))]
 	[tmp-pick (lambda (a b) (if temp-labels? a b))]
 	[apple-pick (lambda (x a b) (if (and use-menubar? (not apple-installed?))
@@ -906,28 +916,28 @@
 (define (panel-frame)
   (define make-p% 
     (lambda (panel%)
-      (class panel% (parent)
-	     (override
-		 [container-size
-		  (lambda (l)
-		    (values (apply + (map car l))
-			    (apply + (map cadr l))))]
-		 [place-children
-		  (lambda (l w h)
-		    (let-values ([(mw mh) (container-size l)])
-		      (let* ([num-x-stretch (apply + (map (lambda (x) (if (caddr x) 1 0)) l))]
-			     [num-y-stretch (apply + (map (lambda (x) (if (cadddr x) 1 0)) l))]
-			     [dx (floor (/ (- w mw) num-x-stretch))]
-			     [dy (floor (/ (- h mh) num-y-stretch))])
-			(let loop ([l l][r null][x 0][y 0])
-			  (if (null? l)
-			      (reverse r)
-			      (let ([w (+ (caar l) (if (caddr (car l)) dx 0))]
-				    [h (+ (cadar l) (if (cadddr (car l)) dy 0))])
-				(loop (cdr l)
-				      (cons (list x y w h) r)
-				      (+ x w) (+ y h))))))))])
-	       (sequence (super-init parent)))))
+      (class100 panel% (parent)
+	(override
+	  [container-size
+	   (lambda (l)
+	     (values (apply + (map car l))
+		     (apply + (map cadr l))))]
+	  [place-children
+	   (lambda (l w h)
+	     (let-values ([(mw mh) (container-size l)])
+	       (let* ([num-x-stretch (apply + (map (lambda (x) (if (caddr x) 1 0)) l))]
+		      [num-y-stretch (apply + (map (lambda (x) (if (cadddr x) 1 0)) l))]
+		      [dx (floor (/ (- w mw) num-x-stretch))]
+		      [dy (floor (/ (- h mh) num-y-stretch))])
+		 (let loop ([l l][r null][x 0][y 0])
+		   (if (null? l)
+		       (reverse r)
+		       (let ([w (+ (caar l) (if (caddr (car l)) dx 0))]
+			     [h (+ (cadar l) (if (cadddr (car l)) dy 0))])
+			 (loop (cdr l)
+			       (cons (list x y w h) r)
+			       (+ x w) (+ y h))))))))])
+	(sequence (super-init parent)))))
   (define f (make-frame frame% "Panel Tests"))
   (define h (make-object horizontal-panel% f))
   (define kind (begin
@@ -1485,12 +1495,14 @@
 (define (canvas-frame flags)
   (define f (make-frame frame% "Canvas Test" #f #f 250))
   (define p (make-object vertical-panel% f))
-  (define c% (class canvas% (name swapped-name p)
+  (define c% (class100 canvas% (-name -swapped-name p)
 	       (inherit get-dc get-scroll-pos get-scroll-range get-scroll-page
 			get-client-size get-virtual-size get-view-start)
 	       (rename [super-init-manual-scrollbars init-manual-scrollbars]
 		       [super-init-auto-scrollbars init-auto-scrollbars])
-	       (public
+	       (private-field
+		 [name -name]
+		 [swapped-name -swapped-name]
 		 [auto? #f]
 		 [incremental? #f]
 		 [inc-mode (lambda (x) (set! incremental? x))]
@@ -1529,10 +1541,10 @@
 		   (unless incremental? (on-paint)))]
 		[init-auto-scrollbars (lambda x
 					(set! auto? #t)
-					(apply super-init-auto-scrollbars x))]
+					(super-init-auto-scrollbars . x))]
 		[init-manual-scrollbars (lambda x
 					  (set! auto? #f)
-					  (apply super-init-manual-scrollbars x))])
+					  (super-init-manual-scrollbars . x))])
 	       (sequence
 		 (super-init p flags))))
   (define un-name "Unmanaged scroll")
@@ -1679,30 +1691,30 @@
   (make-object vertical-panel% clockp) ; filler
   (let ([time (make-object message% "XX:XX:XX" clockp)])
     (make-object
-     (class timer% ()
-	    (inherit start)
-	    (override
-	     [notify
-	      (lambda ()
-		(let* ([now (seconds->date (current-seconds))]
-		       [pad (lambda (pc d)
-			      (let ([s (number->string d)])
-				(if (= 1 (string-length s))
-				    (string-append pc s)
-				    s)))]
-		       [s (format "~a:~a:~a"
-				  (pad " " (let ([h (modulo (date-hour now) 12)])
-					     (if (zero? h)
-						 12
-						 h)))
-				  (pad "0" (date-minute now))
-				  (pad "0" (date-second now)))])
-		  (send time set-label s)
-		  (when (send selector is-shown?)
-			(start 1000 #t))))])
-	    (sequence
-	      (super-init)
-	      (start 1000 #t))))))
+     (class100 timer% ()
+       (inherit start)
+       (override
+	 [notify
+	  (lambda ()
+	    (let* ([now (seconds->date (current-seconds))]
+		   [pad (lambda (pc d)
+			  (let ([s (number->string d)])
+			    (if (= 1 (string-length s))
+				(string-append pc s)
+				s)))]
+		   [s (format "~a:~a:~a"
+			      (pad " " (let ([h (modulo (date-hour now) 12)])
+					 (if (zero? h)
+					     12
+					     h)))
+			      (pad "0" (date-minute now))
+			      (pad "0" (date-second now)))])
+	      (send time set-label s)
+	      (when (send selector is-shown?)
+		(start 1000 #t))))])
+       (sequence
+	 (super-init)
+	 (start 1000 #t))))))
 
 (define bp (make-object vertical-panel% ap '(border)))
 (define bp1 (make-object horizontal-panel% bp))
