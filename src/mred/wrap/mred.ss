@@ -637,7 +637,7 @@
 		      (set! already-trying? #t)
 		      (set-size -1 -1 correct-w correct-h)
 		      (set! already-trying? #f)
-		      (when was-bad? (resized)))))))))])
+		      (resized))))))))])
       
     (override
       ; show: add capability to set perform-updates
@@ -687,8 +687,9 @@
       ;            independently.
       [on-size
        (lambda (bad-width bad-height)
-	 (parameterize ([wx:current-eventspace eventspace])
-	   (wx:queue-callback resized #t)))])
+	 (unless already-trying?
+	   (parameterize ([wx:current-eventspace eventspace])
+	     (wx:queue-callback resized #t))))])
 
     (public
       [handle-traverse-key
