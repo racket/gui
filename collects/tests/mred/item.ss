@@ -533,21 +533,6 @@
 	     (make-object menu-item% "Disable Second" menu (mk-enable #f))
 	     (make-object menu-item% "Enable Second" menu (mk-enable #t)))
 
-	   (sep)
-	   '(set! baseball-ids
-		  (send menu append-check-set
-			(list "Astros" "Braves" "Cardinals")
-			(lambda (which)
-			  (message-box "Test" (format "~s Checked" which)))))
-	   (sep)
-	   '(set! hockey-ids
-		  (send menu append-check-set
-			`(("Aeros" . Houston) 
-			  ("Bruins" . Boston)
-			  ("Capitols" . Washington))
-			(lambda (which)
-			  (message-box "Test" (format "~s Checked" which)))))
-	   
 	   (let ([make-menu
 		  (opt-lambda (title parent help-string)
 		    (let ([m (make-object menu% title parent help-string)])
@@ -705,6 +690,10 @@
 		     (lambda args
 		       (send DELETE-BANANA restore)))
 	(make-object button%
+		     "Toggle Menubar Enable" sbp
+		     (lambda args
+		       (send mb enable (send mb is-enabled?))))
+	(make-object button%
 		     "Counts" sbp
 		     (lambda args
 		       (message-box
@@ -715,9 +704,6 @@
 				(length (send apple-menu get-items))
 				(length (send banana-menu get-items))))))
 
-	'(make-test-button "Aeros" mfbp main-menu (list-ref hockey-ids 0))
-	'(make-test-button "Bruins" mfbp main-menu (list-ref hockey-ids 1))
-	'(make-test-button "Capitols" mfbp main-menu (list-ref hockey-ids 2))
 	(make-test-button "Apple Item" mfbp apple-menu APPLE-CHECK-ID)
 	(make-object button%
 		     "Check in Apple" mfbp
@@ -729,9 +715,6 @@
 		     (lambda args
 		       (label-test (via main-menu) ADD-APPLE (tmp-pick "Apple Adder" "Add Apple"))
 		       (help-string-test (via main-menu) ADD-APPLE (tmp-pick "ADDER" "Adds the Apple menu"))
-		       '(label-test (via main-menu) (car baseball-ids) (tmp-pick "'Stros" "Astros"))
-		       '(help-string-test (via main-menu) (car baseball-ids) (tmp-pick "Houston" #f))
-		       '(label-test (via main-menu) (cadr hockey-ids) "Bruins")
 		       (label-test (via apple-menu) DELETE-APPLE (apple-pick #f "Apple Deleter" "Delete Apple"))
 		       (help-string-test (via apple-menu) DELETE-APPLE (apple-pick #f "DELETER"
 										   "Deletes the Apple menu"))
@@ -760,12 +743,10 @@
 		       (set! temp-labels? (not temp-labels?))
 		       (let ([menu (via main-menu)])
 			 (send ADD-APPLE set-label (tmp-pick "Apple Adder" "Add Apple"))
-			 '(send (car baseball-ids) set-label (tmp-pick "'Stros" "Astros"))
 			 (send DELETE-APPLE set-label (tmp-pick "Apple Deleter" "Delete Apple"))
 			 (send COCONUT-ID set-label (tmp-pick "Coconut!" "Coconut"))
 			 (send DELETE-COCONUT set-label (tmp-pick "Coconut Deleter" "Delete Coconut"))
 			 (send ADD-APPLE set-help-string (tmp-pick "ADDER" "Adds the Apple menu"))
-			 '(send (car baseball-ids) set-help-string (tmp-pick "Houston" #f))
 			 (send DELETE-APPLE set-help-string (tmp-pick "DELETER" "Deletes the Apple menu"))
 			 (send COCONUT-ID set-help-string (tmp-pick "SUBMENU" "Submenu"))
 			 (send DELETE-COCONUT set-help-string (tmp-pick "CDELETER" #f))
