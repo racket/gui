@@ -8,7 +8,7 @@ X with fontconfig/Xft: Changed default 'symbol face mapping
 PostScript `draw-bitmap' now uses a supplied mask
 
 Version 205.3
-Added optional argument to draw-text in dc% for rotation
+Added optional argument to draw-text in dc<%> for rotation
 
 Version 205.2
 Added optional argument to get-display-size to get the entire
