@@ -3067,7 +3067,7 @@
       
       [get-label (lambda () label)]
       [set-label (lambda (l)
-		   (check-string/false '(method window<%> set-label) l)
+		   (check-label-string/false '(method window<%> set-label) l)
 		   (set! label (if (string? l)
 				   (string->immutable-string l)
 				   l)))]
@@ -3178,7 +3178,7 @@
     (override
       [set-label (entry-point
 		  (lambda (l)
-		    (check-string/false '(method top-level-window<%> set-label) l)
+		    (check-label-string/false '(method top-level-window<%> set-label) l)
 		    (send wx set-title (or l ""))
 		    (super-set-label l)))])
     (public
@@ -3282,7 +3282,7 @@
     (inherit on-traverse-char on-system-menu-char)
     (sequence
       (let ([cwho '(constructor frame)])
-	(check-string cwho label)
+	(check-label-string cwho label)
 	(check-frame-parent/false cwho parent)
 	(for-each (lambda (x) (check-dimension cwho x)) (list width height x y))
 	(check-style cwho #f '(no-resize-border no-caption no-system-menu mdi-parent mdi-child) 
@@ -3343,7 +3343,7 @@
     (inherit on-traverse-char on-system-menu-char)
     (sequence
       (let ([cwho '(constructor dialog)])
-	(check-string cwho label)
+	(check-label-string cwho label)
 	(check-top-level-parent/false cwho parent)
 	(for-each (lambda (x) (check-dimension cwho x)) (list width height x y))
 	(check-style cwho #f '(no-caption resize-border) style)
@@ -3390,7 +3390,7 @@
   (class100 basic-control% (label parent [style null])
     (sequence
       (let ([cwho '(constructor message)])
-	(check-string-or-bitmap cwho label)
+	(check-label-string-or-bitmap cwho label)
 	(check-container-parent cwho parent)
 	(check-style cwho #f null style)
 	(check-container-ready cwho parent))
@@ -3405,7 +3405,7 @@
   (class100 basic-control% (label parent callback [style null])
     (sequence
       (let ([cwho '(constructor button)])
-	(check-string-or-bitmap cwho label)
+	(check-label-string-or-bitmap cwho label)
 	(check-container-parent cwho parent)
 	(check-callback cwho callback)
 	(check-style cwho #f '(border) style)
@@ -3421,7 +3421,7 @@
   (class100 basic-control% (label parent callback [style null])
     (sequence
       (let ([cwho '(constructor check-box)])
-	(check-string-or-bitmap cwho label)
+	(check-label-string-or-bitmap cwho label)
 	(check-container-parent cwho parent)
 	(check-callback cwho callback)
 	(check-style cwho #f null style)
@@ -3446,11 +3446,11 @@
     (private-field [chcs choices])
     (sequence 
       (let ([cwho '(constructor radio-box)])
-	(check-string/false cwho label)
+	(check-label-string/false cwho label)
 	(unless (and (list? chcs) (pair? chcs)
-		     (or (andmap string? chcs)
+		     (or (andmap label-string? chcs)
 			 (andmap (lambda (x) (is-a? x wx:bitmap%)) chcs)))
-	  (raise-type-error (who->name cwho) "non-empty list of strings or bitmap% objects" chcs))
+	  (raise-type-error (who->name cwho) "non-empty list of strings (up to 200 characters) or bitmap% objects" chcs))
 	(check-container-parent cwho parent)
 	(check-callback cwho callback)
 	(check-orientation cwho style)
@@ -3505,7 +3505,7 @@
     (private-field [minv min-value][maxv max-value])
     (sequence 
       (let ([cwho '(constructor slider)])
-	(check-string/false cwho label)
+	(check-label-string/false cwho label)
 	(check-slider-integer cwho minv)
 	(check-slider-integer cwho maxv)
 	(check-container-parent cwho parent) 
@@ -3540,7 +3540,7 @@
   (class100 basic-control% (label range parent [style '(horizontal)])
     (sequence 
       (let ([cwho '(constructor gauge)])
-	(check-string/false cwho label)
+	(check-label-string/false cwho label)
 	(check-container-parent cwho parent) 
 	(check-gauge-integer cwho range)
 	(check-orientation cwho style)
@@ -3620,9 +3620,9 @@
 	 (super-init (lambda () (set! wx (mk-wx)) wx) label parent #f))))))
 
 (define (check-list-control-args cwho label choices parent callback)
-  (check-string/false cwho label)
-  (unless (and (list? choices) (andmap string? choices))
-    (raise-type-error (who->name cwho) "list of strings" choices))
+  (check-label-string/false cwho label)
+  (unless (and (list? choices) (andmap label-string? choices))
+    (raise-type-error (who->name cwho) "list of strings (up to 200 characters)" choices))
   (check-container-parent cwho parent)
   (check-callback cwho callback))
 
@@ -3657,11 +3657,15 @@
       [get-selections (entry-point (lambda () (send wx get-selections)))]
       [number-of-visible-items (entry-point (lambda () (send wx number-of-visible-items)))]
       [is-selected? (entry-point (lambda (n) (check-item 'is-selected? n) (send wx selected? n)))]
-      [set (entry-point (lambda (l) (send wx set l)))]
+      [set (entry-point (lambda (l) 
+			  (unless (and (list? l) (andmap label-string? l))
+			    (raise-type-error (who->name '(method list-box% set)) 
+					      "list of strings (up to 200 characters)" l))
+			  (send wx set l)))]
       [set-string (entry-point
 		   (lambda (n d)
 		     (check-non-negative-integer '(method list-box% set-string) n) ; int error before string
-		     (check-string '(method list-box% set-string) d) ; string error before range mismatch
+		     (check-label-string '(method list-box% set-string) d) ; string error before range mismatch
 		     (check-item 'set-string n)
 		     (send wx set-string n d)))]
       [set-data (entry-point (lambda (n d) (check-item 'set-data n) (send wx set-data n d)))]
@@ -3706,7 +3710,7 @@
   (class100* basic-control% () (label parent callback [init-value ""] [style '(single)])
     (sequence 
       (let ([cwho '(constructor text-field)])
-	(check-string/false cwho label)
+	(check-label-string/false cwho label)
 	(check-container-parent cwho parent)
 	(check-callback cwho callback)
 	(check-string cwho init-value)
@@ -3775,7 +3779,7 @@
 	(check-container-parent cwho parent)
 	(check-style cwho #f '(border hscroll vscroll gl) style)
 	(check-callback cwho paint-callback)
-	(check-string/false cwho label)
+	(check-label-string/false cwho label)
 	(check-container-ready cwho parent)
 	(when (memq 'gl style)
 	  (unless (eq? (system-type) 'windows)
@@ -3883,7 +3887,7 @@
 	(check-instance cwho internal-editor<%> "text% or pasteboard%" #t editor)
 	(check-style cwho #f '(hide-vscroll hide-hscroll no-vscroll no-hscroll) style)
 	(check-gauge-integer cwho scrolls-per-page)
-	(check-string/false cwho label)
+	(check-label-string/false cwho label)
 	(unless (eq? wheel-step no-val)
 	  (check-wheel-step cwho wheel-step))
 	(check-container-ready cwho parent)))
@@ -4298,7 +4302,7 @@
       [get-label (lambda () label)]
       [set-label (entry-point
 		  (lambda (l)
-		    (check-string '(method labelled-menu-item<%> set-label) l)
+		    (check-label-string '(method labelled-menu-item<%> set-label) l)
 		    (set! label (string->immutable-string l))
 		    (set-car! (send wx get-menu-data) l)  ; for meta-shortcuts
 		    (set! plain-label (string->immutable-string (wx:label->plain-label l)))
@@ -4310,7 +4314,7 @@
       [get-help-string (lambda () help-string)]
       [set-help-string (entry-point
 			(lambda (s) 
-			  (check-string/false '(method labelled-menu-item<%> set-help-string) s)
+			  (check-label-string/false '(method labelled-menu-item<%> set-help-string) s)
 			  (set! help-string (and s (string->immutable-string s)))
 			  (when in-menu?
 			    (send wx-parent set-help-string (send wx id) help-string))))]
@@ -4425,7 +4429,7 @@
     (private
       [do-set-label (entry-point
 		     (lambda (l) 
-		       (check-string '(method labelled-menu-item<%> set-label) l)
+		       (check-label-string '(method labelled-menu-item<%> set-label) l)
 		       (let-values ([(new-label keymap) (calc-labels l)])
 			 (set! label (string->immutable-string l))
 			 (super-set-label new-label)
@@ -4454,11 +4458,11 @@
 
 (define (check-shortcut-args who label menu callback shortcut help-string demand-callback)
   (let ([cwho `(constructor ,who)])
-    (check-string cwho label)
+    (check-label-string cwho label)
     (menu-parent-only who menu)
     (check-callback cwho callback)
     (check-char/false cwho shortcut)
-    (check-string/false cwho help-string)
+    (check-label-string/false cwho help-string)
     (check-callback1 cwho demand-callback)))
 
 (define menu-item%
@@ -4488,9 +4492,9 @@
     (private-field 
       [callback demand-callback])
     (sequence 
-      (check-string '(constructor menu) label)
+      (check-label-string '(constructor menu) label)
       (menu-or-bar-parent 'menu parent)
-      (check-string/false '(constructor menu) help-string)
+      (check-label-string/false '(constructor menu) help-string)
       (check-callback1 '(constructor menu) demand-callback))
     (public
       [get-items (entry-point (lambda () (send wx-menu get-items)))])
@@ -4532,7 +4536,7 @@
     (private-field
       [wx #f])
     (sequence
-      (check-string/false '(constructor popup-menu) title)
+      (check-label-string/false '(constructor popup-menu) title)
       (check-callback '(constructor popup-menu) popdown-callback)
       (check-callback1 '(constructor popup-menu) demand-callback)
       (as-entry 
@@ -4829,8 +4833,8 @@
    [(title message) (message-box title message #f '(ok))]
    [(title message parent) (message-box title message parent '(ok))]
    [(title message parent style)
-    (check-string 'message-box title)
-    (check-string/false 'message-box message)
+    (check-label-string 'message-box title)
+    (check-label-string/false 'message-box message)
     (check-top-level-parent/false 'message-box parent)
     (check-style 'message-box '(ok ok-cancel yes-no) null style)
 
@@ -4933,7 +4937,7 @@
 	(when (is-a? parent wx:window%)
 	  (set! parent (as-entry (lambda () (wx->mred parent)))))
 
-	(check-string/false 'get-ps-setup-from-user message)
+	(check-label-string/false 'get-ps-setup-from-user message)
 	(check-top-level-parent/false 'get-ps-setup-from-user parent)
 	(check-instance 'get-ps-setup-from-user wx:ps-setup% 'ps-setup% #t pss-in)
 	(check-style 'get-ps-setup-from-user #f null style)))
@@ -5036,8 +5040,8 @@
    [(title message parent) (get-text-from-user title message parent "" null)]
    [(title message parent init-val) (get-text-from-user title message parent init-val null)]
    [(title message parent init-val style)
-    (check-string 'get-text-from-user title)
-    (check-string/false 'get-text-from-user message)
+    (check-label-string 'get-text-from-user title)
+    (check-label-string/false 'get-text-from-user message)
     (check-top-level-parent/false 'get-text-from-user parent)
     (check-string 'get-text-from-user init-val)
     (check-style 'get-text-from-user #f null style)
@@ -5065,10 +5069,10 @@
    [(title message choices parent) (get-choices-from-user title message choices parent null '(single))]
    [(title message choices parent init-vals) (get-choices-from-user title message choices parent init-vals '(single))]
    [(title message choices parent init-vals style)
-    (check-string 'get-choices-from-user title)
-    (check-string/false 'get-choices-from-user message)
-    (unless (and (list? choices) (andmap string? choices))
-      (raise-type-error 'get-choices-from-user "list of strings" choices))
+    (check-label-string 'get-choices-from-user title)
+    (check-label-string/false 'get-choices-from-user message)
+    (unless (and (list? choices) (andmap label-string? choices))
+      (raise-type-error 'get-choices-from-user "list of strings (up to 200 characters)" choices))
     (check-top-level-parent/false 'get-choices-from-user parent)
     (unless (and (list? init-vals) (andmap (lambda (x) (integer? x) (exact? x) (not (negative? x))) init-vals))
       (raise-type-error 'get-choices-from-user "list of exact non-negative integers" init-vals))
@@ -5126,7 +5130,7 @@
     (when (is-a? parent wx:window%)
       (set! parent (as-entry (lambda () (wx->mred parent)))))
 
-    (check-string/false who message)
+    (check-label-string/false who message)
     (check-top-level-parent/false who parent)
     (check-string/false who directory) (check-string/false who filename) (check-string/false who extension)
     (check-style who #f null style)
@@ -5332,7 +5336,7 @@
    [(message parent) (get-color-from-user message parent #f null)]
    [(message parent color) (get-color-from-user message parent color null)]
    [(message parent color style)
-    (check-string/false 'get-color-from-user message)
+    (check-label-string/false 'get-color-from-user message)
     (check-top-level-parent/false 'get-color-from-user parent)
     (check-instance 'get-color-from-user wx:color% 'color% #t color)
     (check-style 'get-color-from-user #f null style)
@@ -5382,7 +5386,7 @@
    [(message parent) (get-font-from-user message parent #f null)]
    [(message parent font) (get-font-from-user message parent font null)]
    [(message parent font style)
-    (check-string/false 'get-font-from-user message)
+    (check-label-string/false 'get-font-from-user message)
     (check-top-level-parent/false 'get-font-from-user parent)
     (check-instance 'get-font-from-user wx:font% 'font% #t font)
     (check-style 'get-font-from-user #f null style)
@@ -5681,6 +5685,9 @@
    [(eq? (car who) 'iconstructor) (iconstructor-name (cadr who))]
    [else (constructor-name (cadr who))]))
 
+(define (label-string? s)
+  (and (string? s) #t)) ; (<= 0 (string-length s) 200)))
+
 (define (check-instance who class class-name false-ok? v)
   (unless (or (and false-ok? (not v)) (is-a? v class))
     (raise-type-error (who->name who) (format "~a object~a" class-name (if false-ok? " or #f" "")) v)))
@@ -5692,6 +5699,14 @@
 (define (check-string who str)
   (unless (string? str)
     (raise-type-error (who->name who) "string" str)))
+
+(define (check-label-string who str)
+  (unless (label-string? str)
+    (raise-type-error (who->name who) "string (up to 200 characters)" str)))
+
+(define (check-label-string/false who str)
+  (unless (or (not str) (label-string? str))
+    (raise-type-error (who->name who) "string  (up to 200 characters) or #f" str)))
 
 (define (check-char/false who c)
   (unless (or (not c) (char? c))
@@ -5747,9 +5762,9 @@
 (define check-dimension (check-bounded-integer 0 10000 #t))
 (define check-non#f-dimension (check-bounded-integer 0 10000 #f))
 
-(define (check-string-or-bitmap who label)
-  (unless (or (string? label) (is-a? label wx:bitmap%))
-    (raise-type-error (who->name who) "string or bitmap% object" label)))
+(define (check-label-string-or-bitmap who label)
+  (unless (or (label-string? label) (is-a? label wx:bitmap%))
+    (raise-type-error (who->name who) "string (up to 200 characters) or bitmap% object" label)))
 
 (define (check-style who reqd other-allowed style)
   (unless (and (list? style) (andmap symbol? style))
