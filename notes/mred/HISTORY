@@ -1,4 +1,8 @@
 
+Version 299.28
+Added get-bounding-box to dc-path%
+Added optional for-label? argument to font%'s screen-glyph-exists?
+
 Version 299.27
 Changed gl-context% swap-buffers to use the call-as-current lock,
  and changed the lock to be re-entrant
