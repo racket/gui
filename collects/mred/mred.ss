@@ -4764,9 +4764,9 @@
 	(check-callback cwho paint-callback)
 	(check-label-string/false cwho label)))
     (public
-      [swap-gl-buffers (lambda () (send wx swap-buffers))]
+      [swap-gl-buffers (lambda () (send (send (send wx get-dc) get-gl) swap-buffers))]
       [with-gl-context (lambda (thunk) 
-			 (parameterize ([wx:current-gl-context (mred->wx this)])
+			 (parameterize ([wx:current-gl-context (send (send wx get-dc) get-gl)])
 			   (thunk)))]
       [accept-tab-focus (entry-point
 			 (case-lambda
