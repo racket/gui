@@ -3,6 +3,11 @@ Version 202: August, 2002
 
 Added 'panel brush style for drawing in the current platform's panel
  background color and pattern.
+Added application-about-handler, application-preferences-handler,
+ and current-eventspace-has-standard-menus?
+Mac OS X: fixed handling of the standard `Quit' menu item; it now
+ invokes the `on-exit' handler of the most recently active frame in the
+ initial eventspace
 
 ----------------------------------------------------------------------
 
