@@ -33,7 +33,9 @@ WARNING: printf is rebound in the body of the unit to always
       (rename [-keymap% keymap%])
       
       (define original-output-port (current-output-port))
-      (define (printf . args) (apply fprintf original-output-port args))
+      (define (printf . args) 
+        ;(apply fprintf original-output-port args)
+        (void))
       
       (define-struct range (start end b/w-bitmap color caret-space?))
       (define-struct rectangle (left top right bottom b/w-bitmap color))
@@ -856,7 +858,7 @@ WARNING: printf is rebound in the body of the unit to always
           get-err-port
           get-value-port))
       
-      (define-struct peeker (bytes skip-count pe resp-chan nack))
+      (define-struct peeker (bytes skip-count pe resp-chan nack) (make-inspector))
       (define-struct committer (kr commit-peeker-evt done-evt resp-chan resp-nack))
       
       (define ports-mixin
@@ -1210,12 +1212,13 @@ WARNING: printf is rebound in the body of the unit to always
                ;; loop : -> alpha
                ;; the main loop for this thread
                (define (loop)
+                 (printf "loop ~s\n" (queue->list data))
                  (let-values ([(not-ready-peekers new-peek-response-evts)
                                (separate peekers service-waiter)]
                               [(potential-commits new-commit-response-evts) 
                                (separate 
                                 committers
-                                (service-committer peeker-evt data))])
+                                (service-committer data peeker-evt))])
                    (set! peekers not-ready-peekers)
                    (set! committers potential-commits)
                    (set! response-evts (append response-evts
@@ -1225,11 +1228,13 @@ WARNING: printf is rebound in the body of the unit to always
                     (handle-evt
                      read-chan
                      (lambda (ent)
+                       (printf "read-chan ~s\n" ent)
                        (set! data (enqueue ent data))
                        (loop)))
                     (handle-evt
                      clear-input-chan
                      (lambda (_)
+                       (printf "clear-input-chan\n")
                        (semaphore-post peeker-sema)
                        (set! peeker-sema (make-semaphore 0))
                        (set! peeker-evt (semaphore-peek-evt peeker-sema))
@@ -1237,6 +1242,7 @@ WARNING: printf is rebound in the body of the unit to always
                     (handle-evt
                      progress-event-chan
                      (lambda (return-pr)
+                       (printf "progress-event ~s\n" return-pr)
                        (let ([return-chan (car return-pr)]
                              [return-nack (cdr return-pr)])
                          (set! response-evts
@@ -1248,11 +1254,14 @@ WARNING: printf is rebound in the body of the unit to always
                     (handle-evt
                      peek-chan
                      (lambda (peeker)
+                       (print-struct #t)
+                       (printf "peek-chan ~s\n" peeker)
                        (set! peekers (cons peeker peekers))
                        (loop)))
                     (handle-evt
                      commit-chan
                      (lambda (committer)
+                       (printf "commit-chan ~s\n" committer)
                        (set! committers (cons committer committers))
                        (loop)))
                     (apply 
@@ -1270,12 +1279,14 @@ WARNING: printf is rebound in the body of the unit to always
                             (handle-evt 
                              commit-peeker-evt
                              (lambda (_) 
+                               (printf "commit-peeker-evt\n")
                                ;; this committer will be thrown out in next iteration
                                (loop)))
                             (handle-evt
                              done-evt
                              (lambda (v)
-                               (set! data (dequeue-n kr data))
+                               (set! data (dequeue-n data kr))
+                               (printf "done-evt ~s new data ~s\n" v (queue->list data))
                                (semaphore-post peeker-sema)
                                (set! peeker-sema (make-semaphore 0))
                                (set! peeker-evt (semaphore-peek-evt peeker-sema))
@@ -1293,6 +1304,7 @@ WARNING: printf is rebound in the body of the unit to always
                                   (handle-evt
                                    resp-evt
                                    (lambda (_)
+                                     (printf "resp-evt\n")
                                      (set! response-evts (remq resp-evt response-evts))
                                      (loop))))
                                 response-evts)))))
@@ -1344,22 +1356,29 @@ WARNING: printf is rebound in the body of the unit to always
                  (match a-peeker
                    [($ peeker bytes skip-count pe resp-chan nack-evt)
                     (cond
-                      [(not (eq? pe peeker-evt))
+                      [(and pe (not (eq? pe peeker-evt)))
+                       (printf "peeker case 1 ~s ~s\n" pe peeker-evt)
                        (choice-evt (channel-put-evt resp-chan #f)
                                    nack-evt)]
                       [((queue-size data) . > . skip-count)
-                       (let ([nth (peek-n data (+ skip-count 1))])
+                       (let ([nth (peek-n data skip-count)])
+                         (printf "peeker case 2 ~s\n" nth)
                          (choice-evt
                           nack-evt
-                          (if (byte? nth)
-                              (begin
-                                (bytes-set! bytes 0 nth)
-                                (channel-put-evt resp-chan 1))
-                              (channel-put-evt 
-                               resp-chan
-                               (lambda (src line col pos)
-                                 nth)))))]
-                      [else #f])]))
+                          (cond
+                            [(byte? nth)
+                             (bytes-set! bytes 0 nth)
+                             (channel-put-evt resp-chan 1)]
+                            [(eof-object? nth)
+                             (channel-put-evt resp-chan nth)]
+                            [else
+                             (channel-put-evt 
+                              resp-chan
+                              (lambda (src line col pos)
+                                nth))])))]
+                      [else
+                       (printf "peeker case 3\n")
+                       #f])]))
                
                (loop))))
           
@@ -1371,39 +1390,48 @@ WARNING: printf is rebound in the body of the unit to always
             ;;  in any thread (even concurrently)
             ;;
             (define (read-bytes-proc bstr)
+              (printf "(read-bytes-proc ~s)\n" bstr)
               (let* ([progress-evt (progress-evt-proc)]
                      [v (peek-proc bstr 0 progress-evt)])
                 (cond
-                  [(sync/timeout 0 progress-evt) 0] ; try again
-                  [(evt? v) (wrap-evt v (lambda (x) 0))] ; sync, then try again
-                  [(and (number? v) (zero? v)) 0] ; try again
-                  [else
-                   (if (commit-proc (if (number? v) v 1)
-                                    progress-evt
-                                    always-evt)
-                       v      ; got a result
-                       0)]))) ; try again
-            
-            (define (peek-proc bstr skip-count progress-evt) 
-              (nack-guard-evt
-               (lambda (nack)
-                 (let ([chan (make-channel)])
-                   (channel-put peek-chan (make-peeker bstr skip-count progress-evt chan nack))
-                   chan))))
+                  [(sync/timeout 0 progress-evt) 0]
+                  [else (wrap-evt 
+                         v 
+                         (lambda (v) 
+                           (if (and (number? v) (zero? v))
+                               0
+                               (if (commit-proc (if (number? v) v 1)
+                                                progress-evt
+                                                always-evt)
+                                   v
+                                   0))))])))
+
+            (define (peek-proc bstr skip-count progress-evt)
+              (let ([ans (nack-guard-evt
+                          (lambda (nack)
+                            (let ([chan (make-channel)])
+                              (channel-put peek-chan (make-peeker bstr skip-count progress-evt chan nack))
+                              chan)))])
+                (printf "~s -> ~s\n" (list 'peek-proc bstr skip-count progress-evt) ans)
+                ans))
             
             (define (progress-evt-proc)
-              (nack-guard-evt
-               (lambda (nack)
-                 (let ([chan (make-channel)])
-                   (channel-put progress-event-chan (cons chan nack))
-                   chan))))
+              (let ([ans (sync
+                          (nack-guard-evt
+                           (lambda (nack)
+                             (let ([chan (make-channel)])
+                               (channel-put progress-event-chan (cons chan nack))
+                               chan))))])
+                (printf "~s -> ~s\n" (list 'progress-evt-proc) ans)
+                ans))
             
             (define (commit-proc kr progress-evt done-evt)
+              (printf "~s\n" (list 'commit-proc kr progress-evt done-evt))
               (sync
                (nack-guard-evt
                 (lambda (nack)
                   (let ([chan (make-channel)])
-                    (channel-put commit-chan (list kr progress-evt done-evt chan nack))
+                    (channel-put commit-chan (make-committer kr progress-evt done-evt chan nack))
                     chan)))))
             
             (define (close-proc) (void))
@@ -1438,21 +1466,24 @@ WARNING: printf is rebound in the body of the unit to always
           
           ;; dequeue-n : queue number -> queue
           (define (dequeue-n queue n)
+            (printf "~s\n" (list 'dequeue-n (queue->list queue) n))
             (let loop ([q queue]
                        [n n])
               (cond
-                [(zero? n) queue]
+                [(zero? n) q]
                 [(queue-empty? q) (error 'dequeue-n "not enough!")]
                 [else (loop (queue-rest q) (- n 1))])))
           
           ;; peek-n : queue number -> queue
-          (define (peek-n queue n)
+          (define (peek-n queue init-n)
             (let loop ([q queue]
-                       [n n])
+                       [n init-n])
               (cond
                 [(zero? n) 
                  (when (queue-empty? q)
-                   (error 'peek-n "not enough!"))
+                   (error 'peek-n "not enough; asked for ~a but only ~a available" 
+                          init-n 
+                          (queue-size queue)))
                  (queue-first q)]
                 [else 
                  (when (queue-empty? q)
