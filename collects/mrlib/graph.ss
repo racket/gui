@@ -399,7 +399,7 @@
                                                       (max lt rt) (max tt bt))
                            (not (strict-in-rectangle? point-x point-y
                                                       (min lf rf) (min tf bf)
-                                                      (max lf rf) (max tf bf)))))
+                                                      (max lf rf) (max tf bf))))))
                     (update-polygon from-x from-y to-x to-y)
                     (cond
                       [(or (in-rectangle? from-x from-y lt tt rt bt)
