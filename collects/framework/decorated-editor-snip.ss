@@ -179,6 +179,7 @@
   
   (define decorated-editor-snip%
     (class (decorated-editor-snip-mixin editor-snip%)
+      (printf "decorated-editor-snip% created\n")
       (inherit get-editor get-style)
       
       ;; make-snip : -> this%
@@ -194,9 +195,11 @@
           (send (get-editor) write-to-file stream-out 0 'eof)))
 
       (define/override (copy)
+        (printf "decorated editor snip copy called\n")
         (let ([snip (make-snip)])
           (send snip set-editor (send (get-editor) copy-self))
           (send snip set-style (get-style))
+          (printf "decorated editor snip copy returning ~s\n" snip)
           snip))
       
         (super-new
@@ -210,6 +213,7 @@
       (define/public (make-snip stream-in) (make-object decorated-editor-snip%))
       
       (define/override (read stream-in)
+        (printf "decoarated-edito-snipclass read\n")
         (let ([snip (make-snip stream-in)])
           (send (send snip get-editor) read-from-file stream-in #f)
           snip))
