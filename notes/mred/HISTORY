@@ -1,7 +1,7 @@
-Version 100alpha3: June 19, 1999
+Version 100alpha4: July 14, 1999
 MAJOR revision: see MrEd_100.txt in the current directory.
 
-The Engine/ System distinction is gone. MrEd Engine is now MrEd.  MrEd
+The Engine-System distinction is gone. MrEd Engine is now MrEd.  MrEd
 System turned into the Framework libraries.
 
 ----------------------------------------------------------------------
