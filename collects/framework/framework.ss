@@ -653,7 +653,7 @@
     (string? number? number? . -> . void?)
     (filename start end)
     "Sets the selection of the recently opened file to"
-    "\\var{start} and \\end{end}.")
+    "\\var{start} and \\var{end}.")
 
    (icon:get-paren-highlight-bitmap
     (-> (is-a?/c bitmap%))
