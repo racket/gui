@@ -1,4 +1,4 @@
-(unit/sig mred:canvas^
+(unit/sig framework:canvas^
   (import mred^
 	  [preferences : framework:preferences^])
   

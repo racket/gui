@@ -138,13 +138,13 @@
     (lambda ()
       (hash-table-for-each
        defaults
-       (lambda (p v) (set-preference p v)))))
+       (lambda (p v) (set p v)))))
   
   (define set-default
     (lambda (p value checker)
       (let ([t (checker value)])
 	(unless t
-	  (error 'set-preference-default "~s: checker (~s) returns ~s for ~s, expected #t~n" p checker t value)))
+	  (error 'set-default "~s: checker (~s) returns ~s for ~s, expected #t~n" p checker t value)))
       (hash-table-get preferences p 
 		      (lambda () 
 			(hash-table-put! preferences p (make-pref value))))
@@ -195,17 +195,17 @@
 		      [unmarshall-struct (hash-table-get marshall-unmarshall p (lambda () #f))])
 		 (cond
 		   [(and (pref? ht-pref) unmarshall-struct)
-		    (set-preference p ((un/marshall-unmarshall unmarshall-struct) marshalled))]
+		    (set p ((un/marshall-unmarshall unmarshall-struct) marshalled))]
 		   
 		   ;; in this case, assume that no marshalling/unmarshalling 
 		   ;; is going to take place with the pref, since an unmarshalled 
 		   ;; pref was already there.
 		   [(pref? ht-pref)
-		    (set-preference p marshalled)]
+		    (set p marshalled)]
 		   
 		   [(marshalled? ht-pref) (set-marshalled-data! ht-pref marshalled)]
 		   [(and (not ht-pref) unmarshall-struct)
-		    (set-preference p ((un/marshall-unmarshall unmarshall-struct) marshalled))]
+		    (set p ((un/marshall-unmarshall unmarshall-struct) marshalled))]
 		   [(not ht-pref)
 		    (hash-table-put! preferences p (make-marshalled marshalled))]
 		   [else (error 'prefs.ss "robby error.3: ~a" ht-pref)]))))])
@@ -215,7 +215,7 @@
 	    (let ([err
 		   (lambda (input msg)
 		     (message-box "Preferences"
-				     (let* ([max-len 150]
+				  (let* ([max-len 150]
 					 [s1 (format "~s" input)]
 					 [ell "..."]
 					 [s2 (if (<= (string-length s1) max-len)
@@ -284,13 +284,13 @@
 	   (lambda (family)
 	     (let ([name (build-font-preference-symbol family)]
 		   [font-entry (build-font-entry family)])
-	       (set-preference-default name
-				       default
-				       (cond
-					[(string? default) string?]
-					[(number? default) number?]
-					[else (error 'internal-error.set-default "unrecognized default: ~a~n" default)]))
-	       (add-preference-callback 
+	       (set-default name
+			    default
+			    (cond
+			      [(string? default) string?]
+			      [(number? default) number?]
+			      [else (error 'internal-error.set-default "unrecognized default: ~a~n" default)]))
+	       (add-callback 
 		name 
 		(lambda (p new-value)
 		  (write-resource 
@@ -335,14 +335,14 @@
 		(lambda (pref title bool->pref pref->bool)
 		  (let*  ([callback
 			   (lambda (_ command)
-			     (set-preference pref (bool->pref (send command checked?))))]
-			  [pref-value (get-preference pref)]
+			     (set pref (bool->pref (send command checked?))))]
+			  [pref-value (get pref)]
 			  [initial-value (pref->bool pref-value)]
 			  [c (make-object check-box% main callback title)])
 		    (send c set-value initial-value)
-		    (add-preference-callback pref
-					     (lambda (p v)
-					       (send c set-value (pref->bool v))))))]
+		    (add-callback pref
+				  (lambda (p v)
+				    (send c set-value (pref->bool v))))))]
 	       [id (lambda (x) x)])
 	  (send main minor-align-left)
 	  (make-check 'framework:highlight-parens "Highlight between matching parens" id id)
@@ -374,113 +374,109 @@
      (make-ppanel
       "Default Fonts"
       (lambda (parent)
-	(letrec* ([font-size-pref-sym (build-font-preference-symbol font-size-entry)]
-		  [ex-string "The quick brown fox jumped over the lazy dogs."]
-		  [main (make-object vertical-panel% parent)]
-		  [fonts (cons font-default-string (wx:get-font-list))]
-		  [make-family-panel
-		   (lambda (name)
-		     (let* ([pref-sym (build-font-preference-symbol name)]
-			    [family-const-pair (assoc name font-families-name/const)]
-			    
-			    [edit (make-object edit%)]
-			    [_ (send edit insert ex-string)]
-			    [set-edit-font
-			     (lambda (size)
-			       (let ([delta (make-object style-delta% 'change-size size)]
-				     [face (get-preference pref-sym)])
-				 (if (and (string=? face font-default-string)
-					  family-const-pair)
-				     (send delta set-family (cadr family-const-pair))
-				     (send delta set-delta-face (get-preference pref-sym)))
-				     
-				 (send edit change-style delta 0 (send edit last-position))))]
-			    
-			    [horiz (make-object horizontal-panel% main '(border))]
-			    [label (make-object message% horiz name)]
-			    
-			    [message (make-object message% horiz 
-						  (let ([b (box "")])
-						    (if (and (get-resource 
-							      font-section 
-							      (build-font-entry name)
-							      b)
-							     (not (string=? (unbox b) 
-									    "")))
-							(unbox b)
-							font-default-string)))]
-			    [button 
-			     (make-object 
-			      button% horiz 
-			      (lambda (button evt)
-				(let ([new-value
-				       (mred:gui-utils:get-single-choice
-					(format "Please choose a new ~a font"
-						name)
-					"Fonts"
-					fonts
-					null -1 -1 #t 300 400)])
-				  (when new-value
-				    (set-preference pref-sym
-						    new-value) 
-				    (set-edit-font (get-preference font-size-pref-sym)))))
-			      "Change")]
-			    ;; WARNING!!! CHECK INIT ARGS wx:
-			    [canvas (make-object editor-canvas% horiz ""
-						 (list 'hide-hscroll
-						       'hide-vscroll))])
-		       (set-edit-font (get-preference font-size-pref-sym))
-		       (send canvas set-media edit)
-		       (add-preference-callback
-			pref-sym
-			(lambda (p new-value)
-			  (send horiz change-children
-				(lambda (l)
-				  (let ([new-message (make-object
-						      message%
+	(letrec ([font-size-pref-sym (build-font-preference-symbol font-size-entry)]
+		 [ex-string "The quick brown fox jumped over the lazy dogs."]
+		 [main (make-object vertical-panel% parent)]
+		 [fonts (cons font-default-string (get-face-list))]
+		 [make-family-panel
+		  (lambda (name)
+		    (let* ([pref-sym (build-font-preference-symbol name)]
+			   [family-const-pair (assoc name font-families-name/const)]
+			   
+			   [edit (make-object edit%)]
+			   [_ (send edit insert ex-string)]
+			   [set-edit-font
+			    (lambda (size)
+			      (let ([delta (make-object style-delta% 'change-size size)]
+				    [face (get pref-sym)])
+				(if (and (string=? face font-default-string)
+					 family-const-pair)
+				    (send delta set-family (cadr family-const-pair))
+				    (send delta set-delta-face (get pref-sym)))
+				
+				(send edit change-style delta 0 (send edit last-position))))]
+			   
+			   [horiz (make-object horizontal-panel% main '(border))]
+			   [label (make-object message% horiz name)]
+			   
+			   [message (make-object message% horiz 
+						 (let ([b (box "")])
+						   (if (and (get-resource 
+							     font-section 
+							     (build-font-entry name)
+							     b)
+							    (not (string=? (unbox b) 
+									   "")))
+						       (unbox b)
+						       font-default-string)))]
+			   [button 
+			    (make-object 
+				button% horiz 
+				(lambda (button evt)
+				  (let ([new-value
+					 (get-choice-from-user
+					  "Fonts"
+					  (format "Please choose a new ~a font"
+						  name)
+					  fonts)])
+				    (when new-value
+				      (set pref-sym new-value) 
+				      (set-edit-font (get font-size-pref-sym)))))
+				"Change")]
+			   [canvas (make-object editor-canvas% horiz
+						edit
+						(list 'hide-hscroll
+						      'hide-vscroll))])
+		      (set-edit-font (get font-size-pref-sym))
+		      (add-callback
+		       pref-sym
+		       (lambda (p new-value)
+			 (send horiz change-children
+			       (lambda (l)
+				 (let ([new-message (make-object
+							message%
 						      horiz
 						      new-value)])
-				    (set! message new-message)
-				    (update-message-sizes font-message-get-widths 
-							  font-message-user-min-sizes)
-				    (list label 
-					  new-message
-					  button
-					  canvas))))))
-		       (vector set-edit-font
-			       (lambda () (send message get-width))
-			       (lambda (width) (send message user-min-width width))
-			       (lambda () (send label get-width))
-			       (lambda (width) (send label user-min-width width)))))]
-		  [set-edit-fonts/messages (map make-family-panel font-families)]
-		  [collect (lambda (n) (map (lambda (x) (vector-ref x n)) set-edit-fonts/messages))]
-		  [set-edit-fonts (collect 0)]
-		  [font-message-get-widths (collect 1)]
-		  [font-message-user-min-sizes (collect 2)]
-		  [category-message-get-widths (collect 3)]
-		  [category-message-user-min-sizes (collect 4)]
-		  [update-message-sizes
-		   (lambda (gets sets)
-		     (let ([width (mzlib:function:foldl (lambda (x l) (max l (x))) 0 gets)])
-		       (for-each (lambda (set) (set width)) sets)))]
-		  [size-panel (make-object horizontal-panel% main '(border))]
-		  [size-slider
-		   (make-object slider% size-panel 
-				(lambda (slider evt)
-				  (set-preference font-size-pref-sym
-						  (send slider get-value)))
-				"Size"
-				(let ([b (box 0)])
-				  (if (get-resource font-section 
-						    font-size-entry
-						    b)
-				      (unbox b)
-				      font-default-size))
-				1 127 50)]
-		  [guard-change-font (later-on)])
+				   (set! message new-message)
+				   (update-message-sizes font-message-get-widths 
+							 font-message-user-min-sizes)
+				   (list label 
+					 new-message
+					 button
+					 canvas))))))
+		      (vector set-edit-font
+			      (lambda () (send message get-width))
+			      (lambda (width) (send message user-min-width width))
+			      (lambda () (send label get-width))
+			      (lambda (width) (send label user-min-width width)))))]
+		 [set-edit-fonts/messages (map make-family-panel font-families)]
+		 [collect (lambda (n) (map (lambda (x) (vector-ref x n)) set-edit-fonts/messages))]
+		 [set-edit-fonts (collect 0)]
+		 [font-message-get-widths (collect 1)]
+		 [font-message-user-min-sizes (collect 2)]
+		 [category-message-get-widths (collect 3)]
+		 [category-message-user-min-sizes (collect 4)]
+		 [update-message-sizes
+		  (lambda (gets sets)
+		    (let ([width (mzlib:function:foldl (lambda (x l) (max l (x))) 0 gets)])
+		      (for-each (lambda (set) (set width)) sets)))]
+		 [size-panel (make-object horizontal-panel% main '(border))]
+		 [size-slider
+		  (make-object slider% size-panel 
+			       (lambda (slider evt)
+				 (set font-size-pref-sym (send slider get-value)))
+			       "Size"
+			       (let ([b (box 0)])
+				 (if (get-resource font-section 
+						   font-size-entry
+						   b)
+				     (unbox b)
+				     font-default-size))
+			       1 127 50)]
+		 [guard-change-font (later-on)])
 	  (update-message-sizes font-message-get-widths font-message-user-min-sizes)
 	  (update-message-sizes category-message-get-widths category-message-user-min-sizes)
-	  (add-preference-callback
+	  (add-callback
 	   font-size-pref-sym
 	   (lambda (p value)
 	     (guard-change-font
@@ -533,7 +529,7 @@
     (lambda ()
       (run-once
        (lambda () 
-	 (save-user-preferences)
+	 (save)
 	 (if preferences-dialog
 	     (send preferences-dialog show #t)
 	     (set! preferences-dialog
@@ -588,12 +584,12 @@
 					     single-panel
 					     bottom-panel)))))]
 		[ok-callback (lambda args
-			       (save-user-preferences)
-			       (hide-preferences-dialog))]
+			       (save)
+			       (hide-dialog))]
 		[ok-button (make-object button% bottom-panel ok-callback "OK")]
 		[cancel-callback (lambda args
-				   (hide-preferences-dialog)
-				   (read-user-preferences))]
+				   (hide-dialog)
+				   (read))]
 		[cancel-button (make-object button% bottom-panel cancel-callback "Cancel")])
 	(send ok-button user-min-width (send cancel-button get-width))
 	(send* bottom-panel

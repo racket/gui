@@ -312,22 +312,22 @@
 	[balance-parens
 	 (let-struct string/pos (string pos)
 	   (lambda (key)
-	     (letrec* ([char (integer->char code)]
-		       [here (get-start-position)]
-		       [limit (get-limit here)]
-		       [paren-match? (preferences:get 'framework:paren-match)]
-		       [fixup-parens? (preferences:get 'framework:fixup-parens)]
-		       [find-match
-			(lambda (pos)
-			  (let loop ([parens scheme-paren:scheme-paren-pairs])
-			    (cond
-			      [(null? parens) #f]
-			      [else (let* ([paren (car parens)]
-					   [left (car paren)]
-					   [right (cdr paren)])
-				      (if (string=? left (get-text pos (+ pos (string-length left))))
-					  right
-					  (loop (cdr parens))))])))])
+	     (letrec ([char (integer->char code)]
+		      [here (get-start-position)]
+		      [limit (get-limit here)]
+		      [paren-match? (preferences:get 'framework:paren-match)]
+		      [fixup-parens? (preferences:get 'framework:fixup-parens)]
+		      [find-match
+		       (lambda (pos)
+			 (let loop ([parens scheme-paren:scheme-paren-pairs])
+			   (cond
+			     [(null? parens) #f]
+			     [else (let* ([paren (car parens)]
+					  [left (car paren)]
+					  [right (cdr paren)])
+				     (if (string=? left (get-text pos (+ pos (string-length left))))
+					 right
+					 (loop (cdr parens))))])))])
 	       (cond
 		 [(in-single-line-comment? here)
 		  (insert char)]

@@ -4,18 +4,14 @@
   
   ;; preferences
 
-  (mred:preferences:set-preference-default 'mred:verify-change-format #f boolean?)
+  (preferences:set-default 'framework:verify-change-format #f boolean?)
   
-  (mred:preferences:set-preference-default 'mred:auto-set-wrap? #f boolean?)
+  (preferences:set-default 'framework:auto-set-wrap? #f boolean?)
   
   (preferences:set-default 'framework:display-line-numbers #t boolean?)
   
-  (preferences:set-preference-default 'mred:show-status-line
-				      #t
-				      boolean?)
-  (preferences:set-preference-default 'mred:line-offsets
-				      #t
-				      boolean?)
+  (preferences:set-default 'framework:show-status-line #t boolean?)
+  (preferences:set-default 'framework:line-offsets t boolean?)
   
   
   
@@ -44,7 +40,7 @@
 		 share share-from
 		 sequence))
     (for-each (lambda (x) (hash-table-put! hash-table x 'lambda))
-	      '(lambda let let* letrec letrec* recur
+	      '(lambda let let* letrec recur
 		 let/cc let/ec letcc catch
 		 let-syntax letrec-syntax syntax-case
 		 let-signature fluid-let
@@ -61,13 +57,13 @@
 		 call-with-input-file with-input-from-file
 		 with-input-from-port call-with-output-file
 		 with-output-to-file with-output-to-port))
-    (mred:preferences:set-preference-un/marshall
-     'mred:tabify 
+    (preferences:set-un/marshall
+     'framework:tabify 
      (lambda (t) (hash-table-map t list))
      (lambda (l) (let ([h (make-hash-table)])
 		   (for-each (lambda (x) (apply hash-table-put! h x)) l)
 		   h)))
-    (mred:preferences:set-preference-default 'mred:tabify hash-table hash-table?))
+    (preferences:set-default 'framework:tabify hash-table hash-table?))
   
   
   (preferences:set-default 'framework:autosave-delay 300 number?)
@@ -78,7 +74,7 @@
 			   boolean?)
   (preferences:set 'framework:show-periods-in-dirlist #f boolean?)
   (preferences:set 'framework:file-dialogs
-		   (if (eq? wx:platform 'unix)
+		   (if (eq? (system-type) 'unix)
 		       'common
 		       'std)
 		   (lambda (x)
@@ -91,22 +87,22 @@
      (let*-values
 	 ([(get-keywords)
 	   (lambda (hash-table)
-	     (letrec* ([all-keywords (hash-table-map hash-table list)]
-		       [pick-out (lambda (wanted in out)
-				   (cond
-				     [(null? in) (mzlib:function:quicksort out string<=?)]
-				     [else (if (eq? wanted (cadr (car in))) 
-					       (pick-out wanted (cdr in) (cons (symbol->string (car (car in))) out))
-					       (pick-out wanted (cdr in) out))]))])
+	     (letrec ([all-keywords (hash-table-map hash-table list)]
+		      [pick-out (lambda (wanted in out)
+				  (cond
+				    [(null? in) (mzlib:function:quicksort out string<=?)]
+				    [else (if (eq? wanted (cadr (car in))) 
+					      (pick-out wanted (cdr in) (cons (symbol->string (car (car in))) out))
+					      (pick-out wanted (cdr in) out))]))])
 	       (values  (pick-out 'begin all-keywords null)
 			(pick-out 'define all-keywords null)
 			(pick-out 'lambda all-keywords null))))]
 	  [(begin-keywords define-keywords lambda-keywords)
-	   (get-keywords (mred:preferences:get-preference 'mred:tabify))])
+	   (get-keywords (preferences:get 'framework:tabify))])
        (let* ([add-callback
 	       (lambda (keyword-type keyword-symbol list-box)
 		 (lambda (button command)
-		   (let ([new-one (mred:gui-utils:get-text-from-user 
+		   (let ([new-one (get-text-from-user 
 				   (string-append "Enter new " keyword-type "-like keyword:")
 				   (string-append keyword-type " Keyword"))])
 		     (when new-one
@@ -114,33 +110,33 @@
 				       (read (open-input-string new-one)))])
 			 (cond
 			   [(and (symbol? parsed)
-				 (hash-table-get (mred:preferences:get-preference 'mred:tabify)
+				 (hash-table-get (preferences:get 'framework:tabify)
 						 parsed
 						 (lambda () #f)))
-			    (wx:message-box (format "\"~a\" is already a specially indented keyword" parsed)
-					    "Error")]
+			    (message-box "Error"
+					 (format "\"~a\" is already a specially indented keyword" parsed))]
 			   [(symbol? parsed)
-			    (hash-table-put! (mred:preferences:get-preference 'mred:tabify)
+			    (hash-table-put! (preferences:get 'framework:tabify)
 					     parsed keyword-symbol)
 			    (send list-box append (symbol->string parsed))]
-			   [else (wx:message-box (format "expected a symbol, found: ~a" new-one) "Error")]))))))]
+			   [else (message-box "Error" (format "expected a symbol, found: ~a" new-one))]))))))]
 	      [delete-callback
 	       (lambda (list-box)
 		 (lambda (button command)
 		   (let* ([selections (send list-box get-selections)]
 			  [symbols (map (lambda (x) (string->symbol (send list-box get-string x))) selections)])
 		     (for-each (lambda (x) (send list-box delete x)) (reverse selections))
-		     (let ([ht (mred:preferences:get-preference 'mred:tabify)])
+		     (let ([ht (preferences:get 'framework:tabify)])
 		       (for-each (lambda (x) (hash-table-remove! ht x)) symbols)))))]
-	      [main-panel (make-object mred:horizontal-panel% p)]
+	      [main-panel (make-object horizontal-panel% p)]
 	      [make-column
 	       (lambda (string symbol keywords)
-		 (let* ([vert (make-object mred:vertical-panel% main-panel)]
-			[_ (make-object mred:message% vert (string-append string "-like Keywords"))]
-			[box (make-object mred:list-box% vert null "" wx:const-multiple -1 -1 -1 -1 keywords)]
-			[button-panel (make-object mred:horizontal-panel% vert)]
-			[add-button (make-object mred:button% button-panel (add-callback string symbol box) "Add")]
-			[delete-button (make-object mred:button% button-panel (delete-callback box) "Remove")])
+		 (let* ([vert (make-object vertical-panel% main-panel)]
+			[_ (make-object message% (string-append string "-like Keywords") vert)]
+			[box (make-object list-box% #f keywords vert #f 'multiple void)]
+			[button-panel (make-object horizontal-panel% vert)]
+			[add-button (make-object button% "Add" (add-callback string symbol box) button-panel)]
+			[delete-button (make-object button% "Remove" (delete-callback box) button-panel)])
 		   (send* button-panel 
 		     (major-align-center)
 		     (stretchable-in-y #f))
@@ -159,7 +155,7 @@
 		   (reset define-list-box define-keywords)
 		   (reset lambda-list-box lambda-keywords)
 		   #t))])
-	 (mred:preferences:add-preference-callback 'mred:tabify (lambda (p v) (update-list-boxes v)))
+	 (preferences:add-callback 'framework:tabify (lambda (p v) (update-list-boxes v)))
 	 main-panel))))
   
   (preferences:read)
@@ -208,10 +204,11 @@
    (lambda ()
      (with-handlers ([(lambda (x) #t)
 		      (lambda (exn)
-			(mred:gui-utils:message-box
+			(message-box
+			 "Saving Prefs"
 			 (format "Error saving preferences: ~a"
-				 (exn-message exn))
-			 "Saving Prefs"))])
+				 (exn-message exn))))])
        (save-user-preferences))))
   
-  (wx:application-file-handler edit-file))
+  ;(wx:application-file-handler edit-file)
+  )

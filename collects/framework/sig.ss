@@ -256,18 +256,7 @@
 (define-signature framework:match-cache^
   (%))
 
-(define-signature mred:menu^
-  (max-manual-menu-id
-   generate-menu-id
-   make-menu%
-   menu%
-   make-menu-bar%
-   menu-bar%))
 
-(define-signature mred:project^
-  (project-frame-group%
-   make-project-frame%
-   project-frame%))
 
 (define-signature framework:scheme-paren^
   (paren-pairs
@@ -294,7 +283,7 @@
    backward-match
    skip-whitespace))
 
-(define-signature mred^
+(define-signature framework^
   ([unit application : framework:application^]
    [unit version : framework:version^]
    [unit exn : framework:exn^]

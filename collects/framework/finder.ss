@@ -2,7 +2,7 @@
 
 ;;; Authors: Matthew Flatt, Robby Findler, Paul Steckler 
 
-(unit/sig mred:finder^
+(unit/sig framework:finder^
   (import mred^
 	  [preferences : framework:preferences^]
 	  [gui-utils : framework:gui-utils^]
@@ -158,18 +158,10 @@
 	     (if (< which (length dirs))
 		 (set-directory (list-ref dirs which)))))]
 	
-	[do-name
-	 (lambda (text event)
-	   (if (eq? (send event get-event-type)
-		    wx:const-event-type-text-enter-command)
-	       (do-ok)))]
-	
 	[do-name-list
-	 (lambda (_ event)
-	   (if (and (eq? (send event get-event-type)
-			 wx:const-event-type-listbox-command)
-		    (send event is-selection?))
-	       (set-edit)))]
+	 (lambda (list-box _)
+	   (when (send list-box get-string-selections)
+	     (set-edit)))]
 	
 	[do-result-list
 	 (lambda args #f)]
@@ -251,25 +243,25 @@
 				(if (or (not save-mode?)
 					(not (file-exists? file))
 					replace-ok?
-					(= (wx:message-box
-					    (string-append
-					     "The file " 
-					     file
-					     " already exists. "
-					     "Replace it?")
-					    "Warning"
-					    wx:const-yes-no)
-					   wx:const-yes))
+					(eq? (message-box "Warning"
+							  (string-append
+							   "The file " 
+							   file
+							   " already exists. "
+							   "Replace it?")
+							  #f
+							  'yes-no)
+					     'yes))
 				    (let ([normal-path
 					   (with-handlers 
 					       ([(lambda (_) #t)
 						 (lambda (_)
-						   (wx:message-box
+						   (message-box
+						    "Warning" 
 						    (string-append
 						     "The file " 
 						     file
-						     " contains nonexistent directory or cycle.") 
-						    "Warning")
+						     " contains nonexistent directory or cycle."))
 						   #f)])
 					     (mzlib:file:normalize-path file))])
 				      (when normal-path 
