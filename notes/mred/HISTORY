@@ -1,4 +1,7 @@
 
+Version 299.25
+Added draw-bitmap-section-smooth to memory-dc%
+
 Version 299.24
 Added on-split-snip, on-merge-snips, and get-revision-number
  to text%
