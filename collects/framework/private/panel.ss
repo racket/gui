@@ -77,20 +77,21 @@
 			 (list x y this-width this-height)))
 		     l)))]
           
-          (inherit get-children)
+          (inherit get-children begin-container-sequence end-container-sequence)
           [define current-active-child #f]
-          (public active-child)
-          [define active-child
+          (define/public active-child
             (case-lambda
              [() current-active-child]
              [(x) 
               (unless (memq x (get-children))
                 (error 'active-child "got a panel that is not a child: ~e" x))
               (unless (eq? x current-active-child)
+                (begin-container-sequence)
                 (for-each (lambda (x) (send x show #f))
                           (get-children))
                 (set! current-active-child x)
-                (send current-active-child show #t))])]
+                (send current-active-child show #t)
+                (end-container-sequence))]))
           (super-instantiate ())))
       
       (define single-window<%> (interface (single<%> window<%>)))
