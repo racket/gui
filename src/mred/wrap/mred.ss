@@ -37,7 +37,28 @@
 
 (define monitor-sema (make-semaphore 1))
 (define monitor-owner #f)
-(define old-exn-handler #f)
+(define entered-paramz (make-parameterization))
+(define old-paramz #f)
+
+;; An exception may be constrcuted while we're entered:
+((in-parameterization entered-paramz debug-info-handler)
+ (lambda ()
+   (as-exit
+    (lambda ()
+      ((debug-info-handler))))))
+((in-parameterization entered-paramz error-value->string-handler)
+ (lambda (s n)
+   (as-exit
+    (lambda ()
+      ((error-value->string-handler) s n)))))
+
+(define (setup-entered-paramz)
+  (set! old-paramz (current-parameterization))
+  (current-parameterization entered-paramz)
+  (wx:current-eventspace ((in-parameterization old-paramz wx:current-eventspace)))
+  (error-print-width ((in-parameterization old-paramz error-print-width)))
+  (break-enabled ((in-parameterization old-paramz break-enabled)))
+  (exception-break-enabled ((in-parameterization old-paramz exception-break-enabled))))
 
 (define (as-entry f)
   (cond
@@ -50,7 +71,7 @@
 	  (semaphore-wait monitor-sema)
 	  
 	  (set! monitor-owner (current-thread))
-	  (set! old-exn-handler (current-exception-handler))
+	  (setup-entered-paramz)
 	  (current-exception-handler
 	   (lambda (exn)
 	     (k (lambda () (raise exn))))))
@@ -60,7 +81,7 @@
 	   (lambda args (lambda () (apply values args)))))
 	(lambda ()
 	  (set! monitor-owner #f)
-	  (current-exception-handler old-exn-handler)
+	  (current-parameterization old-paramz)
 	  
 	  (semaphore-post monitor-sema)))))]))
 
@@ -73,7 +94,7 @@
      (lambda ()
        (set! eh (current-exception-handler))
        (set! monitor-owner #f)
-       (current-exception-handler old-exn-handler)
+       (current-parameterization old-paramz)
        
        (semaphore-post monitor-sema))
      f
@@ -81,7 +102,7 @@
        (semaphore-wait monitor-sema)
 
        (set! monitor-owner (current-thread))
-       (set! old-exn-handler (current-exception-handler))
+       (setup-entered-paramz)
        (current-exception-handler eh)))))
 
 ;;;;;;;;;;;;;;; Helpers ;;;;;;;;;;;;;;;;;;;;
