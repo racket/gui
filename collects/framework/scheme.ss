@@ -268,8 +268,7 @@
 				    (scheme-paren:get-paren-pairs))))]
 			[is-left-paren? (is-paren? car)]
 			[is-right-paren? (is-paren? cdr)])
-		   (when (and (= here there)
-			      (not (in-single-line-comment? here)))
+		   (when (= here there)
 
 		     ;; before, after : (list number number boolean) 
 		     ;;  numbers indicate the range to highlight
@@ -277,7 +276,8 @@
 		     (let ([before
 			    (cond
 			     [(and (> here 0)
-				   (is-right-paren? (get-character (sub1 here))))
+				   (is-right-paren? (get-character (sub1 here)))
+				   (not (in-single-line-comment? here)))
 			      (cond
 			       [(slash? (- here 2) (- here 1)) #f]
 			       [(scheme-paren:backward-match
@@ -290,7 +290,8 @@
 			     [else #f])]
 			   [after
 			    (cond
-			     [(is-left-paren? (get-character here))
+			     [(and (is-left-paren? (get-character here))
+				   (not (in-single-line-comment? here)))
 			      (cond
 			       [(slash? (- here 1) here) #f]
 			       [(scheme-paren:forward-match
