@@ -5408,6 +5408,7 @@
 		     (unless (and (list? l) (andmap label-string? l))
 		       (raise-type-error (who->name '(method tab-panel% set)) 
 					 "list of strings (up to 200 characters)" l))
+		     (set! save-choices (map string->immutable-string l))
 		     (send (mred->wx tabs) set l)))]
      [get-item-label (entry-point
 		      (lambda (i)

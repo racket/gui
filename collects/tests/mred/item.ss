@@ -1947,6 +1947,15 @@
 				   (send p set-selection (sub1 (send p get-number)))))
   (make-object button% "Rename" p2 (lambda (b e)
 				     (send p set-item-label (quotient (send p get-number) 2) "Do&nut")))
+  (make-object button% "Labels" p2 (lambda (b e)
+				     (printf "~s~n"
+					     (reverse
+					      (let loop ([i (send p get-number)])
+						(if (zero? i)
+						    null
+						    (cons (send p get-item-label (sub1 i)) (loop (sub1 i)))))))))
+  (make-object button% "Set" p2 (lambda (b e)
+				  (send p set '("New One" "New Second" "New Third"))))
   (when no-border?
     (make-object button% "Toggle" p2 (lambda (b e)
 				       (if on?
