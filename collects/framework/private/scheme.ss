@@ -315,13 +315,7 @@
                         (send style-list find-named-style "Basic")
                         delta))))
       
-      (define match-color 
-        (let ([gray-level
-               ;; old gray-level 192
-               (if (eq? (system-type) 'windows)
-                   (* 3/4 256)
-                   (- (* 7/8 256) 1))])
-          (make-object color% gray-level gray-level gray-level)))
+      (define (get-match-color) (preferences:get 'framework:paren-match-color))
       (define mismatch-color (make-object color% "PINK"))
       
       (define matching-parenthesis-style 
@@ -556,7 +550,7 @@
                                       [off (highlight-range 
                                             left
                                             right
-                                            (if error? mismatch-color match-color)
+                                            (if error? mismatch-color (get-match-color))
                                             (and (send (icon:get-paren-highlight-bitmap) ok?)
                                                  (icon:get-paren-highlight-bitmap))
                                             (= there here left))])

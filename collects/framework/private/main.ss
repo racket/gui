@@ -19,7 +19,20 @@
       
       (application-preferences-handler (lambda () (preferences:show-dialog)))
       
-      ;; preferences
+      (preferences:set-default 'framework:paren-match-color
+                               (let ([gray-level
+                                      ;; old gray-level 192
+                                      (if (eq? (system-type) 'windows)
+                                          (* 3/4 256)
+                                          (- (* 7/8 256) 1))])
+                                 (make-object color% gray-level gray-level gray-level))
+                               (lambda (x) (is-a? x color%)))
+      
+      (preferences:set-un/marshall
+       'framework:paren-match-color
+       (lambda (c) (list (send c red) (send c green) (send c blue)))
+       (lambda (l) (make-object color% (car l) (cadr l) (caddr l))))
+      
       (preferences:set-default 'framework:last-directory (find-system-path 'home-dir) string?)
       (preferences:set-default 'framework:recent-max-count 
                                50 
