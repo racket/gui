@@ -31,7 +31,7 @@
          (lambda (boxl)
            (let* ([tag (first boxl)]
                   [boxes (second boxl)]
-                  [calc-results
+                  [res
                    (lambda ()
                      (foldl (lambda (b n) (if (weak-box-value b) (+ n 1) n))
                             0
@@ -44,8 +44,8 @@
                  (make-object message% (format "~a: ~a of ~a~n" tag res ,mem-count) f)))))
          mem-boxes)
         (cond
-          [anything? (make-object button% "Close" (lambda x (send f show #f)) f)]
-          [else (make-object button% "NOTHING!" (lambda x (send f show #f)) f)])
+          [anything? (make-object button% "Close" f (lambda x (send f show #f)))]
+          [else (make-object button% "NOTHING!" f (lambda x (send f show #f)))])
         (send f show #t)))))
 
 (define (test-frame-allocate name %)
