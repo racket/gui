@@ -1435,7 +1435,8 @@
     file-creator-and-type
     set-snip-class-getter
     set-editor-data-class-getter
-    main-eventspace?)
+    main-eventspace?
+    eventspace-handler-thread)
 
 )
 ;; end

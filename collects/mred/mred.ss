@@ -1412,6 +1412,35 @@
   (and (eq? 'macosx (system-type))
        (wx:main-eventspace? (wx:current-eventspace))))
 
+(define (eventspace-handler-thread e)
+  (let ([t (wx:eventspace-handler-thread e)])
+    (or t
+	;; eventspace dead, or just no thread, yet?
+	(with-handlers ([not-break-exn?
+			 (lambda (x)
+			   (if (wx:eventspace-shutdown? e)
+			       (raise-mismatch-error
+				'eventspace-handler-thread
+				"eventspace is shutdown: "
+				e)
+			       (raise x)))])
+	  (let ([done (make-semaphore)]
+		[t #f])
+	    (parameterize ([wx:current-eventspace e])
+	      (wx:queue-callback
+	       (lambda () 
+		 (set! t (current-thread))
+		 (semaphore-post done))
+	       #t)
+	      (if (object-wait-multiple 1.0 done)
+		  t
+		  ;; Weird - no response after 1 second.  Maybe
+		  ;; someone killed the handler thread before it could
+		  ;; do our work? Or shutdown the eventspace? Or the
+		  ;; thread is busy? In any of those cases, we'll
+		  ;; succeed on the next iteration.
+		  (eventspace-handler-thread e))))))))
+
 (define (make-top-level-window-glue% %) ; implies make-window-glue%
   (class100 (make-window-glue% %) (mred proxy . args)
     (inherit is-shown? get-mred queue-visible get-eventspace)
@@ -3470,10 +3499,12 @@
      (let ([kws (syntax-local-value #'keywords)])
        (with-syntax ([super-init (datum->syntax-object 
 				  stx
-				  'super-init)]
+				  'super-init
+				  stx)]
 		     [super-instantiate (datum->syntax-object 
 					 stx
-					 'super-instantiate)]
+					 'super-instantiate
+					 stx)]
 		     [this (datum->syntax-object 
 			    stx
 			    'this)]
@@ -3488,7 +3519,8 @@
 			      (with-syntax ([super-instantiate
 					     (datum->syntax-object 
 					      sstx
-					      'super-instantiate)]
+					      'super-instantiate
+					      sstx)]
 					    [(new-kw (... ...))
 					     (map (lambda (x)
 						    (datum->syntax-object 
@@ -7436,6 +7468,7 @@
 	application-preferences-handler
 	application-quit-handler
 	current-eventspace-has-standard-menus?
+	eventspace-handler-thread
 	make-namespace-with-mred
 	file-creator-and-type)
 

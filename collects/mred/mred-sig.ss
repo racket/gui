@@ -62,6 +62,7 @@
      end-busy-cursor
      event%
      event-dispatch-handler
+     eventspace-handler-thread
      eventspace-shutdown?
      eventspace?
      file-creator-and-type
