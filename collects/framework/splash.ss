@@ -58,7 +58,7 @@
   
   (define (close-splash)
     (unless (= splash-max-width splash-current-width)
-      (set-resource (get-splash-width-resource) (max 1 splash-current-width)))
+      (splash-set-resource (get-splash-width-resource) (max 1 splash-current-width)))
     (set! quit-on-close? #f)
     (when splash-frame
       (send splash-frame show #f)))
@@ -67,7 +67,7 @@
     (set! splash-load-handler (lambda (old-load f) (old-load f))))
    
   (define funny?
-    '(let ([date (seconds->date (current-seconds))])
+    (let ([date (seconds->date (current-seconds))])
       (and (= (date-day date) 25)
            (= (date-month date) 12))))
   
@@ -135,7 +135,7 @@
       (if (get-resource "mred" name b #f)
           (unbox b)
           default)))
-  (define (set-resource name value)
+  (define (splash-set-resource name value)
     (write-resource "mred" name value (find-graphical-system-path 'setup-file)))
   
   (define (splitup-path f)
