@@ -1697,6 +1697,7 @@
 			      (set! fixed-height? #f)
 			      (set-min-height orig-hard)))
 			(update-size))]
+      [get-line-count (lambda () (and fixed-height? fixed-height-lines))]
       [update-size
        (lambda ()
 	 (let ([edit (get-editor)])
