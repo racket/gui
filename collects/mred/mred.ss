@@ -6124,7 +6124,8 @@
 	   queue-callback
 	   yield
 	   eventspace-shutdown?
-	   get-panel-background)
+	   get-panel-background
+	   send-event)
 
 (define the-color-database (wx:get-the-color-database))
 (define the-font-name-directory (wx:get-the-font-name-directory))
