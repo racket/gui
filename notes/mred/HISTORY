@@ -14,7 +14,7 @@ Version 102/2:
    family in addition to the user-selected face string.
  
  * Removed `get-afm-name' and `set-afm-name' from
-   `font-name-directory<%>', and changed post-script-dc% to use the
+   font-name-directory<%>, and changed post-script-dc% to use the
    PostScript font name as the AFM file name (prefixed with the AFM
    directory and suffixed with ".afm").
 
