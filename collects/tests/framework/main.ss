@@ -5,8 +5,7 @@
 	   "debug.ss"
 	   "test-suite-utils.ss")
 
-  ;; must be run in the right context...
-  (define argv (namespace-variable-binding 'argv))
+  (define argv (current-command-line-arguments))
 
   (define preferences-file (build-path (find-system-path 'pref-dir)
 				       (case (system-type)
