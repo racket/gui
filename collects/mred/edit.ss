@@ -310,8 +310,9 @@
 	     (lambda (start len)
 	       (when styles-fixed?
 		 (set! styles-fixed-edit-modified? (modified?)))
-	       (if (or (not mode) (send mode on-change-style this start len))
-		   (super-on-change-style start len)))]
+	       (and (or (not mode) 
+			(send mode on-change-style this start len))
+		    (super-on-change-style start len)))]
 	    [on-edit-sequence
 	     (lambda ()
 	       (when mode
