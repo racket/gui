@@ -608,8 +608,7 @@
 				 (not (= format wx:const-media-ff-copy))
 				 (file-exists? name))
 			(let ([back-name (mred:path-utils:generate-backup-name name)])
-			  (unless (file-exists? back-name)
-			    (rename-file name back-name))))
+			  (wx:copy-file name back-name)))
 		      #t)))]
 	    [on-change
 	     (lambda ()
