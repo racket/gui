@@ -118,8 +118,7 @@ search path:
 * the search path defined by the MREDSYS system evironment 
 variable
 .IP
-* In PLTHOME/mred/system where PLTHOME is replaced with the value of the
-PLTHOME environment variable.
+* "$PLTHOME/mred/system"
 .IP
 * "/usr/local/lib/plt/mred/system" 
 .IP
@@ -130,19 +129,17 @@ PLTHOME environment variable.
 * "/usr/lib/mred/system"
 .PP
 
-The standard system loads in the core or the mzlib library,
-using the following search path:
+The standard system loads the core or the mzlib library,
+using the following search path, setting the
+require-library-collections-path to one of (in order of preference):
 .IP
-* "../mzlib"
+* "$PLTHOME/mzscheme/collects/standard" (if PLTHOME is not defined,
+/usr/local/lib/ is used as it's value).
 .IP
-* "../mzscheme/mzlib"
+* "../mzscheme/collects/"
 .IP
-* "../../mzscheme/mzlib"
+* "../../mzscheme/collects/standard"
 .IP
-* "PLTHOME/mzscheme/mzlib", where "PLTHOME" is replaced
-with the value of the PLTHOME environment variable. 
-If the environment variable is undefined, 
-"/usr/local/lib/plt/" is used
 .PP
 
 .I MrEd
