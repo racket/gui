@@ -140,12 +140,8 @@ Click "Select Last". The list should scroll to the end. Try "Visible
 
 Make the list box taller than all its items. (It may be necssary to
  delete some items by selecting them and hitting the "Delete" button.)
- Click "Visible Indices" and make sure that the visible count is equal
- to the number of items.
-
-Delete on more item and try "Visible Indices" again. The count should
- have gone down by one.
-
+ Click "Visible Indices" and make sure that the visible count is still
+ more than the number of items.
 
 Deleting  >> Lists Only <<
 --------
