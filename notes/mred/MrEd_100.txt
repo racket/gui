@@ -976,6 +976,9 @@ Added 'unknown image kind for bitmap%'s load-file, etc., which
 
 canvas%'s get-view-start returns values in pixels, not scroll units
 
+editor-wordbreak-map%'s get-map and set-map now work on characters
+   instead of integers
+
 text%'s find-string and find-string-all use symbols to specify the
  direction, 'forward or 'backward instead of -1 or 1.
 
