@@ -305,6 +305,7 @@
 
 	    (make-check 'mred:show-status-line "Show status-line?" id id)
 	    (make-check 'mred:line-offsets "Count line and column numbers from one?" id id)
+	    (make-check 'mred:menu-bindings "Enable keybindings in menus?" id id)
 	    main))
 	#f)))
 

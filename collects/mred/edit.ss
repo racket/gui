@@ -6,6 +6,7 @@
 	    [mred:finder : mred:finder^]
 	    [mred:path-utils : mred:path-utils^]
 	    [mred:mode : mred:mode^]
+	    [mred:frame : mred:frame^]
 	    [mred:scheme-paren : mred:scheme-paren^]
 	    [mred:keymap : mred:keymap^]
 	    [mred:icon : mred:icon^]
@@ -59,6 +60,8 @@
 		  [super-on-focus on-focus]
 		  [super-lock lock])
 
+	  (public [editing-this-file? #f])
+
 	  (public
 	    [locked? #f]
 	    [lock 
@@ -107,12 +110,15 @@
 		   delete find-snip set-filename invalidate-bitmap-cache
 		   begin-edit-sequence end-edit-sequence
 		   set-autowrap-bitmap get-keymap mode set-mode-direct
-		   set-file-format get-file-format
+		   set-file-format get-file-format get-frame
 		   get-style-list modified? change-style set-modified)
 	  
 	  (rename [super-on-focus on-focus]
 		  [super-on-local-event on-local-event]
 		  
+		  [super-on-set-focus on-set-focus]
+		  [super-on-kill-focus on-kill-focus]
+
 		  [super-after-set-position after-set-position]
 
 		  [super-on-edit-sequence on-edit-sequence]
@@ -132,6 +138,28 @@
 		  [super-on-paint on-paint])
 
 	  (private [styles-fixed-edit-modified? #f])
+
+	  (public
+	    [on-kill-focus
+	     (lambda ()
+	       (super-on-kill-focus)
+	       (let ([frame (get-frame)])
+		 (when (and frame
+			    (is-a? frame mred:frame:empty-frame%))
+		   (send (get-keymap)
+			 remove-chained-keymap
+			 (ivar frame keymap)))))]
+	    [on-set-focus
+	     (lambda ()
+	       (super-on-set-focus)
+	       (let ([frame (get-frame)])
+		 (when (and frame
+			    (is-a? frame mred:frame:empty-frame%))
+		   (send (get-keymap)
+			 chain-to-keymap
+			 (ivar frame keymap)
+			 #t))))])
+
 	  (public
 	    [set-mode
 	     (lambda (m)
@@ -556,29 +584,10 @@
 		   get-filename lock get-style-list 
 		   modified? change-style set-modified 
 		   get-frame)
-	  (rename [super-on-set-focus on-set-focus]
-		  [super-on-kill-focus on-kill-focus]
-		  [super-after-save-file after-save-file]
+	  (rename [super-after-save-file after-save-file]
 		  [super-after-load-file after-load-file])
 
-	  (public
-	    [on-kill-focus
-	     (lambda ()
-	       (super-on-kill-focus)
-	       (let ([frame (get-frame)])
-		 (when frame
-		   (send (get-keymap)
-			 remove-chained-keymap
-			 (ivar frame keymap)))))]
-	    [on-set-focus
-	     (lambda ()
-	       (super-on-set-focus)
-	       (let ([frame (get-frame)])
-		 (when frame
-		   (send (get-keymap)
-			 chain-to-keymap
-			 (ivar frame keymap)
-			 #t))))])
+	  (public [editing-this-file? #t])
 	  (private
 	    [check-lock
 	     (lambda ()
@@ -840,9 +849,6 @@
 		   (when anchor-needs-updating
 		     (set! anchor-needs-updating #f)
 		     (send frame overwrite-status-changed))
-		   (when lock-needs-updating
-		     (set! lock-needs-updating #f)
-		     (send frame anchor-status-changed))
 		   (when position-needs-updating
 		     (set! position-needs-updating #f)
 		     (update-position-edit))
