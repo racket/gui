@@ -70,18 +70,16 @@
       #;((is-a?/c snip%) . -> . void?)
       ;; Called when a snip in the pasteboard changes its size
       ;; Overriden because the layout will change when a snip gets bigger.
-      (rename [super-really-resized really-resized])
       (define/override (really-resized snip)
-        (super-really-resized snip)
+        (super really-resized snip)
         (realign))
       
       #;(-> void)
       ;; Called when the pasteboard is first shown.
       ;; Overriden because I need to know when the snips have their size to lay them out.
-      (rename [super-on-show on-show])
       (define/override (on-show)
         (realign)
-        (super-on-show))
+        (super on-show))
       
       #;(boolean? . -> . void?)
       ;; Locks the pasteboard so that all alignment requests are delayed until after it's done.

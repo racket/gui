@@ -61,9 +61,8 @@
             (when w (set-box! w (+ left-margin width right-margin)))
             (when h (set-box! h (+ top-margin height bottom-margin)))))
         
-        (rename [super-draw draw])
         (define/override (draw dc x y left top right bottom dx dy draw-caret)
-          (super-draw dc x y left top right bottom dx dy draw-caret)
+          (super draw dc x y left top right bottom dx dy draw-caret)
           (let ([max-width (get-max-string-width dc labels)]
                 [width (get-string-width dc label)]
                 [max-height (get-max-string-height dc labels)])
@@ -85,9 +84,8 @@
                     x 
                     y)))))
         
-        ;(rename [super-copy copy])
         ;(define/override (copy)
-        ;  (super-copy))
+        ;  (super copy))
         
         (define/override (resize w h) #f)
         

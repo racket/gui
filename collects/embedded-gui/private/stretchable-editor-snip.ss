@@ -53,9 +53,8 @@
       (define/public (stretch w h)
         (super-resize w h))
       
-      (rename [super-get-extent get-extent])
       (define/override (get-extent dc x y w h descent space lspace rspace)
-        (super-get-extent dc x y w h descent space lspace rspace)
+        (super get-extent dc x y w h descent space lspace rspace)
         (when (is-a? (get-editor) text%)
           (set-box! w (sub1 (unbox w))))
         (go))
@@ -70,8 +69,6 @@
       
       ;; NOTE: Can I make this not public? I don't think it
       ;; should be but it's been a while since I wrote this class.
-      (rename [super-set-min-width set-min-width]
-              [super-set-min-height set-min-height])
       (define/public (super-resize w h)
         (let ((top (box 0))
               (bot (box 0))
@@ -87,11 +84,11 @@
             ;; sure if this change here is sound and works for every part of this
             ;; class.
             (if (> w aligned-min-width)
-                (super-set-min-width w)
-                (super-set-min-width 'none))
+                (super set-min-width w)
+                (super set-min-width 'none))
             (if (> h aligned-min-height)
-                (super-set-min-height h)
-                (super-set-min-height 'none))
+                (super set-min-height h)
+                (super set-min-height 'none))
             (when a (send a resized this #t)))))
       
       ;; call this from within get extent and use the values it produces by subtracting the

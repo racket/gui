@@ -34,8 +34,6 @@ is being reset.
   (define (program-editor-mixin %)
     (class %
       (inherit get-admin begin-edit-sequence end-edit-sequence)
-      (rename [super-after-insert after-insert]
-              [super-after-delete after-delete])
       (define (get-frame)
         ;; gets the top most editor in the tree of snips and editors
         (define (editor-root ed)
@@ -69,21 +67,20 @@ is being reset.
             (send* (send frame get-definitions-text)
               (set-modified true)))))
       
-      ;(rename [super-on-insert on-insert])
       ;(define/override (on-insert start len)
       ;  (begin-edit-sequence)
-      ;  (super-on-insert start len)
+      ;  (super on-insert start len)
       ;  (end-edit-sequence))
       
       (define/override (after-insert start len)
         (alert-of-modify)
         ;(begin-edit-sequence)
-        (super-after-insert start len)
+        (super after-insert start len)
         ;(end-edit-sequence)
         )
       (define/override (after-delete start len)
         (alert-of-modify)
-        (super-after-delete start len))
+        (super after-delete start len))
       (super-new)))
   
   (define program-editor%

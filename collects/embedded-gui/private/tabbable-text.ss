@@ -24,7 +24,6 @@
       
       ;; get-keymaps (-> (listof keymap%))
       ;; the list of keymaps associated with this text
-      (rename [super-get-keymaps get-keymaps])
       (define/override (get-keymaps)
         (let ([keymap (make-object keymap%)])
           (send keymap add-function "tab-ahead"
@@ -35,7 +34,7 @@
                 (lambda (ignored event)
                   (back)))
           (send keymap map-function "s:tab" "tab-back")
-          (cons keymap (super-get-keymaps))))
+          (cons keymap (super get-keymaps))))
       
       (define/public (set-ahead t) (set! ahead t))
       (define/public (set-back t) (set! back t))

@@ -12,21 +12,17 @@
   (define (suppress-modify-editor-mixin %)
     (class %
       (inherit set-modified)
-      (rename [super-after-delete after-delete]
-              [super-after-insert after-insert]
-              [super-after-move-to after-move-to]
-              [super-after-resize after-resize])
       #;(define/override (after-delete snip)
-        (super-after-delete snip)
+        (super after-delete snip)
         (set-modified false))
       #;(define/override (after-insert snip before x y)
-        (super-after-insert snip before x y)
+        (super after-insert snip before x y)
         (set-modified false))
       #;(define/override (after-move-to snip x y dragging?)
-        (super-after-move-to snip x y dragging?)
+        (super after-move-to snip x y dragging?)
         (set-modified false))
       #;(define/override (after-resize snip w h resized?)
-        (super-after-resize snip w h resized?)
+        (super after-resize snip w h resized?)
         (set-modified false))
       (super-new)))
   )

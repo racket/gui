@@ -35,9 +35,8 @@ get text deteleted from them, etc.
       snip : snip% object 
       redraw-now? : boolean
       |#
-      (rename [super-resized resized])
       (define/override (resized snip redraw-now?)
-        (super-resized snip redraw-now?)
+        (super resized snip redraw-now?)
         (unless ignore-resizing?
           (let ([size (snip-size snip)])
             ;; The snip is getting remove from hash table in  a way I
@@ -54,18 +53,16 @@ get text deteleted from them, etc.
       x : real number 
       y : real number
       |#
-      (rename [super-after-insert after-insert])
-      (define/override (after-insert snip before x y)
-        (super-after-insert snip before x y)
-        (hash-table-put! snip-cache snip (snip-size snip)))
+      (define/augment (after-insert snip before x y)
+        (hash-table-put! snip-cache snip (snip-size snip))
+        (inner (void) snip before x y))
       
       #|
       snip : snip% object
       |#
-      (rename [super-after-delete after-delete])
-      (define/override (after-delete snip)
-        (super-after-delete snip)
-        (hash-table-remove! snip-cache snip))
+      (define/augment (after-delete snip)
+        (hash-table-remove! snip-cache snip)
+        (inner (void) snip))
       
       #;((is-a?/c snip%) . -> . (cons/p natural-number? natural-number?))
       ;; The width and height of the given snip in this pasteboard.

@@ -11,7 +11,6 @@
   
   (define grey-editor-snip-mixin
     (mixin ((class->interface editor-snip%)) ()
-      (rename [super-draw draw])
       (inherit get-admin get-inset)
       (define/override (draw dc x y left top right bottom dx dy draw-caret)
         (let ([old-pen (send dc get-pen)]
@@ -37,12 +36,11 @@
                   (max 0 (- (unbox hb) (+ (unbox top-inset) (unbox bottom-inset)))))
             (send dc set-pen old-pen)
             (send dc set-brush old-brush)))
-        (super-draw dc x y left top right bottom dx dy draw-caret))
+        (super draw dc x y left top right bottom dx dy draw-caret))
       (super-new)))
   
   (define grey-editor-mixin
     (mixin (editor<%>) ()
-      (rename [super-on-paint on-paint])
       (define/override (on-paint before? dc left top right bottom dx dy draw-caret)
         (when before?
           (let ([old-pen (send dc get-pen)]
@@ -52,5 +50,5 @@
             (send dc draw-rectangle (+ left dx) (+ top dy) (+ right dx) (+ bottom dy))
             (send dc set-pen old-pen)
             (send dc set-brush old-brush)))
-        (super-on-paint before? dc left top right bottom dx dy draw-caret))
+        (super on-paint before? dc left top right bottom dx dy draw-caret))
       (super-new))))

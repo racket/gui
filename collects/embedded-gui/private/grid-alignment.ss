@@ -1,4 +1,10 @@
+#| Not yet functional |#
+
 (module grid-alignment mzscheme
+  (define grid-alignment #f)
+  (provide grid-alignment))
+
+#;(module grid-alignment mzscheme
   
   (require
    (lib "class.ss")

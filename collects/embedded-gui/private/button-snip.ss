@@ -63,7 +63,6 @@
         (load-file image))
       
       ;; Should I be calling super-on-event?
-      (rename [super-on-event on-event])
       (define/override (on-event dc x y editorx editory event)
         (case (send event get-event-type)
           [(left-down)
@@ -98,7 +97,6 @@
        [got-click? false]
        [inside? false])
       
-      (rename [super-on-event on-event])
       (define/override (on-event dc x y editorx editory event)
         (case (send event get-event-type)
           [(left-down)

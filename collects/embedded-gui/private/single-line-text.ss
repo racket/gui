@@ -11,12 +11,11 @@
     (mixin (editor:keymap<%>) ()
       #;(-> (listof keymap%))
       ;; the list of keymaps associated with this text
-      (rename [super-get-keymaps get-keymaps])
       (define/override (get-keymaps)
         (let ([keymap (make-object keymap%)])
           (send keymap add-function "do nothing" void)
           (send keymap map-function ":enter" "do nothing")
-          (cons keymap (super-get-keymaps))))
+          (cons keymap (super get-keymaps))))
       (super-new)))
   
   #|
