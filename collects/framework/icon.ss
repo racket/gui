@@ -1,4 +1,4 @@
-(unit/sig framework:icon^
+(dunit/sig framework:icon^
   (import mred-interfaces^)
 
   (define icon-path 
@@ -16,16 +16,16 @@
 	    (begin (set! bitmap (make-object % p type))
 		   bitmap)))))
   
-  (define (load-bitmap/mdc % name type)
+  (define (load-bitmap/bdc % name type)
     (let* ([p (build-path icon-path name)]
 	   [bitmap #f]
-	   [memory-dc #f]
+	   [bitmap-dc #f]
 	   [force
 	    (lambda ()
 	      (set! bitmap (make-object % p type))
-	      (set! memory-dc (make-object memory-dc%))
+	      (set! bitmap-dc (make-object bitmap-dc%))
 	      (when (send bitmap ok?)
-		(send memory-dc select-object bitmap)))])
+		(send bitmap-dc select-object bitmap)))])
       (unless (file-exists? p)
 	(fprintf (current-error-port) "WARNING: couldn't find ~a~n" p))
       (values 
@@ -34,16 +34,16 @@
 	     (begin (force)
 		    bitmap)))
        (lambda ()
-	 (or memory-dc
+	 (or bitmap-dc
 	     (begin (force)
-		    memory-dc))))))
+		    bitmap-dc))))))
   
-  (define-values (get-anchor-bitmap get-anchor-mdc)
-    (load-bitmap/mdc bitmap% "anchor.gif" 'gif))
-  (define-values (get-lock-bitmap get-lock-mdc)
-    (load-bitmap/mdc bitmap% "lock.gif" 'gif))
-  (define-values (get-unlock-bitmap get-unlock-mdc)
-    (load-bitmap/mdc bitmap% "unlock.gif" 'gif))
+  (define-values (get-anchor-bitmap get-anchor-bdc)
+    (load-bitmap/bdc bitmap% "anchor.gif" 'gif))
+  (define-values (get-lock-bitmap get-lock-bdc)
+    (load-bitmap/bdc bitmap% "lock.gif" 'gif))
+  (define-values (get-unlock-bitmap get-unlock-bdc)
+    (load-bitmap/bdc bitmap% "unlock.gif" 'gif))
   
   (define get-autowrap-bitmap (load-icon bitmap% "return.xbm" 'xbm))
   (define get-paren-highlight-bitmap (load-icon bitmap% "paren.xbm" 'xbm))
@@ -57,7 +57,7 @@
       (lambda ()
 	(or icon
 	    (begin
-	      (set! icon (make-object icon% p 'xbm))
+	      (set! icon (make-object bitmap% p 'xbm))
 	      icon)))))
   
   (define-values (get-gc-on-dc get-gc-width get-gc-height)
@@ -65,14 +65,14 @@
 				  "recycle.gif"
 				  'gif)]
 	   [bitmap #f]
-	   [mdc #f]
+	   [bdc #f]
 	   [fetch
 	    (lambda ()
-	      (unless mdc
-		(set! mdc (make-object memory-dc%))
+	      (unless bdc
+		(set! bdc (make-object bitmap-dc%))
 		(set! bitmap (get-bitmap))
-		(send mdc select-object bitmap)))])
-      (values (lambda () (fetch) mdc)
+		(send bdc select-object bitmap)))])
+      (values (lambda () (fetch) bdc)
 	      (lambda () (fetch) (if (send bitmap ok?)
 				     (send bitmap get-width)
 				     10))
@@ -81,15 +81,15 @@
 				     10)))))
   
   (define get-gc-off-dc 
-    (let ([mdc #f])
+    (let ([bdc #f])
       (lambda ()
-	(if mdc
-	    mdc
+	(if bdc
+	    bdc
 	    (begin
-	      (set! mdc (make-object memory-dc%))
-	      (send mdc select-object
+	      (set! bdc (make-object bitmap-dc%))
+	      (send bdc select-object
 		    (make-object bitmap%
 				 (get-gc-width)
 				 (get-gc-height)))
-	      (send mdc clear)
-	      mdc))))))
+	      (send bdc clear)
+	      bdc))))))

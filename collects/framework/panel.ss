@@ -1,24 +1,26 @@
-(unit/sig framework:panel^
+(dunit/sig framework:panel^
   (import mred-interfaces^
 	  [mzlib:function : mzlib:function^])
   
-  (define single<%> (interface (panel%)))
-  (define make-single%
+  (rename [-editor<%> editor<%>])
+
+  (define single<%> (interface (panel<%>)))
+  (define single-mixin
     (mixin (panel<%>) (single<%>) args
       (sequence
 	(apply super-init args))))
-  (define single% vertical-panel%)
+  (define single% (single-mixin vertical-panel%))
   
-  (define edit<%>
+  (define -editor<%>
     (interface ()
       get-canvas%
       collapse
       split))
   
-  (define make-edit%
-    (mixin (panel<%>) (edit<%>) args
+  (define editor-mixin
+    (mixin (panel<%>) (-editor<%>) args
       (rename [super-change-children change-children])
-      (inherit get-parent change-children children)
+      (inherit get-parent change-children get-children)
       (public [get-canvas% (lambda () editor-canvas%)])
       (private
 	[split-edits null])
@@ -30,26 +32,27 @@
 		 (letrec ([helper
 			   (lambda (canvas/panel)
 			     (if (eq? canvas/panel this)
-				 (begin (cond
-					  [(and (= (length children) 1)
-						(eq? canvas (car children)))
-					   (void)]
-					  [(member canvas children)
-					   (change-children (lambda (l) (list canvas)))]
-					  [else
-					   (change-children
-					    (lambda (l)
-					      (let ([c (make-object (object-class canvas) this)])
-						(send c set-media media)
-						(list c))))])
+				 (let ([children (get-children)])
+				   (cond
+				     [(and (= (length children) 1)
+					   (eq? canvas (car children)))
+				      (void)]
+				     [(member canvas children)
+				      (change-children (lambda (l) (list canvas)))]
+				     [else
+				      (change-children
+				       (lambda (l)
+					 (let ([c (make-object (object-class canvas) this)])
+					   (send c set-media media)
+					   (list c))))])
 					(bell))
 				 (let* ([parent (send canvas/panel get-parent)]
-					[parents-children (ivar parent children)]
+					[parents-children (send parent get-children)]
 					[num-children (length parents-children)])
 				   (if (<= num-children 1)
 				       (helper parent)
 				       (begin (send parent delete-child canvas/panel)
-					      (send (car (ivar parent children)) focus))))))])
+					      (send (car (send parent get-children)) focus))))))])
 		   (send media remove-canvas canvas)
 		   (helper canvas))
 		 (bell))))]
@@ -87,7 +90,7 @@
 	     (send* right-split (set-media media))))])
       (sequence (apply super-init args))))
   
-  (define horizontal-edit%
-    (make-edit% horizontal-panel%))    
-  (define vertical-edit%
-    (make-edit% vertical-panel%)))
+  (define horizontal-editor%
+    (editor-mixin horizontal-panel%))    
+  (define vertical-editor%
+    (editor-mixin vertical-panel%)))

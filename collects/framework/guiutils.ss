@@ -1,4 +1,4 @@
-(unit/sig framework:gui-utils^
+(dunit/sig framework:gui-utils^
   (import mred-interfaces^)
 
   (define cursor-delay

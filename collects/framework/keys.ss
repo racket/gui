@@ -1,4 +1,4 @@
-(unit/sig framework:keymap^
+(dunit/sig framework:keymap^
   (import mred-interfaces^
 	  [preferences : framework:preferences^]
 	  [finder : framework:finder^]

@@ -2,7 +2,7 @@
 
 ;;; Authors: Matthew Flatt, Robby Findler, Paul Steckler 
 
-(unit/sig framework:finder^
+(dunit/sig framework:finder^
   (import mred-interfaces^
 	  [preferences : framework:preferences^]
 	  [gui-utils : framework:gui-utils^]
@@ -62,8 +62,7 @@
 			file-filter 
 			file-filter-msg)
       
-      (inherit new-line tab fit center
-	       popup-menu show)
+      (inherit center show)
       
       (private
 	[WIDTH 500]
@@ -310,8 +309,9 @@
 	[do-cancel
 	 (lambda args
 	   (set-box! result-box #f)
-	   (show #f))]
+	   (show #f))])
 	
+      (override
 	[on-close (lambda () #f)])
       
       (sequence

@@ -1,4 +1,4 @@
-(unit/sig framework:handler^
+(dunit/sig framework:handler^
   (import mred-interfaces^
 	  [gui-utils : framework:gui-utils^]
 	  [finder : framework:finder^]

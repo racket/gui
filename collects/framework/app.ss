@@ -1,4 +1,4 @@
-(unit/sig framework:application^
+(dunit/sig framework:application^
   (import)
 
   (define current-app-name (make-parameter

@@ -1,4 +1,4 @@
-(unit/sig ()
+(dunit/sig framework:main^
   (import mred-interfaces^
 	  [preferences : framework:preferences^]
 	  [exit : framework:exit^]
@@ -16,14 +16,10 @@
   (preferences:set-default 'framework:show-status-line #t boolean?)
   (preferences:set-default 'framework:line-offsets #t boolean?)
   
-  
-  
-  
-  (preferences:set 'framework:print-output-mode
-		   'standard
-		   (lambda (x) (or (eq? x 'standard) (eq? x 'postscript))))
-  
-  
+  (preferences:set-default
+   'framework:print-output-mode
+   'standard
+   (lambda (x) (or (eq? x 'standard) (eq? x 'postscript))))
   
   (preferences:set-default 'framework:highlight-parens #t boolean?)
   (preferences:set-default 'framework:fixup-parens #t boolean?)
@@ -75,14 +71,15 @@
   (preferences:set-default 'framework:delete-forward? 
 			   (not (eq? (system-type) 'unix))
 			   boolean?)
-  (preferences:set 'framework:show-periods-in-dirlist #f boolean?)
-  (preferences:set 'framework:file-dialogs
-		   (if (eq? (system-type) 'unix)
-		       'common
-		       'std)
-		   (lambda (x)
-		     (or (eq? x 'common)
-			 (eq? x 'std))))
+  (preferences:set-default 'framework:show-periods-in-dirlist #f boolean?)
+  (preferences:set-default
+   'framework:file-dialogs
+   (if (eq? (system-type) 'unix)
+       'common
+       'std)
+   (lambda (x)
+     (or (eq? x 'common)
+	 (eq? x 'std))))
   
   (preferences:add-panel
    "Indenting"

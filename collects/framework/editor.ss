@@ -1,4 +1,4 @@
-(unit/sig framework:editor^
+(dunit/sig framework:editor^
   (import mred-interfaces^
 	  [autosave : framework:autosave^]
 	  [finder : framework:finder^]
@@ -6,18 +6,20 @@
 	  [keymap : framework:keymap^]
 	  [icon : framework:icon^]
 	  [preferences : framework:preferences^]
-	  [gui-utils : framework:gui-utils^])
+	  [text : framework:text^]
+	  [pasteboard : framework:pasteboard^])
   
   (define basic<%>
     (interface (editor<%>)
       editing-this-file?
       local-edit-sequence?
       run-after-edit-sequence
-      get-text-snip      
-      get-pasteboard-snip
-      default-auto-wrap?))
+      default-auto-wrap?
+      get-top-level-window
+      locked?
+      on-close))
 
-  (define make-basic%
+  (define basic-mixin
     (mixin (editor<%>) (basic<%>) args
       (inherit get-filename save-file
 	       refresh-delayed? 
@@ -25,62 +27,47 @@
 	       get-keymap
 	       get-max-width get-admin set-filename)
       (rename [super-set-modified set-modified]
-	      [super-on-save-file on-save-file]
 	      [super-on-focus on-focus]
-	      [super-load-file load-file]
 	      [super-lock lock])
       
-      (public [editing-this-file? #f])
+      (public
+	[on-close void]
+	[get-top-level-window
+	 (lambda ()
+	   (let ([c (get-canvas)])
+	     (and c
+		  (send c get-top-level-window))))])
 
-      (override
-	[load-file
-	 (opt-lambda ([filename #f] 
-		      [the-format 'guess]
-		      [show-dialog? #t])
-	   (let ([filename (or filename
-			       (parameterize ([finder:dialog-parent-parameter
-					       (let ([canvas (get-canvas)])
-						 (and canvas
-						      (send canvas get-top-level-window)))])
-				 (finder:get-file)))])
-	     (and filename
-		  (if (file-exists? filename)
-		      (let ([res (super-load-file filename the-format #f)])
-			(when (and (not res)
-				   show-dialog?)
-			  (message-box
-			   "Error Loading File"
-			   (format "Error loading file ~a" filename))
-			  res))
-		      (set-filename filename)))))])
+      (public [editing-this-file? (lambda () #f)])
 
       (private
 	[edit-sequence-queue null]
 	[edit-sequence-ht (make-hash-table)])
 
+      (private
+	[in-local-edit-sequence? #f])
       (public
-	[local-edit-sequence? #f]
+	[local-edit-sequence? (lambda () in-local-edit-sequence?)]
 	[run-after-edit-sequence
-	 (rec run-after-edit-sequence
-	      (case-lambda 
-	       [(t) (run-after-edit-sequence t #f)]
-	       [(t sym)
-		(unless (and (procedure? t)
-			     (= 0 (arity t)))
-		  (error 'media-buffer::run-after-edit-sequence
-			 "expected procedure of arity zero, got: ~s~n" t))
-		(unless (or (symbol? sym) (not sym))
-		  (error 'media-buffer::run-after-edit-sequence
-			 "expected second argument to be a symbol, got: ~s~n"
-			 sym))
-		(if (refresh-delayed?)
-		    (cond
-		      [(symbol? sym)
-		       (hash-table-put! edit-sequence-ht sym t)]
-		      [else (set! edit-sequence-queue
-				  (cons t edit-sequence-queue))])
-		    (t))
-		(void)]))]
+	 (case-lambda 
+	  [(t) (run-after-edit-sequence t #f)]
+	  [(t sym)
+	   (unless (and (procedure? t)
+			(= 0 (arity t)))
+	     (error 'media-buffer::run-after-edit-sequence
+		    "expected procedure of arity zero, got: ~s~n" t))
+	   (unless (or (symbol? sym) (not sym))
+	     (error 'media-buffer::run-after-edit-sequence
+		    "expected second argument to be a symbol, got: ~s~n"
+		    sym))
+	   (if (refresh-delayed?)
+	       (cond
+		 [(symbol? sym)
+		  (hash-table-put! edit-sequence-ht sym t)]
+		 [else (set! edit-sequence-queue
+			     (cons t edit-sequence-queue))])
+	       (t))
+	   (void)])]
 	[extend-edit-sequence-queue
 	 (lambda (l ht)
 	   (hash-table-for-each ht (lambda (k t)
@@ -95,10 +82,10 @@
 	[on-edit-sequence
 	 (lambda ()
 	   (super-on-edit-sequence)
-	   (set! local-edit-sequence? #t))]
+	   (set! in-local-edit-sequence? #t))]
 	[after-edit-sequence
 	 (lambda ()
-	   (set! local-edit-sequence? #f)
+	   (set! in-local-edit-sequence? #f)
 	   (super-after-edit-sequence)
 	   (let ([queue edit-sequence-queue]
 		 [ht edit-sequence-ht]
@@ -115,67 +102,56 @@
 	     (set! edit-sequence-ht (make-hash-table))
 	     (let loop ([edit (find-enclosing-edit this)])
 	       (cond
-		 [(and edit (not (ivar edit local-edit-sequence?)))
+		 [(and edit (not (send edit local-edit-sequence?)))
 		  (loop (find-enclosing-edit edit))]
 		 [edit (send edit extend-edit-sequence-queue queue ht)]
 		 [else
 		  (hash-table-for-each ht (lambda (k t) (t)))
 		  (for-each (lambda (t) (t)) queue)]))))])
+      (private
+	[is-locked? #f])
       (public
-	[locked? #f])
+	[locked? (lambda () is-locked?)])
       (override
-	[lock 
+	[lock
 	 (lambda (x)
-	   (set! locked? x)
-	   (super-lock x))])
-      
-      (public
-	[get-text-snip (lambda () (make-object editor-snip% (make-object text%)))]
-	[get-pasteboard-snip (lambda () (make-object editor-snip% (make-object pasteboard%)))])
-      (override
+	   (set! is-locked? x)
+	   (super-lock x))]
 	[on-new-box
 	 (lambda (type)
 	   (cond
-	     [(eq? type 'text) (get-text-snip)]
-	     [else (get-pasteboard-snip)]))])
+	     [(eq? type 'text) (make-object editor-snip% (make-object text:basic%))]
+	     [else (make-object editor-snip% (make-object pasteboard:basic%))]))])
 
 
-      (public
+      (override
 	[get-file (lambda (d) 
-		    (let ([v (parameterize ([finder:dialog-parent-parameter
-					     (and (get-canvas)
-						  (send (get-canvas) get-top-level-window))])
-			       (finder:get-file d))])
-		      (if v
-			  v
-			  null)))]
-	[put-file (lambda (d f) (let ([v (parameterize ([finder:dialog-parent-parameter
-							 (and (get-canvas)
-							      (send (get-canvas) get-top-level-window))])
-					   (finder:put-file f d))])
-				  (if v
-				      v
-				      null)))])
+		    (parameterize ([finder:dialog-parent-parameter
+				    (get-top-level-window)])
+		      (finder:get-file d)))]
+	[put-file (lambda (d f) (parameterize ([finder:dialog-parent-parameter
+						(get-top-level-window)])
+				  (finder:put-file f d)))])
       
       (public
-	[default-auto-wrap? #t])
+	[default-auto-wrap? (lambda () #t)])
       (inherit auto-wrap)
       (sequence
 	(apply super-init args)
-	(auto-wrap default-auto-wrap?))))
+	(auto-wrap (default-auto-wrap?)))))
   
 
   (define file<%> (interface (basic<%>)))
-  (define make-file%
+  (define file-mixin
     (mixin (basic<%>) (file<%>) args
       (inherit get-keymap  
 	       get-filename lock get-style-list 
 	       is-modified? change-style set-modified 
-	       get-frame)
+	       get-top-level-window)
       (rename [super-after-save-file after-save-file]
 	      [super-after-load-file after-load-file])
       
-      (override [editing-this-file? #t])
+      (override [editing-this-file? (lambda () #t)])
       (private
 	[check-lock
 	 (lambda ()
@@ -213,15 +189,14 @@
       do-autosave
       remove-autosave))
 
-  ; wx: when should autosave files be removed?
-  ;     also, what about checking the autosave files when a file is
+  ; wx: what about checking the autosave files when a file is
   ;     opened?
-  (define make-backup-autosave%
+  (define backup-autosave-mixin
     (mixin (basic<%>) (backup-autosave<%>) args
       (inherit is-modified? get-filename save-file)
       (rename [super-on-save-file on-save-file]
 	      [super-on-change on-change]
-	      [super-do-close do-close]
+	      [super-on-close on-close]
 	      [super-set-modified set-modified])
       (private
 	[freshen-backup? #t]
@@ -229,30 +204,29 @@
 	[auto-save-out-of-date? #t]
 	[auto-save-error? #f])
       (public
-	[auto-save? #t]
-	[backup? #t])
+	[backup? (lambda () #t)])
       (override
 	[on-save-file
 	 (lambda (name format)
 	   (set! auto-save-error? #f)
 	   (and (super-on-save-file name format)
 		(begin
-		  (when (and backup?
+		  (when (and (backup?)
+			     freshen-backup?
 			     (not (eq? format 'copy))
 			     (file-exists? name))
 		    (let ([back-name (path-utils:generate-backup-name name)])
-		      (when freshen-backup?
-			(set! freshen-backup? #f)
-			(when (file-exists? back-name)
-			  (delete-file back-name)))
+		      (set! freshen-backup? #f)
+		      (when (file-exists? back-name)
+			(delete-file back-name))
 		      (with-handlers ([(lambda (x) #t) void])
 			(copy-file name back-name))))
 		  #t)))]
-	[do-close
+	[on-close
 	 (lambda ()
-	   (super-do-close)
+	   (super-on-close)
 	   (remove-autosave)
-	   (set! auto-save? #f))]
+	   (set! autosave? (lambda () #f)))]
 	[on-change
 	 (lambda ()
 	   (super-on-change)
@@ -267,10 +241,10 @@
 		   (set! auto-saved-name #f))))
 	   (super-set-modified modified?))])
       (public
-	[autosave? #t]
+	[autosave? (lambda () #t)]
 	[do-autosave
 	 (lambda ()
-	   (when (and auto-save?
+	   (when (and (autosave?)
 		      (not auto-save-error?)
 		      (is-modified?)
 		      (or (not auto-saved-name)
@@ -302,9 +276,9 @@
 	(autosave:register this))))
 
   (define info<%> (interface (basic<%>)))
-  (define make-info%
+  (define info-mixin
     (mixin (basic<%>) (info<%>) args
-      (inherit get-frame run-after-edit-sequence)
+      (inherit get-top-level-window run-after-edit-sequence)
       (rename [super-lock lock])
       (override
 	[lock
@@ -313,57 +287,8 @@
 	   (run-after-edit-sequence
 	    (rec send-frame-update-lock-icon
 		 (lambda ()
-		   (let ([frame (get-frame)])
+		   (let ([frame (get-top-level-window)])
 		     (when frame
 		       (send frame lock-status-changed)))))
 	    'framework:update-lock-icon))])
-      (sequence (apply super-init args))))
-
-  (define make-clever-file-format%
-    (mixin (editor<%>) (editor<%>) args
-      (inherit get-file-format set-file-format ;find-first-snip wx:
-	       )
-      (rename [super-on-save-file on-save-file]
-	      [super-after-save-file after-save-file])
-      
-      (private [restore-file-format void])
-      
-      (override
-	[after-save-file
-	 (lambda (success)
-	   (restore-file-format)
-	   (super-after-save-file success))]
-	[on-save-file
-	 (let ([has-non-string-snips 
-		(lambda ()
-		  (let loop ([s (if (is-a? this pasteboard%)
-				    (send this find-first-snip)
-				    (send this find-snip 0 'after))]) ;; wx:
-		    (cond
-		      [(null? s) #f]
-		      [(is-a? s string-snip%)
-		       (loop (send s next))]
-		      [else #t])))])
-	   (lambda (name format)
-	     (when (and (or (eq? format 'same)
-			    (eq? format 'copy))
-			(not (eq? (get-file-format) 
-				  'std)))
-	       (cond
-		 [(eq? format 'copy)
-		  (set! restore-file-format 
-			(let ([f (get-file-format)])
-			  (lambda ()
-			    (set! restore-file-format void)
-			    (set-file-format f))))
-		  (set-file-format 'std)]
-		 [(and (has-non-string-snips)
-		       (or (not (preferences:get 'framework:verify-change-format))
-			   (gui-utils:get-choice "Save this file as plain text?" "No" "Yes")))
-		  (set-file-format 'std)]
-		 [else (void)]))
-	     (or (super-on-save-file name format)
-		 (begin 
-		   (restore-file-format)
-		   #f))))])
       (sequence (apply super-init args)))))
