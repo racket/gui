@@ -148,11 +148,13 @@
 	[get-area-container (lambda () panel)])
       (sequence
 	(set! after-init? #t)
-	'(global-defined-value 'open-frames
-			      (cons (make-weak-box this)
-				    (global-defined-value 'open-frames))))))
+	(when (getenv "MREDMEMORYDEBUG")
+	  (global-defined-value 'open-frames
+				(cons (make-weak-box this)
+				      (global-defined-value 'open-frames)))))))
 
-  '(global-defined-value 'open-frames null)
+  (when (getenv "MREDMEMORYDEBUG")
+    (global-defined-value 'open-frames null))
 
   (define info<%> (interface (basic<%>)
 		    determine-width

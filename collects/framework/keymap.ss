@@ -940,7 +940,7 @@
 	  (map "s:insert" "paste-clipboard")
 
 	  (map-meta "space" "collapse-space")
-	  (map-meta "\\" "remove-space")
+	  ;(map-meta "\\" "remove-space") ;; conflicts with european keyboards
 	  (map "c:x;c:o" "collapse-newline")
 	  (map "c:o" "open-line")
 	  (map "c:t" "transpose-chars")
