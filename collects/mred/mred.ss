@@ -5179,6 +5179,25 @@
 	(send f show #t)
 	(and ok? (send l get-selections))))]))
 
+(define (sort l <?)
+  (letrec ([split (lambda (n l)
+		    (if (null? l)
+			'(() . ())
+			(if (< n 1)
+			    (cons (list (car l)) (cdr l))
+			    (let ([n (quotient n 2)])
+			      (let* ([r1 (split n l)]
+				     [r2 (split n (cdr r1))])
+				(cons (merge (car r1) (car r2)) (cdr r2)))))))]
+	   [merge (lambda (l1 l2)
+		    (cond
+		     [(null? l1) l2]
+		     [(null? l2) l1]
+		     [(<? (car l1) (car l2)) 
+		      (cons (car l1) (merge (cdr l1) l2))]
+		     [else (cons (car l2) (merge (cdr l2) l1))]))])
+    (car (split (length l) l))))
+
 (define last-visted-directory #f)
 
 (define (files->list s)
@@ -5329,37 +5348,21 @@
 				    (let ([l (with-handlers ([void (lambda (x) null)])
 					       (directory-list dir))]
 					  [dot? (send dot-check get-value)])
-				      (letrec ([split (lambda (n l)
-							(if (null? l)
-							    '(() . ())
-							    (if (< n 1)
-								(cons (list (car l)) (cdr l))
-								(let ([n (quotient n 2)])
-								  (let* ([r1 (split n l)]
-									 [r2 (split n (cdr r1))])
-								    (cons (merge (car r1) (car r2)) (cdr r2)))))))]
-					       [merge (lambda (l1 l2)
-							(cond
-							 [(null? l1) l2]
-							 [(null? l2) l1]
-							 [(string-locale<? (car l1) (car l2)) 
-							  (cons (car l1) (merge (cdr l1) l2))]
-							 [else (cons (car l2) (merge (cdr l2) l1))]))]
-					       [sort (lambda (l) (car (split (length l) l)))])
-					(let-values ([(ds fs)
-						      (let loop ([l l][ds null][fs null])
-							(cond
-							 [(null? l) (values (cons ".." (sort ds)) (sort fs))]
-							 [(and (not dot?) (char=? (string-ref (car l) 0) #\.)) (loop (cdr l) ds fs)]
-							 [(file-exists? (build-path dir (car l))) (loop (cdr l) ds (cons (car l) fs))]
-							 [else (loop (cdr l) (cons (car l) ds) fs)]))])
-					  (send dirs set ds)
-					  (send files set fs)
-					  (send dirs enable #t)
-					  (unless dir?
-                                            (send files enable #t))
-					  (update-ok)
-					  (wx:end-busy-cursor)))))]
+				      (let-values ([(ds fs)
+						    (let loop ([l l][ds null][fs null])
+						      (cond
+						       [(null? l) (values (cons ".." (sort ds string-locale<?)) 
+									  (sort fs string-locale<?))]
+						       [(and (not dot?) (char=? (string-ref (car l) 0) #\.)) (loop (cdr l) ds fs)]
+						       [(file-exists? (build-path dir (car l))) (loop (cdr l) ds (cons (car l) fs))]
+						       [else (loop (cdr l) (cons (car l) ds) fs)]))])
+					(send dirs set ds)
+					(send files set fs)
+					(send dirs enable #t)
+					(unless dir?
+					  (send files enable #t))
+					(update-ok)
+					(wx:end-busy-cursor))))]
 		 [get-filename (lambda () 
                                  (if dir?
                                      dir
@@ -5527,7 +5530,17 @@
 						   (let ([s (send (send edit get-style-list) find-named-style "Standard")])
 						     (send s set-delta (font->delta f))))))]
 		 [p (make-object horizontal-pane% f)]
-		 [face (make-object list-box% "Font:" (wx:get-face-list) p refresh-sample)]
+		 [face (make-object list-box% "Font:" 
+				    (let ([l (wx:get-face-list)])
+				      (if (memq (system-type) '(macos macosx))
+					  (sort l (lambda (a b)
+						    (cond
+						     [(eq? (char-alphabetic? (string-ref a 0))
+							   (char-alphabetic? (string-ref b 0)))
+						      (string-locale<? a b)]
+						     [else (char-alphabetic? (string-ref a 0))])))
+					  l))
+				    p refresh-sample)]
 		 [p2 (make-object vertical-pane% p)]
 		 [style (make-object radio-box% "Style:" '("Normal" "Italic" "Slant") p2 refresh-sample)]
 		 [weight (make-object radio-box% "Weight:" '("Normal" "Bold" "Light") p2 refresh-sample)]
