@@ -754,7 +754,7 @@
           [define label ""]
           [define label-prefix (application:current-app-name)]
           (define (do-label)
-            (super-set-label (get-entire-label))
+            (super-set-label (gui-utils:trim-string (get-entire-label) 200))
             (send (group:get-the-frame-group) frame-label-changed this))
           
           (public get-entire-label get-label-prefix set-label-prefix)

@@ -112,7 +112,8 @@
                  (for-each
                   (lambda (frame)
                     (let ([frame (frame-frame frame)])
-                      (make-object menu-item% (get-name frame)
+                      (make-object menu-item% 
+                        (gui-utils:trim-string (get-name frame) 200)
                         menu
                         (lambda (_1 _2)
                           (send frame show #t)))))
@@ -301,7 +302,7 @@
                         [(d) (make-object dialog% (string-constant bring-frame-to-front) parent 400 600)]
                         [(lb) (instantiate list-box% () 
                               (label #f)
-                              (choices (map (lambda (x) (send x get-label)) sorted-frames))
+                              (choices (map (lambda (x) (gui-utils:trim-string (send x get-label) 200)) sorted-frames))
                               (callback (lambda (x y) (listbox-callback y)))
                               (parent d))]
                         [(t) (instantiate text:hide-caret/selection% ())]

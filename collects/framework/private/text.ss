@@ -560,13 +560,13 @@
                     res))))
           
           (rename [super-on-paint on-paint])
-          (inherit get-canvas)
+          (inherit get-canvases get-active-canvas has-focus?)
           (define/override (on-paint before? dc left top right bottom dx dy draw-caret?)
             (super-on-paint before? dc left top right bottom dx dy draw-caret?)
             (unless before?
-              (let ([canvas (get-canvas)])
-                (when canvas
-                  (send (send canvas get-top-level-window) delegate-moved)))))
+              (let ([active-canvas (get-active-canvas)])
+                (when active-canvas
+                  (send (send active-canvas get-top-level-window) delegate-moved)))))
 
           (rename [super-on-edit-sequence on-edit-sequence])
           (define/override (on-edit-sequence)
@@ -658,12 +658,16 @@
             (run-after-edit-sequence
              (rec from-enqueue-for-frame
                (lambda ()
-                 (let ([canvas (get-canvas)])
-                   (when canvas
-                     (let ([frame (send canvas get-top-level-window)])
-                       (when (is-a? frame frame:text-info<%>)
-                         (call-method frame)))))))
+                 (call-with-frame call-method)))
              tag))
+          
+          (define (call-with-frame call-method)
+            (let ([canvas (get-canvas)])
+              (when canvas
+                (let ([frame (send canvas get-top-level-window)])
+                  (when (is-a? frame frame:text-info<%>)
+                    (call-method frame))))))
+            
           (override set-anchor set-overwrite-mode after-set-position after-insert after-delete)
           (define (set-anchor x)
             (super-set-anchor x)
@@ -677,28 +681,29 @@
              'framework:overwrite-status-changed))
           (define (after-set-position)
             (super-after-set-position)
-            (enqueue-for-frame
-             (lambda (x) (send x editor-position-changed))
-             'framework:editor-position-changed))
+            (maybe-queue-editor-position-update))
           
+          ;; maybe-queue-editor-position-update : -> void
+          ;; updates the editor-position in the frame,
+          ;; but delays it until the next low-priority event occurs.
           (field (callback-running? #f))
+          (define/private (maybe-queue-editor-position-update)
+            (unless callback-running?
+              (set! callback-running? #t)
+              (queue-callback
+               (lambda ()
+                 (call-with-frame
+                  (lambda (frame)
+                    (send frame editor-position-changed)))
+                 (set! callback-running? #f))
+               #f)))
+          
           (define (after-insert start len)
             (super-after-insert start len)
-            (enqueue-for-frame
-             (lambda (x) 
-               (unless callback-running?
-                 (set! callback-running? #t)
-                 (queue-callback
-                  (lambda ()
-                    (send x editor-position-changed)
-                    (set! callback-running? #f))
-                  #f)))
-             'framework:editor-position-changed))
+            (maybe-queue-editor-position-update))
           (define (after-delete start len)
             (super-after-delete start len)
-            (enqueue-for-frame
-             (lambda (x) (send x editor-position-changed))
-             'framework:editor-position-changed))
+            (maybe-queue-editor-position-update))
           (super-instantiate ())))
       
   (define clever-file-format<%> (interface ((class->interface text%))))
