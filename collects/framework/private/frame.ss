@@ -314,7 +314,8 @@
                             (list
                              (make-status-line (instantiate message% ()
                                                  (parent status-line-container-panel)
-                                                 (stretchable-width #f))
+                                                 (label "")
+                                                 (stretchable-width #t))
                                                id
                                                1))]
                            [else (let ([status-line (car status-lines)])
@@ -348,16 +349,19 @@
                                        (cdr status-lines))]
                                 [else (cons status-line (loop (cdr status-lines)))]))])))))))
 
-          (define/public (update-status-line id msg)
+          (define/public (update-status-line id msg-txt)
             (do-main-thread
              (lambda ()
-               (let ([status-line (find-status-line id msg)])
-                 (send (status-line-message status-line) set-label msg)))))
+               (let* ([status-line (find-status-line id msg-txt)]
+                      [msg (status-line-message status-line)]
+                      [current-txt (send msg get-label)])
+                 (unless (equal? msg-txt current-txt)
+                   (send msg set-label msg-txt))))))
           
-          (define/private (find-status-line id msg)
+          (define/private (find-status-line id msg-txt)
             (let loop ([status-lines status-lines])
               (cond
-                [(null? status-lines) (error 'update-status-line "didn't find status line ~e, other arg ~e" id msg)]
+                [(null? status-lines) (error 'update-status-line "didn't find status line ~e, other arg ~e" id msg-txt)]
                 [else
                  (let ([status-line (car status-lines)])
                    (if (eq? (status-line-id status-line) id)
@@ -370,7 +374,9 @@
             (if (eq? (current-thread) eventspace-main-thread)
                 (t)
                 (parameterize ([current-eventspace (get-eventspace)])
-                  (queue-callback t))))))
+                  (queue-callback t))))
+          
+          (super-instantiate ())))
       
       (define info<%> (interface (basic<%>)
                         determine-width
@@ -2173,11 +2179,11 @@
           (super-instantiate ())))
       
       (define basic% (basic-mixin frame%))
-      (define status-line% (status-line-mixin basic%))
-      (define info% (info-mixin status-line%))
+      (define info% (info-mixin basic%))
       (define text-info% (text-info-mixin info%))
       (define pasteboard-info% (pasteboard-info-mixin text-info%))
-      (define standard-menus% (standard-menus-mixin pasteboard-info%))
+      (define status-line% (status-line-mixin text-info%))
+      (define standard-menus% (standard-menus-mixin status-line%))
       (define editor% (editor-mixin standard-menus%))
       (define open-here% (open-here-mixin editor%))
       
