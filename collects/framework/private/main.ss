@@ -222,7 +222,7 @@
        `((keyword ,(color-prefs:make-style-delta "Black" #f #f #f))
          (string ,(color-prefs:make-style-delta "ForestGreen" #f #f #f))
          (literal ,(color-prefs:make-style-delta "ForestGreen" #f #f #f))
-         (comment ,(color-prefs:make-style-delta "DimGray" #f #f #f))
+         (comment ,(color-prefs:make-style-delta (make-object color% 0 105 255) #f #f #f))
          (error ,(color-prefs:make-style-delta "Red" #f #f #f))
          (identifier ,(color-prefs:make-style-delta "Navy" #f #f #f))
          (other ,(color-prefs:make-style-delta "brown" #f #f #f))))
