@@ -1645,7 +1645,10 @@
   
 (define (font->delta f)
   (define d (make-object wx:style-delta%))
-  (send d set-delta-face (send f get-face))
+  (let ([v (send f get-face)])
+    (if v
+	(send d set-delta-face v)
+	(send d set-delta 'change-family (send f get-family))))
   (send d set-delta 'change-size (send f get-point-size))
   (send d set-delta 'change-style (send f get-style))
   (send d set-delta 'change-weight (send f get-weight))
