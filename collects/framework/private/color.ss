@@ -28,6 +28,11 @@
         (interface ()
           start-colorer
           stop-colorer
+          force-stop-colorer
+          
+          freeze-colorer
+          thaw-colorer
+
           reset-region
           update-region-end))
                 
