@@ -170,9 +170,11 @@
 		     (set-mode-direct m)
 		     (set-file-format (ivar m file-format))
 		     (send m install this)
-		     (send (send (get-style-list) 
-				 find-named-style "Standard")
-			   set-delta (ivar m standard-style-delta)))
+		     (let ([new-delta (ivar m standard-style-delta)])
+		       (when new-delta
+			 (send (send (get-style-list) 
+				     find-named-style "Standard")
+			       set-delta new-delta))))
 		   (begin
 		     (set-mode-direct #f)
 		     (send (send (get-style-list) 
