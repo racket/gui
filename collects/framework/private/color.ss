@@ -54,6 +54,7 @@
           (define up-to-date? #t)
           
           (define stopped? #t)
+          (define force-stop? #f)
           
           ;; ---------------------- Parnethesis matching --------------------------
           
@@ -162,7 +163,7 @@
                      (re-tokenize in in-start-pos)))))))
           
           (define (do-insert/delete edit-start-pos change-length)
-            (unless stopped?
+            (unless (or stopped? force-stop?)
               (when (> edit-start-pos start-pos)
                 (set! edit-start-pos (sub1 edit-start-pos)))
               (modify)
@@ -241,31 +242,33 @@
             (background-colorer))
           
           (define/public (start-colorer prefix- get-token- pairs-)
-            (set! stopped? #f)
-            (reset-tokens)
-            (set! should-color? (preferences:get (string->symbol (format "syntax-coloring:~a:active" prefix-))))
-            (set! prefix prefix-)
-            (set! get-token get-token-)
-            (set! pairs pairs-)
-            (set! parens (new paren-tree% (matches pairs)))
-            (unless remove-prefs-callback-thunk
-              (set! remove-prefs-callback-thunk
-                    (preferences:add-callback
-                     (string->symbol (format "syntax-coloring:~a:active" prefix))
-                     (lambda (_ on?)
-                       (set! should-color? on?)
-                       (cond
-                         (on?
-                          (reset-tokens)
-                          (do-insert/delete start-pos 0))
-                         (else (change-style (send (get-style-list) find-named-style "Standard")
-                                             start-pos end-pos #f)))))))
-            (unless background-thread
-              (break-enabled #f)
-              (set! background-thread (thread (lambda () (background-colorer-entry))))
-              (break-enabled #t))
-            (do-insert/delete start-pos 0))
-          
+            (unless force-stop?
+              (set! stopped? #f)
+              (reset-tokens)
+              (set! should-color?
+                    (preferences:get (string->symbol (format "syntax-coloring:~a:active" prefix-))))
+              (set! prefix prefix-)
+              (set! get-token get-token-)
+              (set! pairs pairs-)
+              (set! parens (new paren-tree% (matches pairs)))
+              (unless remove-prefs-callback-thunk
+                (set! remove-prefs-callback-thunk
+                      (preferences:add-callback
+                       (string->symbol (format "syntax-coloring:~a:active" prefix))
+                       (lambda (_ on?)
+                         (set! should-color? on?)
+                         (cond
+                           (on?
+                            (reset-tokens)
+                            (do-insert/delete start-pos 0))
+                           (else (change-style (send (get-style-list) find-named-style "Standard")
+                                               start-pos end-pos #f)))))))
+              (unless background-thread
+                (break-enabled #f)
+                (set! background-thread (thread (lambda () (background-colorer-entry))))
+                (break-enabled #t))
+              (do-insert/delete start-pos 0)))
+            
           (define/public (stop-colorer)
             (set! stopped? #t)
             (when remove-prefs-callback-thunk
@@ -279,6 +282,16 @@
             (set! prefix #f)
             (set! get-token #f))
           
+          
+          (define/public (force-stop-colorer x)
+            (printf "~a~n" x)
+            (set! force-stop? x)
+            (when x
+              (stop-colorer)
+              (when background-thread
+                (kill-thread background-thread)
+		(set! background-thread #f))))
+            
           
           ;; ----------------------- Match parentheses ----------------------------
           
