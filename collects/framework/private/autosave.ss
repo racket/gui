@@ -280,9 +280,7 @@
           (send t lock #t))
         
         (define show-files-frame% frame:basic%)
-        (define show-files-text%
-          (editor:keymap-mixin
-           text:basic%))
+        (define show-files-text% text:keymap%)
         
         (main))
         
