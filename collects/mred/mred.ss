@@ -3392,6 +3392,7 @@
   (send d set-delta 'change-weight (send f get-weight))
   (send d set-delta 'change-underline (send f get-underlined))
   (send d set-delta 'change-smoothing (send f get-smoothing))
+  (send d set-delta 'change-size-in-pixels (send f get-size-in-pixels))
   d)
 
 (define wx-text-field%
@@ -6752,6 +6753,7 @@
 	     [p4 (instantiate vertical-pane% (p3) [alignment '(left center)])]
 	     [underlined (make-object check-box% "Underlined" p4 refresh-sample)]
 	     [smoothing (make-object choice% "Smoothing:" '("Default" "Some" "Full" "None") p4 refresh-sample)]
+	     [sip (make-object check-box% "Size in Pixels" p4 refresh-sample)]
 	     [size (make-object slider% "Size:" 4 127 p2 refresh-sample 12)]
 	     [sample (make-object text-field% "Sample" f void "The quick brown fox jumped over the lazy dog" '(multiple))]
 	     [edit (send sample get-editor)]
@@ -6766,7 +6768,8 @@
 							[(0) 'default] 
 							[(1) 'partly-smoothed]
 							[(2) 'smoothed]
-							[(3) 'unsmoothed])))))]
+							[(3) 'unsmoothed])
+						      (send sip get-value)))))]
 	     [bp (instantiate horizontal-pane% (f) [stretchable-height #f])]
 	     [ms-button (if (eq? (system-type) 'windows)
 			    (begin0
@@ -6794,7 +6797,8 @@
 		  (send style set-selection (case (send font get-style) [(normal) 0] [(italic) 1] [(slant) 2]))
 		  (send weight set-selection (case (send font get-weight) [(normal) 0] [(bold) 1] [(light) 2]))
 		  (send underlined set-value (send font get-underlined))
-		  (send size set-value (send font get-point-size)))
+		  (send size set-value (send font get-point-size))
+		  (send sip set-value (send font get-size-in-pixels)))
 		(refresh-sample (void) (void)))])
       (send bp set-alignment 'right 'center)
       (send face min-width (max 200 (let-values ([(w h) (send face get-graphical-min-size)]) w)))

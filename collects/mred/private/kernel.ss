@@ -518,7 +518,7 @@
     on-kill-focus)
   (define-class font% object% #f
     get-font-id
-    get-size-in-pixels?
+    get-size-in-pixels
     get-underlined
     get-smoothing
     get-weight
@@ -1363,6 +1363,10 @@
     set-underlined-on
     get-underlined-off
     set-underlined-off
+    get-size-in-pixels-on
+    set-size-in-pixels-on
+    get-size-in-pixels-off
+    set-size-in-pixels-off
     get-transparent-text-backing-on
     set-transparent-text-backing-on
     get-transparent-text-backing-off
@@ -1393,6 +1397,7 @@
     get-background
     get-foreground
     get-font
+    get-size-in-pixels
     get-underlined
     get-smoothing
     get-style
