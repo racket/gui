@@ -1,4 +1,6 @@
 
+; run with mred -u -- -f mem.ss
+
 (define source-dir (current-load-relative-directory))
 
 (define num-times 12)
@@ -46,9 +48,9 @@
   (collect-garbage)
   (collect-garbage)
   (printf "Thread: ~s Cycle: ~s~n" id n)
-  (dump-object-stats)
-  (if (and dump-stats? (= id 1))
-      (dump-memory-stats))
+  ; (dump-object-stats)
+  ; (if (and dump-stats? (= id 1))
+  ;    (dump-memory-stats))
   (unless (zero? n)
     (let ([tag (cons id n)])
       (let* ([f (if edit? (remember tag (make-object frame%)))]
@@ -234,8 +236,8 @@
 	(still)))
 
 (define mred:startup
-  (let ([old-mred:startup mred:startup])
-    (lambda args
-      (send mred:the-frame-group set-empty-callback (lambda () #t))
-      (do-test)
-      (apply old-mred:startup args))))
+  (lambda args
+    ; (send mred:the-frame-group set-empty-callback (lambda () #t))
+    (do-test)
+    (make-object mred:console-frame%)))
+
