@@ -2224,7 +2224,7 @@
       [on-container-resize (lambda ()
 			     (let ([edit (get-editor)])
 			       (when edit
-				 (as-exit (lambda () (send edit on-display-size))))))]
+				 (as-exit (lambda () (send edit on-display-size-when-ready))))))]
       [on-set-focus
        (entry-point
 	(lambda ()

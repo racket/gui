@@ -255,6 +255,7 @@
     resized
     set-caret-owner
     scroll-to
+    on-display-size-when-ready
     on-display-size
     on-change
     on-focus
@@ -847,6 +848,7 @@
     resized
     set-caret-owner
     scroll-to
+    on-display-size-when-ready
     on-display-size
     on-change
     on-focus
@@ -1051,6 +1053,7 @@
     resized
     set-caret-owner
     scroll-to
+    on-display-size-when-ready
     on-display-size
     on-change
     on-focus
