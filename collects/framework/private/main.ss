@@ -57,7 +57,12 @@
        (lambda (l) (make-object color% (car l) (cadr l) (caddr l))))
       
       (preferences:set-default 'framework:last-directory (find-system-path 'home-dir) path-string?)
-      (preferences:set-un/marshall 'framework:last-directory path->bytes bytes->path)
+      ;; when the set-un/marshall function returns #f, it isn't getting turned into 
+      ;; the default. Hm.
+      (preferences:set-un/marshall 'framework:last-directory path->bytes
+                                   (lambda (x)
+                                     (and (bytes? x)
+                                          (bytes->path x))))
 
       (preferences:set-default 'framework:recent-max-count 
                                50 
