@@ -1074,6 +1074,7 @@
 	      (map "a:v" "paste-clipboard")
 	      (map "d:v" "paste-clipboard")
 	      (map "c:_" "undo")
+	      (map "c:/" "undo")
 	      (map (format "~a" (integer->char 31)) "undo") ; for Windows - strange
 	      (map "c:+" "redo")
 	      (map "a:z" "undo")
