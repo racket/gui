@@ -11,48 +11,35 @@
       (lambda (super%)
 	(class-asi super%
 	  (rename [super-change-children change-children])
-	  (inherit children get-parent)
+	  (inherit get-parent change-children children)
 	  (public [get-canvas% (lambda () mred:canvas:frame-title-canvas%)])
-	  (private
-	    [edit-mapping (make-hash-table)]
-	    [bind
-	     (lambda (panel edit)
-	       (hash-table-put! edit-mapping edit panel))]
-	    [lookup/add
-	     (lambda (child)
-	       (if (is-a? child wx:media-edit%)
-		   (let ([add-new
-			  (lambda ()
-			    (let ([p (make-object (get-canvas%) this)])
-			      (send p set-media child)
-			      (send child add-canvas p)
-			      (bind p child)
-			      p))])
-		     (hash-table-get edit-mapping child add-new))
-		   child))])
 	  (public
-
-	    ; this contains the edits and panels that are children of
-	    ; this panel, but the canvases of these edits are not
-	    ; necessarily immediate children, since they may be split.
-	    [actual-children null]
-	   
 	    [collapse
 	     (lambda (canvas)
 	       (letrec* ([media (send canvas get-media)]
 			 [helper
 			  (lambda (canvas/panel)
-			    (let* ([parent (send canvas/panel get-parent)])
-			      (if (is-a? parent wx:frame%)
-				  (begin (send canvas/panel change-children
-					       (lambda (l) (list media)))
-					 (wx:bell))
-				  (let* ([parents-children (ivar parent children)]
-					 [num-children (length parents-children)])
-				    (if (<= num-children 1)
-					(helper parent)
-					(begin (send parent delete-child canvas/panel)
-					       (send (car (ivar parent children)) set-focus)))))))])
+			    (if (eq? canvas/panel this)
+				(begin (cond
+					 [(and (= (length children) 1)
+					       (eq? canvas (car children)))
+					  (void)]
+					 [(member canvas children)
+					  (change-children (lambda (l) (list canvas)))]
+					 [else
+					  (change-children
+					   (lambda (l)
+					     (let ([c (make-object (object-class canvas) this)])
+					       (send c set-media media)
+					       (list c))))])
+				       (wx:bell))
+				(let* ([parent (send canvas/panel get-parent)]
+				       [parents-children (ivar parent children)]
+				       [num-children (length parents-children)])
+				  (if (<= num-children 1)
+				      (helper parent)
+				      (begin (send parent delete-child canvas/panel)
+					     (send (car (ivar parent children)) set-focus))))))])
 		 (send media remove-canvas canvas)
 		 (helper canvas)))]
 
@@ -83,16 +70,7 @@
 			(add-canvas left-split)
 			(add-canvas right-split))
 		 (send* left-split (set-media media) (set-focus))
-		 (send* right-split (set-media media))
-		 (when (eq? this parent)
-		   (bind media new-panel))))]
-	    [change-children
-	     (lambda (f)
-	       (let ([new-children (f actual-children)])
-		 (super-change-children (lambda (l)
-					  (map lookup/add
-					       new-children)))
-		 (set! actual-children new-children)))]))))
+		 (send* right-split (set-media media))))]))))
     
     (define horizontal-edit-panel%
       (make-edit-panel% mred:container:horizontal-panel%))    

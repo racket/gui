@@ -323,7 +323,8 @@
 	  (when (eq? wx:platform 'unix)
 	    (make-object mred:container:check-box% period-panel
 			 do-period-in/exclusion
-			 "Show files and directories that begin with a period"))
+			 "Show files and directories that begin with a period")
+	    (send period-panel stretchable-in-y #f))
 
 	  (send* directory-panel 
 	    (stretchable-in-y #f)
@@ -345,7 +346,6 @@
 	    (send add-panel stretchable-in-y #f)
 	    (send remove-panel stretchable-in-y #f)
 	    (send result-list stretchable-in-x #t))
-	  (send period-panel stretchable-in-y #f)
 	  (send name-list stretchable-in-x #t)
 	  (send top-panel stretchable-in-y #f)
 	  (send bottom-panel stretchable-in-y #f)

@@ -37,6 +37,21 @@
 	    [super-set-max-width set-max-width]
 	    [super-lock lock])
 
+	  (public
+	    [get-edit-snip
+	     (lambda () (make-object wx:media-snip%
+			  (make-object edit%)))]
+	    [get-pasteboard-snip
+	     (lambda () (make-object wx:media-snip%
+			  (make-object pasteboard%)))]
+	    [on-new-box
+	     (lambda (type)
+	       (wx:message-box (format "insert-box ~a" type))
+	       (cond
+		 [(= type wx:const-edit-buffer)
+		  (get-edit-snip)]
+		 [else (get-pasteboard-snip)]))])
+
 	  (private
 	    [auto-saved-name #f]
 	    [auto-save-out-of-date? #t]
@@ -44,7 +59,7 @@
 	  (public
 	    [set-max-width
 	     (lambda (x)
-	       (mred:debug:printf 'rewrap "set-max-width: ~a~n" x)
+	       (mred:debug:printf 'rewrap "set-max-width: ~a" x)
 	       (super-set-max-width x))]
 	    [get-file (lambda (d) 
 			(let ([v (mred:finder:get-file d)])
@@ -59,7 +74,7 @@
 	    [auto-set-wrap? (mred:preferences:get-preference 'mred:auto-set-wrap?)]
 	    [set-auto-set-wrap
 	     (lambda (v)
-	       (mred:debug:printf 'rewrap "set-auto-set-wrap: ~a~n" v)
+	       (mred:debug:printf 'rewrap "set-auto-set-wrap: ~a" v)
 	       (set! auto-set-wrap? v)
 	       (rewrap))]
 	    
@@ -67,12 +82,12 @@
 	     (let ([do-wrap
 		    (lambda (new-width)
 		      (let ([current-width (get-max-width)])
-			(mred:debug:printf 'rewrap "do-wrap: new-width ~a  current-width ~a~n" new-width current-width)
+			(mred:debug:printf 'rewrap "do-wrap: new-width ~a  current-width ~a" new-width current-width)
 			(unless (or (= current-width new-width)
 				    (and (<= current-width 0)
 					 (<= new-width 0)))
 			  (set-max-width new-width)
-			  (mred:debug:printf 'rewrap "attempted to wrap to: ~a actually wrapped to ~a~n" 
+			  (mred:debug:printf 'rewrap "attempted to wrap to: ~a actually wrapped to ~a" 
 					     new-width (get-max-width)))))])
 	       (lambda ()
 		 (if auto-set-wrap?
@@ -91,7 +106,7 @@
 			     (max (unbox w-box) sofar)))
 			 0
 			 canvases)))
-		     (do-wrap -1))))]
+		     (do-wrap 0))))]
 	    [mode #f]
 	    [set-mode
 	     (lambda (m)
