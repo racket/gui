@@ -9,7 +9,7 @@
       (build-path d f))))
 
 (define (get-icon)
-  (make-object icon% (sys-path "mred.xbm") 'xbm))
+  (make-object bitmap% (sys-path "mred.xbm") 'xbm))
 
 (define (show-instructions file)
   (letrec ([f (make-object frame% file #f 400 400)]
@@ -30,12 +30,11 @@
        [hp2 hp]
        [bb (make-object bitmap% (sys-path "bb.gif") 'gif)]
        [return (let ([bm (make-object bitmap% (sys-path "return.xbm") 'xbm)]
-		     [dc (make-object memory-dc%)])
-		 (send dc select-object bm)
+		     [dc (make-object bitmap-dc%)])
+		 (send dc set-bitmap bm)
 		 (send dc draw-line 0 3 20 3)
-		 (send dc select-object #f)
+		 (send dc set-bitmap #f)
 		 bm)]
-       [tmp-mdc (make-object memory-dc%)]
        [use-bitmap? #f]
        [depth-one? #f]
        [cyan? #f]
@@ -75,11 +74,10 @@
 		       [penr (make-object pen% "RED" 1 'solid)]
 		       [brushb (make-object brush% "BLUE" 'solid)]
 		       [mem-dc (if use-bitmap?
-				   (make-object memory-dc%)
+				   (make-object bitmap-dc%)
 				   #f)]
 		       [bm (if use-bitmap?
-			       (make-object bitmap% (* scale 350) (* scale 300)
-					    (if depth-one? 1 -1))
+			       (make-object bitmap% (* scale 350) (* scale 300) depth-one?)
 			       #f)]
 		       [draw-series
 			(lambda (dc pens pent size x y flevel last?)
@@ -307,21 +305,19 @@
 			    
 			    (when (and (not no-bitmaps?) last?)
 			      (let ([x 5] [y 165])
-				(send dc draw-icon (get-icon) x y)
+				(send dc draw-bitmap (get-icon) x y)
 				(set! x (+ x (send (get-icon) get-width)))
 				(let ([do-one
 				       (lambda (bm mode)
 					 (if (send bm ok?)
 					     (begin
-					       (send tmp-mdc select-object bm)
 					       (let ([h (send bm get-height)]
 						     [w (send bm get-width)])
-						 (send dc blit x y 
-						       w h
-						       tmp-mdc 0 0
+						 (send dc draw-bitmap-region
+						       bm x y 
+						       0 0 w h
 						       mode)
-						 (set! x (+ x w 10)))
-					       (send tmp-mdc select-object #f))
+						 (set! x (+ x w 10))))
 					     (printf "bad bitmap~n")))])
 				  (do-one bb 'copy)
 				  (do-one return 'copy)
@@ -389,9 +385,7 @@
 				    (loop (cdr s) (+ y 8))))))
 
 			    (if (not (or ps? (eq? dc can-dc)))
-				(send can-dc blit 0 0 
-				      (* scale 350) (* scale 300)
-				      mem-dc 0 0 'copy)))
+				(send can-dc draw-bitmap (send mem-dc get-bitmap) 0 0 'copy)))
 
 			  'done)])
 
@@ -403,7 +397,7 @@
 				  (and (send dc ok?) dc))
 				(if (and use-bitmap? (send bm ok?))
 				    (begin
-				      (send mem-dc select-object bm)
+				      (send mem-dc set-bitmap bm)
 				      mem-dc)
 				    (get-dc)))])
 		    (when dc
