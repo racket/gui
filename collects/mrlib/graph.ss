@@ -486,40 +486,26 @@
                                  (not (strict-in-rectangle? point-x point-y
                                                             (min lf rf) (min tf bf)
                                                             (max lf rf) (max tf bf)))))
-                          (update-polygon from-x from-y to-x to-y)
                           (cond
                             [(or (in-rectangle? from-x from-y lt tt rt bt)
                                  (in-rectangle? to-x to-y lf tf rf bf))
                              ;; the snips overlap, draw nothing
                              (void)]
-                            [(and (arrow-point-ok? (send point1 get-x) (send point1 get-y))
-                                  (arrow-point-ok? (send point2 get-x) (send point2 get-y))
-                                  (arrow-point-ok? (send point3 get-x) (send point3 get-y))
-                                  (arrow-point-ok? (send point4 get-x) (send point4 get-y)))
-                             ;; the arrowhead is not overlapping the snips, so draw it
-                             ;; (this is only an approximate test, but probably good enough)
-                             (let ([os (send dc get-smoothing)])
-                               (send dc set-smoothing 'aligned)
-                               (cond
-                                 [arrow-heads?
-                                  (send dc draw-polygon points dx dy)]
-                                 [else
-                                  (send dc draw-line
-                                        (+ dx from-x) (+ dy from-y) 
-                                        (+ dx to-x) (+ dy to-y))])
-                               
-                               (send dc set-smoothing os))]
                             [else
-                             ;; give up on the arrowhead and just draw a line
                              (cond
-                               [arrow-heads? (void)]
-                               [else 
-                                (let ([os (send dc get-smoothing)])
-                                  (send dc set-smoothing 'aligned)
-                                  (send dc draw-line
-                                        (+ dx from-x) (+ dy from-y) 
-                                        (+ dx to-x) (+ dy to-y))
-                                  (send dc set-smoothing os))])])))))))))
+                               [arrow-heads?
+                                (update-polygon from-x from-y to-x to-y)
+                                (when (and (arrow-point-ok? (send point1 get-x) (send point1 get-y))
+                                           (arrow-point-ok? (send point2 get-x) (send point2 get-y))
+                                           (arrow-point-ok? (send point3 get-x) (send point3 get-y))
+                                           (arrow-point-ok? (send point4 get-x) (send point4 get-y)))
+                                  ;; the arrowhead is not overlapping the snips, so draw it
+                                  ;; (this is only an approximate test, but probably good enough)
+                                  (send dc draw-polygon points dx dy))]
+                               [else
+                                (send dc draw-line
+                                      (+ dx from-x) (+ dy from-y) 
+                                      (+ dx to-x) (+ dy to-y))])])))))))))
           
           (define (set-pen/brush from-link dark-lines?)
             (send dc set-brush 
@@ -535,11 +521,14 @@
           
           (when before?
             (let ([old-pen (send dc get-pen)]
-                  [old-brush (send dc get-brush)])
-              
+                  [old-brush (send dc get-brush)]
+                  [os (send dc get-smoothing)])
+              (send dc set-smoothing 'aligned)
+                         
               (draw-all-connections #f)
               (draw-all-connections #t)
               
+              (send dc set-smoothing os)
               (send dc set-pen old-pen)
               (send dc set-brush old-brush)))
           (super on-paint before? dc left top right bottom dx dy draw-caret)))
