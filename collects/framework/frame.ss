@@ -275,8 +275,10 @@
 	 (lambda ()
 	   (when show-memory-text?
 	     (send memory-text begin-edit-sequence)
+	     (send memory-text lock #f)
 	     (send memory-text erase)
 	     (send memory-text insert (number->string (current-memory-use)))
+	     (send memory-text lock #t)
 	     (send memory-text end-edit-sequence)))])
 	 
       (sequence
@@ -1032,7 +1034,7 @@
 				      (if focus-snip
 					  (send focus-snip get-editor)
 					  top-searching-edit))]
-					
+		    
 		    [not-found
 		     (lambda (found-edit)
 		       (send found-edit set-position search-anchor)
@@ -1044,39 +1046,41 @@
 		       (let ([last-pos ((if (eq? searching-direction 'forward) + -)
 					first-pos (string-length string))])
 			 (send* edit 
-			   (set-caret-owner #f 'display)
-			   (set-position
-			    (min first-pos last-pos)
-			    (max first-pos last-pos)
-			    #f #t 'local))
+				(set-caret-owner #f 'display)
+				(set-position
+				 (min first-pos last-pos)
+				 (max first-pos last-pos)
+				 #f #t 'local))
 			 #t))])
-	       (unless (string=? string "")
-		 (when reset-search-anchor?
-		   (reset-search-anchor searching-edit))
-		 (let-values ([(found-edit first-pos)
-			       (find-string-embedded
-				searching-edit
-				string
-				searching-direction
-				search-anchor
-				'eof #t #t #t)])
-		   (cond
-		     [(not first-pos)
-		      (if wrap?
-			  (let-values ([(found-edit pos)
-					(find-string-embedded
-					 top-searching-edit
-					 string 
-					 searching-direction
-					 (if (eq? 'forward searching-direction)
-					     0
-					     (send searching-edit last-position)))])
-			    (if (not pos)
-				(not-found found-edit)
-				(found found-edit pos)))
-			  (not-found found-edit))]
-		     [else
-		      (found found-edit first-pos)]))))))])
+	       (if (string=? string "")
+		   (not-found top-searching-edit)
+		   (begin
+		     (when reset-search-anchor?
+		       (reset-search-anchor searching-edit))
+		     (let-values ([(found-edit first-pos)
+				   (find-string-embedded
+				    searching-edit
+				    string
+				    searching-direction
+				    search-anchor
+				    'eof #t #t #t)])
+		       (cond
+			[(not first-pos)
+			 (if wrap?
+			     (let-values ([(found-edit pos)
+					   (find-string-embedded
+					    top-searching-edit
+					    string 
+					    searching-direction
+					    (if (eq? 'forward searching-direction)
+						0
+						(send searching-edit last-position)))])
+			       (if (not pos)
+				   (not-found found-edit)
+				   (found found-edit pos)))
+			     (not-found found-edit))]
+			[else
+			 (found found-edit first-pos)])))))))])
       (private
 	[dont-search #f])
       (public
@@ -1358,6 +1362,7 @@
 	(hide-search #t))))
   
   (define memory-text (make-object text%))
+  (send memory-text hide-caret #t)
   (define show-memory-text? (directory-exists? (build-path (collection-path "framework") "CVS")))
 
   (define file<%> (interface (-editor<%>)))
