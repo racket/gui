@@ -64,24 +64,24 @@
       (send splash-frame show #f)))
   
   (define (shutdown-splash)
-    (set! splash-load-handler (lambda (old-load f) (old-load f))))
+    (set! splash-load-handler (lambda (old-load f expected) (old-load f expected))))
    
   (define funny?
     (let ([date (seconds->date (current-seconds))])
       (and (= (date-day date) 25)
            (= (date-month date) 12))))
   
-   (define (splash-load-handler old-load f)
+   (define (splash-load-handler old-load f expected)
      (let ([finalf (splitup-path f)])
        (set! splash-current-width (+ splash-current-width 1))
        (when (<= splash-current-width splash-max-width)
          (send gauge set-value splash-current-width))
-       (old-load f)))
+       (old-load f expected)))
   
   (current-load
    (let ([old-load (current-load)])
-     (lambda (f)
-       (splash-load-handler old-load f))))
+     (lambda (f expected)
+       (splash-load-handler old-load f expected))))
   
   (define funny-gauge%
     (class100 canvas% (parent)

@@ -36,19 +36,19 @@
    items)
   
   (define-struct generic (name initializer))
-  (define-struct (generic/docs struct:generic) (documentation))
-  (define-struct (generic-override struct:generic/docs) ())
-  (define-struct (generic-method struct:generic/docs) ())
-  (define-struct (generic-private-field struct:generic) ())
+  (define-struct (generic/docs generic) (documentation))
+  (define-struct (generic-override generic/docs) ())
+  (define-struct (generic-method generic/docs) ())
+  (define-struct (generic-private-field generic) ())
   
   (define-struct menu-item (menu-name))
   (define (menu-name->get-menu-name menu-item)
     (string->symbol
      (format "get-~a" (menu-item-menu-name menu-item))))
   
-  (define-struct (before/after struct:menu-item) (name procedure))
-  (define-struct (before struct:before/after) ())
-  (define-struct (after struct:before/after) ())
+  (define-struct (before/after menu-item) (name procedure))
+  (define-struct (before before/after) ())
+  (define-struct (after before/after) ())
   (define (before/after->name before/after)
     (string->symbol (format "~a:~a-~a"
                             (menu-item-menu-name before/after)
@@ -57,14 +57,14 @@
                                 "after")
                             (before/after-name before/after))))
   
-  (define-struct (between struct:menu-item) (before after procedure))
+  (define-struct (between menu-item) (before after procedure))
   (define (between->name between)
     (string->symbol (format "~a:between-~a-and-~a"
                             (menu-item-menu-name between)
                             (between-before between)
                             (between-after between))))
   
-  (define-struct (an-item struct:menu-item)
+  (define-struct (an-item menu-item)
                  (item-name
                   help-string
                   proc

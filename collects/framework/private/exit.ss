@@ -5,7 +5,8 @@
 	   "sig.ss"
 	   "../gui-utils-sig.ss"
 	   (lib "mred-sig.ss" "mred")
-	   (lib "file.ss"))
+	   (lib "file.ss")
+           (lib "etc.ss"))
 
   (provide exit@)
 
@@ -45,8 +46,11 @@
       
       (define exiting? #f)
 
-      (define (can-exit?) (and (user-oks-exit)
-			       (andmap (lambda (cb) (cb)) can?-callbacks)))
+      (define can-exit?
+        (opt-lambda ([skip-user-query? #f])
+          (and (or skip-user-query?
+                   (user-oks-exit))
+               (andmap (lambda (cb) (cb)) can?-callbacks))))
       (define (on-exit) (for-each (lambda (cb) (cb)) on-callbacks))
 
       (define (user-oks-exit)
@@ -65,10 +69,11 @@
 	      user-says)
 	    #t))
 
-      (define (-exit)
-	(unless exiting?
-	  (set! exiting? #t)
-	  (when (can-exit?)
-	    (on-exit)
-	    (queue-callback (lambda () (exit))))
-	  (set! exiting? #f))))))
+      (define -exit
+        (opt-lambda ([skip-user-query? #f])
+          (unless exiting?
+            (set! exiting? #t)
+            (when (can-exit? skip-user-query?)
+              (on-exit)
+              (queue-callback (lambda () (exit))))
+            (set! exiting? #f)))))))

@@ -56,21 +56,21 @@
 		(begin
 		  (set! icon (make-object bitmap% p type))
 		  icon)))))
-      
 
-      (define (make-cursor name fallback)
-        (let ([csr (make-object cursor% 
-                     (build-path (collection-path "icons") name)
-                     'gif
-                     8
-                     8)])
-          (if (send csr ok?)
-              csr
-              (make-object cursor% fallback))))
+      (define (make-cursor name mask fallback)
+        (let* ([msk-b (make-object bitmap% (build-path (collection-path "icons") mask))]
+	       [csr-b (make-object bitmap% (build-path (collection-path "icons") name))])
+	  (if (and (send msk-b ok?)
+		   (send csr-b ok?))
+	      (let ([csr (make-object cursor% msk-b csr-b 7 7)])
+		(if (send csr ok?)
+		    csr
+		    (make-object cursor% fallback)))
+	      (make-object cursor% fallback))))
       
-      (define up/down-cursor (make-cursor "up-down-cursor.gif" 'size-n/s))
+      (define up/down-cursor (make-cursor "up-down-cursor.xbm" "up-down-mask.xbm" 'size-n/s))
       (define (get-up/down-cursor) up/down-cursor)
-      (define left/right-cursor (make-cursor "left-right-cursor.gif" 'size-e/w))
+      (define left/right-cursor (make-cursor "left-right-cursor.xbm" "left-right-mask.xbm" 'size-e/w))
       (define (get-left/right-cursor) left/right-cursor)
       
       (define gc-on-bitmap #f)
