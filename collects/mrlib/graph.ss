@@ -157,6 +157,11 @@
         (invalidate-to-children/parents snip)
         (super-interactive-adjust-move snip x y))
       
+      (rename [super-after-insert after-insert])
+      (define/override (after-insert snip before x y)
+        (invalidate-to-children/parents snip)
+        (super-after-insert snip before x y))
+      
       ;; invalidate-selected-snips : -> void
       ;; invalidates the region around the selected
       ;; snips and their parents and children
@@ -227,6 +232,7 @@
       ;; invalidate-to-children/parents : snip -> void
       ;; invalidates the region containing this snip and
       ;; all of its children and parents.
+      (inherit invalidate-bitmap-cache)
       (define (invalidate-to-children/parents snip)
         (let ([children (get-all-children snip)]
               [parents (get-all-parents snip)])
@@ -307,7 +313,6 @@
             (send currently-over get-parent-links)))
          currently-overs))
       
-      (inherit invalidate-bitmap-cache)
       ;; draw-connection : dc number number link snip boolean number number number number boolean -> void
       ;; sets the drawing context (pen and brush)
       ;; determines if the connection is between a snip and itself or two different snips
