@@ -5,6 +5,8 @@ Added optional argument to get-display-size to get the entire
 Added get-display-left-top-inset
 Added argument to font%, etc., to make size in pixels
 Added 'hide-menu-bar frame style
+Initial location for a frame can use negative numbers, and
+ the move method can move a frame to a negative location
 
 
 Version 205: August, 2003
