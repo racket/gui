@@ -470,49 +470,44 @@
   
   (define clever-file-format-mixin
     (mixin (text<%>) (clever-file-format<%>) args
-	   (inherit get-file-format set-file-format find-first-snip)
-	   (rename [super-on-save-file on-save-file]
-		   [super-after-save-file after-save-file])
-	   
-	   (private [restore-file-format void])
-	   
-	   (override
-	    [after-save-file
-	     (lambda (success)
-	       (restore-file-format)
-	       (super-after-save-file success))]
-	    [on-save-file
-	     (let ([has-non-string-snips 
-		    (lambda ()
-		      (let loop ([s (find-first-snip)])
-			(cond
-			  [(not s) #f]
-			  [(is-a? s original:string-snip%)
-			   (loop (send s next))]
-			  [else #t])))])
-	       (lambda (name format)
-		 (when (and (or (eq? format 'same)
-				(eq? format 'copy))
-			    (not (eq? (get-file-format) 
-				      'standard)))
+      (inherit get-file-format set-file-format find-first-snip)
+      (rename [super-on-save-file on-save-file]
+	      [super-after-save-file after-save-file])
+      
+      (private [restore-file-format void])
+      
+      (override
+       [after-save-file
+	(lambda (success)
+	  (restore-file-format)
+	  (super-after-save-file success))]
+       [on-save-file
+	(let ([all-string-snips 
+	       (lambda ()
+		 (let loop ([s (find-first-snip)])
 		   (cond
-		     [(eq? format 'copy)
-		      (set! restore-file-format 
-			    (let ([f (get-file-format)])
-			      (lambda ()
-				(set! restore-file-format void)
-				(set-file-format f))))
-		      (set-file-format 'standard)]
-		     [(and (has-non-string-snips)
-			   (or (not (preferences:get 'framework:verify-change-format))
-			       (gui-utils:get-choice "Save this file as plain text?" "No" "Yes")))
-		      (set-file-format 'standard)]
-		     [else (void)]))
-		 (or (super-on-save-file name format)
-		     (begin 
-		       (restore-file-format)
-		       #f))))])
-	   (sequence (apply super-init args))))
+		    [(not s) #t]
+		    [(is-a? s original:string-snip%)
+		     (loop (send s next))]
+		    [else #f])))])
+	  (lambda (name format)
+	    (when (and (or (eq? format 'same) (eq? format 'copy))
+		       (eq? (get-file-format) 'standard))
+	      (cond
+	       [(and (all-string-snips)
+		     (eq? 'standard (get-file-format))
+		     (or (not (preferences:get 'framework:verify-change-format))
+			 (gui-utils:get-choice "Save this file as plain text?" "No" "Yes")))
+		(set! restore-file-format 
+		      (let ([ff (get-file-format)])
+			(lambda ()
+			  (set! restore-file-format void)
+			  (set-file-format ff))))
+		(set-file-format 'text)]
+	       [else (void)]))
+	    (super-on-save-file name format)))])
+      (sequence
+	(apply super-init args))))
   
   (define basic% (basic-mixin (editor:basic-mixin text%)))
   (define -keymap% (editor:keymap-mixin basic%))

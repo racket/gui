@@ -46,7 +46,18 @@
     (lambda (dir)
       (let-values ([(base _1 _2) (split-path dir)])
 	(or base dir))))
-  
+
+  (define default-extension
+    (let ([val #f])
+      (case-lambda
+       [() val]
+       [(x) 
+	(unless (or (string? x)
+		    (not x))
+	  (error 'finder:default-extension
+		 "expected a string or #f, got: ~e"
+		 x))
+	(set! val x)])))
   
   ; the finder-dialog% class controls the user interface for dialogs
   
@@ -652,7 +663,8 @@
 		 parent-win
 		 directory 
 		 name
-		 ".ss")])
+		 (default-extension))])
+ 
 	(if (or (not f)
 		(and filter 
 		     (not (filter-match? filter 
@@ -712,6 +724,3 @@
 	       [(std) std-get-file]
 	       [(common) common-get-file])])
 	(apply actual-fun args)))))
-
-
-

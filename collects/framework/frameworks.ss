@@ -78,6 +78,7 @@
 
 (define-signature framework:finder^
   (dialog-parent-parameter
+   default-extension
    common-put-file 
    common-get-file 
    std-put-file 
