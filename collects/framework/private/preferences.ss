@@ -17,7 +17,8 @@
       (import mred^
               [exn : framework:exn^]
               [exit : framework:exit^]
-              [panel : framework:panel^])
+              [panel : framework:panel^]
+              [frame : framework:frame^])
       
       (rename [-read read])
       
@@ -696,16 +697,14 @@
         (lambda ()
           (letrec ([stashed-prefs (get-preference main-preferences-symbol (lambda () null))]
                    [frame 
-                    (make-object (class100 frame% args
-                                   (public
-                                     [added-pane
-                                      (lambda (title) 
-                                        (ensure-constructed)
-                                        (send tap-panel append title))])
-                                   (sequence
-                                     (apply super-init args)))
+                    (make-object (class frame:basic%
+                                   (define/public (added-pane title)
+                                     (lambda (title) 
+                                       (ensure-constructed)
+                                       (send tap-panel append title)))
+                                   (super-instantiate ()))
                       (string-constant preferences))]
-                   [panel (make-object vertical-panel% frame)]
+                   [panel (make-object vertical-panel% (send frame get-area-container))]
                    [popup-callback
                     (lambda (tab-panel evt)
                       (unless (null? ppanels)
