@@ -31,7 +31,9 @@
               [comment-box : framework:comment-box^]
               [mode : framework:mode^])
       
-      (rename [-text-mode<%> text-mode<%>])
+      (rename [-text-mode<%> text-mode<%>]
+              [-text<%> text<%>]
+              [-text% text%])
       
       ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
       ;;                                                                  ;;
@@ -328,7 +330,7 @@
           (send style-list find-named-style "Matching Parenthesis Style")))
 
       (define text-mixin
-        (mixin (...? editor:keymap<%>) (-text<%>)
+        (mixin (text:basic<%> editor:keymap<%>) (-text<%>)
           (inherit begin-edit-sequence
                    delete
                    end-edit-sequence
@@ -383,6 +385,7 @@
           
           [define backward-cache (make-object match-cache:%)]
           [define forward-cache (make-object match-cache:%)]
+          
           [define in-highlight-parens? #f]
           
           (inherit get-styles-fixed)
@@ -417,90 +420,91 @@
           
           (define/public highlight-parens
             (opt-lambda ([just-clear? #f])
-              (when highlight-parens?
-                (set! in-highlight-parens? #t)
-                (begin-edit-sequence)
-                (clear-old-locations)
-                (set! clear-old-locations void)
-                (unless just-clear?
-                  (let* ([here (get-start-position)]
-                         [there (get-end-position)]
-                         [slash?
-                          (lambda (before after)
-                            (and (>= before 0)
-                                 (>= after 0)
-                                 (let ([text (get-text before after)])
-                                   (and (string? text)
-                                        (>= (string-length text) 1)
-                                        (char=? #\\ (string-ref text 0))))))]
-                         [is-paren?
-                          (lambda (f)
-                            (lambda (char)
-                              (ormap (lambda (x) (char=? char (string-ref (f x) 0)))
-                                     (scheme-paren:get-paren-pairs))))]
-                         [is-left-paren? (is-paren? car)]
-                         [is-right-paren? (is-paren? cdr)])
-                    (when (= here there)
-                      
-                      ;; before, after : (list number number boolean) 
-                      ;;  numbers indicate the range to highlight
-                      ;;  boolean indicates if it is an errorneous highlight
-                      (let ([before
-                             (cond
-                               [(and (> here 0)
-                                     (is-right-paren? (get-character (sub1 here)))
-                                     (not (in-single-line-comment? here)))
-                                (cond
-                                  [(slash? (- here 2) (- here 1)) #f]
-                                  [(scheme-paren:backward-match
-                                    this here (get-limit here)
-                                    backward-cache)
-                                   =>
-                                   (lambda (end-pos) 
-                                     (list end-pos here #f))]
-                                  [else (list (- here 1) here #t)])]
-                               [else #f])]
-                            [after
-                             (cond
-                               [(and (is-left-paren? (get-character here))
-                                     (not (in-single-line-comment? here)))
-                                (cond
-                                  [(slash? (- here 1) here) #f]
-                                  [(scheme-paren:forward-match
-                                    this here (last-position)
-                                    forward-cache)
-                                   =>
-                                   (lambda (end-pos)
-                                     (list here end-pos #f))]
-                                  [else (list here (+ here 1) #t)])]
-                               [else #f])]
-                            [handle-single
-                             (lambda (single)
-                               (let* ([left (first single)]
-                                      [right (second single)]
-                                      [error? (third single)]
-                                      [off (highlight-range 
-                                            left
-                                            right
-                                            (if error? mismatch-color (get-match-color))
-                                            (and (send (icon:get-paren-highlight-bitmap) ok?)
-                                                 (icon:get-paren-highlight-bitmap))
-                                            (= there here left))])
-                                 (set! clear-old-locations
-                                       (let ([old clear-old-locations])
-                                         (lambda ()
-                                           (old)
-                                           (off))))))])
+              (when (preferences:get 'framework:highlight-parens)
+                (unless in-highlight-parens?
+                  (set! in-highlight-parens? #t)
+                  (begin-edit-sequence)
+                  (clear-old-locations)
+                  (set! clear-old-locations void)
+                  (unless just-clear?
+                    (let* ([here (get-start-position)]
+                           [there (get-end-position)]
+                           [slash?
+                            (lambda (before after)
+                              (and (>= before 0)
+                                   (>= after 0)
+                                   (let ([text (get-text before after)])
+                                     (and (string? text)
+                                          (>= (string-length text) 1)
+                                          (char=? #\\ (string-ref text 0))))))]
+                           [is-paren?
+                            (lambda (f)
+                              (lambda (char)
+                                (ormap (lambda (x) (char=? char (string-ref (f x) 0)))
+                                       (scheme-paren:get-paren-pairs))))]
+                           [is-left-paren? (is-paren? car)]
+                           [is-right-paren? (is-paren? cdr)])
+                      (when (= here there)
                         
-                        (cond
-                          [(and after before)
-                           (handle-single after)
-                           (handle-single before)]
-                          [after (handle-single after)]
-                          [before (handle-single before)]
-                          [else (void)])))))
-                (end-edit-sequence)
-                (set! in-highlight-parens? #f))))
+                        ;; before, after : (list number number boolean) 
+                        ;;  numbers indicate the range to highlight
+                        ;;  boolean indicates if it is an errorneous highlight
+                        (let ([before
+                               (cond
+                                 [(and (> here 0)
+                                       (is-right-paren? (get-character (sub1 here)))
+                                       (not (in-single-line-comment? here)))
+                                  (cond
+                                    [(slash? (- here 2) (- here 1)) #f]
+                                    [(scheme-paren:backward-match
+                                      this here (get-limit here)
+                                      backward-cache)
+                                     =>
+                                     (lambda (end-pos) 
+                                       (list end-pos here #f))]
+                                    [else (list (- here 1) here #t)])]
+                                 [else #f])]
+                              [after
+                               (cond
+                                 [(and (is-left-paren? (get-character here))
+                                       (not (in-single-line-comment? here)))
+                                  (cond
+                                    [(slash? (- here 1) here) #f]
+                                    [(scheme-paren:forward-match
+                                      this here (last-position)
+                                      forward-cache)
+                                     =>
+                                     (lambda (end-pos)
+                                       (list here end-pos #f))]
+                                    [else (list here (+ here 1) #t)])]
+                                 [else #f])]
+                              [handle-single
+                               (lambda (single)
+                                 (let* ([left (first single)]
+                                        [right (second single)]
+                                        [error? (third single)]
+                                        [off (highlight-range 
+                                              left
+                                              right
+                                              (if error? mismatch-color (get-match-color))
+                                              (and (send (icon:get-paren-highlight-bitmap) ok?)
+                                                   (icon:get-paren-highlight-bitmap))
+                                              (= there here left))])
+                                   (set! clear-old-locations
+                                         (let ([old clear-old-locations])
+                                           (lambda ()
+                                             (old)
+                                             (off))))))])
+                          
+                          (cond
+                            [(and after before)
+                             (handle-single after)
+                             (handle-single before)]
+                            [after (handle-single after)]
+                            [before (handle-single before)]
+                            [else (void)])))))
+                  (end-edit-sequence)
+                  (set! in-highlight-parens? #f)))))
           
           (public get-limit balance-quotes balance-parens tabify-on-return? tabify tabify-selection
                   tabify-all insert-return calc-last-para 
@@ -648,7 +652,7 @@
                      [get-proc
                       (lambda ()
                         (let* ([text (get-text contains (paragraph-end-position contain-para))])
-                          (hash-table-get indents
+                          (hash-table-get (preferences:get 'framework:tabify)
                                           (string->symbol (substring text 0 (id-walker text)))
                                           (lambda () 'other))))]
                      [procedure-indent
@@ -1089,35 +1093,27 @@
             (lambda ()
               (cons keymap (super-get-keymaps)))]
           
-          (define/override (enable)
-            (highlight-parens #t)
-            (set-load-overwrites-styles #f)
-            (set-wordbreak-map wordbreak-map)
-            (set-tabs null tab-size #f)
-            (set-style-list style-list)
-            (set-styles-fixed #t))
+          (rename [super-after-delete after-delete])
+          (define/override (after-delete start size)
+            (send backward-cache invalidate start)
+            (send forward-cache forward-invalidate (+ start size) (- size))
+            ;; must call super after invalidating cache -- super calls delegate object
+            (super-after-delete start size))
+          (rename [super-after-insert after-insert])
+          (define/override (after-insert start size)
+            (send backward-cache invalidate start)
+            (send forward-cache forward-invalidate start size)
+            ;; must call super after invalidating cache -- super calls delegate object
+            (super-after-insert start size))
           
           (super-instantiate ())))
 
+      (define -text-mode<%>
+        (interface ()
+          ))
+      
       (define text-mode-mixin
-        (mixin (text:mode<%> editor:keymap<%>) (-text-mode<%>)
-          
-          (rename [super-on-close on-close])
-          (override on-close)
-          (define (on-close)
-            (remove-indents-callback)
-            (remove-paren-callback)
-            (super-on-close))
-          
-          (define remove-indents-callback
-            (preferences:add-callback
-             'framework:tabify
-             (lambda (p value)
-               (set! indents value))))
-          (define indents (preferences:get 'framework:tabify))
-          [define backward-cache (make-object match-cache:%)]
-          [define forward-cache (make-object match-cache:%)]
-          [define in-highlight-parens? #f]
+        (mixin (mode:text<%>) (-text-mode<%>)
           
           (inherit get-styles-fixed)
           (rename [super-on-focus on-focus]
@@ -1131,55 +1127,58 @@
           (override on-focus after-change-style after-edit-sequence
                     after-insert after-delete
                     after-set-size-constraint after-set-position)
-          (define (on-focus on?)
-            (super-on-focus on?)
-            (highlight-parens (not on?)))
-          (define (after-change-style start len)
-            (unless (local-edit-sequence?)
-              (unless (get-styles-fixed)
-                (when (has-focus?)
-                  (highlight-parens))))
-            (super-after-change-style start len))
-          (define (after-edit-sequence)
-            (super-after-edit-sequence)
-            (unless (local-edit-sequence?)
-              (when (has-focus?)
-                (unless in-highlight-parens?
-                  (highlight-parens)))))
-          (define (after-insert start size)
-            (send backward-cache invalidate start)
-            (send forward-cache forward-invalidate start size)
-            (unless (local-edit-sequence?)
-              (when (has-focus?)
-                (highlight-parens)))
-            (super-after-insert start size))
-          (define (after-delete start size)
-            (super-after-delete start size)
-            (send backward-cache invalidate start)
-            (send forward-cache forward-invalidate (+ start size) (- size))
-            (unless (local-edit-sequence?)
-              (when (has-focus?)
-                (highlight-parens))))
-          (define (after-set-size-constraint)
-            (unless (local-edit-sequence?)
-              (when (has-focus?)
-                (highlight-parens)))
-            (super-after-set-size-constraint))
-          (define (after-set-position)
-            (unless (local-edit-sequence?)
-              (when (has-focus?)
-                (highlight-parens)))
-            (super-after-set-position))
+          (define (on-focus text on?)
+            (super-on-focus text on?)
+            (send text highlight-parens (not on?)))
+          (define (after-change-style text start len)
+            (unless (send text local-edit-sequence?)
+              (unless (send text get-styles-fixed)
+                (when (send text has-focus?)
+                  (send text highlight-parens))))
+            (super-after-change-style text start len))
+          (define (after-edit-sequence text)
+            (super-after-edit-sequence text)
+            (unless (send text local-edit-sequence?)
+              (when (send text has-focus?)
+                (send text highlight-parens))))
+          (define (after-insert text start size)
+            (unless (send text local-edit-sequence?)
+              (when (send text has-focus?)
+                (send text highlight-parens)))
+            (super-after-insert text start size))
+          (define (after-delete text start size)
+            (unless (send text local-edit-sequence?)
+              (when (send text has-focus?)
+                (send text highlight-parens))))
+          (define (after-set-size-constraint text)
+            (unless (send text local-edit-sequence?)
+              (when (send text has-focus?)
+                (send text highlight-parens)))
+            (super-after-set-size-constraint text))
+          (define (after-set-position text)
+            (unless (send text local-edit-sequence?)
+              (when (send text has-focus?)
+                (send text highlight-parens)))
+            (super-after-set-position text))
+
+          (rename [super-on-disable on-disable])
+          (define/override (on-disable text)
+            (send text highlight-parens #t)
+            (super-on-disable text))
           
-          [define highlight-parens? (preferences:get 'framework:highlight-parens)]
-          [define remove-paren-callback (preferences:add-callback
-                                         'framework:highlight-parens 
-                                         (lambda (p value)
-                                           (set! highlight-parens? value)))]
+          (rename [super-on-enable on-enable])
+          (define/override (on-enable text)
+            (super-on-enable text)
+            (send text highlight-parens #t)
+            (send text set-load-overwrites-styles #f)
+            (send text set-wordbreak-map wordbreak-map)
+            (send text set-tabs null (send text get-tab-size) #f)
+            (send text set-style-list style-list)
+            (send text set-styles-fixed #t))
           
           (super-instantiate ())))
 
-      (define -text% (-text-mixin ...))
+      (define -text% (text-mixin text:info%))
       
                                                                                            
               ;;                                 ;;                                        
