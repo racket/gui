@@ -962,7 +962,7 @@ WARNING: printf is rebound in the body of the unit to always
                       (= start end)
                       (submit-to-port? key))
                  (let ([snips/chars (extract-snips/chars unread-start-point (last-position))])
-                   (printf "sending over ~s ~s\n" unread-start-point snips/chars)
+                   (printf "sending over usp~s ~s\n" unread-start-point snips/chars)
                    (for-each (lambda (s/c) 
                                (cond
                                  [(is-a? s/c snip%)
@@ -974,9 +974,9 @@ WARNING: printf is rebound in the body of the unit to always
                    (set! allow-tabify? #f)
                    (super-on-local-char key)
                    (set! allow-tabify? #t)
-                   (channel-put read-chan (char->integer #\newline))
                    (set! unread-start-point (last-position))
                    (set! insertion-point (last-position))
+                   (printf "sent over; new usp ~s\n" unread-start-point)
                    (on-submit))]
                 [else
                  (super-on-local-char key)])))
@@ -1238,7 +1238,7 @@ WARNING: printf is rebound in the body of the unit to always
           (define/private (extract-snips/chars start end)
             (split-snip start)
             (split-snip end)
-            (let loop ([snip (find-snip start 'after)])
+            (let loop ([snip (find-snip start 'after-or-none)])
               (cond
                 [(not snip) null]
                 [(< (get-snip-position snip) end)
