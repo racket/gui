@@ -266,7 +266,7 @@
     "garbage collection.")
    
    (autosave:restore-autosave-files/gui
-    (-> void?)
+    (-> (union false? (is-a?/c top-level-window<%>)))
     ()
     "Opens a GUI to ask the user about recovering any autosave files"
     "left around from crashes and things.")

@@ -5,9 +5,7 @@
 	   "sig.ss"
 	   (lib "mred-sig.ss" "mred")
            (lib "list.ss")
-           (lib "string-constant.ss" "string-constants")
-           ;(file "/home/robby/cvs/plt/collects/string-constants/string-constant.ss")
-           )
+           (lib "string-constant.ss" "string-constants"))
 
   (provide autosave@)
 
@@ -71,7 +69,7 @@
                     (let* ([new-filename (send object do-autosave)]
                            [tmp-box (box #f)]
                            [filename (send object get-filename tmp-box)])
-                      (printf "autosave ~s to ~s\n" filename new-filename)
+                      (printf "autosave ~s ~s to ~s\n" object filename new-filename)
                       (loop (cdr orig-objects)
                             (if new-filename
                                 (cons (list (and (not (unbox tmp-box)) filename)
@@ -82,26 +80,6 @@
                     (loop (cdr orig-objects)
                           name-mapping
                           new-objects))))))
-      
-      ;; removed-autosave : string[filename] -> void
-      ;; cal to indicate to that autosave filename returned from `do-autosave'
-      ;; has been deleted (eg, the file was saved, or the user closed the window, etc)
-      (define (removed-autosave filename)
-        (when (file-exists? autosave-toc-filename)
-          (let* ([old-contents (call-with-input-file autosave-toc-filename read)]
-                 [new-contents
-                  (remove filename
-                          old-contents
-                          (lambda (filename table-entry)
-                            (equal? (cadr table-entry) filename)))])
-            (when (file-exists? autosave-toc-save-filename)
-              (delete-file autosave-toc-save-filename))
-            (copy-file autosave-toc-filename autosave-toc-save-filename)
-            (call-with-output-file autosave-toc-filename
-              (lambda (port)
-                (write new-contents port))
-              'truncate
-              'text))))
       
       (define timer #f)
 
@@ -117,18 +95,18 @@
                               (cons weak-box (loop (cdr objects)))
                               (loop (cdr objects))))]))))
       
-      ;; restore-autosave-files/gui : -> void
+      ;; restore-autosave-files/gui : -> (union #f (is-a?/c top-level-window<%>))
       ;; opens a frame that lists the autosave files that have changed.
       (define (restore-autosave-files/gui)
-        (when (file-exists? autosave-toc-filename)
-          (let* ([table (call-with-input-file autosave-toc-filename read)]
-                 ;; assume that the autosave file was deleted due to the file being saved
-                 [filtered-table
-                  (filter (lambda (x) (file-exists? (cadr x))) table)])
-            (unless (null? filtered-table)
-              (let ([f (make-object frame:basic% (string-constant recover-autosave-files-frame-title) #f 400 400)])
-                (for-each (add-table-line f) filtered-table)
-                (send f show #t))))))
+        (and (file-exists? autosave-toc-filename)
+             (let* ([table (call-with-input-file autosave-toc-filename read)]
+                    ;; assume that the autosave file was deleted due to the file being saved
+                    [filtered-table
+                     (filter (lambda (x) (file-exists? (cadr x))) table)])
+               (and (not (null? filtered-table))
+                    (let ([f (make-object frame:basic% (string-constant recover-autosave-files-frame-title))])
+                      (for-each (add-table-line (send f get-area-container)) filtered-table)
+                      f)))))
       
       ;; add-table-line : (is-a? area-container<%>) 
       ;;               -> (list (union #f string[filename]) string[filename-file-exists?])
@@ -140,19 +118,39 @@
                  [backup-file (cadr table-entry)]
                  [hp (instantiate horizontal-panel% ()
                        (parent area-container)
+                       (style '(border))
                        (stretchable-height #f))]
                  [vp (instantiate vertical-panel% ()
                        (parent hp))]
                  [compare
-                  (make-object button% (string-constant autosave-details) vp
+                  (make-object button% (string-constant autosave-details) hp
                     (lambda (x y)
                       (show-differences table-entry)))]
                  [recover
-                  (make-object button% (string-constant autosave-recover) vp
+                  (make-object button% (string-constant autosave-recover) hp
                     (lambda (x y)
                       (recover-file area-container hp table-entry)))]
-                 [msg1 (make-object message% (or orig-file (string-constant autosave-unknown-filename)) vp)]
-                 [msg2 (make-object message% (cadr table-entry) vp)])
+                 [msg1-panel (instantiate horizontal-panel% ()
+                               (parent vp))]
+                 [msg1-label (instantiate message% ()
+                               (parent msg1-panel)
+                               (label (string-constant autosave-original-label)))]
+                 [msg1 (instantiate message% ()
+                         (label (or orig-file (string-constant autosave-unknown-filename)))
+                         (stretchable-width #t)
+                         (parent msg1-panel))]
+                 [msg2-panel (instantiate horizontal-panel% ()
+                               (parent vp))]
+                 [msg2-label (instantiate message% ()
+                               (parent msg2-panel)
+                               (label (string-constant autosave-autosave-label)))]
+                 [msg2 (instantiate message% ()
+                         (label backup-file)
+                         (stretchable-width #t)
+                         (parent msg2-panel))])
+            (let ([w (max (send msg1-label get-width) (send msg2-label get-width))])
+              (send msg1-label min-width w)
+              (send msg2-label min-width w))
             (send compare enable orig-file)
             (void))))
       
