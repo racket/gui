@@ -1,6 +1,7 @@
 
   (unit/sig mred:panel^
-    (import [mred:constants : mred:constants^]
+    (import [wx : mred:wx^]
+	    [mred:constants : mred:constants^]
 	    [mred:container : mred:container^]
 	    [mred:canvas : mred:canvas^]
 	    mzlib:function^)
