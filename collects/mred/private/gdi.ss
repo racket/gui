@@ -14,7 +14,11 @@
 	   post-script-dc%
 	   printer-dc%
 	   get-window-text-extent
-	   get-family-builtin-face)
+	   get-family-builtin-face
+	   normal-control-font
+	   view-control-font
+	   small-control-font
+	   tiny-control-font)
 
   (define register-collecting-blit
     (case-lambda
@@ -143,4 +147,16 @@
 	 [(modern) "Courier New"]
 	 [(swiss) "Helvetica"]
 	 [(script) "Apple Chancery"]
-	 [(symbol) "Symbol"])])))
+	 [(symbol) "Symbol"])]))
+
+  (define small-delta (case (system-type)
+			[(windows) 0]
+			[(macosx) 2]
+			[else 1]))
+
+  (define normal-control-font (make-object wx:font% (wx:get-control-font-size) 'system))
+  (define view-control-font (if (eq? 'macosx (system-type))
+				(make-object wx:font% 12 'system)
+				(make-object wx:font% (wx:get-control-font-size) 'system)))
+  (define small-control-font (make-object wx:font% (- (wx:get-control-font-size) small-delta) 'system))
+  (define tiny-control-font (make-object wx:font% (- (wx:get-control-font-size) 2 small-delta) 'system)))

@@ -267,6 +267,10 @@
 	   the-pen-list
 	   the-font-list
 	   the-style-list
+	   normal-control-font
+	   small-control-font
+	   tiny-control-font
+	   view-control-font
 	   timer%
 	   readable-snip<%>
 	   open-input-text-editor

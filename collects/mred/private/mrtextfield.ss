@@ -26,7 +26,8 @@
 				 parent
 				 callback
 				 init-value
-				 style req-styles)
+				 style req-styles
+				 font)
     (check-label-string/false cwho label)
     (when choices?
       (unless (and (list? choices) (andmap label-string? choices))
@@ -39,7 +40,8 @@
 		 (append
 		  (if choices? null '(hscroll password))
 		  '(vertical-label horizontal-label deleted))
-		 (remq combo-flag style)))
+		 (remq combo-flag style))
+    (check-font cwho font))
 
   (define text-field%
     (class100*/kw basic-control% () 
@@ -50,7 +52,8 @@
 			       label 
 			       #f #f
 			       parent callback init-value
-			       style '(single multiple)))
+			       style '(single multiple)
+			       font))
       (private-field
        [wx #f])
       (public
@@ -73,7 +76,8 @@
 					       label init-value 
 					       (if (memq combo-flag style)
 						   (cons 'combo (remq combo-flag style))
-						   style)))
+						   style)
+					       (no-val->#f font)))
 			 wx)
 		       (lambda ()
 			 (let ([cwho '(constructor text-field)])
@@ -90,7 +94,8 @@
 			       label 
 			       #f choices
 			       parent callback init-value
-			       style #f))
+			       style #f 
+			       font))
       (public
 	[on-popup (lambda (e)
 		    (let-values ([(w h) (get-size)]

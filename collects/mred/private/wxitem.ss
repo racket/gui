@@ -218,7 +218,7 @@
 		   #f #f))
 
   (define wx-button% (make-window-glue% 
-		      (class100 (make-simple-control% wx:button%) (parent cb label x y w h style)
+		      (class100 (make-simple-control% wx:button%) (parent cb label x y w h style font)
 			(inherit command)
 			(private-field [border? (memq 'border style)])
 			(public [has-border? (lambda () border?)])
@@ -227,8 +227,8 @@
 				     (as-exit
 				      (lambda ()
 					(command (make-object wx:control-event% 'button)))))])
-			(sequence (super-init style parent cb label x y w h style)))))
-  (define wx-check-box% (class100 (make-window-glue% (make-simple-control% wx:check-box%)) (mred proxy parent cb label x y w h style)
+			(sequence (super-init style parent cb label x y w h style font)))))
+  (define wx-check-box% (class100 (make-window-glue% (make-simple-control% wx:check-box%)) (mred proxy parent cb label x y w h style font)
 			  (inherit set-value get-value command)
 			  (override
 			    [char-to (lambda ()
@@ -236,24 +236,24 @@
 					(lambda ()
 					  (set-value (not (get-value)))
 					  (command (make-object wx:control-event% 'check-box)))))])
-			  (sequence (super-init mred proxy style parent cb label x y w h style))))
-  (define wx-choice% (class100 (make-window-glue% (make-simple-control% wx:choice%)) (mred proxy parent cb label x y w h choices style)
+			  (sequence (super-init mred proxy style parent cb label x y w h style font))))
+  (define wx-choice% (class100 (make-window-glue% (make-simple-control% wx:choice%)) (mred proxy parent cb label x y w h choices style font)
 		       (override 
 			 [handles-key-code 
 			  (lambda (x alpha? meta?) 
 			    (or (memq x '(up down))
 				(and alpha? (not meta?))))])
-		       (sequence (super-init mred proxy style parent cb label x y w h choices style))))
-  (define wx-message% (class100 (make-window-glue% (make-simple-control% wx:message%)) (mred proxy parent label x y style)
+		       (sequence (super-init mred proxy style parent cb label x y w h choices style font))))
+  (define wx-message% (class100 (make-window-glue% (make-simple-control% wx:message%)) (mred proxy parent label x y style font)
 			(override [gets-focus? (lambda () #f)])
-			(sequence (super-init mred proxy style parent label x y style))))
+			(sequence (super-init mred proxy style parent label x y style font))))
 
   (define wx-gauge%
     (make-window-glue% 
      (class100 (make-control% wx:gauge% 
 			      const-default-x-margin const-default-y-margin 
 			      #f #f)
-	 (parent label range style)
+	 (parent label range style font)
        (inherit get-client-size get-width get-height set-size 
 		stretchable-in-x stretchable-in-y set-min-height set-min-width
 		get-parent)
@@ -262,7 +262,7 @@
 	;; # pixels per unit of value.
 	[pixels-per-value 1])
        (sequence
-	 (super-init style parent label range -1 -1 -1 -1 style)
+	 (super-init style parent label range -1 -1 -1 -1 style font)
 
 	 (let-values ([(client-width client-height) (get-two-int-values 
 						     (lambda (a b) (get-client-size a b)))])
@@ -303,7 +303,7 @@
     (make-window-glue% 
      (class100 (make-control% wx:list-box%
 			      const-default-x-margin const-default-y-margin 
-			      #t #t) (parent cb label kind x y w h choices style)
+			      #t #t) (parent cb label kind x y w h choices style font)
        (inherit get-first-item
 		set-first-visible-item)
        (private
@@ -328,11 +328,11 @@
 			      [(wheel-up) (scroll -1) #t]
 			      [(wheel-down) (scroll 1) #t]
 			      [else #f])))])
-       (sequence (super-init style parent cb label kind x y w h choices style)))))
+       (sequence (super-init style parent cb label kind x y w h choices style font)))))
 
   (define wx-radio-box%
     (make-window-glue% 
-     (class100 (make-simple-control% wx:radio-box%) (parent cb label x y w h choices major style)
+     (class100 (make-simple-control% wx:radio-box%) (parent cb label x y w h choices major style font)
        (inherit number orig-enable set-selection command)
        (override
 	 [enable
@@ -356,7 +356,7 @@
 			      (set-selection i)
 			      (command (make-object wx:control-event% 'radio-box)))))])
 
-       (sequence (super-init style parent cb label x y w h choices major style))
+       (sequence (super-init style parent cb label x y w h choices major style font))
 
        (private-field [enable-vector (make-vector (number) #t)]))))
 
@@ -365,7 +365,7 @@
      (class100 (make-control% wx:slider% 
 			      const-default-x-margin const-default-y-margin 
 			      #f #f)
-	 (parent func label value min-val max-val style)
+	 (parent func label value min-val max-val style font)
        (inherit set-min-width set-min-height stretchable-in-x stretchable-in-y
 		get-client-size get-width get-height get-parent)
        (private-field
@@ -376,7 +376,7 @@
        ;; which looks bad.
        
        (sequence
-	 (super-init style parent func label value min-val max-val -1 -1 -1 style)
+	 (super-init style parent func label value min-val max-val -1 -1 -1 style font)
 	 
 	 (let-values ([(client-w client-h) (get-two-int-values (lambda (a b)
 								 (get-client-size a b)))])

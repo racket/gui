@@ -6,6 +6,7 @@
 	   "const.ss"
 	   "check.ss"
 	   "helper.ss"
+	   "gdi.ss"
 	   "wx.ss"
 	   "wxwindow.ss"
 	   "wxitem.ss"
@@ -67,11 +68,12 @@
 	(super-init mred proxy parent -1 -1 100 30 #f style 100 #f))))
 
   (define wx-text-field%
-    (class100 wx-horizontal-panel% (mred proxy parent fun label value style)
+    (class100 wx-horizontal-panel% (mred proxy parent fun label value style _font)
       ;; Make text field first because we'll have to exit
       ;;  for keymap initializer
       (private-field
        [func fun]
+       [font (or _font normal-control-font)]
        [without-callback #f]
        [callback-ready #f]
        [e (make-object text-field-text%
@@ -88,7 +90,7 @@
 	(as-exit
 	 (lambda ()
 	   ((current-text-keymap-initializer) (send e get-keymap)))))
-      (inherit alignment stretchable-in-y get-control-font area-parent
+      (inherit alignment stretchable-in-y area-parent
 	       get-min-size set-min-width set-min-height)
       (rename [super-place-children place-children])
       (public
@@ -146,7 +148,7 @@
 	(unless multi? (stretchable-in-y #f)))
       (private-field
        [l (and label
-	       (make-object wx-message% #f proxy p label -1 -1 null))]
+	       (make-object wx-message% #f proxy p label -1 -1 null font))]
        [c (make-object wx-text-editor-canvas% #f proxy this p
 		       (append
 			'(control-border)
@@ -166,7 +168,7 @@
 	(send e set-line-spacing 0)
 	(send e set-paste-text-only #t)
 	(send e auto-wrap (and multi? (not (memq 'hscroll style))))
-	(let ([f (get-control-font)]
+	(let ([f font]
 	      [s (send (send e get-style-list) find-named-style "Standard")])
 	  (send s set-delta (let ([d (font->delta f)])
 			      (if (memq 'password style)
@@ -188,28 +190,28 @@
 		[hbox (box 0)]
 		[ybox (box 0)]
 		[abox (box 0)])
-					; To bottom of first line
+	    ;; To bottom of first line
 	    (send (send e get-admin) get-dc #f ybox)
 	    (set! dy (+ (abs (unbox ybox)) (send e line-location 0 #f)))
 	    
-					; Add diff for client size
+	    ;; Add diff for client size
 	    (send c get-client-size wbox hbox)
 	    (let ([d (- (send c get-height) (unbox hbox))])
 	      (set! dy (+ dy (quotient d 2))))
 	    
-					; Subtract descent of canvas-drawn text
+	    ;; Subtract descent of canvas-drawn text
 	    (let ([font (send (send (send e get-style-list) find-named-style "Standard") get-font)])
 	      (send c get-text-extent "hi" wbox hbox ybox #f font)
 	      (set! dy (- dy (unbox ybox))))
 	    
-					; Subtract ascent of label
+	    ;; Subtract ascent of label
 	    (send l get-text-extent "hi" wbox hbox ybox abox)
 	    (set! dy (- dy (- (unbox hbox) (unbox ybox))))
 	    
-					; Subtract space above label
+	    ;; Subtract space above label
 	    (set! dy (- dy (quotient (- (send l get-height) (unbox hbox)) 2)))
 
-					; Exact
+	    ;; Exact
 	    (set! dy (inexact->exact dy))))
 	
 	(when value

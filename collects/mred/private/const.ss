@@ -31,6 +31,7 @@
   
   ;; indicates init arg not supplied
   (define no-val (gensym))
+  (define (no-val->#f v) (if (eq? v no-val) #f v))
 
   (define ibeam (make-object wx:cursor% 'ibeam))
   (define arrow-cursor (make-object wx:cursor% 'arrow))

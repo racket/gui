@@ -42,12 +42,15 @@
   (define-local-member-name hidden-child? label-checker)
 
   (define-keywords control%-keywords
+    [font no-val]
     window%-keywords
     subarea%-keywords
     area%-keywords)
 
   (define basic-control%
-    (class100* (make-window% #f (make-subarea% area%)) (control<%>) (mk-wx mismatches lbl parent cb cursor)
+    (class100* (make-window% #f (make-subarea% area%)) (control<%>) (mk-wx mismatches lbl parent cb cursor
+									   ;; for keyword use
+									   [font no-val])
       (rename [super-set-label set-label])
       (private-field [label lbl][callback cb])
       (override
@@ -97,12 +100,13 @@
 	(let ([cwho '(constructor message)])
 	  (check-label-string/bitmap/iconsym cwho label)
 	  (check-container-parent cwho parent)
-	  (check-style cwho #f '(deleted) style))
+	  (check-style cwho #f '(deleted) style)
+	  (check-font cwho font))
 	(as-entry
 	 (lambda ()
 	   (super-init (lambda () (make-object wx-message% this this
 					       (mred->wx-container parent)
-					       label -1 -1 style))
+					       label -1 -1 style (no-val->#f font)))
 		       (lambda () 
 			 (let ([cwho '(constructor message)])
 			   (check-container-ready cwho parent)))
@@ -117,12 +121,13 @@
 	  (check-label-string-or-bitmap cwho label)
 	  (check-container-parent cwho parent)
 	  (check-callback cwho callback)
-	  (check-style cwho #f '(border deleted) style))
+	  (check-style cwho #f '(border deleted) style)
+	  (check-font cwho font))
 	(as-entry
 	 (lambda ()
 	   (super-init (lambda () (make-object wx-button% this this
 					       (mred->wx-container parent) (wrap-callback callback)
-					       label -1 -1 -1 -1 style))
+					       label -1 -1 -1 -1 style (no-val->#f font)))
 		       (lambda () 
 			 (let ([cwho '(constructor button)])
 			   (check-container-ready cwho parent)))
@@ -135,7 +140,8 @@
 	  (check-label-string-or-bitmap cwho label)
 	  (check-container-parent cwho parent)
 	  (check-callback cwho callback)
-	  (check-style cwho #f '(deleted) style)))
+	  (check-style cwho #f '(deleted) style)
+	  (check-font cwho font)))
       (override
 	[label-checker  (lambda () check-label-string-or-bitmap)]) ; module-local method
       (private-field
@@ -149,7 +155,7 @@
 	   (super-init (lambda () 
 			 (set! wx (make-object wx-check-box% this this
 					       (mred->wx-container parent) (wrap-callback callback)
-					       label -1 -1 -1 -1 style))
+					       label -1 -1 -1 -1 style (no-val->#f font)))
 			 wx)
 		       (lambda ()
 			 (let ([cwho '(constructor check-box)])
@@ -213,7 +219,7 @@
 	   (super-init (lambda () 
 			 (set! wx (make-object wx-radio-box% this this
 					       (mred->wx-container parent) (wrap-callback callback)
-					       label -1 -1 -1 -1 chcs 0 style))
+					       label -1 -1 -1 -1 chcs 0 style (no-val->#f font)))
 			 wx)
 		       (lambda ()
 			 (let ([cwho '(constructor radio-box)])
@@ -240,7 +246,8 @@
 	  (check-container-parent cwho parent) 
 	  (check-callback cwho callback)
 	  (check-slider-integer cwho init-value)
-	  (check-style cwho '(vertical horizontal) '(plain vertical-label horizontal-label deleted) style)))
+	  (check-style cwho '(vertical horizontal) '(plain vertical-label horizontal-label deleted) style)
+	  (check-font cwho font)))
       (private-field
        [wx #f])
       (public
@@ -260,7 +267,7 @@
 	   (super-init (lambda () 
 			 (set! wx (make-object wx-slider% this this
 					       (mred->wx-container parent) (wrap-callback callback)
-					       label init-value minv maxv style))
+					       label init-value minv maxv style (no-val->#f font)))
 			 wx)
 		       (lambda () 
 			 (let ([cwho '(constructor slider)])
@@ -300,7 +307,7 @@
 	   (super-init (lambda () 
 			 (set! wx (make-object wx-gauge% this this
 					       (mred->wx-container parent)
-					       label range style))
+					       label range style (no-val->#f font)))
 			 wx)
 		       (lambda ()
 			 (let ([cwho '(constructor gauge)])
@@ -419,10 +426,11 @@
 	(let ([cwho '(constructor choice)])
 	  (check-list-control-args cwho label choices parent callback)
 	  (check-style cwho #f '(vertical-label horizontal-label deleted) style)
-	  (check-non-negative-integer cwho selection))
+	  (check-non-negative-integer cwho selection)
+	  (check-font cwho font))
 	(super-init (lambda () (make-object wx-choice% this this
 					    (mred->wx-container parent) (wrap-callback callback)
-					    label -1 -1 -1 -1 choices style))
+					    label -1 -1 -1 -1 choices style (no-val->#f font)))
 		    (lambda ()
 		      (let ([cwho '(constructor choice)])
 			(check-container-ready cwho parent)
@@ -441,7 +449,8 @@
 	(let ([cwho '(constructor list-box)])
 	  (check-list-control-args cwho label choices parent callback)
 	  (check-style cwho '(single multiple extended) '(vertical-label horizontal-label deleted) style)
-	  (check-non-negative-integer/false cwho selection)))
+	  (check-non-negative-integer/false cwho selection)
+	  (check-font cwho font)))
       (rename [super-append append])
       (override
 	[append (entry-point
@@ -508,7 +517,7 @@
 			(set! wx (make-object wx-list-box% this this
 					      (mred->wx-container parent) (wrap-callback callback)
 					      label kind
-					      -1 -1 -1 -1 choices style)))
+					      -1 -1 -1 -1 choices style (no-val->#f font))))
 		      wx)
 		    (lambda ()
 		      (let ([cwho '(constructor list-box)])

@@ -151,6 +151,7 @@
     get-label
     command)
   (define-class message% item% #f
+    get-font
     set-label
     on-drop-file
     pre-on-event
@@ -640,6 +641,7 @@
     set-screen-name
     get-post-script-name
     get-screen-name)
+  (define-function get-control-font-size)
   (define-function get-the-font-name-directory)
   (define-function get-the-font-list)
   (define-function get-the-pen-list)
@@ -1141,10 +1143,6 @@
     copy
     cut)
   (define-class panel% window% #f
-    get-label-font
-    set-label-font
-    get-control-font
-    set-control-font
     get-label-position
     set-label-position
     on-char

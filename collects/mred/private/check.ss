@@ -1,7 +1,8 @@
 (module check mzscheme
   (require (lib "class.ss")
 	   (prefix wx: "kernel.ss")
-	   "wx.ss")
+	   "wx.ss"
+	   "const.ss")
   (provide (all-defined))
 
   (define (who->name who)
@@ -137,6 +138,10 @@
     (unless (or (label-string? label) (is-a? label wx:bitmap%)
 		(memq label '(app caution stop)))
       (raise-type-error (who->name who) "string (up to 200 characters), bitmap% object, or icon symbol" label)))
+
+  (define (check-font who f)
+    (unless (or (eq? f no-val) (f . is-a? . wx:font%))
+      (raise-type-error (who->name who) "font% object" f)))
 
   (define (check-style who reqd other-allowed style)
     (unless (and (list? style) (andmap symbol? style))

@@ -132,6 +132,7 @@
      mouse-event%
      ;; mred@
      mult-color<%>
+     normal-control-font
      open-input-graphical-file
      open-input-text-editor
      pane%
@@ -161,6 +162,7 @@
      separator-menu-item%
      sleep/yield
      slider%
+     small-control-font
      snip%
      snip-admin%
      snip-class%
@@ -187,10 +189,12 @@
      the-style-list
      the-x-selection-clipboard
      timer%
+     tiny-control-font
      top-level-window<%>
      unregister-collecting-blit
      vertical-pane%
      vertical-panel%
+     view-control-font
      window<%>
      write-editor-global-footer
      write-editor-global-header

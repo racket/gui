@@ -101,14 +101,15 @@
 
   (define tab-panel%
     (class100*/kw vertical-panel% ()
-		  [(choices parent callback [style null]) panel%-keywords]
+		  [(choices parent callback [style null] [font no-val]) panel%-keywords]
       (sequence
 	(let ([cwho '(constructor tab-panel)])
 	  (unless (and (list? choices) (andmap label-string? choices))
 	    (raise-type-error (who->name cwho) "list of strings (up to 200 characters)" choices))
 	  (check-callback cwho callback)
 	  (check-container-parent cwho parent)
-	  (check-style cwho #f '(deleted no-border) style))
+	  (check-style cwho #f '(deleted no-border) style)
+	  (check-font cwho font))
 	(super-init parent (if (memq 'deleted style)
 			       '(deleted)
 			       null)))
@@ -117,7 +118,8 @@
        [tabs (make-object tab-group% #f choices this (lambda (c e) (callback this e)) 
 			  (if (memq 'no-border style)
 			      null
-			      '(border)))])
+			      '(border))
+			  font)])
       (sequence
 	(send (mred->wx this) set-first-child-is-hidden))
 
@@ -182,12 +184,13 @@
 
   (define group-box-panel%
     (class100*/kw vertical-panel% ()
-		  [(label parent [style null]) panel%-keywords]
+		  [(label parent [style null] [font no-val]) panel%-keywords]
       (sequence
 	(let ([cwho '(constructor group-box-panel)])
 	  (check-label-string cwho label)
 	  (check-container-parent cwho parent)
-	  (check-style cwho #f '(deleted) style))
+	  (check-style cwho #f '(deleted) style)
+	  (check-font cwho font))
 
 	;; Technically a bad way to change margin defaults, since it's
 	;;  implemented with an update after creation:
@@ -199,7 +202,7 @@
 			       null)))
 
       (private-field
-       [gbox (make-object group-box% label this null)]
+       [gbox (make-object group-box% label this null font)]
        [lbl label])
       (sequence
 	(send (mred->wx this) set-first-child-is-hidden))
