@@ -81,11 +81,6 @@
       [(parent child dark-pen light-pen dark-brush light-brush)
        (add-links parent child dark-pen light-pen dark-brush light-brush 0 0)]
       [(parent child dark-pen light-pen dark-brush light-brush dx dy)
-       (let ([admin (send parent get-admin)])
-         (when admin
-           (let ([pb (send admin get-editor)])
-             (when (is-a? pb graph-pasteboard<%>)
-               (send pb add-edge parent child)))))
        (send parent add-child child)
        (send child add-parent parent dark-pen light-pen dark-brush light-brush dx dy)]))
   
@@ -135,8 +130,7 @@
   (define graph-pasteboard<%>
     (interface ()
       on-mouse-over-snips
-      set-arrowhead-params
-      add-edge))
+      set-arrowhead-params))
   
   (define-struct rect (left top right bottom))
   
@@ -157,9 +151,6 @@
                 arrowhead-long-side
                 arrowhead-short-side))
     
-      (define edges (make-hash-table 'equal))
-      (define/public (add-edge s1 s2) (hash-table-put! edges (cons s1 s2) #t))
-      
       (inherit dc-location-to-editor-location get-canvas)
       (field (currently-overs null))
       (define/override (on-event evt)
@@ -366,45 +357,11 @@
       ;; draws all of the lines and then draws all of the arrow heads
       (define/override (on-paint before? dc left top right bottom dx dy draw-caret)
         (let ()
-
-          ;; draw-all-connections : ... boolean -> void
-          ;; draws all of the connections between the snips
-          ;; first args are the same as those to on-paint
-          (define (draw-all-connections arrow-heads?)
-            (let loop ([snip (find-first-snip)])
-              (when snip
-                (when (and (send snip get-admin)
-                           (is-a? snip graph-snip<%>))
-                  (for-each (lambda (parent-link)
-                              (draw-connection
-                               parent-link snip #f
-                               arrow-heads?))
-                            (send snip get-parent-links)))
-                (loop (send snip next))))
-            
-            (for-each
-             (lambda (currently-over)
-               (for-each
-                (lambda (child)
-                  (let ([parent-link-f
-                         (memf (lambda (parent-link) (eq? currently-over (link-snip parent-link)))
-                               (send child get-parent-links))])
-                    (when parent-link-f
-                      (draw-connection (car parent-link-f) child #t
-                                       arrow-heads?))))
-                (send currently-over get-children))
-               (for-each
-                (lambda (parent-link)
-                  (draw-connection parent-link currently-over #t
-                                   arrow-heads?))
-                (send currently-over get-parent-links)))
-             currently-overs))
-          
           ;; draw-connection : link snip boolean boolean -> void
           ;; sets the drawing context (pen and brush)
           ;; determines if the connection is between a snip and itself or two different snips
           ;;  and calls draw-self-connection or draw-non-self-connection
-          (define (draw-connection from-link to dark-lines? arrow-heads?)
+          (define (draw-connection from-link to dark-lines?)
             (let ([from (link-snip from-link)])
               (when (send from get-admin)
                 (let ([dx (+ dx (link-dx from-link))]
@@ -412,11 +369,11 @@
                   (cond
                     [(eq? from to)
                      (set-pen/brush from-link dark-lines?)
-                     (draw-self-connection dx dy (link-snip from-link) arrow-heads?)]
+                     (draw-self-connection dx dy (link-snip from-link))]
                     [else
-                     (draw-non-self-connection dx dy from-link dark-lines? to arrow-heads?)])))))
+                     (draw-non-self-connection dx dy from-link dark-lines? to)])))))
           
-          (define (draw-self-connection dx dy snip arrow-heads?)
+          (define (draw-self-connection dx dy snip)
             (let*-values ([(sx sy sw sh) (get-position snip)]
                           [(s1x s1y) (values (+ sx sw) (+ sy (* sh 1/2)))]
                           [(s2x s2y) (values (+ sx sw self-offset) (+ sy (* 3/4 sh) (* 1/2 self-offset)))]
@@ -434,20 +391,14 @@
                           [(b56x b56y) (values s5x s6y)])
               
               (update-polygon s4x s4y sx s4y)
-              (let ([os (send dc get-smoothing)])
-                (send dc set-smoothing 'aligned)
-                (cond
-                  [arrow-heads?
-                   (send dc draw-polygon points dx dy)]
-                  [else
-                   (send dc draw-spline (+ dx s1x) (+ dy s1y) (+ dx b12x) (+ dy b12y) (+ dx s2x) (+ dy s2y))
-                   (send dc draw-spline (+ dx s2x) (+ dy s2y) (+ dx b23x) (+ dy b23y) (+ dx s3x) (+ dy s3y))
-                   (send dc draw-line (+ dx s3x) (+ dy s3y) (+ dx s6x) (+ dy s6y))
-                   (send dc draw-spline (+ dx s4x) (+ dy s4y) (+ dx b45x) (+ dy b45y) (+ dx s5x) (+ dy s5y))
-                   (send dc draw-spline (+ dx s5x) (+ dy s5y) (+ dx b56x) (+ dy b56y) (+ dx s6x) (+ dy s6y))])
-                (send dc set-smoothing os))))
+              (send dc draw-spline (+ dx s1x) (+ dy s1y) (+ dx b12x) (+ dy b12y) (+ dx s2x) (+ dy s2y))
+              (send dc draw-spline (+ dx s2x) (+ dy s2y) (+ dx b23x) (+ dy b23y) (+ dx s3x) (+ dy s3y))
+              (send dc draw-line (+ dx s3x) (+ dy s3y) (+ dx s6x) (+ dy s6y))
+              (send dc draw-spline (+ dx s4x) (+ dy s4y) (+ dx b45x) (+ dy b45y) (+ dx s5x) (+ dy s5y))
+              (send dc draw-spline (+ dx s5x) (+ dy s5y) (+ dx b56x) (+ dy b56y) (+ dx s6x) (+ dy s6y))
+              (send dc draw-polygon points dx dy)))
           
-          (define (draw-non-self-connection dx dy from-link dark-lines? to arrow-heads?)
+          (define (draw-non-self-connection dx dy from-link dark-lines? to)
             (let ([from (link-snip from-link)])
               (let*-values ([(xf yf wf hf) (get-position from)]
                             [(xt yt wt ht) (get-position to)]
@@ -503,20 +454,17 @@
                              ;; the snips overlap, draw nothing
                              (void)]
                             [else
-                             (cond
-                               [arrow-heads?
-                                (update-polygon from-x from-y to-x to-y)
-                                (when (and (arrow-point-ok? (send point1 get-x) (send point1 get-y))
-                                           (arrow-point-ok? (send point2 get-x) (send point2 get-y))
-                                           (arrow-point-ok? (send point3 get-x) (send point3 get-y))
-                                           (arrow-point-ok? (send point4 get-x) (send point4 get-y)))
-                                  ;; the arrowhead is not overlapping the snips, so draw it
-                                  ;; (this is only an approximate test, but probably good enough)
-                                  (send dc draw-polygon points dx dy))]
-                               [else
-                                (send dc draw-line
-                                      (+ dx from-x) (+ dy from-y) 
-                                      (+ dx to-x) (+ dy to-y))])])))))))))
+                             (send dc draw-line
+                                   (+ dx from-x) (+ dy from-y) 
+                                   (+ dx to-x) (+ dy to-y))
+                             (update-polygon from-x from-y to-x to-y)
+                             (when (and (arrow-point-ok? (send point1 get-x) (send point1 get-y))
+                                        (arrow-point-ok? (send point2 get-x) (send point2 get-y))
+                                        (arrow-point-ok? (send point3 get-x) (send point3 get-y))
+                                        (arrow-point-ok? (send point4 get-x) (send point4 get-y)))
+                               ;; the arrowhead is not overlapping the snips, so draw it
+                               ;; (this is only an approximate test, but probably good enough)
+                               (send dc draw-polygon points dx dy))])))))))))
           
           (define (set-pen/brush from-link dark-lines?)
             (send dc set-brush 
@@ -529,19 +477,41 @@
                       (link-light-pen from-link))))
           
           ;;; body of on-paint
-          
           (when before?
             (let ([old-pen (send dc get-pen)]
                   [old-brush (send dc get-brush)]
                   [os (send dc get-smoothing)])
               (send dc set-smoothing 'aligned)
-                         
-              (draw-all-connections #f)
-              (draw-all-connections #t)
+              
+              (let loop ([snip (find-first-snip)])
+                (when snip
+                  (when (and (send snip get-admin)
+                             (is-a? snip graph-snip<%>))
+                    (for-each (lambda (parent-link)
+                                (draw-connection parent-link snip #f))
+                              (send snip get-parent-links)))
+                  (loop (send snip next))))
+              
+              (for-each
+               (lambda (currently-over)
+                 (for-each
+                  (lambda (child)
+                    (let ([parent-link-f
+                           (memf (lambda (parent-link) (eq? currently-over (link-snip parent-link)))
+                                 (send child get-parent-links))])
+                      (when parent-link-f
+                        (draw-connection (car parent-link-f) child #t))))
+                  (send currently-over get-children))
+                 (for-each
+                  (lambda (parent-link)
+                    (draw-connection parent-link currently-over #t))
+                  (send currently-over get-parent-links)))
+               currently-overs)
               
               (send dc set-smoothing os)
               (send dc set-pen old-pen)
               (send dc set-brush old-brush)))
+          
           (super on-paint before? dc left top right bottom dx dy draw-caret)))
       
       
