@@ -1718,6 +1718,64 @@
 
 ;----------------------------------------------------------------------
 
+(define (message-boxes)
+  (define (check expected got)
+    (unless (eq? expected got)
+      (fprintf (current-error-port) "bad result: - expected ~e, got ~e~n"
+	       expected got)))
+  (define (big s)
+    (format "~a~n~a~n~a~n~a~n" s
+	    (make-string 500 #\x)
+	    (make-string 500 #\x)
+	    (make-string 500 #\x)))
+
+  (check 'ok (message-box "Title" "Message OK!" #f '(ok)))
+  (check 'ok (message-box "Title" (big "Message OK!") #f '(ok)))
+
+  (check 'cancel (message-box "Title" "Cancel Me" #f '(ok-cancel)))
+  (check 'ok (message-box "Title" "Ok Me" #f '(ok-cancel)))
+  (check 'ok (message-box "Title" (big "Ok Me") #f '(ok-cancel)))
+
+  (check 'yes (message-box "Title" "Yes, please" #f '(yes-no)))
+  (check 'no (message-box "Title" "No, please" #f '(yes-no)))
+
+  (check 1 (message-box/buttons "Title" "Hello"
+				"Hi" #f #f
+				#f
+				'(default=1)))
+  (check 2 (message-box/buttons "Title" "Hello"
+				#f "Howdy" #f))
+  (check 3 (message-box/buttons "Title" "Hello (response should be on left for Mac OS)"
+				#f #f "Howdy"))
+  (check #f (message-box/buttons "Title" "Escape to close, please"
+				 "Hi" #f #f))
+  (check 'closed (message-box/buttons "Title" "Escape to close, again, please"
+				     "Hi" #f #f
+				     #f
+				     '(default=1)
+				     'closed))
+  (check 'closed (message-box/buttons "Title" "Escape to close, again, please"
+				     #f #f #f
+				     #f
+				     '(default=1)
+				     'closed))
+  (check 1 (message-box/buttons "Title" "Try to escape to close"
+				"I can't" #f #f
+				#f
+				'(default=1 disallow-close)
+				'closed))
+
+  (message-box/buttons "Title" "Buttons out of order in Mac OS"
+		       "One" "Two" "Three")
+  (message-box/buttons "Title" "Buttons in order on all platforms"
+		       "One" "Two" "Three"
+		       #f
+		       '(default=1 number-order))
+		       
+  )
+
+;----------------------------------------------------------------------
+
 (define selector (make-frame frame% "Test Selector"))
 (define ap (make-object vertical-panel% selector))
 
@@ -1782,6 +1840,8 @@
 (define crp (make-object horizontal-pane% ap))
 (send crp stretchable-height #f)
 (make-object button% "Make Checkbox Frame" crp (lambda (b e) (checkbox-frame)))
+(make-object vertical-pane% crp) ; filler
+(make-object button% "Message Boxes" crp (lambda (b e) (message-boxes)))
 (make-object vertical-pane% crp) ; filler
 (make-object button% "Make Radiobox Frame" crp (lambda (b e) (radiobox-frame)))
 (define cp (make-object horizontal-pane% ap))
