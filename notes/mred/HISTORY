@@ -12,7 +12,7 @@ Version 102/9:
 
  * Added `on-demand' to menu-item-container<%> and
    labelled-menu-item<%> for building menu content on demand. The
-   `on-demand' menthd of a menu bar is called when the user clicks on
+   `on-demand' method of a menu bar is called when the user clicks on
    the menu bar, before the click is handled by the menu bar. The
    `on-demand' method of a popup menu is called before the menu is
    popped up. The default implementation of `on-demand' in a menu item
