@@ -13,7 +13,7 @@
   (define (new-pasteboard-frame file) (new-frame pasteboard% file))
 
   (define (new-frame editor% file)
-    (define f (make-object frame% (or file "Simple Editor") #f 620 450))
+    (define f (make-object frame% "MrEdIt" #f 620 450))
     (define c (make-object editor-canvas% f))
     (define e (make-object editor%))
     (define mb (make-object menu-bar% f))
@@ -56,7 +56,7 @@
     (send c set-editor e)
 
     (when file
-      (if (regexp-match "[.]((gif)|(bmp)|(jpg)|(xbm))$" file)
+      (if (regexp-match "[.]((gif)|(bmp)|(jpg)|(xbm)|(xpm))$" file)
 	  (send e insert (make-object image-snip% file))
 	  (send e load-file file)))
     
