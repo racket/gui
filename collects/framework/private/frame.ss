@@ -287,13 +287,21 @@
           close-status-line
           update-status-line))
       
-      ;; status-line = (make-status-line (union #f (is-a?/c message%)) symbol number)
-      (define-struct status-line (message id count))
+      ;; status-line : (make-status-line symbol number)
+      (define-struct status-line (id count))
+      
+      ;; status-line-msg : (make-status-line-msg (is-a?/c message%) (union symbol #f))
+      (define-struct status-line-msg (message id))
       
       (define status-line-mixin
         (mixin (basic<%>) (status-line<%>)
-          (field (status-line-container-panel #f)
-                 (status-lines null))
+          (field [status-line-container-panel #f]
+                 
+                 ;; status-lines : (listof status-line)
+                 [status-lines null]
+
+                 ;; status-line-msgs : (listof status-line-msg)
+                 [status-line-msgs null])
           (rename [super-make-root-area-container make-root-area-container])
           (define/override (make-root-area-container % parent)
             (let* ([s-root (super-make-root-area-container vertical-panel% parent)]
@@ -307,80 +315,139 @@
             (do-main-thread
              (lambda ()
                (when status-line-container-panel
+                 (printf "open-status-line.1: ~s ~a\n" id (length status-lines))
                  (set! status-lines
                        (let loop ([status-lines status-lines])
                          (cond
                            [(null? status-lines)
-                            (list
-                             (make-status-line #f id 1))]
+                            (list (make-status-line id 1))]
                            [else (let ([status-line (car status-lines)])
-                                   (if (eq? (status-line-id status-line) id)
-                                       (cons (make-status-line (status-line-message status-line)
-                                                               id
-                                                               (+ 1 (status-line-count status-line)))
+                                   (if (eq? id (status-line-id status-line))
+                                       (cons (make-status-line id (+ (status-line-count status-line) 1))
                                              (cdr status-lines))
-                                       (cons status-line (loop (cdr status-lines)))))])))))))
+                                       (cons status-line (loop (cdr status-lines)))))])))
+                 (printf "open-status-line.2: ~s ~a\n" id (length status-lines))))))
+          
           (define/public (close-status-line id)
             (do-main-thread
              (lambda ()
                (when status-line-container-panel
+                 (printf "close-status-line.1: ~s ~s ~s\n" id (length status-lines) (length status-line-msgs))
+                 
+                 ;; decrement counter in for status line, or remove it if
+                 ;; counter goes to zero.
                  (set! status-lines
                        (let loop ([status-lines status-lines])
                          (cond
-                           [(null? status-lines) (error 'close-status-line "didn't find status line ~e" id)]
-                           [else
-                            (let* ([status-line (car status-lines)]
-                                   [matched? (eq? (status-line-id status-line) id)])
-                              (cond
-                                [(and matched? (= 1 (status-line-count status-line)))
-                                 (let ([message (status-line-message status-line)])
-                                   (when message
-                                     (send status-line-container-panel change-children
-                                           (lambda (l)
-                                             (remq message l)))))
-                                 (cdr status-lines)]
-                                [matched?
-                                 (cons (make-status-line (status-line-message status-line)
-                                                         id
-                                                         (- (status-line-count status-line) 1))
-                                       (cdr status-lines))]
-                                [else (cons status-line (loop (cdr status-lines)))]))])))))))
+                           [(null? status-lines) (error 'close-status-line "status line not open ~e" id)]
+                           [else (let* ([status-line (car status-lines)]
+                                        [this-line? (eq? (status-line-id status-line) id)])
+                                   (cond
+                                     [(and this-line? (= 1 (status-line-count status-line)))
+                                      (cdr status-lines)]
+                                     [this-line?
+                                      (cons (make-status-line id (- (status-line-count status-line) 1))
+                                            (cdr status-lines))]
+                                     [else (cons status-line (loop (cdr status-lines)))]))])))
+                 
+                 ;; make sure that there are only as many messages as different status lines, in total
+                 (update-statue-line id #f)
+                 (let ([msgs-that-can-be-removed (filter (lambda (x) (not (status-line-msg-id x))) status-line-msgs-id)]
+                       [max-to-include (length status-line-msgs)]
+                   (let loop (
+                 (set! status-line-msgs
+                       (let loop ([status-lines status-lines]
+                                  [status-line-msgs status-line-msgs])
+                         (cond
+                           [(null? status-line-msgs) null]
+                           [(null? status-lines)
+                            (send status-line-container-panel
+                                  change-children
+                                  (lambda (l)
+                                    (foldl (lambda (status-line-msg l)
+                                             (remq (status-line-msg-message status-line-msg) l))
+                                           l
+                                           status-line-msgs)))
+                            null]
+                           [else (loop (cdr status-lines) (cdr status-line-msgs))])))
+                 
+                 (printf "close-status-line.2: ~s ~s ~s\n" id (length status-lines) (length status-line-msgs))))))
 
+          ;; update-status-line : symbol (union #f string)
           (define/public (update-status-line id msg-txt)
             (do-main-thread
              (lambda ()
-               (let* ([status-line (find-status-line id msg-txt)]
-                      [msg (status-line-message status-line)]
-                      [current-txt (and msg (send msg get-label))])
-                 (when (and (not msg)
-                            (not (equal? msg-txt "")))
-                   (let ([new-msg (instantiate message% ()
-                                    (parent status-line-container-panel)
-                                    (label "")
-                                    (stretchable-width #t))])
-                     (set-status-line-message! status-line new-msg)
-                     (set! msg new-msg)))
-                 (when msg
-                   (unless (equal? msg-txt current-txt)
-                     (send msg set-label msg-txt)))))))
+               (printf "update-status-line: ~a ~s\n" id msg-txt)
+               (unless (open-status-line? id)
+                 (error 'update-status-line "unknown id ~e, other arg ~e" id msg-txt))
+               (if msg-txt
+                   (cond
+                     [(find-status-line-msg id)
+                      =>
+                      (lambda (existing-status-line-msg)
+                        (let ([msg (status-line-msg-message existing-status-line-msg)])
+                          (unless (equal? (send msg get-label) msg-txt)
+                            (send msg set-label msg-txt))))]
+                     [(find-available-status-line-msg)
+                      =>
+                      (lambda (available-status-line-msg)
+                        (send (status-line-msg-message available-status-line-msg) set-label msg-txt)
+                        (set-status-line-msg-id! available-status-line-msg id))]
+                     [else
+                      (set! status-line-msgs
+                            (cons (make-new-status-line-msg id msg-txt)
+                                  status-line-msgs))])
+                   (let ([status-line-msg (find-status-line-msg id)])
+                     (when status-line-msg
+                       (send (status-line-msg-message status-line-msg) set-label "")
+                       (set-status-line-msg-id! status-line-msg #f)))))))
           
-          (define/private (find-status-line id msg-txt)
+          ;; open-status-line? : symbol -> boolean
+          (define (open-status-line? id)
             (let loop ([status-lines status-lines])
               (cond
-                [(null? status-lines) (error 'update-status-line "didn't find status line ~e, other arg ~e" id msg-txt)]
+                [(null? status-lines) #f]
                 [else
                  (let ([status-line (car status-lines)])
-                   (if (eq? (status-line-id status-line) id)
-                       status-line
+                   (or (eq? (status-line-id status-line) id)
                        (loop (cdr status-lines))))])))
+
+          ;; find-available-status-line-msg : -> (union #f status-line-msg)
+          (define/private (find-available-status-line-msg)
+            (let loop ([status-line-msgs status-line-msgs])
+              (cond
+                [(null? status-line-msgs) #f]
+                [else (let ([status-line-msg (car status-line-msgs)])
+                        (if (status-line-msg-id status-line-msg)
+                            (loop (cdr status-line-msgs))
+                            status-line-msg))])))
+
+          ;; find-status-line-msg : symbol -> (union #f status-line-msg)
+          (define/private (find-status-line-msg id)
+            (let loop ([status-line-msgs status-line-msgs])
+              (cond
+                [(null? status-line-msgs) #f]
+                [else (let ([status-line-msg (car status-line-msgs)])
+                        (if (eq? id (status-line-msg-id status-line-msg))
+                            status-line-msg
+                            (loop (cdr status-line-msgs))))])))
           
+          ;; make-new-status-line-msg : symbol string -> status-line-msg
+          (define/private (make-new-status-line-msg id msg-txt)
+            (make-status-line-msg
+             (instantiate message% ()
+               (parent status-line-container-panel)
+               (stretchable-width #t)
+               (label msg-txt))
+             id))
+                    
           (field [eventspace-main-thread (current-thread)]) ;; replace by using new primitive in 203.5 called eventspace-main-thread
           (inherit get-eventspace)
           (define/private (do-main-thread t)
             (if (eq? (current-thread) eventspace-main-thread)
                 (t)
                 (parameterize ([current-eventspace (get-eventspace)])
-                  (queue-callback t))))
+                  (queue-callback t #f))))
           
           (super-instantiate ())))
       
