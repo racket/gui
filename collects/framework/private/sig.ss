@@ -274,7 +274,8 @@
   (define-signature framework:editor-fun^
     (get-standard-style-list
      set-standard-style-list-pref-callbacks
-     set-standard-style-list-delta))
+     set-standard-style-list-delta
+     update-standard-style))
   (define-signature framework:editor^
     ((open framework:editor-class^)
      (open framework:editor-fun^)))
@@ -510,7 +511,9 @@
     (register-color-pref
      add-to-preferences-panel
      build-color-selection-panel
-     add-background-preferences-panel))
+     add-background-preferences-panel
+     marshall-style
+     unmarshall-style))
   (define-signature framework:color-prefs^
     ((open framework:color-prefs-class^)
      (open framework:color-prefs-fun^)))

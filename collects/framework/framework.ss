@@ -1327,6 +1327,13 @@
      "@flink editor:get-standard-style-list %"
      ".")
     
+    (editor:update-standard-style
+     (-> (-> (is-a?/c style-delta%) void?) void?)
+     (change-delta)
+     "Calls \\var{change-delta} with the \"Standard\" style delta from"
+     "the result of"
+     "@flink editor:get-standard-style-list %"
+     ".")
     (editor:set-standard-style-list-delta 
      (string? (is-a?/c style-delta%) . -> . void?)
      (name delta)

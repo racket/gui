@@ -604,52 +604,8 @@
                                    'framework:paren-match
                                    (string-constant flash-paren-match)
                                    values values)
-                       (scheme-panel-procs scheme-panel)
-                       (make-highlight-color-choice scheme-panel))))])
+                       (scheme-panel-procs scheme-panel))))])
           (add-scheme-checkbox-panel)))
-      
-      (define (make-highlight-color-choice panel)
-        (let* ([hp (instantiate horizontal-panel% ()
-                     (parent panel)
-                     (stretchable-height #f))]
-               [msg (make-object message% (string-constant paren-match-color) hp)]
-               [scheme-higlight-canvas (make-object scheme-highlight-canvas% hp)]
-               [button (make-object button% 
-                         (string-constant choose-color) 
-                         hp
-                         (lambda (x y) (change-highlight-color panel)))])
-          (void)))
-      
-      (define scheme-highlight-canvas%
-        (class canvas%
-          (inherit get-client-size get-dc)
-          (define/override (on-paint)
-            (do-draw (get 'framework:paren-match-color)))
-          (define/public (do-draw color)
-            (let ([dc (get-dc)])
-              (send dc set-pen (send the-pen-list find-or-create-pen
-                                     color
-                                     1
-                                     'solid))
-              (send dc set-brush (send the-brush-list find-or-create-brush
-                                       color 
-                                       'solid))
-              (let-values ([(w h) (get-client-size)])
-                (send dc draw-rectangle 0 0 w h))))
-          (super-instantiate ())
-          (inherit stretchable-width min-width)
-          (add-callback
-           'framework:paren-match-color
-           (lambda (p v)
-             (do-draw v)))))
-      
-      (define (change-highlight-color parent)
-        (let ([new-color
-               (get-color-from-user (string-constant choose-paren-highlight-color)
-                                    (send parent get-top-level-window)
-                                    (get 'framework:paren-match-color))])
-          (when new-color
-            (set 'framework:paren-match-color new-color))))
       
       (define (add-editor-checkbox-panel)
         (letrec ([add-editor-checkbox-panel

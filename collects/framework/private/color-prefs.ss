@@ -24,90 +24,98 @@
       ;; build-color-selection-panel : (is-a?/c area-container<%>) symbol string string -> void
       ;; constructs a panel containg controls to configure the preferences panel.
       ;; BUG: style changes don't update the check boxes.
-      (define (build-color-selection-panel parent pref-sym style-name example-text)
-        (define hp (new horizontal-panel% 
-                        (parent parent)
-                        (style '(border))
-                        (stretchable-height #f)))
-        (define e (new (class standard-style-list-text%
-                         (inherit change-style get-style-list)
-                         (define/augment (after-insert pos offset)
-                           (inner (void) after-insert pos offset)
-                           (let ([style (send (get-style-list)
-                                              find-named-style
-                                              style-name)])
-                             (change-style style pos (+ pos offset) #f)))
-                         (super-new))))
-        (define c (new canvas:color%
-                       (parent hp)
-                       (editor e)
-                       (style '(hide-hscroll
-                                hide-vscroll))))
-        
-        (define delta (preferences:get pref-sym))
-        (define (make-check name on off)
-          (let* ([c (lambda (check command)
-                      (if (send check get-value)
-                          (on)
-                          (off))
-                      (preferences:set pref-sym delta))]
-                 [check (make-object check-box% name hp c)])
-            check))
-        
-        (define slant-check
-          (make-check (string-constant cs-italic)
-                      (lambda ()
-                        (send delta set-style-on 'slant)
-                        (send delta set-style-off 'base))
-                      (lambda ()
-                        (send delta set-style-on 'base)
-                        (send delta set-style-off 'slant))))
-        (define bold-check
-          (make-check (string-constant cs-bold)
-                      (lambda ()
-                        (send delta set-weight-on 'bold)
-                        (send delta set-weight-off 'base))
-                      (lambda ()
-                        (send delta set-weight-on 'base)
-                        (send delta set-weight-off 'bold))))
-        (define underline-check
-          (make-check (string-constant cs-underline)
-                      (lambda ()
-                        (send delta set-underlined-on #t)
-                        (send delta set-underlined-off #f))
-                      (lambda ()
-                        (send delta set-underlined-off #t)
-                        (send delta set-underlined-on #f))))
-        (define color-button
-          (and (>= (get-display-depth) 8)
-               (make-object button%
-                 (string-constant cs-change-color)
-                 hp
-                 (lambda (color-button evt)
-                   (let* ([add (send delta get-foreground-add)]
-                          [color (make-object color%
-                                   (send add get-r)
-                                   (send add get-g)
-                                   (send add get-b))]
-                          [users-choice
-                           (get-color-from-user
-                            (format sc-choose-color example-text)
-                            (send color-button get-top-level-window)
-                            color)])
-                     (when users-choice
-                       (send delta set-delta-foreground users-choice)
-                       (preferences:set pref-sym delta)))))))
-        (define style (send (send e get-style-list) find-named-style style-name))
-        
-        (send c set-line-count 1)
-        (send c allow-tab-exit #t)
-        
-        (send e insert example-text)
-        (send e set-position 0)
-        
-        (send slant-check set-value (eq? (send style get-style) 'slant))
-        (send bold-check set-value (eq? (send style get-weight) 'bold))
-        (send underline-check set-value (send style get-underlined)))
+      (define build-color-selection-panel
+        (opt-lambda (parent 
+                     pref-sym
+                     style-name
+                     example-text
+                     [update-style-delta
+                      (lambda (func)
+                        (let ([delta (preferences:get pref-sym)])
+                          (func delta)
+                          (preferences:set pref-sym delta)))])
+          (define hp (new horizontal-panel% 
+                          (parent parent)
+                          (style '(border))
+                          (stretchable-height #f)))
+          (define e (new (class standard-style-list-text%
+                           (inherit change-style get-style-list)
+                           (define/augment (after-insert pos offset)
+                             (inner (void) after-insert pos offset)
+                             (let ([style (send (get-style-list)
+                                                find-named-style
+                                                style-name)])
+                               (change-style style pos (+ pos offset) #f)))
+                           (super-new))))
+          (define c (new canvas:color%
+                         (parent hp)
+                         (editor e)
+                         (style '(hide-hscroll
+                                  hide-vscroll))))
+          
+          (define (make-check name on off)
+            (let* ([c (lambda (check command)
+                        (if (send check get-value)
+                            (update-style-delta on)
+                            (update-style-delta off)))]
+                   [check (make-object check-box% name hp c)])
+              check))
+          
+          (define slant-check
+            (make-check (string-constant cs-italic)
+                        (lambda (delta)
+                          (send delta set-style-on 'slant)
+                          (send delta set-style-off 'base))
+                        (lambda (delta)
+                          (send delta set-style-on 'base)
+                          (send delta set-style-off 'slant))))
+          (define bold-check
+            (make-check (string-constant cs-bold)
+                        (lambda (delta)
+                          (send delta set-weight-on 'bold)
+                          (send delta set-weight-off 'base))
+                        (lambda (delta)
+                          (send delta set-weight-on 'base)
+                          (send delta set-weight-off 'bold))))
+          (define underline-check
+            (make-check (string-constant cs-underline)
+                        (lambda (delta)
+                          (send delta set-underlined-on #t)
+                          (send delta set-underlined-off #f))
+                        (lambda (delta)
+                          (send delta set-underlined-off #t)
+                          (send delta set-underlined-on #f))))
+          (define color-button
+            (and (>= (get-display-depth) 8)
+                 (make-object button%
+                   (string-constant cs-change-color)
+                   hp
+                   (lambda (color-button evt)
+                     (let* ([add (send (preferences:get pref-sym) get-foreground-add)]
+                            [color (make-object color%
+                                     (send add get-r)
+                                     (send add get-g)
+                                     (send add get-b))]
+                            [users-choice
+                             (get-color-from-user
+                              (format sc-choose-color example-text)
+                              (send color-button get-top-level-window)
+                              color)])
+                       (when users-choice
+                         (update-style-delta
+                          (lambda (delta)
+                            (send delta set-delta-foreground users-choice)))))))))
+          (define style (send (send e get-style-list) find-named-style style-name))
+          
+          (send c set-line-count 1)
+          (send c allow-tab-exit #t)
+          
+          (send e insert example-text)
+          (send e set-position 0)
+          
+          (send slant-check set-value (eq? (send style get-style) 'slant))
+          (send bold-check set-value (eq? (send style get-weight) 'bold))
+          (send underline-check set-value (send style get-underlined))))
       
       (define (add/mult-set m v)
         (send m set (car v) (cadr v) (caddr v)))
@@ -194,16 +202,60 @@
          (list (string-constant preferences-colors)
                (string-constant background-color))
          (lambda (parent)
-           (add-solid-color-config (string-constant background-color)
-                                   parent
-                                   'framework:basic-canvas-background)
-           (build-color-selection-panel parent
-                                        'framework:default-text-color 
-                                        "Basic"
-                                        (string-constant default-text-color)))))
+           (let ([vp (new vertical-panel% (parent parent))])
+             (add-solid-color-config (string-constant background-color)
+                                     vp
+                                     'framework:basic-canvas-background)
+             (add-solid-color-config (string-constant paren-match-color)
+                                     vp
+                                     'framework:paren-match-color)
+             (build-text-foreground-selection-panel vp
+                                                    'framework:default-text-color 
+                                                    "Standard"
+                                                    (string-constant default-text-color))))))
+      
+      (define (build-text-foreground-selection-panel parent pref-sym style-name example-text)
+        (define hp (new horizontal-panel% 
+                        (parent parent)
+                        (style '(border))
+                        (stretchable-height #f)))
+        (define e (new (class standard-style-list-text%
+                         (inherit change-style get-style-list)
+                         (define/augment (after-insert pos offset)
+                           (inner (void) after-insert pos offset)
+                           (let ([style (send (get-style-list)
+                                              find-named-style
+                                              style-name)])
+                             (change-style style pos (+ pos offset) #f)))
+                         (super-new))))
+        (define c (new canvas:color%
+                       (parent hp)
+                       (editor e)
+                       (style '(hide-hscroll
+                                hide-vscroll))))
+        (define color-button
+          (and (>= (get-display-depth) 8)
+               (make-object button%
+                 (string-constant cs-change-color)
+                 hp
+                 (lambda (color-button evt)
+                   (let ([users-choice
+                          (get-color-from-user
+                           (format sc-choose-color example-text)
+                           (send color-button get-top-level-window)
+                           (preferences:get pref-sym))])
+                     (when users-choice
+                       (preferences:set pref-sym users-choice)))))))
+        (define style (send (send e get-style-list) find-named-style style-name))
+        
+        (send c set-line-count 1)
+        (send c allow-tab-exit #t)
+        
+        (send e insert example-text)
+        (send e set-position 0))
       
       (define (add-solid-color-config label parent pref-id)
-        (letrec ([panel (new vertical-panel% (parent parent))]
+        (letrec ([panel (new vertical-panel% (parent parent) (stretchable-height #f))]
                  [hp (new horizontal-panel% (parent panel) (stretchable-height #f))]
                  [msg (new message% (parent hp) (label label))]
                  [canvas

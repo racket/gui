@@ -241,9 +241,19 @@
                 (scheme:get-color-prefs-table))
       (preferences:set-default 'framework:coloring-active #t boolean?)
 
-      (color-prefs:register-color-pref 'framework:default-text-color 
-                                       "Basic" 
-                                       (send the-color-database find-color "black"))
+      (preferences:set-default 'framework:default-text-color 
+                               (send the-color-database find-color "Black")
+                               (lambda (x) (is-a? x color%)))
+      
+      (preferences:set-un/marshall 'framework:default-text-color 
+                                   (lambda (c) (list (send c red) (send c green) (send c blue)))
+                                   (lambda (lst) 
+                                     (make-object color% (car lst) (cadr lst) (caddr lst))))
+      (preferences:add-callback 'framework:default-text-color
+                                (lambda (p v)
+                                  (editor:update-standard-style
+                                   (lambda (style-delta)
+                                     (send style-delta set-delta-foreground v)))))
       
       ;; groups
       

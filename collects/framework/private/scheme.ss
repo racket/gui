@@ -42,7 +42,6 @@
               [-text<%> text<%>]
               [-text% text%])
       
-      
       (define text-balanced? 
         (opt-lambda (text [start 0] [in-end #f])
           (let* ([end (or in-end (send text last-position))]
@@ -344,9 +343,6 @@
       (define wordbreak-map (make-object editor-wordbreak-map%))
       (define (get-wordbreak-map) wordbreak-map)
       (init-wordbreak-map wordbreak-map)
-      
-      (define (get-match-color) (preferences:get 'framework:paren-match-color))
-      (define mismatch-color (make-object color% "PINK"))
       
       (define matching-parenthesis-style 
         (let ([matching-parenthesis-delta (make-object style-delta% 'change-bold)]
