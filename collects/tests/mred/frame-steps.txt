@@ -50,9 +50,7 @@ Medium Frame should contain:
  V Slider (a vertical slider)
  H Gauge (a horizontal slider)
  V Gauge (a vertical slider)
- Howdy (a canvas-message)
- <BB logo> (a canvas-message)
- Text (a media-text)
+ Text (a multi-line text field)
    initial & starting
 
 The names on labels must match the above exactly (except that <>
@@ -64,7 +62,7 @@ Make sure all the controls with moving parts work.
 Tabbing and arrow keys should work correctly. The canvas in the bottom
 middle area does not receive the focus via tabs in Big Frame, but it
 does in Medium Frame. When it receives the focus via a tab, "Tab in"
-is drawn inthe canvas; when the focus leaves the canvas for any reason
+is drawn in the canvas; when the focus leaves the canvas for any reason
 (tab out, mouse click somewhere else, etc.), "Tab in" is erased.
 
 Window Resizing

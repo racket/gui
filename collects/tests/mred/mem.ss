@@ -3,8 +3,8 @@
 
 (define source-dir (current-load-relative-directory))
 
-(define num-times 4)
-(define num-threads 1)
+(define num-times 8)
+(define num-threads 3)
 
 (define dump-stats? #f)
 
@@ -34,6 +34,7 @@
    'sub-collect-panel
    (make-object panel% sub-collect-frame)))
 
+(define permanent-ready? #f)
 (define mb-lock (make-semaphore 1))
 
 (define htw (make-hash-table-weak))
@@ -179,17 +180,18 @@
 	      (send i delete)))
 
 	  (when subwindows?
-	    (unless (send sub-collect-frame get-menu-bar)
+	    (unless permanent-ready?
 	      (semaphore-wait mb-lock)
 	      (unless (send sub-collect-frame get-menu-bar)
 		(let ([mb (make-object menu-bar% sub-collect-frame)])
 		  (make-object menu% "Permanent" mb)))
+	      (set! permanent-ready? #t)
 	      (semaphore-post mb-lock))
 	    (let* ([mb (send sub-collect-frame get-menu-bar)]
 		   [mm (car (send mb get-items))])
-	      (send (remember tag (make-object menu-item% "Delete Me" mm void)) delete)
-	      (let ([m (make-object menu% "Temporary" mb)])
-		(remember tag (make-object menu-item% "Temp Hi" m void))
+	      (send (remember (cons 'm tag) (make-object menu-item% "Delete Me" mm void)) delete)
+	      (let ([m (remember tag (make-object menu% "Temporary" mb))])
+		(remember (cons 't tag) (make-object menu-item% "Temp Hi" m void))
 		(send m delete)))))
 	  	  
 	(when atomic?
@@ -260,7 +262,7 @@
       (unless (zero? n)
 	(yield sema)
 	(loop (sub1 n)))))
-  
+
   (collect-garbage)
   (collect-garbage)
   (let loop ([n 100]) 
