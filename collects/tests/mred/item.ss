@@ -132,14 +132,14 @@
 	     (let ([x (send e get-x)]
 		   [y (send e get-y)]
 		   [m (if (or (null? last-m)
-			      (send e button-down? 1))
+			      (send e button-down? 'left))
 			  (let ([m (make-object popup-menu% "Title")]
 				[make-callback 
 				 (let ([id 0])
-				   (lambda (m e)
+				   (lambda ()
 				     (set! id (add1 id))
 				     (let ([id id])
-				       (lambda ()
+				       (lambda (m e)
 					 (set! last-choice id)
 					 (on-paint)))))])
 			    (for-each
@@ -587,17 +587,17 @@
 	   (send (list-ref (send apple-menu get-items) 3) delete)]))])
     (public
 	[mfp (make-object vertical-panel% this)]
-	[mc (make-object media-canvas% mfp)]
+	[mc (make-object editor-canvas% mfp)]
 	[restp (make-object vertical-panel% mfp)]
 	[sbp (make-object horizontal-panel% restp)]
 	[mfbp (make-object horizontal-panel% restp)]
 	[lblp (make-object horizontal-panel% restp)]
 	[badp (make-object horizontal-panel% restp)]
-	[e (make-object media-edit%)])
+	[e (make-object text-editor%)])
       (sequence
 	(send restp stretchable-height #f)
 	(send mc min-height 250)
-	(send mc set-media e)
+	(send mc set-edit e)
 	(send e load-file (local-path "menu-steps.txt")))
       (public
 	[make-test-button
@@ -789,9 +789,9 @@
     (printf "Callback Ok~n")))
 
 (define (instructions v-panel file)
-  (define c (make-object media-canvas% v-panel))
-  (define m (make-object media-edit%))
-  (send c set-media m)
+  (define c (make-object editor-canvas% v-panel))
+  (define m (make-object text-editor%))
+  (send c set-edit m)
   (send m load-file (local-path file))
   (send m lock #t)
   (send c min-width 520)
@@ -1431,7 +1431,6 @@
 (define tp2 (make-object horizontal-pane% ap))
 (send tp2 stretchable-width #f)
 (make-object button% "Make Multitext Frame/HScroll" tp2 (lambda (b e) (text-frame multi-text% '(hscroll))))
-(make-object button% "Make Media Multitext Frame/HScroll" tp2 (lambda (b e) (text-frame multi-text% '(hscroll))))
 
 (define cnp (make-object horizontal-pane% ap))
 (send cnp stretchable-width #f)
