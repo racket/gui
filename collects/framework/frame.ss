@@ -567,7 +567,6 @@
 		       get-editor%
 		       get-editor<%>
 		       
-		       get-canvas-area-container
 		       make-editor
 		       save-as
 		       get-canvas
@@ -780,7 +779,6 @@
 	       args))
 	     
       (public
-	[get-canvas-area-container (lambda () (get-area-container))]
 	[get-canvas (let ([c #f])
 		      (lambda () 
 			(unless c

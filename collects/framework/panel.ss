@@ -238,6 +238,8 @@
 
   (define vertical-resizable<%>
     (interface (area-container<%>)
+      on-percentage
+      get-percentage
       set-percentage))
       
   (define vertical-resizable-mixin
@@ -295,6 +297,7 @@
       (inherit reflow-container get-top-level-window set-alignment get-alignment)
       (public
         [on-percentage (lambda (p) (void))]
+	[get-percentage (lambda () (send thumb-canvas get-percentage))]
 	[set-percentage
 	 (lambda (p)
 	   (send thumb-canvas set-percentage p)
