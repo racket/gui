@@ -83,10 +83,11 @@
 		start 100))
 
 	(if frame?
-	    (let* ([f (make-object (if (even? n)
+	    (let* ([f (remember tag
+	    	       (make-object (if (even? n)
 				       frame% 
 				       dialog%)
-				   "Tester" #f 200 200)]
+				   "Tester" #f 200 200))]
 		   [p (remember tag (make-object (get-pane% n) f))])
 	      (remember tag (make-object canvas% f))
 	      (when (zero? (modulo n 3))
@@ -214,7 +215,7 @@
   (thread-weight t (floor (/ (thread-weight t) n))))
 
 (define (breakable t)
-  (if #t
+  (if #f
       (thread (lambda ()
 		(read)
 		(printf "breaking~n")
