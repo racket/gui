@@ -1,5 +1,6 @@
 (module keymap mzscheme
   (require (lib "unitsig.ss")
+	   (lib "class.ss")
 	   (lib "list.ss")
 	   (lib "mred-sig.ss" "mred"))
 

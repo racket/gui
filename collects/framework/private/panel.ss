@@ -1,5 +1,6 @@
 (module panel mzscheme
   (require (lib "unitsig.ss")
+	   (lib "class.ss")
 	   "sig"
 	   (lib "mred-sig.ss" "mred")
 	   (lib "list.ss"))

@@ -1,5 +1,6 @@
 (module text mzscheme
   (require (lib "unitsig.ss")
+	   (lib "class.ss")
 	   "sig"
 	   "../gui-utils-sig.ss"
 	   (lib "mred-sig.ss" "mred")

@@ -1,5 +1,6 @@
 (module color-model mzscheme
   (require (lib "unitsig.ss")
+	   (lib "class.ss")
 	   "sig.ss"
 	   (lib "mred-sig.ss" "mred")
 	   (lib "list.ss"))

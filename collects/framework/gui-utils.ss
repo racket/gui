@@ -1,7 +1,14 @@
-(require-library "refer.ss")
-(require-library "guiutilss.ss" "framework")
-(define-values/invoke-unit/sig 
- framework:gui-utils^
- (require-library "guiutilsr.ss" "framework")
- gui-utils
- mred^)
+(module gui-utils mzscheme
+  (require (lib "unitsig.ss")
+	   "gui-utils-sig.ss"
+	   "gui-utils-unit.ss"
+	   (lib "mred-sig.ss" "mred")
+	   (lib "mred.ss" "mred"))
+
+  (provide-signature-elements framework:gui-utils^)
+
+  (define-values/invoke-unit/sig 
+    framework:gui-utils^
+    gui-utils@
+    #f
+    mred^))

@@ -1,5 +1,6 @@
 (module icon mzscheme
   (require (lib "unitsig.ss")
+	   (lib "class.ss")
 	   "sig.ss"
 	   (lib "mred-sig.ss" "mred")
 	   (lib "mred-sig.ss" "mred"))

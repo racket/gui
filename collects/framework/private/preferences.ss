@@ -1,5 +1,6 @@
 (module preferences mzscheme
   (require (lib "unitsig.ss")
+	   (lib "class.ss")
 	   "sig"
 	   (lib "mred-sig.ss" "mred")
 	   (lib "pretty.ss"))
