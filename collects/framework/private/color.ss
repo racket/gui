@@ -126,7 +126,7 @@
                    get-style-list in-edit-sequence? get-start-position get-end-position
                    local-edit-sequence? get-styles-fixed has-focus?)
 
-          (define (reset-tokens)
+          (define/private (reset-tokens)
             (send tokens reset-tree)
             (send invalid-tokens reset-tree)
             (set! invalid-tokens-start +inf.0)
@@ -139,19 +139,19 @@
             (modify))
           
           ;; Let the background thread know the text has been modified.
-          (define (modify)
+          (define/private (modify)
             (when background-thread
               (break-thread background-thread)))
           
           ;; Actually color the buffer.
-          (define (color)
+          (define/private (color)
             (unless (null? colors)
               ((car colors))
               (set! colors (cdr colors))
               (color)))
           
           ;; Discard extra tokens at the first of invalie-tokens
-          (define (sync-invalid)
+          (define/private (sync-invalid)
             (when (and (not (send invalid-tokens is-empty?))
                        (< invalid-tokens-start current-pos))
               (send invalid-tokens search-min!)
@@ -163,7 +163,7 @@
           ;; re-tokenize should be called with breaks enabled and exit with
           ;; breaks disabled re-tokenize should be called when lock is not
           ;; held.  When it exits, the lock will be held.
-          (define (re-tokenize in in-start-pos)
+          (define/private (re-tokenize in in-start-pos)
             (let-values (((type data new-token-start new-token-end) (get-token in)))
               ;; breaks must be disabled before the semaphore wait so we can't be
               ;; broken out of the critical section
@@ -200,7 +200,7 @@
                      (break-enabled #t)
                      (re-tokenize in in-start-pos)))))))
           
-          (define (do-insert/delete edit-start-pos change-length)
+          (define/private (do-insert/delete edit-start-pos change-length)
             (unless (or stopped? force-stop?)
               (when (> edit-start-pos start-pos)
                 (set! edit-start-pos (sub1 edit-start-pos)))
@@ -220,7 +220,7 @@
                              (+ start-pos orig-token-end change-length)))
                    (set! current-pos (+ start-pos orig-token-start))
                    (set! up-to-date? #f)
-                   (queue-callback colorer-callback #f)))
+                   (queue-callback (lambda () (colorer-callback)) #f)))
                 ((>= edit-start-pos invalid-tokens-start)
                  (send invalid-tokens search! (- edit-start-pos invalid-tokens-start))
                  (let-values (((tok-start tok-end valid-tree invalid-tree)
@@ -241,7 +241,7 @@
 
           (inherit is-locked?)
           
-          (define (colorer-driver)
+          (define/private (colorer-driver)
             (unless up-to-date?
               (thread-resume background-thread)
               (sleep .01)    ;; This is when the background thread is working.
@@ -252,7 +252,7 @@
               (color)
               (end-edit-sequence)))
           
-          (define (colorer-callback)
+          (define/private (colorer-callback)
             (cond
               ((is-locked?)
                (set! restart-callback #t))
@@ -260,15 +260,15 @@
                (unless (in-edit-sequence?)
                  (colorer-driver))
                (unless up-to-date?
-                 (queue-callback colorer-callback #f)))))
+                 (queue-callback (lambda () (colorer-callback)) #f)))))
           
           ;; Breaks should be disabled on entry
-          (define (background-colorer-entry)
+          (define/private (background-colorer-entry)
             (thread-suspend (current-thread))
             (background-colorer))
           
           ;; Breaks should be disabled on entry
-          (define (background-colorer)
+          (define/private (background-colorer)
             (let/ec restart
               (parameterize ((current-exception-handler
                               (lambda (exn)
@@ -293,7 +293,7 @@
             (background-colorer))
           
           ;; Must not be called when the editor is locked
-          (define (finish-now)
+          (define/private (finish-now)
             (unless stopped?
               (let loop ()
                 (unless up-to-date?
@@ -402,9 +402,9 @@
           (set! clear-old-locations void)
           
           (define mismatch-color (make-object color% "PINK"))
-          (define (get-match-color) (preferences:get 'framework:paren-match-color))
+          (define/private (get-match-color) (preferences:get 'framework:paren-match-color))
           
-          (define (highlight start end caret-pos error?)
+          (define/private (highlight start end caret-pos error?)
             (let ([off (highlight-range (+ start-pos start) (+ start-pos end)
                                         (if error? mismatch-color (get-match-color))
                                         (and (send (icon:get-paren-highlight-bitmap)
@@ -421,7 +421,7 @@
           
           ;; the forward matcher signaled an error because not enough of the
           ;; tree has been built.
-          (define (f-match-false-error start end error)
+          (define/private (f-match-false-error start end error)
             (and error (<= (+ start-pos error) current-pos) (not up-to-date?)))
           
           ;; If there is no match because the buffer isn't lexed yet, this will
@@ -432,7 +432,7 @@
           ;; This leads to the nice bahavior that we don't have to block to
           ;; highlight parens, and the parens will be highlighted as soon as
           ;; possible.
-          (define match-parens
+          (define/private match-parens
             (opt-lambda ([just-clear? #f])
               (unless in-match-parens?
                 (set! in-match-parens? #t)
@@ -459,7 +459,7 @@
           (define/public (forward-match position cutoff)
             (do-forward-match position cutoff #t))
           
-          (define (do-forward-match position cutoff skip-whitespace?)
+          (define/private (do-forward-match position cutoff skip-whitespace?)
             (let ((position 
                    (if skip-whitespace? 
                        (skip-whitespace position 'forward #t)
@@ -498,7 +498,7 @@
                 ((eq? x 'open) #f)
                 (else x))))
           
-          (define (internal-backward-match position cutoff)
+          (define/private (internal-backward-match position cutoff)
             (when stopped?
               (error 'backward-match "called on a color:text<%> whose colorer is stopped."))
             (let ((position (skip-whitespace position 'backward #t)))
@@ -538,7 +538,7 @@
                   ((not p) #f)
                   (else (loop p))))))
             
-          (define (tokenize-to-pos position)
+          (define/private (tokenize-to-pos position)
             (when (and (not up-to-date?) (<= current-pos position))
               (colorer-driver)
               (tokenize-to-pos position)))
@@ -570,7 +570,7 @@
                                      comments?))
                    (else position)))))
           
-          (define (get-close-paren pos closers)
+          (define/private (get-close-paren pos closers)
             (cond
               ((null? closers) #f)
               (else
@@ -609,7 +609,7 @@
             (super-lock x)
             (when (and restart-callback (not x))
               (set! restart-callback #f)
-              (queue-callback colorer-callback)))
+              (queue-callback (lambda () (colorer-callback)))))
           
           
           (rename (super-on-focus on-focus))
@@ -696,8 +696,4 @@
           
           (super-instantiate ())))
   
-      (define text-mode% (text-mode-mixin mode:surrogate-text%))
-      
-      
-    )))
-    
+      (define text-mode% (text-mode-mixin mode:surrogate-text%)))))
