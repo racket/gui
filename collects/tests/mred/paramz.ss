@@ -90,7 +90,7 @@
    'error
    'shutdown-eventspace
    (with-handlers ([(lambda (x)
-		      (and (exn:misc? x)
+		      (and (exn:fail? x)
 			   (regexp-match "shutdown" (exn-message x))))
 		    (lambda (x)
 		      (printf "got expected error: ~a~n" (exn-message x))

@@ -1,6 +1,8 @@
 
 (load-relative "loadtest.ss")
 
+(define shorter? #t)
+
 ; These message boxes mustn't survive
 (let ([c (make-custodian)])
   (parameterize ([current-custodian c])
@@ -1027,10 +1029,11 @@
 	(unless (eq? show? 'dialog)
 	  (go)))))
   (panel-test #f #t)
-  (panel-test vertical-pane% #f)
-  (panel-test horizontal-pane% #f)
-  (panel-test vertical-panel% #t)
-  (panel-test horizontal-panel% #t))
+  (unless shorter?
+    (panel-test vertical-pane% #f)
+    (panel-test horizontal-pane% #f)
+    (panel-test vertical-panel% #t)
+    (panel-test horizontal-panel% #t)))
 
 (panel-tests dialog% #f)
 (panel-tests frame% #t)

@@ -19,11 +19,11 @@
       [(_ expr)
        (syntax
 	(test 'was-mismatch 'mismtach
-	      (with-handlers ([exn:application:mismatch?
+	      (with-handlers ([exn:fail:contract?
 			       (lambda (x)
 				 (fprintf (current-error-port) "~a~n" (exn-message x))
 				 'was-mismatch)]
-			      [not-break-exn? values])
+			      [exn:fail? values])
 		expr)))])))
 
 (define-syntax st

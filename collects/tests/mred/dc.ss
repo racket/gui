@@ -12,7 +12,7 @@
 (test #t 'is-color? (send bm is-color?))
 
 (define (bad m . args)
-  (with-handlers ([exn:application:mismatch?
+  (with-handlers ([exn:fail:contract?
 		   (lambda (x)
 		     (test '("ok")
 			   `(send <bad-dc> ,m ...)
