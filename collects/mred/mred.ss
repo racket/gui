@@ -3759,6 +3759,7 @@
       (let ([cwho '(constructor canvas)])
 	(check-container-parent cwho parent)
 	(check-style cwho #f '(border hscroll vscroll gl) style)
+	(check-callback cwho paint-callback)
 	(check-container-ready cwho parent)
 	(when (memq 'gl style)
 	  (unless (eq? (system-type) 'windows)
@@ -4254,7 +4255,7 @@
 			 (send wx-parent enable-top (send wx-parent position-of this) on?)))
 		   (set! enabled? (and on? #t)))])
     (public
-      [on-demand (lambda () (callback))]
+      [on-demand (lambda () (callback this))]
       [get-parent (lambda () parent)]
       [get-label (lambda () label)]
       [set-label (entry-point
@@ -4413,24 +4414,25 @@
       (let-values ([(new-label keymap) (calc-labels label)])
 	(super-init menu new-label help-string #f checkable? keymap (lambda (x) (set! wx x) (set-wx x)) demand-callback)))))
 
-(define (check-shortcut-args who label menu callback shortcut help-string)
+(define (check-shortcut-args who label menu callback shortcut help-string demand-callback)
   (let ([cwho `(constructor ,who)])
     (check-string cwho label)
     (menu-parent-only who menu)
     (check-callback cwho callback)
     (check-char/false cwho shortcut)
-    (check-string/false cwho help-string)))
+    (check-string/false cwho help-string)
+    (check-callback1 cwho demand-callback)))
 
 (define menu-item%
   (class100 basic-selectable-menu-item% (label menu callback [shortcut #f] [help-string #f] [demand-callback void])
     (sequence 
-      (check-shortcut-args 'menu-item label menu callback shortcut help-string)
+      (check-shortcut-args 'menu-item label menu callback shortcut help-string demand-callback)
       (super-init label #f menu callback shortcut help-string (lambda (x) x) demand-callback))))
 
 (define checkable-menu-item%
   (class100 basic-selectable-menu-item% (label menu callback [shortcut #f] [help-string #f] [demand-callback void])
     (sequence
-      (check-shortcut-args 'checkable-menu-item label menu callback shortcut help-string))
+      (check-shortcut-args 'checkable-menu-item label menu callback shortcut help-string demand-callback))
     (private-field
       [mnu menu]
       [wx #f])
@@ -4450,12 +4452,13 @@
     (sequence 
       (check-string '(constructor menu) label)
       (menu-or-bar-parent 'menu parent)
-      (check-string/false '(constructor menu) help-string))
+      (check-string/false '(constructor menu) help-string)
+      (check-callback1 '(constructor menu) demand-callback))
     (public
       [get-items (entry-point (lambda () (send wx-menu get-items)))])
     (override
       [on-demand (lambda ()
-		   (callback)
+		   (callback this)
 		   (for-each
 		    (lambda (i) 
 		      (when (is-a? i labelled-menu-item<%>)
@@ -4482,7 +4485,7 @@
 	 (send wx get-popup-grabber))]
       [get-items (entry-point (lambda () (send wx get-items)))]
       [on-demand (lambda ()
-		   (callback)
+		   (callback this)
 		   (for-each
 		    (lambda (i) 
 		      (when (is-a? i labelled-menu-item<%>)
@@ -4493,6 +4496,7 @@
     (sequence
       (check-string/false '(constructor popup-menu) title)
       (check-callback '(constructor popup-menu) popdown-callback)
+      (check-callback1 '(constructor popup-menu) demand-callback)
       (as-entry 
        (lambda ()
 	 (set! wx (make-object wx-menu% this title
@@ -4512,7 +4516,9 @@
 
 (define menu-bar%
   (class100* mred% (menu-item-container<%>) (parent [demand-callback void])
-    (sequence (barless-frame-parent parent))
+    (sequence 
+      (barless-frame-parent parent)
+      (check-callback1 '(constructor menu-bar) demand-callback))
     (private-field 
       [callback demand-callback]
       [prnt parent]
@@ -4525,7 +4531,7 @@
       [enable (entry-point (lambda (on?) (send wx enable-all on?)))]
       [is-enabled? (entry-point (lambda () (send wx all-enabled?)))]
       [on-demand (lambda ()
-                   (callback)
+                   (callback this)
 		   (for-each
 		    (lambda (i) (send i on-demand))
 		    (send wx get-items)))])
@@ -5657,6 +5663,11 @@
   (unless (and (procedure? callback)
 	       (procedure-arity-includes? callback 2))
     (raise-type-error (who->name who) "procedure of arity 2" callback)))
+
+(define (check-callback1 who callback)
+  (unless (and (procedure? callback)
+	       (procedure-arity-includes? callback 1))
+    (raise-type-error (who->name who) "procedure of arity 1" callback)))
 
 (define (check-bounded-integer min max false-ok?)
   (lambda (who range)
