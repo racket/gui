@@ -609,8 +609,17 @@
       [set-panel-size
        (lambda ()
 	 (when panel
-	   (let-values ([(f-client-w f-client-h) (get-two-int-values get-client-size)])
-	     (send panel set-size 0 0 f-client-w f-client-h)
+	   (let-values ([(f-client-w f-client-h) (get-two-int-values get-client-size)]
+			[(panel-info) (send panel get-info)]
+			[(sel) (lambda (nsize psize stretch?)
+				 (if stretch?
+				     (max nsize psize)
+				     psize))])
+	     (send panel set-size 0 0 
+		   (sel f-client-w (child-info-x-min panel-info)
+			(child-info-x-stretch panel-info))
+		   (sel f-client-h (child-info-y-min panel-info)
+			(child-info-y-stretch panel-info)))
 	     (set! pending-redraws? #f)
 	     (send panel on-container-resize))))]
 
@@ -687,7 +696,7 @@
       ;            independently.
       [on-size
        (lambda (bad-width bad-height)
-	 (unless already-trying?
+	 (unless (and already-trying? (not (eq? 'unix (system-type))))
 	   (parameterize ([wx:current-eventspace eventspace])
 	     (wx:queue-callback resized #t))))])
 
