@@ -1348,7 +1348,7 @@
 				 #f))
 		     (error "expected a mismatch exception"))))
     #f)
-  (define dummy-1 (make-selectors (ivar c set-selection) "" #t))
+  (define dummy-1 (make-selectors (lambda (v) (send c set-selection v)) "" #t))
   (define dummy-2 (make-selectors (lambda (p) 
 				    (if p
 					(when (positive? (length actual-content))
