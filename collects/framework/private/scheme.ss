@@ -574,7 +574,7 @@
                      (let loop ([para first-para])
                        (when (<= para end-para)
                          (tabify (paragraph-start-position para))
-                         (dynamic-enable-break (lambda () (break-enabled)))
+			 (parameterize-break #t (void))
                          (loop (add1 para))))
                      (when (and (>= (position-paragraph start-pos) end-para)
                                 (<= (skip-whitespace (get-start-position) 'backward #f)
