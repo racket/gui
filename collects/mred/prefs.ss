@@ -412,6 +412,10 @@
 	    (make-check 'mred:print-output-mode "Automatically print to postscript file"
 			(lambda (b) (if b 1 0))
 			(lambda (n) (= n 1))))
+
+	  
+	  (make-check 'mred:display-line-numbers "Display line numbers in buffer; not character offsets" id id)
+
 	  main))
       #f)
      (make-ppanel
