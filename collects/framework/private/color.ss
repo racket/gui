@@ -53,8 +53,15 @@
           ;; If the tree is completed
           (define up-to-date? #t)
           
+          ;; The tokenizer is stopped
           (define stopped? #t)
+
+          ;; The tokenizer is stopped and prevented from starting
           (define force-stop? #f)
+          
+          ;; color-callback has been suspended because the text% became locked and
+          ;; should be requeued when the text% is unlocked.
+          (define restart-callback #f)
           
           ;; ---------------------- Parnethesis matching --------------------------
           
@@ -87,7 +94,7 @@
           (define background-thread #f)
           ;; Prevent the background thread from being put to sleep while modifying
           ;; global state
-          (define lock (make-semaphore 1))
+          (define mutex-lock (make-semaphore 1))
           
           (inherit change-style begin-edit-sequence end-edit-sequence highlight-range
                    get-style-list in-edit-sequence? get-start-position get-end-position
@@ -97,6 +104,7 @@
             (send invalid-tokens reset-tree)
             (set! invalid-tokens-start +inf.0)
             (set! up-to-date? #t)
+            (set! restart-callback #f)
             (set! parens (new paren-tree% (matches pairs)))
             (set! current-pos start-pos)
             (set! colors null)
@@ -131,7 +139,7 @@
               (break-enabled #f)
               ;; If a break occurs while we are suspended, the break will occur
               ;; and the critical section will not be entered
-              (semaphore-wait/enable-break lock)
+              (semaphore-wait/enable-break mutex-lock)
               (unless (eq? 'eof type)
                 (let ((len (- new-token-end new-token-start)))
                   (set! current-pos (+ len current-pos))
@@ -158,7 +166,7 @@
                      (insert-last! tokens invalid-tokens)
                      (set! invalid-tokens-start +inf.0))
                     (else
-                     (semaphore-post lock)
+                     (semaphore-post mutex-lock)
                      (break-enabled #t)
                      (re-tokenize in in-start-pos)))))))
           
@@ -199,17 +207,21 @@
           (inherit is-locked?)
           
           (define (colorer-callback)
-            (unless (or (in-edit-sequence?) (is-locked?))
-              (thread-resume background-thread)
-              (sleep .01)    ;; This is when the background thread is working.
-              (semaphore-wait lock)
-              (thread-suspend background-thread)
-              (semaphore-post lock)
-              (begin-edit-sequence #f #f)
-              (color)
-              (end-edit-sequence))
-            (unless up-to-date?
-              (queue-callback colorer-callback #f)))
+            (cond
+              ((is-locked?)
+               (set! restart-callback #t))
+              (else
+               (unless (in-edit-sequence?)
+                 (thread-resume background-thread)
+                 (sleep .01)    ;; This is when the background thread is working.
+                 (semaphore-wait mutex-lock)
+                 (thread-suspend background-thread)
+                 (semaphore-post mutex-lock)
+                 (begin-edit-sequence #f #f)
+                 (color)
+                 (end-edit-sequence))
+               (unless up-to-date?
+                 (queue-callback colorer-callback #f)))))
           
           
           ;; Breaks should be disabled on entry
@@ -231,13 +243,13 @@
                                  (lambda (exn)
                                    (printf "colorer thread: ~s\n" exn)
                                    (break-enabled #f)
-                                   (semaphore-wait lock))))
+                                   (semaphore-wait mutex-lock))))
                   (re-tokenize (open-input-text-editor this current-pos end-pos)
                                current-pos))
                 ;; Breaks should be disabled from exit of re-tokenize
                 ;; lock will be held
                 (set! up-to-date? #t)
-                (semaphore-post lock)
+                (semaphore-post mutex-lock)
                 (thread-suspend (current-thread))))
             (background-colorer))
           
@@ -336,6 +348,14 @@
                 (set! in-match-parens? #f))))
                     
           ;; ------------------------- Callbacks to Override ----------------------
+          
+          (rename (super-lock lock))
+          (define/override (lock x)
+            (super-lock x)
+            (when (and restart-callback (not x))
+              (set! restart-callback #f)
+              (queue-callback colorer-callback)))
+          
           
           (rename (super-on-focus on-focus))
           (define/override (on-focus on?)
