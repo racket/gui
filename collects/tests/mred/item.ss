@@ -336,10 +336,17 @@
 (define nruter-bmp
   (make-object bitmap% (local-path "nruter.xbm") 'xbm))
 
+(define position-via-style? #f)
+(define (add-label-direction label-h? l)
+  (if (and position-via-style? (not label-h?))
+      (cons 'vertical-label l)
+      l))
+
 (define (make-ctls ip cp lp add-testers ep radio-h? label-h? null-label? stretchy? alt-inits?)
   
   (define :::dummy:::
-    (when (not label-h?)
+    (when (and (not label-h?)
+	       (not position-via-style?))
       (send ip set-label-position 'vertical)))
   
   (define-values (l il)
@@ -374,7 +381,7 @@
 			  (if null-label? #f "L\355&st") ; 355 is i with '
 			  '("Appl\351" "Banana" "Coconut & Donuts" "Eclair" "French Fries" "Gatorade" "Huevos Rancheros") ; 351 is e with '
 			  ip void
-			  '(single)
+			  (add-label-direction label-h? '(single))
 			  (if alt-inits? 2 #f)))
   
   (define cb (make-object (trace-mixin check-box%) "C&h\351ck" ip void null alt-inits?)) ; 351 is e with '
@@ -385,31 +392,36 @@
 			  (if null-label? #f "R&ad\355o") ; 355 is i with '
 			  '("F\355rst" "Dos" "T&rio")
 			  ip void 
-			  (if radio-h?
-			      '(horizontal)
-			      '(vertical))
+			  (add-label-direction 
+			   label-h? 
+			   (if radio-h?
+			       '(horizontal)
+			       '(vertical)))
 			  (if alt-inits? 2 0)))
   
   (define irb (make-object (trace-mixin radio-box%)
 			   (if null-label? #f "Image Ra&dio")
 			   (list return-bmp nruter-bmp)
 			    ip void 
-			    (if radio-h?
-				'(horizontal)
-				'(vertical))
+			    (add-label-direction 
+			     label-h? 
+			     (if radio-h?
+				 '(horizontal)
+				 '(vertical)))
 			  (if alt-inits? 1 0)))
   
   (define ch (make-object (trace-mixin choice%)
 			  (if null-label? #f "Ch&o\355ce") ; 355 is i with '
 			  '("Alpha" "Beta" "Gamma" "Delta & R\351st") ; 351 is e with '
 			  ip void
-			  null
+			  (add-label-direction label-h? null)
 			  (if alt-inits? 3 0)))
   
   (define txt (make-object (trace-mixin text-field%)
 			   (if null-label? #f "T\351&xt") ; 351 is e with '
 			   ip void
-			   "initial & starting"))
+			   "initial & starting"
+			   (add-label-direction label-h? '(single))))
   
   (set! my-txt txt)
   (set! my-lb lb)
@@ -632,27 +644,37 @@
 			    (lambda (s e)
 			      (send gh set-value (* 10 (send sh get-value))))
 			    5
-			    (if plain-slider? '(horizontal plain) '(horizontal))))
+			    (add-label-direction 
+			     label-h? 
+			     (if plain-slider? '(horizontal plain) '(horizontal)))))
     
     (define sv (make-object slider% 
 			    (if null-label? #f "V Sl&ider") 0 10 ip2 
 			    (lambda (s e)
 			      (send gv set-value (* 10 (send sv get-value))))
 			    5
-			    (if plain-slider? '(vertical plain) '(vertical))))
+			    (add-label-direction 
+			     label-h? 
+			     (if plain-slider? '(vertical plain) '(vertical)))))
     
     (define gh (make-object gauge% 
 			    (if null-label? #f "H G&auge") 100 ip2
-			    '(horizontal)))
+			    (add-label-direction 
+			     label-h? 
+			     '(horizontal))))
     
     (define gv (make-object gauge% 
 			    (if null-label? #f "V Ga&uge") 100 ip2
-			    '(vertical)))
+			    (add-label-direction 
+			     label-h? 
+			     '(vertical))))
     
     (define txt (make-object text-field% 
 			     (if null-label? #f "T&ext") ip2 void 
 			     "initial & starting"
-			     '(multiple)))
+			     (add-label-direction 
+			      label-h? 
+			      '(multiple))))
 
     (define tab (make-object tab-panel% 
 			     '("Appl\351" "B&anana") ip2 void
@@ -1941,6 +1963,9 @@
   (make-object check-box% "Use Dialogs" clockp
 	       (lambda (c e)
 		 (set! use-dialogs? (send c get-value))))
+  (make-object check-box% "Position via Style" clockp
+	       (lambda (c e)
+		 (set! position-via-style? (send c get-value))))
   (make-object vertical-panel% clockp) ; filler
   (let ([time (make-object message% "XX:XX:XX" clockp)])
     (make-object
