@@ -681,7 +681,7 @@
 		prompt 
 		parent-win
 		directory)])
-	(or f
+	(if f
 	    (if (or (not filter) (filter-match? filter f filter-msg))
 		(let ([f (mzlib:file:normalize-path f)])
 		  (cond
@@ -692,7 +692,8 @@
 		     (message-box "File does not exist.")
 		     #f]
 		    [else f]))
-		#f)))))
+		#f)
+	    #f))))
   
   ; external interfaces to file functions
   

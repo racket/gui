@@ -83,7 +83,7 @@
 		       [mdi-parent (cons 'mdi-child style)]
 		       [else style])))
 
-	(make-object (get-menu-bar%) this)
+	(make-object menu% "Windows" (make-object (get-menu-bar%) this))
 	(send (group:get-the-frame-group) insert-frame this))
       (private
 	[panel (make-root-area-container (get-area-container%) this)])
@@ -1068,4 +1068,6 @@
 
   (define -pasteboard% (pasteboard-mixin editor%))
   (define pasteboard-info% (info-mixin -pasteboard%))
-  (define pasteboard-info-file% (file-mixin pasteboard-info%)))
+  (define pasteboard-info-file% (file-mixin pasteboard-info%))
+  
+  )

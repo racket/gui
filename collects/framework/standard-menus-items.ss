@@ -28,8 +28,6 @@
 			", "
 			"@ilink frame:standard-menus get-edit-menu %"
 			", "
-			"@ilink frame:standard-menus get-windows-menu %"
-			", and"
 			"@ilink frame:standard-menus get-help-menu %"
 			". "
 			""
@@ -64,15 +62,6 @@
 			 (lambda () m))
 		      
 		      '("Returns the edit menu"
-			"See also"
-			"@ilink frame:standard-menus get-menu\\%"
-			""
-			"@return : (instance (derived-from \\iscmclass{menu}))"))
-	(make-generic 'get-windows-menu
-		      '(let ([m (make-object (get-menu%) "&Windows" (get-menu-bar))])
-			 (lambda () m))
-		      
-		      '("Returns the windows menu"
 			"See also"
 			"@ilink frame:standard-menus get-menu\\%"
 			""

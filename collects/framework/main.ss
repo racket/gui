@@ -180,7 +180,7 @@
 			(set! test #f)
 			(semaphore-post s))))))))
   
-  (preferences:set-default 'framework:exit-when-no-frames #f boolean?)
+  (preferences:set-default 'framework:exit-when-no-frames #t boolean?)
 
   (let ([at-most-one (at-most-one-maker)])
     (send (group:get-the-frame-group) set-empty-callbacks

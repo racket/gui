@@ -306,6 +306,7 @@
     
 	(for-each (lambda (x)
 		    (when (member x all-files)
+		      (shutdown-mred)
 		      (let/ec k
 			(fluid-let ([section-name x]
 				    [section-jump k])
