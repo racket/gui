@@ -267,6 +267,13 @@
 		    (when pos
 		      (send edit flash-on pos (+ 1 pos))))
 		  #t)]
+
+	       [make-insert-brace-pair
+		(lambda (brace-pair-str) ; this string must be two characters long!
+		  (lambda (edit event)
+		    (send edit insert brace-pair-str)
+		    (send edit set-position (max 0 (- (send edit get-start-position) 1)))))]
+
 	       [collapse-variable-space
                 ;; As per emacs: collapse tabs & spaces around the point,
                 ;; perhaps leaving a single space.
@@ -858,7 +865,12 @@
 	      (add "ring-bell" ring-bell)
 	      
 	      (add "flash-paren-match" flash-paren-match)
-              
+
+	      (add "insert-()-pair" (make-insert-brace-pair "()"))
+	      (add "insert-[]-pair" (make-insert-brace-pair "[]"))
+	      (add "insert-{}-pair" (make-insert-brace-pair "{}"))
+	      (add "insert-\"\"-pair" (make-insert-brace-pair "\"\""))
+	     
 	      (add "toggle-anchor" toggle-anchor)
 	      (add "center-view-on-line" center-view-on-line)
 	      (add "collapse-space" collapse-space)
@@ -922,6 +934,11 @@
 	      (map "]" "flash-paren-match")
 	      (map "}" "flash-paren-match")
 	      (map "\"" "flash-paren-match")
+
+	      (map-meta "(" "insert-()-pair")
+	      (map-meta "[" "insert-[]-pair")
+	      (map-meta "{" "insert-{}-pair")
+	      (map-meta "\"" "insert-\"\"-pair")
 	      
 	      (map "c:p" "previous-line")
 	      (map "up" "previous-line")
