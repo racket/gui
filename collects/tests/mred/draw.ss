@@ -949,6 +949,8 @@
 			      [(roundrect) (let ([r (make-object region% dc)])
 					     (send r set-rounded-rectangle 80 200 125 40 -0.25)
 					     (send dc set-clipping-region r))]
+			      [(empty) (let ([r (make-object region% dc)])
+					 (send dc set-clipping-region r))]
 			      [(polka) 
 			       (let ([c (send dc get-background)])
 				 (send dc set-background (send the-color-database find-color "PURPLE"))
@@ -1012,7 +1014,8 @@
 							 [(rect+poly rect+circle poly^rect) '(0. -25. 180. 400.)]
 							 [(poly&rect) '(100. 60. 10. 180.)]
 							 [(roundrect) '(80. 200. 125. 40.)]
-							 [(polka) '(0. 0. 310. 510.)])])
+							 [(polka) '(0. 0. 310. 510.)]
+							 [(empty) '(0. 0. 0. 0.)])])
 						  (if clip-pre-scale?
 						      (list (- (/ (car l) xscale) offset)
 							    (- (/ (cadr l) yscale) offset)
@@ -1117,11 +1120,14 @@
     (make-object choice% "Clip" 
 		 '("None" "Rectangle" "Rectangle2" "Octagon" "Circle" "Round Rectangle" "Lambda"
 		   "Rectangle + Octagon" "Rectangle + Circle" 
-		   "Octagon - Rectangle" "Rectangle & Octagon" "Rectangle ^ Octagon" "Polka")
+		   "Octagon - Rectangle" "Rectangle & Octagon" "Rectangle ^ Octagon" "Polka"
+		   "Empty")
 		 hp3
 		 (lambda (self event)
 		   (set! clip (list-ref
-		               '(none rect rect2 poly circle roundrect lam rect+poly rect+circle poly-rect poly&rect poly^rect polka)
+		               '(none rect rect2 poly circle roundrect lam 
+				      rect+poly rect+circle poly-rect poly&rect poly^rect 
+				      polka empty)
 		               (send self get-selection)))
 		   (send canvas refresh)))
     (make-object check-box% "Clip Pre-Scale" hp3
