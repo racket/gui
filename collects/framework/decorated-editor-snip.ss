@@ -1,22 +1,14 @@
 
 (module decorated-editor-snip mzscheme
   (provide decorated-editor-snip%
-           decorated-editor-snipclass%)
+           decorated-editor-snipclass%
+           decorated-editor-snip-mixin)
 
   (require (lib "class.ss")
            (lib "mred.ss" "mred"))
   
-  (define decorated-editor-snip%
-    (class editor-snip% 
-      (inherit get-editor get-style)
-      
-      ;; make-snip : -> this%
-      ;; returns an instance of this class. used in the copy method
-      (define/public (make-snip) (make-object decorated-editor-snip%))
-      
-      ;; make-editor : -> editor<%>
-      ;; returns the editor to be used in this snip.
-      (define/public (make-editor) (make-object text%))
+  (define (decorated-editor-snip-mixin super%)
+    (class super%
       
       ;; get-corner-bitmap : -> (union #f (is-a?/c bitmap%))
       ;; returns the bitmap to be shown in the top right corner.
@@ -150,16 +142,6 @@
             (send dc set-pen old-pen)
             (send dc set-brush old-brush))))
       
-      (define/override write
-        (lambda (stream-out)
-          (send (get-editor) write-to-file stream-out 0 'eof)))
-
-      (define/override (copy)
-        (let ([snip (make-snip)])
-          (send snip set-editor (send (get-editor) copy-self))
-          (send snip set-style (get-style))
-          snip))
-      
       (inherit set-min-width set-min-height get-margin)
       (define/public (reset-min-sizes)
         (let ([bm (get-corner-bitmap)])
@@ -188,13 +170,37 @@
                          (send bm get-width)
                          0)))]
                [else 4])])
-        (super-instantiate ()
-          (editor (make-editor))
+        (super-new
           (with-border? #f)
           (top-margin top-margin)
           (left-margin left-margin)))
       
       (reset-min-sizes)))
+  
+  (define decorated-editor-snip%
+    (class (decorated-editor-snip-mixin editor-snip%)
+      (inherit get-editor get-style)
+      
+      ;; make-snip : -> this%
+      ;; returns an instance of this class. used in the copy method
+      (define/public (make-snip) (make-object decorated-editor-snip%))
+      
+      ;; make-editor : -> editor<%>
+      ;; returns the editor to be used in this snip.
+      (define/public (make-editor) (make-object text%))
+      
+      (define/override write
+        (lambda (stream-out)
+          (send (get-editor) write-to-file stream-out 0 'eof)))
+
+      (define/override (copy)
+        (let ([snip (make-snip)])
+          (send snip set-editor (send (get-editor) copy-self))
+          (send snip set-style (get-style))
+          snip))
+      
+        (super-new
+          (editor (make-editor)))))
   
   (define decorated-editor-snipclass%
     (class snip-class%
