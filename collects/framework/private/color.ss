@@ -284,7 +284,6 @@
           
           
           (define/public (force-stop-colorer x)
-            (printf "~a~n" x)
             (set! force-stop? x)
             (when x
               (stop-colorer)
