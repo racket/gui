@@ -71,7 +71,6 @@
 		       [pen2t (make-object pen% "BLACK" 2 'transparent)]
 		       [brushs (make-object brush% "BLACK" 'solid)]
 		       [brusht (make-object brush% "BLACK" 'transparent)]
-		       [penr (make-object pen% "RED" 1 'solid)]
 		       [brushb (make-object brush% "BLUE" 'solid)]
 		       [mem-dc (if use-bitmap?
 				   (make-object bitmap-dc%)
@@ -183,14 +182,14 @@
 			    (send dc set-pen pens)
 			    (send dc draw-rectangle
 				  (+ x 17) (+ y 95) 10 10)
-			    (send dc set-logical-function 'clear)
+			    ; (send dc set-logical-function 'clear)
 			    (send dc draw-rectangle
 				  (+ x 18) (+ y 96) 8 8)
-			    (send dc set-logical-function 'copy)
+			    ; (send dc set-logical-function 'copy)
 			    
 			    (send dc draw-rectangle
 				  (+ x 29) (+ y 95) 10 10)
-			    (send dc set-logical-function 'clear)
+			    ; (send dc set-logical-function 'clear)
 			    (send dc set-pen pent)
 			    (send dc draw-rectangle
 				  (+ x 30) (+ y 96) 8 8)
@@ -198,10 +197,10 @@
 			    (send dc set-pen pens)
 			    (send dc draw-rectangle
 				  (+ x 5) (+ y 95) 10 10)
-			    (send dc set-logical-function 'xor)
+			    ; (send dc set-logical-function 'xor)
 			    (send dc draw-rectangle
 				  (+ x 5) (+ y 95) 10 10)
-			    (send dc set-logical-function 'copy)
+			    ; (send dc set-logical-function 'copy)
 			    
 			    (send dc draw-line
 				  (+ x 5) (+ y 110) (+ x 8) (+ y 110))
@@ -283,7 +282,7 @@
 				    [b (make-object brush% "BLACK" 'solid)]
 				    [ob (send dc get-brush)]
 				    [obg (send dc get-background)]
-				    [blue (make-object brush% "BLUE" 'solid)])
+				    [blue (make-object color% "BLUE")])
 				(let loop ([x 245][y 10][l pat-list])
 				  (unless (null? l)
 				    (send b set-color "BLACK")
@@ -307,8 +306,10 @@
 			      (let ([x 5] [y 165])
 				(send dc draw-bitmap (get-icon) x y)
 				(set! x (+ x (send (get-icon) get-width)))
-				(let ([do-one
-				       (lambda (bm mode)
+				(let ([black (send the-color-database find-color "BLACK")]
+				      [red (send the-color-database find-color "RED")]
+				      [do-one
+				       (lambda (bm mode color)
 					 (if (send bm ok?)
 					     (begin
 					       (let ([h (send bm get-height)]
@@ -316,18 +317,17 @@
 						 (send dc draw-bitmap-region
 						       bm x y 
 						       0 0 w h
-						       mode)
+						       mode color)
 						 (set! x (+ x w 10))))
 					     (printf "bad bitmap~n")))])
-				  (do-one bb 'copy)
-				  (do-one return 'copy)
-				  (send dc set-pen penr)
-				  (do-one return 'copy)
-				  (do-one return 'color)
-				  (do-one bb 'color)
+				  (do-one bb 'solid black)
+				  (do-one return 'solid black)
+				  (do-one return 'solid red)
+				  (do-one return 'opaque red)
+				  (do-one bb 'solid red)
 				  (let ([bg (send dc get-background)])
-				    (send dc set-background brushs)
-				    (do-one return 'color)
+				    (send dc set-background (send the-color-database find-color "BLACK"))
+				    (do-one return 'opaque red)
 				    (send dc set-background bg))
 				  (send dc set-pen pens))))
 
@@ -336,13 +336,13 @@
 			      (send dc set-brush brushb)
 			      (send dc draw-rectangle 80 200 125 40)
 			      (when (send return ok?)
-				(let ([b (make-object brush% "GREEN" 'stipple)])
+				(let ([b (make-object brush% "GREEN" 'solid)])
 				  (send b set-stipple return)
 				  (send dc set-brush b)
 				  ; First stipple (transparent background)
 				  (send dc draw-rectangle 85 205 30 30)
 				  (send dc set-brush brushs)
-				  (send b set-style 'opaque-stipple)
+				  (send b set-style 'opaque)
 				  (send dc set-brush b)
 				  ; Second stipple (opaque)
 				  (send dc draw-rectangle 120 205 30 30)
@@ -365,7 +365,7 @@
 						'short-dash
 						'dot-dash)]
 				  [obg (send dc get-background)]
-				  [red (make-object brush% "RED" 'solid)])
+				  [red (make-object color% "RED")])
 			      (let loop ([s styles][y 250])
 				(unless (null? s)
 				  (let ([p (make-object pen% "GREEN" flevel (car s))])
@@ -385,7 +385,7 @@
 				    (loop (cdr s) (+ y 8))))))
 
 			    (if (not (or ps? (eq? dc can-dc)))
-				(send can-dc draw-bitmap (send mem-dc get-bitmap) 0 0 'copy)))
+				(send can-dc draw-bitmap (send mem-dc get-bitmap) 0 0)))
 
 			  'done)])
 
@@ -409,8 +409,8 @@
 		      
 		      (send dc set-background
 			    (if cyan?
-				(make-object brush% "CYAN" 'solid)
-				(make-object brush% "WHITE" 'solid)))
+				(send the-color-database find-color "CYAN")
+				(send the-color-database find-color "WHITE")))
 
 		      (send dc destroy-clipping-region)
 		      (send dc clear)
@@ -492,10 +492,6 @@
 	  set-value #t))
 
   (send f show #t))
-
-;; Still to do:
-
-; set-logical-function
 
 ; Canvas, Pixmaps, and Bitmaps:
 ;  get-pixel
