@@ -17,7 +17,9 @@
 	      [application : framework:application^]
 	      [frame : framework:frame^]
 	      [preferences : framework:preferences^]
-              [gui-utils : framework:gui-utils^])
+              [gui-utils : framework:gui-utils^]
+              [text : framework:text^]
+              [canvas : framework:canvas^])
 
       (define-struct frame (frame id))
       
@@ -84,7 +86,7 @@
 		 (for-each (lambda (item) (send item delete))
 			   (send menu get-items))
                  (instantiate menu-item% ()
-                   (label (string-constant choose-a-frame...))
+                   (label (string-constant bring-frame-to-front...))
                    (parent menu)
                    (callback (lambda (x y) (choose-a-frame (send (send menu get-parent) get-frame))))
                    (shortcut #\b))
@@ -242,19 +244,72 @@
           (super-instantiate ())))
       
       (define (choose-a-frame parent)
-        (let* ([frames (send (get-the-frame-group) get-frames)]
-               [d (make-object dialog% (string-constant choose-a-frame) parent)]
-               [lb (instantiate gui-utils:alphabetic-list-box% () 
-                     (label #f)
-                     (choices (quicksort
-                               (map (lambda (x) (send x get-label)) frames)
-                               string<=?))
-                     (callback (lambda (x y) (void)))
-                     (parent d))])
+        (letrec ([sorted-frames
+                  (quicksort
+                   (send (get-the-frame-group) get-frames)
+                   (lambda (x y) (string-ci<=? (send x get-label) (send y get-label))))]
+                 [d (make-object dialog% (string-constant bring-frame-to-front) parent 400 600)]
+                 [lb (instantiate gui-utils:alphabetic-list-box% () 
+                       (label #f)
+                       (choices (map (lambda (x) (send x get-label)) sorted-frames))
+                       (callback (lambda (x y) (listbox-callback y)))
+                       (parent d))]
+                 [t (instantiate text:hide-caret/selection% ())]
+                 [ec (instantiate canvas:basic% ()
+                       (parent d)
+                       (stretchable-height #f))]
+                 [bp (instantiate horizontal-panel% ()
+                       (parent d)
+                       (stretchable-height #f)
+                       (alignment '(right center)))]
+                 [cancelled? #t]
+                 [ok (instantiate button% ()
+                       (label (string-constant ok))
+                       (parent bp)
+                       (callback (lambda (x y)
+                                   (set! cancelled? #f)
+                                   (send d show #f)))
+                       (style '(border)))]
+                 [cancel (instantiate button% ()
+                           (label (string-constant cancel))
+                           (parent bp) 
+                           (callback 
+                            (lambda (x y)
+                              (send d show #f))))]
+                 [listbox-callback
+                  (lambda (evt)
+                    (case (send evt get-event-type)
+                      [(list-box)
+                       
+                       (send ok enable (pair? (send lb get-selections)))
+                       
+                       (let ([full-name
+                              (let ([sels (send lb get-selections)])
+                                (and (pair? sels)
+                                     (let ([fr (list-ref sorted-frames (car sels))])
+                                       (and (is-a? fr frame:basic%)
+                                            (send fr get-filename)))))])
+                         (send t begin-edit-sequence)
+                         (send t erase)
+                         (when full-name
+                           (send t insert full-name))
+                         (send t end-edit-sequence))]
+                      [(list-box-dclick)
+                       (set! cancelled? #f)
+                       (send d show #f)]))])
+          (send ec set-line-count 3)
+          (send ec set-editor t)
+          (send t auto-wrap #t)
+          (let ([fr (car sorted-frames)])
+            (when (and (is-a? fr frame:basic<%>)
+                       (send fr get-filename))
+              (send t insert (send (car sorted-frames) get-filename)))
+            (send lb set-selection 0))
           (send d show #t)
-          (let ([sels (send lb get-selections)])
-            (unless (null? sels)
-              (send (list-ref frames (car sels)) show #t)))))
+          (unless cancelled?
+            (let ([sels (send lb get-selections)])
+              (unless (null? sels)
+                (send (list-ref sorted-frames (car sels)) show #t))))))
           
 
       (define (internal-get-the-frame-group)
