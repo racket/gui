@@ -95,7 +95,7 @@ of symbol flags:
 ---------------------------------------------------------------------------
 
 The "mem.ss" test should be loaded at startup:
-  mred -nu -f tests/mem.ss
+  mred -u -- -f mem.ss
 It will create a lot of frames and instance of other objects, 
 reporting memory information along the way. At the end,
 before the last memory dump, objects that are still allocated
