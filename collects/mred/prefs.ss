@@ -333,14 +333,13 @@
 			       (set-preference pref (bool->pref (send command checked?))))]
 			    [pref-value (get-preference pref)]
 			    [initial-value (pref->bool pref-value)]
-			    [h (make-object mred:horizontal-panel% main)]
-			    [c (make-object mred:check-box% h callback title)]
-			    [p (make-object mred:horizontal-panel% h)])
+			    [c (make-object mred:check-box% main callback title)])
 		      (send c set-value initial-value)
 		      (add-preference-callback pref
 					       (lambda (p v)
 						 (send c set-value (pref->bool v))))))]
 		 [id (lambda (x) x)])
+	    (send main minor-align-left)
 	    (make-check 'mred:highlight-parens "Highlight between matching parens?" id id)
 	    (make-check 'mred:fixup-parens "Correct parens?" id id)
 	    (make-check 'mred:paren-match "Flash paren match?" id id)
@@ -505,23 +504,20 @@
 							       (ppanel-panel (car (list-tail ppanels (sub1 (length ppanels)))))))]))
                       '() "Preferences")]
 		  [panel (make-object mred:vertical-panel% frame)]
-		  [top-panel (make-object mred:horizontal-panel% panel)]
-		  [single-panel (make-object mred:single-panel% panel -1 -1 -1 -1 wx:const-border)]
-		  [bottom-panel (make-object mred:horizontal-panel% panel)]
 		  [popup-callback
 		   (lambda (choice command-event)
 		     (send single-panel active-child
 			   (ppanel-panel (list-ref ppanels (send command-event get-command-int)))))]
 		  [make-popup-menu 
 		   (lambda ()
-		     (let ([menu (make-object mred:choice% top-panel popup-callback
+		     (let ([menu (make-object mred:choice% panel popup-callback
 					      "Category" -1 -1 -1 -1
 					      (map ppanel-title ppanels))])
 		       (send menu stretchable-in-x #f)
 		       menu))]
-		  [top-left (make-object mred:vertical-panel% top-panel)]
 		  [popup-menu (make-popup-menu)]
-		  [top-right (make-object mred:vertical-panel% top-panel)]
+		  [single-panel (make-object mred:single-panel% panel -1 -1 -1 -1 wx:const-border)]
+		  [bottom-panel (make-object mred:horizontal-panel% panel)]
 		  [ensure-constructed
 		   (lambda ()
 		     (for-each (lambda (ppanel)
@@ -540,20 +536,22 @@
 		     (let ([new-popup (make-popup-menu)])
 		       (send new-popup set-selection (send popup-menu get-selection))
 		       (set! popup-menu new-popup)
-		       (send top-panel change-children
-			     (lambda (l) (list top-left new-popup top-right)))))]
+		       (send panel change-children
+			     (lambda (l) (list new-popup
+					       single-panel
+					       bottom-panel)))))]
 		  [ok-callback (lambda args
 				 (save-user-preferences)
 				 (hide-preferences-dialog))]
-		  [_1 (make-object mred:panel% bottom-panel)]
 		  [ok-button (make-object mred:button% bottom-panel ok-callback "OK")]
 		  [cancel-callback (lambda args
 				     (hide-preferences-dialog)
 				     (read-user-preferences))]
 		  [cancel-button (make-object mred:button% bottom-panel cancel-callback "Cancel")])
 	  (send ok-button user-min-width (send cancel-button get-width))
-	  (send bottom-panel stretchable-in-y #f)
-	  (send top-panel stretchable-in-y #f)
+	  (send* bottom-panel
+	    (stretchable-in-y #f)
+	    (major-align-right))
 	  (ensure-constructed)
 	  (send popup-menu set-selection 0)
 	  (send frame show #t)
