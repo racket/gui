@@ -4306,13 +4306,15 @@
     get-shortcut set-shortcut
     get-x-shortcut-prefix set-x-shortcut-prefix))
 
-(define (char-name c)
+(define (char-name c print?)
   (case c
     [(#\return) (if (eq? (system-type) 'macos) "Return" "Enter")]
     [(#\tab) "Tab"]
     [(#\space) "Space"]
     [(#\backspace) "Backspace"]
     [(#\rubout) "Delete"]
+    [(#\:) (if print? ":" "Colon")]
+    [(#\;) (if print? ";" "Semicolon")]
     [else c]))
 
 (define basic-selectable-menu-item%
@@ -4346,11 +4348,12 @@
 								[(ctl-m) "Ctl+M "]
 								[(ctl) "Ctl+"])
 							      (char-name
-							       (char-upcase shortcut)))]
+							       (char-upcase shortcut)
+							       #t))]
 					      [(windows) (format "~aCtl+~a" #\tab 
-								 (char-name (char-upcase shortcut)))]
+								 (char-name (char-upcase shortcut) #t))]
 					      [(macos) (format "~aCmd+~a" #\tab 
-							       (char-name (char-upcase shortcut)))]))
+							       (char-name (char-upcase shortcut) #t))]))
 					   (strip-tab label))]
 			    [key-binding (and shortcut
 					      (case (system-type)
@@ -4360,9 +4363,9 @@
 								  [(alt) ":a:"]
 								  [(ctl-m) ":c:m;:"]
 								  [(ctl) ":c:"])
-								(char-name (char-downcase shortcut)))]
-						[(windows) (format ":c:~a" (char-name (char-downcase shortcut)))]
-						[(macos) (format ":d:~a" (char-name (char-downcase shortcut)))]))]
+								(char-name (char-downcase shortcut) #f))]
+						[(windows) (format ":c:~a" (char-name (char-downcase shortcut) #f))]
+						[(macos) (format ":d:~a" (char-name (char-downcase shortcut) #f))]))]
 			    [keymap (and key-binding
 					 (let ([keymap (make-object wx:keymap%)])
 					   (send keymap add-function "menu-item" 
