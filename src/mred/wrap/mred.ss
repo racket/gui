@@ -86,8 +86,8 @@
 (define (remq i l)
   (let loop ([l l])
     (cond
-     [(null? l) l]
-     [(eq? (car l) i) (cdr l)]
+     [(null? l) null]
+     [(eq? (car l) i) (remq i (cdr l))]
      [else (cons (car l) (loop (cdr l)))])))
 
 (define ibeam (make-object wx:cursor% 'ibeam))
@@ -106,6 +106,7 @@
 	[top-level #f]
 	[focus? #f])
       (public
+	[get-edit-target (lambda () this)]
 	[get-top-level
 	 (lambda ()
 	   (unless top-level
@@ -172,7 +173,7 @@
       [enable
        (lambda (b)
 	 (set! enabled? (and b #t))
-	 (apply super-enable x))]
+	 (super-enable b))]
       [is-enabled?
        (lambda () enabled?)]
 
@@ -377,7 +378,9 @@
 	 [enable
 	  (lambda (b)
 	    (set! enabled? (and b #t))
-	    (apply super-enable x))]
+	    (super-enable b))]
+	 [orig-enable
+	  (lambda args (apply super-enable args))]
 	 [is-enabled?
 	  (lambda () enabled?)])
 
@@ -534,8 +537,11 @@
 
 ;------------- Mixins for glue to mred classes -----------------
 
+(define wx<%> (interface () get-mred))
+(define wx/proxy<%> (interface (wx<%>) get-proxy))
+
 (define (make-window-glue% %)
-  (class % (mred proxy . args)
+  (class* % (wx/proxy<%>) (mred proxy . args)
     (rename [super-on-size on-size]
 	    [super-on-set-focus on-set-focus]
 	    [super-on-kill-focus on-kill-focus]
@@ -555,10 +561,10 @@
 		      (send proxy on-focus #f))]
       [pre-on-char (lambda (w e)
 		     (super-pre-on-char w e)
-		     (send proxy pre-on-char w e))]
+		     (send proxy pre-on-char (wx->proxy w) e))]
       [pre-on-event (lambda (w e)
 		      (super-pre-on-event w e)
-		      (send proxy pre-on-event w e))])
+		      (send proxy pre-on-event (wx->proxy w) e))])
     (sequence (apply super-init args))))
 
 (define (make-top-level-window-glue% %)
@@ -614,6 +620,17 @@
 (define wx-frame%
   (make-top-level-window-glue% 
    (class (make-top-container% wx:frame%) args
+     (rename [super-set-menu-bar set-menu-bar])
+     (public
+       [menu-bar #f]
+       [set-menu-bar
+	(lambda (mb)
+	  (when mb (set! menu-bar mb))
+	  (super-set-menu-bar mb))]
+       [on-menu-command
+	(lambda (id)
+	  (let ([wx (wx:id-to-menu-item id)])
+	    (send (wx->mred wx) go)))])
      (sequence
        (apply super-init args)))))
 
@@ -668,7 +685,7 @@
 				    (+ ch delta-h)
 				    (max ch (get-height))))))))
 
-      (if (eq? 'horizontal style)
+      (if (memq 'horizontal style)
 	  (begin
 	    (stretchable-in-x #t)
 	    (stretchable-in-y #f))
@@ -685,7 +702,7 @@
 (define wx-radio-box%
   (make-window-glue% 
    (class (make-simple-control% wx:radio-box%) args
-     (inherit number)
+     (inherit number orig-enable)
      (rename [super-enable enable]
 	     [super-is-enabled? is-enabled?])
      (public
@@ -693,7 +710,8 @@
 	(case-lambda
 	 [(on?) (super-enable on?)]
 	 [(which on?) (when (< -1 which (number))
-			(vector-set! enable-vector which (and on? #t)))])]
+			(vector-set! enable-vector which (and on? #t))
+			(orig-enable which on?))])]
        [is-enabled?
 	(case-lambda
 	 [() (super-is-enabled?)]
@@ -722,11 +740,13 @@
      (sequence
        (super-init parent func label value min-val max-val -1 -1 -1 style)
        
-       (let-values ([(client-w client-h)
-		     (get-two-int-values get-client-size)])
+       (let-values ([(client-w client-h) (get-two-int-values get-client-size)])
 	 (let ([range (* pixels-per-value (add1 (- max-val min-val)))]
-	       [horizontal? (eq? 'horizontal style)])
-	   ((if horizonal? set-min-width set-max-width) (min const-max-gauge-length range))))))))
+	       [horizontal? (memq 'horizontal style)])
+	   (when (not horizontal?)
+	     (stretchable-in-x #f)
+	     (stretchable-in-y #t))
+	   ((if horizontal? set-min-width set-min-height) (min const-max-gauge-length range))))))))
 
 (define wx-canvas% (make-canvas-glue% (make-control% wx:canvas% 0 0 #t #t)))
 
@@ -845,9 +865,7 @@
        (letrec ([l (case-lambda 
 		    [(name) (l name #f)]
 		    [(name temp?)
-		     (super-set-filename name temp?)
-		     (for-each (lambda (canvas) (send canvas on-edit-renamed name))
-			       canvases)])])
+		     (super-set-filename name temp?)])])
 	 l)]
 
       [set-active-canvas
@@ -1334,7 +1352,7 @@
 ; stretchable items. 
 (define wx-horizontal-panel%
   (class wx-linear-panel% args
-    (inherit major-align minor-align do-align go-get-alginment major-offset minor-offset
+    (inherit major-align minor-align do-align do-get-alignment major-offset minor-offset
 	     spacing border do-graphical-size place-linear-children)
     (public
       [alignment (lambda (h v) (do-align h v major-align minor-align))]
@@ -1564,7 +1582,7 @@
   
 (define (make-wx-text% multi?)
   (class wx-horizontal-panel% (mred proxy parent func label value style)
-    (inherit alignment stretchable-in-y)
+    (inherit alignment stretchable-in-y get-button-font)
     (rename [super-place-children place-children])
     (sequence
       (super-init #f proxy parent null))
@@ -1616,8 +1634,17 @@
 	       r)))])
     (sequence
       (alignment 'left 'top)
+      (unless horiz? (send p alignment 'left 'top))
       (unless multi? (stretchable-in-y #f))
       (send e auto-wrap multi?)
+      (let ([f (get-button-font)]
+	    [s (send (send e get-style-list) find-named-style "Standard")]
+	    [d (make-object wx:style-delta%)])
+	(send d set-delta-face (send f get-face))
+	(send d set-delta 'change-size (send f get-point-size))
+	(send d set-delta 'change-style (send f get-style))
+	(send d set-delta 'change-weight (send f get-weight))
+	(send s set-delta d))
       (send c set-media e)
       (send c set-line-count (if multi? 3 1))
 
@@ -1664,216 +1691,15 @@
 (define wx-text% (make-wx-text% #f))
 (define wx-multi-text% (make-wx-text% #t))
 
-;------------ Menu classes ---------------
-
-(define wx-menu-item%
-  (class wx:menu-item% (mred)
-    (public
-      [get-mred (lambda () mred)])
-    (sequence
-      (super-init))))
-
-(define wx-menu-bar%
-  (class wx:menu-bar% (mred)
-    (inherit delete)
-    (rename [super-append append])
-    (private
-      [items null])
-    (public
-      [get-mred (lambda () mred)]
-      [get-items (lambda () items)]
-      [append-item (lambda (item menu title)
-		     (append menu title)
-		     (set! items (append items (list item))))]
-      [delete-item (lambda (i)
-		     (let ([p (position-of i)])
-		       (set! items (remq i items))
-		       (delete #f p)))]
-      [position-of (lambda (i)
-		     (let loop ([l items][n 0])
-		       (cond
-			[(null? l) n]
-			[(eq? (car l) i) n]
-			[else (loop (cdr l) (add1 n))])))])
-    (sequence
-      (super-init null null))))
-
-(define wx-menu%
-  (class wx:menu% (mred popup-label popup-callback)
-    (private
-      [items null])
-    (rename [super-delete delete])
-    (public
-      [get-mred (lambda () mred)]
-      [get-items (lambda () items)]
-      [append-item (lambda (i) (set! items (append items (list i))))]
-      [delete (lambda (id i) (super-delete id) (set! items (remq i items)))])
-    (sequence
-      (super-init popup-label popup-callback))))
-
-;; Most of the work is in the item. Anything that appears in a menubar or
-;;  menu has an item. Submenus are created as instances of menu%, but
-;;  menu% has a get-item method for manipulating the menu w.r.t. the parent
-;;  (e.g., changing the title or enabled state). A popup menu, created
-;;  as an instance of popup-menu%, has no item.
-;;
-;; A menu bar is created as a menu-bar%, given a frame as its parent. The
-;;  frame must not already have a menu bar.
-;;
-;;  Plain labeled items are created as instances of menu-item% or
-;;   checkable-menu-item%. The parent must be a menu-item-container<%>,
-;;   which is a menu%, popup-menu%, or menu-bar%
-
-(define menu-item<%>
-  (interface ()
-    get-parent
-    get-label set-label get-plain-label
-    enable is-enabled?
-    delete restore is-deleted?)))
-
-(define submenu-item<%>
-  (interface (menu-item<%>) get-menu))
-
-(define basic-menu-item%
-  (class* mred% (menu-item<%>) (parent label help-string submenu checkable? set-wx)
-    (private
-      [wx (set-wx (make-object wx-menu-item% this))]
-      [wx-parent (mred->wx parent)]
-      [plain-label (wx:strip-menu-codes label)]
-      [in-menu? (is-a? parent basic-menu%)]
-      [shown? #f]
-      [enabled? #f]
-      [do-enable (lambda (on?)
-		   (if in-menu?
-		       (send wx-parent enable (send wx id) on?)
-		       (send wx-parent enable-top (send wx-parent position-of this) on?))
-		   (set! enabled? (and on? #t)))])
-    (public
-      [get-parent (lambda () parent)]
-      [get-label (lambda () label)]
-      [set-label (lambda (l)
-		   (set! label l)
-		   (set! plain-label (wx:strip-menu-codes l))
-		   (when in-menu?
-		     (if in-menu?
-			 (send wx-parent set-label (send wx id) label)
-			 (send wx-parent set-top-label (send wx-parent position-of this) plain-label))))]
-      [get-plain-label (lambda () plain-label)]
-      [enable (lambda (on?) (do-enable on?))]
-      [is-enabled? (lambda () enabled?)]
-      [restore (lambda ()
-		 (unless in-menu?
-		   (if in-menu?
-		       (begin
-			 (if submenu
-			     (send wx-parent append (send wx id) plain-label submenu help-string)
-			     (send wx-parent append (send wx id) label help-string checkable?))
-			 (send wx-parent append-item this))
-		       (send wx-parent append-item this plain-label submenu))
-		   (set! in-menu? #t)
-		   (do-enable enabled?)))]
-      [delete (lambda ()
-		(when in-menu?
-		  (if in-menu?
-		      (send wx-parent delete (send wx id) this)
-		      (send (mred->wx parent) delete-item this))
-		  (set! in-menu> #f)))]
-      [is-deleted? (lambda () (not in-menu?))])
-    (sequence
-      (super-init wx))))
-
-(define basic-label-menu-item%
-  (class basic-menu-item% (label checkable? menu callback shortcut help-string)
-    (private
-      [wx #f])
-    (public
-      [go (lambda () (callback))])
-    (sequence
-      (let ([new-label (if shortcut
-			   (string-append
-			    label
-			    (case (system-type)
-			      [(unix) (format "~aCtl+m ~a" #\tab (char-downcase shortcut))]
-			      [(windows) (format "~aCtl+~a" #\tab (char-upcase shortcut))]
-			      [(macos) (format "~aCmd-~a" #\tab (char-upcase shortcut))]))
-			   label)]
-	    [key-binding (and shortcut
-			      (case (system-type)
-				[(unix) (format "c:m;~a" (char-downcase shortcut))]
-				[(windows) (format "c:~a" (char-downcase shortcut))]
-				[(macos) (format "d:~a" (char-downcase shortcut))]))])
-	(super-init menu new-label help-string #f checkable? (lambda (x) (set! wx x) (set-wx x)))
-	(send (mred->wx menu) append (send wx id) new-label)))))
-
-(define menu-item%
-  (class basic-label-menu-item% (label menu callback [shortcut #f] [help-string #f])
-    (sequence (menu-parent-only 'menu-item menu))
-    (sequence
-      (super-init label #f menu callback shortcut help-string (lambda (x) x)))))
-
-(define checkable-menu-item%
-  (class basic-label-menu-item% (label menu callback [shortcut #f] [help-string #f])
-    (sequence (menu-parent-only 'checkable-menu-item menu))
-    (private
-      [wx #f])
-    (public
-      [checked (lambda (on?) (send (mred->wx menu) checked (send wx id) on?))]
-      [is-checked? (lambda () (send (mred->wx menu) checked? (send wx id)))])
-    (sequence
-      (super-init label #t menu callback shortcut help-string (lambda (x) (set! wx x) x)))))
-
-(define sub-menu-item%
-  ; >> Not for export <<
-  (class* basic-menu-item% (menu label parent help-string) (submenu-item<%>)
-    (public
-      [get-menu (lambda () menu)])
-    (sequence
-      (super-init parent label help-string menu #f (lambda (x) x)))))
-
-(define menu-item-container<%> (interface () get-items))
-
-(define basic-menu%
-  (class* mred% (popup-label callback) (menu-item-container<%>)
-    (public
-      [get-items (lambda () (send wx get-items))])
-    (private
-      [wx (make-object wx-menu% this poopup-label callback)])
-    (sequence (super-init wx))))
-
-(define menu%
-  (class basic-menu% (label parent [help-string #f])
-    (sequence (menu-or-bar-parent 'menu parent))
-    (private
-      [item (make-object sub-menu-item% this label parent help-string)])
-    (public
-      [get-item (lambda () item)])
-    (sequence (super-init #f void))))
-
-(define popup-menu%
-  (class basic-menu% (title callback)
-    (super-init title callback)))
-
-(define menu-bar%
-  (class* mred% (frame) (menu-item-container<%>)
-    (private [wx (make-object wx-menu-bar% this)])
-    (public
-      [get-items (lambda () (send wx get-items))]
-      [enable (lambda (on?) (send wx enable-all on?))]
-      [is-enabled? (lambda () (send wx all-enabled?))])
-    (sequence 
-      (frame-parent-only 'menu-bar parent)
-      (let ([wx ])
-	(super-init wx)
-	(send frame set-menu-bar wx)))))
-
 ;;;;;;;;;;;;;;;;;;;;;;;;; mred Class Construction ;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;------------ More helpers ---------------
-  
-(define wx-key (gensym))
-(define (mred->wx w) (send w get-low-level-window wx-key))
-(define (wx->mred w) (send w get-mred))
-(define (wx->proxy w) (send w get-proxy))
+
+(define wx-get-mred (make-generic wx<%> get-mred))
+(define wx-get-proxy (make-generic wx/proxy<%> get-proxy))
+
+(define (wx->mred w) ((wx-get-mred w)))
+(define (wx->proxy w) ((wx-get-proxy w)))
 
 (define (param get-obj method)
   (case-lambda
@@ -1913,10 +1739,21 @@
 
 (define mred%
   (class null (wx)
-    [get-low-level-window (lambda (key)
+    (public
+      [get-low-level-window (lambda (key)
 			      (unless (eq? key wx-key)
 				(error 'get-low-level-window "bad key"))
-			      wx)]))
+			      wx)])))
+
+(define (wrap-callback cb)
+  (if (and (procedure? cb)
+	     (procedure-arity-includes? cb 2))
+      (lambda (w e) (cb (wx->mred w) e))
+      cb))
+
+(define mred-get-low-level-window (make-generic mred% get-low-level-window))
+(define wx-key (gensym))
+(define (mred->wx w) ((mred-get-low-level-window w) wx-key))
 
 ;---------------- Window interfaces and base classes ------------
 
@@ -1947,9 +1784,9 @@
       [has-focus? (lambda () (send wx has-focus?))]
       [enable (lambda (on?) (send wx enable on?))]
       [is-enabled? (lambda () (send wx is-enabled?))]
-      [parent (lambda ()
-		(let ([p (send wx get-parent)])
-		  (and p (wx->mred p))))]
+      [get-parent (lambda ()
+		    (let ([p (send wx get-parent)])
+		      (and p (wx->mred p))))]
       
       [get-label (lambda () label)]
       [set-label (lambda (l) (set! label l))]
@@ -1995,7 +1832,7 @@
     (private
       [wx (mk-wx)])
     (sequence
-      (super-init wx)))
+      (super-init wx))))
 
 (define subwindow-container<%> (interface (window<%>) get-subwindows))
 
@@ -2051,17 +1888,17 @@
   (interface (window<%>)
     min-width min-height
     horiz-margin vert-margin
-    horiz-stretchable vert-stretchable))
+    stretchable-width stretchable-height))
 
-(define basic-child-window%
+(define basic-subwindow%
   (class* basic-window% (subwindow<%>) (mk-wx label cursor)
     (public
       [min-width (param (lambda () wx) 'min-width)]
       [min-height (param (lambda () wx) 'min-height)]
       [horiz-margin (param (lambda () wx) 'x-margin)]
       [vert-margin (param (lambda () wx) 'y-margin)]
-      [horiz-stretchable (param (lambda () wx) 'stretchable-in-x)]
-      [vert-stretchable (param (lambda () wx) 'stretchable-in-y)])
+      [stretchable-width (param (lambda () wx) 'stretchable-in-x)]
+      [stretchable-height (param (lambda () wx) 'stretchable-in-y)])
     (private
       [wx #f])
     (sequence (super-init (lambda () (set! wx (mk-wx)) wx) label cursor))))
@@ -2070,12 +1907,13 @@
   (interface (subwindow<%>)))
 
 (define basic-control%
-  (class* basic-child-window% (control<%>) (mk-wx label cursor)
+  (class* basic-subwindow% (control<%>) (mk-wx label cursor)
     (rename [super-set-label set-label])
     (public
       [set-label (lambda (l)
 		   (send wx set-label l)
-		   (super-set-label l))])
+		   (super-set-label l))]
+      [command (lambda (e) (send wx command e))])
     (private
       [wx #f])
     (sequence
@@ -2084,12 +1922,14 @@
 ;--------------------- Final mred class construction --------------------
     
 (define frame%
-  (class basic-top-level-window% (label [parent #f] [x #f] [y #f] [width #f] [height #f] [style null])
+  (class basic-top-level-window% (label [parent #f] [x #f] [y #f] [width #f] [height #f] [style wx:const-default-frame-style])
     (private
       [wx #f])
     (public
       [create-status-line (lambda () (send wx create-status-line))]
-      [set-status-line (lambda () (send wx create-status-line))])
+      [set-status-line (lambda () (send wx create-status-line))]
+      [get-menu-bar (lambda () (let ([mb (ivar wx menu-bar)])
+				 (and mb (wx->mred mb))))])
     (sequence
       (super-init (lambda () 
 		    (set! wx (make-object wx-frame% this this
@@ -2100,7 +1940,7 @@
 		  label))))
 
 (define dialog-box%
-  (class basic-top-level-window% (label [modal? #t] [parent #f] [x #f] [y #f] [width #f] [height #f] [style null])
+  (class basic-top-level-window% (label [modal? #t] [parent #f] [x #f] [y #f] [width #f] [height #f] [style wx:const-default-dialog-style])
     (sequence
       (super-init (lambda () (make-object wx-dialog-box% this this
 					  (and parent (mred->wx parent)) label modal?
@@ -2122,7 +1962,7 @@
     (sequence
       (panel-parent-only 'button parent)
       (super-init (lambda () (make-object wx-button% this this
-					  (mred->wx parent) callback
+					  (mred->wx parent) (wrap-callback callback)
 					  label -1 -1 -1 -1 style))
 		  label #f))))
 
@@ -2137,13 +1977,13 @@
     (sequence
       (super-init (lambda () 
 		    (set! wx (make-object wx-check-box% this this
-					  (mred->wx parent) callback
+					  (mred->wx parent) (wrap-callback callback)
 					  label -1 -1 -1 -1 style))
 		    wx)
 		  label #f))))
 
 (define radio-box%
-  (class basic-control% (label choices parent callback [style '(horizontal)])
+  (class basic-control% (label choices parent callback [style '(vertical)])
     (sequence (panel-parent-only 'radio-box parent) (check-orientation 'radio-box style))
     (private
       [wx #f])
@@ -2166,8 +2006,8 @@
     (sequence
       (super-init (lambda () 
 		    (set! wx (make-object wx-radio-box% this this
-					  (mred->wx parent) callback
-					  label choices -1 -1 -1 -1 0 style))
+					  (mred->wx parent) (wrap-callback callback)
+					  label -1 -1 -1 -1 choices 0 style))
 		    wx)
 		  label #f))))
 
@@ -2182,13 +2022,13 @@
     (sequence
       (super-init (lambda () 
 		    (set! wx (make-object wx-slider% this this
-					  (mred->wx parent) callback
+					  (mred->wx parent) (wrap-callback callback)
 					  label value min-val max-val style))
 		    wx)
 		  label #f))))
 
 (define gauge%
-  (class basic-control% (label parent callback range [style '(horizontal)])
+  (class basic-control% (label parent range [style '(horizontal)])
     (sequence (panel-parent-only 'gauge parent) (check-orientation 'gauge style))
     (private
       [wx #f])
@@ -2198,7 +2038,7 @@
     (sequence
       (super-init (lambda () 
 		    (set! wx (make-object wx-gauge% this this
-					  (mred->wx parent) callback
+					  (mred->wx parent)
 					  label range style))
 		    wx)
 		  label #f))))
@@ -2214,7 +2054,7 @@
     set-string-selection))
 
 (define basic-list-control%
-  (class* basic-control% (mk-wx label) (list-control<%>)
+  (class* basic-control% (list-control<%>) (mk-wx label)
     (public
       [append (lambda (i) (send wx append i))]
       [clear (lambda () (send wx clear))]
@@ -2235,13 +2075,21 @@
     (sequence
       (panel-parent-only 'choice parent)
       (super-init (lambda () (make-object wx-choice% this this
-					  (mred->wx parent) callback
+					  (mred->wx parent) (wrap-callback callback)
 					  label -1 -1 -1 -1 choices style))
 		  label))))
 
 (define list-box%
-  (class basic-list-control% (label choices parent callback [kind 'single] [style null])
-    (sequence (panel-parent-only 'list-box parent))
+  (class basic-list-control% (label choices parent callback [style '(single)])
+    (sequence 
+      (panel-parent-only 'list-box parent)
+      (let ([c (+ (if (memq 'single style) 0 1)
+		  (if (memq 'multiple style) 0 1)
+		  (if (memq 'extended style) 0 1))])
+	(when (zero? c)
+	  (error 'list-box-constructor "style does not specify single, multiple, or extended: ~a" style))
+	(when (> c 1)
+	  (error 'list-box-constructor "style specifies more than one of single, multiple, or extended: ~a" style))))
     (rename [super-append append])
     (public
       [append (case-lambda
@@ -2264,9 +2112,15 @@
       [wx #f])
     (sequence
       (super-init (lambda () 
-		    (set! wx (make-object wx-list-box% this this
-					  (mred->wx parent) callback
-					  label kind -1 -1 -1 -1 choices style))
+		    (let-values ([(kind style)
+				  (cond
+				   [(memq 'single style) (values 'single (remq 'single style))]
+				   [(memq 'multiple style) (values 'multiple (remq 'multiple style))]
+				   [else (values 'extended (remq 'extended style))])])
+		      (set! wx (make-object wx-list-box% this this
+					    (mred->wx parent) (wrap-callback callback)
+					    label kind
+					    -1 -1 -1 -1 choices style)))
 		    wx)
 		  label))))
 
@@ -2275,7 +2129,7 @@
     get-edit get-value set-value))
 
 (define (make-text% wx-text% who)
-  (class* basic-control% (label parent callback [init-val ""] [style null]) (text-control<%>)
+  (class* basic-control% (text-control<%>) (label parent callback [init-val ""] [style null])
     (sequence (panel-parent-only who parent))
     (private
       [wx #f])
@@ -2286,7 +2140,7 @@
     (sequence
       (super-init (lambda () 
 		    (set! wx (make-object wx-text% this this
-					  (mred->wx parent) callback
+					  (mred->wx parent) (wrap-callback callback)
 					  label init-val style))
 		    wx)
 		  label ibeam))))
@@ -2299,19 +2153,19 @@
 (define canvas-default-size 20) ; an arbitrary default size for canvases to avoid initial size problems
 
 (define canvas<%>
-  (interface ()
+  (interface (subwindow<%>)
     on-char on-event on-paint on-scroll
-    popup-menu warp-pointer dc))
+    popup-menu warp-pointer get-dc))
 
 (define basic-canvas%
-  (class* basic-control% (canvas<%>) (mk-wx)
+  (class* basic-subwindow% (canvas<%>) (mk-wx)
     (public
       [on-char (lambda (e) (send wx do-on-char e))]
       [on-event (lambda (e) (send wx do-on-event e))]
       [on-paint (lambda () (send wx do-on-paint))]
       [on-scroll (lambda (e) (send wx do-on-scroll e))]
       
-      [popup-menu (lambda (m x y) (send wx popup-menu m x y))]
+      [popup-menu (lambda (m x y) (send wx popup-menu (mred->wx m) x y))]
       [warp-pointer (lambda (x y) (send wx warp-pointer x y))]
 
       [get-dc (lambda () (send wx get-dc))])
@@ -2343,6 +2197,8 @@
       [set-scroll-range (lambda (v) (send wx set-scroll-range v))]
       [get-scroll-page (lambda () (send wx get-scroll-page))]
       [set-scroll-page (lambda (v) (send wx set-scroll-page v))])
+    (private
+      [wx #f])
     (sequence
       (super-init (lambda () 
 		    (set! wx (make-object wx-canvas% this this
@@ -2391,7 +2247,7 @@
 (define internal-panel<%> (interface ()))
 
 (define basic-panel%
-  (class* basic-child-window% (panel<%> internal-panel<%>) (mk-wx) 
+  (class* basic-subwindow% (panel<%> internal-panel<%>) (mk-wx) 
     (public
       [get-subwindows (lambda () (map wx->mred (ivar wx children)))]
       [get-control-font (lambda () (send wx get-button-font))]
@@ -2443,4 +2299,266 @@
 (define horizontal-panel% (make-a-panel% basic-linear-panel% wx-horizontal-panel%))
 
 
-;------------ Menu classes ---------------
+;;;;;;;;;;;;;;;;;;;;;; Menu classes ;;;;;;;;;;;;;;;;;;;;;;
+
+(define (find-pos l i)
+  (let loop ([l l][n 0])
+    (cond
+     [(null? l) n]
+     [(eq? (car l) i) n]
+     [else (loop (cdr l) (add1 n))])))
+
+(define (menu-parent-only who p)
+  (unless (is-a? p internal-menu<%>)
+    (raise-type-error (string->symbol (format "~a-constructor" who))
+		      "parent menu% or popup-menu% object" p)))
+
+(define (menu-or-bar-parent who p)
+  (unless (or (is-a? p internal-menu<%>) (is-a? p menu-bar%))
+    (raise-type-error (string->symbol (format "~a-constructor" who))
+		      "parent menu%, popup-menu%, or menu-bar% object" p)))
+
+(define (barless-frame-parent p)
+  (unless (is-a? p frame%)
+    (raise-type-error 'menu-bar-cnostructor "parent frame% object" p))
+  (when (send (mred->wx p) get-menu-bar)
+    (error 'menu-bar-constructor "the specified frame already has a menu bar")))
+
+(define wx-menu-item%
+  (class* wx:menu-item% (wx<%>) (mred)
+    (public
+      [get-mred (lambda () mred)])
+    (sequence
+      (super-init))))
+
+(define wx-menu-bar%
+  (class* wx:menu-bar% (wx<%>) (mred)
+    (inherit delete)
+    (rename [super-append append])
+    (private
+      [items null])
+    (public
+      [get-mred (lambda () mred)]
+      [get-items (lambda () items)]
+      [append-item (lambda (item menu title)
+		     (super-append menu title)
+		     (set! items (append items (list item))))]
+      [delete-item (lambda (i)
+		     (let ([p (position-of i)])
+		       (set! items (remq i items))
+		       (delete #f p)))]
+      [position-of (lambda (i) (find-pos items i))])
+    (sequence
+      (super-init null null))))
+
+(define wx-menu%
+  (class* wx:menu% (wx<%>) (mred popup-label popup-callback)
+    (private
+      [items null])
+    (inherit delete-by-position)
+    (rename [super-delete delete])
+    (public
+      [get-mred (lambda () mred)]
+      [get-items (lambda () items)]
+      [append-item (lambda (i) (set! items (append items (list i))))]
+      [delete (lambda (id i) (super-delete id) (set! items (remq i items)))]
+      [delete-sep (lambda (i) (delete-by-position (find-pos items i)) (set! items (remq i items)))])
+    (sequence
+      (super-init popup-label popup-callback))))
+
+;; Most of the work is in the item. Anything that appears in a menubar or
+;;  menu has an item. Submenus are created as instances of menu%, but
+;;  menu% has a get-item method for manipulating the menu w.r.t. the parent
+;;  (e.g., changing the title or enabled state). A popup menu, created
+;;  as an instance of popup-menu%, has no item.
+;;
+;; A menu bar is created as a menu-bar%, given a frame as its parent. The
+;;  frame must not already have a menu bar.
+;;
+;;  Plain labeled items are created as instances of menu-item% or
+;;   checkable-menu-item%. The parent must be a menu-item-container<%>,
+;;   which is a menu%, popup-menu%, or menu-bar%
+
+(define menu-item<%>
+  (interface ()
+    get-parent
+    delete restore is-deleted?))
+
+(define labelled-menu-item<%>
+  (interface (menu-item<%>)
+    get-label set-label get-plain-label
+    get-help-string set-help-string
+    enable is-enabled?))
+
+(define submenu-item<%>
+  (interface (labelled-menu-item<%>) get-menu))
+
+(define separator-menu-item%
+  (class* mred% (menu-item<%>) (parent)
+    (sequence (menu-parent-only 'separator-menu-item parent))
+    (private
+      [wx (make-object wx-menu-item% this)]
+      [shown? #f]
+      [wx-parent (mred->wx parent)])
+    (public
+      [get-parent (lambda () parent)]
+      [restore (lambda ()
+		 (unless shown?
+		   (send wx-parent append-separator)
+		   (send wx-parent append-item this)
+		   (set! shown? #t)))]
+      [delete (lambda ()
+		(when in-menu?
+		  (send wx-parent delete-sep this)
+		  (set! shown? #f)))]
+      [is-deleted? (lambda () (not in-menu?))])
+    (sequence
+      (super-init wx)
+      (restore))))
+
+(define basic-labelled-menu-item%
+  (class* mred% (labelled-menu-item<%>) (parent label help-string submenu checkable? set-wx)
+    (private
+      [wx (set-wx (make-object wx-menu-item% this))]
+      [wx-parent (mred->wx parent)]
+      [plain-label (wx:strip-menu-codes label)]
+      [in-menu? (is-a? parent basic-menu%)]
+      [shown? #f]
+      [enabled? #t]
+      [do-enable (lambda (on?)
+		   (if in-menu?
+		       (send wx-parent enable (send wx id) on?)
+		       (send wx-parent enable-top (send wx-parent position-of this) on?))
+		   (set! enabled? (and on? #t)))])
+    (public
+      [get-parent (lambda () parent)]
+      [get-label (lambda () label)]
+      [set-label (lambda (l)
+		   (set! label l)
+		   (set! plain-label (wx:strip-menu-codes l))
+		   (when shown?
+		     (if in-menu?
+			 (send wx-parent set-label (send wx id) label)
+			 (send wx-parent set-label-top (send wx-parent position-of this) plain-label))))]
+      [get-plain-label (lambda () plain-label)]
+      [get-help-string (lambda () help-string)]
+      [set-help-string (lambda (s) (set! help-string s)
+			       (send wx-parent set-help-string (send wx id) s))]
+      [enable (lambda (on?) (do-enable on?))]
+      [is-enabled? (lambda () enabled?)]
+      [restore (lambda ()
+		 (unless shown?
+		   (if in-menu?
+		       (begin
+			 (if submenu
+			     (send wx-parent append (send wx id) plain-label (mred->wx submenu) help-string)
+			     (send wx-parent append (send wx id) label help-string checkable?))
+			 (send wx-parent append-item this))
+		       (send wx-parent append-item this (mred->wx submenu) plain-label))
+		   (set! shown? #t)
+		   (do-enable enabled?)))]
+      [delete (lambda ()
+		(when shown?
+		  (if in-menu?
+		      (send wx-parent delete (send wx id) this)
+		      (send (mred->wx parent) delete-item this))
+		  (set! shown? #f)))]
+      [is-deleted? (lambda () (not shown?))])
+    (sequence
+      (super-init wx)
+      (restore))))
+
+(define basic-label-menu-item%
+  (class basic-labelled-menu-item% (label checkable? menu callback shortcut help-string set-wx)
+    (private
+      [wx #f])
+    (public
+      [go (lambda () (callback this (make-object wx:control-event% 'menu)))])
+    (sequence
+      (let ([new-label (if shortcut
+			   (string-append
+			    label
+			    (case (system-type)
+			      [(unix) (format "~aCtl+m ~a" #\tab (char-downcase shortcut))]
+			      [(windows) (format "~aCtl+~a" #\tab (char-upcase shortcut))]
+			      [(macos) (format "~aCmd-~a" #\tab (char-upcase shortcut))]))
+			   label)]
+	    [key-binding (and shortcut
+			      (case (system-type)
+				[(unix) (format "c:m;~a" (char-downcase shortcut))]
+				[(windows) (format "c:~a" (char-downcase shortcut))]
+				[(macos) (format "d:~a" (char-downcase shortcut))]))])
+	(super-init menu new-label help-string #f checkable? (lambda (x) (set! wx x) (set-wx x)))))))
+
+(define menu-item%
+  (class basic-label-menu-item% (label menu callback [shortcut #f] [help-string #f])
+    (sequence 
+      (menu-parent-only 'menu-item menu)
+      (super-init label #f menu callback shortcut help-string (lambda (x) x)))))
+
+(define checkable-menu-item%
+  (class basic-label-menu-item% (label menu callback [shortcut #f] [help-string #f])
+    (sequence (menu-parent-only 'checkable-menu-item menu))
+    (private
+      [wx #f])
+    (public
+      [check (lambda (on?) (send (mred->wx menu) check (send wx id) on?))]
+      [is-checked? (lambda () (send (mred->wx menu) checked? (send wx id)))])
+    (sequence
+      (super-init label #t menu callback shortcut help-string (lambda (x) (set! wx x) x)))))
+
+(define sub-menu-item%
+  ; >> Not for export <<
+  (class* basic-labelled-menu-item% (submenu-item<%>) (menu label parent help-string)
+    (public
+      [get-menu (lambda () menu)])
+    (sequence
+      (super-init parent label help-string menu #f (lambda (x) x)))))
+
+(define menu-item-container<%> (interface () get-items))
+(define internal-menu<%> (interface ()))
+
+(define basic-menu%
+  (class* mred% (menu-item-container<%> internal-menu<%>) (popup-label callback)
+    (public
+      [get-items (lambda () (send wx get-items))])
+    (private
+      [wx (make-object wx-menu% this popup-label callback)])
+    (sequence (super-init wx))))
+
+(define menu%
+  (class basic-menu% (label parent [help-string #f])
+    (sequence 
+      (menu-or-bar-parent 'menu parent)
+      (super-init #f void))
+    (private
+      [item (make-object sub-menu-item% this label parent help-string)])
+    (public
+      [get-item (lambda () item)])))
+
+(define popup-menu%
+  (class basic-menu% (title)
+    (sequence
+      (super-init title
+		  (lambda (m e)
+		    (let ([wx (wx:id-to-menu-item (send e get-menu-id))])
+		      (send (wx->mred wx) go)))))))
+
+(define menu-bar%
+  (class* mred% (menu-item-container<%>) (parent)
+    (sequence (barless-frame-parent parent))
+    (private 
+      [wx (make-object wx-menu-bar% this)]
+      [wx-parent (mred->wx parent)]
+      [shown? #f])
+    (public
+      [get-items (lambda () (send wx get-items))]
+      [enable (lambda (on?) (send wx enable-all on?))]
+      [is-enabled? (lambda () (send wx all-enabled?))]
+      [show (lambda (on?) 
+	      (set! shown? (and on? #t))
+	      (send wx-parent set-menu-bar (and on? wx)))]
+      [is-shown? (lambda () shown?)])
+    (sequence
+      (super-init wx)
+      (show #t))))
