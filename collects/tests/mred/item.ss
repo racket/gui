@@ -1425,7 +1425,9 @@
 		       (send dc draw-line 0 vh vw vh)
 		       (send dc draw-line vw 0 vw vh))))]
 		[on-scroll
-		 (lambda (e) (unless (and auto? incremental?) (on-paint)))]
+		 (lambda (e) 
+		   (when auto? (printf "Hey - on-scroll called for auto scrollbars~n"))
+		   (unless incremental? (on-paint)))]
 		[init-auto-scrollbars (lambda x
 					(set! auto? #t)
 					(apply super-init-auto-scrollbars x))]
