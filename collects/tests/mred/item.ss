@@ -1913,6 +1913,19 @@
   (define ecv (make-object editor-canvas% (make-container hp2) #f '(no-hscroll)))
   (define echv (make-object editor-canvas% (make-container hp2) #f '()))
 
+  (define hp3 (make-object horizontal-panel% f))
+  
+  (define pec (make-object editor-canvas% (make-container hp3) #f '(no-border no-hscroll no-vscroll)))
+  (define pech (make-object editor-canvas% (make-container hp3) #f '(no-border no-vscroll)))
+  (define pecv (make-object editor-canvas% (make-container hp3) #f '(no-border no-hscroll)))
+  (define pechv (make-object editor-canvas% (make-container hp3) #f '(no-border )))
+
+  (define hp4 (make-object horizontal-panel% f))
+  (define chvh (make-object canvas% (make-container hp4) '(border hscroll vscroll)))
+  (define chvv (make-object canvas% (make-container hp4) '(border hscroll vscroll)))
+  (send chvh show-scrollbars #t #f)
+  (send chvv show-scrollbars #f #t)
+
   (send f show #t))
 
 ;----------------------------------------------------------------------
