@@ -505,6 +505,7 @@
   (define-class font% object% #f
     get-font-id
     get-underlined
+    get-smoothing
     get-weight
     get-point-size
     get-style
@@ -1327,6 +1328,10 @@
     set-weight-on
     get-weight-off
     set-weight-off
+    get-smoothing-on
+    set-smoothing-on
+    get-smoothing-off
+    set-smoothing-off
     get-style-on
     set-style-on
     get-style-off
@@ -1366,6 +1371,7 @@
     get-foreground
     get-font
     get-underlined
+    get-smoothing
     get-style
     get-weight
     get-size

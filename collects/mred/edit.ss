@@ -56,6 +56,20 @@
     (append-editor-operation-menu-items edit-menu #f)
 
     (append-editor-font-menu-items font-menu)
+    (let ([m (make-object menu% "Smoothing" font-menu)])
+      (let ([mk (lambda (name v)
+		  (make-object menu-item% name m
+			       (lambda (i e)
+				 (let* ([o (send f get-edit-target-object)])
+				   (and o
+					(o . is-a? . editor<%>)
+					(send o change-style 
+					      (make-object style-delta% 'change-smoothing v)))))))])
+	(mk "Default" 'family+size-default)
+	(mk "System Default" 'system-default)
+	(mk "Smoothed" 'smoothed)
+	(mk "Not Smoothed" 'unsmoothed)))
+
     ((current-text-keymap-initializer) (send e get-keymap))
     (send c set-editor e)
 
