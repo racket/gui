@@ -193,7 +193,7 @@
 			"Auto-save files?" (get-preference 'mred:autosaving-on?))
 	    (make-check (lambda (_ command) 
 			  (set-preference 'mred:delete-forward? (not (send command checked?))))
-			"Map delete to backspace?" (get-preference 'mred:delete-forward?))
+			"Map delete to backspace?" (not (get-preference 'mred:delete-forward?)))
 	    (make-check (lambda (_ command) 
 			  (set-preference 'mred:file-dialogs (if (send command checked?)
 								 'std

@@ -29,10 +29,12 @@
 	    [auto-save-out-of-date? #t]
 	    [auto-save-error? #f])
 	  (public
-	    [get-file (lambda (d) (let ([v (mred:finder:get-file d)])
-				    (if v
-					v
-					'())))]
+	    [get-file (lambda (d) 
+			(printf "d: ~aget-filename:~a ~n" d (send this get-filename))
+			(let ([v (mred:finder:get-file d)])
+			  (if v
+			      v
+			      '())))]
 	    [put-file (lambda (d f) (let ([v (mred:finder:put-file f d)])
 				      (if v
 					  v
