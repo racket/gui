@@ -342,7 +342,7 @@
       (send p stretchable-height stretchy?)
       
       (let ()
-	(define l (make-object (trace-mixin message%) "Me&ssage" p))
+	(define l (make-object (trace-mixin message%) "Me&ssag\351" p)) ; 351 is e with '
 	(define il (make-object (trace-mixin message%) return-bmp p))
 	
 	(add-testers "Message" l)
@@ -354,7 +354,7 @@
 	(values l il))))
   
   (define b (make-object (trace-mixin button%)
-			 "He&llo" ip 
+			 "H\351&llo" ip ; 351 is e with '
 			 (lambda (b e)
 			   (send b enable #f)
 			   (sleep/yield 5)
@@ -365,17 +365,17 @@
   ; (define ib2 (make-object button% return-bmp ip void))
   
   (define lb (make-object (trace-mixin list-box%)
-			  (if null-label? #f "L&ist")
-			  '("Apple" "Banana" "Coconut & Donuts" "Eclair" "French Fries" "Gatorade" "Huevos Rancheros")
+			  (if null-label? #f "L\355&st") ; 355 is i with '
+			  '("Appl\351" "Banana" "Coconut & Donuts" "Eclair" "French Fries" "Gatorade" "Huevos Rancheros") ; 351 is e with '
 			  ip void))
   
-  (define cb (make-object (trace-mixin check-box%) "C&heck" ip void))
+  (define cb (make-object (trace-mixin check-box%) "C&h\351ck" ip void)) ; 351 is e with '
   
   (define icb (make-object (trace-mixin check-box%) mred-bmp ip void))
   
   (define rb (make-object (trace-mixin radio-box%)
-			  (if null-label? #f "R&adio")
-			  '("First" "Dos" "T&rio")
+			  (if null-label? #f "R&ad\355o") ; 355 is i with '
+			  '("F\355rst" "Dos" "T&rio")
 			  ip void 
 			  (if radio-h?
 			      '(horizontal)
@@ -390,12 +390,12 @@
 				'(vertical))))
   
   (define ch (make-object (trace-mixin choice%)
-			  (if null-label? #f "Ch&oice")
-			  '("Alpha" "Beta" "Gamma" "Delta & Rest")
+			  (if null-label? #f "Ch&o\355ce") ; 355 is i with '
+			  '("Alpha" "Beta" "Gamma" "Delta & R\351st") ; 351 is e with '
 			  ip void))
   
   (define txt (make-object (trace-mixin text-field%)
-			   (if null-label? #f "T&ext")
+			   (if null-label? #f "T\351&xt") ; 351 is e with '
 			   ip void
 			   "initial & starting"))
   
@@ -465,7 +465,7 @@
 
 (define (big-frame h-radio? v-label? null-label? stretchy? special-label-font? special-button-font? 
 		   initially-disabled?)
-  (define f (make-frame active-frame% "Tester"))
+  (define f (make-frame active-frame% "T\351ster")) ; 351 is e with '
   
   (define hp (make-object horizontal-panel% f))
   
