@@ -877,7 +877,17 @@
 								       (make-object point% 0 20)
 								       (make-object point% 20 10))
 							 100 310)
-						   p)))
+						   p))
+
+			      (send dc draw-line 130 310 150 310)
+			      (send dc draw-line 130 312.5 150 312.5)
+			      (send dc draw-line 130 314.3 150 314.3)
+			      (send dc draw-line 130 316.7 150 316.7)
+
+			      (let ([p (send dc get-pen)])
+				(send dc set-pen "blue" 8 'solid)
+				(send dc draw-rectangle 160 310 20 20)
+				(send dc set-pen p)))
 			      
 			    (when (and last? (not (or ps? (eq? dc can-dc)))
 				       (send mem-dc get-bitmap))
