@@ -1545,7 +1545,7 @@
        [is-mdi-parent? #f])
      (public
        [get-the-menu-bar (lambda () menu-bar)]
-       [get-mdi-parent (lambda (x) x)]
+       [get-mdi-parent (lambda () is-mdi-parent?)]
        [set-mdi-parent (lambda (x) (and (set! is-mdi-parent? x) #t))])
      (override
        [set-menu-bar
