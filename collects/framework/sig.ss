@@ -1,8 +1,8 @@
 (module sig mzscheme
-  (require (lib "unitsig.ss"))
-  (require "test-sig.ss")
-  (require "guiutils-sig.ss")
-  (require "private/sig.ss")
+  (require (lib "unitsig.ss")
+	   "test-sig.ss"
+	   "guiutils-sig.ss"
+	   "private/sig.ss")
 
   (provide framework^ frameworkc^)
 
