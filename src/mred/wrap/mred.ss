@@ -178,6 +178,10 @@
 (define (key-regexp c)
   (regexp (format "(^|[^&])&[~a~a]" (char-downcase c) (char-upcase c))))
 
+
+(define (do-command c e)
+  (as-exit (lambda () (send c command e))))
+
 ;;;;;;;;;;;;;;; Focus-tabbing helpers ;;;;;;;;;;;;;;;;;;;;
 
 (define (traverse x y w h dir dests)
@@ -696,7 +700,7 @@
 				  (and (is-a? x wx:button%)
 				       (send x has-border?)
 				       (let ([v (make-object wx:control-event% 'button)])
-					 (as-exit (lambda () (send x command v)))
+					 (do-command x v)
 					 #t)))
 				objs)
 			       (not (is-a? o wx-text-editor-canvas%))))))]
@@ -713,17 +717,17 @@
 		   (let ([o (get-focus-window)])
 		     (cond
 		      [(is-a? o wx:button%)
-		       (send o command (make-object wx:control-event% 'button))
+		       (do-command o (make-object wx:control-event% 'button))
 		       #t]
 		      [(is-a? o wx:check-box%) 
 		       (send o set-value (not (send o get-value)))
-		       (send o command (make-object wx:control-event% 'check-box))
+		       (do-command o (make-object wx:control-event% 'check-box))
 		       #t]
 		      [(is-a? o wx:radio-box%)
 		       (let ([s (send o button-focus -1)])
 			 (unless (negative? s)
 			   (send o set-selection s)
-			   (send o command (make-object wx:control-event% 'radio-box))))
+			   (do-command o (make-object wx:control-event% 'radio-box))))
 		       #t]
 		      [else #f]))]
 		  [(#\tab left up down right) 
@@ -1247,7 +1251,7 @@
 	(entry-point-1
 	 (lambda (id)
 	   (let ([wx (wx:id-to-menu-item id)])
-	     (as-exit (lambda () (send (wx->mred wx) command (make-object wx:control-event% 'menu)))))))])
+	     (do-command (wx->mred wx) (make-object wx:control-event% 'menu)))))])
      (public
        [handle-menu-key
 	(lambda (event)
@@ -2831,7 +2835,7 @@
 		    (send wx set-label l)
 		    (set! label l)))])
     (public
-      [command (entry-point-1 (lambda (e) (as-exit (lambda () (send wx command e)))))])
+      [command (lambda (e) (send wx command e))]) ; no entry/exit needed
     (private
       [wx #f])
     (sequence
