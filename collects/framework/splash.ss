@@ -92,12 +92,16 @@
 	 [(v-panel) (make-object vertical-panel% h-panel)]
 	 [(splash-messages)
 	  (and show-messages?
-	       (cons (make-object message% (format "Welcome to ~a" title) v-panel)
-		     (let loop ([n (- splash-max-depth 1)])
-		       (cond
-			[(zero? n) null]
-			[else (cons (make-object message% "" v-panel)
-				    (loop (sub1 n)))]))))]
+	       (let ([msgs
+		      (let loop ([n (max 1 splash-max-depth)])
+			(cond
+			  [(zero? n) null]
+			  [else (cons (let ([msg (make-object message% "" v-panel)])
+					(send msg stretchable-width #t)
+					msg)
+				      (loop (sub1 n)))]))])
+		 (send (car msgs) set-label (format "Welcome to ~a" title))
+		 msgs))]
 	 [(_) (begin
 		(send frame set-alignment 'left 'center)
 		(send v-panel set-alignment 'left 'top)
