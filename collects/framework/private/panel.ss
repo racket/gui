@@ -295,8 +295,9 @@
  			      cursor-gaps)])
  		  (set-cursor (and (or gap
  				       resizing-dim)
- 				   (send (icon:get-up/down-cursor) ok?)
- 				   (get-gap-cursor)))
+				   (let ([c (get-gap-cursor)])
+				     (and (send c ok?)
+					  c))))
  		  (cond
  		   [(and gap (send evt button-down? 'left))
  		    (set! resizing-dim (event-get-dim evt))
@@ -322,7 +323,9 @@
  			  (set! resizing-dim (event-get-dim evt))
  			  (container-flow-modified))))]
  		   [else (super-on-subwindow-event receiver evt)]))
- 		(super-on-subwindow-event receiver evt)))
+		(begin
+		  (set-cursor #f)
+		  (super-on-subwindow-event receiver evt))))
            
  	  (define cursor-gaps null)
            
