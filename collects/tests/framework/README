@@ -1,3 +1,4 @@
+`(#|
 		      Framework Test Suite Overview
 
 Each tests will rely on the sucessfully completion of all of the ones
@@ -10,24 +11,18 @@ There will be a main mzscheme process which will start up a new mred
 as necessary for the test suites. Since some tests actually require
 mred to exit in order to pass, this governor is required.
 
-- preferences: prefs.ss
+- preferences: |# prefs.ss #|
 
   | This tests that preferences are saved and restored correctly, both
   | immediately and across reboots of mred.
-
-- container classes: contain.ss
-  
-  | These tests will open various configurations of windows and
-  | buttons, etc and check to make sure that the buttons and windows are
-  | placed in the expected positions.
 
 - individual object tests:
 
   | These tests are simple object creation and basic operations.
 
-  - edits: edit.ss
-  - frames: frame.ss
-  - canvases: canvas.ss
+  - edits: |# edit.ss #|
+  - frames: |# frame.ss #|
+  - canvases: |# canvas.ss #|
 
 - basic connections between classes
 
@@ -35,29 +30,29 @@ mred to exit in order to pass, this governor is required.
   | trigger situations to test their functionality. Fake user input
   | expected.
 
-  - edits to canvases: edit-canvas.ss
-  - canvases to frames: canvas-frame.ss
-  - edits to frames: edit-frame.ss
+  - edits to canvases: |# edit-canvas.ss #|
+  - canvases to frames: |# canvas-frame.ss #|
+  - edits to frames: |# edit-frame.ss #|
 
-- keybindings: keys.ss
+- keybindings: |# keys.ss #|
 
   | This tests all of the misc (non-scheme) keybindings
 
-- searching: search.ss
+- searching: |# search.ss #|
 
   | This tests the seaching frame.
 
-- info: info.ss
+- info: |# info.ss #|
 
   | This tests the info frame. (ie that toolbar on the bottom of the
                                 screen)
 
-- group tests: group.ss
+- group tests: |# group.ss #|
 
   | make sure that mred:the-frame-group records frames correctly.
   | fake user input expected.
 
-- parenthesis toolkit: paren.ss
+- parenthesis toolkit: |# paren.ss #|
 
   | Test to be sure that parenthesis matching engine works
   | No fake user input expected.
@@ -66,31 +61,18 @@ mred to exit in order to pass, this governor is required.
 
   | Make sure that Scheme things work in scheme mode.
 
-  - parens: paren.ss
-  - keys: skeys.ss
-  - tabbing: tabbing.ss
+  - parens: |# paren.ss #|
+  - keys: |# skeys.ss #|
+  - tabbing: |# tabbing.ss #|
 
 - saving tests:
 
   | These tests will make sure that the usual checks against a user
   | losing their work are in place.
 
-  - autosaving: autosave.ss
-  - closing: close.ss
-  - quitting: quit.ss (this will be a mzscheme script 
-                       that starts up mred)
-
-- dialog tests
-
-  | These tests will create and exercise the various standard dialogs
-  | that mred provides.
-
-- startup tests: startup/run.ss
-
-  | These tests start up mred and test the command line, and other
-  | startup situations. 
-
-  | They also ensure that the minimal mred system option works.
+  - autosaving: |# autosave.ss #|
+  - closing: |# close.ss #|
+  - quitting: |# quit.ss #|
 
 - docs:
 
@@ -107,3 +89,5 @@ mred to exit in order to pass, this governor is required.
 
     | make sure that the super-class relationships in the docs match
     | the code.
+
+|#)
