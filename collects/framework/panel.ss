@@ -256,10 +256,16 @@
                       grabbed)
              (let-values ([(w h) (get-client-size)])
                (let* ([y (inexact->exact (send mouse-evt get-y))]
-                      [y-min (if (= grabbed 0)
-                                 thumb-min
-                                 (+ (get-thumb-middle (sum-percentages (- grabbed 1)))
-				    thumb-height))]
+                      [y-min 
+                       (let ([min-child-height
+                              (max thumb-height
+                                   (let-values ([(w h) (send (list-ref (send parent get-children) (+ grabbed 1)) get-graphical-min-size)])
+                                     h))])
+                         ;(printf "min-child-height: ~s ~s ~s~n" min-child-height grabbed (send parent get-children))
+                         (if (= grabbed 0)
+                             min-child-height
+                             (+ (get-thumb-middle (sum-percentages (- grabbed 1)))
+                                min-child-height)))]
                       [y-max (if (= grabbed (- (length percentages) 2))
                                  (- h thumb-min)
                                  (- (get-thumb-middle (sum-percentages (+ grabbed 1)))
@@ -398,13 +404,13 @@
 	  ;; remove the thumb canvas from the computation
 	  (let ([lst (if (null? _lst) null (cdr _lst))])
 	    (values
-	     (apply + (map car lst))
 	     (cond
-	      [(null? lst) 0]
-	      [(null? (cdr lst)) (cadr (car lst))]
-	      [else
-	       (+ (send thumb-canvas min-width)
-		  (apply max (map cadr lst)))]))))]
+               [(null? lst) 0]
+               [(null? (cdr lst)) (cadr (car lst))]
+               [else
+                (+ (send thumb-canvas min-width)
+                   (apply max (map car lst)))])
+             (apply + (map cadr lst)))))]
        [place-children
 	(lambda (_infos width height)
 	  (cond
