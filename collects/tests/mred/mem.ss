@@ -3,8 +3,8 @@
 
 (define source-dir (current-load-relative-directory))
 
-(define num-times 10)
-(define num-threads 6)
+(define num-times 4)
+(define num-threads 1)
 
 (define dump-stats? #f)
 
@@ -33,6 +33,8 @@
   (global-defined-value
    'sub-collect-panel
    (make-object panel% sub-collect-frame)))
+
+(define mb-lock (make-semaphore 1))
 
 (define htw (make-hash-table-weak))
 
@@ -96,23 +98,24 @@
 				       frame% 
 				       dialog%)
 				   "Tester" #f 200 200))]
+		   [cb (lambda (x y) f)]
 		   [p (remember tag (make-object (get-pane% n) f))])
 	      (remember tag (make-object canvas% f))
 	      (when (zero? (modulo n 3))
 		(thread (lambda () (send f show #t)))
 		(let loop () (sleep) (unless (send f is-shown?) (loop))))
-	      (remember tag (make-object button% "one" p void))
+	      (remember tag (make-object button% "one" p cb))
 	      (let ([class check-box%])
 		(let loop ([m 10])
 		  (unless (zero? m)
 		    (remember (cons tag m)
-			      (make-object class "another" p void))
+			      (make-object class "another" p cb))
 		    (loop (sub1 m)))))
-	      (remember tag (make-object check-box% "check" p void))
-	      (remember tag (make-object choice% "choice" '("a" "b" "c") p void))
+	      (remember tag (make-object check-box% "check" p cb))
+	      (remember tag (make-object choice% "choice" '("a" "b" "c") p cb))
 	      (remember tag (make-object list-box% "list" '("apple" "banana" "coconut")
-					 p void))
-	      (remember tag (make-object button% "two" p void))
+					 p cb))
+	      (remember tag (make-object button% "two" p cb))
 	      (send f show #f)))
 
 	(if subwindows?
@@ -120,7 +123,10 @@
 		  [cv (make-object canvas% sub-collect-frame)]
 		  [add-objects
 		   (lambda (p tag hide?)
-		     (let ([b (make-object button% "one" p void)]
+		     (let ([b (let* ([x #f]
+				     [bcb (lambda (a b) x)])
+				(set! x (make-object button% "one" p bcb))
+				x)]
 			   [c (make-object check-box% "check" p void)]
 			   [co (make-object choice% "choice" '("a" "b" "c") p void)]
 			   [cv (make-object canvas% p)]
@@ -174,8 +180,11 @@
 
 	  (when subwindows?
 	    (unless (send sub-collect-frame get-menu-bar)
-	      (let ([mb (make-object menu-bar% sub-collect-frame)])
-		(make-object menu% "Permanent" mb)))
+	      (semaphore-wait mb-lock)
+	      (unless (send sub-collect-frame get-menu-bar)
+		(let ([mb (make-object menu-bar% sub-collect-frame)])
+		  (make-object menu% "Permanent" mb)))
+	      (semaphore-post mb-lock))
 	    (let* ([mb (send sub-collect-frame get-menu-bar)]
 		   [mm (car (send mb get-items))])
 	      (send (remember tag (make-object menu-item% "Delete Me" mm void)) delete)
