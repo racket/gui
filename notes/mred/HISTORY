@@ -1,61 +1,8 @@
 
-103/3:
-
- * Added 'wait as a possible argument to `yield'. When called in the
-   handler thread of an eventspace, `(yield 'wait)' yields until no
-   top-level windows in the eventspace are visible, no timers in the
-   eventspace are running, and no callbacks are queued in the
-   eventspace.
-
- * Fixed set-max-undo-history in editor<%>; it wasn't actually
-   resizing the undo history buffer.
-
- * Windows, MacOS: Fixed location of "[Exited]" in stdio window. (PR
-   1600)
-
-103/2:
-
- * Fixed unreliable menu keybindings, especially cut-and-paste. More
-   technically, fixed menu shortcut handling to call the menu bar's
-   `on-demand' method before looking for a key binding.
-
- * Fixed bug in text%'s autowrapper. The bug would manifest itself if
-   snips were deleted from a line created by autowrapping, leaving
-   nothing on the line except a newline. (PR 1592)
-
- * Windows: fixed double-insertion of numbers from Windows numpad. (PR
-   1588 and plt-scheme msg)
-
- * X: made Alt/Meta release dismiss active menu in the menu bar if one
-   is active, like ESC. (PR 1581)
-
-103/1:
-
- * Added support for JPEG file loading (but not saving) using the IJG
-   library. The MrEd executable grew by 70k, which seemed
-   like an acceptable amount of bloat for the benefit.
-
- * Windows: editors can paste bitmaps copied to the clipboard from
-   other programs.
-
- * Windows: fixed get-file-list. (PR 1567)
-
- * Added `get-clipboard-bitmap' and `set-clipboard-bitmap' to
-   clipboard<%>. Under Windows, these methods move bitmaps to and from
-   the system in a platform-specific format.
-
- * Changed `graphical-read-eval-print-loop' to take an optional eventspace
-   argument, which determines the evaluation eventspace. The argument
-   defaults to #f, which creates a new eventspace for evaluation.
-
- * Removed 'anchored flag for snip% (wasn't implemented).
-
-----------------------------------------------------------------------
-
-Version 103: ??
+Version 103: August 28, 2000
 
 Added 'wait as a possible argument to `yield', and changed startup
- to call (yield 'wait)
+ to call (yield 'wait), with new meaning for -V flag
 Removed 'anchored flag for snip% (wasn't implemented)
 Added support for loading JPEG file (but not saving)
 Added get-clipboard-bitmap and set-clipboard-bitmap to
