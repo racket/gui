@@ -304,7 +304,7 @@
           (make-after 'edit-menu 'preferences 'nothing)
           
           (make-before 'help-menu 'about 'nothing)
-          (make-an-item 'help-menu 'about "Learn something about this application"
+          (make-an-item 'help-menu 'about "Credits and details for this application"
                         #f
                         #f
                         "About "
