@@ -40,9 +40,6 @@
           move/copy-to-edit
           initial-autowrap-bitmap))
       
-      (define highlight-pen (make-object pen% "BLACK" 0 'solid))
-      (define highlight-brush (make-object brush% "black" 'solid))
-      
       (define basic-mixin
         (mixin (editor:basic<%> (class->interface text%)) (basic<%>)
           (inherit get-canvases get-admin split-snip get-snip-position
