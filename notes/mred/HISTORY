@@ -1,4 +1,58 @@
 
+Version 299.10
+Flattened text from an editor<%> always uses #\newline,
+ not a platform-specific line separator
+Methods changed to augment-only:
+ top-level-window<%>: can-close?
+                      on-close
+ editor<%>: on-change
+            on-snip-modified
+            can-save-file?
+            on-save-file
+            after-save-file
+            can-load-file?
+            on-load-file
+            after-load-file
+            on-edit-sequence
+            after-edit-sequence
+ text%: can-insert?
+        on-insert
+        after-insert
+        can-delete?
+        on-delete
+        after-delete
+        can-change-style?
+        on-change-style
+        after-change-style
+        after-set-position
+        can-set-size-constraint?
+        on-set-size-constraint
+        after-set-size-constraint
+ pasteboard%: can-insert?
+              on-insert
+              after-insert
+              can-delete?
+              on-delete
+              after-delete
+              can-move-to?
+              on-move-to
+              after-move-to
+              can-resize?
+              on-resize
+              after-resize
+              can-reorder?
+              on-reorder
+              after-reorder
+              can-select?
+              on-select
+              after-select
+              can-interactive-move?
+              on-interactive-move
+              after-interactive-move
+              can-interactive-resize?
+              on-interactive-resize
+              after-interactive-resize
+
 Version 299.5
 Dropped question marks for interactive and use-paper-bbox
  initialization arguments of post-script-dc%; added
