@@ -1010,6 +1010,9 @@
               (unbox b)))
           (super-instantiate ())
 
+	  (inherit set-cursor)
+	  (set-cursor (make-object cursor% 'arrow))
+
           (inherit set-line-spacing)
           (set-line-spacing 0)))
       
