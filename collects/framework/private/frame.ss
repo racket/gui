@@ -1486,7 +1486,7 @@
                                    (if (string? fn)
                                        fn
                                        (get-label)))
-                                 (string-constant close)
+                                 (string-constant close-anyway)
                                  #t
                                  this)
                             [(continue) #t]
