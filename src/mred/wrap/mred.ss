@@ -4128,7 +4128,7 @@
 			    (list s))))])
       (if (and (< (length strings) 10) (andmap (lambda (s) (< (string-length s) 60)) strings))
 	  (begin
-	    (send f set-alignment (if (= (length strings) 1) 'center 'left) 'top)
+	    (send f set-alignment (if (= (length strings) 1) 'center 'left) 'center)
 	    (for-each (lambda (s) (make-object message% s f)) strings)
 	    (send f stretchable-width #f)
 	    (send f stretchable-height #f))
@@ -4142,8 +4142,9 @@
 			  (let ([b (make-object button% title p (lambda (b e) (set! result v) (send f show #f))
 						(if default? '(border) null))])
 			    (when default? (send b focus))))])
+	(send p set-alignment 'center 'center)
 	(send p stretchable-height #f)
-	(send p stretchable-width #f)
+	(send p stretchable-width #t) ; to get panel's centering
 	(case (car style)
 	  [(ok) (mk-button "Ok" 'ok #t)]
 	  [(ok-cancel) (set! result 'cancel)
