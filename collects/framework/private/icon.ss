@@ -75,7 +75,15 @@
 
       (define (fetch)
 	(unless gc-on-bitmap
-	  (set! gc-on-bitmap ((load-icon "recycle.gif" 'gif)))))
+	  (set! gc-on-bitmap 
+                (if (mrf-bday?)
+                    ((load-icon "mrf.jpg" 'jpeg))
+                    ((load-icon "recycle.gif" 'gif))))))
+      
+      (define (mrf-bday?)
+        (let ([d (seconds->date (current-seconds))])
+          (and (= (date-month d) 11)
+               (= (date-day d) 1))))
 
       (define (get-gc-on-bitmap) (fetch) gc-on-bitmap)
       
