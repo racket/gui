@@ -28,7 +28,7 @@
       (define/override (make-snip) (make-object comment-box-snip%))
       (define/override (get-corner-bitmap) bm)
 
-      (define/override (make-menu)
+      (define/override (get-menu)
         (let ([menu (make-object popup-menu%)])
           (make-object menu-item% 
             (string-constant convert-to-semicolon-comment)
