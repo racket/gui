@@ -49,6 +49,19 @@
             (error 'add-child "There may be only one alignment<%> of a pasteboard")
             (set! alignment child)))
       
+      #;((is-a?/c alignment<%>) . -> . void?)
+      ;; Deletes a child from the the alignments
+      (define/public (delete-child child)
+        (if alignment
+            (if (eq? child alignment)
+                (set! alignment false)
+                (error 'delete-child "Child not found"))
+            (error 'delete-child "No children")))
+      
+      #;(-> (listof (is-a?/c alignment<%>)))
+      ;; A list of the children of this alignment parent
+      (define/public (get-children) (list alignment))
+            
       #;(-> boolean?)
       ;; True if the alignment is being shown (accounting for its parent being shown)
       ;; NOTE: Pasteboards are always shown and have no show/hide state.

@@ -20,6 +20,10 @@
       ;;;;;;;;;;
       ;; alignment<%>
       
+      #;(-> alignment-parent<%>)
+      ;; The parent of this alignment
+      (define/public (get-parent) parent)
+      
       #;(-> void?)
       ;; Tells the alignment that its sizes should be calculated
       (define/public (set-min-sizes)
@@ -31,7 +35,6 @@
       
       #;(nonnegative? nonnegative? nonnegative? nonnegative? . -> . void?)
       ;; Tells the alignment to align its children on the pasteboard in the given rectangle
-      ;; STATUS: I don't currently handle stretchability
       (define/public (align x y w h)
         (send pasteboard move-to snip x y)
         (when (is-a? snip stretchable-snip<%>)
@@ -45,14 +48,14 @@
       ;; The minimum height this alignment must be.
       (define/public (get-min-height) min-height)
       
-      #;(-> boolean?)
+      #;(case-> (-> boolean?) (boolean? . -> . void?))
       ;; True if the alignment can be stretched in the x dimension
-      (define/public (stretchable-width?)
+      (define/public (stretchable-width)
         (sl:stretchable-width? snip))
       
-      #;(-> boolean?)
+      #;(case-> (-> boolean?) (boolean? . -> . void?))
       ;; True if the alignment can be stretched in the y dimension
-      (define/public (stretchable-height?)
+      (define/public (stretchable-height)
         (sl:stretchable-height? snip))
       
       #;(boolean? . -> . void?)

@@ -2,13 +2,10 @@
   
   (require
    (lib "class.ss")
-   (lib "mred.ss" "mred")
    (lib "etc.ss")
    (lib "list.ss")
    (lib "match.ss")
    (prefix a: "alignment.ss")
-   
-   "snip-lib.ss"
    "interface.ss"
    "alignment-helpers.ss")
    
@@ -20,15 +17,23 @@
     (class* object% (alignment<%> alignment-parent<%>)
       
       (init-field parent [show? true])
+      (init [stretchable-width true]
+            [stretchable-height true])
       
       (field
        [pasteboard (send parent get-pasteboard)]
        [children empty]
        [min-width 0]
-       [min-height 0])
+       [min-height 0]
+       [stretchable-width? stretchable-width]
+       [stretchable-height? stretchable-height])
       
       ;;;;;;;;;;
       ;; alignment<%>
+      
+      #;(-> alignment-parent<%>)
+      ;; The parent of this alignment
+      (define/public (get-parent) parent)
       
       #;(-> void?)
       ;; Tells the alignment that its sizes should be calculated
@@ -79,13 +84,21 @@
       (define/public (get-min-height)
         (if (is-shown?) min-height 0))
       
-      #;(-> boolean?)
+      #;(case-> (-> boolean?) (boolean? . -> . void?))
       ;; True if the alignment can be stretched in the x dimension
-      (define/public (stretchable-width?) true)
+      (public [stretchable-width-method stretchable-width])
+      (define stretchable-width-method
+        (case-lambda
+          [() stretchable-width?]
+          [(value) (set! stretchable-width? value)]))
       
-      #;(-> boolean?)
+      #;(case-> (-> boolean?) (boolean? . -> . void?))
       ;; True if the alignment can be stretched in the y dimension
-      (define/public (stretchable-height?) true)
+      (public [stretchable-height-method stretchable-height])
+      (define stretchable-height-method
+        (case-lambda
+          [() stretchable-height?]
+          [(value) (set! stretchable-height? value)]))
       
       #;(boolean? . -> . void)
       ;; Tells the alignment to show or hide its children
@@ -107,10 +120,33 @@
       ;; The pasteboard that this alignment is being displayed to
       (define/public (get-pasteboard) pasteboard)
       
-      #;((is-a?/c alignment<%>) . -> . void?)
-      ;; Add the given alignment as a child
+      #;(((is-a?/c alignment<%>)) ((is-a?/c alignment<%>)) . opt-> . void?)
+      ;; Add the given alignment as a child before the existing child
       (define/public (add-child child)
         (set! children (append children (list child))))
+      
+      #;((is-a?/c alignment<%>) . -> . void?)
+      ;; Deletes a child from the the alignments
+      (define/public (delete-child child)
+        (send child show/hide false)
+        (set! children (filter (lambda (c) (not (eq? child c)))
+                               children)))
+      
+      #;(-> (listof (is-a?/c alignment<%>)))
+      ;; A list of the children of this alignment parent
+      (define/public (get-children) children)
+      
+      #;((is-a?/c alignment<%>) (is-a?/c alignment<%>) . -> . void?)
+      ;; Moves a snip to a position after the other
+      (define/public (move-after child reference)
+        (let ([r (remove child children)])
+          (set! children (insert-after child r reference))))
+      
+      #;((is-a?/c alignment<%>) (is-a?/c alignment<%>) . -> . void?)
+      ;; Moves a snip to a position before the other
+      (define/public (move-before child reference)
+        (let ([r (remove child children)])
+          (set! children (insert-before child r reference))))
       
       #;(-> boolean?)
       ;; True if the alignment is being shown (accounting for its parent being shown)
@@ -137,6 +173,6 @@
   ;; makes a new default rect out of a snip
   (define (build-rect item)
     (a:make-rect
-     (a:make-dim 0 (send item get-min-width) (send item stretchable-width?))
-     (a:make-dim 0 (send item get-min-height) (send item stretchable-height?))))
+     (a:make-dim 0 (send item get-min-width) (send item stretchable-width))
+     (a:make-dim 0 (send item get-min-height) (send item stretchable-height))))
   )

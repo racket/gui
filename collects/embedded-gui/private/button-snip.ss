@@ -5,12 +5,43 @@
   (require
    (lib "mred.ss" "mred")
    (lib "class.ss")
-   (lib "etc.ss"))
+   (lib "etc.ss")
+   "snip-wrapper.ss")
   
   (provide
    text-button-snip%
    button-snip%
-   toggle-button-snip%)
+   toggle-button-snip%
+   embedded-button%
+   embedded-text-button%
+   embedded-toggle-button%)
+  
+  (define embedded-button%
+    (class snip-wrapper%
+      (init images callback)
+      (super-new
+       (snip (new button-snip%
+                  (images images)
+                  (callback callback))))))
+  
+  (define embedded-text-button%
+    (class snip-wrapper%
+      (init label callback)
+      (super-new
+       (snip (new text-button-snip%
+                  (label label)
+                  (callback callback))))))
+  
+  (define embedded-toggle-button%
+    (class snip-wrapper%
+      (init images-off images-on turn-off turn-on (state 'on))
+      (super-new
+       (snip (new toggle-button-snip%
+                  (images-off images-off)
+                  (images-on images-on)
+                  (turn-off turn-off)
+                  (turn-on turn-on)
+                  (state state))))))
   
   ;; a snip of a button that can be pushed to invoke a given callback
   (define button-snip%
@@ -121,7 +152,7 @@
   
   ;;;;;;;;;;
   ;; tests
-  
+  #|
   (require
    (lib "locked-pasteboard.ss" "mrlib" "private" "aligned-pasteboard")
    (lib "click-forwarding-editor.ss" "mrlib"))
@@ -161,5 +192,5 @@
     (send e insert es 50 0)
     (send e insert b)
     (send f show #t))
-  
+  |#
 )

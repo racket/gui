@@ -8,6 +8,11 @@
   
   (define alignment<%>
     (interface ()
+      
+      #;(-> alignment-parent<%>)
+      ;; The parent of this alignment
+      get-parent
+      
       #;(-> void?)
       ;; Tells the alignment that its sizes should be calculated
       set-min-sizes
@@ -24,13 +29,13 @@
       ;; The minimum height this alignment must be
       get-min-height
       
-      #;(-> boolean?)
+      #;(case-> (-> boolean?) (boolean? . -> . void?))
       ;; True if the alignment can be stretched in the x dimension
-      stretchable-width?
+      stretchable-width
       
-      #;(-> boolean?)
+      #;(case-> (-> boolean?) (boolean? . -> . void?))
       ;; True if the alignment can be stretched in the y dimension
-      stretchable-height?
+      stretchable-height
       
       #;(boolean? . -> . void)
       ;; Tells the alignment to show or hide its children
@@ -52,6 +57,14 @@
       ;; Add the given alignment as a child
       add-child
       
+      #;((is-a?/c alignment<%>) . -> . void?)
+      ;; Deletes a child from the the alignments
+      delete-child
+      
+      #;(-> (listof (is-a?/c alignment<%>)))
+      ;; A list of the children of this alignment parent
+      get-children
+      
       #;(-> boolean?)
       ;; True if the alignment is being shown (accounting for its parent being shown)
       is-shown?
@@ -65,23 +78,23 @@
   |#
   (define stretchable-snip<%>
     (interface ()
-      ;; (positive? positive? . ->  . void?)
+      #;(positive? positive? . ->  . void?)
       ;; called by the parent editor to stretch the snip to an specific size
       stretch
       
-      ;; get-aligned-min-width (-> positive?)
+      #;(-> positive?)
       ;; get the minimum width of the snip
       get-aligned-min-width
       
-      ;; get-aligned-min-height (-> positive?)
+      #;(-> positive?)
       ;; get the minmum height of the snip
       get-aligned-min-height
       
-      ;; stretchable-width (case-> (boolean . -> . void?) (-> boolean?))
+      #;(case-> (boolean . -> . void?) (-> boolean?))
       ;; get or set the stretchablity of the pasteboards width
       stretchable-width
       
-      ;; stretchable-height (case-> (boolean . -> . void?) (-> boolean?))
+      #;(case-> (boolean . -> . void?) (-> boolean?))
       ;; get or set the stretchablity of the pasteboards height
       stretchable-height
       ))
