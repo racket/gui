@@ -1039,6 +1039,8 @@
 		      (send dc draw-rectangle 0 0 5 5)
 		      (send dc draw-line 0 0 20 6)
 
+		      (send dc set-font (make-object font% 10 'default))
+
 		      (draw-series dc pen0s pen0t pen0x "0 x 0" 5 0 0 #f)
 		      
 		      (draw-series dc pen1s pen1t pen1x "1 x 1" 70 0 1 #f)
