@@ -6,6 +6,8 @@
   
   ;; preferences
 
+  (preferences:set-default 'framework:search-using-dialog? #t boolean?)
+  
   (preferences:set-default 'framework:windows-mdi #f boolean?)
 
   (preferences:set-default 'framework:menu-bindings #t boolean?)

@@ -358,6 +358,36 @@
 	[get-editor% (lambda () pasteboard:keymap%)])
       (sequence (apply super-init args))))
 
+  (define (search-dialog frame)
+    (init-find/replace-edits)
+    (let* ([dialog (make-object dialog% "Find String")]
+           [canvas-panel (make-object horizontal-panel% dialog)]
+           [text (make-object text%)]
+           [canvas (make-object editor-canvas% canvas-panel text)]
+           [button-panel (make-object horizontal-panel% dialog)]
+           [cancel-button (make-object button% "Cancel" button-panel 
+                                       (lambda x
+                                         (send dialog show #f)))]
+           [find-button (make-object button% "Find" button-panel 
+                                     (lambda x
+                                       (send find-edit erase)
+                                       (let loop ([snip (send text find-first-snip)])
+                                         (when snip
+                                           (send find-edit insert (send snip copy))
+                                           (loop (send snip next))))
+                                       (send dialog show #f)
+                                       (send find-edit search #t #t)))])
+      (let loop ([snip (send find-edit find-first-snip)])
+        (when snip
+          (send text insert (send snip copy))
+          (loop (send snip next))))
+      (send canvas min-width 400)
+      (send canvas set-line-count 2)
+      (send canvas focus)
+      (send button-panel set-alignment 'right 'center)
+      (send dialog center 'both)
+      (send dialog show #t)))
+      
   (define searchable<%> (interface (text<%>)
 			  get-text-to-search
 			  hide-search
@@ -369,7 +399,7 @@
 			  toggle-search-focus
 			  move-to-search-or-search
 			  move-to-search-or-reverse-search
-			  search))
+			  search-again))
   (define search-anchor 0)
   (define searching-direction 'forward)
   (define (set-searching-direction x) 
@@ -658,7 +688,8 @@
 	   (set! hidden? #t))]
 	[unhide-search
 	 (lambda ()
-	   (when hidden?
+	   (when (and hidden?
+                      '(not (preferences:get 'framework:search-using-dialog?)))
 	     (set! hidden? #f)
 	     (send search-panel focus)
 	     (send super-root add-child search-panel)
@@ -683,7 +714,7 @@
 	[replace&search
 	 (lambda ()
 	   (when (replace)
-	     (search)))]
+	     (search-again)))]
 	[replace-all
 	 (lambda ()
 	   (let* ([replacee-edit (get-text-to-search)]
@@ -700,7 +731,7 @@
 	     (send* replacee-edit 
 		    (begin-edit-sequence)
 		    (set-position pos))
-	     (when (search)
+	     (when (search-again)
 	       (send replacee-edit set-position pos)
 	       (let loop ()
 		 (when (send find-edit search #t #f #f)
@@ -739,24 +770,28 @@
 	 (lambda ()
 	   (set-searching-frame this)
 	   (unhide-search)
-	   (if (or (send find-canvas has-focus?)
-		   (send replace-canvas has-focus?))
-	       (search 'forward)
-	       (send find-canvas focus)))]
+           (cond
+             [(preferences:get 'framework:search-using-dialog?)
+              (search-dialog this)]
+             [else
+              (if (or (send find-canvas has-focus?)
+                      (send replace-canvas has-focus?))
+                  (search-again 'forward)
+                  (send find-canvas focus))]))]
 	[move-to-search-or-reverse-search
 	 (lambda ()
 	   (set-searching-frame this)
 	   (unhide-search)
 	   (if (or (send find-canvas has-focus?)
 		   (send replace-canvas has-focus?))
-	       (search 'backward)
+	       (search-again 'backward)
 	       (send find-canvas focus)))]
-	[search
+	[search-again
 	 (opt-lambda ([direction searching-direction] [beep? #t])
 	   (set-searching-frame this)
 	   (unhide-search)
 	   (set-search-direction direction)
-	   (send find-edit search #t beep?))])
+           (send find-edit search #t beep?))])
       (sequence
 	(apply super-init args))
       (private
@@ -773,7 +808,7 @@
 	[search-button (make-object button% 
 			 "Search"
 			 middle-left-panel
-			 (lambda args (search)))]
+			 (lambda args (search-again)))]
 	
 	[replace&search-button (make-object button% 
 				 "Replace && Search"

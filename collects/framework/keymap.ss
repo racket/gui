@@ -769,7 +769,7 @@
 	  
 	  (add "move-to-search-or-search" (send-frame 'move-to-search-or-search)) ;; key 1
 	  (add "move-to-search-or-reverse-search" (send-frame 'move-to-search-or-reverse-search)) ;; key 1b, backwards
-	  (add "find-string" (send-frame 'search)) ;; key 2
+	  (add "find-string-again" (send-frame 'search-again)) ;; key 2
 	  (add "toggle-search-focus" (send-frame 'toggle-search-focus)) ;; key 3
 	  (add "hide-search" (send-frame 'hide-search)) ;; key 4
 	  
@@ -778,21 +778,27 @@
 	     (map "c:s" "move-to-search-or-search")
 	     (map-meta "%" "move-to-search-or-search")
 	     (map "c:r" "move-to-search-or-reverse-search")
-	     (map "f3" "find-string")
+	     (map "f3" "find-string-again")
 	     (map "c:i" "toggle-search-focus")
 	     (map "c:g" "hide-search")]
 	    [(windows)
-	     (map "c:f" "move-to-search-or-search")
 	     (map "c:r" "move-to-search-or-reverse-search")
-	     (map "f3" "find-string")
-	     (map "c:g" "find-string")
+	     (map "f3" "find-string-again")
+	     (map "c:g" "find-string-again")	     
+
+             ;; covered by menu
+             ;(map "c:f" "move-to-search-or-search")
+
 	     (map "c:i" "toggle-search-focus")]
 	    [(macos)
 	     (map "c:s" "move-to-search-or-search")
 	     (map "c:g" "hide-search")
-	     (map "d:f" "move-to-search-or-search")
+
+             ;; covered by menu
+             ;(map "d:f" "move-to-search-or-search")
+
 	     (map "d:r" "move-to-search-or-reverse-search")
-	     (map "d:g" "find-string")
+	     (map "d:g" "find-string-again")
 	     (map "c:i" "toggle-search-focus")])))))
   
   (define setup-file
