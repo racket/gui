@@ -3762,7 +3762,7 @@
 			    (send keymap remove-chained-keymap (send (mred->wx i) get-keymap))
 			    (super-enable-top p #f)))))])
     (sequence
-      (super-init null null))))
+      (super-init))))
 
 (define wx-menu%
   (class* wx:menu% (wx<%>) (mred popup-label popup-callback)
