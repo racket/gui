@@ -15,8 +15,8 @@
 			  get-map-function-table
 			  get-map-function-table/ht))
   
-  (define aug-keymap%
-    (class* keymap% (aug-keymap<%>) args
+  (define (aug-keymap-mixin super%)
+    (class* super% (aug-keymap<%>) args
       (private
         [chained-keymaps null])
       (public
@@ -63,6 +63,8 @@
       
       (sequence
         (apply super-init args))))
+
+  (define aug-keymap% (aug-keymap-mixin keymap%))
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;;;;;;;                                                     ;;;;;;;;
