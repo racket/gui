@@ -1347,15 +1347,21 @@
 (define (app-handler-orig ah)
   (app-handler-ref ah 1))
 
-(let ([f (entry-point
-	  (lambda ()
-	    (let ([af active-main-frame])
-	      (when af
-		(queue-window-callback
-		 af
-		 (entry-point
-		  (lambda ()
-		    (send af on-exit))))))))])
+(let* ([running-quit? #f]
+       [f (entry-point
+	   (lambda ()
+	     (unless running-quit?
+	       (let ([af active-main-frame])
+		 (when af
+		   (set! running-quit? #t)
+		   (queue-window-callback
+		    af
+		    (entry-point
+		     (lambda ()
+		       (dynamic-wind
+			   void
+			   (lambda () (send af on-exit))
+			   (lambda () (set! running-quit? #t)))))))))))])
   (wx:application-quit-handler (make-app-handler f f)))
 
 (define (set-handler! who proc param)
