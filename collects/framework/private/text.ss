@@ -513,8 +513,11 @@
                    find-first-snip get-style-list set-tabs)
           
           (define/private (copy snip)
-            (let ([res (make-object 1-pixel-string-snip%
-                         (send snip get-text 0 (send snip get-count)))])
+            (let ([res 
+                   (if (is-a? snip tab-snip%)
+                       (make-object 1-pixel-tab-snip%)
+                       (make-object 1-pixel-string-snip%
+                         (send snip get-text 0 (send snip get-count))))])
               (send res set-flags (send snip get-flags))
               res))
 
@@ -532,11 +535,12 @@
               (send delegate set-style-list (get-style-list))
               (let loop ([snip (find-first-snip)])
                 (when snip
-                  (send delegate insert 
-                        (copy snip)
-                        (send delegate last-position)
-                        (send delegate last-position))
-                  (loop (send snip next))))
+                  (let ([copy-of-snip (copy snip)])
+                    (send delegate insert
+                          copy-of-snip
+                          (send delegate last-position)
+                          (send delegate last-position))
+                    (loop (send snip next)))))
               (send delegate lock #t)
               (send delegate end-edit-sequence)))
           
