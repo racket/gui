@@ -45,18 +45,9 @@
 	  (let-values ([(base _1 _2) (split-path dir)])
 	    (or base dir))))
 
-      (define default-extension
-	(let ([val #f])
-	  (case-lambda
-	   [() val]
-	   [(x) 
-	    (unless (or (string? x)
-			(not x))
-	      (error 'finder:default-extension
-		     "expected a string or #f, got: ~e"
-		     x))
-	    (set! val x)])))
-      
+      (define default-filters (make-parameter '(("Scheme (.scm)" "*.scm") ("Other" "*.*"))))
+      (define default-extension (make-parameter ""))
+
       ; the finder-dialog% class controls the user interface for dialogs
       
       (define finder-dialog%
@@ -715,7 +706,9 @@
 		     parent-win
 		     directory 
 		     name
-		     (default-extension))])
+		     (default-extension)
+		     '()
+		     (default-filters))])
 
 	    (if (or (not f)
 		    (and filter 
@@ -743,20 +736,10 @@
 		     [filter #f]
 		     [filter-msg (string-constant file-wrong-form)]
 		     [parent-win (dialog-parent-parameter)])
-	  (let ([f 
-                 (if (eq? (system-type) 'windows)
-                     (get-file
-                      prompt 
-                      parent-win
-                      directory
-                      #f
-                      ""
-                      null
-                      '(("Scheme (.scm)" "*.scm") ("Other" "*.*")))
-                     (get-file
-                      prompt 
-                      parent-win
-                      directory))])
+	  (let ([f (get-file
+		    prompt 
+		    parent-win
+		    directory)])
 
 	    (if f
 		(if (or (not filter) (filter-match? filter f filter-msg))

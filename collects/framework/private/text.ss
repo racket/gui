@@ -64,13 +64,17 @@
                   [canvases (get-canvases)])
               (let-values ([(min-left max-right)
                             (cond
-                              [(null? canvases) 
-                               (send (get-admin) get-view b1 b2 b3 b4)
-                               (let* ([this-left (unbox b1)]
-                                      [this-width (unbox b3)]
-                                      [this-right (+ this-left this-width)])
-                                 (values this-left
-                                         this-right))]
+                              [(null? canvases)
+                               (let ([admin (get-admin)])
+                                 (if admin
+                                     (begin
+                                       (send admin get-view b1 b2 b3 b4)
+                                       (let* ([this-left (unbox b1)]
+                                              [this-width (unbox b3)]
+                                              [this-right (+ this-left this-width)])
+                                         (values this-left
+                                                 this-right)))
+                                     (values #f #f)))]
                               [else 
                                (let loop ([left #f]
                                           [right #f]
