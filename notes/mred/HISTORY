@@ -1,4 +1,10 @@
 
+Version 102/8:
+
+ * Changed pen% width from integer to real number (still between
+   0 and 255). Non-integral widths are used for post-script-dc%
+   drawing.
+
 Version 102/7:
 
  * Added `{get,set}-align-top-line' methods to editor-snip%.
@@ -99,13 +105,14 @@ Changed the interaction of face and familiy settings in a font for
 Removed `get-afm-name' and `set-afm-name' from
  `font-name-directory<%>', and changed post-script-dc% to use the
  PostScript font name as the AFM file name
-Changed the meaning of the `on-change' method in editor<%>. See the
- manual for details.
+Changed pen%'s width from integer to real number (used for PS)
+Changed the meaning of the `on-change' method in editor<%>; see the
+ manual for details
 Editor reading/writing/cuting/pasting no longer relies on global
  state, so exceptions raised for one editor do not affect other
- editors.
-Removed `read-done' and `write-done' from snip-class%.
-Moved `reading-version' to snip-class% (from snip-class-list%).
+ editors
+Removed `read-done' and `write-done' from snip-class%
+Moved `reading-version' to snip-class% (from snip-class-list%)
 X: Fixed input of keypad characters and dead characters (such as
  accent marks)
 
