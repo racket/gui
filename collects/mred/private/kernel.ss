@@ -908,6 +908,7 @@
     set-clipboard-client)
   (define-function get-the-clipboard)
   (define-class clipboard-client% object% ()
+    queue-callback
     get-types
     add-type
     get-data

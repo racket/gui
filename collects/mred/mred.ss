@@ -5191,7 +5191,7 @@
 	      (cons (read-string n s)
 		    (loop))))))))
 
-(define (mk-file-selector who put? multi? dir?)
+(define (mk-file-selector who put? multi? dir? force-unix?)
   (lambda (message parent directory filename extension style filters)
     ;; Calls from C++ have wrong kind of window:
     (when (is-a? parent wx:window%)
@@ -5209,7 +5209,8 @@
 				(string? (cadr p))))
 			 filters))
       (raise-type-error who "list of 2-string lists" filters))
-    (if (not (eq? (system-type) 'unix))
+    (if (not (or (eq? (system-type) 'unix)
+		 force-unix?))
 	(let ([s (wx:file-selector message directory filename extension 
 				   (apply string-append
 					  (map (lambda (s) (format "~a|~a|" (car s) (cadr s)))
@@ -5406,7 +5407,7 @@
    [(message parent directory filename extension style)
     (get-file message parent directory filename extension style default-filters)]
    [(message parent directory filename extension style filters)
-    ((mk-file-selector 'get-file #f #f #f) message parent directory filename extension style filters)]))
+    ((mk-file-selector 'get-file #f #f #f #f) message parent directory filename extension style filters)]))
 
 (define get-file-list
   (case-lambda
@@ -5419,7 +5420,7 @@
    [(message parent directory filename extension style)
     (get-file-list message parent directory filename extension style default-filters)]
    [(message parent directory filename extension style filters)
-    ((mk-file-selector 'get-file-list #f #t #f) message parent directory filename extension style filters)]))
+    ((mk-file-selector 'get-file-list #f #t #f #f) message parent directory filename extension style filters)]))
 
 (define put-file
   (case-lambda
@@ -5432,7 +5433,7 @@
    [(message parent directory filename extension style)
     (put-file message parent directory filename extension style default-filters)]
    [(message parent directory filename extension style filters)
-    ((mk-file-selector 'put-file #t #f #f) message parent directory filename extension style filters)]))
+    ((mk-file-selector 'put-file #t #f #f #f) message parent directory filename extension style filters)]))
 
 (define get-directory
   (case-lambda
@@ -5452,7 +5453,7 @@
 	 message directory #f #f #f
 	 'dir
 	 (and parent (mred->wx parent)))
-        ((mk-file-selector 'get-directory #f #f #t) message parent directory #f #f style null))]))
+        ((mk-file-selector 'get-directory #f #f #t #t) message parent directory #f #f style null))]))
 
 (define get-color-from-user 
   (case-lambda
