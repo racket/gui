@@ -596,7 +596,7 @@
    (handler:insert-format-handler
     (string?
      (union string? (listof string?) (string? . -> . boolean?))
-     (string? . -> . (is-a?/c frame:editor<%>))
+     (string? . -> . (union false? (is-a?/c frame:editor<%>)))
      . -> .
      void?)
     (name pred handler)
@@ -630,7 +630,7 @@
     (opt->
      ((union string? false?))
      ((-> (is-a?/c frame:editor<%>)))
-     (is-a?/c frame:editor<%>))
+     (union false? (is-a?/c frame:editor<%>)))
     ((filename)
      ((make-default (lambda () (make-object frame:text-info-file\% filename)))))
     "This function creates a frame or re-uses an existing frame to edit a file. "
