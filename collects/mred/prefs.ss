@@ -238,7 +238,7 @@
 		 [else (err input)]))))
 	  (mred:debug:printf 'prefs "read user preferences"))))
     
-    (define-struct ppanel (title container))
+    (define-struct ppanel (title container panel))
     
     (define ppanels 
       (list 
@@ -276,7 +276,8 @@
 	    (make-check 'mred:verify-exit "Verify exit?" id id)
 	    (make-check 'mred:verify-change-format "Ask before changing save format?" id id)
 	    (make-check 'mred:auto-set-wrap? "Wordwrap editor buffers?" id id)
-	    main)))))
+	    main))
+	#f)))
 
     (define make-run-once
       (lambda ()
@@ -290,14 +291,23 @@
 
     (define preferences-dialog #f)
 
+    
     (define add-preference-panel
       (lambda (title container)
 	(run-once
 	 (lambda ()
-	   (let ([new-ppanel (make-ppanel title container)])
-	     (set! ppanels (append ppanels (list new-ppanel)))
+	   (let ([new-ppanel (make-ppanel title container #f)])
+	     (set! ppanels 
+		   (let loop ([ppanels ppanels])
+		     (cond
+		      [(null? ppanels) (list new-ppanel)]
+		      [(string=? (ppanel-title (car ppanels))
+				 title)
+		       (loop (cdr ppanels))]
+		      [else (cons (car ppanels)
+				  (loop (cdr ppanels)))])))
 	     (when preferences-dialog
-	       (send preferences-dialog added-pane new-ppanel)))))))
+	       (send preferences-dialog added-pane)))))))
 
     (define hide-preferences-dialog
       (lambda ()
@@ -325,20 +335,21 @@
       (lambda ()
 	(letrec* ([frame 
                     (make-object (class-asi mred:frame%
-                                   (public [added-pane
-                                             (lambda (ppanel)
-                                               (refresh-menu ppanel))]))
+                                   (public [added-pane (lambda () 
+							 (ensure-constructed)
+							 (refresh-menu)
+							 (send popup-menu set-selection (sub1 (length ppanels)))
+							 (send single-panel active-child 
+							       (ppanel-panel (car (list-tail ppanels (sub1 (length ppanels)))))))]))
                       '() "Preferences")]
-
-
 		  [panel (make-object mred:vertical-panel% frame)]
 		  [top-panel (make-object mred:horizontal-panel% panel)]
 		  [single-panel (make-object mred:single-panel% panel -1 -1 -1 -1 wx:const-border)]
-		  [panels (map (lambda (p) ((ppanel-container p) single-panel)) ppanels)]
 		  [bottom-panel (make-object mred:horizontal-panel% panel)]
 		  [popup-callback
 		   (lambda (choice command-event)
-		     (send single-panel active-child (list-ref panels (send command-event get-command-int))))]
+		     (send single-panel active-child
+			   (ppanel-panel (list-ref ppanels (send command-event get-command-int)))))]
 		  [make-popup-menu 
 		   (lambda ()
 		     (let ([menu (make-object mred:choice% top-panel popup-callback
@@ -349,14 +360,21 @@
 		  [top-left (make-object mred:vertical-panel% top-panel)]
 		  [popup-menu (make-popup-menu)]
 		  [top-right (make-object mred:vertical-panel% top-panel)]
+		  [ensure-constructed
+		   (lambda ()
+		     (for-each (lambda (ppanel)
+				 (unless (ppanel-panel ppanel)
+				   (set-ppanel-panel! ppanel ((ppanel-container ppanel) single-panel))))
+			       ppanels)
+		     (send single-panel change-children (lambda (l) (map ppanel-panel ppanels)))
+		     (send single-panel active-child (ppanel-panel (car ppanels))))]
 		  [refresh-menu
-		   (lambda (ppanel)
-		     (let ([new-panel ((ppanel-container ppanel) single-panel)])
-		       (set! panels (append panels (list new-panel)))
-		       (let ([new-popup (make-popup-menu)])
-			 (send new-popup set-selection (send popup-menu get-selection))
-			 (send top-panel change-children
-			       (lambda (l) (list top-left new-popup top-right))))))]
+		   (lambda ()
+		     (let ([new-popup (make-popup-menu)])
+		       (send new-popup set-selection (send popup-menu get-selection))
+		       (set! popup-menu new-popup)
+		       (send top-panel change-children
+			     (lambda (l) (list top-left new-popup top-right)))))]
 		  [ok-callback (lambda args
 				 (save-user-preferences)
 				 (hide-preferences-dialog))]
@@ -369,8 +387,8 @@
 	  (send ok-button user-min-width (send cancel-button get-width))
 	  (send bottom-panel stretchable-in-y #f)
 	  (send top-panel stretchable-in-y #f)
+	  (ensure-constructed)
 	  (send popup-menu set-selection 0)
-	  (send single-panel active-child (car panels))
 	  (send frame show #t)
 	  frame)))
 
