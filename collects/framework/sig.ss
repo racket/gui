@@ -208,20 +208,9 @@
    snip%
    media-snip%))
 
-(define-signature mred:canvas^
-  (make-wrapping-canvas%
-   wrapping-canvas%
-
-   make-one-line-canvas%
-   one-line-canvas%
-
-   make-frame-title-canvas%
-   frame-title-canvas%
-   
-   make-wide-snip-canvas%
-   wide-snip-canvas%
-
-   number-control%))
+(define-signature framework:canvas^
+  (make-wide-snip-canvas%
+   wide-snip-canvas%))
 
 (define-signature mred:frame^
   (frame-width
@@ -331,21 +320,15 @@
    balanced?
    backward-containing-sexp))
 
-(define-signature mred:scheme-mode^
-  (scheme-mode-allow-console-eval
-   scheme-mode-tabify-on-return?
-   scheme-mode-match-round-to-square?
-   scheme-media-wordbreak-map
-   scheme-init-wordbreak-map
-   setup-global-scheme-mode-keymap
-   setup-global-scheme-interaction-mode-keymap
-   global-scheme-mode-keymap
-   global-scheme-interaction-mode-keymap
-   make-scheme-mode%
-   make-scheme-interaction-mode%
-   scheme-mode%
-   scheme-interaction-mode%
-   scheme-mode-style-list))
+(define-signature framework:scheme-mode^
+  (wordbreak-map
+   init-wordbreak-map
+   style-list
+   keymap
+   setup-keymap
+   make-text%
+   text<%>
+   text%))
 
 (define-signature framework:paren^
   (balanced? 
