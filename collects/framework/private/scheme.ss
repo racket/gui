@@ -581,6 +581,7 @@
                   remove-parens-forward)
           (define (get-limit pos) 0)
           
+          (inherit get-visible-position-range)
           (define (balance-quotes key)
             (let* ([char (send key get-key-code)]) ;; must be a character because of the mapping setup
               ;; this function is only bound to ascii-returning keys
@@ -590,7 +591,12 @@
                      [match (scheme-paren:backward-match
                              this start-pos limit backward-cache)])
                 (when match
-                  (flash-on match (add1 match))))))
+                  (let ([start-b (box 0)]
+                        [end-b (box 0)]
+                        [to-flash-point (add1 match)])
+                    (get-visible-position-range start-b end-b #f)
+                    (when (<= (unbox start-b) to-flash-point (unbox end-b))
+                      (flash-on match (add1 match))))))))
           
           (define (balance-parens key-event)
             (letrec ([char (send key-event get-key-code)] ;; must be a character. See above.
