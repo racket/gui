@@ -634,9 +634,7 @@
     force-display-focus
     is-focus-on?
     get-editor
-    set-editor
-    get-wheel-step
-    set-wheel-step)
+    set-editor)
   (define-class editor-admin% object% #f
     refresh-delayed?
     popup-menu
@@ -1397,7 +1395,8 @@
     set-pasteboard-editor-maker
     set-menu-tester
     location->window
-    set-dialogs)
+    set-dialogs
+    set-executer)
 
 )
 ;; end

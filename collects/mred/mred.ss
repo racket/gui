@@ -5468,6 +5468,33 @@
     (wx:display-size xb yb)
     (values (unbox xb) (unbox yb))))
 
+;; Currently only used for PS print and preview
+(wx:set-executer
+ (let ([orig-err (current-error-port)])
+   (lambda (prog . args)
+     (let ([cmd (string-append
+		 prog 
+		 (let loop ([args args])
+		   (if (null? args)
+		       ""
+		       (format " ~s~a" (car args) (loop (cdr args))))))])
+       (let-values ([(in out pid err x) (apply values (process cmd))])
+	 (close-output-port out)
+	 (let ([echo (lambda (p)
+		       (thread (lambda ()
+				 (dynamic-wind
+				     void
+				     (lambda ()
+				       (let loop ()
+					 (let ([l (read-line p)])
+					   (unless (eof-object? l)
+					     (fprintf orig-err "~a~n" l)
+					     (loop)))))
+				     (lambda () (close-input-port p))))))])
+	   (echo in)
+	   (echo err)
+	   (void)))))))
+
 (define register-collecting-blit
   (case-lambda
    [(canvas x y w h on off) (register-collecting-blit canvas x y w h on off 0 0 0 0)]

@@ -1,4 +1,10 @@
 
+Version 199.27:
+
+ * X: when an external program is executed for PS printing or preview,
+   command-line flags can be supplied, and the stdout/stderr output of
+   the program is directed to MrEd's original stderr.
+
 Version 199.26:
 
  * Added a `use-paper-bbox?' initialization argument to
