@@ -1,9 +1,15 @@
-Version 51: March 25, 1998
+Version 53: August 1, 1998
+
+IMPORTANT: Expect further major changes in the MrEd toolbox with
+version 54. See the note for version 51, below.
 
 Engine:
 -------
 Removed wx:concat-files, wx:string-match?, wx:get-temp-file-name
  (see MzLib's new make-temporary-file)
+Procedures and methods that accept wx:const-XXX bit combinations
+ now check their arguments more thoroughly; junk values are
+ no longer ignored
 Removed some constants:
   wx:const-bitmap-type-default
   wx:const-bitmap-discard-colourmap
@@ -19,9 +25,25 @@ Added wx:const-print-postscript, wx:const-print-standard, and
  wx:const-print-ask
 Restricted wx:find-path to fewer paths; see MzScheme's new
  find-system-path
+Changed wx:list-box%'s get-selections to just return a list
+ of integers
+The following wx:command-event% methods are deprecated and
+ have been removed from the documentation:
+  get-/set-command-int (use get-/set-selection)
+  get-/set-command-string (use get-/set-string)
+  get-/set-extra-long (use get-/set-selection-type)
+Cleaned up wx:list-box% multiple-selection (wx:const-multiple
+ and wx:const-extended standardized across platforms)
+Cleaned up wx:command-event% field values for list-box events
+wx:panel%'s set-button-font and set-label-font work consistenly
+Windows: cleaned up structure of sliders and gauges
 
 System:
 -------
+- Fixed minimum mred:slider% size
+
+- Cleaned up wx:command-event% field values for list-box double-click
+  events
 
 ----------------------------------------------------------------------
 
