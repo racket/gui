@@ -54,7 +54,7 @@
       i)))
 
 (define (show-instructions file)
-  (letrec ([f (make-object frame% file #f 400 400)]
+  (letrec ([f (make-object frame% (path->string file) #f 400 400)]
 	   [print (make-object button% "Print" f
 			       (lambda (b ev)
 				 (send e print)))]

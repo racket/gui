@@ -1,4 +1,11 @@
 
+Version 299.22
+Added 'float style for frame%
+Added combo-field%
+Added 'combo style for canvas% and editor-canvas%
+Added set-min-width function to popup-menu%
+Changed default 'decorative PostScript font to Helvetica
+
 Version 299.21
 X: clipboard now supported, and the X clipboard and X selection
  are properly distinguished; set the MrEd:selectionAsClipboard
