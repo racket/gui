@@ -11,32 +11,35 @@
              (apply super-init args))))
            
   (define info<%> (interface (basic<%>)))
+  ;; (basic<%> -> (class (is-a? (send this get-top-level-window) frame:info<%>)))
   (define info-mixin 
     (mixin (basic<%>) (info<%>) (parent [editor #f] . args)
-	   (inherit has-focus? get-top-level-window)
-	   (rename [super-on-focus on-focus]
-		   [super-set-editor set-editor])
-	   (override
-	    [on-focus
-	     (lambda (on?)
-	       (super-on-focus on?)
-	       (send (get-top-level-window) set-info-canvas (and on? this))
-	       (when on?
-		     (send (get-top-level-window) update-info)))]
-	    [set-editor
-	     (lambda (m)
-	       (super-set-editor m)
-	       (let ([tlw (get-top-level-window)])
-		 (when (eq? this (send tlw get-info-canvas))
-		   (send tlw update-info))))])
-	   (sequence
-	     (apply super-init parent editor args)
-	     (unless (is-a? (get-top-level-window) frame:info<%>)
-	       (error 'canvas:text-info-mixin
-		      "expected to be placed into a frame or dialog implementing frame:info<%>, got: ~e" 
-		      (get-top-level-window)))
-	     (when (has-focus?)
-	       (send (get-top-level-window) update-info)))))
+      (inherit has-focus? get-top-level-window)
+      (rename [super-on-focus on-focus]
+	      [super-set-editor set-editor])
+      (override
+       [on-focus
+	(lambda (on?)
+	  (super-on-focus on?)
+	  (send (get-top-level-window) set-info-canvas (and on? this))
+	  (when on?
+	    (send (get-top-level-window) update-info)))]
+       [set-editor
+	(lambda (m)
+	  (super-set-editor m)
+	  (let ([tlw (get-top-level-window)])
+	    (when (eq? this (send tlw get-info-canvas))
+	      (send tlw update-info))))])
+      (sequence
+	(apply super-init parent editor args)
+
+	(unless (is-a? (get-top-level-window) frame:info<%>)
+	  (error 'canvas:text-info-mixin
+		 "expected to be placed into a frame or dialog implementing frame:info<%>, got: ~e" 
+		 (get-top-level-window)))
+
+	(when (has-focus?)
+	  (send (get-top-level-window) update-info)))))
 
   (define wide-snip<%> (interface (basic<%>)
 			 add-wide-snip
