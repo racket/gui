@@ -564,7 +564,7 @@
 	   (set! DELETE-COCONUT-0 (new "Delete Coconut"))
 	   (make-object menu-item% "Delete Apple" menu
 			(lambda (m e) 
-			  (send (send apple-menu get-item) delete)
+			  (send apple-menu delete)
 			  (set! apple-installed? #f)))
 	   
 	   (sep)
@@ -585,13 +585,13 @@
 	   (let ([make-menu
 		  (opt-lambda (title parent help-string)
 		    (let ([m (make-object menu% title parent help-string)])
-		      (send (send m get-item) delete)
+		      (send m delete)
 		      m))])
 	     (set! apple-menu (make-menu "Apple" mb #f))
 	     (set! banana-menu (make-menu "Banana" mb #f))
 	     (set! coconut-menu (make-menu "Coconut" apple-menu "Submenu")))
 	   
-	   (set! COCONUT-ID (send coconut-menu get-item))
+	   (set! COCONUT-ID coconut-menu)
 
 	   (set! DELETE-ONCE (new "Delete Once" #f apple-menu))
 	   (set! DELETE-APPLE (new "Delete Apple" "Deletes the Apple menu" apple-menu))
@@ -607,19 +607,19 @@
        (lambda (op ev)
 	 (cond
 	  [(eq? op ADD-APPLE)
-	   (send (send apple-menu get-item) restore)
+	   (send apple-menu restore)
 	   (set! apple-installed? #t)]
 	  [(eq? op ADD-BANANA)
-	   (send (send banana-menu get-item) restore)]
+	   (send banana-menu restore)]
 	  [(eq? op ADD-COCONUT)
-	   (send (send coconut-menu get-item) restore)]
+	   (send coconut-menu restore)]
 	  [(eq? op DELETE-ONCE)
 	   (send DELETE-ONCE delete)]
 	  [(eq? op DELETE-APPLE)
-	   (send (send apple-menu get-item) delete)
+	   (send apple-menu delete)
 	   (set! apple-installed? #f)]
 	  [(eq? op DELETE-BANANA)
-	   (send (send banana-menu get-item) delete)]
+	   (send banana-menu delete)]
 	  [(eq? op DELETE-EXTRA-BANANA)
 	   (send (car (send banana-menu get-items)) delete)]
 	  [(or (eq? op DELETE-COCONUT) (eq? op DELETE-COCONUT-0))
@@ -663,7 +663,7 @@
 	     (unless (eq? (send id get-parent) menu)
 	       (error 'check-parent "parent mismatch: for ~a, ~a != ~a"
 		      (send id get-label)
-		      (send (send menu get-item) get-label)
+		      (send menu get-label)
 		      (send (send (send id get-parent) get-item) get-label)))))]
 	[label-test
 	 (lambda (menu id expect)
@@ -696,13 +696,13 @@
 		       (or (find menu str)
 			   (let ([items (send menu get-items)])
 			     (ormap (lambda (i)
-				      (and (is-a? i submenu-item<%>)
-					   (find-item (send i get-menu) str)))
+				      (and (is-a? i menu%)
+					   (find-item i str)))
 				    items))))]
 		    [v (if use-menubar? 
 			   (let ([item (find menu-bar title)])
 			     (if item
-				 (find-item (send item get-menu) string)
+				 (find-item item string)
 				 -1))
 			   (find-item menu string))])
 	     (compare expect v (format "label search: ~a" string))))]
@@ -720,12 +720,12 @@
       (sequence
 	(make-menu-bar)
 
-	(send (send apple-menu get-item) restore)
+	(send apple-menu restore)
 
 	(make-object button%
 		     "Delete Tester" sbp 
 		     (lambda args
-		       (send (send main-menu get-item) delete)))
+		       (send main-menu delete)))
 	(make-object button%
 		     "Delete First Menu" sbp
 		     (lambda args
@@ -733,7 +733,7 @@
 	(make-object button%
 		     "Add Tester" sbp
 		     (lambda args
-		       (send (send main-menu get-item) restore)))
+		       (send main-menu restore)))
 	(make-object button%
 		     "Add Delete Banana" sbp
 		     (lambda args
@@ -761,7 +761,7 @@
 	(make-object button%
 		     "Toggle Apple Enable" mfbp
 		     (lambda args
-		       (send (send apple-menu get-item) enable (not (send (send apple-menu get-item) is-enabled?)))))
+		       (send apple-menu enable (not (send apple-menu is-enabled?)))))
 	
 	(make-object button%
 		     "Test Labels" lblp 
@@ -803,7 +803,7 @@
 			 (send DELETE-APPLE set-help-string (tmp-pick "DELETER" "Deletes the Apple menu"))
 			 (send COCONUT-ID set-help-string (tmp-pick "SUBMENU" "Submenu"))
 			 (send DELETE-COCONUT set-help-string (tmp-pick "CDELETER" #f))
-			 (send (send main-menu get-item) set-label (if temp-labels? "Hi" "&Tester")))))
+			 (send main-menu set-label (if temp-labels? "Hi" "&Tester")))))
 	(letrec ([by-bar (make-object check-box%
 				      "Via Menubar" lblp
 				      (lambda args

@@ -301,7 +301,7 @@
 
       (printf "Menu 1~n")
       (let* ([m (make-object menu% "&File" mb)]
-	     [i (send m get-item)]
+	     [i m]
 	     [delete-enable-test (lambda (i parent empty)
 				   (printf "Item~n")
 				   (st #f i is-deleted?)
@@ -340,7 +340,6 @@
 				     (stv i set-label l)))]
 	     [hit #f])
 	(st (list i) mb get-items)
-	(st m i get-menu)
 	(st mb i get-parent)
 
 	(st "&File" i get-label)
@@ -419,9 +418,8 @@
 
 	(printf "Menu 2~n")
 	(let* ([m2 (make-object menu% "&Edit" mb "Help Edit")]
-	       [i2 (send m2 get-item)])
+	       [i2 m2])
 	  (st (list i i2) mb get-items)
-	  (st m2 i2 get-menu)
 	  (st mb i2 get-parent)
 
 	  (st "&Edit" i2 get-label)
