@@ -1,4 +1,24 @@
 
+Version 102/9:
+
+ * X: Fixed list-box% to handle arbitrarily many list items.
+
+ * Added pop-down callback initialization argument to popup-menu%, and
+   added the 'menu-popdown and 'menu-popdown-none event types to
+   control-event%. The callback is invoked with a 'menu-popdown event
+   after the callback for a selected item in a popup menu. If the menu
+   is dismissed with no item is selected, the callback is incoked with
+   a 'menu-popdown-none event.
+
+ * Added `on-demand' to menu-item-container<%> and
+   labelled-menu-item<%> for building menu content on demand. The
+   `on-demand' menthd of a menu bar is called when the user clicks on
+   the menu bar, before the click is handled by the menu bar. The
+   `on-demand' method of a popup menu is called before the menu is
+   popped up. The default implementation of `on-demand' in a menu item
+   container calls the `on-demand' method of all of its labelled menu
+   items (which includes submenus).
+
 Version 102/8:
 
  * Changed pen% width from integer to real number (still between
@@ -106,6 +126,9 @@ Removed `get-afm-name' and `set-afm-name' from
  `font-name-directory<%>', and changed post-script-dc% to use the
  PostScript font name as the AFM file name
 Changed pen%'s width from integer to real number (used for PS)
+Added pop-down callback initialization argument to popup-menu%, and
+ added 'menu-popdown and 'menu-popdown-none event types to
+ control-event%
 Changed the meaning of the `on-change' method in editor<%>; see the
  manual for details
 Editor reading/writing/cuting/pasting no longer relies on global
@@ -113,6 +136,7 @@ Editor reading/writing/cuting/pasting no longer relies on global
  editors
 Removed `read-done' and `write-done' from snip-class%
 Moved `reading-version' to snip-class% (from snip-class-list%)
+X: Fixed list-box% to handle arbitrarily many list items.
 X: Fixed input of keypad characters and dead characters (such as
  accent marks)
 

@@ -1282,7 +1282,11 @@
 	(entry-point-1
 	 (lambda (id)
 	   (let ([wx (wx:id-to-menu-item id)])
-	     (do-command (wx->mred wx) (make-object wx:control-event% 'menu)))))])
+	     (do-command (wx->mred wx) (make-object wx:control-event% 'menu)))))]
+       [on-menu-click
+	(entry-point
+	 (lambda ()
+	   (and menu-bar (send menu-bar on-demand))))])
      (public
        [handle-menu-key
 	(lambda (event)
@@ -2928,13 +2932,16 @@
       [get-plain-label (lambda () (and (string? label) (wx:label->plain-label label)))]
       [set-label (entry-point-1
 		  (lambda (l)
-		    (send wx set-label l)
-		    (set! label l)))])
+		    (let ([l (and (string? l) (string->immutable-string l))])
+		      (send wx set-label l)
+		      (set! label l))))])
     (public
       [command (lambda (e) (send wx command e))]) ; no entry/exit needed
     (private
       [wx #f])
     (sequence
+      (when (string? label)
+	(set! label (string->immutable-string label)))
       (super-init (lambda () (set! wx (mk-wx)) wx) (lambda () wx) label parent cursor)
       (as-exit (lambda () (send parent after-new-child this))))))
 
@@ -3152,6 +3159,8 @@
     (sequence
       (as-entry
        (lambda ()
+	 (when (andmap string? choices)
+	   (set! choices (map string->immutable-string choices)))
 	 (super-init (lambda () 
 		       (set! wx (make-object wx-radio-box% this this
 					     (mred->wx-container parent) (wrap-callback callback)
@@ -3412,7 +3421,11 @@
       [popup-menu (entry-point-3
 		   (lambda (m x y) 
 		     (check-instance '(method canvas<%> popup-menu) popup-menu% 'popup-menu% #f m)
-		     (send wx popup-menu (mred->wx m) x y)))]
+		     (let ([mwx (mred->wx m)])
+		       (as-exit
+			(lambda ()
+			  (send m on-demand)
+			  (send wx popup-menu mwx x y))))))]
       [warp-pointer (entry-point-2 (lambda (x y) (send wx warp-pointer x y)))]
 
       [get-dc (entry-point (lambda () (send wx get-dc)))])
@@ -3722,6 +3735,7 @@
 						    #t)
 						  #f)))
 					  items)))))))))]
+      [on-demand (lambda () (as-exit (lambda () (send mred on-demand))))]
       [get-mred (lambda () mred)]
       [get-items (lambda () items)]
       [append-item (lambda (item menu title)
@@ -3832,7 +3846,8 @@
   (interface (menu-item<%>)
     get-label set-label get-plain-label
     get-help-string set-help-string
-    enable is-enabled?))
+    enable is-enabled?
+    on-demand))
 
 (define submenu-item<%>
   (interface (labelled-menu-item<%>) get-menu))
@@ -3873,7 +3888,7 @@
     (private
       [wx #f]
       [wx-parent #f]
-      [plain-label (wx:label->plain-label label)]
+      [plain-label (string->immutable-string (wx:label->plain-label label))]
       [in-menu? (is-a? parent internal-menu<%>)]
       [shown? #f]
       [enabled? #t]
@@ -3884,14 +3899,15 @@
 			 (send wx-parent enable-top (send wx-parent position-of this) on?)))
 		   (set! enabled? (and on? #t)))])
     (public
+      [on-demand (lambda () (void))]
       [get-parent (lambda () parent)]
       [get-label (lambda () label)]
       [set-label (entry-point-1
 		  (lambda (l)
 		    (check-string '(method labelled-menu-item<%> set-label) l)
-		    (set! label l)
+		    (set! label (string->immutable-string l))
 		    (set-car! (send wx get-menu-data) l)  ; for meta-shortcuts
-		    (set! plain-label (wx:label->plain-label l))
+		    (set! plain-label (string->immutable-string (wx:label->plain-label l)))
 		    (when shown?
 		      (if in-menu?
 			  (send wx-parent set-label (send wx id) l)
@@ -3901,9 +3917,9 @@
       [set-help-string (entry-point-1
 			(lambda (s) 
 			  (check-string/false '(method labelled-menu-item<%> set-help-string) s)
-			  (set! help-string s)
+			  (set! help-string (and s (string->immutable-string s)))
 			  (when in-menu?
-			    (send wx-parent set-help-string (send wx id) s))))]
+			    (send wx-parent set-help-string (send wx id) help-string))))]
       [enable (lambda (on?) (do-enable on?))]
       [is-enabled? (lambda () enabled?)]
       [restore (entry-point
@@ -3929,6 +3945,8 @@
     (sequence
       (as-entry
        (lambda ()
+	 (when help-string
+	   (set! help-string (string->immutable-string help-string)))
 	 (set! wx (set-wx (make-object wx-menu-item% this (cons label #f))))
 	 (set! wx-parent (send (mred->wx parent) get-container))
 	 (super-init wx)
@@ -4007,7 +4025,7 @@
 		     (lambda (l) 
 		       (check-string '(method labelled-menu-item<%> set-label) l)
 		       (let-values ([(new-label keymap) (calc-labels l)])
-			 (set! label l)
+			 (set! label (string->immutable-string l))
 			 (super-set-label new-label)
 			 (if (or (super-is-deleted?)
 				 (not (super-is-enabled?)))
@@ -4028,6 +4046,7 @@
 						   "symbol: meta, alt, ctl-m, or ctl" p))
 			       (set! x-prefix p) (do-set-label (super-get-label)))])
     (sequence
+      (set! label (string->immutable-string label))
       (let-values ([(new-label keymap) (calc-labels label)])
 	(super-init menu new-label help-string #f checkable? keymap (lambda (x) (set! wx x) (set-wx x)))))))
 
@@ -4057,13 +4076,19 @@
     (sequence
       (super-init label #t menu callback shortcut help-string (lambda (x) (set! wx x) x)))))
 
-(define menu-item-container<%> (interface () get-items))
+(define menu-item-container<%> (interface () get-items on-demand))
 (define internal-menu<%> (interface ()))
 
 (define basic-menu%
   (class* mred% (menu-item-container<%> internal-menu<%>) (popup-label callback)
     (public
-      [get-items (entry-point (lambda () (send wx get-items)))])
+      [get-items (entry-point (lambda () (send wx get-items)))]
+      [on-demand (lambda ()
+		   (for-each
+		    (lambda (i) 
+		      (when (is-a? i labelled-menu-item<%>)
+			(send i on-demand)))
+		    (send wx get-items)))])
     (private
       [wx #f])
     (sequence 
@@ -4078,6 +4103,13 @@
       (check-string/false '(constructor menu) help-string))
     (public
       [get-items (entry-point (lambda () (send wx-menu get-items)))])
+    (override
+      [on-demand (lambda ()
+		   (for-each
+		    (lambda (i) 
+		      (when (is-a? i labelled-menu-item<%>)
+			(send i on-demand)))
+		    (send wx-menu get-items)))])
     (private
       [wx-menu #f])
     (sequence
@@ -4090,15 +4122,21 @@
 	   (send wx-item set-wx-menu wx-menu)))))))
 
 (define popup-menu%
-  (class basic-menu% ([title #f])
+  (class basic-menu% ([title #f][popdown-callback void])
     (sequence
       (check-string/false '(constructor popup-menu) title)
+      (check-callback '(constructor popup-menu) popdown-callback)
       (as-entry 
        (lambda ()
 	 (super-init title
 		     (lambda (m e)
 		       (let ([wx (wx:id-to-menu-item (send e get-menu-id))])
-			 (send (wx->mred wx) command (make-object wx:control-event% 'menu))))))))))
+			 (when wx
+			   (send (wx->mred wx) command (make-object wx:control-event% 'menu)))
+			 (popdown-callback this (make-object wx:control-event% 
+							     (if wx 
+								 'menu-popdown
+								 'menu-popdown-none)))))))))))
 
 (define menu-bar%
   (class* mred% (menu-item-container<%>) (parent)
@@ -4111,7 +4149,11 @@
       [get-frame (lambda () parent)]
       [get-items (entry-point (lambda () (send wx get-items)))]
       [enable (entry-point-1 (lambda (on?) (send wx enable-all on?)))]
-      [is-enabled? (entry-point (lambda () (send wx all-enabled?)))])
+      [is-enabled? (entry-point (lambda () (send wx all-enabled?)))]
+      [on-demand (lambda ()
+		   (for-each
+		    (lambda (i) (send i on-demand))
+		    (send wx get-items)))])
     (sequence
       (as-entry
        (lambda ()
