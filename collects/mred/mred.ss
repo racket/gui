@@ -624,9 +624,9 @@
        (case-lambda
 	[() (not perform-updates?)]
 	[(f) (set! perform-updates? (not f))
-	     (when pending-redraws?
+	     (when (and perform-updates? pending-redraws?)
 	       (force-redraw))
-	     (when (positive? (hash-table-count show-ht))
+	     (when (and perform-updates? (positive? (hash-table-count show-ht)))
 	       (let ([t show-ht])
 		 (set! show-ht (make-hash-table))
 		 (hash-table-for-each
