@@ -1,3 +1,4 @@
+
 (module mred mzscheme
   (require (prefix wx: (lib "kernel.ss" "mred" "private")))
   (require (lib "class.ss")
@@ -4646,7 +4647,8 @@
     (let ([mred-name ((current-module-name-resolver) '(lib "mred.ss" "mred") #f #f)]
           [orig-namespace (current-namespace)])
       (parameterize ([current-namespace user-namespace])
-        (namespace-attach-module orig-namespace mred-name)))
+        (namespace-attach-module orig-namespace mred-name)
+        (namespace-require '(lib "mred.ss" "mred"))))
     
     (unless user-esp
       (parameterize ((wx:current-eventspace user-eventspace))
@@ -4665,7 +4667,7 @@
       (wx:queue-callback
        (lambda ()
 	 (dynamic-wind
-	  void
+	  (lambda () (send execute-button enable #f))
 	  (lambda () 
 	    (call-with-values
 	     (lambda () (eval (read (open-input-string expr-str))))
@@ -4677,9 +4679,41 @@
 		    (newline)))
 		results))))
 	  (lambda ()
-	    (queue-output (lambda () (send repl-buffer new-prompt)))))))))
+	    (queue-output (lambda () (send repl-buffer new-prompt)))
+            (send execute-button enable #t)))))))
 
   (define waiting (make-semaphore 0))
+  
+  (define execute-menu-item 'execute-menu-item-not-yet-set)
+  (define execute-filename #f)
+  (define (update-execute-label)
+    (when execute-button
+      (let ([label (if execute-filename
+                       (format "Execute ~a" execute-filename)
+                       "Execute File...")])
+        (send execute-button set-label label)
+        (send execute-menu-item set-label label))))
+  (define (do-execute)
+    (unless execute-filename
+      (set! execute-filename (get-file #f frame))
+      (when execute-filename
+        (update-execute-label)))
+    (when execute-filename
+      (do-reset)
+      (send execute-button enable #f)
+      (evaluate (format "(load ~s)" execute-filename))))
+  (define (do-reset)
+    (custodian-shutdown-all user-custodian)
+    (user-space-init)
+    (send repl-buffer reset)
+    (send execute-button enable #t))
+  (define (do-kill)
+    (custodian-shutdown-all user-custodian)
+    (send repl-buffer kill-repl))
+  
+  (send execute-panel stretchable-height #f)
+  (when execute-button
+    (send execute-button stretchable-width #t))
   
   (define execute-menu-item 'execute-menu-item-not-yet-set)
   (define execute-filename #f)
@@ -4709,15 +4743,16 @@
   (send execute-panel stretchable-height #f)
   (when execute-button
     (send execute-button stretchable-width #t))
-  
+
   (let ([mb (make-object menu-bar% frame)])
     (let ([m (make-object menu% "&File" mb)])
-      (make-object menu-item% "Load File..." m (lambda (i e) (let ([f (get-file #f frame)]) (and f (evaluate (format "(load ~s)" f))))))
+      (make-object menu-item% "Load File..." m
+        (lambda (i e) (let ([f (get-file #f frame)]) (and f (evaluate (format "(load ~s)" f))))))
       (make-object menu-item% 
-		   (if (eq? (system-type) 'windows)
-		       "E&xit"
-		       "&Quit")
-		   m (lambda (i e) (send frame on-close) (send frame show #f)) #\q))
+        (if (eq? (system-type) 'windows)
+            "E&xit"
+            "&Quit")
+        m (lambda (i e) (send frame on-close) (send frame show #f)) #\q))
     (let ([m (make-object menu% "&Edit" mb)])
       (append-editor-operation-menu-items m #f))
     (unless user-esp
