@@ -256,7 +256,6 @@
     on-local-char
     on-local-event
     find-first-snip
-    size-cache-invalid
     blink-caret
     own-caret
     refresh
@@ -422,6 +421,8 @@
   (define-class key-event% event% ([key-code #\nul] [shift-down #f] [control-down #f] [meta-down #f] [alt-down #f] [x 0] [y 0] [time-stamp 0])
     get-key-code
     set-key-code
+    get-key-release-code
+    set-key-release-code
     get-shift-down
     set-shift-down
     get-control-down
@@ -634,7 +635,9 @@
     force-display-focus
     is-focus-on?
     get-editor
-    set-editor)
+    set-editor
+    get-wheel-step
+    set-wheel-step)
   (define-class editor-admin% object% #f
     refresh-delayed?
     popup-menu
@@ -827,7 +830,6 @@
     on-local-char
     on-local-event
     find-first-snip
-    size-cache-invalid
     blink-caret
     own-caret
     refresh
@@ -1029,7 +1031,6 @@
     on-local-char
     on-local-event
     find-first-snip
-    size-cache-invalid
     blink-caret
     own-caret
     refresh
