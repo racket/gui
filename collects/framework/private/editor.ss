@@ -332,8 +332,9 @@
       (define standard-style-list-mixin
         (mixin (editor<%>) (standard-style-list<%>)
           (super-instantiate ())
-          (inherit set-style-list)
-          (set-style-list standard-style-list)))
+          (inherit set-style-list set-load-overwrites-styles)
+          (set-style-list standard-style-list)
+	  (set-load-overwrites-styles #f)))
           
       (define -keymap<%> (interface (basic<%>) get-keymaps))
       (define keymap-mixin
