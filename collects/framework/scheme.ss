@@ -138,6 +138,7 @@
 	      [super-after-delete after-delete]
 	      [super-after-set-size-constraint after-set-size-constraint]
 	      [super-after-set-position after-set-position])
+      (inherit has-focus?)
       (override
        [on-focus
 	(lambda (on?)
@@ -146,32 +147,38 @@
        [after-change-style
 	(lambda (start len)
 	  (unless (get-styles-fixed)
-	    (highlight-parens))
+	    (when (has-focus?)
+	      (highlight-parens)))
 	  (super-after-change-style start len))]
        [after-edit-sequence
 	(lambda ()
-	  (unless in-highlight-parens?
-	    (highlight-parens))
+	  (when (has-focus?)
+	    (unless in-highlight-parens?
+	      (highlight-parens)))
 	  (super-after-edit-sequence))]
        [after-insert
 	(lambda (start size)
 	  (send backward-cache invalidate start)
 	  (send forward-cache forward-invalidate start size)
-	  (highlight-parens)
+	  (when (has-focus?)
+	    (highlight-parens))
 	  (super-after-insert start size))]
        [after-delete
 	(lambda (start size)
 	  (super-after-delete start size)
 	  (send backward-cache invalidate start)
 	  (send forward-cache forward-invalidate (+ start size) (- size))
-	  (highlight-parens))]
+	  (when (has-focus?)
+	    (highlight-parens)))]
        [after-set-size-constraint
 	(lambda ()
-	  (highlight-parens)
+	  (when (has-focus?)
+	    (highlight-parens))
 	  (super-after-set-size-constraint))]
        [after-set-position 
 	(lambda ()
-	  (highlight-parens)
+	  (when (has-focus?)
+	    (highlight-parens))
 	  (super-after-set-position))])
 
       (private
@@ -601,7 +608,7 @@
 		       #f)])
 	     ans))]
 	[flash-backward-sexp
-	 (lambda (start-pos move?)
+	 (lambda (start-pos)
 	   (let ([end-pos (get-backward-sexp start-pos)])
 	     (if end-pos
 		 (flash-on end-pos (add1 end-pos))
@@ -753,7 +760,7 @@
   (define setup-keymap
     (lambda (keymap)
 
-	(let ([add-pos-function ;; wx: this needs to be cleaned up!
+	(let ([add-pos-function
 	       (lambda (name ivar-sym)
 		 (send keymap add-function name
 		       (lambda (edit event)

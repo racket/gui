@@ -13,6 +13,7 @@
 
   (define basic<%>
     (interface (editor<%>)
+      has-focus?
       editing-this-file?
       local-edit-sequence?
       run-after-edit-sequence
@@ -28,6 +29,18 @@
 	       get-canvas
 	       get-max-width get-admin set-filename)
 
+      (private 
+	[has-focus #f])
+      (rename [super-on-focus on-focus])
+      (override
+       [on-focus
+	(lambda (x)
+	  (set! has-focus x))])
+      (public
+	[has-focus?
+	 (lambda ()
+	   has-focus)])
+      
       (rename [super-begin-edit-sequence begin-edit-sequence]
 	      [super-end-edit-sequence end-edit-sequence])
       (private
@@ -46,10 +59,6 @@
 	     (error 'end-edit-sequence "extra end-edit-sequence"))
 	   (super-end-edit-sequence))])
 
-      (rename [super-set-modified set-modified]
-	      [super-on-focus on-focus]
-	      [super-lock lock])
-      
       (public
 	[on-close void]
 	[get-top-level-window
@@ -128,6 +137,8 @@
 		 [else
 		  (hash-table-for-each ht (lambda (k t) (t)))
 		  (for-each (lambda (t) (t)) queue)]))))])
+ 
+      (rename [super-lock lock])
       (private
 	[is-locked? #f])
       (public

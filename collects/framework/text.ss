@@ -16,7 +16,7 @@
   ;; unless matthew makes it primitive
   
   (define basic<%>
-    (interface (text<%>)
+    (interface (editor:basic<%> text<%>)
       highlight-range      
       get-styles-fixed
       set-styles-fixed
@@ -26,8 +26,8 @@
   (define basic-mixin
     (mixin (editor:basic<%> text<%>) (basic<%>) args
 	   (inherit get-canvases get-admin split-snip get-snip-position
-		    delete find-snip invalidate-bitmap-cache
 		    set-autowrap-bitmap
+		    delete find-snip invalidate-bitmap-cache
 		    set-file-format get-file-format
 		    get-style-list is-modified? change-style set-modified
 		    position-location get-extent)
@@ -295,7 +295,6 @@
 						    snip))])
 			 (insert-edit released/copied dest-position dest-position)
 			 (loop prev))]))))])
-	   
 	   
 	   (public
 	     [initial-autowrap-bitmap (lambda () (icon:get-autowrap-bitmap))])
