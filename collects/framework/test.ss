@@ -61,7 +61,7 @@
     ((is-a?/c top-level-window<%>) . -> . void?)
     (tlw)
     "Use this function to simulate clicking on the close box of a frame."
-    "Closes \var{tlw} with this expression:"
+    "Closes \\var{tlw} with this expression:"
     ""
     "\\begin{schemedisplay}"
     "(when (send tlw can-close?)"
@@ -128,7 +128,7 @@
     ""
     "If \\var{check-box} is a string,"
     "this function searches for a \\iscmclass{check-box} with a label matching that string,"
-    "otherwise it uses \var{check-box} itself.")
+    "otherwise it uses \\var{check-box} itself.")
 
    (test:set-choice!
     ((union string? (is-a?/c choice%)) string? . -> . void?)
@@ -169,7 +169,7 @@
    (test:menu-select
     (string? string? . -> . void?)
     (menu item)
-    "Selects the menu-item named \var{item} in the menu named \var{menu}."
+    "Selects the menu-item named \\var{item} in the menu named \\var{menu}."
     ""
     "{\\it Note:}"
     "The string for the menu item does not include its keyboard equivalent."
