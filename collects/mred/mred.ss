@@ -7,7 +7,8 @@
 	   (lib "etc.ss")
 	   (lib "list.ss")
 	   (lib "process.ss")
-	   (lib "moddep.ss" "syntax"))
+	   (lib "moddep.ss" "syntax")
+           "private/seqcontract.ss")
 
 ;;;;;;;;;;;;;;; Constants ;;;;;;;;;;;;;;;;;;;;
 
@@ -2551,27 +2552,33 @@
 
     (sequence (apply super-init args))))
 
-(define text% (class100 (make-editor-buffer% wx:text% #t  (lambda () text%)) ([line-spacing 1.0] 
-									      [tab-stops null]
-									      [auto-wrap #f])
-		(rename (super-auto-wrap auto-wrap)
-			(super-set-file-format set-file-format)
-			(super-get-file-format get-file-format)
-			(super-set-position set-position))
-		(override
-		  [-get-file-format (lambda ()
-				      (super-get-file-format))]
-		  [-set-file-format (lambda (format)
-				      (super-set-file-format format)
-				      (super-set-position 0 0))])
-		
-		(sequence (super-init line-spacing tab-stops)
-			  (when auto-wrap
-			    (super-auto-wrap #t)))))
-(define pasteboard% (class100 (make-editor-buffer% wx:pasteboard% #f (lambda () pasteboard%)) ()
-		      (override
-			[-format-filter (lambda (f) 'standard)])
-		      (sequence (super-init))))
+  
+  
+  (define text% 
+    (es-contract-mixin
+     (class100 (make-editor-buffer% wx:text% #t  (lambda () text%)) ([line-spacing 1.0] 
+                                                                     [tab-stops null]
+                                                                     [auto-wrap #f])
+       (rename (super-auto-wrap auto-wrap)
+               (super-set-file-format set-file-format)
+               (super-get-file-format get-file-format)
+               (super-set-position set-position))
+       (override
+         [-get-file-format (lambda ()
+                             (super-get-file-format))]
+         [-set-file-format (lambda (format)
+                             (super-set-file-format format)
+                             (super-set-position 0 0))])
+       
+       (sequence (super-init line-spacing tab-stops)
+                 (when auto-wrap
+                   (super-auto-wrap #t))))))
+  (define pasteboard%
+    (es-contract-mixin
+     (class100 (make-editor-buffer% wx:pasteboard% #f (lambda () pasteboard%)) ()
+       (override
+         [-format-filter (lambda (f) 'standard)])
+       (sequence (super-init)))))
 
 (define editor-snip% (class100 wx:editor-snip% ([editor #f]
 						[with-border? #t]
