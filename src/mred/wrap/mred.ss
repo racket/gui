@@ -2938,7 +2938,9 @@
       [has-status-line? (lambda () status-line?)]
       [iconize (entry-point-1 (lambda (on?) (send wx iconize on?)))]
       [is-iconized? (entry-point (lambda () (send wx iconized?)))]
-      [set-icon (entry-point-1 (lambda (i) (send wx set-icon i)))]
+      [set-icon (entry-point-1-2 (case-lambda 
+				  [(i) (send wx set-icon i)]
+				  [(i b) (send wx set-icon i b)]))]
       [maximize (entry-point-1 (lambda (on?) (send wx maximize on?)))]
       [get-menu-bar (entry-point (lambda () (let ([mb (ivar wx menu-bar)])
 					      (and mb (wx->mred mb)))))])
