@@ -408,8 +408,8 @@
                 (send memory-text insert (format-number (current-memory-use)))
                 (send memory-text lock #t)
                 (send memory-text end-edit-sequence)))]
-
-          (define/private (format-number n)
+          
+          (define (format-number n)
             (let loop ([n n])
               (cond
                 [(<= n 1000) (number->string n)]
@@ -419,11 +419,11 @@
                   ","
                   (pad-to-3 (modulo n 1000)))])))
 
-         (define (pad-to-3 n)
-           (cond
-             [(<= n 9) (format "00~a" n)]
-             [(<= n 99) (format "0~a" n)]
-             [else (number->string n)]))
+          (define (pad-to-3 n)
+            (cond
+              [(<= n 9) (format "00~a" n)]
+              [(<= n 99) (format "0~a" n)]
+              [else (number->string n)]))
           
             ; only for CVSers
           (when show-memory-text?
