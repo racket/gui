@@ -580,7 +580,7 @@
 
       (define hierarchical-list%
 	(class100 editor-canvas% (parent [style '(no-hscroll)])
-          (inherit min-width min-height)
+          (inherit min-width min-height allow-tab-exit)
           (rename [super-on-char on-char]
                   [super-on-focus on-focus])
           (public
@@ -751,6 +751,7 @@
            [selected-item #f])
           (sequence
             (super-init parent top-buffer style)
+	    (allow-tab-exit #t)
             (send top-buffer set-cursor arrow-cursor) 
             (min-width 150)
             (min-height 200)))))))
