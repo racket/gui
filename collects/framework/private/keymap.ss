@@ -269,11 +269,16 @@
 		  #t)]
 
 	       [make-insert-brace-pair
-		(lambda (brace-pair-str) ; this string must be two characters long!
+		(lambda (open-brace close-brace)
 		  (lambda (edit event)
 		    (send edit begin-edit-sequence)
-		    (send edit insert brace-pair-str)
-		    (send edit set-position (max 0 (- (send edit get-start-position) 1)))
+                    (let ([selection-start-box (box 0)]
+                          [selection-end-box (box 0)])
+                      (send edit get-position selection-start-box selection-end-box)
+                      (send edit set-position (unbox selection-end-box))
+                      (send edit insert close-brace)
+                      (send edit set-position (unbox selection-start-box))
+                      (send edit insert open-brace))
 		    (send edit end-edit-sequence)))]
 
 	       [collapse-variable-space
@@ -868,12 +873,12 @@
 	      
 	      (add "flash-paren-match" flash-paren-match)
 
-	      (add "insert-()-pair" (make-insert-brace-pair "()"))
-	      (add "insert-[]-pair" (make-insert-brace-pair "[]"))
-	      (add "insert-{}-pair" (make-insert-brace-pair "{}"))
-	      (add "insert-\"\"-pair" (make-insert-brace-pair "\"\""))
-	      (add "insert-||-pair" (make-insert-brace-pair "||"))
-	      (add "insert-##-pair" (make-insert-brace-pair "##"))
+	      (add "insert-()-pair" (make-insert-brace-pair "(" ")"))
+	      (add "insert-[]-pair" (make-insert-brace-pair "[" "]"))
+	      (add "insert-{}-pair" (make-insert-brace-pair "{" "}"))
+	      (add "insert-\"\"-pair" (make-insert-brace-pair "\"" "\""))
+	      (add "insert-||-pair" (make-insert-brace-pair "|" "|"))
+	      (add "insert-##-pair" (make-insert-brace-pair "#" "#"))
 	     
 	      (add "toggle-anchor" toggle-anchor)
 	      (add "center-view-on-line" center-view-on-line)
