@@ -260,40 +260,42 @@
           (rename [super-on-subwindow-event on-subwindow-event])
           (inherit set-cursor)
           (define/override (on-subwindow-event receiver evt)
-            (let ([gap
-                   (ormap (lambda (gap) 
-                            (and (<= (gap-before-y gap) (send evt get-y) (gap-after-y gap))
-                                 gap))
-                          cursor-gaps)])
-              (set-cursor (and (or gap
-                                   resizing-y)
-                               (send (icon:get-up/down-cursor) ok?)
-                               (icon:get-up/down-cursor)))
-              (cond
-                [(and gap (send evt button-down? 'left))
-                 (set! resizing-y (send evt get-y))
-                 (set! resizing-gap gap)]
-                [(and resizing-y (send evt button-up?))
-                 (set! resizing-y #f)
-                 (set! resizing-gap #f)]
-                [(and resizing-y (send evt moving?))
-                 (let-values ([(width height) (get-client-size)])
-                   (let* ([before (gap-before resizing-gap)]
-                          [before-percentage (gap-before-percentage resizing-gap)]
-                          [after (gap-after resizing-gap)]
-                          [after-percentage (gap-after-percentage resizing-gap)]
-                          [available-height (get-available-height)]
-                          [change-in-percentage (/ (- resizing-y (send evt get-y)) available-height)]
-                          [new-before (- (percentage-% before-percentage) change-in-percentage)]
-                          [new-after (+ (percentage-% after-percentage) change-in-percentage)])
-                     (when (and ((* new-before available-height) . > . (send before min-height))
-                                ((* new-after available-height) . > . (send after min-height)))
-                       (set-percentage-%! before-percentage new-before)
-                       (set-percentage-%! after-percentage new-after)
-                       (after-percentage-change)
-                       (set! resizing-y (send evt get-y))
-                       (container-flow-modified))))]
-                [else (super-on-subwindow-event receiver evt)])))
+            (if (eq? receiver this)
+                (let ([gap
+                       (ormap (lambda (gap) 
+                                (and (<= (gap-before-y gap) (send evt get-y) (gap-after-y gap))
+                                     gap))
+                              cursor-gaps)])
+                  (set-cursor (and (or gap
+                                       resizing-y)
+                                   (send (icon:get-up/down-cursor) ok?)
+                                   (icon:get-up/down-cursor)))
+                  (cond
+                    [(and gap (send evt button-down? 'left))
+                     (set! resizing-y (send evt get-y))
+                     (set! resizing-gap gap)]
+                    [(and resizing-y (send evt button-up?))
+                     (set! resizing-y #f)
+                     (set! resizing-gap #f)]
+                    [(and resizing-y (send evt moving?))
+                     (let-values ([(width height) (get-client-size)])
+                       (let* ([before (gap-before resizing-gap)]
+                              [before-percentage (gap-before-percentage resizing-gap)]
+                              [after (gap-after resizing-gap)]
+                              [after-percentage (gap-after-percentage resizing-gap)]
+                              [available-height (get-available-height)]
+                              [change-in-percentage (/ (- resizing-y (send evt get-y)) available-height)]
+                              [new-before (- (percentage-% before-percentage) change-in-percentage)]
+                              [new-after (+ (percentage-% after-percentage) change-in-percentage)])
+                         (when (and ((* new-before available-height) . > . (send before min-height))
+                                    ((* new-after available-height) . > . (send after min-height)))
+                           (set-percentage-%! before-percentage new-before)
+                           (set-percentage-%! after-percentage new-after)
+                           (after-percentage-change)
+                           (set! resizing-y (send evt get-y))
+                           (container-flow-modified))))]
+                    [else (super-on-subwindow-event receiver evt)]))
+                (super-on-subwindow-event receiver evt)))
           
           (define cursor-gaps null)
           
