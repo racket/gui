@@ -21,11 +21,12 @@
     
     (define preferences (make-hash-table))
     (define marshall-unmarshall (make-hash-table))
-    
+    (define callbacks (make-hash-table))    
+    (define defaults (make-hash-table))
+
     (define-struct un/marshall (marshall unmarshall))
-    
     (define-struct marshalled (data))
-    (define-struct pref (value callbacks))
+    (define-struct pref (value))
 
     (define unmarshall
       (lambda (p marshalled)
@@ -36,24 +37,24 @@
 							(lambda () (k data))))])
 	    (unmarshall-fn data)))))
 
+    (define get-callbacks
+      (lambda (p)
+	(hash-table-get callbacks
+			p
+			(lambda () null))))
     (define add-preference-callback
       (lambda (p callback)
-	(let ([ans (hash-table-get preferences p (lambda () #f))])
-	  (cond
-	    [(marshalled? ans) (let* ([value (unmarshall p ans)]
-				      [pref (make-pref value (list callback))])
-				 (hash-table-put! preferences p pref)
-				 (callback p value)
-				 (lambda ()
-				   (set-pref-callbacks! pref (mzlib:function:remove callback (pref-callbacks pref) eq?))))]
-	    [(pref? ans)
-	     (set-pref-callbacks! ans (append (pref-callbacks ans) (list callback)))
-	     (lambda ()
-	       (set-pref-callbacks! ans (mzlib:function:remove callback (pref-callbacks ans) eq?)))]
-	    [(not ans) (raise (mred:exn:make-exn:unknown-preference
-			       (format "adding callback to unknown preference: ~a" p)
-			       ((debug-info-handler))))]
-	    [else (error 'prefs.ss "robby error.4: ~a ~a" p ans)]))))
+	(hash-table-put! callbacks p (append (get-callbacks p) (list callback)))
+	(lambda ()
+	  (hash-table-put!
+	   callbacks p
+	   (mzlib:function:remove callback
+				  (get-callbacks p)
+				  eq?)))))
+
+    (define check-callbacks
+      (lambda (p value)
+	(andmap (lambda (x) (x p value)) (get-callbacks p))))
 
     (define get-preference
       (lambda (p) 
@@ -65,11 +66,22 @@
 	  (cond
 	    [(marshalled? ans)
 	     (let* ([unmarshalled (unmarshall p ans)]
-		    [pref (make-pref unmarshalled null)])
-	       (hash-table-put! preferences p pref)
+		    [default
+		      (hash-table-get
+		       defaults p
+		       (lambda ()
+			 (error 'get-preference
+				"no default pref for: ~a~n"
+				p)))]
+		    [_ (mred:debug:printf 'prefs "get-preference checking callbacks: ~a to ~a"
+					  p unmarshalled)]
+		    [pref (if (check-callbacks p unmarshalled)
+			      unmarshalled
+			      default)])
+	       (hash-table-put! preferences p (make-pref pref))
 	       (mred:debug:printf 'prefs "get-preference.1 returning ~a as ~a"
-				  p unmarshalled)
-	       unmarshalled)]
+				  p pref)
+	       pref)]
 	    [(pref? ans)
 	     (let ([ans (pref-value ans)])
 	       (mred:debug:printf 'prefs "get-preference.2 returning ~a as ~a"
@@ -79,38 +91,48 @@
     
     (define set-preference
       (lambda (p value)
-	(let ([pref (hash-table-get preferences p (lambda () #f))])
+	(let* ([pref (hash-table-get preferences p (lambda () #f))])
 	    (cond 
 	      [(pref? pref)
-	       (when (andmap (lambda (x) (x p value)) (pref-callbacks pref))
+	       (mred:debug:printf 'prefs "set-preference.1 checking callbacks: ~a to ~a" p value)
+	       (when (check-callbacks p value)
+		 (mred:debug:printf 'prefs "set-preference.1 setting ~a to ~a"
+				    p value)
 		 (set-pref-value! pref value))]
 	      [(or (marshalled? pref) 
 		   (not pref))
-	       (hash-table-put! preferences p (make-pref value null))]
+	       (mred:debug:printf 'prefs "set-preference.2 checking callbacks: ~a to ~a" p value)
+	       (when (check-callbacks p value)
+		 (mred:debug:printf 'prefs "set-preference.2 setting ~a to ~a"
+				    p value)
+		 (hash-table-put! preferences p (make-pref value)))]
 	      [else
 	       (error 'prefs.ss "robby error.0: ~a" pref)]))))
-
-    (define set-preference-default
-      (lambda (p value)
-	(hash-table-get preferences p 
-			(lambda () 
-			  (hash-table-put! preferences p (make-pref value null))))
-	(set! defaults (cons (list p value) defaults))))
-    
-    ;; this is here becuase exit has to come before
-    ;; prefs.ss in the loading order.
-    (set-preference-default 'mred:verify-exit #t)
 
     (define set-preference-un/marshall
       (lambda (p marshall unmarshall)
 	(hash-table-put! marshall-unmarshall p (make-un/marshall marshall unmarshall))))
     
-    (define defaults null)
-    
     (define restore-defaults
       (lambda ()
-	(for-each (lambda (x) (apply set-preference x)) defaults)))
+	(mred:debug:printf 'prefs "setting prefs to default values")
+	(hash-table-for-each
+	 (lambda (p v) (set-preference p v))
+	 defaults)
+	(mred:debug:printf 'prefs "finished setting prefs to default values")))
     
+    (define set-preference-default
+      (lambda (p value)
+	(mred:debug:printf 'prefs "setting default value for ~a to ~a" p value)
+	(hash-table-get preferences p 
+			(lambda () 
+			  (hash-table-put! preferences p (make-pref value))))
+	(hash-table-put! defaults p value)))
+    
+    ;; this is here becuase exit has to come before
+    ;; prefs.ss in the loading order.
+    (set-preference-default 'mred:verify-exit #t)
+
     (define save-user-preferences 
       (let ([marshall-pref
 	     (lambda (p ht-value)
@@ -143,6 +165,8 @@
 	       (let/ec k
 		 (let* ([ht-pref (hash-table-get preferences p (lambda () #f))]
 			[unmarshall-struct (hash-table-get marshall-unmarshall p (lambda () #f))])
+		   (mred:debug:printf 'prefs "read-user-preferences; p: ~a ht-pref: ~a; marshalled: ~a"
+				      p ht-pref marshalled)
 		   (cond
 		     [(and (pref? ht-pref) unmarshall-struct)
 		      (set-preference p ((un/marshall-unmarshall unmarshall-struct) marshalled))]
