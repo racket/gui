@@ -439,23 +439,23 @@
     (define sh (make-object slider% 
 			    (if null-label? #f "H S&lider") 0 10 ip2
 			    (lambda (s e)
-			      (send gh set-value (send sh get-value)))
+			      (send gh set-value (* 10 (send sh get-value))))
 			    5
 			    (if plain-slider? '(horizontal plain) '(horizontal))))
     
     (define sv (make-object slider% 
 			    (if null-label? #f "V Sl&ider") 0 10 ip2 
 			    (lambda (s e)
-			      (send gv set-value (send sv get-value)))
+			      (send gv set-value (* 10 (send sv get-value))))
 			    5
 			    (if plain-slider? '(vertical plain) '(vertical))))
     
     (define gh (make-object gauge% 
-			    (if null-label? #f "H G&auge") 10 ip2
+			    (if null-label? #f "H G&auge") 100 ip2
 			    '(horizontal)))
     
     (define gv (make-object gauge% 
-			    (if null-label? #f "V Ga&uge") 10 ip2
+			    (if null-label? #f "V Ga&uge") 100 ip2
 			    '(vertical)))
     
     (define txt (make-object text-field% 

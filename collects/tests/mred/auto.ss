@@ -735,6 +735,14 @@
 	     (st 0 l get-selection)
 	     (st "Z" l get-string-selection))
 
+	   (unless choice?
+	     (st 1 l get-number)
+	     (stv l set '("ONe" "TW&o" "THRee"))
+	     (st 3 l get-number)
+	     (st "ONe" l get-string 0)
+	     (st "TW&o" l get-string 1)
+	     (st "THRee" l get-string 2))
+
 	   'done-list)])
 
     (printf "Choice~n")
