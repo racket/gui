@@ -300,35 +300,23 @@
                range-rectangles)))
           
           (define styles-fixed? #f)
-          (define styles-fixed-edit-modified? #f)
           (public get-styles-fixed set-styles-fixed)
           (define (get-styles-fixed) styles-fixed?)
           (define (set-styles-fixed b) (set! styles-fixed? b))
           
-          (rename
-           [super-on-change-style on-change-style]
-           [super-after-change-style after-change-style]
-           [super-on-insert on-insert]
-           [super-after-insert after-insert])
-          (override on-change-style on-insert after-insert after-change-style)
-          (define (on-change-style start len)
-            (when styles-fixed?
-              (set! styles-fixed-edit-modified? (is-modified?)))
-            (super-on-change-style start len))
-          (define (on-insert start len)
+          (rename [super-after-change-style after-change-style]
+                  [super-after-insert after-insert])
+          (define/override (on-insert start len)
             (begin-edit-sequence)
             (super-on-insert start len))
-          (define (after-insert start len)
+          (define/override (after-insert start len)
             (when styles-fixed?
               (change-style (send (get-style-list) find-named-style "Standard")
                             start
-                            (+ start len)))
+                            (+ start len)
+                            #f))
             (super-after-insert start len)
             (end-edit-sequence))
-          (define (after-change-style start len)
-            (super-after-change-style start len)
-            (when styles-fixed?
-              (set-modified styles-fixed-edit-modified?)))
           
           (public move/copy-to-edit)
           (define (move/copy-to-edit dest-edit start end dest-position)
