@@ -69,7 +69,7 @@
                     (instantiate (get-menu-item%) ()
                       (label ,(join menu-before-string menu-after-string
                                     `(,(an-item->string-name item))))
-                      (menu ,(menu-item-menu-name item))
+                      (parent ,(menu-item-menu-name item))
                       (callback (let ([,callback-name (lambda (item evt) (,callback-name item evt))])
                                   ,callback-name))
                       (shortcut ,key)
