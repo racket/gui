@@ -1,13 +1,13 @@
 
 (module hierlist-unit mzscheme
-  (import (lib "unitsig.ss")
+  (require (lib "unitsig.ss")
 	  (lib "class.ss")
 	  (lib "mred-sig.ss" "mred")
 	  "hierlist-sig.ss")
 
-  (import (lib "list.ss"))
+  (require (lib "list.ss"))
 
-  (export hierlist@)
+  (provide hierlist@)
   (define hierlist@
     (unit/sig hierlist^
       (import mred^)

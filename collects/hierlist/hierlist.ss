@@ -1,10 +1,10 @@
 
 (module hierlist mzscheme
-  (import (lib "unitsig.ss")
+  (require (lib "unitsig.ss")
 	  (lib "mred-sig.ss" "mred")
 	  (lib "mred.ss" "mred"))
 
-  (import "hierlist-sig.ss"
+  (require "hierlist-sig.ss"
 	  "hierlist-unit.ss")
 
 
@@ -13,7 +13,7 @@
     #f
     mred^)
 
-  (export-signature-elements hierlist^))
+  (provide-signature-elements hierlist^))
 
 #|
 

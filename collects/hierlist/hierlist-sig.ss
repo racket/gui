@@ -1,8 +1,8 @@
 
 (module hierlist-sig mzscheme
-  (import (lib "unitsig.ss"))
+  (require (lib "unitsig.ss"))
 
-  (export hierlist^)
+  (provide hierlist^)
   (define-signature hierlist^
     (hierarchical-list%
      hierarchical-list-item<%>
