@@ -64,6 +64,7 @@
        ((error-value->string-handler) s n)))))
 
 (define old-paramz #f)
+(define old-break-paramz #f)
 
 (define (as-entry f)
   (cond
@@ -77,16 +78,17 @@
 	     (set! monitor-owner (current-thread)))
 	   (lambda () 
 	     (set! old-paramz (current-parameterization))
-	     (parameterize ([break-enabled #f]
-			    [error-value->string-handler entered-err-string-handler]
+	     (set! old-break-paramz (current-break-parameterization))
+	     (parameterize ([error-value->string-handler entered-err-string-handler]
 			    [current-exception-handler
 			     (lambda (exn)
 			       ;; Get out of atomic region before letting
 			       ;;  an exception handler work
 			       (k (lambda () (raise exn))))])
-	       (call-with-values 
-		   f 
-		 (lambda args (lambda () (apply values args))))))
+	       (parameterize-break #f
+		 (call-with-values 
+		     f 
+		   (lambda args (lambda () (apply values args)))))))
 	   (lambda ()
 	     (set! monitor-owner #f)
 	     (semaphore-post monitor-sema)
@@ -99,15 +101,18 @@
   (call-with-parameterization
    old-paramz
    (lambda ()
-     (dynamic-wind
-	 (lambda ()
-	   (set! monitor-owner #f)	 
-	   (semaphore-post monitor-sema)
-	   (wx:in-atomic-region #f))
-	 f
-	 (lambda ()
-	   (wx:in-atomic-region monitor-sema)
-	   (set! monitor-owner (current-thread)))))))
+     (call-with-break-parameterization
+      old-break-paramz
+      (lambda ()
+	(dynamic-wind
+	    (lambda ()
+	      (set! monitor-owner #f)	 
+	      (semaphore-post monitor-sema)
+	      (wx:in-atomic-region #f))
+	    f
+	    (lambda ()
+	      (wx:in-atomic-region monitor-sema)
+	      (set! monitor-owner (current-thread)))))))))
 
 (define-syntax entry-point 
   (lambda (stx)
@@ -5977,7 +5982,7 @@
       (make-output-port
        'console
        always-evt
-       (lambda (s start end flush?) 
+       (lambda (s start end flush? breakable?) 
 	 (queue-output (lambda () 
 			 ;; s might end in the middle of a UTF-8 encoding.
 			 ;;  Get a complete prefix, and save the rest.
@@ -7606,16 +7611,15 @@
 			    (lambda (s)
 			      (if (char-ready? pipe-r)
 				  (read-bytes-avail!* s pipe-r)
-				  (parameterize ([break-enabled #f])
-				    (if (semaphore-try-wait? lock-semaphore)
-					;; If there's an error here, the
-					;; port will remain locked.
-					(let ([v (read-chars s)])
-					  (semaphore-post lock-semaphore)
-					  v)
-					(wrap-evt
-					 (semaphore-peek-evt lock-semaphore)
-					 (lambda (x) 0))))))
+				  (if (semaphore-try-wait? lock-semaphore)
+				      ;; If there's an error here, the
+				      ;; port will remain locked.
+				      (let ([v (read-chars s)])
+					(semaphore-post lock-semaphore)
+					v)
+				      (wrap-evt
+				       (semaphore-peek-evt lock-semaphore)
+				       (lambda (x) 0)))))
 			    (lambda (s skip general-peek)
 			      (let ([v (peek-bytes-avail!* s skip pipe-r)])
 				(if (zero? v)
