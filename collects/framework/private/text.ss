@@ -68,7 +68,7 @@ WARNING: printf is rebound in the body of the unit to always
           (define range-rectangles null)
           (define ranges null)
           
-          (define/public (get-highlighted-ranges) ranges)
+          (define/public-final (get-highlighted-ranges) ranges)
           
           (define (invalidate-rectangles rectangles)
             (let ([b1 (box 0)]
@@ -589,8 +589,8 @@ WARNING: printf is rebound in the body of the unit to always
 
           (define delegate #f)
           (inherit get-highlighted-ranges)
-          (define/public (get-delegate) delegate)
-          (define/public (set-delegate _d)
+          (define/public-final (get-delegate) delegate)
+          (define/public-final (set-delegate _d)
             (set! delegate _d)
             (set! linked-snips (if _d
                                    (make-hash-table)
@@ -879,7 +879,7 @@ WARNING: printf is rebound in the body of the unit to always
           
           ;; insert-between : string -> void
           ;; inserts something between the insertion point and the unread region
-          (define/public (insert-between str)
+          (define/public-final (insert-between str)
             (insert str unread-start-point unread-start-point)
             (set! unread-start-point (+ insertion-point 
                                         ;; string-length is bad here
@@ -888,36 +888,33 @@ WARNING: printf is rebound in the body of the unit to always
           ;; has-between? : -> boolean
           ;; indicates if there is currently some text after the insertion
           ;; point, but before the unread region
-          (define/public (has-between?)
+          (define/public-final (has-between?)
             (not (= insertion-point unread-start-point)))
           
-          (define/public (get-insertion-point) insertion-point)
-          (define/public (set-insertion-point ip) (set! insertion-point ip))
-          (define/public (get-unread-start-point) unread-start-point)
-          (define/public (set-unread-start-point u) (set! unread-start-point u))
+          (define/public-final (get-insertion-point) insertion-point)
+          (define/public-final (set-insertion-point ip) (set! insertion-point ip))
+          (define/public-final (get-unread-start-point) unread-start-point)
+          (define/public-final (set-unread-start-point u) (set! unread-start-point u))
           
-          (define/public (set-allow-edits allow?) (set! allow-edits? allow?))
-          (define/public (get-allow-edits) allow-edits?)
+          (define/public-final (set-allow-edits allow?) (set! allow-edits? allow?))
+          (define/public-final (get-allow-edits) allow-edits?)
           
-          (define/public (send-eof-to-in-port) (channel-put read-chan eof))
-          
-          (define/public (clear-input-port)
-            (channel-put clear-input-chan (void)))
-          
-          (define/public (clear-output-ports) 
+          (define/public-final (send-eof-to-in-port) (channel-put read-chan eof))
+          (define/public-final (clear-input-port) (channel-put clear-input-chan (void)))
+          (define/public-final (clear-output-ports) 
             (channel-put clear-output-chan (void))
             (init-output-ports))
           
-          (define/public (get-in-port)
+          (define/public-final (get-in-port)
             (unless in-port (error 'get-in-port "not ready"))
             in-port)
-          (define/public (get-out-port)
+          (define/public-final (get-out-port)
             (unless out-port (error 'get-out-port "not ready"))
             out-port)
-          (define/public (get-err-port)
+          (define/public-final (get-err-port)
             (unless err-port (error 'get-err-port "not ready"))
             err-port)
-          (define/public (get-value-port)
+          (define/public-final (get-value-port)
             (unless err-port (error 'get-value-port "not ready"))
             value-port)
           
@@ -926,8 +923,8 @@ WARNING: printf is rebound in the body of the unit to always
           ;;  specialization interface
           ;;
           
-          (define/public (submit-to-port? key) #t)
-          (define/public (on-submit) (void))
+          (define/pubment (submit-to-port? key) (inner #t submit-to-port? key))
+          (define/pubment (on-submit) (inner (void) on-submit))
           
           ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
           ;;
