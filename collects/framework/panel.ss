@@ -56,8 +56,29 @@
 	     (send current-active-child show #t))])])
       (sequence
 	(apply super-init args))))
-  
-  (define single% (single-mixin panel%))
+
+  (define single-window<%> (interface (single<%>)))
+  (define single-window-mixin
+    (mixin (single<%> window<%>) (single-window<%>) args
+      (inherit get-client-size get-size)
+      (rename [super-container-size container-size])
+      (override
+       [container-size
+	(lambda (l)
+	  (let-values ([(super-width super-height) (super-container-size l)]
+		       [(client-width client-height) (get-client-size)]
+		       [(window-width window-height) (get-size)]
+		       [(calc-size)
+			(lambda (super client window)
+			  (+ super (max 0 (- window client))))])
+			 
+	    (values
+	     (calc-size super-width client-width window-width)
+	     (calc-size super-height client-height window-height))))])
+      (sequence
+	(apply super-init args))))
+
+  (define single% (single-window-mixin (single-mixin panel%)))
   (define single-pane% (single-mixin pane%))
   
   (define -editor<%>

@@ -802,43 +802,6 @@
 		    update-info
 		    get-info-panel))
 
-  (define time-edit (make-object text%))
-  (define time-semaphore (make-semaphore 1))
-  (define wide-time "00:00pm")
-  (send time-edit lock #t)
-  (define update-time
-    (lambda ()
-      (dynamic-wind
-       (lambda ()
-	 (semaphore-wait time-semaphore)
-	 (send time-edit lock #f))
-       (lambda ()
-	 (send* time-edit 
-		(erase)
-		(insert 
-		 (let* ([date (seconds->date
-			       (current-seconds))]
-			[hours (date-hour date)]
-			[minutes (date-minute date)])
-		   (format "~a:~a~a~a"
-			   (cond
-			     [(= hours 0) 12]
-			     [(<= hours 12) hours]
-			     [else (- hours 12)])
-			   (quotient minutes 10)
-			   (modulo minutes 10)
-			   (if (< hours 12) "am" "pm"))))))
-       (lambda ()
-	 (send time-edit lock #t)
-	 (semaphore-post time-semaphore)))))
-  (define time-thread
-    (thread
-     (rec loop
-	  (lambda ()
-	    (update-time)
-	    (sleep 30)
-	    (loop)))))
-
   (define info-mixin
     (mixin (-editor<%>) (info<%>) args
       (rename [super-make-root-area-container make-root-area-container])
@@ -898,7 +861,6 @@
 	[on-close
 	 (lambda ()
 	   (super-on-close)
-	   (send time-canvas set-editor #f)
 	   (unregister-collecting-blit gc-canvas)
 	   (close-panel-callback))])
       
@@ -951,8 +913,6 @@
 			      b
 			      "Unlocked"))
 			(get-info-panel))]
-	[time-canvas (make-object editor-canvas% (get-info-panel) #f '(no-hscroll no-vscroll))]
-	[_ (send time-canvas set-line-count 1)]
 	[gc-canvas (make-object canvas% (get-info-panel) '(border))]
 	[register-gc-blit
 	 (lambda ()
@@ -989,15 +949,7 @@
 	       (set-alignment 'right 'center)
 	       (stretchable-height #f)
 	       (spacing 3)
-	       (border 3))
-	(send* time-canvas 
-	       (set-editor time-edit)
-	       (stretchable-width #f)
-	       (stretchable-height #f))
-	(semaphore-wait time-semaphore)
-	(determine-width wide-time time-canvas time-edit)
-	(semaphore-post time-semaphore)
-	(update-time))))
+	       (border 3)))))
 
   (define text-info<%> (interface (info<%>)
 			   overwrite-status-changed
