@@ -555,9 +555,37 @@
 	 (and panel
 	      (let ([code (send e get-key-code)])
 		(case code
+		  [(#\return) 
+		   (let ([o (get-focus-window)])
+		     (if (and o (send o handles-key-code code))
+			 #f
+			 (let ([objs (container->children panel #f)])
+			   (ormap
+			    (lambda (x)
+			      (and (is-a? x wx:button%)
+				   (send x has-border?)
+				   (let ([v (make-object wx:control-event% 'button)])
+				     (send x command v)
+				     #t)))
+			    objs)
+			   #t)))]
+		  [(#\space)
+		   (let ([o (get-focus-window)])
+		     (cond
+		      [(is-a? o wx:button%)
+		       (send o command (make-object wx:control-event% 'button))]
+		      [(is-a? o wx:check-box%) 
+		       (send o set-value (not (send o get-value)))
+		       (send o command (make-object wx:control-event% 'check-box))]
+		      [(is-a? o wx:radio-box%)
+		       (let ([s (send o button-focus -1)])
+			 (unless (negative? s)
+			   (send o set-selection s)
+			   (send o command (make-object wx:control-event% 'radio-box))))]
+		      [else #f]))]
 		  [(#\tab left up down right) 
 		   (let ([o (get-focus-window)])
-		     (if (send o handles-key-code code)
+		     (if (and o (send o handles-key-code code))
 			 #f
 			 (let* ([shift? (send e get-shift-down)]
 				[forward? (or (and (eq? code #\tab) (not shift?))
@@ -1002,7 +1030,10 @@
      (sequence
        (apply super-init args)))))
 
-(define wx-button% (make-window-glue% (make-simple-control% wx:button%)))
+(define wx-button% (make-window-glue% 
+		    (class (make-simple-control% wx:button%) (parent cb label x y w h style)
+		      (public [has-border? (lambda () (memq 'border style))])
+		      (sequence (super-init parent cb label x y w h style)))))
 (define wx-check-box% (make-window-glue% (make-simple-control% wx:check-box%)))
 (define wx-choice% (make-window-glue% (make-simple-control% wx:choice%)))
 (define wx-message% (class (make-window-glue% (make-simple-control% wx:message%)) args
@@ -2325,7 +2356,7 @@
       
       [get-label (lambda () label)]
       [set-label (lambda (l)
-		   (check-string '(method window<%> set-label) l)
+		   (check-string/false '(method window<%> set-label) l)
 		   (set! label l))]
       [get-plain-label (lambda () (and (string? label) (wx:label->plain-label label)))]
 
@@ -2488,13 +2519,13 @@
 	(check-style cwho #f '(no-thick-border no-resize-border no-caption no-system-menu
 					       iconize maximize mdi-parent mdi-child) 
 		     style)))
+    (rename [super-on-subwindow-char on-subwindow-char])
     (private
       [wx #f]
       [status-line? #f])
     (override
-      [on-subwindow-char (lambda (w event) 
-			   (check-instance '(method top-level-window<%> on-subwindow-char) window<%> 'window<%> #f w)
-			   (check-instance '(method top-level-window<%> on-subwindow-char) wx:key-event% 'key-event% #f event)
+      [on-subwindow-char (lambda (w event)
+			   (super-on-subwindow-char w event)
 			   (or (send wx handle-menu-key event)
 			       (send wx handle-traverse-key event)))])
     (public
@@ -2523,11 +2554,20 @@
 	(check-string cwho label)
 	(check-top-level-parent/false cwho parent)
 	(for-each (lambda (x) (check-dimension cwho x)) (list width height x y))
-	(check-style cwho #f '(no-caption) style))
-      (super-init (lambda (finish) (finish (make-object wx-dialog% this this
-							(and parent (mred->wx parent)) (wx:label->plain-label label) #t
-							(or x -1) (or y -1) (or width 0) (or height 0)
-							style)))
+	(check-style cwho #f '(no-caption) style)))
+    (rename [super-on-subwindow-char on-subwindow-char])
+    (private [wx #f])
+    (override
+      [on-subwindow-char (lambda (w event)
+			   (super-on-subwindow-char w event)
+			   (send wx handle-traverse-key event))])
+    (sequence
+      (super-init (lambda (finish) 
+		    (set! wx (finish (make-object wx-dialog% this this
+						  (and parent (mred->wx parent)) (wx:label->plain-label label) #t
+						  (or x -1) (or y -1) (or width 0) (or height 0)
+						  style)))
+		    wx)
 		  label parent))))
 
 (define (get-top-level-windows)
