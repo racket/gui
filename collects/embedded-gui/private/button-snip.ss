@@ -88,20 +88,20 @@
   (define toggle-button-snip%
     (class button-snip%
       (inherit set-images)
-      (init-field images1 images2 callback1 callback2 (state 1))
+      (init-field images-off images-on callback-off callback-on (state 'on))
       (super-new
-       (images images1)
+       (images (if (symbol=? state 'on) images-on images-off))
        (callback
         (lambda (b e)
-          (if (= state 1)
+          (if (symbol=? state 'on)
               (begin
-                (set-images images2)
-                (set! state 2)
-                (callback1 b e))
+                (set-images images-off)
+                (set! state 'off)
+                (callback-on b e))
               (begin
-                (set-images images1)
-                (set! state 1)
-                (callback2 b e))))))))
+                (set-images images-on)
+                (set! state 'on)
+                (callback-off b e))))))))
   
   ;;;;;;;;;;
   ;; tests

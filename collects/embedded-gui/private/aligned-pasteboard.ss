@@ -14,16 +14,24 @@
    "really-resized-pasteboard.ss"
    "interface.ss"
    "snip-lib.ss"
-   "verthoriz-alignment.ss")
+   "locked-pasteboard.ss"
+   "verthoriz-alignment.ss"
+   "suppress-modify-editor.ss")
   
   (define aligned-pasteboard%
     (class (click-forwarding-editor-mixin
             (on-show-pasteboard-mixin
-             (really-resized-pasteboard-mixin pasteboard%)))
+              (suppress-modify-editor-mixin
+               (locked-pasteboard-mixin
+                (really-resized-pasteboard-mixin pasteboard%)))))
       
-      (inherit begin-edit-sequence end-edit-sequence get-max-view-size refresh-delayed?)
+      (inherit begin-edit-sequence end-edit-sequence
+               get-max-view-size refresh-delayed?)
+      (init align)
       (field
-       [alignment (new vertical-alignment%)]
+       [alignment (new (case align
+                         [(horizontal) horizontal-alignment%]
+                         [else vertical-alignment%]))]
        [lock-alignment? false]
        [needs-alignment? false])
       
@@ -56,8 +64,8 @@
         (super-really-resized snip)
         (realign))
       
-      (rename [super-on-show on-show])
-      (define/override (on-show)
+      #;(rename [super-on-show on-show])
+      #;(define/override (on-show)
         (realign)
         (super-on-show))
       

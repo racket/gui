@@ -14,14 +14,12 @@
       (field [shown? false])
       (rename [super-refresh refresh])
       (define/override (refresh x y w h d-c)
-        (super-refresh x y w h d-c)
+        (super-refresh x y (max w 0) (max h 0) d-c)
         (unless shown?
           (set! shown? true)
           (on-show)))
-      (define/public (showing?)
-        shown?)
-      (define/public (on-show)
-        (void))
+      (define/public (showing?) shown?)
+      (define/public (on-show) (void))
       (super-new)))
   
   (define on-show-pasteboard%
