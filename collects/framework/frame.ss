@@ -1060,6 +1060,14 @@
 	(editor-position-changed)
 	(send position-edit lock #t))))
   
+  (define pasteboard-info<%> (interface (info<%>)))
+  (define pasteboard-info-mixin
+    (mixin (info<%>) (pasteboard-info<%>) args
+      (override
+        [get-editor% (lambda () pasteboard:info%)])
+      (sequence
+	(apply super-init args))))
+
   (define file<%> (interface (-editor<%>)))
   (define file-mixin
     (mixin (-editor<%>) (file<%>) args
@@ -1095,7 +1103,7 @@
   (define text-info-file% (file-mixin text-info%))
 
   (define -pasteboard% (pasteboard-mixin editor%))
-  (define pasteboard-info% (info-mixin -pasteboard%))
+  (define pasteboard-info% (pasteboard-info-mixin (info-mixin -pasteboard%)))
   (define pasteboard-info-file% (file-mixin pasteboard-info%))
   
   )

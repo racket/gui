@@ -169,6 +169,9 @@
    text-info<%>
    text-info-mixin
 
+   pasteboard-info<%>
+   pasteboard-info-mixin
+
    file<%>
    file-mixin
 

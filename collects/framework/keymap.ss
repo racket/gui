@@ -300,7 +300,8 @@
 	   
 	   [region-click
 	    (lambda (edit event f)
-	      (when (send event button-down?)
+	      (when (and (send event button-down?)
+			 (is-a? edit original:text%))
 		(let ([x-box (box (send event get-x))]
 		      [y-box (box (send event get-y))]
 		      [eol-box (box #f)])
