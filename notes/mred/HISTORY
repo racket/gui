@@ -1,4 +1,20 @@
 
+Version 199.17:
+
+ * Changed menu-item% and checkable-menu-item%'s `menu' initialization
+   argument to `parent' (to match the docs and the rest of the
+   toolbox).
+
+ * Corrected the documentation, changing `help' initialization
+   arguments for menus and menu items to `help-string'.
+
+ * Added an optional argument to text%'s get-visible-line-range and
+   get-visible-position-range to control whetherthe computed range is
+   for all displays (the default) or only the current one.
+
+ * Added `label' initialization argument to canvas% and editor-canvas%
+   (since they implement window<%>).
+
 Version 199.16:
 
  * Changed `demand-callback' to take a self argument.
