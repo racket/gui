@@ -198,7 +198,7 @@
 			  (set-preference 'mred:file-dialogs (if (send command checked?)
 								 'std
 								 'common)))
-			"Use platform-specific file dialogs?" (eq? (get-preference 'mred:file-dialogs) 'common))
+			"Use platform-specific file dialogs?" (eq? (get-preference 'mred:file-dialogs) 'std))
 	    (make-check (lambda (_ command) 
 			  (set-preference 'mred:status-line (send command checked?)))
 			"Show clock?" (get-preference 'mred:status-line))
