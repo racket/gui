@@ -131,7 +131,7 @@
 
       (send item-keymap add-function "mouse-select"
 	    (lambda (edit event) (when (send event button-down?)
-				   (send edit select #t)
+                                   (send edit select #t)
 					; To handle hypertext clicks:
 				   (send edit on-default-event event))))
       (send item-keymap add-function "mouse-double-select"
@@ -147,28 +147,34 @@
           is-selected?
           select
           user-data
+          get-allow-selection?
+          set-allow-selection
           get-clickable-snip))
 
       (define hierarchical-list-item%
 	(class100* object% (hierarchical-list-item<%>) (snp)
-		(private-field
-		  [snip snp]
-		  [data #f])
-		(public
-                  [get-clickable-snip (lambda () snip)]
-		  [get-editor (lambda () (send snip get-item-buffer))]
-		  [is-selected? (lambda () (send (send snip get-editor) is-selected?))]
-		  [select (lambda (on?) (send (send snip get-editor) select on?))]
-		  [scroll-to (lambda () (let* ([admin (send snip get-admin)]
-					       [dc (send admin get-dc)]
-					       [h-box (box 0.0)])
-					  (send snip get-extent dc 0 0 #f h-box #f #f #f #f)
-					  (send admin
-						scroll-to
-						snip
-						0 0 0 (unbox h-box) #t)))]
-		  [user-data (case-lambda [() data][(x) (set! data x)])])
-		(sequence (super-init))))
+          (private-field
+           [snip snp]
+           [data #f]
+           [allow-selection #t])
+          (public
+            [get-allow-selection? (lambda () allow-selection)]
+            [set-allow-selection (lambda (_a) (set! allow-selection _a))]
+            
+            [get-clickable-snip (lambda () snip)]
+            [get-editor (lambda () (send snip get-item-buffer))]
+            [is-selected? (lambda () (send (send snip get-editor) is-selected?))]
+            [select (lambda (on?) (send snip select on?))]
+            [scroll-to (lambda () (let* ([admin (send snip get-admin)]
+                                         [dc (send admin get-dc)]
+                                         [h-box (box 0.0)])
+                                    (send snip get-extent dc 0 0 #f h-box #f #f #f #f)
+                                    (send admin
+                                          scroll-to
+                                          snip
+                                          0 0 0 (unbox h-box) #t)))]
+            [user-data (case-lambda [() data][(x) (set! data x)])])
+          (sequence (super-init))))
 
       (define hierarchical-list-compound-item<%>
 	(interface (hierarchical-list-item<%>)
@@ -176,6 +182,10 @@
           new-list
           delete-item
           get-items
+          open
+          close
+          toggle-open/closed
+          is-open?
           get-arrow-snip))
 
       (define hierarchical-list-compound-item%
@@ -217,159 +227,160 @@
       ;; Buffer for a single list item
       (define hierarchical-item-text%
 	(class100 text% (tp tp-select itm snp dpth)
-	       (inherit set-max-undo-history hide-caret
-			last-position set-position set-keymap
-			invalidate-bitmap-cache set-max-width
-			get-view-size)
-	       (rename [super-auto-wrap auto-wrap]
-		       [super-on-default-event on-default-event])
-	       (private-field
-		 [top tp]
-		 [top-select tp-select]
-		 [item itm]
-		 [snip snp]
-		 [depth dpth]
-		 [selected? #f])
-	       (public
-		 [is-selected? (lambda () selected?)]
-		 [show-select (lambda (on?)
-				(set! selected? on?)
-				(invalidate-bitmap-cache))])
-	       (override
-		 [auto-wrap (case-lambda
-			     [() (super-auto-wrap)]
-			     [(on?) (super-auto-wrap on?)
-			      (when on?
-				(let ([wbox (box 0)])
-				  (send (send top get-editor) get-view-size wbox (box 0))
-				  ;; These icky constants should be eliminated
-				  (let ([w (- (unbox wbox) 8 (* depth arrow-size))])
-				    (set-max-width (if (positive? w)
-						       w
-						       'none)))))])]
-		 [on-paint
-		  (lambda (pre? dc left top_ right bottom dx dy caret)
-		    (when (and (not pre?) selected?)
-		      (let ([b (send dc get-brush)]
-			    [p (send dc get-pen)]
-			    [filled? (or (not (send top show-focus))
-					 (send top has-focus?))])
-			(unless filled?
-			  ;; To draw the right outline, we need the display area
-			  (set! left 0)
-			  (set! top_ 0)
-			  (let ([wbox (box 0)]
-				[hbox (box 0)])
-			    (get-view-size wbox hbox)
-			    (set! right (unbox wbox))
-			    (set! bottom (unbox hbox))))
-			(send dc set-brush (if filled? black-xor transparent))
-			(send dc set-pen (if filled? transparent-pen black-xor-pen))
-			(send dc draw-rectangle (+ dx left) (+ dy top_) (- right left) (- bottom top_))
-			(send dc set-pen p)
-			(send dc set-brush b))))])
-	       (public
-		 [select (lambda (on?)
-			   (unless (eq? (not selected?) (not on?))
-			     (top-select (if on? item #f) snip)))]
-		 [double-select (lambda () (send top on-double-select item))]
-		 [select-prev (lambda () (send top select-prev))])
-	       (override
-		 [on-default-char (lambda (x) (void))])
-	       (sequence
-		 (super-init)
-		 (hide-caret #t)
-		 (set-max-undo-history 0)
-		 (set-keymap item-keymap))))
+          (inherit set-max-undo-history hide-caret
+                   last-position set-position set-keymap
+                   invalidate-bitmap-cache set-max-width
+                   get-view-size)
+          (rename [super-auto-wrap auto-wrap]
+                  [super-on-default-event on-default-event])
+          (private-field
+           [top tp]
+           [top-select tp-select]
+           [item itm]
+           [snip snp]
+           [depth dpth]
+           [selected? #f])
+          (public
+            [is-selected? (lambda () selected?)]
+            [show-select (lambda (on?)
+                           (set! selected? on?)
+                           (invalidate-bitmap-cache))])
+          (override
+            [auto-wrap (case-lambda
+                        [() (super-auto-wrap)]
+                        [(on?) (super-auto-wrap on?)
+                         (when on?
+                           (let ([wbox (box 0)])
+                             (send (send top get-editor) get-view-size wbox (box 0))
+                             ;; These icky constants should be eliminated
+                             (let ([w (- (unbox wbox) 8 (* depth arrow-size))])
+                               (set-max-width (if (positive? w)
+                                                  w
+                                                  'none)))))])]
+            [on-paint
+             (lambda (pre? dc left top_ right bottom dx dy caret)
+               (when (and (not pre?) selected?)
+                 (let ([b (send dc get-brush)]
+                       [p (send dc get-pen)]
+                       [filled? (or (not (send top show-focus))
+                                    (send top has-focus?))])
+                   (unless filled?
+                     ;; To draw the right outline, we need the display area
+                     (set! left 0)
+                     (set! top_ 0)
+                     (let ([wbox (box 0)]
+                           [hbox (box 0)])
+                       (get-view-size wbox hbox)
+                       (set! right (unbox wbox))
+                       (set! bottom (unbox hbox))))
+                   (send dc set-brush (if filled? black-xor transparent))
+                   (send dc set-pen (if filled? transparent-pen black-xor-pen))
+                   (send dc draw-rectangle (+ dx left) (+ dy top_) (- right left) (- bottom top_))
+                   (send dc set-pen p)
+                   (send dc set-brush b))))])
+          (public
+            [select (lambda (on?)
+                      (unless (eq? (not selected?) 
+                                   (not on?))
+                        (top-select (if on? item #f) snip)))]
+            [double-select (lambda () (send top on-double-select item))]
+            [select-prev (lambda () (send top select-prev))])
+          (override
+            [on-default-char (lambda (x) (void))])
+          (sequence
+            (super-init)
+            (hide-caret #t)
+            (set-max-undo-history 0)
+            (set-keymap item-keymap))))
 
       ;; Buffer for a compound list item (and the top-level list)
       (define (make-hierarchical-list-text% super%)
 	(class100 super% (tp tp-select dpth parent-snp)
-	       (inherit set-max-undo-history hide-caret erase
-			last-position insert delete line-start-position line-end-position
-			begin-edit-sequence end-edit-sequence get-style-list)
-	       (private-field
-		 [top tp]
-		 [top-select tp-select]
-		 [depth dpth]
-		 [parent-snip parent-snp]
-		 [children null])
-	       (private
-		 [make-whitespace (lambda () (make-object whitespace-snip%))]
-		 [insert-item 
-		  (lambda (mixin snip% whitespace?)
-		    (let ([s (make-object snip% this top top-select (add1 depth) mixin)])
-		      (begin-edit-sequence)
-		      (unless (null? children)
-			(insert #\newline (last-position)))
-		      (when whitespace? (insert (make-whitespace) (last-position)))
-		      (insert s (last-position))
-		      (end-edit-sequence)
-		      (set! children (append children (list s)))
-		      (send s get-item)))])
-	       (public
-		 [get-parent-snip (lambda () parent-snip)]
-		 [deselect-all 
-		  (lambda () (for-each (lambda (x) (send x deselect-all)) children))]
-		 [new-item 
-		  (case-lambda
-		   [() (new-item (lambda (x) x))]
-		   [(mixin)
-		    (insert-item mixin hierarchical-item-snip% #t)])]
-		 [new-list
-		  (case-lambda
-		   [() (new-list (lambda (x) x))]
-		   [(mixin)
-		    (insert-item mixin hierarchical-list-snip% #f)])]
-		 [get-items (lambda () (map (lambda (x) (send x get-item)) children))]
-		 [delete-item
-		  (lambda (i)
-		    (let loop ([pos 0][l children][others null])
-		      (cond
-		       [(null? l) (error 'hierarchical-list-compound-item::delete-item "item not found: ~a" i)]
-		       [(eq? (send (car l) get-item) i)
-			(send (car l) deselect-all)
-			(set! children (append (reverse others) (cdr l)))
-			(let ([s (line-start-position pos)]
-			      [e (line-end-position pos)])
-			  (delete (if (zero? s) s (sub1 s)) (if (zero? s) (add1 e) e)))]
-		       [else (loop (add1 pos) (cdr l) (cons (car l) others))])))]
-		 [sort (lambda (less-than?)
-			 (let ([l (mergesort children (lambda (a b)
-							(less-than? (send a get-item)
-								    (send b get-item))))])
-			   (begin-edit-sequence)
-			   (erase)
-			   (let ([to-scroll-to #f])
-			     (for-each
-			      (lambda (s)
-				(unless to-scroll-to
-				  (when (send (send s get-item) is-selected?)
-				    (set! to-scroll-to s)))
-				(unless (is-a? s hierarchical-list-snip%)
-				  (insert (make-whitespace)))
-				(insert s)
-				(insert #\newline))
-			      l)
-			     (unless (null? l)
-			       (delete)) ; delete last #\newline
-			     (set! children l)
-			     (when to-scroll-to
-			       (send (send to-scroll-to get-item) scroll-to)))
-			   (end-edit-sequence)))]
-		 [reflow-items
-		  (lambda ()
-		    (for-each
-		     (lambda (c)
-		       (send c reflow-item))
-		     children))])
-	       (override
-		 [on-default-char (lambda (x) (void))]
-		 [on-default-event (lambda (x) (void))])
-	       (sequence
-		 (super-init)
-		 (hide-caret #t)
-		 (set-max-undo-history 0))))
+          (inherit set-max-undo-history hide-caret erase
+                   last-position insert delete line-start-position line-end-position
+                   begin-edit-sequence end-edit-sequence get-style-list)
+          (private-field
+           [top tp]
+           [top-select tp-select]
+           [depth dpth]
+           [parent-snip parent-snp]
+           [children null])
+          (private
+            [make-whitespace (lambda () (make-object whitespace-snip%))]
+            [insert-item 
+             (lambda (mixin snip% whitespace?)
+               (let ([s (make-object snip% this top top-select (add1 depth) mixin)])
+                 (begin-edit-sequence)
+                 (unless (null? children)
+                   (insert #\newline (last-position)))
+                 (when whitespace? (insert (make-whitespace) (last-position)))
+                 (insert s (last-position))
+                 (end-edit-sequence)
+                 (set! children (append children (list s)))
+                 (send s get-item)))])
+          (public
+            [get-parent-snip (lambda () parent-snip)]
+            [deselect-all 
+             (lambda () (for-each (lambda (x) (send x deselect-all)) children))]
+            [new-item 
+             (case-lambda
+              [() (new-item (lambda (x) x))]
+              [(mixin)
+               (insert-item mixin hierarchical-item-snip% #t)])]
+            [new-list
+             (case-lambda
+              [() (new-list (lambda (x) x))]
+              [(mixin)
+               (insert-item mixin hierarchical-list-snip% #f)])]
+            [get-items (lambda () (map (lambda (x) (send x get-item)) children))]
+            [delete-item
+             (lambda (i)
+               (let loop ([pos 0][l children][others null])
+                 (cond
+                   [(null? l) (error 'hierarchical-list-compound-item::delete-item "item not found: ~a" i)]
+                   [(eq? (send (car l) get-item) i)
+                    (send (car l) deselect-all)
+                    (set! children (append (reverse others) (cdr l)))
+                    (let ([s (line-start-position pos)]
+                          [e (line-end-position pos)])
+                      (delete (if (zero? s) s (sub1 s)) (if (zero? s) (add1 e) e)))]
+                   [else (loop (add1 pos) (cdr l) (cons (car l) others))])))]
+            [sort (lambda (less-than?)
+                    (let ([l (mergesort children (lambda (a b)
+                                                   (less-than? (send a get-item)
+                                                               (send b get-item))))])
+                      (begin-edit-sequence)
+                      (erase)
+                      (let ([to-scroll-to #f])
+                        (for-each
+                         (lambda (s)
+                           (unless to-scroll-to
+                             (when (send (send s get-item) is-selected?)
+                               (set! to-scroll-to s)))
+                           (unless (is-a? s hierarchical-list-snip%)
+                             (insert (make-whitespace)))
+                           (insert s)
+                           (insert #\newline))
+                         l)
+                        (unless (null? l)
+                          (delete)) ; delete last #\newline
+                        (set! children l)
+                        (when to-scroll-to
+                          (send (send to-scroll-to get-item) scroll-to)))
+                      (end-edit-sequence)))]
+            [reflow-items
+             (lambda ()
+               (for-each
+                (lambda (c)
+                  (send c reflow-item))
+                children))])
+          (override
+            [on-default-char (lambda (x) (void))]
+            [on-default-event (lambda (x) (void))])
+          (sequence
+            (super-init)
+            (hide-caret #t)
+            (set-max-undo-history 0))))
 
       (define hierarchical-list-text% (make-hierarchical-list-text% text%))
 
@@ -544,157 +555,163 @@
 
       (define hierarchical-list%
 	(class100 editor-canvas% (parent)
-	       (inherit min-width min-height)
-	       (rename [super-on-char on-char]
-		       [super-on-focus on-focus])
-	       (public
-		 [selectable
-		  (case-lambda
-		   [() selectable?]
-		   [(on?) (set! selectable? on?)])]
-		 [get-selected (lambda () selected-item)]
-		 [on-item-opened (lambda (i) (void))]
-		 [on-item-closed (lambda (i) (void))]
-		 [on-double-select (lambda (i) (void))]
-		 [on-select (lambda (i) (void))]
-		 [new-item (lambda x (send top-buffer new-item . x))]
-		 [new-list (lambda x (send top-buffer new-list . x))]
-		 [delete-item (lambda (i) (send top-buffer delete-item i))]
-		 [sort (lambda (less-than?) (send top-buffer sort less-than?))]
-		 [get-items (lambda () (send top-buffer get-items))]
-		 [toggle-open/closed
-		  (lambda ()
-		    (cond
-		     [(and selected (is-a? selected hierarchical-list-snip%))
-		      (send selected toggle-open/closed)]
-		     [else
-		      (void)]))]
-		 [select-out (lambda () 
-			       (when selected
-				 (let* ([parent-snip (send (send selected get-parent) get-parent-snip)])
-				   (cond
-				    [parent-snip
-				     (let ([parent (send parent-snip get-item)])
-				       (send parent select #t)
-				       (send parent scroll-to))]
-				    [else
-				     (void)]))))]
-		 [select-in (lambda () 
-			      (cond
-			       [(and selected (is-a? selected hierarchical-list-snip%)) 
-				(let ([edit-sequence-text (send selected get-editor)])
-				  (send edit-sequence-text begin-edit-sequence)
-				  (send selected open)
-				  (let ([items (send selected-item get-items)])
-				    (unless (null? items)
-				      (send (car items) select #t)
-				      (send (car items) scroll-to)))
-				  (send edit-sequence-text end-edit-sequence))]
-			       [else (void)]))]
-		 [select-next (lambda () (move +1))]
-		 [select-prev (lambda () (move -1))]
-		 [select-first (lambda () (let ([l (get-items)])
-					    (unless (null? l)
-					      (send (car l) select #t)
-					      (send (car l) scroll-to))))]
-		 [select-last (lambda () (let loop ([l (get-items)])
-					   (cond
-					    [(null? l) (void)]
-					    [(null? (cdr l))
-					     (send (car l) select #t)
-					     (send (car l) scroll-to)]
-					    [else (loop (cdr l))])))]
-		 [page-up (lambda () (page 'up))]
-		 [page-down (lambda () (page 'down))]
-		 [show-focus
-		  (case-lambda
-		   [() show-focus?]
-		   [(on?) (set! show-focus? on?)])])
-	       (override
-		 [on-char
-		  (lambda (e)
-		    (unless (send list-keymap handle-key-event this e)
-		      (super-on-char e)))]
-		 [on-size
-		  (lambda (w h)
-		    (send top-buffer begin-edit-sequence)
-		    (send top-buffer reflow-items)
-		    (send top-buffer end-edit-sequence))]
-		 [on-focus
-		  (lambda (on?)
-		    (when (and selected show-focus?)
-		      (send selected show-select #t))
-		    (super-on-focus on?))])
-	       (private
-		 [move (lambda (dir) 
-			 (define (find i l)
-			   (let loop ([l l][pos 0])
-			     (if (null? l)
-				 #f
-				 (if (eq? (car l) i)
-				     pos
-				     (loop (cdr l) (add1 pos))))))
-			 ;; Scrolling works differently depending on whether selections
-			 ;;  are involved:
-			 (if selectable?
-			     (let* ([l (if selected
-					   (send (send selected get-parent) get-items)
-					   (get-items))]
-				    [pos (if selected-item
-					     (+ dir (find selected-item l))
-					     (if (negative? dir)
-						 (sub1 (length l))
-						 0))])
-			       (when (< -1 pos (length l))
-				 (let ([i (list-ref l pos)])
-				   (send i select #t)
-				   (send i scroll-to))))
-			     (let ([y-box (box 0.0)]
-				   [x-box (box 0.0)]
-				   [w-box (box 0.0)]
-				   [h-box (box 0.0)])
-			       (send (send top-buffer get-admin) get-view x-box y-box w-box h-box)
-			       (let ([y (if (negative? dir)
-					    (- (unbox y-box) 2)
-					    (+ (unbox y-box) (unbox h-box) 1))])
-				 (send (send top-buffer get-admin) scroll-to
-				       (unbox x-box) y
-				       (unbox w-box) 1)))))]
-		 [page (lambda (dir)
-			 ;; Scrolling works differently depending on whether selections
-			 ;;  are involved:
-			 (if selectable?
-			     (let ([items (get-items)])
-			       (unless (null? items)
-				 (let ([sbox (box 0)]
-				       [ebox (box 0)])
-				   (send top-buffer get-visible-line-range sbox ebox)
-				   (let* ([len (max 1 (sub1 (- (unbox ebox) (unbox sbox))))]
-					  [l (if (eq? dir 'up)
-						 (max 0 (- (unbox sbox) len))
-						 (min (sub1 (length items)) (+ (unbox ebox) len)))]
-					  [i (list-ref items l)])
-				     (send i select #t)
-				     (send i scroll-to)))))
-			     (send top-buffer move-position dir #f 'page)))])
-	       (private-field
-		 [selectable? #t]
-		 [show-focus? #f])
-	       (private
-		 [do-select (lambda (item s)
-			      (when selectable?
-				(unless (eq? item selected-item)
-				  (when selected (send selected show-select #f))
-				  (set! selected (if item s #f))
-				  (set! selected-item item)
-				  (when selected (send selected show-select #t))
-				  (on-select item))))])
-	       (private-field
-		 [top-buffer (make-object hierarchical-list-text% this (lambda (i s) (do-select i s)) 0 #f)]
-		 [selected #f]
-		 [selected-item #f])
-	       (sequence
-		 (super-init parent top-buffer '(no-hscroll))
-		 (send top-buffer set-cursor arrow-cursor) 
-		 (min-width 150)
-		 (min-height 200)))))))
+          (inherit min-width min-height)
+          (rename [super-on-char on-char]
+                  [super-on-focus on-focus])
+          (public
+            [selectable
+             (case-lambda
+              [() selectable?]
+              [(on?) (set! selectable? on?)])]
+            [get-selected (lambda () selected-item)]
+            [on-item-opened (lambda (i) (void))]
+            [on-item-closed (lambda (i) (void))]
+            [on-double-select (lambda (i) (void))]
+            [on-select (lambda (i) (void))]
+            [on-click (lambda (i) (void))]
+            [new-item (lambda x (send top-buffer new-item . x))]
+            [new-list (lambda x (send top-buffer new-list . x))]
+            [delete-item (lambda (i) (send top-buffer delete-item i))]
+            [sort (lambda (less-than?) (send top-buffer sort less-than?))]
+            [get-items (lambda () (send top-buffer get-items))]
+            [toggle-open/closed
+             (lambda ()
+               (cond
+                 [(and selected (is-a? selected hierarchical-list-snip%))
+                  (send selected toggle-open/closed)]
+                 [else
+                  (void)]))]
+            [select-out (lambda () 
+                          (when selected
+                            (let* ([parent-snip (send (send selected get-parent) get-parent-snip)])
+                              (cond
+                                [parent-snip
+                                 (let ([parent (send parent-snip get-item)])
+                                   (send parent select #t)
+                                   (send parent scroll-to))]
+                                [else
+                                 (void)]))))]
+            [select-in (lambda () 
+                         (cond
+                           [(and selected (is-a? selected hierarchical-list-snip%)) 
+                            (let ([edit-sequence-text (send selected get-editor)])
+                              (send edit-sequence-text begin-edit-sequence)
+                              (send selected open)
+                              (let ([items (send selected-item get-items)])
+                                (unless (null? items)
+                                  (send (car items) select #t)
+                                  (send (car items) scroll-to)))
+                              (send edit-sequence-text end-edit-sequence))]
+                           [else (void)]))]
+            [select-next (lambda () (move +1))]
+            [select-prev (lambda () (move -1))]
+            [select-first (lambda () (let ([l (get-items)])
+                                       (unless (null? l)
+                                         (send (car l) select #t)
+                                         (send (car l) scroll-to))))]
+            [select-last (lambda () (let loop ([l (get-items)])
+                                      (cond
+                                        [(null? l) (void)]
+                                        [(null? (cdr l))
+                                         (send (car l) select #t)
+                                         (send (car l) scroll-to)]
+                                        [else (loop (cdr l))])))]
+            [page-up (lambda () (page 'up))]
+            [page-down (lambda () (page 'down))]
+            [show-focus
+             (case-lambda
+              [() show-focus?]
+              [(on?) (set! show-focus? on?)])])
+          (override
+            [on-char
+             (lambda (e)
+               (unless (send list-keymap handle-key-event this e)
+                 (super-on-char e)))]
+            [on-size
+             (lambda (w h)
+               (send top-buffer begin-edit-sequence)
+               (send top-buffer reflow-items)
+               (send top-buffer end-edit-sequence))]
+            [on-focus
+             (lambda (on?)
+               (when (and selected show-focus?)
+                 (send selected show-select #t))
+               (super-on-focus on?))])
+          (private
+            [move (lambda (dir) 
+                    (define (find i l)
+                      (let loop ([l l][pos 0])
+                        (if (null? l)
+                            #f
+                            (if (eq? (car l) i)
+                                pos
+                                (loop (cdr l) (add1 pos))))))
+                    ;; Scrolling works differently depending on whether selections
+                    ;;  are involved:
+                    (if selectable?
+                        (let* ([l (if selected
+                                      (send (send selected get-parent) get-items)
+                                      (get-items))]
+                               [pos (if selected-item
+                                        (+ dir (find selected-item l))
+                                        (if (negative? dir)
+                                            (sub1 (length l))
+                                            0))])
+                          (when (< -1 pos (length l))
+                            (let ([i (list-ref l pos)])
+                              (send i select #t)
+                              (send i scroll-to))))
+                        (let ([y-box (box 0.0)]
+                              [x-box (box 0.0)]
+                              [w-box (box 0.0)]
+                              [h-box (box 0.0)])
+                          (send (send top-buffer get-admin) get-view x-box y-box w-box h-box)
+                          (let ([y (if (negative? dir)
+                                       (- (unbox y-box) 2)
+                                       (+ (unbox y-box) (unbox h-box) 1))])
+                            (send (send top-buffer get-admin) scroll-to
+                                  (unbox x-box) y
+                                  (unbox w-box) 1)))))]
+            [page (lambda (dir)
+                    ;; Scrolling works differently depending on whether selections
+                    ;;  are involved:
+                    (if selectable?
+                        (let ([items (get-items)])
+                          (unless (null? items)
+                            (let ([sbox (box 0)]
+                                  [ebox (box 0)])
+                              (send top-buffer get-visible-line-range sbox ebox)
+                              (let* ([len (max 1 (sub1 (- (unbox ebox) (unbox sbox))))]
+                                     [l (if (eq? dir 'up)
+                                            (max 0 (- (unbox sbox) len))
+                                            (min (sub1 (length items)) (+ (unbox ebox) len)))]
+                                     [i (list-ref items l)])
+                                (send i select #t)
+                                (send i scroll-to)))))
+                        (send top-buffer move-position dir #f 'page)))])
+          (private-field
+           [selectable? #t]
+           [show-focus? #f])
+          (private
+            [do-select (lambda (item s)
+                         (cond
+                           [(and selectable?
+                                 item 
+                                 (send item get-allow-selection?))
+                            (unless (eq? item selected-item)
+                              (when selected (send selected show-select #f))
+                              (set! selected (if item s #f))
+                              (set! selected-item item)
+                              (when selected (send selected show-select #t))
+                              (on-select item))]
+                           [item
+                            (on-click item)]))])
+          (private-field
+           [top-buffer (make-object hierarchical-list-text% this (lambda (i s) (do-select i s)) 0 #f)]
+           [selected #f]
+           [selected-item #f])
+          (sequence
+            (super-init parent top-buffer '(no-hscroll))
+            (send top-buffer set-cursor arrow-cursor) 
+            (min-width 150)
+            (min-height 200)))))))

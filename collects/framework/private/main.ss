@@ -67,7 +67,8 @@
                      with-syntax
                      module
                      let/cc let/ec letcc catch
-                     let-syntax letrec-syntax syntax-case
+                     let-syntax letrec-syntax 
+                     syntax-case syntax-case*
                      let-signature fluid-let
                      let-struct let-macro let-values let*-values
                      case when unless match
