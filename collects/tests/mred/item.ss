@@ -1943,6 +1943,8 @@
 				     (send p delete 0)))
   (make-object button% "Set First" p2 (lambda (b e)
 					(send p set-selection 0)))
+  (make-object button% "Set Last" p2 (lambda (b e)
+				       (send p set-selection (sub1 (send p get-number)))))
   (when no-border?
     (make-object button% "Toggle" p2 (lambda (b e)
 				       (if on?
