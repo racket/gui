@@ -251,7 +251,10 @@
     "Hides the preferences dialog.")
 
    (autosave:register
-    ((is-a?/c autosave:autosavable<%>) . -> . void?)
+    ((and/f (is-a?/c autosave:autosavable<%>)
+            (is-a?/c editor<%>))
+     . -> . 
+     void?)
     (obj)
     "Adds \\var{obj} to the list of objects to be autosaved. When it is time"
     "to autosave, the \\rawscm{do-autosave} method of the object is"
@@ -261,7 +264,13 @@
     "de-register an object because the autosaver keeps a ``weak'' pointer"
     "to the object; i.e., the autosaver does not keep an object from"
     "garbage collection.")
-
+   
+   (autosave:restore-autosave-files/gui
+    (-> void?)
+    ()
+    "Opens a GUI to ask the user about recovering any autosave files"
+    "left around from crashes and things.")
+    
    (exit:frame-exiting
     (case->
      ((union false? (is-a?/c frame%) (is-a?/c dialog%))

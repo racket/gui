@@ -454,33 +454,37 @@
 	  (public autosave? do-autosave remove-autosave)
           [define autosave? (lambda () do-autosave?)]
           [define (do-autosave)
-            (when (and (autosave?)
-                       (not auto-save-error?)
-                       (is-modified?)
-                       (or (not auto-saved-name)
-                           auto-save-out-of-date?))
-              (let* ([orig-name (get-filename)]
-                     [old-auto-name auto-saved-name]
-                     [auto-name (path-utils:generate-autosave-name orig-name)])
-                (with-handlers ([not-break-exn?
-                                 (lambda (exn)
-                                   (message-box 
-                                    (string-constant warning)
-                                    (string-append
-                                     (format (string-constant error-autosaving)
-                                             (or orig-name (string-constant untitled)))
-                                     "\n"
-                                     (string-constant autosaving-turned-off)
-                                     "\n\n"
-                                     (if (exn? exn)
-                                         (exn-message exn)
-                                         (format "~s" exn))))
-                                   (set! auto-save-error? #t))])
-                  (save-file auto-name 'copy #f)
-                  (when old-auto-name
-                    (delete-file old-auto-name))
-                  (set! auto-saved-name auto-name)
-                  (set! auto-save-out-of-date? #f))))]
+            (cond
+              [(and (autosave?)
+                    (not auto-save-error?)
+                    (is-modified?)
+                    (or (not auto-saved-name)
+                        auto-save-out-of-date?))
+               (let* ([orig-name (get-filename)]
+                      [old-auto-name auto-saved-name]
+                      [auto-name (path-utils:generate-autosave-name orig-name)])
+                 (with-handlers ([not-break-exn?
+                                  (lambda (exn)
+                                    (message-box 
+                                     (string-constant warning)
+                                     (string-append
+                                      (format (string-constant error-autosaving)
+                                              (or orig-name (string-constant untitled)))
+                                      "\n"
+                                      (string-constant autosaving-turned-off)
+                                      "\n\n"
+                                      (if (exn? exn)
+                                          (exn-message exn)
+                                          (format "~s" exn))))
+                                    (set! auto-save-error? #t)
+                                    #f)])
+                   (save-file auto-name 'copy #f)
+                   (when old-auto-name
+                     (delete-file old-auto-name))
+                   (set! auto-saved-name auto-name)
+                   (set! auto-save-out-of-date? #f)
+                   auto-name))]
+              [else auto-saved-name])]
           [define remove-autosave
             (lambda ()
               (when auto-saved-name

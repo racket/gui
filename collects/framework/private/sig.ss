@@ -193,7 +193,8 @@
   (define-signature framework:autosave-class^
     (autosavable<%>))
   (define-signature framework:autosave-fun^
-    (register))
+    (register
+     restore-autosave-files/gui))
   (define-signature framework:autosave^
     ((open framework:autosave-class^)
      (open framework:autosave-fun^)))
