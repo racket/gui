@@ -170,8 +170,11 @@
 	(make-between 'edit-menu 'select-all 'find 'separator)
 	(make-an-item 'edit-menu 'find "Search for a string in the window" #f
 		      #\f "Find..." "")
-	(make-an-item 'edit-menu 'find-again "Search the same string as before" #f
+	(make-an-item 'edit-menu 'find-again "Search for the same string as before" #f
 		      #\g "Find Again" "")
+	(make-an-item 'edit-menu 'replace-and-find-again 
+                      "Replace the current text and search for the same string as before"
+                      #f #\h "Replace && Find Again" "")
 	(make-between 'edit-menu 'find 'preferences 'separator)
 	(make-an-item 'edit-menu 'preferences "Configure the preferences"
 		      '(lambda (item control) (preferences:show-dialog) #t)

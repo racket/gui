@@ -1151,7 +1151,8 @@
         [get-editor<%> (lambda () text:searching<%>)]
 	[get-editor% (lambda () text:searching%)]
 	[edit-menu:find (lambda (menu evt) (move-to-search-or-search) #t)]
-	[edit-menu:find-again (lambda (menu evt) (search-again) #t)])
+	[edit-menu:find-again (lambda (menu evt) (search-again) #t)]
+	[edit-menu:replace-and-find-again (lambda (menu evt) (replace&search) #t)])
       (override
 	[make-root-area-container
 	 (lambda (% parent)
