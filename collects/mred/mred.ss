@@ -2708,7 +2708,10 @@
 				     "result from place-children is not a list of 4-integer lists with the correct length: "
 				     l))
 	     (panel-redraw children children-info (if hidden-child
-						      (cons (list 0 0 width height) 
+						      (cons (list 0 0 width 
+								  (if (memq (system-type) '(macos macosx)) ;; Yucky hack
+								      (child-info-y-min (car children-info)) 
+								      height))
 							    (let ([dy (child-info-y-min (car children-info))])
 							      (map (lambda (i)
 								     (list (+ (car i) 2) ;; hack! 2-pixel border assumed
