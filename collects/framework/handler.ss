@@ -184,18 +184,18 @@
     (define *open-directory* ; object to remember last directory
       (make-object 
        (class null ()
-	      (private 
-	       [the-dir #f])
-	      (public
-	       [get (lambda () the-dir)]
-	       [set-from-file!
-		(lambda (file) 
-		  (set! the-dir (mzlib:file:path-only file)))]
-	       [set-to-default
-		(lambda ()
-		  (set! the-dir (current-directory)))])
-	      (sequence
-		(set-to-default)))))
+	 (private 
+	   [the-dir #f])
+	 (public
+	   [get (lambda () the-dir)]
+	   [set-from-file!
+	    (lambda (file) 
+	      (set! the-dir (mzlib:file:path-only file)))]
+	   [set-to-default
+	    (lambda ()
+	      (set! the-dir (current-directory)))])
+	 (sequence
+	   (set-to-default)))))
 
     (define open-file
       (lambda ()

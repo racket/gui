@@ -10,7 +10,7 @@
 	  [mzlib:function : mzlib:function^]
 	  [mzlib:file : mzlib:file^])
   
-  (define dialog-parent-parameter (make-parameter null))
+  (define dialog-parent-parameter (make-parameter #f))
 
   (define filter-match?
     (lambda (filter name msg)
@@ -83,8 +83,8 @@
 		(let-values 
 		    ([(dir-list menu-list)
 		      (let loop ([this-dir dir]
-				 [dir-list ()]
-				 [menu-list ()])
+				 [dir-list null]
+				 [menu-list null])
 			(let-values ([(base-dir in-dir dir?) 
 				      (split-path this-dir)])
 			  (if (eq? (system-type) 'windows)
@@ -136,9 +136,9 @@
 	 (lambda ()
 	   (let* ([file (send name-list get-string-selection)]
 		  [dir-and-file 
-		   (if (null? file)
-		       current-dir
-		       (build-path current-dir file))])
+		   (if file
+		       (build-path current-dir file)
+		       current-dir)])
 	     (send* directory-edit
 	       (begin-edit-sequence)
 	       (erase)
@@ -182,7 +182,7 @@
 	       (let ([dir-name (send directory-edit get-text)])
 		 (if (directory-exists? dir-name)
 		     (set-directory (mzlib:file:normalize-path dir-name))
-		     (let loop ([n (sub1 select-counter)][result ()])
+		     (let loop ([n (sub1 select-counter)][result null])
 		       (if (< n 0)
 			   (begin
 			     (set-box! result-box result)
@@ -231,7 +231,7 @@
 			  (let* ([relative-name (make-relative name)]
 				 [file-in-edit (file-exists? dir-name)]
 				 [file (if (or file-in-edit
-					       (null? relative-name)
+					       (not relative-name)
 					       save-mode?)
 					   dir-name
 					   (build-path current-dir relative-name))])
@@ -334,7 +334,7 @@
 	
 	[_1 (make-object message% top-panel prompt)]
 	
-	[dir-choice (make-object choice% top-panel do-dir '())]
+	[dir-choice (make-object choice% #f null top-panel do-dir)]
 	
 	[middle-panel (make-object horizontal-panel% main-panel)]
 	[left-middle-panel (make-object vertical-panel% middle-panel)]
@@ -431,7 +431,7 @@
 		       (set-selection-and-edit 
 			(min (sub1 num-items) (+ curr-pos num-vis))))]
 		    
-		    [else #f])))]
+		    [else #f]))]
 	     
 	     [on-default-action
 	      (lambda ()
@@ -501,8 +501,7 @@
 	[do-updir
 	 (lambda () 
 	   (set-directory (build-updir current-dir))
-	   (set-focus-to-name-list))
-	 ])
+	   (set-focus-to-name-list))])
       
       (sequence
 	
@@ -576,7 +575,6 @@
       (sequence
 	(cond
 	  [(and start-dir
-		(not (null? start-dir))
 		(directory-exists? start-dir))
 	   (set-directory (mzlib:file:normalize-path start-dir))]
 	  [last-directory (set-directory last-directory)]
@@ -604,16 +602,16 @@
   (define common-put-file
     (make-common
      (opt-lambda (result-box 
-		  [name ()]
-		  [directory ()]
+		  [name #f]
+		  [directory #f]
 		  [replace? #f]
 		  [prompt "Select file"]
 		  [filter #f]
 		  [filter-msg "Invalid form"]
 		  [parent-win (dialog-parent-parameter)])
-       (let* ([directory (if (and (null? directory)
+       (let* ([directory (if (and (not directory)
 				  (string? name))
-			     (or (mzlib:file:path-only name) null)
+			     (mzlib:file:path-only name)
 			     directory)]
 	      [name (or (and (string? name)
 			     (mzlib:file:file-name-from-path name))
@@ -634,7 +632,7 @@
     (make-common
      (opt-lambda
 	 (result-box 
-	  [directory ()]
+	  [directory #f]
 	  [prompt "Select file"]
 	  [filter #f]
 	  [filter-msg "Bad name"]
@@ -646,7 +644,7 @@
 		    #f           ; multi-mode?
 		    result-box   ; boxed results
 		    directory    ; start-dir
-		    '()          ; start-name
+		    #f           ; start-name
 		    prompt       ; prompt
 		    filter       ; file-filter
 		    filter-msg   ; file-filter-msg
@@ -655,7 +653,7 @@
   (define common-get-file-list
     (make-common
      (opt-lambda (result-box 
-		  [directory ()]
+		  [directory #f]
 		  [prompt "Select files"]
 		  [filter #f]
 		  [filter-msg "Bad name"]
@@ -668,7 +666,7 @@
 	#t          ; multi-mode?
 	result-box  ; boxed results
 	directory   ; directory
-	'()         ; start-name
+	#f          ; start-name
 	prompt      ; prompt
 	filter      ; file-filter
 	filter-msg  ; file-filter-msg
@@ -685,9 +683,9 @@
 		 [filter #f]
 		 [filter-msg "That filename does not have the right form."]
 		 [parent-win (dialog-parent-parameter)])
-      (let* ([directory (if (and (null? directory)
+      (let* ([directory (if (and (not directory)
 				 (string? name))
-			    (or (mzlib:file:path-only name) null)
+			    (mzlib:file:path-only name)
 			    directory)]
 	     [name (or (and (string? name)
 			    (mzlib:file:file-name-from-path name))
@@ -726,8 +724,7 @@
 		prompt 
 		parent-win
 		directory)])
-	(if (null? f)
-	    #f
+	(or f
 	    (if (or (not filter) (filter-match? filter f filter-msg))
 		(let ([f (mzlib:file:normalize-path f)])
 		  (cond

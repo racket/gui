@@ -488,8 +488,7 @@
 	     (unless (= value (send size-slider get-value))
 	       (send size-slider set-value value))
 	     #t))
-	  (make-object message% main
-		       "Restart to see font changes")
+	  (make-object message% main "Restart to see font changes")
 	  main))
       #f)))
   

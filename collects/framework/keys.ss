@@ -102,9 +102,9 @@
 	      #t)]
 	   [save-file
 	    (lambda (edit event)
-	      (if (null? (send edit get-filename))
-		  (save-file-as edit event)
-		  (send edit save-file))
+	      (if (send edit get-filename)
+		  (send edit save-file)
+		  (save-file-as edit event))
 	      #t)]
 	   [load-file
 	    (lambda (edit event)
@@ -364,7 +364,7 @@
 		    [real-end (send edit last-position)])
 		(when (= sel-start sel-end)
 		  (let ([word-end (let ([b (box sel-start)])
-				    (send edit find-wordbreak () b 'caret)
+				    (send edit find-wordbreak #f b 'caret)
 				    (min real-end (unbox b)))])
 		    (send edit begin-edit-sequence)
 		    (let loop ([pos sel-start]
@@ -399,7 +399,7 @@
 	      (let ([sel-start (send edit get-start-position)]
 		    [sel-end (send edit get-end-position)])
 		(let ([end-box (box sel-end)])
-		  (send edit find-wordbreak () end-box 'caret)
+		  (send edit find-wordbreak #f end-box 'caret)
 		  (send edit kill 0 sel-start (unbox end-box)))))]
 	   
 	   [backward-kill-word
@@ -407,7 +407,7 @@
 	      (let ([sel-start (send edit get-start-position)]
 		    [sel-end (send edit get-end-position)])
 		(let ([start-box (box sel-start)])
-		  (send edit find-wordbreak start-box () 'caret)
+		  (send edit find-wordbreak start-box #f 'caret)
 		  (send edit kill 0 (unbox start-box) sel-end))))]
 	   
 	   [region-click
@@ -513,7 +513,19 @@
 			(send km remove-grab-key-function))])
 		(send km set-grab-key-function
 		      (lambda (name local-km edit event)
-			(if (null? name)
+			(if name
+			    (begin
+			      (done)
+			      (dynamic-wind
+			       (lambda ()
+				 (send edit begin-edit-sequence))
+			       (lambda ()
+				 (let loop ([n n])
+				   (unless (zero? n)
+				     (send local-km call-function name edit event)
+				     (loop (sub1 n)))))
+			       (lambda ()
+				 (send edit end-edit-sequence))))
 			    (let ([k (send event get-key-code)])
 			      (if (<= (char->integer #\0) k (char->integer #\9))
 				  (set! n (+ (* n 10) (- k (char->integer #\0))))
@@ -528,19 +540,7 @@
 					   (send edit on-char event)
 					   (loop (sub1 n)))))
 				     (lambda ()
-				       (send edit end-edit-sequence))))))
-			    (begin
-			      (done)
-			      (dynamic-wind
-			       (lambda ()
-				 (send edit begin-edit-sequence))
-			       (lambda ()
-				 (let loop ([n n])
-				   (unless (zero? n)
-				     (send local-km call-function name edit event)
-				     (loop (sub1 n)))))
-			       (lambda ()
-				 (send edit end-edit-sequence)))))			       
+				       (send edit end-edit-sequence)))))))			       
 			#t))
 		(send km set-break-sequence-callback done)
 		#t))]
@@ -568,11 +568,10 @@
 		      (lambda (f)
 			(let ([name (car f)]
 			      [event (cdr f)])
-			  (if (null? name)
-			      (send edit on-char event)
-			      (if (not (send km call-function 
-					     name edit event #t))
-				  (escape #t)))))
+			  (if name
+			      (unless (send km call-function name edit event #t)
+				(escape #t))
+			      (send edit on-char event))))
 		      current-macro)))
 		 (lambda ()
 		   (send edit end-edit-sequence)
@@ -599,9 +598,9 @@
 			     (lambda ()
 			       (set! build-protect? #t))
 			     (lambda ()
-			       (if (null? name)
-				   (send edit on-default-char event)
-				   (send local-km call-function name edit event)))
+			       (if name
+				   (send local-km call-function name edit event)
+				   (send edit on-default-char event)))
 			     (lambda ()
 			       (set! build-protect? #f)))
 			    (when building-macro
