@@ -2298,23 +2298,24 @@
 		  (as-exit (lambda () (set-max-width new-width)))))))))])
     
     (private
-      [sp (lambda (x y z f)
+      [sp (lambda (x y z f b?)
 	    ;; let super method report z errors:
 	    (let ([zok? (memq z '(standard postscript))])
 	      (when zok?
 		(check-top-level-parent/false '(method editor<%> print) f))
 	      (let ([p (and zok? f (mred->wx f))])
-		(as-exit (lambda () (super-print x y z p))))))])
+		(as-exit (lambda () (super-print x y z p b?))))))])
 
     (override
       [print
        (entry-point
 	(case-lambda 
-	 [() (sp #t #t 'standard #f)]
-	 [(x) (sp x #t 'standard #f)]
-	 [(x y) (sp x y 'standard #f)]
-	 [(x y z) (sp x y z #f)]
-	 [(x y z f) (sp x y z f)]))]
+	 [() (sp #t #t 'standard #f #t)]
+	 [(x) (sp x #t 'standard #f #t)]
+	 [(x y) (sp x y 'standard #f #t)]
+	 [(x y z) (sp x y z #f #t)]
+	 [(x y z f) (sp x y z f #t)]
+	 [(x y z f b?) (sp x y z f b?)]))]
 
       [on-new-box
        (entry-point
