@@ -2750,7 +2750,9 @@
       [get-label (lambda () label)]
       [set-label (lambda (l)
 		   (check-string/false '(method window<%> set-label) l)
-		   (set! label l))]
+		   (set! label (if (string? l)
+				   (string->immutable-string l)
+				   l)))]
       [get-plain-label (lambda () (and (string? label) (wx:label->plain-label label)))]
 
       [accept-drop-files
@@ -2932,7 +2934,9 @@
       [get-plain-label (lambda () (and (string? label) (wx:label->plain-label label)))]
       [set-label (entry-point-1
 		  (lambda (l)
-		    (let ([l (and (string? l) (string->immutable-string l))])
+		    (let ([l (if (string? l) 
+				 (string->immutable-string l)
+				 l)])
 		      (send wx set-label l)
 		      (set! label l))))])
     (public
