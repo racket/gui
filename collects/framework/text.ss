@@ -38,6 +38,70 @@
 	     [b3 (box 0)]
 	     [b4 (box 0)]
 	     [range-rectangles null]
+
+             [invalidate-rectangles
+              (lambda (rectangles)
+                (let-values ([(min-left max-right)
+                              (let loop ([left #f]
+                                         [right #f]
+                                         [canvases (get-canvases)])
+                                (cond
+                                  [(null? canvases)
+                                   (values left right)]
+                                  [else
+                                   (let-values ([(this-left this-right)
+                                                 (send (car canvases)
+                                                       call-as-primary-owner
+                                                       (lambda ()
+                                                         (send (get-admin) get-view b1 b2 b3 b4)
+                                                         (let* ([this-left (unbox b1)]
+                                                                [this-width (unbox b3)]
+                                                                [this-right (+ this-left this-width)])
+                                                           (values this-left
+                                                                   this-right))))])
+                                     (if (and left right)
+                                         (loop (min this-left left)
+                                               (max this-right right)
+                                               (cdr canvases))
+                                         (loop this-left
+                                               this-right
+                                               (cdr canvases))))]))])
+                  (let loop ([left #f]
+                             [top #f]
+                             [right #f]
+                             [bottom #f]
+                             [rectangles rectangles])
+                    (cond
+                      [(null? rectangles)
+                       (when left
+                         (invalidate-bitmap-cache left top (- right left) (- bottom top)))]
+                      [else (let* ([r (car rectangles)]
+                                   
+                                   [rleft (rectangle-left r)]
+                                   [rright (rectangle-right r)]
+                                   [rtop (rectangle-top r)]
+                                   [rbottom (rectangle-bottom r)]
+                                   
+                                   [this-left (if (number? rleft)
+                                                  rleft
+                                                  min-left)]
+                                   [this-right (if (number? rright)
+                                                   rright
+                                                   max-right)]
+                                   [this-bottom rbottom]
+                                   [this-top rtop])
+                              (if (and left top right bottom)
+                                  (loop (min this-left left)
+                                        (min this-top top)
+                                        (max this-right right)
+                                        (max this-bottom bottom)
+                                        (cdr rectangles))
+                                  (loop this-left 
+                                        this-top
+                                        this-right
+                                        this-bottom
+                                        (cdr rectangles))))]))))]
+
 	     [recompute-range-rectangles
 	      (lambda ()
 		(let ([new-rectangles
@@ -98,76 +162,11 @@
 						 bottom-end-y
 						 b/w-bitmap
 						 color))]))))]
-		      
-		      [invalidate-rectangles
-		       (lambda (rectangles)
-			 (let-values ([(min-left max-right)
-				       (let loop ([left #f]
-						  [right #f]
-						  [canvases (get-canvases)])
-					 (cond
-					   [(null? canvases)
-					    (values left right)]
-					   [else
-					    (let-values ([(this-left this-right)
-							  (send (car canvases)
-								call-as-primary-owner
-								(lambda ()
-								  (send (get-admin) get-view b1 b2 b3 b4)
-								  (let* ([this-left (unbox b1)]
-									 [this-width (unbox b3)]
-									 [this-right (+ this-left this-width)])
-								    (values this-left
-									    this-right))))])
-					      (if (and left right)
-						  (loop (min this-left left)
-							(max this-right right)
-							(cdr canvases))
-						  (loop this-left
-							this-right
-							(cdr canvases))))]))])
-			   (let loop ([left #f]
-				      [top #f]
-				      [right #f]
-				      [bottom #f]
-				      [rectangles rectangles])
-			     (cond
-			       [(null? rectangles)
-				(when left
-				  (invalidate-bitmap-cache left top (- right left) (- bottom top)))]
-			       [else (let* ([r (car rectangles)]
-					    
-					    [rleft (rectangle-left r)]
-					    [rright (rectangle-right r)]
-					    [rtop (rectangle-top r)]
-					    [rbottom (rectangle-bottom r)]
-					    
-					    [this-left (if (number? rleft)
-							   rleft
-							   min-left)]
-					    [this-right (if (number? rright)
-							    rright
-							    max-right)]
-					    [this-bottom rbottom]
-					    [this-top rtop])
-				       (if (and left top right bottom)
-					   (loop (min this-left left)
-						 (min this-top top)
-						 (max this-right right)
-						 (max this-bottom bottom)
-						 (cdr rectangles))
-					   (loop this-left 
-						 this-top
-						 this-right
-						 this-bottom
-						 (cdr rectangles))))]))))]
 		      [old-rectangles range-rectangles])
 		  
 		  (set! range-rectangles 
 			(mzlib:function:foldl (lambda (x l) (append (new-rectangles x) l))
-					      null ranges))
-		  (invalidate-rectangles (append old-rectangles
-						 range-rectangles))))]
+					      null ranges))))]
 	     [ranges null]
 	     [pen (make-object pen% "BLACK" 0 'solid)]
 	     [brush (make-object brush% "black" 'solid)])
@@ -179,9 +178,12 @@
                   (unless (or (eq? priority 'high) (eq? priority 'low))
 		    (error 'highlight-range "expected last argument to be either 'high or 'low, got: ~e"
                            priority))
+		  (invalidate-rectangles range-rectangles)
 		  (set! ranges (if (eq? priority 'high) (cons l ranges) (append ranges (list l))))
 		  (recompute-range-rectangles)
+		  (invalidate-rectangles range-rectangles)
 		  (lambda ()
+                    (invalidate-rectangles range-rectangles)
 		    (set! ranges 
 			  (let loop ([r ranges])
 			    (cond
@@ -189,12 +191,14 @@
 			      [else (if (eq? (car r) l)
 					(cdr r)
 					(cons (car r) (loop (cdr r))))])))
-		    (recompute-range-rectangles))))])
+		    (recompute-range-rectangles)                    
+                    (invalidate-rectangles range-rectangles))))])
 	   (rename [super-on-paint on-paint])
 	   (override
 	    [on-paint
 	     (lambda (before dc left-margin top-margin right-margin bottom-margin dx dy draw-caret)
 	       (super-on-paint before dc left-margin top-margin right-margin bottom-margin dx dy draw-caret)
+               (recompute-range-rectangles)
 	       (for-each
 		(lambda (rectangle)
 		  (let-values ([(view-x view-y view-width view-height)

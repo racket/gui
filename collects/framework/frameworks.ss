@@ -140,7 +140,10 @@
 
 
 (define-signature framework:canvas^
-  (wide-snip-mixin
+  (basic-mixin
+   basic<%>
+   basic%
+   wide-snip-mixin
    wide-snip<%>
    wide-snip%))
 

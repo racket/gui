@@ -1,15 +1,25 @@
+
 (unit/sig framework:canvas^
   (import mred-interfaces^
 	  [preferences : framework:preferences^])
   
-  (define wide-snip<%> (interface (editor-canvas<%>)
+  (define basic<%> (interface (editor-canvas<%>)))
+  (define basic-mixin
+    (mixin (editor-canvas<%>) (basic<%>) args
+           (inherit get-editor)
+           
+           (sequence
+             (apply super-init args))))
+           
+  
+  (define wide-snip<%> (interface (basic<%>)
 			 add-wide-snip
 			 add-tall-snip))
 
   ;; wx: this need to collude with
   ;;     the edit, since the edit has the right callbacks.
   (define wide-snip-mixin
-    (mixin (editor-canvas<%>) (wide-snip<%>) args
+    (mixin (basic<%>) (wide-snip<%>) args
       (inherit get-editor)
       (rename [super-on-size on-size])
       (private
@@ -97,4 +107,5 @@
       (sequence
 	(apply super-init args))))
 
-  (define wide-snip% (wide-snip-mixin editor-canvas%)))
+  (define basic% (basic-mixin editor-canvas%))
+  (define wide-snip% (wide-snip-mixin basic%)))

@@ -48,9 +48,9 @@
 		 case when unless match
 		 let-enumerate
 		 class class* class-asi class-asi*
+                 make-object mixin
 		 define-some do opt-lambda send*
 		 local catch shared
-                 make-object
 		 unit/sig
 		 with-handlers
 		 interface

@@ -274,7 +274,7 @@
 				 #t
 				 (preferences:get 'framework:print-output-mode))
 			   #t)])
-	     
+      
       (private
 	[edit-menu:do (lambda (const)
 			(lambda (menu evt)
@@ -283,16 +283,9 @@
 				       (is-a? edit editor<%>))
 			      (send edit do-edit-operation const)))
 			  #t))])
+        
       (override
-	[edit-menu:undo (edit-menu:do 'undo)]
-	[edit-menu:redo (edit-menu:do 'redo)]
-	[edit-menu:cut (edit-menu:do 'cut)]
-	[edit-menu:clear (edit-menu:do 'clear)]
-	[edit-menu:copy (edit-menu:do 'copy)]
-	[edit-menu:paste (edit-menu:do 'paste)]
-	[edit-menu:select-all (edit-menu:do 'select-all)]
-	
-	[edit-menu:between-find-and-preferences
+	[edit-menu:between-select-all-and-find
 	 (lambda (edit-menu)
 	   (make-object separator-menu-item% edit-menu)
 	   (make-object (get-menu-item%) "Insert Text Box" edit-menu

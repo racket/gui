@@ -21,6 +21,14 @@
 			    middle
 			    (an-item-item-name item)))]))
 
+(define (edit-menu:do const)
+  `(lambda (menu evt)
+     (let ([edit (get-edit-target-object)])
+       (when (and edit
+                  (is-a? edit editor<%>))
+         (send edit do-edit-operation ',const)))
+     #t))
+
 (define items
   (list (make-generic 'get-menu% '(lambda () menu%)
 		      '("The result of this method is used as the class for creating the result of these methods:"
@@ -111,24 +119,38 @@
 		      '(if (eq? (system-type) 'windows) "E&xit" "Quit")
 		      "")
 	(make-after 'file-menu 'quit 'nothing)
-	
-	(make-an-item 'edit-menu 'undo "Undo the most recent action" #f #\z "&Undo" "")
-	(make-an-item 'edit-menu 'redo "Redo the most recent undo" #f #\y "&Redo" "")
-	(make-between 'edit-menu 'redo 'cut 'nothing)
-	(make-an-item 'edit-menu 'cut "Cut the selection" #f #\x "Cu&t" "")
+
+	(make-an-item 'edit-menu 'undo "Undo the most recent action" 
+                      (edit-menu:do  'undo)
+                      #\z "&Undo" "")
+	(make-an-item 'edit-menu 'redo "Redo the most recent undo" 
+                      (edit-menu:do 'redo)
+                      #\y "&Redo" "")
+	(make-between 'edit-menu 'redo 'cut 'separator)
+	(make-an-item 'edit-menu 'cut "Cut the selection" 
+                      (edit-menu:do 'cut)
+                      #\x "Cu&t" "")
 	(make-between 'edit-menu 'cut 'copy 'nothing)
-	(make-an-item 'edit-menu 'copy "Copy the selection" #f #\c "&Copy" "")
+	(make-an-item 'edit-menu 'copy "Copy the selection"
+                      (edit-menu:do 'copy)
+                      #\c "&Copy" "")
 	(make-between 'edit-menu 'copy 'paste 'nothing)
-	(make-an-item 'edit-menu 'paste "Paste the most recent copy or cut over the selection" #f #\v "&Paste" "")
+	(make-an-item 'edit-menu 'paste "Paste the most recent copy or cut over the selection"
+                      (edit-menu:do 'paste)
+                      #\v "&Paste" "")
 	(make-between 'edit-menu 'paste 'clear 'nothing)
-	(make-an-item 'edit-menu 'clear "Clear the selection without affecting paste" #f #f
+	(make-an-item 'edit-menu 'clear "Clear the selection without affecting paste" 
+                      (edit-menu:do 'clear)
+                      #f
 		      '(if (eq? (system-type) 'macos)
 			   "Clear"
 			   "&Delete")
 		      "")
 	(make-between 'edit-menu 'clear 'select-all 'nothing)
-	(make-an-item 'edit-menu 'select-all "Select the entire document" #f #\a "Select A&ll" "")
-	(make-between 'edit-menu 'select-all 'find 'nothing)
+	(make-an-item 'edit-menu 'select-all "Select the entire document"
+                      (edit-menu:do 'select-all)
+                      #\a "Select A&ll" "")
+	(make-between 'edit-menu 'select-all 'find 'separator)
 	(make-an-item 'edit-menu 'find "Search for a string in the window" #f
 		      #\f "Find" "")
 	(make-between 'edit-menu 'find 'preferences 'separator)
