@@ -1690,6 +1690,10 @@
 			(sequence
 			  (apply super-init (or edit (make-object text%)) args))))
 
+(wx:set-editor-snip-maker (lambda args (apply make-object editor-snip% args)))
+(wx:set-text-editor-maker (lambda () (make-object text%)))
+(wx:set-pasteboard-editor-maker (lambda () (make-object pasteboard%)))
+
 ;--------------------- wx Panel Classes -------------------------
 
 (define wx:windowless-panel%
