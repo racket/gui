@@ -11,6 +11,7 @@
 	  [finder : framework:finder^]
 	  [keymap : framework:keymap^]
 	  [text : framework:text^]
+	  [pasteboard : framework:pasteboard^]
 	  [editor : framework:editor^]
 	  [mzlib:function : mzlib:function^])
 
@@ -281,7 +282,7 @@
     (mixin (-editor<%>) (-text<%>) args
       (override
         [get-editor<%> (lambda () text<%>)]
-	[get-editor% (lambda () text%)])
+	[get-editor% (lambda () text:keymap%)])
       (sequence (apply super-init args))))
 
   (define -pasteboard<%> (interface (-editor<%>)))
@@ -289,7 +290,7 @@
     (mixin (-editor<%>) (-pasteboard<%>) args
       (override
         [get-editor<%> (lambda () pasteboard<%>)]
-	[get-editor% (lambda () pasteboard%)])
+	[get-editor% (lambda () pasteboard:keymap%)])
       (sequence (apply super-init args))))
 
   (define searchable<%> (interface (-text<%>)

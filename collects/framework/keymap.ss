@@ -847,14 +847,24 @@
 	  (map "c:x;c:w" "save-file-as")
 	  (map "c:x;c:f" "load-file")))))
   
+  (define (generic-setup keymap)
+    (set-keymap-error-handler keymap)
+    (set-keymap-implied-shifts keymap)
+    (add-editor-keymap-functions keymap)
+    (add-pasteboard-keymap-functions keymap)
+    (add-text-keymap-functions keymap))
+
   (define global (make-object keymap%))
   (setup-global global)
+  (generic-setup global)
   (define (get-global) global)
   
   (define file (make-object keymap%))
   (setup-file file)
+  (generic-setup file)
   (define (-get-file) file)
   
   (define search (make-object keymap%))
+  (generic-setup search)
   (setup-search search)
   (define (get-search) search))

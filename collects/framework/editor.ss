@@ -46,8 +46,6 @@
 	     (error 'end-edit-sequence "extra end-edit-sequence"))
 	   (super-end-edit-sequence))])
 
-
-
       (rename [super-set-modified set-modified]
 	      [super-on-focus on-focus]
 	      [super-lock lock])
@@ -175,13 +173,7 @@
 	(let ([keymap (get-keymap)])
 	  (keymap:set-keymap-error-handler keymap)
 	  (keymap:set-keymap-implied-shifts keymap)
-	  (add-editor-keymap-functions keymap)
-	  (add-text-keymap-functions keymap)
-	  (add-pasteboard-keymap-functions keymap)
-	  (for-each (lambda (k)
-		      (keymap:set-keymap-error-handler k)
-		      (keymap:set-keymap-implied-shifts k)
-		      (send keymap chain-to-keymap k #f))
+	  (for-each (lambda (k) (send keymap chain-to-keymap k #f))
 		    (get-keymaps))))))
 
   (define file<%> (interface (-keymap<%>)))

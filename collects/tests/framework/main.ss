@@ -109,50 +109,57 @@
 
     (define send-sexp-to-mred
       (lambda (sexp)
-	(unless (and in-port
-		     out-port
-		     (or (not (char-ready? in-port))
-			 (not (eof-object? (peek-char in-port)))))
-	  (restart-mred))
-	(printf "  ~a // ~a: sending to mred:~n" section-name test-name)
-	(parameterize ([pretty-print-print-line
-			(let ([prompt "  "]
-			      [old-liner (pretty-print-print-line)])
-			  (lambda (ln port ol cols)
-			    (let ([ov (old-liner ln port ol cols)])
-			      (if ln 
-				  (begin (display prompt port)
-					 (+ (string-length prompt) ov))
-				  ov))))])
-	  (pretty-print sexp))
-	(newline)
-	(write sexp out-port)
-	(newline out-port)
-	(let ([answer
-	       (with-handlers ([(lambda (x) #t)
-				(lambda (x) (list 'cant-read
-						  (string-append
-						   (exn-message x)
-						   "; rest of string: "
-						   (apply
-						    string
-						    (let loop ()
-						      (if (char-ready? in-port)
-							  (cons (read-char in-port)
-								(loop))
-							  null))))))])
-		 (read in-port))])
-	  (unless (or (eof-object? answer)
-		      (and (list? answer)
-			   (= 2 (length answer))))
-	    (error 'send-sexp-to-mred "unpected result from mred: ~s~n" answer))
-	  (if (eof-object? answer)
-	      (raise (make-eof-result))
-	      (case (car answer)
-		[(error)
-		 (error 'send-sexp-to-mred (format "mred raised \"~a\"" (second answer)))]
-		[(cant-read) (error 'mred/cant-parse (second answer))]
-		[(normal) (eval (second answer))])))))
+	(let ([show-text 
+	       (lambda (sexp)
+		 
+		 (parameterize ([pretty-print-print-line
+				 (let ([prompt "  "]
+				       [old-liner (pretty-print-print-line)])
+				   (lambda (ln port ol cols)
+				     (let ([ov (old-liner ln port ol cols)])
+				       (if ln 
+					   (begin (display prompt port)
+						  (+ (string-length prompt) ov))
+					   ov))))])
+		   (pretty-print sexp)
+		   (newline)))])
+	  (unless (and in-port
+		       out-port
+		       (or (not (char-ready? in-port))
+			   (not (eof-object? (peek-char in-port)))))
+	    (restart-mred))
+	  (printf "  ~a // ~a: sending to mred:~n" section-name test-name)
+	  (show-text sexp)
+	  (write sexp out-port)
+	  (newline out-port)
+	  (let ([answer
+		 (with-handlers ([(lambda (x) #t)
+				  (lambda (x) (list 'cant-read
+						    (string-append
+						     (exn-message x)
+						     "; rest of string: "
+						     (apply
+						      string
+						      (let loop ()
+							(if (char-ready? in-port)
+							    (cons (read-char in-port)
+								  (loop))
+							    null))))))])
+		   (read in-port))])
+	    (unless (or (eof-object? answer)
+			(and (list? answer)
+			     (= 2 (length answer))))
+	      (error 'send-sexp-to-mred "unpected result from mred: ~s~n" answer))
+	    (if (eof-object? answer)
+		(raise (make-eof-result))
+		(case (car answer)
+		  [(error)
+		   (error 'send-sexp-to-mred (format "mred raised \"~a\"" (second answer)))]
+		  [(cant-read) (error 'mred/cant-parse (second answer))]
+		  [(normal) 
+		   (printf "  ~a // ~a: received from mred:~n" section-name test-name)
+		   (show-text (second answer))
+		   (eval (second answer))]))))))
 
 
     (define test
@@ -233,11 +240,26 @@
 		    (set! only-these-tests (cons (string->symbol _only-these-tests)
 						 (or only-these-tests null))))
 		 ("Only run test named <test-name>" "test-name")]))])
-	(parse-command-line "framework-test" argv command-line-flags
-			    (lambda (collected . files)
-			      (set! files-to-process (if (null? files) all-files files)))
-			    `("Names of the tests; defaults to all tests"))
+	
+	(let* ([saved-command-line-file (build-path (collection-path "tests" "framework") "saved-command-line.ss")]
+	       [parsed-argv (if (equal? argv (vector))
+				(if (file-exists? saved-command-line-file)
+				    (begin
+				      (let ([result (call-with-input-file saved-command-line-file read)])
+					(printf "reusing command-line arguments: ~s~n" result)
+					result))
+				    (vector))
+				argv)])
+	  (parse-command-line "framework-test" parsed-argv command-line-flags
+			      (lambda (collected . files)
+				(set! files-to-process (if (null? files) all-files files)))
+			      `("Names of the tests; defaults to all tests"))
+	  (call-with-output-file saved-command-line-file
+	    (lambda (port)
+	      (write parsed-argv port))
+	    'truncate))
 
+	
 	(when (file-exists? preferences-file)
 	  (printf "  saving preferences file ~s to ~s~n" preferences-file old-preferences-file)
 	  (when (file-exists? old-preferences-file)
@@ -254,15 +276,16 @@
 					   (lambda (exn)
 					     (printf "~a~n" (if (exn? exn) (exn-message exn) exn)))])
 			    (printf "beginning ~a test suite~n" x)
+
 			    (invoke-unit/sig
 			     (eval
 			      `(unit/sig ()
-				 (import TestSuite^
-					 mzlib:function^
-					 mzlib:file^
-					 mzlib:string^
-					 mzlib:pretty-print^)
-				 (include ,x)))
+				   (import TestSuite^
+					   mzlib:function^
+					   mzlib:file^
+					   mzlib:string^
+					   mzlib:pretty-print^)
+				   (include ,x)))
 			     TestSuite^
 			     mzlib:function^
 			     mzlib:file^

@@ -567,21 +567,21 @@
 	    forward-cache))]
 	[remove-sexp
 	 (lambda (start-pos)
-	   (let ([end-pos (get-forward-sexp this start-pos)])
+	   (let ([end-pos (get-forward-sexp start-pos)])
 	     (if end-pos 
 		 (kill 0 start-pos end-pos)
 		 (bell))
 	     #t))]
 	[forward-sexp
 	 (lambda (start-pos)
-	   (let ([end-pos (get-forward-sexp this start-pos)])
+	   (let ([end-pos (get-forward-sexp start-pos)])
 	     (if end-pos 
 		 (set-position end-pos)
 		 (bell))
 	     #t))]
 	[flash-forward-sexp
 	 (lambda (start-pos)
-	   (let ([end-pos (get-forward-sexp this start-pos)])
+	   (let ([end-pos (get-forward-sexp start-pos)])
 	     (if end-pos 
 		 (flash-on end-pos (add1 end-pos))
 		 (bell)) 
