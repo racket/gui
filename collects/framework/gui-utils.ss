@@ -770,4 +770,5 @@
   (define gui-utils:get-clicked-clickback-delta get-clicked-clickback-delta)
   (define gui-utils:get-clickback-delta get-clickback-delta)
   (define gui-utils:ok/cancel-buttons ok/cancel-buttons)
-  (define gui-utils:cancel-on-right? cancel-on-right?))
+  (define gui-utils:cancel-on-right? cancel-on-right?)
+  (define gui-utils:cursor-delay cursor-delay))
