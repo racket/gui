@@ -410,7 +410,7 @@
             (opt-lambda ([just-clear? #f])
               (unless in-highlight-parens?
                 (set! in-highlight-parens? #t)
-                (begin-edit-sequence)
+                (begin-edit-sequence #f #f)
                 (clear-old-locations)
                 (set! clear-old-locations void)
                 (when (preferences:get 'framework:highlight-parens)
