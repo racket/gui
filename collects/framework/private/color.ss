@@ -247,7 +247,7 @@
                                    (printf "colorer thread: ~s\n" exn)
                                    (break-enabled #f)
                                    (semaphore-wait mutex-lock))))
-                  (re-tokenize (open-input-text-editor this current-pos end-pos)
+                  (re-tokenize (open-input-text-editor this current-pos end-pos (lambda (x) (values #f 1)))
                                current-pos))
                 ;; Breaks should be disabled from exit of re-tokenize
                 ;; lock will be held
@@ -409,6 +409,13 @@
           (define/override (after-delete edit-start-pos change-length)
             (do-insert/delete edit-start-pos (- change-length))
             (super-after-delete edit-start-pos change-length))
+          
+          (rename (super-on-close on-close))
+          (define/override (on-close)
+            (when remove-prefs-callback-thunk
+              (remove-prefs-callback-thunk)
+              (set! remove-prefs-callback-thunk #f))
+            (super-on-close))          
           
           (super-instantiate ())))
       
