@@ -7603,7 +7603,8 @@
 				    v)
 				  (make-semaphore-peek lock-semaphore)))))
 		      #f ; no peek
-		      close)])
+		      close
+                      text)])
 	  (if (is-a? snip wx:string-snip%)
 	      ;; Specilal handling for initial snip string in case
 	      ;;  it starts too early:
