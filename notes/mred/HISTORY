@@ -79,6 +79,19 @@ Removed get-afm-path and set-afm-path from ps-setup%
 
 ----------------------------------------------------------------------
 
+Version 208, August 2004
+
+No significant changes.
+
+----------------------------------------------------------------------
+
+Version 207, May 2004
+
+Changed Windows launching behavior to bring an existing window
+ to the front and to use `application-file-handler' to deliver
+ comamnd-line arguments
+
+----------------------------------------------------------------------
 
 Version 206p1, February 2004
 
