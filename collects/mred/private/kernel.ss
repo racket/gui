@@ -47,7 +47,7 @@
     (let ([defined null])
       (lambda (stx)
 	(syntax-case stx ()
-	  [(_ name super args id ...)
+	  [(_ name print-name super args id ...)
 	   (let ([nm (syntax-e (syntax name))]
 		 [sn (syntax-e (syntax super))]
 		 [ids (map syntax-e (syntax->list (syntax (id ...))))])
@@ -82,7 +82,7 @@
 				      (kernel:primitive-class-prepare-struct-type! 
 				       c prop:object class dispatcher))
 				    kernel:initialize-primitive-object
-				    'name super 'args
+				    'print-name super 'args
 				    '(old ...)
 				    '(new ...)
 				    (list
@@ -98,7 +98,7 @@
 	[(_ name super args id ...)
 	 (syntax
 	  (begin 
-	    (define-a-class name super args id ...)
+	    (define-a-class name name super args id ...)
 	    (provide name)))])))
 
   (define-syntax define-private-class
@@ -107,7 +107,7 @@
 	[(_ name intf super args id ...)
 	 (syntax
 	  (begin 
-	    (define-a-class name super args id ...)
+	    (define-a-class name intf super args id ...)
 	    (define intf (class->interface name))
 	    (provide intf)))])))
   (define-class object% #f #f)
@@ -416,7 +416,7 @@
   (define-class popup-event% control-event% #f
     get-menu-id
     set-menu-id)
-  (define-class scroll-event% event% ([event-type 'thumb] [direction 'vertical] [position 0] [time-stamp 0])
+  (define-class scroll-event% event% ([event-type thumb] [direction vertical] [position 0] [time-stamp 0])
     get-event-type
     set-event-type
     get-direction
