@@ -401,6 +401,8 @@
   (define-class bitmap-dc% dc% ()
     get-bitmap
     set-bitmap
+    set-argb-pixels
+    get-argb-pixels
     set-pixel
     get-pixel)
   (define-class post-script-dc% dc% ([interactive? #t] [parent #f] [use-paper-bbox? #f]))
