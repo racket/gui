@@ -21,9 +21,7 @@
 			       100 100))
   (send default-parent-frame show #t))
 
-(when (with-handlers ([exn:fail? (lambda (x) #f)])
-	 (namespace-variable-binding 'mid?)
-	 mdi?)
+(when (namespace-variable-value 'mdi? #t (lambda () #f))
   (mdi))
 
 (define make-frame
