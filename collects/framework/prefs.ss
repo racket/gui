@@ -287,7 +287,7 @@
 	 
 	 (make-check 'framework:verify-exit "Verify exit" id id)
 	 (make-check 'framework:verify-change-format "Ask before changing save format" id id)
-	 (make-check 'framework:auto-set-wrap? "Wordwrap editor buffers" id id)
+	 (make-check 'framework:auto-set-wrap? "Wrap words in editor buffers" id id)
 	 
 	 (make-check 'framework:show-status-line "Show status-line" id id)
 	 (make-check 'framework:line-offsets "Count line and column numbers from one" id id)

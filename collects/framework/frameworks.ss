@@ -235,7 +235,10 @@
 (define-signature framework:scheme^
   (get-wordbreak-map
    init-wordbreak-map
+
    get-style-list
+   get-delta
+
    get-keymap
    setup-keymap
    text-mixin

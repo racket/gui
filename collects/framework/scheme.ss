@@ -65,17 +65,18 @@
 
   (define style-list (make-object style-list%))
   (define (get-style-list) style-list)
-  (define standard-style-delta
+  (define delta
     (let ([delta (make-object style-delta% 'change-normal)])
       (send delta set-delta 'change-family 'modern)
       delta))
+  (define (get-delta) delta)
   (let ([style (send style-list find-named-style "Standard")])
     (if style
-	(send style set-delta standard-style-delta)
+	(send style set-delta delta)
 	(send style-list new-named-style "Standard"
 	      (send style-list find-or-create-style
 		    (send style-list find-named-style "Basic")
-		    standard-style-delta))))
+		    delta))))
 
   (define text-mixin 
     (mixin (text:basic<%>) (-text<%>) args

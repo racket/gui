@@ -92,10 +92,14 @@
         
         [on-drop-file
          (lambda (filename)
-           (handler:edit-file filename))]
+           (handler:edit-file filename))])
+
+      (inherit change-children)
+      (override
 	[after-new-child
 	 (lambda (child)
 	   (when after-init?
+	     (change-children (lambda (l) (mzlib:function:remq child l)))
 	     (error 'frame:basic-mixin
 		    "do not add children directly to a frame:basic (unless using make-root-area-container); use the get-area-container method instead"
 		    )))])
@@ -403,7 +407,8 @@
            [find-button (make-object button% "Find" button-panel 
                                      (lambda x
 				       (update-texts)
-                                       (send frame search-again)))]
+                                       (send frame search-again))
+				     '(border))]
 	   [replace-button (make-object button% "Replace" button-panel
 					(lambda x
 					  (update-texts)
@@ -429,6 +434,9 @@
 	(send find-message min-width msg-width)
 	(send replace-message min-width msg-width))
       (send find-field focus)
+      (send (send find-field get-editor) set-position
+	    0
+	    (send (send find-field get-editor) last-position))
       (send pref-check set-value (preferences:get 'framework:search-using-dialog?))
       (send button-panel set-alignment 'right 'center)
       (send dialog center 'both)
@@ -1256,7 +1264,7 @@
 	   (let ([b (icon:get-anchor-bitmap)])
 	     (if (and #f (send b ok?))
 		 b
-		 "Anchor"))
+		 "Auto-extend Selection"))
 	   (get-info-panel))]
 	[overwrite-message 
 	 (make-object message%
