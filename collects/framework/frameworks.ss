@@ -221,6 +221,8 @@
    aug-keymap%
    aug-keymap<%>
    
+   canonicalize-keybinding-string
+
    setup-global
    setup-search
    setup-file

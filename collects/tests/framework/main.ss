@@ -358,11 +358,11 @@
    (import (P : (program))
 	   (A : (argv)))
    (link
-    [L : launcher-maker^ ((require-library "launcherr.ss" "launcher"))]
-    [C : mzlib:core^ ((require-library "corer.ss"))]
+    [core : mzlib:core^ ((require-library "corer.ss"))]
+    [launcher : launcher-maker^ ((require-library "launcherr.ss" "launcher") (core file))]
     [M : mzlib:command-line^ ((require-library "cmdliner.ss"))]
-    [T : internal-TestSuite^ (TestSuite P E L (C pretty-print) (C function))]
-    [E : Engine^ (Engine A T M (C function) (C file) (C string) (C pretty-print))])
+    [T : internal-TestSuite^ (TestSuite P E launcher (core pretty-print) (core function))]
+    [E : Engine^ (Engine A T M (core function) (core file) (core string) (core pretty-print))])
    (export))
  (program)
  (argv))

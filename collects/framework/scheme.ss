@@ -882,14 +882,18 @@
 		 (send keymap map-function key func))])
 
 	  (map-meta "up" "up-sexp")
+	  (map-meta "c:u" "up-sexp")
 	  (map "a:up" "up-sexp")
 	  (map-meta "s:up" "select-up-sexp")
 	  (map "a:s:up" "select-up-sexp")
+	  (map-meta "s:c:u" "select-up-sexp")
 	  
 	  (map-meta "down" "down-sexp")
 	  (map "a:down" "down-sexp")
+	  (map-meta "c:down" "down-sexp")
 	  (map-meta "s:down" "select-down-sexp")
 	  (map "a:s:down" "select-down-sexp")
+	  (map-meta "s:c:down" "down-sexp")
 	  
 	  (map-meta "right" "forward-sexp")
 	  (map "a:right" "forward-sexp")
@@ -919,9 +923,6 @@
 
 	  (map-meta "c:b" "backward-sexp")
 	  (map-meta "s:c:b" "select-backward-sexp")
-
-	  ;(map-meta "c:u" "up-sexp")
-	  ;(map-meta "c:d" "down-sexp")
 
 	  (map-meta "c:p" "flash-backward-sexp")
 	  (map-meta "s:c:n" "flash-forward-sexp")

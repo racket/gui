@@ -5,11 +5,15 @@
 	  [finder : framework:finder^]
 	  [handler : framework:handler^]
 	  [scheme-paren : framework:scheme-paren^]
-	  [frame : framework:frame^])
+	  [frame : framework:frame^]
+	  [mzlib:function : mzlib:function^])
   
   (rename [-get-file get-file])
   
-  (define aug-keymap<%> (interface () get-chained-keymaps get-map-function-table))
+  (define aug-keymap<%> (interface ()
+			  get-chained-keymaps
+			  get-map-function-table
+			  get-map-function-table/ht))
   
   (define aug-keymap%
     (class* keymap% (aug-keymap<%>) args
@@ -41,25 +45,127 @@
       (public
         [get-map-function-table
          (lambda ()
-           (let ([table (make-hash-table)])
-             (hash-table-for-each
-              function-table
-              (lambda (keyname fname) (hash-table-put! table keyname fname)))
-             (for-each
-              (lambda (chained-keymap)
-                (when (is-a? chained-keymap aug-keymap<%>)
-                  (hash-table-for-each
-                   (send chained-keymap get-map-function-table)
-                   (lambda (keyname fname)
-                     (unless (hash-table-get table keyname (lambda () #f))
-                       (hash-table-put! table keyname fname))))))
-              chained-keymaps)
-             table))])
+	   (get-map-function-table/ht (make-hash-table)))]
+	
+        [get-map-function-table/ht
+         (lambda (table)
+	   (hash-table-for-each
+	    function-table
+	    (lambda (keyname fname)
+	      (unless (hash-table-get table keyname (lambda () #f))
+		(hash-table-put! table keyname fname))))
+	   (for-each
+	    (lambda (chained-keymap)
+	      (when (is-a? chained-keymap aug-keymap<%>)
+		(send chained-keymap get-map-function-table/ht table)))
+	    chained-keymaps)
+	   table)])
       
       (sequence
         (apply super-init args))))
 
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  ;;;;;;;                                   ;;;;;;;;
+  ;;;;;;;           canonicalize            ;;;;;;;;
+  ;;;;;;;                                   ;;;;;;;;
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+  ;; canonicalize-keybinding-string : string -> string
+  ;; The result can be used with string=? to determine
+  ;; if two key bindings refer to the same key.
+  ;; Assumes a well-formed keystring.
+  (define (canonicalize-keybinding-string str)
+    (let* ([chars (string->list str)]
+	   [separated-keys
+	    (map
+	     canonicalize-single-keybinding-string
+	     (split-out #\; chars))])
+      (join-strings ";" separated-keys)))
   
+  ;; join-strings : string (listof string) -> string
+  ;; concatenates strs with sep between each of them
+  (define (join-strings sep strs)
+    (if (null? strs)
+	""
+	(apply
+	 string-append
+	 (cons
+	  (car strs)
+	  (let loop ([keys (cdr strs)])
+	    (cond
+	     [(null? keys) null]
+	     [else (list* sep
+			  (car keys)
+			  (loop (cdr keys)))]))))))
+
+  ;; canonicalize-single-keybinding-string : (listof char) -> string
+  (define (canonicalize-single-keybinding-string chars)
+    (let* ([neg? (char=? (car chars) #\:)]
+	   [mods/key (split-out #\: (if neg? (cdr chars) chars))]
+	   [mods
+	    (let loop ([mods mods/key])
+	      (cond
+	       [(null? mods) null]
+	       [(null? (cdr mods)) null]
+	       [else (cons (car mods) (loop (cdr mods)))]))]
+	   [key (cdr (mzlib:function:last-pair mods/key))]
+	   [shift (if neg? #f 'd/c)]
+	   [control (if neg? #f 'd/c)]
+	   [alt (if neg? #f 'd/c)]
+	   [meta (if neg? #f 'd/c)]
+	   [command (if neg? #f 'd/c)]
+
+	   [do-key
+	    (lambda (char val)
+	      (cond
+	       [(eq? val #t) (string char)]
+	       [(eq? val #f) (string #\~ char)]
+	       [(eq? val 'd/c) ""]))])
+
+      (for-each (lambda (mod)
+		  (let ([val (not (char=? (car mod) #\~))])
+		    (case (if (char=? (car mod) #\~)
+			      (cadr mod)
+			      (car mod))
+		      [(#\s) (set! shift val)]
+		      [(#\c) (set! control val)]
+		      [(#\a) (set! alt val)]
+		      [(#\d) (set! command val)]
+		      [(#\m) (set! meta val)])))
+		mods)
+      (join-strings #\: (list
+			 (do-key #\a alt)
+			 (do-key #\c control)
+			 (do-key #\d command)
+			 (do-key #\m meta)
+			 (do-key #\s shift)
+			 (apply string-append key)))))
+		   
+  ;; split-out : char (listof char) -> (listof (listof char))
+  ;; splits a list of characters at its first argument
+  (define (split-out split-char chars)
+    (let loop ([chars chars]
+	       [this-split null]
+	       [all-split null])
+      (cond
+       [(null? chars) (reverse all-split)]
+       [else (let ([char (car chars)])
+	       (cond
+		[(char=? split-char chars)
+		 (loop (cdr chars)
+		       null
+		       (cons (reverse this-split) all-split))]
+		[else
+		 (loop (cdr chars)
+		       (cons char this-split)
+		       all-split)]))])))
+
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  ;;;;;;;                                   ;;;;;;;;
+  ;;;;;;;         end canonicalize          ;;;;;;;;
+  ;;;;;;;                                   ;;;;;;;;
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
   (define (make-meta-prefix-list key)
     (list (string-append "m:" key)
 	  (string-append "ESC;" key)))
