@@ -17,7 +17,7 @@ To run a test use:
 
 where or <test.ss> is the name of one of the tests
 below. Alternatively, pass no command-line arguments to run the same
-test as last time.
+test as last time, or `all' to run all of the tests.
 
 - load: |# load.ss #|
 
@@ -54,11 +54,6 @@ test as last time.
   - canvases to frames: |# canvas-frame.ss #|
   - edits to frames: |# edit-frame.ss #|
   - handler |# handler-test.ss #|
-
-- garbage collection: |# gc.ss #|
-
-  | These tests will create objects in various configurations and
-  | make sure that they are garbage collected
 
 - keybindings: |# keys.ss #|
 
@@ -111,5 +106,11 @@ test as last time.
   | these tests require intervention by people. Clicking and whatnot
   
   - panel:single |# panel.ss #|
+
+  - garbage collection: |# mem.ss #|
+
+    | These tests will create objects in various configurations and
+    | make sure that they are garbage collected
+
 	
 |#)
