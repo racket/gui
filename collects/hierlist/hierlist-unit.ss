@@ -302,7 +302,7 @@
                    (send dc set-brush (if filled? black-xor transparent))
                    (send dc set-pen (if filled? transparent-pen black-xor-pen))
                    (send dc draw-rectangle (+ dx left) (+ dy top_) (- right left) (- bottom top_))
-		   (unless filled?
+		   (unless (or filled? ((- right left) . < . 2) ((- bottom top_) . < . 2))
 		     (send dc draw-rectangle (+ dx left 1) (+ dy top_ 1) (- right left 2) (- bottom top_ 2)))
                    (send dc set-pen p)
                    (send dc set-brush b))))])
