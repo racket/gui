@@ -215,6 +215,10 @@ Matthew
 
   |#
   
+  ;; need to figure out
+  ;; line-start-position and friends 
+  ;; (line-start-position not valid in readlock)
+  
   (define lock-contract-mixin
     (sequence-contract-mixin
      (state-machine
@@ -233,6 +237,13 @@ Matthew
        (set-min-height [(width)] unlocked)
        (set-max-height [(width)] unlocked)
        (set-tabs [(tabs) (tabs tab-width) (tabs tab-width units?)] unlocked)
+       (print [()
+               (interactive?)
+               (interactive? fit-on-page?)
+               (interactive? fit-on-page? output-mode)
+               (interactive? fit-on-page? output-mode parent)
+               (interactive? fit-on-page? output-mode parent force-ps-page-bbox?)]
+              unlocked)
        
        (get-text [() (x) (x y) (x y z) (x y z p)] unlocked)
        (get-character [(start)] unlocked)
@@ -268,6 +279,13 @@ Matthew
        (set-min-height [(width)] write-lock)
        (set-max-height [(width)] write-lock)
        (set-tabs [(tabs) (tabs tab-width) (tabs tab-width units?)] write-lock)
+       (print [()
+               (interactive?)
+               (interactive? fit-on-page?)
+               (interactive? fit-on-page? output-mode)
+               (interactive? fit-on-page? output-mode parent)
+               (interactive? fit-on-page? output-mode parent force-ps-page-bbox?)]
+              write-lock)
        
        (get-text [() (x) (x y) (x y z) (x y z p)] write-lock)
        (get-character [(start)] write-lock)
