@@ -3653,7 +3653,7 @@
 
 (define wx-menu-bar%
   (class* wx:menu-bar% (wx<%>) (mred)
-    (inherit delete)
+    (inherit delete select-system)
     (rename [super-append append]
 	    [super-enable-top enable-top])
     (private
@@ -3671,20 +3671,24 @@
 				(send event get-meta-down)
 				(char? (send event get-key-code))
 				(let ([c (send event get-key-code)])
-				  (and (or (char-alphabetic? c)
-					   (char-numeric? c))
-				       (let ([re (key-regexp c)])
-					 (ormap
-					  (lambda (i)
-					    (let* ([data (send (mred->wx i) get-menu-data)]
-						   [label (car data)]
-						   [menu (cdr data)])
-					      (if (regexp-match re label)
-						  (begin
-						    (send menu select)
-						    #t)
-						  #f)))
-					  items)))))))))]
+				  (or (and (char=? #\space c)
+					   (eq? 'windows (system-type))
+					   (select-system)
+					   #t)
+				      (and (or (char-alphabetic? c)
+					       (char-numeric? c))
+					   (let ([re (key-regexp c)])
+					     (ormap
+					      (lambda (i)
+						(let* ([data (send (mred->wx i) get-menu-data)]
+						       [label (car data)]
+						       [menu (cdr data)])
+						  (if (regexp-match re label)
+						      (begin
+							(send menu select)
+							#t)
+						      #f)))
+					      items))))))))))]
       [get-mred (lambda () mred)]
       [get-items (lambda () items)]
       [append-item (lambda (item menu title)
