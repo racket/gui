@@ -155,14 +155,6 @@ string=? ; exec mred -qr $0
      `(define standard-menus-mixin
 	(mixin (basic<%>) (standard-menus<%>) args
           (inherit on-menu-char on-traverse-char)
-;	  (rename [super-on-subwindow-char on-subwindow-char])
-;          (override
-;            [on-subwindow-char
-;             (lambda (receiver event)
-;               (if (preferences:get 'framework:menu-bindings)
-;		   (super-on-subwindow-char receiver event)
-;                   (on-traverse-char event)))])
-          
 	  (rename [super-on-close on-close])
 	  (private
 	    [remove-prefs-callback
