@@ -3,6 +3,7 @@
   (require (lib "class.ss")
 	   (lib "class100.ss")
 	   (lib "file.ss")
+	   (lib "etc.ss")
 	   (lib "process.ss")
 	   (lib "moddep.ss" "syntax"))
 
@@ -171,8 +172,6 @@
   (lambda (new-dim current-dim)
     (or (= new-dim current-dim)
 	(= new-dim -1))))
-
-(define identity (lambda (x) x))
 
 ;; list-diff: computes the difference between two lists
 ;; input: l1, l2: two lists
@@ -1801,16 +1800,30 @@
 		    get-canvas
 		    add-canvas remove-canvas
 		    auto-wrap get-max-view-size))
+
+(define-local-member-name 
+  -format-filter
+  -get-current-format
+  -set-format)
 		    
 (define (make-editor-buffer% % can-wrap? get-editor%)
   ; >>> This class is instantiated directly by the end-user <<<
   (class100* % (editor<%> internal-editor<%>) args
     (inherit get-max-width set-max-width get-admin get-view-size
-	     get-keymap get-style-list)
+	     get-keymap get-style-list
+	     can-load-file? on-load-file after-load-file
+	     set-modified set-filename)
     (rename [super-on-display-size on-display-size]
 	    [super-get-view-size get-view-size]
 	    [super-copy-self-to copy-self-to]
-	    [super-print print])
+	    [super-print print]
+	    [super-get-filename get-filename]
+	    [super-begin-edit-sequence begin-edit-sequence]
+	    [super-end-edit-sequence end-edit-sequence]
+	    [super-erase erase]
+	    [super-insert-port insert-port]
+	    [super-clear-undos clear-undos]
+	    [super-get-load-overwrites-styles get-load-overwrites-styles])
     (private-field
       [canvases null]
       [active-canvas #f]
@@ -1834,6 +1847,68 @@
 	      canvases))
 	   (values (unbox wb) (unbox hb))))])
     (public
+      [-format-filter (lambda (f) f)]
+      [-set-file-format (lambda (f) (void))]
+      [-get-file-format (lambda () 'standard)]
+
+      [insert-file
+       (opt-lambda ([file #f] [format 'guess] [show-errors? #t])
+	 (dynamic-wind
+	     (lambda () (super-begin-edit-sequence))
+	     (lambda () (super-insert-port file format #f))
+	     (lambda () (super-end-edit-sequence))))]
+
+      [load-file
+       (opt-lambda ([file #f] [format 'guess] [show-errors? #t])
+	 (let* ([temp-filename?-box (box #f)]
+		[old-filename (super-get-filename temp-filename?-box)])
+	   (let ([file (if (or (not file) (string=? file ""))
+			   (if (or (equal? file "") (not old-filename) (unbox temp-filename?-box))
+			       (let ([path (if old-filename
+					       (path-only old-filename)
+					       #f)])
+				 (get-file path))
+			       old-filename)
+			   file)])
+	     (and 
+	      file
+	      (can-load-file? file (-format-filter format))
+	      (begin
+		(on-load-file file (-format-filter format))
+		(let ([port (open-input-file file)]
+		      [finished? #f])
+		  (dynamic-wind
+		      void
+		      (lambda ()
+			(wx:begin-busy-cursor)
+			(super-begin-edit-sequence)
+			(dynamic-wind
+			    void
+			    (lambda ()
+			      (super-erase)
+			      (unless (and (not (unbox temp-filename?-box))
+					   (equal? file old-filename))
+				(set-filename file #f))
+			      (let ([format (if (eq? format 'same)
+						(-get-file-format)
+						format)])
+				(let ([new-format (super-insert-port port 
+								     (-format-filter format) 
+								     (super-get-load-overwrites-styles))])
+				  (close-input-port port) ; close as soon as possible
+				  (-set-file-format new-format)))) ; text% only
+			    (lambda ()
+			      (super-end-edit-sequence)
+			      (wx:end-busy-cursor)))
+			(super-clear-undos)
+			(set-modified #f)
+			(set! finished? #t)
+			#t)
+		      (lambda ()
+			(after-load-file finished?)
+			;; In case it wasn't closed before:
+			(close-input-port port)))))))))]
+
       [get-canvases (entry-point (lambda () (map wx->mred canvases)))]
       [get-active-canvas (entry-point (lambda () (and active-canvas (wx->mred active-canvas))))]
       [get-canvas
@@ -1935,11 +2010,23 @@
 (define text% (class100 (make-editor-buffer% wx:text% #t  (lambda () text%)) ([line-spacing 1.0] 
 									      [tab-stops null]
 									      [auto-wrap #f])
-		(rename (super-auto-wrap auto-wrap))
+		(rename (super-auto-wrap auto-wrap)
+			(super-set-file-format set-file-format)
+			(super-get-file-format get-file-format)
+			(super-set-position set-position))
+		(override
+		  [-get-file-format (lambda ()
+				      (super-get-file-format format))]
+		  [-set-file-format (lambda (format)
+				      (super-set-file-format format)
+				      (super-set-position 0 0))])
+		
 		(sequence (super-init line-spacing tab-stops)
 			  (when auto-wrap
 			    (super-auto-wrap #t)))))
 (define pasteboard% (class100 (make-editor-buffer% wx:pasteboard% #f (lambda () pasteboard%)) ()
+		      (override
+			[-format-filter (lambda (f) 'standard)])
 		      (sequence (super-init))))
 
 (define editor-snip% (class100 wx:editor-snip% ([editor #f]

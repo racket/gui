@@ -217,9 +217,8 @@
     get-space
     get-descent
     get-extent
-    insert-file
+    insert-port
     save-file
-    load-file
     get-flattened-text
     put-file
     get-file
@@ -284,8 +283,6 @@
   (define-function set-editor-print-margin)
   (define-function get-editor-print-margin)
   (define-class bitmap% object% #f
-    set-loaded-mask
-    get-loaded-mask
     save-file
     load-file
     is-color?
@@ -641,7 +638,6 @@
     get-wheel-step
     set-wheel-step)
   (define-class editor-admin% object% #f
-    modified
     refresh-delayed?
     popup-menu
     update-cursor
@@ -655,7 +651,6 @@
   (define-private-class editor-snip-editor-admin% editor-snip-editor-admin<%> editor-admin% #f
     get-snip)
   (define-class snip-admin% object% #f
-    modified
     popup-menu
     update-cursor
     release-snip
@@ -819,7 +814,6 @@
     read-header-from-file
     set-filename
     release-snip
-    on-snip-modified
     set-modified
     set-snip-data
     get-snip-data
@@ -1024,7 +1018,6 @@
     read-from-file
     set-filename
     release-snip
-    on-snip-modified
     set-modified
     set-snip-data
     get-snip-data
@@ -1109,7 +1102,6 @@
   (define-class snip% object% #f
     previous
     next
-    set-unmodified
     get-scroll-step-offset
     find-scroll-step
     get-num-scroll-steps
@@ -1146,7 +1138,6 @@
   (define-class string-snip% snip% #f
     read
     insert
-    set-unmodified
     get-scroll-step-offset
     find-scroll-step
     get-num-scroll-steps
@@ -1170,7 +1161,6 @@
     partial-offset
     get-extent)
   (define-class tab-snip% string-snip% #f
-    set-unmodified
     get-scroll-step-offset
     find-scroll-step
     get-num-scroll-steps
@@ -1199,7 +1189,6 @@
     get-filetype
     get-filename
     load-file
-    set-unmodified
     get-scroll-step-offset
     find-scroll-step
     get-num-scroll-steps
@@ -1241,7 +1230,6 @@
     get-max-width
     set-max-height
     set-max-width
-    set-unmodified
     get-scroll-step-offset
     find-scroll-step
     get-num-scroll-steps
