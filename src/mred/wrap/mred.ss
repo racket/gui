@@ -16,6 +16,8 @@
 ; maximum reasonable minimum width/height
 (define max-min 10000)
 
+(define o (current-output-port))
+
 ;;;;;;;;;;;;;;; Security ("thread safety") ;;;;;;;;;;;;;;;;;;;;
 
 ;; When the user creates an object or calls a method, or when the
@@ -621,17 +623,17 @@
 		  [new-height (get-height)])
 	      (let-values ([(correct-w correct-h) (correct-size new-width new-height)])
 		(if (or (and (= new-width correct-w) (= new-height correct-h))
-			(and (= last-width correct-w) (= last-height correct-h))
-			was-bad?)
+			(and (= last-width correct-w) (= last-height correct-h)
+			     was-bad?))
 		    ;; Good size or we give up; do panel
 		    (begin
-		      (set! last-width correct-w)
-		      (set! last-height correct-h)
 		      (set! was-bad? #f)
 		      (set-panel-size))
 		    ;; Too large/small; try to fix it, but give up after a while
 		    (begin
 		      (set! was-bad? #t)
+		      (set! last-width correct-w)
+		      (set! last-height correct-h)
 		      (set! already-trying? #t)
 		      (set-size -1 -1 correct-w correct-h)
 		      (set! already-trying? #f)
