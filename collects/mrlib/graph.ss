@@ -81,6 +81,11 @@
       [(parent child dark-pen light-pen dark-brush light-brush)
        (add-links parent child dark-pen light-pen dark-brush light-brush 0 0)]
       [(parent child dark-pen light-pen dark-brush light-brush dx dy)
+       (let ([admin (send parent get-admin)])
+         (when admin
+           (let ([pb (send admin get-editor)])
+             (when (is-a? pb graph-pasteboard<%>)
+               (send pb add-edge parent child)))))
        (send parent add-child child)
        (send child add-parent parent dark-pen light-pen dark-brush light-brush dx dy)]))
   
@@ -129,8 +134,10 @@
   
   (define graph-pasteboard<%>
     (interface ()
-      on-mouse-over-snips))
-
+      on-mouse-over-snips
+      set-arrowhead-params
+      add-edge))
+  
   (define-struct rect (left top right bottom))
   
   (define graph-pasteboard-mixin
@@ -149,6 +156,9 @@
         (values arrowhead-angle-width
                 arrowhead-long-side
                 arrowhead-short-side))
+    
+      (define edges (make-hash-table 'equal))
+      (define/public (add-edge s1 s2) (hash-table-put! edges (cons s1 s2) #t))
       
       (inherit dc-location-to-editor-location get-canvas)
       (field (currently-overs null))
@@ -356,6 +366,7 @@
       ;; draws all of the lines and then draws all of the arrow heads
       (define/override (on-paint before? dc left top right bottom dx dy draw-caret)
         (let ()
+
           ;; draw-all-connections : ... boolean -> void
           ;; draws all of the connections between the snips
           ;; first args are the same as those to on-paint
