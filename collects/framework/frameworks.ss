@@ -218,7 +218,9 @@
 
    get-global
    get-search
-   get-file))
+   get-file
+
+   call/text-keymap-initializer))
 
 (define-signature framework:match-cache^
   (%))

@@ -321,7 +321,8 @@
 	[remove-autosave
 	 (lambda ()
 	   (when auto-saved-name
-	     (delete-file auto-saved-name)
+	     (when (file-exists? auto-saved-name)
+	       (delete-file auto-saved-name))
 	     (set! auto-saved-name #f)))])
       (sequence
 	(apply super-init args)

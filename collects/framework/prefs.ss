@@ -321,7 +321,9 @@
 	   
 	   [font-size-entry "defaultFontSize"]
 	   [font-default-string "Default Value"]
-	   [font-default-size 12]
+	   [font-default-size (case (system-type)
+				[(windows) 10]
+				[else 12])]
 	   [font-section "mred"]
 	   [build-font-entry (lambda (x) (string-append "Screen" x "__"))]
 	   [font-file (find-graphical-system-path 'setup-file)]

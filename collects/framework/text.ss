@@ -310,9 +310,26 @@
 	   (public
 	     [initial-autowrap-bitmap (lambda () (icon:get-autowrap-bitmap))])
 	   
+	   (rename [super-on-close on-close])
+	   (override
+	     [on-close
+	      (lambda ()
+		(remove-callback)
+		(super-on-close))])
+
 	   (sequence
 	     (apply super-init args)
-	     (set-autowrap-bitmap (initial-autowrap-bitmap)))))
+	     (set-autowrap-bitmap (initial-autowrap-bitmap)))
+
+	   (private
+	     [remove-callback
+	      (preferences:add-callback
+	       'framework:auto-set-wrap?
+	       (lambda (p v)
+		 (auto-wrap v)))])
+	   (inherit auto-wrap)
+	   (sequence
+	     (auto-wrap (preferences:get 'framework:auto-set-wrap?)))))
 
   (define searching<%> (interface (editor:keymap<%> basic<%>)))
   (define searching-mixin

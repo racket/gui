@@ -6,6 +6,7 @@
   (import mred^
 	  [preferences : framework:preferences^]
 	  [gui-utils : framework:gui-utils^]
+	  [keymap : framework:keymap^]
 	  [mzlib:string : mzlib:string^]
 	  [mzlib:function : mzlib:function^]
 	  [mzlib:file : mzlib:file^])
@@ -456,12 +457,14 @@
 	[bottom-panel (make-object horizontal-panel% main-panel)]
 	
 	[directory-field
-	 (make-object text-field%
-	   "Full pathname"
-	   directory-panel
-	   (lambda (txt evt)
-	     (when (eq? (send evt get-event-type) 'text-field-enter)
-	       (do-ok))))]
+	 (keymap:call/text-keymap-initializer
+	  (lambda ()
+	    (make-object text-field%
+	      "Full pathname"
+	      directory-panel
+	      (lambda (txt evt)
+		(when (eq? (send evt get-event-type) 'text-field-enter)
+		  (do-ok))))))]
 
 	[result-list
 	 (when multi-mode?

@@ -374,9 +374,12 @@
 	   
 	   [goto-line
 	    (lambda (edit event)
-	      (let ([num-str (get-text-from-user
-			      "Goto Line"
-			      "Goto Line:")])
+	      (let ([num-str
+		     (call/text-keymap-initializer
+		      (lambda ()
+			(get-text-from-user
+			 "Goto Line"
+			 "Goto Line:")))])
 		(if (string? num-str)
 		    (let ([line-num (string->number num-str)])
 		      (if line-num
@@ -386,9 +389,12 @@
 	      #t)]
 	   [goto-position
 	    (lambda (edit event)
-	      (let ([num-str (get-text-from-user 
-			      "Goto Position" 
-			      "Goto Position:")])
+	      (let ([num-str
+		     (call/text-keymap-initializer
+		      (lambda ()
+			(get-text-from-user 
+			 "Goto Position" 
+			 "Goto Position:")))])
 		(if (string? num-str)
 		    (let ([pos (string->number num-str)])
 		      (if pos
@@ -516,6 +522,16 @@
 			  "delete-next-character"
 			  "delete-previous-character")
 		      edit event #t)))]
+
+	   [cut-to-end-of-paragraph
+	    (lambda (text event)
+	      (let* ([start (send text get-start-position)]
+		     [para (send text position-paragraph start)]
+		     [end (send text paragraph-end-position para)])
+		(if (= start end)
+		    (send text cut #f (send event get-time-stamp) start (+ start 1))
+		    (send text cut #f (send event get-time-stamp) start end))))]
+
 	   [toggle-overwrite
 	    (lambda (edit event)
 	      (send edit set-overwrite-mode
@@ -583,6 +599,8 @@
 	  
 	  (add "delete-key" delete-key)
 	  
+	  (add "cut-to-end-of-paragraph" cut-to-end-of-paragraph)
+
 	  ; Map keys to functions
 	  (map "c:g" "ring-bell")
 	  (map-meta "c:g" "ring-bell")
@@ -689,7 +707,7 @@
 	  
 	  (map "c:l" "center-view-on-line")
 	  
-	  (map "c:k" "delete-to-end-of-line")
+	  (map "c:k" "cut-to-end-of-paragraph")
 	  (map "c:y" "paste-clipboard")
 	  (map-meta "y" "paste-next")
 	  (map "a:v" "paste-clipboard")
@@ -855,4 +873,12 @@
   (define search (make-object keymap%))
   (generic-setup search)
   (setup-search search)
-  (define (get-search) search))
+  (define (get-search) search)
+
+  (define (call/text-keymap-initializer thunk)
+    (let ([ctki (current-text-keymap-initializer)])
+      (parameterize ([current-text-keymap-initializer
+		      (lambda (keymap)
+			(send keymap chain-to-keymap global #t)
+			(ctki keymap))])
+	(thunk)))))

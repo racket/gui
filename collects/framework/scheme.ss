@@ -920,9 +920,12 @@
 	 (let* ([add-callback
 		 (lambda (keyword-type keyword-symbol list-box)
 		   (lambda (button command)
-		     (let ([new-one (get-text-from-user
-				     (string-append "Enter new " keyword-type "-like keyword:")
-				     (string-append keyword-type " Keyword"))])
+		     (let ([new-one
+			    (keymap:call/text-keymap-initializer
+			     (lambda ()
+			       (get-text-from-user
+				(string-append "Enter new " keyword-type "-like keyword:")
+				(string-append keyword-type " Keyword"))))])
 		       (when new-one
 			 (let ([parsed (with-handlers ((exn:read? (lambda (x) #f)))
 					 (read (open-input-string new-one)))])
