@@ -1818,7 +1818,10 @@
     (define tab-widths #f)
     (define tab-height #f)
     
-    (define font (send parent get-control-font))
+    (define font (let loop ([p parent])
+		   (if (not (p . is-a? . wx:window%))
+		       (loop (send p get-parent))
+		       (send p get-control-font))))
     
     (inherit get-dc get-client-size get-mred
 	     set-min-width set-min-height
@@ -2093,7 +2096,10 @@
   (class wx-canvas%
     (init mred proxy style parent label style-again)
 
-    (define font (send parent get-control-font))
+    (define font (let loop ([p parent])
+		   (if (not (p . is-a? . wx:window%))
+		       (loop (send p get-parent))
+		       (send p get-control-font))))
     
     (inherit get-dc get-client-size get-mred
 	     set-min-width set-min-height
@@ -6690,10 +6696,14 @@
 					  l))
 				    p refresh-sample)]
 		 [p2 (make-object vertical-pane% p)]
-		 [style (make-object radio-box% "Style:" '("Normal" "Italic" "Slant") p2 refresh-sample)]
-		 [weight (make-object radio-box% "Weight:" '("Normal" "Bold" "Light") p2 refresh-sample)]
+		 [p3 (instantiate horizontal-pane% (p2) [stretchable-width #f])]
+		 [style (let ([pnl (instantiate group-box-panel% ("Style" p3) [stretchable-height #f] [stretchable-width #f])])
+			  (make-object radio-box% #f '("Normal" "Italic" "Slant") pnl refresh-sample))]
+		 [weight (let ([pnl (instantiate group-box-panel% ("Weight" p3) [stretchable-height #f] [stretchable-width #f])])
+			   (make-object radio-box% #f '("Normal" "Bold" "Light") pnl refresh-sample))]
 		 [underlined (make-object check-box% "Underlined" p2 refresh-sample)]
 		 [size (make-object slider% "Size:" 4 127 p2 refresh-sample 12)]
+		 [smoothing (make-object choice% "Smoothing:" '("Default" "Partial" "Enabled" "Disabled") p2 refresh-sample)]
 		 [sample (make-object text-field% "Sample" f void "The quick brown fox jumped over the lazy dog" '(multiple))]
 		 [edit (send sample get-editor)]
 		 [done (lambda (ok) (lambda (b e) (set! ok? ok) (send f show #f)))]
@@ -6702,7 +6712,12 @@
 					     (make-object wx:font% (send size get-value) face 'default
 							  (case (send style get-selection) [(0) 'normal] [(1) 'italic] [(2) 'slant])
 							  (case (send weight get-selection) [(0) 'normal] [(1) 'bold] [(2) 'light])
-							  (send underlined get-value)))))]
+							  (send underlined get-value)
+							  (case (send smoothing get-selection) 
+							    [(0) 'family+size-default] 
+							    [(1) 'system-default] 
+							    [(2) 'smoothed]
+							    [(3) 'unsmoothed])))))]
 		 [bp (make-object horizontal-pane% f)]
 		 [cancel-button (make-object button% "Cancel" bp (done #f))]
 		 [ok-button (make-object button% "OK" bp (done #t) '(border))])
