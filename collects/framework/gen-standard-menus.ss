@@ -36,7 +36,8 @@ string=? ; exec mred -qr $0
   (list (an-item->name item)
 	(build-id item "-item" "get-")
 	(build-id item "-string")
-	(build-id item "-help-string")))
+	(build-id item "-help-string")
+	(build-id item "-on-demand")))
 
 (define build-fill-in-item-clause
   (lambda (item)
@@ -48,7 +49,8 @@ string=? ; exec mred -qr $0
 		(list proc
 		      `(lambda () ,(build-id item "-item"))
 		      `(lambda () "")
-		      `(lambda () ,help-string)))))))
+		      `(lambda () ,help-string)
+		      (an-item-on-demand item)))))))
 
 (define build-fill-in-clause
   (lambda (->name -procedure)
@@ -74,17 +76,26 @@ string=? ; exec mred -qr $0
 	 [menu-before-string (an-item-menu-string-before item)]
 	 [menu-after-string (an-item-menu-string-after item)]
 	 [key (an-item-key item)]
-	 [join '(lambda (base special suffix)
-		  (if (string=? special "")
-		      (string-append base suffix)
-		      (string-append base " " special suffix)))])
+	 [join (lambda (base-text suffix-text special-text)
+		 `(let ([special ,special-text]
+			[base ,base-text]
+			[suffix ,suffix-text])
+		    (if (string=? special "")
+			(string-append base suffix)
+			(string-append base " " special suffix))))])
     `(private
        [,(build-id item "-item")
 	(and ,name
-	     (make-object (get-menu-item%)
-	       (,join ,menu-before-string
-		      (,(build-id item "-string"))
-		      ,menu-after-string)
+	     (make-object (class (get-menu-item%) args
+			    (rename [super-on-demand on-demand])
+			    (override
+			     [on-demand
+			      (lambda ()
+				(,(build-id item "-on-demand") this)
+				(super-on-demand))])
+			    (sequence (apply super-init args)))
+	       ,(join menu-before-string menu-after-string
+		      `(,(build-id item "-string")))
 	       ,(menu-name->id name-string)
 	       ,name
 	       (if (preferences:get 'framework:menu-bindings) ,key #f)
