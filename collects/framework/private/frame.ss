@@ -221,17 +221,20 @@
                (show #f)))]
           
           (inherit accept-drop-files)
-          (super-instantiate ())
+
+	  (super-instantiate ())
+
           (accept-drop-files #t)
             
-          (let ([mb (make-object (get-menu-bar%) this)])
-            (when (or (eq? (system-type) 'macos)
-                      (eq? (system-type) 'macosx))
-              (make-object menu:can-restore-underscore-menu% (string-constant windows-menu-label)
-                mb)))
+	  (let ([mb (make-object (get-menu-bar%) this)])
+	    (when (or (eq? (system-type) 'macos)
+		      (eq? (system-type) 'macosx))
+	      (make-object menu:can-restore-underscore-menu% (string-constant windows-menu-label)
+			   mb)))
           
           (reorder-menus this)
-          (send (group:get-the-frame-group) insert-frame this)
+	  (send (group:get-the-frame-group) insert-frame this)
+	  
           [define panel (make-root-area-container (get-area-container%) this)]
           (public get-area-container)
           [define get-area-container (lambda () panel)]
@@ -264,7 +267,9 @@
                   (draw locked-message "yellow" 'solid "black" 'solid)
                   (draw unlocked-message (get-panel-background) 'panel (get-panel-background) 'transparent))))
           (inherit get-parent min-width min-height stretchable-width stretchable-height)
-          (super-instantiate ())
+
+	  (super-instantiate ())
+
           (let ([dc (get-dc)])
             (send dc set-font (send (get-parent) get-label-font))
             (let-values ([(w1 h1 _1 _2) (send dc get-text-extent locked-message)]
@@ -445,7 +450,7 @@
                   ;; need high priority callbacks to ensure ordering wrt other callbacks
                   (queue-callback t #t))))
           
-          (super-instantiate ())))
+	  (super-instantiate ())))
       
       (define info<%> (interface (basic<%>)
                         determine-width
@@ -561,7 +566,7 @@
             (lambda ()
               (lock-status-changed))]
           
-          (super-instantiate ())
+	  (super-instantiate ())
           (set! outer-info-panel (make-object horizontal-panel% super-root))
           (send outer-info-panel stretchable-height #f)
           
@@ -827,7 +832,7 @@
               (overwrite-status-changed)
               (anchor-status-changed)
               (editor-position-changed))]
-          (super-instantiate ())
+	  (super-instantiate ())
 
           (inherit get-info-panel)
           
@@ -1109,9 +1114,7 @@
           (define help-menu:about-string (lambda () (application:current-app-name)))
           (define help-menu:create-about? (lambda () #t))
           
-          (super-instantiate 
-           () 
-           (label (get-entire-label)))
+	  (super-instantiate () (label (get-entire-label)))
           
           (define canvas #f)
           (define editor #f)
@@ -1129,12 +1132,16 @@
                 (send (get-canvas) set-editor editor))
               editor))
 
-          (cond
-            [(and filename (file-exists? filename))
-             (send (get-editor) load-file/gui-error filename 'guess)]
-            [filename
-             (send (get-editor) set-filename filename)]
-            [else (void)])
+	  (cond
+	    [(and filename (file-exists? filename))
+	     (let ([ed (get-editor)])
+	       (send ed begin-edit-sequence)
+	       (send ed load-file/gui-error filename 'guess)
+	       (send ed end-edit-sequence))]
+	    [filename
+	     (send (get-editor) set-filename filename)]
+	    [else (void)])
+
           (let ([ed-fn (send (get-editor) get-filename)])
             (set! label (if ed-fn
                             (or (file-name-from-path ed-fn)
@@ -1265,8 +1272,7 @@
                     [(cancel)
                      #f]))))
             
-          
-          (super-instantiate ())))
+	  (super-instantiate ())))
 
       (define text<%> (interface (-editor<%>)))
       (define text-mixin
@@ -1434,7 +1440,7 @@
                   [b (box 0)])
               (position-location pos #f b top? #f #t)
               (unbox b)))
-          (super-instantiate ())
+	  (super-instantiate ())
 
 	  (inherit set-cursor)
 	  (set-cursor (make-object cursor% 'arrow))
@@ -1514,7 +1520,7 @@
 
           (define/public (get-delegatee) delegatee)
 
-          (super-instantiate ())
+	  (super-instantiate ())
           
           (define delegatee (instantiate delegatee-text% ()))
           (define delegate-ec (instantiate delegatee-editor-canvas% ()
@@ -1979,9 +1985,10 @@
 	    (error 'get-text-to-search "abstract method in searchable-mixin"))
           (define/public hide-search
             (opt-lambda ([startup? #f])
-              (send super-root change-children
-                    (lambda (l)
-                      (remove search-panel l)))
+	      (when search-gui-built?
+		(send super-root change-children
+		      (lambda (l)
+			(remove search-panel l))))
               (clear-search-highlight)
               (unless startup?
                 (let ([canvas (send (get-text-to-search) get-canvas)])
@@ -1994,13 +2001,17 @@
             (when (and hidden?
                        (not (preferences:get 'framework:search-using-dialog?)))
               (set! hidden? #f)
+
+	      (build-search-gui-in-frame)
+
               (let ([canvas (send (get-text-to-search) get-canvas)])
                 (when canvas
                   (send canvas force-display-focus #t)))
               (show/hide-replace (send (get-text-to-search) is-locked?))
               (send search-panel focus)
               (send find-edit set-position 0 (send find-edit last-position))
-              (send super-root add-child search-panel)
+              (unless (memq search-panel (send super-root get-children))
+		(send super-root add-child search-panel))
               (reset-search-anchor (get-text-to-search))))
 
           (define (undock)
@@ -2008,7 +2019,8 @@
             (hide-search)
             (search-dialog this))
 
-          (define (show/hide-replace hide?)
+	  ;; pre-condition : search-gui-built? is #t
+          (define/private (show/hide-replace hide?)
             (cond
               [hide?
                (send replace-canvas-panel change-children
@@ -2038,8 +2050,9 @@
               (let ([close-canvas
                      (lambda (canvas edit)
                        (send canvas set-editor #f))])
-                (close-canvas find-canvas find-edit)
-                (close-canvas replace-canvas replace-edit))
+		(when search-gui-built?
+		  (close-canvas find-canvas find-edit)
+		  (close-canvas replace-canvas replace-edit)))
               (when (eq? this searching-frame)
                 (set-searching-frame #f))))
           (public set-search-direction can-replace? replace&search replace-all replace
@@ -2048,7 +2061,8 @@
           (define set-search-direction 
             (lambda (x) 
               (set-searching-direction x)
-              (send dir-radio set-selection (if (eq? x 'forward) 0 1))))
+	      (when dir-radio
+		(send dir-radio set-selection (if (eq? x 'forward) 0 1)))))
           (define can-replace?
             (lambda ()
               (let ([tx (get-text-to-search)])
@@ -2114,14 +2128,14 @@
           (define (toggle-search-focus)
             (set-searching-frame this)
             (unhide-search)
-            (send (cond
-                    [(send find-canvas has-focus?)
-                     replace-canvas]
-                    [(send replace-canvas has-focus?)
-                     (send (get-text-to-search) get-canvas)]
-                    [else
-                     find-canvas])
-                  focus))
+	    (send (cond
+		    [(send find-canvas has-focus?)
+		     replace-canvas]
+		    [(send replace-canvas has-focus?)
+		     (send (get-text-to-search) get-canvas)]
+		    [else
+		     find-canvas])
+		  focus))
           (define move-to-search-or-search
             (lambda ()
               (set-searching-frame this)
@@ -2130,10 +2144,10 @@
                 [(preferences:get 'framework:search-using-dialog?)
                  (search-dialog this)]
                 [else
-                 (if (or (send find-canvas has-focus?)
-                         (send replace-canvas has-focus?))
-                     (search-again 'forward)
-                     (send find-canvas focus))])))
+		 (if (or (send find-canvas has-focus?)
+			 (send replace-canvas has-focus?))
+		     (search-again 'forward)
+		     (send find-canvas focus))])))
           (define move-to-search-or-reverse-search
             (lambda ()
               (set-searching-frame this)
@@ -2149,85 +2163,111 @@
               (set-search-direction direction)
               (send find-edit search #t beep?)))
           
-          (super-instantiate ())
-          
-          (define search-panel (make-object horizontal-panel% super-root '(border)))
-          
-          (define left-panel (make-object vertical-panel% search-panel))
-          (define find-canvas (make-object searchable-canvas% left-panel))
-          (define replace-canvas-panel (instantiate vertical-panel% ()
-                                         (parent left-panel)
-                                         (stretchable-width #t)
-                                         (stretchable-height #f)))
-          (define replace-canvas (make-object searchable-canvas% replace-canvas-panel))
-          
-          (define middle-left-panel (make-object vertical-pane% search-panel))
-          (define middle-middle-panel (make-object vertical-pane% search-panel))
-          (define middle-right-panel (make-object vertical-pane% search-panel))
-          
-          (define search-button (make-object button% 
-                                  (string-constant find)
-                                  middle-left-panel
-                                  (lambda args (search-again))))
-          
-          (define replace-button-panel
-            (instantiate vertical-panel% ()
-              (parent middle-left-panel)
-              (stretchable-width #f)
-              (stretchable-height #f)))
-          
-          (define replace-button (make-object button% (string-constant replace)
-                                   replace-button-panel
-                                   (lambda x (replace))))
-          
-          (define replace&search-button (make-object button% 
-                                          (string-constant replace&find-again)
-                                          middle-middle-panel
-                                          (lambda x (replace&search))))
-          
-          (define replace-all-button (make-object button% 
-                                       (string-constant replace-to-end)
-                                       middle-middle-panel
-                                       (lambda x (replace-all))))
-          
-          (define dir-radio (make-object radio-box%
-                              #f
-                              (list (string-constant forward)
-                                    (string-constant backward))
-                              middle-right-panel
-                              (lambda (dir-radio evt)
-                                (let ([forward (if (= (send dir-radio get-selection) 0)
-                                                   'forward
-                                                   'backward)])
-                                  (set-search-direction forward)
-                                  (reset-search-anchor (get-text-to-search))))))
-          (define hide/undock-pane (make-object horizontal-panel% middle-right-panel))
-          (define hide-button (make-object button% (string-constant hide)
-                                hide/undock-pane
-                                (lambda args (hide-search))))
-          (define undock-button (make-object button% (string-constant undock)
-                                  hide/undock-pane
-                                  (lambda args (undock))))
-          (define hidden? #f)
-          
-          (let ([align
-                 (lambda (x y)
-                   (let ([m (max (send x get-width)
-                                 (send y get-width))])
-                     (send x min-width m)
-                     (send y min-width m)))])
-            (align search-button replace-button)
-            (align replace&search-button replace-all-button))
-          (for-each (lambda (x) (send x set-alignment 'center 'center))
-                    (list middle-left-panel middle-middle-panel))
-          (for-each (lambda (x) (send x stretchable-height #f))
-                    (list search-panel middle-left-panel middle-middle-panel middle-right-panel))
-          (for-each (lambda (x) (send x stretchable-width #f))
-                    (list middle-left-panel middle-middle-panel middle-right-panel))
-          (send find-canvas set-editor find-edit)
-          (send find-canvas stretchable-height #t)
-          (send replace-canvas set-editor replace-edit) 
-          (hide-search #t)))
+	  (define search-panel #f)
+	  (define search-gui-built? #f)
+          (define dir-radio #f)
+	  (define replace-canvas-panel #f)
+          (define find-canvas #f)
+	  (define replace-canvas #f)
+	  (define hidden? #t)
+	  (define replace-button-panel #f)
+	  (define middle-middle-panel #f)
+	  (define replace-button #f)
+	  (define replace&search-button #f)
+	  (define replace-all-button #f)
+	  
+	  (inherit begin-container-sequence end-container-sequence)
+	  (define/private (build-search-gui-in-frame)
+	    (unless search-gui-built?
+	      (set! search-gui-built? #t)
+	      (begin-container-sequence)
+	      (let ()
+		(define _0 (set! search-panel (make-object horizontal-panel% super-root '(border))))
+		(define left-panel (make-object vertical-panel% search-panel))
+		(define _1 (set! find-canvas (make-object searchable-canvas% left-panel)))
+		(define _2
+		  (set! replace-canvas-panel (instantiate vertical-panel% ()
+					       (parent left-panel)
+					       (stretchable-width #t)
+					       (stretchable-height #f))))
+		(define _3
+		  (set! replace-canvas (make-object searchable-canvas% replace-canvas-panel)))
+		
+		(define middle-left-panel (make-object vertical-pane% search-panel))
+		(define _4
+		  (set! middle-middle-panel (make-object vertical-pane% search-panel)))
+		(define middle-right-panel (make-object vertical-pane% search-panel))
+		
+		(define search-button (make-object button% 
+					(string-constant find)
+					middle-left-panel
+					(lambda args (search-again))))
+		
+		(define _5
+		  (set! replace-button-panel
+			(instantiate vertical-panel% ()
+			  (parent middle-left-panel)
+			  (stretchable-width #f)
+			  (stretchable-height #f))))
+		
+		(define _6
+		  (set! replace-button (make-object button% (string-constant replace)
+						    replace-button-panel
+						    (lambda x (replace)))))
+		
+		(define _7
+		  (set! replace&search-button (make-object button% 
+						(string-constant replace&find-again)
+						middle-middle-panel
+						(lambda x (replace&search)))))
+		
+		(define _8
+		  (set! replace-all-button (make-object button% 
+					     (string-constant replace-to-end)
+					     middle-middle-panel
+					     (lambda x (replace-all)))))
+		(define _9
+		  (set! dir-radio (make-object radio-box%
+				    #f
+				    (list (string-constant forward)
+					  (string-constant backward))
+				    middle-right-panel
+				    (lambda (dir-radio evt)
+				      (let ([forward (if (= (send dir-radio get-selection) 0)
+							 'forward
+							 'backward)])
+					(set-search-direction forward)
+					(reset-search-anchor (get-text-to-search)))))))
+
+		(define hide/undock-pane (make-object horizontal-panel% middle-right-panel))
+		(define hide-button (make-object button% (string-constant hide)
+						 hide/undock-pane
+						 (lambda args (hide-search))))
+		(define undock-button (make-object button% (string-constant undock)
+						   hide/undock-pane
+						   (lambda args (undock))))
+		(let ([align
+		       (lambda (x y)
+			 (let ([m (max (send x get-width)
+				       (send y get-width))])
+			   (send x min-width m)
+			   (send y min-width m)))])
+		  (align search-button replace-button)
+		  (align replace&search-button replace-all-button))
+		(for-each (lambda (x) (send x set-alignment 'center 'center))
+			  (list middle-left-panel middle-middle-panel))
+		(for-each (lambda (x) (send x stretchable-height #f))
+			  (list search-panel middle-left-panel middle-middle-panel middle-right-panel))
+		(for-each (lambda (x) (send x stretchable-width #f))
+			  (list middle-left-panel middle-middle-panel middle-right-panel))
+		(send find-canvas set-editor find-edit)
+		(send find-canvas stretchable-height #t)
+		(send replace-canvas set-editor replace-edit))
+	      (end-container-sequence)))
+
+	  (super-instantiate ())
+
+	  (hide-search)))
       
       (define searchable-text<%> (interface (searchable<%> text<%>)))
       
@@ -2275,7 +2315,7 @@
                             [else #f]))])
                 (and user-allowed-or-not-modified
                      (super-can-close?))))]
-          (super-instantiate ())))
+	  (super-instantiate ())))
       
       (define bday-click-canvas%
         (class canvas%
