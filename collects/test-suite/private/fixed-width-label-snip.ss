@@ -13,10 +13,15 @@
         (inherit set-snipclass)
         (init-field
          label
+         (with-border? #f)
          (left-margin 5)
          (right-margin 5)
          (top-margin 5)
-         (bottom-margin 5))
+         (bottom-margin 5)
+         (left-inset 1)
+         (top-inset 1)
+         (right-inset 1)
+         (bottom-inset 1))
         
         (field [font (make-object font% 10 'roman 'normal 'normal)])
         
@@ -60,13 +65,25 @@
         (define/override (draw dc x y left top right bottom dx dy draw-caret)
           (super-draw dc x y left top right bottom dx dy draw-caret)
           (let ([max-width (get-max-string-width dc labels)]
-                [width (get-string-width dc label)])
+                [width (get-string-width dc label)]
+                [max-height (get-max-string-height dc labels)])
             (let ([f (send dc get-font)])
               (send dc set-font font)
               (send dc draw-text label
                     (+ left-margin x (- max-width width))
                     (+ y top-margin))
-              (send dc set-font f))))
+              (send dc set-font f))
+            (when with-border?
+              (let ((w (+ left-margin max-width right-margin))
+                    (h (+ top-margin max-height bottom-margin)))
+                (send dc draw-lines 
+                      (list (make-object point% left-inset top-inset)
+                            (make-object point% left-inset (- h bottom-inset))
+                            (make-object point% (- w right-inset) (- h bottom-inset))
+                            (make-object point% (- w right-inset) top-inset)
+                            (make-object point% left-inset top-inset))
+                    x 
+                    y)))))
         
         ;(rename [super-copy copy])
         ;(define/override (copy)
