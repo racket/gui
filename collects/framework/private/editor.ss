@@ -368,36 +368,8 @@
         (preferences:add-callback 'framework:standard-style-list:font-name (lambda (p v) (set-font-name v)))
         (preferences:add-callback 'framework:standard-style-list:font-smoothing (lambda (p v) (set-font-smoothing v)))
         
-        (unless (member (preferences:get 'framework:standard-style-list:font-name) (get-fixed-faces))
+        (unless (member (preferences:get 'framework:standard-style-list:font-name) (get-face-list 'mono))
           (preferences:set 'framework:standard-style-list:font-name (get-family-builtin-face 'modern))))
-      
-      (define get-fixed-faces
-        (cond
-          [(eq? (system-type) 'unix) 
-           (lambda () (get-face-list))]
-          [else
-           (let ([compute-fixed-faces
-                  (lambda ()
-                    (let* ([canvas (make-object canvas% (make-object frame% "bogus"))]
-                           [dc (send canvas get-dc)])
-                      (let loop ([faces (get-face-list)])
-                        (cond
-                          [(null? faces) null]
-                          [else (let* ([face (car faces)]
-                                       [font (make-object font% 12 face 'default 'normal 'normal #f)])
-                                  (let*-values ([(wi _1 _2 _3) (send dc get-text-extent "i" font)]
-                                                [(ww _1 _2 _3) (send dc get-text-extent "w" font)])
-                                    (if (and (= ww wi) 
-                                             (not (zero? ww)))
-                                        (cons face (loop (cdr faces)))
-                                        (loop (cdr faces)))))]))))]
-                 [ans #f])
-             (lambda ()
-               (unless ans
-                 (set! ans (compute-fixed-faces))
-                 (set! ans (cons (get-family-builtin-face 'modern)
-                                 (remove (get-family-builtin-face 'modern) ans))))
-               ans))]))
       
       (define -keymap<%> (interface (basic<%>) get-keymaps))
       (define keymap-mixin

@@ -1312,19 +1312,6 @@
      "@flink editor:get-standard-style-list"
      "based on the font preference symbols.")
     
-    (editor:get-fixed-faces
-     (-> (listof string?))
-     ()
-     "Returns a list of the fixed width fonts available on this system,"
-     "except on unix, where it returns a list of all of the fonts."
-     ""
-     "It finds the fixed width fonts by making a dummy canvas object,"
-     "and computes the width of both `i' and `w'. If they are the same,"
-     "the font is fixed width and if not, the font is not fixed width."
-     ""
-     "This is very expensive under X Windows, which is why the function"
-     "just returns all fonts.")
-    
     (editor:get-standard-style-list
      (-> (is-a?/c style-list%))
      ()
