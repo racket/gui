@@ -14,7 +14,9 @@
 	  (let-values ([(base name dir?)
 			(if name
 			    (split-path name)
-			    (values (current-directory) "mredauto" #f))])
+			    (values (find-system-path 'home-dir)
+                                    "mredauto"
+                                    #f))])
 	    (let* ([base (if (string? base) 
 			     base
 			     (current-directory))]

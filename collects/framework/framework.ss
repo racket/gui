@@ -266,10 +266,14 @@
     "garbage collection.")
    
    (autosave:restore-autosave-files/gui
-    (-> (union false? (is-a?/c top-level-window<%>)))
+    (-> void?)
     ()
     "Opens a GUI to ask the user about recovering any autosave files"
-    "left around from crashes and things.")
+    "left around from crashes and things."
+    ""
+    "This function doesn't return until the user has finished"
+    "restoring the autosave files. (It uses yield to handle events"
+    "however).")
     
    (exit:frame-exiting
     (case->
