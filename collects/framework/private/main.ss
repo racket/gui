@@ -16,6 +16,9 @@
       
       ;; preferences
 
+      (preferences:set-default 'framework:recently-opened-files null 
+                               (lambda (x) (and (list? x) (andmap string? x))))
+      
       (preferences:set-default 'framework:search-using-dialog? #t boolean?)
       
       (preferences:set-default 'framework:windows-mdi #f boolean?)

@@ -117,13 +117,47 @@
 			      (if (string? filename)
 				  (find-format-handler filename)
 				  #f)])
-			 (if handler
+			 (add-to-recent filename)
+                         (if handler
 			     (handler filename)
 			     (make-default)))))
 		 (make-default))))]))
       
 					; Query the user for a file and then edit it
 
+      (define recent-max-count 10)
+      (define (add-to-recent filename)
+        (preferences:set 'framework:recently-opened-files
+                         (let loop ([n recent-max-count]
+                                    [new-recent (cons filename 
+                                                      (preferences:get
+                                                       'framework:recently-opened-files))])
+                           (cond
+                             [(zero? n) null]
+                             [(null? new-recent) null]
+                             [else
+                              (cons (car new-recent)
+                                    (loop (- n 1)
+                                          (cdr new-recent)))]))))
+      (define (install-recent-items menu)
+        (let ([recently-opened-files
+               (preferences:get
+                'framework:recently-opened-files)])
+          (for-each (lambda (item) (send item delete))
+                    (send menu get-items))
+          (cond
+            [(null? recently-opened-files)
+             (send menu enable #f)]
+            [else
+             (send menu enable #t)
+             (for-each (lambda (filename) 
+                         (instantiate menu-item% ()
+                           (parent menu)
+                           (label filename)
+                           (callback (lambda (x y) (edit-file filename)))))
+                       recently-opened-files)])))
+      
+      
       (define *open-directory* ; object to remember last directory
 	(make-object 
 	    (class100 object% ()

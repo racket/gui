@@ -17,7 +17,8 @@
 	      [finder : framework:finder^]
 	      [handler : framework:handler^]
 	      [scheme-paren : framework:scheme-paren^]
-	      [frame : framework:frame^])
+	      [frame : framework:frame^]
+              [editor : framework:editor^])
       
       (rename [-get-file get-file])
       
@@ -352,8 +353,7 @@
 				  (let loop ([pos pos])
 				    (if (= pos max)
 					(escape pos)
-					(let ([_ (printf "get-char.1: ~s~n" (+ pos offset))]
-					      [c (send edit get-character (+ pos offset))])
+					(let ([c (send edit get-character (+ pos offset))])
 					  (cond
 					   [(char=? #\newline c)
 					    (loop (+ pos d))
@@ -678,6 +678,14 @@
 		    (repeater n edit)))]
 	       [current-macro '()] 
 	       [building-macro #f] [build-macro-km #f] [build-protect? #f]
+               [show/hide-keyboard-macro-icon
+                (lambda (edit on?)
+                  (when (is-a? edit editor:basic<%>)
+                    (let ([frame (send edit get-top-level-window)])
+                      (when (is-a? frame frame:text-info<%>)
+                        (send frame set-macro-recording on?)
+                        (send frame update-shown)))))]
+                    
 	       [do-macro
 		(lambda (edit event)
 					; If c:x;e during record, copy the old macro
@@ -716,9 +724,11 @@
 				      (send km set-break-sequence-callback done)
 				      (begin
 					(set! building-macro #f)
+                                        (show/hide-keyboard-macro-icon edit #f)
 					(send km set-break-sequence-callback void)
 					(send km remove-grab-key-function))))])
 			(set! building-macro '())
+                        (show/hide-keyboard-macro-icon edit #t)
 			(set! build-macro-km km)
 			(send km set-grab-key-function
 			      (lambda (name local-km edit event)
@@ -982,7 +992,7 @@
 	      
 	      (map "c:x;e" "keyboard-macro-run-saved")
 	      (map "c:x;(" "keyboard-macro-start-record")
-	      (map "c:x;)" "keyboard-macro-stop-record")
+	      (map "c:x;)" "keyboard-macro-end-record")
 	      
 	      (map "leftbuttontriple" "select-click-line")
 	      (map "leftbuttondouble" "select-click-word")

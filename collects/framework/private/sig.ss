@@ -229,7 +229,8 @@
 	      find-format-handler 
 	      find-named-format-handler 
 	      edit-file
-	      open-file))
+	      open-file
+              install-recent-items))
 
   (define-signature framework:icon^
     (get-paren-highlight-bitmap

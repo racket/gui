@@ -1,3 +1,4 @@
+
 (module gen-standard-menus mzscheme
   (require (lib "pretty.ss"))
   (require (lib "list.ss"))
@@ -57,14 +58,20 @@
       (list `(define
                ,(an-item->item-name item)
                (and (,create-menu-item-name)
-                    (instantiate (get-menu-item%) ()
-                      (label (,(an-item->string-name item)))
-                      (parent ,(menu-item-menu-name item))
-                      (callback (let ([,callback-name (lambda (item evt) (,callback-name item evt))])
-                                  ,callback-name))
-                      (shortcut ,key)
-                      (help-string (,(an-item->help-string-name item)))
-                      (demand-callback (lambda (menu-item) (,(an-item->on-demand-name item) menu-item)))))))))
+                    ,(if (a-submenu-item? item)
+                         `(instantiate menu% ()
+                           (label (,(an-item->string-name item)))
+                           (parent ,(menu-item-menu-name item))
+                           (help-string (,(an-item->help-string-name item)))
+                           (demand-callback (lambda (menu-item) (,(an-item->on-demand-name item) menu-item))))
+                         `(instantiate (get-menu-item%) ()
+                           (label (,(an-item->string-name item)))
+                           (parent ,(menu-item-menu-name item))
+                           (callback (let ([,callback-name (lambda (item evt) (,callback-name item evt))])
+                                       ,callback-name))
+                           (shortcut ,key)
+                           (help-string (,(an-item->help-string-name item)))
+                           (demand-callback (lambda (menu-item) (,(an-item->on-demand-name item) menu-item))))))))))
   
   ;; build-after-super-clause : ((X -> symbol) -> X -> (listof clause))
   (define build-after-super-clause

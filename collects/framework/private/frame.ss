@@ -126,7 +126,7 @@
             (lambda (filename)
               (handler:edit-file filename))]
           
-      ;; added call to set label here to hopefully work around a problem in mac mred
+          ;; added call to set label here to hopefully work around a problem in mac mred
           (inherit set-label change-children)
           (override after-new-child)
           [define after-new-child
@@ -386,6 +386,7 @@
             (border 3))))
       
       (define text-info<%> (interface (info<%>)
+                             set-macro-recording
                              overwrite-status-changed
                              anchor-status-changed
                              editor-position-changed))
@@ -469,7 +470,17 @@
                       (send position-canvas show #f))])))]
           [define anchor-last-state? #f]
           [define overwrite-last-state? #f]
-          (public anchor-status-changed editor-position-changed overwrite-status-changed)
+          (public anchor-status-changed editor-position-changed overwrite-status-changed set-macro-recording)
+          
+          (field (macro-recording? #f))
+          (define (update-macro-recording-icon)
+            (unless (eq? (send macro-recording-panel is-shown?)
+                         macro-recording?)
+              (send macro-recording-panel show macro-recording?)))
+          (define (set-macro-recording on?)
+            (set! macro-recording? on?)
+            (update-macro-recording-icon))
+
           [define anchor-status-changed
            (lambda ()
              (let ([info-edit (get-info-editor)]
@@ -522,12 +533,24 @@
           [define update-info
             (lambda ()
               (super-update-info)
+              (update-macro-recording-icon)
               (overwrite-status-changed)
               (anchor-status-changed)
               (editor-position-changed))]
           (super-instantiate ())
-          
+
           (inherit get-info-panel)
+          
+          (define macro-recording-panel
+            (instantiate horizontal-panel% ()
+              (parent (get-info-panel))
+              (stretchable-width #f)
+              (stretchable-height #f)
+              (style '(border))))
+          (instantiate message% ()
+            (label "c-x;(")
+            (parent macro-recording-panel))
+          
           [define anchor-message
             (make-object message%
               (let ([b (icon:get-anchor-bitmap)])
@@ -555,6 +578,7 @@
                       (move-front
                        position-canvas
                        l))))))
+          (send macro-recording-panel show #f)
           (send anchor-message show #f)
           (send overwrite-message show #f)
           (send* position-canvas

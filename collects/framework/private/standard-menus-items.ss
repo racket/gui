@@ -19,6 +19,7 @@
    (struct between (before after procedure))
    
    (struct an-item (item-name help-string proc key menu-string on-demand))
+   (struct a-submenu-item ()) 
    
    ;; an-item -> symbol
    ;; calcualates the names of various identifiers associated with the item.
@@ -71,6 +72,7 @@
                   key
                   menu-string
                   on-demand))
+  (define-struct (a-submenu-item an-item) ())
   
   (define (an-item->callback-name item)
     (string->symbol
@@ -219,6 +221,12 @@
                         #\o 
                         '(string-constant open-menu-item)
                         on-demand-do-nothing)
+          (make-a-submenu-item 'file-menu 'open-recent '(string-constant open-recent-info)
+                               '(lambda (x y) (void)) ;; hack to avoid rewriting lots of stuff (really shouldn't have this)
+                               #f  ;; this also shouldn't need to be here
+                               '(string-constant open-recent-menu-item)
+                               '(lambda (menu)
+                                  (handler:install-recent-items menu)))
           (make-between 'file-menu 'open 'revert 'nothing)
           (make-an-item 'file-menu 'revert 
                         '(string-constant revert-info)
