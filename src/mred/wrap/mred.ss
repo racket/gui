@@ -348,6 +348,28 @@
        [else (list i)]))
     (ivar f children))))
 
+(define (filter-overlapping l)
+  (if (null? l)
+      null
+      (let* ([rest (filter-overlapping (cdr l))]
+	     [first (car l)]
+	     [f (cdr first)]
+	     [x (car f)]
+	     [y (cadr f)]
+	     [x2 (+ x (caddr f))]
+	     [y2 (+ y (cadddr f))])
+	(if (ormap (lambda (other)
+		     (let* ([p (cdr other)]
+			    [px (car p)]
+			    [py (cadr p)]
+			    [px2 (+ px (caddr p))]
+			    [py2 (+ py (cadddr p))])
+		       (and (or (<= x px x2) (<= x px2 x2))
+			    (or (<= y py y2) (<= y py2 y2)))))
+		   rest)
+	    rest
+	    (cons first rest)))))
+
 ;;;;;;;;;;;;;;; wx- Class Construction ;;;;;;;;;;;;;;;;;;;;
 
 ; ------------- Mixins for common functionality --------------
@@ -708,7 +730,8 @@
 				[normal-move
 				 (lambda ()
 				   (let* ([o (if (or (is-a? o wx:canvas%) (is-a? o wx:item%)) o #f)]
-					  [dests (map object->position (container->children panel o #t))]
+					  [dests (filter-overlapping 
+						  (map object->position (container->children panel o #t)))]
 					  [pos (if o (object->position o) (list 'x 0 0 1 1))]
 					  [o (traverse (cadr pos) (caddr pos) (cadddr pos) (list-ref pos 4)
 						       (case code
@@ -2516,6 +2539,7 @@
     reflow-container
     container-size
     get-children change-children place-children
+    on-new-child
     add-child delete-child
     border spacing 
     set-alignment get-alignment))
@@ -2525,6 +2549,7 @@
 (define (make-container% %) ; % implements area<%>
   (class* % (area-container<%> internal-container<%>) (mk-wx get-wx-panel parent) 
     (public
+      [on-new-child (lambda (c) (void))]
       [reflow-container (entry-point (lambda () (send (send (get-wx-panel) get-top-level) force-redraw)))]
       [get-children (entry-point (lambda () (map wx->proxy (ivar (get-wx-panel) children))))]
       [border (param get-wx-panel 'border)]
@@ -2788,7 +2813,8 @@
     (private
       [wx #f])
     (sequence
-      (super-init (lambda () (set! wx (mk-wx)) wx) (lambda () wx) label parent cursor))))
+      (super-init (lambda () (set! wx (mk-wx)) wx) (lambda () wx) label parent cursor)
+      (as-exit (lambda () (send parent on-new-child this))))))
 
 ;--------------------- Final mred class construction --------------------
     
@@ -3317,7 +3343,8 @@
 					    -1 -1 ds ds
 					    style)))
 		    wx)
-		  parent))))
+		  parent)
+      (send parent on-new-child this))))
     
 (define editor-canvas%
   (class basic-canvas% (parent [buffer #f] [style null] [scrolls-per-page 100])
@@ -3388,7 +3415,8 @@
 		      wx))
 		  parent)
       (when buffer
-	(set-editor buffer)))))
+	(set-editor buffer))
+      (send parent on-new-child this))))
 
 ;-------------------- Final panel interfaces and class constructions --------------------
 
@@ -3409,7 +3437,8 @@
 							  [else wx-pane%])
 							this this (mred->wx-container parent) null)) wx)
 		       (lambda () wx) parent)
-	   (send (send wx area-parent) add-child wx)))))))
+	   (send (send wx area-parent) add-child wx)))
+	(send parent on-new-child this)))))
 
 (define vertical-pane% (class pane% (parent) (sequence (super-init parent))))
 (define horizontal-pane% (class pane% (parent) (sequence (super-init parent))))
@@ -3432,7 +3461,8 @@
 							  [else wx-panel%])
 							this this (mred->wx-container parent) style)) wx)
 		       (lambda () wx) #f parent #f)
-	   (send (send wx area-parent) add-child wx)))))))
+	   (send (send wx area-parent) add-child wx)))
+	(send parent on-new-child this)))))
 
 (define vertical-panel% (class panel% args (sequence (apply super-init args))))
 (define horizontal-panel% (class panel% args (sequence (apply super-init args))))
