@@ -741,8 +741,11 @@
 	    (add "delete-key" delete-key)
 
 	    ; Map keys to functions
+
+	    ; this is not for export -- too much chance it's wrong
+	    ; outside of Rice.
 	    (when (eq? wx:platform 'unix)
-	      (map "c:x;c:q" "rcs"))
+	      '(map "c:x;c:q" "rcs"))
 
 	    (map "c:g" "ring-bell")
 	    (map-meta "c:g" "ring-bell")
