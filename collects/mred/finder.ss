@@ -3,6 +3,7 @@
     (import [mred:debug : mred:debug^]
 	    [mred:container : mred:container^]
 	    [mred:preferences : mred:preferences^]
+	    [mred:gui-utils : mred:gui-utils^]
 	    [mzlib:string : mzlib:string^]
 	    [mzlib:function : mzlib:function^]
 	    [mzlib:file : mzlib:file^])
@@ -36,6 +37,8 @@
 	  #t]
 	 [else #f])))
 
+    (mred:preferences:set-preference-default 'mred:show-periods-in-dirlist #f)
+
     (define finder-dialog%
       (class mred:container:dialog-box% (save-mode? replace-ok? multi-mode? 
 					result-box start-dir 
@@ -51,68 +54,79 @@
 	  
 	  dirs current-dir
 	  last-selected
-	  
 	  [select-counter 0])
 	
 	(private
 	  [set-directory
 	   (lambda (dir) ; dir is normalied
-	     (set! current-dir dir)
-	     (set! last-directory dir)
-	     (let-values 
-		 ([(dir-list menu-list)
-		   (let loop ([this-dir dir]
-			      [dir-list ()]
-			      [menu-list ()])
-		     (let-values ([(base-dir in-dir dir?) (split-path this-dir)])
-		       (if (eq? wx:platform 'windows)
-			   (mzlib:string:string-lowercase! in-dir))
-		       (let* ([dir-list (cons this-dir dir-list)]
-			      [menu-list (cons in-dir menu-list)])
-			 (if base-dir
-			     (loop base-dir dir-list menu-list)
-			     ; No more
-			     (values dir-list menu-list)))))])
-	       (set! dirs (reverse dir-list))
-	       
-	       (send dir-choice clear)
-	       (let loop ([choices (reverse menu-list)])
-		 (unless (null? choices)
-		   (send dir-choice append (car choices))
-		   (loop (cdr choices))))
-	       (send dir-choice set-selection 0)
-	       (send top-panel force-redraw))
-	     
-	     (send name-list clear)
-	     (send name-list set
-		   (mzlib:function:quicksort
-		    (let loop ([l (directory-list dir)])
-		      (if (null? l)
-			  '()
-			  (let ([s (car l)]
-				[rest (loop (cdr l))])
-			    (if (directory-exists? (build-path dir s))
-				(cons
-				 (string-append s
-						(case wx:platform
-						  (unix "/")
-						  (windows "\\")
-						  (macintosh ":")))
-				 rest)
-				(if (or (not file-filter)
+	     (mred:gui-utils:show-busy-cursor
+	      (lambda ()
+		(set! current-dir dir)
+		(set! last-directory dir)
+		(let-values 
+		    ([(dir-list menu-list)
+		      (let loop ([this-dir dir]
+				 [dir-list ()]
+				 [menu-list ()])
+			(let-values ([(base-dir in-dir dir?) (split-path this-dir)])
+			  (if (eq? wx:platform 'windows)
+			      (mzlib:string:string-lowercase! in-dir))
+			  (let* ([dir-list (cons this-dir dir-list)]
+				 [menu-list (cons in-dir menu-list)])
+			    (if base-dir
+				(loop base-dir dir-list menu-list)
+				; No more
+				(values dir-list menu-list)))))])
+		  (set! dirs (reverse dir-list))
+		  
+		  (send dir-choice clear)
+		  (let loop ([choices (reverse menu-list)])
+		    (unless (null? choices)
+		      (send dir-choice append (car choices))
+		      (loop (cdr choices))))
+		  (send dir-choice set-selection 0)
+		  (send top-panel force-redraw))
+		
+		(send name-list clear)
+		(send name-list set
+		      (mzlib:function:quicksort
+		       (let ([no-periods? (not (mred:preferences:get-preference
+						'mred:show-periods-in-dirlist))])
+			 (let loop ([l (directory-list dir)])
+			   (if (null? l)
+			       null
+			       (let ([s (car l)]
+				     [rest (loop (cdr l))])
+				 (cond
+				   [(and no-periods?
+					 (<= 1 (string-length s))
+					 (char=? (string-ref s 0) #\.))
+				    rest]
+				   [(directory-exists? (build-path dir s))
+				    (cons (string-append s
+							 (case wx:platform
+							   [(unix) "/"]
+							   [(windows) "\\"]
+							   [else ":"]))
+					  rest)]
+				   [(or (not file-filter)
 					(mzlib:string:regexp-match-exact? file-filter s))
-				    (cons s rest)
-				    rest)))))
-		    (if (eq? wx:platform 'unix) string<? string-ci<?)))
-	     (set! last-selected -1))])
+				    (cons s rest)]
+				   [else rest])))))
+		       (if (eq? wx:platform 'unix) string<? string-ci<?)))
+		(set! last-selected -1))))])
 	
 	(public
+	  [do-period-in/exclusion
+	   (lambda (button event)
+	     (mred:preferences:set-preference 'mred:show-periods-in-dirlist 
+					      (send event checked?))
+	     (set-directory current-dir))]
 	  [do-dir
 	   (lambda (choice event)
 	     (let ([which (send event get-selection)])
 	       (if (< which (length dirs))
 		   (set-directory (list-ref dirs which)))))]
-	  
 	  [do-goto
 	   (opt-lambda (button event [default ""])
 	     (let ([orig-dir (wx:get-text-from-user
@@ -271,6 +285,8 @@
 				  (if multi-mode? (* 1/2 WIDTH) WIDTH) 300
 				  () wx:const-needed-sb)]
 	  [save-panel (when save-mode? (make-object mred:container:horizontal-panel% main-panel))]
+	  [period-panel (when (eq? 'unix wx:platform)
+			  (make-object mred:container:horizontal-panel% main-panel))]
 	  [bottom-panel (make-object mred:container:horizontal-panel% main-panel)]
 	  [result-list
 	   (when multi-mode?
@@ -286,11 +302,16 @@
 	  [add-panel (when multi-mode? (make-object mred:container:horizontal-panel% left-middle-panel))]
 	  [remove-panel (when multi-mode? (make-object mred:container:horizontal-panel% right-middle-panel))])
 	(sequence
+	  (when (eq? wx:platform 'unix)
+	    (make-object mred:container:check-box% period-panel
+			 do-period-in/exclusion
+			 "Show files and directories that begin with a period"))
 	  (send main-panel spacing 1)
 	  (when multi-mode?
 	    (send add-panel stretchable-in-y #f)
 	    (send remove-panel stretchable-in-y #f)
 	    (send result-list stretchable-in-x #t))
+	  (send period-panel stretchable-in-y #f)
 	  (send name-list stretchable-in-x #t)
 	  (send top-panel stretchable-in-y #f)
 	  (send bottom-panel stretchable-in-y #f)
@@ -416,9 +437,11 @@
 					"*.*"
 					"*")
 				    wx:const-save)])
-	  (if (or (null? f) (and filter (not (filter-match? filter 
-							    f
-							    filter-msg))))
+	  (if (or (null? f)
+		  (and filter 
+		       (not (filter-match? filter 
+					   f
+					   filter-msg))))
 	      #f
 	      (let* ([f (mzlib:file:normalize-path f)]
 		     [dir (mzlib:file:path-only f)]
