@@ -14,7 +14,8 @@
 	  [pasteboard : framework:pasteboard^]
 	  [editor : framework:editor^]
 	  [canvas : framework:canvas^]
-	  [mzlib:function : mzlib:function^])
+	  [mzlib:function : mzlib:function^]
+	  [mzlib:file : mzlib:file^])
 
   (rename [-editor<%> editor<%>]
 	  [-pasteboard% pasteboard%]
@@ -177,9 +178,7 @@
 	   (send (get-editor) on-close))])
       (private
 	[label (if file-name
-		   (let-values ([(base name dir?) (split-path file-name)])
-		     (or name
-			 file-name))
+		   (mzlib:file:file-name-from-path file-name)
 		   (gui-utils:next-untitled-name))]
 	[label-prefix (application:current-app-name)]
 	[do-label
@@ -317,12 +316,13 @@
 			(format "Welcome to ~a" (application:current-app-name))))]
 	[help-menu:about-string (lambda () (application:current-app-name))])
 	     
-      (sequence (apply super-init
-		       (get-entire-label)
-		       parent
-		       width
-		       height
-		       args))
+      (sequence
+	(apply super-init
+	       (get-entire-label)
+	       parent
+	       width
+	       height
+	       args))
 	     
       (public
 	[get-canvas (let ([c #f])

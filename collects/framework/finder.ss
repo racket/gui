@@ -139,7 +139,9 @@
 					 file-filter s))
 				    (cons s rest)]
 				   [else rest])))))
-		       (if (eq? (system-type) 'unix) string<? string-ci<?)))
+		       ;(if (eq? (system-type) 'unix) string<? string-ci<?)
+		       string-ci<?
+		       ))
 		(send name-list set-selection-and-edit 0)
 		(set! last-selected -1)))))]
 	
@@ -327,7 +329,9 @@
 	(super-init (if save-mode? "Put file" "Get file")
 		    parent-win 
 		    default-width 
-		    default-height))
+		    default-height
+		    #f #f
+		    '(resize-border)))
       
       (private
 	
@@ -374,12 +378,33 @@
 		  
 		  ; look for letter at beginning of a filename
 		  [(char? code)
-		   (let loop ([pos (add1 curr-pos)])
-		     (unless (>= pos num-items)
-		       (let ([first-char (string-ref (get-string pos) 0)])
-			 (if (char=? code first-char)
-			     (set-selection-and-edit pos)
-			     (loop (add1 pos))))))]
+		   (let ([next-matching
+			  (let loop ([pos (add1 curr-pos)])
+			    (cond
+			     [(>= pos num-items) #f]
+			     [else
+			      (let ([first-char (string-ref (get-string pos) 0)])
+				(if (char-ci=? code first-char)
+				    pos
+				    (loop (add1 pos))))]))])
+		     (if next-matching
+			 (set-selection-and-edit next-matching)
+
+			 ;; didn't find anything forward; start again at front of list
+			 (let loop ([pos 0]
+				    [last-before 0])
+			   (cond
+			    [(<= pos num-items)
+			     (let ([first-char (string-ref (get-string pos) 0)])
+			       (cond
+				[(char-ci=? code first-char)
+				 (set-selection-and-edit pos)]
+				[(char-ci<=? first-char code)
+				 (loop (+ pos 1)
+				       pos)]
+				[else
+				 (set-selection-and-edit last-before)]))]
+			    [else (set-selection-and-edit last-before)]))))]
 		  
 		  ; movement keys
 		  [(and (eq? code 'up) 

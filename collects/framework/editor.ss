@@ -257,13 +257,12 @@
 	[update-filename
 	 (lambda (name)
 	   (let ([filename (if name
-			       (let-values ([(base name dir) (split-path (mzlib:file:normalize-path name))])
-				 name)
+			       (mzlib:file:file-name-from-path (mzlib:file:normalize-path name))
 			       "")])
 	     (for-each (lambda (canvas)
 			 (let ([tlw (send canvas get-top-level-window)])
 			   (when (is-a? tlw frame:editor<%>)
-			     (send tlw set-label name))))
+			     (send tlw set-label filename))))
 		       (get-canvases))))])
       (override
 	[after-save-file

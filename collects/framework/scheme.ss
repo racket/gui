@@ -920,8 +920,8 @@
 	  (map-meta "c:b" "backward-sexp")
 	  (map-meta "s:c:b" "select-backward-sexp")
 
-	  (map-meta "c:u" "up-sexp")
-	  (map-meta "c:d" "down-sexp")
+	  ;(map-meta "c:u" "up-sexp")
+	  ;(map-meta "c:d" "down-sexp")
 
 	  (map-meta "c:p" "flash-backward-sexp")
 	  (map-meta "s:c:n" "flash-forward-sexp")
