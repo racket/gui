@@ -1,174 +1,133 @@
 
-Version 299.31
-Added a font intialization argument for control<%> classes
-Added a font intialization argument for popup-menu%
-Added a label-font intialization argument for list-box%
-Removed get-label-font, get-control-font, set-label-font, 
- set-control-front, get-label-position, and set-label-position
- from area-container<%> and implementing classes
-Added get-font to classes with a font initalization argument
-Added normal-control-font, small-control-font, tiny-control-font,
- and view-control-font
-Added a default callback procedure for every control<%> class
- that has a callback
+Version 299.100, March 2005
 
-Version 299.29
-Changed the default mapping for the 'default font in PostScript
- from Times to Helvetica
-
-Version 299.28
-Added get-bounding-box to dc-path%
-Added optional for-label? argument to font%'s screen-glyph-exists?
-
-Version 299.27
-Changed gl-context% swap-buffers to use the call-as-current lock,
- and changed the lock to be re-entrant
-Added gl-config%, a gl-config init argument to canvas%, and
- set-gl-config and get-gl-config methods to bitmap%
-Keyboard navigation now includes tab panels
-Mac OS X: full keyboard access supported
-
-Version 299.26
-Added set-smoothing and get-smoothing to dc<%>
-Added dc-path% class and added draw-path to dc<%>
-Added set-path to region%
-Added in-region? to region%
-Added variants of dc<%>'s set-{pen,brush} that accept arguments
- like the-{pen,brush}-list's find-or-create-{pen,brush}
-Changed default of radius argument of set-rounded-rectangle 
- in region% to -0.25 (consistent with dc<%> method)
-Added get-unterminated-bytes to editor-stream-in%
-
-Version 299.25
-Added draw-bitmap-section-smooth to bitmap-dc% (not dc<%>)
-
-Version 299.24
-Added on-split-snip, on-merge-snips, and get-revision-number
- to text%
-
-Version 299.23
-Added get-item-label, set-item-label, and set to tab-panel%
-
-Version 299.22
-Added 'float style for frame%
-Added combo-field%
-Added 'combo style for canvas% and editor-canvas%
-Added set-min-width function to popup-menu%
-Changed default 'decorative PostScript font to Helvetica
-
-Version 299.21
-X: clipboard now supported, and the X clipboard and X selection
- are properly distinguished; set the MrEd:selectionAsClipboard
- preference to obtain the old behavior
-Added the-x-selection-clipboard
-Added paste-x-selection and do-paste-x-selection to editor<%>
-Added "paste-x-selection" to add-editor-keymap-functions
-Changed "middlebutton" mapping in the default text keymap
- initializer's map to use paste-x-selection
-Added 'auto-vscroll and 'auto-hscroll styles to editor-canvas%
-Added show-scrollbars method to canvas%
-Added 'resize-corner style to canvas% and editor-canvas%
-Added set-resize-corner to canvas<%>
-Added 'blank cursor%
-
-Version 299.17
-Changed read-one-special in readable-snip<%> to read-special
-
-Version 299.16
-Added hide-cursor-until-moved
-Changed text%'s on-char to call hide-cursor-until-moved
-X: improved performance of bitmap scaling when RENDER is 
- available
-Improved performance of get-argb-pixels, set-argb-pixels,
- and loading of PNG and JPG files on some platforms
-
-Version 299.15
-Added message+check-box and message+check-box/custom
-Framework collection:
- Applications must explicitly call preferences:read
-  after calls to preferences:set-default are all complete
-
-Version 299.13
-Added 'no-border flag to editor-canvas%
-X: modernized GUI look; new preference |MrEd:hiliteColor|
-
-Version 299.12
-Added 'transparent style to editor-canvas%
-Added background-color argument to editor<%>'s refresh
-Added set-canvas-background and get-canvas-background to
- canvas<%>
-
-Version 299.10
-Flattened text from an editor<%> always uses #\newline,
- not a platform-specific line separator
-Methods changed to augment-only:
- top-level-window<%>: can-close?
-                      on-close
- editor<%>: on-change
-            on-snip-modified
-            can-save-file?
-            on-save-file
-            after-save-file
-            can-load-file?
-            on-load-file
-            after-load-file
-            on-edit-sequence
-            after-edit-sequence
- text%: can-insert?
-        on-insert
-        after-insert
-        can-delete?
-        on-delete
-        after-delete
-        can-change-style?
-        on-change-style
-        after-change-style
-        after-set-position
-        can-set-size-constraint?
-        on-set-size-constraint
-        after-set-size-constraint
- pasteboard%: can-insert?
-              on-insert
-              after-insert
-              can-delete?
-              on-delete
-              after-delete
-              can-move-to?
-              on-move-to
-              after-move-to
-              can-resize?
-              on-resize
-              after-resize
-              can-reorder?
-              on-reorder
-              after-reorder
-              can-select?
-              on-select
-              after-select
-              can-interactive-move?
-              on-interactive-move
-              after-interactive-move
-              can-interactive-resize?
-              on-interactive-resize
-              after-interactive-resize
-
-Version 299.5
-Dropped question marks for interactive and use-paper-bbox
- initialization arguments of post-script-dc%; added
- as-eps initialization argument
-Added an as-eps argument to editor<%>'s print method
-
-Version 299.1
-Added 'transparent flag for canvas%
-Added 'metal flag to frame%
-Added >> and << from the editor-stream classes, 
- and changed "string" to "bytes" in class and method names
-Changed the font% constructor so that weight and style
- arguments are optional
-Added screen-glyph-exists? to font% and glyph-exists to dc<%>
-Removed get-afm-path and set-afm-path from ps-setup%;
- use the PLTAFMDIR environment variable or the
- current-ps-afm-file-paths parameter, instead
+General:
+ Added support for smoothed (i.e., anti-aliased) shape drawing,
+  including support for spline-based paths; under X, smoothed
+  drawing requires Cairo
+ Mac OS X: switched to composite Carbon layer for widgets, added
+  support for full keyboard access
+ X: modernized GUI look, added support for X clipboard (as opposed
+  to the X selection)
+ Changed some methods to augmentable instead of overrideable (see
+  MzScheme_300.txt about augmentable methods):
+      top-level-window<%>: can-close?
+                           on-close
+      editor<%>:           on-change
+                           on-snip-modified
+                           can-save-file?
+                           on-save-file
+                           after-save-file
+                           can-load-file?
+                           on-load-file
+                           after-load-file
+                           on-edit-sequence
+                           after-edit-sequence
+      text%:               can-insert?
+                           on-insert
+                           after-insert
+                           can-delete?
+                           on-delete
+                           after-delete
+                           can-change-style?
+                           on-change-style
+                           after-change-style
+                           after-set-position
+                           can-set-size-constraint?
+                           on-set-size-constraint
+                           after-set-size-constraint
+      pasteboard%:         can-insert?
+                           on-insert
+                           after-insert
+                           can-delete?
+                           on-delete
+                           after-delete
+                           can-move-to?
+                           on-move-to
+                           after-move-to
+                           can-resize?
+                           on-resize
+                           after-resize
+                           can-reorder?
+                           on-reorder
+                           after-reorder
+                           can-select?
+                           on-select
+                           after-select
+                           can-interactive-move?
+                           on-interactive-move
+                           after-interactive-move
+                           can-interactive-resize?
+                           on-interactive-resize
+                           after-interactive-resize
+Widgets and Widget Features:
+ Added a default callback procedure for every control<%> class
+  that has a callback
+ Added combo-field%
+ Added 'float and 'metal styles to frame%
+ Added 'combo, 'transparent, and 'resize-corner styles to canvas%
+  and editor-canvas%; added 'no-border, 'auto-vscroll, and
+  'auto-hscroll flags to editor-canvas%; added set-resize-corner
+  to canvas<%>; added  show-scrollbars and method to canvas%
+ Added set-min-width function to popup-menu%
+ Added set-canvas-background and get-canvas-background to
+  canvas<%>
+ Added get-item-label, set-item-label, and set to tab-panel%
+ Added 'blank cursor%
+ Added hide-cursor-until-moved, called by text%'s on-char
+ Added message+check-box and message+check-box/custom
+ Added a font intialization argument for control<%> classes
+  and popup-menu%, and added get-font method
+ Removed get-label-font, get-control-font, set-label-font, 
+  set-control-front, get-label-position, and set-label-position
+  from area-container<%> and implementing classes
+ Added normal-control-font, small-control-font, tiny-control-font,
+  view-control-font, and menu-control-font constants
+Drawing:
+ Added set-smoothing and get-smoothing to dc<%>
+ Added dc-path% class and added draw-path to dc<%>
+ Added set-path to region%
+ Added in-region? to region%
+ Added draw-bitmap-section-smooth to bitmap-dc% (not dc<%>)
+ Added variants of dc<%>'s set-{pen,brush} that accept arguments
+  like the-{pen,brush}-list's find-or-create-{pen,brush}
+ Changed default of radius argument of set-rounded-rectangle 
+  in region% to -0.25 (consistent with dc<%> method)
+ Changed the font% constructor so that weight and style
+  arguments are optional
+ Added screen-glyph-exists? to font% and glyph-exists to dc<%>
+ Removed get-afm-path and set-afm-path from ps-setup%;
+  use the PLTAFMDIR environment variable or the
+  current-ps-afm-file-paths parameter, instead
+ Changed default 'default PostScript font to Helvetica
+ Changed default 'decorative PostScript font to Helvetica
+ Changed gl-context% swap-buffers to use the call-as-current lock,
+  and changed the lock to be re-entrant
+ Added gl-config%, a gl-config init argument to canvas%, and
+  set-gl-config and get-gl-config methods to bitmap%
+ X: improved performance of bitmap scaling when RENDER is 
+  available
+ Improved performance of get-argb-pixels, set-argb-pixels,
+  and loading of PNG and JPG files on some platforms
+Misc:
+ Added the-x-selection-clipboard
+ Added paste-x-selection and do-paste-x-selection to editor<%>
+ Added "paste-x-selection" to add-editor-keymap-functions
+ Changed "middlebutton" mapping in the default text keymap
+  initializer's map to use paste-x-selection
+ Dropped question marks for interactive and use-paper-bbox
+  initialization arguments of post-script-dc%; added
+  as-eps initialization argument
+ Added an as-eps argument to editor<%>'s print method
+ Flattened text from an editor<%> always uses #\newline,
+  not a platform-specific line separator
+ Added background-color argument to editor<%>'s refresh
+ Added on-split-snip, on-merge-snips, and get-revision-number
+  to text%
+ Changed read-one-special in readable-snip<%> to read-special
+ Added get-unterminated-bytes to editor-stream-in%
+ Removed >> and << from the editor-stream classes, and changed
+  "string" to "bytes" in class and method names
 
 ----------------------------------------------------------------------
 
