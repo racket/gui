@@ -1,11 +1,15 @@
-(require-library "hierlists.ss" "hierlist")
+(begin-elaboration-time
+ (require-library "hierlists.ss" "hierlist"))
 
 (begin-elaboration-time
   (require-library "invoke.ss"))
 
+(require-library "functio.ss")
+
 (define-values/invoke-unit/sig hierlist^
   (require-library "hierlistr.ss" "hierlist")
   #f
+  mzlib:function^
   mred^)
 
 #|
