@@ -8,7 +8,13 @@
   (define single-mixin
     (mixin (area-container<%>) (single<%>) args
       (inherit get-alignment)
+      (rename [super-on-new-child on-new-child])
       (override
+	[on-new-child
+	 (lambda (c)
+	   (if current-active-child
+	       (send c show #f)
+	       (set! current-active-child c)))]
        [container-size
 	(lambda (l)
 	  (values (apply max (map car l)) (apply max (map cadr l))))]

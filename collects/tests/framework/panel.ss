@@ -62,13 +62,26 @@
 	  (lambda (label choices callback)
 	    (let* ([panel (make-object vertical-panel% radios '(border))]
 		   [message (make-object message% label panel)]
-		   [radio (make-object radio-box% #f choices panel callback)])
+		   [radio (make-object radio-box% #f choices panel (lambda (radio _) (callback radio)))]
+		   [button (make-object button%
+			     "Cycle" panel
+			     (lambda (_1 _2)
+			       (let ([before (send radio get-selection)]
+				     [tot (send radio get-number)])
+				 (let loop ([n tot])
+				   (unless (zero? n)
+				     (send radio set-selection (- tot n))
+				     (callback radio)
+				     (sleep/yield 1)
+				     (loop (- n 1))))
+				 (send radio set-selection before)
+				 (callback radio))))])
 	      radio))]
 	 [radio
 	  (make-radio
 	   "Active Child"
 	   (map (lambda (x) (send x get-label)) children)
-	   (lambda (radio evt)
+	   (lambda (radio)
 	     (let loop ([n (length children)]
 			[cs children])
 	       (cond
@@ -88,14 +101,14 @@
 	  (make-radio 
 	   "Horizontal Alignment"
 	   (list "left" "center" "right")
-	   (lambda (radio evt)
+	   (lambda (radio)
 	     (set! horizontal-alignment (string->symbol (send radio get-item-label (send radio get-selection))))
 	     (update-alignment)))]
 	 [vert
 	  (make-radio
 	   "Vertical Alignment"
 	   (list "top" "center" "bottom")
-	   (lambda (radio evt)
+	   (lambda (radio)
 	     (set! vertical-alignment (string->symbol (send radio get-item-label (send radio get-selection))))
 	     (update-alignment)))]
 	 [buttons (make-object horizontal-panel% f)]

@@ -375,7 +375,7 @@
 						(if (and (= x -1) pop-out?)
 						    (pop-out)
 						    (values this x)))]
-		     [(is-a? current-snip editor-snip%)
+		     [(is-a? current-snip original:editor-snip%)
 		      (let-values ([(embedded embedded-pos)
 				    (let ([media (send current-snip get-this-media)])
 				      (and (not (null? media))
@@ -489,7 +489,7 @@
 		  (let loop ([s (find-first-snip)])
 		    (cond
 		      [(null? s) #f]
-		      [(is-a? s string-snip%)
+		      [(is-a? s original:string-snip%)
 		       (loop (send s next))]
 		      [else #t])))])
 	   (lambda (name format)

@@ -163,7 +163,7 @@
 	     (if (or (not filename) (unbox b))
 		 (bell)
 		 (let-values ([(start end)
-			       (if (is-a? edit text%)
+			       (if (is-a? edit original:text%)
 				   (values (send edit get-start-position)
 					   (send edit get-end-position))
 				   (values #f #f))])
@@ -174,7 +174,7 @@
 				       #f)])
 		     (if status
 			 (begin
-			   (when (is-a? edit text%)
+			   (when (is-a? edit original:text%)
 			     (send edit set-position start end))
 			   (send edit end-edit-sequence))
 			 (begin
@@ -311,7 +311,7 @@
       (let loop ([edit edit])
 	(let ([snip (send edit get-focus-snip)])
 	  (if (or (not snip)
-		  (not (is-a? snip editor-snip%)))
+		  (not (is-a? snip original:editor-snip%)))
 	      edit
 	      (loop (send snip get-this-media)))))))
   (define clear-search-highlight

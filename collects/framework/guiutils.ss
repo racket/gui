@@ -146,7 +146,7 @@
 		  (cond
 		    [(<= end pos) eof]
 		    [(not snip) eof]
-		    [(is-a? snip string-snip%)
+		    [(is-a? snip original:string-snip%)
 		     (let ([t (send snip get-text (- pos (unbox box)) 1)])
 		       (unless (= (string-length t) 1)
 			 (error 'read-snips/chars-from-buffer
