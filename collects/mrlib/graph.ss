@@ -79,7 +79,7 @@
     (case-lambda
       [(parent child) (add-links parent child #f #f #f #f)]
       [(parent child dark-pen light-pen dark-brush light-brush)
-       (add-links child dark-pen light-pen dark-brush light-brush 0 0)]
+       (add-links parent child dark-pen light-pen dark-brush light-brush 0 0)]
       [(parent child dark-pen light-pen dark-brush light-brush dx dy)
        (send parent add-child child)
        (send child add-parent parent dark-pen light-pen dark-brush light-brush dx dy)]))
