@@ -4585,15 +4585,25 @@
 	(check-top-level-parent/false 'get-color-from-user parent)
 	(check-instance 'get-color-from-user wx:color% 'color% #t color)
 	(check-style 'get-color-from-user #f null style)
-	(let* ([ok? #f]
-	       [f (make-object dialog% "Choose Color" parent)]
-	       [done (lambda (ok) (lambda (b e) (set! ok? ok) (send f show #f)))]
-	       [p (make-object vertical-pane% f)]
-	       [make-color-slider (lambda (l) (make-object slider% l 0 255 p void))]
-	       [red (make-color-slider "Red:")]
-	       [green (make-color-slider "Green:")]
-	       [blue (make-color-slider "Blue:")]
-	       [bp (make-object horizontal-pane% f)])
+	(letrec ([ok? #f]
+		 [f (make-object dialog% "Choose Color" parent)]
+		 [done (lambda (ok) (lambda (b e) (set! ok? ok) (send f show #f)))]
+		 [canvas (make-object (class canvas% ()
+					     (override
+					       [on-paint (lambda () (repaint #f #f))])
+					     (sequence (super-init f))))]
+		 [p (make-object vertical-pane% f)]
+		 [repaint (lambda (s e)
+			    (let ([c (make-object wx:color% 
+						  (send red get-value)
+						  (send green get-value)
+						  (send blue get-value))])
+			      (wx:fill-private-color (send canvas get-dc) c)))]
+		 [make-color-slider (lambda (l) (make-object slider% l 0 255 p repaint))]
+		 [red (make-color-slider "Red:")]
+		 [green (make-color-slider "Green:")]
+		 [blue (make-color-slider "Blue:")]
+		 [bp (make-object horizontal-pane% f)])
 	  (when color
 	    (send red set-value (send color red))
 	    (send green set-value (send color green))
@@ -4602,6 +4612,8 @@
 	  (make-object button% "Ok" bp (done #t) '(border))
 	  (send bp set-alignment 'right 'center)
 	  (send p set-alignment 'right 'center)
+	  (send p stretchable-height #f)
+	  (send canvas min-height 50)
 	  (send f center)
 	  (send f show #t)
 	  (and ok?
