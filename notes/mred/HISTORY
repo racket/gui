@@ -1,4 +1,17 @@
 
+Version 299.31
+Added a font intialization argument for control<%> classes
+Added a font intialization argument for popup-menu%
+Added a label-font intialization argument for list-box%
+Removed get-label-font, get-button-font, set-label-font, 
+ set-button-front, get-label-position, and set-label-position
+ from area-container<%> and implementing classes
+Added get-font to classes with a font initalization argument
+Added normal-control-font, small-control-font, tiny-control-font,
+ and view-control-font
+Added a default callback procedure for every control<%> class
+ that has a callback
+
 Version 299.29
 Changed the default mapping for the 'default font in PostScript
  from Times to Helvetica
@@ -153,7 +166,7 @@ Added >> and << from the editor-stream classes,
 Changed the font% constructor so that weight and style
  arguments are optional
 Added screen-glyph-exists? to font% and glyph-exists to dc<%>
-Removed get-afm-path and set-afm-path from ps-setup%
+Removed get-afm-path and set-afm-path from ps-setup%;
  use the PLTAFMDIR environment variable or the
  current-ps-afm-file-paths parameter, instead
 

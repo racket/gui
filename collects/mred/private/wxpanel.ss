@@ -55,7 +55,7 @@
 			   2
 			   3))
   (define tab-v-bottom-border (if (memq (system-type) '(macosx macos))
-				  2
+				  0
 				  2))
 
   (define (wx-make-basic-panel% wx:panel% stretch?)

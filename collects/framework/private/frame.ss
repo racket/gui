@@ -277,7 +277,7 @@
             (let* ([dc (get-dc)]
                    [draw
                     (λ (str bg-color bg-style line-color line-style)
-                      (send dc set-font (send (get-parent) get-label-font))
+                      (send dc set-font normal-control-font)
                       (let-values ([(w h) (get-client-size)]
                                    [(tw th ta td) (send dc get-text-extent str)])
                         (send dc set-pen (send the-pen-list find-or-create-pen line-color 1 line-style))
@@ -294,7 +294,7 @@
 	  (super-new [style '(transparent)])
 
           (let ([dc (get-dc)])
-            (send dc set-font (send (get-parent) get-label-font))
+            (send dc set-font normal-control-font)
             (let-values ([(w1 h1 _1 _2) (send dc get-text-extent locked-message)]
                          [(w2 h2 _3 _4) (send dc get-text-extent unlocked-message)])
               (stretchable-width #f)
