@@ -48,7 +48,6 @@
       (define-struct marshalled (data))
       (define-struct pref (value))
       (define-struct default (value checker))
-      
 
       ;; reset-changed : -> void
       ;; resets the changed table to indicate no changes have occurred

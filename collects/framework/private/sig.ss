@@ -520,8 +520,16 @@
   (define-signature framework:color-prefs-class^
     ())
   (define-signature framework:color-prefs-fun^
-    (make-style-delta add add-staged register-active-pref-callback
-     remove-active-pref-callback get-full-pref-name get-full-style-name))
+    (make-style-delta ;; to be gone
+     add ;; to be gone
+     add-staged ;; to be gone
+     add-to-preferences-panel
+     add-preferences-panel
+     build-color-selection-panel
+     register-active-pref-callback
+     remove-active-pref-callback
+     get-full-pref-name
+     get-full-style-name))
   (define-signature framework:color-prefs^
     ((open framework:color-prefs-class^)
      (open framework:color-prefs-fun^)))

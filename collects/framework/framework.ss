@@ -1504,6 +1504,23 @@
      (color-model:xyz? . -> . number?)
      (xyz)
      "Extracts the z component of \\var{xyz}.")
+    
+    
+    (color-prefs:add-preferences-panel 
+     (-> void?)
+     ()
+     "Adds in a preferences panel that configures colors (typically of text)")
+    (color-prefs:add-to-preferences-panel
+     (string? ((is-a?/c vertical-panel%) . -> . void?) . -> . void?)
+     (name func)
+     "Calls \\var{func} with the subpanel of the preferences coloring panel that"
+     "corresponds to \\var{name}.")
+    
+    (color-prefs:build-color-selection-panel
+     ((is-a?/c area-container<%>) symbol? string? string? . -> . void?)
+     (parent pref-sym style-name example-text)
+     "...")
+    
     (color-prefs:make-style-delta
      ((union string? (is-a?/c color%)) any? any? any? . -> . (is-a?/c style-delta%))
      (color bold? underline? italic?)

@@ -5,109 +5,123 @@
            (lib "mred.ss" "mred")
            (lib "string-constant.ss" "string-constants")
            "sig.ss")
-           
-  (define sc-syntax-coloring "Syntax Coloring")
-  
+ 
   (provide color-prefs@)
+  
+  (define sc-color-syntax-interactively "Color syntax interactively")
+  (define sc-syntax-coloring "Syntax Coloring")
+  (define sc-choose-color "Choose a color for ~a")
   
   (define color-prefs@
     (unit/sig framework:color-prefs^
       (import [preferences : framework:preferences^]
-              [editor : framework:editor^])
+              [editor : framework:editor^]
+              [panel : framework:panel^])
       
       (define standard-style-list-text% (editor:standard-style-list-mixin text%))
-
-      (define color-selection%
-        (class horizontal-panel%
-          (init symbol tab-name)
-          (super-instantiate () (style '(border)))
-          
-          (define sym (get-full-pref-name tab-name symbol))
-          
-          (define delta (preferences:get sym))
-          (define style-name (get-full-style-name tab-name symbol))
-          (define c (make-object editor-canvas% this
-                      #f
-                      (list 'hide-hscroll
-                            'hide-vscroll)))
-          (send c set-line-count 1)
-          (send c allow-tab-exit #t)
-          (define e (new (class standard-style-list-text%
-                           (inherit change-style get-style-list)
-                           (rename [super-after-insert after-insert])
-                           (override after-insert)
-                           (define (after-insert pos offset)
-                             (super-after-insert pos offset)
-                             (let ([style (send (get-style-list)
-                                                find-named-style
-                                                style-name)])
-                               (change-style style pos (+ pos offset) #f)))
-                           (super-instantiate ()))))
-          (preferences:add-callback sym
-                                    (lambda (sym v)
-                                      (set-slatex-style style-name v)
-                                      #t))
-          (set-slatex-style style-name delta)
-          (define (make-check name on off)
-            (let* ([c (lambda (check command)
-                        (if (send check get-value)
-                            (on)
-                            (off))
-                        (preferences:set sym delta))]
-                   [check (make-object check-box% name this c)])
-              check))
-          (send c set-editor e)
-          (send* e
-            (insert (symbol->string symbol))
-            (set-position 0))
-          (define slant-check
-            (make-check (string-constant cs-italic)
-                        (lambda ()
-                          (send delta set-style-on 'slant)
-                          (send delta set-style-off 'base))
-                        (lambda ()
-                          (send delta set-style-on 'base)
-                          (send delta set-style-off 'slant))))
-          (define bold-check
-            (make-check (string-constant cs-bold)
-                        (lambda ()
-                          (send delta set-weight-on 'bold)
-                          (send delta set-weight-off 'base))
-                        (lambda ()
-                          (send delta set-weight-on 'base)
-                          (send delta set-weight-off 'bold))))
-          (define underline-check
-            (make-check (string-constant cs-underline)
-                        (lambda ()
-                          (send delta set-underlined-on #t)
-                          (send delta set-underlined-off #f))
-                        (lambda ()
-                          (send delta set-underlined-off #t)
-                          (send delta set-underlined-on #f))))
-          (define color-button
-            (and (>= (get-display-depth) 8)
-                 (make-object button%
-                   (string-constant cs-change-color)
-                   this
-                   (lambda (color-button evt)
-                     (let* ([add (send delta get-foreground-add)]
-                            [color (make-object color%
-                                     (send add get-r)
-                                     (send add get-g)
-                                     (send add get-b))]
-                            [users-choice
-                             (get-color-from-user
-                              (format "Choose a color for ~a"
-                                      (symbol->string symbol))
-                              (send color-button get-top-level-window)
-                              color)])
-                       (when users-choice
-                         (send delta set-delta-foreground users-choice)
-                         (preferences:set sym delta)))))))
-          (define style (send (send e get-style-list) find-named-style style-name))
-          (send slant-check set-value (eq? (send style get-style) 'slant))
-          (send bold-check set-value (eq? (send style get-weight) 'bold))
-          (send underline-check set-value (send style get-underlined))))
+            
+      (define (build-many-color-selection-panels symbols tab-name parent)
+        (let ([vp (new vertical-panel% (parent parent))])
+          (for-each
+           (lambda (symbol)
+             (build-color-selection-panel
+              vp
+              (get-full-pref-name tab-name symbol)
+              (get-full-style-name tab-name symbol)
+              (symbol->string symbol)))
+           symbols)))
+      
+      ;; build-color-selection-panel : (is-a?/c area-container<%>) symbol string string -> void
+      ;; constructs a panel containg controls to configure the preferences panel.
+      (define (build-color-selection-panel parent pref-sym style-name example-text)
+        (define hp (new horizontal-panel% (parent parent) (style '(border))))
+        (define delta (preferences:get pref-sym))
+        (define c (make-object editor-canvas% hp
+                    #f
+                    (list 'hide-hscroll
+                          'hide-vscroll)))
+        (define e (new (class standard-style-list-text%
+                         (inherit change-style get-style-list)
+                         (rename [super-after-insert after-insert])
+                         (override after-insert)
+                         (define (after-insert pos offset)
+                           (super-after-insert pos offset)
+                           (let ([style (send (get-style-list)
+                                              find-named-style
+                                              style-name)])
+                             (change-style style pos (+ pos offset) #f)))
+                         (super-instantiate ()))))
+        
+        (define (make-check name on off)
+          (let* ([c (lambda (check command)
+                      (if (send check get-value)
+                          (on)
+                          (off))
+                      (preferences:set pref-sym delta))]
+                 [check (make-object check-box% name hp c)])
+            check))
+        
+        (define slant-check
+          (make-check (string-constant cs-italic)
+                      (lambda ()
+                        (send delta set-style-on 'slant)
+                        (send delta set-style-off 'base))
+                      (lambda ()
+                        (send delta set-style-on 'base)
+                        (send delta set-style-off 'slant))))
+        (define bold-check
+          (make-check (string-constant cs-bold)
+                      (lambda ()
+                        (send delta set-weight-on 'bold)
+                        (send delta set-weight-off 'base))
+                      (lambda ()
+                        (send delta set-weight-on 'base)
+                        (send delta set-weight-off 'bold))))
+        (define underline-check
+          (make-check (string-constant cs-underline)
+                      (lambda ()
+                        (send delta set-underlined-on #t)
+                        (send delta set-underlined-off #f))
+                      (lambda ()
+                        (send delta set-underlined-off #t)
+                        (send delta set-underlined-on #f))))
+        (define color-button
+          (and (>= (get-display-depth) 8)
+               (make-object button%
+                 (string-constant cs-change-color)
+                 hp
+                 (lambda (color-button evt)
+                   (let* ([add (send delta get-foreground-add)]
+                          [color (make-object color%
+                                   (send add get-r)
+                                   (send add get-g)
+                                   (send add get-b))]
+                          [users-choice
+                           (get-color-from-user
+                            (format sc-choose-color example-text)
+                            (send color-button get-top-level-window)
+                            color)])
+                     (when users-choice
+                       (send delta set-delta-foreground users-choice)
+                       (preferences:set pref-sym delta)))))))
+        (define style (send (send e get-style-list) find-named-style style-name))
+        
+        (send c set-line-count 1)
+        (send c allow-tab-exit #t)
+        
+        (preferences:add-callback pref-sym
+                                  (lambda (sym v)
+                                    (set-slatex-style style-name v)
+                                    #t))
+        (set-slatex-style style-name delta)
+        
+        (send c set-editor e)
+        (send e insert example-text)
+        (send e set-position 0)
+        
+        (send slant-check set-value (eq? (send style get-style) 'slant))
+        (send bold-check set-value (eq? (send style get-weight) 'bold))
+        (send underline-check set-value (send style get-underlined)))
       
       (define (add/mult-set m v)
         (send m set (car v) (cadr v) (caddr v)))
@@ -179,7 +193,6 @@
                           (send style-list find-named-style "Standard")
                           delta)))))
       
-      
       (define (make-style-delta color bold? underline? italic?)
         (let ((sd (make-object style-delta%)))
           (send sd set-delta-foreground color)
@@ -202,19 +215,6 @@
           sd))
       
       
-      (define color-selection-panel%
-        (class vertical-panel%
-          (init symbols tab-name)
-          
-          (super-instantiate ())
-          
-          (for-each
-           (lambda (s)
-             (new color-selection% (tab-name tab-name) (symbol s) (parent this)))
-           symbols)
-          ))
-      
-      
       ;; prefs-panel-mapping : (union #f 
       ;;                              hash-table[symbol -o> (is-a?/c vertical-panel)])
       ;; #f => prefs panel not yet opened
@@ -223,61 +223,78 @@
       ;;   the corresponding subpanel
       (define prefs-panel-mapping #f)
       
-      ;; prefs-panel-todo : (union #f hash-table[symbol -o> (vertical-panel -> void)])
-      ;; hash-table => prefs panel not opened yet
+      ;; prefs-panel-todo : (union #f (listof (cons string (vertical-panel -> void))))
+      ;; list => prefs panel not opened yet
       ;; #f => prefs panel already opened.
-      (define prefs-panel-todo (make-hash-table))
+      (define prefs-panel-todo '())
       
-      ;; prefs-panel-tab-panel : (union #f group-box-panel)
+      ;; prefs-panel-tab-panel : (union #f tab-panel)
       (define prefs-panel-tab-panel #f)
       ;; prefs-panel-single : (union #f single-panel%))
       (define prefs-panel-single #f)
-      (define mapping-table '())
+      
+      (define prefs-panel-children '())
       
       ;; update-panel-single : -> void
-      ;; callback for the prefs-panel-group-box
+      ;; callback for the prefs-panel-tab-panel
       (define (update-panel-single)
-        (send prefs-panel-group-box get-selection
+        (let ([sel (send prefs-panel-tab-panel get-selection)])
+          (when sel
+            (let* ([label (list-ref prefs-panel-children sel)]
+                   [panel (hash-table-get prefs-panel-mapping (string->symbol label))])
+              (send prefs-panel-single active-child panel)))))
       
-      ;; add-prefs-panel : -> void
+      ;; add-preferences-panel : -> void
       ;; calls preferences:add-panel to add the coloring configuration panels
-      (define (add-prefs-panel)
+      (define (add-preferences-panel)
         (preferences:add-panel
          (list sc-syntax-coloring)
          (lambda (parent)
-           (set! prefs-panel-group-box (new group-box-panel% 
+           (set! prefs-panel-tab-panel (new tab-panel% 
                                             (parent parent)
+                                            (choices (map car prefs-panel-todo))
                                             (callback (lambda (x y) (update-panel-single)))))
-           (set! prefs-panel-single (new panel:single% (parent prefs-panel-group-box)))
+           (set! prefs-panel-single (new panel:single% (parent prefs-panel-tab-panel)))
            (set! prefs-panel-mapping (make-hash-table))
            (for-each
             (lambda (pr)
-              (let ([name (car pr)]
-                    [proc (cdr pr)])
-                (let ([
-              (hash-table-map prefs-panel-todo cons)))
-           (set! prefs-panel-todo #f))))
+              (let* ([name (car pr)]
+                     [proc (cdr pr)]
+                     [panel (build-new-prefs-panel name)])
+                (proc panel)))
+            prefs-panel-todo)
+           (set! prefs-panel-todo #f)
+           prefs-panel-tab-panel)))
       
-      ;; add-to-prefs-panel : string (vertical-panel -> void) -> void
-      (define (add-to-prefs-panel panel-name func)
+      ;; add-to-preferences-panel : string (vertical-panel -> void) -> void
+      (define (add-to-preferences-panel panel-name func)
         (let ([key (string->symbol panel-name)])
           (cond
             [prefs-panel-todo
-             (let ([prev-fun (hash-table-get prefs-panel-todo key (lambda () void))])
-               (hash-table-put! prefs-panel-todo key
-                                (lambda (parent)
-                                  (prev-fun parent)
-                                  (fun parent))))]
+             (let ([prev-pr (assq key prefs-panel-todo)])
+               (if prev-pr
+                   (let ([proc (cdr prev-pr)])
+                     (set-cdr! prev-pr 
+                               (lambda (parent)
+                                 (proc parent)
+                                 (func parent))))
+                   (set! prefs-panel-todo
+                         (append prefs-panel-todo (list (cons panel-name func))))))]
             [else
              (let ([prev-panel (hash-table-get prefs-panel-mapping key (lambda () #f))])
                (cond
                  [prev-panel (func prev-panel)]
                  [else
-                  (preferences:add-panel
-                   (list sc-syntax-coloring)
-                   (lambda (parent)
-                     (func parent)
-                     (hash-table-put! prefs-panel-mapping key parent)))]))])))
+                  (send prefs-panel-tab-panel append panel-name)
+                  (let ([new-panel (build-new-prefs-panel panel-name)])
+                    (func new-panel))]))])))
+      
+      ;; build-new-prefs-panel : string -> horizontal-panel
+      (define (build-new-prefs-panel name)
+        (let ([panel (new vertical-panel% (parent prefs-panel-single))])
+          (set! prefs-panel-children (append prefs-panel-children (list name)))
+          (hash-table-put! prefs-panel-mapping (string->symbol name) panel)
+          panel))
       
       ;; prefs-table maps tab-name symbols to either 'too-late or a listof symbols/defaults.
       ;; 'too-late indicates that the preference window has been created and 
@@ -288,7 +305,7 @@
       ;; #t iff the preferences:add call has been made.  This is to avoid
       ;; calling add multiple times.
       (define pref-added-table (make-hash-table))
-            
+
       (define (add-staged tab-name symbols/defaults)
         (let* ((tab-name-symbol (string->symbol tab-name))
                (active-pref (get-full-pref-name tab-name "active"))
@@ -319,18 +336,18 @@
             (unless (hash-table-get pref-added-table tab-name-symbol (lambda () #f))
               (hash-table-put! pref-added-table tab-name-symbol #t)
               (preferences:add-panel 
-               `(,sc-syntax-coloring ,tab-name)
+               (list "Junk" sc-syntax-coloring tab-name)
                (lambda (p)
                  (let ((vp (new vertical-panel% (parent p))))
-                   (new color-selection-panel%
-                        (parent vp)
-                        (tab-name tab-name)
-                        (symbols (map car (hash-table-get prefs-table
-                                                          tab-name-symbol
-                                                          (lambda () null)))))
+                   (build-many-color-selection-panels
+                    (map car (hash-table-get prefs-table
+                                             tab-name-symbol
+                                             (lambda () null)))
+                    tab-name
+                    vp)
                    (let ((cb (new check-box%
                                   (parent vp)
-                                  (label "Color syntax interactively")
+                                  (label sc-color-syntax-interactively)
                                   (callback (lambda (checkbox y)
                                               (preferences:set 
                                                active-pref
