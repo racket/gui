@@ -59,6 +59,22 @@
 	     (start 1000 #t)))])))
    start 1000 #t))
 
+(define (add-pre-note frame panel)
+  (define m (make-object mred:message% panel "pre: ??????????????????????????????"))
+  (define c (make-object mred:check-box% panel void "Drop Events"))
+  (lambda (win e)
+    (send m set-label
+	  (format "pre: ~s ~s ~s"
+		  (if (is-a? e wx:mouse-event%)
+		      "mouse"
+		      "key")
+		  win
+		  (if (eq? win (send e get-event-object))
+		      ""
+		      "BAD")))
+    (and (not (eq? win c))
+	 (send c get-value))))
+
 (define OTHER-LABEL "XXXXXXXXXXXXXXXXXXXXXX")
 
 (define-values (icons-path local-path)
@@ -251,7 +267,13 @@
 	       cp))
 
 (define (big-frame h-radio? v-label? null-label? stretchy? special-font?)
-  (define f (make-object mred:frame% null "Tester"))
+  (define pre-on void)
+
+  (define f (make-object 
+	     (class-asi mred:frame%
+			(public [pre-on-event (lambda args (apply pre-on args))]
+				[pre-on-char pre-on-event]))
+	     null "Tester"))
   
   (define hp (make-object mred:horizontal-panel% f))
   
@@ -288,7 +310,8 @@
   (make-ctls tp cp lp add-testers ep h-radio? v-label? null-label? stretchy?)
   
   (add-focus-note f ep)
-  
+  (set! pre-on (add-pre-note f ep))
+
   (send f show #t)
   (set! prev-frame f)
   f)
