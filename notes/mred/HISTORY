@@ -2,7 +2,7 @@
 Version 204.6
 Changed canvas% so that 'gl style is no longer needed
  to enable OpenGL drawing in the canvas
-Added get-gl method to dc<%>, which returns a
+Added get-gl-context method to dc<%>, which returns a
  gl-context<%> for canvas and bitmap DCs
 Changed with-gl-context method of canvas% to use
  call-as-current for its gl-context<%>; the difference
