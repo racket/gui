@@ -4974,7 +4974,7 @@
   (send repl-buffer auto-wrap #t)
 
   ;; Go
-  (when (or (not user-esp) override-ports?)
+  (when override-ports?
     (parameterize ((wx:current-eventspace user-eventspace))
       (wx:queue-callback
        (lambda ()
@@ -4993,12 +4993,12 @@
 
 (define graphical-read-eval-print-loop
   (case-lambda
-   [() (-graphical-read-eval-print-loop #f #f)]
+   [() (-graphical-read-eval-print-loop #f #t)]
    [(esp)
+    (graphical-read-eval-print-loop esp (not esp))]
+   [(esp override-ports?)
     (unless (or (not esp) (wx:eventspace? esp))
       (raise-type-error 'graphical-read-eval-print-loop "eventspace or #f" esp))
-    (-graphical-read-eval-print-loop esp #f)]
-   [(esp override-ports?)
     (-graphical-read-eval-print-loop esp override-ports?)]))
 
 (define box-width 300)
