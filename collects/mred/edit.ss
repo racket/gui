@@ -173,7 +173,9 @@
 		   begin-edit-sequence end-edit-sequence
 		   flash-on get-keymap get-start-position
 		   on-default-char on-default-event 
-		   set-file-format get-style-list)
+		   set-file-format get-style-list
+		   lock get-filename)
+	  
 	  (rename [super-on-focus on-focus]
 		  [super-on-paint on-paint]
 		  [super-on-local-event on-local-event]
@@ -187,12 +189,20 @@
 		  [super-on-delete on-delete]
 		  [super-on-set-size-constraint on-set-size-constraint]
 		  
+		  [super-after-load-file after-load-file]
+
 		  [super-after-edit-sequence after-edit-sequence]
 		  [super-after-change-style after-change-style]
 		  [super-after-insert after-insert]
 		  [super-after-delete after-delete]
 		  [super-after-set-size-constraint after-set-size-constraint])
 	  (public
+	    [after-load-file
+	     (lambda (sucessful?)
+	       (when sucessful?
+		 (lock (not (member 'write (file-or-directory-permissions (get-filename))))))
+	       (super-after-load-file sucessful?))]
+
 	    [set-mode
 	     (lambda (m)
 	       (if mode
