@@ -1987,6 +1987,7 @@
     (define/override on-paint
       (entry-point
        (lambda ()
+	 (compute-sizes)
 	 (let ([dc (get-dc)])
 	   (send dc set-background bg-color)
 	   (send dc set-font font)
