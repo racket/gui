@@ -482,6 +482,8 @@
 	[get-window (lambda () this)]
 	[dx (lambda () 0)]
 	[dy (lambda () 0)]
+	[ext-dx (lambda () (dx))]
+	[ext-dy (lambda () (dy))]
 	[handles-key-code (lambda (x alpha? meta?) #f)]
 	[char-to (lambda () (void))]
 	[get-top-level
@@ -1289,7 +1291,7 @@
 
 (define (make-container-glue% %)
   (class100 % (mr prxy . args)
-    (inherit do-place-children do-get-graphical-min-size get-children-info)
+    (inherit do-place-children do-get-graphical-min-size get-children-info get-hidden-child)
     (private-field [mred mr][proxy prxy])
     (override
       [get-graphical-min-size (lambda () 
@@ -1299,7 +1301,10 @@
 						     (list (child-info-x-min i) (child-info-y-min i)
 							   (child-info-x-stretch i) (child-info-y-stretch i)))
 						   (get-children-info))])
-					 (let-values ([(w h) (as-exit (lambda () (send mred container-size info)))])
+					 (let-values ([(w h) (as-exit (lambda () (send mred container-size 
+										       (if (get-hidden-child)
+											   (cdr info) ; hidden child is first
+											   info))))])
 					   (list w h)))]
 				 [else (do-get-graphical-min-size)]))]
       [place-children (lambda (l w h) 
@@ -1896,8 +1901,16 @@
 	(let-values ([(w h) (my-get-client-size)])
 	  (send dc set-pen light-pen)
 	  (draw-once dc w #t #f 0)
+	  (when (> h tab-height)
+	    (send dc draw-line 0 tab-height 0 h)
+	    (send dc draw-line 1 tab-height 1 h))
 	  (send dc set-pen dark-pen)
-	  (draw-once dc w #f #t 0))
+	  (draw-once dc w #f #t 0)
+	  (when (> h tab-height)
+	    (send dc draw-line (- w 1) tab-height (- w 1) h)
+	    (send dc draw-line (- w 2) tab-height (- w 2) h)
+	    (send dc draw-line 0 (- h 3) w (- h 3))
+	    (send dc draw-line 0 (- h 4) w (- h 4))))
 	(send dc set-origin 0 0)))
 
     (define/private (my-get-client-size)
@@ -1907,12 +1920,13 @@
 
     (compute-sizes)
     (set-min-width (inexact->exact (ceiling (get-total-width))))
-    (set-min-height (inexact->exact (ceiling (+ tab-height 4))))))
+    (set-min-height (inexact->exact (ceiling (+ tab-height 9))))))
 
 (define wx-tab-group% 
   (if (eq? 'unix (system-type))
       canvas-based-tab-group%
-      (make-window-glue% (make-simple-control% wx:tab-group%))))
+      (make-window-glue%
+       (make-control% wx:tab-group% 0 0 #t #t))))
 
 ;--------------------- wx media Classes -------------------------
 
@@ -2346,7 +2360,8 @@
     (inherit get-x get-y get-width get-height
 	     min-width min-height set-min-width set-min-height
 	     x-margin y-margin
-	     get-client-size area-parent)
+	     get-client-size area-parent
+	     get-hard-minimum-size)
     
     (rename [super-set-focus set-focus])
     
@@ -2373,11 +2388,20 @@
        (lambda ()
 	 (if (null? children)
 	     (super-set-focus)
-	     (send (car children) set-focus)))])
+	     (send (car children) set-focus)))]
+
+      [ext-dx (lambda () (if hidden-child
+			     2 ;; hack!
+			     0))]
+      [ext-dy (lambda () (if hidden-child
+			     (let-values ([(mw mh) (get-hard-minimum-size)])
+			       (- mh 3)) ;; hack!
+			     0))])
     
     (private-field
       ;; list of panel's contents.
       [children null]
+      [hidden-child #f]
       [curr-border const-default-border]
       [border? (memq 'border style)])
       
@@ -2385,6 +2409,12 @@
       [need-move-children (lambda () (set! move-children? #t))]
 
       [get-children (lambda () children)]
+      [get-hidden-child (lambda () hidden-child)]
+      [set-first-child-is-hidden (lambda ()
+				   (set! hidden-child (car children))
+				   (let ([i (send hidden-child get-info)])
+				     (set-min-width (child-info-x-min i))
+				     (set-min-height (child-info-y-min i))))]
 
       [border
        (case-lambda
@@ -2418,7 +2448,7 @@
       ; effects: sets the list of children to the value of applying f.
       [change-children
        (lambda (f)
-	 (let ([new-children (f children)])
+	 (let ([new-children (f children)]) ;; hidden child, if any , must be first!
 	   (unless (andmap (lambda (child)
 			     (eq? this (send child area-parent)))
 			   new-children)
@@ -2428,7 +2458,7 @@
 				     "not all members of the returned list are "
 				     "children of the container ~e; list: ")
 				    (wx->proxy this))
-				   (map wx->proxy new-children)))
+				   (map wx->proxy (remq hidden-child new-children))))
 	   (let loop ([l new-children])
 	     (unless (null? l)
 	       (if (memq (car l) (cdr l))
@@ -2514,19 +2544,21 @@
       [do-graphical-size
 	(lambda (compute-x compute-y)
 	  (letrec ([gms-help
-		    (lambda (kid-info x-accum y-accum)
+		    (lambda (kid-info x-accum y-accum first?)
 		      (if (null? kid-info)
 			  (list x-accum y-accum)
 			  (gms-help
 			   (cdr kid-info)
-			   (compute-x x-accum kid-info)
-			   (compute-y y-accum kid-info))))])
+			   (compute-x x-accum kid-info (and hidden-child first?))
+			   (compute-y y-accum kid-info (and hidden-child first?))
+			   #f)))])
 	    (let-values ([(client-w client-h)
 			  (get-two-int-values (lambda (a b) (get-client-size a b)))])
 	      (let* ([border (border)]
 		     [min-client-size
 		      (gms-help (get-children-info)
-				(* 2 border) (* 2 border))]
+				(* 2 border) (* 2 border)
+				#t)]
 		     [delta-w (- (get-width) client-w)]
 		     [delta-h (- (get-height) client-h)])
 		(list (+ delta-w (car min-client-size))
@@ -2543,10 +2575,10 @@
       [do-get-graphical-min-size
        (lambda ()
 	 (do-graphical-size 
-	  (lambda (x-accum kid-info)
+	  (lambda (x-accum kid-info first?)
 	    (max x-accum (+ (* 2 (border))
 			    (child-info-x-min (car kid-info)))))
-	  (lambda (y-accum kid-info)
+	  (lambda (y-accum kid-info first?)
 	    (max y-accum (+ (* 2 (border))
 			    (child-info-y-min (car kid-info)))))))])
       
@@ -2657,10 +2689,17 @@
 	   (let ([l (place-children (map (lambda (i)
 					   (list (child-info-x-min i) (child-info-y-min i)
 						 (child-info-x-stretch i) (child-info-y-stretch i)))
-					 children-info)
-				    width height)])
+					 (if hidden-child
+					     (cdr children-info)
+					     children-info))
+				    (if hidden-child
+					(- width 4) ;; hack! 2-pixel border assumed
+					width)
+				    (if hidden-child
+					(- height (child-info-y-min (car children-info)))
+					height))])
 	     (unless (and (list? l)
-			  (= (length l) (length children-info))
+			  (= (length l) (- (length children-info) (if hidden-child 1 0)))
 			  (andmap (lambda (x) (and (list? x)
 						   (= 4 (length x))
 						   (andmap (lambda (x) (and (integer? x) (exact? x))) x)))
@@ -2668,7 +2707,16 @@
 	       (raise-mismatch-error 'container-redraw 
 				     "result from place-children is not a list of 4-integer lists with the correct length: "
 				     l))
-	     (panel-redraw children children-info l))))]
+	     (panel-redraw children children-info (if hidden-child
+						      (cons (list 0 0 width height) 
+							    (let ([dy (child-info-y-min (car children-info))])
+							      (map (lambda (i)
+								     (list (+ (car i) 2) ;; hack! 2-pixel border assumed
+									   (+ dy (cadr i) -3) ;; hack! 2-pixel border assumed
+									   (caddr i)
+									   (cadddr i)))
+								   l)))
+						      l)))))]
       [panel-redraw
        (lambda (childs child-infos placements)
 	 (for-each
@@ -2889,12 +2937,12 @@
       [do-get-graphical-min-size
        (lambda ()
 	 (do-graphical-size 
-	  (lambda (x-accum kid-info)
+	  (lambda (x-accum kid-info hidden?)
 	    (+ x-accum (child-info-x-min (car kid-info))
-	       (if (null? (cdr kid-info))
+	       (if (or hidden? (null? (cdr kid-info)))
 		   0
 		   (spacing))))
-	  (lambda (y-accum kid-info)
+	  (lambda (y-accum kid-info hidden?)
 	    (max y-accum
 		 (+ (child-info-y-min (car kid-info))
 		    (* 2 (border)))))))]
@@ -2929,13 +2977,13 @@
       [do-get-graphical-min-size
        (lambda ()
 	 (do-graphical-size
-	  (lambda (x-accum kid-info)
+	  (lambda (x-accum kid-info hidden?)
 	    (max x-accum
 		 (+ (child-info-x-min (car kid-info))
 		    (* 2 (border)))))
-	  (lambda (y-accum kid-info)
+	  (lambda (y-accum kid-info hidden?)
 	    (+ y-accum (child-info-y-min (car kid-info))
-	       (if (null? (cdr kid-info))
+	       (if (or (null? (cdr kid-info)) hidden?)
 		   0
 		   (spacing))))))]
       
@@ -3354,7 +3402,10 @@
 						(send p force-redraw))))]
       [begin-container-sequence (entry-point (lambda () (send (send (get-wx-panel) get-top-level) begin-container-sequence)))]
       [end-container-sequence (entry-point (lambda () (send (send (get-wx-panel) get-top-level) end-container-sequence)))]
-      [get-children (entry-point (lambda () (map wx->proxy (send (get-wx-panel) get-children))))]
+      [get-children (entry-point (lambda () (map wx->proxy 
+						 (let ([l (send (get-wx-panel) get-children)]
+						       [h (send (get-wx-panel) get-hidden-child)])
+						   (if h (remq h l) l)))))]
       [(bdr border) (param get-wx-panel border)]
       [(spc spacing) (param get-wx-panel spacing)]
       [set-alignment (entry-point (lambda (h v) (send (get-wx-panel) alignment h v)))]
@@ -3368,14 +3419,17 @@
 					      f))
 			  (send (get-wx-panel) change-children
 				(lambda (kids)
-				  (let* ([mred-kids (map wx->proxy kids)]
+				  (let* ([hidden (send (get-wx-panel) get-hidden-child)]
+					 [mred-kids (map wx->proxy (remq hidden kids))]
 					 [l (as-exit (lambda () (f mred-kids)))])
 				    (unless (and (list? l)
 						 (andmap (lambda (x) (is-a? x internal-subarea<%>)) l))
 				      (raise-mismatch-error 'change-children
 							    "result of given procedure was not a list of subareas: "
 							    l))
-				    (map mred->wx l))))))]
+				    (append
+				     (if hidden (list hidden) null)
+				     (map mred->wx l)))))))]
       [container-size (entry-point
 		       (lambda (l) 
 			 ; Check l, even though we don't use it
@@ -3499,8 +3553,8 @@
       
       [get-width (entry-point (lambda () (send wx get-width)))]
       [get-height (entry-point (lambda () (send wx get-height)))]
-      [get-x (entry-point (lambda () (- (send wx get-x) (if top? 0 (send (send wx get-parent) dx)))))]
-      [get-y (entry-point (lambda () (- (send wx get-y) (if top? 0 (send (send wx get-parent) dy)))))]
+      [get-x (entry-point (lambda () (- (send wx get-x) (if top? 0 (send (send wx get-parent) ext-dx)))))]
+      [get-y (entry-point (lambda () (- (send wx get-y) (if top? 0 (send (send wx get-parent) ext-dy)))))]
       
       [get-cursor (lambda () cursor)]
       [set-cursor (entry-point
@@ -4128,6 +4182,7 @@
 		       wx)
 		     label parent ibeam))))))
 
+;; Not exported:
 (define tab-group%
   (class100 basic-control% (label choices parent callback [style null])
     (sequence
@@ -4141,7 +4196,6 @@
 					  label
 					  choices))
 		  label parent #f))))
-
 
 ;-------------------- Canvas class constructions --------------------
 
@@ -4442,6 +4496,13 @@
 
 (define vertical-panel% (class100 panel% (parent [style null]) (sequence (super-init parent style))))
 (define horizontal-panel% (class100 panel% (parent [style null]) (sequence (super-init parent style))))
+
+(define tab-panel%
+  (class vertical-panel%
+    (init choices callback) 
+    (super-instantiate ())
+    (make-object tab-group% #f choices this callback)
+    (send (mred->wx this) set-first-child-is-hidden)))
 
 ;;;;;;;;;;;;;;;;;;;;;; Menu classes ;;;;;;;;;;;;;;;;;;;;;;
 
@@ -6847,7 +6908,7 @@
 	dialog%
 	frame%
 	gauge%
-	tab-group%
+	tab-panel%
 	list-box%
 	editor-canvas%
 	message%
