@@ -7409,6 +7409,7 @@
 	      [(regexp-match-peek "^WXME01[0-9][0-9] ## " p)
 	       (let ([t (make-object text%)])
 		 (send t insert-file p 'standard)
+		 (close-input-port p)
 		 (open-input-text-editor t))]
 	      [else p])])
       (port-count-lines! p) ; in case it's new
@@ -7428,6 +7429,10 @@
 		    (loop))
 		  (lloop c))))))
       (values p filename))))
+
+(define (open-input-graphical-file filename)
+  (let-values ([(p name) (build-input-port filename)])
+    p))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -7652,6 +7657,7 @@
 	timer%
 	readable-snip<%>
 	open-input-text-editor
+	open-input-graphical-file
 	text-editor-load-handler
 	application-about-handler
 	application-preferences-handler

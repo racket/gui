@@ -121,6 +121,7 @@
      mouse-event%
      ;; mred@
      mult-color<%>
+     open-input-graphical-file
      open-input-text-editor
      pane%
      panel%
