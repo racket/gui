@@ -150,11 +150,10 @@
 ;            contains container classes.
 (define (make-top-container% base%)
   (class (wx-make-container% (wx-make-window% base%)) args
-    (inherit get-x get-y get-width get-height
+    (inherit get-x get-y get-width get-height set-size
 	     get-client-size is-shown?)
     (rename [super-show show] [super-move move] [super-center center]
 	    [super-on-size on-size]
-	    [super-set-size set-size]
 	    [super-enable enable])
     
     (private
@@ -271,8 +270,7 @@
 	    (lambda () (set! ignore-redraw-request? #t))
 	    (lambda () 
 	      ; Ensures that the frame is big enough:
-	      (set-size (get-x) (get-y) (get-width) (get-height))
-	      (send panel on-container-resize))
+	      (set-size (get-x) (get-y) (get-width) (get-height)))
 	    (lambda () (set! ignore-redraw-request? #f))))
 	 (set! pending-redraws? #f))]
 
@@ -280,12 +278,11 @@
        (lambda (frame-w frame-h)
 	 (if (not panel)
 	     (values frame-w frame-h)
-	     (let-values ([(f-client-w f-client-h)
-			   (get-two-int-values get-client-size)])
+	     (let-values ([(f-client-w f-client-h) (get-two-int-values get-client-size)])
 	       (let* ([panel-info (send panel get-info)]
 		      
 		      ; difference between panel's full size & 
-		      ; frame's full size (tweaked for wm)
+		      ; frame's full size
 		      [delta-w (- (get-width) f-client-w)]
 		      [delta-h (- (get-height) f-client-h)]
 
@@ -297,18 +294,21 @@
 		      [new-w
 		       (cond
 			[(< frame-w min-w) min-w]
-			[(and (> frame-w min-w)
-			      (not (child-info-x-stretch panel-info)))
-			 min-w]
+			[(and (> frame-w min-w) (not (child-info-x-stretch panel-info))) min-w]
 			[else frame-w])]
 		      [new-h
 		       (cond
 			[(< frame-h min-h) min-h]
-			[(and (> frame-h min-h)
-			      (not (child-info-y-stretch panel-info)))
-			 min-h]
+			[(and (> frame-h min-h) (not (child-info-y-stretch panel-info))) min-h]
 			[else frame-h])])
-		 (values new-w new-h)))))])
+		 (values new-w new-h)))))]
+
+      [set-panel-size
+       (lambda ()
+	 (when panel
+	   (let-values ([(f-client-w f-client-h) (get-two-int-values get-client-size)])
+	     (send panel set-size 0 0 f-client-w f-client-h)
+	     (send panel on-container-resize))))])
       
     (override
       ; show: add capability to set perform-updates
@@ -346,22 +346,6 @@
 		(set! use-default-position? #f)
 		(super-center dir))]
       
-      [set-size
-       (lambda (x y width height)
-	 (let-values ([(correct-w correct-h)
-		       (correct-size width height)])
-	   (if (and (same-dimension? x (get-x))
-		    (same-dimension? y (get-y))
-		    (and (same-dimension? width (get-width))
-			 (= width correct-w))
-		    (and (same-dimension? height (get-height))
-			 (= height correct-h)))
-	       (when (get-top-panel)
-		 (let-values ([(f-client-w f-client-h)
-			       (get-two-int-values get-client-size)])
-		   (send panel set-size 0 0 f-client-w f-client-h)))
-	       (super-set-size x y correct-w correct-h))))]
-      
       ; on-size: ensures that size of frame matches size of content
       ; input: new-width/new-height: new size of frame
       ; returns: nothing
@@ -372,18 +356,21 @@
       ;            contents.  Each direction is handled
       ;            independently.
       [on-size
-       (lambda (new-width new-height)
-	 (super-on-size new-width new-height)
+       (lambda (width height)
+	 (unless (negative? width) (super-on-size width height))
 	 (unless already-trying?
 	   (let ([new-width (get-width)]
 		 [new-height (get-height)])
-	     (let-values ([(correct-w correct-h)
-			   (correct-size new-width new-height)])
-	       (unless (and (= new-width correct-w)
-			    (= new-height correct-h))
-		 (set! already-trying? #t)
-		 (set-size -1 -1 correct-w correct-h)
-		 (set! already-trying? #f))))))])
+	     (let-values ([(correct-w correct-h) (correct-size new-width new-height)])
+	       (if (and (= new-width correct-w) (= new-height correct-h))
+		   ;; Good size; do panel
+		   (set-panel-size)
+		   ;; Too small; fix it if it's our first try
+		   (begin
+		     (set! already-trying? #t)
+		     (set-size -1 -1 correct-w correct-h)
+		     (set! already-trying? #f)))))))])
+
     (sequence
       (apply super-init args))))
 
@@ -1137,7 +1124,6 @@
 	     get-client-size area-parent)
     
     (rename [super-set-focus set-focus]
-	    [super-on-size on-size]
 	    [super-set-size set-size])
     
     (private
@@ -1353,16 +1339,6 @@
 		      (same-dimension? width (get-width))
 		      (same-dimension? height (get-height)))
 	   (super-set-size x y width height)))]
-      
-      ; on-size: called when the container is resized (usu by its
-      ;   parent) 
-      ; input: new-width/new-height: new size of panel
-      ; returns: nothing
-      ; effects: causes children to redraw themselves.
-      [on-size
-       (lambda (new-width new-height)
-	 (super-on-size new-width new-height)
-	 (force-redraw))]
       
       [on-container-resize
        (lambda ()
