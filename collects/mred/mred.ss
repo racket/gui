@@ -6218,7 +6218,7 @@
 	      (send f stretchable-width #f)
 	      (send f stretchable-height #f))
 	    (let* ([e (make-object text%)]
-		   [c (make-object editor-canvas% msg-pnl e '(no-hscroll))])
+		   [c (make-object editor-canvas% msg-pnl e '(no-hscroll transparent))])
 	      (send f resize (+ 400 extra-width) 200)
 	      (send c set-line-count (min 5 (length strings)))
 	      (send c allow-tab-exit #t)
