@@ -249,6 +249,27 @@
     (-> void?)
     ()
     "Hides the preferences dialog.")
+   (preferences:add-on-close-dialog-callback
+    ((-> void?) . -> . void?)
+    (cb)
+    "Registers \\var{cb}. Next time the"
+    "user clicks the OK button the preferences"
+    "dialog, all of the \\var{cb} functions"
+    "are called. If any of them return \\scm{\\#f},"
+    "the dialog is not closed."
+    ""
+    "See also"
+    "@flink preferences:add-on-close-dialog-callback")
+   (preferences:add-can-close-dialog-callback
+    ((-> boolean?) . -> . void?)
+    (cb)
+    "Registers \\var{cb}. Next time the"
+    "user clicks the OK button the preferences"
+    "dialog, all of the \\var{cb} functions"
+    "are called, assuming that each of the callbacks"
+    "passed to"
+    "@flink preferences:add-on-close-dialog-callback"
+    "succeed.")
 
    (autosave:register
     ((and/f (is-a?/c autosave:autosavable<%>)

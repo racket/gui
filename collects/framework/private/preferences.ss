@@ -669,18 +669,28 @@
           (when preferences-dialog
             (send preferences-dialog added-pane))))
       
-      (define hide-dialog
-        (lambda ()
-          (when preferences-dialog
-            (send preferences-dialog show #f))))
+      (define (hide-dialog)
+	(when preferences-dialog
+	  (send preferences-dialog show #f)))
       
-      (define show-dialog
-        (lambda ()
-          (save)
-          (if preferences-dialog
-              (send preferences-dialog show #t)
-              (set! preferences-dialog
-                    (make-preferences-dialog)))))
+      (define (show-dialog)
+	(save)
+	(if preferences-dialog
+	    (send preferences-dialog show #t)
+	    (set! preferences-dialog
+		  (make-preferences-dialog))))
+
+      (define (add-can-close-dialog-callback cb)
+	(set! can-close-dialog-callbacks
+	      (cons cb can-close-dialog-callbacks)))
+
+      (define (add-on-close-dialog-callback cb)
+	(set! on-close-dialog-callbacks
+	      (cons cb on-close-dialog-callbacks)))
+
+      (define on-close-dialog-callbacks null)
+
+      (define can-close-dialog-callbacks null)
       
       (define make-preferences-dialog
         (lambda ()
@@ -747,8 +757,13 @@
                                                 single-panel
                                                 bottom-panel)))))]
                    [ok-callback (lambda args
-                                  (save)
-                                  (hide-dialog))]
+				  (when (andmap (lambda (f) (f))
+						can-close-dialog-callbacks)
+				    (for-each
+				     (lambda (f) (f))
+				     on-close-dialog-callbacks)
+				    (save)
+				    (hide-dialog)))]
                    [cancel-callback (lambda (_1 _2)
                                       (hide-dialog)
                                       (install-stashed-preferences stashed-prefs))])

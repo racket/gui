@@ -184,6 +184,9 @@
      add-to-warnings-checkbox-panel
      add-to-scheme-checkbox-panel
      
+     add-on-close-dialog-callback
+     add-can-close-dialog-callback
+
      show-dialog
      hide-dialog))
   (define-signature framework:preferences^
