@@ -3,23 +3,23 @@
                         *    MrEd 100    *
                         ******************
 
-MrEd 100 is the successor to MrEd 53. For MrEd 100, we redesigned the
-GUI toolbox interface to make it simpler and more Scheme-like.
-Although we preserved the windowing model that underlies the old
-toolbox, every MrEd 53 program will require substantial changes to run
-in MrEd 100.
+MrEd 100 is the successor to MrEd 53. For MrEd 100, we preserved the
+underlying windowing model, but redesigned the GUI toolbox interface
+to make it simpler and more Scheme-like. Every MrEd 53 program
+requires substantial changes to run in MrEd 100.
 
-The new interface makes MrEd more accessible to new users: class and
-method names are more consistent; useless and redundant methods have
-been eliminated; and method arguments are more thoroughly checked. Key
-portions of the documentation have been re-written.
+The revised interface makes MrEd more accessible to new users: class
+and method names are more consistent; useless and redundant methods
+have been eliminated; and methods check their arguments more
+precisely. Furthermore, key portions of the documentation have been
+re-written.
 
-The implementation behind the new interface is reliable. Previous
+The implementation behind the revised interface is reliable. Previous
 versions of MrEd were plagued by bugs and inconsistently implemented
 features, whereas the new interface is consistently implemented across
 platforms and thoroughly tested. Of course, bugs will always slip
-through, but as a result of new testing methods, we expect MrEd 100 to
-be far more robust than previous versions.
+through, but we expect MrEd 100 to be far more robust than previous
+versions as a result of new testing methods.
 
 New Application Architecture
 ----------------------------
@@ -27,7 +27,7 @@ New Application Architecture
 MrEd 53 comprised two parts:
 
  * a core toolbox (containing names prefixed with `wx:') that was too
-   primitive for real programming (no geometry management); and
+   primitive for real programming (with no geometry management); and
 
  * an application framework (containing names prefixed with `mred:')
    that provided crucial functionality (e.g., windows with geometry
@@ -35,41 +35,41 @@ MrEd 53 comprised two parts:
    simple GUI programs.
 
 For MrEd 100, we moved the boundary between the core toolbox and the
-application framework. "MrEd" now refers to only the core toolbox, but
-the new core toolbox includes the most useful `mred:' classes from the
-old application framework. We eliminated the `wx:' and `mred:'
-prefixes; many of the former `mred:' classes replace the former `wx:'
-classes. 
+application framework. "MrEd" now refers to only the core toolbox,
+which now includes the most useful `mred:' classes from the old
+application framework. We eliminated the `wx:' and `mred:' prefixes.
 
 All of the core toolbox classes are built into the MrEd executable.
-The remaining `mred:' classes were moved into a separate, optional
-framework library, which was itself thoroughly revised. Changes to the
-framework classes are described in a separate document.
+The old `mred:' classes that are not part of the core toolbox have
+been moved into a separate, optional framework library. The new
+framework library is described in a separate document.
 
 Running MrEd and Developing MrEd Applications
 ---------------------------------------------
 
-Unlike MrEd 53, MrEd 100 is merely an extension of MzScheme with a GUI
-toolbox. Command-line handling for MrEd 100 is the same as for
-MzScheme; the only difference is that MrEd executes
+MrEd 100 is more consistent with MzScheme than previous releases. The
+default language for MrEd 100 is the MzScheme's default language,
+whereas MrEd 53's language had different case-sensitivity and
+cond-fallthrough behavior. Command-line handling for MrEd 100 is the
+same as for MzScheme; the only difference is that MrEd executes
 `(graphical-read-eval-print-loop)' on startup instead of
-`(read-eval-print-loop)'. It is no longer necessary to understand
+`(read-eval-print-loop)'. Programmers no longer need to understand
 units and collections to implement a simple MrEd application.
 
 MrEd's `graphical-read-eval-print-loop' implements a rather primitive
-REPL, as opposed to the relatively useful REPL provided by the old
-MrEd toolbox-framework combination.  DrScheme 100 replaces the old
-MrEd REPL. Unlike previous releases of DrScheme and MrEd, DrScheme 100
-provides a REPL that matches MrEd's language exactly.
+REPL, unlike the relatively useful REPL provided by the old MrEd
+toolbox-framework combination. MrEd 100 provides no replacement for
+the old REPL. Instead, DrScheme 100 provides a REPL that matches
+MrEd's language exactly.
 
 Porting to MrEd 100
 -------------------
 
 The remainder of this document provides an overview of MrEd 100 with
-notes that are useful for upgrading MrEd 53 applications. Section 0
-describes a few highlights of the MrEd 100 revision. Section 1 shows
-the new interface/class hierarchy for windows and a few other parts of
-the toolbox. Section 2 lists all the methods of the new interfaces and
+notes for porting MrEd 53 applications. Section 0 describes a few
+highlights of the MrEd 100 revision. Section 1 shows the new
+interface/class hierarchy for windows and a few other parts of the
+toolbox. Section 2 lists all the methods of the new interfaces and
 classes. Section 3 lists the complete, new set of MrEd procedures,
 showing the arguments for selected new procedures. Section 4 provides
 a mapping from the old `wx:const-XXX' constants to the new
@@ -83,7 +83,8 @@ notes for an average MrEd release).
 
  * The wx/mred split has been eliminated. The wx methods for manually
    managing the geometry of windows have been eliminated; the only way
-   to set control positions explicitly is to derive a new panel class.
+   to set control positions explicitly is to derive a new container
+   class.
 
    The class hierarchy has been rerranged. For example, dialog% is no
    longer a subclass of panel%, which is itself no longer a subclass
@@ -92,19 +93,18 @@ notes for an average MrEd release).
  * Interfaces are widely used in the toolbox. The old toolbox had
    "classes" like wx:window% that could not be instantiated. The new
    toolbox has a window<%> interface ("<%>" is the conventional suffix
-   for interfaces), and all buit-in classes can be instantiated.
+   for interfaces).
 
- * Instead of null, #f is used for the `no appropriate value' value,
-   such as the parent argument for a frame that doesn't have a parent
-   window, or the result for get-label when the menu doesn't have a
+ * Instead of null, #f is used for the "no appropriate value" value,
+   such as the parent argument for a frame that does not have a parent
+   window, or the result for get-label when the window does not have a
    label.
 
- * There are hardly any wx:const-... values. Instead, methods that
-   used to take a single (numerical) wx:const- flag now take a symbol,
-   and methods that used to take bitwise-ior'd wx:const- integers now
-   take a list of symbols. For example, wx:const-horizontal was
-   replaced by 'horizontal, and wx:const-bitmap-type-gif was replaced
-   with 'gif.
+ * There are no wx:const-... values. Instead, methods that used to
+   take a single (numerical) wx:const- flag now take a symbol, and
+   methods that used to take bitwise-ior'd wx:const- integers now take
+   a list of symbols. For example, wx:const-horizontal was replaced by
+   'horizontal, and wx:const-bitmap-type-gif was replaced with 'gif.
 
  * The old documentation described certain methods as consuming "small
    integer" values; the implementation actually accepted any sort of
@@ -113,41 +113,42 @@ notes for an average MrEd release).
    Methods now consume an explicitly defined class of numbers. For
    example, most windowing methods that formerly consumed "small
    integers" now consume "exact integers in [0,10000]". The
-   implementation signals an exception if provided an inexact number,
-   a non-integer, or an integer outside the range [0,10000]. A few
-   methods consume arbitrary exact non-negative integers; those
-   methods now behave correctly when provided an integer represented
-   as a bignum.
+   implementation signals an exception when provided an inexact
+   number, a non-integer, or an integer outside the range [0,10000]. A
+   few methods consume arbitrary exact non-negative integers; those
+   methods behave correctly when provided an integer represented as a
+   bignum.
 
    In the windowing toolbox, object-specific out-of-range errors are
-   now signalled by a mismatch exception. (Formerly, out-of-range
-   errors were generally ignored.) For example, if a list-box%
-   instance contains only 10 items, calling the set-selection method
-   with the index 11 signals a mismatch exception.
+   now signalled by a mismatch exception. (In previous versions of
+   MrEd, out-of-range errors were generally ignored.) For example, if
+   a list-box% instance contains only 10 items, calling the
+   set-selection method with the index 11 signals a mismatch
+   exception.
 
  * The menu system was turned upside-down, giving it a structure more
    like rest of the toolbox. For example, instead of creating a menu
-   bar and then calling a frame's set-menu-bar method, the new way to
-   create a menu bar is to provide the frame as an initialization
-   argument when creating a menu bar. Menus are created by supplying
-   the parent menu bar as an initialization argument (or a parent menu
-   to create a submenu). Menu items are created by instantiating
-   menu-item% or checkable-menu-item% with a menu argument. There are
-   no menu ids anywhere; when a menu item is selected, the callback
-   associated with the menu item is executed (just like when a button
-   is clicked).
+   bar and then calling a frame's set-menu-bar method, a menu bar is
+   created by providing the frame as an initialization argument. A
+   menu is created by supplying the parent menu bar as an
+   initialization argument (or a parent menu to create a submenu). A
+   menu item is created by instantiating menu-item% or
+   checkable-menu-item% with a menu argument. There are no integer
+   menu IDs anywhere; when a menu item is selected, a callback
+   associated with the menu item is executed, just as when a button is
+   clicked.
 
  * Initialization arguments for creating windows have been re-ordered.
-   In general, the order is something like the following:
+   In general, the order is as follows:
 
       label [sub-labels] callback parent [init-value] style
               ^- e.g., items in a radio box
 
-   where style is now a list of symbols.
+   where style is a list of symbols.
 
  * The "media" names have changed. Roughly, we replaced "media" with
-   "editor", or dropped "media" it when "editor" isn't useful. Here's
-   the name mapping for some commonly used classes:
+   "editor", or dropped "media" it when "editor" is not useful. The
+   following is the name mapping for some commonly used classes:
 
             media-canvas%      =>  editor-canvas%
             media-buffer%      =>  editor<%>
@@ -162,29 +163,30 @@ notes for an average MrEd release).
    (really any negative value) had a special meaning, a symbol is now
    used. For example, the old call
        (send (make-object media-edit%) insert "Hello" 0 -1)
-   translates to a use of 'same instead of -1:
+   translates to using 'same instead of -1:
        (send (make-object text%) insert "Hello" 0 'same)
 
    Many of the old on-XXX methods for editors used to return a Boolean
    value to indicate whether the action should proceed (e.g.,
-   on-insert in media-edit%). This did not work well with composing
-   class extensions. In MrEd 100, there is a parallel set of can-XXX?
-   methods (e.g., can-insert? in text%) that first determine whether
-   the opration should proceed; if so, on-XXX is called (its result is
-   ignored), the operation is performed, and after-XXX is called.
+   on-insert in media-edit%), but that convetion does not work well
+   with composing class extensions. MrEd 100 provides a parallel set
+   of can-XXX?  methods (e.g., can-insert? in text%) that first
+   determines whether an operation should proceed; if so, on-XXX is
+   called (its result is ignored), the operation is performed, and
+   after-XXX is called.
 
-   Aside from the renaming and checking, little has changed in the
-   editor toolbox, but it is a little better integrated with
-   system-wide keyboard focus methods. For example, a frame% has a
+   Beside renaming and checking, little else has changed in the editor
+   toolbox, but it is a little better integrated with system-wide
+   keyboard focus methods. For example, a frame% provides a
    get-focus-window method, which returns the frame's subwindow with
-   the current focus, but it also has a get-focus-object method, which
-   will return an editor<%> object if an editor-canvas has the
+   the current focus, but it also provides a get-focus-object method,
+   which returns an editor<%> object if an editor-canvas% has the
    keyboard focus.
 
- * The text-field% control (formerly wx:text% and wx:multi-text%) now
+ * The text-field% control (formerly wx:text% and wx:multi-text%)
    works well on all platforms because it is implemented using the
-   editor classes. (The equivalent of a wxmulti-text% is specified via
-   a style flag when creating a text-field%.)
+   editor classes. (The equivalent of a wx:multi-text% is created via
+   a style flag for text-field%.)
 
  * The command-event% class was changed to control-event%. It has very
    few methods, since the old information can be extracted from the
@@ -192,46 +194,44 @@ notes for an average MrEd release).
 
  * Keyboard navigation (in a frame or dialog) works on all platforms.
 
- * Some methods have been renamed to be either more (accurately)
-   descriptive or more consistent with other method names.
-
  * The device context system has been changed to provide a larger set
    of methods that paint consistently on all platforms. Most "logical
    functions" (e.g., 'invert, 'src-and, 'no-op) have been eliminated,
    but non-rectangular clipping regions and region operations (e.g.,
    union and intersect) were added.
 
-   The old canvas-dc% class was replaced by pixel-dc<%>. The
-   memory-dc% class was renamed to bitmap-dc% (which implements
-   pixel-dc<%>).
+   The old canvas-dc% class was elimniated. The memory-dc% class was
+   renamed to bitmap-dc%.
 
    The blit method was replaced by draw-bitmap and draw-bitmap-region,
    which operate directly on bitmaps. Monochrome bitmaps can be drawn
    with either a transparent or solid background. The icon% class and
-   draw-icon method were removed, since they provide nothing different
-   from bitmaps.
+   draw-icon method were removed, since bitmaps provide all of the
+   same functionality.
 
-   The xor drawing mode was moved from a setting in the device context
-   to a style for a pen or brush. Brush stipples work on all platforms
-   (with consistent opaqueness and colorization). Pen stipples, also
+   The xor drawing mode was removed from device contexts and added as
+   a style for pens and brushs. Brush stipples work on all platforms
+   (with consistent opaqueness and colorization). Pen stipples also
    work, but are restricted to 8x8 monochrome bitmaps. The 'stipple
    and 'opaque-stipple styles were eliminated; instead, installing a
-   stipple bitmap into a pen or brush overrides certain style
-   settings.
+   stipple bitmap into a pen or brush overrides other style settings.
 
-   The arguments to draw-arc were changed; draw-arc now reliably draws
+   The arguments to draw-arc were changed; draw-arc reliably draws
    sections of non-circular ellipses.
 
    The initialization arguments for post-script-dc% and printer-dc%
    where changed. Global PostScript settings were replaced with a
    parameter containing a ps-setup% object.
 
-   The canvas% class no longer supplies drawing methods. Instead,
-   get-dc to get a drawing context (which always had a more complete
-   set of methods, anyway).
+   The canvas% class no longer supplies drawing methods. Instead, all
+   canvas drawing must use get-dc to get a drawing context (which
+   always had a more complete set of methods, anyway).
 
- * American spelling is used everywhere: colour -> color, centre
-   -> center, grey -> gray.
+ * Some methods have been renamed to be either more (accurately)
+   descriptive or more consistent with other method names. American
+   spelling is used everywhere: colour -> color, centre -> center,
+   grey -> gray.
+
 
 ======================================================================
 1. Interface/Class Type Hierarchy (Selected Excerpts)
@@ -282,9 +282,8 @@ menu-item-container<%>
   |- menu-bar% (all items are submenu-item<%>s)
   |- popup-menu% (not created in a menu-bar; for use with canvas%'s popup-menu)
 
-dc<%>
- |- pixel-dc<%>  (replaces canvas-dc%)
- |   |-bitmap-dc%  (formerly memory-dc%)
+dc<%> (canvas<%>'s get-dc returns a dc<%>)
+ |- bitmap-dc%  (formerly memory-dc%)
  |- printer-dc%
  |- postscript-dc%
 
@@ -661,6 +660,8 @@ add-editor-keymap-functions
 add-text-keymap-functions
 add-pasteboard-keymap-functions
 
+install-standard-text-bindings
+
 editor-set-x-selection-mode
 
 get-the-snip-class-list
@@ -1026,7 +1027,7 @@ media-buffer%'s do-edit changed to editor<%>'s do-edit-operation,
 
 pasteboard%'s {on,after}-interactive-move takes a mouse-event% object
 
-Xt: key-event% for a numpad ENTER key reports 'numpad-enter for the
+Xt: key-event% for a numpad Enter key reports 'numpad-enter for the
  key code instead of #\return
 
 An editor's selection caret now blinks; added a blink-caret method to
@@ -1035,7 +1036,7 @@ An editor's selection caret now blinks; added a blink-caret method to
 Added 'unknown image kind for bitmap%'s load-file, etc., which
  examines the file to determine the type automatically.
 
-'wx flag for make-namespace changed to 'mred
+'wx flag for MzScheme's make-namespace changed to 'mred
 
 canvas%'s get-view-start returns values in pixels, not scroll units
 
@@ -1063,15 +1064,14 @@ clipboard% changed to clipboard<%> and font-name-directory% changed to
  and the-font-name-directory
 
 the-color-database only has a find-color method; the others were
- removed.
+ removed. Certain color names with mappings under X (e.g.,
+ "FORESTGREEN") are no longer available; instead, only the set of
+ colors defined in the manual are ever available.
 
 -----------------------------
  TODO: Miscellaneous Cleanup
 -----------------------------
 
-Install a set of key-bindings for text-field% items.
-
-Implement keyboard-based movement in frames/dialogs (in Scheme using
-on-pre-char).
+Fix pen stipples
 
 Move the editor margin settings into ps-setup%?
