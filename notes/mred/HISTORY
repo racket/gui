@@ -1,38 +1,4 @@
-101/7:
-
- * Fixed choice% size for X with horizontal label (PR 1213)
-
- * Fixed bad calls to get-extent in media-edit% (PR 1218)
-
- * A text-field%'s text% is in paste-text-only mode by default
-
-101/6:
-
- * Added 'symbol font family
-
- * Changed font-search meachnism to try normal-weight and
-   normal-style before resorting to a default font
-
- * Added set-screen-name, set-post-script-name, and set-afm-name to
-   font-name-directory<%>.
-
- * Fixed region and font problems for post-script-dc%
-
- * Added {set,get}-paste-text-only to editor<%>
-
- * Added {set,get}-line-spacing and {set,get}-styles-sticky to text%
-
- * Added {set,get}-tight-text-fit to editor-snip%
-
- * string-snip% forces a non-breaking space to draw like a space
-
-101/5:
-
- * Fixed PR 1170, `alignment' menu item from MrEd's
-   `append-editor-font-menu-items'
-
-
-Version 101: ??
+Version 101: October 25, 1999
 
 Showing an inactive child window now raises an exception
 Added set-paragrapgh-alignment to text%
