@@ -419,6 +419,7 @@ top-level-window<%> : area-container-window<%>
     get-edit-target-window - the window to last have the focus (or #f)
     get-focus-object - the window/editor with the curent focus (or #f)
     get-edit-target-object - the window/editor to last have the focus (or #f)
+    on-traverse-char on-system-menu-char
     center move resize
 
 frame% : top-level-window<%>
@@ -428,10 +429,11 @@ frame% : top-level-window<%>
    create-status-line set-status-text has-status-line?
    get-menu-bar
    iconize is-iconized? set-icon maximize
+   on-menu-char
 
 dialog% : top-level-window<%>
    <= label [parent #f] [width #f] [height #f] [x #f] [y #f] [style null]
-      styles: 'no-caption
+      styles: 'no-caption 'resize-border
 
 control<%> : subwindow<%>
    command - just invokes the callback; no longer changes the control value
@@ -702,7 +704,7 @@ add-editor-keymap-functions
 add-text-keymap-functions
 add-pasteboard-keymap-functions
 
-install-standard-text-bindings
+current-text-keymap-initializer
 
 editor-set-x-selection-mode
 
