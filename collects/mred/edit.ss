@@ -872,7 +872,8 @@
 			       (not (= format wx:const-media-ff-copy))
 			       (file-exists? name))
 		      (let ([back-name (mred:path-utils:generate-backup-name name)])
-			(copy-file name back-name)))
+			(with-handlers ([exn:i/o:filesystem:rename? void])
+			  (copy-file name back-name))))
 		    #t)))]
 	  [do-close
 	   (lambda ()
