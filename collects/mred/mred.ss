@@ -4837,7 +4837,8 @@
     min-client-width min-client-height
     on-char on-event on-paint on-scroll on-tab-in
     warp-pointer get-dc
-    set-canvas-background get-canvas-background))
+    set-canvas-background get-canvas-background
+    set-resize-corner))
 
 (define-keywords canvas%-keywords
   window%-keywords
@@ -4875,7 +4876,10 @@
       [get-canvas-background
        (entry-point
 	(lambda ()
-	  (send wx get-canvas-background)))])
+	  (send wx get-canvas-background)))]
+
+      [set-resize-corner (lambda (on?)
+			   (send wx set-resize-corner))])
     (private-field
       [wx #f])
     (sequence

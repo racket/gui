@@ -356,6 +356,7 @@
     scroll
     warp-pointer
     view-start
+    set-resize-corner
     show-scrollbars
     set-scrollbars
     get-virtual-size
