@@ -5899,7 +5899,7 @@
        (lambda ()
 	 (current-output-port user-output-port)
 	 (current-error-port user-output-port)
-	 (current-input-port (make-custom-input-port #f (lambda (s) eof) #f void)))
+	 (current-input-port (make-custom-input-port (lambda (s) eof) #f void)))
        #t)))
 
   (send repl-display-canvas set-editor repl-buffer)
@@ -7293,7 +7293,7 @@
 	   [snip (send text find-snip start 'after-or-none)]
 	   [str #f]
 	   [pos 0]
-	   [semaphore (make-semaphore 1)]
+	   [lock-semaphore (make-semaphore 1)]
 	   [update-str-to-snip
 	    (lambda ()
 	      (cond
@@ -7341,10 +7341,9 @@
 	   ;; We create a slow port for now; in the future, try
 	   ;; grabbing more characters:
 	   [port (make-custom-input-port 
-		  semaphore
 		  (lambda (s)
 		    (parameterize ([break-enabled #f])
-		      (if (semaphore-try-wait? semaphore)
+		      (if (semaphore-try-wait? lock-semaphore)
 			  (dynamic-wind
 			      void
 			      (lambda ()
@@ -7354,8 +7353,8 @@
 					(string-set! s 0 c)
 					1)
 				      c)))
-			      (lambda () (semaphore-post semaphore)))
-			  0)))
+			      (lambda () (semaphore-post lock-semaphore)))
+			  (make-semaphore-repost-waitable lock-semaphore))))
 		  #f ; no peek
 		  close)])
       (update-str-to-snip)
