@@ -85,15 +85,16 @@
 			     (if (get-resource "mred" "splashMessages" b)
 				 (not (zero? (unbox b)))
 				 #f))]
-	 [(panel) (make-object vertical-panel% frame)]
+	 [(panel) (make-object vertical-pane% frame)]
 	 [(logo-canvas) (make-object splash-canvas% panel)]
-	 [(h-panel) (make-object (if show-messages? horizontal-panel% vertical-panel%)
+	 [(h-panel) (make-object (if show-messages? horizontal-pane% vertical-pane%)
 		      panel)]
 	 [(gauge) (make-object gauge% #f splash-max-width h-panel
 			       (if show-messages?
 				   '(vertical)
 				   '(horizontal)))]
-	 [(v-panel) (make-object vertical-panel% h-panel)]
+	 [(v-panel) (make-object vertical-pane% h-panel)]
+	 [(spacer) (make-object grow-box-spacer-pane% h-panel)]
 	 [(splash-messages)
 	  (and show-messages?
 	       (let ([msgs
