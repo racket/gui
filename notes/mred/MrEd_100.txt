@@ -925,7 +925,7 @@ key-event%'s key-code method was removed
 key-event%'s get-key-code returns a character or a symbol
  instead of a number
 
-window%'s set-cursor no longer returns the cursor; added get-cursor,
+window<%>'s set-cursor no longer returns the cursor; added get-cursor,
  instead
 
 editor-snip%'s resize method no longer calls the embedded buffer's
@@ -934,9 +934,10 @@ editor-snip%'s resize method no longer calls the embedded buffer's
 {get-set}-{...} PS configuration bundled into an object, an instance of
  ps-setup%; added current-ps-setup parameter.
 
-media-buffer%'s do-edit changed to do-edit-operation, takes a symbol
- instead of a number
+media-buffer%'s do-edit changed to editor<%>'s do-edit-operation,
+ takes a symbol instead of a number
 
+pasteboard%'s {on,after}-interactive-move takes a mouse-event% object
 
 -----------------------------
  TODO: Miscellaneous Cleanup
