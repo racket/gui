@@ -4,6 +4,8 @@
 
  * Fixed bad calls to get-extent in media-edit% (PR 1218)
 
+ * A text-field%'s text% is in paste-text-only mode by default
+
 101/6:
 
  * Added 'symbol font family
@@ -38,6 +40,7 @@ Added 'symbol font family
 Added {set,get}-paste-text-only to editor<%>
 Added {set,get}-line-spacing and {set,get}-styles-sticky to text%
 Added {set,get}-tight-text-fit to editor-snip%
+A text-field%'s text% is in paste-text-only mode by default
 
 ----------------------------------------------------------------------
 

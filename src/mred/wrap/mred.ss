@@ -2472,6 +2472,7 @@
 			      '(hide-hscroll))
 			  '(hide-vscroll hide-hscroll)))])
     (sequence
+      (send e set-paste-text-only #t)
       (send e auto-wrap (and multi? (not (memq 'hscroll style))))
       (let ([f (get-control-font)]
 	    [s (send (send e get-style-list) find-named-style "Standard")])
