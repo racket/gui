@@ -1,6 +1,8 @@
 (unit/sig framework:color-model^
   (import mzlib:function^)
 
+  ;(require-library "function.ss")
+
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;;;                                 ;;;
   ;;;           matrix ops            ;;;
@@ -130,36 +132,34 @@
   '(equal? (matrix-multiply '((1 2 3 4) (9 8 3 2)) '((0) (2) (0) (3)))
           '((16) (22)))
   
-  (void)
-  
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;;;                                 ;;;
   ;;;           color model           ;;;
   ;;;                                 ;;;
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-  ; ntsc standard rgb phosphor constants:
+  ; ITU reccommendation phosphors:
   
   ;    red green blue
-  ;x   0.67 0.21 0.14
-  ;y   0.33 0.71 0.08
+  ;x   0.64 0.29 0.15
+  ;y   0.33 0.60 0.06
   ;
   ; white point: 
-  ; c : x-w = 0.31, y-w = 0.316, big-y-w = 100.0
+  ; c : x-w = 0.313, y-w = 0.329, big-y-w = 100.0
   
-  (define x-r 0.67)
+  (define x-r 0.64)
   (define y-r 0.33)
-  (define x-g 0.21)
-  (define y-g 0.71)
-  (define x-b 0.14)
-  (define y-b 0.08)
+  (define x-g 0.29)
+  (define y-g 0.60)
+  (define x-b 0.15)
+  (define y-b 0.06)
   
   (define z-r (- 1 x-r y-r))
   (define z-g (- 1 x-g y-g))
   (define z-b (- 1 x-b y-b))
-  
-  (define x-w 0.31)
-  (define y-w 0.316)
+ 
+  (define x-w 0.313)
+  (define y-w 0.329)
   (define big-y-w 100.0)
   
   (define-struct xyz (x y z))
@@ -192,33 +192,26 @@
                                          (,(xyz-z xyz-white))))])
       (apply values (car (transpose sigmas)))))
   
-  (define big-x-r (* x-r sigma-r))
-  (define big-y-r (* y-r sigma-r))
-  (define big-z-r (* z-r sigma-r))
-  
-  (define big-x-g (* x-g sigma-g))
-  (define big-y-g (* y-g sigma-g))
-  (define big-z-g (* z-g sigma-g))
-  
-  (define big-x-b (* x-b sigma-b))
-  (define big-y-b (* y-b sigma-b))
-  (define big-z-b (* z-b sigma-b))
+  '(printf "should be equal to xyz-white: ~n~a~n"
+          (matrix-multiply pre-matrix `((,sigma-r)
+                                        (,sigma-g)
+                                        (,sigma-b))))
   
   (define rgb->xyz-matrix
-    (map (lambda (row scalar)
-           (map (lambda (row-elt) (* row-elt scalar 1/255)) row))
-         pre-matrix
-         `(,sigma-r ,sigma-g ,sigma-b)))
-  
-  ;(printf "rgb->xyz-matrix: ~n~s~n" rgb->xyz-matrix)
+    (map (lambda (row)
+           (map (lambda (row-elt scalar) (* row-elt scalar 1/255)) row `(,sigma-r ,sigma-g ,sigma-b)))
+         pre-matrix))
   
   (define xyz->rgb-matrix
     (matrix-invert rgb->xyz-matrix))
   
-  ;(printf "xyz->rgb-matrix: ~n~s~n" xyz->rgb-matrix)
+  '(printf "should be identity: ~n~a~n" (matrix-multiply rgb->xyz-matrix xyz->rgb-matrix))
   
   (define (rgb->xyz r g b)
     (apply make-xyz (car (transpose (matrix-multiply rgb->xyz-matrix (transpose `((,r ,g ,b))))))))
+  
+  '(print-struct #t)
+  '(printf "should be xyz-white: ~n~a~n" (rgb->xyz 255 255 255))
   
   (define (xyz->rgb x y z)
     (car (transpose (matrix-multiply xyz->rgb-matrix (transpose `((,x ,y ,z)))))))
@@ -229,6 +222,13 @@
   ;
   ;u-p = (4x)/(x+15y+3z)   v-p = (9y)/(x+15y+3z)
   ;u-p-n = (same but with -n) v-p-n = (same but with -n)
+  
+  ; the following transformation is undefined if the y component
+  ; is zero.  So if it is, we bump it up a little.
+  
+  (define (xyz-tweak xyz)
+    (let* ([y (xyz-y xyz)])
+      (make-xyz (xyz-x xyz) (if (< y 0.01) 0.01 y) (xyz-z xyz))))
   
   (define-struct luv (l u v))
   
@@ -242,22 +242,31 @@
     (/ (* 9 (xyz-y xyz)) (xyz-denom xyz)))
   
   (define (xyz->luv xyz)
-    (let* ([l (- (* 116 (expt (/ (xyz-y xyz) (xyz-y xyz-white))
-                              1/3))
-                 16)]
-           [u-p (xyz-u-p xyz)]
-           [u-p-white (xyz-u-p xyz-white)]
-           [v-p (xyz-v-p xyz)]
-           [v-p-white (xyz-v-p xyz-white)])
-      (make-luv l (* 13 l (- u-p u-p-white)) (* 13 l (- v-p v-p-white)))))
+    (let ([xyz (xyz-tweak xyz)])
+      (let* ([l (- (* 116 (expt (/ (xyz-y xyz) (xyz-y xyz-white))
+                                1/3))
+                   16)]
+             [u-p (xyz-u-p xyz)]
+             [u-p-white (xyz-u-p xyz-white)]
+             [v-p (xyz-v-p xyz)]
+             [v-p-white (xyz-v-p xyz-white)])
+        (make-luv l (* 13 l (- u-p u-p-white)) (* 13 l (- v-p v-p-white))))))
   
   (define (luv-distance a b)
     (expt (+ (expt (- (luv-l a) (luv-l b)) 2)
              (expt (- (luv-u a) (luv-u b)) 2)
              (expt (- (luv-v a) (luv-v b)) 2))
-          1/3))
+          1/2))
   
   (define (rgb-color-distance r-a g-a b-a r-b g-b b-b)
     (let* ([luv-a (xyz->luv (rgb->xyz r-a g-a b-a))]
            [luv-b (xyz->luv (rgb->xyz r-b g-b b-b))])
-      (luv-distance luv-a luv-b))))
+      (luv-distance luv-a luv-b)))
+  
+  '(rgb-color-distance 0 0 0 0 0 0)
+ 
+  '(print-struct #t)
+  
+  '(xyz->luv (make-xyz 95.0 100.0 141.0))
+  '(xyz->luv (make-xyz 60.0 80.0 20.0))
+)
