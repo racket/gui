@@ -4,7 +4,7 @@
 	    [mred:handler mred:handler^] [mred:find-string mred:find-string^]
 	    [mred:scheme-paren mred:scheme-paren^])
 
-    (mred:debug:printf "mred:keymap@~n")
+    (mred:debug:printf "mred:keymap@")
 
     ; This is a list of keys that are typed with the SHIFT key, but
     ;  are not normally thought of as shifted. It will have to be
