@@ -230,7 +230,8 @@
 		       (if (test-frame frame)
 			   frame
 			   (loop (cdr frames))))]))))]
-	  (super-instantiate ())))
+	  
+          (super-instantiate ())))
       
       (define (internal-get-the-frame-group)
 	(let ([the-frame-group (make-object %)])

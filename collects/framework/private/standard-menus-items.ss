@@ -339,8 +339,8 @@
                         '(string-constant find-again-info)
                         #f
                         #\g 
-                        '(string-constant find-menu-item-before)
-                        '(string-constant find-menu-item-after)
+                        '(string-constant find-again-menu-item-before)
+                        '(string-constant find-again-menu-item-after)
                         edit-menu:edit-target-on-demand)
           (make-an-item 'edit-menu 'replace-and-find-again 
                         '(string-constant replace-and-find-again-info)

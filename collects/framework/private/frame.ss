@@ -843,7 +843,13 @@
            (let* ([to-be-searched-text (send frame get-text-to-search)]
                   [to-be-searched-canvas (send to-be-searched-text get-canvas)]
                   
-                  [dialog (make-object dialog% (string-constant find-and-replace) frame)]
+                  [allow-replace? (not (send to-be-searched-text is-locked?))]
+                  
+                  [dialog (make-object dialog% 
+                            (if allow-replace?
+                                (string-constant find-and-replace)
+                                (string-constant find))
+                            frame)]
                   
                   [copy-text
                    (lambda (from to)
@@ -905,19 +911,35 @@
                                     (lambda x
                                       (update-texts)
                                       (send frame replace)))]
-                  [replace-button (make-object button% (string-constant replace&find-again)
-                                    button-panel
-                                    (lambda x
-                                      (update-texts)
-                                      (send frame replace&search)))]
-                  [replace-button (make-object button% (string-constant replace-to-end) button-panel
-                                    (lambda x
-                                      (update-texts)
-                                      (send frame replace-all)))]
+                  [replace-and-find-button (make-object button% (string-constant replace&find-again)
+                                             button-panel
+                                             (lambda x
+                                               (update-texts)
+                                               (send frame replace&search)))]
+                  [replace-to-end-button
+                   (make-object button% (string-constant replace-to-end) button-panel
+                     (lambda x
+                       (update-texts)
+                       (send frame replace-all)))]
                   [close-button (make-object button% (string-constant close) button-panel
                                   (lambda x
                                     (send to-be-searched-canvas force-display-focus #f)
                                     (send dialog show #f)))])
+
+             (unless allow-replace?
+               (send button-panel change-children
+                     (lambda (l)
+                       (remq
+                        replace-button
+                        (remq
+                         replace-and-find-button
+                         (remq 
+                          replace-to-end-button
+                          l)))))
+               (send dialog change-children
+                     (lambda (l)
+                       (remq replace-panel l))))
+
              (copy-text find-edit f-text)
              (copy-text replace-edit r-text)
              (send find-canvas min-width 400)
@@ -1106,9 +1128,10 @@
                                               top-searching-edit))]
                         
                         [not-found
-                         (lambda (found-edit)
+                         (lambda (found-edit skip-beep?)
                            (send found-edit set-position search-anchor)
-                           (when beep?
+                           (when (and beep?
+                                      (not skip-beep?))
                              (bell))
                            #f)]
                         [found
@@ -1123,7 +1146,7 @@
                                 #f #t 'local))
                              #t))])
                    (if (string=? string "")
-                       (not-found top-searching-edit)
+                       (not-found top-searching-edit #t)
                        (begin
                          (when reset-search-anchor?
                            (reset-search-anchor searching-edit))
@@ -1146,9 +1169,9 @@
                                                      0
                                                      (send searching-edit last-position)))])
                                     (if (not pos)
-                                        (not-found found-edit)
+                                        (not-found found-edit #f)
                                         (found found-edit pos)))
-                                  (not-found found-edit))]
+                                  (not-found found-edit #f))]
                              [else
                               (found found-edit first-pos)])))))))])
           (private-field
@@ -1271,9 +1294,27 @@
               (when (and hidden?
                          (not (preferences:get 'framework:search-using-dialog?)))
                 (set! hidden? #f)
+                (show/hide-replace (send (get-text-to-search) is-locked?))
                 (send search-panel focus)
                 (send super-root add-child search-panel)
                 (reset-search-anchor (get-text-to-search))))]
+
+          (define (show/hide-replace hide?)
+            (cond
+              [hide?
+               (send replace-canvas-panel change-children
+                     (lambda (l) null))
+               (send replace-button-panel change-children (lambda (l) null))
+               (send middle-middle-panel change-children (lambda (l) null))]
+              [else
+               (send replace-canvas-panel change-children
+                     (lambda (l) (list replace-canvas)))
+               (send replace-button-panel change-children
+                     (lambda (l) (list replace-button)))
+               (send middle-middle-panel change-children
+                     (lambda (l) (list replace&search-button
+                                       replace-all-button)))]))
+
           [define remove-callback
             (preferences:add-callback
              'framework:search-using-dialog?
@@ -1394,7 +1435,11 @@
           
           [define left-panel (make-object vertical-panel% search-panel)]
           [define find-canvas (make-object searchable-canvas% left-panel)]
-          [define replace-canvas (make-object searchable-canvas% left-panel)]
+          [define replace-canvas-panel (instantiate vertical-panel% ()
+                                         (parent left-panel)
+                                         (stretchable-width #t)
+                                         (stretchable-height #f))]
+          [define replace-canvas (make-object searchable-canvas% replace-canvas-panel)]
           
           [define middle-left-panel (make-object vertical-pane% search-panel)]
           [define middle-middle-panel (make-object vertical-pane% search-panel)]
@@ -1404,13 +1449,22 @@
                                   (string-constant find)
                                   middle-left-panel
                                   (lambda args (search-again)))]
+
+          [define replace-button-panel
+            (instantiate vertical-panel% ()
+              (parent middle-left-panel)
+              (stretchable-width #f)
+              (stretchable-height #f))]
+          
+          [define replace-button (make-object button% (string-constant replace)
+                                   replace-button-panel
+                                   (lambda x (replace)))]
           
           [define replace&search-button (make-object button% 
                                           (string-constant replace&find-again)
-                                          middle-middle-panel 
+                                          middle-middle-panel
                                           (lambda x (replace&search)))]
-          [define replace-button (make-object button% (string-constant replace)
-                                   middle-left-panel (lambda x (replace)))]
+
           [define replace-all-button (make-object button% 
                                        (string-constant replace-to-end)
                                        middle-middle-panel
@@ -1443,10 +1497,11 @@
           (for-each (lambda (x) (send x set-alignment 'center 'center))
                     (list middle-left-panel middle-middle-panel))
           (for-each (lambda (x) (send x stretchable-height #f))
-                    (list search-panel left-panel middle-left-panel middle-middle-panel middle-right-panel))
+                    (list search-panel middle-left-panel middle-middle-panel middle-right-panel))
           (for-each (lambda (x) (send x stretchable-width #f))
                     (list middle-left-panel middle-middle-panel middle-right-panel))
           (send find-canvas set-editor find-edit)
+          (send find-canvas stretchable-height #t)
           (send replace-canvas set-editor replace-edit) 
           (hide-search #t)))
       
