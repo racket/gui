@@ -5,7 +5,7 @@ string=? ; exec mred -mgaqvf $0
 (require-library "pretty.ss")
 (require-library "function.ss")
 
-(load-relative "standard-menus-items.ss")
+(require-library "standard-menus-items.ss" "framework")
 
 (define build-id
   (case-lambda
@@ -111,7 +111,7 @@ string=? ; exec mred -mgaqvf $0
   `(public [,(generic-name generic)
 	    ,(generic-initializer generic)]))
 
-(call-with-output-file "standard-menus.ss"
+(call-with-output-file (build-path (collection-path "framework") "standard-menus.ss")
   (lambda (port)
     (pretty-print
      `(define standard-menus<%>
@@ -131,7 +131,7 @@ string=? ; exec mred -mgaqvf $0
     (pretty-print
      `(define standard-menus-mixin
 	(mixin (basic<%>) (standard-menus<%>) args
-	  (inherit get-menu-bar on-close show)
+	  (inherit get-menu-bar can-close? on-close show)
 	  (sequence (apply super-init args))
 	  ,@(append 
 	     (map (lambda (x)

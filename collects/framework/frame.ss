@@ -65,6 +65,7 @@
 	   (make-object % parent))])
       (sequence
 	(apply super-init args)
+	(send (group:get-the-frame-group) insert-frame this)
 	(make-object (get-menu-bar%) this))
       (private
 	[panel (make-root-area-container (get-area-container%) this)])

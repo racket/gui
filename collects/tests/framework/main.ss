@@ -150,11 +150,12 @@
 			(and (list? answer)
 			     (= 2 (length answer))))
 	      (error 'send-sexp-to-mred "unpected result from mred: ~s~n" answer))
+
 	    (if (eof-object? answer)
 		(raise (make-eof-result))
 		(case (car answer)
 		  [(error)
-		   (error 'send-sexp-to-mred (format "mred raised \"~a\"" (second answer)))]
+		   (error 'send-sexp-to-mred "mred raised \"~a\"" (second answer))]
 		  [(cant-read) (error 'mred/cant-parse (second answer))]
 		  [(normal) 
 		   (printf "  ~a // ~a: received from mred:~n" section-name test-name)

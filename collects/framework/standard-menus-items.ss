@@ -112,7 +112,7 @@
 	(make-between 'file-menu 'print 'close 'separator)
 	(make-an-item 'file-menu 'close
 		      "Close this file"
-		      '(lambda (item control) (when (on-close) (show #f)) #t)
+		      '(lambda (item control) (when (can-close?) (on-close) (show #f)) #t)
 		      #\w "&Close" "")
 	(make-between 'file-menu 'close 'quit 'nothing)
 	(make-an-item 'file-menu 'quit
