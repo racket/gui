@@ -30,8 +30,8 @@
   
   (define exiting? #f)
 
-  (define (can-exit?) (and (andmap (lambda (cb) (cb)) can?-callbacks)
-			   (user-oks-exit)))
+  (define (can-exit?) (and (user-oks-exit)
+			   (andmap (lambda (cb) (cb)) can?-callbacks)))
   (define (on-exit) (for-each (lambda (cb) (cb)) on-callbacks))
 
   (define (user-oks-exit)

@@ -242,29 +242,30 @@
 	      [super-on-close on-close]
 	      [super-set-modified set-modified])
       (private
-	[freshen-backup? #t]
 	[auto-saved-name #f]
 	[auto-save-out-of-date? #t]
-	[auto-save-error? #f])
+	[auto-save-error? #f]
+	[file-old?
+	 (lambda (filename)
+	   (let ([modified-seconds (file-or-directory-modify-seconds filename)]
+		 [old-seconds (- (current-seconds) (* 7 24 60 60))])
+	     (< modified-seconds old-seconds)))])
       (public
 	[backup? (lambda () #t)])
       (override
 	[on-save-file
 	 (lambda (name format)
+	   (super-on-save-file name format)
 	   (set! auto-save-error? #f)
-	   (and (super-on-save-file name format)
-		(begin
-		  (when (and (backup?)
-			     freshen-backup?
-			     (not (eq? format 'copy))
-			     (file-exists? name))
-		    (let ([back-name (path-utils:generate-backup-name name)])
-		      (set! freshen-backup? #f)
-		      (when (file-exists? back-name)
-			(delete-file back-name))
-		      (with-handlers ([(lambda (x) #t) void])
-			(copy-file name back-name))))
-		  #t)))]
+	   (when (and (backup?)
+		      (not (eq? format 'copy))
+		      (file-exists? name))
+	     (let ([back-name (path-utils:generate-backup-name name)])
+	       (when (or (not (file-exists? back-name))
+			 (file-old? back-name))
+		 (delete-file back-name))
+	       (with-handlers ([(lambda (x) #t) void])
+		 (copy-file name back-name)))))]
 	[on-close
 	 (lambda ()
 	   (super-on-close)
@@ -279,9 +280,7 @@
 	   (when auto-saved-name
 	     (if modified?
 		 (set! auto-save-out-of-date? #t)
-		 (begin
-		   (delete-file auto-saved-name)
-		   (set! auto-saved-name #f))))
+		 (remove-autosave)))
 	   (super-set-modified modified?))])
       (public
 	[autosave? (lambda () #t)]
@@ -293,19 +292,20 @@
 		      (or (not auto-saved-name)
 			  auto-save-out-of-date?))
 	     (let* ([orig-name (get-filename)]
+		    [old-auto-name auto-saved-name]
 		    [auto-name (path-utils:generate-autosave-name orig-name)]
 		    [success (save-file auto-name 'copy)])
 	       (if success
 		   (begin
-		     (when auto-saved-name
-		       (delete-file auto-saved-name))
+		     (when old-auto-name
+		       (delete-file old-auto-name))
 		     (set! auto-saved-name auto-name)
 		     (set! auto-save-out-of-date? #f))
 		   (begin
 		     (message-box 
 		      "Warning"
 		      (format "Error autosaving ~s.~n~a~n~a"
-			      (if (null? orig-name) "Untitled" orig-name)
+			      (or orig-name "Untitled")
 			      "Autosaving is turned off"
 			      "until the file is saved."))
 		     (set! auto-save-error? #t))))))]

@@ -197,7 +197,14 @@
        (at-most-one
 	#t
 	(lambda ()
-	  (send (group:get-the-frame-group) close-all))))))
+	  (send (group:get-the-frame-group) can-close-all?)))))    
+
+    (exit:insert-on-callback
+     (lambda ()
+       (at-most-one
+	#t
+	(lambda ()
+	  (send (group:get-the-frame-group) on-close-all))))))
   
   (exit:insert-on-callback 
    (lambda ()

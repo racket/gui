@@ -52,6 +52,7 @@
 	    'failed))))
 
 (define tmp-file (build-path (find-system-path 'temp-dir) "framework-exit-test-suite"))
+;; need to test "on" callbacks
 (test 'exit-callback-called
       (lambda (x)
 	(begin0 (and (file-exists? tmp-file) (not (mred-running?)))
@@ -63,7 +64,7 @@
 	  (send-sexp-to-mred
 	   `(begin
 	      (preferences:set 'framework:verify-exit #f)
-	      (exit:insert-callback (lambda () (call-with-output-file ,tmp-file void) #t))
+	      (exit:insert-can?-callback (lambda () (call-with-output-file ,tmp-file void) #t))
 	      (exit:exit))))))
 
 (test 'exit-callback-removed
@@ -73,7 +74,7 @@
 	  (send-sexp-to-mred
 	   `(begin
 	      (preferences:set 'framework:verify-exit #f)
-	      ((exit:insert-callback (lambda () (error 'called-exit-callback))))
+	      ((exit:insert-can?-callback (lambda () (error 'called-exit-callback))))
 	      (exit:exit))))))
 
 (test 'exit-callback-stops-exit
@@ -83,7 +84,7 @@
 	 (send-sexp-to-mred
 	  `(begin
 	     (preferences:set 'framework:verify-exit #f)
-	     (let ([rm-callback (exit:insert-callback (lambda () #f))])
+	     (let ([rm-callback (exit:insert-can?-callback (lambda () #f))])
 	       (exit:exit)
 	       (rm-callback)
 	       'passed)))
