@@ -9,7 +9,7 @@
 (define (test expect name got)
   (set! test-count (add1 test-count))
   (unless (equal? expect got)
-    (let ([s (format "~a: expected ~a; got ~a" name expect got)])
+    (let ([s (format "~a: expected ~e; got ~e" name expect got)])
       (printf "ERROR: ~a~n" s)
       (set! errs (cons s errs)))))
 

@@ -80,7 +80,7 @@
 		   (readable-snip<%>)
 		   (define/public (read-one-special index src line col pos)
 		     (if multi-mode?
-			 (values 'multi 1 (= index 1))
+			 (values 'multi (= index 1))
 			 (error 'ack)))
 		   (super-new))))
   (let ([p (open-input-text-editor e)])
@@ -114,7 +114,87 @@
     (test 'multi 'read (read p))
     (test 'multi 'read (read p))
     (test #t 'read (is-a? (read p) image-snip%))))
-		 
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;                            Snips and Streams                               ;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(define number-snip-class%
+  (class snip-class%
+    (define/override (read f)
+      (let* ([number-str (send f get-bytes)]
+             [number (string->number (bytes->string/utf-8 number-str))]
+             [decimal-prefix (bytes->string/utf-8 (send f get-bytes))]
+             [snip
+              (instantiate number-snip% ()
+                [number number]
+                [decimal-prefix decimal-prefix])])
+        snip))
+    (super-instantiate ())))
+
+(define snip-class (make-object number-snip-class%))
+(send snip-class set-classname (format "~s" `(lib "number-snip.ss" "drscheme" "private")))
+(send (get-the-snip-class-list) add snip-class)
+
+(define number-snip%
+  (class snip%
+    (init-field number)
+    (define/public (get-number) number)
+    (define/public (get-prefix) decimal-prefix)
+    (init-field [decimal-prefix ""])
+    (define/override (write f)
+      (send f put (string->bytes/utf-8 (number->string number)))
+      (send f put (string->bytes/utf-8 decimal-prefix)))
+    (define/override (copy)
+      (instantiate number-snip% ()
+        [number number]
+        [decimal-prefix decimal-prefix]))
+    (inherit get-style)
+    (super-instantiate ())
+    (inherit set-snipclass set-flags get-flags)
+    (set-snipclass snip-class)))
+
+(define t (new text%))
+(define t2 (new text%))
+(send t insert (instantiate number-snip% () [number 1/2]))
+(send t set-position 0 1)
+(send t copy)
+;; Under X, force snip to be marshalled:
+(let ([s (send the-clipboard get-clipboard-data "WXME" 0)])
+  (send the-clipboard set-clipboard-client
+	(make-object (class clipboard-client%
+		       (define/override (get-data fmt)
+			 (and (string=? fmt "WXME")
+			      s))
+		       (inherit add-type)
+		       (super-new)
+		       (add-type "WXME")))
+	0))
+(send t2 paste)
+(let ([s (send t2 find-first-snip)])
+  (st 1/2 s get-number)
+  (st "" s get-prefix))
+
+
+(let ()
+  (define orig-snip (make-object string-snip% "hello"))
+  
+  (define out (make-object editor-stream-out-bytes-base%))
+  (define out-stream (make-object editor-stream-out% out))
+  
+  (define _ (send orig-snip write out-stream))
+  
+  (define in (make-object editor-stream-in-bytes-base% (send out get-bytes)))
+  (define in-stream (make-object editor-stream-in% in))
+  
+  (define new-snip
+    (send (send (get-the-snip-class-list) 
+		find 
+		(send (send (new string-snip%) get-snipclass) get-classname))
+	  read in-stream))
+  
+  (st "hello" new-snip get-text 0 10))
+
+;; ----------------------------------------
 
 (report-errs)

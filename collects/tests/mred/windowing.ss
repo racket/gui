@@ -33,10 +33,10 @@
 (let ([s (make-semaphore 1)])
   (test s 'yield-wrapped (yield s)))
 (let ([s (make-semaphore 1)])
-  (test (list s) 'yield-wrapped (yield (make-wrapped-waitable s (lambda (v) (list v))))))
+  (test (list s) 'yield-wrapped (yield (wrap-evt s (lambda (v) (list v))))))
 (let ([s (make-semaphore)])
   (thread (lambda () (sleep 0.01) (semaphore-post s)))
-  (test (list s) 'yield-wrapped (yield (make-wrapped-waitable s (lambda (v) (list v))))))
+  (test (list s) 'yield-wrapped (yield (wrap-evt s (lambda (v) (list v))))))
 
 (define (enable-tests f)
   (printf "Enable ~a~n" f)
