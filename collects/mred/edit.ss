@@ -994,7 +994,7 @@
 		   (lambda ()
 		     (let ([frame (get-frame)])
 		       (when frame
-			 ((uq-ivar frame ivar-sym))))))
+			 ((ivar/proc frame ivar-sym))))))
 	      tag))])
 	(public
 	  [set-anchor

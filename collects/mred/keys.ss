@@ -60,7 +60,7 @@
 			 (if (is-a? p wx:frame%)
 			     p
 			     (loop (send p get-parent))))])
-		  ((uq-ivar frame method))
+		  ((ivar/proc frame method))
 		  #t)))])
       (lambda (kmap)
 	(let* ([map (lambda (key func) 
