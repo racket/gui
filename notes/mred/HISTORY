@@ -1,4 +1,11 @@
 
+Version 199.7:
+
+ * Added a 'gl style flag to canvas%, for use with extensions that
+   draw to the current OpenGL context. The canvas% class also has two
+   new methods: `with-gl-context' and `swap-gl-buffers'. The 'gl style
+   is only support in Windows for now.
+
 Version 199.1:
 
  * MacOS: play-sound now plays virtually any kind of sound, including
@@ -92,10 +99,14 @@ Added optional filters argument to get-file, put-file, and
  get-file-list (used by Windows, only)
 Fixed internal lock handling on focus and activation events
 Removed ps-setup%'s get-options and set-options
+Added a 'gl style flag to canvas%, and with-gl-context and
+ swap-gl-buffers methods. They're support for Windows, only.
 Windows: removed special handling of Ctl-m, Ctl-i, and Ctl-h
 X: Default keymap double-click time determined via the standard Xt
  function
 X: changed default preview command from "ghostview" to "gv"
+MacOS: play-sound plays virtually any kind of sound, including
+ .wav files; QuickTime 3.0 or higher is required
 
 ----------------------------------------------------------------------
 
