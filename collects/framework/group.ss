@@ -1,6 +1,7 @@
 (unit/sig framework:group^
   (import mred^
 	  [exit : framework:exit^]
+	  [frame : framework:frame^]
 	  [mzlib:function : mzlib:function^]
 	  [mzlib:file : mzlib:file^])
   

@@ -2,6 +2,9 @@
   (import mred^
 	  [preferences : framework:preferences^])
   
+  ;; wx: this need to collude with
+  ;;     the edit, since the edit has the right callbacks.
+  
   (define make-wide-snip%
     (lambda (super%)
       (class-asi super%
@@ -10,7 +13,6 @@
 	(private
 	  [wide-snips null]
 	  [tall-snips null]
-	  [autowrap-snips (preferences:get 'framework:auto-set-wrap?)]
 	  [update-snip-size
 	   (lambda (width?)
 	     (lambda (s)
@@ -65,7 +67,7 @@
 					  (set-max-width snip-width))
 				   (when snip-media
 				     (send snip-media set-max-width
-					   (if autowrap-snips?
+					   (if (send snip-media auto-wrap)
 					       snip-width
 					       0))))
 				 (let ([snip-height (- (unbox height)
@@ -76,10 +78,6 @@
 					  (set-min-height snip-height)
 					  (set-max-height snip-height)))))))))))])
 	(public
-	  [set-autowrap-snips
-	   (lambda (x)
-	     (set! autowrap-snips? x)
-	     (for-each (update-snip-size #t) wide-snips))]
 	  [add-wide-snip
 	   (lambda (snip)
 	     (set! wide-snips (cons snip wide-snips))
@@ -94,4 +92,4 @@
 	     (for-each (update-snip-size #t) wide-snips)
 	     (for-each (update-snip-size #f) tall-snips))]))))
 
-  (define wide-snip% (make-wide-snip-canvas% editor-canvas%)))
+  (define wide-snip% (make-wide-snip% editor-canvas%)))

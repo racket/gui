@@ -10,8 +10,8 @@
 	  [mzlib:function : mzlib:function^]
 	  [mzlib:file : mzlib:file^])
 
-  (rename [put-file -put-file]
-	  [get-file -get-file])
+  (rename [-put-file put-file]
+	  [-get-file get-file])
   
   (define dialog-parent-parameter (make-parameter #f))
 
@@ -51,7 +51,7 @@
   ; the finder-dialog% class controls the user interface for dialogs
   
   (define finder-dialog%
-    (class dialog-box% (parent-win
+    (class dialog% (parent-win
 			save-mode? 
 			replace-ok? 
 			multi-mode? 
@@ -124,8 +124,7 @@
 					 (char=? (string-ref s 0) #\.))
 				    rest]
 				   [(directory-exists? (build-path dir s))
-				    (cons (string-append s (get-slash))
-					  rest)]
+				    (cons s rest)]
 				   [(or (not file-filter)
 					(mzlib:string:regexp-match-exact? 
 					 file-filter s))

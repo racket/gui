@@ -2,6 +2,7 @@
   (import mred^
 	  [exn : framework:exn^]
 	  [exit : framework:exit^]
+	  [panel : framework:panel^]
 	  [mzlib:pretty-print : mzlib:pretty-print^]
 	  [mzlib:function : mzlib:function^])
   
@@ -559,7 +560,7 @@
 		    (send menu stretchable-in-x #f)
 		    menu))]
 	       [popup-menu (make-popup-menu)]
-	       [single-panel (make-object vertical-panel%; This should be single-panel%. wx:
+	       [single-panel (make-object panel:single%
 			       panel '(border))]
 	       [bottom-panel (make-object horizontal-panel% panel)]
 	       [ensure-constructed

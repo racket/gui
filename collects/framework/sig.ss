@@ -38,7 +38,11 @@
    version))
 
 (define-signature framework:panel^
-  (make-edit%
+  (make-single%
+   single<%>
+   single%
+   
+   make-edit%
    edit<%>
    horizontal-edit%
    vertical-edit%))
@@ -171,8 +175,8 @@
    media-snip%))
 
 (define-signature framework:canvas^
-  (make-wide-snip-canvas%
-   wide-snip-canvas%))
+  (make-wide-snip%
+   wide-snip%))
 
 (define-signature framework:frame^
   (empty<%>
@@ -203,7 +207,7 @@
    pasteboard-info-file%))
 
 (define-signature framework:group^
-  (frame-group%
+  (%
    the-frame-group))
 
 (define-signature framework:handler^
