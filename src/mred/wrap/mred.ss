@@ -568,6 +568,13 @@
 	    [super-on-kill-focus on-kill-focus]
 	    [super-pre-on-char pre-on-char]
 	    [super-pre-on-event pre-on-event])
+    (private
+      [pre-wx->proxy (lambda (w k) ; MacOS: w may not be something the user knows
+		       (if w
+			   (if (is-a? w wx/proxy<%>)
+			       (k (wx->proxy w))
+			       (pre-wx->proxy (send w get-parent) k))
+			   #f))])
     (override
       [on-size (lambda (x y)
 		 (super-on-size x y)
@@ -580,10 +587,10 @@
 		      (send proxy on-focus #f))]
       [pre-on-char (lambda (w e)
 		     (super-pre-on-char w e)
-		     (send proxy pre-on-char (wx->proxy w) e))]
+		     (pre-wx->proxy w (lambda (m) (send proxy pre-on-char m e))))]
       [pre-on-event (lambda (w e)
 		      (super-pre-on-event w e)
-		      (send proxy pre-on-event (wx->proxy w) e))])
+		      (pre-wx->proxy w (lambda (m) (send proxy pre-on-event m e))))])
     (sequence (apply super-init mred proxy args))))
 
 (define (make-container-glue% %)
