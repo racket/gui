@@ -567,6 +567,7 @@
 		       get-editor%
 		       get-editor<%>
 		       
+		       get-canvas-area-container
 		       make-editor
 		       save-as
 		       get-canvas
@@ -779,6 +780,7 @@
 	       args))
 	     
       (public
+	[get-canvas-area-container (lambda () (get-area-container))]
 	[get-canvas (let ([c #f])
 		      (lambda () 
 			(unless c
@@ -800,7 +802,10 @@
 	  (send (get-editor) set-filename file-name)]
 	 [else (void)])
 	(let ([canvas (get-canvas)])
-	  (send canvas focus)))))
+	  (when (is-a? canvas editor-canvas%)
+	    ;; when get-canvas is overridden,
+	    ;; it might not yet be implemented
+	    (send canvas focus))))))
   
   (define text<%> (interface (-editor<%>)))
   (define text-mixin
