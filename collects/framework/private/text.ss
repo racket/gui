@@ -1468,7 +1468,9 @@ WARNING: printf is rebound in the body of the unit to always
                              (channel-put-evt 
                               resp-chan
                               (lambda (src line col pos)
-                                nth))])))]
+                                (if (is-a? nth readable-snip<%>)
+                                    (send nth read-special src line col pos)
+                                    nth)))])))]
                       [else
                        #f])]))
                

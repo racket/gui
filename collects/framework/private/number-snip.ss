@@ -34,19 +34,18 @@
       (define -snip-class%
         (class snip-class%
           (define/override (read f)
-            (let* ([number (string->number (send f get-string))]
-                   [decimal-prefix (send f get-string)]
-                   [fraction-str (send f get-string)]
-                   [expansions-str (send f get-string)]
+            (let* ([number (string->number (bytes->string/utf-8 (send f get-bytes)))]
+                   [decimal-prefix (bytes->string/utf-8 (send f get-bytes))]
+                   [fraction-bytes (send f get-bytes)]
+                   [expansions (string->number (bytes->string/utf-8 (send f get-bytes)))]
                    [fraction-view
                     (cond
-                      [(string=? "#t" fraction-str) 'decimal]
-                      [(string=? "#f" fraction-str) 
+                      [(equal? #"#t" fraction-bytes) 'decimal]
+                      [(equal? #"#f" fraction-bytes) 
                        (preferences:get 'framework:fraction-snip-style)]
-                      [(string=? "mixed" fraction-str) 'mixed]
-                      [(string=? "decimal" fraction-str) 'decimal]
-                      [(string=? "improper" fraction-str) 'improper])]
-                   [expansions (string->number expansions-str)]
+                      [(equal? #"mixed" fraction-bytes) 'mixed]
+                      [(equal? #"decimal" fraction-bytes) 'decimal]
+                      [(equal? #"improper" fraction-bytes) 'improper])]
                    [snip
                     (instantiate number-snip% ()
                       [number number]
@@ -54,7 +53,7 @@
               (send snip iterate (max 0 (- expansions 1))) ;; one iteration is automatic
               (send snip set-fraction-view fraction-view)
               snip))
-          (super-instantiate ())))
+          (super-new)))
       
       (define number-snipclass (new -snip-class%))
       (send number-snipclass set-version 3)
@@ -319,10 +318,10 @@
                               dens)])]))
           
           (define/override (write f)
-            (send f put (number->string number))
-            (send f put decimal-prefix)
-            (send f put (format "~a" fraction-view))
-            (send f put (number->string expansions)))
+            (send f put (string->bytes/utf-8 (number->string number)))
+            (send f put (string->bytes/utf-8 decimal-prefix))
+            (send f put (string->bytes/utf-8 (format "~a" fraction-view)))
+            (send f put (string->bytes/utf-8 (number->string expansions))))
           
           (define/override (copy)
             (let ([snip (instantiate number-snip% ()
