@@ -57,17 +57,21 @@
     (test #t 'client-size (and (<= 1 cw w) (<= 1 ch h))))
   (stv f refresh))
 
-(define (area-tests f sw? sh?)
+(define (area-tests f sw? sh? no-stretch?)
   (printf "Area ~a~n" f)
   (let ([x (send f min-width)]
 	[y (send f min-height)])
     (st sw? f stretchable-width)
     (st sh? f stretchable-height)
+    (stv (send f get-top-level-window) reflow-container)
     (pause) ; to make sure size has taken effect
-    (let-values ([(w h) (send f get-size)])
+    (let-values ([(w h) (if no-stretch?
+			    (send f get-size)
+			    (values 0 0))])
       (printf "Size ~a x ~a~n" w h)
-      (stv f min-width w) ; when we turn of stretchability, don't resize
-      (stv f min-height h)
+      (when no-stretch?
+	(stv f min-width w) ; when we turn of stretchability, don't resize
+	(stv f min-height h))
       (stv f stretchable-width #f)
       (stv f stretchable-height #f)
       (st #f f stretchable-width)
@@ -82,7 +86,7 @@
     (stv f min-height y)))
 
 (define (containee-tests f sw? sh? m)
-  (area-tests f sw? sh?)
+  (area-tests f sw? sh? #f)
   (printf "Containee ~a~n" f)
   (st m f horiz-margin)
   (st m f vert-margin)
@@ -95,30 +99,31 @@
   (st 3 f vert-margin)
   (stv f vert-margin m))
 
-(define (container-tests f)
+(define (container-tests f win?)
   (printf "Container ~a~n" f)
   (let-values ([(x y) (send f get-alignment)])
     (stv f set-alignment 'right 'bottom)
     (stvals '(right bottom) f get-alignment)
     (stv f set-alignment x y))
-  (test #t 'get-label-font-kind (is-a? (send f get-label-font) font%))
-  (test #t 'get-label-font-kind (is-a? (send f get-control-font) font%))
-  (st (send f get-label-font) f get-control-font)
-  (let ([fnt (send f get-label-font)]
-	[other-font (make-object font% 20 'decorative 'normal 'bold)])
-    (st 'system fnt get-family)
-    (st 'normal fnt get-style)
-    (st 'normal fnt get-weight)
-    (stv f set-label-font other-font)
-    (st other-font f get-label-font)
-    (stv f set-label-font fnt)
-    (stv f set-control-font other-font)
-    (st other-font f get-control-font)
-    (stv f set-control-font fnt))
-  (st 'horizontal f get-label-position)
-  (stv f set-label-position 'vertical)
-  (st 'vertical f get-label-position)
-  (stv f set-label-position 'horizontal))
+  (when win?
+    (test #t 'get-label-font-kind (is-a? (send f get-label-font) font%))
+    (test #t 'get-label-font-kind (is-a? (send f get-control-font) font%))
+    (st (send f get-label-font) f get-control-font)
+    (let ([fnt (send f get-label-font)]
+	  [other-font (make-object font% 20 'decorative 'normal 'bold)])
+      (st 'system fnt get-family)
+      (st 'normal fnt get-style)
+      (st 'normal fnt get-weight)
+      (stv f set-label-font other-font)
+      (st other-font f get-label-font)
+      (stv f set-label-font fnt)
+      (stv f set-control-font other-font)
+      (st other-font f get-control-font)
+      (stv f set-control-font fnt))
+    (st 'horizontal f get-label-position)
+    (stv f set-label-position 'vertical)
+    (st 'vertical f get-label-position)
+    (stv f set-label-position 'horizontal)))
 
 (define (cursor-tests f)
   (printf "Cursor ~a~n" f)
@@ -141,8 +146,11 @@
   (enable-tests f)
   (drop-file-tests f)
   (client->screen-tests f)
-  (containee-tests f sw? sh? m)
   (cursor-tests f))
+
+(define (containee-window-tests f sw? sh? parent top m)
+  (window-tests f sw? sh? parent top m)
+  (containee-tests f sw? sh? m))
 
 (define (test-control-event e types)
   (test #t 'event-instance (is-a? e control-event%)) 
@@ -204,11 +212,11 @@
 	[container-tests
 	 (lambda ()
 	   (printf "Container~n")
-	   (area-tests f #t #t)
+	   (area-tests f #t #t #t)
 	   (let-values ([(x y) (send f container-size null)])
 	     (st x f min-width)
 	     (st y f min-height))
-	   (container-tests f))]
+	   (container-tests f #t))]
 	[cursor-tests
 	 (lambda ()
 	   (test #t 'get-cursor-kind (is-a? (send f get-cursor) cursor%))
@@ -469,7 +477,7 @@
     (stv b command (make-object control-event% 'button))
     (test 'button 'button-callback side-effect)
     
-    (window-tests b #f #f parent frame 2))
+    (containee-window-tests b #f #f parent frame 2))
 
   (printf "Check Box~n")
   (letrec ([c (make-object check-box% 
@@ -491,7 +499,7 @@
     (stv c set-value #f)
     (st #f c get-value)
     
-    (window-tests c #f #f parent frame 2))
+    (containee-window-tests c #f #f parent frame 2))
 
   (printf "Radio Box~n")
   (letrec ([r (make-object radio-box%
@@ -553,7 +561,7 @@
     (stv r set-selection 0)
     (st 0 r get-selection)
     
-    (window-tests r #f #f parent frame 2))
+    (containee-window-tests r #f #f parent frame 2))
 
   (printf "Gauge~n")
   (letrec ([g (make-object gauge% 
@@ -585,7 +593,7 @@
     (st 10 g get-range)
     (st 1 g get-value)
     
-    (window-tests g #t #f parent frame 2))
+    (containee-window-tests g #t #f parent frame 2))
 
   (printf "Slider~n")
   (letrec ([s (make-object slider% 
@@ -611,7 +619,7 @@
     (stv s set-value 8)
     (st 8 s get-value)
 
-    (window-tests s #t #f parent frame 2))
+    (containee-window-tests s #t #f parent frame 2))
 
   (let ([test-list-control
 	 (lambda (l choice? multi?)
@@ -748,7 +756,7 @@
 
       (test-list-control c #t #f)
       
-      (window-tests c #f #f parent frame 2))
+      (containee-window-tests c #f #f parent frame 2))
 
     (let ([mk-list
 	   (lambda (style)
@@ -772,7 +780,7 @@
 	       
 	       (test-list-control l #f (and (memq style '(multiple extended)) #t))
 	       
-	       (window-tests l #t #t parent frame 2)
+	       (containee-window-tests l #t #t parent frame 2)
 
 	       (stv parent delete-child l)))])
 
@@ -871,18 +879,86 @@
 		
 	'done-sb))
 
-    (window-tests c #t #t parent frame 0))
+    (stv c warp-pointer 21 23)
+
+    (containee-window-tests c #t #t parent frame 0))
+  
+  (let* ([e (make-object text%)]
+	 [c (make-object editor-canvas%
+			 parent e
+			 null
+			 102)])
+    (let loop ([n 100])
+      (unless (zero? n)
+	(send e insert (format "line ~a~n" n))
+	(loop (sub1 n))))
+
+    (st #f c allow-scroll-to-last)
+    (stv c allow-scroll-to-last #t)
+    (st #t c allow-scroll-to-last)
+    (stv c allow-scroll-to-last #f)
+
+    (st 'hello c call-as-primary-owner (lambda () 'hello))
+
+    (st #f c force-display-focus)
+    (stv c force-display-focus #t)
+    (st #t c force-display-focus)
+    (stv c force-display-focus #f)
+
+    (st e c get-editor)
+    (stv c set-editor #f)
+    (st #f c get-editor)
+    (stv c set-editor e)
+    (st e c get-editor)
+
+    (st #f c lazy-refresh)
+    (stv c lazy-refresh #t)
+    (st #t c lazy-refresh)
+    (stv c lazy-refresh #f)
+
+    (st #f c scroll-with-bottom-base)
+    (stv c scroll-with-bottom-base #t)
+    (st #t c scroll-with-bottom-base)
+    (stv c scroll-with-bottom-base #f)
+
+    (stv c set-line-count 6)
+    (stv c set-line-count #f)
+
+    (containee-window-tests c #t #t parent frame 0))
 
   'done)
 
 (test-controls frame frame)
+
+(define (panel-tests frame% show?)
+  (define (panel-test % win?)
+    (let* ([frame (make-object frame% "Panel Test" #f 100 100)]
+	   [panel (if %
+		      (make-object % frame)
+		      frame)])
+      (when show? (send frame show #t))
+      (test-controls panel frame)
+      (if win?
+	  ((if % containee-window-tests window-tests) panel #t #t (and % frame) frame 0)
+	  (area-tests panel #t #t #f))
+      (container-tests panel win?)
+      (send frame show #f)))
+  (panel-test #f #t)
+  (panel-test vertical-pane% #f)
+  (panel-test horizontal-pane% #f)
+  (panel-test vertical-panel% #t)
+  (panel-test horizontal-panel% #t))
+
+(panel-tests dialog% #f)
+(panel-tests frame% #t)
+(panel-tests frame% #f)
 
 (newline)
 (if (null? errs)
     (printf "Passed all ~a tests~n" test-count)
     (begin
       (printf "~a Error(s) in ~a tests~n" (length errs) test-count)
-      '(for-each
+      (for-each
        (lambda (s)
 	 (printf "~a~n" s))
        (reverse errs))))
