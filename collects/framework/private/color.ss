@@ -601,7 +601,7 @@
                  (insert c)
                  (let ((m (backward-match (+ l pos) start-pos)))
                    (cond
-                     ((and m (send parens is-open-pos? m))
+                     ((and m (send parens is-open-pos? (- m start-pos)))
                       (delete pos (+ l pos))
                       c)
                      (else
