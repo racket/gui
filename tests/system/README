@@ -1,0 +1,109 @@
+		      System Test Suite Overview
+
+Each tests will rely on the sucessfully completion of all of the ones
+before it. In addition, all test suites rely on the sucessful
+completion of the engine test suites and the mzscheme test suites.
+
+All of these tests reside in PLTHOME/tests/system/
+
+There will be a main mzscheme process which will start up a new mred
+as necessary for the test suites. Since some tests actually require
+mred to exit in order to pass, this governor is required.
+
+- preferences: prefs.ss
+
+  | This tests that preferences are saved and restored correctly, both
+  | immediately and across reboots of mred.
+
+- container classes: contain.ss
+  
+  | These tests will open various configurations of windows and
+  | buttons, etc and check to make sure that the buttons and windows are
+  | placed in the expected positions.
+
+- individual object tests:
+
+  | These tests are simple object creation and basic operations.
+
+  - edits: edit.ss
+  - frames: frame.ss
+  - canvases: canvas.ss
+
+- basic connections between classes
+
+  | These tests will create objects in various configurations and
+  | trigger situations to test their functionality. Fake user input
+  | expected.
+
+  - edits to canvases: edit-canvas.ss
+  - canvases to frames: canvas-frame.ss
+  - edits to frames: edit-frame.ss
+
+- keybindings: keys.ss
+
+  | This tests all of the misc (non-scheme) keybindings
+
+- searching: search.ss
+
+  | This tests the seaching frame.
+
+- info: info.ss
+
+  | This tests the info frame. (ie that toolbar on the bottom of the
+                                screen)
+
+- group tests: group.ss
+
+  | make sure that mred:the-frame-group records frames correctly.
+  | fake user input expected.
+
+- parenthesis toolkit: paren.ss
+
+  | Test to be sure that parenthesis matching engine works
+  | No fake user input expected.
+
+- scheme mode
+
+  | Make sure that Scheme things work in scheme mode.
+
+  - parens: paren.ss
+  - keys: skeys.ss
+  - tabbing: tabbing.ss
+
+- saving tests:
+
+  | These tests will make sure that the usual checks against a user
+  | losing their work are in place.
+
+  - autosaving: autosave.ss
+  - closing: close.ss
+  - quitting: quit.ss (this will be a mzscheme script 
+                       that starts up mred)
+
+- dialog tests
+
+  | These tests will create and exercise the various standard dialogs
+  | that mred provides.
+
+- startup tests: startup/run.ss
+
+  | These tests start up mred and test the command line, and other
+  | startup situations. 
+
+  | They also ensure that the minimal mred system option works.
+
+- docs:
+
+  | these tests perform santiy checks to ensure that the docs are up to
+  | date with the code and the mred web browser isn't horribly broken
+
+  - web browers: browse.ss
+
+    | Checks a couple of pages from the documentation. Only checks for
+    | safety violations while opening them. Further tests here will be
+    | post-poned until the implementation itself is cleaned up.
+
+  - inheritance: inheritance.ss
+
+    | make sure that the super-class relationships in the docs match
+    | the code.
