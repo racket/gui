@@ -191,7 +191,7 @@
                                   (color (send (get-style-list) find-named-style style-name))
                                   (sp (+ in-start-pos (sub1 new-token-start)))
                                   (ep (+ in-start-pos (sub1 new-token-end))))
-			     (lambda ()
+			     (λ ()
                                (change-style color sp ep #f)))
 			   colors)))
                   ; Using the non-spec version takes 3 times as long as the spec
@@ -231,7 +231,7 @@
                              (+ start-pos orig-token-end change-length)))
                    (set! current-pos (+ start-pos orig-token-start))
                    (set! up-to-date? #f)
-                   (queue-callback (lambda () (colorer-callback)) #f)))
+                   (queue-callback (λ () (colorer-callback)) #f)))
                 ((>= edit-start-pos invalid-tokens-start)
                  (let-values (((tok-start tok-end valid-tree invalid-tree)
                                (send invalid-tokens split (- edit-start-pos start-pos))))
@@ -259,15 +259,15 @@
                 #;(printf "new coroutine~n")
                 (set! tok-cor
                       (coroutine
-                       (lambda (enable-suspend)
+                       (λ (enable-suspend)
                          (parameterize ((port-count-lines-enabled #t))
                            (re-tokenize (open-input-text-editor this current-pos end-pos
-                                                              (lambda (x) #f))
+                                                              (λ (x) #f))
                                         current-pos
                                         enable-suspend)))))
                 (set! rev (get-revision-number)))
               (with-handlers ((exn:fail?
-                               (lambda (exn)
+                               (λ (exn)
                                  (parameterize ((print-struct #t))
                                    ((error-display-handler) 
                                     (format "exception in colorer thread: ~s" exn)
@@ -293,7 +293,7 @@
                (unless (in-edit-sequence?)
                  (colorer-driver))
                (unless up-to-date?
-                 (queue-callback (lambda () (colorer-callback)) #f)))))
+                 (queue-callback (λ () (colorer-callback)) #f)))))
                     
           ;; Must not be called when the editor is locked
           (define/private (finish-now)
@@ -361,7 +361,7 @@
                       (begin-edit-sequence #f #f)
                       (finish-now)
                       (send tokens for-each
-                            (lambda (start len type)
+                            (λ (start len type)
                               (when (and should-color? (should-color-type? type))
                                 (let ((color (send (get-style-list) find-named-style
                                                    (token-sym->style type)))
@@ -409,7 +409,7 @@
                                         (= caret-pos (+ start-pos start)))])
               (set! clear-old-locations
                     (let ([old clear-old-locations])
-                      (lambda ()
+                      (λ ()
                         (old)
                         (off))))))
           
@@ -619,7 +619,7 @@
           
           (define/public (debug-printout)
             (let* ((x null)
-                   (f (lambda (a b c)
+                   (f (λ (a b c)
                         (set! x (cons (list a b c) x)))))
               (send tokens for-each f)
               (printf "tokens: ~e~n" (reverse x))
@@ -637,7 +637,7 @@
             (super lock x)
             (when (and restart-callback (not x))
               (set! restart-callback #f)
-              (queue-callback (lambda () (colorer-callback)))))
+              (queue-callback (λ () (colorer-callback)))))
           
           
           (define/override (on-focus on?)
@@ -700,7 +700,7 @@
           ;; The arguments here are only used to be passed to start-colorer.  Refer to its
           ;; documentation.
           (init-field (get-token default-lexer) 
-                      (token-sym->style (lambda (x) "Standard"))
+                      (token-sym->style (λ (x) "Standard"))
                       (matches null))
           
           (define/override (on-disable-surrogate text)

@@ -80,22 +80,22 @@
    ;; ((frame-has? p) f) =
    ;;    f is a frame and it has a child (in it or a subpanel) that responds #t to p
    (test:button-push
-    ((union (lambda (str)
+    ((union (λ (str)
               (and (string? str)
                    (test:top-level-focus-window-has?
-                    (lambda (c)
+                    (λ (c)
                       (and (is-a? c button%)
                            (string=? (send c get-label) str)
                            (send c is-enabled?)
                            (send c is-shown?))))))
 	    
             (and/c (is-a?/c button%)
-		   (lambda (btn)
+		   (λ (btn)
 		     (and (send btn is-enabled?)
 			  (send btn is-shown?)))
-		   (lambda (btn)
+		   (λ (btn)
 		     (test:top-level-focus-window-has?
-		      (lambda (c) (eq? c btn))))))
+		      (λ (c) (eq? c btn))))))
      . -> .
      void?)
     (button)
@@ -245,9 +245,9 @@
   ;;
   
   (define install-timer
-    (lambda (msec thunk)
+    (λ (msec thunk)
       (let ([timer (instantiate timer% ()
-                     [notify-callback (lambda () (thunk))])])
+                     [notify-callback (λ () (thunk))])])
         (send timer start msec #t))))
   
   ;;
@@ -274,19 +274,19 @@
 	 [the-error  #f])   ;; boxed exn struct, or else #f.
       (letrec
 	  ([begin-action
-	    (lambda ()
+	    (λ ()
 	      (semaphore-wait sem)
 	      (set! count (add1 count))
 	      (semaphore-post sem))]
 	   
 	   [end-action
-	    (lambda ()
+	    (λ ()
 	      (semaphore-wait sem)
 	      (set! count (sub1 count))
 	      (semaphore-post sem))]
 	   
 	   [end-action-with-error
-	    (lambda (exn)
+	    (λ (exn)
 	      (semaphore-wait sem)
 	      (set! count (sub1 count))
 	      (unless the-error
@@ -294,7 +294,7 @@
 	      (semaphore-post sem))]
 	   
 	   [get-exn-box
-	    (lambda ()
+	    (λ ()
 	      (semaphore-wait sem)
 	      (let ([ans  the-error])
 		(set! the-error #f)
@@ -302,14 +302,14 @@
 		ans))]
 	   
 	   [is-exn?
-	    (lambda ()
+	    (λ ()
 	      (semaphore-wait sem)
 	      (let ([ans  (if the-error #t #f)])
 		(semaphore-post sem)
 		ans))]
  
 	   [num-actions
-	    (lambda ()
+	    (λ ()
 	      (semaphore-wait sem)
 	      (let ([ans  (+ count (if the-error 1 0))])
 		(semaphore-post sem)
@@ -323,7 +323,7 @@
   (define number-pending-actions num-actions)
   
   (define reraise-error
-    (lambda ()
+    (λ ()
       (let ([exn-box  (get-exn-box)])
 	(if exn-box (raise (unbox exn-box)) (void)))))
   
@@ -340,15 +340,15 @@
 	  [thread-semaphore (make-semaphore 0)])
       (thread
        (rec loop
-	    (lambda ()
+	    (λ ()
 	      (semaphore-wait thread-semaphore)
 	      (sleep)
 	      (semaphore-post yield-semaphore)
 	      (loop))))
-      (lambda (thunk)
+      (λ (thunk)
 	(let ([sem (make-semaphore 0)])
 	  (letrec ([start
-                    (lambda () ;; eventspace main thread
+                    (λ () ;; eventspace main thread
                       
                       ;; guarantee (probably) that some events are handled
                       (semaphore-post thread-semaphore) 
@@ -358,13 +358,13 @@
                       (unless (is-exn?)
                         (begin-action)
                         (parameterize ([current-exception-handler
-                                        (lambda (exn)
+                                        (λ (exn)
                                           (end-action-with-error exn)
                                           ((error-escape-handler)))])
                           (thunk))
                         (end-action)))]
                    
-                   [return (lambda () (semaphore-post sem))])
+                   [return (λ () (semaphore-post sem))])
 	    
 	    (install-timer 0 start)
 	    (semaphore-wait sem)
@@ -376,25 +376,25 @@
 	  [thread-semaphore (make-semaphore 0)])
       (thread
        (rec loop
-         (lambda ()
+         (λ ()
            (semaphore-wait thread-semaphore)
            (sleep)
            (semaphore-post yield-semaphore)
            (loop))))
-      (lambda (thunk)
+      (λ (thunk)
         (let ([done (make-semaphore 0)])
           (queue-callback
-           (lambda ()
+           (λ ()
              
              ;; guarantee (probably) that some events are handled
              (semaphore-post thread-semaphore) 
              (yield yield-semaphore)
                       
-             (queue-callback (lambda () (semaphore-post done)))
+             (queue-callback (λ () (semaphore-post done)))
              (unless (is-exn?)
                (begin-action)
                (parameterize ([current-exception-handler
-                               (lambda (exn)
+                               (λ (exn)
                                  (end-action-with-error exn)
                                  ((error-escape-handler)))])
                  (thunk))
@@ -402,10 +402,10 @@
           (semaphore-wait done)))))
   
   (define current-get-eventspaces
-    (make-parameter (lambda () (list (current-eventspace)))))
+    (make-parameter (λ () (list (current-eventspace)))))
 
   (define (get-active-frame)
-    (ormap (lambda (eventspace)
+    (ormap (λ (eventspace)
 	     (parameterize ([current-eventspace eventspace])
 	       (get-top-level-focus-window)))
 	   ((current-get-eventspaces))))
@@ -426,7 +426,7 @@
   ;;
 
   (define ancestor-list
-    (lambda (window stop-at-top-level-window?)
+    (λ (window stop-at-top-level-window?)
       (let loop ([w window] [l null])
 	(if (or (not w)
 		(and stop-at-top-level-window?
@@ -440,7 +440,7 @@
   ;;
   
   (define in-active-frame?
-    (lambda (window)
+    (λ (window)
       (let ([frame  (get-active-frame)])
 	(let loop ([window  window])
 	  (cond [(null? window)      #f]
@@ -454,13 +454,13 @@
   ;;
   
   (define verify-list
-    (lambda (l  valid)
+    (λ (l  valid)
       (cond [(null? l)  #f]
 	    [(member (car l) valid)  (verify-list (cdr l) valid)]
 	    [else  (car l)])))
   
   (define verify-item 
-    (lambda (item valid)
+    (λ (item valid)
       (verify-list (list item) valid)))
     
 ;;;
@@ -473,7 +473,7 @@
 
   ;; find-object : class (union string (object -> boolean)) -> object
   (define (find-object obj-class b-desc)
-    (lambda ()
+    (λ ()
       (cond
 	[(or (string? b-desc)
              (procedure? b-desc))
@@ -483,7 +483,7 @@
                             "could not find object: ~a, no active frame" 
                             b-desc))]
                 [child-matches?
-                 (lambda (child)
+                 (λ (child)
                    (cond
                      [(string? b-desc)
                       (equal? (send child get-label) b-desc)]
@@ -491,7 +491,7 @@
                       (b-desc child)]))]
 		[found
 		 (let loop ([panel active-frame])
-		   (ormap (lambda (child)
+		   (ormap (λ (child)
 			    (cond
 			      [(and (is-a? child obj-class)
 				    (child-matches? child))
@@ -520,9 +520,9 @@
 ;;; CONTROL functions, to be specialized for individual controls 
 
   (define control-action
-    (lambda (error-tag event-sym find-ctrl update-control)
+    (λ (error-tag event-sym find-ctrl update-control)
       (run-one
-       (lambda ()
+       (λ ()
 	 (let ([event (make-object control-event% event-sym)]
 	       [ctrl (find-ctrl)])
 	   (cond
@@ -557,7 +557,7 @@
      'test:set-check-box!
      'check-box 
      (find-object check-box% in-cb)
-     (lambda (cb) (send cb set-value state))))
+     (λ (cb) (send cb set-value state))))
   
 ;; 
 ;; RADIO-BOX 
@@ -581,7 +581,7 @@
      'test:set-radio-box!
      'radio-box 
      (find-object radio-box% in-cb)
-     (lambda (rb) 
+     (λ (rb) 
        (cond
 	[(string? state) 
 	 (let ([total (send rb get-number)])
@@ -614,7 +614,7 @@
      'test:set-check-box-state!
      'radio-box
      (find-object radio-box% (entry-matches state))
-     (lambda (rb) 
+     (λ (rb) 
        (let ([total (send rb get-number)])
          (let loop ([n total])
            (cond
@@ -631,7 +631,7 @@
   
   ;; entry-matches : string -> radio-box -> boolean
   (define (entry-matches name)
-    (lambda (rb)
+    (λ (rb)
       (let loop ([n (send rb get-number)])
         (and (not (zero? n))
              (or (equal? name (send rb get-item-label (- n 1)))
@@ -646,7 +646,7 @@
      'test:set-choice!
      'choice
      (find-object choice% in-choice)
-     (lambda (choice)
+     (λ (choice)
        (cond
 	 [(number? str) (send choice set-selection str)]
 	 [(string? str) (send choice set-string-selection str)]
@@ -692,10 +692,10 @@
 	[(not (list? modifier-list))
 	 (error key-tag "expected a list as second argument, got: ~e" modifier-list)]
 	[(verify-list  modifier-list  legal-keystroke-modifiers)
-	 => (lambda (mod) (error key-tag "unknown key modifier: ~e" mod))]
+	 => (λ (mod) (error key-tag "unknown key modifier: ~e" mod))]
 	[else
 	 (run-one
-	  (lambda ()
+	  (λ ()
 	    (let ([window (get-focused-window)])
 	      (cond
 		[(not window)
@@ -734,7 +734,7 @@
   ;; WILL WANT TO ADD SET-POSITION WHEN THAT GETS IMPLEMENTED.
   
   (define make-key-event
-    (lambda (key window modifier-list)
+    (λ (key window modifier-list)
       (let ([event (make-object key-event%)])
 	(send event set-key-code key)
 	(send event set-time-stamp (time-stamp))
@@ -742,7 +742,7 @@
 	event)))
   
   (define set-key-modifiers
-    (lambda (event key modifier-list)
+    (λ (event key modifier-list)
       (when (shifted? key) (send event set-shift-down #t))
       (let loop ([l  modifier-list])
 	(unless (null? l)
@@ -765,7 +765,7 @@
 			   #\! #\@ #\# #\$ #\% #\^ #\& #\* #\_ #\+
 			   #\A #\B #\C #\D #\E #\F #\G #\H #\I #\J #\K #\L #\M 
 			   #\N #\O #\P #\Q #\R #\S #\T #\U #\V #\W #\X #\Y #\Z)])
-      (lambda (key)
+      (λ (key)
 	(memq shifted-keys shifted-keys))))
     
   ;;
@@ -781,7 +781,7 @@
   (define menu-tag 'test:menu-select)
   
   (define menu-select
-    (lambda (menu-name . item-names)
+    (λ (menu-name . item-names)
       (cond
 	[(not (string? menu-name))
 	 (error menu-tag "expects string, given: ~e" menu-name)]
@@ -789,7 +789,7 @@
 	 (error menu-tag "expects strings, given: ~e" item-names)]
 	[else
 	 (run-one
-	  (lambda ()
+	  (λ ()
 	    (let* ([frame (get-active-frame)]
 		   [item (get-menu-item frame (cons menu-name item-names))]
 		   [evt (make-object control-event% 'menu)])
@@ -797,7 +797,7 @@
 	      (send item command evt))))])))
 
   (define get-menu-item
-    (lambda (frame item-names)
+    (λ (frame item-names)
       (cond
 	[(not frame)
 	 (error menu-tag "no active frame")]
@@ -863,18 +863,18 @@
      [(button x y modifier-list)
       (cond 
 	[(verify-item button legal-mouse-buttons)
-	 => (lambda (button)
+	 => (λ (button)
 	      (error mouse-tag "unknown mouse button: ~e" button))]
 	[(not (real? x))
 	 (error mouse-tag "expected real, given: ~e" x)]
 	[(not (real? y))
 	 (error mouse-tag "expected real, given: ~e" y)]
 	[(verify-list modifier-list legal-mouse-modifiers)
-	 => (lambda (mod) 
+	 => (λ (mod) 
 	      (error mouse-tag "unknown mouse modifier: ~e" mod))]
 	[else
 	 (run-one
-	  (lambda ()
+	  (λ ()
 	    (let ([window  (get-focused-window)])
 	      (cond 
 		[(not window)
@@ -898,7 +898,7 @@
   ;; NEED TO MOVE THE CHECK FOR 'ON-EVENT TO HERE.
   
   (define send-mouse-event
-    (lambda (window event)
+    (λ (window event)
       (let loop ([l  (ancestor-list window #t)])
 	(cond
 	  [(null? l)
@@ -913,7 +913,7 @@
   ;;
   
   (define make-mouse-event
-    (lambda (type x y modifier-list)
+    (λ (type x y modifier-list)
       (let ([event (make-object mouse-event% (mouse-type-const type))])
 	(when (and (pair? type) (not (eq? (cadr type) 'up)))
 	  (set-mouse-modifiers event (list (car type))))
@@ -924,7 +924,7 @@
 	event)))
   
   (define set-mouse-modifiers
-    (lambda (event modifier-list)
+    (λ (event modifier-list)
       (unless (null? modifier-list)
 	(let ([mod  (car modifier-list)])
 	  (cond
@@ -943,7 +943,7 @@
 	(set-mouse-modifiers event (cdr modifier-list)))))
       
   (define mouse-type-const
-    (lambda (type)
+    (λ (type)
       (cond
 	[(symbol? type)
 	 (cond
@@ -976,7 +976,7 @@
 	[else  (bad-mouse-type type)])))
   
   (define bad-mouse-type
-    (lambda (type)
+    (λ (type)
       (error mouse-tag "unknown mouse event type: ~e" type)))
   
   ;;
@@ -989,13 +989,13 @@
   
   (define new-window
     (let ([tag  'test:new-window])
-      (lambda (new-window)
+      (λ (new-window)
 	(cond
 	  [(not (is-a? new-window window<%>))
 	   (error tag "new-window is not a window<%>")]
 	  [else
 	   (run-one
-	    (lambda ()
+	    (λ ()
 	      (let
 		  ([old-window  (get-focused-window)]
 		   [leave   (make-object mouse-event% 'leave)]

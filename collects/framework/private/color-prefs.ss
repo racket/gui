@@ -29,7 +29,7 @@
                      style-name
                      example-text
                      [update-style-delta
-                      (lambda (func)
+                      (λ (func)
                         (let ([delta (preferences:get pref-sym)])
                           (func delta)
                           (preferences:set pref-sym delta)))])
@@ -53,7 +53,7 @@
                                   hide-vscroll))))
           
           (define (make-check name on off)
-            (let* ([c (lambda (check command)
+            (let* ([c (λ (check command)
                         (if (send check get-value)
                             (update-style-delta on)
                             (update-style-delta off)))]
@@ -62,26 +62,26 @@
           
           (define slant-check
             (make-check (string-constant cs-italic)
-                        (lambda (delta)
+                        (λ (delta)
                           (send delta set-style-on 'slant)
                           (send delta set-style-off 'base))
-                        (lambda (delta)
+                        (λ (delta)
                           (send delta set-style-on 'base)
                           (send delta set-style-off 'slant))))
           (define bold-check
             (make-check (string-constant cs-bold)
-                        (lambda (delta)
+                        (λ (delta)
                           (send delta set-weight-on 'bold)
                           (send delta set-weight-off 'base))
-                        (lambda (delta)
+                        (λ (delta)
                           (send delta set-weight-on 'base)
                           (send delta set-weight-off 'bold))))
           (define underline-check
             (make-check (string-constant cs-underline)
-                        (lambda (delta)
+                        (λ (delta)
                           (send delta set-underlined-on #t)
                           (send delta set-underlined-off #f))
-                        (lambda (delta)
+                        (λ (delta)
                           (send delta set-underlined-off #t)
                           (send delta set-underlined-on #f))))
           (define color-button
@@ -89,7 +89,7 @@
                  (make-object button%
                    (string-constant cs-change-color)
                    hp
-                   (lambda (color-button evt)
+                   (λ (color-button evt)
                      (let* ([add (send (preferences:get pref-sym) get-foreground-add)]
                             [color (make-object color%
                                      (send add get-r)
@@ -102,7 +102,7 @@
                               color)])
                        (when users-choice
                          (update-style-delta
-                          (lambda (delta)
+                          (λ (delta)
                             (send delta set-delta-foreground users-choice)))))))))
           (define style (send (send e get-style-list) find-named-style style-name))
           
@@ -127,52 +127,52 @@
           (map unbox (list b1 b2 b3))))
       
       (define style-delta-get/set
-        (list (cons (lambda (x) (send x get-alignment-off))
-                    (lambda (x v) (send x set-alignment-off v)))
-              (cons (lambda (x) (send x get-alignment-on))
-                    (lambda (x v) (send x set-alignment-on v)))
-              (cons (lambda (x) (add/mult-get (send x get-background-add)))
-                    (lambda (x v) (add/mult-set (send x get-background-add) v)))
-              (cons (lambda (x) (add/mult-get (send x get-background-mult)))
-                    (lambda (x v) (add/mult-set (send x get-background-mult) v)))
-              (cons (lambda (x) (send x get-face))
-                    (lambda (x v) (send x set-face v)))
-              (cons (lambda (x) (send x get-family))
-                    (lambda (x v) (send x set-family v)))
-              (cons (lambda (x) (add/mult-get (send x get-foreground-add)))
-                    (lambda (x v) (add/mult-set (send x get-foreground-add) v)))
-              (cons (lambda (x) (add/mult-get (send x get-foreground-mult)))
-                    (lambda (x v) (add/mult-set (send x get-foreground-mult) v)))
-              (cons (lambda (x) (send x get-size-add))
-                    (lambda (x v) (send x set-size-add v)))
-              (cons (lambda (x) (send x get-size-mult))
-                    (lambda (x v) (send x set-size-mult v)))
-              (cons (lambda (x) (send x get-style-off))
-                    (lambda (x v) (send x set-style-off v)))
-              (cons (lambda (x) (send x get-style-on))
-                    (lambda (x v) (send x set-style-on v)))
-              (cons (lambda (x) (send x get-underlined-off))
-                    (lambda (x v) (send x set-underlined-off v)))
-              (cons (lambda (x) (send x get-underlined-on))
-                    (lambda (x v) (send x set-underlined-on v)))
-              (cons (lambda (x) (send x get-weight-off))
-                    (lambda (x v) (send x set-weight-off v)))
-              (cons (lambda (x) (send x get-weight-on))
-                    (lambda (x v) (send x set-weight-on v)))))
+        (list (cons (λ (x) (send x get-alignment-off))
+                    (λ (x v) (send x set-alignment-off v)))
+              (cons (λ (x) (send x get-alignment-on))
+                    (λ (x v) (send x set-alignment-on v)))
+              (cons (λ (x) (add/mult-get (send x get-background-add)))
+                    (λ (x v) (add/mult-set (send x get-background-add) v)))
+              (cons (λ (x) (add/mult-get (send x get-background-mult)))
+                    (λ (x v) (add/mult-set (send x get-background-mult) v)))
+              (cons (λ (x) (send x get-face))
+                    (λ (x v) (send x set-face v)))
+              (cons (λ (x) (send x get-family))
+                    (λ (x v) (send x set-family v)))
+              (cons (λ (x) (add/mult-get (send x get-foreground-add)))
+                    (λ (x v) (add/mult-set (send x get-foreground-add) v)))
+              (cons (λ (x) (add/mult-get (send x get-foreground-mult)))
+                    (λ (x v) (add/mult-set (send x get-foreground-mult) v)))
+              (cons (λ (x) (send x get-size-add))
+                    (λ (x v) (send x set-size-add v)))
+              (cons (λ (x) (send x get-size-mult))
+                    (λ (x v) (send x set-size-mult v)))
+              (cons (λ (x) (send x get-style-off))
+                    (λ (x v) (send x set-style-off v)))
+              (cons (λ (x) (send x get-style-on))
+                    (λ (x v) (send x set-style-on v)))
+              (cons (λ (x) (send x get-underlined-off))
+                    (λ (x v) (send x set-underlined-off v)))
+              (cons (λ (x) (send x get-underlined-on))
+                    (λ (x v) (send x set-underlined-on v)))
+              (cons (λ (x) (send x get-weight-off))
+                    (λ (x v) (send x set-weight-off v)))
+              (cons (λ (x) (send x get-weight-on))
+                    (λ (x v) (send x set-weight-on v)))))
       
       (define (marshall-style style)
-        (map (lambda (fs) ((car fs) style)) style-delta-get/set))
+        (map (λ (fs) ((car fs) style)) style-delta-get/set))
       
       (define (unmarshall-style info)
         (let ([style (make-object style-delta%)])
-          (for-each (lambda (fs v) ((cdr fs) style v)) style-delta-get/set info)
+          (for-each (λ (fs v) ((cdr fs) style v)) style-delta-get/set info)
           style))
       
       (define (set-default sym code-style)
         (preferences:set-default
          sym
          code-style
-         (lambda (x)
+         (λ (x)
            (is-a? x style-delta%))))
       
       (define (make-style-delta color bold? underline? italic?)
@@ -200,7 +200,7 @@
         (preferences:add-panel
          (list (string-constant preferences-colors)
                (string-constant background-color))
-         (lambda (parent)
+         (λ (parent)
            (let ([vp (new vertical-panel% (parent parent))])
              (add-solid-color-config (string-constant background-color)
                                      vp
@@ -237,7 +237,7 @@
                (make-object button%
                  (string-constant cs-change-color)
                  hp
-                 (lambda (color-button evt)
+                 (λ (color-button evt)
                    (let ([users-choice
                           (get-color-from-user
                            (format sc-choose-color example-text)
@@ -261,10 +261,10 @@
                   (new canvas%
                        (parent hp)
                        (paint-callback
-                        (lambda (c dc)
+                        (λ (c dc)
                           (draw (preferences:get pref-id)))))]
                  [draw
-                  (lambda (clr)
+                  (λ (clr)
                     (let ([dc (send canvas get-dc)])
                       (let-values ([(w h) (send canvas get-client-size)])
                         (send dc set-brush (send the-brush-list find-or-create-brush clr 'solid))
@@ -275,7 +275,7 @@
                        (label (string-constant cs-change-color))
                        (parent hp)
                        (callback
-                        (lambda (x y)
+                        (λ (x y)
                           (let ([color (get-color-from-user
                                         (string-constant choose-a-background-color)
                                         (send hp get-top-level-window)
@@ -284,14 +284,14 @@
                               (preferences:set pref-id color))))))])
           (preferences:add-callback
            pref-id
-           (lambda (p v) (draw v)))
+           (λ (p v) (draw v)))
           panel))
       
       ;; add-to-preferences-panel : string (vertical-panel -> void) -> void
       (define (add-to-preferences-panel panel-name func)
         (preferences:add-panel
          (list (string-constant preferences-colors) panel-name)
-         (lambda (parent)
+         (λ (parent)
            (let ([panel (new vertical-panel% (parent parent))])
              (func panel)
              panel))))
@@ -300,10 +300,10 @@
       (define (register-color-pref pref-name style-name color)
         (let ([sd (new style-delta%)])
           (send sd set-delta-foreground color)
-          (preferences:set-default pref-name sd (lambda (x) (is-a? x style-delta%))))
+          (preferences:set-default pref-name sd (λ (x) (is-a? x style-delta%))))
         (preferences:set-un/marshall pref-name marshall-style unmarshall-style)
         (preferences:add-callback pref-name
-                                  (lambda (sym v)
+                                  (λ (sym v)
                                     (editor:set-standard-style-list-delta style-name v)))
         (editor:set-standard-style-list-delta style-name (preferences:get pref-name))))))
 

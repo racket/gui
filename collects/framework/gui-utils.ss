@@ -17,9 +17,9 @@
     (string?
      (and/c number? positive?)
      . ->d .
-     (lambda (str size)
+     (λ (str size)
        (and/c string?
-	      (lambda (str)
+	      (λ (str)
 		((string-length str) . <= . size)))))
     (str size)
     "Constructs a string whose size is less"
@@ -116,8 +116,8 @@
     "(let ([close-down"
     "       (gui-utils:delay-action"
     "        2"
-    "        (lambda () .. init watch cursor ...)"
-    "        (lambda () .. close watch cursor ...))])"
+    "        (λ () .. init watch cursor ...)"
+    "        (λ () .. close watch cursor ...))])"
     "  ;; .. do action ..."
     "  (close-down))"
     "\\end{schemedisplay}"
@@ -331,13 +331,13 @@
                  cancel-callback 
                  [confirm-str (string-constant ok)]
                  [cancel-str (string-constant cancel)])
-      (let ([confirm (lambda ()
+      (let ([confirm (λ ()
                        (instantiate button% ()
                          (parent parent)
                          (callback confirm-callback)
                          (label confirm-str)
                          (style '(border))))]
-            [cancel (lambda ()
+            [cancel (λ ()
                       (instantiate button% ()
                         (parent parent)
                         (callback cancel-callback)
@@ -366,7 +366,7 @@
   
   (define next-untitled-name
     (let ([n 1])
-      (lambda ()
+      (λ ()
         (begin0
           (cond
             [(= n 1) (string-constant untitled)]
@@ -384,19 +384,19 @@
       (local-busy-cursor #f thunk delay)))
   
   (define delay-action
-    (lambda (delay-time open close)
+    (λ (delay-time open close)
       (let ([semaphore (make-semaphore 1)]
             [open? #f]
             [skip-it? #f])
         (thread 
-         (lambda ()
+         (λ ()
            (sleep delay-time)
            (semaphore-wait semaphore)
            (unless skip-it?
              (set! open? #t)
              (open))
            (semaphore-post semaphore)))
-        (lambda ()
+        (λ ()
           (semaphore-wait semaphore)
           (set! skip-it? #t)
           (when open?
@@ -411,21 +411,21 @@
          (let* ([old-cursor #f]
                 [cursor-off void])
            (dynamic-wind
-            (lambda ()
+            (λ ()
               (set! cursor-off
                     (delay-action
                      delay
-                     (lambda ()
+                     (λ ()
                        (if win
                            (begin (set! old-cursor (send win get-cursor))
                                   (send win set-cursor watch))
                            (begin-busy-cursor)))
-                     (lambda ()
+                     (λ ()
                        (if win
                            (send win set-cursor old-cursor)
                            (end-busy-cursor))))))
-            (lambda () (thunk))
-            (lambda () (cursor-off))))])))
+            (λ () (thunk))
+            (λ () (cursor-off))))])))
   
   (define unsaved-warning
     (opt-lambda (filename action-anyway (can-save-now? #f) (parent #f))

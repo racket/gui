@@ -464,19 +464,19 @@
                     (make-object checkable-menu-item% 
                       (string-constant show-decimal-expansion)
                       menu
-                      (lambda (x y) (set-fraction-view 'decimal)))]
+                      (λ (x y) (set-fraction-view 'decimal)))]
                    [mixed-fraction-item
                     (make-object checkable-menu-item% 
                       (string-constant show-mixed-fraction-view)
                       menu
-                      (lambda (x y) 
+                      (λ (x y) 
                         (set-fraction-view 'mixed)
                         (preferences:set 'framework:fraction-snip-style 'mixed)))]
                    [improper-fraction-item
                     (make-object checkable-menu-item% 
                       (string-constant show-improper-fraction-view)
                       menu
-                      (lambda (x y) 
+                      (λ (x y) 
                         (set-fraction-view 'improper)
                         (preferences:set 'framework:fraction-snip-style 'improper)))])
               
@@ -490,7 +490,7 @@
                 (make-object menu-item% 
                   (string-constant show-more-decimal-places)
                   menu
-                  (lambda (x y)
+                  (λ (x y)
                     (iterate/reflow))))
               menu))
           
@@ -512,5 +512,5 @@
       ;; hash-table-bound? : hash-table TST -> boolean
       (define (hash-table-bound? ht key)
         (let/ec k
-          (hash-table-get ht key (lambda () (k #f)))
+          (hash-table-get ht key (λ () (k #f)))
           #t)))))

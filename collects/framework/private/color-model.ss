@@ -127,8 +127,8 @@
 	  (when (not (= width-a height-b))
 	    (error 'matrix-multiply "matrix dimensions do not match for multiplication"))
 	  (let ([b-t (transpose b)])
-	    (map (lambda (row)
-		   (map (lambda (col)
+	    (map (λ (row)
+		   (map (λ (col)
 			  (inner-product row col))
 			b-t))
 		 a))))
@@ -201,8 +201,8 @@
       ;;    (matrix-multiply pre-matrix `((,sigma-r) (,sigma-g) (,sigma-b))))
       
       (define rgb->xyz-matrix
-	(map (lambda (row)
-	       (map (lambda (row-elt scalar) (* row-elt scalar 1/255)) row `(,sigma-r ,sigma-g ,sigma-b)))
+	(map (λ (row)
+	       (map (λ (row-elt scalar) (* row-elt scalar 1/255)) row `(,sigma-r ,sigma-g ,sigma-b)))
 	     pre-matrix))
       
       (define xyz->rgb-matrix

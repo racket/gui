@@ -74,7 +74,7 @@
               (make-object menu-item% 
                 (string-constant convert-to-semicolon-comment)
                 menu
-                (lambda (x y)
+                (λ (x y)
                   (let ([to-ed (find-containing-editor)])
                     (when to-ed
                       (let ([this-pos (find-this-position)])

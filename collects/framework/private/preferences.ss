@@ -70,7 +70,7 @@
            p))
         (hash-table-get preferences
                         p
-                        (lambda ()
+                        (λ ()
                           (let* ([def (hash-table-get defaults p)]
                                  [def-val (default-value def)])
                             (hash-table-put! preferences p def-val)
@@ -82,7 +82,7 @@
       (define (set p value)
         (let ([default (hash-table-get
                         defaults p
-                        (lambda ()
+                        (λ ()
                           (raise-unknown-preference-error
                            "preferences:set: tried to set the preference ~e to ~e, but no default is set"
                            p
@@ -107,7 +107,7 @@
                  [unmarshall-fn (un/marshall-unmarshall
                                  (hash-table-get marshall-unmarshall
                                                  p
-                                                 (lambda () (k data))))]
+                                                 (λ () (k data))))]
                  [default (hash-table-get defaults p)])
             (let ([result (unmarshall-fn data)])
               (if ((default-checker default) result)
@@ -123,13 +123,13 @@
             (hash-table-put! callbacks
                              p 
                              (append 
-                              (hash-table-get callbacks p (lambda () null))
+                              (hash-table-get callbacks p (λ () null))
                               (list new-cb)))
-            (lambda ()
+            (λ ()
               (hash-table-put!
                callbacks
                p
-               (let loop ([callbacks (hash-table-get callbacks p (lambda () null))])
+               (let loop ([callbacks (hash-table-get callbacks p (λ () null))])
                  (cond
                    [(null? callbacks) null]
                    [else 
@@ -143,7 +143,7 @@
       ;; check-callbacks : sym val -> void
       (define (check-callbacks p value)
         (let ([new-callbacks
-               (let loop ([callbacks (hash-table-get callbacks p (lambda () null))])
+               (let loop ([callbacks (hash-table-get callbacks p (λ () null))])
                  (cond
                    [(null? callbacks) null]
                    [else 
@@ -165,7 +165,7 @@
               (hash-table-put! callbacks p new-callbacks))))
       
       (define set-un/marshall
-        (lambda (p marshall unmarshall)
+        (λ (p marshall unmarshall)
           (unless (hash-table-bound? defaults p)
             (error 'set-un/marshall "must call set-default for ~s before calling set-un/marshall for ~s"
                    p p))
@@ -175,14 +175,14 @@
       
       (define (hash-table-bound? ht s)
         (let/ec k
-          (hash-table-get ht s (lambda () (k #f)))
+          (hash-table-get ht s (λ () (k #f)))
           #t))
       
       (define restore-defaults
-        (lambda ()
+        (λ ()
           (hash-table-for-each
            defaults
-           (lambda (p v) (set p v)))))
+           (λ (p v) (set p v)))))
       
       ;; set-default : (sym TST (TST -> boolean) -> void
       (define (set-default p default-value checker)
@@ -200,7 +200,7 @@
       ;; returns #t if the preference's value has been examined with set or get
       (define (pref-has-value? p)
         (let/ec k
-          (let ([b (hash-table-get preferences p (lambda () (k #f)))])
+          (let ([b (hash-table-get preferences p (λ () (k #f)))])
             (not (marshalled? b)))))
 
       
@@ -212,7 +212,7 @@
       ;; and result indicates if there was an error
       (define (raw-save silent?)
         (with-handlers ([exn:fail?
-                         (lambda (exn)
+                         (λ (exn)
                            (unless silent?
                              (message-box
                               (string-constant preferences)
@@ -224,18 +224,18 @@
                 [res #t])
             (put-preferences
              syms vals
-             (lambda (filename)
+             (λ (filename)
                (unless silent?
                  (let* ([d (make-object dialog% (string-constant preferences))]
                         [m (make-object message% (string-constant waiting-for-pref-lock) d)])
                    (thread
-                    (lambda ()
+                    (λ ()
                       (sleep 2)
                       (send d show #f)))
                    (send d show #t)
                    (put-preferences 
                     syms vals
-                    (lambda (filename)
+                    (λ (filename)
                       (set! res #f)
                       (message-box
                        (string-constant preferences)
@@ -250,7 +250,7 @@
               (let* ([marshaller
                       (un/marshall-marshall
                        (hash-table-get marshall-unmarshall p
-                                       (lambda () (k (list p value)))))]
+                                       (λ () (k (list p value)))))]
                      [marshalled (marshaller value)])
                 (list p marshalled)))))
 
@@ -281,7 +281,7 @@
       ;; get-disk-prefs/install : (-> A) -> (union A sexp)
       (define (get-disk-prefs/install fail)
         (let/ec k
-          (let ([sexp (get-disk-prefs (lambda () (k (fail))))])
+          (let ([sexp (get-disk-prefs (λ () (k (fail))))])
             (install-stashed-preferences sexp '())
             sexp)))
 
@@ -290,7 +290,7 @@
         (let/ec k
           (let* ([filename (find-system-path 'pref-file)]
 		 [mod (and (file-exists? filename) (file-or-directory-modify-seconds filename))]
-		 [sexp (get-preference main-preferences-symbol (lambda () (k (fail))))])
+		 [sexp (get-preference main-preferences-symbol (λ () (k (fail))))])
             sexp)))
       
       ;; install-stashed-preferences : sexp (listof symbol) -> void
@@ -299,7 +299,7 @@
       (define (install-stashed-preferences prefs skip)
         (for-each-pref-in-sexp
          prefs
-         (lambda (p marshalled)
+         (λ (p marshalled)
            (unless (memq p skip)
              (let ([unmarshalled (unmarshall p (make-marshalled marshalled))])
                (hash-table-put! preferences p unmarshalled)
@@ -308,8 +308,8 @@
       (define (for-each-pref-in-file parse-pref preferences-filename)
         (let/ec k
           (let ([input (with-handlers
-                           ([(lambda (x) #f) ;exn:fail?
-                             (lambda (exn)
+                           ([(λ (x) #f) ;exn:fail?
+                             (λ (exn)
                                (message-box
                                 (string-constant error-reading-preferences)
                                 (string-append
@@ -373,7 +373,7 @@
           (add-to-existing-children
            titles 
            make-panel
-           (lambda (new-subtree) (set! ppanels (cons new-subtree ppanels))))))
+           (λ (new-subtree) (set! ppanels (cons new-subtree ppanels))))))
       
       ;; add-to-existing-children : (listof string) (panel -> panel) (ppanel -> void)
       ;; adds the child specified by the path in-titles to the tree.
@@ -398,7 +398,7 @@
                        (ppanel-interior-children child)
                        (car titles)
                        (cdr titles)
-                       (lambda (x)
+                       (λ (x)
                          (set-ppanel-interior-children! 
                           (cons
                            x
@@ -407,7 +407,7 @@
                     (cdr children)
                     title
                     titles
-                    (lambda (x)
+                    (λ (x)
                       (set-cdr! children
                                 (cons x (cdr children)))))))])))
       
@@ -448,19 +448,19 @@
       (define can-close-dialog-callbacks null)
       
       (define (make-preferences-dialog)
-        (letrec ([stashed-prefs (get-disk-prefs/install (lambda () null))]
+        (letrec ([stashed-prefs (get-disk-prefs/install (λ () null))]
 		 [frame-stashed-prefs%
 		  (class frame:basic%
                     (define/override (show on?)
                       (when on?
-                        (set! stashed-prefs (get-disk-prefs/install (lambda () null))))
+                        (set! stashed-prefs (get-disk-prefs/install (λ () null))))
 		      (super show on?))
 		    (super-instantiate ()))]
                  [frame 
                   (make-object frame-stashed-prefs%
                     (string-constant preferences))]
                  [build-ppanel-tree
-                  (lambda (ppanel tab-panel single-panel)
+                  (λ (ppanel tab-panel single-panel)
                     (send tab-panel append (ppanel-name ppanel))
                     (cond
                       [(ppanel-leaf? ppanel) 
@@ -468,10 +468,10 @@
                       [(ppanel-interior? ppanel)
                        (let-values ([(tab-panel single-panel) (make-tab/single-panel single-panel #t)])
                          (for-each
-                          (lambda (ppanel) (build-ppanel-tree ppanel tab-panel single-panel))
+                          (λ (ppanel) (build-ppanel-tree ppanel tab-panel single-panel))
                           (ppanel-interior-children ppanel)))]))]
                  [make-tab/single-panel 
-                  (lambda (parent inset?)
+                  (λ (parent inset?)
                     (letrec ([spacer (and inset?
                                           (instantiate vertical-panel% ()
                                             (parent parent)
@@ -479,7 +479,7 @@
                              [tab-panel (instantiate tab-panel% ()
                                           (choices null)
                                           (parent (if inset? spacer parent))
-                                          (callback (lambda (_1 _2) 
+                                          (callback (λ (_1 _2) 
                                                       (tab-panel-callback
                                                        single-panel
                                                        tab-panel))))]
@@ -487,14 +487,14 @@
                                              (parent tab-panel))])
                       (values tab-panel single-panel)))]
                  [tab-panel-callback
-                  (lambda (single-panel tab-panel)
+                  (λ (single-panel tab-panel)
                     (send single-panel active-child
                           (list-ref (send single-panel get-children)
                                     (send tab-panel get-selection))))]
                  [panel (make-object vertical-panel% (send frame get-area-container))]
                  [_ (let-values ([(tab-panel single-panel) (make-tab/single-panel panel #f)])
                       (for-each
-                       (lambda (ppanel)
+                       (λ (ppanel)
                          (build-ppanel-tree ppanel tab-panel single-panel))
                        ppanels)
                       (let ([single-panel-children (send single-panel get-children)])
@@ -503,15 +503,15 @@
                           (send tab-panel set-selection 0)))
                       (send tab-panel focus))]
                  [bottom-panel (make-object horizontal-panel% panel)]
-                 [ok-callback (lambda args
-                                (when (andmap (lambda (f) (f))
+                 [ok-callback (λ args
+                                (when (andmap (λ (f) (f))
                                               can-close-dialog-callbacks)
                                   (for-each
-                                   (lambda (f) (f))
+                                   (λ (f) (f))
                                    on-close-dialog-callbacks)
                                   (save)
                                   (hide-dialog)))]
-                 [cancel-callback (lambda (_1 _2)
+                 [cancel-callback (λ (_1 _2)
                                     (hide-dialog)
                                     (install-stashed-preferences stashed-prefs '()))])
           (gui-utils:ok/cancel-buttons
@@ -528,17 +528,17 @@
       (define (add-to-scheme-checkbox-panel f)
         (set! scheme-panel-procs 
               (let ([old scheme-panel-procs])
-                (lambda (parent) (old parent) (f parent)))))
+                (λ (parent) (old parent) (f parent)))))
       
       (define (add-to-editor-checkbox-panel f)
         (set! editor-panel-procs 
               (let ([old editor-panel-procs])
-                (lambda (parent) (old parent) (f parent)))))
+                (λ (parent) (old parent) (f parent)))))
       
       (define (add-to-warnings-checkbox-panel f)
         (set! warnings-panel-procs 
               (let ([old warnings-panel-procs])
-                (lambda (parent) (old parent) (f parent)))))
+                (λ (parent) (old parent) (f parent)))))
 
       (define scheme-panel-procs void)
       (define editor-panel-procs void)
@@ -547,7 +547,7 @@
       (define (add-checkbox-panel label proc)
         (add-panel
          label
-         (lambda (parent)
+         (λ (parent)
            (let* ([main (make-object vertical-panel% parent)])
              (send main set-alignment 'left 'center)
              (proc main)
@@ -557,14 +557,14 @@
       ;; adds a check box preference to `main'.
       (define (make-check main pref title bool->pref pref->bool)
         (let* ([callback
-                (lambda (check-box _)
+                (λ (check-box _)
                   (set pref (bool->pref (send check-box get-value))))]
                [pref-value (get pref)]
                [initial-value (pref->bool pref-value)]
                [c (make-object check-box% title main callback)])
           (send c set-value initial-value)
           (add-callback pref
-                        (lambda (p v)
+                        (λ (p v)
                           (send c set-value (pref->bool v))))))
 
       (define (make-recent-items-slider parent)
@@ -574,23 +574,23 @@
                         (min-value 1)
                         (max-value 100)
                         (init-value (get 'framework:recent-max-count))
-                        (callback (lambda (slider y)
+                        (callback (λ (slider y)
                                     (set 'framework:recent-max-count
                                          (send slider get-value)))))])
           (add-callback
            'framework:recent-max-count
-           (lambda (p v)
+           (λ (p v)
              (send slider set-value v)))))
       
       (define (add-scheme-checkbox-panel)
         (letrec ([add-scheme-checkbox-panel
-                  (lambda ()
+                  (λ ()
                     (set! add-scheme-checkbox-panel void)
                     (add-checkbox-panel
                      (list 
                       (string-constant editor-prefs-panel-label) 
                       (string-constant scheme-prefs-panel-label))
-                     (lambda (scheme-panel)
+                     (λ (scheme-panel)
                        (make-check scheme-panel
                                    'framework:highlight-parens
                                    (string-constant highlight-parens)
@@ -608,12 +608,12 @@
       
       (define (add-editor-checkbox-panel)
         (letrec ([add-editor-checkbox-panel
-                  (lambda ()
+                  (λ ()
                     (set! add-editor-checkbox-panel void)
                     (add-checkbox-panel 
                      (list (string-constant editor-prefs-panel-label) 
                            (string-constant general-prefs-panel-label))
-                     (lambda (editor-panel)
+                     (λ (editor-panel)
                        (make-recent-items-slider editor-panel)
                        (make-check editor-panel
                                    'framework:autosaving-on? 
@@ -658,19 +658,19 @@
                          (make-check editor-panel 
                                      'framework:print-output-mode 
                                      (string-constant automatically-to-ps)
-                                     (lambda (b) 
+                                     (λ (b) 
                                        (if b 'postscript 'standard))
-                                     (lambda (n) (eq? 'postscript n))))
+                                     (λ (n) (eq? 'postscript n))))
                        (editor-panel-procs editor-panel))))])
           (add-editor-checkbox-panel)))
 
       (define (add-warnings-checkbox-panel)
         (letrec ([add-warnings-checkbox-panel
-                  (lambda ()
+                  (λ ()
                     (set! add-warnings-checkbox-panel void)
                     (add-checkbox-panel
                      (string-constant warnings-prefs-panel-label)
-                     (lambda (warnings-panel)
+                     (λ (warnings-panel)
                        (make-check warnings-panel 
                                    'framework:verify-change-format 
                                    (string-constant ask-before-changing-format)
@@ -701,15 +701,15 @@
                                     [(macosx) 13]
                                     [else 12])]
                [font-section "mred"]
-               [build-font-entry (lambda (x) (string-append "Screen" x "__"))]
+               [build-font-entry (λ (x) (string-append "Screen" x "__"))]
                [font-file (find-graphical-system-path 'setup-file)]
                [build-font-preference-symbol
-                (lambda (family)
+                (λ (family)
                   (string->symbol (string-append "framework:" family)))]
                
                [set-default
-                (lambda (build-font-entry default pred)
-                  (lambda (family)
+                (λ (build-font-entry default pred)
+                  (λ (family)
                     (let ([name (build-font-preference-symbol family)]
                           [font-entry (build-font-entry family)])
                       (set-default name
@@ -720,7 +720,7 @@
                                      [else (error 'internal-error.set-default "unrecognized default: ~a~n" default)]))
                       (add-callback 
                        name 
-                       (lambda (p new-value)
+                       (λ (p new-value)
                          (write-resource 
                           font-section
                           font-entry
@@ -732,26 +732,26 @@
           
           (for-each (set-default build-font-entry font-default-string string?)
                     font-families)
-          ((set-default (lambda (x) x)
+          ((set-default (λ (x) x)
                         font-default-size
                         number?)
            font-size-entry)
           (add-panel
            (string-constant default-fonts)
-           (lambda (parent)
+           (λ (parent)
              (letrec ([font-size-pref-sym (build-font-preference-symbol font-size-entry)]
                       [ex-string (string-constant font-example-string)]
                       [main (make-object vertical-panel% parent)]
                       [fonts (cons font-default-string (get-face-list))]
                       [make-family-panel
-                       (lambda (name)
+                       (λ (name)
                          (let* ([pref-sym (build-font-preference-symbol name)]
                                 [family-const-pair (assoc name font-families-name/const)]
                                 
                                 [edit (make-object text%)]
                                 [_ (send edit insert ex-string)]
                                 [set-edit-font
-                                 (lambda (size)
+                                 (λ (size)
                                    (let ([delta (make-object style-delta% 'change-size size)]
                                          [face (get pref-sym)])
                                      (if (and (string=? face font-default-string)
@@ -779,7 +779,7 @@
                                  (make-object button%
                                    (string-constant change-font-button-label)
                                    horiz
-                                   (lambda (button evt)
+                                   (λ (button evt)
                                      (let ([new-value
                                             (get-choices-from-user
                                              (string-constant fonts)
@@ -796,9 +796,9 @@
                            (set-edit-font (get font-size-pref-sym))
                            (add-callback
                             pref-sym
-                            (lambda (p new-value)
+                            (λ (p new-value)
                               (send horiz change-children
-                                    (lambda (l)
+                                    (λ (l)
                                       (let ([new-message (make-object message%
                                                            new-value
                                                            horiz)])
@@ -811,12 +811,12 @@
                                               canvas))))))
                            (send canvas set-line-count 1)
                            (vector set-edit-font
-                                   (lambda () (send message get-width))
-                                   (lambda (width) (send message min-width width))
-                                   (lambda () (send label get-width))
-                                   (lambda (width) (send label min-width width)))))]
+                                   (λ () (send message get-width))
+                                   (λ (width) (send message min-width width))
+                                   (λ () (send label get-width))
+                                   (λ (width) (send label min-width width)))))]
                       [set-edit-fonts/messages (map make-family-panel font-families)]
-                      [collect (lambda (n) (map (lambda (x) (vector-ref x n))
+                      [collect (λ (n) (map (λ (x) (vector-ref x n))
                                                 set-edit-fonts/messages))]
                       [set-edit-fonts (collect 0)]
                       [font-message-get-widths (collect 1)]
@@ -824,9 +824,9 @@
                       [category-message-get-widths (collect 3)]
                       [category-message-user-min-sizes (collect 4)]
                       [update-message-sizes
-                       (lambda (gets sets)
-                         (let ([width (foldl (lambda (x l) (max l (x))) 0 gets)])
-                           (for-each (lambda (set) (set width)) sets)))]
+                       (λ (gets sets)
+                         (let ([width (foldl (λ (x l) (max l (x))) 0 gets)])
+                           (for-each (λ (set) (set width)) sets)))]
                       [size-panel (make-object horizontal-panel% main '(border))]
                       [initial-font-size
                        (let ([b (box 0)])
@@ -840,19 +840,19 @@
                          (string-constant font-size-slider-label)
                          1 127
                          size-panel
-                         (lambda (slider evt)
+                         (λ (slider evt)
                            (set font-size-pref-sym (send slider get-value)))
                          initial-font-size)])
                (update-message-sizes font-message-get-widths font-message-user-min-sizes)
                (update-message-sizes category-message-get-widths category-message-user-min-sizes)
                (add-callback
                 font-size-pref-sym
-                (lambda (p value)
-                  (for-each (lambda (f) (f value)) set-edit-fonts)
+                (λ (p value)
+                  (for-each (λ (f) (f value)) set-edit-fonts)
                   (unless (= value (send size-slider get-value))
                     (send size-slider set-value value))
                   #t))
-               (for-each (lambda (f) (f initial-font-size)) set-edit-fonts)
+               (for-each (λ (f) (f initial-font-size)) set-edit-fonts)
                (make-object message% (string-constant restart-to-see-font-changes) main)
                main))))
         (set! local-add-font-panel void))

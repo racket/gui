@@ -53,7 +53,7 @@
                 [(and (eq? (system-type) 'windows)
                       (regexp-match #rx#"(.*)\\.[^.]*" name-bytes))
                  =>
-                 (lambda (m)
+                 (λ (m)
                    (build-path base (bytes->path (bytes-append (cadr m) #".bak"))))]
                 [(eq? (system-type) 'windows)
                  (build-path base (bytes->path (bytes-append name-bytes #".bak")))]

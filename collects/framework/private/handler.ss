@@ -27,14 +27,14 @@
 
       (define make-insert-handler
 	(letrec ([string-list?
-		  (lambda (l)
+		  (λ (l)
 		    (cond
 		     [(null? l) #t]
 		     [(not (pair? l)) #f]
 		     [else
 		      (and (string? (car l))
 			   (string-list? (cdr l)))]))])
-	  (lambda (who name extension handler)
+	  (λ (who name extension handler)
 	    (cond
 	     [(not (string? name))
 	      (error who "name was not a string")]
@@ -52,37 +52,37 @@
 				 handler)]))))
       
       (define insert-format-handler
-	(lambda args
+	(λ args
 	  (set! format-handlers 
 		(cons (apply make-insert-handler 'insert-format-handler args)
 		      format-handlers))))
 
       (define find-handler
-	(lambda (name handlers)
+	(λ (name handlers)
 	  (let/ec exit
 	    (let ([extension (if (string? name)
 				 (or (filename-extension name)
 				     "")
 				 "")])
 	      (for-each
-	       (lambda (handler)
+	       (λ (handler)
 		 (let ([ext (handler-extension handler)])
 		   (when (or (and (procedure? ext)
 				  (ext name))
 			     (and (pair? ext)
-				  (ormap (lambda (ext) (string=? ext extension))
+				  (ormap (λ (ext) (string=? ext extension))
 					 ext)))
 		     (exit (handler-handler handler)))))
 	       handlers)
 	      #f))))
       
       (define find-format-handler
-	(lambda (name)
+	(λ (name)
 	  (find-handler name format-handlers)))
 
 					; Finding format & mode handlers by name
       (define find-named-handler
-	(lambda (name handlers)
+	(λ (name handlers)
 	  (let loop ([l handlers])
 	    (cond
 	     [(null? l) #f]
@@ -91,13 +91,13 @@
 	     [else (loop (cdr l))]))))
       
       (define find-named-format-handler
-	(lambda (name)
+	(λ (name)
 	  (find-named-handler name format-handlers)))
 
 					; Open a file for editing
       (define current-create-new-window
 	(make-parameter
-	 (lambda (filename)
+	 (λ (filename)
 	   (let ([frame (make-object frame:text% filename)])
 	     (send frame show #t)
 	     frame))))
@@ -106,11 +106,11 @@
 	(case-lambda
 	 [(filename) (edit-file
 		      filename
-		      (lambda ()
+		      (λ ()
 			((current-create-new-window) filename)))]
 	 [(filename make-default)
-	  (with-handlers ([(lambda (x) #f) ;exn:fail?
-			   (lambda (exn)
+	  (with-handlers ([(λ (x) #f) ;exn:fail?
+			   (λ (exn)
 			     (message-box
 			      (string-constant error-loading)
 			      (string-append
@@ -123,7 +123,7 @@
 				   (format "~s" exn))))
 			     #f)])
 	    (gui-utils:show-busy-cursor
-	     (lambda ()
+	     (λ ()
 	       (if filename
 		   (let ([already-open (send (group:get-the-frame-group)
 					     locate-file
@@ -136,7 +136,7 @@
 		       [(and (preferences:get 'framework:open-here?)
 			     (send (group:get-the-frame-group) get-open-here-frame))
 			=>
-			(lambda (fr)
+			(λ (fr)
 			  (add-to-recent filename)
 			  (send fr open-here filename)
 			  (send fr show #t)
@@ -157,7 +157,7 @@
       ;; add-to-recent : path -> void
       (define (add-to-recent filename)
         (let* ([old-list (preferences:get 'framework:recently-opened-files/pos)]
-               [old-ents (filter (lambda (x) (string=? (path->string (car x))
+               [old-ents (filter (λ (x) (string=? (path->string (car x))
                                                        (path->string filename))) 
                                  old-list)]
                [old-ent (if (null? old-ents)
@@ -203,7 +203,7 @@
       ;; with the positions `start' and `end'
       (define (set-recent-position filename start end)
         (let ([recent-items
-               (filter (lambda (x) (string=? (path->string (car x))
+               (filter (λ (x) (string=? (path->string (car x))
                                              (path->string filename)))
                        (preferences:get 'framework:recently-opened-files/pos))])
           (unless (null? recent-items)
@@ -216,18 +216,18 @@
         (let ([recently-opened-files
                (preferences:get
                 'framework:recently-opened-files/pos)])
-          (for-each (lambda (item) (send item delete))
+          (for-each (λ (item) (send item delete))
                     (send menu get-items))
           
           (instantiate menu-item% ()
             (parent menu)
             (label (string-constant show-recent-items-window-menu-item))
-            (callback (lambda (x y) (show-recent-items-window))))
+            (callback (λ (x y) (show-recent-items-window))))
           
           (instantiate separator-menu-item% ()
             (parent menu))
 
-          (for-each (lambda (recent-list-item) 
+          (for-each (λ (recent-list-item) 
                       (let ([filename (car recent-list-item)])
                         (instantiate menu-item% ()
                           (parent menu)
@@ -237,7 +237,7 @@
                                    (path->string filename)
                                    "&&")
                                   200))
-                          (callback (lambda (x y) (open-recent-list-item recent-list-item))))))
+                          (callback (λ (x y) (open-recent-list-item recent-list-item))))))
                     recently-opened-files)))
 
       ;; open-recent-list-item : recent-list-item -> void
@@ -300,11 +300,11 @@
           (define/private (refresh-hl recent-list-items)
             (let ([ed (send hl get-editor)])
               (send ed begin-edit-sequence)
-              (for-each (lambda (item) (send hl delete-item item)) (send hl get-items))
-              (for-each (lambda (item) (add-recent-item item))
+              (for-each (λ (item) (send hl delete-item item)) (send hl get-items))
+              (for-each (λ (item) (add-recent-item item))
                         (if (eq? (preferences:get 'framework:recently-opened-sort-by) 'name)
                             (quicksort recent-list-items
-                                       (lambda (x y) (string<=? (path->string (car x))
+                                       (λ (x y) (string<=? (path->string (car x))
                                                                 (path->string (car y)))))
                             recent-list-items))
               (send ed end-edit-sequence)))
@@ -316,7 +316,7 @@
           (field [remove-prefs-callback
                   (preferences:add-callback
                    'framework:recently-opened-files/pos
-                   (lambda (p v)
+                   (λ (p v)
                      (refresh-hl v)))])
           
           (define/augment (on-close)
@@ -333,12 +333,12 @@
                   (make-object button% 
                     (string-constant recent-items-sort-by-name) 
                     bp
-                    (lambda (x y) (set-sort-by 'name)))]
+                    (λ (x y) (set-sort-by 'name)))]
                  [sort-by-age-button
                   (make-object button% 
                     (string-constant recent-items-sort-by-age) 
                     bp
-                    (lambda (x y) (set-sort-by 'age)))])
+                    (λ (x y) (set-sort-by 'age)))])
           
           (send bp stretchable-height #f)
           (send sort-by-name-button stretchable-width #t)
@@ -359,7 +359,7 @@
 
       ;; make-hierlist-item-mixin : recent-item -> mixin(arg to new-item method of hierlist)
       (define (make-hierlist-item-mixin recent-item)
-        (lambda (%)
+        (λ (%)
           (class %
             (define/public (open-item)
               (open-recent-list-item recent-item))
@@ -368,18 +368,18 @@
       (define *open-directory* ; object to remember last directory
 	(new (class object%
                (field [the-dir #f])
-               [define/public get (lambda () the-dir)]
+               [define/public get (λ () the-dir)]
                [define/public set-from-file!
-                 (lambda (file) 
+                 (λ (file) 
                    (set! the-dir (path-only file)))]
                [define/public set-to-default
-                 (lambda ()
+                 (λ ()
                    (set! the-dir (current-directory)))]
                (set-to-default)
                (super-new))))
 
       (define open-file
-	(lambda ()
+	(λ ()
 	  (let ([file 
 		 (parameterize ([finder:dialog-parent-parameter
 				 (and (preferences:get 'framework:open-here?)

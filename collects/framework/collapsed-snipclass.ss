@@ -11,7 +11,7 @@
       (define/public (read-special file line col pos)
         (let ([text (make-object text%)])
           (for-each
-           (lambda (s) (send text insert (send s copy)
+           (λ (s) (send text insert (send s copy)
                              (send text last-position)
                              (send text last-position)))
            saved-snips)

@@ -100,7 +100,7 @@
      (format "~a:~a-help-string" (menu-item-menu-name item) (an-item-item-name item))))
   
   (define (edit-menu:do const)
-    `(lambda (menu evt)
+    `(λ (menu evt)
        (let ([edit (get-edit-target-object)])
          (when (and edit
                     (is-a? edit editor<%>))
@@ -108,7 +108,7 @@
        #t))
   
   (define (edit-menu:can-do-on-demand const)
-    `(lambda (item)
+    `(λ (item)
        (let* ([editor (get-edit-target-object)]
               [enable?
                (and editor
@@ -117,12 +117,12 @@
          (send item enable enable?))))
   
   (define edit-menu:edit-target-on-demand
-    `(lambda (item)
+    `(λ (item)
        (send item enable
              (let ([target (get-edit-target-object)])
                (and target (is-a? target editor<%>))))))
   
-  (define on-demand-do-nothing '(lambda (menu-item) (void)))
+  (define on-demand-do-nothing '(λ (menu-item) (void)))
 
   (define items
     (list (make-generic-augment
@@ -133,7 +133,7 @@
            '("@return : void"
              "Removes the preferences callbacks for the menu items"))
           (make-generic-method 
-           'get-menu% '(lambda () menu:can-restore-underscore-menu%)
+           'get-menu% '(λ () menu:can-restore-underscore-menu%)
            '("The result of this method is used as the class"
              "for creating the result of these methods:"
              "@ilink frame:standard-menus get-file-menu %"
@@ -148,7 +148,7 @@
              "defaultly returns"
              "@link menu"))
           (make-generic-method 
-           'get-menu-item% '(lambda () menu:can-restore-menu-item%)
+           'get-menu-item% '(λ () menu:can-restore-menu-item%)
            '("The result of this method is used as the class for creating"
              "the menu items in this frame (see "
              "@link frame:standard-menus"
@@ -160,7 +160,7 @@
              "@link menu:can-restore-menu-item %"
              "."))
           (make-generic-method 
-           'get-checkable-menu-item% '(lambda () menu:can-restore-checkable-menu-item%)
+           'get-checkable-menu-item% '(λ () menu:can-restore-checkable-menu-item%)
            '("The result of this method is used as the class for creating"
              "checkable menu items in this class (see "
              "@link frame:standard-menus"
@@ -174,7 +174,7 @@
           
           (make-generic-method 
            'get-file-menu
-           '(lambda () file-menu)
+           '(λ () file-menu)
            '("Returns the file menu"
              "See also"
              "@ilink frame:standard-menus get-menu\\%"
@@ -189,7 +189,7 @@
               (get-menu-bar)))
           (make-generic-method
            'get-edit-menu
-           '(lambda () edit-menu)
+           '(λ () edit-menu)
            
            '("Returns the edit menu"
              "See also"
@@ -201,7 +201,7 @@
            '(make-object (get-menu%) (string-constant edit-menu-label) (get-menu-bar)))
           (make-generic-method
            'get-help-menu
-           '(lambda () help-menu)
+           '(λ () help-menu)
            
            '("Returns the help menu"
              "See also"
@@ -214,30 +214,30 @@
           
           (make-an-item 'file-menu 'new 
                         '(string-constant new-info)
-                        '(lambda (item control) (handler:edit-file #f) #t)
+                        '(λ (item control) (handler:edit-file #f) #t)
                         #\n 
                         '(string-constant new-menu-item)
                         on-demand-do-nothing
                         #t)
           (make-between 'file-menu 'new 'open 'nothing)
           (make-an-item 'file-menu 'open '(string-constant open-info)
-                        '(lambda (item control) (handler:open-file) #t)
+                        '(λ (item control) (handler:open-file) #t)
                         #\o 
                         '(string-constant open-menu-item)
                         on-demand-do-nothing
                         #t)
           (make-a-submenu-item 'file-menu 'open-recent 
                                '(string-constant open-recent-info)
-                               '(lambda (x y) (void))
+                               '(λ (x y) (void))
                                #f
                                '(string-constant open-recent-menu-item)
-                               '(lambda (menu)
+                               '(λ (menu)
                                   (handler:install-recent-items menu))
                                #t)
           (make-between 'file-menu 'open 'revert 'nothing)
           (make-an-item 'file-menu 'revert 
                         '(string-constant revert-info)
-                        '(lambda (item control) (void))
+                        '(λ (item control) (void))
                         #f 
                         '(string-constant revert-menu-item)
                         on-demand-do-nothing
@@ -245,14 +245,14 @@
           (make-between 'file-menu 'revert 'save 'nothing)
           (make-an-item 'file-menu 'save
                         '(string-constant save-info)
-                        '(lambda (item control) (void))
+                        '(λ (item control) (void))
                         #\s 
                         '(string-constant save-menu-item)
                         on-demand-do-nothing
                         #f)
           (make-an-item 'file-menu 'save-as
                         '(string-constant save-as-info)
-                        '(lambda (item control) (void))
+                        '(λ (item control) (void))
                         #f 
                         '(string-constant save-as-menu-item)
                         on-demand-do-nothing
@@ -260,7 +260,7 @@
           (make-between 'file-menu 'save-as 'print 'nothing)
           (make-an-item 'file-menu 'print
                         '(string-constant print-info)
-                        '(lambda (item control) (void))
+                        '(λ (item control) (void))
                         #\p 
                         '(string-constant print-menu-item)
                         on-demand-do-nothing
@@ -268,7 +268,7 @@
           (make-between 'file-menu 'print 'close 'separator)
           (make-an-item 'file-menu 'close
                         '(string-constant close-info)
-                        '(lambda (item control) (when (can-close?) (on-close) (show #f)) #t)
+                        '(λ (item control) (when (can-close?) (on-close) (show #f)) #t)
                         #\w
                         '(string-constant close-menu-item)
                         on-demand-do-nothing
@@ -276,7 +276,7 @@
           (make-between 'file-menu 'close 'quit 'nothing)
           (make-an-item 'file-menu 'quit
                         '(string-constant quit-info)
-                        '(lambda (item control) 
+                        '(λ (item control) 
                            (when (exit:user-oks-exit)
                              (exit:exit)))
                         #\q
@@ -346,21 +346,21 @@
 
           (make-an-item 'edit-menu 'find  
                         '(string-constant find-info)
-                        '(lambda (item control) (void))
+                        '(λ (item control) (void))
                         #\f 
                         '(string-constant find-menu-item)
                         edit-menu:edit-target-on-demand
                         #f)
           (make-an-item 'edit-menu 'find-again 
                         '(string-constant find-again-info)
-                        '(lambda (item control) (void))
+                        '(λ (item control) (void))
                         #\g 
                         '(string-constant find-again-menu-item)
                         edit-menu:edit-target-on-demand
                         #f)
           (make-an-item 'edit-menu 'replace-and-find-again 
                         '(string-constant replace-and-find-again-info)
-                        '(lambda (item control) (void))
+                        '(λ (item control) (void))
                         '(if (eq? (system-type) 'macosx) #f #\h)
                         '(string-constant replace-and-find-again-menu-item)
                         edit-menu:edit-target-on-demand
@@ -369,7 +369,7 @@
           (make-between 'edit-menu 'find 'preferences 'nothing-with-standard-menus)
           (make-an-item 'edit-menu 'preferences 
                         '(string-constant preferences-info)
-                        '(lambda (item control) (preferences:show-dialog) #t)
+                        '(λ (item control) (preferences:show-dialog) #t)
                         #\; 
                         '(string-constant preferences-menu-item)
                         on-demand-do-nothing
@@ -379,7 +379,7 @@
           (make-before 'help-menu 'about 'nothing)
           (make-an-item 'help-menu 'about 
                         '(string-constant about-info)
-                        '(lambda (item control) (void))
+                        '(λ (item control) (void))
                         #f
                         '(string-constant about-menu-item)
                         on-demand-do-nothing

@@ -42,7 +42,7 @@
       (define (reorder-menus frame)
         (let* ([items (send (send frame get-menu-bar) get-items)]
                [move-to-back
-                (lambda (name items)
+                (λ (name items)
                   (let loop ([items items]
                              [back null])
                     (cond
@@ -53,7 +53,7 @@
                                         (cons item back))
                                   (cons item (loop (cdr items) back))))])))]
                [move-to-front
-                (lambda (name items)
+                (λ (name items)
                   (reverse (move-to-back name (reverse items))))]
                [re-ordered
                 (move-to-front
@@ -65,12 +65,12 @@
                    (move-to-back
                     (string-constant windows-menu)
                     items))))])
-          (for-each (lambda (item) (send item delete)) items)
-          (for-each (lambda (item) (send item restore)) re-ordered)))
+          (for-each (λ (item) (send item delete)) items)
+          (for-each (λ (item) (send item restore)) re-ordered)))
       
       (define (add-snip-menu-items edit-menu c%)
         (let* ([get-edit-target-object
-                (lambda ()
+                (λ ()
                   (let ([menu-bar
                          (let loop ([p (send edit-menu get-parent)])
                            (cond
@@ -83,19 +83,19 @@
                          (let ([frame (send menu-bar get-frame)])
                            (send frame get-edit-target-object)))))]
                [edit-menu:do 
-                (lambda (const)
-                  (lambda (menu evt)
+                (λ (const)
+                  (λ (menu evt)
                     (let ([edit (get-edit-target-object)])
                       (when (and edit
                                  (is-a? edit editor<%>))
                         (send edit do-edit-operation const)))
                     #t))]
                [on-demand
-                (lambda (menu-item)
+                (λ (menu-item)
                   (let ([edit (get-edit-target-object)])
                     (send menu-item enable (and edit (is-a? edit editor<%>)))))]
                [insert-comment-box
-                 (lambda ()
+                 (λ ()
                    (let ([text (get-edit-target-object)])
                      (when text
                        (let ([snip (make-object comment-box:snip%)])
@@ -104,7 +104,7 @@
           
           (make-object c% (string-constant insert-comment-box-menu-item-label)
             edit-menu 
-            (lambda (x y) (insert-comment-box))
+            (λ (x y) (insert-comment-box))
             #f #f
             on-demand)
           (make-object c% (string-constant insert-image-item)
@@ -148,7 +148,7 @@
           (define/override (on-exit) 
             (exit:on-exit)
             (queue-callback
-             (lambda ()
+             (λ ()
                (exit)
                (exit:set-exiting #f))))
                     
@@ -167,28 +167,28 @@
           (define after-init? #f)
           
           (define/override on-drop-file
-            (lambda (filename)
+            (λ (filename)
               (handler:edit-file filename)))
           
           ;; added call to set label here to hopefully work around a problem in mac mred
           (inherit set-label change-children)
           (define/override after-new-child
-            (lambda (child)
+            (λ (child)
               (when after-init?
-                (change-children (lambda (l) (remq child l)))
+                (change-children (λ (l) (remq child l)))
                 (error 'frame:basic-mixin
                        "do not add children directly to a frame:basic (unless using make-root-area-container); use the get-area-container method instead"
                        ))))
           
-          (define/public get-area-container% (lambda () vertical-panel%))
-          (define/public get-menu-bar% (lambda () menu-bar%))
+          (define/public get-area-container% (λ () vertical-panel%))
+          (define/public get-menu-bar% (λ () menu-bar%))
           (define/public make-root-area-container
-            (lambda (% parent)
+            (λ (% parent)
               (make-object % parent)))
           
           (inherit can-close? on-close)
           (define/public close
-           (lambda ()
+           (λ ()
              (when (can-close?)
                (on-close)
                (show #f))))
@@ -225,7 +225,7 @@
       (define (setup-size-pref size-preferences-key w h)
         (preferences:set-default size-preferences-key 
                                  (list w h)
-                                 (lambda (x)
+                                 (λ (x)
                                    (and (pair? x)
                                         (pair? (cdr x))
                                         (null? (cddr x))
@@ -276,7 +276,7 @@
           (define/override (on-paint)
             (let* ([dc (get-dc)]
                    [draw
-                    (lambda (str bg-color bg-style line-color line-style)
+                    (λ (str bg-color bg-style line-color line-style)
                       (send dc set-font (send (get-parent) get-label-font))
                       (let-values ([(w h) (get-client-size)]
                                    [(tw th ta td) (send dc get-text-extent str)])
@@ -333,7 +333,7 @@
               r-root))
           (define/public (open-status-line id)
             (do-main-thread
-             (lambda ()
+             (λ ()
                (when status-line-container-panel
                  (set! status-lines
                        (let loop ([status-lines status-lines])
@@ -348,7 +348,7 @@
           
           (define/public (close-status-line id)
             (do-main-thread
-             (lambda ()
+             (λ ()
                (when status-line-container-panel
                  
                  ;; decrement counter in for status line, or remove it if
@@ -372,7 +372,7 @@
                    (when status-line-msg
                      (send (status-line-msg-message status-line-msg) set-label "")
                      (set-status-line-msg-id! status-line-msg #f)))
-                 (let* ([msgs-that-can-be-removed (filter (lambda (x) (not (status-line-msg-id x))) status-line-msgs)]
+                 (let* ([msgs-that-can-be-removed (filter (λ (x) (not (status-line-msg-id x))) status-line-msgs)]
                         [max-to-include (length status-lines)]
                         [msgs-to-remove
                          (let loop ([n max-to-include]
@@ -383,8 +383,8 @@
                              [else (loop (- n 1) (cdr l))]))])
                    (send status-line-container-panel
                          change-children
-                         (lambda (old-children)
-                           (foldl (lambda (status-line-msg l)
+                         (λ (old-children)
+                           (foldl (λ (status-line-msg l)
                                     (remq (status-line-msg-message status-line-msg) l))
                                   old-children
                                   msgs-to-remove)))
@@ -399,20 +399,20 @@
           ;; update-status-line : symbol (union #f string)
           (define/public (update-status-line id msg-txt)
             (do-main-thread
-             (lambda ()
+             (λ ()
                (unless (open-status-line? id)
                  (error 'update-status-line "unknown id ~e, other arg ~e" id msg-txt))
                (if msg-txt
                    (cond
                      [(find-status-line-msg id)
                       =>
-                      (lambda (existing-status-line-msg)
+                      (λ (existing-status-line-msg)
                         (let ([msg (status-line-msg-message existing-status-line-msg)])
                           (unless (equal? (send msg get-label) msg-txt)
                             (send msg set-label msg-txt))))]
                      [(find-available-status-line-msg)
                       =>
-                      (lambda (available-status-line-msg)
+                      (λ (available-status-line-msg)
                         (send (status-line-msg-message available-status-line-msg) set-label msg-txt)
                         (set-status-line-msg-id! available-status-line-msg id))]
                      [else
@@ -504,22 +504,22 @@
           [define info-canvas #f]
           (public get-info-canvas set-info-canvas get-info-editor)
           [define get-info-canvas
-           (lambda ()
+           (λ ()
              info-canvas)]
           [define set-info-canvas
-           (lambda (c)
+           (λ (c)
              (set! info-canvas c))]
           [define get-info-editor
-           (lambda ()
+           (λ ()
              (and info-canvas
                   (send info-canvas get-editor)))]
           
           (public determine-width)
           [define determine-width
-            (lambda (string canvas edit)
+            (λ (string canvas edit)
               (send edit set-autowrap-bitmap #f)
               (send canvas call-as-primary-owner
-                    (lambda ()
+                    (λ ()
                       (let ([lb (box 0)]
                             [rb (box 0)])
                         (send edit erase)
@@ -551,14 +551,14 @@
             (cond
               [(or info-hidden? (not pref-value))
                (send super-root change-children
-                     (lambda (l)
+                     (λ (l)
                        (if (memq outer-info-panel l)
                            (begin (unregister-collecting-blit gc-canvas)
                                   (list rest-panel))
                            l)))]
               [else
                (send super-root change-children
-                     (lambda (l)
+                     (λ (l)
                        (if (memq outer-info-panel l)
                            l
                            (begin
@@ -568,7 +568,7 @@
           [define close-panel-callback
             (preferences:add-callback
              'framework:show-status-line
-             (lambda (p v)
+             (λ (p v)
                (update-info-visibility v)))]
           (define memory-cleanup void) ;; only for CVSers and nightly build users; used with memory-text
 
@@ -598,7 +598,7 @@
           
           (public update-info)
           [define update-info
-            (lambda ()
+            (λ ()
               (lock-status-changed))]
           
 	  (super-new)
@@ -609,11 +609,11 @@
           (make-object grow-box-spacer-pane% outer-info-panel)
           (public get-info-panel)
           [define get-info-panel
-            (lambda ()
+            (λ ()
               info-panel)]
           (public update-memory-text)
           [define update-memory-text
-            (lambda ()
+            (λ ()
               (when show-memory-text?
                 (send memory-text begin-edit-sequence)
                 (send memory-text lock #f)
@@ -642,14 +642,14 @@
           (when show-memory-text?
             (let* ([panel (make-object horizontal-panel% (get-info-panel) '(border))]
                    [button (make-object button% (string-constant collect-button-label) panel 
-                             (lambda x
+                             (λ x
                                (collect-garbage)
                                (update-memory-text)))]
                    [ec (make-object editor-canvas% panel memory-text '(no-hscroll no-vscroll))])
               (determine-width "0,000,000,000" ec memory-text)
               (update-memory-text)
               (set! memory-cleanup
-                    (lambda ()
+                    (λ ()
                       (send ec set-editor #f)))
               (send panel stretchable-width #f)))
 
@@ -668,7 +668,7 @@
           
           (unless (preferences:get 'framework:show-status-line)
             (send super-root change-children
-                  (lambda (l)
+                  (λ (l)
                     (list rest-panel))))
           (register-gc-blit)
             
@@ -701,7 +701,7 @@
           [define remove-first
             (preferences:add-callback
              'framework:col-offsets
-             (lambda (p v)
+             (λ (p v)
                (editor-position-changed-offset/numbers
                 v
                 (preferences:get 'framework:display-line-numbers))
@@ -709,23 +709,22 @@
           [define remove-second
             (preferences:add-callback
              'framework:display-line-numbers
-             (lambda (p v)
+             (λ (p v)
                (editor-position-changed-offset/numbers
                 (preferences:get 'framework:col-offsets)
                 v)
                #t))]
-          [define/augment on-close
-            (lambda ()
-              (remove-first)
-              (remove-second)
-              (inner (void) on-close))]
+          (define/augment (on-close)
+            (remove-first)
+            (remove-second)
+            (inner (void) on-close))
           [define last-start #f]
           [define last-end #f]
           [define last-params #f]
           (define/private (editor-position-changed-offset/numbers offset? line-numbers?)
             (let* ([edit (get-info-editor)]
                    [make-one
-                    (lambda (pos)
+                    (λ (pos)
                       (let* ([line (send edit position-paragraph pos)]
                              [col (find-col edit line pos)])
                         (if line-numbers?
@@ -809,7 +808,7 @@
           (define/public (anchor-status-changed)
             (let ([info-edit (get-info-editor)]
                   [failed
-                   (lambda ()
+                   (λ ()
                      (unless (eq? anchor-last-state? #f)
                        (set! anchor-last-state? #f)
                        (send anchor-message show #f)))])
@@ -831,10 +830,10 @@
              (preferences:get 'framework:col-offsets)
              (preferences:get 'framework:display-line-numbers)))
             [define/public overwrite-status-changed
-             (lambda ()
+             (λ ()
                (let ([info-edit (get-info-editor)]
                      [failed
-                      (lambda ()
+                      (λ ()
                         (set! overwrite-last-state? #f)
                         (send overwrite-message show #f))])
                  (cond
@@ -851,15 +850,14 @@
                            (failed)])))]
                    [else
                     (failed)])))]
-          [define/override update-info
-            (lambda ()
-              (super update-info)
-              (update-macro-recording-icon)
-              (overwrite-status-changed)
-              (anchor-status-changed)
-              (editor-position-changed))]
-	  (super-instantiate ())
-
+          (define/override (update-info)
+            (super update-info)
+            (update-macro-recording-icon)
+            (overwrite-status-changed)
+            (anchor-status-changed)
+            (editor-position-changed))
+	  (super-new)
+          
           (inherit get-info-panel)
           
           [define anchor-message
@@ -884,10 +882,10 @@
           
           (inherit determine-width)
           (let ([move-front
-                 (lambda (x l)
+                 (λ (x l)
                    (cons x (remq x l)))])
             (send (get-info-panel) change-children
-                  (lambda (l)
+                  (λ (l)
                     (move-front
                      macro-recording-message
                      (move-front
@@ -952,7 +950,7 @@
           
           (define/override (editing-this-file? filename)
             (let ([path-equal?
-                   (lambda (x y)
+                   (λ (x y)
                      (equal? (normal-case-path (normalize-path x))
                              (normal-case-path (normalize-path y))))])
               (let ([this-fn (get-filename)])
@@ -975,7 +973,7 @@
           
           (public get-entire-label get-label-prefix set-label-prefix)
           [define get-entire-label
-            (lambda ()
+            (λ ()
               (cond
                 [(string=? "" label)
                  label-prefix]
@@ -983,25 +981,25 @@
                  label]
                 [else 
                  (string-append label " - " label-prefix)]))]
-          [define get-label-prefix (lambda () label-prefix)]
+          [define get-label-prefix (λ () label-prefix)]
           [define set-label-prefix
-           (lambda (s)
+           (λ (s)
              (when (and (string? s)
                         (not (string=? s label-prefix)))
                (set! label-prefix s)
                (do-label)))]
-          [define/override get-label (lambda () label)]
+          [define/override get-label (λ () label)]
           [define/override set-label
-            (lambda (t)
+            (λ (t)
               (when (and (string? t)
                          (not (string=? t label)))
                 (set! label t)
                 (do-label)))]
 
           (public get-canvas% get-canvas<%> make-canvas get-editor% get-editor<%> make-editor)
-          [define get-canvas% (lambda () editor-canvas%)]
-          [define get-canvas<%> (lambda () (class->interface editor-canvas%))]
-          [define make-canvas (lambda ()
+          [define get-canvas% (λ () editor-canvas%)]
+          [define get-canvas<%> (λ () (class->interface editor-canvas%))]
+          [define make-canvas (λ ()
                                 (let ([% (get-canvas%)]
                                       [<%> (get-canvas<%>)])
                                   (unless (implementation? % <%>)
@@ -1054,7 +1052,7 @@
             (send item enable (not (send (get-editor) is-locked?))))
 
           (define/override file-menu:revert-callback 
-            (lambda (item control)
+            (λ (item control)
               (let* ([edit (get-editor)]
                      [b (box #f)]
                      [filename (send edit get-filename b)])
@@ -1093,28 +1091,28 @@
                           (send edit end-edit-sequence))
                         (send edit end-edit-sequence)))))))
           
-          (define/override file-menu:create-revert? (lambda () #t))
+          (define/override file-menu:create-revert? (λ () #t))
           (define/override file-menu:save-callback
-            (lambda (item control)
+            (λ (item control)
               (save)
               #t))
           
-          (define/override file-menu:create-save? (lambda () #t))
-          (define/override file-menu:save-as-callback (lambda (item control) (save-as) #t))
-          (define/override file-menu:create-save-as? (lambda () #t))
-          (define/override file-menu:print-callback (lambda (item control)
+          (define/override file-menu:create-save? (λ () #t))
+          (define/override file-menu:save-as-callback (λ (item control) (save-as) #t))
+          (define/override file-menu:create-save-as? (λ () #t))
+          (define/override file-menu:print-callback (λ (item control)
                                              (send (get-editor) print
                                                    #t
                                                    #t
                                                    (preferences:get 'framework:print-output-mode))
                                              #t))
-          (define/override file-menu:create-print? (lambda () #t))
+          (define/override file-menu:create-print? (λ () #t))
           
           (define/override edit-menu:between-select-all-and-find
-           (lambda (edit-menu)
+           (λ (edit-menu)
              (let* ([c% (get-checkable-menu-item%)]
                     [on-demand
-                     (lambda (menu-item)
+                     (λ (menu-item)
                        (let ([edit (get-edit-target-object)])
                          (if (and edit (is-a? edit editor<%>))
                              (begin
@@ -1124,7 +1122,7 @@
                                (send menu-item check #f)
                                (send menu-item enable #f)))))]
                     [callback
-                     (lambda (item event)
+                     (λ (item event)
                        (let ([edit (get-edit-target-object)])
                          (when (and edit
                                     (is-a? edit editor<%>))
@@ -1137,14 +1135,14 @@
              (make-object separator-menu-item% edit-menu)))
           
           (define/override help-menu:about-callback 
-            (lambda (menu evt) 
+            (λ (menu evt) 
               (message-box (application:current-app-name)
                            (format (string-constant welcome-to-something)
                                    (application:current-app-name))
                            #f
                            '(ok app))))
-          (define/override help-menu:about-string (lambda () (application:current-app-name)))
-          (define/override help-menu:create-about? (lambda () #t))
+          (define/override help-menu:about-string (λ () (application:current-app-name)))
+          (define/override help-menu:create-about? (λ () #t))
           
 	  (super-new (label (get-entire-label)))
           
@@ -1152,13 +1150,13 @@
           (define editor #f)
           (public get-canvas get-editor)
           (define get-canvas 
-            (lambda () 
+            (λ () 
               (unless canvas
                 (set! canvas (make-canvas))
                 (send canvas set-editor (get-editor)))
               canvas))
           (define get-editor 
-            (lambda () 
+            (λ () 
               (unless editor
                 (set! editor (make-editor))
                 (send (get-canvas) set-editor editor))
@@ -1304,15 +1302,15 @@
       (define text<%> (interface (-editor<%>)))
       (define text-mixin
         (mixin (-editor<%>) (text<%>)
-          [define/override get-editor<%> (lambda () (class->interface text%))]
-          [define/override get-editor% (lambda () text:keymap%)]
+          [define/override get-editor<%> (λ () (class->interface text%))]
+          [define/override get-editor% (λ () text:keymap%)]
           (super-new)))
       
       (define pasteboard<%> (interface (-editor<%>)))
       (define pasteboard-mixin
         (mixin (-editor<%>) (pasteboard<%>)
-          [define/override get-editor<%> (lambda () (class->interface pasteboard%))]
-          [define/override get-editor% (lambda () pasteboard:keymap%)]
+          [define/override get-editor<%> (λ () (class->interface pasteboard%))]
+          [define/override get-editor% (λ () pasteboard:keymap%)]
           (super-new)))
       
       (define delegate<%>
@@ -1483,7 +1481,7 @@
           [define rest-panel 'uninitialized-root]
           [define super-root 'uninitialized-super-root]
           [define/override make-root-area-container
-            (lambda (% parent)
+            (λ (% parent)
               (let* ([s-root (super make-root-area-container
                               horizontal-panel%
                               parent)]
@@ -1508,13 +1506,13 @@
             (set! shown? #f)
             (send (get-delegated-text) set-delegate #f)
             (send super-root change-children
-                  (lambda (l) (list rest-panel))))
+                  (λ (l) (list rest-panel))))
           (define/public (show-delegated-text)
             (open-status-line 'plt:delegate)
             (set! shown? #t)
             (send (get-delegated-text) set-delegate delegatee)
             (send super-root change-children
-                  (lambda (l) (list rest-panel delegate-ec))))
+                  (λ (l) (list rest-panel delegate-ec))))
 
           (define/public (click-in-overview pos)
             (when shown?
@@ -1558,16 +1556,16 @@
                 (open-status-line 'plt:delegate)
                 (send (get-delegated-text) set-delegate delegatee)
                 (send super-root change-children
-                      (lambda (l) (list rest-panel delegate-ec))))
+                      (λ (l) (list rest-panel delegate-ec))))
               (begin
                 (send (get-delegated-text) set-delegate #f)
-                (send super-root change-children (lambda (l) (list rest-panel)))))))
+                (send super-root change-children (λ (l) (list rest-panel)))))))
               
       
       (define (search-dialog frame)
         (init-find/replace-edits)
         (keymap:call/text-keymap-initializer
-         (lambda ()
+         (λ ()
            (let* ([to-be-searched-text (send frame get-text-to-search)]
                   [to-be-searched-canvas (send to-be-searched-text get-canvas)]
                   
@@ -1580,7 +1578,7 @@
                             frame)]
                   
                   [copy-text
-                   (lambda (from to)
+                   (λ (from to)
                      (send to erase)
                      (let loop ([snip (send from find-first-snip)])
                        (when snip
@@ -1615,60 +1613,60 @@
                   [button-panel (make-object horizontal-panel% dialog)]
                   
                   [update-texts
-                   (lambda ()
+                   (λ ()
                      (send find-edit stop-searching)
                      (copy-text f-text find-edit)
                      (send find-edit start-searching)
                      (copy-text r-text replace-edit))]
                   
                   [find-button (make-object button% (string-constant find) button-panel 
-                                 (lambda x
+                                 (λ x
                                    (update-texts)
                                    (send frame search-again))
                                  '(border))]
                   [replace-button (make-object button% (string-constant replace) button-panel
-                                    (lambda x
+                                    (λ x
                                       (update-texts)
                                       (send frame replace)))]
                   [replace-and-find-button (make-object button% (string-constant replace&find-again)
                                              button-panel
-                                             (lambda x
+                                             (λ x
                                                (update-texts)
                                                (send frame replace&search)))]
                   [replace-to-end-button
                    (make-object button% (string-constant replace-to-end) button-panel
-                     (lambda x
+                     (λ x
                        (update-texts)
                        (send frame replace-all)))]
                   
                   [dock-button (make-object button%
                                  (string-constant dock)
                                  button-panel
-                                 (lambda (btn evt)
+                                 (λ (btn evt)
                                    (update-texts)
                                    (preferences:set 'framework:search-using-dialog? #f)
                                    (send frame unhide-search)))]
                   
                   [close
-                   (lambda ()
+                   (λ ()
                      (when to-be-searched-canvas
                        (send to-be-searched-canvas force-display-focus #f))
                      (send dialog show #f))]
                   
                   [close-button (make-object button% (string-constant close) button-panel
-                                  (lambda (x y)
+                                  (λ (x y)
                                     (close)))]
 
                   [remove-pref-callback
                    (preferences:add-callback 
                     'framework:search-using-dialog?
-                    (lambda (p v)
+                    (λ (p v)
                       (unless v
                         (close))))])
              
              (unless allow-replace?
                (send button-panel change-children
-                     (lambda (l)
+                     (λ (l)
                        (remq
                         replace-button
                         (remq
@@ -1677,7 +1675,7 @@
                           replace-to-end-button
                           l)))))
                (send dialog change-children
-                     (lambda (l)
+                     (λ (l)
                        (remq replace-panel l))))
 
              (copy-text find-edit f-text)
@@ -1726,12 +1724,12 @@
       
       (define old-search-highlight void)
       (define clear-search-highlight
-        (lambda ()
+        (λ ()
           (begin (old-search-highlight)
                  (set! old-search-highlight void))))
       (define reset-search-anchor
         (let ([color (make-object color% "BLUE")])
-          (lambda (edit)
+          (λ (edit)
             (old-search-highlight)
             (let ([position 
                    (if (eq? 'forward searching-direction)
@@ -1768,7 +1766,7 @@
                                start end get-start
                                case-sensitive?)]
                    [pop-out
-                    (lambda ()
+                    (λ ()
                       (let ([admin (send edit get-admin)])
                         (if (is-a? admin editor-snip-editor-admin<%>)
                             (let* ([snip (send admin get-snip)]
@@ -1790,7 +1788,7 @@
                                                  'after-or-none
                                                  'before-or-none))])
                 (let ([next-loop
-                       (lambda ()
+                       (λ ()
                          (if (eq? direction 'forward)
                              (loop (send current-snip next))
                              (loop (send current-snip previous))))])
@@ -1850,14 +1848,14 @@
                                              top-searching-edit))]
                        
                        [not-found
-                        (lambda (found-edit skip-beep?)
+                        (λ (found-edit skip-beep?)
                           (send found-edit set-position search-anchor)
                           (when (and beep?
                                      (not skip-beep?))
                             (bell))
                           #f)]
                        [found
-                        (lambda (edit first-pos)
+                        (λ (edit first-pos)
                           (let ([last-pos ((if (eq? searching-direction 'forward) + -)
                                            first-pos (string-length string))])
                             (send* edit 
@@ -1944,7 +1942,7 @@
         (unless find-edit
           (set! find-edit (make-object find-text%))
           (set! replace-edit (make-object replace-text%))
-          (for-each (lambda (keymap)
+          (for-each (λ (keymap)
                       (send keymap chain-to-keymap
                             (keymap:get-search)
                             #t))
@@ -1955,16 +1953,16 @@
         (mixin (standard-menus<%>) (searchable<%>)
           (init-find/replace-edits)
           (define super-root 'unitiaialized-super-root)
-          (define/override edit-menu:find-callback (lambda (menu evt) (move-to-search-or-search) #t))
-          (define/override edit-menu:create-find? (lambda () #t))
-          (define/override edit-menu:find-again-callback (lambda (menu evt) (search-again) #t))
-          (define/override edit-menu:create-find-again? (lambda () #t))
-          (define/override edit-menu:replace-and-find-again-callback (lambda (menu evt) (replace&search) #t))
+          (define/override edit-menu:find-callback (λ (menu evt) (move-to-search-or-search) #t))
+          (define/override edit-menu:create-find? (λ () #t))
+          (define/override edit-menu:find-again-callback (λ (menu evt) (search-again) #t))
+          (define/override edit-menu:create-find-again? (λ () #t))
+          (define/override edit-menu:replace-and-find-again-callback (λ (menu evt) (replace&search) #t))
           (define/override edit-menu:replace-and-find-again-on-demand
-            (lambda (item) (send item enable (can-replace?))))
-          (define/override edit-menu:create-replace-and-find-again? (lambda () #t))
+            (λ (item) (send item enable (can-replace?))))
+          (define/override edit-menu:create-replace-and-find-again? (λ () #t))
           (define/override make-root-area-container
-            (lambda (% parent)
+            (λ (% parent)
               (let* ([s-root (super make-root-area-container
                               vertical-panel%
                               parent)]
@@ -1972,13 +1970,12 @@
                 (set! super-root s-root)
                 root)))
 
-          (define/override on-activate
-            (lambda (on?)
-              (unless hidden?
-                (if on?
-                    (reset-search-anchor (get-text-to-search))
-                    (clear-search-highlight)))
-              (super on-activate on?)))
+          (define/override (on-activate on?)
+            (unless hidden?
+              (if on?
+                  (reset-search-anchor (get-text-to-search))
+                  (clear-search-highlight)))
+            (super on-activate on?))
           
           (define/public (get-text-to-search)
 	    (error 'get-text-to-search "abstract method in searchable-mixin"))
@@ -1986,7 +1983,7 @@
             (opt-lambda ([startup? #f])
 	      (when search-gui-built?
 		(send super-root change-children
-		      (lambda (l)
+		      (λ (l)
 			(remove search-panel l))))
               (clear-search-highlight)
               (unless startup?
@@ -2023,46 +2020,45 @@
             (cond
               [hide?
                (send replace-canvas-panel change-children
-                     (lambda (l) null))
-               (send replace-button-panel change-children (lambda (l) null))
-               (send middle-middle-panel change-children (lambda (l) null))]
+                     (λ (l) null))
+               (send replace-button-panel change-children (λ (l) null))
+               (send middle-middle-panel change-children (λ (l) null))]
               [else
                (send replace-canvas-panel change-children
-                     (lambda (l) (list replace-canvas)))
+                     (λ (l) (list replace-canvas)))
                (send replace-button-panel change-children
-                     (lambda (l) (list replace-button)))
+                     (λ (l) (list replace-button)))
                (send middle-middle-panel change-children
-                     (lambda (l) (list replace&search-button
+                     (λ (l) (list replace&search-button
                                        replace-all-button)))]))
 
           (define remove-callback
             (preferences:add-callback
              'framework:search-using-dialog?
-             (lambda (p v)
+             (λ (p v)
                (when p
                  (hide-search)))))
-          (define/augment on-close
-            (lambda ()
-              (remove-callback)
-              (let ([close-canvas
-                     (lambda (canvas edit)
-                       (send canvas set-editor #f))])
-		(when search-gui-built?
-		  (close-canvas find-canvas find-edit)
-		  (close-canvas replace-canvas replace-edit)))
-              (when (eq? this searching-frame)
-                (set-searching-frame #f))
-              (inner (void) on-close)))
+          (define/augment (on-close)
+            (remove-callback)
+            (let ([close-canvas
+                   (λ (canvas edit)
+                     (send canvas set-editor #f))])
+              (when search-gui-built?
+                (close-canvas find-canvas find-edit)
+                (close-canvas replace-canvas replace-edit)))
+            (when (eq? this searching-frame)
+              (set-searching-frame #f))
+            (inner (void) on-close))
           (public set-search-direction can-replace? replace&search replace-all replace
                   toggle-search-focus move-to-search-or-search move-to-search-or-reverse-search
                   search-again)
           (define set-search-direction 
-            (lambda (x) 
+            (λ (x) 
               (set-searching-direction x)
 	      (when dir-radio
 		(send dir-radio set-selection (if (eq? x 'forward) 0 1)))))
           (define can-replace?
-            (lambda ()
+            (λ ()
               (let ([tx (get-text-to-search)])
                 (and
                  tx
@@ -2073,7 +2069,7 @@
                         (send tx get-end-position))
                   (send find-edit get-text 0 (send find-edit last-position)))))))
           (define replace&search
-            (lambda ()
+            (λ ()
               (let ([text (get-text-to-search)])
                 (send text begin-edit-sequence)
                 (when (replace)
@@ -2086,8 +2082,8 @@
                             (send embeded-replacee-edit get-start-position)
                             (send embeded-replacee-edit get-end-position))]
                    [done? (if (eq? 'forward searching-direction)
-                              (lambda (x) (>= x (send replacee-edit last-position)))
-                              (lambda (x) (<= x 0)))])
+                              (λ (x) (>= x (send replacee-edit last-position)))
+                              (λ (x) (<= x 0)))])
               (send replacee-edit begin-edit-sequence)
               (when (search-again)
                 (send embeded-replacee-edit set-position pos)
@@ -2136,7 +2132,7 @@
                        find-canvas])
                     focus)))
           (define move-to-search-or-search
-            (lambda ()
+            (λ ()
               (set-searching-frame this)
               (unhide-search)
               (cond
@@ -2148,7 +2144,7 @@
 		     (search-again 'forward)
 		     (send find-canvas focus))])))
           (define move-to-search-or-reverse-search
-            (lambda ()
+            (λ ()
               (set-searching-frame this)
               (unhide-search)
               (if (or (send find-canvas has-focus?)
@@ -2200,7 +2196,7 @@
 		(define search-button (make-object button% 
 					(string-constant find)
 					middle-left-panel
-					(lambda args (search-again))))
+					(λ args (search-again))))
 		
 		(define _5
 		  (set! replace-button-panel
@@ -2212,26 +2208,26 @@
 		(define _6
 		  (set! replace-button (make-object button% (string-constant replace)
 						    replace-button-panel
-						    (lambda x (replace)))))
+						    (λ x (replace)))))
 		
 		(define _7
 		  (set! replace&search-button (make-object button% 
 						(string-constant replace&find-again)
 						middle-middle-panel
-						(lambda x (replace&search)))))
+						(λ x (replace&search)))))
 		
 		(define _8
 		  (set! replace-all-button (make-object button% 
 					     (string-constant replace-to-end)
 					     middle-middle-panel
-					     (lambda x (replace-all)))))
+					     (λ x (replace-all)))))
 		(define _9
 		  (set! dir-radio (make-object radio-box%
 				    #f
 				    (list (string-constant forward)
 					  (string-constant backward))
 				    middle-right-panel
-				    (lambda (dir-radio evt)
+				    (λ (dir-radio evt)
 				      (let ([forward (if (= (send dir-radio get-selection) 0)
 							 'forward
 							 'backward)])
@@ -2241,23 +2237,23 @@
 		(define hide/undock-pane (make-object horizontal-panel% middle-right-panel))
 		(define hide-button (make-object button% (string-constant hide)
 						 hide/undock-pane
-						 (lambda args (hide-search))))
+						 (λ args (hide-search))))
 		(define undock-button (make-object button% (string-constant undock)
 						   hide/undock-pane
-						   (lambda args (undock))))
+						   (λ args (undock))))
 		(let ([align
-		       (lambda (x y)
+		       (λ (x y)
 			 (let ([m (max (send x get-width)
 				       (send y get-width))])
 			   (send x min-width m)
 			   (send y min-width m)))])
 		  (align search-button replace-button)
 		  (align replace&search-button replace-all-button))
-		(for-each (lambda (x) (send x set-alignment 'center 'center))
+		(for-each (λ (x) (send x set-alignment 'center 'center))
 			  (list middle-left-panel middle-middle-panel))
-		(for-each (lambda (x) (send x stretchable-height #f))
+		(for-each (λ (x) (send x stretchable-height #f))
 			  (list search-panel middle-left-panel middle-middle-panel middle-right-panel))
-		(for-each (lambda (x) (send x stretchable-width #f))
+		(for-each (λ (x) (send x stretchable-width #f))
 			  (list middle-left-panel middle-middle-panel middle-right-panel))
 		(send find-canvas set-editor find-edit)
 		(send find-canvas stretchable-height #t)
@@ -2284,10 +2280,10 @@
       (send memory-text hide-caret #t)
       (define show-memory-text?
         (or (with-handlers ([exn:fail:filesystem?
-                             (lambda (x) #f)])
+                             (λ (x) #f)])
               (directory-exists? (collection-path "cvs-time-stamp")))
             (with-handlers ([exn:fail:filesystem?
-                             (lambda (x) #f)])
+                             (λ (x) #f)])
               (directory-exists? (build-path (collection-path "framework") "CVS")))))
       
       (define bday-click-canvas%

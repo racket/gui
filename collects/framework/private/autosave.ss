@@ -57,7 +57,7 @@
                   (when (file-exists? autosave-toc-filename)
                     (copy-file autosave-toc-filename autosave-toc-save-filename))
                   (call-with-output-file autosave-toc-filename
-                    (lambda (port)
+                    (λ (port)
                       (write new-name-mapping port))
                     'truncate
                     'text))))
@@ -115,13 +115,13 @@
         (define (main)
           (when (file-exists? autosave-toc-filename)
 	    ;; Load table from file, and check that the file was not corrupted
-            (let* ([table (let ([v (with-handlers ([exn:fail? (lambda (x) null)])
+            (let* ([table (let ([v (with-handlers ([exn:fail? (λ (x) null)])
 				     (call-with-input-file autosave-toc-filename read))]
-				[path? (lambda (x)
+				[path? (λ (x)
 					 (and (string? x)
 					      (absolute-path? x)))])
 			    (if (and (list? v)
-				     (andmap (lambda (i)
+				     (andmap (λ (i)
 					       (and (list? i) 
 						    (= 2 (length i))
 						    (or (not (car i))
@@ -132,7 +132,7 @@
 				null))]
                    ;; assume that the autosave file was deleted due to the file being saved
                    [filtered-table
-                    (filter (lambda (x) (file-exists? (cadr x))) table)])
+                    (filter (λ (x) (file-exists? (cadr x))) table)])
               (unless (null? filtered-table)
                 (let* ([f (new final-frame%
                                (label (string-constant recover-autosave-files-frame-title)))]
@@ -155,7 +155,7 @@
 		  (make-object button%
 		    (string-constant autosave-done)
 		    vp
-		    (lambda (x y)
+		    (λ (x y)
 		      (when (send f can-close?)
 			(send f on-close)
 			(send f show #f))))
@@ -181,7 +181,7 @@
         ;;               -> void
         ;; adds in a line to the overview table showing this pair of files.
         (define (add-table-line area-container parent)
-          (lambda (table-entry)
+          (λ (table-entry)
             (letrec ([orig-file (car table-entry)]
 		     [backup-file (cadr table-entry)]
 		     [hp (new horizontal-panel%
@@ -210,13 +210,13 @@
 			     (parent msg2-panel))]
 		     [details
 		      (make-object button% (string-constant autosave-details) hp
-				   (lambda (x y)
+				   (λ (x y)
 				     (show-files table-entry)))]
 		     [delete
 		      (make-object button%
 			(string-constant autosave-delete-button)
 			hp
-			(lambda (delete y)
+			(λ (delete y)
 			  (when (delete-autosave table-entry)
 			    (disable-line)
 			    (send msg2 set-label (string-constant autosave-deleted)))))]
@@ -224,14 +224,14 @@
 		      (make-object button%
 			(string-constant autosave-recover)
 			hp
-			(lambda (recover y)
+			(λ (recover y)
 			  (let ([filename-result (recover-file parent table-entry)])
 			    (when filename-result
 			      (disable-line)
 			      (send msg2 set-label (string-constant autosave-recovered!))
 			      (send msg1 set-label filename-result)))))]
 		     [disable-line
-		      (lambda ()
+		      (λ ()
 			(send recover enable #f)
 			(send details enable #f)
 			(send delete enable #f))])
@@ -252,7 +252,7 @@
 		  (string-constant warning)
 		  #f)
 		 (with-handlers ([exn:fail?
-				  (lambda (exn)
+				  (λ (exn)
 				    (message-box
 				     (string-constant warning)
 				     (format (string-constant autosave-error-deleting)

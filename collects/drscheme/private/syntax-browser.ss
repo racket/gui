@@ -80,18 +80,18 @@ needed to really make this work:
               (send text last-position)))
       
       (let ([range-pretty-print-pre-hook 
-             (lambda (x v)
+             (λ (x v)
                (hash-table-put! range-start-ht x (send output-text last-position)))]
             [range-pretty-print-post-hook 
-             (lambda (x port)
-               (let ([range-start (hash-table-get range-start-ht x (lambda () #f))])
+             (λ (x port)
+               (let ([range-start (hash-table-get range-start-ht x (λ () #f))])
                  (when range-start
                    (hash-table-put! range-ht x 
                                     (cons
                                      (cons
                                       range-start
                                       (send output-text last-position))
-                                     (hash-table-get range-ht x (lambda () null)))))))])
+                                     (hash-table-get range-ht x (λ () null)))))))])
         (parameterize ([current-output-port output-port]
                        [pretty-print-pre-print-hook range-pretty-print-pre-hook]
                        [pretty-print-post-print-hook range-pretty-print-post-hook]
@@ -116,7 +116,7 @@ needed to really make this work:
 	  (unless (null? properties)
 	    (insert/big "Known properties\n")
 	    (for-each
-	     (lambda (prop) (show-property stx prop))
+	     (λ (prop) (show-property stx prop))
 	     properties))))
       
       (define/private (render-mpi mpi)
@@ -140,7 +140,7 @@ needed to really make this work:
       
       (define/private (piece-of-info label info)
         (let ([small-newline 
-               (lambda (port text)
+               (λ (port text)
                  (let ([before-newline (send text last-position)])
                    (newline port)
                    (send info-text change-style small-style before-newline (+ before-newline 1))))])
@@ -152,12 +152,12 @@ needed to really make this work:
           ;; but won't work without built-in support for
           ;; editors as output ports
           (parameterize ([pretty-print-size-hook
-                          (lambda (val d/p port)
+                          (λ (val d/p port)
                             (if (is-a? val syntax-snip%)
                                 (+ (string-length (format "~a" (send val get-syntax))) 2)
                                 #f))]
                          [pretty-print-print-hook
-                          (lambda (val d/p port)
+                          (λ (val d/p port)
                             (send info-text insert (send val copy) 
                                   (send info-text last-position)
                                   (send info-text last-position)))])
@@ -276,28 +276,28 @@ needed to really make this work:
               (apply append 
                      (hash-table-map
                       range-ht
-                      (lambda (k vs)
+                      (λ (k vs)
                         (map 
-                         (lambda (v) (make-range k (car v) (cdr v)))
+                         (λ (v) (make-range k (car v) (cdr v)))
                          vs))))
-              (lambda (x y)
+              (λ (x y)
                 (>= (- (range-end x) (range-start x))
                     (- (range-end y) (range-start y)))))])
         (for-each
-         (lambda (range)
+         (λ (range)
            (let* ([obj (range-obj range)]
-                  [stx (hash-table-get stx-ht obj (lambda () #f))]
+                  [stx (hash-table-get stx-ht obj (λ () #f))]
                   [start (range-start range)]
                   [end (range-end range)])
              (when (syntax? stx)
                (send output-text set-clickback start end 
-                     (lambda (_1 _2 _3)
+                     (λ (_1 _2 _3)
                        (show-range stx start end))))))
          ranges)
         
         (send outer-t insert (new turn-snip% 
-                                  [on-up (lambda () (hide-details))]
-                                  [on-down (lambda () (show-details))]))
+                                  [on-up (λ () (hide-details))]
+                                  [on-down (λ () (show-details))]))
         (send outer-t insert (format "~s\n" main-stx))
         (send outer-t insert inner-es)
         (make-modern outer-t)
@@ -323,7 +323,7 @@ needed to really make this work:
             (k (void)))
           (let* ([rng (car ranges)]
                  [obj (hash-table-get stx-ht (range-obj rng) 
-                                      (lambda ()
+                                      (λ ()
                                         (k (void))))])
             (show-range obj (range-start rng) (range-end rng)))))
       
@@ -478,7 +478,7 @@ needed to really make this work:
               ht)))
   
   (define (syntax-properties stx)
-    (let ([is-property? (lambda (prop) (syntax-property stx prop))])
+    (let ([is-property? (λ (prop) (syntax-property stx prop))])
       (filter is-property?
               '(inferred-name
                 bound-in-source
@@ -497,7 +497,7 @@ needed to really make this work:
   (define (make-text-port text)
     (make-output-port #f
                       always-evt
-                      (lambda (s start end flush? breaks?) 
+                      (λ (s start end flush? breaks?) 
                         (send text insert (bytes->string/utf-8 (subbytes s start end))
                               (send text last-position)
                               (send text last-position))
@@ -517,7 +517,7 @@ needed to really make this work:
       (span ,(syntax-span stx))
       (original? ,(syntax-original? stx))
       (properties 
-       ,@(map (lambda (x) `(,x ,(marshall-object (syntax-property stx x))))
+       ,@(map (λ (x) `(,x ,(marshall-object (syntax-property stx x))))
               (syntax-property-symbol-keys stx)))
       (contents
        ,(marshall-object (syntax-e stx)))))
@@ -573,7 +573,7 @@ needed to really make this work:
       [else stx]))
   
   (define (unmarshall-object obj)
-    (let ([unknown (lambda () (string->symbol (format "unknown: ~s" obj)))])
+    (let ([unknown (λ () (string->symbol (format "unknown: ~s" obj)))])
       (if (and (pair? obj)
                (symbol? (car obj)))
           (case (car obj)

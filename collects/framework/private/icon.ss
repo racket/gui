@@ -39,7 +39,7 @@
                                      csr
                                      (make-object cursor% fallback)))
                                (make-object cursor% fallback))))])
-              (lambda ()
+              (λ ()
                 (force ans))))]))
       
       (define get-up/down-cursor (make-get-cursor "up-down-cursor.xbm" "up-down-mask.xbm" 'size-n/s))

@@ -108,7 +108,7 @@ WARNING: printf is rebound in the body of the unit to always
                                     (let-values ([(this-left this-right)
                                                   (send (car canvases)
                                                         call-as-primary-owner
-                                                        (lambda ()
+                                                        (λ ()
                                                           (send (get-admin) get-view b1 b2 b3 b4)
                                                           (let* ([this-left (unbox b1)]
                                                                  [this-width (unbox b3)]
@@ -167,7 +167,7 @@ WARNING: printf is rebound in the body of the unit to always
             (let* ([b1 (box 0)]
                    [b2 (box 0)]
                    [new-rectangles
-                    (lambda (range)
+                    (λ (range)
                       (let* ([start (range-start range)]
                              [end (range-end range)]
                              [b/w-bitmap (range-b/w-bitmap range)]
@@ -227,13 +227,13 @@ WARNING: printf is rebound in the body of the unit to always
                    [old-rectangles range-rectangles])
               
               (set! range-rectangles 
-                    (foldl (lambda (x l) (append (new-rectangles x) l))
+                    (foldl (λ (x l) (append (new-rectangles x) l))
                            null ranges))))
           
           (define/public highlight-range
             (opt-lambda (start end color [bitmap #f] [caret-space? #f] [priority 'low])
               (unless (let ([exact-pos-int?
-                             (lambda (x) (and (integer? x) (exact? x) (x . >= . 0)))])
+                             (λ (x) (and (integer? x) (exact? x) (x . >= . 0)))])
                         (and (exact-pos-int? start)
                              (exact-pos-int? end)))
                 (error 'highlight-range "expected first two arguments to be non-negative exact integers, got: ~e ~e"
@@ -246,7 +246,7 @@ WARNING: printf is rebound in the body of the unit to always
                 (set! ranges (if (eq? priority 'high) (cons l ranges) (append ranges (list l))))
                 (recompute-range-rectangles)
                 (invalidate-rectangles range-rectangles)
-                (lambda ()
+                (λ ()
                   (let ([old-rectangles range-rectangles])
                     (set! ranges
                           (let loop ([r ranges])
@@ -265,7 +265,7 @@ WARNING: printf is rebound in the body of the unit to always
                   [b3 (box 0)]
                   [b4 (box 0)])
               (for-each
-               (lambda (rectangle)
+               (λ (rectangle)
                  (let-values ([(view-x view-y view-width view-height)
                                (begin 
                                  (send (get-admin) get-view b1 b2 b3 b4)
@@ -291,7 +291,7 @@ WARNING: printf is rebound in the body of the unit to always
                                                   rc
                                                   #f))
                                        rc))]
-                          [first-number (lambda (x y) (if (number? x) x y))]
+                          [first-number (λ (x y) (if (number? x) x y))]
                           [left (max left-margin (first-number (rectangle-left rectangle) view-x))]
                           [top (max top-margin (rectangle-top rectangle))]
                           [right (min right-margin
@@ -519,8 +519,8 @@ WARNING: printf is rebound in the body of the unit to always
               (cond
                 [(zero? n)
                  (if blank?
-		     (lambda (dc x y) (void))
-		     (lambda (dc x y)
+		     (λ (dc x y) (void))
+		     (λ (dc x y)
                        (send dc draw-line (+ x n) y (+ x n (- len 1)) y)))]
                 [else
                  (let ([white? (char-whitespace? (string-ref str (- n 1)))])
@@ -531,7 +531,7 @@ WARNING: printf is rebound in the body of the unit to always
 		      (let ([res (loop (- n 1) 1 (not blank?))])
 			(if blank?
 			    res
-			    (lambda (dc x y)
+			    (λ (dc x y)
 			      (send dc draw-line (+ x n) y (+ x n (- len 1)) y)
 			      (res dc x y))))]))])))
           
@@ -644,7 +644,7 @@ WARNING: printf is rebound in the body of the unit to always
                           (send delegate last-position))
                     (loop (send snip next)))))
               (for-each
-               (lambda (range)
+               (λ (range)
                  (send delegate highlight-range 
                        (range-start range)
                        (range-end range)
@@ -662,7 +662,7 @@ WARNING: printf is rebound in the body of the unit to always
                 (if delegate
                     (let ([delegate-res (send delegate highlight-range 
                                               start end color bitmap caret-space? priority)]) 
-                      (lambda ()
+                      (λ ()
                         (res)
                         (delegate-res)))
                     res))))
@@ -690,7 +690,7 @@ WARNING: printf is rebound in the body of the unit to always
             (when (and delegate
                        linked-snips
                        (not (is-a? snip string-snip%)))
-              (let ([delegate-copy (hash-table-get linked-snips snip (lambda () #f))])
+              (let ([delegate-copy (hash-table-get linked-snips snip (λ () #f))])
                 (when delegate-copy
                   (send delegate resized delegate-copy redraw-now?)))))
           
@@ -754,7 +754,7 @@ WARNING: printf is rebound in the body of the unit to always
           (define/private (enqueue-for-frame call-method tag)
             (run-after-edit-sequence
              (rec from-enqueue-for-frame
-               (lambda ()
+               (λ ()
                  (call-with-frame call-method)))
              tag))
           
@@ -770,12 +770,12 @@ WARNING: printf is rebound in the body of the unit to always
           (define/override (set-anchor x)
             (super set-anchor x)
             (enqueue-for-frame 
-             (lambda (x) (send x anchor-status-changed))
+             (λ (x) (send x anchor-status-changed))
              'framework:anchor-status-changed))
           (define/override (set-overwrite-mode x)
             (super set-overwrite-mode x)
             (enqueue-for-frame
-             (lambda (x) (send x overwrite-status-changed))
+             (λ (x) (send x overwrite-status-changed))
              'framework:overwrite-status-changed))
           (define/augment (after-set-position)
             (maybe-queue-editor-position-update)
@@ -787,11 +787,11 @@ WARNING: printf is rebound in the body of the unit to always
           (define callback-running? #f)
           (define/private (maybe-queue-editor-position-update)
             (enqueue-for-frame 
-             (lambda (frame) 
+             (λ (frame) 
                (unless callback-running?
                  (set! callback-running? #t)
                  (queue-callback
-                  (lambda ()
+                  (λ ()
                     (send frame editor-position-changed)
                     (set! callback-running? #f))
                   #f)))
@@ -1061,12 +1061,12 @@ WARNING: printf is rebound in the body of the unit to always
                  (for-each/snips-chars
                   unread-start-point
                   (last-position)
-                  (lambda (s/c line-col-pos) 
+                  (λ (s/c line-col-pos) 
                     (cond
                       [(is-a? s/c snip%)
                        (channel-put read-chan (cons s/c line-col-pos))]
                       [(char? s/c)
-                       (for-each (lambda (b) (channel-put read-chan (cons b line-col-pos)))
+                       (for-each (λ (b) (channel-put read-chan (cons b line-col-pos)))
                                  (bytes->list (string->bytes/utf-8 (string s/c))))])))
                  (set! allow-tabify? #f)
                  (set! allow-tabify? #t)
@@ -1110,7 +1110,7 @@ WARNING: printf is rebound in the body of the unit to always
           (define/private (queue-insertion txts signal)
             (parameterize ([current-eventspace eventspace])
               (queue-callback
-               (lambda ()
+               (λ ()
                  (do-insertion txts)
                  (sync signal)))))
           
@@ -1161,7 +1161,7 @@ WARNING: printf is rebound in the body of the unit to always
           (define output-buffer-thread
             (let ([converter (bytes-open-converter "UTF-8-permissive" "UTF-8")])
               (thread
-               (lambda ()
+               (λ ()
                  (let loop (;; text-to-insert : (queue (cons (union snip bytes) style))
                             [text-to-insert (empty-queue)]
                             [last-flush (current-inexact-milliseconds)])
@@ -1171,7 +1171,7 @@ WARNING: printf is rebound in the body of the unit to always
                         never-evt
                         (handle-evt
                          (alarm-evt (+ last-flush msec-timeout))
-                         (lambda (_)
+                         (λ (_)
                            (dprintf show-dprintf? "o: alarm.1 ~s\n" (queue->list text-to-insert))
                            (let-values ([(viable-bytes remaining-queue) (split-queue converter text-to-insert)])
                              (dprintf show-dprintf? "o: alarm.2 ~s\n" viable-bytes)
@@ -1179,7 +1179,7 @@ WARNING: printf is rebound in the body of the unit to always
                              (loop remaining-queue (current-inexact-milliseconds))))))
                     (handle-evt
                      flush-chan
-                     (lambda (return-evt)
+                     (λ (return-evt)
                        (dprintf show-dprintf? "o: flush.1 ~s\n" (queue->list text-to-insert))
                        (let-values ([(viable-bytes remaining-queue) (split-queue converter text-to-insert)])
                          (dprintf show-dprintf?  "o: flush.2 ~s\n" viable-bytes)
@@ -1187,12 +1187,12 @@ WARNING: printf is rebound in the body of the unit to always
                          (loop remaining-queue (current-inexact-milliseconds)))))
                     (handle-evt
                      clear-output-chan
-                     (lambda (_)
+                     (λ (_)
                        (dprintf show-dprintf? "o: clear-output\n")
                        (loop (empty-queue) (current-inexact-milliseconds))))
                     (handle-evt
                      write-chan
-                     (lambda (pr)
+                     (λ (pr)
                        (dprintf show-dprintf? "o: write ~s\n" pr)
                        (let ([new-text-to-insert (enqueue pr text-to-insert)])
                          (cond
@@ -1220,7 +1220,7 @@ WARNING: printf is rebound in the body of the unit to always
             ;;  in any thread (even concurrently)
             ;;
             (define (make-write-bytes-proc style)
-              (lambda (to-write start end block/buffer? enable-breaks?)
+              (λ (to-write start end block/buffer? enable-breaks?)
                 (cond
 		 [(= start end) (flush-proc)]
 		 [(eq? (current-thread) (eventspace-handler-thread eventspace))
@@ -1236,7 +1236,7 @@ WARNING: printf is rebound in the body of the unit to always
                 [else
                  (sync
                   (nack-guard-evt
-                   (lambda (fail-channel)
+                   (λ (fail-channel)
                      (let* ([return-channel (make-channel)]
                             [return-evt
                              (choice-evt
@@ -1249,7 +1249,7 @@ WARNING: printf is rebound in the body of the unit to always
               (void))
             
             (define (make-write-special-proc style)
-              (lambda (special can-buffer? enable-breaks?)
+              (λ (special can-buffer? enable-breaks?)
                 (cond
                   [(eq? (current-thread) (eventspace-handler-thread eventspace))
                    (error 'write-bytes-proc "cannot write to port on eventspace main thread")]
@@ -1258,7 +1258,7 @@ WARNING: printf is rebound in the body of the unit to always
                 #t))
             
             (let* ([add-standard
-                    (lambda (sd)
+                    (λ (sd)
                       (let* ([style-list (get-style-list)] 
                              [std (send style-list find-named-style "Standard")])
                         (if std
@@ -1312,7 +1312,7 @@ WARNING: printf is rebound in the body of the unit to always
           
           (define input-buffer-thread
             (thread
-             (lambda ()
+             (λ ()
                
                ;; these vars are like arguments to the loop function
                ;; they are only set right before loop is called.
@@ -1346,7 +1346,7 @@ WARNING: printf is rebound in the body of the unit to always
                    (sync
                     (handle-evt
                      position-chan
-                     (lambda (pr)
+                     (λ (pr)
                        (dprintf show-dprintf? "i: position-chan\n")
                        (let ([nack-chan (car pr)]
                              [resp-chan (cdr pr)])
@@ -1357,7 +1357,7 @@ WARNING: printf is rebound in the body of the unit to always
                         never-evt)
                     (handle-evt
                      read-chan
-                     (lambda (ent)
+                     (λ (ent)
                        (dprintf show-dprintf? "i: read-chan\n")
                        (set! data (enqueue ent data))
                        (unless position
@@ -1365,7 +1365,7 @@ WARNING: printf is rebound in the body of the unit to always
                        (loop)))
                     (handle-evt
                      clear-input-chan
-                     (lambda (_)
+                     (λ (_)
                        (dprintf show-dprintf? "i: clear-input-chan\n")
                        (semaphore-post peeker-sema)
                        (set! peeker-sema (make-semaphore 0))
@@ -1375,7 +1375,7 @@ WARNING: printf is rebound in the body of the unit to always
                        (loop)))
                     (handle-evt
                      progress-event-chan
-                     (lambda (return-pr)
+                     (λ (return-pr)
                        (dprintf show-dprintf? "i: progress-event-chan\n")
                        (let ([return-chan (car return-pr)]
                              [return-nack (cdr return-pr)])
@@ -1387,20 +1387,20 @@ WARNING: printf is rebound in the body of the unit to always
                          (loop))))
                     (handle-evt
                      peek-chan
-                     (lambda (peeker)
+                     (λ (peeker)
                        (dprintf show-dprintf? "i: peek-chan\n")
                        (set! peekers (cons peeker peekers))
                        (loop)))
                     (handle-evt
                      commit-chan
-                     (lambda (committer)
+                     (λ (committer)
                        (dprintf show-dprintf? "i:commit-chan\n")
                        (set! committers (cons committer committers))
                        (loop)))
                     (apply 
                      choice-evt
                      (map
-                      (lambda (a-committer)
+                      (λ (a-committer)
                         (match a-committer
                           [($ committer 
                               kr
@@ -1411,13 +1411,13 @@ WARNING: printf is rebound in the body of the unit to always
                            (choice-evt
                             (handle-evt 
                              commit-peeker-evt
-                             (lambda (_)
+                             (λ (_)
                                (dprintf show-dprintf? "i: commit-peeker-evt\n")
                                ;; this committer will be thrown out in next iteration
                                (loop)))
                             (handle-evt
                              done-evt
-                             (lambda (v)
+                             (λ (v)
                                (dprintf show-dprintf? "i: done-evt\n")
                                (let ([nth-pos (cdr (peek-n data (- kr 1)))])
                                  (set! position
@@ -1438,10 +1438,10 @@ WARNING: printf is rebound in the body of the unit to always
                                (loop))))]))
                       committers))
                     (apply choice-evt 
-                           (map (lambda (resp-evt)
+                           (map (λ (resp-evt)
                                   (handle-evt
                                    resp-evt
-                                   (lambda (_)
+                                   (λ (_)
                                      (dprintf show-dprintf? "i: resp-evt\n")
                                      (set! response-evts (remq resp-evt response-evts))
                                      (loop))))
@@ -1455,7 +1455,7 @@ WARNING: printf is rebound in the body of the unit to always
                     (choice-evt nack-evt 
                                 (channel-put-evt resp-evt position))
                     (let ([sent-position position])
-                      (lambda (_) 
+                      (λ (_) 
                         (set! positioners (remq pr positioners))
                         (loop))))))
                
@@ -1503,7 +1503,7 @@ WARNING: printf is rebound in the body of the unit to always
                             [else
                              (channel-put-evt 
                               resp-chan
-                              (lambda (src line col pos)
+                              (λ (src line col pos)
                                 (if (is-a? nth readable-snip<%>)
                                     (send nth read-special src line col pos)
                                     nth)))])))]
@@ -1546,7 +1546,7 @@ WARNING: printf is rebound in the body of the unit to always
                   [(sync/timeout 0 progress-evt) 0]
                   [else (wrap-evt 
                          v 
-                         (lambda (v) 
+                         (λ (v) 
                            (if (and (number? v) (zero? v))
                                0
                                (if (commit-proc (if (number? v) v 1)
@@ -1557,7 +1557,7 @@ WARNING: printf is rebound in the body of the unit to always
             
             (define (peek-proc bstr skip-count progress-evt)
               (nack-guard-evt
-               (lambda (nack)
+               (λ (nack)
                  (let ([chan (make-channel)])
                    (channel-put peek-chan (make-peeker bstr skip-count progress-evt chan nack))
                    chan))))
@@ -1565,7 +1565,7 @@ WARNING: printf is rebound in the body of the unit to always
             (define (progress-evt-proc)
               (sync
                (nack-guard-evt
-                (lambda (nack)
+                (λ (nack)
                   (let ([chan (make-channel)])
                     (channel-put progress-event-chan (cons chan nack))
                     chan)))))
@@ -1573,7 +1573,7 @@ WARNING: printf is rebound in the body of the unit to always
             (define (commit-proc kr progress-evt done-evt)
               (sync
                (nack-guard-evt
-                (lambda (nack)
+                (λ (nack)
                   (let ([chan (make-channel)])
                     (channel-put commit-chan (make-committer kr progress-evt done-evt chan nack))
                     chan)))))
@@ -1586,7 +1586,7 @@ WARNING: printf is rebound in the body of the unit to always
                  values
                  (sync
                   (nack-guard-evt
-                   (lambda (fail)
+                   (λ (fail)
                      (channel-put position-chan (cons fail chan))
                      chan))))))
             

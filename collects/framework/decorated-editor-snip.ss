@@ -188,7 +188,7 @@
       (define/public (make-editor) (make-object text%))
       
       (define/override write
-        (lambda (stream-out)
+        (λ (stream-out)
           (send (get-editor) write-to-file stream-out 0 'eof)))
 
       (define/override (copy)

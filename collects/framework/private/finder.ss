@@ -25,7 +25,7 @@
       (define dialog-parent-parameter (make-parameter #f))
 
       (define filter-match?
-	(lambda (filter name msg)
+	(λ (filter name msg)
 	  (let-values ([(base name dir?) (split-path name)])
 	    (if (regexp-match-exact? filter (path->bytes name))
 		#t
@@ -37,10 +37,10 @@
       (define (get-last-directory) (preferences:get 'framework:last-directory))
       
       (define make-relative
-	(lambda (s) s))
+	(λ (s) s))
       
       (define build-updir
-	(lambda (dir)
+	(λ (dir)
 	  (let-values ([(base _1 _2) (split-path dir)])
 	    (or base dir))))
 
@@ -70,10 +70,10 @@
           (define current-dir #f)
 	  
 	  (define/private set-listbox-directory ; sets directory in listbox 
-            (lambda (dir) ; dir is normalized
+            (λ (dir) ; dir is normalized
               (when (directory-exists? dir)
                 (gui-utils:show-busy-cursor
-                 (lambda ()
+                 (λ ()
                    (set! current-dir dir)
                    (set-last-directory dir)
                    (let-values 
@@ -126,7 +126,7 @@
                    (send name-list set-selection-and-edit 0))))))
           
           (define/private set-edit
-            (lambda ()
+            (λ ()
               (let* ([file (send name-list get-string-selection)])
                 (send directory-field set-value
                       (path->string
@@ -135,20 +135,20 @@
                            current-dir))))))
 	  
 	  [define/public do-period-in/exclusion
-            (lambda (check-box event)
+            (λ (check-box event)
               (preferences:set
                'framework:show-periods-in-dirlist
                (send check-box get-value))
               (set-listbox-directory current-dir))]
           
           [define/public do-dir
-            (lambda (choice event)
+            (λ (choice event)
               (let ([which (send choice get-selection)])
                 (if (< which (length dirs))
                     (set-listbox-directory (list-ref dirs which)))))]
           
           [define/public do-name-list
-            (lambda (list-box evt)
+            (λ (list-box evt)
               (if (eq? (send evt get-event-type) 'list-box-dclick)
                   (let ([dir (send directory-field get-value)])
                     (if (directory-exists? dir)
@@ -160,10 +160,10 @@
                     (set-edit))))]
           
           [define/public do-result-list
-            (lambda () #f)]
+            (λ () #f)]
           
           [define/public do-ok
-            (lambda args
+            (λ args
               
               (if multi-mode?
                   
@@ -245,8 +245,8 @@
                                                 'yes))
                                        (let ([normal-path
                                               (with-handlers 
-                                                  ([(lambda (_) #t)
-                                                    (lambda (_)
+                                                  ([(λ (_) #t)
+                                                    (λ (_)
                                                       (message-box
                                                        (string-constant warning)
                                                        (format
@@ -260,14 +260,14 @@
                                            (show #f))))))))]))))]
           
           [define/public add-one
-            (lambda (name)
+            (λ (name)
               (unless (or (directory-exists? name)
                           (send result-list find-string name))
                 (send result-list append
                       (normal-case-path (normalize-path name)))))]
           
           [define/public do-add
-            (lambda ()
+            (λ ()
               (let ([name (send name-list get-string-selection)])
                 (if (string? name)
                     (let ([name (build-path current-dir
@@ -275,7 +275,7 @@
                       (add-one name)))))]
           
           [define/public do-add-all
-            (lambda ()
+            (λ ()
               (let loop ([n 0])
                 (when (< n (send name-list get-number))
                   (let ([name (send name-list get-string n)])
@@ -285,7 +285,7 @@
                       (loop (add1 n)))))))]
           
           [define/public do-remove
-            (lambda ()
+            (λ ()
               (let loop ([n 0])
                 (if (< n (send result-list get-number))
                     (if (send result-list is-selected? n)
@@ -295,11 +295,11 @@
                         (loop (add1 n))))))]
           
           [define/public do-cancel
-            (lambda ()
+            (λ ()
               (set-box! result-box #f)
               (show #f))]
 	  
-	  (define/augment on-close (lambda () #f))
+	  (define/augment on-close (λ () #f))
 	  
           (super-new (label (if save-mode? 
                                 (string-constant put-file)
@@ -316,7 +316,7 @@
           (make-object message% prompt top-panel)
           
           [define dir-choice (make-object choice% #f null top-panel
-                               (lambda (choice event) (do-dir choice event)))]
+                               (λ (choice event) (do-dir choice event)))]
           
           [define middle-panel (make-object horizontal-panel% main-panel)]
           [define left-middle-panel (make-object vertical-panel% middle-panel)]
@@ -413,7 +413,7 @@
                     [else #f])))
               
               [define/public set-selection-and-edit
-                 (lambda (pos)
+                 (λ (pos)
                    (when (> (get-number) 0)
                      (let* ([first-item (get-first-visible-item)]
                             [last-item (sub1 (+ (number-of-visible-items) 
@@ -423,7 +423,7 @@
                        (set-selection pos)))
                    (set-edit))]
               [define/public on-default-action
-                (lambda ()
+                (λ ()
                   (when (> (get-number) 0)
                     (let* ([which (get-string-selection)]
                            [dir (build-path current-dir
@@ -438,7 +438,7 @@
               (super-new))]
           
           [define name-list (make-object name-list%
-                              #f null left-middle-panel (lambda (x y) (do-name-list x y))
+                              #f null left-middle-panel (λ (x y) (do-name-list x y))
                               '(single))]
           
           [define save-panel (when save-mode? (make-object horizontal-panel% main-panel))]
@@ -452,11 +452,11 @@
           
           [define directory-field
             (keymap:call/text-keymap-initializer
-             (lambda ()
+             (λ ()
                (make-object text-field%
                  (string-constant full-pathname)
                  directory-panel
-                 (lambda (txt evt)
+                 (λ (txt evt)
                    (when (eq? (send evt get-event-type) 'text-field-enter)
                      (let ([dir (send directory-field get-value)])
                        (if (directory-exists? dir)
@@ -472,7 +472,7 @@
                 #f
                 null
                 right-middle-panel
-                (lambda (x y) (do-result-list))
+                (λ (x y) (do-result-list))
                 '(multiple)))]
           [define add-panel 
             (when multi-mode? 
@@ -483,12 +483,12 @@
               (make-object horizontal-panel% right-middle-panel))]
           
           [define/private do-updir
-            (lambda () 
+            (λ () 
               (set-listbox-directory (build-updir current-dir))
               (set-focus-to-name-list))]
           
           [define/private set-focus-to-name-list
-            (lambda ()
+            (λ ()
               (send name-list focus))]
 	  
           
@@ -497,7 +497,7 @@
                    (make-object check-box%
                      (string-constant show-dot-files)
                      dot-panel
-                     (lambda (x y) (do-period-in/exclusion x y)))])
+                     (λ (x y) (do-period-in/exclusion x y)))])
               (send dot-panel stretchable-height #f)
               (send dot-cb set-value 
                     (preferences:get 'framework:show-periods-in-dirlist))))
@@ -512,7 +512,7 @@
           (make-object button% 
             (string-constant up-directory-button-label)
             top-panel
-            (lambda (button evt) (do-updir)))
+            (λ (button evt) (do-updir)))
           
           (send dir-choice stretchable-width #t)
           (send name-list stretchable-width #t)
@@ -527,13 +527,13 @@
                                (make-object button%
                                  (string-constant add-button-label)
                                  add-panel
-                                 (lambda (x y) (do-add))))]
+                                 (λ (x y) (do-add))))]
           [define add-all-button (when multi-mode?
                                    (begin0
                                      (make-object button%
                                        (string-constant add-all-button-label)
                                        add-panel 
-                                       (lambda (x y) (do-add-all)))
+                                       (λ (x y) (do-add-all)))
                                      (make-object horizontal-panel% add-panel)))]
           [define remove-button (when multi-mode?
                                   (make-object horizontal-panel% remove-panel)
@@ -541,17 +541,17 @@
                                     (make-object button% 
                                       (string-constant remove-button-label)
                                       remove-panel
-                                      (lambda (x y) (do-remove)))
+                                      (λ (x y) (do-remove)))
                                     (make-object horizontal-panel% remove-panel)))]
           (make-object vertical-panel% bottom-panel) 
           [define ok-button
             (make-object button% (string-constant ok) bottom-panel 
-              (lambda (x y) (do-ok))
+              (λ (x y) (do-ok))
               (if multi-mode? '() '(border)))]
           [define cancel-button (make-object button% 
                                   (string-constant cancel)
                                   bottom-panel
-                                  (lambda (x y) (do-cancel)))]
+                                  (λ (x y) (do-cancel)))]
           (make-object grow-box-spacer-pane% bottom-panel)
           
           (cond
@@ -561,7 +561,7 @@
                                      (normalize-path start-dir)))]
             [(get-last-directory)
              =>
-             (lambda (dir)
+             (λ (dir)
                (set-listbox-directory dir))]
             [else (set-listbox-directory (current-directory))])
           
@@ -574,8 +574,8 @@
       ; make-common takes a dialog-maker
       ; used to make one dialog object per session, now created each time
       (define make-common
-	(lambda (make-dialog)
-	  (lambda args
+	(λ (make-dialog)
+	  (λ args
 	    (let ([result-box (box #f)])
 	      (apply make-dialog result-box args)
 	      (unbox result-box)))))
@@ -734,7 +734,7 @@
 					; external interfaces to file functions
       
       (define -put-file
-	(lambda args
+	(λ args
 	  (let ([actual-fun 
 		 (case (preferences:get 'framework:file-dialogs)
 		   [(std) std-put-file]
@@ -742,7 +742,7 @@
 	    (apply actual-fun args))))
       
       (define -get-file
-	(lambda args
+	(λ args
 	  (let ([actual-fun
 		 (case (preferences:get 'framework:file-dialogs)
 		   [(std) std-get-file]

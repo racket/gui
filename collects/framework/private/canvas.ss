@@ -25,7 +25,7 @@
       
       (define color-mixin
         (mixin (basic<%>) (color<%>)
-          (define callback (lambda (p v) (set-canvas-background v)))
+          (define callback (λ (p v) (set-canvas-background v)))
           (super-new)
           (inherit set-canvas-background)
           (set-canvas-background (preferences:get 'framework:basic-canvas-background))
@@ -89,12 +89,12 @@
                    [get-width
                     (let ([bl (box 0)]
                           [br (box 0)])
-                      (lambda (s)
+                      (λ (s)
                         (send edit get-snip-location s bl #f #f)
                         (send edit get-snip-location s br #f #t)
                         (- (unbox br) (unbox bl))))]
                    [calc-after-width
-                    (lambda (s)
+                    (λ (s)
                       (+ 4 ;; this is compensate for an autowrapping bug
                          (let loop ([s s])
                            (cond
@@ -110,7 +110,7 @@
               (when edit
                 (send edit
                       run-after-edit-sequence
-                      (lambda ()
+                      (λ ()
                         (let ([admin (send edit get-admin)])
                           (send admin get-view #f #f width height)
                           (send s get-margin leftm topm rightm bottomm)
@@ -121,7 +121,7 @@
                           ;; edge is zero. Special case for efficiency in the 
                           ;; console printer
                           (let ([fallback
-                                 (lambda ()
+                                 (λ ()
                                    (send edit get-snip-location
                                          s left-edge-box top-edge-box))])
                             (cond

@@ -82,11 +82,11 @@
       (send splash-frame show #f)))
   
   (define (shutdown-splash)
-    (set! splash-load-handler (lambda (old-load f expected) (old-load f expected))))
+    (set! splash-load-handler (λ (old-load f expected) (old-load f expected))))
    
   (define funny?
     (let ([date (seconds->date (current-seconds))])
-      (and (with-handlers ([exn:fail:filesystem? (lambda (x) #f)])
+      (and (with-handlers ([exn:fail:filesystem? (λ (x) #f)])
 	     (collection-path "icons")
 	     #t)
 	     (= (date-day date) 25)
@@ -111,7 +111,7 @@
     
     (current-load
      (let ([old-load (current-load)])
-       (lambda (f expected)
+       (λ (f expected)
          (splash-load-handler old-load f expected))))
     
     (when (and make-compilation-manager-load/use-compiled-handler
@@ -122,7 +122,7 @@
                 (equal? (getenv "PLTDRDEBUG") "trace"))
         (printf "PLTDRCM/PLTDRDEBUG: reinstalling CM trace handler after setting splash load handler\n")
         (manager-trace-handler
-         (lambda (x) (display "2: ") (display x) (newline))))))
+         (λ (x) (display "2: ") (display x) (newline))))))
   
   (define funny-gauge%
     (class canvas% 
@@ -133,9 +133,9 @@
 	(make-object bitmap% (build-path (collection-path "icons") "touch.bmp"))]
        [max-value 1])
 
-      [define/public set-range (lambda (r) (set! max-value r))]
+      [define/public set-range (λ (r) (set! max-value r))]
       [define/public set-value
-        (lambda (new-value)
+        (λ (new-value)
           (let* ([before-x
                   (floor (* (send funny-bitmap get-width) (/ funny-value max-value)))]
                  [after-x
@@ -173,7 +173,7 @@
   (define (splash-get-preference name default)
     (get-preference
      name
-     (lambda ()
+     (λ ()
        default)))
   (define (splash-set-preference name value)
     (put-preferences (list name) (list value)))
@@ -210,7 +210,7 @@
           (if splash-bitmap
               (send dc draw-bitmap splash-bitmap 0 0)
               (send dc clear))
-          (for-each (lambda (icon)
+          (for-each (λ (icon)
                       (send dc draw-bitmap
                             (icon-bm icon)
                             (icon-x icon)

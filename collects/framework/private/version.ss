@@ -15,9 +15,9 @@
       (define specs null)
 
       (define -version
-	(lambda ()
+	(λ ()
 	  (foldr
-	   (lambda (entry sofar)
+	   (λ (entry sofar)
 	     (let ([sep (first entry)]
 		   [num (second entry)])
 	       (string-append sofar sep num)))
@@ -25,6 +25,6 @@
 	   specs)))
 
       (define add-spec
-	(lambda (sep num)
+	(λ (sep num)
 	  (set! specs (cons (list (expr->string sep) (format "~a" num))
 			    specs)))))))

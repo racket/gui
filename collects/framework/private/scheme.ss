@@ -46,8 +46,8 @@
         (opt-lambda (text [start 0] [in-end #f])
           (let* ([end (or in-end (send text last-position))]
                  [port (open-input-text-editor text start end)])
-            (with-handlers ([exn:fail:read:eof? (lambda (x) #f)]
-                            [exn:fail:read? (lambda (x) #t)])
+            (with-handlers ([exn:fail:read:eof? (λ (x) #f)]
+                            [exn:fail:read? (λ (x) #t)])
               (let loop ()
                 (let ([s (read port)])
                   (or (eof-object? s)
@@ -74,7 +74,7 @@
           (define/public (read-special file line col pos)
             (let ([text (make-object text:basic%)])
               (for-each
-               (lambda (s) (send text insert (send s copy)
+               (λ (s) (send text insert (send s copy)
                                  (send text last-position)
                                  (send text last-position)))
                saved-snips)
@@ -87,7 +87,7 @@
             (opt-lambda (offset num [flattened? #f])
               (if flattened?
                   (apply string-append
-                         (map (lambda (snip)
+                         (map (λ (snip)
                                 (send snip get-text 0 (send snip get-count) flattened?))
                               saved-snips))
                   (super get-text offset num flattened?))))
@@ -156,7 +156,7 @@
 
       (keymap:add-to-right-button-menu
        (let ([old (keymap:add-to-right-button-menu)])
-         (lambda (menu text event)
+         (λ (menu text event)
            (old menu text event)
            (split/collapse-text menu text event)
 	   (void))))
@@ -167,11 +167,11 @@
           (let* ([on-it-box (box #f)]
                  [click-pos 
                   (call-with-values
-                   (lambda ()
+                   (λ ()
                      (send text dc-location-to-editor-location
                            (send event get-x)
                            (send event get-y)))
-                   (lambda (x y)
+                   (λ (x y)
                      (send text find-position x y #f on-it-box)))]
                  [snip (send text find-snip click-pos 'after)]
                  [char (send text get-character click-pos)]
@@ -209,7 +209,7 @@
         (instantiate menu-item% ()
           (parent menu)
           (label (string-constant expand-sexp))
-          (callback (lambda (item evt) (expand-from text snip)))))
+          (callback (λ (item evt) (expand-from text snip)))))
       
       ;; expand-from : (instanceof text%) (instanceof sexp-snip<%>) -> void
       (define (expand-from text snip)
@@ -232,7 +232,7 @@
         (instantiate menu-item% ()
           (parent menu)
           (label (string-constant collapse-sexp))
-          (callback (lambda (item evt)
+          (callback (λ (item evt)
                       (collapse-from text left-pos right-pos)))))
       
       (define (collapse-from text left-pos right-pos)
@@ -285,7 +285,7 @@
       (define sn-hash (make-hash-table))
       (define (short-sym->style-name sym)
 	(hash-table-get sn-hash sym
-			(lambda ()
+			(λ ()
 			  (let ([s (format "framework:syntax-coloring:scheme:~a" sym)])
 			    (hash-table-put! sn-hash sym s)
 			    s))))
@@ -293,9 +293,9 @@
       (define (add-coloring-preferences-panel)
         (color-prefs:add-to-preferences-panel
          "Scheme"
-         (lambda (parent)
+         (λ (parent)
            (for-each
-            (lambda (line)
+            (λ (line)
               (let ([sym (car line)])
                 (color-prefs:build-color-selection-panel 
                  parent
@@ -341,7 +341,7 @@
           set-tab-size))
       
       (define init-wordbreak-map
-        (lambda (map)
+        (λ (map)
           (let ([v (send map get-map #\-)])
             (send map set-map 
                   #\-
@@ -442,7 +442,7 @@
                                      (position-paragraph last))])
                 (letrec	
                     ([find-offset
-                      (lambda (pos)
+                      (λ (pos)
                         (let loop ([p pos][o 0])
                           (let ([c (get-character p)])
                             (cond
@@ -455,7 +455,7 @@
                               [else
                                (cons o p)]))))]
                      [visual-offset
-                      (lambda (pos)
+                      (λ (pos)
                         (let loop ([p (sub1 pos)])
                           (if (= p -1)
                               0
@@ -468,7 +468,7 @@
                                   [(char=? c #\newline) 0]
                                   [else (add1 (loop (sub1 p)))])))))]
                      [do-indent
-                      (lambda (amt)
+                      (λ (amt)
                         (let* ([pos-start end]
                                [curr-offset (find-offset pos-start)])
                           (unless (= amt (car curr-offset))
@@ -477,26 +477,26 @@
                              (make-string amt #\space)
                              pos-start))))]
                      [get-proc
-                      (lambda ()
+                      (λ ()
 			(let ([id-end (forward-match contains (last-position))])
 			  (if (and id-end (> id-end contains))
 			      (let* ([text (get-text contains id-end)])
                                 (or (get-keyword-type text)
                                     'other)))))]
                      [procedure-indent
-                      (lambda ()
+                      (λ ()
                         (case (get-proc)
                           [(define) 1]
                           [(begin) 1]
                           [(lambda) 3]
                           [else 0]))]
                      [special-check
-                      (lambda ()
+                      (λ ()
                         (let* ([proc-name (get-proc)])
                           (or (eq? proc-name 'define)
                               (eq? proc-name 'lambda))))]
                      [indent-first-arg
-                      (lambda (start)
+                      (λ (start)
                         (car (find-offset start)))])
                   (when (and okay
                              (not (char=? (get-character (sub1 end))
@@ -561,13 +561,13 @@
               (let ([first-para (position-paragraph start-pos)]
                     [end-para (position-paragraph end-pos)])
                 (with-handlers ([exn:break?
-                                 (lambda (x) #t)])
+                                 (λ (x) #t)])
                   (dynamic-wind
-                   (lambda () 
+                   (λ () 
                      (when (< first-para end-para)
                        (begin-busy-cursor))
                      (begin-edit-sequence))
-                   (lambda ()
+                   (λ ()
                      (let loop ([para first-para])
                        (when (<= para end-para)
                          (tabify (paragraph-start-position para))
@@ -583,7 +583,7 @@
                                      (not (char=? next #\newline))))
                               (loop (add1 new-pos))
                               new-pos)))))
-                   (lambda ()
+                   (λ ()
                      (end-edit-sequence)
                      (when (< first-para end-para)
                        (end-busy-cursor))))))))
@@ -739,31 +739,31 @@
               (set-position pos pos)))
           
           [define get-forward-sexp
-            (lambda (start-pos)
+            (λ (start-pos)
               (forward-match start-pos (last-position)))]
           [define remove-sexp
-            (lambda (start-pos)
+            (λ (start-pos)
               (let ([end-pos (get-forward-sexp start-pos)])
                 (if end-pos 
                     (kill 0 start-pos end-pos)
                     (bell)))
               #t)]
           [define forward-sexp
-            (lambda (start-pos)
+            (λ (start-pos)
               (let ([end-pos (get-forward-sexp start-pos)])
                 (if end-pos 
                     (set-position end-pos)
                     (bell))
                 #t))]
           [define flash-forward-sexp
-            (lambda (start-pos)
+            (λ (start-pos)
               (let ([end-pos (get-forward-sexp start-pos)])
                 (if end-pos 
                     (flash-on end-pos (add1 end-pos))
                     (bell)) 
                 #t))]	    
           [define get-backward-sexp
-            (lambda (start-pos)
+            (λ (start-pos)
               (let* ([limit (get-limit start-pos)]
                      [end-pos
                       (backward-match start-pos limit)]
@@ -777,21 +777,21 @@
                           #f)])
                 ans))]
           [define flash-backward-sexp
-            (lambda (start-pos)
+            (λ (start-pos)
               (let ([end-pos (get-backward-sexp start-pos)])
                 (if end-pos
                     (flash-on end-pos (add1 end-pos))
                     (bell))
                 #t))]
           [define backward-sexp
-            (lambda (start-pos)
+            (λ (start-pos)
               (let ([end-pos (get-backward-sexp start-pos)])
                 (if end-pos
                     (set-position end-pos)
                     (bell))
                 #t))]
           [define find-up-sexp
-            (lambda (start-pos)
+            (λ (start-pos)
               (let* ([limit-pos (get-limit start-pos)]
 		     [exp-pos
                       (backward-containing-sexp start-pos limit-pos)])
@@ -799,7 +799,7 @@
                 (if (and exp-pos (> exp-pos limit-pos))
 		    (let* ([in-start-pos (skip-whitespace exp-pos 'backward #t)]
 			   [paren-pos
-			    (lambda (paren-pair)
+			    (λ (paren-pair)
 			      (find-string
 			       (car paren-pair)
 			       'backward
@@ -818,14 +818,14 @@
 			    (- (apply max poss) 1)))) ;; subtract one to move outside the paren
                     #f)))]
           [define up-sexp
-            (lambda (start-pos)
+            (λ (start-pos)
               (let ([exp-pos (find-up-sexp start-pos)])
                 (if exp-pos
                     (set-position exp-pos)
                     (bell))
                 #t))]
           [define find-down-sexp
-            (lambda (start-pos)
+            (λ (start-pos)
               (let ([last (last-position)])
                 (let loop ([pos start-pos])
                   (let ([next-pos (forward-match pos last)])
@@ -838,14 +838,14 @@
                               (loop next-pos)))
                         #f)))))]
           [define down-sexp
-            (lambda (start-pos)
+            (λ (start-pos)
               (let ([pos (find-down-sexp start-pos)])
                 (if pos
                     (set-position pos)
                     (bell))
                 #t))]
           [define remove-parens-forward
-            (lambda (start-pos)
+            (λ (start-pos)
               (let* ([pos (skip-whitespace start-pos 'forward #f)]
                      [first-char (get-character pos)]
                      [paren? (or (char=? first-char #\( )
@@ -874,10 +874,10 @@
           (public select-forward-sexp select-backward-sexp select-up-sexp select-down-sexp
                   transpose-sexp mark-matching-parenthesis)
           
-          [define select-forward-sexp (lambda () (select-text (lambda (x) (get-forward-sexp x)) #t))]
-          [define select-backward-sexp (lambda () (select-text (lambda (x) (get-backward-sexp x)) #f))]
-          [define select-up-sexp (lambda () (select-text (lambda (x) (find-up-sexp x)) #f))]
-          [define select-down-sexp (lambda () (select-text (lambda (x) (find-down-sexp x)) #t))]
+          [define select-forward-sexp (λ () (select-text (λ (x) (get-forward-sexp x)) #t))]
+          [define select-backward-sexp (λ () (select-text (λ (x) (get-backward-sexp x)) #f))]
+          [define select-up-sexp (λ () (select-text (λ (x) (find-up-sexp x)) #f))]
+          [define select-down-sexp (λ () (select-text (λ (x) (find-down-sexp x)) #t))]
           
 	  (inherit get-fixed-style)
           (define (mark-matching-parenthesis pos)
@@ -900,7 +900,7 @@
                          (change-style matching-parenthesis-style (- end 1) end)])))))))
           
           [define transpose-sexp
-            (lambda (pos)
+            (λ (pos)
               (let ([start-1 (get-backward-sexp pos)])
                 (if (not start-1)
                     (bell)
@@ -925,8 +925,8 @@
                                         (end-edit-sequence)))))))))))]
           [define tab-size 8]
           (public get-tab-size set-tab-size)
-          [define get-tab-size (lambda () tab-size)]
-          [define set-tab-size (lambda (s) (set! tab-size s))]
+          [define get-tab-size (λ () tab-size)]
+          [define set-tab-size (λ (s) (set! tab-size s))]
                     
           (super-instantiate ())))
 
@@ -985,7 +985,7 @@
           (hash-table-get 
            ht
            (string->symbol text)
-           (lambda () 
+           (λ () 
              (cond
                [(and beg-reg (regexp-match beg-reg text)) 'begin]
                [(and def-reg (regexp-match def-reg text)) 'define]
@@ -1019,54 +1019,54 @@
                                                                   ;                  ;     
                                                                 ;;                  ;;;    
       (define setup-keymap
-        (lambda (keymap)
+        (λ (keymap)
           
           (let ([add-pos-function
-                 (lambda (name call-method)
+                 (λ (name call-method)
                    (send keymap add-function name
-                         (lambda (edit event)
+                         (λ (edit event)
                            (call-method
                             edit
                             (send edit get-start-position)))))])
-            (add-pos-function "remove-sexp" (lambda (e p) (send e remove-sexp p)))
-            (add-pos-function "forward-sexp" (lambda (e p) (send e forward-sexp p)))
-            (add-pos-function "backward-sexp" (lambda (e p) (send e backward-sexp p)))
-            (add-pos-function "up-sexp" (lambda (e p) (send e up-sexp p)))
-            (add-pos-function "down-sexp" (lambda (e p) (send e down-sexp p)))
-            (add-pos-function "flash-backward-sexp" (lambda (e p) (send e flash-backward-sexp p)))
-            (add-pos-function "flash-forward-sexp" (lambda (e p) (send e flash-forward-sexp p)))
-            (add-pos-function "remove-parens-forward" (lambda (e p) (send e remove-parens-forward p)))
-            (add-pos-function "transpose-sexp" (lambda (e p) (send e transpose-sexp p)))
+            (add-pos-function "remove-sexp" (λ (e p) (send e remove-sexp p)))
+            (add-pos-function "forward-sexp" (λ (e p) (send e forward-sexp p)))
+            (add-pos-function "backward-sexp" (λ (e p) (send e backward-sexp p)))
+            (add-pos-function "up-sexp" (λ (e p) (send e up-sexp p)))
+            (add-pos-function "down-sexp" (λ (e p) (send e down-sexp p)))
+            (add-pos-function "flash-backward-sexp" (λ (e p) (send e flash-backward-sexp p)))
+            (add-pos-function "flash-forward-sexp" (λ (e p) (send e flash-forward-sexp p)))
+            (add-pos-function "remove-parens-forward" (λ (e p) (send e remove-parens-forward p)))
+            (add-pos-function "transpose-sexp" (λ (e p) (send e transpose-sexp p)))
             (add-pos-function "mark-matching-parenthesis"
-                              (lambda (e p) (send e mark-matching-parenthesis p))))
+                              (λ (e p) (send e mark-matching-parenthesis p))))
           
           (let ([add-edit-function
-                 (lambda (name call-method)
+                 (λ (name call-method)
                    (send keymap add-function name
-                         (lambda (edit event)
+                         (λ (edit event)
                            (call-method edit))))])
             (add-edit-function "select-forward-sexp" 
-                               (lambda (x) (send x select-forward-sexp)))
+                               (λ (x) (send x select-forward-sexp)))
             (add-edit-function "select-backward-sexp"  
-                               (lambda (x) (send x select-backward-sexp)))
+                               (λ (x) (send x select-backward-sexp)))
             (add-edit-function "select-down-sexp"  
-                               (lambda (x) (send x select-down-sexp)))
+                               (λ (x) (send x select-down-sexp)))
             (add-edit-function "select-up-sexp"  
-                               (lambda (x) (send x select-up-sexp)))
+                               (λ (x) (send x select-up-sexp)))
             (add-edit-function "tabify-at-caret"  
-                               (lambda (x) (send x tabify-selection)))
+                               (λ (x) (send x tabify-selection)))
             (add-edit-function "do-return"  
-                               (lambda (x) 
+                               (λ (x) 
                                  (send x insert-return)))
             (add-edit-function "comment-out"  
-                               (lambda (x) (send x comment-out-selection)))
+                               (λ (x) (send x comment-out-selection)))
             (add-edit-function "box-comment-out"  
-                               (lambda (x) (send x box-comment-out-selection)))
+                               (λ (x) (send x box-comment-out-selection)))
             (add-edit-function "uncomment"  
-                               (lambda (x) (send x uncomment-selection))))
+                               (λ (x) (send x uncomment-selection))))
           
           (send keymap add-function "balance-parens"
-                (lambda (edit event)
+                (λ (edit event)
                   (send edit balance-parens event)))
           
           (send keymap map-function "TAB" "tabify-at-caret")
@@ -1086,10 +1086,10 @@
           (send keymap map-function "}" "balance-parens")
           
           (let ([map-meta
-                 (lambda (key func)
+                 (λ (key func)
                    (keymap:send-map-function-meta keymap key func))]
                 [map
-                 (lambda (key func)
+                 (λ (key func)
                    (send keymap map-function key func))])
             
             (map-meta "up" "up-sexp")
@@ -1168,11 +1168,11 @@
         (preferences:add-panel
          (list (string-constant editor-prefs-panel-label) 
                (string-constant indenting-prefs-panel-label))
-         (lambda (p)
+         (λ (p)
            (define get-keywords
-             (lambda (hash-table)
+             (λ (hash-table)
                (letrec ([all-keywords (hash-table-map hash-table list)]
-                        [pick-out (lambda (wanted in out)
+                        [pick-out (λ (wanted in out)
                                     (cond
                                       [(null? in) (quicksort out string<=?)]
                                       [else (if (eq? wanted (cadr (car in))) 
@@ -1184,22 +1184,22 @@
            (define-values (begin-keywords define-keywords lambda-keywords)
              (get-keywords (car (preferences:get 'framework:tabify))))
            (define add-button-callback
-             (lambda (keyword-type keyword-symbol list-box)
-               (lambda (button command)
+             (λ (keyword-type keyword-symbol list-box)
+               (λ (button command)
                  (let ([new-one
                         (keymap:call/text-keymap-initializer
-                         (lambda ()
+                         (λ ()
                            (get-text-from-user
                             (format (string-constant enter-new-keyword) keyword-type)
                             (format (string-constant x-keyword) keyword-type))))])
                    (when new-one
-                     (let ([parsed (with-handlers ((exn:fail:read? (lambda (x) #f)))
+                     (let ([parsed (with-handlers ((exn:fail:read? (λ (x) #f)))
                                      (read (open-input-string new-one)))])
                        (cond
                          [(and (symbol? parsed)
                                (hash-table-get (car (preferences:get 'framework:tabify))
                                                parsed
-                                               (lambda () #f)))
+                                               (λ () #f)))
                           (message-box (string-constant error)
                                        (format (string-constant already-used-keyword) parsed))]
                          [(symbol? parsed)
@@ -1210,30 +1210,30 @@
                                 (string-constant error)
                                 (format (string-constant expected-a-symbol) new-one))])))))))
            (define delete-callback
-             (lambda (list-box)
-               (lambda (button command)
+             (λ (list-box)
+               (λ (button command)
                  (let* ([selections (send list-box get-selections)]
-                        [symbols (map (lambda (x) (string->symbol (send list-box get-string x))) selections)])
-                   (for-each (lambda (x) (send list-box delete x)) (reverse selections))
+                        [symbols (map (λ (x) (string->symbol (send list-box get-string x))) selections)])
+                   (for-each (λ (x) (send list-box delete x)) (reverse selections))
                    (let ([ht (car (preferences:get 'framework:tabify))])
-                     (for-each (lambda (x) (hash-table-remove! ht x)) symbols))))))
+                     (for-each (λ (x) (hash-table-remove! ht x)) symbols))))))
            (define main-panel (make-object horizontal-panel% p))
            (define make-column
-             (lambda (string symbol keywords bang-regexp)
+             (λ (string symbol keywords bang-regexp)
                (let* ([vert (make-object vertical-panel% main-panel)]
                       [_ (make-object message% (format (string-constant x-like-keywords) string) vert)]
                       [box (make-object list-box% #f keywords vert void '(multiple))]
                       [button-panel (make-object horizontal-panel% vert)]
                       [text (new text-field% 
                                  (label (string-constant indenting-prefs-extra-regexp))
-                                 (callback (lambda (tf evt) 
+                                 (callback (λ (tf evt) 
                                              (let ([str (send tf get-value)])
                                                (cond
                                                  [(equal? str "") 
                                                   (bang-regexp #f)]
                                                  [else
                                                   (with-handlers ([exn:fail?
-                                                                   (lambda (x)
+                                                                   (λ (x)
                                                                      (color-yellow (send tf get-editor)))])
                                                     (bang-regexp (regexp str))
                                                     (clear-color (send tf get-editor)))]))))
@@ -1259,32 +1259,32 @@
              (make-column "Begin"
                           'begin
                           begin-keywords
-                          (lambda (x) (set-car! (cdr (preferences:get 'framework:tabify)) x))))
+                          (λ (x) (set-car! (cdr (preferences:get 'framework:tabify)) x))))
            (define-values (define-list-box define-regexp-text) 
              (make-column "Define" 
                           'define 
                           define-keywords
-                          (lambda (x) (set-car! (cddr (preferences:get 'framework:tabify)) x))))
+                          (λ (x) (set-car! (cddr (preferences:get 'framework:tabify)) x))))
            (define-values (lambda-list-box lambda-regexp-text)
              (make-column "Lambda"
                           'lambda
                           lambda-keywords
-                          (lambda (x) (set-car! (cdddr (preferences:get 'framework:tabify)) x))))
+                          (λ (x) (set-car! (cdddr (preferences:get 'framework:tabify)) x))))
            (define update-list-boxes
-             (lambda (hash-table)
+             (λ (hash-table)
                (let-values ([(begin-keywords define-keywords lambda-keywords) (get-keywords hash-table)]
-                            [(reset) (lambda (list-box keywords)
+                            [(reset) (λ (list-box keywords)
                                        (send list-box clear)
-                                       (for-each (lambda (x) (send list-box append x)) keywords))])
+                                       (for-each (λ (x) (send list-box append x)) keywords))])
                  (reset begin-list-box begin-keywords)
                  (reset define-list-box define-keywords)
                  (reset lambda-list-box lambda-keywords)
                  #t)))
            (define update-gui
-             (lambda (pref)
+             (λ (pref)
                (update-list-boxes (car pref))
                (send begin-regexp-text set-value (or (object-name (cadr pref)) ""))
                (send define-regexp-text set-value (or (object-name (caddr pref)) ""))
                (send lambda-regexp-text set-value (or (object-name (cadddr pref)) ""))))
-           (preferences:add-callback 'framework:tabify (lambda (p v) (update-gui v)))
+           (preferences:add-callback 'framework:tabify (λ (p v) (update-gui v)))
            main-panel))))))

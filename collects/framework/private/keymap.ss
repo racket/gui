@@ -28,7 +28,7 @@
         (hash-table-get 
          user-keybindings-files
          path
-         (lambda ()
+         (λ ()
            (let ([sexp (and (file-exists? path)
                             (call-with-input-file path read))])
              (match sexp
@@ -42,7 +42,7 @@
       
       (define (remove-user-keybindings-file path)
         (let/ec k
-          (let ([km (hash-table-get user-keybindings-files path (lambda () (k (void))))])
+          (let ([km (hash-table-get user-keybindings-files path (λ () (k (void))))])
             (send global remove-chained-keymap km)
             (hash-table-remove! user-keybindings-files path))))
       
@@ -69,9 +69,9 @@
                       (c-loop (cdr child-keymaps))]))])))))
       
       (define (set-chained-keymaps parent-keymap children-keymaps)
-        (for-each (lambda (orig-sub) (send parent-keymap remove-chained-keymap))
+        (for-each (λ (orig-sub) (send parent-keymap remove-chained-keymap))
                   (send parent-keymap get-chained-keymaps))
-        (for-each (lambda (new-sub) (send parent-keymap chain-to-keymap new-sub #f))
+        (for-each (λ (new-sub) (send parent-keymap chain-to-keymap new-sub #f))
                   children-keymaps))
         
       (define aug-keymap<%> (interface ((class->interface keymap%))
@@ -107,11 +107,11 @@
           (define/public (get-map-function-table/ht table)
             (hash-table-for-each
              function-table
-             (lambda (keyname fname)
-               (unless (hash-table-get table keyname (lambda () #f))
+             (λ (keyname fname)
+               (unless (hash-table-get table keyname (λ () #f))
                  (hash-table-put! table keyname fname))))
             (for-each
-             (lambda (chained-keymap)
+             (λ (chained-keymap)
                (when (is-a? chained-keymap aug-keymap<%>)
                  (send chained-keymap get-map-function-table/ht table)))
              chained-keymaps)
@@ -180,13 +180,13 @@
 	       [command (if neg? #f 'd/c)]
                
 	       [do-key
-		(lambda (char val)
+		(λ (char val)
 		  (cond
                     [(eq? val #t) (string char)]
                     [(eq? val #f) (string #\~ char)]
                     [(eq? val 'd/c) #f]))])
           
-	  (for-each (lambda (mod)
+	  (for-each (λ (mod)
 		      (let ([val (not (char=? (car mod) #\~))])
 			(case (if (char=? (car mod) #\~)
 				  (cadr mod)
@@ -200,7 +200,7 @@
           
 	  (join-strings ":"
 			(filter
-			 (lambda (x) x)
+			 (λ (x) x)
 			 (list
 			  (do-key #\a alt)
 			  (do-key #\c control)
@@ -251,8 +251,8 @@
 	      defaults)))
       
       (define send-map-function-meta
-	(lambda (keymap key func)
-	  (for-each (lambda (key) (send keymap map-function key func))
+	(λ (keymap key func)
+	  (for-each (λ (key) (send keymap map-function key func))
 		    (make-meta-prefix-list key))))
       
       (define add-to-right-button-menu (make-parameter void))
@@ -261,11 +261,11 @@
       (define setup-global
         ; Define some useful keyboard functions
 	(let* ([ring-bell
-		(lambda (edit event)
+		(λ (edit event)
 		  (bell))]
 	       
 	       [mouse-popup-menu 
-		(lambda (edit event)
+		(λ (edit event)
 		  (when (send event button-down?)
 		    (let ([a (send edit get-admin)])
 		      (when a
@@ -275,7 +275,7 @@
                           
 			  (append-editor-operation-menu-items m)
 			  (for-each
-			   (lambda (i)
+			   (λ (i)
 			     (when (is-a? i selectable-menu-item<%>)
 			       (send i set-shortcut #f)))
 			   (send m get-items))
@@ -289,11 +289,11 @@
 			    (send a popup-menu m (+ x 1) (+ y 1))))))))]
                
 	       [toggle-anchor
-		(lambda (edit event)
+		(λ (edit event)
 		  (send edit set-anchor
 			(not (send edit get-anchor))))]
 	       [center-view-on-line
-		(lambda (edit event)
+		(λ (edit event)
 		  (let ([new-mid-line (send edit position-line
 					    (send edit get-start-position))]
 			[bt (box 0)]
@@ -314,8 +314,8 @@
 		  #t)]
 
 	       [make-insert-brace-pair
-		(lambda (open-brace close-brace)
-		  (lambda (edit event)
+		(λ (open-brace close-brace)
+		  (λ (edit event)
 		    (send edit begin-edit-sequence)
                     (let ([selection-start (send edit get-start-position)])
                       (send edit set-position (send edit get-end-position))
@@ -325,7 +325,7 @@
 		    (send edit end-edit-sequence)))]
                
                [insert-lambda-template
-                (lambda (edit event)
+                (λ (edit event)
                   (send edit begin-edit-sequence)
                   (let ([selection-start (send edit get-start-position)])
                     (send edit set-position (send edit get-end-position))
@@ -333,18 +333,18 @@
                     (send edit set-position selection-start)
                     (send edit insert ") ")
                     (send edit set-position selection-start)
-                    (send edit insert "(lambda ("))
+                    (send edit insert "(λ ("))
                   (send edit end-edit-sequence))]
 
 	       [collapse-variable-space
                 ;; As per emacs: collapse tabs & spaces around the point,
                 ;; perhaps leaving a single space.
                 ;; drscheme bonus: if at end-of-line, collapse into the next line.
-		(lambda (leave-one? edit event)
+		(λ (leave-one? edit event)
 		  (letrec ([last-pos  (send edit last-position)]
 		           [sel-start (send edit get-start-position)]
 			   [sel-end   (send edit get-end-position)]
-                           [collapsible? (lambda (c) (and (char-whitespace? c)
+                           [collapsible? (λ (c) (and (char-whitespace? c)
                                                           (not (char=? #\newline c))))]
 			   [find-noncollapsible
                             ; Return index of next non-collapsible char,
@@ -352,7 +352,7 @@
                             ; NB returns -1 or last-pos, if examining
                             ; initial/final whitespace
                             ; (or, when initial pos is outside of [0,last-pos).)
-			    (lambda (pos dir)
+			    (λ (pos dir)
 			      (let loop ([pos pos])
                                 (cond [(<  pos 0) -1]
                                       [(>= pos last-pos) last-pos]
@@ -389,17 +389,17 @@
                           (send edit end-edit-sequence))))))]
 	       
 	       [collapse-space
-		(lambda (edit event)
+		(λ (edit event)
 		  (collapse-variable-space #t edit event))]
 	       
 	       [remove-space
-		(lambda (edit event)
+		(λ (edit event)
 		  (collapse-variable-space #f edit event))]
 	       
 	       [collapse-newline
-		(lambda (edit event)
+		(λ (edit event)
 		  (letrec ([find-nonwhite
-			    (lambda (pos d offset)
+			    (λ (pos d offset)
 			      (let/ec escape
 				(let ([max (if (> offset 0)
 					       (send edit last-position)
@@ -459,7 +459,7 @@
                                    end-line-start)]))))))]
 	       
 	       [open-line
-		(lambda (edit event)
+		(λ (edit event)
 		  (let ([sel-start (send edit get-start-position)]
 			[sel-end (send edit get-end-position)])
 		    (if (= sel-start sel-end)
@@ -468,7 +468,7 @@
                           (set-position sel-start)))))]
 	       
 	       [transpose-chars
-		(lambda (edit event)
+		(λ (edit event)
 		  (let ([sel-start (send edit get-start-position)]
 			[sel-end (send edit get-end-position)])
 		    (when (and (= sel-start sel-end)
@@ -490,7 +490,7 @@
                             (end-edit-sequence)))))))]
 	       
 	       [transpose-words
-		(lambda (edit event)
+		(λ (edit event)
 		  (let ([sel-start (send edit get-start-position)]
 			[sel-end (send edit get-end-position)])
 		    (when (= sel-start sel-end)
@@ -520,7 +520,7 @@
                                   (end-edit-sequence))))))))))]
 	       
 	       [capitalize-it
-		(lambda (edit char-case1 char-case2)
+		(λ (edit char-case1 char-case2)
 		  (let ([sel-start (send edit get-start-position)]
 			[sel-end (send edit get-end-position)]
 			[real-end (send edit last-position)])
@@ -547,17 +547,17 @@
                           (set-position word-end))))))]
 	       
 	       [capitalize-word
-		(lambda (edit event)
+		(λ (edit event)
 		  (capitalize-it edit char-upcase char-downcase))]
 	       [upcase-word
-		(lambda (edit event)
+		(λ (edit event)
 		  (capitalize-it edit char-upcase char-upcase))]
 	       [downcase-word
-		(lambda (edit event)
+		(λ (edit event)
 		  (capitalize-it edit char-downcase char-downcase))]
 	       
 	       [kill-word
-		(lambda (edit event)
+		(λ (edit event)
 		  (let ([sel-start (send edit get-start-position)]
 			[sel-end (send edit get-end-position)])
 		    (let ([end-box (box sel-end)])
@@ -565,7 +565,7 @@
 		      (send edit kill 0 sel-start (unbox end-box)))))]
 	       
 	       [backward-kill-word
-		(lambda (edit event)
+		(λ (edit event)
 		  (let ([sel-start (send edit get-start-position)]
 			[sel-end (send edit get-end-position)])
 		    (let ([start-box (box sel-start)])
@@ -573,7 +573,7 @@
 		      (send edit kill 0 (unbox start-box) sel-end))))]
 	       
 	       [region-click
-		(lambda (edit event f)
+		(λ (edit event f)
 		  (when (and (send event button-down?)
 			     (is-a? edit text%))
 		    (let ([x-box (box (send event get-x))]
@@ -591,39 +591,39 @@
 			      (f click-pos eol start-pos click-pos)
 			      (f click-pos eol click-pos end-pos)))))))]
 	       [copy-click-region
-		(lambda (edit event)
+		(λ (edit event)
 		  (region-click edit event
-				(lambda (click eol start end)
+				(λ (click eol start end)
 				  (send edit flash-on start end)
 				  (send edit copy #f 0 start end))))]
 	       [cut-click-region
-		(lambda (edit event)
+		(λ (edit event)
 		  (region-click edit event
-				(lambda (click eol start end)
+				(λ (click eol start end)
 				  (send edit cut #f 0 start end))))]
 	       [paste-click-region
-		(lambda (edit event)
+		(λ (edit event)
 		  (region-click edit event
-				(lambda (click eol start end)
+				(λ (click eol start end)
 				  (send edit set-position click)
 				  (send edit paste-x-selection 0 click))))]
 	       
 	       [mouse-copy-clipboard
-		(lambda (edit event)
+		(λ (edit event)
 		  (send edit copy #f (send event get-time-stamp)))]
 	       
 	       [mouse-paste-clipboard
-		(lambda (edit event)
+		(λ (edit event)
 		  (send edit paste (send event get-time-stamp)))]
 	       
 	       [mouse-cut-clipboard
-		(lambda (edit event)
+		(λ (edit event)
 		  (send edit cut #f (send event get-time-stamp)))]
 	       
 	       [select-click-word
-		(lambda (edit event)
+		(λ (edit event)
 		  (region-click edit event
-				(lambda (click eol start end)
+				(λ (click eol start end)
 				  (let ([start-box (box click)]
 					[end-box (box click)])
 				    (send edit find-wordbreak 
@@ -634,9 +634,9 @@
 					  (unbox start-box)
 					  (unbox end-box))))))]
 	       [select-click-line
-		(lambda (edit event)
+		(λ (edit event)
 		  (region-click edit event
-				(lambda (click eol start end)
+				(λ (click eol start end)
 				  (let* ([line (send edit position-line 
 						     click eol)]
 					 [start (send edit line-start-position
@@ -646,10 +646,10 @@
 				    (send edit set-position start end)))))]
 	       
 	       [goto-line
-		(lambda (edit event)
+		(λ (edit event)
 		  (let ([num-str
 			 (call/text-keymap-initializer
-			  (lambda ()
+			  (λ ()
 			    (get-text-from-user
                              (string-constant goto-line)
                              (string-constant goto-line))))])
@@ -672,10 +672,10 @@
                   
 		  #t)]
 	       [goto-position
-		(lambda (edit event)
+		(λ (edit event)
 		  (let ([num-str
 			 (call/text-keymap-initializer
-			  (lambda ()
+			  (λ ()
 			    (get-text-from-user 
                              (string-constant goto-position)
                              (string-constant goto-position))))])
@@ -685,26 +685,26 @@
                             (send edit set-position (sub1 pos))))))
 		  #t)]
 	       [repeater
-		(lambda (n edit)
+		(λ (n edit)
 		  (let* ([km (send edit get-keymap)]
 			 [done
-			  (lambda ()
+			  (λ ()
 			    (send km set-break-sequence-callback void)
 			    (send km remove-grab-key-function))])
 		    (send km set-grab-key-function
-			  (lambda (name local-km edit event)
+			  (λ (name local-km edit event)
 			    (if name
 				(begin
 				  (done)
 				  (dynamic-wind
-				   (lambda ()
+				   (λ ()
 				     (send edit begin-edit-sequence))
-				   (lambda ()
+				   (λ ()
 				     (let loop ([n n])
 				       (unless (zero? n)
 					 (send local-km call-function name edit event)
 					 (loop (sub1 n)))))
-				   (lambda ()
+				   (λ ()
 				     (send edit end-edit-sequence))))
 				(let ([k (send event get-key-code)])
 				  (if (and (char? k) (char<=? #\0 k #\9))
@@ -713,26 +713,26 @@
 				      (begin
 					(done)
 					(dynamic-wind
-					 (lambda ()
+					 (λ ()
 					   (send edit begin-edit-sequence))
-					 (lambda ()
+					 (λ ()
 					   (let loop ([n n])
 					     (unless (zero? n)
 					       (send edit on-char event)
 					       (loop (sub1 n)))))
-					 (lambda ()
+					 (λ ()
 					   (send edit end-edit-sequence)))))))			       
 			    #t))
 		    (send km set-break-sequence-callback done)
 		    #t))]
 	       [make-make-repeater
-		(lambda (n)
-		  (lambda (edit event)
+		(λ (n)
+		  (λ (edit event)
 		    (repeater n edit)))]
 	       [current-macro '()] 
 	       [building-macro #f] [build-macro-km #f] [build-protect? #f]
                [show/hide-keyboard-macro-icon
-                (lambda (edit on?)
+                (λ (edit on?)
                   (when (is-a? edit editor:basic<%>)
                     (let ([frame (send edit get-top-level-window)])
                       (when (is-a? frame frame:text-info<%>)
@@ -740,7 +740,7 @@
                         (send frame update-shown)))))]
                
 	       [do-macro
-		(lambda (edit event)
+		(λ (edit event)
                   ; If c:x;e during record, copy the old macro
 		  (when building-macro
 		    (set! building-macro (append (reverse current-macro) 
@@ -748,13 +748,13 @@
 		  (let ([bm building-macro]
 			[km (send edit get-keymap)])
 		    (dynamic-wind
-		     (lambda ()
+		     (λ ()
 		       (set! building-macro #f)
 		       (send edit begin-edit-sequence))
-		     (lambda ()
+		     (λ ()
 		       (let/ec escape
 			 (for-each
-			  (lambda (f)
+			  (λ (f)
 			    (let ([name (car f)]
 				  [event (cdr f)])
 			      (if name
@@ -762,17 +762,17 @@
 				    (escape #t))
 				  (send edit on-char event))))
 			  current-macro)))
-		     (lambda ()
+		     (λ ()
 		       (send edit end-edit-sequence)
 		       (set! building-macro bm))))
 		  #t)]
 	       [start-macro
-		(lambda (edit event)
+		(λ (edit event)
 		  (if building-macro
 		      (send build-macro-km break-sequence)
 		      (letrec ([km (send edit get-keymap)]
 			       [done
-				(lambda ()
+				(λ ()
 				  (if build-protect?
 				      (send km set-break-sequence-callback done)
 				      (begin
@@ -784,15 +784,15 @@
                         (show/hide-keyboard-macro-icon edit #t)
 			(set! build-macro-km km)
 			(send km set-grab-key-function
-			      (lambda (name local-km edit event)
+			      (λ (name local-km edit event)
 				(dynamic-wind
-				 (lambda ()
+				 (λ ()
 				   (set! build-protect? #t))
-				 (lambda ()
+				 (λ ()
 				   (if name
 				       (send local-km call-function name edit event)
 				       (send edit on-default-char event)))
-				 (lambda ()
+				 (λ ()
 				   (set! build-protect? #f)))
 				(when building-macro
 				  (set! building-macro 
@@ -802,14 +802,14 @@
 			(send km set-break-sequence-callback done)))
 		  #t)]
 	       [end-macro
-		(lambda (edit event)
+		(λ (edit event)
 		  (when building-macro
 		    (set! current-macro (reverse building-macro))
 		    (set! build-protect? #f)		    
 		    (send build-macro-km break-sequence))
 		  #t)]
 	       [delete-key
-		(lambda (edit event)
+		(λ (edit event)
 		  (let ([kmap (send edit get-keymap)])
 		    (send kmap call-function
 			  (if (preferences:get 'framework:delete-forward?)
@@ -818,12 +818,12 @@
 			  edit event #t)))]
                
 	       [toggle-overwrite
-		(lambda (edit event)
+		(λ (edit event)
 		  (send edit set-overwrite-mode
 			(not (send edit get-overwrite-mode))))]
                
                [down-into-embedded-editor
-                (lambda (text event)
+                (λ (text event)
                   (let ([start (send text get-start-position)]
                         [end (send text get-end-position)])
                     (when (= start end)
@@ -850,7 +850,7 @@
                   #t)]
                              
                [forward-to-next-embedded-editor
-                (lambda (text event)
+                (λ (text event)
                   (let ([start-pos (send text get-start-position)]
                         [end-pos (send text get-end-position)])
                     (when (= start-pos end-pos)
@@ -863,7 +863,7 @@
                   #t)]
                
                [back-to-prev-embedded-editor
-                (lambda (text event)
+                (λ (text event)
                   (let ([start-pos (send text get-start-position)]
                         [end-pos (send text get-end-position)])
                     (when (= start-pos end-pos)
@@ -876,7 +876,7 @@
                   #t)]
                
                [up-out-of-embedded-editor
-		(lambda (text event)
+		(λ (text event)
                   (let ([start (send text get-start-position)]
                         [end (send text get-end-position)])
                     (when (= start end)
@@ -893,18 +893,18 @@
 		  #t)]
                
                [make-read-only
-                (lambda (text event)
+                (λ (text event)
                   (send text lock #t)
                   #t)])
                
-	  (lambda (kmap)
-	    (let* ([map (lambda (key func) 
+	  (λ (kmap)
+	    (let* ([map (λ (key func) 
 			  (send kmap map-function key func))]
-		   [map-meta (lambda (key func)
+		   [map-meta (λ (key func)
 			       (send-map-function-meta kmap key func))]
-		   [add (lambda (name func)
+		   [add (λ (name func)
 			  (send kmap add-function name func))]
-		   [add-m (lambda (name func)
+		   [add-m (λ (name func)
 			    (send kmap add-function name func))])
               
               ; Map names to keyboard functions
@@ -916,7 +916,7 @@
 
 	      (add "toggle-overwrite" toggle-overwrite)
 	      
-	      (add "exit" (lambda (edit event)
+	      (add "exit" (λ (edit event)
 			    (let ([frame (send edit get-frame)])
 			      (if (and frame
 				       (is-a? frame frame:standard-menus<%>))
@@ -1156,8 +1156,8 @@
       
       (define setup-search
 	(let* ([send-frame
-		(lambda (invoke-method)
-		  (lambda (edit event)
+		(λ (invoke-method)
+		  (λ (edit event)
 		    (let ([frame
 			   (cond
                              [(is-a? edit editor<%>)
@@ -1171,26 +1171,26 @@
 			  (invoke-method frame)
 			  (bell)))
 		    #t))])
-	  (lambda (kmap)
-	    (let* ([map (lambda (key func) 
+	  (λ (kmap)
+	    (let* ([map (λ (key func) 
 			  (send kmap map-function key func))]
-		   [map-meta (lambda (key func)
+		   [map-meta (λ (key func)
 			       (send-map-function-meta kmap key func))]
-		   [add (lambda (name func)
+		   [add (λ (name func)
 			  (send kmap add-function name func))]
-		   [add-m (lambda (name func)
+		   [add-m (λ (name func)
 			    (send kmap add-function name func))])
 	      
 	      (add "move-to-search-or-search" 
-		   (send-frame (lambda (f) (send f move-to-search-or-search)))) ;; key 1
+		   (send-frame (λ (f) (send f move-to-search-or-search)))) ;; key 1
 	      (add "move-to-search-or-reverse-search" 
-		   (send-frame (lambda (f) (send f move-to-search-or-reverse-search)))) ;; key 1b, backwards
+		   (send-frame (λ (f) (send f move-to-search-or-reverse-search)))) ;; key 1b, backwards
 	      (add "find-string-again" 
-		   (send-frame (lambda (f) (send f search-again)))) ;; key 2
+		   (send-frame (λ (f) (send f search-again)))) ;; key 2
 	      (add "toggle-search-focus" 
-		   (send-frame (lambda (f) (send f toggle-search-focus)))) ;; key 3
+		   (send-frame (λ (f) (send f toggle-search-focus)))) ;; key 3
 	      (add "hide-search" 
-		   (send-frame (lambda (f) (send f hide-search)))) ;; key 4
+		   (send-frame (λ (f) (send f hide-search)))) ;; key 4
 	      
 	      (case (system-type)
 		[(unix)
@@ -1223,7 +1223,7 @@
       (define setup-file
 	(let* ([get-outer-editor ;; : text% -> text%
                 ;; returns the outermost editor, if this editor is nested in an editor snip.
-                (lambda (edit)
+                (λ (edit)
                   (let loop ([edit edit])
                     (let ([admin (send edit get-admin)])
                       (cond
@@ -1231,7 +1231,7 @@
                          (loop (send (send (send admin get-snip) get-admin) get-editor))]
                         [else edit]))))]
                [save-file-as
-		(lambda (this-edit event)
+		(λ (this-edit event)
                   (let ([edit (get-outer-editor this-edit)])
                     (parameterize ([finder:dialog-parent-parameter 
                                     (and (is-a? edit editor:basic<%>)
@@ -1241,24 +1241,24 @@
                           (send edit save-file/gui-error file)))))
                   #t)]
 	       [save-file
-		(lambda (this-edit event)
+		(λ (this-edit event)
                   (let ([edit (get-outer-editor this-edit)])
                     (if (send edit get-filename)
                         (send edit save-file/gui-error)
                         (save-file-as edit event)))
 		  #t)]
 	       [load-file
-		(lambda (edit event)
+		(λ (edit event)
 		  (handler:open-file)
 		  #t)])
-	  (lambda (kmap)
-	    (let* ([map (lambda (key func) 
+	  (λ (kmap)
+	    (let* ([map (λ (key func) 
 			  (send kmap map-function key func))]
-		   [map-meta (lambda (key func)
+		   [map-meta (λ (key func)
 			       (send-map-function-meta kmap key func))]
-		   [add (lambda (name func)
+		   [add (λ (name func)
 			  (send kmap add-function name func))]
-		   [add-m (lambda (name func)
+		   [add-m (λ (name func)
 			    (send kmap add-function name func))])
 	      
 	      (add "save-file" save-file)
@@ -1272,10 +1272,10 @@
       
       (define (setup-editor kmap)
 	(let ([add/map
-	       (lambda (func op key)
+	       (λ (func op key)
 		 (send kmap add-function
 		       func
-		       (lambda (editor evt)
+		       (λ (editor evt)
 			 (send editor do-edit-operation op)))
 		 (send kmap map-function
 		       (string-append
@@ -1322,7 +1322,7 @@
       (define (call/text-keymap-initializer thunk)
 	(let ([ctki (current-text-keymap-initializer)])
 	  (parameterize ([current-text-keymap-initializer
-			  (lambda (keymap)
+			  (λ (keymap)
 			    (send keymap chain-to-keymap global #t)
 			    (ctki keymap))])
 	    (thunk)))))))

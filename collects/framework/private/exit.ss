@@ -20,9 +20,9 @@
       (define on-callbacks '())
       
       (define insert-can?-callback
-	(lambda (cb)
+	(λ (cb)
 	  (set! can?-callbacks (cons cb can?-callbacks))
-	  (lambda ()
+	  (λ ()
 	    (set! can?-callbacks
 		  (let loop ([cb-list can?-callbacks])
 		    (cond
@@ -31,9 +31,9 @@
 		     [else (cons (car cb-list) (loop (cdr cb-list)))]))))))
 
       (define insert-on-callback
-	(lambda (cb)
+	(λ (cb)
 	  (set! on-callbacks (cons cb on-callbacks))
-	  (lambda ()
+	  (λ ()
 	    (set! on-callbacks
 		  (let loop ([cb-list on-callbacks])
 		    (cond
@@ -45,8 +45,8 @@
       (define (set-exiting b) (set! is-exiting? b))
       (define (exiting?) is-exiting?)
       
-      (define (can-exit?) (andmap (lambda (cb) (cb)) can?-callbacks))
-      (define (on-exit) (for-each (lambda (cb) (cb)) on-callbacks))
+      (define (can-exit?) (andmap (λ (cb) (cb)) can?-callbacks))
+      (define (on-exit) (for-each (λ (cb) (cb)) on-callbacks))
 
       (define (user-oks-exit)
 	(if (preferences:get 'framework:verify-exit)
@@ -68,7 +68,7 @@
           [(can-exit?)
            (on-exit)
            (queue-callback 
-            (lambda () 
+            (λ () 
               (exit)
               (set! is-exiting? #f)))]
           [else

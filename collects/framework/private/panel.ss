@@ -35,7 +35,7 @@
 	      ;; would like to remove the child here, waiting on a PR submitted
 	      ;; about change-children during after-new-child
 	      (change-children
-	       (lambda (l)
+	       (λ (l)
 		 (remq c l)))
 
 	      (error 'single-mixin::after-new-child
@@ -51,7 +51,7 @@
           [define/override (place-children l width height)
 	    (let-values ([(h-align-spec v-align-spec) (get-alignment)])
 	      (let ([align
-		     (lambda (total-size spec item-size)
+		     (λ (total-size spec item-size)
 		       (floor
 			(case spec
 			  [(center) (- (/ total-size 2) (/ item-size 2))]
@@ -59,7 +59,7 @@
 			  [(right bottom) (- total-size item-size)]
 			  [else (error 'place-children
 				       "alignment spec is unknown ~a~n" spec)])))])
-		(map (lambda (l) 
+		(map (λ (l) 
 		       (let*-values ([(min-width min-height v-stretch? h-stretch?)
 				      (apply values l)]
 				     [(x this-width)
@@ -85,7 +85,7 @@
                 (error 'active-child "got a panel that is not a child: ~e" x))
               (unless (eq? x current-active-child)
                 (begin-container-sequence)
-                (for-each (lambda (x) (send x show #f))
+                (for-each (λ (x) (send x show #f))
                           (get-children))
                 (set! current-active-child x)
                 (send current-active-child show #t)
@@ -97,12 +97,12 @@
         (mixin (single<%> window<%>) (single-window<%>)
           (inherit get-client-size get-size)
           [define/override container-size
-            (lambda (l)
+            (λ (l)
               (let-values ([(super-width super-height) (super container-size l)]
                            [(client-width client-height) (get-client-size)]
                            [(window-width window-height) (get-size)]
                            [(calc-size)
-                            (lambda (super client window)
+                            (λ (super client window)
                               (+ super (max 0 (- window client))))])
                 
                 (values
@@ -121,13 +121,13 @@
           (init-field parent editor)
           (public get-editor-canvas% get-vertical% get-horizontal%)
           [define get-editor-canvas%
-            (lambda ()
+            (λ ()
               editor-canvas%)]
           [define get-vertical%
-            (lambda ()
+            (λ ()
               vertical-panel%)]
           [define get-horizontal%
-            (lambda ()
+            (λ ()
               horizontal-panel%)]
           
           (define/private (split p%)
@@ -137,20 +137,20 @@
                          (is-a? canvas ec%)
                          (eq? (send canvas get-editor) editor))
                 (let ([p (send canvas get-parent)])
-                  (send p change-children (lambda (x) null))
+                  (send p change-children (λ (x) null))
                   (let ([pc (make-object p% p)])
                     (send (make-object ec% (make-object vertical-panel% pc) editor) focus)
                     (make-object ec% (make-object vertical-panel% pc) editor))))))
           [define/public split-vertically
-            (lambda ()
+            (λ ()
               (split (get-vertical%)))]
           [define/public split-horizontally
-            (lambda ()
+            (λ ()
               (split (get-horizontal%)))]
           
           (public collapse)
           (define collapse
-            (lambda ()
+            (λ ()
               (let ([canvas (send (send parent get-top-level-window) get-edit-target-window)]
                     [ec% (get-editor-canvas%)])
                 (when (and canvas
@@ -161,7 +161,7 @@
                         (bell)
                         (let* ([sp (send p get-parent)]
                                [p-to-remain (send sp get-parent)])
-                          (send p-to-remain change-children (lambda (x) null))
+                          (send p-to-remain change-children (λ (x) null))
                           (send (make-object ec% p-to-remain editor) focus))))))))
           
           
@@ -257,7 +257,7 @@
  	    (let ([len-children (length (get-children))])
  	      (unless (= len-children (length percentages))
  		(let ([rat (/ 1 len-children)])
- 		  (set! percentages (build-list len-children (lambda (i) (make-percentage rat)))))
+ 		  (set! percentages (build-list len-children (λ (i) (make-percentage rat)))))
  		(after-percentage-change))))
            
  	  (define/override (after-new-child child)
@@ -270,7 +270,7 @@
  	  (define/override (on-subwindow-event receiver evt)
  	    (if (eq? receiver this)
  		(let ([gap
- 		       (ormap (lambda (gap) 
+ 		       (ormap (λ (gap) 
  				(and (<= (gap-before-dim gap) 
  					 (event-get-dim evt)
  					 (gap-after-dim gap))
@@ -321,7 +321,7 @@
  	     [else
  	      (let ([available-extent (get-available-extent)]
  		    [show-error
- 		     (lambda (n)
+ 		     (λ (n)
  		       (error 'panel.ss::dragable-panel "internal error.~a" n))])
  		(let loop ([percentages percentages]
  			   [children (get-children)]

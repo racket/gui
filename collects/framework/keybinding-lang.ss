@@ -31,16 +31,16 @@
                                     (format "~a:~a.~a" src line col)
                                     (format "~a:~a" src pos))])
                       (send #%keymap add-function name 
-                            (lambda (x y)
+                            (λ (x y)
                               (let ([end-edit-sequence
-                                     (lambda ()
+                                     (λ ()
                                        (when (is-a? x editor<%>)
                                          (let loop ()
                                            (when (send x in-edit-sequence?)
                                              (send x end-edit-sequence)
                                              (loop)))))])
                               (with-handlers ([exn:fail? 
-                                               (lambda (x)
+                                               (λ (x)
                                                  (end-edit-sequence)
                                                  (message-box (string-constant drscheme)
                                                               (format (string-constant user-defined-keybinding-error) 

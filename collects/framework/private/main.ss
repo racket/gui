@@ -20,25 +20,25 @@
               [color-prefs : framework:color-prefs^]
               [scheme : framework:scheme^])
       
-      (application-preferences-handler (lambda () (preferences:show-dialog)))
+      (application-preferences-handler (λ () (preferences:show-dialog)))
       
       (preferences:set-default 'framework:basic-canvas-background
                                (send the-color-database find-color "white")
-                               (lambda (x) (is-a? x color%)))
+                               (λ (x) (is-a? x color%)))
       (preferences:set-un/marshall 
        'framework:basic-canvas-background
-       (lambda (clr) (list (send clr red) (send clr green) (send clr blue)))
-       (lambda (lst) (and (pair? lst)
+       (λ (clr) (list (send clr red) (send clr green) (send clr blue)))
+       (λ (lst) (and (pair? lst)
                           (pair? (cdr lst))
                           (pair? (cddr lst))
                           (null? (cdddr lst))
                           (make-object color% (car lst) (cadr lst) (caddr lst)))))
       
       (preferences:set-default 'framework:special-option-key #f boolean?)
-      (preferences:add-callback 'framework:special-option-key (lambda (p v) (special-option-key v)))
+      (preferences:add-callback 'framework:special-option-key (λ (p v) (special-option-key v)))
       (special-option-key (preferences:get 'framework:special-option-key))
       
-      (preferences:set-default 'framework:fraction-snip-style 'mixed (lambda (x) (memq x '(mixed improper))))
+      (preferences:set-default 'framework:fraction-snip-style 'mixed (λ (x) (memq x '(mixed improper))))
       
       (preferences:set-default 'framework:standard-style-list:font-name
                                (get-family-builtin-face 'modern)
@@ -50,12 +50,12 @@
               [stl (send txt get-style-list)]
               [bcs (send stl basic-style)])
          (send bcs get-size))
-       (lambda (x) (and (number? x) (exact? x) (integer? x) (positive? x))))
+       (λ (x) (and (number? x) (exact? x) (integer? x) (positive? x))))
       
       (preferences:set-default
        'framework:standard-style-list:smoothing
        'default
-       (lambda (x) 
+       (λ (x) 
          (memq x '(unsmoothed partly-smoothed smoothed default))))
       
       (editor:set-standard-style-list-pref-callbacks)
@@ -67,18 +67,18 @@
                                           (* 3/4 256)
                                           (- (* 7/8 256) 1))])
                                  (make-object color% gray-level gray-level gray-level))
-                               (lambda (x) (is-a? x color%)))
+                               (λ (x) (is-a? x color%)))
       
       (preferences:set-un/marshall
        'framework:paren-match-color
-       (lambda (c) (list (send c red) (send c green) (send c blue)))
-       (lambda (l) (make-object color% (car l) (cadr l) (caddr l))))
+       (λ (c) (list (send c red) (send c green) (send c blue)))
+       (λ (l) (make-object color% (car l) (cadr l) (caddr l))))
       
       (preferences:set-default 'framework:recently-opened-files/pos 
                                null 
-                               (lambda (x) (and (list? x) 
+                               (λ (x) (and (list? x) 
                                                 (andmap
-                                                 (lambda (x) 
+                                                 (λ (x) 
                                                    (and (list? x)
                                                         (= 3 (length x))
                                                         (path? (car x))
@@ -88,12 +88,12 @@
       
       (preferences:set-un/marshall
        'framework:recently-opened-files/pos
-       (lambda (l) (map (lambda (ele) (cons (path->bytes (car ele)) (cdr ele))) l))
-       (lambda (l) 
+       (λ (l) (map (λ (ele) (cons (path->bytes (car ele)) (cdr ele))) l))
+       (λ (l) 
          (let/ec k
            (unless (list? l)
              (k '()))
-           (map (lambda (x)
+           (map (λ (x)
                   (unless (and (list? x)
                                (= 3 (length x))
                                (bytes? (car x))
@@ -105,27 +105,27 @@
       
       (preferences:set-default 'framework:last-directory 
                                (find-system-path 'doc-dir) 
-                               (lambda (x) (or (not x) path-string?)))
+                               (λ (x) (or (not x) path-string?)))
       
       (preferences:set-un/marshall 'framework:last-directory 
-                                   (lambda (x) (and (path? x) (path->bytes x)))
-                                   (lambda (x)
+                                   (λ (x) (and (path? x) (path->bytes x)))
+                                   (λ (x)
                                      (and (bytes? x)
                                           (bytes->path x))))
 
       (preferences:set-default 'framework:recent-max-count 
                                50 
-                               (lambda (x) (and (number? x)
+                               (λ (x) (and (number? x)
                                                 (x . > . 0) 
                                                 (integer? x))))
       (preferences:add-callback
        'framework:recent-max-count
-       (lambda (p v)
+       (λ (p v)
          (handler:size-recently-opened-files v)))
       
       (preferences:set-default 'framework:last-url-string "" string?)
       (preferences:set-default 'framework:recently-opened-sort-by 'age 
-                               (lambda (x) (or (eq? x 'age) (eq? x 'name))))
+                               (λ (x) (or (eq? x 'age) (eq? x 'name))))
       (preferences:set-default 'framework:recent-items-window-w 400 number?)
       (preferences:set-default 'framework:recent-items-window-h 600 number?)
       (preferences:set-default 'framework:open-here? #f boolean?)
@@ -142,25 +142,25 @@
       (preferences:set-default
        'framework:print-output-mode
        'standard
-       (lambda (x) (or (eq? x 'standard) (eq? x 'postscript))))
+       (λ (x) (or (eq? x 'standard) (eq? x 'postscript))))
       
       (preferences:set-default 'framework:highlight-parens #t boolean?)
       (preferences:set-default 'framework:fixup-parens #t boolean?)
       (preferences:set-default 'framework:paren-match #t boolean?)
       (let ([hash-table (make-hash-table)])
-	(for-each (lambda (x) 
+	(for-each (λ (x) 
                     (hash-table-put! hash-table x 'define))
                   '())
-	(for-each (lambda (x) 
+	(for-each (λ (x) 
 		    (hash-table-put! hash-table x 'begin))
 		  '(case-lambda
-                     match-lambda match-lambda*
+                     match-lambda match-lambda* λ
                      cond
                      delay
                      unit compound-unit compound-unit/sig
                      public private override
                      inherit sequence))
-	(for-each (lambda (x) 
+	(for-each (λ (x) 
 		    (hash-table-put! hash-table x 'lambda))
 		  '(
 		    cases
@@ -201,26 +201,26 @@
 	(preferences:set-default 
          'framework:tabify
          (list hash-table #rx"^begin" #rx"^def" #f)
-         (lambda (x)
+         (λ (x)
            (and (list? x)
                 (= (length x) 4)
                 (hash-table? (car x))
-                (andmap (lambda (x) (or (regexp? x) (not x))) (cdr x)))))
+                (andmap (λ (x) (or (regexp? x) (not x))) (cdr x)))))
 	(preferences:set-un/marshall
 	 'framework:tabify 
-	 (lambda (t) (cons (hash-table-map (car t) list)
+	 (λ (t) (cons (hash-table-map (car t) list)
                            (cdr t)))
-	 (lambda (l) 
+	 (λ (l) 
            (and (list? l)
                 (= (length l) 4)
-                (andmap (lambda (x) (or (regexp? x) (not x)))
+                (andmap (λ (x) (or (regexp? x) (not x)))
                         (cdr l))
-                (andmap (lambda (x) (and (list? x)
+                (andmap (λ (x) (and (list? x)
                                          (= 2 (length x))
                                          (andmap symbol? x)))
                         (car l))
                 (let ([h (make-hash-table)])
-                  (for-each (lambda (x) (apply hash-table-put! h x)) (car l))
+                  (for-each (λ (x) (apply hash-table-put! h x)) (car l))
                   (cons h (cdr l)))))))
       
       
@@ -235,13 +235,13 @@
       (preferences:set-default
        'framework:file-dialogs
        'std
-       (lambda (x)
+       (λ (x)
 	 (or (eq? x 'common)
 	     (eq? x 'std))))
       
       ;; scheme prefs
       
-      (for-each (lambda (line)
+      (for-each (λ (line)
                   (let ([sym (car line)]
                         [color (cadr line)])
                     (color-prefs:register-color-pref (scheme:short-sym->pref-name sym)
@@ -252,14 +252,14 @@
 
       (preferences:set-default 'framework:default-text-color 
                                (send the-color-database find-color "Black")
-                               (lambda (x) (is-a? x color%)))
+                               (λ (x) (is-a? x color%)))
       
       (preferences:set-un/marshall 'framework:default-text-color 
-                                   (lambda (c) (list (send c red) (send c green) (send c blue)))
-                                   (lambda (lst) 
+                                   (λ (c) (list (send c red) (send c green) (send c blue)))
+                                   (λ (lst) 
                                      (make-object color% (car lst) (cadr lst) (caddr lst))))
       (preferences:add-callback 'framework:default-text-color
-                                (lambda (p v)
+                                (λ (p v)
                                   (editor:set-default-font-color v)))
       
       ;; groups
@@ -267,17 +267,17 @@
       (preferences:set-default 'framework:exit-when-no-frames #t boolean?)
 
       (exit:insert-can?-callback
-       (lambda ()
+       (λ ()
          (send (group:get-the-frame-group) can-close-all?)))    
       
       (exit:insert-on-callback
-       (lambda ()
+       (λ ()
          (send (group:get-the-frame-group) on-close-all)
          (preferences:silent-save) ;; the prefs may have changed as a result of closing the windows...
          ))
       
       (exit:insert-can?-callback 
-       (lambda ()
+       (λ ()
          (or (preferences:save)
              (exit-anyway?))))
       

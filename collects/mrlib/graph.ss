@@ -257,9 +257,9 @@
       (inherit invalidate-bitmap-cache)
       (define/private (invalidate-to-children/parents snip)
         (when (is-a? snip graph-snip<%>)
-          (let* ([children (get-all-children snip)]
-                 [parents (get-all-parents snip)]
-                 [rects (eliminate-redundancies (get-rectangles snip (append children parents)))]
+          (let* ([parents-and-children (append (get-all-parents snip)
+                                               (get-all-children snip))]
+                 [rects (eliminate-redundancies (get-rectangles snip parents-and-children))]
                  [union (union-rects rects)]
                  [invalidate-rect
                   (lambda (rect)
@@ -300,7 +300,7 @@
              ((rect-top r1) . >= . (rect-top r2))
              ((rect-right r1) . <= . (rect-right r2))
              ((rect-bottom r1) . <= . (rect-bottom r2))))
-                    
+
       ;; get-rectangles : snip (listof snip) -> rect
       ;; computes the rectangles that need to be invalidated for connecting 
       (define/private (get-rectangles main-snip c/p-snips)

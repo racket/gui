@@ -67,7 +67,7 @@
 					internal-filename))
 				  input-filename)])
                 (with-handlers ([exn:fail?
-                                 (lambda (exn)
+                                 (λ (exn)
                                    (message-box
                                     (string-constant error-saving)
                                     (string-append
@@ -96,7 +96,7 @@
                                         internal-filename))
                                   input-filename)])
                 (with-handlers ([exn:fail?
-                                 (lambda (exn)
+                                 (λ (exn)
                                    (message-box 
                                     (string-constant error-loading)
 				    (string-append
@@ -190,14 +190,14 @@
                      (loop (send snip-admin get-editor)))]
                   [(send text get-canvas) 
                    => 
-                   (lambda (canvas)
+                   (λ (canvas)
                      (send canvas get-top-level-window))]
                   [else #f]))))
 	  
 	  [define edit-sequence-queue null]
 	  [define edit-sequence-ht (make-hash-table)]
 	  [define in-local-edit-sequence? #f]
-	  [define/public local-edit-sequence? (lambda () in-local-edit-sequence?)]
+	  [define/public local-edit-sequence? (λ () in-local-edit-sequence?)]
 	  [define/public run-after-edit-sequence
 	    (case-lambda 
 	     [(t) (run-after-edit-sequence t #f)]
@@ -233,46 +233,44 @@
 		  (t))
 	      (void)])]
 	  [define/public extend-edit-sequence-queue
-	    (lambda (l ht)
-	      (hash-table-for-each ht (lambda (k t)
+	    (λ (l ht)
+	      (hash-table-for-each ht (λ (k t)
 					(hash-table-put! 
 					 edit-sequence-ht
 					 k t)))
 	      (set! edit-sequence-queue (append l edit-sequence-queue)))]
-	  [define/augment on-edit-sequence
-	    (lambda ()
-	      (set! in-local-edit-sequence? #t)
-	      (inner (void) on-edit-sequence))]
-	  [define/augment after-edit-sequence
-	    (lambda ()
-	      (set! in-local-edit-sequence? #f)
-	      (let ([queue edit-sequence-queue]
-		    [ht edit-sequence-ht]
-		    [find-enclosing-editor
-		     (lambda (editor)
-		       (let ([admin (send editor get-admin)])
-			 (cond
-			   [(is-a? admin editor-snip-editor-admin<%>)
-			    (send (send (send admin get-snip) get-admin) get-editor)]
-			   [else #f])))])
-		(set! edit-sequence-queue null)
-		(set! edit-sequence-ht (make-hash-table))
-		(let loop ([editor (find-enclosing-editor this)])
-		  (cond
-		    [(and editor 
-                          (is-a? editor basic<%>)
-                          (not (send editor local-edit-sequence?)))
-		     (loop (find-enclosing-editor editor))]
-		    [(and editor
-                          (is-a? editor basic<%>))
-                     (send editor extend-edit-sequence-queue queue ht)]
-		    [else
-		     (hash-table-for-each ht (lambda (k t) (t)))
-		     (for-each (lambda (t) (t)) queue)])))
-	      (inner (void) after-edit-sequence))]
+	  (define/augment (on-edit-sequence)
+            (set! in-local-edit-sequence? #t)
+            (inner (void) on-edit-sequence))
+	  (define/augment (after-edit-sequence)
+            (set! in-local-edit-sequence? #f)
+            (let ([queue edit-sequence-queue]
+                  [ht edit-sequence-ht]
+                  [find-enclosing-editor
+                   (λ (editor)
+                     (let ([admin (send editor get-admin)])
+                       (cond
+                         [(is-a? admin editor-snip-editor-admin<%>)
+                          (send (send (send admin get-snip) get-admin) get-editor)]
+                         [else #f])))])
+              (set! edit-sequence-queue null)
+              (set! edit-sequence-ht (make-hash-table))
+              (let loop ([editor (find-enclosing-editor this)])
+                (cond
+                  [(and editor 
+                        (is-a? editor basic<%>)
+                        (not (send editor local-edit-sequence?)))
+                   (loop (find-enclosing-editor editor))]
+                  [(and editor
+                        (is-a? editor basic<%>))
+                   (send editor extend-edit-sequence-queue queue ht)]
+                  [else
+                   (hash-table-for-each ht (λ (k t) (t)))
+                   (for-each (λ (t) (t)) queue)])))
+            (inner (void) after-edit-sequence))
 	  
 	  [define/override on-new-box
-	    (lambda (type)
+	    (λ (type)
 	      (cond
 		[(eq? type 'text) (make-object editor-snip% (make-object text:basic%))]
 		[else (make-object editor-snip% (make-object pasteboard:basic%))]))]
@@ -324,19 +322,19 @@
       
       (define (set-font-size size)
         (update-standard-style
-         (lambda (scheme-delta)
+         (λ (scheme-delta)
            (send scheme-delta set-size-mult 0)
            (send scheme-delta set-size-add size))))
       
       (define (set-font-name name)
         (update-standard-style
-         (lambda (scheme-delta)
+         (λ (scheme-delta)
            (send scheme-delta set-delta-face name)
            (send scheme-delta set-family 'modern))))
       
       (define (set-font-smoothing sym)
         (update-standard-style
-         (lambda (scheme-delta)
+         (λ (scheme-delta)
            (send scheme-delta set-smoothing-on sym))))
       
       (define (update-standard-style cng-delta)
@@ -361,9 +359,9 @@
         (set-font-size (preferences:get 'framework:standard-style-list:font-size))
         (set-font-name (preferences:get 'framework:standard-style-list:font-name))
         (set-font-smoothing (preferences:get 'framework:standard-style-list:smoothing))
-        (preferences:add-callback 'framework:standard-style-list:font-size (lambda (p v) (set-font-size v)))
-        (preferences:add-callback 'framework:standard-style-list:font-name (lambda (p v) (set-font-name v)))
-        (preferences:add-callback 'framework:standard-style-list:smoothing (lambda (p v) (set-font-smoothing v)))
+        (preferences:add-callback 'framework:standard-style-list:font-size (λ (p v) (set-font-size v)))
+        (preferences:add-callback 'framework:standard-style-list:font-name (λ (p v) (set-font-name v)))
+        (preferences:add-callback 'framework:standard-style-list:smoothing (λ (p v) (set-font-smoothing v)))
         
         (unless (member (preferences:get 'framework:standard-style-list:font-name) (get-face-list 'mono))
           (preferences:set 'framework:standard-style-list:font-name (get-family-builtin-face 'modern))))
@@ -384,14 +382,14 @@
       (define keymap-mixin
 	(mixin (basic<%>) (-keymap<%>)
 	  [define/public get-keymaps
-            (lambda ()
+            (λ ()
               (list (keymap:get-global)))]
 	  (inherit set-keymap)
 
           (super-instantiate ())
           (let ([keymap (make-object keymap:aug-keymap%)])
             (set-keymap keymap)
-            (for-each (lambda (k) (send keymap chain-to-keymap k #f))
+            (for-each (λ (k) (send keymap chain-to-keymap k #f))
                       (get-keymaps)))))
 
       (define autowrap<%> (interface (basic<%>)))
@@ -420,7 +418,7 @@
                    [name (if filename
                              (path->string (file-name-from-path (normalize-path filename)))
                              (get-filename/untitled-name))])
-              (for-each (lambda (canvas)
+              (for-each (λ (canvas)
                           (let ([tlw (send canvas get-top-level-window)])
                             (when (and (is-a? tlw frame:editor<%>)
                                        (eq? this (send tlw get-editor)))
@@ -501,7 +499,7 @@
                           (file-old? back-name))
                   (when (file-exists? back-name)
                     (delete-file back-name))
-                  (with-handlers ([(lambda (x) #t) void])
+                  (with-handlers ([(λ (x) #t) void])
                     (copy-file name back-name)))))
             (inner (void) on-save-file name format))
           (define/augment (on-close)
@@ -536,7 +534,7 @@
 		 (when (is-a? this text%)
 		   (send this set-file-format 'standard))
                  (with-handlers ([exn:fail?
-                                  (lambda (exn)
+                                  (λ (exn)
                                     (show-autosave-error exn orig-name)
                                     (set! auto-save-error? #t)
 				    (when (is-a? this text%)
@@ -587,11 +585,11 @@
             (super lock x)
             (run-after-edit-sequence
              (rec send-frame-update-lock-icon
-               (lambda ()
+               (λ ()
                  (unless callback-running?
                    (set! callback-running? #t)
                    (queue-callback
-                    (lambda ()
+                    (λ ()
                       (let ([frame (get-top-level-window)])
                         (when (is-a? frame frame:info<%>)
                           (send frame lock-status-changed)))

@@ -232,9 +232,9 @@
     ((union string? (cons/c string? (listof string?)))
      ((is-a?/c area-container-window<%>) 
       . ->d .
-      (lambda (parent)
-        (let ([children (map (lambda (x) x) (send parent get-children))])
-          (lambda (child)
+      (λ (parent)
+        (let ([children (map (λ (x) x) (send parent get-children))])
+          (λ (child)
             (and (is-a? child area-container-window<%>)
                  (andmap eq?
                          (append children (list child))
@@ -747,7 +747,7 @@
      ((-> (is-a?/c frame:editor<%>)))
      (union false/c (is-a?/c frame:editor<%>)))
     ((filename)
-     ((make-default (lambda () ((handler:current-create-new-window) filename)))))
+     ((make-default (λ () ((handler:current-create-new-window) filename)))))
     "This function creates a frame or re-uses an existing frame to edit a file. "
     ""
     "If the preference \\scheme{'framework:open-here} is set to \\scheme{#t},"
@@ -797,7 +797,7 @@
     ""
     "The default setting is this:"
     "\\begin{schemedisplay}"
-    "(lambda (filename)"
+    "(λ (filename)"
     "  (let ([frame (make-object frame:text-info-file% filename)])"
     "    (send frame show #t)"
     "    frame))"

@@ -6,30 +6,29 @@
   
   ;; build-before-super-item-clause : an-item -> (listof clause)
   (define build-before-super-item-clause
-    (lambda (item)
+    (λ (item)
       (list
        `[define/public ,(an-item->callback-name item) ,(an-item-proc item)]
-       `[define/public ,(an-item->get-item-name item)
-          (lambda () ,(an-item->item-name item))]
-       `[define/public ,(an-item->string-name item)
-          (lambda () ,(an-item-menu-string item))]
-       `[define/public ,(an-item->help-string-name item)
-          (lambda () ,(an-item-help-string item))]
-       `[define/public ,(an-item->on-demand-name item)
-          ,(an-item-on-demand item)]
-       `[define/public ,(an-item->create-menu-item-name item)
-          (lambda () ,(an-item-create item))])))
+       `(define/public (,(an-item->get-item-name item))
+          ,(an-item->item-name item))
+       `(define/public (,(an-item->string-name item))
+          ,(an-item-menu-string item))
+       `(define/public (,(an-item->help-string-name item))
+          ,(an-item-help-string item))
+       `(define/public ,(an-item->on-demand-name item) ,(an-item-on-demand item))
+       `(define/public (,(an-item->create-menu-item-name item))
+          ,(an-item-create item)))))
   
   ;; build-before-super-clause : ((X -> sym) (X sexp) -> X -> (listof clause))
   (define build-before-super-clause
-    (lambda (->name -procedure)
-      (lambda (obj)
+    (λ (->name -procedure)
+      (λ (obj)
         (list `(define/public ,(->name obj)
                  ,(case (-procedure obj)
-                    [(nothing) '(lambda (menu) (void))]
-                    [(separator) '(lambda (menu) (make-object separator-menu-item% menu))]
+                    [(nothing) '(λ (menu) (void))]
+                    [(separator) '(λ (menu) (make-object separator-menu-item% menu))]
                     [(nothing-with-standard-menus)
-                     '(lambda (menu) 
+                     '(λ (menu) 
                         (unless (current-eventspace-has-standard-menus?)
                           (make-object separator-menu-item% menu)))]
                     [else (error 'gen-standard-menus "unknown between sym: ~e" (-procedure obj))]))))))
@@ -60,20 +59,20 @@
                            (label (,(an-item->string-name item)))
                            (parent ,(menu-item-menu-name item))
                            (help-string (,(an-item->help-string-name item)))
-                           (demand-callback (lambda (menu-item) (,(an-item->on-demand-name item) menu-item))))
+                           (demand-callback (λ (menu-item) (,(an-item->on-demand-name item) menu-item))))
                          `(instantiate (get-menu-item%) ()
                            (label (,(an-item->string-name item)))
                            (parent ,(menu-item-menu-name item))
-                           (callback (let ([,callback-name (lambda (item evt) (,callback-name item evt))])
+                           (callback (let ([,callback-name (λ (item evt) (,callback-name item evt))])
                                        ,callback-name))
                            (shortcut ,key)
                            (help-string (,(an-item->help-string-name item)))
-                           (demand-callback (lambda (menu-item) (,(an-item->on-demand-name item) menu-item))))))))))
+                           (demand-callback (λ (menu-item) (,(an-item->on-demand-name item) menu-item))))))))))
   
   ;; build-after-super-clause : ((X -> symbol) -> X -> (listof clause))
   (define build-after-super-clause
-    (lambda (->name)
-      (lambda (between/after)
+    (λ (->name)
+      (λ (between/after)
         (list 
          `(,(->name between/after)
            (,(menu-name->get-menu-name between/after)))))))
@@ -117,12 +116,12 @@
   (printf "writing to ~a~n" standard-menus.ss-filename)  
   
   (call-with-output-file standard-menus.ss-filename
-    (lambda (port)
+    (λ (port)
       (pretty-print
        `(define standard-menus<%>
           (interface (basic<%>)
             ,@(apply append (map
-                             (lambda (x)
+                             (λ (x)
                                (cond
                                  [(an-item? x) 
                                   (list 
@@ -152,7 +151,7 @@
 	    (define remove-prefs-callback
 	      (preferences:add-callback
 	       'framework:menu-bindings
-	       (lambda (p v)
+	       (λ (p v)
 		 (let loop ([menu (get-menu-bar)])
 		   (when (is-a? menu menu:can-restore<%>)
 		     (if v
@@ -166,7 +165,7 @@
 		     (for-each loop (send menu get-items)))))))
 	    
 	    (inherit get-menu-bar show can-close? get-edit-target-object)
-	    ,@(apply append (map (lambda (x)
+	    ,@(apply append (map (λ (x)
 				   (cond
 				     [(between? x) (build-before-super-between-clause x)]
 				     [(or (after? x) (before? x)) (build-before-super-before/after-clause x)]
@@ -174,7 +173,7 @@
 				     [(generic? x) (build-before-super-generic-clause x)]))
 				 items))
 	    (super-instantiate ())
-	    ,@(apply append (map (lambda (x)
+	    ,@(apply append (map (λ (x)
 				   (cond
 				     [(between? x) (build-after-super-between-clause x)]
 				     [(an-item? x) (build-after-super-item-clause x)]
