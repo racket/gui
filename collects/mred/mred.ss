@@ -6507,7 +6507,7 @@
 				 (let ([v (send dir-text get-value)])
 				   (if (or dir? (directory-exists? v))
 				       (begin
-					 (set! dir v)
+					 (set! dir (string->path v))
 					 (reset-directory))
 				       ;; Maybe specifies a file:
 				       (let-values ([(super file) 
@@ -6571,8 +6571,8 @@
 						    (lambda (b e)
 						      (send f show #f)
 						      (done))))]
-		 [path-string-locale<? (lambda (p)
-					 (string-locale<? (path->string p)))]
+		 [path-string-locale<? (lambda (p1 p2)
+					 (string-locale<? (path->string p1) (path->string p2)))]
 		 [reset-directory (lambda ()
 				    (wx:begin-busy-cursor)
                                     (let ([dir-exists? (directory-exists? dir)])
@@ -6594,7 +6594,8 @@
 				      (let-values ([(ds fs)
 						    (let loop ([l l][ds null][fs null])
 						      (cond
-						       [(null? l) (values (cons ".." (quicksort ds path-string-locale<?)) 
+						       [(null? l) (values (cons (string->path "..")
+										(quicksort ds path-string-locale<?)) 
 									  (quicksort fs path-string-locale<?))]
 						       [(and (not dot?) 
 							     (char=? (string-ref (path->string (car l)) 0) #\.)) 
@@ -6603,7 +6604,7 @@
 						       [else (loop (cdr l) (cons (car l) ds) fs)]))])
 					(set! dir-paths ds)
 					(send dirs set (map path->string ds))
-					(set! file-paths ds)
+					(set! file-paths fs)
 					(send files set (map path->string fs))
 					(send dirs enable #t)
 					(unless dir?
@@ -6775,7 +6776,7 @@
 					       (and (positive? (string-length a))
 						    (not (or (char-alphabetic? (string-ref a 0))
 							     (char-numeric? (string-ref a 0))
-							     (char=? #\- (string-ref a))))))])
+							     (char=? #\- (string-ref a 0))))))])
 				  ;; Sort space-starting first (for Xft), and
 				  ;;  otherwise push names that start with an
 				  ;;  ASCII non-letter/digit/hyphen to the end

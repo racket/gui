@@ -362,6 +362,7 @@
     on-event
     on-paint)
   (define-private-class dc% dc<%> object% #f
+    glyph-exists?
     end-page
     end-doc
     start-page
@@ -519,6 +520,7 @@
     on-set-focus
     on-kill-focus)
   (define-class font% object% #f
+    screen-glyph-exists?
     get-font-id
     get-size-in-pixels
     get-underlined

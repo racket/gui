@@ -54,10 +54,10 @@
      editor-snip-editor-admin<%>
      editor-stream-in%
      editor-stream-in-base%
-     editor-stream-in-string-base%
+     editor-stream-in-bytes-base%
      editor-stream-out%
      editor-stream-out-base%
-     editor-stream-out-string-base%
+     editor-stream-out-bytes-base%
      editor-wordbreak-map%
      editor<%>
      end-busy-cursor
