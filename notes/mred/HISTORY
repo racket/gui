@@ -1,6 +1,32 @@
+
+103/1:
+
+ * Removed 'anchored flag for snip% (wasn't implemented).
+
+ * Added support for loading JPEG file (but not saving) using the IJG
+   library. As a result, the MrEd executable grew by 70k, which seemed
+   like an acceptable amount of bloat for the benefit.
+
+ * Added `get-clipboard-bitmap' and `set-clipboard-bitmap' to
+   clipboard<%>. Under Windows, these methods move bitmaps to and from
+   the system in a platform-specific format.
+
+ * Windows: editors can paste bitmaps copied to the clipboard from
+   other programs.
+
+ * Windows: fixed get-file-list. (PR 1567)
+
+----------------------------------------------------------------------
+
 Version 103: ??
 
 Removed 'anchored flag for snip% (wasn't implemented)
+Added support for loading JPEG file (but not saving)
+Added get-clipboard-bitmap and set-clipboard-bitmap to
+ clipboard<%>
+Windows: editors can paste bitmaps copied to the
+ clipboard from other programs
+Windows: fixed get-file-list
 
 ----------------------------------------------------------------------
 
@@ -23,7 +49,7 @@ Added pop-down callback initialization argument to popup-menu%, and
  control-event%
 Added get-popup-target method to popup-menu%
 Added popup-menu method to editor-admin% and snip-admin%
-Added can-do-edit-operation? to editr<%>
+Added can-do-edit-operation? to editor<%>
 Added "leftbuttonseq", "middlebuttonseq", and "rightbuttonseq" to
  keymap%'s map-function
 Changed the default text keymap initializer to map right button
