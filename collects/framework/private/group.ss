@@ -236,5 +236,5 @@
 	  (set! internal-get-the-frame-group (lambda () the-frame-group))
 	  (internal-get-the-frame-group)))
       
-      (define get-the-frame-group
+      (define (get-the-frame-group)
 	(internal-get-the-frame-group)))))

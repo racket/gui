@@ -26,8 +26,6 @@
      [unit pasteboard : framework:pasteboard^]
      [unit text : framework:text^]
 
-     [unit gui-utils : framework:gui-utils^]
-
      [unit finder : framework:finder^]
 
      [unit group : framework:group^]
@@ -44,4 +42,5 @@
 
   (define-signature framework^
     ([unit test : framework:test^]
+     [unit gui-utils : framework:gui-utils^]
      (open frameworkc^))))

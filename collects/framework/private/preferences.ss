@@ -2,6 +2,7 @@
   (require (lib "unitsig.ss")
 	   (lib "class.ss")
 	   "sig"
+	   "../prefs-file-sig.ss"
 	   (lib "mred-sig.ss" "mred")
 	   (lib "pretty.ss")
 	   (lib "list.ss"))
