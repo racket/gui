@@ -242,6 +242,7 @@
           (define/public (start-colorer prefix- get-token- pairs-)
             (set! stopped? #f)
             (reset-tokens)
+            (set! should-color? (preferences:get (string->symbol (format "syntax-coloring:~a:active" prefix-))))
             (set! prefix prefix-)
             (set! get-token get-token-)
             (set! pairs pairs-)
