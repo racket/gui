@@ -424,6 +424,22 @@
 				  (send dc set-brush ob))
 				
 				(send dc set-pen op))
+
+			      ; Thick-line centering:
+			      (let ([thick (make-object pen% "GREEN" 5 'solid)])
+				(define (draw-lines)
+				  (send dc draw-line 360 10 400 50)
+				  (send dc draw-line 360 50 400 10)
+				  (send dc draw-line 360 80 400 80)
+				  (send dc draw-line 380 60 380 100)
+				  (send dc draw-line 360 120 400 140)
+				  (send dc draw-line 370 110 390 150))
+				(let ([op (send dc get-pen)])
+				  (send dc set-pen thick)
+				  (draw-lines)
+				  (send dc set-pen pen0s)
+				  (draw-lines)
+				  (send dc set-pen op)))
 				
 			      ; B&W 8x8 stipple:
 			      (unless no-bitmaps?
