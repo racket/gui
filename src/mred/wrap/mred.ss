@@ -1121,7 +1121,10 @@
 			(set! act-date/milliseconds (current-milliseconds))
 			(set! active-frame this))
 		      (super-on-activate on?)
-		      (as-exit (lambda () (send (get-mred) on-activate on?)))))])
+		      ;; Delay callback to handle Windows bug
+		      (queue-window-callback
+		       this
+		       (lambda () (send (get-mred) on-activate on?)))))])
     (sequence (apply super-init mred proxy args))))
 
 (define (make-canvas-glue% %) ; implies make-window-glue%
