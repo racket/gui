@@ -39,8 +39,11 @@ mred \- The Rice PLT Scheme GUI engine
 .I MrEd
 is the Rice University PLT Scheme GUI
 execution engine.
-.I MrEd
-runs on a variety of platforms.
+It extends 
+.I MzScheme
+with graphics
+and provides the underlying architecture for
+.I DrScheme.
 .PP
 The -s flag directs
 .I MrEd
@@ -175,8 +178,12 @@ also looks for Xresources in
 Xresources in that file override any other resources settings.
 
 .SH BUGS
-Email bug reports to plt-bugs@cs.rice.edu.  Please mention
-"MrEd" in the subject line or the message.
+Submit bug reports via
+.ce 1
+http://www.cs.rice.edu/CS/PLT/Gnats/ (encouraged)
+or by e-mail to
+.ce 1
+plt-bugs@cs.rice.edu (discouraged)
 .SH AUTHOR
 .I MrEd
 was implemented by Matthew Flatt (mflatt@cs.rice.edu) and Robby Findler

@@ -12,12 +12,17 @@ mzscheme \- The PLT Scheme implementation
 ]
 .SH DESCRIPTION
 .I MzScheme
-is Rice University's Programming Languages Team's
-primary Scheme implementation.  It implements the language as
+is the Rice University PLT
+Scheme implementation.  It implements the language as
 described in the
 .I Revised^4 Report on
 .I the Algorithmic Language Scheme,
 plus numerous extensions.
+.I MzScheme
+is the underlying implementation for
+.I DrScheme
+and
+.I MrEd.
 .SH OPTIONS
 
 Startup file and expression switches:
@@ -163,14 +168,14 @@ following search path:
 .IP
 If
 .I MzScheme
-was invoked with a pathname, the directory
+was invoked with an absolute pathname, the directory
 of the invoked executable is checked. If the executable 
 is a link, the directory of the referenced file is also 
 checked, recursively following links.
 .IP
 If
 .I MzScheme
-is not invoked with a pathname, the
+is invoked with a relative pathname, the
 directories in the PATH environment variable containing
 a file with the name of the program as invoked (usually
 "mzscheme") are checked. Links are followed as in the 
@@ -187,8 +192,12 @@ tried.
 Please consult your local administrator to determine whether
 the on-line documentation has been installed locally.
 .SH BUGS
-Email bug reports to plt-bugs@cs.rice.edu.  Please mention
-"MzScheme" in the subject line or the message.
+Submit bug reports via
+.ce 1
+http://www.cs.rice.edu/CS/PLT/Gnats/ (encouraged)
+or by e-mail to
+.ce 1
+plt-bugs@cs.rice.edu (discouraged)
 .SH AUTHOR
 .I MzScheme
 was implemented by Matthew Flatt (mflatt@cs.rice.edu).
