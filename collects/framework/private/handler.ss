@@ -311,7 +311,7 @@
           
           (define/private (add-recent-item recent-list-item)
             (let ([item (send hl new-item (make-hierlist-item-mixin recent-list-item))])
-              (send (send item get-editor) insert (car recent-list-item))))
+              (send (send item get-editor) insert (path->string (car recent-list-item)))))
 
           (field [remove-prefs-callback
                   (preferences:add-callback
@@ -319,12 +319,12 @@
                    (lambda (p v)
                      (refresh-hl v)))])
           
-          (define/override (on-close)
-            (super on-close)
+          (define/augment (on-close)
+            (inner (void) on-close)
             (remove-prefs-callback)
             (set! recent-items-window #f))
           
-          (super-instantiate ())
+          (super-new)
           
           (inherit get-area-container)
           (field [bp (make-object horizontal-panel% (get-area-container))]
