@@ -49,7 +49,8 @@
                     #t)
                 (super-can-save-file? filename format)))])
            
-      (rename [super-after-save-file after-save-file])
+      (rename [super-after-save-file after-save-file]
+	      [super-after-load-file after-load-file])
       (private
         [last-saved-file-time #f])
       (override
@@ -57,7 +58,12 @@
          (lambda (sucess?)
            (when sucess?
              (set! last-saved-file-time (file-or-directory-modify-seconds (get-filename))))
-           (super-after-save-file sucess?))])
+           (super-after-save-file sucess?))]
+	[after-load-file
+         (lambda (sucess?)
+           (when sucess?
+             (set! last-saved-file-time (file-or-directory-modify-seconds (get-filename))))
+           (super-after-load-file sucess?))])
       (public
         [save-file-out-of-date?
          (lambda ()
