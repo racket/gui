@@ -2394,6 +2394,20 @@
 
 (define wx-text-field%
   (class wx-horizontal-panel% (mred proxy parent func label value style)
+    ; Make text field first because we'll have to exit
+    ;  for keymap initializer
+    (private
+      [e (make-object text-field-text%
+		      func
+		      (lambda (do-cb)
+			(if multi?
+			    #f
+			    (do-cb)))
+		      this)])
+    (sequence
+      (as-exit
+       (lambda ()
+	 ((current-text-keymap-initializer) (send e get-keymap)))))
     (inherit alignment stretchable-in-y get-control-font area-parent
 	     get-min-size set-min-width set-min-height)
     (rename [super-place-children place-children])
@@ -2416,13 +2430,6 @@
 			      null
 			      '(hide-hscroll))
 			  '(hide-vscroll hide-hscroll)))]
-      [e (make-object text-field-text%
-		      func
-		      (lambda (do-cb)
-			(if multi?
-			    #f
-			    (do-cb)))
-		      this)]
       [dy 0])
     (public
       [command (lambda (e) 
@@ -2456,7 +2463,6 @@
       (unless horiz? (send p alignment 'left 'top))
       (unless multi? (stretchable-in-y #f))
       (send e auto-wrap (and multi? (not (memq 'hscroll style))))
-      (install-standard-text-bindings e)
       (let ([f (get-control-font)]
 	    [s (send (send e get-style-list) find-named-style "Standard")])
 	(send s set-delta (font->delta f)))
@@ -4123,11 +4129,22 @@
     (send k map-function ":c:a" "beginning-of-line")
     (send k map-function ":c:e" "end-of-line")))
 
-(define (install-standard-text-bindings e)
-  (check-instance 'install-standard-text-bindings wx:text% 'text% #f e)
-  (let ([k (send e get-keymap)])
-    (when k
-      (send k chain-to-keymap std-keymap #f))))
+(define (check-installer who)
+  (lambda (p)
+    (unless (and (procedure? p)
+		 (procedure-arity-includes? p 1))
+      (raise-type-error who
+			"procedure of arity 1"
+			p))
+    p))
+
+(define current-text-keymap-initializer
+  (make-parameter (let ([default-text-keymap-initializer
+			  (lambda (k)
+			    (check-instance 'default-text-keymap-initializer wx:keymap% 'keymap% #f k)
+			    (send k chain-to-keymap std-keymap #f))])
+		    default-text-keymap-initializer)
+		  (check-installer 'default-text-keymap-initializer)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;; REPL ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -4244,7 +4261,7 @@
       (append-editor-operation-menu-items m #f)))
 
   ;; Just a few extra key bindings:
-  (install-standard-text-bindings repl-buffer)
+  ((current-text-keymap-initializer) (send repl-buffer get-keymap))
   (send repl-buffer auto-wrap #t)
 
   ;; Go
