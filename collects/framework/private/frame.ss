@@ -3,7 +3,6 @@
   (require (lib "string-constant.ss" "string-constants")
            (lib "unitsig.ss")
 	   (lib "class.ss")
-	   (lib "class100.ss")
 	   (lib "include.ss")
 	   "sig.ss"
 	   "../gui-utils.ss"
@@ -1565,18 +1564,17 @@
                          (loop (send snip next)))))]
                   
                   [text-keymap/editor%
-                   (class100 text:keymap% args
+                   (class text:keymap%
                      (rename [super-get-keymaps get-keymaps])
-                     (override
-                       [get-keymaps
-                        (lambda ()
-                          (if (preferences:get 'framework:menu-bindings)
-                              (append (list (keymap:get-editor))
-                                      (super-get-keymaps))
-                              (append (super-get-keymaps)
-                                      (list (keymap:get-editor)))))])
-                     (sequence
-                       (apply super-init args)))]
+                     (define/override (get-keymaps)
+                       (if (preferences:get 'framework:menu-bindings)
+                           (append (list (keymap:get-editor))
+                                   (super-get-keymaps))
+                           (append (super-get-keymaps)
+                                   (list (keymap:get-editor)))))
+                     (inherit set-styles-fixed)
+                     (super-new)
+                     (set-styles-fixed #t))]
                   
                   
                   [find-panel (make-object horizontal-panel% dialog)]
@@ -1812,126 +1810,116 @@
         (set! searching-frame frame))
       
       (define find-text%
-        (class100 text:keymap% args
+        (class text:keymap%
           (inherit get-text)
           (rename [super-after-insert after-insert]
                   [super-after-delete after-delete]
                   [super-on-focus on-focus])
-          (private
-            [get-searching-edit
-             (lambda ()
-               (and searching-frame
-                    (send searching-frame get-text-to-search)))])
-          (public
-            [search
-             (opt-lambda ([reset-search-anchor? #t] [beep? #t] [wrap? #t])
-               (when searching-frame
-                 (let* ([string (get-text)]
-                        [top-searching-edit (get-searching-edit)]
-                        
-                        [searching-edit (let ([focus-snip (send top-searching-edit get-focus-snip)])
-                                          (if focus-snip
-                                              (send focus-snip get-editor)
-                                              top-searching-edit))]
-                        
-                        [not-found
-                         (lambda (found-edit skip-beep?)
-                           (send found-edit set-position search-anchor)
-                           (when (and beep?
-                                      (not skip-beep?))
-                             (bell))
-                           #f)]
-                        [found
-                         (lambda (edit first-pos)
-                           (let ([last-pos ((if (eq? searching-direction 'forward) + -)
-                                            first-pos (string-length string))])
-                             (send* edit 
-                               (set-caret-owner #f 'display)
-                               (set-position
-                                (min first-pos last-pos)
-                                (max first-pos last-pos)
-                                #f #t 'local))
-                             #t))])
-                   (if (string=? string "")
-                       (not-found top-searching-edit #t)
-                       (begin
-                         (when reset-search-anchor?
-                           (reset-search-anchor searching-edit))
-                         (let-values ([(found-edit first-pos)
-                                       (find-string-embedded
-                                        searching-edit
-                                        string
-                                        searching-direction
-                                        search-anchor
-                                        'eof #t #t #t)])
-                           (cond
-                             [(not first-pos)
-                              (if wrap?
-                                  (let-values ([(found-edit pos)
-                                                (find-string-embedded
-                                                 top-searching-edit
-                                                 string 
-                                                 searching-direction
-                                                 (if (eq? 'forward searching-direction)
-                                                     0
-                                                     (send searching-edit last-position)))])
-                                    (if (not pos)
-                                        (not-found found-edit #f)
-                                        (found found-edit pos)))
-                                  (not-found found-edit #f))]
-                             [else
-                              (found found-edit first-pos)])))))))])
-          (private-field
-            [dont-search #f])
-          (public
-            [stop-searching
-             (lambda ()
-               (set! dont-search #t))]
-            [start-searching
-             (lambda ()
-               (set! dont-search #f))])
+          (define/private (get-searching-edit)
+            (and searching-frame
+                 (send searching-frame get-text-to-search)))
+          (define/public search
+            (opt-lambda ([reset-search-anchor? #t] [beep? #t] [wrap? #t])
+              (when searching-frame
+                (let* ([string (get-text)]
+                       [top-searching-edit (get-searching-edit)]
+                       
+                       [searching-edit (let ([focus-snip (send top-searching-edit get-focus-snip)])
+                                         (if focus-snip
+                                             (send focus-snip get-editor)
+                                             top-searching-edit))]
+                       
+                       [not-found
+                        (lambda (found-edit skip-beep?)
+                          (send found-edit set-position search-anchor)
+                          (when (and beep?
+                                     (not skip-beep?))
+                            (bell))
+                          #f)]
+                       [found
+                        (lambda (edit first-pos)
+                          (let ([last-pos ((if (eq? searching-direction 'forward) + -)
+                                           first-pos (string-length string))])
+                            (send* edit 
+                              (set-caret-owner #f 'display)
+                              (set-position
+                               (min first-pos last-pos)
+                               (max first-pos last-pos)
+                               #f #t 'local))
+                            #t))])
+                  (if (string=? string "")
+                      (not-found top-searching-edit #t)
+                      (begin
+                        (when reset-search-anchor?
+                          (reset-search-anchor searching-edit))
+                        (let-values ([(found-edit first-pos)
+                                      (find-string-embedded
+                                       searching-edit
+                                       string
+                                       searching-direction
+                                       search-anchor
+                                       'eof #t #t #t)])
+                          (cond
+                            [(not first-pos)
+                             (if wrap?
+                                 (let-values ([(found-edit pos)
+                                               (find-string-embedded
+                                                top-searching-edit
+                                                string 
+                                                searching-direction
+                                                (if (eq? 'forward searching-direction)
+                                                    0
+                                                    (send searching-edit last-position)))])
+                                   (if (not pos)
+                                       (not-found found-edit #f)
+                                       (found found-edit pos)))
+                                 (not-found found-edit #f))]
+                            [else
+                             (found found-edit first-pos)]))))))))
+          (field
+           [dont-search #f])
+          (define/public (stop-searching)
+            (set! dont-search #t))
+          (define/public (start-searching)
+            (set! dont-search #f))
           
-          (override
-            [on-focus
-             (lambda (on?)
-               (when on?
-                 (let ([edit (get-searching-edit)])
-                   (when edit
-                     (reset-search-anchor (get-searching-edit)))))
-               (super-on-focus on?))]
-            [after-insert
-             (lambda (x y)
-               (super-after-insert x y)
-               (unless dont-search
-                 (search #f)))]
-            [after-delete
-             (lambda (x y)
-               (super-after-delete x y)
-               (unless dont-search
-                 (search #f)))])
-          (sequence (apply super-init args))))
+          (define/override (on-focus on?)
+            (when on?
+              (let ([edit (get-searching-edit)])
+                (when edit
+                  (reset-search-anchor (get-searching-edit)))))
+            (super-on-focus on?))
+          (define/override (after-insert x y)
+            (super-after-insert x y)
+            (unless dont-search
+              (search #f)))
+          (define/override (after-delete x y)
+            (super-after-delete x y)
+            (unless dont-search
+              (search #f)))
+          (super-new)
+          (inherit set-styles-fixed)
+          (set-styles-fixed #t)))
       
-      ; this is here for when editors are printed, during debugging
       (define replace-text%
         (class text:keymap%
-          (super-instantiate ())))
+          (inherit set-styles-fixed)
+          (super-instantiate ())
+          (set-styles-fixed #t)))
       
       (define find-edit #f)
       (define replace-edit #f)
       
       (define searchable-canvas% 
-        (class100 editor-canvas% (parent)
+        (class editor-canvas% 
           (inherit get-top-level-window set-line-count)
           (rename [super-on-focus on-focus])
-          (override
-            [on-focus
-             (lambda (x)
-               (when x
-                 (set-searching-frame (get-top-level-window)))
-               (super-on-focus x))])
-          (sequence
-            (super-init parent #f '(hide-hscroll hide-vscroll))
-            (set-line-count 2))))
+          (define/override (on-focus x)
+            (when x
+              (set-searching-frame (get-top-level-window)))
+            (super-on-focus x))
+          (super-new (style '(hide-hscroll hide-vscroll)))
+          (set-line-count 2)))
       
       (define (init-find/replace-edits)
         (unless find-edit
@@ -2283,7 +2271,7 @@
           (super-instantiate ())))
       
       ; to see printouts in memory debugging better.
-      (define memory-text% (class100 text% args (sequence (apply super-init args))))
+      (define memory-text% (class text% (super-new)))
       (define memory-text (make-object memory-text%))
       (send memory-text hide-caret #t)
       (define show-memory-text?
