@@ -116,7 +116,7 @@
 		       label parent void #f))))))
 
   (define button%
-    (class100*/kw basic-control% () [(label parent callback [style null]) control%-keywords]
+    (class100*/kw basic-control% () [(label parent [callback (lambda (b e) (void))] [style null]) control%-keywords]
       (override
 	[label-checker  (lambda () check-label-string-or-bitmap)]) ; module-local method
       (sequence
@@ -137,7 +137,7 @@
 		       label parent callback #f))))))
 
   (define check-box%
-    (class100*/kw basic-control% () [(label parent callback [style null] [value #f]) control%-keywords]
+    (class100*/kw basic-control% () [(label parent [callback (lambda (b e) (void))] [style null] [value #f]) control%-keywords]
       (sequence
 	(let ([cwho '(constructor check-box)])
 	  (check-label-string-or-bitmap cwho label)
@@ -168,7 +168,7 @@
 
   (define radio-box%
     (class100*/kw basic-control% () 
-		  [(label choices parent callback [style '(vertical)] [selection 0]) control%-keywords]
+		  [(label choices parent [callback (lambda (b e) (void))] [style '(vertical)] [selection 0]) control%-keywords]
       (private-field [chcs choices])
       (sequence 
 	(let ([cwho '(constructor radio-box)])
@@ -238,7 +238,7 @@
 
   (define slider%
     (class100*/kw basic-control% ()
-		  [(label min-value max-value parent callback [init-value min-value] [style '(horizontal)])
+		  [(label min-value max-value parent [callback (lambda (b e) (void))] [init-value min-value] [style '(horizontal)])
 		   control%-keywords]
       (private-field [minv min-value][maxv max-value])
       (sequence 
@@ -423,7 +423,7 @@
 
   (define choice%
     (class100*/kw basic-list-control% ()
-		  [(label choices parent callback [style null] [selection 0])
+		  [(label choices parent [callback (lambda (b e) (void))] [style null] [selection 0])
 		   control%-keywords]
       (sequence
 	(let ([cwho '(constructor choice)])
@@ -446,7 +446,7 @@
 
   (define list-box%
     (class100*/kw basic-list-control%  ()
-		  [(label choices parent callback [style '(single)] [selection #f] [font no-val] [label-font no-val])
+		  [(label choices parent [callback (lambda (b e) (void))] [style '(single)] [selection #f] [font no-val] [label-font no-val])
 		   control%-nofont-keywords]
       (sequence 
 	(let ([cwho '(constructor list-box)])

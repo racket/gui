@@ -45,7 +45,7 @@
 
   (define text-field%
     (class100*/kw basic-control% () 
-		  [(label parent callback [init-value ""] [style '(single)])
+		  [(label parent [callback (lambda (b e) (void))] [init-value ""] [style '(single)])
 		   control%-keywords]
       (sequence 
 	(check-text-field-args '(constructor text-field)
@@ -86,7 +86,7 @@
 
   (define combo-field%
     (class100*/kw text-field% () 
-		  [(label choices parent callback [init-value ""] [style '()])
+		  [(label choices parent [callback (lambda (b e) (void))] [init-value ""] [style '()])
 		   control%-keywords]
       (inherit set-value popup-menu get-size focus get-editor)
       (sequence 

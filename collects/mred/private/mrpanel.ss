@@ -101,7 +101,7 @@
 
   (define tab-panel%
     (class100*/kw vertical-panel% ()
-		  [(choices parent callback [style null] [font no-val]) panel%-keywords]
+		  [(choices parent [callback (lambda (b e) (void))] [style null] [font no-val]) panel%-keywords]
       (sequence
 	(let ([cwho '(constructor tab-panel)])
 	  (unless (and (list? choices) (andmap label-string? choices))
