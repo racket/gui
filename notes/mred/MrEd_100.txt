@@ -15,12 +15,12 @@ precisely.  Key portions of the documentation have been re-written,
 and a new help system called "Help Desk" makes locating information
 much easier than before.
 
-The revised implementation behind the revised interface is
-reliable. Whereas previous versions of MrEd were plagued by bugs and
-inconsistently implemented features, the new interface is consistently
-implemented across platforms and thoroughly tested. Of course, bugs
-will always slip through, but MrEd 100 is far more robust than its
-predecessors as a result of new testing techniques.
+The implementation behind the revised interface is reliable. Whereas
+previous versions of MrEd were plagued by bugs and inconsistently
+implemented features, the new interface is consistently implemented
+across platforms and thoroughly tested. Of course, bugs will always
+slip through, but MrEd 100 is far more robust than its predecessors as
+a result of a cleaner implementation and a new testing process.
 
 New Application Architecture
 ----------------------------
