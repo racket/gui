@@ -361,7 +361,7 @@
     start-page
     start-doc
     ok?
-    get-gl
+    get-gl-context
     get-size
     get-text-foreground
     get-text-background
@@ -410,9 +410,8 @@
     get-pixel)
   (define-class post-script-dc% dc% ([interactive? #t] [parent #f] [use-paper-bbox? #f]))
   (define-class printer-dc% dc% ([parent #f]))
-  (define-private-class gl% gl<%> object% #f
-    with-context
-    set-as-context
+  (define-private-class gl-context% gl-context<%> object% #f
+    call-as-current
     swap-buffers
     ok?)
   (define-class event% object% ([time-stamp 0])
@@ -1458,7 +1457,6 @@
     location->window
     set-dialogs
     set-executer
-    current-gl-context
     send-event
     file-creator-and-type
     set-snip-class-getter

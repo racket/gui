@@ -4764,10 +4764,9 @@
 	(check-callback cwho paint-callback)
 	(check-label-string/false cwho label)))
     (public
-      [swap-gl-buffers (lambda () (send (send (send wx get-dc) get-gl) swap-buffers))]
+      [swap-gl-buffers (lambda () (send (send (send wx get-dc) get-gl-context) swap-buffers))]
       [with-gl-context (lambda (thunk) 
-			 (parameterize ([wx:current-gl-context (send (send wx get-dc) get-gl)])
-			   (thunk)))]
+			 (send (send (send wx get-dc) get-gl-context) call-as-current thunk))]
       [accept-tab-focus (entry-point
 			 (case-lambda
 			  [() (send wx get-tab-focus)]
@@ -7641,7 +7640,8 @@
 	   yield
 	   eventspace-shutdown?
 	   get-panel-background
-	   send-event)
+	   send-event
+	   gl-context<%>)
 
 (define the-color-database (wx:get-the-color-database))
 (define the-font-name-directory (wx:get-the-font-name-directory))
