@@ -4608,7 +4608,8 @@
 				    (wx:begin-busy-cursor)
 				    (send m set-label (if (directory-exists? dir)
 							  (begin
-							    (set! last-visted-directory dir)
+							    (unless directory
+							      (set! last-visted-directory dir))
 							    dir)
 							  (string-append "BAD DIRECTORY: " dir)))
 				    (send dir-text set-value dir)
