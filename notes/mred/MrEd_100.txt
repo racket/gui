@@ -180,8 +180,8 @@ subarea<%. and subwindow<%> wrapping from the left of the diagram to
 the right.]
 
                            area<%>
-          ___________________|________________
-          |             |                    |
+        _____________________|_______________
+        |               |                   |
       subarea<%>     window<%>       area-container<%>      
 <<<____|____       _____|__________       __|___  ___________________<<<
             |      |              |       |    |  |                  
@@ -985,6 +985,13 @@ In editor<%>'s scroll-to, text%'s scroll-to-position and
  set-position-bias-scroll, editor-admin%'s scroll-to, and
  snip-admin%'s scroll-to, bias changed from an integer to a symbol
  (see the docs for details)
+
+Change post-script-dc% and printer-dc% ininitialization arguments.
+ PostScript settings now kept as a ps-setup% object in the
+ current-ps-setup parameter.
+
+Changed arguments al default value of fit-on-page? for print in
+ editor<%>
 
 clipboard% changed to clipboard<%> and font-name-directory% changed to
  font-name-directory<%>; there is just once instance, the-clipboard
