@@ -1165,6 +1165,18 @@
 				  (set! actual-content '("Alpha" "Beta" "Gamma"))
 				  (set! actual-user-data (list #f #f #f))))
 		   null))
+  (define sel (if list?
+		  (make-object button%
+			       "Add Select First" cdp
+			       (lambda (b e)
+				 (send c select 0 #t)))
+		  null))
+  (define unsel (if list?
+		    (make-object button%
+				 "Unselect" cdp
+				 (lambda (b e)
+				   (send c select (send c get-selection) #f)))
+		    null))
   (define (make-selectors method mname numerical?)
     (define p2 (make-object horizontal-panel% p))
     (send p2 stretchable-height #f)
@@ -1172,7 +1184,9 @@
 	  (make-object button%
 		       (string-append "Select Bad -1" mname) p2
 		       (lambda (b e)
-			 (method -1))))
+			 (with-handlers ([exn:application:type? void])
+			   (method -1)
+			   (error "expected a type exception")))))
     (make-object button%
 		 (string-append "Select First" mname) p2
 		 (lambda (b e)
@@ -1188,9 +1202,11 @@
     (make-object button%
 		 (string-append "Select Bad X" mname) p2
 		 (lambda (b e)
-		   (method (if numerical?
-			       (send c get-number)
-			       #f))))
+		   (with-handlers ([exn:application:mismatch? void]) 
+		     (method (if numerical?
+				 (send c get-number)
+				 #f))
+		     (error "expected a mismatch exception"))))
     #f)
   (define dummy-1 (make-selectors (ivar c set-selection) "" #t))
   (define dummy-2 (make-selectors (lambda (p) 
@@ -1229,11 +1245,14 @@
 					(unless (= n (send c find-string s))
 					  (error "bad find-string result")))
 				      (loop (add1 n) (cdr l) (cdr lud))))
-			    (unless (and (not (send c get-string -1))
-					 (not (send c get-string (send c get-number))))
-			      (error "out-of-bounds did not return #f"))
+			    (let ([bad (lambda (exn? i)
+					 (with-handlers ([exn? void])
+					   (send c get-string i)
+					   (error "out-of-bounds: no exn")))])
+			      (bad exn:application:type? -1)
+			      (bad exn:application:mismatch? (send c get-number)))
 			    (unless (not (send c find-string "nada"))
-			      (error "bad find-string result for nada"))
+			      (error "find-string of nada wasn't #f"))
 			    (for-each
 			     (lambda (e)
 			       (check-callback-event c c e commands #t))

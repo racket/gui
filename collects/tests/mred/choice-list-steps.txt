@@ -28,11 +28,12 @@ If there are no items:
 For a multi-selection list, jump down to "Multiple Selections".
 
 If there are items, select each once in order (single-click for
- lists). After each solection, "Selected N" should appear in the
- window (where N is the position of the item, counting from 0),
- followed by "Callback Ok". This should be printed even if the
- selection is technically unchanged. Select the last one a second time
- to make sure.
+ lists). After each solection, "Changed N" should appear in the
+ console (where N is the position of the item, counting from 0) for a
+ choice item, "Change (N)" for a list box; in either case, the
+ "Changed" line is followed by "Callback Ok". This should be printed
+ even if the selection is technically unchanged. Select the last one a
+ second time to make sure.
 
 For a choice, click to pop-up the menu, but don't select anything. for
  a list, click in an area without items and in the scroll bar(s). In
@@ -69,7 +70,7 @@ Repeat the above four steps for the "by name" buttons. (There's
  nothing equivalent to -1 for the "by name" buttons.)
 
 Repeat the four steps for the "by Simulate" buttons; in addition to
- having the selections change, the "Selected N" and "Callback Ok"
+ having the selections change, the "Changed N" and "Callback Ok"
  messages should print in the console. For the -1 and X cases, "event
  selection value mismatch" should print in the console, and the
  selection should not change.
@@ -86,9 +87,9 @@ Choose clear again. Nothing should happen.
 Click on all parts of the control. The callback should never be
  invoked.
 
-Click on all the "Select" buttons. Nothing should happen, except for
- the "by Simulate" buttons. for "by Simulate", the console should
- contain an error messaage: "Callback for empty choice/list"
+Click on all the "Select" buttons. For the top buttons and "by
+ Simulate" buttons (but not the "bad" ones), an exception should be
+ reported. Nothing should happend for the "by Name" buttons.
 
 Click on "Check". The empty item list should be reported in the
  console.
@@ -177,7 +178,7 @@ Double-Click  >> Lists Only <<
 ------------
 
 Double-click on "Alpha". The console should report the first click
- in the normal way, and then report "Selected -1" followed by
+ in the normal way, and then report "Changed -1" followed by
  "Double-click", then "Callback Ok".
 
 Double-click on "Gamma". Same as above, except that the initial

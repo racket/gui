@@ -1,7 +1,6 @@
 
-The gauge should be initially empty (i.e., set to 0), and
-  have a maximum value of 10 (although there's no indication
-  of the maximum).
+The gauge should be initially empty (i.e., set to 0), and have a
+  maximum value of 10 (although there's no indication of the maximum).
 
 Click "+". The gauge should go up by one.
 
@@ -9,9 +8,11 @@ Click "-". It should go back down to zero.
 
 Click "+" five times. The gauge should be at the halfway point.
 
-Click "-" ten times. Click "+" once. The gauge should be at one.
+Click "-" ten times. (Five type errors.)  Click "+" once. The gauge
+ should be at one.
 
-Click "+" twelve times. Click "-" once. The gauge should be at nine.
+Click "+" twelve times. (Three mismatch errors.)  Click "-" once. The
+ gauge should be at nine.
 
 Click "-" four times. The gauge should be at the halfway point.
 
@@ -29,6 +30,6 @@ Click "Smaller" once more. The range is now 4, so the gauge value
 
 Click "Bigger" and the gauge should be 80% full.
 
-Click "Smaller" six times. The minimum gauge range is 1, so click
- "Bigger" once and the gauge should be at halfway.
+Click "Smaller" six times. (Two type errors.)  The minimum gauge range
+ is 1, so click "Bigger" once and the gauge should be at halfway.
 
