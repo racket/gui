@@ -654,15 +654,15 @@
 		     (if (and o (send o handles-key-code code))
 			 #f
 			 (let ([objs (container->children panel #f)])
-			   (ormap
-			    (lambda (x)
-			      (and (is-a? x wx:button%)
-				   (send x has-border?)
-				   (let ([v (make-object wx:control-event% 'button)])
-				     (as-exit (lambda () (send x command v)))
-				     #t)))
-			    objs)
-			   #t)))]
+			   (or (ormap
+				(lambda (x)
+				  (and (is-a? x wx:button%)
+				       (send x has-border?)
+				       (let ([v (make-object wx:control-event% 'button)])
+					 (as-exit (lambda () (send x command v)))
+					 #t)))
+				objs)
+			       (not (is-a? o wx-text-editor-canvas%))))))]
 		  [(escape)
 		   (and (is-a? this wx:dialog%)
 			(let ([o (get-focus-window)])
