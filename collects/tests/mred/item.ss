@@ -21,7 +21,7 @@
 			       100 100))
   (send default-parent-frame show #t))
 
-(when (with-handlers ([not-break-exn? (lambda (x) #f)])
+(when (with-handlers ([exn:fail? (lambda (x) #f)])
 	 (namespace-variable-binding 'mid?)
 	 mdi?)
   (mdi))
