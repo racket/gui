@@ -102,6 +102,10 @@
           (argb-proc argb 0 0))
         argb)
       
+      ;; get-argb/no-compute : -> (union #f argb)
+      (define/public (get-argb/no-compute)
+        argb)
+      
       (define/override (get-extent dc x y w h descent space lspace rspace)
         (set-box/f! w width)
         (set-box/f! h height)
