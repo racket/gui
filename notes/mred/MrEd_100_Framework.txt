@@ -252,7 +252,8 @@ NOTE: some used but non-existant interfaces from mred engine:
   frame:make-edit% : frame:empty-standard-menus<%> -> frame:edit<%>
   frame:make-searchable% : frame:edit<%> -> frame:searchable<%>
   frame:make-pasteboard% : frame:edit<%> -> frame:pasteboard<%>
-  frame:make-info% : frame:edit<%> -> frame:info<%>
+  frame:make-info% : frame:empty<%> -> frame:info<%>
+  frame:make-edit-info% : (interface (frame:info<%> frame:edit<%>)) -> frame:edit-info<%>
   frame:make-file% : frame:edit<%> -> frame:info-file<%>
   
   ; editor:make-basic% adds keymap support, error checking on load-file
