@@ -1061,7 +1061,11 @@ WARNING: printf is rebound in the body of the unit to always
                    (loop (cdr txts))]))
               (set! allow-edits? #f)
               (lock locked?)
-              (end-edit-sequence)))
+              (end-edit-sequence)
+              (unless (null? txts)
+                (after-io-insertion))))
+          
+          (define/public (after-io-insertion) (void))
           
           (define output-buffer-thread
             (let ([converter (bytes-open-converter "UTF-8-permissive" "UTF-8")])

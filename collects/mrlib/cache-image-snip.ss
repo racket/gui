@@ -131,6 +131,10 @@
                                  py))])
           (send f put str)))
       
+      (define/override (get-num-scroll-steps) (+ (quotient height 20) 1))
+      (define/override (find-scroll-step y) (/ y 20))
+      (define/override (get-scroll-step-offset offset) (* offset 20))
+      
       (super-new)
       (inherit set-snipclass)
       (set-snipclass snip-class)))
