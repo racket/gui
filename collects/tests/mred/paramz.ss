@@ -35,12 +35,13 @@
 (define d (make-object dialog% "hello"))
 (thread (lambda () 
 	  (sleep 1)
-	  (queue-callback (lambda () (set! v 9)))
+	  (queue-callback (lambda () (set! v 11)))
 	  (send d show #f)))
+(queue-callback (lambda () (set! v 10)))
 (send d show #t)
-(test v 'dialog-wait 9)
+(test v 'dialog-wait 10)
 (yield)
-(test v 'dialog-run 9)
+(test v 'dialog-run 11)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;                        Parameterization Tests                              ;;
