@@ -195,10 +195,11 @@
 	[get-keymaps
 	 (lambda ()
 	   (list (keymap:get-global)))])
-      (inherit get-keymap)
+      (inherit set-keymap)
       (sequence
 	(apply super-init args)
-	(let ([keymap (get-keymap)])
+	(let ([keymap (make-object keymap:aug-keymap%)])
+          (set-keymap keymap)
 	  (for-each (lambda (k) (send keymap chain-to-keymap k #f))
 		    (get-keymaps))))))
 

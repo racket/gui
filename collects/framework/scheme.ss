@@ -930,7 +930,7 @@
 	  (map-meta "c:t" "transpose-sexp"))
 	(send keymap map-function "c:c;c:b" "remove-parens-forward")))
 
-  (define keymap (make-object keymap%))
+  (define keymap (make-object keymap:aug-keymap%))
   (setup-keymap keymap)
   (define (get-keymap) keymap)
 

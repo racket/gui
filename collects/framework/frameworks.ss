@@ -218,6 +218,9 @@
   (send-map-function-meta
    make-meta-prefix-list
 
+   aug-keymap%
+   aug-keymap<%>
+   
    setup-global
    setup-search
    setup-file

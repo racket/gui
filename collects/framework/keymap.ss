@@ -9,6 +9,57 @@
   
   (rename [-get-file get-file])
   
+  (define aug-keymap<%> (interface () get-chained-keymaps get-map-function-table))
+  
+  (define aug-keymap%
+    (class* keymap% (aug-keymap<%>) args
+      (private
+        [chained-keymaps null])
+      (public
+        [get-chained-keymaps
+         (lambda ()
+           chained-keymaps)])
+      (rename [super-chain-to-keymap chain-to-keymap])
+      (override
+        [chain-to-keymap
+         (lambda (keymap prefix?)
+           (super-chain-to-keymap keymap prefix?)
+           (set! chained-keymaps
+                 (if prefix?
+                     (cons keymap chained-keymaps)
+                     (append chained-keymaps (list keymap)))))])
+      
+      (private [function-table (make-hash-table)])
+      (public [get-function-table (lambda () function-table)])
+      (rename [super-map-function map-function])
+      (override
+        [map-function
+         (lambda (keyname fname)
+           (super-map-function keyname fname)
+           (hash-table-put! function-table (string->symbol keyname) fname))])
+      
+      (public
+        [get-map-function-table
+         (lambda ()
+           (let ([table (make-hash-table)])
+             (hash-table-for-each
+              function-table
+              (lambda (keyname fname) (hash-table-put! table keyname fname)))
+             (for-each
+              (lambda (chained-keymap)
+                (when (is-a? chained-keymap aug-keymap<%>)
+                  (hash-table-for-each
+                   (send chained-keymap get-map-function-table)
+                   (lambda (keyname fname)
+                     (unless (hash-table-get table keyname (lambda () #f))
+                       (hash-table-put! table keyname fname))))))
+              chained-keymaps)
+             table))])
+      
+      (sequence
+        (apply super-init args))))
+
+  
   (define (make-meta-prefix-list key)
     (list (string-append "m:" key)
 	  (string-append "ESC;" key)))
@@ -899,17 +950,17 @@
     (add-pasteboard-keymap-functions keymap)
     (add-text-keymap-functions keymap))
 
-  (define global (make-object keymap%))
+  (define global (make-object aug-keymap%))
   (setup-global global)
   (generic-setup global)
   (define (get-global) global)
   
-  (define file (make-object keymap%))
+  (define file (make-object aug-keymap%))
   (setup-file file)
   (generic-setup file)
   (define (-get-file) file)
   
-  (define search (make-object keymap%))
+  (define search (make-object aug-keymap%))
   (generic-setup search)
   (setup-search search)
   (define (get-search) search)
