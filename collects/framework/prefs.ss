@@ -254,291 +254,271 @@
 		    [else (err input "expected a pair")])))))))))
   
   (define-struct ppanel (title container panel))
-
-  (define font-families-name/const
-    (list (list "Default" 'default)
-	  (list "Decorative" 'decorative)
-	  (list "Roman" 'roman)
-	  (list "Decorative" 'script)
-	  (list "Swiss" 'swiss)
-	  (list "Modern" 'modern)))
-
-  (define font-families (map car font-families-name/const))
   
-  (define font-size-entry "defaultFontSize")
-  (define font-default-string "Default Value")
-  (define font-default-size 12)
-  (define font-section "mred")
-  (define build-font-entry (lambda (x) (string-append "Screen" x "__")))
-  (define font-file (find-graphical-system-path 'setup-file))
-  (define (build-font-preference-symbol family)
-    (string->symbol (string-append "framework:" family)))
-  
-  (let ([set-default
-	 (lambda (build-font-entry default pred)
-	   (lambda (family)
-	     (let ([name (build-font-preference-symbol family)]
-		   [font-entry (build-font-entry family)])
-	       (set-default name
-			    default
-			    (cond
-			      [(string? default) string?]
-			      [(number? default) number?]
-			      [else (error 'internal-error.set-default "unrecognized default: ~a~n" default)]))
-	       (add-callback 
-		name 
-		(lambda (p new-value)
-		  (write-resource 
-		   font-section
-		   font-entry
-		   (if (and (string? new-value)
-			    (string=? font-default-string new-value))
-		       ""
-		       new-value)
-		   font-file))))))])
-    (for-each (set-default build-font-entry font-default-string string?)
-	      font-families)
-    ((set-default (lambda (x) x)
-		  font-default-size
-		  number?)
-     font-size-entry))
-  
-  (define ppanels 
-    (list 
-     (make-ppanel
-      "General"
-      (lambda (parent)
-	(let* ([main (make-object vertical-panel% parent)]
-	       [make-check
-		(lambda (pref title bool->pref pref->bool)
-		  (let*  ([callback
-			   (lambda (check-box _)
-			     (set pref (bool->pref (send check-box get-value))))]
-			  [pref-value (get pref)]
-			  [initial-value (pref->bool pref-value)]
-			  [c (make-object check-box% title main callback)])
-		    (send c set-value initial-value)
-		    (add-callback pref
-				  (lambda (p v)
-				    (send c set-value (pref->bool v))))))]
-	       [id (lambda (x) x)])
-	  (send main set-alignment 'left 'center)
-	  (make-check 'framework:highlight-parens "Highlight between matching parens" id id)
-	  (make-check 'framework:fixup-parens "Correct parens" id id)
-	  (make-check 'framework:paren-match "Flash paren match" id id)
-	  (make-check 'framework:autosaving-on? "Auto-save files" id id)
-	  (make-check 'framework:delete-forward? "Map delete to backspace" not not)
-	  (make-check 'framework:file-dialogs "Use platform-specific file dialogs"
-		      (lambda (x) (if x 'std 'common))
-		      (lambda (x) (eq? x 'std)))
-	  
-	  (make-check 'framework:verify-exit "Verify exit" id id)
-	  (make-check 'framework:verify-change-format "Ask before changing save format" id id)
-	  (make-check 'framework:auto-set-wrap? "Wordwrap editor buffers" id id)
-	  
-	  (make-check 'framework:show-status-line "Show status-line" id id)
-	  (make-check 'framework:line-offsets "Count line and column numbers from one" id id)
-	  (make-check 'framework:menu-bindings "Enable keybindings in menus" id id)
-	  (unless (eq? (system-type) 'unix) 
-	    (make-check 'framework:print-output-mode "Automatically print to postscript file"
-			(lambda (b) 
-			  (if b 'postscript 'standard))
-			(lambda (n) (eq? 'postscript n))))
+  (define ppanels null)
 
-	  
-	  (make-check 'framework:display-line-numbers "Display line numbers in buffer; not character offsets" id id)
-	  '(when (eq? (system-type) 'windows)
+  (define (add-general-panel)
+    (add-panel
+     "General"
+     (lambda (parent)
+       (let* ([main (make-object vertical-panel% parent)]
+	      [make-check
+	       (lambda (pref title bool->pref pref->bool)
+		 (let*  ([callback
+			  (lambda (check-box _)
+			    (set pref (bool->pref (send check-box get-value))))]
+			 [pref-value (get pref)]
+			 [initial-value (pref->bool pref-value)]
+			 [c (make-object check-box% title main callback)])
+		   (send c set-value initial-value)
+		   (add-callback pref
+				 (lambda (p v)
+				   (send c set-value (pref->bool v))))))]
+	      [id (lambda (x) x)])
+	 (send main set-alignment 'left 'center)
+	 (make-check 'framework:highlight-parens "Highlight between matching parens" id id)
+	 (make-check 'framework:fixup-parens "Correct parens" id id)
+	 (make-check 'framework:paren-match "Flash paren match" id id)
+	 (make-check 'framework:autosaving-on? "Auto-save files" id id)
+	 (make-check 'framework:delete-forward? "Map delete to backspace" not not)
+	 (make-check 'framework:file-dialogs "Use platform-specific file dialogs"
+		     (lambda (x) (if x 'std 'common))
+		     (lambda (x) (eq? x 'std)))
+	 
+	 (make-check 'framework:verify-exit "Verify exit" id id)
+	 (make-check 'framework:verify-change-format "Ask before changing save format" id id)
+	 (make-check 'framework:auto-set-wrap? "Wordwrap editor buffers" id id)
+	 
+	 (make-check 'framework:show-status-line "Show status-line" id id)
+	 (make-check 'framework:line-offsets "Count line and column numbers from one" id id)
+	 (make-check 'framework:menu-bindings "Enable keybindings in menus" id id)
+	 (unless (eq? (system-type) 'unix) 
+	   (make-check 'framework:print-output-mode "Automatically print to postscript file"
+		       (lambda (b) 
+			 (if b 'postscript 'standard))
+		       (lambda (n) (eq? 'postscript n))))
+
+	 
+	 (make-check 'framework:display-line-numbers "Display line numbers in buffer; not character offsets" id id)
+	 '(when (eq? (system-type) 'windows)
 	    (make-check 'framework:windows-mdi "Use MDI Windows" id id))
 
-	  main))
-      #f)
-     (make-ppanel
-      "Default Fonts"
-      (lambda (parent)
-	(letrec ([font-size-pref-sym (build-font-preference-symbol font-size-entry)]
-		 [ex-string "The quick brown fox jumped over the lazy dogs."]
-		 [main (make-object vertical-panel% parent)]
-		 [fonts (cons font-default-string (get-face-list))]
-		 [make-family-panel
-		  (lambda (name)
-		    (let* ([pref-sym (build-font-preference-symbol name)]
-			   [family-const-pair (assoc name font-families-name/const)]
-			   
-			   [edit (make-object text%)]
-			   [_ (send edit insert ex-string)]
-			   [set-edit-font
-			    (lambda (size)
-			      (let ([delta (make-object style-delta% 'change-size size)]
-				    [face (get pref-sym)])
-				(if (and (string=? face font-default-string)
-					 family-const-pair)
-				    (send delta set-family (cadr family-const-pair))
-				    (send delta set-delta-face (get pref-sym)))
-				
-				(send edit change-style delta 0 (send edit last-position))))]
-			   
-			   [horiz (make-object horizontal-panel% main '(border))]
-			   [label (make-object message% name horiz)]
-			   
-			   [message (make-object message%
-				      (let ([b (box "")])
-					(if (and (get-resource 
-						  font-section 
-						  (build-font-entry name)
-						  b)
-						 (not (string=? (unbox b) 
-								"")))
-					    (unbox b)
-					    font-default-string)) 
-				      horiz)]
-			   [button 
-			    (make-object button%
-			      "Change" 
-			      horiz
-			      (lambda (button evt)
-				(let ([new-value
-				       (get-choices-from-user
-					"Fonts"
-					(format "Please choose a new ~a font"
-						name)
-					fonts)])
-				  (when new-value
-				    (set pref-sym (list-ref fonts (car new-value))) 
-				    (set-edit-font (get font-size-pref-sym))))))]
-			   [canvas (make-object editor-canvas% horiz
-						edit
-						(list 'hide-hscroll
-						      'hide-vscroll))])
-		      (set-edit-font (get font-size-pref-sym))
-		      (add-callback
-		       pref-sym
-		       (lambda (p new-value)
-			 (send horiz change-children
-			       (lambda (l)
-				 (let ([new-message (make-object message%
-						      new-value
-						      horiz)])
-				   (set! message new-message)
-				   (update-message-sizes font-message-get-widths 
-							 font-message-user-min-sizes)
-				   (list label 
-					 new-message
-					 button
-					 canvas))))))
-		      (send canvas set-line-count 1)
-		      (vector set-edit-font
-			      (lambda () (send message get-width))
-			      (lambda (width) (send message min-width width))
-			      (lambda () (send label get-width))
-			      (lambda (width) (send label min-width width)))))]
-		 [set-edit-fonts/messages (map make-family-panel font-families)]
-		 [collect (lambda (n) (map (lambda (x) (vector-ref x n))
-					   set-edit-fonts/messages))]
-		 [set-edit-fonts (collect 0)]
-		 [font-message-get-widths (collect 1)]
-		 [font-message-user-min-sizes (collect 2)]
-		 [category-message-get-widths (collect 3)]
-		 [category-message-user-min-sizes (collect 4)]
-		 [update-message-sizes
-		  (lambda (gets sets)
-		    (let ([width (mzlib:function:foldl (lambda (x l) (max l (x))) 0 gets)])
-		      (for-each (lambda (set) (set width)) sets)))]
-		 [size-panel (make-object horizontal-panel% main '(border))]
-		 [initial-font-size
-		  (let ([b (box 0)])
-		    (if (get-resource font-section 
-				      font-size-entry
-				      b)
-			(unbox b)
-			font-default-size))]
-		 [size-slider
-		  (make-object slider%
-		    "Size"
-		    1 127
-		    size-panel
-		    (lambda (slider evt)
-		      (set font-size-pref-sym (send slider get-value)))
-		    initial-font-size)])
-	  (update-message-sizes font-message-get-widths font-message-user-min-sizes)
-	  (update-message-sizes category-message-get-widths category-message-user-min-sizes)
-	  (add-callback
-	   font-size-pref-sym
-	   (lambda (p value)
-	     (for-each (lambda (f) (f value)) set-edit-fonts)
-	     (unless (= value (send size-slider get-value))
-	       (send size-slider set-value value))
-	     #t))
-	  (for-each (lambda (f) (f initial-font-size)) set-edit-fonts)
-	  (make-object message% "Restart to see font changes" main)
-	  main))
-      #f)))
-  
-  (define make-run-once
-    (lambda ()
-      (let ([semaphore (make-semaphore 1)])
-	(lambda (t)
-	  (dynamic-wind (lambda () (semaphore-wait semaphore))
-			t
-			(lambda () (semaphore-post semaphore)))))))
-  
-  (define run-once (make-run-once))
+	 main))))
+
+  (define (add-font-panel)
+    (let* ([font-families-name/const
+	    (list (list "Default" 'default)
+		  (list "Decorative" 'decorative)
+		  (list "Modern" 'modern)
+		  (list "Roman" 'roman)
+		  (list "Swiss" 'swiss))]
+	   
+	   [font-families (map car font-families-name/const)]
+	   
+	   [font-size-entry "defaultFontSize"]
+	   [font-default-string "Default Value"]
+	   [font-default-size 12]
+	   [font-section "mred"]
+	   [build-font-entry (lambda (x) (string-append "Screen" x "__"))]
+	   [font-file (find-graphical-system-path 'setup-file)]
+	   [build-font-preference-symbol
+	    (lambda (family)
+	      (string->symbol (string-append "framework:" family)))]
+	   
+	   [set-default
+	    (lambda (build-font-entry default pred)
+	      (lambda (family)
+		(let ([name (build-font-preference-symbol family)]
+		      [font-entry (build-font-entry family)])
+		  (set-default name
+			       default
+			       (cond
+				[(string? default) string?]
+				[(number? default) number?]
+				[else (error 'internal-error.set-default "unrecognized default: ~a~n" default)]))
+		  (add-callback 
+		   name 
+		   (lambda (p new-value)
+		     (write-resource 
+		      font-section
+		      font-entry
+		      (if (and (string? new-value)
+			       (string=? font-default-string new-value))
+			  ""
+			  new-value)
+		      font-file))))))])
+
+      (for-each (set-default build-font-entry font-default-string string?)
+		font-families)
+      ((set-default (lambda (x) x)
+		    font-default-size
+		    number?)
+       font-size-entry)
+      (add-panel
+       "Default Fonts"
+       (lambda (parent)
+	 (letrec ([font-size-pref-sym (build-font-preference-symbol font-size-entry)]
+		  [ex-string "The quick brown fox jumped over the lazy dogs."]
+		  [main (make-object vertical-panel% parent)]
+		  [fonts (cons font-default-string (get-face-list))]
+		  [make-family-panel
+		   (lambda (name)
+		     (let* ([pref-sym (build-font-preference-symbol name)]
+			    [family-const-pair (assoc name font-families-name/const)]
+			    
+			    [edit (make-object text%)]
+			    [_ (send edit insert ex-string)]
+			    [set-edit-font
+			     (lambda (size)
+			       (let ([delta (make-object style-delta% 'change-size size)]
+				     [face (get pref-sym)])
+				 (if (and (string=? face font-default-string)
+					  family-const-pair)
+				     (send delta set-family (cadr family-const-pair))
+				     (send delta set-delta-face (get pref-sym)))
+				 
+				 (send edit change-style delta 0 (send edit last-position))))]
+			    
+			    [horiz (make-object horizontal-panel% main '(border))]
+			    [label (make-object message% name horiz)]
+			    
+			    [message (make-object message%
+				       (let ([b (box "")])
+					 (if (and (get-resource 
+						   font-section 
+						   (build-font-entry name)
+						   b)
+						  (not (string=? (unbox b) 
+								 "")))
+					     (unbox b)
+					     font-default-string)) 
+				       horiz)]
+			    [button 
+			     (make-object button%
+			       "Change" 
+			       horiz
+			       (lambda (button evt)
+				 (let ([new-value
+					(get-choices-from-user
+					 "Fonts"
+					 (format "Please choose a new ~a font"
+						 name)
+					 fonts)])
+				   (when new-value
+				     (set pref-sym (list-ref fonts (car new-value))) 
+				     (set-edit-font (get font-size-pref-sym))))))]
+			    [canvas (make-object editor-canvas% horiz
+						 edit
+						 (list 'hide-hscroll
+						       'hide-vscroll))])
+		       (set-edit-font (get font-size-pref-sym))
+		       (add-callback
+			pref-sym
+			(lambda (p new-value)
+			  (send horiz change-children
+				(lambda (l)
+				  (let ([new-message (make-object message%
+						       new-value
+						       horiz)])
+				    (set! message new-message)
+				    (update-message-sizes font-message-get-widths 
+							  font-message-user-min-sizes)
+				    (list label 
+					  new-message
+					  button
+					  canvas))))))
+		       (send canvas set-line-count 1)
+		       (vector set-edit-font
+			       (lambda () (send message get-width))
+			       (lambda (width) (send message min-width width))
+			       (lambda () (send label get-width))
+			       (lambda (width) (send label min-width width)))))]
+		  [set-edit-fonts/messages (map make-family-panel font-families)]
+		  [collect (lambda (n) (map (lambda (x) (vector-ref x n))
+					    set-edit-fonts/messages))]
+		  [set-edit-fonts (collect 0)]
+		  [font-message-get-widths (collect 1)]
+		  [font-message-user-min-sizes (collect 2)]
+		  [category-message-get-widths (collect 3)]
+		  [category-message-user-min-sizes (collect 4)]
+		  [update-message-sizes
+		   (lambda (gets sets)
+		     (let ([width (mzlib:function:foldl (lambda (x l) (max l (x))) 0 gets)])
+		       (for-each (lambda (set) (set width)) sets)))]
+		  [size-panel (make-object horizontal-panel% main '(border))]
+		  [initial-font-size
+		   (let ([b (box 0)])
+		     (if (get-resource font-section 
+				       font-size-entry
+				       b)
+			 (unbox b)
+			 font-default-size))]
+		  [size-slider
+		   (make-object slider%
+		     "Size"
+		     1 127
+		     size-panel
+		     (lambda (slider evt)
+		       (set font-size-pref-sym (send slider get-value)))
+		     initial-font-size)])
+	   (update-message-sizes font-message-get-widths font-message-user-min-sizes)
+	   (update-message-sizes category-message-get-widths category-message-user-min-sizes)
+	   (add-callback
+	    font-size-pref-sym
+	    (lambda (p value)
+	      (for-each (lambda (f) (f value)) set-edit-fonts)
+	      (unless (= value (send size-slider get-value))
+		(send size-slider set-value value))
+	      #t))
+	   (for-each (lambda (f) (f initial-font-size)) set-edit-fonts)
+	   (make-object message% "Restart to see font changes" main)
+	   main)))))
   
   (define preferences-dialog #f)
   
   (define add-panel
     (lambda (title container)
-      (run-once
-       (lambda ()
-	 (let ([new-ppanel (make-ppanel title container #f)])
-	   (set! ppanels 
-		 (let loop ([ppanels ppanels])
-		   (cond
-		     [(null? ppanels) (list new-ppanel)]
-		     [(string=? (ppanel-title (car ppanels))
-				title)
-		      (loop (cdr ppanels))]
-		     [else (cons (car ppanels)
-				 (loop (cdr ppanels)))])))
-	   (when preferences-dialog
-	     (send preferences-dialog added-pane)))))))
+      (set! ppanels
+	    (append ppanels (list (make-ppanel title container #f))))
+      (when preferences-dialog
+	(send preferences-dialog added-pane))))
   
   (define hide-dialog
     (lambda ()
-      (run-once
-       (lambda ()
-	 (when preferences-dialog
-	   (send preferences-dialog show #f))))))
+      (when preferences-dialog
+	(send preferences-dialog show #f))))
   
   (define show-dialog
     (lambda ()
-      (run-once
-       (lambda () 
-	 (save)
-	 (if preferences-dialog
-	     (send preferences-dialog show #t)
-	     (set! preferences-dialog
-		   (make-preferences-dialog)))))))
+      (save)
+      (if preferences-dialog
+	  (send preferences-dialog show #t)
+	  (set! preferences-dialog
+		(make-preferences-dialog)))))
   
   (define make-preferences-dialog
     (lambda ()
       (letrec ([frame 
 		(make-object (class-asi frame%
-			       (public [added-pane
-					(lambda () 
-					  (ensure-constructed)
-					  (refresh-menu)
-					  (send popup-menu set-selection (sub1 (length ppanels)))
-					  (send single-panel active-child 
-						(ppanel-panel
-						 (car
-						  (list-tail ppanels
-							     (sub1 (length ppanels)))))))]))
+			       (public
+				 [added-pane
+				  (lambda () 
+				    (ensure-constructed)
+				    (refresh-menu)
+				    (unless (null? ppanels)
+				      (send popup-menu set-selection (sub1 (length ppanels)))
+				      (send single-panel active-child 
+					    (ppanel-panel
+					     (car
+					      (list-tail ppanels
+							 (sub1 (length ppanels))))))))]))
 		  "Preferences")]
 	       [panel (make-object vertical-panel% frame)]
 	       [popup-callback
 		(lambda (choice command-event)
-		  (send single-panel active-child
-			(ppanel-panel (list-ref ppanels (send choice get-selection)))))]
+		  (unless (null? ppanels)
+		    (send single-panel active-child
+			  (ppanel-panel (list-ref ppanels (send choice get-selection))))))]
 	       [make-popup-menu 
 		(lambda ()
 		  (let ([menu (make-object choice% "Category"
@@ -563,11 +543,14 @@
 				  (set-ppanel-panel! ppanel panel))))
 			    ppanels)
 		  (send single-panel change-children (lambda (l) (map ppanel-panel ppanels)))
-		  (send single-panel active-child (ppanel-panel (car ppanels))))]
+		  (unless (null? ppanels)
+		    (send single-panel active-child (ppanel-panel (car ppanels)))))]
 	       [refresh-menu
 		(lambda ()
-		  (let ([new-popup (make-popup-menu)])
-		    (send new-popup set-selection (send popup-menu get-selection))
+		  (let ([new-popup (make-popup-menu)]
+			[old-selection (send popup-menu get-selection)])
+		    (when old-selection
+		      (send new-popup set-selection old-selection))
 		    (set! popup-menu new-popup)
 		    (send panel change-children
 			  (lambda (l) (list new-popup
@@ -587,6 +570,7 @@
 	  (stretchable-height #f)
 	  (set-alignment 'right 'center))
 	(ensure-constructed)
-	(send popup-menu set-selection 0)
+	(unless (null? ppanels)
+	  (send popup-menu set-selection 0))
 	(send frame show #t)
 	frame))))

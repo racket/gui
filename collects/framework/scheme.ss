@@ -13,7 +13,8 @@
 	  [keymap : framework:keymap^]
 	  [text : framework:text^]
 	  [frame : framework:frame^]
-	  [mzlib:thread : mzlib:thread^])
+	  [mzlib:thread : mzlib:thread^]
+	  [mzlib:function : mzlib:function^])
   
   (rename [-text% text%]
 	  [-text<%> text<%>])
@@ -894,4 +895,84 @@
 
   (define keymap (make-object keymap%))
   (setup-keymap keymap)
-  (define (get-keymap) keymap))
+  (define (get-keymap) keymap)
+
+  (define (add-preferences-panel)
+    (preferences:add-panel
+     "Indenting"
+     (lambda (p)
+       (let*-values
+	   ([(get-keywords)
+	     (lambda (hash-table)
+	       (letrec ([all-keywords (hash-table-map hash-table list)]
+			[pick-out (lambda (wanted in out)
+				    (cond
+				     [(null? in) (mzlib:function:quicksort out string<=?)]
+				     [else (if (eq? wanted (cadr (car in))) 
+					       (pick-out wanted (cdr in) (cons (symbol->string (car (car in))) out))
+					       (pick-out wanted (cdr in) out))]))])
+		 (values  (pick-out 'begin all-keywords null)
+			  (pick-out 'define all-keywords null)
+			  (pick-out 'lambda all-keywords null))))]
+	    [(begin-keywords define-keywords lambda-keywords)
+	     (get-keywords (preferences:get 'framework:tabify))])
+	 (let* ([add-callback
+		 (lambda (keyword-type keyword-symbol list-box)
+		   (lambda (button command)
+		     (let ([new-one (get-text-from-user
+				     (string-append "Enter new " keyword-type "-like keyword:")
+				     (string-append keyword-type " Keyword"))])
+		       (when new-one
+			 (let ([parsed (with-handlers ((exn:read? (lambda (x) #f)))
+					 (read (open-input-string new-one)))])
+			   (cond
+			    [(and (symbol? parsed)
+				  (hash-table-get (preferences:get 'framework:tabify)
+						  parsed
+						  (lambda () #f)))
+			     (message-box "Error"
+					  (format "\"~a\" is already a specially indented keyword" parsed))]
+			    [(symbol? parsed)
+			     (hash-table-put! (preferences:get 'framework:tabify)
+					      parsed keyword-symbol)
+			     (send list-box append (symbol->string parsed))]
+			    [else (message-box "Error" (format "expected a symbol, found: ~a" new-one))]))))))]
+		[delete-callback
+		 (lambda (list-box)
+		   (lambda (button command)
+		     (let* ([selections (send list-box get-selections)]
+			    [symbols (map (lambda (x) (string->symbol (send list-box get-string x))) selections)])
+		       (for-each (lambda (x) (send list-box delete x)) (reverse selections))
+		       (let ([ht (preferences:get 'framework:tabify)])
+			 (for-each (lambda (x) (hash-table-remove! ht x)) symbols)))))]
+		[main-panel (make-object horizontal-panel% p)]
+		[make-column
+		 (lambda (string symbol keywords)
+		   (let* ([vert (make-object vertical-panel% main-panel)]
+			  [_ (make-object message% (string-append string "-like Keywords") vert)]
+			  [box (make-object list-box% #f keywords vert void '(multiple))]
+			  [button-panel (make-object horizontal-panel% vert)]
+			  [add-button (make-object button% "Add" button-panel (add-callback string symbol box))]
+			  [delete-button (make-object button% "Remove" button-panel (delete-callback box))])
+		     (send* button-panel 
+			    (set-alignment 'center 'center)
+			    (stretchable-height #f))
+		     (send add-button min-width (send delete-button get-width))
+		     box))]
+		[begin-list-box (make-column "Begin" 'begin begin-keywords)]
+		[define-list-box (make-column "Define" 'define define-keywords)]
+		[lambda-list-box (make-column "Lambda" 'lambda lambda-keywords)]
+		[update-list-boxes
+		 (lambda (hash-table)
+		   (let-values ([(begin-keywords define-keywords lambda-keywords) (get-keywords hash-table)]
+				[(reset) (lambda (list-box keywords)
+					   (send list-box clear)
+					   (for-each (lambda (x) (send list-box append x)) keywords))])
+		     (reset begin-list-box begin-keywords)
+		     (reset define-list-box define-keywords)
+		     (reset lambda-list-box lambda-keywords)
+		     #t))])
+	   (preferences:add-callback 'framework:tabify (lambda (p v) (update-list-boxes v)))
+	   main-panel)))))
+
+  )

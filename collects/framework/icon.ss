@@ -47,8 +47,8 @@
 	      (set! icon (make-object bitmap% p type))
 	      icon)))))
   
-  (define get (make-get/mask "plt16x16.bmp" 'bmp))
-  (define get-mask (make-get/mask "dot16x16.xbm" 'xbm))
+  ;(define get (make-get/mask "plt16x16.bmp" 'bmp))
+  ;(define get-mask (make-get/mask "dot16x16.xbm" 'xbm))
   
   (define gc-on-bitmap #f)
 

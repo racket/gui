@@ -27,9 +27,8 @@
 	     (lambda (m)
 	       (super-set-editor m)
 	       (let ([tlw (get-top-level-window)])
-		 (cond
-		  [(eq? this (send tlw get-info-canvas))
-		   (send tlw update-info)])))])
+		 (when (eq? this (send tlw get-info-canvas))
+		   (send tlw update-info))))])
 	   (sequence
 	     (apply super-init parent editor args)
 	     (unless (is-a? (get-top-level-window) frame:info<%>)

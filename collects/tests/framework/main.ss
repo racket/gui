@@ -235,7 +235,8 @@
 
   (define (wait-for-frame name)
     (wait-for `(let ([win (get-top-level-focus-window)])
-		 (and win (string=? (send win get-label) ,name)))))))
+		 (and win
+		      (string=? (send win get-label) ,name)))))))
 
 (define Engine
   (unit/sig Engine^

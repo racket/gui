@@ -21,12 +21,7 @@
    single-window<%>
    single-window-mixin
    single%
-   single-pane%
-   
-   editor-mixin
-   editor<%>
-   horizontal-editor%
-   vertical-editor%))
+   single-pane%))
 
 (define-signature framework:exn^
   ((struct exn ())
@@ -48,6 +43,8 @@
    restore-defaults
 
    add-panel
+   add-font-panel
+   add-general-panel
    show-dialog
    hide-dialog))
 
@@ -202,10 +199,7 @@
    open-file))
 
 (define-signature framework:icon^
-  (get
-   get-mask
-   
-   get-paren-highlight-bitmap
+  (get-paren-highlight-bitmap
    get-autowrap-bitmap
 
    get-lock-bitmap
@@ -247,7 +241,8 @@
    setup-keymap
    text-mixin
    text<%>
-   text%))
+   text%
+   add-preferences-panel))
 
 (define-signature framework:paren^
   (balanced? 

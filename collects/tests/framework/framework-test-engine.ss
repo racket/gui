@@ -1,4 +1,4 @@
-(require-library "errortrace.ss" "errortrace") (error-print-width 80)
+(require-library "errortrace.ss" "errortrace") (error-print-width 80) (error-context-display-depth 3)
 
 (let* ([errs null]
        [sema (make-semaphore 1)]

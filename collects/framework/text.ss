@@ -79,7 +79,6 @@
                                [height (- bottom top)])
                            (when (and (> width 0)
                                       (> height 0))
-			     (printf "invalidating ~a ~a ~a ~a~n" left top width height)
                              (invalidate-bitmap-cache left top width height))))]
                       [else (let* ([r (car rectangles)]
                                    

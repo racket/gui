@@ -171,8 +171,7 @@
 	[on-close
 	 (lambda ()
 	   (super-on-close)
-	   (send (get-editor) on-close))]
-	[get-area-container%  (lambda () panel:vertical-editor%)])
+	   (send (get-editor) on-close))])
       (private
 	[label (if file-name
 		   (let-values ([(base name dir?) (split-path file-name)])
@@ -211,8 +210,8 @@
 	     (set! label t)
 	     (do-label)))])
       (public
-	[get-canvas% (lambda () editor-canvas<%>)]
-	[get-canvas<%> (lambda () editor-canvas%)]
+	[get-canvas% (lambda () editor-canvas%)]
+	[get-canvas<%> (lambda () editor-canvas<%>)]
 	[make-canvas (lambda ()
 		       (let ([% (get-canvas%)]
 			     [<%> (get-canvas<%>)])
@@ -273,24 +272,6 @@
 			  (send (get-editor) save-file)
 			  #t)]
 	[file-menu:save-as (lambda (item control) (save-as) #t)]
-	[file-menu:between-print-and-close
-	 (lambda (file-menu)
-	   (make-object separator-menu-item% file-menu)
-	   (let ([split
-		  (lambda (panel%)
-		    (lambda (item control)
-		      (let ([win (get-edit-target-object)])
-			(when (and win
-				   (is-a? win canvas<%>))
-			  (send (get-area-container) split win panel%)))))])
-	     (make-object (get-menu-item%) "Split Horizontally" file-menu (split horizontal-panel%))
-	     (make-object (get-menu-item%) "Split Vertically" file-menu (split vertical-panel%))
-	     (make-object (get-menu-item%) "Collapse" file-menu
-		   (lambda (item control)
-		     (let ([canvas (get-edit-target-window)])
-		       (when canvas
-			 (send (get-area-container) collapse canvas))))))
-	   (make-object separator-menu-item% file-menu))]
 	[file-menu:print (lambda (item control)
 			   (send (get-editor) print
 				 #t
