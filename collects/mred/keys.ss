@@ -50,9 +50,46 @@
 					       (or (not x)
 						   (eq? x #t))))
 
-    ; This installs the standard keyboard mapping
-    (define setup-global-keymap
-      ; Define some useful keyboard functions
+    (define setup-global-search-keymap
+      (let* ([find-string
+	      (lambda (edit event . extras)
+		(let ([x-box (box 0)]
+		      [y-box (box 0)]
+		      [canvas (send event get-event-object)])
+		  (send event position x-box y-box)
+		  (send canvas client-to-screen x-box y-box)
+		  (mred:find-string:find-string canvas ()
+						(- (unbox x-box) 30)
+						(- (unbox y-box) 30)
+						(cons 'ignore-case extras))
+		  #t))]
+	     [find-string-reverse
+	      (lambda (edit event)
+		(find-string edit event 'reverse))]
+	     [find-string-replace
+	      (lambda (edit event)
+		(find-string edit event 'replace))])
+	(lambda (kmap)
+	  (let* ([map (lambda (key func) 
+			(send kmap map-function key func))]
+		 [map-meta (lambda (key func)
+			     (send-map-function-meta kmap key func))]
+		 [add (lambda (name func)
+			(send kmap add-key-function name func))]
+		 [add-m (lambda (name func)
+			  (send kmap add-mouse-function name func))])
+	    
+
+	    (add "find-string" find-string)
+	    (add "find-string-reverse" find-string-reverse)
+	    (add "find-string-replace" find-string-replace)
+
+	    (map "c:x;c:s" "save-file")
+	    (map "d:s" "save-file")
+	    (map "c:x;c:w" "save-file-as")
+	    (map "c:x;c:f" "load-file")))))
+
+    (define setup-global-file-keymap
       (let* ([rcs
 	      (let ([last-checkin-string ""])
 		(mred:preferences:set-preference-default 
@@ -121,17 +158,6 @@
 					       (send edit get-filename)
 					       (send edit get-file-format))
 					 (wx:message-box "Checkout Failed")))))]))))))))]
-	     
-	     [ring-bell
-	      (lambda (edit event)
-		(let ([c (send edit get-canvas)])
-		  (when c
-		    (let ([f (let loop ([f c])
-			       (if (is-a? f wx:frame%)
-				   f
-				   (loop (send f get-parent))))])
-		      (send f hide-search))))
-		(wx:bell))]
 	     [save-file-as
 	      (lambda (edit event)
 		(let ([file (mred:finder:put-file)])
@@ -147,25 +173,44 @@
 	     [load-file
 	      (lambda (edit event)
 		(mred:handler:open-file)
-		#t)]
-	     [find-string
-	      (lambda (edit event . extras)
-		(let ([x-box (box 0)]
-		      [y-box (box 0)]
-		      [canvas (send event get-event-object)])
-		  (send event position x-box y-box)
-		  (send canvas client-to-screen x-box y-box)
-		  (mred:find-string:find-string canvas ()
-						 (- (unbox x-box) 30)
-						 (- (unbox y-box) 30)
-						 (cons 'ignore-case extras))
-		  #t))]
-	     [find-string-reverse
+		#t)])
+	(lambda (kmap)
+	  (map (lambda (k) (send kmap implies-shift k)) shifted-key-list)
+	  (let* ([map (lambda (key func) 
+			(send kmap map-function key func))]
+		 [map-meta (lambda (key func)
+			     (send-map-function-meta kmap key func))]
+		 [add (lambda (name func)
+			(send kmap add-key-function name func))]
+		 [add-m (lambda (name func)
+			  (send kmap add-mouse-function name func))])
+	    
+	    (add "rcs" rcs)
+	    
+	    (add "save-file" save-file)
+	    (add "save-file-as" save-file-as)
+	    (add "load-file" load-file)
+	    
+	    (when (eq? wx:platform 'unix)
+	      '(map "c:x;c:q" "rcs"))
+	    (map "c:x;c:s" "save-file")
+	    (map "d:s" "save-file")
+	    (map "c:x;c:w" "save-file-as")
+	    (map "c:x;c:f" "load-file")))))
+
+    ; This installs the standard keyboard mapping
+    (define setup-global-keymap
+      ; Define some useful keyboard functions
+      (let* ([ring-bell
 	      (lambda (edit event)
-		(find-string edit event 'reverse))]
-	     [find-string-replace
-	      (lambda (edit event)
-		(find-string edit event 'replace))]
+		(let ([c (send edit get-canvas)])
+		  (when c
+		    (let ([f (let loop ([f c])
+			       (if (is-a? f wx:frame%)
+				   f
+				   (loop (send f get-parent))))])
+		      (send f hide-search))))
+		(wx:bell))]
 	     
 	     [toggle-anchor
 	      (lambda (edit event)
@@ -682,8 +727,6 @@
 	    ; Map names to keyboard functions
 	    (add "toggle-overwrite" toggle-overwrite)
 
-	    (add "rcs" rcs)
-
 	    (add "exit" (lambda (edit event)
 			  (let ([frame (send edit get-frame)])
 			    (if frame
@@ -691,14 +734,6 @@
 				(wx:bell)))))
 
 	    (add "ring-bell" ring-bell)
-
-	    (add "save-file" save-file)
-	    (add "save-file-as" save-file-as)
-	    (add "load-file" load-file)
-
-	    (add "find-string" find-string)
-	    (add "find-string-reverse" find-string-reverse)
-	    (add "find-string-replace" find-string-replace)
 
 	    (add "flash-paren-match" flash-paren-match)
 
@@ -742,12 +777,6 @@
 	    (add "delete-key" delete-key)
 
 	    ; Map keys to functions
-
-	    ; this is not for export -- too much chance it's wrong
-	    ; outside of Rice.
-	    (when (eq? wx:platform 'unix)
-	      '(map "c:x;c:q" "rcs"))
-
 	    (map "c:g" "ring-bell")
 	    (map-meta "c:g" "ring-bell")
 	    (map "c:x;c:g" "ring-bell")
@@ -869,15 +898,6 @@
 	    (map "a:c" "copy-clipboard")
 	    (map "d:c" "copy-clipboard")
 
-	    (map "c:x;c:s" "save-file")
-	    (map "d:s" "save-file")
-	    (map "c:x;c:w" "save-file-as")
-	    (map "c:x;c:f" "load-file")
-
-	    (map "c:s" "find-string")
-	    (map "c:r" "find-string-reverse")
-	    (map-meta "%" "find-string-replace")
-
 	    (map-meta "space" "collapse-space")
 	    (map-meta "\\" "remove-space")
 	    (map "c:x;c:o" "collapse-newline")
@@ -915,5 +935,10 @@
 	    (map "c:rightbutton" "copy-clipboard")))))
 
     (define global-keymap (make-object wx:keymap%))
-					     
-    (setup-global-keymap global-keymap))
+    (setup-global-keymap global-keymap)
+
+    (define global-file-keymap (make-object wx:keymap%))
+    (setup-global-file-keymap global-file-keymap)
+
+    (define global-search-keymap (make-object wx:keymap%))
+    (setup-global-search-keymap global-search-keymap))

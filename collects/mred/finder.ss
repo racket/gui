@@ -282,7 +282,7 @@
 				  () wx:const-needed-sb)]
 	  [save-panel (when save-mode? (make-object mred:container:horizontal-panel% main-panel))]
 	  [directory-panel (make-object mred:container:horizontal-panel% main-panel)]
-	  [directory-edit (make-object (class-asi mred:edit:edit%
+	  [directory-edit (make-object (class-asi mred:edit:media-edit%
 					 (rename [super-on-local-char on-local-char])
 					 (public
 					   [on-local-char

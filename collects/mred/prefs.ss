@@ -38,9 +38,8 @@
                              msg
                              ((debug-info-handler))))))])
 
-          (with-handlers ([void h])
-             (thunk))
-          )))
+          (with-handlers ([(lambda (x) #t) h])
+             (thunk)))))
 
     (define unmarshall
       (lambda (p marshalled)
@@ -183,21 +182,27 @@
 		 [else (error 'prefs.ss "robby error.2: ~a" ht-value)]))])
 	(lambda () 
 	  (mred:debug:printf 'prefs "saving user preferences")
-	  (call-with-output-file preferences-filename
-	    (lambda (p)
-	      (mzlib:pretty-print:pretty-print
-	       (hash-table-map preferences marshall-pref) p))
-	      'truncate 'text)	  
+	  (with-handlers ([(lambda (x) #t)
+			   (lambda (exn)
+			     (mred:gui-utils:message-box
+			      (format "Error saving preferences~n~a"
+				      (exn-message exn))
+			      "Error saving preferences"))])
+	    (call-with-output-file preferences-filename
+	      (lambda (p)
+		(mzlib:pretty-print:pretty-print
+		 (hash-table-map preferences marshall-pref) p))
+	      'truncate 'text))	  
 	  (mred:debug:printf 'prefs "saved user preferences"))))
     
     (mred:exit:insert-exit-callback 
      (lambda ()
        (with-handlers ([(lambda (x) #t)
 			(lambda (exn)
-			       (mred:gui-utils:message-box
-				(format "error while saving prefs: ~a"
-					(exn-message exn))
-				"Saving Prefs"))])
+			  (mred:gui-utils:message-box
+			   (format "error while saving prefs: ~a"
+				   (exn-message exn))
+			   "Saving Prefs"))])
 	 (save-user-preferences))))
 
     (define read-user-preferences 
@@ -226,31 +231,40 @@
 		     [else (error 'prefs.ss "robby error.3: ~a" ht-pref)]))))])
 	(lambda ()
 	  (mred:debug:printf 'prefs "reading user preferences")
-	  (when (file-exists? preferences-filename)
-	    (let ([err
-		   (lambda (input)
-		     (wx:message-box (format "found bad pref: ~n~a" input)
-				     "Preferences"))])
-	      (let loop ([input (call-with-input-file preferences-filename
-				  read
-				  'text)])
-		(cond
-		 [(pair? input)
-		  (let/ec k
-		    (let ([first (car input)])
-		      (when (pair? first)
-			(let ([arg1 (car first)]
-			      [t1 (cdr first)])
-			  (when (pair? t1)
-			    (let ([arg2 (car t1)]
-				  [t2 (cdr t1)])
-			      (when (null? t2)
-				(parse-pref arg1 arg2)
-				(k #t)))))))
-		    (err input))
-		  (loop (cdr input))]
-		 [(null? input) (void)]
-		 [else (err input)]))))
+	  (let/ec k
+	    (when (file-exists? preferences-filename)
+	      (let ([err
+		     (lambda (input)
+		       (mred:gui-utils:message-box (format "found bad pref: ~n~a" input)
+						   "Preferences"))])
+		(let loop ([input (with-handlers
+				      ([(lambda (exn) #t)
+					(lambda (exn)
+					  (mred:gui-utils:message-box
+					   (format "Error saving preferences~n~a"
+						   (exn-message exn))
+					   "Error reading preferences")
+					  (k #f))])
+				    (call-with-input-file preferences-filename
+				      read
+				      'text))])
+		  (cond
+		   [(pair? input)
+		    (let/ec k
+		      (let ([first (car input)])
+			(when (pair? first)
+			  (let ([arg1 (car first)]
+				[t1 (cdr first)])
+			    (when (pair? t1)
+			      (let ([arg2 (car t1)]
+				    [t2 (cdr t1)])
+				(when (null? t2)
+				  (parse-pref arg1 arg2)
+				  (k #t)))))))
+		      (err input))
+		    (loop (cdr input))]
+		   [(null? input) (void)]
+		   [else (err input)])))))
 	  (mred:debug:printf 'prefs "read user preferences"))))
     
     (define-struct ppanel (title container panel))
@@ -285,12 +299,12 @@
 			(lambda (x) (if x 'std 'common))
 			(lambda (x) (eq? x 'std)))
 
-	    ;; sleep is not effecient, so we wait for the next release to turn this on.
-	    (make-check 'mred:show-status-line "Show status-line?" id id)
-
 	    (make-check 'mred:verify-exit "Verify exit?" id id)
 	    (make-check 'mred:verify-change-format "Ask before changing save format?" id id)
 	    (make-check 'mred:auto-set-wrap? "Wordwrap editor buffers?" id id)
+
+	    (make-check 'mred:show-status-line "Show status-line?" id id)
+	    (make-check 'mred:line-offsets "Count line and column numbers from one?" id id)
 	    main))
 	#f)))
 

@@ -35,8 +35,14 @@
 	  (lambda (snip%)
 	    (class snip% args
 	      (inherit set-style)
+	      (public [edit% media-edit%])
 	      (sequence
-		(apply super-init args)
+		(cond
+		  [(null? args)
+		   (super-init (make-object edit%))]
+		  [(null? (car args))
+		   (apply super-init (make-object edit%) (cdr args))]
+		  [else (apply super-init args)])
 		(set-style std)))))))
 
     (define media-snip% (make-snip% wx:media-snip%))
@@ -51,7 +57,6 @@
 	  (rename [super-set-modified set-modified]
 		  [super-on-save-file on-save-file]
 		  [super-on-focus on-focus]
-		  [super-set-max-width set-max-width]
 		  [super-lock lock])
 
 	  (public
@@ -76,10 +81,6 @@
 		 [else (get-pasteboard-snip)]))])
 
 	  (public
-	    [set-max-width
-	     (lambda (x)
-	       (mred:debug:printf 'rewrap "rewrap: set-max-width: ~a" x)
-	       (super-set-max-width x))]
 	    [get-file (lambda (d) 
 			(let ([v (mred:finder:get-file d)])
 			  (if v
@@ -89,42 +90,6 @@
 				      (if v
 					  v
 					  '())))]
-	    
-	    [auto-set-wrap? (mred:preferences:get-preference 'mred:auto-set-wrap?)]
-	    [set-auto-set-wrap
-	     (lambda (v)
-	       (mred:debug:printf 'rewrap 
-				  "rewrap: set-auto-set-wrap: ~a (canvases ~a)"
-				  v canvases)
-	       (set! auto-set-wrap? v)
-	       (for-each (lambda (c) (send c resize-edit)) canvases))]
-	    
-	    [rewrap
-	     (lambda ()
-	       (if auto-set-wrap?
-		   (let* ([current-width (get-max-width)]
-			  [w-box (box 0)]
-			  [new-width
-			   (mzlib:function:foldl
-			    (lambda (canvas sofar)
-			      (send canvas call-as-primary-owner
-				    (lambda ()
-				      (send (get-admin)
-					    get-view null null
-					    w-box (box 0))))
-			      (max (unbox w-box) sofar))
-			    0
-			    canvases)])
-		     (mred:debug:printf 'rewrap "rewrap: new-width ~a  current-width ~a" 
-					new-width current-width)
-		     (when (and (not (= current-width new-width))
-				(< 0 new-width))
-		       (set-max-width new-width)
-		       (mred:debug:printf 'rewrap "rewrap: attempted to wrap to: ~a actually wrapped to ~a" 
-					  new-width (get-max-width))))
-		   (begin
-		     (mred:debug:printf 'rewrap "rewrap: wrapping to -1")
-		     (set-max-width -1))))]
 	    [mode #f]
 	    [set-mode-direct (lambda (v) (set! mode v))]
 	    [set-mode
@@ -133,141 +98,41 @@
 	  (sequence
 	    (apply super-init args)))))
 
-    (define make-edit%
+    (define make-pasteboard% make-std-buffer%)
+
+    (define make-media-edit%
       (lambda (super%)
-	(class (make-std-buffer% super%) args
-	  (inherit mode set-mode-direct canvases get-file-format 
-		   set-filename find-string get-snip-position
-		   change-style save-file get-admin
-		   invalidate-bitmap-cache split-snip
+	(class super% args
+	  (inherit canvases get-max-width get-admin split-snip get-snip-position
+		   delete find-snip set-filename invalidate-bitmap-cache
 		   begin-edit-sequence end-edit-sequence
-		   flash-on get-keymap get-start-position
-		   get-end-position last-position
-		   on-default-char on-default-event 
-		   set-file-format get-style-list
-		   set-autowrap-bitmap delete
-		   get-snip-location find-snip get-max-width
-		   modified? set-modified
-		   lock get-filename)
+		   set-autowrap-bitmap get-keymap mode set-mode-direct
+		   set-file-format get-file-format
+		   get-style-list modified? change-style set-modified)
 	  
 	  (rename [super-on-focus on-focus]
-		  [super-on-paint on-paint]
 		  [super-on-local-event on-local-event]
-		  [super-on-local-char on-local-char]
-
-		  [super-on-save-file on-save-file]
-		  [super-after-save-file after-save-file]
 		  
 		  [super-after-set-position after-set-position]
-		  
+
 		  [super-on-edit-sequence on-edit-sequence]
 		  [super-on-change-style on-change-style]
 		  [super-on-insert on-insert]
 		  [super-on-delete on-delete]
 		  [super-on-set-size-constraint on-set-size-constraint]
-		  
-		  [super-after-load-file after-load-file]
-		  [super-load-file load-file]
 
 		  [super-after-edit-sequence after-edit-sequence]
 		  [super-after-change-style after-change-style]
 		  [super-after-insert after-insert]
 		  [super-after-delete after-delete]
-		  [super-after-set-size-constraint after-set-size-constraint])
+		  [super-after-set-size-constraint after-set-size-constraint]
 
-	  (private
-	    [styles-fixed-edit-modified? #f]
-	    [restore-file-format void])	  
+		  [super-set-max-width set-max-width]
+		  [super-load-file load-file]
+		  [super-on-paint on-paint])
 
+	  (private [styles-fixed-edit-modified? #f])
 	  (public
-	    [move/copy-to-edit
-	     (lambda (dest-edit start end dest-position)
-	       (let ([insert-edit (ivar dest-edit insert)])
-		 (split-snip start)
-		 (split-snip end)
-		 (let loop ([snip (find-snip end wx:const-snip-before)])
-		   (cond
-		    [(or (null? snip) (< (get-snip-position snip) start))
-		     (void)]
-		    [else
-		     (let ([prev (send snip previous)]
-			   [released/copied (if (send snip release-from-owner)
-						snip
-						(let* ([copy (send snip copy)]
-						       [snip-start (get-snip-position snip)]
-						       [snip-end (+ snip-start (send snip get-count))])
-						  (delete snip-start snip-end)
-						  snip))])
-		       '(wx:message-box (format "before: ~a" (eq? snip released/copied)))
-		       (insert-edit released/copied dest-position dest-position)
-		       '(wx:message-box (format "after: ~a" (eq? snip released/copied)))
-		       (loop prev))]))))])
-
-	  (public
-	    [on-save-file
-	     (let ([has-non-text-snips 
-		    (lambda ()
-		      (let loop ([s (find-snip 0 wx:const-snip-after)])
-			(cond
-			 [(null? s) #f]
-			 [(is-a? s wx:text-snip%)
-			  (loop (send s next))]
-			 [else #t])))])
-	       (lambda (name format)
-		 (when (and (or (= format wx:const-media-ff-same)
-				(= format wx:const-media-ff-copy))
-			    (not (= (get-file-format) 
-				    wx:const-media-ff-std)))
-		   (cond
-		    [(= format wx:const-media-ff-copy)
-		     (set! restore-file-format 
-			   (let ([f (get-file-format)])
-			     (lambda ()
-			       (set! restore-file-format void)
-			       (set-file-format f))))
-		     (set-file-format wx:const-media-ff-std)]
-		    [(and (has-non-text-snips)
-			  (or (not (mred:preferences:get-preference 'mred:verify-change-format))
-			      (mred:gui-utils:get-choice "Save this file as plain text?" "No" "Yes")))
-		     (set-file-format wx:const-media-ff-std)]
-		    [else (void)]))
-		 (or (super-on-save-file name format)
-		     (begin 
-		       (restore-file-format)
-		       #f))))]
-	    [check-lock
-	     (lambda ()
-	       (let* ([filename (get-filename)]
-		      [lock? (and (not (null? filename))
-				  (file-exists? filename)
-				  (not (member
-					'write
-					(file-or-directory-permissions
-					 filename))))])
-		 (mred:debug:printf 'permissions 
-				    "locking: ~a (filename: ~a)"
-				    lock?
-				    filename)
-		 (lock lock?)))]
-	    [after-save-file
-	     (lambda (success)
-	       (when success
-		 (check-lock))
-	       (super-after-save-file success)
-	       (restore-file-format))]
-
-	    [autowrap-bitmap mred:icon:autowrap-bitmap]
-	    [load-file
-	     (opt-lambda ([filename null] [format wx:const-media-ff-guess])
-	       (if (file-exists? filename)
-		   (super-load-file filename format)
-		   (set-filename filename)))]
-	    [after-load-file
-	     (lambda (sucessful?)
-	       (when sucessful?
-		 (check-lock))
-	       (super-after-load-file sucessful?))]
-
 	    [set-mode
 	     (lambda (m)
 	       (if mode
@@ -286,8 +151,9 @@
 				 find-named-style "Standard")
 			   set-delta (make-object wx:style-delta%)))))]
 	    [styles-fixed? #f]
-	    [set-styles-fixed (lambda (b) (set! styles-fixed? b))]
+	    [set-styles-fixed (lambda (b) (set! styles-fixed? b))])
 
+	  (public
 	    [on-focus
 	     (lambda (on?)
 	       (super-on-focus on?)
@@ -356,6 +222,82 @@
 	       (when mode 
 		 (send mode after-set-position this))
 	       (super-after-set-position))])
+
+	  (public
+	    [set-max-width
+	     (lambda (x)
+	       (mred:debug:printf 'rewrap "rewrap: set-max-width: ~a" x)
+	       (super-set-max-width x))]
+	    [auto-set-wrap? (mred:preferences:get-preference 'mred:auto-set-wrap?)]
+	    [set-auto-set-wrap
+	     (lambda (v)
+	       (mred:debug:printf 'rewrap 
+				  "rewrap: set-auto-set-wrap: ~a (canvases ~a)"
+				  v canvases)
+	       (set! auto-set-wrap? v)
+	       (for-each (lambda (c) (send c resize-edit)) canvases))]
+	    
+	    [rewrap
+	     (lambda ()
+	       (if auto-set-wrap?
+		   (let* ([current-width (get-max-width)]
+			  [w-box (box 0)]
+			  [new-width
+			   (mzlib:function:foldl
+			    (lambda (canvas sofar)
+			      (send canvas call-as-primary-owner
+				    (lambda ()
+				      (send (get-admin)
+					    get-view null null
+					    w-box (box 0))))
+			      (max (unbox w-box) sofar))
+			    0
+			    canvases)])
+		     (mred:debug:printf 'rewrap "rewrap: new-width ~a  current-width ~a" 
+					new-width current-width)
+		     (when (and (not (= current-width new-width))
+				(< 0 new-width))
+		       (set-max-width new-width)
+		       (mred:debug:printf 'rewrap "rewrap: attempted to wrap to: ~a actually wrapped to ~a" 
+					  new-width (get-max-width))))
+		   (begin
+		     (mred:debug:printf 'rewrap "rewrap: wrapping to -1")
+		     (set-max-width -1))))])
+
+	  (public
+	    [move/copy-to-edit
+	     (lambda (dest-edit start end dest-position)
+	       (let ([insert-edit (ivar dest-edit insert)])
+		 (split-snip start)
+		 (split-snip end)
+		 (let loop ([snip (find-snip end wx:const-snip-before)])
+		   (cond
+		    [(or (null? snip) (< (get-snip-position snip) start))
+		     (void)]
+		    [else
+		     (let ([prev (send snip previous)]
+			   [released/copied (if (send snip release-from-owner)
+						snip
+						(let* ([copy (send snip copy)]
+						       [snip-start (get-snip-position snip)]
+						       [snip-end (+ snip-start (send snip get-count))])
+						  (delete snip-start snip-end)
+						  snip))])
+		       '(wx:message-box (format "before: ~a" (eq? snip released/copied)))
+		       (insert-edit released/copied dest-position dest-position)
+		       '(wx:message-box (format "after: ~a" (eq? snip released/copied)))
+		       (loop prev))]))))])
+	  
+	  (public
+	    [load-file
+	     (opt-lambda ([filename null] [format wx:const-media-ff-guess])
+	       (let ([filename (if (null? filename)
+				   (mred:finder:get-file)
+				   filename)])
+		 (and filename
+		      (if (file-exists? filename)
+			  (super-load-file filename format)
+			  (set-filename filename)))))])
 
 	  (private
 	    [range-rectangles null]
@@ -505,8 +447,23 @@
 		      (send dc set-logical-function old-logical-function)
 		      (send dc set-pen old-pen)
 		      (send dc set-brush old-brush))))
-		range-rectangles))])
+		range-rectangles))])	  
+	  (public
+	    [autowrap-bitmap null])
+	  (sequence
+	    (apply super-init args)
+	    (set-autowrap-bitmap autowrap-bitmap)
+	    (let ([keymap (get-keymap)])
+	      (mred:keymap:set-keymap-error-handler keymap)
+	      (mred:keymap:set-keymap-implied-shifts keymap)
+	      (send keymap chain-to-keymap mred:keymap:global-keymap #f))))))
 
+    (define make-searching-edit%
+      (lambda (super%)
+	(class super% args
+	  (inherit get-end-position get-start-position last-position 
+		   find-string get-snip-position get-admin find-snip
+		   get-keymap)
 	  (public
 	    [find-string-embedded
 	     (opt-lambda (str [direction 1] [start -1]
@@ -529,17 +486,17 @@
 			[end-test
 			 (lambda (snip)
 			   (cond
-			    [(null? snip) flat]
-			    [(and (not (= -1 flat))
-				  (let* ([start (get-snip-position snip)]
-					 [end (+ start (send snip get-count))])
-				    (if (= direction 1)
-					(and (<= start flat)
-					     (< flat end))
-					(and (< start flat)
-					     (<= flat end)))))
-			     flat]
-			    [else #f]))]			       
+			     [(null? snip) flat]
+			     [(and (not (= -1 flat))
+				   (let* ([start (get-snip-position snip)]
+					  [end (+ start (send snip get-count))])
+				     (if (= direction 1)
+					 (and (<= start flat)
+					      (< flat end))
+					 (and (< start flat)
+					      (<= flat end)))))
+			      flat]
+			     [else #f]))]			       
 			[pop-out
 			 (lambda ()
 			   (let ([admin (get-admin)])
@@ -565,146 +522,143 @@
 				  (loop (send current-snip next))
 				  (loop (send current-snip previous))))])
 		       (cond
-			[(end-test current-snip) => 
-						 (lambda (x)
-						   (if (and (= x -1) pop-out?)
-						       (pop-out)
-						       (values this x)))]
-			[(is-a? current-snip wx:media-snip%)
-			 (let-values ([(embedded embedded-pos)
-				       (let ([media (send current-snip get-this-media)])
-					 (and (not (null? media))
-					      (send media find-string-embedded str
-						    direction
-						    (if (= 1 direction)
-							0
-							(send media last-position))
-						    -1
-						    get-start case-sensitive?)))])
-			   (if (= -1 embedded-pos)
-			       (next-loop)
-			       (values embedded embedded-pos)))]
-			[else (next-loop)]))))))])
+			 [(end-test current-snip) => 
+			  (lambda (x)
+			    (if (and (= x -1) pop-out?)
+				(pop-out)
+				(values this x)))]
+			 [(is-a? current-snip wx:media-snip%)
+			  (let-values ([(embedded embedded-pos)
+					(let ([media (send current-snip get-this-media)])
+					  (and (not (null? media))
+					       (send media find-string-embedded str
+						     direction
+						     (if (= 1 direction)
+							 0
+							 (send media last-position))
+						     -1
+						     get-start case-sensitive?)))])
+			    (if (= -1 embedded-pos)
+				(next-loop)
+				(values embedded embedded-pos)))]
+			 [else (next-loop)]))))))])
 	  (sequence
 	    (apply super-init args)
-	    (set-autowrap-bitmap autowrap-bitmap)
 	    (let ([keymap (get-keymap)])
 	      (mred:keymap:set-keymap-error-handler keymap)
 	      (mred:keymap:set-keymap-implied-shifts keymap)
-	      (send keymap chain-to-keymap mred:keymap:global-keymap #f))))))
+	      (send keymap chain-to-keymap mred:keymap:global-search-keymap #f))))))
 
-    (define edit% (make-edit% mred:connections:connections-media-edit%))
-
-    (define make-return-edit%
+    (define make-file-buffer%
       (lambda (super%)
-	(class super% (return . args)
-	  (rename [super-on-local-char on-local-char])
+	(class super% args
+	  (inherit get-keymap find-snip  
+		   get-filename lock get-style-list 
+		   modified? change-style set-modified 
+		   get-frame)
+	  (rename [super-on-set-focus on-set-focus]
+		  [super-on-kill-focus on-kill-focus]
+		  [super-after-save-file after-save-file]
+		  [super-after-load-file after-load-file])
+
 	  (public
-	    [on-local-char
-	     (lambda (key)
-	       (let ([cr-code 13]
-		     [lf-code 10]
-		     [code (send key get-key-code)])
-		 (or (and (or (= lf-code code)
-			      (= cr-code code))
-			  (return))
-		     (super-on-local-char key))))])
-	  (sequence
-	    (apply super-init args)))))
-
-    (define return-edit% (make-return-edit% edit%))
-
-    (define make-info-edit%
-      (lambda (super-info-edit%)
-	(class-asi super-info-edit%
-	  (inherit get-frame get-start-position get-end-position
-		   position-line line-start-position)
-	  (rename [super-after-set-position after-set-position]
-		  [super-after-edit-sequence after-edit-sequence]
-		  [super-on-edit-sequence on-edit-sequence]
-		  [super-after-insert after-insert]
-		  [super-after-delete after-delete]
-		  [super-lock lock]
-		  [super-set-overwrite-mode set-overwrite-mode]
-		  [super-set-anchor set-anchor])
+	    [on-kill-focus
+	     (lambda ()
+	       (super-on-kill-focus)
+	       (let ([frame (get-frame)])
+		 (when frame
+		   (send (get-keymap)
+			 remove-chained-keymap
+			 (ivar frame keymap)))))]
+	    [on-set-focus
+	     (lambda ()
+	       (super-on-set-focus)
+	       (let ([frame (get-frame)])
+		 (when frame
+		   (send (get-keymap)
+			 chain-to-keymap
+			 (ivar frame keymap)
+			 #t))))])
 	  (private
-	    [edit-sequence-depth 0]
-	    [position-needs-updating #f]
-	    [lock-needs-updating #f]
-	    [anchor-needs-updating #f]
-	    [overwrite-needs-updating #f]
-	    [maybe-update-anchor
+	    [check-lock
 	     (lambda ()
-	       (if (= edit-sequence-depth 0)
-		   (send (get-frame) anchor-status-changed)
-		   (set! anchor-needs-updating #t)))]
-	    [maybe-update-overwrite
-	     (lambda ()
-	       (if (= edit-sequence-depth 0)
-		   (send (get-frame) overwrite-status-changed)
-		   (set! overwrite-needs-updating #t)))]
-	    [maybe-update-lock-icon
-	     (lambda ()
-	       (if (= edit-sequence-depth 0)
-		   (send (get-frame) lock-status-changed)
-		   (set! lock-needs-updating #t)))]
-	    [maybe-update-position-edit
-	     (lambda ()
-	       (if (= edit-sequence-depth 0)
-		   (update-position-edit)
-		   (set! position-needs-updating #t)))]
-	    [update-position-edit
-	     (lambda ()
-	       (send (get-frame) edit-position-changed))])
-			       
+	       (let* ([filename (get-filename)]
+		      [lock? (and (not (null? filename))
+				  (file-exists? filename)
+				  (not (member
+					'write
+					(file-or-directory-permissions
+					 filename))))])
+		 (mred:debug:printf 'permissions 
+				    "locking: ~a (filename: ~a)"
+				    lock?
+				    filename)
+		 (lock lock?)))])
 	  (public
-	    [set-anchor
-	     (lambda (x)
-	       (super-set-anchor x)
-	       (maybe-update-anchor))]
-	    [set-overwrite-mode
-	     (lambda (x)
-	       (super-set-overwrite-mode x)
-	       (maybe-update-overwrite))]
-	    [lock
-	     (lambda (x)
-	       (super-lock x)
-	       (maybe-update-lock-icon))]
-	    [after-set-position
-	     (lambda ()
-	       (maybe-update-position-edit)
-	       (super-after-set-position))]
-	    [after-insert
-	     (lambda (start len)
-	       (maybe-update-position-edit)
-	       (super-after-insert start len))]
-	    [after-delete
-	     (lambda (start len)
-	       (maybe-update-position-edit)
-	       (super-after-delete start len))]
-	    [after-edit-sequence
-	     (lambda ()
-	       (set! edit-sequence-depth (sub1 edit-sequence-depth))
-	       (when (= 0 edit-sequence-depth)
-		 (when anchor-needs-updating
-		   (set! anchor-needs-updating #f)
-		   (send (get-frame) overwrite-status-changed))
-		 (when lock-needs-updating
-		   (set! lock-needs-updating #f)
-		   (send (get-frame) anchor-status-changed))
-		 (when position-needs-updating
-		   (set! position-needs-updating #f)
-		   (update-position-edit))
-		 (when lock-needs-updating
-		   (set! lock-needs-updating #f)
-		   (send (get-frame) lock-status-changed)))
-	       (super-after-edit-sequence))]
-	    [on-edit-sequence
-	     (lambda ()
-	       (set! edit-sequence-depth (add1 edit-sequence-depth))
-	       (super-on-edit-sequence))]))))
+	    [after-save-file
+	     (lambda (success)
+	       (when success
+		 (check-lock))
+	       (super-after-save-file success))]
 
-    (define info-edit% (make-info-edit% edit%))
+	    [after-load-file
+	     (lambda (sucessful?)
+	       (when sucessful?
+		 (check-lock))
+	       (super-after-load-file sucessful?))]
+	    [autowrap-bitmap mred:icon:autowrap-bitmap])
+	  (sequence
+	    (apply super-init args)
+	    (let ([keymap (get-keymap)])
+	      (mred:keymap:set-keymap-error-handler keymap)
+	      (mred:keymap:set-keymap-implied-shifts keymap)
+	      (send keymap chain-to-keymap mred:keymap:global-file-keymap #f))))))
+
+    (define make-clever-file-format-edit%
+      (lambda (super%)
+	(class-asi super%
+	  (inherit get-file-format set-file-format find-snip)
+	  (rename [super-on-save-file on-save-file]
+		  [super-after-save-file after-save-file])
+
+	  (private [restore-file-format void])
+
+	  (public
+	    [after-save-file
+	     (lambda (success)
+	       (restore-file-format)
+	       (super-after-save-file success))]
+	    [on-save-file
+	     (let ([has-non-text-snips 
+		    (lambda ()
+		      (let loop ([s (find-snip 0 wx:const-snip-after)])
+			(cond
+			 [(null? s) #f]
+			 [(is-a? s wx:text-snip%)
+			  (loop (send s next))]
+			 [else #t])))])
+	       (lambda (name format)
+		 (when (and (or (= format wx:const-media-ff-same)
+				(= format wx:const-media-ff-copy))
+			    (not (= (get-file-format) 
+				    wx:const-media-ff-std)))
+		   (cond
+		    [(= format wx:const-media-ff-copy)
+		     (set! restore-file-format 
+			   (let ([f (get-file-format)])
+			     (lambda ()
+			       (set! restore-file-format void)
+			       (set-file-format f))))
+		     (set-file-format wx:const-media-ff-std)]
+		    [(and (has-non-text-snips)
+			  (or (not (mred:preferences:get-preference 'mred:verify-change-format))
+			      (mred:gui-utils:get-choice "Save this file as plain text?" "No" "Yes")))
+		     (set-file-format wx:const-media-ff-std)]
+		    [else (void)]))
+		 (or (super-on-save-file name format)
+		     (begin 
+		       (restore-file-format)
+		       #f))))]))))
 
     (define make-backup-autosave-buffer%
       (lambda (super-edit%)
@@ -785,10 +739,138 @@
 	    (apply super-init args)
 	    (mred:autosave:register-autosave this)))))
 
-    (define backup-autosave-edit% (make-backup-autosave-buffer% info-edit%))
+    (define make-return-edit%
+      (lambda (super%)
+	(class super% (return . args)
+	  (rename [super-on-local-char on-local-char])
+	  (public
+	    [on-local-char
+	     (lambda (key)
+	       (let ([cr-code 13]
+		     [lf-code 10]
+		     [code (send key get-key-code)])
+		 (or (and (or (= lf-code code)
+			      (= cr-code code))
+			  (return))
+		     (super-on-local-char key))))])
+	  (sequence
+	    (apply super-init args)))))
 
-    (define make-pasteboard% make-std-buffer%)
+    (define make-info-edit%
+      (lambda (super-info-edit%)
+	(class-asi super-info-edit%
+	  (inherit get-frame get-start-position get-end-position
+		   position-line line-start-position)
+	  (rename [super-after-set-position after-set-position]
+		  [super-after-edit-sequence after-edit-sequence]
+		  [super-on-edit-sequence on-edit-sequence]
+		  [super-after-insert after-insert]
+		  [super-after-delete after-delete]
+		  [super-lock lock]
+		  [super-set-overwrite-mode set-overwrite-mode]
+		  [super-set-anchor set-anchor])
+	  (private
+	    [edit-sequence-depth 0]
+	    [position-needs-updating #f]
+	    [lock-needs-updating #f]
+	    [anchor-needs-updating #f]
+	    [overwrite-needs-updating #f]
+	    [maybe-update-anchor
+	     (lambda ()
+	       (if (= edit-sequence-depth 0)
+		   (let ([frame (get-frame)])
+		     (when frame
+		       (send frame anchor-status-changed)))
+		   (set! anchor-needs-updating #t)))]
+	    [maybe-update-overwrite
+	     (lambda ()
+	       (if (= edit-sequence-depth 0)
+		   (let ([frame (get-frame)])
+		     (when frame
+		       (send frame overwrite-status-changed)))
+		   (set! overwrite-needs-updating #t)))]
+	    [maybe-update-lock-icon
+	     (lambda ()
+	       (if (= edit-sequence-depth 0)
+		   (let ([frame (get-frame)])
+		     (when frame
+		       (send frame lock-status-changed)))
+		   (set! lock-needs-updating #t)))]
+	    [maybe-update-position-edit
+	     (lambda ()
+	       (if (= edit-sequence-depth 0)
+		   (update-position-edit)
+		   (set! position-needs-updating #t)))]
+	    [update-position-edit
+	     (lambda ()
+	       (let ([frame (get-frame)])
+		 (when frame
+		   (send frame edit-position-changed))))])
+			       
+	  (public
+	    [set-anchor
+	     (lambda (x)
+	       (super-set-anchor x)
+	       (maybe-update-anchor))]
+	    [set-overwrite-mode
+	     (lambda (x)
+	       (super-set-overwrite-mode x)
+	       (maybe-update-overwrite))]
+	    [lock
+	     (lambda (x)
+	       (super-lock x)
+	       (maybe-update-lock-icon))]
+	    [after-set-position
+	     (lambda ()
+	       (maybe-update-position-edit)
+	       (super-after-set-position))]
+	    [after-insert
+	     (lambda (start len)
+	       (maybe-update-position-edit)
+	       (super-after-insert start len))]
+	    [after-delete
+	     (lambda (start len)
+	       (maybe-update-position-edit)
+	       (super-after-delete start len))]
+	    [after-edit-sequence
+	     (lambda ()
+	       (set! edit-sequence-depth (sub1 edit-sequence-depth))
+	       (when (= 0 edit-sequence-depth)
+		 (let ([frame (get-frame)])
+		   (when anchor-needs-updating
+		     (set! anchor-needs-updating #f)
+		     (send frame overwrite-status-changed))
+		   (when lock-needs-updating
+		     (set! lock-needs-updating #f)
+		     (send frame anchor-status-changed))
+		   (when position-needs-updating
+		     (set! position-needs-updating #f)
+		     (update-position-edit))
+		   (when lock-needs-updating
+		     (set! lock-needs-updating #f)
+		     (send frame lock-status-changed))))
+	       (super-after-edit-sequence))]
+	    [on-edit-sequence
+	     (lambda ()
+	       (set! edit-sequence-depth (add1 edit-sequence-depth))
+	       (super-on-edit-sequence))]))))
+
+
+    (define media-edit% (make-media-edit%
+			 (make-std-buffer% 
+			  mred:connections:connections-media-edit%)))
+
+    (define info-edit% (make-info-edit% media-edit%))
+
+    (define searching-edit% (make-searching-edit% info-edit%))
+    (define clever-file-format-edit% (make-clever-file-format-edit% searching-edit%))
+    (define file-edit% (make-file-buffer% clever-file-format-edit%))
+    (define backup-autosave-edit% (make-backup-autosave-buffer% file-edit%))
+
+    (define edit% file-edit%)
+
+    (define return-edit% (make-return-edit% media-edit%))
 
     (define pasteboard% (make-pasteboard% mred:connections:connections-media-pasteboard%))
-
+    (define file-pasteboard% (make-file-buffer% pasteboard%))
     (define backup-autosave-pasteboard% (make-backup-autosave-buffer% edit%)))
