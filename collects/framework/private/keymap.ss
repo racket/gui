@@ -272,12 +272,10 @@
 		(lambda (open-brace close-brace)
 		  (lambda (edit event)
 		    (send edit begin-edit-sequence)
-                    (let ([selection-start-box (box 0)]
-                          [selection-end-box (box 0)])
-                      (send edit get-position selection-start-box selection-end-box)
-                      (send edit set-position (unbox selection-end-box))
+                    (let ([selection-start (send edit get-start-position)])
+                      (send edit set-position (send edit get-end-position))
                       (send edit insert close-brace)
-                      (send edit set-position (unbox selection-start-box))
+                      (send edit set-position selection-start)
                       (send edit insert open-brace))
 		    (send edit end-edit-sequence)))]
 
