@@ -3,13 +3,39 @@
   (require (lib "class.ss")
            (lib "list.ss")
            (lib "math.ss")
-           (lib "framework.ss" "framework")
-           (lib "mred.ss" "mred"))
+           (lib "macro.ss" "framework")
+           (lib "mred.ss" "mred")
+	   (lib "contracts.ss"))
   
-  (provide lines<%>
-           snip/lines-mixin
-           draw-lines-pasteboard%
-           add-links)
+  (provide graph-snip<%>
+           graph-snip-mixin
+           graph-pasteboard-mixin)
+  
+  (define graph-snip<%>
+    (interface ()
+      get-children 
+      add-child
+      remove-child
+      
+      get-parents
+      get-parent-links
+      add-parent
+      remove-parent))
+  
+  (provide/contract (add-links
+		     (case->
+		      ((is-a?/c graph-snip<%>)
+		       (is-a?/c graph-snip<%>)
+		       . -> .
+		       void?)
+		      ((is-a?/c graph-snip<%>)
+		       (is-a?/c graph-snip<%>)
+		       (union false? (is-a?/c pen%))
+		       (union false? (is-a?/c pen%))
+		       (union false? (is-a?/c brush%))
+		       (union false? (is-a?/c brush%))
+		       . -> .
+		       void?))))
   
   (define arrowhead-angle-width (* 1/4 pi))
   (define arrowhead-short-side 8)
@@ -37,21 +63,6 @@
   (define default-light-pen (send the-pen-list find-or-create-pen "light blue" 1 'solid))
   (define default-dark-brush (send the-brush-list find-or-create-brush "light blue" 'solid))
   (define default-light-brush (send the-brush-list find-or-create-brush "white" 'solid))
-  (define level-ht (make-hash-table))
-  
-  (define lines<%>
-    (interface ()
-      get-children 
-      add-child
-      remove-child
-
-      get-parents
-      get-parent-links
-      add-parent
-      remove-parent
-
-      get-level
-      set-level))
   
   (define-struct link (snip dark-pen light-pen dark-brush light-brush))
   
@@ -64,8 +75,8 @@
        (send parent add-child child)
        (send child add-parent parent dark-pen light-pen dark-brush light-brush)]))
   
-  (define (snip/lines-mixin %)
-    (class* % (lines<%>)
+  (define (graph-snip-mixin %)
+    (class* % (graph-snip<%>)
       (field (children null))
       (define/public (get-children) children)
       (define/public (add-child child)
@@ -98,23 +109,13 @@
                  parent-links
                  (lambda (parent parent-link) (eq? (link-snip parent-link) parent))))))
       
-      (field (level #f))
-      (define/public (get-level) level)
-      (define/public (set-level _l) 
-        (when level
-          (hash-table-put! level-ht level
-                           (remq this (hash-table-get level-ht level))))
-        (set! level _l)
-        (hash-table-put! level-ht level 
-                         (cons this (hash-table-get level-ht level (lambda () null)))))
-      
       (super-instantiate ())
       
       (inherit set-snipclass)
       (set-snipclass snipclass)))
   
-  (define draw-lines-pasteboard%
-    (class pasteboard:basic%
+  (define graph-pasteboard-mixin
+    (mixin ((class->interface pasteboard%)) ()
       (inherit find-first-snip find-next-selected-snip)
       
       (define (invalidate-between from to)
@@ -170,7 +171,7 @@
       ;; invalidate-snip-to-children : snip -> void
       ;; invalidates a region including the snip and all its children and parents
       (define (invalidate-snip-to-children/parents snip)
-        (when (is-a? snip lines<%>)
+        (when (is-a? snip graph-snip<%>)
           (for-each
            (lambda (child)
              (invalidate-between snip child))
@@ -180,7 +181,7 @@
              (invalidate-between snip parent))
            (send snip get-parents))))
       
-      ;; find-snips-under-mouse : num num -> (listof lines<%>)
+      ;; find-snips-under-mouse : num num -> (listof graph-snip<%>)
       (define (find-snips-under-mouse x y)
         (let loop ([snip (find-first-snip)])
           (cond
@@ -188,7 +189,7 @@
              (let-values ([(sx sy sw sh) (get-position snip)])
                (if (and (<= sx x (+ sx sw))
                         (<= sy y (+ sy sh))
-                        (is-a? snip lines<%>))
+                        (is-a? snip graph-snip<%>))
                    (cons snip (loop (send snip next)))
                    (loop (send snip next))))]
             [else null])))
@@ -268,7 +269,7 @@
       (define/private (draw-all-connections dc dx dy left top right bottom arrow-heads?)
         (let loop ([snip (find-first-snip)])
           (when snip
-            (when (is-a? snip lines<%>)
+            (when (is-a? snip graph-snip<%>)
               (for-each (lambda (parent-link) 
                           (draw-connection
                            dc dx dy parent-link snip #f
@@ -472,7 +473,7 @@
                (lambda (way)
                  (let loop ([snip snip])
                    (or (memq snip currently-overs)
-                       (and (is-a? snip lines<%>)
+                       (and (is-a? snip graph-snip<%>)
                             (loop (car (way snip)))))))])
           (or (check-one-way (lambda (snip) (send snip get-children)))
               (check-one-way (lambda (snip) (send snip get-parents))))))
@@ -579,7 +580,7 @@
          (let i-loop ([dummy (car flat-relatives)]
                       [acc relatives])
            (cond
-             [(is-a? dummy lines<%>)
+             [(is-a? dummy graph-snip<%>)
               (loop (cdr flat-relatives) (cons dummy acc))]
              [else
               (i-loop (car (get-relatives dummy))
