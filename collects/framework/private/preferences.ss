@@ -602,24 +602,24 @@
         (class canvas%
           (inherit get-client-size get-dc)
           (define/override (on-paint)
+            (do-draw (get 'framework:paren-match-color)))
+          (define/public (do-draw color)
             (let ([dc (get-dc)])
               (send dc set-pen (send the-pen-list find-or-create-pen
-                                     (get 'framework:paren-match-color)
+                                     color
                                      1
                                      'solid))
               (send dc set-brush (send the-brush-list find-or-create-brush
-                                       (get 'framework:paren-match-color) 
+                                       color 
                                        'solid))
               (let-values ([(w h) (get-client-size)])
                 (send dc draw-rectangle 0 0 w h))))
           (super-instantiate ())
           (inherit stretchable-width min-width)
-          (stretchable-width #f)
-          (min-width 30)
           (add-callback
            'framework:paren-match-color
            (lambda (p v)
-             (on-paint)))))
+             (do-draw v)))))
       
       (define (change-highlight-color parent)
         (let ([new-color
