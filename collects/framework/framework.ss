@@ -1,45 +1,9 @@
-(require-relative-library "frameworks.ss")
+(module framework mzscheme
+  (require (lib "unitsig.ss"))
 
-(require-library "string.ss")
-(require-library "function.ss")
-(require-library "pretty.ss")
-(require-library "file.ss")
-(require-library "thread.ss")
+  (require "framework-unit.ss"
+	   "sig.ss")
 
-(require-relative-library "test.ss")
+  (provide-signature-elements framework^)
 
-(begin-elaboration-time
- (require-library "invoke.ss"))
-
-(define-values/invoke-unit/sig frameworkc^
-  (compound-unit/sig
-   (import [core:string : mzlib:string^]
-	   [core:function : mzlib:function^]
-	   [core:pretty-print : mzlib:pretty-print^]
-	   [core:file : mzlib:file^]
-	   [core:thread : mzlib:thread^]
-	   [framework:keys : framework:keys^]
-	   [framework:test : framework:test^]
-	   [m : mred^])
-   (link [prefs-file : framework:prefs-file^ ((require-relative-library "prefs-file.ss"))]
-	 [f : frameworkc^ ((require-relative-library "frameworkc.ss")
-			   core:string
-			   core:function
-			   core:pretty-print
-			   core:file
-			   core:thread
-			   m
-			   framework:keys
-			   framework:test
-			   prefs-file)])
-   (export (open f)))
-  #f
-  mzlib:string^
-  mzlib:function^
-  mzlib:pretty-print^
-  mzlib:file^
-  mzlib:thread^
-  (keys : framework:keys^)
-  (test : framework:test^)
-  mred^)
-
+  (define-values/invoke-unit/sig framework^ framework@))

@@ -1,10 +1,15 @@
-(unit/sig framework:application^
-  (import)
+(module application mzscheme
+  (require (lib "unitsig.ss")
+	   "../sig.ss")
 
-  (define current-app-name (make-parameter
-			    "MrEd"
-			    (lambda (x)
-			      (unless (string? x)
-				(error 'current-app-name
-				       "the app name must be a string"))
-			      x))))
+  (define application@
+    (unit/sig framework:application^
+      (import)
+
+      (define current-app-name (make-parameter
+				"MrEd"
+				(lambda (x)
+				  (unless (string? x)
+				    (error 'current-app-name
+					   "the app name must be a string"))
+				  x))))))

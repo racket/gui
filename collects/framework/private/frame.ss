@@ -1,4 +1,5 @@
-
+(module frame mzscheme
+  (require (lib 
 (unit/sig framework:frame^
   (import mred^
 	  [group : framework:group^]
