@@ -2390,7 +2390,8 @@
 
 (define wx-text-field%
   (class wx-horizontal-panel% (mred proxy parent func label value style)
-    (inherit alignment stretchable-in-y get-control-font area-parent)
+    (inherit alignment stretchable-in-y get-control-font area-parent
+	     get-min-size set-min-width set-min-height)
     (rename [super-place-children place-children])
     (sequence
       (super-init #f proxy parent null)
@@ -2500,6 +2501,9 @@
 	    (send c get-size tw (box 0))
 	    (let ([new-min-width (+ (unbox ew) (- (unbox tw) (unbox cw)))])
 	      (send c set-min-width (inexact->exact new-min-width))))))
+      (let ([min-size (get-min-size)])
+	(set-min-width (car min-size))
+	(set-min-height (cadr min-size)))
       (send e callback-ready))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;; mred Class Construction ;;;;;;;;;;;;;;;;;;;;;;;;;
