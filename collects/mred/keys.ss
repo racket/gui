@@ -93,6 +93,8 @@
 	     (map "c:g" "find-string")
 	     (map "c:i" "toggle-search-focus")]
 	    [(macintosh)
+	     (map "c:s" "move-to-search-or-search")
+	     (map "c:g" "hide-search")
 	     (map "d:f" "move-to-search-or-search")
 	     (map "d:r" "move-to-search-or-reverse-search")
 	     (map "d:g" "find-string")
