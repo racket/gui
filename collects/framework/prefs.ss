@@ -565,7 +565,7 @@
 	       [ok-callback (lambda args
 			      (save)
 			      (hide-dialog))]
-	       [ok-button (make-object button% "OK" bottom-panel ok-callback)]
+	       [ok-button (make-object button% "OK" bottom-panel ok-callback '(border))]
 	       [cancel-callback (lambda args
 				  (hide-dialog)
 				  (-read))]
@@ -578,5 +578,6 @@
 	(ensure-constructed)
 	(unless (null? ppanels)
 	  (send popup-menu set-selection 0))
+	(send popup-menu focus)
 	(send frame show #t)
 	frame))))
