@@ -103,8 +103,7 @@
 		    (unless (null? choices)
 		      (send dir-choice append (car choices))
 		      (loop (cdr choices))))
-		  (send dir-choice set-selection 0)
-		  (send top-panel force-redraw))
+		  (send dir-choice set-selection 0))
 		
 		(send name-list clear)
 		(send name-list set
@@ -135,16 +134,11 @@
 	
 	[set-edit
 	 (lambda ()
-	   (let* ([file (send name-list get-string-selection)]
-		  [dir-and-file 
+	   (let* ([file (send name-list get-string-selection)])
+	     (send directory-field set-value
 		   (if file
 		       (build-path current-dir file)
-		       current-dir)])
-	     (send* directory-edit
-	       (begin-edit-sequence)
-	       (erase)
-	       (insert dir-and-file)
-	       (end-edit-sequence))))])
+		       current-dir))))])
       
       (public
 	
@@ -172,7 +166,7 @@
 
 	   (if multi-mode?
 
-	       (let ([dir-name (send directory-edit get-text)])
+	       (let ([dir-name (send directory-field get-value)])
 		 (if (directory-exists? dir-name)
 		     (set-directory (mzlib:file:normalize-path dir-name))
 		     (let loop ([n (sub1 select-counter)][result null])
@@ -186,7 +180,7 @@
 	       ; not multi-mode
 
 	       (let ([name (send name-list get-string-selection)]
-		     [non-empty? (> (send name-list number) 0)])
+		     [non-empty? (> (send name-list get-number) 0)])
 
 		 (cond
 
@@ -197,7 +191,7 @@
 		   [(and save-mode? 
 			 non-empty?
 			 (string=? name ""))
-		    (let ([file (send directory-edit get-text)])
+		    (let ([file (send directory-field get-value)])
 		      (if (directory-exists? file)
 			  (set-directory (mzlib:file:normalize-path file))
 			  (message-box 
@@ -214,7 +208,7 @@
 		    
 		    ; if dir in edit box, go to that dir
 		    
-		    (let ([dir-name (send directory-edit get-text)])
+		    (let ([dir-name (send directory-field get-value)])
 		      
 		      (if (directory-exists? dir-name)
 			  (set-directory (mzlib:file:normalize-path dir-name))
@@ -339,13 +333,13 @@
 	 (class-asi list-box%
 	   
 	   (inherit 
-	     get-first-item
+	     get-first-visible-item
 	     get-string
 	     get-selection
 	     get-string-selection
-	     number
+	     get-number
 	     number-of-visible-items
-	     set-first-item
+	     set-first-visible-item
 	     focus
 	     set-selection)
 	   
@@ -354,12 +348,12 @@
 	     [set-selection-and-edit ; set selection, update edit box
 	      
 	      (lambda (pos)
-		(when (> (number) 0)
-		  (let* ([first-item (get-first-item)]
+		(when (> (get-number) 0)
+		  (let* ([first-item (get-first-visible-item)]
 			 [last-item (sub1 (+ (number-of-visible-items) 
 					     first-item))])
 		    (if (or (< pos first-item) (> pos last-item))
-			(set-first-item pos))
+			(set-first-visible-item pos))
 		    (set-selection pos)))
 		(set-edit))]
 	     
@@ -367,7 +361,7 @@
 	      
 	      (lambda (_ key) 
 		(let ([code (send key get-key-code)]
-		      [num-items (number)]
+		      [num-items (get-number)]
 		      [curr-pos (get-selection)])
 		  
 		  (cond 
@@ -377,7 +371,7 @@
 		     (do-ok)]
 		    
 		    [(equal? code #\tab)
-		     (set-focus-to-directory-edit)]
+		     (send directory-field focus)]
 		    
 		    ; look for letter at beginning of a filename
 		    
@@ -402,26 +396,26 @@
 		    [(and (eq? code 'down)
 			  (< curr-pos (sub1 num-items)))
 		     (let* ([num-vis (number-of-visible-items)] 
-			    [curr-first (get-first-item)]
+			    [curr-first (get-first-visible-item)]
 			    [new-curr-pos (add1 curr-pos)]
 			    [new-first (if (< new-curr-pos (+ curr-first num-vis))
 					   curr-first ; no scroll needed
 					   (add1 curr-first))])
-		       (set-first-item new-first)
+		       (set-first-visible-item new-first)
 		       (set-selection-and-edit new-curr-pos))]
 		    
 		    [(and (eq? code 'prior)
 			  (> curr-pos 0))
 		     (let* ([num-vis (number-of-visible-items)]
-			    [new-first (- (get-first-item) num-vis)])
-		       (set-first-item (max new-first 0))
+			    [new-first (- (get-first-visible-item) num-vis)])
+		       (set-first-visible-item (max new-first 0))
 		       (set-selection-and-edit (max 0 (- curr-pos num-vis))))]
 		    
 		    [(and (eq? code 'next)
 			  (< curr-pos (sub1 num-items)))
 		     (let* ([num-vis (number-of-visible-items)]
-			    [new-first (+ (get-first-item) num-vis)])
-		       (set-first-item (min new-first (- (number) num-vis)))
+			    [new-first (+ (get-first-visible-item) num-vis)])
+		       (set-first-visible-item (min new-first (- (get-number) num-vis)))
 		       (set-selection-and-edit 
 			(min (sub1 num-items) (+ curr-pos num-vis))))]
 		    
@@ -429,7 +423,7 @@
 	     
 	     [on-default-action
 	      (lambda ()
-		(when (> (send name-list number) 0)
+		(when (> (send name-list get-number) 0)
 		      (let* ([which (send name-list get-string-selection)]
 			     [dir (build-path current-dir
 					      (make-relative which))])
@@ -440,42 +434,31 @@
 				(do-ok))))))]))]
 	
 	[name-list (make-object name-list%
-				#f left-middle-panel do-name-list
+				#f null left-middle-panel do-name-list
 				'(single))]
 	
 	[set-focus-to-name-list
 	 (lambda ()
 	   (send name-list focus))]
-	[set-focus-to-directory-edit
-	 (lambda ()
-	   (send directory-panel focus))]
 	
 	[save-panel (when save-mode? (make-object horizontal-panel% main-panel))]
 	
 	[directory-panel (make-object horizontal-panel% main-panel)]
-	
-	[directory-edit 
-	 (make-object (class-asi text%
-			(rename [super-on-local-char on-local-char])
-			(public
-			  [on-local-char
-			   (lambda (key)
-			     (let ([code (send key get-key-code)])
-			       (cond
-				 [(or (equal? code #\return)
-				      (equal? code 'numpad-enter))
-				  (do-ok)
-				  (set-focus-to-name-list)]
-				 [(equal? code #\tab)
-				  (set-focus-to-name-list)]
-				 [else
-				  (super-on-local-char key)])))])))]
 	
 	[dot-panel (when (eq? 'unix (system-type))
 		     (make-object horizontal-panel% main-panel))]
 	
 	[bottom-panel (make-object horizontal-panel% main-panel)]
 	
+
+	[directory-field
+	 (make-object text-field%
+	   "Full pathname"
+	   directory-panel
+	   (lambda (evt txt)
+	     (when (eq? (send evt get-type) 'text-enter)
+	       (do-ok))))]
+
 	[result-list
 	 (when multi-mode?
 	   (make-object list-box%
@@ -501,43 +484,34 @@
 	
 	(when (eq? (system-type) 'unix)
 	  (let ([dot-cb
-		 (make-object 
-		  check-box% dot-panel
-		  do-period-in/exclusion
-		  "Show files and directories that begin with a dot")])
-	    (send dot-panel stretchable-in-y #f)
+		 (make-object check-box%
+		   "Show files and directories that begin with a dot"
+		   dot-panel
+		   do-period-in/exclusion)])
+	    (send dot-panel stretchable-height #f)
 	    (send dot-cb set-value 
 		  (preferences:get 'framework:show-periods-in-dirlist))))
 	
-	(send directory-panel stretchable-in-y #f)
-	
-	(let ([canvas (make-object editor-canvas% directory-panel #f
-				   (list 'hide-h-scroll 'v-scroll))])
-	  
-	  (send* canvas
-	    (set-line-count 1)
-	    (set-media directory-edit)
-	    (focus)
-	    (user-min-height 20)))
+	(send directory-panel stretchable-height #f)
 	
 	(when multi-mode?
-	  (send add-panel stretchable-in-y #f)
-	  (send remove-panel stretchable-in-y #f)
-	  (send result-list stretchable-in-x #t))
+	  (send add-panel stretchable-height #f)
+	  (send remove-panel stretchable-height #f)
+	  (send result-list stretchable-width #t))
 	
 	(make-object button% 
 		     "Up directory"
 		     top-panel
 		     (lambda (button evt) (do-updir)))
 	
-	(send name-list stretchable-in-x #t)
+	(send name-list stretchable-width #t)
 	
-	(send top-panel stretchable-in-y #f)
+	(send top-panel stretchable-height #f)
 	
-	(send bottom-panel stretchable-in-y #f)
+	(send bottom-panel stretchable-height #f)
 	
 	(when save-mode?
-	  (send save-panel stretchable-in-y #f)))
+	  (send save-panel stretchable-height #f)))
       
       (private
 	
@@ -632,7 +606,7 @@
 	  [filter-msg "Bad name"]
 	  [parent-win (dialog-parent-parameter)])
        (make-object finder-dialog% 
-		    parent-win   ; parent window
+		    #f;parent-win   ; parent window
 		    #f           ; save-mode?
 		    #f           ; replace-ok?
 		    #f           ; multi-mode?

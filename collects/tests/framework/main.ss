@@ -26,6 +26,8 @@
    section-name
    section-jump))
 
+(require-library "guis.ss" "tests" "utils")
+
 (define TestSuite
   (unit/sig internal-TestSuite^
     (import (program)
@@ -56,6 +58,7 @@
 				       port next)
 			       (loop)))])
 	    (tcp-listen port)))))
+
     (define in-port #f)
     (define out-port #f)
 
@@ -72,12 +75,11 @@
 	  (set! out-port out))
 	(when load-framework-automatically?
 	  (send-sexp-to-mred
-	   '(let ([s (make-semaphore 0)])
-	      (queue-callback (lambda ()
-				(require-library "framework.ss" "framework")
-				(test:run-interval 11)
-				(semaphore-post s)))
-	      (semaphore-wait s))))))
+	   `(begin
+	      (require-library "framework.ss" "framework")
+	      (require-library "gui.ss" "tests" "utils")
+	      (test:run-interval 11))))))
+
     (define load-framework-automatically
       (case-lambda
        [(new-load-framework-automatically?)
@@ -191,21 +193,22 @@
 		  [(continue) (void)]
 		  [else (jump)])))))]))
 
-    (define (wait-for sexp)
-      (let ([timeout 10]
-	    [pause-time 1/2])
-	(send-sexp-to-mred
-	 `(let loop ([n ,(/ timeout pause-time)])
-	    (if (zero? n)
-		(error 'wait-for
-		       ,(format "after ~a seconds, ~s didn't come true" timeout sexp))
-		(unless ,sexp
-		  (sleep ,pause-time)
-		  (loop (- n 1))))))))
+  (define (wait-for sexp)
+    (let ([timeout 10]
+	  [pause-time 1/2])
+      (send-sexp-to-mred
+       `(let loop ([n ,(/ timeout pause-time)])
+	  (if (zero? n)
+	      (error 'wait-for
+		     ,(format "after ~a seconds, ~s didn't come true" timeout sexp))
+	      (unless ,sexp
+		(sleep ,pause-time)
+		(loop (- n 1))))))))
 
-    (define (wait-for-frame name)
-      (wait-for `(let ([win (get-top-level-focus-window)])
-		   (and win (string=? (send win get-label) ,name)))))))
+  (define (wait-for-frame name)
+    (wait-for `(let ([win (get-top-level-focus-window)])
+		 (printf "name: ~a~n" (and win (box (send win get-label))))
+		 (and win (string=? (send win get-label) ,name)))))))
 
 (define Engine
   (unit/sig Engine^

@@ -83,20 +83,40 @@
  'frame:pasteboard-info-file%)
 
 (define (test-open name class-expression)
-  (test
-   name
-   (lambda (x) x)
-   (lambda ()
-     (send-sexp-to-mred
-      `(begin
-	 (preferences:set
-	  'framework:file-dialogs
-	  'common)
-	 (send (make-object ,class-expression "test open") show #t)))
-     (wait-for-frame "test open")
-     (send-sexp-to-mred
-      `(test:menu-select "File" "Open..."))
-     (wait-for-frame "Open File")
-     #t)))
+  (let* ([test-file-contents "test"]
+	 [tmp-file-name "framework-tmp"]
+	 [tmp-file (build-path (collection-path "tests" "framework")
+			       tmp-file-name)])
+    (test
+     name
+
+     (lambda (x)
+       (delete-file tmp-file)
+       (equal? x test-file-contents))
+       
+     (lambda ()
+       (send-sexp-to-mred
+	`(begin
+	   (preferences:set 'framework:file-dialogs 'common)
+	   (send (make-object ,class-expression "test open") show #t)))
+       (wait-for-frame "test open")
+       (send-sexp-to-mred
+	`(test:menu-select "File" "Open..."))
+       (wait-for-frame "Get file")
+       (call-with-output-file tmp-file-name
+	 (lambda (port)
+	   (display test-file-contents port))
+	 'truncate)
+       (send-sexp-to-mred
+	`(begin (send (find-labelled-window "Full pathname") focus)
+		(for-each test:keystroke
+			  (string->list ,tmp-file))
+		(test:keystroke #\return)))
+       (wait-for-frame (format "framework - ~a" tmp-file-name))
+       (send-sexp-to-mred
+	`(let* ([w (get-top-level-focus-window)]
+		[t (send (send w get-editor) get-text)])
+	   (test:close-window w)
+	   t))))))
 
 (test-open "frame:editor open" 'frame:text%)
