@@ -193,8 +193,8 @@
 			       #t #f
 			       (list (let ([c (check-box (lambda (_ command) 
 							   (set-preference 'mred:file-dialogs (if (send command checked?)
-											       'common
-											       'std)))
+											       'std
+											       'common)))
 							 "Use platform-specific File Dialogs?")])
 				       (send c set-value (eq? (get-preference 'mred:file-dialogs) 'common))
 				       c)
