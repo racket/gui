@@ -999,6 +999,7 @@ WARNING: printf is rebound in the body of the unit to always
           ;; do-insertion : (listof (cons (union string snip) style-delta)) -> void
           ;; thread: eventspace main thread
           (define/private (do-insertion txts)
+            (printf "do-insertion ~s\n" txts)
             (let ([locked? (is-locked?)])
               (begin-edit-sequence)
               (lock #f)
@@ -1088,6 +1089,7 @@ WARNING: printf is rebound in the body of the unit to always
                      flush-chan
                      (lambda (return-waitable)
                        (let-values ([(viable-bytes remaining-queue) (split-queue converter text-to-insert)])
+                         (printf "viable-bytes.1 ~s\n" viable-bytes)
                          (queue-insertion viable-bytes return-waitable)
                          (loop remaining-queue))))
                     (make-wrapped-waitable
@@ -1099,6 +1101,7 @@ WARNING: printf is rebound in the body of the unit to always
                          [else
                           (let ([chan (make-channel)])
                             (let-values ([(viable-bytes remaining-queue) (split-queue converter text-to-insert)])
+                              (printf "viable-bytes.2 ~s\n" viable-bytes)
                               (queue-insertion viable-bytes (make-channel-put-waitable chan (void)))
                               (channel-get chan)
                               (loop remaining-queue)))])))))))))
