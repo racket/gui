@@ -341,9 +341,10 @@ slider% : control<%>
    set-value get-value
 
 gauge% : control<%>
-   <= label parent range [style '(horizontal)]
+   <= label range parent [style '(horizontal)]
       styles: 'horizontal 'vertical
    set-value get-value
+   set-range get-range
 
 text-field% : control<%>
    <= label parent callback [init-val ""] [style '(single)]
@@ -390,7 +391,7 @@ canvas<%> : subwindow<%>
 canvas% : canvas<%>
     <= parent [style null]
        styles: 'border 'vscroll 'hscroll
-    virtual-size view-start
+    get-virtual-size get-view-start
     set-scrollbars scroll
     get-scroll-pos set-scroll-pos
     get-scroll-range set-scroll-range
