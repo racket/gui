@@ -4,7 +4,6 @@
            (lib "unitsig.ss")
 	   (lib "class.ss")
            (lib "file.ss")
-	   (lib "class100.ss")
 	   "sig.ss"
            "../gui-utils.ss"
 	   (lib "mred-sig.ss" "mred")
