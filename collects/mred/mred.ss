@@ -4904,16 +4904,16 @@
 	  (raise-type-error (who->name cwho) "list of strings (up to 200 characters)" choices))
 	(check-callback cwho callback)
 	(check-container-parent cwho parent)
-	(check-style cwho #f '(deleted border) style))
+	(check-style cwho #f '(deleted no-border) style))
       (super-init parent (if (memq 'deleted style)
 			     '(deleted)
 			     null)))
 
     (private-field
      [tabs (make-object tab-group% #f choices this (lambda (c e) (callback this e)) 
-			(if (memq 'border style)
-			     '(border)
-			     null))])
+			(if (memq 'no-border style)
+			     null
+			     '(border)))])
     (sequence
       (send (mred->wx this) set-first-child-is-hidden))
 
