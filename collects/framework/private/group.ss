@@ -134,7 +134,7 @@
                    (quicksort
                     (get-frames)
                     (lambda (x y) (string-ci<=? (send x get-label) (send y get-label))))])
-              (let loop ([windows sorted]
+              (let loop ([windows (filter (lambda (x) (send x is-shown?)) sorted)]
                          [prev (car (last-pair sorted))])
                 (cond
                   [(null? windows) (void)]
