@@ -3,7 +3,7 @@
 
 (define special-font (send wx:the-font-list find-or-create-font
 			   20 wx:const-decorative 
-			   wx:const-bold wx:const-normal
+			   wx:const-normal wx:const-bold
 			   #f))
 
 (define (make-h&s cp f)
