@@ -153,19 +153,6 @@
                   (get-one (send main-bm get-loaded-mask)))
              (get-one main-bm))))
    
-   ;; takes a bitmap with a mask and flattens the colors and the mask
-   ;; drawing them as they would appear on the screen.
-   (define (flatten-bitmap bm)
-     (let* ([w (send bm get-width)]
-            [h (send bm get-height)]
-            [new-bm (make-object bitmap% w h)]
-            [bdc (make-object bitmap-dc% new-bm)])
-       (send bdc draw-bitmap bm 0 0 'solid 
-             (send the-color-database find-color "black")
-             (send bm get-loaded-mask))
-       (send bdc set-bitmap #f)
-       new-bm))
-   
    (test '("\377\377\377\377" "\377\377\377\377") argb-vector->bitmap->string #(255 255 255 255) 1 1)
    (test '("\377\377\377\377" "\377\0\0\0") argb-vector->bitmap->string #(255 0 0 0) 1 1)
    (test '("\377\1\1\1" "\377\100\100\100") argb-vector->bitmap->string #(1 64 64 64) 1 1)
@@ -240,6 +227,28 @@
      ;; at this point, the `final' bitmap should be the same as argb-str,
      ;; but it isn't, due to rounding error (final is actually wrong!)
      ;; the stuff below just makes sure that each entry is within 3
+     
+     
+     ;; the expression below shows the truncated bitmap, 
+     ;; the true bitmap (after rounding) and the difference, as a bitmap
+     #;
+     (let* ([argb-bitmap (flatten-bitmap (argb-vector->bitmap argb-str w h))]
+            [argb-str (cadr (bitmap->string argb-bitmap))]
+            [bitmap-str (cadr (bitmap->string final))]
+            [new-bitmap-str (make-string (string-length argb-str) #\000)]
+            [new-bitmap (make-object bitmap% w h)]
+            [dc (make-object bitmap-dc% new-bitmap)])
+       (let loop ([i 0])
+         (when (< i (string-length argb-str))
+           (unless (equal? (string-ref argb-str i)
+                           (string-ref bitmap-str i))
+             (string-set! new-bitmap-str i #\377))
+           (loop (+ i 1))))
+       (send dc set-argb-pixels 0 0 w h new-bitmap-str)
+       (send dc set-bitmap #f)
+       (show-bitmap argb-bitmap #f "argb")
+       (show-bitmap final #f "final")
+       (show-bitmap new-bitmap #f "difference"))
      
      (let* ([argb-bitmap (flatten-bitmap (argb-vector->bitmap argb-str w h))]
             [argb-ents (map char->integer (string->list (cadr (bitmap->string argb-bitmap))))]

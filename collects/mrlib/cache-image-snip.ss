@@ -6,8 +6,9 @@
   (provide argb-vector->bitmap
            overlay-bitmap
            build-bitmap
+           flatten-bitmap
            cache-image-snip%
-           snipclass)
+           snip-class)
   
   #|
 
@@ -76,15 +77,17 @@
       ;; if it were drawn
       (define/public (get-bitmap)
         (unless bitmap
-          (set! bitmap (argb-vector->bitmap (get-argb-vector)
-                                            (ceiling (inexact->exact width))
-                                            (ceiling (inexact->exact height)))))
+          (set! bitmap (flatten-bitmap
+                        (argb-vector->bitmap
+                         (get-argb-vector)
+                         (ceiling (inexact->exact width))
+                         (ceiling (inexact->exact height))))))
         bitmap)
       
       ;; get-argb-vector : -> argb-vector
       (define/public (get-argb-vector)
         (unless argb-vector
-          (set! argb-vector (make-string (* 4 width height) #\000))
+          (set! argb-vector (make-vector (* 4 width height) 255))
           (argb-proc argb-vector 0 0))
         argb-vector)
       
@@ -100,25 +103,34 @@
         (cond
           [argb-vector
            (let ([bitmap (get-bitmap)])
-             (send dc draw-bitmap bitmap x y))]
+             (send dc draw-bitmap bitmap x y 'solid 
+                   (send the-color-database find-color "black")
+                   (send bitmap get-loaded-mask)))]
           [dc-proc
            (dc-proc dc x y)]
           [else (void)]))
       
       (define/override (write f)
+        (printf "calling write\n")
         (let ([str (format "~s"
                            (list width
                                  height
                                  (get-argb-vector)))])
-          (send f write str)))
+          (send f put str)))
       
       (super-new)
       (inherit set-snipclass)
-      (set-snipclass snipclass)))
+      (set-snipclass snip-class)))
+
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  ;;
+  ;; snip-class
+  ;;
   
   (define cache-image-snip-class%
     (class snip-class%
       (define/override (read f)
+        (printf "called read\n")
         (let ([data (read-from-string (send f get-string)
                                       void
                                       (lambda (x) #f))])
@@ -133,6 +145,12 @@
               (make-null-cache-image-snip))))
       (super-new)))
   
+  (define snip-class (new cache-image-snip-class%))
+  (send snip-class set-version 1)
+  (send snip-class set-classname (format "~s" `(lib "cache-image-snip.ss" "mrlib")))
+  (printf "installing snipclass\n")
+  (send (get-the-snip-class-list) add snip-class)
+  
   (define (make-null-cache-image-snip)
     (define size 10)
     (define (draw dc dx dy)
@@ -141,7 +159,7 @@
        "black" 'solid
        "black" 'transparent
        (send dc draw-ellipse dx dy size size)
-       (send dc draw-line dx dy (+ dx size -1) (+ dy size -1))))
+       (send dc draw-line dx (+ dy size -1) (+ dx size -1) dy)))
     (define bm (build-bitmap (lambda (dc) (draw dc 0 0))
                              size
                              size))
@@ -152,7 +170,52 @@
          (argb-proc 
           (lambda (argb-vector dx dy)
             (overlay-bitmap argb-vector dx dy bm bm)))))
+  
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  ;;
+  ;; misc. utilities
+  ;;
+  
+  ;; takes a bitmap with a mask and flattens the colors and the mask
+  ;; drawing them as they would appear on the screen.
+  (define (flatten-bitmap bm)
+    (let* ([w (send bm get-width)]
+           [h (send bm get-height)]
+           [new-bm (make-object bitmap% w h)]
+           [bdc (make-object bitmap-dc% new-bm)])
+      (send bdc draw-bitmap bm 0 0 'solid 
+            (send the-color-database find-color "black")
+            (send bm get-loaded-mask))
+      (send bdc set-bitmap #f)
+      new-bm))
+  
+  (define (build-bitmap draw w h)
+    (let* ([bm (make-object bitmap% w h)]
+           [bdc (make-object bitmap-dc% bm)])
+      (send bdc clear)
+      (draw bdc)
+      (send bdc set-bitmap #f)
+      bm))
 
+  (define-syntax (with-pen/brush stx)
+    (syntax-case stx ()
+      [(_ dc pen-color pen-style brush-color brush-style code ...)
+       (syntax
+        (let ([old-pen (send dc get-pen)]
+              [old-brush (send dc get-brush)])
+          (send dc set-pen (send the-pen-list find-or-create-pen pen-color 1 pen-style))
+          (send dc set-brush (send the-brush-list find-or-create-brush brush-color brush-style))
+          code ...
+          (send dc set-pen old-pen)
+          (send dc set-brush old-brush)))]))
+  
+  (define (set-box/f! b v) (when (box? b) (set-box! b v)))
+  
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  ;;
+  ;; argb vector utilties
+  ;;
+  
   ;; argb-vector->bitmap : argb-vector int int -> bitmap
   ;; flattens the argb vector into a bitmap
   (define (argb-vector->bitmap argb-vector w h)
@@ -520,6 +583,7 @@ for b3, we have:
 
 
 |#
+  
   (define (build-m3 m1 m2) (* m1 m2 1/255))
   
   (define (build-b3 m1 b1 m2 b2 m3)
@@ -529,62 +593,4 @@ for b3, we have:
               (* m1 b1 m2 -1/255)
               (* 255 b2)
               (* -255 m3))
-           (- 255 m3))))
-  
-  (define snipclass (new cache-image-snip-class%))
-  (send snipclass set-version 1)
-  (send snipclass set-classname (format "~s" `(lib "cache-image-snip.ss" "mrlib")))
-  (send (get-the-snip-class-list) add snipclass)  
-  
-  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-  ;;
-  ;; misc. utilities
-  ;;
-  
-  (define (build-bitmap draw w h)
-    (let* ([bm (make-object bitmap% w h)]
-           [bdc (make-object bitmap-dc% bm)])
-      (send bdc clear)
-      (draw bdc)
-      (send bdc set-bitmap #f)
-      bm))
-
-  (define-syntax (with-pen/brush stx)
-    (syntax-case stx ()
-      [(_ dc pen-color pen-style brush-color brush-style code ...)
-       (syntax
-        (let ([old-pen (send dc get-pen)]
-              [old-brush (send dc get-brush)])
-          (send dc set-pen (send the-pen-list find-or-create-pen pen-color 1 pen-style))
-          (send dc set-brush (send the-brush-list find-or-create-brush brush-color brush-style))
-          code ...
-          (send dc set-pen old-pen)
-          (send dc set-brush old-brush)))]))
-  
-  (define (set-box/f! b v) (when (box? b) (set-box! b v)))
-  
-  ;; --
-
-    ;; bitmaps->cache-image-snip : bitmap bitmap -> cache-image-snip
-  (define (bitmaps->cache-image-snip bmp bmp-mask)
-    (new cache-image-snip%
-         [dc-proc (lambda (dc dx dy)
-                    (send dc draw-bitmap 
-                          bmp 
-                          dx
-                          dy
-                          'solid
-                          (send the-color-database find-color "black")
-                          bmp-mask))]
-         [argb-proc (lambda (dc dx dy)
-                      (send dc draw-bitmap 
-                            bmp 
-                            dx
-                            dy
-                            'solid
-                            (send the-color-database find-color "black")
-                            bmp-mask))]
-         [width (send bmp get-width)]
-         [height (send bmp get-height)]))
-  
-  )
+           (- 255 m3)))))
