@@ -140,7 +140,9 @@
    wide-snip%))
 
 (define-signature framework:frame^
-  (basic<%>
+  (reorder-menus
+
+   basic<%>
    basic-mixin
 
    standard-menus<%>

@@ -148,7 +148,8 @@ string=? ; exec mred -mgaqvf $0
 		      [(an-item? x) (build-item-menu-clause x)]
 		      [(after? x) (build-after-menu-clause x)]
 		      [(generic? x) (build-generic-clause x)]))
-		  items))))
+		  items)
+	     (list `(sequence (reorder-menus this))))))
      port))
   'text
   'truncate)

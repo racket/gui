@@ -21,6 +21,33 @@
 	  [-text% text%]
 	  [-text<%> text<%>])
 
+  (define (reorder-menus frame)
+    (let* ([items (send (send frame get-menu-bar) get-items)]
+	   [move-to-back
+	    (lambda (name items)
+	      (let loop ([items items]
+			 [back null])
+		(cond
+		 [(null? items) back]
+		 [else (let ([item (car items)])
+			 (if (string=? (send item get-plain-label) name)
+			     (loop (cdr items)
+				   (cons item back))
+			     (cons item (loop (cdr items) back))))])))]
+	   [move-to-front
+	    (lambda (name items)
+	      (reverse (move-to-back name (reverse items))))]
+	   [re-ordered
+	    (move-to-front
+	     "File"
+	     (move-to-front
+	      "Edit"
+	      (move-to-back
+	       "Help"
+	       items)))])
+      (for-each (lambda (item) (send item delete)) items)
+      (for-each (lambda (item) (send item restore)) re-ordered)))
+
   (define frame-width 600)
   (define frame-height 650)
   (let ([window-trimming-upper-bound-width 20]
@@ -84,6 +111,7 @@
 		       [else style])))
 
 	(make-object menu% "Windows" (make-object (get-menu-bar%) this))
+	(reorder-menus this)
 	(send (group:get-the-frame-group) insert-frame this))
       (private
 	[panel (make-root-area-container (get-area-container%) this)])
