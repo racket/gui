@@ -58,7 +58,7 @@ System:
 
 - When only one object of class mred:standard-menus-frame% exists,
    its File|Close menu item is disabled, and its close button
-   has the same semantics as File|Quit
+   invokes the exit handler
 
 ----------------------------------------------------------------------
 
