@@ -23,7 +23,7 @@
          (right-inset 1)
          (bottom-inset 1))
         
-        (field [font (make-object font% 10 'roman 'normal 'normal)])
+        (field [font normal-control-font])
         
         (unless (member label labels)
           (error 'fixed-width-label-snip

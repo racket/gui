@@ -98,7 +98,7 @@
       (field
        [got-click? false]
        [inside? false])
-      
+
       (define/override (on-event dc x y editorx editory event)
         (case (send event get-event-type)
           [(left-down)
@@ -115,7 +115,9 @@
            (set! inside? false)]
           [else (void)]))
       
-      (super-make-object label)))
+      (super-make-object label)
+      (inherit set-style)
+      (set-style control-style)))
   
   ;; a toggle button that displays different images
   (define toggle-button-snip%

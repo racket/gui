@@ -6,12 +6,14 @@
    "snip-wrapper.ss")
   
   (provide embedded-message%)
-  
+
   (define embedded-message%
     (class snip-wrapper%
       
       (init label)
       
       (super-new
-       (snip (make-object string-snip% label)))))
+       (snip (let ([s (make-object string-snip% label)])
+	       (send s set-style control-style)
+	       s)))))
   )

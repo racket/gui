@@ -3,12 +3,22 @@
   (require
    (lib "etc.ss")
    (lib "class.ss")
+   (lib "mred.ss" "mred")
    "interface.ss"
    (prefix sl: "snip-lib.ss")
    "dllist.ss")
   
-  (provide snip-wrapper%)
-  
+  (provide control-style
+	   snip-wrapper%)
+
+  (define control-style
+    (let ([delta (make-object style-delta%)])
+      (send delta set-family 'system)
+      (send delta set-delta 'change-size (send normal-control-font get-point-size))
+      (send the-style-list find-or-create-style 
+	    (send the-style-list basic-style)
+	    delta)))
+    
   (define snip-wrapper%
     (class* dllist% (alignment<%>)
       (init-field parent snip)

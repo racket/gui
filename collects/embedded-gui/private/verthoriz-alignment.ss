@@ -170,6 +170,6 @@
   ;; makes a new default rect out of an alignment
   (define (build-rect item)
     (a:make-rect
-     (a:make-dim 0 (send item get-min-width) (send item stretchable-width))
-     (a:make-dim 0 (send item get-min-height) (send item stretchable-height))))
+     (a:make-dim 0 (max 0 (send item get-min-width)) (send item stretchable-width))
+     (a:make-dim 0 (max 0 (send item get-min-height)) (send item stretchable-height))))
   )
