@@ -1,5 +1,5 @@
 
-Version 200alpha1: November 9, 2001
+Version 200: June, 2002
 
 Changed mouse-event% and key-event% positions (x and y) to be
  exact integers
@@ -35,7 +35,7 @@ X: 'no-resize-border and 'no-caption work for frame% with many window
  managers
 X: too-long menus can scroll
 X: changed default preview command from "ghostview" to "gv"
-MacOS: play-sound plays virtually any kind of sound, including
+Mac OS: play-sound plays virtually any kind of sound, including
  .wav files; QuickTime 3.0 or higher is required
 
 ----------------------------------------------------------------------
