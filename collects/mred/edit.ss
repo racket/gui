@@ -614,6 +614,56 @@
 
     (define return-edit% (make-return-edit% edit%))
 
+    (define make-info-edit%
+      (lambda (super-info-edit%)
+	(class-asi super-info-edit%
+	  (inherit get-frame get-start-position get-end-position
+		   position-line line-start-position)
+	  (rename [super-after-set-position after-set-position]
+		  [super-after-edit-sequence after-edit-sequence]
+		  [super-on-edit-sequence on-edit-sequence]
+		  [super-after-insert after-insert]
+		  [super-after-delete after-delete])
+	  (private
+	    [edit-sequence-depth 0]
+	    [needs-updating #f]
+	    [maybe-update-position-edit
+	     (lambda ()
+	       (if (= edit-sequence-depth 0)
+		   (update-position-edit)
+		   (set! needs-updating #t)))]
+	    [update-position-edit
+	     (lambda ()
+	       (send (get-frame) edit-position-changed))])
+			       
+	  (public
+	    [after-set-position
+	     (lambda ()
+	       (maybe-update-position-edit)
+	       (super-after-set-position))]
+	    [after-insert
+	     (lambda (start len)
+	       (maybe-update-position-edit)
+	       (super-after-insert start len))]
+	    [after-delete
+	     (lambda (start len)
+	       (maybe-update-position-edit)
+	       (super-after-delete start len))]
+	    [after-edit-sequence
+	     (lambda ()
+	       (set! edit-sequence-depth (sub1 edit-sequence-depth))
+	       (when (and (= 0 edit-sequence-depth)
+			  needs-updating)
+		 (set! needs-updating #f)
+		 (update-position-edit))
+	       (super-after-edit-sequence))]
+	    [on-edit-sequence
+	     (lambda ()
+	       (set! edit-sequence-depth (add1 edit-sequence-depth))
+	       (super-on-edit-sequence))]))))
+
+    (define info-edit% (make-info-edit% edit%))
+
     (define make-backup-autosave-buffer%
       (lambda (super-edit%)
 	(class super-edit% args
@@ -693,7 +743,7 @@
 	    (apply super-init args)
 	    (mred:autosave:register-autosave this)))))
 
-    (define backup-autosave-edit% (make-backup-autosave-buffer% edit%))
+    (define backup-autosave-edit% (make-backup-autosave-buffer% info-edit%))
 
     (define make-pasteboard% make-std-buffer%)
 
