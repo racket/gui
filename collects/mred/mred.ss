@@ -4908,10 +4908,10 @@
 	(send p stretchable-height #f)
 	(send p stretchable-width #t) ; to get panel's centering
 	(case (car style)
-	  [(ok) (mk-button "Ok" 'ok #t)]
+	  [(ok) (mk-button "OK" 'ok #t)]
 	  [(ok-cancel) (set! result 'cancel)
 		       (mk-button "Cancel" 'cancel #f)
-		       (mk-button "Ok" 'ok #t)]
+		       (mk-button "OK" 'ok #t)]
 	  [(yes-no) (set! result 'no)
 		    (mk-button "&Yes" 'yes #f)
 		    (mk-button "&No" 'no #f)]))
@@ -4950,7 +4950,7 @@
     (define p (make-object horizontal-pane% f))
     (define paper (make-object choice% #f papers p void))
     (define _0 (make-object vertical-pane% p))
-    (define ok (make-object button% "Ok" p (lambda (b e) (done #t)) '(border)))
+    (define ok (make-object button% "OK" p (lambda (b e) (done #t)) '(border)))
     (define cancel (make-object button% "Cancel" p (lambda (b e) (done #f))))
     (define unix? (eq? (system-type) 'unix))
     (define dp (make-object horizontal-pane% f))
@@ -5057,7 +5057,7 @@
 	(send p set-alignment 'right 'center)
 	(send f stretchable-height #f)
 	(make-object button% "Cancel" p (done #f))
-	(make-object button% "Ok" p (done #t) '(border))
+	(make-object button% "OK" p (done #t) '(border))
 	(send (send t get-editor) select-all)
 	(send t focus)
 	(send f center)
@@ -5075,7 +5075,7 @@
     (unless (and (list? choices) (andmap label-string? choices))
       (raise-type-error 'get-choices-from-user "list of strings (up to 200 characters)" choices))
     (check-top-level-parent/false 'get-choices-from-user parent)
-    (unless (and (list? init-vals) (andmap (lambda (x) (integer? x) (exact? x) (not (negative? x))) init-vals))
+    (unless (and (list? init-vals) (andmap (lambda (x) (and (integer? x) (exact? x) (not (negative? x)))) init-vals))
       (raise-type-error 'get-choices-from-user "list of exact non-negative integers" init-vals))
     (check-style 'get-choices-from-user '(single multiple extended) null style)
     (when (and (memq 'single style) (> (length init-vals) 1))
@@ -5106,9 +5106,14 @@
 	(send p set-alignment 'right 'center)
 	(send p stretchable-height #f)
 	(make-object button% "Cancel" p (done #f))
-	(set! ok-button (make-object button% "Ok" p (done #t) '(border)))
+	(set! ok-button (make-object button% "OK" p (done #t) '(border)))
 	(update-ok l)
 	(send f center)
+	(when (and (pair? init-vals)
+		   ((car init-vals) . > . 1))
+	  ;; Make sure initial selection is visible:
+	  (send f reflow-container)
+	  (send l set-first-visible-item (sub1 (car init-vals))))
 	(send f show #t)
 	(and ok? (send l get-selections))))]))
 
@@ -5211,7 +5216,7 @@
 		 [dot-check (make-object check-box% "Show files/directories that start with \".\"" bp (lambda (b e) (reset-directory)))]
 		 [spacer (make-object vertical-pane% bp)]
 		 [cancel-button (make-object button% "Cancel" bp (lambda (b e) (set! ok? #f) (send f show #f)))]
-		 [ok-button (make-object button% "Ok" bp (lambda (b e) 
+		 [ok-button (make-object button% "OK" bp (lambda (b e) 
 							   (if (send files is-enabled?)
 							       (done) ; normal mode
 							       (do-text-name))) ; handle typed text
@@ -5367,7 +5372,7 @@
 	    (send green set-value (send color green))
 	    (send blue set-value (send color blue)))
 	  (make-object button% "Cancel" bp (done #f))
-	  (send (make-object button% "Ok" bp (done #t) '(border)) focus)
+	  (send (make-object button% "OK" bp (done #t) '(border)) focus)
 	  (send bp set-alignment 'right 'center)
 	  (send p set-alignment 'right 'center)
 	  (send p stretchable-height #f)
@@ -5418,7 +5423,7 @@
 							  (send underlined get-value)))))]
 		 [bp (make-object horizontal-pane% f)]
 		 [cancel-button (make-object button% "Cancel" bp (done #f))]
-		 [ok-button (make-object button% "Ok" bp (done #t) '(border))])
+		 [ok-button (make-object button% "OK" bp (done #t) '(border))])
 	  (when font
 	    (let* ([face (send font get-face)]
 		   [f (and face (send face find-string face))])
