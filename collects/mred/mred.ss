@@ -3526,6 +3526,8 @@
       (unless multi? (send c set-single-line))
 
       (when (and l horiz?)
+	;; Minimize vertical space around the label:
+	(send l y-margin 0)
 	;; Find amount to drop label down to line up the baselines:
 	(let ([wbox (box 0)]
 	      [hbox (box 0)]
@@ -7813,7 +7815,10 @@
 			    #f))
 			 ns)])
 	   (syntax (begin
-		     (provide (rename k:n n) ...)))))])))
+		     ;; We can't just re-export, because kernel.ss's
+		     ;;  exports are protected.
+		     (define n k:n) ...
+		     (provide n ...)))))])))
 
 (propagate add-color<%>
 	   add-editor-keymap-functions
