@@ -304,15 +304,16 @@
               (send standard-style-list new-named-style "Standard"
                     (send standard-style-list find-or-create-style
                           (send standard-style-list find-named-style "Basic")
-                          delta))))
-        
-        (let ([style (send standard-style-list find-named-style default-color-style-name)])
-          (if style
-              (send style set-delta delta)
-              (send standard-style-list new-named-style default-color-style-name
-                    (send standard-style-list find-or-create-style
-                          (send standard-style-list find-named-style "Standard")
                           delta)))))
+        
+      (let ([delta (make-object style-delta%)]
+	    [style (send standard-style-list find-named-style default-color-style-name)])
+	(if style
+	    (send style set-delta delta)
+	    (send standard-style-list new-named-style default-color-style-name
+		  (send standard-style-list find-or-create-style
+			(send standard-style-list find-named-style "Standard")
+			delta))))
       
       (define (set-default-font-color color)
         (let* ([scheme-standard (send standard-style-list find-named-style default-color-style-name)]

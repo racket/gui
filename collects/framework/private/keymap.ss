@@ -218,8 +218,13 @@
       ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
       
       (define (make-meta-prefix-list key)
-	(list (string-append "m:" key)
-	      (string-append "ESC;" key)))
+	(let ([defaults
+		(list (string-append "m:" key)
+		      (string-append "ESC;" key))])
+	  (if (eq? (system-type) 'macosx)
+	      (cons (string-append "a:" key)
+		    defaults)
+	      defaults)))
       
       (define send-map-function-meta
 	(lambda (keymap key func)

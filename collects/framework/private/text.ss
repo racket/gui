@@ -327,13 +327,13 @@ WARNING: printf is rebound in the body of the unit to always
           (define (set-styles-fixed b) (set! styles-fixed? b))
           
           (define/augment (on-insert start len)
-            (inner (void) on-insert start len)
-            (begin-edit-sequence))
+            (begin-edit-sequence)
+            (inner (void) on-insert start len))
           (define/augment (after-insert start len)
             (when styles-fixed?
               (change-style (get-fixed-style) start (+ start len) #f))
-            (end-edit-sequence)
-            (inner (void) after-insert start len))
+            (inner (void) after-insert start len)
+            (end-edit-sequence))
           
           (public move/copy-to-edit)
           (define (move/copy-to-edit dest-edit start end dest-position)
@@ -367,9 +367,11 @@ WARNING: printf is rebound in the body of the unit to always
           
       (define foreground-color-mixin
         (mixin (basic<%> editor:standard-style-list<%>) (foreground-color<%>)
-          (inherit begin-edit-sequence end-edit-sequence change-style)
-          (define/override (get-fixed-style)
-            (send (editor:get-standard-style-list) find-named-style (editor:get-default-color-style-name)))
+          (inherit begin-edit-sequence end-edit-sequence change-style get-style-list)
+	  (define/override (get-fixed-style)
+            (send (editor:get-standard-style-list)
+		  find-named-style
+		  (editor:get-default-color-style-name)))
           (super-new)))
       
       (define hide-caret/selection<%> (interface (basic<%>)))

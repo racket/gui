@@ -876,6 +876,7 @@
           [define select-up-sexp (lambda () (select-text (lambda (x) (find-up-sexp x)) #f))]
           [define select-down-sexp (lambda () (select-text (lambda (x) (find-down-sexp x)) #t))]
           
+	  (inherit get-fixed-style)
           (define (mark-matching-parenthesis pos)
             (let ([open-parens (map car (scheme-paren:get-paren-pairs))]
                   [close-parens (map cdr (scheme-paren:get-paren-pairs))])
@@ -888,9 +889,9 @@
                       (cond
                         [(and (eq? matching-parenthesis-style start-style)
                               (eq? matching-parenthesis-style end-style))
-                         (let ([standard-style (send (get-style-list) find-named-style "Standard")])
-                           (change-style standard-style pos (+ pos 1))
-                           (change-style standard-style (- end 1) end))]
+                         (let ([fixed-style (get-fixed-style)])
+                           (change-style fixed-style pos (+ pos 1))
+                           (change-style fixed-style (- end 1) end))]
                         [else
                          (change-style matching-parenthesis-style pos (+ pos 1))
                          (change-style matching-parenthesis-style (- end 1) end)])))))))
