@@ -401,7 +401,7 @@
     set-bitmap
     set-pixel
     get-pixel)
-  (define-class post-script-dc% dc% ([interactive? #t] [parent #f]))
+  (define-class post-script-dc% dc% ([interactive? #t] [parent #f] [use-paper-bbox? #f]))
   (define-class printer-dc% dc% ([parent #f]))
   (define-class event% object% ([time-stamp 0])
     get-time-stamp
