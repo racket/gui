@@ -1079,7 +1079,7 @@
                     (send memory-text erase)
                     (send memory-text insert (number->string (current-memory-use)))
                     (send memory-text end-edit-sequence))]
-                 [button (make-object button% "Memory" panel 
+                 [button (make-object button% "Collect" panel 
                            (lambda x
                              (collect-garbage)
                              (update-text)))]
