@@ -347,10 +347,10 @@
 			  [filter-msg  "That name does not have the right form"])
 		(let* ([directory (if (and (null? directory)
 					   (string? name))
-				      (mzlib:file^:path-only name)
+				      (or (mzlib:file^:path-only name) null)
 				      directory)]
-		       [name (if (string? name)
-				 (mzlib:file^:file-name-from-path name)
+		       [name (or (and (string? name)
+				      (mzlib:file^:file-name-from-path name))
 				 name)]
 		       [v (box #f)])
 		  (make-object finder-dialog% #t replace? #f v 
@@ -382,8 +382,8 @@
 					   (string? name))
 				      (or (mzlib:file^:path-only name) null)
 				      directory)]
-		       [name (if (string? name)
-				 (mzlib:file^:file-name-from-path name)
+		       [name (or (and (string? name)
+				      (mzlib:file^:file-name-from-path name))
 				 name)]
 		       [f (wx:file-selector prompt directory name
 					    '()
@@ -402,7 +402,7 @@
 			 [(not (and (string? dir) (directory-exists? dir)))
 			  (wx:message-box "Error" "That directory does not exist.")
 			  #f]
-			 [(equal? name "")
+			 [(or (not name) (equal? name ""))
 			  (wx:message-box "Error" "Empty filename.")
 			  #f]
 			 [else f]))))))
