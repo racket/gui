@@ -12,7 +12,11 @@
       (import mred^)
 
       (define icon-path 
-	(with-handlers ([void (lambda (x) (collection-path "mzlib"))]) 
+	(with-handlers ([not-break-exn?
+			 (lambda (x)
+			   (case (system-type)
+			     [(windows) "C:"] ;; just avoid quering the floppy drive
+			     [else (car (filesystem-root-list))]))])
 	  (collection-path "icons")))
       
       (define (load-icon name type)
@@ -22,8 +26,6 @@
 		    (let ([bitmap (make-object bitmap% p type)])
 		      (set! f (lambda () bitmap))
 		      bitmap))])
-	  (unless (file-exists? p)
-	    (fprintf (current-error-port) "WARNING: couldn't find ~a~n" p))
 	  (lambda ()
 	    (f))))
       
@@ -34,8 +36,6 @@
 		    (let ([bitmap (make-object bitmap% p type)])
                       (set! f (lambda () bitmap))
                       bitmap))])
-	  (unless (file-exists? p)
-	    (fprintf (current-error-port) "WARNING: couldn't find ~a~n" p))
 	  (lambda ()
 	    (f))))
       
@@ -49,8 +49,6 @@
       (define (make-get/mask filename type)
 	(let ([icon #f]
 	      [p (build-path icon-path filename)])
-	  (unless (file-exists? p)
-	    (fprintf (current-error-port) "WARNING: couldn't find ~a~n" p))
 	  (lambda ()
 	    (or icon
 		(begin
@@ -58,8 +56,8 @@
 		  icon)))))
 
       (define (make-cursor name mask fallback)
-        (let* ([msk-b (make-object bitmap% (build-path (collection-path "icons") mask))]
-	       [csr-b (make-object bitmap% (build-path (collection-path "icons") name))])
+        (let* ([msk-b (make-object bitmap% (build-path icon-path mask))]
+	       [csr-b (make-object bitmap% (build-path icon-path name))])
 	  (if (and (send msk-b ok?)
 		   (send csr-b ok?))
 	      (let ([csr (make-object cursor% msk-b csr-b 7 7)])

@@ -69,8 +69,11 @@
    
   (define funny?
     (let ([date (seconds->date (current-seconds))])
-      (and (= (date-day date) 25)
-           (= (date-month date) 12))))
+      (and (with-handlers ([not-break-exn? (lambda (x) #f)])
+	     (collection-path "icons")
+	     #t)
+	     (= (date-day date) 25)
+	     (= (date-month date) 12))))
   
    (define (splash-load-handler old-load f expected)
      (let ([finalf (splitup-path f)])
@@ -89,8 +92,8 @@
       (inherit get-dc min-width min-height stretchable-width stretchable-height)
       (field
        [funny-value 0]
-       [funny-bitmap (make-object bitmap%
-                       (build-path (collection-path "icons") "touch.bmp"))]
+       [funny-bitmap
+	(make-object bitmap% (build-path (collection-path "icons") "touch.bmp"))]
        [max-value 1])
 
       [define/public set-range (lambda (r) (set! max-value r))]

@@ -6,6 +6,7 @@
            (lib "string-constant.ss" "string-constants")
            (lib "unitsig.ss")
 	   (lib "class.ss")
+           (prefix cb: "../comment-snip.ss")
 	   "sig.ss"
 	   "../macro.ss"
 	   (lib "mred-sig.ss" "mred")
@@ -358,7 +359,8 @@
                    set-tabs
                    set-style-list
                    set-styles-fixed
-                   change-style)
+                   change-style
+                   get-snip-position)
           (rename [super-on-char on-char])
           
           (define (in-single-line-comment? position)
@@ -836,43 +838,78 @@
             (opt-lambda ([start-pos (get-start-position)]
                          [end-pos (get-end-position)])
               (begin-edit-sequence)
-              (let ([first-pos-is-first-para-pos?
-                     (= (paragraph-start-position (position-paragraph start-pos))
-                        start-pos)])
-                (let* ([first-para (position-paragraph start-pos)]
-                       [last-para (calc-last-para end-pos)])
-                  (let para-loop ([curr-para first-para])
-                    (if (<= curr-para last-para)
-                        (let ([first-on-para (paragraph-start-position curr-para)])
-                          (insert #\; first-on-para)
-                          (para-loop (add1 curr-para))))))
-                (when first-pos-is-first-para-pos?
-                  (set-position
-                   (paragraph-start-position (position-paragraph (get-start-position)))
-                   (get-end-position))))
+              (split-snip start-pos)
+              (split-snip end-pos)
+              (let* ([cb (instantiate cb:comment-box-snip% ())]
+                     [text (send cb get-editor)])
+                (send text set-style-list style-list)
+                (let loop ([snip (find-snip start-pos 'after-or-none)])
+                  (cond
+                    [(not snip) (void)]
+                    [((get-snip-position snip) . >= . end-pos) (void)]
+                    [else
+                     (send text insert (send snip copy)
+                           (send text last-position)
+                           (send text last-position))
+                     (loop (send snip next))]))
+                (delete start-pos end-pos)
+                (insert cb start-pos)
+                (set-position start-pos start-pos))
               (end-edit-sequence)
-              #t))
+              #t)) 
           
           (define uncomment-selection
             (opt-lambda ([start-pos (get-start-position)]
                          [end-pos (get-end-position)])
-              (begin-edit-sequence)
-              (let* ([last-pos (last-position)]
-                     [first-para (position-paragraph start-pos)]
-                     [last-para (calc-last-para end-pos)])
-                (let para-loop ([curr-para first-para])
-                  (if (<= curr-para last-para)
-                      (let ([first-on-para
-                             (paren:skip-whitespace 
-                              this 
-                              (paragraph-start-position curr-para)
-                              'forward)])
-                        (when (and (< first-on-para last-pos)
-                                   (char=? #\; (get-character first-on-para)))
-                          (delete first-on-para (+ first-on-para 1)))
-                        (para-loop (add1 curr-para))))))
-              (end-edit-sequence)
+              (let ([snip-before (find-snip start-pos 'before-or-none)]
+                    [snip-after (find-snip start-pos 'after-or-none)])
+                
+                (begin-edit-sequence)
+                (cond
+                  [(and (= start-pos end-pos)
+                        snip-before
+                        (is-a? snip-before cb:comment-box-snip%))
+                   (extract-contents start-pos snip-before)]
+                  [(and (= start-pos end-pos)
+                        snip-after
+                        (is-a? snip-after cb:comment-box-snip%))
+                   (extract-contents start-pos snip-after)]
+                  [(and (= (+ start-pos 1) end-pos)
+                        snip-after
+                        (is-a? snip-after cb:comment-box-snip%))
+                   (extract-contents start-pos snip-after)]
+                  [else
+                   (let* ([last-pos (last-position)]
+                          [first-para (position-paragraph start-pos)]
+                          [last-para (calc-last-para end-pos)])
+                     (let para-loop ([curr-para first-para])
+                       (if (<= curr-para last-para)
+                           (let ([first-on-para
+                                  (paren:skip-whitespace 
+                                   this 
+                                   (paragraph-start-position curr-para)
+                                   'forward)])
+                             (when (and (< first-on-para last-pos)
+                                        (char=? #\; (get-character first-on-para)))
+                               (delete first-on-para (+ first-on-para 1)))
+                             (para-loop (add1 curr-para))))))])
+                (end-edit-sequence))
               #t))
+          
+          ;; extract-contents : number (is-a?/c cb:comment-box-snip%) -> void
+          ;; copies the contents of the comment-box-snip out of the snip
+          ;; and into this editor as `pos'. Deletes the comment box snip
+          (define/private (extract-contents pos snip)
+            (let ([editor (send snip get-editor)])
+              (let loop ([snip (send editor find-snip (send editor last-position) 'before-or-none)])
+                (cond
+                  [snip
+                   (insert (send snip copy) pos)
+                   (loop (send snip previous))]
+                  [else (void)]))
+              (let ([snip-pos (get-snip-position snip)])
+                (delete snip-pos (+ snip-pos 1)))
+              (set-position pos pos)))
           
           [define get-forward-sexp
             (lambda (start-pos)

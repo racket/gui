@@ -21,10 +21,18 @@
       (define black-xor (make-object brush% "BLACK" 'xor))
       (define arrow-cursor (make-object cursor% 'arrow))
       
-      (define up-bitmap (make-object bitmap% (build-path (collection-path "icons") "turn-up.gif")))
-      (define down-bitmap (make-object bitmap% (build-path (collection-path "icons") "turn-down.gif")))
-      (define up-click-bitmap (make-object bitmap% (build-path (collection-path "icons") "turn-up-click.gif")))
-      (define down-click-bitmap (make-object bitmap% (build-path (collection-path "icons") "turn-down-click.gif")))
+      (define-values (up-bitmap down-bitmap up-click-bitmap down-click-bitmap)
+	(with-handlers ([not-break-exn? (lambda (x)
+					  (values
+					   (make-object bitmap% 10 10)
+					   (make-object bitmap% 10 10)
+					   (make-object bitmap% 10 10)
+					   (make-object bitmap% 10 10)))])
+	  (values
+	   (make-object bitmap% (build-path (collection-path "icons") "turn-up.gif"))
+	   (make-object bitmap% (build-path (collection-path "icons") "turn-down.gif"))
+	   (make-object bitmap% (build-path (collection-path "icons") "turn-up-click.gif"))
+	   (make-object bitmap% (build-path (collection-path "icons") "turn-down-click.gif")))))
 
       ;; Hack for implementing auto-wrapping items:
       (define arrow-size 0)

@@ -11,7 +11,8 @@
 	   (lib "mred-sig.ss" "mred")
 	   (lib "list.ss")
 	   (lib "file.ss")
-	   (lib "etc.ss"))
+	   (lib "etc.ss")
+           (prefix cb: "../comment-snip.ss"))
   
   (provide frame@)
   
@@ -31,7 +32,8 @@
               [pasteboard : framework:pasteboard^]
               [editor : framework:editor^]
               [canvas : framework:canvas^]
-              [menu : framework:menu^])
+              [menu : framework:menu^]
+              [scheme : framework:scheme^])
       
       (rename [-editor<%> editor<%>]
               [-pasteboard% pasteboard%]
@@ -91,10 +93,25 @@
                [on-demand
                 (lambda (menu-item)
                   (let ([edit (get-edit-target-object)])
-                    (send menu-item enable (and edit (is-a? edit editor<%>)))))])
+                    (send menu-item enable (and edit (is-a? edit editor<%>)))))]
+               [insert-comment-box
+                 (lambda ()
+                   (let ([text (get-edit-target-object)])
+                     (when text
+                       (let ([snip (make-object cb:comment-box-snip%)])
+
+                         ;; we have to do this here to avoid cycles in the
+                         ;; module imports
+                         (send (send snip get-editor) set-style-list (scheme:get-style-list))
+
+                         (send text insert snip)
+                         (send text set-caret-owner snip 'global)))))])
           
-          (make-object c% (string-constant insert-text-box-item)
-            edit-menu (edit-menu:do 'insert-text-box) #f #f on-demand)
+          (make-object c% (string-constant insert-comment-box-menu-item-label)
+            edit-menu 
+            (lambda (x y) (insert-comment-box))
+            #f #f
+            on-demand)
           (make-object c% (string-constant insert-image-item)
             edit-menu (edit-menu:do 'insert-image) #f #f on-demand)
           (void)))
@@ -1934,7 +1951,10 @@
       (define memory-text% (class100 text% args (sequence (apply super-init args))))
       (define memory-text (make-object memory-text%))
       (send memory-text hide-caret #t)
-      (define show-memory-text? (directory-exists? (build-path (collection-path "framework") "CVS")))
+      (define show-memory-text?
+	(with-handlers ([not-break-exn?
+			 (lambda (x) #f)])
+	  (directory-exists? (build-path (collection-path "framework") "CVS"))))
       
       (define file<%> (interface (-editor<%>)))
       (define file-mixin
