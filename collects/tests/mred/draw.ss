@@ -334,7 +334,7 @@
 					     (begin
 					       (let ([h (send bm get-height)]
 						     [w (send bm get-width)])
-						 (send dc draw-bitmap-region
+						 (send dc draw-bitmap-section
 						       bm x y 
 						       0 0 w h
 						       mode color)
