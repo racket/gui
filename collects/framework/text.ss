@@ -244,7 +244,6 @@
 			(send dc set-brush old-brush)))))
 		range-rectangles))])
 	   
-	   
 	   (private
 	     [styles-fixed? #f]
 	     [styles-fixed-edit-modified? #f])
@@ -302,20 +301,6 @@
 	   (sequence
 	     (apply super-init args)
 	     (set-autowrap-bitmap (initial-autowrap-bitmap)))))
-  
-  (define copy-editor-snip%
-    (class editor-snip% (copy% text)
-      (override
-       [copy
-	(lambda ()
-	  (let ([text (make-object copy%)])
-	    (send text insert "AA")
-	    (let loop ([snip (send text find-first-snip)])
-	      (when snip
-		(send text insert (send snip copy))
-		(loop (send snip next))))
-	    (make-object copy-editor-snip% copy% text)))])
-      (sequence (super-init text))))
 
   (define searching<%>
     (interface ()
@@ -329,7 +314,7 @@
 	    [on-new-box
 	     (lambda (type)
 	       (if (eq? type 'text)
-		   (make-object copy-editor-snip% searching% (make-object searching%))
+		   (make-object editor-snip% (make-object searching%))
 		   (super-on-new-box)))])
 	   (public
 	     [find-string-embedded

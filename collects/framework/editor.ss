@@ -24,11 +24,19 @@
 
   (define basic-mixin
     (mixin (editor<%>) (basic<%>) args
+
+      (inherit copy-self-to)
+      (override
+       [copy-self
+	(lambda ()
+	  (let ([editor (make-object (object-class this))])
+	    (copy-self-to editor)
+	    editor))])
+	   
       (inherit get-filename save-file
 	       refresh-delayed? 
 	       get-canvas
 	       get-max-width get-admin set-filename)
-
       (private 
 	[has-focus #f])
       (rename [super-on-focus on-focus])
