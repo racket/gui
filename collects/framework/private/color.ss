@@ -244,7 +244,7 @@
                    (set! invalid-tokens invalid-tree)
                    (set! invalid-tokens-start
                          (+ invalid-tokens-start tok-end change-length))))
-                ((>= edit-start-pos current-pos)
+                ((> edit-start-pos current-pos)
                  (set! invalid-tokens-start (+ change-length invalid-tokens-start)))
                 (else
                  (let-values (((tok-start tok-end valid-tree invalid-tree)
