@@ -1,6 +1,7 @@
 (module color-prefs mzscheme
   (require (lib "class.ss")
            (lib "unitsig.ss")
+           (lib "etc.ss")
            (lib "mred.ss" "mred")
            (lib "string-constant.ss" "string-constants")
            "sig.ss")
@@ -225,7 +226,7 @@
                     syms)
           (for-each set-slatex-style syms (map preferences:get syms))
           (preferences:set-default active-pref #t (lambda (x) #t))
-          (preferences:add-panel `("Editing" "Colors" ,tab-name)
+          (preferences:add-panel `("Syntax Coloring" ,tab-name)
                                  (lambda (p)
                                    (let ((vp (new vertical-panel% (parent p))))
                                      (new color-selection-panel%

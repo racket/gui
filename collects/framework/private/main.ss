@@ -219,13 +219,14 @@
       ;; This adds the preferences that scheme:text% needs for coloring
       (color-prefs:add
        "Scheme Color"
-       `((keyword ,(color-prefs:make-style-delta "Black" #f #f #f))
+       `((symbol ,(color-prefs:make-style-delta "navy" #f #f #f))
+         (keyword ,(color-prefs:make-style-delta (make-object color% 40 25 15) #f #f #f))
+         (unbound-variable ,(color-prefs:make-style-delta "red" #f #f #f))
+         (bound-variable ,(color-prefs:make-style-delta "navy" #f #f #f))
+         (constant ,(color-prefs:make-style-delta (make-object color% 51 135 39) #f #f #f))
          (string ,(color-prefs:make-style-delta "ForestGreen" #f #f #f))
-         (literal ,(color-prefs:make-style-delta "ForestGreen" #f #f #f))
          (comment ,(color-prefs:make-style-delta (make-object color% 0 105 255) #f #f #f))
-         (error ,(color-prefs:make-style-delta "Red" #f #f #f))
-         (identifier ,(color-prefs:make-style-delta "Navy" #f #f #f))
-         (other ,(color-prefs:make-style-delta "brown" #f #f #f))))
-
+         (error ,(color-prefs:make-style-delta "red" #f #f #f))
+         (base ,(color-prefs:make-style-delta "brown" #f #f #f))))
       
       (void))))

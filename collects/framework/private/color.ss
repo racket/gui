@@ -87,6 +87,9 @@
           (define remove-prefs-callback-thunk #f)
           (define prefix #f)
           
+          (define/public (coloring-active?)
+            should-color?)
+          
           ;; ---------------------- Multi-threading -------------------------------
           ;; A list of thunks that color the buffer
           (define colors null)
@@ -271,13 +274,15 @@
                       (preferences:add-callback
                        (string->symbol (format "syntax-coloring:~a:active" prefix))
                        (lambda (_ on?)
-                         (set! should-color? on?)
                          (cond
-                           (on?
+                           ((and (not should-color?) on?)
+                            (set! should-color? #t)
                             (reset-tokens)
                             (do-insert/delete start-pos 0))
-                           (else (change-style (send (get-style-list) find-named-style "Standard")
-                                               start-pos end-pos #f)))))))
+                           ((and should-color? (not on?))
+                            (set! should-color? #f)
+                            (change-style (send (get-style-list) find-named-style "Standard")
+                                          start-pos end-pos #f)))))))
               (unless background-thread
                 (break-enabled #f)
                 (set! background-thread (thread (lambda () (background-colorer-entry))))
@@ -416,6 +421,8 @@
               (remove-prefs-callback-thunk)
               (set! remove-prefs-callback-thunk #f))
             (super-on-close))          
+          
+          (rename (super-change-style change-style))
           
           (super-instantiate ())))
       

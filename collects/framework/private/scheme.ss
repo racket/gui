@@ -1044,7 +1044,7 @@
       (define (scheme-lexer-wrapper in)
         (let-values (((type lex start end) (scheme-lexer in)))
           (cond
-            ((and (eq? type 'identifier)
+            ((and (eq? type 'symbol)
                   (hash-table-get (preferences:get 'framework:tabify)
                                   (string->symbol lex)
                                   (lambda () #f)))
