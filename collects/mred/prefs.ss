@@ -9,6 +9,7 @@
 	    [mred:exit : mred:exit^]
 	    [mred:gui-utils : mred:gui-utils^]
 	    [mred:edit : mred:edit^]
+	    [mzlib:pretty-print : mzlib:pretty-print^]
 	    [mzlib:function : mzlib:function^])
     
     (mred:debug:printf 'invoke "mred:preferences@")
@@ -153,7 +154,8 @@
 	  (mred:debug:printf 'prefs "saving user preferences")
 	  (call-with-output-file preferences-filename
 	    (lambda (p)
-	      (pretty-print (hash-table-map preferences marshall-pref) p))
+	      (mzlib:pretty-print:pretty-print
+	       (hash-table-map preferences marshall-pref) p))
 	      'replace)	  
 	  (mred:debug:printf 'prefs "saved user preferences"))))
     
