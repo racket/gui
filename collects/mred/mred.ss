@@ -1317,7 +1317,7 @@
       (apply super-init mred proxy args))))
 
 ;; Weak boxed:
-(define active-main-frame #f)
+(define active-main-frame (make-weak-box #f))
 
 (wx:application-file-handler (entry-point
 			      (lambda (f)
