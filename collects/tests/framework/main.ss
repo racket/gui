@@ -124,7 +124,7 @@
 			(eval (send-sexp-to-mred sexp/proc)))])
 
 	       ;; this is here to help catch any errors in generated events
-	       (send-sexp-to-mred 'check-for-errors)
+	       (send-sexp-to-mred ''check-for-errors)
 
 	       (not (passed? result))))])
       (when failed
