@@ -81,15 +81,17 @@
                 (reset-changed)))))
         
         ;; reading in changes
-        (let* ([mod (file-or-directory-modify-seconds (find-system-path 'pref-file))])
-          (when (or (not last-time-read)
-                    (last-time-read . < . mod))
-            (let* ([failed? #f]
-                   [new-stuff (get-preference main-preferences-symbol (lambda () (set! failed? #t)))])
-              (unless failed?
-                (set! last-time-read mod)
-                (install-stashed-preferences new-stuff '())
-                (reset-changed))))))
+        (let* ([filename (find-system-path 'pref-file)])
+	  (when (file-exists? filename)
+	    (let ([mod (file-or-directory-modify-seconds filename)])
+	      (when (or (not last-time-read)
+			(last-time-read . < . mod))
+		(let* ([failed? #f]
+		       [new-stuff (get-preference main-preferences-symbol (lambda () (set! failed? #t)))])
+		  (unless failed?
+		    (set! last-time-read mod)
+		    (install-stashed-preferences new-stuff '())
+		    (reset-changed))))))))
 
       (define guard
         (lambda (when p value thunk failure)
@@ -378,8 +380,9 @@
       ;;        the preferences, things break)
       (define (get-disk-prefs fail)
         (let/ec k
-          (let ([mod (file-or-directory-modify-seconds (find-system-path 'pref-file))]
-                [sexp (get-preference main-preferences-symbol (lambda () (k (fail))))])
+          (let* ([filename (find-system-path 'pref-file)]
+		 [mod (and (file-exists? filename) (file-or-directory-modify-seconds filename))]
+		 [sexp (get-preference main-preferences-symbol (lambda () (k (fail))))])
             (set! last-time-read mod)
             sexp)))
       
