@@ -3230,7 +3230,7 @@
     (define-values (xsb ysb xtb ytb) (values (box 0) (box 0) (box 0) (box 0)))
 
     (send paper set-selection (or (find-pos papers (send pss get-paper-name) equal?) 0))
-    (send orientation set-selection (if (eq? (send pss get-orientation) 'vertical) 1 0))
+    (send orientation set-selection (if (eq? (send pss get-orientation) 'landscape) 1 0))
     (when unix?
       (send destination set-selection (case (send pss get-mode)
 					[(printer) 0] [(preview) 1] [(file) 2]))
