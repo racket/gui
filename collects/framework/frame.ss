@@ -255,16 +255,10 @@
 		 (let ([locked-now? (send info-edit is-locked?)])
 		   (unless (eq? locked-now? icon-currently-locked?)
 		     (set! icon-currently-locked? locked-now?)
-		     (let ([label
-			    (if locked-now?
-				(icon:get-lock-bitmap)
-				(icon:get-unlock-bitmap))])
-		       (when (object? lock-message)
-			 (send lock-message
-			       set-label
-			       (if (and (object? label) (send label ok?))
-				   label
-				   (if locked-now? "Locked" "Unlocked")))))))]
+		     (when (object? lock-message)
+		       (send lock-message
+			     set-label
+			     (if locked-now? "Locked" "Unlocked")))))]
 		[else
 		 (when (send lock-message is-shown?)
 		   (send lock-message show #f))]))))])
