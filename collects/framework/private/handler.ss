@@ -284,7 +284,7 @@
           
           (inherit get-area-container)
           (field [bp (make-object horizontal-panel% (get-area-container))]
-                 [hl (make-object recent-items-hierarchical-list% (get-area-container))]
+                 [hl (make-object recent-items-hierarchical-list% (get-area-container) '())]
                  [sort-by-name-button
                   (make-object button% 
                     (string-constant sort-by-name) 
