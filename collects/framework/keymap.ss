@@ -310,69 +310,64 @@
 	    (lambda (edit event)
 	      (letrec ([find-nonwhite
 			(lambda (pos d offset)
-			  (call/ec
-			   (lambda (escape)
-			     (let ([max (if (> offset 0)
-					    (send edit last-position)
-					    -1)])
-			       (let loop ([pos pos])
-				 (if (= pos max)
-				     (escape pos)
-				     (let ([c (send edit get-character 
-						    (+ pos offset))])
-				       (cond
-					 [(char=? #\newline c)
-					  (loop (+ pos d))
-					  (escape pos)]
-					 [(char-whitespace? c) 
-					  (loop (+ pos d))]
-					 [else pos]))))))))])
+			  (let/ec escape
+			    (let ([max (if (> offset 0)
+					   (send edit last-position)
+					   0)])
+			      (let loop ([pos pos])
+				(if (= pos max)
+				    (escape pos)
+				    (let ([_ (printf "get-char.1: ~s~n" (+ pos offset))]
+					  [c (send edit get-character (+ pos offset))])
+				      (cond
+				       [(char=? #\newline c)
+					(loop (+ pos d))
+					(escape pos)]
+				       [(char-whitespace? c) 
+					(loop (+ pos d))]
+				       [else pos])))))))])
 		(let ([sel-start (send edit get-start-position)]
 		      [sel-end (send edit get-end-position)])
-		  (if (= sel-start sel-end)
-		      (let* ([pos-line
-			      (send edit position-line sel-start #f)]
-			     [pos-line-start
-			      (send edit line-start-position pos-line)]
-			     [pos-line-end
-			      (send edit line-end-position pos-line)]
-			     
-			     [whiteline?
-			      (let loop ([pos pos-line-start])
-				(if (>= pos pos-line-end)
-				    #t
-				    (and (char-whitespace?
-					  (send edit get-character pos))
-					 (loop (add1 pos)))))]
-			     
-			     [start (find-nonwhite pos-line-start -1 -1)]
-			     [end (find-nonwhite pos-line-end 1 0)]
-			     
-			     [start-line 
-			      (send edit position-line start #f)]
-			     [start-line-start
-			      (send edit line-start-position start-line)]
-			     [end-line
-			      (send edit position-line end #f)]
-			     [end-line-start
-			      (send edit line-start-position (add1 end-line))])
-			(cond
-			  [(and whiteline?
-				(= start-line pos-line)
-				(= end-line pos-line))
-			   ; Special case: just delete this line
-			   (send edit delete pos-line-start (add1 pos-line-end))]
-			  [(and whiteline? (< start-line pos-line))
-			   ; Can delete before & after
-			   (send* edit 
-			     (begin-edit-sequence)
-			     (delete (add1 pos-line-end) end-line-start)
-			     (delete start-line-start pos-line-start)
-			     (end-edit-sequence))]
-			  [else
-			   ; Only delete after
-			   (send edit delete (add1 pos-line-end) 
-				 end-line-start)]))))))]
+		  (when (= sel-start sel-end)
+		    (let* ([pos-line (send edit position-line sel-start #f)]
+			   [pos-line-start (send edit line-start-position pos-line)]
+			   [pos-line-end (send edit line-end-position pos-line)]
+			   
+			   [whiteline?
+			    (let loop ([pos pos-line-start])
+			      (if (>= pos pos-line-end)
+				  #t
+				  (and (char-whitespace? (send edit get-character pos))
+				       (loop (add1 pos)))))]
+			   
+			   [start (find-nonwhite pos-line-start -1 -1)]
+			   [end (find-nonwhite pos-line-end 1 0)]
+			   
+			   [start-line 
+			    (send edit position-line start #f)]
+			   [start-line-start
+			    (send edit line-start-position start-line)]
+			   [end-line
+			    (send edit position-line end #f)]
+			   [end-line-start
+			    (send edit line-start-position (add1 end-line))])
+		      (cond
+		       [(and whiteline?
+			     (= start-line pos-line)
+			     (= end-line pos-line))
+					; Special case: just delete this line
+			(send edit delete pos-line-start (add1 pos-line-end))]
+		       [(and whiteline? (< start-line pos-line))
+					; Can delete before & after
+			(send* edit 
+			       (begin-edit-sequence)
+			       (delete (add1 pos-line-end) end-line-start)
+			       (delete start-line-start pos-line-start)
+			       (end-edit-sequence))]
+		       [else
+					; Only delete after
+			(send edit delete (add1 pos-line-end) 
+			      end-line-start)]))))))]
 	   
 	   [open-line
 	    (lambda (edit event)

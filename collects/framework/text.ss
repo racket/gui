@@ -421,16 +421,8 @@
   (define clever-file-format-mixin
     (mixin ((class->interface text%)) (clever-file-format<%>) args
       (inherit get-file-format set-file-format find-first-snip)
-      (rename [super-on-save-file on-save-file]
-	      [super-after-save-file after-save-file])
-      
-      (private [restore-file-format void])
-      
+      (rename [super-on-save-file on-save-file])
       (override
-       [after-save-file
-	(lambda (success)
-	  (restore-file-format)
-	  (super-after-save-file success))]
        [on-save-file
 	(let ([all-string-snips 
 	       (lambda ()
@@ -447,23 +439,15 @@
 		     (or (eq? format 'same) (eq? format 'copy))
 		     (eq? 'standard (get-file-format))
 		     (or (not (preferences:get 'framework:verify-change-format))
-			 (gui-utils:get-choice "Save this file as plain text?" "No" "Yes")))
-		(set! restore-file-format 
-		      (let ([ff (get-file-format)])
-			(lambda ()
-			  (set! restore-file-format void)
-			  (set-file-format ff))))
+			 (gui-utils:get-choice
+			  "Save this file as plain text?" "Yes" "No")))
 		(set-file-format 'text)]
 	       [(and (not all-strings?)
 		     (or (eq? format 'same) (eq? format 'copy))
 		     (eq? 'text (get-file-format))
 		     (or (not (preferences:get 'framework:verify-change-format))
-			 (gui-utils:get-choice "Save this file in drscheme-specific non-text format?" "No" "Yes")))
-		(set! restore-file-format 
-		      (let ([ff (get-file-format)])
-			(lambda ()
-			  (set! restore-file-format void)
-			  (set-file-format ff))))
+			 (gui-utils:get-choice
+			  "Save this file in drscheme-specific non-text format?" "Yes" "No")))
 		(set-file-format 'standard)]
 	       [else (void)]))
 	    (super-on-save-file name format)))])

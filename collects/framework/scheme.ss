@@ -893,7 +893,7 @@
 	  (map-meta "c:down" "down-sexp")
 	  (map-meta "s:down" "select-down-sexp")
 	  (map "a:s:down" "select-down-sexp")
-	  (map-meta "s:c:down" "down-sexp")
+	  (map-meta "s:c:down" "select-down-sexp")
 	  
 	  (map-meta "right" "forward-sexp")
 	  (map "a:right" "forward-sexp")
