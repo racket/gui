@@ -261,7 +261,7 @@
       ;; This adds the preferences that scheme:text% needs for coloring
       ;; It returns a thunk that, when invoked will setup the panel in the
       ;; preferences dialog.
-      (define setup-default-colors
+      (define add-coloring-preferences-panel
         (color-prefs:add-staged
          "Scheme"
          `((symbol ,(color-prefs:make-style-delta "navy" #f #f #f))

@@ -1304,7 +1304,7 @@
      ()
      "Returns a keymap with binding suitable for Scheme.")
 
-    (scheme:setup-default-colors
+    (scheme:add-coloring-preferences-panel
      (-> any)
      ()
      "Installs the ``Scheme'' preferences panel in the ``Syntax Coloring''"

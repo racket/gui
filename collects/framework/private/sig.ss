@@ -545,7 +545,7 @@
      get-keymap
      setup-keymap
      add-preferences-panel
-     setup-default-colors))
+     add-coloring-preferences-panel))
   (define-signature framework:scheme^
     ((open framework:scheme-class^)
      (open framework:scheme-fun^)))
