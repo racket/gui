@@ -239,6 +239,8 @@
 	   get-choices-from-user
 	   get-text-from-user
 	   get-ps-setup-from-user
+	   get-page-setup-from-user
+	   can-get-page-setup-from-user?
 	   play-sound
 	   get-display-size
 	   get-display-left-top-inset

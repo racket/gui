@@ -19,6 +19,8 @@
 	   "mrtextfield.ss")
 
   (provide get-ps-setup-from-user
+	   get-page-setup-from-user
+	   can-get-page-setup-from-user?
 	   get-text-from-user
 	   get-choices-from-user
 	   get-color-from-user)
@@ -138,6 +140,28 @@
 
 	    s)
 	  #f)]))
+
+  (define get-page-setup-from-user
+    (case-lambda
+     [() (get-page-setup-from-user #f #f #f null)]
+     [(message) (get-page-setup-from-user message #f #f null)]
+     [(message parent) (get-page-setup-from-user message parent #f null)]
+     [(message parent pss) (get-page-setup-from-user message parent pss null)]
+     [(message parent pss-in style)
+      (check-label-string/false 'get-page-setup-from-user message)
+      (check-top-level-parent/false 'get-page-setup-from-user parent)
+      (check-instance 'get-page-setup-from-user wx:ps-setup% 'ps-setup% #t pss-in)
+      (check-style 'get-page-setup-from-user #f null style)
+
+      (and (wx:can-show-print-setup?)
+	   (let ([s (make-object wx:ps-setup%)])
+	     (send s copy-from (or pss-in (wx:current-ps-setup)))
+	     (and (parameterize ([wx:current-ps-setup s])
+		    (wx:show-print-setup parent))
+		  s)))]))
+
+  (define (can-get-page-setup-from-user?)
+    (wx:can-show-print-setup?))
 
   (define get-text-from-user
     (case-lambda

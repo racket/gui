@@ -25,6 +25,7 @@
      brush%
      brush-list%
      button%
+     can-get-page-setup-from-user?
      canvas%
      canvas<%>
      check-box%
@@ -89,6 +90,7 @@
      get-file
      get-file-list
      get-font-from-user
+     get-page-setup-from-user
      get-panel-background
      get-ps-setup-from-user
      get-resource

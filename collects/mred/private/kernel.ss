@@ -1008,8 +1008,6 @@
     get-data
     on-replaced)
   (define-class ps-setup% object% ()
-    show-native
-    can-show-native?
     copy-from
     set-margin
     set-editor-margin
@@ -1033,6 +1031,8 @@
     get-preview-command
     get-file
     get-command)
+  (define-function show-print-setup)
+  (define-function can-show-print-setup?)
   (define-class pasteboard% editor% #f
     set-scroll-step
     get-scroll-step
