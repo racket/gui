@@ -21,7 +21,8 @@
     (define make-std-buffer%
       (lambda (buffer%)
 	(class buffer% args
-	  (inherit modified? get-filename save-file set-max-width)
+	  (sequence (mred:debug:printf 'creation "creating a buffer"))
+	  (inherit modified? get-filename save-file set-max-width get-admin)
 	  (rename
 	    [super-set-filename set-filename]
 	    [super-set-modified set-modified]
@@ -29,6 +30,7 @@
 	    [super-on-save-file on-save-file]
 	    [super-on-focus on-focus]
 	    [super-lock lock])
+
 	  (private
 	    [auto-saved-name #f]
 	    [auto-save-out-of-date? #t]
@@ -47,6 +49,7 @@
 	    [auto-set-wrap? #f]
 	    [set-auto-set-wrap
 	     (lambda (v)
+	       (printf "set-auto-set-wrap: ~a~n" v)
 	       (set! auto-set-wrap? v)
 	       (when (not v)
 		 (set-max-width -1))
@@ -57,6 +60,21 @@
 	     (lambda (c)
 	       (set! active-canvas c))]
 	    
+	    [rewrap
+	     (lambda ()
+	       (let* ([admin (get-admin)]
+		      [w-box (box 0)]
+		      [h-box (box 0)]
+		      [biggest-canvas-width
+		       (apply max (map (lambda (c)
+					 (send c get-client-size w-box h-box)
+					 (unbox w-box))
+				       canvases))])
+		 (unless (null? admin)
+		   (send admin get-view () () w-box h-box #f)
+		   '(printf "rewrapping to: ~a ~a~n" (unbox w-box) biggest-canvas-width)
+		   (set-max-width (unbox w-box)))))]
+	       
 	    [canvases '()]
 	    [add-canvas
 	     (lambda (canvas)
