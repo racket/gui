@@ -91,15 +91,15 @@
 
 
 			   (if width?
-			       (let ([snip-width (- (unbox width)
-						    (unbox left-edge-box)
-						    (unbox leftm)
-						    (unbox rightm)
-						    
+			       (let ([snip-width (max 0 (- (unbox width)
+                                                           (unbox left-edge-box)
+                                                           (unbox leftm)
+                                                           (unbox rightm)
+                                                           
 						    ;; this two is the space that 
 						    ;; the caret needs at the right of
 						    ;; a buffer.
-						    2)])
+                                                           2))])
 				 (send* s 
 					(set-min-width snip-width)
 					(set-max-width snip-width))
@@ -108,10 +108,10 @@
 					 (if (send snip-media auto-wrap)
 					     snip-width
 					     0))))
-			       (let ([snip-height (- (unbox height)
-						     (unbox top-edge-box)
-						     (unbox topm)
-						     (unbox bottomm))])
+			       (let ([snip-height (max 0 (- (unbox height)
+                                                            (unbox top-edge-box)
+                                                            (unbox topm)
+                                                            (unbox bottomm)))])
 				 (send* s 
 					(set-min-height snip-height)
 					(set-max-height snip-height)))))))))))])
