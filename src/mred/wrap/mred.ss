@@ -37,28 +37,33 @@
 
 (define monitor-sema (make-semaphore 1))
 (define monitor-owner #f)
-(define entered-paramz (make-parameterization))
-(define old-paramz #f)
 
-;; An exception may be constrcuted while we're entered:
-((in-parameterization entered-paramz debug-info-handler)
- (lambda ()
-   (as-exit
-    (lambda ()
-      ((debug-info-handler))))))
-((in-parameterization entered-paramz error-value->string-handler)
- (lambda (s n)
-   (as-exit
-    (lambda ()
-      ((error-value->string-handler) s n)))))
+;; An exception may be constructed while we're entered:
+(define entered-debug-handler
+  (lambda ()
+    (as-exit
+     (lambda ()
+       ((debug-info-handler))))))
+(define entered-err-string-handler
+  (lambda (s n)
+    (as-exit
+     (lambda ()
+       ((error-value->string-handler) s n)))))
 
-(define (setup-entered-paramz)
-  (set! old-paramz (current-parameterization))
-  (current-parameterization entered-paramz)
-  (wx:current-eventspace ((in-parameterization old-paramz wx:current-eventspace)))
-  (error-print-width ((in-parameterization old-paramz error-print-width)))
-  (break-enabled ((in-parameterization old-paramz break-enabled)))
-  (exception-break-enabled ((in-parameterization old-paramz exception-break-enabled))))
+(define old-handler #f)
+(define old-debug-handler #f)
+(define old-err-string-handler #f)
+
+(define (enter-paramz)
+  (set! old-handler (current-exception-handler))
+  (set! old-debug-handler (debug-info-handler))
+  (set! old-err-string-handler (error-value->string-handler))
+  (debug-info-handler entered-debug-handler)
+  (error-value->string-handler entered-err-string-handler))
+(define (exit-paramz)
+  (current-exception-handler old-handler)
+  (debug-info-handler old-debug-handler)
+  (error-value->string-handler old-err-string-handler))
 
 (define (as-entry f)
   (cond
@@ -71,7 +76,7 @@
 	  (wx:in-atomic-region monitor-sema)
 	  
 	  (set! monitor-owner (current-thread))
-	  (setup-entered-paramz)
+	  (enter-paramz)
 	  (current-exception-handler
 	   (lambda (exn)
 	     (k (lambda () (raise exn))))))
@@ -81,7 +86,7 @@
 	   (lambda args (lambda () (apply values args)))))
 	(lambda ()
 	  (set! monitor-owner #f)
-	  (current-parameterization old-paramz)
+	  (exit-paramz)
 	  
 	  (semaphore-post monitor-sema)
 	  (wx:in-atomic-region #f)))))]))
@@ -95,7 +100,7 @@
      (lambda ()
        (set! eh (current-exception-handler))
        (set! monitor-owner #f)
-       (current-parameterization old-paramz)
+       (exit-paramz)
        
        (semaphore-post monitor-sema)
        (wx:in-atomic-region #f))
@@ -104,7 +109,7 @@
        (wx:in-atomic-region monitor-sema)
 
        (set! monitor-owner (current-thread))
-       (setup-entered-paramz)
+       (enter-paramz)
        (current-exception-handler eh)))))
 
 ;;;;;;;;;;;;;;; Helpers ;;;;;;;;;;;;;;;;;;;;
@@ -1678,8 +1683,8 @@
 
 (define wx-basic-panel<%> (interface ()))
 
-(define (wx-make-basic-panel% wx:panel%)
-  (class* (wx-make-container% (make-item% wx:panel% 0 0 #t #t)) (wx-basic-panel<%>) (parent style)
+(define (wx-make-basic-panel% wx:panel% stretch?)
+  (class* (wx-make-container% (make-item% wx:panel% 0 0 stretch? stretch?)) (wx-basic-panel<%>) (parent style)
     (inherit get-x get-y get-width get-height
 	     min-width min-height set-min-width set-min-height
 	     x-margin y-margin
@@ -2016,8 +2021,8 @@
     (sequence
       (super-init parent -1 -1 0 0 style))))
 
-(define (wx-make-pane% wx:panel%)
-  (class (make-container-glue% (make-glue% (wx-make-basic-panel% wx:panel%))) args
+(define (wx-make-pane% wx:panel% stretch?)
+  (class (make-container-glue% (make-glue% (wx-make-basic-panel% wx:panel% stretch?))) args
     (inherit get-parent get-x get-y need-move-children)
     (rename [super-set-size set-size])
     (override
@@ -2031,7 +2036,7 @@
       (apply super-init args))))
 
 (define (wx-make-panel% wx:panel%)
-   (make-container-glue% (make-window-glue% (wx-make-basic-panel% wx:panel%))))
+   (make-container-glue% (make-window-glue% (wx-make-basic-panel% wx:panel% #t))))
 
 (define (wx-make-linear-panel% wx-panel%)
   (class wx-panel% args
@@ -2259,7 +2264,15 @@
 (define wx-horizontal-panel% (wx-make-horizontal-panel% wx-linear-panel%))
 (define wx-vertical-panel% (wx-make-vertical-panel% wx-linear-panel%))
 
-(define wx-pane% (wx-make-pane% wx:windowless-panel%))
+(define wx-pane% (wx-make-pane% wx:windowless-panel% #t))
+(define wx-grow-box-pane%
+  (class (wx-make-pane% wx:windowless-panel% #f) (mred proxy parent style)
+	 (override
+	   [init-min (lambda (x) (if (eq? (system-type) 'macos)
+				     16
+				     0))])
+	 (sequence
+	   (super-init mred proxy parent style))))
 (define wx-linear-pane% (wx-make-linear-panel% wx-pane%))
 (define wx-horizontal-pane% (wx-make-horizontal-panel% wx-linear-pane%))
 (define wx-vertical-pane% (wx-make-vertical-panel% wx-linear-pane%))
@@ -3440,6 +3453,7 @@
       (let ([who (cond ; yuck! - we do this to make h-p and v-p subclasses of p
 		  [(is-a? this vertical-pane%) 'vertical-pane]
 		  [(is-a? this horizontal-pane%) 'horizontal-pane]
+		  [(is-a? this grow-box-spacer-pane%) 'grow-box-spacer-pane]
 		  [else 'pane])])
 	(check-container-parent who parent)
 	(as-entry
@@ -3447,6 +3461,7 @@
 	   (super-init (lambda () (set! wx (make-object (case who
 							  [(vertical-pane) wx-vertical-pane%]
 							  [(horizontal-pane) wx-horizontal-pane%]
+							  [(grow-box-spacer-pane) wx-grow-box-pane%]
 							  [else wx-pane%])
 							this this (mred->wx-container parent) null)) wx)
 		       (lambda () wx) parent)
@@ -3455,6 +3470,7 @@
 
 (define vertical-pane% (class pane% (parent) (sequence (super-init parent))))
 (define horizontal-pane% (class pane% (parent) (sequence (super-init parent))))
+(define grow-box-spacer-pane% (class pane% (parent) (sequence (super-init parent))))
 
 (define panel%
   (class* (make-area-container-window% (make-window% #f (make-subarea% (make-container% area%)))) (subwindow<%>) (parent [style null])
@@ -4050,25 +4066,29 @@
   (define repl-buffer (make-object esq:text%))
   (define repl-display-canvas (make-object editor-canvas% frame))
 
+  (define esq-eventspace (wx:current-eventspace))
+  (define (queue-output proc)
+    (parameterize ((wx:current-eventspace esq-eventspace))
+      (wx:queue-callback proc #f)))
+  
   ;; User space initialization
   (define user-custodian (make-custodian))
   
-  (define user-eventspace
-    (parameterize ([current-custodian user-custodian])
-      (wx:make-eventspace)))
-  (define user-parameterization (wx:eventspace-parameterization user-eventspace))
-  
   (define user-output-port
-    (make-output-port (lambda (s) (send repl-buffer output s))
-		      (lambda () 'nothing-to-do)))
-  
-  ;; Evaluation and resetting
+    (make-output-port
+     (lambda (s) (queue-output (lambda () (send repl-buffer output s))))
+     (lambda () 'nothing-to-close)))
+   
+  (define user-eventspace
+    (parameterize ((current-custodian user-custodian))
+      (wx:make-eventspace)))
+
+  ;; Evaluation
   
   (define (evaluate expr-str)
-    (parameterize ([wx:current-eventspace user-eventspace])
+    (parameterize ((wx:current-eventspace user-eventspace))
       (wx:queue-callback
        (lambda ()
-	 (current-parameterization user-parameterization)
 	 (dynamic-wind
 	  void
 	  (lambda () 
@@ -4079,7 +4099,7 @@
 		(lambda (v) (print v) (newline))
 		results))))
 	  (lambda ()
-	    (send repl-buffer new-prompt)))))))
+	    (queue-output (lambda () (send repl-buffer new-prompt)))))))))
 
   (define waiting (make-semaphore 0))
 
@@ -4099,14 +4119,17 @@
   (send repl-buffer auto-wrap #t)
 
   ;; Go
-  ((in-parameterization user-parameterization current-output-port) user-output-port)
-  ((in-parameterization user-parameterization current-error-port) user-output-port)
-  ((in-parameterization user-parameterization current-input-port) (make-input-port (lambda () eof) void void))
-  ((in-parameterization user-parameterization current-custodian) user-custodian)
-  ((in-parameterization user-parameterization current-will-executor) (make-will-executor))
+  (parameterize ((wx:current-eventspace user-eventspace))
+    (wx:queue-callback
+     (lambda ()
+       (current-output-port user-output-port)
+       (current-error-port user-output-port)
+       (current-input-port (make-input-port (lambda () eof) void void))
+       (current-will-executor (make-will-executor)))))
+
   (send repl-display-canvas set-editor repl-buffer)
   (send frame show #t)
-
+  
   (send repl-display-canvas focus)
 
   (wx:yield waiting))
@@ -4872,3 +4895,19 @@
   (let ([s (make-semaphore)])
     (thread (lambda () (sleep secs) (semaphore-post s)))
     (wx:yield s)))
+
+(define get-window-text-extent
+  (let ([bm #f][dc #f])
+    (case-lambda
+     [(string font)
+      (check-string 'get-window-text-extent string)
+      (check-instance 'get-window-text-extent wx:font% 'font% #f font)
+      (unless bm
+	(set! bm (make-object wx:bitmap% 2 2))
+	(set! dc (make-object wx:bitmap-dc%))
+	(send dc set-bitmap bm))
+      (unless (send bm ok?)
+	(error 'get-window-text-extent "couldn't allocate sizing bitmap"))
+      (let-values ([(w h d a) (send dc get-text-extent string font)])
+	(values (inexact->exact w) (inexact->exact h)))])))
+

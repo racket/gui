@@ -1630,7 +1630,8 @@
 (make-object button% "Make Multitext Frame" tp (lambda (b e) (text-frame '(multiple))))
 
 (define cnp (make-object horizontal-pane% ap))
-(send cnp stretchable-width #f)
+(send cnp stretchable-width #t)
+(send cnp set-alignment 'right 'center)
 (let ([mkf (lambda (flags name)
 	     (make-object button%
 			  (format "Make ~aCanvas Frame" name) cnp 
@@ -1638,7 +1639,8 @@
   (mkf '(hscroll vscroll) "HV")
   (mkf '(hscroll) "H")
   (mkf '(vscroll) "V")
-  (mkf null ""))
+  (mkf null "")
+  (make-object grow-box-spacer-pane% cnp))
 
 (define (choose-next radios)
   (let loop ([l radios])
