@@ -45,7 +45,7 @@
 		       (string-append "Are you sure you want to "
 				      w
 				      "?")]
-		      [(user-says) (gui-utils:get-choice message capw "Cancel")])
+		      [(user-says) (gui-utils:get-choice message capw "Cancel" "Warning" #f)])
 	  user-says)
 	#t))
 

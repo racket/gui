@@ -5,7 +5,7 @@
       (lambda ()
 	(with-handlers ([eof-result? (lambda (x) 'passed)])
 	  (send-sexp-to-mred '(preferences:set 'framework:verify-exit #f))
-	  (send-sexp-to-mred '(exit:exit))
+	  (send-sexp-to-mred '(begin (exit:exit) (sleep/yield 1)))
 	  'failed)))
 
 (test 'exit/prompt
@@ -65,7 +65,7 @@
 	   `(begin
 	      (preferences:set 'framework:verify-exit #f)
 	      (exit:insert-can?-callback (lambda () (call-with-output-file ,tmp-file void) #t))
-	      (exit:exit))))))
+	      (begin (exit:exit) (sleep/yield 1)))))))
 
 (test 'exit-callback-removed
       (lambda (x) (and (eq? x 'passed) (not (mred-running?))))
@@ -75,7 +75,7 @@
 	   `(begin
 	      (preferences:set 'framework:verify-exit #f)
 	      ((exit:insert-can?-callback (lambda () (error 'called-exit-callback))))
-	      (exit:exit))))))
+	      (begin (exit:exit) (sleep/yield 1)))))))
 
 (test 'exit-callback-stops-exit
       (lambda (x) (eq? x 'passed))

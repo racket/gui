@@ -1328,10 +1328,11 @@
 	       (set-editor position-edit)
 	       (stretchable-width #f)
 	       (stretchable-height #f))
-	(determine-width "0000:000-0000:000" 
+	(determine-width "0000:000-0000:000"
 			 position-canvas
 			 position-edit)
 	(editor-position-changed)
+	(send position-edit hide-caret #t)
 	(send position-edit lock #t))))
   
   (define pasteboard-info<%> (interface (info<%>)))
