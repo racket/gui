@@ -190,11 +190,9 @@
 	  (for-each (lambda (k) (send keymap chain-to-keymap k #f))
 		    (get-keymaps))))))
 
-  (define autowrap<%> (interface (basic<%>) default-auto-wrap?))
+  (define autowrap<%> (interface (basic<%>)))
   (define autowrap-mixin
     (mixin (basic<%>) (autowrap<%>) args
-      (public
-	[default-auto-wrap? (lambda () #t)])
       
       (rename [super-on-close on-close])
       (override
@@ -206,7 +204,9 @@
       (inherit auto-wrap)
       (sequence
 	(apply super-init args)
-	(auto-wrap (default-auto-wrap?)))
+	(auto-wrap 
+         (preferences:get
+          'framework:auto-set-wrap?)))
       (private
         [remove-callback
          (preferences:add-callback

@@ -122,6 +122,7 @@
    basic% 
    keymap%
    return%
+   autowrap%
    file%
    clever-file-format%
    backup-autosave%
