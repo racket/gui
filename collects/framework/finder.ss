@@ -362,16 +362,12 @@
 		  ; look for letter at beginning of a filename
 		  
 		  [(char? code)
-		   (letrec 
-		       ([loop
-			 (lambda (pos)
-			   (unless 
-			       (>= pos num-items)
-			     (let ([first-char (string-ref (get-string pos) 0)])
-			       (if (char=? code first-char)
-				   (set-selection-and-edit pos)
-				   (loop (add1 pos))))))])
-		     (loop (add1 curr-pos)))]
+		   (let loop ([pos (add1 curr-pos)])
+		     (unless (>= pos num-items)
+		       (let ([first-char (string-ref (get-string pos) 0)])
+			 (if (char=? code first-char)
+			     (set-selection-and-edit pos)
+			     (loop (add1 pos))))))]
 		  
 		  ; movement keys
 		  
