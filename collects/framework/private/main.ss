@@ -58,10 +58,11 @@
        (lambda (c) (list (send c red) (send c green) (send c blue)))
        (lambda (l) (make-object color% (car l) (cadr l) (caddr l))))
       
-      (preferences:set-default 'framework:last-directory (find-system-path 'home-dir) path-string?)
-      ;; when the set-un/marshall function returns #f, it isn't getting turned into 
-      ;; the default. Hm.
-      (preferences:set-un/marshall 'framework:last-directory path->bytes
+      (preferences:set-default 'framework:last-directory (find-system-path 'home-dir) 
+                               (lambda (x) (or (not x) path-string?)))
+      
+      (preferences:set-un/marshall 'framework:last-directory 
+                                   (lambda (x) (and (path? x) (path->bytes x)))
                                    (lambda (x)
                                      (and (bytes? x)
                                           (bytes->path x))))
