@@ -67,6 +67,13 @@
 
 (define pi (atan 0 -1))
 
+(define star
+  (list (make-object point% 30 0)
+	(make-object point% 48 60)
+	(make-object point% 0 20)
+	(make-object point% 60 20)
+	(make-object point% 12 60)))
+
 (define octagon
   (list (make-object point% 60 60)
 	(make-object point% 120 60)
@@ -738,15 +745,22 @@
 				      (loop (cdr l) (+ x 20)))))))
 
 			    (when last?
-			      (send dc set-pen (make-object pen% "black" 1 'transparent))
-			      (send dc set-brush (make-object brush% "blue" 'solid))
-			      (send dc draw-ellipse 400 10 40 40)
-			      (send dc draw-ellipse 400 50 40 40)
-			      (send dc draw-ellipse 400 90 40 40)
-			      (send dc set-pen (make-object pen% "black" 1 'solid))
-			      (send dc draw-ellipse 400 130 40 40)
-			      (send dc draw-ellipse 400 170 40 40)
-			      (send dc draw-ellipse 400 210 40 40))
+			      (let ()
+				(define (pen cap join)
+				  (let ([p (make-object pen% "blue" 4 'solid)])
+				    (send p set-cap cap)
+				    (send p set-join join)
+				    (send dc set-pen p)))
+				(send dc set-brush (make-object brush% "white" 'transparent))
+				(pen 'projecting 'miter)
+				(send dc draw-lines star 410 10)
+				(send dc draw-polygon star 480 10)
+				(pen 'round 'round)
+				(send dc draw-lines star 410 80)
+				(send dc draw-polygon star 480 80)
+				(pen 'butt 'bevel)
+				(send dc draw-lines star 410 150)
+				(send dc draw-polygon star 480 150)))
 
 			    (when (and last? (not (or ps? (eq? dc can-dc)))
 				       (send mem-dc get-bitmap))
