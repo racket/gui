@@ -111,6 +111,7 @@
      mouse-event%
      ;; mred@
      mult-color<%>
+     open-input-text-editor
      pane%
      panel%
      pasteboard%
@@ -125,12 +126,14 @@
      put-file
      queue-callback
      radio-box%
+     readable-snip<%>
      read-editor-global-footer
      read-editor-global-header
      region%
      register-collecting-blit
      scroll-event%
      selectable-menu-item<%>
+     send-event
      send-message-to-window
      separator-menu-item%
      sleep/yield
@@ -148,6 +151,7 @@
      subwindow<%>
      tab-snip%
      text%
+     text-editor-load-handler
      text-field%
      the-brush-list
      the-clipboard
@@ -166,5 +170,6 @@
      write-editor-global-footer
      write-editor-global-header
      write-resource
-     yield)))
+     yield
+     )))
 
