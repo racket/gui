@@ -481,10 +481,8 @@
 			(let ([id-end (forward-match contains (last-position))])
 			  (if (and id-end (> id-end contains))
 			      (let* ([text (get-text contains id-end)])
-				(hash-table-get (preferences:get 'framework:tabify)
-						(string->symbol text)
-						(lambda () 'other)))
-			      'other)))]
+                                (or (get-keyword-type text)
+                                    'other)))))]
                      [procedure-indent
                       (lambda ()
                         (case (get-proc)
@@ -972,12 +970,27 @@
         (let-values (((lexeme type paren start end) (scheme-lexer in)))
           (cond
             ((and (eq? type 'symbol)
-                  (hash-table-get (preferences:get 'framework:tabify)
-                                  (string->symbol lexeme)
-                                  (lambda () #f)))
+                  (get-keyword-type lexeme))
              (values lexeme 'keyword paren start end))
             (else
              (values lexeme type paren start end)))))
+      
+      ;; get-keyword-type : string -> (union #f 'lambda 'define 'begin)
+      (define (get-keyword-type text)
+        (let* ([pref (preferences:get 'framework:tabify)]
+               [ht (car pref)]
+               [beg-reg (cadr pref)]
+               [def-reg (caddr pref)]
+               [lam-reg (cadddr pref)])
+          (hash-table-get 
+           ht
+           (string->symbol text)
+           (lambda () 
+             (cond
+               [(and beg-reg (regexp-match beg-reg text)) 'begin]
+               [(and def-reg (regexp-match def-reg text)) 'define]
+               [(and lam-reg (regexp-match lam-reg text)) 'lambda]
+               [else #f])))))
       
       (define set-mode-mixin
         (mixin (-text<%> mode:host-text<%>) ()
@@ -1156,83 +1169,122 @@
          (list (string-constant editor-prefs-panel-label) 
                (string-constant indenting-prefs-panel-label))
          (lambda (p)
-           (let*-values
-               ([(get-keywords)
-                 (lambda (hash-table)
-                   (letrec ([all-keywords (hash-table-map hash-table list)]
-                            [pick-out (lambda (wanted in out)
-                                        (cond
-                                          [(null? in) (quicksort out string<=?)]
-                                          [else (if (eq? wanted (cadr (car in))) 
-                                                    (pick-out wanted (cdr in) (cons (symbol->string (car (car in))) out))
-                                                    (pick-out wanted (cdr in) out))]))])
-                     (values  (pick-out 'begin all-keywords null)
-                              (pick-out 'define all-keywords null)
-                              (pick-out 'lambda all-keywords null))))]
-                [(begin-keywords define-keywords lambda-keywords)
-                 (get-keywords (preferences:get 'framework:tabify))])
-             (letrec ([add-button-callback
-                       (lambda (keyword-type keyword-symbol list-box)
-                         (lambda (button command)
-                           (let ([new-one
-                                  (keymap:call/text-keymap-initializer
-                                   (lambda ()
-                                     (get-text-from-user
-                                      (format (string-constant enter-new-keyword) keyword-type)
-                                      (format (string-constant x-keyword) keyword-type))))])
-                             (when new-one
-                               (let ([parsed (with-handlers ((exn:fail:read? (lambda (x) #f)))
-                                               (read (open-input-string new-one)))])
-                                 (cond
-                                   [(and (symbol? parsed)
-                                         (hash-table-get (preferences:get 'framework:tabify)
-                                                         parsed
-                                                         (lambda () #f)))
-                                    (message-box (string-constant error)
-                                                 (format (string-constant already-used-keyword) parsed))]
-                                   [(symbol? parsed)
-                                    (let ([ht (preferences:get 'framework:tabify)])
-                                      (hash-table-put! ht parsed keyword-symbol)
-                                      (update-list-boxes ht))]
-                                   [else (message-box 
-                                          (string-constant error)
-                                          (format (string-constant expected-a-symbol) new-one))]))))))]
-                      [delete-callback
-                       (lambda (list-box)
-                         (lambda (button command)
-                           (let* ([selections (send list-box get-selections)]
-                                  [symbols (map (lambda (x) (string->symbol (send list-box get-string x))) selections)])
-                             (for-each (lambda (x) (send list-box delete x)) (reverse selections))
-                             (let ([ht (preferences:get 'framework:tabify)])
-                               (for-each (lambda (x) (hash-table-remove! ht x)) symbols)))))]
-                      [main-panel (make-object horizontal-panel% p)]
-                      [make-column
-                       (lambda (string symbol keywords)
-                         (let* ([vert (make-object vertical-panel% main-panel)]
-                                [_ (make-object message% (format (string-constant x-like-keywords) string) vert)]
-                                [box (make-object list-box% #f keywords vert void '(multiple))]
-                                [button-panel (make-object horizontal-panel% vert)]
-                                [add-button (make-object button% (string-constant add-keyword)
-                                              button-panel (add-button-callback string symbol box))]
-                                [delete-button (make-object button% (string-constant remove-keyword)
-                                                 button-panel (delete-callback box))])
-                           (send* button-panel 
-                             (set-alignment 'center 'center)
-                             (stretchable-height #f))
-                           (send add-button min-width (send delete-button get-width))
-                           box))]
-                      [begin-list-box (make-column "Begin" 'begin begin-keywords)]
-                      [define-list-box (make-column "Define" 'define define-keywords)]
-                      [lambda-list-box (make-column "Lambda" 'lambda lambda-keywords)]
-                      [update-list-boxes
-                       (lambda (hash-table)
-                         (let-values ([(begin-keywords define-keywords lambda-keywords) (get-keywords hash-table)]
-                                      [(reset) (lambda (list-box keywords)
-                                                 (send list-box clear)
-                                                 (for-each (lambda (x) (send list-box append x)) keywords))])
-                           (reset begin-list-box begin-keywords)
-                           (reset define-list-box define-keywords)
-                           (reset lambda-list-box lambda-keywords)
-                           #t))])
-               (preferences:add-callback 'framework:tabify (lambda (p v) (update-list-boxes v)))
-               main-panel))))))))
+           (define get-keywords
+             (lambda (hash-table)
+               (letrec ([all-keywords (hash-table-map hash-table list)]
+                        [pick-out (lambda (wanted in out)
+                                    (cond
+                                      [(null? in) (quicksort out string<=?)]
+                                      [else (if (eq? wanted (cadr (car in))) 
+                                                (pick-out wanted (cdr in) (cons (symbol->string (car (car in))) out))
+                                                (pick-out wanted (cdr in) out))]))])
+                 (values  (pick-out 'begin all-keywords null)
+                          (pick-out 'define all-keywords null)
+                          (pick-out 'lambda all-keywords null)))))
+           (define-values (begin-keywords define-keywords lambda-keywords)
+             (get-keywords (car (preferences:get 'framework:tabify))))
+           (define add-button-callback
+             (lambda (keyword-type keyword-symbol list-box)
+               (lambda (button command)
+                 (let ([new-one
+                        (keymap:call/text-keymap-initializer
+                         (lambda ()
+                           (get-text-from-user
+                            (format (string-constant enter-new-keyword) keyword-type)
+                            (format (string-constant x-keyword) keyword-type))))])
+                   (when new-one
+                     (let ([parsed (with-handlers ((exn:fail:read? (lambda (x) #f)))
+                                     (read (open-input-string new-one)))])
+                       (cond
+                         [(and (symbol? parsed)
+                               (hash-table-get (car (preferences:get 'framework:tabify))
+                                               parsed
+                                               (lambda () #f)))
+                          (message-box (string-constant error)
+                                       (format (string-constant already-used-keyword) parsed))]
+                         [(symbol? parsed)
+                          (let ([ht (car (preferences:get 'framework:tabify))])
+                            (hash-table-put! ht parsed keyword-symbol)
+                            (update-list-boxes ht))]
+                         [else (message-box 
+                                (string-constant error)
+                                (format (string-constant expected-a-symbol) new-one))])))))))
+           (define delete-callback
+             (lambda (list-box)
+               (lambda (button command)
+                 (let* ([selections (send list-box get-selections)]
+                        [symbols (map (lambda (x) (string->symbol (send list-box get-string x))) selections)])
+                   (for-each (lambda (x) (send list-box delete x)) (reverse selections))
+                   (let ([ht (car (preferences:get 'framework:tabify))])
+                     (for-each (lambda (x) (hash-table-remove! ht x)) symbols))))))
+           (define main-panel (make-object horizontal-panel% p))
+           (define make-column
+             (lambda (string symbol keywords bang-regexp)
+               (let* ([vert (make-object vertical-panel% main-panel)]
+                      [_ (make-object message% (format (string-constant x-like-keywords) string) vert)]
+                      [box (make-object list-box% #f keywords vert void '(multiple))]
+                      [button-panel (make-object horizontal-panel% vert)]
+                      [text (new text-field% 
+                                 (label (string-constant indenting-prefs-extra-regexp))
+                                 (callback (lambda (tf evt) 
+                                             (let ([str (send tf get-value)])
+                                               (cond
+                                                 [(equal? str "") 
+                                                  (bang-regexp #f)]
+                                                 [else
+                                                  (with-handlers ([exn:fail?
+                                                                   (lambda (x)
+                                                                     (color-yellow (send tf get-editor)))])
+                                                    (bang-regexp (regexp str))
+                                                    (clear-color (send tf get-editor)))]))))
+                                 (parent vert))]
+                      [add-button (make-object button% (string-constant add-keyword)
+                                    button-panel (add-button-callback string symbol box))]
+                      [delete-button (make-object button% (string-constant remove-keyword)
+                                       button-panel (delete-callback box))])
+                 (send* button-panel 
+                   (set-alignment 'center 'center)
+                   (stretchable-height #f))
+                 (send add-button min-width (send delete-button get-width))
+                 (values box text))))
+           (define (color-yellow text)
+             (let ([sd (make-object style-delta%)])
+               (send sd set-delta-background "yellow")
+               (send text change-style sd 0 (send text last-position))))
+           (define (clear-color text)
+             (let ([sd (make-object style-delta%)])
+               (send sd set-delta-background "white")
+               (send text change-style sd 0 (send text last-position))))
+           (define-values (begin-list-box begin-regexp-text) 
+             (make-column "Begin"
+                          'begin
+                          begin-keywords
+                          (lambda (x) (set-car! (cdr (preferences:get 'framework:tabify)) x))))
+           (define-values (define-list-box define-regexp-text) 
+             (make-column "Define" 
+                          'define 
+                          define-keywords
+                          (lambda (x) (set-car! (cddr (preferences:get 'framework:tabify)) x))))
+           (define-values (lambda-list-box lambda-regexp-text)
+             (make-column "Lambda"
+                          'lambda
+                          lambda-keywords
+                          (lambda (x) (set-car! (cdddr (preferences:get 'framework:tabify)) x))))
+           (define update-list-boxes
+             (lambda (hash-table)
+               (let-values ([(begin-keywords define-keywords lambda-keywords) (get-keywords hash-table)]
+                            [(reset) (lambda (list-box keywords)
+                                       (send list-box clear)
+                                       (for-each (lambda (x) (send list-box append x)) keywords))])
+                 (reset begin-list-box begin-keywords)
+                 (reset define-list-box define-keywords)
+                 (reset lambda-list-box lambda-keywords)
+                 #t)))
+           (define update-gui
+             (lambda (pref)
+               (update-list-boxes (car pref))
+               (send begin-regexp-text set-value (or (object-name (cadr pref)) ""))
+               (send define-regexp-text set-value (or (object-name (caddr pref)) ""))
+               (send lambda-regexp-text set-value (or (object-name (cadddr pref)) ""))))
+           (preferences:add-callback 'framework:tabify (lambda (p v) (update-gui v)))
+           main-panel))))))

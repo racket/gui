@@ -150,32 +150,23 @@
       (let ([hash-table (make-hash-table)])
 	(for-each (lambda (x) 
                     (hash-table-put! hash-table x 'define))
-                  '(define defmacro define-macro
-                     define-syntax-set
-                     define-values
-                     define/public define/pubment define/private define/field
-                     define/override define/augment define/overment define/augride
-                     define/augment-final define/override-final define/public-final
-                     define/contract
-                     define-signature 
-                     define-syntax define-syntaxes
-                     define-schema define/contract))
+                  '())
 	(for-each (lambda (x) 
 		    (hash-table-put! hash-table x 'begin))
 		  '(case-lambda
-		    match-lambda match-lambda*
-                    cond
-		    begin begin0 delay
-		    unit compound-unit compound-unit/sig
-		    public private override
-		    inherit sequence))
+                     match-lambda match-lambda*
+                     cond
+                     delay
+                     unit compound-unit compound-unit/sig
+                     public private override
+                     inherit sequence))
 	(for-each (lambda (x) 
 		    (hash-table-put! hash-table x 'lambda))
 		  '(
 		    cases
                        instantiate super-instantiate
                      syntax/loc quasisyntax/loc
-
+                     
                      
                      lambda let let* letrec recur
                      letrec-values
@@ -207,13 +198,30 @@
                      call-with-input-file call-with-input-file* with-input-from-file
                      with-input-from-port call-with-output-file
                      with-output-to-file with-output-to-port))
-	(preferences:set-default 'framework:tabify hash-table hash-table?)
+	(preferences:set-default 
+         'framework:tabify
+         (list hash-table #rx"^begin" #rx"^def" #f)
+         (lambda (x)
+           (and (list? x)
+                (= (length x) 4)
+                (hash-table? (car x))
+                (andmap (lambda (x) (or (regexp? x) (not x))) (cdr x)))))
 	(preferences:set-un/marshall
 	 'framework:tabify 
-	 (lambda (t) (hash-table-map t list))
-	 (lambda (l) (let ([h (make-hash-table)])
-                       (for-each (lambda (x) (apply hash-table-put! h x)) l)
-                       h))))
+	 (lambda (t) (cons (hash-table-map (car t) list)
+                           (cdr t)))
+	 (lambda (l) 
+           (and (list? l)
+                (= (length l) 4)
+                (andmap (lambda (x) (or (regexp? x) (not x)))
+                        (cdr l))
+                (andmap (lambda (x) (and (list? x)
+                                         (= 2 (length x))
+                                         (andmap symbol? x)))
+                        (car l))
+                (let ([h (make-hash-table)])
+                  (for-each (lambda (x) (apply hash-table-put! h x)) (car l))
+                  (cons h (cdr l)))))))
       
       
       (preferences:set-default 'framework:autosave-delay 300 number?)
