@@ -10,7 +10,7 @@ into a separate application.
 Subtle Changes:
 
  - get-edit -> get-editor
- - get-panel -> get-??-container
+ - get-panel -> get-area-container
  - many other mred-sympathetic names changes
 
  - removing exit callbacks is accomplished by calling the procedure that
