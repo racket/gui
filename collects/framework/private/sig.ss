@@ -1,3 +1,4 @@
+
 (module sig mzscheme
   (require (lib "unitsig.ss"))
 
@@ -49,24 +50,12 @@
 
      vertical-resizable<%>
      vertical-resizable-mixin
-
-     ;two-panel<%>
-     ;horizontal-two-panel<%>
-     ;vertical-two-panel<%>
-
-     ;two-panel-mixin
-     ;horizontal-two-panel-mixin
-     ;vertical-two-panel-mixin
      
      single%
      single-pane%
      ;;multi-view%
      vertical-resizable%
-     vertical-resizable-pane%
-     
-     ;horizontal-two-panel%
-     ;vertical-two-panel%
-     ))
+     vertical-resizable-pane%))
 
   (define-signature framework:exn^
     ((struct exn ())

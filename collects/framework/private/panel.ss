@@ -530,16 +530,8 @@
           
           (set-cursor (make-object cursor% (if vertical? 'size-n/s 'size-e/w)))))
     
-      (define two-panel<%> 
-        (interface ((class->interface panel%))
-          get-first-panel
-          get-second-panel
-          hide-first-panel
-          hide-second-panel
-          show-both-panels))
-      
       (define two-panel-mixin
-        (mixin ((class->interface panel%)) (two-panel<%>)
+        (mixin ((class->interface panel%)) ()
           (init parent)
           (super-instantiate (parent))
           (inherit get-client-size container-flow-modified)
@@ -551,7 +543,7 @@
           (define start-percent 0.0)
           
           (define/override (after-new-child child)
-            (refresh-bars (get-children)))
+            '(refresh-bars (get-children)))
           
           (define bar-gaps null)
           (rename [super-place-children place-children])
@@ -561,41 +553,4 @@
             ;; percentages.
             ;; just assume that all children are stretchable and
             ;; what about minimum sizes?
-            )
-          
-          (inherit change-children)
-          (define/public (show-both-panels)
-            (change-children
-             (lambda (l)
-               (list first-pane bar-canvas second-pane))))
-          (define/public (hide-first-panel)
-            (change-children
-             (lambda (l)
-               (list second-pane))))
-          (define/public (hide-second-panel)
-            (change-children
-             (lambda (l)
-               (list first-pane))))
-          (define/public get-first-panel (lambda () first-pane))
-          (define/public get-second-panel (lambda () second-pane))))
-      
-      (define vertical-two-panel<%>
-        (interface (two-panel<%>)))
-      
-      (define vertical-two-panel-mixin
-        (mixin (two-panel<%>) (vertical-two-panel<%>)
-          (define/override (vertical?) #t)
-          (define/override (get-sub-panel%) vertical-panel%)
-          (super-instantiate ())))
-      
-      (define horizontal-two-panel<%>
-        (interface (two-panel<%>)))
-      
-      (define horizontal-two-panel-mixin
-        (mixin (two-panel<%>) (horizontal-two-panel<%>)
-          (define/override (vertical?) #f)
-          (define/override (get-sub-panel%) horizontal-panel%)
-          (super-instantiate ())))
-      
-      (define vertical-two-panel% (vertical-two-panel-mixin (two-panel-mixin vertical-panel%)))
-      (define horizontal-two-panel% (horizontal-two-panel-mixin (two-panel-mixin horizontal-panel%))))))
+            ))))))
