@@ -215,8 +215,6 @@
                 (icon:get-up/down-cursor)
                 (icon:get-left/right-cursor)))
           
-          (super-instantiate (parent))
- 	  
           (inherit get-client-size container-flow-modified)
            
  	  (init-field [bar-thickness 5])
@@ -392,7 +390,9 @@
                      (loop (cdr percentages)
                            (cdr children-info)
                            (max (/ child-major (percentage-% percentage)) major-size)
-                           (max child-minor minor-size))))])))))
+                           (max child-minor minor-size))))])))
+          
+          (super-instantiate (parent))))
       
       (define three-bar-pen-bar-width 8)
       
