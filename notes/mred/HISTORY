@@ -1,4 +1,8 @@
 
+Version 204.5
+Mac OS: canvas% 'gl style flag supported
+Handling of --main/-C command-line flag changed
+
 Version 204.4
 Added 'png and 'png/mask as load bitmap types, and added
  optional background color argument for loading 'png
