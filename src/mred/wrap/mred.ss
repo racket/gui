@@ -671,7 +671,7 @@
       ;            contents.  Each direction is handled
       ;            independently.
       [on-size
-       (lambda (width height)
+       (lambda (bad-width bad-height)
 	 (wx:queue-callback resized #t))])
 
     (public
@@ -1053,8 +1053,8 @@
 		       (as-exit
 			(lambda ()
 			  (send (get-proxy) on-drop-file f)))))]
-      [on-size (lambda (w h)
-		 (super-on-size w h)
+      [on-size (lambda (bad-w bad-h)
+		 (super-on-size bad-w bad-h)
 		 ; Delay callback to make sure X structures (position) are updated, first
 		 (queue-window-callback
 		  this
@@ -1481,7 +1481,10 @@
 	   [(#\tab #\return escape) (not single-line-canvas?)]
 	   [else (not meta?)]))])
     (public
-      [on-tab-in (lambda () (send (wx->mred this) on-tab-in))]
+      [on-tab-in (lambda () 
+		   (let ([mred (wx->mred this)])
+		     (when mred
+		       (send mred on-tab-in))))]
       [set-single-line (lambda () (set! single-line-canvas? #t))]
       [is-single-line? (lambda () single-line-canvas?)]
       [set-line-count (lambda (n)
