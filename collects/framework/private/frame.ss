@@ -485,14 +485,13 @@
                       [make-one
                        (lambda (pos)
                          (let* ([line (send edit position-paragraph pos)]
-                                [line-start (send edit paragraph-start-position line)]
-                                [char (- pos line-start)])
+                                [col (find-col edit line pos)])
                            (if line-numbers?
                                (format "~a:~a"
                                        (add1 line)
                                        (if offset?
-                                           (add1 char)
-                                           char))
+                                           (add1 col)
+                                           col))
                                (format "~a" pos))))])
                  (cond
                    [(not (object? position-canvas))
@@ -523,6 +522,34 @@
                    [else
                     (when (send position-canvas is-shown?)
                       (send position-canvas show #f))])))]
+          
+          ;; find-col : text number number -> number
+          ;; given a line number and a position, finds the
+          ;; column number for that position
+          (define/private (find-col text line pos)
+            (let ([line-start (send text line-start-position line)])
+              (let loop ([col 0]
+                         [snip (send text find-snip line-start 'after-or-none)])
+                (cond
+                  [(and snip (is-a? snip tab-snip%))
+                   ;; assume cursor isn't in the middle of the tab snip
+                   ;; and that there is no tab array
+                   (let ([twb (box 0)])
+                     (send text get-tabs #f twb #f)
+                     (let ([tw (floor (inexact->exact (unbox twb)))])
+                       (loop (+ col (- tw (modulo col tw)))
+                             (send snip next))))]
+                  [snip 
+                   (let ([snip-position (send text get-snip-position snip)]
+                         [snip-length (send snip get-count)])
+                     (if (<= snip-position pos (+ snip-position snip-length))
+                         (+ col (- pos snip-position))
+                         (loop (+ col snip-length)
+                               (send snip next))))]
+                  [else
+                   col]))))
+                  
+
           [define anchor-last-state? #f]
           [define overwrite-last-state? #f]
           (public anchor-status-changed editor-position-changed overwrite-status-changed set-macro-recording)
