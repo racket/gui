@@ -175,41 +175,27 @@
 	       (error 'after-edit-sequence
 		      "extra call to after-edit-sequence"))
 	     (super-after-edit-sequence)
-	     (when (= 0 edit-sequence-counter)
-	       (mred:debug:printf 'lock-icon
-				  "queue: ~a"
-				  edit-sequence-queue)
-	       (let ([queue edit-sequence-queue]
-		     [ht edit-sequence-ht]
-		     [find-enclosing-edit
-		      (lambda (edit)
-			(let ([admin (send edit get-admin)])
-			  (cond
-			   [(is-a? admin wx:media-snip-media-admin%)
-			    (send (send admin get-snip) get-media)]
-
-			   ;; assume that any non-media-snip 
-			   ;; administrator doesn't have embedded edits.
-			   [else #f])))])
-		 (unless (null? queue)
-		   (set! edit-sequence-queue null)
-		   (set! edit-sequence-ht (make-hash-table))
-		   (let loop ([edit (find-enclosing-edit this)])
-		     (cond
-		      [(and edit (= 0 (ivar edit edit-sequence-counter)))
-		       (loop (find-enclosing-edit edit))]
-		      [edit 
-		       (mred:debug:printf 'lock-icon
-					  "passing queue to another edit ~a"
-					  edit
-					  edit-sequence-counter)
-		       (send edit extend-edit-sequence-queue queue ht)]
-		      [else
-		       (mred:debug:printf 'lock-icon
-					  "running queue")
-		       (hash-table-for-each ht (lambda (k t) (t)))
-		       (for-each (lambda (t) (t)) queue)]))))))])
-
+	     (let ([queue edit-sequence-queue]
+		   [ht edit-sequence-ht]
+		   [find-enclosing-edit
+		    (lambda (edit)
+		      (let ([admin (send edit get-admin)])
+			(cond
+			  [(is-a? admin wx:media-snip-media-admin%)
+			   (send (send (send admin get-snip) get-admin) get-media)]
+			  ;; assume that any non-media-snip 
+			  ;; administrator doesn't have embedded edits.
+			  [else #f])))])
+	       (set! edit-sequence-queue null)
+	       (set! edit-sequence-ht (make-hash-table))
+	       (let loop ([edit (find-enclosing-edit this)])
+		 (cond
+		   [(and edit (not (ivar edit local-edit-sequence?)))
+		    (loop (find-enclosing-edit edit))]
+		   [edit (send edit extend-edit-sequence-queue queue ht)]
+		   [else
+		    (hash-table-for-each ht (lambda (k t) (t)))
+		    (for-each (lambda (t) (t)) queue)]))))])
 	(public
 	  [locked? #f]
 	  [lock 

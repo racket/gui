@@ -177,10 +177,7 @@
 				       (wx:message-box "Checkout Failed")))))]))))))))]
 	   [save-file-as
 	    (lambda (edit event)
-	      (let ([file 
-		     (parameterize ([mred:finder:dialog-parent-parameter
-				     (mred:test:test:get-active-frame)])
-		       (mred:finder:put-file))])
+	      (let ([file (mred:finder:put-file)])
 		(if file
 		    (send edit save-file file)))
 	      #t)]
