@@ -85,7 +85,8 @@
 			       (let ([f (get-top-level-focus-window)])
 				 (and f (send f get-focus-window))))]
 			  [l (and w (send w get-label))])
-		     (format "focus: ~a ~a" (or l "") w)))
+		     (let ([s (format "focus: ~a ~a" (or l "") w)])
+		       (substring s 0 (min 200 (string-length s))))))
 	     (start 1000 #t)))])))
    start 1000 #t))
 
@@ -96,14 +97,15 @@
   (lambda (win e)
     (let ([m? (is-a? e mouse-event%)])
       (send m set-label
-	    (format "pre: ~a ~a ~a,~a"
-		    (if m? "mouse" "key")
-		    (let ([l (send win get-label)])
-		      (if (not l)
-			  win
-			  l))
-		    (send e get-x)
-		    (send e get-y)))
+	    (let ([s (format "pre: ~a ~a ~a,~a"
+			     (if m? "mouse" "key")
+			     (let ([l (send win get-label)])
+			       (if (not l)
+				   win
+				   l))
+			     (send e get-x)
+			     (send e get-y))])
+	      (substring s 0 (min 200 (string-length s)))))
       (and (not (or (eq? win cm) (eq? win ck)))
 	   (or (and m? (send cm get-value))
 	       (and (not m?) (send ck get-value)))))))
@@ -119,7 +121,7 @@
 			  win
 			  l)))])
 	(when noisy? (printf "~a~n" s))
-	(send m set-label s)))))
+	(send m set-label (substring s 0 (min 200 (string-length s))))))))
 
 (define (add-click-intercept frame panel)
   (define cp (make-object check-box% "Popup on Click" panel void))
@@ -145,6 +147,7 @@
 	[cc (make-object cursor% 'cross)])
     (make-object check-box% "Control Bullseye Cursors" panel
 		 (lambda (c e)
+		   (printf "~a~n" e)
 		   (if (send c get-value)
 		       (set! old 
 			     (map (lambda (b) 
@@ -510,6 +513,7 @@
 	 (list "Slider" (lambda () (instantiate slider% ("Hello" 1 3 panel void) [style '(deleted vertical)])))
 	 (list "Gauge" (lambda () (instantiate gauge% ("Hello" 3 panel) [style '(deleted vertical)])))
 	 (list "Tab Panel" (lambda () (instantiate tab-panel% ('("Hello" "Bye") panel void) [style '(deleted)])))
+	 (list "Group Box Panel" (lambda () (instantiate group-box-panel% ('"Hello" panel) [style '(deleted)])))
 	 (list "Panel" (lambda () (instantiate panel% (panel) [style '(deleted border)]))))))
 
 (define use-dialogs? #f)
@@ -653,7 +657,11 @@
     (define tab (make-object tab-panel% 
 			     '("Appl\351" "B&anana") ip2 void))
 
+    (define grp (make-object group-box-panel% 
+			     "Group\351" ip2))
+
     (make-object button% "OK" tab void)
+    (make-object button% "Cancel" grp void)
 
     (add-testers2 "Horiz Slider" sh)
     (add-testers2 "Vert Slider" sv)
@@ -663,23 +671,27 @@
     ; (add-testers2 "Image Message" cmi)
     (add-testers2 "Text" txt)
     (add-testers2 "Tab" tab)
+    (add-testers2 "Group" grp)
     
     (add-change-label "Horiz Slider" sh lp2 #f OTHER-LABEL)
     (add-change-label "Vert Slider" sv lp2 #f OTHER-LABEL)
     (add-change-label "Horiz Gauge" gh lp2 #f OTHER-LABEL)
     (add-change-label "Vert Gauge" gv lp2 #f OTHER-LABEL)
     (add-change-label "Text" txt lp2 #f OTHER-LABEL)
+    (add-change-label "Group" grp lp2 #f OTHER-LABEL)
     
     (let* ([items (list sh sv
 			gh gv
 			; cmt cmi
-			txt)]
+			txt
+			tab grp)]
 	   [canvas  (make-object popup-test-canvas% 
 				 items
 				 (list "h slider" "v slider"
 				       "v gauge" "v gauge"
 				       ; "text msg" "image msg"
-				       "text")
+				       "text"
+				       "tab" "group")
 				 cp2 '(hscroll vscroll))])
       (send canvas accept-tab-focus #t)
       (send canvas init-auto-scrollbars 300 300 0.0 0.0)
@@ -1995,32 +2007,35 @@
 
 (define make-selector-and-runner
   (lambda (p1 p2 radios? size maker)
+    (define (make-radio-box lbl choices panel cb)
+      (let ([g (instantiate group-box-panel% (lbl panel) [horiz-margin 2] [vert-margin 2])])
+	(make-object radio-box% #f choices g cb)))
     (define radio-h-radio
-      (make-object radio-box% 
-		   (if radios? "Radio Box Orientation" "Slider Style")
-		   (if radios? '("Vertical" "Horizontal") '("Numbers" "Plain"))
-		   p1 void))
+      (make-radio-box 
+       (if radios? "Radio Box Orientation" "Slider Style")
+       (if radios? '("Vertical" "Horizontal") '("Numbers" "Plain"))
+       p1 void))
     (define label-h-radio
-      (make-object radio-box% "Label Orientation" '("Vertical" "Horizontal")
-		   p1 void))
+      (make-radio-box "Label Orientation" '("Vertical" "Horizontal")
+		      p1 void))
     (define label-null-radio
-      (make-object radio-box% "Optional Labels" '("Use Label" "No Label")
-		   p1 void))
+      (make-radio-box "Optional Labels" '("Use Label" "No Label")
+		      p1 void))
     (define stretchy-radio
-      (make-object radio-box% "Stretchiness" '("Normal" "All Stretchy")
-		   p1 void))
+      (make-radio-box "Stretchiness" '("Normal" "All Stretchy")
+		      p1 void))
     (define label-font-radio
-      (make-object radio-box% "Label Font" '("Normal" "Big")
-		   p1 void))
+      (make-radio-box "Label Font" '("Normal" "Big")
+		      p1 void))
     (define button-font-radio
-      (make-object radio-box% "Control Font" '("Normal" "Big")
-		   p1 void))
+      (make-radio-box "Control Font" '("Normal" "Big")
+		      p1 void))
     (define enabled-radio
-      (make-object radio-box% "Initially" '("Enabled" "Disabled")
-		   p1 void))
+      (make-radio-box "Initially" '("Enabled" "Disabled")
+		      p1 void))
     (define selection-radio
-      (make-object radio-box% "Selection" '("Default" "Alternate")
-		   p1 void))
+      (make-radio-box "Selection" '("Default" "Alternate")
+		      p1 void))
     (define next-button
       (make-next-button p2 (list radio-h-radio label-h-radio label-null-radio 
 				 stretchy-radio label-font-radio button-font-radio
