@@ -3814,7 +3814,8 @@
 	(check-label-string/false cwho label)
 	(check-container-ready cwho parent)
 	(when (memq 'gl style)
-	  (unless (eq? (system-type) 'windows)
+	  (unless (or (eq? (system-type) 'windows)
+		      (eq? (system-type) 'unix))
 	    (raise-mismatch-error (who->name cwho)
 				  "the 'gl style flag is not supported on this platform: "
 				  style)))))
