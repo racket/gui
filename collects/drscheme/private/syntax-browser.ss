@@ -438,10 +438,10 @@ needed to really make this work:
   
   (define (set-box/f! b v) (when (box? b) (set-box! b v)))
   
-  (define down-bitmap (make-object bitmap% (build-path (collection-path "icons") "turn-down.gif")))
-  (define up-bitmap (make-object bitmap% (build-path (collection-path "icons") "turn-up.gif")))
-  (define down-click-bitmap (make-object bitmap% (build-path (collection-path "icons") "turn-down-click.gif")))
-  (define up-click-bitmap (make-object bitmap% (build-path (collection-path "icons") "turn-up-click.gif")))
+  (define down-bitmap (make-object bitmap% (build-path (collection-path "icons") "turn-down.png")))
+  (define up-bitmap (make-object bitmap% (build-path (collection-path "icons") "turn-up.png")))
+  (define down-click-bitmap (make-object bitmap% (build-path (collection-path "icons") "turn-down-click.png")))
+  (define up-click-bitmap (make-object bitmap% (build-path (collection-path "icons") "turn-up-click.png")))
   (define arrow-snip-height
     (max 10
          (send up-bitmap get-height)

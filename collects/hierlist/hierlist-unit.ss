@@ -34,10 +34,10 @@
 				      (make-object bitmap% 10 10)
 				      (make-object bitmap% 10 10)))])
 	  (values
-	   (make-object bitmap% (build-path (collection-path "icons") "turn-up.gif"))
-	   (make-object bitmap% (build-path (collection-path "icons") "turn-down.gif"))
-	   (make-object bitmap% (build-path (collection-path "icons") "turn-up-click.gif"))
-	   (make-object bitmap% (build-path (collection-path "icons") "turn-down-click.gif")))))
+	   (make-object bitmap% (build-path (collection-path "icons") "turn-up.png"))
+	   (make-object bitmap% (build-path (collection-path "icons") "turn-down.png"))
+	   (make-object bitmap% (build-path (collection-path "icons") "turn-up-click.png"))
+	   (make-object bitmap% (build-path (collection-path "icons") "turn-down-click.png")))))
 
       ;; Hack for implementing auto-wrapping items:
       (define arrow-size 0)

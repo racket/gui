@@ -25,16 +25,20 @@
       (inherit popup-menu get-dc get-size get-client-size min-width min-height
                stretchable-width stretchable-height
                get-top-level-window)
-      (override on-event on-paint)
-      
-      (define/public (on-choose-directory dir)
-        (void))
       
       (define paths #f)
       
       ;; label : string
       (define label (string-constant untitled))
       
+      (define full-name-window #f)
+      
+      (define mouse-grabbed? #f)
+      (define mouse-over? #f)
+
+      (define/public (on-choose-directory dir)
+        (void))
+            
       ;; set-message : boolean (union #f path string) -> void
       ;; if file-name? is #t, path-name should be a path (or #f)
       ;; if file-name? is #f, path-name should be a string (or #f)
@@ -54,10 +58,7 @@
             (update-min-sizes)
             (on-paint))))
       
-      (define full-name-window #f)
-      
-      (define mouse-grabbed? #f)
-      (define (on-event evt)
+      (define/override (on-event evt)
         (let* ([needs-update? #f]
                [do-update
                 (lambda ()
@@ -65,23 +66,25 @@
                     (on-paint)))])
           
           (let-values ([(max-x max-y) (get-size)])
-            (let ([inside? (and (<= 0 (send evt get-x) max-x)
+            (let ([inside? (and (not (send evt leaving?))
+                                (<= 0 (send evt get-x) max-x)
                                 (<= 0 (send evt get-y) max-y))])
-              (unless (eq? inside? inverted?)
-                (set! inverted? inside?)
+              (unless (eq? inside? mouse-over?)
+                (set! mouse-over? inside?)
                 (set! needs-update? #t))))
           
           (cond
             [(and paths (not (null? paths))) 
              (cond
                [(send evt button-down?)
-                (let-values ([(width height) (get-client-size)])
-                  
-                  (set! inverted? #t)
+                (let-values ([(width height) (get-size)])
+                  (set! mouse-over? #t)
                   (set! needs-update? #t)
+                  (set! mouse-grabbed? #t)
                   (let ([menu (make-object popup-menu% #f
                                 (lambda x
-                                  (set! inverted? #f)
+                                  (set! mouse-over? #f)
+                                  (set! mouse-grabbed? #f)
                                   (on-paint)))])
                     (let loop ([paths (cdr (reverse paths))])
                       (cond
@@ -100,10 +103,10 @@
              (cond
                [(send evt button-up? 'left)
                 (set! mouse-grabbed? #f)
+                (set! needs-update? #t)
                 (cond
-                  [inverted?
-                   (set! inverted? #f)
-                   (set! needs-update? #t)
+                  [mouse-over?
+                   (set! mouse-over? #f)
                    (do-update)
                    (message-box 
                     (string-constant drscheme)
@@ -113,28 +116,26 @@
                    (do-update)])]
                [(send evt button-down? 'left)
                 (set! mouse-grabbed? #t)
-                (set! inverted? #t)
+                (set! mouse-over? #t)
                 (set! needs-update? #t)
                 (do-update)]
                [else 
                 (do-update)])])))
       
       (inherit get-parent)
-      (define (update-min-sizes)
+      (define/private (update-min-sizes)
         (let-values ([(w h) (calc-button-min-sizes (get-dc) label)])
           (min-width w)
           (min-height h)
           (send (get-parent) reflow-container)))
       
-      (define inverted? #f)
-      
-      (define (on-paint)
+      (define/override (on-paint)
         (let ([dc (get-dc)])
           (let-values ([(w h) (get-client-size)])
             (when (and (> w 5) (> h 5))
-              (draw-button-label dc label w h inverted? mouse-grabbed?)))))
+              (draw-button-label dc label w h mouse-over? mouse-grabbed?)))))
       
-      (super-instantiate ())
+      (super-new [style '(transparent)])
       (update-min-sizes)
       (stretchable-width #f)
       (stretchable-height #f)))
@@ -149,30 +150,15 @@
        (send the-font-list find-or-create-font 10 'decorative 'normal 'normal #f)]))
   
   (define button-label-inset 1)
-  
   (define black-color (make-object color% "BLACK"))
   
-  (define triangle-width 10)
-  (define triangle-height 7)
-  (define triangle-space 2)
+  (define right-triangle-bitmap (make-object bitmap% (build-path (collection-path "icons") "turn-up.png") 'unknown/mask))
+  (define down-triangle-bitmap (make-object bitmap% (build-path (collection-path "icons") "turn-down.png") 'unknown/mask))
+  (define triangle-width (send right-triangle-bitmap get-width))
+  (define triangle-height (send right-triangle-bitmap get-height))
   
-  (define (calc-button-min-sizes dc label)
-    (send dc set-font button-label-font)
-    (let-values ([(w h a d) (send dc get-text-extent label button-label-font)])
-      (let ([ans-w
-             (+ button-label-inset
-                1 ;; becuase "(define ...)" has the wrong size under windows
-                (max 0 (inexact->exact (ceiling w)))
-                triangle-space
-                triangle-width
-                button-label-inset)]
-            [ans-h
-             (+ button-label-inset
-                (max 0 
-                     (inexact->exact (ceiling h))
-                     triangle-height)
-                button-label-inset)])
-        (values ans-w ans-h))))
+  (define triangle-space 2)
+  (define circle-spacer 3)
   
   (define (offset-color color offset-one)
     (make-object color%
@@ -180,61 +166,74 @@
       (offset-one (send color green))
       (offset-one (send color blue))))
   
-  (define light-button-color (offset-color (get-panel-background)
-                                           (lambda (v) (floor (+ v (/ (- 255 v) 2))))))
-  (define dark-button-color (offset-color (get-panel-background)
-                                          (lambda (v) (floor (- v (/ v 2))))))
+  (define normal-background "lightgray")
+  (define mouse-over/grabbed-background "darkgray")
   
-  (define triangle
-    (list (make-object point% 0 0)
-          (make-object point% triangle-width 0)
-          (make-object point% (/ triangle-width 2) triangle-height)))
+  (define mouse-over-border-color "black")
+  (define border-color "darkgray")
+  
+  (define normal-text-color (send the-color-database find-color "black"))
+  (define mouse-over-text-color (send the-color-database find-color "firebrick"))
+  
+  (define (calc-button-min-sizes dc label)
+    (send dc set-font button-label-font)
+    (let-values ([(w h a d) (send dc get-text-extent label button-label-font)])
+      (let ([ans-w
+             (+ circle-spacer
+                button-label-inset
+                1 ;; becuase "(define ...)" has the wrong size under windows
+                (max 0 (inexact->exact (ceiling w)))
+                triangle-space
+                triangle-width
+                button-label-inset
+                circle-spacer)]
+            [ans-h
+             (+ button-label-inset
+                (max 0 
+                     (+ 2 (inexact->exact (ceiling h)))
+                     (+ 2 triangle-height))
+                button-label-inset)])
+        (values ans-w ans-h))))
+  
   
   (define (draw-button-label dc label w h mouse-over? grabbed?)
-    (define inverted? grabbed?)
+    (cond
+      [mouse-over?
+       (send dc set-pen (send the-pen-list find-or-create-pen mouse-over-border-color 1 'solid))
+       (send dc set-brush (send the-brush-list find-or-create-brush mouse-over/grabbed-background 'solid))
+       (send dc set-text-foreground mouse-over-text-color)]
+      [else
+       (send dc set-pen (send the-pen-list find-or-create-pen border-color 1 'solid))
+       (send dc set-brush (send the-brush-list find-or-create-brush normal-background 'solid))
+       (send dc set-text-foreground black-color)])
     
-    (send dc set-text-foreground black-color)
-    (send dc set-text-background (get-panel-background))
-    (send dc set-pen (send the-pen-list find-or-create-pen
-                           (get-panel-background) 1 'solid))
-    (send dc set-brush (send the-brush-list find-or-create-brush
-                             (get-panel-background) 'solid))
+    (send dc draw-ellipse 0 0 h h)
+    (send dc draw-ellipse (- w h) 0 h h)
     
-    (send dc draw-rectangle 0 0 w h)
+    (send dc set-pen (send the-pen-list find-or-create-pen "black" 1 'transparent))
+    (send dc draw-rectangle (quotient h 2) 0 (- w h) h)
     
-    (send dc set-pen (send the-pen-list find-or-create-pen
-                           "BLACK" 1 'solid))
-    (send dc set-brush
-          (send the-brush-list find-or-create-brush
-                (if inverted? dark-button-color light-button-color) 'solid))
-    
-    #;
-    (let ([border
-           (lambda (d)
-             (send dc draw-rectangle
-                   d d
-                   (- w drop-shadow-size)
-                   (- h drop-shadow-size)))])
-      (if inverted?
-          (let loop ([n 0])
-            (cond
-              [(= n drop-shadow-size) (void)]
-              [else
-               (border n)
-               (loop (+ n 1))]))
-          (let loop ([n drop-shadow-size])
-            (cond
-              [(zero? n) (void)]
-              [else
-               (border (- n 1))
-               (loop (- n 1))]))))
-    
-    (send dc draw-polygon triangle 
-          (- w triangle-width)
-          (- (/ h 2) (/ triangle-height 2)))
+    (cond
+      [mouse-over?
+       (send dc set-pen (send the-pen-list find-or-create-pen mouse-over-border-color 1 'solid))]
+      [else
+       (send dc set-pen (send the-pen-list find-or-create-pen border-color 1 'solid))])
+    (send dc draw-line (quotient h 2) 0 (- w (quotient h 2)) 0)
+    (send dc draw-line (quotient h 2) (- h 1) (- w (quotient h 2)) (- h 1))
     
     (when label
       (send dc set-font button-label-font)
-
-      ;; 1 is for the outer drop shadow box
-      (send dc draw-text label button-label-inset button-label-inset))))
+      (let-values ([(tw th _1 _2) (send dc get-text-extent label)])
+        (send dc draw-text label
+              (+ circle-spacer button-label-inset)
+              (- (/ h 2) (/ th 2)))))
+    
+    (let ([bm (if grabbed? down-triangle-bitmap right-triangle-bitmap)])
+      (send dc draw-bitmap
+            bm
+            (- w triangle-width circle-spacer)
+            (- (/ h 2) (/ triangle-height 2))
+            'solid
+            black-color
+            (send bm get-loaded-mask)))
+    (void)))
