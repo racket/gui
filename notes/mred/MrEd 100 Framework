@@ -1,0 +1,140 @@
+MrEd 100 Framework revision
+
+The framework is a streamlined version of the `mred:' names
+from MrEd version 53.
+
+Several of the old classes and proecedures are not longer in the
+framework. Some have been eliminated and some have been moved out
+into a separate application. Use 
+
+   mred -l "app.ss" "system" "oldstyle.ss" "framework"
+
+to start old-style mred.
+
+The eliminated classes and functions are:
+
+  mred:basic-mode% 
+  mred:button% 
+  mred:check-box% 
+  mred:choice% 
+  mred:dialog-box% 
+  mred:edit% (only the name is gone; mred:file-edit lives on)
+  mred:frame%
+  mred:gauge% 
+  mred:horizontal-panel%
+  mred:list-box%
+  mred:message% 
+  mred:multi-text% 
+  mred:panel% 
+  
+  mred:menu% 
+  mred:menu-bar% 
+  mred:menu-frame% 
+  
+  mred:media-text-edit% 
+  mred:media-text-canvas%
+  mred:media-multi-text%
+  
+  mred:mode% 
+  
+The moved functions and classes are:
+  
+  mred:console-edit% 
+  mred:console-frame%
+  mred:editor-frame%
+  mred:graph-pasteboard% 
+  
+  :: web browswer
+  
+  mred:hyper-basic-frame% 
+  mred:hyper-canvas% 
+  mred:hyper-edit% 
+  mred:hyper-make-frame% 
+  mred:hyper-view-frame% 
+  
+  :: graph
+  
+  mred:node-snip% 
+  
+The remaining existant functions and classes are:
+
+  mred:backup-autosave-edit%
+  mred:backup-autosave-pasteboard%
+  
+  mred:canvas% 
+  mred:canvas-message% 
+
+  mred:clever-file-format-edit% 
+  mred:connections-dialog-box% 
+  mred:connections-frame% 
+  mred:connections-media-canvas% 
+  mred:connections-media-edit% 
+  mred:connections-media-pasteboard% 
+  mred:connections-panel% 
+
+  mred:empty-frame% 
+  
+  mred:file-edit% 
+  mred:file-pasteboard% 
+  
+   
+  mred:frame-group% 
+  
+  mred:frame-title-canvas% 
+    
+  mred:horizontal-edit-panel% 
+              
+			  
+              
+  mred:info-edit% 
+  mred:info-file-frame% 
+  mred:info-frame% 
+  mred:info-pasteboard% 
+  mred:keymap-canvas% 
+               
+  mred:match-cache% 
+  mred:media-canvas% 
+  mred:media-edit% 
+  
+  mred:media-snip%          (needs better docs)
+  mred:one-line-canvas% 
+              
+              mred:pasteboard% 
+              mred:pasteboard-frame% 
+              mred:pasteboard-info-file-frame% 
+              mred:pasteboard-info-frame% 
+              mred:radio-box% 
+              mred:return-edit% 
+              mred:scheme-interaction-mode% 
+              mred:scheme-mode% 
+              mred:scheme-mode-edit% 
+              mred:searchable-frame% 
+              mred:searching-edit% 
+              mred:simple-menu-frame% 
+              mred:single-panel% 
+              mred:slider% 
+              mred:snip% 
+              mred:standard-menus-frame% 
+              mred:testable-button% 
+              mred:testable-canvas% 
+              mred:testable-check-box% 
+              mred:testable-choice% 
+              mred:testable-dialog-box% 
+              mred:testable-frame% 
+              mred:testable-gauge% 
+              mred:testable-list-box% 
+              mred:testable-media-canvas% 
+              mred:testable-message% 
+              mred:testable-multi-text% 
+              mred:testable-panel% 
+              mred:testable-radio-box% 
+              mred:testable-slider% 
+              mred:testable-text% 
+              mred:testable-text-window% 
+              mred:text% 
+              mred:text-window% 
+              mred:transparent-io-edit% 
+              mred:vertical-edit-panel% 
+              mred:vertical-panel% 
+              mred:wide-snip-canvas% 
+              mred:wrapping-canvas% 
