@@ -178,7 +178,11 @@
 	  (let* ([main (make-object mred:vertical-panel% parent)]
 		 [make-check
 		  (lambda (callback title initial-value)
-		    (let*  ([c (make-object mred:check-box% main callback title)])
+		    (let*  ([h (make-object mred:horizontal-panel% main)]
+			    [c (make-object mred:check-box% h callback title)]
+			    [p (make-object mred:horizontal-panel% h)])
+		      (send* h (spacing 1) (border 1))
+		      (send* p (spacing 1) (border 1))
 		      (send c set-value initial-value)))])
 	    (send main spacing 1)
 	    (make-check (lambda (_ command) 
