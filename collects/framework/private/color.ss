@@ -186,7 +186,7 @@
                    (set! invalid-tokens-start (+ start-pos orig-token-end change-length))
                    (set! current-pos (+ start-pos orig-token-start))
                    (set! up-to-date? #f)
-                   (colorer-callback)))
+                   (queue-callback colorer-callback #f)))
                 ((>= edit-start-pos invalid-tokens-start)
                  (send invalid-tokens search! (- edit-start-pos invalid-tokens-start))
                  (let-values (((tok-start tok-end valid-tree invalid-tree)
