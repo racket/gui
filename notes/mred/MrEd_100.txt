@@ -280,6 +280,7 @@ window<%> : area<%>
     accept-drop-files on-drop-file
 
 area-container<%> : area<%>
+    container-size
     get-children change-children place-children
     add-child delete-child
     border - parameter-like
@@ -993,6 +994,8 @@ Change post-script-dc% and printer-dc% ininitialization arguments.
 
 Changed arguments al default value of fit-on-page? for print in
  editor<%>
+
+Changed editor<%>'s modified? to is-modified?, added is-locked?
 
 clipboard% changed to clipboard<%> and font-name-directory% changed to
  font-name-directory<%>; there is just once instance, the-clipboard

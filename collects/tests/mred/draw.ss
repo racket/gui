@@ -399,7 +399,7 @@
 		  (send (get-dc) set-device-origin 0 0)
 
 		  (let ([dc (if ps?
-				(let ([dc (make-object post-script-dc% #f #t)])
+				(let ([dc (make-object post-script-dc%)])
 				  (and (send dc ok?) dc))
 				(if (and use-bitmap? (send bm ok?))
 				    (begin

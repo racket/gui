@@ -769,6 +769,52 @@
   (send mf show #t)
   mf)
 
+(define (panel-frame panel%)
+  (define p% (class panel% (parent)
+	       (override
+		 [container-size
+		  (lambda (l)
+		    (values (apply + (map car l))
+			    (apply + (map cadr l))))]
+		 [place-children
+		  (lambda (l w h)
+		    (let-values ([(mw mh) (container-size l)])
+		      (let* ([num-x-stretch (apply + (map (lambda (x) (if (caddr x) 1 0)) l))]
+			     [num-y-stretch (apply + (map (lambda (x) (if (cadddr x) 1 0)) l))]
+			     [dx (floor (/ (- w mw) num-x-stretch))]
+			     [dy (floor (/ (- h mh) num-y-stretch))])
+			(let loop ([l l][r null][x 0][y 0])
+			  (if (null? l)
+			      (reverse r)
+			      (let ([w (+ (caar l) (if (caddr (car l)) dx 0))]
+				    [h (+ (cadar l) (if (cadddr (car l)) dy 0))])
+				(loop (cdr l)
+				      (cons (list x y w h) r)
+				      (+ x w) (+ y h))))))))])
+	       (sequence (super-init parent))))
+  (define f (make-object frame% "Diagnonal Container Test"))
+  (define p (make-object p% f))
+  (define b (make-object button% "Add List or Bad" p
+			 (lambda (b e)
+			   (send p add-child 
+				 (if (send c get-value)
+				     m1
+				     l)))))
+  (define c (make-object check-box% "Remove List" p
+			 (lambda (c e)
+			   (if (send c get-value)
+			       (send p delete-child l)
+			       (send p add-child l)))))
+  (define l (make-object list-box% "List Box" '("A" "B" "C") p
+			 (lambda (l e)
+			   (if (eq? (send e get-event-type) 'list-box)
+			       (send p get-children)
+			       (send p change-children reverse)))))
+  (define p2 (make-object vertical-panel% p '(border)))
+  (define m1 (make-object message% "1" p2))
+  (define m2 (make-object message% "2" p2))
+  (send f show #t))
+
 (define (check-callback-event orig got e types silent?)
   (unless (eq? orig got)
     (error "object not the same"))
@@ -1330,7 +1376,12 @@
 (send bp1 set-label-position 'vertical)
 (send mp1 set-label-position 'vertical)
 
-(make-object button% "Make Menus Frame" ap (lambda (b e) (menu-frame)))
+(define pp (make-object horizontal-pane% ap))
+(send bp stretchable-height #f)
+(make-object button% "Make Menus Frame" pp (lambda (b e) (menu-frame)))
+(make-object horizontal-pane% pp)
+(make-object button% "Make Panel Frame" pp (lambda (b e) (panel-frame panel%)))
+(make-object button% "Make Pane Frame" pp (lambda (b e) (panel-frame pane%)))
 (define bp (make-object horizontal-pane% ap))
 (send bp stretchable-width #f)
 (make-object button% "Make Button Frame" bp (lambda (b e) (button-frame frame% null)))
