@@ -7610,7 +7610,7 @@
 				      (let ([v (read-chars s)])
 					(semaphore-post lock-semaphore)
 					v)
-				      (convert-evt
+				      (wrap-evt
 				       (semaphore-peek-evt lock-semaphore)
 				       (lambda (x) 0)))))
 			    (lambda (s skip general-peek)
