@@ -279,7 +279,19 @@
 				  () wx:const-needed-sb)]
 	  [save-panel (when save-mode? (make-object mred:container:horizontal-panel% main-panel))]
 	  [directory-panel (make-object mred:container:horizontal-panel% main-panel)]
-	  [directory-edit (make-object mred:edit:edit%)]
+	  [directory-edit (make-object (class-asi mred:edit:edit%
+					 (rename [super-on-local-char on-local-char])
+					 (public
+					   [on-local-char
+					    (lambda (key)
+					      (let ([cr-code 13]
+						    [lf-code 10]
+						    [code (send key get-key-code)])
+						(if (or (= code cr-code)
+							(= code lf-code))
+						    (do-go)
+						    (super-on-local-char key))))])))]
+						     
 	  [period-panel (when (eq? 'unix wx:platform)
 			  (make-object mred:container:horizontal-panel% main-panel))]
 	  [bottom-panel (make-object mred:container:horizontal-panel% main-panel)]
@@ -295,7 +307,17 @@
 			    (* 1/2 WIDTH) 300
 			    () wx:const-needed-sb))]
 	  [add-panel (when multi-mode? (make-object mred:container:horizontal-panel% left-middle-panel))]
-	  [remove-panel (when multi-mode? (make-object mred:container:horizontal-panel% right-middle-panel))])
+	  [remove-panel (when multi-mode? (make-object mred:container:horizontal-panel% right-middle-panel))]
+	  [do-go
+	   (lambda ()
+	     (let ([t (send directory-edit get-text)])
+	       (cond
+		 [(file-exists? t)
+		  (set-box! result-box (mzlib:file:normalize-path t))
+		  (show #f)]
+		 [(directory-exists? t)
+		  (set-directory (mzlib:file:normalize-path t))]
+		 [else (wx:bell)])))])
 	(sequence
 	  (when (eq? wx:platform 'unix)
 	    (make-object mred:container:check-box% period-panel
@@ -311,13 +333,10 @@
 				 wx:const-mcanvas-hide-v-scroll))])
 	    (send* canvas
 	      (set-media directory-edit)
+	      (set-focus)
 	      (user-min-height 20)))
-	  (make-object mred:container:button% directory-panel 
-		       (lambda (button evt)
-			 (let ([t (send directory-edit get-text)])
-			   (if (directory-exists? t)
-			       (set-directory (mzlib:file:normalize-path t))
-			       (wx:bell))))
+	  (make-object mred:container:button% directory-panel
+		       (lambda (button evt) (do-go))
 		       "Go")
 
 	  (send main-panel spacing 1)
@@ -399,37 +418,69 @@
 	  
 	  (show #t))))
 
-    (define common-put-file
-      (opt-lambda ([name ()][directory ()][replace? #f]
-			    [prompt "Select File"][filter #f]
-			    [filter-msg  "That name does not have the right form"])
-	(let* ([directory (if (and (null? directory)
-				   (string? name))
-			      (or (mzlib:file:path-only name) null)
-			      directory)]
-	       [name (or (and (string? name)
-			      (mzlib:file:file-name-from-path name))
-			 name)]
-	       [v (box #f)])
-	  (make-object finder-dialog% #t replace? #f v 
-		       directory name prompt filter filter-msg)
-	  (unbox v))))
+    (define make-common
+      (lambda (box-value make-dialog)
+	(let ([s (make-semaphore 1)]
+	      [v (box box-value)]
+	      [d #f])
+	  (lambda x
+	    (semaphore-wait s)
+	    (if d
+		(let ([my-d d]
+		      [my-v v])
+		  (set! d #f)
+		  (set! v #f)
+		  (semaphore-post s)
+		  (send my-d show #t)
+		  (begin0 (unbox my-v)
+			  (semaphore-wait s)
+			  (set! d my-d)
+			  (set! v my-v)
+			  (semaphore-post s)))
+		(begin
+		  (semaphore-post s)
+		  (let* ([my-v (box box-value)]
+			 [my-d (apply make-dialog my-v x)])
+		    (semaphore-wait s)
+		    (unless d
+		      (set! d my-d)
+		      (set! v my-v))
+		    (begin0 (unbox my-v)
+			    (semaphore-post s)))))))))
 
-    (define common-get-file
-      (opt-lambda ([directory ()][prompt "Select File"][filter #f]
-				 [filter-msg "Bad name"])
-	(let ([v (box #f)])
-	  (make-object finder-dialog% #f #f #f v directory '() prompt 
-		       filter filter-msg)
-	  (unbox v))))
+    (define common-put-file
+      (make-common
+       #f
+       (opt-lambda (box 
+		    [name ()][directory ()][replace? #f]
+		    [prompt "Select File"][filter #f]
+		    [filter-msg  "That name does not have the right form"])
+	 (let* ([directory (if (and (null? directory)
+				    (string? name))
+			       (or (mzlib:file:path-only name) null)
+			       directory)]
+		[name (or (and (string? name)
+			       (mzlib:file:file-name-from-path name))
+			  name)])
+	   (make-object finder-dialog% #t replace? #f box 
+			directory name prompt filter filter-msg)))))
+    
+    (define common-get-file 
+      (make-common
+       #f
+       (opt-lambda
+	   (box [directory ()][prompt "Select File"][filter #f]
+		[filter-msg "Bad name"])
+	 (make-object finder-dialog% #f #f #f box directory '() prompt 
+		      filter filter-msg))))
 
     (define common-get-file-list
-      (opt-lambda ([directory ()][prompt "Select Files"][filter #f]
-				 [filter-msg "Bad name"])
-	(let ([v (box ())])
-	  (make-object finder-dialog% #f #f #t v directory '() prompt 
-		       filter filter-msg)
-	  (unbox v))))
+      (make-common
+       null
+       (opt-lambda (box [directory ()][prompt "Select Files"][filter #f]
+			[filter-msg "Bad name"])
+	 (make-object finder-dialog% #f #f #t box directory '() prompt 
+		      filter filter-msg))))
 
     (define std-put-file
       (opt-lambda ([name ()][directory ()][replace? #f][prompt "Select File"]
