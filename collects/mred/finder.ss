@@ -22,7 +22,7 @@
 	  (if (mzlib:string:regexp-match-exact? filter name)
 	      #t
 	      (begin
-		(wx:message-box msg "Error")
+		(mred:gui-utils:message-box msg "Error")
 		#f)))))
     
     (define last-directory #f)
@@ -227,13 +227,13 @@
 		      (let ([file (send directory-edit get-text)])
 			(if (directory-exists? file)
 			    (set-directory (mzlib:file:normalize-path file))
-			    (wx:message-box 
+			    (mred:gui-utils:message-box 
 			     "You must specify a file name"
 			     "Error")))]
 		     [(and save-mode? 
 			   file-filter 
 			   (not (mzlib:string:regexp-match-exact? file-filter name)))
-		      (wx:message-box file-filter-msg "Error")]
+		      (mred:gui-utils:message-box file-filter-msg "Error")]
 		     [else
 
 		      ; if dir in edit box, go to that dir
@@ -258,14 +258,14 @@
 								   (- dir-name-len
 								      rel-name-len)
 								   dir-name-len)))))
-				    (wx:message-box 
+				    (mred:gui-utils:message-box 
 				     (string-append "File \"" 
 						    dir-name
 						    "\" does not exist"))
 				    (if (or (not save-mode?)
 					    (not (file-exists? file))
 					    replace-ok?
-					    (= (wx:message-box
+					    (= (mred:gui-utils:message-box
 						(string-append
 						 "The file " 
 						 name 
@@ -384,8 +384,11 @@
 
 		   (cond 
 
-		    [(or (= code 10) (= code 13))     ; CR or LF
+		    [(or (= code 10) (= code wx:const-k-return))     ; CR or LF
 		     (do-ok)]
+		    
+		    [(= code wx:const-k-tab)
+		     (set-focus-to-directory-edit)]
 		     
 		    ; look for letter at beginning of a filename
 
@@ -459,6 +462,9 @@
 	  [set-focus-to-name-list
 	   (lambda ()
 	     (send name-list set-focus))]
+	  [set-focus-to-directory-edit
+	   (lambda ()
+	     (send directory-panel set-focus))]
 
 	  [save-panel (when save-mode? (make-object mred:container:horizontal-panel% main-panel))]
 
@@ -469,13 +475,17 @@
 					 (public
 					   [on-local-char
 					    (lambda (key)
-					      (let ([cr-code 13]
-						    [lf-code 10]
+					      (let ([lf-code 10]
 						    [code (send key get-key-code)])
-						(if (or (= code cr-code)
-							(= code lf-code))
-						    (do-ok)
-						    (super-on-local-char key))))])))]
+						(cond
+						  [(or (= code wx:const-k-return)
+						       (= code lf-code))
+						   (do-ok)
+						   (set-focus-to-name-list)]
+						  [(= code wx:const-k-tab)
+						   (set-focus-to-name-list)]
+						  [else
+						   (super-on-local-char key)])))])))]
 						     
 	  [dot-panel (when (eq? 'unix wx:platform)
 			  (make-object mred:container:horizontal-panel% main-panel))]
@@ -744,10 +754,10 @@
 		     [name (mzlib:file:file-name-from-path f)])
 		(cond
 		 [(not (and (string? dir) (directory-exists? dir)))
-		  (wx:message-box "Error" "That directory does not exist.")
+		  (mred:gui-utils:message-box "Error" "That directory does not exist.")
 		  #f]
 		 [(or (not name) (equal? name ""))
-		  (wx:message-box "Error" "Empty filename.")
+		  (mred:gui-utils:message-box "Error" "Empty filename.")
 		  #f]
 		 [else f]))))))
 
@@ -774,11 +784,11 @@
 		  (let ([f (mzlib:file:normalize-path f)])
 		    (cond
 		     [(directory-exists? f)
-		      (wx:message-box "Error" 
-				      "That is a directory name.")
+		      (mred:gui-utils:message-box "Error" 
+						  "That is a directory name.")
 		      #f]
 		     [(not (file-exists? f))
-		      (wx:message-box "File does not exist.")
+		      (mred:gui-utils:message-box "File does not exist.")
 		      #f]
 		     [else f]))
 		  #f)))))
