@@ -6,6 +6,7 @@
            (lib "unitsig.ss")
            "sig.ss"
            "../decorated-editor-snip.ss"
+           (lib "bitmap-constant.ss" "mrlib")
            (lib "string-constant.ss" "string-constants"))
   
   (provide comment-box@)
@@ -28,11 +29,7 @@
       (send snipclass set-classname (format "~s" '(lib "comment-snip.ss" "framework")))
       (send (get-the-snip-class-list) add snipclass)
       
-      (define bm (let ([file (build-path (collection-path "icons") "semicolon.gif")])
-                   (and (file-exists? file)
-                        (let ([bm (make-object bitmap% file)])
-                          (and (send bm ok?)
-                               bm)))))
+      (define bm (include-bitmap (lib "semicolon.gif" "icons")))
       
       (define (editor-keymap-mixin %)
         (class %

@@ -5,8 +5,11 @@
   (require-for-syntax (lib "path-spec.ss" "syntax"))
 
   (provide bitmap-constant
-	   bitmap-constant/relative-to)
-
+           (rename bitmap-constant include-bitmap)
+           
+           bitmap-constant/relative-to
+	   (rename bitmap-constant/relative-to include-bitmap/relative-to))
+  
   (define-syntax (-bitmap-constant stx)
     (syntax-case stx ()
       [(_ orig-stx source path-spec)

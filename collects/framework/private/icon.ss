@@ -1,99 +1,73 @@
 (module icon mzscheme
   (require (lib "unitsig.ss")
 	   (lib "class.ss")
+           (lib "bitmap-constant.ss" "mrlib")
 	   "bday.ss"
            "sig.ss"
 	   (lib "mred-sig.ss" "mred"))
-
+  
   (provide icon@)
   
   (define icon@
     (unit/sig framework:icon^
       (import mred^)
 
-      (define icon-path 
-	(with-handlers ([not-break-exn?
-			 (lambda (x)
-			   (case (system-type)
-			     [(windows) "C:"] ;; just avoid quering the floppy drive
-			     [else (car (filesystem-root-list))]))])
-	  (collection-path "icons")))
+      (define anchor-bitmap (delay (include-bitmap (lib "anchor.gif" "icons"))))
+      (define (get-anchor-bitmap) (force anchor-bitmap))
       
-      (define (load-icon name type)
-	(letrec ([p (build-path icon-path name)]
-		 [f
-		  (lambda ()
-		    (let ([bitmap (make-object bitmap% p type)])
-		      (set! f (lambda () bitmap))
-		      bitmap))])
-	  (lambda ()
-	    (f))))
+      (define lock-bitmap (delay (include-bitmap (lib "lock.gif" "icons"))))
+      (define-values (get-lock-bitmap) (force lock-bitmap))
+      (define unlock-bitmap (delay (include-bitmap (lib "unlock.gif" "icons"))))
+      (define-values (get-unlock-bitmap) (force unlock-bitmap))
       
-      (define (load-bitmap name type)
-	(letrec ([p (build-path icon-path name)]
-		 [f
-		  (lambda ()
-		    (let ([bitmap (make-object bitmap% p type)])
-                      (set! f (lambda () bitmap))
-                      bitmap))])
-	  (lambda ()
-	    (f))))
+      (define autowrap-bitmap (delay (include-bitmap (lib "return.xbm" "icons"))))
+      (define (get-autowrap-bitmap) (force autowrap-bitmap))
+      (define paren-highlight-bitmap (delay (include-bitmap (lib "paren.xbm" "icons"))))
+      (define (get-paren-highlight-bitmap) (force paren-highlight-bitmap))
       
-      (define-values (get-anchor-bitmap) (load-bitmap "anchor.gif" 'gif))
-      (define-values (get-lock-bitmap) (load-bitmap "lock.gif" 'gif))
-      (define-values (get-unlock-bitmap) (load-bitmap "unlock.gif" 'gif))
+      (define-syntax (make-get-cursor stx)
+        (syntax-case stx ()
+          [(_ name mask fallback)
+           (syntax
+            (let ([ans (delay 
+                         (let* ([msk-b (include-bitmap (lib mask "icons"))]
+                                [csr-b (include-bitmap (lib name "icons"))])
+                           (if (and (send msk-b ok?)
+                                    (send csr-b ok?))
+                               (let ([csr (make-object cursor% msk-b csr-b 7 7)])
+                                 (if (send csr ok?)
+                                     csr
+                                     (make-object cursor% fallback)))
+                               (make-object cursor% fallback))))])
+              (lambda ()
+                (force ans))))]))
       
-      (define get-autowrap-bitmap (load-icon "return.xbm" 'xbm))
-      (define get-paren-highlight-bitmap (load-icon "paren.xbm" 'xbm))
+      (define get-up/down-cursor (make-get-cursor "up-down-cursor.xbm" "up-down-mask.xbm" 'size-n/s))
+      (define get-left/right-cursor (make-get-cursor "left-right-cursor.xbm" "left-right-mask.xbm" 'size-e/w))
       
-      (define (make-get/mask filename type)
-	(let ([icon #f]
-	      [p (build-path icon-path filename)])
-	  (lambda ()
-	    (or icon
-		(begin
-		  (set! icon (make-object bitmap% p type))
-		  icon)))))
-
-      (define (make-cursor name mask fallback)
-        (let* ([msk-b (make-object bitmap% (build-path icon-path mask))]
-	       [csr-b (make-object bitmap% (build-path icon-path name))])
-	  (if (and (send msk-b ok?)
-		   (send csr-b ok?))
-	      (let ([csr (make-object cursor% msk-b csr-b 7 7)])
-		(if (send csr ok?)
-		    csr
-		    (make-object cursor% fallback)))
-	      (make-object cursor% fallback))))
+      (define mrf-on-bitmap (delay (include-bitmap (lib "mrf.jpg" "icons"))))
+      (define gc-on-bitmap (delay (include-bitmap (lib "recycle.gif" "icons"))))
       
-      (define up/down-cursor (make-cursor "up-down-cursor.xbm" "up-down-mask.xbm" 'size-n/s))
-      (define (get-up/down-cursor) up/down-cursor)
-      (define left/right-cursor (make-cursor "left-right-cursor.xbm" "left-right-mask.xbm" 'size-e/w))
-      (define (get-left/right-cursor) left/right-cursor)
+      (define (make-off-bitmap onb)
+        (let* ([bitmap (make-object bitmap%
+                         (send onb get-width)
+                         (send onb get-height))]
+               [bdc (make-object bitmap-dc% bitmap)])
+          (send bdc clear)
+          (send bdc set-bitmap #f)
+          bitmap))
       
-      (define gc-on-bitmap #f)
-
-      (define (fetch)
-	(unless gc-on-bitmap
-	  (set! gc-on-bitmap 
-                (if (mrf-bday?)
-                    ((load-icon "mrf.jpg" 'jpeg))
-                    ((load-icon "recycle.gif" 'gif))))))
+      (define mrf-off-bitmap (delay (make-off-bitmap (force mrf-on-bitmap))))
+      (define gc-off-bitmap (delay (make-off-bitmap (force gc-on-bitmap))))
       
-      (define (get-gc-on-bitmap) (fetch) gc-on-bitmap)
+      (define (get-gc-on-bitmap)
+        (force
+         (if (mrf-bday?)
+             mrf-on-bitmap
+             gc-on-bitmap)))
       
-      (define get-gc-off-bitmap
-	(let ([bitmap #f])
-	  (lambda ()
-	    (if bitmap
-		bitmap
-		(begin
-		  (let ([bdc (make-object bitmap-dc%)]
-			[onb (get-gc-on-bitmap)])
-		    (set! bitmap (make-object bitmap%
-				   (send onb get-width)
-				   (send onb get-height)))
-		    (send bdc set-bitmap bitmap)
-		    (send bdc clear)
-		    (send bdc set-bitmap #f)
-		    bitmap)))))))))
+      (define (get-gc-off-bitmap)
+        (force
+         (if (mrf-bday?)
+             mrf-off-bitmap
+             gc-off-bitmap))))))
