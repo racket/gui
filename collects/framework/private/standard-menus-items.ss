@@ -1,22 +1,37 @@
 (module standard-menus-items mzscheme
   (provide
-   (struct generic (name initializer documentation))
-   (struct generic-override (name initializer documentation))
+   ;(struct generic (name initializer documentation))
+   generic? generic-name generic-initializer generic-documentation
+   ;(struct generic-override (name initializer documentation))
+   generic-override? generic-override-name generic-override-initializer generic-override-documentation
+
    
-   (struct before/after (menu name procedure))
-   (struct before ())
-   (struct after ())
+   ;(struct before/after (menu name procedure))
+   ;(struct before ())
+   ;(struct after ())
+   before? after?
+   before/after-menu before/after-name before/after-procedure
    
-   (struct between (menu before after procedure))
+   ;(struct between (menu before after procedure))
+   between?
+   between-menu between-before between-after between-procedure
+   
+   ;(struct an-item (menu-name item-name help-string proc key menu-string-before menu-string-after on-demand))
+   an-item?
+   an-item-menu-name an-item-item-name an-item-help-string an-item-proc an-item-key 
+   an-item-menu-string-before an-item-menu-string-after an-item-on-demand
+   
    before/after->name
    between->name
    
    an-item->name
+   an-item->create-menu-item-name
+   
    items
-   edit-menu:do
-   edit-menu:do-on-demand
-   edit-menu:edit-target-on-demand
-   edit-menu:edit-target-on-demand)
+   ;edit-menu:do
+   ;edit-menu:can-do-on-demand
+   ;edit-menu:edit-target-on-demand
+   )
   
   (define-struct generic (name initializer documentation))
   (define-struct generic-override (name initializer documentation))
@@ -55,6 +70,9 @@
                               (an-item-menu-name item)
                               middle
                               (an-item-item-name item)))]))
+  
+  (define (an-item->create-menu-item-name item)
+    (format "~a:create-~a?" (an-item-menu-name item) (an-item-item-name item)))
   
   (define (edit-menu:do const)
     `(lambda (menu evt)
