@@ -1,5 +1,5 @@
 (unit/sig framework:handler^
-  (import mred-interfaces^
+  (import mred^
 	  [gui-utils : framework:gui-utils^]
 	  [finder : framework:finder^]
 	  [group : framework:group^]

@@ -1,12 +1,12 @@
 
 (unit/sig framework:canvas^
-  (import mred-interfaces^
+  (import mred^
 	  [preferences : framework:preferences^]
 	  [frame : framework:frame^])
   
-  (define basic<%> (interface (editor-canvas<%>)))
+  (define basic<%> (interface ((class->interface editor-canvas%))))
   (define basic-mixin
-    (mixin (editor-canvas<%>) (basic<%>) args
+    (mixin ((class->interface editor-canvas%)) (basic<%>) args
            (sequence
              (apply super-init args))))
            

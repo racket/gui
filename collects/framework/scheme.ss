@@ -4,7 +4,7 @@
 ; Scheme mode for MrEd.
 
 (unit/sig framework:scheme^
-  (import mred-interfaces^
+  (import mred^
 	  [preferences : framework:preferences^]
 	  [match-cache : framework:match-cache^]
 	  [paren : framework:paren^] 

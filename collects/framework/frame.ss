@@ -1,5 +1,5 @@
 (unit/sig framework:frame^
-  (import mred-interfaces^
+  (import mred^
 	  [group : framework:group^]
 	  [preferences : framework:preferences^]
 	  [icon : framework:icon^]
@@ -18,9 +18,7 @@
 
   (rename [-editor<%> editor<%>]
 	  [-pasteboard% pasteboard%]
-	  [-pasteboard<%> pasteboard<%>]
-	  [-text% text%]
-	  [-text<%> text<%>])
+	  [-text% text%])
 
   (define (reorder-menus frame)
     (let* ([items (send (send frame get-menu-bar) get-items)]
@@ -57,14 +55,14 @@
       (set! frame-width (min frame-width (- w window-trimming-upper-bound-width)))
       (set! frame-height (min frame-height (- h window-trimming-upper-bound-height)))))
 
-  (define basic<%> (interface (frame<%>)
+  (define basic<%> (interface ((class->interface frame%))
 		     get-area-container%
 		     get-area-container
 		     get-menu-bar%
 		     make-root-area-container
 		     close))
   (define basic-mixin
-    (mixin (frame<%>) (basic<%>)
+    (mixin ((class->interface frame%)) (basic<%>)
 	   (label [parent #f] [width #f] [height #f] [x #f] [y #f] [style null])
       (rename [super-can-close? can-close?]
 	      [super-on-close on-close]
@@ -211,7 +209,7 @@
 	     (do-label)))])
       (public
 	[get-canvas% (lambda () editor-canvas%)]
-	[get-canvas<%> (lambda () editor-canvas<%>)]
+	[get-canvas<%> (lambda () (class->interface editor-canvas%))]
 	[make-canvas (lambda ()
 		       (let ([% (get-canvas%)]
 			     [<%> (get-canvas<%>)])
@@ -249,7 +247,7 @@
 	     (if (or (not filename) (unbox b))
 		 (bell)
 		 (let ([start
-                        (if (is-a? edit original:text%)
+                        (if (is-a? edit text%)
                             (send edit get-start-position)
                             #f)])
 		   (send edit begin-edit-sequence)
@@ -259,7 +257,7 @@
 				       #f)])
 		     (if status
 			 (begin
-			   (when (is-a? edit original:text%)
+			   (when (is-a? edit text%)
 			     (send edit set-position start start))
 			   (send edit end-edit-sequence))
 			 (begin
@@ -344,23 +342,23 @@
 	(let ([canvas (get-canvas)])
 	  (send canvas focus)))))
   
-  (define -text<%> (interface (-editor<%>)))
+  (define text<%> (interface (-editor<%>)))
   (define text-mixin
-    (mixin (-editor<%>) (-text<%>) args
+    (mixin (-editor<%>) (text<%>) args
       (override
-        [get-editor<%> (lambda () text<%>)]
+        [get-editor<%> (lambda () (class->interface text%))]
 	[get-editor% (lambda () text:keymap%)])
       (sequence (apply super-init args))))
 
-  (define -pasteboard<%> (interface (-editor<%>)))
+  (define pasteboard<%> (interface (-editor<%>)))
   (define pasteboard-mixin
-    (mixin (-editor<%>) (-pasteboard<%>) args
+    (mixin (-editor<%>) (pasteboard<%>) args
       (override
-        [get-editor<%> (lambda () pasteboard<%>)]
+        [get-editor<%> (lambda () (class->interface pasteboard%))]
 	[get-editor% (lambda () pasteboard:keymap%)])
       (sequence (apply super-init args))))
 
-  (define searchable<%> (interface (-text<%>)
+  (define searchable<%> (interface (text<%>)
 			  get-text-to-search
 			  hide-search
 			  unhide-search
@@ -475,11 +473,11 @@
 		   (if (and (not flat) pop-out?)
 		       (pop-out)
 		       (values edit flat))]
-		  [(is-a? current-snip original:editor-snip%)
+		  [(is-a? current-snip editor-snip%)
 		   (let-values ([(embedded embedded-pos)
 				 (let ([media (send current-snip get-editor)])
 				   (if (and media
-					    (is-a? media original:text%))
+					    (is-a? media text%))
 				       (begin
 					 (find-string-embedded 
 					  media 
@@ -614,7 +612,7 @@
 		      (send replace-edit get-keymap)))))
 
   (define searchable-mixin
-    (mixin (-text<%>) (searchable<%>) args
+    (mixin (text<%>) (searchable<%>) args
       (sequence (init-find/replace-edits))
       (inherit get-editor)
       (rename [super-make-root-area-container make-root-area-container]

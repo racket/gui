@@ -1,5 +1,5 @@
 (unit/sig framework:panel^
-  (import mred-interfaces^
+  (import mred^
 	  [mzlib:function : mzlib:function^])
   
   (rename [-editor<%> editor<%>])

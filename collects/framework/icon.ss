@@ -1,5 +1,5 @@
 (unit/sig framework:icon^
-  (import mred-interfaces^)
+  (import mred^)
 
   (define icon-path 
     (with-handlers ([void (lambda (x) (collection-path "mzlib"))]) 

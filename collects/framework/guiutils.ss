@@ -1,5 +1,5 @@
 (unit/sig framework:gui-utils^
-  (import mred-interfaces^)
+  (import mred^)
 
   (define next-untitled-name
     (let ([n 1])
@@ -155,7 +155,7 @@
 		  (cond
 		    [(<= end pos) eof]
 		    [(not snip) eof]
-		    [(is-a? snip original:string-snip%)
+		    [(is-a? snip string-snip%)
 		     (let ([t (send snip get-text (- pos (unbox box)) 1)])
 		       (unless (= (string-length t) 1)
 			 (error 'read-snips/chars-from-buffer

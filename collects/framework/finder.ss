@@ -3,7 +3,7 @@
 ;;; Authors: Matthew Flatt, Robby Findler, Paul Steckler 
 
 (unit/sig framework:finder^
-  (import mred-interfaces^
+  (import mred^
 	  [preferences : framework:preferences^]
 	  [gui-utils : framework:gui-utils^]
 	  [mzlib:string : mzlib:string^]

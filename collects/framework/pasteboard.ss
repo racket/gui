@@ -1,5 +1,5 @@
 (unit/sig framework:pasteboard^
-  (import mred-interfaces^
+  (import mred^
 	  [editor : framework:editor^])
 
   (rename [-keymap% keymap%])

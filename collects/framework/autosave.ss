@@ -1,5 +1,5 @@
 (unit/sig framework:autosave^
-  (import mred-interfaces^
+  (import mred^
 	  [exit : framework:exit^]
 	  [preferences : framework:preferences^])
   

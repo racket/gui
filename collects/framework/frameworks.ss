@@ -8,7 +8,6 @@
 (require-library "macro.ss")
 (require-relative-library "macro.ss")
 
-(require-relative-library "mred-interfacess.ss")
 (require-relative-library "tests.ss")
 
 (define-signature framework:version^

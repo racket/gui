@@ -20,7 +20,7 @@
 	   [core:thread : mzlib:thread^]
 	   [framework:keys : framework:keys^]
 	   [framework:test : framework:test^]
-	   [m : mred-interfaces^])
+	   [m : mred^])
    (link [f : frameworkc^ ((require-relative-library "frameworkc.ss")
 			   core:string
 			   core:function
@@ -39,5 +39,5 @@
   mzlib:thread^
   (keys : framework:keys^)
   (test : framework:test^)
-  mred-interfaces^)
+  mred^)
 

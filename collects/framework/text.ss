@@ -1,5 +1,5 @@
 (unit/sig framework:text^
-  (import mred-interfaces^
+  (import mred^
 	  [icon : framework:icon^]
 	  [editor : framework:editor^]
 	  [preferences : framework:preferences^]
@@ -16,7 +16,7 @@
   ;; unless matthew makes it primitive
   
   (define basic<%>
-    (interface (editor:basic<%> text<%>)
+    (interface (editor:basic<%> (class->interface text%))
       highlight-range      
       get-styles-fixed
       set-styles-fixed
@@ -24,7 +24,7 @@
       initial-autowrap-bitmap))
   
   (define basic-mixin
-    (mixin (editor:basic<%> text<%>) (basic<%>) args
+    (mixin (editor:basic<%> (class->interface text%)) (basic<%>) args
 	   (inherit get-canvases get-admin split-snip get-snip-position
 		    set-autowrap-bitmap
 		    delete find-snip invalidate-bitmap-cache
@@ -336,10 +336,10 @@
 	   (sequence
 	     (apply super-init args))))
   
-  (define return<%> (interface (text<%>)))
+  (define return<%> (interface ((class->interface text%))))
   
   (define return-mixin
-    (mixin (text<%>) (return<%>) (return . args)
+    (mixin ((class->interface text%)) (return<%>) (return . args)
 	   (rename [super-on-local-char on-local-char])
 	   (override
 	    [on-local-char
@@ -355,10 +355,10 @@
 	   (sequence
 	     (apply super-init args))))
   
-  (define info<%> (interface (editor:basic<%> text<%>)))
+  (define info<%> (interface (editor:basic<%> (class->interface text%))))
   
   (define info-mixin
-    (mixin (editor:keymap<%> text<%>) (info<%>) args
+    (mixin (editor:keymap<%> (class->interface text%)) (info<%>) args
 	   (inherit get-start-position get-end-position get-canvas
 		    run-after-edit-sequence)
 	   (rename [super-after-set-position after-set-position]
@@ -407,10 +407,10 @@
 	   (sequence
 	     (apply super-init args))))
   
-  (define clever-file-format<%> (interface (text<%>)))
+  (define clever-file-format<%> (interface ((class->interface text%))))
   
   (define clever-file-format-mixin
-    (mixin (text<%>) (clever-file-format<%>) args
+    (mixin ((class->interface text%)) (clever-file-format<%>) args
       (inherit get-file-format set-file-format find-first-snip)
       (rename [super-on-save-file on-save-file]
 	      [super-after-save-file after-save-file])
@@ -428,7 +428,7 @@
 		 (let loop ([s (find-first-snip)])
 		   (cond
 		    [(not s) #t]
-		    [(is-a? s original:string-snip%)
+		    [(is-a? s string-snip%)
 		     (loop (send s next))]
 		    [else #f])))])
 	  (lambda (name format)

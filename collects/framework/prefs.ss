@@ -1,5 +1,5 @@
 (unit/sig framework:preferences^
-  (import mred-interfaces^
+  (import mred^
 	  [exn : framework:exn^]
 	  [exit : framework:exit^]
 	  [panel : framework:panel^]

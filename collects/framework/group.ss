@@ -1,5 +1,5 @@
 (unit/sig framework:group^
-  (import mred-interfaces^
+  (import mred^
 	  [application : framework:application^]
 	  [frame : framework:frame^]
 	  [preferences : framework:preferences^]

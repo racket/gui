@@ -1,5 +1,5 @@
 (unit/sig framework:keymap^
-  (import mred-interfaces^
+  (import mred^
 	  [keys : framework:keys^]
 	  [preferences : framework:preferences^]
 	  [finder : framework:finder^]
@@ -302,7 +302,7 @@
 	   [region-click
 	    (lambda (edit event f)
 	      (when (and (send event button-down?)
-			 (is-a? edit original:text%))
+			 (is-a? edit text%))
 		(let ([x-box (box (send event get-x))]
 		      [y-box (box (send event get-y))]
 		      [eol-box (box #f)])
