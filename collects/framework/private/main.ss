@@ -103,7 +103,8 @@
                   (cons (bytes->path (car x)) (cdr x)))
                 l))))
       
-      (preferences:set-default 'framework:last-directory (find-system-path 'home-dir) 
+      (preferences:set-default 'framework:last-directory 
+                               (find-system-path 'doc-dir) 
                                (lambda (x) (or (not x) path-string?)))
       
       (preferences:set-un/marshall 'framework:last-directory 

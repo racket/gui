@@ -13,7 +13,7 @@
         (let-values ([(base name dir?)
                       (if name
                           (split-path name)
-                          (values (find-system-path 'home-dir)
+                          (values (find-system-path 'doc-dir)
                                   (bytes->path #"mredauto")
                                   #f))])
           (let* ([base (if (path? base)
