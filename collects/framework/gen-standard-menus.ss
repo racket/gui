@@ -97,7 +97,8 @@ string=? ; exec mred -qr $0
 	       ,(join menu-before-string menu-after-string
 		      `(,(build-id item "-string")))
 	       ,(menu-name->id name-string)
-	       ,name
+               (let ([,name (lambda (item evt) (,name item evt))])
+                 ,name)
 	       (if (preferences:get 'framework:menu-bindings) ,key #f)
 	       (,(build-id item "-help-string"))))])))
 
