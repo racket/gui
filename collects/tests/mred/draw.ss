@@ -197,6 +197,8 @@
 			     (make-object wx:point% 5 95))
 			    (+ x 12) (+ y 15))
 
+		      (send dc draw-point (+ x 35) (+ y 115))
+		      
 		      (send dc draw-line
 			    (+ x 5) (+ y 125) (+ x 10) (+ y 125))
 		      (send dc draw-line

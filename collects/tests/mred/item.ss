@@ -891,7 +891,11 @@
 				      (send e set-command-int p)
 				      (send e set-extra-long 1)
 				      (send e set-event-object c)
-				      (send e set-command-string (list-ref actual-content p))
+				      (send e set-command-string 
+					    (if (< -1 p (length actual-content))
+						(list-ref actual-content p)
+						"???"))
+				      (when list? (send c set-first-item p))
 				      (send c command e)))
 				  " by Simulate" #t))
   (define tb (make-object mred:button% p
