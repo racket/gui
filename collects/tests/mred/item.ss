@@ -1941,10 +1941,12 @@
 				    (set! count (add1 count))))
   (make-object button% "Delete" p2 (lambda (b e)
 				     (send p delete 0)))
-  (make-object button% "Set First" p2 (lambda (b e)
-					(send p set-selection 0)))
-  (make-object button% "Set Last" p2 (lambda (b e)
-				       (send p set-selection (sub1 (send p get-number)))))
+  (make-object button% "First" p2 (lambda (b e)
+				    (send p set-selection 0)))
+  (make-object button% "Last" p2 (lambda (b e)
+				   (send p set-selection (sub1 (send p get-number)))))
+  (make-object button% "Rename" p2 (lambda (b e)
+				     (send p set-item-label (quotient (send p get-number) 2) "Do&nut")))
   (when no-border?
     (make-object button% "Toggle" p2 (lambda (b e)
 				       (if on?

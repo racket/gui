@@ -2062,6 +2062,12 @@
 	       (on-paint)
 	       (send dc set-clipping-region #f)))))))
 
+    (define/public (set-label i s)
+      (set-car! (list-tail tabs i) (wx:label->plain-label s))
+      (set! tab-widths #f)
+      (set! regions #f)
+      (on-paint))
+
     (define -append
       (entry-point
        (lambda (s)
@@ -5380,7 +5386,12 @@
 				     (if (= p i)
 					 (cdr l)
 					 (cons (car l) (loop (add1 p) (cdr l))))))
-		(as-exit (lambda () (send (mred->wx tabs) delete i)))))])
+		(as-exit (lambda () (send (mred->wx tabs) delete i)))))]
+     [set-item-label (entry-point
+		      (lambda (i s)
+			(check-item 'set-item-label i)
+			(check-label-string '(method tab-panel% set-item-label) s)
+			(as-exit (lambda () (send (mred->wx tabs) set-label i s)))))])
     
     (private
       [check-item

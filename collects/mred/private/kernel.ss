@@ -1435,6 +1435,7 @@
     basic-style)
   (define-function get-the-style-list)
   (define-class tab-group% item% #f
+    set-label
     delete
     append
     enable
