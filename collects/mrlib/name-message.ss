@@ -1,3 +1,4 @@
+
 (module name-message mzscheme
   (require (lib "string-constant.ss" "string-constants")
            (lib "class.ss")
@@ -8,7 +9,7 @@
   
   (provide/contract
    (draw-button-label
-    ((is-a?/c dc<%>) (union false/c string?) (>/c 5) (>/c 5) boolean?
+    ((is-a?/c dc<%>) (union false/c string?) (>/c 5) (>/c 5) boolean? boolean?
      . -> .
      void?))
 
@@ -57,57 +58,66 @@
       
       (define mouse-grabbed? #f)
       (define (on-event evt)
-        (cond
-          [(and paths (not (null? paths))) 
-           (cond
-             [(send evt button-down?)
-              (let-values ([(width height) (get-client-size)])
-                
+        (let* ([needs-update? #f]
+               [do-update
+                (lambda ()
+                  (when needs-update?
+                    (on-paint)))])
+          
+          (let-values ([(max-x max-y) (get-size)])
+            (let ([inside? (and (<= 0 (send evt get-x) max-x)
+                                (<= 0 (send evt get-y) max-y))])
+              (unless (eq? inside? inverted?)
+                (set! inverted? inside?)
+                (set! needs-update? #t))))
+          
+          (cond
+            [(and paths (not (null? paths))) 
+             (cond
+               [(send evt button-down?)
+                (let-values ([(width height) (get-client-size)])
+                  
+                  (set! inverted? #t)
+                  (set! needs-update? #t)
+                  (let ([menu (make-object popup-menu% #f
+                                (lambda x
+                                  (set! inverted? #f)
+                                  (on-paint)))])
+                    (let loop ([paths (cdr (reverse paths))])
+                      (cond
+                        [(null? paths) (void)]
+                        [else 
+                         (make-object menu-item% (car paths) menu
+                           (lambda (evt item)
+                             (on-choose-directory (apply build-path (reverse paths)))))
+                         (loop (cdr paths))]))
+                    (do-update)
+                    (popup-menu menu
+                                0
+                                height)))]
+               [else (do-update)])]
+            [else
+             (cond
+               [(send evt button-up? 'left)
+                (set! mouse-grabbed? #f)
+                (cond
+                  [inverted?
+                   (set! inverted? #f)
+                   (set! needs-update? #t)
+                   (do-update)
+                   (message-box 
+                    (string-constant drscheme)
+                    (string-constant no-full-name-since-not-saved)
+                    (get-top-level-window))]
+                  [else
+                   (do-update)])]
+               [(send evt button-down? 'left)
+                (set! mouse-grabbed? #t)
                 (set! inverted? #t)
-                (on-paint)
-                (let ([menu (make-object popup-menu% #f
-                              (lambda x
-                                (set! inverted? #f)
-                                (on-paint)))])
-                  (let loop ([paths (cdr (reverse paths))])
-                    (cond
-                      [(null? paths) (void)]
-                      [else 
-                       (make-object menu-item% (car paths) menu
-                         (lambda (evt item)
-                           (on-choose-directory (apply build-path (reverse paths)))))
-                       (loop (cdr paths))]))
-                  (popup-menu menu
-                              0
-                              height)))]
-             [else (void)])]
-          [else
-           (cond
-             [(send evt moving?)
-              (when mouse-grabbed?
-                (let-values ([(max-x max-y) (get-size)])
-                  (let ([inside? (and (<= 0 (send evt get-x) max-x)
-                                      (<= 0 (send evt get-y) max-y))])
-                    (unless (eq? inside? inverted?)
-                      (set! inverted? inside?)
-                      (on-paint)))))]
-             [(send evt button-up? 'left)
-              (set! mouse-grabbed? #f)
-              (cond
-                [inverted?
-                 (set! inverted? #f)
-                 (on-paint)
-                 (message-box 
-                  (string-constant drscheme)
-                  (string-constant no-full-name-since-not-saved)
-                  (get-top-level-window))]
-                [else
-                 (void)])]
-             [(send evt button-down? 'left)
-              (set! mouse-grabbed? #t)
-              (set! inverted? #t)
-              (on-paint)]
-             [else (void)])]))
+                (set! needs-update? #t)
+                (do-update)]
+               [else 
+                (do-update)])])))
       
       (inherit get-parent)
       (define (update-min-sizes)
@@ -122,7 +132,7 @@
         (let ([dc (get-dc)])
           (let-values ([(w h) (get-client-size)])
             (when (and (> w 5) (> h 5))
-              (draw-button-label dc label w h inverted?)))))
+              (draw-button-label dc label w h inverted? mouse-grabbed?)))))
       
       (super-instantiate ())
       (update-min-sizes)
@@ -130,33 +140,38 @@
       (stretchable-height #f)))
   
   (define button-label-font
-    (send the-font-list find-or-create-font
-          (case (system-type)
-            [(windows) 8]
-            [(macosx) 10]
-            [else 10])
-          'decorative 'normal 'normal #f))
+    (case (system-type)
+      [(windows)
+       (send the-font-list find-or-create-font 8 'decorative 'normal 'normal #f)]
+      [(macosx)
+       (send the-font-list find-or-create-font 11 'system 'normal 'bold #f)]
+      [else
+       (send the-font-list find-or-create-font 10 'decorative 'normal 'normal #f)]))
   
   (define button-label-inset 1)
-  (define drop-shadow-size 2)
   
   (define black-color (make-object color% "BLACK"))
+  
+  (define triangle-width 10)
+  (define triangle-height 7)
+  (define triangle-space 2)
   
   (define (calc-button-min-sizes dc label)
     (send dc set-font button-label-font)
     (let-values ([(w h a d) (send dc get-text-extent label button-label-font)])
       (let ([ans-w
              (+ button-label-inset
-                button-label-inset
-                drop-shadow-size
-                1 ;; for the outer drop shadow
                 1 ;; becuase "(define ...)" has the wrong size under windows
-                (max 0 (inexact->exact (ceiling w))))]
+                (max 0 (inexact->exact (ceiling w)))
+                triangle-space
+                triangle-width
+                button-label-inset)]
             [ans-h
-             (+ button-label-inset button-label-inset
-                drop-shadow-size
-                1 ;; for the outer drop shadow
-                (max 0 (inexact->exact (ceiling h))))])
+             (+ button-label-inset
+                (max 0 
+                     (inexact->exact (ceiling h))
+                     triangle-height)
+                button-label-inset)])
         (values ans-w ans-h))))
   
   (define (offset-color color offset-one)
@@ -170,7 +185,14 @@
   (define dark-button-color (offset-color (get-panel-background)
                                           (lambda (v) (floor (- v (/ v 2))))))
   
-  (define (draw-button-label dc label w h inverted?)
+  (define triangle
+    (list (make-object point% 0 0)
+          (make-object point% triangle-width 0)
+          (make-object point% (/ triangle-width 2) triangle-height)))
+  
+  (define (draw-button-label dc label w h mouse-over? grabbed?)
+    (define inverted? grabbed?)
+    
     (send dc set-text-foreground black-color)
     (send dc set-text-background (get-panel-background))
     (send dc set-pen (send the-pen-list find-or-create-pen
@@ -186,6 +208,7 @@
           (send the-brush-list find-or-create-brush
                 (if inverted? dark-button-color light-button-color) 'solid))
     
+    #;
     (let ([border
            (lambda (d)
              (send dc draw-rectangle
@@ -206,12 +229,12 @@
                (border (- n 1))
                (loop (- n 1))]))))
     
+    (send dc draw-polygon triangle 
+          (- w triangle-width)
+          (- (/ h 2) (/ triangle-height 2)))
+    
     (when label
       (send dc set-font button-label-font)
 
       ;; 1 is for the outer drop shadow box
-      (send dc draw-text label
-	    (+ button-label-inset
-	       (if inverted? drop-shadow-size 1))
-	    (+ button-label-inset
-	       (if inverted? drop-shadow-size 1))))))
+      (send dc draw-text label button-label-inset button-label-inset))))
