@@ -11,7 +11,7 @@
 
   (provide/contract
    (struct data-set ((points (listof (is-a?/c point%)))
-                     (connected? any?)
+                     (connected? any/c)
                      (pen (is-a?/c pen%))
                      (min-x number?)
                      (max-x number?)
@@ -20,7 +20,7 @@
    (struct plot-setup ((axis-label-font (is-a?/c font%))
                        (axis-number-font (is-a?/c font%))
                        (axis-pen (is-a?/c pen%))
-                       (grid? any?)
+                       (grid? any/c)
                        (grid-pen (is-a?/c pen%))
                        (x-axis-marking (listof number?))
                        (y-axis-marking (listof number?))
