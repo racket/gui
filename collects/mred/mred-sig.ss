@@ -94,6 +94,7 @@
      get-top-level-windows
      get-window-text-extent
      graphical-read-eval-print-loop
+     group-box-panel%
      grow-box-spacer-pane%
      horizontal-pane%
      horizontal-panel%

@@ -885,7 +885,8 @@
 				[normal-move
 				 (lambda ()
 				   (let* ([o (if (or (is-a? o wx:canvas%) (is-a? o wx:item%)) 
-						 (if (is-a? o wx-tab-group%)
+						 (if (or (is-a? o wx-tab-group%)
+							 (is-a? o wx-group-box%))
 						     #f
 						     o)
 						 #f)]
@@ -1981,12 +1982,11 @@
 		      (send dc draw-text (car l) (+ x tab-height) (- tab-v-space (if (= pos selected) raise-h 0))))
 		    (list (list (+ next-x inset (if (= selected (add1 pos)) -2 0)) (+ 2 tab-height (- inset))))))
 		 (loop next-x (cdr l) (cdr wl) (add1 pos))))))))
+
     
     (define/override on-paint
       (entry-point
        (lambda ()
-	 (unless tab-widths
-	   (compute-sizes))
 	 (let ([dc (get-dc)])
 	   (send dc set-background bg-color)
 	   (send dc set-font font)
@@ -2014,7 +2014,7 @@
 		 (send dc draw-line (- w 2) (+ 1 tab-height) (- w 2) (- h raise-h))
 		 (send dc draw-line 0 (- h 3 raise-h) w (- h 3 raise-h))
 		 (send dc draw-line 1 (- h 4 raise-h) w (- h 4 raise-h)))))
-	   (send dc set-origin 0 0)))))
+	   (send dc set-origin 0 0)))))    
 
     (define/override (on-size w h)
       (set! redo-regions? #t)
@@ -2079,6 +2079,83 @@
       canvas-based-tab-group%
       (make-window-glue%
        (make-control% wx:tab-group% 0 0 #t #t))))
+
+(define group-right-inset 4)
+
+(define canvas-based-group-box%
+  (class wx-canvas%
+    (init mred proxy style parent label style-again)
+
+    (define font (send parent get-control-font))
+    
+    (inherit get-dc get-client-size get-mred
+	     set-min-width set-min-height
+	     set-tab-focus)
+    (rename [super-on-size on-size])
+    
+    (define lbl label)
+
+    (define lbl-w 0)
+    (define lbl-h 0)
+
+    (define/private (compute-sizes)
+      (let ([dc (get-dc)])
+	(let-values ([(w h d a) (send dc get-text-extent lbl font)])
+	  (set! lbl-w w)
+	  (set! lbl-h h))))
+
+    (define/override (on-char e) (void))
+    (define/override (on-event e) (void))
+    
+    (define/override on-paint
+      (entry-point
+       (lambda ()
+	 (let ([dc (get-dc)])
+	   (send dc set-background bg-color)
+	   (send dc set-font font)
+	   (send dc clear)
+	   (send dc draw-text lbl group-right-inset 0)
+	   (send dc set-pen light-pen)
+	   (let-values ([(w h) (my-get-client-size)])
+	     (send dc draw-line 
+		   1 (/ lbl-h 2)
+		   (- group-right-inset 2) (/ lbl-h 2))
+	     (send dc draw-line
+		   1 (/ lbl-h 2)
+		   1 (- h 2))
+	     (send dc draw-line
+		   1 (- h 2)
+		   (- w 2) (- h 2))
+	     (send dc draw-line
+		   (- w 2) (- h 2)
+		   (- w 2) (/ lbl-h 2))
+	     (send dc draw-line
+		   (- w 2) (/ lbl-h 2)
+		   (min (- w 2)
+			(+ group-right-inset 4 lbl-w))
+		    (/ lbl-h 2)))))))
+
+    (define/private (my-get-client-size)
+      (get-two-int-values (lambda (a b) (get-client-size a b))))
+
+    (define/override (handles-key-code code alpha? meta?) 
+      #f)
+
+    (define/public (set-label l)
+      (set! lbl l)
+      (on-paint))
+
+    (super-instantiate (mred proxy parent -1 -1 -1 -1 null))
+
+    (compute-sizes)
+    (set-min-width (inexact->exact (ceiling (+ lbl-w group-right-inset 4))))
+    (set-min-height (inexact->exact (ceiling (+ lbl-h 6))))))
+
+(define wx-group-box%
+  (if (eq? 'unix (system-type))
+      canvas-based-group-box%
+      (make-window-glue%
+       (make-control% wx:group-box% 0 0 #t #t))))
 
 ;--------------------- wx media Classes -------------------------
 
@@ -4560,6 +4637,26 @@
 		      (check-container-ready cwho parent)))
 		  label parent callback #f))))
 
+;; Not exported:
+(define group-box%
+  (class100 basic-control% (label parent [style null])
+    (override
+     [hidden-child? (lambda () #t)])
+    (sequence
+      (let ([cwho '(constructor group-box)])
+	(check-label-string cwho label)
+	(check-container-parent cwho parent)
+	(check-style cwho #f '(deleted) style))
+      (super-init (lambda () (make-object wx-group-box% this this
+					  style
+					  (mred->wx-container parent)
+					  label
+					  style))
+		  (lambda ()
+		    (let ([cwho '(constructor group-box)])
+		      (check-container-ready cwho parent)))
+		  label parent void #f))))
+
 ;-------------------- Canvas class constructions --------------------
 
 (define canvas-default-size 20) ; a default size for canvases tht fits borders without losing client sizes
@@ -4872,6 +4969,7 @@
     (sequence 
       (let* ([who (cond ; yuck! - we do this to make h-p and v-p subclasses of p
 		   [(is-a? this tab-panel%) 'tab-panel]
+		   [(is-a? this group-box-panel%) 'group-box-panel]
 		   [(is-a? this vertical-panel%) 'vertical-panel]
 		   [(is-a? this horizontal-panel%) 'horizontal-panel]
 		   [else 'panel])]
@@ -4881,7 +4979,7 @@
 	(as-entry
 	 (lambda ()
 	   (super-init (lambda () (set! wx (make-object (case who
-							  [(vertical-panel tab-panel) wx-vertical-panel%]
+							  [(vertical-panel tab-panel group-box-panel) wx-vertical-panel%]
 							  [(horizontal-panel) wx-horizontal-panel%]
 							  [else wx-panel%])
 							this this (mred->wx-container parent) style)) wx)
@@ -4958,6 +5056,35 @@
 				       (format "panel has only ~a tabls, indexed 0 to ~a; given out-of-range index: " 
 					       m (sub1 m)))
 				   n))))])))
+
+
+(define group-box-panel%
+  (class100*/kw vertical-panel% ()
+		[(label parent [style null]) panel%-keywords]
+    (sequence
+      (let ([cwho '(constructor group-box-panel)])
+	(check-label-string cwho label)
+	(check-container-parent cwho parent)
+	(check-style cwho #f '(deleted) style))
+      (super-init parent (if (memq 'deleted style)
+			     '(deleted)
+			     null)))
+
+    (private-field
+     [gbox (make-object group-box% label this null)]
+     [lbl label])
+    (sequence
+      (send (mred->wx this) set-first-child-is-hidden))
+
+    (override
+     [set-label (entry-point
+		 (lambda (s)
+		   (check-label-string '(method group-box-panel% set-label) s)
+		   (set! lbl (if (immutable? s)
+				 s
+				 (string->immutable-string s)))
+		   (send gbox set-label s)))]
+     [get-label (lambda () lbl)])))
 
 ;;;;;;;;;;;;;;;;;;;;;; Menu classes ;;;;;;;;;;;;;;;;;;;;;;
 
@@ -7405,6 +7532,7 @@
 	frame%
 	gauge%
 	tab-panel%
+	group-box-panel%
 	list-box%
 	editor-canvas%
 	message%
