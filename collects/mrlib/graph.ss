@@ -351,7 +351,10 @@
           (update-polygon s4x s4y sx s4y)
           (cond
             [arrow-heads?
-             (send dc draw-polygon points dx dy)]
+             (let ([os (send dc get-smoothing)])
+               (send dc set-smoothing 'aligned)
+               (send dc draw-polygon points dx dy)
+               (send dc set-smoothing os))]
             [else
              (send dc draw-spline (+ dx s1x) (+ dy s1y) (+ dx b12x) (+ dy b12y) (+ dx s2x) (+ dy s2y))
              (send dc draw-spline (+ dx s2x) (+ dy s2y) (+ dx b23x) (+ dy b23y) (+ dx s3x) (+ dy s3y))
@@ -424,7 +427,10 @@
                        ;; (this is only an approximate test, but probably good enough)
                        (cond
                          [arrow-heads?
-                          (send dc draw-polygon points dx dy)]
+                          (let ([os (send dc get-smoothing)])
+                            (send dc set-smoothing 'aligned)
+                            (send dc draw-polygon points dx dy)
+                            (send dc set-smoothing os))]
                          [else
                           (send dc draw-line
                                 (+ dx from-x) (+ dy from-y) 
