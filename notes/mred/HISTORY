@@ -1,4 +1,5 @@
 Version 205.4
+Added size-in-pixels to style<%> and style-delta%
 X with fontconfig/Xft: Added remapping for the 'symbol family
  to match Adobe symbols (like Mac OS X)
 X with fontconfig/Xft: Added substitution support via
