@@ -749,6 +749,7 @@
     find-wordbreak
     set-region-data
     get-region-data
+    get-revision-number
     after-merge-snips
     after-split-snip
     after-set-size-constraint

@@ -7829,13 +7829,13 @@
       ;; If the region is small enough, and if the editor contains
       ;; only string snips, then it's probably better to move
       ;; all of the text into a string port:
-      (if (and expect-to-read-all?
-	       (is-a? snip wx:string-snip%)
+      (if (and (is-a? snip wx:string-snip%)
 	       (let ([s (send text find-next-non-string-snip snip)])
 		 (or (not s)
 		     ((send text get-snip-position s) . >= . end))))
-	  (if ((- end start) . < . 4096)
-	      ;; It's all text, and it's short: just read it into a string
+	  (if (or expect-to-read-all?
+		  ((- end start) . < . 4096))
+	      ;; It's all text, and it's short enough: just read it into a string
 	      (let ([port (open-input-string (send text get-text start end) port-name)])
 		(port-count-lines! port)
 		port)
@@ -7864,11 +7864,13 @@
 			   v)))
 		   void))))
 	  ;; General case, which handles non-text context:
-	  (with-method ([gsp (text get-snip-position)])
+	  (with-method ([gsp (text get-snip-position)]
+			[grn (text get-revision-number)])
 	    (let-values ([(pipe-r pipe-w) (make-pipe)])
 	      (let* ([get-text-generic (generic wx:snip% get-text)]
 		     [get-count-generic (generic wx:snip% get-count)]
 		     [next-generic (generic wx:snip% next)]
+		     [revision (grn)]
 		     [next? #f]
 		     [update-str-to-snip
 		      (lambda (to-str)
@@ -7892,6 +7894,11 @@
 			      0)))]
 		     [next-snip
 		      (lambda (to-str)
+			(unless (= revision (grn))
+			  (raise-mismatch-error 
+			   'text-input-port 
+			   "editor has changed since port was opened: "
+			   text))
 			(set! snip (send-generic snip next-generic))
 			(update-str-to-snip to-str))]
 		     [read-chars (lambda (to-str)
