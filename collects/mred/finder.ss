@@ -103,59 +103,64 @@
 		   (private
 
 		    [set-directory ; sets directory in listbox 
+
 		     (lambda (dir) ; dir is normalized
-		       (mred:gui-utils:show-busy-cursor
-			(lambda ()
-			  (set! current-dir dir)
-			  (set! last-directory dir)
-			  (let-values 
-			   ([(dir-list menu-list)
-			     (let loop ([this-dir dir]
-					[dir-list ()]
-					[menu-list ()])
-			       (let-values ([(base-dir in-dir dir?) (split-path this-dir)])
-					   (if (eq? wx:platform 'windows)
-					       (mzlib:string:string-lowercase! in-dir))
-					   (let* ([dir-list (cons this-dir dir-list)]
-						  [menu-list (cons in-dir menu-list)])
-					     (if base-dir
-						 (loop base-dir dir-list menu-list)
-						 ; No more
-						 (values dir-list menu-list)))))])
-			   (set! dirs (reverse dir-list))
-			   (send dir-choice clear)
-			   (let loop ([choices (reverse menu-list)])
-			     (unless (null? choices)
-				     (send dir-choice append (car choices))
-				     (loop (cdr choices))))
-			   (send dir-choice set-selection 0)
-			   (send top-panel force-redraw))
-			  
-			  (send name-list clear)
-			  (send name-list set
-				(mzlib:function:quicksort
-				 (let ([no-periods? (not (mred:preferences:get-preference
-							  'mred:show-periods-in-dirlist))])
-				   (let loop ([l (directory-list dir)])
-				     (if (null? l)
-					 null
-					 (let ([s (car l)]
-					       [rest (loop (cdr l))])
-					   (cond
-					    [(and no-periods?
-						  (<= 1 (string-length s))
-						  (char=? (string-ref s 0) #\.))
-					     rest]
-					    [(directory-exists? (build-path dir s))
-					     (cons (string-append s (get-slash))
-						   rest)]
-					    [(or (not file-filter)
-						 (mzlib:string:regexp-match-exact? file-filter s))
-					     (cons s rest)]
-					    [else rest])))))
-				 (if (eq? wx:platform 'unix) string<? string-ci<?)))
-			  (send name-list set-selection-and-edit 0)
-			  (set! last-selected -1))))]
+		       (when (directory-exists? dir)
+			     (mred:gui-utils:show-busy-cursor
+			      (lambda ()
+				(set! current-dir dir)
+				(set! last-directory dir)
+				(let-values 
+				 ([(dir-list menu-list)
+				   (let loop ([this-dir dir]
+					      [dir-list ()]
+					      [menu-list ()])
+				     (let-values ([(base-dir in-dir dir?) 
+						   (split-path this-dir)])
+						 (if (eq? wx:platform 'windows)
+						     (mzlib:string:string-lowercase! in-dir))
+						 (let* ([dir-list (cons this-dir dir-list)]
+							[menu-list (cons in-dir menu-list)])
+						   (if base-dir
+						       (loop base-dir dir-list menu-list)
+						       ; No more
+						       (values dir-list menu-list)))))])
+				 (set! dirs (reverse dir-list))
+				 (send dir-choice clear)
+				 (let loop ([choices (reverse menu-list)])
+				   (unless (null? choices)
+					   (send dir-choice append (car choices))
+					   (loop (cdr choices))))
+				 (send dir-choice set-selection 0)
+				 (send top-panel force-redraw))
+				
+				(send name-list clear)
+				(send name-list set
+				      (mzlib:function:quicksort
+				       (let ([no-periods? 
+					      (not (mred:preferences:get-preference
+						    'mred:show-periods-in-dirlist))])
+					 (let loop ([l (directory-list dir)])
+					   (if (null? l)
+					       null
+					       (let ([s (car l)]
+						     [rest (loop (cdr l))])
+						 (cond
+						  [(and no-periods?
+							(<= 1 (string-length s))
+							(char=? (string-ref s 0) #\.))
+						   rest]
+						  [(directory-exists? (build-path dir s))
+						   (cons (string-append s (get-slash))
+							 rest)]
+						  [(or (not file-filter)
+						       (mzlib:string:regexp-match-exact? 
+							file-filter s))
+						   (cons s rest)]
+						  [else rest])))))
+				       (if (eq? wx:platform 'unix) string<? string-ci<?)))
+				(send name-list set-selection-and-edit 0)
+				(set! last-selected -1)))))]
 
 		    [set-edit
 		     (lambda ()
@@ -175,7 +180,9 @@
 		    [show
 		     (lambda (b) 
 		       (when b
-			     (set-directory current-dir))
+			     (if (directory-exists? current-dir)
+				 (set-directory current-dir)
+				 (set-directory (current-directory))))
 		       (super-show b))]
 
 		    [do-period-in/exclusion
@@ -273,10 +280,21 @@
 						       "Warning"
 						       wx:const-yes-no)
 						      wx:const-yes))
-					       (begin
-						 (set-box! 
-						  result-box (mzlib:file:normalize-path file))
-						 (show #f)))))))]))))]
+					       (let ([normal-path
+						      (with-handlers 
+						       ([(lambda (_) #t)
+							 (lambda (_)
+							   (wx:message-box
+							    (string-append
+							     "The file " 
+							     file
+							     " contains nonexistent directory or cycle.") 
+							  "Warning")
+							   #f)])
+						       (mzlib:file:normalize-path file))])
+						 (when normal-path 
+						       (set-box! result-box normal-path)
+						       (show #f))))))))]))))]
 		    
 		    [add-one
 		     (lambda (name)
@@ -517,10 +535,14 @@
 		   (sequence
 
 		     (when (eq? wx:platform 'unix)
-			   (make-object mred:container:check-box% dot-panel
-					do-period-in/exclusion
-					"Show files and directories that begin with a dot")
-			   (send dot-panel stretchable-in-y #f))
+			   (let ([dot-cb
+				  (make-object 
+				   mred:container:check-box% dot-panel
+				   do-period-in/exclusion
+				   "Show files and directories that begin with a dot")])
+			     (send dot-panel stretchable-in-y #f)
+			     (send dot-cb set-value 
+				 (mred:preferences:get-preference 'mred:show-periods-in-dirlist))))
 
 		     (send directory-panel stretchable-in-y #f)
 
