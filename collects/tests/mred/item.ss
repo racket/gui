@@ -713,7 +713,7 @@
 		     "Toggle Apple Enable" mfbp
 		     (lambda args
 		       (send (send apple-menu get-item) enable (not (send (send apple-menu get-item) is-enabled?)))))
-
+	
 	(make-object button%
 		     "Test Labels" lblp 
 		     (lambda args
