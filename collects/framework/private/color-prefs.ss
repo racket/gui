@@ -8,9 +8,9 @@
  
   (provide color-prefs@)
   
-  (define sc-color-syntax-interactively "Color syntax interactively")
-  (define sc-syntax-coloring "Syntax Coloring")
-  (define sc-choose-color "Choose a color for ~a")
+  (define sc-color-syntax-interactively (string-constant color-syntax-interactively))
+  (define sc-syntax-coloring (string-constant syntax-coloring))
+  (define sc-choose-color (string-constant syntax-coloring-choose-color))
   
   (define color-prefs@
     (unit/sig framework:color-prefs^
@@ -30,14 +30,13 @@
                         (stretchable-height #f)))
         (define e (new (class standard-style-list-text%
                          (inherit change-style get-style-list)
-                         (override after-insert)
-                         (define (after-insert pos offset)
-                           (super after-insert pos offset)
+                         (define/augment (after-insert pos offset)
+                           (inner (void) after-insert pos offset)
                            (let ([style (send (get-style-list)
                                               find-named-style
                                               style-name)])
                              (change-style style pos (+ pos offset) #f)))
-                         (super-instantiate ()))))
+                         (super-new))))
         (define c (new editor-canvas%
                        (parent hp)
                        (editor e)
