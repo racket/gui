@@ -473,7 +473,7 @@
 		   (send this set-file-format 'standard))
                  (with-handlers ([not-break-exn?
                                   (lambda (exn)
-                                    (show-autosave-error orig-name exn)
+                                    (show-autosave-error exn orig-name)
                                     (set! auto-save-error? #t)
 				    (when (is-a? this text%)
 				      (send this set-file-format orig-format))

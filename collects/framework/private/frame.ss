@@ -244,44 +244,38 @@
             (send the-font-list find-or-create-font 12 'system 'normal 'normal #f)))
       
       (define lock-canvas%
-        (class100 canvas% (parent . args)
-          (private-field
-           [locked? #f])
-          (public
-            [set-locked
-             (lambda (l)
-               (set! locked? l)
-               (on-paint))])
+        (class canvas%
+          (field [locked? #f])
+          (define/public (set-locked l)
+            (set! locked? l)
+            (on-paint))
           (inherit get-client-size get-dc)
-          (override
-            [on-paint
-             (lambda ()
-               (let* ([dc (get-dc)]
-                      [draw
-                       (lambda (str bg-color bg-style line-color)
-                         (send dc set-font lock-canvas-font)
-                         (let-values ([(w h) (get-client-size)]
-                                      [(tw th ta td) (send dc get-text-extent str)])
-                           (send dc set-pen (send the-pen-list find-or-create-pen line-color 1 'solid))
-                           (send dc set-brush (send the-brush-list find-or-create-brush bg-color bg-style))
-                           (send dc draw-rectangle 0 0 w h)
-                           (send dc draw-text str
-                                 (- (/ w 2) (/ tw 2))
-                                 (- (/ h 2) (/ th 2)))))])
-                 (if locked?
-                     (draw locked-message "yellow" 'solid "black")
-                     (draw unlocked-message (get-panel-background) 'panel (get-panel-background)))))])
-          (inherit min-width min-height stretchable-width stretchable-height)
-          (sequence
-            (apply super-init parent args)
-            (let ([dc (get-dc)])
-              (send dc set-font (send parent get-label-font))
-              (let-values ([(w1 h1 _1 _2) (send dc get-text-extent locked-message lock-canvas-font)]
-                           [(w2 h2 _3 _4) (send dc get-text-extent unlocked-message lock-canvas-font)])
-                (stretchable-width #f)
-                (stretchable-height #t)
-                (min-width (inexact->exact (floor (max w1 w2))))
-                (min-height (inexact->exact (floor (+ 4 (max h1 h2))))))))))
+          (define/override (on-paint)
+            (let* ([dc (get-dc)]
+                   [draw
+                    (lambda (str bg-color bg-style line-color)
+                      (send dc set-font lock-canvas-font)
+                      (let-values ([(w h) (get-client-size)]
+                                   [(tw th ta td) (send dc get-text-extent str)])
+                        (send dc set-pen (send the-pen-list find-or-create-pen line-color 1 'solid))
+                        (send dc set-brush (send the-brush-list find-or-create-brush bg-color bg-style))
+                        (send dc draw-rectangle 0 0 w h)
+                        (send dc draw-text str
+                              (- (/ w 2) (/ tw 2))
+                              (- (/ h 2) (/ th 2)))))])
+              (if locked?
+                  (draw locked-message "yellow" 'solid "black")
+                  (draw unlocked-message (get-panel-background) 'panel (get-panel-background)))))
+          (inherit get-parent min-width min-height stretchable-width stretchable-height)
+          (super-instantiate ())
+          (let ([dc (get-dc)])
+            (send dc set-font (send (get-parent) get-label-font))
+            (let-values ([(w1 h1 _1 _2) (send dc get-text-extent locked-message lock-canvas-font)]
+                         [(w2 h2 _3 _4) (send dc get-text-extent unlocked-message lock-canvas-font)])
+              (stretchable-width #f)
+              (stretchable-height #t)
+              (min-width (inexact->exact (floor (max w1 w2))))
+              (min-height (inexact->exact (floor (+ 4 (max h1 h2)))))))))
 
       (define info<%> (interface (basic<%>)
                         determine-width
