@@ -667,7 +667,7 @@
           (set! ppanels
                 (append ppanels (list (make-ppanel title container #f))))
           (when preferences-dialog
-            (send preferences-dialog added-pane))))
+            (send preferences-dialog added-pane title))))
       
       (define (hide-dialog)
 	(when preferences-dialog
@@ -699,16 +699,9 @@
                     (make-object (class100 frame% args
                                    (public
                                      [added-pane
-                                      (lambda () 
+                                      (lambda (title) 
                                         (ensure-constructed)
-                                        (refresh-menu)
-                                        (unless (null? ppanels)
-                                          (send popup-menu set-selection (sub1 (length ppanels)))
-                                          (send single-panel active-child 
-                                                (ppanel-panel
-                                                 (car
-                                                  (list-tail ppanels
-                                                             (sub1 (length ppanels))))))))])
+                                        (send tap-panel append title))])
                                    (sequence
                                      (apply super-init args)))
                       (string-constant preferences))]
@@ -720,15 +713,12 @@
                               (ppanel-panel 
                                (list-ref ppanels
                                          (send tab-panel get-selection))))))]
-                   [make-popup-menu 
-                    (lambda ()
-                      (let ([menu (instantiate tab-panel% ()
-                                    (choices (map ppanel-title ppanels))
-				    (parent panel)
-				    (callback popup-callback))])
-                        menu))]
-                   [popup-menu (make-popup-menu)]
-                   [single-panel (make-object panel:single% panel)]
+                   [tap-panel
+                    (instantiate tab-panel% ()
+                      (choices (map ppanel-title ppanels))
+                      (parent panel)
+                      (callback popup-callback))]
+                   [single-panel (make-object panel:single% tap-panel)]
                    [bottom-panel (make-object horizontal-panel% panel)]
                    [ensure-constructed
                     (lambda ()
@@ -745,17 +735,7 @@
                       (send single-panel change-children (lambda (l) (map ppanel-panel ppanels)))
                       (unless (null? ppanels)
                         (send single-panel active-child (ppanel-panel (car ppanels)))))]
-                   [refresh-menu
-                    (lambda ()
-                      (let ([new-popup (make-popup-menu)]
-                            [old-selection (send popup-menu get-selection)])
-                        (when old-selection
-                          (send new-popup set-selection old-selection))
-                        (set! popup-menu new-popup)
-                        (send panel change-children
-                              (lambda (l) (list new-popup
-                                                single-panel
-                                                bottom-panel)))))]
+                   
                    [ok-callback (lambda args
 				  (when (andmap (lambda (f) (f))
 						can-close-dialog-callbacks)
@@ -777,7 +757,7 @@
               (set-alignment 'right 'center))
             (ensure-constructed)
             (unless (null? ppanels)
-              (send popup-menu set-selection 0))
-            (send popup-menu focus)
+              (send tap-panel set-selection 0))
+            (send tap-panel focus)
             (send frame show #t)
             frame))))))

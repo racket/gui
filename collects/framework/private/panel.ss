@@ -380,7 +380,35 @@
  				  (cdr children)
  				  (cdr infos)
  				  (+ dim this-space bar-thickness))))])))]))))
- 	    
+      
+      (define three-bar-pen-bar-width 8)
+      
+      (define three-bar-canvas%
+        (class canvas%
+          (inherit get-dc get-client-size)
+          (define/override (on-paint)
+            (let ([dc (get-dc)])
+              (let-values ([(w h) (get-client-size)])
+                (let ([sx (floor (- (/ w 2) (/ three-bar-pen-bar-width 2)))])
+                  (send dc set-brush (send the-brush-list find-or-create-brush (get-panel-background) 'panel))
+                  (send dc set-pen (send the-pen-list find-or-create-pen "black" 1 'transparent))
+                  (send dc draw-rectangle 0 0 w h)
+                  
+                  (send dc set-pen (send the-pen-list find-or-create-pen  "black" 1 'solid))
+                  (send dc draw-line sx 1 (+ sx three-bar-pen-bar-width) 1)
+                  (send dc draw-line sx 4 (+ sx three-bar-pen-bar-width) 4)
+                  (send dc draw-line sx 7 (+ sx three-bar-pen-bar-width) 7)
+                  
+                  (send dc set-pen (send the-pen-list find-or-create-pen  "gray" 1 'solid))
+                  (send dc draw-line sx 2 (+ sx three-bar-pen-bar-width) 2)
+                  (send dc draw-line sx 5 (+ sx three-bar-pen-bar-width) 5)
+                  (send dc draw-line sx 8 (+ sx three-bar-pen-bar-width) 8)))))
+          
+          (super-instantiate ())
+          (inherit stretchable-height min-height)
+          (stretchable-height #f)
+          (min-height 10)))
+      
  
       (define vertical-dragable-mixin
         (mixin (dragable<%>) (vertical-dragable<%>)

@@ -402,9 +402,18 @@
                 (send memory-text begin-edit-sequence)
                 (send memory-text lock #f)
                 (send memory-text erase)
-                (send memory-text insert (number->string (current-memory-use)))
+                (send memory-text insert (format-number (current-memory-use)))
                 (send memory-text lock #t)
                 (send memory-text end-edit-sequence)))]
+
+          (define/private (format-number n)
+            (let loop ([n n])
+              (cond
+                [(<= n 1000) (number->string n)]
+                [else
+                 (format "~a,~a"
+                         (loop (quotient n 1000))
+                         (modulo n 1000))])))
           
             ; only for CVSers
           (when show-memory-text?
@@ -414,7 +423,7 @@
                                (collect-garbage)
                                (update-memory-text)))]
                    [ec (make-object editor-canvas% panel memory-text '(no-hscroll no-vscroll))])
-              (determine-width "000000000" ec memory-text)
+              (determine-width "0,000,000,000" ec memory-text)
               (update-memory-text)
               (set! memory-cleanup
                     (lambda ()
