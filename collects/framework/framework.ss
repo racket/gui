@@ -185,8 +185,16 @@
     "default preferences.")
 
    (preferences:add-panel
-    (string?
-     ((is-a?/c area-container-window<%>) . -> . (is-a?/c area-container-window<%>))
+    ((union string? (cons/p string? (listof string?)))
+     ((is-a?/c area-container-window<%>) 
+      . ->d .
+      (lambda (parent)
+        (let ([children (map (lambda (x) x) (send parent get-children))])
+          (lambda (child)
+            (and (is-a? child area-container-window<%>)
+                 (andmap eq?
+                         (cons child children)
+                         (send parent get-children)))))))
      . -> .
      void?)
     (name f)

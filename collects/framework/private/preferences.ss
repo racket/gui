@@ -328,8 +328,14 @@
                                      ;;;  
       
       
-      (define-struct ppanel (title container panel))
+      ;; ppanel-tree = 
+      ;;  (union (make-ppanel-leaf string (union #f panel) (panel -> panel))
+      ;;         (make-ppanel-interior string (union #f panel) (listof panel-tree)))
+      (define-struct ppanel (name panel))
+      (define-struct (ppanel-leaf ppanel) (maker))
+      (define-struct (ppanel-interior ppanel) (children))
       
+      ;; ppanels : (listof ppanel-tree)
       (define ppanels null)
       
       (define (add-to-scheme-checkbox-panel f)
@@ -656,18 +662,39 @@
       
       (define preferences-dialog #f)
       
-      (define add-panel
-        (lambda (title container)
-	  (unless (and (string? title)
-		       (procedure? container)
-		       (procedure-arity-includes? container 1))
-	    (error 'preferences:add-panel
-		   "expected a string and a function that can accept one argument, got ~e and ~e"
-		   title container))
-          (set! ppanels
-                (append ppanels (list (make-ppanel title container #f))))
-          (when preferences-dialog
-            (send preferences-dialog added-pane title))))
+      (define (add-panel title make-panel)
+        (let ([titles (if (string? title)
+                          (list title)
+                          title)])
+          (add-to-existing-tree 
+           titles 
+           make-panel
+           (lambda (new-subtree) (set! ppanels new-subtree)))))
+      
+      (define (add-to-existing-children titles make-panel banger)
+        (let loop ([children ppanels]
+                   [title (car titles)]
+                   [titles (cdr titles)]
+                   [banger banger])
+          (cond
+            [(null? children)
+             (banger (build-new-subtree titles make-panel))]
+            [else
+             (let ([child (car children)])
+               (if (string=? (ppanel-name child) title)
+                   (add-to-existing-children 
+
+               
+             
+             (build-new-subtree 
+              (append ppanels 
+                      (list (make-ppanel (if (string? title)
+                                             (list title)
+                                             title)
+                                         container
+                                         #f))))
+        (when preferences-dialog
+          (error 'add-panel "preferences dialog already open, cannot add new panels")))
       
       (define (hide-dialog)
 	(when preferences-dialog
@@ -696,12 +723,7 @@
         (lambda ()
           (letrec ([stashed-prefs (get-preference main-preferences-symbol (lambda () null))]
                    [frame 
-                    (make-object (class frame:basic%
-                                   (define/public (added-pane title)
-                                     (lambda (title) 
-                                       (ensure-constructed)
-                                       (send tap-panel append title)))
-                                   (super-instantiate ()))
+                    (make-object frame:basic%
                       (string-constant preferences))]
                    [panel (make-object vertical-panel% (send frame get-area-container))]
                    [popup-callback
@@ -723,11 +745,6 @@
                       (for-each (lambda (ppanel)
                                   (unless (ppanel-panel ppanel)
                                     (let ([panel ((ppanel-container ppanel) single-panel)])
-                                      (unless (and (object? panel)
-                                                   (is-a? panel area-container<%>))
-                                        (error 'preferences-dialog
-                                               "expected the result of the function passed to preferences:add-panel to implement the area-container% interface. Got ~a~n"
-                                               panel))
                                       (set-ppanel-panel! ppanel panel))))
                                 ppanels)
                       (send single-panel change-children (lambda (l) (map ppanel-panel ppanels)))
