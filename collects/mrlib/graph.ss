@@ -257,32 +257,75 @@
       (inherit invalidate-bitmap-cache)
       (define/private (invalidate-to-children/parents snip)
         (when (is-a? snip graph-snip<%>)
-          (let ([children (get-all-children snip)]
-                [parents (get-all-parents snip)])
-            (let-values ([(fx fy fw fh) (get-position snip)])
-              (let loop ([snips (append children parents)]
-                         [l fx]
-                         [t fy]
-                         [r (+ fx (max 0 fw))]
-                         [b (+ fy (max 0 fh))])
-                (cond
-                  [(null? snips)
-                   (invalidate-bitmap-cache l t (- r l) (- b t))]
-                  [else
-                   (let ([c/p (car snips)])
-                     (let-values ([(sx sy sw sh) (get-position c/p)])
-                       (if (eq? c/p snip)
-                           (loop (cdr snips)
-                                 (- (min l sx) self-offset)
-                                 (min t sy)
-                                 (+ (max r (+ sx sw)) self-offset)
-                                 (+ (max b (+ sy sh)) self-offset))
-                           (loop (cdr snips)
-                                 (min l sx)
-                                 (min t sy)
-                                 (max r (+ sx sw))
-                                 (max b (+ sy sh))))))]))))))
+          (let* ([children (get-all-children snip)]
+                 [parents (get-all-parents snip)]
+                 [rects (get-rectangles snip (append children parents))]
+                 [union (union-rects rects)]
+                 [invalidate-rect
+                  (lambda (rect)
+                    (invalidate-bitmap-cache (rect-left rect)
+                                             (rect-top rect)
+                                             (- (rect-right rect)
+                                                (rect-left rect))
+                                             (- (rect-bottom rect)
+                                                (rect-top rect))))])
+            (cond
+              [(< (rect-area union)
+                  (apply + (map (lambda (x) (rect-area x)) rects)))
+               (invalidate-rect union)]
+              [else
+               (for-each invalidate-rect rects)]))))
       
+      ;; get-rectangles : snip (listof snip) -> rect
+      ;; computes the rectangles that need to be invalidated for connecting 
+      (define/private (get-rectangles main-snip c/p-snips)
+        (let ([main-snip-rect (snip->rect main-snip)])
+          (let loop ([c/p-snips c/p-snips])
+            (cond
+              [(null? c/p-snips) null]
+              [else 
+               (let* ([c/p (car c/p-snips)]
+                      [rect
+                       (if (eq? c/p main-snip)
+                           (let-values ([(sx sy sw sh) (get-position c/p)])
+                             (make-rect (- sx self-offset)
+                                        sy
+                                        (+ (+ sx sw) self-offset)
+                                        (+ (+ sy sh) self-offset)))
+                           (union-rects (list main-snip-rect
+                                              (snip->rect c/p))))])
+                 (cons rect (loop (cdr c/p-snips))))]))))
+
+      (define/private (snip->rect snip)
+        (let-values ([(sx sy sw sh) (get-position snip)])
+          (make-rect sx sy (+ sx sw) (+ sy sh))))
+
+      
+      (define/private (rect-area rect)
+        (* (- (rect-right rect)
+              (rect-left rect))
+           (- (rect-bottom rect)
+              (rect-top rect))))
+      
+      (define/private (union-rects rects)
+        (cond
+          [(null? rects) (make-rect 0 0 0 0)]
+          [else
+           (let loop ([rects (cdr rects)]
+                      [l (rect-left (car rects))]
+                      [t (rect-top (car rects))]
+                      [r (rect-right (car rects))]
+                      [b (rect-bottom (car rects))])
+             (cond
+               [(null? rects) (make-rect l t r b)]
+               [else
+                (let ([rect (car rects)])
+                  (loop (cdr rects)
+                        (min l (rect-left rect))
+                        (min t (rect-top rect))
+                        (max r (rect-right rect))
+                        (max b (rect-bottom rect))))]))]))
+            
       ;; on-paint : ... -> void
       ;; see docs, same as super
       ;; draws all of the lines and then draws all of the arrow heads
