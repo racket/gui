@@ -239,7 +239,9 @@ The "MrEd XOR" menu selects a icon:
  - "MrEd ^ MrEd" : MrEd icon masked by itself... non-black parts
    should be transparent.
 
- - "MrEd~" - Upside-down MrEd icon.
+ - "MrEd~" - Upside-down MrEd icon. Besides PLT Middle, this
+   one should blank out whatever is behind it (using cyan in
+   cyan mode)
 
  - "MrEd ^ MrEd~" - MrEd icons masked by upside-down MrEd icon.
    Note that the parens should be fully intact.
