@@ -1517,16 +1517,39 @@
 	    (stretchable-in-x #f)
 	    (stretchable-in-y #t)))))))
 
+(define list-box-wheel-step #f)
+
 (define wx-list-box%
   (make-window-glue% 
    (class100 (make-control% wx:list-box%
 			 const-default-x-margin const-default-y-margin 
 			 #t #t) args
+     (rename
+       [super-pre-on-char pre-on-char])
+     (inherit get-first-item
+	      set-first-visible-item)
+     (private
+       [scroll (lambda (dir)
+		 (unless list-box-wheel-step
+		   (set! list-box-wheel-step (get-preference '|MrEd:wheelStep| (lambda () 3)))
+		   (unless (and (number? list-box-wheel-step)
+				(exact? list-box-wheel-step)
+				(integer? list-box-wheel-step)
+				(<= 1 list-box-wheel-step 100))
+		     (set! list-box-wheel-step 3)))
+		 (let ([top (get-first-item)])
+		   (set-first-visible-item (+ top (* list-box-wheel-step dir)))))])
      (override
        [handles-key-code (lambda (x alpha? meta?)
 			   (case x
 			     [(up down) #t]
-			     [else (and alpha? (not meta?))]))])
+			     [else (and alpha? (not meta?))]))]
+       [pre-on-char (lambda (w e)
+		      (or (super-pre-on-char w e)
+			  (case (send e get-key-code)
+			    [(wheel-up) (scroll -1) #t]
+			    [(wheel-down) (scroll 1) #t]
+			    [else #f])))])
      (sequence (apply super-init args)))))
 
 (define wx-radio-box%
