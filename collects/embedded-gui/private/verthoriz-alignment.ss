@@ -66,7 +66,7 @@
                (send child align (+ x x-offset) (+ y y-offset) w h)]))
           
           (when (and (is-shown?)
-                     (not (empty? children))
+                     (not (empty? children)); this and
                      (not (zero? width))    ; this should be handled by align later
                      (not (zero? height)))  ; this one too
             (for-each move/resize
@@ -170,7 +170,7 @@
   (define horizontal-alignment% (vert/horiz-alignment 'horizontal))
   
   #;((is-a?/c alignment%) . -> . rect?)
-  ;; makes a new default rect out of a snip
+  ;; makes a new default rect out of an alignment
   (define (build-rect item)
     (a:make-rect
      (a:make-dim 0 (send item get-min-width) (send item stretchable-width))

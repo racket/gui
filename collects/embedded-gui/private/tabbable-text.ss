@@ -22,7 +22,7 @@
        [ahead void]
        [back void])
       
-      ;; get-keymaps (-> (listof keymap%))
+      #;(-> (listof keymap%))
       ;; the list of keymaps associated with this text
       (define/override (get-keymaps)
         (let ([keymap (make-object keymap%)])
@@ -40,7 +40,6 @@
       (define/public (set-back t) (set! back t))
       
       (super-new)))
-  
   
   ;; sets the tabbing of all of the texts in the order of the list
   (define (set-tabbing . l)
