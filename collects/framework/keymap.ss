@@ -1053,6 +1053,29 @@
 	  (map "c:x;c:w" "save-file-as")
 	  (map "c:x;c:f" "load-file")))))
   
+  (define (setup-editor kmap)
+    (let ([add/map
+	   (lambda (func op key)
+	     (send kmap add-function
+		   func
+		   (lambda (editor evt)
+		     (send editor do-edit-operation op)))
+	     (send kmap map-function
+		   (string-append
+		    (case (system-type)
+		      [(macos) "d:"]
+		      [(windows) "c:"]
+		      [(unix) "a:"]
+		      [else (error 'keymap.ss "unknown platform: ~s" (system-type))])
+		    key)
+		   func))])
+      (add/map "editor-undo" 'undo "z")
+      (add/map "editor-redo" 'redo "y")
+      (add/map "editor-cut" 'cut "x")
+      (add/map "editor-copy" 'copy "c")
+      (add/map "editor-paste" 'paste "v")
+      (add/map "editor-select-all" 'select-all "a")))
+
   (define (generic-setup keymap)
     (add-editor-keymap-functions keymap)
     (add-pasteboard-keymap-functions keymap)
@@ -1072,6 +1095,10 @@
   (generic-setup search)
   (setup-search search)
   (define (get-search) search)
+
+  (define editor (make-object aug-keymap%))
+  (setup-editor editor)
+  (define (get-editor) editor)
 
   (define (call/text-keymap-initializer thunk)
     (let ([ctki (current-text-keymap-initializer)])

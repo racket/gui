@@ -799,16 +799,30 @@
 		     (send to insert (send snip copy))
 		     (loop (send snip next)))))]
 	      
+	      [text-keymap/editor%
+	       (class text:keymap% args
+		 (rename [super-get-keymaps get-keymaps])
+		 (override
+		  [get-keymaps
+		   (lambda ()
+		     (if (preferences:get 'framework:menu-bindings)
+			 (append (list (keymap:get-editor))
+				 (super-get-keymaps))
+			 (append (super-get-keymaps)
+				 (list (keymap:get-editor)))))])
+		 (sequence
+		   (apply super-init args)))]
+		   
 
 	      [find-panel (make-object horizontal-panel% dialog)]
 	      [find-message (make-object message% "Find" find-panel)]
-	      [f-text (make-object text%)]
+	      [f-text (make-object text-keymap/editor%)]
 	      [find-canvas (make-object editor-canvas% find-panel f-text
 					'(hide-hscroll hide-vscroll))]
 
 	      [replace-panel (make-object horizontal-panel% dialog)]
 	      [replace-message (make-object message% "Replace" replace-panel)]
-	      [r-text (make-object text%)]
+	      [r-text (make-object text-keymap/editor%)]
 	      [replace-canvas (make-object editor-canvas% replace-panel r-text
 					   '(hide-hscroll hide-vscroll))]
 

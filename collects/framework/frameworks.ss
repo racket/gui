@@ -226,10 +226,12 @@
    setup-global
    setup-search
    setup-file
+   setup-editor
 
    get-global
    get-search
    get-file
+   get-editor
 
    call/text-keymap-initializer))
 
