@@ -12,7 +12,8 @@
            (lib "mred.ss" "mred")
 	   (lib "list.ss")
 	   (lib "thread.ss")
-           (lib "etc.ss"))
+           (lib "etc.ss")
+           (lib "surrogate.ss"))
   
   (provide scheme@)
   
@@ -317,7 +318,7 @@
           (send style-list find-named-style "Matching Parenthesis Style")))
 
       (define text-mixin
-        (mixin (text:basic<%>) (-text<%>)
+        (mixin (text:basic<%> host<%>) (-text<%>)
           (inherit begin-edit-sequence
                    delete
                    end-edit-sequence
@@ -1098,7 +1099,6 @@
           (rename [super-on-focus on-focus])
           (define/override (on-focus text super-call on?)
             (super-on-focus text super-call on?)
-            (super-call on?)
             (send text highlight-parens (not on?)))
           
           (rename [super-after-change-style after-change-style])
@@ -1107,22 +1107,19 @@
               (unless (send text get-styles-fixed)
                 (when (send text has-focus?)
                   (send text highlight-parens))))
-            (super-call start len)
             (super-after-change-style text super-call start len))
           
           (rename [super-after-edit-sequence after-edit-sequence])
           (define/override (after-edit-sequence text super-call)
-            (super-after-edit-sequence text super-call)
-            (super-call)
-            (when (send text has-focus?)
-              (send text highlight-parens)))
+             (super-after-edit-sequence text super-call)
+             (when (send text has-focus?)
+               (send text highlight-parens)))
           
           (rename [super-after-insert after-insert])
           (define/override (after-insert text super-call start size)
             (unless (send text local-edit-sequence?)
               (when (send text has-focus?)
                 (send text highlight-parens)))
-            (super-call start size)
             (super-after-insert text super-call start size))
           
           (rename [super-after-delete after-delete])
@@ -1130,7 +1127,6 @@
             (unless (send text local-edit-sequence?)
               (when (send text has-focus?)
                 (send text highlight-parens)))
-            (super-call start size)
             (super-after-delete text super-call start size))
           
           (rename [super-after-set-size-constraint after-set-size-constraint])
@@ -1138,7 +1134,6 @@
             (unless (send text local-edit-sequence?)
               (when (send text has-focus?)
                 (send text highlight-parens)))
-            (super-call)
             (super-after-set-size-constraint text super-call))
           
           (rename [super-after-set-position after-set-position])
@@ -1146,7 +1141,6 @@
             (unless (send text local-edit-sequence?)
               (when (send text has-focus?)
                 (send text highlight-parens)))
-            (super-call)
             (super-after-set-position text super-call))
 
           (rename [super-on-disable-surrogate on-disable-surrogate])
@@ -1172,7 +1166,7 @@
           
           (super-instantiate ())))
 
-      (define -text% (text-mixin text:info%))
+      (define -text% (text-mixin (mode:host-text-mixin text:info%)))
       (define text-mode% (text-mode-mixin mode:surrogate-text%))
     
                                                                                            
