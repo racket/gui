@@ -1,6 +1,7 @@
 (module text mzscheme
   (require (lib "unitsig.ss")
 	   (lib "class.ss")
+	   (lib "class100.ss")
 	   "sig"
 	   "../macro.ss"
 	   "../gui-utils-sig.ss"

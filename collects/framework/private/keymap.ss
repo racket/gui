@@ -3,6 +3,7 @@
 	   "sig.ss"
 	   "../macro.ss"
 	   (lib "class.ss")
+	   (lib "class100.ss")
 	   (lib "list.ss")
 	   (lib "mred-sig.ss" "mred"))
 
@@ -26,7 +27,7 @@
       
       (define aug-keymap-mixin
 	(mixin ((class->interface keymap%)) (aug-keymap<%>) args
-	  (private
+	  (private-field
 	    [chained-keymaps null])
 	  (public
 	    [get-chained-keymaps
@@ -42,7 +43,7 @@
 			(cons keymap chained-keymaps)
 			(append chained-keymaps (list keymap)))))])
 	  
-	  (private [function-table (make-hash-table)])
+	  (private-field [function-table (make-hash-table)])
 	  (public [get-function-table (lambda () function-table)])
 	  (rename [super-map-function map-function])
 	  (override
@@ -773,7 +774,7 @@
 			    (let ([frame (send edit get-frame)])
 			      (if (and frame
 				       (is-a? frame frame:standard-menus<%>))
-				  ((ivar frame file-menu:quit))
+				  (send frame file-menu:quit)
 				  (bell)))))
 	      
 	      (add "ring-bell" ring-bell)
@@ -994,7 +995,7 @@
       
       (define setup-search
 	(let* ([send-frame
-		(lambda (method)
+		(lambda (invoke-method)
 		  (lambda (edit event)
 		    (let ([frame
 			   (cond
@@ -1006,7 +1007,7 @@
 			     (send edit get-top-level-window)]
 			    [else #f])])
 		      (if frame
-			  ((ivar/proc frame method))
+			  (invoke-method frame)
 			  (bell)))
 		    #t))])
 	  (lambda (kmap)
@@ -1019,11 +1020,16 @@
 		   [add-m (lambda (name func)
 			    (send kmap add-function name func))])
 	      
-	      (add "move-to-search-or-search" (send-frame 'move-to-search-or-search)) ;; key 1
-	      (add "move-to-search-or-reverse-search" (send-frame 'move-to-search-or-reverse-search)) ;; key 1b, backwards
-	      (add "find-string-again" (send-frame 'search-again)) ;; key 2
-	      (add "toggle-search-focus" (send-frame 'toggle-search-focus)) ;; key 3
-	      (add "hide-search" (send-frame 'hide-search)) ;; key 4
+	      (add "move-to-search-or-search" 
+		   (send-frame (lambda (f) (send f move-to-search-or-search)))) ;; key 1
+	      (add "move-to-search-or-reverse-search" 
+		   (send-frame (lambda (f) (send f move-to-search-or-reverse-search)))) ;; key 1b, backwards
+	      (add "find-string-again" 
+		   (send-frame (lambda (f) (send f search-again)))) ;; key 2
+	      (add "toggle-search-focus" 
+		   (send-frame (lambda (f) (send f toggle-search-focus)))) ;; key 3
+	      (add "hide-search" 
+		   (send-frame (lambda (f) (send f hide-search)))) ;; key 4
 	      
 	      (case (system-type)
 		[(unix)

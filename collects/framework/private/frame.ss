@@ -1,6 +1,7 @@
 (module frame mzscheme
   (require (lib "unitsig.ss")
 	   (lib "class.ss")
+	   (lib "class100.ss")
 	   (lib "include.ss")
 	   "sig.ss"
 	   "../gui-utils-sig.ss"

@@ -4,6 +4,7 @@
 (module scheme mzscheme
   (require (lib "unitsig.ss")
 	   (lib "class.ss")
+	   (lib "class100.ss")
 	   "sig"
 	   "../macro.ss"
 	   (lib "mred-sig.ss" "mred")

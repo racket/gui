@@ -1,6 +1,7 @@
 (module menu mzscheme
   (require (lib "unitsig.ss")
 	   (lib "class.ss")
+	   (lib "class100.ss")
 	   "sig"
 	   "../macro.ss"
 	   (lib "mred-sig.ss" "mred"))
@@ -19,7 +20,7 @@
   (define can-restore-mixin
     (mixin (selectable-menu-item<%>) (can-restore<%>) args
       (inherit set-shortcut get-shortcut)
-      (private
+      (private-field
         [saved-shortcut 'not-yet])
       (public
         [restore-keybinding

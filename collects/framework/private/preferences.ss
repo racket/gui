@@ -1,6 +1,7 @@
 (module preferences mzscheme
   (require (lib "unitsig.ss")
 	   (lib "class.ss")
+	   (lib "class100.ss")
 	   "sig"
 	   "../prefs-file-sig.ss"
 	   (lib "mred-sig.ss" "mred")
@@ -580,7 +581,7 @@
   (define make-preferences-dialog
     (lambda ()
       (letrec ([frame 
-		(make-object (class-asi frame%
+		(make-object (class100 frame% args
 			       (public
 				 [added-pane
 				  (lambda () 
@@ -592,7 +593,9 @@
 					    (ppanel-panel
 					     (car
 					      (list-tail ppanels
-							 (sub1 (length ppanels))))))))]))
+							 (sub1 (length ppanels))))))))])
+			       (sequence
+				 (apply super-init args)))
 		  "Preferences")]
 	       [panel (make-object vertical-panel% frame)]
 	       [popup-callback

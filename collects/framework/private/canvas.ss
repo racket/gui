@@ -15,7 +15,7 @@
       
       (define basic<%> (interface ((class->interface editor-canvas%))))
       (define basic-mixin
-	(mixin ((class->interface editor-canvas%)) (basic<%>) args
+	(mixin ((class100->interface editor-canvas%)) (basic<%>) args
 	  (sequence
 	    (apply super-init args))))
       

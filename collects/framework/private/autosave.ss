@@ -1,6 +1,7 @@
 (module autosave mzscheme
   (require (lib "unitsig.ss")
 	   (lib "class.ss")
+	   (lib "class100.ss")
 	   "sig.ss"
 	   (lib "mred-sig.ss" "mred"))
 
@@ -15,7 +16,7 @@
       (define objects null)
 
       (define autosave-timer%
-	(class timer% ()
+	(class100 timer% ()
 	  (inherit start)
 	  (override
 	   [notify

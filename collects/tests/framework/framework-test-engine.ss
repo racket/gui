@@ -29,7 +29,7 @@
 		   (collection-path "tests" "framework")
 		   "receive-sexps-port.ss"))])
        (debug-printf tcp "about to connect to ~a~n" port)
-       (let*-values ([(in out) (tcp-connect "localhost" port)])
+       (let*-values ([(in out) (tcp-connect "127.0.0.1" port)])
 	 (let loop ()
 	   (debug-printf tcp "about to read~n")
 	   (let ([sexp (read in)])

@@ -1,6 +1,7 @@
 (module editor mzscheme
   (require (lib "unitsig.ss")
 	   (lib "class.ss")
+	   (lib "class100.ss")
 	   "sig.ss"
 	   "../gui-utils-sig.ss"
 	   "../macro.ss"
@@ -62,7 +63,7 @@
 	  
 	  (rename [super-after-save-file after-save-file]
 		  [super-after-load-file after-load-file])
-	  (private
+	  (private-field
 	    [last-saved-file-time #f])
 	  (override
 	   [after-save-file
@@ -94,7 +95,7 @@
 		       (let ([ms (file-or-directory-modify-seconds fn)])
 			 (< last-saved-file-time ms))))))])
 
-	  (private 
+	  (private-field
 	    [has-focus #f])
 	  (rename [super-on-focus on-focus])
 	  (override
@@ -146,7 +147,7 @@
 	    [edit-sequence-queue null]
 	    [edit-sequence-ht (make-hash-table)])
 
-	  (private
+	  (private-field
 	    [in-local-edit-sequence? #f])
 	  (public
 	    [local-edit-sequence? (lambda () in-local-edit-sequence?)]
@@ -363,10 +364,11 @@
 		  [super-on-change on-change]
 		  [super-on-close on-close]
 		  [super-set-modified set-modified])
-	  (private
+	  (private-field
 	    [auto-saved-name #f]
 	    [auto-save-out-of-date? #t]
-	    [auto-save-error? #f]
+	    [auto-save-error? #f])
+	  (private
 	    [file-old?
 	     (lambda (filename)
 	       (if (and filename

@@ -1,6 +1,7 @@
 (module handler mzscheme
   (require (lib "unitsig.ss")
 	   (lib "class.ss")
+	   (lib "class100.ss")
 	   "sig.ss"
 	   "../gui-utils-sig.ss"
 	   (lib "mred-sig.ss" "mred")
@@ -125,8 +126,8 @@
 
       (define *open-directory* ; object to remember last directory
 	(make-object 
-	    (class object% ()
-	      (private 
+	    (class100 object% ()
+	      (private-field
 		[the-dir #f])
 	      (public
 		[get (lambda () the-dir)]
