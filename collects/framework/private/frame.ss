@@ -154,7 +154,7 @@
           (super-instantiate ())
           (accept-drop-files #t)
             
-          (make-object menu% (string-constant windows-menu-label)
+          (make-object menu:can-restore-underscore-menu% (string-constant windows-menu-label)
             (make-object (get-menu-bar%) this))
           (reorder-menus this)
           (send (group:get-the-frame-group) insert-frame this)

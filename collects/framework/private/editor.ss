@@ -45,17 +45,27 @@
 
           (inherit get-filename save-file)
           (define/public save-file/gui-error
-            (opt-lambda ([filename #f]
+            (opt-lambda ([input-filename #f]
                          [fmt 'same]
                          [show-errors? #t])
-              (let ([result (save-file filename fmt #f)])
-                (unless result
-                  (when show-errors?
-                    (message-box
-                     (string-constant error-saving)
-                     (format (string-constant error-saving-file/name)
-                             (get-filename)))))
-                result)))
+              (let ([filename (if (or (not input-filename)
+                                      (equal? input-filename ""))
+                                  (let ([internal-filename (get-filename)])
+                                    (if (or (not internal-filename)
+                                            (equal? internal-filename ""))
+                                        (get-file)
+                                        internal-filename))
+                                  input-filename)])
+                (if filename
+                    (let ([result (save-file filename fmt #f)])
+                      (unless result
+                        (when show-errors?
+                          (message-box
+                           (string-constant error-saving)
+                           (format (string-constant error-saving-file/name)
+                                   filename))))
+                      result)
+                    #f))))
 
 	  (inherit refresh-delayed? 
 		   get-canvas
