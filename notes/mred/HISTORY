@@ -56,6 +56,10 @@ System:
 - Cleaned up wx:command-event% field values for list-box double-click
   events
 
+- When only one object of class mred:standard-menus-frame% exists,
+   its File|Close menu item is disabled, and its close button
+   has the same semantics as File|Quit
+
 ----------------------------------------------------------------------
 
 Version 52: May 25, 1998
