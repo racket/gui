@@ -49,6 +49,11 @@ Fixed wx:media-stream-in%'s get-string (it was adding an
  extra nul character)
 Removed error dialogs when wx:media-buffer%'s load-file or
  save-file fails
+Changed the meaning of wx:keymap%'s implies-shift method;
+ mapping from ``?'', where ``?'' implies a shift, maps both
+ ``?'' and ``s:?''; the idea is that only one of these
+ mappings is possible, but it may be difficult to know
+ which one
 Windows: fixed canvas mouse events; button-down event grabs
  the mouse until the next button-up event
 Windows: fixed initial setting of DC text mode: transparent
