@@ -1008,6 +1008,8 @@
     get-data
     on-replaced)
   (define-class ps-setup% object% ()
+    show-native
+    can-show-native?
     copy-from
     set-margin
     set-editor-margin
