@@ -1,5 +1,8 @@
 (thread
- (letrec ([restart
+ (letrec ([namespace (make-namespace)]
+	  [_ (parameterize ([current-namespace namespace])
+	       (require-library "pconvert.ss"))]
+	  [restart
 	   (lambda ()
 	     (let*-values ([(in out) (tcp-connect "localhost" (load-relative "receive-sexps-port.ss"))]
 			   [(continue) (make-semaphore 0)]
