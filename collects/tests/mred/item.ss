@@ -116,6 +116,23 @@
 	(when noisy? (printf "~a~n" s))
 	(send m set-label s)))))
 
+(define (add-click-intercept frame panel)
+  (define cp (make-object check-box% "Popup on Click" panel void))
+  (lambda (win e)
+    (if (and (send e button-down?)
+	     (not (eq? cp win))
+	     (send cp get-value))
+	(let ([m (make-object popup-menu%)])
+	  (make-object menu-item% (format "Click on ~a" win)
+		       m (lambda (i e)
+			   (unless (eq? (send m get-popup-target) win)
+			     (printf "Wrong owner!~n"))))
+	  (send win popup-menu m 
+		(inexact->exact (send e get-x))
+		(inexact->exact (send e get-y)))
+	  #t)
+	#f)))
+
 (define (add-cursors frame panel ctls)
   (let ([old #f]
 	[f-old #f]
@@ -246,12 +263,14 @@
   (class-asi frame%
     (private 
       [pre-on void]
+      [click-i void]
       [el void])
     (rename [super-on-subwindow-event on-subwindow-event]
 	    [super-on-subwindow-char on-subwindow-char])
     (override [on-subwindow-event (lambda args 
 				    (apply el args)
 				    (or (apply pre-on args)
+					(apply click-i args)
 					(apply super-on-subwindow-event args)))]
 	      [on-subwindow-char (lambda args 
 				   (or (apply pre-on args)
@@ -262,6 +281,7 @@
     (public [set-info
 	     (lambda (ep)
 	       (set! pre-on (add-pre-note this ep))
+	       (set! click-i (add-click-intercept this ep))
 	       (set! el (add-enter/leave-note this ep)))])))
 
 (define (trace-mixin c%)

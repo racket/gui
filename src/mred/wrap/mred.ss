@@ -2843,12 +2843,21 @@
     enable is-enabled? on-superwindow-enable
     get-label set-label get-plain-label
     get-client-size get-size get-width get-height get-x get-y
-    get-cursor set-cursor 
+    get-cursor set-cursor popup-menu
     show is-shown? on-superwindow-show refresh))
 
 (define (make-window% top? %) ; % implements area<%>
   (class* % (window<%>) (mk-wx get-wx-panel label parent cursor)
     (public
+      [popup-menu (entry-point-3 
+		   (lambda (m x y)
+		     (check-instance '(method window<%> popup-menu) popup-menu% 'popup-menu% #f m)
+		     (let ([mwx (mred->wx m)])
+		       (and (send mwx popup-grab this)
+			    (as-exit
+			     (lambda ()
+			       (send m on-demand)
+			       (send wx popup-menu mwx x y)))))))]
       [on-focus (lambda (x) (void))]
       [on-size (lambda (w h)
 		 (check-range-integer '(method window<%> on-size) w)
@@ -2946,23 +2955,11 @@
   (interface (window<%> area-container<%>)
     set-control-font get-control-font
     set-label-font get-label-font
-    set-label-position get-label-position
-    popup-menu))
-
-
-(define (do-popup-menu m x y intf this wx)
-  (check-instance `(method ,intf popup-menu) popup-menu% 'popup-menu% #f m)
-  (let ([mwx (mred->wx m)])
-    (and (send mwx popup-grab this)
-	 (as-exit
-	  (lambda ()
-	    (send m on-demand)
-	    (send wx popup-menu mwx x y))))))
+    set-label-position get-label-position))
 
 (define (make-area-container-window% %) ; % implements window<%> (and area-container<%>)
   (class* % (area-container-window<%>) (mk-wx get-wx-panel label parent cursor) 
     (public
-      [popup-menu (entry-point-3 (lambda (m x y) (do-popup-menu m x y 'area-container-window<%> this (get-wx-panel))))]
       [get-control-font (entry-point (lambda () (send (get-wx-panel) get-control-font)))]
       [set-control-font (entry-point-1 (lambda (x) (send (get-wx-panel) set-control-font x)))]
       [get-label-font (entry-point (lambda () (send (get-wx-panel) get-label-font)))]
@@ -3551,7 +3548,7 @@
   (interface (subwindow<%>)
     min-client-width min-client-height
     on-char on-event on-paint on-scroll on-tab-in
-    popup-menu warp-pointer get-dc))
+    warp-pointer get-dc))
 
 (define basic-canvas%
   (class* (make-window% #f (make-subarea% area%)) (canvas<%>) (mk-wx parent)
@@ -3565,9 +3562,6 @@
       [min-client-width (param (lambda () wx) 'min-client-width)]
       [min-client-height (param (lambda () wx) 'min-client-height)]
 
-      [popup-menu (entry-point-3
-		   (lambda (m x y) 
-		     (do-popup-menu m x y 'canvas<%> this wx)))]
       [warp-pointer (entry-point-2 (lambda (x y) (send wx warp-pointer x y)))]
 
       [get-dc (entry-point (lambda () (send wx get-dc)))])
@@ -4555,6 +4549,8 @@
     (lambda (s)
       (regexp-replace* re s "\\&\\&"))))
 
+
+
 (define message-box
   (case-lambda
    [(title message) (message-box title message #f '(ok))]
@@ -4565,18 +4561,47 @@
     (check-top-level-parent/false 'message-box parent)
     (check-style 'message-box '(ok ok-cancel yes-no) null style)
 
-    (let* ([f (make-object (class dialog% ()
-				  (sequence
-				    (super-init title parent box-width))))]
-	   [result 'ok]
-	   [strings (let loop ([s message])
+    (let* ([strings (let loop ([s message])
 		      (let ([m (regexp-match (let ([nl (string #\newline #\return)])
 					       (format "([^~a]*)[~a](.*)" nl nl))
 					     s)])
 			(if m
 			    (cons (cadr m) (loop (caddr m)))
-			    (list s))))])
-      (if (and (< (length strings) 10) (andmap (lambda (s) (< (string-length s) 60)) strings))
+			    (list s))))]
+	   [single? (and (< (length strings) 10) 
+			 (andmap (lambda (s) (< (string-length s) 60)) strings))]
+	   [f (make-object (class dialog% ()
+				  (override
+				    [on-subwindow-event 
+				     (lambda (w e)
+				       (if (send e button-down?)
+					   (if (is-a? w button%)
+					       #f
+					       (if (or single?
+						       (not (is-a? w editor-canvas%))
+						       (let-values ([(w h) (send w get-client-size)])
+							 (< (send e get-x) w)))
+						   (begin
+						     (send w popup-menu
+							   (let ([m (make-object popup-menu%)])
+							     (make-object menu-item%
+									  "Copy Message"
+									  m
+									  (lambda (i e)
+									    (send wx:the-clipboard
+										  set-clipboard-string
+										  message
+										  (send e get-time-stamp))))
+							     m)
+							   (inexact->exact (send e get-x))
+							   (inexact->exact (send e get-y)))
+						     #t)
+						   #f))
+					   #f))])
+				  (sequence
+				    (super-init title parent box-width))))]
+	   [result 'ok])
+      (if single?
 	  (begin
 	    (send f set-alignment (if (= (length strings) 1) 'center 'left) 'center)
 	    (for-each (lambda (s) (make-object message% (protect& s) f)) strings)
@@ -4591,6 +4616,7 @@
 	    (send e auto-wrap #t)
 	    (send e insert message)
 	    (send e set-position 0)
+	    (send e hide-caret #t)
 	    (send e lock #t)))
       (let* ([p (make-object horizontal-pane% f)]
 	     [mk-button (lambda (title v default?) 
@@ -4813,7 +4839,7 @@
 		    (loop))))))))
 
 (define (mk-file-selector who put? multi?)
-  (lambda (message parent directory filename extension style)
+  (lambda (message parent directory filename extension style filters)
     ;; Calls from C++ have wrong kind of window:
     (when (is-a? parent wx:window%)
       (set! parent (as-entry (lambda () (wx->mred parent)))))
@@ -4822,8 +4848,19 @@
     (check-top-level-parent/false who parent)
     (check-string/false who directory) (check-string/false who filename) (check-string/false who extension)
     (check-style who #f null style)
+    (unless (and (list? filters)
+		 (andmap (lambda (p)
+			   (and (list? p)
+				(= (length p) 2)
+				(string? (car p))
+				(string? (cadr p))))
+			 filters))
+      (raise-type-error who "list of 2-string lists" filters))
     (if (not (eq? (system-type) 'unix))
-	(let ([s (wx:file-selector message directory filename extension "*.*"
+	(let ([s (wx:file-selector message directory filename extension 
+				   (apply string-append
+					  (map (lambda (s) (format "~a|~a|" (car s) (cadr s)))
+					       filters))
 				   (if put? 'put (if multi? 'multi 'get))
 				   (mred->wx parent))])
 	  (if (and multi? s)
@@ -4965,6 +5002,8 @@
 ; We duplicate the case-lambda for `get-file', `get-file-list', and `put-file' so that they have the
 ;   right arities and names
 
+(define default-filters '(("Any file (*.*)" "*.*")))
+
 (define get-file
   (case-lambda
    [() (get-file #f #f #f #f #f null)]
@@ -4974,7 +5013,9 @@
    [(message parent directory filename) (get-file message parent directory filename #f null)]
    [(message parent directory filename extension) (get-file message parent directory filename extension null)]
    [(message parent directory filename extension style)
-    ((mk-file-selector 'get-file #f #f) message parent directory filename extension style)]))
+    (get-file message parent directory filename extension style default-filters)]
+   [(message parent directory filename extension style filters)
+    ((mk-file-selector 'get-file #f #f) message parent directory filename extension style filters)]))
 
 (define get-file-list
   (case-lambda
@@ -4985,7 +5026,9 @@
    [(message parent directory filename) (get-file-list message parent directory filename #f null)]
    [(message parent directory filename extension) (get-file-list message parent directory filename extension null)]
    [(message parent directory filename extension style)
-    ((mk-file-selector 'get-file-list #f #t) message parent directory filename extension style)]))
+    (get-file-list message parent directory filename extension style default-filters)]
+   [(message parent directory filename extension style filters)
+    ((mk-file-selector 'get-file-list #f #t) message parent directory filename extension style filters)]))
 
 (define put-file
   (case-lambda
@@ -4996,7 +5039,9 @@
    [(message parent directory filename) (put-file message parent directory filename #f null)]
    [(message parent directory filename extension) (put-file message parent directory filename extension null)]
    [(message parent directory filename extension style)
-    ((mk-file-selector 'put-file #t #f) message parent directory filename extension style)]))
+    (put-file message parent directory filename extension style default-filters)]
+   [(message parent directory filename extension style filters)
+    ((mk-file-selector 'put-file #t #f) message parent directory filename extension style filters)]))
 
 (define get-color-from-user 
   (case-lambda
