@@ -570,7 +570,9 @@
 		       make-editor
 		       save-as
 		       get-canvas
-		       get-editor))
+		       get-editor
+
+		       add-edit-menu-snip-items))
 
   (define editor-mixin
     (mixin (standard-menus<%>) (-editor<%>)
@@ -711,24 +713,30 @@
 			      (send edit do-edit-operation const)))
 			  #t))])
         
+      (public
+	[add-edit-menu-snip-items
+	 (lambda (edit-menu)
+	   (let ([c% (class (get-menu-item%) args
+                       (inherit enable)
+                       (rename [super-on-demand on-demand])
+                       (override
+			[on-demand
+			 (lambda ()
+			   (let ([edit (get-edit-target-object)])
+			     (enable (and edit (is-a? edit editor<%>)))))])
+                       (sequence (apply super-init args)))])
+
+             (make-object c% "Insert Text Box" edit-menu (edit-menu:do 'insert-text-box))
+             (make-object c% "Insert Pasteboard Box" edit-menu (edit-menu:do 'insert-pasteboard-box))
+             (make-object c% "Insert Image..." edit-menu (edit-menu:do 'insert-image))))])
+
+
       (override
 	[edit-menu:between-select-all-and-find
 	 (lambda (edit-menu)
 	   (make-object separator-menu-item% edit-menu)
 
-           (let ([c% (class (get-menu-item%) args
-                       (inherit enable)
-                       (rename [super-on-demand on-demand])
-                       (override
-                         [on-demand
-                          (lambda ()
-                            (let ([edit (get-edit-target-object)])
-                              (enable (and edit (is-a? edit editor<%>)))))])
-                       (sequence (apply super-init args)))])
-
-             (make-object c% "Insert Text Box" edit-menu (edit-menu:do 'insert-text-box))
-             (make-object c% "Insert Pasteboard Box" edit-menu (edit-menu:do 'insert-pasteboard-box))
-             (make-object c% "Insert Image..." edit-menu (edit-menu:do 'insert-image)))
+	   (add-edit-menu-snip-items edit-menu)
 
 	   (let* ([c% (class (get-checkable-menu-item%) args
                         (rename [super-on-demand on-demand])
