@@ -130,6 +130,7 @@
 		       get-canvas%
 		       get-editor%
 		       get-editor<%>
+		       
 		       make-editor
 		       save-as		      
 		       get-canvas
@@ -271,7 +272,6 @@
 				       (is-a? edit editor<%>))
 			      (send edit do-edit-operation const)))
 			  #t))])
-	     
       (override
 	[edit-menu:undo (edit-menu:do 'undo)]
 	[edit-menu:redo (edit-menu:do 'redo)]
@@ -286,8 +286,8 @@
 	   (make-object separator-menu-item% edit-menu)
 	   (make-object (get-menu-item%) "Insert Text Box" edit-menu
 			(edit-menu:do 'insert-text-box))
-	   (make-object (get-menu-item%) "Insert Graphic Box" edit-menu
-			(edit-menu:do 'insert-graphic-box))
+	   (make-object (get-menu-item%) "Insert Pasteboard Box" edit-menu
+			(edit-menu:do 'insert-pasteboard-box))
 	   (make-object (get-menu-item%) "Insert Image..." edit-menu
 			(edit-menu:do 'insert-image))
 	   (make-object (get-menu-item%) "Toggle Wrap Text" edit-menu
@@ -361,7 +361,6 @@
 		(eq? x 'backward))
       (error 'set-searching-direction "expected ~e or ~e, got ~e" 'forward 'backward x))
     (set! searching-direction x))
-  (define old-search-highlight void)
   (define get-active-embedded-edit
     (lambda (edit)
       (let loop ([edit edit])
@@ -369,7 +368,9 @@
 	  (if (or (not snip)
 		  (not (is-a? snip original:editor-snip%)))
 	      edit
-	      (loop (send snip get-this-media)))))))
+	      (loop (send snip get-editor)))))))
+
+  (define old-search-highlight void)
   (define clear-search-highlight
     (lambda ()
       (begin (old-search-highlight)
@@ -383,7 +384,9 @@
 		   (send edit get-end-position)
 		   (send edit get-start-position))])
 	  (set! search-anchor position)
-	  (set! old-search-highlight
+	  
+	  ;; don't draw the anchor
+	  '(set! old-search-highlight
 		(send edit highlight-range position position color #f))))))
 
   (define find-text%

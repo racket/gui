@@ -303,6 +303,20 @@
 	     (apply super-init args)
 	     (set-autowrap-bitmap (initial-autowrap-bitmap)))))
   
+  (define copy-editor-snip%
+    (class editor-snip% (copy% text)
+      (override
+       [copy
+	(lambda ()
+	  (let ([text (make-object copy%)])
+	    (send text insert "AA")
+	    (let loop ([snip (send text find-first-snip)])
+	      (when snip
+		(send text insert (send snip copy))
+		(loop (send snip next))))
+	    (make-object copy-editor-snip% copy% text)))])
+      (sequence (super-init text))))
+
   (define searching<%>
     (interface ()
       find-string-embedded))
@@ -310,11 +324,18 @@
     (mixin (editor:keymap<%> basic<%>) (searching<%>) args
 	   (inherit get-end-position get-start-position last-position 
 		    find-string get-snip-position get-admin find-snip)
+	   (rename [super-on-new-box on-new-box])
+	   (override
+	    [on-new-box
+	     (lambda (type)
+	       (if (eq? type 'text)
+		   (make-object copy-editor-snip% searching% (make-object searching%))
+		   (super-on-new-box)))])
 	   (public
 	     [find-string-embedded
 	      (opt-lambda (str [direction 'forward] [start 'start]
 			       [end 'eof] [get-start #t]
-			       [case-sensitive? #t] [pop-out? #f])
+			       [case-sensitive? #t] [pop-out? #t])
 		(unless (member direction '(forward backward))
 		  (error 'find-string-embedded
 			 "expected ~e or ~e as first argument, got: ~e" 'forward 'backward direction))
@@ -335,7 +356,7 @@
 			    (let ([admin (get-admin)])
 			      (if (is-a? admin editor-snip-editor-admin%)
 				  (let* ([snip (send admin get-snip)]
-					 [edit-above (send (send snip get-admin) get-media)]
+					 [edit-above (send (send snip get-admin) get-editor)]
 					 [pos (send edit-above get-snip-position snip)])
 				    (send edit-above
 					  find-string-embedded
@@ -368,16 +389,22 @@
 			       (pop-out)
 			       (values this flat))]
 			  [(is-a? current-snip original:editor-snip%)
+			   (printf "found embedded editor~n")
 			   (let-values ([(embedded embedded-pos)
 					 (let ([media (send current-snip get-editor)])
-					   (and (not (null? media))
-						(send media find-string-embedded str
-						      direction
-						      (if (eq? 'forward direction)
-							  0
-							  (send media last-position))
-						      'eof
-						      get-start case-sensitive?)))])
+					   (if (and media
+						    (is-a? media searching<%>))
+					       (begin
+						 (printf "searching in embedded editor~n")
+						 (send media find-string-embedded str
+						       direction
+						       (if (eq? 'forward direction)
+							   0
+							   (send media last-position))
+						       'eof
+						       get-start case-sensitive?))
+					       (values #f #f)))])
+			     (printf "embedded: ~a embedded-pos ~a~n" embedded embedded-pos)
 			     (if (not embedded-pos)
 				 (next-loop)
 				 (values embedded embedded-pos)))]
