@@ -69,45 +69,46 @@
 				(loop this-left
 				      this-right
 				      (cdr canvases))))]))])
-                  (let loop ([left #f]
-                             [top #f]
-                             [right #f]
-                             [bottom #f]
-                             [rectangles rectangles])
-                    (cond
-                      [(null? rectangles)
-                       (when left
-                         (let ([width (- right left)]
-                               [height (- bottom top)])
-                           (when (and (> width 0)
-                                      (> height 0))
-                             (invalidate-bitmap-cache left top width height))))]
-                      [else (let* ([r (car rectangles)]
-                                   
-                                   [rleft (rectangle-left r)]
-                                   [rright (rectangle-right r)]
-                                   [rtop (rectangle-top r)]
-                                   [rbottom (rectangle-bottom r)]
-                                   
-                                   [this-left (if (number? rleft)
-                                                  rleft
-                                                  min-left)]
-                                   [this-right (if (number? rright)
-                                                   rright
-                                                   max-right)]
-                                   [this-bottom rbottom]
-                                   [this-top rtop])
-                              (if (and left top right bottom)
-                                  (loop (min this-left left)
-                                        (min this-top top)
-                                        (max this-right right)
-                                        (max this-bottom bottom)
-                                        (cdr rectangles))
-                                  (loop this-left 
-                                        this-top
-                                        this-right
-                                        this-bottom
-                                        (cdr rectangles))))]))))]
+		  (when (and min-left max-right)
+		    (let loop ([left #f]
+			       [top #f]
+			       [right #f]
+			       [bottom #f]
+			       [rectangles rectangles])
+		      (cond
+		       [(null? rectangles)
+			(when left
+			  (let ([width (- right left)]
+				[height (- bottom top)])
+			    (when (and (> width 0)
+				       (> height 0))
+			      (invalidate-bitmap-cache left top width height))))]
+		       [else (let* ([r (car rectangles)]
+				    
+				    [rleft (rectangle-left r)]
+				    [rright (rectangle-right r)]
+				    [rtop (rectangle-top r)]
+				    [rbottom (rectangle-bottom r)]
+				    
+				    [this-left (if (number? rleft)
+						   rleft
+						   min-left)]
+				    [this-right (if (number? rright)
+						    rright
+						    max-right)]
+				    [this-bottom rbottom]
+				    [this-top rtop])
+			       (if (and left top right bottom)
+				   (loop (min this-left left)
+					 (min this-top top)
+					 (max this-right right)
+					 (max this-bottom bottom)
+					 (cdr rectangles))
+				   (loop this-left 
+					 this-top
+					 this-right
+					 this-bottom
+					 (cdr rectangles))))])))))]
 
 	     [recompute-range-rectangles
 	      (lambda ()
