@@ -105,35 +105,35 @@ The following are a few highlights of the revision:
 ======================================================================
 1. Interface/Class Type Hierarchy (Selected Excerpts)
 ======================================================================
-
-window<%>
- |-- subwindow-container<%>
- |                 |-- top-level-window<%>
- |                 |        |- frame%
- |-- subwindow<%>  |---     |- dialog-box%
-          |           |
-          |---------- panel<%>
-          |              |- panel%
-          |              |- single-panel%
-          |              |- linear-panel<%>
-          |                   |- horizontal-panel%
-          |- control<%>       |- vertical-panel%
-          |   |- message%
-          |   |- button%
-          |   |- check-box%
-          |   |- slider%
-	  |   |- gauge%
-          |   |- text-control<%>
-          |   |     |- text%
-          |   |     |- multi-text%
-          |   |- radio-box%
-          |   |- list-control<%>
-          |       |- choice%
-          |       |- list-box%
-          |
-          |- canvas<%>
-               |- canvas%
-               |- editor-canvas% (has an editor-admin%, maybe an editor<%>)
+  
+                           area<%>
+                             |
+          ------------------------------------
+          |             |                    |
+      subarea<%>     window<%>          area-container<%>      
+<<<____|____       _____|__________       __|___  ___________________<<<
+            |      |              |       |    |  |                  
+           subwindow<%>           |       |    |  |                  
+<<<______________|___________     |       |    |  |                 _<<<
+            |               |     |       |    pane%                |
+       control<%>           |     |       |     |- single-pane%     |
+        |- message%         |     |       |     |- horizontal-pane% |
+        |- button%          |     |       |     |- vertical-pane%   |
+        |- check-box%       |     |       |                         |
+        |- slider%          |  area-container-window<%>             |
+        |- gauge%           |       |             _ ________________|
+        |- text-control<%>  |       |             |   
+        |   |- text%        |       |--------- panel%       
+        |   |- multi-text%  |       |           |- single-panel% 
+        |- radio-box%       |       |           |- horizontal-panel%
+        |- list-control<%>  |       |           |- vertical-panel%
+            |- choice%      |       |           
+            |- list-box     |       |- top-level-window<%>
+                            |          |- frame%     
+                            |          |- dialog-box%
+                         canvas<%>
+                          |- canvas%
+                          |- editor-canvas%
 
 menu-item<%>
   |- separator-menu-item%
@@ -235,6 +235,17 @@ panel<%>
 
 panel%
     <= parent [style null]
+
+panel% : containee<%> window<%> container<%>
+single-panel%: containee<%> window<%> single-container<%>
+horizontal-panel%: containee<%> window<%> linear-container<%>
+vertical-panel%: containee<%> window<%> linear-container<%>
+
+pane% : containee<%> container<%>
+single-pane%: containee<%> single-container<%>
+horizontal-pane%: containee<%> linear-container<%>
+vertical-pane%: containee<%> linear-container<%>
+
 
 single-panel%
     <= parent [style null]
