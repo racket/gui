@@ -1031,8 +1031,8 @@
 
       [on-new-box
        (lambda (type)
-	 (unless (memq type '(text pasetboard))
-	   (raise-type-error (who->name '(method editor<%> on-new-box)) "symbol: text or pasteboard" type))
+	 (unless (memq type '(text pasteboard))
+	   (raise-type-error (who->name '(method editor<%> on-new-box)) "symbol: 'text or 'pasteboard" type))
 	 (make-object editor-snip%
 		      (make-object (cond
 				    [(eq? type 'pasteboard) pasteboard%]
@@ -1853,6 +1853,10 @@
 
 (define (mred->wx-container w) (send (mred->wx w) get-container))
 
+(define (cb-0) (void))
+(define (cb-1 x) (void))
+(define (cb-2 x y) (void))
+
 ;---------------- Window interfaces and base classes ------------
 
 (define area<%>
@@ -1931,12 +1935,12 @@
 (define (make-window% top? %) ; % implements area<%>
   (class* % (window<%>) (mk-wx get-wx-panel label parent cursor)
     (public
-      [on-focus void]
-      [on-size void]
-      [on-move void]
+      [on-focus cb-1]
+      [on-size cb-2]
+      [on-move cb-2]
       [on-subwindow-char (lambda (w e) #f)]
       [on-subwindow-event (lambda (w e) #f)]
-      [on-drop-file void]
+      [on-drop-file cb-1]
 
       [focus (lambda () (send wx set-focus))]
       [has-focus? (lambda () (send wx has-focus?))]
@@ -2031,8 +2035,8 @@
     (public
       [get-eventspace (lambda () (ivar wx eventspace))]
       [can-close? (lambda () #t)]
-      [on-close void]
-      [on-activate void]
+      [on-close cb-0]
+      [on-activate cb-1]
       [center (case-lambda
 	       [() (send wx center 'both)]
 	       [(dir) (send wx center dir)])]
@@ -2103,7 +2107,7 @@
       [iconize (lambda (on?) (send wx iconize on?))]
       [is-iconized? (lambda () (send wx iconized?))]
       [set-icon (lambda (i) (send wx set-icon i))]
-      [maximize (lambda () (send wx maximize))]
+      [maximize (lambda (on?) (send wx maximize on?))]
       [get-menu-bar (lambda () (let ([mb (ivar wx menu-bar)])
 				 (and mb (wx->mred mb))))])
     (sequence
@@ -2507,7 +2511,9 @@
 	 (send wx set-line-count n))]
 
       [get-editor (lambda () (send wx get-editor))]
-      [set-editor (lambda (m) (send wx set-editor m))])
+      [set-editor (case-lambda 
+		   [(m) (send wx set-editor m)]
+		   [(m upd?) (send wx set-editor m upd?)])])
     (private
       [wx #f])
     (sequence
@@ -2520,39 +2526,44 @@
 
 ;-------------------- Final panel interfaces and class constructions --------------------
 
-(define (make-pane% who pane% wx-pane%)
-  (class pane% (parent)
+(define pane%
+  (class (make-subarea% (make-container% area%)) (parent)
     (private [wx #f])
     (sequence 
-      (check-container-parent who parent)
-      (super-init (lambda () (set! wx (make-object wx-pane% this this (mred->wx-container parent) null)) wx)
-		  (lambda () wx) parent))))
+      (let ([who (cond ; yuck! - we do this to make h-p and v-p subclasses of p
+		  [(is-a? this vertical-pane%) 'vertical-pane]
+		  [(is-a? this horizontal-pane%) 'horizontal-pane]
+		  [else 'pane])])
+	(check-container-parent who parent)
+	(super-init (lambda () (set! wx (make-object (case who
+						      [(vertical-pane) wx-vertical-pane%]
+						      [(horizontal-pane) wx-horizontal-pane%]
+						      [else wx-pane%])
+						     this this (mred->wx-container parent) null)) wx)
+		    (lambda () wx) parent)))))
 
-(define basic-pane% (make-subarea% (make-container% area%)))
-(define pane% (class (make-pane% 'pane basic-pane% wx-pane%) args
-		      (sequence (apply super-init args))))
-(define vertical-pane% (class (make-pane% 'vertical-pane basic-pane% wx-vertical-pane%) args
-		      (sequence (apply super-init args))))
-(define horizontal-pane% (class (make-pane% 'horizontal-pane basic-pane% wx-horizontal-pane%) args
-		      (sequence (apply super-init args))))
+(define vertical-pane% (class pane% (parent) (sequence (super-init parent))))
+(define horizontal-pane% (class pane% (parent) (sequence (super-init parent))))
 
-(define (make-panel% who panel% wx-panel%)
-  (class panel% (parent [style null])
+(define panel%
+  (class (make-area-container-window% (make-window% #f (make-subarea% (make-container% area%)))) (parent [style null])
     (private [wx #f])
     (sequence 
-      (check-container-parent who parent)
-      (check-style '(constructor panel) #f '(border) style)
-      (super-init (lambda () (set! wx (make-object wx-panel% this this (mred->wx-container parent) style)) wx)
-		  (lambda () wx) #f parent #f))))
+      (let ([who (cond ; yuck! - we do this to make h-p and v-p subclasses of p
+		  [(is-a? this vertical-panel%) 'vertical-panel]
+		  [(is-a? this horizontal-panel%) 'horizontal-panel]
+		  [else 'panel])])
+	(check-container-parent who parent)
+	(check-style `(constructor ,who) #f '(border) style)
+	(super-init (lambda () (set! wx (make-object (case who
+						       [(vertical-panel) wx-vertical-panel%]
+						       [(horizontal-panel) wx-horizontal-panel%]
+						       [else wx-panel%])
+						     this this (mred->wx-container parent) style)) wx)
+		    (lambda () wx) #f parent #f)))))
 
-
-(define basic-panel% (make-area-container-window% (make-window% #f (make-subarea% (make-container% area%)))))
-(define panel% (class (make-panel% 'panel basic-panel% wx-panel%)  args
-		      (sequence (apply super-init args))))
-(define vertical-panel% (class (make-panel% 'vertical-panel basic-panel% wx-vertical-panel%) args
-		      (sequence (apply super-init args))))
-(define horizontal-panel% (class (make-panel% 'horizontal-panel basic-panel% wx-horizontal-panel%) args
-		      (sequence (apply super-init args))))
+(define vertical-panel% (class panel% args (sequence (apply super-init args))))
+(define horizontal-panel% (class panel% args (sequence (apply super-init args))))
 
 ;;;;;;;;;;;;;;;;;;;;;; Menu classes ;;;;;;;;;;;;;;;;;;;;;;
 
@@ -2718,17 +2729,13 @@
     (public
       [get-parent (lambda () parent)]
       [get-label (lambda () label)]
-      [set-label (letrec ([set-label
-			   (case-lambda
-			    [(keep-l set-l)
-			     (set! label keep-l)
-			     (set! plain-label (wx:label->plain-label keep-l))
-			     (when shown?
-			       (if in-menu?
-				   (send wx-parent set-label (send wx id) set-l)
-				   (send wx-parent set-label-top (send wx-parent position-of this) plain-label)))]
-			    [(l) (set-label l l)])])
-		   set-label)]
+      [set-label (lambda (l)
+		   (set! label l)
+		   (set! plain-label (wx:label->plain-label l))
+		   (when shown?
+		     (if in-menu?
+			 (send wx-parent set-label (send wx id) l)
+			 (send wx-parent set-label-top (send wx-parent position-of this) plain-label))))]
       [get-plain-label (lambda () plain-label)]
       [get-help-string (lambda () help-string)]
       [set-help-string (lambda (s) 
