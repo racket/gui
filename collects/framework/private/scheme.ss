@@ -471,28 +471,15 @@
                             (insert
                              (make-string amt #\space)
                              pos-start))))]
-                     [id-walker
-                      (lambda (string)
-                        (let ([last (string-length string)])
-                          (let loop ([index 0])
-                            (if (= index last)
-                                last
-                                (let ([current (string-ref string index)])
-                                  (if (or (char-alphabetic? current)
-                                          (char-numeric? current))
-                                      (loop (add1 index))
-                                      (case current
-                                        [(#\# 
-                                          #\+ #\- #\. #\* #\/ #\< #\= #\> #\! #\? #\:
-                                          #\$ #\% #\_ #\& #\^ #\~)
-                                         (loop (add1 index))]
-                                        [else index])))))))]
                      [get-proc
                       (lambda ()
-                        (let* ([text (get-text contains (paragraph-end-position contain-para))])
-                          (hash-table-get (preferences:get 'framework:tabify)
-                                          (string->symbol (substring text 0 (id-walker text)))
-                                          (lambda () 'other))))]
+			(let ([id-end (forward-match contains (last-position))])
+			  (if (and id-end (> id-end contains))
+			      (let* ([text (get-text contains id-end)])
+				(hash-table-get (preferences:get 'framework:tabify)
+						(string->symbol text)
+						(lambda () 'other)))
+			      'other)))]
                      [procedure-indent
                       (lambda ()
                         (case (get-proc)
@@ -534,8 +521,10 @@
                     [(special-check)
                      (do-indent (add1 (visual-offset contains)))]
                     [(= contain-para last-para)
-                     (let ([name-length 
-                            (id-walker (get-text contains (paragraph-end-position contain-para)))])
+                     (let ([name-length (let ([id-end (forward-match contains (last-position))])
+					  (if id-end
+					      (- id-end contains)
+					      0))])
                        (do-indent (+ (visual-offset contains)
                                      name-length
                                      (indent-first-arg (+ contains 
