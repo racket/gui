@@ -31,10 +31,6 @@
       (preferences:set-default 'framework:show-status-line #t boolean?)
       (preferences:set-default 'framework:line-offsets #t boolean?)
       
-      (preferences:set-default 'framework:wheel-mouse-by-page 
-                               (eq? (system-type) 'unix)
-                               boolean?)
-      
       (preferences:set-default
        'framework:print-output-mode
        'standard
