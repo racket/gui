@@ -43,13 +43,11 @@
 	  (sequence (mred:debug:printf 'creation "creating a buffer"))
 	  (inherit modified? get-filename save-file canvases
 		   get-max-width get-admin)
-	  (rename
-	    [super-set-modified set-modified]
-	    [super-on-change on-change]
-	    [super-on-save-file on-save-file]
-	    [super-on-focus on-focus]
-	    [super-set-max-width set-max-width]
-	    [super-lock lock])
+	  (rename [super-set-modified set-modified]
+		  [super-on-save-file on-save-file]
+		  [super-on-focus on-focus]
+		  [super-set-max-width set-max-width]
+		  [super-lock lock])
 
 	  (public
 	    [get-edit-snip
@@ -65,10 +63,6 @@
 		  (get-edit-snip)]
 		 [else (get-pasteboard-snip)]))])
 
-	  (private
-	    [auto-saved-name #f]
-	    [auto-save-out-of-date? #t]
-	    [auto-save-error? #f])
 	  (public
 	    [set-max-width
 	     (lambda (x)
@@ -123,69 +117,9 @@
 	    [set-mode-direct (lambda (v) (set! mode v))]
 	    [set-mode
 	     (lambda (m)
-	       #f)]
-	    
-	    [set-modified
-	     (lambda (modified?)
-	       (if auto-saved-name
-		   (if (not modified?)
-		       (begin
-			 (delete-file auto-saved-name)
-			 (set! auto-saved-name #f))
-		       (set! auto-save-out-of-date? #t)))
-	       (super-set-modified modified?))]
-	    
-	    [on-change
-	     (lambda ()
-	       (super-on-change)
-	       (set! auto-save-out-of-date? #t))]
-	    [auto-save? #t]
-	    [do-autosave
-	     (lambda ()
-	       (when (and auto-save?
-			  (not auto-save-error?)
-			  (modified?)
-			  (or (not auto-saved-name)
-			      auto-save-out-of-date?))
-		 (let* ([orig-name (get-filename)]
-			[auto-name (mred:path-utils:generate-autosave-name orig-name)]
-			[success (save-file auto-name wx:const-media-ff-copy)])
-		   (if success
-		       (begin
-			 (if auto-saved-name
-			     (delete-file auto-saved-name))
-			 (set! auto-saved-name auto-name)
-			 (set! auto-save-out-of-date? #f))
-		       (begin
-			 (wx:message-box 
-			  (format "Error autosaving ~s.~n~a~n~a"
-				  (if (null? orig-name) "Untitled" orig-name)
-				  "Autosaving is turned off"
-				  "until the file is saved.")
-			  "Warning")
-			 (set! auto-save-error? #t))))))]
-	    [remove-autosave
-	     (lambda ()
-	       (when auto-saved-name
-		 (delete-file auto-saved-name)
-		 (set! auto-saved-name #f)))]
-	    
-	    [backup? #t]
-	    [on-save-file
-	     (lambda (name format)
-	       (set! auto-save-error? #f)
-	       (and (super-on-save-file name format)
-		    (begin
-		      (when (and backup?
-				 (not (= format wx:const-media-ff-copy))
-				 (file-exists? name))
-			(let ([back-name (mred:path-utils:generate-backup-name name)])
-			  (unless (file-exists? back-name)
-			    (rename-file name back-name))))
-		      #t)))])
+	       #f)])
 	  (sequence
-	    (apply super-init args)
-	    (mred:autosave:register-autosave this)))))
+	    (apply super-init args)))))
 
     (define make-edit%
       (lambda (super%)
@@ -241,21 +175,21 @@
 		 (split-snip end)
 		 (let loop ([snip (find-snip end wx:const-snip-before)])
 		   (cond
-		     [(or (null? snip) (< (get-snip-position snip) start))
-		      (void)]
-		     [else
-		      (let ([prev (send snip previous)]
-			    [released/copied (if (send snip release-from-owner)
-						 snip
-						 (let* ([copy (send snip copy)]
-							[snip-start (get-snip-position snip)]
-							[snip-end (+ snip-start (send snip get-count))])
-						   (delete snip-start snip-end)
-						   snip))])
-			'(wx:message-box (format "before: ~a" (eq? snip released/copied)))
-			(insert-edit released/copied dest-position dest-position)
-			'(wx:message-box (format "after: ~a" (eq? snip released/copied)))
-			(loop prev))]))))])
+		    [(or (null? snip) (< (get-snip-position snip) start))
+		     (void)]
+		    [else
+		     (let ([prev (send snip previous)]
+			   [released/copied (if (send snip release-from-owner)
+						snip
+						(let* ([copy (send snip copy)]
+						       [snip-start (get-snip-position snip)]
+						       [snip-end (+ snip-start (send snip get-count))])
+						  (delete snip-start snip-end)
+						  snip))])
+		       '(wx:message-box (format "before: ~a" (eq? snip released/copied)))
+		       (insert-edit released/copied dest-position dest-position)
+		       '(wx:message-box (format "after: ~a" (eq? snip released/copied)))
+		       (loop prev))]))))])
 
 	  (public
 	    [on-save-file
@@ -263,28 +197,28 @@
 		    (lambda ()
 		      (let loop ([s (find-snip 0 wx:const-snip-after)])
 			(cond
-			  [(null? s) #f]
-			  [(is-a? s wx:text-snip%)
-			   (loop (send s next))]
-			  [else #t])))])
+			 [(null? s) #f]
+			 [(is-a? s wx:text-snip%)
+			  (loop (send s next))]
+			 [else #t])))])
 	       (lambda (name format)
 		 (when (and (or (= format wx:const-media-ff-same)
 				(= format wx:const-media-ff-copy))
 			    (not (= (get-file-format) 
 				    wx:const-media-ff-std)))
 		   (cond
-		     [(= format wx:const-media-ff-copy)
-		      (set! restore-file-format 
-			    (let ([f (get-file-format)])
-			      (lambda ()
-				(set! restore-file-format void)
-				(set-file-format f))))
-		      (set-file-format wx:const-media-ff-std)]
-		     [(and (has-non-text-snips)
-			   (or (not (mred:preferences:get-preference 'mred:verify-change-format))
-			       (mred:gui-utils:get-choice "Save this file as plain text?" "No" "Yes")))
-		      (set-file-format wx:const-media-ff-std)]
-		     [else (void)]))
+		    [(= format wx:const-media-ff-copy)
+		     (set! restore-file-format 
+			   (let ([f (get-file-format)])
+			     (lambda ()
+			       (set! restore-file-format void)
+			       (set-file-format f))))
+		     (set-file-format wx:const-media-ff-std)]
+		    [(and (has-non-text-snips)
+			  (or (not (mred:preferences:get-preference 'mred:verify-change-format))
+			      (mred:gui-utils:get-choice "Save this file as plain text?" "No" "Yes")))
+		     (set-file-format wx:const-media-ff-std)]
+		    [else (void)]))
 		 (or (super-on-save-file name format)
 		     (begin 
 		       (restore-file-format)
@@ -426,29 +360,29 @@
 			  (send this position-location end end-x bottom-end-y
 				#f end-eol? #t)
 			  (cond
-			    [(= (unbox top-start-y) (unbox top-end-y))
-			     (list (make-rectangle (unbox start-x)
-						   (unbox top-start-y)
-						   (max 1 (- (unbox end-x) (unbox start-x)))
-						   (- (unbox bottom-start-y) (unbox top-start-y))
-						   b/w-bitmap color))]
-			    [else
-			     (list
-			      (make-rectangle (unbox start-x)
-					      (unbox top-start-y)
-					      (- (unbox buffer-width) (unbox start-x))
-					      (- (unbox bottom-start-y) (unbox top-start-y))
-					      b/w-bitmap color)
-			      (make-rectangle 0
-					      (unbox bottom-start-y)
-					      (unbox buffer-width)
-					      (- (unbox top-end-y) (unbox bottom-start-y))
-					      b/w-bitmap color)
-			      (make-rectangle 0
-					      (unbox top-end-y)
-					      (unbox end-x)
-					      (- (unbox bottom-end-y) (unbox top-end-y))
-					      b/w-bitmap color))])))]
+			   [(= (unbox top-start-y) (unbox top-end-y))
+			    (list (make-rectangle (unbox start-x)
+						  (unbox top-start-y)
+						  (max 1 (- (unbox end-x) (unbox start-x)))
+						  (- (unbox bottom-start-y) (unbox top-start-y))
+						  b/w-bitmap color))]
+			   [else
+			    (list
+			     (make-rectangle (unbox start-x)
+					     (unbox top-start-y)
+					     (- (unbox buffer-width) (unbox start-x))
+					     (- (unbox bottom-start-y) (unbox top-start-y))
+					     b/w-bitmap color)
+			     (make-rectangle 0
+					     (unbox bottom-start-y)
+					     (unbox buffer-width)
+					     (- (unbox top-end-y) (unbox bottom-start-y))
+					     b/w-bitmap color)
+			     (make-rectangle 0
+					     (unbox top-end-y)
+					     (unbox end-x)
+					     (- (unbox bottom-end-y) (unbox top-end-y))
+					     b/w-bitmap color))])))]
 		     [invalidate-rectangle 
 		      (lambda (r)
 			(invalidate-bitmap-cache (rectangle-left r)
@@ -567,17 +501,17 @@
 			[end-test
 			 (lambda (snip)
 			   (cond
-			     [(null? snip) flat]
-			     [(and (not (= -1 flat))
-				   (let* ([start (get-snip-position snip)]
-					  [end (+ start (send snip get-count))])
-				     (if (= direction 1)
-					 (and (<= start flat)
-					      (< flat end))
-					 (and (< start flat)
-					      (<= flat end)))))
-			      flat]
-			     [else #f]))]			       
+			    [(null? snip) flat]
+			    [(and (not (= -1 flat))
+				  (let* ([start (get-snip-position snip)]
+					 [end (+ start (send snip get-count))])
+				    (if (= direction 1)
+					(and (<= start flat)
+					     (< flat end))
+					(and (< start flat)
+					     (<= flat end)))))
+			     flat]
+			    [else #f]))]			       
 			[pop-out
 			 (lambda ()
 			   (let ([admin (get-admin)])
@@ -603,26 +537,26 @@
 				  (loop (send current-snip next))
 				  (loop (send current-snip previous))))])
 		       (cond
-			 [(end-test current-snip) => 
-			  (lambda (x)
-			    (if (and (= x -1) pop-out?)
-				(pop-out)
-				(values this x)))]
-			 [(is-a? current-snip wx:media-snip%)
-			  (let-values ([(embedded embedded-pos)
-					(let ([media (send current-snip get-this-media)])
-					  (and (not (null? media))
-					       (send media find-string-embedded str
-						     direction
-						     (if (= 1 direction)
-							 0
-							 (send media last-position))
-						     -1
-						     get-start case-sensitive?)))])
-			    (if (= -1 embedded-pos)
-				(next-loop)
-				(values embedded embedded-pos)))]
-			 [else (next-loop)]))))))])
+			[(end-test current-snip) => 
+						 (lambda (x)
+						   (if (and (= x -1) pop-out?)
+						       (pop-out)
+						       (values this x)))]
+			[(is-a? current-snip wx:media-snip%)
+			 (let-values ([(embedded embedded-pos)
+				       (let ([media (send current-snip get-this-media)])
+					 (and (not (null? media))
+					      (send media find-string-embedded str
+						    direction
+						    (if (= 1 direction)
+							0
+							(send media last-position))
+						    -1
+						    get-start case-sensitive?)))])
+			   (if (= -1 embedded-pos)
+			       (next-loop)
+			       (values embedded embedded-pos)))]
+			[else (next-loop)]))))))])
 	  (sequence
 	    (apply super-init args)
 	    (set-autowrap-bitmap autowrap-bitmap)
@@ -651,6 +585,80 @@
 	    (apply super-init args)))))
 
     (define return-edit% (make-return-edit% edit%))
-		  
+
+    (define make-backup-autosave-buffer%
+      (lambda (super-edit%)
+	(class-asi super-edit%
+	  (inherit modified? get-filename save-file)
+	  (rename [super-on-save-file on-save-file]
+		  [super-on-change on-change]
+		  [super-set-modified set-modified])
+	  (private
+	    [auto-saved-name #f]
+	    [auto-save-out-of-date? #t]
+	    [auto-save-error? #f])
+	  (public
+	    [backup? #t]
+	    [on-save-file
+	     (lambda (name format)
+	       (set! auto-save-error? #f)
+	       (and (super-on-save-file name format)
+		    (begin
+		      (when (and backup?
+				 (not (= format wx:const-media-ff-copy))
+				 (file-exists? name))
+			(let ([back-name (mred:path-utils:generate-backup-name name)])
+			  (unless (file-exists? back-name)
+			    (rename-file name back-name))))
+		      #t)))]
+	    [on-change
+	     (lambda ()
+	       (super-on-change)
+	       (set! auto-save-out-of-date? #t))]
+	    [auto-save? #t]
+	    [set-modified
+	     (lambda (modified?)
+	       (when auto-saved-name
+		 (if (not modified?)
+		     (begin
+		       (delete-file auto-saved-name)
+		       (set! auto-saved-name #f))
+		     (set! auto-save-out-of-date? #t)))
+	       (super-set-modified modified?))]
+	    [do-autosave
+	     (lambda ()
+	       (when (and auto-save?
+			  (not auto-save-error?)
+			  (modified?)
+			  (or (not auto-saved-name)
+			      auto-save-out-of-date?))
+		 (let* ([orig-name (get-filename)]
+			[auto-name (mred:path-utils:generate-autosave-name orig-name)]
+			[success (save-file auto-name wx:const-media-ff-copy)])
+		   (if success
+		       (begin
+			 (if auto-saved-name
+			     (delete-file auto-saved-name))
+			 (set! auto-saved-name auto-name)
+			 (set! auto-save-out-of-date? #f))
+		       (begin
+			 (wx:message-box 
+			  (format "Error autosaving ~s.~n~a~n~a"
+				  (if (null? orig-name) "Untitled" orig-name)
+				  "Autosaving is turned off"
+				  "until the file is saved.")
+			  "Warning")
+			 (set! auto-save-error? #t))))))]
+	    [remove-autosave
+	     (lambda ()
+	       (when auto-saved-name
+		 (delete-file auto-saved-name)
+		 (set! auto-saved-name #f)))]))))
+
+    (define backup-autosave-edit% (make-backup-autosave-buffer% edit%))
+
     (define make-pasteboard% make-std-buffer%)
-    (define pasteboard% (make-pasteboard% mred:connections:connections-media-pasteboard%)))
+
+    (define pasteboard% (make-pasteboard% mred:connections:connections-media-pasteboard%))
+
+    (define backup-autosave-pasteboard% (make-backup-autosave-buffer% edit%)))
