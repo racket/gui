@@ -1338,6 +1338,8 @@
 			     get-scroll-pos get-scroll-range get-scroll-page
 			     get-client-size get-virtual-size)
 		    (public
+		     [vw 10]
+		     [vh 10]
 		     [on-paint
 		      (lambda ()
 			(let ([s (format "V: p: ~s r: ~s g: ~s H: ~s ~s ~s"
@@ -1359,27 +1361,39 @@
 			  (draw-text (format "client: ~s x ~s  virtual: ~s x ~s" 
 					     (unbox w) (unbox h)
 					     (unbox w2) (unbox h2))
-				     3 27)))]
+				     3 27)
+			  (draw-line 0 vh vw vh)
+			  (draw-line vw 0 vw vh)))]
+		     [set-vsize (lambda (w h) (set! vw w) (set! vh h))]
 		     [on-scroll
 		      (lambda (e) (on-paint))])
 		    (sequence
 		      (super-init p -1 -1 -1 -1 flags))))
   (define c1 (make-object c% "Unmanaged scroll" p))
   (define c2 (make-object c% "Automanaged scroll" p))
-  (define (reset-scrolls)
+  (define (reset-scrolls for-small?)
     (let* ([h? (send ck-h get-value)]
 	   [v? (send ck-v get-value)]
 	   [small? (send ck-s get-value)]
 	   [swap? (send ck-w get-value)])
-      (send c1 set-scrollbars (if h? 1 -1) (if v? 1 -1) 10 10 3 3 0 0 swap?)
+      (send c1 set-vsize 10 10)
+      (send c1 set-scrollbars (if h? 1 -1) (if v? 1 -1) 10 10 3 3 1 1 swap?)
+      (send c2 set-vsize (if small? 50 500) (if small? 20 200))
       (send c2 set-scrollbars (if h? 25 -1) (if v? 10 -1) (if small? 2 20) (if small? 2 20) 
-	    3 3 0 0 (not swap?))))
+	    3 3 1 1 (not swap?))
+      (if for-small?
+	  ; Specifically refresh the bottom canvas
+	  (send c2 refresh)
+	  ; Otherwise, we have to specifically refresh the unmanaged canvas
+	  (send (if swap? c2 c1) refresh))))
   (define p2 (make-object mred:horizontal-panel% p))
   (define jumk (send p2 stretchable-in-y #f))
-  (define ck-v (make-object mred:check-box% p2 (lambda (b e) (reset-scrolls)) "Vertical Scroll"))
-  (define ck-h (make-object mred:check-box% p2 (lambda (b e) (reset-scrolls)) "Horizontal Scroll"))
-  (define ck-s (make-object mred:check-box% p2 (lambda (b e) (reset-scrolls)) "Small"))
-  (define ck-w (make-object mred:check-box% p2 (lambda (b e) (reset-scrolls)) "Swap"))
+  (define ck-v (make-object mred:check-box% p2 (lambda (b e) (reset-scrolls #f)) "Vertical Scroll"))
+  (define ck-h (make-object mred:check-box% p2 (lambda (b e) (reset-scrolls #f)) "Horizontal Scroll"))
+  (define ck-s (make-object mred:check-box% p2 (lambda (b e) (reset-scrolls #t)) "Small"))
+  (define ck-w (make-object mred:check-box% p2 (lambda (b e) (reset-scrolls #f)) "Swap"))
+  (send c1 set-vsize 10 10)
+  (send c2 set-vsize 500 200)
   (send f show #t))
 
 ;----------------------------------------------------------------------

@@ -1,0 +1,52 @@
+
+The canvas test frame is primarily for checking the behvaiour of the
+scrollbars. Canvas scrollbars work in one of two modes:
+  1) Managing: the scrollbar determines the size and offset of
+     the canvas's drawing area.
+  2) Non-managing: the scrollbars are simply placed next to the
+     canvas; the canvas's size and offset are not affected by
+     the scrollbar values.
+In the test frame, the top canvas is initially unmanaged, and the
+bottom is managed.
+
+An HVCanvas has both horizontal and vertical scrollbars, but the
+scrollbars are initially disabled. Clikcing the "Vertical Scroll"
+checkbox enables the vertical scroll. A VCanvas has only a vertical
+scrollbar; clicking "Horizontal Scroll" in this case has no effect.
+When a canvas is managed by its scrollbars and a scrollbar is missing
+in a particular direction, it should act the same as an unmanaged
+canvas in that direction.
+
+On each canvas, the following are painted at 0,0:
+ * The name of the canvas
+ * Three values per scroll bar, for UNMANAGED canvases:
+    - The current value of the scroll
+    - The maximum value of the scroll
+    - The page step of the scroll
+   These should all be 0 for MANAGED canvases and for
+   disabled directions
+ * Two size measurements:
+    - The client size of the canvas
+    - The drawing area of the canvas
+   These should be the same for UNMANAGED canvases/directions
+ * Two lines showing the boundaries of the canvas if it
+   is managed and the scrollbars is enabled. When the canvas
+   is managed with a vertical scrollbar, the bottom boundary
+   line should not be visible (i.e., it should be clipped).
+
+As the scroll is changed for the bottom canvas, the information will
+move, because the scrolls are automatically adjusting the offset of
+the canvas. For the top canvas, the information is always visible in
+the same place; it is just updated.
+
+The top's scrollbars have a range of 10 and a page step of 3.  The
+bottom's scrollbars have a range of 20 and a page step of 3 (although
+the page step is generally ignored for a managed canvas).  In the
+bottom frame, one vertical scroll step is mapped to 10 pixels and one
+horizontal step to 25 pixels, making the drawing area 200 pixels high
+and 500 pixels wide.
+
+The "Small" checkbox changes the bottom's range to 2 instead of
+20. This will make the drawing area of the canvas small.
+
+ * Enable vertical scroll. Displayed info should change.
