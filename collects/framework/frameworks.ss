@@ -12,7 +12,7 @@
 (require-relative-library "guiutilss.ss")
 
 (define-signature framework:prefs-file^
-  (preferences-filename))
+  (get-preferences-filename))
 
 (define-signature framework:version^
   (add-spec

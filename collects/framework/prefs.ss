@@ -207,13 +207,13 @@
 			   (message-box
 			    "Error saving preferences"
 			    (exn-message exn)))])
-	  (call-with-output-file prefs-file:preferences-filename
+	  (call-with-output-file (prefs-file:get-preferences-filename)
 	    (lambda (p)
 	      (mzlib:pretty-print:pretty-print
 	       (hash-table-map preferences marshall-pref) p))
 	    'truncate 'text)))))
 
-  (define (for-each-pref-in-file parse-pref prefs-file:preferences-filename)
+  (define (for-each-pref-in-file parse-pref preferences-filename)
     (let/ec k
       (let ([err
 	     (lambda (input msg)
@@ -228,7 +228,7 @@
 							       (string-length ell)))
 					    ell))])
 			      (format "found bad pref in ~a: ~a~n~a"
-				      prefs-file:preferences-filename msg s2))))])
+				      preferences-filename msg s2))))])
 	(let ([input (with-handlers
 			 ([(lambda (exn) #t)
 			   (lambda (exn)
@@ -237,7 +237,7 @@
 			      (format "Error reading preferences~n~a"
 				      (exn-message exn)))
 			     (k #f))])
-		       (call-with-input-file prefs-file:preferences-filename
+		       (call-with-input-file (prefs-file:get-preferences-filename)
 			 read
 			 'text))])
 	  (if (eof-object? input)
@@ -294,7 +294,7 @@
 
   ;; read : -> void
   (define (-read)
-    (read-from-file-to-ht prefs-file:preferences-filename preferences))
+    (read-from-file-to-ht (prefs-file:get-preferences-filename) preferences))
 
 
   ;; read in the saved defaults. These should override the
