@@ -365,17 +365,26 @@
            [text (make-object text%)]
            [canvas (make-object editor-canvas% canvas-panel text)]
            [button-panel (make-object horizontal-panel% dialog)]
+	   [pref-check (make-object check-box%
+			 "Use separate dialog for searching"
+			 dialog
+			 (lambda (pref-check evt)
+			   (preferences:set
+			    'framework:search-using-dialog?
+			    (send pref-check get-value))))]
            [cancel-button (make-object button% "Cancel" button-panel 
                                        (lambda x
                                          (send dialog show #f)))]
            [find-button (make-object button% "Find" button-panel 
                                      (lambda x
-                                       (send find-edit erase)
+				       (send find-edit stop-searching)
+				       (send find-edit erase)
                                        (let loop ([snip (send text find-first-snip)])
                                          (when snip
                                            (send find-edit insert (send snip copy))
                                            (loop (send snip next))))
                                        (send dialog show #f)
+                                       (send find-edit start-searching)
                                        (send find-edit search #t #t)))])
       (let loop ([snip (send find-edit find-first-snip)])
         (when snip
@@ -384,6 +393,7 @@
       (send canvas min-width 400)
       (send canvas set-line-count 2)
       (send canvas focus)
+      (send pref-check set-value (preferences:get 'framework:search-using-dialog?))
       (send button-panel set-alignment 'right 'center)
       (send dialog center 'both)
       (send dialog show #t)))
@@ -596,6 +606,16 @@
 			  (not-found found-edit))]
 		     [else
 		      (found found-edit first-pos)]))))))])
+      (private
+	[dont-search #f])
+      (public
+	[stop-searching
+	 (lambda ()
+	   (set! dont-search #t))]
+	[start-searching
+	 (lambda ()
+	   (set! dont-search #f))])
+
       (override
 	[on-focus
 	 (lambda (on?)
@@ -607,11 +627,13 @@
 	[after-insert
 	 (lambda args
 	   (apply super-after-insert args)
-	   (search #f))]
+	   (unless dont-search
+	     (search #f)))]
 	[after-delete
 	 (lambda args
 	   (apply super-after-delete args)
-	   (search #f))])))
+	   (unless dont-search
+	     (search #f)))])))
 
   (define find-edit #f)
   (define replace-edit #f)
@@ -653,7 +675,8 @@
       (override
         [get-editor<%> (lambda () text:searching<%>)]
 	[get-editor% (lambda () text:searching%)]
-	[edit-menu:find (lambda (menu evt) (move-to-search-or-search))])
+	[edit-menu:find (lambda (menu evt) (move-to-search-or-search))]
+	[edit-menu:find-again (lambda (menu evt) (search-again))])
       (override
 	[make-root-area-container
 	 (lambda (% parent)
@@ -689,15 +712,23 @@
 	[unhide-search
 	 (lambda ()
 	   (when (and hidden?
-                      '(not (preferences:get 'framework:search-using-dialog?)))
+                      (not (preferences:get 'framework:search-using-dialog?)))
 	     (set! hidden? #f)
 	     (send search-panel focus)
 	     (send super-root add-child search-panel)
 	     (reset-search-anchor (get-text-to-search))))])
+      (private
+	[remove-callback
+	 (preferences:add-callback
+	  'framework:search-using-dialog?
+	  (lambda (p v)
+	    (when p
+	      (hide-search))))])
       (override
 	[on-close
 	 (lambda ()
 	   (super-on-close)
+	   (remove-callback)
 	   (let ([close-canvas
 		  (lambda (canvas edit)
 		    (send edit remove-canvas canvas)
