@@ -112,7 +112,7 @@ needed to really make this work:
           (piece-of-info "Identifier-binding" (identifier-binding stx))
           (piece-of-info "Identifier-transformer-binding" (identifier-transformer-binding stx)))
         
-	(let ([properties (syntax-properties stx)])
+	(let ([properties (syntax-property-symbol-keys stx)])
 	  (unless (null? properties)
 	    (insert/big "Known properties\n")
 	    (for-each
@@ -518,7 +518,7 @@ needed to really make this work:
       (original? ,(syntax-original? stx))
       (properties 
        ,@(map (lambda (x) `(,x ,(marshall-object (syntax-property stx x))))
-              (syntax-properties stx)))
+              (syntax-property-symbol-keys stx)))
       (contents
        ,(marshall-object (syntax-e stx)))))
 
