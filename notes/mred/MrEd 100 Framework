@@ -1,27 +1,25 @@
 MrEd 100 Framework revision
 
+NOTE: some used but non-existant interfaces from mred engine:
+      frame<%>, 
+
 The framework is a streamlined version of the `mred:' names
 from MrEd version 53.
 
 Several of the old classes and proecedures are not longer in the
 framework. Some have been eliminated and some have been moved out
-into a separate application. Use 
-
-   mred -l "app.ss" "system" "oldstyle.ss" "framework"
-
-to start old-style mred.
+into a separate application.
 
 The eliminated classes and functions are:
 
   :: classes that used to improve the wx: toolbox 
   :: interface and are no longer needed
 
-  mred:basic-mode% 
   mred:button% 
   mred:check-box% 
   mred:choice% 
   mred:dialog-box% 
-  mred:edit% (only the name is gone; mred:file-edit lives on)
+  mred:edit% (only the name alias is gone; mred:file-edit lives on)
   mred:frame%
   mred:gauge% 
   mred:horizontal-panel%
@@ -35,27 +33,33 @@ The eliminated classes and functions are:
   mred:text% 
   mred:text-window%
   mred:vertical-panel% 
-  
+  mred:media-canvas% 
+
   mred:menu% 
   mred:menu-bar% 
   mred:menu-frame% 
   
-  mred:media-text-edit% 
-  mred:media-text-canvas%
-  mred:media-multi-text%
-  
+  mred:media-text-edit%   (use a text%)
+  mred:media-text-canvas% (use a text%)
+  mred:media-multi-text%  (use a multi-text%)
+  mred:canvas-message%    (use a message%)  
+
   :: modes have just become mixins
 
+  mred:basic-mode% 
   mred:mode%                       
   mred:scheme-interaction-mode% 
   mred:scheme-mode% 
   
-The moved functions and classes are:
-  
+  :: just use drscheme instead of these
+    
   mred:console-edit% 
   mred:console-frame%
   mred:editor-frame%
   mred:transparent-io-edit% 
+
+  
+The moved functions and classes are:
   
   :: web browswer
   
@@ -69,85 +73,331 @@ The moved functions and classes are:
   
   mred:graph-pasteboard% 
   mred:node-snip% 
+
+The remaining existant functions and classes: 
   
-The remaining existant functions and classes follow. 
+  connections:frame% = (connections:make-top-level-window% testable-frame%)
+  connections:dialog-box% = (connections:make-top-level-window% dialog-bo%)
+  connections:text% = (connections:make-editor% edit%)
+  connections:pasteboard% = (connections:make-editor% pasteboard%)
+  connections:editor-canvas% =
+    (connections:make-editor-canvas% testable-media-canvas%)
+  connections:panel% = (connections:make-panel% testable-panel%)
+  connections:horizontal-panel% = 
+    (connections:make-panel% testable-horizontal-panel%)
+  connections:vertical-panel% =
+    (connections:make-panel% testable-vertical-panel%)
+  connections:single-panel% = (connections:make-panel% testable-single-panel%)
 
-  testable-frame% = (add-get-focus (add-get-active frame%))
-  connections-frame% = (make-connections-frame% testable-frame%)
-  empty-frame% = (make-empty-frame% frame%)
-  menu-frame% = (make-menu-frame% empty-frame%)
-  standard-menus-frame% = (make-standard-menus-frame% menu-frame%)
-  simple-menu-frame% = (make-simple-menu-frame% standard-menus-frame%)
-  searchable-frame% = (make-searchable-frame% simple-menu-frame%)
-  info-frame% = (make-info-frame% searchable-frame%)
-  info-file-frame% = (make-info-file-frame% info-frame%)
-  pasteboard-frame% = (make-pasteboard-frame% simple-menu-frame%)
-  pasteboard-info-frame% = (make-info-frame% pasteboard-frame%)
-  pasteboard-info-file-frame% = (make-info-file-frame% pasteboard-info-frame%)
+  frame:empty% = (frame:make-empty% frame%)
+  frame:standard-menus% = (frame:make-standard-menus% frame:empty%)
+  frame:simple-menu% = (frame:make-simple-menu% frame:standard-menus%)
+  frame:searchable% = (frame:make-searchable% frame:simple-menu%)
+  frame:info% = (frame:make-info% frame:searchable%)
+  frame:info-file% = (frame:make-info-file% frame:info%)
+  frame:pasteboard% = (frame:make-pasteboard% frame:simple-menu%)
+  frame:pasteboard-info% = (frame:make-info% frame:pasteboard%)
+  frame:pasteboard-info-file% = (frame:make-info-file% frame:pasteboard-info%)
 
-  testable-frame% = (add-get-focus (add-get-active dialog-box%))
-  connections-dialog-box% = (make-connections-frame% dialog-bo%)
+  text:basic% = 
+     (text:make-basic% (editor:make-basic% connections:text%))  
+  text:return% = (text:make-return% text:basic%)
+  text:searching% = (text:make-searching% text:basic%)
+  text:info% = 
+    (text:make-info% (editor:make-info% text:searching%))
+  text:clever-file-format% = 
+    (text:make-clever-file-format% text:info%)
+  text:file% = 
+    (editor:make-file% text:clever-file-format%)
+  text:backup-autosave% = 
+    (editor:make-backup-autosave% text:file%)
+  text:scheme% = 
+    (text:make-scheme% text:backup-autosave%)
 
-  connections-media-edit% = (make-connections-media-buffer% (make-std-buffer% edit%))
-  media-edit% = (make-media-edit% connections-media-edit%)
-  return-edit% = (make-return-edit% media-edit%)
-  searching-edit% = (make-searching-edit% return-edit%)
-  info-edit% = (make-info-edit% (make-info-buffer% searching-edit%))
-  clever-file-format-edit% = (make-clever-file-format-edit% info-edit%)
-  file-edit% = (make-file-buffer% clever-file-format-edit%)
-  backup-autosave-edit% = (make-backup-autosave-edit% scheme-edit%)
-  scheme-edit% = (make-scheme-edit% backup-autosave-edit%)
-    (was scheme-mode-edit%)
-
-  connections-media-pasteboard% = (make-connections-buffer% pasteboard%)
-  pasteboard% = (make-pasteboard% (make-std-buffer% connections-media-pasteboard%))
-  info-pasteboard% = (make-info-buffer% pasteboard%)
-  file-pasteboard% = (make-file-buffer% info-pasteboard%)
-  backup-autosave-pasteboard% = (make-backup-autosave-buffer info-pasteboard%)
+  pasteboard:basic% = (editor:make-basic% connections:pasteboard%)
+  pasteboard:info% = (editor:make-info% pasteboard:basic%)
+  pasteboard:file% = (editor:make-file% pasteboard:info%)
+  pasteboard:backup-autosave% = (editor:make-backup-autosave% pasteboard:info%)
   
-  testable-canvas% 
-  canvas% 
+  editor-canvas:one-line% =
+    (editor-canvas:make-one-line% connections:editor-canvas%)
+  editor-canvas:wrapping% =
+    (editor-canvas:make-wrapping% connections:editor-canvas%)
+  editor-canvas:frame-title% = 
+    (editor-canvas:make-frame-title% editor-canvas:wrapping%)
+  editor-canvas:wide-snip% =
+    (editor-canvas:make-wide-snip% editor-canvas:frame-title%)
 
-  testable-media-canvas% = (add-get-focus media-canvas%)
-  connections-media-canvas% = (make-connections-media-canvas% testable-media-canvas%)
-  wrapping-canvas% = (make-wrapping-canvas% 
-  frame-title-canvas% 
-  one-line-canvas% 
-  wide-snip-canvas% 
+  panel:vertical-edit% = (panel:make-edit% testable:vertical-panel%)
+  panel:horizontal-edit% = (panel:make-edit% testable:horizontal-panel%)
+      
+  snip:basic-style% = (snip:make-basic-style% snip%)
+  snip:basic-style-media% = (snip:make-basic-style% media-snip%)
 
-  keymap-canvas% 
-  media-canvas% 
+  frame-group:%
 
-  canvas-message% 
+  match-cache:%
 
-  connections-dialog-box% 
+Old to new name mapping:
 
-  connections-panel% 
+  mred:connections-frame% -> connections:frame%
+  mred:connections-dialog-box% -> connections:dialog-box%
+  mred:connections-media-edit% -> connections:text%
+  mred:connections-media-pasteboard% -> connections:pasteboard%
+  mred:connections-media-canvas% -> connections:editor-canvas%
 
+  mred:connections-panel% -> connections:panel%
+   ; this class used to be a superclass of mred:panel%; now it is a derived 
+   ; class. So, the functionality is now in four different classes:
+   ; mred:connections-panel%, mred:connections-horizontal-panel%,
+   ; mred:connections-vertical-panel%, and mred:connections-single-panel%)
+     
+  mred:empty-frame% -> frame:empty%
+  mred:standard-menus-frame% -> frame:standard-menus%
+  mred:simple-menu-frame% -> frame:simple-menu%
+  mred:searchable-frame% -> frame:searchable%
+  mred:info-frame% -> frame:info%
+  mred:info-file-frame% -> frame:info-file%
+  mred:pasteboard-frame% -> frame:pasteboard%
+  mred:pasteboard-info-frame% -> frame:pasteboard-info%
+  mred:pasteboard-info-file-frame% -> frame:pasteboard-info-file%
+
+  mred:media-edit% -> text:basic%
+  mred:return-edit% -> text:return%
+  mred:searching-edit% -> text:searching%
+  mred:info-edit% -> text:info%
+  mred:clever-file-format-edit% -> text:clever-file-format%
+  mred:file-edit% -> text:file%
+  mred:backup-autosave-edit% -> text:backup-autosave%
+  mred:scheme-mode-edit% -> text:scheme% 
+     (The new class is now implemented differently but has the same 
+      functionality as the old.)
+
+  mred:media-pasteboard% -> pasteboard:basic%
+  mred:info-pasteboard% -> pasteboard:info%
+  mred:file-pasteboard% -> pasteboard:file%
+  mred:backup-autosave-pasteboard% -> pasteboard:backup-autosave%
   
-  frame-group% 
-  
-  horizontal-edit-panel% 
-              
+  mred:wrapping-canvas% -> editor-canvas:wrapping%
+  mred:frame-title-canvas% -> editor-canvas:frame-title%
+  mred:one-line-canvas% -> editor-canvas:one-line%
+  mred:wide-snip-canvas% -> editor-canvas:wide-snip%
+
+  mred:vertical-edit-panel% -> panel:vertical-edit%
+  mred:horizontal-edit-panel% -> panel:horizontal-edit%
+      
+  mred:snip% -> snip:basic-style%
+  mred:media-snip% -> snip:basic-style-media%
+
+  mred:frame-group -> frame-group:%
                
-  match-cache% 
+  mred:match-cache% -> match-cache:%
+
+Mixins:
+
+  connections:make-top-level-window% : top-level-window<%> ->
+                                       connections-top-level-window<%>
+  connections:make-editor% : editor<%> -> connections:editor<%>
+  connections:make-editor-canvas% : editor-canvas<%> -> 
+                                    connections:editor-canvas<%>
+  connections:make-panel% : panel<%> -> connections:panel<%>
   
-  media-snip%          (needs better docs)
+  frame:make-empty% : frame<%> -> frame:empty<%>
+  frame:make-standard-menus% : frame<%> -> frame:standard-menus<%>
+  frame:make-simple-menu% : (interface (frame:standard-menus<%> frame:empty<%>))
+                            -> frame:simple-menu<%>
+  frame:make-searchable% : 
+  frame:make-info%
+  frame:make-info-file%
+  frame:make-pasteboard%
+  frame:make-info%
+  frame:make-info-file%
+  
+  editor:make-basic%
+  editor:make-info%
+  editor:make-file%
+  editor:make-backup-autosave%
+  
+  text:make-basic%
+  text:make-return%
+  text:make-searching%
+  text:make-info%
+  text:make-clever-file-format%
+  text:make-scheme%
+  
+  editor-canvas:make-one-line%
+  editor-canvas:make-wrapping%
+  editor-canvas:make-frame-title%
+  editor-canvas:make-wide-snip%
+  
+  panel:make-edit%
+  
+  snip:make-basic-style%
+  
+  ; make-basic-editor% adds keymap support, error checking on load-file
+  ;      run-after-edit-sequence, locked?, get-edit-snip, 
+  ;      get-pasteboard-snip, sets up parents for get-file and put-file
+  
+  ; make-basic-text% adds ranges, wrapping, move/copy-to-edit
 
-  snip% 
+Interfaces:
+ 
+  testable:get-active<%> = (interface () get-focused-window
+                                         set-focused-window
+                                         get-active?)
+  testable:get-focus<%> = (interface ())
+  
+  connections:top-level-window<%> =
+    (interface ()
+      shown
+      active-edit
+      active-canvas
+      on-frame-active)
+  connections:editor-canvas<%> =
+    (interface ()
+      shown
+      edit-renamed
+      edit-modified)
+  connections:panel<%> =
+    (interface ()
+      frame))
+  connections:editor<%> =ss
+    (interface ()
+      on-set-focus
+      on-kill-focus
+      
+      get-canvas
+      get-frame
 
-  testable-button% 
-  testable-check-box% 
-  testable-choice% 
-  testable-dialog-box% 
-  testable-gauge% 
-  testable-list-box% 
-  testable-message% 
-  testable-multi-text% 
-  testable-panel% 
-  testable-radio-box% 
-  testable-slider% 
-  testable-text% 
-  testable-text-window% 
+      active-canvas
+      set-active-canvas
 
-  vertical-edit-panel% 
+      canvases
+      add-canvas
+      
+  ; adds keymap handling
+  frame:empty<%> =
+    (interface ()
+      get-panel%
+      can-close?
+      do-close
+      make-root-panel)
+      
+      remove-canvas)
+      
+  frame:standard-menus<%>
+    (interface () 
+	       edit-menu
+	       edit-menu:after-standard-items
+	       edit-menu:between-clear-and-select-all
+	       edit-menu:between-copy-and-paste
+	       edit-menu:between-cut-and-copy
+	       edit-menu:between-paste-and-clear
+	       edit-menu:between-redo-and-cut
+	       edit-menu:between-replace-and-preferences
+	       edit-menu:between-select-all-and-find
+	       edit-menu:clear
+	       edit-menu:clear-help-string
+	       edit-menu:clear-id
+	       edit-menu:clear-string
+	       edit-menu:copy
+	       edit-menu:copy-help-string
+	       edit-menu:copy-id
+	       edit-menu:copy-string
+	       edit-menu:cut
+	       edit-menu:cut-help-string
+	       edit-menu:cut-id
+	       edit-menu:cut-string
+	       edit-menu:find
+	       edit-menu:find-help-string
+	       edit-menu:find-id
+	       edit-menu:find-string
+	       edit-menu:paste
+	       edit-menu:paste-help-string
+	       edit-menu:paste-id
+	       edit-menu:paste-string
+	       edit-menu:preferences
+	       edit-menu:preferences-help-string
+	       edit-menu:preferences-id
+	       edit-menu:redo
+	       edit-menu:redo-help-string
+	       edit-menu:redo-id
+	       edit-menu:redo-string
+	       edit-menu:replace
+	       edit-menu:replace-help-string
+	       edit-menu:replace-id
+	       edit-menu:replace-string
+	       edit-menu:select-all
+	       edit-menu:select-all-help-string
+	       edit-menu:select-all-id
+	       edit-menu:select-all-string
+	       edit-menu:undo
+	       edit-menu:undo-help-string
+	       edit-menu:undo-id
+	       edit-menu:undo-string
+	       file-menu
+	       file-menu:after-quit
+	       file-menu:between-close-and-quit
+	       file-menu:between-new-and-open
+	       file-menu:between-open-and-save
+	       file-menu:between-print-and-close
+	       file-menu:between-save-and-print
+	       file-menu:close
+	       file-menu:close-help-string
+	       file-menu:close-id
+	       file-menu:close-string
+	       file-menu:new
+	       file-menu:new-help-string
+	       file-menu:new-id
+	       file-menu:new-string
+	       file-menu:open
+	       file-menu:open-help-string
+	       file-menu:open-id
+	       file-menu:open-string
+	       file-menu:open-url
+	       file-menu:open-url-help-string
+	       file-menu:open-url-id
+	       file-menu:open-url-string
+	       file-menu:print
+	       file-menu:print-help-string
+	       file-menu:print-id
+	       file-menu:print-string
+	       file-menu:quit
+	       file-menu:quit-help-string
+	       file-menu:quit-id
+	       file-menu:quit-string
+	       file-menu:revert
+	       file-menu:revert-help-string
+	       file-menu:revert-id
+	       file-menu:revert-string
+	       file-menu:save
+	       file-menu:save-as
+	       file-menu:save-as-help-string
+	       file-menu:save-as-id
+	       file-menu:save-as-string
+	       file-menu:save-help-string
+	       file-menu:save-id
+	       file-menu:save-string
+	       help-menu
+	       help-menu:about
+	       help-menu:about-help-string
+	       help-menu:about-id
+	       help-menu:about-string
+	       help-menu:after-about
+	       windows-menu)) 
+
+  ; adds an edit and a canvas to the frame and sets up
+  ; the basic menus. Updates the frame title based on the edit's 
+  ; filename.
+  frame:simple-menu<%> = 
+    (interface (frame:standard-menus<%>) 
+      get-title-prefix 
+      set-title-prefix
+      get-entire-title
+      
+      get-canvas%
+      get-edit%
+      make-edit
+      save-as)
+      
+  frame:searchable<%> =
