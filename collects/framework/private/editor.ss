@@ -156,7 +156,7 @@
 	      [(t) (run-after-edit-sequence t #f)]
 	      [(t sym)
 	       (unless (and (procedure? t)
-			    (= 0 (arity t)))
+			    (= 0 (procedure-arity t)))
 		 (error 'media-buffer::run-after-edit-sequence
 			"expected procedure of arity zero, got: ~s~n" t))
 	       (unless (or (symbol? sym) (not sym))
