@@ -1,4 +1,8 @@
 
+Version 102/12:
+
+ * Added offset argument to dc<%>'s get-text-extent and draw-text.
+
 Version 102/11:
 
  * Added `get-file-list', which gives the user a dialog for selecting
