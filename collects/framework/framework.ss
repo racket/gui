@@ -1304,6 +1304,12 @@
      ()
      "Returns a keymap with binding suitable for Scheme.")
 
+    (scheme:setup-default-colors
+     (-> any)
+     ()
+     "Installs the ``Scheme'' preferences panel in the ``Syntax Coloring''"
+     "section.")
+    
     (editor:set-standard-style-list-pref-callbacks
      (-> any)
      ()
@@ -1502,8 +1508,15 @@
      ((union string? (is-a?/c color%)) any? any? any? . -> . (is-a?/c style-delta%))
      (color bold? underline? italic?)
      "")
+    (color-prefs:add-staged
+     (string? (listof (list/p symbol? (is-a?/c style-delta%))) . -> . (-> any))
+     (tab-name styles/defaults)
+     "Sets up the preferences defaults for \\var{tab-name} and returns a"
+     "function that will install a panel named \\var{tab-name} in the"
+     "``Syntax Coloring'' section of the preferences dialog.")
     (color-prefs:add
      (string? (listof (list/p symbol? (is-a?/c style-delta%))) . -> . any)
      (tab-name styles/defaults)
-     "")))
+     "Same as \\rawscm{color-prefs:add-staged}, except that it immediately"
+     "installs the preferences panel")))
       

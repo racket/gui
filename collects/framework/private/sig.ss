@@ -520,7 +520,7 @@
   (define-signature framework:color-prefs-class^
     ())
   (define-signature framework:color-prefs-fun^
-    (make-style-delta add register-active-pref-callback remove-active-pref-callback))
+    (make-style-delta add add-staged register-active-pref-callback remove-active-pref-callback))
   (define-signature framework:color-prefs^
     ((open framework:color-prefs-class^)
      (open framework:color-prefs-fun^)))
@@ -544,7 +544,8 @@
      init-wordbreak-map
      get-keymap
      setup-keymap
-     add-preferences-panel))
+     add-preferences-panel
+     setup-default-colors))
   (define-signature framework:scheme^
     ((open framework:scheme-class^)
      (open framework:scheme-fun^)))

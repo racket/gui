@@ -214,7 +214,7 @@
            symbols)
           ))
       
-      (define (add tab-name symbols/defaults)
+      (define (add-staged tab-name symbols/defaults)
         (let* ((prefix (string->symbol (format "syntax-coloring:~a" tab-name)))
                (active-pref (string->symbol (format "~a:active" prefix)))
                (syms (map (lambda (s/d) (string->symbol (format "~a:~a" prefix (car s/d))))
@@ -225,25 +225,30 @@
                     syms)
           (for-each set-slatex-style syms (map preferences:get syms))
           (preferences:set-default active-pref #t (lambda (x) #t))
-          (preferences:add-panel `("Syntax Coloring" ,tab-name)
-                                 (lambda (p)
-                                   (let ((vp (new vertical-panel% (parent p))))
-                                     (new color-selection-panel%
-                                          (parent vp)
-                                          (prefix prefix)
-                                          (symbols (map car symbols/defaults)))
-                                     (let ((cb (new check-box%
-                                                    (parent vp)
-                                                    (label "Color syntax interactively")
-                                                    (callback (lambda (checkbox y)
-                                                                (preferences:set 
-                                                                 active-pref
-                                                                 (send checkbox get-value)))))))
-                                       (send cb set-value (preferences:get active-pref)))
-                                     vp)))
-          (preferences:add-callback active-pref
-                                    (lambda (_ on?)
-                                      (do-active-pref-callbacks active-pref on?)))))
+          (lambda ()
+            (preferences:add-panel `("Syntax Coloring" ,tab-name)
+                                   (lambda (p)
+                                     (let ((vp (new vertical-panel% (parent p))))
+                                       (new color-selection-panel%
+                                            (parent vp)
+                                            (prefix prefix)
+                                            (symbols (map car symbols/defaults)))
+                                       (let ((cb (new check-box%
+                                                      (parent vp)
+                                                      (label "Color syntax interactively")
+                                                      (callback (lambda (checkbox y)
+                                                                  (preferences:set 
+                                                                   active-pref
+                                                                   (send checkbox get-value)))))))
+                                         (send cb set-value (preferences:get active-pref)))
+                                       vp)))
+            (preferences:add-callback active-pref
+                                      (lambda (_ on?)
+                                        (do-active-pref-callbacks active-pref on?))))))
+      
+      (define (add tab-name symbols/defaults)
+        ((add-staged tab-name symbols/defaults)))
+       
       
       
       ;; The following 4 defines are a mini-prefs system that uses a weak hash table
