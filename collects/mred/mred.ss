@@ -3741,10 +3741,13 @@
        (lambda ()
 	 (super-init (lambda () (set! wx (mk-wx)) wx) (lambda () wx) #f parent #f))))))
 
+(define default-paint-cb (lambda (canvas dc) (void)))
+
 (define canvas%
-  (class100 basic-canvas% (parent [style null] [paint-callback (lambda (canvas dc) (void))])
+  (class100 basic-canvas% (parent [style null] [paint-callback default-paint-cb])
     (private-field [paint-cb paint-callback])
     (inherit get-client-size get-dc)
+    (rename [super-on-paint on-paint])
     (sequence 
       (let ([cwho '(constructor canvas)])
 	(check-container-parent cwho parent)
@@ -3823,7 +3826,10 @@
       [get-scroll-page (entry-point (lambda (d) (send wx get-scroll-page d)))]
       [set-scroll-page (entry-point (lambda (d v) (send wx set-scroll-page d v)))])
     (override
-      [on-paint (lambda () (paint-cb this (get-dc)))])
+      [on-paint (lambda () 
+		  (if (eq? paint-cb default-paint-cb)
+		      (super-on-paint)
+		      (paint-cb this (get-dc))))])
     (private-field
       [wx #f])
     (sequence
