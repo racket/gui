@@ -2568,7 +2568,8 @@
 (define wx-grow-box-pane%
   (class100 (wx-make-pane% wx:windowless-panel% #f) (mred proxy parent style)
 	 (override
-	   [init-min (lambda (x) (if (eq? (system-type) 'macos)
+	   [init-min (lambda (x) (if (or (eq? (system-type) 'macos)
+					 (eq? (system-type) 'macosx))
 				     15
 				     0))])
 	 (sequence
@@ -4403,8 +4404,8 @@
 							       #t))]
 					      [(windows) (format "~aCtl+~a" #\tab 
 								 (char-name (char-upcase shortcut) #t))]
-					      [(macos) (format "~aCmd+~a" #\tab 
-							       (char-name (char-upcase shortcut) #t))]))
+					      [(macos macosx) (format "~aCmd+~a" #\tab 
+								      (char-name (char-upcase shortcut) #t))]))
 					   (strip-tab label))]
 			    [key-binding (and shortcut
 					      (case (system-type)
@@ -4416,7 +4417,7 @@
 								  [(ctl) ":c:"])
 								(char-name (char-downcase shortcut) #f))]
 						[(windows) (format ":c:~a" (char-name (char-downcase shortcut) #f))]
-						[(macos) (format ":d:~a" (char-name (char-downcase shortcut) #f))]))]
+						[(macos macosx) (format ":d:~a" (char-name (char-downcase shortcut) #f))]))]
 			    [keymap (and key-binding
 					 (let ([keymap (make-object wx:keymap%)])
 					   (send keymap add-function "menu-item" 
@@ -4638,7 +4639,7 @@
    (append
     (case (system-type)
       [(windows) '(":c:c" ":c:x" ":c:v" ":c:k" ":c:z" ":c:a")]
-      [(macos) '(":d:c" ":d:x" ":d:v" ":d:k" ":d:z" ":d:a")]
+      [(macos macosx) '(":d:c" ":d:x" ":d:v" ":d:k" ":d:z" ":d:a")]
       [(unix) '(":m:w" ":c:w" ":c:y" ":c:k" ":c:s:_" ":m:a")])
     '(":middlebutton"))
    '("copy-clipboard" "cut-clipboard" "paste-clipboard" "delete-to-end-of-line" 
@@ -5447,20 +5448,15 @@
 		     "play ~s"]
 		    [(regexp-match (make-pattern "solaris") subpath)
 		     "audioplay ~s"]
-		    [(regexp-match (make-pattern "ppc-macosx") subpath)
-		     'use-play-sound]
 		    [else
 		     (raise-mismatch-error
 		      'play-sound
 		      "not supported by default on this platform"
 		      subpath)]))])
-	  (if (eq? (unbox b) 'use-play-sound)
-	      (wx:play-sound f async?)
-	      (begin
-		; see if user has overridden defaults 		  
-		(wx:get-resource "mred" "playcmd" b)
-		((if async? (lambda (x) (process x) #t) system)
-		 (format (unbox b) (expand-path f)))))))))
+	  ; see if user has overridden defaults 		  
+	  (wx:get-resource "mred" "playcmd" b)
+	  ((if async? (lambda (x) (process x) #t) system)
+	   (format (unbox b) (expand-path f)))))))
 
 (define (get-display-size)
   (let ([xb (box 0)]
