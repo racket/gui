@@ -45,7 +45,7 @@
 	  (let-values ([(base _1 _2) (split-path dir)])
 	    (or base dir))))
 
-      (define default-filters (make-parameter '(("Scheme (.scm)" "*.scm") ("Other" "*.*"))))
+      (define default-filters (make-parameter '(("Any" "*.*"))))
       (define default-extension (make-parameter ""))
 
       ; the finder-dialog% class controls the user interface for dialogs

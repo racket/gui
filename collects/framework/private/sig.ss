@@ -103,6 +103,7 @@
   (define-signature framework:finder^
     (dialog-parent-parameter
      default-extension
+     default-filters
      common-put-file 
      common-get-file 
      std-put-file 
