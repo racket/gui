@@ -152,13 +152,35 @@ highlights of the revision:
    descriptive or more consistent with other method names.
 
  * The device context system has been changed to provide a larger set
-   of methods that paint consistently on all platforms. Some drawing
-   modes eliminated, ... [still hashing out this part]
+   of methods that paint consistently on all platforms. Most drawing
+   modes (all except xor and copy) have been eliminated, but
+   non-rectangular clipping regions and region operations (e.g., union
+   and intersect) were added.
 
-   The blit method works directly on bitmaps.
+   The old canvas-dc% class is replced by pixel-dc<%>. The memory-dc%
+   class was renamed to bitmap-dc% (which implements pixel-dc<%>).
+
+   The blit method was replaced by draw-bitmap and draw-bitmap-region,
+   which operate directly on bitmaps. Monochrome bitmaps can be drawn
+   with either a transparent or solid background. 
+
+   The xor drawing mode was moved from a setting in the device context
+   to a style for a pen or brush. Brush stipples work on all platforms
+   (with consistent opaqueness and colorization). Pen stipples, also
+   work, but are restricted to 8x8 monochrome bitmaps. The 'stipple
+   and 'opaque-stipple styles were eliminated; instead, installing a
+   stipple bitmap into a pen or brush overrides certain style
+   settings.
+
+   The arguments to draw-arc were changed; draw-arc now reliably draws
+   sections of non-circular ellipses.
+
+   The initialization arguments for post-script-dc% and printer-dc%
+   where changed. Global PostScript settings were replaced with a
+   parameter containing a ps-setup% object.
 
    The canvas% class no longer supplies drawing methods. Instead,
-   get-dc to get a drawing context (which always has a more complete
+   get-dc to get a drawing context (which always had a more complete
    set of methods, anyway).
 
  * American spelling is used everywhere: colour -> color, centre
@@ -960,9 +982,6 @@ window<%>'s set-cursor no longer returns the cursor; added get-cursor,
 editor-snip%'s resize method no longer calls the embedded buffer's
  set-max-size and set-min-size; now it calls on-display-size
 
-{get-set}-{...} PS configuration bundled into an object, an instance of
- ps-setup%; added current-ps-setup parameter.
-
 media-buffer%'s do-edit changed to editor<%>'s do-edit-operation,
  takes a symbol instead of a number
 
@@ -991,10 +1010,6 @@ In editor<%>'s scroll-to, text%'s scroll-to-position and
  set-position-bias-scroll, editor-admin%'s scroll-to, and
  snip-admin%'s scroll-to, bias changed from an integer to a symbol
  (see the docs for details)
-
-Change post-script-dc% and printer-dc% ininitialization arguments.
- PostScript settings now kept as a ps-setup% object in the
- current-ps-setup parameter.
 
 Changed arguments and default value of fit-on-page? for print in
  editor<%>
