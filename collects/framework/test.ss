@@ -3,7 +3,7 @@
   (require (lib "mred.ss" "mred")
            (lib "class.ss")
            (lib "etc.ss")
-           (lib "contracts.ss"))  
+           (lib "contract.ss"))  
   
   (define-syntax (provide/contract/docs stx)
     (syntax-case stx ()

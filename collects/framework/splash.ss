@@ -3,7 +3,7 @@
   (require (lib "class.ss")
            (lib "file.ss")
            (lib "mred.ss" "mred")
-           (lib "contracts.ss"))
+           (lib "contract.ss"))
   
   (provide get-splash-bitmap set-splash-bitmap
            get-splash-canvas get-splash-eventspace get-dropped-files 

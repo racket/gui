@@ -13,7 +13,7 @@
            "framework-sig.ss"
            
            "macro.ss"
-           (lib "contracts.ss"))
+           (lib "contract.ss"))
   
   (provide-signature-elements framework-class^)
 
