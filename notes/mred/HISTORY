@@ -7,8 +7,8 @@
    eventspace are running, and no callbacks are queued in the
    eventspace.
 
- * Fixed set-max-undo-history; it wasn't actually resizing the undo
-   history buffer.
+ * Fixed set-max-undo-history in editor<%>; it wasn't actually
+   resizing the undo history buffer.
 
  * Windows, MacOS: Fixed location of "[Exited]" in stdio window. (PR
    1600)
@@ -54,6 +54,8 @@
 
 Version 103: ??
 
+Added 'wait as a possible argument to `yield', and changed startup
+ to call (yield 'wait)
 Removed 'anchored flag for snip% (wasn't implemented)
 Added support for loading JPEG file (but not saving)
 Added get-clipboard-bitmap and set-clipboard-bitmap to
@@ -63,6 +65,7 @@ Changed graphical-read-eval-print-loop to take an optional
 Fixed menu shortcut handling to call the menu bar's `on-demand'
  method before looking for a key binding
 Fixed auto-wrapping bug in text%
+Fixed set-max-undo-history in editor<%>
 Windows: editors can paste bitmaps copied to the
  clipboard from other programs
 Windows: fixed get-file-list
