@@ -66,6 +66,7 @@ X Windows: added .mred.resources option `mred.forceFocus'; if
  the value is 1, bringing a frame to the foreground forces the
  focus there (good for Window Managers where the focus does
  not follow the pointer); the default is 0, the old behavior
+MacOS: removed the special -r command-line flag
 
 System:
 -------
