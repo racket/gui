@@ -112,8 +112,8 @@
 				  (if (checker unmarsh)
 				      unmarsh
 				      (begin
-					(printf "WARNING: ~s rejecting invalid pref ~s in favor of ~s~n"
-						p unmarsh default)
+					(printf "WARNING: ~s rejecting invalid pref ~s in favor of ~s (pred: ~s)~n"
+						p unmarsh default checker)
 					default)))]
 		  [_ (mred:debug:printf 'prefs "get-preference checking callbacks: ~a to ~a"
 					p unmarshalled)]
@@ -165,6 +165,9 @@
   
   (define set-preference-default
     (lambda (p value checker)
+      (let ([t (checker value)])
+	(unless t
+	  (error 'set-preference-default "~s: checker (~s) returns ~s for ~s, expected #t~n" p checker t value)))
       (mred:debug:printf 'prefs "setting default value for ~a to ~a" p value)
       (hash-table-get preferences p 
 		      (lambda () 
@@ -330,7 +333,10 @@
 		   [font-entry (build-font-entry family)])
 	       (set-preference-default name
 				       default
-				       string?)
+				       (cond
+					[(string? default) string?]
+					[(number? default) number?]
+					[else (error 'internal-error.set-default "unrecognized default: ~a~n" default)]))
 	       (add-preference-callback 
 		name 
 		(lambda (p new-value)
