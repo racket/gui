@@ -425,8 +425,18 @@
       
       (define (make-preferences-dialog)
         (letrec ([stashed-prefs (get-preference main-preferences-symbol (lambda () null))]
+		 [frame-stashed-prefs%
+		  (class frame:basic%
+		    (rename [super-show show])
+                    (define/override (show on?)
+                      (when on?
+                        (set! stashed-prefs
+                              (get-preference main-preferences-symbol
+                                              (lambda () null))))
+		      (super-show on?))
+		    (super-instantiate ()))]
                  [frame 
-                  (make-object frame:basic%
+                  (make-object frame-stashed-prefs%
                     (string-constant preferences))]
                  [build-ppanel-tree
                   (lambda (ppanel tab-panel single-panel)
