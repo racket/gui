@@ -86,6 +86,7 @@
                     lambda let let* letrec recur
                      letrec-values
                      with-syntax
+		     with-continuation-mark
                      module
                      match match-lambda match-lambda* match-let match-let* match-letrec
                      let/cc let/ec letcc catch
