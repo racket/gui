@@ -5306,7 +5306,7 @@
 							(cond
 							 [(null? l1) l2]
 							 [(null? l2) l1]
-							 [(string<? (car l1) (car l2)) 
+							 [(string-locale<? (car l1) (car l2)) 
 							  (cons (car l1) (merge (cdr l1) l2))]
 							 [else (cons (car l2) (merge (cdr l2) l1))]))]
 					       [sort (lambda (l) (car (split (length l) l)))])
