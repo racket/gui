@@ -44,7 +44,8 @@
           backward-match
           backward-containing-sexp
           forward-match
-          insert-close-paren))
+          insert-close-paren
+	  classify-position))
 
       (define text-mixin
         (mixin (text:basic<%>) (-text<%>)
@@ -540,6 +541,14 @@
                   ((eq? 'open p) cur-pos)
                   ((not p) #f)
                   (else (loop p))))))
+
+	  ;; Determines whether a position is a 'comment, 'string, etc.
+	  (define/public (classify-position position)
+            (when stopped?
+              (error 'classify-position "called on a color:text<%> whose colorer is stopped."))
+	    (tokenize-to-pos position)
+	    (send tokens search! (- position start-pos))
+	    (send tokens get-root-data))
             
           (define/private (tokenize-to-pos position)
             (when (and (not up-to-date?) (<= current-pos position))

@@ -393,34 +393,11 @@
                    backward-containing-sexp
                    forward-match
                    skip-whitespace
-                   insert-close-paren)
+                   insert-close-paren
+		   classify-position)
           
           (inherit get-styles-fixed)
           (inherit has-focus? find-snip split-snip)
-          
-          (define (find-enclosing-paren pos)
-            (let loop ([pos pos])
-              (let ([paren-pos 
-                     (let loop ([pairs (scheme-paren:get-paren-pairs)]
-                                [curr-max #f])
-                       (cond
-                         [(null? pairs) curr-max]
-                         [else (let* ([pair (car pairs)]
-                                      [fnd (find-string (car pair) 'backward pos 'eof #f)])
-                                 (if (and fnd curr-max)
-                                     (loop (cdr pairs)
-                                           (max fnd curr-max))
-                                     (loop (cdr pairs)
-                                           (or fnd curr-max))))]))])
-                (cond
-                  [(not paren-pos) #f]
-                  [else
-                   (let ([semi-pos (find-string ";" 'backward paren-pos)])
-                     (cond
-                       [(or (not semi-pos)
-                            (semi-pos . < . (paragraph-start-position (position-paragraph paren-pos))))
-                        paren-pos]
-                       [else (loop (- semi-pos 1))]))]))))
           
           (public get-limit balance-parens tabify-on-return? tabify tabify-selection
                   tabify-all insert-return calc-last-para 
@@ -440,7 +417,10 @@
             (opt-lambda ([pos (get-start-position)])
               (let* ([last-pos (last-position)]
                      [para (position-paragraph pos)]
-                     [okay (> para 0)]
+		     [is-tabbable? (and (> para 0)
+					(not (memq (classify-position (sub1 (paragraph-start-position para)))
+						   '(comment string error))))]
+                     [okay (and is-tabbable? (> para 0))]
                      [end (if okay (paragraph-start-position para) 0)]
                      [limit (get-limit pos)]
                      [contains 
@@ -533,6 +513,7 @@
                                           #\newline)))
                     (insert #\newline (paragraph-start-position para)))
                   (cond
+		    [(not is-tabbable?) (void)]
                     [(let ([real-start (cdr (find-offset end))]) 
                        (and (<= (+ 3 real-start) (last-position))
                             (string=? ";;;"
@@ -543,7 +524,7 @@
                     [(not contains)
                      (do-indent 0)]
                     [(not last) ;; search backwards for the opening parenthesis, and use it to align this line
-                     (let ([enclosing (find-enclosing-paren pos)])
+                     (let ([enclosing (find-up-sexp pos)])
                        (do-indent (if enclosing
                                       (+ (visual-offset enclosing) 1)
                                       0)))]
@@ -799,27 +780,30 @@
                 #t))]
           [define find-up-sexp
             (lambda (start-pos)
-              (let* ([exp-pos
-                      (backward-containing-sexp start-pos (get-limit start-pos))]
-                     [paren-pos ;; find the closest open paren from this pair, behind exp-pos
-                      (lambda (paren-pair)
-                        (find-string
-                         (car paren-pair)
-                         'backward
-                         exp-pos))])
+              (let* ([limit-pos (get-limit start-pos)]
+		     [exp-pos
+                      (backward-containing-sexp start-pos limit-pos)])
                 
-                (if (and exp-pos (> exp-pos 0))
-                    (let ([poss (let loop ([parens (scheme-paren:get-paren-pairs)])
-                                  (cond
-                                    [(null? parens) null]
-                                    [else 
-                                     (let ([pos (paren-pos (car parens))])
-                                       (if pos
-                                           (cons pos (loop (cdr parens)))
-                                           (loop (cdr parens))))]))])
-                      (if (null? poss) ;; all finds failed
-                          #f
-                          (- (apply max poss) 1))) ;; subtract one to move outside the paren
+                (if (and exp-pos (> exp-pos limit-pos))
+		    (let* ([in-start-pos (skip-whitespace exp-pos 'backward #t)]
+			   [paren-pos
+			    (lambda (paren-pair)
+			      (find-string
+			       (car paren-pair)
+			       'backward
+			       in-start-pos
+			       limit-pos))])
+		      (let ([poss (let loop ([parens (scheme-paren:get-paren-pairs)])
+				    (cond
+				     [(null? parens) null]
+				     [else 
+				      (let ([pos (paren-pos (car parens))])
+					(if pos
+					    (cons pos (loop (cdr parens)))
+					    (loop (cdr parens))))]))])
+			(if (null? poss) ;; all finds failed
+			    #f
+			    (- (apply max poss) 1)))) ;; subtract one to move outside the paren
                     #f)))]
           [define up-sexp
             (lambda (start-pos)
