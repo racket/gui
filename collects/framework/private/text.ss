@@ -902,8 +902,7 @@ WARNING: printf is rebound in the body of the unit to always
           (define/public (send-eof-to-in-port) (channel-put read-chan eof))
           
           (define/public (clear-input-port)
-            (channel-put clear-input-chan (void))
-            (init-input-port))
+            (channel-put clear-input-chan (void)))
           
           (define/public (clear-output-ports) 
             (channel-put clear-output-chan (void))
@@ -991,10 +990,8 @@ WARNING: printf is rebound in the body of the unit to always
           ;; the evt inside is waited on to indicate the flush has occurred
           (define flush-chan (make-channel))
           
-          ;; clear-output-chan, clear-input-chan : (channel void)
-          ;; dumps all data and readers making the ports empty again
+          ;; clear-output-chan : (channel void)
           (define clear-output-chan (make-channel))
-          (define clear-input-chan (make-channel))
           
           ;; write-chan : (channel (cons (union snip bytes) style))
           ;; send output to the editor
@@ -1167,6 +1164,9 @@ WARNING: printf is rebound in the body of the unit to always
           ;; commit-chan : (channel committer)
           (define commit-chan (make-channel))
           
+          ;; clear-input-chan : (channel void)
+          (define clear-input-chan (make-channel))
+          
           (define input-buffer-thread
             (thread
              (lambda ()
@@ -1212,6 +1212,7 @@ WARNING: printf is rebound in the body of the unit to always
                        (semaphore-post peeker-sema)
                        (set! peeker-sema (make-semaphore 0))
                        (set! peeker-evt (semaphore-peek-evt peeker-sema))
+                       (set! data (empty-queue))
                        (loop)))
                     (handle-evt
                      progress-event-chan
