@@ -210,6 +210,17 @@
           [define panel (make-root-area-container (get-area-container%) this)]
           (define/public (get-area-container) panel)
           (set! after-init? #t)))
+      
+      (define size-pref<%>
+        (interface (basic<%>)))
+      
+      (define size-pref-mixin
+        (mixin (basic<%>) (size-pref<%>)
+          (init-field size-preferences-key)
+          (define/override (on-size w h)
+            (preferences:set size-preferences-key (list w h)))
+          (let ([lst (preferences:get size-preferences-key)])
+            (super-new [width (car lst)] [height (cadr lst)]))))
 
       (define register-group<%> (interface ()))
       (define register-group-mixin
@@ -2286,6 +2297,7 @@
           (super-instantiate ())))
       
       (define basic% (register-group-mixin (basic-mixin frame%)))
+      (define size-pref% (size-pref-mixin basic%))
       (define info% (info-mixin basic%))
       (define text-info% (text-info-mixin info%))
       (define pasteboard-info% (pasteboard-info-mixin text-info%))
