@@ -23,7 +23,7 @@
             (unless (eq? saved-shortcut 'not-yet)
               (set-shortcut saved-shortcut)))
           
-          (super-instantiate ())
+          (super-new)
           (set! saved-shortcut (get-shortcut))
           (unless (preferences:get 'framework:menu-bindings)
             (set-shortcut #f))))
@@ -42,7 +42,7 @@
             (unless (eq? saved-label 'not-yet-saved-label)
               (set-label saved-label)))
           (define saved-label 'not-yet-saved-label)
-          (super-instantiate ())
+          (super-new)
           (set! saved-label (get-label))
           (unless (preferences:get 'framework:menu-bindings)
             (erase-underscores))))
