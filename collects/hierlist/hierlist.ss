@@ -14,9 +14,15 @@
 				    (lambda (i)
 				      (let ([f (send i user-data)])
 					(when f (f i))))]
+				   [select
+				    (lambda (i)
+				      (printf "Selected: ~a~n"
+					      (if i 
+						  (send (send i get-buffer) get-flattened-text)
+						  i)))]
 				   [double-select
 				    (lambda (s)
-				      (printf "Selected: ~a~n"
+				      (printf "Double-click: ~a~n"
 					      (send (send s get-buffer) get-flattened-text)))]))
 		       p))
 
