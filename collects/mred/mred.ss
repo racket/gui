@@ -1319,16 +1319,6 @@
 ;; Weak boxed:
 (define active-main-frame (make-weak-box #f))
 
-(wx:application-file-handler (entry-point
-			      (lambda (f)
-				(let ([af (weak-box-value active-main-frame)])
-				  (when af
-				    (queue-window-callback
-				     af
-				     (entry-point
-				      (lambda () (when (send af accept-drag?)
-						   (send af on-drop-file f))))))))))
-
 ;; An app-handler record keeps a wrapped procedure with
 ;; its original wrappee.
 (define-values (struct:app-handler
@@ -1360,22 +1350,22 @@
 			   (lambda () (set! running-quit? #f)))))))))))])
   (wx:application-quit-handler (make-app-handler f f)))
 
-(define (set-handler! who proc param)
+(define (set-handler! who proc param arity)
   (when proc
     (unless (and (procedure? proc)
-		 (procedure-arity-includes? proc 0))
+		 (procedure-arity-includes? proc arity))
       (raise-type-error who
-			"procedure (arity 0) or #f"
+			(format "procedure (arity ~a) or #f" arity)
 			proc)))
   (let ([e (wx:current-eventspace)])
     (when (wx:main-eventspace? e)
       (param (make-app-handler
-	      (lambda ()
+	      (lambda args
 		(parameterize ([wx:current-eventspace e])
 		  (wx:queue-callback
-		   proc
+		   (lambda () (apply proc args))
 		   wx:middle-queue-key)))
-	      param)))))
+	      proc)))))
 
 (define application-preferences-handler
   (case-lambda
@@ -1383,7 +1373,8 @@
 	    (app-handler-orig (wx:application-pref-handler)))]
    [(proc)
     (set-handler! 'application-preferences-handler proc
-		  wx:application-pref-handler)]))
+		  wx:application-pref-handler
+		  0)]))
 
 (define application-about-handler
   (case-lambda
@@ -1392,7 +1383,8 @@
 	   void)]
    [(proc)
     (set-handler! 'application-about-handler proc
-		  wx:application-about-handler)]))
+		  wx:application-about-handler
+		  0)]))
 
 (define application-quit-handler
   (case-lambda
@@ -1400,8 +1392,40 @@
 		(app-handler-orig (wx:application-quit-handler)))
 	   void)]
    [(proc)
-    (set-handler! 'application-pquit-handler proc
-		  wx:application-quit-handler)]))
+    (set-handler! 'application-quit-handler proc
+		  wx:application-quit-handler
+		  0)]))
+
+(define default-application-file-handler
+  (entry-point
+   (lambda (f)
+     (let ([af (weak-box-value active-main-frame)])
+       (when af
+	 (queue-window-callback
+	  af
+	  (entry-point
+	   (lambda () (when (send af accept-drag?)
+			(send af on-drop-file f))))))))))
+
+(define (install-defh)
+  (wx:application-file-handler (make-app-handler
+				default-application-file-handler
+				default-application-file-handler)))
+(install-defh)
+
+(define application-file-handler
+  (case-lambda
+   [() (or (and (wx:main-eventspace? (wx:current-eventspace))
+		(app-handler-orig (wx:application-file-handler)))
+	   void)]
+   [(proc)
+    ;; Special case for default-application-file-handler,
+    ;; because it need not be constrained to the main eventspace:
+    (if (eq? proc default-application-file-handler)
+	(install-defh)
+	(set-handler! 'application-file-handler proc
+		      wx:application-file-handler
+		      1))]))
 
 
 (define (current-eventspace-has-standard-menus?)
@@ -5697,7 +5721,10 @@
     (private-field 
       [callback demand-callback]
       [prnt (if (eq? parent 'root)
-		(let ([f (make-object frame% "Root")])
+		(let ([f (make-object (class frame%
+					(define/override (on-exit)
+					  (exit))
+					(super-make-object "Root")))])
 		  (as-entry
 		   (lambda ()
 		     (when root-menu-frame
@@ -7748,6 +7775,7 @@
 	application-about-handler
 	application-preferences-handler
 	application-quit-handler
+	application-file-handler
 	current-eventspace-has-standard-menus?
 	current-eventspace-has-menu-root?
 	eventspace-handler-thread

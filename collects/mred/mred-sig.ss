@@ -12,6 +12,7 @@
      append-editor-font-menu-items
      append-editor-operation-menu-items
      application-about-handler
+     application-file-handler
      application-preferences-handler
      application-quit-handler
      area-container-window<%>
@@ -93,6 +94,7 @@
      get-top-level-focus-window
      get-top-level-windows
      get-window-text-extent
+     gl-context<%>
      graphical-read-eval-print-loop
      group-box-panel%
      grow-box-spacer-pane%
