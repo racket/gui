@@ -1009,7 +1009,7 @@
                                   (let-values ([(base name dir?) (split-path name)])
                                     (values base name))
                                   (values #f #f))])
-                  (let ([file (send editor put-file name base)])
+                  (let ([file (send editor put-file base name)])
                     (if file
                         (send editor save-file/gui-error file format)
                         #f))))))
