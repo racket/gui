@@ -1,3 +1,4 @@
+
 (module preferences mzscheme
   (require (lib "string-constant.ss" "string-constants")
            (lib "unitsig.ss")
@@ -23,19 +24,19 @@
       (define default-preferences-filename
         (build-path (collection-path "defaults") "prefs.ss"))
       
-  ;; preferences : sym -o> (union marshalled pref)
+      ;; preferences : sym -o> (union marshalled pref)
       (define preferences (make-hash-table))
       
-  ;; marshall-unmarshall : sym -o> un/marshall
+      ;; marshall-unmarshall : sym -o> un/marshall
       (define marshall-unmarshall (make-hash-table))
       
-  ;; callbacks : sym -o> (listof (sym TST -> boolean))
+      ;; callbacks : sym -o> (listof (sym TST -> boolean))
       (define callbacks (make-hash-table))
       
-  ;; saved-defaults : sym -o> (union marshalled pref)
+      ;; saved-defaults : sym -o> (union marshalled pref)
       (define saved-defaults (make-hash-table))
       
-  ;; defaults : sym -o> default
+      ;; defaults : sym -o> default
       (define defaults (make-hash-table))
       
       (define-struct un/marshall (marshall unmarshall))
@@ -69,25 +70,32 @@
                                         (exn-message exn)
                                         (format "~s" exn)))))))))
       
-      (define get-callbacks
-        (lambda (p)
-          (hash-table-get callbacks
-                          p
-                          (lambda () null))))
+      ;; get-callbacks : sym -> (listof (-> void))
+      (define (get-callbacks p)
+        (hash-table-get callbacks
+                        p
+                        (lambda () null)))
       
-      (define add-callback
-        (lambda (p callback)
-          (hash-table-put! callbacks p (append (get-callbacks p) (list callback)))
-          (lambda ()
-            (hash-table-put!
-             callbacks
-             p
-             (let loop ([callbacks (get-callbacks p)])
-               (cond
-                 [(null? callbacks) null]
-                 [else (if (eq? (car callbacks) callback)
-                           (loop (cdr callbacks))
-                           (cons (car callbacks) (loop (cdr callbacks))))]))))))
+      ;; add-callback : sym (-> void) -> void
+      (define (add-callback p callback)
+        (hash-table-put! callbacks p 
+                         (append 
+                          (hash-table-get callbacks p (lambda () null))
+                          (list callback)))
+        (lambda ()
+          (hash-table-put!
+           callbacks
+           p
+           (let loop ([callbacks (hash-table-get callbacks p (lambda () null))])
+             (cond
+               [(null? callbacks) null]
+               [else 
+                (let ([callback (car callbacks)])
+                  (cond
+                    [(eq? callback callback)
+                     (loop (cdr callbacks))]
+                    [else
+                     (cons (car callbacks) (loop (cdr callbacks)))]))])))))
       
       (define check-callbacks
         (lambda (p value)
@@ -154,7 +162,7 @@
            defaults
            (lambda (p v) (set p v)))))
       
-  ;; set-default : (sym TST (TST -> boolean) -> void
+      ;; set-default : (sym TST (TST -> boolean) -> void
       (define (set-default p in-default-value checker)
         (let* ([default-value
                 (let/ec k
@@ -258,9 +266,9 @@
                             (parse-pref (car pre-pref) (cadr pre-pref))
                             (err input (string-constant expected-list-of-length2))))
                       (loop (cdr input)))))))))
-
       
-  ;; read-from-file-to-ht : string hash-table -> void
+      
+      ;; read-from-file-to-ht : string hash-table -> void
       (define (read-from-file-to-ht filename ht)
         (let* ([parse-pref
                 (lambda (p marshalled)
@@ -270,9 +278,9 @@
                       [unmarshall-struct
                        (set p ((un/marshall-unmarshall unmarshall-struct) marshalled))]
                       
-		 ;; in this case, assume that no marshalling/unmarshalling 
-		 ;; is going to take place with the pref, since an unmarshalled 
-		 ;; pref was already there.
+                      ;; in this case, assume that no marshalling/unmarshalling 
+                      ;; is going to take place with the pref, since an unmarshalled 
+                      ;; pref was already there.
                       [(pref? ht-pref)
                        (set p marshalled)]
                       
@@ -286,21 +294,21 @@
           (when (file-exists? filename)
             (for-each-pref-in-file parse-pref filename))))
       
-  ;; read : -> void
+      ;; read : -> void
       (define (-read)
         (read-from-file-to-ht (prefs-file:get-preferences-filename) preferences))
       
       
-  ;; read in the saved defaults. These should override the
-  ;; values used with set-default.
+      ;; read in the saved defaults. These should override the
+      ;; values used with set-default.
       (read-from-file-to-ht default-preferences-filename saved-defaults)
       
       
-  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-  ;;;                                                 ;;;
-  ;;;               preferences dialog                ;;;
-  ;;;                                                 ;;;
-  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+      ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+      ;;;                                                 ;;;
+      ;;;               preferences dialog                ;;;
+      ;;;                                                 ;;;
+      ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
       
       
       (define-struct ppanel (title container panel))

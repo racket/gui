@@ -37,12 +37,86 @@
       ;;                                                                  ;;
       ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+      (define (set-box/f! b v) (when (box? b) (set-box! b v)))
+
       (define sexp-snip%
         (class snip%
+          (field [sizing-text "(   )"])
           (define/override (draw dc x y left top right bottom dx dy draw-caret)
-            (void))
-          (define/override (get-extent dc x y w h descent space lspace rspace)
-            (void))))
+            (send dc draw-text sizing-text x y)
+            (let-values ([(lpw lph lpa lpd) (send dc get-text-extent "(")]
+                         [(rpw rph rpa rpd) (send dc get-text-extent ")")]
+                         [(sw sh sa sd) (send dc get-text-extent sizing-text)])
+              (let* ([dtw (- sw lpw rpw)]
+                     [dot-start (+ x lpw)]
+                     [dt1x (+ dot-start (* dtw 1/5))]
+                     [dt2x (+ dot-start (* dtw 1/2))]
+                     [dt3x (+ dot-start (* dtw 4/5))]
+                     [dty (/ sh 2)])
+                (send dc draw-rectangle dt1x dty 2 2)
+                (send dc draw-rectangle dt2x dty 2 2)
+                (send dc draw-rectangle dt3x dty 2 2))))
+
+          (define/override (get-extent dc x y wb hb descentb spaceb lspaceb rspaceb)
+            (let-values ([(w h d a) (send dc get-text-extent sizing-text)])
+              (set-box/f! wb w)
+              (set-box/f! hb h)
+              (set-box/f! descentb d)
+              (set-box/f! spaceb a)
+              (set-box/f! lspaceb 0)
+              (set-box/f! rspaceb 0)))
+          (super-instantiate ())
+          (inherit set-snipclass)
+          (set-snipclass sexp-snipclass)))
+      
+      (define sexp-snipclass%
+        (class snip-class%
+          (define/override (read in)
+            (make-object sexp-snip%))
+          (super-instantiate ())))
+      
+      (define sexp-snipclass (make-object sexp-snipclass%))
+      (send sexp-snipclass set-classname "drscheme:sexp-snip")
+      (send sexp-snipclass set-version 0)
+      (send (get-the-snip-class-list) add sexp-snipclass)
+      
+      ;; leave this for next version...
+      '(keymap:add-to-right-button-menu
+       (let ([old (keymap:add-to-right-button-menu)])
+         (lambda (menu text event)
+           (old menu text event)
+           (when (is-a? text -text<%>)
+             (let* ([pos 
+                     (call-with-values
+                      (lambda ()
+                        (send text dc-location-to-editor-location
+                              (send event get-x)
+                              (send event get-y)))
+                      (lambda (x y)
+                        (send text find-position x y)))]
+                    [char (send text get-character pos)]
+                    [left? (memq char '(#\( #\{ #\[))]
+                    [right? (memq char '(#\) #\} #\]))])
+               (when (or left? right?)
+                 (let* ([other-pos (if left?
+                                       (send text get-forward-sexp pos)
+                                       (send text get-backward-sexp (+ pos 1)))])
+                   (when other-pos
+                     (let ([left-pos (min pos other-pos)]
+                           [right-pos (max pos other-pos)])
+                       (instantiate separator-menu-item% ()
+                         (parent menu))
+                       (instantiate menu-item% ()
+                         (parent menu)
+                         (label "Collapse sexp")
+                         (callback (lambda (item evt) 
+                                     (collapse-from text left-pos right-pos)))))))))))))
+      
+      (define (collapse-from text left-pos right-pos)
+        (send text begin-edit-sequence)
+        (send text delete left-pos right-pos)
+        (send text insert (make-object sexp-snip%) left-pos left-pos)
+        (send text end-edit-sequence))
       
       ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
       ;;                                                                  ;;
