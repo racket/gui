@@ -303,9 +303,17 @@
 	(mred:debug:printf 'prefs "read user preferences"))))
   
   (define-struct ppanel (title container panel))
+
+  (define font-families-name/const
+    (list (list "Default" wx:const-default)
+	  (list "Decorative" wx:const-decorative)
+	  (list "Roman" wx:const-roman)
+	  (list "Decorative" wx:const-script)
+	  (list "Swiss" wx:const-swiss)
+	  (list "Modern" wx:const-modern)))
+
+  (define font-families (map car font-families-name/const))
   
-  (define font-families (list  "Default" "Roman" "Decorative"
-			       "Modern" "Swiss" "Script"))
   (define font-size-entry "defaultFontSize")
   (define font-default-string "Default Value")
   (define font-default-size 12)
@@ -410,13 +418,19 @@
 		  [make-family-panel
 		   (lambda (name)
 		     (let* ([pref-sym (build-font-preference-symbol name)]
+			    [family-const-pair (assoc name font-families-name/const)]
 			    
 			    [edit (make-object mred:edit:media-edit%)]
 			    [_ (send edit insert ex-string)]
 			    [set-edit-font
 			     (lambda (size)
-			       (let ([delta (make-object wx:style-delta% wx:const-change-size size)])
-				 (send delta set-delta-face (get-preference pref-sym))
+			       (let ([delta (make-object wx:style-delta% wx:const-change-size size)]
+				     [face (get-preference pref-sym)])
+				 (if (and (string=? face font-default-string)
+					  family-const-pair)
+				     (send delta set-family (cadr family-const-pair))
+				     (send delta set-delta-face (get-preference pref-sym)))
+				     
 				 (send edit change-style delta 0 (send edit last-position))))]
 			    
 			    [horiz (make-object mred:horizontal-panel% main -1 -1 -1 -1 wx:const-border)]
