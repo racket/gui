@@ -309,6 +309,18 @@
                       (send edit set-position selection-start)
                       (send edit insert open-brace))
 		    (send edit end-edit-sequence)))]
+               
+               [insert-lambda-template
+                (lambda (edit event)
+                  (send edit begin-edit-sequence)
+                  (let ([selection-start (send edit get-start-position)])
+                    (send edit set-position (send edit get-end-position))
+                    (send edit insert ")")
+                    (send edit set-position selection-start)
+                    (send edit insert ") ")
+                    (send edit set-position selection-start)
+                    (send edit insert "(lambda ("))
+                  (send edit end-edit-sequence))]
 
 	       [collapse-variable-space
                 ;; As per emacs: collapse tabs & spaces around the point,
@@ -906,6 +918,7 @@
 	      (add "insert-{}-pair" (make-insert-brace-pair "{" "}"))
 	      (add "insert-\"\"-pair" (make-insert-brace-pair "\"" "\""))
 	      (add "insert-||-pair" (make-insert-brace-pair "|" "|"))
+              (add "insert-lambda-template" insert-lambda-template)
 	     
 	      (add "toggle-anchor" toggle-anchor)
 	      (add "center-view-on-line" center-view-on-line)
@@ -976,7 +989,8 @@
 	      (map-meta "{" "insert-{}-pair")
 	      (map-meta "\"" "insert-\"\"-pair")
 	      (map-meta "|" "insert-||-pair")
-	      
+	      (map-meta "s:l" "insert-lambda-template")
+              
 	      (map "c:p" "previous-line")
 	      (map "up" "previous-line")
 	      (map "s:c:p" "select-up")
