@@ -5101,3 +5101,36 @@
 	(error 'get-window-text-extent "couldn't allocate sizing bitmap"))
       (let-values ([(w h d a) (send dc get-text-extent string font)])
 	(values (inexact->exact w) (inexact->exact h)))])))
+
+(define (get-family-builtin-face family)
+  (unless (memq family '(default decorative roman script swiss modern system))
+    (raise-type-error 'get-default-face "family symbol" family))
+  (case (system-type)
+    [(unix)
+     (case family
+       [(system) "-b&h-lucida"]
+       [(default) "-b&h-lucida"]
+       [(roman) "-adobe-times"]
+       [(decorative) "-adobe-helvetica"]
+       [(modern) "-adobe-courier"]
+       [(swiss) "-b&h-lucida"]
+       [(script) "-itc-zapfchancery"])]
+    [(windows)
+     (case family
+       [(system) "MS Sans Serif"]
+       [(default) "MS Sans Serif"]
+       [(roman) "Times New Roman"]
+       [(decorative) "Arial"]
+       [(modern) "Courier New"]
+       [(swiss) "Arial"]
+       [(script) "Arial"])]
+    [(macos)
+     (case family
+       [(system) "systemfont"]
+       [(default) "applicationfont"]
+       [(roman) "times"]
+       [(decorative) "geneva"]
+       [(modern) "monaco"]
+       [(swiss) "helvetica"]
+       [(script) "geneva"])]))
+
