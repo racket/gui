@@ -4388,7 +4388,7 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;; REPL ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(define (graphical-read-eval-print-loop)
+(define (-graphical-read-eval-print-loop user-esp)
   ;; The REPL buffer class
   (define esq:text%
     (class text% ()
@@ -4467,8 +4467,9 @@
      (lambda () 'nothing-to-close)))
    
   (define user-eventspace
-    (parameterize ((current-custodian user-custodian))
-      (wx:make-eventspace)))
+    (or user-esp
+	(parameterize ((current-custodian user-custodian))
+	  (wx:make-eventspace))))
 
   ;; Evaluation
   
@@ -4483,7 +4484,10 @@
 	     (lambda () (eval (read (open-input-string expr-str))))
 	     (lambda results
 	       (for-each 
-		(lambda (v) (print v) (newline))
+		(lambda (v) 
+		  (parameterize ([current-output-port user-output-port])
+		    (print v) 
+		    (newline)))
 		results))))
 	  (lambda ()
 	    (queue-output (lambda () (send repl-buffer new-prompt)))))))))
@@ -4506,13 +4510,14 @@
   (send repl-buffer auto-wrap #t)
 
   ;; Go
-  (parameterize ((wx:current-eventspace user-eventspace))
-    (wx:queue-callback
-     (lambda ()
-       (current-output-port user-output-port)
-       (current-error-port user-output-port)
-       (current-input-port (make-input-port (lambda () eof) void void)))
-     #t))
+  (unless user-esp
+    (parameterize ((wx:current-eventspace user-eventspace))
+      (wx:queue-callback
+       (lambda ()
+	 (current-output-port user-output-port)
+	 (current-error-port user-output-port)
+	 (current-input-port (make-input-port (lambda () eof) void void)))
+       #t)))
 
   (send repl-display-canvas set-editor repl-buffer)
   (send frame show #t)
@@ -4520,6 +4525,14 @@
   (send repl-display-canvas focus)
 
   (wx:yield waiting))
+
+(define graphical-read-eval-print-loop
+  (case-lambda
+   [() (-graphical-read-eval-print-loop #f)]
+   [(esp)
+    (unless (or (not esp) (wx:eventspace? esp))
+      (raise-type-error 'graphical-read-eval-print-loop "eventspace or #f" esp))
+    (-graphical-read-eval-print-loop esp)]))
 
 (define box-width 300)
 (define (no-stretch a) (send a stretchable-width #f) (send a stretchable-height #f))
