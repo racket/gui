@@ -1,16 +1,9 @@
 
-Version 200.3
+Version 201: July, 2002
 
 Added 'unknown/mask and 'unknown/gif bitmap types and
  get-loaded-mask and set-loaded-mask methods to bitmap%;
  used for GIF files containing transparent pixels
-Extended read-one-special in readable-snip<%> in parallel
- to the exn:special-comment change for custom input ports
-Added 'packages-ok style flag to get-file and get-directory;
- affects only Mac OS
-
-Version 200.1
-
 New load handler, text-editor-load-handler, enables MrEd to
  load source files that are stored in the graphical
  editor format
@@ -30,6 +23,11 @@ Changed load-file, save-file, and insert-file in editor<%>
  to raise exceptions instead of returning booleans
 Added can-reorder?, on-reorder, and after-reorder to
  pasteboard%
+Added on-snip-modified method to editor<%>, set-unmodified
+ method on snip%, and modified method to editor-admin and
+ snip-admin
+Added 'packages and 'enter-packages style flags to get-file
+ and get-directory; affects only Mac OS
 
 ----------------------------------------------------------------------
 
