@@ -119,9 +119,18 @@
                                 (set-close-menu-item-state! a-frame #t))
                               frames))))]
           
-          (field (open-here-frame #f))
+          (field [open-here-frame #f])
           (define/public (set-open-here-frame fr) (set! open-here-frame fr))
-          (define/public (get-open-here-frame) open-here-frame)
+          (define/public (get-open-here-frame)
+	    (cond
+	      [open-here-frame open-here-frame]
+	      [else
+	       (let ([candidates
+		      (filter (lambda (x) (is-a? (frame-frame x) frame:open-here<%>))
+			      frames)])
+		 (if (null? candidates)
+		     #f
+		     (frame-frame (car candidates))))]))
           
           (public get-mdi-parent set-empty-callbacks frame-label-changed for-each-frame
                   get-active-frame set-active-frame insert-frame can-remove-frame?

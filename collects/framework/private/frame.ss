@@ -882,6 +882,13 @@
                                      (string-constant open-here-menu-item)
                                      (string-constant open-menu-item))))
           
+	  (rename [super-on-close on-close])
+	  (define/override (on-close)
+	    (super-on-close)
+	    (let ([group (group:get-the-frame-group)])
+	      (when (eq? this (send group get-open-here-frame))
+		(send group set-open-here-frame #f))))
+
           (rename [super-on-activate on-activate])
           (define/override (on-activate on?)
             (super-on-activate on?)
