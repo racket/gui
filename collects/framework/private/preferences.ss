@@ -68,18 +68,11 @@
           (raise-unknown-preference-error
            "preferences:get: tried to get a preference but no default set for ~e"
            p))
-        (let ([res
-               (hash-table-get preferences
-                               p
-                               (lambda ()
-                                 (let ([def (hash-table-get defaults p)])
-                                   (default-value def))))])
-          (cond
-            [(marshalled? res)
-             (let ([unmarshalled (unmarshall p res)])
-               (hash-table-put! preferences p unmarshalled)
-               unmarshalled)]
-            [else res])))
+        (hash-table-get preferences
+                        p
+                        (lambda ()
+                          (let ([def (hash-table-get defaults p)])
+                            (default-value def)))))
           
       ;; set : symbol any -> void
       ;; updates the preference
@@ -279,7 +272,9 @@
             s2))))
       
       ;; read : -> void
-      (define (-read) (get-disk-prefs/install void))
+      (define (-read) 
+        (get-disk-prefs/install void)
+        (void))
       
       ;; get-disk-prefs/install : (-> A) -> (union A sexp)
       (define (get-disk-prefs/install fail)
@@ -307,7 +302,9 @@
          prefs
          (lambda (p marshalled)
            (unless (memq p skip)
-             (hash-table-put! preferences p (make-marshalled marshalled))))))
+             (let ([unmarshalled (unmarshall p (make-marshalled marshalled))])
+               (hash-table-put! preferences p unmarshalled)
+               (check-callbacks p unmarshalled))))))
       
       (define (for-each-pref-in-file parse-pref preferences-filename)
         (let/ec k

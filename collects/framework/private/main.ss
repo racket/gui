@@ -254,13 +254,11 @@
          (string-constant yes)
          (string-constant no)
          (string-constant drscheme)))
-      
-      (preferences:read)
 
       ;; reset these -- they are only for the test suite.
       ;; they do not need to be set across starting up and shutting down
       ;; the application.
-      (preferences:set 'framework:file-dialogs 'std)
-      (preferences:set 'framework:exit-when-no-frames #t)
+      ;(preferences:set 'framework:file-dialogs 'std)
+      ;(preferences:set 'framework:exit-when-no-frames #t)
       
       (void))))
