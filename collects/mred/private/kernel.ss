@@ -949,7 +949,6 @@
     set-margin
     set-editor-margin
     set-level-2
-    set-afm-path
     set-paper-name
     set-translation
     set-scaling
@@ -961,7 +960,6 @@
     get-margin
     get-editor-margin
     get-level-2
-    get-afm-path
     get-paper-name
     get-translation
     get-scaling
