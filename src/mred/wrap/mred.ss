@@ -4339,7 +4339,7 @@
 	      (check-string/false who directory) (check-string/false who filename) (check-string/false who extension)
 	      (check-style who #f null style)
 	      (if (not (eq? (system-type) 'unix))
-		  (wx:file-selector message directory filename extension "*.*" (if put? 'put 'get) parent)
+		  (wx:file-selector message directory filename extension "*.*" (if put? 'put 'get) (mred->wx parent))
 		  (letrec ([ok? #f]
 			   [typed-name #f]
 			   [dir (or directory last-visted-directory (current-directory))]
