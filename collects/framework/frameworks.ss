@@ -268,7 +268,7 @@
 (define-signature framework:main^ ())
 
 (define-signature framework:color-model^
-  (rgb-color-distance))
+  (rgb-color-distance rgb->xyz xyz->rgb))
 
 (define-signature frameworkc^
   ([unit application : framework:application^]
