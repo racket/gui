@@ -3365,8 +3365,8 @@
 
 (define wx-text-field%
   (class100 wx-horizontal-panel% (mred proxy parent fun label value style)
-    ; Make text field first because we'll have to exit
-    ;  for keymap initializer
+    ;; Make text field first because we'll have to exit
+    ;;  for keymap initializer
     (private-field
       [func fun]
       [without-callback #f]
@@ -3402,7 +3402,7 @@
 
       [set-label (lambda (str) (when l (send l set-label str)))])
     (override
-      ; These might be called before we are fully initialized
+      ;; These might be called before we are fully initialized
 
       [set-cursor (lambda (c) (send e set-cursor c #t))]
       [set-focus (lambda () (when (object? c) (send c set-focus)))]
@@ -3423,7 +3423,10 @@
 	(send (area-parent) add-child this)))
     (private-field
       [multi? (memq 'multiple style)]
-      [horiz? (eq? (send (send parent get-window) get-label-position) 'horizontal)]
+      [horiz? (cond
+	       [(memq 'vertical-label style) #f]
+	       [(memq 'horizontal-label style) #t]
+	       [else (eq? (send (send parent get-window) get-label-position) 'horizontal)])]
       [dy 0]
       [p (if horiz?
 	     this
@@ -3549,7 +3552,7 @@
     (raise-type-error (who->name who) "frame% object or #f" p)))
 
 (define (check-orientation cwho l)
-  (check-style cwho '(vertical horizontal) '(deleted) l))
+  (check-style cwho '(vertical horizontal) '(vertical-label horizontal-label deleted) l))
 
 (define (check-container-ready cwho p)
   (when p
@@ -4400,7 +4403,7 @@
 	(check-container-parent cwho parent) 
 	(check-callback cwho callback)
 	(check-slider-integer cwho init-value)
-	(check-style cwho '(vertical horizontal) '(plain deleted) style)))
+	(check-style cwho '(vertical horizontal) '(plain vertical-label horizontal-label deleted) style)))
     (private-field
       [wx #f])
     (public
@@ -4536,7 +4539,7 @@
     (sequence
       (let ([cwho '(constructor choice)])
 	(check-list-control-args cwho label choices parent callback)
-	(check-style cwho #f '(deleted) style)
+	(check-style cwho #f '(vertical-label horizontal-label deleted) style)
 	(check-non-negative-integer cwho selection))
       (super-init (lambda () (make-object wx-choice% this this
 					  (mred->wx-container parent) (wrap-callback callback)
@@ -4557,7 +4560,7 @@
     (sequence 
       (let ([cwho '(constructor list-box)])
 	(check-list-control-args cwho label choices parent callback)
-	(check-style cwho '(single multiple extended) '(deleted) style)
+	(check-style cwho '(single multiple extended) '(vertical-label horizontal-label deleted) style)
 	(check-non-negative-integer/false cwho selection)))
     (rename [super-append append])
     (override
@@ -4635,7 +4638,7 @@
 	(check-container-parent cwho parent)
 	(check-callback cwho callback)
 	(check-string cwho init-value)
-	(check-style cwho '(single multiple) '(hscroll password deleted) style)))
+	(check-style cwho '(single multiple) '(hscroll password vertical-label horizontal-label deleted) style)))
     (private-field
       [wx #f])
     (public
