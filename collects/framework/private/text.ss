@@ -888,7 +888,7 @@ WARNING: printf is rebound in the body of the unit to always
           ;; inserts something between the insertion point and the unread region
           (define/public-final (insert-between str)
             (insert str unread-start-point unread-start-point)
-            (set! unread-start-point (+ insertion-point 
+            (set! unread-start-point (+ unread-start-point
                                         ;; string-length is bad here
                                         (string-length str))))
           
@@ -918,15 +918,15 @@ WARNING: printf is rebound in the body of the unit to always
               (error 'delete/io "expected start (~a) <= end (~a) <= insertion-point (~a)"
                      start end insertion-point))
             (let ([before-allowed? allow-edits?])
-              (set! allow-edits? #t)
               (printf "deleting ~s to ~s\n" start end)
+              (set! allow-edits? #t)
               (delete start end #f)
+              (set! allow-edits? before-allowed?)
               (printf "before ip ~s usp ~s\n" insertion-point unread-start-point)
               (let ([dist (- end start)])
                 (set! insertion-point (- insertion-point dist))
                 (set! unread-start-point (- unread-start-point dist)))
-              (printf "after ip ~s usp ~s\n" insertion-point unread-start-point)
-              (set! allow-edits? before-allowed?)))
+              (printf "after ip ~s usp ~s\n" insertion-point unread-start-point)))
                 
           (define/public-final (get-in-port)
             (unless in-port (error 'get-in-port "not ready"))
