@@ -12,7 +12,12 @@
       (send-sexp-to-mred
        `(send (get-top-level-focus-window) show #f)))))
 
-(test-creation '(canvas:wide-snip-mixin editor-canvas%)
+(test-creation '(canvas:basic-mixin editor-canvas%)
+	       'canvas:basic-mixin-creation)
+(test-creation 'canvas:basic%
+	       'canvas:basic%-creation)
+
+(test-creation '(canvas:wide-snip-mixin canvas:basic%)
 	       'canvas:wide-snip-mixin-creation)
 (test-creation 'canvas:wide-snip%
 	       'canvas:wide-snip%-creation)
