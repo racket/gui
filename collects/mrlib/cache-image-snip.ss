@@ -2,20 +2,14 @@
   (require (lib "mred.ss" "mred")
            (lib "class.ss")
            (lib "string.ss")
+	   (lib "contract.ss")
            (lib "list.ss"))
   
   (provide cache-image-snip%
-           snip-class
+           snip-class)
            
-           overlay-bitmap
-           build-bitmap
-           flatten-bitmap
-           
-           argb->cache-image-snip
-           argb->bitmap
-           
-           make-argb 
-           argb-vector)
+  ;; type argb = (make-argb (vectorof rational[between 0 & 255]) int)
+  (define-struct argb (vector width))
   
   #|
 
@@ -43,9 +37,6 @@
     an alpha of 1 means the pixel value is 0
     an alpha of 0 means the pixel value is 255
  |#
-  
-  ;; type argb = (make-argb (vectorof rational[between 0 & 255]) int)
-  (define-struct argb (vector width))
   
   (define cache-image-snip%
     (class snip%
@@ -201,6 +192,7 @@
       (send bdc set-bitmap #f)
       new-bm))
   
+  ;; build-bitmap : (dc -> void) number number -> bitmap
   (define (build-bitmap draw w h)
     (let* ([bm (make-object bitmap% w h)]
            [bdc (make-object bitmap-dc% bm)])
@@ -636,4 +628,17 @@ for b3, we have:
               (* m1 b1 m2 -1/255)
               (* 255 b2)
               (* -255 m3))
-           (- 255 m3)))))
+           (- 255 m3))))
+
+  (provide/contract
+   [overlay-bitmap (argb? number? number? (is-a?/c bitmap%) (is-a?/c bitmap%) . -> . any)]
+   [build-bitmap (((is-a?/c dc<%>) . -> . any) number? number? . -> . (is-a?/c bitmap%))]
+   [flatten-bitmap ((is-a?/c bitmap%) . -> . (is-a?/c bitmap%))]
+
+   [argb->cache-image-snip (argb? number? number? . -> . (is-a?/c cache-image-snip%))]
+   [argb->bitmap (argb? . -> . (is-a?/c bitmap%))]
+           
+   [argb? (any/c . -> . boolean?)]
+   [make-argb ((vectorof (integer-in 0 255)) integer? . -> . argb?)]
+   [argb-vector (argb? . -> . (vectorof (integer-in 0 255)))]
+   [argb-width (argb? . -> . integer?)]))
