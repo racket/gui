@@ -5,7 +5,7 @@
 (lambda (filename title width-default)
   (let/ec k
     (letrec-values
-	([(no-splash) (lambda () (k void void))]
+	([(no-splash) (lambda () (k void void void))]
 	 [(funny?) (let ([date (seconds->date (current-seconds))])
 		     (and (= (date-day date) 25)
 			  (= (date-month date) 12)))]
