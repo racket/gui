@@ -322,8 +322,10 @@
             (opt-lambda ((clear-colors #t))
               (set! stopped? #t)
               (when (and clear-colors (not frozen?))
+                (begin-edit-sequence #f #f)
                 (change-style (send (get-style-list) find-named-style "Standard")
-                              start-pos end-pos #f))
+                              start-pos end-pos #f)
+                (end-edit-sequence))
               (match-parens #t)
               (reset-tokens)
               (set! pairs null)
@@ -380,8 +382,10 @@
                (do-insert/delete start-pos 0))
               ((and should-color? (not on?))
                (set! should-color? on?)
+               (begin-edit-sequence #f #f)
                (change-style (send (get-style-list) find-named-style "Standard")
-                             start-pos end-pos #f))))
+                             start-pos end-pos #f)
+               (end-edit-sequence))))
 
           ;; see docs
           (define/public (force-stop-colorer stop?)
