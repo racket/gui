@@ -4668,7 +4668,7 @@
 									  "Copy Message"
 									  m
 									  (lambda (i e)
-									    (send wx:the-clipboard
+									    (send (wx:get-the-clipboard)
 										  set-clipboard-string
 										  message
 										  (send e get-time-stamp))))
@@ -5726,14 +5726,6 @@
 	   style-delta%
 	   style-list%
 	   tab-snip%
-	   the-brush-list
-	   the-clipboard
-	   the-color-database
-	   the-font-list
-	   the-font-name-directory
-	   the-editor-wordbreak-map
-	   the-pen-list
-	   the-style-list
 	   timer%
 	   write-editor-global-footer
 	   write-editor-global-header
@@ -5742,6 +5734,15 @@
 	   yield
 	   eventspace-shutdown?
 	   get-panel-background)
+
+(define the-color-database (wx:get-the-color-database))
+(define the-font-name-directory (wx:get-the-font-name-directory))
+(define the-clipboard (wx:get-the-clipboard))
+(define the-font-list (wx:get-the-font-list))
+(define the-pen-list (wx:get-the-pen-list))
+(define the-brush-list (wx:get-the-brush-list))
+(define the-style-list (wx:get-the-style-list))
+(define the-editor-wordbreak-map (wx:get-the-editor-wordbreak-map))
 
 (provide button%
 	canvas%
@@ -5813,7 +5814,14 @@
 	sleep/yield
 	get-window-text-extent
 	get-family-builtin-face
-	send-message-to-window)
+	send-message-to-window
+	the-editor-wordbreak-map
+	the-brush-list
+	the-color-database
+	the-font-name-directory
+	the-pen-list
+	the-font-list
+	the-style-list)
 
 
 ) ;; end of module
