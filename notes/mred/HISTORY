@@ -1,10 +1,14 @@
 
+Version 102/13:
+
+ * Fixed MrEd2k bugs.
+
 Version 102/12:
 
  * X: Fixed list-box scrolling. (PR 1435)
 
- * Windows/MacOS: Made stdio window accept input (for `read',
-   etc.).
+ * Windows/MacOS: Made stdio window accept input for the initial input
+   port (for `read', etc.).
 
  * Windows: Fixed many MDI problems.
 
