@@ -694,7 +694,7 @@
 		       [dir (path-only f)]
 		       [name (file-name-from-path f)])
 		  (cond
-		   [(not (and (string? dir) (directory-exists? dir)))
+		   [(not (and (path-string? dir) (directory-exists? dir)))
 		    (message-box (string-constant error)
                                  (string-constant dir-dne))
 		    #f]
