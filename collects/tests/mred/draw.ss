@@ -453,7 +453,7 @@
 			      ; Test get-text-extent
 			      (let ([save-pen (send dc get-pen)]
 				    [save-fnt (send dc get-font)])
-				(send dc set-pen (make-object pen% "YELLOW" 1 'xor))
+				(send dc set-pen (make-object pen% "YELLOW" 1 'solid))
 				(let loop ([fam '(default default modern modern decorative roman)]
 					   [stl '(normal  slant   slant  italic normal     normal)]
 					   [wgt '(normal  bold    normal normal bold       normal)]
@@ -695,7 +695,7 @@
 				(send the-color-database find-color "CYAN")
 				(send the-color-database find-color "WHITE")))
 
-		      (send dc set-clipping-region #f)
+		      ;(send dc set-clipping-region #f)
 		      (send dc clear)
 
 		      (if clock-clip?

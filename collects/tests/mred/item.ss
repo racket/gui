@@ -52,7 +52,7 @@
 (define (add-disable name w ep)
   (let ([c (make-object check-box% (format "Enable ~a" name) ep
 			(lambda (c e) (send w enable (send c get-value))))])
-    (send c set-value #t)))
+    (send c set-value (send w is-enabled?))))
 
 (define (add-disable-radio name w i ep)
   (let ([c (make-object check-box% (format "Enable ~a" name) ep
@@ -96,12 +96,14 @@
   (lambda (win e)
     (let ([m? (is-a? e mouse-event%)])
       (send m set-label
-	    (format "pre: ~a ~a"
+	    (format "pre: ~a ~a ~a,~a"
 		    (if m? "mouse" "key")
 		    (let ([l (send win get-label)])
 		      (if (not l)
 			  win
-			  l))))
+			  l))
+		    (send e get-x)
+		    (send e get-y)))
       (and (not (or (eq? win cm) (eq? win ck)))
 	   (or (and m? (send cm get-value))
 	       (and (not m?) (send ck get-value)))))))
@@ -461,7 +463,8 @@
 		       cp)
 	  items)))
 
-(define (big-frame h-radio? v-label? null-label? stretchy? special-label-font? special-button-font?)
+(define (big-frame h-radio? v-label? null-label? stretchy? special-label-font? special-button-font? 
+		   initially-disabled?)
   (define f (make-frame active-frame% "Tester"))
   
   (define hp (make-object horizontal-panel% f))
@@ -487,6 +490,9 @@
   
   (define tp (make-object vertical-panel% fp))
 
+  (when initially-disabled?
+    (send tp enable #f))
+    
   (make-h&s cp f)
   
   (add-testers "Sub-panel" fp)
@@ -498,7 +504,7 @@
     (send tp set-label-font special-font))
   (when special-button-font?
     (send tp set-control-font special-font))
-    
+
   (let ([ctls (make-ctls tp cp lp add-testers ep h-radio? v-label? null-label? stretchy?)])
     (add-focus-note f ep)
     (send f set-info ep)
@@ -509,7 +515,8 @@
   (set! prev-frame f)
   f)
 
-(define (med-frame plain-slider? label-h? null-label? stretchy? special-label-font? special-button-font?)
+(define (med-frame plain-slider? label-h? null-label? stretchy? special-label-font? special-button-font?
+		   initially-disabled?)
   (define f2 (make-frame active-frame% "Tester2"))
 
   (define hp2 (make-object horizontal-panel% f2))
@@ -533,6 +540,9 @@
 
   (define fp2 (make-object vertical-panel% ip2-0))  
   (define ip2 (make-object vertical-panel% fp2))
+
+  (when initially-disabled?
+    (send ip2 enable #f))
 
   (make-h&s cp2 f2)
   
@@ -1845,13 +1855,17 @@
 		   p1 void))
     (define label-font-radio
       (make-object radio-box% "Label Font" '("Normal" "Big")
-		    p1 void))
+		   p1 void))
     (define button-font-radio
       (make-object radio-box% "Control Font" '("Normal" "Big")
-		    p1 void))
+		   p1 void))
+    (define enabled-radio
+      (make-object radio-box% "Initially" '("Enabled" "Disabled")
+		   p1 void))
     (define next-button
       (make-next-button p2 (list radio-h-radio label-h-radio label-null-radio 
-				 stretchy-radio label-font-radio button-font-radio)))
+				 stretchy-radio label-font-radio button-font-radio
+				 enabled-radio)))
     (define go-button
       (make-object button% (format "Make ~a Frame" size) p2
 		   (lambda (b e)
@@ -1861,7 +1875,8 @@
 		      (positive? (send label-null-radio get-selection))
 		      (positive? (send stretchy-radio get-selection))
 		      (positive? (send label-font-radio get-selection))
-		      (positive? (send button-font-radio get-selection))))))
+		      (positive? (send button-font-radio get-selection))
+		      (positive? (send enabled-radio get-selection))))))
     #t))
 
 (make-selector-and-runner bp1 bp2 #t "Big" big-frame)
