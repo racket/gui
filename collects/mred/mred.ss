@@ -1064,13 +1064,12 @@
 	    (min-height (+ new-height (client-inset #t)))])])
 
        (private-field [-mw 0]
-		[-mh 0]
-		[-xm x-margin-w]
-		[-ym y-margin-h]
-		[-sx stretch-x]
-		[-sy stretch-y]
-
-		[first-arg (car args)])
+		      [-mh 0]
+		      [-xm x-margin-w]
+		      [-ym y-margin-h]
+		      [-sx stretch-x]
+		      [-sy stretch-y]
+		      [first-arg (car args)])
 
        (public
 	 [min-width
@@ -5066,6 +5065,12 @@
 	(check-label-string cwho label)
 	(check-container-parent cwho parent)
 	(check-style cwho #f '(deleted) style))
+
+      ;; Technically a bad way to change margin defaults, since it's
+      ;;  implemented with an update after creation:
+      (when (eq? horiz-margin no-val) (set! horiz-margin 2))
+      (when (eq? vert-margin no-val) (set! vert-margin 2))
+
       (super-init parent (if (memq 'deleted style)
 			     '(deleted)
 			     null)))
