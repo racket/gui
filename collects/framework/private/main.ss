@@ -195,8 +195,6 @@
                                                      color)))
                 (scheme:get-color-prefs-table))
       (preferences:set-default 'framework:coloring-active #t boolean?)
-      ;; need to add in the editor checkbox.
-
 
       ;; groups
       

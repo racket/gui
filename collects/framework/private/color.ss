@@ -102,7 +102,7 @@
           
           ;; ---------------------- Preferences -------------------------------
           (define should-color? #t)
-          (define tab-name #f)
+          (define token-sym->style #f)
                     
           ;; ---------------------- Multi-threading ---------------------------
           ;; A list of thunks that color the buffer
@@ -165,7 +165,7 @@
                     (set! colors
                           (cons
                            (let ((color (send (get-style-list) find-named-style
-                                              (scheme:short-sym->style-name type)))
+                                              (token-sym->style type)))
                                  (sp (+ in-start-pos (sub1 new-token-start)))
                                  (ep (+ in-start-pos (sub1 new-token-end))))
                              (lambda ()
@@ -284,12 +284,12 @@
                   (colorer-driver)
                   (loop)))))
           
-          (define/public (start-colorer tab-name- get-token- pairs-)
+          (define/public (start-colorer token-sym->style- get-token- pairs-)
             (unless force-stop?
               (set! stopped? #f)
               (reset-tokens)
               (set! should-color? (preferences:get 'framework:coloring-active))
-              (set! tab-name tab-name-)
+              (set! token-sym->style token-sym->style-)
               (set! get-token get-token-)
               (set! pairs pairs-)
               (set! parens (new paren-tree% (matches pairs)))
@@ -308,7 +308,7 @@
               (match-parens #t)
               (reset-tokens)
               (set! pairs null)
-              (set! tab-name #f)
+              (set! token-sym->style #f)
               (set! get-token #f)))
           
           (define/public (freeze-colorer)
@@ -326,7 +326,7 @@
             (when frozen?
               (set! frozen? #f)
               (when restart-after-freeze
-                (let ((tn tab-name)
+                (let ((tn token-sym->style)
                       (gt get-token)
                       (p pairs))
                   (stop-colorer (not should-color?))
@@ -491,7 +491,9 @@
           ;;
           ;; matches is a list of lists of matching paren types.
           ;; For example, '((|(| |)|) (|[| |]|))
-          (init-field (get-token default-lexer) (tab-name 'default) (matches null))
+          (init-field (get-token default-lexer) 
+                      (token-sym->style (lambda (x) "Standard"))
+                      (matches null))
           
           (rename (super-on-disable-surrogate on-disable-surrogate))
           (define/override (on-disable-surrogate text)
@@ -501,7 +503,7 @@
           (rename (super-on-enable-surrogate on-enable-surrogate))
           (define/override (on-enable-surrogate text)
             (super-on-enable-surrogate text)
-            (send text start-colorer tab-name get-token matches))
+            (send text start-colorer token-sym->style get-token matches))
           
           (super-instantiate ())))
   

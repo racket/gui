@@ -257,7 +257,7 @@
  ;   ;  ;   ;  ;   ;  ;   ;  ; ; ;  ;   ;          ;   ; ;   ;  ;   ;   ;   ;
   ;;;    ;;;  ;;; ;;;  ;;;  ;; ; ;;  ;;;     ;      ;;;   ;;;  ;;   ;;   ;;; 
                                                                              
-                      
+ 
       (define color-prefs-table
         `((symbol ,(make-object color% 38 38 128) ,(string-constant scheme-mode-color-symbol))
           (keyword ,(make-object color% 38 38 128) ,(string-constant scheme-mode-color-keyword))
@@ -1062,8 +1062,9 @@
 	    (send text end-edit-sequence))
           
           (super-new (get-token scheme-lexer-wrapper)
-                     (tab-name "Scheme")
+                     (token-sym->style short-sym->style-name)
                      (matches '((|(| |)|)
+                                (#\| \|#)
                                 (|[| |]|)
                                 (|{| |}|))))))
       
