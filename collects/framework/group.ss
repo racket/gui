@@ -1,11 +1,14 @@
 (unit/sig framework:group^
   (import mred-interfaces^
+	  [application : framework:application^]
 	  [frame : framework:frame^]
 	  [mzlib:function : mzlib:function^]
 	  [mzlib:file : mzlib:file^])
 
   (define-struct frame (frame id))
   
+  (define mdi-parent #f)
+
   (define %
     (class object% ()
       (private
@@ -93,6 +96,21 @@
 			     (set-close-menu-item-state! a-frame #t))
 			   frames))))])
       (public
+
+	[get-mdi-parent
+	 (lambda ()
+	   (if (eq? (system-type) 'windows)
+	       (begin
+		 (set! get-mdi-parent (lambda () mdi-parent))
+		 (set! mdi-parent (make-object frame% (application:current-app-name)
+					       #f #f #f #f #f
+					       '(mdi-parent)))
+		 (send mdi-parent show #t)
+		 mdi-parent)
+	       (begin
+		 (set! get-mdi-parent (lambda () #f))
+		 #f)))]
+
 	[set-empty-callbacks
 	 (lambda (test close-down) 
 	   (set! empty-test test)

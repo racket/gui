@@ -36,7 +36,8 @@
 		     make-root-area-container
 		     close))
   (define basic-mixin
-    (mixin (frame<%>) (basic<%>) args
+    (mixin (frame<%>) (basic<%>)
+	   (label [parent #f] [width #f] [height #f] [x #f] [y #f] [style null])
       (rename [super-can-close? can-close?]
 	      [super-on-close on-close]
 	      [super-on-focus on-focus])
@@ -71,12 +72,18 @@
 	   (when (can-close?)
 	     (on-close)
 	     (show #f)))])
+      
       (sequence
-	(apply super-init args)
+	(let ([mdi-parent (send (group:get-the-frame-group) get-mdi-parent)])
+	  (super-init label
+		      (or parent mdi-parent)
+		      width height x y
+		      (cond
+		       [parent style]
+		       [mdi-parent (cons 'mdi-child style)]
+		       [else style])))
 
-	;; must make menu before inserting frame into group
-	;; or initial windows menu will be wrong
-	(make-object menu% "Windows" (make-object (get-menu-bar%) this))
+	(make-object (get-menu-bar%) this)
 	(send (group:get-the-frame-group) insert-frame this))
       (private
 	[panel (make-root-area-container (get-area-container%) this)])
