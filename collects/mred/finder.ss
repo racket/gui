@@ -248,14 +248,16 @@
 				   [file (if relative-name
 					     (build-path current-dir relative-name)
 					     dir-name)])
-			      (let ([dir-name-len (string-length dir-name)])
+			      (let ([dir-name-len (string-length dir-name)]
+				    [rel-name-len (string-length relative-name)])
 				(if (and (not save-mode?)
 				         relative-name
-					 (not (string=? relative-name
-							(substring dir-name
+					 (or (> rel-name-len dir-name-len)
+					     (not (string=? relative-name
+							    (substring dir-name
 								   (- dir-name-len
-								      (string-length relative-name))
-								   dir-name-len))))
+								      rel-name-len)
+								   dir-name-len)))))
 				    (wx:message-box 
 				     (string-append "File \"" 
 						    dir-name
