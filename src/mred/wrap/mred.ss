@@ -954,10 +954,16 @@
 							       0 0 #t #t))))
 
 (define internal-editor<%> (interface ()))
-
+(define editor<%> (interface (wx:editor<%>)
+		    get-canvases
+		    get-active-canvas set-active-canvas
+		    get-canvas
+		    add-canvas remove-canvas
+		    auto-wrap))
+		    
 (define (make-editor-buffer% % can-wrap?)
   ; >>> This class is instantiated directly by the end-user <<<
-  (class* % (internal-editor<%>) args
+  (class* % (editor<%> internal-editor<%>) args
     (inherit get-max-width set-max-width get-admin)
     (rename [super-on-display-size on-display-size])
     (private
@@ -1034,8 +1040,10 @@
 
     (sequence (apply super-init args))))
 
-(define text% (make-editor-buffer% wx:text% #t))
-(define pasteboard% (make-editor-buffer% wx:pasteboard% #f))
+(define text% (class (make-editor-buffer% wx:text% #t) args
+		(sequence (apply super-init args))))
+(define pasteboard% (class (make-editor-buffer% wx:pasteboard% #f) args
+		      (sequence (apply super-init args))))
 
 (define editor-snip% (class wx:editor-snip% ([edit #f] . args)
 			(sequence
@@ -1913,7 +1921,7 @@
     on-subwindow-char on-subwindow-event
     client->screen screen->client
     enable is-enabled?
-    get-label set-label
+    get-label set-label get-plain-label
     get-client-size get-size get-width get-height get-x get-y
     get-cursor set-cursor 
     show is-shown?
@@ -1936,6 +1944,7 @@
       
       [get-label (lambda () label)]
       [set-label (lambda (l) (set! label l))]
+      [get-plain-label (lambda () (wx:label->plain-label label))]
 
       [accept-drop-files
        (case-lambda
@@ -2204,9 +2213,11 @@
     (public
       [get-number (lambda () (length choices))]
       [get-item-label (lambda (n) 
-			(if (>= n (get-number))
-			    #f
-			    (list-ref choices n)))]
+			(and (< -1 n (get-number))
+			     (list-ref choices n)))]
+      [get-item-plain-label (lambda (n) 
+			      (and (< -1 n (get-number))
+				   (wx:label->plain-label (list-ref choices n))))]
        
       [get-selection (lambda () (send wx get-selection))]
       [set-selection (lambda (v) (send wx set-selection v))])
@@ -2335,8 +2346,8 @@
       [set (lambda (l) (send wx set l))]
       [set-string (lambda (n d) (send wx set-string n d))]
       [set-data (lambda (n d) (send wx set-data n d))]
-      [get-first-visible (lambda () (send wx get-first-item))]
-      [set-first-visible (lambda (n) (send wx set-first-item n))]
+      [get-first-visible-item (lambda () (send wx get-first-item))]
+      [set-first-visible-item (lambda (n) (send wx set-first-item n))]
       [select (case-lambda 
 	       [(n) (send wx set-selection n)]
 	       [(n on?) (send wx set-selection n on?)])])
@@ -2387,6 +2398,7 @@
 
 (define canvas<%>
   (interface (subwindow<%>)
+    min-client-width min-client-height
     on-char on-event on-paint on-scroll
     popup-menu warp-pointer get-dc))
 
