@@ -1983,7 +1983,7 @@
     (define/override (handles-key-code code alpha? meta?) 
       #f)
 
-    (super-instantiate (mred proxy parent -1 -1 1 1 null))
+    (super-instantiate (mred proxy parent -1 -1 -1 -1 null))
 
     (compute-sizes)
     (set-min-width (inexact->exact (ceiling (get-total-width))))
