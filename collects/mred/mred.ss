@@ -5220,7 +5220,10 @@
     (check-label-string/false who message)
     (check-top-level-parent/false who parent)
     (check-string/false who directory) (check-string/false who filename) (check-string/false who extension)
-    (check-style who #f (if (or put?) null '(packages-ok)) style)
+    (check-style who #f (cond
+			 [put? null]
+			 [dir? '(enter-packages)]
+			 [else '(packages enter-packages)]) style)
     (unless (and (list? filters)
 		 (andmap (lambda (p)
 			   (and (list? p)
@@ -5243,9 +5246,7 @@
 				     [put? 'put]
 				     [multi? 'multi]
 				     [else 'get])
-				    (if (memq 'packages-ok style)
-					'(bundles-ok)
-					null))
+				    style)
 				   ;; parent:
 				   (and parent (mred->wx parent)))])
 	  (if (and multi? s)
