@@ -4,6 +4,8 @@
 	    [mred:container : mred:container^]
 	    [mred:preferences : mred:preferences^]
 	    [mred:gui-utils : mred:gui-utils^]
+	    [mred:edit : mred:edit^]
+	    [mred:canvas : mred:canvas^]
 	    [mzlib:string : mzlib:string^]
 	    [mzlib:function : mzlib:function^]
 	    [mzlib:file : mzlib:file^])
@@ -78,7 +80,11 @@
 				; No more
 				(values dir-list menu-list)))))])
 		  (set! dirs (reverse dir-list))
-		  
+		  (send* directory-edit 
+		    (begin-edit-sequence)
+		    (erase)
+		    (insert dir)
+		    (end-edit-sequence))
 		  (send dir-choice clear)
 		  (let loop ([choices (reverse menu-list)])
 		    (unless (null? choices)
@@ -127,20 +133,6 @@
 	     (let ([which (send event get-selection)])
 	       (if (< which (length dirs))
 		   (set-directory (list-ref dirs which)))))]
-	  [do-goto
-	   (opt-lambda (button event [default ""])
-	     (let ([orig-dir (wx:get-text-from-user
-			      "Directory" "Go to Directory"
-			      default)])
-	       (if (string? orig-dir)
-		   (let ([dir (mzlib:file:normalize-path orig-dir current-dir)])
-		     (if (directory-exists? dir)
-			 (set-directory dir)
-			 (begin
-			   (wx:message-box 
-			    (string-append "Bad directory: " dir)
-			    "Error")
-			   (do-goto button event orig-dir)))))))]
 	  
 	  [do-name
 	   (lambda (text event)
@@ -285,6 +277,8 @@
 				  (if multi-mode? (* 1/2 WIDTH) WIDTH) 300
 				  () wx:const-needed-sb)]
 	  [save-panel (when save-mode? (make-object mred:container:horizontal-panel% main-panel))]
+	  [directory-panel (make-object mred:container:horizontal-panel% main-panel)]
+	  [directory-edit (make-object mred:edit:edit%)]
 	  [period-panel (when (eq? 'unix wx:platform)
 			  (make-object mred:container:horizontal-panel% main-panel))]
 	  [bottom-panel (make-object mred:container:horizontal-panel% main-panel)]
@@ -306,6 +300,22 @@
 	    (make-object mred:container:check-box% period-panel
 			 do-period-in/exclusion
 			 "Show files and directories that begin with a period"))
+
+	  (send directory-panel stretchable-in-y #f)
+	  (let ([canvas (make-object mred:canvas:editor-canvas% directory-panel -1 -1 -1 20 ""
+			      (+ wx:const-mcanvas-hide-h-scroll
+				 wx:const-mcanvas-hide-v-scroll))])
+	    (send* canvas
+	      (set-media directory-edit)
+	      (user-min-height 20)))
+	  (make-object mred:container:button% directory-panel 
+		       (lambda (button evt)
+			 (let ([t (send directory-edit get-text)])
+			   (if (directory-exists? t)
+			       (set-directory (normalize-path t))
+			       (wx:bell))))
+		       "Go")
+
 	  (send main-panel spacing 1)
 	  (when multi-mode?
 	    (send add-panel stretchable-in-y #f)
@@ -341,8 +351,6 @@
 	   (when save-mode?
 	     (make-object mred:container:button%
 			  save-panel do-into-dir "Open Directory"))]
-	  [goto-button (make-object mred:container:button%
-				    bottom-panel do-goto "Go to Directory...")]
 	  [add-button (when multi-mode?
 			(make-object mred:container:horizontal-panel% add-panel)
 			(make-object mred:container:button%
