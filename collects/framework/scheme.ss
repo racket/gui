@@ -396,10 +396,7 @@
 		       (unless (= amt (car curr-offset))
 			 (delete pos-start (cdr curr-offset))
 			 (insert
-			  (string-append
-			   (make-string (quotient amt tab-size) #\tab)
-			   (make-string (remainder amt tab-size)
-					#\space))
+			  (make-string amt #\space)
 			  pos-start))))]
 		  [id-walker
 		   (lambda (string)
