@@ -103,12 +103,6 @@
         (send c set-line-count 1)
         (send c allow-tab-exit #t)
         
-        (preferences:add-callback pref-sym
-                                  (lambda (sym v)
-                                    (editor:set-standard-style-list-delta style-name v)
-                                    #t))
-        (editor:set-standard-style-list-delta style-name delta)
-        
         (send e insert example-text)
         (send e set-position 0)
         
@@ -282,7 +276,10 @@
       (define (register-color-pref pref-name style-name color)
         (let ([sd (new style-delta%)])
           (send sd set-delta-foreground color)
-          (preferences:set-default pref-name sd (lambda (x) (is-a? x style-delta%)))
-          (preferences:set-un/marshall pref-name marshall-style unmarshall-style)
-          (editor:set-standard-style-list-delta style-name sd))))))
+          (preferences:set-default pref-name sd (lambda (x) (is-a? x style-delta%))))
+        (preferences:set-un/marshall pref-name marshall-style unmarshall-style)
+        (preferences:add-callback pref-name
+                                  (lambda (sym v)
+                                    (editor:set-standard-style-list-delta style-name v)))
+        (editor:set-standard-style-list-delta style-name (preferences:get pref-name))))))
 

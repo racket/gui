@@ -1569,8 +1569,13 @@
      "changes the foreground color to \\var{color}."
      "Then, it calls "
      "@flink editor:set-standard-style-list-delta"
-     "passing the \\var{style-name} and the newly"
-     "created \\iscmclass{style-delta}.")
+     "passing the \\var{style-name} and the current value"
+     "of the preference \\var{pref-name}."
+     ""
+     "Finally, it adds calls"
+     "@flink preferences:add-callback "
+     "to set a callback for \\var{pref-name} that"
+     "updates the style list when the preference changes.")
       
     (color-prefs:add-preferences-panel 
      (-> void?)
