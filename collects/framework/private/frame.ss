@@ -287,7 +287,7 @@
           close-status-line
           update-status-line))
       
-      ;; status-line = (make-status-line (is-a?/c message%) symbol number)
+      ;; status-line = (make-status-line (union #f (is-a?/c message%)) symbol number)
       (define-struct status-line (message id count))
       
       (define status-line-mixin
@@ -312,12 +312,7 @@
                          (cond
                            [(null? status-lines)
                             (list
-                             (make-status-line (instantiate message% ()
-                                                 (parent status-line-container-panel)
-                                                 (label "")
-                                                 (stretchable-width #t))
-                                               id
-                                               1))]
+                             (make-status-line #f id 1))]
                            [else (let ([status-line (car status-lines)])
                                    (if (eq? (status-line-id status-line) id)
                                        (cons (make-status-line (status-line-message status-line)
@@ -338,9 +333,11 @@
                                    [matched? (eq? (status-line-id status-line) id)])
                               (cond
                                 [(and matched? (= 1 (status-line-count status-line)))
-                                 (send status-line-container-panel change-children
-                                       (lambda (l)
-                                         (remq (status-line-message status-line) l)))
+                                 (let ([message (status-line-message status-line)])
+                                   (when message
+                                     (send status-line-container-panel change-children
+                                           (lambda (l)
+                                             (remq message l)))))
                                  (cdr status-lines)]
                                 [matched?
                                  (cons (make-status-line (status-line-message status-line)
@@ -354,9 +351,18 @@
              (lambda ()
                (let* ([status-line (find-status-line id msg-txt)]
                       [msg (status-line-message status-line)]
-                      [current-txt (send msg get-label)])
-                 (unless (equal? msg-txt current-txt)
-                   (send msg set-label msg-txt))))))
+                      [current-txt (and msg (send msg get-label))])
+                 (when (and (not msg)
+                            (not (equal? msg-txt "")))
+                   (let ([new-msg (instantiate message% ()
+                                    (parent status-line-container-panel)
+                                    (label "")
+                                    (stretchable-width #t))])
+                     (set-status-line-message! status-line new-msg)
+                     (set! msg new-msg)))
+                 (when msg
+                   (unless (equal? msg-txt current-txt)
+                     (send msg set-label msg-txt)))))))
           
           (define/private (find-status-line id msg-txt)
             (let loop ([status-lines status-lines])
@@ -368,7 +374,7 @@
                        status-line
                        (loop (cdr status-lines))))])))
           
-          (field [eventspace-main-thread (current-thread)])
+          (field [eventspace-main-thread (current-thread)]) ;; replace by using new primitive in 203.5 called eventspace-main-thread
           (inherit get-eventspace)
           (define/private (do-main-thread t)
             (if (eq? (current-thread) eventspace-main-thread)

@@ -118,18 +118,12 @@
     (interface ()
       on-mouse-over-snips))
 
+  (define-struct rect (left top right bottom))
+  
   (define graph-pasteboard-mixin
     (mixin ((class->interface pasteboard%)) (graph-pasteboard<%>)
       (inherit find-first-snip find-next-selected-snip)
-      
-      (define (invalidate-between from to)
-        (let-values ([(xf yf wf hf) (get-position from)]
-                     [(xt yt wt ht) (get-position to)])
-          (invalidate-bitmap-cache (min xf xt)
-                                   (min yf yt)
-                                   (max (+ xf wf) (+ xt wt))
-                                   (max (+ yf hf) (+ yt ht)))))
-      
+
       (inherit dc-location-to-editor-location get-canvas)
       (rename [super-on-event on-event])
       (field (currently-overs null))
@@ -160,7 +154,7 @@
       
       (rename [super-interactive-adjust-move interactive-adjust-move])
       (define/override (interactive-adjust-move snip x y)
-        (invalidate-snip-to-children/parents snip)
+        (invalidate-to-children/parents snip)
         (super-interactive-adjust-move snip x y))
       
       ;; invalidate-selected-snips : -> void
@@ -169,24 +163,26 @@
       (define/private (invalidate-selected-snips)
         (let loop ([snip (find-next-selected-snip #f)])
           (when snip
-            (invalidate-snip-to-children/parents snip)
+            (invalidate-to-children/parents snip)
             (loop (find-next-selected-snip snip)))))
       
-      ;; invalidate-snip-to-children : snip -> void
-      ;; invalidates a region including the snip and all its children and parents
-      (define (invalidate-snip-to-children/parents snip)
-        (when (and (is-a? snip graph-snip<%>)
-                   (send snip get-admin))
-          (for-each
-           (lambda (child)
-             (when (send child get-admin)
-               (invalidate-between snip child)))
-           (send snip get-children))
-          (for-each
-           (lambda (parent)
-             (when (send parent get-admin)
-               (invalidate-between snip parent)))
-           (send snip get-parents))))
+      (define (add-to-rect from to rect)
+        (let-values ([(xf yf wf hf) (get-position from)]
+                     [(xt yt wt ht) (get-position to)])
+          (make-rect
+           (if rect 
+               (min xf xt (rect-left rect))
+               (min xf xt))
+           (if rect
+               (min yf yt (rect-top rect))
+               (min yf yt))
+           (if rect
+               (max (+ xf wf) (+ xt wt) (rect-right rect))
+               (max (+ xf wf) (+ xt wt)))
+           (if rect
+               (max (+ yf hf) (+ yt ht) (rect-bottom rect))
+               (max (+ yf hf) (+ yt ht))))))
+      
       
       ;; find-snips-under-mouse : num num -> (listof graph-snip<%>)
       (define (find-snips-under-mouse x y)
