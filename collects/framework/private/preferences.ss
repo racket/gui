@@ -177,7 +177,6 @@
                          (hash-table-put! saved-defaults p (make-pref pref))
                          pref)]
                       [(pref? saved-default)
-                       (printf "3~n")
                        (pref-value saved-default)])))]
                [default-okay? (checker default-value)])
           (unless default-okay?

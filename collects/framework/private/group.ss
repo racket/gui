@@ -57,7 +57,6 @@
 		       eq?))))]
 
 	  [define (update-windows-menus)
-	    (printf "update-windows-menus~n")
 	    (let* ([windows (length windows-menus)]
 		   [default-name "Untitled"]
 		   [get-name 
@@ -132,7 +131,6 @@
 
 	  [define frame-shown/hidden
 	    (lambda (frame)
-	      (printf "frame-shown/hidden: ~s~n" frame)
 	      (when (member frame (map frame-frame frames))
 		(update-windows-menus)))]
 	  
