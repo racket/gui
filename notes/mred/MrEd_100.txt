@@ -31,10 +31,10 @@ The following are a few highlights of the revision:
    have a label.
 
  * There are hardly any wx:const-... values. Instead, methods that
-   used to take a single flag now take a symbol, and methods that 
-   used to take bitwise-ior'd flags now take a list of symbols.
-   For example, wx:const-horizontal was replaced by 'horizontal, and
-   wx:const-bitmap-type-gif was replaced with 'gif.
+   used to take a single (numerical) flag now take a symbol, and
+   methods that used to take bitwise-ior'd integers now take a list 
+   of symbols. For example, wx:const-horizontal was replaced by
+   'horizontal, and wx:const-bitmap-type-gif was replaced with 'gif.
 
  * The menu system was turned upside-down, giving it a structure more
    like rest of the toolbox. For example, instead of creating a menu
