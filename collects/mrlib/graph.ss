@@ -5,7 +5,7 @@
            (lib "math.ss")
            (lib "macro.ss" "framework")
            (lib "mred.ss" "mred")
-	   (lib "contracts.ss"))
+	   (lib "contract.ss"))
   
   (provide graph-snip<%>
            graph-snip-mixin
@@ -91,7 +91,7 @@
       (define/public (get-parents) (map link-snip parent-links))
       (define/public add-parent
         (case-lambda
-          [(parent) (add-parent #f #f #f #f)]
+          [(parent) (add-parent parent #f #f #f #f)]
           [(parent dark-pen light-pen dark-brush light-brush)
            (unless (memf (lambda (parent-link) (eq? (link-snip parent-link) parent)) parent-links)
              (set! parent-links 
@@ -114,8 +114,12 @@
       (inherit set-snipclass)
       (set-snipclass snipclass)))
   
+  (define graph-pasteboard<%>
+    (interface ()
+      on-mouse-over-snips))
+
   (define graph-pasteboard-mixin
-    (mixin ((class->interface pasteboard%)) ()
+    (mixin ((class->interface pasteboard%)) (graph-pasteboard<%>)
       (inherit find-first-snip find-next-selected-snip)
       
       (define (invalidate-between from to)
@@ -171,14 +175,17 @@
       ;; invalidate-snip-to-children : snip -> void
       ;; invalidates a region including the snip and all its children and parents
       (define (invalidate-snip-to-children/parents snip)
-        (when (is-a? snip graph-snip<%>)
+        (when (and (is-a? snip graph-snip<%>)
+                   (send snip get-admin))
           (for-each
            (lambda (child)
-             (invalidate-between snip child))
+             (when (send child get-admin)
+               (invalidate-between snip child)))
            (send snip get-children))
           (for-each
            (lambda (parent)
-             (invalidate-between snip parent))
+             (when (send parent get-admin)
+               (invalidate-between snip parent)))
            (send snip get-parents))))
       
       ;; find-snips-under-mouse : num num -> (listof graph-snip<%>)
@@ -200,6 +207,7 @@
           (let ([old-currently-overs currently-overs])
             (set! currently-overs new-currently-overs)
             
+	    (on-mouse-over-snips currently-overs)
             (for-each 
              (lambda (old-currently-over)
                (invalidate-to-children/parents old-currently-over))
@@ -208,6 +216,9 @@
              (lambda (new-currently-over)
                (invalidate-to-children/parents new-currently-over))
              new-currently-overs))))
+
+      (define/public (on-mouse-over-snips snips)
+	(void))
         
       ;; set-equal : (listof snip) (listof snip) -> boolean
       ;; typically lists will be small (length 1),
@@ -269,8 +280,9 @@
       (define/private (draw-all-connections dc dx dy left top right bottom arrow-heads?)
         (let loop ([snip (find-first-snip)])
           (when snip
-            (when (is-a? snip graph-snip<%>)
-              (for-each (lambda (parent-link) 
+            (when (and (send snip get-admin)
+                       (is-a? snip graph-snip<%>))
+              (for-each (lambda (parent-link)
                           (draw-connection
                            dc dx dy parent-link snip #f
                            left top right bottom
@@ -308,19 +320,20 @@
                                        left top right bottom
                                        arrow-heads?)
         (let ([from (link-snip from-link)])
-          (send dc set-brush 
-                (if dark-lines?
-                    (link-dark-brush from-link)
-                    (link-light-brush from-link)))
-          (send dc set-pen
-                (if dark-lines?
-                    (link-dark-pen from-link)
-                    (link-light-pen from-link)))
-          (cond
-            [(eq? from to)
-             (draw-self-connection dc dx dy from left top right bottom arrow-heads?)]
-            [else
-             (draw-non-self-connection dc dx dy from to left top right bottom arrow-heads?)])))
+          (when (send from get-admin)
+            (send dc set-brush 
+                  (if dark-lines?
+                      (link-dark-brush from-link)
+                      (link-light-brush from-link)))
+            (send dc set-pen
+                  (if dark-lines?
+                      (link-dark-pen from-link)
+                      (link-light-pen from-link)))
+            (cond
+              [(eq? from to)
+               (draw-self-connection dc dx dy from left top right bottom arrow-heads?)]
+              [else
+               (draw-non-self-connection dc dx dy from to left top right bottom arrow-heads?)]))))
       
       (define/private (draw-self-connection dc dx dy snip left top right bottom arrow-heads?)
         (let*-values ([(sx sy sw sh) (get-position snip)]
