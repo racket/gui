@@ -771,9 +771,9 @@
 		     (make-make-repeater n))
 		(loop (sub1 n)))))
 	  
-	  (add "do-saved-macro" do-macro)
-	  (add "start-macro-record" start-macro)
-	  (add "end-macro-record" end-macro)
+	  (add "keyboard-macro-run-saved" do-macro)
+	  (add "keyboard-macro-start-record" start-macro)
+	  (add "keyboard-macro-end-record" end-macro)
 	  
 	  (add-m "copy-clipboard" mouse-copy-clipboard)
 	  (add-m "cut-clipboard" mouse-cut-clipboard)
@@ -942,9 +942,9 @@
 		(map-meta s (string-append "command-repeat-" s))
 		(loop (sub1 n)))))
 	  
-	  (map "c:x;e" "do-saved-macro")
-	  (map "c:x;(" "start-macro-record")
-	  (map "c:x;)" "end-macro-record")
+	  (map "c:x;e" "keyboard-macro-run-saved")
+	  (map "c:x;(" "keyboard-macro-start-record")
+	  (map "c:x;)" "keyboard-macro-stop-record")
 	  
 	  (map "leftbuttontriple" "select-click-line")
 	  (map "leftbuttondouble" "select-click-word")

@@ -299,8 +299,7 @@
       do-autosave
       remove-autosave))
 
-  ; wx: what about checking the autosave files when a file is
-  ;     opened?
+  ; what about checking the autosave files when a file is opened?
   (define backup-autosave-mixin
     (mixin (basic<%>) (backup-autosave<%>) args
       (inherit is-modified? get-filename save-file)
