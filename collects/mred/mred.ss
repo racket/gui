@@ -1860,10 +1860,10 @@
 
     (sequence (as-entry (lambda () (apply super-init args))))))
 
-(define text% (class100 (make-editor-buffer% wx:text% #t  (lambda () text%)) args
-		(sequence (apply super-init args))))
-(define pasteboard% (class100 (make-editor-buffer% wx:pasteboard% #f (lambda () pasteboard%)) args
-		      (sequence (apply super-init args))))
+(define text% (class100 (make-editor-buffer% wx:text% #t  (lambda () text%)) ([line-spacing 1.0] [tab-stops null])
+		(sequence (super-init line-spacing tab-stops))))
+(define pasteboard% (class100 (make-editor-buffer% wx:pasteboard% #f (lambda () pasteboard%)) ()
+		      (sequence (super-init))))
 
 (define editor-snip% (class100 wx:editor-snip% ([editor #f]
 						[with-border? #t]
@@ -3742,7 +3742,7 @@
 	 (super-init (lambda () (set! wx (mk-wx)) wx) (lambda () wx) #f parent #f))))))
 
 (define canvas%
-  (class100 basic-canvas% (parent [style null] [paint-callback (lambda (dc) (void))])
+  (class100 basic-canvas% (parent [style null] [paint-callback (lambda (canvas dc) (void))])
     (private-field [paint-cb paint-callback])
     (inherit get-client-size get-dc)
     (sequence 
@@ -3823,7 +3823,7 @@
       [get-scroll-page (entry-point (lambda (d) (send wx get-scroll-page d)))]
       [set-scroll-page (entry-point (lambda (d v) (send wx set-scroll-page d v)))])
     (override
-      [on-paint (lambda () (paint-cb (get-dc)))])
+      [on-paint (lambda () (paint-cb this (get-dc)))])
     (private-field
       [wx #f])
     (sequence
