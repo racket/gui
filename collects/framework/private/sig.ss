@@ -277,6 +277,7 @@
   (define-signature framework:text-class^
     (basic<%>
      hide-caret/selection<%>
+     nbsp->space<%>
      delegate<%>
      searching<%>
      return<%>
@@ -285,6 +286,7 @@
      
      basic% 
      hide-caret/selection%
+     nbsp->space%
      1-pixel-string-snip%
      1-pixel-tab-snip%
      delegate%
@@ -299,6 +301,7 @@
 
      basic-mixin
      hide-caret/selection-mixin
+     nbsp->space-mixin
      delegate-mixin
      searching-mixin
      return-mixin

@@ -356,6 +356,31 @@
           (define (after-set-position)
             (hide-caret (= (get-start-position) (get-end-position))))
           (super-instantiate ())))
+
+      (define nbsp->space<%> (interface ((class->interface text%))))
+      (define nbsp->space-mixin
+        (mixin ((class->interface text%)) (nbsp->space<%>)
+          (field [rewriting #f])
+          (inherit begin-edit-sequence end-edit-sequence delete insert get-character)
+          (rename [super-on-insert on-insert]
+                  [super-after-insert after-insert])
+          (define/override (on-insert start len)
+            (begin-edit-sequence)
+            (super-on-insert start len))
+          (define/override (after-insert start len)
+            (unless rewriting
+              (set! rewriting #t)
+              (let loop ([pos start])
+                (when (<= pos (+ start len))
+                  (let ([char (get-character pos)])
+                    (when (char=? char (integer->char 160))
+                      (delete pos (+ pos 1) #f)
+                      (insert " " pos pos #f))
+                  (loop (+ pos 1))))
+              (set! rewriting #f)))
+            (super-after-insert start len)
+            (end-edit-sequence))
+          (super-instantiate ())))
       
       (define searching<%> (interface (editor:keymap<%> basic<%>)))
       (define searching-mixin
@@ -721,7 +746,7 @@
                 (let ([frame (send canvas get-top-level-window)])
                   (when (is-a? frame frame:text-info<%>)
                     (call-method frame))))))
-            
+          
           (override set-anchor set-overwrite-mode after-set-position after-insert after-delete)
           (define (set-anchor x)
             (super-set-anchor x)
@@ -761,52 +786,53 @@
             (maybe-queue-editor-position-update))
           (super-instantiate ())))
       
-  (define clever-file-format<%> (interface ((class->interface text%))))
-  
-  (define clever-file-format-mixin
-    (mixin ((class->interface text%)) (clever-file-format<%>)
-      (inherit get-file-format set-file-format find-first-snip)
-      (rename [super-on-save-file on-save-file])
-      (define (all-string-snips)
-        (let loop ([s (find-first-snip)])
-          (cond
-            [(not s) #t]
-            [(is-a? s string-snip%)
-             (loop (send s next))]
-            [else #f])))
-      (define/override (on-save-file name format)
-        (let ([all-strings? (all-string-snips)])
-          (cond
-            [(and all-strings?
-                  (eq? format 'same)
-                  (eq? 'standard (get-file-format))
-                  (or (not (preferences:get 'framework:verify-change-format))
-                      (gui-utils:get-choice
-                       (string-constant save-as-plain-text) 
-                       (string-constant yes)
-                       (string-constant no))))
-             (set-file-format 'text)]
-            [(and (not all-strings?)
-                  (eq? format 'same)
-                  (eq? 'text (get-file-format))
-                  (or (not (preferences:get 'framework:verify-change-format))
-                      (gui-utils:get-choice
-                       (string-constant save-in-drs-format)
-                       (string-constant yes)
-                       (string-constant no))))
-             (set-file-format 'standard)]
-            [else (void)]))
-        (super-on-save-file name format))
-      (super-instantiate ())))
-  
-  (define basic% (basic-mixin (editor:basic-mixin text%)))
-  (define hide-caret/selection% (hide-caret/selection-mixin basic%))
-  (define delegate% (delegate-mixin basic%))
-  (define -keymap% (editor:keymap-mixin basic%))
-  (define return% (return-mixin -keymap%))
-  (define autowrap% (editor:autowrap-mixin -keymap%))
-  (define file% (editor:file-mixin autowrap%))
-  (define clever-file-format% (clever-file-format-mixin file%))
-  (define backup-autosave% (editor:backup-autosave-mixin clever-file-format%))
-  (define searching% (searching-mixin backup-autosave%))
-  (define info% (info-mixin (editor:info-mixin searching%))))))
+      (define clever-file-format<%> (interface ((class->interface text%))))
+      
+      (define clever-file-format-mixin
+        (mixin ((class->interface text%)) (clever-file-format<%>)
+          (inherit get-file-format set-file-format find-first-snip)
+          (rename [super-on-save-file on-save-file])
+          (define (all-string-snips)
+            (let loop ([s (find-first-snip)])
+              (cond
+                [(not s) #t]
+                [(is-a? s string-snip%)
+                 (loop (send s next))]
+                [else #f])))
+          (define/override (on-save-file name format)
+            (let ([all-strings? (all-string-snips)])
+              (cond
+                [(and all-strings?
+                      (eq? format 'same)
+                      (eq? 'standard (get-file-format))
+                      (or (not (preferences:get 'framework:verify-change-format))
+                          (gui-utils:get-choice
+                           (string-constant save-as-plain-text) 
+                           (string-constant yes)
+                           (string-constant no))))
+                 (set-file-format 'text)]
+                [(and (not all-strings?)
+                      (eq? format 'same)
+                      (eq? 'text (get-file-format))
+                      (or (not (preferences:get 'framework:verify-change-format))
+                          (gui-utils:get-choice
+                           (string-constant save-in-drs-format)
+                           (string-constant yes)
+                           (string-constant no))))
+                 (set-file-format 'standard)]
+                [else (void)]))
+            (super-on-save-file name format))
+          (super-instantiate ())))
+      
+      (define basic% (basic-mixin (editor:basic-mixin text%)))
+      (define hide-caret/selection% (hide-caret/selection-mixin basic%))
+      (define nbsp->space% (nbsp->space-mixin basic%))
+      (define delegate% (delegate-mixin basic%))
+      (define -keymap% (editor:keymap-mixin basic%))
+      (define return% (return-mixin -keymap%))
+      (define autowrap% (editor:autowrap-mixin -keymap%))
+      (define file% (editor:file-mixin autowrap%))
+      (define clever-file-format% (clever-file-format-mixin file%))
+      (define backup-autosave% (editor:backup-autosave-mixin clever-file-format%))
+      (define searching% (searching-mixin backup-autosave%))
+      (define info% (info-mixin (editor:info-mixin searching%))))))
