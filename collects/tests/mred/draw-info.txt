@@ -19,9 +19,11 @@ The drawing area should have the following features:
   A little bit of a black line should appear before "Pen 2 x 2",
     but the yellow background should have covered up the line
 
-  At the far right, a black and red pair of splines should form
-    a squashed "S", twice as wide as high. The "S" is formed
-    by two splines.
+  To the right of the Pen text, a black and red pair of splines should
+    form a squashed "S", twice as wide as high. The "S" is formed by
+    two splines.
+
+  To the far right should be three columns of boxes...
 
   The drawings under 0x0 and 1x1 should look nearly the same:
     TopLeft: h-line should be left-aligned with box below it,
@@ -45,9 +47,11 @@ The drawing area should have the following features:
     Arcs: The leftmost should be the top half of a circle (it's
           form via two arcs); the rightmost should be a filled
           wedge from 90 degrees to 180 degress
+
+  Bottom section:
     Images: MrEd logo (b & w)
             BB logo (color)
-            Down-left arrow (b & w)
+            Down-left arrow with a thin horizontal line (b & w)
             Down-left arrow - B & W, *not* red
             Down-left arrow - red with white background
             BB logo, possibly reddened
@@ -60,12 +64,10 @@ The drawing area should have the following features:
                     Black and white stippled arrow
 		     [Click "cyan" => replace "white" with "cyan"]
                     BB stippled
-		    Green cross-hatch on {white,cyan}/blue
-	Outside of blue box:
-	            Green cross-hatch on {white,cyan}
-		    Black cross-hatch on {white,cyan}
+		    Green cross-hatch on {white,cyan}
 		    
-    Dashed lines: each half green, half black:
+    Dashed lines: each half green, half black, first
+      with a {white,cyan} background, then a red background:
            Solid line
            Dot line
            Long Dash line

@@ -67,7 +67,7 @@
 				   (make-object wx:memory-dc%)
 				   #f)]
 		       [bm (if use-bitmap?
-			       (make-object wx:bitmap% (* scale 300) (* scale 300)
+			       (make-object wx:bitmap% (* scale 350) (* scale 300)
 					    (if depth-one? 1 -1))
 			       #f)]
 		       [draw-series
@@ -263,8 +263,37 @@
 			      (draw-ess 0 0)
 			      (send dc set-pen (make-object wx:pen% "RED" 0 wx:const-solid))
 			      (draw-ess -2 2)
+
+			      ; Brush patterns:
+			      (let ([pat-list (list wx:const-bdiagonal-hatch
+						    wx:const-crossdiag-hatch
+						    wx:const-fdiagonal-hatch
+						    wx:const-cross-hatch
+						    wx:const-horizontal-hatch
+						    wx:const-vertical-hatch)]
+				    [b (make-object wx:brush% "BLACK" wx:const-solid)]
+				    [ob (send dc get-brush)]
+				    [obg (send dc get-background)]
+				    [blue (make-object wx:brush% "BLUE" wx:const-solid)])
+				(let loop ([x 245][y 10][l pat-list])
+				  (unless (null? l)
+				    (send b set-colour "BLACK")
+				    (send b set-style (car l))
+				    (send dc set-brush b)
+				    (send dc draw-rectangle x y 20 20)
+				    (send dc set-brush ob)
+				    (send b set-colour "GREEN")
+				    (send dc set-brush b)
+				    (send dc draw-rectangle (+ x 25) y 20 20)
+				    (send dc set-background blue)
+				    (send dc draw-rectangle (+ x 50) y 20 20)
+				    (send dc set-background obg)
+				    (send dc set-brush ob)
+				    (loop x (+ y 25) (cdr l)))))
+
 			      (send dc set-pen op))
 
+			    
 			    (when (and (not no-bitmaps?) last?)
 			      (let ([x 5] [y 165])
 				(send dc draw-icon
@@ -320,37 +349,38 @@
 				  (send b set-stipple null)
 				  (send b set-style wx:const-cross-hatch)
 				  (send dc set-brush b)
-				  ; Green cross hatch on blue (white BG)
+				  ; Green cross hatch (white BG) on blue field
 				  (send dc draw-rectangle 180 205 20 20)
-				  ; Green cross hatch on while
-				  (send dc draw-rectangle 210 205 20 20)
-				  (send dc set-brush brushs)
-				  (send b set-colour "BLACK")
-				  (send dc set-brush b)
-				  ; Black cross hatch
-				  (send dc draw-rectangle 235 205 20 20)
 				  (send dc set-brush brushs))))
 
 			    (let ([styles (list wx:const-solid
 						wx:const-dot
 						wx:const-long-dash
 						wx:const-short-dash
-						wx:const-dot-dash)])
+						wx:const-dot-dash)]
+				  [obg (send dc get-background)]
+				  [red (make-object wx:brush% "RED" wx:const-solid)])
 			      (let loop ([s styles][y 250])
 				(unless (null? s)
 				  (let ([p (make-object wx:pen% "GREEN" flevel (car s))])
 				    (send dc set-pen p)
 				    (send dc draw-line (+ x 5) y (+ x 30) y)
+				    (send dc set-background red)
+				    (send dc draw-line (+ x 5) (+ 4 y) (+ x 30) (+ y 4))
+				    (send dc set-background obg)
 				    (send pens set-style (car s))
 				    (send dc set-pen pens)
 				    (send dc draw-line (+ x 30) y (+ x 55) y)
+				    (send dc set-background red)
+				    (send dc draw-line (+ x 30) (+ y 4) (+ x 55) (+ y 4))
+				    (send dc set-background obg)
 				    (send dc set-pen pent)
 				    (send pens set-style wx:const-solid)
-				    (loop (cdr s) (+ y 5 ))))))
+				    (loop (cdr s) (+ y 8))))))
 
 			    (if (not (or ps? (eq? dc can-dc)))
 				(send can-dc blit 0 0 
-				      (* scale 300) (* scale 300)
+				      (* scale 350) (* scale 300)
 				      mem-dc 0 0 wx:const-copy)))
 
 			  'done)])
@@ -412,7 +442,7 @@
 			      [h (unbox h)])
 			  (unless (cond
 				   [ps? #t]
-				   [use-bitmap? (and (= w (* scale 300)) (= h (* scale 300)))]
+				   [use-bitmap? (and (= w (* scale 350)) (= h (* scale 300)))]
 				   [else (= w (send this get-width)) (= h (send this get-height))])
 			    (error "wrong size reported by get-size: ~a ~a" w h))))
 
@@ -430,6 +460,9 @@
 		 -1 -1 -1 -1
 		 '("Canvas" "Pixmap" "Bitmap")
 		 0 wx:const-horizontal)
+    (make-object mred:button% hp0
+		 (lambda (self event) (send vp change-children (lambda (l) (list canvas))))
+		 "Hide")
     (make-object mred:button% hp
 		 (lambda (self event)
 		   (send canvas on-paint #t))
