@@ -15,6 +15,13 @@ Added send-message-to-window procedure
 Added pop-down callback initialization argument to popup-menu%, and
  added 'menu-popdown and 'menu-popdown-none event types to
  control-event%
+Added get-popup-target method to popup-menu%
+Added popup-menu method to editor-admin% and snip-admin%
+Added can-do-edit-operation? to editr<%>
+Added "leftbuttonseq", "middlebuttonseq", and "rightbuttonseq" to
+ keymap%'s map-function
+Changed the default text keymap initializer to map right button
+ releases to popup an edit menu
 Changed the meaning of the on-change method in editor<%>; see the
  manual for details
 Editor reading/writing/cutting/pasting no longer relies on global
@@ -27,6 +34,7 @@ Made stdio window for Windows/MacOS accept input (for `read', etc.)
 X, Mac: Fixed list-box% to handle arbitrarily many list items
 X: Fixed input of keypad characters and dead characters (such as
  accent marks)
+X: Fixed loading of amimated GIFs (shows only first image)
 
 ----------------------------------------------------------------------
 
