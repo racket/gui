@@ -84,7 +84,7 @@
       ;; if it were drawn
       (define/public (get-bitmap)
         (unless bitmap
-          (set! bitmap (flatten-bitmap (argb->bitmap (get-argb)))))
+          (set! bitmap (argb->bitmap (get-argb))))
         bitmap)
       
       ;; get-argb : -> argb
