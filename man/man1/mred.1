@@ -67,10 +67,12 @@ application-specific startup sequences.
 For further information on
 .I MrEd,
 please consult the on-line
-documentation and other information available at
+documentation in the Help menu of the console 
+and other information available at
 .PP
 .ce 1
 http://www.cs.rice.edu/CS/PLT/packages/mred/
+
 .SH FILES
 If the -s flag is not specified, 
 .I MrEd
@@ -106,8 +108,14 @@ with the value of the PLTHOME environment variable.
 If the environment variable is undefined, 
 "/usr/local/lib/plt/" is used
 .PP
-Please consult your local administrator to determine whether
-the on-line documentation has been installed locally.
+
+.I MrEd
+also looks for Xresources in 
+.IP
+* "~/.mred.resources"
+.PP
+Xresources in that file override any other resources settings.
+
 .SH BUGS
 Email bug reports to plt-bugs@cs.rice.edu.  Please mention
 "MrEd" in the subject line or the message.
