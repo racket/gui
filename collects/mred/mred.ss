@@ -97,22 +97,26 @@
 ; entry-point macros in macros.ss
 
 (define (as-exit f)
-  ; (unless (eq? monitor-owner (current-thread)) (error 'monitor-exit "not in monitored area"))
-  (call-with-parameterization
-   old-paramz
-   (lambda ()
-     (call-with-break-parameterization
-      old-break-paramz
-      (lambda ()
-	(dynamic-wind
-	    (lambda ()
-	      (set! monitor-owner #f)	 
-	      (semaphore-post monitor-sema)
-	      (wx:in-atomic-region #f))
-	    f
-	    (lambda ()
-	      (wx:in-atomic-region monitor-sema)
-	      (set! monitor-owner (current-thread)))))))))
+  ;; (unless (eq? monitor-owner (current-thread)) (error 'monitor-exit "not in monitored area"))
+  (let ([paramz old-paramz]
+	[break-paramz old-break-paramz])
+    (call-with-parameterization
+     paramz
+     (lambda ()
+       (call-with-break-parameterization
+	break-paramz
+	(lambda ()
+	  (dynamic-wind
+	      (lambda ()		
+		(set! monitor-owner #f)	 
+		(semaphore-post monitor-sema)
+		(wx:in-atomic-region #f))
+	      f
+	      (lambda ()
+		(set! old-paramz paramz)
+		(set! old-break-paramz break-paramz)
+		(wx:in-atomic-region monitor-sema)
+		(set! monitor-owner (current-thread))))))))))
 
 (define-syntax entry-point 
   (lambda (stx)
