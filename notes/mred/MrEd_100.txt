@@ -183,7 +183,8 @@ changes listed in the HISTORY notes for an average MrEd release).
    few methods, since the old information can be extracted from the
    control.
 
- * Keyboard navigation (in a frame or dialog) works on all platforms.
+ * Navigating controls (in a frame or dialog) with the keyboard works
+   on all platforms.
 
  * The device context system has been changed to provide a larger set
    of methods that paint consistently on all platforms. Most "logical
@@ -316,6 +317,7 @@ area<%>
     get-parent
     get-top-level-window - returns the area's frame/dialog
     min-width min-height
+    get-graphical-min-size
     stretchable-width stretchable-height
 
 subarea<%> : area<%>
@@ -473,7 +475,8 @@ canvas% : canvas<%>
     <= parent [style null]
        styles: 'border 'vscroll 'hscroll
     get-virtual-size get-view-start
-    set-scrollbars scroll
+    init-manual-scrollbars init-auto-scrollbars
+    scroll
     get-scroll-pos set-scroll-pos
     get-scroll-range set-scroll-range
     get-scroll-page set-scroll-page
@@ -663,6 +666,8 @@ editor-set-x-selection-mode
 
 get-the-snip-class-list
 get-the-buffer-data-class-list
+
+graphical-read-eval-print-loop
 
 ======================================================================
 4. Constant Mapping
@@ -1029,9 +1034,6 @@ canvas%'s get-view-start returns values in pixels, not scroll units
 
 device context's get-text-extent and get-size return multiple values
  instead of mutating boxes
-
-For canvas%'s set-scrollbars, #f indicates a disabled scrollbar rather
- than a non-positive number
 
 A text editor's selection caret now blinks; added a blink-caret method
  to editor<%> and snip%
