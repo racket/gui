@@ -841,7 +841,7 @@
 	  (map-meta "left" "backward-sexp")
 	  (map "a:left" "backward-sexp")
 	  (map-meta "s:left" "select-backward-sexp")
-	  (map "a:d:left" "select-backward-sexp")
+	  (map "a:s:left" "select-backward-sexp")
 	  
 	  (map-meta "return" "do-return")
 	  (map-meta "s:return" "do-return")
