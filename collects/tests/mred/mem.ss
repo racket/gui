@@ -151,11 +151,11 @@
 	      (let ([mb (make-object menu-bar% sub-collect-frame)])
 		(make-object menu% "Permanent" mb)))
 	    (let* ([mb (send sub-collect-frame get-menu-bar)]
-		   [mm (send (car (send mb get-items)) get-menu)])
+		   [mm (car (send mb get-items))])
 	      (send (remember tag (make-object menu-item% "Delete Me" mm void)) delete)
 	      (let ([m (make-object menu% "Temporary" mb)])
 		(remember tag (make-object menu-item% "Temp Hi" m void))
-		(send (send m get-item) delete)))))
+		(send m delete)))))
 	  	  
 	(when atomic?
 	  (let loop ([m 8])

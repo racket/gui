@@ -3410,7 +3410,7 @@
 				      (memq 'hide-hscroll style))]
 			   [get-ds (lambda (no-this? no-other?)
 				     (cond
-				      [(and no-this? no-other?) 0]
+				      [(and no-this? no-other?) 14]
 				      [no-this? canvas-default-size]
 				      [else (+ 10 canvas-default-size)]))])
 		      (set! wx (make-object wx-editor-canvas% this this

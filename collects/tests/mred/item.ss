@@ -1468,6 +1468,28 @@
   (send c2 set-vsize 500 200)
   (send f show #t))
 
+(define (editor-canvas-oneline-frame)
+  (define f (make-object frame% "x" #f 200 #f))
+  
+  (define (try flags)
+    (define c (make-object editor-canvas% f #f flags))
+    
+    (define e (make-object text%))
+    
+    (send e insert "Xy!")
+    
+    (send c set-line-count 1)
+    
+    (send c set-editor e)
+    (send c stretchable-height #f))
+  
+  (send f show #t)
+  
+  (try '(no-hscroll no-vscroll))
+  (try '(no-vscroll))
+  (try '(no-hscroll))
+  (try '()))
+
 ;----------------------------------------------------------------------
 
 (define selector (make-object frame% "Test Selector"))
@@ -1522,6 +1544,8 @@
 (make-object button% "Make Menus Frame" pp (lambda (b e) (menu-frame)))
 (make-object horizontal-pane% pp)
 (make-object button% "Make Panel Frame" pp (lambda (b e) (panel-frame)))
+(make-object horizontal-pane% pp)
+(make-object button% "Editor Canvas One-liners" pp (lambda (b e) (editor-canvas-oneline-frame)))
 (define bp (make-object horizontal-pane% ap))
 (send bp stretchable-width #f)
 (make-object button% "Make Button Frame" bp (lambda (b e) (button-frame frame% null)))
