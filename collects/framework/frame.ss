@@ -11,6 +11,7 @@
 	  [finder : framework:finder^]
 	  [keymap : framework:keymap^]
 	  [text : framework:text^]
+	  [editor : framework:editor^]
 	  [mzlib:function : mzlib:function^])
 
   (rename [-editor<%> editor<%>]
@@ -706,7 +707,7 @@
 	     r-root))])
       
       (override
-        [get-editor<%> (lambda () text:info<%>)]
+        [get-editor<%> (lambda () editor:info<%>)]
         [get-editor% (lambda () text:info%)])
 
       (public

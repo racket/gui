@@ -8,7 +8,7 @@
   (define-struct frame (frame id))
   
   (define %
-    (class null ()
+    (class object% ()
       (private
 	[active-frame #f]
 	[frame-counter 0]
@@ -195,7 +195,9 @@
 		  (let* ([frame (frame-frame (car frames))])
 		    (if (test-frame frame)
 			frame
-			(loop (cdr frames))))]))))])))
+			(loop (cdr frames))))]))))])
+      (sequence
+	(super-init))))
   
   (define the-frame-group #f)
   

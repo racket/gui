@@ -1,4 +1,4 @@
-(require-library "errortrace.ss" "errortrace")
+(require-library "errortrace.ss" "errortrace") (error-print-width 80)
 
 (let* ([errs null]
        [sema (make-semaphore 1)]
@@ -15,9 +15,9 @@
 	  [exception->string
 	   (lambda (x)
 	     (if (exn? x)
-		 (if (defined? 'errortrace-print-trace)
+		 (if (defined? 'print-error-trace)
 		     (let ([p (open-output-string)])
-		       (errortrace-print-trace p x)
+		       (print-error-trace p x)
 		       (string-append (exn-message x) (string #\newline) (get-output-string p)))
 		     (exn-message x))
 		 (format "~s" x)))])

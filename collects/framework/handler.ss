@@ -111,7 +111,7 @@
 
   (define *open-directory* ; object to remember last directory
     (make-object 
-	(class null ()
+	(class object% ()
 	  (private 
 	    [the-dir #f])
 	  (public
@@ -123,7 +123,8 @@
 	     (lambda ()
 	       (set! the-dir (current-directory)))])
 	  (sequence
-	    (set-to-default)))))
+	    (set-to-default)
+	    (super-init)))))
 
   (define open-file
     (lambda ()
