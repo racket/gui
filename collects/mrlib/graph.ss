@@ -262,10 +262,10 @@
             (let loop ([snips (append children parents)]
                        [l fx]
                        [t fy]
-                       [r (+ fx fw)]
-                       [b (+ fy fh)])
+                       [r (+ fx (max 0 fw))]
+                       [b (+ fy (max 0 fh))])
               (cond
-                [(null? snips) 
+                [(null? snips)
                  (invalidate-bitmap-cache l t (- r l) (- b t))]
                 [else
                  (let ([c/p (car snips)])
@@ -377,18 +377,18 @@
                       [(b56x b56y) (values s5x s6y)])
           
           (update-polygon s4x s4y sx s4y)
-          (cond
-            [arrow-heads?
-             (let ([os (send dc get-smoothing)])
-               (send dc set-smoothing 'aligned)
-               (send dc draw-polygon points dx dy)
-               (send dc set-smoothing os))]
-            [else
-             (send dc draw-spline (+ dx s1x) (+ dy s1y) (+ dx b12x) (+ dy b12y) (+ dx s2x) (+ dy s2y))
-             (send dc draw-spline (+ dx s2x) (+ dy s2y) (+ dx b23x) (+ dy b23y) (+ dx s3x) (+ dy s3y))
-             (send dc draw-line (+ dx s3x) (+ dy s3y) (+ dx s6x) (+ dy s6y))
-             (send dc draw-spline (+ dx s4x) (+ dy s4y) (+ dx b45x) (+ dy b45y) (+ dx s5x) (+ dy s5y))
-             (send dc draw-spline (+ dx s5x) (+ dy s5y) (+ dx b56x) (+ dy b56y) (+ dx s6x) (+ dy s6y))])))
+          (let ([os (send dc get-smoothing)])
+            (send dc set-smoothing 'aligned)
+            (cond
+              [arrow-heads?
+               (send dc draw-polygon points dx dy)]
+              [else
+               (send dc draw-spline (+ dx s1x) (+ dy s1y) (+ dx b12x) (+ dy b12y) (+ dx s2x) (+ dy s2y))
+               (send dc draw-spline (+ dx s2x) (+ dy s2y) (+ dx b23x) (+ dy b23y) (+ dx s3x) (+ dy s3y))
+               (send dc draw-line (+ dx s3x) (+ dy s3y) (+ dx s6x) (+ dy s6y))
+               (send dc draw-spline (+ dx s4x) (+ dy s4y) (+ dx b45x) (+ dy b45y) (+ dx s5x) (+ dy s5y))
+               (send dc draw-spline (+ dx s5x) (+ dy s5y) (+ dx b56x) (+ dy b56y) (+ dx s6x) (+ dy s6y))])
+            (send dc set-smoothing os))))
         
       (define/private (draw-non-self-connection dc dx dy from to
                                                 left top right bottom
@@ -453,24 +453,28 @@
                             (arrow-point-ok? (send point4 get-x) (send point4 get-y)))
                        ;; the arrowhead is not overlapping the snips, so draw it
                        ;; (this is only an approximate test, but probably good enough)
-                       (cond
-                         [arrow-heads?
-                          (let ([os (send dc get-smoothing)])
-                            (send dc set-smoothing 'aligned)
-                            (send dc draw-polygon points dx dy)
-                            (send dc set-smoothing os))]
-                         [else
-                          (send dc draw-line
-                                (+ dx from-x) (+ dy from-y) 
-                                (+ dx to-x) (+ dy to-y))])]
+                       (let ([os (send dc get-smoothing)])
+                         (send dc set-smoothing 'aligned)
+                         (cond
+                           [arrow-heads?
+                            (send dc draw-polygon points dx dy)]
+                           [else
+                            (send dc draw-line
+                                  (+ dx from-x) (+ dy from-y) 
+                                  (+ dx to-x) (+ dy to-y))])
+                         
+                         (send dc set-smoothing os))]
                       [else
                        ;; give up on the arrowhead and just draw a line
                        (cond
                          [arrow-heads? (void)]
                          [else 
-                          (send dc draw-line
-                                (+ dx from-x) (+ dy from-y) 
-                                (+ dx to-x) (+ dy to-y))])]))))))))
+                          (let ([os (send dc get-smoothing)])
+                            (send dc set-smoothing 'aligned)
+                            (send dc draw-line
+                                  (+ dx from-x) (+ dy from-y) 
+                                  (+ dx to-x) (+ dy to-y))
+                            (send dc set-smoothing os))])]))))))))
       
       
       (field 
