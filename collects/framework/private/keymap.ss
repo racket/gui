@@ -166,7 +166,13 @@
                     [(null? mods) null]
                     [(null? (cdr mods)) null]
                     [else (cons (car mods) (loop (cdr mods)))]))]
-	       [key (car (last-pair mods/key))]
+	       [key (apply string (car (last-pair mods/key)))]
+               [canon-key
+                (cond
+                  [(string=? key "enter") "return"]
+                  [(string=? key "del") "delete"]
+                  [(string=? key "ins") "insert"]
+                  [else key])]
 	       [shift (if neg? #f 'd/c)]
 	       [control (if neg? #f 'd/c)]
 	       [alt (if neg? #f 'd/c)]
@@ -191,6 +197,7 @@
 			  [(#\d) (set! command val)]
 			  [(#\m) (set! meta val)])))
 		    mods)
+          
 	  (join-strings ":"
 			(filter
 			 (lambda (x) x)
@@ -200,7 +207,7 @@
 			  (do-key #\d command)
 			  (do-key #\m meta)
 			  (do-key #\s shift)
-			  (apply string key))))))
+			  canon-key)))))
       
       ;; split-out : char (listof char) -> (listof (listof char))
       ;; splits a list of characters at its first argument
