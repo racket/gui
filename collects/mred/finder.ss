@@ -47,7 +47,7 @@
 	
 	(private
 	  [WIDTH 500]
-	  [HEIGHT 500]
+	  [HEIGHT 400]
 	  
 	  dirs current-dir
 	  last-selected
@@ -359,6 +359,8 @@
 	    [last-directory (set-directory last-directory)]
 	    [else (set-directory (current-directory))])
 	  
+	  (send ok-button user-min-width (send cancel-button get-width))
+
 	  (center wx:const-both)
 	  
 	  (show #t))))
