@@ -61,7 +61,9 @@
                   (string-constant edit-menu)
                   (move-to-back
                    (string-constant help-menu)
-                   items)))])
+                   (move-to-back
+                    (string-constant windows-menu)
+                    items))))])
           (for-each (lambda (item) (send item delete)) items)
           (for-each (lambda (item) (send item restore)) re-ordered)))
       
