@@ -241,7 +241,7 @@
 				      ([(lambda (exn) #t)
 					(lambda (exn)
 					  (wx:message-box
-					   (format "Error saving preferences~n~a"
+					   (format "Error reading preferences~n~a"
 						   (exn-message exn))
 					   "Error reading preferences")
 					  (k #f))])
