@@ -175,9 +175,8 @@
 	(with-handlers ([(lambda (x) #t)
 			 (lambda (exn)
 			   (message-box
-			    (format "Error saving preferences~n~a"
-				    (exn-message exn))
-			    "Error saving preferences"))])
+			    "Error saving preferences"
+			    (exn-message exn)))])
 	  (call-with-output-file preferences-filename
 	    (lambda (p)
 	      (mzlib:pretty-print:pretty-print

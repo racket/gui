@@ -196,7 +196,7 @@
 	   [(not snip)
 	    (set! get-next (lambda () eof))
 	    eof]
-	   [(<= end (unbox pos-box))
+	   [(not (<= (+ (unbox pos-box) (send snip get-count)) end))
 	    (set! get-next (lambda () eof))
 	    eof]
 	   [(is-a? snip sexp-snip<%>)

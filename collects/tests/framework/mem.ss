@@ -2,7 +2,6 @@
 (send-sexp-to-mred '(define mem-boxes null))
 
 (define mem-count 10)
-(define mem-cutoff 1)
 
 (define (test-allocate tag open close)
   (send-sexp-to-mred
@@ -31,18 +30,23 @@
          (lambda (boxl)
            (let* ([tag (first boxl)]
                   [boxes (second boxl)]
-                  [res
+                  [calc-results
                    (lambda ()
                      (foldl (lambda (b n) (if (weak-box-value b) (+ n 1) n))
                             0
                             boxes))])
-             (unless (<= (calc-results) ,mem-cutoff)
+             (when (> (calc-results) 0)
+               (collect-garbage)
+               (collect-garbage)
+               (collect-garbage)
+               (collect-garbage)
+               (collect-garbage)
                (collect-garbage))
              (let ([res (calc-results)])
-               (when (<= res ,mem-cutoff)
+               (when (> res 0)
                  (set! anything? #t)
                  (make-object message% (format "~a: ~a of ~a~n" tag res ,mem-count) f)))))
-         mem-boxes)
+         (reverse mem-boxes))
         (cond
           [anything? (make-object button% "Close" f (lambda x (send f show #f)))]
           [else (make-object button% "NOTHING!" f (lambda x (send f show #f)))])
@@ -62,6 +66,33 @@
                             (send f show #t)
                             f))
 	       '(lambda (f) (send f show #f)))
+
+
+(define (test-editor-allocate object-name)
+  (test-allocate (symbol->string object-name)
+		 `(lambda () (make-object ,object-name))
+		 '(lambda (e) (send e on-close))))
+
+(test-editor-allocate 'text:basic%)
+(test-editor-allocate 'text:keymap%)
+(test-editor-allocate 'text:autowrap%)
+(test-editor-allocate 'text:file%)
+(test-editor-allocate 'text:clever-file-format%)
+(test-editor-allocate 'text:backup-autosave%)
+(test-editor-allocate 'text:searching%)
+(test-editor-allocate 'text:info%)
+
+(test-editor-allocate 'pasteboard:basic%)
+(test-editor-allocate 'pasteboard:keymap%)
+(test-editor-allocate 'pasteboard:file%)
+(test-editor-allocate 'pasteboard:backup-autosave%)
+(test-editor-allocate 'pasteboard:info%)
+
+(test-editor-allocate 'scheme:text%)
+
+(test-allocate "text:return%"
+	       '(lambda () (make-object text:return% void))
+	       '(lambda (t) (void)))
 
 
 (test-frame-allocate "frame:basic%" 'frame:basic%)

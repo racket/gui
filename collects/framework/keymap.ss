@@ -24,6 +24,41 @@
 	    (lambda (edit event)
 	      (bell))]
 	   
+	   [up-out-of-editor-snip
+	    (lambda (text event)
+	      (let ([editor-admin (send text get-admin)])
+		(when (is-a? editor-admin editor-snip-editor-admin<%>)
+		  (let* ([snip (send editor-admin get-snip)]
+			 [snip-admin (send snip get-admin)])
+		    (when snip-admin
+		      (let ([editor (send snip-admin get-editor)])
+			(when (is-a? editor text%)
+			  (let ([new-pos (+ (send editor get-snip-position snip)
+					    (if (= 0 (send text get-end-position))
+						0
+						(send snip get-count)))])
+			    (send editor set-position new-pos new-pos))
+			  (send editor set-caret-owner #f 'display)))))))
+	      #t)]
+
+	   [down-into-editor-snip
+	    (lambda (dir get-pos)
+	      (lambda (text event)
+		(when (= (send text get-start-position)
+			 (send text get-end-position))
+		  (let* ([pos (send text get-start-position)]
+			 [snip (send text find-snip pos dir)])
+		    (when (and snip
+			       (is-a? snip editor-snip%))
+		      (let ([embedded-editor (send snip get-editor)])
+			(when (is-a? embedded-editor text%)
+			  (send embedded-editor set-position (get-pos embedded-editor)))
+			(send text set-caret-owner snip 'display)))))
+		#t))]
+
+	   [right-into-editor-snip (down-into-editor-snip 'after-or-none (lambda (x) 0))]
+	   [left-into-editor-snip (down-into-editor-snip 'before-or-none (lambda (x) (send x last-position)))]
+
 	   [toggle-anchor
 	    (lambda (edit event)
 	      (send edit set-anchor
@@ -554,6 +589,10 @@
 	  
 	  (add "flash-paren-match" flash-paren-match)
 	  
+	  (add "left-into-editor-snip" left-into-editor-snip)
+	  (add "right-into-editor-snip" right-into-editor-snip)
+	  (add "up-out-of-editor-snip" up-out-of-editor-snip)
+
 	  (add "toggle-anchor" toggle-anchor)
 	  (add "center-view-on-line" center-view-on-line)
 	  (add "collapse-space" collapse-space)
@@ -729,6 +768,10 @@
 	  
 	  (map "c:space" "toggle-anchor")
 	  
+	  (map-meta "c:left" "left-into-editor-snip")
+	  (map-meta "c:right" "right-into-editor-snip")
+	  (map-meta "c:up" "up-out-of-editor-snip")
+
 	  (map "insert" "toggle-overwrite")
 	  (map-meta "o" "toggle-overwrite")
 	  

@@ -23,15 +23,6 @@
 
   (define basic-mixin
     (mixin (editor<%>) (basic<%>) args
-
-;      (inherit copy-self-to)
-;     (override
-;      [copy-self
-;	(lambda ()
-;	  (let ([editor (make-object (object-interface this))])
-;	   (copy-self-to editor)
-;	    editor))])
-	   
       (inherit get-filename save-file
 	       refresh-delayed? 
 	       get-canvas
@@ -53,26 +44,34 @@
       (private
 	[edit-sequence-count 0])
       (override
-	[begin-edit-sequence
-	 (case-lambda
-	  [() (begin-edit-sequence #t)]
-	  [(undoable?)
-	   (set! edit-sequence-count (+ edit-sequence-count 1))
-	   (super-begin-edit-sequence undoable?)])]
-	[end-edit-sequence
-	 (lambda ()
-	   (set! edit-sequence-count (- edit-sequence-count 1))
-	   (when (< edit-sequence-count 0)
-	     (error 'end-edit-sequence "extra end-edit-sequence"))
-	   (super-end-edit-sequence))])
+       [begin-edit-sequence
+	(case-lambda
+	 [() (begin-edit-sequence #t)]
+	 [(undoable?)
+	  (set! edit-sequence-count (+ edit-sequence-count 1))
+	  (super-begin-edit-sequence undoable?)])]
+       [end-edit-sequence
+	(lambda ()
+	  (set! edit-sequence-count (- edit-sequence-count 1))
+	  (when (< edit-sequence-count 0)
+	    (error 'end-edit-sequence "extra end-edit-sequence"))
+	  (super-end-edit-sequence))])
 
       (public
 	[on-close void]
 	[get-top-level-window
 	 (lambda ()
-	   (let ([c (get-canvas)])
-	     (and c
-		  (send c get-top-level-window))))])
+	   (let loop ([text this])
+	     (let ([editor-admin (send text get-admin)])
+	       (cond
+		[(is-a? editor-admin editor-snip-editor-admin<%>)
+		 (let* ([snip (send editor-admin get-snip)]
+			[snip-admin (send snip get-admin)])
+		   (loop (send snip-admin get-editor)))]
+		[(send text get-canvas) => (lambda (canvas)
+					     (send canvas get-top-level-window))]
+		[else
+		 #f]))))])
 
       (public [editing-this-file? (lambda () #f)])
 
@@ -97,11 +96,24 @@
 		    "expected second argument to be a symbol, got: ~s~n"
 		    sym))
 	   (if (refresh-delayed?)
-	       (cond
-		 [(symbol? sym)
-		  (hash-table-put! edit-sequence-ht sym t)]
-		 [else (set! edit-sequence-queue
-			     (cons t edit-sequence-queue))])
+	       (if in-local-edit-sequence?
+		   (cond
+		    [(symbol? sym)
+		     (hash-table-put! edit-sequence-ht sym t)]
+		    [else (set! edit-sequence-queue
+				(cons t edit-sequence-queue))])
+		   (let ([snip-admin (get-admin)])
+		     (cond
+		      [(not snip-admin)
+		       (t)] ;; refresh-delayed? is always #t when there is no admin.
+		      [(is-a? snip-admin editor-snip-editor-admin<%>)
+		       (send (send (send (send snip-admin get-snip) get-admin) get-editor)
+			     run-after-edit-sequence t sym)]
+		      [else
+		       (message-box "run-after-edit-sequence error"
+				    (format "refresh-delayed? is #t but snip admin, ~s, is not an editor-snip-editor-admin<%>"
+					    snip-admin))
+		       '(t)])))
 	       (t))
 	   (void)])]
 	[extend-edit-sequence-queue
@@ -112,64 +124,62 @@
 				      k t)))
 	   (set! edit-sequence-queue (append l edit-sequence-queue)))])
       (rename
-	[super-after-edit-sequence after-edit-sequence]
-	[super-on-edit-sequence on-edit-sequence])
+       [super-after-edit-sequence after-edit-sequence]
+       [super-on-edit-sequence on-edit-sequence])
       (override
-	[on-edit-sequence
-	 (lambda ()
-	   (super-on-edit-sequence)
-	   (set! in-local-edit-sequence? #t))]
-	[after-edit-sequence
-	 (lambda ()
-	   (set! in-local-edit-sequence? #f)
-	   (super-after-edit-sequence)
-	   (let ([queue edit-sequence-queue]
-		 [ht edit-sequence-ht]
-		 [find-enclosing-edit
-		  (lambda (edit)
-		    (let ([admin (send edit get-admin)])
-		      (cond
-			[(is-a? admin editor-snip-editor-admin<%>)
-			 (send (send (send admin get-snip) get-admin) get-editor)]
-			;; assume that any non-media-snip 
-			;; administrator doesn't have embedded edits.
-			[else #f])))])
-	     (set! edit-sequence-queue null)
-	     (set! edit-sequence-ht (make-hash-table))
-	     (let loop ([edit (find-enclosing-edit this)])
-	       (cond
-		 [(and edit (not (send edit local-edit-sequence?)))
-		  (loop (find-enclosing-edit edit))]
-		 [edit (send edit extend-edit-sequence-queue queue ht)]
-		 [else
-		  (hash-table-for-each ht (lambda (k t) (t)))
-		  (for-each (lambda (t) (t)) queue)]))))])
- 
+       [on-edit-sequence
+	(lambda ()
+	  (super-on-edit-sequence)
+	  (set! in-local-edit-sequence? #t))]
+       [after-edit-sequence
+	(lambda ()
+	  (set! in-local-edit-sequence? #f)
+	  (super-after-edit-sequence)
+	  (let ([queue edit-sequence-queue]
+		[ht edit-sequence-ht]
+		[find-enclosing-edit
+		 (lambda (edit)
+		   (let ([admin (send edit get-admin)])
+		     (cond
+		      [(is-a? admin editor-snip-editor-admin<%>)
+		       (send (send (send admin get-snip) get-admin) get-editor)]
+		      [else #f])))])
+	    (set! edit-sequence-queue null)
+	    (set! edit-sequence-ht (make-hash-table))
+	    (let loop ([edit (find-enclosing-edit this)])
+	      (cond
+	       [(and edit (not (send edit local-edit-sequence?)))
+		(loop (find-enclosing-edit edit))]
+	       [edit (send edit extend-edit-sequence-queue queue ht)]
+	       [else
+		(hash-table-for-each ht (lambda (k t) (t)))
+		(for-each (lambda (t) (t)) queue)]))))])
+      
       (rename [super-lock lock])
       (private
 	[is-locked? #f])
       (public
 	[locked? (lambda () is-locked?)])
       (override
-	[lock
-	 (lambda (x)
-	   (set! is-locked? x)
-	   (super-lock x))]
-	[on-new-box
-	 (lambda (type)
-	   (cond
-	     [(eq? type 'text) (make-object editor-snip% (make-object text:basic%))]
-	     [else (make-object editor-snip% (make-object pasteboard:basic%))]))])
+       [lock
+	(lambda (x)
+	  (set! is-locked? x)
+	  (super-lock x))]
+       [on-new-box
+	(lambda (type)
+	  (cond
+	   [(eq? type 'text) (make-object editor-snip% (make-object text:basic%))]
+	   [else (make-object editor-snip% (make-object pasteboard:basic%))]))])
 
 
       (override
-	[get-file (lambda (d) 
-		    (parameterize ([finder:dialog-parent-parameter
-				    (get-top-level-window)])
-		      (finder:get-file d)))]
-	[put-file (lambda (d f) (parameterize ([finder:dialog-parent-parameter
-						(get-top-level-window)])
-				  (finder:put-file f d)))])
+       [get-file (lambda (d) 
+		   (parameterize ([finder:dialog-parent-parameter
+				   (get-top-level-window)])
+		     (finder:get-file d)))]
+       [put-file (lambda (d f) (parameterize ([finder:dialog-parent-parameter
+					       (get-top-level-window)])
+				 (finder:put-file f d)))])
       
       
       (sequence
