@@ -297,7 +297,14 @@ file are returned as a vector of
 strings to the continuation of the `write-image-to-file' call that created
 the image.
 .PP
-Expressions/files are evaluated/loaded in order as provided.
+Expressions/files are evaluated/loaded in order as provided, including
+calls to
+.B main
+implied by
+.BR --main ,
+embedded segments loaded by
+.BR -k ,
+and so on.
 .PP
 The current-library-collections-paths parameter is automatically set before any
 expressions/files are evaluated/loaded, unless the
