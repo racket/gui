@@ -64,7 +64,6 @@
    delay-action
    local-busy-cursor
    unsaved-warning
-   sexp-snip<%>
    read-snips/chars-from-text
    get-choice
    open-input-buffer))

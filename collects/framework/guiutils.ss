@@ -177,10 +177,6 @@
 	(send dialog show #t)
 	result)]))
 
-  (define sexp-snip<%> (interface ((class->interface snip%))
-			 get-chars/snips ; : (-> (list-of (union char (instance-of text%) (instance-of snip%))))
-			 ))
-			  
   ;; better to treat all snips uniformly -- always processes text
   ;; snips, etc. in certain way, rather than just the top-level ones.
   ;; process sexp-snip<%> returned text%s as if top-level.
@@ -199,19 +195,6 @@
 	   [(not (<= (+ (unbox pos-box) (send snip get-count)) end))
 	    (set! get-next (lambda () eof))
 	    eof]
-	   [(is-a? snip sexp-snip<%>)
-	    (let sexp-loop ([l (send snip get-chars/snips)])
-	      (cond
-	       [(null? l)
-		(loop (send snip next))]
-	       [else
-		(let ([snip (car l)])
-		  (cond
-		   [(is-a? snip sexp-snip<%>)
-		    (sexp-loop (append (send snip get-chars/snips) (cdr l)))]
-		   [else
-		    (set! get-next (lambda () (sexp-loop (cdr l))))
-		    (car l)]))]))]
 	   [(is-a? snip string-snip%)
 	    (let ([str (send snip get-text 0 (send snip get-count))])
 	      (let string-loop ([n 0])
