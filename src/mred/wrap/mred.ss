@@ -39,11 +39,6 @@
 (define monitor-owner #f)
 
 ;; An exception may be constructed while we're entered:
-(define entered-debug-handler
-  (lambda ()
-    (as-exit
-     (lambda ()
-       ((debug-info-handler))))))
 (define entered-err-string-handler
   (lambda (s n)
     (as-exit
@@ -51,18 +46,14 @@
        ((error-value->string-handler) s n)))))
 
 (define old-handler #f)
-(define old-debug-handler #f)
 (define old-err-string-handler #f)
 
 (define (enter-paramz)
   (set! old-handler (current-exception-handler))
-  (set! old-debug-handler (debug-info-handler))
   (set! old-err-string-handler (error-value->string-handler))
-  (debug-info-handler entered-debug-handler)
   (error-value->string-handler entered-err-string-handler))
 (define (exit-paramz)
   (current-exception-handler old-handler)
-  (debug-info-handler old-debug-handler)
   (error-value->string-handler old-err-string-handler))
 
 (define (as-entry f)
@@ -4180,8 +4171,7 @@
      (lambda ()
        (current-output-port user-output-port)
        (current-error-port user-output-port)
-       (current-input-port (make-input-port (lambda () eof) void void))
-       (current-will-executor (make-will-executor)))))
+       (current-input-port (make-input-port (lambda () eof) void void)))))
 
   (send repl-display-canvas set-editor repl-buffer)
   (send frame show #t)
