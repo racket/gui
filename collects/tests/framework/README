@@ -9,7 +9,15 @@ All of these tests reside in PLTHOME/tests/framework/
 
 There will be a main mzscheme process which will start up a new mred
 as necessary for the test suites. Since some tests actually require
-mred to exit in order to pass, this governor is required.
+mred to exit in order to pass, this governor is required. 
+
+To run a test use:
+
+   framework-test <test.ss> ...
+
+where or <test.ss> is the name of one of the tests
+below. Alternatively, pass no command-line arguments to run all of the
+tests.
 
 - exit: |# exit.ss #|
 

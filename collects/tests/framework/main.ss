@@ -27,6 +27,8 @@
     (lambda (port)
       (write 6012 port))))
 
+(define-struct eof-result ())
+
 (define-values (shutdown-listener shutdown-mred mred-running? send-sexp-to-mred)
   (let ([listener
 	 (let loop ()
@@ -69,9 +71,14 @@
 	   (set! in-port #f)
 	   (set! in-port #f)))
        (lambda ()
-	 (not (eof-object? (peek-char in-port))))
+	 (if (char-ready? in-port)
+	     (not (eof-object? (peek-char in-port)))
+	     #t))
        (lambda (sexp)
-	 (unless (and in-port out-port)
+	 (unless (and in-port
+		      out-port
+		      (or (not (char-ready? in-port))
+			  (not (eof-object? (peek-char in-port)))))
 	   (restart-mred))
 	 (write sexp out-port)
 	 (newline out-port)
@@ -89,13 +96,17 @@
 								 (loop))
 							   null))))))])
 		  (read in-port))])
-	   (unless (and (list? answer)
-			(= 2 (length answer)))
-	     (error 'framework-test-suite "unpected result from mred: ~s~n" answer))
-	   (case (car answer)
-	     [(error) (error 'mred (format "~a; input: ~s" (second answer) sexp))]
-	     [(cant-read) (error 'mred/cant-parse (second answer))]
-	     [(normal) (second answer)])))))))
+	   (unless (or (eof-object? answer)
+		       (and (list? answer)
+			    (= 2 (length answer))))
+	     (error 'send-sexp-to-mred "unpected result from mred: ~s~n" answer))
+	   (if (eof-object? answer)
+	       (raise (make-eof-result))
+	       (case (car answer)
+		 [(error)
+		  (error 'send-sexp-to-mred (format "mred raised \"~a\" with input: ~s" (second answer) sexp))]
+		 [(cant-read) (error 'mred/cant-parse (second answer))]
+		 [(normal) (second answer)]))))))))
 
 (define section-jump void)
 
@@ -107,13 +118,32 @@
 			      (if (exn? x)
 				  (exn-message x)
 				  x))])
-	     (failed? (eval (send-sexp-to-mred test))))])
+	     (failed?
+	      (if (procedure? test)
+		  (test)
+		  (eval (send-sexp-to-mred test)))))])
       (when failed
 	(printf "FAILED ~a: ~a~n" test-name failed)
 	(case jump
 	  [(section) (section-jump)]
 	  [(continue) (void)]
 	  [else (jump)])))))
+
+(define preferences-file (build-path (find-system-path 'pref-dir)
+				     (case (system-type)
+				       [(macos) "MrEd Preferences"]
+				       [(windows) "mred.pre"]
+				       [(unix) ".mred.prefs"])))
+(define old-preferences-file (let-values ([(base name _2) (split-path preferences-file)])
+			       (build-path base (string-append name ".save"))))
+					 
+
+(when (file-exists? preferences-file)
+  (printf "saving preferences file ~s to ~s~n" preferences-file old-preferences-file)
+  (when (file-exists? old-preferences-file)
+    (error 'framework-test "backup preferences file exists, aborting"))
+  (printf "saved preferences file~n")
+  (copy-file preferences-file old-preferences-file))
 
 (let ([all-files (map symbol->string (load-relative "README"))])
   (for-each (lambda (x)
@@ -130,5 +160,13 @@
 	    (if (equal? (vector) argv)
 		all-files
 		(vector->list argv))))
+(printf "restoring preferences file ~s to ~s~n" old-preferences-file preferences-file)
+(when (file-exists? preferences-file)
+  (unless (file-exists? old-preferences-file)
+    (error 'framework-test "lost preferences file backup!"))
+  (delete-file preferences-file)
+  (copy-file old-preferences-file preferences-file)
+  (delete-file old-preferences-file))
+(printf "restored preferences file~n")
 
 (shutdown-listener)

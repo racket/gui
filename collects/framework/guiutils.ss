@@ -107,42 +107,33 @@
   
   (define get-choice
     (opt-lambda (message true-choice false-choice [title "Warning"])
-      (let* ([result (void)]
-	     [choice-dialog%
-	      (class dialog% ()
-		(inherit show center)
-		(private
-		  [on-true
-		   (lambda args
-		     (set! result #t)
-		     (show #f))]
-		  [on-false
-		   (lambda rags
-		     (set! result #f)
-		     (show #f))])
-		(sequence
-		  (super-init () title #t -1 -1)
-		  (let* ([messages
-			  (let loop ([m message])
-			    (let ([match (regexp-match (format "([^~n]*)~n(.*)")
-						       m)])
-			      (if match
-				  (cons (cadr match)
-					(loop (caddr match)))
-				  (list m))))]
-			 [msgs (map
-				(lambda (message)
-				  (begin0
-				   (make-object message% this message)))
-				messages)])
-		    
-		    (send (make-object button% true-choice this on-true) focus)
-		    (make-object button% false-choice this on-false)
-		    
-		  (center 'both)
-		  
-		  (show #t))))])
-	(make-object choice-dialog%)
+      (letrec ([result (void)]
+	       [dialog (make-object dialog% title)]
+	       [on-true
+		(lambda args
+		  (set! result #t)
+		  (send dialog show #f))]
+	       [on-false
+		(lambda rags
+		  (set! result #f)
+		  (send dialog show #f))]
+	       [vp (make-object vertical-panel% dialog)]
+	       [hp (make-object horizontal-panel% dialog)])
+
+	(let loop ([m message])
+	  (let ([match (regexp-match (format "^([^~n]*)~n(.*)")
+				     m)])
+	    (if match
+		(begin (make-object message% (cadr match) vp)
+		       (loop (caddr match)))
+		(make-object message% m vp))))
+
+	(send vp set-alignment 'left 'center)
+	(send hp set-alignment 'right 'top)
+	(send (make-object button% true-choice hp on-true) focus)
+	(make-object button% false-choice hp on-false)
+	(send dialog center 'both)
+	(send dialog show #t)
 	result)))
 
   (define read-snips/chars-from-buffer

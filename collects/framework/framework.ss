@@ -2,7 +2,7 @@
 (compile-allow-cond-fallthrough #t)
 (compile-allow-set!-undefined #t)
 (require-library "mred-interfaces.ss" "framework")
-(require-library "framework.ss" "framework")
+(require-library "frameworks.ss" "framework")
 (invoke-open-unit/sig
  (compound-unit/sig
    (import)
