@@ -153,7 +153,7 @@
 	  (mred:debug:printf 'prefs "saving user preferences")
 	  (call-with-output-file preferences-filename
 	    (lambda (p)
-	      (write (hash-table-map preferences marshall-pref) p))
+	      (pretty-print (hash-table-map preferences marshall-pref) p))
 	      'replace)	  
 	  (mred:debug:printf 'prefs "saved user preferences"))))
     
@@ -208,13 +208,18 @@
 		    (let*  ([callback
 			     (lambda (_ command)
 			       (set-preference pref (bool->pref (send command checked?))))]
-			    [initial-value (pref->bool (get-preference pref))]
+			    [pref-value (get-preference pref)]
+			    [initial-value (pref->bool pref-value)]
 			    [h (make-object mred:horizontal-panel% main)]
 			    [c (make-object mred:check-box% h callback title)]
 			    [p (make-object mred:horizontal-panel% h)])
 		      (send* h (spacing 1) (border 1))
 		      (send* p (spacing 1) (border 1))
-		      (send c set-value initial-value)))]
+		      (printf "~a: ~a ~a~n" title pref-value initial-value)
+		      (send c set-value initial-value)
+		      (add-preference-callback pref
+					       (lambda (p v)
+						 (send c set-value (pref->bool v))))))]
 		 [id (lambda (x) x)])
 	    (send main spacing 1)
 	    (make-check 'mred:highlight-parens "Highlight between matching parens?" id id)
@@ -291,8 +296,8 @@
 		  [_1 (make-object mred:panel% bottom-panel)]
 		  [ok-button (make-object mred:button% bottom-panel ok-callback "OK")]
 		  [cancel-callback (lambda args
-				     (read-user-preferences)
-				     (hide-preferences-dialog))]
+				     (hide-preferences-dialog)
+				     (read-user-preferences))]
 		  [cancel-button (make-object mred:button% bottom-panel cancel-callback "Cancel")])
 	  (send ok-button user-min-width (send cancel-button get-width))
 	  (send bottom-panel stretchable-in-y #f)
