@@ -1,4 +1,7 @@
 Version 52: ??, 1998
+
+Engine:
+-------
 on-set-focus and on-kill-focus work reliably; not all windows 
  can get the focus, but those that do call the on-set-focus and
  on-kill-focus methods
@@ -9,6 +12,10 @@ wx:begin-busy-cursor no longer takes a cursor argument, but it
 set-cursor in wx:window% now accepts and returns null, indicating
  that the window's cursor is the same as its parents; most
  windows start out with the null cursor
+
+System:
+-------
+
 
 Version 51: March 25, 1998
 
