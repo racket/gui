@@ -1749,7 +1749,7 @@
 		 [label "No-Clear Canvas Test"]
 		 [height 250]
 		 [width 300]
-		 [style '(metal)]))
+		 [style (if use-metal? '(metal) null)]))
   (define p (make-object vertical-panel% f))
   (define c% (class canvas%
                (inherit get-dc refresh)
@@ -1777,6 +1777,28 @@
   (new c% [parent p][style '(no-autoclear border)])
   (send f show #t)
   f)
+
+(define (editor-frame canvas-style canvas-bg)
+  (define f (new frame% 
+		 [label "No-Clear Canvas Test"]
+		 [height 250]
+		 [width 300]
+		 [style (if use-metal? '(metal) null)]))
+  (define c (new editor-canvas%
+		 [parent f]
+		 [style canvas-style]))
+  (define mb (make-object menu-bar% f))
+  (define edit-menu (make-object menu% "Edit" mb))
+  (define font-menu (make-object menu% "Font" mb))
+
+  (when canvas-bg
+    (send c set-canvas-background (make-object color% canvas-bg)))
+  (send c set-editor (new text%))
+
+  (append-editor-operation-menu-items edit-menu #f)
+  (append-editor-font-menu-items font-menu)
+
+  (send f show #t))
 
 (define (editor-canvas-oneline-frame)
   (define f (make-frame frame% "x" #f 200 #f))
@@ -2077,6 +2099,19 @@
 (make-object button%
 	     "Make No-Clear Canvas" cnp 
 	     (lambda (b e) (no-clear-canvas-frame)))
+
+(define edp (new horizontal-pane% 
+		 [parent ap]
+		 [alignment '(center center)]))
+(make-object button%
+	     "Make Editor" edp 
+	     (lambda (b e) (editor-frame null #f)))
+(make-object button%
+	     "Make Transparent Editor" edp 
+	     (lambda (b e) (editor-frame '(transparent) #f)))
+(make-object button%
+	     "Make Blue Editor" edp 
+	     (lambda (b e) (editor-frame null "blue")))
 
 (define (choose-next radios)
   (let loop ([l radios])
