@@ -2,7 +2,7 @@
 
 needed to really make this work:
 
-  - marshallable syntax objects
+  - marshallable syntax objects (compile and write out the compiled form)
   - support for generic ports that are editors
 
 |#
@@ -19,7 +19,7 @@ needed to really make this work:
   
   (define (render-syntax/window syntax)
     (let ([es (render-syntax/snip syntax)])
-      (define f (make-object frame% "frame" #f 400 400))
+      (define f (make-object frame% "frame" #f 850 500))
       (define mb (make-object menu-bar% f))
       (define edit-menu (make-object menu% "Edit" mb))
       (define t (make-object text%))
@@ -72,7 +72,6 @@ needed to really make this work:
 
       ;; range-ht : hash-table[obj -o> (listof (cons number number))]
       (define range-ht (make-hash-table))
-      (define original-output-port (current-output-port))
       (define (range-pretty-print-pre-hook x v)
         (hash-table-put! range-start-ht x (send output-text last-position)))
       (define (range-pretty-print-post-hook x port)
@@ -109,7 +108,7 @@ needed to really make this work:
                     (lambda (v) (make-range k (car v) (cdr v)))
                     vs))))
          (lambda (x y)
-           (<= (- (range-end x) (range-start x))
+           (>= (- (range-end x) (range-start x))
                (- (range-end y) (range-start y))))))
       
       (define (show-info stx)
@@ -431,15 +430,14 @@ needed to really make this work:
          (send down-click-bitmap get-width)))
   (define arrow-snip-cursor (make-object cursor% 'arrow))
   
-  ;; syntax-object->datum/hte : stx -> (values any hash-table)
+  ;; syntax-object->datum/ht : stx -> (values any hash-table[any -o> syntax])
   ;; the resulting hash-table maps from the each sub-object's to it's syntax.
   (define (syntax-object->datum/ht stx)
     (let ([ht (make-hash-table)])
       (values (let loop ([obj stx])
                 (cond
                   [(syntax? obj)
-                   (let* ([datum (syntax-e obj)]
-                          [lp-datum (loop datum)])
+                   (let ([lp-datum (loop (syntax-e obj))])
                      (hash-table-put! ht lp-datum obj)
                      lp-datum)]
                   [(pair? obj) 
