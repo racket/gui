@@ -47,7 +47,7 @@
 	(send-sexp-to-mred '(preferences:show-dialog))
 	(wait-for-frame "Preferences")
 	(send-sexp-to-mred '(begin (preferences:hide-dialog)
-				   (let ([f (get-top-level-focus-frame)])
+				   (let ([f (get-top-level-focus-window)])
 				     (if f
 					 (if (string=? "Preferences" (send f get-label))
 					     'failed

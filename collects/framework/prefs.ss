@@ -350,7 +350,7 @@
 				  (lambda (p v)
 				    (send c set-value (pref->bool v))))))]
 	       [id (lambda (x) x)])
-	  (send main set-alignment 'right 'center)
+	  (send main set-alignment 'left 'center)
 	  (make-check 'framework:highlight-parens "Highlight between matching parens" id id)
 	  (make-check 'framework:fixup-parens "Correct parens" id id)
 	  (make-check 'framework:paren-match "Flash paren match" id id)
@@ -558,7 +558,7 @@
 	       [popup-callback
 		(lambda (choice command-event)
 		  (send single-panel active-child
-			(ppanel-panel (list-ref ppanels (send command-event get-command-int)))))]
+			(ppanel-panel (list-ref ppanels (send choice get-selection)))))]
 	       [make-popup-menu 
 		(lambda ()
 		  (let ([menu (make-object choice% "Category"
