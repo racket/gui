@@ -1718,23 +1718,28 @@
   (send f show #t))
 
 (define (no-clear-canvas-frame)
-  (define f (make-frame frame% "No-Clear Canvas Test" #f #f 250))
+  (define f (new frame% 
+		 [label "No-Clear Canvas Test"]
+		 [height 250]
+		 [width 300]))
   (define p (make-object vertical-panel% f))
   (define c% (class canvas%
                (inherit get-dc refresh)
+	       (define delta 0)
 	       (define/override (on-paint)
 		 (let ([red (send the-brush-list find-or-create-brush "RED" 'solid)]
 		       [blue (send the-brush-list find-or-create-brush "BLUE" 'solid)]
 		       [dc (get-dc)])
 		   (let loop ([x 0])
-		     (unless (= x 300)
+		     (unless (= x 500)
 		       (send dc set-brush red)
-		       (send dc draw-rectangle x 0 25 400)
+		       (send dc draw-rectangle (- x delta) 0 25 400)
 		       (send dc set-brush blue)
-		       (send dc draw-rectangle (+ x 25) 0 25 400)
+		       (send dc draw-rectangle (- (+ x 25) delta) 0 25 400)
 		       (loop (+ x 50))))))
 	       (define/override (on-event evt)
 		 (when (send evt dragging?)
+		   (set! delta (modulo (add1 delta) 100))
 		   (refresh)))
 	       (super-new)))
   (new c% [parent p][style '(border)])
