@@ -243,16 +243,11 @@
   ;; on the real event queue.
   ;;
   
-  (define timer-callback%
-    (class timer% 
-      (init-field thunk)
-      (define/override (notify) (thunk))
-      (super-instantiate ())))
-  
   (define install-timer
     (lambda (msec thunk)
-      (let ([timer  (make-object timer-callback% thunk)])
-	(send timer start msec #t))))
+      (let ([timer (instantiate timer% ()
+                     [notify-callback (lambda () (thunk))])])
+        (send timer start msec #t))))
   
   ;;
   ;; Simple accounting of actions and errors.
@@ -339,7 +334,7 @@
   ;; Note: never more than one timer (of ours) on real event queue.
   ;; 
   
-  (define run-one
+  '(define run-one
     (let ([yield-semaphore (make-semaphore 0)]
 	  [thread-semaphore (make-semaphore 0)])
       (thread
@@ -350,35 +345,60 @@
 	      (semaphore-post yield-semaphore)
 	      (loop))))
       (lambda (thunk)
-	(let ([sem  (make-semaphore 0)])
-	  (letrec
-	      ([start
-		(lambda ()
-
-		  ;; guarantee (probably) that some events are handled
-		  (semaphore-post thread-semaphore) 
-		  (yield yield-semaphore)
-
-		  (install-timer (run-interval) return)
-		  (unless (is-exn?)
-		    (begin-action)
-		    (pass-errors-out thunk)
-		    (end-action)))]
-	       
-	       [pass-errors-out
-		(lambda (thunk)
-		  (parameterize ([current-exception-handler
-				  (lambda (exn)
-				    (end-action-with-error exn)
-				    ((error-escape-handler)))])
-		    (thunk)))]
-	       
-	       [return (lambda () (semaphore-post sem))])
+	(let ([sem (make-semaphore 0)])
+	  (letrec ([start
+                    (lambda () ;; eventspace main thread
+                      
+                      ;; guarantee (probably) that some events are handled
+                      (semaphore-post thread-semaphore) 
+                      (yield yield-semaphore)
+                      
+                      (install-timer (run-interval) return)
+                      (unless (is-exn?)
+                        (begin-action)
+                        (parameterize ([current-exception-handler
+                                        (lambda (exn)
+                                          (end-action-with-error exn)
+                                          ((error-escape-handler)))])
+                          (thunk))
+                        (end-action)))]
+                   
+                   [return (lambda () (semaphore-post sem))])
 	    
 	    (install-timer 0 start)
 	    (semaphore-wait sem)
 	    (reraise-error))))))
-
+  
+  (define run-one
+    (let ([yield-semaphore (make-semaphore 0)]
+	  [thread-semaphore (make-semaphore 0)])
+      (thread
+       (rec loop
+         (lambda ()
+           (semaphore-wait thread-semaphore)
+           (sleep)
+           (semaphore-post yield-semaphore)
+           (loop))))
+      (lambda (thunk)
+        (let ([done (make-semaphore 0)])
+          (queue-callback
+           (lambda ()
+             
+             ;; guarantee (probably) that some events are handled
+             (semaphore-post thread-semaphore) 
+             (yield yield-semaphore)
+                      
+             (queue-callback (lambda () (semaphore-post done)))
+             (unless (is-exn?)
+               (begin-action)
+               (parameterize ([current-exception-handler
+                               (lambda (exn)
+                                 (end-action-with-error exn)
+                                 ((error-escape-handler)))])
+                 (thunk))
+               (end-action))))
+          (semaphore-wait done)))))
+  
   (define current-get-eventspaces
     (make-parameter (lambda () (list (current-eventspace)))))
 

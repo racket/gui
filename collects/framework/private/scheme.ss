@@ -266,6 +266,7 @@
           tabify-selection
           tabify-all
           insert-return
+          box-comment-out-selection
           comment-out-selection
           uncomment-selection
           get-forward-sexp
@@ -576,7 +577,8 @@
                 (set! in-highlight-parens? #f))))
           
           (public get-limit balance-quotes balance-parens tabify-on-return? tabify tabify-selection
-                  tabify-all insert-return calc-last-para comment-out-selection uncomment-selection
+                  tabify-all insert-return calc-last-para 
+                  box-comment-out-selection comment-out-selection uncomment-selection
                   get-forward-sexp remove-sexp forward-sexp flash-forward-sexp get-backward-sexp
                   flash-backward-sexp backward-sexp find-up-sexp up-sexp find-down-sexp down-sexp
                   remove-parens-forward)
@@ -834,7 +836,28 @@
                                last-para)))
                   last-para)))
           
-          (define comment-out-selection
+          (define comment-out-selection 
+            (opt-lambda ([start-pos (get-start-position)] 
+                         [end-pos (get-end-position)]) 
+              (begin-edit-sequence) 
+              (let ([first-pos-is-first-para-pos? 
+                     (= (paragraph-start-position (position-paragraph start-pos)) 
+                        start-pos)]) 
+                (let* ([first-para (position-paragraph start-pos)] 
+                       [last-para (calc-last-para end-pos)]) 
+                  (let para-loop ([curr-para first-para]) 
+                    (if (<= curr-para last-para) 
+                        (let ([first-on-para (paragraph-start-position curr-para)]) 
+                          (insert #\; first-on-para) 
+                          (para-loop (add1 curr-para)))))) 
+                (when first-pos-is-first-para-pos? 
+                  (set-position 
+                   (paragraph-start-position (position-paragraph (get-start-position))) 
+                   (get-end-position)))) 
+              (end-edit-sequence) 
+              #t)) 
+          
+          (define box-comment-out-selection
             (opt-lambda ([start-pos (get-start-position)]
                          [end-pos (get-end-position)])
               (begin-edit-sequence)
@@ -1184,6 +1207,8 @@
                                (lambda (x) (send x insert-return)))
             (add-edit-function "comment-out"  
                                (lambda (x) (send x comment-out-selection)))
+            (add-edit-function "box-comment-out"  
+                               (lambda (x) (send x box-comment-out-selection)))
             (add-edit-function "uncomment"  
                                (lambda (x) (send x uncomment-selection))))
           
