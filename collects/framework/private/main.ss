@@ -154,7 +154,7 @@
 	(for-each (λ (x) 
 		    (hash-table-put! hash-table x 'begin))
 		  '(case-lambda
-                     match-lambda match-lambda* λ
+                     match-lambda match-lambda*
                      cond
                      delay
                      unit compound-unit compound-unit/sig
@@ -168,7 +168,7 @@
                      syntax/loc quasisyntax/loc
                      
                      
-                     lambda let let* letrec recur
+                     λ lambda let let* letrec recur
                      letrec-values
                      with-syntax
 		     with-continuation-mark

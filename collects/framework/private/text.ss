@@ -36,11 +36,6 @@ WARNING: printf is rebound in the body of the unit to always
       (define (printf . args) 
         (apply fprintf original-output-port args)
         (void))
-      (define-syntax (dprintf stx)
-        (syntax-case stx ()
-          [(_ . args) 
-           #;(syntax (printf . args))
-           (syntax (void))]))
       
       (define-struct range (start end b/w-bitmap color caret-space?))
       (define-struct rectangle (left top right bottom b/w-bitmap color))
@@ -1250,28 +1245,22 @@ WARNING: printf is rebound in the body of the unit to always
                         (handle-evt
                          (alarm-evt (+ last-flush msec-timeout))
                          (λ (_)
-                           (dprintf "o: alarm.1 ~s\n" (queue->list text-to-insert))
                            (let-values ([(viable-bytes remaining-queue) (split-queue converter text-to-insert)])
-                             (dprintf "o: alarm.2 ~s\n" viable-bytes)
                              (queue-insertion viable-bytes always-evt)
                              (loop remaining-queue (current-inexact-milliseconds))))))
                     (handle-evt
                      flush-chan
                      (λ (return-evt)
-                       (dprintf "o: flush.1 ~s\n" (queue->list text-to-insert))
                        (let-values ([(viable-bytes remaining-queue) (split-queue converter text-to-insert)])
-                         (dprintf  "o: flush.2 ~s\n" viable-bytes)
                          (queue-insertion viable-bytes return-evt)
                          (loop remaining-queue (current-inexact-milliseconds)))))
                     (handle-evt
                      clear-output-chan
                      (λ (_)
-                       (dprintf  "o: clear-output\n")
                        (loop (empty-queue) (current-inexact-milliseconds))))
                     (handle-evt
                      write-chan
                      (λ (pr)
-                       (dprintf "o: write ~s\n" pr)
                        (let ([new-text-to-insert (enqueue pr text-to-insert)])
                          (cond
                            [((queue-size text-to-insert) . < . output-buffer-full)
@@ -1572,7 +1561,6 @@ WARNING: printf is rebound in the body of the unit to always
                   (handle-evt
                    position-chan
                    (λ (pr)
-                     (dprintf "i: position-chan\n")
                      (let ([nack-chan (car pr)]
                            [resp-chan (cdr pr)])
                        (set! positioners (cons pr positioners))
@@ -1583,7 +1571,6 @@ WARNING: printf is rebound in the body of the unit to always
                   (handle-evt
                    read-chan
                    (λ (ent)
-                     (dprintf "i: read-chan\n")
                      (set! data (enqueue ent data))
                      (unless position
                        (set! position (cdr ent)))
@@ -1591,7 +1578,6 @@ WARNING: printf is rebound in the body of the unit to always
                   (handle-evt
                    clear-input-chan
                    (λ (_)
-                     (dprintf "i: clear-input-chan\n")
                      (semaphore-post peeker-sema)
                      (set! peeker-sema (make-semaphore 0))
                      (set! peeker-evt (semaphore-peek-evt peeker-sema))
@@ -1601,7 +1587,6 @@ WARNING: printf is rebound in the body of the unit to always
                   (handle-evt
                    progress-event-chan
                    (λ (return-pr)
-                     (dprintf "i: progress-event-chan\n")
                      (let ([return-chan (car return-pr)]
                            [return-nack (cdr return-pr)])
                        (set! response-evts
@@ -1613,13 +1598,11 @@ WARNING: printf is rebound in the body of the unit to always
                   (handle-evt
                    peek-chan
                    (λ (peeker)
-                     (dprintf "i: peek-chan\n")
                      (set! peekers (cons peeker peekers))
                      (loop)))
                   (handle-evt
                    commit-chan
                    (λ (committer)
-                     (dprintf "i:commit-chan\n")
                      (set! committers (cons committer committers))
                      (loop)))
                   (apply 
@@ -1637,13 +1620,11 @@ WARNING: printf is rebound in the body of the unit to always
                           (handle-evt 
                            commit-peeker-evt
                            (λ (_)
-                             (dprintf "i: commit-peeker-evt\n")
                              ;; this committer will be thrown out in next iteration
                              (loop)))
                           (handle-evt
                            done-evt
                            (λ (v)
-                             (dprintf "i: done-evt\n")
                              (let ([nth-pos (cdr (peek-n data (- kr 1)))])
                                (set! position
                                      (list (car nth-pos)
@@ -1667,7 +1648,6 @@ WARNING: printf is rebound in the body of the unit to always
                                 (handle-evt
                                  resp-evt
                                  (λ (_)
-                                   (dprintf "i: resp-evt\n")
                                    (set! response-evts (remq resp-evt response-evts))
                                    (loop))))
                               response-evts)))))
@@ -1680,7 +1660,7 @@ WARNING: printf is rebound in the body of the unit to always
                   (choice-evt nack-evt 
                               (channel-put-evt resp-evt position))
                   (let ([sent-position position])
-                    (λ (_) 
+                    (λ (_)
                       (set! positioners (remq pr positioners))
                       (loop))))))
              
@@ -1763,20 +1743,26 @@ WARNING: printf is rebound in the body of the unit to always
         ;;  in any thread (even concurrently)
         ;;
         (define (read-bytes-proc bstr)
+          ;(when on-peek (printf "read-bytes-proc\n"))
           (let* ([progress-evt (progress-evt-proc)]
                  [v (peek-proc bstr 0 progress-evt)])
             (cond
-              [(sync/timeout 0 progress-evt) 0]
-              [else (wrap-evt 
-                     v 
-                     (λ (v) 
-                       (if (and (number? v) (zero? v))
-                           0
-                           (if (commit-proc (if (number? v) v 1)
-                                            progress-evt
-                                            always-evt)
-                               v
-                               0))))])))
+              [(sync/timeout 0 progress-evt)
+               ;(when on-peek (printf "read-bytes-proc.1\n"))
+               0]
+              [else 
+               ;(when on-peek (printf "read-bytes-proc.2\n"))
+               (wrap-evt 
+                v 
+                (λ (v) 
+                  ;(when on-peek (printf "read-bytes.3 v ~s\n" v))
+                  (if (and (number? v) (zero? v))
+                      0
+                      (if (commit-proc (if (number? v) v 1)
+                                       progress-evt
+                                       always-evt)
+                          v
+                          0))))])))
         
         (define (peek-proc bstr skip-count progress-evt)
           (nack-guard-evt
@@ -1812,17 +1798,15 @@ WARNING: printf is rebound in the body of the unit to always
                (λ (fail)
                  (channel-put position-chan (cons fail chan))
                  chan))))))
-        
-        (values 
-         (make-input-port source
-                          read-bytes-proc
-                          peek-proc
-                          close-proc
-                          progress-evt-proc
-                          commit-proc
-                          position-proc)
-         read-chan
-         clear-input-chan))
+        (let ([p (make-input-port source
+                                  read-bytes-proc
+                                  peek-proc
+                                  close-proc
+                                  progress-evt-proc
+                                  commit-proc
+                                  position-proc)])
+          (port-count-lines! p)
+          (values p read-chan clear-input-chan)))
       
 
       ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
