@@ -505,24 +505,26 @@
 			      (let ([x 5] [y 165])
 				(let ([mred-icon (get-icon)])
 				  (case mask-ex-mode
-				   [(plt plt-mask)
-				    (let* ([plt (get-plt)]
-					   [tmp-bm (make-object bitmap% 
-								(send mred-icon get-width)
-								(send mred-icon get-height)
-								#f)]
-					   [tmp-dc (make-object bitmap-dc% tmp-bm)])
-				      (send tmp-dc draw-bitmap plt 
-					    (/ (- (send mred-icon get-width)
-						  (send plt get-width))
-					       2)
-					    (/ (- (send mred-icon get-height)
-						  (send plt get-height))
-					       2))
-				      (send dc draw-bitmap tmp-bm x y 'solid 
-					    (send the-color-database find-color "BLACK")
-                                            (and (eq? mask-ex-mode 'plt-mask)
-                                                 mred-icon)))]
+				    [(plt plt-mask plt^plt)
+				     (let* ([plt (get-plt)]
+					    [tmp-bm (make-object bitmap% 
+								 (send mred-icon get-width)
+								 (send mred-icon get-height)
+								 #f)]
+					    [tmp-dc (make-object bitmap-dc% tmp-bm)])
+				       (send tmp-dc draw-bitmap plt 
+					     (/ (- (send mred-icon get-width)
+						   (send plt get-width))
+						2)
+					     (/ (- (send mred-icon get-height)
+						   (send plt get-height))
+						2))
+				       (send dc draw-bitmap tmp-bm x y 'solid 
+					     (send the-color-database find-color "BLACK")
+					     (cond
+					      [(eq? mask-ex-mode 'plt-mask) mred-icon]
+					      [(eq? mask-ex-mode 'plt^plt) tmp-bm]
+					      [else #f])))]
                                     [(mred^mred)
                                      (send dc draw-bitmap mred-icon x y
                                            'solid
@@ -911,12 +913,14 @@
       (make-object button% "Clip Clock" hp3 (lambda (b e) (clock #t)))
       (make-object choice% #f
                    '("MrEd XOR" "PLT Middle" "PLT ^ MrEd" "MrEd ^ MrEd" 
-                     "MrEd~" "MrEd ^ MrEd~" "M^M~ Opaque" "M^M~ Red")
+                     "MrEd~" "MrEd ^ MrEd~" "M^M~ Opaque" "M^M~ Red"
+		     "PLT^PLT")
                    hp3
 		   (lambda (self event)
 		     (send canvas set-mask-ex-mode 
                            (list-ref '(mred plt plt-mask mred^mred 
-                                            mred~ mred^mred~ opaque-mred^mred~ red-mred^mred~)
+                                            mred~ mred^mred~ opaque-mred^mred~ red-mred^mred~
+					    plt^plt)
                                      (send self get-selection)))))))
 
   (send f show #t))

@@ -251,6 +251,8 @@ The "MrEd XOR" menu selects a icon:
 
  - "M^M~ Red" - Same as two previous, but drawn red instead of black.
 
+ - "PLT^PLT" - The PLT Middle image, but translucent
+
 ----------
 
 Finally, print these instructions by hitting the "Print" button at the
