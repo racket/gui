@@ -113,10 +113,28 @@
 	   (let ([line (position-line position)])
 	     (ormap
 	      (lambda (comment-start)
-		(let ([f (find-string comment-start 'backward position)])
+		(let loop ([f (find-string comment-start 'backward position)])
 		  (if f
-		      (= (position-line f) line)
-		      #f)))
+		      (cond
+                       [(= (position-line f) line)
+                        (let ([f-1 (- f 1)])
+                          (cond
+                            [(= f 0) 
+                             (prinf "1~n")
+                             #t]
+                            [(and (= (position-line f-1) line)
+                                  (not (char=? (get-character f-1) #\\ )))
+                             (prinf "2~n")
+                             #t]
+                            [else 
+                             (prinf "3~n")
+                             (loop (find-string comment-start 'backward f-1))]))]
+                       [else 
+                        (prinf "4~n")
+                        #f])
+                      (begin
+                        (printf "5~n")
+                        #f))))
 	      (scheme-paren:get-comments))))])
       (private
 	[remove-indents-callback
