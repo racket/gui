@@ -565,7 +565,7 @@
 		       get-editor<%>
 		       
 		       make-editor
-		       save-as		      
+		       save-as
 		       get-canvas
 		       get-editor))
 
@@ -910,7 +910,7 @@
 	 (send to-be-searched-canvas force-display-focus #t)
 	 (send dialog show #t)))))
       
-  (define searchable<%> (interface (text<%>)
+  (define searchable<%> (interface (basic<%>)
 			  get-text-to-search
 			  hide-search
 			  unhide-search
@@ -918,6 +918,7 @@
 			  replace&search
 			  replace-all
 			  replace
+			  can-replace?
 			  toggle-search-focus
 			  move-to-search-or-search
 			  move-to-search-or-reverse-search
@@ -1183,20 +1184,19 @@
 		      (send replace-edit get-keymap)))))
 
   (define searchable-mixin
-    (mixin (text<%>) (searchable<%>) args
+    (mixin (standard-menus<%>) (searchable<%>) args
       (sequence (init-find/replace-edits))
-      (inherit get-editor)
       (rename [super-make-root-area-container make-root-area-container]
 	      [super-on-activate on-activate]
 	      [super-on-close on-close])
       (private
 	[super-root 'unitiaialized-super-root])
       (override
-        [get-editor<%> (lambda () text:searching<%>)]
-	[get-editor% (lambda () text:searching%)]
-	[edit-menu:find (lambda (menu evt) (move-to-search-or-search) #t)]
-	[edit-menu:find-again (lambda (menu evt) (search-again) #t)]
-	[edit-menu:replace-and-find-again (lambda (menu evt) (replace&search) #t)])
+       [edit-menu:find (lambda (menu evt) (move-to-search-or-search) #t)]
+       [edit-menu:find-again (lambda (menu evt) (search-again) #t)]
+       [edit-menu:replace-and-find-again (lambda (menu evt) (replace&search) #t)]
+       [edit-menu:replace-and-find-again-on-demand
+	(lambda (item) (send item enable (can-replace?)))])
       (override
 	[make-root-area-container
 	 (lambda (% parent)
@@ -1216,8 +1216,8 @@
 	   (super-on-activate on?))])
       (public
 	[get-text-to-search
-	 (lambda () 
-	   (get-editor))]
+	 (lambda ()
+	   (error 'get-text-to-search "abstract method in searchable-mixin"))]
 	[hide-search
 	 (opt-lambda ([startup? #f])
 	   (send super-root change-children
@@ -1261,6 +1261,17 @@
 	 (lambda (x) 
 	   (set-searching-direction x)
 	   (send dir-radio set-selection (if (eq? x 'forward) 0 1)))]
+	[can-replace?
+	 (lambda ()
+	   (let ([tx (get-text-to-search)])
+	     (and
+	      tx
+	      (not (= 0 (send replace-edit last-position)))
+	      (string=?
+	       (send tx get-text
+		     (send tx get-start-position)
+		     (send tx get-end-position))
+	       (send find-edit get-text 0 (send find-edit last-position))))))]
 	[replace&search
 	 (lambda ()
 	   (when (replace)
@@ -1403,6 +1414,21 @@
 	(send replace-canvas set-editor replace-edit) 
 	(hide-search #t))))
   
+  (define searchable-text<%> (interface (searchable<%> text<%>)))
+
+  (define searchable-text-mixin
+    (mixin (text<%> searchable<%>) (searchable-text<%>) args
+      (inherit get-editor)
+      (override
+       [get-text-to-search
+	(lambda ()
+	  (get-editor))])
+      (override
+       [get-editor<%> (lambda () text:searching<%>)]
+       [get-editor% (lambda () text:searching%)])
+      (sequence (apply super-init args))))
+
+
   ;; to see printouts in memory debugging better.
   (define memory-text% (class text% args (sequence (apply super-init args))))
   (define memory-text (make-object memory-text%))
@@ -1444,7 +1470,7 @@
 
   (define -text% (text-mixin editor%))
   (define text-info-file% (file-mixin -text%))
-  (define searchable% (searchable-mixin text-info-file%))
+  (define searchable% (searchable-text-mixin (searchable-mixin text-info-file%)))
 
   (define -pasteboard% (pasteboard-mixin editor%))
   (define pasteboard-info-file% (file-mixin -pasteboard%))
