@@ -237,6 +237,9 @@
      get-lock-bitmap
      get-unlock-bitmap
      get-anchor-bitmap
+
+     get-left/right-cursor
+     get-up/down-cursor
      
      get-gc-on-bitmap
      get-gc-off-bitmap))

@@ -13,7 +13,8 @@
   
   (define panel@
     (unit/sig framework:panel^
-      (import mred^)
+      (import [icon : framework:icon^]
+              mred^)
       
       (rename [-editor<%> editor<%>])
       
@@ -175,8 +176,6 @@
       ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
       ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
       
-      (define up/down-cursor (make-object cursor% 'size-n/s))
-
       ;; type gap = (make-gap number area<%> percentage number area<%> percentage)
       (define-struct gap (before before-y before-percentage after after-y after-percentage))
 
@@ -261,7 +260,7 @@
                           cursor-gaps)])
               (set-cursor (and (or gap
                                    resizing-y)
-                               up/down-cursor))
+                               (icon:get-up/down-cursor)))
               (cond
                 [(and gap (send evt button-down? 'left))
                  (set! resizing-y (send evt get-y))
