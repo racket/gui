@@ -77,7 +77,7 @@ Version 102/1:
    `get-text-extent' return a useful value for the vertical space above
    a font.
 
-Version 102: ??
+Version 102: ??, 2000
 Changed the interaction of face and familiy settings in a font for
  drawing text
 Removed `get-afm-name' and `set-afm-name' from
