@@ -9,6 +9,7 @@ mred \- The Rice PLT GUI engine
 .I sysfile
 ]
 [-q | --no-init-file]
+[-nu ]
 [-f
 .I file
 ]
@@ -17,6 +18,9 @@ mred \- The Rice PLT GUI engine
 ]
 [--
 .I arguments
+]
+[
+.I file
 ]
 .SH DESCRIPTION
 .I MrEd
@@ -29,19 +33,33 @@ The -s flag directs
 .I MrEd
 to load the startup system from
 a particular file. This overrides the system directory
-search path described below in FILES.
+search path described below in FILES and must come before all other
+arguments.
 .PP
-The -q or --no-init-file flag prevents MrEd from loading
+The -q or --no-init-file flag prevents 
+.I MrEd
+from loading
 the user's startup file ".mredrc" in the user's home
 directory.
 .PP
-After the -s and -q or --no-init-file flags, multiple -f
+multiple -f
 and -e flags can be specified. For each -e flag, the corresponding
 expression is evaluated. For each -f flag, the corresponding file
 is loaded (with its directory as the working cirectory).
 .PP
-Other arguments before the -- flag are ignored. Once all
-flags are handled or the -- flag is encountered, the scheme procedure
+If a file appears on the command line with no switches, then it is opened
+for editing in 
+.I MrEd.
+The -- flag means to treat the next argument as a file
+to be opened for editing, even if it is "-e" or "-f".
+.PP
+The -nu flag specifies a non-unit startup. See the Toolbox Manual for more
+details on 
+.I MrEd's
+startup and how to build your own application with 
+.I MrEd.
+.PP
+Once all command line arguments are handled the scheme procedure
 mred:startup is called. This procedure is defined by the standard
 system, but it can be redefined with the -f or -e flags for
 application-specific startup sequences. 
@@ -90,7 +108,7 @@ using the following search path:
 * "PLTHOME/mzscheme/mzlib", where "PLTHOME" is replaced
 with the value of the PLTHOME environment variable. 
 If the environment variable is undefined, 
-"/usr/local/lib/plt/home" is used
+"/usr/local/lib/plt/" is used
 .PP
 Please consult your local administrator to determine whether
 the on-line documentation has been installed locally.
