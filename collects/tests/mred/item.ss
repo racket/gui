@@ -24,6 +24,14 @@
 (when (namespace-variable-value 'mdi? #t (lambda () #f))
   (mdi))
 
+(define (add-frame-style style)
+  (let ([style (if use-metal?
+		   (cons 'metal style)
+		   style)])
+    (if float-frame?
+	(cons 'float style)
+	style)))
+
 (define make-frame
   (opt-lambda (% name [parent #f] [x #f] [y #f] [w #f] [h #f] [style '()])
     (make-object % name
@@ -31,9 +39,7 @@
 		 x y w h
 		 (if mdi-frame
 		     (cons 'mdi-child style)
-		     (if use-metal?
-			 (cons 'metal style)
-			 style)))))
+		     (add-frame-style style)))))
 
 (define special-font (send the-font-list find-or-create-font
 			   20 'decorative 
@@ -530,6 +536,7 @@
 
 (define use-dialogs? #f)
 (define use-metal? #f)
+(define float-frame? #f)
 
 (define (big-frame h-radio? v-label? null-label? stretchy? special-label-font? special-button-font? 
 		   initially-disabled? alternate-init?)
@@ -1763,7 +1770,7 @@
 		 [label "No-Clear Canvas Test"]
 		 [height 250]
 		 [width 300]
-		 [style (if use-metal? '(metal) null)]))
+		 [style (add-frame-style null)]))
   (define p (make-object vertical-panel% f))
   (define c% (class canvas%
                (inherit get-dc refresh)
@@ -1797,7 +1804,7 @@
 		 [label "No-Clear Canvas Test"]
 		 [height 250]
 		 [width 300]
-		 [style (if use-metal? '(metal) null)]))
+		 [style (add-frame-style null)]))
   (define c (new editor-canvas%
 		 [parent f]
 		 [style canvas-style]))
@@ -2028,6 +2035,9 @@
   (make-object check-box% "Metal" clockp
 	       (lambda (c e)
 		 (set! use-metal? (send c get-value))))
+  (make-object check-box% "Float" clockp
+	       (lambda (c e)
+		 (set! float-frame? (send c get-value))))
   (make-object vertical-panel% clockp) ; filler
   (let ([time (make-object message% "XX:XX:XX" clockp)])
     (make-object

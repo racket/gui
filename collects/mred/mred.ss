@@ -4203,7 +4203,7 @@
 	(check-dimension cwho height)
 	(check-init-pos-integer cwho x)
 	(check-init-pos-integer cwho y)
-	(check-style cwho #f '(no-resize-border no-caption no-system-menu mdi-parent mdi-child toolbar-button hide-menu-bar metal) 
+	(check-style cwho #f '(no-resize-border no-caption no-system-menu mdi-parent mdi-child toolbar-button hide-menu-bar float metal) 
 		     style)
 	(when (memq 'mdi-child style)
 	  (when (memq 'mdi-parent style)
