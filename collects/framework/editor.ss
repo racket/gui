@@ -34,9 +34,11 @@
 	[edit-sequence-count 0])
       (override
 	[begin-edit-sequence
-	 (lambda ()
+	 (case-lambda
+	  [() (begin-edit-sequence #t)]
+	  [(undoable?)
 	   (set! edit-sequence-count (+ edit-sequence-count 1))
-	   (super-begin-edit-sequence))]
+	   (super-begin-edit-sequence undoable?)])]
 	[end-edit-sequence
 	 (lambda ()
 	   (set! edit-sequence-count (- edit-sequence-count 1))
