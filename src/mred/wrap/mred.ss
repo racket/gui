@@ -4573,6 +4573,9 @@
 	   [single? (and (< (length strings) 10) 
 			 (andmap (lambda (s) (< (string-length s) 60)) strings))]
 	   [f (make-object (class dialog% ()
+			     (public
+			       [get-message
+				(lambda () message)])
 				  (override
 				    [on-subwindow-event 
 				     (lambda (w e)
