@@ -70,6 +70,7 @@
 	(for-each (lambda (x) 
 		    (hash-table-put! hash-table x 'define))
 		  '(define defmacro define-macro
+                     define-syntax-set
 		     define-values
                      define/public define/override define/private define/field
 		     define-signature 
