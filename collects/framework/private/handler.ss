@@ -2,6 +2,7 @@
   (require (lib "unitsig.ss")
 	   (lib "class.ss")
 	   (lib "class100.ss")
+           (lib "list.ss")
 	   "sig.ss"
 	   "../gui-utils-sig.ss"
 	   (lib "mred-sig.ss" "mred")
@@ -129,9 +130,11 @@
       (define (add-to-recent filename)
         (preferences:set 'framework:recently-opened-files
                          (let loop ([n recent-max-count]
-                                    [new-recent (cons filename 
-                                                      (preferences:get
-                                                       'framework:recently-opened-files))])
+                                    [new-recent (cons filename
+                                                      (remove
+                                                       filename
+                                                       (preferences:get
+                                                        'framework:recently-opened-files)))])
                            (cond
                              [(zero? n) null]
                              [(null? new-recent) null]

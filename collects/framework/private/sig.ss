@@ -231,13 +231,16 @@
      get-the-frame-group))
 
   (define-signature framework:handler^
-    (handler? handler-name handler-extension handler-handler
-	      insert-format-handler
-	      find-format-handler 
-	      find-named-format-handler 
-	      edit-file
-	      open-file
-              install-recent-items))
+    (handler? 
+     handler-name 
+     handler-extension handler-handler
+     insert-format-handler
+     find-format-handler 
+     find-named-format-handler 
+     edit-file
+     open-file
+     install-recent-items
+     add-to-recent))
 
   (define-signature framework:icon^
     (get-paren-highlight-bitmap

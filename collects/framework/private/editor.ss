@@ -24,7 +24,8 @@
 	      [text : framework:text^]
 	      [pasteboard : framework:pasteboard^]
 	      [frame : framework:frame^]
-	      [gui-utils : framework:gui-utils^])
+	      [gui-utils : framework:gui-utils^]
+              [handler : framework:handler^])
       
       (rename [-keymap<%> keymap<%>])
 
@@ -95,6 +96,12 @@
                       (file-exists? fn)
                       (let ([ms (file-or-directory-modify-seconds fn)])
                         (< last-saved-file-time ms))))))]
+          
+          (rename [super-on-save-file on-save-file])
+          (define/override (on-save-file filename format)
+            (unless (equal? filename (get-filename))
+              (handler:add-to-recent filename))
+            (super-on-save-file filename format))
           
           [define has-focus #f]
 	  (rename [super-on-focus on-focus])
