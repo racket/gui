@@ -16,6 +16,8 @@ Changed set-clipboard-client to associate a clipboard-client%
  methods within the eventspace through event callbacks
 Added a variant of insert-file to editor<%> to accept
  an input port instead of a filename
+Changed load-file, save-file, and insert-file in editor<%>
+ to raise exceptions instead of returning booleans
 Added can-reorder?, on-reorder, and after-reorder to
  pasteboard%
 
