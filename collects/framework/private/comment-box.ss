@@ -16,9 +16,10 @@
       (import [text : framework:text^]
               [scheme : framework:scheme^]
               [keymap : framework:keymap^])
-      (rename [-snip% snip%]
-              [-text% text%])
       
+      (rename [-snip% snip%]
+	      [-text% text%])
+
       (define snipclass%
         (class decorated-editor-snipclass%
           (define/override (make-snip stream-in) (instantiate -snip% ()))
@@ -33,9 +34,8 @@
       
       (define (editor-keymap-mixin %)
         (class %
-          (rename [super-get-keymaps get-keymaps])
           (define/override (get-keymaps)
-            (cons (keymap:get-file) (super-get-keymaps)))
+            (cons (keymap:get-file) (super get-keymaps)))
           (super-instantiate ())))
       
       (define scheme+copy-self% #f)
@@ -60,10 +60,9 @@
           (define/override (get-corner-bitmap) bm)
           (define/override (get-position) 'left-top)
           
-          (rename [super-get-text get-text])
           (define/override get-text
 	    (opt-lambda (offset num [flattened? #t])
-	      (let* ([super-res (super-get-text offset num flattened?)]
+	      (let* ([super-res (super get-text offset num flattened?)]
 		     [replaced (string-append "; " (regexp-replace* "\n" super-res "\n; "))])
 		(if (char=? #\newline (string-ref replaced (- (string-length replaced) 1)))
 		    replaced

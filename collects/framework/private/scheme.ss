@@ -86,7 +86,6 @@
                       1
                       #t)))
           
-          (rename [super-get-text get-text])
           (define/override get-text
             (opt-lambda (offset num [flattened? #f])
               (if flattened?
@@ -94,7 +93,7 @@
                          (map (lambda (snip)
                                 (send snip get-text 0 (send snip get-count) flattened?))
                               saved-snips))
-                  (super-get-text offset num flattened?))))
+                  (super get-text offset num flattened?))))
               
           (define/override (copy)
             (instantiate sexp-snip% ()
@@ -940,15 +939,13 @@
       (define text-mode-mixin
         (mixin (color:text-mode<%> mode:surrogate-text<%>) (-text-mode<%>)
 
-          (rename [super-on-disable-surrogate on-disable-surrogate])
           (define/override (on-disable-surrogate text)
             (keymap:remove-chained-keymap text keymap)
-            (super-on-disable-surrogate text))
+            (super on-disable-surrogate text))
           
-          (rename [super-on-enable-surrogate on-enable-surrogate])
           (define/override (on-enable-surrogate text)
 	    (send text begin-edit-sequence)
-	    (super-on-enable-surrogate text)
+	    (super on-enable-surrogate text)
 	    (send (send text get-keymap) chain-to-keymap keymap #t)
             
             ;; I don't know about these editor flag settings.

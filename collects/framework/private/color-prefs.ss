@@ -30,10 +30,9 @@
                         (stretchable-height #f)))
         (define e (new (class standard-style-list-text%
                          (inherit change-style get-style-list)
-                         (rename [super-after-insert after-insert])
                          (override after-insert)
                          (define (after-insert pos offset)
-                           (super-after-insert pos offset)
+                           (super after-insert pos offset)
                            (let ([style (send (get-style-list)
                                               find-named-style
                                               style-name)])

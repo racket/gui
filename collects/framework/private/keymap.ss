@@ -62,27 +62,24 @@
             (lambda ()
               chained-keymaps)]
 	  
-          (rename [super-chain-to-keymap chain-to-keymap])
 	  (define/override (chain-to-keymap keymap prefix?)
-            (super-chain-to-keymap keymap prefix?)
+            (super chain-to-keymap keymap prefix?)
             (set! chained-keymaps
                   (if prefix?
                       (cons keymap chained-keymaps)
                       (append chained-keymaps (list keymap)))))
 	  
-          (rename [super-remove-chained-keymap remove-chained-keymap])
           (define/override (remove-chained-keymap keymap)
-            (super-remove-chained-keymap keymap)
+            (super remove-chained-keymap keymap)
             (set! chained-keymaps (remq keymap chained-keymaps)))
           
 	  [define function-table (make-hash-table)]
 	  (public get-function-table)
           [define get-function-table (lambda () function-table)]
-	  (rename [super-map-function map-function])
 	  (override map-function)
           [define map-function
 	    (lambda (keyname fname)
-	      (super-map-function (canonicalize-keybinding-string keyname) fname)
+	      (super map-function (canonicalize-keybinding-string keyname) fname)
 	      (hash-table-put! function-table (string->symbol keyname) fname))]
 	  
 	  (public get-map-function-table get-map-function-table/ht)

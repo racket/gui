@@ -19,7 +19,7 @@
               [exit : framework:exit^]
               [panel : framework:panel^]
               [frame : framework:frame^])
-      
+
       (rename [-read read])
       
       (define main-preferences-symbol 'plt:framework-prefs)
@@ -454,11 +454,10 @@
         (letrec ([stashed-prefs (get-disk-prefs/install (lambda () null))]
 		 [frame-stashed-prefs%
 		  (class frame:basic%
-		    (rename [super-show show])
                     (define/override (show on?)
                       (when on?
                         (set! stashed-prefs (get-disk-prefs/install (lambda () null))))
-		      (super-show on?))
+		      (super show on?))
 		    (super-instantiate ()))]
                  [frame 
                   (make-object frame-stashed-prefs%

@@ -15,7 +15,6 @@
       (import [icon : framework:icon^]
               mred^)
       
-      (rename [-editor<%> editor<%>])
       
       (define (list-set! _list _i ele)
         (let loop ([lst _list]
@@ -30,7 +29,6 @@
       (define single-mixin
         (mixin (area-container<%>) (single<%>)
           (inherit get-alignment change-children)
-          (rename [super-after-new-child after-new-child])
           (define/override (after-new-child c)
 	    (unless (is-a? c window<%>)
 
@@ -98,11 +96,10 @@
       (define single-window-mixin
         (mixin (single<%> window<%>) (single-window<%>)
           (inherit get-client-size get-size)
-          (rename [super-container-size container-size])
           (override container-size)
           [define container-size
             (lambda (l)
-              (let-values ([(super-width super-height) (super-container-size l)]
+              (let-values ([(super-width super-height) (super container-size l)]
                            [(client-width client-height) (get-client-size)]
                            [(window-width window-height) (get-size)]
                            [(calc-size)
@@ -282,7 +279,6 @@
  	  (define resizing-dim #f)
  	  (define resizing-gap #f)
            
- 	  (rename [super-on-subwindow-event on-subwindow-event])
  	  (inherit set-cursor)
  	  (define/override (on-subwindow-event receiver evt)
  	    (if (eq? receiver this)
@@ -322,14 +318,13 @@
  			  (after-percentage-change)
  			  (set! resizing-dim (event-get-dim evt))
  			  (container-flow-modified))))]
- 		   [else (super-on-subwindow-event receiver evt)]))
+ 		   [else (super on-subwindow-event receiver evt)]))
 		(begin
 		  (set-cursor #f)
-		  (super-on-subwindow-event receiver evt))))
+		  (super on-subwindow-event receiver evt))))
            
  	  (define cursor-gaps null)
            
- 	  (rename [super-place-children place-children])
  	  (define/override (place-children _infos width height)
  	    (set! cursor-gaps null)
  	    (update-percentages)

@@ -10,7 +10,6 @@
   (define version@
     (unit/sig framework:version^
       (import)
-
       (rename [-version version])
 
       (define specs null)

@@ -33,7 +33,6 @@
       [define/private (get-brush) (send the-brush-list find-or-create-brush "BLACK" 'transparent)]      
       
       (inherit get-admin)
-      (rename [super-on-event on-event])
       (define/override (on-event dc x y editorx editory evt)
         (cond
           [(send evt get-right-down)
@@ -67,12 +66,11 @@
                   (let ([admin (get-admin)])
                     (when admin
                       (send admin popup-menu menu this (+ sx 1) (+ sy 1))))]
-                  [else (super-on-event dc x y editorx editory evt)])))]
+                  [else (super on-event dc x y editorx editory evt)])))]
           [else
-           (super-on-event dc x y editorx editory evt)]))
+           (super on-event dc x y editorx editory evt)]))
       
       (inherit get-extent get-inset)
-      (rename [super-draw draw])
       (define/override (draw dc x y left top right bottom dx dy draw-caret)
         (let ([bm (get-corner-bitmap)]
               [bil (box 0)]
@@ -88,7 +86,7 @@
           (get-extent dc x y bw bh #f #f #f #f)
           (get-inset bil bit bir bib)
           (get-margin bml bmt bmr bmb)
-          (super-draw dc x y left top right bottom dx dy draw-caret)
+          (super draw dc x y left top right bottom dx dy draw-caret)
           (let* ([old-pen (send dc get-pen)]
                  [old-brush (send dc get-brush)])
             

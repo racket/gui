@@ -168,7 +168,6 @@
         
         (define final-frame%
           (class frame:basic%
-            (rename [super-on-close on-close])
             (define/override (can-close?) #t)
             (define/override (on-close)
               (send (group:get-the-frame-group)

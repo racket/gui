@@ -27,7 +27,7 @@
               [handler : framework:handler^])
 
       (rename [-keymap<%> keymap<%>])
-      
+
       ;; renaming, for editor-mixin where get-file is shadowed by a method.
       (define mred:get-file get-file) 
 
@@ -48,7 +48,7 @@
 	(mixin (editor<%>) (basic<%>)
 	  
           (define/public (can-close?) #t)
-          (define/public (on-close) (void))
+          (define/pubment (on-close) (inner (void) on-close))
           (define/public (close) (if (can-close?)
                                      (begin (on-close) #t)
                                      #f))
@@ -124,8 +124,7 @@
 		   get-canvas
 		   get-max-width get-admin)
 	  
-	  (rename [super-can-save-file? can-save-file?])
-	  (define/override (can-save-file? filename format)
+	  (define/augment (can-save-file? filename format)
             (and (if (equal? filename (get-filename))
                      (if (save-file-out-of-date?)
                          (gui-utils:get-choice 
@@ -137,13 +136,11 @@
                           (get-top-level-window))
                          #t)
                      #t)
-                 (super-can-save-file? filename format)))
+                 (inner #t can-save-file? filename format)))
 	  
-	  (rename [super-after-save-file after-save-file]
-		  [super-after-load-file after-load-file])
 	  (define last-saved-file-time #f)
 	  
-	  (define/override (after-save-file success?)
+	  (define/augment (after-save-file success?)
             ;; update recently opened file names
             (let* ([temp-b (box #f)]
                    [filename (get-filename temp-b)])
@@ -159,16 +156,16 @@
                            (file-exists? filename)
                            (file-or-directory-modify-seconds filename)))))
             
-            (super-after-save-file success?))
+            (inner (void) after-save-file success?))
 	  
-	  (define/override (after-load-file success?)
+	  (define/augment (after-load-file success?)
             (when success?
               (let ([filename (get-filename)])
                 (set! last-saved-file-time
                       (and filename
                            (file-exists? filename)
                            (file-or-directory-modify-seconds filename)))))
-            (super-after-load-file success?))
+            (inner (void) after-load-file success?))
 	  (define/public (save-file-out-of-date?)
             (and last-saved-file-time
                  (let ([fn (get-filename)])
@@ -178,10 +175,9 @@
                           (< last-saved-file-time ms))))))
 	  
 	  (define has-focus #f)
-	  (rename [super-on-focus on-focus])
 	  (define/override (on-focus x)
             (set! has-focus x)
-            (super-on-focus x))
+            (super on-focus x))
 	  (define/public (has-focus?) has-focus)
 	  
 	  (define/public (get-top-level-window)
@@ -243,17 +239,13 @@
 					 edit-sequence-ht
 					 k t)))
 	      (set! edit-sequence-queue (append l edit-sequence-queue)))]
-	  (rename
-	   [super-after-edit-sequence after-edit-sequence]
-	   [super-on-edit-sequence on-edit-sequence])
-	  [define/override on-edit-sequence
+	  [define/augment on-edit-sequence
 	    (lambda ()
-	      (super-on-edit-sequence)
-	      (set! in-local-edit-sequence? #t))]
-	  [define/override after-edit-sequence
+	      (set! in-local-edit-sequence? #t)
+	      (inner (void) on-edit-sequence))]
+	  [define/augment after-edit-sequence
 	    (lambda ()
 	      (set! in-local-edit-sequence? #f)
-	      (super-after-edit-sequence)
 	      (let ([queue edit-sequence-queue]
 		    [ht edit-sequence-ht]
 		    [find-enclosing-editor
@@ -276,7 +268,8 @@
                      (send editor extend-edit-sequence-queue queue ht)]
 		    [else
 		     (hash-table-for-each ht (lambda (k t) (t)))
-		     (for-each (lambda (t) (t)) queue)]))))]
+		     (for-each (lambda (t) (t)) queue)])))
+	      (inner (void) after-edit-sequence))]
 	  
 	  [define/override on-new-box
 	    (lambda (type)
@@ -401,10 +394,6 @@
 	  (inherit get-filename lock get-style-list 
 		   is-modified? change-style set-modified 
 		   get-top-level-window)
-	  (rename [super-after-save-file after-save-file]
-		  [super-after-load-file after-load-file]
-		  [super-get-keymaps get-keymaps]
-		  [super-set-filename set-filename])
 
 	  (inherit get-canvases)
           (define/private (check-lock)
@@ -441,26 +430,25 @@
                     (unless untitled-name
                       (set! untitled-name (gui-utils:next-untitled-name)))
                     untitled-name))))
-	  (define/override (after-save-file success)
+	  (define/augment (after-save-file success)
             (when success
               (check-lock))
-            (super-after-save-file success))
+            (inner (void) after-save-file success))
 	   
-          (define/override (after-load-file sucessful?)
+          (define/augment (after-load-file sucessful?)
             (when sucessful?
               (check-lock))
-            (super-after-load-file sucessful?))
+            (inner (void) after-load-file sucessful?))
 
           (define/override set-filename
 	    (case-lambda
 	     [(name) (set-filename name #f)]
 	     [(name temp?)
-	      (super-set-filename name temp?)
+	      (super set-filename name temp?)
 	      (unless temp?
 		(update-frame-filename))]))
 
           (inherit save-file)
-          (rename [super-can-close? can-close?])
           (define/override (can-close?)
             (let* ([user-allowed-or-not-modified
                     (or (not (is-modified?))
@@ -474,12 +462,12 @@
                           [(save) (save-file)]
                           [else #f]))])
               (and user-allowed-or-not-modified
-                   (super-can-close?))))
+                   (super can-close?))))
           
           (define/public (get-can-close-parent) #f)
           
           (define/override (get-keymaps)
-            (cons (keymap:get-file) (super-get-keymaps)))
+            (cons (keymap:get-file) (super get-keymaps)))
           (super-new)))
       
       (define backup-autosave<%>
@@ -492,11 +480,7 @@
       (define backup-autosave-mixin
 	(mixin (basic<%>) (backup-autosave<%> autosave:autosavable<%>)
 	  (inherit is-modified? get-filename save-file)
-	  (rename [super-on-save-file on-save-file]
-		  [super-on-change on-change]
-		  [super-on-close on-close]
-		  [super-set-modified set-modified])
-          [define auto-saved-name #f]
+	  [define auto-saved-name #f]
           [define auto-save-out-of-date? #t]
           [define auto-save-error? #f]
           (define/private (file-old? filename)
@@ -507,8 +491,7 @@
                   (< modified-seconds old-seconds))
                 #t))
           (define/public (backup?) (preferences:get 'framework:backup-files?))
-          (define/override (on-save-file name format)
-            (super-on-save-file name format)
+          (define/augment (on-save-file name format)
             (set! auto-save-error? #f)
             (when (and (backup?)
                        (not (eq? format 'copy))
@@ -519,20 +502,21 @@
                   (when (file-exists? back-name)
                     (delete-file back-name))
                   (with-handlers ([(lambda (x) #t) void])
-                    (copy-file name back-name))))))
-          (define/override (on-close)
-            (super-on-close)
+                    (copy-file name back-name)))))
+            (inner (void) on-save-file name format))
+          (define/augment (on-close)
             (remove-autosave)
-            (set! do-autosave? #f))
-          (define/override (on-change)
-            (super-on-change)
-            (set! auto-save-out-of-date? #t))
+            (set! do-autosave? #f)
+            (inner (void) on-close))
+          (define/augment (on-change)
+            (set! auto-save-out-of-date? #t)
+            (inner (void) on-change))
           (define/override (set-modified modified?)
             (when auto-saved-name
               (if modified?
                   (set! auto-save-out-of-date? #t)
                   (remove-autosave)))
-            (super-set-modified modified?))
+            (super set-modified modified?))
           
           [define do-autosave? #t]
 	  (define/public (autosave?) do-autosave?)
@@ -598,10 +582,9 @@
       (define info-mixin
 	(mixin (basic<%>) (info<%>)
 	  (inherit get-top-level-window run-after-edit-sequence)
-	  (rename [super-lock lock])
 	  (define callback-running? #f)
           (define/override (lock x)
-            (super-lock x)
+            (super lock x)
             (run-after-edit-sequence
              (rec send-frame-update-lock-icon
                (lambda ()

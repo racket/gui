@@ -22,11 +22,10 @@
 
       (define delegate-mixin
         (mixin (basic<%>) (delegate<%>)
-          (rename [super-on-superwindow-show on-superwindow-show])
           (inherit get-top-level-window)
           (define/override (on-superwindow-show shown?)
             (send (send (get-top-level-window) get-delegatee) set-start/end-para #f #f)
-            (super-on-superwindow-show shown?))
+            (super on-superwindow-show shown?))
           (super-instantiate ())))
       
       (define info<%> (interface (basic<%>)))
@@ -34,18 +33,16 @@
       (define info-mixin 
 	(mixin (basic<%>) (info<%>)
 	  (inherit has-focus? get-top-level-window)
-	  (rename [super-on-focus on-focus]
-		  [super-set-editor set-editor])
 	  (override on-focus set-editor)
           [define on-focus
 	    (lambda (on?)
-	      (super-on-focus on?)
+	      (super on-focus on?)
 	      (send (get-top-level-window) set-info-canvas (and on? this))
 	      (when on?
 		(send (get-top-level-window) update-info)))]
           [define set-editor
             (lambda (m)
-              (super-set-editor m)
+              (super set-editor m)
               (let ([tlw (get-top-level-window)])
                 (when (eq? this (send tlw get-info-canvas))
                   (send tlw update-info))))]
@@ -70,7 +67,6 @@
       (define wide-snip-mixin
 	(mixin (basic<%>) (wide-snip<%>)
 	  (inherit get-editor)
-	  (rename [super-on-size on-size])
           [define wide-snips null]
           [define tall-snips null]
           [define update-snip-size
@@ -175,7 +171,7 @@
           [define on-size
 	    (lambda (width height)
 	      (recalc-snips)
-	      (super-on-size width height))]
+	      (super on-size width height))]
           (super-instantiate ())))
 
       (define basic% (basic-mixin editor-canvas%))

@@ -23,7 +23,7 @@
               [text : framework:text^]
               [color-prefs : framework:color-prefs^]
               [scheme : framework:scheme^])
-  
+        
       (rename [-text<%> text<%>]
               [-text% text%]
               [-text-mode<%> text-mode<%>])
@@ -625,66 +625,57 @@
           
           ;; ------------------------- Callbacks to Override ----------------------
           
-          (rename (super-lock lock))
           (define/override (lock x)
-            (super-lock x)
+            (super lock x)
             (when (and restart-callback (not x))
               (set! restart-callback #f)
               (queue-callback (lambda () (colorer-callback)))))
           
           
-          (rename (super-on-focus on-focus))
           (define/override (on-focus on?)
-            (super-on-focus on?)
+            (super on-focus on?)
             (match-parens (not on?)))
           
-          (rename (super-on-change on-change))
-          (define/override (on-change)
-            (modify))
+          (define/augment (on-change)
+	    ;; >>> super was not here <<<
+            (modify)
+	    (inner (void) on-change))
           
-          (rename (super-after-edit-sequence after-edit-sequence))
-          (define/override (after-edit-sequence)
-            (super-after-edit-sequence)
+          (define/augment (after-edit-sequence)
             (when (has-focus?)
-              (match-parens)))
+              (match-parens))
+            (inner (void) after-edit-sequence))
           
-          (rename (super-after-set-position after-set-position))
-          (define/override (after-set-position)
-            (super-after-set-position)
+          (define/augment (after-set-position)
             (unless (local-edit-sequence?)
               (when (has-focus?)
                 (match-parens)))
-            (modify))
+            (modify)
+            (inner (void) after-set-position))
           
-          (rename (super-after-change-style after-change-style))
-          (define/override (after-change-style a b)
-            (super-after-change-style a b)
+          (define/augment (after-change-style a b)
             (unless (get-styles-fixed)
               (unless (local-edit-sequence?)
                 (when (has-focus?)
                   (match-parens))))
-            (modify))
+            (modify)
+            (inner (void) after-change-style a b))
           
-          (rename (super-on-set-size-constraint on-set-size-constraint))
-          (define/override (on-set-size-constraint)
-            (super-on-set-size-constraint)
+          (define/augment (on-set-size-constraint)
             (unless (local-edit-sequence?)
               (when (has-focus?)
                 (match-parens)))
-            (modify))
+            (modify)
+            (inner (void) on-set-size-constraint))
           
-          (rename (super-after-insert after-insert))
-          (define/override (after-insert edit-start-pos change-length)
+          (define/augment (after-insert edit-start-pos change-length)
             (do-insert/delete edit-start-pos change-length)
-            (super-after-insert edit-start-pos change-length))
+            (inner (void) after-insert edit-start-pos change-length))
           
-          (rename (super-after-delete after-delete))
-          (define/override (after-delete edit-start-pos change-length)
+          (define/augment (after-delete edit-start-pos change-length)
             (do-insert/delete edit-start-pos (- change-length))
-            (super-after-delete edit-start-pos change-length))
+            (inner (void) after-delete edit-start-pos change-length))
                     
-          (rename (super-change-style change-style))
-          
           (super-new)
           
           ;; need pref-callback to be in a private field
@@ -705,14 +696,12 @@
                       (token-sym->style (lambda (x) "Standard"))
                       (matches null))
           
-          (rename (super-on-disable-surrogate on-disable-surrogate))
           (define/override (on-disable-surrogate text)
-            (super-on-disable-surrogate text)
+            (super on-disable-surrogate text)
             (send text stop-colorer))
           
-          (rename (super-on-enable-surrogate on-enable-surrogate))
           (define/override (on-enable-surrogate text)
-            (super-on-enable-surrogate text)
+            (super on-enable-surrogate text)
             (send text start-colorer token-sym->style get-token matches))
           
           (super-instantiate ())))

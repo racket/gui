@@ -38,7 +38,7 @@
       (rename [-editor<%> editor<%>]
               [-pasteboard% pasteboard%]
               [-text% text%])
-      
+
       (define (reorder-menus frame)
         (let* ([items (send (send frame get-menu-bar) get-items)]
                [move-to-back
@@ -131,12 +131,11 @@
       (define basic-mixin
         (mixin ((class->interface frame%)) (basic<%>)
         
-          (rename [super-show show])
           (define/override (show on?)
             (if on?
                 (send (group:get-the-frame-group) insert-frame this)
                 (send (group:get-the-frame-group) remove-frame this))
-            (super-show on?))
+            (super show on?))
           
           (define/override (can-exit?)
             (exit:set-exiting #t)
@@ -159,10 +158,9 @@
 
           (define/public (editing-this-file? filename) #f)
 
-	  (rename [super-on-superwindow-show on-superwindow-show])
 	  (define/override (on-superwindow-show shown?)
 	    (send (group:get-the-frame-group) frame-shown/hidden this)
-	    (super-on-superwindow-show shown?))
+	    (super on-superwindow-show shown?))
          
           (define after-init? #f)
           
@@ -214,22 +212,19 @@
       (define register-group<%> (interface ()))
       (define register-group-mixin
         (mixin (basic<%>) (register-group<%>)
-          (rename [super-can-close? can-close?]
-                  [super-on-close on-close]
-                  [super-on-focus on-focus])
           
           (define/override (can-close?)
             (let ([number-of-frames 
                    (length (send (group:get-the-frame-group)
                                  get-frames))])
               (if (preferences:get 'framework:exit-when-no-frames)
-                  (and (super-can-close?)
+                  (and (super can-close?)
                        (or (exit:exiting?)
                            (not (= 1 number-of-frames))
                            (exit:user-oks-exit)))
                   #t)))
           (define/override (on-close)
-            (super-on-close)
+            (super on-close)
             (send (group:get-the-frame-group)
                   remove-frame
                   this)
@@ -239,7 +234,7 @@
                   (exit:exit)))))
           
           (define/override (on-focus on?)
-            (super-on-focus on?)
+            (super on-focus on?)
             (when on?
               (send (group:get-the-frame-group) set-active-frame this)))
           
@@ -306,9 +301,8 @@
 
                  ;; status-line-msgs : (listof status-line-msg)
                  [status-line-msgs null])
-          (rename [super-make-root-area-container make-root-area-container])
           (define/override (make-root-area-container % parent)
-            (let* ([s-root (super-make-root-area-container vertical-panel% parent)]
+            (let* ([s-root (super make-root-area-container vertical-panel% parent)]
                    [r-root (make-object % s-root)])
               (set! status-line-container-panel
                     (instantiate vertical-panel% ()
@@ -473,13 +467,12 @@
 
       (define info-mixin
         (mixin (basic<%>) (info<%>)
-          (rename [super-make-root-area-container make-root-area-container])
           [define rest-panel 'uninitialized-root]
           [define super-root 'uninitialized-super-root]
           (override make-root-area-container)
           [define make-root-area-container
             (lambda (% parent)
-              (let* ([s-root (super-make-root-area-container
+              (let* ([s-root (super make-root-area-container
                               vertical-panel%
                               parent)]
                      [r-root (make-object % s-root)])
@@ -556,10 +549,9 @@
                (update-info-visibility v)))]
           [define memory-cleanup void] ;; only for CVSers and nightly build users; used with memory-text
 
-          (rename [super-on-close on-close])
           [define/override on-close
             (lambda ()
-              (super-on-close)
+              (super on-close)
               (unregister-collecting-blit gc-canvas)
               (close-panel-callback)
               (memory-cleanup))]
@@ -703,10 +695,9 @@
                 (preferences:get 'framework:col-offsets)
                 v)
                #t))]
-          (rename [super-on-close on-close])
           [define/override on-close
             (lambda ()
-              (super-on-close)
+              (super on-close)
               (remove-first)
               (remove-second))]
           [define last-start #f]
@@ -845,11 +836,10 @@
                            (failed)])))]
                    [else
                     (failed)])))]
-          (rename [super-update-info update-info])
           (override update-info)
           [define update-info
             (lambda ()
-              (super-update-info)
+              (super update-info)
               (update-macro-recording-icon)
               (overwrite-status-changed)
               (anchor-status-changed)
@@ -938,7 +928,6 @@
 
           (inherit get-area-container get-client-size 
                    show get-edit-target-window get-edit-target-object)
-          (rename [super-set-label set-label])
           
           (define/override get-filename
             (case-lambda
@@ -956,20 +945,18 @@
                 (and this-fn
                      (path-equal? filename (get-filename))))))
           
-          (rename [super-on-close on-close])
           (define/override (on-close)
-            (super-on-close)
+            (super on-close)
             (send (get-editor) on-close))
           
-          (rename [super-can-close? can-close?])
           (define/override (can-close?)
-            (and (super-can-close?)
+            (and (super can-close?)
                  (send (get-editor) can-close?)))
           
           [define label ""]
           [define label-prefix (application:current-app-name)]
           (define (do-label)
-            (super-set-label (gui-utils:trim-string (get-entire-label) 200))
+            (super set-label (gui-utils:trim-string (get-entire-label) 200))
             (send (group:get-the-frame-group) frame-label-changed this))
           
           (public get-entire-label get-label-prefix set-label-prefix)
@@ -1197,9 +1184,8 @@
       (define open-here-mixin
         (mixin (-editor<%>) (open-here<%>)
 
-          (rename [super-file-menu:new-on-demand file-menu:new-on-demand])
           (define/override (file-menu:new-on-demand item)
-            (super-file-menu:new-on-demand item)
+            (super file-menu:new-on-demand item)
             (send item set-label (if (preferences:get 'framework:open-here?)
                                      (string-constant new-...-menu-item)
                                      (string-constant new-menu-item))))
@@ -1250,23 +1236,20 @@
              'cancel
              this))
  
-          (rename [super-file-menu:open-on-demand file-menu:open-on-demand])
           (define/override (file-menu:open-on-demand item)
-            (super-file-menu:open-on-demand item)
+            (super file-menu:open-on-demand item)
             (send item set-label (if (preferences:get 'framework:open-here?)
                                      (string-constant open-here-menu-item)
                                      (string-constant open-menu-item))))
           
-	  (rename [super-on-close on-close])
 	  (define/override (on-close)
-	    (super-on-close)
+	    (super on-close)
 	    (let ([group (group:get-the-frame-group)])
 	      (when (eq? this (send group get-open-here-frame))
 		(send group set-open-here-frame #f))))
 
-          (rename [super-on-activate on-activate])
           (define/override (on-activate on?)
-            (super-on-activate on?)
+            (super on-activate on?)
             (when on?
               (send (group:get-the-frame-group) set-open-here-frame this)))
           
@@ -1335,12 +1318,11 @@
       
       (define delegatee-editor-canvas%
         (class editor-canvas%
-          (rename [super-on-event on-event])
           (init-field delegate-frame)
           (inherit get-editor get-dc)
           
           (define/override (on-event evt)
-            (super-on-event evt)
+            (super on-event evt)
             (when delegate-frame
               (let ([text (get-editor)])
                 (when (is-a? text text%)
@@ -1379,7 +1361,6 @@
       
       (define delegatee-text%
         (class* text:basic% (delegatee-text<%>)
-          (rename [super-on-paint on-paint])
           (inherit get-admin)
           (define start-para #f)
           (define end-para #f)
@@ -1433,7 +1414,7 @@
                       (invalidate-bitmap-cache x y w h)))))))
 
           (define/override (on-paint before? dc left top right bottom dx dy draw-caret)
-            (super-on-paint before? dc left top right bottom dx dy draw-caret)
+            (super on-paint before? dc left top right bottom dx dy draw-caret)
             (when (and before?
                        start-para
                        end-para)
@@ -1492,13 +1473,12 @@
 
           (define/public (get-delegated-text) (get-editor))
 
-          (rename [super-make-root-area-container make-root-area-container])
           [define rest-panel 'uninitialized-root]
           [define super-root 'uninitialized-super-root]
           (override make-root-area-container)
           [define make-root-area-container
             (lambda (% parent)
-              (let* ([s-root (super-make-root-area-container
+              (let* ([s-root (super make-root-area-container
                               horizontal-panel%
                               parent)]
                      [r-root (make-object % s-root)])
@@ -1506,13 +1486,11 @@
                 (set! rest-panel r-root)
                 r-root))]
 
-	  (rename [super-get-editor<%> get-editor<%>])
 	  (define/override (get-editor<%>)
             text:delegate<%>)
 
-          (rename [super-get-editor% get-editor%])
           (define/override (get-editor%)
-            (text:delegate-mixin (super-get-editor%)))
+            (text:delegate-mixin (super get-editor%)))
 
           (field (shown? (preferences:get 'framework:show-delegate?)))
           (define/public (delegated-text-shown?) 
@@ -1605,12 +1583,11 @@
                   
                   [text-keymap/editor%
                    (class text:keymap%
-                     (rename [super-get-keymaps get-keymaps])
                      (define/override (get-keymaps)
                        (if (preferences:get 'framework:menu-bindings)
                            (append (list (keymap:get-editor))
-                                   (super-get-keymaps))
-                           (append (super-get-keymaps)
+                                   (super get-keymaps))
+                           (append (super get-keymaps)
                                    (list (keymap:get-editor)))))
                      (inherit set-styles-fixed)
                      (super-new)
@@ -1852,9 +1829,6 @@
       (define find-text%
         (class text:keymap%
           (inherit get-text)
-          (rename [super-after-insert after-insert]
-                  [super-after-delete after-delete]
-                  [super-on-focus on-focus])
           (define/private (get-searching-edit)
             (and searching-frame
                  (send searching-frame get-text-to-search)))
@@ -1928,15 +1902,15 @@
               (let ([edit (get-searching-edit)])
                 (when edit
                   (reset-search-anchor (get-searching-edit)))))
-            (super-on-focus on?))
-          (define/override (after-insert x y)
-            (super-after-insert x y)
+            (super on-focus on?))
+          (define/augment (after-insert x y)
             (unless dont-search
-              (search #f)))
-          (define/override (after-delete x y)
-            (super-after-delete x y)
+              (search #f))
+            (inner (void) after-insert x y))
+          (define/augment (after-delete x y)
             (unless dont-search
-              (search #f)))
+              (search #f))
+            (inner (void) after-delete x y))
           (super-new)
           (inherit set-styles-fixed)
           (set-styles-fixed #t)))
@@ -1953,11 +1927,10 @@
       (define searchable-canvas% 
         (class editor-canvas% 
           (inherit get-top-level-window set-line-count)
-          (rename [super-on-focus on-focus])
           (define/override (on-focus x)
             (when x
               (set-searching-frame (get-top-level-window)))
-            (super-on-focus x))
+            (super on-focus x))
           (super-new (style '(hide-hscroll hide-vscroll)))
           (set-line-count 2)))
       
@@ -1975,9 +1948,6 @@
       (define searchable-mixin
         (mixin (standard-menus<%>) (searchable<%>)
           (init-find/replace-edits)
-          (rename [super-make-root-area-container make-root-area-container]
-                  [super-on-activate on-activate]
-                  [super-on-close on-close])
           (define super-root 'unitiaialized-super-root)
           (override edit-menu:find-callback edit-menu:create-find? 
                     edit-menu:find-again-callback edit-menu:create-find-again? 
@@ -1994,7 +1964,7 @@
           (override make-root-area-container)
           (define make-root-area-container
             (lambda (% parent)
-              (let* ([s-root (super-make-root-area-container
+              (let* ([s-root (super make-root-area-container
                               vertical-panel%
                               parent)]
                      [root (make-object % s-root)])
@@ -2007,7 +1977,7 @@
                 (if on?
                     (reset-search-anchor (get-text-to-search))
                     (clear-search-highlight)))
-              (super-on-activate on?)))
+              (super on-activate on?)))
           
           (define/public (get-text-to-search)
 	    (error 'get-text-to-search "abstract method in searchable-mixin"))
@@ -2072,7 +2042,7 @@
                  (hide-search)))))
           (define/override on-close
             (lambda ()
-              (super-on-close)
+              (super on-close)
               (remove-callback)
               (let ([close-canvas
                      (lambda (canvas edit)
@@ -2323,14 +2293,13 @@
       
       (define bday-click-canvas%
         (class canvas%
-          (rename [super-on-event on-event])
           (define/override (on-event evt)
             (cond
               [(and (mrf-bday?)
                     (send evt button-up?))
                (message-box (string-constant drscheme)
                             (string-constant happy-birthday-matthew))]
-              [else (super-on-event evt)]))
+              [else (super on-event evt)]))
           (super-instantiate ())))
       
       (define basic% (register-group-mixin (basic-mixin frame%)))
