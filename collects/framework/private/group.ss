@@ -118,6 +118,11 @@
                     (for-each (lambda (a-frame)
                                 (set-close-menu-item-state! a-frame #t))
                               frames))))]
+          
+          (field (open-here-frame #f))
+          (define/public (set-open-here-frame fr) (set! open-here-frame fr))
+          (define/public (get-open-here-frame) open-here-frame)
+          
           (public get-mdi-parent set-empty-callbacks frame-label-changed for-each-frame
                   get-active-frame set-active-frame insert-frame can-remove-frame?
                   remove-frame clear on-close-all can-close-all? locate-file get-frames
@@ -253,7 +258,7 @@
                    (send (get-the-frame-group) get-frames)
                    (lambda (x y) (string-ci<=? (send x get-label) (send y get-label))))]
                  [d (make-object dialog% (string-constant bring-frame-to-front) parent 400 600)]
-                 [lb (instantiate gui-utils:alphabetic-list-box% () 
+                 [lb (instantiate list-box% () 
                        (label #f)
                        (choices (map (lambda (x) (send x get-label)) sorted-frames))
                        (callback (lambda (x y) (listbox-callback y)))

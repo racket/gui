@@ -17,10 +17,23 @@
 	      [group : framework:group^])
       
       ;; preferences
-      
+      (preferences:set-default 'framework:recently-opened-sort-by 'age 
+                               (lambda (x) (or (eq? x 'age) (eq? x 'name))))
+      (preferences:set-default 'framework:recent-items-window-w 400 number?)
+      (preferences:set-default 'framework:recent-items-window-h 600 number?)
+      (preferences:set-default 'framework:open-here? #f boolean?)
       (preferences:set-default 'framework:show-delegate? #f boolean?)
-      (preferences:set-default 'framework:recently-opened-files null 
-                               (lambda (x) (and (list? x) (andmap string? x))))
+      (preferences:set-default 'framework:recently-opened-files/pos 
+                               null 
+                               (lambda (x) (and (list? x) 
+                                                (andmap
+                                                 (lambda (x) 
+                                                   (and (list? x)
+                                                        (= 3 (length x))
+                                                        (string? (car x))
+                                                        (number? (cadr x))
+                                                        (number? (caddr x))))
+                                                 x))))
       (preferences:set-default 'framework:search-using-dialog? #t boolean?)
       (preferences:set-default 'framework:windows-mdi #f boolean?)
       (preferences:set-default 'framework:menu-bindings #t boolean?)

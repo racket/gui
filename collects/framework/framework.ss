@@ -14,6 +14,7 @@
            "specs.ss")
   
   (provide-signature-elements framework-class^)
+
   (provide (all-from "macro.ss")
            (all-from "specs.ss")
            (all-from "test.ss")
@@ -576,9 +577,20 @@
      (is-a?/c frame:editor<%>))
     ((filename)
      ((make-default (lambda () (make-object frame:text-info-file\% filename)))))
-    "This function creates a frame to edit a file. "
+    "This function creates a frame or re-uses an existing frame to edit a file. "
     ""
-    "It invokes the appropriate format handler to open the file (see"
+    "If the preference \\scheme{'framework:open-here} is set to \\scheme{#t},"
+    "and (send ("
+    "@flink group:get-the-frame-group %"
+    ") "
+    "@milink open-here get-open-here-frame %"
+    ") returns a frame, the "
+    "@milink open-here "
+    "method of that frame is used to load"
+    "the file in the existing frame."
+    ""
+    "Otherwise, it invokes the appropriate format"
+    "handler to open the file (see"
     "@flink handler:insert-format-handler %"
     ")."
     ""
@@ -626,10 +638,18 @@
     "with the filename of the recently opened file."
     ""
     "The menu's size is limited to 10.")
+
    (handler:add-to-recent
     (string? . -> . void?)
     (filename)
     "Adds a filename to the list of recently opened files.")
+
+   (handler:set-recent-position
+    (string? number? number? . -> . void?)
+    (filename start end)
+    "Sets the selection of the recently opened file to"
+    "\\var{start} and \\end{end}.")
+
    (icon:get-paren-highlight-bitmap
     (-> (is-a?/c bitmap%))
     ()
@@ -722,8 +742,8 @@
 
    (keymap:add-to-right-button-menu
     (case->
-     (((is-a?/c menu%) (is-a?/c editor<%>) (is-a?/c event%) . -> . void?) . -> . void?)
-     (-> ((is-a?/c menu%) (is-a?/c editor<%>) (is-a?/c event%) . -> . void?)))
+     (((is-a?/c popup-menu%) (is-a?/c editor<%>) (is-a?/c event%) . -> . void?) . -> . void?)
+     (-> ((is-a?/c popup-menu%) (is-a?/c editor<%>) (is-a?/c event%) . -> . void?)))
     ((func) ())
     "When the keymap that "
     "@flink keymap:get-global"
@@ -741,10 +761,10 @@
 
    (keymap:add-to-right-button-menu/before
     (case->
-     (((is-a?/c menu%) (is-a?/c editor<%>) (is-a?/c event%) . -> . void?)
+     (((is-a?/c popup-menu%) (is-a?/c editor<%>) (is-a?/c event%) . -> . void?)
       . -> .
       void?)
-     (-> ((is-a?/c menu%) (is-a?/c editor<%>) (is-a?/c event%) . -> . void?)))
+     (-> ((is-a?/c popup-menu%) (is-a?/c editor<%>) (is-a?/c event%) . -> . void?)))
     ((func) ())
     "When the keymap that "
     "@flink keymap:get-global"

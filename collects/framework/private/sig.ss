@@ -301,6 +301,7 @@
     (basic<%>
      standard-menus<%>
      editor<%>
+     open-here<%>
      text<%>
      pasteboard<%>
      delegate<%>
@@ -326,6 +327,7 @@
      basic-mixin
      standard-menus-mixin
      editor-mixin
+     open-here-mixin
      text-mixin
      pasteboard-mixin
      delegate-mixin
@@ -362,7 +364,8 @@
      edit-file
      open-file
      install-recent-items
-     add-to-recent))
+     add-to-recent
+     set-recent-position))
   (define-signature framework:handler^
     ((open framework:handler-class^)
      (open framework:handler-fun^)))

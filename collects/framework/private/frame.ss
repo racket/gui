@@ -868,6 +868,63 @@
 	    ;; it might not yet be implemented
               (send canvas focus)))))
       
+      (define open-here<%>
+        (interface (-editor<%>)
+          get-open-here-editor
+	  open-here))
+      
+      (define open-here-mixin
+        (mixin (-editor<%>) (open-here<%>)
+          (rename [super-file-menu:open-on-demand file-menu:open-on-demand])
+          (define/override (file-menu:open-on-demand item)
+            (super-file-menu:open-on-demand item)
+            (send item set-label (if (preferences:get 'framework:open-here?)
+                                     (string-constant open-here-menu-item)
+                                     (string-constant open-menu-item))))
+          
+          (rename [super-on-activate on-activate])
+          (define/override (on-activate on?)
+            (super-on-activate on?)
+            (when on?
+              (send (group:get-the-frame-group) set-open-here-frame this)))
+          
+          (inherit get-editor)
+          (define/public (get-open-here-editor) (get-editor))
+          (define/public (open-here filename)
+            (let* ([editor (get-open-here-editor)]
+                   [okay-to-switch? (user-okays-switch? editor)])
+              (when okay-to-switch?
+                (when (is-a? editor text%)
+                  (let* ([b (box #f)]
+                         [filename (send editor get-filename b)])
+                    (unless (unbox b)
+                      (when filename
+                        (handler:set-recent-position 
+                         filename 
+                         (send editor get-start-position)
+                         (send editor get-end-position))))))
+                (send editor load-file filename)
+		(void))))
+          
+          (inherit get-label)
+          (define/private (user-okays-switch? ed)
+            (or (not (send ed is-modified?))
+                (let ([answer
+                       (gui-utils:unsaved-warning 
+                        (or (send ed get-filename) (get-label))
+                        (string-constant switch-anyway)
+                        #t)])
+                  (case answer
+                    [(continue)
+                     #t]
+                    [(save) 
+                     (send ed save-file/gui-error)]
+                    [(cancel)
+                     #f]))))
+            
+          
+          (super-instantiate ())))
+
       (define text<%> (interface (-editor<%>)))
       (define text-mixin
         (mixin (-editor<%>) (text<%>)
@@ -1842,11 +1899,12 @@
       (define pasteboard-info% (pasteboard-info-mixin text-info%))
       (define standard-menus% (standard-menus-mixin pasteboard-info%))
       (define editor% (editor-mixin standard-menus%))
+      (define open-here% (open-here-mixin editor%))
       
-      (define -text% (text-mixin editor%))
+      (define -text% (text-mixin open-here%))
       (define text-info-file% (file-mixin -text%))
       (define searchable% (searchable-text-mixin (searchable-mixin text-info-file%)))
       (define delegate% (delegate-mixin searchable%))
       
-      (define -pasteboard% (pasteboard-mixin editor%))
+      (define -pasteboard% (pasteboard-mixin open-here%))
       (define pasteboard-info-file% (file-mixin -pasteboard%)))))

@@ -387,6 +387,9 @@
              (make-check 'framework:search-using-dialog?
                          (string-constant separate-dialog-for-searching)
                          id id)
+             (make-check 'framework:open-here?
+                         (string-constant reuse-existing-frames)
+                         id id)
              
              main)))
         (set! local-add-general-panel void))
