@@ -55,7 +55,7 @@
       (preferences:set-default 'framework:auto-set-wrap? #t boolean?)
       (preferences:set-default 'framework:display-line-numbers #t boolean?)
       (preferences:set-default 'framework:show-status-line #t boolean?)
-      (preferences:set-default 'framework:line-offsets #t boolean?)
+      (preferences:set-default 'framework:col-offsets #f boolean?)
       
       (preferences:set-default
        'framework:print-output-mode

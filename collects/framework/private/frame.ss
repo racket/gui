@@ -456,7 +456,7 @@
           (rename [super-on-close on-close])
           [define remove-first
             (preferences:add-callback
-             'framework:line-offsets
+             'framework:col-offsets
              (lambda (p v)
                (editor-position-changed-offset/numbers
                 v
@@ -467,7 +467,7 @@
              'framework:display-line-numbers
              (lambda (p v)
                (editor-position-changed-offset/numbers
-                (preferences:get 'framework:line-offsets)
+                (preferences:get 'framework:col-offsets)
                 v)
                #t))]          
           (override on-close)
@@ -480,7 +480,7 @@
           [define last-end #f]
           [define last-params #f]
           [define editor-position-changed-offset/numbers
-             (lambda (offset? line-numbers?)
+            (lambda (offset? line-numbers?)
                (let* ([edit (get-info-editor)]
                       [make-one
                        (lambda (pos)
@@ -489,16 +489,11 @@
                                 [char (- pos line-start)])
                            (if line-numbers?
                                (format "~a:~a"
-                                       (if offset?
-                                           (add1 line)
-                                           line)
+                                       (add1 line)
                                        (if offset?
                                            (add1 char)
                                            char))
-                               (format "~a"
-                                       (if offset?
-                                           (+ pos 1)
-                                           pos)))))])
+                               (format "~a" pos))))])
                  (cond
                    [(not (object? position-canvas))
                     (void)]
@@ -565,7 +560,7 @@
             [define editor-position-changed
              (lambda ()
                (editor-position-changed-offset/numbers
-                (preferences:get 'framework:line-offsets)
+                (preferences:get 'framework:col-offsets)
                 (preferences:get 'framework:display-line-numbers)))]
             [define overwrite-status-changed
              (lambda ()

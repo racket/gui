@@ -427,7 +427,7 @@
                        (make-check editor-panel  'framework:delete-forward? (string-constant map-delete-to-backspace)
                                    not not)
                        (make-check editor-panel 'framework:show-status-line (string-constant show-status-line) values values)
-                       (make-check editor-panel 'framework:line-offsets (string-constant count-from-one) values values)
+                       (make-check editor-panel 'framework:col-offsets (string-constant count-columns-from-one) values values)
                        (make-check editor-panel 
                                    'framework:display-line-numbers
                                    (string-constant display-line-numbers)
