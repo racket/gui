@@ -11,9 +11,15 @@
 (define-signature TestSuite^
   ((struct eof-result ())
    load-framework-automatically
-   shutdown-listener shutdown-mred mred-running? send-sexp-to-mred
+   shutdown-listener shutdown-mred mred-running?
+   send-sexp-to-mred queue-sexp-to-mred
    test
    wait-for-frame
+
+   ;; sexp -> void
+   ;; grabs the frontmost window, executes the sexp and waits for a new frontmost window
+   wait-for-new-frame
+
    wait-for))
 
 (define-signature internal-TestSuite^
@@ -74,11 +80,11 @@
 	  (set! in-port in)
 	  (set! out-port out))
 	(when load-framework-automatically?
-	  (send-sexp-to-mred
+	  (queue-sexp-to-mred
 	   `(begin
 	      (require-library "framework.ss" "framework")
 	      (require-library "gui.ss" "tests" "utils")
-	      (test:run-interval 11))))))
+	      (test:run-interval 0))))))
 
     (define load-framework-automatically
       (case-lambda
@@ -108,6 +114,16 @@
 	(if (char-ready? in-port)
 	    (not (eof-object? (peek-char in-port)))
 	    #t)))
+
+    (define queue-sexp-to-mred
+      (lambda (sexp)
+	(send-sexp-to-mred
+	 `(let ([thunk (lambda () ,sexp)]
+		[sema (make-semaphore 0)])
+	    (queue-callback (lambda ()
+			      (thunk)
+			      (semaphore-post sema)))
+	    (semaphore-wait sema)))))
 
     (define send-sexp-to-mred
       (lambda (sexp)
@@ -193,17 +209,29 @@
 		  [(continue) (void)]
 		  [else (jump)])))))]))
 
-  (define (wait-for sexp)
+  (define (wait-for/wrapper wrapper sexp)
     (let ([timeout 10]
 	  [pause-time 1/2])
       (send-sexp-to-mred
-       `(let loop ([n ,(/ timeout pause-time)])
-	  (if (zero? n)
-	      (error 'wait-for
-		     ,(format "after ~a seconds, ~s didn't come true" timeout sexp))
-	      (unless ,sexp
-		(sleep ,pause-time)
-		(loop (- n 1))))))))
+       (wrapper
+	`(let ([test (lambda () ,sexp)])
+	   (let loop ([n ,(/ timeout pause-time)])
+	     (if (zero? n)
+		 (error 'wait-for
+			,(format "after ~a seconds, ~s didn't come true" timeout sexp))
+		 (unless (test)
+		   (sleep ,pause-time)
+		   (loop (- n 1))))))))))
+
+  (define (wait-for sexp) (wait-for/wrapper (lambda (x) x) sexp))
+
+  (define (wait-for-new-frame sexp)
+    (wait-for/wrapper
+     (lambda (w)
+       `(let ([frame (get-top-level-focus-window)])
+	  ,sexp
+	  ,w))
+     `(not (eq? frame (get-top-level-focus-window)))))
 
   (define (wait-for-frame name)
     (wait-for `(let ([win (get-top-level-focus-window)])
@@ -234,15 +262,21 @@
 
     (with-handlers ([(lambda (x) #f)
 		     (lambda (x) (display (exn-message x)) (newline))])
-      (let ([all-files (map symbol->string (load-relative "README"))]
-	    [files-to-process null]
-	    [command-line-flags
-	     `((multi
-		[("-o" "--only")
-		 ,(lambda (flag _only-these-tests)
-		    (set! only-these-tests (cons (string->symbol _only-these-tests)
-						 (or only-these-tests null))))
-		 ("Only run test named <test-name>" "test-name")]))])
+      (let* ([all-files (map symbol->string (load-relative "README"))]
+	     [all? #f]
+	     [files-to-process null]
+	     [command-line-flags
+	      `((once-each
+		 [("-a" "--all")
+		  ,(lambda (flag)
+		     (set! all? #t))
+		  ("Run all of the tests")])
+		(multi
+		 [("-o" "--only")
+		  ,(lambda (flag _only-these-tests)
+		     (set! only-these-tests (cons (string->symbol _only-these-tests)
+						  (or only-these-tests null))))
+		  ("Only run test named <test-name>" "test-name")]))])
 	
 	(let* ([saved-command-line-file (build-path (collection-path "tests" "framework") "saved-command-line.ss")]
 	       [parsed-argv (if (equal? argv (vector))
@@ -255,7 +289,7 @@
 				argv)])
 	  (parse-command-line "framework-test" parsed-argv command-line-flags
 			      (lambda (collected . files)
-				(set! files-to-process (if (null? files) all-files files)))
+				(set! files-to-process (if (or all? (null? files)) all-files files)))
 			      `("Names of the tests; defaults to all tests"))
 	  (call-with-output-file saved-command-line-file
 	    (lambda (port)

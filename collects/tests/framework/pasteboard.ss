@@ -10,10 +10,11 @@
 		      (lambda ()
 			,class)]))]
 	      [f (make-object % "test pasteboard")])
+	 (preferences:set 'framework:exit-when-no-frames #f)
 	 (send f show #t)))
       (wait-for-frame "test pasteboard")
-      (send-sexp-to-mred
-       `(send (get-top-level-focus-window) show #f)))))
+      (queue-sexp-to-mred
+       `(send (get-top-level-focus-window) close)))))
 
 (test-creation 'frame:editor%
 	       '(editor:basic-mixin pasteboard%)
@@ -23,7 +24,7 @@
 	       'pasteboard:basic-creation)
 
 (test-creation 'frame:editor%
-	       '(editor:file-mixin pasteboard:basic%)
+	       '(editor:file-mixin pasteboard:keymap%)
 	       'editor:file-mixin-creation)
 (test-creation 'frame:editor%
 	       'pasteboard:file%

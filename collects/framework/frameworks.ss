@@ -4,6 +4,7 @@
 (compile-allow-set!-undefined #t)
 
 (require-library "refer.ss")
+(require-library "macro.ss")
 (require-library "cores.ss")
 (require-library "dates.ss")
 (require-library "match.ss")

@@ -49,7 +49,7 @@
 		 define-some do opt-lambda send*
 		 local catch shared
 		 unit/sig
-		 with-handlers with-parameterization
+		 with-handlers
 		 interface
 		 parameterize
 		 call-with-input-file with-input-from-file
@@ -178,21 +178,21 @@
 			(set! test #f)
 			(semaphore-post s))))))))
   
-  (preferences:set-default 'framework:just-exit-when-no-frames #t boolean?)
+  (preferences:set-default 'framework:exit-when-no-frames #f boolean?)
 
   (let ([at-most-one (at-most-one-maker)])
     (send (group:get-the-frame-group) set-empty-callbacks
 	  (lambda () 
-	    (if (preferences:get 'framework:just-exit-when-no-frames)
-		(void)
+	    (if (preferences:get 'framework:exit-when-no-frames)
 		(at-most-one (void) 
-			     (lambda () (exit:exit #t)))))
+			     (lambda () (exit:exit #t)))
+		(void)))
 	  (lambda ()
-	    (if (preferences:get 'framework:just-exit-when-no-frames)
-		#t
+	    (if (preferences:get 'framework:exit-when-no-frames)
 		(at-most-one #t
 			     (lambda ()
-			       (exit:run-callbacks))))))
+			       (exit:run-callbacks)))
+		#t)))
     
     (exit:insert-callback
      (lambda ()

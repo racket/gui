@@ -24,13 +24,13 @@
 (define items
   (list (make-generic 'get-menu% '(lambda () menu%)
 		      '("The result of this method is used as the class for creating the result of these methods:"
-			"@mlink get-file-menu %"
+			"@ilink frame:standard-menus get-file-menu %"
 			", "
-			"@mlink get-edit-menu %"
+			"@ilink frame:standard-menus get-edit-menu %"
 			", "
-			"@mlink get-windows-menu %"
+			"@ilink frame:standard-menus get-windows-menu %"
 			", and"
-			"@mlink get-help-menu %"
+			"@ilink frame:standard-menus get-help-menu %"
 			". "
 			""
 			"@return : (derived-from \\iscmclass{menu})"
@@ -56,7 +56,7 @@
 			 (lambda () m))
 		      '("Returns the file menu"
 			"See also"
-			"@mlink get-menu\\%"
+			"@ilink frame:standard-menus get-menu\\%"
 			""
 			"@return : (instance (derived-from \\iscmclass{menu}))"))
 	(make-generic 'get-edit-menu
@@ -65,7 +65,7 @@
 		      
 		      '("Returns the edit menu"
 			"See also"
-			"@mlink get-menu\\%"
+			"@ilink frame:standard-menus get-menu\\%"
 			""
 			"@return : (instance (derived-from \\iscmclass{menu}))"))
 	(make-generic 'get-windows-menu
@@ -74,7 +74,7 @@
 		      
 		      '("Returns the windows menu"
 			"See also"
-			"@mlink get-menu\\%"
+			"@ilink frame:standard-menus get-menu\\%"
 			""
 			"@return : (instance (derived-from \\iscmclass{menu}))"))
 	(make-generic 'get-help-menu
@@ -83,7 +83,7 @@
 		      
 		      '("Returns the help menu"
 			"See also"
-			"@mlink get-menu\\%"
+			"@ilink frame:standard-menus get-menu\\%"
 			""
 			"@return : (instance (derived-from \\iscmclass{menu}))"))
 

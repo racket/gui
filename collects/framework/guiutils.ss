@@ -107,7 +107,7 @@
   
   (define get-choice
     (opt-lambda (message true-choice false-choice [title "Warning"])
-      (letrec ([result (void)]
+      (letrec ([result #f]
 	       [dialog (make-object dialog% title)]
 	       [on-true
 		(lambda args

@@ -16,7 +16,7 @@
 	  (send-sexp-to-mred '(begin (preferences:set 'framework:verify-exit #t)
 				     (test:run-one (lambda () (exit:exit)))))
 	  (wait-for-frame "Warning")
-	  (send-sexp-to-mred '(test:button-push "Quit"))
+	  (wait-for-new-frame '(test:button-push "Quit"))
 	  'failed)))
 
 (test 'exit/prompt/no-twice
@@ -27,12 +27,28 @@
 	       (send-sexp-to-mred '(begin (preferences:set 'framework:verify-exit #t)
 					  (test:run-one (lambda () (exit:exit)))))
 	       (wait-for-frame "Warning")
-	       (send-sexp-to-mred `(test:button-push ,button)))])
+	       (wait-for-new-frame `(test:button-push ,button)))])
 	(lambda ()
 	  (exit/push-button "Cancel")
 	  (exit/push-button "Cancel")
 	  (with-handlers ([eof-result? (lambda (x) 'passed)])
 	    (exit/push-button "Quit")
+	    'failed))))
+
+(test 'exit/esc-cancel
+      (lambda (x) (and (eq? x 'passed)
+		       (not (mred-running?))))
+      (let ([exit/wait-for-warning
+	     (lambda ()
+	       (send-sexp-to-mred '(begin (preferences:set 'framework:verify-exit #t)
+					  (test:run-one (lambda () (exit:exit)))))
+	       (wait-for-frame "Warning"))])
+	(lambda ()
+	  (exit/wait-for-warning)
+	  (wait-for-new-frame `(test:close-top-level-window (get-top-level-focus-window)))
+	  (exit/wait-for-warning)
+	  (with-handlers ([eof-result? (lambda (x) 'passed)])
+	    (wait-for-new-frame '(test:button-push "Quit"))
 	    'failed))))
 
 (define tmp-file (build-path (find-system-path 'temp-dir) "framework-exit-test-suite"))

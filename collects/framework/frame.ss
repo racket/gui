@@ -73,8 +73,11 @@
 	     (show #f)))])
       (sequence
 	(apply super-init args)
-	(send (group:get-the-frame-group) insert-frame this)
-	(make-object (get-menu-bar%) this))
+
+	;; must make menu before inserting frame into group
+	;; or initial windows menu will be wrong
+	(make-object menu% "Windows" (make-object (get-menu-bar%) this))
+	(send (group:get-the-frame-group) insert-frame this))
       (private
 	[panel (make-root-area-container (get-area-container%) this)])
       (public

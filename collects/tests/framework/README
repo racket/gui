@@ -16,8 +16,8 @@ To run a test use:
    framework-test <test.ss> ...
 
 where or <test.ss> is the name of one of the tests
-below. Alternatively, pass no command-line arguments to run all of the
-tests.
+below. Alternatively, pass no command-line arguments to run the same
+test as last time.
 
 - load: |# load.ss #|
 
@@ -72,12 +72,12 @@ tests.
   | This tests the info frame. (ie that toolbar on the bottom of the
                                 screen)
 
-- group tests: |# group.ss #|
+- group tests: |# group-test.ss #|
 
   | make sure that mred:the-frame-group records frames correctly.
   | fake user input expected.
 
-- parenthesis toolkit: |# paren.ss #|
+- parenthesis toolkit: |# paren-test.ss #|
 
   | Test to be sure that parenthesis matching engine works
   | No fake user input expected.

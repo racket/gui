@@ -1,13 +1,14 @@
 (define (test-creation name class-expression)
-  '(test
+  (test
    name
    (lambda (x) x)
    (lambda ()
      (send-sexp-to-mred
-      `(send (make-object ,class-expression "test") show #t))
+      `(begin (preferences:set 'framework:exit-when-no-frames #f)
+	      (send (make-object ,class-expression "test") show #t)))
      (wait-for-frame "test")
-     (send-sexp-to-mred
-      '(send (get-top-level-focus-window) show #f))
+     (queue-sexp-to-mred
+      '(send (get-top-level-focus-window) close))
      #t)))
 
 (test-creation
@@ -109,9 +110,10 @@
        (send-sexp-to-mred
 	`(begin (send (find-labelled-window "Full pathname") focus)
 		,(case (system-type)
-		   [(macos unix) `(test:keystroke #\a '(meta))]
+		   [(macos) `(test:keystroke #\a '(meta))]
+		   [(unix) `(test:keystroke #\a '(meta))]
 		   [(windows) `(test:keystroke #\a '(control))]
-		   [else (error "unknown system type")])
+		   [else (error "unknown system type: ~a" (system-type))])
 		(for-each test:keystroke
 			  (string->list ,tmp-file))
 		(test:keystroke #\return)))
@@ -123,10 +125,8 @@
 	    (test:close-top-level-window w)
 	    t))
 	(wait-for-frame "test open")
-	(send-sexp-to-mred
-	 `(begin
-	    (preferences:set 'framework:exit-when-no-frames #t)
-	    (test:close-top-level-window (get-top-level-focus-window)))))))))
+	(queue-sexp-to-mred
+	 `(send (get-top-level-focus-window) close)))))))
 
 (test-open "frame:editor open" 'frame:text%)
 (test-open "frame:editor open" 'frame:searchable%)

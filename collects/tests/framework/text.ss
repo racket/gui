@@ -8,6 +8,7 @@
 		   (override
 		    [get-editor% (lambda () ,class)]))]
 	      [f (make-object % "test text")])
+	 (preferences:set 'framework:exit-when-no-frames #f)
 	 (send f show #t)))
      (wait-for-frame "test text")
      (send-sexp-to-mred `(test:keystroke #\a))
@@ -15,8 +16,8 @@
      (send-sexp-to-mred
       `(begin (send (send (get-top-level-focus-window) get-editor) lock #t)
 	      (send (send (get-top-level-focus-window) get-editor) lock #f)))
-     (send-sexp-to-mred
-      `(send (get-top-level-focus-window) show #f)))))
+     (queue-sexp-to-mred
+      `(send (get-top-level-focus-window) close)))))
 
 
 (test-creation 'frame:text%
@@ -38,7 +39,7 @@
 	       'text:return-creation)
 
 (test-creation 'frame:text%
-	       '(editor:file-mixin text:basic%)
+	       '(editor:file-mixin text:keymap%)
 	       'editor:file-mixin-creation)
 (test-creation 'frame:text%
 	       'text:file%

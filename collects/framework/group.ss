@@ -21,13 +21,19 @@
       (private
 	[get-windows-menu
 	 (lambda (frame)
-	   (and (ivar-in-class? 'windows-menu (object-class frame))
-		(ivar frame windows-menu)))]
+	   (let ([menu-bar (send frame get-menu-bar)])
+	     (and menu-bar
+		  (let ([menus (send menu-bar get-items)])
+		    (ormap (lambda (x)
+			     (if (string=? "Windows" (send x get-label))
+				 x
+				 #f))
+			   menus)))))]
 	[insert-windows-menu
 	 (lambda (frame)
 	   (let ([menu (get-windows-menu frame)])
 	     (when menu
-	       (set! windows-menus (cons (list menu) windows-menus)))))]
+	       (set! windows-menus (cons menu windows-menus)))))]
 	[remove-windows-menu
 	 (lambda (frame)
 	   (let* ([menu (get-windows-menu frame)])
@@ -35,47 +41,43 @@
 		   (mzlib:function:remove
 		    menu
 		    windows-menus
-		    (lambda (x y)
-		      (eq? x (car y)))))))]
+		    eq?))))]
 
 	[update-windows-menus
 	 (lambda ()
 	   (let* ([windows (length windows-menus)]
-		  [get-name (lambda (frame) (send (frame-frame frame) get-label))]
+		  [default-name "Untitled"]
+		  [get-name 
+		   (lambda (frame)
+		     (let ([label (send frame get-label)])
+		       (if (string=? label "")
+			   (if (ivar-in-class? 'get-entire-label (object-class frame))
+			       (let ([label (send frame get-entire-label)])
+				 (if (string=? label "")
+				     default-name
+				     label))
+			       default-name)
+			   label)))]
 		  [sorted-frames
 		   (mzlib:function:quicksort
 		    frames
 		    (lambda (f1 f2)
-		      (string-ci<=? (get-name f1)
-				    (get-name f2))))])
-	     (set!
-	      windows-menus
-	      (map
-	       (lambda (menu-list)
-		 (let ([menu (car menu-list)]
-		       [old-ids (cdr menu-list)])
-		   (for-each (lambda (id) (send menu delete id))
-			     old-ids)
-		   (let ([new-ids
-			  (map
-			   (lambda (frame)
-			     (let ([frame (frame-frame frame)]
-				   [default-name "Untitled"])
-			       (send menu append-item
-				     (let ([label (send frame get-label)])
-				       (if (string=? label "")
-					   (if (ivar-in-class? 'get-entire-label (object-class frame))
-					       (let ([label (send frame get-entire-label)])
-						 (if (string=? label "")
-						     default-name
-						     label))
-					       default-name)
-					   label))
-				     (lambda ()
-				       (send frame show #t)))))
-			   sorted-frames)])
-		     (cons menu new-ids))))
-	       windows-menus))))])
+		      (string-ci<=? (get-name (frame-frame f1))
+				    (get-name (frame-frame f2)))))])
+	      (for-each
+	       (lambda (menu)
+		 (for-each (lambda (item) (send item delete))
+			   (send menu get-items))
+		 (for-each
+		  (lambda (frame)
+		    (let ([frame (frame-frame frame)])
+		      (make-object menu-item% (get-name frame)
+				   menu
+				   (lambda (_1 _2)
+				     (send frame show #t)))))
+		  sorted-frames)
+		 (newline))
+	       windows-menus)))])
       
       (private
 	[update-close-menu-item-state
