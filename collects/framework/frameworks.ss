@@ -1,10 +1,13 @@
 (require-library "refer.ss")
 (require-library "cores.ss")
+(require-library "dates.ss")
 (require-library "match.ss")
 (require-library "dates.ss")
 (require-library "functios.ss")
 (require-library "macro.ss")
 (require-relative-library "macro.ss")
+
+(require-relative-library "stsig.ss")
 
 (define-signature framework:version^
   (add-spec
@@ -200,6 +203,7 @@
 (define-signature framework:keymap^
   (set-keymap-error-handler
    set-keymap-implied-shifts
+   get-shifted-key-list
    send-map-function-meta
    make-meta-prefix-list
 
@@ -242,7 +246,8 @@
 (define-signature framework:main^ ())
 
 (define-signature framework^
-  ([unit application : framework:application^]
+  ([unit test : framework:test^]
+   [unit application : framework:application^]
    [unit version : framework:version^]
    [unit exn : framework:exn^]
    [unit exit : framework:exit^]

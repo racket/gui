@@ -15,6 +15,7 @@
     '("?" ":" "~" "\"" "|"
       "<" ">" "{" "}" "[" "]" "(" ")"
       "!" "@" "#" "$" "%" "^" "&" "*" "_" "+"))
+  (define (get-shifted-key-list) shifted-key-list)
   
   (define keyerr
     (lambda (str)
