@@ -5090,7 +5090,7 @@
 				    (send msg-pnl min-height 64)
 				    (send btn-pnl stretchable-height #f)
 				    (values msg-pnl btn-pnl 96 'right 'left 'top)))]
-		      [else (let ([p (make-object horizontal-pane% f)])
+		      [else (let ([p (instantiate horizontal-pane% (f) [alignment '(center top)])])
 			      (make-object message% 'app p)
 			      (values (make-object vertical-pane% p) f 0 'center 'center 'center))])])
 	(if single?
