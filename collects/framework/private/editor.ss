@@ -117,7 +117,7 @@
             (let* ([temp-b (box #f)]
                    [filename (get-filename temp-b)])
               (unless (unbox temp-b)
-                (unless (equal? filename (get-filename))
+                (when filename
                   (handler:add-to-recent filename))))
             (super-on-save-file filename format))
           
