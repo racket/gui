@@ -1,6 +1,12 @@
 
 Version 102/4:
 
+ * Fixed scrolling, I think. Please report any scrolling behavior that
+   doesn't seem right. (PR 1174 et al.)
+
+ * Fixed copying for editor-snip%s, incorporating and extending
+   Robby's fixes. (PRs 1304 and 1305)
+
  * Hijacked `on-change' method of editor%, which wasn't doing anything
    useful, to serve a new purpose.
 
@@ -11,13 +17,29 @@ Version 102/4:
    method to refresh the editor's display. The editor is locked for
    writing and reflowing during the call to `on-change'.
 
-   This change enables a fix for PR 1171.
-
- * Fixed scrolling (PR 1174 et al.).
+   (Enables a fix for PR 1171)
 
  * Added an initializer to string-snip% that accepts a string.
 
  * Added `call-clickback' method to text%.
+
+ * Editor reading/writing/cuting/pasting used to rely on global
+   state. Consequently, only one editor could be read/written/etc.  at
+   a time, and exceptions raised during the read/write/etc. (e.g., by
+   a michevious snip object) could kill reading/writing/etc. for all
+   editors in the system. This is fixed; all state resides in the
+   stream, now. (PR 1201 et al.)
+
+ * Removed `read-done' and `write-done' from snip-class%.
+
+ * Moved `reading-version' from snip-class-list% to snip-class%.
+
+ * Fixed `get-file' and `put-file' interpretation of directory
+   argument: filename is internally normalized (changing '/' to `\',
+   etc.). (PR 1238)
+
+ * X: Fixed input of keypad characters and dead characters, such as
+   accent marks. (comp.lang.scheme and PR 1263)
 
 Version 102/3:
 
@@ -58,6 +80,13 @@ Removed `get-afm-name' and `set-afm-name' from
  PostScript font name as the AFM file name
 Changed the meaning of the `on-change' method in editor%. See the
  manual for details.
+Editor reading/writing/cuting/pasting no longer relies on global
+ state, so exceptions raised for one editor do not affect other
+ editors.
+Removed `read-done' and `write-done' from snip-class%.
+Moved `reading-version' to snip-class% (from snip-class-list%).
+X: Fixed input of keypad characters and dead characters (such as
+ accent marks)
 
 Version 101: October 25, 1999
 
