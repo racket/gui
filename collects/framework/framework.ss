@@ -445,7 +445,7 @@
     (filename)
     "Generates a name for an autosave file from \\var{filename}.")
    (path-utils:generate-backup-name
-    (string? . -> . string?)
+    (path? . -> . path?)
     (filename)
     "Generates a name for an backup file from \\var{filename}.")
    (finder:dialog-parent-parameter
@@ -500,13 +500,13 @@
     (opt->
      ()
      (string?
-      (union false? string?)
+      (union false? path?)
       boolean?
       string?
       (union false? regexp?)
       string?
       (union (is-a?/c top-level-window<%>) false?))
-     (union false? string?))
+     (union false? path?))
     (()
      ((name "Untitled")
       (directory #f)
@@ -524,12 +524,12 @@
    (finder:common-get-file
     (opt->
      ()
-     ((union string? false?)
+     ((union path? false?)
       string?
       (union regexp? false?)
       string?
       (union false? (is-a?/c top-level-window<%>)))
-     (union string? false?))
+     (union path? false?))
     (()
      ((directory #f)
       (prompt "Select File")
@@ -546,13 +546,13 @@
     (opt->
      ()
      (string?
-      (union false? string?)
+      (union false? path?)
       boolean?
       string?
       (union false? regexp?)
       string?
       (union (is-a?/c top-level-window<%>) false?))
-     (union false? string?))
+     (union false? path?))
     (()
      ((name "Untitled")
       (directory #f)
@@ -570,12 +570,12 @@
    (finder:std-get-file
     (opt->
      ()
-     ((union string? false?)
+     ((union path? false?)
       string?
       (union regexp? false?)
       string?
       (union false? (is-a?/c top-level-window<%>)))
-     (union string? false?))
+     (union path? false?))
     (()
      ((directory #f)
       (prompt "Select File")
@@ -592,13 +592,13 @@
     (opt->
      ()
      (string?
-      (union false? string?)
+      (union false? path?)
       boolean?
       string?
       (union false? regexp?)
       string?
       (union (is-a?/c top-level-window<%>) false?))
-     (union false? string?))
+     (union false? path?))
     (()
      ((name "Untitled")
       (directory #f)
@@ -620,12 +620,12 @@
    (finder:get-file
     (opt->
      ()
-     ((union string? false?)
+     ((union path? false?)
       string?
       (union regexp? string? false?)
       string?
       (union false? (is-a?/c top-level-window<%>)))
-     (union string? false?))
+     (union path? false?))
     (()
      ((directory #f)
       (prompt "Select File")
@@ -645,12 +645,12 @@
    (finder:common-get-file-list
     (opt->
      ()
-     ((union false? string?)
+     ((union false? path?)
       string?
       (union false? regexp?)
       string?
       (union false? (is-a?/c top-level-window<%>)))
-     (union (listof string?) false?))
+     (union (listof path?) false?))
     (()
      ((directory #f)
       (prompt "Select File")
@@ -696,17 +696,17 @@
     (handler)
     "Extracts the name from a handler.")
    (handler:handler-extension
-    (handler:handler? . -> . string?)
+    (handler:handler? . -> . (union (path? . -> . boolean?) (listof string?)))
     (handler)
     "Extracts the extension from a handler.")
    (handler:handler-handler
-    (handler:handler? . -> . (string? . -> . (is-a?/c frame:editor<%>)))
+    (handler:handler? . -> . (path? . -> . (is-a?/c frame:editor<%>)))
     (handler)
     "Extracs the handler's handling function")
    (handler:insert-format-handler
     (string?
-     (union string? (listof string?) (string? . -> . boolean?))
-     (string? . -> . (union false? (is-a?/c frame:editor<%>)))
+     (union string? (listof string?) (path? . -> . boolean?))
+     (path? . -> . (union false? (is-a?/c frame:editor<%>)))
      . -> .
      void?)
     (name pred handler)
@@ -721,7 +721,7 @@
     ". If it is a function, the filename is applied to the function and the"
     "functions result determines if this is the handler to use.")
    (handler:find-named-format-handler
-    (string? . -> . (string? . -> . (is-a?/c frame:editor<%>)))
+    (string? . -> . (path? . -> . (is-a?/c frame:editor<%>)))
     (name)
     "This function selects a format handler. See also"
     "@flink handler:insert-format-handler %"
@@ -729,7 +729,7 @@
     ""
     "It finds a handler based on \\var{name}.")
    (handler:find-format-handler
-    (string? . -> . (string? . -> . (is-a?/c frame:editor<%>)))
+    (path? . -> . (path? . -> . (is-a?/c frame:editor<%>)))
     (filename)
     "This function selects a format handler. See also"
     "@flink handler:insert-format-handler %"
@@ -739,7 +739,7 @@
 
    (handler:edit-file
     (opt->
-     ((union string? false?))
+     ((union path? false?))
      ((-> (is-a?/c frame:editor<%>)))
      (union false? (is-a?/c frame:editor<%>)))
     ((filename)
@@ -785,7 +785,7 @@
 
    (handler:current-create-new-window
     (case->
-     (((union false? string?) . -> . (is-a?/c frame%)) . -> . void)
+     (((union false? path?) . -> . (is-a?/c frame%)) . -> . void)
      (-> ((union false? string?) . -> . (is-a?/c frame%))))
     ((new-window-handler) ())
     "This is a parameter that controls how the framework"
@@ -833,7 +833,7 @@
     ".")
 
    (handler:add-to-recent
-    (string? . -> . void?)
+    (path? . -> . void?)
     (filename)
     "Adds a filename to the list of recently opened files.")
 

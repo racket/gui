@@ -993,6 +993,7 @@
           [define get-label (lambda () label)]
           [define set-label
             (lambda (t)
+              (printf "set-label ~s\n" t)
               (when (and (string? t)
                          (not (string=? t label)))
                 (set! label t)
@@ -1179,8 +1180,8 @@
 	    [else (void)])
 
           (let ([ed-fn (send (get-editor) get-filename)])
-            (set! label (or (and ed-fn
-                                 (file-name-from-path ed-fn))
+            (set! label (or (and ed-fn 
+                                 (path->string (file-name-from-path ed-fn)))
                             (send (get-editor) get-filename/untitled-name))))
           (do-label)
           (let ([canvas (get-canvas)])

@@ -58,6 +58,35 @@
        (lambda (c) (list (send c red) (send c green) (send c blue)))
        (lambda (l) (make-object color% (car l) (cadr l) (caddr l))))
       
+      (preferences:set-default 'framework:recently-opened-files/pos 
+                               null 
+                               (lambda (x) (and (list? x) 
+                                                (andmap
+                                                 (lambda (x) 
+                                                   (and (list? x)
+                                                        (= 3 (length x))
+                                                        (bytes? (car x))
+                                                        (number? (cadr x))
+                                                        (number? (caddr x))))
+                                                 x))))
+      
+      (preferences:set-un/marshall
+       'framework:recently-opened-files/pos
+       (lambda (l) (map (lambda (ele) (cons (path->bytes (car ele)) (cdr ele))) l))
+       (lambda (l) 
+         (let/ec k
+           (unless (list? l)
+             (k '()))
+           (map (lambda (x)
+                  (unless (and (list? x)
+                               (= 3 (length x))
+                               (bytes? (car x))
+                               (number? (cadr x))
+                               (number? (caddr x)))
+                    (k '()))
+                  (cons (bytes->path (car x)) (cdr x)))
+                l))))
+      
       (preferences:set-default 'framework:last-directory (find-system-path 'home-dir) 
                                (lambda (x) (or (not x) path-string?)))
       
@@ -84,17 +113,6 @@
       (preferences:set-default 'framework:recent-items-window-h 600 number?)
       (preferences:set-default 'framework:open-here? #f boolean?)
       (preferences:set-default 'framework:show-delegate? #f boolean?)
-      (preferences:set-default 'framework:recently-opened-files/pos 
-                               null 
-                               (lambda (x) (and (list? x) 
-                                                (andmap
-                                                 (lambda (x) 
-                                                   (and (list? x)
-                                                        (= 3 (length x))
-                                                        (string? (car x))
-                                                        (number? (cadr x))
-                                                        (number? (caddr x))))
-                                                 x))))
       (preferences:set-default 'framework:search-using-dialog? #t boolean?)
       (preferences:set-default 'framework:windows-mdi #f boolean?)
       (preferences:set-default 'framework:menu-bindings #t boolean?)

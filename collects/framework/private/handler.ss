@@ -46,7 +46,9 @@
 	     [(not (procedure? handler))
 	      (error who "handler was not a function")]
 	     [else (make-handler name
-				 extension
+				 (if (string? extension)
+                                     (list extension)
+                                     extension)
 				 handler)]))))
       
       (define insert-format-handler
@@ -67,11 +69,8 @@
 		 (let ([ext (handler-extension handler)])
 		   (when (or (and (procedure? ext)
 				  (ext name))
-			     (and (string? ext)
-				  (string=? ext extension))
 			     (and (pair? ext)
-				  (ormap (lambda (ext) 
-					   (string=? ext extension))
+				  (ormap (lambda (ext) (string=? ext extension))
 					 ext)))
 		     (exit (handler-handler handler)))))
 	       handlers)
@@ -110,7 +109,7 @@
 		      (lambda ()
 			((current-create-new-window) filename)))]
 	 [(filename make-default)
-	  (with-handlers ([exn:fail?
+	  (with-handlers ([(lambda (x) #f) ;exn:fail?
 			   (lambda (exn)
 			     (message-box
 			      (string-constant error-loading)
@@ -144,7 +143,7 @@
 			  fr)]
 		       [else
 			(let ([handler
-			       (if (string? filename)
+			       (if (path? filename)
 				   (find-format-handler filename)
 				   #f)])
 			  (add-to-recent filename)
@@ -155,10 +154,12 @@
       
       ;; type recent-list-item = (list/p string? number? number?)
       
-      ;; add-to-recent : string -> void
+      ;; add-to-recent : path -> void
       (define (add-to-recent filename)
         (let* ([old-list (preferences:get 'framework:recently-opened-files/pos)]
-               [old-ents (filter (lambda (x) (string=? (car x) filename)) old-list)]
+               [old-ents (filter (lambda (x) (string=? (path->string (car x))
+                                                       (path->string filename))) 
+                                 old-list)]
                [old-ent (if (null? old-ents)
                             #f
                             (car old-ents))]
@@ -171,7 +172,8 @@
       
       ;; compare-recent-list-items : recent-list-item recent-list-item -> boolean
       (define (compare-recent-list-items l1 l2)
-        (string=? (car l1) (car l2)))
+        (string=? (path->string (car l1))
+                  (path->string (car l2))))
 
       ;; size-down : (listof X) -> (listof X)[< recent-max-count]
       ;; takes a list of stuff and returns the
@@ -201,7 +203,8 @@
       ;; with the positions `start' and `end'
       (define (set-recent-position filename start end)
         (let ([recent-items
-               (filter (lambda (x) (string=? (car x) filename))
+               (filter (lambda (x) (string=? (path->string (car x))
+                                             (path->string filename)))
                        (preferences:get 'framework:recently-opened-files/pos))])
           (unless (null? recent-items)
             (let ([recent-item (car recent-items)])
@@ -228,10 +231,12 @@
                       (let ([filename (car recent-list-item)])
                         (instantiate menu-item% ()
                           (parent menu)
-                          (label (regexp-replace*
-                                  "&"
-                                  (gui-utils:trim-string filename 200)
-                                  "&&"))
+                          (label (gui-utils:trim-string  
+                                  (regexp-replace*
+                                   "&"
+                                   (path->string filename)
+                                   "&&")
+                                  200))
                           (callback (lambda (x y) (open-recent-list-item recent-list-item))))))
                     recently-opened-files)))
 
@@ -299,7 +304,8 @@
               (for-each (lambda (item) (add-recent-item item))
                         (if (eq? (preferences:get 'framework:recently-opened-sort-by) 'name)
                             (quicksort recent-list-items
-                                       (lambda (x y) (string<=? (car x) (car y))))
+                                       (lambda (x y) (string<=? (path->string (car x))
+                                                                (path->string (car y)))))
                             recent-list-items))
               (send ed end-edit-sequence)))
           

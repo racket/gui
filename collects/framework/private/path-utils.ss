@@ -49,18 +49,17 @@
 		      (loop (add1 n))
 		      new-name)))))))
 
-      (define re:backup (regexp "(.*)\\.[^.]*"))
-      
-      (define generate-backup-name
-	(lambda (name)
-	  (cond
-            [(and (eq? (system-type) 'windows)
-                  (regexp-match re:backup name))
-             =>
-             (lambda (m)
-               (string-append (cadr m) ".bak"))]
-            [(eq? (system-type) 'windows)
-             (string-append name ".bak")]
-            [else
-             (string-append name "~")]))))))
+      (define (generate-backup-name full-name)
+        (let-values ([(base name dir?) (split-path full-name)])
+          (let ([name-str (path->string name)])
+            (cond
+              [(and (eq? (system-type) 'windows)
+                    (regexp-match #rx"(.*)\\.[^.]*" name-str))
+               =>
+               (lambda (m)
+                 (build-path base (string-append (cadr m) ".bak")))]
+              [(eq? (system-type) 'windows)
+               (build-path base (string-append name-str ".bak"))]
+              [else
+               (build-path base (string-append name-str "~"))])))))))
 

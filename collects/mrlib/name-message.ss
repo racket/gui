@@ -34,12 +34,14 @@
       ;; label : string
       (define label (string-constant untitled))
       
-      ;; set-message : boolean (union #f string) -> void
+      ;; set-message : boolean (union #f path string) -> void
+      ;; if file-name? is #t, path-name should be a path (or #f)
+      ;; if file-name? is #f, path-name should be a string (or #f)
       (define/public (set-message file-name? path-name)
         (set! paths (if (and file-name? 
                              path-name 
                              (file-exists? path-name))
-                        (explode-path (normalize-path path-name))
+                        (map path->string (explode-path (normalize-path path-name)))
                         #f))
         (let ([new-label (cond
                            [(and paths (not (null? paths)))

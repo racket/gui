@@ -420,7 +420,7 @@
           (define/public (update-frame-filename)
             (let* ([filename (get-filename)]
                    [name (if filename
-                             (file-name-from-path (normalize-path filename))
+                             (path->string (file-name-from-path (normalize-path filename)))
                              (get-filename/untitled-name))])
               (for-each (lambda (canvas)
                           (let ([tlw (send canvas get-top-level-window)])
@@ -436,7 +436,7 @@
           (define/public (get-filename/untitled-name)
             (let ([filename (get-filename)])
               (if filename
-                  filename
+                  (path->string filename)
                   (begin
                     (unless untitled-name
                       (set! untitled-name (gui-utils:next-untitled-name)))

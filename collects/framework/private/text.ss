@@ -910,7 +910,7 @@ WARNING: printf is rebound in the body of the unit to always
               (channel-put this-eventspace-flush-chan c)
               (let ([viable-bytes (channel-get c)])
                 (do-insertion viable-bytes))))
-
+          
           (define/public (get-in-port)
             (unless in-port (error 'get-in-port "not ready"))
             in-port)
