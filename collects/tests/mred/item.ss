@@ -130,8 +130,9 @@
 
 (define popup-test-canvas%
   (class canvas% (objects names . args)
-    (inherit popup-menu get-dc)
+    (inherit popup-menu get-dc refresh)
     (public
+      [tab-in? #f]
       [last-m null]
       [last-choice #f])
     (override
@@ -141,7 +142,9 @@
 	   (send dc clear)
 	   (send dc draw-text "Left: popup hide state" 0 0)
 	   (send dc draw-text "Right: popup previous" 0 20)
-	   (send dc draw-text (format "Last pick: ~s" last-choice) 0 40)))]
+	   (send dc draw-text (format "Last pick: ~s" last-choice) 0 40)
+	   (when tab-in?
+	     (send dc draw-text "Tab in" 0 60))))]
       [on-event
        (lambda (e)
 	 (if (send e button-down?)
@@ -172,7 +175,12 @@
 			    m)
 			  last-m)])
 	       (set! last-m m)
-	       (popup-menu m (inexact->exact x) (inexact->exact y)))))])
+	       (popup-menu m (inexact->exact x) (inexact->exact y)))))]
+      [on-tab-in (lambda () (set! tab-in? #t) (refresh))]
+      [on-focus (lambda (on?)
+		  (when (and tab-in? (not on?))
+		    (set! tab-in? #f)
+		    (refresh)))])
     (sequence
       (apply super-init args))))
 
@@ -489,7 +497,7 @@
 				       ; "text msg" "image msg"
 				       "text")
 				 cp2)])
-      
+      (send canvas accept-tab-focus #t)
       (add-focus-note f2 ep2)
       (send f2 set-info ep2)
       

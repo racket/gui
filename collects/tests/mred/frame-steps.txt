@@ -8,12 +8,12 @@ names; they're essentially the same set of tests, but for different
 sets of controls. There are just too many kinds of controls to fit in
 one frame.
 
-Note that the clock in the upper right of the "Test Selector" frame
-should increment every second.
+The clock in the upper right of the "Test Selector" frame should
+increment every second.
 
-The field of buttons at the bottom of the Selector frame open little
-frames for testing individual control types in detail. Those frames
-come with their own instructions.
+The buttons at the bottom of the Selector frame open little frames for
+testing individual control types in detail. Those frames come with
+their own instructions.
 
 Make XXX Frame
 --------------
@@ -55,12 +55,17 @@ Medium Frame should contain:
  Text (a media-text)
    initial & starting
 
-
 The names on labels must match the above exactly (except that <>
 indicates an image). Watch out for letters that are dropped or
 &s that are dropped.
 
 Make sure all the controls with moving parts work.
+
+Tabbing and arrow keys should work correctly. The canvas in the bottom
+middle area does not receive the focus via tabs in Big Frame, but it
+does in Medium Frame. When it receives the focus via a tab, "Tab in"
+is drawn inthe canvas; when the focus leaves the canvas for any reason
+(tab out, mouse click somewhere else, etc.), "Tab in" is erased.
 
 Window Resizing
 ---------------
@@ -197,6 +202,10 @@ Combinations to try:
    * Busy + Bull + Cross - everywhere changed
        - Uncheck Busy and verify Bull + Cross
        (that's enough)
+
+Also, while the busy cursor is on, try creating a new Big/Medium Frame
+and make sure that the busy cursor is active in the new frame and over
+all controls in the new frame.
       
 Popup Menus (Big Frame)
 -----------

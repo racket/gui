@@ -53,9 +53,8 @@
        [hp2 hp]
        [hp3 (make-object horizontal-pane% vp)]
        [bb (make-object bitmap% (sys-path "bb.gif") 'gif)]
-       [return (let ([bm (make-object bitmap% (sys-path "return.xbm") 'xbm)]
-		     [dc (make-object bitmap-dc%)])
-		 (send dc set-bitmap bm)
+       [return (let* ([bm (make-object bitmap% (sys-path "return.xbm") 'xbm)]
+		      [dc (make-object bitmap-dc% bm)])
 		 (send dc draw-line 0 3 20 3)
 		 (send dc set-bitmap #f)
 		 bm)]
@@ -310,51 +309,52 @@
 				  (send dc set-brush b))))
 
 			    (when last?
-			      ; Splines
-			      (define op (send dc get-pen))
-			      (define (draw-ess dx dy)
-				(send dc draw-spline 
-				      (+ dx 200) (+ dy 10)
-				      (+ dx 218) (+ dy 12)
-				      (+ dx 220) (+ dy 20))
-				(send dc draw-spline 
-				      (+ dx 220) (+ dy 20)
-				      (+ dx 222) (+ dy 28)
-				      (+ dx 240) (+ dy 30)))
-			      (send dc set-pen pen0s)
-			      (draw-ess 0 0)
-			      (send dc set-pen (make-object pen% "RED" 0 'solid))
-			      (draw-ess -2 2)
+			      (let ([op (send dc get-pen)])
 
-			      ; Brush patterns:
-			      (let ([pat-list (list 'bdiagonal-hatch
-						    'crossdiag-hatch
-						    'fdiagonal-hatch
-						    'cross-hatch
-						    'horizontal-hatch
-						    'vertical-hatch)]
-				    [b (make-object brush% "BLACK" 'solid)]
-				    [ob (send dc get-brush)]
-				    [obg (send dc get-background)]
-				    [blue (make-object color% "BLUE")])
-				(let loop ([x 245][y 10][l pat-list])
-				  (unless (null? l)
-				    (send b set-color "BLACK")
-				    (send b set-style (car l))
-				    (send dc set-brush b)
-				    (send dc draw-rectangle x y 20 20)
-				    (send dc set-brush ob)
-				    (send b set-color "GREEN")
-				    (send dc set-brush b)
-				    (send dc draw-rectangle (+ x 25) y 20 20)
-				    (send dc set-background blue)
-				    (send dc draw-rectangle (+ x 50) y 20 20)
-				    (send dc set-background obg)
-				    (send dc set-brush ob)
-				    (loop x (+ y 25) (cdr l)))))
-
-			      (send dc set-pen op)
-
+				; Splines
+				(define (draw-ess dx dy)
+				  (send dc draw-spline 
+					(+ dx 200) (+ dy 10)
+					(+ dx 218) (+ dy 12)
+					(+ dx 220) (+ dy 20))
+				  (send dc draw-spline 
+					(+ dx 220) (+ dy 20)
+					(+ dx 222) (+ dy 28)
+					(+ dx 240) (+ dy 30)))
+				(send dc set-pen pen0s)
+				(draw-ess 0 0)
+				(send dc set-pen (make-object pen% "RED" 0 'solid))
+				(draw-ess -2 2)
+			      
+				; Brush patterns:
+				(let ([pat-list (list 'bdiagonal-hatch
+						      'crossdiag-hatch
+						      'fdiagonal-hatch
+						      'cross-hatch
+						      'horizontal-hatch
+						      'vertical-hatch)]
+				      [b (make-object brush% "BLACK" 'solid)]
+				      [ob (send dc get-brush)]
+				      [obg (send dc get-background)]
+				      [blue (make-object color% "BLUE")])
+				  (let loop ([x 245][y 10][l pat-list])
+				    (unless (null? l)
+				      (send b set-color "BLACK")
+				      (send b set-style (car l))
+				      (send dc set-brush b)
+				      (send dc draw-rectangle x y 20 20)
+				      (send dc set-brush ob)
+				      (send b set-color "GREEN")
+				      (send dc set-brush b)
+				      (send dc draw-rectangle (+ x 25) y 20 20)
+				      (send dc set-background blue)
+				      (send dc draw-rectangle (+ x 50) y 20 20)
+				      (send dc set-background obg)
+				      (send dc set-brush ob)
+				      (loop x (+ y 25) (cdr l)))))
+				
+				(send dc set-pen op))
+				
 			      ; B&W 8x8 stipple:
 			      (unless no-bitmaps?
 				(let ([bml (get-b&w-light-stipple)]
@@ -400,6 +400,7 @@
 					(loop (cdr fam) (cdr stl) (cdr wgt) (cdr sze) x (+ y h))))))
 				(send dc set-pen save-pen)))
 
+			    ; Bitmap copying:
 			    (when (and (not no-bitmaps?) last?)
 			      (let ([x 5] [y 165])
 				(send dc draw-bitmap (get-icon) x y 'xor)
@@ -418,11 +419,14 @@
 						       mode color)
 						 (set! x (+ x w 10))))
 					     (printf "bad bitmap~n")))])
+				  ;; BB icon
 				  (do-one bb 'solid black)
 				  (let ([start x])
+				    ;; First three return icons:
 				    (do-one return 'solid black)
 				    (do-one return 'solid red)
 				    (do-one return 'opaque red)
+				    ;; Next three, on a bluew background
 				    (let ([end x]
 					  [b (send dc get-brush)])
 				      (send dc set-brush (make-object brush% "BLUE" 'solid))
@@ -434,11 +438,27 @@
 				      (do-one return 'solid red)
 				      (do-one return 'opaque red)
 				      (set! y (- y 18))))
+				  ;; Another BB icon, make sure color has no effect
 				  (do-one bb 'solid red)
+				  ;; Another return, blacnk on red
 				  (let ([bg (send dc get-background)])
 				    (send dc set-background (send the-color-database find-color "BLACK"))
 				    (do-one return 'opaque red)
 				    (send dc set-background bg))
+				  ;; Return by drawing into color, copying color to monochrome, then
+				  ;;  monochrome back oonto canvas:
+				  (let* ([w (send return get-width)]
+					 [h (send return get-height)]
+					 [color (make-object bitmap% w h)]
+					 [mono (make-object bitmap% w h #t)]
+					 [cdc (make-object bitmap-dc% color)]
+					 [mdc (make-object bitmap-dc% mono)])
+				    (send cdc clear)
+				    (send cdc draw-bitmap return 0 0)
+				    (send mdc clear)
+				    (send mdc draw-bitmap color 0 0)
+				    (send dc draw-bitmap mono
+					  (- x w 10) (+ y 18)))
 				  (send dc set-pen pens))))
 
 			    (when (and (not no-stipples?) last?)

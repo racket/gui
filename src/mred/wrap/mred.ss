@@ -746,7 +746,12 @@
 					     (when (and (is-a? o wx-text-editor-canvas%)
 							(send o is-single-line?))
 					       (let ([e (send o get-editor)])
-						 (send e set-position 0 (send e last-position) #f #t 'local))))))))])
+						 (as-exit
+						  (lambda ()
+						    (send e set-position 0 (send e last-position) #f #t 'local)))))
+					     (when (or (is-a? o wx-canvas%)
+						       (is-a? o wx-editor-canvas%))
+					       (as-exit (lambda () (send o on-tab-in)))))))))])
 			   (if (is-a? o wx:radio-box%)
 			       (let ([n (send o number)]
 				     [s (send o button-focus -1)]
@@ -1409,6 +1414,7 @@
 		      (private
 			[tabable? #f])
 		      (public
+			[on-tab-in (lambda () (send (wx->mred this) on-tab-in))]
 			[get-tab-focus (lambda () tabable?)]
 			[set-tab-focus (lambda (v) (set! tabable? v))])
 		      (override
@@ -1474,6 +1480,7 @@
 	   [(#\tab #\return escape) (not single-line-canvas?)]
 	   [else (not meta?)]))])
     (public
+      [on-tab-in (lambda () (send (wx->mred this) on-tab-in))]
       [set-single-line (lambda () (set! single-line-canvas? #t))]
       [is-single-line? (lambda () single-line-canvas?)]
       [set-line-count (lambda (n)
@@ -3247,6 +3254,7 @@
       [on-event (lambda (e) (send wx do-on-event e))]
       [on-paint (lambda () (when wx (send wx do-on-paint)))]
       [on-scroll (lambda (e) (send wx do-on-scroll e))]
+      [on-tab-in (lambda () (void))]
       
       [min-client-width (param (lambda () wx) 'min-client-width)]
       [min-client-height (param (lambda () wx) 'min-client-height)]
@@ -4584,6 +4592,14 @@
   (lambda (canvas)
     (check-instance 'unregister-collecting-blit canvas% 'canvas% #f canvas)
     (wx:unregister-collecting-blit (mred->wx canvas))))
+
+(define bitmap-dc%
+  (class wx:bitmap-dc% ([bm #f])
+    (inherit set-bitmap)
+    (sequence
+      (super-init)
+      (when bm
+	(set-bitmap bm)))))
 
 (define (find-item-frame item)
   (let loop ([i item])
