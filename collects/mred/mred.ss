@@ -4160,8 +4160,11 @@
       (let ([cwho '(constructor frame)])
 	(check-label-string cwho label)
 	(check-frame-parent/false cwho parent)
-	(for-each (lambda (x) (check-dimension cwho x)) (list width height x y))
-	(check-style cwho #f '(no-resize-border no-caption no-system-menu mdi-parent mdi-child toolbar-button) 
+	(check-dimension cwho width)
+	(check-dimension cwho height)
+	(check-init-pos-integer cwho x)
+	(check-init-pos-integer cwho y)
+	(check-style cwho #f '(no-resize-border no-caption no-system-menu mdi-parent mdi-child toolbar-button hide-menu-bar) 
 		     style)
 	(when (memq 'mdi-child style)
 	  (when (memq 'mdi-parent style)
@@ -4210,7 +4213,7 @@
 	  (lambda (finish) 
 	    (set! wx (finish (make-object wx-frame% this this
 					  (and parent (mred->wx parent)) label
-					  (or x -1) (or y -1)
+					  (or x -11111) (or y -11111)
 					  (or width -1) (or height -1)
 					  style)
 			     (memq 'mdi-parent style)))
@@ -6828,6 +6831,12 @@
       (wx:display-size xb yb (if full-screen? 1 0))
       (values (unbox xb) (unbox yb)))))
 
+(define (get-display-left-top-inset)
+  (let ([xb (box 0)]
+	[yb (box 0)])
+    (wx:display-origin xb yb)
+    (values (unbox xb) (unbox yb))))
+
 ;; Currently only used for PS print and preview
 (wx:set-executer
  (let ([orig-err (current-error-port)])
@@ -7126,6 +7135,8 @@
 (define check-range-integer (check-bounded-integer 0 10000 #f))
 
 (define check-slider-integer (check-bounded-integer -10000 10000 #f))
+
+(define check-init-pos-integer (check-bounded-integer -10000 10000 #t))
 
 (define check-margin-integer (check-bounded-integer 0 1000 #f))
 
@@ -7761,6 +7772,7 @@
 	get-ps-setup-from-user
 	play-sound
 	get-display-size
+	get-display-left-top-inset
 	get-color-from-user
 	get-font-from-user
 	append-editor-operation-menu-items

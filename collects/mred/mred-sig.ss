@@ -78,6 +78,7 @@
      get-color-from-user
      get-directory
      get-display-depth
+     get-display-left-top-inset
      get-display-size
      get-face-list
      get-family-builtin-face
