@@ -523,15 +523,6 @@
 			  "delete-previous-character")
 		      edit event #t)))]
 
-	   [cut-to-end-of-paragraph
-	    (lambda (text event)
-	      (let* ([start (send text get-start-position)]
-		     [para (send text position-paragraph start)]
-		     [end (send text paragraph-end-position para)])
-		(if (= start end)
-		    (send text cut #f (send event get-time-stamp) start (+ start 1))
-		    (send text cut #f (send event get-time-stamp) start end))))]
-
 	   [toggle-overwrite
 	    (lambda (edit event)
 	      (send edit set-overwrite-mode
@@ -599,8 +590,6 @@
 	  
 	  (add "delete-key" delete-key)
 	  
-	  (add "cut-to-end-of-paragraph" cut-to-end-of-paragraph)
-
 	  ; Map keys to functions
 	  (map "c:g" "ring-bell")
 	  (map-meta "c:g" "ring-bell")
@@ -707,7 +696,6 @@
 	  
 	  (map "c:l" "center-view-on-line")
 	  
-	  (map "c:k" "cut-to-end-of-paragraph")
 	  (map "c:y" "paste-clipboard")
 	  (map-meta "y" "paste-next")
 	  (map "a:v" "paste-clipboard")
