@@ -2,7 +2,7 @@
   (import mred-interfaces^)
 
   (define icon-path 
-    (with-handlers ([void (lambda (x) (collection-path "system"))]) 
+    (with-handlers ([void (lambda (x) (collection-path "mzlib"))]) 
       (collection-path "icons")))
   
   (define (load-icon name type)
