@@ -15,6 +15,7 @@
     (-> number?)
     ()
     "Returns the number of pending events (those that haven't completed yet)")
+
    (test:run-interval
     (case->
      (number? . -> . void?)
@@ -102,7 +103,7 @@
     "active frame. Otherwise, it pushes the button argument.")
 
    (test:set-radio-box!
-    ((is-a?/c radio-box%) (union string? number?) . -> . void?)
+    ((union string? (is-a?/c radio-box%)) (union string? number?) . -> . void?)
     (radio-box state)
     "Sets the radio-box to \\var{state}. If \\var{state} is a"
     "string, this function finds the choice with that label and"
@@ -120,7 +121,7 @@
     "Finds a \\iscmclass{radio-box} that has a label \\var{entry}"
     "and sets the radio-box to \\var{entry}.")
    (test:set-check-box!
-    ((is-a?/c check-box%) boolean? . -> . void?)
+    ((union string? (is-a?/c check-box%)) boolean? . -> . void?)
     (check-box state)
     "Clears the \\iscmclass{check-box} item if \\var{state} is \\rawscm{\\#f}, and sets it"
     "otherwise."
@@ -128,12 +129,14 @@
     "If \\var{check-box} is a string,"
     "this function searches for a \\iscmclass{check-box} with a label matching that string,"
     "otherwise it uses \var{check-box} itself.")
+
    (test:set-choice!
-    ((is-a?/c choice%) string? . -> . void?)
+    ((union string? (is-a?/c choice%)) string? . -> . void?)
     (choice str)
     "Selects \\var{choice}'s item \\var{str}. If \\var{choice} is a string,"
     "this function searches for a \\iscmclass{choice} with a label matching"
     "that string, otherwise it uses \\var{choice} itself.")
+
    (test:keystroke
     (opt->
      ((union char? symbol?))
@@ -172,11 +175,12 @@
     "The string for the menu item does not include its keyboard equivalent."
     "For example, to select ``New'' from the ``File'' menu, "
     "use ``New'', not ``New Ctrl+m n''.")
+
    (test:mouse-click
     (opt->
      ((symbols 'left 'middle 'right)
-      inexact?
-      inexact?)
+      (and/f exact? integer?)
+      (and/f exact? integer?))
      ((listof (symbols 'alt 'control 'meta 'shift 'noalt 'nocontrol 'nometa 'noshift)))
      void?)
     ((button x y)
@@ -211,7 +215,8 @@
       (and tlw
 	   (let loop ([tlw tlw])
 	     (or (pred tlw)
-		 (ormap loop (send tlw get-children)))))))
+		 (and (is-a? tlw area-container<%>)
+		      (ormap loop (send tlw get-children))))))))
 
   (define initial-run-interval 0)  ;; milliseconds
 
