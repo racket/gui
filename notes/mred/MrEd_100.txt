@@ -67,8 +67,8 @@ application.
 MrEd's `graphical-read-eval-print-loop' implements a rather primitive
 REPL, unlike the relatively useful REPL provided by the old MrEd
 toolbox-framework combination. MrEd 100 provides no replacement for
-the old REPL. Instead, DrScheme 100 provides [in 100alpha2] a REPL
-that matches MrEd's language exactly.
+the old REPL. Instead, DrScheme 100 provides a REPL that matches
+MrEd's language exactly.
 
 Porting to MrEd 100
 -------------------
