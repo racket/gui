@@ -3,58 +3,62 @@
                         *    MrEd 100    *
                         ******************
 
-The entity known as "MrEd" in previous versions has been split
-up. MrEd 53 comprised two parts: 
+MrEd 100 is the successor to MrEd 53. For MrEd 100, we redesigned the
+GUI toolbox interface to streamline it, to make it more Scheme-like,
+and to make it more accessible to new users. While we preserved the
+windowing model that underlies the old toolbox, every MrEd 53 program
+requires substantial changes to run in MrEd 100.
 
- * a low-level toolbox (containing names prefixed with wx:) that was
+MrEd 53 comprised two parts:
+
+ * a low-level toolbox (containing names prefixed with `wx:') that was
    too primitive for real programming (no geometry management); and
 
- * an application framework (containing names prefixed with mred:)
+ * an application framework (containing names prefixed with `mred:')
    that provided useful window classes (with geometry management) but
-   much, much more, making it too heavyweight for simple GUI programs.
+   also much more, making it too heavyweight for simple GUI programs.
 
-In MrEd 100, we split up the core toolbox and the application
-framework. The new toolbox includes the most useful stuff from the
-old mred: domain, such as the windowing classes with geometry
-management.  These mred: classes replace clumsy wx: classes. Useless
-and redundant methods have been eliminated. The overall effect is that
-the MrEd 100 toolbox is both smaller and better than the core toolbox
-in MrEd 53.
+For MrEd 100, we split the core toolbox and the application
+framework. The new toolbox includes the most useful stuff from the old
+`mred:' domain, such as the windowing classes with geometry
+management.  Those `mred:' classes replace clumsy `wx:'
+classes. Useless and redundant methods have been eliminated. As a
+result, the MrEd 100 toolbox is both smaller and better than the core
+toolbox in MrEd 53.
 
-The old mred: classes that implement the application framework has been
-moved into a separate, optional library. It is no longer necessary to
-understand units, collections, and the framework for bootstrapping large
-programs to get a simple MrEd application going.
+The old `mred:' classes that implement the application framework have
+been moved into a separate, optional library. It is no longer
+necessary to understand units and collections to implement a simple
+MrEd application.
 
-Unlike MrEd 53, MrEd 100 is just an extension of MzScheme with a
-graphical toolbox. No extra files are needed to start the MrEd
+Unlike MrEd 53, MrEd 100 is merely an extension of MzScheme with a GUI
+toolbox. No extra files are needed to start the MrEd
 executable. Command-line handling for MrEd 100 is the same as for
-MzScheme --- the only difference is that MrEd executes
-'(graphical-read-eval-print-loop)' on startup instead of
-'(read-eval-print-loop)'.
+MzScheme; the only difference is that MrEd executes
+`(graphical-read-eval-print-loop)' on startup instead of
+`(read-eval-print-loop)'.
 
-MrEd's `graphical-read-eval-print-loop' implements a *very* primitive
-GUI REPL, not the relatively useful REPL that came with the old MrEd
-toolbox/framework combo.  DrScheme now provides the only development
-environment for MrEd. But unlike previous releases, DrScheme 100
+MrEd's `graphical-read-eval-print-loop' implements a rather primitive
+REPL, as opposed to the relatively useful REPL that came with the old
+MrEd toolbox-framework combination.  DrScheme 100 replaces the old
+MrEd REPL. Unlike previous releases of DrScheme and MrEd, DrScheme 100
 provides a REPL that matches MrEd's language exactly.
 
-Everything works in MrEd 100. Previous versions of MrEd made all of
-the low-level toolbox (wxWindows) available, regardless of how well
-certain parts worked (or how consistently across platforms). Over many
-releases, we fixed a lot of things that didn't work, but it was still
-hard to say which parts of the toolbox were reliable, even in MrEd
-53. For 100, we've turned the tables: everything that is truly useful
-works (to the best of our testing), and the other junk has been thrown
-away.
+The remainder of this document provides an overview of MrEd 100 and
+notes that are useful for upgrading MrEd 53 applications. Section 0
+describes a few highlights of the MrEd 100 revision. Section 1 shows
+the new interface/class hierarchy for windows and a few other parts of
+the toolbox. Section 2 lists all the methods of the new interfaces and
+classes. Section 3 lists the complete, new set of MrEd procedures,
+showing the arguments for selected new procedures. Section 4 provides
+a mapping from the old `wx:const-XXX' constants to the new
+symbols. Finally, Section 5 lists some of the small and relatively
+subtle changes in MrEd 100 (similar to changes listed in the HISTORY
+notes for an average MrEd release).
 
 ======================================================================
 0. Highlights of the New MrEd Toolbox
 ======================================================================
-
-We didn't try to develop an improved windowing model, but instead
-tried to clean up the existing model. The following are a few
-highlights of the revision:
 
  * The wx/mred split has been eliminated. The wx methods for
    manually managing the geometry of windows have been eliminated; the
@@ -83,6 +87,25 @@ highlights of the revision:
    replaced by 'horizontal, and wx:const-bitmap-type-gif was replaced
    with 'gif.
 
+ * The old documentation described certain methods as consuming "small
+   integer" values; the implementation actually accepted any sort of
+   number and coerced it to a machine-word integer.
+
+   Methods now consume an explicitly defined class of numbers. For
+   example, most windowing methods that formerly consumed "small
+   integers" now consume "exact integers in [0,10000]". The
+   implementation signals an exception if provided an inexact number,
+   a non-integer, or an integer outside the range [0,10000]. A few
+   methods consume arbitrary exact non-negative integers; those
+   methods now behave correctly when provided an integer represented
+   as a bignum.
+
+   In the windowing toolbox, object-specific out-of-range errors are
+   now signalled by a mismatch exception. (Formerly, out-of-range
+   errors were generally ignored.) For example, if a list-box%
+   instance contains only 10 items, calling the set-selection method
+   with the index 11 signals a mismatch exception.
+
  * The menu system was turned upside-down, giving it a structure more
    like rest of the toolbox. For example, instead of creating a menu
    bar and then calling a frame's set-menu-bar method, the new way to
@@ -104,8 +127,8 @@ highlights of the revision:
    where style is now a list of symbols.
 
  * The "media" names have changed. Roughly, we replaced "media" with
-   "editor", or drop it when "editor" isn't useful. Here's the name
-   mapping for some commonly used classes:
+   "editor", or dropped "media" it when "editor" isn't useful. Here's
+   the name mapping for some commonly used classes:
 
             media-canvas%      =>  editor-canvas%
             media-buffer%      =>  editor<%>
@@ -163,7 +186,9 @@ highlights of the revision:
 
    The blit method was replaced by draw-bitmap and draw-bitmap-region,
    which operate directly on bitmaps. Monochrome bitmaps can be drawn
-   with either a transparent or solid background. 
+   with either a transparent or solid background. The icon% class and
+   draw-icon method were removed, since they provide nothing different
+   from bitmaps.
 
    The xor drawing mode was moved from a setting in the device context
    to a style for a pen or brush. Brush stipples work on all platforms
@@ -187,22 +212,13 @@ highlights of the revision:
  * American spelling is used everywhere: colour -> color, centre
    -> center.
 
-The next section shows the new interface/class hierarchy for windows a
-few other parts of the toolbox, and the section after that lists all
-the methods of the new interfaces and classes. Section 3 lists the new
-complete set of MrEd procedures, showing the arguments for selected
-new procedures. Section 4 provides a mapping from the old wx:const-XXX
-constants to the new symbols. Finally, Section 5 lists some of the
-small and relatively subtle changes in 100 (like the HISTORY notes
-that accompany an average MrEd release).
-
 ======================================================================
 1. Interface/Class Type Hierarchy (Selected Excerpts)
 ======================================================================
 
 [To avoid lines that cross or go in the wrong direction, the following
 type hierarchy picture is drawn on a cylinder, with lines from
-subarea<%. and subwindow<%> wrapping from the left of the diagram to
+subarea<%> and subwindow<%> wrapping from the left of the diagram to
 the right.]
 
                            area<%>
@@ -967,7 +983,7 @@ get-the-buffer-data-class-list
 
 
 ======================================================================
-5. Subtle changes
+5. Relatively subtle changes
 ======================================================================
 
 Added queue-callback: (queue-callback proc [hi-priority?])
@@ -1001,6 +1017,9 @@ Added 'unknown image kind for bitmap%'s load-file, etc., which
 
 canvas%'s get-view-start returns values in pixels, not scroll units
 
+For canvas%'s set-scrollbars, #f indicates a disabled scrollbar rather
+ than a non-positive number
+
 editor-wordbreak-map%'s get-map and set-map now work on characters
    instead of integers
 
@@ -1028,12 +1047,9 @@ the-color-database only has a find-color method; the others were
  TODO: Miscellaneous Cleanup
 -----------------------------
 
-DC cleanup. Change dc set-background to take a color instead of a
-brush. Choose a small set of logical drawing modes to implement
-consistently, and perhaps make the drawing mode a property of a
-pen/brush instead of the DC.
+Pick a set of key-bindings for text-field% items.
 
-Implement keyboard-based movement in frames/dialogs
-(implemented in Scheme using on-pre-char).
+Implement keyboard-based movement in frames/dialogs (in Scheme using
+on-pre-char).
 
-Move editor margin settings into ps-setup%?
+Move the editor margin settings into ps-setup%?
