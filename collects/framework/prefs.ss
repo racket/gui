@@ -421,7 +421,7 @@
 				button% horiz 
 				(lambda (button evt)
 				  (let ([new-value
-					 (get-choice-from-user
+					 (get-choices-from-user
 					  "Fonts"
 					  (format "Please choose a new ~a font"
 						  name)

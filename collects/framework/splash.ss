@@ -13,7 +13,7 @@
 		  default)))]
 	 [(set-resource)
 	  (lambda (name value)
-	    (write-resource "mred" name value (find-path 'setup-file)))]
+	    (write-resource "mred" name value (find-graphical-system-path 'setup-file)))]
 	 [(_)
 	  (begin
 	    (unless filename
