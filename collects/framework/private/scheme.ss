@@ -382,7 +382,7 @@
                    backward-containing-sexp
                    forward-match
                    skip-whitespace
-                   in-single-line-comment?)
+                   insert-close-paren)
           
           
           (inherit get-styles-fixed)
@@ -421,49 +421,10 @@
                   remove-parens-forward)
           (define (get-limit pos) 0)
           
-        
           (define (balance-parens key-event)
-            (letrec ([char (send key-event get-key-code)] ;; must be a character. See above.
-                     [here (get-start-position)]
-                     [limit (get-limit here)]
-                     [paren-match? (preferences:get 'framework:paren-match)]
-                     [fixup-parens? (preferences:get 'framework:fixup-parens)]
-                     [find-match
-                      (lambda (pos)
-                        (let loop ([parens (scheme-paren:get-paren-pairs)])
-                          (cond
-                            [(null? parens) #f]
-                            [else (let* ([paren (car parens)]
-                                         [left (car paren)]
-                                         [right (cdr paren)])
-                                    (if (string=? left (get-text pos (+ pos (string-length left))))
-                                        right
-                                        (loop (cdr parens))))])))])
-              (cond
-                [(in-single-line-comment? here)
-                 (insert char)]
-                [(and (not (= 0 here))
-                      (char=? (string-ref (get-text (- here 1) here) 0) #\\))
-                 (insert char)]
-                [(or paren-match? fixup-parens?)
-                 (let* ([end-pos (backward-containing-sexp here limit)])
-                   (cond
-                     [end-pos
-                      (let* ([left-paren-pos (find-enclosing-paren end-pos)]
-                             [match (and left-paren-pos
-                                         (find-match left-paren-pos))])
-                        (cond
-                          [match
-                              (insert (if fixup-parens? match char))
-                            (when paren-match?
-                              (flash-on
-                               left-paren-pos
-                               (+ left-paren-pos (string-length match))))]
-                          [else
-                           (insert char)]))]
-                     [else (insert char)]))]
-                [else (insert char)])
-              #t))
+            (insert-close-paren (get-start-position) (send key-event get-key-code)
+                                (preferences:get 'framework:paren-match)
+                                (preferences:get 'framework:fixup-parens)))
           
           (define (tabify-on-return?) #t)
           (define tabify    

@@ -42,7 +42,7 @@
           backward-containing-sexp
           forward-match
           balanced?
-          in-single-line-comment?))
+          insert-close-paren))
 
       (define text-mixin
         (mixin (text:basic<%>) (-text<%>)
@@ -644,6 +644,36 @@
             (send tokens search! (sub1 pos))
             (eq? 'comment (send tokens get-root-data)))
           
+          
+          (define (get-close-paren pos closers)
+            (cond
+              ((null? closers) #f)
+              (else
+               (let* ((c (car closers))
+                      (l (string-length c)))
+                 (insert c)
+                 (let ((m (backward-match (+ l pos) start-pos)))
+                   (cond
+                     ((and m (send parens is-open-pos? m))
+                      (delete pos (+ l pos))
+                      c)
+                     (else
+                      (delete pos (+ l pos))                      
+                      (get-close-paren pos (cdr closers)))))))))
+          
+          (inherit insert delete flash-on)
+          (define/public (insert-close-paren pos char flash? fixup?)
+            (let ((closer
+                   (begin
+                     (begin-edit-sequence #f #f)
+                     (get-close-paren pos (if fixup? (map symbol->string (map cadr pairs)) null)))))
+              (end-edit-sequence)
+              (let ((insert-str (if closer closer (string char))))
+                (insert insert-str)
+                (when flash?
+                  (let ((pos (backward-match (+ (string-length insert-str) pos) 0)))
+                    (when (and pos (send parens is-open-pos? pos))
+                      (flash-on pos (+ 1 pos))))))))
           
           ;; ------------------------- Callbacks to Override ----------------------
           
