@@ -199,7 +199,8 @@
 								 'std
 								 'common)))
 			"Use platform-specific file dialogs?" (eq? (get-preference 'mred:file-dialogs) 'std))
-	    (make-check (lambda (_ command) 
+	    ;; sleep is not effecient, so we wait for the next release to turn this on.
+	    '(make-check (lambda (_ command) 
 			  (set-preference 'mred:status-line (send command checked?)))
 			"Show clock?" (get-preference 'mred:status-line))
 	    (make-check (lambda (_ command) 
@@ -217,20 +218,21 @@
 
     (define preferences-dialog #f)
 
-    (define added-any-panels? #f)
-
     (define add-preference-panel
       (lambda (title container)
 	(run-once
 	 (lambda ()
-	   (set! added-any-panels? #t)
-	   (set! ppanels (append ppanels (list (make-ppanel title container))))
-	   (when preferences-dialog
-	     (send preferences-dialog added-pane))))))
+	   (let ([new-ppanel (make-ppanel title container)])
+	     (set! ppanels (append ppanels (list new-ppanel)))
+	     (when preferences-dialog
+	       (send preferences-dialog added-pane new-ppanel)))))))
 
     (define make-preferences-dialog
       (lambda ()
-	(letrec* ([frame (make-object (class-asi mred:frame% (public [added-pane refresh-menu]))
+	(letrec* ([frame (make-object (class-asi mred:frame%
+						 (public [added-pane
+							  (lambda (ppanel)
+							    (refresh-menu ppanel))]))
 				      '() "Preferences")]
 		  [panel (make-object mred:vertical-panel% frame)]
 		  [top-panel (make-object mred:horizontal-panel% panel)]
@@ -240,40 +242,36 @@
 		  [popup-callback
 		   (lambda (choice command-event)
 		     (send single-panel active-child (list-ref panels (send command-event get-command-int))))]
-		  [popup-menu (make-object mred:choice% top-panel popup-callback
-					   "Category" -1 -1 -1 -1
-					   (map ppanel-title ppanels))]
-		  [refresh-menu
+		  [make-popup-menu 
 		   (lambda ()
-		     (send single-panel change-children 
-			   (lambda (l) 
-			     (set! panels (map (lambda (p) ((ppanel-container p) single-panel)) ppanels))
-			     panels))
-		     (send popup-menu clear)
-		     (send popup-menu clear)
-		     (for-each (lambda (p) (send popup-menu append (ppanel-title p))) ppanels))]
+		     (let ([menu (make-object mred:choice% top-panel popup-callback
+					      "Category" -1 -1 -1 -1
+					      (map ppanel-title ppanels))])
+		       (send menu stretchable-in-x #f)
+		       menu))]
+		  [top-left (make-object mred:vertical-panel% top-panel)]
+		  [popup-menu (make-popup-menu)]
+		  [top-right (make-object mred:vertical-panel% top-panel)]
+		  [refresh-menu
+		   (lambda (ppanel)
+		     (let ([new-panel ((ppanel-container ppanel) single-panel)])
+		       (set! panels (append panels (list new-panel)))
+		       (let ([new-popup (make-popup-menu)])
+			 (send new-popup set-selection (send popup-menu get-selection))
+			 (send top-panel change-children
+			       (lambda (l) (list top-left new-popup top-right))))))]
 		  [ok-callback (lambda args
 				 (save-user-preferences)
 				 (hide-preferences-dialog))]
+		  [_1 (make-object mred:panel% bottom-panel)]
 		  [ok-button (make-object mred:button% bottom-panel ok-callback "OK")]
 		  [cancel-callback (lambda args
 				     (read-user-preferences)
 				     (hide-preferences-dialog))]
 		  [cancel-button (make-object mred:button% bottom-panel cancel-callback "Cancel")])
 	  (send ok-button user-min-width (send cancel-button get-width))
-	  (send single-panel change-children (lambda (l) panels))
-	  (send top-panel change-children
-		(lambda (l) 
-		  (list (make-object mred:panel% top-panel)
-			popup-menu
-			(make-object mred:panel% top-panel))))
-	  (send bottom-panel change-children
-		(lambda (l)
-		  (cons (make-object mred:panel% bottom-panel) l)))
-	  (send popup-menu stretchable-in-x #f)
 	  (send bottom-panel stretchable-in-y #f)
 	  (send top-panel stretchable-in-y #f)
-	  (send single-panel change-children (lambda (l) panels))
 	  (send popup-menu set-selection 0)
 	  (send single-panel active-child (car panels))
 	  (send frame show #t)
@@ -286,10 +284,7 @@
 	(run-once
 	 (lambda ()
 	   (when preferences-dialog
-	     (send preferences-dialog show #f)
-	     (when added-any-panels?
-	       (set! preferences-dialog #f)
-	       (set! added-any-panels? #f)))))))
+	     (send preferences-dialog show #f))))))
 
 
     (define show-preferences-dialog
