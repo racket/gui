@@ -206,7 +206,7 @@
 						  [(unix) (format "~a~a" 
 								  (case x-prefix
 								    [(meta) ":m:"]
-								    [(alt) ":a:"]
+								    [(alt) ":m:"]
 								    [(ctl-m) ":c:m;:"]
 								    [(ctl) ":c:"])
 								  (char-name (char-downcase shortcut) #f))]
