@@ -49,6 +49,11 @@
 		  [super-lock lock])
 
 	  (public
+	    [locked? #f]
+	    [lock 
+	     (lambda (x)
+	       (set! locked? x)
+	       (super-lock x))]
 	    [on-close (lambda () #t)]
 
 	    [get-edit-snip
