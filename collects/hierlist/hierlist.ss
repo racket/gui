@@ -1,30 +1,29 @@
-(require-library "wxs.ss" "system")
-(require-library "sig.ss" "mred")
 (require-library "hierlists.ss" "hierlist")
 
-(invoke-open-unit/sig (require-library "hierlistr.ss" "hierlist") mred (mred : mred^) (wx : wx^))
+(invoke-open-unit/sig (require-library "hierlistr.ss" "hierlist") #f mred^)
 
 #|
 
 ;; Testing
-(define f (make-object mred:frame% null "test"))
-(define p (make-object mred:horizontal-panel% f))
-(define c (make-object (class-asi mred:hierarchical-list%
-				  (public
-				   [item-opened
-				    (lambda (i)
-				      (let ([f (send i user-data)])
-					(when f (f i))))]
-				   [select
-				    (lambda (i)
-				      (printf "Selected: ~a~n"
-					      (if i 
-						  (send (send i get-buffer) get-flattened-text)
-						  i)))]
-				   [double-select
-				    (lambda (s)
-				      (printf "Double-click: ~a~n"
-					      (send (send s get-buffer) get-flattened-text)))]))
+(define f (make-object frame% "test"))
+(define p (make-object horizontal-panel% f))
+(define c (make-object (class hierarchical-list% args
+			 (override
+			   [item-opened
+			    (lambda (i)
+			      (let ([f (send i user-data)])
+				(when f (f i))))]
+			   [select
+			    (lambda (i)
+			      (printf "Selected: ~a~n"
+				      (if i 
+					  (send (send i get-buffer) get-flattened-text)
+					  i)))]
+			   [double-select
+			    (lambda (s)
+			      (printf "Double-click: ~a~n"
+				      (send (send s get-buffer) get-flattened-text)))])
+			 (sequence (apply super-init args)))
 		       p))
 
 (define a (send c new-list))
@@ -53,5 +52,7 @@
 (send (send y get-buffer) insert "y")
 
 (send f show #t)
+
+(yield (make-semaphore))
 
 |#
