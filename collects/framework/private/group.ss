@@ -100,16 +100,6 @@
                    (parent menu)
                    (callback (lambda (x y) (most-recent-window-to-front)))
                    (shortcut #\'))
-                 (instantiate menu:can-restore-menu-item% ()
-                   (label (string-constant next-window))
-                   (parent menu)
-                   (callback (lambda (x y) (next/prev-window (send (send menu get-parent) get-frame) #t)))
-                   (shortcut #\+))
-                 (instantiate menu:can-restore-menu-item% ()
-                   (label (string-constant previous-window))
-                   (parent menu)
-                   (callback (lambda (x y) (next/prev-window (send (send menu get-parent) get-frame) #f)))
-                   (shortcut #\-))
                  (make-object separator-menu-item% menu)
                  (for-each
                   (lambda (frame)
@@ -130,31 +120,7 @@
           (define (most-recent-window-to-front)
             (let ([most-recent-window (weak-box-value most-recent-window-box)])
               (when most-recent-window
-                (send most-recent-window show #t))))
-          
-          ;; next/prev-window : (is-a?/c top-level-window<%>) boolean? -> void?
-          ;; brings either the next or previous (alpabetically) window to the
-          ;; front.
-          (define (next/prev-window this-window next?)
-            (let ([sorted 
-                   (quicksort
-                    (get-frames)
-                    (lambda (x y) (string-ci<=? (send x get-label) (send y get-label))))])
-              (let loop ([windows sorted]
-                         [prev (car (last-pair sorted))])
-                (cond
-                  [(null? windows) (void)]
-                  [(eq? (car windows) this-window)
-                   (let ([frame-to-focus
-                          (if next?
-                              (if (null? (cdr windows)) 
-                                  (car sorted)
-                                  (car (cdr windows)))
-                              prev)])
-                     (send frame-to-focus show #t))]
-                  [else (loop (cdr windows)
-                              (car windows))]))))
-                              
+                (send most-recent-window show #t))))                              
 
           [define update-close-menu-item-state
             (lambda ()
@@ -224,7 +190,8 @@
                 [else (frame-frame (car frames))]))]
           [define set-active-frame
             (lambda (f)
-              (when active-frame
+              (when (and active-frame
+                         (not (eq? active-frame f)))
                 (set! most-recent-window-box (make-weak-box active-frame)))
               (set! active-frame f))]
           [define insert-frame

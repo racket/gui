@@ -50,8 +50,8 @@
                    get-style-list is-modified? change-style set-modified
                    position-location get-extent)
           
-          (define highlight-pen (make-object pen% "BLACK" 0 'solid))
-          (define highlight-brush (make-object brush% "black" 'solid))
+          (define highlight-pen #f)
+          (define highlight-brush #f)
 
           (define range-rectangles null)
           (define ranges null)
@@ -286,14 +286,18 @@
                      (let/ec k
                        (cond
                          [(and before color)
-                          (send highlight-pen set-color color)
-                          (send highlight-brush set-color color)]
+                          (send dc set-pen (send the-pen-list find-or-create-pen color 0 'solid))
+                          (send dc set-brush (send the-brush-list find-or-create-brush color 'solid))]
                          [(and (not before) (not color) b/w-bitmap)
+                          (unless highlight-pen
+                            (set! highlight-pen (make-object pen% "BLACK" 0 'solid)))
+                          (unless highlight-brush
+                            (set! highlight-brush (make-object brush% "black" 'solid)))
                           (send highlight-pen set-stipple b/w-bitmap)
-                          (send highlight-brush set-stipple b/w-bitmap)]
+                          (send highlight-brush set-stipple b/w-bitmap)
+                          (send dc set-pen highlight-pen)
+                          (send dc set-brush highlight-brush)]
                          [else (k (void))])
-                       (send dc set-pen highlight-pen)
-                       (send dc set-brush highlight-brush)
                        (send dc draw-rectangle (+ left dx) (+ top dy) width height)
                        (send dc set-pen old-pen)
                        (send dc set-brush old-brush)))))
