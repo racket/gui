@@ -7228,11 +7228,11 @@
        (set! x-has-xft? (ormap (lambda (s) (regexp-match #rx"^ " s)) (wx:get-face-list))))
      (if x-has-xft?
 	 (case family
-	   [(system) " Luxi Sans"]
-	   [(default) " Luxi Sans"]
-	   [(roman) " Luxi Serif"]
+	   [(system) " Sans"]
+	   [(default) " Sans"]
+	   [(roman) " Serif"]
 	   [(decorative) " Nimbus Sans L"]
-	   [(modern) " Luxi Mono"]
+	   [(modern) " Monospace"]
 	   [(swiss) " Nimbus Sans L"]
 	   [(script) " URW Chancery L"]
 	   [(symbol) "-adobe-symbol"])
