@@ -1226,6 +1226,8 @@
     get-extent)
   (define-class image-snip% snip% #f
     set-offset
+    get-bitmap-mask
+    get-bitmap
     set-bitmap
     get-filetype
     get-filename
