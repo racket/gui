@@ -25,12 +25,13 @@
    single-window<%>
    single-window-mixin
 
-   multi-view-mixin
-   multi-view<%>
+   ;multi-view-mixin
+   ;multi-view<%>
 
    single%
    single-pane%
-   multi-view%))
+   ;multi-view%
+   ))
 
 (define-signature framework:exn^
   ((struct exn ())

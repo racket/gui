@@ -15,8 +15,8 @@
 			  get-map-function-table
 			  get-map-function-table/ht))
   
-  (define (aug-keymap-mixin super%)
-    (class* super% (aug-keymap<%>) args
+  (define aug-keymap-mixin
+    (mixin ((class->interface keymap%)) (aug-keymap<%>) args
       (private
         [chained-keymaps null])
       (public
