@@ -1432,7 +1432,7 @@
       
       [do-get-alignment (lambda (pick) (values (pick major-align-pos minor-align-pos)
 					       (case (pick minor-align-pos major-align-pos)
-						 [(top) 'left] [(center) 'center] [(right) 'bottom])))]
+						 [(left) 'top] [(center) 'center] [(right) 'bottom])))]
 
       ; place-linear-children: implements place-children functions for
       ; horizontal-panel% or vertical-panel% classes.
@@ -1824,6 +1824,10 @@
   (unless (or (not p) (is-a? p frame%) (is-a? p dialog%))
     (raise-type-error (who->name who) "frame% or dialog% object or #f" p)))
 
+(define (check-frame-parent/false who p)
+  (unless (or (not p) (is-a? p frame%))
+    (raise-type-error (who->name who) "frame% object or #f" p)))
+
 (define (check-orientation who l)
   (check-style `(constructor-name ,who) '(vertical horizontal) null l))
 
@@ -1948,8 +1952,8 @@
       [is-enabled? (lambda () (send wx is-enabled?))]
       
       [get-label (lambda () label)]
-      [set-label (lambda (l) (set! label l))]
-      [get-plain-label (lambda () (wx:label->plain-label label))]
+      [set-label (lambda (l) (check-string/false '(method window<%> set-label) l) (set! label l))]
+      [get-plain-label (lambda () (and (string? label) (wx:label->plain-label label)))]
 
       [accept-drop-files
        (case-lambda
@@ -1976,7 +1980,7 @@
       [get-width (lambda () (send wx get-width))]
       [get-height (lambda () (send wx get-height))]
       [get-x (lambda () (- (send wx get-x) (if top? 0 (send (send wx get-parent) dx))))]
-      [get-y (lambda () (- (send wx get-y) (if top? (send (send wx get-parent) dy))))]
+      [get-y (lambda () (- (send wx get-y) (if top? 0 (send (send wx get-parent) dy))))]
       
       [get-cursor (lambda () cursor)]
       [set-cursor (lambda (x)
@@ -2090,7 +2094,7 @@
     (sequence
       (let ([cwho '(constructor frame)])
 	(check-string cwho label)
-	(check-top-level-parent/false cwho parent)
+	(check-frame-parent/false cwho parent)
 	(for-each (lambda (x) (check-dimension cwho x)) (list width height x y))
 	(check-style cwho #f '(no-thick-border no-resize-border no-caption no-system-menu
 					       iconize maximize mdi-parent mdi-child) 
@@ -2520,9 +2524,11 @@
       (super-init (lambda () 
 		    (set! wx (make-object wx-editor-canvas% this this
 					  (mred->wx-container parent) -1 -1 canvas-default-size canvas-default-size
-					  #f style scrolls-per-page buffer))
+					  #f style scrolls-per-page #f))
 		    wx)
-		  parent))))
+		  parent)
+      (when buffer
+	(set-editor buffer)))))
 
 ;-------------------- Final panel interfaces and class constructions --------------------
 
@@ -2605,9 +2611,12 @@
 (define wx-menu-bar%
   (class* wx:menu-bar% (wx<%>) (mred)
     (inherit delete)
-    (rename [super-append append])
+    (rename [super-append append]
+	    [super-enable-top enable-top])
     (private
       [items null]
+      [disabled null]
+      [disabled? #f]
       [keymap (make-object wx:keymap%)])
     (public
       [handle-key (lambda (event) (send keymap handle-key-event this event))]
@@ -2615,14 +2624,38 @@
       [get-items (lambda () items)]
       [append-item (lambda (item menu title)
 		     (super-append menu title)
+		     (when disabled?
+		       (super-enable-top (length items) #f))
 		     (set! items (append items (list item)))
 		     (send keymap chain-to-keymap (send (mred->wx item) get-keymap) #f))]
+      [all-enabled? (lambda () (not disabled?))]
+      [enable-all (lambda (on?)
+		    (set! disabled? (not on?))
+		    (let loop ([n (sub1 (length items))])
+		      (unless (negative? n)
+			(if on?
+			    (unless (memq (list-ref items n) disabled)
+			      (super-enable-top n #t))
+			    (super-enable-top n #f))
+			(loop (sub1 n)))))]
       [delete-item (lambda (i)
 		     (let ([p (position-of i)])
 		       (set! items (remq i items))
+		       (set! disabled (remq i disabled))
 		       (delete #f p)
 		       (send keymap remove-chained-keymap (send (mred->wx i) get-keymap))))]
       [position-of (lambda (i) (find-pos items i eq?))])
+    (override
+      [enable-top (lambda (p on?)
+		    (let ([i (list-ref items p)])
+		      (if on?
+			  (begin
+			    (set! disabled (remq i disabled))
+			    (unless disabled?
+			      (super-enable-top p #t)))
+			  (unless (memq i disabled)
+			    (set! disabled (cons i disabled))
+			    (super-enable-top p #f)))))])
     (sequence
       (super-init null null))))
 
