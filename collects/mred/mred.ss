@@ -4897,7 +4897,8 @@
     (sequence 
       (let ([cwho '(constructor canvas)])
 	(check-container-parent cwho parent)
-	(check-style cwho #f '(border hscroll vscroll gl deleted control-border no-autoclear transparent) style)
+	(check-style cwho #f '(border hscroll vscroll gl deleted control-border no-autoclear transparent resize-corner) 
+		     style)
 	(check-callback cwho paint-callback)
 	(check-label-string/false cwho label)))
     (public
@@ -5017,7 +5018,7 @@
 	(check-container-parent cwho parent)
 	(check-instance cwho internal-editor<%> "text% or pasteboard%" #t editor)
 	(check-style cwho #f '(hide-vscroll hide-hscroll no-vscroll no-hscroll auto-vscroll auto-hscroll
-					    deleted control-border transparent no-border)
+					    deleted control-border transparent no-border resize-corner)
 		     style)
 	(check-gauge-integer cwho scrolls-per-page)
 	(check-label-string/false cwho label)
@@ -6042,7 +6043,7 @@
 				 (apply super-init args) (accept-drop-files #t)))
 			     "MrEd REPL" #f 500 400))
   (define repl-buffer (make-object esq:text%))
-  (define repl-display-canvas (new editor-canvas% [parent frame] [style '(no-border auto-hscroll)]))
+  (define repl-display-canvas (new editor-canvas% [parent frame] [style '(no-border auto-hscroll resize-corner)]))
 
   (define esq-eventspace (wx:current-eventspace))
   (define (queue-output proc)
