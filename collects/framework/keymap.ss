@@ -182,6 +182,8 @@
       (for-each (lambda (key) (send keymap map-function key func))
 		(make-meta-prefix-list key))))
   
+  (define add-to-right-button-menu (make-parameter void))
+
   (define setup-global
     ; Define some useful keyboard functions
     (let* ([ring-bell
@@ -200,6 +202,8 @@
 			 (when (is-a? i selectable-menu-item<%>)
 			   (send i set-shortcut #f)))
 		       (send m get-items))
+
+		      ((add-to-right-button-menu) m edit event)
 
 		      (let-values ([(x y) (send edit
 						dc-location-to-editor-location

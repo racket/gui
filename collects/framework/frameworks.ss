@@ -229,6 +229,8 @@
    
    canonicalize-keybinding-string
 
+   add-to-right-button-menu
+
    setup-global
    setup-search
    setup-file
