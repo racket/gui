@@ -888,10 +888,7 @@
           (rename [super-on-event on-event])
           (init-field delegate-frame)
           (inherit get-editor get-dc)
-          (rename [super-on-superwindow-show on-superwindow-show])
-          (define/override (on-superwindow-show shown?)
-            (send (send delegate-frame get-delegatee) set-start/end-para #f #f)
-            (super-on-superwindow-show shown?))
+          
           (define/override (on-event evt)
             (super-on-event evt)
             (when (and delegate-frame
@@ -916,7 +913,9 @@
           (define end-para #f)
           (define view-x-b (box 0))
           (define view-width-b (box 0))
-          (inherit paragraph-start-position position-location invalidate-bitmap-cache)
+          (inherit paragraph-start-position paragraph-end-position 
+                   position-location invalidate-bitmap-cache scroll-to-position
+                   get-visible-position-range position-paragraph)
 
           ;; set-start/end-para : (union (#f #f -> void) (number number -> void))
           (define/public (set-start/end-para _start-para _end-para)
@@ -926,6 +925,22 @@
                     [old-end-para end-para])
                 (set! start-para _start-para)
                 (set! end-para _end-para)
+                
+                (when (and start-para end-para)
+                  (let-values ([(v-start v-end) (let ([bs (box 0)]
+                                                      [bf (box 0)])
+                                                  (get-visible-position-range bs bf)
+                                                  (values (unbox bs)
+                                                          (unbox bf)))])
+                    (let ([v-start-para (position-paragraph v-start)]
+                          [v-end-para (position-paragraph v-end)])
+                      (cond
+                        [(v-start-para . >= . start-para)
+                         (scroll-to-position (paragraph-start-position start-para))]
+                        [(v-end-para . <= . end-para)
+                         (scroll-to-position (paragraph-end-position end-para))]
+                        [else (void)]))))
+                
                 (when (and old-start-para old-end-para)
                   (let-values ([(x y w h) (get-rectangle old-start-para old-end-para)])
                     (when x
