@@ -78,5 +78,66 @@
       (sequence
 	(apply super-init args))))
 
+  (define multi-view<%>
+    (interface (area-container<%>)
+      split-vertically
+      split-horizontally
+      collapse))
+
+  (define multi-view-mixin
+    (mixin (area-container<%>) (multi-view<%>) (parent editor)
+      (public
+	[get-editor-canvas%
+	 (lambda ()
+	   editor-canvas%)]
+	[get-vertical%
+	 (lambda ()
+	   vertical-panel%)]
+	[get-horizontal%
+	 (lambda ()
+	   horizontal-panel%)])
+
+      (private
+	[split
+	 (lambda (p%)
+	   (let ([canvas (send (send parent get-top-level-window) get-edit-target-window)]
+		 [ec% (get-editor-canvas%)])
+	     (when (and canvas
+			(is-a? canvas ec%)
+			(eq? (send canvas get-editor) editor))
+	       (let ([p (send canvas get-parent)])
+		 (send p change-children (lambda (x) null))
+		 (let ([pc (make-object p% p)])
+		   (send (make-object ec% (make-object vertical-panel% pc) editor) focus)
+		   (make-object ec% (make-object vertical-panel% pc) editor))))))])
+
+      (public
+	[collapse
+	 (lambda ()
+	   (let ([canvas (send (send parent get-top-level-window) get-edit-target-window)]
+		 [ec% (get-editor-canvas%)])
+	     (when (and canvas
+			(is-a? canvas ec%)
+			(eq? (send canvas get-editor) editor))
+	       (let ([p (send canvas get-parent)])
+		 (if (eq? p this)
+		     (bell)
+		     (let* ([sp (send p get-parent)]
+			    [p-to-remain (send sp get-parent)])
+		       (send p-to-remain change-children (lambda (x) null))
+		       (send (make-object ec% p-to-remain editor) focus)))))))])
+
+      (public
+	[split-vertically
+	 (lambda ()
+	   (split (get-vertical%)))]
+	[split-horizontally
+	 (lambda ()
+	   (split (get-horizontal%)))])
+      (sequence
+	(super-init parent)
+	(make-object (get-editor-canvas%) this editor))))
+
   (define single% (single-window-mixin (single-mixin panel%)))
-  (define single-pane% (single-mixin pane%)))
+  (define single-pane% (single-mixin pane%))
+  (define multi-view% (multi-view-mixin vertical-panel%)))

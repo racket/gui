@@ -18,10 +18,16 @@
 (define-signature framework:panel^
   (single-mixin
    single<%>
+
    single-window<%>
    single-window-mixin
+
+   multi-view-mixin
+   multi-view<%>
+
    single%
-   single-pane%))
+   single-pane%
+   multi-view%))
 
 (define-signature framework:exn^
   ((struct exn ())
