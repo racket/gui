@@ -165,9 +165,9 @@
                 (set! invalid-tokens-start (+ invalid-tokens-start length)))
               (sync-invalid)))
           
-          ;; re-tokenize should be called with breaks enabled and exit with
-          ;; breaks disabled re-tokenize should be called when lock is not
-          ;; held.  When it exits, the lock will be held.
+          ;; re-tokenize should be called with breaks disabled, and
+          ;; should be called when lock is not held.  When it exits,
+          ;; the lock will be held.
           (define/private (re-tokenize in in-start-pos)
             (let-values ([(lexeme type data new-token-start new-token-end) 
 			  ;; Allow breaks while getting tokens
