@@ -1,0 +1,68 @@
+
+The drawing area should have the following features:
+
+  At the top, "Pen 0 x 0" in a consistent font (i.e., re-painting
+    should not change the font)
+  "Pen 1 x 1" in a possibly different font
+  "Pen 2 x 2" in a bold font (bold version of 1x1 font)
+  
+  A line should appear across each of "Pen 0 x 0", etc.
+    (if the line is missing, it was probably erased when the text
+     was repainted, and that is bad)
+
+  the drawings under 0x0 and 1x1 should look the same:
+    TopLeft: h-line should be left-aligned with box below it,
+             but extend 1 extra pixel. v-line similarly should be
+             top-aligned and 1 pixel longer. The lines should not 
+             touch the box - there should be 2 pixels of space.
+    Top: Lines for the rotated L's should join in a sharp corner
+    Second from Top: like top-left, but lines should touch the box
+                     (so only the vertical overhang is visible)
+    Second from top, right: For 0x0, the X should never be
+                            more than 1 pixel wide; this is a case
+                            where 1x1 may be different (i.e., it may
+                            have areas two-pixels wide)
+    Four shape lines: First and second should be exactly the same
+             shape, with the first hollow and the second filled.
+             Third shape and all 2x2 shapes are ill-defined.
+    Octagons: two hollow octagons exactly the same shape.
+    Dot (after octagons): a single pixel
+    Line: actually two lines, but they should form a single
+             unbroken line
+    Arcs: The leftmost should be the top half of a circle (it's
+          form via two arcs); the rightmost should be a filled
+          wedge from 90 degrees to 180 degress
+    Images: MrEd logo (b & w)
+            BB logo (color)
+            Down-left arrow (b & w)
+            Down-left arrow - B & W, *not* red
+            Down-left arrow - red with white background
+            BB logo, possibly reddened
+            Down-left arrow - red with *white* background
+    Stippled boxes: In a blue box w/black border, three boxes:
+                    Black and white/blue stippled arrow 
+                      (white vs. blue: depends on platform and DC)
+                    Black and white stippled arrow
+                    BB stippled
+    Dashed lines: each half green, half black:
+           Solid line
+           Dot line
+           Long Dash line
+           Short Dash line
+           Dot Dash line
+
+The image should look the same regardless of the top radio button
+setting --- Canvas, Pixmap, or Bitmap --- except that the Bitmap
+setting might produce a black-and-white image.
+
+Clicking on the "*2" checkbox should double the size of everything
+except the pen widths and bitmaps.
+
+Clicking on "+10" should shift everything 10 pixels down and across.
+(Even when "*2" is checked, it should be a 10 pixel offset).
+
+Clicking on "PostScript" should produce the same image in a PostScript
+file.
+
+The "icons" and "stipple" boxes just enable those parts of the
+drawing. PostScript drawing of icons and stipples can be slow.
