@@ -2,7 +2,12 @@
 Version 204.3
 Added 'no-autoclear style to canvas%
 Added 'control-border style to canvas% and editor-canvas%
+Added 'hilite style for pen% and brush%
+Added locked-for-write?, locked-for-flow?, and
+ locked-for-read? to editor<%>
 OS X: key-release events are now reported
+Windows: system font is Tahoma when available,
+ default font is Microsoft Sans Serif when available
 
 Version 204.2
 Added 'toolbar-button style, on-toolbar-button-click method, and
