@@ -65,6 +65,12 @@
 	   framework:scheme-paren^
 	   framework:scheme-paren-class^
 	   framework:scheme-paren-fun^
+           framework:color^
+           framework:color-class^
+           framework:color-fun^
+           framework:color-prefs^
+           framework:color-prefs-class^
+           framework:color-prefs-fun^
 	   framework:scheme^
 	   framework:scheme-class^
 	   framework:scheme-fun^
@@ -497,6 +503,31 @@
     ((open framework:scheme-paren-class^)
      (open framework:scheme-paren-fun^)))
 
+  (define-signature framework:color-class^
+    (text<%>
+     text-mixin
+     text%
+
+     text-mode<%>
+     text-mode-mixin
+     text-mode%
+     
+     interactions-mixin))
+  (define-signature framework:color-fun^
+    ())
+  (define-signature framework:color^
+    ((open framework:color-class^)
+     (open framework:color-fun^)))
+  
+  (define-signature framework:color-prefs-class^
+    (make-style-delta add))
+  (define-signature framework:color-prefs-fun^
+    ())
+  (define-signature framework:color-prefs^
+    ((open framework:color-prefs-class^)
+     (open framework:color-prefs-fun^)))
+  
+  
   (define-signature framework:scheme-class^
     (text<%>
      text-mixin

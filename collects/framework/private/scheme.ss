@@ -13,7 +13,8 @@
 	   (lib "list.ss")
 	   (lib "thread.ss")
            (lib "etc.ss")
-           (lib "surrogate.ss"))
+           (lib "surrogate.ss")
+           (lib "scheme-lexer.ss" "syntax-color"))
   
   (provide scheme@)
   
@@ -30,12 +31,26 @@
               [editor : framework:editor^]
               [frame : framework:frame^]
               [comment-box : framework:comment-box^]
-              [mode : framework:mode^])
+              [mode : framework:mode^]
+              [color : framework:color^]
+              [color-prefs : framework:color-prefs^])
       
       (rename [-text-mode<%> text-mode<%>]
               [-text<%> text<%>]
               [-text% text%])
       
+      
+      
+      (color-prefs:add
+       "Scheme Color"
+       `((keyword ,(color-prefs:make-style-delta "Black" #f #f #f))
+         (string ,(color-prefs:make-style-delta "ForestGreen" #f #f #f))
+         (literal ,(color-prefs:make-style-delta "ForestGreen" #f #f #f))
+         (comment ,(color-prefs:make-style-delta "DimGray" #f #f #f))
+         (error ,(color-prefs:make-style-delta "Red" #f #f #f))
+         (identifier ,(color-prefs:make-style-delta "Navy" #f #f #f))
+         (other ,(color-prefs:make-style-delta "brown" #f #f #f))))
+
       ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
       ;;                                                                  ;;
       ;;                           Sexp Snip                              ;;
@@ -260,7 +275,6 @@
       
       (define -text<%>
         (interface ()
-          highlight-parens
           get-limit
           balance-quotes
           balance-parens
@@ -318,7 +332,7 @@
           (send style-list find-named-style "Matching Parenthesis Style")))
 
       (define text-mixin
-        (mixin (text:basic<%> mode:host-text<%>) (-text<%>)
+        (mixin (text:basic<%> mode:host-text<%> color:text<%>) (-text<%>)
           (inherit begin-edit-sequence
                    delete
                    end-edit-sequence
@@ -374,8 +388,6 @@
           [define backward-cache (make-object match-cache:%)]
           [define forward-cache (make-object match-cache:%)]
           
-          [define in-highlight-parens? #f]
-          
           (inherit get-styles-fixed)
           (inherit has-focus? find-snip split-snip)
           
@@ -403,96 +415,6 @@
                         paren-pos]
                        [else (loop (- semi-pos 1))]))]))))
           
-          [define clear-old-locations 'dummy]
-          (set! clear-old-locations void)
-          
-          (define/public highlight-parens
-            (opt-lambda ([just-clear? #f])
-              (unless in-highlight-parens?
-                (set! in-highlight-parens? #t)
-                (begin-edit-sequence #f #f)
-                (clear-old-locations)
-                (set! clear-old-locations void)
-                (when (preferences:get 'framework:highlight-parens)
-                  (unless just-clear?
-                    (let* ([here (get-start-position)]
-                           [there (get-end-position)]
-                           [slash?
-                            (lambda (before after)
-                              (and (>= before 0)
-                                   (>= after 0)
-                                   (let ([text (get-text before after)])
-                                     (and (string? text)
-                                          (>= (string-length text) 1)
-                                          (char=? #\\ (string-ref text 0))))))]
-                           [is-paren?
-                            (lambda (f)
-                              (lambda (char)
-                                (ormap (lambda (x) (char=? char (string-ref (f x) 0)))
-                                       (scheme-paren:get-paren-pairs))))]
-                           [is-left-paren? (is-paren? car)]
-                           [is-right-paren? (is-paren? cdr)])
-                      (when (= here there)
-                        
-                        ;; before, after : (list number number boolean) 
-                        ;;  numbers indicate the range to highlight
-                        ;;  boolean indicates if it is an errorneous highlight
-                        (let ([before
-                               (cond
-                                 [(and (> here 0)
-                                       (is-right-paren? (get-character (sub1 here)))
-                                       (not (in-single-line-comment? here)))
-                                  (cond
-                                    [(slash? (- here 2) (- here 1)) #f]
-                                    [(scheme-paren:backward-match
-                                      this here (get-limit here)
-                                      backward-cache)
-                                     =>
-                                     (lambda (end-pos) 
-                                       (list end-pos here #f))]
-                                    [else (list (- here 1) here #t)])]
-                                 [else #f])]
-                              [after
-                               (cond
-                                 [(and (is-left-paren? (get-character here))
-                                       (not (in-single-line-comment? here)))
-                                  (cond
-                                    [(slash? (- here 1) here) #f]
-                                    [(scheme-paren:forward-match
-                                      this here (last-position)
-                                      forward-cache)
-                                     =>
-                                     (lambda (end-pos)
-                                       (list here end-pos #f))]
-                                    [else (list here (+ here 1) #t)])]
-                                 [else #f])]
-                              [handle-single
-                               (lambda (single)
-                                 (let* ([left (first single)]
-                                        [right (second single)]
-                                        [error? (third single)]
-                                        [off (highlight-range 
-                                              left
-                                              right
-                                              (if error? mismatch-color (get-match-color))
-                                              (and (send (icon:get-paren-highlight-bitmap) ok?)
-                                                   (icon:get-paren-highlight-bitmap))
-                                              (= there here left))])
-                                   (set! clear-old-locations
-                                         (let ([old clear-old-locations])
-                                           (lambda ()
-                                             (old)
-                                             (off))))))])
-                          
-                          (cond
-                            [(and after before)
-                             (handle-single after)
-                             (handle-single before)]
-                            [after (handle-single after)]
-                            [before (handle-single before)]
-                            [else (void)]))))))
-                (end-edit-sequence)
-                (set! in-highlight-parens? #f))))
           
           (public get-limit balance-quotes balance-parens tabify-on-return? tabify tabify-selection
                   tabify-all insert-return calc-last-para 
@@ -1097,58 +1019,11 @@
           ))
       
       (define text-mode-mixin
-        (mixin (mode:surrogate-text<%>) (-text-mode<%>)
-          (rename [super-on-focus on-focus])
-          (define/override (on-focus text super-call on?)
-            (super-on-focus text super-call on?)
-            (send text highlight-parens (not on?)))
-          
-          (rename [super-after-change-style after-change-style])
-          (define/override (after-change-style text super-call start len)
-            (unless (send text local-edit-sequence?)
-              (unless (send text get-styles-fixed)
-                (when (send text has-focus?)
-                  (send text highlight-parens))))
-            (super-after-change-style text super-call start len))
-          
-          (rename [super-after-edit-sequence after-edit-sequence])
-          (define/override (after-edit-sequence text super-call)
-            (super-after-edit-sequence text super-call)
-            (when (send text has-focus?)
-              (send text highlight-parens)))
-          
-          (rename [super-after-insert after-insert])
-          (define/override (after-insert text super-call start size)
-            (unless (send text local-edit-sequence?)
-              (when (send text has-focus?)
-                (send text highlight-parens)))
-            (super-after-insert text super-call start size))
-          
-          (rename [super-after-delete after-delete])
-          (define/override (after-delete text super-call start size)
-            (unless (send text local-edit-sequence?)
-              (when (send text has-focus?)
-                (send text highlight-parens)))
-            (super-after-delete text super-call start size))
-          
-          (rename [super-after-set-size-constraint after-set-size-constraint])
-          (define/override (after-set-size-constraint text super-call)
-            (unless (send text local-edit-sequence?)
-              (when (send text has-focus?)
-                (send text highlight-parens)))
-            (super-after-set-size-constraint text super-call))
-          
-          (rename [super-after-set-position after-set-position])
-          (define/override (after-set-position text super-call)
-            (unless (send text local-edit-sequence?)
-              (when (send text has-focus?)
-                (send text highlight-parens)))
-            (super-after-set-position text super-call))
+        (mixin (color:text-mode<%> mode:surrogate-text<%>) (-text-mode<%>)
 
           (rename [super-on-disable-surrogate on-disable-surrogate])
           (define/override (on-disable-surrogate text)
             (keymap:remove-chained-keymap text keymap)
-            (send text highlight-parens #t)
             (super-on-disable-surrogate text))
           
           (rename [super-on-enable-surrogate on-enable-surrogate])
@@ -1156,9 +1031,6 @@
 	    (send text begin-edit-sequence)
 	    (super-on-enable-surrogate text)
 	    (send (send text get-keymap) chain-to-keymap keymap #t)
-	    (unless (send text local-edit-sequence?)
-	      (when (send text has-focus?)
-		(send text highlight-parens)))
             
             ;; I don't know about these editor flag settings.
             ;; maybe they belong in drscheme?
@@ -1174,8 +1046,23 @@
             (send text set-styles-fixed #t)
 	    (send text end-edit-sequence))
           
-          (super-instantiate ())))
-
+          (super-new (get-token scheme-lexer-wrapper)
+                     (prefix "Scheme Color")
+                     (matches '((|(| |)|)
+                                (|[| |]|)
+                                (|{| |}|))))))
+      
+      (define (scheme-lexer-wrapper in)
+        (let-values (((type lex start end) (scheme-lexer in)))
+          (cond
+            ((and (eq? type 'identifier)
+                  (hash-table-get (preferences:get 'framework:tabify)
+                                  (string->symbol lex)
+                                  (lambda () #f)))
+             (values 'keyword lex start end))
+            (else
+             (values type lex start end)))))
+      
       (define set-mode-mixin
         (mixin (-text<%> mode:host-text<%>) ()
 	  (super-new)
@@ -1185,9 +1072,9 @@
       (define -text% (set-mode-mixin
 		      (text-mixin
 		       (mode:host-text-mixin
-			text:keymap%))))
+			color:text%))))
 
-      (define text-mode% (text-mode-mixin mode:surrogate-text%))
+      (define text-mode% (text-mode-mixin color:text-mode%))
     
                                                                                            
               ;;                                 ;;                                        
