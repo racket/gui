@@ -33,8 +33,8 @@ needed to really make this work:
   (define syntax-snipclass%
     (class snip-class%
       (define/override (read stream)
-        (let ([str (send stream get-string)])
-          (make-object syntax-snip% (unmarshall-syntax (read-from-string str)))))
+        (let ([str (send stream get-bytes)])
+          (make-object syntax-snip% (unmarshall-syntax (read-from-string (bytes->string/utf-8 str))))))
       (super-instantiate ())))
   
   (define syntax-snipclass (make-object syntax-snipclass%))
@@ -55,7 +55,7 @@ needed to really make this work:
       
       (define/override (copy) (make-object syntax-snip% main-stx))
       (define/override (write stream)
-        (send stream put (format "~s" (marshall-syntax main-stx))))
+        (send stream put (string->bytes/utf-8 (format "~s" (marshall-syntax main-stx)))))
       
       (define-values (datum stx-ht) (syntax-object->datum/ht main-stx))
       
@@ -530,7 +530,8 @@ needed to really make this work:
                      (marshall-object (cdr obj))))]
       [(or (symbol? obj)
 	   (char? obj)
-	   (string? obj)
+	   (number? obj)
+           (string? obj)
 	   (boolean? obj)
            (null? obj))
        `(other ,obj)]
@@ -546,7 +547,7 @@ needed to really make this work:
          (column ,col)
          (span ,span)
          (original? ,original?)
-         (properties ,@(properties))
+         (properties ,@(properties ...))
          (contents ,contents))
        (foldl
         add-properties
@@ -559,7 +560,7 @@ needed to really make this work:
                pos
                span))
         properties)]
-      [else 'unknown-syntax-object]))
+      [else #'unknown-syntax-object]))
 
   ;; add-properties : syntax any -> syntax
   (define (add-properties prop-spec stx)

@@ -267,10 +267,10 @@
                               (- (/ h 2) (/ th 2)))))])
               (if locked?
                   (draw locked-message "yellow" 'solid "black" 'solid)
-                  (draw unlocked-message (get-panel-background) 'panel (get-panel-background) 'transparent))))
+                  (draw unlocked-message (get-panel-background) 'transparent (get-panel-background) 'transparent))))
           (inherit get-parent min-width min-height stretchable-width stretchable-height)
 
-	  (super-instantiate ())
+	  (super-new [style '(transparent)])
 
           (let ([dc (get-dc)])
             (send dc set-font (send (get-parent) get-label-font))
