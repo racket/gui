@@ -5002,7 +5002,7 @@
 ; We duplicate the case-lambda for `get-file', `get-file-list', and `put-file' so that they have the
 ;   right arities and names
 
-(define default-filters '(("Any file (*.*)" "*.*")))
+(define default-filters '(("Any" "*.*")))
 
 (define get-file
   (case-lambda
