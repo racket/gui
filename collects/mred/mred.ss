@@ -5162,7 +5162,7 @@
 	(letrec ([ok? #f]
 		 [typed-name #f]
 		 [dir (or directory last-visted-directory (current-directory))]
-		 [f (make-object dialog% (if put? "Save" "Open") parent 500 300)]
+		 [f (make-object dialog% (if dir? "Select Directory" (if put? "Save" "Open")) parent 500 300)]
 		 [__ (when message
 		       (let ([p (make-object vertical-pane% f)])
 			 (send p stretchable-height #f)
