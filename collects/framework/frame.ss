@@ -1016,12 +1016,15 @@
 		    (if v
 			(list rest-panel outer-info-panel)
 			(list rest-panel))))))])
+      (private
+	[memory-cleanup void]) ;; only for PLTers; used with memory-text
       (override
 	[on-close
 	 (lambda ()
 	   (super-on-close)
 	   (unregister-collecting-blit gc-canvas)
-	   (close-panel-callback))])
+	   (close-panel-callback)
+	   (memory-cleanup))])
       
       (public
 	[lock-status-changed
@@ -1083,6 +1086,10 @@
                  [ec (make-object editor-canvas% panel memory-text '(no-hscroll no-vscroll))])
             (determine-width "000000000" ec memory-text)
             (update-text)
+	    (set! memory-cleanup
+		  (lambda ()
+		    (send memory-text remove-canvas ec)
+		    (send ec set-editor #f)))
             (send panel stretchable-width #f))))
       (private
 	[lock-message (make-object message%

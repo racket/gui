@@ -209,10 +209,12 @@
           'framework:auto-set-wrap?)))
       (private
         [remove-callback
-         (preferences:add-callback
-          'framework:auto-set-wrap?
-          (lambda (p v)
-            (auto-wrap v)))])))
+	 (preferences:add-callback
+	  'framework:auto-set-wrap?
+	  (let ([autowrap-mixin-pref-callback
+		 (lambda (p v)
+		   (auto-wrap v))])
+	    autowrap-mixin-pref-callback))])))
   
   (define file<%> (interface (-keymap<%>)))
   (define file-mixin

@@ -14,11 +14,15 @@
 					     [(windows) "mred.pre"]
 					     [else ".mred.prefs"])))
   
+  (define-struct callbacks-ht (ht))
+
   (define preferences (make-hash-table))
   (define marshall-unmarshall (make-hash-table))
-  (define callbacks (make-hash-table))    
+  (define callbacks (make-callbacks-ht (make-hash-table)))
   (define defaults (make-hash-table))
   
+  (printf "hash-tables: ~s~n" (list preferences marshall-unmarshall (callbacks-ht-ht callbacks) defaults))
+
   (define-struct un/marshall (marshall unmarshall))
   (define-struct marshalled (data))
   (define-struct pref (value))
@@ -59,19 +63,26 @@
   
   (define get-callbacks
     (lambda (p)
-      (hash-table-get callbacks
+      (hash-table-get (callbacks-ht-ht callbacks)
 		      p
 		      (lambda () null))))
   
   (define add-callback
     (lambda (p callback)
-      (hash-table-put! callbacks p (append (get-callbacks p) (list callback)))
+      (printf "added callback (~s) for ~s~n" callback p)
+      (hash-table-put! (callbacks-ht-ht callbacks) p (append (get-callbacks p) (list callback)))
       (lambda ()
 	(hash-table-put!
-	 callbacks p
-	 (mzlib:function:remove callback
-				(get-callbacks p)
-				eq?)))))
+	 (callbacks-ht-ht callbacks)
+	 p
+	 (let loop ([callbacks (get-callbacks p)])
+	   (cond
+	    [(null? callbacks) null]
+	    [else (if (eq? (car callbacks) callback)
+		      (begin
+			(printf "removed callback (~s) for ~s~n" callback p)
+			(loop (cdr callbacks)))
+		      (cons (car callbacks) (loop (cdr callbacks))))]))))))
   
   (define check-callbacks
     (lambda (p value)
