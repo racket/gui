@@ -167,29 +167,27 @@
           
           (define after-init? #f)
           (override can-close? on-close on-focus on-drop-file)
-          [define can-close?
-            (lambda ()
-              (let ([number-of-frames 
-                     (length (send (group:get-the-frame-group)
-                                   get-frames))])
-                (and (super-can-close?)
-                     (or (exit:exiting?)
-                         (not (= 1 number-of-frames))
-                         (exit:user-oks-exit)))))]
-          [define on-close
-            (lambda ()
-              (super-on-close)
-              (send (group:get-the-frame-group)
-                    remove-frame
-                    this)
-              (unless (exit:exiting?)
-                (when (null? (send (group:get-the-frame-group) get-frames))
-                  (exit:exit))))]
-          [define on-focus
-            (lambda (on?)
-              (super-on-focus on?)
-              (when on?
-                (send (group:get-the-frame-group) set-active-frame this)))]
+          (define (can-close?)
+            (let ([number-of-frames 
+                   (length (send (group:get-the-frame-group)
+                                 get-frames))])
+              (and (super-can-close?)
+                   (or (exit:exiting?)
+                       (not (= 1 number-of-frames))
+                       (exit:user-oks-exit)))))
+          (define (on-close)
+            (super-on-close)
+            (send (group:get-the-frame-group)
+                  remove-frame
+                  this)
+            (unless (exit:exiting?)
+              (when (null? (send (group:get-the-frame-group) get-frames))
+                (exit:exit))))
+          
+          (define (on-focus on?)
+            (super-on-focus on?)
+            (when on?
+              (send (group:get-the-frame-group) set-active-frame this)))
           
           [define on-drop-file
             (lambda (filename)

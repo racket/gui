@@ -134,7 +134,7 @@
                    (quicksort
                     (get-frames)
                     (lambda (x y) (string-ci<=? (send x get-label) (send y get-label))))])
-              (let loop ([windows (filter (lambda (x) (send x is-shown?)) sorted)]
+              (let loop ([windows sorted]
                          [prev (car (last-pair sorted))])
                 (cond
                   [(null? windows) (void)]
@@ -192,7 +192,9 @@
                 (send mdi-parent show #t))
               mdi-parent)]
           
-          [define get-frames (lambda () (map frame-frame frames))]
+          (define (get-frames)
+            (filter (lambda (x) (send x is-shown?)) 
+                    (map frame-frame frames)))
           
           [define frame-label-changed
             (lambda (frame)
