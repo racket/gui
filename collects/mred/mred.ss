@@ -1362,7 +1362,7 @@
 		       (dynamic-wind
 			   void
 			   (lambda () (send af on-exit))
-			   (lambda () (set! running-quit? #t)))))))))))])
+			   (lambda () (set! running-quit? #f)))))))))))])
   (wx:application-quit-handler (make-app-handler f f)))
 
 (define (set-handler! who proc param)
