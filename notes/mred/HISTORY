@@ -22,7 +22,7 @@ Version 199.24:
 
           mred.forceFocus : 0
 
-
+ * The set of resources that MrEd reads is now documented.
 
 Version 199.23:
 
