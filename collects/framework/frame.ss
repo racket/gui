@@ -1383,7 +1383,8 @@
 				    fn
 				    "Untitled"))
 			      "Close"
-			      #t)
+			      #t
+			      this)
 			 [(continue) #t]
 			 [(save) (send edit save-file)]
 			 [else #f]))])
