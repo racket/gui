@@ -34,28 +34,27 @@
 		 [else (loop (cdr cb-list))])))))
 
     (define -exit
-      (let ([exiting? #f])
+      (let*-values ([(exiting?) #f]
+		    [(w capW)
+		     (if (eq? wx:platform 'macintosh)
+			 (values "quit" "Quit")
+			 (values "exit" "Exit"))]
+		    [(message)
+		     (string-append "Are you sure you want to "
+				    w
+				    "?")])
 	(lambda ()
 	  (unless exiting?
 	    (dynamic-wind
 	     (lambda () (set! exiting? #t))
 	     (lambda ()
 	       (let/ec k
-		 (when (and (mred:preferences:get-preference 'mred:verify-exit)
-			    (not (let ([w (if (eq? wx:platform 'macintosh)
-					      "quit"
-					      "exit")]
-				       [capW (if (eq? wx:platform 'macintosh)
-						 "Quit"
-						 "Exit")])
-				   (mred:gui-utils:get-choice
-				    (string-append "Are you sure you want to " w "?")
-				    capW "Cancel"))))
-		   (k #f))
+		 (when (mred:preferences:get-preference 'mred:verify-exit)
+		   (unless (mred:gui-utils:get-choice
+			    message capW "Cancel")
+		     (k #f)))
 		 (run-exit-callbacks)
 		 (if (null? exit-callbacks)
 		     (exit)
 		     #f)))
-	     (lambda () (set! exiting? #f))))))))
-		   
-
+	    (lambda () (set! exiting? #f))))))))
