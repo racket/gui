@@ -1,3 +1,4 @@
+;; dynamic adding of panels! (it's halfway in there now)
 ;; need a preference for pconvert
 
 (define mred:preferences@
@@ -163,58 +164,40 @@
     
     (define ppanels 
       (list 
-       (make-ppanel "General"
-		    (lambda (parent)
-		      (mred:vertical-panel parent #t #t
-			(list (horizontal-panel #t #f
-						(list (let ([c (check-box (lambda (_ command) 
-									    (set-preference 'mred:highlight-parens (send command checked?)))
-									  "Highlight between matching parens?")])
-							(send c set-value (get-preference 'mred:highlight-parens))
-							c)
-						      (panel #t #t)))
-			      (horizontal-panel 
-			       #t #f
-			       (list (let ([c (check-box (lambda (_ command) 
-							   (set-preference 'mred:autosaving-on? (send command checked?)))
-							 "Auto-save files?")])
-				       (send c set-value (get-preference 'mred:autosaving-on?))
-				       c)
-				     (panel #t #t)))
-			      (horizontal-panel 
-			       #t #f
-			       (list (let ([c (check-box (lambda (_ command) 
-							   (set-preference 'mred:delete-forward? (not (send command checked?))))
-							 "Map delete to backspace?")])
-				       (send c set-value (not (get-preference 'mred:delete-forward?)))
-				       c)
-				     (panel #t #t)))
-			      (horizontal-panel 
-			       #t #f
-			       (list (let ([c (check-box (lambda (_ command) 
-							   (set-preference 'mred:file-dialogs (if (send command checked?)
-											       'std
-											       'common)))
-							 "Use platform-specific File Dialogs?")])
-				       (send c set-value (eq? (get-preference 'mred:file-dialogs) 'common))
-				       c)
-				     (panel #t #t)))
-			      (horizontal-panel 
-			       #t #f
-			       (list (let ([c (check-box (lambda (_ command) 
-							   (set-preference 'mred:status-line (send command checked?)))
-							 "Display Status Information?")])
-				       (send c set-value (get-preference 'mred:status-line))
-				       c)
-				     (panel #t #t)))
-			      (horizontal-panel 
-			       #t #f
-			       (list (let ([c (check-box (lambda (_ command) 
-							   (set-preference 'mred:verify-exit (send command checked?)))
-							 "Verify Exit?")])
-				       (send c set-value (get-preference 'mred:verify-exit))
-				       c)
-				     (panel #t #t)))))))))
+       (make-ppanel
+	"General"
+	(lambda (parent)
+	  (let* ([main (make-object mred:vertical-panel% parent)]
+		 [make-check
+		  (lambda (callback title initial-value)
+		    (let*  ([h (make-object mred:horizontal-panel% main)]
+			    [c (make-object mred:check-box% h callback title)]
+			    [p (make-object mred:horizontal-panel% h)])
+		      (send* h (spacing 1) (border 1))
+		      (send* p (spacing 1) (border 1))
+		      (send c set-value initial-value)))])
+	    (send main spacing 1)
+	    (make-check (lambda (_ command) 
+			  (set-preference 'mred:highlight-parens (send command checked?)))
+			"Highlight between matching parens?" (get-preference 'mred:highlight-parens))
+	    (make-check (lambda (_ command) 
+			  (set-preference 'mred:autosaving-on? (send command checked?)))
+			"Auto-save files?" (get-preference 'mred:autosaving-on?))
+	    (make-check (lambda (_ command) 
+			  (set-preference 'mred:delete-forward? (not (send command checked?))))
+			"Map delete to backspace?" (get-preference 'mred:delete-forward?))
+	    (make-check (lambda (_ command) 
+			  (set-preference 'mred:file-dialogs (if (send command checked?)
+								 'std
+								 'common)))
+			"Use platform-specific file dialogs?" (eq? (get-preference 'mred:file-dialogs) 'common))
+	    (make-check (lambda (_ command) 
+			  (set-preference 'mred:status-line (send command checked?)))
+			"Display status Information?" (get-preference 'mred:status-line))
+	    (make-check (lambda (_ command) 
+			  (set-preference 'mred:verify-exit (send command checked?)))
+			"Verify exit?" (get-preference 'mred:verify-exit))
+	    main)))))
 
     (define make-run-once
       (lambda ()
@@ -226,10 +209,13 @@
 
     (define preferences-dialog #f)
 
+    (define added-any-panels? #f)
+
     (define add-preference-panel
       (lambda (title container)
 	(run-once
 	 (lambda ()
+	   (set! added-any-panels? #t)
 	   (set! ppanels (append ppanels (list (make-ppanel title container))))
 	   (when preferences-dialog
 	     (send preferences-dialog added-pane))))))
@@ -241,13 +227,7 @@
 		  [panel (make-object mred:vertical-panel% frame)]
 		  [top-panel (make-object mred:horizontal-panel% panel)]
 		  [single-panel (make-object mred:single-panel% panel -1 -1 -1 -1 wx:const-border)]
-		  [panels (map 
-			   (lambda (p)
-			     (let* ([parent-panel (make-object mred:vertical-panel% single-panel)]
-				    [new-panel ((ppanel-container p) parent-panel)])
-			       (send parent-panel border 0)
-			       parent-panel))
-			   ppanels)]
+		  [panels (map (lambda (p) ((ppanel-container p) single-panel)) ppanels)]
 		  [bottom-panel (make-object mred:horizontal-panel% panel)]
 		  [popup-callback
 		   (lambda (choice command-event)
@@ -264,7 +244,7 @@
 		     (send popup-menu clear)
 		     (send popup-menu clear)
 		     (for-each (lambda (p) (send popup-menu append (ppanel-title p))) ppanels))]
-		  [ok-callback (lambda args 
+		  [ok-callback (lambda args
 				 (save-user-preferences)
 				 (hide-preferences-dialog))]
 		  [ok-button (make-object mred:button% bottom-panel ok-callback "OK")]
@@ -298,7 +278,11 @@
 	(run-once
 	 (lambda ()
 	   (when preferences-dialog
-	     (send preferences-dialog show #f))))))
+	     (send preferences-dialog show #f)
+	     (when added-any-panels?
+	       (set! preferences-dialog #f)
+	       (set! added-any-panels? #f)))))))
+
 
     (define show-preferences-dialog
       (lambda ()
