@@ -79,6 +79,8 @@
 ;; Killing an eventspace
 (define c (make-custodian))
 (define e (parameterize ([current-custodian c]) (make-eventspace)))
+(define tmr (parameterize ([current-eventspace e]) 
+	      (new timer% [notify-callback void])))
 (parameterize ([current-eventspace e]) (send (make-object frame% "x" #f 50 50) show #t))
 (test #f 'shutdown? (eventspace-shutdown? e))
 (custodian-shutdown-all c)
@@ -99,5 +101,6 @@
 (try-use-es (lambda () (make-object dialog% "x" #f 50 50)))
 (try-use-es (lambda () (make-object timer%)))
 (try-use-es (lambda () (queue-callback void)))
+(try-use-es (lambda () (send tmr start 100 #t)))
 
 (report-errs)
