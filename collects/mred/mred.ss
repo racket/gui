@@ -4,6 +4,7 @@
 	   (lib "class100.ss")
 	   (lib "file.ss")
 	   (lib "etc.ss")
+	   (lib "list.ss")
 	   (lib "process.ss")
 	   (lib "moddep.ss" "syntax"))
 
@@ -189,13 +190,6 @@
 	 [(hash-table-get table (car l) (lambda () #f))
 	  (loop (cdr l))]
 	 [else (cons (car l) (loop (cdr l)))])))))
-
-(define (remq i l)
-  (let loop ([l l])
-    (cond
-     [(null? l) null]
-     [(eq? (car l) i) (remq i (cdr l))]
-     [else (cons (car l) (loop (cdr l)))])))
 
 (define ibeam (make-object wx:cursor% 'ibeam))
 (define arrow-cursor (make-object wx:cursor% 'arrow))
@@ -1413,6 +1407,12 @@
   (and (eq? 'macosx (system-type))
        (wx:main-eventspace? (wx:current-eventspace))))
 
+(define (current-eventspace-has-menu-root?)
+  (and (memq (system-type) '(macos macosx))
+       (wx:main-eventspace? (wx:current-eventspace))))
+
+(define root-menu-frame #f)
+
 (define (eventspace-handler-thread e)
   (let ([t (wx:eventspace-handler-thread e)])
     (or t
@@ -1572,7 +1572,11 @@
 	(entry-point
 	 (lambda ()
 	   ;; Windows: no trampoline needed
-	   (and menu-bar (send menu-bar on-demand))))])
+	   (and menu-bar (send menu-bar on-demand))))]
+       [on-toolbar-click 
+	(entry-point
+	 (lambda ()
+	   (as-exit (lambda () (send (wx->mred this) on-toolbar-button-click)))))])
      (public
        [handle-menu-key
 	(lambda (event)
@@ -4127,7 +4131,7 @@
 	(check-label-string cwho label)
 	(check-frame-parent/false cwho parent)
 	(for-each (lambda (x) (check-dimension cwho x)) (list width height x y))
-	(check-style cwho #f '(no-resize-border no-caption no-system-menu mdi-parent mdi-child) 
+	(check-style cwho #f '(no-resize-border no-caption no-system-menu mdi-parent mdi-child toolbar-button) 
 		     style)
 	(when (memq 'mdi-child style)
 	  (when (memq 'mdi-parent style)
@@ -4137,7 +4141,8 @@
     (rename [super-on-subwindow-char on-subwindow-char])
     (private-field
       [wx #f]
-      [status-line? #f])
+      [status-line? #f]
+      [modified? #f])
     (override
       [on-subwindow-char (lambda (w event)
 			   (super-on-subwindow-char w event)
@@ -4149,6 +4154,7 @@
 		     (lambda (e)
 		       (check-instance '(method frame% on-menu-char) wx:key-event% 'key-event% #f e)
 		       (send wx handle-menu-key e)))]
+      [on-toolbar-button-click (lambda () (void))]
       [create-status-line (entry-point (lambda () (unless status-line? (send wx create-status-line) (set! status-line? #t))))]
       [set-status-text (lambda (s) (send wx set-status-text s))]
       [has-status-line? (lambda () status-line?)]
@@ -4160,7 +4166,13 @@
 		 [(i b l?) (send wx set-icon i b l?)])]
       [maximize (entry-point (lambda (on?) (send wx maximize on?)))]
       [get-menu-bar (entry-point (lambda () (let ([mb (send wx get-the-menu-bar)])
-					      (and mb (wx->mred mb)))))])
+					      (and mb (wx->mred mb)))))]
+      [modified (entry-point
+		 (case-lambda
+		  [() modified?]
+		  [(m) 
+		   (set! modified? m)
+		   (send wx set-modified m)]))])
     (sequence
       (as-entry
        (lambda ()
@@ -4217,7 +4229,7 @@
 		     label parent))))))
 
 (define (get-top-level-windows)
-  (map wx->mred (wx:get-top-level-windows)))
+  (remq root-menu-frame (map wx->mred (wx:get-top-level-windows))))
 
 (define (get-top-level-focus-window)
   (ormap (lambda (f) (and (send f is-act-on?) (wx->mred f))) (wx:get-top-level-windows)))
@@ -5164,12 +5176,6 @@
   (unless (or (is-a? p internal-menu<%>) (is-a? p menu-bar%))
     (raise-type-error (constructor-name who) "built-in menu-item-container<%> object" p)))
 
-(define (barless-frame-parent p)
-  (unless (is-a? p frame%)
-    (raise-type-error (constructor-name 'menu-bar) "frame% object" p))
-  (when (as-entry (lambda () (send (mred->wx p) get-the-menu-bar)))
-    (raise-mismatch-error (constructor-name 'menu-bar) "the specified frame already has a menu bar: " p)))
-
 (define wx-menu-item%
   (class100* wx:menu-item% (wx<%>) (mr mn-dat)
     (private-field 
@@ -5673,11 +5679,26 @@
 (define menu-bar%
   (class100* mred% (menu-item-container<%>) (parent [demand-callback void])
     (sequence 
-      (barless-frame-parent parent)
-      (check-callback1 '(constructor menu-bar) demand-callback))
+      (unless (or (is-a? parent frame%) (eq? parent 'root))
+	(raise-type-error (constructor-name 'menu-bar) "frame% object or 'root" parent))
+      (check-callback1 '(constructor menu-bar) demand-callback)
+      (if (eq? parent 'root)
+	  (unless (current-eventspace-has-menu-root?)
+	    (raise-mismatch-error (constructor-name 'menu-bar) "no menu bar allowed in the current eventspace for: " parent))
+	  (when (as-entry (lambda () (send (mred->wx parent) get-the-menu-bar)))
+	    (raise-mismatch-error (constructor-name 'menu-bar) "the specified frame already has a menu bar: " parent))))
     (private-field 
       [callback demand-callback]
-      [prnt parent]
+      [prnt (if (eq? parent 'root)
+		(let ([f (make-object frame% "Root")])
+		  (as-entry
+		   (lambda ()
+		     (when root-menu-frame
+		       (raise-mismatch-error (constructor-name 'menu-bar) "already has a menu bar: " parent))
+		     (send (mred->wx f) designate-root-frame)
+		     (set! root-menu-frame f)))
+		  f)
+		parent)]
       [wx #f]
       [wx-parent #f]
       [shown? #f])
@@ -6323,25 +6344,6 @@
 	(send f show #t)
 	(and ok? (send l get-selections))))]))
 
-(define (sort l <?)
-  (letrec ([split (lambda (n l)
-		    (if (null? l)
-			'(() . ())
-			(if (< n 1)
-			    (cons (list (car l)) (cdr l))
-			    (let ([n (quotient n 2)])
-			      (let* ([r1 (split n l)]
-				     [r2 (split n (cdr r1))])
-				(cons (merge (car r1) (car r2)) (cdr r2)))))))]
-	   [merge (lambda (l1 l2)
-		    (cond
-		     [(null? l1) l2]
-		     [(null? l2) l1]
-		     [(<? (car l1) (car l2)) 
-		      (cons (car l1) (merge (cdr l1) l2))]
-		     [else (cons (car l2) (merge (cdr l2) l1))]))])
-    (car (split (length l) l))))
-
 (define last-visted-directory #f)
 
 (define (files->list s)
@@ -6521,8 +6523,8 @@
 				      (let-values ([(ds fs)
 						    (let loop ([l l][ds null][fs null])
 						      (cond
-						       [(null? l) (values (cons ".." (sort ds string-locale<?)) 
-									  (sort fs string-locale<?))]
+						       [(null? l) (values (cons ".." (quicksort ds string-locale<?)) 
+									  (quicksort fs string-locale<?))]
 						       [(and (not dot?) (char=? (string-ref (car l) 0) #\.)) (loop (cdr l) ds fs)]
 						       [(file-exists? (build-path dir (car l))) (loop (cdr l) ds (cons (car l) fs))]
 						       [else (loop (cdr l) (cons (car l) ds) fs)]))])
@@ -6690,13 +6692,13 @@
 	     [face (make-object list-box% #f
 				(let ([l (wx:get-face-list)])
 				  (if (memq (system-type) '(macos macosx))
-				      (sort l (lambda (a b)
-						(cond
-						 [(eq? (char-alphabetic? (string-ref a 0))
-						       (char-alphabetic? (string-ref b 0)))
-						  (string-locale<? a b)]
-						 [else (char-alphabetic? (string-ref a 0))])))
-				      (sort l string-ci<?)))
+				      (quicksort l (lambda (a b)
+						     (cond
+						      [(eq? (char-alphabetic? (string-ref a 0))
+							    (char-alphabetic? (string-ref b 0)))
+						       (string-locale<? a b)]
+						      [else (char-alphabetic? (string-ref a 0))])))
+				      (quicksort l string-ci<?)))
 				p refresh-sample)]
 	     [p2 (make-object vertical-pane% p)]
 	     [p3 (instantiate horizontal-pane% (p2) [stretchable-width #f])]
@@ -7245,7 +7247,9 @@
   (check-slider-integer 'send-message-to-window y)
   (let ([w (wx:location->window x y)])
     (and w (let ([f (wx->proxy w)])
-	     (and f (send f on-message m))))))
+	     (and f 
+		  (not (eq? f root-menu-frame))
+		  (send f on-message m))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -7708,6 +7712,7 @@
 	application-preferences-handler
 	application-quit-handler
 	current-eventspace-has-standard-menus?
+	current-eventspace-has-menu-root?
 	eventspace-handler-thread
 	make-namespace-with-mred
 	file-creator-and-type)

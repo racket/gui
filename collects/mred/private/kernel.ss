@@ -476,11 +476,14 @@
     on-size
     on-set-focus
     on-kill-focus
+    on-toolbar-click
     on-menu-click
     on-menu-command
     on-close
     on-activate
+    designate-root-frame
     system-menu
+    set-modified
     create-status-line
     maximize
     status-line-exists?

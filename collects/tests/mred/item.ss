@@ -1818,6 +1818,21 @@
 
 ;----------------------------------------------------------------------
 
+(define (test-modified-frame)
+  (define f (new (class frame% 
+		   (define/override (on-toolbar-button-click)
+		     (send f modified (not (send f modified))))
+		   (super-make-object))
+		 [label "Modifiable"]
+		 [style '(toolbar-button)]))
+
+  (make-object button% "Toggle" f (lambda (b e)
+				    (send f on-toolbar-button-click)))
+  (make-object message% "Mac OS X: toolbar button also toggles" f)
+  (send f show #t))
+
+;----------------------------------------------------------------------
+
 (define (message-boxes parent)
   (define (check expected got)
     (unless (eq? expected got)
@@ -1971,6 +1986,8 @@
 (make-object button% "Make Slider Frame" gsp (lambda (b e) (slider-frame)))
 (make-object vertical-pane% gsp) ; filler
 (make-object button% "Make Tab Panel" gsp (lambda (b e) (test-tab-panel)))
+(make-object vertical-pane% gsp) ; filler
+(make-object button% "Make Modified Frame" gsp (lambda (b e) (test-modified-frame)))
 
 (define tp (make-object horizontal-pane% ap))
 (send tp stretchable-width #f)
