@@ -2269,7 +2269,7 @@
   (class (wx-make-pane% wx:windowless-panel% #f) (mred proxy parent style)
 	 (override
 	   [init-min (lambda (x) (if (eq? (system-type) 'macos)
-				     16
+				     15
 				     0))])
 	 (sequence
 	   (super-init mred proxy parent style))))
