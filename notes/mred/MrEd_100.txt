@@ -2,6 +2,7 @@
                         ******************
                         *    MrEd 100    *
                         ******************
+                         [alpha1 release]
 
 MrEd 100 is the successor to MrEd 53. For MrEd 100, we preserved the
 underlying windowing model, but redesigned the GUI toolbox interface
