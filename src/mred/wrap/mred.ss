@@ -4016,6 +4016,7 @@
   ((in-parameterization user-parameterization current-error-port) user-output-port)
   ((in-parameterization user-parameterization current-input-port) (make-input-port (lambda () eof) void void))
   ((in-parameterization user-parameterization current-custodian) user-custodian)
+  ((in-parameterization user-parameterization current-will-executor) (make-will-executor))
   (send repl-display-canvas set-editor repl-buffer)
   (send frame show #t)
 
