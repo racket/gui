@@ -142,6 +142,14 @@ string=? ; exec mred -mgaqvf $0
     (pretty-print
      `(define standard-menus-mixin
 	(mixin (basic<%>) (standard-menus<%>) args
+          (inherit on-menu-char on-traverse-char)
+          (override
+            [on-subwindow-char
+             (lambda (receiver event)
+               (if (preferences:get 'framework:menu-bindings)
+                   (on-traverse-char event)
+                   (or (on-menu-char event) (on-traverse-char event))))])
+          
 	  (inherit get-menu-bar can-close? on-close show get-edit-target-object)
 	  (sequence (apply super-init args))
 	  ,@(append 
