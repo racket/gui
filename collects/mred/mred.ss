@@ -4232,13 +4232,14 @@
 (define (strip-tab s) (car (regexp-match (format "^[^~a]*" #\tab) s)))
 
 (define basic-labelled-menu-item%
-  (class100* mred% (labelled-menu-item<%>) (prnt lbl help-str wx-sub chkble? keymap set-wx)
+  (class100* mred% (labelled-menu-item<%>) (prnt lbl help-str wx-sub chkble? keymap set-wx demand-callback)
     (private-field
       [parent prnt]
       [label lbl]
       [help-string help-str]
       [wx-submenu wx-sub]
       [checkable? chkble?]
+      [callback demand-callback]
       [wx #f]
       [wx-parent #f]
       [plain-label (string->immutable-string (wx:label->plain-label label))]
@@ -4253,7 +4254,7 @@
 			 (send wx-parent enable-top (send wx-parent position-of this) on?)))
 		   (set! enabled? (and on? #t)))])
     (public
-      [on-demand (lambda () (void))]
+      [on-demand (lambda () (callback))]
       [get-parent (lambda () parent)]
       [get-label (lambda () label)]
       [set-label (entry-point
@@ -4325,7 +4326,7 @@
     [else c]))
 
 (define basic-selectable-menu-item%
-  (class100* basic-labelled-menu-item% (selectable-menu-item<%>) (lbl checkable? mnu cb shrtcut help-string set-wx)
+  (class100* basic-labelled-menu-item% (selectable-menu-item<%>) (lbl checkable? mnu cb shrtcut help-string set-wx demand-callback)
     (rename [super-restore restore] [super-set-label set-label]
 	    [super-is-deleted? is-deleted?]
 	    [super-is-enabled? is-enabled?]
@@ -4410,7 +4411,7 @@
     (sequence
       (set! label (string->immutable-string label))
       (let-values ([(new-label keymap) (calc-labels label)])
-	(super-init menu new-label help-string #f checkable? keymap (lambda (x) (set! wx x) (set-wx x)))))))
+	(super-init menu new-label help-string #f checkable? keymap (lambda (x) (set! wx x) (set-wx x)) demand-callback)))))
 
 (define (check-shortcut-args who label menu callback shortcut help-string)
   (let ([cwho `(constructor ,who)])
@@ -4421,13 +4422,13 @@
     (check-string/false cwho help-string)))
 
 (define menu-item%
-  (class100 basic-selectable-menu-item% (label menu callback [shortcut #f] [help-string #f])
+  (class100 basic-selectable-menu-item% (label menu callback [shortcut #f] [help-string #f] [demand-callback void])
     (sequence 
       (check-shortcut-args 'menu-item label menu callback shortcut help-string)
-      (super-init label #f menu callback shortcut help-string (lambda (x) x)))))
+      (super-init label #f menu callback shortcut help-string (lambda (x) x) demand-callback))))
 
 (define checkable-menu-item%
-  (class100 basic-selectable-menu-item% (label menu callback [shortcut #f] [help-string #f])
+  (class100 basic-selectable-menu-item% (label menu callback [shortcut #f] [help-string #f] [demand-callback void])
     (sequence
       (check-shortcut-args 'checkable-menu-item label menu callback shortcut help-string))
     (private-field
@@ -4437,13 +4438,15 @@
       [check (entry-point (lambda (on?) (send (send (mred->wx mnu) get-container) check (send wx id) on?)))]
       [is-checked? (entry-point (lambda () (send (send (mred->wx mnu) get-container) checked? (send wx id))))])
     (sequence
-      (super-init label #t mnu callback shortcut help-string (lambda (x) (set! wx x) x)))))
+      (super-init label #t mnu callback shortcut help-string (lambda (x) (set! wx x) x) demand-callback))))
 
 (define menu-item-container<%> (interface () get-items on-demand))
 (define internal-menu<%> (interface ()))
 
 (define menu%
-  (class100* basic-labelled-menu-item% (menu-item-container<%> internal-menu<%>) (label parent [help-string #f])
+  (class100* basic-labelled-menu-item% (menu-item-container<%> internal-menu<%>) (label parent [help-string #f] [demand-callback void])
+    (private-field 
+      [callback demand-callback])
     (sequence 
       (check-string '(constructor menu) label)
       (menu-or-bar-parent 'menu parent)
@@ -4452,6 +4455,7 @@
       [get-items (entry-point (lambda () (send wx-menu get-items)))])
     (override
       [on-demand (lambda ()
+		   (callback)
 		   (for-each
 		    (lambda (i) 
 		      (when (is-a? i labelled-menu-item<%>)
@@ -4463,19 +4467,22 @@
       (as-entry
        (lambda () 
 	 (set! wx-menu (make-object wx-menu% this #f void))
-	 (super-init parent label help-string wx-menu #f (send wx-menu get-keymap) (lambda (x) x))
+	 (super-init parent label help-string wx-menu #f (send wx-menu get-keymap) (lambda (x) x) void)
 	 (let ([wx-item (mred->wx this)])
 	   (set-cdr! (send wx-item get-menu-data) wx-menu) ; for meta-shortcuts
 	   (send wx-item set-wx-menu wx-menu)))))))
 
 (define popup-menu%
-  (class100* mred% (menu-item-container<%> internal-menu<%>) ([title #f][popdown-callback void])
+  (class100* mred% (menu-item-container<%> internal-menu<%>) ([title #f][popdown-callback void][demand-callback void])
+    (private-field 
+      [callback demand-callback])
     (public
       [get-popup-target
        (lambda ()
 	 (send wx get-popup-grabber))]
       [get-items (entry-point (lambda () (send wx get-items)))]
       [on-demand (lambda ()
+		   (callback)
 		   (for-each
 		    (lambda (i) 
 		      (when (is-a? i labelled-menu-item<%>)
@@ -4504,9 +4511,10 @@
 	 (super-init wx))))))
 
 (define menu-bar%
-  (class100* mred% (menu-item-container<%>) (parent)
+  (class100* mred% (menu-item-container<%>) (parent [demand-callback void])
     (sequence (barless-frame-parent parent))
     (private-field 
+      [callback demand-callback]
       [prnt parent]
       [wx #f]
       [wx-parent #f]
@@ -4517,6 +4525,7 @@
       [enable (entry-point (lambda (on?) (send wx enable-all on?)))]
       [is-enabled? (entry-point (lambda () (send wx all-enabled?)))]
       [on-demand (lambda ()
+                   (callback)
 		   (for-each
 		    (lambda (i) (send i on-demand))
 		    (send wx get-items)))])

@@ -405,23 +405,23 @@
     get-pixel)
   (define-class post-script-dc% dc% ([interactive? #t] [parent #f]))
   (define-class printer-dc% dc% ([parent #f]))
-  (define-class event% object% ()
+  (define-class event% object% ([time-stamp 0])
     get-time-stamp
     set-time-stamp)
-  (define-class control-event% event% (event-type)
+  (define-class control-event% event% (event-type [time-stamp 0])
     get-event-type
     set-event-type)
-  (define-class popup-event% control-event% ()
+  (define-class popup-event% control-event% ([menu-id 0] [time-stamp 0])
     get-menu-id
     set-menu-id)
-  (define-class scroll-event% event% ()
+  (define-class scroll-event% event% ([event-type 'thumb] [direction 'vertical] [position 0] [time-stamp 0])
     get-event-type
     set-event-type
     get-direction
     set-direction
     get-position
     set-position)
-  (define-class key-event% event% ()
+  (define-class key-event% event% ([key-code #\nul] [shift-down #f] [control-down #f] [meta-down #f] [alt-down #f] [x 0.0] [y 0.0] [time-stamp 0])
     get-key-code
     set-key-code
     get-shift-down
@@ -436,7 +436,7 @@
     set-x
     get-y
     set-y)
-  (define-class mouse-event% event% (event-type)
+  (define-class mouse-event% event% (event-type [left-down #f] [middle-down #f] [right-down #f] [x 0.0] [y 0.0] [shift-down #f] [control-down #f] [meta-down #f] [alt-down #f] [time-stamp 0])
     moving?
     leaving?
     entering?
