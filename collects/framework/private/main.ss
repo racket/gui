@@ -79,7 +79,6 @@
 		    (hash-table-put! hash-table x 'begin))
 		  '(case-lambda
 		    cond
-		    match-lambda match-lambda*
 		    begin begin0 delay
 		    unit compound-unit compound-unit/sig
 		    public private override
@@ -89,6 +88,7 @@
 		  '(
                     instantiate super-instantiate
                     lambda let let* letrec recur
+		    match-lambda match-lambda*
                      letrec-values
                      with-syntax
 		     with-continuation-mark
