@@ -147,21 +147,19 @@
             (λ ()
               (split (get-horizontal%)))]
           
-          (public collapse)
-          (define collapse
-            (λ ()
-              (let ([canvas (send (send parent get-top-level-window) get-edit-target-window)]
-                    [ec% (get-editor-canvas%)])
-                (when (and canvas
-                           (is-a? canvas ec%)
-                           (eq? (send canvas get-editor) editor))
-                  (let ([p (send canvas get-parent)])
-                    (if (eq? p this)
-                        (bell)
-                        (let* ([sp (send p get-parent)]
-                               [p-to-remain (send sp get-parent)])
-                          (send p-to-remain change-children (λ (x) null))
-                          (send (make-object ec% p-to-remain editor) focus))))))))
+          (define/public (collapse)
+            (let ([canvas (send (send parent get-top-level-window) get-edit-target-window)]
+                  [ec% (get-editor-canvas%)])
+              (when (and canvas
+                         (is-a? canvas ec%)
+                         (eq? (send canvas get-editor) editor))
+                (let ([p (send canvas get-parent)])
+                  (if (eq? p this)
+                      (bell)
+                      (let* ([sp (send p get-parent)]
+                             [p-to-remain (send sp get-parent)])
+                        (send p-to-remain change-children (λ (x) null))
+                        (send (make-object ec% p-to-remain editor) focus)))))))
           
           
           (super-instantiate () (parent parent))
