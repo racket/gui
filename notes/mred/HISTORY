@@ -1,4 +1,12 @@
 
+Version 199.24:
+
+ * Added `scroll-to' method to editor-canvas%.
+
+ * X: 'no-resize-border works for frame% with many window managers.
+
+ * X: too-long menus now scroll.
+
 Version 199.23:
 
  * X: mouse wheel events are now reported to `on-char'.
@@ -12,7 +20,7 @@ Version 199.22:
 Version 199.18:
 
  * Changed mouse-event% and key-event% positions (x and y) to be
-   inexact integers. For a scrollable, scalable canvas, mouse clicks
+   exact integers. For a scrollable, scalable canvas, mouse clicks
    are now reported in client pixels (as the documentation has always
    claimed!) instead of DC coordinates (or some random combination of
    client and DC coordinates, depending on the platform).
@@ -162,7 +170,7 @@ Version 103.1:
 Version 200: ???
 
 Changed mouse-event% and key-event% positions (x and y) to be
- inexact integers
+ exact integers
 Added popup-menu to window<%>
 Added a popup menu to the message-box dialog that copies the contained
  message to the clipboard
@@ -186,6 +194,8 @@ Added 'size-n/s, 'size-e/w, 'size-ne/sw, and 'size-nw/se icons
 Windows: removed special handling of Ctl-m, Ctl-i, and Ctl-h
 X: Default keymap double-click time determined via the standard Xt
  function
+X: 'no-resize-border works for frame% with many window managers
+X: too-long menus now scroll
 X: changed default preview command from "ghostview" to "gv"
 MacOS: play-sound plays virtually any kind of sound, including
  .wav files; QuickTime 3.0 or higher is required
