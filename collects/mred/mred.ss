@@ -890,8 +890,9 @@
 						     #f
 						     o)
 						 #f)]
-					  [dests (filter-overlapping 
-						  (map object->position (container->children panel o #t)))]
+					  [candidates 
+					   (map object->position (container->children panel o #t))]
+					  [dests (filter-overlapping candidates)]
 					  [pos (if o (object->position o) (list 'x 0 0 1 1))]
 					  [o (traverse (cadr pos) (caddr pos) (cadddr pos) (list-ref pos 4)
 						       (case code
@@ -2075,13 +2076,16 @@
 
     (compute-sizes)
     (set-min-width (inexact->exact (ceiling (get-total-width))))
-    (set-min-height (inexact->exact (ceiling (+ tab-height 9 raise-h))))))
+    (set-min-height (inexact->exact (ceiling (+ tab-height 9 raise-h))))
+    (set-tab-focus #f)))
 
 (define wx-tab-group% 
   (if (eq? 'unix (system-type))
       canvas-based-tab-group%
-      (make-window-glue%
-       (make-control% wx:tab-group% 0 0 #t #t))))
+      (class (make-window-glue%
+	      (make-control% wx:tab-group% 0 0 #t #t))
+	     (define/override (gets-focus?) #f)
+	     (super-instantiate ()))))
 
 (define group-right-inset 4)
 
@@ -2155,13 +2159,16 @@
 
     (compute-sizes)
     (set-min-width (inexact->exact (ceiling (+ lbl-w group-right-inset 4))))
-    (set-min-height (inexact->exact (ceiling (+ lbl-h 6))))))
+    (set-min-height (inexact->exact (ceiling (+ lbl-h 6))))
+    (set-tab-focus #f)))
 
 (define wx-group-box%
   (if (eq? 'unix (system-type))
       canvas-based-group-box%
-      (make-window-glue%
-       (make-control% wx:group-box% 0 0 #t #t))))
+      (class (make-window-glue%
+	      (make-control% wx:group-box% 0 0 #t #t))
+	     (define/override (gets-focus?) #f)
+	     (super-instantiate ()))))
 
 ;--------------------- wx media Classes -------------------------
 
