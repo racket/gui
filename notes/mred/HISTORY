@@ -70,6 +70,9 @@ X Windows: fixed wx:frame's iconize and iconized? methods,
 X Windows: fixed iconification of parentless dialog boxes;
  they can't be iconified, since there's often no way to
  get them back
+Changed the initial setting of an eventspace created by the
+ wx:make-eventspace procedure; now, the initial directory is
+ the current directory when wx:make-eventspace is called
 Removed wx:exit
 MacOS: fixed event handling -> better response and performance
 More PostScript drawing fixes
@@ -78,10 +81,10 @@ X Windows: added .mred.resources option `mred.forceFocus'; if
  focus there (good for Window Managers where the focus does
  not follow the pointer); the default is 0, the old behavior
 MacOS: removed the special -r command-line flag
+Upgraded to gc 13alpha1
 
-
-				System
-
+System:
+-------
  - set-empty-callback in mred:frame-group% is now set-empty-callbacks
    in mred:frame-group%. See the docs for more details.
 
