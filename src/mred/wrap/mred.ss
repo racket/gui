@@ -3244,7 +3244,7 @@
 (define canvas<%>
   (interface (subwindow<%>)
     min-client-width min-client-height
-    on-char on-event on-paint on-scroll
+    on-char on-event on-paint on-scroll on-tab-in
     popup-menu warp-pointer get-dc))
 
 (define basic-canvas%
