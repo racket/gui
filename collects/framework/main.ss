@@ -7,6 +7,8 @@
   
   ;; preferences
 
+  (preferences:set-default 'framework:menu-bindings #t boolean?)
+
   (preferences:set-default 'framework:verify-change-format #f boolean?)
   
   (preferences:set-default 'framework:auto-set-wrap? #f boolean?)
@@ -133,14 +135,14 @@
 	       (lambda (string symbol keywords)
 		 (let* ([vert (make-object vertical-panel% main-panel)]
 			[_ (make-object message% (string-append string "-like Keywords") vert)]
-			[box (make-object list-box% #f keywords vert #f 'multiple void)]
+			[box (make-object list-box% #f keywords vert void '(multiple))]
 			[button-panel (make-object horizontal-panel% vert)]
-			[add-button (make-object button% "Add" (add-callback string symbol box) button-panel)]
-			[delete-button (make-object button% "Remove" (delete-callback box) button-panel)])
+			[add-button (make-object button% "Add" button-panel (add-callback string symbol box))]
+			[delete-button (make-object button% "Remove" button-panel (delete-callback box))])
 		   (send* button-panel 
-		     (major-align-center)
-		     (stretchable-in-y #f))
-		   (send add-button user-min-width (send delete-button get-width))
+		     (set-alignment 'center 'center)
+		     (stretchable-height #f))
+		   (send add-button min-width (send delete-button get-width))
 		   box))]
 	      [begin-list-box (make-column "Begin" 'begin begin-keywords)]
 	      [define-list-box (make-column "Define" 'define define-keywords)]

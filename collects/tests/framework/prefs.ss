@@ -40,3 +40,16 @@
 	`(begin (preferences:set-default ',pref-sym 'passed symbol?)
 		(preferences:get ',pref-sym))))
 
+
+(test 'preference-dialog-appears
+      (lambda (x) (eq? 'passed x))
+      (lambda ()
+	(send-sexp-to-mred '(preferences:show-dialog))
+	(wait-for-frame "Preferences")
+	(send-sexp-to-mred '(begin (preferences:hide-dialog)
+				   (let ([f (get-top-level-focus-frame)])
+				     (if f
+					 (if (string=? "Preferences" (send f get-label))
+					     'failed
+					     'passed)
+					 'passed))))))

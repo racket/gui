@@ -79,7 +79,7 @@ string=? ; exec mred -mgaqvf $0
 		      ,menu-after-string)
 	       ,(menu-name->id name-string)
 	       ,name
-	       ,key
+	       (if (preferences:get 'framework:menu-bindings) ,key #f)
 	       (,(build-id item "-help-string"))))])))
 
 (define build-between/after-menu-clause

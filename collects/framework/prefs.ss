@@ -344,13 +344,13 @@
 			     (set pref (bool->pref (send command checked?))))]
 			  [pref-value (get pref)]
 			  [initial-value (pref->bool pref-value)]
-			  [c (make-object check-box% main callback title)])
+			  [c (make-object check-box% title main callback)])
 		    (send c set-value initial-value)
 		    (add-callback pref
 				  (lambda (p v)
 				    (send c set-value (pref->bool v))))))]
 	       [id (lambda (x) x)])
-	  (send main minor-align-left)
+	  (send main set-alignment 'right 'center)
 	  (make-check 'framework:highlight-parens "Highlight between matching parens" id id)
 	  (make-check 'framework:fixup-parens "Correct parens" id id)
 	  (make-check 'framework:paren-match "Flash paren match" id id)
@@ -403,32 +403,33 @@
 				(send edit change-style delta 0 (send edit last-position))))]
 			   
 			   [horiz (make-object horizontal-panel% main '(border))]
-			   [label (make-object message% horiz name)]
+			   [label (make-object message% name horiz)]
 			   
-			   [message (make-object message% horiz 
-						 (let ([b (box "")])
-						   (if (and (get-resource 
-							     font-section 
-							     (build-font-entry name)
-							     b)
-							    (not (string=? (unbox b) 
-									   "")))
-						       (unbox b)
-						       font-default-string)))]
+			   [message (make-object message%
+				      (let ([b (box "")])
+					(if (and (get-resource 
+						  font-section 
+						  (build-font-entry name)
+						  b)
+						 (not (string=? (unbox b) 
+								"")))
+					    (unbox b)
+					    font-default-string)) 
+				      horiz)]
 			   [button 
-			    (make-object 
-				button% horiz 
-				(lambda (button evt)
-				  (let ([new-value
-					 (get-choices-from-user
-					  "Fonts"
-					  (format "Please choose a new ~a font"
-						  name)
-					  fonts)])
-				    (when new-value
-				      (set pref-sym new-value) 
-				      (set-edit-font (get font-size-pref-sym)))))
-				"Change")]
+			    (make-object button%
+			      "Change" 
+			      horiz
+			      (lambda (button evt)
+				(let ([new-value
+				       (get-choices-from-user
+					"Fonts"
+					(format "Please choose a new ~a font"
+						name)
+					fonts)])
+				  (when new-value
+				    (set pref-sym new-value) 
+				    (set-edit-font (get font-size-pref-sym))))))]
 			   [canvas (make-object editor-canvas% horiz
 						edit
 						(list 'hide-hscroll
@@ -439,10 +440,9 @@
 		       (lambda (p new-value)
 			 (send horiz change-children
 			       (lambda (l)
-				 (let ([new-message (make-object
-							message%
-						      horiz
-						      new-value)])
+				 (let ([new-message (make-object message%
+						      new-value
+						      horiz)])
 				   (set! message new-message)
 				   (update-message-sizes font-message-get-widths 
 							 font-message-user-min-sizes)
@@ -452,9 +452,9 @@
 					 canvas))))))
 		      (vector set-edit-font
 			      (lambda () (send message get-width))
-			      (lambda (width) (send message user-min-width width))
+			      (lambda (width) (send message min-width width))
 			      (lambda () (send label get-width))
-			      (lambda (width) (send label user-min-width width)))))]
+			      (lambda (width) (send label min-width width)))))]
 		 [set-edit-fonts/messages (map make-family-panel font-families)]
 		 [collect (lambda (n) (map (lambda (x) (vector-ref x n)) set-edit-fonts/messages))]
 		 [set-edit-fonts (collect 0)]
@@ -468,17 +468,18 @@
 		      (for-each (lambda (set) (set width)) sets)))]
 		 [size-panel (make-object horizontal-panel% main '(border))]
 		 [size-slider
-		  (make-object slider% size-panel 
-			       (lambda (slider evt)
-				 (set font-size-pref-sym (send slider get-value)))
-			       "Size"
-			       (let ([b (box 0)])
-				 (if (get-resource font-section 
-						   font-size-entry
-						   b)
-				     (unbox b)
-				     font-default-size))
-			       1 127 50)]
+		  (make-object slider%
+		    "Size"
+		    1 127
+		    size-panel
+		    (lambda (slider evt)
+		      (set font-size-pref-sym (send slider get-value)))
+		    (let ([b (box 0)])
+		      (if (get-resource font-section 
+					font-size-entry
+					b)
+			  (unbox b)
+			  font-default-size)))]
 		 [guard-change-font (later-on)])
 	  (update-message-sizes font-message-get-widths font-message-user-min-sizes)
 	  (update-message-sizes category-message-get-widths category-message-user-min-sizes)
@@ -491,7 +492,7 @@
 	     (unless (= value (send size-slider get-value))
 	       (send size-slider set-value value))
 	     #t))
-	  (make-object message% main "Restart to see font changes")
+	  (make-object message% "Restart to see font changes" main)
 	  main))
       #f)))
   
@@ -551,7 +552,7 @@
 						     (send popup-menu set-selection (sub1 (length ppanels)))
 						     (send single-panel active-child 
 							   (ppanel-panel (car (list-tail ppanels (sub1 (length ppanels)))))))]))
-		  '() "Preferences")]
+		  "Preferences")]
 	       [panel (make-object vertical-panel% frame)]
 	       [popup-callback
 		(lambda (choice command-event)
@@ -562,7 +563,7 @@
 		  (let ([menu (make-object choice% "Category"
 					   (map ppanel-title ppanels)
 					   panel popup-callback)])
-		    (send menu stretchable-in-x #f)
+		    (send menu stretchable-width #f)
 		    menu))]
 	       [popup-menu (make-popup-menu)]
 	       [single-panel (make-object panel:single%
@@ -573,9 +574,10 @@
 		  (for-each (lambda (ppanel)
 			      (unless (ppanel-panel ppanel)
 				(let ([panel ((ppanel-container ppanel) single-panel)])
-				  (unless (is-a? panel panel%)
+				  (unless (and (object? panel)
+					       (implementation? (object-class panel) area-container<%>))
 				    (error 'preferences-dialog
-					   "expected the preference panel to be a panel%. Got ~a instead~n"
+					   "expected the result of the function passed to preferences:add-panel to implement the area-container% interface. Got ~a~n"
 					   panel))
 				  (set-ppanel-panel! ppanel panel))))
 			    ppanels)
@@ -593,15 +595,15 @@
 	       [ok-callback (lambda args
 			      (save)
 			      (hide-dialog))]
-	       [ok-button (make-object button% bottom-panel ok-callback "OK")]
+	       [ok-button (make-object button% "OK" bottom-panel ok-callback)]
 	       [cancel-callback (lambda args
 				  (hide-dialog)
 				  (-read))]
-	       [cancel-button (make-object button% bottom-panel cancel-callback "Cancel")])
-	(send ok-button user-min-width (send cancel-button get-width))
+	       [cancel-button (make-object button% "Cancel" bottom-panel cancel-callback)])
+	(send ok-button min-width (send cancel-button get-width))
 	(send* bottom-panel
-	  (stretchable-in-y #f)
-	  (major-align-right))
+	  (stretchable-height #f)
+	  (set-alignment 'right 'center))
 	(ensure-constructed)
 	(send popup-menu set-selection 0)
 	(send frame show #t)
