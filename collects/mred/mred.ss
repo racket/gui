@@ -2597,12 +2597,12 @@
 
 (define wx-basic-panel<%> (interface ()))
 
-(define tab-h-border (if (eq? (system-type) 'windows)
-			 3
-			 2))
-(define tab-v-border (if (memq (system-type) '(macosx macos))
-			 5
-			 2))
+(define tab-h-border (if (eq? (system-type) 'unix)
+			 2
+			 3))
+(define tab-v-bottom-border (if (memq (system-type) '(macosx macos))
+				2
+				2))
 
 (define (wx-make-basic-panel% wx:panel% stretch?)
   (class100* (wx-make-container% (make-item% wx:panel% 0 0 stretch? stretch?)) (wx-basic-panel<%>) (parent style)
@@ -2644,7 +2644,7 @@
 			     0))]
       [ext-dy (lambda () (if hidden-child
 			     (let-values ([(mw mh) (get-hard-minimum-size)])
-			       (- mh tab-v-border 1))
+			       (- mh tab-v-bottom-border 1))
 			     0))])
     
     (private-field
@@ -2966,7 +2966,7 @@
 							    (let ([dy (child-info-y-min (car children-info))])
 							      (map (lambda (i)
 								     (list (+ (car i) tab-h-border)
-									   (+ dy (cadr i) (- tab-v-border) -1)
+									   (+ dy (cadr i) (- tab-v-bottom-border) -1)
 									   (caddr i)
 									   (cadddr i)))
 								   l)))

@@ -655,7 +655,8 @@
 			     '(multiple)))
 
     (define tab (make-object tab-panel% 
-			     '("Appl\351" "B&anana") ip2 void))
+			     '("Appl\351" "B&anana") ip2 void
+			     null))
 
     (define grp (make-object group-box-panel% 
 			     "Group\351" ip2))
