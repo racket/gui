@@ -2388,10 +2388,11 @@
   
 (define (font->delta f)
   (define d (make-object wx:style-delta%))
-  (let ([v (send f get-face)])
+  (let ([v (send f get-face)]
+	[m (send f get-family)])
     (if v
-	(send d set-delta-face v)
-	(send d set-delta 'change-family (send f get-family))))
+	(send d set-delta-face v m)
+	(send d set-delta 'change-family m)))
   (send d set-delta 'change-size (send f get-point-size))
   (send d set-delta 'change-style (send f get-style))
   (send d set-delta 'change-weight (send f get-weight))
@@ -4920,7 +4921,7 @@
 		      (lambda (e)
 			(send e change-style (make-object wx:style-delta% 'change-family f)))))
 		'("Standard" "Decorative" "Roman" "Script" "Swiss" "Fixed" "Symbol")
-		'(default decorative roman script swiss fixed symbol))
+		'(default decorative roman script swiss modern symbol))
       (mk-sep family)
       (mk "Choose..." family (lambda (e) (let ([f (get-font-from-user)])
 					   (when f
