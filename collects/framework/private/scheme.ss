@@ -371,6 +371,21 @@
                (scheme-paren:get-comments))))
           
           
+<<<<<<< scheme.ss
+          (rename [super-on-close on-close])
+          (define/override (on-close)
+            (remove-indents-callback)
+            (remove-paren-callback)
+            (super-on-close))
+          
+          (define remove-indents-callback
+            (preferences:add-callback
+             'framework:tabify
+             (lambda (p value)
+               (set! indents value))))
+          (define indents (preferences:get 'framework:tabify))
+=======
+>>>>>>> 1.40
           [define backward-cache (make-object match-cache:%)]
           [define forward-cache (make-object match-cache:%)]
           
