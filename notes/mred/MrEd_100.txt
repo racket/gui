@@ -44,8 +44,11 @@ and `mred:' classes, we eliminated the prefixes.
 
 All of the core toolbox classes are built into the MrEd executable.
 The old `mred:' classes that are not part of the core toolbox have
-been moved into a separate, optional framework library. The new
-framework library is described in a separate document.
+been moved into a separate framework library [NOT INCLUDED WITH
+100alpha1]. The framework library is designed for use in large and
+polished applications (as opposed to small or prototype applications),
+and particularly in applications that require coordinated groups of
+frames, editor frames with searching, or user preference dialogs.
 
 Running MrEd and Developing MrEd Applications
 ---------------------------------------------
@@ -57,14 +60,14 @@ case-sensitivity and cond-fallthrough behavior. Command-line handling
 for MrEd 100 is nearly the same as for MzScheme; the only difference
 is that MrEd executes `(graphical-read-eval-print-loop)' on startup
 instead of `(read-eval-print-loop)'. MrEd 100 programmers do not need
-to understand units and collections to implement a simple MrEd
+to understand units and collections to implement a simple GUI
 application.
 
 MrEd's `graphical-read-eval-print-loop' implements a rather primitive
 REPL, unlike the relatively useful REPL provided by the old MrEd
 toolbox-framework combination. MrEd 100 provides no replacement for
-the old REPL. Instead, DrScheme 100 provides a REPL that matches
-MrEd's language exactly.
+the old REPL. Instead, DrScheme 100 provides [in 100alpha2] a REPL
+that matches MrEd's language exactly.
 
 Porting to MrEd 100
 -------------------
@@ -142,7 +145,7 @@ changes normally listed in the HISTORY notes).
    just as when a button is clicked.
 
  * The "media" names have changed. Roughly, we replaced "media" with
-   "editor", or dropped "media" it when "editor" is not useful. The
+   "editor", or dropped "media" when "editor" is not useful. The
    following is the name mapping for some commonly used classes:
 
             media-canvas%      =>  editor-canvas%
@@ -251,7 +254,7 @@ MzScheme's class syntax also changed slightly:
    depending on the set of instance variables provided by the
    superclass. In 100, a `public' declaration always introduces a new
    instance variable; if the superclass already provides the instance
-   variable, and exception is raised. The new `override' clause
+   variable, an exception is raised. The new `override' clause
    declares instance variables to override existing definitions; an
    exception is raised if the superclass does not provide the instance
    variable to override.
