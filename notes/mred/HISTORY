@@ -3,8 +3,8 @@ Version 299.31
 Added a font intialization argument for control<%> classes
 Added a font intialization argument for popup-menu%
 Added a label-font intialization argument for list-box%
-Removed get-label-font, get-button-font, set-label-font, 
- set-button-front, get-label-position, and set-label-position
+Removed get-label-font, get-control-font, set-label-font, 
+ set-control-front, get-label-position, and set-label-position
  from area-container<%> and implementing classes
 Added get-font to classes with a font initalization argument
 Added normal-control-font, small-control-font, tiny-control-font,
