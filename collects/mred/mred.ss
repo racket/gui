@@ -4850,13 +4850,7 @@
 		    wx)
 		  (lambda ()
 		    (let ([cwho '(constructor canvas)])
-		      (check-container-ready cwho parent)
-		      (when (memq 'gl style)
-			(unless (or (eq? (system-type) 'windows)
-				    (eq? (system-type) 'unix))
-			  (raise-mismatch-error (who->name cwho)
-						"the 'gl style flag is not supported on this platform: "
-						style)))))
+		      (check-container-ready cwho parent)))
 		  parent)
       (when label
 	(set-label label))
