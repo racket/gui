@@ -3996,7 +3996,7 @@
 			   (check-instance '(method window<%> on-subwindow-event) wx:mouse-event% 'mouse-event% #f e)
 			   #f)]
       [on-drop-file (lambda (s)
-		      (unless (string? s)
+		      (unless (path-string? s)
 			(raise-type-error (who->name '(method window<%> on-drop-file)) "pathname string" s)))]
 
       [focus (entry-point (lambda () (send wx set-focus)))]
@@ -6180,7 +6180,7 @@
 					     (custodian-shutdown-all user-custodian)
 					     (semaphore-post waiting))])
 			       (override
-				 [on-drop-file (lambda (f) (evaluate (format "(load ~s)" f)))])
+				 [on-drop-file (lambda (f) (evaluate (format "(load ~s)" (path->string f))))])
 			       (sequence 
 				 (apply super-init args) (accept-drop-files #t)))
 			     "MrEd REPL" #f 500 400))
@@ -6242,7 +6242,9 @@
 
   (let ([mb (make-object menu-bar% frame)])
     (let ([m (make-object menu% "&File" mb)])
-      (make-object menu-item% "Load File..." m (lambda (i e) (let ([f (get-file #f frame)]) (and f (evaluate (format "(load ~s)" f))))))
+      (make-object menu-item% "Load File..." m (lambda (i e) (let ([f (get-file #f frame)]) 
+							       (and f 
+								    (evaluate (format "(load ~s)" (path->string f)))))))
       (unless (current-eventspace-has-standard-menus?)
 	(make-object menu-item% 
 		     (if (eq? (system-type) 'windows)
