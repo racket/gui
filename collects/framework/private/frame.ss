@@ -721,6 +721,7 @@
                            get-editor<%>
                            
                            make-editor
+                           revert
                            save
                            save-as
                            get-canvas
@@ -834,29 +835,38 @@
                 (if (or (not filename) 
                         (unbox b))
                     (bell)
-                    (let ([start
-                           (if (is-a? edit text%)
-                               (send edit get-start-position)
-                               #f)])
-                      (when (gui-utils:get-choice
-                             (string-constant are-you-sure-revert)
-                             (string-constant yes)
-                             (string-constant no)
-                             (string-constant are-you-sure-revert-title)
-                             #f
-                             this)
-                        (send edit begin-edit-sequence)
-                        (let ([status (send edit load-file/gui-error
-                                            filename
-                                            'same
-                                            #f)])
-                          (if status
-                              (begin
-                                (when (is-a? edit text%)
-                                  (send edit set-position start start))
-                                (send edit end-edit-sequence))
-			      (send edit end-edit-sequence)))))))
+                    (when (gui-utils:get-choice
+                           (string-constant are-you-sure-revert)
+                           (string-constant yes)
+                           (string-constant no)
+                           (string-constant are-you-sure-revert-title)
+                           #f
+                           this)
+                      (revert))))
               #t))
+          
+          (define/public (revert)
+            (let* ([edit (get-editor)]
+                   [b (box #f)]
+                   [filename (send edit get-filename b)])
+              (when (and filename
+                         (not (unbox b)))
+                (let ([start
+                       (if (is-a? edit text%)
+                           (send edit get-start-position)
+                           #f)])
+                  (send edit begin-edit-sequence)
+                  (let ([status (send edit load-file/gui-error
+                                      filename
+                                      'same
+                                      #f)])
+                    (if status
+                        (begin
+                          (when (is-a? edit text%)
+                            (send edit set-position start start))
+                          (send edit end-edit-sequence))
+                        (send edit end-edit-sequence)))))))
+          
           (define/override file-menu:create-revert? (lambda () #t))
           (define file-menu:save-callback (lambda (item control)
                                             (save)

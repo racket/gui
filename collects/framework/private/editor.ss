@@ -128,7 +128,7 @@
 			    (string-constant cancel)
 			    (string-constant warning)
 			    #f
-			    (get-top-level-focus-window))
+			    (get-top-level-window))
 			   #t)
 		       #t)
 		   (super-can-save-file? filename format)))]
@@ -521,14 +521,21 @@
 	  (inherit get-top-level-window run-after-edit-sequence)
 	  (rename [super-lock lock])
 	  (override lock)
+          (define callback-running? #f)
           [define lock
 	    (lambda (x)
 	      (super-lock x)
 	      (run-after-edit-sequence
 	       (rec send-frame-update-lock-icon
                  (lambda ()
-                   (let ([frame (get-top-level-window)])
-                     (when (is-a? frame frame:info<%>)
-                       (send frame lock-status-changed)))))
+                   (unless callback-running?
+                     (set! callback-running? #t)
+                     (queue-callback
+                      (lambda ()
+                        (let ([frame (get-top-level-window)])
+                          (when (is-a? frame frame:info<%>)
+                            (send frame lock-status-changed)))
+                        (set! callback-running? #f))
+                      #f))))
 	       'framework:update-lock-icon))]
           (super-instantiate ()))))))

@@ -11,7 +11,7 @@
 	   (lib "list.ss")
 	   (lib "etc.ss"))
   (provide text@)
-  
+
   (define text@
     (unit/sig framework:text^
       (import mred^
@@ -386,8 +386,8 @@
       (define small-version-of-snip%
         (class snip%
           (init-field big-snip)
-          (field (width 0)
-                 (height 0))
+          (define width 0)
+          (define height 0)
           (define/override (get-extent dc x y wb hb db sb lb rb)
             (set/f! db 0)
             (set/f! sb 0)
@@ -438,7 +438,7 @@
             (set/f! lb 0)
             (set/f! rb 0))
           
-	  (field (cache-function #f))
+	  (define cache-function #f)
 
           (rename [super-insert insert])
           (define/override (insert s len pos)
@@ -529,7 +529,7 @@
           (inherit split-snip find-snip get-snip-position
                    find-first-snip get-style-list set-tabs)
           
-          (field (linked-snips #f))
+          (define linked-snips #f)
           
           (define/private (copy snip)
             (let ([new-snip
@@ -550,7 +550,7 @@
               (send new-snip set-flags (send snip get-flags))
               new-snip))
 
-          (field (delegate #f))
+          (define delegate #f)
           (inherit get-highlighted-ranges)
           (define/public (get-delegate) delegate)
           (define/public (set-delegate _d)
@@ -672,8 +672,8 @@
               (send delegate lock #f)
               (send delegate end-edit-sequence)))
           
-          (field (filename #f)
-                 (format #f))
+          (define filename #f)
+          (define format #f)
           (rename [super-on-load-file on-load-file]
                   [super-after-load-file after-load-file])
           (define/override (on-load-file _filename _format)
@@ -738,17 +738,18 @@
           ;; maybe-queue-editor-position-update : -> void
           ;; updates the editor-position in the frame,
           ;; but delays it until the next low-priority event occurs.
-          (field (callback-running? #f))
+          (define callback-running? #f)
           (define/private (maybe-queue-editor-position-update)
-            (unless callback-running?
-              (set! callback-running? #t)
-              (queue-callback
-               (lambda ()
-                 (call-with-frame
-                  (lambda (frame)
-                    (send frame editor-position-changed)))
-                 (set! callback-running? #f))
-               #f)))
+            (enqueue-for-frame 
+             (lambda (frame) 
+               (unless callback-running?
+                 (set! callback-running? #t)
+                 (queue-callback
+                  (lambda ()
+                    (send frame editor-position-changed)
+                    (set! callback-running? #f))
+                  #f)))
+             'framework:info-frame:update-editor-position))
           
           (define (after-insert start len)
             (super-after-insert start len)

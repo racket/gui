@@ -629,11 +629,13 @@
    (frame:reorder-menus
     ((is-a?/c frame%) . -> . void?)
     (frame)
-    "Re-orders the menus in a frame. This is useful in conjunction with the "
-    "@link frame:standard-menus "
-    "class. After instantiating that class and adding menus, the menus will"
-    "be mis-ordered. This will put the File and Edit menus at the front of"
-    "the menubar and the Help menu at the end.")
+    "Re-orders the menus in a frame. It moves the ``File'' and ``Edit'' menus to"
+    "the front of the menubar and moves the ``Windows'' and ``Help'' menus"
+    "to the end of the menubar."
+    ""
+    "This is useful in conjunction with the "
+    "frame classes. After instantiating the class and adding ones own menus,"
+    "the menus will be mis-ordered. This function fixes them up.")
    (group:get-the-frame-group
     (-> (is-a?/c group:%))
     ()

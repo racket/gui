@@ -88,9 +88,10 @@
 		    (hash-table-put! hash-table x 'lambda))
 		  '(
 		    cases
-                    instantiate super-instantiate
-                    lambda let let* letrec recur
-		    match-lambda match-lambda*
+                       instantiate super-instantiate
+                     syntax/loc
+                     lambda let let* letrec recur
+                     match-lambda match-lambda*
                      letrec-values
                      with-syntax
 		     with-continuation-mark
