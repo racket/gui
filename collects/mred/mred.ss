@@ -4845,7 +4845,7 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;; REPL ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(define (-graphical-read-eval-print-loop user-esp)
+(define (-graphical-read-eval-print-loop user-esp override-ports?)
   ;; The REPL buffer class
   (define esq:text%
     (class100 text% ()
@@ -4974,7 +4974,7 @@
   (send repl-buffer auto-wrap #t)
 
   ;; Go
-  (unless user-esp
+  (when (or (not user-esp) override-ports?)
     (parameterize ((wx:current-eventspace user-eventspace))
       (wx:queue-callback
        (lambda ()
@@ -4993,11 +4993,13 @@
 
 (define graphical-read-eval-print-loop
   (case-lambda
-   [() (-graphical-read-eval-print-loop #f)]
+   [() (-graphical-read-eval-print-loop #f #f)]
    [(esp)
     (unless (or (not esp) (wx:eventspace? esp))
       (raise-type-error 'graphical-read-eval-print-loop "eventspace or #f" esp))
-    (-graphical-read-eval-print-loop esp)]))
+    (-graphical-read-eval-print-loop esp #f)]
+   [(esp override-ports?)
+    (-graphical-read-eval-print-loop esp override-ports?)]))
 
 (define box-width 300)
 (define (no-stretch a) (send a stretchable-width #f) (send a stretchable-height #f))
