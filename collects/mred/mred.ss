@@ -6515,7 +6515,7 @@
 						     (with-handlers ([void #f])
 						       (let-values ([(base name dir?) (split-path v)])
 							 (let ([super (and (not dir?) 
-									   (or (and (string? base) 
+									   (or (and (path? base) 
 										    (directory-exists? base)
 										    base)
 									       (and (eq? base 'relative) 
