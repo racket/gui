@@ -1,29 +1,10 @@
 (require-library "launcher.ss" "launcher")
 (require-library "function.ss")
 (require-library "macro.ss")
+(require-library "pretty.ss")
 
-;; old, hopefully unnecessary
-'(case (system-type)
-   [(macos) 
-
-    (when running?
-      (let ([tmp-file (build-path (find-system-path 'temp-dir)
-				  "frameworkempty.ss")])
-	(call-with-output-file tmp-file
-	  (lambda (port)
-	    (newline port))
-	  'truncate)
-	(send-event "MrEd" "aevt" "quit")
-	(let loop ()
-	  (sleep 1)
-	  (with-handlers ([(lambda (x) #t) void])
-	    (printf "looping~n")
-	    (send-event "MrEd" "aevt" "odoc" (vector 'file tmp-file))
-	    (loop)))))
-    (printf "macos: mred no longer running~n")])
-
-(unless (file-exists? "receive-sexps-port.ss")
-  (call-with-output-file "receive-sexps-port.ss"
+(unless (file-exists? (build-path (current-load-relative-directory) "receive-sexps-port.ss"))
+  (call-with-output-file (build-path (current-load-relative-directory) "receive-sexps-port.ss")
     (lambda (port)
       (write 6012 port))))
 
@@ -80,6 +61,9 @@
 		      (or (not (char-ready? in-port))
 			  (not (eof-object? (peek-char in-port)))))
 	   (restart-mred))
+	 (printf "send-sexp-to-mred.sending:~n")
+	 (pretty-print sexp)
+	 (newline)
 	 (write sexp out-port)
 	 (newline out-port)
 	 (let ([answer
@@ -96,6 +80,7 @@
 								 (loop))
 							   null))))))])
 		  (read in-port))])
+	   (printf "send-sexp-to-mred.received result~n")
 	   (unless (or (eof-object? answer)
 		       (and (list? answer)
 			    (= 2 (length answer))))
