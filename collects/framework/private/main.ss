@@ -87,6 +87,7 @@
 		     define-values
                      define/public define/override define/private define/field
                      define/override-final define/public-final
+                     define/contract
 		     define-signature 
                      define-syntax define-syntaxes
                      define-schema define/contract))
