@@ -318,7 +318,8 @@
       (override
         [help-menu:about 
 	 (lambda (menu evt) 
-	   (message-box (format "Welcome to ~a" (application:current-app-name))))]
+	   (message-box (application:current-app-name)
+			(format "Welcome to ~a" (application:current-app-name))))]
 	[help-menu:about-string (lambda () (application:current-app-name))])
 	     
       (sequence (super-init (get-entire-label) #f (get-init-width) (get-init-height)))
