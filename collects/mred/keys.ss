@@ -162,16 +162,6 @@
 	      (lambda (edit event)
 		(send edit set-anchor
 		      (not (send edit get-anchor))))]
-	     [flash-paren-match
-	      (lambda (edit event)
-		(send edit on-default-char event)
-		(let ([pos (mred:scheme-paren:scheme-backward-match 
-			    edit
-			    (send edit get-start-position)
-			    0)])
-		  (when pos
-		    (send edit flash-on pos (+ 1 pos))))
-		#t)]
 	     [center-view-on-line
 	      (lambda (edit event)
 		(let ([new-mid-line (send edit position-line
@@ -190,6 +180,16 @@
 			  top-pos
 			  #f
 			  bottom-pos)))
+		#t)]
+	     [flash-paren-match
+	      (lambda (edit event)
+		(send edit on-default-char event)
+		(let ([pos (mred:scheme-paren:scheme-backward-match 
+			    edit
+			    (send edit get-start-position)
+			    0)])
+		  (when pos
+		    (send edit flash-on pos (+ 1 pos))))
 		#t)]
 	     [collapse-variable-space
 	      (lambda (leave-one? edit event)
@@ -660,7 +660,7 @@
 		  (send edit get-position start end)
 		  (send edit set-position (sub1 (unbox start)) (unbox end))))])
 	(lambda (kmap)
-	  ; Redirect keymappng error messages to stderr
+	  ; Redirect keymapping error messages to stderr
 	  (send kmap set-error-callback keyerr)
 	  ; Set the implied shifting map
 	  (map (lambda (k) (send kmap implies-shift k)) shifted-key-list)
