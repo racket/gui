@@ -564,7 +564,7 @@
       (send list-keymap map-function "return" "toggle-open/closed")
 
       (define hierarchical-list%
-	(class100 editor-canvas% (parent)
+	(class100 editor-canvas% (parent [style '(no-hscroll)])
           (inherit min-width min-height)
           (rename [super-on-char on-char]
                   [super-on-focus on-focus])
@@ -735,7 +735,7 @@
            [selected #f]
            [selected-item #f])
           (sequence
-            (super-init parent top-buffer '(no-hscroll))
+            (super-init parent top-buffer style)
             (send top-buffer set-cursor arrow-cursor) 
             (min-width 150)
             (min-height 200)))))))
