@@ -480,12 +480,11 @@
 		 (insert #\newline (paragraph-start-position para)))
 	       (cond
 		 [(let ([real-start (cdr (find-offset end))]) 
-		    (if (and (<= (+ 3 real-start) (last-position))
-			     (string=? ";;;"
-				       (get-text real-start (+ 3 real-start))))
-			real-start
-			#f))
-		  => (lambda (x) (set-position x))]
+		    (and (<= (+ 3 real-start) (last-position))
+                         (string=? ";;"
+                                   (get-text real-start
+                                             (+ 2 real-start)))))
+                  (void)]
 		 [(= para 0) (do-indent 0)]
 		 [(not contains)
 		  (do-indent 0)]
