@@ -384,7 +384,7 @@
 				  (send brush set-style wx:const-solid)
 				  (send pen set-colour color)
 				  (send brush set-colour color)
-				  (send dc set-logical-function wx:const-or-reverse)]
+				  (send dc set-logical-function wx:const-and-invert)]
 				 [b/w-bitmap
 				  (send pen set-stipple b/w-bitmap)
 				  (send brush set-stipple b/w-bitmap)]
