@@ -43,7 +43,7 @@ tests.
   - frames: |# frame.ss #|
   - canvases: |# canvas.ss #|
   - texts: |# text.ss #|
-  - pasteboards: |# text.ss #|
+  - pasteboards: |# pasteboard.ss #|
 
 - basic connections between classes
 

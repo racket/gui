@@ -6,7 +6,7 @@
      (send-sexp-to-mred
       `(let* ([% (class-asi ,frame%
 		   (override
-		    [get-editor% (lambda (), class)]))]
+		    [get-editor% (lambda () ,class)]))]
 	      [f (make-object % "test text")])
 	 (send f show #t)))
       (wait-for-frame "test text")
@@ -14,17 +14,23 @@
        `(send (get-top-level-focus-window) show #f)))))
 
 (test-creation 'frame:text%
-	       '(editor:basic-mixin (text:basic-mixin text%))
+	       '(text:basic-mixin (editor:basic-mixin text%))
 	       'text:basic-mixin-creation)
 (test-creation 'frame:text%
 	       'text:basic%
 	       'text:basic-creation)
+
+(define (return-args class)
+  `(class ,class ()
+     (sequence
+       (super-init void))))
 (test-creation 'frame:text%
-	       '(editor:return-mixin text:basic%)
+	       (return-args '(text:return-mixin text:basic%))
 	       'text:return-mixin-creation)
 (test-creation 'frame:text%
-	       'text:return%
+	       (return-args 'text:return%)
 	       'text:return-creation)
+
 (test-creation 'frame:text%
 	       '(editor:file-mixin text:basic%)
 	       'editor:file-mixin-creation)

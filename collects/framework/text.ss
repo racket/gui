@@ -463,7 +463,9 @@
 	 (lambda (start len)
 	   (super-after-delete start len)
 	   (enqueue-for-frame 'edit-position-changed
-			      'framework:edit-position-changed))])))
+			      'framework:edit-position-changed))])
+      (sequence
+	(apply super-init args))))
 
   (define clever-file-format<%> (interface (text<%>)))
 

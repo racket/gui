@@ -1,3 +1,5 @@
+(require-library "errortrace.ss" "errortrace")
+
 (require-relative-library "frameworks.ss")
 
 (require-library "string.ss")

@@ -43,11 +43,14 @@
    '(frame:searchable-mixin frame:text%))
 
   (test-creation
-   'text-info%-creation
-   'frame:text-info%)
+   'info-mixin-creation
+   '(frame:info-mixin frame:searchable%))
   (test-creation
    'text-info-mixin-creation
-   '(frame:info-mixin frame:searchable%))
+   '(frame:text-info-mixin (frame:info-mixin frame:searchable%)))
+  (test-creation
+   'text-info%-creation
+   'frame:text-info%)
 
   (test-creation
    'text-info-file%-creation
@@ -57,25 +60,25 @@
    '(frame:file-mixin frame:text-info%))
 
   (test-creation
-   'pasteboard%-creation
-   'frame:pasteboard%)
-  (test-creation
    'pasteboard-mixin-creation
    '(frame:pasteboard-mixin frame:editor%))
   (test-creation
    'pasteboard-mixin-creation
    '(frame:pasteboard-mixin (frame:editor-mixin frame:standard-menus%)))
-
   (test-creation
-   'pasteboard-info%-creation
-   'frame:pasteboard-info%)
+   'pasteboard%-creation
+   'frame:pasteboard%)
+
   (test-creation
    'pasteboard-info-mixin-creation
    '(frame:info-mixin frame:searchable%))
+  (test-creation
+   'pasteboard-info%-creation
+   'frame:pasteboard-info%)
 
   (test-creation
-   'pasteboard-info-file%-creation
-   'frame:pasteboard-info-file%)
-  (test-creation
    'pasteboard-info-file-mixin-creation
-   '(frame:file-mixin frame:pasteboard-info%)))
+   '(frame:file-mixin frame:pasteboard-info%))
+  (test-creation
+   'pasteboard-info-file%-creation
+   'frame:pasteboard-info-file%))
