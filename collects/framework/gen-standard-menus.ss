@@ -5,6 +5,8 @@ string=? ; exec mred -mgaqvf $0
 (require-library "pretty.ss")
 (require-library "function.ss")
 
+(require-library "errortrace.ss" "errortrace")
+
 (require-library "standard-menus-items.ss" "framework")
 
 (define build-id
@@ -48,7 +50,7 @@ string=? ; exec mred -mgaqvf $0
 		      `(lambda () "")
 		      `(lambda () ,help-string)))))))
 
-(define build-fill-in-between/after-clause
+(define build-fill-in-clause
   (lambda (->name -procedure)
     (lambda (obj)
       `(public
@@ -57,8 +59,14 @@ string=? ; exec mred -mgaqvf $0
 	     [(nothing) '(lambda (menu) (void))]
 	     [(separator) '(lambda (menu) (make-object separator-menu-item% menu))])]))))
 
-(define build-fill-in-between-clause (build-fill-in-between/after-clause between->name between-procedure))
-(define build-fill-in-after-clause (build-fill-in-between/after-clause after->name after-procedure))
+(define build-fill-in-between-clause
+  (build-fill-in-clause
+   between->name
+   between-procedure))
+(define build-fill-in-before/after-clause
+  (build-fill-in-clause
+   before/after->name
+   before/after-procedure))
 
 (define (build-item-menu-clause item)
   (let* ([name (an-item->name item)]
@@ -82,15 +90,17 @@ string=? ; exec mred -mgaqvf $0
 	       (if (preferences:get 'framework:menu-bindings) ,key #f)
 	       (,(build-id item "-help-string"))))])))
 
-(define build-between/after-menu-clause
+(define build-menu-clause
   (lambda (->name -menu)
     (lambda (between/after)
       `(sequence
 	 (,(->name between/after)
 	  ,(menu-name->get-menu (-menu between/after)))))))
 
-(define build-between-menu-clause (build-between/after-menu-clause between->name between-menu))
-(define build-after-menu-clause (build-between/after-menu-clause after->name after-menu))
+(define build-between-menu-clause
+  (build-menu-clause between->name between-menu))
+(define build-before/after-menu-clause
+  (build-menu-clause before/after->name before/after-menu))
 
 (define menu-name->get-menu
   (lambda (menu-name)
@@ -121,7 +131,8 @@ string=? ; exec mred -mgaqvf $0
 			     (cond
 			       [(an-item? x) (an-item->names x)]
 			       [(between? x) (list (between->name x))]
-			       [(after? x) (list (after->name x))]
+			       [(or (after? x) (before? x))
+				(list (before/after->name x))]
 			       [(generic? x) (list (generic-name x))])) 
 			   items))))
      port)
@@ -137,7 +148,8 @@ string=? ; exec mred -mgaqvf $0
 	     (map (lambda (x)
 		    (cond
 		      [(between? x) (build-fill-in-between-clause x)]
-		      [(after? x) (build-fill-in-after-clause x)]
+		      [(or (after? x) (before? x))
+		       (build-fill-in-before/after-clause x)]
 		      [(an-item? x) (build-fill-in-item-clause x)]
 		      [(generic? x) (build-fill-in-generic-clause x)]
 		      [else (printf "~a~n" x)]))
@@ -146,7 +158,8 @@ string=? ; exec mred -mgaqvf $0
 		    (cond
 		      [(between? x) (build-between-menu-clause x)]
 		      [(an-item? x) (build-item-menu-clause x)]
-		      [(after? x) (build-after-menu-clause x)]
+		      [(or (after? x) (before? x))
+		       (build-before/after-menu-clause x)]
 		      [(generic? x) (build-generic-clause x)]))
 		  items)
 	     (list `(sequence (reorder-menus this))))))

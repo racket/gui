@@ -1,8 +1,15 @@
 (define-struct generic (name initializer documentation))
 
-(define-struct after (menu name procedure))
-(define (after->name after)
-  (string->symbol (format "~a:after-~a" (after-menu after) (after-name after))))
+(define-struct before/after (menu name procedure))
+(define-struct (before struct:before/after) ())
+(define-struct (after struct:before/after) ())
+(define (before/after->name before/after)
+  (string->symbol (format "~a:~a-~a"
+			  (before/after-menu before/after)
+			  (if (before? before/after)
+			      "before"
+			      "after")
+			  (before/after-name before/after))))
 
 (define-struct between (menu before after procedure))
 (define (between->name between)
@@ -159,6 +166,7 @@
 		      #f "Preferences..." "")
 	(make-after 'edit-menu 'preferences 'nothing)
 	
+	(make-before 'help-menu 'about 'nothing)
 	(make-an-item 'help-menu 'about "Learn something about this application"
 		      #f
 		      #f

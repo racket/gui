@@ -69,6 +69,8 @@
       (rename [super-can-close? can-close?]
 	      [super-on-close on-close]
 	      [super-on-focus on-focus])
+      (private
+	[after-init? #f])
       (override
 	[can-close?
 	 (lambda ()
@@ -92,7 +94,13 @@
         
         [on-drop-file
          (lambda (filename)
-           (handler:edit-file filename))])
+           (handler:edit-file filename))]
+	[on-new-child
+	 (lambda (child)
+	   (when after-init?
+	     (error 'frame:basic-mixin
+		    "do not add children directly to a frame:basic (unless using make-root-area-container); use the get-area-container method instead"
+		    )))])
 
       (inherit show)
       (public
@@ -126,13 +134,13 @@
       (private
 	[panel (make-root-area-container (get-area-container%) this)])
       (public
-	[get-area-container (lambda () panel)])))
+	[get-area-container (lambda () panel)])
+      (sequence
+	(set! after-init? #t))))
 
   (include "standard-menus.ss")
 
   (define -editor<%> (interface (standard-menus<%>)
-		       get-init-width
-		       get-init-height
 		       get-entire-label
 		       get-label-prefix
 		       set-label-prefix
@@ -148,14 +156,16 @@
 		       get-editor))
 
   (define editor-mixin
-    (mixin (standard-menus<%>) (-editor<%>) (file-name)
+    (mixin (standard-menus<%>) (-editor<%>) (file-name
+					     [parent #f]
+					     [width frame-width]
+					     [height frame-height]
+					     .
+					     args)
       (inherit get-area-container get-client-size 
-	       set-icon show get-edit-target-window get-edit-target-object)
+	       show get-edit-target-window get-edit-target-object)
       (rename [super-on-close on-close]
 	      [super-set-label set-label])
-      (public
-	[get-init-width (lambda () frame-width)]
-	[get-init-height (lambda () frame-height)])
 	     
       (override
 	[on-close
@@ -322,7 +332,12 @@
 			(format "Welcome to ~a" (application:current-app-name))))]
 	[help-menu:about-string (lambda () (application:current-app-name))])
 	     
-      (sequence (super-init (get-entire-label) #f (get-init-width) (get-init-height)))
+      (sequence (apply super-init
+		       (get-entire-label)
+		       parent
+		       width
+		       height
+		       args))
 	     
       (public
 	[get-canvas (let ([c #f])
@@ -338,11 +353,6 @@
 			  (send (get-canvas) set-editor e))
 			e))])
       (sequence
-	(let ([icon (icon:get)]
-              [mask (icon:get-mask)])
-	  (when (and (send icon ok?)
-                     (send mask ok?))
-	    (set-icon icon mask)))
 	(do-label)
 	(cond
 	 [(and file-name (file-exists? file-name))
