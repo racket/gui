@@ -22,48 +22,19 @@
 
     (mred:preferences:set-preference-default 'mred:auto-set-wrap? #f)
 
-    (define make-media-snip%
-      (lambda (snip%)
-	(class snip% args
-	  (inherit set-flags get-flags set-min-width set-max-width get-admin)
-	  (rename [super-get-extent get-extent])
-	  (public
-	    [auto-set-wrap? (mred:preferences:get-preference 'mred:auto-set-wrap?)]
-	    [set-auto-set-wrap
-	     (lambda (v)
-	       (set! auto-set-wrap? v)
-	       (set-flags 
-		(let ([flags (get-flags)])
-		  (if v 
-		      (bitwise-ior flags wx:const-snip-width-depends-on-x)
-		      (- flags (bitwise-and
-				flags
-				wx:const-snip-width-depends-on-x)))))
-	       (let ([admin (get-admin)])
-		 (unless (null? admin)
-		   (let ([e (send admin get-media)])
-		     (unless (equal? (not v) (not (ivar e auto-set-wrap?)))
-		       (send e set-auto-set-wrap v))))))]
-	    [get-extent
-	     (lambda (dc x y wbox hbox
-		      descentbox spacebox
-		      lspacebox rspacebox)
-	       (let ([w-box (box 0)])
-		 (let ([a (get-admin)])
-		   (unless (null? a)
-		     (send a get-view-size w-box null)
-		     (set-min-width (- (unbox w-box) x))
-		     (set-max-width (- (unbox w-box) x)))))
-	       (super-get-extent dc x y wbox hbox descentbox spacebox
-				 lspacebox rspacebox))]
-	    [copy
-	     (lambda ()
-	       (make-object (object-class this)))])
-	  (sequence
-	    (apply super-init args)
-	    (set-auto-set-wrap auto-set-wrap?)))))
-    
-    (define media-snip% (make-media-snip% wx:media-snip%))
+    (define make-snip%
+      (let ([sl (make-object wx:style-list%)])
+	(send sl new-named-style "Standard" (send sl find-named-style "Basic"))
+	(let ([std (send sl find-named-style "Standard")])
+	  (lambda (snip%)
+	    (class snip% args
+	      (inherit set-style)
+	      (sequence
+		(apply super-init args)
+		(set-style std)))))))
+
+    (define media-snip% (make-snip% wx:media-snip%))
+    (define snip% (make-snip% wx:snip%))
 
     (define make-std-buffer%
       (lambda (buffer%)
@@ -82,10 +53,10 @@
 
 	  (public
 	    [get-edit-snip
-	     (lambda () (make-object wx:media-snip%
+	     (lambda () (make-object media-snip%
 			  (make-object edit%)))]
 	    [get-pasteboard-snip
-	     (lambda () (make-object wx:media-snip%
+	     (lambda () (make-object media-snip%
 			  (make-object pasteboard%)))]
 	    [on-new-box
 	     (lambda (type)
@@ -125,9 +96,8 @@
 		    (lambda (new-width)
 		      (let ([current-width (get-max-width)])
 			(mred:debug:printf 'rewrap "do-wrap: new-width ~a  current-width ~a" new-width current-width)
-			(unless (or (= current-width new-width)
-				    (and (<= current-width 0)
-					 (<= new-width 0)))
+			(when (and (not (= current-width new-width))
+				   (< 0 new-width))
 			  (set-max-width new-width)
 			  (mred:debug:printf 'rewrap "attempted to wrap to: ~a actually wrapped to ~a" 
 					     new-width (get-max-width)))))])
@@ -227,15 +197,15 @@
       (lambda (super%)
 	(class (make-std-buffer% super%) args
 	  (inherit mode set-mode-direct canvases get-file-format 
-		   set-filename find-string
+		   set-filename find-string get-snip-position
 		   change-style save-file get-admin
-		   invalidate-bitmap-cache
+		   invalidate-bitmap-cache split-snip
 		   begin-edit-sequence end-edit-sequence
 		   flash-on get-keymap get-start-position
 		   get-end-position last-position
 		   on-default-char on-default-event 
 		   set-file-format get-style-list
-		   set-autowrap-bitmap
+		   set-autowrap-bitmap delete
 		   get-snip-location find-snip get-max-width
 		   modified? set-modified
 		   lock get-filename)
@@ -267,6 +237,30 @@
 	  (private
 	    [styles-fixed-edit-modified? #f]
 	    [restore-file-format void])
+	  (public
+	    [move/copy-to-edit
+	     (lambda (dest-edit start end dest-position)
+	       (let ([insert-edit (ivar dest-edit insert)])
+		 (split-snip start)
+		 (split-snip end)
+		 (let loop ([snip (find-snip end wx:const-snip-before)])
+		   (cond
+		     [(or (null? snip) (< (get-snip-position snip) start))
+		      (void)]
+		     [else
+		      (let ([prev (send snip previous)]
+			    [released/copied (if (send snip release-from-owner)
+						 snip
+						 (let* ([copy (send snip copy)]
+							[snip-start (get-snip-position snip)]
+							[snip-end (+ snip-start (send snip get-count))])
+						   (delete snip-start snip-end)
+						   snip))])
+			'(wx:message-box (format "before: ~a" (eq? snip released/copied)))
+			(insert-edit released/copied dest-position dest-position)
+			'(wx:message-box (format "after: ~a" (eq? snip released/copied)))
+			(loop prev))]))))])
+
 	  (public
 	    [on-save-file
 	     (let ([has-non-text-snips 
@@ -411,27 +405,35 @@
 	     (lambda ()
 	       (let ([new-rectangles
 		      (lambda (range)
-			(let ([start (range-start range)]
-			      [end (range-end range)]
-			      [b/w-bitmap (range-b/w-bitmap range)]
-			      [color (range-color range)]
-			      [buffer-width (box 0)]
-			      [start-x (box 0)]
-			      [top-start-y (box 0)]
-			      [bottom-start-y (box 0)]
-			      [end-x (box 0)]
-			      [top-end-y (box 0)]
-			      [bottom-end-y (box 0)])
+			(let* ([start (range-start range)]
+			       [end (range-end range)]
+			       [b/w-bitmap (range-b/w-bitmap range)]
+			       [color (range-color range)]
+			       [buffer-width (box 0)]
+			       [start-x (box 0)]
+			       [top-start-y (box 0)]
+			       [bottom-start-y (box 0)]
+			       [end-x (box 0)]
+			       [top-end-y (box 0)]
+			       [bottom-end-y (box 0)]
+			       [start-eol? #f]
+			       [end-eol? (if (= start end)
+					     start-eol?
+					     #t)])
 			  (send this get-extent buffer-width null)
-			  (send this position-location start start-x top-start-y    #t #f #t)
-			  (send this position-location end end-x top-end-y          #t #t #t)
-			  (send this position-location start start-x bottom-start-y #f #f #t)
-			  (send this position-location end end-x bottom-end-y       #f #t #t)
+			  (send this position-location start start-x top-start-y
+				#t start-eol? #t)
+			  (send this position-location end end-x top-end-y
+				#t end-eol? #t)
+			  (send this position-location start start-x bottom-start-y
+				#f start-eol? #t)
+			  (send this position-location end end-x bottom-end-y
+				#f end-eol? #t)
 			  (cond
 			    [(= (unbox top-start-y) (unbox top-end-y))
 			     (list (make-rectangle (unbox start-x)
 						   (unbox top-start-y)
-						   (- (unbox end-x) (unbox start-x))
+						   (max 1 (- (unbox end-x) (unbox start-x)))
 						   (- (unbox bottom-start-y) (unbox top-start-y))
 						   b/w-bitmap color))]
 			    [else
@@ -472,10 +474,12 @@
 	    ;; the bitmap is used in b/w and the color is used in color.
 	    [highlight-range
 	     (opt-lambda (start end color [bitmap #f])
+	       (mred:debug:printf 'highlight-range "highlight-range: adding range: ~a ~a" start end)
 	       (let ([l (make-range start end bitmap color)])
 		 (set! ranges (cons l ranges))
 		 (recompute-range-rectangles)
 		 (lambda ()
+		   (mred:debug:printf 'highlight-range "highlight-range: removing range: ~a ~a" start end)
 		   (set! ranges 
 			 (let loop ([r ranges])
 			   (cond
@@ -550,75 +554,66 @@
 			      [end -1] [get-start #t]
 			      [case-sensitive? #t] [pop-out? #f])
 	       (let/ec k
-		 (let*-values
-		     ([(start) (if (= -1 start)
+		 (let* ([start (if (= -1 start)
 				   (if (= direction 1)
 				       (get-end-position)
 				       (get-start-position))
 				   start)]
-		      [(end) (if (= -1 end)
+			[end (if (= -1 end)
 				 (if (= direction 1)
 				     (last-position)
 				     0)
 				 end)]
-		      [(flat) (find-string str direction
+			[flat (find-string str direction
 					   start end get-start
 					   case-sensitive?)]
-		      [(increment end-test)
-		       (if (= direction 1)
-			   (values add1 (lambda (x) 
-					  (cond
-					    [(and (not (= -1 flat))
-						  (<= flat x))
-					     flat]
-					    [(<= end x) -1]
-					    [else #f])))
-			   (values sub1 (lambda (x)
-					  (cond
-					    [(and (not (= -1 flat))
-						  (<= x flat))
-					     flat]
-					    [(<= x end) -1]
-					    [else #f]))))]
-		      [(pop-out)
-		       (lambda ()
-			 (let ([admin (get-admin)])
-			   (if (is-a? admin wx:media-snip-media-admin%)
-			       (let* ([snip (send admin get-snip)]
-				      [edit-above (send (send snip get-admin) get-media)]
-				      [pos (send edit-above get-snip-position snip)])
-				 (send edit-above
-				       find-string-embedded 
-				       str
-				       direction 
-				       (if (= direction 1) (add1 pos) pos)
-				       -1 get-start
-				       case-sensitive? pop-out?))
-			       (values this -1))))]
-		      [(check-snip)
-		       (opt-lambda (pos)
-			 (let*
-			     ([dir (if (= direction 1) wx:const-snip-after wx:const-snip-before)]
-			      [b (box 0)]
-			      [s (find-snip pos dir b)]
-			      [p (if (= direction 1)
-				       pos
-				       (- pos (send s get-count)))])
-			   (and (is-a? s wx:media-snip%)
-				(= p (unbox b))
-				s)))])
-		   (let loop ([current-pos (if (< start 0)
-					       (get-start-position)
-					       start)])
-		     (cond
-		       [(end-test current-pos) => (lambda (x)
-						    (if (and (= x -1) pop-out?)
-							(pop-out)
-							(values this x)))]
-		       [(check-snip current-pos) =>
-			(lambda (snip)
+			[end-test
+			 (lambda (snip)
+			   (cond
+			     [(null? snip) flat]
+			     [(and (not (= -1 flat))
+				   (let* ([start (get-snip-position snip)]
+					  [end (+ start (send snip get-count))])
+				     (if (= direction 1)
+					 (and (<= start flat)
+					      (< flat end))
+					 (and (< start flat)
+					      (<= flat end)))))
+			      flat]
+			     [else #f]))]			       
+			[pop-out
+			 (lambda ()
+			   (let ([admin (get-admin)])
+			     (if (is-a? admin wx:media-snip-media-admin%)
+				 (let* ([snip (send admin get-snip)]
+					[edit-above (send (send snip get-admin) get-media)]
+					[pos (send edit-above get-snip-position snip)])
+				   (send edit-above
+					 find-string-embedded 
+					 str
+					 direction 
+					 (if (= direction 1) (add1 pos) pos)
+					 -1 get-start
+					 case-sensitive? pop-out?))
+				 (values this -1))))])
+		   (let loop ([current-snip (find-snip start
+						       (if (= direction 1)
+							   wx:const-snip-after-or-null 
+							   wx:const-snip-before-or-null))])
+		     (let ([next-loop
+			    (lambda ()
+			      (if (= direction 1)
+				  (loop (send current-snip next))
+				  (loop (send current-snip previous))))])
+		       (cond
+			 [(end-test current-snip) => 
+			  (lambda (x)
+			    (if (and (= x -1) pop-out?)
+				(pop-out)
+				(values this x)))]
+			 [(is-a? current-snip wx:media-snip%)
 			  (let-values ([(embedded embedded-pos)
-					(let ([media (send snip get-this-media)])
+					(let ([media (send current-snip get-this-media)])
 					  (and (not (null? media))
 					       (send media find-string-embedded str
 						     direction
@@ -628,10 +623,9 @@
 						     -1
 						     get-start case-sensitive?)))])
 			    (if (= -1 embedded-pos)
-				(loop (increment current-pos))
-				(values embedded embedded-pos))))]
-		       [else 
-			(loop (increment current-pos))])))))])
+				(next-loop)
+				(values embedded embedded-pos)))]
+			 [else (next-loop)]))))))])
 	  (sequence
 	    (apply super-init args)
 	    (set-autowrap-bitmap autowrap-bitmap)
