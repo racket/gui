@@ -3106,7 +3106,7 @@
 	     [(message parent directory filename extension) (sel message parent directory filename extension null)]
 	     [(message parent directory filename extension style)
 	      (if (not (eq? (system-type) 'unix))
-		  (wx:file-selector message directory filename extension "*.*" (if put? '(put) '(get)) parent)
+		  (wx:file-selector message directory filename extension "*.*" (if put? 'put 'get) parent)
 		  (letrec ([ok? #t]
 			   [typed-name #f]
 			   [dir (or directory (current-directory))]
