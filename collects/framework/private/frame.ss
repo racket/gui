@@ -425,7 +425,7 @@
                        (set-status-line-msg-id! status-line-msg #f)))))))
           
           ;; open-status-line? : symbol -> boolean
-          (define (open-status-line? id)
+          (define/private (open-status-line? id)
             (let loop ([status-lines status-lines])
               (cond
                 [(null? status-lines) #f]
@@ -622,7 +622,7 @@
                 (send memory-text lock #t)
                 (send memory-text end-edit-sequence)))]
           
-          (define (format-number n)
+          (define/private (format-number n)
             (let loop ([n n])
               (cond
                 [(<= n 1000) (number->string n)]
@@ -632,7 +632,7 @@
                   ","
                   (pad-to-3 (modulo n 1000)))])))
 
-          (define (pad-to-3 n)
+          (define/private (pad-to-3 n)
             (cond
               [(<= n 9) (format "00~a" n)]
               [(<= n 99) (format "0~a" n)]
@@ -655,17 +655,16 @@
 
           [define lock-canvas (make-object lock-canvas% (get-info-panel))]
           [define gc-canvas (make-object bday-click-canvas% (get-info-panel) '(border))]
-          [define register-gc-blit
-            (lambda ()
-              (let ([onb (icon:get-gc-on-bitmap)]
-                    [offb (icon:get-gc-off-bitmap)])
-                (when (and (send onb ok?)
-                           (send offb ok?))
-                  (register-collecting-blit gc-canvas 
-                                            0 0
-                                            (send onb get-width)
-                                            (send onb get-height)
-                                            onb offb))))]
+          (define/private (register-gc-blit)
+            (let ([onb (icon:get-gc-on-bitmap)]
+                  [offb (icon:get-gc-off-bitmap)])
+              (when (and (send onb ok?)
+                         (send offb ok?))
+                (register-collecting-blit gc-canvas 
+                                          0 0
+                                          (send onb get-width)
+                                          (send onb get-height)
+                                          onb offb))))
           
           (unless (preferences:get 'framework:show-status-line)
             (send super-root change-children
@@ -723,49 +722,48 @@
           [define last-start #f]
           [define last-end #f]
           [define last-params #f]
-          [define editor-position-changed-offset/numbers
-            (lambda (offset? line-numbers?)
-               (let* ([edit (get-info-editor)]
-                      [make-one
-                       (lambda (pos)
-                         (let* ([line (send edit position-paragraph pos)]
-                                [col (find-col edit line pos)])
-                           (if line-numbers?
-                               (format "~a:~a"
-                                       (add1 line)
-                                       (if offset?
-                                           (add1 col)
-                                           col))
-                               (format "~a" pos))))])
-                 (cond
-                   [(not (object? position-canvas))
-                    (void)]
-                   [edit
-                    (unless (send position-canvas is-shown?)
-                      (send position-canvas show #t))
-                    (let ([start (send edit get-start-position)]
-                          [end (send edit get-end-position)])
-                      (unless (and last-start
-                                   (equal? last-params (list offset? line-numbers?))
-                                   (= last-start start)
-                                   (= last-end end))
-                        (set! last-params (list offset? line-numbers?))
-                        (set! last-start start)
-                        (set! last-end end)
-                        (when (object? position-edit)
-                          (send* position-edit
-                            (lock #f)
-                            (erase)
-                            (insert 
-                             (if (= start end)
-                                 (make-one start)
-                                 (string-append (make-one start)
-                                                "-"
-                                                (make-one end))))
-                            (lock #t)))))]
-                   [else
-                    (when (send position-canvas is-shown?)
-                      (send position-canvas show #f))])))]
+          (define/private (editor-position-changed-offset/numbers offset? line-numbers?)
+            (let* ([edit (get-info-editor)]
+                   [make-one
+                    (lambda (pos)
+                      (let* ([line (send edit position-paragraph pos)]
+                             [col (find-col edit line pos)])
+                        (if line-numbers?
+                            (format "~a:~a"
+                                    (add1 line)
+                                    (if offset?
+                                        (add1 col)
+                                        col))
+                            (format "~a" pos))))])
+              (cond
+                [(not (object? position-canvas))
+                 (void)]
+                [edit
+                 (unless (send position-canvas is-shown?)
+                   (send position-canvas show #t))
+                 (let ([start (send edit get-start-position)]
+                       [end (send edit get-end-position)])
+                   (unless (and last-start
+                                (equal? last-params (list offset? line-numbers?))
+                                (= last-start start)
+                                (= last-end end))
+                     (set! last-params (list offset? line-numbers?))
+                     (set! last-start start)
+                     (set! last-end end)
+                     (when (object? position-edit)
+                       (send* position-edit
+                         (lock #f)
+                         (erase)
+                         (insert 
+                          (if (= start end)
+                              (make-one start)
+                              (string-append (make-one start)
+                                             "-"
+                                             (make-one end))))
+                         (lock #t)))))]
+                [else
+                 (when (send position-canvas is-shown?)
+                   (send position-canvas show #f))])))
           
           ;; find-col : text number number -> number
           ;; given a line number and a position, finds the
@@ -798,44 +796,41 @@
 
           [define anchor-last-state? #f]
           [define overwrite-last-state? #f]
-          (public anchor-status-changed editor-position-changed overwrite-status-changed set-macro-recording)
           
           (field (macro-recording? #f))
-          (define (update-macro-recording-icon)
+          (define/private (update-macro-recording-icon)
             (unless (eq? (send macro-recording-message is-shown?)
                          macro-recording?)
               (send macro-recording-message show macro-recording?)))
-          (define (set-macro-recording on?)
+          (define/public (set-macro-recording on?)
             (set! macro-recording? on?)
             (update-macro-recording-icon))
 
-          [define anchor-status-changed
-           (lambda ()
-             (let ([info-edit (get-info-editor)]
-                   [failed
-                    (lambda ()
-                      (unless (eq? anchor-last-state? #f)
-                        (set! anchor-last-state? #f)
-                        (send anchor-message show #f)))])
-               (cond
-                 [info-edit
-                  (let ([anchor-now? (send info-edit get-anchor)])
-                    (unless (eq? anchor-now? anchor-last-state?)
-                      (cond
-                        [(object? anchor-message)
-                         (send anchor-message
-                               show
-                               anchor-now?)
-                         (set! anchor-last-state? anchor-now?)]
-                        [else (failed)])))]
-                 [else
-                  (failed)])))]
-            [define editor-position-changed
-             (lambda ()
-               (editor-position-changed-offset/numbers
-                (preferences:get 'framework:col-offsets)
-                (preferences:get 'framework:display-line-numbers)))]
-            [define overwrite-status-changed
+          (define/public (anchor-status-changed)
+            (let ([info-edit (get-info-editor)]
+                  [failed
+                   (lambda ()
+                     (unless (eq? anchor-last-state? #f)
+                       (set! anchor-last-state? #f)
+                       (send anchor-message show #f)))])
+              (cond
+                [info-edit
+                 (let ([anchor-now? (send info-edit get-anchor)])
+                   (unless (eq? anchor-now? anchor-last-state?)
+                     (cond
+                       [(object? anchor-message)
+                        (send anchor-message
+                              show
+                              anchor-now?)
+                        (set! anchor-last-state? anchor-now?)]
+                       [else (failed)])))]
+                [else
+                 (failed)])))
+          (define/public (editor-position-changed)
+            (editor-position-changed-offset/numbers
+             (preferences:get 'framework:col-offsets)
+             (preferences:get 'framework:display-line-numbers)))
+            [define/public overwrite-status-changed
              (lambda ()
                (let ([info-edit (get-info-editor)]
                      [failed
@@ -974,7 +969,7 @@
           
           [define label ""]
           [define label-prefix (application:current-app-name)]
-          (define (do-label)
+          (define/private (do-label)
             (super set-label (gui-utils:trim-string (get-entire-label) 200))
             (send (group:get-the-frame-group) frame-label-changed this))
           
@@ -1226,7 +1221,7 @@
 
           ;; cancel-due-to-unsaved-changes : -> boolean
           ;; returns #t if the action should be cancelled
-          (define (cancel-due-to-unsaved-changes editor)
+          (define/private (cancel-due-to-unsaved-changes editor)
             (and (send editor is-modified?)
                  (let ([save (gui-utils:unsaved-warning
                               (or (send editor get-filename) (get-label))
@@ -2018,7 +2013,7 @@
 		(send super-root add-child search-panel))
               (reset-search-anchor (get-text-to-search))))
 
-          (define (undock)
+          (define/private (undock)
             (preferences:set 'framework:search-using-dialog? #t)
             (hide-search)
             (search-dialog this))

@@ -659,8 +659,8 @@
 			(cond
                           [(and (number? line-num)
                                 (= line-num (floor line-num))
-                                (<= 1 line-num (+ (send edit last-line) 1)))
-                           (let ([pos (send edit line-start-position 
+                                (<= 1 line-num (+ (send edit last-paragraph) 1)))
+                           (let ([pos (send edit paragraph-start-position 
                                             (sub1 line-num))])
                              (send edit set-position pos))]
                           [else
