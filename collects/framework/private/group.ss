@@ -1,3 +1,4 @@
+
 (module group mzscheme
   (require (lib "unitsig.ss")
 	   (lib "class.ss")
@@ -21,8 +22,8 @@
       (define mdi-parent #f)
 
       (define %
-	(class object% ()
-	  (private
+	(class100 object% ()
+	  (private-field
 	    [active-frame #f]
 	    [frame-counter 0]
 	    [frames null]
@@ -65,7 +66,7 @@
 		       (lambda (frame)
 			 (let ([label (send frame get-label)])
 			   (if (string=? label "")
-			       (if (ivar-in-interface? 'get-entire-label (object-interface frame))
+			       (if (method-in-interface? 'get-entire-label (object-interface frame))
 				   (let ([label (send frame get-entire-label)])
 				     (if (string=? label "")
 					 default-name
@@ -107,21 +108,16 @@
 				 (set-close-menu-item-state! a-frame #t))
 			       frames))))])
 	  (public
-
 	    [get-mdi-parent
 	     (lambda ()
-	       (if (and (eq? (system-type) 'windows)
-			(preferences:get 'framework:windows-mdi))
-		   (begin
-		     (set! get-mdi-parent (lambda () mdi-parent))
-		     (set! mdi-parent (make-object frame% (application:current-app-name)
-						   #f #f #f #f #f
-						   '(mdi-parent)))
-		     (send mdi-parent show #t)
-		     mdi-parent)
-		   (begin
-		     (set! get-mdi-parent (lambda () #f))
-		     #f)))]
+               (when (and (eq? (system-type) 'windows)
+                          (preferences:get 'framework:windows-mdi)
+                          (not mdi-parent))
+                 (set! mdi-parent (make-object frame% (application:current-app-name)
+                                    #f #f #f #f #f
+                                    '(mdi-parent)))
+                 (send mdi-parent show #t))
+               mdi-parent)]
 
 	    [set-empty-callbacks
 	     (lambda (test close-down) 

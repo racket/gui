@@ -15,7 +15,7 @@
       
       (define basic<%> (interface ((class->interface editor-canvas%))))
       (define basic-mixin
-	(mixin ((class100->interface editor-canvas%)) (basic<%>) args
+	(mixin ((class->interface editor-canvas%)) (basic<%>) args
 	  (sequence
 	    (apply super-init args))))
       
@@ -61,9 +61,10 @@
 	(mixin (basic<%>) (wide-snip<%>) args
 	  (inherit get-editor)
 	  (rename [super-on-size on-size])
-	  (private
+	  (private-field
 	    [wide-snips null]
-	    [tall-snips null]
+	    [tall-snips null])
+          (private
 	    [update-snip-size
 	     (lambda (width?)
 	       (lambda (s)

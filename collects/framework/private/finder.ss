@@ -1,8 +1,9 @@
 (module finder mzscheme
   (require (lib "unitsig.ss")
-	   (lib "class.ss")
 	   "sig.ss"
 	   "../gui-utils-sig.ss"
+           (lib "class100.ss")
+           (lib "class.ss")
 	   (lib "mred-sig.ss" "mred")
 	   (lib "string.ss")
 	   (lib "list.ss")
@@ -57,25 +58,33 @@
 					; the finder-dialog% class controls the user interface for dialogs
       
       (define finder-dialog%
-	(class dialog% (parent-win
-			save-mode? 
-			replace-ok? 
-			multi-mode? 
-			result-box 
-			start-dir 
-			start-name 
-			prompt 
-			file-filter 
-			file-filter-msg)
+	(class100 dialog% (parent-win
+                           _save-mode? 
+                           _replace-ok? 
+                           _multi-mode? 
+                           _result-box 
+                           start-dir 
+                           start-name 
+                           prompt 
+                           _file-filter 
+                           _file-filter-msg)
 	  
-	  (inherit center show)
+          (inherit center show)
 	  
+          (private-field
+           [replace-ok? _replace-ok?]
+           [file-filter-msg _file-filter-msg]
+           [save-mode? _save-mode?]
+           [result-box _result-box]
+           [multi-mode? _multi-mode?]
+           [file-filter _file-filter])
+          
 	  (private-field
-	    [default-width 500]
-	    [default-height 400]
-	    dirs 
-	    current-dir
-	    last-selected)
+           [default-width 500]
+           [default-height 400]
+           dirs 
+           current-dir
+           last-selected)
 	  
 	  (private
 	    [set-directory ; sets directory in listbox 
@@ -98,7 +107,7 @@
 				     [menu-list (cons in-dir menu-list)])
 				(if base-dir
 				    (loop base-dir dir-list menu-list)
-					; No more
+                                    ; No more
 				    (values dir-list menu-list)))))])
 		      (set! dirs (reverse dir-list))
 		      (send dir-choice clear)
@@ -120,17 +129,17 @@
 				   (let ([s (car l)]
 					 [rest (loop (cdr l))])
 				     (cond
-				      [(and no-periods?
-					    (<= 1 (string-length s))
-					    (char=? (string-ref s 0) #\.))
-				       rest]
-				      [(directory-exists? (build-path dir s))
-				       (cons s rest)]
-				      [(or (not file-filter)
-					   (regexp-match-exact? file-filter s))
-				       (cons s rest)]
-				      [else rest])))))
-					;(if (eq? (system-type) 'unix) string<? string-ci<?)
+                                       [(and no-periods?
+                                             (<= 1 (string-length s))
+                                             (char=? (string-ref s 0) #\.))
+                                        rest]
+                                       [(directory-exists? (build-path dir s))
+                                        (cons s rest)]
+                                       [(or (not file-filter)
+                                            (regexp-match-exact? file-filter s))
+                                        (cons s rest)]
+                                       [else rest])))))
+                           ;(if (eq? (system-type) 'unix) string<? string-ci<?)
 			   string-ci<?
 			   ))
 		    (send name-list set-selection-and-edit 0)
@@ -172,13 +181,13 @@
 		     (set-edit))))]
 	    
 	    [do-result-list
-	     (lambda args #f)]
+	     (lambda () #f)]
 	    
 	    [do-ok
 	     (lambda args
-
+               
 	       (if multi-mode?
-
+                   
 		   (let loop ([n (sub1 (send result-list get-number))]
 			      [result null])
 		     (if (< n 0)
@@ -188,92 +197,92 @@
 			 (loop (sub1 n) 
 			       (cons (send result-list get-string n)
 				     result))))
-					; not multi-mode
-
+                   ; not multi-mode
+                   
 		   (let ([name (send name-list get-string-selection)]
 			 [non-empty? (> (send name-list get-number) 0)])
-
+                     
 		     (cond
-
-		      [(and save-mode? 
-			    non-empty?
-			    (not (string? name))) 'nothing-selected]
-
-		      [(and save-mode? 
-			    non-empty?
-			    (string=? name ""))
-		       (let ([file (send directory-field get-value)])
-			 (if (directory-exists? file)
-			     (set-directory (normal-case-path (normalize-path file)))
-			     (message-box 
-			      "Error"
-			      "You must specify a file name")))]
-
-		      [(and save-mode? 
-			    non-empty?
-			    file-filter 
-			    (not (regexp-match-exact? file-filter name)))
-		       (message-box "Error" file-filter-msg)]
-
-		      [else
-		       
-					; if dir in edit box, go to that dir
-		       
-		       (let ([dir-name (send directory-field get-value)])
-			 
-			 (if (directory-exists? dir-name)
-			     (set-directory (normal-case-path (normalize-path dir-name)))
-			     
-					; otherwise, try to return absolute path
-			     
-			     (let* ([relative-name (make-relative name)]
-				    [file-in-edit (file-exists? dir-name)]
-				    [file (if (or file-in-edit
-						  (not relative-name)
-						  save-mode?)
-					      dir-name
-					      (build-path current-dir relative-name))])
-			       
-					; trying to open a file that doesn't exist
-			       
-			       (if (and (not save-mode?) (not file-in-edit))
-				   (message-box 
-				    "Error"
-				    (string-append "The file \"" 
-						   dir-name
-						   "\" does not exist."))
-				   
-					; saving a file, which may exist, or
-					; opening an existing file
-				   
-				   (if (or (not save-mode?)
-					   (not (file-exists? file))
-					   replace-ok?
-					   (eq? (message-box "Warning"
-							     (string-append
-							      "The file " 
-							      file
-							      " already exists. "
-							      "Replace it?")
-							     #f
-							     '(yes-no))
-						'yes))
-				       (let ([normal-path
-					      (with-handlers 
-						  ([(lambda (_) #t)
-						    (lambda (_)
-						      (message-box
-						       "Warning" 
-						       (string-append
-							"The file " 
-							file
-							" contains nonexistent directory or cycle."))
-						      #f)])
-						(normal-case-path
-						 (normalize-path file)))])
-					 (when normal-path 
-					   (set-box! result-box normal-path)
-					   (show #f))))))))]))))]
+                       
+                       [(and save-mode? 
+                             non-empty?
+                             (not (string? name))) 'nothing-selected]
+                       
+                       [(and save-mode? 
+                             non-empty?
+                             (string=? name ""))
+                        (let ([file (send directory-field get-value)])
+                          (if (directory-exists? file)
+                              (set-directory (normal-case-path (normalize-path file)))
+                              (message-box 
+                               "Error"
+                               "You must specify a file name")))]
+                       
+                       [(and save-mode? 
+                             non-empty?
+                             file-filter 
+                             (not (regexp-match-exact? file-filter name)))
+                        (message-box "Error" file-filter-msg)]
+                       
+                       [else
+                        
+                        ; if dir in edit box, go to that dir
+                        
+                        (let ([dir-name (send directory-field get-value)])
+                          
+                          (if (directory-exists? dir-name)
+                              (set-directory (normal-case-path (normalize-path dir-name)))
+                              
+                              ; otherwise, try to return absolute path
+                              
+                              (let* ([relative-name (make-relative name)]
+                                     [file-in-edit (file-exists? dir-name)]
+                                     [file (if (or file-in-edit
+                                                   (not relative-name)
+                                                   save-mode?)
+                                               dir-name
+                                               (build-path current-dir relative-name))])
+                                
+                                ; trying to open a file that doesn't exist
+                                
+                                (if (and (not save-mode?) (not file-in-edit))
+                                    (message-box 
+                                     "Error"
+                                     (string-append "The file \"" 
+                                                    dir-name
+                                                    "\" does not exist."))
+                                    
+                                    ; saving a file, which may exist, or
+                                    ; opening an existing file
+                                    
+                                    (if (or (not save-mode?)
+                                            (not (file-exists? file))
+                                            replace-ok?
+                                            (eq? (message-box "Warning"
+                                                              (string-append
+                                                               "The file " 
+                                                               file
+                                                               " already exists. "
+                                                               "Replace it?")
+                                                              #f
+                                                              '(yes-no))
+                                                 'yes))
+                                        (let ([normal-path
+                                               (with-handlers 
+                                                   ([(lambda (_) #t)
+                                                     (lambda (_)
+                                                       (message-box
+                                                        "Warning" 
+                                                        (string-append
+                                                         "The file " 
+                                                         file
+                                                         " contains nonexistent directory or cycle."))
+                                                       #f)])
+                                                 (normal-case-path
+                                                  (normalize-path file)))])
+                                          (when normal-path 
+                                            (set-box! result-box normal-path)
+                                            (show #f))))))))]))))]
 	    
 	    [add-one
 	     (lambda (name)
@@ -283,7 +292,7 @@
 		       (normal-case-path (normalize-path name)))))]
 	    
 	    [do-add
-	     (lambda args
+	     (lambda ()
 	       (let ([name (send name-list get-string-selection)])
 		 (if (string? name)
 		     (let ([name (build-path current-dir
@@ -291,7 +300,7 @@
 		       (add-one name)))))]
 	    
 	    [do-add-all
-	     (lambda args
+	     (lambda ()
 	       (let loop ([n 0])
 		 (when (< n (send name-list get-number))
 		   (let ([name (send name-list get-string n)])
@@ -301,7 +310,7 @@
 		       (loop (add1 n)))))))]
 	    
 	    [do-remove
-	     (lambda args
+	     (lambda ()
 	       (let loop ([n 0])
 		 (if (< n (send result-list get-number))
 		     (if (send result-list is-selected? n)
@@ -311,12 +320,12 @@
 			 (loop (add1 n))))))]
 	    
 	    [do-cancel
-	     (lambda args
+	     (lambda ()
 	       (set-box! result-box #f)
 	       (show #f))])
 	  
 	  (override
-	   [on-close (lambda () #f)])
+            [on-close (lambda () #f)])
 	  
 	  (sequence
 	    (super-init (if save-mode? "Put file" "Get file")
@@ -326,112 +335,112 @@
 			#f #f
 			'(resize-border)))
 	  
-	  (private
-	    
+	  (private-field
 	    [main-panel (make-object vertical-panel% this)]
 	    
 	    [top-panel (make-object horizontal-panel% main-panel)]
 	    
 	    [_1 (make-object message% prompt top-panel)]
 	    
-	    [dir-choice (make-object choice% #f null top-panel do-dir)]
+	    [dir-choice (make-object choice% #f null top-panel
+                          (lambda (choice event) (do-dir choice event)))]
 	    
 	    [middle-panel (make-object horizontal-panel% main-panel)]
 	    [left-middle-panel (make-object vertical-panel% middle-panel)]
 	    [right-middle-panel (when multi-mode? 
 				  (make-object vertical-panel% middle-panel))]
-
+            
 	    [name-list%
 	     
-	     (class-asi list-box%
+	     (class100-asi list-box%
 	       
 	       (inherit 
-		get-string-selection
-		get-string
-		get-selection
-		get-number
-		get-first-visible-item
-		number-of-visible-items
-		set-first-visible-item
-		set-selection)
-
+                 get-string-selection
+                 get-string
+                 get-selection
+                 get-number
+                 get-first-visible-item
+                 number-of-visible-items
+                 set-first-visible-item
+                 set-selection)
+               
 	       (override
-		[on-subwindow-char
-		 
-		 (lambda (_ key) 
-		   (let ([code (send key get-key-code)]
-			 [num-items (get-number)]
-			 [curr-pos (get-selection)])
-		     (cond 
-		      [(or (equal? code 'numpad-return)
-			   (equal? code #\return))
-		       (if multi-mode?
-			   (do-add)
-			   (do-ok))]
-		      
-					; look for letter at beginning of a filename
-		      [(char? code)
-		       (let ([next-matching
-			      (let loop ([pos (add1 curr-pos)])
-				(cond
-				 [(>= pos num-items) #f]
-				 [else
-				  (let ([first-char (string-ref (get-string pos) 0)])
-				    (if (char-ci=? code first-char)
-					pos
-					(loop (add1 pos))))]))])
-			 (if next-matching
-			     (set-selection-and-edit next-matching)
-
+                 [on-subwindow-char
+                  
+                  (lambda (_ key) 
+                    (let ([code (send key get-key-code)]
+                          [num-items (get-number)]
+                          [curr-pos (get-selection)])
+                      (cond 
+                        [(or (equal? code 'numpad-return)
+                             (equal? code #\return))
+                         (if multi-mode?
+                             (do-add)
+                             (do-ok))]
+                        
+                        ; look for letter at beginning of a filename
+                        [(char? code)
+                         (let ([next-matching
+                                (let loop ([pos (add1 curr-pos)])
+                                  (cond
+                                    [(>= pos num-items) #f]
+                                    [else
+                                     (let ([first-char (string-ref (get-string pos) 0)])
+                                       (if (char-ci=? code first-char)
+                                           pos
+                                           (loop (add1 pos))))]))])
+                           (if next-matching
+                               (set-selection-and-edit next-matching)
+                               
 			     ;; didn't find anything forward; start again at front of list
-			     (let loop ([pos 0]
-					[last-before 0])
-			       (cond
-				[(<= pos num-items)
-				 (let ([first-char (string-ref (get-string pos) 0)])
-				   (cond
-				    [(char-ci=? code first-char)
-				     (set-selection-and-edit pos)]
-				    [(char-ci<=? first-char code)
-				     (loop (+ pos 1)
-					   pos)]
-				    [else
-				     (set-selection-and-edit last-before)]))]
-				[else (set-selection-and-edit last-before)]))))]
-		      
-					; movement keys
-		      [(and (eq? code 'up) 
-			    (> curr-pos 0))
-		       (set-selection-and-edit (sub1 curr-pos))]
-		      
-		      [(and (eq? code 'down)
-			    (< curr-pos (sub1 num-items)))
-		       (let* ([num-vis (number-of-visible-items)] 
-			      [curr-first (get-first-visible-item)]
-			      [new-curr-pos (add1 curr-pos)]
-			      [new-first (if (< new-curr-pos (+ curr-first num-vis))
-					     curr-first ; no scroll needed
-					     (add1 curr-first))])
-			 (set-first-visible-item new-first)
-			 (set-selection-and-edit new-curr-pos))]
-		      
-		      [(and (eq? code 'prior)
-			    (> curr-pos 0))
-		       (let* ([num-vis (number-of-visible-items)]
-			      [new-first (- (get-first-visible-item) num-vis)])
-			 (set-first-visible-item (max new-first 0))
-			 (set-selection-and-edit (max 0 (- curr-pos num-vis))))]
-		      
-		      [(and (eq? code 'next)
-			    (< curr-pos (sub1 num-items)))
-		       (let* ([num-vis (number-of-visible-items)]
-			      [new-first (+ (get-first-visible-item) num-vis)])
-			 (set-first-visible-item
-			  (min new-first (- (get-number) num-vis)))
-			 (set-selection-and-edit 
-			  (min (sub1 num-items) (+ curr-pos num-vis))))]
-		      
-		      [else #f])))])
+                               (let loop ([pos 0]
+                                          [last-before 0])
+                                 (cond
+                                   [(<= pos num-items)
+                                    (let ([first-char (string-ref (get-string pos) 0)])
+                                      (cond
+                                        [(char-ci=? code first-char)
+                                         (set-selection-and-edit pos)]
+                                        [(char-ci<=? first-char code)
+                                         (loop (+ pos 1)
+                                               pos)]
+                                        [else
+                                         (set-selection-and-edit last-before)]))]
+                                   [else (set-selection-and-edit last-before)]))))]
+                        
+                        ; movement keys
+                        [(and (eq? code 'up) 
+                              (> curr-pos 0))
+                         (set-selection-and-edit (sub1 curr-pos))]
+                        
+                        [(and (eq? code 'down)
+                              (< curr-pos (sub1 num-items)))
+                         (let* ([num-vis (number-of-visible-items)] 
+                                [curr-first (get-first-visible-item)]
+                                [new-curr-pos (add1 curr-pos)]
+                                [new-first (if (< new-curr-pos (+ curr-first num-vis))
+                                               curr-first ; no scroll needed
+                                               (add1 curr-first))])
+                           (set-first-visible-item new-first)
+                           (set-selection-and-edit new-curr-pos))]
+                        
+                        [(and (eq? code 'prior)
+                              (> curr-pos 0))
+                         (let* ([num-vis (number-of-visible-items)]
+                                [new-first (- (get-first-visible-item) num-vis)])
+                           (set-first-visible-item (max new-first 0))
+                           (set-selection-and-edit (max 0 (- curr-pos num-vis))))]
+                        
+                        [(and (eq? code 'next)
+                              (< curr-pos (sub1 num-items)))
+                         (let* ([num-vis (number-of-visible-items)]
+                                [new-first (+ (get-first-visible-item) num-vis)])
+                           (set-first-visible-item
+                            (min new-first (- (get-number) num-vis)))
+                           (set-selection-and-edit 
+                            (min (sub1 num-items) (+ curr-pos num-vis))))]
+                        
+                        [else #f])))])
 	       
 	       (public
 		 [set-selection-and-edit
@@ -458,12 +467,8 @@
 				(do-ok))))))]))]
 	    
 	    [name-list (make-object name-list%
-			 #f null left-middle-panel do-name-list
+			 #f null left-middle-panel (lambda (x y) (do-name-list x y))
 			 '(single))]
-	    
-	    [set-focus-to-name-list
-	     (lambda ()
-	       (send name-list focus))]
 	    
 	    [save-panel (when save-mode? (make-object horizontal-panel% main-panel))]
 	    
@@ -489,14 +494,14 @@
 			    (if multi-mode?
 				(do-add)
 				(do-ok)))))))))]
-
+            
 	    [result-list
 	     (when multi-mode?
 	       (make-object list-box%
 		 #f
 		 null
 		 right-middle-panel
-		 do-result-list
+		 (lambda (x y) (do-result-list))
 		 '(multiple)))]
 	    [add-panel 
 	     (when multi-mode? 
@@ -510,6 +515,11 @@
 	     (lambda () 
 	       (set-directory (build-updir current-dir))
 	       (set-focus-to-name-list))])
+          
+          (private
+            [set-focus-to-name-list
+	     (lambda ()
+	       (send name-list focus))])
 	  
 	  (sequence
 	    
@@ -518,7 +528,7 @@
 		     (make-object check-box%
 		       "Show files and directories that begin with a dot"
 		       dot-panel
-		       do-period-in/exclusion)])
+		       (lambda (x y) (do-period-in/exclusion x y)))])
 		(send dot-panel stretchable-height #f)
 		(send dot-cb set-value 
 		      (preferences:get 'framework:show-periods-in-dirlist))))
@@ -543,41 +553,44 @@
 	    (when save-mode?
 	      (send save-panel stretchable-height #f)))
 	  
-	  (private
+	  (private-field
 	    
 	    [add-button (when multi-mode?
 			  (make-object horizontal-panel% add-panel)
 			  (make-object button%
 			    "Add"
 			    add-panel
-			    do-add))]
+			    (lambda (x y) (do-add))))]
 	    [add-all-button (when multi-mode?
 			      (begin0
-			       (make-object button%
-				 "Add all"
-				 add-panel do-add-all)
-			       (make-object horizontal-panel% add-panel)))]
+                                (make-object button%
+                                  "Add all"
+                                  add-panel 
+                                  (lambda (x y) (do-add-all)))
+                                (make-object horizontal-panel% add-panel)))]
 	    [remove-button (when multi-mode?
 			     (make-object horizontal-panel% remove-panel)
 			     (begin0
-			      (make-object button% "Remove" remove-panel do-remove)
-			      (make-object horizontal-panel% remove-panel)))])
+                               (make-object button% "Remove" remove-panel (lambda (x y) (do-remove)))
+                               (make-object horizontal-panel% remove-panel)))])
 	  (sequence
 	    (make-object vertical-panel% bottom-panel)) 
-	  (private
+	  (private-field
 	    [ok-button
-	     (make-object button% "OK" bottom-panel do-ok (if multi-mode? '() '(border)))]
-	    [cancel-button (make-object button% "Cancel" bottom-panel do-cancel)])
+	     (make-object button% "OK" bottom-panel 
+               (lambda (x y) (do-ok))
+               (if multi-mode? '() '(border)))]
+	    [cancel-button (make-object button% "Cancel" bottom-panel (lambda (x y) (do-cancel)))])
 	  (sequence
 	    (make-object grow-box-spacer-pane% bottom-panel)
-
+            
 	    (cond
-	     [(and start-dir
-		   (directory-exists? start-dir))
-	      (set-directory (normal-case-path
-			      (normalize-path start-dir)))]
-	     [last-directory (set-directory last-directory)]
-	     [else (set-directory (current-directory))])
+              [(and start-dir
+                    (directory-exists? start-dir))
+               (set-directory (normal-case-path
+                               (normalize-path start-dir)))]
+              [last-directory (set-directory last-directory)]
+              [else (set-directory (current-directory))])
 	    
 	    (send ok-button min-width (send cancel-button get-width))
 	    
@@ -585,9 +598,8 @@
 	    
 	    (show #t))))
       
-					; make-common takes a dialog-maker
-					; used to make one dialog object per session, now created each time
-      
+      ; make-common takes a dialog-maker
+      ; used to make one dialog object per session, now created each time
       (define make-common
 	(lambda (make-dialog)
 	  (lambda args

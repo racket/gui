@@ -64,7 +64,7 @@
 		   l))))])
       
       (inherit get-children)
-      (private [current-active-child #f])
+      (private-field [current-active-child #f])
       (public
 	[active-child
 	 (case-lambda
@@ -106,7 +106,11 @@
       collapse))
 
   (define multi-view-mixin
-    (mixin (area-container<%>) (multi-view<%>) (parent editor)
+    (mixin (area-container<%>) (multi-view<%>) (_parent _editor)
+      
+      (private-field [parent _parent]
+                     [editor _editor])
+      
       (public
 	[get-editor-canvas%
 	 (lambda ()
@@ -117,6 +121,7 @@
 	[get-horizontal%
 	 (lambda ()
 	   horizontal-panel%)])
+      
 
       (private
 	[split
