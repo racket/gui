@@ -217,8 +217,8 @@
       [window->focus-object
        (lambda (w)
 	 (and w
-	      (if (is-a? focus wx:editor-canvas%)
-		  (let loop ([m (send focus get-edit)]
+	      (if (is-a? w wx:editor-canvas%)
+		  (let loop ([m (send w get-edit)]
 			     [prev w])
 		    (if m
 			(let ([snip (send m get-focus-snip)])
@@ -2851,7 +2851,7 @@
     (let ([m (make-object menu% "File" mb)])
       (make-object menu-item% "Quit" m (lambda (i e) (send frame on-close) (send frame show #f)) #\q))
     (let ([m (make-object menu% "Edit" mb)])
-      (append-edit-operation-items m)))
+      (append-edit-operation-menu-items m)))
 
   ;; Just a few extra key bindings:
   (let* ([k (send repl-buffer get-keymap)]
