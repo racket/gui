@@ -281,7 +281,7 @@
   
   (define lb (make-object list-box%
 			  (if null-label? #f "L&ist")
-			  '("Apple" "Banana" "Coconut & Donuts")
+			  '("Apple" "Banana" "Coconut & Donuts" "Eclair" "French Fries" "Gatorade" "Huevos Rancheros")
 			  ip void))
   
   (define cb (make-object check-box% "C&heck" ip void))
@@ -521,8 +521,11 @@
 				       "v gauge" "v gauge"
 				       ; "text msg" "image msg"
 				       "text")
-				 cp2)])
+				 cp2 '(hscroll vscroll))])
       (send canvas accept-tab-focus #t)
+      (send canvas init-auto-scrollbars 300 300 0.0 0.0)
+      (add-disable "Canvas" canvas ep2)
+
       (add-focus-note f2 ep2)
       (send f2 set-info ep2)
       

@@ -53,7 +53,7 @@
     (stvals '(0 0) f client->screen x y))
   (let-values ([(cw ch) (send f get-client-size)]
 	       [(w h) (send f get-size)])
-    (test #t 'client-size (and (<= 1 cw w) (<= 1 ch h))))
+    (test #t `(client-size ,f ,cw ,ch ,w h) (and (<= 1 cw w) (<= 1 ch h))))
   (stv f refresh))
 
 (define (area-tests f sw? sh? no-stretch?)
