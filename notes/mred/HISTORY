@@ -154,9 +154,6 @@ On windows:
   info-frame and to improve the speed in the console io. There is a
   new method of mred:media-edit: "run-after-edit-sequence".
 
-- set-empty-callback in mred:frame-group% is now set-empty-callbacks
-  in mred:frame-group%. See the docs for more details.
-
 - mred:original-output-port is now called mred:constants:original-output-port
   mred:original-input-port is now called mred:constants:original-input-port
 
