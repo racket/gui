@@ -2,7 +2,8 @@
   (require
     "private/aligned-pasteboard/aligned-pasteboard.ss"
     "private/aligned-pasteboard/aligned-editor-container.ss"
-    "private/aligned-pasteboard/interface.ss")
+    "private/aligned-pasteboard/interface.ss"
+    "private/aligned-pasteboard/stretchable-editor-snip.ss")
   (provide
     vertical-pasteboard%
     horizontal-pasteboard%
@@ -11,6 +12,5 @@
     aligned-pasteboard<%>
     aligned-pasteboard-parent<%>
     stretchable-snip<%>
-    ;stretchable-text-snip%
-    ;stretchable-text-snip-mixin
-    ))
+    stretchable-editor-snip%
+    stretchable-editor-snip-mixin))
