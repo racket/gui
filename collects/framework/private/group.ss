@@ -89,7 +89,7 @@
                (lambda (menu)
                  (for-each (lambda (item) (send item delete))
                            (send menu get-items))
-                 (instantiate menu:can-restore-checkable-menu-item% ()
+                 (instantiate menu:can-restore-menu-item% ()
                    (label (string-constant bring-frame-to-front...))
                    (parent menu)
                    (callback (lambda (x y) (choose-a-frame (send (send menu get-parent) get-frame))))

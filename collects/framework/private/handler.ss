@@ -276,7 +276,9 @@
                    (lambda (p v)
                      (refresh-hl v)))])
           
+          (rename [super-on-close on-close])
           (define/override (on-close)
+            (super-on-close)
             (remove-prefs-callback)
             (set! recent-items-window #f))
           
