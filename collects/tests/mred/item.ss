@@ -1917,21 +1917,34 @@
 
 ;----------------------------------------------------------------------
 
-(define (test-tab-panel)
+(define (test-tab-panel no-border?)
   (define f (make-object frame% "Tabby"))
   (define p (make-object tab-panel% '("App&le" "B&anana" "Co&conut") 
 			 f
 			 (lambda (p e)
 			   (send m set-label (format "Selected: ~a" (send p get-selection))))
-			 '())) ; could try 'no-border
+			 (if no-border?
+			     '(no-border)
+			     '())))
+  (define p2 (if no-border?
+		 (make-object vertical-panel% f)
+		 p))
   (define count 3)
+  (define on? #t)
   (define m (make-object message% (format "Selected: ~a" (send p get-selection)) p))
 
-  (make-object button% "Append" p (lambda (b e) 
+  (make-object button% "Append" p2 (lambda (b e) 
 				    (send p append (format "N&ew ~a" count))
 				    (set! count (add1 count))))
-  (make-object button% "Delete" p (lambda (b e)
-				    (send p delete 0)))
+  (make-object button% "Delete" p2 (lambda (b e)
+				     (send p delete 0)))
+  (when no-border?
+    (make-object button% "Toggle" p2 (lambda (b e)
+				       (if on?
+					   (send f delete-child p)
+					   (send f change-children
+						 (lambda (l) (cons p l))))
+				       (set! on? (not on?)))))
 
   (send f show #t))
 
@@ -2132,7 +2145,8 @@
 (make-object vertical-pane% gsp) ; filler
 (make-object button% "Make Slider Frame" gsp (lambda (b e) (slider-frame)))
 (make-object vertical-pane% gsp) ; filler
-(make-object button% "Make Tab Panel" gsp (lambda (b e) (test-tab-panel)))
+(make-object button% "Make Tab Panel" gsp (lambda (b e) (test-tab-panel #f)))
+(make-object button% "Make Tabs" gsp (lambda (b e) (test-tab-panel #t)))
 (make-object vertical-pane% gsp) ; filler
 (make-object button% "Make Modified Frame" gsp (lambda (b e) (test-modified-frame)))
 
