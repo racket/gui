@@ -389,8 +389,10 @@
 	     (opt-lambda (start end color [bitmap #f])
 	       (let ([l (make-range start end bitmap color)]
 		     [colored-delta (make-object wx:style-delta%)]
+		     [uncolored-delta (make-object wx:style-delta%)]
 		     [hack-time? (and (eq? 'unix wx:platform) (<= 8 (wx:display-depth)))])
 		 (when hack-time?
+		 (send uncolored-delta set-delta-background "WHITE")
 		   (send colored-delta set-delta-background color)
 		   (change-style colored-delta start end))
 		 (set! ranges (cons l ranges))
@@ -404,8 +406,7 @@
 				      (cdr r)
 				      (cons (car r) (loop (cdr r))))])))
 		   (when hack-time?
-		     (change-style (send (get-style-list) find-named-style "Standard")
-				   start end))
+		     (change-style uncolored-delta start end))
 		   (recompute-range-rectangles))))]
 
 	    [on-paint
