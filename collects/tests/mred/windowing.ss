@@ -862,7 +862,7 @@
 
 	(containee-window-tests t #t 
 				(and (memq 'multiple (car styles)) #t)
-				parent frame 0)
+				parent frame 2)
 
 	(send parent delete-child t)
 	(loop (cdr styles)))))
