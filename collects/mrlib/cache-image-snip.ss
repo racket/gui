@@ -3,12 +3,18 @@
            (lib "class.ss")
            (lib "string.ss"))
 
-  (provide argb-vector->bitmap
+  (provide cache-image-snip%
+           snip-class
+           
            overlay-bitmap
            build-bitmap
            flatten-bitmap
-           cache-image-snip%
-           snip-class)
+           
+           argb->cache-image-snip
+           argb->bitmap
+           
+           make-argb 
+           argb-vector)
   
   #|
 
@@ -37,7 +43,8 @@
     an alpha of 0 means the pixel value is 255
  |#
   
-  ;; type argb-vector = (vectorof rational[between 0 & 255])
+  ;; type argb = (make-argb (vectorof rational[between 0 & 255]) int)
+  (define-struct argb (vector width))
   
   (define cache-image-snip%
     (class snip%
@@ -45,18 +52,20 @@
       ;; draw-proc : (union #f ((is-a?/c dc<%>) int[dx] int[dy] -> void))
       ;; used for direct drawing
       (init-field dc-proc)
+      (define/public (get-dc-proc) dc-proc)
       
       ;; bitmap-proc : ((vectorof rational[0 <= x <= 255]) int[dx] int[dy] -> void)
       ;; used for drawing into a bitmap
       (init-field argb-proc)
+      (define/public (get-argb-proc) argb-proc)
       
       (init-field (width #f)
                   (height #f))
       (define/public (get-size) 
         (values width height))
       
-      ;; argb-vector : (union #f argb-vector)
-      (init-field [argb-vector #f])
+      ;; argb : (union #f argb)
+      (init-field [argb #f])
 
       ;; bitmap : (union #f (is-a?/c bitmap%))
       ;; the way that this image is be drawn, on its own
@@ -68,28 +77,22 @@
              (argb-proc argb-proc)
              (width width)
              (height height)
-             (argb-vector argb-vector)))
+             (argb argb)))
       
-      ;; this can use the draw proc, rather than the argb-vector.
-
       ;; get-bitmap : -> bitmap
       ;; returns a bitmap showing what the image would look like, 
       ;; if it were drawn
       (define/public (get-bitmap)
         (unless bitmap
-          (set! bitmap (flatten-bitmap
-                        (argb-vector->bitmap
-                         (get-argb-vector)
-                         (ceiling (inexact->exact width))
-                         (ceiling (inexact->exact height))))))
+          (set! bitmap (flatten-bitmap (argb->bitmap (get-argb)))))
         bitmap)
       
-      ;; get-argb-vector : -> argb-vector
-      (define/public (get-argb-vector)
-        (unless argb-vector
-          (set! argb-vector (make-vector (* 4 width height) 255))
-          (argb-proc argb-vector 0 0))
-        argb-vector)
+      ;; get-argb : -> argb
+      (define/public (get-argb)
+        (unless argb
+          (set! argb (make-argb (make-vector (* 4 width height) 255) width))
+          (argb-proc argb 0 0))
+        argb)
       
       (define/override (get-extent dc x y w h descent space lspace rspace)
         (set-box/f! w width)
@@ -101,7 +104,7 @@
       
       (define/override (draw dc x y left top right bottom dx dy draw-caret)
         (cond
-          [argb-vector
+          [argb
            (let ([bitmap (get-bitmap)])
              (send dc draw-bitmap bitmap x y 'solid 
                    (send the-color-database find-color "black")
@@ -111,11 +114,9 @@
           [else (void)]))
       
       (define/override (write f)
-        (printf "calling write\n")
         (let ([str (format "~s"
-                           (list width
-                                 height
-                                 (get-argb-vector)))])
+                           (list (argb-vector (get-argb))
+                                 width))])
           (send f put str)))
       
       (super-new)
@@ -130,24 +131,17 @@
   (define cache-image-snip-class%
     (class snip-class%
       (define/override (read f)
-        (printf "called read\n")
         (let ([data (read-from-string (send f get-string)
                                       void
                                       (lambda (x) #f))])
           (if data
-              (new cache-image-snip%
-                   (width (car data))
-                   (height (cadr data))
-                   (argb-vector (caddr data))
-                   (argb-proc void)
-                   (dc-proc void))
+              (argb->cache-image-snip (make-argb (car data) (cadr data)))
               (make-null-cache-image-snip))))
       (super-new)))
   
   (define snip-class (new cache-image-snip-class%))
   (send snip-class set-version 1)
   (send snip-class set-classname (format "~s" `(lib "cache-image-snip.ss" "mrlib")))
-  (printf "installing snipclass\n")
   (send (get-the-snip-class-list) add snip-class)
   
   (define (make-null-cache-image-snip)
@@ -167,8 +161,8 @@
          (height size)
          (draw-proc draw)
          (argb-proc 
-          (lambda (argb-vector dx dy)
-            (overlay-bitmap argb-vector dx dy bm bm)))))
+          (lambda (argb dx dy)
+            (overlay-bitmap argb size size dx dy bm bm)))))
   
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;;
@@ -215,10 +209,32 @@
   ;; argb vector utilties
   ;;
   
-  ;; argb-vector->bitmap : argb-vector int int -> bitmap
+  ;; argb->cache-snip : argb -> cache-image-snip
+  (define (argb->cache-image-snip argb)
+    (let* ([width (argb-width argb)]
+           [argb-vector (argb-vector argb)]
+           [height (quotient (vector-length argb-vector) (* 4 width))]
+           [bitmap (argb->bitmap argb)]
+           [mask (send bitmap get-loaded-mask)])
+      (new cache-image-snip%
+           (width width)
+           (height height)
+           (argb argb)
+           (argb-proc 
+            (lambda (argb dx dy)
+              (overlay-bitmap argb dx dy bitmap mask)))
+           (dc-proc (lambda (dc dx dy)
+                      (send dc draw-bitmap bitmap dx dy 'solid 
+                            (send the-color-database find-color "black")
+                            mask))))))
+  
+  ;; argb-vector->bitmap : argb -> bitmap
   ;; flattens the argb vector into a bitmap
-  (define (argb-vector->bitmap argb-vector w h)
-    (let* ([bm (make-object bitmap% w h)]
+  (define (argb->bitmap argb)
+    (let* ([argb-vector (argb-vector argb)]
+           [w (argb-width argb)]
+           [h (quotient (vector-length argb-vector) (* w 4))]
+           [bm (make-object bitmap% w h)]
            [mask-bm (make-object bitmap% w h)]
            [bdc (new bitmap-dc% (bitmap bm))]
            [str (make-string (vector-length argb-vector) #\377)]
@@ -241,11 +257,13 @@
       (send bm set-loaded-mask mask-bm)
       bm))
   
-  ;; overlay-bitmap : argb-vector int int bitmap bitmap -> void
+  ;; overlay-bitmap : argb int int bitmap bitmap -> void
   ;; assumes that the mask bitmap only has greyscale in it
   ;; (ie, that looking at the red component of the mask is enough)
-  (define (overlay-bitmap argb-vector dx dy color mask)
-    (let* ([w (send color get-width)]
+  (define (overlay-bitmap argb dx dy color mask)
+    (let* ([argb-vector (argb-vector argb)]
+           [argb-w (argb-width argb)]
+           [w (send color get-width)]
            [h (send color get-height)]
            [color-str (make-string (* w h 4) #\000)]
            [mask-str (make-string (* w h 4) #\000)]
@@ -263,7 +281,7 @@
                       [str-i str-i])
             (if (= x w)
                 (yloop (add1 y) str-i)
-                (let* ([argb-i (* 4 (+ (+ dx x) (* (+ dy y) w)))]
+                (let* ([argb-i (* 4 (+ (+ dx x) (* (+ dy y) argb-w)))]
                        [m1 (vector-ref argb-vector argb-i)]
                        [m2 (char->integer (string-ref mask-str (+ str-i 1)))] ;; get red coordinate
                        [m3 (build-m3 m1 m2)]
