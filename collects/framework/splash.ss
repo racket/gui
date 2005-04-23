@@ -12,7 +12,10 @@
            shutdown-splash
            close-splash
            add-splash-icon
-           set-splash-char-observer)
+           set-splash-char-observer
+           set-splash-paint-callback
+           get-splash-paint-callback
+           set-splash-event-callback)
   
   (define splash-filename #f)
   (define splash-bitmap #f)
@@ -25,6 +28,25 @@
   (define (get-splash-canvas) splash-canvas)
   (define (get-splash-eventspace) splash-eventspace)
 
+  (define (set-splash-paint-callback pc) (set! splash-paint-callback pc))
+  (define (get-splash-paint-callback) splash-paint-callback)
+  (define (set-splash-event-callback ec) (set! splash-event-callback ec))
+  
+  (define (splash-paint-callback dc) 
+    (if splash-bitmap
+        (send dc draw-bitmap splash-bitmap 0 0)
+        (send dc clear))
+    (for-each (λ (icon)
+                (send dc draw-bitmap
+                      (icon-bm icon)
+                      (icon-x icon)
+                      (icon-y icon)
+                      'solid
+                      (make-object color% "black")
+                      (send (icon-bm icon) get-loaded-mask)))
+              icons))
+  (define (splash-event-callback evt) (void))
+  
   (define char-observer void)
   (define (set-splash-char-observer proc)
     (set! char-observer proc))
@@ -205,21 +227,9 @@
     (class canvas%
       (inherit get-dc)
       (define/override (on-char evt) (char-observer evt))
-      (define/override (on-paint)
-        (let ([dc (get-dc)])
-          (if splash-bitmap
-              (send dc draw-bitmap splash-bitmap 0 0)
-              (send dc clear))
-          (for-each (λ (icon)
-                      (send dc draw-bitmap
-                            (icon-bm icon)
-                            (icon-x icon)
-                            (icon-y icon)
-			    'solid
-			    (make-object color% "black")
-			    (send (icon-bm icon) get-loaded-mask)))
-                    icons)))
-      (super-instantiate ())))
+      (define/override (on-paint) (splash-paint-callback (get-dc)))
+      (define/override (on-event evt) (splash-event-callback evt))
+      (super-new)))
   
   (define splash-frame
     (parameterize ([current-eventspace splash-eventspace])
