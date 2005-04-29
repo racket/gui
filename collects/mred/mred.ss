@@ -277,6 +277,7 @@
 	   readable-snip<%>
 	   open-input-text-editor
 	   open-input-graphical-file
+	   open-output-text-editor
 	   text-editor-load-handler
 	   application-about-handler
 	   application-preferences-handler

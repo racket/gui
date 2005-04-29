@@ -10,7 +10,8 @@
   (provide readable-snip<%>
 	   open-input-text-editor 
 	   open-input-graphical-file
-	   text-editor-load-handler)
+	   text-editor-load-handler
+	   open-output-text-editor )
 
   ;; snip-class% and editor-data-class% loaders
 
@@ -247,4 +248,68 @@
 
   (define (open-input-graphical-file filename)
     (let-values ([(p name) (build-input-port filename)])
-      p)))
+      p))
+
+  (define open-output-text-editor 
+    (opt-lambda (text [start 'end] [special-filter values] [port-name text])
+      (define pos (if (eq? start 'end)
+		      (send text last-position)
+		      (min start
+			   (send text last-position))))
+      (define-values (in out) (make-pipe))
+      (define cvt (bytes-open-converter "UTF-8-permissive" "UTF-8"))
+      (define raw-buffer (make-bytes 128))
+      (define utf8-buffer (make-bytes 128))
+      (define (show s)
+	(send text insert s pos)
+	(set! pos (+ (string-length s) pos)))
+      (define (flush-text)
+	(let ([cnt (peek-bytes-avail!* raw-buffer 0 #f in)])
+	  (when (positive? cnt)
+	    (let-values ([(got used status) (bytes-convert cvt raw-buffer 0 cnt utf8-buffer)])
+	      (cond
+	       [(positive? got) 
+		(read-bytes-avail!* raw-buffer in 0 used)
+		(show (bytes->string/utf-8 utf8-buffer #\? 0 got))
+		(flush-text)]
+	       [(eq? status 'error) 
+		(read-byte in)
+		(show "?")
+		(flush-text)])))))
+      (define (force-text)
+	(when (byte-ready? in)
+	  (show "?")
+	  (read-byte in)
+	  (flush-text)
+	  (force-text)))
+      (define port
+	(make-output-port
+	 text
+	 always-evt
+	 (lambda (s start end nonblock? breakable?)
+	   ;; Put bytes into pipe:
+	   (write-bytes s out start end)
+	   ;; Extract as many string characters as are ready:
+	   (flush-text)
+	   (- end start))
+	 (lambda ()
+	   (force-text))
+	 (lambda (special nonblock? breakable?)
+	   (let ([special (special-filter special)])
+	     (cond
+	      [(special . is-a? . wx:snip%)
+	       (force-text)
+	       (send text insert special pos)
+	       (set! pos (send special get-count))]
+	      [else
+	       (display special port)]))
+	   #t)
+	 #f #f
+	 (lambda ()
+	   (let ([line (send text position-line pos)])
+	     (values (add1 line)
+		     (- pos (send text line-start-position line))
+		     (add1 pos))))
+	 void
+	 (add1 pos)))
+      port)))
