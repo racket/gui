@@ -300,7 +300,7 @@
 	      [(special . is-a? . wx:snip%)
 	       (force-text)
 	       (send text insert special pos)
-	       (set! pos (send special get-count))]
+	       (set! pos (+ pos (send special get-count)))]
 	      [else
 	       (display special port)]))
 	   #t)
