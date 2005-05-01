@@ -1,6 +1,8 @@
 
 Version 299.104
 Added open-output-text-editor
+Changed application-file-handler so that handler's result is
+ used; #f tells Windows that the application won't quit
 
 
 Version 299.100, March 2005
