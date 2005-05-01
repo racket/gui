@@ -648,6 +648,7 @@
   (define-function get-the-pen-list)
   (define-function get-the-brush-list)
   (define-function get-the-color-database)
+  (define-function cancel-quit)
   (define-function fill-private-color)
   (define-function flush-display)
   (define-function yield)
