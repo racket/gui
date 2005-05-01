@@ -42,11 +42,15 @@
 		       (lambda ()
 			 (dynamic-wind
 			     void
-			     (lambda () (send af on-exit))
-			     (lambda () (set! running-quit? #f)))))))))))])
+			     (lambda ()
+			       (send af on-exit)
+			       (unless (null? (wx:get-top-level-windows))
+				 (wx:cancel-quit)))
+			     (lambda () 
+			       (set! running-quit? #f)))))))))))])
     (wx:application-quit-handler (make-app-handler f f)))
 
-  (define (set-handler! who proc param arity)
+  (define (set-handler! who proc param arity result-filter)
     (when proc
       (unless (and (procedure? proc)
 		   (procedure-arity-includes? proc arity))
@@ -59,7 +63,7 @@
 		(lambda args
 		  (parameterize ([wx:current-eventspace e])
 		    (wx:queue-callback
-		     (lambda () (apply proc args))
+		     (lambda () (result-filter (apply proc args)))
 		     wx:middle-queue-key)))
 		proc)))))
 
@@ -70,7 +74,8 @@
      [(proc)
       (set-handler! 'application-preferences-handler proc
 		    wx:application-pref-handler
-		    0)]))
+		    0
+		    values)]))
 
   (define application-about-handler
     (case-lambda
@@ -80,7 +85,8 @@
      [(proc)
       (set-handler! 'application-about-handler proc
 		    wx:application-about-handler
-		    0)]))
+		    0
+		    values)]))
 
   (define application-quit-handler
     (case-lambda
@@ -90,7 +96,8 @@
      [(proc)
       (set-handler! 'application-quit-handler proc
 		    wx:application-quit-handler
-		    0)]))
+		    0
+		    (lambda (v) (unless v (wx:cancel-quit)) v))]))
 
   (define default-application-file-handler
     (entry-point
@@ -121,7 +128,8 @@
 	  (install-defh)
 	  (set-handler! 'application-file-handler proc
 			wx:application-file-handler
-			1))]))
+			1
+			values))]))
 
 
   (define (current-eventspace-has-standard-menus?)
