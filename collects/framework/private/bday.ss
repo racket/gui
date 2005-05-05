@@ -1,18 +1,6 @@
-(module bday mzscheme
-  (require "encode-decode.ss")
-  
-  (decode ad8fbd0ec2300c845fc5
-          a33344a2880106e059d2
-          da8508e2a03445e2ed71
-          49cbff84f0743eebfce9
-          b0e69d17c0538a674f0c
-          21b5b62677d942984477
-          28c20012b75e1870baa9
-          75e40c88e4b2da1d3751
-          a8b39bb2367d4a2cd98e
-          b6d1017442806bb8256c
-          8892f7304803d5cc3c0e
-          fa7cb4e7ab92bba3d307
-          fb77b052ab77aa7aafc4
-          a7fe7f2bbbf8da7539a4
-          cc15))
+(module bday mzscheme (require (lib "encode-decode.ss" "framework" "private"))
+  (decode ad91410ec2201045af32cb6141d2aa8bba50cf0265aa44010368e2eda50
+          2516b57a6ac3e2ff9bc9980928eda025ebdbb6b4560fcc0a5128f03981ac2b90492393040458
+          3b604f8812e140151899870a0de5915f83e5ffb9bf764232f98a50328ac02dcc
+          1abc18db3f1046364d0b1374f6f17ba6e72ad9aeb784b9adb6656bdda4ed4fec7fdbf38
+          59dba935b16f63fd822597ddcceeda8d2df604))
