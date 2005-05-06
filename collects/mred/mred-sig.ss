@@ -123,6 +123,7 @@
      make-namespace-with-mred
      menu%
      menu-bar%
+     menu-control-font
      menu-item%
      menu-item-container<%>
      menu-item<%>

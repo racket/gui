@@ -37,7 +37,8 @@
 
   (define control<%>
     (interface (subwindow<%>)
-      command))
+      command
+      get-font))
 
   (define-local-member-name hidden-child? label-checker)
 
@@ -71,7 +72,8 @@
       (public
 	[hidden-child? (lambda () #f)] ; module-local method
 	[label-checker  (lambda () check-label-string/false)] ; module-local method
-	[command (lambda (e) (void (callback this e)))]) ; no entry/exit needed
+	[command (lambda (e) (void (callback this e)))] ; no entry/exit needed
+	[get-font (lambda (e) (send wx get-font))]) ; no entry/exit needed
       (private-field
        [wx #f])
       (sequence
@@ -471,6 +473,7 @@
 			       (send this -delete-list-item n)
 			       (send wx delete n)))]
 	[get-data (entry-point (lambda (n) (check-item 'get-data n) (send wx get-data n)))]
+	[get-label-font (lambda () (send wx get-label-font))]
 	[get-selections (entry-point (lambda () (send wx get-selections)))]
 	[number-of-visible-items (entry-point (lambda () (send wx number-of-visible-items)))]
 	[is-selected? (entry-point (lambda (n) (check-item 'is-selected? n) (send wx selected? n)))]

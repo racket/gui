@@ -370,8 +370,6 @@
     on-event
     on-paint)
   (define-private-class dc% dc<%> object% #f
-    draw-tab
-    draw-tab-base
     glyph-exists?
     end-page
     end-doc
@@ -421,6 +419,8 @@
     draw-point
     draw-line
     clear)
+  (define-function draw-tab)
+  (define-function draw-tab-base)
   (define-class bitmap-dc% dc% ()
     get-bitmap
     set-bitmap

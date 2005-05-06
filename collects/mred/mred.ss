@@ -273,6 +273,7 @@
 	   small-control-font
 	   tiny-control-font
 	   view-control-font
+	   menu-control-font
 	   timer%
 	   readable-snip<%>
 	   open-input-text-editor
