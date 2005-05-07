@@ -270,6 +270,21 @@
 (st 0 t paragraph-start-position 0)
 (st 4 t paragraph-start-position 1)
 (st 8 t paragraph-start-position 2)
+(st 3 t paragraph-end-position 0)
+(st 7 t paragraph-end-position 1)
+(st 11 t paragraph-end-position 2)
+(st 0 t paragraph-start-line 0)
+(st 1 t paragraph-start-line 1)
+(st 2 t paragraph-start-line 2)
+(st 0 t line-paragraph 0)
+(st 1 t line-paragraph 1)
+(st 2 t line-paragraph 2)
+(st 0 t position-paragraph 0)
+(st 0 t position-paragraph 3)
+(st 1 t position-paragraph 4)
+(st 1 t position-paragraph 7)
+(st 2 t position-paragraph 8)
+(st 2 t position-paragraph 11)
 
 ;; ----------------------------------------
 
