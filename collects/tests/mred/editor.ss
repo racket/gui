@@ -259,6 +259,19 @@
     (st lflf-s e get-text 0 'eof)))
 
 ;; ----------------------------------------
+;; Check lines and paras without display, but with a max width
+
+(define t (new text%))
+(send t insert "abc\ndef\nghi\n")
+(send t set-max-width 955)
+(st 0 t line-start-position 0)
+(st 4 t line-start-position 1)
+(st 8 t line-start-position 2)
+(st 0 t paragraph-start-position 0)
+(st 4 t paragraph-start-position 1)
+(st 8 t paragraph-start-position 2)
+
+;; ----------------------------------------
 
 (report-errs)
 
