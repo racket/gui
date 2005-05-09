@@ -1322,7 +1322,7 @@ WARNING: printf is rebound in the body of the unit to always
 		 [(eq? (current-thread) (eventspace-handler-thread eventspace))
 		  (error 'write-bytes-proc "cannot write to port on eventspace main thread")]
 		 [else
-		  (channel-put write-chan (cons (subbytes to-write start end) style))])
+                  (channel-put write-chan (cons (subbytes to-write start end) style))])
                 (- end start)))
             
             (define (flush-proc)
