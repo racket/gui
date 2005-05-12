@@ -122,13 +122,13 @@
 				   (format "~a" (exn-message exn))
 				   (format "~s" exn))))
 			     #f)])
-	    (gui-utils:show-busy-cursor
+            (gui-utils:show-busy-cursor
 	     (λ ()
 	       (if filename
 		   (let ([already-open (send (group:get-the-frame-group)
 					     locate-file
 					     filename)])
-		     (cond
+                     (cond
 		       [already-open
 			(send already-open make-visible filename)
                         (send already-open show #t)
