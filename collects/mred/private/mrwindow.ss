@@ -110,7 +110,8 @@
       get-label set-label get-plain-label
       get-client-size get-size get-width get-height get-x get-y
       get-cursor set-cursor popup-menu
-      show is-shown? on-superwindow-show refresh))
+      show is-shown? on-superwindow-show refresh
+      get-handle))
 
   (define-keywords window%-keywords [enabled #t])
 
@@ -165,6 +166,8 @@
 				     (string->immutable-string l)
 				     l)))]
 	[get-plain-label (lambda () (and (string? label) (wx:label->plain-label label)))]
+
+	[get-handle (lambda () (send wx get-handle))]
 
 	[accept-drop-files
 	 (entry-point

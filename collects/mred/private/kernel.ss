@@ -118,6 +118,7 @@
     on-size
     on-set-focus
     on-kill-focus
+    get-handle
     is-enabled-to-root?
     is-shown-to-root?
     set-phantom-size
