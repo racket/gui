@@ -178,18 +178,16 @@
               (set! todo-to-new-frames
                     (let ([old todo-to-new-frames])
                       (λ (frame) (old frame) (f frame)))))]
-          [define get-active-frame
-            (λ ()
-              (cond
-                [active-frame active-frame]
-                [(null? frames) #f]
-                [else (frame-frame (car frames))]))]
-          [define set-active-frame
-            (λ (f)
-              (when (and active-frame
-                         (not (eq? active-frame f)))
-                (set! most-recent-window-box (make-weak-box active-frame)))
-              (set! active-frame f))]
+          (define (get-active-frame)
+            (cond
+              [active-frame active-frame]
+              [(null? frames) #f]
+              [else (frame-frame (car frames))]))
+          (define (set-active-frame f)
+            (when (and active-frame
+                       (not (eq? active-frame f)))
+              (set! most-recent-window-box (make-weak-box active-frame)))
+            (set! active-frame f))
           [define insert-frame
             (λ (new-frame)
               (unless (memf (λ (fr) (eq? (frame-frame fr) new-frame))

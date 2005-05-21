@@ -254,8 +254,8 @@
                 (when (null? (send (group:get-the-frame-group) get-frames))
                   (exit:exit)))))
           
-          (define/override (on-focus on?)
-            (super on-focus on?)
+          (define/override (on-activate on?)
+            (super on-activate on?)
             (when on?
               (send (group:get-the-frame-group) set-active-frame this)))
           
