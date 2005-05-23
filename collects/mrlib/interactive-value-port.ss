@@ -7,32 +7,6 @@
   (provide set-interactive-display-handler
            set-interactive-write-handler
            set-interactive-print-handler)
-  
-  (define pp-parameters
-    (parameterize ([pretty-print-columns 'infinity]
-                   [pretty-print-size-hook
-                    (λ (value display? port)
-                      (cond
-                        [(is-a? value snip%) 1]
-                        ;[(use-number-snip? value) 1]
-                        [(syntax? value) 1]
-                        [else #f]))]
-                   [pretty-print-print-hook
-                    (λ (value display? port)
-                      (cond
-                        [(is-a? value snip%)
-                         (write-special value port)
-                         1]
-                        #;
-                        [(use-number-snip? value)
-                         (write-special
-                          (number-snip:make-repeating-decimal-snip value #f)
-                          port)
-                         1]
-                        [(syntax? value)
-                         (write-special (render-syntax/snip value))]
-                        [else (void)]))])
-      (current-parameterization)))
 
   (define op (current-output-port))
   (define (oprintf . x) (apply fprintf op x))
@@ -67,7 +41,27 @@
          (not (integer? x))))
   
   (define (do-printing pretty value port)
-    (call-with-parameterization 
-     pp-parameters
-     (λ ()
-       (pretty value port)))))
+    (parameterize ([pretty-print-columns 'infinity]
+                   [pretty-print-size-hook
+                    (λ (value display? port)
+                      (cond
+                        [(is-a? value snip%) 1]
+                        ;[(use-number-snip? value) 1]
+                        [(syntax? value) 1]
+                        [else #f]))]
+                   [pretty-print-print-hook
+                    (λ (value display? port)
+                      (cond
+                        [(is-a? value snip%)
+                         (write-special value port)
+                         1]
+                        #;
+                        [(use-number-snip? value)
+                         (write-special
+                          (number-snip:make-repeating-decimal-snip value #f)
+                          port)
+                         1]
+                        [(syntax? value)
+                         (write-special (render-syntax/snip value))]
+                        [else (void)]))])
+      (pretty value port))))
