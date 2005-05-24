@@ -2282,12 +2282,11 @@
       (define memory-text (make-object memory-text%))
       (send memory-text hide-caret #t)
       (define show-memory-text?
-        (or (with-handlers ([exn:fail:filesystem?
-                             (λ (x) #f)])
+        (or (with-handlers ([exn:fail:filesystem? (λ (x) #f)])
               (directory-exists? (collection-path "cvs-time-stamp")))
-            (with-handlers ([exn:fail:filesystem?
-                             (λ (x) #f)])
-              (directory-exists? (build-path (collection-path "framework") "CVS")))))
+            (with-handlers ([exn:fail:filesystem? (λ (x) #f)])
+              (or (directory-exists? (build-path (collection-path "framework") "CVS"))
+                  (directory-exists? (build-path (collection-path "framework") ".svn"))))))
       
       (define bday-click-canvas%
         (class canvas%
