@@ -569,7 +569,7 @@
              'framework:show-status-line
              (λ (p v)
                (update-info-visibility v)))]
-          (define memory-cleanup void) ;; only for CVSers and nightly build users; used with memory-text
+          (define memory-cleanup void) ;; only for checkouts and nightly build users; used with memory-text
 
           (define/augment (on-close)
             (unregister-collecting-blit gc-canvas)
@@ -637,7 +637,7 @@
               [(<= n 99) (format "0~a" n)]
               [else (number->string n)]))
           
-            ; only for CVSers and nightly build users
+            ; only for checkouts and nightly build users
           (when show-memory-text?
             (let* ([panel (make-object horizontal-panel% (get-info-panel) '(border))]
                    [button (make-object button% (string-constant collect-button-label) panel 
@@ -2282,11 +2282,14 @@
       (define memory-text (make-object memory-text%))
       (send memory-text hide-caret #t)
       (define show-memory-text?
-        (or (with-handlers ([exn:fail:filesystem? (λ (x) #f)])
-              (directory-exists? (collection-path "cvs-time-stamp")))
-            (with-handlers ([exn:fail:filesystem? (λ (x) #f)])
-              (or (directory-exists? (build-path (collection-path "framework") "CVS"))
-                  (directory-exists? (build-path (collection-path "framework") ".svn"))))))
+        (or (with-handlers ([exn:fail:filesystem?
+                             (λ (x) #f)])
+              (directory-exists? (collection-path "repos-time-stamp")))
+            (let ([fw (collection-path "framework")])
+              (with-handlers ([exn:fail:filesystem?
+                               (λ (x) #f)])
+                (or (directory-exists? (build-path fw ".svn"))
+                    (directory-exists? (build-path fw "CVS")))))))
       
       (define bday-click-canvas%
         (class canvas%
