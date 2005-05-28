@@ -45,6 +45,7 @@
     -get-current-format
     -get-file-format
     -set-file-format
+    -set-position
     -set-format)
 
   (define (check-format who format)
@@ -104,6 +105,7 @@
 	     [-format-filter (lambda (f) f)]
 	     [-format-filter/save (lambda (f) f)]
 	     [-set-file-format (lambda (f) (void))]
+	     [-set-position (lambda () (void))]
 	     [-get-file-format (lambda () 'standard)])
 	    
 	    (override*
@@ -173,7 +175,8 @@
 									(super-get-load-overwrites-styles))))])
 					 (close-input-port port) ; close as soon as possible
 					 (when load?
-					   (-set-file-format new-format))))) ; text% only
+					   (-set-file-format new-format)
+					   (-set-position))))) ; text% only
 				   (lambda ()
 				     (super-end-edit-sequence)
 				     (wx:end-busy-cursor)))
@@ -376,8 +379,9 @@
        [-get-file-format (lambda ()
 			   (super-get-file-format))]
        [-set-file-format (lambda (format)
-			   (super-set-file-format format)
-			   (super-set-position 0 0))])
+			   (super-set-file-format format))]
+       [-set-position (lambda ()
+			(super-set-position 0 0))])
 
       (augmentize (#t can-insert? s e)
 		  ((void) on-insert s e)
