@@ -1,2 +1,2 @@
 (module reader syntax/module-reader
-  mred)
+  scheme/gui)
