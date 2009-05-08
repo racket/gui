@@ -24,14 +24,26 @@ Returns @scheme[#t] if there has been an error reading from the
 @defmethod[(read [data (and/c vector? (not immutable?))])
            exact-nonnegative-integer?]{
 
-Reads Latin-1 characters to fill the supplied vector. The return value is the
- number of characters read, which may be less than the number
+Like @method[editor-stream-in-base% read-bytes], but fills a supplied
+vector with Latin-1 characters instead of filling a byte string.  This method
+is implemented by default via @method[editor-stream-in-base% read-bytes].}
+
+@defmethod[(read-bytes [bstr (and/c bytes? (not immutable?))])
+           exact-nonnegative-integer?]{
+
+Reads bytes to fill the supplied byte string. The return value is the
+ number of bytes read, which may be less than the number
  requested if the stream is emptied. If the stream is emptied, the
  next call to @method[editor-stream-in-base% bad?] must return
- @scheme[#t].
+ @scheme[#t].}
+
+@defmethod[(read-byte) (or/c byte? #f)]{
+
+Reads a single byte and return it, or returns @scheme[#f] if no more
+bytes are available. The default implementation of this method uses
+@method[editor-stream-in-base% read-bytes].
 
 }
-
 
 @defmethod[(seek [pos exact-nonnegative-integer?])
            void?]{

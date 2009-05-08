@@ -6,6 +6,17 @@
            scheme/class
            mzlib/etc
 	   (prefix wx: "private/kernel.ss")
+	   (prefix wx: "private/wxme/style.ss")
+	   (prefix wx: "private/wxme/editor.ss")
+	   (prefix wx: "private/wxme/text.ss")
+	   (prefix wx: "private/wxme/pasteboard.ss")
+	   (prefix wx: "private/wxme/snip.ss")
+	   (prefix wx: "private/wxme/keymap.ss")
+	   (prefix wx: "private/wxme/editor-admin.ss")
+	   (prefix wx: "private/wxme/editor-snip.ss")
+	   (prefix wx: "private/wxme/stream.ss")
+	   (prefix wx: "private/wxme/wordbreak.ss")
+	   (prefix wx: "private/wxme/snip-admin.ss")
 	   "private/wxtop.ss"
 	   "private/app.ss"
 	   "private/misc.ss"
@@ -62,6 +73,11 @@
         (namespace-require 'mred)
         (namespace-require 'scheme/class))
       ns))
+
+  (define (make-eventspace)
+    (parameterize ([wx:the-snip-class-list (wx:make-the-snip-class-list)]
+                   [wx:the-editor-data-class-list (wx:make-the-editor-data-class-list)])
+      (wx:make-eventspace)))
 
   ;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -128,7 +144,6 @@
 	     is-color-display?
 	     key-event%
 	     keymap%
-	     make-eventspace
 	     editor-admin%
 	     editor-set-x-selection-mode
 	     editor-snip-editor-admin<%>
@@ -182,8 +197,8 @@
   (define the-font-list (wx:get-the-font-list))
   (define the-pen-list (wx:get-the-pen-list))
   (define the-brush-list (wx:get-the-brush-list))
-  (define the-style-list (wx:get-the-style-list))
-  (define the-editor-wordbreak-map (wx:get-the-editor-wordbreak-map))
+  (define the-style-list wx:the-style-list)
+  (define the-editor-wordbreak-map wx:the-editor-wordbreak-map)
 
   (provide button%
 	   canvas%
@@ -296,6 +311,7 @@
 	   current-eventspace-has-standard-menus?
 	   current-eventspace-has-menu-root?
 	   eventspace-handler-thread
+           make-eventspace
 	   make-gui-namespace
 	   make-gui-empty-namespace
 	   file-creator-and-type

@@ -387,7 +387,7 @@
   @method[text:searching<%> set-replace-start]) and the
   closest search hit following @tt{replace-start} does not
   collapse with an adjacent bubble,the result will include
-  that bubble. If the the closest search hit after
+  that bubble. If the closest search hit after
   @tt{replace-start} is collpased with another bubble, then
   the search hit is not reflected in the result.
 
@@ -444,7 +444,7 @@
     changes. Ensures the snip is as wide as the viewing area.
 
     This method should only be called by
-    @method[canvas:wide-snip<%> add-tall-snip].
+    @xmethod[canvas:wide-snip<%> add-wide-snip].
 
   }
   @defmethod*[(((add-tall-snip (snip (is-a?/c snip%))) void))]{
@@ -452,7 +452,7 @@
     viewing area of the editor changes.
 
     This method should only be called by
-    @method[canvas:wide-snip<%> add-tall-snip].
+    @xmethod[canvas:wide-snip<%> add-tall-snip].
 
   }
 }

@@ -26,7 +26,7 @@ A @scheme[canvas%] object is a general-purpose window for drawing
 
 The @scheme[style] argument indicates one or more of the following styles:
 
-@itemize{
+@itemize[
 
  @item{@scheme['border] --- gives the canvas a thin border}
 
@@ -63,7 +63,7 @@ The @scheme[style] argument indicates one or more of the following styles:
                              later by calling @scheme[parent]'s @method[area-container<%> add-child]
                              method}
  
-}
+]
 
 The @scheme['hscroll] and @scheme['vscroll] styles create a
  canvas with an initially inactive scrollbar. The scrollbars are
@@ -86,7 +86,7 @@ The @scheme[gl-config] argument determines properties of an OpenGL
 @xmethod[dc<%> get-gl-context].
 
 
-@WindowKWs[] @SubareaKWs[] @AreaKWs[]
+@WindowKWs[@scheme[enabled]] @SubareaKWs[] @AreaKWs[]
 
 }
 
@@ -111,7 +111,7 @@ When tab-focus is enabled for a canvas, Tab, arrow, and Enter keyboard
 
 
 @defmethod[(get-scroll-page [which (one-of/c 'horizontal 'vertical)])
-           (integer-in 1 10000)]{
+           (integer-in 1 1000000000)]{
 
 Get the current page step size of a manual scrollbar. The result is
  @scheme[0] if the scrollbar is not active or it is automatic.
@@ -126,7 +126,7 @@ See also
 
 
 @defmethod[(get-scroll-pos [which (one-of/c 'horizontal 'vertical)])
-           (integer-in 0 10000)]{
+           (integer-in 0 1000000000)]{
 
 Gets the current value of a manual scrollbar. The result is always
  @scheme[0] if the scrollbar is not active or it is automatic.
@@ -141,7 +141,7 @@ See also
 
 
 @defmethod[(get-scroll-range [which (one-of/c 'horizontal 'vertical)])
-           (integer-in 0 10000)]{
+           (integer-in 0 1000000000)]{
 
 Gets the current maximum value of a manual scrollbar. The result is
  always @scheme[0] if the scrollbar is not active or it is automatic.
@@ -183,8 +183,8 @@ Gets the size in device units of the scrollable canvas area (as
 }
 
 
-@defmethod[(init-auto-scrollbars [horiz-pixels (or/c (integer-in 1 10000) false/c)]
-                                 [vert-pixels (or/c (integer-in 1 10000) false/c)]
+@defmethod[(init-auto-scrollbars [horiz-pixels (or/c (integer-in 1 1000000000) false/c)]
+                                 [vert-pixels (or/c (integer-in 1 1000000000) false/c)]
                                  [h-value (real-in 0.0 1.0)]
                                  [v-value (real-in 0.0 1.0)])
            void?]{
@@ -222,12 +222,12 @@ See also
 
 }
 
-@defmethod[(init-manual-scrollbars [h-length (or/c (integer-in 0 10000) false/c)]
-                                   [v-length (or/c (integer-in 0 10000) false/c)]
-                                   [h-page (integer-in 1 10000)]
-                                   [v-page (integer-in 1 10000)]
-                                   [h-value (integer-in 0 10000)]
-                                   [v-value (integer-in 0 10000)])
+@defmethod[(init-manual-scrollbars [h-length (or/c (integer-in 0 1000000000) false/c)]
+                                   [v-length (or/c (integer-in 0 1000000000) false/c)]
+                                   [h-page (integer-in 1 1000000000)]
+                                   [v-page (integer-in 1 1000000000)]
+                                   [h-value (integer-in 0 1000000000)]
+                                   [v-value (integer-in 0 1000000000)])
            void?]{
 
 Enables and initializes manual scrollbars for the canvas.  A
@@ -319,7 +319,7 @@ See also
 
 
 @defmethod[(set-scroll-page [which (one-of/c 'horizontal 'vertical)]
-                            [value (integer-in 1 10000)])
+                            [value (integer-in 1 1000000000)])
            void?]{
 
 Set the current page step size of a manual scrollbar. (This method has
@@ -336,7 +336,7 @@ See also
 
 
 @defmethod[(set-scroll-pos [which (one-of/c 'horizontal 'vertical)]
-                           [value (integer-in 0 10000)])
+                           [value (integer-in 0 1000000000)])
            void?]{
 
 Sets the current value of a manual scrollbar. (This method has no
@@ -356,7 +356,7 @@ See also
 
 
 @defmethod[(set-scroll-range [which (one-of/c 'horizontal 'vertical)]
-                             [value (integer-in 0 10000)])
+                             [value (integer-in 0 1000000000)])
            void?]{
 
 Sets the current maximum value of a manual scrollbar. (This method has

@@ -56,7 +56,7 @@ If the @scheme[x] or @scheme[y] argument is not @scheme[#f], it
 The @scheme[style] flags adjust the appearance of the dialog on some
  platforms:
 
-@itemize{
+@itemize[
 
  @item{@scheme['no-caption] --- omits the title bar for the dialog
  (Windows)}
@@ -68,14 +68,14 @@ The @scheme[style] flags adjust the appearance of the dialog on some
  @item{@scheme['no-sheet] --- uses a movable window for the dialog,
  even if a parent window is provided (Mac OS X)}
 
-}
+]
 
 Even if the dialog is not shown, a few notification events may be
  queued for the dialog on creation. Consequently, the new dialog's
  resources (e.g., memory) cannot be reclaimed until some events are
  handled, or the dialog's eventspace is shut down.
 
-@WindowKWs[] @AreaContKWs[] @AreaKWs[]
+@WindowKWs[@scheme[enabled]] @AreaContKWs[] @AreaKWs[]
 }
 
 @defmethod[#:mode override 

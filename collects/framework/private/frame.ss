@@ -2096,17 +2096,14 @@
           (send (send find-edit get-canvas) focus))))
     
     (define/public (unhide-search-and-toggle-focus)
-      (cond
-        [hidden?
-         (unhide-search #t)]
-        [(or (not text-to-search)
-             (send (send text-to-search get-canvas) has-focus?))
-         (send find-edit set-position 0 (send find-edit last-position))
-         (send find-canvas focus)]
-        [else
-         (let ([canvas (send text-to-search get-canvas)])
-           (when canvas
-             (send canvas focus)))]))
+      (if hidden?
+        (unhide-search #t)
+        (let ([canvas (and text-to-search (send text-to-search get-canvas))])
+          (cond
+            [(or (not text-to-search) (and canvas (send canvas has-focus?)))
+             (send find-edit set-position 0 (send find-edit last-position))
+             (send find-canvas focus)]
+            [canvas (send canvas focus)]))))
     
     (define/public (search searching-direction)
       (unhide-search #f)
@@ -2178,7 +2175,7 @@
                 (when found-pos
                   (unless (hash-ref ht found-txt #f)
                     (hash-set! ht found-txt #t)
-                    (send txt begin-edit-sequence))
+                    (send found-txt begin-edit-sequence))
                   (let ([start (- found-pos (send find-edit last-position))])
                     (send found-txt delete start found-pos)
                     (copy-over replace-edit 0 (send replace-edit last-position) found-txt start)

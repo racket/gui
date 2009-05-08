@@ -21,11 +21,7 @@ WARNING: printf is rebound in the body of the unit to always
          (prefix-in srfi1: srfi/1))
 (require setup/xref
          scribble/xref
-         scribble/struct
-         scribble/manual-struct
-         scribble/decode
-         scribble/basic
-         (prefix-in s/m: scribble/manual))
+         scribble/manual-struct)
 
 (import mred^
         [prefix icon: framework:icon^]
@@ -386,7 +382,7 @@ WARNING: printf is rebound in the body of the unit to always
                   (and (string? color)
                        (send the-color-database find-color color)))
         (error 'highlight-range
-               "expected a color or a string in the the-color-database for the third argument, got ~e" color))
+               "expected a color or a string in the-color-database for the third argument, got ~e" color))
       (unless (memq style '(rectangle hollow-ellipse ellipse dot))
         (error 'highlight-range
                "expected one of 'rectangle, 'ellipse 'hollow-ellipse, or 'dot as the style, got ~e" style))
@@ -1174,7 +1170,11 @@ WARNING: printf is rebound in the body of the unit to always
               (set! clear-yellow void)
               (when (and searching-str (= (string-length searching-str) (- end start)))
                 (when (do-search searching-str start end)
-                  (set! clear-yellow (highlight-range start end "khaki" #f 'low 'ellipse))))
+                  (set! clear-yellow (highlight-range start end
+                                                      (if (preferences:get 'framework:white-on-black?)
+                                                          (make-object color% 50 50 5)
+                                                          "khaki")
+                                                      #f 'low 'ellipse))))
               (end-edit-sequence)]))]
         [else
          (clear-yellow)

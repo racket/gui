@@ -190,7 +190,7 @@ Displays a message to the user in a (modal) dialog, using
  breaking lines.
 
 The style must include exactly one of the following:
-@itemize{
+@itemize[
 
  @item{@scheme['ok] --- the dialog only has an @onscreen{OK} button
  and always returns @scheme['ok].}
@@ -208,7 +208,7 @@ The style must include exactly one of the following:
  labels, so that the user does not have to read the message text
  carefully to make a selection.}
 
-}
+]
 
 In addition, @scheme[style] can contain @scheme['caution] to make the
  dialog use a caution icon instead of the application (or generic
@@ -262,7 +262,7 @@ If the user clicks the button labelled @scheme[button1-label], a @scheme[1]
 If @scheme[style] does not include @scheme['number-order], the order of
  the buttons is platform-specific, and labels should be assigned to
  the buttons based on their role:
-@itemize{
+@itemize[
 
  @item{Button 1 is the normal action, and it is usually the default
  button. For example, if the dialog has an @onscreen{OK} button, it is
@@ -279,7 +279,7 @@ If @scheme[style] does not include @scheme['number-order], the order of
  Mac OS X, it is left-aligned in the dialog). Use this button only
  for three-button dialogs.}
 
-}
+]
 Despite the above guidelines, any combination of visible buttons is
  allowed in the dialog.
 
@@ -323,13 +323,13 @@ See also @scheme[message+check-box/custom].
 
 Like @scheme[message-box], except that
 
-@itemize{
+@itemize[
  @item{the dialog contains a check box whose label is @scheme[check-label];}
  @item{the result is two values: the @scheme[message-box] result, and a
        boolean indicating whether the box was checked; and}
  @item{@scheme[style] can contain @scheme['checked] to indicate that the check box
        should be initially checked.}
-}}
+]}
 
 @defproc[(message+check-box/custom [title label-string?]
                                    [message string]
@@ -346,13 +346,13 @@ Like @scheme[message-box], except that
          (one-of/c 1 2 3 close-result)]{
 
 Like @scheme[message-box/custom], except that
-@itemize{
+@itemize[
  @item{the dialog contains a check box whose label is @scheme[check-label];}
  @item{the result is two values: the @scheme[message-box] result, and a
        boolean indicating whether the box was checked; and}
  @item{@scheme[style] can contain @scheme['checked] to indicate that the check box
        should be initially checked.}
-}
+]
 
 
 
@@ -422,7 +422,7 @@ Lets the user select a color though the platform-specific
  dialog if possible. If @scheme[init-color] is provided, the dialog is
  initialized to the given color.
 
-@italicptyStyleNote[]
+@italicptyStyleNote[@scheme[style]]
 
 The result is @scheme[#f] if the user cancels the dialog, the selected
  color otherwise.
@@ -443,7 +443,7 @@ Lets the user select a font though the platform-specific
  dialog if possible. If @scheme[init-font] is provided, the dialog is
  initialized to the given font.
 
-@italicptyStyleNote[]
+@italicptyStyleNote[@scheme[style]]
 
 The result is @scheme[#f] if the user cancels the dialog, the selected
  font otherwise.
@@ -465,7 +465,7 @@ Lets the user select a PostScript configuration though a (modal)
  the given configuration, otherwise the current configuration from
 @scheme[current-ps-setup]  is used.
 
-@italicptyStyleNote[]
+@italicptyStyleNote[@scheme[style]]
 
 The result is @scheme[#f] if the user cancels the dialog, , a
  @scheme[ps-setup%] object that encapsulates the selected PostScript
@@ -494,7 +494,7 @@ The @scheme[parent] argument is used as the parent window for a dialog if
  configuration from
 @scheme[current-ps-setup]  is used.
 
-@italicptyStyleNote[]
+@italicptyStyleNote[@scheme[style]]
 
 The result is @scheme[#f] if the user cancels the dialog, a
  @scheme[ps-setup%] object that encapsulates the selected

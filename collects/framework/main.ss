@@ -1,5 +1,4 @@
-#reader scribble/reader
-#lang scheme/gui
+#lang at-exp scheme/gui
 
 (require mred/mred-unit
          mred/mred-sig
@@ -50,12 +49,9 @@
  (prefix scheme: framework:scheme-class^)
  (prefix main: framework:main-class^))
 
-(define-compound-unit/infer framework+mred@
-  (import)
+(define-values/invoke-unit/infer
   (export framework^)
   (link standard-mred@ framework@))
-
-(define-values/invoke-unit/infer framework+mred@)
 
 (provide/doc
  (parameter-doc
@@ -155,14 +151,14 @@
   (name-list val-list)
   @{Like @scheme[put-preferences], but has more sophisticated error
          handling.  In particular, it
-         @itemize{
+         @itemize[
                   @item{waits for three consecutive failures before informing the
                               user}
                        @item{gives the user the opportunity to ``steal'' the lockfile
                                    after the third failure, and}
                        @item{when failures occur, it remembers what its arguments were
                               and if any preference save eventually succeeds, all of the
-                              past failures are also written at that point.}}})
+                              past failures are also written at that point.}]})
  
  (proc-doc/names
   preferences:add-panel
@@ -203,6 +199,12 @@
          editing.})
  
  (proc-doc/names
+  preferences:add-general-checkbox-panel
+  (-> void?)
+  ()
+  @{Adds a catch-all preferences panel for options.})
+ 
+ (proc-doc/names
   preferences:add-warnings-checkbox-panel
   (-> void?)
   ()
@@ -236,7 +238,15 @@
   (((is-a?/c vertical-panel%) . -> . void?) . -> . void?)
   (proc)
   @{Saves @scheme[proc] until the preferences panel is created, when it
-          is called with the Echeme preferences panel to add new children to
+          is called with the editor preferences panel to add new children to
+          the panel.})
+ 
+ (proc-doc/names
+  preferences:add-to-general-checkbox-panel
+  (((is-a?/c vertical-panel%) . -> . void?) . -> . void?)
+  (proc)
+  @{Saves @scheme[proc] until the preferences panel is created, when it
+          is called with the general preferences panel to add new children to
           the panel.})
  
  (proc-doc/names
@@ -355,7 +365,7 @@
   (-> any)
   ()
   @{@scheme[exit:exit] performs four actions:
-           @itemize{
+           @itemize[
                     @item{sets the result of the @scheme[exit:exiting?] function to
                                @scheme[#t].}
                          @item{invokes the exit-callbacks, with @scheme[exit:can-exit?] if
@@ -363,7 +373,7 @@
                          @item{invokes @scheme[exit:on-exit] and then}
                          @item{queues a callback that calls @scheme[exit] 
                                       (a mzscheme procedure) and (if @scheme[exit] returns) sets the result of
-                                      @scheme[exit:exiting?] back to @scheme[#t].}}})
+                                      @scheme[exit:exiting?] back to @scheme[#t].}]})
  
  (proc-doc/names
   exit:user-oks-exit
@@ -723,22 +733,22 @@
          Otherwise, it invokes the appropriate format handler to open the
          file (see @scheme[handler:insert-format-handler]).
          
-         @itemize{
+         @itemize[
                   @item{If @scheme[filename] is a string, this function checks the
                            result of @scheme[group:get-the-frame-group] to see if the
                            @scheme[filename] is already open by a frame in the group.
-                           @itemize{
+                           @itemize[
                                     @item{If so, it returns the frame.}
                                          @item{If not, this function calls
                                                   @scheme[handler:find-format-handler] with
                                                   @scheme[filename].
-                                                  @itemize{
+                                                  @itemize[
                                                            @item{If a handler is found, it is applied to
                                                                     @scheme[filename] and it's result is the
                                                                     final result.}
-                                                                @item{If not, @scheme[make-default] is used.}}}}}
+                                                                @item{If not, @scheme[make-default] is used.}]}]}
                        @item{If @scheme[filename] is @scheme[#f], @scheme[make-default]
-                                is used.}}})
+                                is used.}]})
  
  (parameter-doc
   handler:current-create-new-window
@@ -970,13 +980,13 @@
   @{This returns a keymap for handling standard editing operations.  It
          binds these keys:
          
-         @itemize{
+         @itemize[
                   @item{@scheme["z"]: undo}
                        @item{@scheme["y"]: redo}
                        @item{@scheme["x"]: cut}
                        @item{@scheme["c"]: copy}
                        @item{@scheme["v"]: paste}
-                       @item{@scheme["a"]: select all}}
+                       @item{@scheme["a"]: select all}]
          where each key is prefixed with the menu-shortcut key, based on the
          platform.  Under unix, the shortcut is @scheme["a:"]; under windows
          the shortcut key is @scheme["c:"] and under MacOS, the shortcut key
@@ -1059,7 +1069,7 @@
             
             This function extends a @scheme[keymap%] with the following
             functions:
-            @itemize{
+            @itemize[
                      @item{@mapdesc[ring-bell any] --- Rings the bell 
                                    (using @scheme[bell]) and removes the search panel from the frame,
                                    if there.}
@@ -1132,12 +1142,12 @@
                           @item{@mapdesc[end-macro key] --- Stops building a keyboard macro}
                           @item{@mapdesc[do-macro key] --- Executes the last keyboard macro}
                           @item{@mapdesc[toggle-overwrite key] --- Toggles overwriting
-                                        mode}}
+                                        mode}]
             
             These functions are bound to the following keys 
             (C = control, S = shift, A = alt, M = ``meta'', D = command):
             
-            @itemize{
+            @itemize[
                      @item{C-g : ``ring-bell''}
                           @item{M-C-g : ``ring-bell''}
                           @item{C-c C-g : ``ring-bell''}
@@ -1217,7 +1227,7 @@
                           @item{MIDDLEBUTTON : ``paste-click-region''}
                           @item{C-RIGHTBUTTON : ``copy-clipboard''}
                           @item{INSERT : ``toggle-overwrite''}
-                          @item{M-o : ``toggle-overwrite''}}})
+                          @item{M-o : ``toggle-overwrite''}]})
  
  (proc-doc/names
   keymap:setup-search
@@ -1418,7 +1428,7 @@
          
          This function is not symmetric in red, green, and blue, so it is
          important to pass red, green, and blue components of the colors in
-         the the proper order.  The first three arguments are red, green and
+         the proper order.  The first three arguments are red, green and
          blue for the first color, respectively, and the second three
          arguments are red green and blue for the second color,
          respectively.})

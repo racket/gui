@@ -7,7 +7,7 @@ A @scheme[text-field%] object is an editable text field with an
  optional label displayed in front of it. There are two text field
  styles:
 
-@itemize{
+@itemize[
 
  @item{A single line of text is visible, and a special control event
  is generated when the user presses Enter (when the text field has the
@@ -17,7 +17,7 @@ A @scheme[text-field%] object is an editable text field with an
  @item{Multiple lines of text are visible, and Enter is not handled
  specially.}
 
-}
+]
 
 Whenever the user changes the content of a text field, its callback
  procedure is invoked. A callback procedure is provided as an
@@ -86,10 +86,10 @@ The style must contain exactly one of @scheme['single] or
  autowrapping is enabled. A multiple-line text field always has a
  vertical scrollbar. The @scheme['password] style indicates that the
  field should draw each character of its content using a generic
- symbol instead of the actual character.  @HVLabelNote{text field}
- @DeletedStyleNote{text field}.
+ symbol instead of the actual character.  @HVLabelNote[@scheme[style]]{text field}
+ @DeletedStyleNote[@scheme[style] @scheme[parent]]{text field}.
 
-@FontKWs[] @WindowKWs[] @SubareaKWs[] @AreaKWs[]
+@FontKWs[@scheme[font]] @WindowKWs[@scheme[enabled]] @SubareaKWs[] @AreaKWs[]
 
 }
 
@@ -101,7 +101,7 @@ Returns the editor used to implement the text field.
 
 For a text field, the most useful methods of a @scheme[text%] object
  are the following:
-@itemize{
+@itemize[
  
  @item{@scheme[(send a-text #, @method[text% get-text])] returns
  the current text of the editor.}
@@ -112,7 +112,7 @@ For a text field, the most useful methods of a @scheme[text%] object
  @item{@scheme[(send a-text #, @method[text% insert] _str)] inserts
  @scheme[_str] into the editor at the current caret position.}
 
-}
+]
 }
 
 
