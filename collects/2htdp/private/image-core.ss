@@ -9,11 +9,25 @@ improvments/changes wrt to htdp/image:
   - added rotation & scaling
   - got rid of pinholes (see the new overlay, beside, and above functions)
 
+Equality change: equality is now based on the structure of the construction of the picture. 
+This means that some equalities that were there before are no longer true. For example,
+in the old library, these two images are the same:
+
+  (overlay/xy (rectangle 100 10 'solid 'red)
+               0
+               10
+               (rectangle 100 10 'solid 'red))
+
+  (rectangle 100 20 'solid 'red)
+
+... and why aren't they the same again....?!
+
 todo: sort out wxme library support (loading in text mode).
 
 ;; when rendering these things in error messages,
-;; they should come out as #<picture: {THE ACTUAL PICTURE}>
+;; they should come out as #<image: {THE ACTUAL PICTURE}>
 ;; (automatically scale them down so they fit)
+;; or should it be just the image directly?
 
 ;; redex randomized testing: see if normalization produces normalized shapes.
 ;;        see if normalization always puts things in the right order
@@ -57,13 +71,13 @@ and they all have good sample contracts. (It is amazing what we can do with kids
          
          ;; internal stuff, for the test suite
          
-         show-picture
+         show-image
          
          normalize-shape
          rotate-atomic
          rotate-simple
          simple-bb
-         make-picture picture-shape
+         make-image image-shape
          
          make-bb
          make-overlay
@@ -122,20 +136,20 @@ and they all have good sample contracts. (It is amazing what we can do with kids
 ;                                                         
 
 
-;; a picture is 
-;;  (make-picture shape bb boolean)
+;; a image is 
+;;  (make-image shape bb boolean)
 ;; NOTE: the shape field is mutated when normalized, as
 ;;       is the normalized? field.
-(define (make-picture shape bb normalized?) (new picture% [shape shape] [bb bb] [normalized? normalized?]))
-(define (picture-shape p) (send p get-shape))
-(define (picture-bb p) (send p get-bb))
-(define (picture-normalized? p) (send p get-normalized?))
-(define (set-picture-shape! p s) (send p set-shape s))
-(define (set-picture-normalized?! p n?) (send p set-normalized? n?))
-(define (picture-right picture) (bb-right (picture-bb picture)))
-(define (picture-bottom picture) (bb-bottom (picture-bb picture)))
-(define (picture-baseline picture) (bb-baseline (picture-bb picture)))
-(define (picture? p) (is-a? p picture%))
+(define (make-image shape bb normalized?) (new image% [shape shape] [bb bb] [normalized? normalized?]))
+(define (image-shape p) (send p get-shape))
+(define (image-bb p) (send p get-bb))
+(define (image-normalized? p) (send p get-normalized?))
+(define (set-image-shape! p s) (send p set-shape s))
+(define (set-image-normalized?! p n?) (send p set-normalized? n?))
+(define (image-right image) (bb-right (image-bb image)))
+(define (image-bottom image) (bb-bottom (image-bb image)))
+(define (image-baseline image) (bb-baseline (image-bb image)))
+(define (image? p) (is-a? p image%))
 
 
 ;; a bb is  (bounding box)
@@ -231,7 +245,7 @@ and they all have good sample contracts. (It is amazing what we can do with kids
 
 (define-local-member-name get-shape set-shape get-bb get-normalized? set-normalized get-normalized-shape)
 
-(define picture%
+(define image%
   (class* snip% (equal<%>)
     (init-field shape bb normalized?)
     (define/public (equal-to? that eq-recur) 
@@ -252,9 +266,9 @@ and they all have good sample contracts. (It is amazing what we can do with kids
         (set! normalized? #t))
       shape)
     
-    (define/override (copy) (make-picture shape bb normalized?))
+    (define/override (copy) (make-image shape bb normalized?))
     (define/override (draw dc x y left top right bottom dx dy draw-caret?)
-      (render-picture this dc x y))
+      (render-image this dc x y))
     (define/override (get-extent dc x y [w #f] [h #f] [descent #f] [space #f] [lspace #f] [rspace #f])
       (send (get-the-snip-class-list) add snip-class)
       (let ([bottom (bb-bottom bb)])
@@ -275,7 +289,7 @@ and they all have good sample contracts. (It is amazing what we can do with kids
 
 (define scheme/base:read read)
 
-(define picture-snipclass% 
+(define image-snipclass% 
   (class snip-class%
     (define/override (read f)
       (let* ([str (bytes->string/utf-8 (send f get-unterminated-bytes))]
@@ -284,15 +298,15 @@ and they all have good sample contracts. (It is amazing what we can do with kids
                     (open-input-string
                      str)))])
         (if lst
-            (make-picture (list-ref lst 0)
-                          (list-ref lst 1)
-                          #f)
+            (make-image (list-ref lst 0)
+                        (list-ref lst 1)
+                        #f)
             (rectangle 20 20 'solid 'black))))
     (super-new)))
 
 (provide snip-class) 
-(define snip-class (new picture-snipclass%))
-(send snip-class set-classname (format "~s" '(lib "picture.ss" "2htdp/private")))
+(define snip-class (new image-snipclass%))
+(send snip-class set-classname (format "~s" '(lib "image-core.ss" "2htdp/private")))
 (send snip-class set-version 1)
 (send (get-the-snip-class-list) add snip-class)
 
@@ -454,10 +468,10 @@ and they all have good sample contracts. (It is amazing what we can do with kids
        (if (eq? sym 'center)
            'middle
            sym))]
-    [(picture picture1 picture2 picture3) 
+    [(image image1 image2 image3) 
      (check-arg fn-name
-                (picture? arg)
-                'picture
+                (image? arg)
+                'image
                 i
                 arg)
      arg]
@@ -529,23 +543,23 @@ and they all have good sample contracts. (It is amazing what we can do with kids
 ;                                                                
 ;                                                         
 
-(define (show-picture g [extra-space 0])
+(define (show-image g [extra-space 0])
   (letrec ([f (new frame% [label ""])]
            [c (new canvas% 
                    [parent f]
-                   [min-width (+ extra-space (inexact->exact (floor (picture-right g))))]
-                   [min-height (+ extra-space (inexact->exact (floor (picture-bottom g))))]
+                   [min-width (+ extra-space (inexact->exact (floor (image-right g))))]
+                   [min-height (+ extra-space (inexact->exact (floor (image-bottom g))))]
                    [paint-callback
                     (λ (c dc)
                       (send dc set-smoothing 'aligned)
                       (let-values ([(w h) (send c get-client-size)])
                         (let ([scale (send sl get-value)])
                           (send dc set-scale scale scale)
-                          (render-picture 
+                          (render-image 
                            g
                            dc
-                           (inexact->exact (floor (- (/ w 2 scale) (/ (picture-right g) 2))))
-                           (inexact->exact (floor (- (/ h 2 scale) (/ (picture-bottom g) 2))))))))])]
+                           (inexact->exact (floor (- (/ w 2 scale) (/ (image-right g) 2))))
+                           (inexact->exact (floor (- (/ h 2 scale) (/ (image-bottom g) 2))))))))])]
            [min-scale 1]
            [max-scale 10]
            [sl (new slider% 
@@ -563,9 +577,9 @@ and they all have good sample contracts. (It is amazing what we can do with kids
     (send (new button% [label "²"] [callback (λ x (scale-adjust add1))] [parent bp]) min-width 100)
     (send f show #t)))
 
-;; render-picture : normalized-shape dc dx dy -> void
-(define (render-picture picture dc dx dy)
-  (let loop ([shape (send picture get-normalized-shape)])
+;; render-image : normalized-shape dc dx dy -> void
+(define (render-image image dc dx dy)
+  (let loop ([shape (send image get-normalized-shape)])
     (cond
       [(overlay? shape)
        (render-simple-shape (overlay-bottom shape) dc dx dy)
@@ -627,28 +641,28 @@ and they all have good sample contracts. (It is amazing what we can do with kids
 ;                                         ;;   
                                                                             
 
-;; bitmap : string -> picture
+;; bitmap : string -> image
 ;; gets one of the bitmaps that comes with drscheme, scales it down by 1/8 or something
 ;; so that later scaling /translation/whatever will look reasonable.
-;; (the error message for a bad argument will list all of the currently installed example pictures;
+;; (the error message for a bad argument will list all of the currently installed example images;
 ;; we may want to have some way teachers can stick new ones in there)
 
-;; overlay : picture picture picture ... -> picture
-;; places pictures on top of each other with their upper left corners aligned. last one goes on the bottom
+;; overlay : image image image ... -> image
+;; places images on top of each other with their upper left corners aligned. last one goes on the bottom
 
-(define/chk (overlay picture picture2 . picture3)
-  (overlay/internal 'left 'top picture (cons picture2 picture3)))
+(define/chk (overlay image image2 . image3)
+  (overlay/internal 'left 'top image (cons image2 image3)))
 
-;; overlay/places : string string picture picture picture ... -> picture
+;; overlay/places : string string image image image ... -> image
 ;; the first string has to be one of "center" "middle" "left" or "right" (or symbols)
 ;; the second string has to be one of "center" "middle" "top" "bottom" or "baseline" (or symbols)
-;; behaves like overlay, but lines up the pictures in the various places.
+;; behaves like overlay, but lines up the images in the various places.
 ;; overlay without string arguments is the same as passing "left" and "top"
 ;; for the two string arguments. Passing, eg, "center" "center" lines the
-;; pictures up at their centers.
+;; images up at their centers.
 
-(define/chk (overlay/places x-place y-place picture picture2 . picture3)
-  (overlay/internal x-place y-place picture (cons picture2 picture3)))
+(define/chk (overlay/places x-place y-place image image2 . image3)
+  (overlay/internal x-place y-place image (cons image2 image3)))
 
 (define (overlay/internal x-place y-place fst rst)
   (let loop ([fst fst]
@@ -670,51 +684,51 @@ and they all have good sample contracts. (It is amazing what we can do with kids
                           (if (< dy 0) 0 dy))
                (cdr rst)))])))
 
-(define (find-x-spot x-place picture)
+(define (find-x-spot x-place image)
   (case x-place
     [(left) 0]
-    [(middle) (/ (picture-right picture) 2)]
-    [(right) (picture-right picture)]))
+    [(middle) (/ (image-right image) 2)]
+    [(right) (image-right image)]))
 
-(define (find-y-spot y-place picture)
+(define (find-y-spot y-place image)
   (case y-place
     [(top) 0]
-    [(middle) (/ (picture-bottom picture) 2)]
-    [(bottom) (picture-bottom picture)]
-    [(baseline) (picture-baseline picture)]))
+    [(middle) (/ (image-bottom image) 2)]
+    [(bottom) (image-bottom image)]
+    [(baseline) (image-baseline image)]))
 
-;; overlay/xy : picture number number picture -> picture
-;; places pictures on top of each other with their upper-left corners offset by the two numbers
+;; overlay/xy : image number number image -> image
+;; places images on top of each other with their upper-left corners offset by the two numbers
 
-(define/chk (overlay/xy picture dx dy picture2) 
-  (overlay/δ picture
+(define/chk (overlay/xy image dx dy image2) 
+  (overlay/δ image
              (if (< dx 0) (- dx) 0)
              (if (< dy 0) (- dy) 0)
-             picture2
+             image2
              (if (< dx 0) 0 dx)
              (if (< dy 0) 0 dy)))
 
-(define (overlay/δ picture1 dx1 dy1 picture2 dx2 dy2)
-  (make-picture (make-overlay (make-translate dx1 dy1 (picture-shape picture1))
-                              (make-translate dx2 dy2 (picture-shape picture2)))
-                (make-bb (max (+ (picture-right picture1) dx1)
-                              (+ (picture-right picture2) dx2))
-                         (max (+ (picture-bottom picture1) dy1)
-                              (+ (picture-bottom picture2) dy2))
-                         (max (+ (picture-baseline picture1) dy1)
-                              (+ (picture-baseline picture2) dy2)))
-                #f))
+(define (overlay/δ image1 dx1 dy1 image2 dx2 dy2)
+  (make-image (make-overlay (make-translate dx1 dy1 (image-shape image1))
+                            (make-translate dx2 dy2 (image-shape image2)))
+              (make-bb (max (+ (image-right image1) dx1)
+                            (+ (image-right image2) dx2))
+                       (max (+ (image-bottom image1) dy1)
+                            (+ (image-bottom image2) dy2))
+                       (max (+ (image-baseline image1) dy1)
+                            (+ (image-baseline image2) dy2)))
+              #f))
 
-;; beside : picture picture picture ... -> picture
-;; places pictures in a single horizontal row, top aligned
-(define/chk (beside picture1 picture2 . picture3)
-  (beside/internal 'top picture1 (cons picture2 picture3)))
+;; beside : image image image ... -> image
+;; places images in a single horizontal row, top aligned
+(define/chk (beside image1 image2 . image3)
+  (beside/internal 'top image1 (cons image2 image3)))
 
-;; beside/places : string picture picture picture ... -> picture
-;; places pictures in a horizontal row where the vertical alignment is
+;; beside/places : string image image image ... -> image
+;; places images in a horizontal row where the vertical alignment is
 ;; covered by the string argument
-(define/chk (beside/places y-place picture1 picture2 . picture3)
-  (beside/internal y-place picture1 (cons picture2 picture3)))
+(define/chk (beside/places y-place image1 image2 . image3)
+  (beside/internal y-place image1 (cons image2 image3)))
 
 (define (beside/internal y-place fst rst)
   (let loop ([fst fst]
@@ -730,11 +744,11 @@ and they all have good sample contracts. (It is amazing what we can do with kids
                           0 
                           (if (< dy 0) (- dy) 0)
                           (car rst)
-                          (picture-right fst)
+                          (image-right fst)
                           (if (< dy 0) 0 dy))
                (cdr rst)))])))
 
-;; above : picture picture picture ... -> picture
+;; above : image image image ... -> image
 ;; above/places : string I I I ... -> I
 ;; like beside, but vertically
 
@@ -752,21 +766,21 @@ and they all have good sample contracts. (It is amazing what we can do with kids
 ;                                                                                   
 ;       
 
-;; frame : picture -> picture
-;; draws a black frame around a picture where the bounding box is
-;; (useful for debugging pictures)
+;; frame : image -> image
+;; draws a black frame around a image where the bounding box is
+;; (useful for debugging images)
 
-(define/chk (frame picture)
-  (make-picture (make-overlay (picture-shape picture)
-                              (picture-shape 
-                               (rectangle (picture-right picture)
-                                          (picture-bottom picture)
-                                          'outline
-                                          'black)))
-                (make-bb (picture-right picture)
-                         (picture-bottom picture)
-                         (picture-baseline picture))
-                #f))
+(define/chk (frame image)
+  (make-image (make-overlay (image-shape image)
+                            (image-shape 
+                             (rectangle (image-right image)
+                                        (image-bottom image)
+                                        'outline
+                                        'black)))
+              (make-bb (image-right image)
+                       (image-bottom image)
+                       (image-baseline image))
+              #f))
 
 ;; scale : I number -> I
 ;; scales the I by the given factor
@@ -775,7 +789,7 @@ and they all have good sample contracts. (It is amazing what we can do with kids
 ;; rotates the I around the top-left corner by the given angle
 ;; (in degrees)
 ;; LINEAR TIME OPERATION (sigh)
-(define/chk (rotate angle picture)
+(define/chk (rotate angle image)
   (define left #f)
   (define top #f)
   (define right #f)
@@ -788,10 +802,10 @@ and they all have good sample contracts. (It is amazing what we can do with kids
         (set! right (if right (max this-right right) this-right))
         (set! bottom (if bottom (max this-bottom bottom) this-bottom)))
       rotated-shape))
-  (let* ([rotated (normalize-shape (picture-shape picture) add-to-bounding-box/rotate)])
-    (make-picture (make-translate (- left) (- top) rotated)
-                  (make-bb (- right left) (- bottom top) (- bottom top))
-                  #f)))
+  (let* ([rotated (normalize-shape (image-shape image) add-to-bounding-box/rotate)])
+    (make-image (make-translate (- left) (- top) rotated)
+                (make-bb (- right left) (- bottom top) (- bottom top))
+                #f)))
 
 ;; simple-bb : simple-shape -> (values number number number number)
 ;; returns the bounding box of 'shape' 
@@ -903,13 +917,13 @@ and they all have good sample contracts. (It is amazing what we can do with kids
 ;;       rectangle
 
 (define/chk (rectangle width height mode color)
-  (make-picture (make-polygon (rectangle-points width height)
-                              mode
-                              color)
-                (make-bb width
-                         height
-                         height)
-                #f))
+  (make-image (make-polygon (rectangle-points width height)
+                            mode
+                            color)
+              (make-bb width
+                       height
+                       height)
+              #f))
 
 (define (rectangle-points width height)
   (list (make-point 0 0)
@@ -927,12 +941,12 @@ and they all have good sample contracts. (It is amazing what we can do with kids
 ;;       regular-polygon
 
 (define/chk (ellipse width height mode color)
-  (make-picture (make-ellipse width height 
-                              0
-                              mode
-                              color)
-                (make-bb width height height)
-                #f))
+  (make-image (make-ellipse width height 
+                            0
+                            mode
+                            color)
+              (make-bb width height height)
+              #f))
 
 (define (mode-color->pen mode color)
   (send the-pen-list find-or-create-pen color 1 
