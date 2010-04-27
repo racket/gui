@@ -996,7 +996,7 @@
   (mixin (basic<%>) (pasteboard-info<%>)
     (super-new)))
 
-(include "standard-menus.ss")
+(include "standard-menus.rkt")
 
 (define -editor<%> (interface (standard-menus<%>)
                      get-entire-label
