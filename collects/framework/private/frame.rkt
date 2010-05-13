@@ -996,7 +996,7 @@
   (mixin (basic<%>) (pasteboard-info<%>)
     (super-new)))
 
-(include "standard-menus.ss")
+(include "standard-menus.rkt")
 
 (define -editor<%> (interface (standard-menus<%>)
                      get-entire-label
@@ -2061,8 +2061,10 @@
           (unless hidden?
             (when find-edit
               (when old
-                (send old set-searching-state #f #f #f))
+                (send old set-searching-state #f #f #f)
+                (send old set-search-anchor #f))
               (when new
+                (send new set-search-anchor (send new get-start-position))
                 (search-parameters-changed)))))))
     
     (define/public-final (search-hits-changed)

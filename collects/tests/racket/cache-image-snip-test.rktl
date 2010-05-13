@@ -1,4 +1,4 @@
-(load-relative "loadtest.ss")
+(load-relative "loadtest.rktl")
 
 (require mrlib/cache-image-snip
          mzlib/unit)
