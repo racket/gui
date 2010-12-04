@@ -206,13 +206,14 @@ the state transitions / contracts are:
   
   (define (make-preferences-dialog)
     (letrec ([stashed-prefs (preferences:get-prefs-snapshot)]
-             [cancelled? #t]
+             [cancelled? #f]
              [frame-stashed-prefs%
               (class frame:basic%
                 (inherit close)
                 (define/override (on-subwindow-char receiver event)
                   (cond
                     [(eq? 'escape (send event get-key-code))
+                     (set! cancelled? #t)
                      (close)]
                     [else 
                      (super on-subwindow-char receiver event)]))
@@ -222,7 +223,7 @@ the state transitions / contracts are:
                 (define/override (show on?)
                   (when on?
                     ;; reset the flag and save new prefs when the window becomes visible
-                    (set! cancelled? #t)
+                    (set! cancelled? #f)
                     (set! stashed-prefs (preferences:get-prefs-snapshot)))
                   (super show on?))
                 (super-new))]
@@ -280,9 +281,10 @@ the state transitions / contracts are:
                               (for-each
                                (λ (f) (f))
                                on-close-dialog-callbacks)
-                              (set! cancelled? #f)
                               (send frame close)))]
-             [cancel-callback (λ () (send frame close))])
+             [cancel-callback (λ () 
+                                (set! cancelled? #t)
+                                (send frame close))])
       (new button%
            [label (string-constant revert-to-defaults)]
            [callback
@@ -454,8 +456,10 @@ the state transitions / contracts are:
                                'framework:autosaving-on? 
                                (string-constant auto-save-files)
                                values values)
-                   (make-check editor-panel  'framework:backup-files? (string-constant backup-files) values values)
+                   (make-check editor-panel 'framework:backup-files? (string-constant backup-files) values values)
                    (make-check editor-panel 'framework:show-status-line (string-constant show-status-line) values values)
+                   ;; does this not belong here?
+                   ;; (make-check editor-panel 'drracket:show-line-numbers (string-constant show-line-numbers)
                    (make-check editor-panel 'framework:col-offsets (string-constant count-columns-from-one) values values)
                    (make-check editor-panel 
                                'framework:display-line-numbers
@@ -528,18 +532,7 @@ the state transitions / contracts are:
                    (cond
                      [(string? default) string?]
                      [(number? default) number?]
-                     [else (error 'internal-error.set-default "unrecognized default: ~a~n" default)]))
-                  (preferences:add-callback 
-                   name 
-                   (λ (p new-value)
-                     (write-resource 
-                      font-section
-                      font-entry
-                      (if (and (string? new-value)
-                               (string=? font-default-string new-value))
-                          ""
-                          new-value)
-                      font-file))))))])
+                     [else (error 'internal-error.set-default "unrecognized default: ~a\n" default)])))))])
       
       (for-each (set-default build-font-entry font-default-string string?)
                 font-families)
@@ -577,14 +570,7 @@ the state transitions / contracts are:
                             
                             [message (make-object message%
                                        (let ([b (box "")])
-                                         (if (and (get-resource 
-                                                   font-section 
-                                                   (build-font-entry name)
-                                                   b)
-                                                  (not (string=? (unbox b) 
-                                                                 "")))
-                                             (unbox b)
-                                             font-default-string)) 
+                                         font-default-string)
                                        horiz)]
                             [button 
                              (make-object button%
@@ -641,11 +627,7 @@ the state transitions / contracts are:
                   [size-panel (make-object horizontal-panel% main '(border))]
                   [initial-font-size
                    (let ([b (box 0)])
-                     (if (get-resource font-section 
-                                       font-size-entry
-                                       b)
-                         (unbox b)
-                         font-default-size))]
+                     font-default-size)]
                   [size-slider
                    (make-object slider%
                      (string-constant font-size-slider-label)

@@ -2,7 +2,7 @@
 @(require scribble/bnf
           "common.ss")
 
-@title[#:tag "editor-overview"]{Editor}
+@title[#:tag "editor-overview"]{Editors}
 
 The editor toolbox provides a foundation for two common kinds of
  applications:
@@ -601,8 +601,8 @@ When an editor contains other editors, it keeps track of caret
  appropriate sub-editor.
 
 When an editor or snip is drawn, an argument to the drawing method
- specifies whether the caret should be drawn with the data. This
- argument can be any of (in increasing order):
+ specifies whether the caret should be drawn with the data or whether
+ a selection spans the data. This argument can be any of:
 
 @itemize[
 
@@ -615,6 +615,11 @@ When an editor or snip is drawn, an argument to the drawing method
 
  @item{@indexed-scheme['show-caret] --- The caret should be drawn to show
  keyboard focus ownership.}
+
+ @item{@racket[(cons _start _end)] --- The caret is owned by an
+ enclosing region, and its selection spans the current editor or snip;
+ in the case of the snip, the selection spans elements @racket[_start]
+ through @racket[_end] positions within the snip.}
 
 ]
 
@@ -715,11 +720,10 @@ An editor is not tied to any particular thread or eventspace, except
  to the degree that it is displayed in a canvas (which has an
  eventspace). Concurrent access of an editor is always safe, in the
  sense that the editor will not become corrupted. However, because
- editor access can trigger locks, and because lock-rejected operations
- tend to fail silently, concurrent access can produce unexpected
- results.
+ editor access can trigger locks, concurrent access can produce 
+ contract failures or unexpected results.
 
-Nevertheless, the editor supports certain concurrent patterns
+An editor supports certain concurrent patterns
  reliably. One relevant pattern is updating an editor in one thread
  while the editor is displayed in a canvas that is managed by a
  different (handler) thread. To ensure that canvas refreshes are not

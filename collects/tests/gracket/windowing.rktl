@@ -30,6 +30,17 @@
     (thread (lambda () (sleep 0.01) (semaphore-post s)))
     (test s 'yield (yield s))))
 
+(define (iconize-pause)
+  (if (eq? 'unix (system-type))
+      ;; iconization might take a while
+      ;; for the window manager to report back
+      (begin
+        (pause)
+        (when (regexp-match? #rx"darwin" (path->string (system-library-subpath)))
+          (sleep 0.75))
+        (pause))
+      (pause)))
+
 (let ([s (make-semaphore 1)])
   (test s 'yield-wrapped (yield s)))
 (let ([s (make-semaphore 1)])
@@ -39,7 +50,7 @@
   (test (list s) 'yield-wrapped (yield (wrap-evt s (lambda (v) (list v))))))
 
 (define (enable-tests f)
-  (printf "Enable ~a~n" f)
+  (printf "Enable ~a\n" f)
   (st #t f is-enabled?)
   (stv f enable #f)
   (st #f f is-enabled?)
@@ -47,7 +58,7 @@
   (st #t f is-enabled?))
 
 (define (drop-file-tests f)
-  (printf "Drop File ~a~n" f)
+  (printf "Drop File ~a\n" f)
   (st #f f accept-drop-files)
   (stv f accept-drop-files #t)
   (st #t f accept-drop-files)
@@ -55,7 +66,8 @@
   (st #f f accept-drop-files))
 
 (define (client->screen-tests f)
-  (printf "Client<->Screen ~a~n" f)
+  (printf "Client<->Screen ~a\n" f)
+  (send (or (send f get-parent) f) reflow-container)
   (let-values ([(x y) (send f client->screen 0 0)])
     (stvals '(0 0) f screen->client x y))
   (let-values ([(x y) (send f screen->client 0 0)])
@@ -65,8 +77,8 @@
     (test #t `(client-size ,f ,cw ,ch ,w ,h) (and (<= 1 cw w) (<= 1 ch h))))
   (stv f refresh))
 
-(define (area-tests f sw? sh? no-stretch?)
-  (printf "Area ~a~n" f)
+(define (area-tests f sw? sh? no-stretch? use-client-size?)
+  (printf "Area ~a\n" f)
   (let ([x (send f min-width)]
 	[y (send f min-height)])
     (st sw? f stretchable-width)
@@ -74,9 +86,11 @@
     (stv (send f get-top-level-window) reflow-container)
     (pause) ; to make sure size has taken effect
     (let-values ([(w h) (if no-stretch?
-			    (send f get-size)
+			    (if use-client-size?
+                                (send f get-client-size)
+                                (send f get-size))
 			    (values 0 0))])
-      (printf "Size ~a x ~a~n" w h)
+      (printf "Size ~a x ~a\n" w h)
       (when no-stretch?
 	(stv f min-width w) ; when we turn of stretchability, don't resize
 	(stv f min-height h))
@@ -94,8 +108,8 @@
     (stv f min-height y)))
 
 (define (containee-tests f sw? sh? m)
-  (area-tests f sw? sh? #f)
-  (printf "Containee ~a~n" f)
+  (area-tests f sw? sh? #f #f)
+  (printf "Containee ~a\n" f)
   (st m f horiz-margin)
   (st m f vert-margin)
   (stv f horiz-margin 3)
@@ -108,14 +122,14 @@
   (stv f vert-margin m))
 
 (define (container-tests f win?)
-  (printf "Container ~a~n" f)
+  (printf "Container ~a\n" f)
   (let-values ([(x y) (send f get-alignment)])
     (stv f set-alignment 'right 'bottom)
     (stvals '(right bottom) f get-alignment)
     (stv f set-alignment x y)))
 
 (define (cursor-tests f)
-  (printf "Cursor ~a~n" f)
+  (printf "Cursor ~a\n" f)
   (let ([c (send f get-cursor)])
     (stv f set-cursor c)
     (st c f get-cursor)
@@ -131,7 +145,7 @@
 
 (define (show-tests f)
   (unless (is-a? f dialog%)
-    (printf "Show ~a~n" f)
+    (printf "Show ~a\n" f)
     (let ([on? (send f is-shown?)])
       (stv f show #f)
       (when on?
@@ -165,7 +179,7 @@
     (st my-l b get-plain-label)
     (stv b set-label &-l)))
 			      
-(let ([f (make-object frame% "Yes & No" #f 150 151 20 21)])
+(let ([f (make-object frame% "Yes & No" #f 150 151 70 21)])
   (let ([init-tests
 	 (lambda (hidden?)
 	   (st "Yes & No" f get-label)
@@ -176,15 +190,8 @@
 	   (stv f set-label "Yes & No")
 	   (st #f f get-parent)
 	   (st f f get-top-level-window)
-           (case (system-type 'os)
-             [(unix)
-              (st 21 f get-x)
-              (if hidden?
-                  (st 43 f get-y)
-                  (st 22 f get-y))]
-             [else
-              (st 20 f get-x)
-              (st 21 f get-y)])
+           (st 70 f get-x)
+           (st 21 f get-y)
 	   (st 150 f get-width)
 	   (st 151 f get-height)
 	   (stvals (list (send f get-width) (send f get-height)) f get-size)
@@ -193,7 +200,7 @@
 	   (st #f f get-menu-bar))]
 	[space-tests
 	 (lambda ()
-	   (printf "Spacing~n")
+	   (printf "Spacing\n")
 	   (let ([b (send f border)])
 	     (stv f border 25)
 	     (st 25 f border)
@@ -209,15 +216,15 @@
 	   (drop-file-tests f))]
 	[client->screen-tests
 	 (lambda ()
-	   (printf "Client<->Screen~n")
+	   (printf "Client<->Screen\n")
 	   (let-values ([(x y) (send f client->screen 0 0)])
 	     (stvals '(0 0) f screen->client x y))
 	   (let-values ([(x y) (send f screen->client 0 0)])
 	     (stvals '(0 0) f client->screen x y)))]
 	[container-tests
 	 (lambda ()
-	   (printf "Container~n")
-	   (area-tests f #t #t #t)
+	   (printf "Container\n")
+	   (area-tests f #t #t #t #t)
 	   (let-values ([(x y) (send f container-size null)])
 	     (st x f min-width)
 	     (st y f min-height))
@@ -238,15 +245,15 @@
     (container-tests)
     (cursor-tests)
 
-    (printf "Init~n")
+    (printf "Init\n")
     (init-tests #f)
     (stv f show #t)
     (pause)
-    (printf "Show Init~n")
+    (printf "Show Init\n")
     (init-tests #t)
     (stv f show #f)
     (pause)
-    (printf "Hide Init~n")
+    (printf "Hide Init\n")
     (init-tests #f)
     (send f show #t)
     (pause)
@@ -258,21 +265,26 @@
 
     (stv f change-children values)
     
-    (printf "Iconize~n")
+    (printf "Iconize\n")
     (stv f iconize #t)
-    (pause)
-    (pause)
-    (st #t f is-iconized?)  ; NB: test will fail on MacOS
-    (stv f show #t)
-    (pause)
+    (iconize-pause)
+    (st #t f is-iconized?)
+    (stv f iconize #f)
+    (iconize-pause)
     (st #f f is-iconized?)
-    
+    (stv f iconize #t)
+    (iconize-pause)
+    (st #t f is-iconized?)
+    (stv f show #t)
+    (iconize-pause)
+    (st #f f is-iconized?)
+
     (stv f maximize #t)
     (pause)
     (stv f maximize #f)
     (pause)
 
-    (printf "Move~n")
+    (printf "Move\n")
     (stv f move 34 37)
     (pause)
     (FAILS (st 34 f get-x))
@@ -280,17 +292,17 @@
     (st 150 f get-width)
     (st 151 f get-height)
 
-    (printf "Resize~n")
-    (stv f resize 56 57)
+    (printf "Resize\n")
+    (stv f resize 156 57)
     (pause)
     (FAILS (st 34 f get-x))
     (FAILS (st 37 f get-y))
-    (st 56 f get-width)
+    (st 156 f get-width)
     (st 57 f get-height)
 
     (stv f center)
     (pause)
-    (st 56 f get-width)
+    (st 156 f get-width)
     (st 57 f get-height)
 
     (client->screen-tests)
@@ -306,7 +318,7 @@
 
     (cursor-tests)
 
-    (printf "Menu Bar~n")
+    (printf "Menu Bar\n")
     (let ([mb (make-object menu-bar% f)])
       (st mb f get-menu-bar)
       (st f mb get-frame)
@@ -320,11 +332,11 @@
       
       (st null mb get-items)
 
-      (printf "Menu 1~n")
+      (printf "Menu 1\n")
       (let* ([m (make-object menu% "&File" mb)]
 	     [i m]
 	     [delete-enable-test (lambda (i parent empty)
-				   (printf "Item~n")
+				   (printf "Item\n")
 				   (st #f i is-deleted?)
 				   (st #t i is-enabled?)
 				   
@@ -371,7 +383,7 @@
 
 	(st null m get-items)
 
-	(printf "Menu Items~n")
+	(printf "Menu Items\n")
 	(let ([i1 (make-object menu-item% "&Plain" m 
 			       (lambda (i e)
 				 (test-control-event e '(menu))
@@ -391,7 +403,7 @@
 	       (lambda (i empty name)
 		 (delete-enable-test i m empty)
 		 
-		 (printf "Shortcut~n")
+		 (printf "Shortcut\n")
 		 (set! hit i)
 		 (stv i command (make-object control-event% 'menu))
 		 (test name 'hit-command hit)
@@ -437,7 +449,7 @@
 
 	  'done)
 
-	(printf "Menu 2~n")
+	(printf "Menu 2\n")
 	(let* ([m2 (make-object menu% "&Edit" mb "Help Edit")]
 	       [i2 m2])
 	  (st (list i i2) mb get-items)
@@ -468,7 +480,7 @@
 (define (test-controls parent frame)
   (define side-effect #f)
   
-  (printf "Buttons~n")
+  (printf "Buttons\n")
   (letrec ([b (make-object button% 
 			   "&Button"
 			   parent
@@ -484,7 +496,7 @@
     
     (containee-window-tests b #f #f parent frame 2))
 
-  (printf "Check Box~n")
+  (printf "Check Box\n")
   (letrec ([c (make-object check-box% 
 			   "&Check Box"
 			   parent
@@ -511,7 +523,7 @@
 			#t)])
     (st #t c get-value))
 
-  (printf "Radio Box~n")
+  (printf "Radio Box\n")
   (letrec ([r (make-object radio-box%
 			   "&Radio Box"
 			   (list "O&ne" "T&wo" "T&hree")
@@ -586,7 +598,7 @@
 			 '(vertical)
 			 3))
 
-  (printf "Gauge~n")
+  (printf "Gauge\n")
   (letrec ([g (make-object gauge% 
 			   "&Gauge"
 			   10
@@ -618,7 +630,7 @@
     
     (containee-window-tests g #t #f parent frame 2))
 
-  (printf "Slider~n")
+  (printf "Slider\n")
   (letrec ([s (make-object slider% 
 			   "&Slider"
 			   -2 8
@@ -774,7 +786,7 @@
 
 	   'done-list)])
 
-    (printf "Choice~n")
+    (printf "Choice\n")
     (letrec ([c (make-object choice%
 			     "&Choice"
 			     '("A" "B" "C & D")
@@ -808,7 +820,7 @@
 
     (let ([mk-list
 	   (lambda (style)
-	     (printf "List Box: ~a~n" style)
+	     (printf "List Box: ~a\n" style)
 	     (letrec ([l (make-object list-box%
 				      "&List Box"
 				      '("A" "B" "C & D")
@@ -869,7 +881,7 @@
 
   (let ([c (make-object canvas% parent '(hscroll vscroll))])
 
-    (printf "Tab Focus~n")
+    (printf "Tab Focus\n")
     (st #f c accept-tab-focus)
     (stv c accept-tab-focus #t)
     (st #t c accept-tab-focus)
@@ -880,13 +892,13 @@
     ; (stv c set-scrollbars 100 101 5 6 2 3 10 20 #t)
     (let-values ([(w h) (send c get-virtual-size)]
 		 [(cw ch) (send c get-client-size)])
-      (printf "Canvas size: Virtual: ~a x ~a  Client: ~a x ~a~n" w h cw ch)
+      (printf "Canvas size: Virtual: ~a x ~a  Client: ~a x ~a\n" w h cw ch)
       (let ([check-scroll
 	     (lambda (xpos ypos)
 	       (let-values ([(x y) (send c get-view-start)])
 		 (let ([coerce (lambda (x) (inexact->exact (floor x)))])
-		   (test (coerce (* xpos (- 500 cw))) `(canvas-view-x ,xpos ,ypos ,x ,cw) x)
-		   (test (coerce (* ypos (- 606 ch))) `(canvas-view-y ,xpos ,ypos ,y ,ch) y))))])
+		   (test (coerce (* xpos (- 500 cw))) `(canvas-view-x ,xpos ,ypos ,x ,cw ,w) x)
+		   (test (coerce (* ypos (- 606 ch))) `(canvas-view-y ,xpos ,ypos ,y ,ch , h) y))))])
 	(test 500 'canvas-virt-w-size w)
 	(test 606 'canvas-virt-h-size h)
 	
@@ -958,7 +970,7 @@
 			 102)])
     (let loop ([n 100])
       (unless (zero? n)
-	(send e insert (format "line ~a~n" n))
+	(send e insert (format "line ~a\n" n))
 	(loop (sub1 n))))
 
     (st #f c allow-scroll-to-last)
@@ -1009,7 +1021,7 @@
 	       (test-controls panel frame)
 	       (if win?
 		   ((if % containee-window-tests window-tests) panel #t #t (and % frame) frame 0)
-		   (area-tests panel #t #t #f))
+		   (area-tests panel #t #t #f #f))
                (when (is-a? panel panel%)
                  (st #t panel get-orientation (is-a? panel horizontal-panel%)))
 	       (container-tests panel win?)
