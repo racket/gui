@@ -363,7 +363,7 @@
                           (loop (- n 1))))])))]
        [(number? state)
         (unless (send rb is-enabled? state)
-          (error 'test:set-radio-box! "item ~a is not enabled~n" state))
+          (error 'test:set-radio-box! "item ~a is not enabled\n" state))
         (send rb set-selection state)]
        [else (error 'test:set-radio-box!
                     "expected a string or a number as second arg, got: ~e (other arg: ~e)"
@@ -466,7 +466,8 @@
         'noalt 'nocontrol 'nometa 'noshift))
 
 (define valid-key-symbols
-  (list 'start 'cancel 'clear 'shift 'control 'menu 'pause 'capital
+  (list 'escape ;; just trying this for the heck of it -- JBC, 2010-08-13
+        'start 'cancel 'clear 'shift 'control 'menu 'pause 'capital
         'prior 'next 'end 'home 'left 'up 'right 'down 'select 'print
         'execute 'snapshot 'insert 'help 'numpad0 'numpad1 'numpad2
         'numpad3 'numpad4 'numpad5 'numpad6 'numpad7 'numpad8 'numpad9

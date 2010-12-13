@@ -20,7 +20,11 @@
     (send-generic mdc (make-generic (object-interface mdc) m) . args)
     (error 'bad-dc "~a shouldn't succeed" `(send <bad-dc> ,m ...))))
 
-(define (test-all mdc try)
+(define (good m . args)
+  (send-generic mdc (make-generic (object-interface mdc) m) . args))
+
+(define (test-all mdc try try-ok)
+  (try 'erase)
   (try 'clear)
   (try 'draw-arc 0 0 10 10 0.1 0.2)
   (try 'draw-bitmap bm2 0 0)
@@ -40,35 +44,49 @@
   (try 'end-page)
   (try 'end-doc)
 
-  (try 'get-background)
-  (try 'get-brush)
-  (try 'get-clipping-region)
-  (try 'get-font)
-  (try 'get-pen)
   (try 'get-size)
-  (try 'get-text-background)
-  (try 'get-text-foreground)
-  (try 'get-text-mode)
 
-  (try 'set-background (make-object color% "Yellow"))
-  (try 'set-brush (make-object brush% "Yellow" 'solid))
-  (try 'set-clipping-rect 0 0 10 10)
-  (try 'set-clipping-region (make-object region% mdc))
-  (try 'set-font (make-object font% 12 'default 'normal 'normal))
-  (try 'set-origin 0 0)
-  (try 'set-pen (make-object pen% "Yellow" 1 'solid))
-  (try 'set-scale 2 2)
-  (try 'set-text-background (make-object color% "Yellow"))
-  (try 'set-text-foreground (make-object color% "Yellow"))
-  (try 'set-text-mode 'transparent)
+  (try-ok 'get-background)
+  (try-ok 'get-brush)
+  (try-ok 'get-clipping-region)
+  (try-ok 'get-font)
+  (try-ok 'get-pen)
+  (try-ok 'get-text-background)
+  (try-ok 'get-text-foreground)
+  (try-ok 'get-text-mode)
+  (try-ok 'get-alpha)
+  (try-ok 'get-scale)
+  (try-ok 'get-origin)
+  (try-ok 'get-rotation)
+
+  (try-ok 'set-background (make-object color% "Yellow"))
+  (try-ok 'set-brush (make-object brush% "Yellow" 'solid))
+  (try-ok 'set-clipping-rect 0 0 10 10)
+  (try-ok 'set-clipping-region (make-object region% mdc))
+  (try-ok 'set-font (make-object font% 12 'default 'normal 'normal))
+  (try-ok 'set-origin 0 0)
+  (try-ok 'set-pen (make-object pen% "Yellow" 1 'solid))
+  (try-ok 'set-scale 2 2)
+  (try-ok 'set-alpha 0.75)
+  (try-ok 'set-text-background (make-object color% "Yellow"))
+  (try-ok 'set-text-foreground (make-object color% "Yellow"))
+  (try-ok 'set-text-mode 'transparent)
+
+  (try-ok 'get-char-height)
+  (try-ok 'get-char-width)
+
   (try 'try-color (make-object color% "Yellow") (make-object color%)))
 
 (st #f mdc ok?)
-(test-all mdc bad)
+(test-all mdc bad good)
 
 (send mdc set-bitmap bm)
-(test-all mdc (lambda (m . args)
-		(send-generic mdc (make-generic (object-interface mdc) m) . args)))
+
+(test-all mdc 
+          (lambda (m . args)
+            (send-generic mdc (make-generic (object-interface mdc) m) . args))
+          (lambda (m . args)
+            (send-generic mdc (make-generic (object-interface mdc) m) . args)))
 
 (send mdc set-bitmap #f)
 
@@ -178,6 +196,27 @@
           #"\377\0\0\0\377\0\0\0\377\377\377\377\377\377\377\377\377\0\0\0\377\0\0\0\377\0\0\0"
           #"\377\377\377\377\377\377\377\377\377\0\0\0\377\0\0\0\377\0\0\0")))
   (test #t 'same-bits (equal? bs bs2)))
+
+;; ----------------------------------------
+;; Test draw-bitmap-section-smooth
+
+(let* ([bm (make-bitmap 100 100)]
+       [dc (make-object bitmap-dc% bm)]
+       [bm2 (make-bitmap 70 70)]
+       [dc2 (make-object bitmap-dc% bm2)]
+       [bm3 (make-bitmap 70 70)]
+       [dc3 (make-object bitmap-dc% bm3)])
+  (send dc draw-ellipse 0 0 100 100)
+  (send dc2 draw-bitmap-section-smooth bm 
+        10 10 50 50
+        0 0 100 100)
+  (send dc3 scale 0.5 0.5)
+  (send dc3 draw-bitmap bm 20 20)
+  (let ([s2 (make-bytes (* 4 70 70))]
+        [s3 (make-bytes (* 4 70 70))])
+    (send bm2 get-argb-pixels 0 0 70 70 s2)
+    (send bm3 get-argb-pixels 0 0 70 70 s3)
+    (test #t 'same-scaled (equal? s2 s3))))
 
 ;; ----------------------------------------
 

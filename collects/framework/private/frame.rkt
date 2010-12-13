@@ -44,7 +44,8 @@
            items))
   (let* ([file-menu (find-menu (string-constant file-menu))]
          [edit-menu (find-menu (string-constant edit-menu))]
-         [windows-menu (find-menu (string-constant windows-menu))]
+         [windows-menu (or (find-menu (string-constant windows-menu))
+                           (find-menu (string-constant tabs-menu)))]
          [help-menu (find-menu (string-constant help-menu))]
          [other-items
           (remq* (list file-menu edit-menu windows-menu help-menu) items)]
@@ -212,10 +213,11 @@
             (set-icon icon (send icon get-loaded-mask) 'both))))
     
     (let ([mb (make-object (get-menu-bar%) this)])
-      (when (or (eq? (system-type) 'macos)
-                (eq? (system-type) 'macosx))
-        (make-object menu:can-restore-underscore-menu% (string-constant windows-menu-label)
-          mb)))
+      (make-object menu:can-restore-underscore-menu%
+        (case (system-type)
+          [(macosx) (string-constant windows-menu-label)]
+          [else (string-constant tabs-menu-label)])
+        mb))
     
     (reorder-menus this)
     
@@ -560,6 +562,7 @@
                (λ (l)
                  (if (memq outer-info-panel l)
                      (begin (unregister-collecting-blit gc-canvas)
+                            (unregister-pref-save-callback)
                             (list rest-panel))
                      l)))]
         [else
@@ -569,6 +572,7 @@
                      l
                      (begin
                        (register-gc-blit)
+                       (register-pref-save-callback)
                        (list rest-panel outer-info-panel)))))]))
     
     [define close-panel-callback
@@ -580,6 +584,7 @@
     
     (define/augment (on-close)
       (unregister-collecting-blit gc-canvas)
+      (unregister-pref-save-callback)
       (close-panel-callback)
       (memory-cleanup)
       (inner (void) on-close))
@@ -637,6 +642,12 @@
         [(<= n 99) (format "0~a" n)]
         [else (number->string n)]))
     
+    (define pref-save-canvas #f)
+    (when checkout-or-nightly?
+      (set! pref-save-canvas (new pref-save-canvas% [parent (get-info-panel)])))
+    
+    [define lock-canvas (make-object lock-canvas% (get-info-panel))]
+    
     ; only for checkouts and nightly build users
     (when show-memory-text?
       (let* ([panel (new horizontal-panel%
@@ -657,7 +668,6 @@
                 (set! memory-canvases (remq ec memory-canvases))))
         (send panel stretchable-width #f)))
     
-    [define lock-canvas (make-object lock-canvas% (get-info-panel))]
     [define gc-canvas (make-object bday-click-canvas% (get-info-panel) '(border))]
     (define/private (register-gc-blit)
       (let ([onb (icon:get-gc-on-bitmap)]
@@ -669,6 +679,25 @@
                                     (send onb get-width)
                                     (send onb get-height)
                                     onb offb))))
+    
+    (define pref-save-callback-registration #f)
+    (inherit get-eventspace)
+    (define/private (register-pref-save-callback)
+      (when pref-save-canvas
+        (set! pref-save-callback-registration
+              (preferences:register-save-callback
+               (λ (start?)
+                 (cond
+                   [(eq? (current-thread) (eventspace-handler-thread (get-eventspace)))
+                    (send pref-save-canvas set-on? start?)]
+                   [else
+                    (queue-callback
+                     (λ ()
+                       (send pref-save-canvas set-on? start?)))]))))))
+    (define/private (unregister-pref-save-callback)
+      (when pref-save-callback-registration
+        (preferences:unregister-save-callback pref-save-callback-registration)))
+    (register-pref-save-callback)
     
     (unless (preferences:get 'framework:show-status-line)
       (send super-root change-children
@@ -732,7 +761,7 @@
         (let-values ([(cw _4) (get-client-size)]
                      [(tw _1 _2 _3) (send dc get-text-extent str normal-control-font)])
           (when (< cw tw)
-            (min-client-width (inexact->exact (floor tw)))))))
+            (min-client-width (inexact->exact (ceiling tw)))))))
     (define/override (on-paint)
       (let ([dc (get-dc)])
         (send dc set-font normal-control-font)
@@ -1693,15 +1722,22 @@
     (define/augment (after-delete x y)
       (update-prefs)
       (inner (void) after-delete x y))
+    (define timer #f)
     (define/private (update-prefs)
-      (preferences:set pref-sym
-                       (let loop ([snip (find-first-snip)])
-                         (cond
-                           [(not snip) '()]
-                           [(is-a? snip string-snip%)
-                            (cons (send snip get-text 0 (send snip get-count))
-                                  (loop (send snip next)))]
-                           [else (cons snip (loop (send snip next)))]))))
+      (unless timer
+        (set! timer (new timer%
+                         [notify-callback
+                          (λ ()
+                            (preferences:set pref-sym
+                                             (let loop ([snip (find-first-snip)])
+                                               (cond
+                                                 [(not snip) '()]
+                                                 [(is-a? snip string-snip%)
+                                                  (cons (send snip get-text 0 (send snip get-count))
+                                                        (loop (send snip next)))]
+                                                 [else (cons snip (loop (send snip next)))]))))])))
+      (send timer stop)
+      (send timer start 150 #t))
     (define/override (get-keymaps)
       (editor:add-after-user-keymap search/replace-keymap (super get-keymaps)))
     (super-new)
@@ -1807,7 +1843,7 @@
                            [bt (box 0)]
                            [bb (box 0)])
                        (send text get-visible-line-range bt bb #f)
-                       (unless (<= (unbox bt) search-result-line (unbox bb))
+                       (unless (< (unbox bt) search-result-line (unbox bb))
                          (let* ([half (sub1 (quotient (- (unbox bb) (unbox bt)) 2))]
                                 [last-pos (send text position-line (send text last-position))]
                                 [top-pos (send text line-start-position 
@@ -2408,13 +2444,15 @@
     (define/override (get-editor%) (text:searching-mixin (super get-editor%)))
     (super-new)))
 
-(define memory-canvases '())
-(define show-memory-text?
+(define checkout-or-nightly?
   (or (with-handlers ([exn:fail:filesystem? (λ (x) #f)])
         (directory-exists? (collection-path "repo-time-stamp")))
       (with-handlers ([exn:fail:filesystem? (λ (x) #f)])
         (let ([fw (collection-path "framework")])
           (directory-exists? (build-path fw 'up 'up ".git"))))))
+
+(define memory-canvases '())
+(define show-memory-text? checkout-or-nightly?)
 
 (define bday-click-canvas%
   (class canvas%
@@ -2426,6 +2464,33 @@
                       (string-constant happy-birthday-matthew))]
         [else (super on-event evt)]))
     (super-new)))
+
+(define pref-save-canvas%
+  (class canvas%
+    (define on? #f)
+    (define indicator "P")
+    (define/override (on-paint)
+      (cond
+        [on?
+         (let-values ([(cw ch) (get-client-size)])
+           (send (get-dc) draw-text indicator
+                 (- (/ cw 2) (/ indicator-width 2))
+                 (- (/ ch 2) (/ indicator-height 2))))]))
+    (define/public (set-on? new-on?)
+      (set! on? new-on?)
+      (send (get-dc) erase)
+      (on-paint)
+      (flush))
+    
+    (inherit get-dc flush get-client-size min-width)
+    (super-new [stretchable-width #f]
+               [style '(transparent)])
+    
+    (send (get-dc) set-font small-control-font)
+    (define-values (indicator-width indicator-height)
+      (let-values ([(tw th _1 _2) (send (get-dc) get-text-extent indicator)])
+        (values tw th)))
+    (min-width (+ (inexact->exact (ceiling indicator-width)) 4))))
 
 (define basic% (register-group-mixin (basic-mixin frame%)))
 (define size-pref% (size-pref-mixin basic%))

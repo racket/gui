@@ -1,11 +1,10 @@
-
-; run with gracket -u -- -f mem.rktl
+#lang racket/gui
 
 (require mzlib/class100)
 
 (define source-dir (current-load-relative-directory))
 
-(define num-times 8)
+(define num-times 80)
 (define num-threads 3)
 
 (define dump-stats? #f)
@@ -28,13 +27,12 @@
 	      allocated))
   v)
 
-(when subwindows?
-  (namespace-set-variable-value!
-   'sub-collect-frame
-   (make-object frame% "sub-collect"))
-  (namespace-set-variable-value!
-   'sub-collect-panel
-   (make-object panel% sub-collect-frame)))
+(define sub-collect-frame
+  (and subwindows?
+       (make-object frame% "sub-collect")))
+(define sub-collect-panel
+  (and subwindows?
+       (make-object panel% sub-collect-frame)))
 
 (define permanent-ready? #f)
 (define mb-lock (make-semaphore 1))
@@ -68,7 +66,7 @@
   (sleep)
   (collect-garbage)
   (collect-garbage)
-  (printf "Thread: ~s Cycle: ~s~n" id n)
+  (printf "Thread: ~s Cycle: ~s\n" id n)
   ; (dump-object-stats)
   ; (if (and dump-stats? (= id 1))
   ;    (dump-memory-stats))
@@ -154,6 +152,7 @@
 
 	(when (and edit? insert?)
 	    (let ([e edit])
+              (send e begin-edit-sequence)
 	      (when load-file?
 		(send e load-file (build-path source-dir "mem.ss")))
 	      (let loop ([i 20])
@@ -165,7 +164,8 @@
 		(send e insert s))
 	      (send e insert #\newline)
 	      (send e insert "done")
-	      (send e set-modified #f)))
+	      (send e set-modified #f)
+              (send e end-edit-sequence)))
 	
 	(when menus?
 	  (let ([f (remember tag (make-object frame% "MB Frame 0"))])
@@ -229,7 +229,7 @@
   (map (lambda (x)
 	 (let ([v (weak-box-value (cdr x))])
 	   (when v
-             (printf "~s ~s~n" (car x) v))))
+             (printf "~s ~s\n" (car x) v))))
        allocated)
   (void))
 
@@ -243,10 +243,10 @@
   (if #f
       (thread (lambda ()
 		(read)
-		(printf "breaking~n")
+		(printf "breaking\n")
 		(break-thread t)
 		(thread-wait t)
-		(printf "done~n")))
+		(printf "done\n")))
       (void)))
 
 (define (do-test)

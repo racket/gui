@@ -11,6 +11,7 @@
 	   "helper.ss"
 	   "wx.ss"
 	   "wxitem.ss"
+           "wxlitem.ss"
 	   "mrwindow.ss"
 	   "mrcontainer.ss")
 
@@ -57,7 +58,7 @@
 									   ;; for keyword use
 									   [font no-val])
       (rename [super-set-label set-label])
-      (private-field [label lbl][callback cb])
+      (private-field [label lbl][callback cb] [is-bitmap? (lbl . is-a? . wx:bitmap%)])
       (override
 	[get-label (lambda () label)]
 	[get-plain-label (lambda () (and (string? label) (wx:label->plain-label label)))]
@@ -68,8 +69,12 @@
 		      (let ([l (if (string? l)
                                  (string->immutable-string l)
                                  l)])
-			(send wx set-label l)
-			(set! label l))))])
+                        (when (or (and is-bitmap?
+                                       (l . is-a? . wx:bitmap%))
+                                  (and (not is-bitmap?)
+                                       (string? l)))
+                          (send wx set-label l)
+                          (set! label l)))))])
       (public
 	[hidden-child? (lambda () #f)] ; module-local method
 	[label-checker  (lambda () check-label-string/false)] ; module-local method
@@ -80,7 +85,7 @@
       (sequence
 	(when (string? label)
 	  (set! label (string->immutable-string label)))
-	(super-init (lambda () (set! wx (mk-wx)) wx) (lambda () wx) mismatches label parent cursor)
+	(super-init (lambda () (set! wx (mk-wx)) wx) (lambda () wx) (lambda () wx) mismatches label parent cursor)
 	(unless (hidden-child?)
 	  (as-exit (lambda () (send parent after-new-child this)))))))
 

@@ -76,7 +76,7 @@
                          '("local")
                          (λ (x) (and (list? x) (andmap string? x))))
 (preferences:set-default 'framework:square-bracket:letrec
-                         (let ([fors '("for" "for/list" "for/hash" "for/and" "for/or" "for/first" "for/last")])
+                         (let ([fors '("for" "for/fold" "for/list" "for/hash" "for/and" "for/or" "for/first" "for/last")])
                            (append fors
                                    (map (λ (x) (regexp-replace #rx"for" x "for*"))
                                         fors)
@@ -208,7 +208,10 @@
 (let ([hash-table (make-hasheq)])
   (for-each (λ (x) 
               (hash-set! hash-table x 'define))
-            '(struct local))
+            '(struct
+              local
+                     
+              define-type))
   (for-each (λ (x) 
               (hash-set! hash-table x 'begin))
             '(case-lambda
@@ -261,9 +264,11 @@
                parameterize
                call-with-input-file call-with-input-file* with-input-from-file
                with-input-from-port call-with-output-file
-               with-output-to-file with-output-to-port
+               with-output-to-file with-output-to-port 
 
 	       for-all
+               
+               type-case
 	       ))
   (preferences:set-default 
    'framework:tabify

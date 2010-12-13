@@ -10,7 +10,8 @@
          "collapsed-snipclass-helpers.ss"
          "sig.ss"
          "../gui-utils.ss"
-         "../preferences.ss")
+         "../preferences.ss"
+         scheme/match)
 
 (import mred^
         [prefix preferences: framework:preferences^]
@@ -43,13 +44,16 @@
     (let* ([end (or in-end (send text last-position))]
            [port (open-input-text-editor text start end)])
       (with-handlers ([exn:fail:read:eof? (λ (x) #f)]
-                      [exn:fail:read? (λ (x) #f)])
+                      [exn:fail:read? (λ (x) #t)])
         (let ([first (read port)])
-          (and (not (eof-object? first))
-               (let loop ()
-                 (let ([s (read port)])
-                   (or (eof-object? s)
-                       (loop))))))))))
+          (cond
+            [(eof-object? first) #f]
+            [else
+             (let loop ()
+               (let ([s (read port)])
+                 (cond
+                   [(eof-object? s) #t]
+                   [else (loop)])))]))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;                                                                  ;;
@@ -200,7 +204,8 @@
          (let ([up-sexp (send text find-up-sexp click-pos)])
            (when up-sexp 
              (let ([fwd (send text get-forward-sexp up-sexp)])
-               (make-collapse-item text up-sexp fwd menu))))]))))
+               (when fwd
+                 (make-collapse-item text up-sexp fwd menu)))))]))))
 
 ;; make-expand-item : (instanceof text%) (instanceof sexp-snip<%>) (instanceof menu%) -> void
 (define (make-expand-item text snip menu)
@@ -316,10 +321,10 @@
 (define (short-sym->style-name sym)
   (hash-ref sn-hash sym
             (λ ()
-               (let ([s (format "framework:syntax-color:scheme:~a"
-                                (xlate-sym-style sym))])
-                 (hash-set! sn-hash sym s)
-                 s))))
+              (let ([s (format "framework:syntax-color:scheme:~a"
+                               (xlate-sym-style sym))])
+                (hash-set! sn-hash sym s)
+                s))))
 
 (define (add-coloring-preferences-panel)
   (color-prefs:add-to-preferences-panel
@@ -373,7 +378,8 @@
     
     introduce-let-ans
     move-sexp-out
-    kill-enclosing-parens))
+    kill-enclosing-parens
+    toggle-round-square-parens))
 
 (define init-wordbreak-map
   (λ (map)
@@ -1051,15 +1057,42 @@
       (let ([begin-outer (find-up-sexp begin-inner)])
         (cond
           [begin-outer
-           (let ([end-outer (get-forward-sexp begin-outer)])
-             (cond
-               [(and end-outer (> (- end-outer begin-outer) 2))
-                (delete (- end-outer 1) end-outer)
-                (delete begin-outer (+ begin-outer 1))
-                (tabify-selection begin-outer (- end-outer 2))]
-               [else (bell)]))]
+            (let ([end-outer (get-forward-sexp begin-outer)])
+              (cond
+                [(and end-outer (> (- end-outer begin-outer) 2))
+                 (delete (- end-outer 1) end-outer)
+                 (delete begin-outer (+ begin-outer 1))
+                 (tabify-selection begin-outer (- end-outer 2))]
+                [else (bell)]))]
           [else (bell)]))
       (end-edit-sequence))
+    
+    ;; change the parens following the cursor from () to [] or vice versa
+    (define/public (toggle-round-square-parens start-pos)
+      (begin-edit-sequence)
+      (let* ([sexp-begin (skip-whitespace start-pos 'forward #f)]
+             [sexp-end (get-forward-sexp sexp-begin)])
+        (cond [(and sexp-end
+                    (< (+ 1 sexp-begin) sexp-end))
+               ;; positions known to exist: start-pos <= x < sexp-end
+               (match* ((get-character sexp-begin) (get-character (- sexp-end 1)))
+                       [(#\( #\)) (replace-char-at-posn sexp-begin "[")
+                                  (replace-char-at-posn (- sexp-end 1) "]")]
+                       [(#\[ #\]) (replace-char-at-posn sexp-begin "(")
+                                  (replace-char-at-posn (- sexp-end 1) ")")]
+                       [(_ _) (bell)])]
+              [else (bell)]))
+      (end-edit-sequence))
+    
+    ;; replace-char-at-posn: natural-number string -> 
+    ;;   replace the char at the given posn with the given string.
+    ;;
+    ;; this abstraction exists because the duplicated code in toggle-round-square-parens was 
+    ;; just a little too much for comfort
+    (define (replace-char-at-posn posn str)
+      ;; insertions are performed before deletions in order to preserve the location of the cursor
+      (insert str (+ posn 1) (+ posn 1))
+      (delete posn (+ posn 1)))
     
     (inherit get-fixed-style)
     (define/public (mark-matching-parenthesis pos)
@@ -1187,7 +1220,7 @@
     
     (define/override (put-file text sup directory default-name)
       (parameterize ([finder:default-extension "rkt"]
-                     [finder:default-filters '(["Racket Sources" "*.rkt;*.ss;*.scm"]
+                     [finder:default-filters '(["Racket Sources" "*.rkt;*.scrbl;*.ss;*.scm"]
                                                ["Any" "*.*"])])
         ;; don't call the surrogate's super, since it sets the default extension
         (sup directory default-name)))
@@ -1255,6 +1288,8 @@
                       (λ (e p) (send e move-sexp-out p)))
     (add-pos-function "kill-enclosing-parens"
                       (lambda (e p) (send e kill-enclosing-parens p)))
+    (add-pos-function "toggle-round-square-parens"
+                      (lambda (e p) (send e toggle-round-square-parens p)))
     
     (let ([add-edit-function
            (λ (name call-method)
@@ -1381,7 +1416,8 @@
     (send keymap map-function "c:c;c:b" "remove-parens-forward")
     (send keymap map-function "c:c;c:l" "introduce-let-ans")
     (send keymap map-function "c:c;c:o" "move-sexp-out")
-    (send keymap map-function "c:c;c:e" "kill-enclosing-parens")))
+    (send keymap map-function "c:c;c:e" "kill-enclosing-parens")
+    (send keymap map-function "c:c;c:[" "toggle-round-square-parens")))
 
 (define keymap (make-object keymap:aug-keymap%))
 (setup-keymap keymap)
