@@ -107,7 +107,7 @@
     moved. A snip may refuse to be moved by returning @scheme[#f] from
     @method[snip% release-from-owner].
   }
-  @defmethod*[(((initial-autowrap-bitmap) (union |#f| (instance bitmap%))))]{
+  @defmethod*[(((initial-autowrap-bitmap) (union #f (instance bitmap%))))]{
     The result of this method is used as the initial autowrap
     bitmap. Override this method to change the initial 
     @scheme[bitmap%]. See also
@@ -135,7 +135,7 @@
 
   }
   @defmethod[(get-edition-number) exact-nonnegative-integer?]{
-     Returns a number that increments everytime something in
+     Returns a number that increments every time something in
      the editor changes. 
      
      The number is updated in @xmethod[text% after-insert] and
@@ -156,7 +156,7 @@
   objects in the framework.
 
   The class that this mixin produces uses the same initialization
-  arguments as it's input.
+  arguments as its input.
   @defmethod*[#:mode override (((on-paint (before? any/c) (dc (is-a?/c dc<%>)) (left real?) (top real?) (right real?) (bottom real?) (dx real?) (dy real?) (draw-caret (one-of/c (quote no-caret) (quote show-inactive-caret) (quote show-caret)))) void))]{
 
     Draws the rectangles installed by
@@ -488,13 +488,13 @@
   The contents of the two
   editor are kept in sync, as modifications
   to this object happen.
-  @defmethod*[(((get-delegate) (union |#f| (instanceof text%))))]{
+  @defmethod*[(((get-delegate) (union #f (instanceof text%))))]{
     The result of this method is the @scheme[text%] object
     that the contents of this editor are being delegated to, or
     @scheme[#f], if there is none.
 
   }
-  @defmethod*[(((set-delegate (delegate (union |#f| (instanceof text%)))) void))]{
+  @defmethod*[(((set-delegate (delegate (union #f (instanceof text%)))) void))]{
     This method sets the current delegate. 
 
 
@@ -531,7 +531,17 @@
     Creates and returns an instance of 
     @scheme[text:1-pixel-string-snip%].
   }
-  @defmethod*[#:mode override (((get-extent (dc (instanceof dc<%>)) (x real) (y real) (w (box (union non-negative-real-number |#f|)) |#f|) (h (box (union non-negative-real-number |#f|)) |#f|) (descent (box (union non-negative-real-number |#f|)) |#f|) (space (box (union non-negative-real-number |#f|)) |#f|) (lspace (box (union non-negative-real-number |#f|)) |#f|) (rspace (box (union non-negative-real-number |#f|)) |#f|)) void))]{
+  @defmethod*[#:mode override
+              (((get-extent
+                 (dc (instanceof dc<%>))
+                 (x real) (y real)
+                 (w (box (union non-negative-real-number #f)) #f)
+                 (h (box (union non-negative-real-number #f)) #f)
+                 (descent (box (union non-negative-real-number #f)) #f)
+                 (space (box (union non-negative-real-number #f)) #f)
+                 (lspace (box (union non-negative-real-number #f)) #f)
+                 (rspace (box (union non-negative-real-number #f)) #f))
+                void))]{
 
     Sets the descent, space, lspace, and rspace to zero. Sets
     the height to 1. Sets the width to the number of characters
@@ -573,7 +583,7 @@
     Creates and returns an instance of 
     @scheme[text:1-pixel-tab-snip%].
   }
-  @defmethod*[#:mode override (((get-extent (dc (instanceof dc<%>)) (x real) (y real) (w (box (union non-negative-real-number |#f|)) |#f|) (h (box (union non-negative-real-number |#f|)) |#f|) (descent (box (union non-negative-real-number |#f|)) |#f|) (space (box (union non-negative-real-number |#f|)) |#f|) (lspace (box (union non-negative-real-number |#f|)) |#f|) (rspace (box (union non-negative-real-number |#f|)) |#f|)) void))]{
+  @defmethod*[#:mode override (((get-extent (dc (instanceof dc<%>)) (x real) (y real) (w (box (union non-negative-real-number #f)) #f) (h (box (union non-negative-real-number #f)) #f) (descent (box (union non-negative-real-number #f)) #f) (space (box (union non-negative-real-number #f)) #f) (lspace (box (union non-negative-real-number #f)) #f) (rspace (box (union non-negative-real-number #f)) #f)) void))]{
 
     Sets the descent, space, lspace, and rspace to zero. Sets
     the height to 1. Sets the width to the width of tabs as
@@ -818,7 +828,7 @@
 }
 @definterface[text:ports<%> ()]{
   Classes implementing this interface (via the associated
-  mixin) support input and output ports that read from the
+  mixin) support input and output ports that read from and to the
   editor. 
 
   There are two input ports: the normal input port just reads
@@ -826,6 +836,11 @@
   inserts an editor snip into this text and uses input typed
   into the box as input into the port.
 
+  There are three output ports, designed to match stdout, stderr,
+  and a special port for printing values. The only difference
+  between them is the output is rendered in different colors
+  when it comes in via the different ports.
+  
   They create three threads to mediate access to the input and
   output ports (one for each input port and one for all of the
   output ports).

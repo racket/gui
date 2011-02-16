@@ -216,7 +216,7 @@
         (adjust-client-delta 0 h))
       ;; Hack: calls back into the mred layer to re-compute
       ;;  sizes. By calling this early enough, the frame won't 
-      ;;  grow if it doesn't have to grow to accomodate the menu bar.
+      ;;  grow if it doesn't have to grow to accommodate the menu bar.
       (send this resized))
 
     (define saved-enforcements (vector 0 0 -1 -1))
@@ -334,7 +334,7 @@
 
     (define big-icon #f)
     (define small-icon #f)
-    (define/public (set-icon bm mask [mode 'both])
+    (define/public (set-icon bm [mask #f] [mode 'both])
       (let ([bm (if mask
 		    (let* ([nbm (make-object bitmap%
 					     (send bm get-width)
