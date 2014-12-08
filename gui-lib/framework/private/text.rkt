@@ -2866,8 +2866,7 @@
       ;; bytes are slower, but probably that's not the common case.
       (define bytes-limit-for-a-single-go 1000)
       
-      (define lst (at-queue->list q))
-      (let loop ([lst lst] [acc null])
+      (let loop ([lst (at-queue->list q)] [acc null])
         (cond
           [(null? lst)
            (values (reverse acc)
@@ -2885,17 +2884,16 @@
               (define too-many-bytes? (>= (bytes-length the-bytes) bytes-limit-for-a-single-go))
               (cond
                 [(or (null? rest) too-many-bytes?)
-                 (define remainder-re-enqueued (list->at-queue rest))
                  (define-values (converted-bytes src-read-amt termination)
                    (bytes-convert converter the-bytes 0 (min (bytes-length the-bytes)
                                                              bytes-limit-for-a-single-go)))
                  (define new-at-queue 
                    (cond
                      [(= src-read-amt (bytes-length the-bytes))
-                      remainder-re-enqueued]
+                      (list->at-queue rest)]
                      [else
                       (define leftovers (subbytes the-bytes src-read-amt (bytes-length the-bytes)))
-                      (at-enqueue (cons leftovers key) remainder-re-enqueued)]))
+                      (list->at-queue (cons (cons leftovers key) rest))]))
                  (define converted-str (bytes->string/utf-8 converted-bytes))
                  (values (reverse (cons (cons converted-str key) acc))
                          new-at-queue
