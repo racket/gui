@@ -217,20 +217,25 @@
                                           (bottom real?)
                                           (dx real?)
                                           (dy real?)
-                                          (draw-caret (or/c 'no-caret 'show-inactive-caret 'show-caret))) 
+                                          (draw-caret (or/c 'no-caret 
+                                                            'show-inactive-caret
+                                                            'show-caret))) 
                                 void?))]{
     Draws the rectangles installed by @method[text:basic<%> highlight-range].
   }
 
-  @defmethod*[#:mode augment (((on-insert (start exact-nonnegative-integer?) (end exact-nonnegative-integer?)) void?))]{
+  @defmethod*[#:mode augment (((on-insert (start exact-nonnegative-integer?)
+                                          (end exact-nonnegative-integer?)) void?))]{
     See @method[text:basic<%> set-styles-fixed].
   }
 
-  @defmethod*[#:mode augment (((after-insert (start exact-nonnegative-integer?) (len exact-nonnegative-integer?)) void?))]{
+  @defmethod*[#:mode augment (((after-insert (start exact-nonnegative-integer?)
+                                             (len exact-nonnegative-integer?)) void?))]{
     See @method[text:basic<%> set-styles-fixed].
   }
 
-  @defmethod*[#:mode override (((put-file (directory (or/c path? #f)) (default-name string?)) (or/c path? #f)))]{
+  @defmethod*[#:mode override (((put-file (directory (or/c path? #f)) (default-name string?))
+                                (or/c path? #f)))]{
     Like @method[editor<%> put-file] but uses @racket[finder:put-file] instead
     of @racket[put-file].
   }
@@ -326,7 +331,8 @@
 @definterface[text:foreground-color<%> (text:basic<%> editor:standard-style-list<%>)]{
 }
 
-@defmixin[text:foreground-color-mixin (text:basic<%> editor:standard-style-list<%>) (text:foreground-color<%>)]{
+@defmixin[text:foreground-color-mixin (text:basic<%> editor:standard-style-list<%>)
+                                      (text:foreground-color<%>)]{
   This mixin changes the default text style to have the foreground color
   controlled by @racket[editor:set-default-font-color].
 
@@ -360,11 +366,15 @@
 }
 
 @defmixin[text:nbsp->space-mixin (text%) (text:nbsp->space<%>)]{
-  @defmethod*[#:mode augment (((on-insert (start exact-nonnegative-integer?) (end exact-nonnegative-integer?)) void?))]{
+  @defmethod*[#:mode augment (((on-insert (start exact-nonnegative-integer?)
+                                          (end exact-nonnegative-integer?))
+                               void?))]{
     Starts an edit-sequence by calling @method[editor<%> begin-edit-sequence].
   }
 
-  @defmethod*[#:mode augment (((after-insert (start exact-nonnegative-integer?) (len exact-nonnegative-integer?)) void?))]{
+  @defmethod*[#:mode augment (((after-insert (start exact-nonnegative-integer?)
+                                             (len exact-nonnegative-integer?))
+                               void?))]{
     Replaces all non-breaking space characters @racket[(integer->char 160)] by
     @racket[#\space] characters.
 
@@ -445,11 +455,13 @@
     state and calls the super.
   }
 
-  @defmethod[#:mode augment (on-insert [start exact-nonnegative-integer?] [len exact-nonnegative-integer?]) void?]{
+  @defmethod[#:mode augment (on-insert [start exact-nonnegative-integer?] 
+                                       [len exact-nonnegative-integer?]) void?]{
     Calls @method[editor<%> begin-edit-sequence].
   }
 
-  @defmethod[#:mode augment (after-insert [start exact-nonnegative-integer?] [len exact-nonnegative-integer?]) void?]{
+  @defmethod[#:mode augment (after-insert [start exact-nonnegative-integer?]
+                                          [len exact-nonnegative-integer?]) void?]{
     Normalizes any next text and calls @method[editor<%> end-edit-sequence].
   }
 }
@@ -530,11 +542,13 @@
     of @racket[keymap:get-search].
   }
 
-  @defmethod[#:mode augment (after-insert [start exact-nonnegative-integer?] [len exact-nonnegative-integer?]) void?]{
+  @defmethod[#:mode augment (after-insert [start exact-nonnegative-integer?]
+                                          [len exact-nonnegative-integer?]) void?]{
     Re-does any search now that the contents of the window have changed.
   }
 
-  @defmethod[#:mode augment (after-delete [start exact-nonnegative-integer?] [len exact-nonnegative-integer?]) void?]{
+  @defmethod[#:mode augment (after-delete [start exact-nonnegative-integer?]
+                                          [len exact-nonnegative-integer?]) void?]{
     Re-does any search now that the contents of the window have changed.
   }
 
@@ -645,7 +659,10 @@
     1. Sets the width to the number of characters in the string.
   }
 
-  @defmethod*[#:mode override (((insert (s string?) (len exact-nonnegative-integer?) (pos exact-nonnegative-integer? 0)) void?))]{
+  @defmethod*[#:mode override (((insert (s string?)
+                                        (len exact-nonnegative-integer?) 
+                                        (pos exact-nonnegative-integer? 0))
+                                void?))]{
   }
 
   @defmethod*[#:mode override (((draw (dc (is-a?/c dc<%>))
@@ -685,16 +702,18 @@
     Creates and returns an instance of @racket[text:1-pixel-tab-snip%].
   }
 
-  @defmethod*[#:mode override (((get-extent (dc (is-a?/c dc<%>))
-                                            (x real?)
-                                            (y real?)
-                                            (w (or/c (box/c (and/c real? (not/c negative?)) #f)) #f)
-                                            (h (or/c (box/c (and/c real? (not/c negative?)) #f)) #f)
-                                            (descent (or/c (box/c (and/c real? (not/c negative?)) #f)) #f)
-                                            (space (or/c (box/c (and/c real? (not/c negative?)) #f)) #f)
-                                            (lspace (or/c (box/c (and/c real? (not/c negative?)) #f)) #f)
-                                            (rspace (or/c (box/c (and/c real? (not/c negative?)) #f)) #f))
-                                void?))]{
+  @defmethod*[#:mode 
+              override
+              (((get-extent (dc (is-a?/c dc<%>))
+                            (x real?)
+                            (y real?)
+                            (w (or/c (box/c (and/c real? (not/c negative?)) #f)) #f)
+                            (h (or/c (box/c (and/c real? (not/c negative?)) #f)) #f)
+                            (descent (or/c (box/c (and/c real? (not/c negative?)) #f)) #f)
+                            (space (or/c (box/c (and/c real? (not/c negative?)) #f)) #f)
+                            (lspace (or/c (box/c (and/c real? (not/c negative?)) #f)) #f)
+                            (rspace (or/c (box/c (and/c real? (not/c negative?)) #f)) #f))
+                void?))]{
     Sets the descent, space, lspace, and rspace to zero. Sets the height to
     1. Sets the width to the width of tabs as returned in the
     @racket[tab-width] parameter of the @method[text% get-tabs] method.
@@ -768,15 +787,18 @@
     there is one.
   }
 
-  @defmethod*[#:mode augment (((after-insert (start exact-nonnegative-integer?) (len exact-nonnegative-integer?)) void?))]{
+  @defmethod*[#:mode augment (((after-insert (start exact-nonnegative-integer?) 
+                                             (len exact-nonnegative-integer?)) void?))]{
     forwards the change to the delegate
   }
 
-  @defmethod*[#:mode augment (((after-delete (start exact-nonnegative-integer?) (len exact-nonnegative-integer?)) void?))]{
+  @defmethod*[#:mode augment (((after-delete (start exact-nonnegative-integer?)
+                                             (len exact-nonnegative-integer?)) void?))]{
     forwards the change to the delegate.
   }
 
-  @defmethod*[#:mode augment (((after-change-style (start exact-nonnegative-integer?) (len exact-nonnegative-integer?)) void?))]{
+  @defmethod*[#:mode augment (((after-change-style (start exact-nonnegative-integer?) 
+                                                   (len exact-nonnegative-integer?)) void?))]{
     forwards the changed style to the delegate.
   }
 
@@ -820,14 +842,16 @@
     @racket[top-level-window<%>] as the frame.
   }
 
-  @defmethod*[#:mode augment (((after-insert (start exact-nonnegative-integer?) (len exact-nonnegative-integer?)) void?))]{
+  @defmethod*[#:mode augment (((after-insert (start exact-nonnegative-integer?) 
+                                             (len exact-nonnegative-integer?)) void?))]{
     Calls the @method[frame:text-info<%> editor-position-changed] method of the
     frame that is viewing this object. It uses @method[editor<%> get-canvas] to
     get the canvas for this frame, and uses that canvas's
     @racket[top-level-window<%>] as the frame.
   }
 
-  @defmethod*[#:mode augment (((after-delete (start exact-nonnegative-integer?) (len exact-nonnegative-integer?)) void?))]{
+  @defmethod*[#:mode augment (((after-delete (start exact-nonnegative-integer?)
+                                             (len exact-nonnegative-integer?)) void?))]{
     Calls the @method[frame:text-info<%> editor-position-changed] method of the
     frame that is viewing this object. It uses @method[editor<%> get-canvas] to
     get the canvas for this frame, and uses that canvas's
@@ -851,7 +875,8 @@
   @method[editor<%> save-file] is used.
 
   @defmethod*[#:mode augment (((on-save-file (filename path?)
-                                             (format (or/c 'guess 'standard 'text 'text-force-cr 'same 'copy)))
+                                             (format (or/c 'guess 'standard 'text 
+                                                           'text-force-cr 'same 'copy)))
                                void?))]{
     If the method @method[text% get-file-format] returns @racket['standard] and
     the text has only @racket[string-snip%]s, the file format is set to
@@ -911,7 +936,8 @@
     true, otherwise returns the result of calling @racket[inner].
   }
 
-  @defmethod*[#:mode augment (((can-delete? (start exact-nonnegative-integer?) (len exact-nonnegative-integer?)) boolean?))]{
+  @defmethod*[#:mode augment (((can-delete? (start exact-nonnegative-integer?)
+                                            (len exact-nonnegative-integer?)) boolean?))]{
     Returns false if the result of @method[text:file<%> get-read-write?]  is
     true, otherwise returns the result of calling @racket[inner].
   }
