@@ -99,6 +99,8 @@
     initial-autowrap-bitmap
     get-port-name
     port-name-matches?
+    after-set-port-unsaved-name
+    set-port-unsaved-name
     get-start-of-line))
 
 (define highlight-range-mixin
@@ -547,13 +549,20 @@
       (send (get-style-list) find-named-style "Standard"))
 
     (define port-name-identifier #f)
+    (define port-name-unsaved-name "unsaved-editor")
+    (define/public-final (set-port-unsaved-name p)
+      (unless (equal? port-name-unsaved-name p)
+        (set! port-name-unsaved-name p)
+        (set! port-name-identifier #f)
+        (after-set-port-unsaved-name)))
+    (define/public (after-set-port-unsaved-name) (void))
     (define/public (get-port-name)
       (let* ([b (box #f)]
              [n (get-filename b)])
         (cond
           [(or (unbox b) (not n))
            (unless port-name-identifier
-             (set! port-name-identifier (gensym 'unsaved-editor))
+             (set! port-name-identifier (string->uninterned-symbol port-name-unsaved-name))
              (register-port-name! port-name-identifier this))
            port-name-identifier]
           [else n])))
@@ -2909,13 +2918,18 @@
              [else (loop rest
                          (cons front acc))])])))
     
+    (define/override (after-set-port-unsaved-name)
+      (set! in-port (make-in-port-with-a-name (get-port-name)))
+      (set! in-box-port (make-in-box-port-with-a-name (get-port-name))))
     
     (super-new)
     (init-output-ports)
-    (define-values (in-port read-chan clear-input-chan)
-      (start-text-input-port (get-port-name) #f))
-    (define-values (in-box-port box-read-chan box-clear-input-chan) 
-      (start-text-input-port (get-port-name) (lambda () (on-box-peek))))))
+    (define-values (make-in-port-with-a-name read-chan clear-input-chan)
+      (start-text-input-port #f))
+    (define-values (make-in-box-port-with-a-name box-read-chan box-clear-input-chan)
+      (start-text-input-port (lambda () (on-box-peek))))
+    (define in-port (make-in-port-with-a-name (get-port-name)))
+    (define in-box-port (make-in-box-port-with-a-name (get-port-name)))))
 
 (define input-box<%>
   (interface ((class->interface text%))
@@ -2943,7 +2957,7 @@
     
     (super-new)))
 
-(define (start-text-input-port source on-peek)
+(define (start-text-input-port on-peek)
   
   ;; eventspace at the time this function was called. used for peek callbacks
   (define eventspace (current-eventspace))
@@ -3261,15 +3275,17 @@
          (λ (fail)
            (channel-put position-chan (cons fail chan))
            chan))))))
-  (let ([p (make-input-port source
-                            read-bytes-proc
-                            peek-proc
-                            close-proc
-                            progress-evt-proc
-                            commit-proc
-                            position-proc)])
+  (define (make-the-port source)
+    (define p (make-input-port source
+                               read-bytes-proc
+                               peek-proc
+                               close-proc
+                               progress-evt-proc
+                               commit-proc
+                               position-proc))
     (port-count-lines! p)
-    (values p read-chan clear-input-chan)))
+    p)
+  (values make-the-port read-chan clear-input-chan))
 
 
 #| 

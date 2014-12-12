@@ -184,6 +184,17 @@
     some filesystems. If it is called many times in a loop, cache the results
     to avoid calling it too often.
   }
+  
+  @defmethod[(set-port-unsaved-name [name string?]) void?]{
+    When @method[text:basic<%> get-port-name] returns a symbol, the printed
+    representation of the symbol will be the same as @racket[name].
+  }
+
+  @defmethod[(after-set-port-unsaved-name) any/c]{
+    This method is called after @method[text:basic<%> set-port-unsaved-name] is
+    called. Override it to detect changes in what @method[text:basic<%> get-port-name]
+    returns.
+  }
 
   @defmethod[(get-edition-number) exact-nonnegative-integer?]{
      Returns a number that increments every time something in the editor
