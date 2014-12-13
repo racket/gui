@@ -630,7 +630,19 @@
    (sort (set->list known-style-names) symbol<?))
   (define preferred-color-scheme (preferences:get 'framework:color-scheme))
   (for ([dir (in-list (find-relevant-directories '(framework:color-schemes)))])
-    (define info (get-info/full dir))
+    (define info (with-handlers ([exn:fail?
+                                  (λ (x)
+                                    (define sp (open-input-string))
+                                    (parameterize ([current-error-port sp])
+                                      ((error-display-handler)
+                                       (if (exn? x) (exn-message x) (format "uncaught exn: ~s" x))
+                                       x))
+                                    (log-color-scheme-warning
+                                     "info file in ~a failed to load:\n~a"
+                                     dir
+                                     (get-output-string sp))
+                                    #f)])
+                   (get-info/full dir)))
     (when info
       (define cs-info (info 'framework:color-schemes))
       (cond
