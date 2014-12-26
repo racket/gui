@@ -632,7 +632,7 @@
   (for ([dir (in-list (find-relevant-directories '(framework:color-schemes)))])
     (define info (with-handlers ([exn:fail?
                                   (λ (x)
-                                    (define sp (open-input-string))
+                                    (define sp (open-output-string))
                                     (parameterize ([current-error-port sp])
                                       ((error-display-handler)
                                        (if (exn? x) (exn-message x) (format "uncaught exn: ~s" x))
