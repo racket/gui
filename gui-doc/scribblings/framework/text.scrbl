@@ -528,6 +528,11 @@
     tracked via the @method[text% after-set-position] method.)
   }
 
+  @defmethod[(finish-pending-search-work) void?]{
+    Finishes any pending work in computing and
+    drawing the search bubbles.
+  }
+
   @defmethod[(get-search-bubbles)
              (listof (list/c (cons/c number? number?)
                              (or/c 'normal-search-color

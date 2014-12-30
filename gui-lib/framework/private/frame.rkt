@@ -2469,18 +2469,19 @@
       (unhide-search #f)
       (send find-edit search searching-direction #t))
     
-    (define/public (search-replace) 
-      (let ([text-to-search (get-text-to-search)])
-        (when text-to-search
-          (let ([replacee-start (send text-to-search get-replace-search-hit)])
-            (when replacee-start
-              (let ([replacee-end (+ replacee-start (send find-edit last-position))])
-                (send text-to-search begin-edit-sequence)
-                (send text-to-search set-position replacee-end replacee-end)
-                (send text-to-search delete replacee-start replacee-end)
-                (copy-over replace-edit 0 (send replace-edit last-position) text-to-search replacee-start)
-                (search 'forward)
-                (send text-to-search end-edit-sequence)))))))
+    (define/public (search-replace)
+      (define text-to-search (get-text-to-search))
+      (when text-to-search
+        (define replacee-start (send text-to-search get-replace-search-hit))
+        (when replacee-start
+          (define replacee-end (+ replacee-start (send find-edit last-position)))
+          (send text-to-search begin-edit-sequence)
+          (send text-to-search set-position replacee-end replacee-end)
+          (send text-to-search delete replacee-start replacee-end)
+          (copy-over replace-edit 0 (send replace-edit last-position) text-to-search replacee-start)
+          (search 'forward)
+          (send text-to-search finish-pending-search-work)
+          (send text-to-search end-edit-sequence))))
       
     (define/private (copy-over src-txt src-start src-end dest-txt dest-pos)
       (send src-txt split-snip src-start)

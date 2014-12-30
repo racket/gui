@@ -1097,7 +1097,8 @@
     set-searching-state
     set-search-anchor
     get-search-bubbles
-    get-search-hit-count))
+    get-search-hit-count
+    finish-pending-search-work))
 
 (define normal-search-color (send the-color-database find-color "plum"))
 (define dark-search-color (send the-color-database find-color "mediumorchid"))
@@ -1343,14 +1344,27 @@
         (queue-callback (λ () (run-search)) #f)))
     
     (define/private (run-search)
-      (define done? (coroutine-run search-coroutine (void)))
-      (cond
-        [done?
-         (set! search-coroutine #f)]
-        [else
-         (queue-callback
-          (λ () (run-search))
-          #f)]))
+      ;; there may be a call to (finish-pending-search-work) with a run-search
+      ;; pending so we check to see if that happened and do no work in that case.
+      (when search-coroutine
+        (define done? (coroutine-run search-coroutine (void)))
+        (cond
+          [done?
+           (set! search-coroutine #f)]
+          [else
+           (queue-callback
+            (λ () (run-search))
+            #f)])))
+    
+    (define/public (finish-pending-search-work)
+      (when search-coroutine
+        (let loop ()
+          (define done? (coroutine-run search-coroutine (void)))
+          (cond
+            [done?
+             (set! search-coroutine #f)]
+            [else
+             (loop)]))))
     
     (define/private (create-search-coroutine notify-frame?)
       (coroutine
