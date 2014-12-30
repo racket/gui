@@ -41,3 +41,13 @@ up an image.
   Ordinarily, the image's bitmap cache is computed the first time
   the image is actually rendered.
 }
+
+@defproc[(definitely-same-image? [i1 image?] [i2 image?]) boolean?]{
+  Returns @racket[#t] if @racket[i1] and @racket[i2] draw identically
+  and @racket[#f] if they may draw the same or may draw differently. 
+  
+  This test is intended to be cheaper than a full equality comparison.
+  It is also used by the implementation of @racket[equal?] on images
+  to short-circuit the full check. (The full check draws the two images
+  and then compares the resulting bitmaps.)
+}

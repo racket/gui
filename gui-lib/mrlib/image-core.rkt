@@ -436,6 +436,22 @@ has been moved out).
     (inherit set-snipclass)
     (set-snipclass snip-class)))
 
+(define (definitely-same-image? i1 i2)
+  (cond
+    [(and (is-a? i1 image<%>) (is-a? i2 image<%>))
+     (equal? (send i1 get-normalized-shape)
+             (send i2 get-normalized-shape))]
+    [(or (is-a? i1 image<%>) (is-a? i2 image<%>))
+     #f]
+    [else
+     (define bm1 (if (is-a? i1 image-snip%)
+                     (send i1 get-image)
+                     i2))
+     (define bm2 (if (is-a? i2 image-snip%)
+                     (send i2 get-image)
+                     i2))
+     (eq? bm1 bm2)]))
+
 (define (same-bb? bb1 bb2)
   (and (same-width/height? bb1 bb2)
        (= (round (bb-baseline bb1)) (round (bb-baseline bb2)))))
@@ -1383,7 +1399,9 @@ the mask bitmap and the original bitmap are all together in a single bytes!
          curve-segment->path
          mode-color->pen
          
-         snipclass-bytes->image)
+         snipclass-bytes->image
+         (contract-out
+          [definitely-same-image? (-> image? image? boolean?)]))
 
 ;; method names
 (provide get-shape get-bb get-pinhole get-normalized? get-normalized-shape)
