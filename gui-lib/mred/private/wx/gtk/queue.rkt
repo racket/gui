@@ -9,7 +9,8 @@
          "clipboard.rkt"
          "const.rkt"
 	 "w32.rkt"
-         "unique.rkt")
+         "unique.rkt"
+         "../common/keep-forever.rkt")
 
 (provide (protect-out gtk-start-event-pump
                       try-to-sync-refresh
@@ -203,6 +204,8 @@
 (gdk_event_handler_set event-dispatch
                        #f
                        uninstall)
+(keep-forever event-dispatch)
+(keep-forever uninstall)
 
 (define (dispatch-all-ready)
   (pre-event-sync #f)

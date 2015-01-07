@@ -7,7 +7,8 @@
          "rbtree.rkt"
          "../../lock.rkt"
          "handlers.rkt"
-         "once.rkt")
+         "once.rkt"
+         "keep-forever.rkt")
 
 (provide 
  (protect-out queue-evt
@@ -86,6 +87,8 @@
 (define (queue-wakeup o fds)
   (do-queue-wakeup fds))
 (scheme_add_evt event-queue-type check-queue queue-wakeup #f 0)
+(keep-forever check-queue)
+(keep-forever queue-wakeup)
 (define queue-evt (let ([p (malloc 16)]
                         [p2 (malloc 'nonatomic _pointer)])
                     (memset p 0 16)

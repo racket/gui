@@ -10,7 +10,8 @@
          "../common/queue.rkt"
          "../common/handlers.rkt"
          "../../lock.rkt"
-         "../common/freeze.rkt")
+         "../common/freeze.rkt"
+         "../common/keep-forever.rkt")
 
 (provide 
  (protect-out app
@@ -486,3 +487,4 @@
   (post-dummy-event) ; why do we need this? 'nextEventMatchingMask:' seems to hang if we don't use it
   (scheme_set_place_sleep (function-ptr sleep-until-event 
                                         (_fun #:atomic? #t _float _gcpointer -> _void))))
+(keep-forever sleep-until-event)
