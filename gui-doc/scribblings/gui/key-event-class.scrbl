@@ -301,8 +301,7 @@ keys would not normally produce further alternatives.)
 
 Alternate mappings are not available for all events. On Windows,
  alternate mappings are reported when they produce ASCII letters,
- ASCII digits, and ASCII symbols. On Mac OS X, alternate mappings are
- available only when the Command key is pressed. On Unix, alternate
+ ASCII digits, and ASCII symbols. On Mac OS X and Unix, alternate
  mappings are usually available.
 
 }
