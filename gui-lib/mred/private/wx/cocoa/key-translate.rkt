@@ -8,28 +8,26 @@
 (require ffi/unsafe
          ffi/unsafe/objc
          ffi/unsafe/define
-         mred/private/wx/cocoa/types) ; _NSString
+         "types.rkt"
+         "utils.rkt")
 
 ;;; Bit operations
 (define (<< x y) (arithmetic-shift x y))
 (define (>> x y) (arithmetic-shift x (- y)))
 
 ;;; Libraries used
-(define quartz-lib (ffi-lib "/System/Library/Frameworks/Quartz.framework/Versions/Current/Quartz"))
-(define carbon-lib (ffi-lib "/System/Library/Frameworks/Carbon.framework/Versions/Current/Carbon"))
-(define carbon-core-lib 
-  (ffi-lib (string-append "/System/Library/Frameworks/CoreServices.framework/"
+(define carboncore-lib
+  (ffi-lib (string-append "/System/Library/Frameworks/CoreServices.framework/Versions/Current/"
                           "Frameworks/CarbonCore.framework/Versions/Current/CarbonCore")))
-(define cf-lib (ffi-lib "/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation"))
+(define hitoolbox-lib
+  (ffi-lib (string-append "/System/Library/Frameworks/Carbon.framework/Versions/Current/"
+                          "Frameworks/HIToolbox.framework/Versions/Current/HIToolbox")))
 
-(define-ffi-definer define-quartz      quartz-lib)
-(define-ffi-definer define-carbon-core carbon-core-lib)
-(define-ffi-definer define-carbon      carbon-lib)
-(define-ffi-definer define-cf          cf-lib #:default-make-fail make-not-available)
+(define-ffi-definer define-carboncore  carboncore-lib)
+(define-ffi-definer define-hitoolbox   hitoolbox-lib)
 
 ;;; CORE FOUNDATION
 
-(import-class NSString)
 (define _CFStringRef _NSString)
 
 ; (define _OSStatus _sint32)       ; already imported
@@ -56,15 +54,15 @@
 ; A keyboard layout determines which character corresponds to a physical key.
 
 ; To get a layout, one must first get a reference to the input source:
-(define-carbon TISCopyCurrentKeyboardLayoutInputSource             (_fun -> _TISInputSourceRef))
-(define-carbon TISCopyCurrentASCIICapableKeyboardLayoutInputSource (_fun -> _TISInputSourceRef))
+(define-hitoolbox TISCopyCurrentKeyboardLayoutInputSource             (_fun -> _TISInputSourceRef))
+(define-hitoolbox TISCopyCurrentASCIICapableKeyboardLayoutInputSource (_fun -> _TISInputSourceRef))
 ; Note: These days TISCopyCurrentKeyboardLayoutInputSource ought to work for all keyboards.
 
 ; The input source has several properties, one of is:
-(define-carbon kTISPropertyUnicodeKeyLayoutData _NSString)
+(define-hitoolbox kTISPropertyUnicodeKeyLayoutData _NSString)
 
 ; Getting the property is done by:
-(define-carbon TISGetInputSourceProperty
+(define-hitoolbox TISGetInputSourceProperty
   (_fun (_inputSource : _TISInputSourceRef)
         (_propertyKey : _CFStringRef)           
         -> (_or-null _CFDataRef)))
@@ -78,12 +76,12 @@
 
 ; Before translating key codes to characters, one must option
 ; the physical type of keyboard.
-(define-carbon LMGetKbdType (_fun -> _uint8))
+(define-hitoolbox LMGetKbdType (_fun -> _uint8))
 
 ; Given a layout and a keyboard type, one can translate
 ; keycodes to characters using UCKeyTranslate.
 
-(define-carbon UCKeyTranslate
+(define-carboncore UCKeyTranslate
   (_fun (keyboardLayoutPtr   : _UCKeyboardLayout)
         (virtualKeyCode      : _uint16)
         (keyAction           : _uint16)
@@ -92,7 +90,6 @@
         (keyTranslateOptions : _OptionBits)            ; uint32
         (deadKeyState        : (_box _uint32))
         (maxStringLength     : _UniCharCount)
-        ; (actualStringLength  : _UniCharCountPointer)
         (actualStringLength  : (_box _UniCharCount))
         (unicodeString       : _pointer)
         -> _OSStatus))
@@ -576,7 +573,3 @@
 	(define mods (if (list? k+ms) (cadddr k+ms) #f))
 	(values mck mods))
     (values #f #f)))
-
-	 
-  
-  
