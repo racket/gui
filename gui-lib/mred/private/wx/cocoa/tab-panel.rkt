@@ -206,7 +206,7 @@
       (when control-cocoa
         (tellv control-cocoa setEnabled: #:type _BOOL on?))))
 
-  (define/override (gets-focus?)
+  (define/override (can-accept-focus?)
     (and (not control-cocoa)
          (tell #:type _BOOL tabv-cocoa canBecomeKeyView)))
   (define/override (get-cocoa-focus)

@@ -44,7 +44,7 @@
     (let ([on? (and on? (is-window-enabled?))])
       (tellv (get-cocoa-control) setEnabled: #:type _BOOL on?)))
 
-  (define/override (gets-focus?)
+  (define/override (can-accept-focus?)
     (tell #:type _BOOL (get-cocoa-control) canBecomeKeyView))
 
   (define/public (command e)

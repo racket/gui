@@ -814,7 +814,7 @@
                 (not (send e button-down? 'left))
                 (not (on-menu-click? e)))))
 
-     (define/override (gets-focus?)
+     (define/override (can-accept-focus?)
        wants-focus?)
      (define/override (can-be-responder?)
        (and wants-focus? (is-enabled-to-root?)))

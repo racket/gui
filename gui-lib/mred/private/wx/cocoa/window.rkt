@@ -751,7 +751,7 @@
         (accept-drags-everywhere (or accept-drag? accept-parent-drag?))))
 
     (define/public (set-focus)
-      (when (and (gets-focus?)
+      (when (and (can-accept-focus?)
                  (is-enabled-to-root?))
         (let ([w (tell cocoa window)])
           (when w
@@ -912,7 +912,8 @@
             (tellv content addCursorRect: #:type _NSRect r cursor: cursor-handle)))))
     (define/public (get-cursor-width-delta) 0)
     
-    (define/public (gets-focus?) #f)
+    (define/public (can-accept-focus?) #f)
+    (define/public (gets-focus?) (can-accept-focus?))
     (define/public (can-be-responder?) (is-enabled-to-root?))
 
     (define/public (on-color-change)

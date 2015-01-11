@@ -117,7 +117,7 @@
      [else
       (tellv (get-cocoa) setImage: (bitmap->image label))]))
 
-  (define/override (gets-focus?) #f)
+  (define/override (can-accept-focus?) #f)
 
   (define/public (set-preferred-size)
     (tellv (get-cocoa) sizeToFit)
