@@ -174,7 +174,7 @@ has been moved out).
 ;; a curve-segment is
 ;;
 ;;  - (make-curve-segment point real real point real real color)
-(define-struct/reg-mk curve-segment (start s-angle s-pull end e-angle e-pull color)
+(define-struct/reg-mk curve-segment (start s-angle s-pull end e-angle e-pull mode color)
   #:transparent #:omit-define-syntaxes)
 
 ;; a normalized-shape (subtype of shape) is either
@@ -542,6 +542,19 @@ has been moved out).
                                  (list-ref parsed-args 1)
                                  (list-ref parsed-args 2)
                                  255)]
+                    [(and (eq? tag 'struct:curve-segment)
+                          (= arg-count 7))
+                     ;; new version (start s-angle s-pull end e-angle e-pull mode color)
+                     ;; old version (start s-angle s-pull end e-angle e-pull color)
+                     ;; with mode defaulting to 'outline
+                     (make-curve-segment (list-ref parsed-args 0)
+                                         (list-ref parsed-args 1)
+                                         (list-ref parsed-args 2)
+                                         (list-ref parsed-args 3)
+                                         (list-ref parsed-args 4)
+                                         (list-ref parsed-args 5)
+                                         'outline
+                                         (list-ref parsed-args 6))]
                     [else
                      (k #f)]))]))]
         [else sexp]))))
@@ -654,6 +667,7 @@ has been moved out).
                                   (scale-point (curve-segment-end shape))
                                   (curve-segment-e-angle shape)
                                   (curve-segment-e-pull shape)
+                                  (curve-segment-mode shape)
                                   (scale-color (curve-segment-color shape) x-scale y-scale))])
          (if bottom
              (make-overlay bottom this-one)
@@ -880,15 +894,16 @@ has been moved out).
        ;; the pull is multiplied by the distance 
        ;; between the two points when it is drawn,
        ;; so we don't need to scale it here
-       (let ([this-one 
-              (make-curve-segment (scale-point (curve-segment-start shape))
-                                  (curve-segment-s-angle shape)
-                                  (curve-segment-s-pull shape)
-                                  (scale-point (curve-segment-end shape))
-                                  (curve-segment-e-angle shape)
-                                  (curve-segment-e-pull shape)
-                                  (scale-color (curve-segment-color shape) x-scale y-scale))])
-         (render-poly/line-segment/curve-segment this-one dc dx dy))]
+       (define this-one
+         (make-curve-segment (scale-point (curve-segment-start shape))
+                             (curve-segment-s-angle shape)
+                             (curve-segment-s-pull shape)
+                             (scale-point (curve-segment-end shape))
+                             (curve-segment-e-angle shape)
+                             (curve-segment-e-pull shape)
+                             (curve-segment-mode shape)
+                             (scale-color (curve-segment-color shape) x-scale y-scale)))
+       (render-poly/line-segment/curve-segment this-one dc dx dy)]
       [(or (ibitmap? shape) (np-atomic-shape? shape))
        (let* ([shape (if (ibitmap? shape) 
                          (make-flip #f shape)
@@ -925,8 +940,10 @@ has been moved out).
        (send dc draw-path path dx dy))]
     [(curve-segment? simple-shape)
      (define path (curve-segment->path simple-shape))
-     (send dc set-pen (mode-color->pen 'outline (curve-segment-color simple-shape)))
-     (send dc set-brush "black" 'transparent)
+     (send dc set-pen (mode-color->pen (curve-segment-mode simple-shape)
+                                       (curve-segment-color simple-shape)))
+     (send dc set-brush (mode-color->brush (curve-segment-mode simple-shape)
+                                           (curve-segment-color simple-shape)))
      (send dc set-smoothing 'smoothed)
      (send dc draw-path path dx dy)]))
 
@@ -1364,7 +1381,7 @@ the mask bitmap and the original bitmap are all together in a single bytes!
          make-curve-segment curve-segment? 
          curve-segment-start curve-segment-s-angle curve-segment-s-pull
          curve-segment-end curve-segment-e-angle curve-segment-e-pull 
-         curve-segment-color
+         curve-segment-mode curve-segment-color
          make-pen pen? pen-color pen-width pen-style pen-cap pen-join pen
          
          make-ibitmap ibitmap? ibitmap-raw-bitmap ibitmap-angle ibitmap-x-scale ibitmap-y-scale 
