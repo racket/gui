@@ -100,18 +100,9 @@ Returns the top level window in the current eventspace that is visible
            [(special-control-key)
             boolean?])]{
 
-Enables or disables special Control key handling (Mac OS X). When Control
- is treated as a special key, the system's key-mapper is called
- without Control for keyboard translations. For some languages,
- Control key presses must be seen by the system translation, so this
- mode should be turned off, but the default is on.
-
-If @racket[on?] is provided and @racket[#f], Control is passed to the system
-translation as normal. This setting affects all windows and
-eventspaces.
-
-If no argument is provided, the result is @racket[#t] if Control is
-currently treated specially, @racket[#f] otherwise.
+For backward compatibility, only. This function was intended to enable
+or disable special Control key handling (Mac OS X), but it currently
+has no effect.
 
 }
 
@@ -119,14 +110,15 @@ currently treated specially, @racket[#f] otherwise.
             void?]
            [(special-option-key)
             boolean?])]{
-Enables or disables special Option key handling (Mac OS X). When
- Option is treated as a special key, the system's key-mapper is called
- without Option for keyboard translations. By default, Option is not
- special.
 
-If @racket[on?] is provided @racket[#f], Option is passed to the
- system translation as normal. This setting affects all windows and
- eventspaces.
+Enables or disables special Option key handling (Mac OS X). When
+ Option is treated as a special key, the @method[key-event%
+ get-key-code] and @method[key-event% get-other-altgr-key-code]
+ results are effectively swapped when the Option key is pressed. By
+ default, Option is not special.
+
+If @racket[on?] is provided as @racket[#f], key events are reported
+ normally. This setting affects all windows and eventspaces.
 
 If no argument is provided, the result is @racket[#t] if Option is
  currently treated specially, @racket[#f] otherwise.

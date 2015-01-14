@@ -413,17 +413,23 @@
 		      (alternative 'alt       (lambda (c) (send k set-other-altgr-key-code c))             alt-mod)
 		      ;; what exacly is shift+altgr supposed to hold ?
 		      (alternative 'shift-alt (lambda (c) (send k set-other-shift-altgr-key-code c)) shift-alt-mod)))
-		  
-		  ;; TODO What was this swapping meant to do? 
-                  #;(when (and (or (and option? 
-                                      special-option-key?)
-                                 (and control?
-                                      (equal? (send k get-key-code) #\u00)))
+                  
+                  ;; If the Option key is disabled globally via
+                  ;; `special-option-key`, then swap the Option and
+                  ;; non-Option results when Option is pressed.
+                  (when (and option? 
+                             special-option-key?
                              (send k get-other-altgr-key-code))
-                    ;; swap altenate with main
                     (let ([other (send k get-other-altgr-key-code)])
                       (send k set-other-altgr-key-code (send k get-key-code))
-                      (send k set-key-code other))))
+                      (send k set-key-code other)))
+                  ;; When a Ctl- combination produces
+                  ;; no key (such as with Ctl-space), it works ok to
+                  ;; use the mapping produced with Shift also down.
+                  (when (and control?
+                             (equal? (send k get-key-code) #\u00)
+                             (send k get-other-shift-key-code))
+                    (send k set-key-code (send k get-other-shift-key-code))))
                 (unless wheel
                   (unless (or down? (and mod-change?
                                          (case (send k get-key-code)
