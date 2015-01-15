@@ -781,9 +781,11 @@
               (define old-α (send dc get-alpha))
               (define old-font (send dc get-font))
               (define old-text-foreground (send dc get-text-foreground))
+              (define old-text-mode (send dc get-text-mode))
               (define w-o-b? (preferences:get 'framework:white-on-black?))
               (send dc set-font (get-font))
               (send dc set-smoothing 'aligned)
+              (send dc set-text-mode 'transparent)
               (define-values (tw th _1 _2) (send dc get-text-extent first-line))
               (define line-height (+ (unbox by) dy th 1))
               (define line-left (+ (unbox bx) dx))
@@ -832,6 +834,7 @@
               (send dc draw-text first-line (+ x-start (+ (unbox bx) dx)) (+ (unbox by) dy))
               
               (send dc set-text-foreground old-text-foreground)
+              (send dc set-text-mode old-text-mode)
               (send dc set-font old-font)
               (send dc set-pen old-pen)
               (send dc set-brush old-brush)
@@ -4168,14 +4171,16 @@ designates the character that triggers autocompletion
                       (send dc get-pen)
                       (send dc get-brush)
                       (send dc get-font)
-                      (send dc get-text-foreground)))
+                      (send dc get-text-foreground)
+                      (send dc get-text-mode)))
 
     (define/private (restore-dc-state dc dc-state)
       (send dc set-smoothing (saved-dc-state-smoothing dc-state))
       (send dc set-pen (saved-dc-state-pen dc-state))
       (send dc set-brush (saved-dc-state-brush dc-state))
       (send dc set-font (saved-dc-state-font dc-state))
-      (send dc set-text-foreground (saved-dc-state-foreground-color dc-state)))
+      (send dc set-text-foreground (saved-dc-state-text-foreground-color dc-state))
+      (send dc set-text-mode (saved-dc-state-text-mode dc-state)))
 
     (define/private (get-foreground)
       (if line-numbers-color
@@ -4185,6 +4190,7 @@ designates the character that triggers autocompletion
     ;; set the dc stuff to values we want
     (define/private (setup-dc dc)
       (send dc set-smoothing 'aligned)
+      (send dc set-text-mode 'transparent)
       (send dc set-font (get-style-font))
       (send dc set-text-foreground (get-foreground)))
 
@@ -4465,7 +4471,7 @@ designates the character that triggers autocompletion
     (super-new)
     (setup-padding)))
 
-(define-struct saved-dc-state (smoothing pen brush font foreground-color))
+(define-struct saved-dc-state (smoothing pen brush font text-foreground-color text-mode))
 (define padding-dc (new bitmap-dc% [bitmap (make-screen-bitmap 1 1)]))
 
 (define basic% (basic-mixin (editor:basic-mixin text%)))
