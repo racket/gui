@@ -133,6 +133,8 @@
     ("models" "⊨")
     ("prec" "≺")
     ("succ" "≻")
+    ("precdot" "⋖")
+    ("succdot" "⋗")
     ("sim" "∼")
     ("perp" "⊥")
     ("bot" "⊥")
