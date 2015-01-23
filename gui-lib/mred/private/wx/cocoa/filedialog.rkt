@@ -103,11 +103,12 @@
       (begin0
        (if (zero? result)
            #f
-           (if (memq 'multi style)
-               (let ([urls (tell ns URLs)])
-                 (for/list ([i (in-range (tell #:type _NSUInteger urls count))])
-                   (nsurl->string (tell urls objectAtIndex: #:type _NSUInteger i))))
-               (let ([url (tell ns URL)])
-                 (nsurl->string url))))
+           (atomically
+            (if (memq 'multi style)
+                (let ([urls (tell ns URLs)])
+                  (for/list ([i (in-range (tell #:type _NSUInteger urls count))])
+                    (nsurl->string (tell urls objectAtIndex: #:type _NSUInteger i))))
+                (let ([url (tell ns URL)])
+                  (nsurl->string url)))))
        (release ns)))))
 
