@@ -255,16 +255,8 @@ has been moved out).
                    (ceiling (inexact->exact (- (bb-bottom the-bb) 
                                                (bb-baseline the-bb))))))])))
 
-;; these are used when building a bitmap to render the final image
-;; they are probably smaller than the allowed maximum, but they are
-;; still huge
-(define maximum-width 5000)
-(define maximum-height 5000)
-
 (define (to-bitmap img)
-  (define bb (send img get-bb))
-  (define w (min (inexact->exact (ceiling (bb-right bb))) maximum-width))
-  (define h (min (inexact->exact (ceiling (bb-bottom bb))) maximum-height)) 
+  (define-values (w h) (get-size/but-subject-to-max (send img get-bb)))
   (define bm (make-bitmap w h))
   (define bdc (new bitmap-dc% [bitmap bm]))
   (render-image img bdc 0 0)
@@ -273,8 +265,8 @@ has been moved out).
 
 (define (to-svg-bytes img)
   (define bb (send img get-bb))
-  (define w (min (inexact->exact (ceiling (bb-right bb))) maximum-width))
-  (define h (min (inexact->exact (ceiling (bb-bottom bb))) maximum-height)) 
+  (define w (inexact->exact (ceiling (bb-right bb))))
+  (define h (inexact->exact (ceiling (bb-bottom bb))))
   (define s (open-output-bytes))
   (define svg-dc (new svg-dc% [width w] [height h] [output s]))
   (send svg-dc start-doc "")
@@ -283,6 +275,41 @@ has been moved out).
   (send svg-dc end-page)
   (send svg-dc end-doc)
   (get-output-bytes s))
+
+(define max-size (* 5000 5000))
+(define (get-size/but-subject-to-max bb)
+  (define w (inexact->exact (ceiling (bb-right bb))))
+  (define h (inexact->exact (ceiling (bb-bottom bb))))
+  (get-size/but-subject-to-max/wh w h))
+
+(define (get-size/but-subject-to-max/wh w h)
+  (cond
+    [(<= (* w h) max-size) (values w h)]
+    [(< w h) (values w (ceiling (/ max-size w)))]
+    [else (values (ceiling (/ max-size h)) h)]))
+
+(module+ test 
+  (require rackunit)
+  (check-equal? (call-with-values
+                 (λ () (get-size/but-subject-to-max/wh 10 10))
+                 list)
+                '(10 10))
+  (check-equal? (call-with-values
+                 (λ () (get-size/but-subject-to-max/wh 5000 10000))
+                 list)
+                '(5000 5000))
+  (check-equal? (call-with-values
+                 (λ () (get-size/but-subject-to-max/wh 10000 5000))
+                 list)
+                '(5000 5000))
+  (check-equal? (call-with-values
+                 (λ () (get-size/but-subject-to-max/wh 5001 5000))
+                 list)
+                '(5000 5000))
+  (check-equal? (call-with-values
+                 (λ () (get-size/but-subject-to-max/wh 6000 6001))
+                 list)
+                '(6000 4167)))
 
 (define-local-member-name 
   set-use-bitmap-cache?!
@@ -392,9 +419,8 @@ has been moved out).
     (define/public (compute-cached-bitmap)
       (when use-cached-bitmap?
         (unless cached-bitmap
-          (set! cached-bitmap
-                (make-bitmap (min (+ (inexact->exact (round (bb-right bb))) 1) maximum-width) 
-                             (min (+ (inexact->exact (round (bb-bottom bb))) 1) maximum-height)))
+          (define-values (w h) (get-size/but-subject-to-max bb))
+          (set! cached-bitmap (make-bitmap (+ w 1) (+ h 1)))
           (define bdc (make-object bitmap-dc% cached-bitmap))
           (send bdc erase)
           (render-image this bdc 0 0)
