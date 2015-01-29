@@ -471,10 +471,10 @@ has been moved out).
      #f]
     [else
      (define bm1 (if (is-a? i1 image-snip%)
-                     (send i1 get-image)
+                     (send i1 get-bitmap)
                      i2))
      (define bm2 (if (is-a? i2 image-snip%)
-                     (send i2 get-image)
+                     (send i2 get-bitmap)
                      i2))
      (eq? bm1 bm2)]))
 
