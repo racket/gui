@@ -756,7 +756,7 @@
                   '("Top" "Center" "Bottom")
                   '(top center bottom))
 
-        (let ([colors '("Black" "White" "Red" "Orange" "Yellow" "Green" "Blue" "Purple" "Cyan" "Magenta" "Grey")])
+        (let ([colors '("Black" "White" "Red" "Orange" "Yellow" "Green" "Blue" "Purple" "Cyan" "Magenta" "Gray")])
 
                                         ; Colors
           (for-each (lambda (c)
