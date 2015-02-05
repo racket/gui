@@ -52,6 +52,9 @@
                  #f)))))
 
   (define/public (set-client c types)
+    (define bstrs
+      (for/list ([type (in-list types)])
+        (send c get-data type)))
     (atomically
      (with-autorelease
       (let ([pb (tell NSPasteboard generalPasteboard)]
@@ -62,18 +65,18 @@
                             declareTypes: a 
                             owner: #f))
         (set! client c)
-        (for ([type (in-list types)])
-          (let ([bstr (send c get-data type)])
-            (when bstr
-              (let* ([bstr (if (string? bstr)
-                               (string->bytes/utf-8 bstr)
-                               bstr)]
-                     [data (tell NSData 
-                                 dataWithBytes: #:type _bytes bstr
-                                 length: #:type _NSUInteger (bytes-length bstr))])
-                (tellv (tell NSPasteboard generalPasteboard)
-                       setData: data
-                       forType: #:type _NSString (map-type type))))))))))
+        (for ([type (in-list types)]
+              [bstr (in-list bstrs)])
+          (when bstr
+            (let* ([bstr (if (string? bstr)
+                             (string->bytes/utf-8 bstr)
+                             bstr)]
+                   [data (tell NSData
+                               dataWithBytes: #:type _bytes bstr
+                               length: #:type _NSUInteger (bytes-length bstr))])
+              (tellv (tell NSPasteboard generalPasteboard)
+                     setData: data
+                     forType: #:type _NSString (map-type type)))))))))
   
   (define/public (get-data-for-type type)
     (log-error "didn't expect clipboard data request"))
