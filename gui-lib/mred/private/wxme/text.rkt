@@ -612,7 +612,16 @@
                        (insert ch startpos (add1 startpos))
                        (insert ch)))])
         (case code
-          [(#\backspace) (delete)]
+          [(#\backspace)
+           (cond
+             [(and overwrite-mode?
+                   (= endpos startpos)
+                   (not (zero? startpos)))
+              (begin-edit-sequence)
+              (insert #\space (- startpos 1) startpos)
+              (set-position (- startpos 1) (- startpos 1))
+              (end-edit-sequence)]
+             [else (delete)])]
           [(#\rubout)
            (if (= endpos startpos)
                (when (endpos . < . len)

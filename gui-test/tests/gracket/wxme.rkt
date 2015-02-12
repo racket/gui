@@ -1562,6 +1562,31 @@
   (send t1 get-extent (box 0) (box 0)))
 
 ;; ----------------------------------------
+;; Overwrite mode
+(let ([t (new text%)])
+  (send t set-admin (new test-editor-admin%))
+  (send t insert "abcdef")
+  (send t set-position 3 3)
+  (define (type c) (send t on-default-char (new key-event% [key-code c])))
+  (send t set-overwrite-mode #t)
+  (type #\z)
+  (expect (send t get-start-position) 4)
+  (expect (send t get-text) "abczef")
+  (type #\backspace)
+  (expect (send t get-start-position) 3)
+  (expect (send t get-text) "abc ef")
+  
+  (send t set-position 1)
+  (type #\backspace)
+  (expect (send t get-start-position) 0)
+  (expect (send t get-text) " bc ef")
+  
+  (type #\backspace)
+  (expect (send t get-start-position) 0)
+  (expect (send t get-text) " bc ef"))
+
+
+;; ----------------------------------------
 ;; Identity and contracts
 
 (let ([t (new text%)])
