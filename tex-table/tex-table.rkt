@@ -189,7 +189,10 @@
     ("vdots" "⋮")
     ("ddots" "⋱")
     ("cdots" "⋯")
-    ("hdots" "⋯")))
+    ("hdots" "⋯")
+    
+    ("langle" "⟨")
+    ("rangle" "⟩")))
 
 (module+ test
   (require racket/match)
