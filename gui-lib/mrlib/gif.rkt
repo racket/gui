@@ -75,7 +75,7 @@
                  (gif-end gif)))))))))
 
 (define (write-gif bm filename)
-  (write-gifs (list bm) #f filename #f #f #f))
+  (write-gifs (list bm) #f filename #f #f #f 'any))
 
 (provide/contract
  [write-animated-gif
