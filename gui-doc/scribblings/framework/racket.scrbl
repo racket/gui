@@ -86,6 +86,7 @@
   @defmethod*[(((insert-return) void?))]{
     Inserts a newline into the buffer.  If @method[racket:text<%>
     tabify-on-return?] returns @racket[#t], this will tabify the new line.
+    Deletes any trailing whitespace from the old line.
   }
 
   @defmethod*[(((box-comment-out-selection

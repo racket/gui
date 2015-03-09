@@ -185,6 +185,44 @@
 (test-magic-square-bracket 'for/fold1 "(for/fold (" "(for/fold ([")
 (test-magic-square-bracket 'for/fold2 "(for/fold ([x 1]) (" "(for/fold ([x 1]) ([")
 
+(define (test-insert-return/proc line before-txt before-pos after-txt after-pos #:tabify? [tabify? #t])
+  (test
+   (string->symbol (format "racket:test-insert-return ~a" line))
+   (λ (x)
+     (and (equal? (car x) after-pos)
+          (equal? (cadr x) after-txt)))
+   (λ ()
+    (queue-sexp-to-mred
+     `(let ()
+       (define t (new (class racket:text%
+                            (define/override (tabify-on-return?) ,tabify?)
+                            (super-new))))
+       (send t insert ,before-txt)
+       (send t set-position ,before-pos)
+       (send t insert-return)
+       (list (send t get-start-position)
+             (send t get-text)))))))
+
+(define-syntax (test-insert-return stx)
+  (syntax-case stx ()
+    [(_  before-txt before-pos after-txt after-pos . args)
+     (with-syntax ([line (syntax-line stx)])
+       #'(test-insert-return/proc line before-txt before-pos after-txt after-pos . args))]))
+
+(test-insert-return "" 0 "\n" 1)
+(test-insert-return "" 0 "\n" 1 #:tabify? #f)
+(test-insert-return " " 1 "\n" 1)
+(test-insert-return " " 1 "\n" 1 #:tabify? #f)
+(test-insert-return "( " 2 "(\n " 3)
+(test-insert-return "( " 2 "(\n" 2 #:tabify? #f)
+(test-insert-return "hellothere" 5 "hello\nthere" 6)
+(test-insert-return "hellothere" 5 "hello\nthere" 6 #:tabify? #f)
+(test-insert-return "#lang racket\n(+ 123 456)\n 4"      20 "#lang racket\n(+ 123\n  456)\n 4" 22)
+(test-insert-return "#lang racket\n(+ 123 456)\n 4"      20 "#lang racket\n(+ 123\n456)\n 4" 20 #:tabify? #f)
+(test-insert-return "#lang racket\n(+ 123      456)\n 4" 22 "#lang racket\n(+ 123\n  456)\n 4" 22)
+(test-insert-return "#lang racket\n(+ 123      456)\n 4" 22 "#lang racket\n(+ 123\n   456)\n 4" 20 #:tabify? #f)
+(test-insert-return "#lang racket\n(+ 123 \n   456)\n 4" 22 "#lang racket\n(+ 123 \n\n  456)\n 4" 24)
+(test-insert-return "#lang racket\n(+ 123 \n   456)\n 4" 22 "#lang racket\n(+ 123 \n\n  456)\n 4" 22 #:tabify? #f)
 
 (define (test-message-send/proc line before expected pos msg
                                 #:check-result? [check-result? #f] 
