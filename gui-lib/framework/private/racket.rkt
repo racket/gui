@@ -756,20 +756,28 @@
     
     (define (tabify-all) (tabify-selection 0 (last-position)))
     (define (insert-return)
-      (if (tabify-on-return?)
-          (begin 
-            (begin-edit-sequence #t #f)
-            (insert #\newline)
-            (tabify (get-start-position))
-            (set-position 
-             (let loop ([new-pos (get-start-position)])
-               (if (let ([next (get-character new-pos)])
-                     (and (char-whitespace? next)
-                          (not (char=? next #\newline))))
-                   (loop (add1 new-pos))
-                   new-pos)))
-            (end-edit-sequence))
-          (insert #\newline)))
+      (begin-edit-sequence #t #f)
+      (define end-of-whitespace (get-start-position))
+      (define start-cutoff
+        (paragraph-start-position (position-paragraph end-of-whitespace)))
+      (define start-of-whitespace
+        (let loop ([pos end-of-whitespace])
+          (if (and (> pos start-cutoff)
+                   (char-whitespace? (get-character (sub1 pos))))
+              (loop (sub1 pos))
+              pos)))
+      (delete start-of-whitespace end-of-whitespace)
+      (insert #\newline)
+      (when (and (tabify-on-return?)
+                 (tabify (get-start-position)))
+        (set-position
+         (let loop ([new-pos (get-start-position)])
+           (if (let ([next (get-character new-pos)])
+                 (and (char-whitespace? next)
+                      (not (char=? next #\newline))))
+               (loop (add1 new-pos))
+               new-pos))))
+      (end-edit-sequence))
     
     (define (calc-last-para last-pos)
       (let ([last-para (position-paragraph last-pos #t)])
