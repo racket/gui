@@ -4283,10 +4283,10 @@
       (set! flow-locked? fl?)
 
       (let ([snip
-             (if (not (eq? (snip->admin snip) a))
+             (if (not (object-or-false=? (snip->admin snip) a))
                  ;; something went wrong
                  (cond
-                  [(and (not a) (eq? (snip->admin snip) orig-admin))
+                  [(and (not a) (object-or-false=? (snip->admin snip) orig-admin))
                    ;; force admin to NULL
                    (send snip set-s-admin #f)
                    snip]
