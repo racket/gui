@@ -101,29 +101,34 @@
          `((define/public ,(generic-name generic)
              ,(generic-initializer generic)))]))
 
-(provide generate-standard-menus-code)
+(provide generate-standard-menus-code
+         generate-standard-menus-interface-code)
+(define-syntax (generate-standard-menus-interface-code stx)
+  (datum->syntax
+   stx
+   `(define frame:standard-menus<%>
+      (interface (frame:basic<%>)
+        ,@(append-map
+           (λ (x)
+             (cond [(an-item? x)
+                    (list (an-item->callback-name x)
+                          (an-item->get-item-name x)
+                          (an-item->string-name x)
+                          (an-item->help-string-name x)
+                          (an-item->on-demand-name x)
+                          (an-item->create-menu-item-name x))]
+                   [(between? x)
+                    (list (between->name x))]
+                   [(or (after? x) (before? x))
+                    (list (before/after->name x))]
+                   [(generic? x)
+                    (if (generic-method? x) (list (generic-name x)) '())]))
+           items)))))
+
 (define-syntax (generate-standard-menus-code stx)
   (datum->syntax
    stx
    `(begin
-      (define standard-menus<%>
-        (interface (basic<%>)
-          ,@(append-map
-             (λ (x)
-               (cond [(an-item? x)
-                      (list (an-item->callback-name x)
-                            (an-item->get-item-name x)
-                            (an-item->string-name x)
-                            (an-item->help-string-name x)
-                            (an-item->on-demand-name x)
-                            (an-item->create-menu-item-name x))]
-                     [(between? x)
-                      (list (between->name x))]
-                     [(or (after? x) (before? x))
-                      (list (before/after->name x))]
-                     [(generic? x)
-                      (if (generic-method? x) (list (generic-name x)) '())]))
-             items)))
       (define standard-menus-mixin
         (mixin (basic<%>) (standard-menus<%>)
           (inherit on-menu-char on-traverse-char)

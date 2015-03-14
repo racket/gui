@@ -6,6 +6,7 @@
          racket/path
          racket/math
          "sig.rkt"
+         "interfaces.rkt"
          "../gui-utils.rkt"
          "../preferences.rkt"
          "autocomplete.rkt"
@@ -85,23 +86,7 @@
     
     (values register-port-name! lookup-port-name)))
 
-(define basic<%>
-  (interface (editor:basic<%> (class->interface text%))
-    highlight-range
-    unhighlight-range
-    unhighlight-ranges
-    unhighlight-ranges/key
-    get-highlighted-ranges
-    get-styles-fixed
-    get-fixed-style
-    set-styles-fixed
-    move/copy-to-edit
-    initial-autowrap-bitmap
-    get-port-name
-    port-name-matches?
-    after-set-port-unsaved-name
-    set-port-unsaved-name
-    get-start-of-line))
+(define basic<%> text:basic<%>)
 
 (define highlight-range-mixin
   (mixin (editor:basic<%> (class->interface text%)) ()

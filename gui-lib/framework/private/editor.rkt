@@ -5,6 +5,7 @@
            "sig.rkt"
            "../preferences.rkt"
            "../gui-utils.rkt"
+           "interfaces.rkt"
            mzlib/etc
            mred/mred-sig
            racket/path)
@@ -26,22 +27,7 @@
   ;; renaming, for editor-mixin where get-file is shadowed by a method.
   (define mred:get-file get-file) 
   
-  (define basic<%>
-    (interface (editor<%>)
-      has-focus?
-      local-edit-sequence?
-      run-after-edit-sequence
-      get-top-level-window
-      save-file-out-of-date?
-      save-file/gui-error
-      load-file/gui-error
-      on-close
-      can-close?
-      close
-      get-filename/untitled-name
-      
-      get-pos/text
-      get-pos/text-dc-location))
+  (define basic<%> editor:basic<%>)
   
   (define basic-mixin
     (mixin (editor<%>) (basic<%>)
@@ -506,7 +492,7 @@
                       delta)))
       (void)))
   
-  (define -keymap<%> (interface (basic<%>) get-keymaps))
+  (define -keymap<%> editor:keymap<%>)
   (define keymap-mixin
     (mixin (basic<%>) (-keymap<%>)
       (define/public (get-keymaps)

@@ -10,6 +10,7 @@
          "../gui-utils.rkt"
          "bday.rkt"
          "gen-standard-menus.rkt"
+         "interfaces.rkt"
          framework/private/focus-table
          mrlib/close-icon
          mred/mred-sig)
@@ -132,15 +133,7 @@
     (set! frame-width (min frame-width (- w window-trimming-upper-bound-width)))
     (set! frame-height (min frame-height (- h window-trimming-upper-bound-height)))))
 
-(define basic<%> (interface ((class->interface frame%))
-                   get-area-container%
-                   get-area-container
-                   get-menu-bar%
-                   make-root-area-container
-                   close
-                   editing-this-file?
-                   get-filename
-                   make-visible))
+(define basic<%> frame:basic<%>)
 
 (define focus-table<%> (interface (top-level-window<%>)))
 (define focus-table-mixin
@@ -741,17 +734,7 @@
     
     (super-new)))
 
-(define info<%> (interface (basic<%>)
-                  determine-width
-                  lock-status-changed
-                  update-info
-                  set-info-canvas
-                  get-info-canvas
-                  get-info-editor
-                  get-info-panel
-                  show-info
-                  hide-info
-                  is-info-hidden?))
+(define info<%> frame:info<%>)
 
 (define magic-space 25)
 
@@ -1038,13 +1021,7 @@
         (min-client-height (inexact->exact (floor th)))))
     (update-client-width init-width)))
 
-(define text-info<%> (interface (info<%>)
-                       set-macro-recording
-                       overwrite-status-changed
-                       anchor-status-changed
-                       editor-position-changed
-                       use-file-text-mode-changed
-                       add-line-number-menu-items))
+(define text-info<%> frame:text-info<%>)
 (define text-info-mixin
   (mixin (info<%>) (text-info<%>)
     (inherit get-info-editor)
@@ -1343,6 +1320,7 @@
   (mixin (basic<%>) (pasteboard-info<%>)
     (super-new)))
 
+(define standard-menus<%> frame:standard-menus<%>)
 (generate-standard-menus-code)
 
 (define -editor<%> (interface (standard-menus<%>)
