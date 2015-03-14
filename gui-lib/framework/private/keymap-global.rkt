@@ -1,6 +1,7 @@
 #lang racket/base
 (require racket/gui/base
          racket/class
+         racket/contract
          mrlib/tex-table
          "interfaces.rkt"
          "../preferences.rkt"
@@ -1186,6 +1187,22 @@
          (values #f #f))]
     [else (values #f #f)]))
 
+(define/contract (run-some-keystrokes before key-evts)
+  (-> (list/c string? exact-nonnegative-integer? exact-nonnegative-integer?)
+      (listof (is-a?/c key-event%))
+      (list/c string? exact-nonnegative-integer? exact-nonnegative-integer?))
+  (define k (new keymap%))
+  (define t (new text%))
+  (send t set-keymap k)
+  (keymap:setup-global k)
+  (send t insert (list-ref before 0))
+  (send t set-position (list-ref before 1) (list-ref before 2))
+  (for ([key-evt (in-list key-evts)])
+    (send t on-local-char key-evt))
+  (list (send t get-text)
+        (send t get-start-position)
+        (send t get-end-position)))
+
 (module+ test
   (require rackunit 
            racket/gui/base)
@@ -1361,4 +1378,13 @@
     (send t insert " abcde║\n")
     (center-in-unicode-ascii-art-box t 1)
     (check-equal? (send t get-text)
-                  " abcde║\n")))
+                  " abcde║\n"))
+
+  (check-equal? (run-some-keystrokes '("abc" 0 0)
+                                     (list (new key-event% [key-code 'escape])
+                                           (new key-event% [key-code #\c])))
+                '("Abc" 3 3))
+  (check-equal? (run-some-keystrokes '("  abc  " 0 0)
+                                     (list (new key-event% [key-code 'escape])
+                                           (new key-event% [key-code #\c])))
+                '("  Abc  " 5 5)))
