@@ -237,8 +237,9 @@
 ;; the errors are processed immediately. With glXCreateContextAttribsARB, we then try the next lowest
 ;; OpenGL version. If all attempts to get a context fail, we return #f.
 
-(define (null-x-error-handler xdisplay xerrorevent)
-  ;; Do nothing
+(define create-context-error? #f)
+(define (flag-x-error-handler xdisplay xerrorevent)
+  (set! create-context-error? #t)
   0)
 
 ;; _Display _GLXFBConfig _GLXContext -> _GLXContext
@@ -246,49 +247,79 @@
   ;; Sync right now, or the sync further on could crash Racket with an [xcb] error about events
   ;; happening out of sequence
   (XSync xdisplay False)
+  
   (define old-handler #f)
-  (dynamic-wind
-   (λ ()
-     (set! old-handler (XSetErrorHandler null-x-error-handler)))
-   (λ ()
-     (define gl (glXCreateNewContext xdisplay cfg GLX_RGBA_TYPE share-gl #t))
-     (unless gl (log-warning "gl-config: unable to get OpenGL context"))
-     gl)
-   (λ ()
-     ;; Sync to ensure errors are processed while we're throwing them away
-     (XSync xdisplay False)
-     (XSetErrorHandler old-handler))))
+  (define gl
+    (dynamic-wind
+     (λ ()
+       (set! old-handler (XSetErrorHandler flag-x-error-handler)))
+     (λ ()
+       (set! create-context-error? #f)
+       (glXCreateNewContext xdisplay cfg GLX_RGBA_TYPE share-gl #t))
+     (λ ()
+       ;; Sync to ensure errors are processed
+       (XSync xdisplay False)
+       (XSetErrorHandler old-handler))))
+  
+  (cond
+    [(and gl create-context-error?)
+     (log-error "gl-context: glXCreateNewContext raised an error but (contrary to standards) \
+returned a non-NULL context; ignoring possibly corrupt context")
+     #f]
+    [else
+     (unless gl
+       (log-warning "gl-context: glXCreateNewContext was unable to get an OpenGL context"))
+     gl]))
 
 ;; OpenGL core versions we'll try to get, in order
 (define core-gl-versions '((4 5) (4 4) (4 3) (4 2) (4 1) (4 0) (3 3) (3 2) (3 1) (3 0)))
 
-;; _Display _GLXFBConfig _GLXContext -> _GLXContext
-(define (glx-create-core-context xdisplay cfg share-gl)
+;; _Display _GLXFBConfig _GLXContext (List Byte Byte) -> _GLXContext
+(define (glx-create-context-attribs xdisplay cfg share-gl gl-version)
   ;; Sync right now, or the sync further on could crash Racket with an [xcb] error about events
   ;; happening out of sequence
   (XSync xdisplay False)
-  (let/ec return
-    (define old-handler #f)
+
+  (define gl-major (car gl-version))
+  (define gl-minor (cadr gl-version))
+  (define context-attribs
+    (list GLX_CONTEXT_MAJOR_VERSION_ARB gl-major
+          GLX_CONTEXT_MINOR_VERSION_ARB gl-minor
+          GLX_CONTEXT_PROFILE_MASK_ARB GLX_CONTEXT_CORE_PROFILE_BIT_ARB
+          None))
+  
+  (define old-handler #f)
+  (define gl
     (dynamic-wind
      (λ ()
-       (set! old-handler (XSetErrorHandler null-x-error-handler)))
+       (set! old-handler (XSetErrorHandler flag-x-error-handler)))
      (λ ()
-       (for ([gl-version  (in-list core-gl-versions)])
-         (define gl-major (car gl-version))
-         (define gl-minor (cadr gl-version))
-         (define context-attribs
-           (list GLX_CONTEXT_MAJOR_VERSION_ARB gl-major
-                 GLX_CONTEXT_MINOR_VERSION_ARB gl-minor
-                 GLX_CONTEXT_PROFILE_MASK_ARB GLX_CONTEXT_CORE_PROFILE_BIT_ARB
-                 None))
-         (define gl
-           (glXCreateContextAttribsARB xdisplay cfg share-gl #t context-attribs))
-         (when gl (return gl))))
+       (set! create-context-error? #f)
+       (glXCreateContextAttribsARB xdisplay cfg share-gl #t context-attribs))
      (λ ()
-       ;; Sync to ensure errors are processed while we're throwing them away
+       ;; Sync to ensure errors are processed
        (XSync xdisplay False)
-       (XSetErrorHandler old-handler)))
-    (log-warning "gl-config: unable to get core context; falling back")
+       (XSetErrorHandler old-handler))))
+  
+  (cond
+    [(and gl create-context-error?)
+     (log-error "gl-context: glXCreateContextAttribsARB raised an error for version ~a.~a but \
+(contrary to standards) returned a non-NULL context; ignoring possibly corrupt context"
+                gl-major gl-minor)
+     #f]
+    [else
+     (unless gl
+       (log-info "gl-context: glXCreateContextAttribsARB returned NULL for version ~a.~a"
+                 gl-major gl-minor))
+     gl]))
+
+;; _Display _GLXFBConfig _GLXContext -> _GLXContext
+(define (glx-create-core-context xdisplay cfg share-gl)
+  (let/ec return
+    (for ([gl-version  (in-list core-gl-versions)])
+      (define gl (glx-create-context-attribs xdisplay cfg share-gl gl-version))
+      (when gl (return gl)))
+    (log-warning "gl-context: unable to get core context; falling back")
     (glx-create-new-context xdisplay cfg share-gl)))
 
 ;; ===================================================================================================
