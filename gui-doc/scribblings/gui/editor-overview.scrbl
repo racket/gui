@@ -172,7 +172,8 @@ The editor toolbox supports extensible and nestable editors by
  or an interactive object (such as an embedded editor). In a text
  editor, snips are constrained to fit on a single line and generally
  contain data of a single type. The @racket[snip%] class implements a
- basic snip. Other snip classes include @racket[string-snip%] for
+ basic snip and serves as the base for implementing new snips; see
+ @secref["snip-example"]. Other snip classes include @racket[string-snip%] for
  managing text, @racket[image-snip%] for managing pictures, and
  @racket[editor-snip%] for managing embedded editors.}
 
@@ -452,6 +453,9 @@ A snip class's name can also be just @racket["(lib ...)"], which is
  form provides no information for the text-only @racketmodname[wxme]
  reader.
 
+For an example snip implementation and its associated snip-class
+implementation, see @secref["snip-example"].
+
 @subsubsection[#:tag "editordata"]{Editor Data}
 
 While a snip belongs to an editor, the editor may store extra
@@ -555,6 +559,10 @@ For this reason, @techlink{position}-setting and
  from a @techlink{location} will take an extra boxed boolean; the box
  is filled with @racket[#t] if the position is ambiguous and it came
  from a right-side location, or @racket[#f] otherwise.
+
+
+@include-section["snip-example.scrbl"]
+
 
 @section[#:tag "editorflattened"]{Flattened Text}
 

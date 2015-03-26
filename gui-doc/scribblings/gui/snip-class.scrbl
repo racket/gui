@@ -4,77 +4,9 @@
 @defclass/title[snip% object% (equal<%>)]{
 
 A direct instance of @racket[snip%] is uninteresting. Useful snips are
- defined by instantiating derived subclasses, but this class defines
- the basic functionality.
-
-In deriving a new snip class, these methods must be overridden to
-create a useful snip:
-
-@itemize[
-
- @item{@method[snip% get-extent]} 
-
- @item{@method[snip% draw]} 
-
- @item{@method[snip% copy]} 
-
- @item{@method[snip% resize] if the snip can be resized by the user}
-
- @item{@method[snip% partial-offset] if the snip can contain more than
-       one @techlink{item}}
-
- @item{@method[snip% split] if the snip can contain more than one @techlink{item}}
-
- @item{@method[snip% size-cache-invalid] if the snip caches the result to @method[snip% get-extent]} 
-
- @item{@method[snip% get-text] (not required)}
-
- @item{@method[snip% find-scroll-step], @method[snip%
-       get-num-scroll-steps], and @method[snip%
-       get-scroll-step-offset] if the snip can contain more than one
-       scroll position}
-
- @item{@method[snip% set-unmodified] if the snip's internal state can
-       be modified by the user, and call @method[snip-admin% modified]
-       in the snip's administrator when the state changes the first
-       time}
-
-]
-
-If a snip can contain more than one @techlink{item}, then the snip's @techlink{count}
- must be maintained as well.
-
-To define a class of snips that can be saved or cut-and-pasted:
-
-@itemize[
-
- @item{Create an instance of @racket[snip-class%], implementing the
-       @method[snip-class% read] method. Export the
-       @racket[snip-class%] instance as @racket[snip-class] from a
-       module, and use a classname of the form @racket["(lib ...)"] as
-       described in @|snipclassdiscuss|.}
-
- @item{For each instance of the snip class, set the snip's class object 
-       with @method[snip% set-snipclass].}
-
- @item{Override the @method[snip% copy] method.}
-
- @item{Override the @method[snip% write] method.}
-
-]
-
-To define a class of snips that read specially with
-@racket[open-input-text-editor]:
-
-@itemize[
-
- @item{Make your @racket[snip%] class implement @racket[readable-snip<%>].}
-
- @item{Implement the @method[readable-snip<%> read-special] method.}
-
-]
-
-
+ defined by instantiating derived subclasses, but the @racket[snip%] class defines
+ the basic functionality. See @secref["snip-example"] for more information about
+ deriving a new snip class.
 
 @defconstructor[()]{
 

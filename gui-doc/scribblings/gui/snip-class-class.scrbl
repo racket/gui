@@ -7,28 +7,8 @@ Useful snip classes are defined by instantiating derived subclasses of
  @racket[snip-class%]. A class derived from @racket[snip-class%]
  serves as a kind of ``meta-class'' for snips; each snip is associated
  with an instance of @racket[snip-class%] as its snip class.
-
-In deriving a new @racket[snip-class%] class, override the
- @method[snip-class% read] method. Then, for each instance of the
- derived class (where each instance corresponds to a single snip
- class):
-
-@itemize[
-
- @item{Set the classname using @method[snip-class% set-classname].}
-
- @item{Set the version using 
-       @method[snip-class% set-version].} 
-
- @item{Install the class into the list returned by
-       @racket[get-the-snip-class-list] using the
-       @method[snip-class-list<%> add] method. Note that if the same
-       name is inserted into the same class list multiple times, all
-       but the first insertion is ignored.}
-
-]
-
-See also @|snipclassdiscuss|.
+ See @secref["snip-example"] for more information about deriving a new
+  snip class.
 
 
 @defconstructor[()]{
