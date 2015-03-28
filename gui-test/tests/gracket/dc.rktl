@@ -839,6 +839,20 @@
                    p)))
 
 ;; ----------------------------------------
+;; Check `get-char-width` and backing scales:
+
+(let ([dc1 (send (make-bitmap 10 10) make-dc)]
+      [dc2 (send (make-bitmap 10 10 #:backing-scale 2) make-dc)])
+  ;; Sizes don't have to be the same, since they can depend on resolution,
+  ;; but they should be close:
+  (test (round (send dc1 get-char-width))
+        'scale-2-width
+        (round (send dc2 get-char-width)))
+  (test (round (send dc1 get-char-height))
+        'scale-2-height
+        (round (send dc2 get-char-height))))
+
+;; ----------------------------------------
 ;; No error on too-large bitmap:
 
 (st #f (make-bitmap 1000000 1000000) ok?)
