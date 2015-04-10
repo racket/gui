@@ -849,16 +849,18 @@ An eventspace's event queue is actually a priority queue with events
 
 @itemize[
 
- @item{The highest-priority events are high-priority events installed
-   with @racket[queue-callback].}
+ @item{High-priority events installed with @racket[queue-callback]
+       have the highest priority.}
 
- @item{Timer events have the second-highest priority.}
+ @item{Timer events via @racket[timer%] have the second-highest priority.}
 
- @item{Graphical events, such as mouse clicks or window updates, have
-   the second-lowest priority.}
+ @item{Window-refresh events have the third-highest priority.}
 
- @item{The lowest-priority events are low-priority events installed
-   with @racket[queue-callback].}
+ @item{Input events, such as mouse clicks or key presses, have
+       the second-lowest priority.}
+
+ @item{Low-priority events installed with @racket[queue-callback]
+       have the lowest priority.}
 
 ]
 
