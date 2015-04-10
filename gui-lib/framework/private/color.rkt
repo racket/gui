@@ -58,6 +58,9 @@ added get-regions
     reset-regions
     get-regions
     
+    is-lexer-valid?
+    on-lexer-valid
+    
     skip-whitespace
     backward-match
     backward-containing-sexp
