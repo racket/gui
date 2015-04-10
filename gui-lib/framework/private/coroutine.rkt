@@ -1,5 +1,6 @@
 #lang racket/base
-(require racket/contract)
+(require racket/contract
+         (for-syntax racket/base))
 
 (provide coroutine)
 (provide
@@ -8,30 +9,57 @@
   [coroutine-runnable? (-> coroutine? boolean?)]
   [coroutine-value (-> coroutine? any/c)]))
 
-(define-syntax-rule
-  (coroutine pause-id first-id exp1 exp2 ...)
-  (coroutine/proc (λ (pause-id first-id) exp1 exp2 ...)))
+(define-syntax (coroutine stx)
+  (define-values (timeout more-stx)
+    (syntax-case stx ()
+      [(_ #:at-least msec-expr . more)
+       (values #'msec-expr #'more)]
+      [(_ . more) (values #'#f #'more)]))
+  (syntax-case more-stx ()
+    [(pause-id first-id exp1 exp2 ...)
+     #`(coroutine/proc #,timeout (λ (pause-id first-id) exp1 exp2 ...))]))
 
-(struct coroutine ([run-proc #:mutable] [val #:mutable] tag)
+(struct coroutine ([run-proc #:mutable]
+                   [val #:mutable]
+                   tag
+                   [last-start #:mutable]
+                   expiry)
   #:omit-define-syntaxes
   #:extra-constructor-name
   make-coroutine)
 
-(define (coroutine/proc cproc)
+(define (coroutine/proc expiry cproc)
   (define tag (make-continuation-prompt-tag 'coroutine))
   (define (pauser)
-    (call-with-composable-continuation 
-     (λ (k) (abort-current-continuation tag k))
-     tag))
-  (make-coroutine (λ (first-val) (values (cproc pauser first-val) #t))
-                  #f
-                  tag))
+    (define actually-pause?
+      (cond
+        [(coroutine-last-start the-coroutine)
+         =>
+         (λ (start-time)
+           (define now (get-time))
+           ((- now start-time) . >= . (coroutine-expiry the-coroutine)))]
+        [else #t]))
+    (when actually-pause?
+      (call-with-composable-continuation 
+       (λ (k) (abort-current-continuation tag k))
+       tag)))
+  (define the-coroutine
+    (make-coroutine (λ (first-val) (values (cproc pauser first-val) #t))
+                    #f
+                    tag
+                    #f
+                    expiry))
+  the-coroutine)
+
+(define (get-time) (current-process-milliseconds (current-thread)))
 
 (define (coroutine-run a-coroutine val)
   (cond
     [(coroutine-run-proc a-coroutine)
      =>
      (λ (proc)
+       (when (coroutine-expiry a-coroutine)
+         (set-coroutine-last-start! a-coroutine (get-time)))
        (define-values (res done?)
          (call-with-continuation-prompt
           (λ () (proc val))
@@ -116,5 +144,22 @@
   (check-equal? (with-stdout (λ () (coroutine-run c2 2)))
                 (list #t "1 => 2\n"))
   (check-equal? (coroutine-value c2)
-                2))
+                2)
 
+  (check-equal?
+   (let ([c (coroutine
+             #:at-least 100
+             pause first
+             (pause)
+             (printf "hi"))])
+     (with-stdout (λ () (coroutine-run c 'whatever))))
+   (list #t "hi"))
+
+  (check-equal?
+   (let ([c (coroutine
+             #:at-least 0
+             pause first
+             (pause)
+             (printf "hi"))])
+     (with-stdout (λ () (coroutine-run c 'whatever))))
+   (list #f "")))
