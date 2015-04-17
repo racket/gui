@@ -80,27 +80,49 @@
 ;; Return exact integer represents number of #\space to put in front of current paragraph(line) or #f
 (define (determine-spaces txt posi)
   (define current-para (send txt position-paragraph posi))
-  (if (not (empty-line? txt current-para));not an empty paragraph/comment string
-      (let* ([para-start (send txt paragraph-start-position current-para)]
-             [para-start-skip-space (start-skip-spaces txt current-para 'forward)]
-             [char-classify (send txt classify-position para-start-skip-space)]
-             [prev-posi (send txt find-up-sexp para-start-skip-space)])
-        (cond (prev-posi
-               (let ([this-para (send txt position-paragraph prev-posi)])
-                 (cond ((equal? #\[ (send txt get-character prev-posi))
-                        (let ((this-para-start (send txt paragraph-start-position this-para)))
-                          (if (= current-para this-para)
-                              0
-                              (if (rest-empty? txt this-para prev-posi)
-                                  1
-                                  (add1 (- prev-posi this-para-start))))))
-                       ;;if it is inside a racket function and not the first line of the racket function
-                       ((equal? #\( (send txt get-character prev-posi))
-                        (send txt tabify para-start) #f);call corresponding function to indent racket stuff
-                       (else (count-parens txt prev-posi)))))
-              ((equal? 'text char-classify) 0) ;;0 space if line is just a "outside" text
-              (else (send txt tabify para-start) #f)));;call tabify
-      #f));;empty line, do nothing 
+  (define para-start (send txt paragraph-start-position current-para))
+  (define para-start-skip-space (start-skip-spaces txt current-para 'forward))
+  (cond
+    [para-start-skip-space
+     (define char-classify (send txt classify-position para-start-skip-space))
+     (define prev-posi (send txt find-up-sexp para-start-skip-space))
+     (cond
+       [prev-posi
+        (define this-para (send txt position-paragraph prev-posi))
+        (cond
+          [(equal? #\[ (send txt get-character prev-posi))
+           (define this-para-start (send txt paragraph-start-position this-para))
+           (if (= current-para this-para)
+               0
+               (if (rest-empty? txt this-para prev-posi)
+                   1
+                   (add1 (- prev-posi this-para-start))))]
+          
+          ;;if it is inside a racket function and not the first line of the racket function
+          [(equal? #\( (send txt get-character prev-posi)) #f]
+          [else
+           (define curleys (number-of-curley-braces-if-there-are-only-curley-braces txt current-para))
+           (if curleys
+               (max 0 (- (count-parens txt prev-posi) curleys))
+               (count-parens txt prev-posi))])]
+       [(equal? 'text char-classify) 0]
+       [else #f])]
+    [else #f]))
+
+(define (number-of-curley-braces-if-there-are-only-curley-braces txt para)
+  (define number-of-curley-braces 0)
+  (define line-contains-only-curley-braces?
+    (for/and ([p (in-range (send txt paragraph-start-position para)
+                           (send txt paragraph-end-position para))])
+      (define c (send txt get-character p))
+      (cond
+        [(char-whitespace? c) #t]
+        [(equal? c #\})
+         (set! number-of-curley-braces (+ number-of-curley-braces 1))
+         #t]
+        [else #f])))
+  (and line-contains-only-curley-braces?
+       number-of-curley-braces))
 
 ;;(adjust-para-width a-racket:text position width) → boolean?
 ;; position : exact-integer? = current position 
@@ -640,6 +662,15 @@
                   (paragraph-indentation t 39 14)
                   (send t get-text))
                 "#lang scribble/base\n\ntestcase @a{b\n\n\n\n\n c}\n\n")
+
+  (check-equal? (let ([t (new racket:text%)])
+                  (send t insert "#lang scribble/base\n@a{b\n  }  \n")
+                  (determine-spaces t 26))
+                0)
+  (check-equal? (let ([t (new racket:text%)])
+                  (send t insert "#lang scribble/base\n@a{b\n@{\n}}\n")
+                  (determine-spaces t 30))
+                0)
   
   ;;test case for adjust paragraph width
   (check-equal? (let ([t (new racket:text%)])
@@ -668,7 +699,7 @@
   
   (check-equal? (let ([t (new racket:text%)])
                   (send t insert "#lang scribble/base\na b c d @e{}\n f g\n")
-                  (adjust-para-width t 21 9) 
+                  (adjust-para-width t 21 9)
                   (send t get-text))
                 "#lang scribble/base\na b c d \n@e{} f g\n")
   
