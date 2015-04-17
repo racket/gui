@@ -42,7 +42,7 @@
   }
 }
 @definterface[racket:text<%> (text:basic<%> mode:host-text<%> color:text<%>)]{
-  Texts matching this interface support Racket mode operations.
+ Texts matching this interface support Racket mode operations.
 
   @defmethod*[(((get-limit (start exact-integer?)) exact-integer?))]{
     Returns a limit for backward-matching parenthesis starting at position
@@ -83,6 +83,26 @@
     Tabs all lines.
   }
 
+ @defmethod[#:mode public-final
+            (compute-racket-amount-to-indent [pos exact-nonnegative-integer?])
+            exact-nonnegative-integer?]{
+  Computes the amount of space to indent the line containing @racket[pos],
+  using the default s-expression indentation strategy.
+
+  @history[#:added "1.9"]
+  }
+
+ @defmethod[#:mode augment
+            (compute-amount-to-indent [pos exact-nonnegative-integer?])
+            exact-nonnegative-integer?]{
+  Computes the amount of space to indent the line containing @racket[pos].
+
+  Defaults to using using the default s-expression indentation strategy
+  via @method[racket:text<%> compute-racket-amount-to-indent].
+
+  @history[#:added "1.9"]
+  }
+  
   @defmethod*[(((insert-return) void?))]{
     Inserts a newline into the buffer.  If @method[racket:text<%>
     tabify-on-return?] returns @racket[#t], this will tabify the new line.
@@ -153,11 +173,11 @@
     @racket[start-pos].
   }
 
-  @defmethod*[(((find-up-sexp (start-pos exact-integer?))
-                (or/c #f exact-integer?)))]{
-    Returns the position of the beginning of the next sexpression outside the
-    sexpression that contains @racket[start-pos].  If there is no such
-    sexpression, it returns @racket[#f].
+ @defmethod*[(((find-up-sexp (start-pos exact-integer?))
+               (or/c #f exact-integer?)))]{
+  Returns the position of the beginning of the next sexpression outside the
+  sexpression that contains @racket[start-pos].  If there is no such
+  sexpression, it returns @racket[#f].
   }
 
   @defmethod*[(((up-sexp (start exact-integer?)) void?))]{
