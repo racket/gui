@@ -1338,12 +1338,12 @@
          (values lexeme type paren start end backup-delta new-mode)]))
     
     (define/override (put-file text sup directory default-name)
-      (parameterize ([finder:default-extension "rkt"]
-                     #; ; no need for the following, since it's the default
-                     [finder:default-filters '(["Racket Sources" "*.rkt;*.scrbl;*.ss;*.scm"]
-                                               ["Any" "*.*"])])
-        ;; don't call the surrogate's super, since it sets the default extension
-        (sup directory default-name)))
+      ;; don't call the surrogate's super, since it sets the default extension
+      (cond
+        [(equal? (finder:default-extension) "")
+         (parameterize ([finder:default-extension "rkt"])
+           (sup directory default-name))]
+        [else (sup directory default-name)]))
     
     (super-new (get-token (lambda (in offset mode) (racket-lexer-wrapper in offset mode)))
                (token-sym->style short-sym->style-name)
