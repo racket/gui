@@ -54,6 +54,7 @@
 (define-gtk gtk_window_set_gravity (_fun _GtkWindow _int -> _void))
 (define-gtk gtk_window_set_icon_list (_fun _GtkWindow _GList -> _void))
 (define-gtk gtk_window_fullscreen (_fun _GtkWindow -> _void))
+(define-gtk gtk_window_unfullscreen (_fun _GtkWindow -> _void))
 (define-gtk gtk_window_get_focus (_fun _GtkWindow -> (_or-null _GtkWidget)))
 
 (define-gtk gtk_window_resize (_fun _GtkWidget _int _int -> _void))
@@ -505,6 +506,7 @@
       
     (define maximized? #f)
     (define is-iconized? #f)
+    (define fullscreen? #f)
     
     (define/public (is-maximized?)
       maximized?)
@@ -514,6 +516,8 @@
     (define/public (on-window-state changed value)
       (when (positive? (bitwise-and changed GDK_WINDOW_STATE_MAXIMIZED))
         (set! maximized? (positive? (bitwise-and value GDK_WINDOW_STATE_MAXIMIZED))))
+      (when (positive? (bitwise-and changed GDK_WINDOW_STATE_FULLSCREEN))
+	(set! fullscreen? (positive? (bitwise-and value GDK_WINDOW_STATE_FULLSCREEN))))
       (when (positive? (bitwise-and changed GDK_WINDOW_STATE_ICONIFIED))
         (set! is-iconized? (positive? (bitwise-and value GDK_WINDOW_STATE_ICONIFIED)))))
 
@@ -524,8 +528,12 @@
           (gtk_window_iconify gtk)
           (gtk_window_deiconify gtk)))
 
-    (define/public (fullscreened?) #f)
-    (define/public (fullscreen on?) (void))
+    (define/public (fullscreened?)
+      fullscreen?)
+    (define/public (fullscreen on?)
+      (if on?
+	  (gtk_window_fullscreen gtk)
+	  (gtk_window_unfullscreen gtk)))
       
     (def/public-unimplemented get-menu-bar)
 
