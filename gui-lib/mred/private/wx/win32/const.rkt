@@ -347,6 +347,7 @@
                                         QS_HOTKEY
                                         QS_SENDMESSAGE))
 
+(define GWL_STYLE           -16)
 (define GWLP_WNDPROC        -4)
 (define GWLP_USERDATA       -21)
 
