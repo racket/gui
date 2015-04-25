@@ -1,6 +1,7 @@
 #lang racket/base
 (require (for-syntax racket/base))
-(provide debug-printf debug-when)
+(provide debug-printf debug-when
+         exn->str)
 
 (module test racket/base)
 
@@ -31,3 +32,11 @@
   (syntax-case stx ()
     [(_ flag fmt x ...)
      #'(debug-when flag (printf ">> ~a: ~a" 'flag (format fmt x ...)))]))
+
+
+(define (exn->str exn)
+  (let ([sp (open-output-string)])
+    (parameterize ([current-error-port sp])
+      ((error-display-handler) (exn-message exn) exn))
+    (get-output-string sp)))
+
