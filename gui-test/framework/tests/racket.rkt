@@ -144,6 +144,24 @@
                   "(define x\n  (let/ec return\n    (when 1\n      (when 2\n        3))\n    2))")
 (test-indentation "(for/fold ([x 1])\n([y 2])\n3\n4)"
                   "(for/fold ([x 1])\n          ([y 2])\n  3\n  4)")
+(test-indentation "a\na\na\n" "a\na\na\n")
+(test-indentation "(begin\n1)" "(begin\n  1)")
+(test-indentation "(lambda\n(x) x)" "(lambda\n    (x) x)")
+(test-indentation "(some-random-function x\nx)"
+                  "(some-random-function x\n                      x)")
+(test-indentation "(some-random-function x y\nx)"
+                  "(some-random-function x y\n                      x)")
+(test-indentation "(x ...\nx)"
+                  "(x ...\n x)")
+(test-indentation "(x\n;;; hello\ny)"
+                  "(x\n ;;; hello\n y)")
+(test-indentation "(require racket/contract\nracket/unit\nracket/class"
+                  "(require racket/contract\n         racket/unit\n         racket/class")
+(test-indentation "(r a\nb\nc\nd\ne\nf\ng"
+                  "(r a\n   b\n   c\n   d\n   e\n   f\n   g")
+(test-indentation "(r a b\nc d\ne f\ng h"
+                  "(r a b\n   c d\n   e f\n   g h")
+
 
 (define (test-magic-square-bracket which before after)
   (test
