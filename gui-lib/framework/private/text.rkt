@@ -2545,10 +2545,12 @@
     ;; output port synchronization code
     ;;
     
-    ;; flush-chan : (channel (evt void))
-    ;; signals that the buffer-thread should flush pending output
-    ;; the evt inside is waited on to indicate the flush has occurred
-    (define flush-chan (make-channel))
+    ;; the flush chans signal that the buffer-thread should flush pending output
+    ;; the diy variant just gets the data back and flushes it itself
+    ;; the other causes the thread that services all the events to flush
+    ;; the data via queue-callback
+    (define flush-chan/diy (make-channel))
+    (define flush-chan/queue (make-channel))
     
     ;; clear-output-chan : (channel void)
     (define clear-output-chan (make-channel))
@@ -2635,7 +2637,6 @@
            (let loop (;; text-to-insert : (queue (cons (union snip bytes) style))
                       [text-to-insert (empty-at-queue)]
                       [last-flush (current-inexact-milliseconds)])
-             
              (sync
               (if (at-queue-empty? text-to-insert)
                   never-evt
@@ -2649,7 +2650,7 @@
                      (queue-insertion viable-bytes always-evt)
                      (loop remaining-queue (current-inexact-milliseconds)))))
               (handle-evt
-               flush-chan
+               flush-chan/diy
                (λ (return-evt/to-insert-chan)
                  (define remaining-queue #f)
                  (define viable-bytess
@@ -2658,24 +2659,29 @@
                        (split-queue converter q))
                      (cond
                        [flush-keep-trying?
-                        (cond
-                          [(channel? return-evt/to-insert-chan)
-                           (cons viable-bytes (loop next-remaining-queue))]
-                          [else
-                           (define c (make-channel))
-                           (queue-insertion viable-bytes c)
-                           (channel-put c #f)
-                           (loop next-remaining-queue)])]
+                        (cons viable-bytes (loop next-remaining-queue))]
                        [else
                         (set! remaining-queue next-remaining-queue)
-                        (cond
-                          [(channel? return-evt/to-insert-chan)
-                           (list viable-bytes)]
-                          [else
-                           (queue-insertion viable-bytes return-evt/to-insert-chan)
-                           #f])])))
-                 (when (channel? return-evt/to-insert-chan)
-                   (channel-put return-evt/to-insert-chan viable-bytess))
+                        (list viable-bytes)])))
+                 (channel-put return-evt/to-insert-chan viable-bytess)
+                 (loop remaining-queue (current-inexact-milliseconds))))
+              (handle-evt
+               flush-chan/queue
+               (λ (return-evt/to-insert-chan)
+                 (define remaining-queue #f)
+                 (let loop ([q text-to-insert])
+                   (define-values (viable-bytes next-remaining-queue flush-keep-trying?)
+                     (split-queue converter q))
+                   (cond
+                     [flush-keep-trying?
+                      (define c (make-channel))
+                      (queue-insertion viable-bytes c)
+                      (channel-put c #f)
+                      (loop next-remaining-queue)]
+                     [else
+                      (set! remaining-queue next-remaining-queue)
+                      (queue-insertion viable-bytes return-evt/to-insert-chan)
+                      #f]))
                  (loop remaining-queue (current-inexact-milliseconds))))
               (handle-evt
                clear-output-chan
@@ -2736,7 +2742,7 @@
         (cond
           [(eq? (current-thread) (eventspace-handler-thread eventspace))
            (define to-insert-channel (make-channel))
-           (thread (λ () (channel-put flush-chan to-insert-channel)))
+           (thread (λ () (channel-put flush-chan/diy to-insert-channel)))
            (for ([ele (in-list (channel-get to-insert-channel))])
              (do-insertion ele #f))]
           [else
@@ -2748,7 +2754,7 @@
                        (choice-evt
                         fail-channel
                         (channel-put-evt return-channel (void)))])
-                 (channel-put flush-chan return-evt)
+                 (channel-put flush-chan/queue return-evt)
                  return-channel))))]))
       
       (define (out-close-proc)
