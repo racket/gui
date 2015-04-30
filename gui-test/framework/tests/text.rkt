@@ -465,4 +465,55 @@
               [op (send t get-out-port)])
          (display ,non-ascii-str op)
          (flush-output op)
-         (send t get-text 0 (send t last-position)))))))
+         (send t get-text 0 (send t last-position))))))
+
+
+  ;; This test sends a lot of flushes from a separate thread and,
+  ;; while doing that, sends a `clear-output-ports` from the
+  ;; eventspace main thread where the text was created. The goal
+  ;; is to make sure there is no deadlock for this interaction.
+  (test
+   'text:ports%.flush-and-clear-output-ports-interaction
+   (λ (x)
+     ;; we know we're going to get all 'a's, but some of
+     ;; the output could be discarded by `clear-output-ports`
+     (and (regexp-match #rx"^a*$" x)
+          (<= 100 (string-length x) 200)))
+   (λ ()
+     (queue-sexp-to-mred
+      `(let ()
+         (define es (make-eventspace))
+         (define-values (text port)
+           (let ()
+             (define c (make-channel))
+             (parameterize ([current-eventspace es])
+               (queue-callback
+                (λ ()
+                  (define t
+                    (new (text:ports-mixin
+                          (text:wide-snip-mixin
+                           text:basic%))))
+                  (channel-put c t)
+                  (channel-put c (send t get-out-port)))))
+             (values (channel-get c)
+                     (channel-get c))))
+         (define clear-output-go (make-semaphore 0))
+         (define clear-output-done (make-semaphore 0))
+         (void
+          (thread
+           (λ ()
+             (semaphore-wait clear-output-go)
+             (parameterize ([current-eventspace es])
+               (queue-callback
+                (λ ()
+                  (send text clear-output-ports)
+                  (semaphore-post clear-output-done)))))))
+         (for ([x (in-range 100)])
+           (display #\a port)
+           (flush-output port))
+         (semaphore-post clear-output-go)
+         (for ([x (in-range 100)])
+           (display #\a port)
+           (flush-output port))
+         (semaphore-wait clear-output-done)
+         (send text get-text))))))

@@ -2674,9 +2674,7 @@
                      (split-queue converter q))
                    (cond
                      [flush-keep-trying?
-                      (define c (make-channel))
-                      (queue-insertion viable-bytes c)
-                      (channel-put c #f)
+                      (queue-insertion viable-bytes always-evt)
                       (loop next-remaining-queue)]
                      [else
                       (set! remaining-queue next-remaining-queue)
