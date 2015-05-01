@@ -129,6 +129,10 @@ Puts the frame in fullscreen mode or restores the frame to
 @Unmonitored[@elem{A frame's mode} @elem{the user} @elem{a
 frame has been put in fullscreen mode} @elem{@method[frame% is-fullscreened?]}]
 
+On Mac OS X, the @racket[frame%] must be created with the style
+ @racket['fullscreen-button] for fullscreen mode to work, and Mac OS X
+ 10.7 or later is required.
+
 @history[#:added "6.0.0.6"]
 
 }
