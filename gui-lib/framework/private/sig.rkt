@@ -251,7 +251,10 @@
      range-end
      range-caret-space? 
      range-style 
-     range-color))
+     range-color
+
+     make-snip-special
+     snip-special?))
   
   (define-signature canvas-class^
     (basic<%>

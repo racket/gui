@@ -158,6 +158,32 @@
     If no editor can be found, then returns @racket[false].})
 
  (proc-doc/names
+  text:make-snip-special
+  (-> (is-a?/c snip%) text:snip-special?)
+  (snip)
+  @{Returns a @racket[snip-special] to be used as a
+ @tech[#:doc '(lib "scribblings/reference/reference.scrbl")]{special}
+ with the ports in @racket[text:ports<%>].
+
+ When a snip is sent as a special, if it has a @racket[snip-class%]
+ from a different @tech[#:doc '(lib "scribblings/gui/gui.scrbl")]{eventspace},
+ it may not work properly
+ in the @racket[text%] object connected to the ports in a @racket[text:port<%>]
+ object. This function, when it is called, constructs the bytes
+ corresponding to the result of using the @racket[snip]'s
+ @method[snip% write] method and saves them in it's result. Then,
+ when the result is used as a special, the snip will rebuild from
+ the bytes, but now using the @racket[snip-class%] from the
+ @tech[#:doc '(lib "scribblings/gui/gui.scrbl")]{eventspace}
+ where the @racket[text:ports<%>] operates.})
+
+ (proc-doc/names
+  text:snip-special?
+  (-> any/c boolean?)
+  (v)
+  @{Recognizes the result of @racket[text:make-snip-special].})
+
+ (proc-doc/names
   number-snip:make-repeating-decimal-snip
   (real? boolean? . -> . (is-a?/c snip%))
   (num show-prefix?)
