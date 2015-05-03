@@ -419,6 +419,8 @@
                      [gl-view (tell (tell RacketGLView alloc)
                                     initWithFrame: #:type _NSRect r
                                     pixelFormat: pf)])
+                (when (and gl-config (send gl-config get-hires-mode))
+                  (tellv gl-view setWantsBestResolutionOpenGLSurface: #:type _uint 1))
                 (when new-context
                   (tellv gl-view setOpenGLContext: new-context)
                   ;; We're supposed to sync via `setView:' but it fails,
