@@ -171,7 +171,7 @@
  in the @racket[text%] object connected to the ports in a @racket[text:port<%>]
  object. This function, when it is called, constructs the bytes
  corresponding to the result of using the @racket[snip]'s
- @method[snip% write] method and saves them in it's result. Then,
+ @method[snip% write] method and saves them in its result. Then,
  when the result is used as a special, the snip will rebuild from
  the bytes, but now using the @racket[snip-class%] from the
  @tech[#:doc '(lib "scribblings/gui/gui.scrbl")]{eventspace}
