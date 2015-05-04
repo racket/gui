@@ -2232,14 +2232,20 @@
 
   (struct snip-special (snip name bytes))
   (define (make-snip-special snip)
-    (define base (new editor-stream-out-bytes-base%))
-    (define stream (make-object editor-stream-out% base))
-    (send snip write stream)
-    (snip-special snip
-                  (send (send snip get-snipclass) get-classname)
-                  (send base get-bytes)))
+    (define the-snipclass (send snip get-snipclass))
+    (cond
+      [the-snipclass
+       (define base (new editor-stream-out-bytes-base%))
+       (define stream (make-object editor-stream-out% base))
+       (send snip write stream)
+       (snip-special snip
+                     (send the-snipclass get-classname)
+                     (send base get-bytes))]
+      [else
+       (snip-special snip #f #f)]))
   (define (snip-special->snip snip-special)
-    (define snipclass (send (get-the-snip-class-list) find (snip-special-name snip-special)))
+    (define the-name (snip-special-name snip-special))
+    (define snipclass (and the-name (send (get-the-snip-class-list) find the-name)))
     (cond
       [snipclass
        (define base (make-object editor-stream-in-bytes-base%
