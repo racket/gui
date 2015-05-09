@@ -477,6 +477,33 @@
   }
 }
 
+@definterface[text:all-string-snips<%> ()]{
+ @defmethod[(all-string-snips?) boolean?]{
+  Returns @racket[#t] if all of the snips in the @racket[text%] object
+  are @racket[string-snip%]s.
+
+  This method usually returns quickly, tracking changes to the editor
+  to update internal state. But if a non-@racket[string-snip%] is deleted,
+  then the next call to @method[text:all-string-snips<%> all-string-snips?]
+  traverses the entire content to search to see if there are other
+  non-@racket[string-snip%]s.
+ }
+}
+
+@defmixin[text:all-string-snips-mixin (text%) (text:all-string-snips<%>)]{
+ @defmethod[#:mode augment (on-insert [start exact-nonnegative-integer?]
+                                      [len exact-nonnegative-integer?]) void?]{
+  Checks to see if there were any non-@racket[string-snip%]s inserted
+  in the given range and, if so, updates the internal state.
+ }
+
+  @defmethod[#:mode augment (after-delete [start exact-nonnegative-integer?]
+                                          [len exact-nonnegative-integer?]) void?]{
+  Checks to see if there were any non-@racket[string-snip%]s deleted
+  in the given range and, if so, updates the internal state.
+ }
+}
+
 @definterface[text:searching<%> (editor:keymap<%> text:basic<%>)]{
   Any object matching this interface can be searched.
 

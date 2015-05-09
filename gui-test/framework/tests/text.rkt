@@ -254,6 +254,98 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
+;;  all-string-snips<%>
+;;
+
+(test
+ 'all-string-snips<%>.1
+ (λ (x) (equal? x #t))
+ (λ ()
+   (queue-sexp-to-mred
+    '(let ()
+       (define t (new (text:all-string-snips-mixin text%)))
+       (send t all-string-snips?)))))
+
+(test
+ 'all-string-snips<%>.2
+ (λ (x) (equal? x #t))
+ (λ ()
+   (queue-sexp-to-mred
+    '(let ()
+       (define t (new (text:all-string-snips-mixin text%)))
+       (send t insert "xx")
+       (send t all-string-snips?)))))
+
+(test
+ 'all-string-snips<%>.3
+ (λ (x) (equal? x #t))
+ (λ ()
+   (queue-sexp-to-mred
+    '(let ()
+       (define t (new (text:all-string-snips-mixin text%)))
+       (send t insert "xx")
+       (send t delete 0 1)
+       (send t all-string-snips?)))))
+
+(test
+ 'all-string-snips<%>.4
+ (λ (x) (equal? x #t))
+ (λ ()
+   (queue-sexp-to-mred
+    '(let ()
+       (define t (new (text:all-string-snips-mixin text%)))
+       (send t insert "xx")
+       (send t delete 0 2)
+       (send t all-string-snips?)))))
+
+(test
+ 'all-string-snips<%>.5
+ (λ (x) (equal? x #f))
+ (λ ()
+   (queue-sexp-to-mred
+    '(let ()
+       (define t (new (text:all-string-snips-mixin text%)))
+       (send t insert (new snip%))
+       (send t all-string-snips?)))))
+
+(test
+ 'all-string-snips<%>.6
+ (λ (x) (equal? x #t))
+ (λ ()
+   (queue-sexp-to-mred
+    '(let ()
+       (define t (new (text:all-string-snips-mixin text%)))
+       (send t insert (new snip%))
+       (send t delete 0 1)
+       (send t all-string-snips?)))))
+
+(test
+ 'all-string-snips<%>.7
+ (λ (x) (equal? x #f))
+ (λ ()
+   (queue-sexp-to-mred
+    '(let ()
+       (define t (new (text:all-string-snips-mixin text%)))
+       (send t insert (new snip%))
+       (send t insert (new snip%))
+       (send t delete 0 1)
+       (send t all-string-snips?)))))
+
+(test
+ 'all-string-snips<%>.8
+ (λ (x) (equal? x #f))
+ (λ ()
+   (queue-sexp-to-mred
+    '(let ()
+       (define t (new (text:all-string-snips-mixin text%)))
+       (send t insert (new snip%))
+       (send t insert "abcdef")
+       (send t insert (new snip%))
+       (send t delete 2 4)
+       (send t all-string-snips?)))))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;
 ;;  print-to-dc
 ;;
 

@@ -4494,6 +4494,62 @@ designates the character that triggers autocompletion
 (define-struct saved-dc-state (smoothing pen brush font text-foreground-color text-mode))
 (define padding-dc (new bitmap-dc% [bitmap (make-screen-bitmap 1 1)]))
 
+(define all-string-snips<%>
+  (interface ()
+    all-string-snips?))
+  
+(define all-string-snips-mixin
+  (mixin ((class->interface text%)) (all-string-snips<%>)
+    (inherit find-first-snip find-snip)
+    
+    (define/private (all-string-snips?/slow)
+      (let loop ([s (find-first-snip)])
+        (cond
+          [(not s) #t]
+          [(is-a? s string-snip%) (loop (send s next))]
+          [else #f])))
+
+    (define/augment (after-insert start end)
+      (inner (void) after-insert start end)
+      
+      (when (equal? all-string-snips-state #t)
+        (let loop ([s (find-snip start 'after-or-none)]
+                   [i start])
+          (cond
+            [(not s) (void)]
+            [(not (< i end)) (void)]
+            [(is-a? s string-snip%)
+             (define size (send s get-count))
+             (loop (send s next) (+ i size))]
+            [else (set! all-string-snips-state #f)]))))
+    
+    (define/augment (on-delete start end)
+      (inner (void) on-delete start end)
+      (when (equal? all-string-snips-state #f)
+        (let loop ([s (find-snip start 'after-or-none)]
+                   [i start])
+          (cond
+            [(not s) (void)]
+            [(not (< i end)) (void)]
+            [(is-a? s string-snip%)
+             (define size (send s get-count))
+             (loop (send s next) (+ i size))]
+            [else (set! all-string-snips-state 'dont-know)]))))
+
+    
+    ;; (or/c #t #f 'dont-know)
+    (define all-string-snips-state #t)
+    (define/public (all-string-snips?)
+      (cond
+        [(boolean? all-string-snips-state)
+         all-string-snips-state]
+        [else
+         (define all-string-snips? (all-string-snips?/slow))
+         (set! all-string-snips-state all-string-snips?)
+         all-string-snips?]))
+    
+    (super-new)))
+  
 (define basic% (basic-mixin (editor:basic-mixin text%)))
 (define line-spacing% (line-spacing-mixin basic%))
 (define hide-caret/selection% (hide-caret/selection-mixin line-spacing%))

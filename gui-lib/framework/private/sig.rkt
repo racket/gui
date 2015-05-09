@@ -188,6 +188,7 @@
      nbsp->space<%>
      column-guide<%>
      normalize-paste<%>
+     all-string-snips<%>
      delegate<%>
      wide-snip<%>
      searching<%>
@@ -229,6 +230,7 @@
      nbsp->space-mixin
      column-guide-mixin
      normalize-paste-mixin
+     all-string-snips-mixin
      wide-snip-mixin
      delegate-mixin
      searching-mixin
