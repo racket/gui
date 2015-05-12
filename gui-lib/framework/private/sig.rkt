@@ -200,6 +200,7 @@
      ports<%>
      input-box<%>
      autocomplete<%>
+     overwrite-disable<%>
      
      basic% 
      line-spacing%
@@ -241,7 +242,8 @@
      crlf-line-endings-mixin
      ports-mixin
      input-box-mixin
-     autocomplete-mixin))
+     autocomplete-mixin
+     overwrite-disable-mixin))
   (define-signature text^ extends text-class^
     (autocomplete-append-after
      autocomplete-limit

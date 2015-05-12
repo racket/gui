@@ -1,7 +1,6 @@
 #lang scribble/doc
 @(require scribble/manual scribble/extract)
-@(require (for-label framework))
-@(require (for-label scheme/gui))
+@(require (for-label framework racket/gui))
 @title{Text}
 
 @definterface[text:basic<%> (editor:basic<%> text%)]{
@@ -1335,6 +1334,17 @@
   }
 }
 
+@definterface[text:overwrite-disable<%> ()]{
+ Classes implementing this interface disable overwrite mode when
+ the overwrite mode keybindings are turned off.
+}
+
+@defmixin[text:overwrite-disable-mixin (text%) (text:set-overwrite-mode<%>)]{
+ This mixin adds a callback for @racket['framework:overwrite-mode-keybindings]
+ via @racket[preferences:add-callback] that calls @method[text% set-overwrite-mode]
+ with @racket[#f] when the preference is set to @racket[#f].
+}
+
 @defclass[text:basic% (text:basic-mixin (editor:basic-mixin text%)) ()]{}
 @defclass[text:line-spacing% (text:line-spacing-mixin text:basic%) ()]{}
 @defclass[text:hide-caret/selection% (text:hide-caret/selection-mixin text:line-spacing%) ()]{}
@@ -1344,7 +1354,9 @@
 @defclass[text:wide-snip% (text:wide-snip-mixin text:line-spacing%) ()]{}
 @defclass[text:standard-style-list% (editor:standard-style-list-mixin text:wide-snip%) ()]{}
 @defclass[text:input-box% (text:input-box-mixin text:standard-style-list%) ()]{}
-@defclass[text:keymap% (editor:keymap-mixin text:standard-style-list%) ()]{}
+@defclass[text:keymap%
+          (text:overwrite-disable-mixin (editor:keymap-mixin text:standard-style-list%))
+          ()]{}
 @defclass[text:return% (text:return-mixin text:keymap%) ()]{}
 @defclass[text:autowrap% (editor:autowrap-mixin text:keymap%) ()]{}
 @defclass[text:file% (text:file-mixin (editor:file-mixin text:autowrap%)) ()]{}

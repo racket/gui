@@ -4549,6 +4549,24 @@ designates the character that triggers autocompletion
          all-string-snips?]))
     
     (super-new)))
+
+(define overwrite-disable<%> (interface ()))
+(define overwrite-disable-mixin
+  (mixin ((class->interface text%)) (overwrite-disable<%>)
+    (inherit set-overwrite-mode)
+    
+    ;; private field held onto by the object
+    ;; because of the weak callback below
+    (define (overwrite-changed-callback p v)
+      (unless v
+        (set-overwrite-mode #f)))
+
+    (preferences:add-callback
+     'framework:overwrite-mode-keybindings
+     overwrite-changed-callback
+     #t)
+     
+    (super-new)))
   
 (define basic% (basic-mixin (editor:basic-mixin text%)))
 (define line-spacing% (line-spacing-mixin basic%))
@@ -4559,7 +4577,7 @@ designates the character that triggers autocompletion
 (define wide-snip% (wide-snip-mixin line-spacing%))
 (define standard-style-list% (editor:standard-style-list-mixin wide-snip%))
 (define input-box% (input-box-mixin standard-style-list%))
-(define -keymap% (editor:keymap-mixin standard-style-list%))
+(define -keymap% (overwrite-disable-mixin (editor:keymap-mixin standard-style-list%)))
 (define return% (return-mixin -keymap%))
 (define autowrap% (editor:autowrap-mixin -keymap%))
 (define file% (file-mixin (editor:file-mixin autowrap%)))
