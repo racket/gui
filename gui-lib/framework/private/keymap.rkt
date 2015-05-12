@@ -352,29 +352,39 @@
   
   (define (setup-global kmap #:alt-as-meta-keymap [alt-as-meta-keymap #f])
     (keymap:setup-global kmap #:alt-as-meta-keymap alt-as-meta-keymap)
-    (define (goto-line edit event)
-      (define num-str
-        (call/text-keymap-initializer
-         (λ ()
-           (get-text-from-user
-            (string-constant goto-line)
-            (string-constant goto-line)))))
-      (when (string? num-str)
-        (define possible-num (string->number num-str))
-        (define line-num (and possible-num (inexact->exact possible-num)))
+    (define (goto-line keystroke-edit event)
+      (define keystroke-frame
+        (and (is-a? keystroke-edit editor:basic<%>)
+             (send keystroke-edit get-top-level-window)))
+      (define edit
         (cond
-          [(and (number? line-num)
-                (integer? line-num)
-                (<= 1 line-num (+ (send edit last-paragraph) 1)))
-           (define pos (send edit paragraph-start-position (sub1 line-num)))
-           (send edit set-position pos)]
-          [else
-           (message-box
-            (string-constant goto-line)
-            (format 
-             (string-constant goto-line-invalid-number)
-             num-str
-             (+ (send edit last-line) 1)))]))
+          [(is-a? keystroke-frame frame:info<%>)
+           (send keystroke-frame get-info-editor)]
+          [(is-a? keystroke-edit text%) keystroke-edit]
+          [else #f]))
+      (when edit
+        (define num-str
+          (call/text-keymap-initializer
+           (λ ()
+             (get-text-from-user
+              (string-constant goto-line)
+              (string-constant goto-line)))))
+        (when (string? num-str)
+          (define possible-num (string->number num-str))
+          (define line-num (and possible-num (inexact->exact possible-num)))
+          (cond
+            [(and (number? line-num)
+                  (integer? line-num)
+                  (<= 1 line-num (+ (send edit last-paragraph) 1)))
+             (define pos (send edit paragraph-start-position (sub1 line-num)))
+             (send edit set-position pos)]
+            [else
+             (message-box
+              (string-constant goto-line)
+              (format 
+               (string-constant goto-line-invalid-number)
+               num-str
+               (+ (send edit last-line) 1)))])))
       #t)
 
     (let ([add-m (λ (name func)
