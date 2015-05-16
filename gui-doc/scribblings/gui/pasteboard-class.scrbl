@@ -612,6 +612,16 @@ The @racket[x] and @racket[y] arguments are in editor coordinates. If
 }
 
 
+@defmethod[(get-area-selectable)
+           boolean?]{
+
+Returns whether snips can be selected by dragging a selection box in the
+ pasteboard's background. By default, area selection
+ is allowed. See also @method[pasteboard% set-area-selectable].
+
+@history[#:added "1.12"]}
+
+
 @defmethod[(get-center) (values real? real?)]{
 
 Returns the center of the pasteboard in pasteboard coordinates.
@@ -1110,6 +1120,16 @@ See also @method[pasteboard% raise], @method[pasteboard% lower], and
  @method[pasteboard% set-before].
 
 }
+
+@defmethod[(set-area-selectable [allow-drag? any/c])
+           void?]{
+
+Set whether snips can be selected by dragging a selection box in the
+ pasteboard's background by event handling in @method[pasteboard%
+ on-default-event]: a true value allows selection, @racket[#f]
+ disallows selection. See also @method[pasteboard% get-area-selectable].
+
+@history[#:added "1.12"]}
 
 
 @defmethod[(set-before [snip (is-a?/c snip%)]

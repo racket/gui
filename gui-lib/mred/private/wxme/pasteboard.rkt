@@ -132,6 +132,7 @@
   (define keep-size? #f)
   (define dragging? #f)
   (define rubberband? #f)
+  (define can-rubberband? #t)
 
   (define rb-x 0.0)
   (define rb-y 0.0)
@@ -369,7 +370,8 @@
                               (unless (send event get-shift-down)
                                 (no-selected))
                               (set-caret-owner #f)
-                              (set! rubberband? #t)))
+                              (when can-rubberband?
+                                (set! rubberband? #t))))
                         (set! start-x x)
                         (set! last-x x)
                         (set! start-y y)
@@ -2040,6 +2042,11 @@
 
   (def/public (set-selection-visible [bool? v])
     (set! selection-visible? v))
+
+  (def/public (get-area-selectable) can-rubberband?)
+
+  (def/public (set-area-selectable [bool? d?])
+    (set! can-rubberband? d?))
 
   ;; ----------------------------------------
 
