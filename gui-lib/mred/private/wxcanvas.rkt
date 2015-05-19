@@ -62,7 +62,7 @@
                    (lambda (e)
                      (let ([mred (get-mred)])
                        (if mred
-                           (send mred on-scroll e)
+                           (as-exit (lambda () (send mred on-scroll e)))
                            (as-exit (lambda () (super on-scroll e)))))))]
        [on-paint (entry-point
                   (lambda ()
