@@ -176,6 +176,12 @@
        (and (memq 'control-border style)
             (OpenThemeData canvas-hwnd "Edit")))
 
+     (define/public (get-scaled-client-size)
+       (define wb (box #f))
+       (define hb (box #f))
+       (get-client-size wb hb)
+       (values (unbox wb) (unbox hb)))
+
      (define/override (get-content-hwnd)
        content-hwnd)
 

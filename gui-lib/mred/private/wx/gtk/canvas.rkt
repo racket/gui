@@ -436,6 +436,12 @@
      (define/public (make-compatible-bitmap w h)
        (send dc make-backing-bitmap w h))
 
+     (define/public (get-scaled-client-size)
+       (define wb (box #f))
+       (define hb (box #f))
+       (get-client-size wb hb)
+       (values (unbox wb) (unbox hb)))
+
      (define/override (get-client-gtk) client-gtk)
      (define/override (get-container-gtk) container-gtk)
      (define/override (handles-events? gtk) (not (ptr-equal? gtk combo-button-gtk)))

@@ -30,7 +30,8 @@
     on-char on-event on-paint on-tab-in
     get-dc
     set-canvas-background get-canvas-background
-    set-resize-corner))
+    set-resize-corner
+    get-scaled-client-size))
 
 (define basic-canvas%
   (class* (make-subwindow% (make-window% #f (make-subarea% area%))) (canvas<%>)
@@ -56,6 +57,9 @@
                               "exact-positive-integer?"
                               h))
       (send wx make-compatible-bitmap w h))
+
+    (define/public (get-scaled-client-size)
+      (send wx get-scaled-client-size))
 
     (define/public (suspend-flush)
       (send wx begin-refresh-sequence))

@@ -292,5 +292,13 @@ See @racket[canvas<%>] for information on canvas flushing.
 Beware that suspending flushing for a canvas can discourage refreshes
 for other windows in the same frame on some platforms.}
 
+@defmethod[(get-scaled-client-size) (values dimension-integer? dimension-integer?)]{
+
+Returns the dimensions that the canvas supports drawing to. On Mac OS
+X, this may be different than the result returned by
+@racket[get-client-size] when the canvas is in "High Resolution" mode and the display is Retina-enabled.}
+
+@history[#:added "1.13"]
+
 }
 

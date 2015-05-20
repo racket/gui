@@ -874,6 +874,17 @@
        (when is-combo?
          (set-box! yb (max 0 (- (unbox yb) combo-backing-dh)))))
 
+     (define/public (get-scaled-client-size)
+       (define bsr (tell #:type _NSRect (get-cocoa-content) bounds))
+       (define csr
+         (tell #:type _NSRect (get-cocoa-content)
+               convertRectToBacking:
+               #:type _NSRect bsr))
+       (define cs (NSRect-size csr))
+       (define cw (->long (NSSize-width cs)))
+       (define ch (->long (NSSize-height cs)))
+       (values cw ch))
+
      (define/override (get-cursor-width-delta)
        0)
 
