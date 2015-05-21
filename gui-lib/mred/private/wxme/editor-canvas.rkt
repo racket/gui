@@ -732,11 +732,11 @@
                                (if (positive? hpixels-per-scroll)
                                    (cond
                                     [(or (and (eq? bias 'start) (fw . > . iw))
-                                         (and (fw . < . iw) (localx . < . x))
+                                         (and (fw . <= . iw) (localx . < . x))
                                          (and (fw . > . iw) (not (eq? bias 'end)) (localx . < . x)))
                                      (->long (/ localx hpixels-per-scroll))]
                                     [(or (and (eq? bias 'end) (fw . > . iw))
-                                         (and (fw . < . iw) ((+ x iw) . < . (+ localx fw)))
+                                         (and (fw . <= . iw) ((+ x iw) . < . (+ localx fw)))
                                          (and (fw . > . iw) (not (eq? bias 'start)) ((+ localx fw) . > . (+ x iw))))
                                      (+ (->long (/ (+ localx (- fw iw)) hpixels-per-scroll)) 1)]
                                     [else cx])
