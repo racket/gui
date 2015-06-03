@@ -225,7 +225,7 @@
 (define (delete-start-spaces txt para)
   (let* ([para-start (send txt paragraph-start-position para)]
          [first-non-white (start-skip-spaces txt para 'forward)])
-    (when (> first-non-white para-start)
+    (when (and first-non-white (> first-non-white para-start))
       (send txt delete para-start first-non-white))))
 
 ;;(count-parens a-racket:text posi) → exact-integer?
@@ -286,9 +286,10 @@
          [nxt-para-end (send txt paragraph-end-position nxt-para)])
     (if (or (equal? para-end nxt-para-end) (equal? para-end (sub1 nxt-para-end))) ;;reach/exceed the last line
         #t;;all done
-        (let* ([nxt-para-start (start-skip-spaces txt nxt-para 'forward)] 
-               [nxt-para-classify (txt-position-classify txt nxt-para-start nxt-para-end)])
-          (unless (not nxt-para-start) ;next line empty, start-skip-spaces returns #f
+        (let ([nxt-para-start (start-skip-spaces txt nxt-para 'forward)])
+          (when nxt-para-start ;next line empty, start-skip-spaces returns #f
+            (define nxt-para-classify
+              (and nxt-para-start (txt-position-classify txt nxt-para-start nxt-para-end)))
             (if (and (para-not-empty? nxt-para-classify) (push-back-check? txt nxt-para-start)
                      (equal? (send txt classify-position (sub1 para-end)) 'text);;previous line end with text 
                      (< new-width width))
@@ -389,11 +390,12 @@
 ;;  in front of the paragraph(line)
 (define (adjust-spaces text para amount posi)
   (define posi-skip-space (start-skip-spaces text para 'forward))
-  (define origin-amount (- posi-skip-space posi))
-  (when (and amount (not (= origin-amount amount)))
-    (send text delete posi posi-skip-space)
-    (when (> amount 0)
-      (send text insert (make-string amount #\space) posi))) 
+  (when posi-skip-space
+    (define origin-amount (- posi-skip-space posi))
+    (when (and amount (not (= origin-amount amount)))
+      (send text delete posi posi-skip-space)
+      (when (> amount 0)
+        (send text insert (make-string amount #\space) posi))))
   #t)
 
 ;;test cases
