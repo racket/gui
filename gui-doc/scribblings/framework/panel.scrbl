@@ -4,7 +4,7 @@
 @title{Panel}
 
 @definterface[panel:single<%> (area-container<%>)]{
-  See @racket[panel:single-mixin%].
+  See @racket[panel:single-mixin].
 
   @defmethod*[(((active-child (child (is-a?/c area<%>))) void?) ((active-child) (is-a?/c area<%>)))]{
     Sets the active child to be @racket[child]
@@ -17,8 +17,8 @@
   This mixin adds single panel functionality to an implementation of the
   @racket[area-container<%>] interface.
 
-  Single panels place all of the children in the center of the panel, and allow
-  make one child to be visible at a time. The
+  Single panels place all of the children in the center of the panel, but allow
+  only one child to be visible at a time. The
   @method[panel:single<%> active-child] method controls which panel is
   currently active.
 
