@@ -173,23 +173,35 @@
 
 ;; install-recent-items : (is-a?/c menu%) -> void?
 (define (install-recent-items menu)
-  (let ([recently-opened-files
-         (preferences:get
-          'framework:recently-opened-files/pos)])
-    (unless (menu-items-still-same? recently-opened-files menu)
-      (for ([item (send menu get-items)]) (send item delete))
-      
-      (for ([recent-list-item recently-opened-files])
-        (new menu-item%
-             [parent menu]
-             [label (recent-list-item->menu-label recent-list-item)]
-             [callback (λ (x y) (open-recent-list-item recent-list-item))]))
-      (new separator-menu-item% [parent menu])
+  (define recently-opened-files
+    (preferences:get
+     'framework:recently-opened-files/pos))
+  (define (update-menu-with-new-stuff)
+    (for ([item (send menu get-items)]) (send item delete))
+    
+    (for ([recent-list-item recently-opened-files])
       (new menu-item%
            [parent menu]
-           [label (string-constant show-recent-items-window-menu-item)]
-           [callback (λ (x y) (show-recent-items-window))]))
-    (void)))
+           [label (recent-list-item->menu-label recent-list-item)]
+           [callback (λ (x y) (open-recent-list-item recent-list-item))]))
+    (new separator-menu-item% [parent menu])
+    (new menu-item%
+         [parent menu]
+         [label (string-constant show-recent-items-window-menu-item)]
+         [callback (λ (x y) (show-recent-items-window))]))
+  (unless (menu-items-still-same? recently-opened-files menu)
+
+    ;; sometimes, we get here via an on-demand callback
+    ;; and we run out of time during the callback and
+    ;; things go awry with the menu. So, to hack around
+    ;; that problem, lets try to do it twice; once here
+    ;; when we notice that things are wrong, and then once
+    ;; later, when we know we won't run afoul of any time
+    ;; limits.
+    
+    (queue-callback (λ () (update-menu-with-new-stuff)) #f)
+    (update-menu-with-new-stuff))
+  (void))
 
 (define (recent-list-item->menu-label recent-list-item)
   (let ([filename (car recent-list-item)])
