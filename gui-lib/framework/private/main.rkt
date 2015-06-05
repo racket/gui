@@ -390,6 +390,7 @@
               cases
                  instantiate super-instantiate
                syntax/loc quasisyntax/loc
+               datum-case
                match match* match-let match-let* match-letrec
                
                λ lambda let let* letrec recur
