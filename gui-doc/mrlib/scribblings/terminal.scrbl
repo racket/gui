@@ -20,7 +20,8 @@ in command-line scripts.}
                       [#:canvas-min-height canvas-min-height (or/c #f (integer-in 0 10000)) #f]
                       [#:close-button? close-button? boolean? #t]
                       [#:close-label close-label string? (string-constant close)]
-                      [#:close-callback close-callback (-> any) void])
+                      [#:close-callback close-callback (-> any) void]
+                      [#:close-when-hidden? boolean? #t])
          (is-a?/c terminal<%>)]{
                 
   Creates a GUI, sets up the current error and output ports to
@@ -70,6 +71,11 @@ in command-line scripts.}
 
   The @racket[close-callback] function is called after the terminal
   frame is closed or container is removed.
+
+  When the @racket[container] argument is not @racket[#f], then 
+  hiding removing the window from it's frame will abort the
+  computation in the terminal, unless  @racket[close-when-hidden?] is @racket[#f].
+
 
   @history[#:changed "1.4" @elem{Added the @racket[#:close-callback] argument.}]}
 

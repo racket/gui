@@ -18,7 +18,8 @@
                      #:canvas-min-height (or/c #f exact-nonnegative-integer?)
                      #:close-button? boolean?
                      #:close-label string?
-                     #:close-callback (-> any))
+                     #:close-callback (-> any)
+                     #:close-when-hidden? boolean?)
                     (is-a?/c terminal<%>))])
  terminal<%>)
 
@@ -45,7 +46,8 @@
                      #:canvas-min-height [canvas-min-height #f]
                      #:close-button? [close-button? #t]
                      #:close-label [close-button-label (string-constant close)]
-                     #:close-callback [user-close-callback void])
+                     #:close-callback [user-close-callback void]
+                     #:close-when-hidden? [close-when-hidden? #t])
   (define orig-eventspace (current-eventspace))
   (define orig-custodian (current-custodian))
   (define inst-eventspace (if container
@@ -121,8 +123,9 @@
                   (new (class vertical-panel%
                          (super-new)
                          (define/override (on-superwindow-show on?)
-                           (unless on?
-                             (close-callback))))
+                           (when close-when-hidden?
+                             (unless on?
+                               (close-callback)))))
                        [parent container])))
         
         (set! text (new (text:hide-caret/selection-mixin text:standard-style-list%)))
