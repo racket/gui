@@ -242,10 +242,10 @@
    (non-empty-listof (list/c exact-nonnegative-integer? 
                              exact-nonnegative-integer?))
    ;; the font size for that configuration
-   exact-nonnegative-integer?
+   (integer-in 0 255)
    #:flat? #t)
   ;; default font size, when none of the configs above apply
-  exact-nonnegative-integer?
+  (integer-in 0 255)
   #:flat? #t))
 
 (preferences:set-un/marshall
