@@ -49,7 +49,7 @@ signal failures when there aren't any.
   | error messages when one fails.
 
   - frames: |# frame.rkt #|
-  - canvases: |# canvas.rkt #|
+  - canvases: canvas.rkt -- now runs directly via raco test.
   - texts: |# text.rkt #|
   - pasteboards: |# pasteboard.rkt #|
 
