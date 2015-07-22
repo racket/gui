@@ -455,7 +455,7 @@ the state transitions / contracts are:
                 (set! add-editor-checkbox-panel void)
                 (add-checkbox-panel 
                  (list (string-constant editor-prefs-panel-label) 
-                       (string-constant general-prefs-panel-label))
+                       (string-constant editor-general-prefs-panel-label))
                  (λ (editor-panel)
                    (add-check editor-panel 'framework:delete-forward? (string-constant map-delete-to-backspace)
                               not not)
