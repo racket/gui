@@ -4509,19 +4509,22 @@ designates the character that triggers autocompletion
           [(is-a? s string-snip%) (loop (send s next))]
           [else #f])))
 
-    (define/augment (after-insert start end)
-      (inner (void) after-insert start end)
-      
+    (define/augment (after-insert start len)
+      (inner (void) after-insert start len)
+      (define end (+ start len))
       (when (equal? all-string-snips-state #t)
-        (let loop ([s (find-snip start 'after-or-none)]
-                   [i start])
+        (define init-i (box 0))
+        (define init-s (find-snip start 'after-or-none init-i))
+        (let loop ([s init-s]
+                   [i (unbox init-i)])
           (cond
             [(not s) (void)]
             [(not (< i end)) (void)]
             [(is-a? s string-snip%)
              (define size (send s get-count))
              (loop (send s next) (+ i size))]
-            [else (set! all-string-snips-state #f)]))))
+            [else
+             (set! all-string-snips-state #f)]))))
     
     (define/augment (on-delete start end)
       (inner (void) on-delete start end)

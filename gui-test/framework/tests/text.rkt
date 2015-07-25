@@ -344,6 +344,17 @@
        (send t delete 2 4)
        (send t all-string-snips?)))))
 
+(test
+ 'all-string-snips<%>.9
+ (λ (x) (equal? x #f))
+ (λ ()
+   (queue-sexp-to-mred
+    '(let ()
+       (define t (new (text:all-string-snips-mixin text%)))
+       (send t insert "abcdef\n")
+       (send t insert (new snip%) (send t last-position))
+       (send t all-string-snips?)))))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
 ;;  print-to-dc
