@@ -5,11 +5,6 @@ button in the top-left for more information.
 
 ---------------------------------------------------------------------------
 
-The "draw.rkt" test (use load/cd) tests drawing commands. Click the
-"What Should I See?" button for further details.
-
----------------------------------------------------------------------------
-
 The "mem.rkt" test
   gracket mem.rkt
 creates a lot of frames and instance of other objects, reporting
