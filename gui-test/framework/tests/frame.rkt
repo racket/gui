@@ -1,150 +1,146 @@
 #lang racket/base
 
-  (require "test-suite-utils.rkt")
+(require "private/here-util.rkt"
+         "private/gui.rkt"
+         rackunit
+         racket/class
+         racket/gui/base
+         framework)
 
-  (module test racket/base)
-  
-  (send-sexp-to-mred '(send (make-object frame:basic%
-                              "dummy to keep from quitting")
-                            show #t))
-  
-  (define (test-creation name class-expression . args)
-    (test
-     name
-     (lambda (x) (eq? 'passed x))
-     (lambda ()
-       (let ([frame-label
-              (queue-sexp-to-mred
-               `(let ([f (instantiate ,class-expression () ,@args)])
-                  (send f show #t)
-                  (send f get-label)))])
-         (wait-for-frame frame-label)
-         (queue-sexp-to-mred
-          '(send (get-top-level-focus-window) close))
-         'passed))))
-  
+(define (test-creation name create)
+  (check-true
+   (let ()
+     (parameterize ([current-eventspace (make-eventspace)])
+       (define c (make-channel))
+       (define f #f)
+       (queue-callback
+        (λ ()
+          (set! f (create))
+          (send f show #t)
+          (channel-put c (send f get-label))))
+       (define frame-label (channel-get c))
+       (wait-for-frame frame-label)
+       (queue-callback (λ () (send f close)))
+       #t))
+   (format "create ~a" name)))
+
+(define (creation-tests)
   (test-creation
    'basic%-creation
-   'frame:basic%
-   '(label "test"))
+   (λ () (new frame:basic% [label "test"])))
   (test-creation
    'basic-mixin-creation
-   '(frame:basic-mixin frame%)
-   '(label "test"))
-  
+   (λ () (new (frame:focus-table-mixin (frame:basic-mixin frame%)) [label "test"])))
   (test-creation
    'info-mixin-creation
-   '(frame:info-mixin frame:basic%)
-   '(label "test"))
-  
+   (λ () (new (frame:info-mixin frame:basic%)
+              [label "test"])))
   (test-creation
    'info%-creation
-   'frame:info%
-   '(label "test"))
-  
+   (λ () (new frame:info% [label "test"])))
   (test-creation
    'text-info-mixin-creation
-   '(frame:text-info-mixin frame:info%)
-   '(label "test"))
+   (λ () (new (frame:text-info-mixin frame:info%)
+              [label "test"])))
   (test-creation
    'text-info%-creation
-   'frame:text-info%
-   '(label "test"))
-  
+   (λ () (new frame:text-info% [label "test"])))
   (test-creation
    'pasteboard-info-mixin-creation
-   '(frame:pasteboard-info-mixin frame:info%)
-   '(label "test"))
-  
+   (λ () (new (frame:pasteboard-info-mixin frame:info%)
+              [label "test"])))
   (test-creation
    'pasteboard-info%-creation
-   'frame:pasteboard-info%
-   '(label "test"))
-  
+   (λ () (new frame:pasteboard-info% [label "test"])))
   (test-creation
    'standard-menus%-creation
-   'frame:standard-menus%
-   '(label "test"))
-  
+   (λ () (new frame:standard-menus% [label "test"])))
   (test-creation
    'standard-menus-mixin
-   '(frame:standard-menus-mixin frame:basic%)
-   '(label "test"))
+   (λ () (new (frame:standard-menus-mixin frame:basic%) [label "test"])))
   
   (test-creation
    'text%-creation
-   'frame:text%)
+   (λ () (new frame:text%)))
   (test-creation
    'text-mixin-creation
-   '(frame:text-mixin frame:editor%))
+   (λ () (new (frame:text-mixin frame:editor%))))
   (test-creation
    'text-mixin-creation
-   '(frame:text-mixin frame:editor%))
+   (λ () (new (frame:text-mixin frame:editor%))))
   
   (test-creation
    'searchable%-creation
-   'frame:searchable%)
+   (λ () (new frame:searchable%)))
   (test-creation
    'searchable-mixin
-   '(frame:searchable-mixin frame:text%))
+   (λ () (new (frame:searchable-mixin frame:text%))))
   
   (test-creation
    'pasteboard-mixin-creation
-   '(frame:pasteboard-mixin frame:editor%))
+   (λ () (new (frame:pasteboard-mixin frame:editor%))))
   (test-creation
    'pasteboard-mixin-creation
-   '(frame:pasteboard-mixin (frame:editor-mixin frame:standard-menus%)))
+   (λ () (new (frame:pasteboard-mixin (frame:editor-mixin frame:standard-menus%)))))
   (test-creation
    'pasteboard%-creation
-   'frame:pasteboard%)
-  
-  (define (test-open name class-expression)
-    (let* ([test-file-contents "test"]
-           [tmp-file-name "framework-tmp"]
-           [tmp-file (collection-file-path tmp-file-name "framework" "tests")])
-      (test
-       name
-       (lambda (x)
-         (when (file-exists? tmp-file)
-           (delete-file tmp-file))
-         (equal? x test-file-contents))
-       (lambda ()
-         (let ([frame-name 
-                (queue-sexp-to-mred
-                 `(let ([frame (new ,class-expression)])
-                    (preferences:set 'framework:file-dialogs 'common)
-                    (send frame show #t)
-                    (send frame get-label)))])
-           (wait-for-frame frame-name)
-           (send-sexp-to-mred
-            `(test:menu-select "File" "Open..."))
-           (wait-for-frame "Open File")
-           (call-with-output-file tmp-file
-             (lambda (port)
-               (display test-file-contents port))
-             #:exists 'truncate)
-           (queue-sexp-to-mred
-            `(send (find-labelled-window "Filename:") focus))
-           (send-sexp-to-mred
-            `(begin ,(case (system-type)
-                       [(macos macosx) `(test:keystroke #\a '(meta))]
-                       [(unix) `(test:keystroke #\a '(meta))]
-                       [(windows) `(test:keystroke #\a '(control))]
-                       [else (error 'file-open-dialog "unknown system type: ~a" (system-type))])
-                    (for-each test:keystroke
-                              (string->list ,(path->string tmp-file)))
-                    (test:keystroke #\return)))
-           (wait-for-frame tmp-file-name)
-           (begin0
-             (queue-sexp-to-mred
-              `(let* ([w (get-top-level-focus-window)])
-                 (send (send w get-editor) get-text)))
-             (send-sexp-to-mred
-              `(test:close-top-level-window (get-top-level-focus-window)))
-             (wait-for-frame frame-name)
-             (queue-sexp-to-mred
-              `(send (get-top-level-focus-window) close))))))))
-  
-  (test-open "frame:searchable open" 'frame:searchable%)
-  (test-open "frame:text open" 'frame:text%)
+   (λ () (new frame:pasteboard%))))
 
+(define (test-open name cls)
+  (define test-file-contents "test")
+  (check-equal?
+   (let ()
+     (define tmp-file-name "framework-tmp")
+     (define tmp-file (collection-file-path tmp-file-name "framework" "tests"))
+     (call-with-output-file tmp-file
+       (λ (port) (display test-file-contents port))
+       #:exists 'truncate)
+     (preferences:set 'framework:file-dialogs 'common)
+     (parameterize ([current-eventspace (make-eventspace)])
+       (define c (make-channel))
+       (queue-callback
+        (λ ()
+          (define frame (new cls))
+          (send frame show #t)
+          (channel-put c (send frame get-label))))
+       (define frame-name (channel-get c))
+       (wait-for-frame frame-name)
+       (test:menu-select "File" "Open...")
+       (wait-for-frame "Open File")
+       (queue-callback
+        (λ ()
+          (send (find-labelled-window "Filename:") focus)
+          (channel-put c (void))))
+       (channel-get c)
+       (case (system-type)
+         [(macos macosx) (test:keystroke #\a '(meta))]
+         [(unix) (test:keystroke #\a '(meta))]
+         [(windows) (test:keystroke #\a '(control))])
+       (for-each test:keystroke (string->list (path->string tmp-file)))
+       (test:keystroke #\return)
+       (wait-for-frame tmp-file-name)
+       (queue-callback
+        (λ ()
+          (channel-put c (send (send (test:get-active-top-level-window) get-editor) get-text))))
+       (define editor-contents (channel-get c))
+       (test:close-top-level-window (test:get-active-top-level-window))
+       (wait-for-frame frame-name)
+       (queue-callback
+        (λ ()
+          (send (test:get-active-top-level-window) close)))
+       (preferences:set 'framework:file-dialogs 'std) ;; this is not gooD!!!!
+       (error 'ack "need to figure out how to use the hash-based prefs...?")
+       editor-contents))
+   test-file-contents
+   name))
+
+(define (open-tests)
+  (test-open "frame:searchable open" frame:searchable%)
+  (test-open "frame:text open" frame:text%))
+
+(parameterize ([test:use-focus-table #t])
+  (define dummy (make-object frame:basic% "dummy to keep from quitting"))
+  (send dummy show #t)
+  (creation-tests)
+  (open-tests)
+  (send dummy show #f))

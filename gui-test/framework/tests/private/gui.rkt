@@ -1,7 +1,8 @@
 #lang racket/base
 
   (require racket/gui/base
-           racket/class)
+           racket/class
+           framework/test)
   (provide find-labelled-window 
            find-labelled-windows
            whitespace-string=?)
@@ -86,7 +87,7 @@
   ;;;;  may call error, if no control with the label is found
   (define (find-labelled-window label 
                                 [class #f]
-                                [window (get-top-level-focus-window)]
+                                [window (test:get-active-top-level-window)]
                                 [failure (λ ()
                                            (error 'find-labelled-window "no window labelled ~e in ~e~a"
                                                   label
@@ -99,7 +100,7 @@
       [(null? windows) (failure)]
       [else (car windows)]))
  
-  (define (find-labelled-windows label [class #f] [window (get-top-level-focus-window)])
+  (define (find-labelled-windows label [class #f] [window (test:get-active-top-level-window)])
     (unless (or (not label)
                 (string? label))
       (error 'find-labelled-windows "first argument must be a string or #f, got ~e; other args: ~e ~e"
