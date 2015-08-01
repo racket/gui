@@ -45,11 +45,11 @@
 (define x11-bitmap%
   (class bitmap%
     (init w h gdk-win)
-    (super-make-object (make-alternate-bitmap-kind w h 1.0))
+    (super-make-object (make-alternate-bitmap-kind w h (->screen 1.0)))
 
     (define pixmap (gdk_pixmap_new gdk-win 
-				   (min (max 1 w) 32000)
-				   (min (max 1 h) 32000)
+				   (min (max 1 (->screen w)) 32000)
+				   (min (max 1 (->screen h)) 32000)
 				   (if gdk-win 
 				       -1
 				       (GdkVisual-rec-depth
@@ -60,8 +60,8 @@
                                  (gdk_x11_drawable_get_xid pixmap)
 				 (gdk_x11_visual_get_xvisual
 				  (gdk_drawable_get_visual pixmap))
-                                 w
-                                 h))
+                                 (->screen w)
+                                 (->screen h)))
 
     ;; initialize bitmap to white:
     (let ([cr (cairo_create s)])
@@ -172,5 +172,6 @@
                 [h (box 0)])
             (send canvas get-client-size w h)
             (let ([cr (gdk_cairo_create win)])
-              (backing-draw-bm bm cr (unbox w) (unbox h))
+	      (cairo_scale cr (->screen 1.0) (->screen 1.0))
+              (backing-draw-bm bm cr (unbox w) (unbox h) 0 0 (->screen 1.0))
               (cairo_destroy cr))))))

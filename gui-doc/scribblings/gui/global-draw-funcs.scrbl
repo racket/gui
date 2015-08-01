@@ -19,11 +19,11 @@ other actions depend on updating the display.}
 
 Returns the number of pixels that correspond to one drawing unit on a
 monitor.  The result is normally @racket[1.0], but it is @racket[2.0]
-on Mac OS X in Retina display mode, and on Windows it can be a value
+on Mac OS X in Retina display mode, and on Windows or Unix it can be a value
 such as @racket[1.25], @racket[1.5], or @racket[2.0] when the operating-system
 scale for text is changed.  See also @secref["display-resolution"].
 
-On Mac OS X, the result can change at any time.  See also
+On Mac OS X or Unix, the result can change at any time.  See also
 @xmethod[top-level-window<%> display-changed].
 
 If @racket[monitor] is not less than the current number of available

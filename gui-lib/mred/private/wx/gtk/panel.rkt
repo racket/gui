@@ -102,8 +102,8 @@
     (inherit get-container-gtk)
     (super-new)
     (define/override (set-child-size child-gtk x y w h)
-      (gtk_fixed_move (get-container-gtk) child-gtk x y)
-      (gtk_widget_set_size_request child-gtk w h))))
+      (gtk_fixed_move (get-container-gtk) child-gtk (->screen x) (->screen y))
+      (gtk_widget_set_size_request child-gtk (->screen w) (->screen h)))))
 
 (define panel%
   (class (panel-container-mixin (panel-mixin window%))

@@ -175,10 +175,10 @@
     (let ([wx (gtk->wx gtk)])
       (when wx
         (send wx save-size 
-              (GtkAllocation-x a)
-              (GtkAllocation-y a)
-              (GtkAllocation-width a)
-              (GtkAllocation-height a))))
+              (->normal (GtkAllocation-x a))
+              (->normal (GtkAllocation-y a))
+              (->normal (GtkAllocation-width a))
+              (->normal (GtkAllocation-height a)))))
     #t))
 ;; ----------------------------------------
 
@@ -368,13 +368,15 @@
                   [m (let-values ([(x y)
                                    (send wx
                                          adjust-event-position
-                                         (->long ((if motion? 
-                                                      GdkEventMotion-x 
-                                                      (if crossing? GdkEventCrossing-x GdkEventButton-x))
-                                                  event))
-                                         (->long ((if motion? GdkEventMotion-y 
-                                                      (if crossing? GdkEventCrossing-y GdkEventButton-y))
-                                                  event)))])
+					 (->normal
+					  (->long ((if motion? 
+						       GdkEventMotion-x 
+						       (if crossing? GdkEventCrossing-x GdkEventButton-x))
+						   event)))
+					 (->normal
+					  (->long ((if motion? GdkEventMotion-y 
+						       (if crossing? GdkEventCrossing-y GdkEventButton-y))
+						   event))))])
                        (new mouse-event%
                             [event-type type]
                             [left-down (case type
@@ -505,8 +507,9 @@
       (send parent set-child-size gtk x y w h))
 
     (define/public (set-child-size child-gtk x y w h)
-      (gtk_widget_set_size_request child-gtk w h)
-      (gtk_widget_size_allocate child-gtk (make-GtkAllocation x y w h)))
+      (gtk_widget_set_size_request child-gtk (->screen w) (->screen h))
+      (gtk_widget_size_allocate child-gtk (make-GtkAllocation (->screen x) (->screen y)
+							      (->screen w) (->screen h))))
 
     (define/public (remember-size x y w h)
       ;; called in event-pump thread
@@ -538,20 +541,22 @@
         (when sub-h-gtk
           (gtk_widget_size_request sub-h-gtk hreq))
         (when w?
-          (set! client-delta-w (- (GtkRequisition-width req)
-                                  (max (GtkRequisition-width creq)
-                                       (GtkRequisition-width hreq)))))
+          (set! client-delta-w (->normal
+				(- (GtkRequisition-width req)
+				   (max (GtkRequisition-width creq)
+					(GtkRequisition-width hreq))))))
         (when h?
-          (set! client-delta-h (- (GtkRequisition-height req)
-                                  (GtkRequisition-height creq))))))
+          (set! client-delta-h (->normal
+				(- (GtkRequisition-height req)
+				   (GtkRequisition-height creq)))))))
 
     (define/public (set-auto-size [dw 0] [dh 0])
       (let ([req (make-GtkRequisition 0 0)])
         (gtk_widget_size_request gtk req)
         (set-size #f
                   #f
-                  (+ (GtkRequisition-width req) dw)
-                  (+ (GtkRequisition-height req) dh))))
+                  (+ (->normal (GtkRequisition-width req)) dw)
+                  (+ (->normal (GtkRequisition-height req)) dh))))
 
     (define shown? #f)
     (define/public (direct-show on?)
@@ -765,8 +770,8 @@
       (client-to-screen xb yb)
       (gdk_display_warp_pointer (gtk_widget_get_display gtk)
                                 (gtk_widget_get_screen gtk)
-                                (unbox xb)
-                                (unbox yb)))
+                                (->screen (unbox xb))
+                                (->screen (unbox yb))))
 
     (define/public (gets-focus?) #t)))
 

@@ -49,7 +49,7 @@
                              [(caution) (gtk_image_new_from_stock "gtk-dialog-warning" icon-size)]
                              [(stop) (gtk_image_new_from_stock "gtk-dialog-error" icon-size)]
                              [else (gtk_image_new_from_stock "gtk-dialog-question" icon-size)]))
-                          (let ([pixbuf (bitmap->pixbuf label)])
+                          (let ([pixbuf (bitmap->pixbuf label (->screen 1.0))])
                             (begin0
                              (as-gtk-allocation
                               (gtk_image_new_from_pixbuf pixbuf))
@@ -67,7 +67,7 @@
      [(string? s)
       (gtk_label_set_text_with_mnemonic (get-gtk) (mnemonic-string s))]
      [else
-      (let ([pixbuf (bitmap->pixbuf s)])
+      (let ([pixbuf (bitmap->pixbuf s (->screen 1.0))])
         (atomically
          (gtk_image_set_from_pixbuf (get-gtk) pixbuf)
          (release-pixbuf pixbuf)))]))

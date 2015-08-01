@@ -14,6 +14,7 @@ system libraries must be installed for @racketmodname[racket/gui/base]:
  @item{@filepath{libgdk-x11-2.0[.0]}}
  @item{@filepath{libgdk_pixbuf-2.0[.0]}}
  @item{@filepath{libgtk-x11-2.0[.0]}}
+ @item{@filepath{libgio-2.0[.0]} --- optional, for detecting interface scaling}
  @item{@filepath{libGL} --- optional, for OpenGL support}
  @item{@filepath{libunique-1.0[.0]} --- optional, for single-instance support}
 ]

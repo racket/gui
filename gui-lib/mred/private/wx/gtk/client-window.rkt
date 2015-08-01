@@ -19,10 +19,10 @@
     (let ([wx (gtk->wx gtk)])
       (when wx
         (send wx save-client-size 
-              (GtkAllocation-x a)
-              (GtkAllocation-y a)
-              (GtkAllocation-width a)
-              (GtkAllocation-height a))))
+	      (->normal (GtkAllocation-x a))
+              (->normal (GtkAllocation-y a))
+              (->normal (GtkAllocation-width a))
+              (->normal (GtkAllocation-height a)))))
     #t))
 
 (define (client-size-mixin %)

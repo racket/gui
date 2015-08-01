@@ -798,10 +798,13 @@
      (define/public (register-collecting-blit x y w h on off on-x on-y off-x off-y)
        (let ([on (fix-bitmap-size on w h on-x on-y)]
              [off (fix-bitmap-size off w h off-x off-y)])
-         (let ([on-pixbuf (bitmap->pixbuf on)]
-               [off-pixbuf (bitmap->pixbuf off)])
+         (let ([on-pixbuf (bitmap->pixbuf on (->screen 1.0))]
+               [off-pixbuf (bitmap->pixbuf off (->screen 1.0))])
            (atomically
-            (set! reg-blits (cons (register-one-blit x y w h on-pixbuf off-pixbuf) reg-blits))))))
+            (set! reg-blits (cons (register-one-blit (->screen x) (->screen y)
+						     (->screen w) (->screen h)
+						     on-pixbuf off-pixbuf)
+				  reg-blits))))))
      
      (define/public (unregister-collecting-blits)
        (atomically
@@ -827,9 +830,9 @@
         (gtk_widget_size_request container-gtk req)
         (gtk_widget_set_size_request container-gtk
                                      (max (GtkRequisition-width req)
-                                          (+ x w))
+                                          (->screen (+ x w)))
                                      (max (GtkRequisition-height req)
-                                          (+ y h))))
+                                          (->screen (+ y h)))))
       (super set-child-size child-gtk x y w h))
 
     (define/override (reset-dc-for-autoscroll)

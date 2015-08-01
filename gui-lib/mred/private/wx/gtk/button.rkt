@@ -66,7 +66,8 @@
                    [else
                     (let ([pixbuf (bitmap->pixbuf (if (pair? label) 
                                                       (car label)
-                                                      label))])
+                                                      label)
+						  (->screen 1.0))])
                       (atomically
                        (let ([gtk (if (pair? label)
                                       (as-gtk-allocation (gtk_new_with_mnemonic (cadr label)))
@@ -125,7 +126,7 @@
       (gtk_button_set_label gtk (mnemonic-string s))
       (when the-font (install-control-font (get-label-gtk) the-font))]
      [else
-      (let ([pixbuf (bitmap->pixbuf s)])
+      (let ([pixbuf (bitmap->pixbuf s (->screen 1.0))])
         (atomically
          (let ([image-gtk (gtk_image_new_from_pixbuf pixbuf)])
            (release-pixbuf pixbuf)

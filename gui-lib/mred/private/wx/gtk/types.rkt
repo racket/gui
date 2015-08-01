@@ -14,6 +14,8 @@
               _fnpointer
               _gboolean
               _gfloat
+	      _gsize
+	      _gdouble
 
               _GdkEventButton _GdkEventButton-pointer
               (struct-out GdkEventButton)
@@ -55,6 +57,8 @@
 (define _fnpointer _pointer) ; a function pointer that can be NULL
 (define _gboolean _bool)
 (define _gfloat _float)
+(define _gsize _long)
+(define _gdouble _double)
 (define _GdkEventType _int)
 
 (define _GdkAtom _intptr)

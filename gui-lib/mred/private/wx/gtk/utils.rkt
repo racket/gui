@@ -6,7 +6,8 @@
          racket/draw/unsafe/glib
          (only-in '#%foreign ctype-c->scheme)
          "../common/utils.rkt"
-         "types.rkt")
+         "types.rkt"
+	 "resolution.rkt")
 
 (provide 
  define-mz
@@ -48,7 +49,10 @@
               gdk_screen_get_default
 
               ;; for declaring derived structures:
-              _GtkObject)
+              _GtkObject
+
+	      ;; window size adjustments for screen scale:
+	      ->screen ->screen* ->normal)
  mnemonic-string)
 
 (define gdk-lib 
@@ -196,3 +200,29 @@
        "__")
       "_\\1"))
    "&"))
+
+;; ----------------------------------------
+
+(define screen-scale-factor
+  (inexact->exact (get-interface-scale-factor 0)))
+
+(define (->screen x)
+  (and x
+       (if (= screen-scale-factor 1)
+	   x
+	   (if (exact? x)
+	       (ceiling (* x screen-scale-factor))
+	       (* x screen-scale-factor)))))
+(define (->screen* x)
+  (if (and (not (= screen-scale-factor 1))
+	   (exact? x))
+      (floor (* x screen-scale-factor))
+      (->screen x)))
+
+(define (->normal x)
+  (and x
+       (if (= screen-scale-factor 1)
+	   x
+	   (if (exact? x)
+	       (floor (/ x screen-scale-factor))
+	       (/ x screen-scale-factor)))))

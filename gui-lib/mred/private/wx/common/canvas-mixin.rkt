@@ -203,7 +203,7 @@
            (= (send on get-width) w)
            (= (send on get-height) h))
       on
-      (let ([bm (make-object bitmap% w h)])
+      (let ([bm (make-object bitmap% w h #:backing-scale (send on get-backing-scale))])
         (let ([dc (make-object bitmap-dc% on)])
           (send dc draw-bitmap-section on 0 0 on-x on-y w h)
           (send dc set-bitmap #f)

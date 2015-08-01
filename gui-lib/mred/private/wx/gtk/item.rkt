@@ -2,6 +2,7 @@
 (require ffi/unsafe
          racket/class
          racket/draw/private/local
+         (only-in racket/draw make-font)
           "../../syntax.rkt"
          "window.rkt"
          "utils.rkt"
@@ -16,7 +17,19 @@
 
 (define (install-control-font gtk font)
   (when font
-    (gtk_widget_modify_font gtk (send font get-pango))))
+    (let* ([s (->screen 1)]
+    	   [font (if (= s 1)
+		     font
+		      (make-font #:size (->screen (send font get-size))
+				 #:face (send font get-face)
+				 #:family (send font get-family)
+				 #:style (send font get-style)
+				 #:weight (send font get-weight)
+				 #:underlined? (send font get-underlined)
+				 #:smoothing (send font get-smoothing)
+				 #:size-in-pixels? (send font get-size-in-pixels)
+				 #:hinting (send font get-hinting)))])
+      (gtk_widget_modify_font gtk (send font get-pango)))))
 
 (defclass item% window%
   (inherit get-client-gtk)

@@ -55,7 +55,7 @@
                                           [(string? lbl)
                                            (gtk_radio_button_new_with_mnemonic #f (mnemonic-string lbl))]
                                           [else
-                                           (let ([pixbuf (bitmap->pixbuf lbl)])
+                                           (let ([pixbuf (bitmap->pixbuf lbl (->screen 1.0))])
                                              (let ([radio-gtk (gtk_radio_button_new #f)]
                                                    [image-gtk (gtk_image_new_from_pixbuf pixbuf)])
                                                (release-pixbuf pixbuf)

@@ -132,11 +132,11 @@
                         (let* ([s (gtk_widget_get_screen menu)]
                                [sw (gdk_screen_get_width s)]
                                [sh (gdk_screen_get_height s)])
-                          (ptr-set! _x _int (min x
+                          (ptr-set! _x _int (min (->screen x)
                                                  (max 0
                                                       (- sw
                                                          (GtkRequisition-width r)))))
-                          (ptr-set! _y _int (min y
+                          (ptr-set! _y _int (min (->screen y)
                                                  (max 0
                                                       (- sh
                                                          (GtkRequisition-height r)))))))

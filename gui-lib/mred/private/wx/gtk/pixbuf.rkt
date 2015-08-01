@@ -46,26 +46,33 @@
                               #f
                               #t))
 
-(define (bitmap->pixbuf bm)
-  (let* ([w (send bm get-width)]
-         [h (send bm get-height)]
-         [str (make-bytes (* w h 4) 255)])
-    (send bm get-argb-pixels 0 0 w h str #f)
+(define (bitmap->pixbuf orig-bm [scale 1.0])
+  (let* ([w (send orig-bm get-width)]
+         [h (send orig-bm get-height)]
+	 [sw (ceiling (inexact->exact (* scale w)))]
+         [sh (ceiling (inexact->exact (* scale h)))]
+         [str (make-bytes (* sw sh 4) 255)])
+    (define-values (bm unscaled? usw ush)
+      (cond
+       [(= scale 1.0) (values orig-bm #f w h)]
+       [(= scale (send orig-bm get-backing-scale)) (values orig-bm #t w h)]
+       [else (values (rescale orig-bm scale) #f sw sh)]))
+    (send bm get-argb-pixels 0 0 usw ush str #f #:unscaled? unscaled?)
     (let ([mask (send bm get-loaded-mask)])
       (when mask
-        (send mask get-argb-pixels 0 0 w h str #t)))
+        (send mask get-argb-pixels 0 0 usw ush str #t #:unscaled? unscaled?)))
     (atomically
-     (let ([rgba (scheme_make_sized_byte_string (malloc (* w h 4) 'raw) (* w h 4) 0)])
-       (memcpy rgba (ptr-add str 1) (sub1 (* w h 4)))
-       (for ([i (in-range 0 (* w h 4) 4)])
+     (let ([rgba (scheme_make_sized_byte_string (malloc (* sw sh 4) 'raw) (* sw sh 4) 0)])
+       (memcpy rgba (ptr-add str 1) (sub1 (* sw sh 4)))
+       (for ([i (in-range 0 (* sw sh 4) 4)])
          (bytes-set! rgba (+ i 3) (bytes-ref str i)))
        (gdk_pixbuf_new_from_data rgba
                                  0
                                  #t
                                  8
-                                 w
-                                 h
-                                 (* w 4)
+                                 sw
+                                 sh
+                                 (* sw 4)
                                  free-it
                                  #f)))))
 
@@ -80,3 +87,14 @@
     (cairo_fill cr)
     (cairo_destroy cr)
     bm))
+
+(define (rescale bm scale)
+  (define w (send bm get-width))
+  (define h (send bm get-height))
+  (define new-bm (make-bitmap (ceiling (inexact->exact (* scale w)))
+			      (ceiling (inexact->exact (* scale h)))))
+  (define dc (send new-bm make-dc))
+  (send dc set-scale scale scale)
+  (send dc set-smoothing 'smoothed)
+  (send dc draw-bitmap bm 0 0)
+  new-bm)
