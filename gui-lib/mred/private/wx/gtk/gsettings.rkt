@@ -34,6 +34,7 @@
 (define-gio g_settings_new (_fun _string -> _GSettings-pointer)
   #:wrap (allocator g_object_unref))
 (define-gio g_settings_get_value (_fun _GSettings-pointer _string -> _GVariant-pointer))
+(define-gio g_settings_list_keys (_fun _GSettings-pointer -> _pointer))
 
 (define-glib g_variant_get_type_string (_fun _GVariant-pointer -> _string))
 (define-glib g_variant_get_int32 (_fun _GVariant-pointer -> _int32))

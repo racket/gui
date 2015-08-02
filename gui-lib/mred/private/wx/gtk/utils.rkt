@@ -1,5 +1,6 @@
 #lang racket/base
-(require ffi/unsafe
+(require racket/promise
+	 ffi/unsafe
          ffi/unsafe/define
          ffi/unsafe/alloc
          racket/string
@@ -203,10 +204,13 @@
 
 ;; ----------------------------------------
 
-(define screen-scale-factor
-  (inexact->exact (get-interface-scale-factor 0)))
+(define screen-scale-factor/promise
+  (delay
+    (inexact->exact (get-interface-scale-factor 0))))
 
 (define (->screen x)
+  (define screen-scale-factor
+    (force screen-scale-factor/promise))
   (and x
        (if (= screen-scale-factor 1)
 	   x
@@ -214,12 +218,16 @@
 	       (ceiling (* x screen-scale-factor))
 	       (* x screen-scale-factor)))))
 (define (->screen* x)
+  (define screen-scale-factor
+    (force screen-scale-factor/promise))
   (if (and (not (= screen-scale-factor 1))
 	   (exact? x))
       (floor (* x screen-scale-factor))
       (->screen x)))
 
 (define (->normal x)
+  (define screen-scale-factor
+    (force screen-scale-factor/promise))
   (and x
        (if (= screen-scale-factor 1)
 	   x
