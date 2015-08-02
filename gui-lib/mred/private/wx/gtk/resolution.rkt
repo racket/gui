@@ -19,9 +19,9 @@
 	   (let* ([gs (g_settings_new interface-schema)]
 		  [keys (g_settings_list_keys gs)])
 	     (define (check s)
-	       (for ([i (in-naturals)]
-		     #:break (not (ptr-ref keys _pointer i)))
-		    (equal? s (ptr-ref keys _string i))))
+	       (for/or ([i (in-naturals)]
+		        #:break (not (ptr-ref keys _pointer i)))
+		  (equal? s (ptr-ref keys _string i))))
 	     (and (check "scaling-factor")
 		  (check "text-scaling-factor")
 		  gs))))))
