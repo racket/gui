@@ -142,6 +142,16 @@
 (test-indentation "(lambdaa (x)\nb)" "(lambdaa (x)\n         b)")
 (test-indentation "(define x\n  (let/ec return\n    (when 1\n      (when 2\n\t\t      3))\n    2))"
                   "(define x\n  (let/ec return\n    (when 1\n      (when 2\n        3))\n    2))")
+(test-indentation "(for ([x 1])\nx)"
+                  "(for ([x 1])\n  x)")
+(test-indentation "(for/list ([x 1])\nx)"
+                  "(for/list ([x 1])\n  x)")
+(test-indentation "(for/anything ([x 1])\nx)"
+                  "(for/anything ([x 1])\n  x)")
+(test-indentation "(for*/anything ([x 1])\nx)"
+                  "(for*/anything ([x 1])\n  x)")
+(test-indentation "(for-anything ([x 1])\nx)"
+                  "(for-anything ([x 1])\n              x)")
 (test-indentation "(for/fold ([x 1])\n([y 2])\n3\n4)"
                   "(for/fold ([x 1])\n          ([y 2])\n  3\n  4)")
 (test-indentation "a\na\na\n" "a\na\na\n")
