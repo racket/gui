@@ -415,8 +415,6 @@
                splicing-letrec-syntaxes splicing-letrec-syntaxes+values
                splicing-local splicing-syntax-parameterize
 
-               ,@all-fors
-
                do:
                
                kernel-syntax-case
@@ -447,7 +445,7 @@
                type-case))
   (preferences:set-default 
    'framework:tabify
-   (list defaults-ht #rx"^begin" #rx"^def" #f #f)
+   (list defaults-ht #rx"^begin" #rx"^def" #rx"^for\\*?(/|$)" #f)
    (list/c (hash/c symbol? (or/c 'for/fold 'define 'begin 'lambda) #:flat? #t)
            (or/c #f regexp?) (or/c #f regexp?) (or/c #f regexp?) (or/c #f regexp?)))
   
