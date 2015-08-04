@@ -6,8 +6,16 @@
 (provide get-interface-scale-factor)
 
 (define (get-interface-scale-factor display-num)
-  (or (get-gnome-interface-scale-factor)
+  (or (get-environment-variable-scale-factor)
+      (get-gnome-interface-scale-factor)
       1.0))
+
+(define (get-environment-variable-scale-factor)
+  (define s (getenv "PLT_DISPLAY_BACKING_SCALE"))
+  (define n (and s (string->number s)))
+  (and (rational? n)
+       (positive? n)
+       (exact->inexact n)))
 
 (define interface-settings
   (let ([interface-schema "org.gnome.desktop.interface"])

@@ -55,7 +55,7 @@
     (define-values (bm unscaled? usw ush)
       (cond
        [(= scale 1.0) (values orig-bm #f w h)]
-       [(= scale (send orig-bm get-backing-scale)) (values orig-bm #t w h)]
+       [(= scale (send orig-bm get-backing-scale)) (values orig-bm #t sw sh)]
        [else (values (rescale orig-bm scale) #f sw sh)]))
     (send bm get-argb-pixels 0 0 usw ush str #f #:unscaled? unscaled?)
     (let ([mask (send bm get-loaded-mask)])
