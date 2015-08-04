@@ -43,4 +43,6 @@
 	 (g_variant_get_double
 	  (g_settings_get_value gs "text-scaling-factor"))))
     (g_object_unref gs)
-    v))
+    (and (rational? v)
+	 (positive? v)
+	 v)))
