@@ -60,7 +60,8 @@
  special-option-key
  get-color-from-user
  key-symbol-to-menu-key
- needs-grow-box-spacer?)
+ needs-grow-box-spacer?
+ graphical-system-type)
 
 (define (find-graphical-system-path what)
   #f)
@@ -118,6 +119,8 @@
 (define (check-for-break) #f)
 
 (define (needs-grow-box-spacer?) #f)
+
+(define (graphical-system-type) 'win32)
 
 (define-user32 GetCursorPos (_wfun (p : (_ptr o _POINT)) -> (r : _BOOL)
                                    -> (if r

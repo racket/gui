@@ -26,8 +26,10 @@
 
 (define-gtk gtk_container_remove (_fun _GtkWidget _GtkWidget -> _void))
 
-(define-gtk gtk_widget_ref (_fun _GtkWidget -> _void))
-(define-gtk gtk_widget_unref (_fun _GtkWidget -> _void))
+(define-gtk gtk_widget_ref (_fun _GtkWidget -> _void)
+  #:fail (lambda () g_object_ref))
+(define-gtk gtk_widget_unref (_fun _GtkWidget -> _void)
+  #:fail (lambda () g_object_unref))
 
 (define-struct page (bin-gtk label-gtk))
 

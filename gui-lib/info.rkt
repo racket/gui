@@ -6,7 +6,7 @@
                "data-lib"
                "base"
                "syntax-color-lib"
-               ("draw-lib" #:version "1.5")
+               ("draw-lib" #:version "1.6")
                "snip-lib"
                "wxme-lib"
                "pict-lib"
@@ -30,4 +30,4 @@
 
 (define pkg-authors '(mflatt robby))
 
-(define version "1.14")
+(define version "1.15")

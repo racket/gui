@@ -186,6 +186,28 @@ The keymap for the read-eval-print loop's editor is initialized by
 @racket[current-text-keymap-initializer] parameter.
 }
 
+
+@defproc[(graphical-system-type) symbol?]{
+
+Returns a symbol indicating the platform native GUI layer on which
+@racket[racket/gui] is running. The current possible values are as
+follows:
+
+@itemlist[
+
+ @item{@racket['win32] (Windows)}
+
+ @item{@racket['cocoa] (Mac OS X)}
+
+ @item{@racket['gtk2] --- GTK+ version 2}
+
+ @item{@racket['gtk3] --- GTK+ version 3}
+
+]
+
+@history[#:added "1.15"]}
+
+
 @defproc[(textual-read-eval-print-loop) void?]{
 
 Similar to @racket[read-eval-print-loop], except that evaluation uses

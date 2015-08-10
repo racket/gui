@@ -97,8 +97,7 @@
   (define both-labels? (pair? label))
   
   (when (eq? event-type 'button)
-    (set-gtk-object-flags! gtk (bitwise-ior (get-gtk-object-flags gtk)
-                                            GTK_CAN_DEFAULT)))
+    (gtk_widget_set_can_default gtk #t))
 
   (set-auto-size)
   

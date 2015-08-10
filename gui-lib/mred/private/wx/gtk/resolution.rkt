@@ -1,7 +1,8 @@
 #lang racket/base
 (require racket/promise
 	 ffi/unsafe
-	 "gsettings.rkt")
+	 "gsettings.rkt"
+	 "gtk3.rkt")
 
 (provide get-interface-scale-factor)
 
@@ -38,11 +39,17 @@
   (with-handlers ([exn:fail? (lambda (exn) #f)])
     (define gs (force interface-settings))
     (define v
-      (* (g_variant_get_uint32
-	  (g_settings_get_value gs "scaling-factor"))
+      (* (if gtk3?
+	     ;; For Gtk3, toolbox handles this scaling:
+	     1
+	     ;; For Gtk2, we can handle explicit settings,
+	     ;; but we don't try to infer a scale if the
+	     ;; setting is 0:
+	     (max 1
+		  (g_variant_get_uint32
+		   (g_settings_get_value gs "scaling-factor"))))
 	 (g_variant_get_double
 	  (g_settings_get_value gs "text-scaling-factor"))))
-    (g_object_unref gs)
     (and (rational? v)
 	 (positive? v)
 	 v)))

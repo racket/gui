@@ -108,6 +108,7 @@ get-window-text-extent
 gl-config%
 gl-context<%>
 graphical-read-eval-print-loop
+graphical-system-type
 group-box-panel%
 grow-box-spacer-pane%
 hide-cursor-until-moved

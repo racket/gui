@@ -1,5 +1,6 @@
 #lang racket/base
 (require ffi/unsafe
+	 ffi/unsafe/define
          racket/class
           "../../syntax.rkt"
           "../../lock.rkt"
@@ -16,9 +17,21 @@
 
 ;; ----------------------------------------
 
-(define-gtk gtk_combo_box_new_text (_fun -> _GtkWidget))
-(define-gtk gtk_combo_box_append_text (_fun _GtkWidget _string -> _void))
-(define-gtk gtk_combo_box_remove_text (_fun _GtkWidget _int -> _void))
+(define-gtk gtk_combo_box_text_new (_fun -> _GtkWidget)
+  #:make-fail make-not-available)
+(define-gtk gtk_combo_box_new_text (_fun -> _GtkWidget)
+  #:fail (lambda () gtk_combo_box_text_new))
+
+(define-gtk gtk_combo_box_text_append_text (_fun _GtkWidget _string -> _void)
+  #:make-fail make-not-available)
+(define-gtk gtk_combo_box_append_text (_fun _GtkWidget _string -> _void)
+  #:fail (lambda () gtk_combo_box_text_append_text))
+
+(define-gtk gtk_combo_box_text_remove (_fun _GtkWidget _int -> _void)
+  #:make-fail make-not-available)
+(define-gtk gtk_combo_box_remove_text (_fun _GtkWidget _int -> _void)
+  #:fail (lambda () gtk_combo_box_text_remove))
+
 (define-gtk gtk_combo_box_set_active (_fun _GtkWidget _int -> _void))
 (define-gtk gtk_combo_box_get_active (_fun _GtkWidget -> _int))
 (define-gtk gtk_bin_get_child (_fun _GtkWidget -> _GtkWidget))

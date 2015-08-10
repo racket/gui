@@ -1,6 +1,8 @@
 #lang racket/base
 (require racket/class
          ffi/unsafe
+         ffi/unsafe/define
+         racket/draw/unsafe/cairo
           "../../syntax.rkt"
           "../../lock.rkt"
          "window.rkt"
@@ -18,7 +20,7 @@
               gtk_fixed_move
 
               gtk_container_set_border_width
-              connect-expose-border))
+              connect-expose/draw-border))
 
 (define-gtk gtk_fixed_new (_fun -> _GtkWidget))
 (define-gtk gtk_event_box_new (_fun -> _GtkWidget))
@@ -35,12 +37,14 @@
            [gray #x8000])
       (when gc
         (gdk_gc_set_rgb_fg_color gc (make-GdkColor 0 gray gray gray))
+	(unless (= 1 (->screen 1))
+	  (gdk_gc_set_line_attributes gc (->screen 1) 0 0 0))
         (let* ([a (widget-allocation gtk)]
                [w (sub1 (GtkAllocation-width a))]
                [h (sub1 (GtkAllocation-height a))])
           (let loop ([gtk gtk] [x 0] [y 0] [can-super? #t])
             (if (and can-super?
-		     (not (zero? (bitwise-and (get-gtk-object-flags gtk) GTK_NO_WINDOW))))
+		     (not (gtk_widget_get_has_window gtk)))
                 ;; no window:
                 (let ([a (widget-allocation gtk)])
                   (loop (widget-parent gtk) (+ x (GtkAllocation-x a)) (+ y (GtkAllocation-y a))
@@ -51,6 +55,28 @@
                 (gdk_draw_rectangle win gc #f x y w h))))
         (gdk_gc_unref gc)))
     #f))
+
+(define-gtk gtk_widget_get_allocated_width (_fun _GtkWidget -> _int)
+  #:make-fail make-not-available)
+(define-gtk gtk_widget_get_allocated_height (_fun _GtkWidget -> _int)
+  #:make-fail make-not-available)
+
+(define-signal-handler connect-draw-border "draw"
+  (_fun _GtkWidget _cairo_t -> _gboolean)
+  (lambda (gtk cr)
+    (cairo_set_source_rgba cr 0.5 0.5 0.5 1.0)
+    (cairo_set_line_width cr 1.0)
+    (cairo_rectangle cr
+		     0.5 0.5
+		     (- (gtk_widget_get_allocated_width gtk) 1)
+		     (- (gtk_widget_get_allocated_height gtk) 1))
+    (cairo_stroke cr)
+    #f))
+
+(define (connect-expose/draw-border gtk border-gtk)
+  (if gtk3?
+      (connect-draw-border gtk #:after? #t)
+      (connect-expose-border border-gtk)))
 
 (define (panel-mixin %)
   (class %
@@ -121,7 +147,7 @@
                              (let ([border-gtk (gtk_fixed_new)])
                                (gtk_container_add gtk border-gtk)
                                (gtk_container_set_border_width border-gtk 1)
-                               (connect-expose-border border-gtk)
+                               (connect-expose/draw-border gtk border-gtk)
                                (gtk_widget_show border-gtk)
                                border-gtk))))
     (define client-gtk (atomically

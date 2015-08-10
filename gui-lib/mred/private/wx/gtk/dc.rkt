@@ -1,9 +1,11 @@
 #lang racket/base
 (require ffi/unsafe
+	 ffi/unsafe/define
          racket/class
          "utils.rkt"
          "types.rkt"
          "window.rkt"
+         "frame.rkt"
          "x11.rkt"
          "win32.rkt"
          "gl-context.rkt"
@@ -23,17 +25,24 @@
               gdk_gc_new
               gdk_gc_unref
               gdk_gc_set_rgb_fg_color
+              gdk_gc_set_line_attributes
               gdk_draw_rectangle))
 
 (define-gdk gdk_cairo_create (_fun _pointer -> _cairo_t)
   #:wrap (allocator cairo_destroy))
 
 (define-gdk gdk_gc_unref (_fun _pointer -> _void)
-  #:wrap (deallocator))
+  #:wrap (deallocator)
+  #:make-fail make-not-available)
 (define-gdk gdk_gc_new (_fun _GdkWindow -> _pointer)
-  #:wrap (allocator gdk_gc_unref))
-(define-gdk gdk_gc_set_rgb_fg_color (_fun _pointer _GdkColor-pointer -> _void))
-(define-gdk gdk_draw_rectangle (_fun _GdkWindow _pointer _gboolean _int _int _int _int -> _void))
+  #:wrap (allocator gdk_gc_unref)
+  #:make-fail make-not-available)
+(define-gdk gdk_gc_set_rgb_fg_color (_fun _pointer _GdkColor-pointer -> _void)
+  #:make-fail make-not-available)
+(define-gdk gdk_gc_set_line_attributes (_fun _pointer _int _int _int _int -> _void)
+  #:make-fail make-not-available)
+(define-gdk gdk_draw_rectangle (_fun _GdkWindow _pointer _gboolean _int _int _int _int -> _void)
+  #:make-fail make-not-available)
 
 (define-cstruct _GdkVisual-rec ([type-instance _pointer]
 				[ref_count _uint]
@@ -42,18 +51,20 @@
 				[depth _int]))
 (define-gdk gdk_visual_get_system (_fun -> _GdkVisual-rec-pointer))
 
-(define x11-bitmap%
+(define x11-bitmap%/gtk2
   (class bitmap%
-    (init w h gdk-win)
+    (init w h gtk)
     (super-make-object (make-alternate-bitmap-kind w h (->screen 1.0)))
 
-    (define pixmap (gdk_pixmap_new gdk-win 
-				   (min (max 1 (->screen w)) 32000)
-				   (min (max 1 (->screen h)) 32000)
-				   (if gdk-win 
-				       -1
-				       (GdkVisual-rec-depth
-					(gdk_visual_get_system)))))
+    (define pixmap
+      (let ([gdk-win (and gtk (widget-window gtk))])
+	(gdk_pixmap_new gdk-win 
+			(min (max 1 (->screen w)) 32000)
+			(min (max 1 (->screen h)) 32000)
+			(if gdk-win 
+			    -1
+			    (GdkVisual-rec-depth
+			     (gdk_visual_get_system))))))
     (define s
       (cairo_xlib_surface_create (gdk_x11_display_get_xdisplay
                                   (gdk_drawable_get_display pixmap))
@@ -88,6 +99,18 @@
        (cairo_surface_destroy s)
        (gobject-unref pixmap)
        (set! s #f)))))
+
+(define x11-bitmap%/gtk3
+  (class bitmap%
+    (init w h gtk)
+    (super-make-object w h #f #t (if gtk
+				     (->screen (gtk_widget_get_scale_factor gtk))
+				     (display-bitmap-resolution 0 (lambda () 1.0))))))
+
+(define x11-bitmap%
+  (if gtk3?
+      x11-bitmap%/gtk3
+      x11-bitmap%/gtk2))
 
 (define win32-bitmap%
   (class bitmap%
@@ -134,8 +157,8 @@
     (define/override (make-backing-bitmap w h)
       (cond
        [(and (eq? 'unix (system-type))
-             (send canvas get-canvas-background))
-	(make-object x11-bitmap% w h (widget-window (send canvas get-client-gtk)))]
+             (or gtk3? (send canvas get-canvas-background)))
+	(make-object x11-bitmap% w h (send canvas get-client-gtk))]
        [(and (eq? 'windows (system-type))
              (send canvas get-canvas-background))
 	(make-object win32-bitmap% w h (widget-window (send canvas get-client-gtk)))]
@@ -165,13 +188,16 @@
     (define/override (cancel-delay req)
       (cancel-flush-delay req))))
 
-(define (do-backing-flush canvas dc win)
+(define (do-backing-flush canvas dc win-or-cr)
   (send dc on-backing-flush
         (lambda (bm)
           (let ([w (box 0)]
                 [h (box 0)])
             (send canvas get-client-size w h)
-            (let ([cr (gdk_cairo_create win)])
+            (let ([cr (if gtk3?
+			  win-or-cr
+			  (gdk_cairo_create win-or-cr))])
 	      (cairo_scale cr (->screen 1.0) (->screen 1.0))
               (backing-draw-bm bm cr (unbox w) (unbox h) 0 0 (->screen 1.0))
-              (cairo_destroy cr))))))
+	      (unless gtk3?
+                (cairo_destroy cr)))))))

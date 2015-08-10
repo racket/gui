@@ -48,7 +48,9 @@
 (define-gtk gtk_window_set_focus_on_map (_fun _GtkWidget _gboolean -> _void))
 (define-gtk gtk_window_maximize (_fun _GtkWidget -> _void))
 (define-gtk gtk_window_unmaximize (_fun _GtkWidget -> _void))
-(define-gtk gtk_widget_set_uposition (_fun _GtkWidget _int _int -> _void))
+(define-gtk gtk_window_move (_fun _GtkWidget _int _int -> _void))
+(define-gtk gtk_widget_set_uposition (_fun _GtkWidget _int _int -> _void)
+  #:fail (lambda () (lambda (w x y) (gtk_window_move w x y))))
 (define-gtk gtk_window_get_position (_fun _GtkWidget (x : (_ptr o _int)) (y : (_ptr o _int)) 
                                           -> _void
                                           -> (values x y)))
@@ -62,6 +64,8 @@
 
 (define-gdk gdk_window_set_cursor (_fun _GdkWindow _pointer -> _void))
 (define-gdk gdk_screen_get_root_window (_fun _GdkScreen -> _GdkWindow))
+(define-gdk gdk_screen_get_monitor_scale_factor (_fun _GdkScreen _int -> _int)
+  #:fail (lambda () (lambda (s n) 1)))
 (define-gdk gdk_window_get_pointer (_fun _GdkWindow 
                                          (x : (_ptr o _int))
                                          (y : (_ptr o _int))
@@ -85,6 +89,8 @@
                               [win_gravity _int]))
 (define-gtk gtk_window_set_geometry_hints (_fun _GtkWindow _GtkWidget _GdkGeometry-pointer _int -> _void))
 
+(define-gtk gtk_layout_new (_fun (_pointer = #f) (_pointer = #f) -> _GtkWidget))
+(define-gtk gtk_layout_put (_fun _GtkWidget _GtkWidget _int _int -> _void))
 
 (define-signal-handler connect-delete "delete-event"
   (_fun _GtkWidget -> _gboolean)
@@ -173,22 +179,24 @@
     (when floating?
       (gtk_window_set_keep_above gtk #t)
       (gtk_window_set_focus_on_map gtk #f))
-    (define-values (vbox-gtk panel-gtk)
+    (define-values (vbox-gtk layout-gtk panel-gtk)
       (atomically
        (let ([vbox-gtk (gtk_vbox_new #f 0)]
+             [layout-gtk (and gtk3? (gtk_layout_new))]
              [panel-gtk (gtk_fixed_new)])
          (gtk_container_add gtk vbox-gtk)
-         (gtk_box_pack_end vbox-gtk panel-gtk #t #t 0)
-         (values vbox-gtk panel-gtk))))
+         (gtk_box_pack_end vbox-gtk (or layout-gtk panel-gtk) #t #t 0)
+	 (when layout-gtk
+	   (gtk_layout_put layout-gtk panel-gtk 0 0))
+         (values vbox-gtk layout-gtk panel-gtk))))
     (gtk_widget_show vbox-gtk)
+    (when layout-gtk (gtk_widget_show layout-gtk))
     (gtk_widget_show panel-gtk)
     (connect-enter-and-leave gtk)
 
     ;; Enable key events on the panel to catch events
     ;; that would otherwise go undelivered:
-    (set-gtk-object-flags! panel-gtk
-			   (bitwise-ior (get-gtk-object-flags panel-gtk)
-					GTK_CAN_FOCUS))
+    (gtk_widget_set_can_focus panel-gtk #t)
     (gtk_widget_add_events panel-gtk (bitwise-ior GDK_KEY_PRESS_MASK
 						  GDK_KEY_RELEASE_MASK))
     (connect-key panel-gtk)
@@ -235,7 +243,7 @@
 
     (define/public (set-menu-bar mb)
       (let ([mb-gtk (send mb get-gtk)])
-        (gtk_box_pack_start vbox-gtk mb-gtk #t #t 0)
+	(gtk_box_pack_start vbox-gtk mb-gtk #f #f 0)
         (gtk_widget_show mb-gtk))
       (let ([h (send mb set-top-window this)])
         ;; adjust client delta right away, so that we make
@@ -444,8 +452,7 @@
       (let ([f-gtk (gtk_window_get_focus gtk)])
         (and f-gtk
              (or even-if-not-active?
-                 (positive? (bitwise-and (get-gtk-object-flags f-gtk)
-                                         GTK_HAS_FOCUS)))
+		 (gtk_widget_has_focus f-gtk))
              (gtk->wx f-gtk))))
     
     (define/override (call-pre-on-event w e)
@@ -576,8 +583,11 @@
   (gdk_screen_get_n_monitors (gdk_screen_get_default)))
 
 (define (display-bitmap-resolution num fail)
-  (define (get) (or (get-interface-scale-factor num)
-		    1.0))
+  (define (get) (* (or (get-interface-scale-factor num)
+		       1.0)
+		   (gdk_screen_get_monitor_scale_factor
+		    (gdk_screen_get_default)
+		    num)))
   (if (zero? num)
       (get)
       (if (num . < . (gdk_screen_get_n_monitors (gdk_screen_get_default)))

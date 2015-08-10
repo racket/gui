@@ -92,4 +92,5 @@
    make-gl-bitmap
    check-for-break
    key-symbol-to-menu-key
-   needs-grow-box-spacer?))
+   needs-grow-box-spacer?   
+   graphical-system-type))

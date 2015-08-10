@@ -187,7 +187,7 @@
        (and (= (ptr-ref evt _GdkEventType) GDK_SELECTION_REQUEST)
             (let ([s (cast evt _pointer _GdkEventSelection-pointer)])
               (= (GdkEventSelection-selection s)
-                 primary-atom))
+                 (get-primary-atom)))
             (get-selection-eventspace)))
       => (lambda (e)
            (let ([evt (gdk_event_copy evt)])

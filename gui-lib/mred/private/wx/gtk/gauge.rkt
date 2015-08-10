@@ -1,5 +1,6 @@
 #lang racket/base
 (require ffi/unsafe
+	 ffi/unsafe/define
          racket/class
           "../../syntax.rkt"
          "item.rkt"
@@ -15,9 +16,18 @@
 
 (define-gtk gtk_progress_bar_new (_fun _pointer -> _GtkWidget))
 (define-gtk gtk_progress_bar_set_fraction (_fun _GtkWidget _double* -> _void))
-(define-gtk gtk_progress_bar_set_orientation (_fun _GtkWidget _int -> _void))
+(define-gtk gtk_orientable_set_orientation (_fun _GtkWidget _int -> _void)
+  #:make-fail make-not-available)
+(define-gtk gtk_progress_bar_set_inverted (_fun _GtkWidget _gboolean -> _void)
+  #:make-fail make-not-available)
+(define-gtk gtk_progress_bar_set_orientation (_fun _GtkWidget _int -> _void)
+  #:fail (lambda ()
+           (lambda (w o)
+             (gtk_orientable_set_orientation w GTK_ORIENTATION_VERTICAL)
+             (gtk_progress_bar_set_inverted w #t))))
 
 (define GTK_PROGRESS_BOTTOM_TO_TOP 2)
+(define GTK_ORIENTATION_VERTICAL 1)
 
 (defclass gauge% item%
   (init parent

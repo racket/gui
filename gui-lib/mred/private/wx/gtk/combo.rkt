@@ -4,6 +4,7 @@
           "../../syntax.rkt"
          "types.rkt"
          "utils.rkt"
+	 "const.rkt"
          "window.rkt")
 
 ;; Hacks for working with GtkComboBox[Entry]
@@ -144,4 +145,13 @@
                       hand-id))))])
     (connect-key-and-mouse button-gtk (and hand-id #t))
     (when hand-id
-      (connect-reorder-button-press button-gtk (cast hand-id _long _pointer)))))
+      (connect-reorder-button-press button-gtk (cast hand-id _long _pointer)))
+    (when gtk3?
+      (gtk_widget_add_events button-gtk (bitwise-ior GDK_KEY_PRESS_MASK
+						     GDK_KEY_RELEASE_MASK
+						     GDK_BUTTON_PRESS_MASK
+						     GDK_BUTTON_RELEASE_MASK
+						     GDK_POINTER_MOTION_MASK
+						     GDK_FOCUS_CHANGE_MASK
+						     GDK_ENTER_NOTIFY_MASK
+						     GDK_LEAVE_NOTIFY_MASK)))))

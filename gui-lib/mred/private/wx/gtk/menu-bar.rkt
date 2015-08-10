@@ -24,7 +24,8 @@
 (define-gtk gtk_label_set_text_with_mnemonic (_fun _GtkWidget _string -> _void))
 (define-gtk gtk_bin_get_child (_fun _GtkWidget -> _GtkWidget))
 
-(define-gtk gtk_widget_set_usize (_fun _GtkWidget _int _int -> _void))
+(define-gtk gtk_widget_set_usize (_fun _GtkWidget _int _int -> _void)
+  #:fail (lambda () gtk_widget_set_size_request))
 
 (define-gtk ubuntu_menu_proxy_get _fpointer
   #:fail (lambda () #f))
@@ -101,7 +102,7 @@
     (fix-menu-height))
 
   (define/public (reset-menu-height)
-    (when top-wx
+    (when (and (not gtk3?) top-wx)
       (send top-wx reset-menu-height (fix-menu-height))))
 
   (define/private (fix-menu-height)

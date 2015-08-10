@@ -30,8 +30,16 @@
               gtk_widget_add_events
               gtk_widget_size_request
               gtk_widget_set_size_request
+	      gtk_widget_size_allocate
+	      gtk_widget_get_preferred_size
               gtk_widget_grab_focus
+              gtk_widget_has_focus
+	      gtk_widget_get_mapped
+	      gtk_widget_get_has_window
+	      gtk_widget_set_can_default
+	      gtk_widget_set_can_focus
               gtk_widget_set_sensitive
+	      gtk_widget_get_scale_factor
 
               connect-focus
               connect-key
@@ -88,6 +96,10 @@
 (define-gtk gtk_widget_grab_focus (_fun _GtkWidget -> _void))
 (define-gtk gtk_widget_is_focus (_fun _GtkWidget -> _gboolean))
 (define-gtk gtk_widget_set_sensitive (_fun _GtkWidget _gboolean -> _void))
+(define-gtk gtk_widget_get_preferred_size (_fun _GtkWidget _GtkRequisition-pointer/null _GtkRequisition-pointer/null -> _void)
+  #:fail (lambda () #f))
+(define-gtk gtk_widget_get_scale_factor (_fun _GtkWidget -> _int)
+  #:fail (lambda () (lambda (gtk) 1)))
 
 (define-gdk gdk_keyboard_grab (_fun _GdkWindow _gboolean _int -> _void))
 (define-gdk gdk_keyboard_ungrab (_fun _int -> _void))
@@ -99,6 +111,7 @@
 
 (define the-accelerator-group (gtk_accel_group_new))
 
+;; Only for Gtk2
 (define-cstruct _GtkWidgetT ([obj _GtkObject]
                              [private_flags _uint16]
                              [state _byte]
@@ -110,14 +123,45 @@
                              [window _GdkWindow]
                              [parent _GtkWidget]))
 
-(define (widget-window gtk)
-  (GtkWidgetT-window (cast gtk _GtkWidget _GtkWidgetT-pointer)))
+(define-gtk widget-window (_fun _GtkWidget -> _GdkWindow)
+  #:c-id gtk_widget_get_window
+  #:fail (lambda ()
+	   (lambda (gtk)
+	     (GtkWidgetT-window (cast gtk _GtkWidget _GtkWidgetT-pointer)))))
 
-(define (widget-parent gtk)
-  (GtkWidgetT-parent (cast gtk _GtkWidget _GtkWidgetT-pointer)))
+(define-gtk widget-parent (_fun _GtkWidget -> _GdkWindow)
+  #:c-id gtk_widget_get_parent
+  #:fail (lambda ()
+	   (lambda (gtk)
+	     (GtkWidgetT-parent (cast gtk _GtkWidget _GtkWidgetT-pointer)))))
 
-(define (widget-allocation gtk)
-  (GtkWidgetT-alloc (cast gtk _GtkWidget _GtkWidgetT-pointer)))
+(define-gtk widget-allocation (_fun _GtkWidget (o : (_ptr o _GtkAllocation)) -> _void -> o)
+  #:c-id gtk_widget_get_allocation
+  #:fail (lambda ()
+	   (lambda (gtk)
+	     (GtkWidgetT-alloc (cast gtk _GtkWidget _GtkWidgetT-pointer)))))
+
+;; Fallbacks for old Gtk2 versions:
+(define ((get-one-flag flag [wrap values]) gtk)
+  (wrap (positive? (bitwise-and (get-gtk-object-flags gtk)
+				flag))))
+(define ((set-one-flag! flag) gtk on?)
+  (define v (get-gtk-object-flags gtk))
+  (set-gtk-object-flags! gtk 
+			 (if on?
+			     (bitwise-ior v flag)
+			     (bitwise-and v (bitwise-not flag)))))
+
+(define-gtk gtk_widget_has_focus (_fun _GtkWidget -> _gboolean)
+  #:fail (lambda () (get-one-flag GTK_HAS_FOCUS)))
+(define-gtk gtk_widget_get_mapped (_fun _GtkWidget -> _gboolean)
+  #:fail (lambda () (get-one-flag GTK_MAPPED)))
+(define-gtk gtk_widget_get_has_window (_fun _GtkWidget -> _gboolean)
+  #:fail (lambda () (get-one-flag GTK_NO_WINDOW not)))
+(define-gtk gtk_widget_set_can_default (_fun _GtkWidget _gboolean -> _void)
+  #:fail (lambda () (set-one-flag! GTK_CAN_DEFAULT)))
+(define-gtk gtk_widget_set_can_focus (_fun _GtkWidget _gboolean -> _void)
+  #:fail (lambda () (set-one-flag! GTK_CAN_FOCUS)))
 
 (define-gtk gtk_drag_dest_add_uri_targets (_fun _GtkWidget -> _void))
 (define-gtk gtk_drag_dest_set (_fun _GtkWidget _int (_pointer = #f) (_int = 0) _int -> _void))
@@ -532,12 +576,14 @@
       (set! client-delta-w dw)
       (set! client-delta-h dh))
 
-    (define/public (infer-client-delta [w? #t] [h? #t] [sub-h-gtk #f])
+    (define/public (infer-client-delta [w? #t] [h? #t] [sub-h-gtk #f]
+				       #:inside [inside-gtk (get-container-gtk)])
       (let ([req (make-GtkRequisition 0 0)]
             [creq (make-GtkRequisition 0 0)]
             [hreq (make-GtkRequisition 0 0)])
+	(when gtk3? (gtk_widget_show gtk))
         (gtk_widget_size_request gtk req)
-        (gtk_widget_size_request (get-container-gtk) creq)
+        (gtk_widget_size_request inside-gtk creq)
         (when sub-h-gtk
           (gtk_widget_size_request sub-h-gtk hreq))
         (when w?
@@ -548,11 +594,17 @@
         (when h?
           (set! client-delta-h (->normal
 				(- (GtkRequisition-height req)
-				   (GtkRequisition-height creq)))))))
+				   (GtkRequisition-height creq)))))
+	(when gtk3? (gtk_widget_show gtk))))
 
     (define/public (set-auto-size [dw 0] [dh 0])
       (let ([req (make-GtkRequisition 0 0)])
-        (gtk_widget_size_request gtk req)
+	(cond
+	 [gtk3? 
+	  (gtk_widget_show gtk)
+	  (gtk_widget_get_preferred_size gtk req #f)
+	  (gtk_widget_hide gtk)]
+	 [else (gtk_widget_size_request gtk req)])
         (set-size #f
                   #f
                   (+ (->normal (GtkRequisition-width req)) dw)

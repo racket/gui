@@ -204,17 +204,22 @@
                    (define cr #f)
                    (define w 0)
                    (define h 0)
+		   (define mx (make-cairo_matrix_t 0.0 0.0 0.0 0.0 0.0 0.0))
 
                    (super-new)
 
                    (define/public (set-cr new-cr new-w new-h)
                      (set! cr new-cr)
+		     (when cr (cairo_get_matrix cr mx))
                      (set! w new-w)
                      (set! h new-h)
                      (when cr
                        (reset-cr cr)))
 
                    (define/override (get-cr) cr)
+
+		   (define/override (init-cr-matrix cr)
+		     (cairo_set_matrix cr mx))
 
                    (define/override (reset-clip cr)
                      (super reset-clip cr)

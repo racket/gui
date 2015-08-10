@@ -32,11 +32,7 @@
 ;; ===================================================================================================
 ;; X11/GLX FFI
 
-(define x-lib (ffi-lib/complaint-on-failure "libX11" '("")))
 (define gl-lib (ffi-lib/complaint-on-failure "libGL" '("1" "")))
-
-(define-ffi-definer define-x x-lib
-  #:default-make-fail make-not-available)
 
 (define-ffi-definer define-glx gl-lib
   #:default-make-fail make-not-available)
@@ -81,14 +77,14 @@
 (define GLX_CONTEXT_CORE_PROFILE_BIT_ARB          #x1)
 (define GLX_CONTEXT_COMPATIBILITY_PROFILE_BIT_ARB #x2)
 
-(define-x XFree (_fun _pointer -> _int)
+(define-x11 XFree (_fun _pointer -> _int)
   #:wrap (deallocator))
 
-(define-x XSetErrorHandler
+(define-x11 XSetErrorHandler
   (_fun (_fun _Display _XErrorEvent -> _int)
         -> (_fun _Display _XErrorEvent -> _int)))
 
-(define-x XSync
+(define-x11 XSync
   (_fun _Display _int -> _void))
 
 (define-glx glXQueryVersion

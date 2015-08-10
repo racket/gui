@@ -60,7 +60,8 @@
  fill-private-color
  get-color-from-user
  key-symbol-to-menu-key
- needs-grow-box-spacer?)
+ needs-grow-box-spacer?
+ graphical-system-type)
 
 (define (find-graphical-system-path what)
   (case what
@@ -159,3 +160,8 @@
 (define (check-for-break) #f)
 
 (define (needs-grow-box-spacer?) #f)
+
+(define (graphical-system-type)
+  (cond
+   [gtk3? 'gtk3]
+   [else 'gtk2]))

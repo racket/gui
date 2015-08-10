@@ -1,5 +1,6 @@
 #lang racket/base
 (require racket/class
+	 racket/promise
          ffi/unsafe
          ffi/unsafe/alloc
          racket/draw/unsafe/bstr
@@ -18,7 +19,7 @@
               _GtkSelectionData
               gtk_selection_data_get_length
               gtk_selection_data_get_data
-	      primary-atom
+	      get-primary-atom
 	      get-selection-eventspace))
 
 (define (has-x-selection?) #t)
@@ -72,8 +73,10 @@
 (define clear_owner
   (function-ptr clear-owner (_fun #:atomic? #t _GtkClipboard _pointer -> _void)))
 
-(define primary-atom (gdk_atom_intern "PRIMARY" #t))
-(define clipboard-atom (gdk_atom_intern "CLIPBOARD" #t))
+(define primary-atom (delay (gdk_atom_intern "PRIMARY" #t)))
+(define clipboard-atom (delay (gdk_atom_intern "CLIPBOARD" #t)))
+
+(define (get-primary-atom) (force primary-atom))
 
 (define the-x-selection-driver #f)
 
@@ -145,8 +148,8 @@
 
   (define cb (gtk_clipboard_get
               (if x-selection?
-                  primary-atom
-		  clipboard-atom)))
+                  (force primary-atom)
+		  (force clipboard-atom))))
   (define self-box #f)
 
   (define/public (get-client) client)

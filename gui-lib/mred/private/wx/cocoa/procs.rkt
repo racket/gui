@@ -66,7 +66,8 @@
  file-selector
  key-symbol-to-menu-key
  needs-grow-box-spacer?
- get-current-mouse-state)
+ get-current-mouse-state
+ graphical-system-type)
 
 (import-class NSScreen NSCursor NSMenu NSEvent)
 
@@ -197,6 +198,8 @@
 
 (define (needs-grow-box-spacer?)
   (not (version-10.7-or-later?)))
+
+(define (graphical-system-type) 'cocoa)
 
 ;; ------------------------------------------------------------
 ;; Mouse and modifier-key state

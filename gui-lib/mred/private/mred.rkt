@@ -153,6 +153,7 @@
 	     eventspace-shutdown?
              eventspace-event-evt
 	     get-panel-background
+             graphical-system-type
 
              the-editor-wordbreak-map
              make-screen-bitmap
