@@ -22,8 +22,7 @@ added get-regions
          "color-local-member-name.rkt")
 
 (provide color@)
-(define color@
-(unit
+(define-unit color@
 (import [prefix icon: framework:icon^]
         [prefix mode: framework:mode^]
         [prefix text: framework:text^]
@@ -1328,7 +1327,7 @@ added get-regions
 
 (define text-mode% (text-mode-mixin mode:surrogate-text%))
 
-(define misspelled-text-color-style-name "Misspelled Text")))
+(define misspelled-text-color-style-name "Misspelled Text"))
 
 (define logger (make-logger 'framework/colorer (current-logger)))
 (define-syntax-rule
