@@ -1,4 +1,4 @@
-#lang racket/unit
+#lang racket/base
 #|
 update-region-end is now gone
 get-region is gone
@@ -6,7 +6,9 @@ added reset-regions
 added get-regions
 |#
 
+
 (require racket/class
+         racket/unit
          racket/gui/base
          syntax-color/token-tree
          syntax-color/paren-tree
@@ -19,6 +21,9 @@ added get-regions
          "aspell.rkt"
          "color-local-member-name.rkt")
 
+(provide color@)
+(define color@
+(unit
 (import [prefix icon: framework:icon^]
         [prefix mode: framework:mode^]
         [prefix text: framework:text^]
@@ -416,32 +421,20 @@ added get-regions
          (define misspelled-color (send (get-style-list) find-named-style misspelled-text-color-style-name))
          (cond
            [misspelled-color
-            (define strs (regexp-split #rx"\n" (get-text sp ep)))
-            (let loop ([strs strs]
-                       [pos sp])
-              (unless (null? strs)
-                (define str (car strs))
-                (let loop ([spellos (query-aspell str current-dict)]
-                           [lp 0])
-                  (cond
-                    [(null? spellos)
-                     (add-coloring/spell #f color (+ pos lp) (+ pos (string-length str)))]
-                    [else
-                     (define err (car spellos))
-                     (define err-start (list-ref err 0))
-                     (define err-len (list-ref err 1))
-                     (define suggestions (list-ref err 2))
-                     (add-coloring/spell suggestions
-                                         misspelled-color
-                                         (+ pos err-start)
-                                         (+ pos err-start err-len))
-                     (add-coloring/spell #f
-                                         color
-                                         (+ pos lp)
-                                         (+ pos err-start))
-                     (loop (cdr spellos) (+ err-start err-len))]))
-                (loop (cdr strs)
-                      (+ pos (string-length str) 1))))]
+            (define spell-infos
+              (do-spelling-color (get-text sp ep)
+                                 current-dict
+                                 sp
+                                 query-aspell))
+            (for ([spell-info (in-list spell-infos)])
+              (case (car spell-info)
+                [(#f)
+                 (add-coloring/spell #f color (list-ref spell-info 1) (list-ref spell-info 2))]
+                [else
+                 (add-coloring/spell (list-ref spell-info 0)
+                                     misspelled-color
+                                     (list-ref spell-info 1)
+                                     (list-ref spell-info 2))]))]
            [else
             (add-coloring/spell #f color sp ep)])]
         [else
@@ -1335,10 +1328,113 @@ added get-regions
 
 (define text-mode% (text-mode-mixin mode:surrogate-text%))
 
-(define misspelled-text-color-style-name "Misspelled Text")
+(define misspelled-text-color-style-name "Misspelled Text")))
 
 (define logger (make-logger 'framework/colorer (current-logger)))
 (define-syntax-rule
   (c-log exp)
   (when (log-level? logger 'debug)
     (log-message logger 'debug exp (current-inexact-milliseconds))))
+
+
+
+(define (do-spelling-color newline-str
+                           current-dict
+                           sp
+                           maybe-query-aspell)
+  (define strs (regexp-split #rx"\n" newline-str))
+  (define answer '())
+  (let loop ([strs strs]
+             [pos sp])
+    (unless (null? strs)
+      (define str (car strs))
+      (let loop ([spellos (maybe-query-aspell str current-dict)]
+                 [lp 0])
+        (cond
+          [(null? spellos)
+           (set! answer (cons (list #f (+ pos lp) (+ pos (string-length str))) answer))]
+          [else
+           (define err (car spellos))
+           (define err-start (list-ref err 0))
+           (define err-len (list-ref err 1))
+           (define suggestions (list-ref err 2))
+           (set! answer
+                 (list* 
+                  (list #t (+ pos err-start) (+ pos err-start err-len))
+                  (list suggestions (+ pos lp) (+ pos err-start))
+                  answer))
+           (loop (cdr spellos) (+ err-start err-len))]))
+      (loop (cdr strs)
+            (+ pos (string-length str) 1))))
+  answer)
+
+(module+ test
+  (require rackunit racket/list racket/pretty
+           rackunit/log)
+  (define (fake-query-aspell s [_ #f])
+    (let loop ([s s]
+               [i 0])
+      (cond
+        [(equal? s "") '()]
+        [else
+         (cond
+           [(regexp-match #rx"^([ab]+)(.*)$" s)
+            =>
+            (λ (m)
+              (loop (list-ref m 2)
+                    (+ i (string-length (list-ref m 1)))))]
+           [(regexp-match #rx"^([^ab]+)(.*)$" s)
+            =>
+            (λ (m)
+              (define word-len (string-length (list-ref m 1)))
+              (cons
+               (list i (string-length (list-ref m 1)) '("no" "suggestions"))
+               (loop (list-ref m 2)
+                     (+ i (string-length (list-ref m 1))))))])])))
+
+  (check-equal? (fake-query-aspell "") '())
+  (check-equal? (fake-query-aspell "a") '())
+  (check-equal? (fake-query-aspell "aaaa") '())
+  (check-equal? (fake-query-aspell "b") '())
+  (check-equal? (fake-query-aspell "c") '((0 1 ("no" "suggestions"))))
+  (check-equal? (fake-query-aspell "ac") '((1 1 ("no" "suggestions"))))
+  (check-equal? (fake-query-aspell "aaac") '((3 1 ("no" "suggestions"))))
+  (check-equal? (fake-query-aspell "aaaccc") '((3 3 ("no" "suggestions"))))
+  (check-equal? (fake-query-aspell "acac") '((1 1 ("no" "suggestions"))
+                                             (3 1 ("no" "suggestions"))))
+  
+  (define (valid? str sp result)
+    (and (equal? (list-ref (car result) 2) (+ sp (string-length str)))
+         (equal? (list-ref (last result) 1) sp)
+         (for/and ([ele (in-list result)])
+           (<= (list-ref ele 1) (list-ref ele 2)))
+         (let loop ([result (reverse result)])
+           (cond
+             [(null? (cdr result)) #t]
+             [else
+              (define fst (car result))
+              (define snd (cadr result))
+              (and (= (list-ref fst 2)
+                      (list-ref snd 1))
+                   (loop (cdr result)))]))))
+  (let/ec k
+    (for ([x (in-range 5000)])
+      (define str
+        (build-string
+         (random 40)
+         (λ (x)
+           (case (random 5)
+             [(0) #\a]
+             [(1) #\b]
+             [(2) #\c]
+             [(3) #\d]
+             [(4) #\n]))))
+      (define sp (random 10))
+      (define result (do-spelling-color str #f sp fake-query-aspell))
+      (cond
+        [(valid? str sp result)
+         (test-log! #t)]
+        [else
+         (test-log! #f)
+         (eprintf "counterexample:\n ~s ~s =>\n" str sp)
+         (pretty-write result (current-error-port))]))))
