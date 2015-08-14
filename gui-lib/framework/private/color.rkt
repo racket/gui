@@ -1359,8 +1359,8 @@ added get-regions
            (define suggestions (list-ref err 2))
            (set! answer
                  (list* 
-                  (list #t (+ pos err-start) (+ pos err-start err-len))
-                  (list suggestions (+ pos lp) (+ pos err-start))
+                  (list suggestions (+ pos err-start) (+ pos err-start err-len))
+                  (list #f (+ pos lp) (+ pos err-start))
                   answer))
            (loop (cdr spellos) (+ err-start err-len))]))
       (loop (cdr strs)
