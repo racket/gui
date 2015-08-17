@@ -1025,9 +1025,12 @@ window has just been set.  A ``point'' for font sizing is equivalent
 to @racket[(/ 96 72)] drawing units.
 
 On Unix, if the @indexed-envvar{PLT_DISPLAY_BACKING_SCALE} environment
-variable is set to a positive real number, then it overrides any
-system setting for @racketmodname[racket/gui] scaling.  Menus, control
-labels using the default label font, and non-label control parts will
-not use the specified scale, however.
+variable is set to a positive real number, then it overrides certain
+system settings for @racketmodname[racket/gui] scaling. With GTK+ 3
+(see @secref["libs"]), the environment variable overrides system-wide
+text scaling; with GTK+ 2, the environment variable overrides both
+text and control scaling. Menus, control labels using the default
+label font, and non-label control parts will not use a scale specified
+through @envvar{PLT_DISPLAY_BACKING_SCALE}, however.
 
 @history[#:changed "1.14" @elem{Added support for scaling on Unix.}]
