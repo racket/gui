@@ -92,7 +92,9 @@
     
     (define/override (notify)
       (when canvas
-        (send canvas blink-caret)))
+	(if (send canvas is-shown-to-root?)
+            (send canvas blink-caret)
+	    (kill))))
 
     (define/public (kill)
       (set! canvas #f)
@@ -144,7 +146,7 @@
   (append
    (if (or (memq 'no-hscroll style)
            (memq 'hide-hscroll style))
-       null
+        null
        '(hscroll))
    (if (or (memq 'no-vscroll style)
            (memq 'hide-vscroll style))
