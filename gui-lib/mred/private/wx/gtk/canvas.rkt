@@ -209,8 +209,11 @@
             (not (send wx is-panel?)))
           #f))))
 
-(define-gdk gdk_window_get_background_pattern (_fun _GdkWindow -> (_or-null _cairo_pattern_t)))
-(define-gdk gdk_window_get_effective_parent (_fun _GdkWindow -> _GdkWindow))
+(define-gdk gdk_window_get_background_pattern (_fun _GdkWindow -> (_or-null _cairo_pattern_t))
+  #:make-fail make-not-available)
+(define-gdk gdk_window_get_effective_parent (_fun _GdkWindow -> _GdkWindow)
+  #:make-fail make-not-available)
+
 (define-signal-handler connect-draw "draw"
   (_fun _GtkWidget _cairo_t -> _gboolean)
   (lambda (gtk cr)

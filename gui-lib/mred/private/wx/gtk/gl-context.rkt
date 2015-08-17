@@ -144,7 +144,6 @@
 
 (define-gtk gtk_widget_get_display (_fun _GtkWidget -> _GdkDisplay))
 (define-gtk gtk_widget_get_screen (_fun _GtkWidget -> _GdkScreen))
-(define-gtk gtk_widget_get_window (_fun _GtkWidget -> _GtkWindow))
 
 ;; ===================================================================================================
 ;; GLX versions and extensions queries
@@ -447,7 +446,8 @@ returned a non-NULL context; ignoring possibly corrupt context")
 
 (define (make-gtk-widget-gl-context widget conf)
   (atomically
-   (make-gtk-drawable-gl-context widget (gtk_widget_get_window widget) conf #t)))
+   (make-gtk-drawable-gl-context widget (widget-window widget) conf 
+#t)))
 
 (define (make-gtk-pixmap-gl-context pixmap conf)
   (atomically

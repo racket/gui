@@ -70,8 +70,10 @@
 (define-x11 XUnmapWindow _fpointer #:fail (lambda () #f))
 
 (define _GdkVisual (_cpointer 'GdkVisual))
-(define-gdk gdk_window_get_visual (_fun _GdkWindow -> _GdkVisual))
-(define-gdk gdk_visual_get_depth (_fun _GdkVisual -> _int))
+(define-gdk gdk_window_get_visual (_fun _GdkWindow -> _GdkVisual)
+  #:make-fail make-not-available)
+(define-gdk gdk_visual_get_depth (_fun _GdkVisual -> _int)
+  #:make-fail make-not-available)
 
 (define (bitmap->gc-bitmap bm client-gtk)
   (cond

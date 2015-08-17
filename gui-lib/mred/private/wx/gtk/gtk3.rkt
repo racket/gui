@@ -6,9 +6,9 @@
 	 get-gtk3-lib)
 
 (define (get-gdk3-lib)
-  (ffi-lib "libgdk-3" '("0" "")))
+  (ffi-lib "libgdk-3" '("0" "") #:fail (lambda () #f)))
 (define (get-gtk3-lib)
-  (ffi-lib "libgtk-3" '("0" "")))
+  (ffi-lib "libgtk-3" '("0" "") #:fail (lambda () #f)))
 
 (define gtk3?
   (and (not (getenv "PLT_GTK2"))
