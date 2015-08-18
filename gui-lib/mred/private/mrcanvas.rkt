@@ -134,6 +134,8 @@
         (if ctx
             (send ctx call-as-current thunk)
             (fail))))
+    (define/public (get-gl-client-size)
+      (send wx get-gl-client-size))
     (define accept-tab-focus
       (entry-point
        (case-lambda

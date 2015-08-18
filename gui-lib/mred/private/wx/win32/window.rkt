@@ -491,6 +491,9 @@
     (let ([r (GetClientRect (get-client-hwnd))])
       (values (- (RECT-right r) (RECT-left r))
               (- (RECT-bottom r) (RECT-top r)))))
+  
+  (define/public (get-gl-client-size)
+    (get-scaled-client-size))
 
   (define/public (get-size w h)
     (let ([r (GetWindowRect (get-client-hwnd))])

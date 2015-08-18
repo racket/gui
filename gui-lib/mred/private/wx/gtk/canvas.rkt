@@ -504,7 +504,13 @@
        (define wb (box #f))
        (define hb (box #f))
        (get-client-size wb hb)
-       (values (->screen (unbox wb)) (->screen (unbox hb))))
+       (define s (if gtk3?
+		     (gtk_widget_get_scale_factor gtk)
+		     1))
+       (values (* s (->screen (unbox wb))) (* s (->screen (unbox hb)))))
+
+     (define/public (get-gl-client-size)
+       (get-scaled-client-size))
 
      (define/override (get-client-gtk) client-gtk)
      (define/override (get-container-gtk) container-gtk)

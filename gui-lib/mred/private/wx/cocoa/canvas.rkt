@@ -884,6 +884,15 @@
        (define cw (->long (NSSize-width cs)))
        (define ch (->long (NSSize-height cs)))
        (values cw ch))
+     
+     (define/public (get-gl-client-size)
+       (if (or (not is-gl?)
+               (tell #:type _BOOL content-cocoa wantsBestResolutionOpenGLSurface))
+           (get-scaled-client-size)
+           (let ([x (box 0)]
+                 [y (box 0)])
+             (get-client-size x y)
+             (values (unbox x) (unbox y)))))
 
      (define/override (get-cursor-width-delta)
        0)

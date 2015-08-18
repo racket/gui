@@ -158,7 +158,8 @@ a viewport size for OpenGL drawing in @racket[canvas%] instance with
 the @racket['gl] style. On Mac OS X, however, the viewport will match
 the scaled size unless the canvas is created with a
 @racket[gl-config%] specification that is adjusted to high-resolution
-mode via @method[gl-config% set-hires-mode].
+mode via @method[gl-config% set-hires-mode]. See also
+@xmethod[canvas% get-gl-client-size].
 
 @history[#:added "1.13"]}
 
