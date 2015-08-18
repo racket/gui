@@ -111,7 +111,7 @@ Mac OS X, the result can be the same as @method[window<%>
 get-client-size] if the @racket[gl-config%] specification provided on
 creation does not specify high-resolution mode.
 
-@history[#:added "1.16]}
+@history[#:added "1.16"]}
 
 
 @defmethod[(get-scroll-page [which (or/c 'horizontal 'vertical)])
