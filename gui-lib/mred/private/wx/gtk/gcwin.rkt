@@ -118,18 +118,17 @@
 			       (gdk_x11_window_get_xid cwin)
 			       (* s x) (* s y) (* s w) (* s h) 0 0 0))]
    [else
-    (as-gtk-window-allocation
-     (gdk_window_new cwin (make-GdkWindowAttr
-			   ""
-			   0
-			   x y w h
-			   GDK_INPUT_OUTPUT
-			   #f #f
-			   GDK_WINDOW_CHILD
-			   #f
-			   "" "" #f 0)
-		     (bitwise-ior GDK_WA_X
-				  GDK_WA_Y)))]))
+    (gdk_window_new cwin (make-GdkWindowAttr
+			  ""
+			  0
+			  x y w h
+			  GDK_INPUT_OUTPUT
+			  #f #f
+			  GDK_WINDOW_CHILD
+			  #f
+			  "" "" #f 0)
+		    (bitwise-ior GDK_WA_X
+				 GDK_WA_Y))]))
 
 (define (free-gc-window win)
   (cond
