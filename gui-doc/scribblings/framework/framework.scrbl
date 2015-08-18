@@ -54,8 +54,14 @@ This library provides all of the definitions beginning with
 @item{Splash Screen @racketmodname[framework/splash]  
        This library provides support for a splash screen. See
        @racketmodname[framework/splash] for more.
+}
+
+@item{Notify-boxes @racketmodname[framework/notify]
+       This library provides boxes and controls that allow listeners to execute
+       when their value changes.
+       See @racketmodname[framework/splash] for more.
 }]
-        
+
 @include-section["application.scrbl"]
 @include-section["autosave.scrbl"]
 @include-section["canvas.scrbl"]
@@ -98,6 +104,7 @@ the @secref["editor-snip"] section.
 @include-section["keymap.scrbl"]
 @include-section["menu.scrbl"]
 @include-section["mode.scrbl"]
+@include-section["notify.scrbl"]
 @include-section["number-snip.scrbl"]
 @include-section["panel.scrbl"]
 @include-section["pasteboard.scrbl"]
