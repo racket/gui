@@ -1,5 +1,6 @@
 #lang racket/base
 (require ffi/unsafe
+	 ffi/unsafe/define
          racket/class
          net/uri-codec
          ffi/unsafe/atomic
@@ -167,6 +168,13 @@
 (define-gtk gtk_drag_dest_set (_fun _GtkWidget _int (_pointer = #f) (_int = 0) _int -> _void))
 (define-gtk gtk_drag_dest_unset (_fun _GtkWidget -> _void))
 
+(define-gtk gdk_event_get_scroll_deltas (_fun _GdkEventScroll-pointer
+					      (dx : (_ptr o _double))
+					      (dy : (_ptr o _double))
+					      -> _void
+					      -> (values dx dy))
+  #:make-fail make-not-available)
+
 (define GTK_DEST_DEFAULT_ALL #x07)
 (define GDK_ACTION_COPY (arithmetic-shift 1 1))
 
@@ -267,7 +275,16 @@
                                  [(= dir GDK_SCROLL_UP) 'wheel-up]
                                  [(= dir GDK_SCROLL_DOWN) 'wheel-down]
                                  [(= dir GDK_SCROLL_LEFT) 'wheel-left]
-                                 [(= dir GDK_SCROLL_RIGHT) 'wheel-right]))
+                                 [(= dir GDK_SCROLL_RIGHT) 'wheel-right]
+				 [(= dir GDK_SCROLL_SMOOTH)
+				  (define-values (dx dy) (gdk_event_get_scroll_deltas event))
+				  (cond
+				   [(positive? dy) 'wheel-down]
+				   [(negative? dy) 'wheel-up]
+				   [(positive? dx) 'wheel-right]
+				   [(negative? dx) 'wheel-left]
+				   [else #f])]
+				 [else #f]))
                               (keyval->code (GdkEventKey-keyval event)))]
                 [k (new key-event%
                         [key-code (if (and (string? im-str)

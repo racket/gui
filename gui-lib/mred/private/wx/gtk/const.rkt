@@ -136,4 +136,4 @@
 (define GDK_SCROLL_DOWN 1)
 (define GDK_SCROLL_LEFT 2)
 (define GDK_SCROLL_RIGHT 3)
-
+(define GDK_SCROLL_SMOOTH 4)
