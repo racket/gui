@@ -392,6 +392,9 @@
 
      (define dc #f)
 
+     (define transparent?
+       (memq 'transparent style))
+
      (super-new [parent parent]
                 [gtk gtk]
                 [client-gtk client-gtk]
@@ -546,10 +549,10 @@
      ;; are defined by `canvas-mixin' from ../common/canvas-mixin
      (define/public (queue-paint) (void))
      (define/public (request-canvas-flush-delay)
-       (unless transparent?
+       (unless (and gtk3? transparent?)
          (request-flush-delay (get-flush-window))))
      (define/public (cancel-canvas-flush-delay req)
-       (unless transparent?
+       (unless (and gtk3? transparent?)
          (cancel-flush-delay req)))
      (define/public (queue-canvas-refresh-event thunk)
        (queue-window-refresh-event this thunk))
@@ -736,8 +739,6 @@
      (define clear-bg?
        (and (not (memq 'transparent style))
             (not (memq 'no-autoclear style))))
-     (define transparent?
-       (memq 'transparent style))
      (define gc #f)
      (define bg-col (make-object color% "white"))
      (define/public (get-canvas-background) (if transparent?
