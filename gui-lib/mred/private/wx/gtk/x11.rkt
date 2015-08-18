@@ -97,16 +97,13 @@
 			    (XFreePixmap dpy pixmap)))
 	       (lambda ()
 		 (proc dpy win w h d)))))))
-(define-x11 XDestroyWindow (_fun _Display _Window -> _void)
-  #:wrap (deallocator cadr))
+
+;; No finalization here, because we rely on destroying the
+;; enclosing window to release a created window, if
+;; necessary.
+(define-x11 XDestroyWindow (_fun _Display _Window -> _void))
 (define-x11 XCreateSimpleWindow (_fun _Display _Window
 				      _int _int _int _int
 				      _int _long _long
-				      -> _Window)
-  #:wrap (lambda (proc)
-	   (lambda (dpy win x y w h bw b bg)
-	     (((allocator (lambda (win)
-			    (XDestroyWindow dpy win)))
-	       (lambda ()
-		 (proc dpy win x y w h bw b bg)))))))
+				      -> _Window))
 
