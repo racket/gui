@@ -483,9 +483,14 @@
   (define/public (on-drop-file p) (void))
 
   (define/public (get-client-size w h)
+    (define-values (uw uh) (get-scaled-client-size))
+    (set-box! w (->normal uw))
+    (set-box! h (->normal uh)))
+
+  (define/public (get-scaled-client-size)
     (let ([r (GetClientRect (get-client-hwnd))])
-      (set-box! w (->normal (- (RECT-right r) (RECT-left r))))
-      (set-box! h (->normal (- (RECT-bottom r) (RECT-top r))))))
+      (values (- (RECT-right r) (RECT-left r))
+              (- (RECT-bottom r) (RECT-top r)))))
 
   (define/public (get-size w h)
     (let ([r (GetWindowRect (get-client-hwnd))])

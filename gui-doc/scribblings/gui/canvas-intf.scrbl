@@ -138,6 +138,30 @@ drawing.
 }
 
 
+@defmethod[(get-scaled-client-size) (values dimension-integer? dimension-integer?)]{
+
+Returns the canvas's drawing-area dimensions in unscaled pixels---that
+is, without scaling (see @secref["display-resolution"]) that is
+implicitly applied to the canvas size and content.
+
+For example, when a canvas on Mac OS X resides on a Retina display, it
+has a backing scale of @racket[2], and so the results from
+@method[canvas<%> get-scaled-client-size] will be twice as large as results from
+@method[window<%> get-client-size]. If the same canvas's frame is dragged to a
+non-Retina screen, its backing scale can change to @racket[1], in
+which case @method[canvas<%> get-scaled-client-size] and
+@method[window<%> get-client-size] will produce the same value. Whether
+a canvas's backing scale can change depends on the platform.
+
+The size reported by @method[canvas<%> get-scaled-client-size] may match
+a viewport size for OpenGL drawing in @racket[canvas%] instance with
+the @racket['gl] style. On Mac OS X, however, the viewport will match
+the scaled size unless the canvas is created with a
+@racket[gl-config%] specification that is adjusted to high-resolution
+mode via @method[gl-config% set-hires-mode].
+
+@history[#:added "1.13"]}
+
 
 @defmethod*[([(min-client-height)
               dimension-integer?]
@@ -290,15 +314,4 @@ On Mac OS X, enables or disables space for a resize tab at the
 See @racket[canvas<%>] for information on canvas flushing.
 
 Beware that suspending flushing for a canvas can discourage refreshes
-for other windows in the same frame on some platforms.}
-
-@defmethod[(get-scaled-client-size) (values dimension-integer? dimension-integer?)]{
-
-Returns the dimensions that the canvas supports drawing to. On Mac OS
-X, this may be different than the result returned by
-@racket[get-client-size] when the canvas is in "High Resolution" mode and the display is Retina-enabled.}
-
-@history[#:added "1.13"]
-
-}
-
+for other windows in the same frame on some platforms.}}

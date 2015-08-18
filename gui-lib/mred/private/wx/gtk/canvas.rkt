@@ -504,7 +504,7 @@
        (define wb (box #f))
        (define hb (box #f))
        (get-client-size wb hb)
-       (values (unbox wb) (unbox hb)))
+       (values (->screen (unbox wb)) (->screen (unbox hb))))
 
      (define/override (get-client-gtk) client-gtk)
      (define/override (get-container-gtk) container-gtk)
