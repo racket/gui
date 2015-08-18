@@ -639,6 +639,7 @@
     (define/public (show on?)
       (atomically
        (direct-show on?)))
+    (define/public (reset-child-freezes) (void))
     (define/public (reset-child-dcs) (void))
     (define/public (is-shown?) shown?)
     (define/public (is-shown-to-root?)
@@ -657,6 +658,7 @@
     (define/public (get-parent) parent)
     (define/public (set-parent p)
       ;; in atomic mode
+      (reset-child-freezes)
       (g_object_ref gtk)
       (gtk_container_remove (send parent get-container-gtk) gtk)
       (set! parent p)
@@ -875,7 +877,7 @@
       (for ([i (in-range (mcdr win-box))])
         (gdk_window_thaw_updates win)))))
 
-(define (request-flush-delay win-box)
+(define (request-flush-delay win-box transparent?)
   (do-request-flush-delay 
    win-box
    (lambda (win-box)
@@ -885,7 +887,12 @@
             ;; implementation, so force a native implementation of the
             ;; window to try to avoid it changing out from underneath
             ;; us between the freeze and thaw actions.
-            (gdk_window_ensure_native win)
+	    ;; With Gtk3, we can't use a native window for transparent
+	    ;; windows; that means we have to be extra careful that
+	    ;; the underlying window doesn't change while a freeze is
+	    ;; in effect; the `reset-child-freezes` helps with that.
+            (unless (and transparent? gtk3?)
+              (gdk_window_ensure_native win))
             (begin
               (gdk_window_freeze_updates win)
               (set-mcdr! win-box (add1 (mcdr win-box)))

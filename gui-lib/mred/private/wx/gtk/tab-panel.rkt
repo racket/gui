@@ -48,7 +48,7 @@
           labels)
     
     (inherit set-size set-auto-size infer-client-delta get-gtk
-             reset-child-dcs get-height)
+             reset-child-freezes reset-child-dcs get-height)
 
     (define gtk (gtk_notebook_new))
     ;; Reparented so that it's always in the current page's bin:
@@ -70,6 +70,9 @@
 
     (define (select-bin bin-gtk)
       (set! current-bin-gtk bin-gtk)
+      ;; re-parenting can change the underlying window, so
+      ;; make sure no freeze in places:
+      (reset-child-freezes)
       (gtk_box_pack_start bin-gtk client-gtk #t #t 0)
       ;; re-parenting can change the underlying window dc:
       (reset-child-dcs))

@@ -75,6 +75,8 @@
 				  (gdk_window_get_display gdk-win)
 				  (gdk_display_get_default)))]
 		   [visual (gdk_window_get_visual gdk-win)])
+	      ;; We must not get here for a transparent canvas,
+	      ;; because getting an XID will force a native window.
 	      (values (XCreatePixmap xdisplay
 				     (gdk_x11_window_get_xid gdk-win)
 				     (scale w) (scale h)
@@ -180,7 +182,7 @@
     (inherit end-delay)
     (define canvas cnvs)
     (define gl #f)
-    (define can-delay? (not (and gtk3? transparent?)))
+    (define is-transparent? transparent?)
 
     (super-new [transparent? transparent?])
 
@@ -221,12 +223,9 @@
       (send canvas flush))
 
     (define/override (request-delay)
-      (if can-delay?
-	  (request-flush-delay (send canvas get-flush-window))
-	  (void)))
+      (request-flush-delay (send canvas get-flush-window) is-transparent?))
     (define/override (cancel-delay req)
-      (when can-delay?
-	(cancel-flush-delay req)))))
+      (cancel-flush-delay req))))
 
 (define (do-backing-flush canvas dc win-or-cr)
   (send dc on-backing-flush

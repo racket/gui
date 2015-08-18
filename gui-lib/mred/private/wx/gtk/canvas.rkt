@@ -393,7 +393,8 @@
      (define dc #f)
 
      (define transparent?
-       (memq 'transparent style))
+       (and (memq 'transparent style)
+            (not (memq 'gl style)))) ; 'transparent is incompatible with 'gl
 
      (super-new [parent parent]
                 [gtk gtk]
@@ -424,7 +425,7 @@
          (reset-auto-scroll))
        (on-size))
      
-     (set! dc (new dc% [canvas this] [transparent? (memq 'transparent style)]))
+     (set! dc (new dc% [canvas this] [transparent? transparent?]))
 
      (gtk_widget_realize gtk)
      (gtk_widget_realize client-gtk)
@@ -549,11 +550,9 @@
      ;; are defined by `canvas-mixin' from ../common/canvas-mixin
      (define/public (queue-paint) (void))
      (define/public (request-canvas-flush-delay)
-       (unless (and gtk3? transparent?)
-         (request-flush-delay (get-flush-window))))
+       (request-flush-delay (get-flush-window) transparent?))
      (define/public (cancel-canvas-flush-delay req)
-       (unless (and gtk3? transparent?)
-         (cancel-flush-delay req)))
+       (cancel-flush-delay req))
      (define/public (queue-canvas-refresh-event thunk)
        (queue-window-refresh-event this thunk))
      (define/public (skip-pre-paint?) #f)
@@ -590,6 +589,11 @@
 		  flush-win-box)))))
      (define/public (unrealize)
        (unrealize-win-box flush-win-box))
+     (define/override (reset-child-freezes)
+       ;; A transparent canvas can't have a native window, so we
+       ;; need to release any freezes befre the window implementation
+       ;; might change.
+       (when transparent? (unrealize)))
 
      (define/public (begin-refresh-sequence)
        (send dc suspend-flush))
@@ -611,7 +615,7 @@
        ;; called atomically
        (unless for-gl?
          (gtk_widget_queue_draw client-gtk)))
-     
+
      (define/override (reset-child-dcs)
        (when (dc . is-a? . dc%)
          (reset-dc)))
@@ -737,7 +741,7 @@
            (->long (dispatch which gtk_adjustment_get_value 0))))
      
      (define clear-bg?
-       (and (not (memq 'transparent style))
+       (and (not transparent?)
             (not (memq 'no-autoclear style))))
      (define gc #f)
      (define bg-col (make-object color% "white"))
