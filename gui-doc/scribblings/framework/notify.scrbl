@@ -4,19 +4,19 @@
                      racket/class))
 
 @(define the-eval (make-base-eval))
-@(the-eval '(require racket/class framework/private/notify))
+@(the-eval '(require racket/class (prefix-in notify: framework/private/notify)))
 
 @title[#:tag "gui-notify"]{Notify-boxes}
 
 @defmodule[framework/notify]
 
-@defclass[notify-box% object% ()]{
+@defclass[notify:notify-box% object% ()]{
 
 A notify-box contains a mutable cell. The notify-box notifies its
 listeners when the contents of the cell is changed.
 
 @examples[#:eval the-eval
-(define nb (new notify-box% (value 'apple)))
+(define nb (new notify:notify-box% (value 'apple)))
 (send nb get)
 (send nb set 'orange)
 (send nb listen (lambda (v) (printf "New value: ~s\n" v)))
@@ -44,10 +44,10 @@ listeners when the contents of the cell is changed.
 }
 }
 
-@defproc[(notify-box/pref
+@defproc[(notify:notify-box/pref
           [proc (case-> (-> any/c) (-> any/c void?))]
           [#:readonly? readonly? boolean? #f])
-         (is-a?/c notify-box%)]{
+         (is-a?/c notify:notify-box%)]{
 
 Creates a notify-box with an initial value of @racket[(proc)]. Unless
 @racket[readonly?] is true, @racket[proc] is invoked on the new value
@@ -59,7 +59,7 @@ reflected in the notify-box.
 
 @examples[#:eval the-eval
 (define animal (make-parameter 'ant))
-(define nb (notify-box/pref animal))
+(define nb (notify:notify-box/pref animal))
 (send nb listen (lambda (v) (printf "New value: ~s\n" v)))
 (send nb set 'bee)
 (animal 'cow)
@@ -69,14 +69,14 @@ reflected in the notify-box.
 ]
 }
 
-@defform[(define-notify name value-expr)
-         #:contracts ([value-expr (is-a?/c notify-box%)])]{
+@defform[(notify:define-notify name value-expr)
+         #:contracts ([value-expr (is-a?/c notify:notify-box%)])]{
 
 Class-body form. Declares @racket[name] as a field and
 @racketidfont{get-@racket[name]}, @racketidfont{set-@racket[name]},
 and @racketidfont{listen-@racket[name]} as methods that delegate to
-the @method[notify-box% get], @method[notify-box% set], and
-@method[notify-box% listen] methods of @racket[value].
+the @method[notify:notify-box% get], @method[notify:notify-box% set], and
+@method[notify:notify-box% listen] methods of @racket[value].
 
 The @racket[value-expr] argument must evaluate to a notify-box, not
 just the initial contents for a notify box.
@@ -87,8 +87,8 @@ Useful for aggregating many notify-boxes together into one
 @examples[#:eval the-eval
 (define config%
   (class object%
-    (define-notify food (new notify-box% (value 'apple)))
-    (define-notify animal (new notify-box% (value 'ant)))
+    (notify:define-notify food (new notify:notify-box% (value 'apple)))
+    (notify:define-notify animal (new notify:notify-box% (value 'ant)))
     (super-new)))
 (define c (new config%))
 (send c listen-food
@@ -99,10 +99,10 @@ Useful for aggregating many notify-boxes together into one
 ]
 }
 
-@defproc[(menu-option/notify-box 
+@defproc[(notify:menu-option/notify-box
           [parent (or/c (is-a?/c menu%) (is-a?/c popup-menu%))]
           [label label-string?]
-          [notify-box (is-a?/c notify-box%)])
+          [notify-box (is-a?/c notify:notify-box%)])
          (is-a?/c checkable-menu-item%)]{
 
 Creates a @racket[checkable-menu-item%] tied to @racket[notify-box]. The menu item is
@@ -110,11 +110,11 @@ checked whenever @racket[(send notify-box get)] is true. Clicking the
 menu item toggles the value of @racket[notify-box] and invokes its listeners.
 }
 
-@defproc[(check-box/notify-box
+@defproc[(notify:check-box/notify-box
           [parent (or/c (is-a?/c frame%) (is-a?/c dialog%)
                         (is-a?/c panel%) (is-a?/c pane%))]
           [label label-string?]
-          [notify-box (is-a?/c notify-box%)])
+          [notify-box (is-a?/c notify:notify-box%)])
          (is-a?/c check-box%)]{
 
 Creates a @racket[check-box%] tied to @racket[notify-box]. The
@@ -123,12 +123,12 @@ true. Clicking the check box toggles the value of @racket[notify-box]
 and invokes its listeners.
 }
 
-@defproc[(choice/notify-box
+@defproc[(notify:choice/notify-box
           [parent (or/c (is-a?/c frame%) (is-a?/c dialog%)
                         (is-a?/c panel%) (is-a?/c pane%))]
           [label label-string?]
           [choices (listof label-string?)]
-          [notify-box (is-a?/c notify-box%)])
+          [notify-box (is-a?/c notify:notify-box%)])
          (is-a?/c choice%)]{
 
 Creates a @racket[choice%] tied to @racket[notify-box]. The choice
@@ -140,10 +140,10 @@ If the value of @racket[notify-box] is not in @racket[choices], either
 initially or upon an update, an error is raised.
 }
 
-@defproc[(menu-group/notify-box
+@defproc[(notify:menu-group/notify-box
           [parent (or/c (is-a?/c menu%) (is-a?/c popup-menu%))]
           [labels (listof label-string?)]
-          [notify-box (is-a?/c notify-box%)])
+          [notify-box (is-a?/c notify:notify-box%)])
          (listof (is-a?/c checkable-menu-item%))]{
 
 Returns a list of @racket[checkable-menu-item%] controls tied to
