@@ -864,12 +864,11 @@
    (lambda (win-box)
      (let ([win (mcar win-box)])
        (and win
-       	    (unless gtk3?
-              ;; The freeze/thaw state is actually with the window's
-              ;; implementation, so force a native implementation of the
-              ;; window to try to avoid it changing out from underneath
-              ;; us between the freeze and thaw actions.
-              (gdk_window_ensure_native win))
+            ;; The freeze/thaw state is actually with the window's
+            ;; implementation, so force a native implementation of the
+            ;; window to try to avoid it changing out from underneath
+            ;; us between the freeze and thaw actions.
+            (gdk_window_ensure_native win)
             (begin
               (gdk_window_freeze_updates win)
               (set-mcdr! win-box (add1 (mcdr win-box)))

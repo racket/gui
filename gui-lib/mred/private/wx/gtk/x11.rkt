@@ -10,7 +10,11 @@
 	      gdk_pixmap_new
               gdk_window_get_display
               gdk_drawable_get_display
+              gdk_window_get_visual
               gdk_drawable_get_visual
+	      gdk_visual_get_best
+	      gdk_screen_get_root_window
+	      gdk_visual_get_depth
               gdk_x11_drawable_get_xid
               gdk_x11_display_get_xdisplay
               gdk_x11_visual_get_xvisual
@@ -21,6 +25,7 @@
 	      _Window
 	      _Pixmap
 	      XCreatePixmap
+	      XFreePixmap
 	      XCreateSimpleWindow
 	      XDestroyWindow))
 
@@ -55,6 +60,16 @@
 (define-gdk gdk_drawable_get_visual (_fun _GdkDrawable -> _GdkVisual)
   #:make-fail make-not-available)
 
+(define-gdk gdk_visual_get_best (_fun -> _GdkVisual)
+  #:make-fail make-not-available)
+
+(define-gdk gdk_window_get_visual (_fun _GdkWindow -> _GdkVisual)
+  #:make-fail make-not-available)
+(define-gdk gdk_visual_get_depth (_fun _GdkVisual -> _int)
+  #:make-fail make-not-available)
+
+(define-gdk gdk_screen_get_root_window (_fun _GdkScreen -> _GdkWindow))
+
 (define-gtk gdk_x11_window_get_xid (_fun _GdkWindow -> _Window)
   #:make-fail make-not-available)
 (define-gdk gdk_x11_drawable_get_xid (_fun _GdkDrawable -> _Drawable)
@@ -73,13 +88,13 @@
 (define-gdk gdk_x11_screen_get_screen_number (_fun _GdkScreen -> _int)
   #:make-fail make-not-available)
 
-(define-x11 XFreePixmap (_fun _Display _Pixmap -> _void))
+(define-x11 XFreePixmap (_fun _Display _Pixmap -> _void)
+  #:wrap (deallocator cadr))
 (define-x11 XCreatePixmap (_fun _Display _Window _int _int _int -> _Pixmap)
   #:wrap (lambda (proc)
 	   (lambda (dpy win w h d)
-	     (((allocator ((deallocator)
-			   (lambda (pixmap)
-			     (XFreePixmap dpy pixmap))))
+	     (((allocator (lambda (pixmap)
+			    (XFreePixmap dpy pixmap)))
 	       (lambda ()
 		 (proc dpy win w h d)))))))
 (define-x11 XDestroyWindow (_fun _Display _Window -> _void)

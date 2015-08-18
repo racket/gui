@@ -540,9 +540,11 @@
      ;; are defined by `canvas-mixin' from ../common/canvas-mixin
      (define/public (queue-paint) (void))
      (define/public (request-canvas-flush-delay)
-       (request-flush-delay (get-flush-window)))
+       (unless transparent?
+         (request-flush-delay (get-flush-window))))
      (define/public (cancel-canvas-flush-delay req)
-       (cancel-flush-delay req))
+       (unless transparent?
+         (cancel-flush-delay req)))
      (define/public (queue-canvas-refresh-event thunk)
        (queue-window-refresh-event this thunk))
      (define/public (skip-pre-paint?) #f)
