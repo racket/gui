@@ -129,7 +129,7 @@
 	   (lambda (gtk)
 	     (GtkWidgetT-window (cast gtk _GtkWidget _GtkWidgetT-pointer)))))
 
-(define-gtk widget-parent (_fun _GtkWidget -> _GdkWindow)
+(define-gtk widget-parent (_fun _GtkWidget -> _GtkWidget)
   #:c-id gtk_widget_get_parent
   #:fail (lambda ()
 	   (lambda (gtk)
@@ -864,11 +864,12 @@
    (lambda (win-box)
      (let ([win (mcar win-box)])
        (and win
-            ;; The freeze/thaw state is actually with the window's
-            ;; implementation, so force a native implementation of the
-            ;; window to try to avoid it changing out from underneath
-            ;; us between the freeze and thaw actions.
-            (gdk_window_ensure_native win)
+       	    (unless gtk3?
+              ;; The freeze/thaw state is actually with the window's
+              ;; implementation, so force a native implementation of the
+              ;; window to try to avoid it changing out from underneath
+              ;; us between the freeze and thaw actions.
+              (gdk_window_ensure_native win))
             (begin
               (gdk_window_freeze_updates win)
               (set-mcdr! win-box (add1 (mcdr win-box)))

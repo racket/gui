@@ -209,11 +209,6 @@
             (not (send wx is-panel?)))
           #f))))
 
-(define-gdk gdk_window_get_background_pattern (_fun _GdkWindow -> (_or-null _cairo_pattern_t))
-  #:make-fail make-not-available)
-(define-gdk gdk_window_get_effective_parent (_fun _GdkWindow -> _GdkWindow)
-  #:make-fail make-not-available)
-
 (define-signal-handler connect-draw "draw"
   (_fun _GtkWidget _cairo_t -> _gboolean)
   (lambda (gtk cr)
@@ -221,13 +216,6 @@
       (if wx
 	  (let ([col (send wx get-canvas-background-for-backing)]
 		[win (widget-window gtk)])
-	    (when (and win (not col))
-	      ;; Before transparent drawing, we need to install the
-	      ;; parent window's pattern.
-	      (cairo_set_source cr (gdk_window_get_background_pattern
-				    (gdk_window_get_effective_parent win)))
-	      (cairo_rectangle cr 0 0 32000 32000)
-	      (cairo_fill cr))
             (unless (send wx paint-or-queue-paint cr)
               (when col
                 (cairo_set_source_rgb cr
