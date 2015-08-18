@@ -171,6 +171,11 @@ the state transitions / contracts are:
 
 (define pref-save-callbacks '())
 
+(define (preferences:get/set sym)
+  (case-lambda
+    [() (preferences:get sym)]
+    [(v) (preferences:set sym v)]))
+
 (define (preferences:register-save-callback f)
   (define key (gensym))
   (set! pref-save-callbacks (cons (list key f) pref-save-callbacks))
@@ -377,6 +382,14 @@ the state transitions / contracts are:
     if the preference's default has not been set.
     
     See also @racket[preferences:set-default].})
+
+ (proc-doc/names
+  preferences:get/set
+  (-> symbol? (case-> (-> any/c) (-> any/c void?)))
+  (pref)
+  @{Returns a procedure that when applied to zero arguments retrieves the
+    current value of the preference named @racket[pref] and when
+    applied to one argument updates the preference named @racket[pref].})
  
  (proc-doc/names
   preferences:add-callback
