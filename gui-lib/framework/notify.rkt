@@ -2,15 +2,15 @@
 ;; owner: ryanc
 (require racket/class
          racket/gui/base
-         "../private/notify.rkt")
-(provide (all-from-out "../private/notify.rkt")
+         "private/notify.rkt")
+(provide (all-from-out "private/notify.rkt")
          menu-option/notify-box
          menu-group/notify-box
          check-box/notify-box
          choice/notify-box)
 
 ;; GUI elements tied to notify-boxes
-;; See unstable/private/notify.rkt for the non-gui parts of notify-boxes.
+;; See private/notify.rkt for the non-gui parts of notify-boxes.
 
 (define (menu-option/notify-box parent label nb)
   (define menu-item
