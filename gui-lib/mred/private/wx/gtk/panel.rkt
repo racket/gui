@@ -25,6 +25,9 @@
 (define-gtk gtk_fixed_new (_fun -> _GtkWidget))
 (define-gtk gtk_event_box_new (_fun -> _GtkWidget))
 
+(define-gtk gtk_event_box_set_visible_window (_fun _GtkWidget _gboolean -> _void)
+  #:make-fail make-not-available)
+
 (define-gtk gtk_fixed_move (_fun _GtkWidget _GtkWidget _int _int -> _void))
 
 (define-gtk gtk_container_set_border_width (_fun _GtkWidget _int -> _void))
@@ -148,6 +151,7 @@
              adjust-client-delta)
     
     (define gtk (as-gtk-allocation (gtk_event_box_new)))
+    (when gtk3? (gtk_event_box_set_visible_window gtk #f))
     (define border-gtk (atomically
                         (and (memq 'border style)
                              (let ([border-gtk (gtk_fixed_new)])
