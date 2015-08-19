@@ -490,8 +490,9 @@
 
      (define/override (fixup-locations-children)
        ;; in atomic mode
-       (suspend-all-reg-blits)
-       (resume-all-reg-blits))
+       (when (is-shown-to-root?)
+         (suspend-all-reg-blits)
+         (resume-all-reg-blits)))
 
      (define/private (do-set-size x y w h)
        (when (pair? blits)
