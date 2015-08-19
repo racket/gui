@@ -93,8 +93,9 @@
       (let ([priviledged-custodian ((get-ffi-obj 'scheme_make_custodian #f (_fun _pointer -> _scheme)) #f)])
         (parameterize ([current-custodian priviledged-custodian])
           (thread (lambda () (sleep 5.0)))))
-      ;; Also need to reset blit windows, since OS may move them incorrectly:
-      (fixup-window-locations)]
+      (unless (version-10.10-or-later?)
+        ;; Also need to reset blit windows, since OS may move them incorrectly:
+        (fixup-window-locations))]
   [-a _void (tryDockToFront: o)
       (try-dock-to-front)]
   [-a _void (retrySelfToFront: o)
