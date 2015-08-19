@@ -317,9 +317,15 @@
                           (memq 'auto-hscroll style))]
                  [vs? (or (memq 'vscroll style)
                           (memq 'auto-vscroll style))])
-            (let ([border (and has-border?
-			       (as-gtk-allocation (gtk_hbox_new #f 0)))]
-		  [h (if has-border?
+            (let ([container (and gtk3?
+				  ;; See `panel%` for information on why an extra
+				  ;; event-box layer is needed here.
+				  (as-gtk-allocation (gtk_event_box_new)))]
+	          [border (and has-border?
+			       (if gtk3?
+				   (gtk_hbox_new #f 0)
+				   (as-gtk-allocation (gtk_hbox_new #f 0))))]
+		  [h (if (or has-border? gtk3?)
 			 (gtk_hbox_new #f 0)
 			 (as-gtk-allocation (gtk_hbox_new #f 0)))]
                   [v (gtk_vbox_new #f 0)]
@@ -340,6 +346,9 @@
               (when has-border?
                 (gtk_container_set_border_width h margin)
                 (connect-expose/draw-border border h))
+	      (when container
+		(gtk_container_add container (or border h))
+		(gtk_widget_show (or border h)))
               (when border (gtk_box_pack_start border h #t #t 0))
               (gtk_box_pack_start h v #t #t 0)
               (gtk_box_pack_start v client-gtk #t #t 0)
@@ -365,7 +374,8 @@
                 (gtk_widget_show container-gtk))
               (let ([req (make-GtkRequisition 0 0)])
                 (gtk_widget_size_request vscroll req)
-                (values client-gtk container-gtk (or border h) hadj vadj 
+                (values client-gtk container-gtk (or container border h)
+			hadj vadj 
                         (and hs? h2)
                         (and vs? v2)
                         (and hs? vs? resize-box)

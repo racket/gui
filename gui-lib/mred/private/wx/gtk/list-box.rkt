@@ -10,9 +10,10 @@
          "types.rkt"
          "window.rkt"
          "const.rkt"
+	 "panel.rkt"
          "../common/event.rkt")
 
-(provide 
+(provide
  (protect-out list-box%))
 
 ;; ----------------------------------------
@@ -143,9 +144,21 @@
       (when (and (= (get-selection) -1)
                  (pair? data))
         (set-selection 0))))
-    
-  (define gtk (as-gtk-allocation (gtk_scrolled_window_new #f #f)))
-  (gtk_scrolled_window_set_policy gtk GTK_POLICY_AUTOMATIC GTK_POLICY_ALWAYS)
+
+  (define-values (gtk scrolled-gtk)
+    (cond
+     [gtk3?
+      ;; See `panel%` for information on why an extra
+      ;; event-box layer is needed here.
+      (define gtk (as-gtk-allocation (gtk_event_box_new)))
+      (define scrolled-gtk (gtk_scrolled_window_new #f #f))
+      (gtk_container_add gtk scrolled-gtk)
+      (gtk_widget_show scrolled-gtk)
+      (values gtk scrolled-gtk)]
+     [else
+      (define scrolled-gtk (as-gtk-allocation (gtk_scrolled_window_new #f #f)))
+      (values scrolled-gtk scrolled-gtk)]))
+  (gtk_scrolled_window_set_policy scrolled-gtk GTK_POLICY_AUTOMATIC GTK_POLICY_ALWAYS)
 
   (define headers? (memq 'column-headers style))
   (define click-headers? (and headers?
@@ -194,7 +207,7 @@
           (gtk_tree_view_move_column_after client-gtk column-gtk prev)
           (loop column-gtk (cdr l))))))
 
-  (gtk_container_add gtk client-gtk)
+  (gtk_container_add scrolled-gtk client-gtk)
   (gtk_widget_show client-gtk)
 
   (define selection
