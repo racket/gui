@@ -178,13 +178,13 @@
 (define dc%
   (class backing-dc%
     (init [(cnvs canvas)]
-          transparent?)
+          transparentish?)
     (inherit end-delay)
     (define canvas cnvs)
     (define gl #f)
-    (define is-transparent? transparent?)
+    (define is-transparentish? transparentish?)
 
-    (super-new [transparent? transparent?])
+    (super-new [transparent? transparentish?])
 
     (define/override (get-gl-context)
       (or gl
@@ -194,11 +194,11 @@
 
     (define/override (make-backing-bitmap w h)
       (cond
-       [(and (eq? 'unix (system-type))
-             (send canvas get-canvas-background))
+       [(and (not is-transparentish?)
+             (eq? 'unix (system-type)))
 	(make-object x11-bitmap% w h (send canvas get-client-gtk))]
-       [(and (eq? 'windows (system-type))
-             (send canvas get-canvas-background))
+       [(and (not is-transparentish?)
+             (eq? 'windows (system-type)))
 	(make-object win32-bitmap% w h (widget-window (send canvas get-client-gtk)))]
        [else
 	;; Transparent canvas always use a Cairo bitmap:
@@ -223,7 +223,7 @@
       (send canvas flush))
 
     (define/override (request-delay)
-      (request-flush-delay (send canvas get-flush-window) is-transparent?))
+      (request-flush-delay (send canvas get-flush-window) is-transparentish?))
     (define/override (cancel-delay req)
       (cancel-flush-delay req))))
 

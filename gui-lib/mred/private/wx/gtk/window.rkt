@@ -877,7 +877,7 @@
       (for ([i (in-range (mcdr win-box))])
         (gdk_window_thaw_updates win)))))
 
-(define (request-flush-delay win-box transparent?)
+(define (request-flush-delay win-box transparentish?)
   (do-request-flush-delay 
    win-box
    (lambda (win-box)
@@ -891,7 +891,7 @@
 	    ;; windows; that means we have to be extra careful that
 	    ;; the underlying window doesn't change while a freeze is
 	    ;; in effect; the `reset-child-freezes` helps with that.
-            (unless (and transparent? gtk3?)
+            (unless (and transparentish? gtk3?)
               (gdk_window_ensure_native win))
             (begin
               (gdk_window_freeze_updates win)

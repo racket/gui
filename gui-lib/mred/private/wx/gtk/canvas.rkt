@@ -284,6 +284,12 @@
      (define is-combo? (memq 'combo style))
      (define has-border? (or (memq 'border style)
                              (memq 'control-border style)))
+     (define for-gl? (memq 'gl style))
+     (define transparent?
+       (and (memq 'transparent style)
+            (not for-gl?))) ; 'transparent is incompatible with 'gl
+
+     (define transparentish? (or transparent? is-combo?))
 
      (define margin (if has-border? 1 0))
 
@@ -385,16 +391,11 @@
           (let ([client-gtk (as-gtk-allocation (gtk_drawing_area_new))])
             (values client-gtk client-gtk client-gtk #f #f #f #f #f #f 0))])))
 
-     (define for-gl? (memq 'gl style))
      (when for-gl?
        (prepare-widget-gl-context client-gtk gl-config)
        (gtk_widget_set_double_buffered client-gtk #f))
 
      (define dc #f)
-
-     (define transparent?
-       (and (memq 'transparent style)
-            (not (memq 'gl style)))) ; 'transparent is incompatible with 'gl
 
      (super-new [parent parent]
                 [gtk gtk]
@@ -425,7 +426,7 @@
          (reset-auto-scroll))
        (on-size))
      
-     (set! dc (new dc% [canvas this] [transparent? transparent?]))
+     (set! dc (new dc% [canvas this] [transparentish? transparentish?]))
 
      (gtk_widget_realize gtk)
      (gtk_widget_realize client-gtk)
@@ -475,7 +476,7 @@
 
      (when (and gtk3? is-combo?)
        ;; Needed for sizing:
-       (gtk_combo_box_append_text gtk (make-string 10 #\X)))
+       (gtk_combo_box_append_text gtk (make-string 8 #\X)))
 
      (set-auto-size)
      (adjust-client-delta (+ (* 2 margin) 
@@ -550,7 +551,7 @@
      ;; are defined by `canvas-mixin' from ../common/canvas-mixin
      (define/public (queue-paint) (void))
      (define/public (request-canvas-flush-delay)
-       (request-flush-delay (get-flush-window) transparent?))
+       (request-flush-delay (get-flush-window) transparentish?))
      (define/public (cancel-canvas-flush-delay req)
        (cancel-flush-delay req))
      (define/public (queue-canvas-refresh-event thunk)
@@ -593,7 +594,7 @@
        ;; A transparent canvas can't have a native window, so we
        ;; need to release any freezes befre the window implementation
        ;; might change.
-       (when transparent? (unrealize)))
+       (when transparentish? (unrealize)))
 
      (define/public (begin-refresh-sequence)
        (send dc suspend-flush))
