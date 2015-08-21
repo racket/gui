@@ -42,6 +42,10 @@
 
 (define-gtk gtk_drawing_area_new (_fun -> _GtkWidget))
 
+(define-gtk gtk_layout_new (_fun (_pointer = #f) (_pointer = #f) -> _GtkWidget))
+(define-gtk gtk_layout_put (_fun _GtkWidget _GtkWidget _int _int -> _void))
+(define-gtk gtk_layout_move (_fun _GtkWidget _GtkWidget _int _int -> _void))
+
 (define-gtk gtk_combo_box_text_new (_fun -> _GtkWidget)
   #:make-fail make-not-available)
 (define-gtk gtk_combo_box_entry_new_text (_fun -> _GtkWidget)
@@ -306,7 +310,9 @@
               (memq 'vscroll style)
               (memq 'auto-vscroll style))
           (let* ([client-gtk (if (is-panel?)
-                                 (gtk_fixed_new)
+                                 (if gtk3?
+				     (gtk_layout_new)
+				     (gtk_fixed_new))
                                  (gtk_drawing_area_new))]
                  [container-gtk (if (is-panel?)
                                     (gtk_fixed_new)
@@ -370,7 +376,9 @@
                 (gtk_widget_show resize-box))
               (gtk_widget_show client-gtk)
               (unless (eq? client-gtk container-gtk)
-                (gtk_container_add client-gtk container-gtk)
+		(if gtk3?
+		    (gtk_layout_put client-gtk container-gtk 0 0)
+		    (gtk_container_add client-gtk container-gtk))
                 (gtk_widget_show container-gtk))
               (let ([req (make-GtkRequisition 0 0)])
                 (gtk_widget_size_request vscroll req)
@@ -933,8 +941,9 @@
 
     (define/override (reset-dc-for-autoscroll)
       (super reset-dc-for-autoscroll)
-      (gtk_fixed_move (get-client-gtk) (get-container-gtk) 
-                      (- (get-virtual-h-pos))
-                      (- (get-virtual-v-pos))))
+      ((if (and gtk3? (is-panel?)) gtk_layout_move gtk_fixed_move)
+       (get-client-gtk) (get-container-gtk)
+       (- (get-virtual-h-pos))
+       (- (get-virtual-v-pos))))
 
     (super-new)))
