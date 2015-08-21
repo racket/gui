@@ -834,6 +834,8 @@
 
     (define/public (get-client-delta)
       (values 0 0))
+    (define/public (get-stored-client-delta)
+      (values client-delta-w client-delta-h))
 
     (define/public (warp-pointer x y)
       (define xb (box x))

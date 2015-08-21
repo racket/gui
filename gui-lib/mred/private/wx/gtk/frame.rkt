@@ -163,7 +163,7 @@
 
     (inherit get-gtk set-size
              pre-on-char pre-on-event
-             get-client-delta get-size
+             get-stored-client-delta get-size
              get-parent get-eventspace
              adjust-client-delta
              queue-on-size)
@@ -463,7 +463,7 @@
     (define/override (internal-client-to-screen x y)
       (gtk_window_set_gravity gtk GDK_GRAVITY_STATIC)
       (let-values ([(dx dy) (gtk_window_get_position gtk)]
-                   [(cdx cdy) (get-client-delta)])
+                   [(cdx cdy) (get-stored-client-delta)])
         (gtk_window_set_gravity gtk GDK_GRAVITY_NORTH_WEST)
         (set-box! x (+ (unbox x) (->normal (+ dx cdx))))
         (set-box! y (+ (unbox y) (->normal (+ dy cdy))))))
