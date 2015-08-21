@@ -50,16 +50,30 @@
     (inherit set-size set-auto-size infer-client-delta get-gtk
              reset-child-freezes reset-child-dcs get-height)
 
-    (define gtk (gtk_notebook_new))
+    (define notebook-gtk (if gtk3?
+			     (gtk_notebook_new)
+			     (as-gtk-allocation (gtk_notebook_new))))
+    (define gtk (if gtk3?
+		    ;; For some reason, tabs in a hidden eventbox
+		    ;; don't work right. Add a layer.
+		    (let ([gtk (as-gtk-allocation (gtk_event_box_new))])
+		      (gtk_container_add gtk notebook-gtk)
+		      (gtk_widget_show notebook-gtk)
+		      gtk)
+		    notebook-gtk))
     ;; Reparented so that it's always in the current page's bin:
     (define client-gtk (gtk_fixed_new))
 
-    (gtk_notebook_set_scrollable gtk #t)
+    (gtk_notebook_set_scrollable notebook-gtk #t)
 
     (super-new [parent parent]
                [gtk gtk]
                [client-gtk client-gtk]
-               [extra-gtks (list client-gtk)]
+               [extra-gtks (append
+			    (if (eq? gtk notebook-gtk)
+				null
+				(list notebook-gtk))
+			    (list client-gtk))]
                [no-show? (memq 'deleted style)])
 
     ; Once without tabs to set client-width delta:
@@ -81,12 +95,12 @@
       (for/list ([lbl labels])
         (let ([bin-gtk (gtk_hbox_new #f 0)]
               [label-gtk (gtk_label_new_with_mnemonic lbl)])
-          (gtk_notebook_append_page gtk bin-gtk label-gtk)
+          (gtk_notebook_append_page notebook-gtk bin-gtk label-gtk)
           (gtk_widget_show bin-gtk)
           (make-page bin-gtk label-gtk))))
 
     (define/private (install-empty-page)
-      (gtk_notebook_append_page gtk empty-bin-gtk #f)
+      (gtk_notebook_append_page notebook-gtk empty-bin-gtk #f)
       (gtk_widget_show empty-bin-gtk))
 
     (if (null? pages)
@@ -97,8 +111,8 @@
           (select-bin (page-bin-gtk (car pages)))))
     (gtk_widget_show client-gtk)
     
-    (connect-key-and-mouse gtk)
-    (connect-focus gtk)
+    (connect-key-and-mouse notebook-gtk)
+    (connect-focus notebook-gtk)
 
     ; With tabs to set client-width delta:
     (infer-client-delta #f #t)
@@ -126,7 +140,7 @@
         (swap-in (page-bin-gtk (list-ref pages i)))
         (when callback-ok?
           (queue-window-event this (lambda () (do-callback))))))
-    (connect-changed gtk)
+    (connect-changed notebook-gtk)
     
     (define/override (get-client-gtk) client-gtk)
 
@@ -141,14 +155,14 @@
       (let ([page
              (let ([bin-gtk (gtk_hbox_new #f 0)]
                    [label-gtk (gtk_label_new_with_mnemonic lbl)])
-               (gtk_notebook_append_page gtk bin-gtk label-gtk)
+               (gtk_notebook_append_page notebook-gtk bin-gtk label-gtk)
                (gtk_widget_show bin-gtk)
                (make-page bin-gtk label-gtk))])
         (set! pages (append pages (list page)))
         (when (null? (cdr pages))
           (swap-in (page-bin-gtk (car pages)))
           (g_object_ref empty-bin-gtk)
-          (gtk_notebook_remove_page gtk 0))))
+          (gtk_notebook_remove_page notebook-gtk 0))))
 
     (define/private (do-delete i)
       (let ([page (list-ref pages i)])
@@ -159,11 +173,11 @@
                     (begin
                       (install-empty-page)
                       (set! pages null)
-                      (gtk_notebook_set_current_page gtk 1)
+                      (gtk_notebook_set_current_page notebook-gtk 1)
                       (swap-in empty-bin-gtk))
-                    (gtk_notebook_set_current_page gtk (sub1 i)))
-                (gtk_notebook_set_current_page gtk (add1 i)))))
-        (gtk_notebook_remove_page gtk i)
+                    (gtk_notebook_set_current_page notebook-gtk (sub1 i)))
+                (gtk_notebook_set_current_page notebook-gtk (add1 i)))))
+        (gtk_notebook_remove_page notebook-gtk i)
         (set! pages (remq page pages))))
 
     (define/public (delete i)
@@ -193,14 +207,14 @@
 
     (define/override (gets-focus?) #t)
     (define/override (set-focus)
-      (gtk_widget_grab_focus gtk))
+      (gtk_widget_grab_focus notebook-gtk))
 
     (define/private (direct-set-selection i)
-      (gtk_notebook_set_current_page gtk i))
+      (gtk_notebook_set_current_page notebook-gtk i))
     (define/public (set-selection i)
       (atomically
        (set! callback-ok? #f)
        (direct-set-selection i)
        (set! callback-ok? #t)))
     (define/public (get-selection)
-      (gtk_notebook_get_current_page gtk))))
+      (gtk_notebook_get_current_page notebook-gtk))))

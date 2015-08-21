@@ -25,6 +25,7 @@
 
 (define-gtk gtk_fixed_new (_fun -> _GtkWidget))
 (define-gtk gtk_event_box_new (_fun -> _GtkWidget))
+(define-gtk gtk_event_box_set_visible_window (_fun _GtkWidget _gboolean -> _void))
 
 (define-gtk gtk_fixed_move (_fun _GtkWidget _GtkWidget _int _int -> _void))
 
@@ -154,16 +155,16 @@
     ;; the background, which interferes with themes
     ;; can controls that have their own background.
     ;; The gtk_event_box_set_visible_window function
-    ;; is supposed to avoid that, but somehow that
-    ;; blocks events to children. So, use a fixed
-    ;; box instead, and ensure that no child forces
+    ;; avoids that, but ensure that no child forces
     ;; it to be a native window at the GDK level.
     ;; In particular, scrolls force the enclosing
     ;; parent to have a native window, so add a layer
-    ;; as needed around scrolls.
-    (define gtk (as-gtk-allocation (if gtk3?
-				       (gtk_fixed_new)
-				       (gtk_event_box_new))))
+    ;; as needed around scrolls. Also, for tab panels,
+    ;; a non-hidden event box seems to be needed around
+    ;; the panel to deliver events to the tab.
+    (define gtk (as-gtk-allocation (gtk_event_box_new)))
+    (when gtk3?
+      (gtk_event_box_set_visible_window gtk #f))
     (define border-gtk (atomically
                         (and (memq 'border style)
                              (let ([border-gtk (gtk_fixed_new)])
