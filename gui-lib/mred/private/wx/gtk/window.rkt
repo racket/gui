@@ -617,10 +617,10 @@
     (define/public (set-auto-size [dw 0] [dh 0])
       (let ([req (make-GtkRequisition 0 0)])
 	(cond
-	 [gtk3? 
-	  (gtk_widget_show gtk)
+	 [gtk3?
+	  (unless shown? (gtk_widget_show gtk))
 	  (gtk_widget_get_preferred_size gtk req #f)
-	  (gtk_widget_hide gtk)]
+	  (unless shown? (gtk_widget_hide gtk))]
 	 [else (gtk_widget_size_request gtk req)])
         (set-size #f
                   #f
