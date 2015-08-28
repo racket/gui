@@ -2,7 +2,8 @@
 (require launcher 
          compiler/embed
          racket/file
-         racket/path)
+         racket/path
+         setup/cross-system)
 
 (provide post-installer)
 
@@ -11,7 +12,7 @@
 
 (define (post-installer path coll user?)
   (define variants (available-mred-variants))
-  (when (memq (system-type) mred-exe-systems)
+  (when (memq (cross-system-type) mred-exe-systems)
     (for ([v variants] #:when (memq v '(3m cgc)))
       (parameterize ([current-launcher-variant v])
         (create-embedding-executable
@@ -31,7 +32,7 @@
            (prep-dir (mred-program-launcher-path "mred-text" #:user? user?))
            `([relative? . ,(not user?)] [subsystem . console] [single-instance? . #f]))))))
   ;; add bin/mred script under OS X
-  (when (eq? 'macosx (system-type))
+  (when (eq? 'macosx (cross-system-type))
     (for ([v variants] #:when (memq v '(script-3m script-cgc)))
       (parameterize ([current-launcher-variant v])
         (make-gracket-launcher
