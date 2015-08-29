@@ -506,7 +506,7 @@
 @definterface[text:searching<%> (editor:keymap<%> text:basic<%>)]{
   Any object matching this interface can be searched.
 
-  @defmethod[(set-searching-state [str (or/c #f string?)]
+  @defmethod[(set-searching-state [str (or/c #f (and/c string? (not/c "")))]
                                   [cs? boolean?]
                                   [replace-mode? boolean?]
                                   [notify-frame? boolean?])
