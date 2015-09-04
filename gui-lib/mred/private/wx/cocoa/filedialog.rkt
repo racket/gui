@@ -91,12 +91,35 @@
            (atomically
             (let ([front (get-front)]
                   [parent (and (version-10.6-or-later?)
-                               parent)])
+                               parent)]
+                  [completion (and (version-10.10-or-later?)
+                                   parent
+                                   ;; retain until done:
+                                   (box null))]
+                  [completion-result 0])
               (when parent
                 (tellv ns beginSheetModalForWindow: (send parent get-cocoa-window)
-                       completionHandler: #f))
+                       completionHandler: #:type _pointer (and completion
+                                                               (objc-block
+                                                                (_fun #:atomic? #t #:keep completion _pointer _int -> _void)
+                                                                (lambda (blk val)
+                                                                  (set! completion-result val)
+                                                                  (tellv app stopModal))
+                                                                #:keep completion))))
               (begin0
-               (tell #:type _NSInteger ns runModal)
+               (if completion
+                   ;; For 10.10, using `runModal` centers the sheet before
+                   ;; running the model loop, so we have to use a completion
+                   ;; handler as installed above plus `runModalForWindow:`
+                   ;; (and this works despite the docs's claim that
+                   ;; `runModalForWindow:` centers its argument).
+                   (begin
+                     (tell app runModalForWindow: ns)
+                     (set-box! completion #f)
+                     completion-result)
+                   ;; For 10.9 and earlier, runModel will do the hard part
+                   ;; for us:
+                   (tell #:type _NSInteger ns runModal))
                (when parent (tell app endSheet: ns))
                (when front (tellv (send front get-cocoa-window)
                                   makeKeyAndOrderFront: #f)))))])
@@ -111,4 +134,3 @@
                 (let ([url (tell ns URL)])
                   (nsurl->string url)))))
        (release ns)))))
-
