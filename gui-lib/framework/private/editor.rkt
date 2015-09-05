@@ -373,6 +373,11 @@
     (update-standard-style
      (λ (the-delta)
        (send the-delta set-smoothing-on sym))))
+
+  (define (set-font-weight sym)
+    (update-standard-style
+     (λ (the-delta)
+       (send the-delta set-weight-on sym))))
   
   (define (update-standard-style cng-delta)
     (let* ([the-standard (send standard-style-list find-named-style "Standard")]
@@ -415,11 +420,14 @@
     (set-font-size (get-current-preferred-font-size))
     (set-font-name (preferences:get 'framework:standard-style-list:font-name))
     (set-font-smoothing (preferences:get 'framework:standard-style-list:smoothing))
+    (set-font-weight (preferences:get 'framework:standard-style-list:weight))
     (preferences:add-callback 'framework:standard-style-list:font-size 
                               (λ (p v)
                                 (set-font-size/callback (font-size-pref->current-font-size v))))
     (preferences:add-callback 'framework:standard-style-list:font-name (λ (p v) (set-font-name v)))
-    (preferences:add-callback 'framework:standard-style-list:smoothing (λ (p v) (set-font-smoothing v)))
+    (preferences:add-callback 'framework:standard-style-list:smoothing
+                              (λ (p v) (set-font-smoothing v)))
+    (preferences:add-callback 'framework:standard-style-list:weight (λ (p v) (set-font-weight v)))
     (define fl (get-face-list))
     (unless (member (preferences:get 'framework:standard-style-list:font-name) fl)
       (define preferred-font 

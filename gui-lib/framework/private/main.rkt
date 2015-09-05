@@ -263,6 +263,12 @@
  (λ (x) 
    (memq x '(unsmoothed partly-smoothed smoothed default))))
 
+(preferences:set-default
+ 'framework:standard-style-list:weight
+ 'normal
+ (λ (x)
+   (memq x '(normal light bold))))
+
 (editor:set-standard-style-list-pref-callbacks)
 
 (let ([gray-level
