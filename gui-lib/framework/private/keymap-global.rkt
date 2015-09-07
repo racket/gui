@@ -7,7 +7,7 @@
          "../preferences.rkt"
          "gen-standard-menus.rkt"
          (only-in srfi/13 string-prefix? string-prefix-length)
-         unstable/2d/dir-chars
+         2d/dir-chars
          racket/list)
 
 (provide has-control-regexp

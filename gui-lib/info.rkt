@@ -14,7 +14,7 @@
                "scribble-lib"
                "string-constants-lib"
                "unstable-options-lib"
-               "unstable-2d"
+               "2d-lib"
                "compatibility-lib"
                "tex-table"
                ("gui-i386-macosx" #:platform "i386-macosx")
