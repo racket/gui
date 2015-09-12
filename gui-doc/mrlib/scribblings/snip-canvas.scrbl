@@ -3,7 +3,7 @@
 @(require (for-label racket/base
                      racket/class
                      racket/gui/base
-                     unstable/gui/snip
+                     racket/snip
                      racket/contract))
 
 @title[#:tag "snip"]{Snip Canvases}
