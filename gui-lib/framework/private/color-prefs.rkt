@@ -324,11 +324,14 @@
       
       style))
   
-  (define (make-style-delta color bold? underline? italic? #:background [background #f])
+  (define (make-style-delta color bold underline? italic? #:background [background #f])
     (define sd (make-object style-delta%))
     (send sd set-delta-foreground color)
     (cond
-      [bold?
+      [(equal? bold 'base)
+       (send sd set-weight-on 'base)
+       (send sd set-weight-off 'base)]
+      [bold
        (send sd set-weight-on 'bold)
        (send sd set-weight-off 'base)]
       [else
@@ -913,7 +916,7 @@
 
 (define (add-color-scheme-entry name _b-o-w-color _w-o-b-color 
                                 #:style [style-name #f]
-                                #:bold? [bold? #f]
+                                #:bold? [bold 'base]
                                 #:underline? [underline? #f]
                                 #:italic? [italic? #f]
                                 #:background [background #f])
@@ -929,7 +932,7 @@
     (hash-set! (color-scheme-mapping (lookup-color-scheme scheme-name))
                name
                (if style-name
-                   (make-style-delta color bold? underline? italic? #:background background)
+                   (make-style-delta color bold underline? italic? #:background background)
                    color)))
   (update-color white-on-black-color-scheme-name w-o-b-color)
   (update-color black-on-white-color-scheme-name b-o-w-color)
@@ -1071,10 +1074,24 @@
   (send standard-delta set-size-mult 0)
   (send standard-delta set-size-add (editor:get-current-preferred-font-size))
   (send standard-delta set-delta-face (preferences:get 'framework:standard-style-list:font-name))
+  (send standard-delta set-weight-on (preferences:get 'framework:standard-style-list:weight))
+  (send standard-delta set-smoothing-on (preferences:get 'framework:standard-style-list:smoothing))
   (send style-list new-named-style "Standard"
         (send style-list find-or-create-style
               (send style-list basic-style)
               standard-delta))
+  (define (update-standard-delta f)
+    (define delta (make-object style-delta%))
+    (define std (send style-list find-named-style "Standard"))
+    (send std get-delta delta)
+    (f delta)
+    (send std set-delta delta))
+  (preferences:add-callback
+   'framework:standard-style-list:weight
+   (λ (p v) (update-standard-delta (lambda (delta) (send delta set-weight-on v)))))
+  (preferences:add-callback
+   'framework:standard-style-list:smoothing
+   (λ (p v) (update-standard-delta (lambda (delta) (send delta set-smoothing-on v)))))
   (for ([name (in-set known-style-names)])
     (define pref-hash (preferences:get (color-scheme-entry-name->pref-name name)))
     (define delta

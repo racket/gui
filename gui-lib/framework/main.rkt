@@ -1876,7 +1876,7 @@
         [white-on-black-color (or/c string? (is-a?/c color%))])
        (#:style 
         [style (or/c #f string?)]
-        #:bold? [bold? (style) (if style boolean? #f)]
+        #:bold? [bold (style) (if style (or/c boolean? 'base) #f)]
         #:underline? [underline? (style) (if style boolean? #f)]
         #:italic? [italic? (style) (if style boolean? #f)]
         #:background
@@ -1888,7 +1888,10 @@
   (#f #f #f #f #f)
   @{Registers a new color or style named @racket[name] for use in the color schemes. 
     If @racket[style] is provided, a new style is registered; if not a color is
-    registered.})
+    registered.
+
+    The default values of all of the keyword arguments are @racket[#f], except
+    @racket[bold], which defaults to @racket['base] (if @racket[style] is not @racket[#f]).})
  
  (proc-doc/names
   color-prefs:add-color-scheme-preferences-panel
