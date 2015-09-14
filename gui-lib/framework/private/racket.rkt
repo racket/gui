@@ -13,7 +13,7 @@
          "../gui-utils.rkt"
          "../preferences.rkt"
          racket/match
-         unstable/options)
+         racket/contract/option)
 
 (import mred^
         [prefix preferences: framework:preferences^]
