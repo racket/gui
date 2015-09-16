@@ -2353,6 +2353,10 @@
     (define/public-final (get-text-to-search) text-to-search)
 
     (define/public-final (set-text-to-search new)
+      (unless (or (not new) (is-a? new text:searching<%>))
+        (raise-argument-error 'set-text-to-search
+                              (format "~s" '(or/c (is-a?/c text:searching<%>) #f))
+                              new))
       (unless (eq? new text-to-search)
         (let ([old text-to-search])
           (set! text-to-search new)
