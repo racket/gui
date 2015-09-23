@@ -163,6 +163,7 @@
     ("frown" "⌢")
     ("in" "∈")
     ("ni" "∋")
+    ("notin" "∉")
     ("propto" "∝")
     ("vdash" "⊢")
     ("dashv" "⊣")
