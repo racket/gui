@@ -305,13 +305,16 @@
          [(eq? (wx:color-from-user-platform-mode) 'dialog)
           (wx:get-color-from-user message (and parent (mred->wx parent)) in-color)]
          [else
-          (define color (if (member 'alpha style)
-                            in-color
-                            (make-object wx:color%
-                              (send in-color red)
-                              (send in-color green)
-                              (send in-color blue)
-                              1.0)))
+          (define color (cond
+                         [in-color
+                          (if (member 'alpha style)
+                              in-color
+                              (make-object wx:color%
+                                           (send in-color red)
+                                           (send in-color green)
+                                           (send in-color blue)
+                                           1.0))]
+                         [else (make-object wx:color% 0 0 0)]))
           (define ok? #f)
           (define f (make-object dialog% "Choose Color" parent))
           (define (done ok) (lambda (b e) (set! ok? ok) (send f show #f)))

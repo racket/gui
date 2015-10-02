@@ -16,8 +16,9 @@
 
 (define-cocoa NSDeviceRGBColorSpace _id)
 
-(define (get-color-from-user mode)
+(define (get-color-from-user message parent color)
   (promote-to-gui!)
+  (define mode 'get)
   (cond
    [(eq? mode 'show)
     (tellv (tell NSColorPanel sharedColorPanel)

@@ -74,7 +74,7 @@
 (define (find-graphical-system-path what)
   #f)
 
-(define (color-from-user-platform-mode) "Show Picker")
+(define (color-from-user-platform-mode) #f) ; implementation in "colordialog.rkt" is incomplete
 
 (define-unimplemented get-font-from-user)
 (define (font-from-user-platform-mode) #f)
