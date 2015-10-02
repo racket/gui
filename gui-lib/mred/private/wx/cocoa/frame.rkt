@@ -18,7 +18,10 @@
 (provide 
  (protect-out frame%
               location->window
-              get-front))
+              get-front
+
+              RacketEventspaceMethods
+              install-RacketGCWindow!))
 
 ;; ----------------------------------------
 
@@ -56,11 +59,18 @@
 
 (set-screen-changed-callback! send-screen-change-notifications)
 
-(define-objc-mixin (RacketWindowMethods Superclass)
+(define RacketGCWindow #f)
+(define (install-RacketGCWindow! c) (set! RacketGCWindow c))
+
+(define-objc-mixin (RacketEventspaceMethods Superclass)
   [wxb]
   [-a _scheme (getEventspace)
       (let ([wx (->wx wxb)])
-        (and wx (send wx get-eventspace)))]
+        (and wx (send wx get-eventspace)))])
+
+(define-objc-mixin (RacketWindowMethods Superclass)
+  #:mixins (RacketEventspaceMethods)
+  [wxb]
   [-a _BOOL (canBecomeKeyWindow)
       (let ([wx (->wx wxb)])
         (and wx
@@ -189,7 +199,9 @@
                                    (not (ptr-equal? w (send root-fake-frame get-cocoa)))
                                    (is-mouse-or-key?))
                                (or (objc-is-a? w RacketWindow)
-                                   (objc-is-a? w RacketPanel))
+                                   (objc-is-a? w RacketPanel)
+                                   (and RacketGCWindow
+                                        (objc-is-a? w RacketGCWindow)))
                                (tell #:type _scheme w getEventspace))]
                          [front (send front get-eventspace)]
                          [root-fake-frame 

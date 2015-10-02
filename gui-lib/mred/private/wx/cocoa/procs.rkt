@@ -90,8 +90,9 @@
 (define (get-control-font-face)
   ;; Using `(tell NSFont systemFontOfSize: ...)` gives us an OS-determined
   ;; font, but my attempts to extract the name give something like ".LucidaGrandeUI"
-  ;; instead of "Lucida Grande"
+  ;; instead of "Lucida Grande" have failed.
   (cond
+   ;; [(version-10.11-or-later?) "San Francisco"]
    [(version-10.10-or-later?) "Helvetica Neue"]
    [else "Lucida Grande"]))
 (define (get-control-font-size) 13)

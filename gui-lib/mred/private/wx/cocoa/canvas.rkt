@@ -12,6 +12,7 @@
          "const.rkt"
          "types.rkt"
          "window.rkt"
+         "frame.rkt"
          "dc.rkt"
          "cg.rkt"
          "queue.rkt"
@@ -41,7 +42,7 @@
 
 (define NSWindowAbove 1)
 
-(define o (current-error-port))
+(define gc-via-gl? (version-10.11-or-later?))
 
 ;; Called when a canvas has no backing store ready
 (define (clear-background wxb)
@@ -96,6 +97,16 @@
 (define-objc-class RacketGLView NSOpenGLView
   #:mixins (RacketViewMixin)
   [wxb])
+
+(define-objc-class RacketGCGLView NSOpenGLView
+  #:mixins (KeyMouseResponder)
+  [wxb])
+
+(define-objc-class RacketGCWindow NSWindow
+  #:mixins (RacketEventspaceMethods)
+  [wxb])
+
+(install-RacketGCWindow! RacketGCWindow)
 
 (define-objc-class CornerlessFrameView NSView 
   []
@@ -451,6 +462,10 @@
        (make-window-bitmap w h (get-cocoa-window)))
 
      (define/override (fix-dc [refresh? #t])
+       (when (pair? blits)
+         (atomically
+          (suspend-all-reg-blits)
+          (resume-all-reg-blits)))
        (when (dc . is-a? . dc%)
          (send dc reset-backing-retained)
          (send dc set-auto-scroll
@@ -914,17 +929,17 @@
          (when (pair? blits)
            (set! reg-blits
                  (for/list ([b (in-list blits)])
-                   (let-values ([(x y w h img) (apply values b)])
-                     (register-one-blit x y w h img)))))))
+                   (let-values ([(x y w h s img) (apply values b)])
+                     (register-one-blit x y w h s img)))))))
 
-     (define/private (register-one-blit x y w h img)
+     (define/private (register-one-blit x y w h s img)
        (let ([xb (box x)]
              [yb (box y)])
          (client-to-screen xb yb #f)
          (let* ([cocoa-win (get-cocoa-window)])
            (atomically
             (let ([win (as-objc-allocation
-                        (tell (tell NSWindow alloc)
+                        (tell (tell (if gc-via-gl? RacketGCWindow NSWindow) alloc)
                               initWithContentRect: #:type _NSRect (make-NSRect (make-NSPoint (unbox xb)
                                                                                              (- (unbox yb)
                                                                                                 h))
@@ -932,26 +947,59 @@
                               styleMask: #:type _int NSBorderlessWindowMask
                               backing: #:type _int NSBackingStoreBuffered
                               defer: #:type _BOOL NO))]
-                  [iv (tell (tell NSImageView alloc) init)])
-              (tellv iv setImage: img)
-              (tellv iv setFrame: #:type _NSRect (make-NSRect (make-NSPoint 0 0)
-                                                              (make-NSSize w h)))
-              (tellv (tell win contentView) addSubview: iv)
-              (tellv win setAlphaValue: #:type _CGFloat 0.0)
+                  [glv (and gc-via-gl?
+                            (let ([pf (gl-config->pixel-format #f)])
+                              (begin0
+                               (tell (tell RacketGCGLView alloc)
+                                     initWithFrame: #:type _NSRect (make-NSRect (make-NSPoint 0 0)
+                                                                                (make-NSSize w h))
+                                     pixelFormat: pf)
+                               (tellv pf release))))]
+                  [iv (and (not gc-via-gl?)
+                           (tell (tell NSImageView alloc) init))])
+              (cond
+               [gc-via-gl?
+                (tellv win setAcceptsMouseMovedEvents: #:type _BOOL #t)
+                (set-ivar! win wxb (->wxb this))
+                (set-ivar! glv wxb (->wxb this))
+                (tellv glv setWantsBestResolutionOpenGLSurface: #:type _uint 1)
+                (tellv (tell win contentView) addSubview: glv)]
+               [else
+                (tellv win setAlphaValue: #:type _CGFloat 0.0)
+                (tellv iv setImage: img)
+                (tellv iv setFrame: #:type _NSRect (make-NSRect (make-NSPoint 0 0)
+                                                                (make-NSSize w h)))
+                (tellv (tell win contentView) addSubview: iv)
+                (tellv iv release)])
               (tellv cocoa-win addChildWindow: win ordered: #:type _int NSWindowAbove)
-              (tellv iv release)
+              (when gc-via-gl?
+                (tellv win orderWindow: #:type _int NSWindowAbove
+                       relativeTo: #:type _NSInteger (tell #:type _NSInteger cocoa-win windowNumber)))
               (let ([r (scheme_add_gc_callback
-                        (make-gc-action-desc win (selector setAlphaValue:) 1.0)
-                        (make-gc-action-desc win (selector setAlphaValue:) 0.0))])
+                        (if gc-via-gl?
+                            (make-gl-install win glv w h img s)
+                            (make-gc-action-desc win (selector setAlphaValue:) 1.0))
+                        (if gc-via-gl?
+                            (make-gl-uninstall win glv w h)
+                            (make-gc-action-desc win (selector setAlphaValue:) 0.0)))])
+                (when gc-via-gl?
+                  (tellv glv release))
                 (cons win r)))))))
      
      (define/public (register-collecting-blit x y w h on off on-x on-y off-x off-y)
-       (let ([on (fix-bitmap-size on w h on-x on-y)])
-         (let ([img (bitmap->image on)])
+       (let ([on (fix-bitmap-size on w h on-x on-y)]
+             [s (send on get-backing-scale)])
+         (let ([img (if gc-via-gl?
+                        (let* ([xw (inexact->exact (ceiling (* s w)))]
+                               [xh (inexact->exact (ceiling (* s h)))]
+                               [rgba (make-bytes (* xw xh 4))])
+                          (send on get-argb-pixels 0 0 xw xh rgba #:unscaled? #t)
+                          rgba)
+                        (bitmap->image on))])
            (atomically
-            (set! blits (cons (list x y w h img) blits))
+            (set! blits (cons (list x y w h s img) blits))
             (when (is-shown-to-root?)
-              (set! reg-blits (cons (register-one-blit x y w h img) reg-blits)))))))
+              (set! reg-blits (cons (register-one-blit x y w h s img) reg-blits)))))))
 
      (define/public (unregister-collecting-blits)
        (atomically
