@@ -465,7 +465,8 @@
        (when (pair? blits)
          (atomically
           (suspend-all-reg-blits)
-          (resume-all-reg-blits)))
+          (when (is-shown-to-root?)
+            (resume-all-reg-blits))))
        (when (dc . is-a? . dc%)
          (send dc reset-backing-retained)
          (send dc set-auto-scroll
