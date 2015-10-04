@@ -313,7 +313,12 @@
       (ShowWindow hwnd SW_RESTORE))
     (when on?
       (unless float-without-caption?
-        (BringWindowToTop hwnd))))
+        (BringWindowToTop hwnd)))
+    (when (and on? unshown-fullscreen?)
+      (set! unshown-fullscreen? #f)
+      (fullscreen #t))
+    (when (not on?)
+      (set! unshown-fullscreen? (fullscreened?))))
 
   (define/public (destroy)
     (direct-show #f))
@@ -589,54 +594,60 @@
 
   (define pre-fullscreen-rect #f)
   (define pre-fullscreen-style 0)
+  (define unshown-fullscreen? #f)
 
   (define/public (fullscreened?)
-    ; check our dimensions against those of the nearest monitor
-    (define win-rect (GetWindowRect hwnd))
-    (define mon (MonitorFromWindow hwnd MONITOR_DEFAULTTONEAREST))
-    (define mi (cast (malloc _MONITORINFO)
-                     _pointer
-                     _MONITORINFO-pointer))
-    (set-MONITORINFO-cbSize! mi (ctype-sizeof _MONITORINFO))
-    (GetMonitorInfoW mon mi)
-    (define mon-rect (MONITORINFO-rcMonitor mi))
-
-    (and (= (RECT-left mon-rect)   (RECT-left win-rect))
-         (= (RECT-right mon-rect)  (RECT-right win-rect))
-         (= (RECT-top mon-rect)    (RECT-top win-rect))
-         (= (RECT-bottom mon-rect) (RECT-bottom win-rect))))
+    (cond
+     [(is-shown?)
+      ;; check our dimensions against those of the nearest monitor
+      (define win-rect (GetWindowRect hwnd))
+      (define mon (MonitorFromWindow hwnd MONITOR_DEFAULTTONEAREST))
+      (define mi (cast (malloc _MONITORINFO)
+                       _pointer
+                       _MONITORINFO-pointer))
+      (set-MONITORINFO-cbSize! mi (ctype-sizeof _MONITORINFO))
+      (GetMonitorInfoW mon mi)
+      (define mon-rect (MONITORINFO-rcMonitor mi))
+      
+      (and (= (RECT-left mon-rect)   (RECT-left win-rect))
+           (= (RECT-right mon-rect)  (RECT-right win-rect))
+           (= (RECT-top mon-rect)    (RECT-top win-rect))
+           (= (RECT-bottom mon-rect) (RECT-bottom win-rect)))]
+     [else unshown-fullscreen?]))
   
   (define/public (fullscreen on?)
     (if on?
-        (let ([mon (MonitorFromWindow hwnd MONITOR_DEFAULTTONEAREST)]
-              [mi (cast (malloc _MONITORINFO)
-                        _pointer
-                        _MONITORINFO-pointer)])
-          (set-MONITORINFO-cbSize! mi (ctype-sizeof _MONITORINFO))
-          (GetMonitorInfoW mon mi)
-          (define mon-rect (MONITORINFO-rcMonitor mi))
-          
-          (define current-style (cast (GetWindowLongPtrW hwnd GWL_STYLE) _pointer _intptr))
+        (if (is-shown?)
+            (let ([mon (MonitorFromWindow hwnd MONITOR_DEFAULTTONEAREST)]
+                  [mi (cast (malloc _MONITORINFO)
+                            _pointer
+                            _MONITORINFO-pointer)])
+              (set-MONITORINFO-cbSize! mi (ctype-sizeof _MONITORINFO))
+              (GetMonitorInfoW mon mi)
+              (define mon-rect (MONITORINFO-rcMonitor mi))
+              
+              (define current-style (cast (GetWindowLongPtrW hwnd GWL_STYLE) _pointer _intptr))
 
-          ; if (fullscreen #t) is called repeatedly, we don't want to overwrite
-          ; a useful description of the window's pre-fullscreened state with one
-          ; that says to fullscreen it again
-          (when (eq? pre-fullscreen-rect #f)
-            (set! pre-fullscreen-rect (GetWindowRect hwnd)))
-          (when (= pre-fullscreen-style 0)
-            (set! pre-fullscreen-style current-style))
-            
-          (SetWindowLongPtrW hwnd GWL_STYLE
-                             (cast
-                              (bitwise-ior (bitwise-and current-style (bitwise-not WS_OVERLAPPEDWINDOW)
-                                                        WS_POPUP))
-                              _intptr _pointer))
-          (SetWindowPos hwnd HWND_TOP
-                        (RECT-left mon-rect)
-                        (RECT-top mon-rect)
-                        (- (RECT-right mon-rect) (RECT-left mon-rect))
-                        (- (RECT-bottom mon-rect) (RECT-top mon-rect))
-                        (bitwise-ior SWP_NOCOPYBITS SWP_SHOWWINDOW)))
+              ;; if (fullscreen #t) is called repeatedly, we don't want to overwrite
+              ;; a useful description of the window's pre-fullscreened state with one
+              ;; that says to fullscreen it again
+              (when (eq? pre-fullscreen-rect #f)
+                (set! pre-fullscreen-rect (GetWindowRect hwnd)))
+              (when (= pre-fullscreen-style 0)
+                (set! pre-fullscreen-style current-style))
+              
+              (SetWindowLongPtrW hwnd GWL_STYLE
+                                 (cast
+                                  (bitwise-ior (bitwise-and current-style (bitwise-not WS_OVERLAPPEDWINDOW)
+                                                            WS_POPUP))
+                                  _intptr _pointer))
+              (SetWindowPos hwnd HWND_TOP
+                            (RECT-left mon-rect)
+                            (RECT-top mon-rect)
+                            (- (RECT-right mon-rect) (RECT-left mon-rect))
+                            (- (RECT-bottom mon-rect) (RECT-top mon-rect))
+                            (bitwise-ior SWP_NOCOPYBITS SWP_SHOWWINDOW)))
+            (set! unshown-fullscreen? (and on? #t)))
         (begin
           (unless (= pre-fullscreen-style 0)
             (SetWindowLongPtrW hwnd GWL_STYLE (cast pre-fullscreen-style _intptr _pointer))

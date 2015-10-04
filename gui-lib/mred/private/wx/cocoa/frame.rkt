@@ -27,7 +27,7 @@
 
 (import-class NSWindow NSGraphicsContext NSMenu NSPanel
               NSApplication NSAutoreleasePool NSScreen
-              NSToolbar)
+              NSToolbar NSArray)
 
 (define NSWindowCloseButton 0)
 (define NSWindowToolbarButton 3)
@@ -360,7 +360,11 @@
                        contextInfo: #f))
               (if float?
                   (tellv cocoa orderFront: #f)
-                  (tellv cocoa makeKeyAndOrderFront: #f)))
+                  (begin
+                    (tellv cocoa makeKeyAndOrderFront: #f)
+                    (when unshown-fullscreen?
+                      (set! unshown-fullscreen? #f)
+                      (tellv cocoa toggleFullScreen: #f)))))
           (begin
             (when is-a-dialog?
               (let ([p (get-parent)])
@@ -371,7 +375,13 @@
                         endSheet: cocoa))))
             (when (is-shown?) ; otherwise, `deminiaturize' can show the window
               (tellv cocoa deminiaturize: #f)
-              (tellv cocoa orderOut: #f))
+              (define fs? (fullscreened?))
+              (set! unshown-fullscreen? fs?)
+              (tellv cocoa orderOut: #f)
+              (when fs?
+                ;; Need to select another window to get rid of
+                ;; the window's screen:
+                (tellv (get-app-front-window) orderFront: #f)))
             (force-window-focus)))
       (register-frame-shown this on?)
       (let ([num (tell #:type _NSInteger cocoa windowNumber)])
@@ -699,11 +709,19 @@
           (tellv cocoa miniaturize: cocoa)
           (tellv cocoa deminiaturize: cocoa)))
 
+    (define unshown-fullscreen? #f)
     (define/public (fullscreened?)
-      (positive? (bitwise-and (tell #:type _NSUInteger cocoa styleMask) NSFullScreenWindowMask)))
+      (and (version-10.7-or-later?)
+           (if (tell #:type _bool cocoa isVisible)
+               (positive? (bitwise-and (tell #:type _NSUInteger cocoa styleMask) NSFullScreenWindowMask))
+               unshown-fullscreen?)))
     (define/public (fullscreen on?)
-      (unless (eq? (and on? #t) (fullscreened?))
-        (tellv cocoa toggleFullScreen: #f)))
+      (when (version-10.7-or-later?)
+        (unless (eq? (and on? #t) (fullscreened?))
+          (if (tell #:type _bool cocoa isVisible)
+              (tellv cocoa toggleFullScreen: #f)
+              (set! unshown-fullscreen? (and on? #t))))))
+
 
     (define/public (set-title s)
       (tellv cocoa setTitle: #:type _NSString s))
