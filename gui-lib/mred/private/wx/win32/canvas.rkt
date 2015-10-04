@@ -233,11 +233,11 @@
              (default w msg wParam lParam))]
         [(= msg WM_HSCROLL)
          (when hscroll?
-           (on-scroll-change SB_HORZ (LOWORD wParam)))
+           (on-scroll-change SB_HORZ wParam))
          0]
         [(= msg WM_VSCROLL)
          (when vscroll?
-           (on-scroll-change SB_VERT (LOWORD wParam)))
+           (on-scroll-change SB_VERT wParam))
          0]
         [else
 	 (when (= msg WM_GESTURE)
@@ -490,21 +490,26 @@
          (void)))
 
      (define/public (on-scroll e) (void))
-     (define/private (on-scroll-change dir part)
+     (define/private (on-scroll-change dir param)
        (let ([i (GetScrollInfo canvas-hwnd dir)])
-         (let ([new-pos
-                (cond
-                 [(= part SB_TOP) 0]
-                 [(= part SB_BOTTOM) (SCROLLINFO-nMax i)]
-                 [(= part SB_LINEUP) (max 0 (sub1 (SCROLLINFO-nPos i)))]
-                 [(= part SB_LINEDOWN) (min (SCROLLINFO-nMax i) (add1 (SCROLLINFO-nPos i)))]
-                 [(= part SB_PAGEUP) (max 0 (- (SCROLLINFO-nPos i) (SCROLLINFO-nPage i)))]
-                 [(= part SB_PAGEDOWN) (min (SCROLLINFO-nMax i) (+ (SCROLLINFO-nPos i) (SCROLLINFO-nPage i)))]
-                 [(= part SB_THUMBTRACK) (SCROLLINFO-nTrackPos i)]
-                 [else (SCROLLINFO-nPos i)])])
-           (unless (or (= new-pos (SCROLLINFO-nPos i))
-		       next-scroll-is-change?)
-	     (set! next-scroll-is-change? #f)
+         (let* ([part (LOWORD param)]
+                [forced-pos (and (= part SB_THUMBPOSITION)
+                                 (HIWORD param))]
+                [new-pos
+                 (cond
+                   [forced-pos forced-pos]
+                   [(= part SB_TOP) 0]
+                   [(= part SB_BOTTOM) (SCROLLINFO-nMax i)]
+                   [(= part SB_LINEUP) (max 0 (sub1 (SCROLLINFO-nPos i)))]
+                   [(= part SB_LINEDOWN) (min (SCROLLINFO-nMax i) (add1 (SCROLLINFO-nPos i)))]
+                   [(= part SB_PAGEUP) (max 0 (- (SCROLLINFO-nPos i) (SCROLLINFO-nPage i)))]
+                   [(= part SB_PAGEDOWN) (min (SCROLLINFO-nMax i) (+ (SCROLLINFO-nPos i) (SCROLLINFO-nPage i)))]
+                   [(= part SB_THUMBTRACK) (SCROLLINFO-nTrackPos i)]
+                   [else (SCROLLINFO-nPos i)])])
+           (unless (or (and (= new-pos (SCROLLINFO-nPos i))
+                            (not forced-pos))
+                       next-scroll-is-change?)
+             (set! next-scroll-is-change? #f)
              (set-SCROLLINFO-nPos! i new-pos)
              (set-SCROLLINFO-fMask! i SIF_POS)
              (SetScrollInfo canvas-hwnd dir i #t)
