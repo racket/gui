@@ -1008,21 +1008,21 @@
     (when wx
       (queue-event (send wx get-eventspace) (lambda () (proc wx))))))
 
-(define (request-flush-delay cocoa-win)
+(define (request-flush-delay wx-win)
   (do-request-flush-delay 
-   cocoa-win
-   (lambda (cocoa-win)
-     (and (tell #:type _bool cocoa-win isVisible)
-          (tellv cocoa-win disableFlushWindow)
+   wx-win
+   (lambda (wx-win)
+     (and (tell #:type _bool (send wx-win get-cocoa-window) isVisible)
+          (send wx-win disable-flush-window)
           #t))
-   (lambda (cocoa-win)
-     (tellv cocoa-win enableFlushWindow))))
+   (lambda (wx-win)
+     (send wx-win enable-flush-window))))
 
 (define (cancel-flush-delay req)
   (do-cancel-flush-delay 
    req
-   (lambda (cocoa-win)
-     (tellv cocoa-win enableFlushWindow))))
+   (lambda (wx-win)
+     (send wx-win enable-flush-window))))
 
 (define (make-init-point x y)
   (make-NSPoint (if (not x)

@@ -265,7 +265,9 @@
            [ignored-name #f]
            [gl-config #f])
 
-     (inherit get-cocoa get-cocoa-window
+     (inherit get-cocoa
+              get-cocoa-window
+              get-wx-window
               get-eventspace
               make-graphics-context
               is-shown-to-root?
@@ -319,7 +321,7 @@
      (define/public (queue-paint) (void))
      (define/public (request-canvas-flush-delay)
        (unless is-gl?
-         (request-flush-delay (get-cocoa-window))))
+         (request-flush-delay (get-wx-window))))
      (define/public (cancel-canvas-flush-delay req)
        (unless is-gl?
          (cancel-flush-delay req)))
@@ -364,9 +366,6 @@
        (send dc suspend-flush))
      (define/public (end-refresh-sequence)
        (send dc resume-flush))
-
-     (define/public (get-flush-window)
-       (get-cocoa-window))
 
      (define/private (refresh-one)
        (when is-gl?

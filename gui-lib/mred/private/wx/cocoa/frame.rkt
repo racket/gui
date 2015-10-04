@@ -399,6 +399,22 @@
                   (sync/timeout 1 s))))))
       (atomically
        (direct-show on?)))
+    
+    (define flush-disabled 0)
+    
+    (define/public (disable-flush-window)
+      (when (zero? flush-disabled)
+        (when (version-10.11-or-later?)
+          (tellv cocoa setAutodisplay: #:type _BOOL #f))
+        (tellv cocoa disableFlushWindow))
+      (set! flush-disabled (add1 flush-disabled)))
+
+    (define/public (enable-flush-window)
+      (set! flush-disabled (sub1 flush-disabled))
+      (when (zero? flush-disabled)
+        (tellv cocoa enableFlushWindow)
+        (when (version-10.11-or-later?)
+          (tellv cocoa setAutodisplay: #:type _BOOL #t))))
 
     (define/public (force-window-focus)
       (let ([next (get-app-front-window)])
