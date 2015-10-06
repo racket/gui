@@ -45,7 +45,7 @@
 (define gc-via-gl? (version-10.11-or-later?))
 
 ;; Called when a canvas has no backing store ready
-(define (clear-background wxb)
+(define (clear-background wxb r)
   (let ([wx (->wx wxb)])
     (when wx
       (let ([bg (send wx get-canvas-background-for-clearing)])
@@ -59,8 +59,7 @@
                                         (adj (color-blue bg))
                                         (adj (color-green bg))
                                         1.0)
-              (CGContextFillRect cg (make-NSRect (make-NSPoint 0 0)
-                                                 (make-NSSize 32000 32000))))
+              (CGContextFillRect cg r))
             (tellv ctx restoreGraphicsState)))))))
 
 (define-objc-mixin (RacketViewMixin Superclass)
@@ -73,7 +72,7 @@
           (when wx
             (send wx drawing-requested)
             (unless (send wx paint-or-queue-paint)
-              (clear-background wxb)
+              (clear-background wxb r)
               ;; ensure that `nextEventMatchingMask:' returns
               (post-dummy-event))))))
   (-a _void (viewWillMoveToWindow: [_id w])
@@ -175,7 +174,7 @@
         (when wx
           (unless (send wx paint-or-queue-paint)
             (unless (send wx during-menu-click?)
-              (clear-background wxb)
+              (clear-background wxb r)
               ;; ensure that `nextEventMatchingMask:' returns
               (post-dummy-event))))))
   (-a _void (comboBoxWillPopUp: [_id notification])
