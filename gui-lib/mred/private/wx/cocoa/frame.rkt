@@ -399,6 +399,11 @@
             (error (string->symbol
                     (format "show method in ~a" (if is-a-dialog? 'dialog% 'frame%)))
                    "the eventspace hash been shutdown"))
+          (when (version-10.11-or-later?)
+            ;; Ensure that the basic window background is drawn before
+            ;; we potentially suspend redrawing. Otherwise, the window
+            ;; can start black and end up with a too-dark titlebar.
+            (tellv cocoa display))
           (when saved-child
             (if (eq? (current-thread) (eventspace-handler-thread es))
                 (do-paint-children)
