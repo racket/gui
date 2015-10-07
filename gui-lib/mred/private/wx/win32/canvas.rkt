@@ -506,9 +506,9 @@
                    [(= part SB_PAGEDOWN) (min (SCROLLINFO-nMax i) (+ (SCROLLINFO-nPos i) (SCROLLINFO-nPage i)))]
                    [(= part SB_THUMBTRACK) (SCROLLINFO-nTrackPos i)]
                    [else (SCROLLINFO-nPos i)])])
-           (unless (or (and (= new-pos (SCROLLINFO-nPos i))
-                            (not forced-pos))
-                       next-scroll-is-change?)
+           (unless (and (= new-pos (SCROLLINFO-nPos i))
+                        (not forced-pos)
+                        (not next-scroll-is-change?))
              (set! next-scroll-is-change? #f)
              (set-SCROLLINFO-nPos! i new-pos)
              (set-SCROLLINFO-fMask! i SIF_POS)
