@@ -389,7 +389,9 @@ the state transitions / contracts are:
   (pref)
   @{Returns a procedure that when applied to zero arguments retrieves the
     current value of the preference named @racket[pref] and when
-    applied to one argument updates the preference named @racket[pref].})
+    applied to one argument updates the preference named @racket[pref].
+
+    @history[#:added "1.18"]{}})
  
  (proc-doc/names
   preferences:add-callback
