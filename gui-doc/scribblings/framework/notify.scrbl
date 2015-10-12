@@ -42,6 +42,8 @@ listeners when the contents of the cell is changed.
 @defmethod[(remove-all-listeners) void?]{
   Removes all previously registered callbacks.
 }
+
+@history[#:added "1.18"]{}
 }
 
 @defproc[(notify:notify-box/pref
@@ -67,6 +69,8 @@ reflected in the notify-box.
 (send nb set 'deer)
 (animal)
 ]
+
+@history[#:added "1.18"]{}
 }
 
 @defform[(notify:define-notify name value-expr)
@@ -97,6 +101,8 @@ Useful for aggregating many notify-boxes together into one
   (send food set 'honey))
 (send c get-animal)
 ]
+
+@history[#:added "1.18"]{}
 }
 
 @defproc[(notify:menu-option/notify-box
@@ -108,6 +114,8 @@ Useful for aggregating many notify-boxes together into one
 Creates a @racket[checkable-menu-item%] tied to @racket[notify-box]. The menu item is
 checked whenever @racket[(send notify-box get)] is true. Clicking the
 menu item toggles the value of @racket[notify-box] and invokes its listeners.
+
+@history[#:added "1.18"]{}
 }
 
 @defproc[(notify:check-box/notify-box
@@ -121,6 +129,8 @@ Creates a @racket[check-box%] tied to @racket[notify-box]. The
 check-box is checked whenever @racket[(send notify-box get)] is
 true. Clicking the check box toggles the value of @racket[notify-box]
 and invokes its listeners.
+
+@history[#:added "1.18"]{}
 }
 
 @defproc[(notify:choice/notify-box
@@ -138,6 +148,8 @@ its listeners.
 
 If the value of @racket[notify-box] is not in @racket[choices], either
 initially or upon an update, an error is raised.
+
+@history[#:added "1.18"]{}
 }
 
 @defproc[(notify:menu-group/notify-box
@@ -151,6 +163,8 @@ Returns a list of @racket[checkable-menu-item%] controls tied to
 @racket[(send notify-box get)]. Clicking a menu item updates
 @racket[notify-box] to its label and invokes @racket[notify-box]'s
 listeners.
+
+@history[#:added "1.18"]{}
 }
 
 
