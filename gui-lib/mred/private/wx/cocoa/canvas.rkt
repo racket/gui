@@ -383,7 +383,9 @@
      (define/override (get-cocoa-content) content-cocoa)
 
      (define is-gl? (and (not is-combo?) (memq 'gl style)))
+     (define want-sync-gl? (and is-gl? gl-config (send gl-config get-sync-swap)))
      (define/public (can-gl?) is-gl?)
+     (define/public (sync-gl?) want-sync-gl?)
 
      (define dc #f)
      (define blits null)
