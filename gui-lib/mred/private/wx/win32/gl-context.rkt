@@ -74,6 +74,9 @@
 (define looked-for-createcontextattribs? #f)
 (define wglCreateContextAttribsARB #f)
 
+(define looked-for-wglswapinternalext? #f)
+(define wglSwapIntervalEXT #f)
+
 ;; ----------------------------------------
 
 (define gl-context% 
@@ -176,7 +179,21 @@
                                  (wglCreateContextAttribsARB hdc context-handle (vector 0))
                                  (wglCreateContext hdc))])
 		  (and hglrc
-		       (new gl-context% [hglrc hglrc] [hdc hdc]))))))))
+		       (begin
+			 (when (send config get-sync-swap)
+			   (call-with-context
+			    hdc
+			    hglrc
+			    (lambda ()
+			      (unless looked-for-wglswapinternalext?
+				(set! wglSwapIntervalEXT
+				      (let ([f (wglGetProcAddress "wglSwapIntervalEXT")])
+					(and f
+					     (function-ptr f (_wfun _int -> _void)))))
+				(set! looked-for-wglswapinternalext? #t))
+			      (when wglSwapIntervalEXT
+				(wglSwapIntervalEXT 1)))))
+			 (new gl-context% [hglrc hglrc] [hdc hdc])))))))))
 
 (define (with-dummy-context config thunk)
   ;; To create a gl context, we need a separate window 
