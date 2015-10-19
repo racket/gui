@@ -144,6 +144,9 @@
 (define-gtk gtk_widget_get_display (_fun _GtkWidget -> _GdkDisplay))
 (define-gtk gtk_widget_get_screen (_fun _GtkWidget -> _GdkScreen))
 
+(define-glx glXSwapIntervalEXT (_fun _Display _XID _int -> _void)
+  #:fail (lambda () void))
+
 ;; ===================================================================================================
 ;; GLX versions and extensions queries
 
@@ -419,6 +422,9 @@
      ;; The above will return a direct rendering context when it can
      ;; If it doesn't, the context will be version 1.4 or lower, unless GLX is implemented with
      ;; proprietary extensions (NVIDIA's drivers sometimes do this)
+
+     (when (and widget (send conf get-sync-swap))
+       (glXSwapIntervalEXT xdisplay (gdk_x11_drawable_get_xid drawable) 1))
      
      ;; Now wrap the GLX context in a gl-context%
      (cond
