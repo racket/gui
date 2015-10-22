@@ -1860,7 +1860,7 @@
     (let ([snip (new string-snip%)])
       (set-snip-style! snip (or (get-default-style)
                                 (send s-style-list basic-style)))
-      (send snip insert str)
+      (send snip insert str (string-length str))
       (insert-paste-snip snip #f)))
   
   (def/override (kill [exact-integer? [time 0]])
