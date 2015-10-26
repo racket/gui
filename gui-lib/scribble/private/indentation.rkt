@@ -25,6 +25,8 @@
 (send at-exp-keymap add-function "reindent-paragraph" reindent-paragraph)
 (send at-exp-keymap map-function "esc;q" "reindent-paragraph")
 (send at-exp-keymap map-function "?:a:q" "reindent-paragraph")
+(when (equal? (system-type) 'unix)
+  (send at-exp-keymap map-function "m:q" "reindent-paragraph"))
 
 ;;(paragraph-indentation a-racket:text posi width) → void?
 ;; posi : exact-integer? = current given position
