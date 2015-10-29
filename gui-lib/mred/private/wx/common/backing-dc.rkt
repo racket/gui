@@ -96,8 +96,9 @@
             (set! retained-cr #f)
             (internal-set-bitmap #f #t)
             (super release-cr retained-cr)
-            (proc bm)
-            (release-backing-bitmap bm)))))
+            (when bm
+              (proc bm)
+              (release-backing-bitmap bm))))))
 
     (define/public (start-backing-retained)
       (as-entry
