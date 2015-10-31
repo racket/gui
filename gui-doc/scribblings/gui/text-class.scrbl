@@ -850,13 +850,13 @@ Returns the ending @techlink{position} of the current selection. See
 @defmethod[(get-extend-start-position) exact-nonnegative-integer?]{
   Returns the beginning of the ``extend'' region if the selection
   is currently being extended via, e.g., shift and a cursor movement key; 
-  otherwise returns the same value as @method[text% get-end-position].
+  otherwise returns the same value as @method[text% get-start-position].
 }
 
 @defmethod[(get-extend-end-position) exact-nonnegative-integer?]{
   Returns the beginning of the ``extend'' region if the selection
   is currently being extended via, e.g., shift and a cursor movement key; 
-  otherwise returns the same value as @method[text% get-start-position].
+  otherwise returns the same value as @method[text% get-end-position].
 }
 
 @defmethod[(get-file-format)
