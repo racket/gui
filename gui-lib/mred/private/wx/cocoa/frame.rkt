@@ -429,7 +429,8 @@
       (when (zero? flush-disabled)
         (tellv cocoa enableFlushWindow)
         (when (version-10.11-or-later?)
-          (tellv cocoa setAutodisplay: #:type _BOOL #t))))
+          (tellv cocoa setAutodisplay: #:type _BOOL #t)
+          (tellv cocoa displayIfNeeded))))
 
     (define/public (force-window-focus)
       (let ([next (get-app-front-window)])
