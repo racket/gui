@@ -1,10 +1,12 @@
-#lang racket/base
+#lang typed/racket/base
 ;; owner: ryanc
-(require (for-syntax racket/base syntax/parse racket/syntax)
-         racket/class)
+(require typed/racket/class)
+(require (for-syntax racket/base syntax/parse racket/syntax racket/class))
+
 (provide define-notify
          notify-box%
-         notify-box/pref)
+         notify-box/pref
+         Notify-Box%)
 
 ;; Non-gui parts of notify-boxes
 ;; Worth splitting into two libraries?
@@ -12,10 +14,13 @@
 
 (define-for-syntax (mk-init name)
   (format-id name "init-~a" (syntax-e name)))
+
 (define-for-syntax (mk-get name)
   (format-id name "get-~a" (syntax-e name)))
+
 (define-for-syntax (mk-set name)
   (format-id name "set-~a" (syntax-e name)))
+
 (define-for-syntax (mk-listen name)
   (format-id name "listen-~a" (syntax-e name)))
 
@@ -45,40 +50,53 @@
                   (define/public-final (listen-name listener)
                     (send name listen listener))))))]))
 
+(define-type Notify-Box% (All (T) (Class (init [value  T])
+                                [get (-> T)]
+                                [set (-> T Void)]
+                                [listen (-> (-> T Void) Void)]
+                                [remove-listener (-> (-> T Void) Void)]
+                                [remove-all-listeners (-> Void)])))
+
+;(: notify-box% Notify-Box%)
 (define notify-box%
   (class object%
-    (init value)
+    #:forall (T)
+    (init [value : T])
+    (: v : T)
     (define v value)
+    (: listeners (Listof (-> T Void)))
     (define listeners null)
-
-    ;; get : -> value
+    
     ;; Fetch current value
+    (: get (-> T))
     (define/public (get)
       v)
 
-    ;; set : value -> void
     ;; Update value and notify listeners
+    (: set (-> T Void))
     (define/public (set nv)
       (set! v nv)
-      (for-each (lambda (p) (p nv)) listeners))
+      (for-each (lambda ([p : (-> T Void)]) (p nv)) listeners))
 
-    ;; listen : (value -> void) -> void
     ;; Add a listener
+    (: listen (-> (-> T Void) Void))
     (define/public (listen p)
       (set! listeners (cons p listeners)))
 
-    ;; remove-listener : (value -> void) -> void
+    ;; remove-listener : (T -> void) -> void
+    (: remove-listener (-> (-> T Void) Void))
     (define/public (remove-listener p)
       (set! listeners (remq p listeners)))
 
     ;; remove-all-listeners : -> void
+    (: remove-all-listeners (-> Void))
     (define/public (remove-all-listeners)
       (set! listeners null))
 
     (super-new)))
 
-
+(: notify-box/pref (All (T) (->* [(case-> (-> T) (-> T Void))] [#:readonly? Boolean] (Instance (Notify-Box% T)))))
 (define (notify-box/pref pref #:readonly? [readonly? #f])
-  (define nb (new notify-box% (value (pref))))
+  (define nb (new (inst notify-box% T) (value (pref))))
   (send nb listen pref)
-  nb)
+   nb)
