@@ -380,7 +380,7 @@
         at-sign-posi
         (for/first ([posi (in-range width (- len 1))] 
                     #:when (equal? 'text (list-ref classify-lst posi)))
-          posi))))
+          (+ start posi)))))
 
 ;;adjust-spaces for text
 ;;(adjust-spaces : a-racket:text para amount posi) → boolean?
@@ -721,7 +721,21 @@
                   (let ([new-break (insert-break-text t 0 5 8)])
                     (send t delete (add1 new-break) 'back)
                     (send t insert #\newline new-break)
-                    (send t get-text))) "aaaa\nbbbb") 
+                    (send t get-text))) "aaaa\nbbbb")
+
+  (let ([t (new racket:text%)])
+    (define before-newline
+      (string-append
+       "#lang scribble/base\n\n"
+       "@hyperlink"
+       "[\"http://aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.com\"]{"))
+    (define after-newline "link}\n")
+    (send t insert (string-append before-newline after-newline))
+    (send t freeze-colorer)
+    (send t set-position (string-length before-newline) (string-length before-newline))
+    (reindent-paragraph t 'whatever-not-an-evt)
+    (check-equal? (string-append before-newline "\n " after-newline)
+                  (send t get-text)))
   )
 
 (provide determine-spaces adjust-para-width paragraph-indentation
