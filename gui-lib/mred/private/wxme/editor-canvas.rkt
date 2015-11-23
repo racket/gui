@@ -628,12 +628,14 @@
         (when clear?
           (let ([bg (get-canvas-background)])
             (when bg
-              (let ([adc (get-dc)])
+              (let* ([dx (box 0)]
+                     [dy (box 0)]
+                     [adc (get-dc-and-offset dx dy)])
                 (let ([b (send adc get-brush)]
                       [p (send adc get-pen)])
                   (send adc set-brush bg 'solid)
                   (send adc set-pen bg 1 'transparent)
-                  (send adc draw-rectangle localx localy fw fh)
+                  (send adc draw-rectangle (- localx (unbox dx)) (- localy (unbox dy)) fw fh)
                   (send adc set-brush b)
                   (send adc set-pen p))))))
         (let ([x (box 0)]
@@ -990,7 +992,7 @@
                           xmargin ymargin
                           vw (- (+ new-fy vh) old-fy)
                           xmargin (+ ymargin (- old-fy new-fy)))
-                    (redraw xmargin ymargin 
+                    (redraw vx vy
                             vw (- old-fy new-fy)
                             #t))]
                  [(and (old-fy . < . new-fy)
@@ -1001,7 +1003,7 @@
                           vw (- (+ old-fy vh) new-fy)
                           xmargin ymargin)
                     (let ([d (- (+ old-fy vh) new-fy)])
-                      (redraw xmargin (+ ymargin d)
+                      (redraw vx (+ vy d)
                               vw (- vh d)
                               #t)))]
                  [else (repaint)])))

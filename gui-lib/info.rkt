@@ -6,7 +6,7 @@
                "data-lib"
                ["base" #:version "6.2.900.17"]
                "syntax-color-lib"
-               ["draw-lib" #:version "1.10"]
+               ["draw-lib" #:version "1.11"]
                "snip-lib"
                "wxme-lib"
                "pict-lib"

@@ -33,7 +33,7 @@
           transparent?)
     (define canvas cnvs)
 
-    (inherit end-delay)
+    (inherit end-delay internal-get-bitmap internal-copy)
     (super-new [transparent? transparent?])
 
     (define gl #f)
@@ -67,6 +67,14 @@
       (make-window-bitmap w h (send canvas get-cocoa-window) 
                           trans?
                           (send canvas is-flipped?)))
+
+    (def/override (copy [real? x] [real? y] [nonnegative-real? w] [nonnegative-real? h]
+                        [real? x2] [real? y2])
+      (internal-copy x y w h x2 y2
+                     (lambda (cr x y w h x2 y2)
+                       (define bm (internal-get-bitmap))
+                       (and bm
+                            (send bm do-self-copy cr x y w h x2 y2)))))
                    
     (define/override (can-combine-text? sz) #t)
 
@@ -235,6 +243,36 @@
           (cairo_rectangle_list_destroy rs)
           #t)]
        [else #f]))
+
+    (define/override (do-self-copy cr x y w h x2 y2)
+      (define bs (get-backing-scale))
+      (define s (cairo_get_target cr))
+      (cairo_surface_flush s)
+      (define cg (cairo_quartz_surface_get_cg_context s))
+      (define orig-size (CGLayerGetSize layer))
+      (atomically
+       (begin
+         ;; A Cairo flush doesn't reset the clipping region. The
+         ;; implementation of clipping is that there's a saved
+         ;; GState that we can use to get back to the original
+         ;; clipping region, so restore (and save again) that state:
+         (CGContextRestoreGState cg)
+         (CGContextSaveGState cg))
+       (define new-layer (CGLayerCreateWithContext cg (make-NSSize w h) #f))
+       (define new-cg (CGLayerGetContext new-layer))
+       (CGContextTranslateCTM new-cg 0 h)
+       (CGContextScaleCTM new-cg 1 -1)
+       (CGContextScaleCTM cg bs bs)
+       (CGContextDrawLayerAtPoint new-cg
+                                  (make-NSPoint (- x) (- (- (NSSize-height orig-size) y h)))
+                                  layer)
+       (CGContextDrawLayerAtPoint cg
+                                  (make-NSPoint x2 y2)
+                                  new-layer)
+       (CGContextScaleCTM cg (/ bs) (/ bs))
+       (CGLayerRelease new-layer)
+       (cairo_surface_mark_dirty s))
+      #t)
 
     (define s-bm #f)
     (define/override (get-cairo-surface)
