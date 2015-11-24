@@ -29,6 +29,7 @@
 (define-appserv CGContextAddRect (_fun _CGContextRef _NSRect -> _void))
 (define-appserv CGContextAddLines (_fun _CGContextRef (v : (_vector i _NSPoint)) (_long = (vector-length v)) -> _void))
 (define-appserv CGContextStrokePath (_fun _CGContextRef -> _void))
+(define-appserv CGContextClipToRect (_fun _CGContextRef _NSRect -> _void))
 (define-appserv CGContextClipToRects (_fun _CGContextRef (_vector i _NSRect) _size -> _void))
 (define-appserv CGContextSetAlpha (_fun _CGContextRef _CGFloat -> _void))
 

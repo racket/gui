@@ -988,16 +988,19 @@
                  [(and (new-fy . < . old-fy)
                        (old-fy . < . (+ new-fy vh)))
                   (let ([dc (get-dc)])
+                    (begin-refresh-sequence)
                     (send dc copy
                           xmargin ymargin
                           vw (- (+ new-fy vh) old-fy)
                           xmargin (+ ymargin (- old-fy new-fy)))
                     (redraw vx vy
                             vw (- old-fy new-fy)
-                            #t))]
+                            #t)
+                    (end-refresh-sequence))]
                  [(and (old-fy . < . new-fy)
                        (new-fy . < . (+ old-fy vh)))
                   (let ([dc (get-dc)])
+                    (begin-refresh-sequence)
                     (send dc copy
                           xmargin (+ ymargin (- new-fy old-fy))
                           vw (- (+ old-fy vh) new-fy)
@@ -1005,7 +1008,8 @@
                     (let ([d (- (+ old-fy vh) new-fy)])
                       (redraw vx (+ vy d)
                               vw (- vh d)
-                              #t)))]
+                              #t))
+                    (end-refresh-sequence))]
                  [else (repaint)])))
             (repaint)))))
 
