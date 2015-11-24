@@ -306,14 +306,14 @@
            (maybe-reset-size))))))
 
   (define/private (maybe-reset-size)
-    (begin-refresh-sequence)
     (let-boxes ([w 0]
                 [h 0])
         (get-size w h)
       (unless (and (= w lastwidth)
                    (= h lastheight))
-        (reset-size)))
-    (end-refresh-sequence))
+        (begin-refresh-sequence)
+        (reset-size)
+        (end-refresh-sequence))))
 
   (define/private (reset-size)
     (reset-visual #f)

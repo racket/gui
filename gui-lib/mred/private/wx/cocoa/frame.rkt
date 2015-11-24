@@ -430,7 +430,10 @@
         (tellv cocoa enableFlushWindow)
         (when (version-10.11-or-later?)
           (tellv cocoa setAutodisplay: #:type _BOOL #t)
-          (tellv cocoa displayIfNeeded))))
+          (queue-window-refresh-event
+           this
+           (lambda ()
+             (tellv cocoa displayIfNeeded))))))
 
     (define/public (force-window-focus)
       (let ([next (get-app-front-window)])
