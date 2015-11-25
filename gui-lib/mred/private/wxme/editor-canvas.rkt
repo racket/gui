@@ -157,7 +157,7 @@
 
 (define (keep-style l s) (if (memq s l) (list s) null))
 
-(define SCROLL-VIA-COPY? #t)
+(define SCROLL-VIA-COPY? #f)
 
 (defclass editor-canvas% canvas%
 
