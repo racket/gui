@@ -57,7 +57,6 @@
                                 [remove-listener (-> (-> T Void) Void)]
                                 [remove-all-listeners (-> Void)])))
 
-;(: notify-box% Notify-Box%)
 (define notify-box%
   (class object%
     #:forall (T)

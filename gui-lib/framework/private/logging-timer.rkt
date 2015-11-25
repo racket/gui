@@ -1,19 +1,25 @@
-#lang racket/base
+#lang typed/racket/base
 
-(require racket/gui/base
-         racket/class
+(require typed/racket/class typed/racket/gui/base)
+(require ;racket/gui/base
+         ;racket/class
          (for-syntax racket/base))
 
 (define timeline-logger (make-logger 'timeline (current-logger)))
 
 (provide logging-timer%
+         Logging-Timer%
          (struct-out timeline-info)
          log-timeline)
 
+(define-type Logging-Timer% (Class #:implements Timer%))
+                                                                   
 (define logging-timer%
   (class timer%
-    (init notify-callback)
+    (init [notify-callback : (-> Any)])
+    (: name : Any)
     (define name (object-name notify-callback))
+    (: wrapped-notify-callback (-> Any))
     (define wrapped-notify-callback
       (λ ()
         (log-timeline
@@ -38,6 +44,7 @@
              info-string)
         #f)]))
 
+(: log-timeline/proc (All (T) (-> Any (U (-> T) False) (U T Void))))
 (define (log-timeline/proc info expr)
   (define start-time (current-inexact-milliseconds))
   (when info
@@ -50,7 +57,7 @@
     (begin0
       (expr)
       (when info
-        (define end-time (current-inexact-milliseconds))
+        (define end-time (current-process-milliseconds)) 
         (log-message timeline-logger 'debug 
                      (format "~a   end; delta ms ~a" info (- end-time start-time))
                      (timeline-info start-time
@@ -63,4 +70,8 @@
 ;;    a start event corresponding to it with that milliseconds 
 ;; process-milliseconds : fixnum
 ;; milliseconds : flonum -- time of this event
-(struct timeline-info (what process-milliseconds milliseconds) #:transparent)
+
+(struct timeline-info ([what : (U 'start 'once Flonum)]
+                       [process-milliseconds : Fixnum]
+                       [milliseconds : Flonum]) #:transparent)
+#;(struct timeline-info (what process-milliseconds milliseconds) #:transparent)
