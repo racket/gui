@@ -157,6 +157,8 @@
 
 (define (keep-style l s) (if (memq s l) (list s) null))
 
+(define SCROLL-VIA-COPY? #t)
+
 (defclass editor-canvas% canvas%
 
   (inherit refresh get-canvas-background get-dc
@@ -971,7 +973,7 @@
       (set! noloop? savenoloop?)
 
       (when (and change? refresh?)
-        (if (and #f ;; special scrolling disabled: not faster with Cocoa, broken for Windows
+        (if (and SCROLL-VIA-COPY?
                  (not need-refresh?)
                  (not lazy-refresh?)
                  (get-canvas-background)
@@ -986,7 +988,8 @@
                   (get-view vx vy vw vh) ; editor coords
                 (cond
                  [(and (new-fy . < . old-fy)
-                       (old-fy . < . (+ new-fy vh)))
+                       (old-fy . < . (+ new-fy vh))
+                       (integer? (send (get-dc) get-backing-scale)))
                   (let ([dc (get-dc)])
                     (begin-refresh-sequence)
                     (send dc copy
@@ -998,7 +1001,8 @@
                             #t)
                     (end-refresh-sequence))]
                  [(and (old-fy . < . new-fy)
-                       (new-fy . < . (+ old-fy vh)))
+                       (new-fy . < . (+ old-fy vh))
+                       (integer? (send (get-dc) get-backing-scale)))
                   (let ([dc (get-dc)])
                     (begin-refresh-sequence)
                     (send dc copy
