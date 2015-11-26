@@ -748,6 +748,38 @@
               (super on-event event)]
              [else         
               (super on-event event)]))]))
+
+    (define to-invalidate #f)
+    (define/override (on-scroll-to)
+      (super on-scroll-to)
+      (set! to-invalidate (get-region-to-draw)))
+    (define/override (after-scroll-to)
+      (super after-scroll-to)
+      (define (maybe-invalidate)
+        (when to-invalidate
+          (invalidate-bitmap-cache
+           (list-ref to-invalidate 0)
+           (list-ref to-invalidate 1)
+           (list-ref to-invalidate 2)
+           (list-ref to-invalidate 3))
+          (set! to-invalidate #f)))
+      (maybe-invalidate)
+      (set! to-invalidate (get-region-to-draw))
+      (maybe-invalidate))
+    (define/private (get-region-to-draw)
+      (cond
+        [(show-first-line?)
+         (define admin (get-admin))
+         (cond
+           [admin
+            (send admin get-view bx by bw #f #f)
+            (define first-line (get-text 0 (paragraph-end-position 0)))
+            (define-values (tw th _1 _2) (send (get-dc) get-text-extent first-line (get-font)))
+            (list (unbox bx) (unbox by) (unbox bw) (+ th extra-fade-space))]
+           [else #f])]
+        [else #f]))
+
+    (define extra-fade-space 11)
     
     (define/override (on-paint before? dc left top right bottom dx dy draw-caret)
       (unless before?
@@ -755,7 +787,8 @@
           (define admin (get-admin))
           (when admin
             (send admin get-view bx by bw #f #f)
-            (unless (= (unbox by) 0)
+            (define y-coord (unbox by))
+            (unless (= y-coord 0)
               (define draw-first-line-number?
                 (and (is-a? this line-numbers<%>)
                      (send this showing-line-numbers?)))
@@ -772,10 +805,10 @@
               (send dc set-smoothing 'aligned)
               (send dc set-text-mode 'transparent)
               (define-values (tw th _1 _2) (send dc get-text-extent first-line))
-              (define line-height (+ (unbox by) dy th 1))
+              (define line-height (+ y-coord dy th 1))
               (define line-left (+ (unbox bx) dx))
               (define line-right (+ (unbox bx) dx (unbox bw)))
-              
+
               (if w-o-b?
                   (send dc set-pen "white" 1 'solid)
                   (send dc set-pen "black" 1 'solid))
@@ -784,7 +817,7 @@
               (when (eq? (send dc get-smoothing) 'aligned)
                 (define start (if w-o-b? 6/10 3/10))
                 (define end 0)
-                (define steps 10)
+                (define steps (- extra-fade-space 1))
                 (send dc set-pen 
                       (if w-o-b? dark-wob-first-line-color dark-first-line-color) 
                       1
@@ -803,20 +836,20 @@
               (send dc set-alpha 1)
               (send dc set-pen "gray" 1 'transparent)
               (send dc set-brush (if w-o-b? "black" "white") 'solid)
-              (send dc draw-rectangle (+ (unbox bx) dx) (+ (unbox by) dy) (unbox bw) th)
+              (send dc draw-rectangle (+ (unbox bx) dx) (+ y-coord dy) (unbox bw) th)
               (send dc set-text-foreground
                     (send the-color-database find-color
                           (if w-o-b? "white" "black")))
               (define x-start
                 (cond
                   [draw-first-line-number?
-                   (send this do-draw-single-line dc dx dy 0 (unbox by) #f #f)
+                   (send this do-draw-single-line dc dx dy 0 y-coord #f #f)
                    (send dc set-pen (if w-o-b? "white" "black") 1 'solid)
-                   (send this draw-separator dc (unbox by) (+ (unbox by) line-height) dx dy)
+                   (send this draw-separator dc y-coord (+ y-coord line-height) dx dy)
                    (define-values (padding-left _1 _2 _3) (get-padding))
                    padding-left]
                   [else 0]))
-              (send dc draw-text first-line (+ x-start (+ (unbox bx) dx)) (+ (unbox by) dy))
+              (send dc draw-text first-line (+ x-start (+ (unbox bx) dx)) (+ y-coord dy))
               
               (send dc set-text-foreground old-text-foreground)
               (send dc set-text-mode old-text-mode)
@@ -4570,7 +4603,7 @@ designates the character that triggers autocompletion
      #t)
      
     (super-new)))
-  
+
 (define basic% (basic-mixin (editor:basic-mixin text%)))
 (define line-spacing% (line-spacing-mixin basic%))
 (define hide-caret/selection% (hide-caret/selection-mixin line-spacing%))

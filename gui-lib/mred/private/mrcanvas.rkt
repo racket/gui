@@ -320,6 +320,8 @@
     (define scroll-to-last? #f)
     (define scroll-bottom? #f)
     (define/public (call-as-primary-owner f) (send wx call-as-primary-owner f))
+    (define/public (set-scroll-via-copy s) (send wx set-scroll-via-copy s))
+    (define/public (get-scroll-via-copy) (send wx get-scroll-via-copy))
     (define allow-scroll-to-last
       (entry-point 
        (case-lambda

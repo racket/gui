@@ -183,6 +183,17 @@ Returns a line count installed with @method[editor-canvas%
 
 }
 
+@defmethod[(get-scroll-via-copy) boolean?]{
+  Returns @racket[#t] if scrolling triggers a copy of
+  the editor content (and then a refresh of the newly exposed
+  content). Returns @racket[#f] when scrolling triggers a
+  refresh of the entire editor canvas. Defaults to
+  @racket[#f].
+
+  See also @method[editor<%> on-scroll-to]
+  and @method[editor<%> after-scroll-to].
+}
+
 @defmethod*[([(horizontal-inset)
               (integer-in 1 10000)]
              [(horizontal-inset [step (integer-in 1 10000)])
@@ -324,7 +335,7 @@ Enables or disables bottom-base scrolling, or gets the current enable
 }
 
 
-
+                      
 @defmethod[(set-editor [edit (or/c (or/c (is-a?/c text%) (is-a?/c pasteboard%)) #f)]
                        [redraw? any/c #t])
            void?]{
@@ -359,6 +370,10 @@ If the line count is set to @racket[#f], then the canvas's graphical
 
 }
 
+
+@defmethod[(set-scroll-via-copy [scroll-via-copy? any/c]) void?]{
+  Changes the scrolling mode refresh. See also @method[editor-canvas% get-scroll-via-copy].
+}
 
 @defmethod*[([(vertical-inset)
               (integer-in 1 10000)]

@@ -226,6 +226,11 @@
 
   ;; ----------------------------------------
 
+  (define/public (on-scroll-to) (void))
+  (define/public (after-scroll-to) (void))
+  
+  ;; ----------------------------------------
+
   (def/public (set-admin [(make-or-false editor-admin%) administrator])
     (setting-admin administrator)
 

@@ -157,8 +157,6 @@
 
 (define (keep-style l s) (if (memq s l) (list s) null))
 
-(define SCROLL-VIA-COPY? #f)
-
 (defclass editor-canvas% canvas%
 
   (inherit refresh get-canvas-background get-dc
@@ -171,6 +169,10 @@
 	   set-focus
            begin-refresh-sequence
            end-refresh-sequence)
+
+  (define scroll-via-copy? #f)
+  (define/public (set-scroll-via-copy v) (set! scroll-via-copy? (and v #t)))
+  (define/public (get-scroll-via-copy) scroll-via-copy?)
 
   (define blink-timer #f)
   (define noloop? #f)
@@ -944,11 +946,13 @@
                     retval)))))))
 
   (define/private (do-scroll x y refresh? old-x old-y)
+    (define ed (get-editor))
     (let ([savenoloop? noloop?])
       (set! noloop? #t)
       
       (maybe-reset-size)
-
+      (define on-scroll-to-called? #f)
+      
       (define change?
         (or
          ;; Set x
@@ -958,6 +962,9 @@
                 (and (not (= x old-x))
                      (begin
                        (when (not fake-x-scroll?)
+                         (when scroll-via-copy?
+                           (set! on-scroll-to-called? #t)
+                           (when scroll-via-copy? (when ed (send ed on-scroll-to))))
                          (set-scroll-pos 'horizontal x))
                        #t))))
          ;; Set y
@@ -967,13 +974,17 @@
                 (and (not (= y old-y))
                      (begin
                        (when (not fake-y-scroll?)
+                         (unless on-scroll-to-called?
+                           (when scroll-via-copy?
+                             (set! on-scroll-to-called? #t)
+                             (when ed (send ed on-scroll-to))))
                          (set-scroll-pos 'vertical y))
                        #t))))))
       
       (set! noloop? savenoloop?)
 
       (when (and change? refresh?)
-        (if (and SCROLL-VIA-COPY?
+        (if (and scroll-via-copy?
                  (not need-refresh?)
                  (not lazy-refresh?)
                  (get-canvas-background)
@@ -1016,7 +1027,10 @@
                               #t))
                     (end-refresh-sequence))]
                  [else (repaint)])))
-            (repaint)))))
+            (repaint)))
+
+      (when on-scroll-to-called?
+        (when ed (send ed after-scroll-to)))))
 
   (define/override (set-scrollbars x y x2 y2 x3 y3 x4 y4 ?) (void))
 

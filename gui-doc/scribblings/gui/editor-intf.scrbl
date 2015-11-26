@@ -164,6 +164,20 @@ Does nothing.
 }
 }
 
+ @defmethod[(after-scroll-to) void?]{
+  @methspec{
+   Called when the editor has just scrolled, but the entire display
+   may not have been refreshed. (If the editor scrolls but the entire window
+   is redrawn, this method may not be called.)
+   
+   See also @method[editor-canvas% get-scroll-via-copy].
+  }
+
+  @methimpl{Does nothing.}
+ }
+
+
+                 
 @defmethod*[([(auto-wrap)
               boolean?]
              [(auto-wrap [auto-wrap? any/c])
@@ -1656,6 +1670,17 @@ Does nothing.
 
 }}
 
+ @defmethod[(on-scroll-to) void?]{
+  @methspec{
+   Called when the editor is about to scroll, but the entire display is
+   may not be refreshed. (If the editor scrolls but the entire window
+   is redrawn, this method may not be called.)
+   
+   See also @method[editor-canvas% get-scroll-via-copy].
+  }
+
+  @methimpl{Does nothing.}
+ }
 
 @defmethod[#:mode pubment 
            (on-snip-modified [snip (is-a?/c snip%)]
