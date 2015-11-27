@@ -454,4 +454,26 @@
   }
 }
 
+@defclass[editor:font-size-message% canvas% ()]{
+ @defconstructor[([message (or/c string? (listof string?))]
+                  [stretchable-height any/c #f])]{
+  The @racket[message] field controls the initial contents. If there
+  is a list of strings, then each string is put on a separate line.
+  If there is just a single string, it is split on newlines and then
+  treated as if it were a list.
+
+  The @racket[stretchable-height] has the opposite default from the
+  @racket[canvas%] superclass.
+ }
+
+ @defmethod[(set-message [message (or/c string? (listof string?))]) void?]{
+  Changes the message.
+
+  If @racket[message]  is a list of strings, then each
+  string is put on a separate line. If there is just a
+  single string, it is split on newlines and then treated as
+  if it were a list argument.
+ }
+}
+
 @(include-previously-extracted "main-extracts.rkt" #rx"^editor:")

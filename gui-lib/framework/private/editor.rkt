@@ -8,7 +8,9 @@
            "interfaces.rkt"
            mzlib/etc
            mred/mred-sig
-           racket/path)
+           racket/path
+           racket/contract
+           racket/format)
   
   (import mred^
           [prefix autosave: framework:autosave^]
@@ -745,3 +747,81 @@
                 #f))))
          'framework:update-lock-icon))
       (super-new)))
+
+(define font-size-message%
+  (class canvas%
+    (init message
+          [stretchable-height #f])
+    (init-field [text-alignment 'center])
+    (define msgs
+      (cond
+        [(string? message) (regexp-split #rx"\n" message)]
+        [((listof string?) message) message]
+        [else
+         (raise-argument-error 'editor:font-size-message%
+                               (~s '(or/c string? (listof string?)))
+                               message)]))
+    (unless (member text-alignment '(left center right))
+      (raise-argument-error 'editor:font-size-message%
+                            (~s '(or/c 'left 'center 'right))
+                            text-alignment))
+    (inherit refresh get-dc get-client-size popup-menu)
+    (define/public (set-message message)
+      (set! msgs
+            (cond
+              [(string? message) (regexp-split #rx"\n" message)]
+              [((listof string?) message) message]
+              [else
+               (raise-argument-error 'editor:font-size-message%::set-label
+                                     (~s '(or/c string? (listof string?)))
+                                     message)]))
+      (refresh))
+    (define/override (on-paint)
+      (define dc (get-dc))
+      (define-values (cw ch) (get-client-size))
+      (define-values (tot-th tot-tw)
+        (for/fold ([tot-th 0] [tot-tw 0])
+                  ([msg (in-list msgs)])
+          (define-values (tw th td ta) (send dc get-text-extent msg))
+          (values (+ tot-th th) (max tot-tw tw))))
+      (for/fold ([y (- (/ ch 2) (/ tot-th 2))]) ([msg (in-list msgs)])
+        (define-values (tw th td ta) (send dc get-text-extent msg))
+        (define x
+          (case text-alignment
+            [(center) (- (/ cw 2) (/ tw 2))]
+            [(left) 2]
+            [(right) (- cw 2)]))
+        (send dc draw-text msg x y)
+        (+ y th)))
+      (super-new [style '(transparent)][stretchable-height stretchable-height])
+      
+      ;; need object to hold onto this function, so this is
+      ;; intentionally a private field, not a method
+      (define (font-size-changed-callback _ new-prefs)
+        (define new-size (font-size-pref->current-font-size new-prefs))
+        (set-the-height/dc-font new-size)
+        (refresh))
+      (preferences:add-callback
+       'framework:standard-style-list:font-size
+       font-size-changed-callback
+       #t)
+      
+      (define/private (set-the-height/dc-font font-size)
+        (define dc (get-dc))
+        (send dc set-font 
+              (send the-font-list find-or-create-font
+                    font-size
+                    (send normal-control-font get-family)
+                    (send normal-control-font get-style)
+                    (send normal-control-font get-weight)
+                    (send normal-control-font get-underlined)
+                    (send normal-control-font get-smoothing)))
+        (define tot-th
+          (for/sum ([msg (in-list msgs)])
+            (define-values (tw th td ta) (send dc get-text-extent msg))
+            th))
+        (min-height (inexact->exact (ceiling tot-th))))
+      
+      (inherit min-height)
+      (set-the-height/dc-font
+       (get-current-preferred-font-size))))

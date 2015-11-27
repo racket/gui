@@ -154,7 +154,8 @@
      autowrap-mixin
      info-mixin
      file-mixin
-     backup-autosave-mixin))
+     backup-autosave-mixin
+     font-size-message%))
   (define-signature editor^ extends editor-class^
     (get-standard-style-list
      set-standard-style-list-pref-callbacks
