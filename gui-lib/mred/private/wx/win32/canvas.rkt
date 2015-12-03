@@ -401,15 +401,19 @@
      (define h-scroll-visible? hscroll?)
      (define v-scroll-visible? vscroll?)
      (define/public (show-scrollbars h? v?)
-       (when hscroll?
-         (atomically
-          (set! h-scroll-visible? (and h? #t))
-          (ShowScrollBar canvas-hwnd SB_HORZ h?)))
-       (when vscroll?
-         (atomically
-          (set! v-scroll-visible? (and v? #t))
-          (ShowScrollBar canvas-hwnd SB_VERT v?)))
-       (reset-dc))
+       (unless (and (equal? h-scroll-visible?
+                            (and h? hscroll? #t))
+                    (equal? v-scroll-visible?
+                            (and v? vscroll? #t)))
+         (when hscroll?
+           (atomically
+            (set! h-scroll-visible? (and h? #t))
+            (ShowScrollBar canvas-hwnd SB_HORZ h?)))
+         (when vscroll?
+           (atomically
+            (set! v-scroll-visible? (and v? #t))
+            (ShowScrollBar canvas-hwnd SB_VERT v?)))
+         (reset-dc)))
 
      (define/override (do-set-scrollbars h-step v-step
                                          h-len v-len
