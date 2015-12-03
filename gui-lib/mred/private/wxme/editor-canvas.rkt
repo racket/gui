@@ -990,12 +990,14 @@
                  (get-canvas-background)
                  (= x old-x)) ; could handle horizontal scrolling in the future
             (let-boxes ([fx 0]
-                        [old-fy 0]
-                        [new-fy 0])
+                        [old-fy* 0]
+                        [new-fy* 0])
                 (let ([x (min x scroll-width)]
                       [y (min y scroll-height)])
-                  (convert-scroll-to-location x y fx new-fy)
-                  (convert-scroll-to-location old-x old-y #f old-fy))
+                  (convert-scroll-to-location x y fx new-fy*)
+                  (convert-scroll-to-location old-x old-y #f old-fy*))
+              (define new-fy (floor new-fy*))
+              (define old-fy (floor old-fy*))
               (let-boxes ([vx 0][vy 0][vw 0][vh 0])
                   (get-view vx vy vw vh) ; editor coords
                 (cond
