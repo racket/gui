@@ -1,7 +1,6 @@
 #lang racket/gui
 
-(require racket/class
-	 mzlib/etc)
+(require racket/class racket/runtime-path (only-in mzlib/etc opt-lambda))
 
 (define my-txt #f)
 (define my-lb #f)
@@ -188,8 +187,10 @@
 		       
 (define OTHER-LABEL "XXXXXXXXXXXXXXXXXXXXXX")
 
+(define-runtime-path here-path ".")
+
 (define-values (icons-path local-path)
-  (let ([d (this-expression-source-directory)])
+  (let ([d here-path])
     (values
      (lambda (n)
        (collection-file-path n "icons"))
