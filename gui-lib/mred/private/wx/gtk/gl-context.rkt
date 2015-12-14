@@ -250,9 +250,10 @@
     (dynamic-wind
      (λ ()
        (set! old-handler
-	     (XSetErrorHandler (cast flag-x-error-handler
-				     (_fun #:atomic? #t _Display _XErrorEvent -> _int)
-				     _fpointer))))
+             (XSetErrorHandler
+              (cast flag-x-error-handler
+                    (_fun #:atomic? #t _Display _XErrorEvent -> _int)
+                    _fpointer))))
      (λ ()
        (set! create-context-error? #f)
        (glXCreateNewContext xdisplay cfg GLX_RGBA_TYPE share-gl #t))
@@ -293,7 +294,11 @@
   (define gl
     (dynamic-wind
      (λ ()
-       (set! old-handler (XSetErrorHandler flag-x-error-handler)))
+       (set! old-handler
+             (XSetErrorHandler
+              (cast flag-x-error-handler
+                    (_fun #:atomic? #t _Display _XErrorEvent -> _int)
+                    _fpointer))))
      (λ ()
        (set! create-context-error? #f)
        (glXCreateContextAttribsARB xdisplay cfg share-gl #t context-attribs))
