@@ -107,7 +107,8 @@ contains only alpha-numeric ASCII characters, @litchar{.},
 
 
 @defproc[(string->lib-path [str string?] [gui? any/c])
-         (cons/c 'lib (listof string?))]{
+         (or/c (cons/c 'lib (listof string?))
+               #f)]{
 
 Returns a quoted module path for @racket[str] for either
 @racket[editor<%>] mode when @racket[gui?] is true, or
