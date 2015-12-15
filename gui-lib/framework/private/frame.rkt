@@ -2382,11 +2382,12 @@
     (define/public-final (search-string-changed) (search-parameters-changed))
     (define/private (search-parameters-changed)
       (let ([str (send find-edit get-text)])
-        (send text-to-search set-searching-state
-              (if (equal? str "") #f str)
-              case-sensitive-search?
-              replace-visible?
-              #t)))
+        (when text-to-search
+          (send text-to-search set-searching-state
+                (if (equal? str "") #f str)
+                case-sensitive-search?
+                replace-visible?
+                #t))))
     
     (define/public (search-hidden?) hidden?)
     
