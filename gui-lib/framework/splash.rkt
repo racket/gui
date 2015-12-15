@@ -3,26 +3,57 @@
 (require racket/class
          racket/file
          racket/gui/base
+         racket/contract
          (for-syntax racket/base))
 
-(provide get-splash-bitmap
-         set-splash-bitmap
-         get-splash-canvas
-         get-splash-eventspace
-         get-splash-paint-callback
-         set-splash-paint-callback
-         start-splash 
-         shutdown-splash
-         close-splash
-         add-splash-icon
-         set-splash-progress-bar?!
-         set-splash-char-observer
-         set-splash-event-callback
-         get-splash-event-callback
-         set-refresh-splash-on-gauge-change?!
-         get-splash-width
-         get-splash-height
-         refresh-splash)
+(provide
+ (contract-out
+  [get-splash-bitmap (-> (or/c #f (is-a?/c bitmap%)))]
+  [set-splash-bitmap (-> (is-a?/c bitmap%) void?)]
+  [get-splash-canvas (-> (is-a?/c canvas%))]
+  [get-splash-eventspace (-> eventspace?)]
+  [get-splash-paint-callback (-> procedure?)]
+  [set-splash-paint-callback (-> (-> (is-a?/c dc<%>)
+                                     exact-nonnegative-integer?
+                                     exact-nonnegative-integer?
+                                     exact-nonnegative-integer?
+                                     exact-nonnegative-integer?
+                                     any)
+                                 void?)]
+  [start-splash
+   (->* ((or/c path-string?
+               (is-a?/c bitmap%)
+               (vector/c (or/c (-> (is-a?/c dc<%>) void?)
+                               (-> (is-a?/c dc<%>)
+                                   exact-nonnegative-integer?
+                                   exact-nonnegative-integer?
+                                   exact-nonnegative-integer?
+                                   exact-nonnegative-integer?
+                                   any))
+                         exact-nonnegative-integer?
+                         exact-nonnegative-integer?))
+         string?
+         exact-nonnegative-integer?)
+        (#:allow-funny?
+         boolean?
+         #:frame-icon
+         (or/c #f
+               (is-a?/c bitmap%)
+               (cons/c (is-a?/c bitmap%)
+                       (is-a?/c bitmap%))))
+        void?)]
+  
+  [shutdown-splash (-> void?)]
+  [close-splash (-> void?)]
+  [add-splash-icon (-> (is-a?/c bitmap%) exact-nonnegative-integer? exact-nonnegative-integer? void?)]
+  [set-splash-progress-bar?! (-> boolean? void?)]
+  [set-splash-char-observer (-> procedure? void?)]
+  [set-splash-event-callback (-> procedure? void?)]
+  [get-splash-event-callback (-> procedure?)]
+  [set-refresh-splash-on-gauge-change?! (-> procedure? void?)]
+  [get-splash-width (-> exact-nonnegative-integer?)]
+  [get-splash-height (-> exact-nonnegative-integer?)]
+  [refresh-splash (-> void?)]))
 
 (define splash-bitmap #f)
 (define splash-cache-bitmap #f)
@@ -62,26 +93,29 @@
                                                     e ...)))
              (printf "finishing ~a\n" line))))]))
 
-(define (get-splash-bitmap) splash-bitmap)
+(define (get-splash-bitmap) (on-splash-eventspace/ret splash-bitmap))
 (define (set-splash-bitmap bm) 
-  (set! splash-bitmap bm)
-  (on-splash-eventspace (send splash-canvas on-paint)))
+  (on-splash-eventspace
+   (set! splash-bitmap bm)
+   (send splash-canvas on-paint)))
 (define (get-splash-canvas) splash-canvas)
 (define (get-splash-eventspace) splash-eventspace)
 
-(define (get-splash-paint-callback) splash-paint-callback)
-(define (set-splash-paint-callback sp) 
-  (set! splash-paint-callback sp)
-  (refresh-splash))
+(define (get-splash-paint-callback) (on-splash-eventspace/ret splash-paint-callback))
+(define (set-splash-paint-callback sp)
+  (on-splash-eventspace
+   (set! splash-paint-callback sp)
+   (refresh-splash)))
 
 (define (get-splash-width) (on-splash-eventspace/ret (send splash-canvas get-width)))
 (define (get-splash-height) (on-splash-eventspace/ret (send splash-canvas get-height)))
 
-(define (set-splash-event-callback cb) (set! splash-event-callback cb))
-(define (get-splash-event-callback cb) splash-event-callback)
+(define (set-splash-event-callback cb) (on-splash-eventspace (set! splash-event-callback cb)))
+(define (get-splash-event-callback) (on-splash-eventspace/ret splash-event-callback))
 
 (define (refresh-splash-on-gauge-change? start range) #f)
-(define (set-refresh-splash-on-gauge-change?! f) (set! refresh-splash-on-gauge-change? f))
+(define (set-refresh-splash-on-gauge-change?! f)
+  (on-splash-eventspace (set! refresh-splash-on-gauge-change? f)))
 
 (define (refresh-splash)
   
@@ -143,8 +177,9 @@
 (define-struct icon (bm x y))
 (define icons null)
 (define (add-splash-icon bm x y)
-  (set! icons (cons (make-icon bm x y) icons))
-  (refresh-splash))
+  (on-splash-eventspace
+   (set! icons (cons (make-icon bm x y) icons))
+   (refresh-splash)))
 
 (define (start-splash splash-draw-spec _splash-title width-default 
                       #:allow-funny? [allow-funny? #f]
@@ -170,12 +205,10 @@
          (send splash-tlw set-icon frame-icon (send frame-icon get-loaded-mask) 'both)))
      
      (cond
-       [(or (path? splash-draw-spec)
-            (string? splash-draw-spec)
+       [(or (path-string? splash-draw-spec)
             (is-a? splash-draw-spec bitmap%))
         (cond
-          [(or (path? splash-draw-spec)
-               (string? splash-draw-spec))
+          [(path-string? splash-draw-spec)
            (unless (file-exists? splash-draw-spec)
              (eprintf "WARNING: bitmap path ~s not found\n" splash-draw-spec)
              (no-splash))
@@ -201,12 +234,7 @@
         (send splash-canvas min-height (vector-ref splash-draw-spec 2))
         (set! splash-cache-bitmap (make-screen-bitmap
                                     (vector-ref splash-draw-spec 1)
-                                    (vector-ref splash-draw-spec 2)))]
-       [(not splash-draw-spec)
-        (no-splash)]
-       [else
-        (eprintf "WARNING: unknown splash spec: ~s" splash-draw-spec)
-        (no-splash)])
+                                    (vector-ref splash-draw-spec 2)))])
      
      (send splash-tlw reflow-container)
      
