@@ -74,7 +74,7 @@ that number to control the gauge along the bottom of the splash screen.
   if there is more initialization work to be done where you do not want to count loaded files.
 }
 
-@defproc[(add-splash-icon [bmp (is-a?/c bitmap%)] [x exact-nonnegative-integer?] [y exact-nonnegative-integer?])
+@defproc[(add-splash-icon [bmp (is-a?/c bitmap%)] [x real?] [y real?])
          void?]{
   Adds an icon to the splash screen. (DrRacket uses this function to show the tools as they are loaded.)                
 }

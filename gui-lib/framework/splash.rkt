@@ -45,7 +45,7 @@
   
   [shutdown-splash (-> void?)]
   [close-splash (-> void?)]
-  [add-splash-icon (-> (is-a?/c bitmap%) exact-nonnegative-integer? exact-nonnegative-integer? void?)]
+  [add-splash-icon (-> (is-a?/c bitmap%) real? real? void?)]
   [set-splash-progress-bar?! (-> boolean? void?)]
   [set-splash-char-observer (-> procedure? void?)]
   [set-splash-event-callback (-> procedure? void?)]
