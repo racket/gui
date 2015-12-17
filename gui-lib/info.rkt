@@ -7,7 +7,7 @@
                ["base" #:version "6.2.900.17"]
                "syntax-color-lib"
                ["draw-lib" #:version "1.11"]
-               "snip-lib"
+               ["snip-lib" #:version "1.2"]
                "wxme-lib"
                "pict-lib"
                "scheme-lib"
@@ -30,4 +30,4 @@
 
 (define pkg-authors '(mflatt robby))
 
-(define version "1.20")
+(define version "1.21")

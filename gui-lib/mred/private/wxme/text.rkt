@@ -470,8 +470,10 @@
                      (set-box! now (find-position x y #f onit? how-close))
                    ;; FIXME: the following refinement of `onit?' seems pointless
                    (let ([onit? (and onit?
-                                     (not (zero? how-close))
-                                     ((abs how-close) . > . between-threshold))])
+                                     (or (and (not (zero? how-close))
+                                              ((abs how-close) . > . between-threshold))
+                                         (has-flag? (snip->flags s-caret-snip)
+                                                    HANDLES-BETWEEN-EVENTS)))])
                      (if onit?
                          ;; we're in the snip's horizontal region...
                          (let ([snip (do-find-snip now 'after)])
