@@ -13,6 +13,7 @@
                      "syntax-color-lib"
                      "wxme-lib"
                      "gui-lib"
+                     "pict-lib"
                      "racket-doc"
                      "string-constants-doc"))
 (define deps '("base"))
