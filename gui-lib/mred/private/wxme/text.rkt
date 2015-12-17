@@ -464,19 +464,16 @@
                         ;; FIXME: old code returned if !dc
                         (values dc (+ x scrollx) (+ y scrolly) scrollx scrolly)))])
           (let ([snip
-                 (let-boxes ([onit? #f]
-                             [how-close 0.0]
+                 (let-boxes ([how-close 0.0]
                              [now 0])
-                     (set-box! now (find-position x y #f onit? how-close))
-                   ;; FIXME: the following refinement of `onit?' seems pointless
-                   (let ([onit? (and onit?
-                                     (or (and (not (zero? how-close))
-                                              ((abs how-close) . > . between-threshold))
-                                         (has-flag? (snip->flags s-caret-snip)
-                                                    HANDLES-BETWEEN-EVENTS)))])
-                     (if onit?
-                         ;; we're in the snip's horizontal region...
-                         (let ([snip (do-find-snip now 'after)])
+                       (set-box! now (find-position x y #f #f how-close))
+                     (let* ([snip (do-find-snip now 'after)]
+                            [onit? (or (and (not (zero? how-close))
+                                            ((abs how-close) . > . between-threshold))
+                                       (has-flag? (snip->flags snip)
+                                                  HANDLES-BETWEEN-EVENTS))])
+                       (if onit?
+                           ;; we're in the snip's horizontal region...
                            ;; ... but maybe the mouse is above or below it.
                            (let-boxes ([top 0.0]
                                        [bottom 0.0]
@@ -486,8 +483,8 @@
                                  (get-snip-location snip dummy bottom #t))
                              (if (or (top . > . y) (y . > . bottom))
                                  #f
-                                 snip)))
-                         #f)))])
+                                 snip))
+                           #f)))])
             (when (send event button-down?)
               (set-caret-owner snip))
             (when (and prev-mouse-snip

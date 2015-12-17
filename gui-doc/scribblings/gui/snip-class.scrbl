@@ -312,11 +312,11 @@ following symbols:
        not have the keyboard focus (see also
        @method[snip% on-goodbye-event])}
 
- @item{@indexed-racket['handles-between-events] --- this snip wishes
-       to handle mouse events that are between items in the snip
+ @item{@indexed-racket['handles-between-events] --- this snip handles
+       mouse events that are between items in the snip
        (instead of defaulting to treating mouse clicks as
         setting the position or other event handling that happens
-        at the @racket[text%] or @racket[pasteboard%] level}
+        at the @racket[text%] or @racket[pasteboard%] level)}
 
  @item{@indexed-racket['width-depends-on-x] --- this snip's display
        width depends on the snip's x-@techlink{location} within the
