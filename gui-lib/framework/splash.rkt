@@ -13,12 +13,14 @@
   [get-splash-canvas (-> (is-a?/c canvas%))]
   [get-splash-eventspace (-> eventspace?)]
   [get-splash-paint-callback (-> procedure?)]
-  [set-splash-paint-callback (-> (-> (is-a?/c dc<%>)
-                                     exact-nonnegative-integer?
-                                     exact-nonnegative-integer?
-                                     exact-nonnegative-integer?
-                                     exact-nonnegative-integer?
-                                     any)
+  [set-splash-paint-callback (-> (or/c (-> (is-a?/c dc<%>)
+                                           exact-nonnegative-integer?
+                                           exact-nonnegative-integer?
+                                           exact-nonnegative-integer?
+                                           exact-nonnegative-integer?
+                                           any)
+                                       (-> (is-a?/c dc<%>)
+                                           any))
                                  void?)]
   [start-splash
    (->* ((or/c path-string?
@@ -152,7 +154,9 @@
     [else
      (parameterize ([current-eventspace splash-eventspace])
        (queue-callback
-        recompute-bitmap/refresh))]))
+        recompute-bitmap/refresh))])
+  
+  (void))
 
 (define (set-splash-progress-bar?! b?) 
   (on-splash-eventspace/ret
