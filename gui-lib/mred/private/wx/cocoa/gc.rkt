@@ -10,7 +10,8 @@
               scheme_remove_gc_callback
               make-gc-action-desc
               make-gl-install
-              make-gl-uninstall))
+              make-gl-uninstall
+              do-gl-action))
 
 ;; ----------------------------------------
 ;; 10.10 and earlier: change window opacity
@@ -74,6 +75,9 @@
 (define-gl glClearColor (_fun _GLclampf _GLclampf _GLclampf _GLclampf -> _void))
 (define-gl glClear (_fun _GLbitfield -> _void))
 
+(define-gl glCallList (_fun _GLint -> _void))
+(define-gl glFlush (_fun -> _void))
+
 (define-gl glClear-pointer _fpointer
   #:c-id glClear)
 (define-gl glCallList-pointer _fpointer
@@ -112,12 +116,14 @@
   (define size (* w h 4))
   (define size-4 (- size 4))
   (define rgba (make-bytes size))
-  (for ([i (in-range 0 size 4)])
-    (define j (- size-4 i))
-    (bytes-set! rgba (+ i 3) (bytes-ref argb j))
-    (bytes-set! rgba i (bytes-ref argb (+ j 1)))
-    (bytes-set! rgba (+ i 1) (bytes-ref argb (+ j 2)))
-    (bytes-set! rgba (+ i 2) (bytes-ref argb (+ j 3))))
+  (for ([x (in-range w)])
+    (for ([y (in-range h)])
+      (define i (* (+ x (* w y)) 4))
+      (define j (* (+ x (* w (- h y 1))) 4))
+      (bytes-set! rgba (+ i 3) (bytes-ref argb j))
+      (bytes-set! rgba i (bytes-ref argb (+ j 1)))
+      (bytes-set! rgba (+ i 1) (bytes-ref argb (+ j 2)))
+      (bytes-set! rgba (+ i 2) (bytes-ref argb (+ j 3)))))
   
   (define tex (glGenTexture))
   
@@ -172,6 +178,8 @@
       (tellv old-gl makeCurrentContext)
       (tellv NSOpenGLContext clearCurrentContext))
   
+  ;; The shape of this vector is parsed back out by
+  ;; `do-gl-action`, below:
   (vector
    (vector 'ptr_ptr->save
            msg-send-proc
@@ -237,3 +245,18 @@
    (vector 'save!_ptr->void
            msg-send-proc
            (selector makeCurrentContext))))
+
+(define (do-gl-action vec)
+  (when (= 8 (vector-length vec))
+    (define gl (vector-ref (vector-ref vec 1) 2))
+    (define list-id (vector-ref (vector-ref vec 3) 2))
+
+    (define old-ctx (tell NSOpenGLContext currentContext))
+    (tellv gl makeCurrentContext)
+    (glClear GL_COLOR_BUFFER_BIT)
+    (glCallList list-id)
+    (glFlush)
+    (tellv gl flushBuffer)
+    (tellv NSOpenGLContext clearCurrentContext)
+    (when old-ctx
+      (tellv old-ctx makeCurrentContext))))
