@@ -464,6 +464,7 @@
       (case (and (positive? wheel-amt)
                  code)
         [(wheel-up wheel-down)
+         (collect-garbage 'incremental)
          (when (and allow-y-scroll?
                     (not fake-y-scroll?))
            (let-boxes ([x 0]
@@ -478,6 +479,7 @@
                            0)])
                (do-scroll x y #t x old-y))))]
         [(wheel-left wheel-right)
+         (collect-garbage 'incremental)
          (when (and allow-x-scroll?
                     (not fake-x-scroll?))
            (let-boxes ([x 0]

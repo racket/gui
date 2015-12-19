@@ -249,6 +249,11 @@
 
   (def/override (on-event [mouse-event% event])
     (when s-admin
+      (when (and (not (send event moving?))
+                 (not (send event entering?))
+                 (not (send event leaving?)))
+        ;; Request incremental mode to improve interactivity:
+        (collect-garbage 'incremental))
       (let-values ([(dc x y scrollx scrolly)
                     ;; first, find clicked-on snip:
                     (let ([x (send event get-x)]
@@ -404,6 +409,8 @@
 
   (def/override (on-char [key-event% event])
     (when s-admin
+      ;; Request incremental mode to improve interactivity:
+      (collect-garbage 'incremental)
       (let-boxes ([scrollx 0.0]
                   [scrolly 0.0]
                   [dc #f])

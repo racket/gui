@@ -452,7 +452,9 @@
       (when (and (not (send event moving?))
                  (not (send event entering?))
                  (not (send event leaving?)))
-        (end-streaks '(except-key-sequence cursor delayed)))
+        (end-streaks '(except-key-sequence cursor delayed))
+        ;; Request incremental mode to improve interactivity:
+        (collect-garbage 'incremental))
       (let-values ([(dc x y scrollx scrolly)
                     ;; first, find clicked-on snip:
                     (let ([x (send event get-x)]
@@ -600,7 +602,9 @@
                        (not (eq? 'control code))
                        (not (eq? 'menu code))
                        (not (equal? code #\nul)))
-              (hide-cursor))
+              (hide-cursor)
+              ;; Request incremental mode to improve interactivity:
+              (collect-garbage 'incremental))
             (on-local-char event)))))
 
   (def/override (on-default-char [key-event% event])
