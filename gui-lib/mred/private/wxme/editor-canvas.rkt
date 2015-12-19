@@ -964,6 +964,7 @@
                        (when (not fake-x-scroll?)
                          (when scroll-via-copy?
                            (set! on-scroll-to-called? #t)
+                           (begin-refresh-sequence)
                            (when scroll-via-copy? (when ed (send ed on-scroll-to))))
                          (set-scroll-pos 'horizontal x))
                        #t))))
@@ -977,6 +978,7 @@
                          (unless on-scroll-to-called?
                            (when scroll-via-copy?
                              (set! on-scroll-to-called? #t)
+                             (begin-refresh-sequence)
                              (when ed (send ed on-scroll-to))))
                          (set-scroll-pos 'vertical y))
                        #t))))))
@@ -1005,7 +1007,8 @@
                        (old-fy . < . (+ new-fy vh))
                        (integer? (send (get-dc) get-backing-scale)))
                   (let ([dc (get-dc)])
-                    (begin-refresh-sequence)
+                    (unless on-scroll-to-called?
+                      (begin-refresh-sequence))
                     (send dc copy
                           xmargin ymargin
                           vw (- (+ new-fy vh) old-fy)
@@ -1013,12 +1016,14 @@
                     (redraw vx vy
                             vw (- old-fy new-fy)
                             #t)
-                    (end-refresh-sequence))]
+                    (unless on-scroll-to-called?
+                      (end-refresh-sequence)))]
                  [(and (old-fy . < . new-fy)
                        (new-fy . < . (+ old-fy vh))
                        (integer? (send (get-dc) get-backing-scale)))
                   (let ([dc (get-dc)])
-                    (begin-refresh-sequence)
+                    (unless on-scroll-to-called?
+                      (begin-refresh-sequence))
                     (send dc copy
                           xmargin (+ ymargin (- new-fy old-fy))
                           vw (- (+ old-fy vh) new-fy)
@@ -1027,12 +1032,14 @@
                       (redraw vx (+ vy d)
                               vw (- vh d)
                               #t))
-                    (end-refresh-sequence))]
+                    (unless on-scroll-to-called?
+                      (end-refresh-sequence)))]
                  [else (repaint)])))
             (repaint)))
 
       (when on-scroll-to-called?
-        (when ed (send ed after-scroll-to)))))
+        (when ed (send ed after-scroll-to))
+        (end-refresh-sequence))))
 
   (define/override (set-scrollbars x y x2 y2 x3 y3 x4 y4 ?) (void))
 
