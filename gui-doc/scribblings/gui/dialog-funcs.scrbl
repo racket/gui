@@ -118,11 +118,11 @@ If @racket[directory] is not @racket[#f], it is used as the starting
  prefix.
 
 On Windows, if @racket[extension] is not @racket[#f], the returned path
- will get a default extension if the user does not supply one. If
- @racket[extension] is the empty string, then the extension is derived
+ will get a default extension if the user does not supply one. The extension is derived
  from the user's @racket[filters] choice if the corresponding pattern is
- of the form @racket[(string-append "*." extension)]; if the pattern is
- @racket["*.*"], then no default extension is added. Finally, if
+ of the form @racket[(string-append "*." _an-extension)], and the first such
+ pattern is used if the choice has multiple patterns. If the user's choice has the pattern
+ @racket["*.*"] and @racket[extension] is the empty string, then no default extension is added. Finally, if
  @racket[extension] is any string other than the empty string,
  @racket[extension] is used as the default extension when the user's
  @racket[filters] choice has the pattern @racket["*.*"].  Meanwhile, the
