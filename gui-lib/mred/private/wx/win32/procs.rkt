@@ -136,7 +136,7 @@
         (list sym)
         null))
   (define swapped? (not (zero? (GetSystemMetrics SM_SWAPBUTTON))))
-  (values (make-object point% (POINT-x p) (POINT-y p))
+  (values (make-object point% (->normal (POINT-x p)) (->normal (POINT-y p)))
           (append
            (maybe (if swapped? VK_RBUTTON VK_LBUTTON) 'left)
            (maybe (if swapped? VK_LBUTTON VK_RBUTTON) 'right)
