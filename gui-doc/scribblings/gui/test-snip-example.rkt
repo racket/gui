@@ -59,6 +59,7 @@
                     gui-loaded)))))
      
      (parameterize ([current-namespace (make-base-namespace)])
+       (namespace-attach-module orig-namespace 'mred/mred)
        (define loaded (format "~s" (dynamic-require save-filename 's)))
        (unless (regexp-match #rx"struct:object:circle-snip%" loaded)
          (error 'test-snip-example.rkt "didn't find circle snip.3, found ~s" loaded)))
