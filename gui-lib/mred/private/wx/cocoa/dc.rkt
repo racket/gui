@@ -21,7 +21,8 @@
               do-backing-flush)
  display-bitmap-resolution
  make-screen-bitmap
- make-window-bitmap)
+ make-window-bitmap
+ NSOpenGLCPSwapInterval)
 
 (import-class NSOpenGLContext NSScreen NSGraphicsContext NSWindow)
 

@@ -966,6 +966,9 @@
                            (tell (tell NSImageView alloc) init))])
               (cond
                [gc-via-gl?
+                (tellv (tell glv openGLContext) setValues:
+                       #:type (_ptr i _long) 0
+                       forParameter: #:type _int NSOpenGLCPSwapInterval)
                 (tellv win setAcceptsMouseMovedEvents: #:type _BOOL #t)
                 (set-ivar! win wxb (->wxb this))
                 (set-ivar! glv wxb (->wxb this))
