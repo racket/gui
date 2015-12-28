@@ -60,7 +60,12 @@
     (dynamic-wind
      void
      (lambda () (subprocess-wait s))
-     (lambda () (subprocess-kill s #t)))))
+     (lambda () (subprocess-kill s #t))))
+  (define n (subprocess-status s))
+  ;; Sound may be still playing, but assume success if it
+  ;; hasn't failed, yet:
+  (or (symbol? n)
+      (zero? n)))
 
 (define-runtime-path-list racket-playsound.exe
   (if (eq? 'windows (cross-system-type))
