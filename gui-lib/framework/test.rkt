@@ -644,16 +644,24 @@
            (error menu-tag "active frame does not have menu bar"))
          (send menu-bar on-demand)
          (let* ([items (send menu-bar get-items)])
-           (let loop ([items items]
+           (let loop ([all-items-this-level items]
+                      [items items]
                       [this-name (car item-names)]
                       [wanted-names (cdr item-names)])
              (cond
                [(null? items)
-                (error 'menu-select "didn't find a menu: ~e, entire list: ~e" this-name item-names)]
+                (error 'menu-select
+                       "didn't find a menu: ~e, desired list: ~e, all items at this level ~e"
+                       this-name
+                       item-names
+                       (map (λ (x) (and (is-a? x labelled-menu-item<%>)
+                                        (send x get-plain-label)))
+                            all-items-this-level))]
                [else (let ([i (car items)])
                        (cond
                          [(not (is-a? i labelled-menu-item<%>))
-                          (loop (cdr items)
+                          (loop all-items-this-level
+                                (cdr items)
                                 this-name
                                 wanted-names)]
                          [(string=? this-name (send i get-plain-label))
@@ -664,12 +672,14 @@
                             [(and (not (null? wanted-names))
                                   (is-a? i menu-item-container<%>))
                              (loop (send i get-items)
+                                   (send i get-items)
                                    (car wanted-names)
                                    (cdr wanted-names))]
                             [else
                              (error menu-tag "no menu matching ~e" item-names)])]
                          [else
-                          (loop (cdr items)
+                          (loop all-items-this-level
+                                (cdr items)
                                 this-name
                                 wanted-names)]))]))))])))
 
