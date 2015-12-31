@@ -90,9 +90,9 @@
       (when wxb
         (let ([wx (->wx wxb)])
           (when wx
+            (send wx clean-up)
             (queue-window-event wx (lambda ()
-                                     (send wx queue-on-size)
-                                     (send wx clean-up)))
+                                     (send wx queue-on-size)))
             ;; Live resize:
             (constrained-reply (send wx get-eventspace)
                                (lambda () 
@@ -316,7 +316,10 @@
     (define/public (clean-up)
       ;; When a window is resized, then any drawing that is in flight
       ;; might draw outside the canvas boundaries. Just refresh everything.
-      (tellv cocoa display))
+      (call-with-refreshable
+       (lambda ()
+         (unless (version-10.11-or-later?)
+           (tellv cocoa display)))))
 
     (when label
       (tellv cocoa setTitle: #:type _NSString label))
@@ -352,16 +355,22 @@
                           (not (send p get-sheet)))))
               (let ([p (get-parent)])
                 (send p set-sheet this)
-                (tellv (tell NSApplication sharedApplication)
-                       beginSheet: cocoa
-                       modalForWindow: (send p get-cocoa)
-                       modalDelegate: #f
-                       didEndSelector: #:type _SEL #f
-                       contextInfo: #f))
+                (call-with-refreshable
+                 (lambda ()
+                   (tellv (tell NSApplication sharedApplication)
+                          beginSheet: cocoa
+                          modalForWindow: (send p get-cocoa)
+                          modalDelegate: #f
+                          didEndSelector: #:type _SEL #f
+                          contextInfo: #f))))
               (if float?
-                  (tellv cocoa orderFront: #f)
+                  (call-with-refreshable
+                   (lambda ()
+                     (tellv cocoa orderFront: #f)))
                   (begin
-                    (tellv cocoa makeKeyAndOrderFront: #f)
+                    (call-with-refreshable
+                     (lambda ()
+                       (tellv cocoa makeKeyAndOrderFront: #f)))
                     (when unshown-fullscreen?
                       (set! unshown-fullscreen? #f)
                       (tellv cocoa toggleFullScreen: #f)))))
@@ -377,11 +386,8 @@
               (tellv cocoa deminiaturize: #f)
               (define fs? (fullscreened?))
               (set! unshown-fullscreen? fs?)
-              (tellv cocoa orderOut: #f)
-              (when fs?
-                ;; Need to select another window to get rid of
-                ;; the window's screen:
-                (tellv (get-app-front-window) orderFront: #f)))
+              (tellv cocoa setReleasedWhenClosed: #:type _BOOL #f)
+              (tellv cocoa close))
             (force-window-focus)))
       (register-frame-shown this on?)
       (let ([num (tell #:type _NSInteger cocoa windowNumber)])
@@ -398,12 +404,7 @@
           (when (eventspace-shutdown? es)
             (error (string->symbol
                     (format "show method in ~a" (if is-a-dialog? 'dialog% 'frame%)))
-                   "the eventspace hash been shutdown"))
-          (when (version-10.11-or-later?)
-            ;; Ensure that the basic window background is drawn before
-            ;; we potentially suspend redrawing. Otherwise, the window
-            ;; can start black and end up with a too-dark titlebar.
-            (tellv cocoa display))
+                   "the eventspace has been shutdown"))
           (when saved-child
             (if (eq? (current-thread) (eventspace-handler-thread es))
                 (do-paint-children)
@@ -416,24 +417,53 @@
        (direct-show on?)))
     
     (define flush-disabled 0)
+    (define flush-disable-disabled 0)
     
     (define/public (disable-flush-window)
       (when (zero? flush-disabled)
-        (when (version-10.11-or-later?)
-          (tellv cocoa setAutodisplay: #:type _BOOL #f))
-        (tellv cocoa disableFlushWindow))
+        (when (zero? flush-disable-disabled)
+          (when (version-10.11-or-later?)
+            (tellv cocoa setAutodisplay: #:type _BOOL #f))
+          (tellv cocoa disableFlushWindow)))
       (set! flush-disabled (add1 flush-disabled)))
 
     (define/public (enable-flush-window)
       (set! flush-disabled (sub1 flush-disabled))
       (when (zero? flush-disabled)
-        (tellv cocoa enableFlushWindow)
+        (when (zero? flush-disable-disabled)
+          (tellv cocoa enableFlushWindow))
         (when (version-10.11-or-later?)
-          (tellv cocoa setAutodisplay: #:type _BOOL #t)
+          (when (zero? flush-disable-disabled)
+            (tellv cocoa setAutodisplay: #:type _BOOL #t))
           (queue-window-refresh-event
            this
            (lambda ()
              (tellv cocoa displayIfNeeded))))))
+
+    (define/private (call-with-refreshable thunk)
+      (cond
+       [(not (version-10.11-or-later?))
+        (thunk)]
+       [(zero? flush-disabled)
+        ;; In case a display got lost earlier:
+        (tellv cocoa display)
+        (thunk)]
+       [else
+        (atomically
+         (dynamic-wind
+          (lambda ()
+            (when (zero? flush-disable-disabled)
+              (tellv cocoa setAutodisplay: #:type _BOOL #t)
+              (tellv cocoa enableFlushWindow))
+            (tellv cocoa display)
+            (set! flush-disable-disabled (add1 flush-disable-disabled)))
+          thunk
+          (lambda ()
+            (set! flush-disable-disabled (sub1 flush-disable-disabled))
+            (when (zero? flush-disable-disabled)
+              (unless (zero? flush-disabled)
+                (tellv cocoa setAutodisplay: #:type _BOOL #f)
+                (tellv cocoa disableFlushWindow))))))]))
 
     (define/public (force-window-focus)
       (let ([next (get-app-front-window)])
@@ -579,25 +609,27 @@
       (unless (and (equal? x -1) (equal? y -1))
         (internal-move x y))
       (let ([f (tell #:type _NSRect cocoa frame)])
-        (tellv cocoa setFrame: 
-               #:type _NSRect (make-NSRect 
-                               (make-NSPoint (if (and is-a-dialog?
-                                                      (let ([p (get-parent)])
-                                                        (and p
-                                                             (eq? this (send p get-sheet)))))
-                                                 ;; need to re-center sheet:
-                                                 (let* ([p (get-parent)]
-                                                        [px (send p get-x)]
-                                                        [pw (send p get-width)])
-                                                   (+ px (/ (- pw w) 2)))
-                                                 ;; keep current x position:
-                                                 (NSPoint-x (NSRect-origin f)))
-                                             ;; keep current y position:
-                                             (- (NSPoint-y (NSRect-origin f))
-                                                (- h
-                                                   (NSSize-height (NSRect-size f)))))
-                               (make-NSSize w h))
-               display: #:type _BOOL #t)))
+        (call-with-refreshable
+         (lambda ()
+           (tellv cocoa setFrame:
+                  #:type _NSRect (make-NSRect
+                                  (make-NSPoint (if (and is-a-dialog?
+                                                         (let ([p (get-parent)])
+                                                           (and p
+                                                                (eq? this (send p get-sheet)))))
+                                                    ;; need to re-center sheet:
+                                                    (let* ([p (get-parent)]
+                                                           [px (send p get-x)]
+                                                           [pw (send p get-width)])
+                                                      (+ px (/ (- pw w) 2)))
+                                                    ;; keep current x position:
+                                                    (NSPoint-x (NSRect-origin f)))
+                                                ;; keep current y position:
+                                                (- (NSPoint-y (NSRect-origin f))
+                                                   (- h
+                                                      (NSSize-height (NSRect-size f)))))
+                                  (make-NSSize w h))
+                  display: #:type _BOOL #t)))))
     (define/override (internal-move x y)
       (let ([x (if (not x) (get-x) x)]
             [y (if (not y) (get-y) y)])
