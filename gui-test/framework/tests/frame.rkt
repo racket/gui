@@ -105,7 +105,7 @@
           (channel-put c (send frame get-label))))
        (define frame-name (channel-get c))
        (wait-for-frame frame-name)
-       (test:menu-select "File" "Open...")
+       (test:menu-select "File" "Open…")
        (wait-for-frame "Open File")
        (queue-callback
         (λ ()
