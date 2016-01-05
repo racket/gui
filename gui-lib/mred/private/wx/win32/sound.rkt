@@ -69,7 +69,7 @@
                    (string->number s)))
      (unless len (error 'play "mci did not return a numeric length"))
      (mci-send "play ~a" id)
-     (if async? (thread (lambda () (done (+ len 5000)))) (done len)))
+     (if async? (thread (lambda () (done len))) (done len)))
    (lambda ()
      (unless async?
        (done #f))))
