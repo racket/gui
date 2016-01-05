@@ -1,11 +1,8 @@
 #lang racket/base
 (require ffi/unsafe
+	 ffi/winapi
          racket/class
-         racket/runtime-path
-	 setup/cross-system
-	 (for-syntax racket/base
-		     setup/cross-system)
-	 "../../lock.rkt"
+         "../../lock.rkt"
          "utils.rkt"
          "types.rkt"
          "const.rkt")
@@ -13,67 +10,55 @@
 (provide
  (protect-out play-sound))
 
-(define-winmm PlaySoundW (_wfun _string/utf-16 _pointer _DWORD -> _BOOL))
+(define BUFFER-SIZE 512)
+(define BUFFER-BYTES-SIZE (* 2 BUFFER-SIZE))
 
-(define SND_SYNC   #x0000)
-(define SND_ASYNC  #x0001)
-(define SND_NOSTOP #x0010)
+(define-winmm mciGetErrorStringW
+  (_fun _int
+	[buf : _pointer = (malloc BUFFER-BYTES-SIZE)]
+	[_int = BUFFER-SIZE]
+	-> [ret : _bool]
+	-> (and ret (cast buf _pointer _string/utf-16))))
 
-;; Plays a sound using PlaySOund directly, which is limited
-;; to playing a single sound at a time in the process:
-(define (in-process-play-sound path async?)
-  (let ([path (simplify-path path #f)]
-	[done (make-semaphore)])
-    (and (let ([p (path->string
-		   (cleanse-path (path->complete-path path)))])
-	   (atomically
-	    (when previous-done-sema (semaphore-post previous-done-sema))
-	    (set! previous-done-sema done)
-	    (PlaySoundW p #f SND_ASYNC)))
-	 (or async?
-	     ;; Implement synchronous playing by polling, where
-	     ;; PlaySound with no sound file and SND_NOSTOP polls.
-	     (let loop ()
-	       (sleep 0.1)
-	       (or (semaphore-try-wait? done)
-		   (PlaySoundW #f #f (bitwise-ior SND_ASYNC SND_NOSTOP))
-		   (loop)))))))
-(define previous-done-sema #f)
+(define-winmm mciSendStringW
+  (_fun _string/utf-16 [_pointer = #f] [_int = 0] [_pointer = #f]
+	-> [ret : _int]
+	-> (if (zero? ret)
+	       (void)
+	       (error 'mciSendStringW "~a" (mciGetErrorStringW ret)))))
 
-;; Runs a separate process to play a sound using a very
-;; small executable:
-(define (other-process-play-sound path async?)
-  (define c (make-custodian))
-  (define-values (s i o e)
-    (parameterize ([current-custodian c]
-		   [current-subprocess-custodian-mode 'kill])
-      (subprocess #f #f #f
-		  (car racket-playsound.exe)
-		  'exact
-		  (path->string
-		   (simplify-path
-		    (path->complete-path path))))))
-  (close-input-port i)
-  (close-input-port e)
-  (close-output-port o)
-  (unless async?
-    (dynamic-wind
-     void
-     (lambda () (subprocess-wait s))
-     (lambda () (subprocess-kill s #t))))
-  (define n (subprocess-status s))
-  ;; Sound may be still playing, but assume success if it
-  ;; hasn't failed, yet:
-  (or (symbol? n)
-      (zero? n)))
+(define (mci-send fmt . args)
+  (mciSendStringW (apply format fmt args)))
 
-(define-runtime-path-list racket-playsound.exe
-  (if (eq? 'windows (cross-system-type))
-      (list '(so "racket-playsound.exe"))
-      null))
+(define-winmm mciSendStringW*
+  (_fun _string/utf-16
+	[buf : _pointer = (malloc BUFFER-BYTES-SIZE)]
+	[_int = BUFFER-SIZE]
+	[_pointer = #f]
+	-> [ret : _int]
+	-> (if (zero? ret)
+	       (cast buf _pointer _string/utf-16)
+	       (error 'mciSendStringW* "~a" (mciGetErrorStringW ret))))
+  #:c-id mciSendStringW)
 
-(define (play-sound path async?)
-  (if (and (pair? racket-playsound.exe)
-	   (file-exists? (car racket-playsound.exe)))
-      (other-process-play-sound path async?)
-      (in-process-play-sound path async?)))
+(define (mci-send* fmt . args)
+  (mciSendStringW* (apply format fmt args)))
+
+(define (play-sound file async?)
+  ;; Generated ID is unique enough, because we only
+  ;; instantiate this library in one place:
+  (define id (gensym 'play))
+  (define (done msec)
+    (when msec (sleep (/ msec 1000)))
+    (mci-send "close ~a" id))
+  (with-handlers ([void (lambda (e) (done #f) (raise e))])
+    ;; adding "type waveaudio" will make it work only for wavs (no mp3 etc)
+    (mci-send "open \"~a\" alias ~a" (simplify-path file) id)
+    (mci-send "set ~a time format milliseconds" id)
+    (define len (let ([s (mci-send* "status ~a length" id)])
+                  (string->number s)))
+    (unless len (error 'play "mci did not return a numeric length"))
+    (mci-send "play ~a" id)
+    (if async? (thread (lambda () (done (+ len 5000)))) (done len)))
+  ;; Report success, since otherwise we throw an error:
+  #t)

@@ -322,7 +322,8 @@ Plays a sound file. If @racket[async?] is false, the function does not
  The result is @racket[#t] if the sound plays successfully, @racket[#f]
  otherwise.
 
-On Windows, only @filepath{.wav} files are supported.
+On Windows, MCI is used to play sounds, so file formats such as
+ @filepath{.wav} and @filepath{.mp3} should be supported.
 
 On Mac OS X, Quicktime is used to play sounds; most sound
  formats (@filepath{.wav}, @filepath{.aiff}, @filepath{.mp3}) are supported in recent versions of
@@ -341,7 +342,11 @@ On Unix, the function invokes an external sound-playing program---looking
   quotes.)  A plain command name is usually better, since execution is
   faster.  The command's output is discarded, unless it returns an
   error code, in which case the last part of the error output is
-  shown.}
+  shown.
+
+@history[#:changed "1.22" @elem{On Windows, added support for multiple
+                                sounds at once and file format such as
+                                @filepath{.mp3}.}]}
 
 
 @defproc[(position-integer? [v any/c]) boolean?]{
