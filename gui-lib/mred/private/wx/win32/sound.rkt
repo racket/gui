@@ -53,7 +53,7 @@
   (call-as-atomic
    (lambda ()
      (mci-send "open \"~a\" alias ~a" (simplify-path file) id)
-     (register-finalizer-and-custodian-shutdown
+     (register-custodian-shutdown
       id
       (lambda (id)
         (mci-send "close ~a" id))
