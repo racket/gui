@@ -1,8 +1,9 @@
 #lang racket/base
 (require ffi/unsafe
 	 ffi/winapi
+	 ffi/unsafe/custodian
+	 ffi/unsafe/atomic
          racket/class
-         "../../lock.rkt"
          "utils.rkt"
          "types.rkt"
          "const.rkt")
@@ -48,17 +49,29 @@
   ;; Generated ID is unique enough, because we only
   ;; instantiate this library in one place:
   (define id (gensym 'play))
+  (define cust (make-custodian))
+  (call-as-atomic
+   (lambda ()
+     (mci-send "open \"~a\" alias ~a" (simplify-path file) id)
+     (register-finalizer-and-custodian-shutdown
+      id
+      (lambda (id)
+        (mci-send "close ~a" id))
+      cust)))
   (define (done msec)
     (when msec (sleep (/ msec 1000)))
-    (mci-send "close ~a" id))
-  (with-handlers ([void (lambda (e) (done #f) (raise e))])
-    ;; adding "type waveaudio" will make it work only for wavs (no mp3 etc)
-    (mci-send "open \"~a\" alias ~a" (simplify-path file) id)
-    (mci-send "set ~a time format milliseconds" id)
-    (define len (let ([s (mci-send* "status ~a length" id)])
-                  (string->number s)))
-    (unless len (error 'play "mci did not return a numeric length"))
-    (mci-send "play ~a" id)
-    (if async? (thread (lambda () (done (+ len 5000)))) (done len)))
+    (custodian-shutdown-all cust))
+  (dynamic-wind
+   void
+   (lambda ()
+     (mci-send "set ~a time format milliseconds" id)
+     (define len (let ([s (mci-send* "status ~a length" id)])
+                   (string->number s)))
+     (unless len (error 'play "mci did not return a numeric length"))
+     (mci-send "play ~a" id)
+     (if async? (thread (lambda () (done (+ len 5000)))) (done len)))
+   (lambda ()
+     (unless async?
+       (done #f))))
   ;; Report success, since otherwise we throw an error:
   #t)
