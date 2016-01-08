@@ -131,9 +131,9 @@
               (GdkEventWindowState-new_window_state evt))))
     #f))
 
-(define-runtime-path plt-16x16-file '(lib "icons/plt-16x16.png"))
-(define-runtime-path plt-32x32-file '(lib "icons/plt-32x32.png"))
-(define-runtime-path plt-48x48-file '(lib "icons/plt-48x48.png"))
+(define-runtime-path plt-16x16-file '(lib "icons/plt-icon-16x16.png"))
+(define-runtime-path plt-32x32-file '(lib "icons/plt-icon-32x32.png"))
+(define-runtime-path plt-48x48-file '(lib "icons/plt-icon-48x48.png"))
 
 (define icon-pixbufs+glist
   (delay
