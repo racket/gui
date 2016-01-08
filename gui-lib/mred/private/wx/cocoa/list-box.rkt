@@ -282,7 +282,7 @@
   (define/public (append-column title)
     (atomically
      (let ([col (as-objc-allocation
-                 (tell (tell NSTableColumn alloc) initWithIdentifier: content-cocoa))])
+                 (tell (tell NSTableColumn alloc) initWithIdentifier: #:type _NSString title))])
        (tellv content-cocoa addTableColumn: col)
        (tellv (tell col headerCell) setStringValue: #:type _NSString title)
        (set! column-cocoas (append column-cocoas (list col)))
