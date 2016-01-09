@@ -7,9 +7,10 @@
  (protect-out (all-defined-out)))
 
 (define-runtime-module-path-index platform-lib
+  #:runtime?-id runtime?
   (let ([gtk-lib
          '(lib "mred/private/wx/gtk/platform.rkt")])
-    (case (cross-system-type)
+    (case (if runtime? (system-type) (cross-system-type))
       [(windows) (if (getenv "PLT_WIN_GTK")
                      gtk-lib
                      '(lib "mred/private/wx/win32/platform.rkt"))]
