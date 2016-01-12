@@ -67,6 +67,7 @@
 (define-gtk gtk_widget_get_style (_fun  _GtkWidget -> _GtkStyle-pointer))
 (define-gtk gtk_rc_get_style (_fun  _GtkWidget -> _GtkStyle-pointer))
 (define-gtk gtk_text_view_new (_fun -> _GtkWidget))
+(define-gtk gtk_widget_destroy (_fun _GtkWidget -> _void))
 
 (define the-text-style
   (let ([w (gtk_text_view_new)])
@@ -74,8 +75,7 @@
       (g_object_ref style)
       (begin0
        style
-       (g_object_ref_sink w)
-       (g_object_unref w)))))
+       (gtk_widget_destroy w)))))
 
 (define (extract-color-values c)
   (define (s v) (arithmetic-shift v -8))
