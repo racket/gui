@@ -155,7 +155,7 @@
 
 (: ok/cancel-buttons (->* ((Instance Area-Container<%>)
                           (-> (Instance Button%) (Instance Event%) Any)
-                          (-> (Instance Button%) (Instance Event%) Any))
+                          (-> (Instance Button%) (Instance Event%) Any))sys
                           (String String #:confirm-style (Listof (U 'deleted 'border)))
                           (Values (Instance Button%) (Instance Button%))))
                          
