@@ -208,12 +208,13 @@
 (define NSOpenGLPFASampleBuffers 55)
 (define NSOpenGLPFASamples 56)
 (define NSOpenGLPFAMultisample 59)
+(define NSOpenGLPFAAllowOfflineRenderers 96)
 (define NSOpenGLPFAOpenGLProfile 99)
 
 (define NSOpenGLProfileVersionLegacy #x1000)
 (define NSOpenGLProfileVersion3_2Core #x3200)
 
-(define (gl-config->pixel-format conf)
+(define (gl-config->pixel-format conf allow-offline?)
   (let ([conf (or conf (new gl-config%))])
     (tell (tell NSOpenGLPixelFormat alloc)
           initWithAttributes: #:type (_list i _int)
@@ -224,6 +225,9 @@
                      NSOpenGLProfileVersionLegacy
                      NSOpenGLProfileVersion3_2Core))             
              null)
+           (if allow-offline?
+               (list NSOpenGLPFAAllowOfflineRenderers)
+               null)
            (if (send conf get-double-buffered) (list NSOpenGLPFADoubleBuffer) null)
            (if (send conf get-stereo) (list NSOpenGLPFAStereo) null)
            (list
@@ -427,7 +431,7 @@
                     initWithFrame: #:type _NSRect r)
               (let* ([share-context (and gl-config (send gl-config get-share-context))]
                      [context-handle (and share-context (send share-context get-handle))]
-                     [pf (gl-config->pixel-format gl-config)]
+                     [pf (gl-config->pixel-format gl-config #f)]
                      [new-context (and
                                    context-handle
                                    (tell (tell NSOpenGLContext alloc)
@@ -955,7 +959,7 @@
                               backing: #:type _int NSBackingStoreBuffered
                               defer: #:type _BOOL NO))]
                   [glv (and gc-via-gl?
-                            (let ([pf (gl-config->pixel-format #f)])
+                            (let ([pf (gl-config->pixel-format #f #t)])
                               (begin0
                                (tell (tell RacketGCGLView alloc)
                                      initWithFrame: #:type _NSRect (make-NSRect (make-NSPoint 0 0)
