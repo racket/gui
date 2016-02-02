@@ -136,7 +136,7 @@ needed to really make this work:
                          [pretty-print-pre-print-hook range-pretty-print-pre-hook]
                          [pretty-print-post-print-hook range-pretty-print-post-hook]
                          [pretty-print-columns 30])
-            (pretty-print datum)
+            (pretty-write datum)
             (make-modern output-text)))
 
         (values range-start-ht range-ht))
