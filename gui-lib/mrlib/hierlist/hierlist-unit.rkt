@@ -3,6 +3,7 @@
            racket/unit
            mred/mred-sig
            mrlib/include-bitmap
+           mrlib/arrow-toggle-snip
            "hierlist-sig.rkt")
 
   ;; Previously was a rename-in from mzlib/list, but
@@ -44,95 +45,16 @@
       (define arrow-snip-class (make-object snip-class%))
       (send arrow-snip-class set-classname "hier-arrow")
       (define arrow-snip%
-	(class snip%
+        (class arrow-toggle-snip%
+          (inherit get-open set-open set-snipclass set-count)
           (init callback)
-          (inherit get-admin set-flags get-flags set-count set-snipclass get-style)
-          (rename-super [super-get-extent get-extent])
-          (define size-calculated? #f)
-          (define size orig-size)
-          (define width-fraction 1/2)
-          (define on? #f)
-          (define click-callback callback)
-          (define clicked? #f)
-          (private*
-            [set-sizes
-             (lambda (dc)
-               (let* ([s (get-style)]
-                      [h (send s get-text-height dc)]
-                      [d (send s get-text-descent dc)]
-                      [a (send s get-text-space dc)])
-                 (set! size (max orig-size (- h d a)))
-                 (set! size-calculated? #t)
-		 (set! arrow-size size)))]
-            [get-width (lambda () size)]
-            [get-height (lambda () size)]
-            [update
-             (lambda ()
-               (send (get-admin) needs-update this 0 0 (get-width) (get-height)))])
-          (override*
-            [get-extent (lambda (dc x y w h descent space lspace rspace)
-                          (super-get-extent dc x y w h descent space lspace rspace)
-                          (unless size-calculated? (set-sizes dc))
-                          (when w (set-box! w (get-width)))
-                          (when h (set-box! h (get-height)))
-                          (when descent (set-box! descent 0))
-                          (when space (set-box! space 0)))]
-            [partial-offset (lambda (dc x y len)
-                              (unless size-calculated? (set-sizes dc))
-                              (if (zero? len)
-                                  0 
-                                  (get-width)))]
-            [draw (lambda (dc x y left top right bottom dx dy draw-caret)
-                    (unless size-calculated? (set-sizes dc))
-                    (let* ([bitmap (if clicked?
-                                       (if on? down-click-bitmap up-click-bitmap)
-                                       (if on? down-bitmap up-bitmap))]
-                           [bw (send bitmap get-width)]
-                           [bh (send bitmap get-height)])
-                      (send dc draw-bitmap-section bitmap 
-                            (+ x (max 0 (- (/ size 2) (/ bw 2))))
-                            (+ y (max 0 (- (/ size 2) (/ bh 2))))
-			    0 0 (min bw (+ size 2)) (min bh (+ size 2))
-                            'solid
-                            (send the-color-database find-color "black")
-                            (send bitmap get-loaded-mask))))]
-            [size-cache-invalid (lambda () (set! size-calculated? #f))]
-            [on-event
-             (lambda (dc x y mediax mediay event)
-               (let ([in-range?
-                      (and (<= 0 (- (send event get-x) x) (get-width))
-                           (<= 0 (- (send event get-y) y) (get-height)))])
-                 (cond
-                   [(send event button-down?)
-                    (when in-range?
-                      (unless clicked?
-                        (set! clicked? #t)
-                        (update)))]
-                   [(send event button-up?)
-                    (when clicked?
-                      (set! clicked? #f)
-                      (update))
-                    (when in-range?
-                      (on (not on?))
-                      (click-callback this))]
-                   [(send event dragging?)
-                    (unless (or (and clicked? in-range?)
-                                (and (not clicked?) (not in-range?)))
-                      (set! clicked? (not clicked?))
-                      (update))]
-                   [else (when clicked?
-                           (set! clicked? #f)
-                           (update))])))]
-            [copy (lambda () (make-object arrow-snip% click-callback))])
-          (public*
-            [on (case-lambda 
-                 [(v) (set! on? v) (update)]
-                 [() on?])])
-          
-          (super-make-object)
+          (super-new [on-up (lambda () (callback this))]
+                     [on-down (lambda () (callback this))])
           (set-snipclass arrow-snip-class)
-          (set-count 1)
-          (set-flags (cons 'handles-events (get-flags)))))
+          (define/public on
+            (case-lambda
+              [() (get-open)]
+              [(v) (set-open v)]))))
 
       ;; Hack to get whitespace matching width of arrow: derive a new
       ;; class that overrides the `draw' method to do nothing. 
