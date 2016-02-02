@@ -308,6 +308,20 @@ needed to really make this work:
         (send info-text end-edit-sequence))
       
       (define outer-t (new text:hide-caret/selection%))
+
+      (inherit get-admin)
+      (define/override (set-admin a)
+        (super set-admin a)
+        (define new-admin (get-admin))
+        (when new-admin
+          (define sl (send (send new-admin get-editor) get-style-list))
+          (send outer-t set-style-list sl)
+          (define standard (send sl find-named-style "Standard"))
+          (send outer-t lock #f)
+          (send outer-t change-style standard 0 (send outer-t last-position))
+          (send outer-t lock #t)
+          (send info-text set-style-list sl)
+          (send output-text set-style-list sl)))
       
       (super-instantiate ()
         (editor outer-t)
