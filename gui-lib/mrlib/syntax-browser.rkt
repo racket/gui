@@ -14,9 +14,8 @@ needed to really make this work:
            racket/gui/base
            racket/match
            racket/contract
-           (prefix-in : racket/base)
-           "include-bitmap.rkt"
-           "arrow-toggle-snip.rkt")
+           (only-in racket/base [read :read])
+           "expandable-snip.rkt")
 
   (define orig-output-port (current-output-port))
   (define (oprintf . args) (apply fprintf orig-output-port args))
@@ -68,7 +67,7 @@ needed to really make this work:
   (define-struct range (stx start end))
 
   (define syntax-snip%
-    (class editor-snip%
+    (class expandable-snip%
       (init-field main-stx)
       
       (unless (syntax? main-stx)
@@ -265,26 +264,22 @@ needed to really make this work:
         (make-modern info-text)
         (send info-text lock #t)
         (send info-text end-edit-sequence))
-      
-      (define outer-t (new text:hide-caret/selection%))
 
-      (inherit get-admin)
-      (define/override (set-admin a)
-        (super set-admin a)
-        (define new-admin (get-admin))
-        (when new-admin
-          (define sl (send (send new-admin get-editor) get-style-list))
-          (send outer-t set-style-list sl)
-          (define standard (send sl find-named-style "Standard"))
-          (send outer-t lock #f)
-          (send outer-t change-style standard 0 (send outer-t last-position))
-          (send outer-t lock #t)
-          (send info-text set-style-list sl)
-          (send output-text set-style-list sl)))
-      
+      (inherit get-admin get-editor)
+      (define/override (update-style-list sl)
+        (super update-style-list sl)
+        (send summary-t set-style-list sl)
+        (send inner-t set-style-list sl)
+        (send info-text set-style-list sl)
+        (send output-text set-style-list sl))
+
+      (define summary-t (new text:hide-caret/selection%))
+      (define inner-t (new text:hide-caret/selection%))
+
       (super-instantiate ()
-        (editor outer-t)
         (with-border? #f)
+        (closed-editor summary-t)
+        (open-editor inner-t)
         (left-margin 3)
         (top-margin 0)
         (right-margin 0)
@@ -292,71 +287,18 @@ needed to really make this work:
         (left-inset 1)
         (top-inset 0)
         (right-inset 0)
-        (bottom-inset 0))
-      
-      (define inner-t (new text:hide-caret/selection%))
-      (define inner-es (instantiate editor-snip% ()
-                         (editor inner-t)
-                         (with-border? #f)
-                         (left-margin 0)
-                         (top-margin 0)
-                         (right-margin 0)
-                         (bottom-margin 0)
-                         (left-inset 0)
-                         (top-inset 0)
-                         (right-inset 0)
-                         (bottom-inset 0)))
-      
-      (define details-shown? #t)
-      
+        (bottom-inset 0)
+        (callback
+         (lambda (details-shown?)
+           (fill-in-output-text)
+           (show-border details-shown?)
+           (set-tight-text-fit (not details-shown?)))))
+
       (inherit show-border set-tight-text-fit)
-      (define/private (hide-details)
-        (when details-shown?
-          (send outer-t lock #f)
-          (show-border #f)
-          (set-tight-text-fit #t)
-          (send outer-t release-snip inner-es)
-          (send outer-t delete (send outer-t last-position))
-          (send outer-t lock #t)
-          (set! details-shown? #f)))
-      
-      (define/private (show-details)
-        (unless details-shown?
-          (fill-in-output-text)
-          (send outer-t lock #f)
-          (show-border #t)
-          (set-tight-text-fit #f)
-          (send outer-t insert #\newline
-                (send outer-t last-position)
-                (send outer-t last-position))
-          (send outer-t insert inner-es
-                (send outer-t last-position)
-                (send outer-t last-position))
-          (send outer-t lock #t)
-          (set! details-shown? #t)))
       
       (let ()
-        
-        (send outer-t insert (new arrow-toggle-snip% 
-                                  [on-up (λ () (hide-details))]
-                                  [on-down (λ () (show-details))]))
-        (send outer-t insert (format "~s\n" main-stx))
-        (send outer-t insert inner-es)
-        (make-modern outer-t)
-        
-        (send inner-t insert (instantiate editor-snip% ()
-                               (editor output-text)
-                               (with-border? #f)
-                               (left-margin 0)
-                               (top-margin 0)
-                               (right-margin 0)
-                               (bottom-margin 0)
-                               (left-inset 0)
-                               (top-inset 0)
-                               (right-inset 0)
-                               (bottom-inset 0)))
-        (send inner-t insert (make-object editor-snip% info-text))
-        (send inner-t change-style (make-object style-delta% 'change-alignment 'top) 0 2))
+        (send summary-t insert (format "~s" main-stx))
+        (make-modern summary-t))
 
       (define/private (fill-in-output-text)
         (unless output-text-filled-in?
@@ -387,18 +329,31 @@ needed to really make this work:
           (unless (null? ranges)
             (let ([rng (car ranges)])
               (show-range (range-stx rng) (range-start rng) (range-end rng))))
-          (send output-text lock #t)))
+          (send output-text lock #t)
+          (send inner-t lock #f)
+          (send inner-t insert (instantiate editor-snip% ()
+                                 (editor output-text)
+                                 (with-border? #f)
+                                 (left-margin 0)
+                                 (top-margin 0)
+                                 (right-margin 0)
+                                 (bottom-margin 0)
+                                 (left-inset 0)
+                                 (top-inset 0)
+                                 (right-inset 0)
+                                 (bottom-inset 0)))
+          (send inner-t insert (make-object editor-snip% info-text))
+          (send inner-t change-style (make-object style-delta% 'change-alignment 'top) 0 2)
+          (send inner-t lock #t)))
       
       (send output-text lock #t)
       (send info-text lock #t)
       (send inner-t lock #t)
-      (send outer-t lock #t)
-      
-      (hide-details)
+      (send summary-t lock #t)
       
       (inherit set-snipclass)
       (set-snipclass snip-class)))
-      
+
 ;; record-paths : val -> hash-table[path -o> syntax-object]
 (define (syntax-object->datum/record-paths val)
   (define path '())
