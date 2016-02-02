@@ -74,15 +74,9 @@ needed to really make this work:
       (define-values (datum paths-ht) (syntax-object->datum/record-paths main-stx))
       
       (define output-text (new text:hide-caret/selection%))
-      (define output-port (make-text-port output-text))
+      (define output-text-filled-in? #f)
       (define info-text (new text:hide-caret/selection%))
       (define info-port (make-text-port info-text))
-      
-      ;; range-start-ht : hash-table[obj -o> number]
-      (define range-start-ht (make-hasheq))
-
-      ;; range-ht : hash-table[obj -o> (listof (cons number number))]
-      (define range-ht (make-hasheq))
       
       (define/private (make-modern text)
         (send text change-style
@@ -151,36 +145,45 @@ needed to really make this work:
                 (pop!)
                 val]))
            ht)))
-      
-      (let* ([range-pretty-print-pre-hook 
-              (λ (x port)
-                (push!)
-                (let ([stx-object (hash-ref paths-ht path (λ () #f))])
-                  (hash-set! range-start-ht stx-object (send output-text last-position))))]
-             [range-pretty-print-post-hook 
-              (λ (x port)
-                (let ([stx-object (hash-ref paths-ht path (λ () #f))])
-                  (when stx-object
-                    (let ([range-start (hash-ref range-start-ht stx-object (λ () #f))])
-                      (when range-start
-                        (hash-set! range-ht 
-                                   stx-object 
-                                   (cons
-                                    (cons
-                                     range-start
-                                     (send output-text last-position))
-                                    (hash-ref range-ht stx-object (λ () null))))))))
-                (pop!))])
 
-        ;; reset `path' and `next-push' for use in pp hooks.
-        (set! path '())
-        (set! next-push 0)
-        (parameterize ([current-output-port output-port]
-                       [pretty-print-pre-print-hook range-pretty-print-pre-hook]
-                       [pretty-print-post-print-hook range-pretty-print-post-hook]
-                       [pretty-print-columns 30])
-          (pretty-print datum)
-          (make-modern output-text)))
+      (define/private (populate-range-ht)
+        ;; range-start-ht : hash-table[obj -o> number]
+        (define range-start-ht (make-hasheq))
+        
+        ;; range-ht : hash-table[obj -o> (listof (cons number number))]
+        (define range-ht (make-hasheq))
+      
+        (let* ([range-pretty-print-pre-hook 
+                (λ (x port)
+                  (push!)
+                  (let ([stx-object (hash-ref paths-ht path (λ () #f))])
+                    (hash-set! range-start-ht stx-object (send output-text last-position))))]
+               [range-pretty-print-post-hook 
+                (λ (x port)
+                  (let ([stx-object (hash-ref paths-ht path (λ () #f))])
+                    (when stx-object
+                      (let ([range-start (hash-ref range-start-ht stx-object (λ () #f))])
+                        (when range-start
+                          (hash-set! range-ht 
+                                     stx-object 
+                                     (cons
+                                      (cons
+                                       range-start
+                                       (send output-text last-position))
+                                      (hash-ref range-ht stx-object (λ () null))))))))
+                  (pop!))])
+          
+          ;; reset `path' and `next-push' for use in pp hooks.
+          (set! path '())
+          (set! next-push 0)
+          (parameterize ([current-output-port (make-text-port output-text)]
+                         [pretty-print-pre-print-hook range-pretty-print-pre-hook]
+                         [pretty-print-post-print-hook range-pretty-print-post-hook]
+                         [pretty-print-columns 30])
+            (pretty-print datum)
+            (make-modern output-text)))
+
+        (values range-start-ht range-ht))
       
       (define/private (show-info stx)
         (insert/big "General Info\n")
@@ -194,14 +197,14 @@ needed to really make this work:
         (when (identifier? stx)
           (piece-of-info "Identifier-binding" (identifier-binding stx))
           (piece-of-info "Identifier-transformer-binding" (identifier-transformer-binding stx))
-	  (piece-of-info "Identifier-template-binding" (identifier-template-binding stx)))
+          (piece-of-info "Identifier-template-binding" (identifier-template-binding stx)))
         
-	(let ([properties (syntax-property-symbol-keys stx)])
-	  (unless (null? properties)
-	    (insert/big "Known properties\n")
-	    (for-each
-	     (λ (prop) (show-property stx prop))
-	     properties))))
+        (let ([properties (syntax-property-symbol-keys stx)])
+          (unless (null? properties)
+            (insert/big "Known properties\n")
+            (for-each
+             (λ (prop) (show-property stx prop))
+             properties))))
       
       (define/private (render-mpi mpi)
         (string-append
@@ -363,6 +366,7 @@ needed to really make this work:
       
       (define/private (show-details)
         (unless details-shown?
+          (fill-in-output-text)
           (send outer-t lock #f)
           (show-border #t)
           (set-tight-text-fit #f)
@@ -375,27 +379,7 @@ needed to really make this work:
           (send outer-t lock #t)
           (set! details-shown? #t)))
       
-      (let ([ranges
-             (sort
-              (apply append
-                     (hash-map
-                      range-ht
-                      (λ (k vs)
-                        (map (λ (v) (make-range k (car v) (cdr v)))
-                             vs))))
-              (λ (x y)
-                (>= (- (range-end x) (range-start x))
-                    (- (range-end y) (range-start y)))))])
-        (for-each
-         (λ (range)
-           (let* ([stx (range-stx range)]
-                  [start (range-start range)]
-                  [end (range-end range)])
-             (when (syntax? stx)
-               (send output-text set-clickback start end 
-                     (λ (_1 _2 _3)
-                       (show-range stx start end))))))
-         ranges)
+      (let ()
         
         (send outer-t insert (new turn-snip% 
                                   [on-up (λ () (hide-details))]
@@ -416,13 +400,38 @@ needed to really make this work:
                                (right-inset 0)
                                (bottom-inset 0)))
         (send inner-t insert (make-object editor-snip% info-text))
-        (send inner-t change-style (make-object style-delta% 'change-alignment 'top) 0 2)
-        
-        (send info-text auto-wrap #t)
-        (send info-text set-styles-sticky #f)
-        (unless (null? ranges)
-          (let ([rng (car ranges)])
-            (show-range (range-stx rng) (range-start rng) (range-end rng)))))
+        (send inner-t change-style (make-object style-delta% 'change-alignment 'top) 0 2))
+
+      (define/private (fill-in-output-text)
+        (unless output-text-filled-in?
+          (set! output-text-filled-in? #t)
+          (send output-text lock #f)
+          (define-values (range-start-ht range-ht) (populate-range-ht))
+          (define ranges
+            (sort
+             (apply append
+                    (hash-map
+                     range-ht
+                     (λ (k vs)
+                       (map (λ (v) (make-range k (car v) (cdr v)))
+                            vs))))
+             (λ (x y)
+               (>= (- (range-end x) (range-start x))
+                   (- (range-end y) (range-start y))))))
+          (for ([range (in-list ranges)])
+            (define stx (range-stx range))
+            (define start (range-start range))
+            (define end (range-end range))
+            (when (syntax? stx)
+              (send output-text set-clickback start end 
+                    (λ (_1 _2 _3)
+                      (show-range stx start end)))))
+          (send info-text auto-wrap #t)
+          (send info-text set-styles-sticky #f)
+          (unless (null? ranges)
+            (let ([rng (car ranges)])
+              (show-range (range-stx rng) (range-start rng) (range-end rng))))
+          (send output-text lock #t)))
       
       (send output-text lock #t)
       (send info-text lock #t)
@@ -550,21 +559,6 @@ needed to really make this work:
          (send up-click-bitmap get-width)
          (send down-click-bitmap get-width)))
   (define arrow-snip-cursor (make-object cursor% 'arrow))
-  
-  (define (syntax-properties stx)
-    (let ([is-property? (λ (prop) (syntax-property stx prop))])
-      (filter is-property?
-              '(inferred-name
-                bound-in-source
-                origin
-                disappeared-binding
-                disappeared-use
-                bind-as-variable
-                module-variable-provides
-                module-syntax-provides
-                module-indirect-provides
-                module-kernel-reprovide-hint
-                module-self-path-index))))
 
   ;; make-text-port : text -> port
   ;; builds a port from a text object.  
