@@ -1,7 +1,7 @@
-#lang scheme/base
+#lang racket/base
 
 (require mzlib/unit
-         scheme/gui/base
+         racket/gui/base
          "hierlist/hierlist-sig.rkt"
          "hierlist/hierlist-unit.rkt")
 
@@ -9,29 +9,27 @@
 
 (provide-signature-elements hierlist^)
 
-#|
+;; ============================================================
 
-;; Testing
-(define f (make-object frame% "test"))
+(module+ demo
+(require racket/class)
+
+(define f (make-object frame% (format "test ~s" (version))))
 (define p (make-object horizontal-panel% f))
-(define c (make-object (class hierarchical-list% args
-			 (override
-			   [on-item-opened
-			    (lambda (i)
-			      (let ([f (send i user-data)])
-				(when f (f i))))]
-			   [on-select
-			    (lambda (i)
-			      (printf "Selected: ~a\n"
-				      (if i 
-					  (send (send i get-editor) get-flattened-text)
-					  i)))]
-			   [on-double-select
-			    (lambda (s)
-			      (printf "Double-click: ~a\n"
-				      (send (send s get-editor) get-flattened-text)))])
-			 (sequence (apply super-init args)))
-		       p))
+(define c (make-object (class hierarchical-list%
+                         (define/override (on-item-opened i)
+                           (let ([f (send i user-data)])
+                             (when f (f i))))
+                         (define/override (on-select i)
+                           (printf "Selected: ~a\n"
+                                   (if i 
+                                       (send (send i get-editor) get-flattened-text)
+                                       i)))
+                         (define/override (on-double-select s)
+                           (printf "Double-click: ~a\n"
+                                   (send (send s get-editor) get-flattened-text)))
+                         (super-new))
+                       p))
 
 (define a (send c new-list))
 (send (send a get-editor) insert "First Item: List")
@@ -58,8 +56,12 @@
 (define y (send c new-item))
 (send (send y get-editor) insert "y")
 
+(define z (send c new-list))
+(send (send z get-editor) insert "a multi-line\nlabel")
+(send (send (send z new-item) get-editor) insert "Sub1")
+(send (send (send z new-item) get-editor) insert "Sub2")
+
 (send f show #t)
 
 (yield (make-semaphore))
-
-|#
+)
