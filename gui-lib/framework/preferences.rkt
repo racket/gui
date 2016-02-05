@@ -406,7 +406,9 @@ the state transitions / contracts are:
     invoked, removes the callback from this preference.
     
     If @racket[weak?] is true, the preferences system will only hold on to
-    the callback weakly.
+    the callback
+    @tech[#:key "weak references"
+          #:doc '(lib "scribblings/reference/reference.scrbl")]{weakly}.
     
     The callbacks will be called in the order in which they were added.
     
