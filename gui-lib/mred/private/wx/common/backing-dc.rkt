@@ -134,6 +134,9 @@
       (when (zero? flush-suspends)
         (queue-backing-flush)))
 
+    (define/override (release-unchanged-cr cr)
+      (void))
+
     (define/override (erase)
       (super erase)
       (when (= (get-clear-operator)
