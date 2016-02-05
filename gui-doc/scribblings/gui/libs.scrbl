@@ -19,5 +19,5 @@ either case:
  @item{@filepath{libgtk-3.0[.0]} (GTK+ 3) or @filepath{libgtk-x11-2.0[.0]} (GTK+ 2)}
  @item{@filepath{libgio-2.0[.0]} --- optional, for detecting interface scaling}
  @item{@filepath{libGL[.1]} --- optional, for OpenGL support}
- @item{@filepath{libunique-1.0[.0]} --- optional, for single-instance support}
+ @item{@filepath{libunique-1.0[.0]} --- optional, for single-instance support (GTK+ 2)}
 ]
