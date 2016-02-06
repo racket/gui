@@ -451,7 +451,7 @@
                type-case))
   (preferences:set-default 
    'framework:tabify
-   (list defaults-ht #rx"^begin" #rx"^def" #rx"^for\\*?(/|$)" #f)
+   (list defaults-ht #rx"^begin" #rx"^def" #rx"^(for\\*?(/|$)|with-)" #f)
    (list/c (hash/c symbol? (or/c 'for/fold 'define 'begin 'lambda) #:flat? #t)
            (or/c #f regexp?) (or/c #f regexp?) (or/c #f regexp?) (or/c #f regexp?)))
   
