@@ -625,8 +625,12 @@
            (define id-end (get-forward-sexp contains))
            (and (and id-end (> id-end contains))
                 (let ([text (get-text contains id-end)])
-                  (or (get-keyword-type text tabify-prefs)
-                      'other))))
+                  (cond
+                    [(member (classify-position contains) '(keyword symbol))
+                     (or (get-keyword-type text tabify-prefs)
+                         'other)]
+                    [else
+                     'other]))))
          (define (procedure-indent)
            (case (get-proc)
              [(begin define) 1]
