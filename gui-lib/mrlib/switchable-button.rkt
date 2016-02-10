@@ -65,6 +65,10 @@
                 [min-width-includes-label? #f])
     
     (define/public (get-button-label) label)
+    (define/override (set-label l)
+      (set! label l)
+      (update-sizes)
+      (refresh))
     
     (when (and (is-a? label bitmap%)
                (not (send label ok?)))
