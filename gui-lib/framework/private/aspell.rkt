@@ -50,15 +50,20 @@
 (: start-aspell
       (-> Path (U (Listof String) False)
                       (List Input-Port Output-Port Exact-Nonnegative-Integer Input-Port
-                       (-> (U 'status 'wait 'interrupt 'kill) Any))))
+                       (case->
+                        [-> 'status (U 'running 'done-ok 'done-error)]
+                        [-> 'exit-code (U Byte False)]
+                        [-> 'wait AnyValues]
+                        [-> 'interrupt Void]
+                        [-> 'kill Void]))))
 (define (start-aspell asp dict)
   (: aspell? : Boolean)
   (define aspell? (regexp-match? #rx"aspell" (path->string asp)))
   (apply process* asp 
-         (append
+         ((inst append String) 
           '("-a")
           (if dict
-              (list "-d" dict) 
+              (cons "-d" dict) 
               '())
           (if aspell? '("--encoding=utf-8") '()))))
 
@@ -80,14 +85,18 @@
      (string-constant cannot-find-ispell-or-aspell-path)]
     [else
      (: proc-lst : (List Input-Port Output-Port Exact-Nonnegative-Integer Input-Port
-                       (-> (U 'status 'wait 'interrupt 'kill) Any)))
+                       (case->
+                        [-> 'status (U 'running 'done-ok 'done-error)]
+                        [-> 'exit-code (U Byte False)]
+                        [-> 'wait AnyValues]
+                        [-> 'interrupt Void]
+                        [-> 'kill Void])))
      (define proc-lst (start-aspell asp #f))
      (: stdout : Input-Port) 
-     (define stdout (list-ref proc-lst 0))
+     (define stdout (car proc-lst))
      (: stderr : Input-Port)
-     (define stderr (list-ref proc-lst 3))
-     (close-output-port ((inst list-ref (List Input-Port Output-Port Exact-Nonnegative-Integer Input-Port
-                       (-> (U 'status 'wait 'interrupt 'kill) Any))) proc-lst 1)) ;; close stdin
+     (define stderr (cadddr proc-lst))
+     (close-output-port (cadr proc-lst)) ;; close stdin
      (close-input-port stdout)
      (: sp : Output-Port)
      (define sp (open-output-string))
@@ -127,7 +136,12 @@
           (thread
            (λ ()
              (: aspell-proc (U False (List Input-Port Output-Port Exact-Nonnegative-Integer Input-Port
-                       (-> (U 'status 'wait 'interrupt 'kill) Any))))
+                       (case->
+                        [-> 'status (U 'running 'done-ok 'done-error)]
+                        [-> 'exit-code (U Byte False)]
+                        [-> 'wait AnyValues]
+                        [-> 'interrupt Void]
+                        [-> 'kill Void]))))
              (define aspell-proc #f)
              (: already-attempted-aspell? Boolean)
              (define already-attempted-aspell? #f)
@@ -142,16 +156,16 @@
                  (when asp
                    (set! aspell-proc (start-aspell asp current-dict))
                    (define line (with-handlers ((exn:fail? exn-message))
-                                  (read-line (list-ref aspell-proc 0))))
+                                  (read-line (car (assert aspell-proc)))))
                    (asp-log (format "framework: started speller: ~a" line))
                    
                    (when (and (string? line)
                               (regexp-match #rx"[Aa]spell" line))
                      ;; put aspell in "terse" mode 
-                     (display "!\n" (list-ref aspell-proc 1))
-                     (flush-output (list-ref aspell-proc 1)))
+                     (display "!\n" (cadr (assert aspell-proc)))
+                     (flush-output (cadr (assert aspell-proc))))
                    (: stderr : Input-Port)
-                   (define stderr (list-ref aspell-proc 3))
+                   (define stderr (cadddr (assert aspell-proc)))  
                    (thread
                     (λ ()
                       (let loop ()
@@ -164,16 +178,16 @@
              (: shutdown-aspell (-> String Void))
              (define (shutdown-aspell why)
                (asp-log (format "aspell.rkt: shutdown connection to aspell: ~a" why))
-               (define proc (list-ref aspell-proc 4))
-               (close-input-port (list-ref aspell-proc 0))
-               (close-output-port (list-ref aspell-proc 1))
-               (close-input-port (list-ref aspell-proc 3))
+               (define proc (car (cddddr (assert aspell-proc))))
+               (close-input-port (car (assert aspell-proc)))  
+               (close-output-port (cadr (assert aspell-proc)))
+               (close-input-port (cadddr (assert aspell-proc)))
                (proc 'kill)
                (set! aspell-proc #f))
              
              (let loop ()
                (sync
-                ((inst handle-evt (List String (Listof String) (Channelof (Listof String)) (Evtof Any)) Void)
+                ((inst handle-evt (List String (Listof String) (Channelof (Listof String)) (Evtof Any)) Any)
                  aspell-req-chan
                  (match-lambda
                    [(list line new-dict resp-chan nack-evt)
@@ -190,8 +204,8 @@
                             nack-evt))
                     (cond
                       [aspell-proc
-                       (define stdout (list-ref aspell-proc 0))
-                       (define stdin (list-ref aspell-proc 1))
+                       (define stdout (car (assert aspell-proc)))
+                       (define stdin (cadr (assert aspell-proc)))
                        
                        ;; always lead with a ^ character so aspell
                        ;; doesn't interpret anything as a command
@@ -199,10 +213,11 @@
                        (display line stdin) 
                        (newline stdin)
                        (flush-output stdin)
-                       (let loop ([resp '()])
+                       (let loop ([resp : (Listof String) '()])
                          (define check-on-aspell (sync/timeout .5 stdout))
                          (cond
                            [check-on-aspell
+                            (: handle-err (-> exn EOF))
                             (define (handle-err x)
                               (asp-log
                                (format "error reading stdout of aspell process: ~a"
@@ -219,10 +234,10 @@
                               [(regexp-match #rx"^[&] ([^ ]*) [0-9]+ ([0-9]+): (.*)$" l) 
                                =>
                                (λ (m)
-                                 (define word-len (string-length (list-ref m 1)))
+                                 (define word-len (string-length (cadr m))) ;; 1st index of m
                                  ;; subtract one to correct for the leading ^
-                                 (define word-start (- (string->number (list-ref m 2)) 1))
-                                 (define suggestions (list-ref m 3))
+                                 (define word-start (- (string->number (caddr m)) 1)) ;; 2nd index of m
+                                 (define suggestions (cadddr m)) ;; 3rd index of m
                                  (loop 
                                   (cons 
                                    (list word-start word-len (regexp-split #rx", " suggestions))
@@ -230,9 +245,9 @@
                               [(regexp-match #rx"^[#] ([^ ]*) ([0-9]+)" l) 
                                =>
                                (λ (m)
-                                 (define word-len (string-length (list-ref m 1)))
+                                 (define word-len (string-length (cadr m))) ;; 1sr index of m
                                  ;; subtract one to correct for the leading ^
-                                 (define word-start (- (string->number (list-ref m 2)) 1))
+                                 (define word-start (- (string->number (caddr m)) 1)) ;; 2nd index of m
                                  (loop (cons (list word-start word-len '()) resp)))]
                               [else
                                (send-resp '())
@@ -259,7 +274,7 @@
        (λ (nack-evt)
          (define resp (make-channel))
          ((inst channel-put (List String (U False (Listof String)) (Channelof Any) Any))
-          aspell-req-chan (list line dict resp nack-evt))
+          aspell-req-chan (list line dict resp nack-evt)) 
          resp)))]))
 
 (: aspell-dicts (U False (Listof String)))
@@ -279,10 +294,10 @@
                         [-> 'kill Void])))
         (define proc-lst (process* (assert asp) "dump" "dicts"))
         (: stdout Input-Port)
-        (define stdout (list-ref proc-lst 0))
+        (define stdout (car proc-lst))
         (: stderr Input-Port)
-        (define stderr (list-ref proc-lst 3))
-        (close-output-port (list-ref proc-lst 1)) ;; close stdin
+        (define stderr (cadddr proc-lst))
+        (close-output-port (cadr proc-lst)) ;; close stdin
         (close-input-port stderr)
         (set! aspell-dicts
               (let loop : (Listof String) ()

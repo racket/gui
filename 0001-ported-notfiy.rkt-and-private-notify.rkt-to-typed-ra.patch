@@ -1,0 +1,188 @@
+From 3b022c9103167f7c38821efd294d4eac1cae9213 Mon Sep 17 00:00:00 2001
+From: Earl Dean <earldean@indiana.edu>
+Date: Thu, 12 Nov 2015 17:47:10 -0500
+Subject: [PATCH 1/3] ported notfiy.rkt and private/notify.rkt to typed racket
+
+---
+ gui-lib/framework/notify.rkt         | 31 +++++++++++++++++-------
+ gui-lib/framework/private/notify.rkt | 46 +++++++++++++++++++++++++-----------
+ 2 files changed, 54 insertions(+), 23 deletions(-)
+
+diff --git a/gui-lib/framework/notify.rkt b/gui-lib/framework/notify.rkt
+index 5c2e3a3..0394917 100644
+--- a/gui-lib/framework/notify.rkt
++++ b/gui-lib/framework/notify.rkt
+@@ -1,7 +1,7 @@
+-#lang racket/base
++#lang typed/racket/base
+ ;; owner: ryanc
+-(require racket/class
+-         racket/gui/base
++(require typed/racket/class
++         typed/racket/gui/base
+          "private/notify.rkt")
+ (provide (prefix-out notify:
+                      (combine-out (all-from-out "private/notify.rkt")
+@@ -13,7 +13,10 @@
+ ;; GUI elements tied to notify-boxes
+ ;; See private/notify.rkt for the non-gui parts of notify-boxes.
+ 
++(: menu-option/notify-box (All (T) (-> (U (Instance Menu%) (Instance Popup-Menu%)) String (Instance (Notify-Box% Boolean))
++                                  (Instance Checkable-Menu-Item%))))
+ (define (menu-option/notify-box parent label nb)
++  (: menu-item : (Instance Checkable-Menu-Item%))
+   (define menu-item
+     (new checkable-menu-item%
+          (label label)
+@@ -27,6 +30,8 @@
+             (send nb set (not (send nb get)))))))
+   menu-item)
+ 
++(: check-box/notify-box (All (T) (-> (U (Instance Frame%) (Instance Dialog%) (Instance Pane%) (Instance Panel%))
++                               String (Instance (Notify-Box% Boolean)) (Instance Check-Box%))))
+ (define (check-box/notify-box parent label nb)
+   (define checkbox
+     (new check-box%
+@@ -38,26 +43,34 @@
+   (send nb listen (lambda (value) (send checkbox set-value value)))
+   checkbox)
+ 
++(: choice/notify-box (All (T) (-> (U (Instance Frame%) (Instance Dialog%) (Instance Pane%) (Instance Panel%))
++                               String (Listof String) (Instance (Notify-Box% (U String))) (Instance Choice%))))
+ (define (choice/notify-box parent label choices nb)
+   (define choice
+     (new choice%
+          (label label)
+-         (parent parent)
+-         (style '(horizontal-label))
+          (choices choices)
+-         (callback (lambda (c e) (send nb set (send c get-string-selection))))))
++         (parent parent)
++         ;; moved style 
++         ;; moved (choices choices)
++         (callback (lambda (c e) (send nb set (assert (send c get-string-selection)))))
++         (style '(horizontal-label))))
+   (send choice set-string-selection (send nb get))
+-  (send nb listen (lambda (value) (send choice set-string-selection value)))
++  (send nb listen (lambda: ([value : String]) (send choice set-string-selection value)))
+   choice)
+ 
++(: menu-group/notify-box (All (T) (-> (U (Instance Menu%) (Instance Popup-Menu%)) (Pair String (Listof String)) (Instance (Notify-Box% (U String (Pair String (Listof String)))))
++                                (Listof (Instance Checkable-Menu-Item%)))))
+ (define (menu-group/notify-box parent labels nb)
+-  (map (lambda (option)
++  (map (lambda: ([option : (U String (Pair String (Listof String)))])
++         (: label String) ;; can be null form (Listof String)
+          (define label (if (pair? option) (car option) option))
++         (: menu-item (Instance Checkable-Menu-Item%))
+          (define menu-item
+            (new checkable-menu-item%
+                 (label label)
+                 (parent parent)
+-                (checked (eq? (send nb get) option))
++                (checked (eq? (send nb get) option)) ;; bug? 
+                 (callback
+                  (lambda _ (send nb set option)))))
+          (send nb listen
+diff --git a/gui-lib/framework/private/notify.rkt b/gui-lib/framework/private/notify.rkt
+index fa63a89..eedb6e3 100644
+--- a/gui-lib/framework/private/notify.rkt
++++ b/gui-lib/framework/private/notify.rkt
+@@ -1,10 +1,12 @@
+-#lang racket/base
++#lang typed/racket/base
+ ;; owner: ryanc
+-(require (for-syntax racket/base syntax/parse racket/syntax)
+-         racket/class)
++(require typed/racket/class)
++(require (for-syntax racket/base syntax/parse racket/syntax racket/class))
++
+ (provide define-notify
+          notify-box%
+-         notify-box/pref)
++         notify-box/pref
++         Notify-Box%)
+ 
+ ;; Non-gui parts of notify-boxes
+ ;; Worth splitting into two libraries?
+@@ -12,10 +14,13 @@
+ 
+ (define-for-syntax (mk-init name)
+   (format-id name "init-~a" (syntax-e name)))
++
+ (define-for-syntax (mk-get name)
+   (format-id name "get-~a" (syntax-e name)))
++
+ (define-for-syntax (mk-set name)
+   (format-id name "set-~a" (syntax-e name)))
++
+ (define-for-syntax (mk-listen name)
+   (format-id name "listen-~a" (syntax-e name)))
+ 
+@@ -45,40 +50,53 @@
+                   (define/public-final (listen-name listener)
+                     (send name listen listener))))))]))
+ 
++(define-type Notify-Box% (All (T) (Class (init [value  T])
++                                [get (-> T)]
++                                [set (-> T Void)]
++                                [listen (-> (-> T Void) Void)]
++                                [remove-listener (-> (-> T Void) Void)]
++                                [remove-all-listeners (-> Void)])))
++
++;(: notify-box% Notify-Box%)
+ (define notify-box%
+   (class object%
+-    (init value)
++    #:forall (T)
++    (init [value : T])
++    (: v : T)
+     (define v value)
++    (: listeners (Listof (-> T Void)))
+     (define listeners null)
+-
+-    ;; get : -> value
++    
+     ;; Fetch current value
++    (: get (-> T))
+     (define/public (get)
+       v)
+ 
+-    ;; set : value -> void
+     ;; Update value and notify listeners
++    (: set (-> T Void))
+     (define/public (set nv)
+       (set! v nv)
+-      (for-each (lambda (p) (p nv)) listeners))
++      (for-each (lambda ([p : (-> T Void)]) (p nv)) listeners))
+ 
+-    ;; listen : (value -> void) -> void
+     ;; Add a listener
++    (: listen (-> (-> T Void) Void))
+     (define/public (listen p)
+       (set! listeners (cons p listeners)))
+ 
+-    ;; remove-listener : (value -> void) -> void
++    ;; remove-listener : (T -> void) -> void
++    (: remove-listener (-> (-> T Void) Void))
+     (define/public (remove-listener p)
+       (set! listeners (remq p listeners)))
+ 
+     ;; remove-all-listeners : -> void
++    (: remove-all-listeners (-> Void))
+     (define/public (remove-all-listeners)
+       (set! listeners null))
+ 
+     (super-new)))
+ 
+-
++(: notify-box/pref (All (T) (->* [(case-> (-> T) (-> T Void))] [#:readonly? Boolean] (Instance (Notify-Box% T)))))
+ (define (notify-box/pref pref #:readonly? [readonly? #f])
+-  (define nb (new notify-box% (value (pref))))
++  (define nb (new (inst notify-box% T) (value (pref))))
+   (send nb listen pref)
+-  nb)
++   nb)
+-- 
+1.8.4
+

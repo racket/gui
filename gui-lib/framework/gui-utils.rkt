@@ -26,7 +26,6 @@
                                         (U Any False) 
                                         #:dialog-mixin (Frame% . -> . Frame%)]
                                         (Values (U 1 2 3) Boolean))])
-                                                
 
 
 (: trim-string (-> String Positive-Integer String))
@@ -155,7 +154,7 @@
 
 (: ok/cancel-buttons (->* ((Instance Area-Container<%>)
                           (-> (Instance Button%) (Instance Event%) Any)
-                          (-> (Instance Button%) (Instance Event%) Any))sys
+                          (-> (Instance Button%) (Instance Event%) Any))
                           (String String #:confirm-style (Listof (U 'deleted 'border)))
                           (Values (Instance Button%) (Instance Button%))))
                          
@@ -398,6 +397,21 @@
 (define gui-utils:cancel-on-right? cancel-on-right?)
 (define gui-utils:cursor-delay cursor-delay)
 
+(provide gui-utils:trim-string
+         gui-utils:quote-literal-label
+         gui-utils:format-literal-label
+         gui-utils:next-untitled-name
+         gui-utils:show-busy-cursor
+         gui-utils:delay-action
+         gui-utils:local-busy-cursor
+         gui-utils:unsaved-warning
+         gui-utils:get-choice
+         gui-utils:get-clicked-clickback-delta
+         gui-utils:get-clickback-delta
+         gui-utils:ok/cancel-buttons
+         gui-utils:cancel-on-right?
+         gui-utils:cursor-delay)
+
 #;
 (provide/doc
  (proc-doc
@@ -450,7 +464,6 @@
     
     See also @racket[gui-utils:ok/cancel-buttons].})
 
-;; (: proc-doc/names (-> ))
  (proc-doc/names
   gui-utils:ok/cancel-buttons
   (->* ((is-a?/c area-container<%>)

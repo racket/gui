@@ -1,0 +1,86 @@
+From 2b7379cd63aeb2136cefa795470fa82d725aa2fa Mon Sep 17 00:00:00 2001
+From: Earl Dean <earldean@indiana.edu>
+Date: Wed, 25 Nov 2015 10:53:52 -0500
+Subject: [PATCH 1/2] logging-timer.rkt ported to typed-racket
+
+---
+ gui-lib/framework/private/logging-timer.rkt | 23 +++++++++++++++++------
+ gui-lib/framework/private/notify.rkt        |  1 -
+ 2 files changed, 17 insertions(+), 7 deletions(-)
+
+diff --git a/gui-lib/framework/private/logging-timer.rkt b/gui-lib/framework/private/logging-timer.rkt
+index 0c9ad72..8d6cdc8 100644
+--- a/gui-lib/framework/private/logging-timer.rkt
++++ b/gui-lib/framework/private/logging-timer.rkt
+@@ -1,19 +1,25 @@
+-#lang racket/base
++#lang typed/racket/base
+ 
+-(require racket/gui/base
+-         racket/class
++(require typed/racket/class typed/racket/gui/base)
++(require ;racket/gui/base
++         ;racket/class
+          (for-syntax racket/base))
+ 
+ (define timeline-logger (make-logger 'timeline (current-logger)))
+ 
+ (provide logging-timer%
++         Logging-Timer%
+          (struct-out timeline-info)
+          log-timeline)
+ 
++(define-type Logging-Timer% (Class #:implements Timer%))
++                                                                   
+ (define logging-timer%
+   (class timer%
+-    (init notify-callback)
++    (init [notify-callback : (-> Any)])
++    (: name : Any)
+     (define name (object-name notify-callback))
++    (: wrapped-notify-callback (-> Any))
+     (define wrapped-notify-callback
+       (λ ()
+         (log-timeline
+@@ -38,6 +44,7 @@
+              info-string)
+         #f)]))
+ 
++(: log-timeline/proc (All (T) (-> Any (U (-> T) False) (U T Void))))
+ (define (log-timeline/proc info expr)
+   (define start-time (current-inexact-milliseconds))
+   (when info
+@@ -50,7 +57,7 @@
+     (begin0
+       (expr)
+       (when info
+-        (define end-time (current-inexact-milliseconds))
++        (define end-time (current-process-milliseconds)) 
+         (log-message timeline-logger 'debug 
+                      (format "~a   end; delta ms ~a" info (- end-time start-time))
+                      (timeline-info start-time
+@@ -63,4 +70,8 @@
+ ;;    a start event corresponding to it with that milliseconds 
+ ;; process-milliseconds : fixnum
+ ;; milliseconds : flonum -- time of this event
+-(struct timeline-info (what process-milliseconds milliseconds) #:transparent)
++
++(struct timeline-info ([what : (U 'start 'once Flonum)]
++                       [process-milliseconds : Fixnum]
++                       [milliseconds : Flonum]) #:transparent)
++#;(struct timeline-info (what process-milliseconds milliseconds) #:transparent)
+diff --git a/gui-lib/framework/private/notify.rkt b/gui-lib/framework/private/notify.rkt
+index eedb6e3..a274d59 100644
+--- a/gui-lib/framework/private/notify.rkt
++++ b/gui-lib/framework/private/notify.rkt
+@@ -57,7 +57,6 @@
+                                 [remove-listener (-> (-> T Void) Void)]
+                                 [remove-all-listeners (-> Void)])))
+ 
+-;(: notify-box% Notify-Box%)
+ (define notify-box%
+   (class object%
+     #:forall (T)
+-- 
+1.8.4
+
