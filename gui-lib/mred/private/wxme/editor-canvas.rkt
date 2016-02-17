@@ -967,7 +967,11 @@
                          (when scroll-via-copy?
                            (set! on-scroll-to-called? #t)
                            (begin-refresh-sequence)
-                           (when scroll-via-copy? (when ed (send ed on-scroll-to))))
+                           (when scroll-via-copy?
+                             (when ed
+                               (call-as-primary-owner
+                                (λ ()
+                                  (send ed on-scroll-to))))))
                          (set-scroll-pos 'horizontal x))
                        #t))))
          ;; Set y
@@ -981,7 +985,10 @@
                            (when scroll-via-copy?
                              (set! on-scroll-to-called? #t)
                              (begin-refresh-sequence)
-                             (when ed (send ed on-scroll-to))))
+                             (when ed
+                               (call-as-primary-owner
+                                (λ ()
+                                  (send ed on-scroll-to))))))
                          (set-scroll-pos 'vertical y))
                        #t))))))
       
@@ -1040,7 +1047,10 @@
             (repaint)))
 
       (when on-scroll-to-called?
-        (when ed (send ed after-scroll-to))
+        (when ed
+          (call-as-primary-owner
+           (λ ()
+             (send ed after-scroll-to))))
         (end-refresh-sequence))))
 
   (define/override (set-scrollbars x y x2 y2 x3 y3 x4 y4 ?) (void))
