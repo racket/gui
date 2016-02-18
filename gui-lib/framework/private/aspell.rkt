@@ -1,4 +1,5 @@
 #lang typed/racket/base
+
 (require racket/system
          racket/match
          ;racket/contract
@@ -9,6 +10,7 @@
  [query-aspell (->* ((and/c string? (not/c #rx"[\n]")))
                     ((or/c #f string?))
                     (listof (list/c number? number? (listof string?))))]
+
 
  ;; may return #f when aspell is really ispell or when
  ;; something goes wrong trying to get the list of dictionaries
@@ -31,6 +33,8 @@
     "/usr/local/bin"
     "/opt/local/bin/"))
 
+(define-type dictionary (Listof (List Number Number (Listof String))))
+
 (: find-aspell-binary-path (-> (U Path False)))
 (define (find-aspell-binary-path)
   (define aspell (if (eq? (system-type 'os) 'windows) "aspell.exe" "aspell"))
@@ -48,7 +52,7 @@
                  c2)))))
 
 (: start-aspell
-      (-> Path (U (Listof String) False)
+      (-> Path (U String False)
                       (List Input-Port Output-Port Exact-Nonnegative-Integer Input-Port
                        (case->
                         [-> 'status (U 'running 'done-ok 'done-error)]
@@ -60,10 +64,10 @@
   (: aspell? : Boolean)
   (define aspell? (regexp-match? #rx"aspell" (path->string asp)))
   (apply process* asp 
-         ((inst append String) 
+         (append  
           '("-a")
           (if dict
-              (cons "-d" dict) 
+              (list "-d" dict) 
               '())
           (if aspell? '("--encoding=utf-8") '()))))
 
@@ -123,12 +127,15 @@
 (define (asp-log/proc arg)
   (log-message asp-logger 'debug arg (current-continuation-marks)))
 
-(: aspell-req-chan : (Channelof (List String (U False (Listof String)) (Channelof Any) Any)))
+(: aspell-req-chan : (Channelof (List String (U False String) (Channelof dictionary) (Evtof Any))))
 (define aspell-req-chan (make-channel))
+
 (: change-dict-chan : (Channelof (U False (Listof String))))
 (define change-dict-chan (make-channel))
+
 (: aspell-thread : (U Thread False))
 (define aspell-thread #f)
+
 (: start-aspell-thread (-> (U (-> Thread) Void)))
 (define (start-aspell-thread)
   (unless aspell-thread
@@ -145,7 +152,7 @@
              (define aspell-proc #f)
              (: already-attempted-aspell? Boolean)
              (define already-attempted-aspell? #f)
-             (: current-dict (U False (Listof String)))
+             (: current-dict (U False String))
              (define current-dict #f)
              
              (define (fire-up-aspell)
@@ -187,7 +194,8 @@
              
              (let loop ()
                (sync
-                ((inst handle-evt (List String (Listof String) (Channelof (Listof String)) (Evtof Any)) Any)
+                ((inst handle-evt
+                       (List String (U False String) (Channelof dictionary) (Evtof Any)) Any)
                  aspell-req-chan
                  (match-lambda
                    [(list line new-dict resp-chan nack-evt)
@@ -198,7 +206,7 @@
                       (set! current-dict new-dict))
                     (unless aspell-proc (fire-up-aspell))
                     ;; send the channel
-                    (: send-resp (-> (Listof String) Any))
+                    (: send-resp (-> (Listof (List Number Number (Listof String))) Any))
                     (define (send-resp resp)
                       (sync (channel-put-evt resp-chan resp)
                             nack-evt))
@@ -213,7 +221,7 @@
                        (display line stdin) 
                        (newline stdin)
                        (flush-output stdin)
-                       (let loop ([resp : (Listof String) '()])
+                       (let loop ([resp : (Listof (List Number Number (Listof String))) '()])
                          (define check-on-aspell (sync/timeout .5 stdout))
                          (cond
                            [check-on-aspell
@@ -234,20 +242,20 @@
                               [(regexp-match #rx"^[&] ([^ ]*) [0-9]+ ([0-9]+): (.*)$" l) 
                                =>
                                (λ (m)
-                                 (define word-len (string-length (cadr m))) ;; 1st index of m
+                                 (define word-len (string-length (assert (cadr m)))) ;; 1st index of m
                                  ;; subtract one to correct for the leading ^
-                                 (define word-start (- (string->number (caddr m)) 1)) ;; 2nd index of m
+                                 (define word-start (- (assert (string->number (assert (caddr m)))) 1)) ;; 2nd index of m
                                  (define suggestions (cadddr m)) ;; 3rd index of m
                                  (loop 
                                   (cons 
-                                   (list word-start word-len (regexp-split #rx", " suggestions))
+                                   (list word-start word-len (regexp-split #rx", " (assert suggestions)))
                                    resp)))]
                               [(regexp-match #rx"^[#] ([^ ]*) ([0-9]+)" l) 
                                =>
                                (λ (m)
-                                 (define word-len (string-length (cadr m))) ;; 1sr index of m
+                                 (define word-len (string-length (assert (cadr m)))) ;; 1sr index of m
                                  ;; subtract one to correct for the leading ^
-                                 (define word-start (- (string->number (caddr m)) 1)) ;; 2nd index of m
+                                 (define word-start (- (assert (string->number (assert (caddr m)))) 1)) ;; 2nd index of m
                                  (loop (cons (list word-start word-len '()) resp)))]
                               [else
                                (send-resp '())
@@ -258,22 +266,23 @@
                       [else (send-resp '())])
                     (loop)])))))))))
 
-(: query-aspell (->* [String] [(U False (Listof String))] Null))
+(: query-aspell (->* [String] [(U False String)] dictionary))
 (define (query-aspell line [dict #f])
   (cond
     [(aspell-problematic?)
      '()]
     [else
      (when dict
-       (unless ((inst member String) dict (assert (get-aspell-dicts)))
+       (unless (member dict (assert (get-aspell-dicts)))
          (set! dict #f)))
      
      (start-aspell-thread)
-     (sync
+     (sync 
       (nack-guard-evt
-       (λ (nack-evt)
+       (λ ([nack-evt : (Evtof Any)])
+         (: resp (Channelof dictionary))
          (define resp (make-channel))
-         ((inst channel-put (List String (U False (Listof String)) (Channelof Any) Any))
+         (channel-put
           aspell-req-chan (list line dict resp nack-evt)) 
          resp)))]))
 

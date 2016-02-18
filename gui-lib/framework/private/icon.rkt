@@ -26,28 +26,41 @@
 (define-runtime-path left-right-mask-path '(lib "left-right-mask.xbm" "icons"))
 (define-runtime-path left-right-csr-path '(lib "left-right-cursor.xbm" "icons"))
 
+#;
+(: icon@ (Unit
+          (import mred^)
+          (export framework:icon^)
+          Void))
+
 (define-unit icon@
   (import mred^)
   (export framework:icon^)
-  
+
+  #; (: eof-bitmap : (-> (Instanceof BitMap%)))
   (define eof-bitmap (delay/sync (let ([bm (make-object bitmap% eof-bitmap-path)])
                                    (unless (send bm ok?)
                                      (error 'eof-bitmap "not ok ~s\n" eof-bitmap-path))
                                    bm)))
-  (define (get-eof-bitmap) (force eof-bitmap))
   
+  (define (get-eof-bitmap) (force eof-bitmap))
+
+  #; (: anchor-bitmap (Instanceof BitMap%))
   (define anchor-bitmap (delay/sync (make-object bitmap% anchor-bitmap-path)))
   (define (get-anchor-bitmap) (force anchor-bitmap))
-  
+
+  #; (: lock-bitmap (Instanceof BitMap%))
   (define lock-bitmap (delay/sync (make-object bitmap% lock-bitmap-path)))
   (define (get-lock-bitmap) (force lock-bitmap))
-  
+
+  #; (: unlock-bitmap (Instanceof BitMap%))
   (define unlock-bitmap (delay/sync (make-object bitmap% unlock-bitmap-path)))
   (define (get-unlock-bitmap) (force unlock-bitmap))
-  
+
+  #; (: autowrap-bitmap (Instanceof BitMap%))
   (define autowrap-bitmap (delay/sync (make-object bitmap% return-bitmap-path)))
   (define (get-autowrap-bitmap) (force autowrap-bitmap))
-  
+
+  #; (: paren-highlight-bitmap (Instanceof BitMap%))
   (define paren-highlight-bitmap (delay/sync (make-object bitmap% paren-bitmap-path)))
   (define (get-paren-highlight-bitmap) (force paren-highlight-bitmap))
   
