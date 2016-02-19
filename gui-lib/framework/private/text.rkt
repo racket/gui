@@ -4433,12 +4433,12 @@ designates the character that triggers autocompletion
 
     (define/private (text-width dc stuff)
       (define-values (font-width font-height baseline space)
-                     (send dc get-text-extent stuff))
+        (send dc get-text-extent stuff (get-style-font)))
       font-width)
 
     (define/private (text-height dc stuff)
       (define-values (font-width height baseline space)
-                     (send dc get-text-extent stuff))
+        (send dc get-text-extent stuff (get-style-font)))
       height)
 
     (define old-clipping #f)
