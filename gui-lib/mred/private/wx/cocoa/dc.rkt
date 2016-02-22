@@ -153,9 +153,11 @@
                (display-bitmap-resolution 0 void)))
 
 (define (make-window-bitmap w h win [trans? #t] [flipped? #f])
-  (if win
-      (make-object layer-bitmap% w h win trans? flipped?)
-      (make-screen-bitmap w h)))
+  (let ([w (max 1 w)]
+        [h (max 1 h)])
+    (if win
+        (make-object layer-bitmap% w h win trans? flipped?)
+        (make-screen-bitmap w h))))
 
 (define layer-bitmap%
   (class quartz-bitmap%
