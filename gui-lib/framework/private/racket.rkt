@@ -702,6 +702,8 @@
                     (- id-end contains)
                     0))
               (cond
+                [(first-sexp-is-keyword? contains)
+                 (visual-offset contains)]
                 [(second-sexp-is-ellipsis? contains)
                  (visual-offset contains)]
                 [(not (find-up-sexp pos))
@@ -738,6 +740,13 @@
                              (and (or (not thrd-start)
                                       (not (= (position-paragraph thrd-start)
                                               (position-paragraph snd-start)))))))))))))
+
+    (define/private (first-sexp-is-keyword? contains)
+      (let ([fst-end (get-forward-sexp contains)])
+        (and fst-end
+             (let ([fst-start (get-backward-sexp fst-end)])
+               (and fst-start
+                    (equal? (classify-position fst-start) 'hash-colon-keyword))))))
     
     (define/public (tabify-selection [start-pos (get-start-position)]
                                      [end-pos (get-end-position)])

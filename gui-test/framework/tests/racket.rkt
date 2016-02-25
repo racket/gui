@@ -171,6 +171,10 @@
                   "(r a\n   b\n   c\n   d\n   e\n   f\n   g")
 (test-indentation "(r a b\nc d\ne f\ng h"
                   "(r a b\n   c d\n   e f\n   g h")
+(test-indentation "(#:x\n1)"
+                  "(#:x\n 1)")
+(test-indentation "(#:x 0\n1)"
+                  "(#:x 0\n 1)")
 
 
 (define (test-magic-square-bracket which before after)
