@@ -32,26 +32,19 @@
   (class backing-dc%
     (init [(cnvs canvas)]
           transparent?)
+
     (define canvas cnvs)
+    (define gl #f)
+    (define trans? transparent?)
 
     (inherit end-delay internal-get-bitmap internal-copy)
     (super-new [transparent? transparent?])
 
-    (define gl #f)
     (define/override (get-gl-context)
       (and (send canvas can-gl?)
            (let ([gl-ctx (tell (send canvas get-cocoa-content) openGLContext)])
              (or gl
-                 (let ([g (new (class gl-context%
-                                 (define/override (get-handle) gl-ctx)
-                                 (define/override (do-call-as-current t)
-                                   (dynamic-wind
-                                       (lambda () (tellv gl-ctx makeCurrentContext))
-                                       t
-                                       (lambda () (tellv NSOpenGLContext clearCurrentContext))))
-                                 (define/override (do-swap-buffers)
-                                   (tellv gl-ctx flushBuffer))
-                                 (super-new)))])
+                 (let ([g (new dc-gl-context% [gl-ctx gl-ctx])])
                    ;; By default, disable screen sync for GL flushBuffer; otherwise,
                    ;; flushBuffer can take around 10 msec depending on the timing
                    ;; of event polling, and that can be bad for examples like gears.
@@ -63,7 +56,6 @@
                    g)))))
 
     ;; Use a quartz bitmap so that text looks good:
-    (define trans? transparent?)
     (define/override (make-backing-bitmap w h) 
       (make-window-bitmap w h (send canvas get-cocoa-window) 
                           trans?
@@ -101,6 +93,20 @@
       (send canvas request-canvas-flush-delay))
     (define/override (cancel-delay req)
       (send canvas cancel-canvas-flush-delay req))))
+
+(define dc-gl-context%
+  (class gl-context%
+    (init [(gtx gl-ctx)])
+    (define gl-ctx gtx)
+    (define/override (get-handle) gl-ctx)
+    (define/override (do-call-as-current t)
+      (dynamic-wind
+       (lambda () (tellv gl-ctx makeCurrentContext))
+       t
+       (lambda () (tellv NSOpenGLContext clearCurrentContext))))
+    (define/override (do-swap-buffers)
+      (tellv gl-ctx flushBuffer))
+    (super-new)))
 
 (define-local-member-name get-layer)
 
@@ -167,20 +173,23 @@
     (define layer (make-layer win w h))
     (define layer-w w)
     (define layer-h h)
-    (define/public (get-layer) layer)
 
     (define is-trans? trans?)
+    (define s-bm #f)
 
-    (let ([bs (inexact->exact 
-               (display-bitmap-resolution 0 (lambda () 1)))])
-      (super-make-object w h trans? bs
-                         (let ([cg (CGLayerGetContext layer)])
-                           (unless flipped?
-                             (CGContextTranslateCTM cg 0 h)
-                             (CGContextScaleCTM cg 1 -1))
-                           (unless (= bs 1)
-                             (CGContextScaleCTM cg (/ 1 bs) (/ 1 bs)))
-                           cg)))
+    (define bs (inexact->exact
+                (display-bitmap-resolution 0 (lambda () 1))))
+
+    (super-make-object w h trans? bs
+                       (let ([cg (CGLayerGetContext layer)])
+                         (unless flipped?
+                           (CGContextTranslateCTM cg 0 h)
+                           (CGContextScaleCTM cg 1 -1))
+                         (unless (= bs 1)
+                           (CGContextScaleCTM cg (/ 1 bs) (/ 1 bs)))
+                         cg))
+
+    (define/public (get-layer) layer)
 
     (define/override (draw-bitmap-to cr sx sy dx dy w h alpha clipping-region)
       ;; Called when the destination rectangle is inside the clipping region
@@ -272,7 +281,6 @@
       (CGContextRestoreGState cg)
       (CGContextSaveGState cg))
 
-    (define s-bm #f)
     (define/override (get-cairo-surface)
       ;; Convert to a platform bitmap, which Cairo understands
       (let ([t-bm (or s-bm

@@ -43,6 +43,13 @@
   (class (record-dc-mixin (dc-mixin bitmap-dc-backend%))
     (init transparent?)
 
+    (define retained-cr #f)
+    (define retained-counter 0)
+    (define needs-flush? #f)
+    (define nada? #t)
+    (define flush-suspends 0)
+    (define req #f)
+
     (inherit internal-get-bitmap
              internal-set-bitmap
              reset-cr
@@ -66,11 +73,6 @@
     ;;  to the screen; called atomically (expecting no exceptions)
     (define/public (queue-backing-flush)
       (void))
-
-    (define retained-cr #f)
-    (define retained-counter 0)
-    (define needs-flush? #f)
-    (define nada? #t)
 
     ;; called with a procedure that is applied to a bitmap;
     ;;  returns #f if there's nothing to flush
@@ -146,9 +148,6 @@
     (define/public (clean-slate)
       (super erase)
       (set! nada? #t))
-
-    (define flush-suspends 0)
-    (define req #f)
 
     (define/public (request-delay) (void))
     (define/public (cancel-delay req) (void))
