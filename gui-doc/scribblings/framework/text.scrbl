@@ -539,8 +539,9 @@
     @racket['framework:anchored-search] preference is on.
   }
 
-  @defmethod[(get-search-hit-count) number?]{
-    Returns the number of hits for the search in the buffer, based on the count
+  @defmethod[(get-search-hit-count) (values number? number?)]{
+    Returns the number of hits for the search in the buffer before the
+    insertion point and the total number of hits. Both are based on the count
     found last time that a search completed.
   }
 
