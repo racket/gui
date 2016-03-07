@@ -51,33 +51,34 @@ the state transitions / contracts are:
   
   (define (get-preference/gui sym [def (λ () (error 'get-preference/gui "unknown pref ~s" sym))])
     (define (try)
-      (get-preference sym
-                      def
-                      #:timeout-lock-there
-                      (λ (filename)
-                        (define what-to-do
-                          (cond
-                            [get-pref-retry-result
-                             get-pref-retry-result]
-                            [else
-                             (define-values (res dont-ask-again?)
-                               (message+check-box/custom
-                                (string-constant error-reading-preferences)
-                                (format (string-constant error-reading-preferences-explanation)
-                                        sym)
-                                (string-constant dont-ask-again-until-drracket-restarted) ;; check label
-                                (string-constant try-again)
-                                (string-constant give-up-and-use-the-default)
-                                #f
-                                #f
-                                '(caution default=1)
-                                1)) ;; cannot return #f here or get-pref-retry-result may get set wrong
-                             (when dont-ask-again?
-                               (set! get-pref-retry-result res))
-                             res]))
-                        (case what-to-do
-                          [(1) (try)]
-                          [(2) (def)]))))
+      (get-preference
+       sym
+       def
+       #:timeout-lock-there
+       (λ (filename)
+         (define what-to-do
+           (cond
+             [get-pref-retry-result
+              get-pref-retry-result]
+             [else
+              (define-values (res dont-ask-again?)
+                (message+check-box/custom
+                 (string-constant error-reading-preferences)
+                 (format (string-constant error-reading-preferences-explanation)
+                         sym)
+                 (string-constant dont-ask-again-until-drracket-restarted) ;; check label
+                 (string-constant try-again)
+                 (string-constant give-up-and-use-the-default)
+                 #f
+                 #f
+                 '(caution default=1)
+                 1)) ;; cannot return #f here or get-pref-retry-result may get set wrong
+              (when dont-ask-again?
+                (set! get-pref-retry-result res))
+              res]))
+         (case what-to-do
+           [(1) (try)]
+           [(2) (def)]))))
     (try))
                           
   
@@ -127,7 +128,9 @@ the state transitions / contracts are:
                #f
                #f ;;parent
                '(default=2 caution))]
-             [else (error 'preferences.rkt "preferences-lock-file-mode returned unknown mode ~s\n" the-mode)]))
+             [else (error 'preferences.rkt
+                          "preferences-lock-file-mode returned unknown mode ~s\n"
+                          the-mode)]))
          (case mb-ans
            [(2 #f) (record-actual-failure)]
            [(1) 
@@ -457,7 +460,8 @@ the state transitions / contracts are:
                  (list (string-constant editor-prefs-panel-label) 
                        (string-constant editor-general-prefs-panel-label))
                  (λ (editor-panel)
-                   (add-check editor-panel 'framework:delete-forward? (string-constant map-delete-to-backspace)
+                   (add-check editor-panel 'framework:delete-forward?
+                              (string-constant map-delete-to-backspace)
                               not not)
                    (add-check editor-panel 
                               'framework:auto-set-wrap?
@@ -543,48 +547,46 @@ the state transitions / contracts are:
                    
                    (editor-panel-procs editor-panel))))])
       (add-editor-checkbox-panel)))
-  
-  (define (add-general-checkbox-panel)
-    (letrec ([add-general-checkbox-panel
-              (λ ()
-                (set! add-general-checkbox-panel void)
-                (add-checkbox-panel 
-                 (list (string-constant general-prefs-panel-label))
-                 (λ (editor-panel)
-                   (make-recent-items-slider editor-panel)
-                   (add-check editor-panel
-                              'framework:autosaving-on? 
-                              (string-constant auto-save-files))
-                   (add-check editor-panel 'framework:backup-files? (string-constant backup-files))
-                   (add-check editor-panel 'framework:show-status-line (string-constant show-status-line))
-                   ;; does this not belong here?
-                   ;; (add-check editor-panel 'drracket:show-line-numbers (string-constant show-line-numbers)
-                   (add-check editor-panel 'framework:col-offsets (string-constant count-columns-from-one))
-                   (add-check editor-panel 
-                              'framework:display-line-numbers
-                              (string-constant display-line-numbers))
-                   (define print-rb (new radio-box% 
-                                         [label (string-constant printing-mode)]
-                                         [parent editor-panel]
-                                         [choices (list (string-constant print-using-platform-specific-mode)
-                                                        (string-constant print-to-ps)
-                                                        (string-constant print-to-pdf))]
-                                         [callback
-                                          (λ (rb evt)
-                                            (preferences:set 'framework:print-output-mode
-                                                             (case (send print-rb get-selection)
-                                                               [(0) 'standard]
-                                                               [(1) 'postscript]
-                                                               [(2) 'pdf])))]))
-                   (define (update-print-rb what)
-                     (send print-rb set-selection (case what
-                                                    [(standard) 0]
-                                                    [(postscript) 1]
-                                                    [(pdf) 2])))
-                   (update-print-rb (preferences:get 'framework:print-output-mode))
-                   (preferences:add-callback 'framework:print-output-mode (λ (p v) (update-print-rb v)))
-                   (general-panel-procs editor-panel))))])
-      (add-general-checkbox-panel)))
+
+(define (add-general-checkbox-panel) (add-general-checkbox-panel/real))
+(define (add-general-checkbox-panel/real)
+  (set! add-general-checkbox-panel/real void)
+  (add-checkbox-panel 
+   (list (string-constant general-prefs-panel-label))
+   (λ (editor-panel)
+     (make-recent-items-slider editor-panel)
+     (add-check editor-panel
+                'framework:autosaving-on? 
+                (string-constant auto-save-files))
+     (add-check editor-panel 'framework:backup-files? (string-constant backup-files))
+     (add-check editor-panel 'framework:show-status-line (string-constant show-status-line))
+     ;; does this not belong here?
+     ;; (add-check editor-panel 'drracket:show-line-numbers (string-constant show-line-numbers)
+     (add-check editor-panel 'framework:col-offsets (string-constant count-columns-from-one))
+     (add-check editor-panel 
+                'framework:display-line-numbers
+                (string-constant display-line-numbers))
+     (define print-rb (new radio-box% 
+                           [label (string-constant printing-mode)]
+                           [parent editor-panel]
+                           [choices (list (string-constant print-using-platform-specific-mode)
+                                          (string-constant print-to-ps)
+                                          (string-constant print-to-pdf))]
+                           [callback
+                            (λ (rb evt)
+                              (preferences:set 'framework:print-output-mode
+                                               (case (send print-rb get-selection)
+                                                 [(0) 'standard]
+                                                 [(1) 'postscript]
+                                                 [(2) 'pdf])))]))
+     (define (update-print-rb what)
+       (send print-rb set-selection (case what
+                                      [(standard) 0]
+                                      [(postscript) 1]
+                                      [(pdf) 2])))
+     (update-print-rb (preferences:get 'framework:print-output-mode))
+     (preferences:add-callback 'framework:print-output-mode (λ (p v) (update-print-rb v)))
+     (general-panel-procs editor-panel))))
   
   (define (add-warnings-checkbox-panel)
     (letrec ([add-warnings-checkbox-panel
@@ -639,7 +641,8 @@ the state transitions / contracts are:
                    (cond
                      [(string? default) string?]
                      [(number? default) number?]
-                     [else (error 'internal-error.set-default "unrecognized default: ~a\n" default)])))))])
+                     [else (error 'internal-error.set-default
+                                  "unrecognized default: ~a\n" default)])))))])
       
       (for-each (set-default build-font-entry font-default-string string?)
                 font-families)
