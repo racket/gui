@@ -502,51 +502,54 @@ the state transitions / contracts are:
                               'framework:line-spacing-add-gap?
                               (string-constant add-spacing-between-lines))
                    
-                   (let ([hp (new horizontal-panel% [parent editor-panel] [stretchable-height #f])]
-                         [init-pref (preferences:get 'framework:column-guide-width)])
-                     (define on-cb
-                       (new check-box% 
-                            [parent hp]
-                            [label (string-constant maximum-char-width-guide-pref-check-box)]
-                            [value (car init-pref)]
-                            [callback
-                             (λ (x y)
-                               (update-pref)
-                               (update-tf-bkg)
-                               (send tf enable (send on-cb get-value)))]))
-                     (define tf 
-                       (new text-field%
-                            [label #f]
-                            [parent hp]
-                            [init-value (format "~a" (cadr init-pref))]
-                            [callback
-                             (λ (x y)
-                               (update-pref)
-                               (update-tf-bkg))]))
-                     (define (update-tf-bkg)
-                       (send tf set-field-background
-                             (send the-color-database find-color 
-                                   (cond
-                                     [(not (send on-cb get-value)) "gray"]
-                                     [(good-val? (string->number (send tf get-value)))
-                                      "white"]
-                                     [else
-                                      "yellow"]))))
-                     (define (good-val? n)
-                       (and (exact-integer? n)
-                            (>= n 2)))
-                     (define (update-pref)
-                       (define current (preferences:get 'framework:column-guide-width))
-                       (define candidate-num (string->number (send tf get-value)))
-                       (preferences:set 'framework:column-guide-width
-                                        (list (send on-cb get-value)
-                                              (if (good-val? candidate-num)
-                                                  candidate-num
-                                                  (cadr current)))))
-                     (update-tf-bkg))
+                   (add-number editor-panel
+                               'framework:column-guide-width
+                               (string-constant maximum-char-width-guide-pref-check-box)
+                               (λ (n) (and (exact-integer? n) (>= n 2))))
                    
                    (editor-panel-procs editor-panel))))])
       (add-editor-checkbox-panel)))
+
+(define (add-number editor-panel pref-name label good-val?)
+  (define hp (new horizontal-panel% [parent editor-panel] [stretchable-height #f]))
+  (define init-pref (preferences:get pref-name))
+  (define on-cb
+    (new check-box% 
+         [parent hp]
+         [label label]
+         [value (car init-pref)]
+         [callback
+          (λ (x y)
+            (update-pref)
+            (update-tf-bkg)
+            (send tf enable (send on-cb get-value)))]))
+  (define tf 
+    (new text-field%
+         [label #f]
+         [parent hp]
+         [init-value (format "~a" (cadr init-pref))]
+         [callback
+          (λ (x y)
+            (update-pref)
+            (update-tf-bkg))]))
+  (define (update-tf-bkg)
+    (send tf set-field-background
+          (send the-color-database find-color 
+                (cond
+                  [(not (send on-cb get-value)) "gray"]
+                  [(good-val? (string->number (send tf get-value)))
+                   "white"]
+                  [else
+                   "yellow"]))))
+  (define (update-pref)
+    (define current (preferences:get pref-name))
+    (define candidate-num (string->number (send tf get-value)))
+    (preferences:set pref-name
+                     (list (send on-cb get-value)
+                           (if (good-val? candidate-num)
+                               candidate-num
+                               (cadr current)))))
+  (update-tf-bkg))
 
 (define (add-general-checkbox-panel) (add-general-checkbox-panel/real))
 (define (add-general-checkbox-panel/real)

@@ -58,8 +58,7 @@ the state transitions / contracts are:
 (define (pref-un/marshall-set? pref) (hash-has-key? marshall-unmarshall pref))
 (define (preferences:default-set? pref) (hash-has-key? defaults pref))
 (define (pref-can-init? pref)
-  (and (not snapshot-grabbed?)
-       (not (hash-has-key? preferences pref))))
+  (not (hash-has-key? preferences pref)))
 
 ;; type un/marshall = (make-un/marshall (any -> prinable) (printable -> any))
 (define-struct un/marshall (marshall unmarshall))
@@ -343,9 +342,7 @@ the state transitions / contracts are:
           value))))
   
 (define-struct preferences:snapshot (x))
-(define snapshot-grabbed? #f)
 (define (preferences:get-prefs-snapshot)
-  (set! snapshot-grabbed? #t)
   (make-preferences:snapshot 
    (hash-map defaults 
              (λ (k v) (cons k (copy-pref-value k (preferences:get k)))))))
@@ -374,12 +371,12 @@ the state transitions / contracts are:
   (symbol value)
   @{Sets the preference
     @racket[symbol] to @racket[value]. It should be called when the
-    users requests a change to a preference.
+    user requests a change to a preference.
     
     @racket[preferences:set] immediately writes the preference value to disk.    
     It raises an exception matching
     @racket[exn:unknown-preference?]
-    if the preference's default has not been set.
+    if the preference's default has not been set
     
     See also @racket[preferences:set-default].})
 
@@ -419,7 +416,8 @@ the state transitions / contracts are:
     
     This function raises an exception matching
     @racket[exn:unknown-preference?]
-    if the preference has not been set.})
+    if the preference default has not been set via
+    @racket[preferences:set-default].})
  (proc-doc/names
   preferences:set-default
   (->* (symbol? any/c (any/c . -> . any))
@@ -437,6 +435,8 @@ the state transitions / contracts are:
     
     This sets the default value of the preference @racket[symbol] to
     @racket[value]. If the user has chosen a different setting,
+    (reflected via a call to @racket[preferences:set], possibly
+    in a different run of your program),
     the user's setting will take precedence over the default value.
     
     The @racket[test] argument is used as a safeguard. That function is
@@ -450,7 +450,11 @@ the state transitions / contracts are:
     expected to be a list of symbols that correspond to old versions
     of the preferences. It defaults to @racket['()]. If @racket[rewrite-aliases]
     is present, it is used to adjust the old values of the preferences
-    when they are present in the saved file.})
+    when they are present in the saved file.
+
+    @history[#:changed "1.23" @list{Allow @racket[preferences:set-default]
+               to be called even after a snapshot has been grabbed.}]
+ })
  
  (proc-doc/names
   preferences:default-set?
@@ -566,7 +570,9 @@ the state transitions / contracts are:
   preferences:restore-prefs-snapshot 
   (-> preferences:snapshot? void?)
   (snapshot)
-  @{Restores the preferences saved in @racket[snapshot].
+  @{Restores the preferences saved in @racket[snapshot], updating
+    all of the preferences values to the ones they had at the time
+    that @racket[preferences:get-prefs-snapshot] was called.
     
     See also @racket[preferences:get-prefs-snapshot].})
  
@@ -574,7 +580,7 @@ the state transitions / contracts are:
   preferences:get-prefs-snapshot 
   (-> preferences:snapshot?)
   ()
-  @{Caches all of the current values of the preferences and returns them.
+  @{Caches all of the current values of the known preferences and returns them.
     For any preference that has marshalling and unmarshalling set
     (see @racket[preferences:set-un/marshall]), the preference value is
     copied by passing it through the marshalling and unmarshalling process.
