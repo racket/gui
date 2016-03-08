@@ -1,7 +1,13 @@
 #lang racket/base
 (require racket/class
          racket/gui/base
+         racket/contract
+         string-constants
          framework)
+
+(define paragraph-width-pref-name 'scribble-reindent-paragraph-width)
+(define paragraph-width-good-val? (and/c exact-nonnegative-integer? (>=/c 10)))
+(preferences:set-default paragraph-width-pref-name 60 paragraph-width-good-val?)
 
 (define surrogate%
   (class (racket:text-mode-mixin 
@@ -15,12 +21,41 @@
       (super on-disable-surrogate txt))
     (super-new)))
 
+(preferences:add-to-editor-checkbox-panel
+ (λ (editor-panel)
+   (define hp (new horizontal-panel% [parent editor-panel] [stretchable-height #f]))
+   (define tf 
+     (new text-field%
+          [label (string-constant reflow-paragraph-maximum-width)]
+          [parent hp]
+          [init-value (format "~a" (preferences:get paragraph-width-pref-name))]
+          [callback
+           (λ (x y)
+             (update-pref)
+             (update-tf-bkg))]))
+   (define (update-tf-bkg)
+     (send tf set-field-background
+           (send the-color-database find-color 
+                 (cond
+                   [(paragraph-width-good-val? (string->number (send tf get-value)))
+                    "white"]
+                   [else
+                    "yellow"]))))
+   (define (update-pref)
+     (define current (preferences:get paragraph-width-pref-name))
+     (define candidate-num (string->number (send tf get-value)))
+     (when (paragraph-width-good-val? candidate-num)
+       (preferences:set paragraph-width-pref-name candidate-num)))
+   (update-tf-bkg)))
+
 (define at-exp-keymap (new keymap:aug-keymap%))
 (define (reindent-paragraph t evt)
   (unless (send t is-stopped?)
     (define sp (send t get-start-position))
     (when (= sp (send t get-end-position))
-      (paragraph-indentation t sp 60))))
+      (paragraph-indentation
+       t sp
+       (preferences:get 'scribble-reindent-paragraph-width)))))
 
 (send at-exp-keymap add-function "reindent-paragraph" reindent-paragraph)
 (send at-exp-keymap map-function "esc;q" "reindent-paragraph")
