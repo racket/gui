@@ -73,7 +73,7 @@
     ("kappa" "κ")
     ("rho" "ρ")
     ("varphi" "φ")
-    ("epsilon" "ε")
+    ("epsilon" "ϵ")
     ("lambda" "λ")
     ("varrho" "ρ")
     ("chi" "χ")
