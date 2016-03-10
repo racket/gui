@@ -269,28 +269,30 @@
                                 (or
                                  (map-key-code kv)
                                  (integer->char (gdk_keyval_to_unicode kv))))]
-                [key-code (if scroll?
-                              (let ([dir (GdkEventScroll-direction event)])
+                [key-code (cond
+                           [scroll?
+                            (let ([dir (GdkEventScroll-direction event)])
+                              (cond
+                               [(= dir GDK_SCROLL_UP) 'wheel-up]
+                               [(= dir GDK_SCROLL_DOWN) 'wheel-down]
+                               [(= dir GDK_SCROLL_LEFT) 'wheel-left]
+                               [(= dir GDK_SCROLL_RIGHT) 'wheel-right]
+                               [(= dir GDK_SCROLL_SMOOTH)
+                                (define-values (dx dy) (gdk_event_get_scroll_deltas event))
                                 (cond
-                                 [(= dir GDK_SCROLL_UP) 'wheel-up]
-                                 [(= dir GDK_SCROLL_DOWN) 'wheel-down]
-                                 [(= dir GDK_SCROLL_LEFT) 'wheel-left]
-                                 [(= dir GDK_SCROLL_RIGHT) 'wheel-right]
-				 [(= dir GDK_SCROLL_SMOOTH)
-				  (define-values (dx dy) (gdk_event_get_scroll_deltas event))
-				  (cond
-				   [(positive? dy) 'wheel-down]
-				   [(negative? dy) 'wheel-up]
-				   [(positive? dx) 'wheel-right]
-				   [(negative? dx) 'wheel-left]
-				   [else #f])]
-				 [else #f]))
-                              (keyval->code (GdkEventKey-keyval event)))]
+                                 [(positive? dy) 'wheel-down]
+                                 [(negative? dy) 'wheel-up]
+                                 [(positive? dx) 'wheel-right]
+                                 [(negative? dx) 'wheel-left]
+                                 [else #f])]
+                               [else #f]))]
+                           [(and (string? im-str)
+                                 (= 1 (string-length im-str)))
+                            (string-ref im-str 0)]
+                           [else
+                            (keyval->code (GdkEventKey-keyval event))])]
                 [k (new key-event%
-                        [key-code (if (and (string? im-str)
-                                           (= 1 (string-length im-str)))
-                                      (string-ref im-str 0)
-                                      key-code)]
+                        [key-code key-code]
                         [shift-down (bit? modifiers GDK_SHIFT_MASK)]
                         [control-down (bit? modifiers GDK_CONTROL_MASK)]
                         [meta-down (bit? modifiers GDK_MOD1_MASK)]
