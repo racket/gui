@@ -469,7 +469,8 @@
                                                     GDK_POINTER_MOTION_MASK
                                                     GDK_FOCUS_CHANGE_MASK
                                                     GDK_ENTER_NOTIFY_MASK
-                                                    GDK_LEAVE_NOTIFY_MASK))
+                                                    GDK_LEAVE_NOTIFY_MASK
+                                                    GDK_SCROLL_MASK))
      (unless (or (memq 'no-focus style)
                  (is-panel?))
        (gtk_widget_set_can_focus client-gtk #t))
