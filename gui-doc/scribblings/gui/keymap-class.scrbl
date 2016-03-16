@@ -187,7 +187,7 @@ The modifier identifiers are:
  @item{@litchar{l:} --- All platforms: Caps Lock}
 
  @item{@litchar{g:} --- Windows: Control plus Alt as AltGr;
-                        see @xmethod[key-event% control+meta-is-altgr]}
+                        see @xmethod[key-event% get-control+meta-is-altgr]}
 
  @item{@litchar{?:} --- All platforms: allow match to character produced by opposite 
                   use of Shift, AltGr/Option, and/or Caps Lock, when available; see

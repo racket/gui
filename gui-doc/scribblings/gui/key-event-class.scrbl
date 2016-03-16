@@ -357,11 +357,11 @@ On Mac OS X, if a control-key press is combined with a mouse button
 
 }
 
-@defmethod[(control+meta-is-altgr [down? any/c])
+@defmethod[(set-control+meta-is-altgr [down? any/c])
            void?]{
 
 Sets whether a Control plus Meta combination on Windows should be
-treated as an AltGr combinations. See @racket[get-control+meta-is-altgr].
+treated as an AltGr combinations. See @method[key-event% get-control+meta-is-altgr].
 
 @history[#:added "1.2"]}
 
