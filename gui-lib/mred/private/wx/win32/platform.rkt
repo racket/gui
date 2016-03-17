@@ -23,6 +23,7 @@
          "slider.rkt"
          "tab-panel.rkt"
          "window.rkt"
+         "key.rkt"
          "procs.rkt")
 (provide (protect-out platform-values))
 
@@ -86,6 +87,7 @@
    get-color-from-user
    special-option-key
    special-control-key
+   any-control+alt-is-altgr
    get-highlight-background-color
    get-highlight-text-color
    make-screen-bitmap

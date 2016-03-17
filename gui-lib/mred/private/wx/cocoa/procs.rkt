@@ -65,6 +65,7 @@
  play-sound
  file-creator-and-type
  file-selector
+ any-control+alt-is-altgr
  key-symbol-to-menu-key
  needs-grow-box-spacer?
  get-current-mouse-state

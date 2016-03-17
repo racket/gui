@@ -8,7 +8,9 @@
  [("--option") "set special Option key"
   (special-option-key #t)]
  [("--control") "set special Control key"
-  (special-control-key #t)])
+  (special-control-key #t)]
+ [("--altgr") "set any Control+Alt as AltGr"
+  (any-control+alt-is-altgr #t)])
 
 (let ()
   (define iter 0)

@@ -12,7 +12,8 @@
          "dc.rkt"
          "printer-dc.rkt"
          (except-in "../common/default-procs.rkt"
-                    get-panel-background)
+                    get-panel-background
+                    any-control+alt-is-altgr)
          "filedialog.rkt"
          "colordialog.rkt"
          "sound.rkt"

@@ -143,6 +143,7 @@
 	     scroll-event%
 	     special-control-key
 	     special-option-key
+             any-control+alt-is-altgr
              map-command-as-meta-key
 	     label->plain-label
 	     write-editor-global-footer

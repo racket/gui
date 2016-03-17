@@ -4,6 +4,7 @@ add-color<%>
 add-editor-keymap-functions
 add-pasteboard-keymap-functions
 add-text-keymap-functions
+any-control+alt-is-altgr
 append-editor-font-menu-items
 append-editor-operation-menu-items
 application-about-handler

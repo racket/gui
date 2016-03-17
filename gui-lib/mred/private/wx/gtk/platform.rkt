@@ -86,6 +86,7 @@
    get-color-from-user
    special-option-key
    special-control-key
+   any-control+alt-is-altgr
    get-highlight-background-color
    get-highlight-text-color
    make-screen-bitmap

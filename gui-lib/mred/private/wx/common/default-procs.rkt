@@ -3,6 +3,7 @@
          racket/draw/private/color)
 (provide special-control-key
          special-option-key
+         any-control+alt-is-altgr
          file-creator-and-type
          get-panel-background
          fill-private-color)
@@ -18,6 +19,12 @@
   (case-lambda
    [() special-option-key?]
    [(on?) (set! special-option-key? (and on? #t))]))
+
+(define any-control+alt-is-altgr? #f)
+(define any-control+alt-is-altgr
+  (case-lambda
+   [() any-control+alt-is-altgr?]
+   [(on?) (set! any-control+alt-is-altgr? (and on? #t))]))
 
 (define file-creator-and-type
   (case-lambda

@@ -10,25 +10,47 @@
  (protect-out maybe-make-key-event
               generates-key-event?
 	      reset-key-mapping
-              key-symbol-to-menu-key))
+              key-symbol-to-menu-key
+              any-control+alt-is-altgr))
 
 (define-user32 GetKeyState (_wfun _int -> _SHORT))
 (define-user32 MapVirtualKeyW (_wfun _UINT _UINT -> _UINT))
 (define-user32 VkKeyScanW (_wfun _WCHAR -> _SHORT))
+(define-user32 ToUnicode (_wfun _UINT _UINT _pointer _pointer _int _UINT -> _int))
+(define-user32 GetKeyboardState (_wfun _pointer -> _BOOL))
 
+(define control+alt-always-as-altgr? #f)
+(define any-control+alt-is-altgr
+  (case-lambda
+   [() control+alt-always-as-altgr?]
+   [(on?) (set! control+alt-always-as-altgr? (and on? #t))]))
+
+;; Back-door result from `key-mapped?` via `maybe-make-key-event`:
+(define no-translate? #f)
+
+;; Called to determine whether a WM_KEYDOWN event should
+;; be passed to TranslateEvent() to get a WM_CHAR event.
+;; If the WM_KEYDOWN event itself will translate to a
+;; visible key event, then don't use TranslateEvent().
 (define (generates-key-event? msg)
   (let ([message (MSG-message msg)])
     (and (or (eq? message WM_KEYDOWN)
              (eq? message WM_SYSKEYDOWN)
              (eq? message WM_KEYUP)
              (eq? message WM_SYSKEYUP))
-         (maybe-make-key-event #t 
-                               (MSG-wParam msg)
-                               (MSG-lParam msg)
-                               #f
-                               (or (= message WM_KEYUP)
-                                   (= message WM_SYSKEYUP))
-                               (MSG-hwnd msg)))))
+         (or (maybe-make-key-event #t 
+				   (MSG-wParam msg)
+				   (MSG-lParam msg)
+				   #f
+				   (or (= message WM_KEYUP)
+				       (= message WM_SYSKEYUP))
+				   (MSG-hwnd msg))
+	     ;; If ToUnicode() was used for checking, claim that
+	     ;; an event will be generated so that TranslateEvent()
+	     ;; is not used.
+	     (begin0
+	      no-translate?
+	      (set! no-translate? #f))))))
 
 (define (THE_SCAN_CODE lParam)
   (bitwise-and (arithmetic-shift lParam -16) #x1FF))
@@ -53,7 +75,8 @@
 		 (VkKeyScanW (char->integer i)))))
 	other-key-codes)))
 (define (reset-key-mapping)
-  (set! other-key-codes #f))
+  (set! other-key-codes #f)
+  (set! mapped-keys (make-hash)))
 (define (other-orig j)
   (char->integer (string-ref find_shift_alts j)))
 
@@ -184,9 +207,14 @@
                       ;; wParam is a virtual key code
                       (let ([id (hash-ref win32->symbol wParam #f)]
                             [override-mapping? (and control-down?
-						    ;; not AltGR:
-						    (not (and lcontrol-down?
-							      ralt-down?)))]
+						    ;; not AltGR or no mapping:
+						    (or (not alt-down?)
+							(not (or control+alt-always-as-altgr?
+								 (and lcontrol-down?
+								      ralt-down?)))
+							(not (key-mapped? wParam 
+									  (THE_SCAN_CODE lParam)
+									  just-check?))))]
                             [try-generate-release
                              (lambda ()
                                (let ([sc (THE_SCAN_CODE lParam)])
@@ -264,8 +292,9 @@
                               [caps-down caps-down?]
 			      [control+meta-is-altgr (and control-down?
                                                           alt-down?
-							  (not rcontrol-down?)
-							  (not lalt-down?))])]
+							  (or control+alt-always-as-altgr?
+							      (and (not rcontrol-down?)
+								   (not lalt-down?))))])]
 		      [as-key (lambda (v)
 				(if (integer? v) (integer->char v) v))])
 		 (when is-up?
@@ -341,3 +370,29 @@
          (subtract . Subtract)
          (numpad-enter . |Numpad Enter|)
          (numpad6 . |Numpad 6|)))
+
+;; The `key-mapped?` function is used to predict whether an
+;; AltGr combination will produce a key; if not, a key
+;; event can be synthesized (like control combinations)
+(define keys-state (make-bytes 256))
+(define unicode-result (make-bytes 20))
+(define mapped-keys (make-hash))
+(define (key-mapped? vk sc just-check?)
+  (define key (vector vk sc))
+  (hash-ref mapped-keys
+	    key
+	    (lambda ()
+	      (cond
+	       [just-check?
+		;; In checking mode, we can use ToUnicode():
+		(GetKeyboardState keys-state)
+		(define n (ToUnicode vk sc keys-state unicode-result 10 0))
+		(when (= n -1)
+                  ;; For a dead char, ToUnicode() seems to have the effect
+		  ;; of TranslateEvent(), so avoid the latter.
+		  (set! no-translate? #t))
+		(define mapped? (not (zero? n)))
+		;; Record what we learned for use by non-checking mode:
+		(hash-set! mapped-keys key mapped?)
+		mapped?]
+	       [else #f]))))

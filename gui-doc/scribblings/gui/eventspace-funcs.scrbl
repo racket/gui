@@ -124,6 +124,24 @@ If no argument is provided, the result is @racket[#t] if Option is
  currently treated specially, @racket[#f] otherwise.
 }
 
+@defproc*[([(any-control+alt-is-altgr [on? any/c])
+            void?]
+           [(any-control+alt-is-altgr)
+            boolean?])]{
+
+Enables or disables the treatment of any Control plus Alt as
+ equivalent to AltGr (Windows), as opposed to treating only a
+ left-hand Control plus a right-hand Alt (for keyboard configurations
+ that have both) as AltGr.
+ 
+If @racket[on?] is provided as @racket[#f], key events are reported
+ normally. This setting affects all windows and eventspaces.
+
+If no argument is provided, the result is @racket[#t] if Control plus Alt is
+ currently treated as AltGr, @racket[#f] otherwise.
+
+@history[#:added "1.24"]}
+
 @defproc[(queue-callback [callback (-> any)]
                          [high-priority? any/c #t])
          void?]{

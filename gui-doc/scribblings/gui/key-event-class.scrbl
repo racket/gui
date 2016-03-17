@@ -74,9 +74,11 @@ On Mac OS X, if a Control-key press is combined with a mouse button
            boolean?]{
 
 Returns @racket[#t] if a Control plus Meta event should be treated as
-an AltGr event on Windows: the Control key was the left one and the
-Alt key was the right one (typed that way on a keyboard with a right
-Alt key, or produced by a single AltGr key).
+an AltGr event on Windows. By default, AltGr treatment applies if the
+Control key was the left one and the Alt key (as Meta) was the right one---typed
+that way on a keyboard with a right Alt key, or produced by a single
+AltGr key. See also @racket[any-control+alt-is-altgr], which controls
+whether other Control plus Alt combinations are treated as AltGr.
 
 @history[#:added "1.2"]}
 

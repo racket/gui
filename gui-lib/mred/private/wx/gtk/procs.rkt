@@ -56,6 +56,7 @@
  file-creator-and-type
  special-control-key
  special-option-key
+ any-control+alt-is-altgr
  get-panel-background
  fill-private-color
  get-color-from-user
