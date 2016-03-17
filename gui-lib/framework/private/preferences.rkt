@@ -478,6 +478,11 @@ the state transitions / contracts are:
                                 'framework:special-meta-key
                                 (string-constant command-as-meta)))
                    
+                   (when (memq (system-type) '(windows))
+                     (add-check editor-panel 
+                                'framework:any-control+alt-is-altgr
+                                (string-constant any-control+alt-is-altgr)))
+                   
                    (add-check editor-panel 
                               'framework:coloring-active
                               (string-constant online-coloring-active))

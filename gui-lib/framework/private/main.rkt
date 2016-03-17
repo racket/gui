@@ -214,6 +214,10 @@
 (preferences:add-callback 'framework:special-meta-key (λ (p v) (map-command-as-meta-key v)))
 (map-command-as-meta-key (preferences:get 'framework:special-meta-key))
 
+(preferences:set-default 'framework:any-control+alt-is-altgr #f boolean?)
+(preferences:add-callback 'framework:any-control+alt-is-altgr (λ (p v) (any-control+alt-is-altgr v)))
+(any-control+alt-is-altgr (preferences:get 'framework:any-control+alt-is-altgr))
+
 (preferences:set-default 'framework:fraction-snip-style 
                          'mixed (λ (x) (memq x '(mixed improper decimal))))
 
