@@ -74,6 +74,21 @@
          (send k map-function "ESC;p" "abc-k2")
          (send k chain-to-keymap k1 #t)
          (hash-map (send k get-map-function-table) list)))))
+
+(test
+ 'keymap:aug-keymap%/all-but-last-bug
+ (lambda (x)
+   (equal? x '((s:a "shift-ah") (s:m "shift-em"))))
+ (lambda ()
+   (queue-sexp-to-mred
+    '(let ([k (make-object keymap:aug-keymap%)])
+       (send k add-function "shift-em" void)
+       (send k add-function "shift-ah" void)
+       (send k map-function "s:m" "shift-em")
+       (send k map-function "s:a" "shift-ah")
+       (sort (hash-map (send k get-map-function-table) list)
+             string<?
+             #:key (lambda (x) (format "~s" x)))))))
   
   (define (test-canonicalize name str1 str2)
     (test

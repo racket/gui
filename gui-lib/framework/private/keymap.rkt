@@ -194,7 +194,7 @@
       (define/private (all-but-last l)
         (cond
           [(null? l) l]
-          [(null? (cdr l)) l]
+          [(null? (cdr l)) '()]
           [else (cons (car l) (all-but-last (cdr l)))]))
       
       (super-new)))
