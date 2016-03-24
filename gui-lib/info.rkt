@@ -17,6 +17,8 @@
                "2d-lib"
                "compatibility-lib"
                "tex-table"
+               "typed-racket-lib"
+               "typed-racket-more"
                ("gui-i386-macosx" #:platform "i386-macosx")
                ("gui-x86_64-macosx" #:platform "x86_64-macosx")
                ("gui-ppc-macosx" #:platform "ppc-macosx")

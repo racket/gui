@@ -1,9 +1,10 @@
 #lang scheme/base
 
 (require (for-syntax scheme/base)
+         ;typed/racket/unit
          scheme/unit
          racket/promise
-         racket/class
+         typed/racket/class
          racket/runtime-path
          "bday.rkt"
          "sig.rkt"
@@ -27,6 +28,19 @@
 (define-runtime-path left-right-csr-path '(lib "left-right-cursor.xbm" "icons"))
 
 #;
+(define-signature framework:icon^
+  ([eof-bitmap : (-> (Instanceof BitMap%))]
+   [get-eof-bitmap : (-> (Instanceof BitMap%))]
+   [get-anchor-bitmap : (-> (Instanceof BitMap%))]
+   [get-lock-bitmap : (-> (Instanceof BitMap%))]
+   [get-unlock-bitmap : (-> (Instanceof BitMap%))]
+   [get-autowrap-bitmap : (-> (Instanceof BitMap%))]
+   [get-paren-highlight-bitmap : (-> (Instanceof BitMap%))]
+   [make-off-bitmap : (-> (Instanceof BitMap%) (Instanceof BitMap%))]
+   [get-gc-on-bitmap : (-> (Instanceof BitMap%))]
+   [get-gc-off-bitmap : (-> (Instanceof BitMap%))]))
+
+#;
 (: icon@ (Unit
           (import mred^)
           (export framework:icon^)
@@ -36,7 +50,8 @@
   (import mred^)
   (export framework:icon^)
 
-  #; (: eof-bitmap : (-> (Instanceof BitMap%)))
+  #;
+  (: eof-bitmap : (-> (Instanceof BitMap%)))
   (define eof-bitmap (delay/sync (let ([bm (make-object bitmap% eof-bitmap-path)])
                                    (unless (send bm ok?)
                                      (error 'eof-bitmap "not ok ~s\n" eof-bitmap-path))
@@ -44,26 +59,39 @@
   
   (define (get-eof-bitmap) (force eof-bitmap))
 
-  #; (: anchor-bitmap (Instanceof BitMap%))
+  #;
+  (: anchor-bitmap (Instanceof BitMap%))
   (define anchor-bitmap (delay/sync (make-object bitmap% anchor-bitmap-path)))
   (define (get-anchor-bitmap) (force anchor-bitmap))
 
-  #; (: lock-bitmap (Instanceof BitMap%))
+  #;
+  (: lock-bitmap (Instanceof BitMap%))
   (define lock-bitmap (delay/sync (make-object bitmap% lock-bitmap-path)))
+  #;
+  (: get-lock-bitmap (-> (Instanceof BitMap%)))
   (define (get-lock-bitmap) (force lock-bitmap))
 
-  #; (: unlock-bitmap (Instanceof BitMap%))
+  #;
+  (: unlock-bitmap (Instanceof BitMap%))
   (define unlock-bitmap (delay/sync (make-object bitmap% unlock-bitmap-path)))
+  #;
+  (: get-unlock-bitmap (-> (Instanceof BitMap%)))
   (define (get-unlock-bitmap) (force unlock-bitmap))
 
-  #; (: autowrap-bitmap (Instanceof BitMap%))
+  #;
+  (: autowrap-bitmap (Instanceof BitMap%))
   (define autowrap-bitmap (delay/sync (make-object bitmap% return-bitmap-path)))
+  #;
+  (: get-autowrap-bitmap (-> (Instanceof BitMap%)))
   (define (get-autowrap-bitmap) (force autowrap-bitmap))
 
-  #; (: paren-highlight-bitmap (Instanceof BitMap%))
+  #;
+  (: paren-highlight-bitmap (Instanceof BitMap%))
   (define paren-highlight-bitmap (delay/sync (make-object bitmap% paren-bitmap-path)))
+  #;
+  (: get-paren-highlight-bitmap (-> (Instanceof BitMap%)))
   (define (get-paren-highlight-bitmap) (force paren-highlight-bitmap))
-  
+
   (define-syntax (make-get-cursor stx)
     (syntax-case stx ()
       [(_ id mask-path csr-path fallback)
@@ -81,13 +109,19 @@
                                      (make-object cursor% fallback)))
                                (make-object cursor% fallback))))])
               (λ () (force ans))))))]))
-  
+
   (make-get-cursor get-up/down-cursor up-down-mask-path up-down-csr-path 'size-n/s)
   (make-get-cursor get-left/right-cursor left-right-mask-path left-right-csr-path 'size-e/w)
-  
+
+  #;
+  (: mrf-on-bitmap (Instanceof BitMap%)) 
   (define mrf-on-bitmap (delay/sync (make-object bitmap% mrf-bitmap-path)))
+  #;
+  (: gc-on-bitmap (Instanceof Bitmap%))
   (define gc-on-bitmap (delay/sync (read-bitmap gc-on-bitmap-path #:try-@2x? #t)))
-  
+
+  #;
+  (: make-off-bitmap (-> (Instanceof BitMap%) (Instanceof BitMap%)))
   (define (make-off-bitmap onb)
     (let* ([bitmap (make-object bitmap%
                      (send onb get-width)
@@ -96,18 +130,22 @@
       (send bdc clear)
       (send bdc set-bitmap #f)
       bitmap))
-  
+
   (define mrf-off-bitmap (delay/sync (make-off-bitmap (force mrf-on-bitmap))))
   (define gc-off-bitmap (delay/sync (make-off-bitmap (force gc-on-bitmap))))
-  
+
+  #;
+  (: get-gc-on-bitmap (-> (Instanceof BitMap%)))
   (define (get-gc-on-bitmap)
     (force
      (if (mrf-bday?)
          mrf-on-bitmap
-         gc-on-bitmap)))
-  
+         gc-on-bitmap))) 
+
+  #;
+  (: get-gc-off-bitmap (Instanceof Bitmap%))
   (define (get-gc-off-bitmap)
     (force
      (if (mrf-bday?)
          mrf-off-bitmap
-         gc-off-bitmap))))
+         gc-off-bitmap))))  
