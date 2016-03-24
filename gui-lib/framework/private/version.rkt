@@ -1,15 +1,21 @@
 #lang typed/racket
 
-(require "sig.rkt"
-           ;mzlib/string
-           mzlib/list
-           typed/racket/unit)
+(require ;"sig.rkt"
+         ;mzlib/string
+         mzlib/list
+         typed/racket/unit)
 
 (require/typed mzlib/string
                [expr->string (-> Any String)])
 
+(require/typed "sig.rkt"
+               [#:signature framework:version^
+                ([version : (-> String)]
+                 [add-spec : (-> Any Number Void)])])
+
+#;
 (define-signature framework:version^
-  ([version : (-> Any)]
+  ([version : (-> String)]
    [add-spec : (-> Any Number Void)]))
 
 (define-unit framework:version@
@@ -20,7 +26,7 @@
   (: specs (Listof (List String String)))
   (define specs null)
 
-  (: -version (-> Any))
+  (: -version (-> String))
   (define (-version)
     (foldr (lambda ([entry : (List String String)] [sofar : String])
              (let ([sep : String (car entry)]
@@ -33,5 +39,3 @@
   (define (add-spec sep num)
     (set! specs (cons (list (expr->string sep) (format "~a" num)) 
                       specs))))
-
-;(define-values/invoke-unit framework:version@ (import) (export framework:version^))

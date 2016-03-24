@@ -26,10 +26,11 @@
      can-restore-underscore-menu%))
   (define-signature menu^ extends menu-class^
     ())
-  
+
+  #;
   (define-signature version-class^
     ())
-  (define-signature version^ extends version-class^
+  (define-signature version^ 
     (add-spec
      version))
   
