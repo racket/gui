@@ -34,4 +34,4 @@
     (set! specs (cons (list (expr->string sep) (format "~a" num)) 
                       specs))))
 
-;(define-values/invoke-unit (import) (export framework:version^))
+;(define-values/invoke-unit framework:version@ (import) (export framework:version^))
