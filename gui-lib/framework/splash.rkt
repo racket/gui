@@ -292,23 +292,20 @@
          (refresh-splash)))))
   (old-load f expected))
 
-(let-values ([(make-compilation-manager-load/use-compiled-handler
-               manager-trace-handler)
-              (if (or (getenv "PLTDRCM")
-                      (getenv "PLTDRDEBUG"))
-                  (parameterize ([current-namespace (make-base-namespace)])
-                    (values
-                     (dynamic-require 'compiler/cm 'make-compilation-manager-load/use-compiled-handler)
-                     (dynamic-require 'compiler/cm 'manager-trace-handler)))
-                  (values #f #f))])
+(let ([make-compilation-manager-load/use-compiled-handler
+       (if (or (getenv "PLTDRCM")
+               (getenv "PLTDRDEBUG"))
+           (parameterize ([current-namespace (make-base-namespace)])
+             (dynamic-require 'compiler/cm
+                              'make-compilation-manager-load/use-compiled-handler))
+           (values #f #f))])
   
   (current-load
    (let ([old-load (current-load)])
      (λ (f expected)
        (splash-load-handler old-load f expected))))
   
-  (when (and make-compilation-manager-load/use-compiled-handler
-             manager-trace-handler)
+  (when make-compilation-manager-load/use-compiled-handler
     (printf "PLTDRCM/PLTDRDEBUG: reinstalling CM load handler after setting splash load handler\n")
     (current-load/use-compiled (make-compilation-manager-load/use-compiled-handler))))
 
