@@ -298,7 +298,7 @@
            (parameterize ([current-namespace (make-base-namespace)])
              (dynamic-require 'compiler/cm
                               'make-compilation-manager-load/use-compiled-handler))
-           (values #f #f))])
+           #f)])
   
   (current-load
    (let ([old-load (current-load)])
