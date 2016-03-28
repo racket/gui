@@ -761,7 +761,16 @@
                  (is-enabled-to-root?))
         (let ([w (tell cocoa window)])
           (when w
-            (tellv w makeFirstResponder: (get-cocoa-focus))))))
+            (tellv w makeFirstResponder: (get-cocoa-focus))
+            ;; Within a floating frame or when potentially taking
+            ;; focus from a floating frame, also make the frame the
+            ;; key window:
+            (let ([top (get-wx-window)])
+              (when (and (or (send top floating?)
+                             (tell #:type _BOOL w isMainWindow))
+                         (tell #:type _bool w isVisible))
+                (tellv w makeKeyAndOrderFront: #f)))))))
+                
     (define/public (on-set-focus) (void))
     (define/public (on-kill-focus) (void))
 

@@ -706,7 +706,15 @@
       (send parent in-floating?))
 
     (define/public (set-focus)
-      (gtk_widget_grab_focus (get-client-gtk)))
+      (define gtk (get-client-gtk))
+      (gtk_widget_grab_focus gtk)
+      ;; Force focus to or away from a floating window:
+      (cond
+       [(and (in-floating?)
+	     (is-shown-to-root?))
+	(gdk_keyboard_grab (widget-window gtk) #t 0)]
+       [else
+	(gdk_keyboard_ungrab 0)]))
 
     (define cursor-handle #f)
     (define/public (set-cursor v)

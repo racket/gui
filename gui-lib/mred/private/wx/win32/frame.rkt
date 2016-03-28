@@ -428,8 +428,17 @@
       (set! focus-window-path #f)))
   (define/override (set-top-focus win win-path child-hwnd)
     (set! focus-window-path (cons this win-path))
-    (when (ptr-equal? hwnd (GetActiveWindow))
+    (define active-hwnd (GetActiveWindow))
+    (when (or (ptr-equal? hwnd active-hwnd)
+	      (and (or float-without-caption?
+		       (let ([wx (any-hwnd->wx active-hwnd)])
+			 (and wx
+			      (send wx is-floating?))))
+		   (is-shown?)))
       (void (SetFocus child-hwnd))))
+
+  (define/public (is-floating?)
+    float-without-caption?)
 
   (define/private (set-frame-focus)
     (let ([p focus-window-path])

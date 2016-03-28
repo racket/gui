@@ -65,7 +65,9 @@ If @racket[enable?] is true, the window is enabled, otherwise it is
 @index['("keyboard focus" "setting")]{Moves} the keyboard focus to the
  window, relative to its top-level window, if the window ever accepts
  the keyboard focus.  If the focus is in the window's top-level
- window, then the focus is immediately moved to this
+ window or if the window's top-level window is visible and floating
+ (i.e., created with the @racket['float] style), then the focus is
+ immediately moved to this
  window. Otherwise, the focus is not immediately moved, but when the
  window's top-level window gets the keyboard focus, the focus is
  delegated to this window.
