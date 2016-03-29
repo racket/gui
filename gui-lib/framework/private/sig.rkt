@@ -74,7 +74,7 @@
 
   (define-signature application-class^
     ())
-  (define-signature application^ extends application-class^
+  (define-signature application^ ;extends application-class^
     (current-app-name))
   
   (define-signature preferences-class^
