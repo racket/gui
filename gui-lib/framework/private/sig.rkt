@@ -124,7 +124,7 @@
   
   (define-signature path-utils-class^
     ())
-  (define-signature path-utils^ extends path-utils-class^
+  (define-signature path-utils^ ;extends path-utils-class^
     (generate-autosave-name 
      generate-backup-name))
   
@@ -491,7 +491,7 @@
   
   (define-signature color-model-class^
     ())
-  (define-signature color-model^ extends color-model-class^
+  (define-signature color-model^ ;extends color-model-class^
     (xyz?
      xyz-x
      xyz-y

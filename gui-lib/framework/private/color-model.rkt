@@ -1,9 +1,21 @@
-#lang scheme/unit
-(require "sig.rkt")
+#lang typed/racket
 
+(require typed/racket/unit)
+
+(require/typed "sig.rkt"
+               [#:signature framework:color-model^
+                ([rgb-color-distance : (-> Number Number Number Number Number Number Number)]
+                 [xyz->rgb : (-> Number Number Number (Listof Number))]
+                 [rgb->xyz : (-> Number Number Number xyz)]
+                 [xyz? : (-> Any Boolean)]
+                 [xyz-x : (-> xyz Number)]
+                 [xyz-y : (-> xyz Number)]
+                 [xyz-z : (-> xyz Number)])])    
+
+(define-unit framework:color-model@
   (import)
   (export framework:color-model^)
-  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; 
   ;;;                                 ;;;
   ;;;           matrix ops            ;;;
   ;;;                                 ;;;
@@ -13,7 +25,7 @@
   
   ;; submatrix : (list-of (list-of num)) int int -> (list-of (list-of num))
   ;; submatrix "crosses out" row i and column j from the matrix, returning a new one
-  
+  (: submatrix (-> (Listof (Listof Number)) Integer Integer (Listof (Listof Number))))
   (define (submatrix source i j)
     (let row-loop ([row 0])
       (cond 
@@ -34,7 +46,8 @@
   ;;        '((1 2 6) (7 8 4)))
   
   ;; det : (list-of (list-of num)) -> num
-  
+
+  (: det (-> (Listof (Listof Number)) Number))
   (define (det matrix)
     (if (null? matrix)
         1
@@ -51,7 +64,7 @@
   ;;(= (det square-test-matrix) -2553)
   
   ;; invert : (list-of (list-of num)) -> (list-of (list-of num))
-  
+  (: matrix-invert (-> (Listof (Listof Number)) (Listof (Listof Number))))
   (define (matrix-invert matrix)
     (let-values ([(width height) (matrix-dimension matrix)])
       (when (not (= width height))
@@ -75,7 +88,8 @@
   
   ;; matrix-dimension : (list-of (list-of num)) -> (values num num)  
   ;; takes a matrix, returns width and height
-  
+
+  (: matrix-dimension (-> (Listof (Listof Number)) (Values Number Number)))
   (define (matrix-dimension matrix)
     (when (not (pair? matrix))
       (error 'matrix-dimension "matrix argument is not a list: ~s" matrix))
@@ -98,6 +112,7 @@
                 (loop (cdr rows))))))))
   
   ;; transpose : (list-of (list-of num)) -> (list-of (list-of num))
+  (: transpose (-> (Listof (Listof Number)) (Listof (Listof Number))))
   (define (transpose vector) (apply map list vector))
   
   
@@ -105,6 +120,7 @@
   ;;(equal? (transpose '((3 2 1) (9 8 7))) '((3 9) (2 8) (1 7)))
   
   ;; inner-product : (list-of num) (list-of num) -> num
+  (: inner-product (-> (Listof Number) (Listof Number) Number))
   (define (inner-product a b)
     (foldl + 0 (map * a b)))
   
@@ -113,6 +129,7 @@
   
   ;; matrix-multiply: (list-of (list-of num)) (list-of (list-of num)) -> (list-of (list-of num))
   ;; multiplies the two matrices.
+  (: matrix-multiply (-> (Listof (Listof Number)) (Listof (Listof Number))))
   (define (matrix-multiply a b)
     (let-values ([(width-a height-a) (matrix-dimension a)]
                  [(width-b height-b) (matrix-dimension b)])
@@ -158,9 +175,17 @@
   (define x-w 0.313)
   (define y-w 0.329)
   (define big-y-w 100.0)
+
+  #;
+  (define-type XYZ (struct ([x : Number]
+                            [y : Number]
+                            [z : Number])))
   
-  (define-struct xyz (x y z))
-  
+  (define-struct xyz ([x : Number]
+                      [y : Number]
+                      [z : Number]))
+
+  (: xy-big-y->xyz (-> Number Number Number XYZ))
   (define (xy-big-y->xyz x y big-y)
     (let ([sigma (/ big-y y)])
       (make-xyz
@@ -191,7 +216,7 @@
   
   ;; (printf "should be equal to xyz-white: \n~a\n"
   ;;    (matrix-multiply pre-matrix `((,sigma-r) (,sigma-g) (,sigma-b))))
-  
+ 
   (define rgb->xyz-matrix
     (map (λ (row)
            (map (λ (row-elt scalar) (* row-elt scalar 1/255)) row `(,sigma-r ,sigma-g ,sigma-b)))
@@ -201,13 +226,15 @@
     (matrix-invert rgb->xyz-matrix))
   
   ;;(printf "should be identity: \n~a\n" (matrix-multiply rgb->xyz-matrix xyz->rgb-matrix))
-  
+
+  (: rgb->xyz (-> Number Number Number xyz))
   (define (rgb->xyz r g b)
     (apply make-xyz (car (transpose (matrix-multiply rgb->xyz-matrix (transpose `((,r ,g ,b))))))))
   
   ;;(print-struct #t)
   ;; (printf "should be xyz-white: \n~a\n" (rgb->xyz 255 255 255))
-  
+
+  (: xyz->rgb (-> Number Number Number (Listof Number)))
   (define (xyz->rgb x y z)
     (car (transpose (matrix-multiply xyz->rgb-matrix (transpose `((,x ,y ,z)))))))
   
@@ -220,12 +247,20 @@
   
   ;; the following transformation is undefined if the y component
   ;; is zero.  So if it is, we bump it up a little.
-  
+
+  (: xyz-tweak (-> xyz xyz))
   (define (xyz-tweak xyz)
     (let* ([y (xyz-y xyz)])
       (make-xyz (xyz-x xyz) (if (< y 0.01) 0.01 y) (xyz-z xyz))))
+
+  #;
+  (define-type LUV struct ([l : Number]
+                           [u : Number]
+                           [v : Number]))
   
-  (define-struct luv (l u v))
+  (define-struct luv ([l : Number]
+                      [u : Number]
+                      [v : Number]))
   
   (define (xyz-denom xyz)
     (+ (xyz-x xyz) (* 15 (xyz-y xyz)) (* 3 (xyz-z xyz))))
@@ -236,7 +271,7 @@
   (define (xyz-v-p xyz)
     (/ (* 9 (xyz-y xyz)) (xyz-denom xyz)))
   
-  (define (xyz->luv xyz)
+  (define (xyz->luv xyz) 
     (let ([xyz (xyz-tweak xyz)])
       (let* ([l (- (* 116 (expt (/ (xyz-y xyz) (xyz-y xyz-white))
                                 1/3))
@@ -252,13 +287,13 @@
              (expt (- (luv-u a) (luv-u b)) 2)
              (expt (- (luv-v a) (luv-v b)) 2))
           1/2))
-  
+  (: rgb-color-distance (-> Number Number Number Number Number Number Number)) 
   (define (rgb-color-distance r-a g-a b-a r-b g-b b-b)
     (let* ([luv-a (xyz->luv (rgb->xyz r-a g-a b-a))]
            [luv-b (xyz->luv (rgb->xyz r-b g-b b-b))])
-      (luv-distance luv-a luv-b)))
-  
-  ;;(rgb-color-distance 0 0 0 0 0 0)
-  ;; (print-struct #t)
-  ;; (xyz->luv (make-xyz 95.0 100.0 141.0))
-  ;; (xyz->luv (make-xyz 60.0 80.0 20.0))
+      (luv-distance luv-a luv-b))))
+
+;;(rgb-color-distance 0 0 0 0 0 0)
+;; (print-struct #t)
+;; (xyz->luv (make-xyz 95.0 100.0 141.0))
+;; (xyz->luv (make-xyz 60.0 80.0 20.0))  

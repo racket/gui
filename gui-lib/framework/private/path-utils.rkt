@@ -1,9 +1,18 @@
-#lang scheme/unit
-  (require "sig.rkt")
-  
+#lang typed/racket
+
+(require ;"sig.rkt"
+         typed/racket/unit)
+
+(require/typed "sig.rkt"
+               [#:signature framework:path-utils^
+                ([generate-autosave-name : (-> Path Path)]
+                 [generate-backup-name :(-> Path Path)])])
+
+(define-unit framework:path-utils@
   (import)
   (export framework:path-utils^)
-  
+
+  (: generate-autosave-name (-> Path Path))
   (define (generate-autosave-name name)
     (let-values ([(base name dir?)
                   (if name
@@ -37,7 +46,8 @@
             (if (file-exists? new-name)
                 (loop (add1 n))
                 new-name))))))
-  
+
+  (: generate-backup-name (-> Path Path))
   (define (generate-backup-name full-name)
     (let-values ([(pre-base name dir?) (split-path full-name)])
       (let ([base (if (path? pre-base)
@@ -53,5 +63,5 @@
             [(eq? (system-type) 'windows)
              (build-path base (bytes->path-element (bytes-append name-bytes #".bak")))]
             [else
-             (build-path base (bytes->path-element (bytes-append name-bytes #"~")))])))))
+             (build-path base (bytes->path-element (bytes-append name-bytes #"~")))]))))))
 
