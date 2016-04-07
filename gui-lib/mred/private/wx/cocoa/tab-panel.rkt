@@ -19,15 +19,33 @@
 
 (define-runtime-path psm-tab-bar-dir
   '(so "PSMTabBarControl.framework"))
+(define-runtime-path mm-tab-bar-dir
+  ;; This directory will not exist for platforms other than x86_64:
+  '(so "MMTabBarView.framework"))
 
-;; Load PSMTabBarControl:
-(void (ffi-lib (build-path psm-tab-bar-dir "PSMTabBarControl")))
+(define use-mm?
+  (and (version-10.10-or-later?)
+       64-bit?
+       (directory-exists? mm-tab-bar-dir)))
+
+;; Load MMTabBarView or PSMTabBarControl:
+(if use-mm?
+    (void (ffi-lib (build-path mm-tab-bar-dir "MMTabBarView")))
+    (void (ffi-lib (build-path psm-tab-bar-dir "PSMTabBarControl"))))
 (define NSNoTabsNoBorder 6)
 
 (define NSDefaultControlTint 0)
 (define NSClearControlTint 7)
 
-(import-class NSView NSTabView NSTabViewItem PSMTabBarControl)
+(import-class NSView NSTabView NSTabViewItem)
+(define TabBarControl
+  (if use-mm?
+      (let ()
+        (import-class MMTabBarView)
+        MMTabBarView)
+      (let ()
+        (import-class PSMTabBarControl)
+        PSMTabBarControl)))
 (import-protocol NSTabViewDelegate)
 
 (define NSOrderedAscending -1)
@@ -49,7 +67,7 @@
         (when (and wx (send wx callbacks-enabled?))
           (queue-window*-event wxb (lambda (wx) (send wx do-callback)))))))
 
-(define-objc-class RacketPSMTabBarControl PSMTabBarControl
+(define-objc-class RacketPSMTabBarControl TabBarControl
   #:mixins (FocusResponder KeyMouseResponder CursorDisplayer)
   [wxb]
   (-a _void (tabView: [_id cocoa] didSelectTabViewItem: [_id item-cocoa])
@@ -83,8 +101,10 @@
            (tellv tabv-cocoa setDelegate: i)
            (tellv tabv-cocoa setTabViewType: #:type _int NSNoTabsNoBorder)
            (tellv i setTabView: tabv-cocoa)
-           (tellv i setStyleNamed: #:type _NSString "Aqua")
-           ;;(tellv i setSizeCellsToFit: #:type _BOOL #t)
+           (tellv i setStyleNamed: #:type _NSString (if use-mm? "Yosemite" "Aqua"))
+           ;; (tellv i setSizeCellsToFit: #:type _BOOL #t)
+           (when use-mm?
+             (tellv i setResizeTabsToFitTotalWidth: #:type _BOOL #t))
            (tellv i setDisableTabClose: #:type _BOOL #t)
            i)))
 

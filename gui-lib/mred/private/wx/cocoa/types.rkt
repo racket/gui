@@ -21,8 +21,6 @@
 
 (define _OSStatus _sint32)
 
-(define 64-bit? (= (ctype-sizeof _long) 8))
-
 (define _CGFloat (make-ctype (if 64-bit? _double _float)
                              (lambda (v) (if (and (number? v)
                                                   (exact? v))

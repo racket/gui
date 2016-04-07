@@ -21,6 +21,7 @@
               clean-menu-label
               ->wxb
               ->wx
+              64-bit?
               old-cocoa?
               version-10.6-or-later?
               version-10.7-or-later?
@@ -73,6 +74,8 @@
 (define (->wx wxb)
   (and wxb
        (weak-box-value wxb)))
+
+(define 64-bit? (= (ctype-sizeof _long) 8))
 
 (define-appkit NSAppKitVersionNumber _double)
 
