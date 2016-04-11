@@ -4342,7 +4342,7 @@ designates the character that triggers autocompletion
       (inner (void) after-edit-sequence))
     
     (define/private (draw-numbers dc left top right bottom dx dy start-line end-line)
-      (unless (left . > . (line-x-coordinate dc dx))
+      (unless ((+ left dx) . > . (line-x-coordinate dc dx))
         (define last-paragraph #f)
         (define insertion-para
           (let ([sp (get-start-position)])
