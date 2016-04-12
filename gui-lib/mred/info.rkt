@@ -1,7 +1,7 @@
 #lang info
 
 (define version '(400))
-(define post-install-collection "installer.rkt")
+(define install-collection "installer.rkt")
 (define copy-man-pages '("mred.1"))
 
 (define release-note-files
