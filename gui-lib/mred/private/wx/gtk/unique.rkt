@@ -88,7 +88,7 @@
       (void (connect-message-received app)))))
 
 ;; ----------------------------------------
-;; New-style -singleInstance support lith Gtk
+;; New-style -singleInstance support with Gtk
 
 (define _GtkApplication _GtkWidget) ; (_cpointer/null 'GtkApplication)
 (define _GApplicationCommandLine (_cpointer 'GApplicationCommandLine))
@@ -96,11 +96,15 @@
 (define-gtk gtk_application_new (_fun _string _int -> _GtkApplication)
   #:fail (lambda () #f))
 
-(define-gdk g_application_get_is_remote (_fun _GtkApplication -> _gboolean))
-(define-gdk g_application_run (_fun _GtkApplication _int (_vector i _string) -> _gboolean))
+(define-gdk g_application_get_is_remote (_fun _GtkApplication -> _gboolean)
+  #:make-fail make-not-available)
+(define-gdk g_application_run (_fun _GtkApplication _int (_vector i _string) -> _gboolean)
+  #:make-fail make-not-available)
 (define-gdk g_application_command_line_get_arguments
-  (_fun _GApplicationCommandLine (n : (_ptr o _int)) -> (p : _pointer) -> (values p n)))
-(define-gdk g_strfreev (_fun _pointer -> _void))
+  (_fun _GApplicationCommandLine (n : (_ptr o _int)) -> (p : _pointer) -> (values p n))
+  #:make-fail make-not-available)
+(define-gdk g_strfreev (_fun _pointer -> _void)
+  #:make-fail make-not-available)
 
 (define-signal-handler connect-activate "activate"
   (_fun _GtkApplication -> _void)

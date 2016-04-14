@@ -139,8 +139,6 @@
       (gtk_fixed_move (get-container-gtk) child-gtk (->screen x) (->screen y))
       (gtk_widget_set_size_request child-gtk (->screen w) (->screen h)))))
 
-(define-gdk gdk_window_has_native (_fun _GdkWindow -> _gboolean))
-
 (define panel%
   (class (panel-container-mixin (panel-mixin window%))
     (init parent
