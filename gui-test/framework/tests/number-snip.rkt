@@ -3,7 +3,7 @@
 
 (test
  'number-snip-convert-text
- (λ (x) (equal? "1/2" x))
+ (λ (x) (or (equal? "1/2" x) (equal? "0.5" x)))
  (lambda ()
    (queue-sexp-to-mred
     `((dynamic-require 'file/convertible 'convert)
