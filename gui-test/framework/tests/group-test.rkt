@@ -4,7 +4,7 @@
 (module test racket/base)
 
 (define windows-menu-prefix 
-  (let ([basics (list "Bring Frame to Front..." "Most Recent Window" 
+  (let ([basics (list "Bring Frame to Front…" "Most Recent Window"
                       #f)])
     (if (eq? (system-type) 'macosx)
         (list* "Minimize" "Zoom" basics)
