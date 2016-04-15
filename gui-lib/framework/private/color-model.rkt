@@ -33,7 +33,7 @@
         [(eq? row i) (row-loop (+ row 1))]
         [else
          (cons 
-          (let col-loop ([col 0])
+          (let col-loop : (Listof Number) ([col : Number 0])
             (cond 
               [(eq? col (length (car source))) null]
               [(eq? col j) (col-loop (+ col 1))]
@@ -74,7 +74,7 @@
           (if (= row (length matrix))
               null
               (cons 
-               (let col-loop ([col 0] [sign sign])
+               (let col-loop : (Listof Number) ([col 0] [sign sign])
                  (if (= col (length (car matrix)))
                      null
                      (cons (* delta-inv

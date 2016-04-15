@@ -33,13 +33,13 @@
                               (if (eq? (system-type) 'windows)
                                   (bytes->path-element
                                    (bytes-append (regexp-replace #rx#"\\..*$" 
-                                                                 (path-element->bytes name)
+                                                                 (path-element->bytes (assert name path?))
                                                                  #"")
                                                  #"."
                                                  numb))
                                   (bytes->path-element
                                    (bytes-append #"#"
-                                                 (path-element->bytes name)
+                                                 (path-element->bytes (assert name path?))
                                                  #"#"
                                                  numb
                                                  #"#"))))])
@@ -53,13 +53,13 @@
       (let ([base (if (path? pre-base)
                       pre-base
                       (current-directory))])
-        (let ([name-bytes (path-element->bytes name)])
+        (let ([name-bytes (path-element->bytes (assert name path?))])
           (cond
             [(and (eq? (system-type) 'windows)
                   (regexp-match #rx#"(.*)\\.[^.]*" name-bytes))
              =>
              (λ (m)
-               (build-path base (bytes->path-element (bytes-append (cadr m) #".bak"))))]
+               (build-path base (bytes->path-element (bytes-append (assert (cadr m)) #".bak"))))]
             [(eq? (system-type) 'windows)
              (build-path base (bytes->path-element (bytes-append name-bytes #".bak")))]
             [else
