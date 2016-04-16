@@ -67,8 +67,23 @@
         (when (and wx (send wx callbacks-enabled?))
           (queue-window*-event wxb (lambda (wx) (send wx do-callback)))))))
 
+;; The MMTabBarView widget doesn't support disabling, so we have to
+;; implement it:
+(define-objc-mixin (EnableMixin Superclass)
+  [wxb]
+  (-a _id (hitTest: [_NSPoint pt])
+      (let ([wx (->wx wxb)])
+        (if (and wx
+                 (not (send wx is-enabled-to-root?)))
+            #f
+            (super-tell hitTest: #:type _NSPoint pt)))))
+
+;; A no-op mixin instead of `EnableMixin` for PSMTabBarControl:
+(define-objc-mixin (EmptyMixin Superclass)
+  [wxb])
+
 (define-objc-class RacketPSMTabBarControl TabBarControl
-  #:mixins (FocusResponder KeyMouseResponder CursorDisplayer)
+  #:mixins (FocusResponder KeyMouseResponder CursorDisplayer (if use-mm? EnableMixin EmptyMixin))
   [wxb]
   (-a _void (tabView: [_id cocoa] didSelectTabViewItem: [_id item-cocoa])
       (super-tell #:type _void tabView: cocoa didSelectTabViewItem: item-cocoa)
@@ -224,7 +239,8 @@
       (tellv tabv-cocoa setControlTint: #:type _int
              (if on? NSDefaultControlTint NSClearControlTint))
       (when control-cocoa
-        (tellv control-cocoa setEnabled: #:type _BOOL on?))))
+        (unless use-mm?
+          (tellv control-cocoa setEnabled: #:type _BOOL on?)))))
 
   (define/override (can-accept-focus?)
     (and (not control-cocoa)
