@@ -9,7 +9,11 @@
 (provide (protect-out (all-defined-out)))
 
 (define-runtime-lib gio-lib
-  [(unix) (ffi-lib "libgio-2.0" '("0" ""))]
+  [(unix) (ffi-lib "libgio-2.0" '("0" "")
+                   ;; For old glib, libgio isn't separate;
+                   ;; try to find bindings in already-loaded
+                   ;; libraries:
+                   #:fail (lambda () #f))]
   [(macosx)
    (ffi-lib "libgio-2.0.0.dylib")]
   [(windows) 
