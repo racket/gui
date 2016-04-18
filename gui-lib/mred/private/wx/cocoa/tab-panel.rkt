@@ -68,7 +68,8 @@
           (queue-window*-event wxb (lambda (wx) (send wx do-callback)))))))
 
 ;; The MMTabBarView widget doesn't support disabling, so we have to
-;; implement it:
+;; implement it. Also, we need to override a method to disable (for now)
+;; reordering tabs.
 (define-objc-mixin (EnableMixin Superclass)
   [wxb]
   (-a _id (hitTest: [_NSPoint pt])
@@ -76,7 +77,9 @@
         (if (and wx
                  (not (send wx is-enabled-to-root?)))
             #f
-            (super-tell hitTest: #:type _NSPoint pt)))))
+            (super-tell hitTest: #:type _NSPoint pt))))
+  (-a _BOOL (shouldStartDraggingAttachedTabBarButton: b withMouseDownEvent: evt)
+      #f))
 
 ;; A no-op mixin instead of `EnableMixin` for PSMTabBarControl:
 (define-objc-mixin (EmptyMixin Superclass)
