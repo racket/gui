@@ -2639,7 +2639,7 @@
     (define/private (do-insertion txts showing-input?)
       (define locked? (is-locked?))
       (define sf? (get-styles-fixed))
-      (begin-edit-sequence)
+      (begin-edit-sequence #f)
       (lock #f)
       (set-styles-fixed #f)
       (set! allow-edits? #t)

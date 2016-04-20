@@ -620,3 +620,45 @@
            (flush-output port))
          (semaphore-wait clear-output-done)
          (send text get-text))))))
+
+(test
+ 'text:ports%.undo-does-not-remove-port-colors
+ (λ (x+y)
+   (equal? (list-ref x+y 0)
+           (list-ref x+y 1)))
+ (λ ()
+   (queue-sexp-to-mred
+    `(let ()
+       (define t (new (text:ports-mixin
+                       (editor:standard-style-list-mixin
+                        text:wide-snip%))))
+       
+       (send t set-max-undo-history 'forever)
+       (define last-undo? #f)
+       (send t add-undo (λ () (set! last-undo? #t)))
+       
+       (define vp (send t get-value-port))
+       (define op (send t get-out-port))
+       
+       (display "1" vp)
+       (display "2" op)
+       (flush-output vp)
+       (flush-output op)
+       
+       (define (to-vec c) (vector (send c red) (send c green) (send c blue)))
+       
+       (define (get-colors)
+         (let loop ([s (send t find-first-snip)])
+           (cond
+             [s (cons (list (send s get-text 0 (send s get-count))
+                            (to-vec (send (send s get-style) get-foreground)))
+                      (loop (send s next)))]
+             [else '()])))
+       
+       (define before (get-colors))
+       (let loop ()
+         (unless last-undo?
+           (send t undo)
+           (loop)))
+       (define after (get-colors))
+       (list before after)))))
