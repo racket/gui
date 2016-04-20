@@ -2471,7 +2471,8 @@ See @xmethod[style-list% notify-on-change] for more information.
            void?]{
 
 Undoes the last editor change, if undos have been enabled by calling
- @method[editor<%> set-max-undo-history] with a non-zero integer.
+ @method[editor<%> set-max-undo-history] with a non-zero integer or
+ @racket['forever].
 
 If the editor is currently performing an undo or redo, the method call
  is ignored.
@@ -2487,7 +2488,7 @@ The system may perform an undo without calling this method in response
  to other method calls. Use methods such as
  @method[editor<%> on-change] to monitor editor content changes.
 
-See also @method[editor<%> add-undo] .
+See also @method[editor<%> add-undo].
 
 }
 
