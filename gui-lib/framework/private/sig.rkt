@@ -492,10 +492,10 @@
   (define-signature color-model-class^
     ())
   (define-signature color-model^ ;extends color-model-class^
-    (xyz?
-     xyz-x
-     xyz-y
-     xyz-z
+    (;xyz?
+     ;xyz-x
+     ;xyz-y
+     ;xyz-z
      rgb-color-distance
      rgb->xyz
      xyz->rgb))

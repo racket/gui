@@ -2,15 +2,27 @@
 
 (require typed/racket/unit)
 
+(struct xyz ([x : Real]
+             [y : Real]
+             [z : Real])
+  #:extra-constructor-name make-xyz)
+
+  (struct luv ([l : Real]
+               [u : Real]
+               [v : Real]))
+#;
+(require/typed "sig.rkt" [#:signature framework:color-model-class^()])
+
 (require/typed "sig.rkt"
                [#:signature framework:color-model^
-                ([rgb-color-distance : (-> Number Number Number Number Number Number Number)]
-                 [xyz->rgb : (-> Number Number Number (Listof Number))]
-                 [rgb->xyz : (-> Number Number Number xyz)]
-                 [xyz? : (-> Any Boolean)]
-                 [xyz-x : (-> xyz Number)]
-                 [xyz-y : (-> xyz Number)]
-                 [xyz-z : (-> xyz Number)])])    
+                ([rgb-color-distance : (-> Real Real Real Real Real Real Real)]
+                 [xyz->rgb : (-> Real Real Real (Listof Real))]
+                 [rgb->xyz : (-> Real Real Real xyz)]
+                 ;[xyz? : (-> Any Boolean)]
+                 ;[xyz-x : (-> Any Real)]
+                 ;[xyz-y : (-> Any Real)]
+                 ;[xyz-z : (-> Any Real)]
+                 )])
 
 (define-unit framework:color-model@
   (import)
@@ -25,15 +37,15 @@
   
   ;; submatrix : (list-of (list-of num)) int int -> (list-of (list-of num))
   ;; submatrix "crosses out" row i and column j from the matrix, returning a new one
-  (: submatrix (-> (Listof (Listof Number)) Integer Integer (Listof (Listof Number))))
+  (: submatrix (-> (Listof (Listof Real)) Integer Integer (Listof (Listof Real))))
   (define (submatrix source i j)
-    (let row-loop ([row 0])
+    (let row-loop : (Listof (Listof Real)) ([row : Integer 0])
       (cond 
         [(eq? row (length source)) null]
         [(eq? row i) (row-loop (+ row 1))]
         [else
          (cons 
-          (let col-loop : (Listof Number) ([col : Number 0])
+          (let col-loop : (Listof Real) ([col : Integer 0])
             (cond 
               [(eq? col (length (car source))) null]
               [(eq? col j) (col-loop (+ col 1))]
@@ -47,7 +59,7 @@
   
   ;; det : (list-of (list-of num)) -> num
 
-  (: det (-> (Listof (Listof Number)) Number))
+  (: det (-> (Listof (Listof Real)) Real))
   (define (det matrix)
     (if (null? matrix)
         1
@@ -64,7 +76,7 @@
   ;;(= (det square-test-matrix) -2553)
   
   ;; invert : (list-of (list-of num)) -> (list-of (list-of num))
-  (: matrix-invert (-> (Listof (Listof Number)) (Listof (Listof Number))))
+  (: matrix-invert (-> (Listof (Listof Real)) (Listof (Listof Real))))
   (define (matrix-invert matrix)
     (let-values ([(width height) (matrix-dimension matrix)])
       (when (not (= width height))
@@ -74,7 +86,7 @@
           (if (= row (length matrix))
               null
               (cons 
-               (let col-loop : (Listof Number) ([col 0] [sign sign])
+               (let col-loop : (Listof Real) ([col 0] [sign sign])
                  (if (= col (length (car matrix)))
                      null
                      (cons (* delta-inv
@@ -89,7 +101,7 @@
   ;; matrix-dimension : (list-of (list-of num)) -> (values num num)  
   ;; takes a matrix, returns width and height
 
-  (: matrix-dimension (-> (Listof (Listof Number)) (Values Number Number)))
+  (: matrix-dimension (-> (Listof (Listof Real)) (Values Real Real)))
   (define (matrix-dimension matrix)
     (when (not (pair? matrix))
       (error 'matrix-dimension "matrix argument is not a list: ~s" matrix))
@@ -101,7 +113,8 @@
       (let ([width (length (car matrix))])
         (when (= width 0)
           (error 'matrix-dimension "matrix argument has width 0: ~s" matrix))
-        (let loop ([rows matrix])
+        (let loop : (Values Real Real)
+          ([rows : (Listof (Listof Real)) matrix])
           (if (null? rows)
               (values width height)
               (begin
@@ -110,17 +123,24 @@
                 (when (not (= width (length (car rows))))
                   (error 'matrix-dimension "rows have different widths: ~s and ~s" width (length (car rows))))
                 (loop (cdr rows))))))))
+
+  (define-type 3-num (List Real Real Real))
+  (define-type matrix (List 3-num 3-num 3-num))
   
   ;; transpose : (list-of (list-of num)) -> (list-of (list-of num))
-  (: transpose (-> (Listof (Listof Number)) (Listof (Listof Number))))
-  (define (transpose vector) (apply map list vector))
+  (: transpose (-> (Listof (Listof Real)) (Listof (Listof Real))))
+  (define (transpose vector)
+    (if (null? (car vector))
+      '()
+      (cons (map (inst car Real Real) vector)
+            (transpose (map (inst cdr Real Real) vector)))))
   
   
   ;; test code
   ;;(equal? (transpose '((3 2 1) (9 8 7))) '((3 9) (2 8) (1 7)))
   
   ;; inner-product : (list-of num) (list-of num) -> num
-  (: inner-product (-> (Listof Number) (Listof Number) Number))
+  (: inner-product (-> (Listof Real) (Listof Real) Real))
   (define (inner-product a b)
     (foldl + 0 (map * a b)))
   
@@ -129,15 +149,15 @@
   
   ;; matrix-multiply: (list-of (list-of num)) (list-of (list-of num)) -> (list-of (list-of num))
   ;; multiplies the two matrices.
-  (: matrix-multiply (-> (Listof (Listof Number)) (Listof (Listof Number))))
+  (: matrix-multiply (-> (Listof (Listof Real)) (Listof (Listof Real)) (Listof (Listof Real))))
   (define (matrix-multiply a b)
     (let-values ([(width-a height-a) (matrix-dimension a)]
                  [(width-b height-b) (matrix-dimension b)])
       (when (not (= width-a height-b))
         (error 'matrix-multiply "matrix dimensions do not match for multiplication"))
       (let ([b-t (transpose b)])
-        (map (λ (row)
-               (map (λ (col)
+        (map (λ ([row : (Listof Real)])
+               (map (λ ([col : (Listof Real)])
                       (inner-product row col))
                     b-t))
              a))))
@@ -176,19 +196,10 @@
   (define y-w 0.329)
   (define big-y-w 100.0)
 
-  #;
-  (define-type XYZ (struct ([x : Number]
-                            [y : Number]
-                            [z : Number])))
-  
-  (define-struct xyz ([x : Number]
-                      [y : Number]
-                      [z : Number]))
-
-  (: xy-big-y->xyz (-> Number Number Number XYZ))
+  (: xy-big-y->xyz (-> Real Real Real xyz))
   (define (xy-big-y->xyz x y big-y)
     (let ([sigma (/ big-y y)])
-      (make-xyz
+      (xyz
        (* x sigma)
        (* y sigma)
        (* (- 1 x y) sigma))))
@@ -204,7 +215,7 @@
   (define pre-matrix `((,x-r ,x-g ,x-b)
                        (,y-r ,y-g ,y-b)
                        (,z-r ,z-g ,z-b)))
-  
+
   (define-values (sigma-r sigma-g sigma-b)
     (let* ([inversion 
             (matrix-invert pre-matrix)]
@@ -212,14 +223,16 @@
             (matrix-multiply inversion `((,(xyz-x xyz-white))
                                          (,(xyz-y xyz-white))
                                          (,(xyz-z xyz-white))))])
-      (apply values (car (transpose sigmas)))))
+      (apply values (cast (car (transpose sigmas)) (List Real Real Real)))))
   
   ;; (printf "should be equal to xyz-white: \n~a\n"
   ;;    (matrix-multiply pre-matrix `((,sigma-r) (,sigma-g) (,sigma-b))))
- 
+  
   (define rgb->xyz-matrix
-    (map (λ (row)
-           (map (λ (row-elt scalar) (* row-elt scalar 1/255)) row `(,sigma-r ,sigma-g ,sigma-b)))
+    (map (λ ([row : (Listof Real)])
+           (map (λ ([row-elt : Real]
+                    [scalar : Real])
+                  (* row-elt scalar 1/255)) row `(,sigma-r ,sigma-g ,sigma-b)))
          pre-matrix))
   
   (define xyz->rgb-matrix
@@ -227,14 +240,15 @@
   
   ;;(printf "should be identity: \n~a\n" (matrix-multiply rgb->xyz-matrix xyz->rgb-matrix))
 
-  (: rgb->xyz (-> Number Number Number xyz))
+  (: rgb->xyz (-> Real Real Real xyz))
   (define (rgb->xyz r g b)
-    (apply make-xyz (car (transpose (matrix-multiply rgb->xyz-matrix (transpose `((,r ,g ,b))))))))
+    (apply xyz (cast (car (transpose (matrix-multiply rgb->xyz-matrix (transpose `((,r ,g ,b))))))
+                     (List Real Real Real))))
   
   ;;(print-struct #t)
   ;; (printf "should be xyz-white: \n~a\n" (rgb->xyz 255 255 255))
 
-  (: xyz->rgb (-> Number Number Number (Listof Number)))
+  (: xyz->rgb (-> Real Real Real (Listof Real)))
   (define (xyz->rgb x y z)
     (car (transpose (matrix-multiply xyz->rgb-matrix (transpose `((,x ,y ,z)))))))
   
@@ -253,41 +267,37 @@
     (let* ([y (xyz-y xyz)])
       (make-xyz (xyz-x xyz) (if (< y 0.01) 0.01 y) (xyz-z xyz))))
 
-  #;
-  (define-type LUV struct ([l : Number]
-                           [u : Number]
-                           [v : Number]))
-  
-  (define-struct luv ([l : Number]
-                      [u : Number]
-                      [v : Number]))
-  
+  (: xyz-denom (-> xyz Real))
   (define (xyz-denom xyz)
     (+ (xyz-x xyz) (* 15 (xyz-y xyz)) (* 3 (xyz-z xyz))))
-  
+
+  (: xyz-u-p (-> xyz Real))
   (define (xyz-u-p xyz)
     (/ (* 4 (xyz-x xyz)) (xyz-denom xyz)))
-  
+
+  (: xyz-v-p (xyz -> Real))
   (define (xyz-v-p xyz)
     (/ (* 9 (xyz-y xyz)) (xyz-denom xyz)))
-  
+
+  (: xyz->luv (-> xyz luv))
   (define (xyz->luv xyz) 
     (let ([xyz (xyz-tweak xyz)])
-      (let* ([l (- (* 116 (expt (/ (xyz-y xyz) (xyz-y xyz-white))
+      (let* ([l (- (* 116 (expt (assert (/ (xyz-y xyz) (xyz-y xyz-white)) positive?)
                                 1/3))
                    16)]
              [u-p (xyz-u-p xyz)]
              [u-p-white (xyz-u-p xyz-white)]
              [v-p (xyz-v-p xyz)]
              [v-p-white (xyz-v-p xyz-white)])
-        (make-luv l (* 13 l (- u-p u-p-white)) (* 13 l (- v-p v-p-white))))))
-  
+        (luv l (* 13 l (- u-p u-p-white)) (* 13 l (- v-p v-p-white))))))
+
+  (: luv-distance (-> luv luv Real))
   (define (luv-distance a b)
-    (expt (+ (expt (- (luv-l a) (luv-l b)) 2)
-             (expt (- (luv-u a) (luv-u b)) 2)
-             (expt (- (luv-v a) (luv-v b)) 2))
+    (expt (assert (+ (expt (- (luv-l a) (luv-l b)) 2)
+                     (expt (- (luv-u a) (luv-u b)) 2)
+                     (expt (- (luv-v a) (luv-v b)) 2)) positive?)
           1/2))
-  (: rgb-color-distance (-> Number Number Number Number Number Number Number)) 
+  (: rgb-color-distance (-> Real Real Real Real Real Real Real)) 
   (define (rgb-color-distance r-a g-a b-a r-b g-b b-b)
     (let* ([luv-a (xyz->luv (rgb->xyz r-a g-a b-a))]
            [luv-b (xyz->luv (rgb->xyz r-b g-b b-b))])
