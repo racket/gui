@@ -18,15 +18,25 @@
                 ([rgb-color-distance : (-> Real Real Real Real Real Real Real)]
                  [xyz->rgb : (-> Real Real Real (Listof Real))]
                  [rgb->xyz : (-> Real Real Real xyz)]
-                 ;[xyz? : (-> Any Boolean)]
-                 ;[xyz-x : (-> Any Real)]
-                 ;[xyz-y : (-> Any Real)]
-                 ;[xyz-z : (-> Any Real)]
+                 [xyz? : (-> Any Boolean)]
+                 [xyz-x : (-> xyz Real)]
+                 [xyz-y : (-> xyz Real)]
+                 [xyz-z : (-> xyz Real)]
                  )])
 
 (define-unit framework:color-model@
   (import)
-  (export framework:color-model^)
+  (export (rename framework:color-model^
+                  (-xyz? xyz?)
+                  (-xyz-x xyz-x)
+                  (-xyz-y xyz-y)
+                  (-xyz-z xyz-z)))
+
+  (define -xyz? xyz?)
+  (define -xyz-x xyz-x)
+  (define -xyz-y xyz-y)
+  (define -xyz-z xyz-z)
+  
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; 
   ;;;                                 ;;;
   ;;;           matrix ops            ;;;
