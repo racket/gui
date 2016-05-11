@@ -20,7 +20,7 @@
     This function highlights a region of text in the buffer.
 
     The range between @racket[start] and @racket[end] will be highlighted with
-    the color in color, if the style is @racket['rectangle] (the default).  If
+    the given @racket[color], if the style is @racket['rectangle] (the default).  If
     the style is @racket['ellipse], then an ellipse is drawn around the range
     in the editor, using the color.  If the style is @racket['hollow-ellipse],
     then the outline of an ellipse is drawn around the range in the editor,
