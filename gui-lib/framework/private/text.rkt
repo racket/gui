@@ -2270,7 +2270,9 @@
       [the-snipclass
        (define base (new editor-stream-out-bytes-base%))
        (define stream (make-object editor-stream-out% base))
+       (write-editor-global-header stream)
        (send snip write stream)
+       (write-editor-global-footer stream)
        (snip-special snip
                      (send the-snipclass get-classname)
                      (send base get-bytes))]
@@ -2284,7 +2286,10 @@
        (define base (make-object editor-stream-in-bytes-base%
                       (snip-special-bytes snip-special)))
        (define es (make-object editor-stream-in% base))
-       (or (send snipclass read es)
+       (read-editor-global-header es)
+       (define the-snip (send snipclass read es))
+       (read-editor-global-footer es)
+       (or the-snip
            (snip-special-snip snip-special))]
       [else
        (snip-special-snip snip-special)]))
