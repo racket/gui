@@ -621,11 +621,13 @@
 
     (define enabled? #t)
     (define/public (is-enabled-to-root?)
-      (and (is-window-enabled?) (is-parent-enabled-to-root?)))
+      (and (is-window-enabled?/raw) (is-parent-enabled-to-root?)))
     (define/public (is-parent-enabled-to-root?)
       (send parent is-enabled-to-root?))
-    (define/public (is-window-enabled?)
+    (define/public (is-window-enabled?/raw)
       enabled?)
+    (define/public (is-window-enabled?)
+      (is-window-enabled?/raw))
     (define/public (enable on?)
       (atomically
        (set! enabled? on?)
