@@ -97,13 +97,17 @@
 
       (define ignore-redraw-request? #f)
 
+      (define hide-scroll-x? (and (memq 'hide-hscroll style) #t))
+      (define hide-scroll-y? (and (memq 'hide-vscroll style) #t))
 
       (define auto-scroll-x? (and (memq 'auto-hscroll style) #t))
       (define auto-scroll-y? (and (memq 'auto-vscroll style) #t))
 
       (define can-scroll-x? (or auto-scroll-x?
+                                hide-scroll-x?
                                 (and (memq 'hscroll style) #t)))
       (define can-scroll-y? (or auto-scroll-y?
+                                hide-scroll-y?
                                 (and (memq 'vscroll style) #t)))
                 
       (define scroll-x? can-scroll-x?)
@@ -450,13 +454,15 @@
                                   ;; loop for fix-point on x and y scroll
                                   (let loop ([w w] [h h] [iters 0])
                                     (let ([want-scroll-x?
-                                           (if auto-scroll-x?
-                                               ((car ms) . > . w)
-                                               scroll-x?)]
+                                           (and (not hide-scroll-x?)
+                                                (if auto-scroll-x?
+                                                    ((car ms) . > . w)
+                                                    scroll-x?))]
                                           [want-scroll-y?
-                                           (if auto-scroll-y?
-                                               ((cadr ms) . > . h)
-                                               scroll-y?)])
+                                           (and (not hide-scroll-y?)
+                                                (if auto-scroll-y?
+                                                    ((cadr ms) . > . h)
+                                                    scroll-y?))])
                                       (if (and (eq? scroll-x? want-scroll-x?)
                                                (eq? scroll-y? want-scroll-y?))
                                           (values (if can-scroll-x?

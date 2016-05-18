@@ -24,8 +24,8 @@ A @racket[panel%] object has a degenerate placement strategy for
 @defconstructor[([parent (or/c (is-a?/c frame%) (is-a?/c dialog%)
                                (is-a?/c panel%) (is-a?/c pane%))]
                  [style (listof (or/c 'border 'deleted
-                                      'hscroll 'auto-hscroll
-                                      'vscroll 'auto-vscroll)) null]
+                                      'hscroll 'auto-hscroll 'hide-hscroll
+                                      'vscroll 'auto-vscroll 'hide-vscroll)) null]
                  [enabled any/c #t]
                  [vert-margin spacing-integer? 0]
                  [horiz-margin spacing-integer? 0]
@@ -47,14 +47,17 @@ If the @racket['hscroll] or @racket['vscroll] style is specified, then
  the panel includes a scrollbar in the corresponding direction, and
  the panel's own size in the corresponding direction is not
  constrained by the size of its children subareas. The @racket['auto-hscroll]
- and @racket['auto-vscroll] styles are like @racket['hscroll] or
- @racket['vscroll], but they cause the corresponding scrollbar to
+ and @racket['auto-vscroll] styles imply @racket['hscroll] and
+ @racket['vscroll], respectively, but they cause the corresponding scrollbar to
  disappear when no scrolling is needed in the corresponding direction;
  the @racket['auto-vscroll] and @racket['auto-hscroll] modes assume that
  children subareas are placed using the default algorithm for a @racket[panel%],
- @racket[vertical-panel%], or @racket[horizontal-panel%].
+ @racket[vertical-panel%], or @racket[horizontal-panel%]. The @racket['hide-hscroll]
+ and @racket['hide-vscroll] styles imply @racket['auto-hscroll] and
+ @racket['auto-vscroll], respectively, but the corresponding scroll bar is never
+ made visible (while still allowing the panel content to exceed its own size).
 
 @WindowKWs[@racket[enabled]] @SubareaKWs[] @AreaContKWs[] @AreaKWs[]
 
-}}
+@history[#:changed "1.25" @elem{Added @racket['hide-vscroll] and @racket['hide-hscroll].}]}}
 

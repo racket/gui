@@ -182,14 +182,29 @@
                                     panel))]
            [as-canvas? (lambda () (or (memq 'vscroll style)
                                       (memq 'auto-vscroll style)
+                                      (memq 'hide-vscroll style)
                                       (memq 'hscroll style)
-                                      (memq 'auto-hscroll style)))])
+                                      (memq 'auto-hscroll style)
+                                      (memq 'hide-hscroll style)))])
       (check-container-parent cwho parent)
       (check-style cwho #f (append '(border deleted)
                                    (if can-canvas?
-                                       '(hscroll vscroll auto-hscroll auto-vscroll)
+                                       '(hscroll vscroll
+                                         auto-hscroll auto-vscroll 
+                                         hide-hscroll hide-vscroll)
                                        null))
                    style)
+
+      (define (add-scrolls style)
+        (append
+         (if (memq 'hide-vscroll style) 
+             '(auto-vscroll)
+             null)
+         (if (memq 'hide-hscroll style) 
+             '(auto-hscroll)
+             null)
+         style))
+
       (as-entry
        (lambda ()
          (super-instantiate
@@ -208,7 +223,7 @@
                                                         wx-canvas-panel%
                                                         wx-panel%)])
                                             this this (mred->wx-container parent)
-                                            (cons 'transparent style)
+                                            (cons 'transparent (add-scrolls style))
                                             (get-initial-label)))
                    wx)
            (lambda () wx)
