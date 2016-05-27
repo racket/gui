@@ -871,7 +871,7 @@ If @racket[bottom-right?] is not @racket[#f], the values in the
  @racket[x] and @racket[y] boxes are for the snip's bottom right
  corner instead of its top-left corner.
 
-Obtaining the @techlink{location} if the bottom-right corner may
+Obtaining the @techlink{location} of the bottom-right corner may
  trigger delayed size calculations (including snips other than
  the one whose @techlink{location} was requested).
 
