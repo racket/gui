@@ -259,7 +259,8 @@
      range-color
 
      make-snip-special
-     snip-special?))
+     snip-special?
+     send-snip-to-port))
   
   (define-signature canvas-class^
     (basic<%>

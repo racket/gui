@@ -1,7 +1,8 @@
-(module interactive-value-port mzscheme
-  (require mzlib/pretty
-           mred
-           mzlib/class
+#lang racket/base
+
+  (require racket/pretty
+           racket/gui/base
+           racket/class
            "syntax-browser.rkt")
   (provide set-interactive-display-handler
            set-interactive-write-handler
@@ -10,7 +11,7 @@
   (define op (current-output-port))
   (define (oprintf . x) (apply fprintf op x))
   
-  (define (set-interactive-display-handler port)
+  (define (set-interactive-display-handler port #:snip-handler [snip-handler #f])
     (let ([original-port-display-handler (port-display-handler port)])
       (port-display-handler
        port
@@ -18,19 +19,19 @@
          (cond
            [(string? val) (original-port-display-handler val port)]
            [else
-            (do-printing pretty-display val port)])))))
+            (do-printing pretty-display val port snip-handler)])))))
   
-  (define (set-interactive-write-handler port)
+  (define (set-interactive-write-handler port #:snip-handler [snip-handler #f])
     (port-write-handler
      port
      (λ (val port)
-       (do-printing pretty-print val port))))
+       (do-printing pretty-print val port snip-handler))))
   
-  (define (set-interactive-print-handler port)
+  (define (set-interactive-print-handler port #:snip-handler [snip-handler #f])
     (port-print-handler
       port
       (λ (val port)
-        (do-printing pretty-print val port))))
+        (do-printing pretty-print val port snip-handler))))
             
   (define (use-number-snip? x)
     (and #f
@@ -41,7 +42,7 @@
 
   (define default-pretty-print-current-style-table (pretty-print-current-style-table))
 
-  (define (do-printing pretty value port)
+  (define (do-printing pretty value port snip-handler)
     (parameterize (;; these handlers aren't used, but are set to override the user's settings
                    [pretty-print-print-line (λ (line-number op old-line dest-columns) 
                                                 (when (and (not (equal? line-number 0))
@@ -70,22 +71,19 @@
                       (cond
                         [(not (port-writes-special? port)) #f]
                         [(is-a? value snip%) 1]
-                        ;[(use-number-snip? value) 1]
                         [(syntax? value) 1]
                         [else #f]))]
                    [pretty-print-print-hook
                     (λ (value display? port)
                       (cond
                         [(is-a? value snip%)
-                         (write-special value port)
-                         1]
-                        #;
-                        [(use-number-snip? value)
-                         (write-special
-                          (number-snip:make-repeating-decimal-snip value #f)
-                          port)
+                         (cond
+                           [snip-handler
+                            (snip-handler value port)]
+                           [else
+                            (write-special value port)])
                          1]
                         [(syntax? value)
                          (write-special (render-syntax/snip value))]
                         [else (void)]))])
-      (pretty value port))))
+      (pretty value port)))

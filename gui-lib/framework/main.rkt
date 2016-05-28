@@ -184,6 +184,14 @@
   @{Recognizes the result of @racket[text:make-snip-special].})
 
  (proc-doc/names
+  text:send-snip-to-port
+  (-> (is-a?/c snip%) output-port? void?)
+  (snip port)
+  @{Sends @racket[snip] to @racket[port] by using @racket[text:make-snip-special],
+    handling a few special cases for performance and backwards compatibility
+    reasons.})
+
+ (proc-doc/names
   number-snip:make-repeating-decimal-snip
   (real? boolean? . -> . (is-a?/c snip%))
   (num show-prefix?)

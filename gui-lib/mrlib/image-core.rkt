@@ -30,6 +30,7 @@ has been moved out).
          "private/image-core-snipclass.rkt"
          "private/regmk.rkt"
          racket/snip
+         (prefix-in : racket/base)
          (prefix-in cis: "cache-image-snip.rkt"))
 
 
@@ -454,9 +455,11 @@ has been moved out).
         (set-box/f! lspace 0)
         (set-box/f! rspace 0)))
 
-    (define/override (write f) 
-      (let ([bytes (string->bytes/utf-8 (format "~s" (list shape bb pinhole)))])
-        (send f put (bytes-length bytes) bytes)))
+    (define/override (write f)
+      (define bp (open-output-bytes))
+      (:write (list shape bb pinhole) bp)
+      (define bytes (get-output-bytes bp))
+      (send f put (bytes-length bytes) bytes))
     
     (super-new)
     
