@@ -95,6 +95,7 @@
              (define aspell-proc #f)
              (define already-attempted-aspell? #f)
              (define current-dict #f)
+             (define is-actually-aspell? #f)
              
              (define (fire-up-aspell)
                (unless already-attempted-aspell?
@@ -105,6 +106,8 @@
                    (define line (with-handlers ((exn:fail? exn-message))
                                   (read-line (list-ref aspell-proc 0))))
                    (asp-log (format "framework: started speller: ~a" line))
+                   (when (regexp-match? #rx"[Aa]spell" line)
+                     (set! is-actually-aspell? #t))
                    
                    (when (and (string? line)
                               (regexp-match #rx"[Aa]spell" line))
@@ -129,7 +132,12 @@
                (close-output-port (list-ref aspell-proc 1))
                (close-input-port (list-ref aspell-proc 3))
                (proc 'kill)
-               (set! aspell-proc #f))
+               (set! aspell-proc #f)
+               (set! is-actually-aspell? #f))
+
+             (define (is-ascii? l)
+               (for/and ([s (in-string l)])
+                 (<= (char->integer s) 127)))
              
              (let loop ()
                (sync
@@ -147,7 +155,9 @@
                       (sync (channel-put-evt resp-chan resp)
                             nack-evt))
                     (cond
-                      [aspell-proc
+                      [(and aspell-proc
+                            (or is-actually-aspell?
+                                (is-ascii? line)))
                        (define stdout (list-ref aspell-proc 0))
                        (define stdin (list-ref aspell-proc 1))
                        
