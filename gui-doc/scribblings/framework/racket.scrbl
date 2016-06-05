@@ -84,12 +84,22 @@
   }
 
  @defmethod[#:mode public-final
-            (compute-racket-amount-to-indent [pos exact-nonnegative-integer?])
+            (compute-racket-amount-to-indent
+             [pos exact-nonnegative-integer?]
+             [get-keyword-type
+              (-> string? (or/c #f 'lambda 'define 'begin 'for/fold 'other))
+              (λ (x) #f)])
             exact-nonnegative-integer?]{
   Computes the amount of space to indent the line containing @racket[pos],
   using the default s-expression indentation strategy.
 
-  @history[#:added "1.9"]
+  The function @racket[get-keyword-type] is consulted for each symbol/keyword
+  that follows an open parenthesis. If it returns @racket[#f], then the
+  user's preferences (from the @onscreen{Indenting} panel of the @onscreen{Editing}
+  panel in the preferences dialog) are used.
+
+  @history[#:added "1.9"
+           #:changed "1.26" @list{Added the @racket[get-keyword-type] argument.}]
   }
 
  @defmethod[#:mode augment
