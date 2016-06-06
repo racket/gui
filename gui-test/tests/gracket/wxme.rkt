@@ -927,6 +927,18 @@
         #"")
 (expect (send fi2 ok?) #f)
 
+(let ()
+  (define (wash-it b)
+    (define out-base (new editor-stream-out-bytes-base%))
+    (define out-stream (make-object editor-stream-out% out-base))
+    (send out-stream put (bytes-length b) b)
+    (define bstr (send out-base get-bytes))
+    (define in-base (make-object editor-stream-in-bytes-base% bstr))
+    (define in-stream (make-object editor-stream-in% in-base))
+    (send in-stream get-unterminated-bytes))
+  (define ex-b #"object ...  ;;\351\232\234\347\242\215\347\211\251\345\210\227\350\241\250")
+  (expect (wash-it ex-b) ex-b))
+
 ;; ----------------------------------------
 ;; Save & load
 

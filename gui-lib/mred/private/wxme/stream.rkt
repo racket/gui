@@ -381,6 +381,15 @@
                                 (unless recur? (inc-item-count))
                                 (let ([s (with-handlers ([exn:fail:read? (lambda (x) #f)]) 
                                            (read si))])
+                                  (when (and recur? s)
+                                    ;; It's ok to have extra whitespace when reading a byte
+                                    ;; string in a sequence
+                                    (let loop ()
+                                      (define c (peek-byte si))
+                                      (unless (eof-object? c)
+                                        (when (char-whitespace? (integer->char c))
+                                          (read-byte si)
+                                          (loop)))))
                                   (if (or (not s)
                                           (not (eof-object? (read-byte si))))
                                       (fail)
