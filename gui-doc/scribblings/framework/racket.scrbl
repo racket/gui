@@ -258,7 +258,7 @@
   }
 }
 @defmixin[racket:text-mixin
-          (text:basic<%> mode:host-text<%> color:text<%> text:autocomplete<%>)
+          (text:basic<%> mode:host-text<%> color:text<%> text:autocomplete<%> editor:keymap<%>)
           (racket:text<%>)]{
   This mixin adds functionality for editing Racket files.
 
