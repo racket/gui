@@ -697,8 +697,11 @@
               ;; So far, the S-exp containing "pos" was all on
               ;;  one line (possibly not counting the opening paren),
               ;;  so indent to follow the first S-exp's end
-              ;;  unless there are just two sexps and the second is an ellipsis.
-              ;;  in that case, we just ignore the ellipsis
+              ;;  unless
+              ;;    - there are just two sexps earlier and the second is an ellipsis.
+              ;;      in that case, we just ignore the ellipsis or
+              ;;    - the sexp we are indenting is a bunch of hypens;
+              ;;      in that case, we match the opening paren
               (define id-end (get-forward-sexp contains))
               (define name-length
                 (if id-end
@@ -708,6 +711,8 @@
                 [(first-sexp-is-keyword? contains)
                  (visual-offset contains)]
                 [(second-sexp-is-ellipsis? contains)
+                 (visual-offset contains)]
+                [(sexp-is-all-hyphens? pos)
                  (visual-offset contains)]
                 [(not (find-up-sexp pos))
                  (visual-offset contains)]
@@ -727,6 +732,21 @@
                       (loop next-to-last next-to-last-para)
                       (visual-offset last))))]))
          amt-to-indent]))
+
+    ;; returns #t if `pos` is in a symbol (or keyword) that consists entirely
+    ;; of hyphens and has at least three hyphens; returns #f otherwise
+    (define/private (sexp-is-all-hyphens? pos)
+      (define fst-end (get-forward-sexp pos))
+      (and fst-end
+           (let ([fst-start (get-backward-sexp fst-end)])
+             (and fst-start
+                  (memq (classify-position fst-start) '(symbol keyword))
+                  (>= (- fst-end fst-start) 3)
+                  (let loop ([i fst-start])
+                    (cond
+                      [(< i fst-end)
+                       (and (equal? #\- (get-character i)) (loop (+ i 1)))]
+                      [else #t]))))))
     
     ;; returns #t if `contains' is at a position on a line with an sexp, an ellipsis and nothing else.
     ;; otherwise, returns #f

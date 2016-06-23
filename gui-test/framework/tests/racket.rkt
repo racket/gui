@@ -175,6 +175,8 @@
                   "(#:x\n 1)")
 (test-indentation "(#:x 0\n1)"
                   "(#:x 0\n 1)")
+(test-indentation "(a b c d\n---)"
+                  "(a b c d\n ---)")
 
 
 (define (test-magic-square-bracket which before after)
