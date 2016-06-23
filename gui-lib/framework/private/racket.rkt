@@ -708,7 +708,8 @@
                     (- id-end contains)
                     0))
               (cond
-                [(first-sexp-is-keyword? contains)
+                [(or (first-sexp-is-keyword? contains)
+                     (sexp-is-all-hyphens? contains))
                  (visual-offset contains)]
                 [(second-sexp-is-ellipsis? contains)
                  (visual-offset contains)]
