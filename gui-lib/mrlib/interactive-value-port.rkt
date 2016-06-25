@@ -25,7 +25,7 @@
     (port-write-handler
      port
      (λ (val port)
-       (do-printing pretty-print val port snip-handler))))
+       (do-printing pretty-write val port snip-handler))))
   
   (define (set-interactive-print-handler port #:snip-handler [snip-handler #f])
     (port-print-handler
