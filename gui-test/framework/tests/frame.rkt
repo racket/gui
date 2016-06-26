@@ -128,8 +128,6 @@
        (queue-callback
         (λ ()
           (send (test:get-active-top-level-window) close)))
-       (preferences:set 'framework:file-dialogs 'std) ;; this is not gooD!!!!
-       (error 'ack "need to figure out how to use the hash-based prefs...?")
        editor-contents))
    test-file-contents
    name))
@@ -138,9 +136,19 @@
   (test-open "frame:searchable open" frame:searchable%)
   (test-open "frame:text open" frame:text%))
 
-(parameterize ([test:use-focus-table #t])
-  (define dummy (make-object frame:basic% "dummy to keep from quitting"))
-  (send dummy show #t)
-  (creation-tests)
-  (open-tests)
-  (send dummy show #f))
+(let ([pref-ht (make-hash)])
+  (parameterize ([test:use-focus-table #t]
+                 [preferences:low-level-get-preference
+                  (λ (sym [fail (λ () #f)])
+                    (hash-ref pref-ht sym fail))]
+                 [preferences:low-level-put-preferences
+                  (λ (syms vals)
+                    (for ([sym (in-list syms)]
+                          [val (in-list vals)])
+                      (hash-set! pref-ht sym val)))])
+    (define dummy (make-object frame:basic% "dummy to keep from quitting"))
+    (send dummy show #t)
+    (creation-tests)
+    (open-tests)
+    (send dummy show #f)))
+
