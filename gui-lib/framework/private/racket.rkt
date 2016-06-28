@@ -564,15 +564,15 @@
                 tab-char?))
     (define/pubment (compute-amount-to-indent pos)
       (inner (compute-racket-amount-to-indent pos) compute-amount-to-indent pos))
-    (define/public-final (compute-racket-amount-to-indent pos [_get-keyword-type (λ (x) #f)])
+    (define/public-final (compute-racket-amount-to-indent pos [_get-head-sexp-type (λ (x) #f)])
       (cond
         [(is-stopped?) #f]
         [else
-         (define get-keyword-type
+         (define get-head-sexp-type
            (let ([tabify-prefs (preferences:get 'framework:tabify)])
              (λ (text)
-               (or (_get-keyword-type text)
-                   (get-keyword-type-from-prefs text tabify-prefs)))))
+               (or (_get-head-sexp-type text)
+                   (get-head-sexp-type-from-prefs text tabify-prefs)))))
          (define last-pos (last-position))
          (define para (position-paragraph pos))
          (define is-tabbable?
@@ -631,7 +631,7 @@
                 (let ([text (get-text contains id-end)])
                   (cond
                     [(member (classify-position contains) '(keyword symbol))
-                     (get-keyword-type text)]
+                     (get-head-sexp-type text)]
                     [else
                      'other]))))
          (define (procedure-indent)
@@ -1369,7 +1369,7 @@
       (cond
         [(and (eq? type 'symbol)
               (string? lexeme)
-              (get-keyword-type-from-prefs lexeme tabify-pref))
+              (get-head-sexp-type-from-prefs lexeme tabify-pref))
          (values lexeme 'keyword paren start end backup-delta new-mode)]
         [else
          (values lexeme type paren start end backup-delta new-mode)]))
@@ -1388,9 +1388,9 @@
                           (|[| |]|)
                           (|{| |}|))))))
 
-;; get-keyword-type-from-prefs : string (list ht regexp regexp regexp)
-;;                            -> (or/c #f 'lambda 'define 'begin 'for/fold)
-(define (get-keyword-type-from-prefs text pref)
+;; get-head-sexp-type-from-prefs : string (list ht regexp regexp regexp)
+;;                              -> (or/c #f 'lambda 'define 'begin 'for/fold)
+(define (get-head-sexp-type-from-prefs text pref)
   (define ht (car pref))
   (define beg-reg (list-ref pref 1))
   (define def-reg (list-ref pref 2))
