@@ -777,6 +777,7 @@
       (unless (is-stopped?) 
         (define first-para (position-paragraph start-pos))
         (define end-para (position-paragraph end-pos))
+        (define tabifying-multiple-paras? (not (= first-para end-para)))
         (with-handlers ([exn:break?
                          (λ (x) #t)])
           (dynamic-wind
@@ -787,7 +788,14 @@
            (λ ()
              (let loop ([para first-para])
                (when (<= para end-para)
-                 (tabify (paragraph-start-position para))
+                 (define start (paragraph-start-position para))
+                 (define end (paragraph-end-position para))
+                 (define skip-this-line?
+                   (and tabifying-multiple-paras?
+                        (for/and ([i (in-range start (+ end 1))])
+                          (char-whitespace? (get-character i)))))
+                 (unless skip-this-line?
+                   (tabify start))
                  (parameterize-break #t (void))
                  (loop (add1 para))))
              (when (and (>= (position-paragraph start-pos) end-para)
