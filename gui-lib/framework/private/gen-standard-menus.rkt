@@ -180,7 +180,12 @@
      `(@defmethod[(,(between->name x) [menu (is-a?/c menu-item%)]) void?]{
          This method is called between the addition of the
          @tt[,(format "~a" (between-before x))] and the @tt[,(format "~a" (between-after x))] menu-item. 
-         Override it to add additional menu items at that point. })]
+         Override it to add additional menu items at that point.
+
+      @unquote[(if (equal? (between-procedure x) 'separator)
+                   `@list{Defaults to creating a @racket[separator-menu-item%].}
+                   "")]
+      })]
     [(an-item? x)
      `(@defmethod[(,(an-item->get-item-name x)) (or/c false/c (is-a?/c menu-item%))]{
          This method returns the @racket[menu-item%] object corresponding
