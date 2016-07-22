@@ -2279,19 +2279,21 @@
                      (send base get-bytes))]
       [else
        (snip-special snip #f #f)]))
+  ;; -> (or/c (is-a?/c snip%) exn:fail?)
   (define (snip-special->snip snip-special)
     (define the-name (snip-special-name snip-special))
     (define snipclass (and the-name (send (get-the-snip-class-list) find the-name)))
     (cond
       [snipclass
-       (define base (make-object editor-stream-in-bytes-base%
-                      (snip-special-bytes snip-special)))
-       (define es (make-object editor-stream-in% base))
-       (read-editor-global-header es)
-       (define the-snip (send snipclass read es))
-       (read-editor-global-footer es)
-       (or the-snip
-           (snip-special-snip snip-special))]
+       (with-handlers ([exn:fail? values])
+         (define base (make-object editor-stream-in-bytes-base%
+                        (snip-special-bytes snip-special)))
+         (define es (make-object editor-stream-in% base))
+         (read-editor-global-header es)
+         (define the-snip (send snipclass read es))
+         (read-editor-global-footer es)
+         (or the-snip
+             (snip-special-snip snip-special)))]
       [else
        (snip-special-snip snip-special)]))
   
@@ -2654,12 +2656,26 @@
           [(null? txts) (void)]
           [else 
            (define fst (car txts))
-           (define str/snp
+           (define-values (str/snp style)
              (cond
                [(snip-special? (car fst))
-                (snip-special->snip (car fst))]
-               [else (car fst)]))
-           (define style (cdr fst))
+                (define the-snip
+                  (snip-special->snip (car fst)))
+                (if (exn:fail? the-snip)
+                    (values (apply
+                             string-append
+                             "error while rendering snip "
+                             (format "~s" (snip-special-name (car fst)))
+                             ":\n"
+                             (exn-message the-snip)
+                             "  context:\n"
+                             (for/list ([x (in-list (continuation-mark-set->context
+                                                     (exn-continuation-marks
+                                                      the-snip)))])
+                               (format "   ~s\n" x)))
+                            (add-standard error-style-name))
+                    (values the-snip (cdr fst)))]
+               [else (values (car fst) (cdr fst))]))
            
            (define inserted-count
              (if (is-a? str/snp snip%)
