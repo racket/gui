@@ -1212,6 +1212,16 @@
 (expect (send km handle-key-event 'obj kevt) #t)
 (expect hit #\t)
 
+(let ()
+  (define k (new keymap%))
+  (send k add-function "swap if branches" void)
+  (send k map-function "c:x;r" "swap if branches")
+  (send k add-function "rectangle" void)
+  (expect (regexp-match? (regexp-quote "map-function in keymap%: \"r\" is already mapped as a non-prefix key")
+                         (with-handlers ([exn:fail? exn-message])
+                           (send k map-function "c:x;r;a" "rectangle")))
+          #t))
+
 ;; Chained keymap non-prefixed overrides prefixed
 (send km2 add-function "letter-d" (lambda (obj evt) (set! hit #\d)))
 (send km2 map-function "d" "letter-d")

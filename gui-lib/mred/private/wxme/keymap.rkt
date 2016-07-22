@@ -284,7 +284,7 @@
                       (if (caps . < . 0) "~l:" "")
                       (if (altgr . > . 0) "g:" "")
                       (if (altgr . < . 0) "~g:" "")
-                      (or (hash-ref rev-keylist code)
+                      (or (hash-ref rev-keylist code #f)
                           (format "~c" code)))])
                 (error (method-name 'keymap% 'map-function)
                        "~s is already mapped as a ~aprefix key"
