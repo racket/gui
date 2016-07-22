@@ -148,7 +148,38 @@
         (hash-set! function-table (string->symbol keyname) fname))
       
       (define/public (get-map-function-table)
-        (get-map-function-table/ht (make-hasheq)))
+        (define table-possibly-with-prefixes (get-map-function-table/ht (make-hasheq)))
+
+        (define trie (make-hash))
+        (define (add-to-trie loks name)
+          (let loop ([trie trie]
+                     [loks loks])
+            (cond
+              [(null? (cdr loks))
+               (hash-set! trie (car loks) name)]
+              [else
+               (define sub (hash-ref trie (car loks)
+                                     (λ ()
+                                       (define h (make-hash))
+                                       (hash-set! trie (car loks) h)
+                                       h)))
+               (loop sub (cdr loks))])))
+        
+        (for ([(canonicalized-symbol keyname) (in-hash table-possibly-with-prefixes)])
+          (define keys (regexp-split #rx";" (symbol->string canonicalized-symbol)))
+          (add-to-trie keys keyname))
+
+        (define table-without-prefixes (make-hash))
+        (let loop ([trie trie]
+                   [prefix '()])
+          (cond
+            [(string? trie)
+             (define keystring (string->symbol (join-strings ";" (reverse prefix))))
+             (hash-set! table-without-prefixes keystring trie)]
+            [else (for ([(key sub-trie) (in-hash trie)])
+                    (loop sub-trie (cons key prefix)))]))
+
+        table-without-prefixes)
       
       (define/public (get-map-function-table/ht table)
         (for ([(keyname fname) (in-hash function-table)])

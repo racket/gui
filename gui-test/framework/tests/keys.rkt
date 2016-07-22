@@ -89,6 +89,26 @@
        (sort (hash-map (send k get-map-function-table) list)
              string<?
              #:key (lambda (x) (format "~s" x)))))))
+
+(test
+ 'keymap:aug-keymap%/longer-name
+ (lambda (x)
+   (equal? x '((|c:x;r| "swap if branches"))))
+ (lambda ()
+   (queue-sexp-to-mred
+    '(let ()
+       (define k0 (new keymap:aug-keymap%))
+       (define k1 (new keymap:aug-keymap%))
+       (define k2 (new keymap:aug-keymap%))
+       (send k1 add-function "rectangle" void)
+       (send k1 map-function "c:x;r;a" "rectangle")
+       (send k2 add-function "swap if branches" void)
+       (send k2 map-function "c:x;r" "swap if branches")
+       (send k0 chain-to-keymap k1 #t)
+       (send k0 chain-to-keymap k2 #t)
+       (sort (hash-map (send k0 get-map-function-table) list)
+             string<?
+             #:key (lambda (x) (format "~s" x)))))))
   
   (define (test-canonicalize name str1 str2)
     (test

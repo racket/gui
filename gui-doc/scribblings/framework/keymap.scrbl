@@ -19,9 +19,12 @@
 
   @defmethod*[(((get-map-function-table/ht (ht hash?)) hash?))]{
     This is a helper function for @method[keymap:aug-keymap<%>
-    get-map-function-table] that returns the same result, except it accepts a
+    get-map-function-table] that returns a similar result, except it accepts a
     hash-table that it inserts the bindings into. It does not replace any
-    bindings already in @racket[ht].
+    bindings already in @racket[ht]. The result is different from
+    @method[keymap:aug-keymap<%> get-map-function-table] only in that
+    @racket[keymap:aug-keymap<%> get-map-function-table] will remove keybindings
+    that are also have a prefix (since those keybindings are not active).
   }
 }
 @defmixin[keymap:aug-keymap-mixin (keymap%) (keymap:aug-keymap<%>)]{
