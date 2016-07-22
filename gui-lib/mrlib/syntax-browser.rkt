@@ -11,6 +11,7 @@ needed to really make this work:
            racket/class
            racket/gui/base
            racket/match
+           (prefix-in - racket/base)
            "include-bitmap.rkt")
 
   (define orig-output-port (current-output-port))
@@ -46,7 +47,7 @@ needed to really make this work:
     (class snip-class%
       (define/override (read stream)
         (make-object syntax-snip%
-          (unmarshall-syntax (read (open-input-string (send stream get-bytes))))))
+          (unmarshall-syntax (-read (open-input-bytes (send stream get-bytes))))))
       (super-new)))
   
   (define snip-class (new syntax-snipclass%))

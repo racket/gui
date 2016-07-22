@@ -1,0 +1,15 @@
+#lang racket/gui
+(require mrlib/syntax-browser rackunit)
+
+(let ()
+  (struct m ([x #:mutable]))
+  (define v (m 0))
+  (define stx (datum->syntax #'here v))
+  (set-m-x! v stx)
+  (define t (new text%))
+  (send t insert (render-syntax/snip stx))
+  (define bp (open-output-bytes))
+  (send t save-port bp)
+  (define t2 (new text%))
+  (send t2 insert-port (open-input-bytes (get-output-bytes bp)))
+  (check-regexp-match #rx"syntax-snip" (~s (send t2 find-first-snip))))
