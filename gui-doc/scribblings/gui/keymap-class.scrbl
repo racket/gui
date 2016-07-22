@@ -101,9 +101,13 @@ If @racket[try-chain?] is not @racket[#f], keymaps chained to this one
            void?]{
 
 Chains @racket[next] off @this-obj[] The @racket[next] keymap will be
- used to handle events which are not handled by @this-obj[]. If
- @racket[prefix?] is a true value, then @racket[next] will take
- precedence over other keymaps already chained to @this-obj[].
+ used to handle events which are not handled by @this-obj[].
+
+If @racket[prefix?] is a true value, then @racket[next] will take
+ precedence over other keymaps already chained to @this-obj[] in the
+ case that both keymaps map the same key sequence.
+ When one chained keymap maps a key that is a prefix of another, then the
+ shorter key sequence is always used, regardless of @racket[prefix?].
 
 Multiple keymaps can be chained off one keymap using @method[keymap%
  chain-to-keymap]. When keymaps are chained off a main keymap, events
