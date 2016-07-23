@@ -1543,11 +1543,14 @@
              [else
               (lt (get-the-position (car l))
                   (get-the-position (car r)))])])))
-    
+
+    (define all-txt-with-regions-to-clear (make-hasheq))
     (define/private (clear-all-regions) 
       (when to-replace-highlight 
         (unhighlight-replace))
-      (unhighlight-ranges/key 'plt:framework:search-bubbles)
+      (for ([(txt _) (in-hash all-txt-with-regions-to-clear)])
+        (send txt unhighlight-ranges/key 'plt:framework:search-bubbles))
+      (set! all-txt-with-regions-to-clear (make-hasheq))
       (set! search-bubble-table (make-hash)))
     
     (define/private (do-search start)
@@ -1603,6 +1606,7 @@
       (hash-set! search-bubble-table bubble #t)
       (define-values (txt start end) (get-highlighting-text-and-range bubble))
       (when txt
+        (hash-set! all-txt-with-regions-to-clear txt #t)
         (send txt highlight-range
               start end
               (if replace-mode? light-search-color normal-search-color)
@@ -1636,11 +1640,14 @@
               'hollow-ellipse)))
 
     (define/private (get-highlighting-text-and-range bubble)
-      (cond
-        [(number? (car bubble))
-         (values this (car bubble) (+ (car bubble) (cdr bubble)))]
-        [else
-         (values #f #f #f)]))
+      (let loop ([txt this]
+                 [txt/pr (car bubble)])
+        (cond
+          [(number? txt/pr)
+           (if (is-a? txt text:basic<%>)
+               (values txt txt/pr (+ txt/pr (cdr bubble)))
+               (values #f #f #f))]
+          [else (loop (car txt/pr) (cdr txt/pr))])))
     
     (define/private (unhighlight-anchor)
       (unhighlight-range anchor-pos anchor-pos "red" #f 'dot)
