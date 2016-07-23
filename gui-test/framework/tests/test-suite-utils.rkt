@@ -14,7 +14,7 @@
  
  load-framework-automatically
  shutdown-listener shutdown-mred mred-running?
- send-sexp-to-mred queue-sexp-to-mred
+ send-sexp-to-mred send-sexp-to-mred/separate-thread queue-sexp-to-mred
  test
  wait-for-frame
  
@@ -52,7 +52,7 @@
 
 (module local-namespace racket/base
   (require racket/gui/base)
-  (provide send-sexp-to-mred
+  (provide send-sexp-to-mred send-sexp-to-mred/separate-thread
            queue-sexp-to-mred
            eof-result?
            shutdown-listener shutdown-mred mred-running?
@@ -75,6 +75,13 @@
           c
           (eval sexp)))))
     (channel-get c))
+
+  (define (send-sexp-to-mred/separate-thread sexp)
+    (unless ns?
+      (namespace-require 'framework)
+      (namespace-require 'racket/gui/base)
+      (set! ns? #t))
+    (eval sexp))
 
   (define queue-sexp-to-mred send-sexp-to-mred)
 
@@ -120,7 +127,7 @@
            "debug.rkt"
            racket/tcp
            racket/pretty)
-  (provide send-sexp-to-mred
+  (provide send-sexp-to-mred send-sexp-to-mred/separate-thread
            queue-sexp-to-mred
            eof-result?
            shutdown-listener shutdown-mred mred-running?
@@ -272,6 +279,9 @@
                 [(normal) 
                  (eval (list-ref answer 1))]))))))
 
+  (define (send-sexp-to-mred/separate-thread sexp)
+    (send-sexp-to-mred sexp))
+
   (define queue-sexp-to-mred
     (lambda (sexp)
       (send-sexp-to-mred
@@ -319,7 +329,7 @@
              (define n (if use-local? l:n r:n))
              (choose ns ...))))]))
 
-(choose send-sexp-to-mred
+(choose send-sexp-to-mred send-sexp-to-mred/separate-thread
         queue-sexp-to-mred
         eof-result?
         shutdown-listener shutdown-mred mred-running?

@@ -1138,7 +1138,7 @@
              get-start-position get-end-position
              unhighlight-ranges/key unhighlight-range highlight-range
              run-after-edit-sequence begin-edit-sequence end-edit-sequence
-             find-string get-admin position-line
+             find-string find-string-embedded get-admin position-line
              in-edit-sequence? get-pos/text-dc-location
              get-canvas get-top-level-window)
     
@@ -1179,7 +1179,7 @@
            (car to-replace-highlight)))
 
     ;; NEW METHOD: used for test suites
-    (define/public (search-updates-pending?) 
+    (define/public (search-updates-pending?)
       (or update-replace-bubble-callback-running?
           search-position-callback-running?
           search-coroutine))
@@ -1271,7 +1271,7 @@
                 (define next (do-search (get-start-position) 'eof))
                 (begin-edit-sequence #t #f)
                 (cond
-                  [next
+                  [(number? next)
                    (unless (and to-replace-highlight
                                 (= (car to-replace-highlight) next)
                                 (= (cdr to-replace-highlight) 
@@ -1294,16 +1294,27 @@
         (queue-callback
          (λ ()
            (when searching-str
-             (define count 0)
-             (define start-pos (get-start-position))
-             (hash-for-each
-              search-bubble-table
-              (λ (k v)
-                (when (<= (car k) start-pos)
-                  (set! count (+ count 1)))))
+             (define start-pos (get-focus-editor-start-position))
+             (define count
+               (for/sum ([(k v) (in-hash search-bubble-table)])
+                 (define n (if (search-result-compare <= (car k) start-pos) 1 0))
+                 n))
              (update-before-caret-search-hit-count count))
            (set! search-position-callback-running? #f))
          #f)))
+
+    (define/private (get-focus-editor-start-position)
+      (let loop ([txt this])
+        (define focus (send txt get-focus-snip))
+        (define embedded
+          (and focus
+               (is-a? focus editor-snip%)
+               (is-a? (send focus get-editor) text%)
+               (send focus get-editor)))
+        (cond
+          [embedded
+           (cons embedded (loop embedded))]
+          [else (send txt get-start-position)])))
     
     (define/private (update-before-caret-search-hit-count c)
       (unless (equal? before-caret-search-hit-count c)
@@ -1330,7 +1341,7 @@
               (clear-yellow)
               (set! clear-yellow void)
               (when (and searching-str (= (string-length searching-str) (- end start)))
-                (when (do-search start end)
+                (when (find-string searching-str 'forward start end #t case-sensitive?)
                   (set! clear-yellow (highlight-range
                                       start end
                                       (if (preferences:get 'framework:white-on-black?)
@@ -1349,7 +1360,7 @@
             (list (list to-replace-highlight 'dark-search-color))
             (list))
         (hash-map search-bubble-table
-                  (λ (x true) 
+                  (λ (x _true)
                     (list x (if replace-mode? 'light-search-color 'normal-search-color)))))
        string<?
        #:key (λ (x) (format "~s" (car x)))))
@@ -1414,31 +1425,40 @@
         [searching-str
          (define new-search-bubbles '())
          (define new-replace-bubble #f)
-         (define first-hit (do-search 0 'eof))
+         (define first-hit (do-search 0))
+         
          (define-values (this-search-hit-count this-before-caret-search-hit-count)
            (cond
              [first-hit
-              (define sp (get-start-position))
+              (define sp (get-focus-editor-start-position))
               (let loop ([bubble-start first-hit]
                          [search-hit-count 0]
-                         [before-caret-search-hit-count 1])
+                         [before-caret-search-hit-count (if (search-result-compare < first-hit sp) 1 0)])
                 (maybe-pause)
-                (define bubble-end (+ bubble-start (string-length searching-str)))
-                (define bubble (cons bubble-start bubble-end))
+                (define bubble-end (search-result+ bubble-start (string-length searching-str)))
+                (define bubble (cons bubble-start (string-length searching-str)))
                 (define this-bubble
                   (cond
                     [(and replace-mode?
                           (not new-replace-bubble)
-                          (<= sp bubble-start))
+                          (search-result-compare <= sp bubble-start))
                      (set! new-replace-bubble bubble)
                      'the-replace-bubble]
                     [else
                      bubble]))
                 (set! new-search-bubbles (cons this-bubble new-search-bubbles))
-                      
-                (define next (do-search bubble-end 'eof))
+
+                (define next (do-search bubble-end))
+
+                (when (> (let loop ([x bubble-start])
+                           (cond
+                             [(number? x) 1]
+                             [else (+ 1 (loop (cdr x)))]))
+                         3)
+                  (car))
+                
                 (define next-before-caret-search-hit-count
-                  (if (and next (< next sp))
+                  (if (and next (search-result-compare < next sp))
                       (+ 1 before-caret-search-hit-count)
                       before-caret-search-hit-count))
                 (cond
@@ -1488,6 +1508,41 @@
                 (send w search-hits-changed)]
                [(is-a? w area<%>)
                 (loop (send w get-parent))]))))))
+
+    (define/private (search-result+ search-result num)
+      (let loop ([search-result search-result])
+        (cond
+          [(number? search-result) (+ search-result num)]
+          [(cons? search-result)
+           (cons (car search-result)
+                 (loop (cdr search-result)))])))
+
+    (define/private (search-result-compare lt l r)
+      (let loop ([txt this]
+                 [l l]
+                 [r r])
+        (define (get-the-position x)
+          ;; the zeros shouldn't happen because the editors should still
+          ;; be in the main text object while we are doing stuff with them
+          (define admin (send x get-admin))
+          (cond
+            [(is-a? admin editor-snip-editor-admin<%>)
+             (or (send txt get-snip-position (send admin get-snip)) 0)]
+            [else
+             0]))
+        (cond
+          [(and (number? l) (number? r)) (lt l r)]
+          [(or (number? l) (number? r))
+           (define ln (if (number? l) l (get-the-position (car l))))
+           (define rn (if (number? r) r (get-the-position (car r))))
+           (lt ln rn)]
+          [else
+           (cond
+             [(equal? (car l) (car r))
+              (loop (car l) (cdr l) (cdr r))]
+             [else
+              (lt (get-the-position (car l))
+                  (get-the-position (car r)))])])))
     
     (define/private (clear-all-regions) 
       (when to-replace-highlight 
@@ -1495,8 +1550,37 @@
       (unhighlight-ranges/key 'plt:framework:search-bubbles)
       (set! search-bubble-table (make-hash)))
     
-    (define/private (do-search start end)
-      (find-string searching-str 'forward start end #t case-sensitive?))
+    (define/private (do-search start)
+      (define context (list this))
+      (define position
+        (let loop ([start start])
+          (cond
+            [(number? start) start]
+            [else
+             (set! context (cons (car start) context))
+             (loop (cdr start))])))
+      (let loop ([position position]
+                 [context context])
+        (define found-at-this-level
+          (send (car context) find-string-embedded searching-str 'forward position 'eof #t case-sensitive?))
+        (cond
+          [found-at-this-level
+           (let loop ([context context])
+             (cond
+               [(null? (cdr context)) found-at-this-level]
+               [else (cons (car context)
+                           (loop (cdr context)))]))]
+          [(null? (cdr context)) #f]
+          [else
+           (define admin (send (car context) get-admin))
+           (cond
+             [(is-a? admin editor-snip-editor-admin<%>)
+              (define snip (send admin get-snip))
+              (loop (+ (send (second context) get-snip-position snip)
+                       (send snip get-count))
+                    (cdr context))]
+             [else
+              (error 'framework/private/text.rkt::searching "admin went wrong ~s" admin)])])))
     
     ;; INVARIANT: when a search bubble is highlighted,
     ;; the search-bubble-table has it mapped to #t
@@ -1506,40 +1590,57 @@
     
     ;; this method may be called with bogus inputs (ie a pair that has no highlight)
     ;; but only when there is a pending "erase all highlights and recompute everything" callback
-    (define/private (unhighlight-hit pair)
-      (hash-remove! search-bubble-table pair)
-      (unhighlight-range (car pair) (cdr pair) 
-                         (if replace-mode? light-search-color normal-search-color)
-                         #f
-                         'hollow-ellipse))
-    (define/private (highlight-hit pair)
-      (hash-set! search-bubble-table pair #t)
-      (highlight-range (car pair) (cdr pair) 
-                       (if replace-mode? light-search-color normal-search-color)
-                       #f
-                       'low
-                       'hollow-ellipse
-                       #:key 'plt:framework:search-bubbles
-                       #:adjust-on-insert/delete? #t))
+    (define/private (unhighlight-hit bubble)
+      (hash-remove! search-bubble-table bubble)
+      (define-values (txt start end) (get-highlighting-text-and-range bubble))
+      (when txt
+        (send txt unhighlight-range
+              start end
+              (if replace-mode? light-search-color normal-search-color)
+              #f
+              'hollow-ellipse)))
+    (define/private (highlight-hit bubble)
+      (hash-set! search-bubble-table bubble #t)
+      (define-values (txt start end) (get-highlighting-text-and-range bubble))
+      (when txt
+        (send txt highlight-range
+              start end
+              (if replace-mode? light-search-color normal-search-color)
+              #f
+              'low
+              'hollow-ellipse
+              #:key 'plt:framework:search-bubbles
+              #:adjust-on-insert/delete? #t)))
     
     ;; INVARIANT: the "next to replace" highlight is always
     ;; saved in 'to-replace-highlight'
     (define/private (unhighlight-replace)
-      (unhighlight-range (car to-replace-highlight)
-                         (cdr to-replace-highlight)
-                         dark-search-color
-                         #f
-                         'hollow-ellipse)
+      (define-values (txt start end) (get-highlighting-text-and-range to-replace-highlight))
+      (when txt
+        (send txt unhighlight-range
+              start end
+              dark-search-color
+              #f
+              'hollow-ellipse))
       (set! to-replace-highlight #f))
     
     (define/private (highlight-replace new-to-replace)
       (set! to-replace-highlight new-to-replace)
-      (highlight-range (car to-replace-highlight)
-                       (cdr to-replace-highlight)
-                       dark-search-color
-                       #f
-                       'high
-                       'hollow-ellipse))
+      (define-values (txt start end) (get-highlighting-text-and-range new-to-replace))
+      (when txt
+        (send txt highlight-range
+              start end
+              dark-search-color
+              #f
+              'high
+              'hollow-ellipse)))
+
+    (define/private (get-highlighting-text-and-range bubble)
+      (cond
+        [(number? (car bubble))
+         (values this (car bubble) (+ (car bubble) (cdr bubble)))]
+        [else
+         (values #f #f #f)]))
     
     (define/private (unhighlight-anchor)
       (unhighlight-range anchor-pos anchor-pos "red" #f 'dot)

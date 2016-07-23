@@ -357,6 +357,98 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
+;;  searching
+;;
+
+(define (search-test name setup-code expected-answer)
+  (test
+   name
+   (λ (x) (equal? x expected-answer))
+   (λ ()
+     (send-sexp-to-mred/separate-thread
+      `(let ()
+         (define answer (make-channel))
+         (queue-callback
+          (λ ()
+            (define t (new text:searching%))
+            ,setup-code
+            (let loop ()
+              (cond
+                [(send t search-updates-pending?)
+                 (queue-callback (λ () (loop)) #f)]
+                [else
+                 (define-values (before total) (send t get-search-hit-count))
+                 (channel-put answer (list before total))]))))
+         (channel-get answer))))))
+
+(search-test
+ 'search.1
+ `(begin (send t insert "abc")
+         (send t set-position 0 0)
+         (send t set-searching-state "b" #f #f))
+ (list 0 1))
+
+(search-test
+ 'search.2
+ `(begin (send t insert "abc")
+         (send t set-position 3 3)
+         (send t set-searching-state "b" #f #f))
+ (list 1 1))
+
+(search-test
+ 'search.3
+ `(begin (send t insert "abc")
+         (define t2 (new text%))
+         (send t2 insert "abc")
+         (send t insert (new editor-snip% [editor t2]))
+         (send t2 insert "abc")
+         (send t set-position 0 0)
+         (send t set-searching-state "b" #f #f))
+ (list 0 3))
+
+(search-test
+ 'search.4
+ `(begin (send t insert "abc")
+         (define t2 (new text%))
+         (send t2 insert "abc")
+         (send t insert (new editor-snip% [editor t2]))
+         (send t insert "abc")
+         (send t set-position (send t last-position) (send t last-position))
+         (send t set-searching-state "b" #f #f))
+ (list 3 3))
+
+(search-test
+ 'search.5
+ `(begin (send t insert "abc")
+         (define t2 (new text%))
+         (send t2 insert "abc")
+         (define t3 (new text%))
+         (send t3 insert "abc")
+         (send t2 insert (new editor-snip% [editor t3]))
+         (send t2 insert "abc")
+         (send t insert (new editor-snip% [editor t2]))
+         (send t insert "abc")
+         (send t set-position (send t last-position) (send t last-position))
+         (send t set-searching-state "b" #f #f))
+ (list 5 5))
+
+(search-test
+ 'search.6
+ `(begin (send t insert "abc")
+         (define t2 (new text%))
+         (send t2 insert "abc")
+         (define t3 (new text%))
+         (send t3 insert "abc")
+         (send t2 insert (new editor-snip% [editor t3]))
+         (send t2 insert "abc")
+         (send t insert (new editor-snip% [editor t2]))
+         (send t insert "abc")
+         (send t set-position 0 0)
+         (send t set-searching-state "b" #f #f))
+ (list 0 5))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;
 ;;  print-to-dc
 ;;
 
