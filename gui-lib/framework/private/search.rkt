@@ -20,83 +20,40 @@
 (define (find-string-embedded a-text
                               str
                               [direction 'forward]
-                              [_start 'start]
-                              [_end 'eof]
+                              [start 'start]
+                              [end 'eof]
                               [get-start #t]
                               [case-sensitive? #t]
                               [pop-out? #f])
-  (define start
-    (if (eq? _start 'start)
-        (send a-text get-start-position)
-        _start))
-  (define end
-    (if (eq? 'eof _end)
-        (if (eq? direction 'forward)
-            (send a-text last-position)
-            0)
-        end))
-  (define flat (send a-text find-string str direction
-                     start end get-start
-                     case-sensitive?))
-  (define (pop-out)
-    (define admin (send a-text get-admin))
-    (cond
-      [(is-a? admin editor-snip-editor-admin<%>)
-       (define snip (send admin get-snip))
-       (define edit-above (send (send snip get-admin) get-editor))
-       (define pos (send edit-above get-snip-position snip))
-       (define pop-out-pos (if (eq? direction 'forward) (add1 pos) pos))
-       (find-string-embedded
-        edit-above
-        str
-        direction 
-        pop-out-pos
-        (if (eq? direction 'forward) 'eof 0)
-        get-start
-        case-sensitive?
-        pop-out?)]
-      [else (values a-text #f)]))
-  (let loop ([current-snip (send a-text find-snip start
-                                 (if (eq? direction 'forward)
-                                     'after-or-none
-                                     'before-or-none))])
-    (define (next-loop)
-      (if (eq? direction 'forward)
-          (loop (send current-snip next))
-          (loop (send current-snip previous))))
-    (cond
-      [(or (not current-snip)
-           (and flat
-                (let* ([start (send a-text get-snip-position current-snip)]
-                       [end (+ start (send current-snip get-count))])
-                  (if (equal? direction 'forward)
-                      (and (<= start flat)
-                           (< flat end))
-                      (and (< start flat)
-                           (<= flat end))))))
-       (if (and (not flat) pop-out?)
-           (pop-out)
-           (values a-text flat))]
-      [(is-a? current-snip editor-snip%)
-       (define media (send current-snip get-editor))
-       (define-values (embedded embedded-pos)
-         (cond
-           [(and media (is-a? media text%))
-            (find-string-embedded 
-             media 
-             str
-             direction
-             (if (eq? 'forward direction)
-                 0
-                 (send media last-position))
-             'eof
-             get-start case-sensitive?)]
-           [else
-            (values #f #f)]))
-       (if (not embedded-pos)
-           (next-loop)
-           (values embedded embedded-pos))]
-      [else (next-loop)])))
+  (let/ec k
+    (let loop ([a-text a-text]
+               [start start]
+               [end end])
+      (define found (send a-text find-string-embedded str direction start end get-start case-sensitive?))
+      (define (done)
+        (cond
+          [(not found)
+           (k a-text found)]
+          [else
+           (let loop ([a-text a-text]
+                      [found found])
+             (cond
+               [(number? found)
+                (k a-text found)]
+               [else (loop (car found) (cdr found))]))]))
+      (when found (done))
+      (unless pop-out? (done))
+      (define a-text-admin (send a-text get-admin))
+      (unless (is-a? a-text-admin editor-snip-editor-admin<%>) (done))
+      (define editor-snip (send a-text-admin get-snip))
+      (define editor-snip-admin (send editor-snip get-admin))
+      (unless editor-snip-admin (done))
+      (define enclosing-text (send editor-snip-admin get-editor))
+      (unless (is-a? enclosing-text text%) (done))
+      (loop enclosing-text
+            (+ (send enclosing-text get-snip-position editor-snip)
+               (send editor-snip get-count))
+            'eof))))
 
 (module+ test
   (require rackunit)
