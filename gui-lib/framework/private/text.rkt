@@ -1268,7 +1268,7 @@
                 (when to-replace-highlight
                   (unhighlight-replace))]
                [else
-                (define next (do-search (get-start-position) 'eof))
+                (define next (do-search (get-start-position)))
                 (begin-edit-sequence #t #f)
                 (cond
                   [(number? next)
