@@ -1275,9 +1275,9 @@
                    (unless (and to-replace-highlight
                                 (= (car to-replace-highlight) next)
                                 (= (cdr to-replace-highlight) 
-                                   (+ next (string-length searching-str))))
+                                   (string-length searching-str)))
                      (replace-highlight->normal-hit)
-                     (define pr (cons next (+ next (string-length searching-str))))
+                     (define pr (cons next (string-length searching-str)))
                      (unhighlight-hit pr)
                      (highlight-replace pr))]
                   [else
