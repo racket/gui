@@ -1118,6 +1118,29 @@
     
     [define anchor-last-state? #f]
     [define overwrite-last-state? #f]
+
+    (define/private (update-ascii-art-enlarge-msg)
+      (define ascii-art-enlarge-mode?
+        (let ([e (get-info-editor)])
+          (and (is-a? e text:ascii-art-enlarge-boxes<%>)
+               (send e get-ascii-art-enlarge))))
+      (unless (eq? (and (member ascii-art-enlarge-mode-msg (send uncommon-parent get-children)) #t)
+                   ascii-art-enlarge-mode?)
+        (if ascii-art-enlarge-mode?
+            (add-uncommon-child ascii-art-enlarge-mode-msg)
+            (remove-uncommon-child ascii-art-enlarge-mode-msg))))
+
+    ;; this callback is kind of a hack. we know that when the set-ascii-art-enlarge
+    ;; method of text:ascii-art-enlarge<%> is called that it changes the preferences
+    ;; value so we will get called back here; it would be better if we could just
+    ;; have the callback happen directly by overriding that method, but that causes
+    ;; backwards incompatibility problems.
+    (define callback (λ (p v)
+                       (queue-callback
+                        (λ () (update-ascii-art-enlarge-msg))
+                        #f)))
+    (preferences:add-callback 'framework:ascii-art-enlarge callback)
+
     
     (field (macro-recording? #f))
     (define/private (update-macro-recording-icon)
@@ -1193,6 +1216,7 @@
     (define/override (update-info)
       (super update-info)
       (update-macro-recording-icon)
+      (update-ascii-art-enlarge-msg)
       (overwrite-status-changed)
       (anchor-status-changed)
       (editor-position-changed)
@@ -1233,6 +1257,11 @@
     
     (send (get-info-panel) change-children
           (λ (l) (cons uncommon-parent (remq uncommon-parent l))))
+    
+    (define ascii-art-enlarge-mode-msg (new message%
+                                            [parent uncommon-parent]
+                                            [label "╠╬╣"]
+                                            [auto-resize #t]))
     (define anchor-message
       (new message%
            [font small-control-font]
@@ -1254,6 +1283,7 @@
     (define/private (add-uncommon-child c)
       (define (child->num c)
         (cond
+          [(eq? c ascii-art-enlarge-mode-msg) -1]
           [(eq? c anchor-message) 0]
           [(eq? c overwrite-message) 1]
           [(eq? c macro-recording-message) 2]))

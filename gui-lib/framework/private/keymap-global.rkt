@@ -6,6 +6,7 @@
          "interfaces.rkt"
          "../preferences.rkt"
          "gen-standard-menus.rkt"
+         "unicode-ascii-art.rkt"
          (only-in srfi/13 string-prefix? string-prefix-length)
          2d/dir-chars
          racket/list)
@@ -708,6 +709,17 @@
             (define start (send txt get-start-position))
             (when (= start (send txt get-end-position))
               (widen-unicode-ascii-art-box txt start)))]
+
+         [heighten-unicode-ascii-art-box
+          (λ (txt evt)
+            (define start (send txt get-start-position))
+            (when (= start (send txt get-end-position))
+              (heighten-unicode-ascii-art-box txt start)))]
+
+         [toggle-unicode-ascii-art-enlarge-mode
+          (λ (txt evt)
+            (when (is-a? txt text:ascii-art-enlarge-boxes<%>)
+              (send txt set-ascii-art-enlarge (not (send txt get-ascii-art-enlarge)))))]
          
          [center-in-unicode-ascii-art-box
           (λ (txt evt)
@@ -740,6 +752,8 @@
         
         (add "normalize-unicode-ascii-art-box" normalize-unicode-ascii-art-box)
         (add "widen-unicode-ascii-art-box" widen-unicode-ascii-art-box)
+        (add "heighten-unicode-ascii-art-box" heighten-unicode-ascii-art-box)
+        (add "toggle-unicode-ascii-art-enlarge-mode" toggle-unicode-ascii-art-enlarge-mode)
         (add "center-in-unicode-ascii-art-box" center-in-unicode-ascii-art-box)
         (add "shift-focus" (shift-focus values))
         (add "shift-focus-backwards" (shift-focus reverse))
@@ -836,7 +850,9 @@
         
         (map "c:x;r;a" "normalize-unicode-ascii-art-box")
         (map "c:x;r;w" "widen-unicode-ascii-art-box")
+        (map "c:x;r;v" "highten-unicode-ascii-art-box")
         (map "c:x;r;c" "center-in-unicode-ascii-art-box")
+        (map "c:x;r;o" "toggle-unicode-ascii-art-enlarge-mode")
         
         (map "~m:c:\\" "TeX compress")
         (map "~c:m:\\" "TeX compress")
@@ -1027,166 +1043,6 @@
         (f click-pos eol start-pos click-pos)
         (f click-pos eol click-pos end-pos))))
 
-
-
-(define (widen-unicode-ascii-art-box t orig-pos)
-  (define start-pos (scan-for-start-pos t orig-pos))
-  (when start-pos 
-    (send t begin-edit-sequence)
-    (define-values (start-x start-y) (pos->xy t orig-pos))
-    (define min-y #f)
-    (define max-y #f)
-    (trace-unicode-ascii-art-box 
-     t start-pos #f 
-     (λ (pos x y i-up? i-dn? i-lt? i-rt?)
-       (when (= x start-x)
-         (unless min-y
-           (set! min-y y)
-           (set! max-y y))
-         (set! min-y (min y min-y))
-         (set! max-y (max y max-y)))))
-    (define to-adjust 0)
-    (for ([y (in-range max-y (- min-y 1) -1)])
-      (define-values (pos char) (xy->pos t start-x y))
-      (when (< pos start-pos)
-        (set! to-adjust (+ to-adjust 1)))
-      (send t insert 
-            (cond
-              [(member char lt-chars) #\═]
-              [else #\space])
-            pos pos))
-    (send t set-position (+ orig-pos to-adjust 1) (+ orig-pos to-adjust 1))
-    (send t end-edit-sequence)))
-
-(define (normalize-unicode-ascii-art-box t pos)
-  (define start-pos (scan-for-start-pos t pos))
-  (when start-pos
-    (send t begin-edit-sequence)
-    (trace-unicode-ascii-art-box 
-     t start-pos #f 
-     (λ (pos x y i-up? i-dn? i-lt? i-rt?)
-       (cond
-         [(and i-up? i-dn? i-lt? i-rt?) (set-c t pos "╬")]
-         [(and i-dn? i-lt? i-rt?)       (set-c t pos "╦")]
-         [(and i-up? i-lt? i-rt?)       (set-c t pos "╩")]
-         [(and i-up? i-dn? i-rt?)       (set-c t pos "╠")]
-         [(and i-up? i-dn? i-lt?)       (set-c t pos "╣")]
-         [(and i-up? i-lt?)             (set-c t pos "╝")]
-         [(and i-up? i-rt?)             (set-c t pos "╚")]
-         [(and i-dn? i-lt?)             (set-c t pos "╗")]
-         [(and i-dn? i-rt?)             (set-c t pos "╔")]
-         [(or i-up? i-dn?)              (set-c t pos "║")]
-         [else                          (set-c t pos "═")])))
-     (send t end-edit-sequence)))
-
-(define (center-in-unicode-ascii-art-box txt insertion-pos)
-  (define (find-something start-pos inc char-p?)
-    (define-values (x y) (pos->xy txt start-pos))
-    (let loop ([pos start-pos])
-      (cond
-        [(char-p? (send txt get-character pos))
-         pos]
-        [else
-         (define new-pos (inc pos))
-         (cond
-           [(<= 0 new-pos (send txt last-position))
-            (define-values (x2 y2) (pos->xy txt new-pos))
-            (cond
-              [(= y2 y)
-               (loop new-pos)]
-              [else #f])]
-           [else #f])])))
-  
-  (define (adjust-space before-space after-space pos)
-    (cond
-      [(< before-space after-space) 
-       (send txt insert (make-string (- after-space before-space) #\space) pos pos)]
-      [(> before-space after-space) 
-       (send txt delete pos (+ pos (- before-space after-space)))]))
-  
-  (define left-bar (find-something insertion-pos sub1 (λ (x) (equal? x #\║))))
-  (define right-bar (find-something insertion-pos add1 (λ (x) (equal? x #\║))))
-  (when (and left-bar right-bar (< left-bar right-bar))
-    (define left-space-edge (find-something (+ left-bar 1) add1 (λ (x) (not (char-whitespace? x)))))
-    (define right-space-edge (find-something (- right-bar 1) sub1 (λ (x) (not (char-whitespace? x)))))
-    (when (and left-space-edge right-space-edge)
-      (define before-left-space-count (- left-space-edge left-bar 1))
-      (define before-right-space-count (- right-bar right-space-edge 1))
-      (define tot-space (+ before-left-space-count before-right-space-count))
-      (define after-left-space-count (floor (/ tot-space 2)))
-      (define after-right-space-count (ceiling (/ tot-space 2)))
-      (send txt begin-edit-sequence)
-      (adjust-space before-right-space-count after-right-space-count (+ right-space-edge 1))
-      (adjust-space before-left-space-count after-left-space-count (+ left-bar 1))
-      (send txt end-edit-sequence))))
-
-(define (trace-unicode-ascii-art-box t start-pos only-double-barred-chars? f)
-  (define visited (make-hash))
-  (let loop ([pos start-pos])
-    (unless (hash-ref visited pos #f)
-      (hash-set! visited pos #t)
-      (define-values (x y) (pos->xy t pos))
-      (define c (send t get-character pos))
-      (define-values (up upc) (xy->pos t x (- y 1)))
-      (define-values (dn dnc) (xy->pos t x (+ y 1)))
-      (define-values (lt ltc) (xy->pos t (- x 1) y))
-      (define-values (rt rtc) (xy->pos t (+ x 1) y))
-      (define (interesting-dir? dir-c dir-chars) 
-        (or (and (not only-double-barred-chars?)
-                 (member dir-c adjustable-chars)
-                 (member c dir-chars))
-            (and (member dir-c double-barred-chars)
-                 (member c double-barred-chars))))
-      (define i-up? (interesting-dir? upc up-chars))
-      (define i-dn? (interesting-dir? dnc dn-chars))
-      (define i-lt? (interesting-dir? ltc lt-chars))
-      (define i-rt? (interesting-dir? rtc rt-chars))
-      (f pos x y i-up? i-dn? i-lt? i-rt?)
-      (when i-up? (loop up))
-      (when i-dn? (loop dn))
-      (when i-lt? (loop lt))
-      (when i-rt? (loop rt)))))
-
-(define (scan-for-start-pos t pos)
-  (define-values (x y) (pos->xy t pos))
-  (findf
-   (λ (p) (adj? t p))
-   (for*/list ([xadj '(0 -1)]
-               [yadj '(0 -1 1)])
-     (define-values (d dc) (xy->pos t (+ x xadj) (+ y yadj)))
-     d)))
-       
-(define (adj? t pos)
-  (and pos 
-       (member (send t get-character pos) 
-               adjustable-chars)))
-
-(define (set-c t pos s)
-  (unless (equal? (string-ref s 0) (send t get-character pos))
-    (send t delete pos (+ pos 1))
-    (send t insert s pos pos)))
-
-(define (pos->xy text pos)
-  (define para (send text position-paragraph pos))
-  (define start (send text paragraph-start-position para))
-  (values (- pos start) para))
-
-(define (xy->pos text x y)
-  (cond
-    [(and (<= 0 x) (<= 0 y (send text last-paragraph)))
-     (define para-start (send text paragraph-start-position y))
-     (define para-end (send text paragraph-end-position y))
-     (define pos (+ para-start x))
-     (define res-pos
-       (and (< pos para-end)
-            ;; the newline at the end of the
-            ;; line is not on the line, so use this guard
-            pos))
-     (if res-pos
-         (values res-pos (send text get-character res-pos))
-         (values #f #f))]
-    [else (values #f #f)]))
-
 (define/contract (run-some-keystrokes before key-evts)
   (-> (list/c string? exact-nonnegative-integer? exact-nonnegative-integer?)
       (listof (is-a?/c key-event%))
@@ -1204,182 +1060,7 @@
         (send t get-end-position)))
 
 (module+ test
-  (require rackunit 
-           racket/gui/base)
-  (define sa string-append)
-  
-  (define (first-value-xy->pos a b c)
-    (define-values (d e) (xy->pos a b c))
-    d)
-  
-  (let ([t (new text%)])
-    (send t insert (sa "abc\n"
-                       "d\n"
-                       "ghi\n"))
-    (check-equal? (first-value-xy->pos t 0 0) 0)
-    (check-equal? (first-value-xy->pos t 1 0) 1)
-    (check-equal? (first-value-xy->pos t 0 1) 4)
-    (check-equal? (first-value-xy->pos t 3 0) #f)
-    (check-equal? (first-value-xy->pos t 0 3) #f)
-    (check-equal? (first-value-xy->pos t 1 1) #f)
-    (check-equal? (first-value-xy->pos t 2 1) #f)
-    (check-equal? (first-value-xy->pos t 0 2) 6)
-    (check-equal? (first-value-xy->pos t 1 2) 7)
-    (check-equal? (first-value-xy->pos t 2 -1) #f)
-    (check-equal? (first-value-xy->pos t -1 0) #f)
-    (check-equal? (first-value-xy->pos t 2 2) 8)
-    (check-equal? (first-value-xy->pos t 2 3) #f))
-  
-  (let ([t (new text%)])
-    (send t insert (sa "abc\n"
-                       "d\n"
-                       "ghi"))
-    (check-equal? (first-value-xy->pos t 2 2) 8)
-    (check-equal? (first-value-xy->pos t 2 3) #f))
-  
-  (let ([t (new text%)])
-    (send t insert (string-append "+-+\n"
-                                  "| |\n"
-                                  "+-+\n"))
-    (normalize-unicode-ascii-art-box t 0)
-    (check-equal? (send t get-text)
-                  (string-append
-                   "╔═╗\n"
-                   "║ ║\n"
-                   "╚═╝\n")))
-  
-  (let ([t (new text%)])
-    (send t insert (string-append "+=+\n"
-                                  "| |\n"
-                                  "+=+\n"))
-    (normalize-unicode-ascii-art-box t 0)
-    (check-equal? (send t get-text)
-                  (string-append
-                   "╔═╗\n"
-                   "║ ║\n"
-                   "╚═╝\n")))
-  
-  (let ([t (new text%)])
-    (send t insert (string-append "+-+-+\n"
-                                  "| | |\n"
-                                  "+-+-+\n"
-                                  "| | |\n"
-                                  "+-+-+\n"))
-    (normalize-unicode-ascii-art-box t 0)
-    (check-equal? (send t get-text)
-                  (string-append
-                   "╔═╦═╗\n"
-                   "║ ║ ║\n"
-                   "╠═╬═╣\n"
-                   "║ ║ ║\n"
-                   "╚═╩═╝\n")))
-  
-  (let ([t (new text%)])
-    (send t insert (string-append
-                    "╔═══╗\n"
-                    "║ - ║\n"
-                    "╚═══╝\n"))
-    
-    (normalize-unicode-ascii-art-box t 0)
-    (check-equal? (send t get-text)
-                  (string-append
-                   "╔═══╗\n"
-                   "║ - ║\n"
-                   "╚═══╝\n")))
-  
-  (let ([t (new text%)])
-    (send t insert (string-append
-                    "╔═╦═╗\n"
-                    "║ ║ ║\n"
-                    "╠═╬═╣\n"
-                    "║ ║ ║\n"
-                    "╚═╩═╝\n"))
-    (send t set-position 1 1)
-    (widen-unicode-ascii-art-box t 1)
-    (check-equal? (send t get-start-position) 2)
-    (check-equal? (send t get-text)
-                  (string-append
-                   "╔══╦═╗\n"
-                   "║  ║ ║\n"
-                   "╠══╬═╣\n"
-                   "║  ║ ║\n"
-                   "╚══╩═╝\n")))
-  
-  (let ([t (new text%)])
-    (send t insert (string-append
-                    "╔═╦═╗\n"
-                    "║ ║ ║\n"
-                    "╠═╬═╣\n"
-                    "║ ║ ║\n"
-                    "╚═╩═╝\n"))
-    (send t set-position 8 8)
-    (widen-unicode-ascii-art-box t 8)
-    (check-equal? (send t get-start-position) 10)
-    (check-equal? (send t get-text)
-                  (string-append
-                   "╔══╦═╗\n"
-                   "║  ║ ║\n"
-                   "╠══╬═╣\n"
-                   "║  ║ ║\n"
-                   "╚══╩═╝\n")))
-  
-  (let ([t (new text%)])
-    (send t insert (string-append
-                    "╔═╦═╗\n"
-                    "║ ║ ║\n"
-                    "╠═╬═╣\n"
-                    "║ ║ ║\n"))
-    (send t set-position 8 8)
-    (widen-unicode-ascii-art-box t 8)
-    (check-equal? (send t get-text)
-                  (string-append
-                   "╔══╦═╗\n"
-                   "║  ║ ║\n"
-                   "╠══╬═╣\n"
-                   "║  ║ ║\n")))
-  
-  (let ([t (new text%)])
-    (send t insert "║ x   ║\n")
-    (center-in-unicode-ascii-art-box t 1)
-    (check-equal? (send t get-text)
-                  "║  x  ║\n"))
-  
-  (let ([t (new text%)])
-    (send t insert "║x    ║\n")
-    (center-in-unicode-ascii-art-box t 1)
-    (check-equal? (send t get-text)
-                  "║  x  ║\n"))
-  
-  (let ([t (new text%)])
-    (send t insert "║    x║\n")
-    (center-in-unicode-ascii-art-box t 1)
-    (check-equal? (send t get-text)
-                  "║  x  ║\n"))
-  
-  (let ([t (new text%)])
-    (send t insert "║abcde║\n")
-    (center-in-unicode-ascii-art-box t 1)
-    (check-equal? (send t get-text)
-                  "║abcde║\n"))
-  
-  (let ([t (new text%)])
-    (send t insert "║║\n")
-    (center-in-unicode-ascii-art-box t 1)
-    (check-equal? (send t get-text)
-                  "║║\n"))
-  
-  (let ([t (new text%)])
-    (send t insert "║abcde \n")
-    (center-in-unicode-ascii-art-box t 1)
-    (check-equal? (send t get-text)
-                  "║abcde \n"))
-  
-  (let ([t (new text%)])
-    (send t insert " abcde║\n")
-    (center-in-unicode-ascii-art-box t 1)
-    (check-equal? (send t get-text)
-                  " abcde║\n"))
-
+  (require rackunit)
   (check-equal? (run-some-keystrokes '("abc" 0 0)
                                      (list (new key-event% [key-code 'escape])
                                            (new key-event% [key-code #\c])))

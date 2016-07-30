@@ -25,6 +25,8 @@
 
 (application-preferences-handler (λ () (preferences:show-dialog)))
 
+(preferences:set-default 'framework:ascii-art-enlarge #f boolean?)
+
 (preferences:set-default 'framework:color-scheme 'classic symbol?)
 
 (preferences:set-default 'framework:column-guide-width

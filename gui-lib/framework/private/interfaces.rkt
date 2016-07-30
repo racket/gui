@@ -9,7 +9,8 @@
          frame:basic<%>
          frame:standard-menus<%>
          frame:info<%>
-         frame:text-info<%>)
+         frame:text-info<%>
+         text:ascii-art-enlarge-boxes<%>)
 
 (define editor:basic<%>
   (interface (editor<%>)
@@ -31,6 +32,12 @@
 (define editor:keymap<%>
   (interface (editor:basic<%>)
     get-keymaps))
+
+
+(define text:ascii-art-enlarge-boxes<%>
+  (interface ()
+    set-ascii-art-enlarge
+    get-ascii-art-enlarge))
 
 (define text:basic<%>  
   (interface (editor:basic<%> (class->interface text%))

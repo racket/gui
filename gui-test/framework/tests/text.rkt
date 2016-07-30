@@ -754,3 +754,82 @@
            (loop)))
        (define after (get-colors))
        (list before after)))))
+
+(define (test-ascii-art-enlarge-boxes-mixin name before position overwrite? after)
+  (test
+   name
+   (λ (got) (equal? got after))
+   (λ ()
+     (queue-sexp-to-mred
+      `(let ([t (new (ascii-art-enlarge-boxes-mixin text%))])
+         (define f (new frame% [label ""]))
+         (define ec (new editor-canvas% [parent f] [editor t]))
+         (send t insert
+               ,before)
+         (send t set-position ,position ,position)
+         ,@(if overwrite? (list '(send t set-overwrite-mode #t)) '())
+         (send ec on-char (new key-event% [key-code #\a]))
+         (send t get-text))))))
+
+
+(test-ascii-art-enlarge-boxes-mixin 'ascii-art-enlarge.1
+                                    (string-append
+                                     "╔═╦═╗\n"
+                                     "║ ║ ║\n"
+                                     "╠═╬═╣\n"
+                                     "║ ║ ║\n"
+                                     "╚═╩═╝\n")
+                                    7 #t
+                                    (string-append
+                                     "╔═╦═╗\n"
+                                     "║a║ ║\n"
+                                     "╠═╬═╣\n"
+                                     "║ ║ ║\n"
+                                     "╚═╩═╝\n"))
+
+(test-ascii-art-enlarge-boxes-mixin 'ascii-art-enlarge.2
+                                    (string-append
+                                     "╔═╦═╗\n"
+                                     "║ ║ ║\n"
+                                     "╠═╬═╣\n"
+                                     "║ ║ ║\n"
+                                     "╚═╩═╝\n")
+                                    7 #t
+                                    (string-append
+                                     "╔══╦═╗\n"
+                                     "║ab║ ║\n"
+                                     "╠══╬═╣\n"
+                                     "║  ║ ║\n"
+                                     "╚══╩═╝\n"))
+
+(test-ascii-art-enlarge-boxes-mixin 'ascii-art-enlarge.3
+                                    (string-append
+                                     "╔═╦═╗\n"
+                                     "║ ║ ║\n"
+                                     "╠═╬═╣\n"
+                                     "║ ║ ║\n"
+                                     "╚═╩═╝\n")
+                                    7 #f
+                                    (string-append
+                                     "╔══╦═╗\n"
+                                     "║a ║ ║\n"
+                                     "╠══╬═╣\n"
+                                     "║  ║ ║\n"
+                                     "╚══╩═╝\n"))
+
+(test-ascii-art-enlarge-boxes-mixin 'ascii-art-enlarge.4
+                                    (string-append
+                                     "╔═╦═╗\n"
+                                     "║ ║ ║\n"
+                                     "║ ║ ║\n"
+                                     "╠═╬═╣\n"
+                                     "║ ║ ║\n"
+                                     "╚═╩═╝\n")
+                                    14 #f
+                                    (string-append
+                                     "╔══╦═╗\n"
+                                     "║  ║ ║\n"
+                                     "║ f║ ║\n"
+                                     "╠══╬═╣\n"
+                                     "║  ║ ║\n"
+                                     "╚══╩═╝\n"))

@@ -268,6 +268,39 @@
   preference changes.
 }
 
+@definterface[text:ascii-art-enlarge-boxes<%> ()]{
+ @defmethod[(set-ascii-art-enlarge [e? any/c]) void?]{
+  Enables or disables the ascii art box enlarging mode based on @racket[e?]'s true value.
+ }
+ @defmethod[(get-ascii-art-enlarge) boolean?]{
+   Returns @racket[#t] if ascii art box enlarging mode is enabled and @racket[#f] otherwise.
+}
+}
+
+@defmixin[text:ascii-art-enlarge-boxes-mixin (text%) (text:ascii-art-enlarge-boxes<%>)]{
+ @defmethod[#:mode override (on-local-char [event (is-a?/c key-event%)]) void?]{
+  When the @method[key-event% get-key-code] method of @racket[event] returns either
+  @racket['numpad-enter] or @racket[#\return] and
+  @method[text:ascii-art-enlarge-boxes<%> get-ascii-art-enlarge] returns
+  @racket[#t], this method handles
+  the return key by adding an additional line in the containing unicode ascii art
+  box and moving the insertion point to the first character on the new line that
+  is in the containing cell.
+
+  It does not call the @racket[super] method (in that case).
+ }
+@defmethod[#:mode override (on-default-char [event (is-a?/c key-event%)]) void?]{
+  When the @method[key-event% get-key-code] method of @racket[event] returns either
+  a character or symbol that corresponds to the insertion of a single character
+  @method[text:ascii-art-enlarge-boxes<%> get-ascii-art-enlarge] returns
+  @racket[#t], this method first makes room in the box and then calls the
+  @racket[super] method. If the @method[text% get-overwrite-mode] returns
+  @racket[#f], then it always opens up a column in the box. If @method[text% get-overwrite-mode]
+  returns @racket[#t], then it opens up a column only when the character to
+  be inserted would overwrite one of the walls.
+ }
+}
+
 @definterface[text:first-line<%> (text%)]{
 
   Objects implementing this interface, when @method[text:first-line<%>

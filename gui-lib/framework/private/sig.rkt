@@ -182,6 +182,7 @@
   (define-signature text-class^
     (basic<%>
      line-spacing<%>
+     ascii-art-enlarge-boxes<%>
      first-line<%>
      line-numbers<%>
      foreground-color<%>
@@ -225,6 +226,7 @@
      
      basic-mixin
      line-spacing-mixin
+     ascii-art-enlarge-boxes-mixin
      first-line-mixin
      line-numbers-mixin
      foreground-color-mixin
