@@ -755,20 +755,22 @@
        (define after (get-colors))
        (list before after)))))
 
-(define (test-ascii-art-enlarge-boxes-mixin name before position overwrite? after)
+(define (test-ascii-art-enlarge-boxes-mixin name before position overwrite? chars after)
   (test
    name
    (λ (got) (equal? got after))
    (λ ()
      (queue-sexp-to-mred
-      `(let ([t (new (ascii-art-enlarge-boxes-mixin text%))])
+      `(let ([t (new (text:ascii-art-enlarge-boxes-mixin text%))])
+         (send t set-ascii-art-enlarge #t)
          (define f (new frame% [label ""]))
          (define ec (new editor-canvas% [parent f] [editor t]))
          (send t insert
                ,before)
          (send t set-position ,position ,position)
          ,@(if overwrite? (list '(send t set-overwrite-mode #t)) '())
-         (send ec on-char (new key-event% [key-code #\a]))
+         ,@(for/list ([char (in-list chars)])
+             `(send ec on-char (new key-event% [key-code ,char])))
          (send t get-text))))))
 
 
@@ -779,7 +781,7 @@
                                      "╠═╬═╣\n"
                                      "║ ║ ║\n"
                                      "╚═╩═╝\n")
-                                    7 #t
+                                    7 #t '(#\a)
                                     (string-append
                                      "╔═╦═╗\n"
                                      "║a║ ║\n"
@@ -794,7 +796,7 @@
                                      "╠═╬═╣\n"
                                      "║ ║ ║\n"
                                      "╚═╩═╝\n")
-                                    7 #t
+                                    7 #t'(#\a #\b)
                                     (string-append
                                      "╔══╦═╗\n"
                                      "║ab║ ║\n"
@@ -809,7 +811,7 @@
                                      "╠═╬═╣\n"
                                      "║ ║ ║\n"
                                      "╚═╩═╝\n")
-                                    7 #f
+                                    7 #f '(#\a)
                                     (string-append
                                      "╔══╦═╗\n"
                                      "║a ║ ║\n"
@@ -825,7 +827,7 @@
                                      "╠═╬═╣\n"
                                      "║ ║ ║\n"
                                      "╚═╩═╝\n")
-                                    14 #f
+                                    14 #f '(#\f)
                                     (string-append
                                      "╔══╦═╗\n"
                                      "║  ║ ║\n"
