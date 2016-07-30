@@ -11,10 +11,14 @@ library for GRacket. It re-exports the @racketmodname[racket/init] and
 @racket[current-load] to use @racket[text-editor-load-handler].}
 
 @defmodule*/no-declare[(racket/gui/interactive)]{
- Similar to @racketmodname[racket/gui/interactive], but for
+ Similar to @racketmodname[racket/interactive], but for
  GRacket. This library can be changed by modifying 
- @racket['gui-interactive-file] in the @filepath{config.rktd}
- file in @racket[(find-config-dir)].
+ @racket['gui-interactive-file] in the
+ @filepath{config.rktd} file in @racket[(find-config-dir)].
+ Additionally, if the file @filepath{gui-interactive.rkt}
+ exists in @racket[(find-system-path 'addon-dir)], it is run
+ rather than the installation wide graphical interactive
+ module.
 
  This library runs the 
  @racket[(find-graphical-system-path 'init-file)] file in
