@@ -1139,7 +1139,7 @@
                        (queue-callback
                         (λ () (update-ascii-art-enlarge-msg))
                         #f)))
-    (preferences:add-callback 'framework:ascii-art-enlarge callback)
+    (preferences:add-callback 'framework:ascii-art-enlarge callback #t)
 
     
     (field (macro-recording? #f))
