@@ -124,7 +124,7 @@
           (let ([w (box 0)]
                 [h (box 0)])
             (get-backing-size w h)
-            (let ([bm (get-backing-bitmap (lambda (w h) (make-backing-bitmap w h)) (unbox w) (unbox h))])
+            (let ([bm (get-backing-bitmap (lambda (w h) (make-backing-bitmap (max 1 w) (max 1 h))) (unbox w) (unbox h))])
               (internal-set-bitmap bm #t))
             (let ([cr (super get-cr)])
               (set! retained-cr cr)
