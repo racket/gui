@@ -504,12 +504,6 @@
           [else
            (+ i 1)])))
     
-    (public tabify-all insert-return calc-last-para 
-            box-comment-out-selection comment-out-selection uncomment-selection
-            flash-forward-sexp 
-            flash-backward-sexp backward-sexp find-up-sexp up-sexp find-down-sexp down-sexp
-            remove-parens-forward)
-    
     (define/public (get-limit pos) 0)
     
     (define/public (balance-parens key-event [smart-skip #f])
@@ -813,8 +807,8 @@
              (when (< first-para end-para)
                (end-busy-cursor)))))))
     
-    (define (tabify-all) (tabify-selection 0 (last-position)))
-    (define (insert-return)
+    (define/public (tabify-all) (tabify-selection 0 (last-position)))
+    (define/public (insert-return)
       (begin-edit-sequence #t #f)
       (define end-of-whitespace (get-start-position))
       (define start-cutoff
@@ -838,7 +832,7 @@
                new-pos))))
       (end-edit-sequence))
     
-    (define (calc-last-para last-pos)
+    (define/public (calc-last-para last-pos)
       (let ([last-para (position-paragraph last-pos #t)])
         (if (and (> last-pos 0)
                  (> last-para 0))
@@ -849,55 +843,53 @@
                          last-para)))
             last-para)))
     
-    (define comment-out-selection 
-      (lambda ([start-pos (get-start-position)] 
-               [end-pos (get-end-position)]) 
-        (begin-edit-sequence) 
-        (let ([first-pos-is-first-para-pos? 
-               (= (paragraph-start-position (position-paragraph start-pos)) 
-                  start-pos)]) 
-          (let* ([first-para (position-paragraph start-pos)] 
-                 [last-para (calc-last-para end-pos)]) 
-            (let para-loop ([curr-para first-para]) 
-              (when (<= curr-para last-para) 
-                (let ([first-on-para (paragraph-start-position curr-para)]) 
-                  (insert #\; first-on-para) 
-                  (para-loop (add1 curr-para)))))) 
-          (when first-pos-is-first-para-pos? 
-            (set-position 
-             (paragraph-start-position (position-paragraph (get-start-position))) 
-             (get-end-position)))) 
-        (end-edit-sequence) 
-        #t)) 
+    (define/public (comment-out-selection [start-pos (get-start-position)] 
+                                          [end-pos (get-end-position)])
+      (begin-edit-sequence) 
+      (let ([first-pos-is-first-para-pos? 
+             (= (paragraph-start-position (position-paragraph start-pos)) 
+                start-pos)]) 
+        (let* ([first-para (position-paragraph start-pos)] 
+               [last-para (calc-last-para end-pos)]) 
+          (let para-loop ([curr-para first-para]) 
+            (when (<= curr-para last-para) 
+              (let ([first-on-para (paragraph-start-position curr-para)]) 
+                (insert #\; first-on-para) 
+                (para-loop (add1 curr-para)))))) 
+        (when first-pos-is-first-para-pos? 
+          (set-position 
+           (paragraph-start-position (position-paragraph (get-start-position))) 
+           (get-end-position)))) 
+      (end-edit-sequence) 
+      #t) 
     
-    (define box-comment-out-selection
-      (lambda ([_start-pos 'start]
-               [_end-pos 'end])
-        (let ([start-pos (if (eq? _start-pos 'start)
-                             (get-start-position)
-                             _start-pos)]
-              [end-pos (if (eq? _end-pos 'end)
-                           (get-end-position)
-                           _end-pos)])
-          (begin-edit-sequence)
-          (split-snip start-pos)
-          (split-snip end-pos)
-          (let* ([cb (instantiate comment-box:snip% ())]
-                 [text (send cb get-editor)])
-            (let loop ([snip (find-snip start-pos 'after-or-none)])
-              (cond
-                [(not snip) (void)]
-                [((get-snip-position snip) . >= . end-pos) (void)]
-                [else
-                 (send text insert (send snip copy)
-                       (send text last-position)
-                       (send text last-position))
-                 (loop (send snip next))]))
-            (delete start-pos end-pos)
-            (insert cb start-pos)
-            (set-position start-pos start-pos))
-          (end-edit-sequence)
-          #t)))
+    (define/public (box-comment-out-selection [_start-pos 'start]
+                                              [_end-pos 'end])
+      (let ([start-pos (if (eq? _start-pos 'start)
+                           (get-start-position)
+                           _start-pos)]
+            [end-pos (if (eq? _end-pos 'end)
+                         (get-end-position)
+                         _end-pos)])
+        (begin-edit-sequence)
+        (split-snip start-pos)
+        (split-snip end-pos)
+        (let* ([cb (instantiate comment-box:snip% ())]
+               [text (send cb get-editor)])
+          (let loop ([snip (find-snip start-pos 'after-or-none)])
+            (cond
+              [(not snip) (void)]
+              [((get-snip-position snip) . >= . end-pos) (void)]
+              [else
+               (send text insert (send snip copy)
+                     (send text last-position)
+                     (send text last-position))
+               (loop (send snip next))]))
+          (delete start-pos end-pos)
+          (insert cb start-pos)
+          (set-position start-pos start-pos))
+        (end-edit-sequence)
+        #t))
     
     ;; uncomment-box/selection : -> void
     ;; uncomments a comment box, if the focus is inside one.
@@ -917,44 +909,43 @@
       (end-edit-sequence)
       #t)
     
-    (define uncomment-selection
-      (lambda ([start-pos (get-start-position)]
-               [end-pos (get-end-position)])
-        (let ([snip-before (find-snip start-pos 'before-or-none)]
-              [snip-after (find-snip start-pos 'after-or-none)])
+    (define/public (uncomment-selection [start-pos (get-start-position)]
+                                        [end-pos (get-end-position)])
+      (let ([snip-before (find-snip start-pos 'before-or-none)]
+            [snip-after (find-snip start-pos 'after-or-none)])
           
-          (begin-edit-sequence)
-          (cond
-            [(and (= start-pos end-pos)
-                  snip-before
-                  (is-a? snip-before comment-box:snip%))
-             (extract-contents start-pos snip-before)]
-            [(and (= start-pos end-pos)
-                  snip-after
-                  (is-a? snip-after comment-box:snip%))
-             (extract-contents start-pos snip-after)]
-            [(and (= (+ start-pos 1) end-pos)
-                  snip-after
-                  (is-a? snip-after comment-box:snip%))
-             (extract-contents start-pos snip-after)]
-            [else
-             (let* ([last-pos (last-position)]
-                    [first-para (position-paragraph start-pos)]
-                    [last-para (calc-last-para end-pos)])
-               (let para-loop ([curr-para first-para])
-                 (when (<= curr-para last-para)
-                   (let ([first-on-para
-                          (skip-whitespace  (paragraph-start-position curr-para)
-                                            'forward
-                                            #f)])
-                     (split-snip first-on-para)
-                     (when (and (< first-on-para last-pos)
-                                (char=? #\; (get-character first-on-para))
-                                (is-a? (find-snip first-on-para 'after-or-none) string-snip%))
-                       (delete first-on-para (+ first-on-para 1)))
-                     (para-loop (add1 curr-para))))))])
-          (end-edit-sequence))
-        #t))
+        (begin-edit-sequence)
+        (cond
+          [(and (= start-pos end-pos)
+                snip-before
+                (is-a? snip-before comment-box:snip%))
+           (extract-contents start-pos snip-before)]
+          [(and (= start-pos end-pos)
+                snip-after
+                (is-a? snip-after comment-box:snip%))
+           (extract-contents start-pos snip-after)]
+          [(and (= (+ start-pos 1) end-pos)
+                snip-after
+                (is-a? snip-after comment-box:snip%))
+           (extract-contents start-pos snip-after)]
+          [else
+           (let* ([last-pos (last-position)]
+                  [first-para (position-paragraph start-pos)]
+                  [last-para (calc-last-para end-pos)])
+             (let para-loop ([curr-para first-para])
+               (when (<= curr-para last-para)
+                 (let ([first-on-para
+                        (skip-whitespace  (paragraph-start-position curr-para)
+                                          'forward
+                                          #f)])
+                   (split-snip first-on-para)
+                   (when (and (< first-on-para last-pos)
+                              (char=? #\; (get-character first-on-para))
+                              (is-a? (find-snip first-on-para 'after-or-none) string-snip%))
+                     (delete first-on-para (+ first-on-para 1)))
+                   (para-loop (add1 curr-para))))))])
+        (end-edit-sequence))
+      #t)
     
     ;; extract-contents : number (is-a?/c comment-box:snip%) -> void
     ;; copies the contents of the comment-box-snip out of the snip
@@ -1032,13 +1023,12 @@
             (set-position end-pos)
             (bell))
         #t))
-    [define flash-forward-sexp
-      (λ (start-pos)
-        (let ([end-pos (get-forward-sexp start-pos)])
-          (if end-pos 
-              (flash-on end-pos (add1 end-pos))
-              (bell)) 
-          #t))]
+    (define/public (flash-forward-sexp start-pos)
+      (let ([end-pos (get-forward-sexp start-pos)])
+        (if end-pos 
+            (flash-on end-pos (add1 end-pos))
+            (bell)) 
+        #t))
     (define/public (get-backward-sexp start-pos)
       (let* ([limit (get-limit start-pos)]
              [end-pos (backward-match start-pos limit)]
@@ -1057,89 +1047,82 @@
                     end-pos)))
             ;; can't go backward at all:
             #f)))
-    [define flash-backward-sexp
-      (λ (start-pos)
-        (let ([end-pos (get-backward-sexp start-pos)])
-          (if end-pos
-              (flash-on end-pos (add1 end-pos))
-              (bell))
-          #t))]
-    [define backward-sexp
-      (λ (start-pos)
-        (let ([end-pos (get-backward-sexp start-pos)])
-          (if end-pos
-              (set-position end-pos)
-              (bell))
-          #t))]
-    [define find-up-sexp
-      (λ (start-pos)
-        (let* ([limit-pos (get-limit start-pos)]
-               [exp-pos
-                (backward-containing-sexp start-pos limit-pos)])
+    (define/public (flash-backward-sexp start-pos)
+      (let ([end-pos (get-backward-sexp start-pos)])
+        (if end-pos
+            (flash-on end-pos (add1 end-pos))
+            (bell))
+        #t))
+    (define/public (backward-sexp start-pos)
+      (let ([end-pos (get-backward-sexp start-pos)])
+        (if end-pos
+            (set-position end-pos)
+            (bell))
+        #t))
+    (define/public (find-up-sexp start-pos)
+      (let* ([limit-pos (get-limit start-pos)]
+             [exp-pos
+              (backward-containing-sexp start-pos limit-pos)])
           
-          (if (and exp-pos (> exp-pos limit-pos))
-              (let* ([in-start-pos (skip-whitespace exp-pos 'backward #t)]
-                     [paren-pos
-                      (λ (paren-pair)
-                        (find-string
-                         (car paren-pair)
-                         'backward
-                         in-start-pos
-                         limit-pos))])
-                (let ([poss (let loop ([parens (racket-paren:get-paren-pairs)])
-                              (cond
-                                [(null? parens) null]
-                                [else 
-                                 (let ([pos (paren-pos (car parens))])
-                                   (if pos
-                                       (cons pos (loop (cdr parens)))
-                                       (loop (cdr parens))))]))])
-                  (if (null? poss) ;; all finds failed
-                      #f
-                      (- (apply max poss) 1)))) ;; subtract one to move outside the paren
-              #f)))]
-    [define up-sexp
-      (λ (start-pos)
-        (let ([exp-pos (find-up-sexp start-pos)])
-          (if exp-pos
-              (set-position exp-pos)
-              (bell))
-          #t))]
-    [define find-down-sexp
-      (λ (start-pos)
-        (let loop ([pos start-pos])
-          (let ([next-pos (get-forward-sexp pos)])
-            (if (and next-pos (> next-pos pos))
-                (let ([back-pos
-                       (backward-containing-sexp (sub1 next-pos) pos)])
-                  (if (and back-pos
-                           (> back-pos pos))
-                      back-pos
-                      (loop next-pos)))
-                #f))))]
-    [define down-sexp
-      (λ (start-pos)
-        (let ([pos (find-down-sexp start-pos)])
-          (if pos
-              (set-position pos)
-              (bell))
-          #t))]
-    [define remove-parens-forward
-      (λ (start-pos)
-        (let* ([pos (skip-whitespace start-pos 'forward #f)]
-               [first-char (get-character pos)]
-               [paren? (or (char=? first-char #\()
-                           (char=? first-char #\[)
-                           (char=? first-char #\{))]
-               [closer (and paren? 
-                            (get-forward-sexp pos))])
-          (if (and paren? closer)
-              (begin (begin-edit-sequence #t #f)
-                     (delete pos (add1 pos))
-                     (delete (-  closer 2) (- closer 1))
-                     (end-edit-sequence))
-              (bell))
-          #t))]
+        (if (and exp-pos (> exp-pos limit-pos))
+            (let* ([in-start-pos (skip-whitespace exp-pos 'backward #t)]
+                   [paren-pos
+                    (λ (paren-pair)
+                      (find-string
+                       (car paren-pair)
+                       'backward
+                       in-start-pos
+                       limit-pos))])
+              (let ([poss (let loop ([parens (racket-paren:get-paren-pairs)])
+                            (cond
+                              [(null? parens) null]
+                              [else 
+                               (let ([pos (paren-pos (car parens))])
+                                 (if pos
+                                     (cons pos (loop (cdr parens)))
+                                     (loop (cdr parens))))]))])
+                (if (null? poss) ;; all finds failed
+                    #f
+                    (- (apply max poss) 1)))) ;; subtract one to move outside the paren
+            #f)))
+    (define/public (up-sexp start-pos)
+      (let ([exp-pos (find-up-sexp start-pos)])
+        (if exp-pos
+            (set-position exp-pos)
+            (bell))
+        #t))
+    (define/public (find-down-sexp start-pos)
+      (let loop ([pos start-pos])
+        (let ([next-pos (get-forward-sexp pos)])
+          (if (and next-pos (> next-pos pos))
+              (let ([back-pos
+                     (backward-containing-sexp (sub1 next-pos) pos)])
+                (if (and back-pos
+                         (> back-pos pos))
+                    back-pos
+                    (loop next-pos)))
+              #f))))
+    (define/public (down-sexp start-pos)
+      (let ([pos (find-down-sexp start-pos)])
+        (if pos
+            (set-position pos)
+            (bell))
+        #t))
+    (define/public (remove-parens-forward start-pos)
+      (let* ([pos (skip-whitespace start-pos 'forward #f)]
+             [first-char (get-character pos)]
+             [paren? (or (char=? first-char #\()
+                         (char=? first-char #\[)
+                         (char=? first-char #\{))]
+             [closer (and paren? 
+                          (get-forward-sexp pos))])
+        (if (and paren? closer)
+            (begin (begin-edit-sequence #t #f)
+                   (delete pos (add1 pos))
+                   (delete (-  closer 2) (- closer 1))
+                   (end-edit-sequence))
+            (bell))
+        #t))
     
     (define/private (select-text f forward?)
       (define start-pos (get-start-position))
@@ -1156,11 +1139,11 @@
           (extend-position new-pos)
           (bell))
           #t)
-    (public select-forward-sexp select-backward-sexp select-up-sexp select-down-sexp)
-    [define select-forward-sexp (λ () (select-text (λ (x) (get-forward-sexp x)) #t))]
-    [define select-backward-sexp (λ () (select-text (λ (x) (get-backward-sexp x)) #f))]
-    [define select-up-sexp (λ () (select-text (λ (x) (find-up-sexp x)) #f))]
-    [define select-down-sexp (λ () (select-text (λ (x) (find-down-sexp x)) #t))]
+
+    (define/public (select-forward-sexp) (select-text (λ (x) (get-forward-sexp x)) #t))
+    (define/public (select-backward-sexp) (select-text (λ (x) (get-backward-sexp x)) #f))
+    (define/public (select-up-sexp) (select-text (λ (x) (find-up-sexp x)) #f))
+    (define/public (select-down-sexp) (select-text (λ (x) (find-down-sexp x)) #t))
     
     (define/public (introduce-let-ans pos)
       (dynamic-wind
@@ -1306,10 +1289,9 @@
                                 (for-each (λ (s) (insert s start-1)) snips-2/rev)
                                 (set-position end-2)
                                 (end-edit-sequence)))))))))))
-    [define tab-size 8]
-    (public get-tab-size set-tab-size)
-    [define get-tab-size (λ () tab-size)]
-    [define set-tab-size (λ (s) (set! tab-size s))]
+    (define tab-size 8)
+    (define/public (get-tab-size) tab-size)
+    (define/public (set-tab-size s) (set! tab-size s))
     
     (define/override (get-start-of-line pos)
       (define para (position-paragraph pos))
