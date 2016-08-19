@@ -998,7 +998,7 @@ animation frame with @method[canvas<%> suspend-flush] and
 are not flushed to the screen. Use @method[canvas<%> flush] to ensure
 that canvas content is flushed when it is ready if a @method[canvas<%>
 suspend-flush] will soon follow, because the process of flushing to
-the screen can be starved if flushing is frequently suspend.  The
+the screen can be starved if flushing is frequently suspended.  The
 method @xmethod[canvas% refresh-now] conveniently encapsulates this
 sequence.
 
