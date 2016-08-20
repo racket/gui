@@ -28,6 +28,7 @@
 (define-gtk gtk_event_box_set_visible_window (_fun _GtkWidget _gboolean -> _void))
 
 (define-gtk gtk_fixed_move (_fun _GtkWidget _GtkWidget _int _int -> _void))
+(define-gtk gtk_widget_get_visible (_fun _GtkWidget -> _gboolean))
 
 (define-gtk gtk_container_set_border_width (_fun _GtkWidget _int -> _void))
 
@@ -137,7 +138,15 @@
     (super-new)
     (define/override (set-child-size child-gtk x y w h)
       (gtk_fixed_move (get-container-gtk) child-gtk (->screen x) (->screen y))
-      (gtk_widget_set_size_request child-gtk (->screen w) (->screen h)))))
+      (define re-hide?
+	(and gtk3?
+	     (not (gtk_widget_get_visible child-gtk))
+	     (begin
+	       (gtk_widget_show child-gtk)
+	       #t)))
+      (gtk_widget_set_size_request child-gtk (->screen w) (->screen h))
+      (when re-hide?
+	(gtk_widget_hide child-gtk)))))
 
 (define panel%
   (class (panel-container-mixin (panel-mixin window%))

@@ -614,7 +614,7 @@
           (set! client-delta-h (->normal
 				(- (GtkRequisition-height req)
 				   (GtkRequisition-height creq)))))
-	(when gtk3? (gtk_widget_show gtk))))
+	(when gtk3? (gtk_widget_hide gtk))))
 
     (define/public (set-auto-size [dw 0] [dh 0])
       (let ([req (make-GtkRequisition 0 0)])
@@ -633,7 +633,7 @@
     (define/public (direct-show on?)
       ;; atomic mode
       (if on?
-          (gtk_widget_show gtk)
+	  (gtk_widget_show gtk)
           (gtk_widget_hide gtk))
       (set! shown? (and on? #t))
       (register-child-in-parent on?)
