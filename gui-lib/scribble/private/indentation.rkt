@@ -87,11 +87,22 @@
 
     ;; reindent at newly inserted newlines
     (let ([end-para (send txt position-paragraph new-new-end-position)])
-      (let loop ([para (+ (send txt position-paragraph start-position) 1)])
+      (let loop ([para (send txt position-paragraph start-position)])
         (when (<= para end-para)
           (define sp (send txt paragraph-start-position para))
+          (define ep (send txt paragraph-end-position para))
           (define s (determine-spaces txt sp))
-          (when s (send txt insert (make-string s #\space) sp sp))
+          (when s
+            (define to-delete
+              (let loop ([pos sp]
+                         [amt 0])
+                (cond
+                  [(= pos ep) amt]
+                  [(char-whitespace? (send txt get-character pos))
+                   (loop (+ pos 1) (+ amt 1))]
+                  [else amt])))
+            (send txt delete sp (+ sp to-delete))
+            (send txt insert (make-string s #\space) sp sp))
           (loop (+ para 1)))))
     
     (send txt end-edit-sequence)))
@@ -1009,6 +1020,17 @@
                  "Hello world lorem ipsum hello world lorem ipsum hi world\n"
                  "lorem ipsum hello world lorem ipsum hi world lorem ipsum\n"
                  "hello world lorem ipsum hello world lorem ipsum hello\n"))
+
+  (check-equal? (let ([t (new racket:text%)])
+                  (send t insert "#lang scribble/base\n")
+                  (send t insert "\n")
+                  (send t insert "  aa bb cc\n")
+                  (paragraph-indentation t 23 60)
+                  (send t get-text))
+                (string-append
+                 "#lang scribble/base\n"
+                 "\n"
+                 "aa bb cc\n"))
 
   (check-equal? (let ([t (new racket:text%)])
                   (send t insert "#lang scribble/base\n@a{b\n  }  \n")
