@@ -5,6 +5,8 @@
          string-constants
          framework)
 
+(provide determine-spaces paragraph-indentation surrogate%)
+
 (define paragraph-width-pref-name 'scribble-reindent-paragraph-width)
 (define paragraph-width-good-val? (and/c exact-nonnegative-integer? (>=/c 10)))
 (preferences:set-default paragraph-width-pref-name 60 paragraph-width-good-val?)
@@ -55,7 +57,7 @@
     (when (= sp (send t get-end-position))
       (paragraph-indentation
        t sp
-       (preferences:get 'scribble-reindent-paragraph-width)))))
+       (preferences:get paragraph-width-pref-name)))))
 
 (send at-exp-keymap add-function "reindent-paragraph" reindent-paragraph)
 (send at-exp-keymap map-function "esc;q" "reindent-paragraph")
@@ -64,44 +66,242 @@
   (send at-exp-keymap map-function "m:q" "reindent-paragraph"))
 
 ;;(paragraph-indentation a-racket:text posi width) → void?
-;; posi : exact-integer? = current given position
+;; pos : exact-integer? = current given position
 ;; width : exact-integer? = user defined line width limitation
-;; Indent a whole paragraph(multiple lines that contains the given position
-(define (paragraph-indentation txt posi width)
-  (let* ([current-line (send txt position-paragraph posi)]
-         [guess-start-posi (send txt find-up-sexp posi)])
-    (if guess-start-posi ;;inside a parenthesis
-        (let* ([guess-start-line (send txt position-paragraph guess-start-posi)])
-          (paragraph-indent-start txt guess-start-line current-line width))
-        (paragraph-indent-start txt current-line current-line width))));;handle text, no boundry guess
+;; Indent a whole paragraph (multiple lines that contains the given position)
+(define (paragraph-indentation txt pos width)
+  (define pos-para (send txt position-paragraph pos))
 
-;;(paragraph-indent-start a-racket:text guess-start current-line) → void?
-;; guess-start : exact-integer? = (send text find-up-sexp posi)
-;; current-line : exact-integer? = current line number
-;; Indent a whole paragraph starts with empty line or guess-start, end with empty line
-(define (paragraph-indent-start text guess-start current-line width)
-  (define para-start-line (for/first ([line (in-range guess-start 0 -1)]
-                                      #:when (empty-line? text line))
-                            line))
-  (when para-start-line
-    (send text begin-edit-sequence)
-    (let loop ([i (+ para-start-line 1)])
-      (unless (and (empty-line? text i) (> i current-line))
-        (define posi (send text paragraph-start-position i))
-        (define amount (determine-spaces text posi))
-        (when amount
-          (adjust-spaces text i amount posi))
-        (adjust-para-width text posi width)
-        (loop (+ i 1))))
-    (send text end-edit-sequence)))                              
+  ;; do this to ensure the colorer is sync'd, since
+  ;; classify position returns bogus results if it isn't
+  (let ([bw (send txt backward-containing-sexp pos 0)])
+    (send txt forward-match (or bw pos) (send txt last-position)))
 
-;;(empty-line? a-racket:text line) → boolean?
-;; line : exact-integer? = current line number
-(define (empty-line? txt line)
-  (let* ([line-start (send txt paragraph-start-position line)]
-         [line-end (send txt paragraph-end-position line)]
-         [line-classify (txt-position-classify txt line-start line-end)])
-    (not (para-not-empty? line-classify))))
+  (define-values (start-position end-position)
+    (find-paragraph-boundaries txt pos))
+  (when (and start-position end-position)
+    (send txt begin-edit-sequence)
+    (join-paragraphs txt start-position end-position)
+    (define new-end-position (compress-whitespace txt start-position end-position))
+    (define new-new-end-position (break-paragraphs txt start-position new-end-position width))
+
+    ;; reindent at newly inserted newlines
+    (let ([end-para (send txt position-paragraph new-new-end-position)])
+      (let loop ([para (+ (send txt position-paragraph start-position) 1)])
+        (when (<= para end-para)
+          (define sp (send txt paragraph-start-position para))
+          (define s (determine-spaces txt sp))
+          (when s (send txt insert (make-string s #\space) sp sp))
+          (loop (+ para 1)))))
+    
+    (send txt end-edit-sequence)))
+
+(define (find-paragraph-boundaries txt insertion-pos)
+
+  ;; move back one position in the case that
+  ;; we are at the end of the buffer or we are
+  ;; at the end of a text region
+  (define insertion-pos/one-earlier
+    (cond
+      [(= insertion-pos (send txt last-position))
+       (- insertion-pos 1)]
+      [(and (equal? (send txt classify-position insertion-pos)
+                    'parenthesis)
+            (> insertion-pos 0)
+            (is-text? txt (- insertion-pos 1)))
+       (- insertion-pos 1)]
+      [else insertion-pos]))
+  
+
+  ;; find a starting point that's in a 'text' region
+  ;; and in the same paragraph as the insertion-pos/one-earlier
+  (define pos
+    (let loop ([pos insertion-pos/one-earlier])
+      (cond
+        [(is-text? txt pos)
+         pos]
+        [else
+         (define containing-start (send txt find-up-sexp pos))
+         (define pos-para (send txt position-paragraph pos))
+         (cond
+           [(not containing-start) #f]
+           [(= (send txt position-paragraph containing-start) pos-para)
+            (loop containing-start)]
+           [else
+            (define containing-end
+              (send txt forward-match containing-start (send txt last-position)))
+            (cond
+              [(not containing-end) #f]
+              [(= (send txt position-paragraph containing-end) pos-para)
+               (loop containing-end)]
+              [else #f])])])))
+  
+  (cond
+    [pos
+
+     ;; find limits on how far we will reflow the paragraph.
+     ;; we definitely won't go beyond a blank line, but maybe
+     ;; we have to stop before we find a blank line. This code
+     ;; finds the spot we should stop at by looking at the sexp
+     ;; structure of the program text.
+     ;;
+     ;; #f means no limit
+     (define-values (start-sexp-boundary end-sexp-boundary)
+       (let ([first-container (send txt find-up-sexp pos)])
+         (cond
+           [first-container
+            (define start-sexp-boundary
+              (let loop ([pos pos])
+                (define container (send txt find-up-sexp pos))
+                (cond
+                  [container
+                   (define paren (send txt get-character container))
+                   (cond
+                     [(and (equal? paren #\{) (not (= pos 0)))
+                      (loop container)]
+                     [else pos])]
+                  [else pos])))
+            (values start-sexp-boundary
+                    (send txt forward-match start-sexp-boundary
+                          (send txt last-position)))]
+           [else
+            (values #f #f)])))
+
+     ;; once we know the sexp-based limits, we look for any blank lines that
+     ;; might cause us to stop earlier
+     (define start-sexp-para
+       (send txt position-paragraph (or start-sexp-boundary 0)))
+     (define end-sexp-para
+       (send txt position-paragraph
+             (cond
+               [end-sexp-boundary end-sexp-boundary]
+               [else
+                (define lp (send txt last-position))
+                (if (and (0 . < . lp)
+                         (equal? #\newline (send txt get-character (- lp 1))))
+                    (- lp 1)
+                    lp)])))
+
+     (cond
+       [(or (and start-sexp-boundary (empty-para? txt start-sexp-para))
+            (and end-sexp-boundary (empty-para? txt end-sexp-para)))
+        ;; this shouldn't be possible (I think?) but be conservative in case it is
+        (values #f #f)]
+       [else
+        (define start-position
+          (let loop ([para (send txt position-paragraph pos)])
+            (cond
+              [(= start-sexp-para para)
+               (or start-sexp-boundary (send txt paragraph-start-position para))]
+              [(empty-para? txt para)
+               (send txt paragraph-start-position (+ para 1))]
+              [else
+               (loop (- para 1))])))
+        (define end-position
+          (let loop ([para (send txt position-paragraph pos)])
+            (cond
+              [(= para end-sexp-para)
+               (or end-sexp-boundary (send txt paragraph-end-position para))]
+              [(empty-para? txt para)
+               (send txt paragraph-end-position (- para 1))]
+              [else
+               (loop (+ para 1))])))
+        (values start-position end-position)])]
+    [else (values #f #f)]))
+
+(define (empty-para? txt para)
+  (for/and ([x (in-range (send txt paragraph-start-position para)
+                         (send txt paragraph-end-position para))])
+    (char-whitespace? (send txt get-character x))))
+
+;; note: this might change the number of characters in the text, if
+;; it chooses to break right after a {; the result accounts for that.
+(define (break-paragraphs txt start-position end-position width)
+  (define δ 0)
+  (let para-loop ([para (send txt position-paragraph start-position)]
+                  [first-legal-pos-in-para start-position])
+    (define para-start (send txt paragraph-start-position para))
+    (let char-loop ([pos (or first-legal-pos-in-para para-start)]
+                    [previous-whitespace #f])
+      (cond
+        [(and previous-whitespace (> (- pos para-start) width))
+         (send txt delete previous-whitespace (+ previous-whitespace 1))
+         (send txt insert "\n" previous-whitespace previous-whitespace)
+         (para-loop (+ para 1) #f)]
+        [(= pos end-position)
+         (when (equal? previous-whitespace (- pos 1))
+           (send txt delete (- pos 1) pos))]
+        [else
+         (define is-whitespace? (char-whitespace? (send txt get-character pos)))
+         (define linebreak-candidate?
+           (and (is-text? txt pos)
+                (or is-whitespace?
+                    (and (pos . > . 0)
+                         (equal? 'parenthesis (send txt classify-position (- pos 1)))
+                         (equal? #\{ (send txt get-character (- pos 1)))))))
+         (cond
+           [(and linebreak-candidate? (> (- pos para-start) width))
+            (cond
+              [is-whitespace?
+               (send txt delete pos (+ pos 1))]
+              [else
+               (set! δ (+ δ 1))])
+            (send txt insert "\n" pos pos)
+            (para-loop (+ para 1) #f)]
+           [else
+            (char-loop (+ pos 1)
+                       (if linebreak-candidate? pos previous-whitespace))])])))
+  (+ end-position δ))
+
+;; the colorer classifies nearly all text as 'text but
+;; some whitespace that's in a text region is
+;; classified as 'white-space instead, so search backwards
+;; for either text or a { when we find 'white-space
+(define (is-text? txt pos)
+  (define classified (send txt classify-position pos))
+  (or (equal? classified 'text)
+      (and (equal? classified 'white-space)
+           (let ([backward (send txt find-up-sexp pos)])
+             (and backward
+                  (equal? (send txt get-character backward) #\{)
+                  (equal? (send txt classify-position backward)
+                          'parenthesis))))))
+           
+
+;; invariant: does not change the the where the positions are in the editor
+;; (except temporarily between the delete and insert)
+(define (join-paragraphs txt start-position end-position)
+  (define start-para (send txt position-paragraph start-position))
+  (define end-para (send txt position-paragraph end-position))
+  (let loop ([para end-para])
+    (unless (= para start-para)
+      (define start (send txt paragraph-start-position para))
+      (send txt delete (- start 1) start)
+      (send txt insert " " (- start 1) (- start 1))
+      (loop (- para 1)))))
+
+(define (compress-whitespace txt start-position end-position)
+  (let loop ([pos start-position]
+             [end-position end-position]
+             [last-whitespace? #f])
+    (cond
+      [(< pos end-position)
+       (define char (send txt get-character pos))
+       (define this-whitespace? (char-whitespace? char))
+       (when (and this-whitespace?
+                  (not last-whitespace?)
+                  (not (char=? #\space char)))
+         (send txt delete pos (+ pos 1))
+         (send txt insert " " pos))
+       (cond
+         [(and last-whitespace?
+               this-whitespace?
+               (is-text? txt pos))
+          (send txt delete pos (+ pos 1))
+          (loop pos (- end-position 1) #t)]
+         [else
+          (loop (+ pos 1) end-position this-whitespace?)])]
+      [else end-position])))
 
 ;;(rest-empty? a-racket:text line start) → boolean?
 ;; line : exact-integer? = (send text position-paragraph start)
@@ -161,47 +361,6 @@
   (and line-contains-only-curley-braces?
        number-of-curley-braces))
 
-;;(adjust-para-width a-racket:text position width) → boolean?
-;; position : exact-integer? = current position 
-;; width : exact-integer? = predefined value
-;;Modify the given paragraph(line) if it exceed width limit by inserting #\newline to proper position
-(define (adjust-para-width txt posi width)
-  (let* ([para-num (send txt position-paragraph posi)]
-         [para-start (send txt paragraph-start-position para-num)]
-         [para-end (send txt paragraph-end-position para-num)]
-         [para-len (add1 (- para-end para-start))]
-         [para-classify (txt-position-classify txt para-start para-end)])
-    (if (para-not-empty? para-classify) ;continue when current paragraph is not empty
-        (cond ((> para-len width) ;paragraph too long
-               (define new-line-created (select-cut-option txt para-start para-len width para-classify))
-               (when (equal? new-line-created #t)
-                 (let* ([next-para-num (+ para-num 2)]
-                        [next-para-start (send txt paragraph-start-position next-para-num)]
-                        [next-para-end (send txt paragraph-end-position next-para-num)]
-                        [next-para-classify (txt-position-classify txt next-para-start next-para-end)])
-                   (if (para-not-empty? next-para-classify) ;; next paragraph not empty
-                       (begin (delete-end-spaces txt (+ para-num 1))
-                              (delete-start-spaces txt (+ para-num 2))
-                              (let* ([nxt-para-num (+ para-num 2)]
-                                     [nxt-para-start (send txt paragraph-start-position nxt-para-num)]
-                                     [nxt-para-end (send txt paragraph-end-position nxt-para-num)]
-                                     [nxt-para-classify (txt-position-classify txt nxt-para-start nxt-para-end)])
-                                (when (equal? 'text (car nxt-para-classify))
-                                  ;now text
-                                  (send txt delete nxt-para-start 'back)
-                                  (send txt insert #\space (sub1 nxt-para-start)))))     
-                       #t))))
-              ;;push up the next paragraph if not empty, and it is text
-              ((< para-len width) 
-               (push-back-lines txt para-num para-start width)
-               (let* ([new-end (send txt paragraph-end-position para-num)]
-                      [new-len (add1 (- new-end para-start))])
-                 (when (> new-len width)
-                   (adjust-para-width txt para-start width))
-                 ))
-              (else #t))
-        #t)))
-
 ;;(txt-position-classify a-racket:text start end) → void?
 ;; start : exact-integer? = position to start classify
 ;; end : exact-integer? = position to end classify
@@ -224,12 +383,11 @@
 ;; classify-lst : list? = (txt-position-classify text start end)
 ;; Check if current paragraph(line) is empty, we consider comment line as empty line
 (define (para-not-empty? classify-lst) ;;we consider 'other  and 'comment as empty
-  (if (or (member 'parenthesis classify-lst)
-          (member 'string classify-lst)
-          (member 'symbol classify-lst)
-          (member 'text classify-lst))
-      #t
-      #f))
+  (and (or (member 'parenthesis classify-lst)
+           (member 'string classify-lst)
+           (member 'symbol classify-lst)
+           (member 'text classify-lst))
+       #t))
 
 ;;(start-skip-spaces a-racket:text para direction) → exact-integer?
 ;;para : exact-integer? = paragraph(line) number
@@ -240,10 +398,10 @@
          [para-end (send txt paragraph-end-position para)])
     (if (equal? direction 'forward)
         (for/first ([start-skip-space (in-range para-start para-end 1)]
-                    #:when (not (member (send txt get-character start-skip-space) (list #\space #\tab))))
+                    #:unless (member (send txt get-character start-skip-space) (list #\space #\tab)))
           start-skip-space)
         (for/first ([start-skip-space (in-range (sub1 para-end) para-start -1)];;ignore the newline
-                    #:when (not (member (send txt get-character start-skip-space)  (list #\space #\tab))))
+                    #:unless (member (send txt get-character start-skip-space)  (list #\space #\tab)))
           start-skip-space))))
 
 ;;(delete-end-spaces a-racket:text para) → void?
@@ -283,110 +441,6 @@
                  (set! count (add1 count))
                  (set! count (+ (add1 (- p this-para-start)) count))))]
           [else #t])))
-
-;;(push-back-check? a-racket:text posi) → Boolean?
-;;posi : exact-integer? = a position in given text which is the @'s position 
-;;Return #f if we see:
-;; 1) "[" with muptiple lines after
-;; 2) keyworld "codeblock" or "verbatim"
-;; otherwise return #t
-(define (push-back-check? t posi)
-  (define key-words (list "codeblock" "verbatim"))
-  (if (is-at-sign? t posi)
-      (let* ([first-char-posi (add1 posi)]
-             [open-paren-posi (send t get-forward-sexp first-char-posi)]);start from the first char after @
-        (cond 
-          [(equal? #\[ (send t get-character open-paren-posi))
-           (let* ([close-paren-posi-plus-one (send t get-forward-sexp open-paren-posi)]
-                  [start-line (send t position-paragraph open-paren-posi)])
-             (if close-paren-posi-plus-one
-                 (let* ([close-paren-posi (sub1 close-paren-posi-plus-one)]
-                        [end-line (send t position-paragraph close-paren-posi)])
-                   (equal? start-line end-line))
-                 #f))]
-          [(equal? #\{ (send t get-character open-paren-posi))
-           (define key-word (send t get-text first-char-posi open-paren-posi))
-           (if (member key-word key-words)
-               #f
-               #t)]
-          [else #f]))
-      #t)) ;; e.g @verbatim|{}|
-
-;;(push-back-line a-racket:text para width) → void?
-;;para : exact-integer? = paragraph(line) number
-;;para-start : exact-integer? = start position of given paragraph(line)
-;;width : exact-intefer? = predefined paragrah width
-(define (push-back-lines txt para para-start width)
-  (let* ([para-end (send txt paragraph-end-position para)]
-         [new-width (add1 (- para-end para-start))];;init with original line length
-         [nxt-para (add1 para)]
-         [nxt-para-end (send txt paragraph-end-position nxt-para)])
-    (if (or (equal? para-end nxt-para-end) (equal? para-end (sub1 nxt-para-end))) ;;reach/exceed the last line
-        #t;;all done
-        (let ([nxt-para-start (start-skip-spaces txt nxt-para 'forward)])
-          (when nxt-para-start ;next line empty, start-skip-spaces returns #f
-            (define nxt-para-classify
-              (and nxt-para-start (txt-position-classify txt nxt-para-start nxt-para-end)))
-            (if (and (para-not-empty? nxt-para-classify) (push-back-check? txt nxt-para-start)
-                     (equal? (send txt classify-position (sub1 para-end)) 'text);;previous line end with text 
-                     (< new-width width))
-                ;;we only push back those lines satisfy push-back-check rules
-                (begin (delete-end-spaces txt para)
-                       (delete-start-spaces txt nxt-para)
-                       (let ([new-nxt-start (send txt paragraph-start-position nxt-para)])
-                         (send txt delete new-nxt-start 'back)
-                         (send txt insert #\space (sub1 new-nxt-start)))
-                       (push-back-lines txt para para-start width)) ;;keep pushing back lines
-                #t)))))) ;;done
-
-;;Deprecated
-;;(indent-racket-fuc a-racket:text posi) → exact-integer?/boolean?
-;;posi : exact-integer? = a position in given text
-;;Return 1 if the position is within first #\( of racket function, or #f
-(define (indent-racket-func txt posi)
-  (let* ([prev-posi (sub1 posi)]
-         [back-one-level (send txt backward-containing-sexp prev-posi 0)])
-    (if back-one-level
-        (let ([paren (sub1 back-one-level)])
-          (cond ((equal? #\{ (send txt get-character paren)) 1)
-                ((equal? #\[ (send txt get-character paren));might be inside cond etc
-                 (let ([back-two-level (send txt backward-containing-sexp (sub1 paren) 0)])
-                   (if back-two-level
-                       #f
-                       1)))
-                (else #f)))
-        #f)));;#f needs to be replaced by racket indentation function
-
-;;(select-cut-option a-racket:text start len width classify-lst) → boolean?
-;; start : exact-integer? = (send text paragraph-start-position given-paragraph-number)
-;; len : exact-integer? = length of current paragraph(line)
-;; width : exact-integer? = predefined value
-;; classify-lst: list? = (txt-position-classify text start end) here end is the end position
-;;               of current paragraph(line)
-;; Put #\newline to shorten given paragraph if necessary, return #t if #\newline inserted
-;; Situations:
-;;1) breake whole @... to next line, 
-;;2) keep @.... in current line 
-;;3) if it is a simple text, just cut it
-(define (select-cut-option txt start len width classify-lst)
-  (let ([adjust-result (list-ref classify-lst (sub1 width))]);;get the "end" position adjust result
-    (cond [(equal? adjust-result 'text) 
-           (let ([new-break (insert-break-text txt start (+ start width) (+ start len))])
-             (if new-break
-                 ;replace the #\space with #\newline 
-                 (begin (send txt delete (add1 new-break) 'back)
-                        (send txt insert #\newline new-break)
-                        #t)
-                 #f))]
-          ;;'symbol 'parenthesis 'string or 'space
-          ;;1)went backward to find @
-          ;;2)went forward to find first 'text
-          [else 
-           (let ([posi (insert-break-func txt start len width classify-lst)])
-             (if posi
-                 (begin (send txt insert #\newline posi);;directly insert before @ or 'text
-                        #t)
-                 #f))])))
 
 ;;(insert-break-text a-racket:text start width-end end) → exact-integer?/boolean?
 ;; start : exact-integer? = (send text paragraph-start-position given-paragraph-number)
@@ -435,7 +489,16 @@
         (send text insert (make-string amount #\space) posi))))
   #t)
 
-;;test cases
+
+
+(define/contract (insert-them t . strs)
+  (->* ((is-a?/c text%)) #:rest (*list/c (and/c string? #rx"\n$") string?) void?)
+  (for ([str (in-list strs)])
+    (define lp (send t last-position))
+    (send t insert str lp lp))
+  (send t freeze-colorer)
+  (send t thaw-colorer))
+
 (module+ test
   (require rackunit framework)
   
@@ -466,23 +529,7 @@
   (define txt_1 (new racket:text%))
   (send txt_1 insert "#lang scribble/base\n@f{x}\n@;ghj\ntyty\n\n")
   
-  ;test para-not-empty?
-  (check-equal? (let ([result (txt-position-classify txt_1 0 5)])
-                  (para-not-empty? result))
-                #f);;consider 'other as empty line
-  
-  (check-equal? (let ([result (txt-position-classify txt_1 20 24)])
-                  (para-not-empty? result))
-                #t)
-  
-  (check-equal? (let ([result (txt-position-classify txt_1 27 31)])
-                  (para-not-empty? result))
-                #f);comment
-  
-  (check-equal? (let ([result (txt-position-classify txt_1 37 38)])
-                  (para-not-empty? result))
-                #f);empty line
-  ;test is-at-sign
+ ;test is-at-sign
   (check-equal? (let ([t (new racket:text%)])
                   (send t insert "(x)")
                   (is-at-sign? t 0))
@@ -533,8 +580,6 @@
   
   (define txt_9 (new racket:text%))
   (send txt_9 insert "@a[\n(b c)\n(d\n[(e) f]\n[g h])\n]\n")
-  (check-equal? (indent-racket-func txt_9 4) 1)
-  (check-equal? (indent-racket-func txt_9 6) #f)
   (check-equal? (determine-spaces txt_9 13) #f) 
   (check-equal? (determine-spaces txt_9 4) 1)
   
@@ -546,11 +591,7 @@
   (check-equal? (let ([t (new racket:text%)])
                   (send t insert "@a[@b{\n@c{d e f}\ng}]")
                   (count-parens t 9)) 5)
-  
-  (check-equal? (let ([t (new racket:text%)])
-                  (send t insert "(d f\n(l [()\n(f ([a (b c)])\n(d e)))])")
-                  (indent-racket-func t 12)) #f)      
-  
+
   (check-equal? (let ([t (new racket:text%)])
                   (send t insert "@a[\n     ]\n")
                   (determine-spaces t 4))
@@ -595,88 +636,336 @@
                   (adjust-spaces t 1 1 4)
                   (adjust-spaces t 1 1 4)
                   (send t get-text)) "@a[\n ]\n")
-  ;;push-back-check?
+  
+
+ 
+;                                                                        
+;                                                                        
+;                                                                        
+;                                                                        
+;                                                            ;;;         
+;                                                            ;;;         
+;  ;;; ;;   ;;;;;  ;;; ;;;;;;;   ;; ;;; ;;; ;;;;;;;  ;;; ;;  ;;; ;;      
+;  ;;;;;;; ;;;;;;; ;;;;;;;;;;;; ;;;;;;; ;;;;;;;;;;;; ;;;;;;; ;;;;;;;     
+;  ;;; ;;; ;;  ;;; ;;;  ;;  ;;; ;;; ;;; ;;;  ;;  ;;; ;;; ;;; ;;; ;;;     
+;  ;;; ;;;   ;;;;; ;;;    ;;;;; ;;; ;;; ;;;    ;;;;; ;;; ;;; ;;; ;;; ;;;;
+;  ;;; ;;; ;;; ;;; ;;;  ;;; ;;; ;;; ;;; ;;;  ;;; ;;; ;;; ;;; ;;; ;;; ;;;;
+;  ;;;;;;; ;;; ;;; ;;;  ;;; ;;; ;;;;;;; ;;;  ;;; ;;; ;;;;;;; ;;; ;;;     
+;  ;;; ;;   ;;;;;; ;;;   ;;;;;;  ;; ;;; ;;;   ;;;;;; ;;; ;;  ;;; ;;;     
+;  ;;;                              ;;;              ;;;                 
+;  ;;;                          ;;;;;;               ;;;                 
+;                                                                        
+;                                                                        
+;                                                                            
+;                                                                            
+;                                                                            
+;                                                                            
+;  ;;;             ;;;                   ;            ;  ;;;                 
+;                  ;;;                 ;;;          ;;;                      
+;  ;;; ;;; ;;   ;; ;;;   ;;;;  ;;; ;;  ;;;;  ;;;;;  ;;;; ;;;   ;;;   ;;; ;;  
+;  ;;; ;;;;;;; ;;;;;;;  ;; ;;; ;;;;;;; ;;;; ;;;;;;; ;;;; ;;;  ;;;;;  ;;;;;;; 
+;  ;;; ;;; ;;; ;;; ;;; ;;; ;;; ;;; ;;; ;;;  ;;  ;;; ;;;  ;;; ;;; ;;; ;;; ;;; 
+;  ;;; ;;; ;;; ;;; ;;; ;;;;;;; ;;; ;;; ;;;    ;;;;; ;;;  ;;; ;;; ;;; ;;; ;;; 
+;  ;;; ;;; ;;; ;;; ;;; ;;;     ;;; ;;; ;;;  ;;; ;;; ;;;  ;;; ;;; ;;; ;;; ;;; 
+;  ;;; ;;; ;;; ;;;;;;;  ;;;;;; ;;; ;;; ;;;; ;;; ;;; ;;;; ;;;  ;;;;;  ;;; ;;; 
+;  ;;; ;;; ;;;  ;; ;;;   ;;;;  ;;; ;;;  ;;;  ;;;;;;  ;;; ;;;   ;;;   ;;; ;;; 
+;                                                                            
+;                                                                            
+;                                                                            
+;                                                                            
+
+  (let ([t (new racket:text%)])
+    (insert-them t
+                 "#lang scribble/base\n"
+                 "\n"
+                 "@f{x}")
+    (check-equal? (is-text? t 21) #f)
+    (check-equal? (is-text? t 22) #f)
+    (check-equal? (is-text? t 23) #f)
+    (check-equal? (is-text? t 24) #t)
+    (check-equal? (is-text? t 25) #f))
+
+  (let ([t (new racket:text%)])
+    (insert-them t
+                 "#lang scribble/base\n"
+                 "\n"
+                 "@f{ x }")
+    (check-equal? (is-text? t 21) #f)
+    (check-equal? (is-text? t 22) #f)
+    (check-equal? (is-text? t 23) #f)
+    (check-equal? (is-text? t 24) #t)
+    (check-equal? (is-text? t 25) #t)
+    (check-equal? (is-text? t 26) #t)
+    (check-equal? (is-text? t 27) #f))
+
+  (let ([t (new racket:text%)])
+    (insert-them t
+                 "#lang scribble/base\n"
+                 "\n"
+                 "@f{\n\n\n}")
+    (check-equal? (is-text? t 21) #f)
+    (check-equal? (is-text? t 22) #f)
+    (check-equal? (is-text? t 23) #f)
+    (check-equal? (is-text? t 24) #t)
+    (check-equal? (is-text? t 25) #t)
+    (check-equal? (is-text? t 26) #t)
+    (check-equal? (is-text? t 27) #f))
+
+  (let ([t (new racket:text%)])
+    (insert-them t
+                 "#lang scribble/base\n"
+                 "\n"
+                 "@f{\nx\n}")
+    (check-equal? (is-text? t 21) #f)
+    (check-equal? (is-text? t 22) #f)
+    (check-equal? (is-text? t 23) #f)
+    (check-equal? (is-text? t 24) #t)
+    (check-equal? (is-text? t 25) #t)
+    (check-equal? (is-text? t 26) #t)
+    (check-equal? (is-text? t 27) #f))
+
+  (let ([t (new racket:text%)])
+    (insert-them t
+                 "#lang scribble/base\n"
+                 "\n"
+                 "@f{\n \n}")
+    (check-equal? (is-text? t 21) #f)
+    (check-equal? (is-text? t 22) #f)
+    (check-equal? (is-text? t 23) #f)
+    (check-equal? (is-text? t 24) #t)
+    (check-equal? (is-text? t 25) #t)
+    (check-equal? (is-text? t 26) #t)
+    (check-equal? (is-text? t 27) #f))
+
+  (let ([t (new racket:text%)])
+    (insert-them t
+                 "#lang scribble/base\n"
+                 "\n"
+                 "aaa bbb ccc\n"
+                 "  @ddd[eee] fff\n"
+                 " ggg hhh iii jjj\n")
+    (check-equal? (call-with-values (λ () (find-paragraph-boundaries t 23))
+                                    list)
+                  (list 21 65)))
+
+  (let ([t (new racket:text%)])
+    (insert-them t
+                 "#lang scribble/base\n"
+                 "\n"
+                 "aaa bbb ccc\n"
+                 "  @ddd[eee] fff\n"
+                 " ggg hhh iii jjj")
+    (check-equal? (call-with-values (λ () (find-paragraph-boundaries t 23))
+                                    list)
+                  (list 21 65)))
+
+  (let ([t (new racket:text%)])
+    (insert-them t
+                 "#lang scribble/base\n"
+                 "\n"
+                 "@itemlist[@item{aaa bbb ccc\n"
+                 "                eee fff}\n"
+                 "          @item{ggg hhh iii\n"
+                 "  jjj kkk lll mmm nnn ooo\n"
+                 "  ppp qqq\n"
+                 "rrr\n"
+                 "sss ttt uuu vvv}]\n")
+    (check-equal? (call-with-values (λ () (find-paragraph-boundaries t 38)) list)
+                  (list 36 73)))
+  
+
+  (let ([t (new racket:text%)])
+    (send t insert "#lang scribble/base\n")
+    (for ([x (in-range 6)])
+      (send t insert "a " (send t last-position) (send t last-position)))
+    (break-paragraphs t (send t paragraph-start-position 1) (send t last-position) 4)
+    (check-equal? (send t get-text)
+                  (string-append
+                   "#lang scribble/base\n"
+                   "a a\n"
+                   "a a\n"
+                   "a a")))
+
+  (let ([t (new racket:text%)])
+    (send t insert "#lang scribble/base\n")
+    (for ([x (in-range 6)])
+      (send t insert "a " (send t last-position) (send t last-position)))
+    (break-paragraphs t (send t paragraph-start-position 1) (send t last-position) 8)
+    (check-equal? (send t get-text)
+                  (string-append
+                   "#lang scribble/base\n"
+                   "a a a a\n"
+                   "a a")))
+  
+  (let ([t (new racket:text%)])
+    (send t insert "#lang scribble/base\n")
+    (for ([x (in-range 30)])
+      (send t insert "a " (send t last-position) (send t last-position)))
+    (break-paragraphs t (send t paragraph-start-position 1) (send t last-position) 10)
+    (check-equal? (send t get-text)
+                  (string-append "#lang scribble/base\n"
+                                 "a a a a a\n"
+                                 "a a a a a\n"
+                                 "a a a a a\n"
+                                 "a a a a a\n"
+                                 "a a a a a\n"
+                                 "a a a a a")))
+
+  (let ([t (new racket:text%)])
+    (insert-them t
+                 "#lang scribble/base\n"
+                 "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\n")
+    (break-paragraphs t (send t paragraph-start-position 1) (send t last-position) 10)
+    (check-equal? (send t get-text)
+                  (string-append "#lang scribble/base\n"
+                                 "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\n"
+                                 "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\n")))
+
+  (let ([t (new racket:text%)])
+    (insert-them t
+                 "#lang scribble/base\n"
+                 "aa aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\n")
+    (break-paragraphs t (send t paragraph-start-position 1) (send t last-position) 10)
+    (check-equal? (send t get-text)
+                  (string-append "#lang scribble/base\n"
+                                 "aa\n"
+                                 "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\n"
+                                 "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\n")))
+
   (check-equal? (let ([t (new racket:text%)])
-                  (send t insert "#lang scribble/base\n@test[@a{}]\n")
-                  (push-back-check? t 20))
-                #t)
-  
+                  (list (compress-whitespace t 0 (send t last-position))
+                        (send t get-text)))
+                '(0 ""))
+  (let ([t (new racket:text%)])
+    (insert-them t
+                 "#lang scribble/base\n"
+                 "abcdef")
+    (check-equal?   (list (compress-whitespace t
+                                               (send t paragraph-start-position 1)
+                                               (send t last-position))
+                          (send t get-text))
+                    (list (send t paragraph-end-position 1)
+                          "#lang scribble/base\nabcdef")))
+  (let ([t (new racket:text%)])
+    (insert-them t
+                 "#lang scribble/base\n"
+                 "a cd f")
+    (check-equal? 
+     (list (compress-whitespace t
+                                (send t paragraph-start-position 1)
+                                (send t last-position))
+           (send t get-text))
+     (list (send t paragraph-end-position 1)
+           "#lang scribble/base\na cd f")))
+  (let ([t (new racket:text%)])
+    (insert-them t
+                 "#lang scribble/base\n"
+                 "a    f")
+    (check-equal? 
+     (list (compress-whitespace t
+                                (send t paragraph-start-position 1)
+                                (send t last-position))
+           (send t get-text))
+     (list (+ (send t paragraph-start-position 1) 3)
+           "#lang scribble/base\na f")))
+  (let ([t (new racket:text%)])
+    (insert-them t
+                 "#lang scribble/base\n"
+                 "a    f")
+    (check-equal? 
+     (list (compress-whitespace t
+                                (send t paragraph-start-position 1)
+                                (- (send t last-position) 1))
+           (send t get-text))
+     (list (+ (send t paragraph-start-position 1) 2)
+           "#lang scribble/base\na f")))
+  (let ([t (new racket:text%)])
+                  (insert-them t
+                               "#lang scribble/base\n"
+                               "a    f")
+    (check-equal? (list (compress-whitespace t
+                                             (send t paragraph-start-position 1)
+                                             (- (send t last-position) 2))
+                        (send t get-text))
+                  (list (+ (send t paragraph-start-position 1) 2)
+                        "#lang scribble/base\na  f")))
+
   (check-equal? (let ([t (new racket:text%)])
-                  (send t insert "#lang scribble/base\n@test[@a{}\n@b{}]\n")
-                  (push-back-check? t 20))
-                #f)
-  
-  (check-equal? (let ([t (new racket:text%)])
-                  (send t insert "#lang scribble/base\n @test{}\n@test{}\n")
-                  (push-back-check? t 21))
-                #t)
-  
-  (check-equal? (let ([t (new racket:text%)])
-                  (send t insert "#lang scribble/base\n@codeblockfake{}\n")
-                  (push-back-check? t 20))
-                #t)
-  
-  
-  (check-equal? (let ([t (new racket:text%)])
-                  (send t insert "#lang scribble/base\n\n@codeblock{}\n")
-                  (push-back-check? t 21))
-                #f)
-  
-  
-  (check-equal? (let ([t (new racket:text%)])
-                  (send t insert "#lang scribble/base\n@verbatim{}\n")
-                  (push-back-check? t 20))
-                #f)
-  
-  ;;push-back-lines
-  (check-equal? (let ([t (new racket:text%)])
-                  (send t insert "#lang scribble/base\ntest1\n     test2\n @test3\n")
-                  (push-back-lines t 1 20 22)
-                  (send t get-text))
-                "#lang scribble/base\ntest1 test2\n @test3\n")
-  
-  (check-equal? (let ([t (new racket:text%)])
-                  (send t insert "#lang scribble/base\ntest1\n     test2\n\t\ttest3\n")
-                  (push-back-lines t 1 20 12)
-                  (send t get-text))
-                "#lang scribble/base\ntest1 test2\n\t\ttest3\n")
-  
-  (check-equal? (let ([t (new racket:text%)])
-                  (send t insert "#lang scribble/base\ntest1\n     test2\n\t\ttest3\ntest4\n")
-                  (push-back-lines t 1 20 18)
-                  (send t get-text))
-                "#lang scribble/base\ntest1 test2 test3\ntest4\n")
-  
-  (check-equal? (let ([t (new racket:text%)])
-                  (send t insert "#lang scribble/base\ntest1\n     test2\n\t\ttest3\n")
-                  (push-back-lines t 1 20 22)
-                  (send t get-text))
-                "#lang scribble/base\ntest1 test2 test3\n")
-  
-  ;;paragraph indentation
-  (check-equal? (let ([t (new racket:text%)])
-                  (send t insert "#lang scribble/base\n\naaa bbb ccc\n  @ddd[eee] fff\n ggg hhh iii jjj\n")
+                  (insert-them t
+                               "#lang scribble/base\n"
+                               "\n"
+                               "aaa bbb ccc\n"
+                               "  @ddd[eee] fff\n"
+                               " ggg hhh iii jjj\n")
                   (paragraph-indentation t 23 23)
                   (send t get-text))
-                "#lang scribble/base\n\naaa bbb ccc @ddd[eee]\nfff ggg hhh iii jjj\n")
+                (string-append
+                 "#lang scribble/base\n"
+                 "\n"
+                 "aaa bbb ccc @ddd[eee]\n"
+                 "fff ggg hhh iii jjj\n"))
+
+  (check-equal? (let ([t (new racket:text%)])
+                  (insert-them t
+                               "#lang scribble/base\n"
+                               "\n"
+                               "aaa bbb ccc\n"
+                               "  @ddd[eee] fff\n"
+                               " ggg hhh iii jjj\n\n\n")
+                  (paragraph-indentation t 23 23)
+                  (send t get-text))
+                (string-append
+                 "#lang scribble/base\n"
+                 "\n"
+                 "aaa bbb ccc @ddd[eee]\n"
+                 "fff ggg hhh iii jjj\n\n\n"))
   
   (check-equal? (let ([t (new racket:text%)])
-                  (send t insert "#lang scribble/base\n\n@itemlist[@item{aaa bbb ccc\n                eee fff}\n          @item{ggg hhh iii\n  jjj kkk lll mmm nnn ooo\n  ppp qqq\nrrr\nsss ttt uuu vvv}]")
+                  (insert-them t
+                               "#lang scribble/base\n"
+                               "\n"
+                               "@itemlist[@item{aaa bbb ccc\n"
+                               "                eee fff}\n"
+                               "          @item{ggg hhh iii\n"
+                               "  jjj kkk lll mmm nnn ooo\n"
+                               "  ppp qqq\n"
+                               "rrr\n"
+                               "sss ttt uuu vvv}]\n")
                   (paragraph-indentation t 38 29)
                   (send t get-text))
-                "#lang scribble/base\n\n@itemlist[@item{aaa bbb ccc\n           eee fff}\n          @item{ggg hhh iii\n           jjj kkk lll mmm\n           nnn ooo ppp qqq\n           rrr sss ttt uuu\n           vvv}]")
+                (string-append
+                 "#lang scribble/base\n"
+                 "\n"
+                 "@itemlist[@item{aaa bbb ccc\n"
+                 "           eee fff}\n"
+                 "          @item{ggg hhh iii\n"
+                 "  jjj kkk lll mmm nnn ooo\n"
+                 "  ppp qqq\n"
+                 "rrr\n"
+                 "sss ttt uuu vvv}]\n"))
   
   (check-equal? (let ([t (new racket:text%)])
-                  (send t insert "#lang scribble/base\n\n@itemlist[@item{aaa bbb ccc\n                eee fff\n          @item{ggg hhh iii\n  jjj kkk lll mmm nnn ooo\n  ppp qqq\nrrr\nsss ttt uuu vvv}}]")
+                  (insert-them t
+                               "#lang scribble/base\n"
+                               "\n"
+                               "@itemlist[@item{aaa bbb ccc\n"
+                               "                eee fff\n"
+                               "          @item{ggg hhh iii\n"
+                               "  jjj kkk lll mmm nnn ooo\n"
+                               "  ppp qqq\n"
+                               "rrr\n"
+                               "sss ttt uuu vvv}}]\n")
                   (paragraph-indentation t 38 29)
                   (send t get-text))
-                "#lang scribble/base\n\n@itemlist[@item{aaa bbb ccc\n           eee fff @item{ggg\n            hhh iii jjj kkk\n            lll mmm nnn ooo\n            ppp qqq rrr sss\n            ttt uuu vvv}}]")
+                (string-append
+                 "#lang scribble/base\n"
+                 "\n"
+                 "@itemlist[@item{aaa bbb ccc\n"
+                 "           eee fff @item{ggg hhh iii jjj\n"
+                 "            kkk lll mmm nnn ooo ppp qqq\n"
+                 "            rrr sss ttt uuu vvv}}]\n"))
+
   
-  (check-equal? (let ([t (new racket:text%)])
-                  (send t insert "#lang scribble/base\naaa bbb\n @ccc ddd")
-                  (adjust-para-width t 22 12) 
-                  (send t get-text))
-                "#lang scribble/base\naaa bbb\n @ccc ddd")
   
   (check-equal? (let ([t (new racket:text%)])
                   (send t insert "#lang scribble/base\n\ntest1\n     test2\n\t\ttest3\n")
@@ -703,6 +992,25 @@
                 "#lang scribble/base\n\ntestcase @a{b\n\n\n\n\n c}\n\n")
 
   (check-equal? (let ([t (new racket:text%)])
+                  (send t insert "#lang scribble/base\n")
+                  (send t insert "\n")
+                  (send t insert "aa\n")
+                  (send t insert "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\n")
+                  (send t insert "Hello world lorem ipsum hello world lorem ipsum hi world\n")
+                  (send t insert "lorem ipsum hello world lorem ipsum hi world lorem ipsum\n")
+                  (send t insert "hello world lorem ipsum hello world lorem ipsum hello\n")
+                  (paragraph-indentation t 78 60)
+                  (send t get-text))
+                (string-append
+                 "#lang scribble/base\n"
+                 "\n"
+                 "aa\n"
+                 "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\n"
+                 "Hello world lorem ipsum hello world lorem ipsum hi world\n"
+                 "lorem ipsum hello world lorem ipsum hi world lorem ipsum\n"
+                 "hello world lorem ipsum hello world lorem ipsum hello\n"))
+
+  (check-equal? (let ([t (new racket:text%)])
                   (send t insert "#lang scribble/base\n@a{b\n  }  \n")
                   (determine-spaces t 26))
                 0)
@@ -710,37 +1018,6 @@
                   (send t insert "#lang scribble/base\n@a{b\n@{\n}}\n")
                   (determine-spaces t 30))
                 0)
-  
-  ;;test case for adjust paragraph width
-  (check-equal? (let ([t (new racket:text%)])
-                  (send t insert "#lang scribble/base\naaa bbb\n @ccc ddd")
-                  (adjust-para-width t 22 12) 
-                  (send t get-text))
-                "#lang scribble/base\naaa bbb\n @ccc ddd")
-  
-  (check-equal? (let ([t (new racket:text%)])
-                  (send t insert "#lang scribble/base\naaa bbb\nccc ddd @e[f @g{h}]")
-                  (adjust-para-width t 22 12) 
-                  (send t get-text))
-                "#lang scribble/base\naaa bbb ccc\nddd @e[f @g{h}]")
-  
-  (check-equal? (let ([t (new racket:text%)])
-                  (send t insert "#lang scribble/base\naaa bbb ccc ddd @e[f @g{h}]")
-                  (adjust-para-width t 22 12) 
-                  (send t get-text))
-                "#lang scribble/base\naaa bbb ccc\nddd @e[f @g{h}]")
-  
-  (check-equal? (let ([t (new racket:text%)])
-                  (send t insert "#lang scribble/base\na b c d @e[f @g{h}]")
-                  (adjust-para-width t 21 9) 
-                  (send t get-text))
-                "#lang scribble/base\na b c d \n@e[f @g{h}]");;keep the space, does not matter
-  
-  (check-equal? (let ([t (new racket:text%)])
-                  (send t insert "#lang scribble/base\na b c d @e{}\n f g\n")
-                  (adjust-para-width t 21 9)
-                  (send t get-text))
-                "#lang scribble/base\na b c d \n@e{} f g\n")
   
   ;;test insert-break
   (check-equal? (let ((t (new racket:text%)))
@@ -757,7 +1034,7 @@
                     (send t delete (add1 new-break) 'back)
                     (send t insert #\newline new-break)
                     (send t get-text))) "aaaa\nbbbb")
-
+  
   (let ([t (new racket:text%)])
     (define before-newline
       (string-append
@@ -769,9 +1046,5 @@
     (send t freeze-colorer)
     (send t set-position (string-length before-newline) (string-length before-newline))
     (reindent-paragraph t 'whatever-not-an-evt)
-    (check-equal? (string-append before-newline "\n " after-newline)
-                  (send t get-text)))
-  )
-
-(provide determine-spaces adjust-para-width paragraph-indentation
-         surrogate%)
+    (check-equal? (send t get-text)
+                  (string-append before-newline "\n " after-newline))))
