@@ -229,18 +229,27 @@
 ;; it chooses to break right after a {; the result accounts for that.
 (define (break-paragraphs txt start-position end-position width)
   (define δ 0)
+
+  (define (break-line pos is-whitespace?)
+    (cond
+      [is-whitespace?
+       (send txt delete pos (+ pos 1))]
+      [else
+       (set! δ (+ δ 1))])
+    (send txt insert "\n" pos pos))
+
   (let para-loop ([para (send txt position-paragraph start-position)]
                   [first-legal-pos-in-para start-position])
     (define para-start (send txt paragraph-start-position para))
     (let char-loop ([pos (or first-legal-pos-in-para para-start)]
-                    [previous-whitespace #f])
+                    [previous-candidate #f]
+                    [previous-candidate-is-whitespace? #f])
       (cond
-        [(and previous-whitespace (> (- pos para-start) width))
-         (send txt delete previous-whitespace (+ previous-whitespace 1))
-         (send txt insert "\n" previous-whitespace previous-whitespace)
+        [(and previous-candidate (> (- pos para-start) width))
+         (break-line previous-candidate previous-candidate-is-whitespace?)
          (para-loop (+ para 1) #f)]
         [(= pos end-position)
-         (when (equal? previous-whitespace (- pos 1))
+         (when (equal? previous-candidate (- pos 1))
            (send txt delete (- pos 1) pos))]
         [else
          (define is-whitespace? (char-whitespace? (send txt get-character pos)))
@@ -252,16 +261,16 @@
                          (equal? #\{ (send txt get-character (- pos 1)))))))
          (cond
            [(and linebreak-candidate? (> (- pos para-start) width))
-            (cond
-              [is-whitespace?
-               (send txt delete pos (+ pos 1))]
-              [else
-               (set! δ (+ δ 1))])
-            (send txt insert "\n" pos pos)
+            (break-line pos is-whitespace?)
             (para-loop (+ para 1) #f)]
            [else
             (char-loop (+ pos 1)
-                       (if linebreak-candidate? pos previous-whitespace))])])))
+                       (if linebreak-candidate?
+                           pos
+                           previous-candidate)
+                       (if linebreak-candidate?
+                           is-whitespace?
+                           previous-candidate-is-whitespace?))])])))
   (+ end-position δ))
 
 ;; the colorer classifies nearly all text as 'text but
@@ -976,8 +985,19 @@
                  "            kkk lll mmm nnn ooo ppp qqq\n"
                  "            rrr sss ttt uuu vvv}}]\n"))
 
-  
-  
+  (check-equal? (let ([t (new racket:text%)])
+                  (insert-them t
+                               "#lang scribble/base\n"
+                               "\n"
+                               "jflkda fkfjdkla f fjdklsa @figure-ref{looping-constructs-sample}.\n")
+                  (paragraph-indentation t 60 60)
+                  (send t get-text))
+                (string-append
+                 "#lang scribble/base\n"
+                 "\n"
+                 "jflkda fkfjdkla f fjdklsa @figure-ref{\n"
+                 " looping-constructs-sample}.\n"))
+
   (check-equal? (let ([t (new racket:text%)])
                   (send t insert "#lang scribble/base\n\ntest1\n     test2\n\t\ttest3\n")
                   (paragraph-indentation t 22 6)
