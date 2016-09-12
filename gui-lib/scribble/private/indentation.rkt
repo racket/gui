@@ -72,10 +72,7 @@
 (define (paragraph-indentation txt pos width)
   (define pos-para (send txt position-paragraph pos))
 
-  ;; do this to ensure the colorer is sync'd, since
-  ;; classify position returns bogus results if it isn't
-  (let ([bw (send txt backward-containing-sexp pos 0)])
-    (send txt forward-match (or bw pos) (send txt last-position)))
+  (wait-for-colorer txt pos)
 
   (define-values (start-position end-position)
     (find-paragraph-boundaries txt pos))
@@ -107,6 +104,13 @@
     
     (send txt end-edit-sequence)))
 
+;; do this to ensure the colorer is sync'd, since
+;; classify position returns bogus results if it isn't
+;; this should ensure the colorer is sync up to `pos`
+(define (wait-for-colorer txt pos)
+  (let ([bw (send txt backward-containing-sexp pos 0)])
+    (send txt forward-match (or bw pos) (send txt last-position))))
+
 (define (find-paragraph-boundaries txt insertion-pos)
 
   ;; move back one position in the case that
@@ -135,7 +139,44 @@
          (define containing-start (send txt find-up-sexp pos))
          (define pos-para (send txt position-paragraph pos))
          (cond
-           [(not containing-start) #f]
+           [(not containing-start)
+            ;; we know there is no sexp outside us here
+            (wait-for-colorer txt (min (+ pos 1) (send txt last-position)))
+            (cond
+              [(and (= pos (send txt paragraph-end-position pos-para))
+                    (begin
+                      ;; when we are the end of a paragraph, it might be "morally"
+                      ;; text, but the colorerer can't tell us that without a
+                      ;; character actually being there to classify
+                      ;; so add one and check it
+                      (send txt insert " " pos pos)
+                      (wait-for-colorer txt pos)
+                      (begin0
+                        (is-text? txt pos)
+                        (send txt delete pos (+ pos 1)))))
+               pos]
+              [else
+               ;; at this point, we might be at the end of the word
+               ;; `hello` in something like `@hello[there]`
+               ;; so scan backwards to see if the first paren we find
+               ;; is an `@` and, in that case, go one before it and try again
+               (let loop ([pos (if (is-open? txt pos)
+                                   (- pos 1)
+                                   pos)])
+                 (define cp (send txt classify-position pos))
+                 (cond
+                   [(not (= (send txt position-paragraph pos) pos-para))
+                    #f]
+                   [(member cp '(symbol keyword))
+                    (if (= pos 0)
+                        #f
+                        (loop (- pos 1)))]
+                   [(equal? cp 'parenthesis)
+                    (if (and (> pos 0)
+                             (is-text? txt (- pos 1)))
+                        (- pos 1)
+                        #f)]
+                   [else #f]))])]
            [(= (send txt position-paragraph containing-start) pos-para)
             (loop containing-start)]
            [else
@@ -155,6 +196,11 @@
      ;; we have to stop before we find a blank line. This code
      ;; finds the spot we should stop at by looking at the sexp
      ;; structure of the program text.
+     ;;
+     ;; we are looking for an enclosing sexp that's in "racket"
+     ;; mode, i.e. something like @f[(f x @emph{no, really!})]
+     ;; if we start inside the `no really!` part, then we don't
+     ;; want to reflow past that call to `f`.
      ;;
      ;; #f means no limit
      (define-values (start-sexp-boundary end-sexp-boundary)
@@ -219,6 +265,11 @@
                (loop (+ para 1))])))
         (values start-position end-position)])]
     [else (values #f #f)]))
+
+(define (is-open? txt pos)
+  (define cp (send txt classify-position pos))
+  (and (equal? cp 'parenthesis)
+       (member (send txt get-character pos) '(#\( #\{ #\[))))
 
 (define (empty-para? txt para)
   (for/and ([x (in-range (send txt paragraph-start-position para)
@@ -1051,6 +1102,60 @@
                  "#lang scribble/base\n"
                  "\n"
                  "aa bb cc\n"))
+
+  (let ([t (new racket:text%)])
+    (insert-them
+     t
+     "#lang scribble/manual\n"
+     "\n"
+     (string-append
+      "Abcd abcd abcd abcd abcd @racket[hello] abcd abcd abcd abcd. Abcd abcd abcd abcd abcd"
+      " abcd abcd abcd abcd abcd abcd abcd.\n"))
+    (paragraph-indentation t 57 60)
+    (check-equal? (send t get-text)
+                  (string-append
+                   "#lang scribble/manual\n"
+                   "\n"
+                   "Abcd abcd abcd abcd abcd @racket[hello] abcd abcd abcd abcd.\n"
+                   "Abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd.\n")))
+
+  (let ([t (new racket:text%)])
+    (insert-them
+     t
+     "#lang scribble/manual\n"
+     "\n"
+     "@emph{\n"
+     " @emph{\n"
+     "  @emph{\n"
+     "   @emph{\n"
+     "    @emph{\n"
+     "     blah blah blah blah blah blah blah blah blah blah blah}}}}}")
+    (paragraph-indentation t (send t last-position) 60)
+    (check-equal? (send t get-text)
+                  (string-append
+                   "#lang scribble/manual\n"
+                   "\n"
+                   "@emph{ @emph{ @emph{ @emph{ @emph{ blah blah blah blah blah\n"
+                   "     blah blah blah blah blah blah}}}}}")))
+
+  (let ([t (new racket:text%)])
+    (insert-them
+     t
+     "#lang scribble/manual\n"
+     "\n"
+     "@emph{\n"
+     " @emph{\n"
+     "  @emph{\n"
+     "   @emph{\n"
+     "    @emph{\n"
+     "     blah blah blah blah blah blah blah blah blah blah blah}}}}}")
+    (paragraph-indentation t (- (send t last-position) 2) 60)
+    (check-equal? (send t get-text)
+                  (string-append
+                   "#lang scribble/manual\n"
+                   "\n"
+                   "@emph{ @emph{ @emph{ @emph{ @emph{ blah blah blah blah blah\n"
+                   "     blah blah blah blah blah blah}}}}}")))
 
   (check-equal? (let ([t (new racket:text%)])
                   (send t insert "#lang scribble/base\n@a{b\n  }  \n")
