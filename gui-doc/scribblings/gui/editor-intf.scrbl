@@ -30,6 +30,10 @@ Adds an undoer procedure to the editor's undo stack. If an undo is
  redoing) changes to an editor, and when this undoer is the first item
  on the undo (or redo) stack.
 
+Editor instances are created with no undo stack, so no undo operations
+ will be recorded unless @method[editor<%> set-max-undo-history] is
+ used to change the size of the undo stack.
+
 The system automatically installs undo records to undo built-in editor
  operations, such as inserts, deletes, and font changes.  Install an
  undoer only when it is necessary to maintain state or handle
