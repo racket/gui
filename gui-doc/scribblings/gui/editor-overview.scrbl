@@ -61,9 +61,9 @@ A brief example illustrates how editors work. To start, an editor
 ]
 
 At this point, the editor is fully functional: the user can type text
- into the editor, but no cut-and-paste operations are available. We
- can support all of the standard operations on an editor via the
- menu bar:
+ into the editor, but no cut-and-paste or undo operations are
+ available. We can support all of the standard operations on an editor
+ via the menu bar:
 
 @racketblock[
 (define mb (new menu-bar% [parent f]))
@@ -71,16 +71,20 @@ At this point, the editor is fully functional: the user can type text
 (define m-font (new menu% [label "Font"] [parent mb]))
 (append-editor-operation-menu-items m-edit #f)
 (append-editor-font-menu-items m-font)
+(send t #,(:: editor<%> set-max-undo-history) 100)
 ]
 
-Now, the standard cut and paste operations work, and the user can even
- set font styles. The user can also insert an embedded editor by
- selecting @onscreen{Insert Text} from the @onscreen{Edit} menu; after
- selecting the menu item, a box appears in the editor with the caret
- inside. Typing with the caret in the box stretches the box as text is
- added, and font operations apply wherever the caret is active. Text
- on the outside of the box is rearranged as the box changes
- sizes. Note that the box itself can be copied and pasted.
+Now, the standard cut-and-paste operations work and so does undo, and
+ the user can even set font styles. The editor is created with no undo
+ history stack, @method[editor<%> set-max-undo-history] is used to set
+ a non-zero stack, so undo operations can be recorded. The user can
+ also insert an embedded editor by selecting @onscreen{Insert Text}
+ from the @onscreen{Edit} menu; after selecting the menu item, a box
+ appears in the editor with the caret inside. Typing with the caret in
+ the box stretches the box as text is added, and font operations apply
+ wherever the caret is active. Text on the outside of the box is
+ rearranged as the box changes sizes. Note that the box itself can be
+ copied and pasted.
 
 The content of an editor is made up of @defterm{@tech{snips}}. An
  embedded editor is a single snip from the embedding editor's
