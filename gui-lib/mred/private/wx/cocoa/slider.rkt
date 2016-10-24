@@ -164,7 +164,8 @@
     (flip (inexact->exact (floor (tell #:type _double slider-cocoa doubleValue)))))
 
   (define/public (update-message [val (get-value)])
-    (tellv message-cocoa setStringValue: #:type _NSString (format "~a" val)))
+    (tellv message-cocoa setStringValue: #:type _NSString (format "~a" val))
+    (tellv message-cocoa sizeToFit))
 
   (inherit get-cocoa-window)
   (define/override (post-mouse-down)
