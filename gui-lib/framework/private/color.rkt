@@ -27,7 +27,8 @@ added get-regions
         [prefix mode: framework:mode^]
         [prefix text: framework:text^]
         [prefix color-prefs: framework:color-prefs^]
-        [prefix racket: framework:racket^])
+        [prefix racket: framework:racket^]
+        [prefix number-snip: framework:number-snip/int^])
 
 (export (rename framework:color^
                 (-text<%> text<%>)
@@ -337,7 +338,11 @@ added get-regions
            (open-input-text-editor this 
                                    (lexer-state-current-pos ls)
                                    (lexer-state-end-pos ls)
-                                   (λ (x) #f)))
+                                   (λ (x)
+                                     (cond
+                                       [(number-snip:is-number-snip? x)
+                                        x]
+                                       [else #f]))))
          (port-count-lines! in)
          (continue-re-tokenize start-time ok-to-stop? ls in
                                (lexer-state-current-pos ls)

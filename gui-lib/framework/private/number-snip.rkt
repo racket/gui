@@ -8,7 +8,7 @@
            file/convertible)
   
   (import mred^)
-  (export (rename framework:number-snip^
+  (export (rename framework:number-snip/int^
                   [-snip-class% snip-class%]))
   (init-depend mred^)
   
@@ -91,7 +91,8 @@
                       [(text)
                        (send number-snip get-text 0 1)]
                       [else default]))])))
-  
+
+  (define (is-number-snip? x) (is-a? x number-snip%))
   (define number-snip%
     (class* snip% (readable-snip<%> number-snip-convertible<%>)
       ;; number : number

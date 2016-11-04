@@ -10,6 +10,8 @@
   (define-signature number-snip^ extends number-snip-class^
     (make-repeating-decimal-snip
      make-fraction-snip))
+  (define-signature number-snip/int^ extends number-snip^
+    (is-number-snip?))
   
   (define-signature comment-box-class^
     (snip%))
