@@ -249,6 +249,9 @@
   (lambda (gtk event)
     (do-key-event gtk event #f #t)))
 
+(define scroll-accum-x 0)
+(define scroll-accum-y 0)
+
 (define (do-key-event gtk event down? scroll?)
   (let ([wx (gtk->wx gtk)])
     (and
@@ -279,12 +282,22 @@
                                [(= dir GDK_SCROLL_RIGHT) 'wheel-right]
                                [(= dir GDK_SCROLL_SMOOTH)
                                 (define-values (dx dy) (gdk_event_get_scroll_deltas event))
+                                (set! scroll-accum-x (+ scroll-accum-x dx))
+                                (set! scroll-accum-y (+ scroll-accum-y dy))
                                 (cond
-                                 [(positive? dy) 'wheel-down]
-                                 [(negative? dy) 'wheel-up]
-                                 [(positive? dx) 'wheel-right]
-                                 [(negative? dx) 'wheel-left]
-                                 [else #f])]
+                                  [(>= scroll-accum-y 1)
+                                   (set! scroll-accum-y (sub1 scroll-accum-y))
+                                   'wheel-down]
+                                  [(<= scroll-accum-y -1)
+                                   (set! scroll-accum-y (add1 scroll-accum-y))
+                                   'wheel-up]
+                                  [(>= scroll-accum-x 1)
+                                   (set! scroll-accum-x (sub1 scroll-accum-x))
+                                   'wheel-right]
+                                  [(<= scroll-accum-x -1)
+                                   (set! scroll-accum-x (add1 scroll-accum-x))
+                                   'wheel-left]
+                                  [else #f])]
                                [else #f]))]
                            [(and (string? im-str)
                                  (= 1 (string-length im-str)))
