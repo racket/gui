@@ -554,20 +554,11 @@
 
 (color-prefs:add-color-scheme-entry 'framework:default-text-color "black" "white")
 (color-prefs:register-color-scheme-entry-change-callback
- 'framework:basic-canvas-background
- (λ (v)
-   (editor:set-default-font-color
-    (color-prefs:lookup-in-color-scheme 'framework:default-text-color)
-    v)))
-(color-prefs:register-color-scheme-entry-change-callback
  'framework:default-text-color
  (λ (v)
-   (editor:set-default-font-color 
-    v 
-    (color-prefs:lookup-in-color-scheme 'framework:basic-canvas-background))))
-(editor:set-default-font-color 
- (color-prefs:lookup-in-color-scheme 'framework:default-text-color)
- (color-prefs:lookup-in-color-scheme 'framework:basic-canvas-background))
+   (editor:set-default-font-color v)))
+(editor:set-default-font-color
+ (color-prefs:lookup-in-color-scheme 'framework:default-text-color))
 
 (color-prefs:add-color-scheme-entry 'framework:misspelled-text-color "black" "white")
 
