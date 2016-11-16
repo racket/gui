@@ -4428,7 +4428,15 @@ designates the character that triggers autocompletion
       show-line-numbers?)
 
     (define/public (set-line-numbers-color color)
-      (set! line-numbers-color color))
+      (define new-line-numbers-color
+        (cond
+          [(string? color) (send the-color-database find-color color)]
+          [(is-a? color color%) color]
+          [else
+           (raise-argument-error 'line-numbers-mixin::set-line-numbers-color
+                                 (format "~s" '(or/c string? (is-a?/c color%)))
+                                 color)]))
+      (set! line-numbers-color new-line-numbers-color))
 
     (define notify-registered-in-list #f)
 
@@ -4474,9 +4482,7 @@ designates the character that triggers autocompletion
       (send dc set-text-mode (saved-dc-state-text-mode dc-state)))
 
     (define/private (get-foreground)
-      (if line-numbers-color
-        (make-object color% line-numbers-color)
-        (get-style-foreground)))
+      (or line-numbers-color (get-style-foreground)))
         
     ;; set the dc stuff to values we want
     (define/private (setup-dc dc)
