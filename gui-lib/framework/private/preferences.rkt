@@ -511,6 +511,11 @@ the state transitions / contracts are:
                                'framework:column-guide-width
                                (string-constant maximum-char-width-guide-pref-check-box)
                                (λ (n) (and (exact-integer? n) (>= n 2))))
+
+                   (when (equal? (system-type) 'unix)
+                     (add-check editor-panel
+                                'framework:editor-x-selection-mode
+                                (string-constant editor-x-selection-mode)))
                    
                    (editor-panel-procs editor-panel))))])
       (add-editor-checkbox-panel)))

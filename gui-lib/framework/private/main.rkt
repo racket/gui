@@ -25,6 +25,12 @@
 
 (application-preferences-handler (λ () (preferences:show-dialog)))
 
+(preferences:set-default 'framework:editor-x-selection-mode #t boolean?)
+(when (equal? (system-type) 'unix)
+  (preferences:add-callback
+   'framework:editor-x-selection-mode
+   (λ (p v) (editor-set-x-selection-mode v))))
+
 (preferences:set-default 'framework:ascii-art-enlarge #f boolean?)
 
 (preferences:set-default 'framework:color-scheme 'classic symbol?)
