@@ -11,13 +11,20 @@ needed to really make this work:
            racket/class
            racket/gui/base
            racket/match
-           (prefix-in - racket/base)
+           racket/contract
+           (prefix-in : racket/base)
            "include-bitmap.rkt")
 
   (define orig-output-port (current-output-port))
   (define (oprintf . args) (apply fprintf orig-output-port args))
   
-  (provide render-syntax/snip render-syntax/window snip-class)
+  (provide
+   (contract-out
+    [render-syntax/snip
+     (-> syntax? (is-a?/c snip%))]
+    [render-syntax/window
+     (-> syntax? void?)])
+   snip-class)
   
   ;; this is doing the same thing as the class in
   ;; the framework by the same name, but we don't
@@ -47,7 +54,7 @@ needed to really make this work:
     (class snip-class%
       (define/override (read stream)
         (make-object syntax-snip%
-          (unmarshall-syntax (-read (open-input-bytes (send stream get-bytes))))))
+          (unmarshall-syntax (:read (open-input-bytes (send stream get-bytes))))))
       (super-new)))
   
   (define snip-class (new syntax-snipclass%))

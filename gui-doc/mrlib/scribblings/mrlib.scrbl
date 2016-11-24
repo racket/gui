@@ -21,6 +21,7 @@
 @include-section["image-core.scrbl"]
 @include-section["matrix-snip.scrbl"]
 @include-section["snip-canvas.scrbl"]
+@include-section["syntax-browser.scrbl"]
 @include-section["tex-table.scrbl"]
 @include-section["terminal.scrbl"]
 

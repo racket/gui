@@ -51,3 +51,11 @@ up an image.
   to short-circuit the full check. (The full check draws the two images
   and then compares the resulting bitmaps.)
 }
+
+
+@defthing[snip-class (is-a?/c snip-class%)]{
+ The snipclass used by images (which are @racket[snip%]s) created by this library.
+
+ Not all @racket[image?] values are @racket[snip%]s, but those that are use this as
+ their @racket[snip-class%].
+}
