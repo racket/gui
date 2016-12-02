@@ -119,5 +119,5 @@ directory.
 
 This is the @filepath{wxme-circle-snip.rkt} file:
 
-@(put-code wxme-circle-snip.rkt))
+@(put-code wxme-circle-snip.rkt)
 
