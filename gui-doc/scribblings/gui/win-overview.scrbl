@@ -938,7 +938,7 @@ Whenever the system dispatches an event, the call to the handler is
  any captured continuation includes the invocation of the @tech{event
  dispatch handler}.
 
-For example, if a button callback raises an exception, than the abort
+For example, if a button callback raises an exception, then the abort
  performed by the default exception handler returns to the event-dispatch
  point, rather than terminating the program or escaping past an enclosing 
  @racket[(yield)]. If @racket[with-handlers] wraps a @racket[(yield)] that
