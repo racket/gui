@@ -2370,7 +2370,11 @@
     (define/override (edit-menu:create-find-case-sensitive?) #t)
 
     (define/override (edit-menu:replace-all-callback menu evt) (replace-all) #t)
-    (define/override (edit-menu:replace-all-on-demand item) (send item enable (not hidden?)))
+    (define/override (edit-menu:replace-all-on-demand item)
+      (send item enable (and find-edit
+                             (not (string=? (send find-edit get-text) ""))
+                             (not hidden?)
+                             replace-visible?)))
     (define/override (edit-menu:create-replace-all?) #t)
 
     (define/override make-root-area-container
