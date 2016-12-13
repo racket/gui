@@ -2538,13 +2538,15 @@
                                                                         case-sensitive-search?
                                                                         #t)])
                 (when found-pos
-                  (unless (hash-ref ht found-txt #f)
-                    (hash-set! ht found-txt #t)
-                    (send found-txt begin-edit-sequence))
                   (let ([start (- found-pos (send find-edit last-position))])
-                    (send found-txt delete start found-pos)
-                    (copy-over replace-edit 0 (send replace-edit last-position) found-txt start)
-                    (loop found-txt (+ start (send replace-edit last-position)))))))
+                    (cond [(send found-txt can-delete? start (- found-pos start))
+                           (unless (hash-ref ht found-txt #f)
+                             (hash-set! ht found-txt #t)
+                             (send found-txt begin-edit-sequence))
+                           (send found-txt delete start found-pos)
+                           (copy-over replace-edit 0 (send replace-edit last-position) found-txt start)
+                           (loop found-txt (+ start (send replace-edit last-position)))]
+                          [else (loop found-txt found-pos)])))))
             (hash-for-each ht (λ (txt _) (send txt end-edit-sequence)))))))
                              
     (define/private (pop-all-the-way-out txt)
