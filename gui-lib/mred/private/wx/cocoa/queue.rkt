@@ -34,7 +34,6 @@
  yield)
 
 (import-class NSApplication NSAutoreleasePool NSColor NSProcessInfo NSArray)
-(import-protocol NSApplicationDelegate)
 
 ;; Extreme hackery to hide original arguments from
 ;; NSApplication, because NSApplication wants to turn 
@@ -52,7 +51,7 @@
 
 (define got-file? #f)
 
-(define-objc-class RacketApplicationDelegate NSObject #:protocols (NSApplicationDelegate)
+(define-objc-class RacketApplicationDelegate NSObject ;; note: NSApplicationDelegate doesn't exist at run time
   []
   [-a _NSUInteger (applicationShouldTerminate: [_id app])
       (queue-quit-event)
