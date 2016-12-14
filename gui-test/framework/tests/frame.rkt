@@ -136,6 +136,112 @@
   (test-open "frame:searchable open" frame:searchable%)
   (test-open "frame:text open" frame:text%))
 
+(define (replace-all-tests)
+  (parameterize ([current-eventspace (make-eventspace)])
+    (define plain-f
+      (let ()
+        (define c (make-channel))
+        (queue-callback
+         (λ ()
+           (define f (new frame:searchable% [width 400] [height 400]))
+           (send f show #t)
+           (channel-put c f)))
+        (channel-get c)))
+
+    (define (try f content search-string replace-string)
+      (define c (make-channel))
+      (queue-callback
+       (λ ()
+         (define t (send f get-editor))
+         (send f set-text-to-search t)
+         (send t erase)
+         (send f unhide-search #t)))
+
+      ;; wait for search to get the focus
+      (let ([s (make-semaphore)])
+        (queue-callback (λ () (semaphore-post s)) #f)
+        (semaphore-wait s))
+
+      (for ([c (in-string search-string)])
+        (test:keystroke c))
+
+      (queue-callback
+       (λ ()
+         ;; show it.
+         (send f edit-menu:show/hide-replace-callback 'ignored.1 'ignored.2)))
+
+      ;; wait for replace to get the focus
+      (let ([s (make-semaphore)])
+        (queue-callback (λ () (semaphore-post s)) #f)
+        (semaphore-wait s))
+
+      (for ([c (in-string replace-string)])
+        (test:keystroke c))
+
+      (queue-callback
+       (λ ()
+         (define t (send f get-editor))
+         (send t insert content)
+         (send f replace-all)
+         ;; hide it again
+         (send f edit-menu:show/hide-replace-callback 'ignored.1 'ignored.2)
+         (send f hide-search)
+         (channel-put c (send t get-text))))
+      (channel-get c))
+
+    (check-equal? (try plain-f "a" "a" "b") "b")
+    (check-equal? (try plain-f "aa" "a" "b") "bb")
+    (check-equal? (try plain-f "abab" "ab" "c") "cc")
+    (check-equal? (try plain-f "abb" "ab" "a") "ab")
+    (send plain-f close)
+
+    (define (make-no-change-early-f)
+      (define c (make-channel))
+      (queue-callback
+       (λ ()
+         (define f (new (class (frame:searchable-mixin
+                                (frame:text-mixin
+                                 (frame:editor-mixin
+                                  (frame:standard-menus-mixin
+                                   frame:basic%))))
+                          (super-new [editor%
+                                      (class text:searching%
+                                        (define allow-delete? #f)
+                                        (define/public (allow-delete) (set! allow-delete? #t))
+                                        (define/augment (can-delete? start len)
+                                          (if allow-delete?
+                                              #t
+                                              (> start 0)))
+                                        (super-new)
+                                        (inherit set-max-undo-history)
+                                        (set-max-undo-history 'forever))]
+                                     [width 400]
+                                     [height 400]))))
+         (send f show #t)
+         (channel-put c f)))
+      (channel-get c))
+
+    (define (close-up-no-change-early-f no-change-early-f)
+      (queue-callback
+       (λ ()
+         (define t (send no-change-early-f get-editor))
+         (send t allow-delete)
+         (let loop ()
+           (unless (= 0 (send t last-position))
+             (send t undo)
+             (loop)))
+         (send no-change-early-f close))))
+
+    (let ()
+      (define no-change-early-f (make-no-change-early-f))
+      (check-equal? (try no-change-early-f "aaaa" "a" "b") "abbb")
+      (close-up-no-change-early-f no-change-early-f))
+
+    (let ()
+      (define no-change-early-f (make-no-change-early-f))
+      (check-equal? (try no-change-early-f "aaaa" "a" "bbbbbbbbbb") "abbbbbbbbbbbbbbbbbbbbbbbbbbbbbb")
+      (close-up-no-change-early-f no-change-early-f))))
+
 (let ([pref-ht (make-hash)])
   (parameterize ([test:use-focus-table #t]
                  [preferences:low-level-get-preference
@@ -150,5 +256,6 @@
     (send dummy show #t)
     (creation-tests)
     (open-tests)
+    (replace-all-tests)
     (send dummy show #f)))
 
