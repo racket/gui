@@ -637,7 +637,7 @@ can be any of the following:
 }
 
 
-@defmethod[(find-string [str string?]
+@defmethod[(find-string [str non-empty-string?]
                         [direction (or/c 'forward 'backward) 'forward]
                         [start (or/c exact-nonnegative-integer? 'start) 'start]
                         [end (or/c exact-nonnegative-integer? 'eof) 'eof]
@@ -668,7 +668,7 @@ If @racket[case-sensitive?] is @racket[#f], then an uppercase and lowercase
 
 }
 
-@defmethod[(find-string-embedded [str string?]
+@defmethod[(find-string-embedded [str non-empty-string?]
                                  [direction (or/c 'forward 'backward) 'forward]
                                  [start (or/c exact-nonnegative-integer? 'start) 'start]
                                  [end (or/c exact-nonnegative-integer? 'eof) 'eof]
@@ -690,7 +690,7 @@ If @racket[case-sensitive?] is @racket[#f], then an uppercase and lowercase
        search result position.
 }
                                                 
-@defmethod[(find-string-all [str string?]
+@defmethod[(find-string-all [str non-empty-string?]
                             [direction (or/c 'forward 'backward) 'forward]
                             [start (or/c exact-nonnegative-integer? 'start) 'start]
                             [end (or/c exact-nonnegative-integer? 'eof) 'eof]
@@ -704,7 +704,7 @@ Finds all occurrences of a string using @method[text% find-string]. If
 
 }
 
-@defmethod[(find-string-embedded-all [str string?]
+@defmethod[(find-string-embedded-all [str non-empty-string?]
                                      [direction (or/c 'forward 'backward) 'forward]
                                      [start (or/c exact-nonnegative-integer? 'start) 'start]
                                      [end (or/c exact-nonnegative-integer? 'eof) 'eof]
