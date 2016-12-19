@@ -26,10 +26,14 @@
   (when font
     (let* ([target-size
 	    (cond
-	     [gtk3?
-	      ;; Gtk3 ignores the "size-in-pixels" part of a
-	      ;; font spec, so we have to adjust the text size
-	      ;; to compensate.
+	     [(and gtk3?
+                   ((gtk_get_minor_version) . < . 22))
+	      ;; Prior to version 3.22, GTK+3 ignores the
+	      ;; "size-in-pixels" part of a font spec, so we have to
+	      ;; adjust the text size to compensate.
+              ;; With 3.22 and later, a size in points is effectively
+              ;; rounded to an integer absolute size; the `get-control-font-size`
+              ;; function takes that rounding into account.
 	      (* (send font get-size)
 		 (/ 72.0
 		    (pango_cairo_font_map_get_resolution
