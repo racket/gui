@@ -3320,7 +3320,7 @@
                       [(potential-commits new-commit-response-evts) 
                        (separate 
                         committers
-                        (service-committer data peeker-evt))])
+                        (service-committer (at-queue-size data) peeker-evt))])
            (when (and on-peek
                       (not (null? not-ready-peekers)))
              (parameterize ([current-eventspace eventspace])
@@ -3343,7 +3343,7 @@
             (handle-evt
              read-chan
              (λ (ent)
-               (set! data (at-enqueue ent data))
+               (at-enqueue! ent data)
                (unless position
                  (set! position (cdr ent)))
                (loop)))
@@ -3443,23 +3443,22 @@
        ;; service-committer : queue evt -> committer -> (union #f evt)
        ;; if the committer can be dumped, return an evt that
        ;; does the dumping. otherwise, return #f
-       (define ((service-committer data peeker-evt) a-committer)
+       (define ((service-committer size peeker-evt) a-committer)
          (match a-committer
            [(struct committer
                     (kr commit-peeker-evt
                         done-evt resp-chan resp-nack))
-            (let ([size (at-queue-size data)])
-              (cond
-                [(not (eq? peeker-evt commit-peeker-evt))
-                 (choice-evt
-                  resp-nack
-                  (channel-put-evt resp-chan #f))]
-                [(< size kr)
-                 (choice-evt
-                  resp-nack
-                  (channel-put-evt resp-chan 'commit-failure))]
-                [else  ;; commit succeeds
-                 #f]))]))
+            (cond
+              [(not (eq? peeker-evt commit-peeker-evt))
+               (choice-evt
+                resp-nack
+                (channel-put-evt resp-chan #f))]
+              [(< size kr)
+               (choice-evt
+                resp-nack
+                (channel-put-evt resp-chan 'commit-failure))]
+              [else  ;; commit succeeds
+               #f])]))
        
        ;; service-waiter : peeker -> (union #f evt)
        ;; if the peeker can be serviced, build an event to service it
@@ -4936,6 +4935,9 @@ designates the character that triggers autocompletion
                           (cons e (at-queue-front q))
                           (at-queue-back q)
                           (+ (at-queue-count q) 1)))
+(define (at-enqueue! e q)
+  (set-at-queue-front! q (cons e (at-queue-front q)))
+  (set-at-queue-count! q (+ (at-queue-count q) 1)))
 (define (at-queue-first q)
   (at-flip-around q)
   (let ([back (at-queue-back q)])
