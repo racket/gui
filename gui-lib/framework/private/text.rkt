@@ -3003,7 +3003,12 @@
           (cond
             [(= start end) (flush-proc)]
             [else
-             (define pair (cons (subbytes to-write start end) style))
+             (define pair (cons (if (and (= start 0)
+                                         (= end (bytes-length to-write))
+                                         (immutable? to-write))
+                                    to-write
+                                    (subbytes to-write start end))
+                                style))
              (cond
                [(eq? (current-thread) (eventspace-handler-thread eventspace))
                 (define return-channel (make-channel))
