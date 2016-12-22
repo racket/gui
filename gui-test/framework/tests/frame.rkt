@@ -193,6 +193,7 @@
     (check-equal? (try plain-f "aa" "a" "b") "bb")
     (check-equal? (try plain-f "abab" "ab" "c") "cc")
     (check-equal? (try plain-f "abb" "ab" "a") "ab")
+    (check-equal? (try plain-f "babbbcb" "b" "") "ac")
     (send plain-f close)
 
     (define (make-no-change-early-f)
