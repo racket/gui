@@ -590,7 +590,7 @@ Text can be extracted from an editor in either of two forms:
  mapped to themselves, but more complicated @techlink{item}s can be
  represented with a useful string determined by the @techlink{item}'s
  snip. Newlines are mapped to platform-specific character sequences
- (linefeed on Unix and Mac OS X, and
+ (linefeed on Unix and Mac OS, and
  linefeed--carriage return on Windows). This form is called
  ``flattened'' because the editor's @techlink{item}s have been reduced
  to a linear sequence of characters.}

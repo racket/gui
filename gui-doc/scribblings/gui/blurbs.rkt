@@ -27,7 +27,7 @@
     @elem{If @litchar{&} occurs in @|where|, it is specially parsed; 
       under Windows and X, the character
       following @litchar{&} is underlined in the displayed control to
-      indicate a keyboard mnemonic. (Under Mac OS X, mnemonic underlines are
+      indicate a keyboard mnemonic. (Under Mac OS, mnemonic underlines are
       not shown.) The mnemonic is meaningless for a @|what| (as far as
       @xmethod[top-level-window<%> on-traverse-char] is concerned),
       but it is supported for consistency with other control types. A

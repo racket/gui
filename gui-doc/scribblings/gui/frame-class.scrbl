@@ -61,37 +61,37 @@ some platforms:
 
  @item{@racket['no-resize-border] --- omits the resizeable border
   around the window (Windows, Unix), ability to resize the window (Mac
-  OS X), or grow box in the bottom right corner (older Mac OS X)}
+  OS), or grow box in the bottom right corner (older Mac OS)}
 
  @item{@racket['no-caption] --- omits the title bar for the frame
- (Windows, Mac OS X, Unix)}
+ (Windows, Mac OS, Unix)}
 
  @item{@racket['no-system-menu] --- omits the system menu
  (Windows)}
 
  @item{@racket['toolbar-button] --- includes a toolbar button on the
- frame's title bar (Mac OS X 10.6 and earlier); a click on the toolbar button triggers
+ frame's title bar (Mac OS 10.6 and earlier); a click on the toolbar button triggers
  a call to @method[frame% on-toolbar-button-click]}
 
  @item{@racket['hide-menu-bar] --- hides the menu bar and dock when
- the frame is active (Mac OS X) or asks the window manager to make
+ the frame is active (Mac OS) or asks the window manager to make
  the frame fullscreen (Unix)}
 
  @item{@racket['float] --- causes the frame to stay in front of all
- other non-floating windows (Windows, Mac OS X, Unix); on Mac OS X, a floating frame
+ other non-floating windows (Windows, Mac OS, Unix); on Mac OS, a floating frame
  shares the focus with an active non-floating frame; when this style
  is combined with @racket['no-caption], then showing the frame does
  not cause the keyboard focus to shift to the window, and on Unix,
  clicking the frame does not move the focus; on Windows, a floating
  frame has no taskbar button}
 
- @item{@racket['metal] --- ignored (formerly supported for Mac OS X)}
+ @item{@racket['metal] --- ignored (formerly supported for Mac OS)}
 
  @item{@racket['fullscreen-button] --- includes a button on the
- frame's title bar to put the frame in fullscreen mode (Mac OS X 10.7 and later)}
+ frame's title bar to put the frame in fullscreen mode (Mac OS 10.7 and later)}
 
  @item{@racket['fullscreen-aux] --- allows the frame to accompany
- another that is in fullscreen mode (Mac OS X 10.7 and later)}
+ another that is in fullscreen mode (Mac OS 10.7 and later)}
 
 ]
 
@@ -129,13 +129,13 @@ Puts the frame in fullscreen mode or restores the frame to
 @Unmonitored[@elem{A frame's mode} @elem{the user} @elem{a
 frame has been put in fullscreen mode} @elem{@method[frame% is-fullscreened?]}]
 
-On Mac OS X, the @racket[frame%] must be created with the style
- @racket['fullscreen-button] for fullscreen mode to work, and Mac OS X
+On Mac OS, the @racket[frame%] must be created with the style
+ @racket['fullscreen-button] for fullscreen mode to work, and Mac OS
  10.7 or later is required.
 
 @history[#:added "1.9"
          #:changed "1.18" @elem{Changed @method[frame% fullscreen] with @racket[#t]
-                                to not imply @method[window<%> show] on Windows and Mac OS X.}]}
+                                to not imply @method[window<%> show] on Windows and Mac OS.}]}
 
 @defmethod[(get-menu-bar)
            (or/c (is-a?/c menu-bar%) #f)]{
@@ -184,7 +184,7 @@ otherwise.
 @defmethod[(is-maximized?)
            boolean?]{
 
-On Windows and Mac OS X, returns @racket[#t] if the frame is
+On Windows and Mac OS, returns @racket[#t] if the frame is
 maximized, @racket[#f] otherwise. On Unix, the result is always
 @racket[#f].
 
@@ -194,7 +194,7 @@ maximized, @racket[#f] otherwise. On Unix, the result is always
            void?]{
 @methspec{
 
-Maximizes or restores the frame on Windows and Mac OS X; the
+Maximizes or restores the frame on Windows and Mac OS; the
  frame's show state is not affected. On Windows, an iconized frame
  cannot be maximized or restored.
 
@@ -216,7 +216,7 @@ If @racket[maximize?] is @racket[#f], the window is restored, otherwise
               void?])]{
 
 Gets or sets the frame's modification state as reflected to the user.
- On Mac OS X, the modification state is reflected as a dot in the
+ On Mac OS, the modification state is reflected as a dot in the
  frame's close button. On Windows and Unix, the modification state is
  reflected by an asterisk at the end of the frame's displayed title.
 
@@ -261,7 +261,7 @@ Returns the result of
 @defmethod[(on-toolbar-button-click)
            void?]{
 
-On Mac OS X, called when the user clicks the toolbar button on a
+On Mac OS, called when the user clicks the toolbar button on a
  frame created with the @indexed-racket['toolbar-button] style.
 
 }

@@ -181,12 +181,12 @@ The modifier identifiers are:
 
  @item{@litchar{c:} --- All platforms: Control}
 
- @item{@litchar{a:} --- Mac OS X: Option}
+ @item{@litchar{a:} --- Mac OS: Option}
 
- @item{@litchar{m:} --- Windows: Alt; Unix: Meta; Mac OS X: Command, when
+ @item{@litchar{m:} --- Windows: Alt; Unix: Meta; Mac OS: Command, when
  @racket[map-command-as-meta-key] produces @racket[#t]}
 
- @item{@litchar{d:} --- Mac OS X: Command}
+ @item{@litchar{d:} --- Mac OS: Command}
 
  @item{@litchar{l:} --- All platforms: Caps Lock}
 
@@ -295,10 +295,10 @@ For a special keyword, the capitalization does not matter. However,
  single-letter ASCII keynames are treated specially: @litchar{A} and
  @litchar{s:a} are both treated as @litchar{s:A}.  However, when
  @litchar{c:} is included on Windows without @litchar{m:}, or when
- @litchar{d:} is included on Mac OS X, then ASCII letters are not
+ @litchar{d:} is included on Mac OS, then ASCII letters are not
  upcased with @litchar{s:}, since the upcasing behavior of the Shift key
  is cancelled by Control without Alt (on Windows) or by Command
- (on Mac OS X).
+ (on Mac OS).
 
 A state can match multiple state strings mapped in a keymap (or keymap
  chain); when a state matches multiple state strings, a mapping is

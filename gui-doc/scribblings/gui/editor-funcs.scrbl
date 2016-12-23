@@ -179,7 +179,7 @@ Gets the snip class list instance for the current eventspace.
            [(map-command-as-meta-key)
             boolean?])]{
 Determines the interpretation of @litchar{m:} for a @racket[keymap%]
-mapping on Mac OS X. See also
+mapping on Mac OS. See also
 @xmethod[keymap% map-function].
 
 
@@ -187,8 +187,7 @@ First case:
 
 
 If @racket[on?] is @racket[#t], @litchar{m:} corresponds to the Command key. If
-@racket[on?] is @racket[#f], then @litchar{m:} corresponds to no key on Mac OS
-X.
+@racket[on?] is @racket[#f], then @litchar{m:} corresponds to no key on Mac OS.
 
 
 

@@ -479,7 +479,7 @@ Pastes into the @techlink{position} @racket[start].
 @methspec{
 
 Called to paste the current contents of the X11 selection on Unix (or the
- clipboard on Windows or Mac OS X) into the editor.  This method is
+ clipboard on Windows or Mac OS) into the editor.  This method is
  provided so that it can be overridden by subclasses.  Do not call
  this method directly; instead, call @method[text% paste-x-selection].
 

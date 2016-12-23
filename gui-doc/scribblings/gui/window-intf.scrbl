@@ -37,7 +37,7 @@ All @racket[window<%>] classes accept the following named instantiation
 @index["global coordinates"]{Converts} local window coordinates to
 screen coordinates.
 
-On Mac OS X, the screen coordinates start with @math{(0, 0)} at the
+On Mac OS, the screen coordinates start with @math{(0, 0)} at the
 upper left of the menu bar. In contrast, @xmethod[top-level-window<%>
 move] considers @math{(0, 0)} to be below the menu bar. See also
 @racket[get-display-left-top-inset].
@@ -93,7 +93,7 @@ on the platform:
 
  @item{Windows: @tt{HWND}}
 
- @item{Mac OS X: @tt{NSView}}
+ @item{Mac OS: @tt{NSView}}
 
  @item{Unix: @tt{GtkWidget}}
 
@@ -139,7 +139,7 @@ platform:
 
  @item{Windows: @tt{HWND}}
 
- @item{Mac OS X: @tt{NSWindow} for a @racket[top-level-window<%>] object,
+ @item{Mac OS: @tt{NSWindow} for a @racket[top-level-window<%>] object,
        @tt{NSView} for other windows}
 
  @item{Unix: @tt{GtkWidget}}
@@ -312,7 +312,7 @@ Indicates whether the window is currently shown or not. The result is
  protocol.) Drag-and-drop must first be enabled for the window with
  @method[window<%> accept-drop-files].
 
-On Mac OS X, when the application is running and user
+On Mac OS, when the application is running and user
  double-clicks an application-handled file or drags a file onto the
  application's icon, the main thread's application file handler is
  called (see

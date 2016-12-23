@@ -125,7 +125,7 @@ Called when a window is @defterm{activated} or
  @defterm{deactivated}. A top-level window is activated when the
  keyboard focus moves from outside the window to the window or one of
  its children. It is deactivated when the focus moves back out of the
- window. On Mac OS X, a child of a floating frames can have the
+ window. On Mac OS, a child of a floating frames can have the
  focus instead of a child of the active non-floating frame; in other
  words, floating frames act as an extension of the active non-frame
  for keyboard focus.
@@ -156,7 +156,7 @@ Called by the default application quit handler (as determined by the
  @racket[application-quit-handler] parameter) when the operating
  system requests that the application shut down (e.g., when the
  @onscreen{Quit} menu item is selected in the main application menu
- on Mac OS X). In that case, this method is called for the most
+ on Mac OS). In that case, this method is called for the most
  recently active top-level window in the initial eventspace, but only
  if the window's @method[top-level-window<%> can-exit?]  method first
  returns true.
@@ -249,7 +249,7 @@ If the window that currently owns the focus specifically handles the
  @item{@racket[text-field%], @racket['single] style --- arrow key
  events and alphanumeric key events when the Meta (Unix) or Alt
  (Windows) key is not pressed (and all alphanumeric events on
- Mac OS X)}
+ Mac OS)}
 
  @item{@racket[text-field%], @racket['multiple] style --- all
  keyboard events, except alphanumeric key events when the Meta (Unix) or
@@ -348,7 +348,7 @@ The icon is used in a platform-specific way:
        top-left) and in the task bar, and the large icon is used for
        the Alt-Tab task switcher.}
 
- @item{Mac OS X --- both icons are ignored.}
+ @item{Mac OS --- both icons are ignored.}
 
  @item{Unix --- many window managers use the small icon in the same way
        as Windows, and others use the small icon when iconifying the

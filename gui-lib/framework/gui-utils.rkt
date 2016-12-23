@@ -383,7 +383,7 @@
     (cancel-label (string-constant cancel))
     (confirm-style '(border))))
   @{Adds an Ok and a cancel button to a panel, changing the order
-    to suit the platform. Under Mac OS X and unix, the confirmation action
+    to suit the platform. Under Mac OS and unix, the confirmation action
     is on the right (or bottom) and under Windows, the canceling action is on
     the right (or bottom).
     The buttons are also sized to be the same width.

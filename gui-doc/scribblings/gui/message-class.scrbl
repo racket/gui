@@ -29,7 +29,7 @@ Creates a string or bitmap message initially showing @racket[label].
  @bitmaplabeluse[label] An @indexed-racket['app],
  @indexed-racket['caution], or @indexed-racket['stop] symbol for
  @racket[label] indicates an icon; @racket['app] is the application
- icon (Windows and Mac OS X) or a generic ``info'' icon (X),
+ icon (Windows and Mac OS) or a generic ``info'' icon (X),
  @racket['caution] is a caution-sign icon, and @racket['stop] is a
  stop-sign icon.
 

@@ -1006,7 +1006,7 @@ sequence.
 
 @section[#:tag "display-resolution"]{Screen Resolution and Text Scaling}
 
-On Mac OS X, screen sizes are described to users in terms of drawing
+On Mac OS, screen sizes are described to users in terms of drawing
 units. A Retina display provides two pixels per drawing unit, while
 drawing units are used consistently for window sizes, child window
 positions, and canvas drawing. A ``point'' for font sizing is

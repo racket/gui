@@ -2064,7 +2064,7 @@ The filename and format used to save the file can be retrieved with
 See also @method[editor<%> on-save-file], @method[editor<%>
  after-save-file], and @method[editor<%> can-save-file?].
 
-On Mac OS X, the file's type signature is set to @racket["TEXT"]
+On Mac OS, the file's type signature is set to @racket["TEXT"]
  for a text-format file or @racket["WXME"] for a standard-format
  (binary) file.
 

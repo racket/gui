@@ -56,7 +56,7 @@ See @racket[begin-busy-cursor].
                     (lambda (s) (and (bytes? s)
                                 (= 4 (bytes-length s)))))])]{
 
-Gets or sets the creator and type of a file in Mac OS X.
+Gets or sets the creator and type of a file in Mac OS.
 
 The get operation always returns @racket[#"????"] and @racket[#"????"] for
  Unix or Windows. The set operation has no effect on Unix or
@@ -105,7 +105,7 @@ Returns an immutable list specifying the default prefix for menu
 shortcuts. See also
 @xmethod[selectable-menu-item<%> get-shortcut-prefix].
 
-On Windows, the default is @racket['(ctl)]. On Mac OS X, the
+On Windows, the default is @racket['(ctl)]. On Mac OS, the
 default is @racket['(cmd)]. On Unix, the default is normally
 @racket['(ctl)], but the default can be changed through the
 @Resource{defaultMenuPrefix} low-level preference (see
@@ -197,7 +197,7 @@ follows:
 
  @item{@racket['win32] (Windows)}
 
- @item{@racket['cocoa] (Mac OS X)}
+ @item{@racket['cocoa] (Mac OS)}
 
  @item{@racket['gtk2] --- GTK+ version 2}
 
@@ -232,7 +232,7 @@ break is sent (via @racket[break-thread]) to the created eventspace's
                                            (listof (or/c 'left 'middle 'right
                                                          'shift 'control 'alt 'meta 'caps)))]{
 
-@margin-note{On Mac OS X 10.5 and earlier, mouse-button information is
+@margin-note{On Mac OS 10.5 and earlier, mouse-button information is
 not available, so the second result includes only symbols for modifier
 keys.}
 
@@ -303,7 +303,7 @@ environment of the result namespace.}
 Creates a bitmap that draws in a way that is the same as drawing to a
 canvas in its default configuration.
 
-In particular, on Mac OS X when the main monitor is in Retina display
+In particular, on Mac OS when the main monitor is in Retina display
 mode, a drawing unit corresponds to two pixels, and the bitmap
 internally contains four times as many pixels as requested by
 @racket[width] and @racket[height]. On Windows, the backing scale
@@ -325,7 +325,7 @@ Plays a sound file. If @racket[async?] is false, the function does not
 On Windows, MCI is used to play sounds, so file formats such as
  @filepath{.wav} and @filepath{.mp3} should be supported.
 
-On Mac OS X, Quicktime is used to play sounds; most sound
+On Mac OS, Quicktime is used to play sounds; most sound
  formats (@filepath{.wav}, @filepath{.aiff}, @filepath{.mp3}) are supported in recent versions of
  Quicktime. To play @filepath{.wav} files, Quicktime 3.0 (compatible
  with OS 7.5 and up) is required.
@@ -426,7 +426,7 @@ Equivalent to @racket[(integer-in 0 1000)].}
 Returns @racket[#t] on Windows---indicating that a dialog with
 @onscreen{OK} and @onscreen{Cancel} buttons should place the
 @onscreen{OK} button on to left of the @onscreen{Cancel} button---and
-returns @racket[#f] on Mac OS X and Unix.}
+returns @racket[#f] on Mac OS and Unix.}
 
 
 @defthing[the-clipboard (is-a?/c clipboard<%>)]{

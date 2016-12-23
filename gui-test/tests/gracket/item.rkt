@@ -2214,7 +2214,7 @@
 
   (make-object button% "Toggle" f (lambda (b e)
 				    (send f on-toolbar-button-click)))
-  (make-object message% "Mac OS X: toolbar button also toggles" f)
+  (make-object message% "Mac OS: toolbar button also toggles" f)
   (send f show #t))
 
 ;----------------------------------------------------------------------

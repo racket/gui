@@ -55,11 +55,11 @@ Returns a list of symbols that indicates the keyboard prefix used for the menu
 
 @itemize[
 @item{@racket['alt] --- Meta (Windows and X only)}
-@item{@racket['cmd] --- Command (Mac OS X only)}
+@item{@racket['cmd] --- Command (Mac OS only)}
 @item{@racket['meta] --- Meta (Unix only)}
 @item{@racket['ctl] --- Control}
 @item{@racket['shift] --- Shift}
-@item{@racket['option] --- Option (Mac OS X only)}
+@item{@racket['option] --- Option (Mac OS only)}
 ]
 
 On Unix, at most one of @racket['alt] and @racket['meta] can be

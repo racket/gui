@@ -25,7 +25,7 @@ Adds a new data format name to the list supported by the clipboard
  client.
 
 The @racket[format] string is typically four capital letters. (On
- Mac OS X, only four characters for @racket[format] are ever used.)
+ Mac OS, only four characters for @racket[format] are ever used.)
  For example, @racket["TEXT"] is the name of the UTF-8-encoded string
  format. New format names can be used to communicate application- and
  platform-specific data formats.

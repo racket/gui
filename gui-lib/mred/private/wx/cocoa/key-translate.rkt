@@ -400,9 +400,9 @@
 (define-unicode-key kOptionUnicode     #x2325) ;/* Unicode OPTION KEY*/
 (define-unicode-key kCommandUnicode    #x2318) ;/* Unicode PLACE OF INTEREST SIGN*/
 (define-unicode-key kPencilUnicode     #x270E) ;/* Unicode LOWER RIGHT PENCIL; 
-;                                                         actually pointed left until Mac OS X 10.3*/
+;                                                         actually pointed left until Mac OS 10.3*/
 (define-unicode-key kPencilLeftUnicode #xF802) ;/* Unicode LOWER LEFT PENCIL; 
-;                                                         available in Mac OS X 10.3 and later*/
+;                                                         available in Mac OS 10.3 and later*/
 (define-unicode-key kCheckUnicode      #x2713) ;/* Unicode CHECK MARK*/
 (define-unicode-key kDiamondUnicode    #x25C6) ;/* Unicode BLACK DIAMOND*/
 (define-unicode-key kBulletUnicode     #x2022) ;/* Unicode BULLET*/

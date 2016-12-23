@@ -107,7 +107,7 @@ Returns the canvas's drawing-area dimensions in OpenGL units for a
 
 The result is the same as @method[canvas<%> get-scaled-client-size]
 in a canvas without the @racket['gl] style or on Windows and Unix. On
-Mac OS X, the result can be the same as @method[window<%>
+Mac OS, the result can be the same as @method[window<%>
 get-client-size] if the @racket[gl-config%] specification provided on
 creation does not specify high-resolution mode.
 

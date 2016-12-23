@@ -14,7 +14,7 @@ On Unix, a second @racket[clipboard<%>] object,
  @racket[the-x-selection-clipboard], and the system-wide X11 clipboard
  is not used.
 
-On Windows and Mac OS X, @racket[the-x-selection-clipboard] is
+On Windows and Mac OS, @racket[the-x-selection-clipboard] is
  always the same as @racket[the-clipboard].
 
 Data can be entered into a clipboard in one of two ways: by setting
@@ -31,7 +31,7 @@ Generic data is always retrieved from the clipboard as a byte
 @defmethod[(get-clipboard-bitmap [time exact-integer?])
            (or/c (is-a?/c bitmap%) #f)]{
 
-Gets the current clipboard contents as a bitmap (Windows, Mac OS X),
+Gets the current clipboard contents as a bitmap (Windows, Mac OS),
  returning @racket[#f] if the clipboard does not contain a bitmap.
 
 See
@@ -92,7 +92,7 @@ Returns @racket[#t] if @racket[owner] currently owns the clipboard,
                                  [time exact-integer?])
            void?]{
 
-Changes the current clipboard contents to @racket[new-bitmap] (Windows, Mac OS X)
+Changes the current clipboard contents to @racket[new-bitmap] (Windows, Mac OS)
  and releases the current clipboard client (if any).
 
 See @|timediscuss| for

@@ -144,7 +144,7 @@ Returns the canvas's drawing-area dimensions in unscaled pixels---that
 is, without scaling (see @secref["display-resolution"]) that is
 implicitly applied to the canvas size and content.
 
-For example, when a canvas on Mac OS X resides on a Retina display, it
+For example, when a canvas on Mac OS resides on a Retina display, it
 has a backing scale of @racket[2], and so the results from
 @method[canvas<%> get-scaled-client-size] will be twice as large as results from
 @method[window<%> get-client-size]. If the same canvas's frame is dragged to a
@@ -155,7 +155,7 @@ a canvas's backing scale can change depends on the platform.
 
 The size reported by @method[canvas<%> get-scaled-client-size] may match
 a viewport size for OpenGL drawing in @racket[canvas%] instance with
-the @racket['gl] style. On Mac OS X, however, the viewport will match
+the @racket['gl] style. On Mac OS, however, the viewport will match
 the scaled size unless the canvas is created with a
 @racket[gl-config%] specification that is adjusted to high-resolution
 mode via @method[gl-config% set-hires-mode]. See also
@@ -300,7 +300,7 @@ If the canvas was created with the @indexed-racket['transparent] style,
 @defmethod[(set-resize-corner [on? any/c])
            void?]{
 
-On Mac OS X, enables or disables space for a resize tab at the
+On Mac OS, enables or disables space for a resize tab at the
  canvas's lower-right corner when only one scrollbar is visible. This
  method has no effect on Windows or Unix, and it has no effect when
  both or no scrollbars are visible. The resize corner is disabled by

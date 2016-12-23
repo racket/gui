@@ -6,14 +6,14 @@
 
 @defproc[(current-eventspace-has-standard-menus?)
          boolean?]{
-Returns @racket[#t] for Mac OS X when the current eventspace is the
+Returns @racket[#t] for Mac OS when the current eventspace is the
  initial one, since that eventspace is the target for the standard
  application menus. For any other system or eventspace, the result is
  @racket[#f].
 
 This procedure is intended for use in deciding whether to include a
  @onscreen{Quit}, @onscreen{About}, and @onscreen{Preferences} menu
- item in a frame's menu. On Mac OS X, the application
+ item in a frame's menu. On Mac OS, the application
  @onscreen{Quit} menu triggers a call to a frame's
 @method[top-level-window<%> on-exit] method, the @onscreen{About} menu item is controlled by
  @racket[application-about-handler], and the
@@ -24,7 +24,7 @@ This procedure is intended for use in deciding whether to include a
 
 @defproc[(current-eventspace-has-menu-root?)
          boolean?]{
-Returns @racket[#t] for Mac OS X when the current eventspace is the
+Returns @racket[#t] for Mac OS when the current eventspace is the
  initial one, since that eventspace can supply a menu bar to be active
  when no frame is visible. For any other system or eventspace, the
  result is @racket[#f].
@@ -41,8 +41,7 @@ This procedure is intended for use in deciding whether to create a
 
 When the current eventspace is the initial eventspace, this
 procedure retrieves or installs a thunk that is called when the
-user selects the application @onscreen{About} menu item on Mac OS
-X.  The thunk is always called in the initial eventspace's
+user selects the application @onscreen{About} menu item on Mac OS.  The thunk is always called in the initial eventspace's
 handler thread (as a callback).
 
 The default handler displays a generic Racket dialog.
@@ -59,7 +58,7 @@ or has no effect (when called with a handler).
            [(application-file-handler [handler-proc (path? . -> . any)])
             void?])]{
 When the current eventspace is the initial eventspace, this procedure
- retrieves or installs a procedure that is called on Mac OS X
+ retrieves or installs a procedure that is called on Mac OS
  and Windows when the application is running and user double-clicks an
  application-handled file or drags a file onto the application's
  icon. The procedure is always called in the initial eventspace's
@@ -77,7 +76,7 @@ On Windows, when the application is @italic{not} running and user double-clicks 
  the filename is provided as a command-line argument to the
  application.
 
-On Mac OS X, if an application is started @emph{without} files, then
+On Mac OS, if an application is started @emph{without} files, then
  the @racket[application-start-empty-handler] procedure is called.
 
 If the current eventspace is not the initial eventspace, this
@@ -92,7 +91,7 @@ or has no effect (when called with a handler).
             void?])]{
 When the current eventspace is the initial eventspace, this procedure
  retrieves or installs a thunk that is called when the user selects
- the application @onscreen{Preferences} menu item on Mac OS X.  The
+ the application @onscreen{Preferences} menu item on Mac OS.  The
  thunk is always called in the initial eventspace's handler thread (as
  a callback). If the handler is set to @racket[#f], the
  @onscreen{Preferences} item is disabled.
@@ -111,7 +110,7 @@ or has no effect (when called with a handler).
 When the current eventspace is the initial eventspace, this procedure
  retrieves or installs a thunk that is called when the user requests
  that the application quit (e.g., through the @onscreen{Quit} menu
- item on Mac OS X, or when shutting down the machine in Windows). The
+ item on Mac OS, or when shutting down the machine in Windows). The
  thunk is always called in the initial eventspace's handler thread (as
  a callback). If the result of the thunk is @racket[#f], then the
  operating system is explicitly notified that the application does not
@@ -139,7 +138,7 @@ or has no effect (when called with a handler).
             void?])]{
 When the current eventspace is the initial eventspace, this procedure
  retrieves or installs a thunk that is called when the user starts
- the application on Mac OS X without supplying any initial files (e.g.,
+ the application on Mac OS without supplying any initial files (e.g.,
  by double-clicking the application icon instead of double-clicking
  files that are handled by the application).
 

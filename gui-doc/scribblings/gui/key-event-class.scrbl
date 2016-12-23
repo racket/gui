@@ -46,7 +46,7 @@ get-key-release-code], is initialized to @racket['press].
 
 @defmethod[(get-alt-down)
            boolean?]{
-Returns @racket[#t] if the Option (Mac OS X) key was down for
+Returns @racket[#t] if the Option (Mac OS) key was down for
  the event. When the Alt key is pressed in Windows, it is reported as
  a Meta press (see
 @method[key-event% get-meta-down]).
@@ -63,7 +63,7 @@ Returns @racket[#t] if the Caps Lock key was on for the event.
            boolean?]{
 Returns @racket[#t] if the Control key was down for the event.
 
-On Mac OS X, if a Control-key press is combined with a mouse button
+On Mac OS, if a Control-key press is combined with a mouse button
  click, the event is reported as a right-button click and
 @method[key-event% get-control-down] for the event reports @racket[#f].
 
@@ -177,7 +177,7 @@ The special key symbols attempt to capture useful keys that have no
 
  @item{@racket[#\return] --- the Enter or Return key (on all
       platforms), but not necessarily the Enter key near the numpad
-      (which is reported as @racket['numpad-enter] Unix and Mac OS X)}
+      (which is reported as @racket['numpad-enter] Unix and Mac OS)}
 
  @item{@racket[#\tab] --- the tab key}
 
@@ -198,7 +198,7 @@ A @racket['wheel-up], @racket['wheel-down], @racket['wheel-left], or
 
 On Windows, when the Control key is pressed without Alt, the key
  code for ASCII characters is downcased, roughly cancelling the effect
- of the Shift key. On Mac OS X, the key code is computed without
+ of the Shift key. On Mac OS, the key code is computed without
  Caps Lock effects when the Control or Command key is pressed; in the
  case of Control, Caps Lock is used normally if special handling is
  disabled for the Control key via @racket[special-control-key]. On
@@ -225,8 +225,7 @@ Gets the virtual key code for a key-release event; the result is
 @defmethod[(get-meta-down)
            boolean?]{
 
-Returns @racket[#t] if the Meta (Unix), Alt (Windows), or Command (Mac OS
- X) key was down for the event.
+Returns @racket[#t] if the Meta (Unix), Alt (Windows), or Command (Mac OS) key was down for the event.
 
 }
 
@@ -285,8 +284,7 @@ Since keyboard mappings vary, it is sometimes useful in key mappings
 
 The @method[key-event% get-other-altgr-key-code] method provides the
 same information with respect to the AltGr key (i.e., Alt combined
-with Control) on Windows and Unix, or the Option key on Mac OS
-X. The @method[key-event% get-other-shift-altgr-key-code] method
+with Control) on Windows and Unix, or the Option key on Mac OS. The @method[key-event% get-other-shift-altgr-key-code] method
 reports a mapping for in tha case that both Shift and AltGr/Option
 were different from the actual event.
 
@@ -303,7 +301,7 @@ keys would not normally produce further alternatives.)
 
 Alternate mappings are not available for all events. On Windows,
  alternate mappings are reported when they produce ASCII letters,
- ASCII digits, and ASCII symbols. On Mac OS X and Unix, alternate
+ ASCII digits, and ASCII symbols. On Mac OS and Unix, alternate
  mappings are usually available.
 
 }
@@ -334,7 +332,7 @@ Returns the y-position of the mouse at the time of the event in the
 @defmethod[(set-alt-down [down? any/c])
            void?]{
 
-Sets whether the Option (Mac OS X) key was down for the event.  When
+Sets whether the Option (Mac OS) key was down for the event.  When
  the Alt key is pressed in Windows, it is reported as a Meta press
  (see @method[key-event% set-meta-down]).
 
@@ -352,7 +350,7 @@ Sets whether the Caps Lock key was on for the event.
 
 Sets whether the Control key was down for the event.
 
-On Mac OS X, if a control-key press is combined with a mouse button
+On Mac OS, if a control-key press is combined with a mouse button
  click, the event is reported as a right-button click and
  @method[key-event% get-control-down] for the event reports
  @racket[#f].
@@ -388,7 +386,7 @@ Sets the virtual key code for a release event, either a character or
 @defmethod[(set-meta-down [down? any/c])
            void?]{
 
-Sets whether the Meta (Unix), Alt (Windows), or Command (Mac OS X) key
+Sets whether the Meta (Unix), Alt (Windows), or Command (Mac OS) key
  was down for the event.
 
 }

@@ -41,8 +41,8 @@ Creates a mouse event for a particular type of event. The event types
 @item{@racket['left-up] --- left mouse button released}
 @item{@racket['middle-down] --- middle mouse button pressed}
 @item{@racket['middle-up] --- middle mouse button released}
-@item{@racket['right-down] --- right mouse button pressed (Mac OS X: click with control key pressed)}
-@item{@racket['right-up] --- right mouse button released (Mac OS X: release with control key pressed)}
+@item{@racket['right-down] --- right mouse button pressed (Mac OS: click with control key pressed)}
+@item{@racket['right-up] --- right mouse button released (Mac OS: release with control key pressed)}
 @item{@racket['motion] --- mouse moved, with or without button(s) pressed}
 ]
 
@@ -121,7 +121,7 @@ When the mouse button is up, an enter/leave event notifies a window
 @defmethod[(get-alt-down)
            boolean?]{
 
-Returns @racket[#t] if the Option (Mac OS X) key was down for the
+Returns @racket[#t] if the Option (Mac OS) key was down for the
  event. When the Alt key is pressed in Windows, it is reported as a
  Meta press (see @method[mouse-event% get-meta-down]).
 
@@ -139,7 +139,7 @@ Returns @racket[#t] if the Caps Lock key was on for the event.
 
 Returns @racket[#t] if the Control key was down for the event.
 
-On Mac OS X, if a control-key press is combined with a mouse button
+On Mac OS, if a control-key press is combined with a mouse button
  click, the event is reported as a right-button click and
  @method[mouse-event% get-control-down] for the event reports
  @racket[#f].
@@ -166,8 +166,7 @@ Returns @racket[#t] if the left mouse button was down (but not pressed) during t
 @defmethod[(get-meta-down)
            boolean?]{
 
-Returns @racket[#t] if the Meta (Unix), Alt (Windows), or Command (Mac OS
- X) key was down for the event.
+Returns @racket[#t] if the Meta (Unix), Alt (Windows), or Command (Mac OS) key was down for the event.
 
 }
 
@@ -175,7 +174,7 @@ Returns @racket[#t] if the Meta (Unix), Alt (Windows), or Command (Mac OS
            boolean?]{
 
 Returns @racket[#t] if the middle mouse button was down (but not
- pressed) for the event.  On Mac OS X, a middle-button click is
+ pressed) for the event.  On Mac OS, a middle-button click is
  impossible.
 
 }
@@ -205,7 +204,7 @@ Returns @racket[#t] if the Mod5 (Unix) key was down for the event.
            boolean?]{
 
 Returns @racket[#t] if the right mouse button was down (but not
- pressed) for the event. On Mac OS X, a control-click combination
+ pressed) for the event. On Mac OS, a control-click combination
  is treated as a right-button click.
 
 }
@@ -255,7 +254,7 @@ Returns @racket[#t] if this was a moving event (whether a button is
 @defmethod[(set-alt-down [down? any/c])
            void?]{
 
-Sets whether the Option (Mac OS X) key was down for the event.  When
+Sets whether the Option (Mac OS) key was down for the event.  When
  the Alt key is pressed in Windows, it is reported as a Meta press
  (see @method[mouse-event% set-meta-down]).
 
@@ -273,7 +272,7 @@ Sets whether the Caps Lock key was on for the event.
 
 Sets whether the Control key was down for the event.
 
-On Mac OS X, if a control-key press is combined with a mouse button
+On Mac OS, if a control-key press is combined with a mouse button
  click, the event is reported as a right-button click and
  @method[mouse-event% get-control-down] for the event reports
  @racket[#f].
@@ -301,7 +300,7 @@ the event.
 @defmethod[(set-meta-down [down? any/c])
            void?]{
 
-Sets whether the Meta (Unix), Alt (Windows), or Command (Mac OS X) key
+Sets whether the Meta (Unix), Alt (Windows), or Command (Mac OS) key
  was down for the event.
 
 }
@@ -310,7 +309,7 @@ Sets whether the Meta (Unix), Alt (Windows), or Command (Mac OS X) key
            void?]{
 
 Sets whether the middle mouse button was down (but not pressed) for
- the event.  On Mac OS X, a middle-button click is impossible.
+ the event.  On Mac OS, a middle-button click is impossible.
 
 }
 
@@ -339,7 +338,7 @@ Sets whether the Mod5 (Unix) key was down for the event.
            void?]{
 
 Sets whether the right mouse button was down (but not pressed) for the
- event. On Mac OS X, a control-click combination by the user is
+ event. On Mac OS, a control-click combination by the user is
  treated as a right-button click.
 
 }

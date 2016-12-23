@@ -44,7 +44,7 @@ If @racket[parent] is @racket[#f], then the eventspace for the new
 If the @racket[width] or @racket[height] argument is not @racket[#f],
  it specifies an initial size for the dialog (in pixels) assuming that
  it is larger than the minimum size, otherwise the minimum size is
- used. On Windows and Mac OS X (and with some Unix window managers)
+ used. On Windows and Mac OS (and with some Unix window managers)
  dialogs are not resizeable.
 
 If the @racket[x] or @racket[y] argument is not @racket[#f], it
@@ -61,14 +61,14 @@ The @racket[style] flags adjust the appearance of the dialog on some
  (Windows)}
 
  @item{@racket['resize-border] --- adds a resizeable border around the
-  window (Windows), ability to resize the window (Mac OS X), or grow
-  box in the bottom right corner (older Mac OS X)}
+  window (Windows), ability to resize the window (Mac OS), or grow
+  box in the bottom right corner (older Mac OS)}
 
  @item{@racket['no-sheet] --- uses a movable window for the dialog,
- even if a parent window is provided (Mac OS X)}
+ even if a parent window is provided (Mac OS)}
 
  @item{@racket['close-button] --- include a close button in the 
- dialog's title bar, which would not normally be included (Mac OS X)}
+ dialog's title bar, which would not normally be included (Mac OS)}
 
 ]
 

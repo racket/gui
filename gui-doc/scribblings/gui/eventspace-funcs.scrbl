@@ -65,7 +65,7 @@ the eventspace @racket[e] itself.
 @defproc[(check-for-break)
          boolean?]{
 Inspects the event queue of the current eventspace, searching for a
- Shift-Ctl-C (Unix, Windows) or Cmd-. (Mac OS X) key combination. Returns
+ Shift-Ctl-C (Unix, Windows) or Cmd-. (Mac OS) key combination. Returns
  @racket[#t] if such an event was found (and the event is dequeued) or
  @racket[#f] otherwise.
 
@@ -101,7 +101,7 @@ Returns the top level window in the current eventspace that is visible
             boolean?])]{
 
 For backward compatibility, only. This function was intended to enable
-or disable special Control key handling (Mac OS X), but it currently
+or disable special Control key handling (Mac OS), but it currently
 has no effect.
 
 }
@@ -111,7 +111,7 @@ has no effect.
            [(special-option-key)
             boolean?])]{
 
-Enables or disables special Option key handling (Mac OS X). When
+Enables or disables special Option key handling (Mac OS). When
  Option is treated as a special key, the @method[key-event%
  get-key-code] and @method[key-event% get-other-altgr-key-code]
  results are effectively swapped when the Option key is pressed. By

@@ -106,9 +106,9 @@ If the label contains @litchar{&} and the window is a control, the
  selected (via @method[frame% on-menu-char]). When a menu has the
  focus, the mnemonic characters are used for navigation without Alt. A
  @litchar{&&} in the label is replaced by a literal (non-navigation)
- @litchar{&}. On Mac OS X, @litchar{&}s in the label are parsed in
+ @litchar{&}. On Mac OS, @litchar{&}s in the label are parsed in
  the same way as for Unix and Windows, but no mnemonic underline is
- displayed. On Mac OS X, a parenthesized mnemonic character is
+ displayed. On Mac OS, a parenthesized mnemonic character is
  removed (along with any surrounding space) before the label is
  displayed, since a parenthesized mnemonic is often used for non-Roman
  languages. Finally, for historical reasons, if a label contains a tab character, then the

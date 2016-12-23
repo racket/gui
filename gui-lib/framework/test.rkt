@@ -1024,7 +1024,7 @@
   @method[canvas<%> on-event] method.
   Use @racket[test:button-push] to click on a button.
   
-  Under Mac OS X, @racket['right] corresponds to holding down the command
+  Under Mac OS, @racket['right] corresponds to holding down the command
   modifier key while clicking and @racket['middle] cannot be generated.
   
   Under Windows, @racket['middle] can only be generated if the user has a

@@ -7,7 +7,7 @@
 
 This font is the default for @racket[popup-menu%] objects.
 
-On Mac OS X, this font is slightly larger than
+On Mac OS, this font is slightly larger than
  @racket[normal-control-font]. On Windows and Unix, it is the same
  size as @racket[normal-control-font].
 
@@ -28,7 +28,7 @@ This font is the default for @racket[group-box-panel%] objects, and it is
 
 On Windows, this font is the same size as
  @racket[normal-control-font], since the Windows control font is
- already relatively small. On Unix and Mac OS X, this font is slightly
+ already relatively small. On Unix and Mac OS, this font is slightly
  smaller than @racket[normal-control-font].
 
 
@@ -46,7 +46,7 @@ This font is for tiny controls, and it is smaller than
 This font is the default for @racket[list-box%] objects (but not
  list box labels, which use @racket[normal-control-font]).
 
-On Mac OS X, this font is slightly smaller than
+On Mac OS, this font is slightly smaller than
  @racket[normal-control-font], and slightly larger than
  @racket[small-control-font]. On Windows and Unix, it is the same size
  as @racket[normal-control-font].

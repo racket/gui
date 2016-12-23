@@ -45,7 +45,7 @@ Under Windows, if @racket[extension] is not @racket[#f], the returned path
 
 The @racket[style] list can contain @racket['common], a
  platform-independent version of the dialog is used instead of a
- native dialog.  On Mac OS X, if the @racket[style] list
+ native dialog.  On Mac OS, if the @racket[style] list
  contains @racket['packages], a user is allowed to select a package
  directory, which is a directory with a special suffix (e.g.,
  ``.app'') that the Finder normally displays like a file.  If the list
@@ -62,7 +62,7 @@ On Windows and Unix, @racket[filters] determines a set of filters from
  regular expressions and can only be used with a @litchar["*"] wildcard
  character.  For example, @racket["*.jp*g;*.png"].
  On Unix, a @racket["*.*"] pattern is implicitly replaced with @racket["*"].
- On Mac OS X, suffix names are extracted from all globs that match a
+ On Mac OS, suffix names are extracted from all globs that match a
  fixed suffix (e.g., two suffixes of @racket["foo"] and @racket["bar"]
  are extracted from a @racket["*.foo;*.bar;*.baz*"] pattern), and files
  that have any of these suffixes in any filter are selectable; a
@@ -133,7 +133,7 @@ On Windows, if @racket[extension] is not @racket[#f], the returned path
  is @racket[(string-append "*." extension)], then the result pathname is guaranteed
  to have an extension mapping @racket[extension].
 
-On Mac OS X 10.5 and later, if @racket[extension] is not
+On Mac OS 10.5 and later, if @racket[extension] is not
  @racket[#f] or @racket[""], the returned path will get a default extension if the
  user does not supply one.  If @racket[filters] contains as
  @racket["*.*"] pattern, then the user can supply any extension that
@@ -145,7 +145,7 @@ On Mac OS X 10.5 and later, if @racket[extension] is not
  "*." extension)], then the result pathname is guaranteed to have an
  extension mapping @racket[extension].
 
-On Mac OS X versions before 10.5, the returned path will get a
+On Mac OS versions before 10.5, the returned path will get a
  default extension only if @racket[extension] is not @racket[#f], 
  @racket[extension] is not @racket[""], and
  @racket[filters] contains only @racket[(string-append "*."
@@ -183,7 +183,7 @@ If @racket[directory] is not @racket[#f], it is used on some platforms as
 The @racket[style] argument is treated as for
 @racket[get-file], except that only @racket['common] or @racket['enter-packages] can be
 specified.  The latter
- matters only on Mac OS X, where @racket['enter-packages]
+ matters only on Mac OS, where @racket['enter-packages]
  enables the user to select package directory or a directory within a
  package. A package is a directory with a special suffix (e.g.,
  ``.app'') that the Finder normally displays like a file.
@@ -295,8 +295,7 @@ If @racket[style] does not include @racket['number-order], the order of
 
  @item{Button 1 is the normal action, and it is usually the default
  button. For example, if the dialog has an @onscreen{OK} button, it is
- this one. On Windows, this button is leftmost; on Unix and Mac OS
- X, it is rightmost. (See also
+ this one. On Windows, this button is leftmost; on Unix and Mac OS, it is rightmost. (See also
  @racket[system-position-ok-before-cancel?].) Use this button for
  dialogs that contain only one button.}
 
@@ -305,7 +304,7 @@ If @racket[style] does not include @racket['number-order], the order of
  when confirming a file replacement).}
 
  @item{Button 3 tends to be separated from the other two (on
- Mac OS X, it is left-aligned in the dialog). Use this button only
+ Mac OS, it is left-aligned in the dialog). Use this button only
  for three-button dialogs.}
 
 ]
