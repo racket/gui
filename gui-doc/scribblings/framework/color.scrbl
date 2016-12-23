@@ -376,7 +376,15 @@
 
 @defclass[color:text% (color:text-mixin text:keymap%) ()]{}
 
-@definterface[color:text-mode<%> ()]{}
+@definterface[color:text-mode<%> ()]{
+ @defmethod[(set-get-token [get-token procedure?]) void?]{
+  Sets the @racket[get-token] function used to color the contents
+  of the editor.
+
+  See @method[color:text<%> start-colorer]'s @racket[get-token] argument
+  for the contract on this method's @racket[get-token] argument.
+ }
+}
 
 @defmixin[color:text-mode-mixin (mode:surrogate-text<%>) (color:text-mode<%>)]{
   This mixin adds coloring functionality to the mode.

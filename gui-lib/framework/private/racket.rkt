@@ -475,7 +475,7 @@
              position-location get-dc)
     
     (define private-racket-container-keymap (new keymap:aug-keymap%))
-    (define/public (get-private-racket-container-keymap) private-racket-container-keymap) 
+    (define/public (get-private-racket-container-keymap) private-racket-container-keymap)
     
     (define/override (get-keymaps)
       (editor:add-after-user-keymap private-racket-container-keymap 
@@ -1353,16 +1353,6 @@
     (preferences:add-callback
      'framework:tabify
      (lambda (k v) (set! tabify-pref v)))
-    (define/private (racket-lexer-wrapper in offset mode)
-      (define-values (lexeme type paren start end backup-delta new-mode) 
-        (module-lexer/waived in offset mode))
-      (cond
-        [(and (eq? type 'symbol)
-              (string? lexeme)
-              (get-head-sexp-type-from-prefs lexeme tabify-pref))
-         (values lexeme 'keyword paren start end backup-delta new-mode)]
-        [else
-         (values lexeme type paren start end backup-delta new-mode)]))
     
     (define/override (put-file text sup directory default-name)
       ;; don't call the surrogate's super, since it sets the default extension
@@ -1371,12 +1361,41 @@
          (parameterize ([finder:default-extension "rkt"])
            (sup directory default-name))]
         [else (sup directory default-name)]))
-    
-    (super-new (get-token (lambda (in offset mode) (racket-lexer-wrapper in offset mode)))
+
+    (define/override (set-get-token get-token-)
+      (super set-get-token (wrap-get-token get-token- (λ () tabify-pref))))
+
+    (super-new (get-token (wrap-get-token module-lexer/waived (λ () tabify-pref)))
                (token-sym->style short-sym->style-name)
                (matches '((|(| |)|)
                           (|[| |]|)
                           (|{| |}|))))))
+
+(define (wrap-get-token get-token- get-tabify-pref)
+  (define wrapped-get-token
+    (cond
+      [(procedure-arity-includes? get-token- 3)
+       (λ (in offset mode)
+         (define-values (lexeme type paren start end backup-delta new-mode)
+           (get-token- in offset mode))
+         (cond
+           [(and (eq? type 'symbol)
+                 (string? lexeme)
+                 (get-head-sexp-type-from-prefs lexeme (get-tabify-pref)))
+            (values lexeme 'keyword paren start end backup-delta new-mode)]
+           [else
+            (values lexeme type paren start end backup-delta new-mode)]))]
+      [else
+       (λ (in)
+         (define-values (lexeme type paren start end) (get-token- in))
+         (cond
+           [(and (eq? type 'symbol)
+                 (string? lexeme)
+                 (get-head-sexp-type-from-prefs lexeme (get-tabify-pref)))
+            (values lexeme 'keyword paren start end)]
+           [else
+            (values lexeme type paren start end)]))]))
+  wrapped-get-token)
 
 ;; get-head-sexp-type-from-prefs : string (list ht regexp regexp regexp)
 ;;                              -> (or/c #f 'lambda 'define 'begin 'for/fold)

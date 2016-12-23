@@ -264,13 +264,13 @@ added get-regions
         (spell-checking-values-changed)))
     (define/private (spell-checking-values-changed)
       (reset-tokens)
-      (start-colorer token-sym->style get-token pairs))
+      (_start-colorer token-sym->style get-token pairs))
     (define current-dict (preferences:get 'framework:aspell-dict))
     (define/public (set-spell-current-dict d)
       (unless (equal? d current-dict)
         (set! current-dict d)
         (reset-tokens)
-        (start-colorer token-sym->style get-token pairs)))
+        (_start-colorer token-sym->style get-token pairs)))
     (define/public (get-spell-current-dict) current-dict)
     
     ;; ---------------------- Multi-threading ---------------------------
@@ -609,7 +609,7 @@ added get-regions
             (loop)))))
     
     ;; See docs
-    (define/public (start-colorer token-sym->style- get-token- pairs-)
+    (define/private (_start-colorer token-sym->style- get-token- pairs-)
       (unless force-stop?
         (set! stopped? #f)
         (reset-tokens)
@@ -630,6 +630,9 @@ added get-regions
          lexer-states)
         ;; (set! timer (current-milliseconds))
         (do-insert/delete-all)))
+
+    (define/public (start-colorer token-sym->style- get-token- pairs-)
+      (_start-colorer token-sym->style- get-token- pairs-))
     
     ;; See docs
     (define/public stop-colorer
@@ -681,7 +684,7 @@ added get-regions
                       (gt get-token)
                       (p pairs))
                   (stop-colorer (not should-color?))
-                  (start-colorer tn gt p)))
+                  (_start-colorer tn gt p)))
                (else
                 (begin-edit-sequence #f #f)
                 (finish-now)
@@ -1319,7 +1322,7 @@ added get-regions
 
 (define -text% (text-mixin text:keymap%))
 
-(define -text-mode<%> (interface ()))
+(define -text-mode<%> (interface () set-get-token))
 
 (define text-mode-mixin
   (mixin (mode:surrogate-text<%>) (-text-mode<%>)
@@ -1336,6 +1339,9 @@ added get-regions
     (define/override (on-enable-surrogate text)
       (super on-enable-surrogate text)
       (send text start-colorer token-sym->style get-token matches))
+
+    (define/public (set-get-token _get-token)
+      (set! get-token _get-token))
     
     (super-new)))
 
