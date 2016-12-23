@@ -41,7 +41,8 @@
       component of the token. If the second value returned by
       @racket[get-token] is @racket['symbol] and this value is a string
       then the value is used to differentiate between symbols and keywords
-      for the purpose of coloring and formatting, configurable from DrRacket's preference's editing menu.}
+      for the purpose of coloring and formatting, configurable from DrRacket's
+    preference's editing menu.}
     @item{A symbol describing the type of the token.  This symbol is
       transformed into a style-name via the @racket[token-sym->style] argument.
       The symbols @racket['white-space] and @racket['comment] have special
@@ -187,11 +188,14 @@
     background after the call to @racket[thaw-colorer] returns.
 
   }
-  @defmethod[(reset-region (start exact-nonnegative-integer?) (end (or/c exact-nonnegative-integer? 'end))) void?]{
+  @defmethod[(reset-region (start exact-nonnegative-integer?)
+                           (end (or/c exact-nonnegative-integer? 'end))) void?]{
     Set the region of the text that is tokenized.
 
   }
-  @defmethod[(reset-regions (regions (listof (list/c exact-nonnegative-integer? (or/c exact-nonnegative-integer? 'end))))) void?]{
+  @defmethod[(reset-regions [regions (listof (list/c exact-nonnegative-integer?
+                                                     (or/c exact-nonnegative-integer? 'end)))])
+             void?]{
 
     Sets the currently active regions to be @racket[regions].
   }
@@ -237,7 +241,8 @@
     spell checking is disabled, returns @racket[#f].
   }
   
-  @defmethod[(get-regions) (listof (list/c exact-nonnegative-integer? (or/c exact-nonnegative-integer? 'end)))]{
+  @defmethod[(get-regions)
+             (listof (list/c exact-nonnegative-integer? (or/c exact-nonnegative-integer? 'end)))]{
     This returns the list of regions that are currently being colored in the
     editor.
 
@@ -255,7 +260,8 @@
 
     Must only be called while the tokenizer is started.
   }
-  @defmethod[(backward-match [position exact-nonnegative-integer?] [cutoff exact-nonnegative-integer?])
+  @defmethod[(backward-match [position exact-nonnegative-integer?]
+                             [cutoff exact-nonnegative-integer?])
              (or/c exact-nonnegative-integer? #f)]{
 
     Skip all consecutive whitespaces and comments (using
@@ -266,7 +272,8 @@
 
     Must only be called while the tokenizer is started.
   }
-  @defmethod[(backward-containing-sexp [position exact-nonnegative-integer?] [cutoff exact-nonnegative-integer?])
+  @defmethod[(backward-containing-sexp [position exact-nonnegative-integer?]
+                                       [cutoff exact-nonnegative-integer?])
              (or/c exact-nonnegative-integer? #f)]{
 
     Return the starting position of the interior of the (non-atomic)

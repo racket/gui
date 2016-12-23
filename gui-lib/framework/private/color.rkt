@@ -209,7 +209,9 @@ added get-regions
                               (and (null? (cdr regions))
                                    (eq? 'end (list-ref region 1)))))
                (error 'reset-regions 
-                      "got a region that is not a list of two numbers (or 'end if it is the last region): ~e, all regions ~e" 
+                      (string-append
+                       "got a region that is not a list of two numbers"
+                       " (or 'end if it is the last region): ~e, all regions ~e")
                       region
                       regions))
              (unless (and (<= pos (list-ref region 0))
@@ -362,7 +364,8 @@ added get-regions
          #f]
         [else
          (define-values (_line1 _col1 pos-before) (port-next-location in))
-         (define-values (lexeme type data new-token-start new-token-end backup-delta new-lexer-mode/cont) 
+         (define-values (lexeme type data new-token-start new-token-end
+                                backup-delta new-lexer-mode/cont)
            (get-token in in-start-pos lexer-mode))
          (define-values (_line2 _col2 pos-after) (port-next-location in))
          (define new-lexer-mode (if (dont-stop? new-lexer-mode/cont)
@@ -376,10 +379,12 @@ added get-regions
            [else
             (unless (<= pos-before new-token-start pos-after)
               (error 'color:text<%>
-                     "expected the token start to be between ~s and ~s, got ~s" pos-before pos-after new-token-start))
+                     "expected the token start to be between ~s and ~s, got ~s"
+                     pos-before pos-after new-token-start))
             (unless (<= pos-before new-token-end pos-after)
               (error 'color:text<%>
-                     "expected the token end to be between ~s and ~s, got ~s" pos-before pos-after new-token-end))
+                     "expected the token end to be between ~s and ~s, got ~s"
+                     pos-before pos-after new-token-end))
             (let ((len (- new-token-end new-token-start)))
               (set-lexer-state-current-pos! ls (+ len (lexer-state-current-pos ls)))
               (set-lexer-state-current-lexer-mode! ls new-lexer-mode)
@@ -390,7 +395,9 @@ added get-regions
               ;; version.  In other words, the new greatly outweighs the tree
               ;; operations.
               ;;(insert-last! tokens (new token-tree% (length len) (data type)))
-              (insert-last-spec! (lexer-state-tokens ls) len (make-data type new-lexer-mode backup-delta))
+              (insert-last-spec! (lexer-state-tokens ls)
+                                 len
+                                 (make-data type new-lexer-mode backup-delta))
               #; (show-tree (lexer-state-tokens ls))
               (send (lexer-state-parens ls) add-token data len)
               (cond
@@ -408,7 +415,8 @@ added get-regions
                  (set-lexer-state-up-to-date?! ls #t)
                  (re-tokenize-move-to-next-ls start-time next-ok-to-stop?)]
                 [else
-                 (continue-re-tokenize start-time next-ok-to-stop? ls in in-start-pos new-lexer-mode)]))])]))
+                 (continue-re-tokenize start-time next-ok-to-stop?
+                                       ls in in-start-pos new-lexer-mode)]))])]))
 
     (define/private (add-colorings type in-start-pos new-token-start new-token-end)
       (define sp (+ in-start-pos (sub1 new-token-start)))
@@ -422,7 +430,8 @@ added get-regions
           [else #f]))
       (cond
         [do-spell-check?
-         (define misspelled-color (send (get-style-list) find-named-style misspelled-text-color-style-name))
+         (define misspelled-color
+           (send (get-style-list) find-named-style misspelled-text-color-style-name))
          (cond
            [misspelled-color
             (define spell-infos
@@ -502,12 +511,13 @@ added get-regions
            (set-lexer-state-invalid-tokens-mode! ls (and orig-data (data-lexer-mode orig-data)))
            (let ([start (+ (lexer-state-start-pos ls) orig-token-start)])
              (set-lexer-state-current-pos! ls start)
-             (set-lexer-state-current-lexer-mode! ls
-                                                  (if (= start (lexer-state-start-pos ls))
-                                                      #f
-                                                      (begin
-                                                        (send valid-tree search-max!)
-                                                        (data-lexer-mode (send valid-tree get-root-data))))))
+             (set-lexer-state-current-lexer-mode!
+              ls
+              (if (= start (lexer-state-start-pos ls))
+                  #f
+                  (begin
+                    (send valid-tree search-max!)
+                    (data-lexer-mode (send valid-tree get-root-data))))))
            (set-lexer-state-up-to-date?! ls #f)
            (update-lexer-state-observers)
            (queue-callback (λ () (colorer-callback)) #f)))
@@ -529,7 +539,8 @@ added get-regions
                        (split-backward ls (lexer-state-tokens ls) edit-start-pos)))
            (send (lexer-state-parens ls) truncate tok-start)
            (set-lexer-state-tokens! ls valid-tree)
-           (set-lexer-state-invalid-tokens-start! ls (+ change-length (lexer-state-invalid-tokens-start ls)))
+           (set-lexer-state-invalid-tokens-start!
+            ls (+ change-length (lexer-state-invalid-tokens-start ls)))
            (let ([start (+ (lexer-state-start-pos ls) tok-start)])
              (set-lexer-state-current-pos! ls start)
              (set-lexer-state-current-lexer-mode! 
@@ -1041,10 +1052,7 @@ added get-regions
          (define tree (lexer-state-tokens ls))
          (send tree search! (- next-pos ls-start))
          (define start-pos (+ ls-start (send tree get-root-start-position)))
-         (define end-pos (+ ls-start (send tree get-root-end-position))) 
-         
-         #;(printf "~a |~a| |~a|~n" (list pos next-pos start-pos end-pos (send tree get-root-data)) closers (get-text start-pos end-pos))
-         
+         (define end-pos (+ ls-start (send tree get-root-end-position)))
          (cond
            [(or (not (send tree get-root-data)) (<= end-pos pos))
             (values #f #f #f #f)]    ;; didn't find /any/ token ending after pos
