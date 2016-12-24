@@ -175,8 +175,13 @@
         (queue-callback (λ () (semaphore-post s)) #f)
         (semaphore-wait s))
 
-      (for ([c (in-string replace-string)])
-        (test:keystroke c))
+      (test:menu-select "Edit" "Select All")
+      (cond
+        [(equal? replace-string "")
+         (test:keystroke #\backspace)]
+        [else
+         (for ([c (in-string replace-string)])
+           (test:keystroke c))])
 
       (queue-callback
        (λ ()
