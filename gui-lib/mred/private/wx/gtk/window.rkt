@@ -916,7 +916,7 @@
 	    ;; windows; that means we have to be extra careful that
 	    ;; the underlying window doesn't change while a freeze is
 	    ;; in effect; the `reset-child-freezes` helps with that.
-            (unless (and transparentish? gtk3?)
+            (unless (or (and transparentish? gtk3?) wayland?)
               (gdk_window_ensure_native win))
             (begin
               (gdk_window_freeze_updates win)

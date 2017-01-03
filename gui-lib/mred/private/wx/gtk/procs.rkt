@@ -156,9 +156,10 @@
 
 (define/top (make-screen-bitmap [exact-positive-integer? w]
                                 [exact-positive-integer? h])
-  (if (eq? 'unix (system-type))
+  (if (and (eq? 'unix (system-type))
+           (not wayland?))
       (make-object x11-bitmap% w h #f)
-      (make-object bitmap% w h #f #t)))
+      (make-object bitmap% w h #f #t (display-bitmap-resolution 0 (lambda () 1.0)))))
 
 (define/top (make-gl-bitmap [exact-positive-integer? w]
                             [exact-positive-integer? h]

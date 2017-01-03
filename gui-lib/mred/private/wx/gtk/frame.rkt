@@ -16,6 +16,7 @@
          "cursor.rkt"
          "pixbuf.rkt"
 	 "resolution.rkt"
+	 "queue.rkt"
          "../common/queue.rkt")
 
 (provide 
@@ -88,6 +89,8 @@
                               [max_aspect _double]
                               [win_gravity _int]))
 (define-gtk gtk_window_set_geometry_hints (_fun _GtkWindow _GtkWidget _GdkGeometry-pointer _int -> _void))
+(define-gtk gtk_widget_get_allocated_width (_fun _GtkWidget -> _int))
+(define-gtk gtk_widget_get_allocated_height (_fun _GtkWidget -> _int))
 
 (define-gtk gtk_layout_new (_fun (_pointer = #f) (_pointer = #f) -> _GtkWidget))
 (define-gtk gtk_layout_put (_fun _GtkWidget _GtkWidget _int _int -> _void))
@@ -107,11 +110,15 @@
   (lambda (gtk a)
     (let ([wx (gtk->wx gtk)])
       (when wx
+        (define-values (w h) (if gtk3?
+				 (gtk_window_get_size gtk)
+				 (values (GdkEventConfigure-width a)
+					 (GdkEventConfigure-height a))))
         (send wx remember-size 
               (->normal (GdkEventConfigure-x a))
               (->normal (GdkEventConfigure-y a))
-              (->normal (GdkEventConfigure-width a))
-              (->normal (GdkEventConfigure-height a)))))
+              (->normal w)
+              (->normal h))))
     #f))
 
 (define-cstruct _GdkEventWindowState ([type _int]
@@ -266,9 +273,18 @@
     (define/public (enforce-size min-x min-y max-x max-y inc-x inc-y)
       (define (to-max v) (if (= v -1) #x3FFFFF (->screen v)))
       (set! saved-enforcements (vector min-x min-y max-x max-y))
+      (define-values (dx dy)
+	(if wayland?
+	    ;; Hints work at a layer of geometry below some offset that
+	    ;; `gtk_window_get_size` works but above where allocations
+	    ;; work:
+	    (let-values ([(w h) (gtk_window_get_size gtk)])
+	      (values (- (gtk_widget_get_allocated_width gtk) w)
+		      (- (gtk_widget_get_allocated_height gtk) h)))
+	    (values 0 0)))
       (gtk_window_set_geometry_hints gtk gtk 
                                      (make-GdkGeometry (->screen min-x) (->screen min-y)
-                                                       (to-max max-x) (to-max max-y)
+                                                       (+ dx (to-max max-x)) (+ dy (to-max max-y))
                                                        0 0
                                                        (->screen inc-x) (->screen inc-y)
                                                        0.0 0.0

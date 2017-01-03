@@ -16,6 +16,7 @@
                       try-to-sync-refresh
                       set-widget-hook!
                       x11-display)
+	 wayland?
          ;; from common/queue:
          current-eventspace
          queue-event
@@ -89,6 +90,19 @@
           (when v
             (gdk_set_program_class (cast v _pointer _string))))
         display))))
+
+
+;; ----------------------------------------
+;; Check for Wayland vs. X11
+
+(define-gdk gdk_display_get_default (_fun -> _GdkDisplay))
+(define-gdk gdk_display_get_name (_fun _GdkDisplay -> _string))
+
+(define wayland?
+  (and gtk3?
+       (regexp-match? #rx"^wayland"
+		      (gdk_display_get_name
+		       (gdk_display_get_default)))))
 
 ;; ------------------------------------------------------------
 ;; Gtk event pump

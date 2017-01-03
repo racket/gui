@@ -6,6 +6,7 @@
          "utils.rkt"
          "types.rkt"
          "window.rkt"
+	 "queue.rkt"
          "pixbuf.rkt"
 	 "x11.rkt")
 
@@ -19,7 +20,7 @@
 	      bitmap->gc-bitmap))
 
 ;; Gtk2, only:
-(define-cstruct _GdkWindowAttr
+(define-cstruct _GdkWindowAttr2
   ([title _string]
    [event_mask _int]
    [x _int]
@@ -35,6 +36,29 @@
    [wmclass_class _string]
    [override_redirect _gboolean]
    [type_hint _int]))
+
+;; Gtk3, only:
+(define-cstruct _GdkWindowAttr3
+  ([title _string]
+   [event_mask _int]
+   [x _int]
+   [y _int]
+   [width _int]
+   [height _int]
+   [wclass _int] ; GDK_INPUT_OUTPUT
+   [visual _pointer]
+   [window_type _int] ; GDK_WINDOW_CHILD
+   [cursor _pointer]
+   [wmclass_name _string]
+   [wmclass_class _string]
+   [override_redirect _gboolean]
+   [type_hint _int]))
+
+(define make-GdkWindowAttr
+  (if gtk3?
+      (lambda (t e x y w h wc vis cm wt c wmc_n wmc_c o th)
+	(make-GdkWindowAttr3 t e x y w h wc vis wt c wmc_n wmc_c o th))
+      make-GdkWindowAttr2))
 
 (define << arithmetic-shift)
 
@@ -52,11 +76,18 @@
 
 (define GDK_WINDOW_CHILD 2)
 
-(define-gdk gdk_window_new (_fun _GdkWindow _GdkWindowAttr-pointer _uint -> _GdkWindow))
+(define-gdk gdk_window_new (_fun _GdkWindow
+				 (if gtk3?
+				     _GdkWindowAttr3-pointer
+				     _GdkWindowAttr2-pointer)
+				 _uint -> _GdkWindow))
 
-(define-gdk gdk_window_show _fpointer)
+(define-gdk gdk_window_show-p _fpointer
+  #:c-id gdk_window_show)
 (define-gdk gdk_window_hide _fpointer)
 (define-gdk gdk_display_flush _fpointer)
+
+(define-gdk gdk_window_show (_fun _GdkWindow -> _void))
 
 ;; Gtk2
 (define-gdk gdk_draw_pixbuf _fpointer
@@ -69,9 +100,11 @@
 (define-x11 XMapRaised _fpointer #:fail (lambda () #f))
 (define-x11 XUnmapWindow _fpointer #:fail (lambda () #f))
 
+(define use-x11? (and gtk3? (not wayland?)))
+
 (define (bitmap->gc-bitmap bm client-gtk)
   (cond
-   [gtk3?
+   [use-x11?
     ; Generate an X11 Pixmap
     (define gwin (widget-window client-gtk))
     (define display (gdk_x11_display_get_xdisplay (gdk_window_get_display gwin)))
@@ -109,7 +142,7 @@
 (define (create-gc-window client-gtk x y w h)
   (define cwin (widget-window client-gtk))
   (cond
-   [gtk3?
+   [use-x11?
     ;; Work at the level of X11 to change the screen without an event loop
     (define display (gdk_x11_display_get_xdisplay (gdk_window_get_display cwin)))
     (define s (gtk_widget_get_scale_factor client-gtk))
@@ -132,51 +165,61 @@
 
 (define (free-gc-window win)
   (cond
-   [gtk3? (XDestroyWindow (car win) (cdr win))]
+   [use-x11? (XDestroyWindow (car win) (cdr win))]
    [else (g_object_unref win)]))
 
 (define (make-draw win gc-bitmap w h)
   (cond
-   [gtk3? (vector 'ptr_ptr_ptr->void
-		  XSetWindowBackgroundPixmap
-		  (car win)
-		  (cdr win)
-		  gc-bitmap)]
-   [else (vector 'ptr_ptr_ptr_int_int_int_int_int_int_int_int_int->void
-		 gdk_draw_pixbuf
-		 win #f gc-bitmap
-		 0 0 0 0 w h
-		 0 0 0)]))
+   [use-x11? (vector
+	      (vector 'ptr_ptr_ptr->void
+		      XSetWindowBackgroundPixmap
+		      (car win)
+		      (cdr win)
+		      gc-bitmap))]
+   [gtk3? (vector)]
+   [else (vector
+	  (vector 'ptr_ptr_ptr_int_int_int_int_int_int_int_int_int->void
+		  gdk_draw_pixbuf
+		  win #f gc-bitmap
+		  0 0 0 0 w h
+		  0 0 0))]))
 
 (define (make-flush)
-  (vector 'ptr_ptr_ptr->void gdk_display_flush (gdk_display_get_default) #f #f))
+  (vector
+   (vector 'ptr_ptr_ptr->void gdk_display_flush (gdk_display_get_default) #f #f)))
+
+(define (vector* . l)
+  (for*/vector ([v (in-list l)] [e (in-vector v)]) e))
 
 (define (make-gc-show-desc win gc-bitmap w h)
   (cond
-   [gtk3? (vector
-	   (make-draw win gc-bitmap w h)
-	   (vector 'ptr_ptr_ptr->void
-		   XMapRaised
-		   (car win)
-		   (cdr win)
-		   #f)
-	   (make-flush))]
-   [else  (vector
-	   (vector 'ptr_ptr_ptr->void gdk_window_show win #f #f)
+   [use-x11? (vector*
+	      (make-draw win gc-bitmap w h)
+	      (vector
+	       (vector 'ptr_ptr_ptr->void
+		       XMapRaised
+		       (car win)
+		       (cdr win)
+		       #f))
+	      (make-flush))]
+   [else  (vector*
+	   (vector
+	    (vector 'ptr_ptr_ptr->void gdk_window_show-p win #f #f))
 	   (make-draw win gc-bitmap w h)
 	   (make-flush))]))
 
 (define (make-gc-hide-desc win gc-bitmap w h)
-  (vector
+  (vector*
    ;; draw the ``off'' bitmap so we can flush immediately
    (make-draw win gc-bitmap w h)
    (make-flush)
-   ;; hide the window; it may take a while for the underlying canvas
-   ;; to refresh:
-   (if gtk3?
-       (vector 'ptr_ptr_ptr->void
-	       XUnmapWindow
-	       (car win)
-	       (cast (cdr win) _Window _pointer)
-	       #f)
-       (vector 'ptr_ptr_ptr->void gdk_window_hide win #f #f))))
+   (vector
+    ;; hide the window; it may take a while for the underlying canvas
+    ;; to refresh:
+    (if use-x11?
+	(vector 'ptr_ptr_ptr->void
+		XUnmapWindow
+		(car win)
+		(cast (cdr win) _Window _pointer)
+		#f)
+	(vector 'ptr_ptr_ptr->void gdk_window_hide win #f #f)))))

@@ -17,6 +17,7 @@
          "const.rkt"
          "types.rkt"
          "window.rkt"
+	 "queue.rkt"
          "client-window.rkt"
          "widget.rkt"
          "dc.rkt"
@@ -613,7 +614,7 @@
        ;; A transparent canvas can't have a native window, so we
        ;; need to release any freezes befre the window implementation
        ;; might change.
-       (when transparentish? (unrealize)))
+       (when (or transparentish? wayland?) (unrealize)))
 
      (define/public (begin-refresh-sequence)
        (send dc suspend-flush))

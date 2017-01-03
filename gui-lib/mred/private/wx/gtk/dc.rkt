@@ -4,6 +4,7 @@
          racket/class
          "utils.rkt"
          "types.rkt"
+	 "queue.rkt"
          "window.rkt"
          "frame.rkt"
          "x11.rkt"
@@ -195,9 +196,11 @@
     (define/override (make-backing-bitmap w h)
       (cond
        [(and (not is-transparentish?)
+	     (not wayland?)
              (eq? 'unix (system-type)))
 	(make-object x11-bitmap% w h (send canvas get-client-gtk))]
        [(and (not is-transparentish?)
+	     (not wayland?)
              (eq? 'windows (system-type)))
 	(make-object win32-bitmap% w h (widget-window (send canvas get-client-gtk)))]
        [else
