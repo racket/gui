@@ -55,6 +55,8 @@
               widget-allocation
               widget-parent
 
+	      avoid-preferred-size-warning
+
               the-accelerator-group
               gtk_window_add_accel_group
               gtk_menu_set_accel_group
@@ -101,6 +103,14 @@
   #:fail (lambda () #f))
 (define-gtk gtk_widget_get_scale_factor (_fun _GtkWidget -> _int)
   #:fail (lambda () (lambda (gtk) 1)))
+
+(define (avoid-preferred-size-warning gtk)
+  ;; If we don't ask for a widget's size in the right way,
+  ;; GTK3 may report a warning; this query avoids the
+  ;; warning.
+  (when gtk3?
+    (define req (make-GtkRequisition 0 0))
+    (gtk_widget_get_preferred_size gtk req #f)))
 
 (define-gdk gdk_keyboard_grab (_fun _GdkWindow _gboolean _int -> _void))
 (define-gdk gdk_keyboard_ungrab (_fun _int -> _void))

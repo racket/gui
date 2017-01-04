@@ -245,7 +245,8 @@
     (define/override (set-child-size child-gtk x y w h)
       (gtk_fixed_move panel-gtk child-gtk (->screen x) (->screen y))
       ;; gtk3: we expect a panel in a frame to be always visible, so
-      ;; this size erquest should work
+      ;; this size request should work
+      (avoid-preferred-size-warning child-gtk)
       (gtk_widget_set_size_request child-gtk (->screen w) (->screen h)))
 
     (define/public (on-close) #t)

@@ -144,6 +144,7 @@
 	     (begin
 	       (gtk_widget_show child-gtk)
 	       #t)))
+      (avoid-preferred-size-warning child-gtk)
       (gtk_widget_set_size_request child-gtk (->screen w) (->screen h))
       (when re-hide?
 	(gtk_widget_hide child-gtk)))))
@@ -199,7 +200,7 @@
     (set-size 0 0 (if border-gtk 3 1) (if border-gtk 3 1))
     (when border-gtk
       (adjust-client-delta 2 2))
-    
+
     (connect-key-and-mouse gtk)
     (gtk_widget_add_events gtk (bitwise-ior GDK_BUTTON_PRESS_MASK
                                             GDK_BUTTON_RELEASE_MASK
