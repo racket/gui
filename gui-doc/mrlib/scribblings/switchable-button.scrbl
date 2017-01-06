@@ -8,7 +8,7 @@
 @defclass[switchable-button% canvas% ()]{
   
   A @racket[switchable-button%] control displays
-  and icon and a string label. It toggles between
+  an icon and a string label. It toggles between
   display of just the icon and a display with the 
   label and the icon side-by-side. 
   
