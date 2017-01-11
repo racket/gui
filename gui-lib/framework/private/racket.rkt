@@ -1350,9 +1350,11 @@
       (send text end-edit-sequence))
     
     (define tabify-pref (preferences:get 'framework:tabify))
+    (define tabify-pref-callback (lambda (k v) (set! tabify-pref v)))
     (preferences:add-callback
      'framework:tabify
-     (lambda (k v) (set! tabify-pref v)))
+     tabify-pref-callback
+     #t)
     
     (define/override (put-file text sup directory default-name)
       ;; don't call the surrogate's super, since it sets the default extension
