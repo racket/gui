@@ -71,7 +71,7 @@ the state transitions / contracts are:
 
 ;; pref-callback : (make-pref-callback (union (weak-box (sym tst -> void)) (sym tst -> void)))
 ;; this is used as a wrapped to deal with the problem that different procedures might be eq?.
-(define-struct pref-callback (cb))
+(define-struct pref-callback (cb) #:transparent)
 
 ;; used to detect missing hash entries
 (define none (gensym 'none))
