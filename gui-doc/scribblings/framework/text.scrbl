@@ -576,22 +576,40 @@
     Returns the number of hits for the search in the buffer before the
     insertion point and the total number of hits. Both are based on the count
     found last time that a search completed.
+
+  A search initiated by some earlier change to the editor or
+  to the string to search for may make the results of this
+  method obsolete. To force those changes to complete (and
+  thus get an accurate result from this method) call
+  @method[text:searching<%> finish-pending-search-work].
+
   }
 
   @defmethod[(get-replace-search-hit) (or/c number? #f)]{
     Returns the position of the nearest search hit that comes after the
     insertion point.
-  }
+
+  A search initiated by some earlier change to the editor or
+  to the string to search for may make the results of this
+  method obsolete. To force those changes to complete (and
+  thus get an accurate result from this method) call
+  @method[text:searching<%> finish-pending-search-work].
+}
 
   @defmethod[(set-replace-start [pos (or/c number? #f)]) void?]{
     This method is ignored. (The next replacement start is now
     tracked via the @method[text% after-set-position] method.)
   }
 
-  @defmethod[(finish-pending-search-work) void?]{
-    Finishes any pending work in computing and
-    drawing the search bubbles.
-  }
+ @defmethod[(finish-pending-search-work) void?]{
+  Finishes any pending work in computing and drawing the
+  search bubbles.
+
+  Call this method to ensure that the results from any of
+  @method[text:searching<%> get-replace-hit-count],
+  @method[text:searching<%> get-replace-search-hit], or
+  @method[text:searching<%> get-search-bubbles] are correct.
+ }
 
   @defmethod[(get-search-bubbles)
              (listof (list/c (cons/c number? number?)
@@ -602,6 +620,12 @@
     the outermost list corresponds to a single bubble. The pair of numbers is
     the range of the bubble and the symbol is the color of the
     bubble.
+
+  A search initiated by some earlier change to the editor or
+  to the string to search for may make the results of this
+  method obsolete. To force those changes to complete (and
+  thus get an accurate result from this method) call
+  @method[text:searching<%> finish-pending-search-work].
 
     This method is intended for use in test suites.
   }
