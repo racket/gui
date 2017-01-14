@@ -7,7 +7,7 @@
          racket/gui/base
          framework)
 
-(define (test-creation name create)
+(define (test-creation name create [verify void])
   (check-true
    (let ()
      (parameterize ([current-eventspace (make-eventspace)])
@@ -20,6 +20,7 @@
           (channel-put c (send f get-label))))
        (define frame-label (channel-get c))
        (wait-for-frame frame-label)
+       (verify f)
        (queue-callback (λ () (send f close)))
        #t))
    (format "create ~a" name)))
@@ -85,6 +86,72 @@
   (test-creation
    'pasteboard%-creation
    (λ () (new frame:pasteboard%))))
+
+(define (frame/text-creation-tests)
+  (define (mk-create f% e%)
+    (λ ()
+      (define f
+        (new (class f%
+               (define/override (get-editor%) e%)
+               (super-new))))
+      (send (send f get-editor) set-max-undo-history 10)
+      f))
+  (define (verify f)
+    (test:keystroke #\a)
+    (wait-for/here
+     (λ ()
+       (define f (test:get-active-top-level-window))
+       (and f
+            (string=? "a" (send (send f get-editor) get-text)))))
+    (queue-callback
+     (λ ()
+       (define f (test:get-active-top-level-window))
+       ;; remove the `a' to avoid save dialog boxes (and test them, I suppose)
+       (send (send f get-editor) undo) 
+       (send (send f get-editor) undo)
+       
+       (send (send f get-editor) lock #t)
+       (send (send f get-editor) lock #f))))
+
+  (test-creation 'text:basic-mixin-creation
+                 (mk-create frame:text% (text:basic-mixin (editor:basic-mixin text%)))
+                 verify)
+  (test-creation 'text:basic-creation
+                 (mk-create frame:text% text:basic%))
+  
+  (test-creation 'editor:file-mixin-creation
+                 (mk-create frame:text% (editor:file-mixin text:keymap%))
+                 verify)
+
+  (test-creation 'text:file-creation
+                 (mk-create frame:text% text:file%)
+                 verify)
+  (test-creation 'text:clever-file-format-mixin-creation
+                 (mk-create frame:text% (text:clever-file-format-mixin text:file%))
+                 verify)
+  (test-creation 'text:clever-file-format-creation
+                 (mk-create frame:text% text:clever-file-format%)
+                 verify)
+  (test-creation 'editor:backup-autosave-mixin-creation
+                 (mk-create frame:text% (editor:backup-autosave-mixin text:clever-file-format%))
+                 verify)
+  (test-creation 'text:backup-autosave-creation
+                 (mk-create frame:text% text:backup-autosave%)
+                 verify)
+  (test-creation 'text:searching-mixin-creation
+                 (mk-create frame:text% (text:searching-mixin text:backup-autosave%))
+                 verify)
+  (test-creation 'text:searching-creation
+                 (mk-create frame:text% text:searching%)
+                 verify)
+  (test-creation 'text:info-mixin-creation
+                 (mk-create (frame:searchable-mixin frame:text%)
+                            (text:info-mixin (editor:info-mixin text:searching%)))
+                 verify)
+  (test-creation 'text:info-creation
+                 (mk-create (frame:searchable-mixin frame:text%)
+                            text:info%)
+                 verify))
 
 (define (test-open name cls)
   (define test-file-contents "test")
@@ -263,5 +330,6 @@
     (creation-tests)
     (open-tests)
     (replace-all-tests)
+    (frame/text-creation-tests)
     (send dummy show #f)))
 

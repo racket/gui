@@ -3,7 +3,7 @@
          racket/gui/base
          racket/class)
 
-(provide wait-for-frame)
+(provide wait-for-frame wait-for/here)
 
 (define (wait-for/here test)
   (define timeout 10)
