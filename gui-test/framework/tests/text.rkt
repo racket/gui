@@ -1,12 +1,10 @@
-#lang racket/base
+#lang racket
 
-(require racket/file
-         "test-suite-utils.rkt")
-
-(module test racket/base)
-
-(define dummy-frame-title "dummy to avoid quitting")
-(queue-sexp-to-mred `(send (make-object frame:basic% ,dummy-frame-title) show #t))
+(require "private/here-util.rkt"
+         "private/gui.rkt"
+         rackunit
+         racket/gui/base
+         framework)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
@@ -15,172 +13,134 @@
 
 
 
-(test
- 'highlight-range1
- (lambda (x) (equal? x 1))
- (λ ()
-   (queue-sexp-to-mred
-    `(let ([t (new text:basic%)])
-       (send t insert "abc")
-       (send t highlight-range 1 2 "red")
-       (length (send t get-highlighted-ranges))))))
+(check-equal?
+ (let ([t (new text:basic%)])
+   (send t insert "abc")
+   (send t highlight-range 1 2 "red")
+   (length (send t get-highlighted-ranges)))
+ 1)
 
-(test
- 'highlight-range2
- (lambda (x) (equal? x 0))
- (λ ()
-   (queue-sexp-to-mred
-    `(let ([t (new text:basic%)])
-       (send t insert "abc")
-       ((send t highlight-range 1 2 "red"))
-       (length (send t get-highlighted-ranges))))))
+(check-equal?
+ (let ([t (new text:basic%)])
+   (send t insert "abc")
+   ((send t highlight-range 1 2 "red"))
+   (length (send t get-highlighted-ranges)))
+ 0)
 
-
-(test
- 'highlight-range3
- (lambda (x) (equal? x 0))
- (λ ()
-   (queue-sexp-to-mred
-    `(let ([t (new text:basic%)])
-       (send t insert "abc")
-       (send t highlight-range 1 2 "red")
-       (send t unhighlight-range 1 2 "red")
-       (length (send t get-highlighted-ranges))))))
+(check-equal?
+ (let ([t (new text:basic%)])
+   (send t insert "abc")
+   (send t highlight-range 1 2 "red")
+   (send t unhighlight-range 1 2 "red")
+   (length (send t get-highlighted-ranges)))
+ 0)
 
 
-(test
- 'highlight-range4
- (lambda (x) (equal? x 1))
- (λ ()
-   (queue-sexp-to-mred
-    `(let ([t (new text:basic%)])
-       (send t insert "abc")
-       (send t highlight-range 1 2 "red")
-       (send t highlight-range 1 2 "red")
-       (send t unhighlight-range 1 2 "red")
-       (length (send t get-highlighted-ranges))))))
+(check-equal?
+ (let ([t (new text:basic%)])
+   (send t insert "abc")
+   (send t highlight-range 1 2 "red")
+   (send t highlight-range 1 2 "red")
+   (send t unhighlight-range 1 2 "red")
+   (length (send t get-highlighted-ranges)))
+ 1)
 
-
-
-(test
- 'highlight-range5
- (lambda (x) (equal? x 0))
- (λ ()
-   (queue-sexp-to-mred
-    `(let ([t (new text:basic%)])
-       (send t insert "abc")
-       (send t highlight-range 1 2 "red")
-       (send t highlight-range 1 2 "red")
-       (send t unhighlight-range 1 2 "red")
-       (send t unhighlight-range 1 2 "red")
-       (length (send t get-highlighted-ranges))))))
+(check-equal?
+ (let ([t (new text:basic%)])
+   (send t insert "abc")
+   (send t highlight-range 1 2 "red")
+   (send t highlight-range 1 2 "red")
+   (send t unhighlight-range 1 2 "red")
+   (send t unhighlight-range 1 2 "red")
+   (length (send t get-highlighted-ranges)))
+ 0)
 
 (let ([tmp-file (path->string (make-temporary-file "fwtesttmp~a"))])
-  (test
-   'highlight-range/revert
-   (lambda (x)
-     (delete-file tmp-file)
-     (equal? x 0))
+  (dynamic-wind
+   void
    (λ ()
-     (queue-sexp-to-mred
-      `(let ([t (new text:basic%)])
-         (send t insert "abc")
-         (send t save-file ,tmp-file)
-         (send t highlight-range 0 3 "red")
-         (call-with-output-file ,tmp-file
-           (lambda (port) (display "x\n" port))
-           #:exists 'truncate)
-         (send t load-file)
-         (length (send t get-highlighted-ranges)))))))
+     (check-equal?
+      (let ([t (new text:basic%)])
+        (send t insert "abc")
+        (send t save-file tmp-file)
+        (send t highlight-range 0 3 "red")
+        (call-with-output-file tmp-file
+          (λ (port) (display "x\n" port))
+          #:exists 'truncate)
+        (send t load-file)
+        (length (send t get-highlighted-ranges)))
+      0))
+   (λ () (delete-file tmp-file))))
 
-(test
- 'highlight-range-delegate-1
- (lambda (x) (equal? x 0))
- (λ ()
-   (queue-sexp-to-mred
-    `(let ([t (new text:delegate%)])
-       (send t insert "abc")
-       (send t highlight-range 1 2 "red")
-       (send t unhighlight-range 1 2 "red")
-       (length (send t get-highlighted-ranges))))))
+(check-equal?
+ (let ([t (new text:delegate%)])
+   (send t insert "abc")
+   (send t highlight-range 1 2 "red")
+   (send t unhighlight-range 1 2 "red")
+   (length (send t get-highlighted-ranges)))
+ 0)
 
-(test
- 'highlight-range-delegate-1
- (lambda (x) (equal? x 0))
- (λ ()
-   (queue-sexp-to-mred
-    `(let ([t (new text:delegate%)])
-       (send t set-delegate (new text:basic%))
-       (send t insert "abc")
-       (send t highlight-range 1 2 "red")
-       (send t unhighlight-range 1 2 "red")
-       (length (send t get-highlighted-ranges))))))
-
+(check-equal?
+ (let ([t (new text:delegate%)])
+   (send t set-delegate (new text:basic%))
+   (send t insert "abc")
+   (send t highlight-range 1 2 "red")
+   (send t unhighlight-range 1 2 "red")
+   (length (send t get-highlighted-ranges)))
+ 0)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
 ;;  testing get-pos/text method
 ;;
 
-(test
-  'get-pos/text-1
-  (λ (x) x)
-  (λ ()
-    (queue-sexp-to-mred
-      '(let* ([f (new frame% [label "Test frame"])]
-              [t (new text:basic%)]
-              [c (new editor-canvas% [parent f] [editor t])]
-              [snip (make-object string-snip% "Test string")])
-          (send t insert snip)
-          (define-values (x-box y-box) (values (box 0) (box 0)))
-          (send t get-snip-location snip x-box y-box)
-          (send t local-to-global x-box y-box)
-          (define event (new mouse-event% [event-type 'motion]
-                                          [x (add1 (unbox x-box))]
-                                          [y (add1 (unbox y-box))]))
-          (let-values ([(pos edit) (send t get-pos/text event)])
-            (and (real? (car p)) (is-a? (cdr p) text%)))))))
+(check-true
+ (let* ([f (new frame% [label "Test frame"])]
+        [t (new text:basic%)]
+        [c (new editor-canvas% [parent f] [editor t])]
+        [snip (make-object string-snip% "Test string")])
+   (send t insert snip)
+   (define-values (x-box y-box) (values (box 0) (box 0)))
+   (send t get-snip-location snip x-box y-box)
+   (send t local-to-global x-box y-box)
+   (define event (new mouse-event% [event-type 'motion]
+                      [x (add1 (unbox x-box))]
+                      [y (add1 (unbox y-box))]))
+   (let-values ([(pos edit) (send t get-pos/text event)])
+     (and (real? pos) (is-a? edit text%)))))
 
-(test
-  'get-pos/text-2
-  (λ (x) x)
-  (λ ()
-    (queue-sexp-to-mred
-      '(let* ([f (new frame% [label "Test frame"])]
-              [t (new text:basic%)]
-              [c (new editor-canvas% [parent f] [editor t])]
-              [snip (make-object string-snip% "Test string")])
-          (send t insert snip)
-          (define-values (x-box y-box) (values (box 0) (box 0)))
-          (send t get-snip-location snip x-box y-box)
-          (send t local-to-global x-box y-box)
-          (define event (new mouse-event% [event-type 'motion]
-                                          [x (+ 9999 (unbox x-box))]
-                                          [y (+ 9999 (unbox y-box))]))
-          (let-values ([(pos edit) (send t get-pos/text event)])
-            (and (false? pos) (false? edit)))))))
+(check-true
+ (let* ([f (new frame% [label "Test frame"])]
+        [t (new text:basic%)]
+        [c (new editor-canvas% [parent f] [editor t])]
+        [snip (make-object string-snip% "Test string")])
+   (send t insert snip)
+   (define-values (x-box y-box) (values (box 0) (box 0)))
+   (send t get-snip-location snip x-box y-box)
+   (send t local-to-global x-box y-box)
+   (define event (new mouse-event% [event-type 'motion]
+                      [x (+ 9999 (unbox x-box))]
+                      [y (+ 9999 (unbox y-box))]))
+   (let-values ([(pos edit) (send t get-pos/text event)])
+     (and (false? pos) (false? edit)))))
 
-(test
-  'get-pos/text-3
-  (λ (x) x)
-  (λ ()
-    (queue-sexp-to-mred
-      '(let* ([f (new frame% [label "Test frame"])]
-              [t (new text:basic%)]
-              [c (new editor-canvas% [parent f] [editor t])]
-              [p (new pasteboard%)]
-              [s-snip (make-object string-snip% "Test string")]
-              [e-snip (new editor-snip% [editor p])])
-          (send p insert s-snip)
-          (send t insert e-snip)
-          (define-values (x-box y-box) (values (box 0) (box 0)))
-          (send t get-snip-location e-snip x-box y-box)
-          (send t local-to-global x-box y-box)
-          (define event (new mouse-event% [event-type 'motion]
-                                          [x (add1 (unbox x-box))]
-                                          [y (add1 (unbox y-box))]))
-          (let-values ([(pos edit) (send t get-pos/text event)])
-            (and (false? pos) (is-a? edit pasteboard%)))))))
+(check-true
+ (let* ([f (new frame% [label "Test frame"])]
+        [t (new text:basic%)]
+        [c (new editor-canvas% [parent f] [editor t])]
+        [p (new pasteboard%)]
+        [s-snip (make-object string-snip% "Test string")]
+        [e-snip (new editor-snip% [editor p])])
+   (send p insert s-snip)
+   (send t insert e-snip)
+   (define-values (x-box y-box) (values (box 0) (box 0)))
+   (send t get-snip-location e-snip x-box y-box)
+   (send t local-to-global x-box y-box)
+   (define event (new mouse-event% [event-type 'motion]
+                      [x (add1 (unbox x-box))]
+                      [y (add1 (unbox y-box))]))
+   (let-values ([(pos edit) (send t get-pos/text event)])
+     (and (false? pos) (is-a? edit pasteboard%)))))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -188,231 +148,190 @@
 ;;  all-string-snips<%>
 ;;
 
-(test
- 'all-string-snips<%>.1
- (λ (x) (equal? x #t))
- (λ ()
-   (queue-sexp-to-mred
-    '(let ()
-       (define t (new (text:all-string-snips-mixin text%)))
-       (send t all-string-snips?)))))
+(check-true
+ (let ()
+   (define t (new (text:all-string-snips-mixin text%)))
+   (send t all-string-snips?)))
 
-(test
- 'all-string-snips<%>.2
- (λ (x) (equal? x #t))
- (λ ()
-   (queue-sexp-to-mred
-    '(let ()
-       (define t (new (text:all-string-snips-mixin text%)))
-       (send t insert "xx")
-       (send t all-string-snips?)))))
+(check-true
+ (let ()
+   (define t (new (text:all-string-snips-mixin text%)))
+   (send t insert "xx")
+   (send t all-string-snips?)))
 
-(test
- 'all-string-snips<%>.3
- (λ (x) (equal? x #t))
- (λ ()
-   (queue-sexp-to-mred
-    '(let ()
-       (define t (new (text:all-string-snips-mixin text%)))
-       (send t insert "xx")
-       (send t delete 0 1)
-       (send t all-string-snips?)))))
+(check-true
+ (let ()
+   (define t (new (text:all-string-snips-mixin text%)))
+   (send t insert "xx")
+   (send t delete 0 1)
+   (send t all-string-snips?)))
 
-(test
- 'all-string-snips<%>.4
- (λ (x) (equal? x #t))
- (λ ()
-   (queue-sexp-to-mred
-    '(let ()
-       (define t (new (text:all-string-snips-mixin text%)))
-       (send t insert "xx")
-       (send t delete 0 2)
-       (send t all-string-snips?)))))
+(check-true
+ (let ()
+   (define t (new (text:all-string-snips-mixin text%)))
+   (send t insert "xx")
+   (send t delete 0 2)
+   (send t all-string-snips?)))
 
-(test
- 'all-string-snips<%>.5
- (λ (x) (equal? x #f))
- (λ ()
-   (queue-sexp-to-mred
-    '(let ()
-       (define t (new (text:all-string-snips-mixin text%)))
-       (send t insert (new snip%))
-       (send t all-string-snips?)))))
+(check-false
+ (let ()
+   (define t (new (text:all-string-snips-mixin text%)))
+   (send t insert (new snip%))
+   (send t all-string-snips?)))
 
-(test
- 'all-string-snips<%>.6
- (λ (x) (equal? x #t))
- (λ ()
-   (queue-sexp-to-mred
-    '(let ()
-       (define t (new (text:all-string-snips-mixin text%)))
-       (send t insert (new snip%))
-       (send t delete 0 1)
-       (send t all-string-snips?)))))
+(check-true
+ (let ()
+   (define t (new (text:all-string-snips-mixin text%)))
+   (send t insert (new snip%))
+   (send t delete 0 1)
+   (send t all-string-snips?)))
 
-(test
- 'all-string-snips<%>.7
- (λ (x) (equal? x #f))
- (λ ()
-   (queue-sexp-to-mred
-    '(let ()
-       (define t (new (text:all-string-snips-mixin text%)))
-       (send t insert (new snip%))
-       (send t insert (new snip%))
-       (send t delete 0 1)
-       (send t all-string-snips?)))))
+(check-false
+ (let ()
+   (define t (new (text:all-string-snips-mixin text%)))
+   (send t insert (new snip%))
+   (send t insert (new snip%))
+   (send t delete 0 1)
+   (send t all-string-snips?)))
 
-(test
- 'all-string-snips<%>.8
- (λ (x) (equal? x #f))
- (λ ()
-   (queue-sexp-to-mred
-    '(let ()
-       (define t (new (text:all-string-snips-mixin text%)))
-       (send t insert (new snip%))
-       (send t insert "abcdef")
-       (send t insert (new snip%))
-       (send t delete 2 4)
-       (send t all-string-snips?)))))
+(check-false
+ (let ()
+   (define t (new (text:all-string-snips-mixin text%)))
+   (send t insert (new snip%))
+   (send t insert "abcdef")
+   (send t insert (new snip%))
+   (send t delete 2 4)
+   (send t all-string-snips?)))
 
-(test
- 'all-string-snips<%>.9
- (λ (x) (equal? x #f))
- (λ ()
-   (queue-sexp-to-mred
-    '(let ()
-       (define t (new (text:all-string-snips-mixin text%)))
-       (send t insert "abcdef\n")
-       (send t insert (new snip%) (send t last-position))
-       (send t all-string-snips?)))))
+(check-false
+ (let ()
+   (define t (new (text:all-string-snips-mixin text%)))
+   (send t insert "abcdef\n")
+   (send t insert (new snip%) (send t last-position))
+   (send t all-string-snips?)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
 ;;  searching
 ;;
 
-(define (search-test name setup-code expected-answer)
-  (test
-   name
-   (λ (x) (equal? x expected-answer))
-   (λ ()
-     (send-sexp-to-mred/separate-thread
-      `(let ()
-         (define answer (make-channel))
-         (queue-callback
-          (λ ()
-            (define t (new text:searching%))
-            ,setup-code
-            (let loop ()
-              (cond
-                [(send t search-updates-pending?)
-                 (queue-callback (λ () (loop)) #f)]
-                [else
-                 (define-values (before total) (send t get-search-hit-count))
-                 (channel-put answer (list before total))]))))
-         (channel-get answer))))))
+(define (run-search-test setup-code)
+  (define answer (make-channel))
+  (parameterize ([current-eventspace (make-eventspace)])
+    (queue-callback
+     (λ ()
+       (define t (new text:searching%))
+       (setup-code t)
+       (let loop ()
+         (cond
+           [(send t search-updates-pending?)
+            (queue-callback (λ () (loop)) #f)]
+           [else
+            (define-values (before total) (send t get-search-hit-count))
+            (channel-put answer (list before total))])))))
+  (channel-get answer))
 
-(search-test
- 'search.1
- `(begin (send t insert "abc")
-         (send t set-position 0 0)
-         (send t set-searching-state "b" #f #f))
+(check-equal?
+ (run-search-test
+  (λ (t)
+    (send t insert "abc")
+    (send t set-position 0 0)
+    (send t set-searching-state "b" #f #f)))
  (list 0 1))
 
-(search-test
- 'search.2
- `(begin (send t insert "abc")
-         (send t set-position 3 3)
-         (send t set-searching-state "b" #f #f))
+(check-equal?
+ (run-search-test
+  (λ (t)
+    (send t insert "abc")
+    (send t set-position 3 3)
+    (send t set-searching-state "b" #f #f)))
  (list 1 1))
 
-(search-test
- 'search.3
- `(begin (send t insert "abc")
-         (define t2 (new text%))
-         (send t2 insert "abc")
-         (send t insert (new editor-snip% [editor t2]))
-         (send t2 insert "abc")
-         (send t set-position 0 0)
-         (send t set-searching-state "b" #f #f))
+(check-equal?
+ (run-search-test
+  (λ (t)
+    (send t insert "abc")
+    (define t2 (new text%))
+    (send t2 insert "abc")
+    (send t insert (new editor-snip% [editor t2]))
+    (send t2 insert "abc")
+    (send t set-position 0 0)
+    (send t set-searching-state "b" #f #f)))
  (list 0 3))
 
-(search-test
- 'search.4
- `(begin (send t insert "abc")
-         (define t2 (new text%))
-         (send t2 insert "abc")
-         (send t insert (new editor-snip% [editor t2]))
-         (send t insert "abc")
-         (send t set-position (send t last-position) (send t last-position))
-         (send t set-searching-state "b" #f #f))
+(check-equal?
+ (run-search-test
+  (λ (t)
+    (send t insert "abc")
+    (define t2 (new text%))
+    (send t2 insert "abc")
+    (send t insert (new editor-snip% [editor t2]))
+    (send t insert "abc")
+    (send t set-position (send t last-position) (send t last-position))
+    (send t set-searching-state "b" #f #f)))
  (list 3 3))
 
-(search-test
- 'search.5
- `(begin (send t insert "abc")
-         (define t2 (new text%))
-         (send t2 insert "abc")
-         (define t3 (new text%))
-         (send t3 insert "abc")
-         (send t2 insert (new editor-snip% [editor t3]))
-         (send t2 insert "abc")
-         (send t insert (new editor-snip% [editor t2]))
-         (send t insert "abc")
-         (send t set-position (send t last-position) (send t last-position))
-         (send t set-searching-state "b" #f #f))
+(check-equal?
+ (run-search-test
+  (λ (t)
+    (send t insert "abc")
+    (define t2 (new text%))
+    (send t2 insert "abc")
+    (define t3 (new text%))
+    (send t3 insert "abc")
+    (send t2 insert (new editor-snip% [editor t3]))
+    (send t2 insert "abc")
+    (send t insert (new editor-snip% [editor t2]))
+    (send t insert "abc")
+    (send t set-position (send t last-position) (send t last-position))
+    (send t set-searching-state "b" #f #f)))
  (list 5 5))
 
-(search-test
- 'search.6
- `(begin (send t insert "abc")
-         (define t2 (new text%))
-         (send t2 insert "abc")
-         (define t3 (new text%))
-         (send t3 insert "abc")
-         (send t2 insert (new editor-snip% [editor t3]))
-         (send t2 insert "abc")
-         (send t insert (new editor-snip% [editor t2]))
-         (send t insert "abc")
-         (send t set-position 0 0)
-         (send t set-searching-state "b" #f #f))
+(check-equal?
+ (run-search-test
+  (λ (t)
+    (send t insert "abc")
+    (define t2 (new text%))
+    (send t2 insert "abc")
+    (define t3 (new text%))
+    (send t3 insert "abc")
+    (send t2 insert (new editor-snip% [editor t3]))
+    (send t2 insert "abc")
+    (send t insert (new editor-snip% [editor t2]))
+    (send t insert "abc")
+    (send t set-position 0 0)
+    (send t set-searching-state "b" #f #f)))
  (list 0 5))
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
 ;;  print-to-dc
 ;;
 
-(test
- 'print-to-dc
- (λ (x) (equal? x 'no-error))
+(check-not-exn
  (λ ()
-   (queue-sexp-to-mred
-    '(let* ([t (new text:basic%)]
-            [bmp (make-object bitmap% 100 40)]
-            [dc (new bitmap-dc% (bitmap bmp))])
-       (send t insert "Hello world")
-       (send dc clear)
-       (send t print-to-dc dc 1)
-       'no-error))))
+   (define t (new text:basic%))
+   (define bmp (make-object bitmap% 100 40))
+   (define dc (new bitmap-dc% (bitmap bmp)))
+   (send t insert "Hello world")
+   (send dc clear)
+   (send t print-to-dc dc 1)))
 
 
-(test
- 'print-to-dc2
- (λ (x) (equal? x 'no-error))
+(check-not-exn
  (λ ()
-   (queue-sexp-to-mred
-    `(let* ([f (new frame% [label ""])]
-            [t (new text:basic%)]
-            [ec (new editor-canvas% [parent f] [editor t])]
-            [bmp (make-object bitmap% 100 40)]
-            [dc (new bitmap-dc% (bitmap bmp))])
-       (send t insert "Hello world")
-       (send t highlight-range 2 5 "orange")
-       (send f reflow-container)
-       (send dc clear)
-       (send t print-to-dc dc 1)
-       'no-error))))
+   (define f (new frame% [label ""]))
+   (define t (new text:basic%))
+   (define ec (new editor-canvas% [parent f] [editor t]))
+   (define bmp (make-object bitmap% 100 40))
+   (define dc (new bitmap-dc% (bitmap bmp)))
+   (send t insert "Hello world")
+   (send t highlight-range 2 5 "orange")
+   (send f reflow-container)
+   (send dc clear)
+   (send t print-to-dc dc 1)))
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
@@ -426,343 +345,308 @@
   (define big-str
     (build-string (* buffer-size 2) (λ (i) (integer->char (+ (modulo i 26) (char->integer #\a))))))
   (define non-ascii-str "λαβ一二三四五")
+  
   (define (do/separate-thread str mtd)
-    (queue-sexp-to-mred
-     `(let* ([t (new (text:ports-mixin text:wide-snip%))]
-             [op (send t ,mtd)]
-             [exn #f])
-        (yield
-         (thread
-          (λ () 
-            (with-handlers ((exn:fail? (λ (x) (set! exn x))))
-              (display ,str op)
-              (flush-output op)))))
-        (when exn (raise exn))
-        (send t get-text 0 (send t last-position)))))
+    (let* ([t (new (text:ports-mixin text:wide-snip%))]
+           [op (case mtd
+                 [(get-out-port) (send t get-out-port)]
+                 [(get-err-port) (send t get-err-port)]
+                 [(get-value-port) (send t get-value-port)])]
+           [exn #f])
+      (yield
+       (thread
+        (λ () 
+          (with-handlers ((exn:fail? (λ (x) (set! exn x))))
+            (display str op)
+            (flush-output op)))))
+      (when exn (raise exn))
+      (send t get-text 0 (send t last-position))))
+
+  (check-equal?
+   (do/separate-thread "abc" 'get-out-port)
+   "abc")
+
+  (check-equal?
+   (do/separate-thread big-str 'get-out-port)
+   big-str)
   
-  (test 
-   'text:ports%.1
-   (λ (x) (equal? x "abc"))
-   (λ () (do/separate-thread "abc" 'get-out-port)))
+  (check-equal?
+   (do/separate-thread non-ascii-str 'get-out-port)
+   non-ascii-str)
   
-  (test 
-   'text:ports%.2
-   (λ (x) (equal? x big-str))
-   (λ () (do/separate-thread big-str 'get-out-port)))
+  (check-equal?
+   (do/separate-thread "abc" 'get-err-port)
+   "abc")
   
-  (test 
-   'text:ports%.3
-   (λ (x) (equal? x non-ascii-str))
-   (λ () (do/separate-thread non-ascii-str 'get-out-port)))
+  (check-equal?
+   (do/separate-thread big-str 'get-err-port)
+   big-str)
   
-  (test 
-   'text:ports%.4
-   (λ (x) (equal? x "abc"))
-   (λ () (do/separate-thread "abc" 'get-err-port)))
+  (check-equal?
+   (do/separate-thread non-ascii-str 'get-err-port)
+   non-ascii-str)
+
+  (check-equal? 
+   (do/separate-thread "abc" 'get-value-port)
+   "abc")
   
-  (test 
-   'text:ports%.5
-   (λ (x) (equal? x big-str))
-   (λ () (do/separate-thread big-str 'get-err-port)))
+  (check-equal?
+   (do/separate-thread big-str 'get-value-port) 
+   big-str)
   
-  (test 
-   'text:ports%.6
-   (λ (x) (equal? x non-ascii-str))
-   (λ () (do/separate-thread non-ascii-str 'get-err-port)))
+  (check-equal?
+   (do/separate-thread non-ascii-str 'get-value-port)
+   non-ascii-str)
   
   
-  (test 
-   'text:ports%.7
-   (λ (x) (equal? x "abc"))
-   (λ () (do/separate-thread "abc" 'get-value-port)))
+;; display the big string, one char at a time
+  (check-equal?
+   (let* ([t (new (text:ports-mixin text:wide-snip%))]
+          [op (send t get-out-port)]
+          [exn #f])
+     (yield
+      (thread
+       (λ () 
+         (with-handlers ((exn:fail? (λ (x) (set! exn x))))
+           (let loop ([i 0])
+             (when (< i (string-length big-str))
+               (display (string-ref big-str i) op)
+               (loop (+ i 1))))
+           (flush-output op)))))
+     (when exn (raise exn))
+     (send t get-text 0 (send t last-position)))
+   big-str)
   
-  (test 
-   'text:ports%.8
-   (λ (x) (equal? x big-str))
-   (λ () (do/separate-thread big-str 'get-value-port)))
-  
-  (test 
-   'text:ports%.9
-   (λ (x) (equal? x non-ascii-str))
-   (λ () (do/separate-thread non-ascii-str 'get-value-port)))
-  
-  ;; display the big string, one char at a time
-  (test
-   'text:ports%.10
-   (λ (x) (equal? x big-str))
-   (λ () 
-     (queue-sexp-to-mred
-      `(let* ([t (new (text:ports-mixin text:wide-snip%))]
-              [op (send t get-out-port)]
-              [big-str ,big-str]
-              [exn #f])
-         (yield
-          (thread
-           (λ () 
-             (with-handlers ((exn:fail? (λ (x) (set! exn x))))
-               (let loop ([i 0])
-                 (when (< i (string-length big-str))
-                   (display (string-ref big-str i) op)
-                   (loop (+ i 1))))
-               (flush-output op)))))
-         (when exn (raise exn))
-         (send t get-text 0 (send t last-position))))))
   
   (let ([s "五"])
-    (test
-     'text:ports%.partial-encoding
-     (λ (x) (equal? x s))
-     (λ ()
-       (define bts (string->bytes/utf-8 s))
-       (queue-sexp-to-mred
-        `(let ()
-           (define t (new (text:ports-mixin text:wide-snip%)))
-           (define p (send t get-out-port))
-           (void (write-bytes (bytes ,(bytes-ref bts 0)) p))
-           (flush-output p)
-           (void (write-bytes ,(subbytes bts 1 (bytes-length bts)) p))
-           (flush-output p)
-           (send t get-text))))))
+    (define bts (string->bytes/utf-8 s))
+    (check-equal?
+     (let ()
+       (define t (new (text:ports-mixin text:wide-snip%)))
+       (define p (send t get-out-port))
+       (write-bytes (bytes (bytes-ref bts 0)) p)
+       (flush-output p)
+       (void (write-bytes (subbytes bts 1 (bytes-length bts)) p))
+       (flush-output p)
+       (send t get-text))
+     s))
   
   (let ([b (bytes 195 195 (char->integer #\a))])
-    (test
-     'text:ports%.broken-encoding
-     (λ (x) 
+    (check-equal?
+     (let ()
+       (define t (new (text:ports-mixin text:wide-snip%)))
+       (define p (send t get-out-port))
+       (yield
+        (thread
+         (λ ()
+           (write-bytes b p)
+           (flush-output p))))
+       (send t get-text))
+     (let ()
        (define c (bytes-open-converter "UTF-8-permissive" "UTF-8"))
        (define-values (result-bytes src-read-amt termination) (bytes-convert c b))
-       (equal? x (bytes->string/utf-8 result-bytes)))
-     (λ ()
-       (queue-sexp-to-mred
-        `(let ()
-           (define t (new (text:ports-mixin text:wide-snip%)))
-           (define p (send t get-out-port))
-           (yield
-            (thread
-             (λ ()
-               (write-bytes ,b p)
-               (flush-output p))))
-           (send t get-text))))))
+       (bytes->string/utf-8 result-bytes))))
 
-     
   ;; the next tests test the interaction when the current
   ;; thread is the same as the handler thread of the eventspace
   ;; where the text was created
   
-  (test 
-   'text:ports%.thd1
-   (λ (x) (equal? x "abc"))
-   (λ ()
-     (queue-sexp-to-mred
-      `(let* ([t (new (text:ports-mixin text:wide-snip%))]
-              [op (send t get-out-port)]
-              [exn #f])
-         (display "abc" op)
-         (flush-output op)
-         (send t get-text 0 (send t last-position))))))
+  (check-equal?
+   (let* ([t (new (text:ports-mixin text:wide-snip%))]
+          [op (send t get-out-port)]
+          [exn #f])
+     (display "abc" op)
+     (flush-output op)
+     (send t get-text 0 (send t last-position)))
+   "abc")
   
-  (test 
-   'text:ports%.thd2
-   (λ (x) (equal? x big-str))
-   (λ ()
-     (queue-sexp-to-mred
-      `(let* ([t (new (text:ports-mixin text:wide-snip%))]
-              [op (send t get-out-port)])
-         (display ,big-str op)
-         (flush-output op)
-         (send t get-text 0 (send t last-position))))))
+  (check-equal?
+   (let* ([t (new (text:ports-mixin text:wide-snip%))]
+          [op (send t get-out-port)])
+     (display big-str op)
+     (flush-output op)
+     (send t get-text 0 (send t last-position)))
+   big-str)
   
-  (test 
-   'text:ports%.thd3
-   (λ (x) (equal? x non-ascii-str))
-   (λ ()
-     (queue-sexp-to-mred
-      `(let* ([t (new (text:ports-mixin text:wide-snip%))]
-              [op (send t get-out-port)])
-         (display ,non-ascii-str op)
-         (flush-output op)
-         (send t get-text 0 (send t last-position))))))
+  (check-equal?
+   (let* ([t (new (text:ports-mixin text:wide-snip%))]
+          [op (send t get-out-port)])
+     (display non-ascii-str op)
+     (flush-output op)
+     (send t get-text 0 (send t last-position)))
+   non-ascii-str)
   
-  (test 
-   'text:ports%.thd4
-   (λ (x) (equal? x non-ascii-str))
-   (λ ()
-     (queue-sexp-to-mred
-      `(let* ([t (new (text:ports-mixin text:wide-snip%))]
-              [op (send t get-out-port)])
-         (display ,non-ascii-str op)
-         (flush-output op)
-         (send t get-text 0 (send t last-position))))))
+  (check-equal?
+   (let* ([t (new (text:ports-mixin text:wide-snip%))]
+          [op (send t get-out-port)])
+     (display non-ascii-str op)
+     (flush-output op)
+     (send t get-text 0 (send t last-position)))
+   non-ascii-str)
 
 
   ;; This test sends a lot of flushes from a separate thread and,
   ;; while doing that, sends a `clear-output-ports` from the
   ;; eventspace main thread where the text was created. The goal
   ;; is to make sure there is no deadlock for this interaction.
-  (test
-   'text:ports%.flush-and-clear-output-ports-interaction
+  (check-pred
    (λ (x)
      ;; we know we're going to get all 'a's, but some of
      ;; the output could be discarded by `clear-output-ports`
-     (and (regexp-match #rx"^a*$" x)
+     (and (regexp-match? #rx"^a*$" x)
           (<= 100 (string-length x) 200)))
-   (λ ()
-     (queue-sexp-to-mred
-      `(let ()
-         (define es (make-eventspace))
-         (define-values (text port)
-           (let ()
-             (define c (make-channel))
-             (parameterize ([current-eventspace es])
-               (queue-callback
-                (λ ()
-                  (define t
-                    (new (text:ports-mixin
-                          (text:wide-snip-mixin
-                           text:basic%))))
-                  (channel-put c t)
-                  (channel-put c (send t get-out-port)))))
-             (values (channel-get c)
-                     (channel-get c))))
-         (define clear-output-go (make-semaphore 0))
-         (define clear-output-done (make-semaphore 0))
-         (void
-          (thread
-           (λ ()
-             (semaphore-wait clear-output-go)
-             (parameterize ([current-eventspace es])
-               (queue-callback
-                (λ ()
-                  (send text clear-output-ports)
-                  (semaphore-post clear-output-done)))))))
-         (for ([x (in-range 100)])
-           (display #\a port)
-           (flush-output port))
-         (semaphore-post clear-output-go)
-         (for ([x (in-range 100)])
-           (display #\a port)
-           (flush-output port))
-         (semaphore-wait clear-output-done)
-         (send text get-text))))))
+   (let ()
+     (define es (make-eventspace))
+     (define-values (text port)
+       (let ()
+         (define c (make-channel))
+         (parameterize ([current-eventspace es])
+           (queue-callback
+            (λ ()
+              (define t
+                (new (text:ports-mixin
+                      (text:wide-snip-mixin
+                       text:basic%))))
+              (channel-put c t)
+              (channel-put c (send t get-out-port)))))
+         (values (channel-get c)
+                 (channel-get c))))
+     (define clear-output-go (make-semaphore 0))
+     (define clear-output-done (make-semaphore 0))
+     (void
+      (thread
+       (λ ()
+         (semaphore-wait clear-output-go)
+         (parameterize ([current-eventspace es])
+           (queue-callback
+            (λ ()
+              (send text clear-output-ports)
+              (semaphore-post clear-output-done)))))))
+     (for ([x (in-range 100)])
+       (display #\a port)
+       (flush-output port))
+     (semaphore-post clear-output-go)
+     (for ([x (in-range 100)])
+       (display #\a port)
+       (flush-output port))
+     (semaphore-wait clear-output-done)
+     (send text get-text))))
 
-(test
- 'text:ports%.undo-does-not-remove-port-colors
+(check-pred
  (λ (x+y)
    (equal? (list-ref x+y 0)
            (list-ref x+y 1)))
- (λ ()
-   (queue-sexp-to-mred
-    `(let ()
-       (define t (new (text:ports-mixin
-                       (editor:standard-style-list-mixin
-                        text:wide-snip%))))
+ (let ()
+   (define t (new (text:ports-mixin
+                   (editor:standard-style-list-mixin
+                    text:wide-snip%))))
        
-       (send t set-max-undo-history 'forever)
-       (define last-undo? #f)
-       (send t add-undo (λ () (set! last-undo? #t)))
+   (send t set-max-undo-history 'forever)
+   (define last-undo? #f)
+   (send t add-undo (λ () (set! last-undo? #t)))
        
-       (define vp (send t get-value-port))
-       (define op (send t get-out-port))
+   (define vp (send t get-value-port))
+   (define op (send t get-out-port))
        
-       (display "1" vp)
-       (display "2" op)
-       (flush-output vp)
-       (flush-output op)
+   (display "1" vp)
+   (display "2" op)
+   (flush-output vp)
+   (flush-output op)
        
-       (define (to-vec c) (vector (send c red) (send c green) (send c blue)))
+   (define (to-vec c) (vector (send c red) (send c green) (send c blue)))
        
-       (define (get-colors)
-         (let loop ([s (send t find-first-snip)])
-           (cond
-             [s (cons (list (send s get-text 0 (send s get-count))
-                            (to-vec (send (send s get-style) get-foreground)))
-                      (loop (send s next)))]
-             [else '()])))
+   (define (get-colors)
+     (let loop ([s (send t find-first-snip)])
+       (cond
+         [s (cons (list (send s get-text 0 (send s get-count))
+                        (to-vec (send (send s get-style) get-foreground)))
+                  (loop (send s next)))]
+         [else '()])))
        
-       (define before (get-colors))
-       (let loop ()
-         (unless last-undo?
-           (send t undo)
-           (loop)))
-       (define after (get-colors))
-       (list before after)))))
+   (define before (get-colors))
+   (let loop ()
+     (unless last-undo?
+       (send t undo)
+       (loop)))
+   (define after (get-colors))
+   (list before after)))
 
-(define (test-ascii-art-enlarge-boxes-mixin name before position overwrite? chars after)
-  (test
-   name
-   (λ (got) (equal? got after))
-   (λ ()
-     (queue-sexp-to-mred
-      `(let ([t (new (text:ascii-art-enlarge-boxes-mixin text%))])
-         (send t set-ascii-art-enlarge #t)
-         (define f (new frame% [label ""]))
-         (define ec (new editor-canvas% [parent f] [editor t]))
-         (send t insert
-               ,before)
-         (send t set-position ,position ,position)
-         ,@(if overwrite? (list '(send t set-overwrite-mode #t)) '())
-         ,@(for/list ([char (in-list chars)])
-             `(send ec on-char (new key-event% [key-code ,char])))
-         (send t get-text))))))
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;
+;;  ascii art boxes
+;;
+
+(define (ascii-art-enlarge-boxes before position overwrite? chars)
+  (define t (new (text:ascii-art-enlarge-boxes-mixin text%)))
+  (send t set-ascii-art-enlarge #t)
+  (define f (new frame% [label ""]))
+  (define ec (new editor-canvas% [parent f] [editor t]))
+  (send t insert before)
+  (send t set-position position position)
+  (when overwrite? (send t set-overwrite-mode #t))
+  (for ([char (in-list chars)])
+    (send ec on-char (new key-event% [key-code char])))
+  (send t get-text))
 
 
-(test-ascii-art-enlarge-boxes-mixin 'ascii-art-enlarge.1
-                                    (string-append
-                                     "╔═╦═╗\n"
-                                     "║ ║ ║\n"
-                                     "╠═╬═╣\n"
-                                     "║ ║ ║\n"
-                                     "╚═╩═╝\n")
-                                    7 #t '(#\a)
-                                    (string-append
-                                     "╔═╦═╗\n"
-                                     "║a║ ║\n"
-                                     "╠═╬═╣\n"
-                                     "║ ║ ║\n"
-                                     "╚═╩═╝\n"))
+(check-equal? (ascii-art-enlarge-boxes
+               (string-append
+                "╔═╦═╗\n"
+                "║ ║ ║\n"
+                "╠═╬═╣\n"
+                "║ ║ ║\n"
+                "╚═╩═╝\n")
+               7 #t '(#\a))
+              (string-append
+               "╔═╦═╗\n"
+               "║a║ ║\n"
+               "╠═╬═╣\n"
+               "║ ║ ║\n"
+               "╚═╩═╝\n"))
 
-(test-ascii-art-enlarge-boxes-mixin 'ascii-art-enlarge.2
-                                    (string-append
-                                     "╔═╦═╗\n"
-                                     "║ ║ ║\n"
-                                     "╠═╬═╣\n"
-                                     "║ ║ ║\n"
-                                     "╚═╩═╝\n")
-                                    7 #t'(#\a #\b)
-                                    (string-append
-                                     "╔══╦═╗\n"
-                                     "║ab║ ║\n"
-                                     "╠══╬═╣\n"
-                                     "║  ║ ║\n"
-                                     "╚══╩═╝\n"))
+(check-equal? (ascii-art-enlarge-boxes
+               (string-append
+                "╔═╦═╗\n"
+                "║ ║ ║\n"
+                "╠═╬═╣\n"
+                "║ ║ ║\n"
+                "╚═╩═╝\n")
+               7 #t'(#\a #\b))
+              (string-append
+               "╔══╦═╗\n"
+               "║ab║ ║\n"
+               "╠══╬═╣\n"
+               "║  ║ ║\n"
+               "╚══╩═╝\n"))
 
-(test-ascii-art-enlarge-boxes-mixin 'ascii-art-enlarge.3
-                                    (string-append
-                                     "╔═╦═╗\n"
-                                     "║ ║ ║\n"
-                                     "╠═╬═╣\n"
-                                     "║ ║ ║\n"
-                                     "╚═╩═╝\n")
-                                    7 #f '(#\a)
-                                    (string-append
-                                     "╔══╦═╗\n"
-                                     "║a ║ ║\n"
-                                     "╠══╬═╣\n"
-                                     "║  ║ ║\n"
-                                     "╚══╩═╝\n"))
+(check-equal? (ascii-art-enlarge-boxes
+               (string-append
+                "╔═╦═╗\n"
+                "║ ║ ║\n"
+                "╠═╬═╣\n"
+                "║ ║ ║\n"
+                "╚═╩═╝\n")
+               7 #f '(#\a))
+              (string-append
+               "╔══╦═╗\n"
+               "║a ║ ║\n"
+               "╠══╬═╣\n"
+               "║  ║ ║\n"
+               "╚══╩═╝\n"))
 
-(test-ascii-art-enlarge-boxes-mixin 'ascii-art-enlarge.4
-                                    (string-append
-                                     "╔═╦═╗\n"
-                                     "║ ║ ║\n"
-                                     "║ ║ ║\n"
-                                     "╠═╬═╣\n"
-                                     "║ ║ ║\n"
-                                     "╚═╩═╝\n")
-                                    14 #f '(#\f)
-                                    (string-append
-                                     "╔══╦═╗\n"
-                                     "║  ║ ║\n"
-                                     "║ f║ ║\n"
-                                     "╠══╬═╣\n"
-                                     "║  ║ ║\n"
-                                     "╚══╩═╝\n"))
+(check-equal? (ascii-art-enlarge-boxes
+               (string-append
+                "╔═╦═╗\n"
+                "║ ║ ║\n"
+                "║ ║ ║\n"
+                "╠═╬═╣\n"
+                "║ ║ ║\n"
+                "╚═╩═╝\n")
+               14 #f '(#\f))
+              (string-append
+               "╔══╦═╗\n"
+               "║  ║ ║\n"
+               "║ f║ ║\n"
+               "╠══╬═╣\n"
+               "║  ║ ║\n"
+               "╚══╩═╝\n"))

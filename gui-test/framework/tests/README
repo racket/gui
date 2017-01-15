@@ -50,7 +50,7 @@ signal failures when there aren't any.
 
   - frames: frame.rkt    -- now runs directly via raco test.
   - canvases: canvas.rkt -- now runs directly via raco test.
-  - texts: |# text.rkt #|
+  - texts:  text.rkt     -- now runs directly via raco test.
   - pasteboards: |# pasteboard.rkt #|
 
 - keybindings: |# keys.rkt #|
