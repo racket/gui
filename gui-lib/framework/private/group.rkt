@@ -279,68 +279,69 @@
           (exit:exit)))))
   
   (define (choose-a-frame parent)
-    (letrec-values ([(sorted-frames)
-                     (sort
-                      (send (get-the-frame-group) get-frames)
-                      (λ (x y) (string-ci<=? (send x get-label) (send y get-label))))]
-                    [(d) (make-object dialog% (string-constant bring-frame-to-front) parent 400 600)]
-                    [(lb) (instantiate list-box% () 
-                            (label #f)
-                            (choices (map (λ (x) (gui-utils:trim-string (send x get-label) 200)) sorted-frames))
-                            (callback (λ (x y) (listbox-callback y)))
-                            (parent d))]
-                    [(t) (instantiate text:hide-caret/selection% ())]
-                    [(ec) (instantiate canvas:basic% ()
-                            (parent d)
-                            (stretchable-height #f))]
-                    [(bp) (instantiate horizontal-panel% ()
-                            (parent d)
-                            (stretchable-height #f)
-                            (alignment '(right center)))]
-                    [(cancelled?) #t]
-                    [(listbox-callback)
-                     (λ (evt)
-                       (case (send evt get-event-type)
-                         [(list-box)
+    (define sorted-frames
+      (sort
+       (send (get-the-frame-group) get-frames)
+       (λ (x y) (string-ci<=? (send x get-label) (send y get-label)))))
+    (define d
+      (make-object dialog% (string-constant bring-frame-to-front) parent 400 600))
+    (define lb
+      (new list-box%
+           (label #f)
+           (choices (map (λ (x) (gui-utils:trim-string (send x get-label) 200)) sorted-frames))
+           (callback (λ (x y) (listbox-callback y)))
+           (parent d)))
+    (define t (new text:hide-caret/selection%))
+    (define ec (new canvas:basic%
+                    (parent d)
+                    (stretchable-height #f)))
+    (define bp (new horizontal-panel%
+                    (parent d)
+                    (stretchable-height #f)
+                    (alignment '(right center))))
+    (define cancelled? #t)
+    (define (listbox-callback evt)
+      (case (send evt get-event-type)
+        [(list-box)
                           
-                          (send ok enable (pair? (send lb get-selections)))
+         (send ok enable (pair? (send lb get-selections)))
                           
-                          (let ([full-name
-                                 (let ([sels (send lb get-selections)])
-                                   (and (pair? sels)
-                                        (let ([fr (list-ref sorted-frames (car sels))])
-                                          (and (is-a? fr frame:basic%)
-                                               (send fr get-filename)))))])
-                            (send t begin-edit-sequence)
-                            (send t erase)
-                            (when full-name
-                              (send t insert (path->string full-name)))
-                            (send t end-edit-sequence))]
-                         [(list-box-dclick)
-                          (set! cancelled? #f)
-                          (send d show #f)]))]
-                    [(ok cancel)
-                     (gui-utils:ok/cancel-buttons
-                      bp
-                      (λ (x y)
-                        (set! cancelled? #f)
-                        (send d show #f))
-                      (λ (x y)
-                        (send d show #f)))])
-      (send ec set-line-count 3)
-      (send ec set-editor t)
-      (send t auto-wrap #t)
-      (let ([fr (car sorted-frames)])
-        (when (and (is-a? fr frame:basic<%>)
-                   (send fr get-filename))
-          (send t insert (path->string (send (car sorted-frames) get-filename))))
-        (send lb set-selection 0))
-      (send d show #t)
-      (unless cancelled?
-        (let ([sels (send lb get-selections)])
-          (unless (null? sels)
-            (send (list-ref sorted-frames (car sels)) show #t))))))
-  
+         (let ([full-name
+                (let ([sels (send lb get-selections)])
+                  (and (pair? sels)
+                       (let ([fr (list-ref sorted-frames (car sels))])
+                         (and (is-a? fr frame:basic%)
+                              (send fr get-filename)))))])
+           (send t begin-edit-sequence)
+           (send t erase)
+           (when full-name
+             (send t insert (path->string full-name)))
+           (send t end-edit-sequence))]
+        [(list-box-dclick)
+         (set! cancelled? #f)
+         (send d show #f)]))
+    (define-values (ok cancel)
+      (gui-utils:ok/cancel-buttons
+       bp
+       (λ (x y)
+         (set! cancelled? #f)
+         (send d show #f))
+       (λ (x y)
+         (send d show #f))))
+    (send ec set-line-count 3)
+    (send ec set-editor t)
+    (send t auto-wrap #t)
+    (let ([fr (car sorted-frames)])
+      (when (and (is-a? fr frame:basic<%>)
+                 (send fr get-filename))
+        (send t insert (path->string (send (car sorted-frames) get-filename))))
+      (send lb set-selection 0))
+    (send d show #t)
+    (unless cancelled?
+      (let ([sels (send lb get-selections)])
+        (unless (null? sels)
+          (send (list-ref sorted-frames (car sels)) show #t)))))
+
   
   (define (internal-get-the-frame-group)
     (let ([the-frame-group (make-object %)])
