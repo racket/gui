@@ -53,7 +53,7 @@ signal failures when there aren't any.
   - texts:  text.rkt     -- now runs directly via raco test.
   - pasteboards: |# pasteboard.rkt #|
 
-- keybindings: |# keys.rkt #|
+- keybindings: keys.rkt -- now runs directly via raco test.
 
   | This tests the misc (non-scheme) keybindings
 
