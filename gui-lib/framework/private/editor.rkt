@@ -154,7 +154,8 @@
                       (string-constant cancel)
                       (string-constant warning)
                       #f
-                      (get-top-level-window))
+                      (get-top-level-window)
+                      #:dialog-mixin frame:focus-table-mixin)
                      #t)
                  #t)
              (inner #t can-save-file? filename format)))
@@ -585,7 +586,8 @@
                    #t
                    (or (get-top-level-window)
                        (get-can-close-parent))
-                   allow-cancel?)
+                   allow-cancel?
+                   #:dialog-mixin frame:focus-table-mixin)
               [(continue) #t]
               [(save) (save-file)]
               [else #f])))

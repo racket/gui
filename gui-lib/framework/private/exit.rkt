@@ -6,7 +6,8 @@
            "../gui-utils.rkt"
            mred/mred-sig)
   
-  (import mred^)
+  (import mred^
+          [prefix frame: framework:frame^])
   (export (rename framework:exit^
                   (-exit exit)))
   
@@ -60,7 +61,8 @@
          'app
          (case-lambda
            [() (not (preferences:get 'framework:verify-exit))]
-           [(new) (preferences:set 'framework:verify-exit (not new))]))
+           [(new) (preferences:set 'framework:verify-exit (not new))])
+         #:dialog-mixin frame:focus-table-mixin)
         #t))
   
   (define (-exit)

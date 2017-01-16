@@ -2254,7 +2254,8 @@
                     (gui-utils:get-choice
                      (string-constant save-as-plain-text) 
                      (string-constant yes)
-                     (string-constant no))))
+                     (string-constant no)
+                     #:dialog-mixin frame:focus-table-mixin)))
            (set-file-format 'text)]
           [(and (not all-strings?)
                 (eq? format 'same)
@@ -2263,7 +2264,8 @@
                     (gui-utils:get-choice
                      (string-constant save-in-drs-format)
                      (string-constant yes)
-                     (string-constant no))))
+                     (string-constant no)
+                     #:dialog-mixin frame:focus-table-mixin)))
            (set-file-format 'standard)]
           [else (void)]))
       (inner (void) on-save-file name format))

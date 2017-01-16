@@ -1,4 +1,4 @@
-#lang scheme/unit
+#lang racket/base
 
   (require string-constants
            racket/class
@@ -6,8 +6,17 @@
            "../preferences.rkt"
            "../gui-utils.rkt"
            mred/mred-sig
-           racket/path)
-  
+           racket/path
+           racket/unit)
+
+;; for use in the test suite
+(define pay-attention-to-current-eventspace-has-standard-menus?
+  (make-parameter #t))
+
+(provide pay-attention-to-current-eventspace-has-standard-menus?
+         group@)
+
+(define-unit group@
   (import mred^
           [prefix application: framework:application^]
           [prefix frame: framework:frame^]
@@ -268,14 +277,16 @@
       (or (not (preferences:get 'framework:exit-when-no-frames))
           (exit:exiting?)
           (not (= 1 number-of-frames))
-          (current-eventspace-has-standard-menus?)
+          (and (pay-attention-to-current-eventspace-has-standard-menus?)
+               (current-eventspace-has-standard-menus?))
           (exit:user-oks-exit))))
 
   (define (on-close-action)
     (when (preferences:get 'framework:exit-when-no-frames)
       (unless (exit:exiting?)
         (when (and (null? (send (get-the-frame-group) get-frames))
-                   (not (current-eventspace-has-standard-menus?)))
+                   (not (and (pay-attention-to-current-eventspace-has-standard-menus?)
+                             (current-eventspace-has-standard-menus?))))
           (exit:exit)))))
   
   (define (choose-a-frame parent)
@@ -349,4 +360,4 @@
       (internal-get-the-frame-group)))
   
   (define (get-the-frame-group)
-    (internal-get-the-frame-group))
+    (internal-get-the-frame-group)))

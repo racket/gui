@@ -256,7 +256,8 @@
               (string-constant autosave-delete-title)
               (string-constant cancel)
               (string-constant warning)
-              #f)
+              #f
+              #:dialog-mixin frame:focus-table-mixin)
              (with-handlers ([exn:fail?
                               (λ (exn)
                                 (message-box

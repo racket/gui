@@ -230,7 +230,8 @@
           (λ () (thunk))
           (λ () (cursor-off))))])))
 
-(define (unsaved-warning filename action-anyway [can-save-now? #f] [parent #f] [cancel? #t])
+(define (unsaved-warning filename action-anyway [can-save-now? #f] [parent #f] [cancel? #t]
+                         #:dialog-mixin [dialog-mixin values])
   (define key-closed #f)
   (define (unsaved-warning-mixin %)
     (class %
@@ -265,39 +266,41 @@
          '(default=2 caution))
      2
      #:dialog-mixin (if (equal? (system-type) 'macosx)
-                        unsaved-warning-mixin
-                        values)))
+                        (compose unsaved-warning-mixin dialog-mixin)
+                        dialog-mixin)))
   (or key-closed
       (case mb-res
         [(1) 'save]
         [(2) 'cancel]
         [(3) 'continue])))
 
-(define get-choice
-  (lambda (message 
-           true-choice
-           false-choice 
-           (title (string-constant warning))
-           (default-result 'disallow-close)
-           (parent #f)
-           (style 'app)
-           (checkbox-proc #f)
-           (checkbox-label (string-constant dont-ask-again)))
-    (let* ([check? (and checkbox-proc (checkbox-proc))]
-           [style  (if (eq? style 'app) `(default=1) `(default=1 ,style))]
-           [style  (if (eq? 'disallow-close default-result)
-                       (cons 'disallow-close style) style)]
-           [style  (if check? (cons 'checked style) style)]
-           [return (λ (mb-res) (case mb-res [(1) #t] [(2) #f] [else mb-res]))])
-      (if checkbox-proc
-          (let-values ([(mb-res checked)
-                        (message+check-box/custom title message checkbox-label
-                                                  true-choice false-choice #f
-                                                  parent style default-result)])
-            (checkbox-proc checked)
-            (return mb-res))
-          (return (message-box/custom title message true-choice false-choice #f
-                                      parent style default-result))))))
+(define (get-choice message
+                    true-choice
+                    false-choice
+                    [title (string-constant warning)]
+                    [default-result 'disallow-close]
+                    [parent #f]
+                    [style 'app]
+                    [checkbox-proc #f]
+                    [checkbox-label (string-constant dont-ask-again)]
+                    #:dialog-mixin [dialog-mixin values])
+  (let* ([check? (and checkbox-proc (checkbox-proc))]
+         [style  (if (eq? style 'app) `(default=1) `(default=1 ,style))]
+         [style  (if (eq? 'disallow-close default-result)
+                     (cons 'disallow-close style) style)]
+         [style  (if check? (cons 'checked style) style)]
+         [return (λ (mb-res) (case mb-res [(1) #t] [(2) #f] [else mb-res]))])
+    (if checkbox-proc
+        (let-values ([(mb-res checked)
+                      (message+check-box/custom title message checkbox-label
+                                                true-choice false-choice #f
+                                                parent style default-result
+                                                #:dialog-mixin dialog-mixin)])
+          (checkbox-proc checked)
+          (return mb-res))
+        (return (message-box/custom title message true-choice false-choice #f
+                                    parent style default-result
+                                    #:dialog-mixin dialog-mixin)))))
 
 ;; manual renaming
 (define gui-utils:trim-string trim-string)
@@ -490,12 +493,14 @@
     (or/c false/c
           (is-a?/c frame%)
           (is-a?/c dialog%))
-    boolean?)
+    boolean?
+    #:dialog-mixin (make-mixin-contract dialog%))
    (symbols 'continue 'save 'cancel))
   ((filename action)
    ((can-save-now? #f)
     (parent #f)
-    (cancel? #t)))
+    (cancel? #t)
+    (dialog-mixin values)))
   
   @{This displays a dialog that warns the user of a unsaved file.
     
@@ -511,6 +516,10 @@
     in the dialog and the result may be @racket['cancel]. If it
     is @racket[#f], then there is no cancel button, and @racket['cancel]
     will not be the result of the function.
+
+    The @racket[dialog-mixin] argument is passed to @racket[message-box/custom].
+
+    @history[#:changed "1.29" @elem{Added the @racket[dialog-mixin] argument.}]
     
     })
  
@@ -525,7 +534,8 @@
         (symbols 'app 'caution 'stop)
         (or/c false/c (case-> (boolean? . -> . void?)
                               (-> boolean?)))
-        string?)
+        string?
+        #:dialog-mixin (make-mixin-contract dialog%))
        any/c)
   ((message true-choice false-choice)
    ((title (string-constant warning))
@@ -533,7 +543,8 @@
     (parent #f)
     (style 'app)
     (checkbox-proc #f)
-    (checkbox-label (string-constant dont-ask-again))))
+    (checkbox-label (string-constant dont-ask-again))
+    (dialog-mixin values)))
   
   @{Opens a dialog that presents a binary choice to the user. The user is
     forced to choose between these two options, ie cancelling or closing the
@@ -565,7 +576,14 @@
     (defaults to the @racket[dont-ask-again] string constant), and that
     checkbox value will be sent to the @racket[checkbox-proc] when the dialog
     is closed.  Note that the dialog will always pop-up --- it is the
-    caller's responsibility to avoid the dialog if not needed.})
+    caller's responsibility to avoid the dialog if not needed.
+
+    The @racket[dialog-mixin] argument is passed to @racket[message-box/custom]
+    or @racket[message+check-box/custom].
+
+    @history[#:changed "1.29" @elem{Added the @racket[dialog-mixin] argument.}]
+
+    })
  
  (proc-doc/names
   gui-utils:get-clicked-clickback-delta

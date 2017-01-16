@@ -1509,7 +1509,8 @@
                          (string-constant no)
                          (string-constant are-you-sure-revert-title)
                          #f
-                         this))
+                         this
+                         #:dialog-mixin focus-table-mixin))
                 (revert))))
         #t))
     
