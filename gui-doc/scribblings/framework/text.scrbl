@@ -606,7 +606,7 @@
   search bubbles.
 
   Call this method to ensure that the results from any of
-  @method[text:searching<%> get-replace-hit-count],
+  @method[text:searching<%> get-search-hit-count],
   @method[text:searching<%> get-replace-search-hit], or
   @method[text:searching<%> get-search-bubbles] are correct.
  }
