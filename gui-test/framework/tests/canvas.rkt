@@ -1,5 +1,5 @@
 #lang racket/base
-(require "private/here-util.rkt"
+(require "private/util.rkt"
          framework
          racket/class
          racket/gui/base

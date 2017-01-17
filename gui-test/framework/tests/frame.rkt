@@ -1,6 +1,6 @@
 #lang racket/base
 
-(require "private/here-util.rkt"
+(require "private/util.rkt"
          "private/gui.rkt"
          rackunit
          racket/class
@@ -315,21 +315,13 @@
       (check-equal? (try no-change-early-f "aaaa" "a" "bbbbbbbbbb") "abbbbbbbbbbbbbbbbbbbbbbbbbbbbbb")
       (close-up-no-change-early-f no-change-early-f))))
 
-(let ([pref-ht (make-hash)])
-  (parameterize ([test:use-focus-table #t]
-                 [preferences:low-level-get-preference
-                  (λ (sym [fail (λ () #f)])
-                    (hash-ref pref-ht sym fail))]
-                 [preferences:low-level-put-preferences
-                  (λ (syms vals)
-                    (for ([sym (in-list syms)]
-                          [val (in-list vals)])
-                      (hash-set! pref-ht sym val)))])
-    (define dummy (make-object frame:basic% "dummy to keep from quitting"))
-    (send dummy show #t)
-    (creation-tests)
-    (open-tests)
-    (replace-all-tests)
-    (frame/text-creation-tests)
-    (send dummy show #f)))
+(with-private-prefs
+ (parameterize ([test:use-focus-table #t])
+   (define dummy (make-object frame:basic% "dummy to keep from quitting"))
+   (send dummy show #t)
+   (creation-tests)
+   (open-tests)
+   (replace-all-tests)
+   (frame/text-creation-tests)
+   (send dummy show #f)))
 

@@ -1,5 +1,5 @@
 #lang racket/gui
-(require framework rackunit)
+(require framework rackunit "private/util.rkt")
 
 (check-equal?
  (let ([k (make-object keymap:aug-keymap%)])
@@ -415,43 +415,41 @@
                   (send text get-start-position)
                   (send text get-end-position))))
        (vector text-expect start-expect end-expect)
-       (~s (list key-sequence i)))))
+       (~s (list frame-name key-sequence i)))))
   (queue-callback/wait (λ () (send f close))))
 
-(let ([pref-ht (make-hash)])
-  (parameterize ([test:use-focus-table #t]
-                 [preferences:low-level-get-preference
-                  (λ (sym [fail (λ () #f)])
-                    (hash-ref pref-ht sym fail))]
-                 [preferences:low-level-put-preferences
-                  (λ (syms vals)
-                    (for ([sym (in-list syms)]
-                          [val (in-list vals)])
-                      (hash-set! pref-ht sym val)))])
-    ;; needs to be inside the test:use-focus-table setting
-    (parameterize ([current-eventspace (make-eventspace)])
+(with-private-prefs
+ (parameterize ([test:use-focus-table #t])
+   ;; needs to be inside the test:use-focus-table setting
+   (parameterize ([current-eventspace (make-eventspace)])
+      
+     ;; make sure we're back to a clean preferences state
+     ;; and the parameterize above ensure that we won't
+     ;; look at the disk so together this should mean
+     ;; no interference between different concurrent tests
+     (preferences:restore-defaults)
+      
+     (define dummy #f)
+     (queue-callback
+      (λ ()
+        (set! dummy (make-object frame:basic% "dummy to trick frame group"))
+        (send dummy show #t)))
 
-      (define dummy #f)
-      (queue-callback
-       (λ ()
-         (set! dummy (make-object frame:basic% "dummy to trick frame group"))
-         (send dummy show #t)))
+     (preferences:set 'framework:fixup-open-parens #t)
+     (preferences:set 'framework:automatic-parens #f)
+     (test-specs "global keybindings test" frame:text% global-specs)
+     (test-specs "racket mode keybindings test"
+                 (class frame:editor%
+                   (define/override (get-editor%) racket:text%)
+                   (super-new))
+                 scheme-specs)
 
-      (preferences:set 'framework:fixup-open-parens #t)
-      (preferences:set 'framework:automatic-parens #f)
-      (test-specs "global keybindings test" frame:text% global-specs)
-      (test-specs "racket mode keybindings test"
-                  (class frame:editor%
-                    (define/override (get-editor%) racket:text%)
-                    (super-new))
-                  scheme-specs)
+     (preferences:set 'framework:automatic-parens #t)
+     (preferences:set 'framework:fixup-open-parens #f)
+     (test-specs "racket mode automatic-parens on keybindings test"
+                 (class frame:editor%
+                   (define/override (get-editor%) racket:text%)
+                   (super-new))
+                 automatic-scheme-specs)
 
-      (preferences:set 'framework:automatic-parens #t)
-      (preferences:set 'framework:fixup-open-parens #f)
-      (test-specs "racket mode automatic-parens on keybindings test"
-                  (class frame:editor%
-                    (define/override (get-editor%) racket:text%)
-                    (super-new))
-                  automatic-scheme-specs)
-
-      (queue-callback (λ () (send dummy show #f))))))
+     (queue-callback (λ () (send dummy show #f))))))
