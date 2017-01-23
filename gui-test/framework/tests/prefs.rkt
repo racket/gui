@@ -140,5 +140,13 @@
                              exact-nonnegative-integer?
                              #:aliases '(preferences-aliases-test:1)
                              #:rewrite-aliases (list (λ (v) (read (open-input-string v)))))
-    (check-equal? (preferences:get 'preferences-aliases-test) 1)))
+    (check-equal? (preferences:get 'preferences-aliases-test) 1))
 
+
+  (let ()
+    (preferences:set-default 'snapshot-test 0 number?)
+    (preferences:set 'snapshot-test 11)
+    (define snap (preferences:get-prefs-snapshot))
+    (preferences:set 'snapshot-test 12)
+    (preferences:restore-prefs-snapshot snap)
+    (check-equal? (preferences:get 'snapshot-test) 11)))

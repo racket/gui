@@ -382,7 +382,7 @@ the state transitions / contracts are:
         (loop (preferences:layer-prev prefs-state)
               (for/fold ([sofar sofar])
                         ([(k def) (in-hash (preferences:layer-defaults prefs-state))])
-                (cons (cons k (copy-pref-value (preferences:get k)))
+                (cons (cons k (copy-pref-value k (preferences:get k)))
                       sofar)))]
        [else sofar]))))
 
