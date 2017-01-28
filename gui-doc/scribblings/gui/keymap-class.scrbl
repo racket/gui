@@ -32,7 +32,7 @@ Creates an empty keymap.
 }
 
 @defmethod[(add-function [name string?]
-                         [func (any/c (is-a?/c event%) . -> . any/c)])
+                         [func (any/c (is-a?/c event%) . -> . any)])
            void?]{
 
 Names a new function to handle events, called in response to
