@@ -738,6 +738,25 @@
 
 (define magic-space 25)
 
+(define-local-member-name get-memory-use-canvas)
+(define memory-use-timer-cell (make-thread-cell #f))
+(define (update-memory-use-canvases)
+  (define found-any? #f)
+  (for ([window (in-list (get-top-level-windows))])
+    (when (is-a? window frame:info<%>)
+      (set! found-any? #t)
+      (send (send window get-memory-use-canvas) update-memory-use-if-bigish-change)))
+  (unless found-any?
+    (send (thread-cell-ref memory-use-timer-cell) stop)
+    (thread-cell-set! memory-use-timer-cell #f)))
+(define (maybe-create-memory-use-timer)
+  (unless (thread-cell-ref memory-use-timer-cell)
+    (when (eq? (current-thread) (eventspace-handler-thread (current-eventspace)))
+      (thread-cell-set! memory-use-timer-cell
+                        (new timer%
+                             [notify-callback update-memory-use-canvases]
+                             [interval 1000])))))
+
 (define info-mixin
   (mixin (basic<%>) (info<%>)
     [define rest-panel 'uninitialized-root]
@@ -852,55 +871,35 @@
     (new grow-box-spacer-pane% [parent outer-info-panel])
     
     (define/public (get-info-panel) info-panel)
-    (define/public (update-memory-text)
-      (for ([memory-canvas (in-list memory-canvases)])
-        (send memory-canvas set-str (format-number (current-memory-use)))))
-    
-    (define/private (format-number n)
-      (let* ([mbytes (/ n 1024 1024)]
-             [before-decimal (floor mbytes)]
-             [after-decimal (modulo (floor (* mbytes 100)) 100)])
-        (string-append
-         (number->string before-decimal)
-         "."
-         (cond
-           [(<= after-decimal 9) (format "0~a" after-decimal)]
-           [else (number->string after-decimal)])
-         " MB")))
-    
-    (define/private (pad-to-3 n)
-      (cond
-        [(<= n 9) (format "00~a" n)]
-        [(<= n 99) (format "0~a" n)]
-        [else (number->string n)]))
+    (define/public (get-memory-use-canvas) this-frames-memory-canvas)
     
     (define pref-save-canvas #f)
     (set! pref-save-canvas (new pref-save-canvas% [parent (get-info-panel)]))
     
     [define lock-canvas (make-object lock-canvas% (get-info-panel))]
-    
+    (define this-frames-memory-canvas #f)
     ; set up the memory use display in the status line
     (let* ([panel (new horizontal-panel%
                        [parent (get-info-panel)]
                        [stretchable-width #f]
-                       [stretchable-height #f])]
-           [ec (new position-canvas%
-                    [parent panel]
-                    [button-up
-                     (λ (evt)
-                       (cond
-                         [(or (send evt get-alt-down)
-                              (send evt get-control-down))
-                          (dynamic-require 'framework/private/follow-log #f)]
-                         [else
-                          (collect-garbage)
-                          (update-memory-text)]))]
-                    [init-width "99.99 MB"])])
-      (set! memory-canvases (cons ec memory-canvases))
-      (update-memory-text)
+                       [stretchable-height #f])])
+      (set! this-frames-memory-canvas
+            (new memory-position-canvas%
+                 [parent panel]
+                 [button-up
+                  (λ (evt)
+                    (cond
+                      [(or (send evt get-alt-down)
+                           (send evt get-control-down))
+                       (dynamic-require 'framework/private/follow-log #f)]
+                      [else
+                       (collect-garbage)
+                       (update-memory-text)]))]))
+      (set! memory-canvases (cons this-frames-memory-canvas memory-canvases))
+      (maybe-create-memory-use-timer)
       (set! memory-cleanup
             (λ ()
-              (set! memory-canvases (remq ec memory-canvases))))
+              (set! memory-canvases (remq this-frames-memory-canvas memory-canvases))))
       (send panel stretchable-width #f))
     
     (define gc-canvas (new bday-click-canvas% [parent (get-info-panel)] [style '(border no-focus)]))
@@ -1020,6 +1019,37 @@
       (let-values ([(_1 th _2 _3) (send dc get-text-extent str)])
         (min-client-height (inexact->exact (floor th)))))
     (update-client-width init-width)))
+
+(define memory-canvases '())
+(define (update-memory-text)
+  (for ([memory-canvas (in-list memory-canvases)])
+    (send memory-canvas update-memory-use)))
+(define memory-position-canvas%
+  (class position-canvas%
+    (inherit set-str)
+    (define/public (update-memory-use)
+      (set! last-memory-use (current-memory-use))
+      (set-str (format-number last-memory-use)))
+    (define/public (update-memory-use-if-bigish-change)
+      (define change-amount (abs (- (current-memory-use) last-memory-use)))
+      (when (change-amount . > . (* 1024 1024)) ;; more than one meg
+        (update-memory-use)))
+
+    (define/private (format-number n)
+      (let* ([mbytes (/ n 1024 1024)]
+             [before-decimal (floor mbytes)]
+             [after-decimal (modulo (floor (* mbytes 100)) 100)])
+        (string-append
+         (number->string before-decimal)
+         "."
+         (cond
+           [(<= after-decimal 9) (format "0~a" after-decimal)]
+           [else (number->string after-decimal)])
+         " MB")))
+
+    (super-new [init-width "99.99 MB"])
+    (define last-memory-use 0)
+    (update-memory-use)))
 
 (define text-info<%> frame:text-info<%>)
 (define text-info-mixin
@@ -2756,8 +2786,6 @@
     (define/override (get-editor<%>) text:searching<%>)
     (define/override (get-editor%) (text:searching-mixin (super get-editor%)))
     (super-new)))
-
-(define memory-canvases '())
 
 (define bday-click-canvas%
   (class canvas%
