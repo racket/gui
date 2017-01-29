@@ -423,12 +423,6 @@
    ;; needs to be inside the test:use-focus-table setting
    (parameterize ([current-eventspace (make-eventspace)])
       
-     ;; make sure we're back to a clean preferences state
-     ;; and the parameterize above ensure that we won't
-     ;; look at the disk so together this should mean
-     ;; no interference between different concurrent tests
-     (preferences:restore-defaults)
-      
      (define dummy #f)
      (queue-callback
       (λ ()
