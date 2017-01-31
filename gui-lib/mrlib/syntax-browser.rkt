@@ -1,4 +1,6 @@
 #lang racket/base
+(module+ test (require rackunit))
+
 #|
 
 needed to really make this work:
@@ -77,8 +79,6 @@ needed to really make this work:
       (define/override (write stream)
         (send stream put (string->bytes/utf-8 (format "~s" (marshall-syntax main-stx)))))
       
-      (define path '())
-      (define next-push 0)
       (define-values (datum paths-ht) (syntax-object->datum/record-paths main-stx))
       
       (define output-text (new text:hide-caret/selection%))
@@ -91,69 +91,16 @@ needed to really make this work:
               (make-object style-delta% 'change-family 'modern)
               0
               (send text last-position)))
-      
+
+      (define path '())
+      (define next-push 0)
       (define/private (push!)
         (set! path (cons next-push path))
         (set! next-push 0))
       (define/private (pop!)
         (set! next-push (+ (car path) 1))
         (set! path (cdr path)))
-      ;; record-paths : val -> hash-table[path -o> syntax-object]
-      (define/private (syntax-object->datum/record-paths val)
-        (set! path '())
-        (set! next-push 0)
-        (let* ([ht (make-hash)]
-               [record
-                (λ (val enclosing-stx)
-                  (hash-set! ht path enclosing-stx))])
-          (values
-           (let loop ([val val]
-                      [enclosing-stx #f])
-             (cond
-               [(syntax? val)
-                (loop (syntax-e val)
-                      val)]
-               [(pair? val) 
-                (push!)
-                (record val enclosing-stx)
-                (begin0
-                  (let lst-loop ([val val])
-                    (cond
-                      [(pair? val) 
-                       (cons (loop (car val) #f)
-                             (lst-loop (cdr val)))]
-                      [(null? val) '()]
-                      [else
-                       (loop val enclosing-stx)]))
-                  (pop!))]
-               [(vector? val) 
-                (push!)
-                (record val enclosing-stx)
-                (begin0
-                  (apply
-                   vector
-                   (let lst-loop ([val (vector->list val)])
-                     (cond
-                       [(pair? val) 
-                        (cons (loop (car val) #f)
-                              (lst-loop (cdr val)))]
-                       [(null? val) '()])))
-                  (pop!))]
-               [(hash? val)
-                (push!)
-                (record val enclosing-stx)
-                (begin0
-                  (for/hash ([(k v) (in-hash val)])
-                    (values (loop k #f)
-                            (loop v #f)))
-                  (pop!))]
-               [else
-                (push!)
-                (record val enclosing-stx)
-                (pop!)
-                val]))
-           ht)))
-
+      
       (define/private (populate-range-ht)
         ;; range-start-ht : hash-table[obj -o> number]
         (define range-start-ht (make-hasheq))
@@ -450,7 +397,79 @@ needed to really make this work:
       
       (inherit set-snipclass)
       (set-snipclass snip-class)))
-  
+      
+;; record-paths : val -> hash-table[path -o> syntax-object]
+(define (syntax-object->datum/record-paths val)
+  (define path '())
+  (define next-push 0)
+  (define (push!)
+    (set! path (cons next-push path))
+    (set! next-push 0))
+  (define (pop!)
+    (set! next-push (+ (car path) 1))
+    (set! path (cdr path)))
+  (let* ([ht (make-hash)]
+         [record
+          (λ (val enclosing-stx)
+            (hash-set! ht path enclosing-stx))])
+    (values
+     (let loop ([val val]
+                [enclosing-stx #f])
+       (cond
+         [(syntax? val)
+          (loop (syntax-e val)
+                val)]
+         [(pair? val)
+          (push!)
+          (record val enclosing-stx)
+          (begin0
+            (let lst-loop ([val val])
+              (cond
+                [(pair? val)
+                 (cons (loop (car val) #f)
+                       (lst-loop (cdr val)))]
+                [(null? val) '()]
+                [else
+                 (loop val enclosing-stx)]))
+            (pop!))]
+         [(vector? val)
+          (push!)
+          (record val enclosing-stx)
+          (begin0
+            (apply
+             vector
+             (let lst-loop ([val (vector->list val)])
+               (cond
+                 [(pair? val)
+                  (cons (loop (car val) #f)
+                        (lst-loop (cdr val)))]
+                 [(null? val) '()])))
+            (pop!))]
+         [(hash? val)
+          (push!)
+          (record val enclosing-stx)
+          (begin0
+            (for/hash ([(k v) (in-hash val)])
+              (values (loop k #f)
+                      (loop v #f)))
+            (pop!))]
+         [else
+          (push!)
+          (record val enclosing-stx)
+          (pop!)
+          val]))
+     ht)))
+
+(module+ test
+  (let ([x (datum->syntax #f 'x #f #f)]
+        [y (datum->syntax #f 'y #f #f)])
+    (check-equal? (call-with-values
+                   (λ ()
+                     (syntax-object->datum/record-paths (list x y)))
+                   list)
+                  (list '(x y)
+                        (make-hash `(((0) . #f) ((1 0) . ,y) ((0 0) . ,x)))))))
+
   (define black-style-delta (make-object style-delta% 'change-normal-color))
   (define green-style-delta (make-object style-delta%))
   (void (send green-style-delta set-delta-foreground "forest green"))
