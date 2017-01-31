@@ -429,6 +429,9 @@ needed to really make this work:
                  (cons (loop (car val) #f)
                        (lst-loop (cdr val)))]
                 [(null? val) '()]
+                [(and (syntax? val) (pair? (syntax-e val)))
+                 (define pr (syntax-e val))
+                 (lst-loop pr)]
                 [else
                  (loop val enclosing-stx)]))
             (pop!))]
@@ -466,6 +469,16 @@ needed to really make this work:
     (check-equal? (call-with-values
                    (λ ()
                      (syntax-object->datum/record-paths (list x y)))
+                   list)
+                  (list '(x y)
+                        (make-hash `(((0) . #f) ((1 0) . ,y) ((0 0) . ,x))))))
+
+  (let* ([x (datum->syntax #f 'x #f #f)]
+         [y (datum->syntax #f 'y #f #f)]
+         [ly (datum->syntax #f (list y) #f #f)])
+    (check-equal? (call-with-values
+                   (λ ()
+                     (syntax-object->datum/record-paths (cons x ly)))
                    list)
                   (list '(x y)
                         (make-hash `(((0) . #f) ((1 0) . ,y) ((0 0) . ,x)))))))
