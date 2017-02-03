@@ -403,9 +403,24 @@
          (send text set-overwrite-mode (buff-spec-overwrite? before))
          (send text erase)
          (send text insert (buff-spec-string before))
-         (send text set-position (buff-spec-start before) (buff-spec-end before))))
-      (for ([key (in-list key-sequence)])
-        (test:keystroke (car key) (cdr key)))
+         (send text set-position (buff-spec-start before) (buff-spec-end before))
+
+         (for ([key (in-list key-sequence)])
+           (define event (make-object key-event%))
+           (send event set-key-code (car key))
+           (send event set-time-stamp (current-milliseconds))
+           (for ([mod (in-list (cdr key))])
+             (cond
+               [(eq? mod 'alt)        (send event set-alt-down     #t)]
+               [(eq? mod 'control)    (send event set-control-down #t)]
+               [(eq? mod 'meta)       (send event set-meta-down    #t)]
+               [(eq? mod 'shift)      (send event set-shift-down   #t)]
+               [(eq? mod 'noalt)      (send event set-alt-down     #f)]
+               [(eq? mod 'nocontrol)  (send event set-control-down #f)]
+               [(eq? mod 'nometa)     (send event set-meta-down    #f)]
+               [(eq? mod 'noshift)    (send event set-shift-down   #f)]
+               [else  (error 'keys.rkt "unknown key modifier: ~e" mod)]))
+           (send text on-local-char event))))
       (check-equal?
        (queue-callback/wait
         (λ ()
