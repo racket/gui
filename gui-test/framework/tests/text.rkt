@@ -573,6 +573,278 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
+;; move/copy-to-edit tests
+;;
+
+(define (get-snips text)
+    (define the-snips
+      (let loop ([current (send text find-first-snip)]
+                 [snips '()])
+        (if current
+            (loop (send current next) (cons current snips))
+            (reverse snips))))
+    (for/list ([snip (in-list the-snips)]
+               [i (in-naturals)])
+      (send snip get-text 0 (send snip get-count))))
+
+(define (edit-style t posns)
+  (define (maybe-cdr p) (if (empty? p) '() (cdr p)))
+  (for ([i (in-list posns)]
+        [j (in-list (append (maybe-cdr posns) '(end)))]
+        [s (in-naturals)])
+    (define sd (make-object style-delta%
+                 (if (even? s) 'change-normal 'change-normal-color)))
+    (send t change-style sd i j)))
+
+(check-equal? (let ([t (new text%)])
+                (send t insert "ABCDEF")
+                (edit-style t '(3))
+                (get-snips t))
+              '("ABC" "DEF"))
+
+(check-equal? (let ([t (new text%)])
+                (send t insert "ABCDEFGH")
+                (edit-style t '(3 5))
+                (get-snips t))
+              '("ABC" "DE" "FGH"))
+
+(define (edit-string/text str start end dest-pos [this? #f] [style #f]
+                     #:try-to-move? [try-to-move? #f]
+                     #:contract-this? [contract-this? #f])
+  (define t1 (new text:basic%))
+  (define t2 (if this?
+                 (if contract-this? (contract (object/c) t1 'p 'n) t1)
+                 (new text:basic%)))
+  (send t1 insert str)
+  (when style
+    (edit-style t1 style))
+  (send t1 move/copy-to-edit t2
+        start
+        end
+        (if this? dest-pos 0)
+        #:try-to-move? try-to-move?)
+  (unless this?
+    (send t2 move/copy-to-edit
+          t1
+          0
+          (send t2 get-end-position)
+          (cond
+            [(and try-to-move? (>= dest-pos end))
+             (- dest-pos (- end start))]
+            [(and try-to-move? (>= dest-pos start))
+             start]
+            [else dest-pos])
+          #:try-to-move? #t))
+  (send t1 get-text))
+
+(check-equal? (edit-string/text "lR" 0 2 1 #f '(1) #:try-to-move? #t) "lR")
+(check-equal? (edit-string/text "DaMoe" 0 5 1 #:try-to-move? #t) "DaMoe")
+(check-equal? (edit-string/text "lR" 0 2 1 #f '(1) #:try-to-move? #t) "lR")
+(check-equal? (edit-string/text "ABC" 2 3 0 #t '(0 1 2)) "CABC")
+(check-equal? (edit-string/text "ABC" 2 3 0 #t #f) "CABC")
+(check-equal? (edit-string/text "ABC" 2 3 0 #f '(0 1 2)) "CABC")
+(check-equal? (edit-string/text "ABC" 2 3 0 #f #f) "CABC")
+(check-equal? (edit-string/text "ABC" 2 3 0 #t '(0 1 2) #:try-to-move? #t) "CAB")
+(check-equal? (edit-string/text "ABC" 2 3 0 #t #f #:try-to-move? #t) "CAB")
+(check-equal? (edit-string/text "ABC" 2 3 0 #f '(0 1 2) #:try-to-move? #t) "CAB")
+(check-equal? (edit-string/text "ABC" 2 3 0 #f #f #:try-to-move? #t) "CAB")
+(check-equal? (edit-string/text "X" 0 0 0 #t #f) "X")
+(check-equal? (edit-string/text "ji" 0 0 0 #t #f) "ji")
+(check-equal? (edit-string/text "ABCDE" 2 4 4 #t #f) "ABCDCDE")
+(check-equal? (edit-string/text "ABCDE" 2 4 2 #t #f) "ABCDCDE")
+
+(check-equal? (edit-string/text "ABCDE" 2 4 3 #t #f) "ABCCDDE")
+(check-equal? (edit-string/text "ABCDE" 2 4 3 #t '(0 1 2 3 4)) "ABCCDDE")
+(check-equal? (edit-string/text "ABCDE" 2 4 3 #t #f #:try-to-move? #t) "ABCDE")
+(check-equal? (edit-string/text "ABCDE" 2 4 3 #t '(0 1 2 3 4) #:try-to-move? #t) "ABCDE")
+
+(check-exn
+ #rx"expected start position smaller than end position"
+ (thunk (edit-string/text "ABCDE" 4 2 0 #t #f)))
+(check-exn
+ #rx"expected start position smaller than end position"
+ (thunk (edit-string/text "ABCDE" 4 2 0 #t '(0 1 2 3 4))))
+(check-exn
+ #rx"expected start position smaller than end position"
+ (thunk (edit-string/text "ABCDE" 4 2 0 #t #f #:try-to-move? #t)))
+(check-exn
+ #rx"expected start position smaller than end position"
+ (thunk (edit-string/text "ABCDE" 4 2 0 #t '(0 1 2 3 4) #:try-to-move? #t)))
+
+(check-exn
+ #rx"expected start, end, and dest-pos to be non-negative"
+ (thunk (edit-string/text "ABCDE" -1 4 4 #t #f)))
+(check-exn
+ #rx"expected start, end, and dest-pos to be non-negative"
+ (thunk (edit-string/text "ABCDE" -1 4 4 #t '(0 1 2 3 4))))
+(check-exn
+ #rx"expected start, end, and dest-pos to be non-negative"
+ (thunk (edit-string/text "ABCDE" -1 4 4 #t #f #:try-to-move? #t)))
+(check-exn
+ #rx"expected start, end, and dest-pos to be non-negative"
+ (thunk (edit-string/text "ABCDE" -1 4 4 #t '(0 1 2 3 4) #:try-to-move? #t)))
+(check-exn
+ #rx"expected start, end, and dest-pos to be non-negative"
+ (thunk (edit-string/text "ABCDE" 0 -1 4 #t #f)))
+(check-exn
+ #rx"expected start, end, and dest-pos to be non-negative"
+ (thunk (edit-string/text "ABCDE" 0 -1 4 #t '(0 1 2 3 4))))
+(check-exn
+ #rx"expected start, end, and dest-pos to be non-negative"
+ (thunk (edit-string/text "ABCDE" 0 -1 4 #t #f #:try-to-move? #t)))
+(check-exn
+ #rx"expected start, end, and dest-pos to be non-negative"
+ (thunk (edit-string/text "ABCDE" 0 -1 4 #t '(0 1 2 3 4) #:try-to-move? #t)))
+(check-exn
+ #rx"expected start, end, and dest-pos to be non-negative"
+ (thunk (edit-string/text "ABCDE" 0 4 -1 #t #f)))
+(check-exn
+ #rx"expected start, end, and dest-pos to be non-negative"
+ (thunk (edit-string/text "ABCDE" 0 4 -1 #t '(0 1 2 3 4))))
+(check-exn
+ #rx"expected start, end, and dest-pos to be non-negative"
+ (thunk (edit-string/text "ABCDE" 0 4 -1 #t #f #:try-to-move? #t)))
+(check-exn
+ #rx"expected start, end, and dest-pos to be non-negative"
+ (thunk (edit-string/text "ABCDE" 0 4 -1 #t '(0 1 2 3 4) #:try-to-move? #t)))
+(check-exn
+ #rx"expected start, end, and dest-pos to be non-negative"
+ (thunk (edit-string/text "ABCDE" -1 -1 0 #t #f)))
+(check-exn
+ #rx"expected start, end, and dest-pos to be non-negative"
+ (thunk (edit-string/text "ABCDE" -1 -1 0 #t '(0 1 2 3 4))))
+(check-exn
+ #rx"expected start, end, and dest-pos to be non-negative"
+ (thunk (edit-string/text "ABCDE" -1 -1 0 #t #f #:try-to-move? #t)))
+(check-exn
+ #rx"expected start, end, and dest-pos to be non-negative"
+ (thunk (edit-string/text "ABCDE" -1 -1 0 #t '(0 1 2 3 4) #:try-to-move? #t)))
+
+;; non-string snips
+(let ([t (new text:basic%)])
+  (define snip (make-object image-snip% (collection-file-path "plt.gif" "icons")))
+  (send t insert "ABCD")
+  (check-equal? (send t get-text) "ABCD")
+  (send t insert snip 0)
+  (check-equal? (send t get-text) ".ABCD")
+  (send t move/copy-to-edit t 0 3 5 #:try-to-move? #t)
+  (check-equal? (send t get-text) "CD.AB")
+  (check-equal? (send t get-snip-position snip) 2)
+  (check-equal? (send t find-snip 2 'after) snip))
+
+(let ([t (new text:basic%)])
+  (define snip (make-object image-snip% (collection-file-path "plt.gif" "icons")))
+  (send t insert "ABCD")
+  (send t insert snip 0)
+  (send t move/copy-to-edit t 0 3 5 #:try-to-move? #f)
+  (check-equal? (send t get-text) ".ABCD.AB")
+  (check-equal? (send t get-snip-position snip) 0)
+  (check-equal? (send t find-snip 0 'after) snip))
+
+(let ([t1 (new text:basic%)]
+      [t2 (new text:basic%)])
+  (define snip (make-object image-snip% (collection-file-path "plt.gif" "icons")))
+  (send t1 insert "ABCD")
+  (send t1 insert snip 0)
+  (send t1 move/copy-to-edit t2 0 3 0 #:try-to-move? #t)
+  (check-equal? (send t1 get-text) "CD")
+  (check-equal? (send t2 get-text) ".AB")
+  (check-equal? (send t2 get-snip-position snip) 0)
+  (check-equal? (send t2 find-snip 0 'after) snip))
+
+(let ([t1 (new text:basic%)]
+      [t2 (new text:basic%)])
+  (define snip (make-object image-snip% (collection-file-path "plt.gif" "icons")))
+  (send t1 insert "ABCD")
+  (send t1 insert snip 0)
+  (send t1 move/copy-to-edit t2 0 3 0 #:try-to-move? #f)
+  (check-equal? (send t1 get-text) ".ABCD")
+  (check-equal? (send t2 get-text) ".AB"))
+
+;; Random Tests
+(define (random-sequence n [div 2])
+  (for/list ([i (in-range n)]
+             #:when (zero? (random div)))
+    i))
+
+(define (edit-string str start end dest-pos move?)
+  (define strlen (string-length str))
+  (define sub (substring str start end))
+  (cond
+    [(and move? (<= start dest-pos end)) str]
+    [else
+     (string-append
+      (if (and move? (<= end dest-pos))
+          (string-append
+           (substring str 0 start)
+           (substring str end dest-pos))
+          (substring str 0 dest-pos))
+      sub
+      (if (and move? (<= dest-pos start))
+          (string-append
+           (substring str dest-pos start)
+           (substring str end strlen))
+          (substring str dest-pos strlen)))]))
+
+(check-equal? (edit-string "ABCDEF" 1 3 0 #f) "BCABCDEF")
+(check-equal? (edit-string "ABCDEF" 1 3 0 #t) "BCADEF")
+(check-equal? (edit-string "ABCDEF" 1 3 5 #f) "ABCDEBCF")
+(check-equal? (edit-string "ABCDEF" 1 3 5 #t) "ADEBCF")
+
+(define (random-string n)
+  (define letters "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
+  (list->string
+   (for/list ([i (in-range (add1 (random n)))])
+       (define ix (random (string-length letters)))
+       (string-ref letters ix))))
+
+(define (random-check-edit-string)
+  (define str (random-string 1000))
+  (define strlen (string-length str))
+  (define start (random strlen))
+  (define end (+ start (random (add1 (- strlen start)))))
+  (define dest-pos (random (add1 strlen)))
+  (define random-style (random-sequence (add1 strlen)))
+  (define this? (zero? (random 2)))
+  (define contract-this? (zero? (random 2)))
+  (define try-to-move? (zero? (random 2)))
+  (check-equal?
+   (edit-string/text str start end dest-pos this? random-style
+                     #:try-to-move? try-to-move?
+                     #:contract-this? contract-this?)
+   (edit-string str start end dest-pos try-to-move?)))
+(for ([i (in-range 1000)])
+  (random-check-edit-string))
+
+(define (check-move/copy+delete-property)
+  (define t1 (new text:basic%))
+  (define t2 (new text:basic%))
+  (define str (random-string 1000))
+  (define strlen (string-length str))
+  (define start (random strlen))
+  (define end (+ start (random (add1 (- strlen start)))))
+  (define dest-pos (random (add1 strlen)))
+  (define random-style (random-sequence (add1 strlen)))
+  (send t1 insert str)
+  (send t2 insert str)
+  (edit-style t1 random-style)
+  (edit-style t2 random-style)
+  (send t1 move-to t1 start end dest-pos)
+  (send t2 copy-to t2 start end dest-pos)
+  (cond
+    [(<= start dest-pos end)
+     (send t2 delete (+ dest-pos (- end start)) (+ end (- end start)))
+     (send t2 delete start dest-pos)]
+    [(<= dest-pos start)
+     (send t2 delete (+ start (- end start)) (+ end (- end start)))]
+    [(<= end dest-pos)
+     (send t2 delete start end)])
+  (check-equal? (send t1 get-text) (send t2 get-text)))
+(for ([i (in-range 1000)])
+  (check-move/copy+delete-property))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;
 ;;  ascii art boxes
 ;;
 
