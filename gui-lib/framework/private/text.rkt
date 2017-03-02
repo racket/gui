@@ -588,26 +588,37 @@
     
     (define/public (move/copy-to-edit dest-edit start end dest-position
                                       #:try-to-move? [try-to-move? #t])
-      (split-snip start)
-      (split-snip end)
-      (let loop ([snip (find-snip end 'before)])
-        (cond
-          [(or (not snip) (< (get-snip-position snip) start))
-           (void)]
-          [else
-           (let ([prev (send snip previous)]
-                 [released/copied 
-                  (if try-to-move?
-                      (if (send snip release-from-owner)
-                          snip
-                          (let* ([copy (send snip copy)]
-                                 [snip-start (get-snip-position snip)]
-                                 [snip-end (+ snip-start (send snip get-count))])
-                            (delete snip-start snip-end)
-                            snip))
-                      (send snip copy))])
-             (send dest-edit insert released/copied dest-position dest-position)
-             (loop prev))])))
+      (unless (= start end)
+        (when (and (eq? this dest-edit) (< start dest-position end))
+          (error 'move/copy-to-edit
+                 "expected dest-pos outside of start to end range"))
+        (split-snip start)
+        (split-snip end)
+        (let loop ([snip (find-snip end 'before)]
+                   [current-start start])
+          (cond
+            [(or (not snip) (< (get-snip-position snip) current-start))
+             (void)]
+            [else
+             (let ([prev (send snip previous)]
+                   [released/copied
+                    (if try-to-move?
+                        (if (send snip release-from-owner)
+                            snip
+                            (let* ([copy (send snip copy)]
+                                   [snip-start (get-snip-position snip)]
+                                   [snip-end (+ snip-start (send snip get-count))])
+                              (delete snip-start snip-end)
+                              copy))
+                        (send snip copy))])
+               (define new-start
+                 (cond
+                   [(or (not (eq? this dest-edit))
+                        (> dest-position current-start))
+                    current-start]
+                   [else (+ current-start (send released/copied get-count))]))
+               (send dest-edit insert released/copied dest-position dest-position)
+               (loop prev new-start))]))))
     
     (public initial-autowrap-bitmap)
     (define (initial-autowrap-bitmap) (icon:get-autowrap-bitmap))
