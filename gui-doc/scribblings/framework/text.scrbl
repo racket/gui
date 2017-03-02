@@ -1,6 +1,6 @@
 #lang scribble/doc
 @(require scribble/manual scribble/extract)
-@(require (for-label framework racket/gui))
+@(require (for-label framework racket/gui racket/contract/base))
 @title{Text}
 
 @definterface[text:basic<%> (editor:basic<%> text%)]{
@@ -139,24 +139,41 @@
   }
 
   @defmethod[(move/copy-to-edit [dest-text (is-a?/c text%)]
-                                [start exact-integer?]
-                                [end exact-integer?]
-                                [dest-pos exact-integer?]
+                                [start natural?]
+                                [end (and/c natural? (>=/c start))]
+                                [dest-pos natural?]
                                 [#:try-to-move? try-to-move? boolean? #t])
              void?]{
-    This moves or copies text and snips to another edit.
+    This moves or copies text and snips to @racket[dest-text].
 
-    Moves or copies from the edit starting at @racket[start] and ending at
+    Moves or copies from @racket[this] starting at @racket[start] and ending at
     @racket[end]. It puts the copied text and snips in @racket[dest-text]
-    starting at location @racket[dest-pos].
+    starting at location @racket[dest-pos]. If @racket[start] and @racket[end]
+    are equal then nothing is moved or copied.
 
-    If @racket[try-to-move] is @racket[#t], then the snips are removed;
-    and if it is @racket[#f], then they are copied.
+    If @racket[try-to-move?] is @racket[#t], then the snips are removed;
+    and if it is @racket[#f], then they are copied. If @racket[try-to-move?] is
+    @racket[#t] and @racket[dest-pos] is between @racket[start] and @racket[end]
+    then @racket[this] is unchanged.
     
-    If a snip refused to be moved, it will be copied and deleted from the editor,
+    If a snip refuses to be moved, it will be copied and deleted from the editor,
     otherwise it will be moved. A snip may refuse to be moved by returning
     @racket[#f] from @method[snip% release-from-owner].
   }
+ @defmethod[(move-to [dest-text (is-a?/c text%)]
+                     [start natural?]
+                     [end (and/c natural? (>=/c start))]
+                     [dest-pos natural?])
+            void?]{
+    Like @racket[move/copy-to-edit] when the @racket[#:try-to-move?] argument is @racket[#t].
+ }
+ @defmethod[(copy-to [dest-text (is-a?/c text%)]
+                     [start natural?]
+                     [end (and/c natural? (>=/c start))]
+                     [dest-pos natural?])
+            void?]{
+    Like @racket[move/copy-to-edit] when the @racket[#:try-to-move?] argument is @racket[#f].
+ }
 
   @defmethod*[(((initial-autowrap-bitmap) (or/c #f (is-a?/c bitmap%))))]{
     The result of this method is used as the initial autowrap bitmap. Override
