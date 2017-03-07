@@ -813,7 +813,7 @@
                      #:try-to-move? try-to-move?
                      #:contract-this? contract-this?)
    (edit-string str start end dest-pos try-to-move?)))
-(for ([i (in-range 1000)])
+(for ([i (in-range 100)])
   (random-check-edit-string))
 
 (define (check-move/copy+delete-property)
@@ -840,7 +840,7 @@
     [(<= end dest-pos)
      (send t2 delete start end)])
   (check-equal? (send t1 get-text) (send t2 get-text)))
-(for ([i (in-range 1000)])
+(for ([i (in-range 100)])
   (check-move/copy+delete-property))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
