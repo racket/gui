@@ -165,14 +165,16 @@
                      [end (and/c natural? (>=/c start))]
                      [dest-pos natural?])
             void?]{
-    Like @racket[move/copy-to-edit] when the @racket[#:try-to-move?] argument is @racket[#t].
+    Like @method[text:basic<%> move/copy-to-edit] when the @racket[#:try-to-move?]
+    argument is @racket[#t].
  }
  @defmethod[(copy-to [dest-text (is-a?/c text%)]
                      [start natural?]
                      [end (and/c natural? (>=/c start))]
                      [dest-pos natural?])
             void?]{
-    Like @racket[move/copy-to-edit] when the @racket[#:try-to-move?] argument is @racket[#f].
+    Like @method[text:basic<%> move/copy-to-edit] when the @racket[#:try-to-move?]
+    argument is @racket[#f].
  }
 
   @defmethod*[(((initial-autowrap-bitmap) (or/c #f (is-a?/c bitmap%))))]{
