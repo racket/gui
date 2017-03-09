@@ -1457,7 +1457,7 @@
   }
 }
 
-@defmixin[text:line-numbers-mixin (text%) (text:line-numbers<%>)]{
+@defmixin[text:line-numbers-mixin (text% editor:standard-style-list<%>) (text:line-numbers<%>)]{
 
   @defmethod*[#:mode override (((on-paint) void?))]{
     Draws the line numbers.
