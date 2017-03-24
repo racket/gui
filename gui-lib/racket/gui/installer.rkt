@@ -27,7 +27,10 @@
            #:tether-mode tether-mode
            '("-z")
            (prep-dir
-            (mred-program-launcher-path "gracket-text" #:user? user? #:tethered? tethered?))
+            (mred-program-launcher-path "gracket-text"
+                                        #:user? user?
+                                        #:tethered? tethered?
+                                        #:console? #t))
            `([subsystem . console]
              [single-instance? . #f]
              [relative? . ,(not (or user? tethered?))]))))))

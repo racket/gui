@@ -26,7 +26,9 @@
     (for ([v variants] #:when (memq v '(3m cgc)))
       (parameterize ([current-launcher-variant v])
         (create-embedding-executable
-         (prep-dir (mred-program-launcher-path "MrEd" #:user? user? #:tethered? tethered?))
+         (prep-dir (mred-program-launcher-path "MrEd"
+                                               #:user? user?
+                                               #:tethered? tethered?))
          #:cmdline (append
                     (if tethered? (if user? (addon-flags) (config-flags)) null)
                     '("-I" "scheme/gui/init"))
@@ -43,7 +45,10 @@
           (make-gracket-launcher
            #:tether-mode tether-mode
            '("-I" "scheme/gui/init" "-z")
-           (prep-dir (mred-program-launcher-path "mred-text" #:user? user? #:tethered? tethered?))
+           (prep-dir (mred-program-launcher-path "mred-text"
+                                                 #:user? user?
+                                                 #:tethered? tethered?
+                                                 #:console? #t))
            `([relative? . ,(not (or user? tethered?))]
              [subsystem . console]
              [single-instance? . #f]))))))
@@ -54,7 +59,9 @@
         (make-gracket-launcher
          #:tether-mode tether-mode
          null
-         (prep-dir (mred-program-launcher-path "MrEd" #:user? user? #:tethered? tethered?))
+         (prep-dir (mred-program-launcher-path "MrEd"
+                                               #:user? user?
+                                               #:tethered? tethered?))
          `([exe-name . "GRacket"]
            [relative? . ,(not (or user? tethered?))]
            [exe-is-gracket . #t]))))))
