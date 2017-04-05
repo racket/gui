@@ -107,7 +107,7 @@
      (λ ()
        (parameterize ([current-input-port in1]
                       [current-output-port out2])
-         (system (format "~a -Tplain" (path->string dot-path))))
+         (system (format "\"~a\" -Tplain" (path->string dot-path))))
        (close-output-port out2)
        (close-input-port in1)))
     (parse-plain in2)))
