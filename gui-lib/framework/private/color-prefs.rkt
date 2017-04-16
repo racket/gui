@@ -157,21 +157,44 @@
                             hp)]
                 [callback
                  (λ (color-button evt)
-                   (let* ([add (send (get-from-pref-sym) get-foreground-add)]
-                          [color (make-object color%
-                                   (send add get-r)
-                                   (send add get-g)
-                                   (send add get-b))]
-                          [users-choice
-                           (get-color-from-user
-                            (format (string-constant syntax-coloring-choose-color) example-text)
-                            (send color-button get-top-level-window)
-                            color
-                            '(alpha))])
-                     (when users-choice
-                       (update-style-delta
-                        (λ (delta)
-                          (send delta set-delta-foreground users-choice))))))])))
+                   (define pref (get-from-pref-sym))
+                   (define orig-add (send pref get-foreground-add))
+                   (define orig-mult (send pref get-foreground-mult))
+                   (define (avg x y z) (/ (+ x y z) 3))
+                   (define (pin-between lo x hi) (min (max lo x) hi))
+                   (define orig-α
+                     (- 1 (pin-between 0
+                                       (avg (send orig-mult get-r)
+                                            (send orig-mult get-g)
+                                            (send orig-mult get-b))
+                                       1)))
+                   (define (to-byte v) (pin-between 0 (inexact->exact (round v)) 255))
+                   (define color
+                     (make-object color%
+                       (to-byte (- 255 (/ (- 255 (send orig-add get-r)) orig-α)))
+                       (to-byte (- 255 (/ (- 255 (send orig-add get-g)) orig-α)))
+                       (to-byte (- 255 (/ (- 255 (send orig-add get-b)) orig-α)))
+                       orig-α))
+                   (define users-choice
+                     (get-color-from-user
+                      (format (string-constant syntax-coloring-choose-color) example-text)
+                      (send color-button get-top-level-window)
+                      color
+                      '(alpha)))
+                   (when users-choice
+                     (update-style-delta
+                      (λ (delta)
+                        (define new-α (send users-choice alpha))
+                        (define α*users-choice
+                          (make-object color%
+                            (to-byte (- 255 (* (- 255 (send users-choice red)) new-α)))
+                            (to-byte (- 255 (* (- 255 (send users-choice green)) new-α)))
+                            (to-byte (- 255 (* (- 255 (send users-choice blue)) new-α)))))
+                        (send delta set-delta-foreground α*users-choice)
+                        (define new-mult (send delta get-foreground-mult))
+                        (send new-mult set (- 1 new-α) (- 1 new-α) (- 1 new-α))
+                        (define new-add (send delta get-foreground-add))))))])))
+
     (define background-color-button
       (and (>= (get-display-depth) 8)
            background?
