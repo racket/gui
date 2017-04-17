@@ -192,8 +192,7 @@
                             (to-byte (- 255 (* (- 255 (send users-choice blue)) new-α)))))
                         (send delta set-delta-foreground α*users-choice)
                         (define new-mult (send delta get-foreground-mult))
-                        (send new-mult set (- 1 new-α) (- 1 new-α) (- 1 new-α))
-                        (define new-add (send delta get-foreground-add))))))])))
+                        (send new-mult set (- 1 new-α) (- 1 new-α) (- 1 new-α))))))])))
 
     (define background-color-button
       (and (>= (get-display-depth) 8)
