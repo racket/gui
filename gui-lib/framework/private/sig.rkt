@@ -9,9 +9,11 @@
     (snip-class%))
   (define-signature number-snip^ extends number-snip-class^
     (make-repeating-decimal-snip
-     make-fraction-snip))
+     make-fraction-snip
+     is-number-snip?
+     get-number))
   (define-signature number-snip/int^ extends number-snip^
-    (is-number-snip?))
+    ())
   
   (define-signature comment-box-class^
     (snip%))

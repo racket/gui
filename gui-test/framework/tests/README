@@ -66,7 +66,7 @@ signal failures when there aren't any.
   | make sure that mred:the-frame-group records frames correctly.
   | fake user input expected.
 
-- number snip: |# number-snip.rkt #|
+- number snip: number-snip.rkt  -- now runs directly via raco test
 
   | some tests for the number-snip% class
 

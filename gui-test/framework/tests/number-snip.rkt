@@ -1,22 +1,27 @@
 #lang racket/base
-(require "test-suite-utils.rkt")
+(require "test-suite-utils.rkt"
+         racket/contract
+         framework
+         file/convertible
+         rackunit)
 
-(test
- 'number-snip-convert-text
- (λ (x) (or (equal? "1/2" x) (equal? "0.5" x)))
- (lambda ()
-   (queue-sexp-to-mred
-    `((dynamic-require 'file/convertible 'convert)
+(check-true
+ (let ()
+   (define x
+     (convert
       (number-snip:make-fraction-snip 1/2 #f)
       'text
-      #f))))
+      #f))
+   (or (equal? "1/2" x) (equal? "0.5" x))))
 
-(test
- 'number-snip-convert-png
- bytes?
- (lambda ()
-   (queue-sexp-to-mred
-    `((dynamic-require 'file/convertible 'convert)
-      (number-snip:make-fraction-snip 1/2 #f)
-      'png-bytes
-      #f))))
+
+(check-true
+ (bytes?
+  (convert
+   (number-snip:make-fraction-snip 1/2 #f)
+   'png-bytes
+   #f)))
+
+(check-true (number-snip:is-number-snip? (number-snip:make-fraction-snip 3/2 #t)))
+(check-false (number-snip:is-number-snip? 3/2))
+(check-equal? 3/2 (number-snip:get-number (number-snip:make-fraction-snip 3/2 #t)))

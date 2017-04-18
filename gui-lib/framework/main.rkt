@@ -193,22 +193,38 @@
 
  (proc-doc/names
   number-snip:make-repeating-decimal-snip
-  (real? boolean? . -> . (is-a?/c snip%))
+  (-> real? boolean? number-snip:is-number-snip?)
   (num show-prefix?)
-  @{Makes a number snip that shows the decimal expansion for @racket[number].
+  @{Makes a @tech{number snip} that shows the decimal expansion for @racket[number].
     The boolean indicates if a @litchar{#e} prefix appears on the number.
     
     See also @racket[number-snip:make-fraction-snip].})
 
  (proc-doc/names
   number-snip:make-fraction-snip
-  (real? boolean? . -> . (is-a?/c snip%))
+  (-> real? boolean? number-snip:is-number-snip?)
   (num show-prefix-in-decimal-view?)
-  @{Makes a number snip that shows a fractional view of @racket[number].
+  @{Makes a @tech{number snip} that shows a fractional view of @racket[number].
     The boolean indicates if a @litchar{#e} prefix appears on the number, when
     shown in the decimal state.
     
     See also @racket[number-snip:make-repeating-decimal-snip].})
+
+ (proc-doc/names
+  number-snip:is-number-snip?
+  (-> any/c boolean?)
+  (v)
+  @{Determines if @racket[v] is a @deftech{number snip}, i.e., created
+                  by @racket[number-snip:make-fraction-snip]
+                  or @racket[number-snip:make-repeating-decimal-snip].
+
+ All values that answer @racket[#t] to this predicate are also @racket[snip%]s.})
+
+ (proc-doc/names
+  number-snip:get-number
+  (-> number-snip:is-number-snip? real?)
+  (ns)
+  @{Returns the number that this @tech{number snip} displays.})
  
  (thing-doc
   comment-box:snipclass

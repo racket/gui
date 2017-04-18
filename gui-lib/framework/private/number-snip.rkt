@@ -92,6 +92,8 @@
                        (send number-snip get-text 0 1)]
                       [else default]))])))
 
+  (define (get-number s) (send s get-number))
+
   (define (is-number-snip? x) (is-a? x number-snip%))
   (define number-snip%
     (class* snip% (readable-snip<%> number-snip-convertible<%>)
