@@ -495,7 +495,7 @@ Racket boxes.}
 A text-mode reader for Racket boxes.}]
 
 
-@defclass[racket-editor% editor% (readable<%>)]{
+@defclass[scheme-editor% editor% (readable<%>)]{
 
 Instantiated for DrRacket Racket boxes in a @tech{WXME} stream for text
 mode.
