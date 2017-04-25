@@ -54,7 +54,7 @@
     @item{A symbol indicating how the token should be treated by the paren
       matcher or @racket[#f].  This symbol should be in the pairs argument.}
     @item{The starting position of the token (or @racket[#f] if eof); this
-          number is relative to the third result of @racket[get-port-location]
+          number is relative to the third result of @racket[port-next-location]
           when applied to the input port that gets passed to @racket[get-token].}
     @item{The ending position of the token (or @racket[#f] if eof); this 
           is also relative to the port's location, just like the previous value.}]
