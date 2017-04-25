@@ -64,7 +64,12 @@
     The offset given to @racket[get-token] can be added
     to the position of the input port to obtain absolute coordinates within a
     text stream. The extra two results are
-    @itemize[@item{a new mode; 
+    @itemize[@item{a backup distance;
+    The backup distance returned by @racket[get-token] indicates the
+    maximum number of characters to back up (counting from the start of the
+    token) and for re-parsing after a change to the editor within the token's
+    region.}
+    @item{a new mode; 
     The mode argument allows @racket[get-token] to communicate
     information from earlier parsing to later.  When @racket[get-token] is
     called for the beginning on a stream, the mode argument is @racket[#f];
@@ -84,12 +89,7 @@
     The mode should not be a mutable
     value; if part of the stream is re-tokenized, the mode saved from the
     immediately preceding token is given again to the @racket[get-token]
-    function.}
-    @item{a backup distance;
-    The backup distance returned by @racket[get-token] indicates the
-    maximum number of characters to back up (counting from the start of the
-    token) and for re-parsing after a change to the editor within the token's
-    region.}]
+    function.}]
 
     The @racket[get-token] function must obey the following invariants:
     @itemize[
