@@ -76,6 +76,10 @@
     (define/public (removing-item) (void))
     (super-new)))
 
+;; Globally reference any opened menu, so that the menu object stays alive
+;; while it is displayed, even if no other code refers to it.
+(define global-prevent-gc (make-hasheq))
+
 (defclass menu% widget%
   (init label
         callback
@@ -120,6 +124,8 @@
   (define cancel-none-box (box #t))
 
   (define/public (popup x y queue-cb)
+    ;; Pin the menu object so that it is not garbage collected while displayed
+    (hash-set! global-prevent-gc this #t)
     (set! on-popup queue-cb)
     (set! cancel-none-box (box #f))
     (gtk_menu_popup gtk 
@@ -148,6 +154,8 @@
   (define ignore-callback? #f)
 
   (define/public (do-selected menu-item)
+    ;; Allow the menu object to be garbage collected again
+    (hash-remove! global-prevent-gc this)
     ;; Called in event-pump thread
     (unless ignore-callback?
       (let ([top (get-top-parent)])
@@ -167,6 +175,8 @@
          [parent (send parent do-selected menu-item)]))))
 
   (define/public (do-no-selected)
+    ;; Allow the menu object to be garbage collected again
+    (hash-remove! global-prevent-gc this)
     ;; Queue a none-selected event, but only tentatively, because
     ;; the selection event may come later and cancel the none-selected
     ;; event.
