@@ -11,6 +11,13 @@
 (define paragraph-width-good-val? (and/c exact-nonnegative-integer? (>=/c 10)))
 (preferences:set-default paragraph-width-pref-name 60 paragraph-width-good-val?)
 
+;; DrRacket loads this file when it encounters a suitable #lang
+;; line, but the support for that doesn't correctly set up the
+;; context when calling the "(λ (editor-panel) .." function, nor
+;; when the callbacks of the GUI controls that that function adds.
+;; So, we just disable it for now until there is time to figure out
+;; a proper solution
+#;
 (preferences:add-to-editor-checkbox-panel
  (λ (editor-panel)
    (define hp (new horizontal-panel% [parent editor-panel] [stretchable-height #f]))
