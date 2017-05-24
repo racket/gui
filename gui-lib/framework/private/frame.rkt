@@ -583,7 +583,7 @@
            ;; status-line-msgs : (listof status-line-msg)
            [status-line-msgs null])
     (define/override (make-root-area-container % parent)
-      (let* ([s-root (super make-root-area-container vertical-panel% parent)]
+      (let* ([s-root (super make-root-area-container vertical-pane% parent)]
              [r-root (make-object % s-root)])
         (set! status-line-container-panel
               (instantiate vertical-panel% ()
@@ -764,7 +764,7 @@
     [define super-root 'uninitialized-super-root]
     (define/override (make-root-area-container % parent)
       (let* ([s-root (super make-root-area-container
-                            vertical-panel%
+                            vertical-pane%
                             parent)]
              [r-root (make-object % s-root)])
         (set! super-root s-root)
@@ -1914,7 +1914,7 @@
     [define/override make-root-area-container
       (λ (% parent)
         (let* ([s-root (super make-root-area-container
-                              horizontal-panel%
+                              horizontal-pane%
                               parent)]
                [r-root (make-object % s-root)])
           (set! super-root s-root)
@@ -2412,7 +2412,7 @@
     (define/override make-root-area-container
       (λ (% parent)
         (let* ([s-root (super make-root-area-container
-                              vertical-panel%
+                              vertical-pane%
                               parent)]
                [root (make-object % s-root)])
           (set! super-root s-root)
