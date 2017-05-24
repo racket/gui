@@ -10,7 +10,8 @@
            string-constants
            racket/pretty
            "../preferences.rkt"
-           "sig.rkt")
+           "sig.rkt"
+           "srcloc-panel.rkt")
   
   (import [prefix preferences: framework:preferences^]
           [prefix editor: framework:editor^]
@@ -44,7 +45,7 @@
         (send working-delta copy (get-from-pref-sym))
         (func working-delta)
         (set-via-pref-sym working-delta)))
-    (define hp (new horizontal-panel%
+    (define hp (new-horizontal-panel%
                     [parent parent]
                     [style '(border)]
                     [alignment '(center top)]
@@ -377,7 +378,7 @@
      (list (string-constant preferences-colors)
            (string-constant background-color))
      (λ (parent)
-       (let ([vp (new vertical-panel% (parent parent) (alignment '(left top)))])
+       (let ([vp (new-vertical-panel% (parent parent) (alignment '(left top)))])
          (add-solid-color-config (string-constant background-color)
                                  vp
                                  'framework:basic-canvas-background)
@@ -416,7 +417,7 @@
            (update-choice (preferences:get 'framework:paren-color-scheme)))))))
     
   (define (build-text-foreground-selection-panel parent pref-sym style-name example-text)
-    (define hp (new horizontal-panel% 
+    (define hp (new-horizontal-panel% 
                     (parent parent)
                     (style '(border))
                     (stretchable-height #f)))
@@ -457,8 +458,8 @@
     (send e set-position 0))
   
   (define (add-solid-color-config label parent pref-id)
-    (define panel (new vertical-panel% (parent parent) (stretchable-height #f)))
-    (define hp (new horizontal-panel% (parent panel) (stretchable-height #f)))
+    (define panel (new-vertical-panel% (parent parent) (stretchable-height #f)))
+    (define hp (new-horizontal-panel% (parent panel) (stretchable-height #f)))
     (define msg (new message% (parent hp) (label label)))
     (define canvas
       (new canvas%
@@ -502,7 +503,7 @@
     (preferences:add-panel
      (list (string-constant preferences-colors) panel-name)
      (λ (parent)
-       (let ([panel (new vertical-panel% (parent parent))])
+       (let ([panel (new-vertical-panel% (parent parent))])
          (func panel)
          panel))))
   
@@ -1020,13 +1021,13 @@
          (string-constant color-schemes))
    (λ (parent)
      (define vp 
-       (new vertical-panel% 
+       (new-vertical-panel% 
             [parent parent]
             [style '(auto-vscroll)]))
      (extras vp)
      (define buttons
        (for/list ([color-scheme (in-list known-color-schemes)])
-         (define hp (new horizontal-panel% 
+         (define hp (new-horizontal-panel% 
                          [parent vp]
                          [alignment '(left top)]
                          [stretchable-height #t]))
@@ -1051,7 +1052,7 @@
                                         (if (equal? c #\newline)
                                             1
                                             0))))
-         (define bp (new vertical-panel% [parent hp] 
+         (define bp (new-vertical-panel% [parent hp] 
                          [stretchable-height #f]
                          [stretchable-width #f]))
          (define defaults? #f)

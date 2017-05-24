@@ -10,6 +10,7 @@
          syntax-color/module-lexer
          "collapsed-snipclass-helpers.rkt"
          "sig.rkt"
+         "srcloc-panel.rkt"
          "../gui-utils.rkt"
          "../preferences.rkt"
          racket/match
@@ -2034,10 +2035,10 @@
 
 (define (make-square-bracket-prefs-panel p)
   (define main-panel (make-object vertical-panel% p))
-  (define boxes-panel (new horizontal-panel% [parent main-panel]))
+  (define boxes-panel (new-horizontal-panel% [parent main-panel]))
   
   (define (mk-list-box sym keyword-type pref->string get-new-one)
-    (letrec ([vp (new vertical-panel% [parent boxes-panel])]
+    (letrec ([vp (new-vertical-panel% [parent boxes-panel])]
              [_ (new message% 
                      [label (format (string-constant x-like-keywords) keyword-type)]
                      [parent vp])]
@@ -2049,7 +2050,7 @@
                    [callback
                     (λ (lb evt)
                       (send remove-button enable (pair? (send lb get-selections))))])]
-             [bp (new horizontal-panel% [parent vp] [stretchable-height #f])]
+             [bp (new-horizontal-panel% [parent vp] [stretchable-height #f])]
              [add
               (new button%
                    [label (string-constant add-keyword)]
@@ -2114,7 +2115,7 @@
                   (new text-field% 
                        [parent f]
                        [label #f]))))
-    (define number-panel (new horizontal-panel% [parent f] [stretchable-height #f]))
+    (define number-panel (new-horizontal-panel% [parent f] [stretchable-height #f]))
     (define number-label (new message% 
                               [parent number-panel]
                               [label (string-constant skip-subexpressions)]))
@@ -2128,7 +2129,7 @@
               [label #f]))))
     
     (define answers #f)
-    (define bp (new horizontal-panel% 
+    (define bp (new-horizontal-panel% 
                     [parent f] 
                     [stretchable-height #f]
                     [alignment '(right center)]))

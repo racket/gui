@@ -11,6 +11,7 @@
          "bday.rkt"
          "gen-standard-menus.rkt"
          "interfaces.rkt"
+         "srcloc-panel.rkt"
          framework/private/focus-table
          mrlib/close-icon
          mred/mred-sig)
@@ -867,7 +868,7 @@
     (set! outer-info-panel (make-object horizontal-panel% super-root))
     (send outer-info-panel stretchable-height #f)
     
-    (define info-panel (new horizontal-panel% [parent outer-info-panel]))
+    (define info-panel (new-horizontal-panel% [parent outer-info-panel]))
     (new grow-box-spacer-pane% [parent outer-info-panel])
     
     (define/public (get-info-panel) info-panel)
@@ -879,7 +880,7 @@
     [define lock-canvas (make-object lock-canvas% (get-info-panel))]
     (define this-frames-memory-canvas #f)
     ; set up the memory use display in the status line
-    (let* ([panel (new horizontal-panel%
+    (let* ([panel (new-horizontal-panel%
                        [parent (get-info-panel)]
                        [stretchable-width #f]
                        [stretchable-height #f])])
@@ -1271,7 +1272,7 @@
           (λ (l)
             (cons position-parent (remq position-parent l))))
 
-    (define file-text-mode-msg-parent (new horizontal-panel%
+    (define file-text-mode-msg-parent (new-horizontal-panel%
                                            [stretchable-width #f]
                                            [stretchable-height #f]
                                            [parent (get-info-panel)]))
@@ -1281,7 +1282,7 @@
           (λ (l)
             (cons file-text-mode-msg-parent (remq file-text-mode-msg-parent l))))
     
-    (define uncommon-parent (new horizontal-panel%
+    (define uncommon-parent (new-horizontal-panel%
                                  [parent (get-info-panel)]
                                  [stretchable-width #f]))
     
@@ -2636,15 +2637,15 @@
         (begin-container-sequence)
         (set! find-edit (new find-text%))
         (set! replace-edit (new replace-text%))
-        (set! search/replace-panel (new horizontal-panel% 
+        (set! search/replace-panel (new-horizontal-panel% 
                                         [parent super-root]
                                         [stretchable-height #f]))
         (define search-panel
-          (new horizontal-panel% 
+          (new-horizontal-panel% 
                [parent search/replace-panel]
                [stretchable-height #f]))
         (define replace-panel
-          (new horizontal-panel%
+          (new-horizontal-panel%
                [parent search/replace-panel]
                [stretchable-height #f]))
         (set! find-canvas (new searchable-canvas%
@@ -2677,7 +2678,7 @@
                                         [callback (λ (x y) (search 'backward))]
                                         [font small-control-font]))
         
-        (define hits-panel (new vertical-panel%
+        (define hits-panel (new-vertical-panel%
                                 [parent search-panel]
                                 [alignment '(left center)]
                                 [stretchable-height #f]

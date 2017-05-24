@@ -34,6 +34,7 @@ the state transitions / contracts are:
            "sig.rkt"
            "../gui-utils.rkt"
            "../preferences.rkt"
+           "srcloc-panel.rkt"
 	   mred/mred-sig)
   
   (import mred^
@@ -345,7 +346,7 @@ the state transitions / contracts are:
             (λ (a b)
               (preferences:restore-defaults))]
            [parent bottom-panel])
-      (new horizontal-panel% [parent bottom-panel]) ;; spacer
+      (new-horizontal-panel% [parent bottom-panel]) ;; spacer
       (gui-utils:ok/cancel-buttons
        bottom-panel
        ok-callback
@@ -521,7 +522,7 @@ the state transitions / contracts are:
       (add-editor-checkbox-panel)))
 
 (define (add-number editor-panel pref-name label good-val?)
-  (define hp (new horizontal-panel% [parent editor-panel] [stretchable-height #f]))
+  (define hp (new-horizontal-panel% [parent editor-panel] [stretchable-height #f]))
   (define init-pref (preferences:get pref-name))
   (define on-cb
     (new check-box% 

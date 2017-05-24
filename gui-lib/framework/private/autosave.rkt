@@ -5,6 +5,7 @@
            "sig.rkt"
            "../gui-utils.rkt"
            "../preferences.rkt"
+           "srcloc-panel.rkt"
            mred/mred-sig
            string-constants)
   
@@ -153,13 +154,13 @@
                             (line-count 2)
                             (stretchable-height #f)
                             (style '(no-hscroll)))]
-                   [hp (new horizontal-panel% 
+                   [hp (new-horizontal-panel% 
                             [parent dlg]
                             [stretchable-height #f])]
-                   [vp (new vertical-panel%
+                   [vp (new-vertical-panel%
                             [parent hp]
                             [stretchable-height #f])]
-                   [details-parent (new horizontal-panel% [parent dlg])])
+                   [details-parent (new-horizontal-panel% [parent dlg])])
               (send vp set-alignment 'right 'center)
               (make-object grow-box-spacer-pane% hp)
               (send t insert (string-constant autosave-explanation))
@@ -188,13 +189,13 @@
       (λ (table-entry)
         (letrec ([orig-file (car table-entry)]
                  [backup-file (cadr table-entry)]
-                 [hp (new horizontal-panel%
+                 [hp (new-horizontal-panel%
                           (parent area-container)
                           (style '(border))
                           (stretchable-height #f))]
-                 [vp (new vertical-panel%
+                 [vp (new-vertical-panel%
                           (parent hp))]
-                 [msg1-panel (new horizontal-panel%
+                 [msg1-panel (new-horizontal-panel%
                                   (parent vp))]
                  [msg1-label (new message%
                                   (parent msg1-panel)
@@ -203,7 +204,7 @@
                             (label (if orig-file (path->string orig-file) (string-constant autosave-unknown-filename)))
                             (stretchable-width #t)
                             (parent msg1-panel))]
-                 [msg2-panel (new horizontal-panel%
+                 [msg2-panel (new-horizontal-panel%
                                   (parent vp))]
                  [msg2-label (new message%
                                   (parent msg2-panel)
