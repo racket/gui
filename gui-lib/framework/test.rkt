@@ -854,7 +854,9 @@
                 ([old-window  (get-focused-window)]
                  [leave   (make-object mouse-event% 'leave)]
                  [enter   (make-object mouse-event% 'enter)]
-                 [root    (car (ancestor-list new-window #t))])
+                 [root    (for/or ([ancestor (ancestor-list new-window #t)])
+                            (and (is-a? ancestor window<%>)
+                                 ancestor))])
               (send leave  set-x 0)   (send leave  set-y 0)
               (send enter  set-x 0)   (send enter  set-y 0)
               
