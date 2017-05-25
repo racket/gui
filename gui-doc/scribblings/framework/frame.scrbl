@@ -40,7 +40,7 @@
       (define status-panel #f)
       (define/override (make-root-area-container cls parent)
         (set! status-panel
-              (super make-root-area-container vertical-panel% parent))
+              (super make-root-area-container vertical-pane% parent))
         (let ([root (make-object cls status-panel)])
 
            (code:comment "... add other children to status-panel ...")
