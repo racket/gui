@@ -205,7 +205,8 @@
                    [callback (λ (t e) 
                                (cond
                                  [(eq? (send e get-event-type) 'text-field-enter)
-                                  (done #t)]
+                                  (when (send ok-button is-enabled?)
+                                    (done #t))]
                                  [else (do-validation)]))]
                    [init-value init-val]
                    [style (list* 'single 'vertical-label
