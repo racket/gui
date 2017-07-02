@@ -28,6 +28,7 @@
     ("leftrightarrow" "↔")
     ("nearrow" "↗")
     ("Updownarrow" "⇕")
+    ("leadsto" "↝")
    
     ;; arrows that didn't come out right in copy & paste
     ;←− \longleftarrow
