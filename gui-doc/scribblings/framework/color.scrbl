@@ -197,8 +197,18 @@
                                                      (or/c exact-nonnegative-integer? 'end)))])
              void?]{
 
-    Sets the currently active regions to be @racket[regions].
-  }
+  Sets the currently active regions to be @racket[regions].
+  The numbers in the @racket[regions] argument must be increasing
+  and only the last number can be replaced with @racket['end].
+
+  Note that editing outside of the active regions violates
+  (unchecked) invariants of this class and edits that move
+  text across region boundaries may also violate (unchecked)
+  invariants. DrRacket uses this method in the interactions
+  window in a way that disallows edits anywhere except the
+  last region and the last region has @racket['end] as its
+  second argument.
+ }
   
   @defmethod[(get-spell-check-strings) boolean?]{
     Returns @racket[#t] if the colorer will attempt to
