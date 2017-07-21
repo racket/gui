@@ -826,8 +826,12 @@ added get-regions
           ;; for regions to color at that next level
           (when (< (+ depth 1) (vector-length paren-colors))
             (let seq-loop ([inner-sequence-start (+ start 1)])
+              (define ls-start (lexer-state-start-pos ls))
               (when (< inner-sequence-start end)
-                (let ([post-whitespace (skip-whitespace inner-sequence-start 'forward #t)])
+                (let ([post-whitespace
+                       (- (skip-whitespace (+ inner-sequence-start ls-start)
+                                           'forward #t)
+                          ls-start)])
                   (let-values ([(start-inner end-inner error-inner)
                                 (send (lexer-state-parens ls) match-forward post-whitespace)])
                     (cond
