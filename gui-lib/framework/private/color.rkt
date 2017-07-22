@@ -838,10 +838,10 @@ added get-regions
                       [(and start-inner end-inner (not error-inner))
                        (paren-loop start-inner end-inner (+ depth 1))
                        (seq-loop end-inner)]
-                      [(skip-past-token ls post-whitespace)
+                      [(skip-past-token ls (+ post-whitespace ls-start))
                        =>
                        (λ (after-non-paren-thing)
-                         (seq-loop after-non-paren-thing))]))))))
+                         (seq-loop (- after-non-paren-thing ls-start)))]))))))
           
           (highlight ls start end here (vector-ref paren-colors depth) priority))))
     

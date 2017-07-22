@@ -66,4 +66,25 @@ using a modern test framework
          (list (text:range-start r)
                (text:range-end r))))
      
-     (set '(3 10) '(4 6) '(7 9)))))
+     (set '(3 10) '(4 6) '(7 9)))
+
+    (check-equal?
+
+     (let ()
+       (define t
+         (new (class racket:text%
+                (define/override (has-focus?) #t)
+                (super-new))))
+       (send t insert "abcdefghij\n\n")
+       (send t freeze-colorer)
+       (send t thaw-colorer)
+       (send t reset-regions (list (list 0 11) (list 12 'end)))
+       (send t insert "(a())" 12 12)
+       (send t set-position (send t last-position))
+       (send t freeze-colorer)
+       (send t thaw-colorer)
+       (for/set ([r (in-list (send t get-highlighted-ranges))])
+         (list (text:range-start r)
+               (text:range-end r))))
+     
+     (set '(14 16) '(12 17)))))
