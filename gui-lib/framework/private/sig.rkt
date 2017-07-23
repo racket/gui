@@ -185,6 +185,7 @@
   
   (define-signature text-class^
     (basic<%>
+     inline-overview<%>
      line-spacing<%>
      ascii-art-enlarge-boxes<%>
      first-line<%>
@@ -229,6 +230,7 @@
      input-box%
      
      basic-mixin
+     inline-overview-mixin
      line-spacing-mixin
      ascii-art-enlarge-boxes-mixin
      first-line-mixin

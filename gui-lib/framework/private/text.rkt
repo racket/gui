@@ -17,6 +17,7 @@
          "logging-timer.rkt"
          "coroutine.rkt"
          "unicode-ascii-art.rkt"
+         (prefix-in i: "inline-overview.rkt")
          data/queue
          racket/unit)
 
@@ -4905,6 +4906,9 @@ designates the character that triggers autocompletion
      
     (super-new)))
 
+(define inline-overview-mixin i:inline-overview-mixin)
+(define inline-overview<%> i:inline-overview<%>)
+  
 (define basic% (basic-mixin (editor:basic-mixin text%)))
 (define line-spacing% (line-spacing-mixin basic%))
 (define hide-caret/selection% (hide-caret/selection-mixin line-spacing%))

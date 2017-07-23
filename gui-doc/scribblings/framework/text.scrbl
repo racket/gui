@@ -270,6 +270,30 @@
   }
 }
 
+@definterface[text:inline-overview<%> (text%)]{
+ Classes implementing this interface provide an overview
+ along the right-hand side of the @racket[text%]'s view, showing
+ one pixel per character in the editor. Clicking on the editor
+ moves the insertion point to the corresponding place in the
+ @racket[text%] object.
+
+ This effect is similar to @racket[text:delegate<%>], but much more efficient.
+
+ @history[#:added "1.32"]
+ 
+ @defmethod[#:mode public-final (get-inline-overview-enabled?) boolean?]{
+  Returns a boolean indicating if inline-overview mode is turned on for this
+  @racket[text%] object.
+ }
+ @defmethod[#:mode public-final (set-inline-overview-enabled? [on? any/c]) void?]{
+  Enables or disables inline-overview mode for this @racket[text%] object.
+ }
+}
+
+@defmixin[text:inline-overview-mixin (text%) (text:inline-overview<%>)]{
+
+}
+
 @definterface[text:line-spacing<%> (text:basic<%>)]{
    Objects implementing this interface adjust their
    spacing based on the @racket['framework:line-spacing-add-gap?]
@@ -726,6 +750,10 @@
   The contents of the two editor are kept in sync, as modifications to this
   object happen.
 
+  This effect is similar to that achieved by @racket[text:inline-overview<%>],
+  but this implementation has significant performance overheads that
+  affect interactivity. Use @racket[text:inline-overview<%>] instead.
+  
   @defmethod*[(((get-delegate) (or/c #f (is-a?/c text%))))]{
     The result of this method is the @racket[text%] object that the contents of
     this editor are being delegated to, or @racket[#f], if there is none.
@@ -857,6 +885,10 @@
   This mixin provides an implementation of the @racket[text:delegate<%>]
   interface.
 
+  This effect is similar to that achieved by @racket[text:inline-overview-mixin],
+  but this implementation has significant performance overheads that
+  affect interactivity. Use @racket[text:inline-overview-mixin] instead.
+  
   @defmethod*[#:mode override (((highlight-range (start exact-integer?)
                                  (end exact-nonnegative-integer?)
                                  (color (or/c string? (is-a?/c color%)))
