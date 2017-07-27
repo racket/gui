@@ -110,7 +110,7 @@
 
  (proc-doc/names
   text:range-style
-  (-> text:range? exact-nonnegative-integer?)
+  (-> text:range? (or/c 'rectangle 'hollow-ellipse 'ellipse 'dot))
   (range)
   @{Returns the style of the range.
     See also @method[text:basic<%> highlight-range].})

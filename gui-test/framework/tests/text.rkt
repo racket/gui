@@ -89,6 +89,17 @@
    (length (send t get-highlighted-ranges)))
  0)
 
+(let ()
+  (define t (new text:basic%))
+  (define red (send the-color-database find-color "red"))
+  (send t highlight-range 0 1 red #f 'low 'ellipse)
+  (define r (list-ref (send t get-highlighted-ranges) 0))
+  (check-equal? (text:range-start r) 0)
+  (check-equal? (text:range-end r) 1)
+  (check-equal? (text:range-caret-space? r) #f)
+  (check-equal? (text:range-style r) 'ellipse)
+  (check-equal? (text:range-color r) red))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
 ;;  testing get-pos/text method
