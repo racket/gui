@@ -889,7 +889,7 @@
               (send dc set-alpha 1)
               (send dc set-pen "gray" 1 'transparent)
               (send dc set-brush (if w-o-b? "black" "white") 'solid)
-              (send dc draw-rectangle (+ (unbox bx) dx) (+ y-coord dy) (unbox bw) th)
+              (send dc draw-rectangle (+ (unbox bx) dx) (+ y-coord dy) (unbox bw) (+ th 1))
               (send dc set-text-foreground
                     (send the-color-database find-color
                           (if w-o-b? "white" "black")))
