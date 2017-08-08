@@ -108,6 +108,7 @@
     ("datum-case" 1)
     ("match" 1)
     ("match*" 1)
+    ("syntax-parse" 1)
     ("syntax-rules" 1)
     ("syntax-case" 2)
     ("syntax-case*" 3)
