@@ -51,26 +51,14 @@
   (define paren-highlight-bitmap (delay/sync (make-object bitmap% paren-bitmap-path)))
   (define (get-paren-highlight-bitmap) (force paren-highlight-bitmap))
   
-  (define-syntax (make-get-cursor stx)
-    (syntax-case stx ()
-      [(_ id mask-path csr-path fallback)
-       (syntax
-        (begin
-          (define id 
-            (let ([ans (delay/sync 
-                         (let* ([msk-b (make-object bitmap% mask-path)]
-                                [csr-b (make-object bitmap% csr-path)])
-                           (if (and (send msk-b ok?)
-                                    (send csr-b ok?))
-                               (let ([csr (make-object cursor% msk-b csr-b 7 7)])
-                                 (if (send csr ok?)
-                                     csr
-                                     (make-object cursor% fallback)))
-                               (make-object cursor% fallback))))])
-              (λ () (force ans))))))]))
-  
-  (make-get-cursor get-up/down-cursor up-down-mask-path up-down-csr-path 'size-n/s)
-  (make-get-cursor get-left/right-cursor left-right-mask-path left-right-csr-path 'size-e/w)
+  (define up/down-cursor #f)
+  (define (get-up/down-cursor)
+    (unless up/down-cursor (set! up/down-cursor (make-object cursor% 'size-n/s)))
+    up/down-cursor)
+  (define left/right-cursor #f)
+  (define (get-left/right-cursor)
+    (unless left/right-cursor (set! left/right-cursor (make-object cursor% 'size-e/w)))
+    left/right-cursor)
   
   (define mrf-on-bitmap (delay/sync (make-object bitmap% mrf-bitmap-path)))
   (define gc-on-bitmap (delay/sync (read-bitmap gc-on-bitmap-path #:try-@2x? #t)))
