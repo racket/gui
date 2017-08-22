@@ -244,18 +244,21 @@ has been moved out).
                        (send (to-bitmap (to-img img)) save-file s 'png)
                        (get-output-bytes s))]
                     [(svg-bytes) (to-svg-bytes img)]
-                    [else default]))]
+                    [else (convert (convert-to-pict img) format default)]))]
                [prop:pict-convertible
                 (λ (image)
-                  (define the-bb (send image get-bb))
-                  (pict:dc
-                   (λ (dc dx dy)
-                     (render-image image dc dx dy))
-                   (ceiling (inexact->exact (bb-right the-bb)))
-                   (ceiling (inexact->exact (bb-bottom the-bb)))
-                   0
-                   (ceiling (inexact->exact (- (bb-bottom the-bb) 
-                                               (bb-baseline the-bb))))))])))
+                  (convert-to-pict image))])))
+
+(define (convert-to-pict image)
+  (define the-bb (send image get-bb))
+  (pict:dc
+   (λ (dc dx dy)
+     (render-image image dc dx dy))
+   (ceiling (inexact->exact (bb-right the-bb)))
+   (ceiling (inexact->exact (bb-bottom the-bb)))
+   0
+   (ceiling (inexact->exact (- (bb-bottom the-bb)
+                               (bb-baseline the-bb))))))
 
 (define (to-bitmap img)
   (define-values (w h) (get-size/but-subject-to-max (send img get-bb)))
