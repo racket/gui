@@ -225,7 +225,7 @@
     (update-min-sizes)
     (stretchable-width #f)
     (stretchable-height #f)
-    (send (get-dc) set-smoothing 'aligned)))
+    (send (get-dc) set-smoothing 'smoothed)))
 
 (define (offset-color color offset-one)
   (make-object color%
@@ -323,18 +323,18 @@
             (+ dy (- (/ h 2) (/ th 2)))
             #t)))
   
-  (send dc set-pen (send the-pen-list find-or-create-pen 
-                         (if grabbed? grabbed-fg-color triangle-color)
-                         1 'solid))
+  (send dc set-pen "black" 1 'transparent)
+  (send dc set-brush (if grabbed? grabbed-fg-color triangle-color) 'solid)
   (let ([x (- w triangle-width circle-spacer border-inset)]
         [y (- (/ h 2) (/ triangle-height 2))])
-    (let loop ([x-off 0][off-y 5])
-      (unless (= 5 x-off)
-        (send dc draw-line 
-              (+ dx (+ x 1 x-off))
-              (+ dy (+ y off-y))
-              (+ dx (+ x (- triangle-width 1 x-off)))
-              (+ dy (+ y off-y)))
-        (loop (+ x-off 1) (+ off-y 1)))))
+    (define ul-x (+ x 1))
+    (define ul-y (+ y 5 1/2))
+    (define ur-x (+ x (- triangle-width 1)))
+    (define bm-x (/ (+ ul-x ur-x) 2))
+    (define bm-y (+ y 10 1/2))
+    (send dc draw-polygon
+          (list (cons (+ dx ul-x) (+ dy ul-y))
+                (cons (+ dx ur-x) (+ dy ul-y))
+                (cons (+ dx bm-x) (+ dy bm-y)))))
   
   (void))
