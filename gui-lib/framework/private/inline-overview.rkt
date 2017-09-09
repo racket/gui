@@ -77,8 +77,8 @@
       (set! loading-file? #t)
       (inner (void) on-load-file filename format))
     (define/augment (after-load-file success?)
-      (set! loading-file? #f)
       (inner (void) after-load-file success?)
+      (set! loading-file? #f)
       (reset-entire-overview))
     
     (define/augment (after-insert start len)
@@ -126,7 +126,7 @@
     
     (define/augment (on-delete start len)
       (inner (void) on-delete start len)
-      (when enabled?
+      (when (and enabled? (not loading-file?))
         (set! width-could-have-changed-since-last-do-a-little-work? #t)
         (define ps (position-paragraph start))
         (define pe (position-paragraph (+ start len)))
@@ -694,7 +694,7 @@
 ;                                                                                    
 
 (module+ test
-  (require rackunit)
+  (require rackunit racket/file)
 
   (define (erase-rest-of-line.simple/slow bmp w x y)
     (for ([x (in-range x w)])
@@ -898,4 +898,21 @@
     (send t insert (make-string (+ 10 maximum-bitmap-width 10) #\space))
     (send t do-all-of-the-work)
     (check-equal? (get-strings t)
-                  '())))
+                  '()))
+
+  (let ()
+    (define t (new (class t%
+                     (define/augment (after-load-file success?)
+                       (inner (void) after-load-file success?)
+                       (send t delete 0 (send t paragraph-start-position 3)))
+                     (super-new))))
+    (define tmp (make-temporary-file "inline-overview-test~a.rkt"))
+    (call-with-output-file tmp
+      (λ (port)
+        (for ([x (in-range 100)]) (fprintf port "~a\n" (modulo x 10))))
+      #:exists 'truncate)
+    (send t load-file tmp)
+    (send t do-all-of-the-work)
+    (check-equal? (get-strings t)
+                  (for/list ([i (in-range 97)])
+                    "*"))))
