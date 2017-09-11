@@ -592,13 +592,14 @@
               (copy-single-line-bytes-out y x)
               #f])]
           [else
-           (copy-single-line-bytes-out y (min maximum-bitmap-width x))
+           (copy-single-line-bytes-out y x)
            (unless relevant-portion-known-blank?
              (erase-rest-of-line primary-bmp bmp-width x y))
            #f])))
 
     (define single-line-bytes (make-bytes (* maximum-bitmap-width 4)))
-    (define (copy-single-line-bytes-out y w)
+    (define (copy-single-line-bytes-out y _w)
+      (define w (min maximum-bitmap-width _w))
       (send-generic primary-bmp bitmap-set-argb-pixels 0 y w 1 single-line-bytes))
 
     (define color-bytes (bytes 0 0 0 0))
@@ -915,4 +916,10 @@
     (send t do-all-of-the-work)
     (check-equal? (get-strings t)
                   (for/list ([i (in-range 97)])
-                    "*"))))
+                    "*")))
+  (let ()
+    (define t (new t%))
+    (send t insert (make-string 548 #\x))
+    (send t do-all-of-the-work)
+    (check-equal? (get-strings t)
+                  (list (make-string maximum-bitmap-width #\*)))))
