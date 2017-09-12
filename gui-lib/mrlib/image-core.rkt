@@ -848,11 +848,10 @@ has been moved out).
 
 (define (save-image-as-bitmap image filename kind)
   (let* ([bb (send image get-bb)]
-         [bm (make-object bitmap% 
+         [bm (make-bitmap
                (+ 1 (ceiling (inexact->exact (bb-right bb))))
                (+ 1 (ceiling (inexact->exact (bb-bottom bb)))))]
          [bdc (make-object bitmap-dc% bm)])
-    (send bdc erase)
     (render-image image bdc 0 0)
     (send bdc set-bitmap #f)
     (send bm save-file filename kind)))
