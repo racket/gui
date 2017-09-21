@@ -549,7 +549,7 @@ Enqueues an event to repaint the window.
                    position-integer?)]{
 
 @index["global coordinates"]{Converts} global coordinates to window
- local coordinates. See also @racket[client->screen] for information
+ local coordinates. See also @method[window<%> client->screen] for information
  on screen coordinates.
 
 }
