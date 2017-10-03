@@ -262,7 +262,7 @@ has been moved out).
 
 (define (to-bitmap img)
   (define-values (w h) (get-size/but-subject-to-max (send img get-bb)))
-  (define bm (make-bitmap w h))
+  (define bm (make-bitmap (max 1 w) (max 1 h)))
   (define bdc (new bitmap-dc% [bitmap bm]))
   (render-image img bdc 0 0)
   (send bdc set-bitmap #f)
