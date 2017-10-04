@@ -1,6 +1,8 @@
 #lang racket/base
 (require racket/class
          ffi/unsafe
+         ffi/unsafe/global
+         ffi/unsafe/schedule
          "utils.rkt"
          "types.rkt"
          "../../lock.rkt"
@@ -39,10 +41,10 @@
 (define-gdk gdk_set_program_class (_fun _string -> _void))
 
 (define x11-display
-  (let* ([argc-ptr (scheme_register_process_global "PLT_X11_ARGUMENT_COUNT" #f)]
+  (let* ([argc-ptr (register-process-global #"PLT_X11_ARGUMENT_COUNT" #f)]
          [argc (or (and argc-ptr (cast argc-ptr _pointer _long)) 0)]
          [argv (and (positive? argc)
-                    (scheme_register_process_global "PLT_X11_ARGUMENTS" #f))]
+                    (register-process-global #"PLT_X11_ARGUMENTS" #f))]
          [display (getenv "DISPLAY")])
     ;; Convert X11 arguments, if any, to Gtk form:
     (let-values ([(args single-instance?)
@@ -86,7 +88,7 @@
                   (or display ":0"))))
         (when single-instance?
           (do-single-instance))
-        (let ([v (scheme_register_process_global "Racket-GUI-wm-class" #f)])
+        (let ([v (register-process-global #"Racket-GUI-wm-class" #f)])
           (when v
             (gdk_set_program_class (cast v _pointer _string))))
         display))))
@@ -144,12 +146,6 @@
 (define POLLERR #x8)
 (define POLLHUP #x10)
 
-(define-mz scheme_get_fdset (_fun _pointer _int -> _gcpointer))
-(define-mz scheme_fdset (_fun _gcpointer _int -> _void))
-(define-mz scheme_set_wakeup_time (_fun _gcpointer _double -> _void))
-(define-mz scheme_add_fd_eventmask (_fun _gcpointer _int -> _void)
-  #:fail #f)
-
 (define (install-wakeup fds)
   (let ([n (g_main_context_query (g_main_context_default)
                                  #x7FFFFFFF ; max-int, hopefully
@@ -158,7 +154,7 @@
                                  poll-fd-count)])
     (let ([to (ptr-ref timeout _int)])
       (when (to . >= . 0)
-        (scheme_set_wakeup_time fds (+ (current-inexact-milliseconds) to))))
+        (unsafe-poll-ctx-milliseconds-wakeup fds (+ (current-inexact-milliseconds) to))))
     (if (n . > . poll-fd-count)
         (begin
           (set! poll-fds (malloc _GPollFD n))
@@ -167,18 +163,18 @@
 	(if (eq? 'windows (system-type))
 	    ;; We don't know how to deal with GLib FDs under
 	    ;;  Windows, but we should wake up on any Windows event
-	    (scheme_add_fd_eventmask fds QS_ALLINPUT)
+	    (unsafe-poll-ctx-eventmask-wakeup fds QS_ALLINPUT)
 	    ;; Normal FD handling under Unix variants:
             (for ([i (in-range n)])
               (let* ([gfd (ptr-ref poll-fds _GPollFD i)]
                      [fd (GPollFD-fd gfd)]
                      [events (GPollFD-events gfd)])
                 (when (not (zero? (bitwise-and events POLLIN)))
-                  (scheme_fdset (scheme_get_fdset fds 0) fd))
+                  (unsafe-poll-ctx-fd-wakeup fds fd 'read))
                 (when (not (zero? (bitwise-and events POLLOUT)))
-                  (scheme_fdset (scheme_get_fdset fds 1) fd))
+                  (unsafe-poll-ctx-fd-wakeup fds fd 'write))
                 (when (not (zero? (bitwise-and events (bitwise-ior POLLERR POLLHUP))))
-                  (scheme_fdset (scheme_get_fdset fds 2) fd))))))))
+                  (unsafe-poll-ctx-fd-wakeup fds fd 'error))))))))
 
 (set-check-queue! gtk_events_pending)
 (set-queue-wakeup! install-wakeup)

@@ -1,5 +1,6 @@
 #lang racket/base
 (require ffi/unsafe
+         ffi/unsafe/global
 	 racket/class
 	 racket/draw
 	 racket/draw/unsafe/bstr
@@ -110,10 +111,10 @@
 (define-user32 BeginPaint (_wfun _HWND _pointer -> _HDC))
 (define-user32 EndPaint (_wfun _HDC _pointer -> _BOOL))
 
-(define WM_IS_GRACKET (cast (scheme_register_process_global "PLT_WM_IS_GRACKET" #f)
+(define WM_IS_GRACKET (cast (register-process-global #"PLT_WM_IS_GRACKET" #f)
                             _pointer
                             _UINT_PTR))
-(define GRACKET_GUID (cast (scheme_register_process_global "PLT_GRACKET_GUID" #f)
+(define GRACKET_GUID (cast (register-process-global #"PLT_GRACKET_GUID" #f)
                            _pointer
                            _bytes))
 (define-cstruct _COPYDATASTRUCT

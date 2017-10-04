@@ -1,6 +1,9 @@
 #lang racket/base
 (require ffi/unsafe/objc
          ffi/unsafe
+         ffi/unsafe/global
+         ffi/unsafe/schedule
+         ffi/unsafe/custodian
          racket/class
          racket/draw/private/dc
          "pool.rkt"
@@ -10,8 +13,7 @@
          "../common/queue.rkt"
          "../common/handlers.rkt"
          "../../lock.rkt"
-         "../common/freeze.rkt"
-         "../common/keep-forever.rkt")
+         "../common/freeze.rkt")
 
 (provide 
  (protect-out app
@@ -89,7 +91,7 @@
   [-a _void (applicationDidChangeScreenParameters: notification)
       ;; Screen changes sometimes make the event loop get stuck;
       ;; hack: schedule a wake-up call in 5 seconds
-      (let ([priviledged-custodian ((get-ffi-obj 'scheme_make_custodian #f (_fun _pointer -> _scheme)) #f)])
+      (let ([priviledged-custodian (make-custodian-at-root)])
         (parameterize ([current-custodian priviledged-custodian])
           (thread (lambda () (sleep 5.0)))))
       (unless (version-10.10-or-later?)
@@ -116,7 +118,7 @@
                                            -> _OSStatus))
 (define NSApplicationActivationPolicyRegular 0)
 (define NSApplicationActivationPolicyAccessory 1)
-(unless (scheme_register_process_global "PLT_IS_FOREGROUND_APP" #f)
+(unless (register-process-global #"PLT_IS_FOREGROUND_APP" #f)
   (cond
    [(version-10.6-or-later?)
     ;; When a frame or root menu bar is created, we promote to
@@ -132,7 +134,7 @@
 (tellv app setDelegate: app-delegate)
 
 (define (bring-to-front)
-  (unless (scheme_register_process_global "Racket-GUI-no-front" #f)
+  (unless (register-process-global #"Racket-GUI-no-front" #f)
     (tellv app activateIgnoringOtherApps: #:type _BOOL #t)
     ;; It may not be that easy...
     (when (version-10.7-or-later?)
@@ -311,13 +313,12 @@
 (define-cf CFRunLoopAddObserver (_fun _pointer _pointer _pointer -> _void))
 (define-cf CFRunLoopGetMain (_fun -> _pointer))
 (define kCFRunLoopExit (arithmetic-shift 1 7))
-(define-mz scheme_signal_received (_fun -> _void))
 (define already-exited? #f)
 (define sleeping? #f)
 (define (exiting-run-loop x y z)
   (when sleeping?
     (if already-exited?
-        (scheme_signal_received)
+        (unsafe-signal-received)
         (set! already-exited? #t))))
 (let ([o (CFRunLoopObserverCreate #f kCFRunLoopExit #t 0 exiting-run-loop #f)])
   (CFRunLoopAddObserver (CFRunLoopGetMain) o kCFRunLoopCommonModes))
@@ -468,23 +469,15 @@
 ;; Install an alternate "sleep" function (in the Racket core)
 ;; that wakes up if any Cocoa event is ready.
   
-(define-mz scheme_start_sleeper_thread (_fun _fpointer _float _pointer _int -> _void))
-(define-mz scheme_end_sleeper_thread (_fun -> _void))
-
-(define-mz scheme_sleep _pointer)
-(define-mz scheme_set_place_sleep (_fun _pointer -> _void))
-
 ;; Called through an atomic callback:
-(define (sleep-until-event secs fds)
+(define (sleep-until-event)
   (set! sleeping? #t)
   (set! already-exited? #f)
-  (scheme_start_sleeper_thread scheme_sleep secs fds write_sock)
-  (check-one-event #t #f) ; blocks until an event is ready
-  (scheme_end_sleeper_thread)
+  ;; blocks until an event is ready, which can include a post from a
+  ;; background `sleep` thread that that triggers `write_sock`:
+  (check-one-event #t #f)
   (set! sleeping? #f))
 
 (define (cocoa-install-event-wakeup)
   (post-dummy-event) ; why do we need this? 'nextEventMatchingMask:' seems to hang if we don't use it
-  (scheme_set_place_sleep (function-ptr sleep-until-event 
-                                        (_fun #:atomic? #t _float _gcpointer -> _void))))
-(keep-forever sleep-until-event)
+  (unsafe-set-sleep-in-thread! sleep-until-event write_sock))

@@ -2,13 +2,14 @@
 (require ffi/unsafe
          racket/draw/private/utils
          ffi/unsafe/atomic
+         ffi/unsafe/custodian
+         ffi/unsafe/schedule
          racket/class
          racket/port
          "rbtree.rkt"
          "../../lock.rkt"
          "handlers.rkt"
-         "once.rkt"
-         "keep-forever.rkt")
+         "once.rkt")
 
 (provide 
  (protect-out queue-evt
@@ -61,40 +62,25 @@
 
               begin-busy-cursor
               end-busy-cursor
-              is-busy?)
-
- scheme_register_process_global)
+              is-busy?))
 
 ;; ------------------------------------------------------------
 ;; Create a Scheme evt that is ready when a queue is nonempty
 
-(define _Scheme_Type _short)
-(define-mz scheme_make_type (_fun _string -> _Scheme_Type))
-(define event-queue-type (scheme_make_type "event-queue"))
-
-(define-mz scheme_add_evt (_fun _Scheme_Type
-                                (_fun #:atomic? #t _scheme -> _int)
-                                (_fun #:atomic? #t _scheme _gcpointer -> _void)
-                                _pointer
-                                _int
-                                -> _void))
+(struct event-queue-evt ()
+  #:property prop:evt (unsafe-poller
+                       (lambda (self ctx)
+                         (cond
+                           [(do-check-queue)
+                            (values (list (void)) #f)]
+                           [else
+                            (do-queue-wakeup ctx)
+                            (values #f self)]))))
 
 (define (do-check-queue) #f)
 (define (do-queue-wakeup fds) #f)
 
-(define (check-queue o)
-  (if (do-check-queue) 1 0))
-(define (queue-wakeup o fds)
-  (do-queue-wakeup fds))
-(scheme_add_evt event-queue-type check-queue queue-wakeup #f 0)
-(keep-forever check-queue)
-(keep-forever queue-wakeup)
-(define queue-evt (let ([p (malloc 16)]
-                        [p2 (malloc 'nonatomic _pointer)])
-                    (memset p 0 16)
-                    (ptr-set! p _Scheme_Type event-queue-type)
-                    (ptr-set! p2 _pointer p)
-                    (ptr-ref p2 _scheme)))
+(define queue-evt (event-queue-evt))
 
 (define (set-check-queue! check)
   (set! do-check-queue check))
@@ -191,17 +177,7 @@
 ;;  isn't GCed
 (define active-eventspaces (make-hasheq))
 
-(define current-cb-box (make-parameter #f))
-
-(define-mz scheme_add_managed (_fun _racket ; custodian
-                                    _racket ; object
-                                    (_fun #:atomic? #t #:keep (lambda (v) (set-box! (current-cb-box) v))
-                                          _racket _racket -> _void)
-                                    _racket ; data
-                                    _int ; strong?
-                                    -> _gcpointer))
-
-(define (shutdown-eventspace! e ignored)
+(define (shutdown-eventspace! e)
   ;; atomic mode
   (unless (eventspace-shutdown? e)
     (set-eventspace-shutdown?! e #t)
@@ -366,12 +342,10 @@
                             (make-hash)
                             0)]
           [cb-box (box #f)])
-      (parameterize ([current-cb-box cb-box])
-        (scheme_add_managed (current-custodian) 
-                            e
-                            shutdown-eventspace!
-                            cb-box ; retain callback until it's called
-                            0))
+      (register-custodian-shutdown e
+                                   shutdown-eventspace!
+                                   (current-custodian)
+                                   #:weak? #t)
       e)))
 
 (define main-eventspace (make-eventspace* (current-thread)))

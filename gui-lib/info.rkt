@@ -4,7 +4,7 @@
 
 (define deps '("srfi-lite-lib"
                "data-lib"
-               ["base" #:version "6.5.0.2"]
+               ["base" #:version "6.11.0.1"]
                "syntax-color-lib"
                ["draw-lib" #:version "1.13"]
                ["snip-lib" #:version "1.2"]

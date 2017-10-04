@@ -3,6 +3,7 @@
          racket/class
          ffi/unsafe/alloc
          ffi/unsafe/try-atomic
+         ffi/unsafe/schedule
          "utils.rkt"
          "types.rkt"
          "const.rkt"
@@ -36,8 +37,6 @@
 
 (define _enum_proc (_wfun _HWND _LPARAM -> _BOOL))
 
-(define-mz scheme_add_fd_eventmask (_fun _pointer _int -> _void))
-
 (define free-msg
   ((deallocator)
    (lambda (msg) 
@@ -54,7 +53,7 @@
 
 (define (install-wakeup fds)
   (pre-event-sync #t)
-  (scheme_add_fd_eventmask fds QS_ALLINPUT))
+  (unsafe-poll-ctx-eventmask-wakeup fds QS_ALLINPUT))
 
 (set-check-queue! events-ready?)
 (set-queue-wakeup! install-wakeup)
