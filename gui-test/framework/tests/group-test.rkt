@@ -5,7 +5,7 @@
          racket/class
          racket/gui/base
          framework
-         (only-in "../../../gui-lib/framework/private/group.rkt"
+         (only-in framework/private/group
                   pay-attention-to-current-eventspace-has-standard-menus?))
 
 (define windows-menu-prefix 
