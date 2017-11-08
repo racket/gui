@@ -125,7 +125,8 @@
           (set-size #f #f THICKNESS MIN_LENGTH)
           (set-size #f #f MIN_LENGTH THICKNESS)))
 
-  (SendMessageW slider-hwnd TBM_SETRANGE 1 (MAKELPARAM lo hi))
+  (SendMessageW slider-hwnd TBM_SETRANGEMIN 1 lo)
+  (SendMessageW slider-hwnd TBM_SETRANGEMAX 1 hi)
   (set-value val)
 
   (define/override (set-size x y w h)
