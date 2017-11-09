@@ -2528,16 +2528,26 @@
     (define/public (search-replace)
       (define text-to-search (get-text-to-search))
       (when text-to-search
-        (define replacee-start (send text-to-search get-replace-search-hit))
-        (when replacee-start
+        (define replacee-start-or-pair (send text-to-search get-replace-search-hit))
+        (when replacee-start-or-pair
+          (define-values (text-to-replace-in replacee-start)
+            (cond
+              [(pair? replacee-start-or-pair)
+               (values (car replacee-start-or-pair) (cdr replacee-start-or-pair))]
+              [else (values text-to-search replacee-start-or-pair)]))
           (define replacee-end (+ replacee-start (send find-edit last-position)))
+          (send text-to-replace-in begin-edit-sequence)
           (send text-to-search begin-edit-sequence)
-          (send text-to-search set-position replacee-end replacee-end)
-          (send text-to-search delete replacee-start replacee-end)
-          (copy-over replace-edit 0 (send replace-edit last-position) text-to-search replacee-start)
+          (send text-to-replace-in set-position replacee-end replacee-end)
+          (send text-to-replace-in delete replacee-start replacee-end)
+          (copy-over replace-edit
+                     0 (send replace-edit last-position)
+                     text-to-replace-in
+                     replacee-start)
           (search 'forward)
           (send text-to-search finish-pending-search-work)
-          (send text-to-search end-edit-sequence))))
+          (send text-to-search end-edit-sequence)
+          (send text-to-replace-in end-edit-sequence))))
       
     (define/private (copy-over src-txt src-start src-end dest-txt dest-pos)
       (send src-txt split-snip src-start)
