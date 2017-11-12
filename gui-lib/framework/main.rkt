@@ -536,16 +536,104 @@
     decision.})
 
  (proc-doc/names
-  path-utils:generate-autosave-name
-  (-> (or/c #f path-string? path-for-some-system?) path?)
-  (filename)
-  @{Generates a name for an autosave file from @racket[filename].})
-
- (proc-doc/names
   path-utils:generate-backup-name
   (path? . -> . path?)
   (filename)
-  @{Generates a name for an backup file from @racket[filename].})
+  @{
+ Generates a path for a backup file based on @racket[filename].
+
+ @index{'path-utils:backup-dir}
+ The value of @racket[(preferences:get 'path-utils:backup-dir)]
+ determines the directory of the resulting path.
+ The value of this preference must be either a path
+ satisfying @racket[complete-path?],
+ in which case it is additionally checked to ensure that the
+ directory exists and is writable,
+ or @racket[#f] (the default).
+ When the preference contains a valid path,
+ the resulting path will use that directory;
+ otherwise, and by default, 
+ the result will use the same directory as @racket[filename].
+ 
+ The final element of the resulting path is derived from @racket[filename].
+ When @racket[(preferences:get 'path-utils:backup-dir)] does not specify
+ a valid directory, the final element of @racket[filename] is
+ used directly as the base for the new element.
+ Otherwise, the base is formed by transforming the complete path to @racket[filename]
+ (resolved, if necessary, relative to @racket[(current-directory)])
+ according to the following @deftech{encoding scheme}:
+ @itemlist[#:style 'ordered
+           @item{A @racket[separator-byte] is selected: @litchar{!} by default,
+             but a list of visually-appealing one-byte characters are
+             tried if @litchar{!} occurs in the complete path to
+             @racket[filename].}
+           @item{Every seperator between path elements is replaced with
+             @racket[separator-byte], as are any other occurances of the
+             reserved separator character (@litchar{\} on Windows or
+             @litchar{/} on Unix or Mac OS), e.g. in the name of the root directory.}
+           @item{A single @racket[separator-byte] is added at the beginning
+             so that the seperator can be unambiguously identified.}
+           @item{If the result of the previous step is excessively long, it
+             may be shortened by replacing some bytes in the middle with
+             @racket[(bytes-append separator-byte #"..." separator-byte)]
+             (i.e. @litchar{!...!} with @litchar{!} as the @racket[separator-byte]).}]
+
+ @margin-note{
+  Currently, "excessively long" is defined as 255 bytes.
+  This is based on @hyperlink["https://msdn.microsoft.com/en-us/library/windows/desktop/aa365247(v=vs.85).aspx#maxpath"]{
+   a common value} for the maximum length of an individual element of an extended-length path
+  on Windows, but the limit is currently enforced consistently on all platforms.
+ }
+ 
+ In either case, the final path element is formed from the base
+ in a platform-specific manner:
+ @itemlist[
+ @item{On Unix and Mac OS, a @litchar{~} is added to the end.}
+ @item{On Windows, the extension (in the sense of @racket[path-replace-extension])
+   is replaced with @litchar{.bak}.}]
+ })
+ 
+ (proc-doc/names
+  path-utils:generate-autosave-name
+  (-> (or/c #f path-string? path-for-some-system?) path?)
+  (filename)
+  @{
+ Generates a path for an autosave file based on @racket[filename].
+
+ @index{'path-utils:autosave-dir}
+ The value of @racket[(preferences:get 'path-utils:autosave-dir)]
+ determines the directory of the resulting path
+ in much the same way as @racket[path-utils:generate-backup-name]
+ with @racket['path-utils:backup-dir].
+ When the preference value specifies a directory that exists and
+ is writable, the resulting path will use that directory.
+ Otherwise, and by default, the
+ result will use the same directory as @racket[filename]
+ (or, when @racket[filename] is @racket[#f], the directory determined by
+ @racket[(find-system-path 'doc-dir)]).
+
+ When @racket[filename] is @racket[#f], the final element of the
+ resulting path will be an automatically-generated unique name.
+ 
+ Otherwise, the final path element will be derived from @racket[filename].
+ When @racket[(preferences:get 'path-utils:autosave-dir)] does not return
+ a valid directory, the last element of @racket[filename] will be
+ used directly as the base for the new element.
+ When a valid autosave directory is specified, the base will be
+ the complete path to @racket[filename],
+ transformed according to the same @tech{encoding scheme} as
+ with @racket[path-utils:generate-backup-name].
+ In either case, the final path element is formed from the base
+ in a platform-specific manner:
+ @itemlist[
+ @item{On Unix and Mac OS, a @litchar{#} is added to the start
+   and end, then a number is added after the
+   ending @litchar{#}, and then one more @litchar{#} is appended
+   after the number.
+   The number is selected to make the autosave filename unique.}
+ @item{On Windows, the file’s extension (in the sense of @racket[path-replace-extension])
+   is replaced with a number to make the autosave filename unique.}
+ ]})
 
  (parameter-doc
   finder:dialog-parent-parameter

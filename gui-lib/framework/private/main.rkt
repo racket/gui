@@ -599,6 +599,32 @@
   (update-style-list 
    (color-prefs:lookup-in-color-scheme 'framework:misspelled-text-color)))
 
+;; for path-utils
+
+(define (valid-maybe-path-value? v)
+  (or (not v)
+      (and (path? v)
+           (complete-path? v)
+           (directory-exists? v)
+           (memq 'write (file-or-directory-permissions v)))))
+
+(define (marshall:maybe-path->bytes v)
+  (and (path? v) (path->bytes v)))
+
+(define (unmarshall:maybe-bytes->path v)
+  (with-handlers ([exn:fail? (λ (e) #f)])
+    (and v (bytes->path v))))
+
+(define (initialize-backup/autosave-preference sym)
+  (preferences:set-default sym #f valid-maybe-path-value?)
+  (preferences:set-un/marshall sym
+                               marshall:maybe-path->bytes
+                               unmarshall:maybe-bytes->path))
+
+(initialize-backup/autosave-preference 'path-utils:backup-dir)
+
+(initialize-backup/autosave-preference 'path-utils:autosave-dir)
+
 ;; groups
 
 (preferences:set-default 'framework:exit-when-no-frames #t boolean?)
