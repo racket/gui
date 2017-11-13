@@ -394,7 +394,7 @@
               struct: define-struct: define-typed-struct define-struct/exec:
               define: pdefine:
               define-type define-predicate
-              match-define))
+              match-define match-define-values))
   (for-each (λ (x) (hash-set! defaults-ht x 'begin))
             '(case-lambda case-lambda: pcase-lambda:
                match-lambda match-lambda*
