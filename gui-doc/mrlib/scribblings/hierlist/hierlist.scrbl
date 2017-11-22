@@ -58,9 +58,9 @@ A short example to demonstrate this control:
 
 (code:comment @#,t{create directory-list%})
 (define my-dir (new directory-list%	 
-                    [parent f] [dir (string->path "/Applications/Racket v6.11")] ))
+                    [parent f] [dir (find-system-path 'home-dir)] ))
 (code:comment @#,t{change directory example - try this in the interactions window:})
-(code:comment @#,t{(send my-dir set-directory (string->path "/Applications/Racket v6.11"))})
+(code:comment @#,t{(send my-dir set-directory (current-directory))})
 ]
 
 The list control supports the following default keystrokes:
