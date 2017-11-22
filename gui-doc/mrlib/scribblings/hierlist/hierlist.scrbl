@@ -11,7 +11,8 @@ arrow that the user can click to hide or show the sub-list's items.
 
 A short example to demonstrate this control:
 
-@racketblock[
+@codeblock{
+#lang racket/gui
 (require mrlib/hierlist)
 (define set-text-mixin
   (mixin (hierarchical-list-item<%>)
