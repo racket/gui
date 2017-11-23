@@ -91,7 +91,7 @@
       (when mask
         (send mask get-argb-pixels 0 0 w h str #t)))
     (atomically
-     (let ([rgba (scheme_make_sized_byte_string (malloc (* w h 4) 'raw) (* w h 4) 0)])
+     (let ([rgba (malloc (* w h 4) 'raw)])
        (memcpy rgba str (sub1 (* w h 4)))
        (let* ([cs (CGColorSpaceCreateDeviceRGB)]
               [provider (CGDataProviderCreateWithData #f rgba (* w h 4) free-it)]
