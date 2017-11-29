@@ -124,24 +124,33 @@
 (define (graphical-system-type) 'win32)
 
 (define-user32 GetCursorPos (_wfun (p : (_ptr o _POINT)) -> (r : _BOOL)
-                                   -> (if r
-                                          p
-                                          (failed 'GetCursorPos))))
+                                   ;; GetCursorPos can fail if permission
+                                   ;; to access the display goes away, which
+                                   ;; can happen temporarily when Windows is
+                                   ;; put to sleep
+                                   -> (and r p)))
 (define-user32 GetAsyncKeyState (_wfun _int -> _SHORT))
 (define-user32 GetSystemMetrics (_wfun _int -> _int))
 (define SM_SWAPBUTTON 23)
 (define (get-current-mouse-state)
   (define p (GetCursorPos))
-  (define (maybe vk sym)
-    (if (negative? (GetAsyncKeyState vk))
-        (list sym)
-        null))
-  (define swapped? (not (zero? (GetSystemMetrics SM_SWAPBUTTON))))
-  (values (make-object point% (->normal (POINT-x p)) (->normal (POINT-y p)))
-          (append
-           (maybe (if swapped? VK_RBUTTON VK_LBUTTON) 'left)
-           (maybe (if swapped? VK_LBUTTON VK_RBUTTON) 'right)
-           (maybe VK_LSHIFT 'shift)
-           (maybe VK_CONTROL 'control)
-           (maybe VK_MENU 'alt)
-           (maybe VK_CAPITAL 'caps))))
+  (cond
+    [p
+     (define (maybe vk sym)
+       (if (negative? (GetAsyncKeyState vk))
+           (list sym)
+           null))
+     (define swapped? (not (zero? (GetSystemMetrics SM_SWAPBUTTON))))
+     (values (make-object point% (->normal (POINT-x p)) (->normal (POINT-y p)))
+             (append
+              (maybe (if swapped? VK_RBUTTON VK_LBUTTON) 'left)
+              (maybe (if swapped? VK_LBUTTON VK_RBUTTON) 'right)
+              (maybe VK_LSHIFT 'shift)
+              (maybe VK_CONTROL 'control)
+              (maybe VK_MENU 'alt)
+              (maybe VK_CAPITAL 'caps)))]
+    [else
+     ;; Since `get-current-mouse-state` doesn't have a notion of
+     ;; failure, make up the obvious result:
+     (values (make-object point% 0 0)
+             '())]))
