@@ -1951,12 +1951,43 @@
                       the ``Classic'' color scheme is used.}
                @item{@racket['colors]: must be a non-empty list whose first position
                       is a symbol, naming a color or style. The rest of the elements describe
-                      the style or color. In either case, an element may be a vector of three
-                      bytes: this describes a color (in r/g/b order) with an alpha value of
-                      @racket[1.0]. The vector may also have three bytes followed by a real
-                      number between @racket[0] and @racket[1], which is used as the alpha
-                      value. If the name corresponds to a style, then the list may also contain
-                      the symbols @racket['bold], @racket['italic], or @racket['underline].}]
+                      the style or color. In either case, an element may be a vector describing
+                      a color, see below.
+                      If the name corresponds to a style, then the list may also contain
+
+                      @itemlist[@item{Symbols @racket['bold], @racket['italic],
+                                      or @racket['underline], changing the font style
+                                      or underline status, or}
+                                @item{A prefab struct @racket[`#s(background ,_vec)],
+                                      specifying the background color where
+                                      @racket[_vec] is a vector describing a color.}]
+
+                      A vector describing a color is either a vector of three bytes describing
+                      the red, green and blue component of a non-transparent color,
+                      or a vector of three bytes followed by a real number between
+                      @racket[0] and @racket[1], giving the alpha value in addition to color
+                      components. In other words, a vector satisfying the following contract
+                      describes a color:
+
+                      @racketblock[
+                       (or/c (vector/c byte? byte? byte? #:flat? #t)
+                             (vector/c byte? byte? byte? (between/c 0.0 1.0) #:flat? #t))
+                      ]
+
+                      Examples:
+
+                      @racketblock[
+                      '((framework:syntax-color:scheme:symbol
+                         #(0 0 0))
+                        (framework:syntax-color:scheme:comment
+                         #(#xC2 #x74 #x1F) italic)
+                        (framework:syntax-color:scheme:error
+                         bold underline #(#xFF #x00 #x00))
+                        (plt:htdp:test-coverage-off
+                         #(#xFF #xA5 #x00)
+                         #s(background #(#x00 #x00 #x00))))
+                      ]
+                      }]
     
     The names of the colors and styles are extensible; new ones can be added by calling
     @racket[color-prefs:add-color-scheme-entry]. When
