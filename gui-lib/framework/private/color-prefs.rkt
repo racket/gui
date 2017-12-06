@@ -753,7 +753,7 @@
                 background-color/c)))
 
 (define (valid-key-values? h)
-  (for/or ([(k v) (in-hash h)])
+  (for/and ([(k v) (in-hash h)])
     (cond
       [(equal? k 'name) (or (string? v) (symbol? v))]
       [(equal? k 'white-on-black-base?) (boolean? v)]
