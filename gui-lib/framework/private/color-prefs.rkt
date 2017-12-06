@@ -738,10 +738,19 @@
                               (props->style-delta (cdr line))]))))
                   example)))))
 
+(define color-vector/c
+  (or/c (vector/c byte? byte? byte? #:flat? #t)
+        (vector/c byte? byte? byte? (between/c 0.0 1.0) #:flat? #t)))
+
+(struct background [color] #:prefab)
+
+(define background-color/c
+  (struct/c background color-vector/c))
+
 (define valid-props? 
   (listof (or/c 'bold 'italic 'underline
-                (vector/c byte? byte? byte? #:flat? #t)
-                (vector/c byte? byte? byte? (between/c 0.0 1.0) #:flat? #t))))
+                color-vector/c
+                background-color/c)))
 
 (define (valid-key-values? h)
   (for/or ([(k v) (in-hash h)])
@@ -772,6 +781,8 @@
       [`bold (send sd set-delta 'change-bold)]
       [`italic (send sd set-delta 'change-italic)]
       [`underline (send sd set-delta 'change-underline #t)]
+      [(? background-color/c)
+       (send sd set-delta-background (vec->color (background-color prop)))]
       [else (send sd set-delta-foreground (vec->color prop))]))
   sd)
 
