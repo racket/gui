@@ -1414,10 +1414,10 @@
      (read (open-input-string text)))
    (λ () 
      (cond
-       [(and beg-reg (regexp-match beg-reg text)) 'begin]
-       [(and def-reg (regexp-match def-reg text)) 'define]
-       [(and lam-reg (regexp-match lam-reg text)) 'lambda]
-       [(and for/fold-reg (regexp-match for/fold-reg text)) 'for/fold]
+       [(and beg-reg (regexp-match? beg-reg text)) 'begin]
+       [(and def-reg (regexp-match? def-reg text)) 'define]
+       [(and lam-reg (regexp-match? lam-reg text)) 'lambda]
+       [(and for/fold-reg (regexp-match? for/fold-reg text)) 'for/fold]
        [else #f]))))
 
 
