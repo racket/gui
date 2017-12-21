@@ -348,7 +348,8 @@
       ;; all of its children and parents.
       (define/private (invalidate-to-children/parents snip dc)
         (when (is-a? snip graph-snip<%>)
-          (define-values (_1 text-height _2 _3) (send dc get-text-extent "Label" #f #f 0))
+          (define-values (_1 text-height _2 _3)
+            (send dc get-text-extent "Label" edge-label-font #f 0))
           (define parents-and-children (append (get-all-parents snip)
                                                (get-all-children snip)))
           (define rects (get-rectangles snip parents-and-children))
@@ -395,7 +396,8 @@
                       [rect
                        (if (eq? c/p main-snip)
                            (let-values ([(sx sy sw sh) (get-position c/p)]
-                                        [(_1 h _2 _3) (send (get-dc) get-text-extent "yX")])
+                                        [(_1 h _2 _3) (send (get-dc) get-text-extent "yX"
+                                                            edge-label-font)])
                              (make-rect (- sx self-offset)
                                         sy
                                         (+ (+ sx sw) self-offset)
@@ -408,7 +410,8 @@
         (let-values ([(sx sy sw sh) (get-position snip)])
           (let* ([dc (get-dc)]
                  [h (if dc
-                        (let-values ([(_1 h _2 _3) (send dc get-text-extent "yX")])
+                        (let-values ([(_1 h _2 _3) (send dc get-text-extent "yX"
+                                                         edge-label-font)])
                           h)
                         10)])
             (make-rect sx 
