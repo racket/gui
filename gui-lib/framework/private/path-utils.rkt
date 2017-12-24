@@ -27,7 +27,8 @@
 (define (generate-autosave-name maybe-old-path)
   (cond
     [maybe-old-path
-     (let*-values ([(base name dir?) (split-path maybe-old-path)]
+     (let*-values ([(base name dir?) (split-path (handle-foreign-path
+                                                  maybe-old-path))]
                    [(base) (cond
                              [(not (path? base))
                               (current-directory)]
@@ -177,4 +178,26 @@
 (define (lpMaximumComponentLength)
   255)
 
+(define (handle-foreign-path v)
+  (cond
+    [(and (path-for-some-system? v)
+          (not (path? v)))
+     (define illegal-rx 
+       (case (system-path-convention-type)
+         [(windows) #rx#"\\\\"]
+         [else #rx#"/"]))
+     (define-values (base name dir?)
+       (split-path v))
+     (case name
+       [(up same)
+        ; simplify-path can't always eliminate these
+        ; given a foreign path-for-some-system?
+        (build-path name)]
+       [else
+        (bytes->path-element
+         (regexp-replace* illegal-rx
+                          (path-element->bytes name)
+                          #"-"))])]
+    [else
+     v]))
 
