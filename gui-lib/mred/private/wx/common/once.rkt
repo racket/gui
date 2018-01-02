@@ -3,7 +3,6 @@
          ffi/unsafe/global)
 
 ;; This module must be instantiated only once:
-(let ([v (register-process-global #"GRacket-support-initialized"
-                                  (cast 1 _scheme _pointer))])
+(let ([v (register-process-global #"GRacket-support-initialized" (ptr-add #f 1))])
   (when v
     (error "cannot instantiate `racket/gui/base' a second time in the same process")))
