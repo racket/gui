@@ -2295,31 +2295,40 @@
           [(is-a? s string-snip%)
            (loop (send s next))]
           [else #f])))
+
+    ;; Saving in text when wxme is needed looses data,
+    ;; therefore if the user refuses to change file formats
+    ;; abort save.
+    (define/augment (can-save-file? name format)
+      (define needs-wxme?
+        (and (not (all-string-snips))
+             (eq? format 'same)
+             (eq? 'text (get-file-format))))
+      (define proper-format
+        (cond [(not needs-wxme?) #t]
+              [(and needs-wxme?
+                    (or (not (preferences:get 'framework:verify-change-format))
+                        (gui-utils:get-choice
+                         (string-constant save-in-drs-format)
+                         (string-constant yes)
+                         (string-constant no)
+                         #:dialog-mixin frame:focus-table-mixin)))
+               (set-file-format 'standard)
+               #t]
+              [else #f]))
+      (and proper-format (inner #t can-save-file? name format)))
     
     (define/augment (on-save-file name format)
-      (let ([all-strings? (all-string-snips)])
-        (cond
-          [(and all-strings?
-                (eq? format 'same)
-                (eq? 'standard (get-file-format))
-                (or (not (preferences:get 'framework:verify-change-format))
-                    (gui-utils:get-choice
-                     (string-constant save-as-plain-text) 
-                     (string-constant yes)
-                     (string-constant no)
-                     #:dialog-mixin frame:focus-table-mixin)))
-           (set-file-format 'text)]
-          [(and (not all-strings?)
-                (eq? format 'same)
-                (eq? 'text (get-file-format))
-                (or (not (preferences:get 'framework:verify-change-format))
-                    (gui-utils:get-choice
-                     (string-constant save-in-drs-format)
-                     (string-constant yes)
-                     (string-constant no)
-                     #:dialog-mixin frame:focus-table-mixin)))
-           (set-file-format 'standard)]
-          [else (void)]))
+      (when (and (all-string-snips)
+                 (eq? format 'same)
+                 (eq? 'standard (get-file-format))
+                 (or (not (preferences:get 'framework:verify-change-format))
+                     (gui-utils:get-choice
+                      (string-constant save-as-plain-text) 
+                      (string-constant yes)
+                      (string-constant no)
+                      #:dialog-mixin frame:focus-table-mixin)))
+        (set-file-format 'text))
       (inner (void) on-save-file name format))
     
     (super-new)))
