@@ -2304,19 +2304,27 @@
         (and (not (all-string-snips))
              (eq? format 'same)
              (eq? 'text (get-file-format))))
-      (define proper-format
-        (cond [(not needs-wxme?) #t]
-              [(and needs-wxme?
-                    (or (not (preferences:get 'framework:verify-change-format))
-                        (gui-utils:get-choice
-                         (string-constant save-in-drs-format)
-                         (string-constant yes)
-                         (string-constant no)
-                         #:dialog-mixin frame:focus-table-mixin)))
-               (set-file-format 'standard)
-               #t]
-              [else #f]))
-      (and proper-format (inner #t can-save-file? name format)))
+      (define format-converted
+        (and needs-wxme?
+             (or (not (preferences:get 'framework:verify-change-format))
+                 (message-box/custom
+                  (string-constant warning)
+                  (string-constant save-in-drs-format)
+                  (string-constant yes)
+                  (string-constant no)
+                  (string-constant cancel)
+                  #f
+                  '(disallow-close default=3)
+                  3
+                  #:dialog-mixin frame:focus-table-mixin))))
+      (define continue-saving?
+        (case format-converted
+          [(1 #t)
+           (set-file-format 'standard)
+           #t]
+          [(2) #t]
+          [(3) #f]))
+        (and continue-saving? (inner #t can-save-file? name format)))
     
     (define/augment (on-save-file name format)
       (when (and (all-string-snips)
