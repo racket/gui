@@ -2309,7 +2309,7 @@
              (or (not (preferences:get 'framework:verify-change-format))
                  (message-box/custom
                   (string-constant warning)
-                  (string-constant save-in-drs-format)
+                  (string-constant save-as-binary-format)
                   (string-constant yes)
                   (string-constant no)
                   (string-constant cancel)
