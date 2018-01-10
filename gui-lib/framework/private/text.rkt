@@ -2310,9 +2310,9 @@
                  (message-box/custom
                   (string-constant warning)
                   (string-constant save-as-binary-format)
-                  (string-constant yes)
-                  (string-constant no)
-                  (string-constant cancel)
+                  (string-constant convert-format)
+                  (string-constant keep-format)
+                  (string-constant dont-save)
                   #f
                   '(disallow-close default=3)
                   3
