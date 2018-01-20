@@ -23,7 +23,7 @@
 (define (do-installer path coll user? tethered?)
   (define variants (available-mred-variants))
   (when (memq (cross-system-type) mred-exe-systems)
-    (for ([v variants] #:when (memq v '(3m cgc)))
+    (for ([v variants] #:when (memq v '(3m cgc cs)))
       (parameterize ([current-launcher-variant v])
         (create-embedding-executable
          (prep-dir (mred-program-launcher-path "MrEd"
@@ -38,7 +38,7 @@
          #:aux `((relative? . ,(not user?)))))))
   ;; add a mred-text executable that uses the -z flag (preferring a script)
   (define tether-mode (and tethered? (if user? 'addon 'config)))
-  (for ([vs '((script-3m 3m) (script-cgc cgc))])
+  (for ([vs '((script-3m 3m) (script-cgc cgc) (script-cs cs))])
     (let ([v (findf (lambda (v) (memq v variants)) vs)])
       (when v
         (parameterize ([current-launcher-variant v])
@@ -54,7 +54,7 @@
              [single-instance? . #f]))))))
   ;; add bin/mred script under OS X
   (when (eq? 'macosx (cross-system-type))
-    (for ([v variants] #:when (memq v '(script-3m script-cgc)))
+    (for ([v variants] #:when (memq v '(script-3m script-cgc script-cs)))
       (parameterize ([current-launcher-variant v])
         (make-gracket-launcher
          #:tether-mode tether-mode

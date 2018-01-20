@@ -19,7 +19,7 @@
   (define variants (available-mred-variants))
   (define tether-mode (and tethered? (if user? 'addon 'config)))
   ;; add a gracket-text executable that uses the -z flag (preferring a script)
-  (for ([vs '((script-3m 3m) (script-cgc cgc))])
+  (for ([vs '((script-3m 3m) (script-cgc cgc) (script-cs cs))])
     (let ([v (findf (lambda (v) (memq v variants)) vs)])
       (when v
         (parameterize ([current-launcher-variant v])
@@ -35,7 +35,7 @@
              [single-instance? . #f]
              [relative? . ,(not (or user? tethered?))]))))))
   ;; add a bin/gracket (in addition to lib/gracket)
-  (for ([vs '((script-3m 3m) (script-cgc cgc))])
+  (for ([vs '((script-3m 3m) (script-cgc cgc) (script-cs cs))])
     (let ([v (findf (lambda (v) (memq v variants)) vs)])
       (when v
         (parameterize ([current-launcher-variant v])
