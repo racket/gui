@@ -2963,7 +2963,7 @@
                                                     (+ p (snip->count snip)))
                                               ;; found the right snip
                                               (let ([s-pos p]
-                                                    [p (+ p (do-find-position-in-snip dc X topy snip x how-close-box))])
+                                                    [p (+ p (do-find-position-in-snip dc X topy snip x how-close-box w))])
                                                 (set! write-locked? wl?)
                                                 (set! flow-locked? fl?)
                                                 (values snip s-pos p)))))))))])
@@ -3025,7 +3025,8 @@
                                      [maybe-box? [how-close #f]])
     (do-find-position-in-line #f i x ateol? onit? how-close))
 
-  (define/private (do-find-position-in-snip dc X Y snip x how-close)
+  ;; snip-width : (or/c real? #f) -- only #f when how-close is also #f.
+  (define/private (do-find-position-in-snip dc X Y snip x how-close snip-width)
     (cond
      [read-locked? 0]
      [(x . < . 0)
@@ -3037,16 +3038,26 @@
             [fl? flow-locked?])
         (set! write-locked? #t)
         (set! flow-locked? #t)
-
         (let ([c (snip->count snip)])
-          (if ((send snip partial-offset dc X Y c) . <= . x)
-              (begin
-                (when how-close
-                  (set-box! how-close 100.0))
-                (set! write-locked? wl?)
-                (set! flow-locked? fl?)
-                c)
-            
+          (cond
+            [(= c 1)
+             (set! write-locked? wl?)
+             (set! flow-locked? fl?)
+             (when how-close
+               (set-box! how-close
+                         (if ((- snip-width x) . < . x)
+                             (- snip-width x)
+                             (- x))))
+             0]
+            [((send snip partial-offset dc X Y c) . <= . x)
+             (begin
+               (when how-close
+                 (set-box! how-close 100.0))
+               (set! write-locked? wl?)
+               (set! flow-locked? fl?)
+               c)]
+
+             [else
               ;; binary search for position within snip:
               (let loop ([range c]
                          [i (quotient c 2)]
@@ -3066,7 +3077,7 @@
                                               (- dl x))))
                               (set! write-locked? wl?)
                               (set! flow-locked? fl?)
-                              (+ i offset))))))))))]))
+                              (+ i offset)))))))])))]))
 
   (def/public (find-line [real? y] [maybe-box? [onit? #f]])
     (when onit?
@@ -4808,7 +4819,7 @@
                       (let ([_total-width (- _total-width w)])
                         ;; get best breaking position:
                         ;; (0.1 is hopefully a positive value smaller than any character)
-                        (let ([origc (do-find-position-in-snip dc _total-width Y snip (- maxw _total-width 0.1) #f)])
+                        (let ([origc (do-find-position-in-snip dc _total-width Y snip (- maxw _total-width 0.1) #f #f)])
                           ;; get legal breaking position before optimal:
                           (let-boxes ([b (+ p origc 1)])
                               (find-wordbreak b #f 'line)
