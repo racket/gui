@@ -299,6 +299,8 @@
 
 (define << arithmetic-shift)
 
+(define _ptr-to-id (_ptr i _id))
+
 (define (do-key-event wxb event self down? mod-change? wheel)
   (define type (tell #:type _ushort event type))
   (define key-down? (= (bitwise-and type #b1111) NSKeyDown))
@@ -319,7 +321,7 @@
          (parameterize ([current-insert-text inserted-text]
                         [current-set-mark set-mark])
            (let ([array (tell (tell NSArray alloc) 
-                              initWithObjects: #:type (_ptr i _id) event
+                              initWithObjects: #:type _ptr-to-id event
                               count: #:type _NSUInteger 1)])
              (tellv self interpretKeyEvents: array)
              (tellv array release))))
