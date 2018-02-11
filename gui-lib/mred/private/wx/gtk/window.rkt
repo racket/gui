@@ -890,7 +890,6 @@
 (define-gdk gdk_display_get_default (_fun -> _GdkDisplay))
 (define (flush-display)
   (try-to-sync-refresh)
-  (gdk_window_process_all_updates)
   (gdk_display_flush (gdk_display_get_default)))
 
 (define-gdk gdk_window_freeze_updates (_fun _GdkWindow -> _void))
