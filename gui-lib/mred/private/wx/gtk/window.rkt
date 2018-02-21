@@ -895,7 +895,6 @@
 (define-gdk gdk_window_freeze_updates (_fun _GdkWindow -> _void))
 (define-gdk gdk_window_thaw_updates (_fun _GdkWindow -> _void))
 (define-gdk gdk_window_invalidate_rect (_fun _GdkWindow _pointer _gboolean -> _void))
-(define-gdk gdk_window_process_all_updates (_fun -> _void))
 (define-gdk gdk_window_ensure_native (_fun _GdkWindow -> _gboolean)
   ;; Requires 2.18
   #:fail (lambda () (lambda (win) #f)))
