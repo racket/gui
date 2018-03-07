@@ -192,6 +192,7 @@
     ("ddots" "⋱")
     ("cdots" "⋯")
     ("hdots" "⋯")
+    ("ldots" "…")
     
     ("langle" "⟨")
     ("rangle" "⟩")))
