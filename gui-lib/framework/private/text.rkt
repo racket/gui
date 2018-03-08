@@ -3468,11 +3468,14 @@
                     (handle-evt
                      done-evt
                      (λ (v)
-                       (let ([nth-pos (cdr (at-peek-n data (- kr 1)))])
+                       (let* ([nth (at-peek-n data (- kr 1))]
+                              [nth-pos (cdr nth)])
                          (set! position
-                               (list (car nth-pos)
-                                     (+ 1 (cadr nth-pos))
-                                     (+ 1 (caddr nth-pos)))))
+                               (if (eof-object? (car nth))
+                                   nth-pos
+                                   (list (car nth-pos)
+                                         (+ 1 (cadr nth-pos))
+                                         (+ 1 (caddr nth-pos))))))
                        (set! data (at-dequeue-n data kr))
                        (semaphore-post peeker-sema)
                        (set! peeker-sema (make-semaphore 0))
