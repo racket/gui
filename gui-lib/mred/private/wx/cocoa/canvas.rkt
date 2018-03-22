@@ -931,6 +931,8 @@
        (let ([cocoa-win (get-cocoa-window)])
          (for ([r (in-list reg-blits)])
            (tellv cocoa-win removeChildWindow: (vector-ref r 0))
+           ; removeChildWindow doesn't hide the window
+           (tellv (vector-ref r 0) orderOut: #f)
            (release (vector-ref r 0))
            (scheme_remove_gc_callback (vector-ref r 1))))
        (set! reg-blits null))
