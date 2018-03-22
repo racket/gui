@@ -1529,7 +1529,7 @@
              (define token (send text classify-position click-pos))
              (define-values (start end)
                (cond
-                 [(memq token '(string comment)) (word-based)]
+                 [(memq token '(string comment text)) (word-based)]
                  [(and (equal? token 'other)
                        (let-values ([(start end) (send text get-token-range click-pos)])
                          (and start
