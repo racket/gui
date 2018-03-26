@@ -79,66 +79,10 @@ needed to really make this work:
       (define/override (write stream)
         (send stream put (string->bytes/utf-8 (format "~s" (marshall-syntax main-stx)))))
       
-      (define-values (datum paths-ht) (syntax-object->datum/record-paths main-stx))
-      
       (define output-text (new text:hide-caret/selection%))
       (define output-text-filled-in? #f)
       (define info-text (new text:hide-caret/selection%))
       (define info-port (make-text-port info-text))
-      
-      (define/private (make-modern text)
-        (send text change-style
-              (make-object style-delta% 'change-family 'modern)
-              0
-              (send text last-position)))
-
-      (define path '())
-      (define next-push 0)
-      (define/private (push!)
-        (set! path (cons next-push path))
-        (set! next-push 0))
-      (define/private (pop!)
-        (set! next-push (+ (car path) 1))
-        (set! path (cdr path)))
-      
-      (define/private (populate-range-ht)
-        ;; range-start-ht : hash-table[obj -o> number]
-        (define range-start-ht (make-hasheq))
-        
-        ;; range-ht : hash-table[obj -o> (listof (cons number number))]
-        (define range-ht (make-hasheq))
-      
-        (let* ([range-pretty-print-pre-hook 
-                (λ (x port)
-                  (push!)
-                  (let ([stx-object (hash-ref paths-ht path (λ () #f))])
-                    (hash-set! range-start-ht stx-object (send output-text last-position))))]
-               [range-pretty-print-post-hook 
-                (λ (x port)
-                  (let ([stx-object (hash-ref paths-ht path (λ () #f))])
-                    (when stx-object
-                      (let ([range-start (hash-ref range-start-ht stx-object (λ () #f))])
-                        (when range-start
-                          (hash-set! range-ht 
-                                     stx-object 
-                                     (cons
-                                      (cons
-                                       range-start
-                                       (send output-text last-position))
-                                      (hash-ref range-ht stx-object (λ () null))))))))
-                  (pop!))])
-          
-          ;; reset `path' and `next-push' for use in pp hooks.
-          (set! path '())
-          (set! next-push 0)
-          (parameterize ([current-output-port (make-text-port output-text)]
-                         [pretty-print-pre-print-hook range-pretty-print-pre-hook]
-                         [pretty-print-post-print-hook range-pretty-print-post-hook]
-                         [pretty-print-columns 30])
-            (pretty-write datum)
-            (make-modern output-text)))
-
-        (values range-start-ht range-ht))
       
       (define/private (show-info stx)
         (insert/big "General Info\n")
@@ -308,7 +252,8 @@ needed to really make this work:
         (unless output-text-filled-in?
           (set! output-text-filled-in? #t)
           (send output-text lock #f)
-          (define-values (range-start-ht range-ht) (populate-range-ht))
+          (define-values (range-start-ht range-ht)
+            (populate-range-ht main-stx output-text))
           (define ranges
             (sort
              (apply append
@@ -357,6 +302,8 @@ needed to really make this work:
       
       (inherit set-snipclass)
       (set-snipclass snip-class)))
+
+;; ------------------------------------------------------------
 
 ;; record-paths : val -> hash-table[path -o> syntax-object]
 (define (syntax-object->datum/record-paths val)
@@ -422,6 +369,65 @@ needed to really make this work:
           (pop!)
           val]))
      ht)))
+
+;; populate-range-ht : Datum text%
+;;                  -> (values Hash[Datum -> Nat] Hash[Datum -> (listof (cons Nat Nat))])
+(define (populate-range-ht main-stx output-text)
+  (define-values (datum paths-ht) (syntax-object->datum/record-paths main-stx))
+
+  ;; range-start-ht : hash-table[obj -o> number]
+  (define range-start-ht (make-hasheq))
+
+  ;; range-ht : hash-table[obj -o> (listof (cons number number))]
+  (define range-ht (make-hasheq))
+
+  (define path '())
+  (define next-push 0)
+  (define (push!)
+    (set! path (cons next-push path))
+    (set! next-push 0))
+  (define (pop!)
+    (set! next-push (+ (car path) 1))
+    (set! path (cdr path)))
+
+  (let* ([range-pretty-print-pre-hook
+          (λ (x port)
+            (push!)
+            (let ([stx-object (hash-ref paths-ht path (λ () #f))])
+              (hash-set! range-start-ht stx-object (send output-text last-position))))]
+         [range-pretty-print-post-hook
+          (λ (x port)
+            (let ([stx-object (hash-ref paths-ht path (λ () #f))])
+              (when stx-object
+                (let ([range-start (hash-ref range-start-ht stx-object (λ () #f))])
+                  (when range-start
+                    (hash-set! range-ht
+                               stx-object
+                               (cons
+                                (cons
+                                 range-start
+                                 (send output-text last-position))
+                                (hash-ref range-ht stx-object (λ () null))))))))
+            (pop!))])
+
+    ;; reset `path' and `next-push' for use in pp hooks.
+    (set! path '())
+    (set! next-push 0)
+    (parameterize ([current-output-port (make-text-port output-text)]
+                   [pretty-print-pre-print-hook range-pretty-print-pre-hook]
+                   [pretty-print-post-print-hook range-pretty-print-post-hook]
+                   [pretty-print-columns 30])
+      (pretty-write datum)
+      (make-modern output-text)))
+
+  (values range-start-ht range-ht))
+
+(define (make-modern text)
+  (send text change-style
+        (make-object style-delta% 'change-family 'modern)
+        0
+        (send text last-position)))
+
 
 (module+ test
   (let ([x (datum->syntax #f 'x #f #f)]
