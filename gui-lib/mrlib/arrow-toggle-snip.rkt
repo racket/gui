@@ -65,8 +65,7 @@
   (class snip%
     (inherit get-admin get-flags get-style set-flags set-count)
     (init [open? #f])
-    (init-field [on-up void]
-                [on-down void]
+    (init-field [callback void]
                 [size #f])
     (field [state (if open? 'down 'up)])  ; (U 'up 'down 'up-click 'down-click)
     (super-new)
@@ -74,7 +73,7 @@
     (set-flags (cons 'handles-events (get-flags)))
 
     (define/override (copy)
-      (new arrow-toggle-snip% (on-up on-up) (on-down on-down) (state state)))
+      (new arrow-toggle-snip% (callback callback) (open? state) (size size)))
 
     (define/override (draw dc x y left top right bottom dx dy draw-caret)
       (define old-brush (send dc get-brush))
@@ -153,23 +152,23 @@
                                [else 'up]))])]))
       (super on-event dc x y editorx editory evt))
 
-    (define/public (get-open)
+    (define/public (get-toggle-state)
       (case state [(down down-click) #t] [else #f]))
 
-    (define/public (set-open new-state)
+    (define/public (set-toggle-state new-state)
       (set-state (if new-state 'down 'up)))
 
     (define/private (set-state new-state)
       (unless (eq? state new-state)
-        (define old-toggled? (get-open))
+        (define old-toggled? (get-toggle-state))
         (set! state new-state)
         (let ([admin (get-admin)])
           (when admin
             (define-values (size dy) (get-target-size* (send admin get-dc)))
             (send admin needs-update this 0 0 size (+ size dy))))
-        (define new-toggled? (get-open))
+        (define new-toggled? (get-toggle-state))
         (unless (equal? new-toggled? old-toggled?)
-          (if new-toggled? (on-down) (on-up)))))
+          (callback new-toggled?))))
 
     (define/override (adjust-cursor dc x y editorx editory event)
       arrow-snip-cursor)

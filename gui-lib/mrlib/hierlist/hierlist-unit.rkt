@@ -46,16 +46,15 @@
       (send arrow-snip-class set-classname "hier-arrow")
       (define arrow-snip%
         (class arrow-toggle-snip%
-          (inherit get-open set-open set-snipclass set-count)
+          (inherit get-toggle-state set-toggle-state set-snipclass set-count)
           (init callback)
-          (super-new [on-up (lambda () (callback this))]
-                     [on-down (lambda () (callback this))]
+          (super-new [callback (lambda (new-state) (callback this))]
                      [size 14]) ;; 14 is close to previous size
           (set-snipclass arrow-snip-class)
           (define/public on
             (case-lambda
-              [() (get-open)]
-              [(v) (set-open v)]))))
+              [() (get-toggle-state)]
+              [(v) (set-toggle-state v)]))))
 
       ;; Hack to get whitespace matching width of arrow: derive a new
       ;; class that overrides the `draw' method to do nothing. 
