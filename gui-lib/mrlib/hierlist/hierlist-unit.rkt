@@ -49,7 +49,8 @@
           (inherit get-open set-open set-snipclass set-count)
           (init callback)
           (super-new [on-up (lambda () (callback this))]
-                     [on-down (lambda () (callback this))])
+                     [on-down (lambda () (callback this))]
+                     [size 14]) ;; 14 is close to previous size
           (set-snipclass arrow-snip-class)
           (define/public on
             (case-lambda
