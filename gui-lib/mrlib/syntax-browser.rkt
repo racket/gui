@@ -213,16 +213,57 @@ needed to really make this work:
         (send info-text lock #t)
         (send info-text end-edit-sequence))
 
-      (inherit get-admin get-editor)
+      ;; ----
+
+      (inherit show-border set-tight-text-fit)
+
       (define/override (update-style-list sl)
         (super update-style-list sl)
         (send summary-t set-style-list sl)
         (send inner-t set-style-list sl)
         (send info-text set-style-list sl)
+        (send info-header-t set-style-list sl)
+        (send info-snip update-style-list sl)
         (send output-text set-style-list sl))
 
       (define summary-t (new text:hide-caret/selection%))
       (define inner-t (new text:hide-caret/selection%))
+      (define info-header-t (new text:hide-caret/selection%))
+
+      (send summary-t insert (format "~s" main-stx))
+      (make-modern summary-t)
+
+      (send info-header-t insert "Syntax Info")
+      (send info-header-t change-style (make-big-style-delta)
+            0 (send info-header-t last-position))
+      (make-modern info-header-t)
+      (send info-header-t lock #t)
+      (define info-snip (new expandable-snip%
+                             (closed-editor info-header-t)
+                             (open-editor info-text)
+                             (layout 'replace)
+                             (with-border? #t)))
+
+      (send inner-t insert (instantiate editor-snip% ()
+                             (editor output-text)
+                             (with-border? #f)
+                             (left-margin 0)
+                             (top-margin 0)
+                             (right-margin 0)
+                             (bottom-margin 0)
+                             (left-inset 0)
+                             (top-inset 0)
+                             (right-inset 0)
+                             (bottom-inset 0)))
+      (send inner-t insert " ")
+      (send inner-t insert info-snip)
+      (send inner-t change-style (make-object style-delta% 'change-alignment 'top)
+            0 (send inner-t last-position))
+
+      (send output-text lock #t)
+      (send info-text lock #t)
+      (send inner-t lock #t)
+      (send summary-t lock #t)
 
       (super-instantiate ()
         (with-border? #f)
@@ -241,12 +282,6 @@ needed to really make this work:
            (fill-in-output-text)
            (show-border details-shown?)
            (set-tight-text-fit (not details-shown?)))))
-
-      (inherit show-border set-tight-text-fit)
-      
-      (let ()
-        (send summary-t insert (format "~s" main-stx))
-        (make-modern summary-t))
 
       (define/private (fill-in-output-text)
         (unless output-text-filled-in?
@@ -278,28 +313,8 @@ needed to really make this work:
           (unless (null? ranges)
             (let ([rng (car ranges)])
               (show-range (range-stx rng) (range-start rng) (range-end rng))))
-          (send output-text lock #t)
-          (send inner-t lock #f)
-          (send inner-t insert (instantiate editor-snip% ()
-                                 (editor output-text)
-                                 (with-border? #f)
-                                 (left-margin 0)
-                                 (top-margin 0)
-                                 (right-margin 0)
-                                 (bottom-margin 0)
-                                 (left-inset 0)
-                                 (top-inset 0)
-                                 (right-inset 0)
-                                 (bottom-inset 0)))
-          (send inner-t insert (make-object editor-snip% info-text))
-          (send inner-t change-style (make-object style-delta% 'change-alignment 'top) 0 2)
-          (send inner-t lock #t)))
-      
-      (send output-text lock #t)
-      (send info-text lock #t)
-      (send inner-t lock #t)
-      (send summary-t lock #t)
-      
+          (send output-text lock #t)))
+
       (inherit set-snipclass)
       (set-snipclass snip-class)))
 
