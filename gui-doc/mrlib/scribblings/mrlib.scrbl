@@ -6,9 +6,11 @@
 @table-of-contents[]
 
 @include-section["aligned-pasteboard/aligned-pasteboard.scrbl"]
+@include-section["arrow-toggle-snip.scrbl"]
 @include-section["bitmap-label.scrbl"]
 @include-section["cache-image-snip.scrbl"]
 @include-section["close-icon.scrbl"]
+@include-section["expandable-snip.scrbl"]
 @include-section["gif.scrbl"]
 @include-section["graph/graph.scrbl"]
 @include-section["hierlist/hierlist.scrbl"]
