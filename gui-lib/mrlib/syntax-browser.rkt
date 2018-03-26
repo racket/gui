@@ -232,8 +232,7 @@ needed to really make this work:
                 (send info-text last-position))))
       
       (define/private (insert/big str)
-        (let ([sd (make-object style-delta% 'change-bold)])
-          (send sd set-delta-foreground "Navy")
+        (let ([sd (make-big-style-delta)])
           (let ([pos (send info-text last-position)])
             (send info-text insert str 
                   (send info-text last-position)
@@ -242,6 +241,11 @@ needed to really make this work:
                   sd
                   pos 
                   (send info-text last-position)))))
+
+      (define/private (make-big-style-delta)
+        (define sd (make-object style-delta% 'change-bold))
+        (send sd set-delta-foreground "Navy")
+        sd)
       
       (define/private (optional-newline)
         (unless (equal?
