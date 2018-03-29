@@ -772,7 +772,7 @@
   (or (for/or ([v (in-list line)])
         (and (vector? v)
              (vec->color v)))
-      (vec->color #'(0 0 0))))
+      (vec->color #(0 0 0))))
 
 (define (props->style-delta line)
   (define sd (new style-delta%))
