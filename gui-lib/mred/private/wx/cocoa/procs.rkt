@@ -209,7 +209,9 @@
   (define buttons (if (version-10.6-or-later?)
                       (tell #:type _NSUInteger NSEvent pressedMouseButtons)
                       0))
-  (define mods (tell #:type _NSUInteger NSEvent modifierFlags))
+  (define mods (if (version-10.6-or-later?)
+                   (tell #:type _NSUInteger NSEvent modifierFlags)
+                   0))
   (define (maybe v mask sym)
     (if (zero? (bitwise-and v mask))
         null
