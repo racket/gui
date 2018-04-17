@@ -35,7 +35,7 @@
  queue-event
  yield)
 
-(import-class NSApplication NSAutoreleasePool NSColor NSProcessInfo NSArray)
+(import-class NSApplication NSAutoreleasePool NSColor NSProcessInfo NSArray NSMenu)
 
 ;; Extreme hackery to hide original arguments from
 ;; NSApplication, because NSApplication wants to turn 
@@ -82,6 +82,8 @@
       (queue-file-event (string->path filename))
       (post-dummy-event)]
   [-a _void (applicationDidFinishLaunching: [_id notification])
+      ;; Create an empty windows menu for right clicking in the dock
+      (tell app setWindowsMenu: (tell (tell NSMenu alloc) init))
       (unless got-file?
         (queue-start-empty-event))]
   [-a _BOOL (applicationShouldHandleReopen: [_id app] hasVisibleWindows: [_BOOL has-visible?])
