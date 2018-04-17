@@ -141,7 +141,7 @@
                     s)]
          [cg (cairo_quartz_surface_get_cg_context surface)]
          [gc (tell NSGraphicsContext
-                   graphicsContextWithGraphicsPort: #:type _pointer cg
+                   graphicsContextWithCGContext: #:type _CGContextRef cg
                    flipped: #:type _BOOL #f)])
     (CGContextSaveGState cg)
     (CGContextTranslateCTM cg 0 h)
