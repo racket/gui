@@ -286,6 +286,7 @@ needed to really make this work:
       (define/private (fill-in-output-text)
         (unless output-text-filled-in?
           (set! output-text-filled-in? #t)
+          (send output-text begin-edit-sequence)
           (send output-text lock #f)
           (define-values (range-start-ht range-ht)
             (populate-range-ht main-stx output-text))
@@ -313,6 +314,7 @@ needed to really make this work:
           (unless (null? ranges)
             (let ([rng (car ranges)])
               (show-range (range-stx rng) (range-start rng) (range-end rng))))
+          (send output-text end-edit-sequence)
           (send output-text lock #t)))
 
       (inherit set-snipclass)
