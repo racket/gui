@@ -126,8 +126,8 @@
   (when app
     (define args (for/vector ([i (current-command-line-arguments)])
 		   (path->string (path->complete-path i))))
-    (g_application_run app (vector-length args) args)
     (when (g_application_get_is_remote app)
+      (g_application_run app (vector-length args) args)
       (exit 0))
     (connect-activate app)
     (connect-command-line app)))
@@ -164,7 +164,7 @@
                                        (bytes->string/utf-8 (car (regexp-match #rx#"^[^\0]*" b)) #\?))))
                            "")])
     (string->bytes/utf-8
-     (format "org.racket-lang.~a"
+     (format "org.racket-lang.u~a"
              (encode
               (format "~a~a~a" host path (version)))))))
 
