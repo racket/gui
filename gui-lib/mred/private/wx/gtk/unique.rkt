@@ -98,6 +98,8 @@
 
 (define-gdk g_application_get_is_remote (_fun _GtkApplication -> _gboolean)
   #:make-fail make-not-available)
+(define-gdk g_application_register (_fun _GtkApplication _pointer _pointer -> _gboolean)
+  #:make-fail make-not-available)
 (define-gdk g_application_run (_fun _GtkApplication _int (_vector i _string) -> _gboolean)
   #:make-fail make-not-available)
 (define-gdk g_application_command_line_get_arguments
@@ -123,7 +125,8 @@
 
 (define (do-single-instance/gtk)
   (define app (gtk_application_new (build-app-name) APPLICATION_HANDLES_COMMAND_LINE))
-  (when app
+  (when (and app
+             (g_application_register app #f #f))
     (define args (for/vector ([i (current-command-line-arguments)])
 		   (path->string (path->complete-path i))))
     (when (g_application_get_is_remote app)
