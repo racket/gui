@@ -24,17 +24,21 @@
 
 (define-syntax (expect stx)
   (syntax-case stx ()
+    [(_ a b #:extra-stuff e)
+     #`(expect/proc #,(syntax-line stx) a b e)]
     [(_ a b)
-     #`(expect/proc #,(syntax-line stx) a b)]))
+     #`(expect/proc #,(syntax-line stx) a b #f)]))
 
-(define (expect/proc line v v2)
+(define (expect/proc line v v2 extra-stuff)
   (set! test-cnt (add1 test-cnt))
   (unless (equal? v v2)
     (set! wrong-cnt (add1 wrong-cnt))
-    (eprintf "FAILED: line ~a\nexpected: ~s\n     got: ~s\n" 
+    (eprintf "FAILED: line ~a\nexpected: ~s\n     got: ~s\n"
              line
              v2
-             v)))
+             v)
+    (when extra-stuff
+      (eprintf "   extra: ~s\n" extra-stuff))))
 
 (define (done)
   (printf "\n~a tests\n" test-cnt)
@@ -493,6 +497,82 @@
   
   (expect (send (txt "aaa") find-string-all "a") '(0 1 2)))
 
+(let ()
+  (define (slow-string-search search-str text)
+    (define result
+      (let loop ([text text])
+        (define lp (send text last-position))
+        (cons/f text
+                (for/or ([t-i (in-range (+ 1 lp))])
+                  (define s (send text find-snip t-i 'after-or-none))
+                  (cond
+                    [(is-a? s editor-snip%)
+                     (loop (send s get-editor))]
+                    [else
+                     (and (for/and ([c (in-string search-str)]
+                                    [s-i (in-naturals)])
+                            (define i (+ t-i s-i))
+                            (and (i . <= . lp)
+                                 (equal? c (send text get-character i))))
+                          t-i)])))))
+    (cond
+      [result (cdr result)]
+      [else result]))
+
+  (define (cons/f txt result)
+    (cond
+      [result (cons txt result)]
+      [else #f]))
+
+  (define (fast-string-search search-str text)
+    (send text find-string-embedded search-str 'forward 0))
+
+  (define (make-random-thing-to-search-in)
+    (define fuel 100)
+    (let loop ([depth 2])
+      (cond
+        [(<= fuel 0) '()]
+        [(zero? depth)
+         (define size (random 10))
+         (set! fuel (- fuel size))
+         (list (random-string size))]
+        [else
+         (cond
+           [(zero? (random 5))
+            (set! fuel (- fuel 1))
+            (cons (loop (- depth 1)) (loop depth))]
+           [else
+            (define size (random 20))
+            (set! fuel (- fuel size))
+            (cons (random-string size)
+                  (loop depth))])])))
+
+  (define (random-string len)
+  (define s (make-string len))
+  (for ([i (in-range len)])
+    (string-set! s i (random-char)))
+  s)
+
+  (define (random-char) (integer->char (+ (random 4) (char->integer #\a))))
+
+  (for ([__ (in-range 10000)])
+    (define thing-to-search-in (make-random-thing-to-search-in))
+    (define thing-to-search-for (random-string (+ 2 (random 3))))
+    (define text-to-search-in (new text%))
+    (let loop ([text text-to-search-in]
+               [thing-to-search-in thing-to-search-in])
+      (for ([ele (in-list thing-to-search-in)])
+        (define lp (send text last-position))
+        (cond
+          [(list? ele)
+           (define embedded-text (new text%))
+           (send text insert (new editor-snip% [editor embedded-text]) lp lp)
+           (loop embedded-text ele)]
+          [else
+           (send text insert ele lp lp)])))
+    (expect (slow-string-search thing-to-search-for text-to-search-in)
+            (fast-string-search thing-to-search-for text-to-search-in)
+            #:extra-stuff (list thing-to-search-for thing-to-search-in))))
 
 ;; ----------------------------------------
 
