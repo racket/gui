@@ -128,7 +128,12 @@
               (send wx install-wait-cursor)
               (send wx install-mb)
               (queue-window-event wx (lambda ()
-                                       (send wx on-activate #t)))))))]
+                                       (send wx on-activate #t)))))))
+      ;; If the fake root became main (because no other windows exist),
+      ;; we need to hide it again to avoid it getting stuck in the window list.
+      (when (and root-fake-frame (ptr-equal? self (send root-fake-frame get-cocoa)))
+        (tellv self orderFront: #f)
+        (tellv self orderOut: #f))]
   [-a _void (windowDidBecomeKey: [_id notification])
       (when (tell #:type _BOOL self isVisible)
         (when wxb
