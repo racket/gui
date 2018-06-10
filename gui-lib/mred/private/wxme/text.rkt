@@ -3808,22 +3808,30 @@
          (if just-one? #f '())])))
   
   (define/private (build-table word)
-    (define t (make-vector (string-length word) #f))
-    (when ((string-length word) . > . 1)
-      (vector-set! t 1 0)
-      (let loop ([pos 2]
+    (define l (string-length word))
+    (define t (make-vector (+ l 1) #f))
+    (when (l . > . 0)
+      (let loop ([pos 1]
                  [cnd 0])
-        (when (< pos (string-length word))
-          (cond
-            [(char=? (string-ref word (- pos 1))
-                     (string-ref word cnd))
-             (vector-set! t pos (+ cnd 1))
-             (loop (+ pos 1) (+ cnd 1))]
-            [(> cnd 0)
-             (loop pos (vector-ref t cnd))]
-            [else
-             (vector-set! t pos 0)
-             (loop (+ pos 1) cnd)]))))
+        (cond
+          [(pos . = . l)
+           (vector-set! t pos cnd)]
+          [(char=? (string-ref word pos)
+                   (string-ref word cnd))
+           (vector-set! t pos (vector-ref t cnd))
+           (loop (+ pos 1) (+ cnd 1))]
+          [else
+           (vector-set! t pos cnd)
+           (let loop2 ([pos pos]
+                       [cnd (vector-ref t cnd)])
+             (cond
+               [(not cnd)
+                (loop (+ pos 1) 0)]
+               [(char=? (string-ref word pos)
+                        (string-ref word cnd))
+                (loop (+ pos 1) (+ cnd 1))]
+               [else
+                (loop2 pos (vector-ref t cnd))]))])))
     t)
 
   ;; ----------------------------------------
