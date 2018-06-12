@@ -14,6 +14,7 @@
               define-cf
               define-appserv
               define-appkit
+              define-cg
               as-objc-allocation
               as-objc-allocation-with-retain
               clean-up-deleted
@@ -27,7 +28,8 @@
               version-10.7-or-later?
               version-10.9-or-later?
               version-10.10-or-later?
-              version-10.11-or-later?)
+              version-10.11-or-later?
+              version-10.13-or-later?)
  with-autorelease
  call-with-autorelease
  define-mz)
@@ -36,11 +38,13 @@
 (define cf-lib (ffi-lib (format "/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation")))
 (define appserv-lib (ffi-lib (format "/System/Library/Frameworks/ApplicationServices.framework/ApplicationServices")))
 (define appkit-lib (ffi-lib (format "/System/Library/Frameworks/AppKit.framework/AppKit")))
+(define cg-lib (ffi-lib (format "/System/Library/Frameworks/CoreGraphics.framework/CoreGraphics")))
 
 (define-ffi-definer define-cocoa cocoa-lib)
 (define-ffi-definer define-cf cf-lib)
 (define-ffi-definer define-appserv appserv-lib)
 (define-ffi-definer define-appkit appkit-lib)
+(define-ffi-definer define-cg cg-lib)
 
 (define delete-me null)
 
@@ -92,3 +96,5 @@
   (NSAppKitVersionNumber . >= . 1331))
 (define (version-10.11-or-later?)
   (NSAppKitVersionNumber . >= . 1404))
+(define (version-10.13-or-later?)
+  (NSAppKitVersionNumber . >= . 1561))
