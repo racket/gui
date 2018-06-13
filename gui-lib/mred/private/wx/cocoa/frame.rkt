@@ -46,6 +46,7 @@
 
 ;; called in atomic mode
 (define (send-screen-change-notifications flags)
+  (reset-menu-bar!)
   (when (zero? (bitwise-and flags 1)) ;; discard the "about to change" notifications
     (for ([b (in-hash-values all-windows)])
       (define f (weak-box-value b))

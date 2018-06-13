@@ -179,7 +179,7 @@
 ;;  that, so there's an additional hack above.
 (define-appserv CGDisplayRegisterReconfigurationCallback 
   (_fun (_fun #:atomic? #t _uint32 _uint32 -> _void) _pointer -> _int32))
-(define (on-screen-changed display flags) 
+(define (on-screen-changed display flags)
   (screen-changed-callback flags)
   (post-dummy-event))
 (define screen-changed-callback void)
@@ -395,6 +395,11 @@
 
 (define avoid-mouse-key-until #f)
 
+;; Check for menu-bar click to trigger `on-demand` callbacks.
+;; Why not use a delegate on NSMenu? Because that's a less convenient
+;; time to call arbitrary Racket code. It might be better to do that
+;; using `call-as-nonatomic-retry-point` and `constrained-reply`, but
+;; I'm not sure, and I'll stick with this for now.
 (define (check-menu-bar-click evt)
   (if (if menu-bar-tap
           (and in-menu-bar-detected?

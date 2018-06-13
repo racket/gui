@@ -12,7 +12,8 @@
 
 (provide 
  (protect-out menu-bar%
-              get-menu-bar-height))
+              get-menu-bar-height
+              reset-menu-bar!))
 
 (import-class NSApplication NSMenu NSMenuItem NSProcessInfo NSScreen)
 
@@ -70,20 +71,33 @@
 (define current-mb #f)
 
 ;; Used to detect mouse click on the menu bar:
-(define in-menu-bar-range
-  (let ([f (tell #:type _NSRect 
-                 (tell (tell NSScreen screens) objectAtIndex: #:type _NSUInteger 0)
-                 frame)])
-    (let ([x (NSPoint-x (NSRect-origin f))]
-          [w (NSSize-width (NSRect-size f))]
-          [y (+ (NSPoint-y (NSRect-origin f))
-                (NSSize-height (NSRect-size f)))])
-      (lambda (p flipped?)
-        (let ([h (tell #:type _CGFloat cocoa-mb menuBarHeight)])
-          (and (<= x (NSPoint-x p) (+ x w))
-               (<= (- y h) (if flipped? (- y (NSPoint-y p)) (NSPoint-y p)) y)))))))
+(define (reset-menu-bar!)
+  (define screens (tell NSScreen screens))
+  (define mb-screens
+    (if (and (version-10.9-or-later?)
+             (tell #:type _BOOL NSScreen screensHaveSeparateSpaces))
+        (for/list ([i (in-range (tell #:type _NSUInteger screens count))])
+          (tell screens objectAtIndex: #:type _NSUInteger i))
+        (list (tell screens objectAtIndex: #:type _NSUInteger 0))))
+  (define x+w+ys
+    (for/list ([screen (in-list mb-screens)])
+      (define f (tell #:type _NSRect screen frame))
+      (define x (NSPoint-x (NSRect-origin f)))
+      (define w (NSSize-width (NSRect-size f)))
+      (define y (+ (NSPoint-y (NSRect-origin f))
+                   (NSSize-height (NSRect-size f))))
+      (list x w y)))
+  (set-menu-bar-hooks!
+   (lambda (p flipped?)
+     (let ([h (tell #:type _CGFloat cocoa-mb menuBarHeight)])
+       (for/or ([x+w+y (in-list x+w+ys)])
+         (define x (car x+w+y))
+         (define w (cadr x+w+y))
+         (define y (caddr x+w+y))
+         (and (<= x (NSPoint-x p) (+ x w))
+              (<= (- y h) (if flipped? (- y (NSPoint-y p)) (NSPoint-y p)) y)))))))
 
-(set-menu-bar-hooks! in-menu-bar-range)
+(reset-menu-bar!)
 
 ;; Init menu bar
 (let ([app (tell NSApplication sharedApplication)]
