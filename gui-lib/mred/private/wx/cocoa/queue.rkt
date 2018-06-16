@@ -332,7 +332,7 @@
 
 (define mb-detect-box (box #f))
 (define-cg CGEventTapCreate (_fun _uint32 _uint32 _uint32 _uint64
-                                  (_fun #:async-apply (lambda (f) (f))
+                                  (_fun #:atomic? #t
                                         #:keep mb-detect-box
                                         _pointer _uint32 _id _pointer -> _id)
                                   _pointer
