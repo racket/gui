@@ -102,6 +102,22 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
+;;  testing port-name-matches?
+;;
+
+(let ()
+  (define t (new text:basic%))
+  (send t set-filename "/a/path/that/does/not/exist/x.rkt")
+  (check-true (send t port-name-matches? (string->path "/a/path/that/does/not/exist/x.rkt"))))
+
+(let ()
+  (define t (new text:basic%))
+  (send t set-filename "/a/path/that/does/not/exist/x.rkt")
+  (check-false (send t port-name-matches? (string->path "/a/path/that/does/not/exist/y.rkt"))))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;
 ;;  testing get-pos/text method
 ;;
 
