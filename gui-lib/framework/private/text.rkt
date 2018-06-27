@@ -559,15 +559,11 @@
         (or (and (path? id)
                  (path? filename)
                  (or (equal? id filename) ;; "fast path" check
-                     (equal? (normal-case-path-normalize-path/f (get-filename))
-                             (normal-case-path-normalize-path/f id))))
+                     (equal? (normal-case-path (simplify-path filename #f))
+                             (normal-case-path (simplify-path id #f)))))
             (and (symbol? port-name-identifier)
                  (symbol? id)
                  (equal? port-name-identifier id)))))
-
-    (define/private (normal-case-path-normalize-path/f fn)
-      (with-handlers ([exn:fail? (λ (exn) #f)])
-        (normal-case-path (normalize-path fn))))
     
     
     (define styles-fixed? #f)
