@@ -95,10 +95,10 @@
     panel.
 
     The argument, @racket[new-percentages] must be a list of numbers that sums
-    to 1. It's length must be equal to the number of children of the panel (see
+    to 1. Its length must be equal to the number of children of the panel (see
     @method[area-container<%> get-children]) and each percentage must
     correspond to a number of pixels that is equal to or larger than the
-    minimum with of the child, as reported by @method[area<%> min-width].
+    minimum width of the child, as reported by @method[area<%> min-width].
   }
 
   @defmethod*[(((get-percentages) (listof number?)))]{
