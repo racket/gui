@@ -772,7 +772,7 @@
             (let ([top (get-wx-window)])
               (when (and (or (send top floating?)
                              (tell #:type _BOOL w isMainWindow))
-                         (tell #:type _bool w isVisible))
+                         (tell #:type _BOOL w isVisible))
                 (tellv w makeKeyAndOrderFront: #f)))))))
                 
     (define/public (on-set-focus) (void))
@@ -1025,7 +1025,7 @@
   (do-request-flush-delay 
    wx-win
    (lambda (wx-win)
-     (and (tell #:type _bool (send wx-win get-cocoa-window) isVisible)
+     (and (tell #:type _BOOL (send wx-win get-cocoa-window) isVisible)
           (send wx-win disable-flush-window)
           #t))
    (lambda (wx-win)
