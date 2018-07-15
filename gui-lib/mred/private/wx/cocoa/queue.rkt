@@ -312,7 +312,7 @@
                                          (_fun #:atomic? #t _pointer _int _pointer -> _void)
                                          _CFStringRef ; CFRunLoopObserverContext
                                          -> _pointer))
-(define-cf CFRunLoopAddObserver (_fun _pointer _pointer _pointer -> _void))
+(define-cf CFRunLoopAddObserver (_fun _pointer _pointer _CFStringRef -> _void))
 (define-cf CFRunLoopGetMain (_fun -> _pointer))
 (define kCFRunLoopExit (arithmetic-shift 1 7))
 (define already-exited? #f)
