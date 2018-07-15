@@ -250,12 +250,12 @@
 ;; the CoreFoundation run loop
 
 (define _CFIndex _uint)
-(define _CFStringRef _NSString)
+(define _CFStringRef _pointer) ; don't use NSString, because we don't want to acquire/release
 (define-cstruct _CFSocketContext ([version _CFIndex]
                                   [info _pointer]
                                   [retain (_fun _pointer -> _pointer)]
                                   [release (_fun _pointer -> _void)]
-                                  [copyDescription (_fun _pointer -> _CFStringRef)]))
+                                  [copyDescription (_fun _pointer -> _NSString)]))
 (define (sock_retain v) #f)
 (define (sock_release v) (void))
 (define (sock_copy_desc v) "sock")
@@ -304,15 +304,15 @@
 ;; icon. (But why does that happen?)
 
 (define _Boolean _BOOL)
-(define-cf kCFRunLoopCommonModes _NSString)
+(define-cf kCFRunLoopCommonModes _CFStringRef)
 (define-cf CFRunLoopObserverCreate (_fun _pointer ; CFAllocatorRef
                                          _int ; CFOptionFlags
                                          _Boolean ; repeats?
                                          _CFIndex ; order
                                          (_fun #:atomic? #t _pointer _int _pointer -> _void)
-                                         _pointer ; CFRunLoopObserverContext
+                                         _CFStringRef ; CFRunLoopObserverContext
                                          -> _pointer))
-(define-cf CFRunLoopAddObserver (_fun _pointer _pointer _NSString -> _void))
+(define-cf CFRunLoopAddObserver (_fun _pointer _pointer _pointer -> _void))
 (define-cf CFRunLoopGetMain (_fun -> _pointer))
 (define kCFRunLoopExit (arithmetic-shift 1 7))
 (define already-exited? #f)
@@ -340,7 +340,7 @@
 (define-cf CFMachPortCreateRunLoopSource (_fun _pointer _pointer _long -> _pointer))
 (define-cf CFRunLoopGetCurrent (_fun -> _pointer))
 (define-cg CGEventGetLocation (_fun _pointer -> _NSPoint))
-(define-appkit NSEventTrackingRunLoopMode _NSString)
+(define-appkit NSEventTrackingRunLoopMode _CFStringRef)
 
 (define in-menu-bar-detected? #f)
 
@@ -367,10 +367,7 @@
                          (malloc-immobile-cell mb-detect-box))))
 (when menu-bar-tap
   (define src (CFMachPortCreateRunLoopSource #f menu-bar-tap 0))
-  ;; Add to default and NSEventTrackingRunLoopMode; not sure why
-  ;; using kCFRunLoopCommonModes doesn't work
-  (CFRunLoopAddSource (CFRunLoopGetCurrent) src kCFRunLoopDefaultMode)
-  (CFRunLoopAddSource (CFRunLoopGetCurrent) src NSEventTrackingRunLoopMode))
+  (CFRunLoopAddSource (CFRunLoopGetCurrent) src kCFRunLoopCommonModes))
 
 ;; ------------------------------------------------------------
 ;; Cocoa event pump
