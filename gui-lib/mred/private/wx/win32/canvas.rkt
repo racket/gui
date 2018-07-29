@@ -1,6 +1,7 @@
 #lang racket/base
 (require racket/class
          ffi/unsafe
+         ffi/unsafe/collect-callback
          racket/draw
          "../../syntax.rkt"
          "../../lock.rkt"
@@ -604,7 +605,7 @@
      (define/private (register-one-blit x y w h on-hbitmap off-hbitmap)
        (atomically
         (let ([hdc (create-gc-dc canvas-hwnd)])
-          (let ([r (scheme_add_gc_callback
+          (let ([r (unsafe-add-collect-callbacks
                     (make-gc-show-desc hdc on-hbitmap x y w h)
                     (make-gc-hide-desc hdc off-hbitmap x y w h))])
             (cons hdc r)))))
@@ -621,7 +622,7 @@
        (atomically
         (for ([r (in-list reg-blits)])
           (ReleaseDC canvas-hwnd (car r))
-          (scheme_remove_gc_callback (cdr r)))
+          (unsafe-remove-collect-callbacks (cdr r)))
         (set! reg-blits null))))))
 
 

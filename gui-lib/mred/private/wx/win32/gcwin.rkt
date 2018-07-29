@@ -6,14 +6,9 @@
          "wndclass.rkt")
 
 (provide 
- (protect-out scheme_add_gc_callback
-              scheme_remove_gc_callback
-              create-gc-dc
+ (protect-out create-gc-dc
               make-gc-show-desc
               make-gc-hide-desc))
-
-(define-mz scheme_add_gc_callback (_fun _racket _racket -> _racket))
-(define-mz scheme_remove_gc_callback (_fun _racket -> _void))
 
 (define-gdi32 BitBlt/raw _fpointer
   #;

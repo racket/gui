@@ -6,9 +6,7 @@
          "types.rkt")
 
 (provide 
- (protect-out scheme_add_gc_callback
-              scheme_remove_gc_callback
-              make-gc-action-desc
+ (protect-out make-gc-action-desc
               make-gl-install
               make-gl-uninstall
               do-gl-action))
@@ -19,11 +17,6 @@
 (define objc-lib (ffi-lib "libobjc"))
 
 (define msg-send-proc (get-ffi-obj 'objc_msgSend objc-lib _fpointer))
-
-(define-mz scheme_add_gc_callback (_fun _racket _racket -> _racket)
-  #:fail (lambda () void))
-(define-mz scheme_remove_gc_callback (_fun _racket -> _void)
-  #:fail (lambda () void))
 
 (define (make-gc-action-desc win sel val)
   (vector

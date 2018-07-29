@@ -10,10 +10,8 @@
          "pixbuf.rkt"
 	 "x11.rkt")
 
-(provide 
- (protect-out scheme_add_gc_callback
-              scheme_remove_gc_callback
-              create-gc-window
+(provide
+ (protect-out create-gc-window
               free-gc-window
               make-gc-show-desc
               make-gc-hide-desc
@@ -92,9 +90,6 @@
 ;; Gtk2
 (define-gdk gdk_draw_pixbuf _fpointer
   #:make-fail make-not-available)
-
-(define-mz scheme_add_gc_callback (_fun _racket _racket -> _racket))
-(define-mz scheme_remove_gc_callback (_fun _racket -> _void))
 
 (define-x11 XSetWindowBackgroundPixmap _fpointer #:fail (lambda () #f))
 (define-x11 XMapRaised _fpointer #:fail (lambda () #f))

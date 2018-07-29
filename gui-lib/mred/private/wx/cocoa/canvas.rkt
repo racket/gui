@@ -1,6 +1,7 @@
 #lang racket/base
 (require ffi/unsafe/objc
          ffi/unsafe
+         ffi/unsafe/collect-callback
          racket/class
          racket/draw
          racket/draw/private/gl-context
@@ -934,7 +935,7 @@
            ; removeChildWindow doesn't hide the window
            (tellv (vector-ref r 0) orderOut: #f)
            (release (vector-ref r 0))
-           (scheme_remove_gc_callback (vector-ref r 1))))
+           (unsafe-remove-collect-callbacks (vector-ref r 1))))
        (set! reg-blits null))
 
      (define/public (resume-all-reg-blits)
@@ -1004,7 +1005,7 @@
                         (make-gl-install win glv w h unimg us)
                         (make-gl-uninstall win glv w h))
                     (make-gc-action-desc win (selector setAlphaValue:) 0.0)))
-              (let ([r (scheme_add_gc_callback
+              (let ([r (unsafe-add-collect-callbacks
                         (if gc-via-gl?
                             (make-gl-install win glv w h img s)
                             (make-gc-action-desc win (selector setAlphaValue:) 1.0))

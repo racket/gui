@@ -1,6 +1,7 @@
 #lang racket/base
 (require ffi/unsafe
          ffi/unsafe/define
+         ffi/unsafe/collect-callback
          racket/class
          racket/draw
          ffi/unsafe/alloc
@@ -896,7 +897,7 @@
      (define/private (register-one-blit x y w h on-gc-bitmap off-gc-bitmap)
        (atomically
 	(let ([win (create-gc-window client-gtk x y w h)])
-	  (let ([r (scheme_add_gc_callback
+	  (let ([r (unsafe-add-collect-callbacks
 		    (make-gc-show-desc win on-gc-bitmap w h)
 		    (make-gc-hide-desc win off-gc-bitmap w h))])
 	    (cons win r)))))
@@ -916,7 +917,7 @@
        (atomically
         (for ([r (in-list reg-blits)])
           (free-gc-window (car r))
-          (scheme_remove_gc_callback (cdr r)))
+          (unsafe-remove-collect-callbacks (cdr r)))
         (set! reg-blits null))))))
 
 ;; ----------------------------------------
