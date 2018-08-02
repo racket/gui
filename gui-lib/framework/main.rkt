@@ -1266,8 +1266,10 @@
 
  (proc-doc/names
   keymap:setup-global
-  ((is-a?/c keymap%) . -> . void?)
-  (keymap)
+  (((is-a?/c keymap%))
+   (#:alt-as-meta-keymap (or/c #f (is-a?/c keymap%)))
+   . ->* . void?)
+  ((keymap) ([alt-as-meta-keymap #f]))
   @{This function extends a @racket[keymap%] with the following functions:
     @itemize[
       @item{@mapdesc[ring-bell any] --- Rings the bell (using @racket[bell])
@@ -1420,7 +1422,16 @@
       @item{MIDDLEBUTTON : ``paste-click-region''}
       @item{C-RIGHTBUTTON : ``copy-clipboard''}
       @item{INSERT : ``toggle-overwrite''}
-      @item{M-o : ``toggle-overwrite''}]})
+      @item{M-o : ``toggle-overwrite''}]
+
+    If @racket[alt-as-meta-keymap] is not @racket[#f], then for each
+    of the M- mappings, a ``flexible'' A- variant of the mapping is added to
+    @racket[alt-as-meta-keymap]. The flexible mapping matches a key combination
+    where the non-modifier part of the mapping would match if the modifier
+    had not affected the non-modifier part (e.g., matching Option-p as A-p on Mac OS
+    even when an Option-p combination produces ``π'').
+
+    @history[#:changed "1.34" @elem{Added the @racket[#:alt-as-meta-keymap] argument.}]})
 
  (proc-doc/names
   keymap:setup-search
