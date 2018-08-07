@@ -336,10 +336,12 @@
                                         #:keep mb-detect-box
                                         _pointer _uint32 _id _pointer -> _id)
                                   _pointer
-                                  -> _pointer))
+                                  -> _pointer)
+  #:fail (lambda () #f))
 (define-cf CFMachPortCreateRunLoopSource (_fun _pointer _pointer _long -> _pointer))
 (define-cf CFRunLoopGetCurrent (_fun -> _pointer))
-(define-cg CGEventGetLocation (_fun _pointer -> _NSPoint))
+(define-cg CGEventGetLocation (_fun _pointer -> _NSPoint)
+  #:fail (lambda () #f))
 (define-appkit NSEventTrackingRunLoopMode _CFStringRef)
 
 (define in-menu-bar-detected? #f)

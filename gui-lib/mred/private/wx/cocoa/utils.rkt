@@ -38,7 +38,7 @@
 (define cf-lib (ffi-lib (format "/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation")))
 (define appserv-lib (ffi-lib (format "/System/Library/Frameworks/ApplicationServices.framework/ApplicationServices")))
 (define appkit-lib (ffi-lib (format "/System/Library/Frameworks/AppKit.framework/AppKit")))
-(define cg-lib (ffi-lib (format "/System/Library/Frameworks/CoreGraphics.framework/CoreGraphics")))
+(define cg-lib (ffi-lib (format "/System/Library/Frameworks/CoreGraphics.framework/CoreGraphics") #:fail (lambda () #f)))
 
 (define-ffi-definer define-cocoa cocoa-lib)
 (define-ffi-definer define-cf cf-lib)
