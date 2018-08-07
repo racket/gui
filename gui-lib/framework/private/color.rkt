@@ -460,12 +460,17 @@ added get-regions
           (set! misspelled-regions (make-interval-map))))
       (unless (= start end)
         (when misspelled-regions
-          (interval-map-set! misspelled-regions start end
-                             (and suggestions
-                                  (list start end suggestions))))))
+          (when suggestions
+            (interval-map-set! misspelled-regions start end suggestions)))))
     (define misspelled-regions #f)
     (define/public (get-spell-suggestions position)
-      (and misspelled-regions (interval-map-ref misspelled-regions position #f)))
+      (cond
+        [misspelled-regions
+         (define-values (start end suggestions)
+           (interval-map-ref/bounds misspelled-regions position #f))
+         (and start end
+              (list start end suggestions))]
+        [else #f]))
     
     (define/private (add-coloring color sp ep)
       (change-style color sp ep #f))
