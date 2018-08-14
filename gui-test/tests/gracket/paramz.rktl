@@ -126,4 +126,22 @@
 
 ;; ----------------------------------------
 
+(let ()
+  (define eventspace (make-eventspace #:suspend-to-kill? #t))
+  (define c (make-channel))
+  (parameterize ([current-eventspace eventspace])
+    (queue-callback
+     (λ ()
+       (channel-put c 0))))
+  (test 0 'suspend-to-kill.1 (channel-get c))
+  (kill-thread (eventspace-handler-thread eventspace))
+  (test #f 'suspend-to-kill.2 (thread-running? (eventspace-handler-thread eventspace)))
+  (test #f 'suspend-to-kill.3 (thread-dead? (eventspace-handler-thread eventspace)))
+  (thread-resume (eventspace-handler-thread eventspace) (current-custodian))
+  (parameterize ([current-eventspace eventspace])
+    (queue-callback
+     (λ ()
+       (channel-put c 1))))
+  (test 1 'suspend-to-kill.4 (channel-get c)))
+
 (report-errs)

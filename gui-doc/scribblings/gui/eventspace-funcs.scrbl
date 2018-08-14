@@ -3,14 +3,20 @@
 
 @title[#:tag "eventspace-funcs"]{Eventspaces}
 
-@defproc[(make-eventspace)
+@defproc[(make-eventspace [#:suspend-to-kill? suspend-to-kill? any/c #f])
          eventspace?]{
 Creates and returns a new @tech{eventspace} value. The new eventspace is
  created as a child of the current eventspace. The eventspace is used
  by making it the current eventspace with the
  @racket[current-eventspace] parameter.
 
-See @|eventspacediscuss| for more information about eventspaces.
+ If @racket[suspend-to-kill?] is not @racket[#f], then the eventspace's
+ @tech{handler thread} is created using @racket[thread/suspend-to-kill].
+ Otherwise, it is created using @racket[thread].
+
+ See @|eventspacediscuss| for more information about eventspaces.
+
+ @history[#:changed "1.35" @elem{Added the @racket[suspend-to-kill?] argument.}]
 
 }
 

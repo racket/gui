@@ -3,6 +3,8 @@
                  define-namespace-anchor
                  namespace-anchor->empty-namespace
                  make-base-empty-namespace)
+           (rename racket/base r/b:define define)
+           (rename racket/base r/b:#%app #%app)
            (only scheme/base) (only scheme/class) ; so that `make-gui-namespace' attaches them
            racket/class
            racket/draw racket/snip
@@ -68,10 +70,10 @@
 
   ;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-  (define (make-eventspace)
+  (r/b:define (make-eventspace #:suspend-to-kill? [suspend-to-kill? #f])
     (parameterize ([the-snip-class-list (make-the-snip-class-list)]
                    [wx:the-editor-data-class-list (wx:make-the-editor-data-class-list)])
-      (wx:make-eventspace)))
+      (r/b:#%app wx:make-eventspace #:suspend-to-kill? suspend-to-kill?)))
 
   ;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 

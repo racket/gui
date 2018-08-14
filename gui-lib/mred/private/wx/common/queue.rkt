@@ -359,29 +359,31 @@
 
 (define make-new-eventspace
   (let ([make-eventspace
-         (lambda ()
+         (lambda (#:suspend-to-kill? [suspend-to-kill? #f])
            (define pause (make-semaphore))
            (define break-paramz (current-break-parameterization))
+           (define (eventspace-handler-thread-proc)
+             (sync pause) ; wait until `es' has a value
+             (thread-cell-set! handler-thread-of es)
+             (current-eventspace es)
+             (let loop ()
+               (call-with-continuation-prompt
+                (lambda ()
+                  ;; re-enable breaks (if they are supposed to be enabled):
+                  (call-with-break-parameterization
+                   break-paramz
+                   (lambda ()
+                     ;; yield; any abort (including a break exception)
+                     ;; will get caught and the loop will yield again
+                     (yield (make-semaphore))))))
+               (loop)))
            (define es
              (make-eventspace*
               (parameterize-break 
                #f ; disable breaks until we're in the yield loop
-               (thread
-                (lambda ()
-                  (sync pause) ; wait until `es' has a value
-                  (thread-cell-set! handler-thread-of es)
-                  (current-eventspace es)
-                  (let loop ()
-                    (call-with-continuation-prompt
-                     (lambda ()
-                       ;; re-enable breaks (if they are supposed to be enabled):
-                       (call-with-break-parameterization
-                        break-paramz
-                        (lambda () 
-                          ;; yield; any abort (including a break exception)
-                          ;; will get caught and the loop will yield again
-                          (yield (make-semaphore))))))
-                    (loop)))))))
+               (if suspend-to-kill?
+                   (thread/suspend-to-kill eventspace-handler-thread-proc)
+                   (thread eventspace-handler-thread-proc)))))
            (semaphore-post pause) ; `es' has a value
            es)])
     make-eventspace))
