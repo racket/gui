@@ -66,6 +66,8 @@ needed to really make this work:
   
   (define-struct range (stx start end))
 
+  (define Syntax\ Info "Syntax Info")
+
   (define syntax-snip%
     (class expandable-snip%
       (init-field main-stx)
@@ -85,7 +87,7 @@ needed to really make this work:
       (define info-port (make-text-port info-text))
       
       (define/private (show-info stx)
-        (insert/big "General Info\n")
+        (insert/big (string-append Syntax\ Info "\n"))
         (piece-of-info "Source" (syntax-source stx))
         (piece-of-info "Source module" (syntax-source-module stx))
         (piece-of-info "Position" (syntax-position stx))
@@ -233,7 +235,7 @@ needed to really make this work:
       (send summary-t insert (format "~s" main-stx))
       (make-modern summary-t)
 
-      (send info-header-t insert "Syntax Info")
+      (send info-header-t insert Syntax\ Info)
       (send info-header-t change-style (make-big-style-delta)
             0 (send info-header-t last-position))
       (make-modern info-header-t)
