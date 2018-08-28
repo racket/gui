@@ -460,7 +460,9 @@ has been moved out).
 
     (define/override (write f)
       (define bp (open-output-bytes))
-      (:write (list shape bb pinhole) bp)
+      (parameterize ([print-graph #t]
+                     [bitmap-write-cache (make-hasheq)])
+        (:write (list shape bb pinhole) bp))
       (define bytes (get-output-bytes bp))
       (send f put (bytes-length bytes) bytes))
     
@@ -1454,22 +1456,34 @@ the mask bitmap and the original bitmap are all together in a single bytes!
               (make-bb w h h)
               #f))
 
+(define bitmap-write-cache (make-parameter #f))
 (define (bitmap-write bitmap port mode)
-  (let* ([v (struct->vector bitmap)]
-         [recur (case mode
-                  [(#t) write]
-                  [(#f) display]
-                  [else (lambda (p port) (print p port mode))])]
-         [update 
-          (λ (i)
-            (let ([o (vector-ref v i)])
-              (let ([nv (and o 
-                             (call-with-values (λ () (bitmap->bytes o #f)) vector))])
-                (vector-set! v i nv))))])
-    (update 1)
-    ;; don't save the cache
-    (vector-set! v 5 (make-hash))
-    (recur v port)))
+  (define v (struct->vector bitmap))
+  (define recur
+    (case mode
+      [(#t) write]
+      [(#f) display]
+      [else (lambda (p port) (print p port mode))]))
+
+  (define (to-bytes o)
+    (define cache (bitmap-write-cache))
+    (define already-gotten-bytes (and cache (hash-ref cache o #f)))
+    (cond
+      [already-gotten-bytes already-gotten-bytes]
+      [else
+       (define res (call-with-values (λ () (bitmap->bytes o #f)) vector))
+       (when cache (hash-set! cache o res))
+       res]))
+
+  (define (update i)
+    (define o (vector-ref v i))
+    (define nv (and o (to-bytes o)))
+    (vector-set! v i nv))
+
+  (update 1)
+  ;; don't save the cache
+  (vector-set! v 5 (make-hash))
+  (recur v port))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
