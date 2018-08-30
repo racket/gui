@@ -28,6 +28,7 @@
 (define GDK_PROXIMITY_OUT_MASK (1 . << . 19))
 (define GDK_SUBSTRUCTURE_MASK (1 . << . 20))
 (define GDK_SCROLL_MASK (1 . << . 21))
+(define GDK_SMOOTH_SCROLL_MASK (1 . << . 23))
 (define GDK_ALL_EVENTS_MASK #x3FFFFE)
 
 
