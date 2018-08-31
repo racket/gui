@@ -473,7 +473,9 @@
                                                     GDK_ENTER_NOTIFY_MASK
                                                     GDK_LEAVE_NOTIFY_MASK
                                                     GDK_SCROLL_MASK
-                                                    GDK_SMOOTH_SCROLL_MASK))
+                                                    (if gtk3?
+                                                        GDK_SMOOTH_SCROLL_MASK
+                                                        0)))
      (unless (or (memq 'no-focus style)
                  (is-panel?))
        (gtk_widget_set_can_focus client-gtk #t))

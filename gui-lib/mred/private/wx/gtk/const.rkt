@@ -28,9 +28,8 @@
 (define GDK_PROXIMITY_OUT_MASK (1 . << . 19))
 (define GDK_SUBSTRUCTURE_MASK (1 . << . 20))
 (define GDK_SCROLL_MASK (1 . << . 21))
-(define GDK_SMOOTH_SCROLL_MASK (1 . << . 23))
-(define GDK_ALL_EVENTS_MASK #x3FFFFE)
-
+(define GDK_SMOOTH_SCROLL_MASK (1 . << . 23)) ; added in v3.4
+;; (define GDK_ALL_EVENTS_MASK #x3FFFFE) - as of 2.0, but #x3FFFFFE as of 3.22
 
 (define GTK_TOPLEVEL (1 . << . 4))
 (define GTK_NO_WINDOW (1 . << . 5))
