@@ -448,14 +448,15 @@
     (begin0
      (let ([evt (if events-suspended?
                     #f
-                    (tell app nextEventMatchingMask: #:type _NSUInteger (if (and (not wait?)
-                                                                                 avoid-mouse-key-until)
-                                                                            (- NSAnyEventMask
-                                                                               MouseAndKeyEventMask)
-                                                                            NSAnyEventMask)
-                          untilDate: (if wait? distantFuture #f)
-                          inMode: NSDefaultRunLoopMode
-                          dequeue: #:type _BOOL dequeue?))])
+                    (with-blocking-tell
+                      (tell app nextEventMatchingMask: #:type _NSUInteger (if (and (not wait?)
+                                                                                   avoid-mouse-key-until)
+                                                                              (- NSAnyEventMask
+                                                                                 MouseAndKeyEventMask)
+                                                                              NSAnyEventMask)
+                            untilDate: (if wait? distantFuture #f)
+                            inMode: NSDefaultRunLoopMode
+                            dequeue: #:type _BOOL dequeue?)))])
        (when evt (check-menu-bar-click evt))
        (and evt
             (or (not dequeue?)
