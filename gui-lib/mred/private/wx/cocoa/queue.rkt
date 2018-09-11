@@ -178,7 +178,7 @@
 ;;  is called, but sometimes the event loop gets stuck after
 ;;  that, so there's an additional hack above.
 (define-appserv CGDisplayRegisterReconfigurationCallback 
-  (_fun (_fun #:atomic? #t _uint32 _uint32 -> _void) _pointer -> _int32))
+  (_fun (_fun #:atomic? #t #:async-apply (lambda (f) (f)) _uint32 _uint32 -> _void) _pointer -> _int32))
 (define (on-screen-changed display flags)
   (screen-changed-callback flags)
   (post-dummy-event))
@@ -253,9 +253,12 @@
 (define _CFStringRef _pointer) ; don't use NSString, because we don't want to acquire/release
 (define-cstruct _CFSocketContext ([version _CFIndex]
                                   [info _pointer]
-                                  [retain (_fun _pointer -> _pointer)]
-                                  [release (_fun _pointer -> _void)]
-                                  [copyDescription (_fun _pointer -> _NSString)]))
+                                  [retain (_fun #:atomic? #t #:async-apply (lambda (f) (f))
+                                                _pointer -> _pointer)]
+                                  [release (_fun #:atomic? #t #:async-apply (lambda (f) (f))
+                                                 _pointer -> _void)]
+                                  [copyDescription (_fun #:atomic? #t #:async-apply (lambda (f) (f))
+                                                         _pointer -> _NSString)]))
 (define (sock_retain v) #f)
 (define (sock_release v) (void))
 (define (sock_copy_desc v) "sock")
@@ -267,7 +270,7 @@
 (define _CFRunLoopSourceRef _pointer)
 (define _CFSocketNativeHandle _int)
 (define _CFOptionFlags _uint)
-(define _CFSocketCallBack (_fun -> _void))
+(define _CFSocketCallBack (_fun #:atomic? #t #:async-apply (lambda (f) (f)) -> _void))
 (define-cf CFAllocatorGetDefault (_fun -> _pointer))
 (define-cf CFSocketCreateWithNative (_fun _CFAllocatorRef
                                           _CFSocketNativeHandle
@@ -309,7 +312,8 @@
                                          _int ; CFOptionFlags
                                          _Boolean ; repeats?
                                          _CFIndex ; order
-                                         (_fun #:atomic? #t _pointer _int _pointer -> _void)
+                                         (_fun #:atomic? #t #:async-apply (lambda (f) (f))
+                                               _pointer _int _pointer -> _void)
                                          _CFStringRef ; CFRunLoopObserverContext
                                          -> _pointer))
 (define-cf CFRunLoopAddObserver (_fun _pointer _pointer _CFStringRef -> _void))
@@ -333,6 +337,7 @@
 (define mb-detect-box (box #f))
 (define-cg CGEventTapCreate (_fun _uint32 _uint32 _uint32 _uint64
                                   (_fun #:atomic? #t
+                                        #:async-apply (lambda (f) (f))
                                         #:keep mb-detect-box
                                         _pointer _uint32 _id _pointer -> _id)
                                   _pointer
