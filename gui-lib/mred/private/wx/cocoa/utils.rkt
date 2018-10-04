@@ -29,7 +29,8 @@
               version-10.9-or-later?
               version-10.10-or-later?
               version-10.11-or-later?
-              version-10.13-or-later?)
+              version-10.13-or-later?
+              version-10.14-or-later?)
  with-autorelease
  call-with-autorelease
  define-mz)
@@ -98,3 +99,5 @@
   (NSAppKitVersionNumber . >= . 1404))
 (define (version-10.13-or-later?)
   (NSAppKitVersionNumber . >= . 1561))
+(define (version-10.14-or-later?)
+  (NSAppKitVersionNumber . >= . 1671))
