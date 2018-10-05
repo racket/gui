@@ -72,15 +72,6 @@
 (define-objc-mixin (RacketWindowMethods Superclass)
   #:mixins (RacketEventspaceMethods)
   [wxb]
-  [-a #:async-apply (box (void))
-      _void (drawRect: [_NSRect r])
-      (cond
-        [(version-10.14-or-later?)
-         (let ([wx (->wx wxb)])
-           (unless (and wx (send wx flush-disabled?))
-             (super-tell #:type _void drawRect: #:type _NSRect r)))]
-        [else
-         (super-tell #:type _void drawRect: #:type _NSRect r)])]
   [-a _BOOL (canBecomeKeyWindow)
       (let ([wx (->wx wxb)])
         (and wx
@@ -439,29 +430,23 @@
     
     (define flush-disabled 0)
     (define flush-disable-disabled 0)
-
-    (define/public (flush-disabled?)
-      (not (zero? flush-disabled)))
     
     (define/public (disable-flush-window)
-      (unless (version-10.14-or-later?)
-        (when (zero? flush-disabled)
-          (when (zero? flush-disable-disabled)
-            (when (version-10.11-or-later?)
-              (tellv cocoa setAutodisplay: #:type _BOOL #f))
-            (tellv cocoa disableFlushWindow))))
+      (when (zero? flush-disabled)
+        (when (zero? flush-disable-disabled)
+          (when (version-10.11-or-later?)
+            (tellv cocoa setAutodisplay: #:type _BOOL #f))
+          (tellv cocoa disableFlushWindow)))
       (set! flush-disabled (add1 flush-disabled)))
 
     (define/public (enable-flush-window)
       (set! flush-disabled (sub1 flush-disabled))
       (when (zero? flush-disabled)
-        (unless (version-10.14-or-later?)
-          (when (zero? flush-disable-disabled)
-            (tellv cocoa enableFlushWindow)))
+        (when (zero? flush-disable-disabled)
+          (tellv cocoa enableFlushWindow))
         (when (version-10.11-or-later?)
-          (unless (version-10.14-or-later?)
-            (when (zero? flush-disable-disabled)
-              (tellv cocoa setAutodisplay: #:type _BOOL #t)))
+          (when (zero? flush-disable-disabled)
+            (tellv cocoa setAutodisplay: #:type _BOOL #t))
           (queue-window-refresh-event
            this
            (lambda ()
@@ -479,20 +464,18 @@
         (atomically
          (dynamic-wind
           (lambda ()
-            (unless (version-10.14-or-later?)
-              (when (zero? flush-disable-disabled)
-                (tellv cocoa setAutodisplay: #:type _BOOL #t)
-                (tellv cocoa enableFlushWindow))
-              (tellv cocoa display))
+            (when (zero? flush-disable-disabled)
+              (tellv cocoa setAutodisplay: #:type _BOOL #t)
+              (tellv cocoa enableFlushWindow))
+            (tellv cocoa display)
             (set! flush-disable-disabled (add1 flush-disable-disabled)))
           thunk
           (lambda ()
             (set! flush-disable-disabled (sub1 flush-disable-disabled))
-            (unless (version-10.14-or-later?)
-              (when (zero? flush-disable-disabled)
-                (unless (zero? flush-disabled)
-                  (tellv cocoa setAutodisplay: #:type _BOOL #f)
-                  (tellv cocoa disableFlushWindow)))))))]))
+            (when (zero? flush-disable-disabled)
+              (unless (zero? flush-disabled)
+                (tellv cocoa setAutodisplay: #:type _BOOL #f)
+                (tellv cocoa disableFlushWindow))))))]))
 
     (define/public (force-window-focus)
       (let ([next (get-app-front-window)])
