@@ -23,6 +23,7 @@
               set-eventspace-hook!
               set-front-hook!
               set-menu-bar-hooks!
+              set-mouse-or-key-hook!
               set-fixup-window-locations!
               post-dummy-event
 
@@ -399,6 +400,10 @@
 
 (define avoid-mouse-key-until #f)
 
+(define mouse-or-key-hook void)
+(define (set-mouse-or-key-hook! proc)
+  (set! mouse-or-key-hook proc))
+
 ;; Check for menu-bar click to trigger `on-demand` callbacks.
 ;; Why not use a delegate on NSMenu? Because that's a less convenient
 ;; time to call arbitrary Racket code. It might be better to do that
@@ -465,11 +470,14 @@
        (when evt (check-menu-bar-click evt))
        (and evt
             (or (not dequeue?)
-                (let ([e (eventspace-hook evt (tell evt window))])
+                (let* ([w (tell evt window)]
+                       [e (eventspace-hook evt w)])
                   (if e
                       (let ([mouse-or-key?
                              (bitwise-bit-set? MouseAndKeyEventMask
                                                (tell #:type _NSInteger evt type))])
+                        (when mouse-or-key?
+                          (mouse-or-key-hook w))
                         ;; If it's a mouse or key event, delay further
                         ;;  dequeue of mouse and key events until this
                         ;;  one can be handled.

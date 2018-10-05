@@ -434,23 +434,32 @@
     (define/public (disable-flush-window)
       (when (zero? flush-disabled)
         (when (zero? flush-disable-disabled)
-          (when (version-10.11-or-later?)
-            (tellv cocoa setAutodisplay: #:type _BOOL #f))
-          (tellv cocoa disableFlushWindow)))
+          (cond
+            [(version-10.14-or-later?)
+             (request-global-flush-suspend this)]
+            [else
+             (when (version-10.11-or-later?)
+               (tellv cocoa setAutodisplay: #:type _BOOL #f))
+             (tellv cocoa disableFlushWindow)])))
       (set! flush-disabled (add1 flush-disabled)))
 
     (define/public (enable-flush-window)
       (set! flush-disabled (sub1 flush-disabled))
       (when (zero? flush-disabled)
-        (when (zero? flush-disable-disabled)
-          (tellv cocoa enableFlushWindow))
-        (when (version-10.11-or-later?)
-          (when (zero? flush-disable-disabled)
-            (tellv cocoa setAutodisplay: #:type _BOOL #t))
-          (queue-window-refresh-event
-           this
-           (lambda ()
-             (tellv cocoa displayIfNeeded))))))
+        (cond
+          [(version-10.14-or-later?)
+           (when (zero? flush-disable-disabled)
+             (request-global-flush-resume))]
+          [else
+           (when (zero? flush-disable-disabled)
+             (tellv cocoa enableFlushWindow))
+           (when (version-10.11-or-later?)
+             (when (zero? flush-disable-disabled)
+               (tellv cocoa setAutodisplay: #:type _BOOL #t))
+             (queue-window-refresh-event
+              this
+              (lambda ()
+                (tellv cocoa displayIfNeeded))))])))
 
     (define/private (call-with-refreshable thunk)
       (cond
@@ -820,3 +829,32 @@
        (when f
          (send f fixup-locations-children))))))
 
+;; ----------------------------------------
+;; As of Mac OS 10.14, NSWindow-specific flushing control is no longer
+;; supported. It seems to have been removed as a way of simplifying the
+;; windowing API, and it's yet another example of the GUI library not really
+;; supporting the idea of multiple GUI contexts within an application. So,
+;; we have to approximate by globally suspending and resuming while
+;; constraining suspends that would disable other eventspaces or frames.
+
+(import-class NSAnimationContext)
+
+(define global-suspend-at #f)
+
+(define (request-global-flush-suspend frame)
+  (when (eq? frame front)
+    (atomically
+     (tellv NSAnimationContext beginGrouping)
+     (set! global-suspend-at (send frame get-cocoa)))))
+
+(define (request-global-flush-resume)
+  (atomically
+   (when global-suspend-at
+     (tellv NSAnimationContext endGrouping)
+     (set! global-suspend-at #f))))
+
+(set-mouse-or-key-hook!
+ (lambda (w)
+   (when (and global-suspend-at
+              (not (equal? w global-suspend-at)))
+     (request-global-flush-resume))))
