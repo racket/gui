@@ -389,7 +389,8 @@
                     (when unshown-fullscreen?
                       (set! unshown-fullscreen? #f)
                       (tellv cocoa toggleFullScreen: #f)))))
-          (begin
+          (let ([already-gone? (and (not on?)
+                                    (not (is-shown?)))])
             (when is-a-dialog?
               (let ([p (get-parent)])
                 (when (and p
@@ -404,7 +405,11 @@
               (tellv cocoa setReleasedWhenClosed: #:type _BOOL #f)
               (tellv cocoa close)
               (tellv (tell NSApplication sharedApplication) removeWindowsItem: cocoa))
-            (force-window-focus)))
+            (unless already-gone?
+              ;; If the frame was not already shown, then assume that
+              ;; the focus is already ok. Otherwise, we risk showing a
+              ;; hidden application.
+              (force-window-focus))))
       (register-frame-shown this on?)
       (let ([num (tell #:type _NSInteger cocoa windowNumber)])
         (if on?
