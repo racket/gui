@@ -142,6 +142,8 @@
 
   (define enabled? #t)
   (define parent-enabled? #t)
+  (define x-wheel 0)
+  (define y-wheel 0)
 
   (super-new)
   
@@ -196,10 +198,10 @@
          [(= msg WM_CHAR)
           (do-key w msg wParam lParam #t #f default)]
 	 [(= msg WM_MOUSEWHEEL)
-          (gen-wheels w msg lParam (HIWORD wParam) 'wheel-down 'wheel-up)
+          (set! y-wheel (gen-wheels w msg lParam (+ (HIWORD wParam) y-wheel) 'wheel-down 'wheel-up))
 	  0]
          [(= msg WM_MOUSEHWHEEL) ; Vista and later
-          (gen-wheels w msg lParam (HIWORD wParam) 'wheel-left 'wheel-right)
+          (set! x-wheel (gen-wheels w msg lParam (+ (HIWORD wParam) x-wheel) 'wheel-left 'wheel-right))
           0]
          [(= msg WM_COMMAND)
           (let* ([control-hwnd (cast lParam _LPARAM _HWND)]
@@ -553,15 +555,17 @@
   (define/public (get-top-frame)
     (send parent get-top-frame))
 
-  (define/private (gen-wheels w msg lParam val down up)
-    (let ([orig-delta (quotient val WHEEL_DELTA)])
-      (let loop ([delta (abs orig-delta)])
-        (unless (zero? delta)
-          (do-key w msg (if (negative? orig-delta)
-                            down
-                            up)
-                  lParam #f #f void)
-          (loop (sub1 delta))))))
+  (define/private (gen-wheels w msg lParam amt down up)
+    (let loop ([amt amt])
+      (cond
+       [((abs amt) . < . WHEEL_DELTA)
+	amt]
+       [(negative? amt)
+        (do-key w msg down lParam #f #f void)
+	(loop (+ amt WHEEL_DELTA))]
+       [else
+	(do-key w msg up lParam #f #f void)
+	(loop (- amt WHEEL_DELTA))])))
   
   (define/private (do-key w msg wParam lParam is-char? is-up? default)
     (let ([e (maybe-make-key-event #f wParam lParam is-char? is-up? hwnd)])

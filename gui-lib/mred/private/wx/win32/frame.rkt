@@ -433,7 +433,7 @@
 	      (and (or float-without-caption?
 		       (let ([wx (any-hwnd->wx active-hwnd)])
 			 (and wx
-			      (send wx is-floating?))))
+			      (send (send wx get-top-frame) is-floating?))))
 		   (is-shown?)))
       (void (SetFocus child-hwnd))))
 

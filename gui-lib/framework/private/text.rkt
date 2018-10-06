@@ -1591,7 +1591,9 @@
                              [(number? x) 1]
                              [else (+ 1 (loop (cdr x)))]))
                          3)
-                  (car))
+                  ;; the check above is probably an invariant,
+                  ;; but I have lost track of what it means.
+                  (error 'framework/private/text.rkt "something is wrong"))
                 
                 (define next-before-caret-search-hit-count
                   (if (and next (search-result-compare < next sp))

@@ -94,7 +94,10 @@
       (when canvas
 	(if (send canvas is-shown-to-root?)
             (send canvas blink-caret)
-	    (kill))))
+            (kill))))
+
+    (define/public (resume c)
+      (set! canvas c))
 
     (define/public (kill)
       (set! canvas #f)
@@ -362,9 +365,10 @@
          (when media
            (send media own-caret focus?))))
       (when focuson?
-        (unless blink-timer
-          (set! blink-timer (parameterize ([current-eventspace (get-eventspace)])
-                              (new blink-timer% [canvas this]))))
+        (if blink-timer
+            (send blink-timer resume this)
+            (set! blink-timer (parameterize ([current-eventspace (get-eventspace)])
+                                (new blink-timer% [canvas this]))))
         (send blink-timer start BLINK-DELAY #t))))
 
   (define/public (blink-caret)
