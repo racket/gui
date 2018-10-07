@@ -19,6 +19,7 @@
                       set-widget-hook!
                       x11-display)
 	 wayland?
+	 recent-event-time
          ;; from common/queue:
          current-eventspace
          queue-event
@@ -183,6 +184,7 @@
 (define (set-widget-hook! proc) (set! widget-hook proc))
 
 (define (event-dispatch evt ignored)
+  (record-event-time evt)
   (let* ([gtk (gtk_get_event_widget evt)]
          [wx (and gtk (widget-hook gtk))])
     (cond
@@ -243,3 +245,20 @@
 (define (try-to-sync-refresh)
   (atomically
    (pre-event-sync #t)))
+
+(define recent-event-time 0)
+
+(define (record-event-time evt)
+  (define t (ptr-ref evt _GdkEventType))
+  (cond
+   [(or (eqv? t GDK_MOTION_NOTIFY)
+	(eqv? t GDK_BUTTON_PRESS)
+	(eqv? t GDK_2BUTTON_PRESS)
+	(eqv? t GDK_3BUTTON_PRESS)
+	(eqv? t GDK_BUTTON_RELEASE))
+    (set! recent-event-time
+	  (GdkEventButton-time (cast evt _pointer _GdkEventButton-pointer)))]
+   [(or (eqv? t GDK_KEY_PRESS)
+	(eqv? t GDK_KEY_RELEASE))
+    (set! recent-event-time
+	  (GdkEventKey-time (cast evt _pointer _GdkEventKey-pointer)))]))

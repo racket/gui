@@ -8,6 +8,7 @@
          "types.rkt"
          "const.rkt"
          "utils.rkt"
+	 "queue.rkt"
          "menu-bar.rkt"
          "../common/event.rkt")
 
@@ -27,7 +28,6 @@
 (define-gtk gtk_bin_get_child (_fun _GtkWidget -> _GtkWidget))
 (define-gtk gtk_menu_item_set_submenu (_fun _GtkWidget (_or-null _GtkWidget) -> _void))
 
-(define-gtk gtk_get_current_event_time (_fun -> _uint32))
 (define-gtk gtk_menu_popup (_fun _GtkWidget _pointer _pointer 
                                  (_fun _GtkWidget _pointer _pointer _pointer -> _void)
                                  _pointer _uint _uint32
@@ -149,7 +149,7 @@
                       (ptr-set! _push _gboolean #t))
                     #f
                     0
-                    (gtk_get_current_event_time)))
+		    recent-event-time))
 
   (define ignore-callback? #f)
 
