@@ -32,6 +32,7 @@
 (define CF_UNICODETEXT      13)
 (define CF_BITMAP           2)
 (define CF_DIB              8)
+(define CF_DIBV5            17)
 
 (define DIB_RGB_COLORS      0)
 (define SRCCOPY             #x00CC0020)
@@ -214,6 +215,22 @@
 (define (get-bitmap-from-clipboard)
   ;; atomic mode
   (cond
+   [(GetClipboardData CF_DIBV5)
+    => (lambda (bits)
+         (let ([bmi (cast (GlobalLock bits) _pointer _BITMAPINFOHEADER-pointer)])
+           (let ([w (BITMAPINFOHEADER-biWidth bmi)]
+                 [h (BITMAPINFOHEADER-biHeight bmi)]
+                 [bits/pp (BITMAPINFOHEADER-biBitCount bmi)]
+                 [psize (PaletteSize bmi)])
+             (define dib (make-bytes (* 4 w h)))
+             (memcpy dib
+                     (ptr-add bmi (+ (BITMAPINFOHEADER-biSize bmi) psize
+                                     (if (= (BITMAPINFOHEADER-biCompression bmi) BI_BITFIELDS)
+                                         12
+                                         0)))
+                     (* 4 w h))
+             (GlobalUnlock bits)
+             (dib-argb->bitmap dib w h))))]
    ;; I think we should be able to use CF_BITMAP always, but
    ;; it doesn't work right under Windows XP with a particular 
    ;; image created by copying in Firefox. So, we do things the

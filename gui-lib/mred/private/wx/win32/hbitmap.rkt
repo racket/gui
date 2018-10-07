@@ -11,7 +11,8 @@
 
 (provide
  (protect-out bitmap->hbitmap
-              hbitmap->bitmap))
+              hbitmap->bitmap
+              dib-argb->bitmap))
 
 (define (bitmap->hbitmap bm 
                          #:mask [mask-bm #f]
@@ -80,6 +81,23 @@
       (SelectObject hdc old-hbitmap)
       (DeleteDC hdc)
       hbitmap)))
+
+(define (dib-argb->bitmap dib w h)
+  (define data (make-bytes (bytes-length dib)))
+  ; dib has reverse order of lines and argb
+  (for ([x (in-range h)])
+    (define line (* x w 4))
+    (define orig-line (* (- h x 1) w 4))
+    (for ([y (in-range w)])
+      (define d (+ line (* y 4)))
+      (define orig-d (+ orig-line (* y 4)))
+      (bytes-set! data d (bytes-ref dib (+ 3 orig-d)))
+      (bytes-set! data (+ 1 d) (bytes-ref dib (+ 2 orig-d)))
+      (bytes-set! data (+ 2 d) (bytes-ref dib (+ 1 orig-d)))
+      (bytes-set! data (+ 3 d) (bytes-ref dib orig-d))))
+  (define res (make-object bitmap% w h #f #t))
+  (send res set-argb-pixels 0 0 w h data)
+  res)
 
 (define-cstruct _BITMAP
   ([bmType _LONG]
