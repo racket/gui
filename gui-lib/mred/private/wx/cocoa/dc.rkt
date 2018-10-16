@@ -317,27 +317,19 @@
 (define (make-layer win w h)
   (atomically
    (with-autorelease
-     (let loop ([win win])
-       (let* ([ctx (if (or (not win)
-                           ((tell #:type _NSInteger win windowNumber) . <= . 0))
-                       ;; No window, or window's device is gone,
-                       ;; probably because it was hidden, and we
-                       ;; configure windows with setOneShot: YES. Just
-                       ;; make a new window...
-                       (let ([alt-win (make-temp-window)])
-                         (begin0
-                           (tell NSGraphicsContext graphicsContextWithWindow: alt-win)
-                           (tellv alt-win release)))
-                       ;; Use canvas's window:
-                       (tell NSGraphicsContext graphicsContextWithWindow: win))]
-              [tmp-cg (if (version-10.14-or-later?)
-                          (tell #:type (_or-null _CGContextRef) ctx CGContext)
-                          (tell #:type (_or-null _CGContextRef) ctx graphicsPort))])
-         (cond
-           [tmp-cg
-            (CGLayerCreateWithContext tmp-cg (make-NSSize w h) #f)]
-           [win (loop #f)]
-           [else (error "make-layer failed")]))))))
+    (let* ([ctx (if ((tell #:type _NSInteger win windowNumber) . <= . 0)
+                    ;; Window's device is gone, probably because it was hidden,
+                    ;; and we configure windows with setOneShot: YES.
+                    ;; Just make a new window...
+                    (let ([alt-win (make-temp-window)])
+                      (begin0
+                       (tell NSGraphicsContext graphicsContextWithWindow: alt-win)
+                       (tellv alt-win release)))
+                    ;; Use canvas's window:
+                    (tell NSGraphicsContext graphicsContextWithWindow: win))]
+           [tmp-cg (tell #:type _CGContextRef ctx graphicsPort)]
+           [layer (CGLayerCreateWithContext tmp-cg (make-NSSize w h) #f)])
+      layer))))
 
 (define (make-temp-window)
   (tell (tell NSWindow alloc)
