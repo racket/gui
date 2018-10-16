@@ -795,9 +795,7 @@
       (let ([cocoa-win (get-cocoa-window)])
         (when cocoa-win
           (tellv cocoa-win displayIfNeeded)
-          (tellv cocoa-win flushWindowIfNeeded)
-          (when (version-10.14-or-later?)
-            (try-to-flush)))))
+          (tellv cocoa-win flushWindowIfNeeded))))
 
     (define/public (dispatch-on-char/sync e)
       (pre-event-refresh #t)

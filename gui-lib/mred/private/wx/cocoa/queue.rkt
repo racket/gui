@@ -28,7 +28,6 @@
               post-dummy-event
 
               try-to-sync-refresh
-              try-to-flush
               sync-cocoa-events
               set-screen-changed-callback!)
 
@@ -527,13 +526,6 @@
   ;; atomically => outside of the event loop
   (atomically
    (pre-event-sync #t)))
-
-(define (try-to-flush)
-  (tell app nextEventMatchingMask: #:type _NSUInteger 0
-        untilDate: #f
-        inMode: NSDefaultRunLoopMode
-        dequeue: #:type _BOOL #t)
-  (void))
 
 (set-platform-queue-sync!
  (lambda ()
