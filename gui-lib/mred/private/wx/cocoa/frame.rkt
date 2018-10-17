@@ -474,8 +474,12 @@
          (dynamic-wind
           (lambda ()
             (when (zero? flush-disable-disabled)
-              (tellv cocoa setAutodisplay: #:type _BOOL #t)
-              (tellv cocoa enableFlushWindow))
+              (cond
+                [(version-10.14-or-later?)
+                 (request-global-flush-resume)]
+                [else
+                 (tellv cocoa setAutodisplay: #:type _BOOL #t)
+                 (tellv cocoa enableFlushWindow)]))
             (tellv cocoa display)
             (set! flush-disable-disabled (add1 flush-disable-disabled)))
           thunk
@@ -483,8 +487,12 @@
             (set! flush-disable-disabled (sub1 flush-disable-disabled))
             (when (zero? flush-disable-disabled)
               (unless (zero? flush-disabled)
-                (tellv cocoa setAutodisplay: #:type _BOOL #f)
-                (tellv cocoa disableFlushWindow))))))]))
+                (cond
+                  [(version-10.14-or-later?)
+                   (request-global-flush-suspend this)]
+                  [else
+                   (tellv cocoa setAutodisplay: #:type _BOOL #f)
+                   (tellv cocoa disableFlushWindow)]))))))]))
 
     (define/public (force-window-focus)
       (let ([next (get-app-front-window)])
