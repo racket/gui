@@ -62,10 +62,10 @@
       (when mask
         (send mask get-argb-pixels 0 0 usw ush str #t #:unscaled? unscaled?)))
     (atomically
-     (let ([rgba (scheme_make_sized_byte_string (malloc (* sw sh 4) 'raw) (* sw sh 4) 0)])
+     (let ([rgba (malloc (* sw sh 4) 'raw)])
        (memcpy rgba (ptr-add str 1) (sub1 (* sw sh 4)))
        (for ([i (in-range 0 (* sw sh 4) 4)])
-         (bytes-set! rgba (+ i 3) (bytes-ref str i)))
+         (ptr-set! rgba _byte (+ i 3) (bytes-ref str i)))
        (gdk_pixbuf_new_from_data rgba
                                  0
                                  #t

@@ -664,8 +664,8 @@
   (λ (screen) (tell-all-frames-signal-changed 1)))
 
 (define-signal-handler 
-  connect-screen-changed-signal
-  "screen-changed"
+  connect-size-changed-signal
+  "size-changed"
   (_fun _GdkScreen -> _void)
   (λ (screen) (tell-all-frames-signal-changed 2)))
 
@@ -678,5 +678,5 @@
 (define (screen-size-signal-connect connect-signal)
   (void (connect-signal (cast (gdk_screen_get_default) _GdkScreen _GtkWidget))))
 (screen-size-signal-connect connect-monitor-changed-signal)
-(screen-size-signal-connect connect-screen-changed-signal)
+(screen-size-signal-connect connect-size-changed-signal)
 (screen-size-signal-connect connect-composited-changed-signal)

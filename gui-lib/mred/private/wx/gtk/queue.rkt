@@ -38,7 +38,7 @@
 ;; disable asynchronous mode.
 (void (putenv "IBUS_ENABLE_SYNC_MODE" "y"))
 
-(define-gtk gtk_init_check (_fun (_ptr io _int) (_ptr io _gcpointer) -> _gboolean))
+(define-gtk gtk_init_check (_fun (_ptr io _int) (_ptr io _intptr) -> _gboolean))
 (define-gdk gdk_set_program_class (_fun _string -> _void))
 
 (define x11-display
@@ -78,12 +78,26 @@
                                 ;; all other ignored flags have a single argument
                                 (loop (+ i 2) #t)])))))])
       (let-values ([(new-argc new-argv)
-                    (values (add1 (length args))
-                            (cast (cons (path->bytes (find-system-path 'run-file))
-                                        args)
-                                  (_list i _bytes)
-                                  _pointer))])
-        (unless (gtk_init_check new-argc new-argv)
+		    (let* ([args (cons (path->bytes (find-system-path 'run-file))
+				       args)]
+			   [argc (length args)])
+		      (define len (for/sum ([bstr (in-list args)])
+					   (+ 1 (bytes-length bstr))))
+		      (define array-len (* (length args) (ctype-sizeof _pointer)))
+		      (define argv (malloc (+ array-len
+					      (bitwise-and (+ len (sub1 (ctype-sizeof _pointer)))
+							   (bitwise-not (sub1 (ctype-sizeof _pointer)))))
+					   ;; Just leak, because we only do this once
+					   'raw))
+		      (for/fold ([pos array-len]) ([bstr (in-list args)]
+						   [i (in-naturals)])
+				(ptr-set! argv _pointer i (ptr-add argv pos))
+				(define l (bytes-length bstr))
+				(memcpy argv pos bstr l)
+				(ptr-set! argv _byte (+ pos l) 0)
+				(+ pos l 1))
+		      (values argc argv))])
+        (unless (gtk_init_check new-argc (cast new-argv _pointer _intptr))
           (error (format
                   "Gtk initialization failed for display ~s"
                   (or display ":0"))))

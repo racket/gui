@@ -5,6 +5,7 @@
          ffi/unsafe/alloc
          racket/string
          racket/draw/unsafe/glib
+         racket/draw/unsafe/bstr
          (only-in '#%foreign ctype-c->scheme)
 	 "gtk3.rkt"
          "../common/utils.rkt"
@@ -180,9 +181,8 @@
    [next (_or-null _g-slist-pointer)]))
 
 (define-glib g_slist_free (_fun _g-slist-pointer -> _void))
-;; This should probably be provided by Racket
-(define make-byte-string
-  (get-ffi-obj 'scheme_make_byte_string #f (_fun _pointer -> _racket)))
+(define (make-byte-string s)
+  (scheme_make_sized_byte_string s -1 1))
 
 (define (_GSList elem)
   (make-ctype (_or-null _g-slist-pointer)
