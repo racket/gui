@@ -132,10 +132,15 @@
     (when (or (now . > . (+ last-time sometimes-delay-msec)) 
               force?)
       (set! last-time now)
-      (hash-for-each sometimes-boundary-ht 
-                     (lambda (v p) (hash-remove! sometimes-boundary-ht v) (p v)))))
-  (hash-for-each boundary-ht (lambda (v p) (hash-remove! boundary-ht v) (p v)))
+      (hash-for-each/clear sometimes-boundary-ht (lambda (v p) (p v)))))
+  (hash-for-each/clear boundary-ht (lambda (v p) (p v)))
   (alert-tasks-ready))
+
+(define (hash-for-each/clear ht f)
+  (let ([l (hash-map ht cons)])
+    (hash-clear! ht)
+    (for ([p (in-list l)])
+      (f (car p) (cdr p)))))
 
 ;; ------------------------------------------------------------
 ;; Eventspaces
