@@ -3050,14 +3050,23 @@
                                 (current-inexact-milliseconds)
                                 last-flush))]
                      [else
-                      (let ([chan (make-channel)])
-                        (let-values ([(viable-bytes remaining-queue flush-keep-trying?)
-                                      (split-queue converter new-text-to-insert)])
-                          (if return-chan
-                              (channel-put return-chan viable-bytes)
-                              (queue-insertion viable-bytes (channel-put-evt chan (void))))
-                          (channel-get chan)
-                          (loop remaining-queue (current-inexact-milliseconds))))]))))))))))
+                      (define-values (viable-bytes remaining-queue flush-keep-trying?)
+                        (split-queue converter new-text-to-insert))
+                      (cond
+                        [return-chan
+                         (channel-put return-chan viable-bytes)]
+                        [else
+                         (sync
+                          (nack-guard-evt
+                           (λ (fail-evt)
+                             (define return-channel (make-channel))
+                             (define return-evt
+                               (choice-evt
+                                fail-evt
+                                (channel-put-evt return-channel (void))))
+                             (queue-insertion viable-bytes return-evt)
+                             return-channel)))])
+                      (loop remaining-queue (current-inexact-milliseconds))]))))))))))
     
     (field [in-port-args #f]
            [out-port #f]
