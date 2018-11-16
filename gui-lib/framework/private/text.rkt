@@ -2980,93 +2980,93 @@
     
     (define/public (after-io-insertion) (void))
 
-    (define output-buffer-thread
-      (let ([converter (bytes-open-converter "UTF-8-permissive" "UTF-8")])
-        (thread
-         (λ ()
-           (let loop (;; text-to-insert : (queue (cons (union snip bytes) style))
-                      [text-to-insert (empty-at-queue)]
-                      [last-flush (current-inexact-milliseconds)])
-             (sync
-              (if (at-queue-empty? text-to-insert)
-                  never-evt
-                  (handle-evt
-                   (alarm-evt (+ last-flush msec-timeout))
-                   (λ (_)
-                     (define-values (viable-bytes remaining-queue flush-keep-trying?)
-                       (split-queue converter text-to-insert))
-                     ;; we always queue the work here since the 
-                     ;; always event means no one waits for the callback
-                     (queue-insertion viable-bytes always-evt)
-                     (loop remaining-queue (current-inexact-milliseconds)))))
-              (handle-evt
-               flush-chan/diy
-               (λ (return-evt/to-insert-chan)
-                 (define remaining-queue #f)
-                 (define viable-bytess
-                   (let loop ([q text-to-insert])
-                     (define-values (viable-bytes next-remaining-queue flush-keep-trying?)
-                       (split-queue converter q))
-                     (cond
-                       [flush-keep-trying?
-                        (cons viable-bytes (loop next-remaining-queue))]
-                       [else
-                        (set! remaining-queue next-remaining-queue)
-                        (list viable-bytes)])))
-                 (channel-put return-evt/to-insert-chan viable-bytess)
-                 (loop remaining-queue (current-inexact-milliseconds))))
-              (handle-evt
-               flush-chan/queue
-               (λ (return-evt/to-insert-chan)
-                 (define remaining-queue #f)
-                 (let loop ([q text-to-insert])
-                   (define-values (viable-bytes next-remaining-queue flush-keep-trying?)
-                     (split-queue converter q))
+    (let ()
+      (define converter (bytes-open-converter "UTF-8-permissive" "UTF-8"))
+      (define (output-buffer-thread)
+        (let loop (;; text-to-insert : (queue (cons (union snip bytes) style))
+                   [text-to-insert (empty-at-queue)]
+                   [last-flush (current-inexact-milliseconds)])
+          (sync
+           (if (at-queue-empty? text-to-insert)
+               never-evt
+               (handle-evt
+                (alarm-evt (+ last-flush msec-timeout))
+                (λ (_)
+                  (define-values (viable-bytes remaining-queue flush-keep-trying?)
+                    (split-queue converter text-to-insert))
+                  ;; we always queue the work here since the
+                  ;; always event means no one waits for the callback
+                  (queue-insertion viable-bytes always-evt)
+                  (loop remaining-queue (current-inexact-milliseconds)))))
+           (handle-evt
+            flush-chan/diy
+            (λ (return-evt/to-insert-chan)
+              (define remaining-queue #f)
+              (define viable-bytess
+                (let loop ([q text-to-insert])
+                  (define-values (viable-bytes next-remaining-queue flush-keep-trying?)
+                    (split-queue converter q))
+                  (cond
+                    [flush-keep-trying?
+                     (cons viable-bytes (loop next-remaining-queue))]
+                    [else
+                     (set! remaining-queue next-remaining-queue)
+                     (list viable-bytes)])))
+              (channel-put return-evt/to-insert-chan viable-bytess)
+              (loop remaining-queue (current-inexact-milliseconds))))
+           (handle-evt
+            flush-chan/queue
+            (λ (return-evt/to-insert-chan)
+              (define remaining-queue #f)
+              (let loop ([q text-to-insert])
+                (define-values (viable-bytes next-remaining-queue flush-keep-trying?)
+                  (split-queue converter q))
+                (cond
+                  [flush-keep-trying?
+                   (queue-insertion viable-bytes always-evt)
+                   (loop next-remaining-queue)]
+                  [else
+                   (set! remaining-queue next-remaining-queue)
+                   (queue-insertion viable-bytes return-evt/to-insert-chan)
+                   #f]))
+              (loop remaining-queue (current-inexact-milliseconds))))
+           (handle-evt
+            clear-output-chan
+            (λ (_)
+              (loop (empty-at-queue) (current-inexact-milliseconds))))
+           (handle-evt
+            write-chan
+            (λ (pr-pr)
+              (define return-chan (car pr-pr))
+              (define pr (cdr pr-pr))
+              (let ([new-text-to-insert (at-enqueue pr text-to-insert)])
+                (cond
+                  [((at-queue-size text-to-insert) . < . output-buffer-full)
+                   (when return-chan
+                     (channel-put return-chan '()))
+                   (loop new-text-to-insert
+                         (if (at-queue-empty? text-to-insert)
+                             (current-inexact-milliseconds)
+                             last-flush))]
+                  [else
+                   (define-values (viable-bytes remaining-queue flush-keep-trying?)
+                     (split-queue converter new-text-to-insert))
                    (cond
-                     [flush-keep-trying?
-                      (queue-insertion viable-bytes always-evt)
-                      (loop next-remaining-queue)]
+                     [return-chan
+                      (channel-put return-chan viable-bytes)]
                      [else
-                      (set! remaining-queue next-remaining-queue)
-                      (queue-insertion viable-bytes return-evt/to-insert-chan)
-                      #f]))
-                 (loop remaining-queue (current-inexact-milliseconds))))
-              (handle-evt
-               clear-output-chan
-               (λ (_)
-                 (loop (empty-at-queue) (current-inexact-milliseconds))))
-              (handle-evt
-               write-chan
-               (λ (pr-pr)
-                 (define return-chan (car pr-pr))
-                 (define pr (cdr pr-pr))
-                 (let ([new-text-to-insert (at-enqueue pr text-to-insert)])
-                   (cond
-                     [((at-queue-size text-to-insert) . < . output-buffer-full)
-                      (when return-chan
-                        (channel-put return-chan '()))
-                      (loop new-text-to-insert 
-                            (if (at-queue-empty? text-to-insert)
-                                (current-inexact-milliseconds)
-                                last-flush))]
-                     [else
-                      (define-values (viable-bytes remaining-queue flush-keep-trying?)
-                        (split-queue converter new-text-to-insert))
-                      (cond
-                        [return-chan
-                         (channel-put return-chan viable-bytes)]
-                        [else
-                         (sync
-                          (nack-guard-evt
-                           (λ (fail-evt)
-                             (define return-channel (make-channel))
-                             (define return-evt
-                               (choice-evt
-                                fail-evt
-                                (channel-put-evt return-channel (void))))
-                             (queue-insertion viable-bytes return-evt)
-                             return-channel)))])
-                      (loop remaining-queue (current-inexact-milliseconds))]))))))))))
+                      (sync
+                       (nack-guard-evt
+                        (λ (fail-evt)
+                          (define return-channel (make-channel))
+                          (define return-evt
+                            (choice-evt
+                             fail-evt
+                             (channel-put-evt return-channel (void))))
+                          (queue-insertion viable-bytes return-evt)
+                          return-channel)))])
+                   (loop remaining-queue (current-inexact-milliseconds))])))))))
+      (thread output-buffer-thread))
     
     (field [in-port-args #f]
            [out-port #f]
