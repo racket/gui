@@ -2899,12 +2899,12 @@
     ;; txt is in the reverse order of the things to be inserted.
     ;; the evt is waited on when the text has actually been inserted
     ;; thread: any thread, except the eventspace main thread
-    (define/private (queue-insertion txts signal)
+    (define/private (queue-insertion txts signal #:async? [async? #f])
       (parameterize ([current-eventspace eventspace])
         (queue-callback
          (λ ()
            (do-insertion txts #f)
-           (sync signal))
+           (if async? (thread (λ () (sync signal))) (sync signal)))
          #f)))
     
     ;; do-insertion : (listof (cons (union string snip) style-delta)) boolean -> void
@@ -3027,7 +3027,7 @@
                    (loop next-remaining-queue)]
                   [else
                    (set! remaining-queue next-remaining-queue)
-                   (queue-insertion viable-bytes return-evt/to-insert-chan)
+                   (queue-insertion viable-bytes return-evt/to-insert-chan #:async? #t)
                    #f]))
               (loop remaining-queue (current-inexact-milliseconds))))
            (handle-evt
@@ -3055,16 +3055,9 @@
                      [return-chan
                       (channel-put return-chan viable-bytes)]
                      [else
-                      (sync
-                       (nack-guard-evt
-                        (λ (fail-evt)
-                          (define return-channel (make-channel))
-                          (define return-evt
-                            (choice-evt
-                             fail-evt
-                             (channel-put-evt return-channel (void))))
-                          (queue-insertion viable-bytes return-evt)
-                          return-channel)))])
+                      (define chan (make-channel))
+                      (queue-insertion viable-bytes (channel-put-evt chan (void)))
+                      (channel-get chan)])
                    (loop remaining-queue (current-inexact-milliseconds))])))))))
       (thread output-buffer-thread))
     
