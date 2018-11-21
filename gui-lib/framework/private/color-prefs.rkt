@@ -886,7 +886,7 @@
   (when (or avoid-shortcircuit?
             (not (equal? (color-scheme-name color-scheme)
                          (color-scheme-name (get-current-color-scheme)))))
-    (preferences:set 'framework:color-scheme (color-scheme-name color-scheme))
+    (preferences:set 'framework:color-scheme name)
     (define old-wob (preferences:get 'framework:white-on-black?))
     (define new-wob (color-scheme-white-on-black-base? color-scheme))
     (unless (equal? old-wob new-wob)
