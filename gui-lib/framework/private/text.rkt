@@ -154,11 +154,11 @@
                   [else
                    (define-values (new-left new-top new-right new-bottom)
                      (for/fold ([left left] [top top] [right right] [bottom bottom]) 
-                       ([r (in-list new-rectangles)])
+                               ([r (in-list new-rectangles)])
                        (join-rectangles left top right bottom r)))
                    (define-values (both-left both-top both-right both-bottom)
                      (for/fold ([left new-left] [top new-top] [right new-right] [bottom new-bottom]) 
-                       ([r (in-list old-rectangles)])
+                               ([r (in-list old-rectangles)])
                        (join-rectangles left top right bottom r)))
                    (set-range-rectangles! a-range new-rectangles)
                    (loop both-left both-top both-right both-bottom)])]
@@ -247,8 +247,8 @@
                                               start end 
                                               (send this get-filename)
                                               (send this get-text 0 100)))))]
-        [(or (eq? style 'hollow-ellipse)
-             (eq? style 'ellipse))
+        [(or (equal? style 'hollow-ellipse)
+             (equal? style 'ellipse))
          (define end-line (position-line end end-eol?))
          (let loop ([l (min start-x end-x)]
                     [r (max start-x end-x)]
@@ -1270,13 +1270,10 @@
 
 (define searching-mixin
   (mixin (editor:basic<%> editor:keymap<%> basic<%>) (searching<%>)
-    (inherit invalidate-bitmap-cache
-             get-start-position get-end-position
+    (inherit get-start-position get-end-position
              unhighlight-ranges/key unhighlight-range highlight-range
-             run-after-edit-sequence begin-edit-sequence end-edit-sequence
-             find-string find-string-embedded get-admin position-line
-             in-edit-sequence? get-pos/text-dc-location
-             get-canvas get-top-level-window)
+             begin-edit-sequence end-edit-sequence
+             find-string in-edit-sequence? get-canvas get-top-level-window)
     
     (define has-focus? #f)
     (define clear-yellow void)
