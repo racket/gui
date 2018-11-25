@@ -91,6 +91,9 @@
 
 (define basic<%> text:basic<%>)
 
+(define hollow-ellipse-pen-size 3)
+(define hollow-ellipse-embiggen 4)
+
 (define highlight-range-mixin
   (mixin (editor:basic<%> (class->interface text%)) ()
   
@@ -201,7 +204,8 @@
     
       (define/private (adjust r w f)
         (+ w (f (case (rectangle-style r)
-                  [(dot hollow-ellipse) 8]
+                  [(dot) 8]
+                  [(hollow-ellipse) (+ hollow-ellipse-pen-size hollow-ellipse-embiggen)]
                   [else 0]))))
     
     (define b1 (box 0))
@@ -502,13 +506,13 @@
                      (send dc set-brush color 'solid)
                      (send dc draw-ellipse (+ dx cx -3) (+ dy cy -3) 6 6))]
                   [(hollow-ellipse)
-                   (send dc set-pen color 3 'solid)
+                   (send dc set-pen color hollow-ellipse-pen-size 'solid)
                    (send dc set-brush "black" 'transparent)
                    (send dc draw-ellipse 
-                         (+ dx left -4)
-                         (+ dy top -4)
-                         (+ width 8)
-                         (+ height 8))]
+                         (+ dx left (- hollow-ellipse-embiggen))
+                         (+ dy top (- hollow-ellipse-embiggen))
+                         (+ width (+ hollow-ellipse-embiggen hollow-ellipse-embiggen))
+                         (+ height (+ hollow-ellipse-embiggen hollow-ellipse-embiggen)))]
                   [(rectangle)
                    (send dc set-pen color 1 'transparent)
                    (send dc set-brush color 'solid)
