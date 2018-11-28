@@ -1408,16 +1408,28 @@
                 (define next (do-search (get-start-position)))
                 (begin-edit-sequence #t #f)
                 (cond
-                  [(number? next)
-                   (unless (and to-replace-highlight
-                                (= (car to-replace-highlight) next)
-                                (= (cdr to-replace-highlight) 
-                                   (string-length searching-str)))
-                     (replace-highlight->normal-hit)
-                     (define pr (cons next (string-length searching-str)))
-                     (unhighlight-hit pr)
-                     (highlight-replace pr))]
+                  [next
+                   (define-values (txt-t start-t end-t)
+                     (if to-replace-highlight
+                         (get-highlighting-text-and-range to-replace-highlight)
+                         (values #f #f #f)))
+                   (define next-to-replace-highlight (cons next (string-length searching-str)))
+                   (define-values (txt-n start-n end-n)
+                     (get-highlighting-text-and-range next-to-replace-highlight))
+                   (cond
+                     [(and (object-or-false=? txt-t txt-n)
+                           (equal? start-t start-n)
+                           (equal? end-t end-n))
+                      ;; here the hit remains the same, so we do nothing
+                      (void)]
+                     [else
+                      ;; here we have to move the next-hit search bubble
+                      (replace-highlight->normal-hit)
+                      (unhighlight-hit next-to-replace-highlight)
+                      (highlight-replace next-to-replace-highlight)])]
                   [else
+                   ;; here the next-search hit converts to a a regular one
+                   ;; but we don't have another one to highlight
                    (replace-highlight->normal-hit)])
                 (end-edit-sequence)])))
          #f)))

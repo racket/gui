@@ -1398,7 +1398,9 @@
             (values lexeme 'keyword paren start end)]
            [else
             (values lexeme type paren start end)]))]))
-  wrapped-get-token)
+  (procedure-rename wrapped-get-token
+                    (string->symbol
+                     (format "~a wrapped" (object-name get-token-)))))
 
 ;; get-head-sexp-type-from-prefs : string (list ht regexp regexp regexp)
 ;;                              -> (or/c #f 'lambda 'define 'begin 'for/fold)
