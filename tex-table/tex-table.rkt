@@ -65,6 +65,7 @@
     ("exists" "∃")
     ("infty" "∞")
     ("circ" "∘")
+    ("partial" "∂")
     ("alpha" "α")
     ("theta" "θ")
     ("tau" "τ")
