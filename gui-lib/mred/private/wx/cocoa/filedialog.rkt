@@ -20,6 +20,7 @@
                        extension
                        filters style parent)
   (promote-to-gui!)
+  (force-global-flush-resume)
   (let ([ns (as-objc-allocation-with-retain
              (if (memq 'put style)
                 (tell NSSavePanel savePanel)

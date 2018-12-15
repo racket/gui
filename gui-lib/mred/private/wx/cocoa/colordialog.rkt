@@ -6,7 +6,8 @@
          "../../lock.rkt"
          "utils.rkt"
          "types.rkt"
-         "queue.rkt")
+         "queue.rkt"
+         "frame.rkt")
 
 (provide 
  (protect-out get-color-from-user))
@@ -18,6 +19,7 @@
 
 (define (get-color-from-user message parent color)
   (promote-to-gui!)
+  (force-global-flush-resume)
   (define mode 'get)
   (cond
    [(eq? mode 'show)

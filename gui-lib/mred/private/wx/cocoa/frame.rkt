@@ -19,6 +19,7 @@
  (protect-out frame%
               location->window
               get-front
+              force-global-flush-resume
 
               RacketEventspaceMethods
               install-RacketGCWindow!))
@@ -855,11 +856,14 @@
      (tellv NSAnimationContext beginGrouping)
      (set! global-suspend-at (send frame get-cocoa)))))
 
-(define (request-global-flush-resume)
+(define (force-global-flush-resume)
   (atomically
    (when global-suspend-at
      (tellv NSAnimationContext endGrouping)
      (set! global-suspend-at #f))))
+
+(define (request-global-flush-resume)
+  (force-global-flush-resume))
 
 (set-mouse-or-key-hook!
  (lambda (w)

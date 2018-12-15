@@ -96,6 +96,7 @@
 
 (define (show-print-setup parent)
   (promote-to-gui!)
+  (force-global-flush-resume)
   (let* ([pss (current-ps-setup)]
          [print-info (let ([pi (send pss get-native)])
                        (or pi
@@ -196,6 +197,7 @@
 
     (define/override (end-doc)
       (promote-to-gui!)
+      (force-global-flush-resume)
 
       (define view-cocoa (as-objc-allocation-with-retain
                           (tell (tell PrinterView alloc) 
