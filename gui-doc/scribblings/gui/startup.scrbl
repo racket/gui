@@ -7,7 +7,9 @@ The @racketmodname[racket/gui/base] module can be instantiated only
 once per operating-system process, because it sets hooks in the Racket
 run-time system to coordinate between Racket thread scheduling and GUI
 events. Attempting to instantiate it a second time results in an
-exception.
+exception. Furthermore, on Mac OS, the sole instantiation of
+@racketmodname[racket/gui/base] must be in the process's original
+@tech[#:doc '(lib "scribblings/reference/reference.scrbl")]{place}.
 
 Loading @racketmodname[racket/gui/base] sets two parameters:
 

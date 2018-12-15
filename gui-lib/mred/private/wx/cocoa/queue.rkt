@@ -37,7 +37,11 @@
  queue-event
  yield)
 
-(import-class NSApplication NSAutoreleasePool NSColor NSProcessInfo NSArray NSMenu)
+(import-class NSApplication NSAutoreleasePool NSColor NSProcessInfo NSArray NSMenu NSThread)
+
+(unless (tell #:type _BOOL NSThread isMainThread)
+  (error 'racket/gui
+         "cannot instantiate in a non-main place on Mac OS"))
 
 ;; Extreme hackery to hide original arguments from
 ;; NSApplication, because NSApplication wants to turn 
