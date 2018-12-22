@@ -1092,10 +1092,7 @@ has been moved out).
        (let ([color (get-color-arg (text-color np-atomic-shape))])
          (send dc set-text-foreground 
                (cond
-                 [(equal? color "transparent") transparent-color]
-                 [(string? color)
-                  (or (send the-color-database find-color color)
-                      (send the-color-database find-color "black"))]
+                 [(string? color) (string->color-object color)]
                  [else color])))
        (let-values ([(w h _1 _2) (send dc get-text-extent (text-string np-atomic-shape))])
          (let ([p (- (make-rectangular dx dy)
@@ -1366,16 +1363,16 @@ the mask bitmap and the original bitmap are all together in a single bytes!
 
 (define (get-color-arg color [extra-alpha 255])
   (cond
-    [(equal? color "transparent") transparent-color]
     [(string? color) 
-     (define color-obj 
-       (or (send the-color-database find-color color)
-           (send the-color-database find-color "black")))
-     (make-object color%
-       (send color-obj red)
-       (send color-obj green)
-       (send color-obj blue)
-       (/ extra-alpha 255))]
+     (define color-obj (string->color-object color))
+     (cond
+       [(equal? color-obj transparent-color) transparent-color]
+       [else
+        (make-object color%
+          (send color-obj red)
+          (send color-obj green)
+          (send color-obj blue)
+          (/ extra-alpha 255))])]
     [else
      (make-object color% 
        (color-red color)
@@ -1385,6 +1382,26 @@ the mask bitmap and the original bitmap are all together in a single bytes!
           (/ extra-alpha 255)))]))
 
 (define transparent-color (make-object color% 255 255 255 0))
+
+(define (string->color-object color)
+  (or (string->color-object/f color)
+      (send the-color-database find-color "black")))
+(define (string->color-object/f color)
+  (or (send the-color-database find-color color)
+      (and (equal? color "transparent") transparent-color)
+      (let ([normalized (normalize-color-string color)])
+        (cond
+          [(equal? normalized "transparent") transparent-color]
+          [(send the-color-database find-color normalized) => values]
+          [else #f]))))
+
+(define (normalize-color-string color)
+  (define spaceless (regexp-replace* #rx" +" color ""))
+  (define s (make-string (string-length spaceless)))
+  (for ([i (in-naturals)]
+        [c (in-string spaceless)])
+    (string-set! s i (char-foldcase c)))
+  s)
 
 (define (pen->pen-obj/cache pen)
   (send the-pen-list find-or-create-pen 
@@ -1545,7 +1562,8 @@ the mask bitmap and the original bitmap are all together in a single bytes!
          
          snipclass-bytes->image
          (contract-out
-          [definitely-same-image? (-> image? image? boolean?)]))
+          [definitely-same-image? (-> image? image? boolean?)])
+         string->color-object/f)
 
 ;; method names
 (provide get-shape get-bb get-pinhole get-normalized? get-normalized-shape)
