@@ -1401,6 +1401,7 @@ the mask bitmap and the original bitmap are all together in a single bytes!
     (cons "lightturquoise" (make-object color% 155 155 255))
     (cons "mediumyellow" (make-object color% 255 255 0))
     (cons "darkyellow" (make-object color% 204 204 0))
+    (cons "lightgoldenrod" (make-object color% 255 216 83))
     (cons "transparent" (make-object color% 255 255 255 0)))))
 (define transparent-color (hash-ref extra-colors "transparent"))
 
