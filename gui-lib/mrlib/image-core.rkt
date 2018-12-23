@@ -1381,20 +1381,38 @@ the mask bitmap and the original bitmap are all together in a single bytes!
        (* (/ (color-alpha color) 255)
           (/ extra-alpha 255)))]))
 
-(define transparent-color (make-object color% 255 255 255 0))
+(define extra-colors
+  (make-hash
+   (list
+    (cons "lightbrown" (make-object color% 183 111 87))
+    (cons "mediumbrown" (make-object color% 132 60 36))
+    (cons "darkbrown" (make-object color% 81 9 0))
+    (cons "mediumcyan" (make-object color% 0 255 255))
+    (cons "mediumgray" (make-object color% 190 190 190))
+    (cons "mediumgreen" (make-object color% 0 255 0))
+    (cons "lightorange" (make-object color% 255 216 51))
+    (cons "mediumorange" (make-object color% 255 165 0))
+    (cons "mediumpink" (make-object color% 255 192 203))
+    (cons "darkpink" (make-object color% 204 141 152))
+    (cons "lightpurple" (make-object color% 211 83 255))
+    (cons "darkpurple" (make-object color% 109 0 189))
+    (cons "lightred" (make-object color% 255 51 51))
+    (cons "mediumred" (make-object color% 255 0 0))
+    (cons "lightturquoise" (make-object color% 155 155 255))
+    (cons "mediumyellow" (make-object color% 255 255 0))
+    (cons "darkyellow" (make-object color% 204 204 0))
+    (cons "transparent" (make-object color% 255 255 255 0)))))
+(define transparent-color (hash-ref extra-colors "transparent"))
 
 (define (string->color-object color)
   (or (string->color-object/f color)
       (send the-color-database find-color "black")))
 (define (string->color-object/f color)
+  (or (lookup-color color)
+      (lookup-color (normalize-color-string color))))
+(define (lookup-color color)
   (or (send the-color-database find-color color)
-      (and (equal? color "transparent") transparent-color)
-      (let ([normalized (normalize-color-string color)])
-        (cond
-          [(equal? normalized "transparent") transparent-color]
-          [(send the-color-database find-color normalized) => values]
-          [else #f]))))
-
+      (hash-ref extra-colors color #f)))
 (define (normalize-color-string color)
   (define spaceless (regexp-replace* #rx" +" color ""))
   (define s (make-string (string-length spaceless)))
