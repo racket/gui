@@ -1396,7 +1396,7 @@ the mask bitmap and the original bitmap are all together in a single bytes!
     (cons "darkpink" (make-object color% 204 141 152))
     (cons "lightpurple" (make-object color% 211 83 255))
     (cons "darkpurple" (make-object color% 109 0 189))
-    (cons "lightred" (make-object color% 255 51 51))
+    (cons "lightred" (make-object color% 255 102 102))
     (cons "mediumred" (make-object color% 255 0 0))
     (cons "lightturquoise" (make-object color% 155 155 255))
     (cons "mediumyellow" (make-object color% 255 255 0))
