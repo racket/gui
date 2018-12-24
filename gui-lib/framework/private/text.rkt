@@ -24,7 +24,9 @@
 (require scribble/xref
          scribble/manual-struct)
 
-(provide text@)
+(define-local-member-name as-a-paste)
+
+(provide text@ as-a-paste)
 (define-unit text@
 (import mred^
         [prefix icon: framework:icon^]
@@ -1181,24 +1183,24 @@
     (define/public (ask-normalize?)
       (cond
         [(preferences:get 'framework:ask-about-paste-normalization)
-         (let-values ([(mbr checked?)
-                       (message+check-box/custom
-                        (string-constant drscheme)
-                        (string-constant normalize-string-info)
-                        (string-constant dont-ask-again)
-                        (string-constant normalize)
-                        (string-constant leave-alone)
-                        #f
-                        (get-top-level-window)
-                        (cons (if (preferences:get 'framework:do-paste-normalization)
-                                  'default=1
-                                  'default=2)
-                              '(caution))
-                        2)])
-           (let ([normalize? (not (equal? 2 mbr))])
-             (preferences:set 'framework:ask-about-paste-normalization (not checked?))
-             (preferences:set 'framework:do-paste-normalization normalize?)
-             normalize?))]
+         (define-values (mbr checked?)
+           (message+check-box/custom
+            (string-constant drscheme)
+            (string-constant normalize-string-info)
+            (string-constant dont-ask-again)
+            (string-constant normalize)
+            (string-constant leave-alone)
+            #f
+            (get-top-level-window)
+            (cons (if (preferences:get 'framework:do-paste-normalization)
+                      'default=1
+                      'default=2)
+                  '(caution))
+            2))
+         (define normalize? (not (equal? 2 mbr)))
+         (preferences:set 'framework:ask-about-paste-normalization (not checked?))
+         (preferences:set 'framework:do-paste-normalization normalize?)
+         normalize?]
         [else
          (preferences:get 'framework:do-paste-normalization)]))
     (define/public (string-normalize s) 
@@ -1209,17 +1211,22 @@
         (string-normalize-nfkc s)
         "-")
        ""))
-    
-    (define/override (do-paste start time)
+
+    ;; method for use in the test suites
+    (define/public-final (as-a-paste thunk)
       (dynamic-wind
        (λ () (set! paste-info '()))
-       (λ () (super do-paste start time)
-         (let ([local-paste-info paste-info])
-           (set! paste-info #f)
-           (deal-with-paste local-paste-info)))
+       (λ ()
+         (thunk)
+         (define local-paste-info paste-info)
+         (set! paste-info #f)
+         (deal-with-paste local-paste-info))
        ;; use the dynamic wind to be sure that the paste-info is set back to #f
        ;; in the case that the middle thunk raises an exception
        (λ () (set! paste-info #f))))
+    
+    (define/override (do-paste start the-time)
+      (as-a-paste (λ () (super do-paste start the-time))))
     
     (define/augment (after-insert start len)
       (when paste-info
@@ -1234,21 +1241,22 @@
           (define len (list-ref insertion 1))
           (split-snip start)
           (split-snip (+ start len))
-          (let loop ([snip (find-snip start 'after-or-none)])
+          (let loop ([snip (find-snip (+ start len) 'before-or-none)])
             (when snip
-              (let ([pos (get-snip-position snip)])
-                (when (< pos (+ start len))
-                  (when (is-a? snip string-snip%)
-                    (let* ([old (send snip get-text 0 (send snip get-count))]
-                           [new (string-normalize old)])
-                      (unless (equal? new old)
-                        (when ask?
-                          (set! ask? #f)
-                          (unless (ask-normalize?) (abort)))
-                        (let ([snip-pos (get-snip-position snip)])
-                          (delete snip-pos (+ snip-pos (string-length old)))
-                          (insert new snip-pos snip-pos #f)))))
-                  (loop (send snip next)))))))))
+              (define prev-snip (send snip previous))
+              (define pos (get-snip-position snip))
+              (when (pos . >= . start)
+                (when (is-a? snip string-snip%)
+                  (define old (send snip get-text 0 (send snip get-count)))
+                  (define new (string-normalize old))
+                  (unless (equal? new old)
+                    (when ask?
+                      (set! ask? #f)
+                      (unless (ask-normalize?) (abort)))
+                    (define snip-pos (get-snip-position snip))
+                    (delete snip-pos (+ snip-pos (string-length old)))
+                    (insert new snip-pos snip-pos #f)))
+                (loop prev-snip)))))))
     
     (super-new)))
 

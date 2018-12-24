@@ -239,6 +239,54 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
+;;  normalize-paste
+;;
+(require (only-in framework/private/text as-a-paste))
+(define old-ask-about-paste-normalization
+  (preferences:get 'framework:ask-about-paste-normalization))
+(define old-do-paste-normalization
+  (preferences:get 'framework:do-paste-normalization))
+(dynamic-wind
+ void
+ (λ ()
+
+   (preferences:set 'framework:ask-about-paste-normalization #f)
+   
+   (let ()
+     (preferences:set 'framework:do-paste-normalization #f)
+     (define t (new (text:normalize-paste-mixin text:basic%)))
+     (send t as-a-paste (λ () (send t insert "a")))
+     (check-equal? (send t get-text) "a"))
+
+   (let ()
+     (preferences:set 'framework:do-paste-normalization #t)
+     (define t (new (text:normalize-paste-mixin text:basic%)))
+     (send t as-a-paste (λ () (send t insert "a")))
+     (check-equal? (send t get-text) "a"))
+
+   (let ()
+     (preferences:set 'framework:do-paste-normalization #f)
+     (define t (new (text:normalize-paste-mixin text:basic%)))
+     (send t as-a-paste (λ () (send t insert "x²")))
+     (check-equal? (send t get-text) "x²"))
+
+   (let ()
+     (preferences:set 'framework:do-paste-normalization #t)
+     (define t (new (text:normalize-paste-mixin text:basic%)))
+     (send t as-a-paste (λ () (send t insert "x²")))
+     (check-equal? (send t get-text) "x2"))
+
+   (let ()
+     (preferences:set 'framework:do-paste-normalization #t)
+     (define t (new (text:normalize-paste-mixin text:basic%)))
+     (send t as-a-paste (λ () (send t insert "x² x²\nx² x²\nx² x²\nx² x²\n")))
+     (check-equal? (send t get-text) "x2 x2\nx2 x2\nx2 x2\nx2 x2\n")))
+ (λ ()
+   (preferences:set 'framework:ask-about-paste-normalization old-ask-about-paste-normalization)
+   (preferences:set 'framework:do-paste-normalization old-do-paste-normalization)))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;
 ;;  searching
 ;;
 
