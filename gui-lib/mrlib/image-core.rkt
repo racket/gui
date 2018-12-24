@@ -1381,7 +1381,7 @@ the mask bitmap and the original bitmap are all together in a single bytes!
        (* (/ (color-alpha color) 255)
           (/ extra-alpha 255)))]))
 
-(define extra-colors
+(define extra-2htdp/image-colors
   (make-hash
    (list
     (cons "lightbrown" (make-object color% 183 111 87))
@@ -1403,7 +1403,7 @@ the mask bitmap and the original bitmap are all together in a single bytes!
     (cons "darkyellow" (make-object color% 204 204 0))
     (cons "lightgoldenrod" (make-object color% 255 216 83))
     (cons "transparent" (make-object color% 255 255 255 0)))))
-(define transparent-color (hash-ref extra-colors "transparent"))
+(define transparent-color (hash-ref extra-2htdp/image-colors "transparent"))
 
 (define (string->color-object color)
   (or (string->color-object/f color)
@@ -1413,7 +1413,7 @@ the mask bitmap and the original bitmap are all together in a single bytes!
       (lookup-color (normalize-color-string color))))
 (define (lookup-color color)
   (or (send the-color-database find-color color)
-      (hash-ref extra-colors color #f)))
+      (hash-ref extra-2htdp/image-colors color #f)))
 (define (normalize-color-string color)
   (define spaceless (regexp-replace* #rx" +" color ""))
   (define s (make-string (string-length spaceless)))
@@ -1582,7 +1582,8 @@ the mask bitmap and the original bitmap are all together in a single bytes!
          snipclass-bytes->image
          (contract-out
           [definitely-same-image? (-> image? image? boolean?)])
-         string->color-object/f)
+         string->color-object/f
+         extra-2htdp/image-colors)
 
 ;; method names
 (provide get-shape get-bb get-pinhole get-normalized? get-normalized-shape)
