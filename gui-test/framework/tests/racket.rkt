@@ -1,89 +1,86 @@
 #lang racket/base
 
-(require "test-suite-utils.rkt"
-         (for-syntax racket/base))
+(require "private/util.rkt"
+         rackunit
+         racket/class
+         framework
+         racket/gui/base)
 
+(module+ test
+  (with-private-prefs
+    (open-paren-typing)
+    (test-text-balanced)
+    (indentation-tests)
+    (magic-square-bracket-tests)
+    (insert-return-tests)
+    (test-message-send)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
 ;; testing inserting parens and the automatic-parens prefs
 ;;
 
-(define (test-type-string/proc line to-type expected-result [control-down #f])
-  (test
-   (string->symbol (format "test-type-string line ~a" line))
-   (λ (x) (equal? x expected-result))
-   (λ ()
-     (queue-sexp-to-mred
-      `(let ()
-         (define f (new frame:basic% [label ""]))
-         (define t (new racket:text%))
-         (define ec (new canvas:basic%
-                         [parent (send f get-area-container)]
-                         [editor t]))
-         (send t on-char (new key-event% [key-code ,to-type] [control-down ,control-down]))
-         (send t get-text))))))
+(define (type-something to-type [control-down #f])
+  (define f (new frame:basic% [label ""]))
+  (define t (new racket:text%))
+  (define ec (new canvas:basic%
+                  [parent (send f get-area-container)]
+                  [editor t]))
+  (send t on-char (new key-event% [key-code to-type] [control-down control-down]))
+  (send t get-text))
 
-(define-syntax (test-type-string stx)
-  (syntax-case stx ()
-    [(_ . rst)
-     (with-syntax ([line (syntax-line stx)])
-       #'(test-type-string/proc line . rst))]))
-
-(begin
-  (queue-sexp-to-mred `(preferences:set 'framework:fixup-parens #f))
-  (queue-sexp-to-mred `(preferences:set 'framework:fixup-open-parens #f))
+(define (open-paren-typing)
+  (preferences:set 'framework:fixup-parens #f)
+  (preferences:set 'framework:fixup-open-parens #f)
   
-  (queue-sexp-to-mred `(preferences:set 'framework:automatic-parens #f))
-  (test-type-string #\( "(")
-  (test-type-string #\[ "[")
-  (test-type-string #\" "\"")
-  (queue-sexp-to-mred `(preferences:set 'framework:automatic-parens #t))
-  (test-type-string #\( "()")
-  (test-type-string #\[ "[]")
-  (test-type-string #\" "\"\""))
+  (preferences:set 'framework:automatic-parens #f)
+  (check-equal? (type-something #\() "(")
+  (check-equal? (type-something #\[) "[")
+  (check-equal? (type-something #\") "\"")
 
+  (preferences:set 'framework:automatic-parens #t)
+  (check-equal? (type-something #\() "()")
+  (check-equal? (type-something #\[) "[]")
+  (check-equal? (type-something #\") "\"\"")
 
-(begin
-  (queue-sexp-to-mred `(preferences:set 'framework:fixup-parens #f))
-  (queue-sexp-to-mred `(preferences:set 'framework:fixup-open-parens #t))
+  (preferences:set 'framework:fixup-parens #f)
+  (preferences:set 'framework:fixup-open-parens #t)
   
-  (queue-sexp-to-mred `(preferences:set 'framework:automatic-parens #f))
-  (test-type-string #\( "(")
-  (test-type-string #\[ "(")
-  (test-type-string #\[ "[" #t)
-  (test-type-string #\" "\"")
-  (queue-sexp-to-mred `(preferences:set 'framework:automatic-parens #t))
-  (test-type-string #\( "()")
-  (test-type-string #\[ "()")
-  (test-type-string #\[ "[]" #t)
-  (test-type-string #\" "\"\""))
+  (preferences:set 'framework:automatic-parens #f)
+  (check-equal? (type-something #\() "(")
+  (check-equal? (type-something #\[) "(")
+  (check-equal? (type-something #\[ #t) "[")
+  (check-equal? (type-something #\") "\"")
+  (preferences:set 'framework:automatic-parens #t)
+  (check-equal? (type-something #\() "()")
+  (check-equal? (type-something #\[) "()")
+  (check-equal? (type-something #\[ #t) "[]")
+  (check-equal? (type-something #\") "\"\"")
 
-(begin
-  (queue-sexp-to-mred `(preferences:set 'framework:fixup-parens #t))
-  (queue-sexp-to-mred `(preferences:set 'framework:fixup-open-parens #f))
+  (preferences:set 'framework:fixup-parens #t)
+  (preferences:set 'framework:fixup-open-parens #f)
   
-  (queue-sexp-to-mred `(preferences:set 'framework:automatic-parens #f))
-  (test-type-string #\( "(")
-  (test-type-string #\[ "[")
-  (test-type-string #\" "\"")
-  (queue-sexp-to-mred `(preferences:set 'framework:automatic-parens #t))
-  (test-type-string #\( "()")
-  (test-type-string #\[ "[]")
-  (test-type-string #\" "\"\""))
+  (preferences:set 'framework:automatic-parens #f)
+  (check-equal? (type-something #\() "(")
+  (check-equal? (type-something #\[) "[")
+  (check-equal? (type-something #\") "\"")
+  (preferences:set 'framework:automatic-parens #t)
+  (check-equal? (type-something #\() "()")
+  (check-equal? (type-something #\[) "[]")
+  (check-equal? (type-something #\") "\"\"")
 
-(begin
-  (queue-sexp-to-mred `(preferences:set 'framework:fixup-parens #t))
-  (queue-sexp-to-mred `(preferences:set 'framework:fixup-open-parens #t))
+  (preferences:set 'framework:fixup-parens #t)
+  (preferences:set 'framework:fixup-open-parens #t)
   
-  (queue-sexp-to-mred `(preferences:set 'framework:automatic-parens #f))
-  (test-type-string #\( "(")
-  (test-type-string #\[ "(")
-  (test-type-string #\" "\"")
-  (queue-sexp-to-mred `(preferences:set 'framework:automatic-parens #t))
-  (test-type-string #\( "()")
-  (test-type-string #\[ "()")
-  (test-type-string #\" "\"\""))
+  (preferences:set 'framework:automatic-parens #f)
+  (check-equal? (type-something #\() "(")
+  (check-equal? (type-something #\[) "(")
+  (check-equal? (type-something #\") "\"")
+  (preferences:set 'framework:automatic-parens #t)
+  (check-equal? (type-something #\() "()")
+  (check-equal? (type-something #\[) "()")
+  (check-equal? (type-something #\") "\"\""))
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
@@ -91,217 +88,189 @@
 ;;
 
 
-(define (test-text-balanced? number str start end expected)
-  (test
-   (string->symbol (format "racket:text-balanced?-~a" number))
-   (lambda (x) 
-     (equal? x expected))
-   (λ ()
-     (queue-sexp-to-mred
-      `(let ([t (new racket:text%)])
-         (send t insert ,str)
-         (racket:text-balanced? t ,start ,end))))))
+(define (text-balanced? number str start end)
+  (define t (new racket:text%))
+  (send t insert str)
+  (racket:text-balanced? t start end))
 
-(test-text-balanced? 0 "" 0 #f #f)
-(test-text-balanced? 1 "  \n " 0 #f #f)
-(test-text-balanced? 2 "foo)" 0 #f #t)
-(test-text-balanced? 3 "(foo" 0 #f #f)
-(test-text-balanced? 4 "(foo)" 0 #f #t)
-(test-text-balanced? 5 "(foo 'bar))" 0 #f #t)
-(test-text-balanced? 6 "(foo) bar ([buz])" 0 #f #t)
-(test-text-balanced? 7 "(foo]" 0 #f #t)
-(test-text-balanced? 8 "{foo} ((bar) [5.9])" 0 #f #t)
-(test-text-balanced? 9 "#(1 2 . 3)" 0 #f #t)
+(define (test-text-balanced)
+  (check-equal? (text-balanced? 0 "" 0 #f) #f)
+  (check-equal? (text-balanced? 1 "  \n " 0 #f) #f)
+  (check-equal? (text-balanced? 2 "foo)" 0 #f) #t)
+  (check-equal? (text-balanced? 3 "(foo" 0 #f) #f)
+  (check-equal? (text-balanced? 4 "(foo)" 0 #f) #t)
+  (check-equal? (text-balanced? 5 "(foo 'bar))" 0 #f) #t)
+  (check-equal? (text-balanced? 6 "(foo) bar ([buz])" 0 #f) #t)
+  (check-equal? (text-balanced? 7 "(foo]" 0 #f) #t)
+  (check-equal? (text-balanced? 8 "{foo} ((bar) [5.9])" 0 #f) #t)
+  (check-equal? (text-balanced? 9 "#(1 2 . 3)" 0 #f) #t))
 
-(define-syntax (test-indentation stx) 
-  (syntax-case stx () 
-    [(_ . args) 
-     (with-syntax ([line (syntax-line stx)])
-       #'(test-indentation/proc line . args))]))
+(define (test-indentation before)
+  (define t (new racket:text%))
+  (define f (new frame% [label ""] [width 600] [height 600]))
+  (define ec (new editor-canvas% [parent f] [editor t]))
+  (send f reflow-container)
+  (send t insert before)
+  (send t tabify-all)
+  (send t get-text))
 
-(define (test-indentation/proc line before after)
-  (test
-   (string->symbol (format "racket:test-indentation-line-~a" line))
-   (λ (x) (equal? x after))
-   (λ ()
-     (queue-sexp-to-mred
-      `(let* ([t (new racket:text%)]
-              [f (new frame% [label ""] [width 600] [height 600])]
-              [ec (new editor-canvas% [parent f] [editor t])])
-         (send f reflow-container)
-         (send t insert ,before)
-         (send t tabify-all)
-         (send t get-text))))))
-
-(test-indentation "a" "a")
-(test-indentation "(a\n b)" "(a\n b)")
-(test-indentation "(a\nb)" "(a\n b)")
-(test-indentation "(a b\nc)" "(a b\n   c)")
-(test-indentation "(a ...\nb)" "(a ...\n b)")
-(test-indentation "(lambda (x)\nb)" "(lambda (x)\n  b)")
-(test-indentation "(lambdaa (x)\nb)" "(lambdaa (x)\n         b)")
-(test-indentation "(define x\n  (let/ec return\n    (when 1\n      (when 2\n\t\t      3))\n    2))"
-                  "(define x\n  (let/ec return\n    (when 1\n      (when 2\n        3))\n    2))")
-(test-indentation "(for ([x 1])\nx)"
-                  "(for ([x 1])\n  x)")
-(test-indentation "(for/list ([x 1])\nx)"
-                  "(for/list ([x 1])\n  x)")
-(test-indentation "(for/anything ([x 1])\nx)"
-                  "(for/anything ([x 1])\n  x)")
-(test-indentation "(for*/anything ([x 1])\nx)"
-                  "(for*/anything ([x 1])\n  x)")
-(test-indentation "(for-anything ([x 1])\nx)"
-                  "(for-anything ([x 1])\n              x)")
-(test-indentation "(for/fold ([x 1])\n([y 2])\n3\n4)"
-                  "(for/fold ([x 1])\n          ([y 2])\n  3\n  4)")
-(test-indentation "a\na\na\n" "a\na\na\n")
-(test-indentation "(begin\n1)" "(begin\n  1)")
-(test-indentation "(lambda\n(x) x)" "(lambda\n    (x) x)")
-(test-indentation "(some-random-function x\nx)"
-                  "(some-random-function x\n                      x)")
-(test-indentation "(some-random-function x y\nx)"
-                  "(some-random-function x y\n                      x)")
-(test-indentation "(x ...\nx)"
-                  "(x ...\n x)")
-(test-indentation "(x\n;;; hello\ny)"
-                  "(x\n ;;; hello\n y)")
-(test-indentation "(require racket/contract\nracket/unit\nracket/class"
-                  "(require racket/contract\n         racket/unit\n         racket/class")
-(test-indentation "(r a\nb\nc\nd\ne\nf\ng"
-                  "(r a\n   b\n   c\n   d\n   e\n   f\n   g")
-(test-indentation "(r a b\nc d\ne f\ng h"
-                  "(r a b\n   c d\n   e f\n   g h")
-(test-indentation "(#:x\n1)"
-                  "(#:x\n 1)")
-(test-indentation "(#:x 0\n1)"
-                  "(#:x 0\n 1)")
-(test-indentation "(a b c d\n---)"
-                  "(a b c d\n ---)")
-(test-indentation "[---- \"β\"\na"
-                  "[---- \"β\"\n a")
+(define (indentation-tests)
+  (check-equal? (test-indentation "a") "a")
+  (check-equal? (test-indentation "(a\n b)") "(a\n b)")
+  (check-equal? (test-indentation "(a\nb)") "(a\n b)")
+  (check-equal? (test-indentation "(a b\nc)") "(a b\n   c)")
+  (check-equal? (test-indentation "(a ...\nb)") "(a ...\n b)")
+  (check-equal? (test-indentation "(lambda (x)\nb)") "(lambda (x)\n  b)")
+  (check-equal? (test-indentation "(lambdaa (x)\nb)") "(lambdaa (x)\n         b)")
+  (check-equal?
+   (test-indentation "(define x\n  (let/ec return\n    (when 1\n      (when 2\n\t\t      3))\n    2))")
+   "(define x\n  (let/ec return\n    (when 1\n      (when 2\n        3))\n    2))")
+  (check-equal? (test-indentation "(for ([x 1])\nx)")
+                "(for ([x 1])\n  x)")
+  (check-equal? (test-indentation "(for/list ([x 1])\nx)")
+                "(for/list ([x 1])\n  x)")
+  (check-equal? (test-indentation "(for/anything ([x 1])\nx)")
+                "(for/anything ([x 1])\n  x)")
+  (check-equal? (test-indentation "(for*/anything ([x 1])\nx)")
+                "(for*/anything ([x 1])\n  x)")
+  (check-equal? (test-indentation "(for-anything ([x 1])\nx)")
+                "(for-anything ([x 1])\n              x)")
+  (check-equal? (test-indentation "(for/fold ([x 1])\n([y 2])\n3\n4)")
+                "(for/fold ([x 1])\n          ([y 2])\n  3\n  4)")
+  (check-equal? (test-indentation "a\na\na\n") "a\na\na\n")
+  (check-equal? (test-indentation "(begin\n1)") "(begin\n  1)")
+  (check-equal? (test-indentation "(lambda\n(x) x)") "(lambda\n    (x) x)")
+  (check-equal? (test-indentation "(some-random-function x\nx)")
+                "(some-random-function x\n                      x)")
+  (check-equal? (test-indentation "(some-random-function x y\nx)")
+                "(some-random-function x y\n                      x)")
+  (check-equal? (test-indentation "(x ...\nx)")
+                "(x ...\n x)")
+  (check-equal? (test-indentation "(x\n;;; hello\ny)")
+                "(x\n ;;; hello\n y)")
+  (check-equal? (test-indentation "(require racket/contract\nracket/unit\nracket/class")
+                "(require racket/contract\n         racket/unit\n         racket/class")
+  (check-equal? (test-indentation "(r a\nb\nc\nd\ne\nf\ng")
+                "(r a\n   b\n   c\n   d\n   e\n   f\n   g")
+  (check-equal? (test-indentation "(r a b\nc d\ne f\ng h")
+                "(r a b\n   c d\n   e f\n   g h")
+  (check-equal? (test-indentation "(#:x\n1)")
+                "(#:x\n 1)")
+  (check-equal? (test-indentation "(#:x 0\n1)")
+                "(#:x 0\n 1)")
+  (check-equal? (test-indentation "(a b c d\n---)")
+                "(a b c d\n ---)")
+  (check-equal? (test-indentation "[---- \"β\"\na")
+                "[---- \"β\"\n a"))
 
 
-(define (test-magic-square-bracket which before after)
-  (test
-   (string->symbol (format "racket:test-magic-square-bracket-~a" which))
-   (λ (x) (equal? x after))
-   (λ ()
-     (queue-sexp-to-mred
-      `(let* ([t (new racket:text%)]
-              [f (new frame% [label ""] [width 600] [height 600])]
-              [ec (new editor-canvas% [parent f] [editor t])])
-         (send f reflow-container)
-         (send t insert ,before)
-         (send (racket:get-keymap) call-function "maybe-insert-[]-pair-maybe-fixup-[]" t (new event%))
-         (send t get-text))))))
+(define (run-magic-square-bracket before)
+  (define t (new racket:text%))
+  (define f (new frame% [label ""] [width 600] [height 600]))
+  (define ec (new editor-canvas% [parent f] [editor t]))
+  (send f reflow-container)
+  (send t insert before)
+  (send (racket:get-keymap) call-function "maybe-insert-[]-pair-maybe-fixup-[]" t (new event%))
+  (send t get-text))
 
-(queue-sexp-to-mred `(preferences:set 'framework:automatic-parens #f))
-(queue-sexp-to-mred `(preferences:set 'framework:fixup-open-parens #t))
-(test-magic-square-bracket 'mt "" "(")
-(test-magic-square-bracket 'mt2 "(() " "(() (")
-(test-magic-square-bracket 'mt3 "([] " "([] [")
-(test-magic-square-bracket 'mt4 "(\"" "(\"[")
-(test-magic-square-bracket 'mt4 "(#\\" "(#\\[")
-(test-magic-square-bracket 'let1 "(let " "(let (")
-(test-magic-square-bracket 'let2 "(let (" "(let ([")
-(test-magic-square-bracket 'let3 "(let loop " "(let loop (")
-(test-magic-square-bracket 'let3 "(let loop (" "(let loop ([")
-(test-magic-square-bracket 'let4 "(let rec (" "(let rec ([")
-(test-magic-square-bracket 'cond1 "(cond " "(cond [")
-(test-magic-square-bracket 'cond2 "(cond [" "(cond [(")
-(test-magic-square-bracket 'with-syntax1 "(syntax-case x " "(syntax-case x (")
-(test-magic-square-bracket 'with-syntax2 "(syntax-case x () " "(syntax-case x () [")
-(test-magic-square-bracket 'with-syntax3 "(syntax-case 'x " "(syntax-case 'x (")
-(test-magic-square-bracket 'with-syntax4 "(syntax-case 'x () " "(syntax-case 'x () [")
-(test-magic-square-bracket 'with-syntax3 "(syntax-case #'x " "(syntax-case #'x (")
-(test-magic-square-bracket 'with-syntax4 "(syntax-case #'x () " "(syntax-case #'x () [")
-(test-magic-square-bracket 'local1 "(local " "(local [")
-(test-magic-square-bracket 'local2 "(local [" "(local [(")
-(test-magic-square-bracket 'local2 "(local [(define x 1)] " "(local [(define x 1)] (")
-(test-magic-square-bracket 'for/fold1 "(for/fold (" "(for/fold ([")
-(test-magic-square-bracket 'for/fold2 "(for/fold ([x 1]) (" "(for/fold ([x 1]) ([")
+(define (magic-square-bracket-tests)
+  (preferences:set 'framework:automatic-parens #f)
+  (preferences:set 'framework:fixup-open-parens #t)
+  (check-equal? (run-magic-square-bracket "") "(")
+  (check-equal? (run-magic-square-bracket "(() ") "(() (")
+  (check-equal? (run-magic-square-bracket "([] ") "([] [")
+  (check-equal? (run-magic-square-bracket "(\"") "(\"[")
+  (check-equal? (run-magic-square-bracket "(#\\") "(#\\[")
+  (check-equal? (run-magic-square-bracket "(let ") "(let (")
+  (check-equal? (run-magic-square-bracket "(let (") "(let ([")
+  (check-equal? (run-magic-square-bracket "(let loop ") "(let loop (")
+  (check-equal? (run-magic-square-bracket "(let loop (") "(let loop ([")
+  (check-equal? (run-magic-square-bracket "(let rec (") "(let rec ([")
+  (check-equal? (run-magic-square-bracket "(cond ") "(cond [")
+  (check-equal? (run-magic-square-bracket "(cond [") "(cond [(")
+  (check-equal? (run-magic-square-bracket "(syntax-case x ") "(syntax-case x (")
+  (check-equal? (run-magic-square-bracket "(syntax-case x () ") "(syntax-case x () [")
+  (check-equal? (run-magic-square-bracket "(syntax-case 'x ") "(syntax-case 'x (")
+  (check-equal? (run-magic-square-bracket "(syntax-case 'x () ") "(syntax-case 'x () [")
+  (check-equal? (run-magic-square-bracket "(syntax-case #'x ") "(syntax-case #'x (")
+  (check-equal? (run-magic-square-bracket "(syntax-case #'x () ") "(syntax-case #'x () [")
+  (check-equal? (run-magic-square-bracket "(local ") "(local [")
+  (check-equal? (run-magic-square-bracket "(local [") "(local [(")
+  (check-equal? (run-magic-square-bracket "(local [(define x 1)] ") "(local [(define x 1)] (")
+  (check-equal? (run-magic-square-bracket "(for/fold (") "(for/fold ([")
+  (check-equal? (run-magic-square-bracket "(for/fold ([x 1]) (") "(for/fold ([x 1]) (["))
 
-(define (test-insert-return/proc line before-txt before-pos after-txt after-pos #:tabify? [tabify? #t])
-  (test
-   (string->symbol (format "racket:test-insert-return ~a" line))
-   (λ (x)
-     (and (equal? (car x) after-pos)
-          (equal? (cadr x) after-txt)))
-   (λ ()
-    (queue-sexp-to-mred
-     `(let ()
-       (define t (new (class racket:text%
-                            (define/override (tabify-on-return?) ,tabify?)
-                            (super-new))))
-       (send t insert ,before-txt)
-       (send t set-position ,before-pos)
-       (send t insert-return)
-       (list (send t get-start-position)
-             (send t get-text)))))))
 
-(define-syntax (test-insert-return stx)
-  (syntax-case stx ()
-    [(_  before-txt before-pos after-txt after-pos . args)
-     (with-syntax ([line (syntax-line stx)])
-       #'(test-insert-return/proc line before-txt before-pos after-txt after-pos . args))]))
 
-(test-insert-return "" 0 "\n" 1)
-(test-insert-return "" 0 "\n" 1 #:tabify? #f)
-(test-insert-return " " 1 "\n" 1)
-(test-insert-return " " 1 "\n" 1 #:tabify? #f)
-(test-insert-return "( " 2 "(\n " 3)
-(test-insert-return "( " 2 "(\n" 2 #:tabify? #f)
-(test-insert-return "hellothere" 5 "hello\nthere" 6)
-(test-insert-return "hellothere" 5 "hello\nthere" 6 #:tabify? #f)
-(test-insert-return "#lang racket\n(+ 123 456)\n 4"      20 "#lang racket\n(+ 123\n  456)\n 4" 22)
-(test-insert-return "#lang racket\n(+ 123 456)\n 4"      20 "#lang racket\n(+ 123\n456)\n 4" 20 #:tabify? #f)
-(test-insert-return "#lang racket\n(+ 123      456)\n 4" 22 "#lang racket\n(+ 123\n  456)\n 4" 22)
-(test-insert-return "#lang racket\n(+ 123      456)\n 4" 22 "#lang racket\n(+ 123\n   456)\n 4" 20 #:tabify? #f)
-(test-insert-return "#lang racket\n(+ 123 \n   456)\n 4" 22 "#lang racket\n(+ 123 \n\n  456)\n 4" 24)
-(test-insert-return "#lang racket\n(+ 123 \n   456)\n 4" 22 "#lang racket\n(+ 123 \n\n  456)\n 4" 22 #:tabify? #f)
+(define (do-insert-return before-txt before-pos #:tabify? [tabify? #t])
+  (define t (new (class racket:text%
+                   (define/override (tabify-on-return?) tabify?)
+                   (super-new))))
+  (send t insert before-txt)
+  (send t set-position before-pos)
+  (send t insert-return)
+  (vector (send t get-text)
+          (send t get-start-position)))
 
-(define (test-message-send/proc line before expected pos msg
-                                #:check-result? [check-result? #f] 
-                                . args)
-  (define (maybe-quote x)
-    (cond
-      [(or (number? x) (boolean? x) (string? x)) x]
-      [else `',x]))
-  (test
-   (string->symbol (format "line ~a: ~s"
-                           line
-                           `(,msg ,@(map maybe-quote args))))
-   (λ (x) (equal? x expected))
-   (λ ()
-     (queue-sexp-to-mred
-      `(let ()
-         (define f (new frame% [label ""]))
-         (define t (new racket:text%))
-         (define ec (new editor-canvas% [parent f] [editor t]))
-         (send t insert ,before)
-         (send t set-position ,pos)
-         (define ans (send t ,msg ,@(map maybe-quote args)))
-         ,(if check-result?
-              'ans
-              '(send t get-text)))))))
-(define-syntax (test-message-send stx)
-  (syntax-case stx ()
-    [(_ before expected pos mth . args)
-     (with-syntax ([line (syntax-line stx)])
-       #'(test-message-send/proc line before expected pos 'mth . args))]))
+(define (insert-return-tests)
+  (check-equal? (do-insert-return "" 0) (vector "\n" 1))
+  (check-equal? (do-insert-return "" 0 #:tabify? #f) (vector "\n" 1))
+  (check-equal? (do-insert-return " " 1) (vector "\n" 1))
+  (check-equal? (do-insert-return " " 1 #:tabify? #f) (vector "\n" 1))
+  (check-equal? (do-insert-return "( " 2) (vector "(\n " 3))
+  (check-equal? (do-insert-return "( " 2  #:tabify? #f) (vector "(\n" 2))
+  (check-equal? (do-insert-return "hellothere" 5) (vector "hello\nthere" 6))
+  (check-equal? (do-insert-return "hellothere" 5 #:tabify? #f) (vector "hello\nthere" 6))
+  (check-equal? (do-insert-return "#lang racket\n(+ 123 456)\n 4"      20)
+                (vector"#lang racket\n(+ 123\n  456)\n 4" 22))
+  (check-equal? (do-insert-return "#lang racket\n(+ 123 456)\n 4" 20 #:tabify? #f)
+                (vector "#lang racket\n(+ 123\n456)\n 4" 20))
+  (check-equal? (do-insert-return "#lang racket\n(+ 123      456)\n 4" 22)
+                (vector "#lang racket\n(+ 123\n  456)\n 4" 22))
+  (check-equal? (do-insert-return "#lang racket\n(+ 123      456)\n 4" 22 #:tabify? #f)
+                (vector "#lang racket\n(+ 123\n   456)\n 4" 20))
+  (check-equal? (do-insert-return "#lang racket\n(+ 123 \n   456)\n 4" 22)
+                (vector "#lang racket\n(+ 123 \n\n  456)\n 4" 24))
+  (check-equal? (do-insert-return "#lang racket\n(+ 123 \n   456)\n 4" 22 #:tabify? #f)
+                (vector "#lang racket\n(+ 123 \n\n  456)\n 4" 22)))
 
-(test-message-send ""  "]"  0 insert-close-paren 0 #\] #t #t 'adjacent)
-(test-message-send ""  "]"  0 insert-close-paren 0 #\] #t #t #f)
-(test-message-send "(" "()" 1 insert-close-paren 1 #\] #t #t #f)
-(test-message-send "(" "(]" 1 insert-close-paren 1 #\] #f #f #f)
-(test-message-send ""  "]"  0 insert-close-paren 0 #\] #t #t 'forward)
+(define (do-message-send before pos send-msg
+                           #:check-result? [check-result? #f])
+  (define f (new frame% [label ""]))
+  (define t (new racket:text%))
+  (define ec (new editor-canvas% [parent f] [editor t]))
+  (send t insert before)
+  (send t set-position pos)
+  (define ans (send-msg t))
+  (if check-result?
+      ans
+      (send t get-text)))
 
-(test-message-send "(1)" "1" 1 kill-enclosing-parens 1)
-(test-message-send "(1 2 3)" "1 2 3" 3 kill-enclosing-parens 3)
-(test-message-send "()" "" 1 kill-enclosing-parens 1)
-(test-message-send "(1\n 2\n 3)" "1\n2\n3" 1 kill-enclosing-parens 1) ;; test tabify call
+(define (test-message-send)
+  (check-equal? (do-message-send "" 0 (λ (t) (send t insert-close-paren 0 #\] #t #t 'adjacent)))
+                 "]")
+  (check-equal? (do-message-send "" 0 (λ (t) (send t insert-close-paren 0 #\] #t #t #f)))
+                "]")
+  (check-equal? (do-message-send "(" 1 (λ (t) (send t insert-close-paren 1 #\] #t #t #f)))
+                "()")
+  (check-equal? (do-message-send "(" 1 (λ (t) (send t insert-close-paren 1 #\] #f #f #f)))
+                "(]")
+  (check-equal? (do-message-send "" 0 (λ (t) (send t insert-close-paren 0 #\] #t #t 'forward)))
+                "]")
 
-(test-message-send "abc" #f 1 backward-containing-sexp #:check-result? #t 1 3)
+  (check-equal? (do-message-send "(1)" 1 (λ (t) (send t kill-enclosing-parens 1)))
+                "1")
+  (check-equal? (do-message-send "(1 2 3)" 3 (λ (t) (send t kill-enclosing-parens 3)))
+                "1 2 3")
+  (check-equal? (do-message-send "()" 1 (λ (t) (send t kill-enclosing-parens 1)))
+                "")
+  ;; test tabify call
+  (check-equal? (do-message-send "(1\n 2\n 3)" 1 (λ (t) (send t kill-enclosing-parens 1)))
+                "1\n2\n3")
+
+  (check-equal? (do-message-send "abc" 1 (λ (t) (send t backward-containing-sexp 1 3))
+                                 #:check-result? #t)
+                #f))
 
 ;; tests what happens when a given key/s is/are typed in an editor with initial
 ;;       text and cursor position, under different settings of the auto-parentheses and
@@ -311,39 +280,39 @@
 ;;    : any string 
 ;;      [or num (list num num)] [or char symbol 1string (list char) (list key-event%)]
 ;;      [or num (list num num)] string
-(define (test-auto-parens-behavior which initial-text initial-pos keys final-text final-pos
+#;(define (test-auto-parens-behavior which initial-text initial-pos keys final-text final-pos
                                    [auto-parens? #f])
   (test
    (string->symbol (format "racket:test-auto-parens-behavior ~a" which))
    (λ (x) (if (list? final-pos)
               (equal? x (list (car final-pos) (cadr final-pos) final-text))
-              (equal? x (list final-pos final-pos final-text))))
-   (λ ()
-     (queue-sexp-to-mred
-      `(let* ([t (new racket:text%)]
-              [f (new frame% [label ""] [width 600] [height 600])]
-              [ec (new editor-canvas% [parent f] [editor t])])
-         (preferences:set 'framework:fixup-parens #t)
-         (preferences:set 'framework:automatic-parens ,auto-parens?)
-         (send f reflow-container)
-         (send t insert ,initial-text)
-         ,(if (number? initial-pos)
-              `(send t set-position ,initial-pos)
-              `(send t set-position ,(car initial-pos) ,(cadr initial-pos)))
-         ,@(map
-            (lambda (k)
-              (cond [(char? k)
-                     `(send (racket:get-keymap)
-                            handle-key-event t (new key-event% [key-code ,k]))]
-                    [(string? k)
-                     `(send (racket:get-keymap)
-                            handle-key-event t (new key-event% [key-code ,(car (string->list k))]))]
-                    [(symbol? k)
-                     `(send (racket:get-keymap)
-                            handle-key-event t (new key-event% [key-code (quote ,k)]))]
-                    [else `(send (racket:get-keymap) handle-key-event t ,k)]))
-            (if (list? keys) keys (list keys)))
-         (list (send t get-start-position) (send t get-end-position) (send t get-text)))))))
+              (equal? x (list final-pos final-pos final-text))))))
+
+(define (run-auto-parens initial-text initial-pos keys [auto-parens? #f])
+  (define t (new racket:text%))
+  (define f (new frame% [label ""] [width 600] [height 600]))
+  (define ec (new editor-canvas% [parent f] [editor t]))
+  (preferences:set 'framework:fixup-parens #t)
+  (preferences:set 'framework:automatic-parens auto-parens?)
+  (send f reflow-container)
+  (send t insert initial-text)
+  (if (number? initial-pos)
+      (send t set-position initial-pos)
+      (send t set-position (car initial-pos) (cadr initial-pos)))
+  (for ([k (in-list (if (list? keys) keys (list keys)))])
+    (cond
+      [(char? k)
+       (send (racket:get-keymap) handle-key-event t (new key-event% [key-code k]))]
+      [(string? k)
+       (send (racket:get-keymap) handle-key-event t
+             (new key-event% [key-code (car (string->list k))]))]
+      [(symbol? k)
+       (send (racket:get-keymap)
+             handle-key-event t (new key-event% [key-code k]))]
+      [else (send (racket:get-keymap) handle-key-event t k)]))
+  (list (send t get-start-position)
+        (send t get-end-position)
+        (send t get-text)))
 
 
 ;; this takes an initial editor state (specified by the text before the cursor,
@@ -356,29 +325,36 @@
 ;;  (NB. final-states could also contain 3-pairs of strings, the middle portion 
 ;;       representing text that is selected after the insertion)
 (define (test-parens-behavior/full which
-                               init-text-before init-text-selected init-text-after
-                               keys
-                               final-states)
+                                   init-text-before init-text-selected init-text-after
+                                   keys
+                                   final-states)
   (define initial-text (string-append init-text-before init-text-selected init-text-after))
   (define initial-start-pos (string-length init-text-before))
   (define initial-end-pos (+ initial-start-pos (string-length init-text-selected)))
-  (for-each
-   (lambda (label auto? final-pair)
-     (test-auto-parens-behavior (format "~a (~a)" which label)
-                             initial-text (list initial-start-pos initial-end-pos) keys
-                             (apply string-append final-pair)
-                             (if (= 3 (length final-pair)) 
-                                 ; final-pair could actually be a triplet 
-                                 ; to indicate residual selection after insertion
-                                 (list (string-length (car final-pair))
-                                       (string-length (string-append (car final-pair)
-                                                                     (cadr final-pair))))
-                                 (string-length (car final-pair)))
-                             auto?))
-   '("no-auto-parens" "with-auto-parens")
-   '(#f #t)
-   final-states))
-
+  (for ([auto? (in-list '(#f #t))]
+        [final-pair (in-list final-states)])
+    (cond
+      [(= 3 (length final-pair))
+       (check-equal?
+        (run-auto-parens initial-text
+                         (list initial-start-pos initial-end-pos)
+                         keys
+                         auto?)
+        (list (string-length (car final-pair))
+              (string-length (string-append (car final-pair)
+                                            (cadr final-pair)))
+              (apply string-append final-pair)))]
+      [else
+       (define final-pos (string-length (car final-pair)))
+       (check-equal?
+        (run-auto-parens initial-text
+                         (list initial-start-pos initial-end-pos)
+                         keys
+                         auto?)
+        (list final-pos
+              final-pos
+              (apply string-append final-pair)))])))
+   
 
 (define SPECIAL-CHARS '(#\( #\) #\[ #\] #\" #\| #\{ #\}))
 
@@ -393,11 +369,11 @@
   ;; except for | which is a hard case to detect, because the tokenizer ends up
   ;; in an error state
   (unless (or (eq? #\| k))
-      (test-parens-behavior/full (format "literal-~a-in-string" k)
-                             "\"abc \\" "" "def\""
-                             k
-                             `([,(string-append "\"abc \\" (string k)) "def\""]
-                               [,(string-append "\"abc \\" (string k)) "def\""])))
+    (test-parens-behavior/full (format "literal-~a-in-string" k)
+                               "\"abc \\" "" "def\""
+                               k
+                               `([,(string-append "\"abc \\" (string k)) "def\""]
+                                 [,(string-append "\"abc \\" (string k)) "def\""])))
   ;; test that auto-parens has no effect in strings, *except for double quotes*
   (unless (eq? #\" k)
     (test-parens-behavior/full (format "~a-in-string" k)
@@ -627,4 +603,3 @@
                              '(escape #\))   ; '((new key-event% [key-code #\)] [meta-down #t]))
                              '(["(define before (list 1 2 3 4)" ""]
                                ["(define before (list 1 2 3 4)" ""])))
-
