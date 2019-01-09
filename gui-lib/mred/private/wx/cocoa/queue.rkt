@@ -370,6 +370,9 @@
 (define NX_RMOUSEDOWN 3)
 (define menu-bar-tap
   (and (version-10.13-or-later?)
+       (not (version-10.14-or-later?))
+       ;; 10.13: detecting `NSSystemDefined` with subtype 7 doesn't work,
+       ;;        but it seems to work for all other OS versions
        (CGEventTapCreate kCGSessionEventTap #; kCGAnnotatedSessionEventTap
                          kCGHeadInsertEventTap
                          kCGEventTapOptionDefault
