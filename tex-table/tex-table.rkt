@@ -26,7 +26,7 @@
     ("leftarrow" "←")
     ("uparrow" "↑")
     ("Leftarrow" "⇐")
-    ("longrightarrow" "−")
+    ("longrightarrow" "⟶")
     ("Uparrow" "⇑")
     ("Leftrightarrow" "⇔")
     ("updownarrow" "↕")
