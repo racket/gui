@@ -90,7 +90,7 @@ has been moved out).
   (unless (image? img)
     (error 'compute-cached-bitmap "expected an image as the first argument, got ~e" img))
   (when (is-a? img image<%>)
-    (send img compute-cached-bitmap))
+    (send img compute-cached-bitmap #:create-new-bitmap-if-not-ok? #t))
   (void))
   
 ;; a shape is either:
@@ -421,15 +421,19 @@ has been moved out).
     ;; this method is only used by the 'copy' method
     (define/public (set-cached-bitmap bm) (set! cached-bitmap bm))
     
-    (define/public (compute-cached-bitmap)
+    (define/public (compute-cached-bitmap #:create-new-bitmap-if-not-ok?
+                                          [create-new-bitmap-if-not-ok? #f])
       (when use-cached-bitmap?
-        (unless cached-bitmap
+        (when (or (not cached-bitmap)
+                  (and create-new-bitmap-if-not-ok?
+                       (not (send cached-bitmap ok?))))
           (define-values (w h) (get-size/but-subject-to-max bb))
           (set! cached-bitmap (make-bitmap (+ w 1) (+ h 1)))
-          (define bdc (make-object bitmap-dc% cached-bitmap))
-          (send bdc erase)
-          (render-image this bdc 0 0)
-          (send bdc set-bitmap #f))))
+          (when (send cached-bitmap ok?)
+            (define bdc (make-object bitmap-dc% cached-bitmap))
+            (send bdc erase)
+            (render-image this bdc 0 0)
+            (send bdc set-bitmap #f)))))
     
     (define/public (set-use-bitmap-cache?! u-b-c?) 
       (set! use-cached-bitmap? u-b-c?)
@@ -438,12 +442,20 @@ has been moved out).
     
     (define/override (draw dc x y left top right bottom dx dy draw-caret)
       (compute-cached-bitmap)
-      
+
+      ;; if the cached bitmap is not ok? that means we probably
+      ;; ran out of memory trying to allocate it. In that case,
+      ;; instead of failing, we just draw nothing. Don't try
+      ;; to fall back to the other drawing method because
+      ;; of the invariant that if a bitmap is present, we must
+      ;; use it or drawing nothing to avoid calling into unknown
+      ;; code in certain contexts
       (let ([alpha (send dc get-alpha)])
         (when (pair? draw-caret)
           (send dc set-alpha (* alpha .5)))
         (if use-cached-bitmap?
-            (send dc draw-bitmap cached-bitmap x y)
+            (when (send cached-bitmap ok?)
+              (send dc draw-bitmap cached-bitmap x y))
             (render-image this dc x y))
         (send dc set-alpha alpha)))
     
