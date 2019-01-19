@@ -620,6 +620,53 @@
 (expect (send t last-position) 2048)
 
 ;; ----------------------------------------
+;; test how the insertion point moves during deletions
+
+(let ()
+
+  (define lines
+    (list
+     "(define (f x)\n"
+     "  (+ x x)\n"
+     "  (+ x x))\n"))
+
+  (define init-position
+    (+ (string-length (list-ref lines 0))
+       (string-length (list-ref lines 1))
+       -1 ;; before the newline
+       ))
+
+  (define second-position
+    (+ (string-length (list-ref lines 0))
+       2 ;; after the leading space
+       ))
+
+  (let ()
+    (define t (new text%))
+
+    (send t insert (apply string-append lines))
+    (send t set-position init-position)
+    (for ([_ (in-range (- init-position second-position))])
+      (send t move-position 'left #t))
+    (send t delete 16 23)
+    (send t move-position 'home #t)
+    (expect (send t get-start-position) 0)
+    (expect (send t get-end-position) 16))
+
+  (let ()
+    (define t (new text%))
+
+    (send t insert (apply string-append lines))
+    (send t set-position init-position)
+    (for ([_ (in-range (- init-position second-position))])
+      (send t move-position 'left #f))
+    (send t delete 16 23)
+    (send t move-position 'home #t)
+    (expect (send t get-start-position) 0)
+    (expect (send t get-end-position) 16)))
+
+
+;; ----------------------------------------
 ;; Moving and word boundaries
 
 (send t delete 0 (send t last-position))

@@ -1873,6 +1873,7 @@
                             (values (sub1 start) start #t))
                         (values start end (and (= start startpos)
                                                (= end endpos))))])
+        (end-streaks '(delayed))
         (unless (or (start . >= . end)
                     (start . < . 0)
                     (start . >= . len))
