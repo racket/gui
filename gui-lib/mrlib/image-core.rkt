@@ -1427,13 +1427,12 @@ the mask bitmap and the original bitmap are all together in a single bytes!
   (or (send the-color-database find-color color)
       (hash-ref extra-2htdp/image-colors color #f)))
 (define (normalize-color-string color)
-  (define spaceless/uniform-greay
-    (regexp-replace #rx"grey" (regexp-replace* #rx" +" color "") "gray"))
-  (define s (make-string (string-length spaceless/uniform-greay)))
+  (define spaceless (regexp-replace* #rx" +" color ""))
+  (define s (make-string (string-length spaceless)))
   (for ([i (in-naturals)]
-        [c (in-string spaceless/uniform-greay)])
+        [c (in-string spaceless)])
     (string-set! s i (char-foldcase c)))
-  s)
+  (regexp-replace #rx"grey" s "gray"))
 
 (define (pen->pen-obj/cache pen)
   (send the-pen-list find-or-create-pen 
