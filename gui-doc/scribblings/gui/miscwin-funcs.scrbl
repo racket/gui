@@ -121,7 +121,9 @@ a @racket[panel%] background, but @racket[panel%] backgrounds can vary
 on some platforms (e.g., when nested in a @racket[group-box-panel%]),
 so the result is no longer guaranteed to be related to a
 @racket[panel%]'s color.
-}
+
+See @racket[get-label-background-color] for a closer approximation to
+a panel background.}
 
 
 @defproc[(get-highlight-background-color) (is-a?/c color%)]{
@@ -134,6 +136,32 @@ Returns the color that is drawn behind selected text.}
 Returns the color that is used to draw selected text or @racket[#f] if
 selected text is drawn with its usual color.}
 
+
+@defproc[(get-label-background-color) (is-a?/c color%)]{
+
+Returns an approximation of the color that is likely to appear behind
+a control label. This color may not match the actual color of a
+control's background, since themes on some platforms may vary the color
+for different contexts.
+
+See also @racket[get-label-foreground-color].
+
+@history[#:added "1.38"]}
+
+
+@defproc[(get-label-foreground-color) (is-a?/c color%)]{
+
+Returns an approximation of the color that is likely to be used for
+the text of a control label. This color may not match the actual color
+of label text, since themes on some platforms may vary the color for
+different contexts.
+
+Comparing the results of @racket[get-label-foreground-color] and
+@racket[get-label-background-color] may be useful for detecting
+whether a platform's current theme is ``dark mode'' versus ``light
+mode.''
+
+@history[#:added "1.38"]}
 
 @defproc[(get-window-text-extent [string string?]
                                  [font (is-a?/c font%)]

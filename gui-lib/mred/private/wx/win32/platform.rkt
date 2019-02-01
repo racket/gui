@@ -90,6 +90,8 @@
    any-control+alt-is-altgr
    get-highlight-background-color
    get-highlight-text-color
+   get-label-foreground-color
+   get-label-background-color
    make-screen-bitmap
    make-gl-bitmap
    check-for-break

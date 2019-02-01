@@ -123,6 +123,8 @@
              get-current-mouse-state
 	     get-highlight-background-color
              get-highlight-text-color
+             get-label-foreground-color
+             get-label-background-color
 	     get-the-editor-data-class-list
 	     is-busy?
 	     is-color-display?

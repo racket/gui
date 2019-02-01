@@ -53,6 +53,8 @@
   can-show-print-setup?
   get-highlight-background-color
   get-highlight-text-color
+  get-label-foreground-color
+  get-label-background-color
   check-for-break)
  display-bitmap-resolution
  make-screen-bitmap
@@ -177,10 +179,9 @@
 
 (define-cocoa NSDeviceRGBColorSpace _id)
 
-(define (get-highlight-background-color)
+(define (get-color get)
   (let ([hi (as-objc-allocation-with-retain
-             (tell (tell NSColor selectedTextBackgroundColor) 
-                   colorUsingColorSpaceName: NSDeviceRGBColorSpace))]
+             (tell (get) colorUsingColorSpaceName: NSDeviceRGBColorSpace))]
         [as-color (lambda (v)
                     (inexact->exact (floor (* 255.0 v))))])
     (begin0
@@ -192,6 +193,15 @@
                   (as-color
                    (tell #:type _CGFloat hi blueComponent)))
      (release hi))))
+
+(define (get-highlight-background-color)
+  (get-color (lambda () (tell NSColor selectedTextBackgroundColor))))
+
+(define (get-label-foreground-color)
+  (get-color (lambda () (tell NSColor labelColor))))
+
+(define (get-label-background-color)
+  (get-color (lambda () (tell NSColor windowBackgroundColor))))
 
 (define (get-highlight-text-color)
   #f)

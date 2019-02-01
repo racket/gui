@@ -783,7 +783,24 @@
       
       (add-cursors f2 lp2 (cons canvas items))
 
-      (add-med-deleted-adds lp2))
+      (add-med-deleted-adds lp2)
+
+      (new canvas%
+           [parent lp2]
+           [paint-callback (lambda (c dc)
+                             (define-values (w h) (send dc get-size))
+                             (send dc set-pen (make-pen #:style 'transparent))
+                             (define bg (get-label-background-color))
+                             (send dc set-brush (make-brush #:color bg))
+                             (send dc draw-rectangle 0 0 w h)
+                             (define fg (get-label-foreground-color))
+                             (send dc set-text-foreground fg)
+                             (send dc draw-text "Text using label colors:" 0 0)
+                             (send dc draw-text (format "fg: ~a ~a ~a" (send fg red) (send fg green) (send fg blue))
+                                   0 16)
+                             (send dc draw-text (format "bg: ~a ~a ~a" (send bg red) (send bg green) (send bg blue))
+                                   0 32)
+                             (send dc draw-text "Text using label colors:" 0 0))]))
 
     (unless use-dialogs?
       (send f2 create-status-line)

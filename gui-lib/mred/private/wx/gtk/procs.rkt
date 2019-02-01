@@ -43,6 +43,8 @@
   can-show-print-setup?
   get-highlight-background-color
   get-highlight-text-color
+  get-label-background-color
+  get-label-foreground-color
   check-for-break)
  file-selector
  show-print-setup
@@ -153,6 +155,14 @@
     (if (and (zero? r) (zero? g) (zero? b))
 	#f
 	(make-object color% r g b))))
+
+(define (get-label-background-color)
+  (let-values ([(r g b) (get-label-bg-color)])
+    (make-object color% r g b)))
+
+(define (get-label-foreground-color)
+  (let-values ([(r g b) (get-label-fg-color)])
+    (make-object color% r g b)))
 
 (define/top (make-screen-bitmap [exact-positive-integer? w]
                                 [exact-positive-integer? h])

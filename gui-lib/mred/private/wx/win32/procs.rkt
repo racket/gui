@@ -42,6 +42,8 @@
   can-show-print-setup?
   get-highlight-background-color
   get-highlight-text-color
+  get-label-foreground-color
+  get-label-background-color
   check-for-break)
  flush-display
  get-current-mouse-state
@@ -74,10 +76,6 @@
 (define (font-from-user-platform-mode) #f)
 (define-unimplemented get-font-from-user)
 
-(define (get-panel-background)
-  (let ([c (GetSysColor COLOR_BTNFACE)])
-    (make-object color% (GetRValue c) (GetGValue c) (GetBValue c))))
-
 (define (register-collecting-blit canvas x y w h on off on-x on-y off-x off-y)
   (send canvas register-collecting-blit x y w h on off on-x on-y off-x off-y))
 (define (unregister-collecting-blit canvas)
@@ -104,8 +102,20 @@
 (define (get-highlight-background-color)
   (let ([c (GetSysColor COLOR_HIGHLIGHT)])
     (make-object color% (GetRValue c) (GetGValue c) (GetBValue c))))
+
 (define (get-highlight-text-color)
   (let ([c (GetSysColor COLOR_HIGHLIGHTTEXT)])
+    (make-object color% (GetRValue c) (GetGValue c) (GetBValue c))))
+
+(define (get-panel-background)
+  (let ([c (GetSysColor COLOR_BTNFACE)])
+    (make-object color% (GetRValue c) (GetGValue c) (GetBValue c))))
+
+(define (get-label-background-color)
+  (get-panel-background))
+
+(define (get-label-foreground-color)
+  (let ([c (GetSysColor COLOR_BTNTEXT)])
     (make-object color% (GetRValue c) (GetGValue c) (GetBValue c))))
 
 (define/top (make-screen-bitmap [exact-positive-integer? w]
