@@ -2,12 +2,6 @@
 
 (define (get-left-side-padding) (+ button-label-inset circle-spacer))
 (define button-label-inset 1)
-(define black-color (make-object color% "BLACK"))
-
-(define triangle-width 10)
-(define triangle-height 14)
-(define triangle-color (make-object color% 50 50 50))
-
 (define border-inset 1)
 (define circle-spacer 4)
 (define rrect-spacer 3)
@@ -231,8 +225,53 @@
 (define mouse-over-color (case (system-type)
                            [(macosx) "darkgray"]
                            [else (make-object color% 230 230 230)]))
+(define mouse-over-color-white-on-black (make-object color% 20 20 20))
+(define (get-mouse-over-color) (if (white-on-black-panel-scheme?)
+                                   mouse-over-color-white-on-black
+                                   mouse-over-color))
 (define mouse-grabbed-color (make-object color% 100 100 100))
+(define mouse-grabbed-color-white-on-black (make-object color% 155 155 155))
+(define (get-mouse-grabbed-color)
+  (if (white-on-black-panel-scheme?)
+      mouse-grabbed-color-white-on-black
+      mouse-grabbed-color))
 (define grabbed-fg-color (make-object color% 220 220 220))
+(define grabbed-fg-color-white-on-black (make-object color% 30 30 30))
+(define (get-grabbed-fg-color)
+  (if (white-on-black-panel-scheme?)
+      grabbed-fg-color-white-on-black
+      grabbed-fg-color))
+(define black-color (make-object color% "BLACK"))
+(define black-color-white-on-black (make-object color% "white"))
+(define (get-black-color)
+  (if (white-on-black-panel-scheme?)
+      black-color-white-on-black
+      black-color))
+
+(define triangle-width 10)
+(define triangle-height 14)
+(define triangle-color (make-object color% 50 50 50))
+(define triangle-color-white-on-black (make-object color% 200 200 200))
+(define (get-triangle-color)
+  (if (white-on-black-panel-scheme?)
+      triangle-color-white-on-black
+      triangle-color))
+
+(define (luminance c)
+  ;; from https://en.wikipedia.org/wiki/Relative_luminance
+  (define r (/ (send c red) 255))
+  (define g (/ (send c green) 255))
+  (define b (/ (send c blue) 255))
+  (+ (* .2126 r)
+     (* .7152 g)
+     (* .0722 b)))
+
+(define (white-on-black-panel-scheme?)
+  ;; if the background and foreground are the same
+  ;; color, probably something has gone wrong;
+  ;; in that case we want to return #f.
+  (< (luminance (get-label-background-color))
+     (luminance (get-label-foreground-color))))
 
 (define (calc-button-min-sizes dc label [button-label-font (send dc get-font)])
   (define-values (w h a d) (send dc get-text-extent label button-label-font))
@@ -282,8 +321,8 @@
 
   (when (or mouse-over? grabbed?)
     (define color (if grabbed?
-                      mouse-grabbed-color
-                      mouse-over-color))
+                      (get-mouse-grabbed-color)
+                      (get-mouse-over-color)))
     (define xh (- h (* 2 border-inset)))
     (case (system-type)
       [(macosx)
@@ -307,14 +346,14 @@
              (+ dx (- w (quotient xh 2)))
              (+ dy (- h 1 border-inset)))]
       [else
-       (send dc set-pen (send the-pen-list find-or-create-pen triangle-color 1 'solid))
+       (send dc set-pen (send the-pen-list find-or-create-pen (get-triangle-color) 1 'solid))
        (send dc set-brush (send the-brush-list find-or-create-brush color 'solid))
        (send dc draw-rounded-rectangle
              (+ dx rrect-spacer) (+ dy border-inset)
              (- w border-inset rrect-spacer) xh 2)]))
 
   (when label
-    (send dc set-text-foreground (if grabbed? grabbed-fg-color black-color))
+    (send dc set-text-foreground (if grabbed? (get-grabbed-fg-color) (get-black-color)))
     (send dc set-font button-label-font)
     (define-values (tw th _1 _2) (send dc get-text-extent label))
     (send dc draw-text label
@@ -323,7 +362,7 @@
           #t))
 
   (send dc set-pen "black" 1 'transparent)
-  (send dc set-brush (if grabbed? grabbed-fg-color triangle-color) 'solid)
+  (send dc set-brush (if grabbed? (get-grabbed-fg-color) (get-triangle-color)) 'solid)
   (define x (- w triangle-width circle-spacer border-inset))
   (define y (- (/ h 2) (/ triangle-height 2)))
   (define ul-x (+ x 1))
