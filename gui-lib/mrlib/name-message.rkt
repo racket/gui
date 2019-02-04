@@ -1,4 +1,10 @@
-#lang racket/gui
+#lang racket/base
+(require racket/gui/base
+         racket/contract
+         racket/class
+         racket/path
+         racket/list
+         "private/panel-wob.rkt")
 
 (define (get-left-side-padding) (+ button-label-inset circle-spacer))
 (define button-label-inset 1)
@@ -250,22 +256,6 @@
   (if (white-on-black-panel-scheme?)
       triangle-color-white-on-black
       triangle-color))
-
-(define (luminance c)
-  ;; from https://en.wikipedia.org/wiki/Relative_luminance
-  (define r (/ (send c red) 255))
-  (define g (/ (send c green) 255))
-  (define b (/ (send c blue) 255))
-  (+ (* .2126 r)
-     (* .7152 g)
-     (* .0722 b)))
-
-(define (white-on-black-panel-scheme?)
-  ;; if the background and foreground are the same
-  ;; color, probably something has gone wrong;
-  ;; in that case we want to return #f.
-  (< (luminance (get-label-background-color))
-     (luminance (get-label-foreground-color))))
 
 (define (calc-button-min-sizes dc label [button-label-font (send dc get-font)])
   (define-values (w h a d) (send dc get-text-extent label button-label-font))

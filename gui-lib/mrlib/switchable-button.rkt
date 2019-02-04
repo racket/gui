@@ -1,6 +1,7 @@
 #lang racket/base
 (require racket/gui/base
-         racket/class)
+         racket/class
+         "private/panel-wob.rkt")
 
 (provide switchable-button%)
 (define gap 4) ;; space between the text and the icon
@@ -89,7 +90,7 @@
     (define down? #f)
     (define in? #f)
     (define disabled? #f)
-    (define with-label? (string? label))
+    (define has-label? (string? label))
 
     (define/override (enable e?)
       (unless (equal? disabled? (not e?))
@@ -145,7 +146,7 @@
                        [just-once? #t]
                        [notify-callback
                         (λ ()
-                          (unless with-label?
+                          (unless has-label?
                             (unless (equal? (send float-window is-shown?) in?)
                               (send float-window show in?)))
                           (set! timer-running? #f))]))
@@ -154,7 +155,7 @@
     (define/private (update-float new-value?)
       (when label
         (cond
-          [with-label?
+          [has-label?
            (when float-window
              (send float-window show #f))]
           [else
@@ -210,21 +211,28 @@
       (define-values (cw ch) (get-client-size))
       (define alpha (send dc get-alpha))
       (define pen (send dc get-pen))
+      (define text-foreground (send dc get-text-foreground))
       (define brush (send dc get-brush))
 
       ;; Draw background. Use alpha blending if it can work,
       ;;  otherwise fall back to a suitable color.
-      (define color (cond
-                      [disabled? #f]
-                      [in? (if (equal? (send dc get-smoothing) 'aligned)
-                               (if down? 0.5 0.2)
-                               (if down?
-                                   half-gray
-                                   one-fifth-gray))]
-                      [else #f]))
+      (define down-same-as-black-on-white?
+        (equal? down?
+                (not (white-on-black-panel-scheme?))))
+      (define color
+        (cond
+          [disabled? #f]
+          [in? (if (equal? (send dc get-smoothing) 'aligned)
+                   (if down-same-as-black-on-white? 0.5 0.2)
+                   (if down-same-as-black-on-white?
+                       half-gray
+                       one-fifth-gray))]
+          [else #f]))
       (when color
         (send dc set-pen "black" 1 'transparent)
-        (send dc set-brush (if (number? color) "black" color) 'solid)
+        (send dc set-brush (if (number? color)
+                               (get-label-foreground-color)
+                               color) 'solid)
         (when (number? color)
           (send dc set-alpha color))
         (send dc draw-rounded-rectangle
@@ -241,35 +249,37 @@
         (send dc set-alpha .5))
 
       (cond
-        [with-label?
-            (cond
-              [(<= cw (get-small-width))
-               (draw-the-bitmap (- (/ cw 2) (/ (send bitmap get-width) 2))
-                                (- (/ ch 2) (/ (send bitmap get-height) 2)))]
-              [else
-               (define-values (tw th _1 _2) (send dc get-text-extent label))
-               (define text-start (+ (/ cw 2)
-                                     (- (/ tw 2))
-                                     (- (/ (send bitmap get-width) 2))
-                                     (- rhs-pad)))
-               (send dc draw-text label text-start (- (/ ch 2) (/ th 2)))
-               (draw-the-bitmap (+ text-start tw gap)
-                                (- (/ ch 2) (/ (send bitmap get-height) 2)))])]
+        [has-label?
+         (cond
+           [(<= cw (get-small-width))
+            (draw-the-bitmap (- (/ cw 2) (/ (send bitmap get-width) 2))
+                             (- (/ ch 2) (/ (send bitmap get-height) 2)))]
+           [else
+            (define-values (tw th _1 _2) (send dc get-text-extent label))
+            (define text-start (+ (/ cw 2)
+                                  (- (/ tw 2))
+                                  (- (/ (send bitmap get-width) 2))
+                                  (- rhs-pad)))
+            (send dc set-text-foreground (get-label-foreground-color))
+            (send dc draw-text label text-start (- (/ ch 2) (/ th 2)))
+            (draw-the-bitmap (+ text-start tw gap)
+                             (- (/ ch 2) (/ (send bitmap get-height) 2)))])]
         [else
          (draw-the-bitmap
           (- (/ cw 2)
-             (/ (send (if with-label? bitmap alternate-bitmap) get-width)
+             (/ (send (if has-label? bitmap alternate-bitmap) get-width)
                 2))
           (- (/ ch 2)
-             (/ (send (if with-label? bitmap alternate-bitmap) get-height)
+             (/ (send (if has-label? bitmap alternate-bitmap) get-height)
                 2)))])
 
       (send dc set-pen pen)
       (send dc set-alpha alpha)
-      (send dc set-brush brush))
+      (send dc set-brush brush)
+      (send dc set-text-foreground text-foreground))
 
     (define/private (draw-the-bitmap x y)
-      (define bm (if with-label? bitmap alternate-bitmap))
+      (define bm (if has-label? bitmap alternate-bitmap))
       (send (get-dc)
             draw-bitmap
             bm
@@ -277,17 +287,17 @@
             'solid
             (send the-color-database find-color "black")
             (if disabled?
-                (if with-label? disable-bitmap alternate-disable-bitmap)
+                (if has-label? disable-bitmap alternate-disable-bitmap)
                 (send bm get-loaded-mask))))
 
     (define/public (set-label-visible in-h?)
       (define h? (and in-h? #t))
-      (unless (equal? with-label? h?)
-        (set! with-label? h?)
+      (unless (equal? has-label? h?)
+        (set! has-label? h?)
         (update-sizes)
-        (update-float (and with-label? in?))
+        (update-float (and has-label? in?))
         (refresh)))
-    (define/public (get-label-visible) with-label?)
+    (define/public (get-label-visible) has-label?)
 
     (define/private (update-sizes)
       (define dc (get-dc))
@@ -301,7 +311,7 @@
              h-circle-space margin margin
              (if vertical-tight? -6 0)))))
       (cond
-        [with-label?
+        [has-label?
          (cond
            [min-width-includes-label?
             (min-width (get-large-width))]
