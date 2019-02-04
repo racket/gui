@@ -98,6 +98,8 @@ get-panel-background
 get-ps-setup-from-user
 get-highlight-background-color
 get-highlight-text-color
+get-label-background-color
+get-label-foreground-color
 get-resource
 get-text-from-user
 get-the-editor-data-class-list
