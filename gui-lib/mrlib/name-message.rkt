@@ -241,12 +241,6 @@
   (if (white-on-black-panel-scheme?)
       grabbed-fg-color-white-on-black
       grabbed-fg-color))
-(define black-color (make-object color% "BLACK"))
-(define black-color-white-on-black (make-object color% "white"))
-(define (get-black-color)
-  (if (white-on-black-panel-scheme?)
-      black-color-white-on-black
-      black-color))
 
 (define triangle-width 10)
 (define triangle-height 14)
@@ -353,7 +347,7 @@
              (- w border-inset rrect-spacer) xh 2)]))
 
   (when label
-    (send dc set-text-foreground (if grabbed? (get-grabbed-fg-color) (get-black-color)))
+    (send dc set-text-foreground (if grabbed? (get-grabbed-fg-color) (get-label-foreground-color)))
     (send dc set-font button-label-font)
     (define-values (tw th _1 _2) (send dc get-text-extent label))
     (send dc draw-text label
