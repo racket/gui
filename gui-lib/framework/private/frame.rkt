@@ -999,11 +999,12 @@
           (when (< cw tw)
             (min-client-width (inexact->exact (ceiling tw)))))))
     (define/override (on-paint)
-      (let ([dc (get-dc)])
-        (send dc set-font normal-control-font)
-        (let-values ([(cw ch) (get-client-size)]
-                     [(tw th _1 _2) (send dc get-text-extent str)])
-          (send dc draw-text str 0 (/ (- ch th) 2)))))
+      (define dc (get-dc))
+      (send dc set-font normal-control-font)
+      (send dc set-text-foreground (get-label-foreground-color))
+      (define-values (cw ch) (get-client-size))
+      (define-values (tw th _1 _2) (send dc get-text-extent str))
+      (send dc draw-text str 0 (/ (- ch th) 2)))
     (define/override (on-event evt)
       (when button-up
         (when (send evt button-up?)
@@ -2891,7 +2892,7 @@
               (- (/ ch 2) (/ indicator-height 2))))
       (cond
         [on?
-         (send dc set-text-foreground (send the-color-database find-color "black"))
+         (send dc set-text-foreground (get-label-foreground-color))
          (draw-p)]
         [mouse-over?
          (send dc set-brush (if mouse-down? "blue" "skyblue") 'solid)
