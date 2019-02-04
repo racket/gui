@@ -201,7 +201,12 @@
   (get-color (lambda () (tell NSColor labelColor))))
 
 (define (get-label-background-color)
-  (get-color (lambda () (tell NSColor windowBackgroundColor))))
+  (get-color (lambda ()
+               (if (version-10.14-or-later?)
+                   ;; Doesn't seem like a usefule result before Mojave:
+                   (tell NSColor windowBackgroundColor)
+                   ;; Seems like accurate than other option for Mojave:
+                   (tell NSColor controlBackgroundColor)))))
 
 (define (get-highlight-text-color)
   #f)

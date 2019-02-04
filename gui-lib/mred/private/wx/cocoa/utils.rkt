@@ -87,17 +87,17 @@
 (define old-cocoa? 
   ; earlier than 10.5?
   (NSAppKitVersionNumber . < . 949))
-(define (version-10.6-or-later?)
+(define (version-10.6-or-later?) ; Snow Leopard
   (NSAppKitVersionNumber . >= . 1038))
-(define (version-10.7-or-later?)
+(define (version-10.7-or-later?) ; Lion
   (NSAppKitVersionNumber . >= . 1138))
-(define (version-10.9-or-later?)
+(define (version-10.9-or-later?) ; Mavericks
   (NSAppKitVersionNumber . >= . 1265))
-(define (version-10.10-or-later?)
+(define (version-10.10-or-later?) ; Yosemite
   (NSAppKitVersionNumber . >= . 1331))
-(define (version-10.11-or-later?)
+(define (version-10.11-or-later?) ; El Capitan
   (NSAppKitVersionNumber . >= . 1404))
-(define (version-10.13-or-later?)
+(define (version-10.13-or-later?) ; High Sierra
   (NSAppKitVersionNumber . >= . 1561))
-(define (version-10.14-or-later?)
+(define (version-10.14-or-later?) ; Mojave
   (NSAppKitVersionNumber . >= . 1671))
