@@ -19,7 +19,8 @@ added get-regions
          "../preferences.rkt"
          "sig.rkt"
          "aspell.rkt"
-         "color-local-member-name.rkt")
+         "color-local-member-name.rkt"
+         "inline-overview.rkt")
 
 (provide color@)
 (define-unit color@
@@ -594,16 +595,19 @@ added get-regions
     
     (define/private (colorer-callback)
       (cond
-        ((is-locked?)
-         (set! restart-callback #t))
-        (else
-         (cond
-           [(in-edit-sequence?)
-            (set! continue-after-edit-sequence? #t)]
-           [else
-            (colorer-driver)
-            (unless (andmap lexer-state-up-to-date? lexer-states)
-              (queue-callback (λ () (colorer-callback)) #f))]))))
+        [(is-locked?)
+         (set! restart-callback #t)]
+        [(in-edit-sequence?)
+         (set! continue-after-edit-sequence? #t)]
+        [(and (is-a? this inline-overview<%>)
+              (send this is-inline-overview-work-pending?))
+         ;; wait for the overview to finish building its bitmap
+         ;; this seems to look nicer when opening a new file
+         (queue-callback (λ () (colorer-callback)) #f)]
+        [else
+         (colorer-driver)
+         (unless (andmap lexer-state-up-to-date? lexer-states)
+           (queue-callback (λ () (colorer-callback)) #f))]))
     
     ;; Must not be called when the editor is locked
     (define/private (finish-now)

@@ -24,7 +24,9 @@
 
 (define inline-overview<%> (interface ((class->interface text%))
                              get-inline-overview-enabled?
-                             set-inline-overview-enabled?))
+                             set-inline-overview-enabled?
+                             is-inline-overview-work-pending?
+                             ))
 (define inline-overview-mixin
   (mixin ((class->interface text%)) (inline-overview<%>)
     (define is-do-a-little-work-enqueued? #f)
@@ -37,6 +39,8 @@
     ;; known-blank : nat
     ;; the lines after and including known-blank are known to be blank in the bitmap
     (define known-blank +inf.0)
+
+    (define/public (is-inline-overview-work-pending?) is-do-a-little-work-enqueued?)
 
     (define/public (get-inline-overview-enabled?) enabled?)
     (define/public (set-inline-overview-enabled? _e?)
