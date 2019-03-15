@@ -239,6 +239,10 @@
             (and end-sexp-boundary (empty-para? txt end-sexp-para)))
         ;; this shouldn't be possible (I think?) but be conservative in case it is
         (values #f #f)]
+       [(empty-para? txt (send txt position-paragraph pos))
+        ;; if we are starting on the blank space
+        ;; between paragraphs then don't do anything
+        (values #f #f)]
        [else
         (define start-position
           (let loop ([para (send txt position-paragraph pos)])
@@ -838,6 +842,15 @@
                  "sss ttt uuu vvv}]\n")
     (check-equal? (call-with-values (λ () (find-paragraph-boundaries t 38)) list)
                   (list 36 73)))
+
+  (let ([t (new racket:text%)])
+    (define str "#lang scribble/base @x{x\n\n}")
+    (define x 25)
+    (send t insert str)
+    (send t freeze-colorer)
+    (send t set-position x x)
+    (check-equal? (call-with-values (λ () (find-paragraph-boundaries t x)) list)
+                  (list #f #f)))
   
 
   (let ([t (new racket:text%)])
