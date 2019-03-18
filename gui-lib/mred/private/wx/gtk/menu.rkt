@@ -145,8 +145,7 @@
                           (ptr-set! _y _int (min (->screen y)
                                                  (max 0
                                                       (- sh
-                                                         (GtkRequisition-height r)))))))
-                      (ptr-set! _push _gboolean #t))
+                                                         (GtkRequisition-height r))))))))
                     #f
                     0
 		    recent-event-time))
