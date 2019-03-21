@@ -109,10 +109,10 @@
          smoothed
          unsmoothed))
     (define smoothing-option-strings
-      '("Default"
-        "Partly smoothed"
-        "Smoothed"
-        "Unsmoothed"))
+      (list (string-constant cs-smoothing-default)
+            (string-constant cs-smoothing-partial)
+            (string-constant cs-smoothing-full)
+            (string-constant cs-smoothing-none)))
     
     (define (smoothing->index s)
       (let loop ([i 0]
