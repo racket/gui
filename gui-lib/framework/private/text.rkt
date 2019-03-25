@@ -3990,6 +3990,7 @@ designates the character that triggers autocompletion
         (let ([reasonable? (send completions-box widen)])
           (cond
             [reasonable?
+             (set! word-end-pos (sub1 word-end-pos))
              (let-values ([(_ __ x1p y1p) (send completions-box get-menu-coordinates)])
                (invalidate-bitmap-cache x0 y0 (max x1 x1p) (max y1 y1p)))]
             [else
