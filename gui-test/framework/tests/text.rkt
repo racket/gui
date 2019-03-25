@@ -18,7 +18,8 @@
     (text:ports-tests)
     (move/copy-to-edit-tests)
     (move/copy-to-edit-random-tests)
-    (ascii-art-tests)))
+    (ascii-art-tests)
+    (autocomplete-tests)))
 
 (define (highlight-range-tests)
   (check-equal?
@@ -967,3 +968,21 @@
                  "╠══╬═╣\n"
                  "║  ║ ║\n"
                  "╚══╩═╝\n")))
+
+(define (autocomplete-tests)
+  (define t (new (class (text:autocomplete-mixin text%)
+                   (define/override (get-all-words)
+                     '("abcd"))
+                   (super-new))))
+  (define f (new frame% [label ""]))
+  (define ec (new editor-canvas% [parent f] [editor t]))
+
+  (send t insert "pqr abc xyz")
+  (send t set-position 7 7)
+  (send t auto-complete)
+  (send ec on-char (new key-event%
+                        [key-code #\backspace]))
+  (send ec on-char (new key-event%
+                        [key-code #\return]))
+
+  (check-equal? (send t get-text) "pqr abcd xyz"))
