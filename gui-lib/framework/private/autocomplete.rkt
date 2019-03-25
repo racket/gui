@@ -3,6 +3,9 @@
 (require racket/class racket/match)
 (provide autocompletion-cursor<%> autocompletion-cursor%)
 
+(module+ test
+  (require rackunit))
+
 (define autocompletion-cursor<%>
   (interface ()
     get-completions  ;      -> (listof string) 
@@ -38,6 +41,14 @@
                             [else c]))]))
           (length parts)))
 
+(define better-completion?
+  (match-lambda**
+   [((cons w r) (cons w* r*))
+    (cond
+      [(not (= r r*)) (> r r*)]
+      ;; prefer shorter matches
+      [else (< (string-length w) (string-length w*))])]))
+
 ;; ============================================================
 ;; autocompletion-cursor<%> implementation
 
@@ -65,10 +76,7 @@
                             [r (in-value (rnk w))]
                             #:when (>= r mx))
                   (cons w r))
-                (match-lambda** [((cons w r) (cons w* r*))
-                                 (or (> r r*)
-                                     ;; prefer shorter matches
-                                     (< (string-length w) (string-length w*)))]))))
+                better-completion?)))
     
     (define all-completions-length (length all-completions))
     
@@ -91,3 +99,22 @@
     (define/public (empty?) (eq? (get-length) 0))
     
     (super-new)))
+
+(module+ test
+  (define rnk 
+    (let-values ([(rnk _) (rank "define-syntax-")]) 
+      (λ (completion) 
+        (cons completion (rnk completion)))))
+  
+  (check-equal? (better-completion? (rnk "define-syntax-rule") (rnk "syntax"))
+                #t)
+  
+  (check-equal? (better-completion? (rnk "syntax")  (rnk "define-syntax-rule"))
+                #f)
+
+  (check-equal? (better-completion? (rnk "define-syntax") (rnk "syntax"))
+                #t)
+
+  (check-equal? (better-completion? (rnk "syntax")  (rnk "define-syntax"))
+                #f)
+  )
