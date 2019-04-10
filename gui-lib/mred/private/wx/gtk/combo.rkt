@@ -93,8 +93,14 @@
     (define combo-gtk
       (cond
        [(= 1 (length all))
-	;; most common case:
-	(car all)]
+        (cond
+	 [(equal? (gtk_widget_get_name (car all)) "GtkBox")
+	  (define inner null)
+	  (gtk_container_forall (car all) (lambda (c) (set! inner (cons c inner))) #f)
+	  (and (= 1 (length inner))
+	       (car inner))]
+	 [else
+	  (car all)])]
        [(and (= 2 (length all))
 	     (equal? '("GtkFrame" "GtkToggleButton")
 		     (map gtk_widget_get_name all)))
