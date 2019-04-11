@@ -6,7 +6,10 @@
 The bindings documented in this section are also provided by the
 @racketmodname[racket/gui/base] library.
 
-@declare-exporting[racket/gui/event #:use-sources (mred)]
+@declare-exporting[racket/gui/event
+                   racket/gui/base
+                   racket/gui
+                   #:use-sources (mred)]
 
 @defmodule*/no-declare[(racket/gui/event)]
 
