@@ -1,6 +1,10 @@
 #lang scribble/doc
 @(require "common.rkt")
 
+@declare-exporting[racket/gui/event #:use-sources (mred)]
+
+@defmodule*/no-declare[(racket/gui/event)]
+
 @defclass/title[event% object% ()]{
 
 An @racket[event%] object contains information about a control,
