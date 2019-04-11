@@ -1,11 +1,16 @@
 #lang scribble/doc
 @(require "common.rkt")
 
+@title[#:style 'hidden]
+
+The bindings documented in this section are also provided by the
+@racketmodname[racket/gui/base] library.
+
 @declare-exporting[racket/gui/event #:use-sources (mred)]
 
 @defmodule*/no-declare[(racket/gui/event)]
 
-@defclass/title[event% object% ()]{
+@defclass[event% object% ()]{
 
 An @racket[event%] object contains information about a control,
 keyboard, mouse, or scroll event. See also
@@ -40,5 +45,7 @@ Set the time, in milliseconds, when the event occurred. See also
 If the supplied value is outside the platform-specific range of time
  values, @|MismatchExn|.
 
-}}
+}
 
+ @history[#:changed "7.3.0.1" @elem{Added @racketmodname[racket/gui/event]
+            that also exports @racket[event%] and subclasses.}]}
