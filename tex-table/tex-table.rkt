@@ -110,6 +110,8 @@
     ("pm" "±")
     ("cap" "∩")
     ("diamond" "◇")
+    ("lozenge" "◊")
+    ("square" "□")
     ("oplus" "⊕")
     ("mp" "∓")
     ("cup" "∪")
@@ -127,6 +129,9 @@
     ("sqcup" "⊔")
     ("vee" "∨")
     ("wedge" "∧")
+    ("lor" "∨")
+    ("land" "∧")
+    ("lnot" "¬")
     ("triangleleft" "◃")
     ("odot" "⊙")
     ("star" "★")
@@ -202,7 +207,17 @@
     ("ldots" "…")
     
     ("langle" "⟨")
-    ("rangle" "⟩")))
+    ("rangle" "⟩")
+
+    ("amp" "&")
+    ("invamp" "⅋")
+
+    ("multimap" "⊸")
+    ("rightlollipop" "⊸")
+    ("leftmultimap" "⟜")
+    ("multimapinv" "⟜")
+    ("leftlollipop" "⟜")
+    ))
 
 (module+ test
   (require racket/match)

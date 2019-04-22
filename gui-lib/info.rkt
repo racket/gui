@@ -12,7 +12,7 @@
                "wxme-lib"
                "pict-lib"
                "scheme-lib"
-               "scribble-lib"
+               ["scribble-lib" #:version "1.36"]
                ["string-constants-lib" #:version "1.24"]
                "option-contract-lib"
                "2d-lib"
