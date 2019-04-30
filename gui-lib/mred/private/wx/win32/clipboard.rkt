@@ -217,24 +217,25 @@
   (cond
    [(let ([bits (GetClipboardData CF_DIBV5)])
       (and bits
-        (begin0
-	  (and (= (BITMAPINFOHEADER-biBitCount (cast (GlobalLock bits) _pointer _BITMAPINFOHEADER-pointer)) 32) bits)
-	  (GlobalUnlock bits))))
-    => (lambda (bits)
-         (let ([bmi (cast (GlobalLock bits) _pointer _BITMAPINFOHEADER-pointer)])
-           (let ([w (BITMAPINFOHEADER-biWidth bmi)]
-                 [h (BITMAPINFOHEADER-biHeight bmi)]
-                 [bits/pp (BITMAPINFOHEADER-biBitCount bmi)]
-                 [psize (PaletteSize bmi)])
-             (define dib (make-bytes (* 4 w h)))
-             (memcpy dib
-                     (ptr-add bmi (+ (BITMAPINFOHEADER-biSize bmi) psize
-                                     (if (= (BITMAPINFOHEADER-biCompression bmi) BI_BITFIELDS)
-                                         12
-                                         0)))
-                     (* 4 w h))
-             (GlobalUnlock bits)
-             (dib-argb->bitmap dib w h))))]
+        (let* ([bmi (cast (GlobalLock bits) _pointer _BITMAPINFOHEADER-pointer)]
+	       [bits/pp (BITMAPINFOHEADER-biBitCount bmi)]) 
+	  (if (= bits/pp 32) 
+	      (list bits bmi)
+	      (begin (GlobalUnlock bits) #f)))))
+    => (lambda (bits/bmi)
+         (define-values (bits bmi) (apply values bits/bmi))
+         (let ([w (BITMAPINFOHEADER-biWidth bmi)]
+               [h (BITMAPINFOHEADER-biHeight bmi)]
+               [psize (PaletteSize bmi)])
+           (define dib (make-bytes (* 4 w h)))
+           (memcpy dib
+                   (ptr-add bmi (+ (BITMAPINFOHEADER-biSize bmi) psize
+                                   (if (= (BITMAPINFOHEADER-biCompression bmi) BI_BITFIELDS)
+                                       12
+                                       0)))
+                   (* 4 w h))
+           (GlobalUnlock bits)
+           (dib-argb->bitmap dib w h)))]
    ;; I think we should be able to use CF_BITMAP always, but
    ;; it doesn't work right under Windows XP with a particular 
    ;; image created by copying in Firefox. So, we do things the
