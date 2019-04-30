@@ -219,7 +219,7 @@
       (and bits
         (begin0
 	  (and (= (BITMAPINFOHEADER-biBitCount (cast (GlobalLock bits) _pointer _BITMAPINFOHEADER-pointer)) 32) bits)
-	  (GlobalUnlock bits)))
+	  (GlobalUnlock bits))))
     => (lambda (bits)
          (let ([bmi (cast (GlobalLock bits) _pointer _BITMAPINFOHEADER-pointer)])
            (let ([w (BITMAPINFOHEADER-biWidth bmi)]
