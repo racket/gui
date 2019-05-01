@@ -89,7 +89,7 @@
                               [min_aspect _double]
                               [max_aspect _double]
                               [win_gravity _int]))
-(define-gtk gtk_window_set_geometry_hints (_fun _GtkWindow _GtkWidget _GdkGeometry-pointer _int -> _void))
+(define-gtk gtk_window_set_geometry_hints (_fun _GtkWindow _pointer _GdkGeometry-pointer _int -> _void))
 (define-gtk gtk_widget_get_allocated_width (_fun _GtkWidget -> _int)
   #:make-fail make-not-available)
 (define-gtk gtk_widget_get_allocated_height (_fun _GtkWidget -> _int)
@@ -286,7 +286,7 @@
 	      (values (- (gtk_widget_get_allocated_width gtk) w)
 		      (- (gtk_widget_get_allocated_height gtk) h)))
 	    (values 0 0)))
-      (gtk_window_set_geometry_hints gtk gtk 
+      (gtk_window_set_geometry_hints gtk #f
                                      (make-GdkGeometry (->screen min-x) (->screen min-y)
                                                        (+ dx (to-max max-x)) (+ dy (to-max max-y))
                                                        0 0
