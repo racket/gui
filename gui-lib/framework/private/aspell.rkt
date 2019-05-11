@@ -65,7 +65,9 @@
      (close-output-port (list-ref proc-lst 1)) ;; close stdin
      (close-input-port stdout)
      (define sp (open-output-string))
-     (copy-port stderr sp)
+     (define copy-thread (thread (λ () (copy-port stderr sp))))
+     (define timeout-amount .1)
+     (define timed-out? (equal? (sync/timeout timeout-amount copy-thread) #f))
      (define errmsg (get-output-string sp))
      (close-input-port stderr)
      (cond
@@ -74,6 +76,10 @@
          (format (string-constant spell-program-wrote-to-stderr-on-startup) asp)
          "\n\n"
          errmsg)]
+       [timed-out?
+        (format (string-constant spell-program-did-not-respond-after-some-seconds)
+                asp
+                timeout-amount)]
        [else #f])]))
 
 (define asp-logger (make-logger 'framework/aspell (current-logger)))

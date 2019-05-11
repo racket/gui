@@ -13,7 +13,7 @@
                "pict-lib"
                "scheme-lib"
                "scribble-lib"
-               ["string-constants-lib" #:version "1.22"]
+               ["string-constants-lib" #:version "1.24"]
                "option-contract-lib"
                "2d-lib"
                "compatibility-lib"
