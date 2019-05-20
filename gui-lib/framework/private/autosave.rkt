@@ -51,7 +51,6 @@
         (when (preferences:get 'framework:autosaving-on?)
           (let-values ([(new-objects new-name-mapping) (rebuild-object-list)])
             (define toc-path (current-toc-path))
-            (printf "autosaving\n")
             (define autosave-toc-save-filename (get-autosave-toc-save-filename))
             (set! objects new-objects)
             (unless (equal? last-name-mapping new-name-mapping)
