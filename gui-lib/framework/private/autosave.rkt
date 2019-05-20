@@ -26,17 +26,22 @@
   
   (define objects null)
   
-  (define toc-path
-    (build-path (find-system-path 'pref-dir)
-                (case (system-type)
-                  [(unix) ".plt-autosave-toc.rktd"]
-                  [else "PLT-autosave-toc.rktd"])))
-  
-  (define autosave-toc-save-filename
-    (build-path (find-system-path 'pref-dir)
-                (case (system-type)
-                  [(unix) ".plt-autosave-toc-save.rktd"]
-                  [else "PLT-autosave-toc-save.rktd"])))
+  (define current-toc-path
+    (make-parameter
+     (build-path (find-system-path 'pref-dir)
+                 (case (system-type)
+                   [(unix) ".plt-autosave-toc.rktd"]
+                   [else "PLT-autosave-toc.rktd"]))))
+  (define toc-path (current-toc-path))
+
+  (define (get-autosave-toc-save-filename)
+    (define toc-path (current-toc-path))
+    (define-values (base name dir) (split-path toc-path))
+    (define save-filename-path
+      (case (system-type)
+        [(unix) ".plt-autosave-toc-save.rktd"]
+        [else "PLT-autosave-toc-save.rktd"]))
+    (build-path base save-filename-path))
   
   (define autosave-timer%
     (class timer%
@@ -45,6 +50,9 @@
       (define/override (notify)
         (when (preferences:get 'framework:autosaving-on?)
           (let-values ([(new-objects new-name-mapping) (rebuild-object-list)])
+            (define toc-path (current-toc-path))
+            (printf "autosaving\n")
+            (define autosave-toc-save-filename (get-autosave-toc-save-filename))
             (set! objects new-objects)
             (unless (equal? last-name-mapping new-name-mapping)
               (set! last-name-mapping new-name-mapping)
@@ -123,6 +131,7 @@
     ;; main : -> void
     ;; start everything going
     (define (main)
+      (define toc-path (current-toc-path))
       (when (file-exists? toc-path)
         ;; Load table from file, and check that the file was not corrupted
         (let* ([table (let ([v (with-handlers ([exn:fail? (λ (x) null)])

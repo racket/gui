@@ -447,13 +447,23 @@
     method is responsible for performing the autosave.
     
     There is no need to de-register an object because the autosaver keeps a
-    ``weak'' pointer to the object; i.e., the autosaver does not keep an object
+    @tech[#:doc '(lib "scribblings/reference/reference.scrbl")]{weak reference}
+    to the object; i.e., the autosaver does not keep an object
     from garbage collection.})
+
+ (thing-doc
+  autosave:current-toc-path
+  (make-parameter path?)
+  @{The path to the a table-of-contents file for the autosave files.
+
+ The parameter is inspected only when the autosave timer expires, which will not happen until
+ after the first call to @racket[autosave:register]})
 
  (thing-doc
   autosave:toc-path
   path?
-  @{The path to the a table-of-contents file for the autosave files that DrRacket has created.})
+  @{The default value of the parameter @racket[autosave:current-toc-path], and the
+ path to the autosave that DrRacket uses.})
  
  (proc-doc/names
   autosave:restore-autosave-files/gui

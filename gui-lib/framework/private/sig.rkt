@@ -109,7 +109,8 @@
   (define-signature autosave-class^
     (autosavable<%>))
   (define-signature autosave^ extends autosave-class^
-    (toc-path
+    (current-toc-path
+     toc-path
      register
      restore-autosave-files/gui))
   
