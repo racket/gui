@@ -62,6 +62,7 @@
     ("neg" "¬")
     ("triangle" "△")
     ("forall" "∀")
+    ("all" "∀")
     ("exists" "∃")
     ("infty" "∞")
     ("circ" "∘")
