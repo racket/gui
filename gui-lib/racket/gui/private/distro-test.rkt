@@ -1,6 +1,7 @@
 #lang racket/base
 (require setup/dirs
-         racket/system)
+         racket/system
+         compiler/find-exe)
 
 ;; Sanity checks to run in an installer-building context to make sure
 ;; that things bascially work. This test is in the "-lib" package,
@@ -19,9 +20,15 @@
     (unless (equal? #"hello\n" (get-output-bytes o))
       (error "sanity check failed" p))))
 
-(try-exe (build-path console-bin-dir (if (eq? (system-type) 'windows)
-                                         "gracket-text.exe"
-                                         "gracket-text")))
+(try-exe (build-path console-bin-dir
+                     (let ()
+                       (define me (path-replace-suffix (find-exe) #""))
+                       (define ending (regexp-match #rx#"(?i:racket)([cs3mg]*)$" me))
+                       (define s2 (string-append "gracket-text" (bytes->string/utf-8 (cadr ending))))
+                       (if (eq? (system-type) 'windows)
+                           (string-append s2 ".exe")
+                           s2))))
+
 (unless (eq? (system-type) 'unix) ; may not have a GUI connection on Unix
   (case (system-type)
     [(windows) (try-exe (build-path bin-dir "GRacket.exe"))]
