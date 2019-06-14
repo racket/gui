@@ -1589,7 +1589,14 @@
   (keymap)
   @{Initializes @racket[keymap] with Racket-mode keybindings.})
 
- (proc-doc/names
+ (parameter-doc
+  editor:doing-autosave?
+  (parameter/c boolean?)
+  autosaving?
+  @{A parameter that indicates whether or not we are currently saving
+    the editor because of an autosave. See also
+    @method[editor:backup-autosave<%> do-autosave].})
+  (proc-doc/names
   editor:set-current-preferred-font-size
   (-> exact-nonnegative-integer? void?)
   (new-size)
