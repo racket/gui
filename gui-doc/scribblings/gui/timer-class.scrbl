@@ -65,16 +65,14 @@ Calls the @racket[notify-callback] procedure that was provided when the
                   [just-once? any/c #f])
            void?]{
 
-Starts (or restarts) the timer. If the timer is already running, its
- alarm time is not changed.
+Starts (or restarts) the timer. If the timer is already running, its alarm time is not changed.
 
-The timer's alarm expires after @racket[msec] milliseconds, at which
-point @method[timer% notify] is called (on an event boundary). If
-@racket[just-once?] is @racket[#f], the timer expires @italic{every}
-@racket[msec] milliseconds until the timer is explicitly
-stopped. (More precisely, the timer expires @racket[msec]
-milliseconds after @method[timer% notify] returns each time.)
-Otherwise, the timer expires only once.
+The timer's alarm expires after @racket[msec] milliseconds, at which point
+@method[timer% notify] is called (on an event boundary). If
+@racket[just-once?] is true, the timer calls its @method[timer% notify]
+callback when the alarm expires and the timer is stopped. If
+@racket[just-once?] is @racket[#f], the timer is re-started when the @method[timer% notify]
+callback returns; it stops only once @method[timer% stop] is called explicitly.
 
 }
 
