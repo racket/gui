@@ -12,8 +12,8 @@ A vertical panel arranges its subwindows in a single column. See
 @defconstructor[([parent (or/c (is-a?/c frame%) (is-a?/c dialog%) 
                                (is-a?/c panel%) (is-a?/c pane%))]
                  [style (listof (or/c 'border 'deleted
-                                      'hscroll 'auto-hscroll
-                                      'vscroll 'auto-vscroll)) null]
+                                      'hscroll 'auto-hscroll 'hide-hscroll
+                                      'vscroll 'auto-vscroll 'hide-vscroll)) null]
                  [enabled any/c #t]
                  [vert-margin spacing-integer? 0]
                  [horiz-margin spacing-integer? 0]
