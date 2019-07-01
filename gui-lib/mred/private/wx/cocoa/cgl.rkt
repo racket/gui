@@ -171,7 +171,7 @@
         (define height h)
 
         (define bstr (make-bytes (* w h 4)))
-        (define row-bstr (make-bytes (* w w)))
+        (define row-bstr (make-bytes (* w 4)))
 
         (define touched (box #f))
         
@@ -209,7 +209,7 @@
             ;; flip upside-down
             (for ([i (in-range (quotient height 2))])
               (define above-row (ptr-add bstr (* 4 i width)))
-              (define below-row (ptr-add bstr (* 4 (- height i) width)))
+              (define below-row (ptr-add bstr (* 4 (- height i 1) width)))
               (memcpy row-bstr above-row (* 4 width))
               (memcpy above-row below-row (* 4 width))
               (memcpy below-row row-bstr (* 4 width)))
