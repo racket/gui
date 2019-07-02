@@ -127,6 +127,9 @@
 (define kCGLPFAOpenGLProfile         99)
 (define kCGLPFAVirtualScreenCount   128)
 
+(define kCGLOGLPVersion_Legacy #x1000)
+(define kCGLOGLPVersion_3_2_Core #x3200)
+
 (define dummy-cgl #f)
 (define current-cgl #f)
 
@@ -227,6 +230,12 @@
          [context-handle (if share-context (send share-context get-handle) #f)]
          [fmt (CGLChoosePixelFormat
                (append
+                (if (version-10.7-or-later?)
+                    (list kCGLPFAOpenGLProfile
+                          (if (send conf get-legacy?)
+                              kCGLOGLPVersion_Legacy
+                              kCGLOGLPVersion_3_2_Core))
+                    null)
                 (list kCGLPFASampleAlpha
                       kCGLPFAColorSize 32)
                 (if (version-10.7-or-later?)
