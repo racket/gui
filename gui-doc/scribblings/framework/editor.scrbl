@@ -394,14 +394,15 @@
   }
   @defmethod*[(((do-autosave) (or/c #f path?)))]{
     This method is called to perform the autosaving.  See also
-    @racket[autosave:register]
+    @racket[autosave:register].
 
     When the file has been modified since it was last saved and autosaving it
     turned on (via the @method[editor:backup-autosave<%> autosave?]  method) an
     autosave file is created for this @racket[editor<%>].
 
     Returns the filename where the autosave took place, or @racket[#f] if none
-    did.
+    did. This method sets the parameter @racket[editor:doing-autosave?] to
+    @racket[#t] during the dynamic extent of the call it makes to @method[editor<%> save-file].
   }
   @defmethod*[(((remove-autosave) void?))]{
     This method removes the autosave file associated with this
