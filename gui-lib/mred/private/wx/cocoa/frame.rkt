@@ -249,25 +249,26 @@
                                             RacketWindow)
                                         alloc)
                                   initWithContentRect: #:type _NSRect init-rect
-                                  styleMask: #:type _int (if (memq 'no-caption style)
-                                                             NSBorderlessWindowMask
-                                                             (bitwise-ior 
-                                                              NSTitledWindowMask
-                                                              (if is-sheet? NSUtilityWindowMask 0)
-                                                              (if is-dialog?
-                                                                  (bitwise-ior
-                                                                   (if (memq 'close-button style)
-                                                                       NSClosableWindowMask
-                                                                       0)
-                                                                   (if (memq 'resize-border style)
-                                                                       NSResizableWindowMask
-                                                                       0))
-                                                                  (bitwise-ior 
-                                                                   NSClosableWindowMask
-                                                                   NSMiniaturizableWindowMask
-                                                                   (if (memq 'no-resize-border style)
-                                                                       0
-                                                                       NSResizableWindowMask)))))
+                                  styleMask: #:type _int
+                                  (bitwise-ior
+                                   (if (memq 'no-caption style)
+                                     NSBorderlessWindowMask
+                                     NSTitledWindowMask)
+                                   (if is-sheet? NSUtilityWindowMask 0)
+                                   (if is-dialog?
+                                     (bitwise-ior
+                                      (if (memq 'close-button style)
+                                        NSClosableWindowMask
+                                        0)
+                                      (if (memq 'resize-border style)
+                                        NSResizableWindowMask
+                                        0))
+                                     (bitwise-ior
+                                      NSClosableWindowMask
+                                      NSMiniaturizableWindowMask
+                                      (if (memq 'no-resize-border style)
+                                        0
+                                        NSResizableWindowMask))))
                                   backing: #:type _int NSBackingStoreBuffered
                                   defer: #:type _BOOL NO))])
                     ;; use init rect as frame size, not content size
