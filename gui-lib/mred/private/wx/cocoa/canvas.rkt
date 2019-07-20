@@ -119,23 +119,24 @@
   (-a #:async-apply (box (void))
       _void (drawRect: [_NSRect r])
       (let ([ctx (tell NSGraphicsContext currentContext)])
-        (tellv ctx saveGraphicsState)
-        (let ([cg (tell #:type _CGContextRef ctx graphicsPort)]
-              [r (tell #:type _NSRect self bounds)])
-          (CGContextSetRGBFillColor cg 0 0 0 1.0)
-          (let* ([l (NSPoint-x (NSRect-origin r))]
-                 [t (NSPoint-y (NSRect-origin r))]
-                 [b (+ t (NSSize-height (NSRect-size r)))]
-                 [r (+ l (NSSize-width (NSRect-size r)))])
-            (CGContextAddLines cg
-                               (vector
-                                (make-NSPoint r (+ t scroll-width))
-                                (make-NSPoint r b)
-                                (make-NSPoint l b)
-                                (make-NSPoint l t)
-                                (make-NSPoint (- r scroll-width) t))))
-          (CGContextStrokePath cg))
-        (tellv ctx restoreGraphicsState))))
+        (when ctx
+          (tellv ctx saveGraphicsState)
+          (let ([cg (tell #:type _CGContextRef ctx graphicsPort)]
+                [r (tell #:type _NSRect self bounds)])
+            (CGContextSetRGBFillColor cg 0 0 0 1.0)
+            (let* ([l (NSPoint-x (NSRect-origin r))]
+                   [t (NSPoint-y (NSRect-origin r))]
+                   [b (+ t (NSSize-height (NSRect-size r)))]
+                   [r (+ l (NSSize-width (NSRect-size r)))])
+              (CGContextAddLines cg
+                                 (vector
+                                  (make-NSPoint r (+ t scroll-width))
+                                  (make-NSPoint r b)
+                                  (make-NSPoint l b)
+                                  (make-NSPoint l t)
+                                  (make-NSPoint (- r scroll-width) t))))
+            (CGContextStrokePath cg))
+          (tellv ctx restoreGraphicsState)))))
 
 (define-cocoa NSSetFocusRingStyle (_fun _int -> _void))
 (define-cocoa NSRectFill (_fun _NSRect -> _void))
@@ -159,16 +160,17 @@
                inView: self))
       (when on?
         (let ([ctx (tell NSGraphicsContext currentContext)])
-          (tellv ctx saveGraphicsState)
-          (NSSetFocusRingStyle 0)
-          (let ([r (tell #:type _NSRect self bounds)])
-            (NSRectFill (make-NSRect (make-NSPoint
-                                      (+ (NSPoint-x (NSRect-origin r)) 2)
-                                      (+ (NSPoint-y (NSRect-origin r)) 2))
-                                     (make-NSSize
-                                      (- (NSSize-width (NSRect-size r)) 4)
-                                      (- (NSSize-height (NSRect-size r)) 4)))))
-          (tellv ctx restoreGraphicsState)))))
+          (when ctx
+            (tellv ctx saveGraphicsState)
+            (NSSetFocusRingStyle 0)
+            (let ([r (tell #:type _NSRect self bounds)])
+              (NSRectFill (make-NSRect (make-NSPoint
+                                        (+ (NSPoint-x (NSRect-origin r)) 2)
+                                        (+ (NSPoint-y (NSRect-origin r)) 2))
+                                       (make-NSSize
+                                        (- (NSSize-width (NSRect-size r)) 4)
+                                        (- (NSSize-height (NSRect-size r)) 4)))))
+            (tellv ctx restoreGraphicsState))))))
 
 (define-objc-class RacketComboBox NSComboBox
   #:mixins (FocusResponder KeyMouseTextResponder CursorDisplayer) 
@@ -363,9 +365,10 @@
         [else (queue-paint)
               #f]))
 
-     (define/public (do-canvas-backing-flush ctx)
-       (do-backing-flush this dc (tell NSGraphicsContext currentContext)
-                         (if is-combo? combo-dx 0) (if is-combo? combo-dy 0)))
+     (define/public (do-canvas-backing-flush ctx*)
+       (define ctx (tell NSGraphicsContext currentContext))
+       (when ctx
+         (do-backing-flush this dc ctx (if is-combo? combo-dx 0) (if is-combo? combo-dy 0))))
 
      ;; not used, because Cocoa canvas refreshes do not go through
      ;;  the eventspace queue:

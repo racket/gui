@@ -118,7 +118,7 @@
            (let ([w (box 0)]
                  [h (box 0)])
              (send canvas get-client-size w h)
-             (let ([cg (tell #:type _CGContextRef ctx graphicsPort)])
+             (let ([cg (tell #:type (_or-null _CGContextRef) ctx graphicsPort)])
                (cond
                 [(bm . is-a? . layer-bitmap%)
                  (define layer (send bm get-layer))
