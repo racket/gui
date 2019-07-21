@@ -1637,19 +1637,16 @@
     
     (define canvas #f)
     (define editor #f)
-    (public get-canvas get-editor)
-    (define get-canvas 
-      (λ () 
-        (unless canvas
-          (set! canvas (make-canvas))
-          (send canvas set-editor (get-editor)))
-        canvas))
-    (define get-editor 
-      (λ () 
-        (unless editor
-          (set! editor (make-editor))
-          (send (get-canvas) set-editor editor))
-        editor))
+    (define/public (get-canvas)
+      (unless canvas
+        (set! canvas (make-canvas))
+        (send canvas set-editor (get-editor)))
+      canvas)
+    (define/public (get-editor)
+      (unless editor
+        (set! editor (make-editor))
+        (send (get-canvas) set-editor editor))
+      editor)
     
     (cond
       [(and filename (file-exists? filename))
