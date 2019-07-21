@@ -53,16 +53,21 @@
     Returns @racket[#t] if the file on disk has been modified, by some other program.
 
   }
-  @defmethod*[(((save-file/gui-error (filename (or/c path? #f) #f) (format (or/c (quote guess) (quote standard) (quote text) (quote text-force-cr) (quote same) (quote copy)) (quote same)) (show-errors? boolean? #t)) boolean?))]{
-    This method is an alternative to 
-    @method[editor<%> save-file]. Rather than showing errors via the original stdout, it
-    opens a dialog with an error message showing the error.
+ @defmethod[(save-file/gui-error [filename (or/c path? #f) #f]
+                                 [format (or/c 'guess 'standard 'text 'text-force-cr 'same 'copy)
+                                         (quote same)]
+                                 [show-errors? boolean? #t])
+            boolean?]{
+  This method is an alternative to
+  @method[editor<%> save-file]. Rather than showing errors via
+  the original stdout, it opens a dialog with an error message
+  showing the error.
 
-    The result indicates if an error happened (the error has
-    already been shown to the user). It returns @racket[#t] if
-    no error occurred and @racket[#f] if an error occurred.
-
+  It returns @racket[#t] if no error occurred and cancel was
+  not clicked, and it returns @racket[#f] if an error occurred
+  or cancel was clicked.
   }
+
   @defmethod*[(((load-file/gui-error (filename (or/c string? #f) #f) (format (or/c (quote guess) (quote standard) (quote text) (quote text-force-cr) (quote same) (quote copy)) (quote guess)) (show-errors? boolean? #t)) boolean?))]{
     This method is an alternative to 
     @method[editor<%> load-file]. Rather than showing errors via the original stdout, it

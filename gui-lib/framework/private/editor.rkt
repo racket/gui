@@ -106,7 +106,7 @@
                                #f)])
               (when filename
                 (save-file filename fmt #f))
-              #t))))
+              (and filename #t)))))
       
       (inherit load-file)
       (define/public load-file/gui-error
