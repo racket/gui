@@ -15,6 +15,7 @@
 
 (define PBS_VERTICAL #x04)
 (define PBM_SETRANGE (+ WM_USER 1))
+(define PBM_SETRANGE32 (+ WM_USER 6))
 (define PBM_SETPOS (+ WM_USER 2))
 (define PBM_GETRANGE (+ WM_USER 7));wParam = return (TRUE ? low : high). lParam = PPBRANGE or NULL
 (define PBM_GETPOS (+ WM_USER 8))
@@ -64,4 +65,4 @@
     (define/public (get-range)
       (SendMessageW hwnd PBM_GETRANGE 0 0))
     (define/public (set-range v)
-      (void (SendMessageW hwnd PBM_SETRANGE 0 (MAKELPARAM 0 v))))))
+      (void (SendMessageW hwnd PBM_SETRANGE32 0 v)))))
