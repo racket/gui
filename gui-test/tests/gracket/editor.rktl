@@ -431,22 +431,31 @@
   (send t insert (new (if term? number-snip% number-snip2%)
 		      [number 1/2]))
   (send t set-position 0 1)
-  (send t copy)
-  ;; Under X, force snip to be marshalled:
-  (let ([s (send the-clipboard get-clipboard-data "WXME" 0)])
-    (send the-clipboard set-clipboard-client
-	  (make-object (class clipboard-client%
-			 (define/override (get-data fmt)
-			   (and (string=? fmt "WXME")
-				s))
-			 (inherit add-type)
-			 (super-new)
-			 (add-type "WXME")))
-	  0))
-  (send t2 paste)
-  (let ([s (send t2 find-first-snip)])
-    (st 1/2 s get-number)
-    (st "" s get-prefix)))
+  (let loop ([n 0])
+    (send t copy)
+    ;; Under X, force snip to be marshalled:
+    (let ([s (send the-clipboard get-clipboard-data "WXME" 0)])
+      (send the-clipboard set-clipboard-client
+	    (make-object (class clipboard-client%
+				(define/override (get-data fmt)
+				  (and (string=? fmt "WXME")
+				       s))
+				(inherit add-type)
+				(super-new)
+				(add-type "WXME")))
+	    0))
+    (cond
+     [(= n 10) (error "paste failed")]
+     [else
+      (send t2 paste)
+      (let ([s (send t2 find-first-snip)])
+	(cond
+	 [(not s)
+	  (sleep 0.1)
+	  (loop (add1 n))]
+	 [else
+	  (st 1/2 s get-number)
+	  (st "" s get-prefix)]))])))
 
 (snip-test #t)
 (snip-test #f)
