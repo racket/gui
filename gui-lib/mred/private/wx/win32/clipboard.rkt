@@ -135,17 +135,26 @@
                          (cond
                           [(equal? t-id CF_UNICODETEXT)
                            ;; convert UTF-8 to UTF-16:
-                           (let ([p (cast (bytes->string/utf-8 d #\?)
-                                          _string/utf-16 
-                                          _gcpointer)])
-                             (let ([len (let loop ([i 0])
-                                          (if (and (zero? (ptr-ref p _byte i))
-                                                   (zero? (ptr-ref p _byte (add1 i))))
-                                              (+ i 2)
-                                              (loop (+ i 2))))])
-                               (scheme_make_sized_byte_string p
-                                                              len
-                                                              0)))]
+                           (cond
+                             [(eq? 'racket (system-type 'vm))
+                              (let ([p (cast (bytes->string/utf-8 d #\?)
+                                             _string/utf-16
+                                             _gcpointer)])
+                                (let ([len (let loop ([i 0])
+                                             (if (and (zero? (ptr-ref p _byte i))
+                                                      (zero? (ptr-ref p _byte (add1 i))))
+                                                 (+ i 2)
+                                                 (loop (+ i 2))))])
+                                  (scheme_make_sized_byte_string p
+                                                                 len
+                                                                 0)))]
+                             [else
+                              (define cvt (bytes-open-converter "platform-UTF-8-permissive"
+                                                                "platform-UTF-16"))
+                              (define-values (bstr used status)
+                                (bytes-convert cvt d))
+                              ;; add explcit nul terminator
+                              (bytes-append bstr #"\0\0")])]
                           [else
                            ;; no conversion:
                            d])))]
