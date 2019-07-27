@@ -69,7 +69,7 @@
                                                       r)))
 
 (define-kernel32 GlobalFree (_wfun _HANDLE -> (r : _HANDLE)
-                                   -> (unless r (failed 'GlobalFree)))
+                                   -> (when r (failed 'GlobalFree)))
   #:wrap (deallocator))
 (define-kernel32 GlobalAlloc (_wfun _UINT _SIZE_T -> (r : _HANDLE)
                                     -> (or r (failed 'GlobalAlloc)))
