@@ -96,7 +96,7 @@ the state transitions / contracts are:
             (not (hash-has-key? (preferences:layer-defaults pref-state) p)))
     (raise-unknown-preference-error
      'preferences:get
-     "tried to get a preference but no default set for ~e"
+     "tried to get a preference but preferences:set-default has not been called for ~e"
      p))
   (define preferences (preferences:layer-preferences pref-state))
   (define v (hash-ref preferences p none))
@@ -410,28 +410,31 @@ the state transitions / contracts are:
  (proc-doc/names
   preferences:get
   (symbol? . -> . any/c)
-  (symbol)
-  @{See also @racket[preferences:set-default].
+  (sym)
+  @{Returns the value for the preference @racket[sym].
 
-        @racket[preferences:get] returns the value for the preference
-        @racket[symbol]. It raises an exception matching
-        @racket[exn:unknown-preference?]
-        if the preference's default has not been set.})
+ Raises an exception matching
+ @racket[exn:unknown-preference?] if the preference's default
+ has not been set.
+
+ Use @racket[preference:set-default] to set the default value of the preference
+ before calling this function.})
 
  (proc-doc/names
   preferences:set
   (symbol? any/c . -> . void?)
-  (symbol value)
+  (sym val)
   @{Sets the preference
-    @racket[symbol] to @racket[value]. It should be called when the
-    user requests a change to a preference.
+ @racket[sym] to @racket[val]. It should be called when the
+ user requests a change to a preference;
+ @racket[preferences:set] immediately writes the preference value to disk.
 
-    @racket[preferences:set] immediately writes the preference value to disk.
-    It raises an exception matching
-    @racket[exn:unknown-preference?]
-    if the preference's default has not been set
+ It raises an exception matching
+ @racket[exn:unknown-preference?]
+ if the preference's default has not been set.
 
-    See also @racket[preferences:set-default].})
+ Use @racket[preference:set-default] to set the default value of the preference
+ before calling this function.})
 
  (proc-doc/names
   preferences:get/set
