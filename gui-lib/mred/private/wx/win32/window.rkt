@@ -819,11 +819,11 @@
                (bytes=? GRACKET_GUID
                         (scheme_make_sized_byte_string data
                                                        guid-len
-                                                       0))
+                                                       1))
                (bytes=? #"OPEN"
                         (scheme_make_sized_byte_string (ptr-add data guid-len)
                                                        4
-                                                       0)))
+                                                       1)))
       ;; The command line's argv (sans argv[0]) is
       ;; expressed as a DWORD for the number of args,
       ;; followed by each arg. Each arg is a DWORD
