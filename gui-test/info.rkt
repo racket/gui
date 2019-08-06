@@ -11,6 +11,7 @@
                      "snip-lib"
                      "wxme-lib"
                      "gui-lib"
+                     "syntax-color-lib"
                      "rackunit-lib"
                      "pconvert-lib"
                      "compatibility-lib"
