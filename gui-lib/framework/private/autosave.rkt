@@ -3,6 +3,7 @@
   (require racket/class
            racket/file
            "sig.rkt"
+           "text-sig.rkt"
            "../gui-utils.rkt"
            "../preferences.rkt"
            "srcloc-panel.rkt"

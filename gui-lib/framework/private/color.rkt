@@ -18,9 +18,9 @@ added get-regions
          data/interval-map
          "../preferences.rkt"
          "sig.rkt"
+         "text-sig.rkt"
          "aspell.rkt"
-         "color-local-member-name.rkt"
-         "inline-overview.rkt")
+         "color-local-member-name.rkt")
 
 (provide color@)
 (define-unit color@
@@ -599,7 +599,7 @@ added get-regions
          (set! restart-callback #t)]
         [(in-edit-sequence?)
          (set! continue-after-edit-sequence? #t)]
-        [(and (is-a? this inline-overview<%>)
+        [(and (is-a? this text:inline-overview<%>)
               (send this is-inline-overview-work-pending?))
          ;; wait for the overview to finish building its bitmap
          ;; this seems to look nicer when opening a new file

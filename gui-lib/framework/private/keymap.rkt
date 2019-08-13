@@ -17,8 +17,7 @@
           [prefix finder: framework:finder^]
           [prefix handler: framework:handler^]
           [prefix frame: framework:frame^]
-          [prefix editor: framework:editor^]
-          [prefix text: framework:text^])
+          [prefix editor: framework:editor^])
   (export (rename framework:keymap^
                   [-get-file get-file]))
   (init-depend mred^)

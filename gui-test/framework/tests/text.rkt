@@ -232,7 +232,7 @@
      (send t insert (new snip%) (send t last-position))
      (send t all-string-snips?))))
 
-(require (only-in framework/private/text as-a-paste))
+(require (only-in framework/private/text-normalize-paste as-a-paste))
 
 (define (normalize-paste-tests)
   (preferences:set 'framework:ask-about-paste-normalization #f)

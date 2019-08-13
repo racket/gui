@@ -14,8 +14,7 @@
 
 (define-unit comment-box@
   
-  (import [prefix text: framework:text^]
-          [prefix racket: framework:racket^]
+  (import [prefix racket: framework:racket^]
           [prefix keymap: framework:keymap^])
   (export (rename framework:comment-box^
                   (-snip% snip%)))

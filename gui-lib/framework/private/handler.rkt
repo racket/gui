@@ -12,7 +12,6 @@
 (import mred^
         [prefix finder: framework:finder^]
         [prefix group: framework:group^]
-        [prefix text: framework:text^]
         [prefix frame: framework:frame^])
 (export framework:handler^)
 (init-depend framework:frame^)

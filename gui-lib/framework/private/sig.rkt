@@ -1,6 +1,6 @@
 #lang racket/base
   
-  (require scheme/unit)
+  (require racket/unit "text-sig.rkt")
   
   (provide (prefix-out framework: (except-out (all-defined-out) framework^))
            framework^)
@@ -185,92 +185,25 @@
   (define-signature pasteboard^ extends pasteboard-class^
     ())
   
-  (define-signature text-class^
-    (basic<%>
-     inline-overview<%>
-     line-spacing<%>
-     ascii-art-enlarge-boxes<%>
-     first-line<%>
-     line-numbers<%>
-     foreground-color<%>
-     hide-caret/selection<%>
-     nbsp->space<%>
-     column-guide<%>
-     normalize-paste<%>
-     all-string-snips<%>
-     delegate<%>
-     wide-snip<%>
-     searching<%>
-     return<%>
-     info<%>
-     file<%>
-     clever-file-format<%>
-     crlf-line-endings<%>
-     ports<%>
-     input-box<%>
-     autocomplete<%>
-     overwrite-disable<%>
-     
-     basic% 
-     line-spacing%
-     hide-caret/selection%
-     nbsp->space%
-     normalize-paste%
-     1-pixel-string-snip%
-     1-pixel-tab-snip%
-     delegate%
-     wide-snip%
-     standard-style-list%
-     keymap%
-     return%
-     autowrap%
-     file%
-     clever-file-format%
-     backup-autosave%
-     searching%
-     info%
-     input-box%
-     
-     basic-mixin
-     inline-overview-mixin
-     line-spacing-mixin
-     ascii-art-enlarge-boxes-mixin
-     first-line-mixin
-     line-numbers-mixin
-     foreground-color-mixin
-     hide-caret/selection-mixin
-     nbsp->space-mixin
-     column-guide-mixin
-     normalize-paste-mixin
-     all-string-snips-mixin
-     wide-snip-mixin
-     delegate-mixin
-     searching-mixin
-     return-mixin
-     info-mixin
-     file-mixin
-     clever-file-format-mixin
-     crlf-line-endings-mixin
-     ports-mixin
-     input-box-mixin
-     autocomplete-mixin
-     overwrite-disable-mixin))
-  (define-signature text^ extends text-class^
-    (autocomplete-append-after
-     autocomplete-limit
-     get-completions/manuals
-     lookup-port-name
-     
-     range?
-     range-start
-     range-end
-     range-caret-space? 
-     range-style 
-     range-color
+(define-signature text-class^
+  ((open text-basic-class^)
+   (open text-line-numbers^)
+   (open text-autocomplete-class^)
+   (open text-normalize-paste^)
+   (open text-column-guide^)
+   (open text-ascii-art^)
+   (open text-misc^)
+   (open text-delegate^)
+   (open text-port-class^)
+   (open text-search^)
+   (open text-first-line^)
+   (open text-inline-overview^)
+   (open text-mixed-in-classes^)))
 
-     make-snip-special
-     snip-special?
-     send-snip-to-port))
+(define-signature text^ extends text-class^
+  ((open text-basic-functions^)
+   (open text-port-functions^)
+   (open text-autocomplete-functions^)))
   
   (define-signature canvas-class^
     (basic<%>

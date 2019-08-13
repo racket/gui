@@ -4,6 +4,7 @@
          mred/mred-sig)
 
 (require "private/sig.rkt"
+         "private/text-sig.rkt"
          "private/number-snip.rkt"
          "private/comment-box.rkt"
          "private/application.rkt"
