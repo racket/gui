@@ -1,6 +1,6 @@
 #lang scribble/doc
 @(require scribble/manual scribble/extract)
-@(require (for-label framework scheme/gui syntax-color/lexer-contract))
+@(require (for-label framework scheme/gui syntax-color/lexer-contract syntax-color/racket-lexer))
 @title{Color}
 
 @definterface[color:text<%> (text:basic<%>)]{
@@ -32,9 +32,15 @@
     symbol from @racket[get-token], and it should return the style-name that
     the token should be colored.
 
-    The @racket[get-token] argument takes an input port and optionally an
-    offset and mode value.  When it accepts just an input port,
-    @racket[get-token] returns the next token as 5 values:
+  The @racket[get-token] argument's contract above is just
+  the basic checks it should satisfy; it is also expected to
+  satisfy the @racket[lexer/c] contract, which attempts to
+  also check the invariants described here.
+
+  The arguments to @racket[get-token] are an input port and
+  optionally an offset and mode value. When it accepts just an
+  input port, @racket[get-token] should return the next token
+  as 5 values:
 
     @itemize[
     @item{This value is intended to represent the textual
@@ -94,7 +100,14 @@
     The @racket[get-token] function must obey the following invariants:
     @itemize[
     @item{Every position in the buffer must be accounted for in exactly one
-      token, and every token must have a non-zero width.}
+    token, and every token must have a non-zero width. Accordingly,
+    @racket[get-token] must never refuse to accept certain token streams (e.g., by
+    raising an exception). The idea is that, while a normal parser for the language
+    could signal errors by helpfully raising exceptions, a colorer should instead
+    return a token with the type @racket['error] and possibly continue to color
+    the remainder of the buffer. For example, the @racket[racket-lexer] identifiers
+    strings that have malformed escape characters inside strings by returning
+    @racket['error], but then continuing to color the rest of text as normal.}
     @item{The token returned by @racket[get-token] must rely only on the
       contents of the input port argument plus the mode argument. This
       constraint means that the tokenization of some part of the input cannot
