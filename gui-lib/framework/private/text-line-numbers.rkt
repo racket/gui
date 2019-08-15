@@ -2,6 +2,7 @@
 (require "text-sig.rkt"
          "sig.rkt"
          "../preferences.rkt"
+         "interfaces.rkt"
          racket/unit
          racket/class
          racket/math
@@ -20,8 +21,6 @@
       show-line-numbers!
       showing-line-numbers?
       set-line-numbers-color))
-
-  (define-local-member-name do-draw-single-line draw-separator)
 
   ;; draws line numbers on the left hand side of a text% object
   (define line-numbers-mixin

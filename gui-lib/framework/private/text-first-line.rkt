@@ -3,6 +3,7 @@
          racket/class
          mred/mred-sig
          "text-sig.rkt"
+         "interfaces.rkt"
          "../preferences.rkt")
 (provide text-first-line@)
 

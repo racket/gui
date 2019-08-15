@@ -10,7 +10,11 @@
          frame:standard-menus<%>
          frame:info<%>
          frame:text-info<%>
-         text:ascii-art-enlarge-boxes<%>)
+         text:ascii-art-enlarge-boxes<%>
+         do-draw-single-line
+         draw-separator)
+
+(define-local-member-name draw-separator do-draw-single-line)
 
 (define editor:basic<%>
   (interface (editor<%>)
