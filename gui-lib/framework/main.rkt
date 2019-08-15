@@ -1585,9 +1585,15 @@
 
  (proc-doc/names
   racket:setup-keymap
-  ((is-a?/c keymap%) . -> . void?)
-  (keymap)
-  @{Initializes @racket[keymap] with Racket-mode keybindings.})
+  (((is-a?/c keymap%))
+   (#:alt-as-meta-keymap (or/c #f (is-a?/c keymap%)))
+   . ->* . void?)
+  ((keymap) ([alt-as-meta-keymap #f]))
+  @{Initializes @racket[keymap] with Racket-mode keybindings. The
+    @racket[alt-as-meta-keymap] argument is treated the same as
+    for @racket[keymap:setup-global].
+
+    @history[#:changed "1.40" @elem{Added the @racket[#:alt-as-meta-keymap] argument.}]})
 
  (parameter-doc
   editor:doing-autosave?

@@ -316,7 +316,10 @@
                             (if (caps . < . 0) 5 0)
                             (if (altgr . > . 0) 1 0)
                             (if (altgr . < . 0) 5 0)
-                            (if check-other? 6 30))
+                            ;; Baseline score, so we can subtract for
+                            ;; other-key matches when allowed by
+                            ;; `check-other?`:
+                            6)
                          check-other?
                          fullset?
                          (string->immutable-string fname)

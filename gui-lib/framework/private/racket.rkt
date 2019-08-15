@@ -1472,13 +1472,21 @@
 
 (define text-mode% (text-mode-mixin color:text-mode%))
 
-(define (setup-keymap keymap)
+(define (setup-keymap keymap #:alt-as-meta-keymap [alt-as-meta-keymap #f])
+  (define (add-function name f)
+    (send keymap add-function name f)
+    (when alt-as-meta-keymap
+      (send alt-as-meta-keymap add-function name f)))
   (define (add-edit-function name f)
-    (send keymap add-function name (λ (edit event) (f edit))))
+    (send keymap add-function name (λ (edit event) (f edit)))
+    (when alt-as-meta-keymap
+      (send alt-as-meta-keymap add-function name (λ (edit event) (f edit)))))
   (define (add-pos-function name f)
-    (send keymap add-function name
-          (λ (edit event)
-            (f edit (send edit get-start-position)))))
+    (define callback (λ (edit event)
+                       (f edit (send edit get-start-position))))
+    (send keymap add-function name callback)
+    (when alt-as-meta-keymap
+      (send alt-as-meta-keymap add-function name callback)))
   (add-pos-function "remove-sexp" (λ (e p) (send e remove-sexp p)))
   (add-pos-function "forward-sexp" (λ (e p) (send e forward-sexp p)))
   (add-pos-function "backward-sexp" (λ (e p) (send e backward-sexp p)))
@@ -1518,7 +1526,7 @@
   (add-edit-function "uncomment"  
                      (λ (x) (send x uncomment-selection)))
   
-  (send keymap add-function "paren-double-select"
+  (add-function "paren-double-select"
         (λ (text event)
           (keymap:region-click
            text event 
@@ -1575,13 +1583,13 @@
     (add/map-non-clever "non-clever-close-curley-bracket" "~g:c:}" #\})
     (add/map-non-clever "non-clever-close-round-paren" "~g:c:)" #\)))
   
-  (send keymap add-function "balance-parens"
-        (λ (edit event)
-          (send edit balance-parens event)))
-  (send keymap add-function "balance-parens-forward"
-        (λ (edit event)
-          (send edit balance-parens event 'forward)))
-  
+  (add-function "balance-parens"
+                (λ (edit event)
+                  (send edit balance-parens event)))
+  (add-function "balance-parens-forward"
+                (λ (edit event)
+                  (send edit balance-parens event 'forward)))
+
   (send keymap map-function "TAB" "tabify-at-caret")
   
   (send keymap map-function "return" "do-return")
@@ -1756,7 +1764,7 @@
   
   (add-edit-function "insert-lambda-template" insert-lambda-template)
   
-  (define (map-meta key func) (keymap:send-map-function-meta keymap key func))
+  (define (map-meta key func) (keymap:send-map-function-meta keymap key func #:alt-as-meta-keymap alt-as-meta-keymap))
   (define (map key func) (send keymap map-function key func))
   
   (map-meta "up" "up-sexp")
@@ -1839,8 +1847,17 @@
   (map "c:c;c:[" "toggle-round-square-parens"))
 
 (define keymap (make-object keymap:aug-keymap%))
-(setup-keymap keymap)
+(define alt-as-meta-keymap (make-object keymap:aug-keymap%))
+(setup-keymap keymap #:alt-as-meta-keymap alt-as-meta-keymap)
 (define (get-keymap) keymap)
+
+(define (adjust-alt-as-meta on?)
+  (send keymap remove-chained-keymap alt-as-meta-keymap)
+  (when on?
+    (send keymap chain-to-keymap alt-as-meta-keymap #f)))
+(preferences:add-callback 'framework:alt-as-meta
+                          (λ (p v) (adjust-alt-as-meta v)))
+(adjust-alt-as-meta (preferences:get 'framework:alt-as-meta))
 
 ;; choose-paren : racket-text number -> character
 ;; returns the character to replace a #\[ with, based
