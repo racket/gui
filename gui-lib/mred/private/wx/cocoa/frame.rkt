@@ -264,8 +264,11 @@
                                         NSResizableWindowMask
                                         0))
                                      (bitwise-ior
-                                      NSClosableWindowMask
-                                      NSMiniaturizableWindowMask
+                                      (if (memq 'no-caption style)
+                                          0
+                                          (bitwise-ior
+                                           NSClosableWindowMask
+                                           NSMiniaturizableWindowMask))
                                       (if (memq 'no-resize-border style)
                                         0
                                         NSResizableWindowMask))))
