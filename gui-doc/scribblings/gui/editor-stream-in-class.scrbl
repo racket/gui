@@ -51,7 +51,7 @@ Returns the next integer value in the stream.
 
 }
 
-@defmethod[(get-fixed [v (box/c exact-integer?)])
+@defmethod[(get-fixed [v (box/c (integer-in -9999999999 99999999999))])
            (is-a?/c editor-stream-in%)]{
 
 @boxisfill[@racket[v] @elem{a fixed-size integer from the stream obtained through 
@@ -60,7 +60,7 @@ Returns the next integer value in the stream.
 }
 
 @defmethod[(get-fixed-exact)
-           exact-integer?]{
+           (integer-in -9999999999 99999999999)]{
 
 Gets a fixed-sized integer from the stream. See
 @method[editor-stream-out% put-fixed] for more information.

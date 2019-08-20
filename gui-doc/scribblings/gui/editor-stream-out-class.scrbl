@@ -76,7 +76,7 @@ If @racket[n] is not supplied and @racket[v] is a byte string, then
 }
 
 
-@defmethod[(put-fixed [v exact-integer?])
+@defmethod[(put-fixed [v (integer-in -9999999999 99999999999)])
            (is-a?/c editor-stream-out%)]{
 
 Puts a fixed-sized integer into the stream. This method is needed

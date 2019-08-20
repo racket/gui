@@ -669,20 +669,20 @@
       (when (send f bad?)
         (error 'editor-stream-out% "stream error"))))
 
-  (def/public (put-fixed [exact-integer? v])
+  (def/public (put-fixed [(integer-in -9999999999 99999999999) v])
     (check-ok)
-    (let-values ([(new-col spc)
-                  (if ((+ col 12) . > . 72)
-                      (values 11 #"\n")
-                      (values (+ col 12) #" "))])
-      (let ([s (number->string v)])
-        (send f
-              write-bytes
-              (bytes-append spc
-                            (make-bytes (- 11 (string-length s)) (char->integer #\space))
-                            (string->bytes/latin-1 s))))
-      (set! col new-col)
-      (set! items (add1 items)))
+    (define-values (new-col spc)
+      (if ((+ col 12) . > . 72)
+          (values 11 #"\n")
+          (values (+ col 12) #" ")))
+    (define s (number->string v))
+    (define b
+      (bytes-append spc
+                    (make-bytes (- 11 (string-length s)) (char->integer #\space))
+                    (string->bytes/latin-1 s)))
+    (send f write-bytes b)
+    (set! col new-col)
+    (set! items (add1 items))
     this)
 
   (define/public (put . args)
