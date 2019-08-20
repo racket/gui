@@ -28,14 +28,21 @@ Like @method[editor-stream-in-base% read-bytes], but fills a supplied
 vector with Latin-1 characters instead of filling a byte string.  This method
 is implemented by default via @method[editor-stream-in-base% read-bytes].}
 
-@defmethod[(read-bytes [bstr (and/c bytes? (not immutable?))])
+@defmethod[(read-bytes [bstr (and/c bytes? (not immutable?))]
+                       [start exact-nonnegative-integer? 0]
+                       [end exact-nonnegative-integer? (bytes-length bstr)])
            exact-nonnegative-integer?]{
 
 Reads bytes to fill the supplied byte string. The return value is the
  number of bytes read, which may be less than the number
  requested if the stream is emptied. If the stream is emptied, the
  next call to @method[editor-stream-in-base% bad?] must return
- @racket[#t].}
+ @racket[#t].
+
+  The bytes that are read are stored in @racket[bstr] starting
+  at position @racket[start] and going to at most to
+  @racket[end].
+ }
 
 @defmethod[(read-byte) (or/c byte? #f)]{
 
