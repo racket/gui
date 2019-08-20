@@ -31,4 +31,4 @@
 
 (define pkg-authors '(mflatt robby))
 
-(define version "1.40")
+(define version "1.41")

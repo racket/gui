@@ -94,7 +94,7 @@
 (expect (send fbo2 get-bytes) 
         (bytes-append
          #"\n3 2.0 3 #\"hi\\0\"\n3 #\"bye\"\n80\n"
-         #"(\n"
+         #"(0\n"
          #" #\"0123456789abcdefghij0123456789ABCD\"\n"
          #" #\"EFGHIJ0123456789abcdefghij0123456\\\"89ABCDEFGHIJ\"\n"
          #")"))
@@ -117,52 +117,146 @@
 ;; ----------------------------------------
 ;; Stream reading
 
-(define fbi2 (make-object editor-stream-in-bytes-base%
-               (bytes-append #"1 ; comment \n 2 "
-                             #"#| | x # #|  |# q |# 4.0"
-                             #" 2 #\"hi\""
-                             #" 3 #\"hi\\\"\""
-                             #" 23 ( #\"0123456789ABCDEFappl\" #\"e!\\0\" ) 88")))
-(define fi2 (make-object editor-stream-in% fbi2))
+(let ()
+  (define fbi2 (make-object editor-stream-in-bytes-base%
+                 (bytes-append #"1 ; comment \n 2 "
+                               #"#| | x # #|  |# q |# 4.0"
+                               #" 2 #\"hi\""
+                               #" 3 #\"hi\\\"\""
+                               ;; this is in the old format, without an id at
+                               ;; the start of the bytes
+                               #" 23 (#\"0123456789ABCDEFappl\" #\"e!\\0\" ) 88")))
+  (define fi2 (make-object editor-stream-in% fbi2))
 
-(expect (send fi2 ok?) #t)
-(expect (send fi2 tell) 0)
-(expect (let ([b (box 0)]) (send fi2 get b) (unbox b)) 1)
-(expect (send fi2 ok?) #t)
-(expect (send fi2 tell) 1)
-(expect (let ([b (box 0)]) (send fi2 get b) (unbox b)) 2)
-(expect (send fi2 ok?) #t)
-(expect (let ([b (box 0.0)]) (send fi2 get b) (unbox b)) 4.0)
-(expect (send fi2 ok?) #t)
-(expect (send fi2 tell) 3)
-(expect (send fi2 get-unterminated-bytes) #"hi")
-(expect (send fi2 ok?) #t)
-(expect (send fi2 tell) 5)
-(expect (send fi2 get-unterminated-bytes) #"hi\"")
-(expect (send fi2 ok?) #t)
-(expect (send fi2 get-bytes) #"0123456789ABCDEFapple!")
-(expect (send fi2 ok?) #t)
-(expect (send fi2 tell) 9)
+  (expect (send fi2 ok?) #t)
+  (expect (send fi2 tell) 0)
+  (expect (let ([b (box 0)]) (send fi2 get b) (unbox b)) 1)
+  (expect (send fi2 ok?) #t)
+  (expect (send fi2 tell) 1)
+  (expect (let ([b (box 0)]) (send fi2 get b) (unbox b)) 2)
+  (expect (send fi2 ok?) #t)
+  (expect (let ([b (box 0.0)]) (send fi2 get b) (unbox b)) 4.0)
+  (expect (send fi2 ok?) #t)
+  (expect (send fi2 tell) 3)
+  (expect (send fi2 get-unterminated-bytes) #"hi")
+  (expect (send fi2 ok?) #t)
+  (expect (send fi2 tell) 5)
+  (expect (send fi2 get-unterminated-bytes) #"hi\"")
+  (expect (send fi2 ok?) #t)
+  (expect (send fi2 get-bytes) #"0123456789ABCDEFapple!")
+  (expect (send fi2 ok?) #t)
+  (expect (send fi2 tell) 9)
 
-(send fi2 jump-to 3)
-(expect (send fi2 tell) 3)
-(expect (send fi2 get-unterminated-bytes) #"hi")
-(send fi2 skip 4)
-(expect (let ([b (box 0)]) (send fi2 get b) (unbox b)) 88)
-(expect (send fi2 ok?) #t)
-(expect (send fi2 tell) 10)
+  (send fi2 jump-to 3)
+  (expect (send fi2 tell) 3)
+  (expect (send fi2 get-unterminated-bytes) #"hi")
+  (send fi2 skip 4)
+  (expect (let ([b (box 0)]) (send fi2 get b) (unbox b)) 88)
+  (expect (send fi2 ok?) #t)
+  (expect (send fi2 tell) 10)
 
-(send fi2 jump-to 3)
-(send fi2 set-boundary 2)
-(expect (send fi2 get-unterminated-bytes) #"hi")
-(send fi2 jump-to 3)
-(expect (send fi2 ok?) #t)
-(expect (send fi2 tell) 3)
-(send fi2 set-boundary 1)
-(expect (with-handlers ([values (lambda (exn) #"")])
-          (send fi2 get-unterminated-bytes))
-        #"")
-(expect (send fi2 ok?) #f)
+  (send fi2 jump-to 3)
+  (send fi2 set-boundary 2)
+  (expect (send fi2 get-unterminated-bytes) #"hi")
+  (send fi2 jump-to 3)
+  (expect (send fi2 ok?) #t)
+  (expect (send fi2 tell) 3)
+  (send fi2 set-boundary 1)
+  (expect (with-handlers ([values (lambda (exn) #"")])
+            (send fi2 get-unterminated-bytes))
+          #"")
+  (expect (send fi2 ok?) #f))
+
+(let ()
+  (define fbi2 (make-object editor-stream-in-bytes-base%
+                 (bytes-append #"1 ; comment \n 2 "
+                               #"#| | x # #|  |# q |# 4.0"
+                               #" 2 #\"hi\""
+                               #" 3 #\"hi\\\"\""
+                               ;; this is in the new format, with an id at
+                               ;; the start of the bytes
+                               #" 23 (0 #\"0123456789ABCDEFappl\" #\"e!\\0\" ) 88")))
+  (define fi2 (make-object editor-stream-in% fbi2))
+
+  (expect (send fi2 ok?) #t)
+  (expect (send fi2 tell) 0)
+  (expect (let ([b (box 0)]) (send fi2 get b) (unbox b)) 1)
+  (expect (send fi2 ok?) #t)
+  (expect (send fi2 tell) 1)
+  (expect (let ([b (box 0)]) (send fi2 get b) (unbox b)) 2)
+  (expect (send fi2 ok?) #t)
+  (expect (let ([b (box 0.0)]) (send fi2 get b) (unbox b)) 4.0)
+  (expect (send fi2 ok?) #t)
+  (expect (send fi2 tell) 3)
+  (expect (send fi2 get-unterminated-bytes) #"hi")
+  (expect (send fi2 ok?) #t)
+  (expect (send fi2 tell) 5)
+  (expect (send fi2 get-unterminated-bytes) #"hi\"")
+  (expect (send fi2 ok?) #t)
+  (expect (send fi2 get-bytes) #"0123456789ABCDEFapple!")
+  (expect (send fi2 ok?) #t)
+  (expect (send fi2 tell) 9)
+
+  (send fi2 jump-to 3)
+  (expect (send fi2 tell) 3)
+  (expect (send fi2 get-unterminated-bytes) #"hi")
+  (send fi2 skip 4)
+  (expect (let ([b (box 0)]) (send fi2 get b) (unbox b)) 88)
+  (expect (send fi2 ok?) #t)
+  (expect (send fi2 tell) 10)
+
+  (send fi2 jump-to 3)
+  (send fi2 set-boundary 2)
+  (expect (send fi2 get-unterminated-bytes) #"hi")
+  (send fi2 jump-to 3)
+  (expect (send fi2 ok?) #t)
+  (expect (send fi2 tell) 3)
+  (send fi2 set-boundary 1)
+  (expect (with-handlers ([values (lambda (exn) #"")])
+            (send fi2 get-unterminated-bytes))
+          #"")
+  (expect (send fi2 ok?) #f))
+
+
+(let ()
+  ;; this test ensures that no matter which way a bytes is
+  ;; written the amount by which tell changes remains the same
+  (define the-allowed-delta #f)
+
+  (define fbo (make-object editor-stream-out-bytes-base%))
+  (define fo (make-object editor-stream-out% fbo))
+  (let ([before (send fo tell)])
+    (send fo put 100 (make-bytes 100 (char->integer #\a)))
+    (set! the-allowed-delta (- (send fo tell) before)))
+
+  (let ([before (send fo tell)])
+    (send fo put 100 (make-bytes 100 (char->integer #\a)))
+    (expect (send fo tell) (+ before the-allowed-delta)))
+
+  (let ([before (send fo tell)])
+    (send fo put 4 (make-bytes 4 (char->integer #\a)))
+    (expect (send fo tell) (+ before the-allowed-delta)))
+
+  (let ([before (send fo tell)])
+    (send fo put 4 (make-bytes 4 (char->integer #\a)))
+    (expect (send fo tell) (+ before the-allowed-delta)))
+
+  (define fbi (make-object editor-stream-in-bytes-base% (send fbo get-bytes)))
+  (define fi (make-object editor-stream-in% fbi))
+
+  (define one (send fi tell))
+
+  (send fi get-unterminated-bytes)
+  (define two (send fi tell))
+  (expect two (+ one the-allowed-delta))
+
+  (send fi get-unterminated-bytes)
+  (define three (send fi tell))
+  (expect three (+ two the-allowed-delta))
+
+  (send fi get-unterminated-bytes)
+  (define four (send fi tell))
+  (expect four (+ three the-allowed-delta)))
 
 (let ()
   (define (wash-it b)
@@ -267,6 +361,64 @@
 (in/out (list (vector-immutable 'fixed 1)))
 (in/out (list #"abc"))
 (in/out (list (make-bytes 1000 (char->integer  #\a))))
+(in/out (list (make-bytes 1000 (char->integer  #\a))
+              (make-bytes 1000 (char->integer  #\a))))
+(in/out (list (make-bytes 100 (char->integer  #\a))
+              (make-bytes 200 (char->integer  #\b))
+              (make-bytes 300 (char->integer  #\c))
+              (make-bytes 100 (char->integer  #\c))
+              (make-bytes 200 (char->integer  #\b))
+              (make-bytes 300 (char->integer  #\a))
+              (make-bytes 200 (char->integer  #\b))
+              (make-bytes 300 (char->integer  #\a))))
+(in/out (list (make-bytes 100 (char->integer  #\a))
+              (make-bytes 101 (char->integer  #\b))
+              (make-bytes 102 (char->integer  #\c))
+              (make-bytes 103 (char->integer  #\d))
+              (make-bytes 104 (char->integer  #\e))
+              (make-bytes 105 (char->integer  #\f))
+              (make-bytes 106 (char->integer  #\g))
+              (make-bytes 107 (char->integer  #\h))
+              (make-bytes 108 (char->integer  #\i))
+              (make-bytes 109 (char->integer  #\j))
+              (make-bytes 110 (char->integer  #\k))
+              (make-bytes 111 (char->integer  #\l))
+              (make-bytes 100 (char->integer  #\a))
+              (make-bytes 101 (char->integer  #\b))
+              (make-bytes 102 (char->integer  #\c))
+              (make-bytes 103 (char->integer  #\d))
+              (make-bytes 104 (char->integer  #\e))
+              (make-bytes 105 (char->integer  #\f))
+              (make-bytes 106 (char->integer  #\g))
+              (make-bytes 107 (char->integer  #\h))
+              (make-bytes 108 (char->integer  #\i))
+              (make-bytes 109 (char->integer  #\j))
+              (make-bytes 110 (char->integer  #\k))
+              (make-bytes 111 (char->integer  #\l))))
+(in/out (list (make-bytes 100 (char->integer  #\a))
+              (make-bytes 101 (char->integer  #\b))
+              (make-bytes 102 (char->integer  #\c))
+              (make-bytes 103 (char->integer  #\d))
+              (make-bytes 104 (char->integer  #\e))
+              (make-bytes 105 (char->integer  #\f))
+              (make-bytes 106 (char->integer  #\g))
+              (make-bytes 107 (char->integer  #\h))
+              (make-bytes 108 (char->integer  #\i))
+              (make-bytes 109 (char->integer  #\j))
+              (make-bytes 110 (char->integer  #\k))
+              (make-bytes 111 (char->integer  #\l))
+              (make-bytes 111 (char->integer  #\l))
+              (make-bytes 110 (char->integer  #\k))
+              (make-bytes 109 (char->integer  #\j))
+              (make-bytes 108 (char->integer  #\i))
+              (make-bytes 107 (char->integer  #\h))
+              (make-bytes 106 (char->integer  #\g))
+              (make-bytes 105 (char->integer  #\f))
+              (make-bytes 104 (char->integer  #\e))
+              (make-bytes 103 (char->integer  #\d))
+              (make-bytes 102 (char->integer  #\c))
+              (make-bytes 101 (char->integer  #\b))
+              (make-bytes 100 (char->integer  #\a))))
 
 (for ([x (in-range 1000)])
   (in/out (contract-random-generate

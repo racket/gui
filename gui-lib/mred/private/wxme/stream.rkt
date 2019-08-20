@@ -210,9 +210,10 @@
   (define is-bad? #f)
   (define items 0)
   (define pos-map (make-hash))
+  (define previously-read-bytes (make-hash))
 
-  (define read-version 8)
-  (define s-read-version #"08")
+  (define read-version 9)
+  (define s-read-version #"09")
 
   (super-new)
 
@@ -348,17 +349,34 @@
          result-s]
         [(= first-byte (char->integer #\())
          ;; read a sequence of byte strings
+         ;; and record an id (if an id was present)
+         (define first-char (do-skip-whitespace))
+         (define-values (id first-char-post-id)
+           (cond
+             [(= first-char (char->integer #\#))
+              (values #f first-char)]
+             [else
+              (let loop ([n (- first-char (char->integer #\0))])
+                (define c (send f read-byte))
+                (cond
+                  [(char-whitespace? (integer->char c))
+                   (values n (do-skip-whitespace))]
+                  [(<= (char->integer #\0) c (char->integer #\9))
+                   (loop (+ (* (or n 0) 10) (- c (char->integer #\0))))]
+                  [else (fail)]))]))
          (let loop ([accum null]
-                    [left-to-get orig-len])
-           (define new-first-char-of-buf (do-skip-whitespace))
+                    [left-to-get orig-len]
+                    [first-char-to-consider first-char-post-id])
            (when (or is-bad? (negative? left-to-get)) (fail))
            (cond
-             [(= new-first-char-of-buf (char->integer #\)))
+             [(= first-char-to-consider (char->integer #\)))
               ;; got all of the byte strings
               (unless (zero? left-to-get) (fail))
               (inc-item-count)
-              (apply bytes-append (reverse accum))]
-             [(= new-first-char-of-buf (char->integer #\#))
+              (define the-bytes (apply bytes-append (reverse accum)))
+              (when id (hash-set! previously-read-bytes id the-bytes))
+              the-bytes]
+             [(= first-char-to-consider (char->integer #\#))
               ;; another byte string still to get
               (unless (equal? (send f read-byte) (char->integer #\"))
                 (fail))
@@ -366,8 +384,24 @@
               (when is-bad? (fail))
               (unless ((bytes-length v) . <= . left-to-get) (fail))
               (loop (cons v accum)
-                    (- left-to-get (bytes-length v)))]
+                    (- left-to-get (bytes-length v))
+                    (do-skip-whitespace))]
              [else (fail)]))]
+        [(member first-byte (map char->integer (string->list "0123456789")))
+         ;; read an id and use it to find a previously read byte string
+         (define id
+           (let loop ([n (- first-byte (char->integer #\0))])
+             (define b (send f read-byte))
+             (cond
+               [(not b) n]
+               [(char-whitespace? (integer->char b))
+                n]
+               [(<= (char->integer #\0) b (char->integer #\9))
+                (loop (+ (* n 10) (- b (char->integer #\0))))]
+               [else (fail)])))
+         (inc-item-count)
+         (hash-ref previously-read-bytes id
+                   (λ () (fail)))]
         [else (fail)])))
 
   (define/private (get-single-line-bytes orig-len extra-whitespace-ok?)
@@ -657,6 +691,12 @@
   (define items 0)
   (define pos-map (make-hash))
 
+  ;; maps bytes that have been writen to natural numbers
+  ;; when writing bytes, we'll check this and write the
+  ;; natural number instead of the bytes if we find that
+  ;; the bytes have already been written
+  (define previously-written-bytes (make-hash))
+
   (super-new)
 
   (define/private (check-ok)
@@ -713,26 +753,34 @@
                     (set! col 72))))) ;; forcing a newline after every string makes the file more readable
           (multiple-strings)))
     (define (multiple-strings)
-      (send f write-bytes #"\n(")
-      (let loop ([offset 0][remain (bytes-length orig-s)])
-        (unless (zero? remain)
-          (let lloop ([amt (min 50 remain)][retry? #t])
-            (let ([s (open-output-bytes)])
-              (write (subbytes orig-s offset (+ offset amt)) s)
-              (let* ([v (get-output-bytes s #t)]
-                     [len (bytes-length v)])
-                (if (len . <= . 71)
-                    (if (and (len . < . 71) 
-                             retry?
-                             (amt . < . remain))
-                        (lloop (add1 amt) #t)
-                        (begin
-                          (send f write-bytes #"\n ")
-                          (send f write-bytes v)
-                          (loop (+ offset amt) (- remain amt))))
-                    (lloop (quotient amt 2) #f)))))))
-      (send f write-bytes #"\n)")
-      (set! col 1))
+      (cond
+        [(hash-ref previously-written-bytes orig-s #f)
+         =>
+         (λ (id) (do-put-number id #:update-items? #f))]
+        [else
+         (define id (hash-count previously-written-bytes))
+         (hash-set! previously-written-bytes orig-s id)
+         (send f write-bytes #"\n(")
+         (send f write-bytes (string->bytes/utf-8 (number->string id)))
+         (let loop ([offset 0][remain (bytes-length orig-s)])
+           (unless (zero? remain)
+             (let lloop ([amt (min 50 remain)][retry? #t])
+               (let ([s (open-output-bytes)])
+                 (write (subbytes orig-s offset (+ offset amt)) s)
+                 (let* ([v (get-output-bytes s #t)]
+                        [len (bytes-length v)])
+                   (if (len . <= . 71)
+                       (if (and (len . < . 71)
+                                retry?
+                                (amt . < . remain))
+                           (lloop (add1 amt) #t)
+                           (begin
+                             (send f write-bytes #"\n ")
+                             (send f write-bytes v)
+                             (loop (+ offset amt) (- remain amt))))
+                       (lloop (quotient amt 2) #f)))))))
+         (send f write-bytes #"\n)")
+         (set! col 1)]))
 
     (check-ok)
     (do-put-number (bytes-length orig-s))
@@ -740,7 +788,7 @@
     (set! items (add1 items))
     this)
 
-  (define/private (do-put-number v)
+  (define/private (do-put-number v #:update-items? [update-items? #t])
     (check-ok)
     (let* ([s (string->bytes/latin-1 (format " ~a" v))]
            [len (bytes-length s)])
@@ -750,7 +798,7 @@
             (bytes-set! s 0 (char->integer #\newline)))
           (set! col (+ col len)))
       (send f write-bytes s)
-      (set! items (add1 items))
+      (when update-items? (set! items (add1 items)))
       this))
 
   (def/public (tell)
