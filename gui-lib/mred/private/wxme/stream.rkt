@@ -328,102 +328,97 @@
                 (set! is-bad? #t)
                 (if get-exact? 0 0.0)]))))))
 
-  (define/private (get-a-string limit recur?)
-    (let* ([orig-len (if recur?
-                         (if (limit . < . 16)
-                             limit
-                             16)
-                         (let ([v (get-exact)])
-                           (if (check-boundary)
-                               0
-                               v)))]
-           [buf (make-bytes 32)]
-           [fail (lambda ()
-                   (set! is-bad? #t)
-                   #"")])
-      (if recur?
-          (bytes-set! buf 0 (char->integer #\#))
-          (begin
-            (skip-whitespace buf)
-            (when is-bad?
-              (bytes-set! buf 0 0))))
+  (define/private (get-a-byte-string)
+    (let/ec escape
+      (define (fail)
+        (set! is-bad? #t)
+        (escape #""))
+       
+      (define orig-len (get-exact))
+      (when (check-boundary) (fail))
+      (define first-byte (do-skip-whitespace))
+      (when is-bad? (fail))
       (cond
-       [(= (bytes-ref buf 0) (char->integer #\#))
-        (if (and (= (send f read-bytes buf 1 2) 1)
-                 (= (bytes-ref buf 1) (char->integer #\")))
-            (let-values ([(si s) (make-pipe)]
-                         [(tmp) (make-bytes (+ orig-len 2))])
-              (display "#\"" s)
-              (let loop ([get-amt (add1 orig-len)]) ;; add 1 for closing quote
-                (let ([got-amt (send f read-bytes tmp 0 get-amt)])
-                  (if (not (= got-amt get-amt))
-                      (fail)
-                      (begin
-                        (write-bytes tmp s 0 got-amt)
-                        (let ([done?
-                               (let loop ([i 0])
-                                 (cond
-                                  [(= i got-amt) #f]
-                                  [(= (bytes-ref tmp i) (char->integer #\")) #t]
-                                  [(= (bytes-ref tmp i) (char->integer #\\))
-                                   (if (= (add1 i) got-amt)
-                                       ;; need to read escaped character
-                                       (if (not (= (send f read-bytes tmp got-amt (add1 got-amt)) 1))
-                                           (fail)
-                                           (begin
-                                             (write-bytes tmp s got-amt (add1 got-amt))
-                                             #f))
-                                       (loop (+ i 2)))]
-                                  [else (loop (+ i 1))]))])
-                          (if done?
-                              (begin
-                                (close-output-port s)
-                                (unless recur? (inc-item-count))
-                                (let ([s (with-handlers ([exn:fail:read? (lambda (x) #f)]) 
-                                           (read si))])
-                                  (when (and recur? s)
-                                    ;; It's ok to have extra whitespace when reading a byte
-                                    ;; string in a sequence
-                                    (let loop ()
-                                      (define c (peek-byte si))
-                                      (unless (eof-object? c)
-                                        (when (char-whitespace? (integer->char c))
-                                          (read-byte si)
-                                          (loop)))))
-                                  (if (or (not s)
-                                          (not (eof-object? (read-byte si))))
-                                      (fail)
-                                      (if (if recur?
-                                              ((bytes-length s) . <= . limit)
-                                              (= (bytes-length s) orig-len))
-                                          s
-                                          (fail)))))
-                              (loop 1))))))))
-            (fail))]
-       [(and (not recur?) (= (bytes-ref buf 0) (char->integer #\()))
-        ;; read a sequence of strings
-        (let loop ([accum null]
-                   [left-to-get orig-len])
-          (skip-whitespace buf)
-          (if (or is-bad? 
-                  (negative? left-to-get))
-              (fail)
-              (cond
-               [(= (bytes-ref buf 0) (char->integer #\)))
-                ;; got all byte strings
-                (if (zero? left-to-get)
-                    (begin
-                      (inc-item-count)
-                      (apply bytes-append (reverse accum)))
-                    (fail))]
-               [(= (bytes-ref buf 0) (char->integer #\#))
-                (let ([v (get-a-string left-to-get #t)])
-                  (if is-bad?
-                      (fail)
-                      (loop (cons v accum)
-                            (- left-to-get (bytes-length v)))))]
-               [else (fail)])))]
-       [else (fail)])))
+        [(= first-byte (char->integer #\#))
+         (unless (equal? (send f read-byte) (char->integer #\"))
+           (fail))
+         (define result-s (get-single-line-bytes orig-len #f))
+         (inc-item-count)
+         (unless (= (bytes-length result-s) orig-len) (fail))
+         result-s]
+        [(= first-byte (char->integer #\())
+         ;; read a sequence of byte strings
+         (let loop ([accum null]
+                    [left-to-get orig-len])
+           (define new-first-char-of-buf (do-skip-whitespace))
+           (when (or is-bad? (negative? left-to-get)) (fail))
+           (cond
+             [(= new-first-char-of-buf (char->integer #\)))
+              ;; got all of the byte strings
+              (unless (zero? left-to-get) (fail))
+              (inc-item-count)
+              (apply bytes-append (reverse accum))]
+             [(= new-first-char-of-buf (char->integer #\#))
+              ;; another byte string still to get
+              (unless (equal? (send f read-byte) (char->integer #\"))
+                (fail))
+              (define v (get-single-line-bytes (min left-to-get 16) #t))
+              (when is-bad? (fail))
+              (unless ((bytes-length v) . <= . left-to-get) (fail))
+              (loop (cons v accum)
+                    (- left-to-get (bytes-length v)))]
+             [else (fail)]))]
+        [else (fail)])))
+
+  (define/private (get-single-line-bytes orig-len extra-whitespace-ok?)
+    (define (fail)
+      (set! is-bad? #t)
+      #"")
+    (define-values (si s) (make-pipe))
+    (define tmp (make-bytes (+ orig-len 2)))
+    (display "#\"" s)
+    (let loop ([get-amt (add1 orig-len)]) ;; add 1 for closing quote
+      (define got-amt (send f read-bytes tmp 0 get-amt))
+      (cond
+        [(= got-amt get-amt)
+         (write-bytes tmp s 0 got-amt)
+         (define done?
+           (let loop ([i 0])
+             (cond
+               [(= i got-amt) #f]
+               [(= (bytes-ref tmp i) (char->integer #\")) #t]
+               [(= (bytes-ref tmp i) (char->integer #\\))
+                (if (= (add1 i) got-amt)
+                    ;; need to read escaped character
+                    (if (not (= (send f read-bytes tmp got-amt (add1 got-amt)) 1))
+                        (fail)
+                        (begin
+                          (write-bytes tmp s got-amt (add1 got-amt))
+                          #f))
+                    (loop (+ i 2)))]
+               [else (loop (+ i 1))])))
+         (cond
+           [done?
+            (close-output-port s)
+            (define the-result
+              (with-handlers ([exn:fail:read? (lambda (x) #f)])
+                (read si)))
+            (when (and extra-whitespace-ok? the-result)
+              ;; It's ok to have extra whitespace when reading a byte
+              ;; string in a sequence
+              (let loop ()
+                (define c (peek-byte si))
+                (unless (eof-object? c)
+                  (when (char-whitespace? (integer->char c))
+                    (read-byte si)
+                    (loop)))))
+            (if (or (not the-result)
+                    (not (eof-object? (read-byte si))))
+                (fail)
+                the-result)]
+           [else
+            (loop 1)])]
+        [else (fail)])))
 
   (define/private (inc-item-count)
     (set! items (add1 items))
@@ -563,7 +558,7 @@
                    [s (make-bytes len)])
               (send f read-bytes s)
               s)
-            (get-a-string #f #f))))
+            (get-a-byte-string))))
   
   (def/public (get-bytes [maybe-box? [len #f]])
     (let ([s (do-get-bytes)])
