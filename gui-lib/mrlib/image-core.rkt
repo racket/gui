@@ -471,11 +471,7 @@ has been moved out).
         (set-box/f! rspace 0)))
 
     (define/override (write f)
-      (define bp (open-output-bytes))
-      (parameterize ([print-graph #t]
-                     [bitmap-write-cache (make-hasheq)])
-        (:write (list shape bb pinhole) bp))
-      (define bytes (get-output-bytes bp))
+      (define bytes (image->snipclass-bytes this))
       (send f put (bytes-length bytes) bytes))
     
     (super-new)
@@ -526,6 +522,16 @@ has been moved out).
                  (list-ref lst 1)
                  #f
                  (list-ref lst 2))]))
+
+(define (image->snipclass-bytes img)
+  (define bp (open-output-bytes))
+  (parameterize ([print-graph #t]
+                 [bitmap-write-cache (make-hasheq)])
+    (:write (list (send img get-shape)
+                  (send img get-bb)
+                  (send img get-pinhole))
+            bp))
+  (get-output-bytes bp))
 
 (provide snip-class) 
 (define snip-class (new image-snipclass%))
@@ -1592,6 +1598,7 @@ the mask bitmap and the original bitmap are all together in a single bytes!
          mode-color->pen
          
          snipclass-bytes->image
+         image->snipclass-bytes
          (contract-out
           [definitely-same-image? (-> image? image? boolean?)])
          string->color-object/f
