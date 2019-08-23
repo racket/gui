@@ -7,6 +7,8 @@
          flip-bytes ;; : bytes int[width] int[height] -> bytes
          bitmap->bytes
          bytes->bitmap
+         bitmap->png-bytes
+         png-bytes->bitmap
          linear-transform)
 ;; rotate-bitmap : (-> bytes? natural-number/c natural-number/c real? bytes?)
 ;; avoid a dependency on scheme/contract, which pulls in too much
@@ -75,6 +77,16 @@ instead of this scaling code, we use the dc<%>'s scaling code.
   (let* ([bm (make-bitmap w h)])
     (send bm set-argb-pixels 0 0 w h bytes)
     bm))
+
+(define (png-bytes->bitmap bytes backing-scale)
+  (read-bitmap (open-input-bytes bytes)
+               'png/alpha
+               #:backing-scale backing-scale))
+
+(define (bitmap->png-bytes bitmap)
+  (define bp (open-output-bytes))
+  (send bitmap save-file bp 'png #:unscaled? #t)
+  (values (get-output-bytes bp) (send bitmap get-backing-scale)))
 
 (define (flip-bytes bmbytes w h)
   (build-bmbytes 
