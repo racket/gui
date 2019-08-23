@@ -499,7 +499,7 @@ added get-regions
                 ;; that was far enough:
                 (values orig-token-start orig-token-end valid-tree invalid-tree orig-data))))))
     
-    (define/private (do-insert/delete/ls ls edit-start-pos change-length)
+    (define/private (do-insert/delete/ls ls edit-start-pos edit-end-pos change-length)
       (unless (lexer-state-up-to-date? ls)
         (sync-invalid ls))
       (cond
@@ -527,10 +527,10 @@ added get-regions
            (set-lexer-state-up-to-date?! ls #f)
            (update-lexer-state-observers)
            (queue-callback (λ () (colorer-callback)) #f)))
-        ((and (>= edit-start-pos (lexer-state-invalid-tokens-start ls))
-              (> edit-start-pos (lexer-state-current-pos ls)))
+        ((and (>= edit-end-pos (lexer-state-invalid-tokens-start ls))
+              (> edit-end-pos (lexer-state-current-pos ls)))
          (let-values (((tok-start tok-end valid-tree invalid-tree orig-data)
-                       (split-backward ls (lexer-state-invalid-tokens ls) edit-start-pos)))
+                       (split-backward ls (lexer-state-invalid-tokens ls) edit-end-pos)))
            (set-lexer-state-invalid-tokens! ls invalid-tree)
            (set-lexer-state-invalid-tokens-start!
             ls
@@ -557,16 +557,16 @@ added get-regions
                     (send valid-tree search-max!)
                     (data-lexer-mode (send valid-tree get-root-data))))))))))
     
-    (define/private (do-insert/delete edit-start-pos change-length)
+    (define/private (do-insert/delete edit-start-pos edit-end-pos change-length)
       (unless (or stopped? force-stop?)
         (let ([ls (find-ls edit-start-pos)])
           (when ls
-            (do-insert/delete/ls ls edit-start-pos change-length)))))
+            (do-insert/delete/ls ls edit-start-pos edit-end-pos change-length)))))
     
     (define/private (do-insert/delete-all)
-      (for-each (lambda (ls)
-                  (do-insert/delete/ls ls (lexer-state-start-pos ls) 0))
-                lexer-states))
+      (for ([ls (in-list lexer-states)])
+        (define pos (lexer-state-start-pos ls))
+        (do-insert/delete/ls ls pos pos 0)))
     
     (inherit is-locked? get-revision-number)
     
@@ -1245,23 +1245,23 @@ added get-regions
           (match-parens)))
       (inner (void) on-set-size-constraint))
     
-    (define/augment (after-insert edit-start-pos change-length)
+    (define/augment (after-insert insert-start-pos change-length)
       ;;(printf "(after-insert ~a ~a)\n" edit-start-pos change-length)
       (when misspelled-regions
         (interval-map-expand! misspelled-regions 
-                              edit-start-pos 
-                              (+ edit-start-pos change-length)))
-      (do-insert/delete edit-start-pos change-length)
-      (inner (void) after-insert edit-start-pos change-length))
+                              insert-start-pos
+                              (+ insert-start-pos change-length)))
+      (do-insert/delete insert-start-pos insert-start-pos change-length)
+      (inner (void) after-insert insert-start-pos change-length))
     
-    (define/augment (after-delete edit-start-pos change-length)
+    (define/augment (after-delete delete-start-pos change-length)
       ;;(printf "(after-delete ~a ~a)\n" edit-start-pos change-length)
       (when misspelled-regions
         (interval-map-contract! misspelled-regions
-                                edit-start-pos
-                                (+ edit-start-pos change-length)))
-      (do-insert/delete edit-start-pos (- change-length))
-      (inner (void) after-delete edit-start-pos change-length))
+                                delete-start-pos
+                                (+ delete-start-pos change-length)))
+      (do-insert/delete delete-start-pos (+ delete-start-pos change-length) (- change-length))
+      (inner (void) after-delete delete-start-pos change-length))
     
     (super-new)
     
