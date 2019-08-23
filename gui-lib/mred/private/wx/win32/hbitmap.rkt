@@ -40,7 +40,7 @@
 	 [sc (->screen 1.0)]
 	 [scaled (lambda (v) (inexact->exact (ceiling (* v sc))))]
          [hbitmap (if b&w?
-                      (CreateBitmap w h 1 1 #f)
+                      (CreateBitmap (scaled w) (scaled h) 1 1 #f)
                       (CreateCompatibleBitmap screen-hdc (scaled w) (scaled h)))]
          [old-hbitmap (SelectObject hdc hbitmap)])
     (ReleaseDC #f screen-hdc)
