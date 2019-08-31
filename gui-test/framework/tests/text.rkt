@@ -359,7 +359,15 @@
       (send t insert "abc")
       (send t set-position 0 0)
       (send t set-searching-state "b" #f #f)))
-   (list 0 5)))
+   (list 0 5))
+
+  (check-equal?
+   (run-search-test
+    (λ (t)
+      (send t insert "abc abc abc")
+      (send t set-position 0 0)
+      (send t set-searching-state "abc" #f #t)))
+   (list 1 3)))
 
 (define (print-to-dc-tests)
   (check-not-exn

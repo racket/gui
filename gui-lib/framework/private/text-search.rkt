@@ -211,10 +211,14 @@
            (λ ()
              (when searching-str
                (define start-pos (get-focus-editor-start-position))
+               (define (how-many-to-add k)
+                 (if (search-result-compare <= (car k) start-pos) 1 0))
                (define count
-                 (for/sum ([(k v) (in-hash search-bubble-table)])
-                   (define n (if (search-result-compare <= (car k) start-pos) 1 0))
-                   n))
+                 (+ (if to-replace-highlight
+                        (how-many-to-add to-replace-highlight)
+                        0)
+                    (for/sum ([(k v) (in-hash search-bubble-table)])
+                      (how-many-to-add k))))
                (update-before-caret-search-hit-count count))
              (set! search-position-callback-running? #f))
            #f)))
@@ -546,18 +550,22 @@
                 dark-search-color
                 #f
                 'hollow-ellipse))
-        (set! to-replace-highlight #f))
+        (unless (equal? to-replace-highlight #f)
+          (set! to-replace-highlight #f)
+          (maybe-queue-search-position-update)))
     
       (define/private (highlight-replace new-to-replace)
-        (set! to-replace-highlight new-to-replace)
-        (define-values (txt start end) (get-highlighting-text-and-range new-to-replace))
-        (when txt
-          (send txt highlight-range
-                start end
-                dark-search-color
-                #f
-                'high
-                'hollow-ellipse)))
+        (unless (equal? new-to-replace to-replace-highlight)
+          (set! to-replace-highlight new-to-replace)
+          (maybe-queue-search-position-update)
+          (define-values (txt start end) (get-highlighting-text-and-range new-to-replace))
+          (when txt
+            (send txt highlight-range
+                  start end
+                  dark-search-color
+                  #f
+                  'high
+                  'hollow-ellipse))))
 
       (define/private (get-highlighting-text-and-range bubble)
         (let loop ([txt this]
