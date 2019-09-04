@@ -186,7 +186,9 @@
       (set-saved-marked! wxb #f #f)
       (let ([cit (current-insert-text)])
         (if cit
-            (set-box! cit str)
+            (set-box! cit (if (unbox cit)
+                              (string-append (unbox cit) str)
+                              str))
             (let ([wx (->wx wxb)])
               (post-dummy-event) ;; to wake up in case of character palette insert 
               (when wx
@@ -335,6 +337,10 @@
                     [(unbox inserted-text)]
                     [else
                      (tell #:type _NSString event characters)])]
+              [prev-dks (and key-down?
+                             ;; We may need the key state before
+                             ;; decoding to trry alternative modifiers
+                             (copy-dead-key-state dead-key-state))]
               [dead-key? (unbox set-mark)]
               [control? (bit? modifiers NSControlKeyMask)]
               [option?  (bit? modifiers NSAlternateKeyMask)]
@@ -363,7 +369,8 @@
                                               (string-ref alt-str 0)))))))
                        => list]
                       [else str])])
-         (for/fold ([result dead-key?]) ([one-code codes])
+         (for/fold ([result dead-key?]) ([one-code codes]
+                                         [code-offset (in-naturals)])
            (or
             ;; Handle one key event
             (let-values ([(x y) (send wx window-point-to-view pos)])
@@ -387,18 +394,16 @@
                   (when key-down?
                     (let ()
 		      (define (toggle flag m b) (if flag (- m b) (+ m b)))
-		      (define prev-dks       (copy-dead-key-state dead-key-state))
 		      (define (old-dks-copy) (copy-dead-key-state prev-dks))
                       (define mask 	     (+ modifier-shift-key modifier-option-key modifier-alpha-lock
 						modifier-cmd-key modifier-control-key))
       		      (define kc             (tell #:type _ushort event keyCode))
                       (define mods           (bitwise-and (<< modifiers -8) mask))
-		      (define s              (key-translate kc #:modifier-key-state mods
-							    #:dead-key-state dead-key-state))
-		      (define dead?          (= 0 (string-length s)))
-		      (unless dead?          (set! dead-key-state (make-initial-dead-key-state)))
-		      ;; actual char received
-		      (define c              (and (not dead?) (string-ref s 0)))
+                      (when (zero? code-offset)
+                        (define s              (key-translate kc #:modifier-key-state mods
+                                                              #:dead-key-state dead-key-state))
+                        (define dead?          (= 0 (string-length s)))
+                        (unless dead?          (set! dead-key-state (make-initial-dead-key-state))))
 		      ;; the other codes all assume that caps-lock is off, so make sure it is turned off
 		      (set!   mods            (if caps? (toggle caps? mods modifier-alpha-lock) mods))
                       (define shift-mod       (toggle shift?   mods modifier-shift-key))
@@ -407,9 +412,9 @@
 						      modifier-shift-key))
 		      ;; (define cmd-mod   (toggle cmd?     mods modifier-cmd-key))
 		      ;; (define ctrl-mod  (toggle control? mods modifier-control-key))
-		      (define (alternative who setter mod) 
+		      (define (alternative who setter mod)
 			(define s (key-translate kc #:modifier-key-state mod #:dead-key-state (old-dks-copy)))
-			(setter (if (> (string-length s) 0) (string-ref s 0) #f))
+			(setter (and (> (string-length s) code-offset) (string-ref s code-offset)))
 			(void))
 		      (alternative 'shift     (lambda (c) (send k set-other-shift-key-code c))           shift-mod)
 		      (alternative 'alt       (lambda (c) (send k set-other-altgr-key-code c))             alt-mod)
