@@ -5,6 +5,7 @@
          racket/snip/private/private
          racket/snip/private/snip
          "editor-data.rkt"
+         "version.rkt"
          (only-in "cycle.rkt"
                   set-editor-stream-in%!
                   set-editor-stream-out%!))
@@ -197,6 +198,8 @@
 
 (define in-read-byte (generic editor-stream-in-base% read-byte))
 
+(define default-version (string->number (bytes->string/utf-8 MRED-VERSION-STR)))
+
 (defclass editor-stream-in% editor-stream%
   (init-rest args)
 
@@ -212,14 +215,16 @@
   (define pos-map (make-hash))
   (define previously-read-bytes (make-hash))
 
-  (define read-version 9)
-  (define s-read-version #"09")
+  (define read-version default-version)
+  (define s-read-version MRED-VERSION-STR)
 
   (super-new)
 
   (define/public (set-s-read-version bstr)
     (set! s-read-version bstr)
     (set! read-version (or (string->number (bytes->string/utf-8 bstr)) 0)))
+  (define/public (get-s-read-version)
+    s-read-version)
   (define/public (get-wxme-version) read-version)
 
   (define s-read-format #"WXME")

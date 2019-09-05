@@ -15,6 +15,7 @@
          "undo.rkt"
          "keymap.rkt"
          "editor-data.rkt"
+         "version.rkt"
          (only-in "cycle.rkt"
                   printer-dc%
                   text%
@@ -1761,12 +1762,6 @@
 
 ;; ------------------------------------------------------------
 
-(define MRED-READER-STR #"#reader(lib\"read.ss\"\"wxme\")")
-(define MRED-START-STR #"WXME")
-(define MRED-FORMAT-STR #"01")
-(define MRED-VERSION-STR #"08")
-(define MRED-VERSION-RX #rx"^0[1-8]$")
-
 (define (write-editor-version f b)
   (send b write-bytes MRED-READER-STR)
   (send b write-bytes MRED-START-STR)
@@ -1866,7 +1861,7 @@
            (error 'load-file "unknown format number in WXME file format: ~s"
                   (send s get-s-read-format))
            #f))
-   (or (regexp-match MRED-VERSION-RX (send s get-s-read-format))
+   (or (regexp-match MRED-VERSION-RX (send s get-s-read-version))
        (if show-errors?
            (error 'load-file "unknown version number in WXME file format")
            #f))

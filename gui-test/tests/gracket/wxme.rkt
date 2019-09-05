@@ -1,13 +1,15 @@
 #lang racket/base
 (require racket/class
          racket/contract
+         racket/file
          (only-in racket/gui/base
                   color% 
                   font%
                   the-clipboard
                   clipboard-client%
                   key-event%
-                  mouse-event%)
+                  mouse-event%
+                  [text% full-text%])
          racket/snip
          mred/private/wxme/mline
          mred/private/wxme/editor
@@ -1014,6 +1016,33 @@
 (expect (send t get-text) "")
 (expect (send t insert-port in8) 'standard)
 (expect (send t get-text) "two\noneone\u3BBone")
+
+;; ----------------------------------------
+;; Version and format checking
+
+(let ()
+  (define tmp (make-temporary-file))
+
+  (define (test-unknown bstr what)
+    (call-with-output-file*
+     tmp
+     #:exists 'truncate
+     (lambda (o)
+       (write-bytes bstr o)))
+
+    (expect (regexp-match
+             #rx"unknown .* in WXME file format"
+             (with-handlers ([exn? exn-message])
+               (send (new full-text%) load-file tmp)
+               "read, but shouldn't"))
+            (list (format "unknown ~a in WXME file format" what))))
+
+  (test-unknown #"#reader(lib\"read.ss\"\"wxme\")WXME0199 ## "
+                "version number")
+  (test-unknown #"#reader(lib\"read.ss\"\"wxme\")WXME0201 ## "
+                "format number")
+
+  (delete-file tmp))
 
 ;; ----------------------------------------
 ;; Styles on text
