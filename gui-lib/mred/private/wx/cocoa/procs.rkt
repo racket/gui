@@ -198,7 +198,10 @@
   (get-color (lambda () (tell NSColor selectedTextBackgroundColor))))
 
 (define (get-label-foreground-color)
-  (get-color (lambda () (tell NSColor labelColor))))
+  (get-color (lambda ()
+               (if (version-10.10-or-later?)
+                   (tell NSColor labelColor)
+                   (tell NSColor blackColor)))))
 
 (define (get-label-background-color)
   (get-color (lambda ()
