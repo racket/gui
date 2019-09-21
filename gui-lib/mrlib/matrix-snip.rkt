@@ -31,11 +31,32 @@
 
 ;; representing a matrix that renders itself as an image, as in "image.rkt"
 (define visible-matrix%
-  (class cache-image-snip%
+  (class cache-image-snip% 
     (inherit set-snipclass get-argb)
     (inherit-field dc-proc argb-proc width height argb px py)
     
+    (define/override (equal-to? other recur)
+      (define my-mat (or (and M (send M ->rectangle)) R))
+      (define other-mat
+	(cond
+	  [(is-a? other matrix<%>)
+	   (send other ->rectangle)]
+	  [(is-a? other visible-matrix%)
+	   (define other-m (get-field M other))
+	   (if other-m
+	       (send other-m ->rectangle)
+	       (get-field R other))]
+	  [else #f]))
+      (recur my-mat other-mat))
+
+    (define/override (equal-hash-code-of hash-code)
+      (hash-code M))
+
+    (define/override (equal-secondary-hash-code-of hash-code)
+      (hash-code M))
+    
     (init M_0)
+    
     (field 
      [M (if (is-a? M_0 matrix<%>) M_0 #f)]
      [R (cond
