@@ -115,7 +115,9 @@
                    ;; (and this works despite the docs's claim that
                    ;; `runModalForWindow:` centers its argument).
                    (begin
-                     (tell app runModalForWindow: ns)
+                     (if (version-10.15-or-later?)
+                         (tell ns runModal)
+                         (tell app runModalForWindow: ns))
                      (set-box! completion #f)
                      completion-result)
                    ;; For 10.9 and earlier, runModel will do the hard part
