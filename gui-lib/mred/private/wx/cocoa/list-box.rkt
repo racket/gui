@@ -2,7 +2,7 @@
 (require ffi/unsafe/objc
          ffi/unsafe
          racket/class
-         (only-in racket/list take drop)
+         (only-in racket/list index-of take drop)
           "../../syntax.rkt"
           "../../lock.rkt"
          "item.rkt"
@@ -86,6 +86,8 @@
   (define num-columns (length columns))
   (define data (map (lambda (x) (box #f)) choices))
   (define count (length choices))
+  (define ignore-selections '())
+  (define last-selections '())
 
   (define cocoa (as-objc-allocation
                  (tell (tell NSScrollView alloc) init)))
@@ -309,7 +311,16 @@
 
   (define callback cb)
   (define/public (clicked event-type)
-    (unless (zero? count)
+    (define current-selections (get-selections))
+    (define ignored-idx (index-of ignore-selections current-selections))
+    (when ignored-idx (set! ignore-selections (take ignore-selections ignored-idx)))
+
+    (define repeated? (equal? last-selections current-selections))
+    (set! last-selections current-selections)
+
+    (unless (or (zero? count)
+                ignored-idx
+                repeated?)
       (callback this (new control-event%
                           [event-type event-type]
                           [time-stamp (current-milliseconds)]))))
@@ -333,11 +344,22 @@
     (if on?
         (atomically
          (with-autorelease
+          (set! ignore-selections
+            (cons (if (and extend? allow-multi?)
+                      (sort (cons i (get-selections)) <)
+                      `(,i))
+                  ignore-selections))
+
           (let ([index (tell (tell NSIndexSet alloc) initWithIndex: #:type _NSUInteger i)])
             (tellv content-cocoa 
                    selectRowIndexes: index
                    byExtendingSelection: #:type _BOOL (and extend? allow-multi?)))))
-        (tellv content-cocoa deselectRow: #:type _NSInteger i)))
+        (begin
+          (set! ignore-selections
+            (if (null? ignore-selections) null
+                  (cons (remove i (car ignore-selections))
+                        (cdr ignore-selections))))
+          (tellv content-cocoa deselectRow: #:type _NSInteger i))))
   (define/public (set-selection i)
     (select i #t #f))
 
@@ -350,6 +372,8 @@
     (reset))
   (define/public (clear)
     (atomically
+     (set! ignore-selections '())
+     (set! last-selections '())
      (set! count 0)
      (set! itemss (for/list ([items (in-list itemss)])
                     null))
@@ -357,6 +381,8 @@
     (reset))
   (define/public (set choices . more-choices)
     (atomically
+     (set! ignore-selections '())
+     (set! last-selections '())
      (set! itemss (cons choices more-choices))
      (set! data (map (lambda (x) (box #f)) choices))
      (set! count (length choices)))
