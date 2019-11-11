@@ -34,8 +34,10 @@
 (define-user32 EnumThreadWindows (_wfun _DWORD _fpointer _LPARAM -> _BOOL))
 (define-user32 GetWindow (_wfun _HWND _UINT -> _HWND))
 (define-kernel32 GetCurrentThreadId (_wfun -> _DWORD))
+(define-user32 GetAncestor (_wfun _HWND _UINT -> _HWND))
+(define-user32 IsChild (_wfun _HWND _HWND -> _BOOL))
 
-(define _enum_proc (_wfun _HWND _LPARAM -> _BOOL))
+(define _enum_proc (_wfun #:atomic? #t _HWND _LPARAM -> _BOOL))
 
 (define free-msg
   ((deallocator)
@@ -45,7 +47,9 @@
 (define malloc-msg
   ((allocator free-msg)
    (lambda ()
-     (malloc _MSG 'raw))))
+     (define p (malloc _MSG 'raw))
+     (cpointer-push-tag! p 'MSG)
+     p)))
 
 (define (events-ready?)
   ;; Check for events only since the last PeekMessage:
@@ -97,7 +101,10 @@
 ;; For use only in the event-pump thread:
 (define msg (malloc-msg))
 
+(define known-hwnds (make-hash))
+
 (define (check-window-event hwnd data)
+  (hash-set! known-hwnds hwnd #t)
   ;; in atomic mode
   (let* ([root (let loop ([hwnd hwnd])
                  (let ([p (GetWindow hwnd GW_OWNER)])
@@ -123,16 +130,20 @@
 
 (define check_window_event (function-ptr check-window-event _enum_proc))
 
+(define minus-one (cast -1 _intptr _HWND))
+
 (define (dispatch-all-ready)
   ;; in atomic mode
   (pre-event-sync #f)
   (clean-up-destroyed)
 
-  ;; Windows uses messages above #x4000 to hilite items in the task bar,
-  ;; etc. In any case, these messages won't be handled by us, so they
-  ;; can't trigger callbacks.
+  ;; Windows uses messages above #x0400 to hilite items in the task
+  ;; bar, implement input methods (such as pinyin input), etc. In any
+  ;; case, these messages won't be handled by us, so they can't
+  ;; trigger callbacks. Also, handle messages without a window.
   (let loop ()
-    (let ([v (PeekMessageW msg #f #x4000 #xFFFF PM_REMOVE)])
+    (let ([v (or (PeekMessageW msg #f WM_USER #xFFFF PM_REMOVE)
+		 (PeekMessageW msg minus-one 0 0 PM_REMOVE))])
       (when v
         (TranslateMessage msg)
         (DispatchMessageW msg)
@@ -140,7 +151,21 @@
 
   ;; Per-window checking lets us put an event in the right
   ;; eventspace:
-  (EnumThreadWindows (GetCurrentThreadId) check_window_event 0))
+  (hash-clear! known-hwnds)
+  (EnumThreadWindows (GetCurrentThreadId) check_window_event 0)
+
+  ;; Just in case, double-check for messages to windows that we
+  ;; don't recognize from enumeration:
+  (let loop ()
+    (let ([v (PeekMessageW msg #f 0 0 PM_NOREMOVE)])
+      (when v
+	(let ([hwnd (MSG-hwnd msg)])
+	  (unless (for/or ([k (in-hash-keys known-hwnds)])
+		    (IsChild k hwnd))
+	    (when (PeekMessageW msg hwnd 0 0 PM_REMOVE)
+              (TranslateMessage msg)
+              (DispatchMessageW msg)
+              (loop))))))))
 
 (define (win32-start-event-pump)
   (thread (lambda ()
