@@ -255,24 +255,27 @@
       (define s (cairo_get_target cr))
       (cairo_surface_flush s)
       (define cg (cairo_quartz_surface_get_cg_context s))
-      (define orig-size (CGLayerGetSize layer))
-      (atomically
-       (reset-cairo-clipping cg)
-       (CGContextSaveGState cg)
-       (CGContextScaleCTM cg bs (- bs))
-       (define sz (CGLayerGetSize layer))
-       (define lh (NSSize-height sz))
-       (CGContextTranslateCTM cg 0 (- lh))
-       (CGContextClipToRect cg (make-NSRect
-                                (make-NSPoint x2 (- lh (+ y2 h)))
-                                (make-NSSize w h)))
-       (CGContextDrawLayerAtPoint cg
-                                  (make-NSPoint (- x2 x) (- y y2))
-                                  layer)
-       (CGContextRestoreGState cg)
-       (cairo_surface_mark_dirty s))
-      #t)
-    
+      (cond
+        [cg
+         (define orig-size (CGLayerGetSize layer))
+         (atomically
+          (reset-cairo-clipping cg)
+          (CGContextSaveGState cg)
+          (CGContextScaleCTM cg bs (- bs))
+          (define sz (CGLayerGetSize layer))
+          (define lh (NSSize-height sz))
+          (CGContextTranslateCTM cg 0 (- lh))
+          (CGContextClipToRect cg (make-NSRect
+                                   (make-NSPoint x2 (- lh (+ y2 h)))
+                                   (make-NSSize w h)))
+          (CGContextDrawLayerAtPoint cg
+                                     (make-NSPoint (- x2 x) (- y y2))
+                                     layer)
+          (CGContextRestoreGState cg)
+          (cairo_surface_mark_dirty s))
+         #t]
+        [else #f]))
+
     (define/private (reset-cairo-clipping cg)
       ;; A Cairo flush doesn't reset the clipping region. The
       ;; implementation of clipping is that there's a saved
