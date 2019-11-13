@@ -1,7 +1,7 @@
 #lang scribble/doc
 @(require "common.rkt")
 
-@title[#:style 'hidden]
+@title[#:style 'hidden]{@racket[event%]}
 
 The bindings documented in this section are also provided by the
 @racketmodname[racket/gui/base] library.
