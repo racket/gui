@@ -538,7 +538,7 @@
                               (set! track-clickback click)
                               (when s-admin
                                 (send s-admin update-cursor))
-                              (set-clickback-hilited?! track-clickback #t)))
+                              (set-clickback-hilited track-clickback #t)))
                         (begin
                           (set! dragstart now)
                           (set! dragging? #t)
@@ -561,7 +561,7 @@
                     (let ([cb (if (x . >= . 0)
                                   (find-clickback now y)
                                   #f)])
-                      (set-clickback-hilited?! track-clickback (eq? cb track-clickback)))])]
+                      (set-clickback-hilited track-clickback (eq? cb track-clickback)))])]
                  [(send event button-up?)
                   (cond
                    [dragging?
@@ -569,7 +569,7 @@
                    [tracking?
                     (set! tracking? #f)
                     (when (clickback-hilited? track-clickback)
-                      (set-clickback-hilited?! track-clickback #f)
+                      (set-clickback-hilited track-clickback #f)
                       (let ([click track-clickback])
                         ((clickback-f click) this (clickback-start click) (clickback-end click))))
                     (when s-admin
@@ -579,7 +579,7 @@
                   (when tracking?
                     (set! tracking? #f)
                     (when (clickback-hilited? track-clickback)
-                      (set-clickback-hilited?! track-clickback #f)
+                      (set-clickback-hilited track-clickback #f)
                       (let ([click track-clickback])
                         ((clickback-f click) this (clickback-start click) (clickback-end click)))))
                   (when s-admin
@@ -2532,7 +2532,7 @@
         
         (begin-edit-sequence)
         (flash-on (clickback-start c) (clickback-end c) #f #f 0)
-        (do-change-style (clickback-start c) (clickback-end c) #f (clickback-delta c) #f)
+        (do-change-style (clickback-start c) (clickback-end c) #f (clickback-delta c) #f #f)
         (end-edit-sequence)
 
         (set-clickback-unhilite! c (s-end-intercept))]
@@ -2540,7 +2540,7 @@
         (perform-undo-list (clickback-unhilite c))
         (set-clickback-unhilite! c null)
         (flash-off)])
-      (set-clickback-hilited?! (and on? #t))))
+      (set-clickback-hilited?! c (and on? #t))))
 
   ;; ----------------------------------------
 

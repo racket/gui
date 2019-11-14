@@ -856,7 +856,7 @@
   (define/public (add-undo-rec rec)
     (cond
      [interceptmode?
-      (send intercepted append rec)]
+      (set! intercepted (cons rec intercepted))]
      [undomode?
       (append-undo rec #t)]
      [(zero? s-noundomode)
@@ -1024,9 +1024,9 @@
   
   (def/public (s-end-intercept)
     (begin0
-     intercepted
-     (set! interceptmode? #f)
-     (set! intercepted null)))
+      (reverse intercepted)
+      (set! interceptmode? #f)
+      (set! intercepted null)))
 
   (define/public (undo-preserves-all-history?)
     emacs-style-undo?)
