@@ -121,7 +121,7 @@ If @racket[inline?] is not @racket[#f], the image data will be saved
 
 @history[#:changed "1.1" @elem{Added the @racket[backing-scale] argument.}]}
 
-@defmethod[(other-equal-to? [snip (is-a?/c image-snip%)]
+@defmethod[(other-equal-to? [snip (is-a?/c snip%)]
                             [equal? (any/c any/c . -> . boolean?)])
            boolean?]{
 
