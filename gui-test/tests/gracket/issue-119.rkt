@@ -1,8 +1,7 @@
-#lang racket
+#lang racket/base
+(require racket/gui pict pict/snip rackunit)
 
 ;; Check the fix for https://github.com/racket/gui/issues/119
-
-(require racket/gui pict pict/snip rackunit)
 (define s1 (make-object image-snip% (pict->bitmap (text "hello"))))
 (define s2 (make-object pict-snip% (text "hello")))
 (define s3 (make-object image-snip% (pict->bitmap (text "hello"))))
