@@ -15,7 +15,9 @@
                      "rackunit-lib"
                      "pconvert-lib"
                      "compatibility-lib"
-                     "sandbox-lib"))
+                     "sandbox-lib"
+                     "pict-lib"
+                     "pict-snip-lib"))
 (define update-implies '("gui-lib"))
 
 (define pkg-desc "tests for \"gui\"")
