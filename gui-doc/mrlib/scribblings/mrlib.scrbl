@@ -26,6 +26,7 @@
 @include-section["syntax-browser.scrbl"]
 @include-section["tex-table.scrbl"]
 @include-section["terminal.scrbl"]
+@include-section["panel-wob.scrbl"]
 
 @section{Acknowledgments}
 
