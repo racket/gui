@@ -103,6 +103,7 @@
       enable is-enabled? on-superwindow-enable
       get-label set-label get-plain-label
       get-client-size get-size get-width get-height get-x get-y
+      wheel-event-mode
       get-cursor set-cursor popup-menu
       show is-shown? on-superwindow-show refresh
       warp-pointer
@@ -212,6 +213,19 @@
                                               x))
                       (send wx set-cursor x)
                       (set! cursor x)))]
+
+       [wheel-event-mode
+        (entry-point
+         (case-lambda
+           [() (send wx get-wheel-steps-mode)]
+           [(mode)
+            (case mode
+              [(one integer fraction)
+               (send wx set-wheel-steps-mode mode)]
+              [else
+               (raise-argument-error (who->name '(method window<%> wheel-event-mode))
+                                     "(or/c 'one 'integer 'fraction)"
+                                     mode)])]))]
 
        [show (entry-point (lambda (on?) 
                             (when on?

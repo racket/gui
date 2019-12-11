@@ -159,10 +159,10 @@ Gets the virtual key code for the key event. The virtual key code is
 @item{@indexed-racket['f24]}
 @item{@indexed-racket['numlock]}
 @item{@indexed-racket['scroll]}
-@item{@indexed-racket['wheel-up] --- @index["wheel on mouse"]{mouse} wheel up one notch}
-@item{@indexed-racket['wheel-down] --- mouse wheel down one notch}
-@item{@indexed-racket['wheel-left] --- mouse wheel left one notch}
-@item{@indexed-racket['wheel-right] --- mouse wheel right one notch}
+@item{@indexed-racket['wheel-up] --- @index["wheel on mouse"]{mouse} wheel up; see @method[key-event% get-wheel-steps]}
+@item{@indexed-racket['wheel-down] --- mouse wheel down; see @method[key-event% get-wheel-steps]}
+@item{@indexed-racket['wheel-left] --- mouse wheel left; see @method[key-event% get-wheel-steps]}
+@item{@indexed-racket['wheel-right] --- mouse wheel right; see @method[key-event% get-wheel-steps]}
 @item{@indexed-racket['release] --- indicates a key-release event}
 @item{@indexed-racket['press] --- indicates a key-press event; usually only from @racket[get-key-release-code]}
 ]
@@ -313,6 +313,21 @@ Returns @racket[#t] if the Shift key was down for the event.
 
 }
 
+
+@defmethod[(get-wheel-steps)
+           nonnegative-real?]{
+
+Returns the number of wheel steps represented by a @racket['wheel-up],
+@racket['wheel-down], @racket['wheel-left], or @racket['wheel-right]
+event. For a system-generated event, the value is always positive for
+a wheel event, and it is always @racket[0.0] for other events. The
+initial value for a newly created @racket[key-event%] is @racket[0.0].
+
+See also @xmethod[window<%> wheel-event-mode].
+
+@history[#:added "1.43"]}
+
+
 @defmethod[(get-x)
            exact-integer?]{
 
@@ -450,6 +465,14 @@ Sets the key code produced by @method[key-event%
 Sets whether the Shift key was down for the event.
 
 }
+
+
+@defmethod[(set-wheel-steps [steps nonnegative-real?]) void?]{
+
+Sets the number of steps for a wheel event. See @method[key-event% get-wheel-steps].
+
+@history[#:added "1.43"]}
+
 
 @defmethod[(set-x [pos exact-integer?])
            void?]{

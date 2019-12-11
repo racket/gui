@@ -124,3 +124,6 @@
 (define NSWindowCollectionBehaviorFullScreenPrimary   128)
 (define NSWindowCollectionBehaviorFullScreenAuxiliary 256)
 (define NSFullScreenWindowMask (1 . << . 14))
+
+;; Amount of scroll to count as one step:
+(define WHEEL-STEP-AMT 12.0)

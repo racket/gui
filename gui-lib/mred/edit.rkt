@@ -35,6 +35,7 @@
 			       (super-new))
 			     "MrEdIt" #f 620 450))
       (define c (make-object editor-canvas% f))
+      (send c set-scroll-via-copy #t)
       (define e (make-object (class editor%
                                (define/override (set-modified mod?)
 				 (send f modified mod?)

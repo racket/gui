@@ -44,7 +44,8 @@
 				   #f
 				   (or (= message WM_KEYUP)
 				       (= message WM_SYSKEYUP))
-				   (MSG-hwnd msg))
+				   (MSG-hwnd msg)
+				   0.0)
 	     ;; If ToUnicode() was used for checking, claim that
 	     ;; an event will be generated so that TranslateEvent()
 	     ;; is not used.
@@ -151,7 +152,7 @@
           VK_SCROLL 'scroll))
 
 
-(define (maybe-make-key-event just-check? wParam lParam is-char? is-up? hwnd)
+(define (maybe-make-key-event just-check? wParam lParam is-char? is-up? hwnd wheel-steps)
   (let* ([control-down? (not (zero? (arithmetic-shift (GetKeyState VK_CONTROL) -1)))]
          [rcontrol-down? (and control-down?
                               (not (zero? (arithmetic-shift (GetKeyState VK_RCONTROL) -1))))]
@@ -305,6 +306,8 @@
 		   (send e set-other-altgr-key-code (as-key other-altgr)))
 		 (when other-shift-altgr 
 		   (send e set-other-shift-altgr-key-code (as-key other-shift-altgr)))
+		 (unless (eqv? wheel-steps 0.0)
+		   (send e set-wheel-steps wheel-steps))
                  e))))))
 
 (define (key-symbol-to-menu-key k)

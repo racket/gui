@@ -93,7 +93,8 @@
               [[(make-or-false (make-alts symbol? char?)) other-shift-key-code] #f]
               [[(make-or-false (make-alts symbol? char?)) other-altgr-key-code] #f]
               [[(make-or-false (make-alts symbol? char?)) other-shift-altgr-key-code] #f]
-              [[(make-or-false (make-alts symbol? char?)) other-caps-key-code] #f])
+              [[(make-or-false (make-alts symbol? char?)) other-caps-key-code] #f]
+              [[nonnegative-real? wheel-steps] 0.0])
   (super-new [time-stamp time-stamp]))
 
 (defclass control-event% event%

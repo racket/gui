@@ -181,22 +181,22 @@
 			      (unhide-cursor)
 			      (default w msg wParam lParam))
 			    0)])
-	    (do-key w msg wParam lParam #f #f void)
+	    (do-key w msg wParam lParam #f #f void 0.0)
 	    result)]
          [(= msg WM_KEYDOWN)
-          (do-key w msg wParam lParam #f #f default)]
+          (do-key w msg wParam lParam #f #f default 0.0)]
          [(= msg WM_KEYUP)
-          (do-key w msg wParam lParam #f #t default)]
+          (do-key w msg wParam lParam #f #t default 0.0)]
          [(= msg WM_SYSCHAR)
 	  (let ([result (if (= wParam VK_MENU)
 			    (begin
 			      (unhide-cursor)
 			      (default w msg wParam lParam))
 			    0)])
-	    (do-key w msg wParam lParam #t #f void)
+	    (do-key w msg wParam lParam #t #f void 0.0)
 	    result)]
          [(= msg WM_CHAR)
-          (do-key w msg wParam lParam #t #f default)]
+          (do-key w msg wParam lParam #t #f default 0.0)]
 	 [(= msg WM_MOUSEWHEEL)
           (set! y-wheel (gen-wheels w msg lParam (+ (HIWORD wParam) y-wheel) 'wheel-down 'wheel-up))
 	  0]
@@ -555,20 +555,47 @@
   (define/public (get-top-frame)
     (send parent get-top-frame))
 
+  (define wheel-steps-mode 'one)
+  (define/public (get-wheel-steps-mode) wheel-steps-mode)
+  (define/public (set-wheel-steps-mode mode) (set! wheel-steps-mode mode))
+
   (define/private (gen-wheels w msg lParam amt down up)
     (let loop ([amt amt])
       (cond
-       [((abs amt) . < . WHEEL_DELTA)
-	amt]
-       [(negative? amt)
-        (do-key w msg down lParam #f #f void)
-	(loop (+ amt WHEEL_DELTA))]
-       [else
-	(do-key w msg up lParam #f #f void)
-	(loop (- amt WHEEL_DELTA))])))
+        [((abs amt) . < . WHEEL_DELTA)
+         (case wheel-steps-mode
+           [(one integer) amt]
+           [(fraction)
+            (unless (zero? amt)
+              (do-key w msg down lParam #f #f void (/ amt (exact->inexact WHEEL_DELTA))))
+            0.0])]
+        [(negative? amt)
+         (case wheel-steps-mode
+           [(one)
+            (do-key w msg down lParam #f #f void 1.0)
+            (loop (+ amt WHEEL_DELTA))]
+           [(integer)
+            (define steps (quotient (- amt) WHEEL_DELTA))
+            (do-key w msg down lParam #f #f void (exact->inexact steps))
+            (loop (+ amt (* steps WHEEL_DELTA)))]
+           [else
+            (do-key w msg down lParam #f #f void (/ (- amt) (exact->inexact WHEEL_DELTA)))
+            0.0])]
+        [else
+         (case wheel-steps-mode
+           [(one)
+            (do-key w msg up lParam #f #f void 1.0)
+            (loop (- amt WHEEL_DELTA))]
+           [(integer)
+            (define steps (quotient amt WHEEL_DELTA))
+            (do-key w msg up lParam #f #f void (exact->inexact steps))
+            (loop (- amt (* steps WHEEL_DELTA)))]
+           [else
+            (do-key w msg up lParam #f #f void (/ amt (exact->inexact WHEEL_DELTA)))
+            0.0])])))
   
-  (define/private (do-key w msg wParam lParam is-char? is-up? default)
-    (let ([e (maybe-make-key-event #f wParam lParam is-char? is-up? hwnd)])
+  (define/private (do-key w msg wParam lParam is-char? is-up? default wheel-steps)
+    (let ([e (maybe-make-key-event #f wParam lParam is-char? is-up? hwnd wheel-steps)])
       (if (or (and e
 		   (if (definitely-wants-event? w msg wParam e)
 		       (begin

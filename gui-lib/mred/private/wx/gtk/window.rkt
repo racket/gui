@@ -257,7 +257,11 @@
 (define-signal-handler connect-scroll "scroll-event"
   (_fun _GtkWidget _GdkEventScroll-pointer -> _gboolean)
   (lambda (gtk event)
-    (do-key-event gtk event #f #t)))
+    (let loop ()
+      (do-key-event gtk event #f #t)
+      (when (or ((abs scroll-accum-x) . >= . 1)
+                ((abs scroll-accum-y) . >= . 1))
+        (loop)))))
 
 (define scroll-accum-x 0)
 (define scroll-accum-y 0)
@@ -281,54 +285,86 @@
                 [keyval->code (lambda (kv)
                                 (or
                                  (map-key-code kv)
-                                 (integer->char (gdk_keyval_to_unicode kv))))]
-                [key-code (cond
-                           [scroll?
-                            (let ([dir (GdkEventScroll-direction event)])
-                              (cond
-                               [(= dir GDK_SCROLL_UP) 'wheel-up]
-                               [(= dir GDK_SCROLL_DOWN) 'wheel-down]
-                               [(= dir GDK_SCROLL_LEFT) 'wheel-left]
-                               [(= dir GDK_SCROLL_RIGHT) 'wheel-right]
-                               [(= dir GDK_SCROLL_SMOOTH)
-                                (define-values (dx dy) (gdk_event_get_scroll_deltas event))
-                                (set! scroll-accum-x (+ scroll-accum-x dx))
-                                (set! scroll-accum-y (+ scroll-accum-y dy))
-                                (cond
-                                  [(>= scroll-accum-y 1)
-                                   (set! scroll-accum-y (sub1 scroll-accum-y))
-                                   'wheel-down]
-                                  [(<= scroll-accum-y -1)
-                                   (set! scroll-accum-y (add1 scroll-accum-y))
-                                   'wheel-up]
-                                  [(>= scroll-accum-x 1)
-                                   (set! scroll-accum-x (sub1 scroll-accum-x))
-                                   'wheel-right]
-                                  [(<= scroll-accum-x -1)
-                                   (set! scroll-accum-x (add1 scroll-accum-x))
-                                   'wheel-left]
-                                  [else #f])]
-                               [else #f]))]
-                           [(and (string? im-str)
-                                 (= 1 (string-length im-str)))
-                            (string-ref im-str 0)]
-                           [else
-                            (keyval->code (GdkEventKey-keyval event))])]
-                [k (new key-event%
-                        [key-code key-code]
-                        [shift-down (bit? modifiers GDK_SHIFT_MASK)]
-                        [control-down (bit? modifiers GDK_CONTROL_MASK)]
-                        [meta-down (bit? modifiers GDK_MOD1_MASK)]
-                        [mod3-down (bit? modifiers GDK_MOD3_MASK)]
-                        [mod4-down (bit? modifiers GDK_MOD4_MASK)]
-                        [mod5-down (bit? modifiers GDK_MOD5_MASK)]
-                        [alt-down (bit? modifiers GDK_META_MASK)]
-                        [x 0]
-                        [y 0]
-                        [time-stamp (if scroll?
-                                        (GdkEventScroll-time event)
-                                        (GdkEventKey-time event))]
-                        [caps-down (bit? modifiers GDK_LOCK_MASK)])])
+                                 (integer->char (gdk_keyval_to_unicode kv))))])
+           (define-values (key-code wheel-steps)
+             (cond
+               [scroll?
+                (let ([dir (GdkEventScroll-direction event)])
+                  (cond
+                    [(= dir GDK_SCROLL_UP) (values 'wheel-up 1.0)]
+                    [(= dir GDK_SCROLL_DOWN) (values 'wheel-down 1.0)]
+                    [(= dir GDK_SCROLL_LEFT) (values 'wheel-left 1.0)]
+                    [(= dir GDK_SCROLL_RIGHT) (values 'wheel-right 1.0)]
+                    [(= dir GDK_SCROLL_SMOOTH)
+                     (define mode (send wx get-wheel-steps-mode))
+                     (define-values (dx dy) (gdk_event_get_scroll_deltas event))
+                     (set! scroll-accum-x (+ scroll-accum-x dx))
+                     (set! scroll-accum-y (+ scroll-accum-y dy))
+                     (case mode
+                       [(one integer)
+                        (define y-steps (case mode
+                                          [(one) 1.0]
+                                          [else (floor (abs scroll-accum-y))]))
+                        (define x-steps (case mode
+                                          [(one) 1.0]
+                                          [else (floor (abs scroll-accum-x))]))
+                        (cond
+                          [(>= scroll-accum-y 1)
+                           (set! scroll-accum-y (- scroll-accum-y y-steps))
+                           (values 'wheel-down y-steps)]
+                          [(<= scroll-accum-y -1)
+                           (set! scroll-accum-y (+ scroll-accum-y y-steps))
+                           (values 'wheel-up y-steps)]
+                          [(>= scroll-accum-x 1)
+                           (set! scroll-accum-x (- scroll-accum-x x-steps))
+                           (values 'wheel-right x-steps)]
+                          [(<= scroll-accum-x -1)
+                           (set! scroll-accum-x (+ scroll-accum-x x-steps))
+                           (values 'wheel-left x-steps)]
+                          [else (values #f 0.0)])]
+                       [else
+                        ;; 'fraction mode
+                        (cond
+                          [(> scroll-accum-y 0.0)
+                           (define y-steps scroll-accum-y)
+                           (set! scroll-accum-y 0.0)
+                           (values 'wheel-down y-steps)]
+                          [(< scroll-accum-y 0.0)
+                           (define y-steps (- scroll-accum-y))
+                           (set! scroll-accum-y 0.0)
+                           (values 'wheel-up y-steps)]
+                          [(> scroll-accum-x 0.0)
+                           (define x-steps scroll-accum-x)
+                           (set! scroll-accum-x 0.0)
+                           (values 'wheel-right x-steps)]
+                          [(< scroll-accum-x 0.0)
+                           (define x-steps (- scroll-accum-x))
+                           (set! scroll-accum-x 0.0)
+                           (values 'wheel-left x-steps)]
+                          [else (values #f 0.0)])])]
+                    [else (values #f 0.0)]))]
+               [(and (string? im-str)
+                     (= 1 (string-length im-str)))
+                (values (string-ref im-str 0) 0.0)]
+               [else
+                (values (keyval->code (GdkEventKey-keyval event)) 0.0)]))
+           (define k (new key-event%
+                          [key-code key-code]
+                          [shift-down (bit? modifiers GDK_SHIFT_MASK)]
+                          [control-down (bit? modifiers GDK_CONTROL_MASK)]
+                          [meta-down (bit? modifiers GDK_MOD1_MASK)]
+                          [mod3-down (bit? modifiers GDK_MOD3_MASK)]
+                          [mod4-down (bit? modifiers GDK_MOD4_MASK)]
+                          [mod5-down (bit? modifiers GDK_MOD5_MASK)]
+                          [alt-down (bit? modifiers GDK_META_MASK)]
+                          [x 0]
+                          [y 0]
+                          [time-stamp (if scroll?
+                                          (GdkEventScroll-time event)
+                                          (GdkEventKey-time event))]
+                          [caps-down (bit? modifiers GDK_LOCK_MASK)]))
+           (unless (zero? wheel-steps)
+             (send k set-wheel-steps wheel-steps))
            (when (or (and (not scroll?)
                           (let-values ([(s ag sag cl) (get-alts event)]
                                        [(keyval->code*) (lambda (v)
@@ -803,6 +839,10 @@
 
     (define/public (on-char e) (void))
     (define/public (on-event e) (void))
+
+    (define wheel-steps-mode 'one)
+    (define/public (get-wheel-steps-mode) wheel-steps-mode)
+    (define/public (set-wheel-steps-mode mode) (set! wheel-steps-mode mode))
 
     (define skip-enter-leave? #f)
     (define/public skip-enter-leave-events 

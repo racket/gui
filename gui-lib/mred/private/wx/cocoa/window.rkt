@@ -159,28 +159,17 @@
         (super-tell #:type _void otherMouseDragged: event))]
 
   [-a _void (scrollWheel: [_id event])
-      (let ([delta-y (tell #:type _CGFloat event deltaY)]
-            [delta-x (tell #:type _CGFloat event deltaX)])
-        (let ([evts (append (cond
-                             [(zero? delta-y) '()]
-                             [(positive? delta-y) '(wheel-up)]
-                             [else '(wheel-down)])
-                            (cond
-                             [(zero? delta-x) '()]
-                             [(positive? delta-x) '(wheel-left)]
-                             [else '(wheel-right)]))])
-          (unless (and (pair? evts)
-                       (do-key-event wxb event self #f #f evts))
-            (super-tell #:type _void scrollWheel: event))))]
-  
+      (unless (do-wheel-event wxb event self)
+        (super-tell #:type _void scrollWheel: event))]
+
   [-a _void (keyDown: [_id event])
-      (unless (do-key-event wxb event self #t #f #f)
+      (unless (do-key-event wxb event self #t #f #f 0.0 0.0)
         (super-tell #:type _void keyDown: event))]
   [-a _void (keyUp: [_id event])
-      (unless (do-key-event wxb event self #f #f #f)
+      (unless (do-key-event wxb event self #f #f #f 0.0 0.0)
         (super-tell #:type _void keyUp: event))]
   [-a _void (flagsChanged: [_id event])
-      (unless (do-key-event wxb event self #f #t #f)
+      (unless (do-key-event wxb event self #f #t #f 0.0 0.0)
         (super-tell #:type _void flagsChanged: event))]
   [-a _void (insertText: [_NSStringOrAttributed str])
       (set-saved-marked! wxb #f #f)
@@ -303,7 +292,7 @@
 
 (define _ptr-to-id (_ptr i _id))
 
-(define (do-key-event wxb event self down? mod-change? wheel)
+(define (do-key-event wxb event self down? mod-change? wheel wheel-x-steps wheel-y-steps)
   (define type (tell #:type _ushort event type))
   (define key-down? (= (bitwise-and type #b1111) NSKeyDown))
   (let ([wx (->wx wxb)])
@@ -384,6 +373,12 @@
                             [y (->long y)]
                             [time-stamp (->long (* (tell #:type _double event timestamp) 1000.0))]
                             [caps-down (bit? modifiers NSAlphaShiftKeyMask)])])
+                (when (or (eq? one-code 'wheel-up)
+                          (eq? one-code 'wheel-down))
+                  (send k set-wheel-steps wheel-y-steps))
+                (when (or (eq? one-code 'wheel-left)
+                          (eq? one-code 'wheel-right))
+                  (send k set-wheel-steps wheel-y-steps))
                 (unless (or wheel mod-change?)
                   (let ([alt-str (tell #:type _NSString event charactersIgnoringModifiers)])
                     (when (and (string? alt-str)
@@ -455,6 +450,71 @@
                                        (lambda () (send wx dispatch-on-char k #t))
                                        #t))))
             result)))))))
+
+(define (do-wheel-event wxb event self)
+  (define wx (->wx wxb))
+  (cond
+    [(not wx) #f]
+    [else
+     (define-values (leftover-y leftover-x mode) (send wx get-wheel-state))
+     (let loop ([delta-y (+ (if (version-10.7-or-later?)
+                                (* (tell #:type _CGFloat event scrollingDeltaY)
+                                   (if (tell #:type _BOOL event hasPreciseScrollingDeltas)
+                                       1
+                                       WHEEL-STEP-AMT))
+                                (tell #:type _CGFloat event deltaY))
+                            leftover-y)]
+                [delta-x (+ (if (version-10.7-or-later?)
+                                (* (tell #:type _CGFloat event scrollingDeltaX)
+                                   (if (tell #:type _BOOL event hasPreciseScrollingDeltas)
+                                       1
+                                       WHEEL-STEP-AMT))
+                                (tell #:type _CGFloat event deltaX))
+                            leftover-x)])
+       (cond
+         [(and ((abs delta-y) . < . WHEEL-STEP-AMT)
+               ((abs delta-x) . < . WHEEL-STEP-AMT))
+          (send wx set-wheel-state delta-y delta-x)]
+         [else
+          (define y-steps (case mode
+                            [(fraction)
+                             (/ (abs delta-y) WHEEL-STEP-AMT)]
+                            [(integer)
+                             (truncate (/ (abs delta-y) WHEEL-STEP-AMT))]
+                            [else
+                             (if ((abs delta-y) . < . WHEEL-STEP-AMT)
+                                 0.0
+                                 1.0)]))
+          (define x-steps (case mode
+                            [(fraction)
+                             (/ (abs delta-x) WHEEL-STEP-AMT)]
+                            [(integer)
+                             (truncate (/ (abs delta-x) WHEEL-STEP-AMT))]
+                            [else (if ((abs delta-x) . < . WHEEL-STEP-AMT)
+                                      0.0
+                                      1.0)]))
+          (let ([evts (append (cond
+                                [(zero? y-steps) '()]
+                                [(positive? delta-y) '(wheel-up)]
+                                [else '(wheel-down)])
+                              (cond
+                                [(zero? x-steps) '()]
+                                [(positive? delta-x) '(wheel-left)]
+                                [else '(wheel-right)]))])
+            (when (pair? evts)
+              (do-key-event wxb event self #f #f evts x-steps y-steps))
+            (if (eq? mode 'fraction)
+                (loop 0.0 0.0)
+                (loop (cond
+                        [(delta-y . < . 0.0)
+                         (+ delta-y (* WHEEL-STEP-AMT y-steps))]
+                        [else
+                         (- delta-y (* WHEEL-STEP-AMT y-steps))])
+                      (cond
+                        [(delta-x . < . 0.0)
+                         (+ delta-x (* WHEEL-STEP-AMT x-steps))]
+                        [else
+                         (- delta-x (* WHEEL-STEP-AMT x-steps))]))))]))]))
 
 (define (do-mouse-event wxb event kind l? m? r? [ctl-kind kind])
   (let ([wx (->wx wxb)])
@@ -862,6 +922,17 @@
     (define/public (get-last-left-button) last-l?)
     (define/public (get-last-middle-button) last-m?)
     (define/public (get-last-right-button) last-r?)
+
+    (define wheel-steps-mode 'one)
+    (define leftover-wheel-x 0.0)
+    (define leftover-wheel-y 0.0)
+    (define/public (get-wheel-state)
+      (values leftover-wheel-y leftover-wheel-x wheel-steps-mode))
+    (define/public (set-wheel-state y x)
+      (set! leftover-wheel-y y)
+      (set! leftover-wheel-x x))
+    (define/public (get-wheel-steps-mode) wheel-steps-mode)
+    (define/public (set-wheel-steps-mode mode) (set! wheel-steps-mode mode))
 
     (define/public (set-sticky-cursor)
       (set! sticky-cursor? #t))

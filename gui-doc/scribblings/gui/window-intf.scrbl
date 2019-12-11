@@ -603,5 +603,42 @@ Moves the cursor to the given location in the window's local coordinates.
 
 }
 
+@defmethod*[([(wheel-event-mode)
+              (or/c 'one 'integer 'fraction)]
+             [(wheel-event-mode [mode (or/c 'one 'integer 'fraction)])
+              void?])]{
+
+Gets or sets the mode for mouse-wheel events in the window. Wheel
+events are represented as @racket[key-event%] instances where
+@xmethod[key-event% get-key-code] returns @racket['wheel-up],
+@racket['wheel-down], @racket['wheel-right], or @racket['wheel-left].
+A Window's wheel-event mode determines the handling of variable
+wheel-sized events reported the underlying platform. Specifically, the
+wheel-event mode determines the possible values of @xmethod[key-event%
+get-wheel-steps] for a system-generated event for the window:
+
+@itemlist[
+
+ @item{@racket['one] --- wheel events are always reported for a single
+       step, where the window accumulates increments until it reaches
+       a full step, and where it generates separate events for
+       multi-step accumulations.}
+
+ @item{@racket['integer] --- wheel events are always reported as
+       integer-sized steps, where fractional steps are accumulated and
+       preserved as needed to reach integer increments.}
+
+ @item{@racket['fraction] --- wheel events are reported as positive
+       real values immediately as received from the underlying
+       platform.}
+
+]
+
+The default wheel-event mode is @racket['one], except that
+@racket[editor-canvas%] initializes the wheel-event mode to
+@racket['integer].
+
+@history[#:added "1.43"]}
+
 }
 

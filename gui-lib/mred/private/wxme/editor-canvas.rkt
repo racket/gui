@@ -171,7 +171,8 @@
            show-scrollbars
 	   set-focus
            begin-refresh-sequence
-           end-refresh-sequence)
+           end-refresh-sequence
+           set-wheel-steps-mode)
 
   (define scroll-via-copy? #f)
   (define/public (set-scroll-via-copy v) (set! scroll-via-copy? (and v #t)))
@@ -232,6 +233,8 @@
                              (keep-style style 'deleted))
                      name
                      gl-config)
+
+  (set-wheel-steps-mode 'integer) ; improves scrolling
 
   (define given-h-scrolls-per-page scrolls-per-page)
 
@@ -476,10 +479,12 @@
                (get-scroll x y)
              (let ([old-y y]
                    [y (max (+ y
-                              (* wheel-amt
-                                 (if (eq? code 'wheel-up)
-                                     -1
-                                     1)))
+                              (inexact->exact
+                               (floor
+                                (* wheel-amt
+                                   (if (eq? code 'wheel-up)
+                                       (- (send event get-wheel-steps))
+                                       (send event get-wheel-steps))))))
                            0)])
                (do-scroll x y #t x old-y))))]
         [(wheel-left wheel-right)
@@ -491,10 +496,12 @@
                (get-scroll x y)
              (let ([old-x x]
                    [x (max (+ x
-                              (* wheel-amt
-                                 (if (eq? code 'wheel-left)
-                                     -1
-                                     1)))
+                              (inexact->exact
+                               (floor
+                                (* wheel-amt
+                                   (if (eq? code 'wheel-left)
+                                       (- (send event get-wheel-steps))
+                                       (send event get-wheel-steps))))))
                            0)])
                (do-scroll x y #t old-x y))))]
         [else
