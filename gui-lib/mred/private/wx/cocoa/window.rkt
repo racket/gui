@@ -378,7 +378,7 @@
                   (send k set-wheel-steps wheel-y-steps))
                 (when (or (eq? one-code 'wheel-left)
                           (eq? one-code 'wheel-right))
-                  (send k set-wheel-steps wheel-y-steps))
+                  (send k set-wheel-steps wheel-x-steps))
                 (unless (or wheel mod-change?)
                   (let ([alt-str (tell #:type _NSString event charactersIgnoringModifiers)])
                     (when (and (string? alt-str)
