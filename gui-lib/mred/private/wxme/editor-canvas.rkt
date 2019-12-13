@@ -8,7 +8,7 @@
          racket/snip/private/prefs
          racket/snip/private/private
          (only-in "cycle.rkt" popup-menu%)
-         (only-in "../kernel.rkt" queue-refresh-event)
+         (only-in "../kernel.rkt" queue-callback queue-refresh-event)
          "wx.rkt")
 
 (provide editor-canvas%)
@@ -142,8 +142,8 @@
 (define default-wheel-amt
   (let ([v (get-preference* 'GRacket:wheelStep)])
     (if (exact-integer? v)
-        (max 3 (min 1000 v))
-        3)))
+        (max 1 (min 1000 v))
+        1)))
 
 (define (INIT-SB style)
   (append
@@ -282,6 +282,10 @@
   (define scroll-width (if fake-x-scroll? 1 1)) ;; else used to be 0
   (define scroll-height (if fake-y-scroll? 1 1))
 
+  (define scroll-events null)
+  (define scroll-flush-scheduled? #f)
+  (define scroll-delay 16)
+
   (define hscrolls-per-page 1)
   (define vscrolls-per-page 1)
   (define hpixels-per-scroll 0)
@@ -305,7 +309,7 @@
       (set! blink-timer #f))
     (send admin set-canvas #f)
     #|(super ~)|#)
-  
+
   (define/override (on-size)
     (unless noloop?
       (queue-refresh-event
@@ -442,14 +446,14 @@
                    (send media adjust-cursor event))))
            (when media
              (send media on-event event))))
-        
+
         (when (send event dragging?)
           (when out-of-client?
             ;; Dragging outside the canvas: auto-generate more events because the buffer
             ;; is probably scrolling. But make sure we're shown.
             (when (is-shown-to-root?)
               (set! auto-dragger (parameterize ([current-eventspace (get-eventspace)])
-                                   (new auto-drag-timer% 
+                                   (new auto-drag-timer%
                                         [canvas this]
                                         [event event])))))))))
 
@@ -466,49 +470,58 @@
 
   (define/public (popup-for-editor b m) #f)
 
+  ;; Called whenever scrolling events need to be applied.  Reduces the
+  ;; collected set of scroll events into a scroll position and then
+  ;; scrolls to it.
+  (define/private (flush-scroll-events events)
+    (define-values (ox oy)
+      (get-scroll/values))
+
+    (define (next-pos old steps)
+      (max 0 (+ old (inexact->exact
+                     (floor
+                      (* wheel-amt steps))))))
+
+    (define can-scroll-x? (and allow-x-scroll? (not fake-x-scroll?)))
+    (define can-scroll-y? (and allow-y-scroll? (not fake-y-scroll?)))
+
+    (define-values (x y)
+      (for/fold ([x ox]
+                 [y oy])
+                ([event (in-list events)])
+        (define code (send event get-key-code))
+        (define steps (send event get-wheel-steps))
+        (cond
+          [(and can-scroll-y? (eq? code 'wheel-up))    (values x (next-pos y (- steps)))]
+          [(and can-scroll-y? (eq? code 'wheel-down))  (values x (next-pos y steps))]
+          [(and can-scroll-x? (eq? code 'wheel-left))  (values (next-pos x (- steps)) y)]
+          [(and can-scroll-x? (eq? code 'wheel-right)) (values (next-pos x steps) y)]
+          [else (values x y)])))
+
+    (do-scroll x y #t ox oy)
+    (collect-garbage 'incremental))
+
   (define/override (on-char event)
-    (let ([code (send event get-key-code)])
-      (case (and (positive? wheel-amt)
-                 code)
-        [(wheel-up wheel-down)
-         (collect-garbage 'incremental)
-         (when (and allow-y-scroll?
-                    (not fake-y-scroll?))
-           (let-boxes ([x 0]
-                       [y 0])
-               (get-scroll x y)
-             (let ([old-y y]
-                   [y (max (+ y
-                              (inexact->exact
-                               (floor
-                                (* wheel-amt
-                                   (if (eq? code 'wheel-up)
-                                       (- (send event get-wheel-steps))
-                                       (send event get-wheel-steps))))))
-                           0)])
-               (do-scroll x y #t x old-y))))]
-        [(wheel-left wheel-right)
-         (collect-garbage 'incremental)
-         (when (and allow-x-scroll?
-                    (not fake-x-scroll?))
-           (let-boxes ([x 0]
-                       [y 0])
-               (get-scroll x y)
-             (let ([old-x x]
-                   [x (max (+ x
-                              (inexact->exact
-                               (floor
-                                (* wheel-amt
-                                   (if (eq? code 'wheel-left)
-                                       (- (send event get-wheel-steps))
-                                       (send event get-wheel-steps))))))
-                           0)])
-               (do-scroll x y #t old-x y))))]
-        [else
-         (when (and media (not (send media get-printing)))
-           (using-admin
-            (when media
-              (send media on-char event))))])))
+    (case (and (positive? wheel-amt) (send event get-key-code))
+      [(wheel-up wheel-down wheel-left wheel-right)
+       (define deadline (+ (current-inexact-milliseconds) scroll-delay))
+       (set! scroll-events (cons event scroll-events))
+       (unless scroll-flush-scheduled?
+         (set! scroll-flush-scheduled? #t)
+         (thread
+          (lambda ()
+            (sync (alarm-evt deadline))
+            (queue-callback (lambda ()
+                              (set! scroll-flush-scheduled? #f)
+                              (flush-scroll-events
+                               (begin0 (reverse scroll-events)
+                                 (set! scroll-events null))))))))]
+
+      [else
+       (when (and media (not (send media get-printing)))
+         (using-admin
+          (when media
+            (send media on-char event))))]))
 
   (define/public (clear-margins)
     ;; This method is called by `on-paint' in `editor-canvas%'
@@ -1066,20 +1079,26 @@
 
   (define/override (set-scrollbars x y x2 y2 x3 y3 x4 y4 ?) (void))
 
-  (define/public (get-scroll x y)
+  (define/public (get-scroll x-out y-out)
+    (define-values (x y) (get-scroll/values))
+    (set-box! x-out x)
+    (set-box! y-out y))
+
+  (define/private (get-scroll/values)
     ;; get fake scroll values if available
-    (set-box! x (if hscroll
-                    (send hscroll get-value)
-                    (get-scroll-pos 'horizontal)))
-    (set-box! y (if vscroll
-                    (send vscroll get-value)
-                    (get-scroll-pos 'vertical))))
+    (values
+     (if hscroll
+         (send hscroll get-value)
+         (get-scroll-pos 'horizontal))
+     (if vscroll
+         (send vscroll get-value)
+         (get-scroll-pos 'vertical))))
 
   (define/public (editor-canvas-on-scroll)
     (unless noloop?
       (repaint)))
 
-  (define/public (on-scroll-on-change) 
+  (define/public (on-scroll-on-change)
     (void))
 
   (define/public (get-editor) media)
