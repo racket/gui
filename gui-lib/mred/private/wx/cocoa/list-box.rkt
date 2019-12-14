@@ -23,6 +23,8 @@
 
 (define NSLineBreakByTruncatingTail 4)
 
+(define during-selection-set? (make-parameter #f))
+
 (define-objc-class RacketTableView NSTableView
   #:mixins (FocusResponder KeyMouseResponder CursorDisplayer)
   [wxb]
@@ -40,7 +42,8 @@
   [-a _void (doubleClicked: [_id sender])
       (queue-window*-event wxb (lambda (wx) (send wx clicked 'list-box-dclick)))]
   [-a _void (tableViewSelectionDidChange: [_id aNotification])
-      (queue-window*-event wxb (lambda (wx) (send wx clicked 'list-box)))]
+      (unless (during-selection-set?)
+        (queue-window*-event wxb (lambda (wx) (send wx clicked 'list-box))))]
   [-a _void (tableView: [_id view] didClickTableColumn: [_id col])
       (queue-window*-event wxb (lambda (wx) (send wx clicked-column col)))]
   [-a _void (tableViewColumnDidMove: [_id view])
@@ -330,14 +333,15 @@
     (tell #:type _BOOL content-cocoa isRowSelected: #:type _NSInteger i))
 
   (define/public (select i [on? #t] [extend? #t])
-    (if on?
-        (atomically
-         (with-autorelease
-          (let ([index (tell (tell NSIndexSet alloc) initWithIndex: #:type _NSUInteger i)])
-            (tellv content-cocoa 
-                   selectRowIndexes: index
-                   byExtendingSelection: #:type _BOOL (and extend? allow-multi?)))))
-        (tellv content-cocoa deselectRow: #:type _NSInteger i)))
+    (parameterize ([during-selection-set? #t])
+      (if on?
+          (atomically
+           (with-autorelease
+             (let ([index (tell (tell NSIndexSet alloc) initWithIndex: #:type _NSUInteger i)])
+               (tellv content-cocoa 
+                      selectRowIndexes: index
+                      byExtendingSelection: #:type _BOOL (and extend? allow-multi?)))))
+          (tellv content-cocoa deselectRow: #:type _NSInteger i))))
   (define/public (set-selection i)
     (select i #t #f))
 
