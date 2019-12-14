@@ -457,7 +457,8 @@
     [(not wx) #f]
     [else
      (define-values (leftover-y leftover-x mode) (send wx get-wheel-state))
-     (let loop ([delta-y (+ (if (version-10.7-or-later?)
+     (let loop ([bubble-up? #t]
+                [delta-y (+ (if (version-10.7-or-later?)
                                 (* (tell #:type _CGFloat event scrollingDeltaY)
                                    (if (tell #:type _BOOL event hasPreciseScrollingDeltas)
                                        1
@@ -474,7 +475,9 @@
        (cond
          [(and ((abs delta-y) . < . WHEEL-STEP-AMT)
                ((abs delta-x) . < . WHEEL-STEP-AMT))
-          (send wx set-wheel-state delta-y delta-x)]
+          (begin0 bubble-up?
+            (send wx set-wheel-state delta-y delta-x))]
+
          [else
           (define y-steps (case mode
                             [(fraction)
@@ -493,28 +496,34 @@
                             [else (if ((abs delta-x) . < . WHEEL-STEP-AMT)
                                       0.0
                                       1.0)]))
-          (let ([evts (append (cond
-                                [(zero? y-steps) '()]
-                                [(positive? delta-y) '(wheel-up)]
-                                [else '(wheel-down)])
-                              (cond
-                                [(zero? x-steps) '()]
-                                [(positive? delta-x) '(wheel-left)]
-                                [else '(wheel-right)]))])
-            (when (pair? evts)
-              (do-key-event wxb event self #f #f evts x-steps y-steps))
-            (if (eq? mode 'fraction)
-                (loop 0.0 0.0)
-                (loop (cond
-                        [(delta-y . < . 0.0)
-                         (+ delta-y (* WHEEL-STEP-AMT y-steps))]
-                        [else
-                         (- delta-y (* WHEEL-STEP-AMT y-steps))])
-                      (cond
-                        [(delta-x . < . 0.0)
-                         (+ delta-x (* WHEEL-STEP-AMT x-steps))]
-                        [else
-                         (- delta-x (* WHEEL-STEP-AMT x-steps))]))))]))]))
+
+          (define evts (append (cond
+                                 [(zero? y-steps) '()]
+                                 [(positive? delta-y) '(wheel-up)]
+                                 [else '(wheel-down)])
+                               (cond
+                                 [(zero? x-steps) '()]
+                                 [(positive? delta-x) '(wheel-left)]
+                                 [else '(wheel-right)])))
+
+          (define new-bubble-up?
+            (if (pair? evts)
+                (do-key-event wxb event self #f #f evts x-steps y-steps)
+                bubble-up?))
+
+          (if (eq? mode 'fraction)
+              (loop new-bubble-up? 0.0 0.0)
+              (loop new-bubble-up?
+                    (cond
+                      [(delta-y . < . 0.0)
+                       (+ delta-y (* WHEEL-STEP-AMT y-steps))]
+                      [else
+                       (- delta-y (* WHEEL-STEP-AMT y-steps))])
+                    (cond
+                      [(delta-x . < . 0.0)
+                       (+ delta-x (* WHEEL-STEP-AMT x-steps))]
+                      [else
+                       (- delta-x (* WHEEL-STEP-AMT x-steps))])))]))]))
 
 (define (do-mouse-event wxb event kind l? m? r? [ctl-kind kind])
   (let ([wx (->wx wxb)])
