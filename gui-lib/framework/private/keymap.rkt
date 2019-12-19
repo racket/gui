@@ -154,6 +154,12 @@
           (let loop ([trie trie]
                      [loks loks])
             (cond
+              [(not (hash? trie))
+               ;; in this case, we are trying to add a longer keystroke
+               ;; into the trie, but we have a shorter one already in there.
+               ;; the shorter one takes precedence so we give up on the
+               ;; the current key
+               (void)]
               [(null? (cdr loks))
                (hash-set! trie (car loks) name)]
               [else
