@@ -119,7 +119,12 @@
            (tellv tabv-cocoa setDelegate: i)
            (tellv tabv-cocoa setTabViewType: #:type _int NSNoTabsNoBorder)
            (tellv i setTabView: tabv-cocoa)
-           (tellv i setStyleNamed: #:type _NSString (if use-mm? "Yosemite" "Aqua"))
+           (tellv i setStyleNamed: #:type _NSString
+                  (if use-mm?
+                      (if (version-10.14-or-later?)
+                          "Mojave"
+                          "Yosemite")
+                      "Aqua"))
            ;; (tellv i setSizeCellsToFit: #:type _BOOL #t)
            (when use-mm?
              (tellv i setResizeTabsToFitTotalWidth: #:type _BOOL #t))
