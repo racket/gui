@@ -2,6 +2,8 @@
 
 (require racket/class
          racket/string
+         racket/snip/private/style
+         racket/draw
          (prefix-in wx: "kernel.rkt")
          "const.rkt"
          "check.rkt"
@@ -12,7 +14,8 @@
          "mrpopup.rkt"
          "mrmenu.rkt"
          "mritem.rkt"
-         "mrpanel.rkt")
+         "mrpanel.rkt"
+         "panel-wob.rkt")
 
 (provide message-box
          message-box/custom
@@ -171,6 +174,12 @@
                 (send e set-position 0)
                 (send e hide-caret #t)
                 (send e set-cursor (make-object wx:cursor% 'arrow) #t)
+                (when (white-on-black-panel-scheme?)
+                  (when scroll?
+                    (send c set-canvas-background (send the-color-database find-color "black")))
+                  (define sd (new style-delta%))
+                  (send sd set-delta-foreground "white")
+                  (send e change-style sd 0 (send e last-position)))
                 (send e lock #t)
                 (when (not scroll?)
                   ;; Check whether it actually fits
