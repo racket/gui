@@ -32,7 +32,8 @@
         [prefix menu: framework:menu^]
         [prefix racket: framework:racket^]
         [prefix exit: framework:exit^]
-        [prefix comment-box: framework:comment-box^])
+        [prefix comment-box: framework:comment-box^]
+        [prefix color-prefs: framework:color-prefs^])
 
 (export (rename framework:frame^ 
                 [-editor<%> editor<%>]
@@ -2232,7 +2233,10 @@
               (let ([pen (send dc get-pen)]
                     [brush (send dc get-brush)])
                 (send dc set-pen "black" 1 'transparent)
-                (send dc set-brush (get-failed-search-color) 'solid)
+                (send dc set-brush
+                      (color-prefs:lookup-in-color-scheme
+                       'framework:failed-background-color)
+                      'solid)
                 (send dc draw-rectangle (+ dx view-x) (+ view-y dy) view-width view-height)
                 (send dc set-pen pen)
                 (send dc set-brush brush)))))))
@@ -2304,11 +2308,6 @@
           (when tlw
             (send tlw unhide-search-and-toggle-focus)))))
 
-(define (get-failed-search-color)
-  (if (preferences:get 'framework:white-on-black?)
-      "firebrick"
-      "pink"))
-
 (define searchable-canvas% 
   (class (canvas:color-mixin canvas:basic%)
     (inherit refresh get-dc get-client-size)
@@ -2325,7 +2324,10 @@
             (let ([pen (send dc get-pen)]
                   [brush (send dc get-brush)])
               (send dc set-pen "black" 1 'transparent)
-              (send dc set-brush (get-failed-search-color) 'solid)
+              (send dc set-brush
+                    (color-prefs:lookup-in-color-scheme
+                     'framework:failed-background-color)
+                    'solid)
               (send dc draw-rectangle 0 0 cw ch)
               (send dc set-pen pen)
               (send dc set-brush brush)))))
