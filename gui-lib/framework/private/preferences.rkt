@@ -40,7 +40,8 @@ the state transitions / contracts are:
   (import mred^
           [prefix exit: framework:exit^]
           [prefix panel: framework:panel^]
-          [prefix frame: framework:frame^])
+          [prefix frame: framework:frame^]
+          [prefix color-prefs: framework:color-prefs^])
   (export framework:preferences^)
   
   (define past-failure-ps '())
@@ -545,13 +546,15 @@ the state transitions / contracts are:
             (update-tf-bkg))]))
   (define (update-tf-bkg)
     (send tf set-field-background
-          (send the-color-database find-color 
-                (cond
-                  [(not (send on-cb get-value)) "gray"]
-                  [(good-val? (string->number (send tf get-value)))
-                   "white"]
-                  [else
-                   "yellow"]))))
+          (cond
+            [(not (send on-cb get-value))
+             (color-prefs:lookup-in-color-scheme
+              'framework:disabled-background-color)]
+            [(good-val? (string->number (send tf get-value)))
+             #f]
+            [else
+             (color-prefs:lookup-in-color-scheme
+              'framework:warning-background-color)])))
   (define (update-pref)
     (define current (preferences:get pref-name))
     (define candidate-num (string->number (send tf get-value)))
