@@ -131,10 +131,12 @@ Returns the text currently in the text field.
 }
 
 
-@defmethod[(set-field-background [color (is-a?/c color%)])
+@defmethod[(set-field-background [color (or/c (is-a?/c color%) #f)])
            void?]{
-
-Sets the background color of the field's editable area.}
+  Sets the background color of the field's editable area to @racket[color]
+  If @racket[color] is @racket[#f] sets the background color
+  to black in dark mode or white if not in dark mode.
+}
 
 
 @defmethod[(set-value [val string?])

@@ -66,7 +66,7 @@
       (public*
        [set-field-background (lambda (c)
                                (check-instance '(method text-field% set-field-color) 
-                                               wx:color% 'color% #f c)
+                                               wx:color% 'color% #t c)
                                (send wx set-field-background c))]
        [get-field-background (lambda () (send wx get-field-background))]
        [get-editor (entry-point (lambda () (send wx get-editor)))]

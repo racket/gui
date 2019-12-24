@@ -1,9 +1,12 @@
 (module wxtextfield racket/base
   (require racket/class
+           racket/draw
            (prefix-in wx: "kernel.rkt")
            (prefix-in wx: "wxme/text.rkt")
            (prefix-in wx: racket/snip/private/snip)
+           (prefix-in wx: racket/snip/private/style)
            (prefix-in wx: "wxme/editor-canvas.rkt")
+           "panel-wob.rkt"
            "lock.rkt"
            "const.rkt"
            "check.rkt"
@@ -176,7 +179,12 @@
                              (unbox tw)))]
         
        [set-field-background (lambda (col)
-                               (send c set-canvas-background col))]
+                               (send c set-canvas-background
+                                     (or col
+                                         (send the-color-database find-color
+                                               (if (white-on-black-panel-scheme?)
+                                                   "black"
+                                                   "white")))))]
        [get-field-background (lambda ()
                                (send c get-canvas-background))])
       (override*
@@ -239,6 +247,7 @@
                               null
                               '(hide-hscroll))
                           '(hide-vscroll hide-hscroll)))))
+      (set-field-background #f)
       (define callbacks null)
       (override*
        [pre-on-event (lambda (w e)
@@ -281,7 +290,10 @@
       (send e auto-wrap (and multi? (not (memq 'hscroll style))))
       (let ([f font]
             [s (send (send e get-style-list) find-named-style "Standard")])
-        (send s set-delta (font->delta f)))
+        (define sd (font->delta f))
+        (when (white-on-black-panel-scheme?)
+          (send sd set-delta-foreground "white"))
+        (send s set-delta sd))
       (send c set-editor e)
       (send c set-line-count (if multi? 3 1))
       (unless multi? (send c set-single-line))
