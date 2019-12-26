@@ -307,14 +307,15 @@
       (other ,(make-object color% "black") ,(string-constant scheme-mode-color-other)))))
 
 (define white-on-black-color-prefs-table
-  (let* ([sym/kwd (make-object color% 102 102 255)]
+  (let* ([sym/kwd (make-object color% 157 157 250)]
+         [constant-green (make-object color% 140 212 140)]
          [new-entries
           `((symbol ,sym/kwd)
             (keyword ,sym/kwd)
             (comment ,(make-object color% 249 148 40))
-            (string ,(make-object color% 51 174 51))
+            (string ,constant-green)
             (text ,(make-object color% 51 174 51))
-            (constant ,(make-object color% 60 194 57))
+            (constant ,constant-green)
             (hash-colon-keyword ,(make-object color% 151 69 43))
             (parenthesis ,(make-object color% 151 69 43))
             (other ,(make-object color% "white")))])
