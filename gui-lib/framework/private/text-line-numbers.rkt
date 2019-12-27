@@ -13,6 +13,7 @@
 (define-unit text-line-numbers@
   (import mred^
           [prefix editor: framework:editor^]
+          [prefix color-prefs: framework:color-prefs^]
           )
   (export text-line-numbers^)
 
@@ -275,9 +276,8 @@
            (send dc set-brush 
                  (if (get-highlight-text-color)
                      (get-highlight-background-color)
-                     (if (preferences:get 'framework:white-on-black?)
-                         "lime"
-                         "forestgreen"))               
+                     (color-prefs:lookup-in-color-scheme
+                      'framework:line-numbers-current-line-number-background))
                  'solid)
          
            (send dc draw-rectangle ls final-y (- right-space single-w) single-h)
@@ -288,18 +288,23 @@
          
            (define text-fg (send dc get-text-foreground))
            (send dc set-text-foreground (if (get-highlight-text-color)
-                                            (send dc get-text-foreground)
-                                            (if (preferences:get 'framework:white-on-black?)
-                                                "black"
-                                                "white")))
+                                            text-fg
+                                            (color-prefs:lookup-in-color-scheme
+                                             'framework:line-numbers-current-line-number-foreground)))
            (send dc draw-text view final-x final-y)
            (send dc set-text-foreground text-fg)]
           [(and last-paragraph (= last-paragraph (line-paragraph line)))
-           (send dc set-text-foreground (lighter-color (send dc get-text-foreground)))
+           (define text-fg (send dc get-text-foreground))
+           (send dc set-text-foreground
+                 (color-prefs:lookup-in-color-scheme 'framework:line-numbers-when-word-wrapping))
            (send dc draw-text view final-x final-y)
-           (send dc set-text-foreground (get-foreground))]
+           (send dc set-text-foreground text-fg)]
           [else
-           (send dc draw-text view final-x final-y)]))
+           (define text-fg (send dc get-text-foreground))
+           (send dc set-text-foreground
+                 (color-prefs:lookup-in-color-scheme 'framework:line-numbers))
+           (send dc draw-text view final-x final-y)
+           (send dc set-text-foreground text-fg)]))
 
       ;; draw the line between the line numbers and the actual text
       (define/public (draw-separator dc top bottom dx dy)

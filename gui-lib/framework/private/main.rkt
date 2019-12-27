@@ -569,7 +569,18 @@
                                     "light blue"
                                     (make-object color% 93 104 158))
 (preferences:set-default 'framework:coloring-active #t boolean?)
-
+(color-prefs:add-color-scheme-entry 'framework:line-numbers-current-line-number-background
+                                    "forestgreen"
+                                    (make-object color% 108 186 112))
+(color-prefs:add-color-scheme-entry 'framework:line-numbers-current-line-number-foreground
+                                    "white"
+                                    "black")
+(color-prefs:add-color-scheme-entry 'framework:line-numbers-when-word-wrapping
+                                    "darkgray"
+                                    "darkgray")
+(color-prefs:add-color-scheme-entry 'framework:line-numbers
+                                    "black"
+                                    "lightgray")
 (color-prefs:add-color-scheme-entry 'framework:default-text-color "black" "white")
 (color-prefs:register-color-scheme-entry-change-callback
  'framework:default-text-color
