@@ -161,6 +161,12 @@
              (snip-special-snip snip-special)))]
       [else
        (snip-special-snip snip-special)]))
+
+  (define use-style-background-editor-snip%
+    (class editor-snip%
+      (super-new)
+      (inherit use-style-background)
+      (use-style-background #t)))
   
   (define ports-mixin
     (mixin (wide-snip<%>) (ports<%>)
@@ -326,7 +332,7 @@
       (define/public (get-err-style-delta) error-style-name)
       (define/public (get-value-style-delta) value-style-name)
     
-      (define/public (get-box-input-editor-snip%) editor-snip%)
+      (define/public (get-box-input-editor-snip%) use-style-background-editor-snip%)
       (define/public (get-box-input-text%) input-box%)
     
       ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -934,7 +940,10 @@
       (define/public (box-input-not-used-anymore)
         (lock #t)
         (set! in-use? #f))
-    
+
+      (define/override (default-style-name)
+        (editor:get-default-color-style-name))
+
       (define/override (on-default-char kevt)
         (super on-default-char kevt)
         (when in-use?

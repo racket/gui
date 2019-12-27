@@ -1332,6 +1332,10 @@
   @defmethod*[(((get-box-input-editor-snip%) (subclass?/c editor-snip%)))]{
     The result of this method is used as the class of editor snips that is
     inserted by the box port in this editor.
+
+    The default result is a subclass of @racket[editor-snip%] that calls
+    @method[editor-snip% use-style-background] with @racket[#t] during
+    initialization.
   }
 
   @defmethod*[(((get-box-input-text%) (is-a?/c text:input-box<%>)))]{
@@ -1380,6 +1384,10 @@
     Notifies the @racket[text:ports<%>] enclosing this editor that a new line
     of input has been provided.
   }
+
+ @defmethod[#:mode override (default-style-name) string?]{
+  Returns @racket[(editor:get-default-color-style-name)].
+ }
 }
 
 @definterface[text:autocomplete<%> (text%)]{
