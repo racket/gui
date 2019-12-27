@@ -564,7 +564,10 @@
                                       #:style (racket:short-sym->style-name sym)
                                       color
                                       white-on-black-color))
-  
+
+(color-prefs:add-color-scheme-entry 'framework:program-contour-current-location-bar
+                                    "light blue"
+                                    (make-object color% 93 104 158))
 (preferences:set-default 'framework:coloring-active #t boolean?)
 
 (color-prefs:add-color-scheme-entry 'framework:default-text-color "black" "white")

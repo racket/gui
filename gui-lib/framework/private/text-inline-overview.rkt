@@ -4,7 +4,9 @@
 (require racket/unit
          mred/mred-sig
          racket/class
+         "../preferences.rkt"
          "text-sig.rkt"
+         "sig.rkt"
          (prefix-in unsafe: (only-in racket/draw/private/bitmap make-bitmap)))
 
 (define-local-member-name
@@ -20,7 +22,8 @@
 (define maximum-bitmap-width 200)
 
 (define-unit text-inline-overview@
-  (import mred^)
+  (import mred^
+          [prefix color-prefs: framework:color-prefs^])
   (export text-inline-overview^)
 
   (define transparent-color (make-object color% 255 255 255 0))
@@ -198,7 +201,9 @@
             (define old-pen (send dc get-pen))
             (define old-brush (send dc get-brush))
             (send dc set-pen "black" 1 'transparent)
-            (send dc set-brush "light blue" 'solid)
+            (send dc set-brush
+                  (color-prefs:lookup-in-color-scheme 'framework:program-contour-current-location-bar)
+                  'solid)
             (send dc draw-rectangle
                   (- (+ dx bitmap-x-coordinate) extra-blue-parts-margin)
                   (+ dy

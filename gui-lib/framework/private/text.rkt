@@ -26,6 +26,7 @@
           [editor : framework:editor^]
           [keymap : framework:keymap^]
           [color-model : framework:color-model^]
+          [color-prefs : framework:color-prefs^]
           [frame : framework:frame^]
           [racket : framework:racket^]
           [number-snip : framework:number-snip^]
@@ -65,6 +66,7 @@
           (prefix editor: framework:editor^)
           framework:keymap^
           framework:color-model^
+          framework:color-prefs^
           (prefix frame: framework:frame^)
           framework:racket^
           framework:number-snip^
@@ -90,6 +92,7 @@
    (prefix editor: framework:editor^)
    framework:keymap^
    framework:color-model^
+   framework:color-prefs^
    (prefix frame: framework:frame^)
    framework:racket^
    framework:number-snip^
