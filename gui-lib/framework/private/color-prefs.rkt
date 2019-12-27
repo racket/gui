@@ -15,7 +15,6 @@
   
   (import [prefix preferences: framework:preferences^]
           [prefix editor: framework:editor^]
-          [prefix panel: framework:panel^]
           [prefix canvas: framework:canvas^]
           [prefix racket: framework:racket^]
           [prefix color: framework:color^])
