@@ -263,60 +263,49 @@
   ;; (xyz->luv (make-xyz 95.0 100.0 141.0))
   ;; (xyz->luv (make-xyz 60.0 80.0 20.0))
 
-;; the following two functions were in text-line-numbers.rkt before,
-;; but they seem out of place there and in trying them out against
-;; calculators on the web they seem to be wrong somehow. So, for now
-;; I'll just move them here.
-
-;; red 0-255
-;; green 0-255
-;; blue 0-255
-(define (rgb->hsl red green blue)
-  (define-values (a b c d)
-    (if (> red green)
-        (if (> red blue)
-            (if (> green blue)
-                (values red (- green blue) blue 0)
-                (values red (- green blue) green 0))
-            (values blue (- red green) green 4))
-        (if (> red blue)
-            (values green (- blue red) blue 2)
-            (if (> green blue)
-                (values green (- blue red) red 2)
-                (values blue (- red green) red 4)))))
-  (define hue (if (= a c) 0
-                  (let ([x (* 60 (+ d (/ b (- a c))))])
-                    (if (< x 0) (+ x 360) x))))
-  (define saturation (cond
-                       [(= a c) 0]
-                       [(< (+ a c) 1) (/ (- a c) (+ a c))]
-                       [else (/ (- a c) (- 2 a c))]))
-  (define lightness (/ (+ a c) 2))
-  (values hue saturation lightness))
-
-;; hue 0-360
-;; saturation 0-1
-;; lightness 0-1
-;; returns rgb as float values with ranges 0-1
-(define (hsl->rgb hue saturation lightness)
-  (define (helper x a b)
-    (define x* (cond
-                 [(< x 0) (+ x 1)]
-                 [(> x 1) (- x 1)]
-                 [else x]))
+;; formulas from https://en.wikipedia.org/wiki/HSL_and_HSV
+(define (rgb->hsl r255 g255 b255)
+  (define r (/ r255 255))
+  (define g (/ g255 255))
+  (define b (/ b255 255))
+  (define MAX (max r g b))
+  (define MIN (min r g b))
+  (define Δ (- MAX MIN))
+  (define H1
     (cond
-      [(< (* x 6) 1) (+ b (* 6 (- a b) x))]
-      [(< (* x 6) 3) a]
-      [(< (* x 6) 4) (+ b (* (- a b) (- 4 (* 6 x))))]
-      [else b]))
+      [(= Δ 0) 0]
+      [(= MAX r) (* 60      (/ (- g b) Δ))]
+      [(= MAX g) (* 60 (+ 2 (/ (- b r) Δ)))]
+      [(= MAX b) (* 60 (+ 4 (/ (- r g) Δ)))]))
+  (define H (if (H1 . < . 0) (+ H1 360) H1))
+  (define L (/ (+ MAX MIN) 2))
+  (define S
+    (cond
+      [(= MAX 0) 0]
+      [(= MIN 1) 0]
+      [else
+       (/ (- MAX L)
+          (min L (- 1 L)))]))
+  (values H S L))
 
-  (define h (/ hue 360))
-  (define a (if (< lightness 0.5)
-                (+ lightness (* lightness saturation))
-                (- (+ lightness saturation) (* lightness saturation))))
-  (define b (- (* lightness 2) a))
-  (define red (helper (+ h (/ 1.0 3)) a b))
-  (define green (helper h a b))
-  (define blue (helper (- h (/ 1.0 3)) a b))
-  (values red green blue))
+(define (hsl->rgb H S L)
+  (define C (* (- 1 (abs (- (* 2 L) 1))) S))
+  (define H* (/ H 60))
+  (define X (* C (- 1 (abs (- (MOD H* 2) 1)))))
+  (define-values (R1 G1 B1)
+    (cond
+      [(<= H* 1) (values C X 0)]
+      [(<= H* 2) (values X C 0)]
+      [(<= H* 3) (values 0 C X)]
+      [(<= H* 4) (values 0 X C)]
+      [(<= H* 5) (values X 0 C)]
+      [(<= H* 6) (values C 0 X)]))
+  (define m (- L (/ C 2)))
+  (define-values (R G B)
+    (values (+ R1 m) (+ G1 m) (+ B1 m)))
+  (define (to-255 n) (inexact->exact (round (* n 255))))
+  (values (to-255 R) (to-255 G) (to-255 B)))
 
+;; definition taken from fortran's docs ...
+(define (MOD A P)
+  (- A (* (floor (/ A P)) P)))

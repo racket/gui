@@ -441,7 +441,9 @@
      xyz-z
      rgb-color-distance
      rgb->xyz
-     xyz->rgb))
+     xyz->rgb
+     hsl->rgb
+     rgb->hsl))
   
   (define-signature early-init^ ())
   
