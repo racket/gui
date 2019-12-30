@@ -387,6 +387,7 @@
      get-current-color-scheme-name
      known-color-scheme-name?
      color-scheme-style-name?
+     color-scheme-color-name?
      lookup-in-color-scheme
      set-in-color-scheme
      register-color-scheme-entry-change-callback

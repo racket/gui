@@ -942,6 +942,9 @@
 (define (color-scheme-style-name? n)
   (set-member? known-style-names n))
 
+(define (color-scheme-color-name? n)
+  (set-member? known-color-names n))
+
 (define (color-scheme-entry-name->pref-name sym)
   (string->symbol (format "color-scheme-entry:~a" sym)))
 

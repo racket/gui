@@ -2079,6 +2079,17 @@
             In order to return @racket[#t], @racket[name] must have been
             passed as the first argument to @racket[color-prefs:add-color-scheme-entry]
             and the @racket[#:style] argument must have also been passed.})
+
+ (proc-doc/names
+  color-prefs:color-scheme-color-name?
+  (-> any/c boolean?)
+  (name)
+  @{Returns @racket[#t] if @racket[name] is a known color scheme name,
+            and is connected to a color. 
+            
+            In order to return @racket[#t], @racket[name] must have been
+            passed as the first argument to @racket[color-prefs:add-color-scheme-entry]
+            and the @racket[#:style] argument must have also been omitted or be @racket[#f].})
  
  (proc-doc 
   color-prefs:lookup-in-color-scheme
