@@ -20,7 +20,6 @@
       is-special-first-line?))
 
   (define dark-first-line-color (make-object color% 50 0 50))
-  (define dark-wob-first-line-color (make-object color% 255 200 255))
 
   (define first-line-mixin
     (mixin ((class->interface text%)) (first-line<%>)
@@ -183,7 +182,7 @@
                   (define end 0)
                   (define steps (- extra-fade-space 1))
                   (send dc set-pen 
-                        (if w-o-b? dark-wob-first-line-color dark-first-line-color) 
+                        dark-first-line-color
                         1
                         'solid)
                   (let loop ([i steps])
