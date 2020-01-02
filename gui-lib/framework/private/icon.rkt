@@ -20,6 +20,7 @@
 (define-runtime-path paren-bitmap-path '(lib "paren.xbm" "icons"))
 (define-runtime-path mrf-bitmap-path '(lib "mrf.png" "icons"))
 (define-runtime-path gc-on-bitmap-path '(lib "recycle.png" "icons"))
+(define-runtime-path gc-wob-on-bitmap-path '(lib "wob-recycle.png" "icons"))
 
 (define-runtime-path up-down-mask-path '(lib "up-down-mask.xbm" "icons"))
 (define-runtime-path up-down-csr-path '(lib "up-down-cursor.xbm" "icons"))
@@ -63,6 +64,7 @@
   
   (define mrf-on-bitmap (delay/sync (make-object bitmap% mrf-bitmap-path)))
   (define gc-on-bitmap (delay/sync (read-bitmap gc-on-bitmap-path #:try-@2x? #t)))
+  (define gc-wob-on-bitmap (delay/sync (read-bitmap gc-wob-on-bitmap-path #:try-@2x? #t)))
   
   (define (make-off-bitmap onb [wob? #f])
     (let* ([bitmap (make-object bitmap%
@@ -81,13 +83,15 @@
   
   (define mrf-off-bitmap (delay/sync (make-off-bitmap (force mrf-on-bitmap))))
   (define gc-off-bitmap (delay/sync (make-off-bitmap (force gc-on-bitmap))))
-  (define gc-wob-off-bitmap (delay/sync (make-off-bitmap (force gc-on-bitmap) #t)))
+  (define gc-wob-off-bitmap (delay/sync (make-off-bitmap (force gc-wob-on-bitmap) #t)))
   
   (define (get-gc-on-bitmap)
     (force
      (if (mrf-bday?)
          mrf-on-bitmap
-         gc-on-bitmap)))
+         (if (white-on-black-panel-scheme?)
+             gc-wob-on-bitmap
+             gc-on-bitmap))))
   
   (define (get-gc-off-bitmap)
     (force
