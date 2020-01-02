@@ -117,7 +117,7 @@
          (update-float #t)]
         [(send evt button-up? 'left)
          (set! down? #f)
-         (update-in evt)
+         (update-in evt #t)
          (refresh)
          (when (and in?
                     (not disabled?))
@@ -133,7 +133,7 @@
          (update-float #f)
          (unless disabled?
            (refresh))]
-        [(send evt moving?)
+        [else
          (update-in evt)]))
 
     (define/public (command)
@@ -196,14 +196,15 @@
                 (when float-window
                   (send float-window show #f))]))])))
 
-    (define/private (update-in evt)
+    (define/private (update-in evt [dont-refresh? #f])
       (define-values (cw ch) (get-client-size))
       (define new-in?
         (and (<= 0 (send evt get-x) cw)
              (<= 0 (send evt get-y) ch)))
-      (unless (equal? new-in? in?)
-        (set! in? new-in?)
-        (refresh))
+      (unless dont-refresh?
+        (unless (equal? new-in? in?)
+          (set! in? new-in?)
+          (refresh)))
       (update-float new-in?))
 
     (define/override (on-paint)
