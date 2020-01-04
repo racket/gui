@@ -17,8 +17,16 @@
       (super set-admin a)
       (define new-admin (get-admin))
       (when (and inherit-styles? new-admin)
-        (define sl (send (send new-admin get-editor) get-style-list))
-        (update-style-list sl)))
+        ;; this queue callback seems dubious (and it will
+        ;; contribute to ficker), but `set-admin` can be
+        ;; called while one of the locks is on and we need
+        ;; to wait until it is unlocked to change the editors'
+        ;; style lists or else `style-has-changed` gets
+        ;; called in a bad state
+        (queue-callback
+         (λ ()
+           (define sl (send (send new-admin get-editor) get-style-list))
+           (update-style-list sl)))))
     ;; hook for additional action on style-list change:
     (define/public (update-style-list sl)
       (send (get-editor) set-style-list sl))))
@@ -38,22 +46,27 @@
 (define expandable-snip%
   (class inherit-styles-editor-snip%
     (inherit get-editor
-             get-admin)
+             get-admin
+             use-style-background
+             get-style)
     (init [closed-editor (new text%)]
           [open-editor (new text%)]
           [callback void])
     (init-field [layout 'append]) ;; (U 'replace 'append)
     (super-new)
+    (use-style-background #t)
 
     (field [open? #f])
 
     (field [open-es (new editor-snip% (editor open-editor) (with-border? #f))])
     (send open-es set-margin 0 0 0 0)
     (send open-es set-inset 0 0 0 0)
+    (send open-es use-style-background #t)
 
     (field [closed-es (new editor-snip% (editor closed-editor) (with-border? #f))])
     (send closed-es set-margin 0 0 0 0)
     (send closed-es set-inset 0 0 0 0)
+    (send closed-es use-style-background #t)
 
     (let ([outer-t (get-editor)])
       (define (toggle-callback now-open?)
@@ -61,8 +74,16 @@
           (set! open? now-open?)
           (refresh-contents)
           (callback now-open?)))
+      ;; change the style of the arrow to this in anticipation
+      ;; of being inserted in an editor that has this style
+      (define sl (send outer-t get-style-list))
+      (define default-color
+        (send sl new-named-style
+              "framework:default-color"
+              (send sl basic-style)))
       (send* outer-t
         [insert (new arrow-toggle-snip% [callback toggle-callback])]
+        [change-style default-color 0 (send outer-t last-position)]
         [change-style top-aligned 0 (send outer-t last-position)]
         ;; Can't base-align; messes up with 'replace layout
         ;; [change-style base-aligned 0 1]
@@ -78,13 +99,6 @@
         (unless (eq? open? v)
           (set! open? v)
           (refresh-contents))))
-
-    (define/override (update-style-list sl)
-      (super update-style-list sl)
-      (define outer-t (get-editor))
-      (define standard (send sl find-named-style "Standard"))
-      (with-unlock outer-t
-        (send outer-t change-style standard 0 (send outer-t last-position))))
 
     ;; if layout is 'replace, editor contains
     ;;  - open? = #f : [turn-snip][closed-es]

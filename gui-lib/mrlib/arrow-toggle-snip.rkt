@@ -27,15 +27,13 @@
     [close])
   p)
 
-(define (down-arrow-gradient scale xb yb)
+(define (down-arrow-gradient scale xb yb dark?)
   (define (tx x) (+ xb (* scale x)))
   (define (ty y) (+ yb (* scale y)))
   (new linear-gradient%
        [x0 (tx 50)] [y0 (ty 40)]
        [x1 (tx 50)] [y1 (ty 75)]
-       [stops
-        (list (list 0 (make-object color% 240 240 255))
-              (list 1 (make-object color% 128 128 255)))]))
+       [stops (get-gradient-stops dark?)]))
 
 (define (right-arrow-path scale yb)
   (define (tx x) (* scale x))
@@ -49,15 +47,19 @@
     [close])
   p)
 
-(define (right-arrow-gradient scale xb yb)
+(define (right-arrow-gradient scale xb yb dark?)
   (define (tx x) (+ xb (* scale x)))
   (define (ty y) (+ yb (* scale y)))
   (new linear-gradient%
        [x0 (tx 40)] [y0 (ty 50)]
        [x1 (tx 75)] [y1 (ty 50)]
-       [stops
-        (list (list 0 (make-object color% 240 240 255))
-              (list 1 (make-object color% 128 128 255)))]))
+       [stops (get-gradient-stops dark?)]))
+
+(define (get-gradient-stops dark?)
+  (list (list 0 (if dark?
+                    (make-object color% 20 20 255)
+                    (make-object color% 240 240 255)))
+        (list 1 (make-object color% 128 128 255))))
 
 ;; ------------------------------------------------------------
 
@@ -76,6 +78,11 @@
       (new arrow-toggle-snip% (callback callback) (open? state) (size size)))
 
     (define/override (draw dc x y left top right bottom dx dy draw-caret)
+      (define dark?
+        (let ([c (send (get-style) get-foreground)])
+          (and (< 220 (send c red))
+               (< 220 (send c green))
+               (< 220 (send c blue)))))
       (define old-brush (send dc get-brush))
       (define old-pen (send dc get-pen))
       (define old-smoothing (send dc get-smoothing))
@@ -87,11 +94,11 @@
           [(down down-click) (down-arrow-path scale-factor dy*)]))
       (define arrow-gradient
         (case state
-          [(up up-click) (right-arrow-gradient scale-factor x (+ dy* y))]
-          [(down down-click) (down-arrow-gradient scale-factor x (+ dy* y))]))
+          [(up up-click) (right-arrow-gradient scale-factor x (+ dy* y) dark?)]
+          [(down down-click) (down-arrow-gradient scale-factor x (+ dy* y) dark?)]))
       ;; Draw arrow
       (send* dc
-        [set-pen "black" 0 'solid]
+        [set-pen (if dark? "Gainsboro" "black") 0 'solid]
         [set-brush (new brush% [gradient arrow-gradient])]
         [set-smoothing 'aligned]
         [draw-path arrow-path x y])

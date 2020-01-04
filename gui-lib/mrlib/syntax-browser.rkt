@@ -26,6 +26,8 @@ needed to really make this work:
      (-> syntax? (is-a?/c snip%))]
     [render-syntax/window
      (-> syntax? void?)])
+   render-syntax-subtitle-color-style-name
+   render-syntax-focused-syntax-color-style-name
    snip-class)
   
   ;; this is doing the same thing as the class in
@@ -87,7 +89,7 @@ needed to really make this work:
       (define info-port (make-text-port info-text))
       
       (define/private (show-info stx)
-        (insert/big (string-append Syntax\ Info "\n"))
+        (insert-subtitle (string-append Syntax\ Info "\n"))
         (piece-of-info "Source" (syntax-source stx))
         (piece-of-info "Source module" (syntax-source-module stx))
         (piece-of-info "Position" (syntax-position stx))
@@ -102,7 +104,7 @@ needed to really make this work:
         
         (let ([properties (syntax-property-symbol-keys stx)])
           (unless (null? properties)
-            (insert/big "Known properties\n")
+            (insert-subtitle "Known properties\n")
             (for-each
              (λ (prop) (show-property stx prop))
              properties))))
@@ -131,7 +133,10 @@ needed to really make this work:
                (λ (port text)
                  (let ([before-newline (send text last-position)])
                    (newline port)
-                   (send info-text change-style small-style before-newline (+ before-newline 1))))])
+                   (send info-text change-style
+                         (make-object style-delta% 'change-size 4)
+                         before-newline
+                         (+ before-newline 1))))])
           
           (insert/bold label)
           (newline info-port)
@@ -149,7 +154,12 @@ needed to really make this work:
                             (send info-text insert (send val copy) 
                                   (send info-text last-position)
                                   (send info-text last-position)))])
-            (pretty-print (replace-syntaxes info) info-port))
+            (define start-position (send info-text last-position))
+            (pretty-print (replace-syntaxes info) info-port)
+            (change-the-style info-text
+                              plain-color-style-name
+                              start-position
+                              (send info-text last-position)))
           
           (optional-newline)
           (small-newline info-port info-text)))
@@ -172,26 +182,22 @@ needed to really make this work:
           (send info-text insert str 
                 (send info-text last-position)
                 (send info-text last-position))
+          (change-the-style info-text
+                            plain-color-style-name
+                            pos
+                            (send info-text last-position))
           (send info-text change-style
                 (make-object style-delta% 'change-bold)
                 pos 
                 (send info-text last-position))))
       
-      (define/private (insert/big str)
-        (let ([sd (make-big-style-delta)])
-          (let ([pos (send info-text last-position)])
-            (send info-text insert str 
-                  (send info-text last-position)
-                  (send info-text last-position))
-            (send info-text change-style
-                  sd
-                  pos 
-                  (send info-text last-position)))))
-
-      (define/private (make-big-style-delta)
-        (define sd (make-object style-delta% 'change-bold))
-        (send sd set-delta-foreground "Navy")
-        sd)
+      (define/private (insert-subtitle str)
+        (define pos (send info-text last-position))
+        (send info-text insert str pos pos)
+        (change-the-style info-text
+                          subtitle-style-name
+                          pos
+                          (send info-text last-position)))
       
       (define/private (optional-newline)
         (unless (equal?
@@ -202,8 +208,8 @@ needed to really make this work:
       (define/private (show-range stx start end)
         (send output-text begin-edit-sequence)
         (send output-text lock #f)
-        (send output-text change-style black-style-delta 0 (send output-text last-position))
-        (send output-text change-style green-style-delta start end)
+        (change-the-style output-text plain-color-style-name 0 (send output-text last-position))
+        (change-the-style output-text render-syntax-focused-syntax-style-name start end)
         (send output-text lock #t)
         (send output-text end-edit-sequence)
         
@@ -211,7 +217,6 @@ needed to really make this work:
         (send info-text lock #f)
         (send info-text erase)
         (show-info stx)
-        (make-modern info-text)
         (send info-text lock #t)
         (send info-text end-edit-sequence))
 
@@ -232,42 +237,7 @@ needed to really make this work:
       (define inner-t (new text:hide-caret/selection%))
       (define info-header-t (new text:hide-caret/selection%))
 
-      (send summary-t insert (format "~s" main-stx))
-      (make-modern summary-t)
-
-      (send info-header-t insert Syntax\ Info)
-      (send info-header-t change-style (make-big-style-delta)
-            0 (send info-header-t last-position))
-      (make-modern info-header-t)
-      (send info-header-t lock #t)
-      (define info-snip (new expandable-snip%
-                             (closed-editor info-header-t)
-                             (open-editor info-text)
-                             (layout 'replace)
-                             (with-border? #t)))
-
-      (send inner-t insert (instantiate editor-snip% ()
-                             (editor output-text)
-                             (with-border? #f)
-                             (left-margin 0)
-                             (top-margin 0)
-                             (right-margin 0)
-                             (bottom-margin 0)
-                             (left-inset 0)
-                             (top-inset 0)
-                             (right-inset 0)
-                             (bottom-inset 0)))
-      (send inner-t insert " ")
-      (send inner-t insert info-snip)
-      (send inner-t change-style (make-object style-delta% 'change-alignment 'top)
-            0 (send inner-t last-position))
-
-      (send output-text lock #t)
-      (send info-text lock #t)
-      (send inner-t lock #t)
-      (send summary-t lock #t)
-
-      (super-instantiate ()
+      (super-new
         (with-border? #f)
         (closed-editor summary-t)
         (open-editor inner-t)
@@ -284,6 +254,46 @@ needed to really make this work:
            (fill-in-output-text)
            (show-border details-shown?)
            (set-tight-text-fit (not details-shown?)))))
+
+      (send summary-t insert (format "~s" main-stx))
+      (change-the-style summary-t plain-color-style-name
+                        0 (send summary-t last-position))
+
+      (send info-header-t insert Syntax\ Info)
+      (change-the-style info-header-t subtitle-style-name
+                        0 (send info-header-t last-position))
+      (send info-header-t lock #t)
+      (define info-snip (new expandable-snip%
+                             (closed-editor info-header-t)
+                             (open-editor info-text)
+                             (layout 'replace)
+                             (with-border? #t)))
+
+      (let ([es (new editor-snip%
+                     (editor output-text)
+                     (with-border? #f)
+                     (left-margin 0)
+                     (top-margin 0)
+                     (right-margin 0)
+                     (bottom-margin 0)
+                     (left-inset 0)
+                     (top-inset 0)
+                     (right-inset 0)
+                     (bottom-inset 0))])
+        (send es use-style-background #t)
+        (send inner-t insert es))
+      (send inner-t insert " ")
+      (send inner-t insert info-snip)
+      (change-the-style inner-t plain-color-style-name
+                        (- (send inner-t last-position) 1)
+                        (send inner-t last-position))
+      (send inner-t change-style (make-object style-delta% 'change-alignment 'top)
+            0 (send inner-t last-position))
+
+      (send output-text lock #t)
+      (send info-text lock #t)
+      (send inner-t lock #t)
+      (send summary-t lock #t)
 
       (define/private (fill-in-output-text)
         (unless output-text-filled-in?
@@ -319,8 +329,9 @@ needed to really make this work:
           (send output-text end-edit-sequence)
           (send output-text lock #t)))
 
-      (inherit set-snipclass)
-      (set-snipclass snip-class)))
+      (inherit set-snipclass use-style-background)
+      (set-snipclass snip-class)
+      (use-style-background #t)))
 
 ;; ------------------------------------------------------------
 
@@ -436,17 +447,9 @@ needed to really make this work:
                    [pretty-print-pre-print-hook range-pretty-print-pre-hook]
                    [pretty-print-post-print-hook range-pretty-print-post-hook]
                    [pretty-print-columns 30])
-      (pretty-write datum)
-      (make-modern output-text)))
+      (pretty-write datum)))
 
   (values range-start-ht range-ht))
-
-(define (make-modern text)
-  (send text change-style
-        (make-object style-delta% 'change-family 'modern)
-        0
-        (send text last-position)))
-
 
 (module+ test
   (let ([x (datum->syntax #f 'x #f #f)]
@@ -468,11 +471,6 @@ needed to really make this work:
                   (list '(x y)
                         (make-hash `(((0) . #f) ((1 0) . ,y) ((0 0) . ,x)))))))
 
-  (define black-style-delta (make-object style-delta% 'change-normal-color))
-  (define green-style-delta (make-object style-delta%))
-  (void (send green-style-delta set-delta-foreground "forest green"))
-  (define small-style (make-object style-delta% 'change-size 4))
-  
   ;; make-text-port : text -> port
   ;; builds a port from a text object.  
   (define (make-text-port text)
@@ -573,3 +571,53 @@ needed to really make this work:
             [(syntax) (unmarshall-syntax obj)]
             [else (unknown)])
           (unknown))))
+
+(define (change-the-style text style-name start end)
+  (define st (find/create-style style-name (send text get-style-list)))
+  (send text change-style st start end))
+
+(define plain-color-style-name "framework:default-color")
+(define render-syntax-subtitle-color-style-name "mrlib/syntax-browser:subtitle-color")
+(define render-syntax-focused-syntax-color-style-name "mrlib/syntax-browser:focused-syntax-color")
+
+;; these names are not actually added to the style list
+(define render-syntax-focused-syntax-style-name "mrlib/syntax-browser:focused-syntax")
+(define subtitle-style-name "mrlib/syntax-browser:subtitle")
+
+(define (find/create-style style-name sl)
+  (cond
+    [(equal? style-name subtitle-style-name)
+     (create-combined-style sl
+                            "Standard"
+                            render-syntax-subtitle-color-style-name
+                            (make-object style-delta% 'change-bold))]
+    [(equal? style-name render-syntax-focused-syntax-style-name)
+     (create-combined-style sl
+                            "Standard"
+                            render-syntax-focused-syntax-color-style-name)]
+
+    [(send sl find-named-style style-name) => values]
+
+    [(equal? style-name plain-color-style-name)
+     (create-colored-named-style sl style-name "black")]
+    [(equal? style-name render-syntax-subtitle-color-style-name)
+     (create-colored-named-style sl style-name "navy")]
+    [(equal? style-name render-syntax-focused-syntax-color-style-name)
+     (create-colored-named-style sl style-name "forestgreen")]
+
+    [else (error 'syntax-browser.rkt:find/create-style "unknown style name ~s" style-name)]))
+
+(define (create-colored-named-style sl style-name color)
+  (define st (send sl new-named-style style-name (send sl basic-style)))
+  (define sd (send (make-object style-delta%) set-delta-foreground color))
+  (send st set-delta sd)
+  st)
+
+(define (create-combined-style sl style-name1 style-name2 [extra-sd #f])
+  (define st1 (find/create-style style-name1 sl))
+  (define st2 (find/create-style style-name2 sl))
+  (define join-st (send sl find-or-create-join-style st1 st2))
+  (cond
+   [extra-sd
+    (send sl find-or-create-style join-st extra-sd)]
+   [else join-st]))

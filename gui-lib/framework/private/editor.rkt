@@ -330,7 +330,9 @@
   
   (define standard-style-list (new style-list%))
   (define (get-standard-style-list) standard-style-list)
-  
+
+;; this name can never change as the name is used directly in mrlib
+;; and we cannot add a dependency from mrlib to the framework
   (define default-color-style-name "framework:default-color")
   (define (get-default-color-style-name) default-color-style-name)
   
