@@ -58,7 +58,32 @@
 (define show-outline-for-inactive?
   (and (get-preference* 'GRacket:outline-inactive-selection) #t))
 
-(define caret-pen (send the-pen-list find-or-create-pen "BLACK" 1 'xor))
+(define black-caret-pen (send the-pen-list find-or-create-pen "BLACK" 1 'solid))
+(define white-caret-pen (send the-pen-list find-or-create-pen "WHITE" 1 'solid))
+(define (color->caret-pen color invert?)
+  (define r (send color red))
+  (define g (send color green))
+  (define b (send color blue))
+  (cond
+    [(and (= r 255) (= g 255) (= b 255))
+     (if invert?
+         black-caret-pen
+         white-caret-pen)]
+    [(and (= r 0) (= g 0) (= b 0))
+     (if invert?
+         white-caret-pen
+         black-caret-pen)]
+    [else
+     (make-object pen%
+       (if invert?
+           (make-object color% 
+             (- 255 r)
+             (- 255 g)
+             (- 255 b))
+           color)
+       (send black-caret-pen get-width)
+       'solid)]))
+
 (define outline-pen (send the-pen-list find-or-create-pen "BLACK" 0 'transparent))
 (define outline-inactive-pen (send the-pen-list find-or-create-pen (get-highlight-background-color) 1 'solid))
 (define outline-brush (send the-brush-list find-or-create-brush (get-highlight-background-color) 'solid))
@@ -5283,7 +5308,7 @@
                              (not (= last-draw-blue blue)))
                         
                         (do-redraw (send s-offscreen get-dc) top bottom left right 
-                                   (- top) (- left) show-caret show-xsel? bg-color)
+                                   (- top) (- left) show-caret show-xsel? bg-color #f)
                         
                         (set! last-draw-l left)
                         (set! last-draw-t top)
@@ -5320,7 +5345,8 @@
                       (dynamic-wind
                           void
                           (lambda ()
-                            (do-redraw dc top bottom left right (- y) (- x) show-caret show-xsel? bg-color))
+                            (do-redraw dc top bottom left right (- y) (- x) show-caret show-xsel? bg-color
+                                       (and (not bg-color) fg)))
                           (lambda ()
                             (send dc set-clipping-region rgn)
                             
@@ -5336,7 +5362,7 @@
           (end-sequence-lock)))]))
   
   ;; performs the actual drawing operations
-  (define/private (do-redraw dc starty endy leftx rightx dy dx show-caret show-xsel? bg-color)
+  (define/private (do-redraw dc starty endy leftx rightx dy dx show-caret show-xsel? bg-color caret-color)
     (let ([wl? write-locked?])
 
       (set! flow-locked? #t)
@@ -5385,18 +5411,10 @@
 
                  [local-caret-pen
                   (if bg-color
-                      (let ([r (send bg-color red)]
-                            [g (send bg-color green)]
-                            [b (send bg-color blue)])
-                        (if (and (= r 255) (= g 255) (= b 255))
-                            caret-pen
-                            (make-object pen% (make-object color% 
-                                                           (- 255 r)
-                                                           (- 255 g)
-                                                           (- 255 b))
-                                         (send caret-pen get-width) 
-                                         'solid)))
-                      caret-pen)])
+                      (color->caret-pen bg-color #t)
+                      (if caret-color
+                          (color->caret-pen caret-color #f)
+                          black-caret-pen))])
 
             (call-on-paint #t)
             
@@ -5884,7 +5902,7 @@
                                                        (+ y (if (zero? i) 0 1))
                                                        (+ y (- h 1 unline))
                                                        0 W (+ (- y) vm) hm
-                                                       'no-caret #f #f)
+                                                       'no-caret #f #f #f)
                                             (when (page . <= . 0)
                                               (send dc end-page))))
                                         #f)
