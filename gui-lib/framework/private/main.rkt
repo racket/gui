@@ -4,7 +4,8 @@
          racket/list
          "sig.rkt"
          "../preferences.rkt"
-         mred/mred-sig)
+         mred/mred-sig
+         mrlib/panel-wob)
 
 (import mred^
         [prefix preferences: framework:preferences^]
@@ -212,7 +213,7 @@
 
 (set-square-bracket-nonum-pref 'framework:square-bracket:for/fold for/folds)
 
-(preferences:set-default 'framework:white-on-black? #f boolean?)
+(preferences:set-default 'framework:white-on-black? (white-on-black-panel-scheme?) boolean?)
 
 (preferences:set-default 'framework:case-sensitive-search?
                          #f
