@@ -34,7 +34,11 @@
 
 (preferences:set-default 'framework:ascii-art-enlarge #f boolean?)
 
-(preferences:set-default 'framework:color-scheme 'classic symbol?)
+(preferences:set-default 'framework:color-scheme
+                         (if (white-on-black-panel-scheme?)
+                             'white-on-black
+                             'classic)
+                         symbol?)
 
 (preferences:set-default 'framework:column-guide-width
                          '(#f 102)
