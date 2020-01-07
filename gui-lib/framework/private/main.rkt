@@ -599,7 +599,7 @@
 (color-prefs:add-color-scheme-entry 'framework:warning-background-color
                                     "yellow"
                                     (make-object color% #x9b #x87 #x0c))
-(color-prefs:add-color-scheme-entry 'framework:failed-background-color "pink" "firebrick")
+(color-prefs:add-color-scheme-entry 'framework:failed-search-background-color "pink" "firebrick")
 (color-prefs:add-color-scheme-entry 'framework:disabled-background-color "gray" "dim gray")
 
 (color-prefs:set-default/color-scheme 'framework:delegatee-overview-color

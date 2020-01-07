@@ -2235,7 +2235,7 @@
                 (send dc set-pen "black" 1 'transparent)
                 (send dc set-brush
                       (color-prefs:lookup-in-color-scheme
-                       'framework:failed-background-color)
+                       'framework:failed-search-background-color)
                       'solid)
                 (send dc draw-rectangle (+ dx view-x) (+ view-y dy) view-width view-height)
                 (send dc set-pen pen)
@@ -2326,7 +2326,7 @@
               (send dc set-pen "black" 1 'transparent)
               (send dc set-brush
                     (color-prefs:lookup-in-color-scheme
-                     'framework:failed-background-color)
+                     'framework:failed-search-background-color)
                     'solid)
               (send dc draw-rectangle 0 0 cw ch)
               (send dc set-pen pen)
