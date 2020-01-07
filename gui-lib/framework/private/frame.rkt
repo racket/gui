@@ -2805,6 +2805,9 @@
 
 (define bday-click-canvas%
   (class canvas%
+    (inherit get-dc)
+    (define/override (on-paint)
+      (send (get-dc) draw-bitmap (icon:get-gc-off-bitmap) 0 0))
     (define/override (on-event evt)
       (cond
         [(and (mrf-bday?)
