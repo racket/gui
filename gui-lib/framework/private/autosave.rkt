@@ -17,7 +17,8 @@
           [prefix editor: framework:editor^]
           [prefix text: framework:text^]
           [prefix finder: framework:finder^]
-          [prefix group: framework:group^])
+          [prefix group: framework:group^]
+          [prefix canvas: framework:canvas^])
   
   (export framework:autosave^)
   
@@ -156,8 +157,10 @@
           (unless (null? filtered-table)
             (let* ([dlg (new (frame:focus-table-mixin dialog%)
                              (label (string-constant recover-autosave-files-frame-title)))]
-                   [t (new text% (auto-wrap #t))]
-                   [ec (new editor-canvas%
+                   [t (new (text:foreground-color-mixin
+                            (editor:standard-style-list-mixin text:basic%))
+                           [auto-wrap #t])]
+                   [ec (new canvas:color%
                             (parent dlg)
                             (editor t)
                             (line-count 2)
@@ -307,14 +310,15 @@
                                 (path->string filename)
                                 #:quote-amp? #f)]
                         [parent vp]))
-      (define ec (make-object editor-canvas% vp t))
+      (define ec (make-object canvas:color% vp t))
       (send ec min-height 400)
       (send t load-file filename)
       (send t hide-caret #t)
       (send t lock #t))
     
     (define show-files-frame% frame:basic%)
-    (define show-files-text% text:keymap%)
+    (define show-files-text% (text:foreground-color-mixin
+                              text:keymap%))
     
     (main))
   
