@@ -817,6 +817,16 @@ Deselects all selected snips in the editor.
 
 }
 
+@defmethod[#:mode override
+           (on-default-char [event (is-a?/c key-event%)])
+           void?]{
+
+Calls @method[pasteboard% delete] with no arguments in response to the
+Delete or Backspace key, and calls @method[pasteboard% move] with
+suitable @racket[0]/@racket[1]/@racket[-1] arguments in response to an
+arrow key.
+
+}
 
 @defmethod[#:mode override
            (on-default-event [event (is-a?/c mouse-event%)])
