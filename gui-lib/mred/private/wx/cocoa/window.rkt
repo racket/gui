@@ -777,9 +777,9 @@
         (->long (flip (NSPoint-y (NSRect-origin r))
                       (NSSize-height (NSRect-size r))))))
     (define/public (get-width)
-      (->long (NSSize-width (NSRect-size (get-frame)))))
+      (->long (ceiling (NSSize-width (NSRect-size (get-frame))))))
     (define/public (get-height)
-      (->long (NSSize-height (NSRect-size (get-frame)))))
+      (->long (ceiling (NSSize-height (NSRect-size (get-frame))))))
     (define/public (get-position x y)
       (let* ([r (get-frame)]
              [p (NSRect-origin r)])
@@ -787,14 +787,14 @@
         (set-box! y (->long (flip (NSPoint-y p) (NSSize-height (NSRect-size r)))))))
     (define/public (get-size w h)
       (let ([s (NSRect-size (get-frame))])
-        (set-box! w (->long (NSSize-width s)))
-        (set-box! h (->long (NSSize-height s)))))
+        (set-box! w (->long (ceiling (NSSize-width s))))
+        (set-box! h (->long (ceiling (NSSize-height s))))))
 
     (define/public (get-client-size w h)
       ;; May be called in Cocoa event-handling mode
       (let ([s (NSRect-size (tell #:type _NSRect (get-cocoa-content) bounds))])
-        (set-box! w (->long (NSSize-width s)))
-        (set-box! h (->long (NSSize-height s)))))
+        (set-box! w (->long (ceiling (NSSize-width s))))
+        (set-box! h (->long (ceiling (NSSize-height s))))))
 
     (define/public (set-size x y w h)
       (let ([x (if (not x) (get-x) x)]
