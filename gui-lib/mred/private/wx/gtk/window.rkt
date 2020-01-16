@@ -257,16 +257,16 @@
 (define-signal-handler connect-scroll "scroll-event"
   (_fun _GtkWidget _GdkEventScroll-pointer -> _gboolean)
   (lambda (gtk event)
-    (let loop ()
-      (do-key-event gtk event #f #t)
+    (let loop ([scrolling-more? #f])
+      (do-key-event gtk event #f #t scrolling-more?)
       (when (or ((abs scroll-accum-x) . >= . 1)
                 ((abs scroll-accum-y) . >= . 1))
-        (loop)))))
+        (loop #t)))))
 
 (define scroll-accum-x 0)
 (define scroll-accum-y 0)
 
-(define (do-key-event gtk event down? scroll?)
+(define (do-key-event gtk event down? scroll? [scrolling-more? #f])
   (let ([wx (gtk->wx gtk)])
     (and
      wx
@@ -297,7 +297,9 @@
                     [(= dir GDK_SCROLL_RIGHT) (values 'wheel-right 1.0)]
                     [(= dir GDK_SCROLL_SMOOTH)
                      (define mode (send wx get-wheel-steps-mode))
-                     (define-values (dx dy) (gdk_event_get_scroll_deltas event))
+                     (define-values (dx dy) (if scrolling-more?
+						(values 0 0)
+						(gdk_event_get_scroll_deltas event)))
                      (set! scroll-accum-x (+ scroll-accum-x dx))
                      (set! scroll-accum-y (+ scroll-accum-y dy))
                      (case mode
