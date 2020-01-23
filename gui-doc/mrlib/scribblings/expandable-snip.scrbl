@@ -16,12 +16,10 @@ example of an expandable snip.
 @defconstructor/auto-super[([layout (or/c 'append 'replace) 'append]
                             [closed-editor (is-a?/c text%) (new text%)]
                             [open-editor (is-a?/c text%) (new text%)]
-                            [open/close-callback
-                             (-> (is-a?/c expandable-snip%) boolean? any)
-                             void])]{
+                            [callback (-> boolean? any) void])]{
 
-The @racket[open/close-callback] is called when the snip state is
-toggled. It is called with the expandable snip object and a boolean
+The @racket[callback] is called when the snip state is
+toggled. It is called with a boolean
 that indicates whether the new state is open.
 
 In closed mode, the toggle arrow and @racket[closed-editor] are
