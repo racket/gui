@@ -265,7 +265,32 @@
     (preferences:set 'framework:do-paste-normalization #t)
     (define t (new (text:normalize-paste-mixin text:basic%)))
     (send t as-a-paste (λ () (send t insert "x² x²\nx² x²\nx² x²\nx² x²\n")))
-    (check-equal? (send t get-text) "x2 x2\nx2 x2\nx2 x2\nx2 x2\n")))
+    (check-equal? (send t get-text) "x2 x2\nx2 x2\nx2 x2\nx2 x2\n"))
+
+  (let ()
+    (preferences:set 'framework:do-paste-normalization #t)
+    (define t (new (text:normalize-paste-mixin text:basic%)))
+    (send t as-a-paste (λ ()
+                         (send t insert "x²\n")
+                         (send t insert "x²\n")))
+    (check-equal? (send t get-text) "x2\nx2\n"))
+
+  (let ()
+    (preferences:set 'framework:do-paste-normalization #t)
+    (define t (new (text:normalize-paste-mixin text:basic%)))
+    (send t as-a-paste (λ ()
+                         (send t insert "x²\n")
+                         (send t insert "x³\n")))
+    (check-equal? (send t get-text) "x2\nx3\n"))
+
+  (let ()
+    (preferences:set 'framework:do-paste-normalization #t)
+    (define t (new (text:normalize-paste-mixin text:basic%)))
+    (send t as-a-paste (λ ()
+                         (send t insert "x²\n")
+                         (send t insert "x³\n")
+                         (send t insert "x³\n")))
+    (check-equal? (send t get-text) "x2\nx3\nx3\n")))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;

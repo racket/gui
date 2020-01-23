@@ -91,6 +91,7 @@
             (define len (list-ref insertion 1))
             (split-snip start)
             (split-snip (+ start len))
+            (define changes-to-make '())
             (let loop ([snip (find-snip (+ start len) 'before-or-none)])
               (when snip
                 (define prev-snip (send snip previous))
@@ -105,7 +106,11 @@
                         (unless (ask-normalize?) (abort)))
                       (define snip-pos (get-snip-position snip))
                       (delete snip-pos (+ snip-pos (string-length old)))
-                      (insert new snip-pos snip-pos #f)))
-                  (loop prev-snip)))))))
-    
+                      (set! changes-to-make
+                            (cons (λ () (insert new snip-pos snip-pos #f))
+                                  changes-to-make))))
+                  (loop prev-snip))))
+            (for ([change (in-list changes-to-make)])
+              (change)))))
+
       (super-new))))
