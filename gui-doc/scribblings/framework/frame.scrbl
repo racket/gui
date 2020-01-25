@@ -62,15 +62,13 @@
     @method[top-level-window<%> show]
     methods. 
 
-    It's implementation is:
+    Its implementation is:
     @racketblock[
       (inherit can-close? on-close)
-      (public
-        [show
-          (lambda ()
-            (when (can-close?)
-              (on-close)
-              (show #f)))])]
+      (define/public (show)
+        (when (can-close?)
+          (on-close)
+          (show #f)))]
 
   }
   @defmethod*[(((editing-this-file? (filename path?)) boolean?))]{
