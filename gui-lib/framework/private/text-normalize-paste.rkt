@@ -105,12 +105,13 @@
                         (set! ask? #f)
                         (unless (ask-normalize?) (abort)))
                       (define snip-pos (get-snip-position snip))
-                      (delete snip-pos (+ snip-pos (string-length old)))
                       (set! changes-to-make
-                            (cons (λ () (insert new snip-pos snip-pos #f))
+                            (cons (λ ()
+                                    (delete snip-pos (+ snip-pos (string-length old)))
+                                    (insert new snip-pos snip-pos #f))
                                   changes-to-make))))
                   (loop prev-snip))))
-            (for ([change (in-list changes-to-make)])
+            (for ([change (in-list (reverse changes-to-make))])
               (change)))))
 
       (super-new))))
