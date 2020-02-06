@@ -162,6 +162,8 @@
    ;; ....
    ))
 
+(define suppress-callback (make-parameter #f))
+
 ;; ------------------------------------------------------------
 
 (define list-box%
@@ -282,27 +284,28 @@
     
     (define pending-changed (box #f))
     (define/override (do-command cmd control-hwnd)
-      ;; LVN_ITEMCHANGED notifications, in particular, get
-      ;; set for each item that changes in a selection change.
-      ;; Use a box to cancel pending callbacks to collapse the
-      ;; multiple callbacks into one.
-      (set-box! pending-changed #f)
-      (let ([b (box #t)]
-            [t (if (if single-column?
-                       (= cmd LBN_SELCHANGE)
-                       (= cmd LVN_ITEMCHANGED))
-                   'list-box
-                   'list-box-dclick)])
-        (unless (eq? t 'list-box-dclick)
-          (set! pending-changed b))
-        (queue-window-event 
-         this 
-         (lambda ()
-           (when (unbox b)
-             (callback this
-                       (new control-event%
-                            [event-type t]
-                            [time-stamp (current-milliseconds)])))))))
+      (unless (suppress-callback)
+        ;; LVN_ITEMCHANGED notifications, in particular, get
+        ;; set for each item that changes in a selection change.
+        ;; Use a box to cancel pending callbacks to collapse the
+        ;; multiple callbacks into one.
+        (set-box! pending-changed #f)
+        (let ([b (box #t)]
+              [t (if (if single-column?
+                         (= cmd LBN_SELCHANGE)
+                         (= cmd LVN_ITEMCHANGED))
+                     'list-box
+                     'list-box-dclick)])
+          (unless (eq? t 'list-box-dclick)
+            (set! pending-changed b))
+          (queue-window-event 
+           this 
+           (lambda ()
+             (when (unbox b)
+               (callback this
+                         (new control-event%
+                              [event-type t]
+                              [time-stamp (current-milliseconds)]))))))))
     
     (define/override (do-command-ex cmd control-hwnd nmhdr)
       (if (and (not single-column?)
@@ -520,23 +523,24 @@
           (not (zero? (SendMessageW hwnd LVM_GETITEMSTATE i LVIS_SELECTED)))))
 
     (define/public (select i [on? #t] [one? #t])
-      (void
-       (if single-column?
-           (if single?
-               (SendMessageW hwnd LB_SETCURSEL (if on? i -1) 0)
-               (begin
-                 (unless one?
-                   (SendMessageW hwnd LB_SELITEMRANGE 0 (MAKELPARAM 0 num)))
-                 (SendMessageW hwnd LB_SETSEL (if on? 1 0) i)))
-           (let ([lv (make-lvitem 0 0 0 #f)])
-             (define (set-one i on?)
-               (set-LVITEM-stateMask! lv LVIS_SELECTED)
-               (set-LVITEM-state! lv (if on? LVIS_SELECTED 0))
-               (SendMessageW/ptr hwnd LVM_SETITEMSTATE i lv))
-             (when (and on? (not single?) (not one?))
-               (for ([i (in-list (get-selections))])
-                 (set-one i #f)))
-             (set-one i on?)))))
+      (parameterize ([suppress-callback #t])
+        (void
+         (if single-column?
+             (if single?
+                 (SendMessageW hwnd LB_SETCURSEL (if on? i -1) 0)
+                 (begin
+                   (unless one?
+                     (SendMessageW hwnd LB_SELITEMRANGE 0 (MAKELPARAM 0 num)))
+                   (SendMessageW hwnd LB_SETSEL (if on? 1 0) i)))
+             (let ([lv (make-lvitem 0 0 0 #f)])
+               (define (set-one i on?)
+                 (set-LVITEM-stateMask! lv LVIS_SELECTED)
+                 (set-LVITEM-state! lv (if on? LVIS_SELECTED 0))
+                 (SendMessageW/ptr hwnd LVM_SETITEMSTATE i lv))
+               (when (and on? (not single?) (not one?))
+                 (for ([i (in-list (get-selections))])
+                   (set-one i #f)))
+               (set-one i on?))))))
 
     (define/public (set-selection i)
       (void (select i #t #f)))
