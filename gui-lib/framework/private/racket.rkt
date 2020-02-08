@@ -1781,6 +1781,52 @@
                          [else 
                           (insert-paren text)])))
   
+  ;; Deletes empty brace pairs (including " and |) depending on context, in a manner intended
+  ;; to be usually the inverse of auto-parens.
+  ;; Dependent on Racket's parens being single characters.
+  (define (maybe-delete-empty-brace-pair text)
+    (cond
+      [(not (preferences:get 'framework:automatic-parens)) (send text delete)]
+      [else
+       (define selection-start (send text get-start-position))
+       (define prev-position (- selection-start 1))
+       (define next-position (+ selection-start 1))
+       (define before-and-after
+         (and (= selection-start (send text get-end-position))   ; nothing selected
+              (< 0 selection-start)
+              (< selection-start (send text last-position))
+              (send text get-text prev-position next-position)))
+       (define (paren-pair? two-str)
+         (and two-str
+              (equal? (send text get-matching-paren-string (substring two-str 0 1) 'close)
+                      (substring two-str 1))))
+       (define cur-token (send text classify-position selection-start))
+       (define adj-tokens
+         (and (< 0 selection-start)
+              (equal? cur-token (send text classify-position prev-position))
+              cur-token))
+       (match* (before-and-after adj-tokens)
+         [((? paren-pair?) 'parenthesis)
+          (send text delete prev-position next-position)]
+         [("\"\"" 'error)
+          (send text delete prev-position next-position)]
+         [("\"\"" 'string)
+          (if (and (< 0 prev-position)
+                   (string=? "\\" (send text get-text (- selection-start 2) prev-position)))
+              (send text delete)
+              (send text delete prev-position next-position))]
+         [("||" (or 'comment 'symbol 'error))
+          (cond
+            [(and (< 0 prev-position)
+                  (< next-position (send text last-position))
+                  (string=? "#||#" (send text get-text (- selection-start 2) (+ selection-start 2))))
+             (send text delete prev-position (+ selection-start 2))]
+            [(equal? adj-tokens 'comment) (send text delete)]
+            [else (send text delete prev-position next-position)])]
+         [(_ _) (send text delete)])]))
+
+  (add-edit-function "maybe-delete-empty-brace-pair" maybe-delete-empty-brace-pair)
+
   (define (insert-lambda-template edit)
     (send edit begin-edit-sequence)
     (let ([selection-start (send edit get-start-position)])
@@ -1867,6 +1913,8 @@
   (map "{" "maybe-insert-{}-pair")
   (map "\"" "maybe-insert-\"\"-pair")
   (map "|" "maybe-insert-||-pair")
+
+  (map "~c:backspace" "maybe-delete-empty-brace-pair")
 
   (map-meta "s:l" "insert-lambda-template")
 

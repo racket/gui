@@ -8,12 +8,35 @@
 
 (module+ test
   (with-private-prefs
+    (test-get-matching-paren-string)
     (open-paren-typing)
     (test-text-balanced)
     (indentation-tests)
     (magic-square-bracket-tests)
     (insert-return-tests)
     (test-message-send)))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;
+;; testing get-matching-paren-string method
+;;
+
+(define (test-get-matching-paren-string)
+  (define t (new racket:text%))
+
+  (check-equal? (send t get-matching-paren-string "(") ")")
+  (check-equal? (send t get-matching-paren-string "(" 'close) ")")
+  (check-equal? (send t get-matching-paren-string "(" 'open) #f)
+  (check-equal? (send t get-matching-paren-string "]") "[")
+  (check-equal? (send t get-matching-paren-string "]" 'open) "[")
+  (check-equal? (send t get-matching-paren-string "{" 'either) "}")
+  (check-equal? (send t get-matching-paren-string "}" 'close) #f)
+  (check-exn exn:fail? (λ () (send t get-matching-paren-string "(" #f)))
+  (check-exn exn:fail? (λ () (send t get-matching-paren-string "(" 'forward)))
+  (check-equal? (send t get-matching-paren-string "[]") #f)
+  (check-equal? (send t get-matching-paren-string "} ") #f)
+  (check-equal? (send t get-matching-paren-string "") #f)
+  (check-equal? (send t get-matching-paren-string "abc") #f))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
@@ -365,6 +388,16 @@
                              k
                              `([,(string-append "(list 1 #\\" (string k)) ")"]
                                [,(string-append "(list 1 #\\" (string k)) ")"]))
+  ;; test that auto-delete doesn't delete closing paren in the above cases, even for literal-(
+  (test-parens-behavior/full (format "backspace-after-literal-~a" k)
+                             (string-append "(list 1 #\\" (string k)) "" ")"
+                             #\backspace
+                             '(["(list 1 #\\" ")"] ["(list 1 #\\" ")"]))
+  ;; test of basic cases for auto-parens followed by auto-delete
+  (test-parens-behavior/full (format "backspace-after-~a" k)
+                             "" "" ""
+                             (list k #\backspace)
+                             '([""] [""]))
   ;; test that escaped characters in a string never result in a pair of characters typed...
   ;; except for | which is a hard case to detect, because the tokenizer ends up
   ;; in an error state
@@ -611,6 +644,45 @@
                              ; test that "def" remains selected afterwards...
                              [" \"abc\" "   "\"def\""    " \"ghi\" "]))
 
+(test-parens-behavior/full 'delete-empty-block-comment
+                           " #|" "" "|#"
+                           #\backspace
+                           '([" #" "|#"]
+                             [" #" ""]))
+(test-parens-behavior/full 'delete-bars-with-hash
+                           " |" "" "|#"
+                           #\backspace
+                           '([" " "|#"]
+                             [" " "#"]))
+(test-parens-behavior/full 'delete-one-bar-between-hashes-in-string
+                           " \"#|" "" "|#\""
+                           #\backspace
+                           '([" \"#" "|#\""]
+                             [" \"#" "|#\""]))
+(test-parens-behavior/full 'delete-escaped-double-quote-in-string
+                           "\"abcd \\\"" "" "\""
+                           #\backspace
+                           '(["\"abcd \\" "\""]
+                             ["\"abcd \\" "\""])) ; don't delete the non-escaped double quote
+
+;; test that backspace only removes one character in most cases in non-empty strings and comments
+(for ([open '("(" "[" "{" "\"" "|")]
+      [close '(")" "]" "}" "\"" "|")])
+  (define single-delete-scenarios
+    ;    description     before-cursor    after-cursor
+    '(("in-line-comment"  ";; abc def "    " ghi ")
+      ("in-block-comment" "#| abc def "  " ghi |#")
+      ("in-string"        "\" abc def "  " ghi \"")
+      ))
+  (for ([s single-delete-scenarios]
+        #:unless (and (string=? "\"" open)
+                      (string=? "in-string" (car s))))
+    (let* ([before (cadr s)]
+           [after (string-append close (caddr s))]
+           [before-and-open (string-append before open)]
+           [result (list before after)])
+      (test-parens-behavior/full (format "~a-~a" (string-append open close) (car s))
+                                 before-and-open "" after #\backspace `(,result ,result)))))
 
 
 #| for these, the key-event with meta-down doesn't seem to work... maybe a Mac OS
