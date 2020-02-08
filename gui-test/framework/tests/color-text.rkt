@@ -222,3 +222,21 @@
   (send t thaw-colorer)
 
   (check-equal? (get-colors t) correct-result))
+
+(let ()
+  (define t (new color:text%))
+  (start-racket-colorer t)
+
+  (check-equal? (send t get-matching-paren-string "(") ")")
+  (check-equal? (send t get-matching-paren-string "(" 'close) ")")
+  (check-equal? (send t get-matching-paren-string "(" 'open) #f)
+  (check-equal? (send t get-matching-paren-string "]") "[")
+  (check-equal? (send t get-matching-paren-string "]" 'open) "[")
+  (check-equal? (send t get-matching-paren-string "{" 'either) "}")
+  (check-equal? (send t get-matching-paren-string "}" 'close) #f)
+  (check-exn exn:fail? (λ () (send t get-matching-paren-string "(" #f)))
+  (check-exn exn:fail? (λ () (send t get-matching-paren-string "(" 'forward)))
+  (check-equal? (send t get-matching-paren-string "[]") #f)
+  (check-equal? (send t get-matching-paren-string "} ") #f)
+  (check-equal? (send t get-matching-paren-string "") #f)
+  (check-equal? (send t get-matching-paren-string "abc") #f))

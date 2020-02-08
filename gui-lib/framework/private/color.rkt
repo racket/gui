@@ -66,6 +66,8 @@ added get-regions
     
     is-lexer-valid?
     on-lexer-valid
+
+    get-matching-paren-string
     
     skip-whitespace
     backward-match
@@ -743,6 +745,21 @@ added get-regions
     (define/private (get-match-color) 
       (color-prefs:lookup-in-color-scheme 'framework:paren-match-color))
     
+    ;; See docs
+    ;; String Symbol -> (U String False)
+    (define/public (get-matching-paren-string paren-str [get-side 'either])
+      (define sym (string->symbol paren-str))
+      (define checker
+        (case get-side
+          [(either) (λ (x) (member sym x))]
+          [(open) (λ (x) (equal? sym (cadr x)))]
+          [(close) (λ (x) (equal? sym (car x)))]
+          [else (raise-argument-error 'get-matching-paren-string
+                                      "(or/c 'open 'close 'either)"
+                                      get-side)]))
+      (for/first ([pair (in-list pairs)]
+                  #:when (checker pair))
+        (symbol->string (car (remove sym pair)))))
     
     ;; higlight : number number number (or/c color any)
     ;;   if color is a color, then it uses that color to higlight

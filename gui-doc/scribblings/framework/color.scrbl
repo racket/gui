@@ -270,6 +270,15 @@
     editor.
 
   }
+  @defmethod[(get-matching-paren-string [paren-str string?]
+                                        [get-side (or/c 'open 'close 'either) 'either])
+             (or/c string? #f)]{
+    Returns a string of a paren matching the other side of @racket[paren-str] as specified
+    by the @racket[pairs] argument of @method[color:text<%> start-colorer], if one exists
+    on the side indicated by @racket[get-side]. If there is no match on the corresponding
+    side, including if @racket[paren-str] contains any characters other than a single paren
+    token (even whitespace), returns @racket[#f] instead.
+  }
   @defmethod[(skip-whitespace (position exact-nonnegative-integer?)
                               (direction (or/c 'forward 'backward))
                               (comments? boolean?))
