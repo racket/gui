@@ -243,7 +243,7 @@
       (check-label-string-or-bitmap-or-both cwho label)
       (check-container-parent cwho parent)
       (check-callback cwho callback)
-      (check-style cwho #f '(border deleted) style)
+      (check-style cwho #f '(border multi-line deleted) style)
       (check-font cwho font))
     (as-entry
      (lambda ()

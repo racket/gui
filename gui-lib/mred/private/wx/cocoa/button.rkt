@@ -53,8 +53,9 @@
       (when button-type
         (tellv cocoa setButtonType: #:type _int button-type))
       (unless button-type
-        (tellv cocoa setBezelStyle: #:type _int (if (or (not (string? label))
-                                                        (regexp-match? #rx"\n" label))
+        (tellv cocoa setBezelStyle: #:type _int (if (or (memq 'multi-line style)
+                                                        (not (string? label))
+                                                        (regexp-match? #rx"[\n\r]" label))
                                                     NSRegularSquareBezelStyle
                                                     NSRoundedBezelStyle)))
       (cond

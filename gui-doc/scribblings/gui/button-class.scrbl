@@ -17,7 +17,7 @@ Whenever a button is clicked by the user, the button's callback
                  [parent (or/c (is-a?/c frame%) (is-a?/c dialog%) 
                                (is-a?/c panel%) (is-a?/c pane%))]
                  [callback ((is-a?/c button%) (is-a?/c control-event%) . -> . any) (lambda (b e) (void))]
-                 [style (listof (or/c 'border 'deleted)) null]
+                 [style (listof (or/c 'border 'multi-line 'deleted)) null]
                  [font (is-a?/c font%) normal-control-font]
                  [enabled any/c #t]
                  [vert-margin spacing-integer? 2]
@@ -59,9 +59,17 @@ The @racket[callback] procedure is called (with the event type
 If @racket[style] includes @racket['border], the button is drawn with
 a special border that indicates to the user that it is the default
 action button (see @method[top-level-window<%>
-on-traverse-char]). @DeletedStyleNote[@racket[style] @racket[parent]]{button}
+on-traverse-char]). If @racket[style] includes @racket['multi-line],
+the button is drawn in a way that can stretch vertically and accommodate
+multiple lines in a text label; currently, this style makes a difference only
+on Mac OS, and it is selected automatically when @racket[label] is a string
+that contains @racket[#\newline] or @racket[#\return].
+@DeletedStyleNote[@racket[style] @racket[parent]]{button}
 
-@FontKWs[@racket[font]] @WindowKWs[@racket[enabled]] @SubareaKWs[] @AreaKWs[]}
+@FontKWs[@racket[font]] @WindowKWs[@racket[enabled]] @SubareaKWs[] @AreaKWs[]
+
+@history[#:changed "1.47" @elem{Added the @racket['multi-line] style, and made it
+                                selected when @racket[label] contains @racket[#\return].}]}
 
 
 @defmethod[#:mode override
