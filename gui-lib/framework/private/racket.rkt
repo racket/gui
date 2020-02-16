@@ -1700,11 +1700,13 @@
                    (define d (immediately-following-cursor text))
                    (when (and d (string=? d "#"))   ; a block comment?
                      (send text set-position (+ 1 (send text get-end-position))))]
-               [(eq? cur-token 'comment) (send text insert open-brace)]
+               [(in-position? text '(comment)) (send text insert open-brace)]
                [else (insert-brace-pair text open-brace close-brace)])]
             ['string
              (cond
-               [(not (char=? #\" open-brace)) (send text insert open-brace)]
+               [(not (char=? #\" open-brace))
+                (insert-brace-pair text open-brace close-brace
+                                   (λ (t) (not (or (equal? 'comment t) (equal? 'string t)))))]
                [else 
                 (define start-position (send text get-start-position))
                 (define end-position (send text get-end-position))
@@ -1726,7 +1728,8 @@
                         (send text set-position 
                               (- cur-position 1)
                               (+ cur-position selection-length 1))])])]
-            [_  (insert-brace-pair text open-brace close-brace)]) ])]))
+            [_  (insert-brace-pair text open-brace close-brace
+                                   (λ (t) (not (or (equal? 'comment t) (equal? 'string t)))))])])]))
          
 
       

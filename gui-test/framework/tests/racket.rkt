@@ -387,6 +387,7 @@
     ;    description     before-cursor    after-cursor
     '(("in-line-comment"  ";; abc def "    " ghi ")
       ("end-of-line-comment" ";; abc def " "")
+      ("end-of-line-comment-with-newline" ";; abc def " "\n")
       ("end-of-line-comment-with-close-paren" ";; abc def " "   ) \n )")
       ("in-block-comment" "#| abc def "  " ghi |#")
       ))
@@ -404,6 +405,15 @@
                            #\(              ; key(s) pressed
                            '(["abcd(" "efg"]  ; result state sep by cursor, no auto-parens
                              ["abcd(" ")efg"])) ; result state with auto-parens
+
+(test-parens-behavior/full 'open-parens-before-string
+                           "abcd" "" "\"efg\""
+                           #\(
+                           '(["abcd(" "\"efg\""]  ["abcd(" ")\"efg\""]))
+(test-parens-behavior/full 'open-parens-before-comment
+                           "abcd" "" "; efg"
+                           #\(
+                           '(["abcd(" "; efg"]  ["abcd(" "); efg"]))
 
 (test-parens-behavior/full 'close-1
                            "abcd" "" "efg"
@@ -491,6 +501,10 @@
                            #\"
                            '(["\"abcd \\\"" "\""]
                              ["\"abcd \\\"" "\""]))
+(test-parens-behavior/full 'double-quote-before-comment
+                           "" "" "; 123"
+                           #\"
+                           '(["\"" "; 123"] ["\"" "\"; 123"]))
 
 (test-parens-behavior/full 'bar
                            "abc " "" "123"
@@ -508,6 +522,14 @@
                            "abc |def " "hij" "|123"
                            #\|
                            '(["abc |def |" "|123"] ["abc |def |" "hij||123"]))
+(test-parens-behavior/full 'bar-before-string
+                           "abc " "" "\"123\""
+                           #\|
+                           '(["abc |" "\"123\""] ["abc |" "|\"123\""]))
+(test-parens-behavior/full 'bar-before-comment
+                           "abc " "" "; 123"
+                           #\|
+                           '(["abc |" "; 123"] ["abc |" "|; 123"]))
 
 
 (test-parens-behavior/full 'block-comment-1
