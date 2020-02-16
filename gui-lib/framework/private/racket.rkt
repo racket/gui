@@ -1692,14 +1692,14 @@
           (match cur-token
             [(or 'error #f) (insert-brace-pair text open-brace close-brace 'error)]
             ['constant (insert-brace-pair text open-brace close-brace 
-                                       (λ(t) (not (eq? t 'constant))))]
+                                          (λ (t) (not (equal? t 'constant))))]
             [(or 'symbol 'comment)
              (cond
                [(and c (char=? #\| open-brace) (string=? c "|"))   ;; smart skip
-                   (send text set-position (+ 1 (send text get-end-position)))
-                   (define d (immediately-following-cursor text))
-                   (when (and d (string=? d "#"))   ; a block comment?
-                     (send text set-position (+ 1 (send text get-end-position))))]
+                (send text set-position (+ 1 (send text get-end-position)))
+                (define d (immediately-following-cursor text))
+                (when (and d (string=? d "#"))   ; a block comment?
+                  (send text set-position (+ 1 (send text get-end-position))))]
                [(in-position? text '(comment)) (send text insert open-brace)]
                [else (insert-brace-pair text open-brace close-brace)])]
             ['string
