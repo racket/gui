@@ -4,6 +4,7 @@
          racket/string
          racket/snip/private/style
          racket/draw
+	 string-constants
          (prefix-in wx: "kernel.rkt")
          "const.rkt"
          "check.rkt"
@@ -101,7 +102,7 @@
                                                 (send w popup-menu
                                                       (let ([m (make-object popup-menu%)])
                                                         (make-object menu-item%
-                                                                     "Copy Message"
+                                                                     (string-constant install-pkg-copy)
                                                                      m
                                                                      (lambda (i e)
                                                                        (send (wx:get-the-clipboard)
@@ -270,11 +271,11 @@
     (let-values ([(one two one-v two-v close-val default)
                   (cond
                    [(memq 'ok style)
-                    (values "OK" #f 'ok #f 1 'default=1)]
+                    (values (string-constant ok) #f 'ok #f 1 'default=1)]
                    [(memq 'ok-cancel style)
-                    (values "OK" "Cancel" 'ok 'cancel 2 'default=1)]
+                    (values (string-constant ok) (string-constant cancel) 'ok 'cancel 2 'default=1)]
                    [(memq 'yes-no style)
-                    (values "&Yes" "&No" 'yes 'no #f 'no-default)])])
+                    (values (string-constant yes-mnemonic) (string-constant no-mnemonic) 'yes 'no #f 'no-default)])])
       (let-values ([(result checked?)
                     (do-message-box/custom who
                                            title message
