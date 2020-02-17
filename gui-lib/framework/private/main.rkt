@@ -202,7 +202,7 @@
                    untyped-fors)))
     all-fors))
 
-(define for/folds '("for/fold" "for/fold:" "for*/fold" "for*/fold:"))
+(define for/folds '("for/fold" "for/fold:" "for*/fold" "for*/fold:" "for/foldr" "for*/foldr"))
 (set-square-bracket-nonum-pref 'framework:square-bracket:letrec
                                (append (map symbol->string all-fors)
                                        for/folds
