@@ -71,7 +71,7 @@ The default handler queues a callback to the
  the filename and re-queues the handler event when the application
  file handler is later changed or when a frame becomes active.
 
-On Windows, when the application is @italic{not} running and user double-clicks an
+On Windows, when the application is @italic{not} running and a user double-clicks an
  application-handled file or drags a file onto the application's icon,
  the filename is provided as a command-line argument to the
  application.
