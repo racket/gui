@@ -1729,7 +1729,7 @@
                               (- cur-position 1)
                               (+ cur-position selection-length 1))])])]
             [_  (insert-brace-pair text open-brace close-brace
-                                   (λ (t) (not (or (equal? 'comment t) (equal? 'string t)))))])])]))
+                                   (λ (t) (not (equal? 'comment t))))])])]))
          
 
       

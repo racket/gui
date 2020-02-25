@@ -505,6 +505,10 @@
                            "" "" "; 123"
                            #\"
                            '(["\"" "; 123"] ["\"" "\"; 123"]))
+(test-parens-behavior/full 'double-quote-before-later-string
+                           "" "" " \"\" "
+                           #\"
+                           '(["\"" " \"\" "] ["\"" "\" \"\" "]))
 
 (test-parens-behavior/full 'bar
                            "abc " "" "123"
