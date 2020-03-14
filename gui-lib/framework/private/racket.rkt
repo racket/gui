@@ -1434,15 +1434,31 @@
 ;; classify-position characterizes it so).
 (define (in-position? text sym-list)
   (define selection-start (send text get-start-position))
-  (define first-type (send text classify-position selection-start))
-  (define final-type
-    (if (and (member first-type '(string comment))
-             (or (= selection-start 0)
-                 (not (eq? (send text classify-position (- selection-start 1))
-                           first-type))))
-        'white-space
-        first-type))
-  (and (member final-type sym-list) #t))
+  (define class-right (send text classify-position selection-start))
+  (define class-left (and (> selection-start 0)
+                          (send text classify-position (- selection-start 1))))
+  ; By default, the position class is the class of the token at the r.h.s of the cursor.
+  (define the-class class-right)
+  ; Now for some special cases:
+  ;
+  ; Check if the cursor is right after a line comment, that is, on the newline character on the same
+  ; line as the comment (which position is classified as 'white-space instead of 'comment).
+  ; If so, a newly inserted character will still be in the line comment.
+  (when (eq? 'comment class-left) ; right after a comment
+    (define-values (token-start token-end) ; l.h.s. token
+      (send text get-token-range (- selection-start 1)))
+    ; Notice: This uses a racket-specific check, which is not ideal. Instead the tokenizer should
+    ; be able to report the comment kind but that would likely be either messy or bwd incompatible.
+    (when (eqv? #\; (send text get-character token-start)) ; line comment
+      (set! the-class class-left)))
+  ; Check if the cursor is right before a string or a comment; if so a newly inserted character
+  ; will *not* be inside the string or comment, so we reclassify the position as 'white-space.
+  (when (memq class-right '(comment string))
+    (define-values (token-start token-end) ; r.h.s. token
+      (send text get-token-range selection-start))
+    (when (= token-start selection-start)
+      (set! the-class 'white-space)))
+  (and (member the-class sym-list) #t))
 
 ;; determines if the cursor is currently sitting in a string
 ;; literal or a comment. 
@@ -1652,6 +1668,9 @@
               (and (symbol? checkp) (eq? checkp tok-type))
               (and (procedure? checkp) (checkp tok-type)))
       (define hash-before?  ; tweak to detect and correctly close block comments #| ... |#
+        ; Notice: This is racket-specific and despite the name of the file we should instead rely
+        ; on the lexer alone so as to be language-agnostic.
+        ; Currently though the lexer does not provide enough information about the comment type.
         (and (< 0 selection-start)
              (string=? "#" (send text get-text (- selection-start 1) selection-start))))
       (send text set-position (+ selection-end open-len))
