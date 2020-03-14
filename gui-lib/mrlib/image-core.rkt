@@ -1109,26 +1109,36 @@ has been moved out).
         (send dc set-transformation transformation)
         bitmap-obj])]
     [(text? np-atomic-shape)
-     (let ([θ (degrees->radians (text-angle np-atomic-shape))]
-           [font (send dc get-font)])
-       (send dc set-font (text->font np-atomic-shape))
-       (send dc set-smoothing 'aligned) ;; should this be smoothed?
-       (let ([color (get-color-arg (text-color np-atomic-shape))])
-         (send dc set-text-foreground 
-               (cond
-                 [(string? color) (string->color-object color)]
-                 [else color])))
-       (let-values ([(w h _1 _2) (send dc get-text-extent (text-string np-atomic-shape))])
-         (let ([p (- (make-rectangular dx dy)
-                     (* (make-polar 1 (- θ)) (make-rectangular (/ w 2) (/ h 2))))])
-           (define-values (x-scale y-scale) (send dc get-scale))
-           (define-values (ox oy) (send dc get-origin))
-           (send dc set-origin (+ ox (real-part p)) (+ oy (imag-part p)))
-           (send dc set-scale x-scale (* y-scale (text-y-scale np-atomic-shape)))
-           (send dc draw-text (text-string np-atomic-shape)
-                 0 0 #f 0 θ)
-           (send dc set-scale x-scale y-scale)
-           (send dc set-origin ox oy))))]))
+     (define θ (degrees->radians (text-angle np-atomic-shape)))
+     (define font (send dc get-font))
+     (send dc set-font (text->font np-atomic-shape))
+     (send dc set-smoothing 'aligned) ;; should this be smoothed?
+     (define color (get-color-arg (text-color np-atomic-shape)))
+     (send dc set-text-foreground
+           (cond
+             [(string? color) (string->color-object color)]
+             [else color]))
+     (define-values (w h _1 _2) (send dc get-text-extent (text-string np-atomic-shape)))
+     (define t-y-scale (text-y-scale np-atomic-shape))
+     (define-values (px py) (text-details->origin-offset dx dy t-y-scale θ w h))
+     (define-values (x-scale y-scale) (send dc get-scale))
+     (define-values (ox oy) (send dc get-origin))
+     (send dc set-origin (+ ox px) (+ oy py))
+     (send dc set-scale x-scale (* y-scale (text-y-scale np-atomic-shape)))
+     (send dc draw-text (text-string np-atomic-shape) 0 0 #f 0 θ)
+     (send dc set-scale x-scale y-scale)
+     (send dc set-origin ox oy)]))
+
+(define (text-details->origin-offset dx dy t-y-scale θ w h)
+  (define p (- (make-rectangular dx dy)
+               (* (make-polar 1 (- θ)) (make-rectangular (/ w 2)
+                                                         (* t-y-scale (/ h 2))))))
+  (values (real-part p)
+          (imag-part p)))
+
+(module+ test
+  (check-equal? (call-with-values (λ () (text-details->origin-offset 10.0 10.0 1/2 0 20.0 40.0)) list)
+                (list 0.0 0.0)))
 
 (define (polygon-pulled-points->path pulled-points)
   (define path (new dc-path%))
