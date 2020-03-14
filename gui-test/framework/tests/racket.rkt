@@ -567,6 +567,16 @@
                            #\)
                            '(["[;)" "" "\n"]
                              ["[;)" "" "\n"]))
+(test-parens-behavior/full 'close-adjusts-properly-at-eol-of-line-comment
+                           "(;" "" "\n)"
+                           #\)
+                           '(["(;)" "" "\n)"]
+                             ["(;)" "" "\n)"]))
+(test-parens-behavior/full 'close-adjusts-properly-after-a-block-comment
+                           "(#||#" "" "\n)"
+                           #\)
+                           '(["(#||#)" "" "\n)"]
+                             ["(#||#\n)" "" ""]))
 (test-parens-behavior/full 'close-adjusts-properly-when-inside-an-unclosed-string
                            "[()\"" "" ""
                            #\)
