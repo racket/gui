@@ -2982,7 +2982,7 @@
                                                  [p p])
                                         (let-boxes ([w 0.0])
                                             (when dc (send snip get-extent dc X topy w #f #f #f #f #f))
-                                          (if (and (x . > . w) (snip->next snip) dc)
+                                        (if (and (x . > . w) (snip->next snip) dc)
                                               (loop (snip->next snip)
                                                     (+ X w)
                                                     (- x w)
@@ -3066,6 +3066,12 @@
         (set! flow-locked? #t)
         (let ([c (snip->count snip)])
           (cond
+            [((or snip-width (send snip partial-offset dc X Y c)) . <= . x)
+             (when how-close
+               (set-box! how-close 100.0))
+             (set! write-locked? wl?)
+             (set! flow-locked? fl?)
+             c]
             [(= c 1)
              (set! write-locked? wl?)
              (set! flow-locked? fl?)
@@ -3075,15 +3081,7 @@
                              (- snip-width x)
                              (- x))))
              0]
-            [((send snip partial-offset dc X Y c) . <= . x)
-             (begin
-               (when how-close
-                 (set-box! how-close 100.0))
-               (set! write-locked? wl?)
-               (set! flow-locked? fl?)
-               c)]
-
-             [else
+            [else
               ;; binary search for position within snip:
               (let loop ([range c]
                          [i (quotient c 2)]

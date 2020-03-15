@@ -519,16 +519,16 @@ See also @method[text% delete].
 }
 
 @defmethod[(find-line [y real?]
-                      [on-it? (or/c (box/c any/c) #f) #f])
+                      [on-it (or/c (box/c any/c) #f) #f])
            exact-nonnegative-integer?]{
 
 Given a @techlink{location} in the editor, returns the line at the
  @techlink{location}. @|LineNumbering|
 
-@boxisfillnull[@racket[on-it?] @elem{@racket[#t] if the line actually
+@boxisfillnull[@racket[on-it] @elem{@racket[#t] if the line actually
  touches this @techlink{position}, or @racket[#f] otherwise}] (A large
  enough @racket[y] will always return the last line number, but will
- set @racket[on-it?] to @racket[#f].)
+ set @racket[on-it] to @racket[#f].)
 
 @|OVD| @|FCA|
 
@@ -558,25 +558,27 @@ Given a snip, returns the next snip in the editor (after the given
 
 @defmethod[(find-position [x real?]
                           [y real?]
-                          [at-eol? (or/c (box/c any/c) #f) #f]
-                          [on-it? (or/c (box/c any/c) #f) #f]
-                          [edge-close? (or/c (box/c real?) #f) #f])
+                          [at-eol (or/c (box/c any/c) #f) #f]
+                          [on-it (or/c (box/c any/c) #f) #f]
+                          [edge-close (or/c (box/c real?) #f) #f])
            exact-nonnegative-integer?]{
 
 Given a @techlink{location} in the editor, returns the @techlink{position} at the
  @techlink{location}.
 
-See @|ateoldiscuss| for a discussion of the @racket[at-eol?] argument.
- @boxisfillnull[@racket[on-it?] @elem{@racket[#t] if the line actually touches this
+See @|ateoldiscuss| for a discussion of the @racket[at-eol] argument.
+ @boxisfillnull[@racket[on-it] @elem{@racket[#t] if the line actually touches this
  @techlink{position}, or @racket[#f] otherwise}]
 
-@boxisfillnull[@racket[edge-close?] @elem{it will be filled in with a value
+@boxisfillnull[@racket[edge-close] @elem{a value
  indicating how close the point is to the vertical edges of the @techlink{item}
- when the point falls on the @techlink{item}}] If the point is closest to the left
- edge of the @techlink{item}, the value will be negative; otherwise, the value
- will be positive. In either case, then absolute value of the returned
- result is the distance from the point to the edge of the @techlink{item}. The
- values 100 and -100 indicate infinity.
+ when the point falls on the @techlink{item}}] If the point is strictly to
+ the left of the item's left edge, the value is @racket[-100.0]; if the point is at or
+ to the right of the item's right edge, the value is @racket[100.0]; otherwise, the value is
+ zero or negative if the point is closest to the left, positive if the point
+ is closest to the right edge of the @techlink{item},
+ and the magnitude of the value is the distance from the point to the edge
+ of the @techlink{item}.
 
 @|OVD| @|FCA|
 
@@ -585,20 +587,20 @@ See @|ateoldiscuss| for a discussion of the @racket[at-eol?] argument.
 
 @defmethod[(find-position-in-line [line exact-nonnegative-integer?]
                                   [x real?]
-                                  [at-eol? (or/c (box/c any/c) #f) #f]
-                                  [on-it? (or/c (box/c any/c) #f) #f]
-                                  [edge-close? (or/c (box/c real?) #f) #f])
+                                  [at-eol (or/c (box/c any/c) #f) #f]
+                                  [on-it (or/c (box/c any/c) #f) #f]
+                                  [edge-close (or/c (box/c real?) #f) #f])
            exact-nonnegative-integer?]{
 
 Given a @techlink{location} within a line of the editor, returns the
  @techlink{position} at the @techlink{location}. @|LineNumbering|
 
-See @|ateoldiscuss| for a discussion of the @racket[at-eol?] argument.
- @boxisfillnull[@racket[on-it?] @elem{@racket[#t] if the line actually
+See @|ateoldiscuss| for a discussion of the @racket[at-eol] argument.
+ @boxisfillnull[@racket[on-it] @elem{@racket[#t] if the line actually
  touches this @techlink{position}, or @racket[#f] otherwise}]
 
 See @method[text% find-position] for a discussion of
- @racket[edge-close?].
+ @racket[edge-close].
 
 @|OVD| @|FCA|
 
