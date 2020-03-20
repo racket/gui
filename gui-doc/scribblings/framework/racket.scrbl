@@ -81,6 +81,10 @@
 
   @defmethod*[(((tabify-all) void?))]{
     Tabs all lines.
+
+  NB: Indentation results depend on the graphical context associated with the object;
+  it may be necessary to associate the object with an editor-canvas and frame in
+  order to get the expected results.
   }
 
  @defmethod[#:mode public-final
@@ -97,6 +101,10 @@
   that follows an open parenthesis. If it returns @racket[#f], then the
   user's preferences (from the @onscreen{Indenting} panel of the @onscreen{Editing}
   panel in the preferences dialog) are used.
+
+  NB: Indentation results depend on the graphical context associated with the object;
+  it may be necessary to associate the object with an editor-canvas and frame in
+  order to get the expected results.
 
   @history[#:added "1.9"
            #:changed "1.26" @list{Added the @racket[get-head-sexp-type] argument.}]
