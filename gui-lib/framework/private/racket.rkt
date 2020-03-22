@@ -545,19 +545,26 @@
                  (loop (add1 p))]
                 [else
                  p]))))
-        (define start-x (box 0))
-        (define end-x (box 0))
-        (position-location start-pos start-x #f #t #t)
-        (position-location end-pos end-x #f #t #t)
-        (define sizing-dc (or (get-dc) (make-object bitmap-dc% (make-bitmap 1 1))))
-        (define-values (w _1 _2 _3)
-          (send sizing-dc get-text-extent "x"
-                (send (send (get-style-list)
-                            find-named-style "Standard")
-                      get-font)))
-        (values (inexact->exact (floor (/ (- (unbox end-x) (unbox start-x)) w)))
-                end-pos
-                tab-char?))
+        (define sizing-dc (get-dc))
+        (define gwidth
+          (cond
+            [sizing-dc
+             (define start-x (box 0))
+             (define end-x (box 0))
+             (position-location start-pos start-x #f #t #t)
+             (position-location end-pos end-x #f #t #t)
+             (define-values (w _1 _2 _3)
+               (send sizing-dc get-text-extent "x"
+                     (send (send (get-style-list)
+                                 find-named-style "Standard")
+                           get-font)))
+             (inexact->exact (floor (/ (- (unbox end-x) (unbox start-x)) w)))]
+            [else
+             ;; if there is no display available, approximate the graphical
+             ;; width on the assumption that we are using a fixed-width font
+             (- end-pos start-pos)]))
+        (values gwidth end-pos tab-char?))
+
     (define/pubment (compute-amount-to-indent pos)
       (inner (compute-racket-amount-to-indent pos) compute-amount-to-indent pos))
     (define/public-final (compute-racket-amount-to-indent pos [_get-head-sexp-type (λ (x) #f)])
