@@ -83,8 +83,10 @@
     Tabs all lines.
 
   Indentation results depend on the graphical context associated with the object;
-  it may be necessary to associate the object with an @racket[editor-canvas%]
-  and @racket[top-level-window<%>] in order to get the expected results.
+  if there is not one, the indentation is based on the assumption that a fixed-width
+  font is used. If the object is viewed in an @racket[editor-canvas%]
+  and @racket[top-level-window<%>], the actual font information is used to determine
+  the initial number of spaces on a line.
   }
 
  @defmethod[#:mode public-final
@@ -103,8 +105,10 @@
   panel in the preferences dialog) are used.
 
   Indentation results depend on the graphical context associated with the object;
-  it may be necessary to associate the object with an @racket[editor-canvas%]
-  and @racket[top-level-window<%>] in order to get the expected results.
+  if there is not one, the indentation is based on the assumption that a fixed-width
+  font is used. If the object is viewed in an @racket[editor-canvas%]
+  and @racket[top-level-window<%>], the actual font information is used to determine
+  the initial number of spaces on a line.
 
   @history[#:added "1.9"
            #:changed "1.26" @list{Added the @racket[get-head-sexp-type] argument.}]
