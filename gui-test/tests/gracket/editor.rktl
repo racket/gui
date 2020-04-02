@@ -3,6 +3,8 @@
 
 (require racket/gui/base)
 
+(define dir (make-temporary-file "editor_rktl_~a" 'directory))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;                            Editor Tests                                    ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -125,10 +127,11 @@
 (define text-insert (lambda (e t) (send e insert t)))
 (define pb-insert (lambda (e t) (send e insert (make-object string-snip% t))))
 
-(map (lambda (reset?)
-       (run-save/load-tests text% text-insert reset?)
-       (run-save/load-tests pasteboard% pb-insert reset?))
-     '(#t #f))
+(parameterize ([current-directory dir])
+  (map (lambda (reset?)
+         (run-save/load-tests text% text-insert reset?)
+         (run-save/load-tests pasteboard% pb-insert reset?))
+       '(#t #f)))
 
 ;; Test DrRacket-style format change in `on-save':
 (define (run-on-save-tests editor% insert)
@@ -151,8 +154,9 @@
       (st 'standard e get-file-format))
     (send e load-file "tmp99" 'guess)
     (st "Hello" e get-flattened-text)))
-(run-on-save-tests text% text-insert)
-(run-on-save-tests pasteboard% pb-insert)
+(parameterize ([current-directory dir])
+  (run-on-save-tests text% text-insert)
+  (run-on-save-tests pasteboard% pb-insert))
 
 ;;;;;; Undo tests
 
@@ -677,6 +681,10 @@
 (test #f 'undef-image-snip% (impersonator? (new image-snip%)))
 (test #f 'undef-style-delta% (impersonator? (new style-delta%)))
 (test #f 'undef-style<%> (impersonator? (send (new style-list%) basic-style)))
+
+;; ----------------------------------------
+
+(delete-directory/files dir #:must-exist? #f)
 
 ;; ----------------------------------------
 
