@@ -11,7 +11,8 @@
 
 (provide (protect-out file-selector))
 
-(import-class NSOpenPanel NSSavePanel NSURL NSArray)
+(import-class NSOpenPanel NSSavePanel NSURL NSArray
+              NSMenu NSMenuItem)
 
 (define (nsurl->string url)
   (string->path (tell #:type _NSString url path)))
@@ -97,7 +98,10 @@
                                    parent
                                    ;; retain until done:
                                    (box null))]
-                  [completion-result 0])
+                  [completion-result 0]
+                  [orig-mb (tell app mainMenu)])
+              (when orig-mb
+                (tellv app setMainMenu: (make-standard-menu-bar)))
               (when parent
                 (tellv ns beginSheetModalForWindow: (send parent get-cocoa-window)
                        completionHandler: #:type _pointer (and completion
@@ -124,6 +128,7 @@
                    ;; for us:
                    (tell #:type _NSInteger ns runModal))
                (when parent (tell app endSheet: ns))
+               (when orig-mb (tellv app setMainMenu: orig-mb))
                (when front (tellv (send front get-cocoa-window)
                                   makeKeyAndOrderFront: #f)))))])
       (begin0
@@ -137,3 +142,39 @@
                 (let ([url (tell ns URL)])
                   (nsurl->string url)))))
        (release ns)))))
+
+;; Would be better for names to be localized:
+(define menu-names
+  #hasheq((edit . "Edit")
+          (undo . "Undo")
+          (redo . "Redo")
+          (cut . "Cut")
+          (copy . "Copy")
+          (paste . "Paste")))
+
+(define (make-standard-menu-bar)
+  (define mb (tell (tell NSMenu alloc) init))
+  (define edit-item (tell (tell NSMenuItem alloc)
+                          initWithTitle: #:type _NSString (hash-ref menu-names 'edit)
+                          action: #:type _SEL #f
+                          keyEquivalent: #:type _NSString ""))
+  (define edit (tell (tell NSMenu alloc)
+                     initWithTitle: #:type _NSString (hash-ref menu-names 'edit)))
+  (tellv edit-item setSubmenu: edit)
+  (define (add-item name sel shortcut)
+    (tellv edit addItem: (tell (tell NSMenuItem alloc)
+                               initWithTitle: #:type _NSString name
+                               action: #:type _SEL sel
+                               keyEquivalent: #:type _NSString shortcut)))
+  (add-item (hash-ref menu-names 'undo) (selector undo:) "z")
+  (add-item (hash-ref menu-names 'redo) (selector redo:) "Z")
+  (tellv edit addItem: (tell NSMenuItem separatorItem))
+  (add-item (hash-ref menu-names 'cut) (selector cut:) "x")
+  (add-item (hash-ref menu-names 'copy) (selector copy:) "c")
+  (add-item (hash-ref menu-names 'paste) (selector paste:) "v")
+  (tellv mb addItem: (tell (tell NSMenuItem alloc)
+                           initWithTitle: #:type _NSString "Application"
+                           action: #:type _SEL #f
+                           keyEquivalent: #:type _NSString ""))
+  (tellv mb addItem: edit-item)
+  mb)
