@@ -62,6 +62,16 @@
 (set-check-queue! events-ready?)
 (set-queue-wakeup! install-wakeup)
 
+;; Check `IsChild` on each owner of `hwnd`, which
+;; covers things like menus
+(define (IsChild* parent hwnd)
+  (let loop ([hwnd hwnd])
+    (or (IsChild parent hwnd)
+	(let ([p (GetWindow hwnd GW_OWNER)])
+	  (if p
+              (loop p)
+              hwnd)))))
+
 (define other-peek-evt (make-semaphore))
 (define peek-other-peek-evt (semaphore-peek-evt other-peek-evt))
 
@@ -161,7 +171,7 @@
       (when v
 	(let ([hwnd (MSG-hwnd msg)])
 	  (unless (for/or ([k (in-hash-keys known-hwnds)])
-		    (IsChild k hwnd))
+		    (IsChild* k hwnd))
 	    (when (PeekMessageW msg hwnd 0 0 PM_REMOVE)
               (TranslateMessage msg)
               (DispatchMessageW msg)
