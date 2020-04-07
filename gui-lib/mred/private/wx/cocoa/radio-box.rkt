@@ -57,7 +57,9 @@
                                              size)
                  fromRect: #:type _NSRect (make-NSRect (make-NSPoint 0 0) size)
                  operation: #:type _int 1
-                 fraction: #:type _CGFloat 1.0)))])
+                 fraction: #:type _CGFloat 1.0
+                 respectFlipped: #:type _BOOL YES
+                 hints: #f)))])
 
 (defclass radio-box% item%
   (init parent cb label
