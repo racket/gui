@@ -118,7 +118,7 @@
    [(path)
     (unless (path-string? path)
       (raise-type-error 'file-creator-and-type "path string" path))
-    (let ([info (let ([fs (path->fsref path)]
+    (let ([info (let ([fs (path->fsref (path->complete-path path))]
                       [v (cast (malloc 256) _gcpointer (_gcable _FSCatalogInfo-pointer))])
                   (get-info v fs path)
                   (FSCatalogInfo-finderInfo v))])
@@ -131,7 +131,7 @@
       (raise-type-error 'file-creator-and-type "bytes string of length 4" creator))
     (unless (and (bytes? type) (= 4 (bytes-length type)))
       (raise-type-error 'file-creator-and-type "bytes string of length 4" type))
-    (let ([fs (path->fsref path)]
+    (let ([fs (path->fsref (path->complete-path path))]
           [v (cast (malloc 256) _gcpointer (_gcable _FSCatalogInfo-pointer))])
       (get-info v fs path)
       (let ([info (FSCatalogInfo-finderInfo v)])
