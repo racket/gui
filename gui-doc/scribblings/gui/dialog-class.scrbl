@@ -100,15 +100,15 @@ Returns the result of
 
 If @racket[show?] is true, the dialog is shown and all frames (and other
  dialogs) in the eventspace become disabled until the dialog is
- closed.  If @racket[show?] is false, the dialog is hidden and other
- frames and dialogs are re-enabled (unless a different, pre-existing
- dialog is still shown).
-
-If @racket[show?] is false, the method does not immediately return. Instead,
+ closed. Furthermore, the method does not immediately return. Instead,
  it loops with @racket[yield] until the dialog is found to be hidden
  between calls to @racket[yield]. An internal semaphore is used with
  @racket[yield] to avoid a busy-wait, and to ensure that the @racket[show]
-  method returns as soon as possible after the dialog is hidden.
+ method returns as soon as possible after the dialog is hidden.
+ 
+If @racket[show?] is false, the dialog is hidden and other
+ frames and dialogs are re-enabled (unless a different, pre-existing
+ dialog is still shown).
 
 }
 
