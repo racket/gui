@@ -456,13 +456,11 @@ added get-regions
     
     (define/private (add-coloring/spell suggestions color start end)
       (add-coloring color start end)
-      (unless misspelled-regions
-        (when suggestions
-          (set! misspelled-regions (make-interval-map))))
-      (unless (= start end)
-        (when misspelled-regions
-          (when suggestions
-            (interval-map-set! misspelled-regions start end suggestions)))))
+      (when suggestions
+        (unless misspelled-regions
+          (set! misspelled-regions (make-interval-map)))
+        (unless (= start end)
+          (interval-map-set! misspelled-regions start end suggestions))))
     (define misspelled-regions #f)
     (define/public (get-spell-suggestions position)
       (cond
