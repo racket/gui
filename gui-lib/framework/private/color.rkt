@@ -441,26 +441,27 @@ added get-regions
                                  sp
                                  query-aspell))
             (for ([spell-info (in-list spell-infos)])
-              (case (car spell-info)
+              (define maybe-suggestions (car spell-info))
+              (define start (list-ref spell-info 1))
+              (define end (list-ref spell-info 2))
+              (case maybe-suggestions
                 [(#f)
-                 (add-coloring/spell #f color (list-ref spell-info 1) (list-ref spell-info 2))]
+                 (add-coloring color start end)]
                 [else
-                 (add-coloring/spell (list-ref spell-info 0)
-                                     misspelled-color
-                                     (list-ref spell-info 1)
-                                     (list-ref spell-info 2))]))]
+                 (add-coloring misspelled-color start end)
+                 (add-suggestions maybe-suggestions
+                                  start
+                                  end)]))]
            [else
-            (add-coloring/spell #f color sp ep)])]
+            (add-coloring color sp ep)])]
         [else
-         (add-coloring/spell #f color sp ep)]))
+         (add-coloring color sp ep)]))
     
-    (define/private (add-coloring/spell suggestions color start end)
-      (add-coloring color start end)
-      (when suggestions
+    (define/private (add-suggestions suggestions start end)
+      (unless (= start end)
         (unless misspelled-regions
           (set! misspelled-regions (make-interval-map)))
-        (unless (= start end)
-          (interval-map-set! misspelled-regions start end suggestions))))
+        (interval-map-set! misspelled-regions start end suggestions)))
     (define misspelled-regions #f)
     (define/public (get-spell-suggestions position)
       (cond
