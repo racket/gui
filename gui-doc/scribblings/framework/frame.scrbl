@@ -544,7 +544,7 @@
                 boolean?))]{
     Queries the use for a file name and saves the file with that name.
 
-    Returns @racket[#f] if the user cancells the file-choosing
+    Returns @racket[#f] if the user cancels the file-choosing
     dialog and returns @racket[#t] otherwise.
   }
   @defmethod*[(((get-canvas) (is-a?/c canvas%)))]{
