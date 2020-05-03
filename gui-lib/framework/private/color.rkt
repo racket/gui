@@ -1373,31 +1373,26 @@ added get-regions
                            current-dict
                            sp
                            maybe-query-aspell)
-  (define strs (regexp-split #rx"\n" newline-str))
-  (define answer '())
-  (let loop ([strs strs]
-             [pos sp])
-    (unless (null? strs)
-      (define str (car strs))
-      (let loop ([spellos (maybe-query-aspell str current-dict)]
-                 [lp 0])
-        (cond
-          [(null? spellos)
-           (set! answer (cons (list #f (+ pos lp) (+ pos (string-length str))) answer))]
-          [else
-           (define err (car spellos))
-           (define err-start (list-ref err 0))
-           (define err-len (list-ref err 1))
-           (define suggestions (list-ref err 2))
-           (set! answer
-                 (list* 
-                  (list suggestions (+ pos err-start) (+ pos err-start err-len))
-                  (list #f (+ pos lp) (+ pos err-start))
-                  answer))
-           (loop (cdr spellos) (+ err-start err-len))]))
-      (loop (cdr strs)
+  (for/fold
+   ([answer '()]
+    [pos sp]
+    #:result answer)
+   ([str (in-list (regexp-split #rx"\n" newline-str))])
+    (for/fold
+     ([answer answer]
+      [lp 0]
+      #:result (cons (list #f (+ pos lp) (+ pos (string-length str))) answer))
+     ([err (in-list (maybe-query-aspell str current-dict))])
+      (define err-start (list-ref err 0))
+      (define err-len (list-ref err 1))
+      (define suggestions (list-ref err 2))
+      (values (list* 
+               (list suggestions (+ pos err-start) (+ pos err-start err-len))
+               (list #f (+ pos lp) (+ pos err-start))
+               answer) 
+              (+ err-start err-len)))
+    (values answer
             (+ pos (string-length str) 1))))
-  answer)
 
 (module+ test
   (require rackunit racket/list racket/pretty
