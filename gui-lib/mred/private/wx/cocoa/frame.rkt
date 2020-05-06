@@ -33,6 +33,9 @@
 (define NSWindowCloseButton 0)
 (define NSWindowToolbarButton 3)
 
+(when (version-10.12-or-later?)
+  (tellv NSWindow setAllowsAutomaticWindowTabbing: #:type _BOOL #f))
+
 (define front #f)
 
 (define (get-front) front)

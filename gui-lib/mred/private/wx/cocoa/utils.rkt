@@ -29,6 +29,7 @@
               version-10.9-or-later?
               version-10.10-or-later?
               version-10.11-or-later?
+              version-10.12-or-later?
               version-10.13-or-later?
               version-10.14-or-later?
               version-10.15-or-later?)
@@ -98,6 +99,8 @@
   (NSAppKitVersionNumber . >= . 1331))
 (define (version-10.11-or-later?) ; El Capitan
   (NSAppKitVersionNumber . >= . 1404))
+(define (version-10.12-or-later?) ; Sierra
+  (NSAppKitVersionNumber . >= . 1504))
 (define (version-10.13-or-later?) ; High Sierra
   (NSAppKitVersionNumber . >= . 1561))
 (define (version-10.14-or-later?) ; Mojave
