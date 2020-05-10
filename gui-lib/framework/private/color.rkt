@@ -426,13 +426,8 @@ added get-regions
       (define ep (+ in-start-pos (sub1 new-token-end)))
       (define style-name (token-sym->style type))
       (define color (send (get-style-list) find-named-style style-name))
-      (define do-spell-check?
-        (cond
-          [(equal? type 'string) spell-check-strings?]
-          [(equal? type 'text) spell-check-text?]
-          [else #f]))
       (cond
-        [do-spell-check?
+        [(do-spell-check? type)
          (define misspelled-color
            (send (get-style-list) find-named-style misspelled-text-color-style-name))
          (cond
@@ -443,37 +438,60 @@ added get-regions
                                  sp
                                  query-aspell))
             (for ([spell-info (in-list spell-infos)])
-              (case (car spell-info)
-                [(#f)
-                 (add-coloring/spell #f color (list-ref spell-info 1) (list-ref spell-info 2))]
-                [else
-                 (add-coloring/spell (list-ref spell-info 0)
-                                     misspelled-color
-                                     (list-ref spell-info 1)
-                                     (list-ref spell-info 2))]))]
+              (add-coloring (if (list-ref spell-info 0) misspelled-color color)
+                            (list-ref spell-info 1) (list-ref spell-info 2)))]
            [else
-            (add-coloring/spell #f color sp ep)])]
+            (add-coloring color sp ep)])]
         [else
-         (add-coloring/spell #f color sp ep)]))
+         (add-coloring color sp ep)]))
+
+    (define/private (do-spell-check? type)
+      (or (and (equal? type 'string) spell-check-strings?)
+          (and (equal? type 'text) spell-check-text?)))
     
-    (define/private (add-coloring/spell suggestions color start end)
-      (add-coloring color start end)
-      (unless misspelled-regions
-        (when suggestions
-          (set! misspelled-regions (make-interval-map))))
-      (unless (= start end)
-        (when misspelled-regions
-          (when suggestions
-            (interval-map-set! misspelled-regions start end suggestions)))))
-    (define misspelled-regions #f)
+    ; This implementation (along with changes in the rest of the file) fixes spell-checking,
+    ;  which was only working before when used in a stereotyped way.
+    ;
+    ; Some notes about the properties of this implementation ...
+    ;
+    ; The 7.7 docs specify that this method produces #f if checking is off (as well as if there are
+    ;  no suggestions), although that behavior is unlikely to be usefully relied on in that case.
+    ;  That behavior is preserved.
+    ;
+    ; The method needs information from the colorer, and produces #f if the colorer is stopped.
+    ;
+    ; Coloring misspelled words requires that the style list have a style for misspelled colors,
+    ;  but this method does not. So, although unlikely, if that style is missing one can still
+    ;  interact with spell checking (skip to, suggest correction, replace).
+    ;
+    ; The method uses private members of this mixin, but those could easily be accessed via
+    ;  the public api and the method could be made independent of the mixin's implementation.
+    ;
     (define/public (get-spell-suggestions position)
-      (cond
-        [misspelled-regions
-         (define-values (start end suggestions)
-           (interval-map-ref/bounds misspelled-regions position #f))
-         (and start end
-              (list start end suggestions))]
-        [else #f]))
+      (define-syntax-rule (cond/#f [condition body ...]) (cond [condition body ...] [else #f]))
+      (cond/#f
+       [(not stopped?)
+        ; Getting the information equivalent to both  get-token-range  and  classify-position , which
+        ;  together check that  tokens  and  ls  are  non-#f.
+        (define-values (tokens ls) (get-tokens-at-position 'classify-position position))
+        (cond/#f [(and tokens ls)
+                  (define type (let ([root-data (send tokens get-root-data)])
+                                 (and root-data (data-type root-data))))
+                  (cond/#f [(do-spell-check? type)
+                            (define ls-start (lexer-state-start-pos ls))
+                            ; Named in symmetry with call of  do-spelling-color  in  add-colorings .
+                            (define sp (+ ls-start (send tokens get-root-start-position))) 
+                            (define ep (+ ls-start (send tokens get-root-end-position)))
+                            (define spell-infos (do-spelling-color (get-text sp ep)
+                                                                   current-dict
+                                                                   sp
+                                                                   query-aspell))
+                            (for*/first ([spell-info (in-list spell-infos)]
+                                         [suggestions (in-value (list-ref spell-info 0))]
+                                         [start (in-value (list-ref spell-info 1))]
+                                         [end (in-value (list-ref spell-info 2))]
+                                         #:when (and suggestions (<= start position (sub1 end))))
+                              (list start end suggestions))])])]))
     
     (define/private (add-coloring color sp ep)
       (change-style color sp ep #f))
@@ -1264,19 +1282,11 @@ added get-regions
     
     (define/augment (after-insert insert-start-pos change-length)
       ;;(printf "(after-insert ~a ~a)\n" edit-start-pos change-length)
-      (when misspelled-regions
-        (interval-map-expand! misspelled-regions 
-                              insert-start-pos
-                              (+ insert-start-pos change-length)))
       (do-insert/delete insert-start-pos insert-start-pos change-length)
       (inner (void) after-insert insert-start-pos change-length))
     
     (define/augment (after-delete delete-start-pos change-length)
       ;;(printf "(after-delete ~a ~a)\n" edit-start-pos change-length)
-      (when misspelled-regions
-        (interval-map-contract! misspelled-regions
-                                delete-start-pos
-                                (+ delete-start-pos change-length)))
       (do-insert/delete delete-start-pos (+ delete-start-pos change-length) (- change-length))
       (inner (void) after-delete delete-start-pos change-length))
     
@@ -1391,31 +1401,26 @@ added get-regions
                            current-dict
                            sp
                            maybe-query-aspell)
-  (define strs (regexp-split #rx"\n" newline-str))
-  (define answer '())
-  (let loop ([strs strs]
-             [pos sp])
-    (unless (null? strs)
-      (define str (car strs))
-      (let loop ([spellos (maybe-query-aspell str current-dict)]
-                 [lp 0])
-        (cond
-          [(null? spellos)
-           (set! answer (cons (list #f (+ pos lp) (+ pos (string-length str))) answer))]
-          [else
-           (define err (car spellos))
-           (define err-start (list-ref err 0))
-           (define err-len (list-ref err 1))
-           (define suggestions (list-ref err 2))
-           (set! answer
-                 (list* 
-                  (list suggestions (+ pos err-start) (+ pos err-start err-len))
-                  (list #f (+ pos lp) (+ pos err-start))
-                  answer))
-           (loop (cdr spellos) (+ err-start err-len))]))
-      (loop (cdr strs)
-            (+ pos (string-length str) 1))))
-  answer)
+  (for/fold
+   ([answer '()]
+    [pos sp]
+    #:result answer)
+   ([str (in-list (regexp-split #rx"\n" newline-str))])
+    (values
+     (for/fold
+      ([answer answer]
+       [lp 0]
+       #:result (cons (list #f (+ pos lp) (+ pos (string-length str))) answer))
+      ([err (in-list (maybe-query-aspell str current-dict))])
+       (define err-start (list-ref err 0))
+       (define err-len (list-ref err 1))
+       (define suggestions (list-ref err 2))
+       (values (list* 
+                (list suggestions (+ pos err-start) (+ pos err-start err-len))
+                (list #f (+ pos lp) (+ pos err-start))
+                answer) 
+               (+ err-start err-len)))
+     (+ pos (string-length str) 1))))
 
 (module+ test
   (require rackunit racket/list racket/pretty
