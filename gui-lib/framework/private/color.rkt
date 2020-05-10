@@ -424,13 +424,8 @@ added get-regions
       (define ep (+ in-start-pos (sub1 new-token-end)))
       (define style-name (token-sym->style type))
       (define color (send (get-style-list) find-named-style style-name))
-      (define do-spell-check?
-        (cond
-          [(equal? type 'string) spell-check-strings?]
-          [(equal? type 'text) spell-check-text?]
-          [else #f]))
       (cond
-        [do-spell-check?
+        [(do-spell-check? type)
          (define misspelled-color
            (send (get-style-list) find-named-style misspelled-text-color-style-name))
          (cond
@@ -447,40 +442,50 @@ added get-regions
             (add-coloring color sp ep)])]
         [else
          (add-coloring color sp ep)]))
+
+    (define/private (do-spell-check? type)
+      (or (and (equal? type 'string) spell-check-strings?)
+          (and (equal? type 'text) spell-check-text?)))
     
     ; The 7.7 docs specify that this method produces #f if checking is off (as well as if there are
-    ;  no suggestions), although it's unlikely to be usefully relied on in that case, but the new
-    ;  implementation preserves that behavior.
-    ; The new implementation also produces #f if the colorer is stopped, due to methods it relies on.
-    ; The original implementation attempted to initiate and then maintain the misspelled regions
-    ;  based on the initial coloring, but was fundamentally broken, unless used in a stereotyped way.
-    ; It also had the property (arguably a bug, although mild and obscure) of requiring the preference
-    ;  for the misspelling color to have been set. We don't preserve that incidental property here.
+    ;  no suggestions), although that behavior is unlikely to be usefully relied on in that case.
+    ;  The new implementation preserves that behavior.
+    ;
+    ; The new implementation relies on the colorer not being stopped, and produces #f if it is.
+    ;
+    ; The previous implementation attempted to initiate and then maintain a set of misspelled regions
+    ;  based on an initial coloring, but was fundamentally broken, unless used in a stereotyped way.
+    ;  It also had the property (arguably a bug, although mild and obscure) of requiring the style
+    ;  list have a style for misspelled colors. That incidental property isn't preserved here.
+    ;
+    ; Although private members are used, the implementation can easily access them via this mixin's
+    ;  public api and be made independent of its implementation.
+    ;
     (define/public (get-spell-suggestions position)
       (define-syntax-rule (cond/#f [condition body ...]) (cond [condition body ...] [else #f]))
-      (cond/#f [(not stopped?)
-                ; Getting the information equivalent to both  get-token-range  and  classify-position , which
-                ;  together check that  tokens  and  ls  are  non-#f.
-                (define-values (tokens ls) (get-tokens-at-position 'classify-position position))
-                (cond/#f [(and tokens ls)
-                          (define type (let ([root-data (send tokens get-root-data)])
-                                         (and root-data (data-type root-data))))
-                          (cond/#f [(or (and (eq? type 'string) spell-check-strings?)
-                                        (and (eq? type 'text)   spell-check-text?))
-                                    (define ls-start (lexer-state-start-pos ls)) 
-                                    (define sp (+ ls-start (send tokens get-root-start-position))) 
-                                    (define ep (+ ls-start (send tokens get-root-end-position)))
-                                    (define spell-infos (do-spelling-color (get-text sp ep)
-                                                                           current-dict
-                                                                           sp
-                                                                           query-aspell))
-                                    (for*/first ([spell-info (in-list spell-infos)]
-                                                [suggestions (in-value (list-ref spell-info 0))]
-                                                [start (in-value (list-ref spell-info 1))]
-                                                [end (in-value (list-ref spell-info 2))]
-                                                #:when (and suggestions
-                                                            (<= start position (sub1 end))))
-                                      (list start end suggestions))])])]))
+      (cond/#f
+       [(not stopped?)
+        ; Getting the information equivalent to both  get-token-range  and  classify-position , which
+        ;  together check that  tokens  and  ls  are  non-#f.
+        (define-values (tokens ls) (get-tokens-at-position 'classify-position position))
+        (cond/#f [(and tokens ls)
+                  (define type (let ([root-data (send tokens get-root-data)])
+                                 (and root-data (data-type root-data))))
+                  (cond/#f [(do-spell-check? type)
+                            (define ls-start (lexer-state-start-pos ls))
+                            ; Named in symmetry with call of  do-spelling-color  in  add-colorings .
+                            (define sp (+ ls-start (send tokens get-root-start-position))) 
+                            (define ep (+ ls-start (send tokens get-root-end-position)))
+                            (define spell-infos (do-spelling-color (get-text sp ep)
+                                                                   current-dict
+                                                                   sp
+                                                                   query-aspell))
+                            (for*/first ([spell-info (in-list spell-infos)]
+                                         [suggestions (in-value (list-ref spell-info 0))]
+                                         [start (in-value (list-ref spell-info 1))]
+                                         [end (in-value (list-ref spell-info 2))]
+                                         #:when (and suggestions (<= start position (sub1 end))))
+                              (list start end suggestions))])])]))
     
     (define/private (add-coloring color sp ep)
       (change-style color sp ep #f))
