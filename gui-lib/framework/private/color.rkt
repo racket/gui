@@ -441,37 +441,46 @@ added get-regions
                                  sp
                                  query-aspell))
             (for ([spell-info (in-list spell-infos)])
-              (case (car spell-info)
-                [(#f)
-                 (add-coloring/spell #f color (list-ref spell-info 1) (list-ref spell-info 2))]
-                [else
-                 (add-coloring/spell (list-ref spell-info 0)
-                                     misspelled-color
-                                     (list-ref spell-info 1)
-                                     (list-ref spell-info 2))]))]
+              (add-coloring (if (list-ref spell-info 0) misspelled-color color)
+                            (list-ref spell-info 1) (list-ref spell-info 2)))]
            [else
-            (add-coloring/spell #f color sp ep)])]
+            (add-coloring color sp ep)])]
         [else
-         (add-coloring/spell #f color sp ep)]))
+         (add-coloring color sp ep)]))
     
-    (define/private (add-coloring/spell suggestions color start end)
-      (add-coloring color start end)
-      (unless misspelled-regions
-        (when suggestions
-          (set! misspelled-regions (make-interval-map))))
-      (unless (= start end)
-        (when misspelled-regions
-          (when suggestions
-            (interval-map-set! misspelled-regions start end suggestions)))))
-    (define misspelled-regions #f)
+    ; The 7.7 docs specify that this method produces #f if checking is off (as well as if there are
+    ;  no suggestions), although it's unlikely to be usefully relied on in that case, but the new
+    ;  implementation preserves that behavior.
+    ; The new implementation also produces #f if the colorer is stopped, due to methods it relies on.
+    ; The original implementation attempted to initiate and then maintain the misspelled regions
+    ;  based on the initial coloring, but was fundamentally broken, unless used in a stereotyped way.
+    ; It also had the property (arguably a bug, although mild and obscure) of requiring the preference
+    ;  for the misspelling color to have been set. We don't preserve that incidental property here.
     (define/public (get-spell-suggestions position)
-      (cond
-        [misspelled-regions
-         (define-values (start end suggestions)
-           (interval-map-ref/bounds misspelled-regions position #f))
-         (and start end
-              (list start end suggestions))]
-        [else #f]))
+      (define-syntax-rule (cond/#f [condition body ...]) (cond [condition body ...] [else #f]))
+      (cond/#f [(not stopped?)
+                ; Getting the information equivalent to both  get-token-range  and  classify-position , which
+                ;  together check that  tokens  and  ls  are  non-#f.
+                (define-values (tokens ls) (get-tokens-at-position 'classify-position position))
+                (cond/#f [(and tokens ls)
+                          (define type (let ([root-data (send tokens get-root-data)])
+                                         (and root-data (data-type root-data))))
+                          (cond/#f [(or (and (eq? type 'string) spell-check-strings?)
+                                        (and (eq? type 'text)   spell-check-text?))
+                                    (define ls-start (lexer-state-start-pos ls)) 
+                                    (define sp (+ ls-start (send tokens get-root-start-position))) 
+                                    (define ep (+ ls-start (send tokens get-root-end-position)))
+                                    (define spell-infos (do-spelling-color (get-text sp ep)
+                                                                           current-dict
+                                                                           sp
+                                                                           query-aspell))
+                                    (for*/first ([spell-info (in-list spell-infos)]
+                                                [suggestions (in-value (list-ref spell-info 0))]
+                                                [start (in-value (list-ref spell-info 1))]
+                                                [end (in-value (list-ref spell-info 2))]
+                                                #:when (and suggestions
+                                                            (<= start position (sub1 end))))
+                                      (list start end suggestions))])])]))
     
     (define/private (add-coloring color sp ep)
       (change-style color sp ep #f))
@@ -1247,19 +1256,11 @@ added get-regions
     
     (define/augment (after-insert insert-start-pos change-length)
       ;;(printf "(after-insert ~a ~a)\n" edit-start-pos change-length)
-      (when misspelled-regions
-        (interval-map-expand! misspelled-regions 
-                              insert-start-pos
-                              (+ insert-start-pos change-length)))
       (do-insert/delete insert-start-pos insert-start-pos change-length)
       (inner (void) after-insert insert-start-pos change-length))
     
     (define/augment (after-delete delete-start-pos change-length)
       ;;(printf "(after-delete ~a ~a)\n" edit-start-pos change-length)
-      (when misspelled-regions
-        (interval-map-contract! misspelled-regions
-                                delete-start-pos
-                                (+ delete-start-pos change-length)))
       (do-insert/delete delete-start-pos (+ delete-start-pos change-length) (- change-length))
       (inner (void) after-delete delete-start-pos change-length))
     
