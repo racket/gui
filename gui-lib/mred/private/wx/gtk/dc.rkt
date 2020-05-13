@@ -226,7 +226,7 @@
       (send canvas flush))
 
     (define/override (request-delay)
-      (request-flush-delay (send canvas get-flush-window) is-transparentish?))
+      (request-flush-delay (send canvas get-flush-window) is-transparentish? gl))
     (define/override (cancel-delay req)
       (cancel-flush-delay req))))
 
