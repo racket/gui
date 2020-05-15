@@ -180,7 +180,8 @@
   (class backing-dc%
     (init [(cnvs canvas)]
           transparentish?)
-    (inherit end-delay)
+    (inherit end-delay
+	     pending-content?)
     (define canvas cnvs)
     (define gl #f)
     (define is-transparentish? transparentish?)
@@ -226,7 +227,8 @@
       (send canvas flush))
 
     (define/override (request-delay)
-      (request-flush-delay (send canvas get-flush-window) is-transparentish? gl))
+      (request-flush-delay (send canvas get-flush-window) is-transparentish? (and (not gl)
+										  (pending-content?))))
     (define/override (cancel-delay req)
       (cancel-flush-delay req))))
 

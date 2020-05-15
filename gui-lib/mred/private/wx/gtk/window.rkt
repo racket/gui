@@ -963,7 +963,7 @@
       (for ([i (in-range (mcdr win-box))])
         (gdk_window_thaw_updates win)))))
 
-(define (request-flush-delay win-box transparentish? gl?)
+(define (request-flush-delay win-box transparentish? try-sync?)
   (do-request-flush-delay 
    win-box
    (lambda (win-box)
@@ -980,7 +980,7 @@
             (unless (or (and transparentish? gtk3?) wayland?)
               (gdk_window_ensure_native win))
             (begin
-	      (when (and (zero? (mcdr win-box)) (not gl?))
+	      (when (and (zero? (mcdr win-box)) try-sync?)
 		;; Processing updates now avoids unfortunate
 		;; scheduling where the main event loop keeps
 		;; catching a window in frozen mode
