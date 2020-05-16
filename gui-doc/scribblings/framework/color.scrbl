@@ -370,7 +370,7 @@
     This method must be called only when the tokenizer is started.
   }
 
-  @defmethod[#:mode augment (on-lexer-valid [valid? boolean?]) any]{
+  @defmethod[#:mode pubment (on-lexer-valid [valid? boolean?]) any]{
     This method is an observer for when the lexer is working.  It is called
     when the lexer's state changes from valid to invalid (and back).  The
     @racket[valid?] argument indicates if the lexer has finished running over

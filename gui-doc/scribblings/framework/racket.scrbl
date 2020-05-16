@@ -114,7 +114,7 @@
            #:changed "1.26" @list{Added the @racket[get-head-sexp-type] argument.}]
   }
 
- @defmethod[#:mode augment
+ @defmethod[#:mode pubment
             (compute-amount-to-indent [pos exact-nonnegative-integer?])
             exact-nonnegative-integer?]{
   Computes the amount of space to indent the line containing @racket[pos].
