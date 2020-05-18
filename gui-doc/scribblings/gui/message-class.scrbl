@@ -40,7 +40,7 @@ Creates a string or bitmap message initially showing @racket[label].
 @FontKWs[@racket[font]] @WindowKWs[@racket[enabled]] @SubareaKWs[] @AreaKWs[]
 
 If @racket[auto-resize] is not @racket[#f], then automatic resizing is
-initially enanbled (see @method[message% auto-resize]), and the
+initially enabled (see @method[message% auto-resize]), and the
 @racket[message%] object's @tech{graphical minimum size} is as small as
 possible.
 
