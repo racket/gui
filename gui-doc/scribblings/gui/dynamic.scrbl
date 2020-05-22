@@ -21,3 +21,22 @@ instantiated.}
 
 Like @racket[dynamic-require], but specifically to access exports of
 @racketmodname[racket/gui/base].}
+
+To use @racket[gui-dynamic-require], the bindings of
+@racketmodname[racket/gui/base] must be made available using
+@racket[dynamic-require]:
+
+@racketblock[
+(dynamic-require 'racket/gui/base #f)
+]
+
+This will postpone the instantiation of the @racketmodname[racket/gui/base]
+module to the actual call of @racket[dynamic-require]. With
+@racketmodname[racket/gui/base] dynamically required,
+@racket[gui-dynamic-require] can be used to wrap the actual bindings:
+
+@racketblock[
+(define window (new (gui-dynamic-require 'frame%)
+	       	    (label "Frame)))
+(send window show #t)
+]
