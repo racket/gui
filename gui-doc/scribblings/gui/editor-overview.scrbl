@@ -248,7 +248,7 @@ The administrative layers make the editor hierarchy flexible without
 
 A snip belongs to at most one editor via a single administrator. An
  editor also has only one administrator at a time. However, the
- administrator that connects the an editor to the standard
+ administrator that connects the editor to the standard
  @techlink{display} (i.e., an editor canvas) can work with other such
  administrators. In particular, the administrator of an
  @racket[editor-canvas%] (each one has its own administrator) can work
