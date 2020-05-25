@@ -667,13 +667,23 @@
             (send dc set-pen old-pen)
             (send dc set-text-foreground old-fg)
             (send dc set-brush old-brush)))
-      
+
+      #; [Listof [List (Instanceof graph-snip%) (Instanceof graph-snip%)]]
+      (define *no-arrow '[])
+      #; {(Instanceof graph-snip%) (Instanceof graph-snip%) -> Void}
+      (define/public (no-arrow-for from to)
+        (set! *no-arrow (cons (list from to) *no-arrow)))
+      #; {(Instanceof graph-snip%) (Instanceof graph-snip%) -> Void}
+      (define/private (arrow-for? from to)
+        (not (member (list from to) *no-arrow)))
+        
       (define/public (draw-single-edge dc dx dy from to from-x from-y to-x to-y arrow-point-ok?)
         (send dc draw-line
               (+ dx from-x) (+ dy from-y) 
               (+ dx to-x) (+ dy to-y))
         (update-arrowhead-polygon from-x from-y to-x to-y point1 point2 point3 point4)
         (when (and draw-arrow-heads?
+                   (arrow-for? from to)
                    (arrow-point-ok? (send point1 get-x) (send point1 get-y))
                    (arrow-point-ok? (send point2 get-x) (send point2 get-y))
                    (arrow-point-ok? (send point3 get-x) (send point3 get-y))
