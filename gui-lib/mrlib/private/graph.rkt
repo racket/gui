@@ -60,7 +60,8 @@
   
   
   ;; label is boolean or string
-  (define-struct link (snip dark-pen light-pen dark-brush light-brush dark-text light-text dx dy [label #:mutable]))
+  (define-struct link (snip dark-pen light-pen dark-brush light-brush dark-text light-text dx dy 
+                            [label #:mutable]))
   
   ;; add-links : (is-a?/c graph-snip<%>) (is-a?/c graph-snip<%>) -> void
   ;;           : (is-a?/c graph-snip<%>) (is-a?/c graph-snip<%>) pen pen brush brush -> void
@@ -80,13 +81,13 @@
                               dx dy
                               label)]))
   
-  (define (add-links/text-colors parent child
-                                 dark-pen light-pen dark-brush light-brush
-                                 dark-text light-text 
+  (define (add-links/text-colors prnt child
+                                 dark-pen lite-pen dark-brush lite-brush
+                                 dark-txt lite-txt 
                                  dx dy
-                                 label)
-    (send parent add-child child)
-    (send child add-parent parent dark-pen light-pen dark-brush light-brush dark-text light-text dx dy label))
+                                 lbl)
+    (send prnt add-child child)
+    (send child add-parent prnt dark-pen lite-pen dark-brush lite-brush dark-txt lite-txt dx dy lbl))
 
   (define (remove-links parent child)
     (send parent remove-child child)
@@ -177,7 +178,8 @@
                     (inner-loop 
                      (cdr paths)
                      (cons 
-                      (map (lambda (child) (cons child path)) (filter first-view? (send (car path) get-children)))
+                      (map (lambda (child) (cons child path))
+                           (filter first-view? (send (car path) get-children)))
                       acc)))]))])))
       
       (super-new)
@@ -517,25 +519,28 @@
               text-len))
           
           (define (draw-self-connection dx dy snip the-link dark-lines?)
-            (let*-values ([(sx sy sw sh) (get-position snip)]
-                          [(s1x s1y) (values (+ sx sw) (+ sy (* sh 1/2)))]
-                          [(s2x s2y) (values (+ sx sw self-offset) (+ sy (* 3/4 sh) (* 1/2 self-offset)))]
-                          [(s3x s3y) (values (+ sx sw) (+ sy sh self-offset))]
-                          [(b12x b12y) (values s2x s1y)]
-                          [(b23x b23y) (values s2x s3y)]
+            (let*-values
+                ([(sx sy sw sh) (get-position snip)]
+                 [(s1x s1y) (values (+ sx sw) (+ sy (* sh 1/2)))]
+                 [(s2x s2y) (values (+ sx sw self-offset) (+ sy (* 3/4 sh) (* 1/2 self-offset)))]
+                 [(s3x s3y) (values (+ sx sw) (+ sy sh self-offset))]
+                 [(b12x b12y) (values s2x s1y)]
+                 [(b23x b23y) (values s2x s3y)]
                           
-                          [(s4x s4y) (values (- sx arrowhead-short-side)
-                                             (+ sy (* sh 1/2)))]
-                          [(s5x s5y) (values (- sx arrowhead-short-side self-offset)
-                                             (+ sy (* 3/4 sh) (* 1/2 self-offset)))]
-                          [(s6x s6y) (values (- sx arrowhead-short-side)
-                                             (+ sy sh self-offset))]
-                          [(b45x b45y) (values s5x s4y)]
-                          [(b56x b56y) (values s5x s6y)])
+                 [(s4x s4y) (values (- sx arrowhead-short-side)
+                                    (+ sy (* sh 1/2)))]
+                 [(s5x s5y) (values (- sx arrowhead-short-side self-offset)
+                                    (+ sy (* 3/4 sh) (* 1/2 self-offset)))]
+                 [(s6x s6y) (values (- sx arrowhead-short-side)
+                                    (+ sy sh self-offset))]
+                 [(b45x b45y) (values s5x s4y)]
+                 [(b56x b56y) (values s5x s6y)])
               
               (update-arrowhead-polygon s4x s4y sx s4y point1 point2 point3 point4)
-              (send dc draw-spline (+ dx s1x) (+ dy s1y) (+ dx b12x) (+ dy b12y) (+ dx s2x) (+ dy s2y))
-              (send dc draw-spline (+ dx s2x) (+ dy s2y) (+ dx b23x) (+ dy b23y) (+ dx s3x) (+ dy s3y))
+              (send dc draw-spline (+ dx s1x) (+ dy s1y) (+ dx b12x) (+ dy b12y) (+ dx s2x)
+                    (+ dy s2y))
+              (send dc draw-spline (+ dx s2x) (+ dy s2y) (+ dx b23x) (+ dy b23y) (+ dx s3x) 
+                    (+ dy s3y))
               (send dc draw-line (+ dx s3x) (+ dy s3y) (+ dx s6x) (+ dy s6y))
               
               (when (and edge-labels? (link-label the-link))
@@ -551,8 +556,10 @@
                           0
                           0))))
               
-              (send dc draw-spline (+ dx s4x) (+ dy s4y) (+ dx b45x) (+ dy b45y) (+ dx s5x) (+ dy s5y))
-              (send dc draw-spline (+ dx s5x) (+ dy s5y) (+ dx b56x) (+ dy b56y) (+ dx s6x) (+ dy s6y))
+              (send dc draw-spline (+ dx s4x) (+ dy s4y) (+ dx b45x) (+ dy b45y) (+ dx s5x) 
+                    (+ dy s5y))
+              (send dc draw-spline (+ dx s5x) (+ dy s5y) (+ dx b56x) (+ dy b56y) (+ dx s6x) 
+                    (+ dy s6y))
               (send dc draw-polygon points dx dy)))
           
           (define (draw-non-self-connection dx dy from-link dark-lines? to)
@@ -606,7 +613,8 @@
                           [else
                            (draw-single-edge dc dx dy from to from-x from-y to-x to-y arrow-point-ok?)
                            (when (and edge-labels? (link-label from-link))
-                             (let-values ([(text-len h d v) (send dc get-text-extent (link-label from-link))])
+                             (let-values ([(text-len h d v) 
+                                           (send dc get-text-extent (link-label from-link))])
                                (let* ([arrow-end-x (send point3 get-x)]
                                       [arrow-end-y (send point3 get-y)]
                                       [arrowhead-end (make-rectangular arrow-end-x arrow-end-y)]
@@ -668,22 +676,12 @@
             (send dc set-text-foreground old-fg)
             (send dc set-brush old-brush)))
 
-      #; [Listof [List (Instanceof graph-snip%) (Instanceof graph-snip%)]]
-      (define *no-arrow '[])
-      #; {(Instanceof graph-snip%) (Instanceof graph-snip%) -> Void}
-      (define/public (no-arrow-for from to)
-        (set! *no-arrow (cons (list from to) *no-arrow)))
-      #; {(Instanceof graph-snip%) (Instanceof graph-snip%) -> Void}
-      (define/private (arrow-for? from to)
-        (not (member (list from to) *no-arrow)))
-        
       (define/public (draw-single-edge dc dx dy from to from-x from-y to-x to-y arrow-point-ok?)
         (send dc draw-line
               (+ dx from-x) (+ dy from-y) 
               (+ dx to-x) (+ dy to-y))
         (update-arrowhead-polygon from-x from-y to-x to-y point1 point2 point3 point4)
         (when (and draw-arrow-heads?
-                   (arrow-for? from to)
                    (arrow-point-ok? (send point1 get-x) (send point1 get-y))
                    (arrow-point-ok? (send point2 get-x) (send point2 get-y))
                    (arrow-point-ok? (send point3 get-x) (send point3 get-y))
