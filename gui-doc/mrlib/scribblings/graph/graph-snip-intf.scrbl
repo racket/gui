@@ -8,8 +8,12 @@
 @defmethod[(add-child [child (is-a?/c graph-snip<%>)])
            void?]{
 
-  Adds a child of this snip. Instead of calling this method,
-  consider using the @racket[add-links] function.
+  Adds a child of this snip. If this method is called, the
+  @method[graph-snip<%> add-parent] method must also be called
+  (with the parent/child arguments reversed).
+
+  Instead of calling this method, consider using the
+  @racket[add-links] function.
 
 }
 
@@ -22,8 +26,12 @@
                           [mouse-off-brush (or/c false/c (is-a?/c brush%))])
               void?])]{
 
-  Adds a parent of this snip. Instead of calling this
-  method, consider using the @racket[add-links] function.
+  Adds a parent of this snip. If this method is called, the
+  @method[graph-snip<%> add-child] method must also be called
+  (with the parent/child arguments reversed).
+
+  Instead of calling this method, consider using the
+  @racket[add-links] function.
 
 }
 
