@@ -368,7 +368,9 @@
       (define/private (run-pending-invalidate-rectangle)
         (define the-pending-invalidate-rectangle pending-invalidate-rectangle)
         (set! pending-invalidate-rectangle #f)
-        (invalidate-bitmap-cache . the-pending-invalidate-rectangle))
+        (match the-pending-invalidate-rectangle
+          [(list l t r b)
+           (invalidate-bitmap-cache l t (- r l) (- b t))]))
       
       (define/private (save-rectangle-to-invalidate l t r b)
         (unless pending-invalidate-rectangle-timer
