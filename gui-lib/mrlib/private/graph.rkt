@@ -103,11 +103,11 @@
       (define children null)
       (define/public (get-children) children)
       (define/public (add-child child)
-        (unless (memq child children)
+        (unless (member child children object=?)
           (set! children (cons child children))))
       (define/public (remove-child child)
-        (when (memq child children)
-          (set! children (remq child children))))
+        (when (member child children object=?)
+          (set! children (remove child children object=?))))
       
       (define parent-links null)
       (define/public (get-parent-links) parent-links)
@@ -120,7 +120,7 @@
           [(parent dark-pen light-pen dark-brush light-brush dx dy)
            (add-parent parent dark-pen light-pen dark-brush light-brush #f #f dx dy #f)]
           [(parent dark-pen light-pen dark-brush light-brush dark-text light-text dx dy label)
-           (unless (memf (lambda (parent-link) (eq? (link-snip parent-link) parent)) parent-links)
+           (unless (memf (lambda (parent-link) (object=? (link-snip parent-link) parent)) parent-links)
              (define admin (get-admin))
              (when admin
                (define ed (send admin get-editor))
@@ -139,16 +139,16 @@
                                     label)
                          parent-links)))]))
       (define/public (remove-parent parent) 
-        (when (memf (lambda (parent-link) (eq? (link-snip parent-link) parent)) parent-links)
+        (when (memf (lambda (parent-link) (object=? (link-snip parent-link) parent)) parent-links)
           (set! parent-links
                 (remove
                  parent
                  parent-links
-                 (lambda (parent parent-link) (eq? (link-snip parent-link) parent))))))
+                 (lambda (parent parent-link) (object=? (link-snip parent-link) parent))))))
       (define/public (set-parent-link-label parent label)
         (let ([parent-link
                (cond [(memf (lambda (parent-link)
-                              (eq? (link-snip parent-link) parent))
+                              (object=? (link-snip parent-link) parent))
                             parent-links)
                       => car]
                      [else #f])])
@@ -156,11 +156,11 @@
             (set-link-label! parent-link label))))
       
       (define/public (has-self-loop?)
-        (memq this (get-children)))
+        (member this (get-children) object=?))
       
       (define/public (find-shortest-path other)
-        (define visited-ht (make-hasheq))
-        (define (first-view? n) 
+        (define visited-ht (make-hasheq)) ;; should be based on object=?
+        (define (first-view? n)
           (hash-ref visited-ht n (lambda () 
                                    (hash-set! visited-ht n #f)
                                    #t)))
@@ -339,10 +339,10 @@
         
       ;; set-equal : (listof snip) (listof snip) -> boolean
       ;; typically lists will be small (length 1),
-      ;; so use andmap/memq rather than hash-tables
+      ;; so use andmap/member rather than hashes
       (define/private (set-equal los1 los2)
-        (and (andmap (lambda (s1) (memq s1 los2)) los1)
-             (andmap (lambda (s2) (memq s2 los1)) los2)
+        (and (andmap (lambda (s1) (member s1 los2 object=?)) los1)
+             (andmap (lambda (s2) (member s2 los1 object=?)) los2)
              #t))
       
       ;; invalidate-to-children/parents : snip dc -> void
@@ -396,7 +396,7 @@
               [else 
                (let* ([c/p (car c/p-snips)]
                       [rect
-                       (if (eq? c/p main-snip)
+                       (if (object=? c/p main-snip)
                            (let-values ([(sx sy sw sh) (get-position c/p)]
                                         [(_1 h _2 _3) (send (get-dc) get-text-extent "yX"
                                                             edge-label-font)])
@@ -508,7 +508,7 @@
                 (let ([dx (+ dx (link-dx from-link))]
                       [dy (+ dy (link-dy from-link))])
                   (cond
-                    [(eq? from to)
+                    [(object=? from to)
                      (set-pen/brush from-link dark-lines?)
                      (draw-self-connection dx dy (link-snip from-link) from-link dark-lines?)]
                     [else
@@ -661,8 +661,8 @@
                left top right bottom 
                (lambda (from-link to)
                  (let ([from (link-snip from-link)])
-                   (when (and (or (memq from currently-overs)
-                                  (memq to currently-overs))
+                   (when (and (or (member from currently-overs object=?)
+                                  (member to currently-overs object=?))
                               draw-dark-lines?)
                      (set! pairs (cons (cons from-link to) pairs)))
                    (unless draw-dark-lines?
@@ -700,7 +700,7 @@
             (let ([from (link-snip from-link)])
               (when (send from get-admin)
                 (cond
-                  [(eq? from to)
+                  [(object=? from to)
                    (f from-link to)]
                   [else
                    (let*-values ([(xf yf wf hf) (get-position from)]
@@ -779,7 +779,7 @@
         (let ([check-one-way
                (lambda (way)
                  (let loop ([snip snip])
-                   (or (memq snip currently-overs)
+                   (or (member snip currently-overs object=?)
                        (and (is-a? snip graph-snip<%>)
                             (loop (car (way snip)))))))])
           (or (check-one-way (lambda (snip) (send snip get-children)))
