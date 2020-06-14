@@ -147,16 +147,25 @@
                get-admin)
       
       (define/augment (can-save-file? filename format)
+        (define (ask-users-opinion)
+          (cond
+            [(doing-autosave?)
+             ;; opt for the effect of
+             ;; clicking on the `cancel`
+             ;; button
+             #f]
+            [else
+             (gui-utils:get-choice
+              (string-constant file-has-been-modified)
+              (string-constant overwrite-file-button-label)
+              (string-constant cancel)
+              (string-constant warning)
+              #f
+              (get-top-level-window)
+              #:dialog-mixin frame:focus-table-mixin)]))
         (and (if (equal? filename (get-filename))
                  (if (save-file-out-of-date?)
-                     (gui-utils:get-choice 
-                      (string-constant file-has-been-modified)
-                      (string-constant overwrite-file-button-label)
-                      (string-constant cancel)
-                      (string-constant warning)
-                      #f
-                      (get-top-level-window)
-                      #:dialog-mixin frame:focus-table-mixin)
+                     (ask-users-opinion)
                      #t)
                  #t)
              (inner #t can-save-file? filename format)))

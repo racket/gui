@@ -198,19 +198,29 @@
           (and (not (all-string-snips))
                (eq? format 'same)
                (eq? 'text (get-file-format))))
+        (define (get-users-opinion)
+          (cond
+            [(editor:doing-autosave?)
+             ;; we don't ask for the user's opinion here;
+             ;; we opt for clicking the `dont-save` button
+             ;; when the file is explicitly saved, we'll
+             ;; do the actual asking
+             3]
+            [else
+             (message-box/custom
+              (string-constant warning)
+              (string-constant save-as-binary-format)
+              (string-constant convert-format)
+              (string-constant keep-format)
+              (string-constant dont-save)
+              #f
+              '(disallow-close default=3)
+              3
+              #:dialog-mixin frame:focus-table-mixin)]))
         (define format-converted
           (and needs-wxme?
                (or (not (preferences:get 'framework:verify-change-format))
-                   (message-box/custom
-                    (string-constant warning)
-                    (string-constant save-as-binary-format)
-                    (string-constant convert-format)
-                    (string-constant keep-format)
-                    (string-constant dont-save)
-                    #f
-                    '(disallow-close default=3)
-                    3
-                    #:dialog-mixin frame:focus-table-mixin))))
+                   (get-users-opinion))))
         (define continue-saving?
           (case format-converted
             [(1 #t)
