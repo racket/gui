@@ -153,6 +153,8 @@
   ;; trigger callbacks. Also, handle messages without a window.
   (let loop ()
     (let ([v (or (PeekMessageW msg #f WM_USER #xFFFF PM_REMOVE)
+                 ;; No idea what #x60 is, but used for input methods as of Windows 10 2004
+                 (PeekMessageW msg #f #x60 #x60 PM_REMOVE)
 		 (PeekMessageW msg minus-one 0 0 PM_REMOVE))])
       (when v
         (TranslateMessage msg)
