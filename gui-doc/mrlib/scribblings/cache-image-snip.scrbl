@@ -41,7 +41,7 @@ The @racket[cache-image-snip%] class is a subclass of
 @racket[image-snip%] using @racket[equal?]. All @racket[image-snip%]
 functionality is overridden or ignored.
 
-@defmethod[#:mode overrride
+@defmethod[#:mode override
            (equal-to? [snip (is-a?/c image-snip%)]
                       [equal? (any/c any/c . -> . boolean?)])
            boolean?]{
