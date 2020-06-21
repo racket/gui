@@ -77,7 +77,6 @@
     ;; called with a procedure that is applied to a bitmap;
     ;;  returns #f if there's nothing to flush
     (define/public (on-backing-flush proc)
-      (set! needs-flush? #f)
       (cond
        [(not retained-cr) #f]
        [(positive? retained-counter) 
@@ -93,7 +92,6 @@
       (and retained-cr #t))
 
     (define/public (reset-backing-retained [proc void])
-      (set! needs-flush? #f)
       (let ([cr retained-cr])
         (when cr 
           (let ([bm (internal-get-bitmap)])
@@ -135,9 +133,8 @@
 
     (define/override (release-cr cr)
       (set! nada? #f)
-      (if (zero? flush-suspends)
-	  (queue-backing-flush)
-	  (set! needs-flush? #t)))
+      (when (zero? flush-suspends)
+        (queue-backing-flush)))
 
     (define/override (release-unchanged-cr cr)
       (void))
@@ -173,10 +170,7 @@
       ;; call in atomic mode
       (when (and (zero? flush-suspends) req)
         (cancel-delay req)
-        (set! req #f)))
-
-    (define/public (pending-content?)
-      needs-flush?)))
+        (set! req #f)))))
 
 (define (get-backing-bitmap make-bitmap w h)
   (make-bitmap w h))

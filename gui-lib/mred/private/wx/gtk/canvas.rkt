@@ -575,8 +575,7 @@
      ;; are defined by `canvas-mixin' from ../common/canvas-mixin
      (define/public (queue-paint) (void))
      (define/public (request-canvas-flush-delay)
-       (request-flush-delay (get-flush-window) transparentish? (and (not for-gl?)
-								    (send dc pending-content?))))
+       (request-flush-delay (get-flush-window) transparentish? for-gl?))
      (define/public (cancel-canvas-flush-delay req)
        (cancel-flush-delay req))
      (define/public (queue-canvas-refresh-event thunk)
