@@ -2,7 +2,6 @@
 (require racket/class
          racket/draw
          "../common/queue.rkt"
-	 "../../lock.rkt"
          "backing-dc.rkt")
 
 (provide 
@@ -135,13 +134,12 @@
 
     (define/override (queue-paint)
       ;; can be called from any thread, including the event-pump thread
-      (atomically
-       (unless paint-queued
-         (let ([b (box #t)])
-           (set! paint-queued b)
-           (let ([req (request-canvas-flush-delay)])
-             (queue-canvas-refresh-event
-              (lambda () (do-on-paint req b))))))))
+      (unless paint-queued
+        (let ([b (box #t)])
+          (set! paint-queued b)
+          (let ([req (request-canvas-flush-delay)])
+            (queue-canvas-refresh-event
+             (lambda () (do-on-paint req b)))))))
 
     (define/private (do-on-paint req b)
       ;; only called in the handler thread
@@ -169,7 +167,7 @@
           ;; when it's shown again
           (send (get-dc) reset-backing-retained)]))
       (when req
-	(cancel-canvas-flush-delay req)))
+        (cancel-canvas-flush-delay req)))
 
     (define/override (paint-children)
       (unless (skip-pre-paint?)

@@ -930,20 +930,9 @@
 
 (define-gdk gdk_display_flush (_fun _GdkDisplay -> _void))
 (define-gdk gdk_display_get_default (_fun -> _GdkDisplay))
-
-;; Deprecated, but seems to be the only way to force a flush;
-;; running the event loop didn't work for the use in
-;; `request-flush-display`
-(define-gdk gdk_window_process_updates (_fun _GdkWindow _gboolean -> _void)
-  #:fail void)
-
 (define (flush-display)
   (try-to-sync-refresh)
-  (gdk_display_flush (gdk_display_get_default))
-  ;; Calling `gdk_window_process_all_updates` here might flush better,
-  ;; but that function is deprecated in GTK 3.22, and it can trigger an assertion
-  ;; failure if any GL windows are open
-  (void))
+  (gdk_display_flush (gdk_display_get_default)))
 
 (define-gdk gdk_window_freeze_updates (_fun _GdkWindow -> _void))
 (define-gdk gdk_window_thaw_updates (_fun _GdkWindow -> _void))
@@ -963,7 +952,7 @@
       (for ([i (in-range (mcdr win-box))])
         (gdk_window_thaw_updates win)))))
 
-(define (request-flush-delay win-box transparentish? gl?)
+(define (request-flush-delay win-box transparentish?)
   (do-request-flush-delay 
    win-box
    (lambda (win-box)
@@ -980,11 +969,6 @@
             (unless (or (and transparentish? gtk3?) wayland?)
               (gdk_window_ensure_native win))
             (begin
-	      (when (and (zero? (mcdr win-box)) (not gl?))
-		;; Processing updates now avoids unfortunate
-		;; scheduling where the main event loop keeps
-		;; catching a window in frozen mode
-		(gdk_window_process_updates win #t))
               (gdk_window_freeze_updates win)
               (set-mcdr! win-box (add1 (mcdr win-box)))
               #t))))

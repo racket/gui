@@ -217,14 +217,13 @@
             (get-selection-eventspace)))
       => (lambda (e)
            (let ([evt (gdk_event_copy evt)])
-             (queue-event e (lambda ()
-			      (call-as-nonatomic-retry-point
+             (queue-event e (lambda () 
+                              (call-as-nonatomic-retry-point
                                (lambda ()
                                  (gtk_main_do_event evt)
                                  (gdk_event_free evt)))))))]
      [else
       (gtk_main_do_event evt)])))
-(define prev 0)
 (define (uninstall ignored)
   (printf "uninstalled!?\n"))
 
@@ -241,10 +240,12 @@
     (gtk_main_iteration_do #f)
     (dispatch-all-ready)))
 
+(define-gdk gdk_window_process_all_updates (_fun -> _void))
+
 (define (gtk-start-event-pump)
   (thread (lambda ()
             (let loop ()
-	      (unless (let ([any-tasks? (sync/timeout 0 boundary-tasks-ready-evt)])
+              (unless (let ([any-tasks? (sync/timeout 0 boundary-tasks-ready-evt)])
                         (sync/timeout (and any-tasks? (* sometimes-delay-msec 0.001))
                                       queue-evt 
                                       (if any-tasks?
