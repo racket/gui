@@ -447,19 +447,23 @@ added get-regions
       (or (and (equal? type 'string) spell-check-strings?)
           (and (equal? type 'text) spell-check-text?)))
     
+    ; This implementation (along with changes in the rest of the file) fixes spell-checking,
+    ;  which was only working before when used in a stereotyped way.
+    ;
+    ; Some notes about the properties of this implementation ...
+    ;
     ; The 7.7 docs specify that this method produces #f if checking is off (as well as if there are
     ;  no suggestions), although that behavior is unlikely to be usefully relied on in that case.
-    ;  The new implementation preserves that behavior.
+    ;  That behavior is preserved.
     ;
-    ; The new implementation relies on the colorer not being stopped, and produces #f if it is.
+    ; The method needs information from the colorer, and produces #f if the colorer is stopped.
     ;
-    ; The previous implementation attempted to initiate and then maintain a set of misspelled regions
-    ;  based on an initial coloring, but was fundamentally broken, unless used in a stereotyped way.
-    ;  It also had the property (arguably a bug, although mild and obscure) of requiring the style
-    ;  list have a style for misspelled colors. That incidental property isn't preserved here.
+    ; Coloring misspelled words requires that the style list have a style for misspelled colors,
+    ;  but this method does not. So, although unlikely, if that style is missing one can still
+    ;  interact with spell checking (skip to, suggest correction, replace).
     ;
-    ; Although private members are used, the implementation can easily access them via this mixin's
-    ;  public api and be made independent of its implementation.
+    ; The method uses private members of this mixin, but those could easily be accessed via
+    ;  the public api and the method could be made independent of the mixin's implementation.
     ;
     (define/public (get-spell-suggestions position)
       (define-syntax-rule (cond/#f [condition body ...]) (cond [condition body ...] [else #f]))
