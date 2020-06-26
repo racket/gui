@@ -15,7 +15,6 @@ added get-regions
          syntax-color/default-lexer
          syntax-color/lexer-contract
          string-constants
-         data/interval-map
          "../preferences.rkt"
          "sig.rkt"
          "text-sig.rkt"
