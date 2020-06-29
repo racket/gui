@@ -163,13 +163,17 @@
               #f
               (get-top-level-window)
               #:dialog-mixin frame:focus-table-mixin)]))
-        (and (if (equal? filename (get-filename))
-                 (if (save-file-out-of-date?)
-                     (ask-users-opinion)
-                     #t)
-                 #t)
-             (inner #t can-save-file? filename format)))
-      
+        (define result
+          (and (if (equal? filename (get-filename))
+                   (if (save-file-out-of-date?)
+                       (ask-users-opinion)
+                       #t)
+                   #t)
+               (inner #t can-save-file? filename format)))
+        (when result (set! can-save-file-filename filename))
+        result)
+
+      (define can-save-file-filename #f)
       (define last-saved-file-time #f)
       
       (define/augment (after-save-file success?)
@@ -180,16 +184,19 @@
         (unless (unbox temp-b)
           (when filename
             (handler:add-to-recent filename)))
-        
-        ;; update last-saved-file-time
-        (unless (doing-autosave?)
+
+        ;; if the filenames are different, then the save
+        ;; was an auto-save to a temporary file so we
+        ;; don't want to update the last-saved-file-time
+        (when (equal? filename can-save-file-filename)
           (unless (unbox temp-b)
             (when success?
               (set! last-saved-file-time
                     (and filename
                          (file-exists? filename)
                          (file-or-directory-modify-seconds filename))))))
-        
+
+        (set! can-save-file-filename #f)
         (inner (void) after-save-file success?))
       
       (define/augment (after-load-file success?)
