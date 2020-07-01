@@ -576,6 +576,29 @@ the state transitions / contracts are:
                 'framework:autosaving-on? 
                 (string-constant auto-save-files))
      (add-check editor-panel 'framework:backup-files? (string-constant backup-files))
+     (define auto-load-rb
+       (new radio-box%
+            [label (string-constant autoload-automatically-reload)]
+            [parent editor-panel]
+            [choices (list (string-constant autoload-when-the-editor-isnt-dirty)
+                           (string-constant autoload-never-revert)
+                           (string-constant autoload-ask-about-reverting))]
+            [callback
+             (λ (rb evt)
+               (preferences:set 'framework:autoload
+                                (case (send rb get-selection)
+                                  [(0) #t]
+                                  [(1) #f]
+                                  [(2) 'ask])))]))
+     (define (update-auto-load-rb what)
+       (send auto-load-rb set-selection
+             (case what
+               [(#t) 0]
+               [(#f) 1]
+               [(ask) 2])))
+     (update-auto-load-rb (preferences:get 'framework:autoload))
+     (preferences:add-callback 'framework:autoload (λ (p v) (update-auto-load-rb v)))
+
      (add-check editor-panel 'framework:show-status-line (string-constant show-status-line))
      ;; does this not belong here?
      ;; (add-check editor-panel 'drracket:show-line-numbers (string-constant show-line-numbers)

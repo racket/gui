@@ -1548,26 +1548,7 @@
         #t))
     
     (define/public (revert)
-      (let* ([edit (get-editor)]
-             [b (box #f)]
-             [filename (send edit get-filename b)])
-        (when (and filename
-                   (not (unbox b)))
-          (let ([start
-                 (if (is-a? edit text%)
-                     (send edit get-start-position)
-                     #f)])
-            (send edit begin-edit-sequence)
-            (let ([status (send edit load-file/gui-error
-                                filename
-                                'guess
-                                #f)])
-              (if status
-                  (begin
-                    (when (is-a? edit text%)
-                      (send edit set-position start start))
-                    (send edit end-edit-sequence))
-                  (send edit end-edit-sequence)))))))
+      (send (get-editor) revert/gui-error))
     
     (define/override file-menu:create-revert? (λ () #t))
     (define/override file-menu:save-callback

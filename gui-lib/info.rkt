@@ -13,7 +13,7 @@
                "pict-lib"
                "scheme-lib"
                ["scribble-lib" #:version "1.36"]
-               ["string-constants-lib" #:version "1.24"]
+               ["string-constants-lib" #:version "1.34"]
                "option-contract-lib"
                "2d-lib"
                "compatibility-lib"
@@ -31,4 +31,4 @@
 
 (define pkg-authors '(mflatt robby))
 
-(define version "1.47")
+(define version "1.48")

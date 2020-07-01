@@ -153,6 +153,7 @@
      info<%>
      file<%>
      backup-autosave<%>
+     autoload<%>
      basic-mixin
      standard-style-list-mixin
      keymap-mixin
@@ -160,6 +161,7 @@
      info-mixin
      file-mixin
      backup-autosave-mixin
+     autoload-mixin
      font-size-message%))
   (define-signature editor^ extends editor-class^
     (get-standard-style-list

@@ -11,6 +11,7 @@
            racket/path
            racket/contract
            racket/format
+           racket/match
            mrlib/panel-wob)
   
   (import mred^
@@ -34,6 +35,7 @@
   
   (define basic-mixin
     (mixin (editor<%>) (basic<%>)
+      (inherit begin-edit-sequence end-edit-sequence)
       
       (define/pubment (can-close?) (inner #t can-close?))
       (define/pubment (on-close) (inner (void) on-close))
@@ -102,7 +104,7 @@
                                          filename)
                                  "\n\n"
                                  (format-error-message exn))
-                                #f
+                                (find-parent/editor this)
                                 '(stop ok))
                                #f)])
               (when filename
@@ -131,11 +133,30 @@
                                          filename)
                                  "\n\n"
                                  (format-error-message exn))
-                                #f
+                                (find-parent/editor this)
                                 '(stop ok))
                                #f)])
               (load-file input-filename fmt show-errors?)
               #t))))
+
+      (define/public (revert/gui-error)
+        (define b (box #f))
+        (define filename (get-filename b))
+        (cond
+          [(and filename
+                (not (unbox b)))
+           (define start
+             (if (is-a? this text%)
+                 (send this get-start-position)
+                 #f))
+           (begin-edit-sequence)
+           (define status (load-file/gui-error filename 'guess #f))
+           (when status
+             (when (is-a? this text%)
+               (send this set-position start start)))
+           (end-edit-sequence)
+           status]
+          [else #t]))
       
       (define/private (format-error-message exn)
         (if (exn? exn)
@@ -732,7 +753,7 @@
                                        (exn-continuation-marks exn)))])
                 (format "   ~s\n" fr))
               '()))
-         #f
+         (find-parent/editor this)
          '(caution ok)))
       
       (define/public (remove-autosave)
@@ -746,7 +767,234 @@
               (set! auto-saved-name #f)))))
       (super-new)
       (autosave:register this)))
-  
+
+(define-local-member-name autoload-file-changed)
+
+(define autoload<%>
+  (interface (basic<%>)))
+
+(define autoload-mixin
+  (mixin (basic<%>) (autoload<%>)
+    (inherit get-filename load-file
+             begin-edit-sequence end-edit-sequence
+             is-modified?)
+
+    (define/override (set-filename filename [temporary? #f])
+      (unless (equal? #f (preferences:get 'framework:autoload))
+        (unless temporary?
+          (start-the-monitor filename)))
+      (super set-filename filename temporary?))
+
+    (define/augment (on-close)
+      (stop-the-monitor)
+      (inner (void) on-close))
+
+    (define/private (start-the-monitor _filename)
+      (define filename
+        (or _filename
+            (let ([b (box #f)])
+              (define f (get-filename b))
+              (and (not (unbox b)) f))))
+      (when filename
+        (monitor-a-file this filename (current-eventspace))))
+    (define/private (stop-the-monitor)
+      (un-monitor-a-file this))
+
+    ;; not supposed to be a method to ensure
+    ;; the callback stays registered with the
+    ;; preferences system as as long as `this`
+    ;; is held onto
+    (define pref-callback
+      (λ (p v)
+        (case v
+          [(#f) (stop-the-monitor)]
+          [(#t) (start-the-monitor #f)]
+          [(ask) (start-the-monitor #f)])))
+    (preferences:add-callback 'framework:autoload pref-callback #t)
+
+    (define/public (autoload-file-changed)
+      (when (ask-can-revert-and-maybe-restart-monitor)
+        (define b (box #f))
+        (define filename (get-filename b))
+        (when (and filename
+                   (not (unbox b)))
+          (define start
+            (if (is-a? this text%)
+                (send this get-start-position)
+                #f))
+          (begin-edit-sequence)
+          (define failed?
+            (with-handlers ([exn:fail? (λ (x) #t)])
+              (load-file filename 'guess #f)))
+          (unless failed?
+            (when (is-a? this text%)
+              (send this set-position start start)))
+          (end-edit-sequence))))
+
+    (define/private (ask-can-revert-and-maybe-restart-monitor)
+      (cond
+        [(is-modified?)
+         (define button
+           (message-box/custom
+            (string-constant warning)
+            (string-constant autoload-file-changed-on-disk-editor-dirty)
+            (string-constant revert)
+            (string-constant ignore)
+            #f
+            (find-parent/editor this)
+            '(caution no-default)
+            2
+            #:dialog-mixin frame:focus-table-mixin))
+
+         ;; restart the monitor as long as there is a possibility
+         ;; we'll revert the buffer
+         (unless (equal? (preferences:get 'framework:autoload) #f)
+           (start-the-monitor #f))
+         (case button
+           [(1) #t]
+           [(2) #f])]
+        [(equal? (preferences:get 'framework:autoload) 'ask)
+         (define-values (button checked?)
+           (message+check-box/custom
+            (string-constant warning)
+            (string-constant autoload-file-changed-on-disk)
+            (string-constant dont-ask-again-always-current)
+            (string-constant revert)
+            (string-constant ignore)
+            #f
+            (find-parent/editor this)
+            '(caution no-default)
+            2
+            #:dialog-mixin frame:focus-table-mixin))
+         (define answer (case button
+                          [(1) #t]
+                          [(2) #f]))
+         (cond
+           [checked?
+            ;; setting the preference will start the monitor
+            ;; if `answer` is #t
+            (preferences:set 'framework:autoload answer)]
+           [else
+            ;; and thus we need to start it otherwise
+            (start-the-monitor #f)])
+         answer]
+        [(equal? (preferences:get 'framework:autoload) #t)
+         (start-the-monitor #f) #t]
+        [(equal? (preferences:get 'framework:autoload) #f)
+         ;; here we don't want to restart the monitor
+         ;; as setting the preference to #t will do that
+         ;; (it is surprising it is on in this case actually)
+         #f]))
+
+    (super-new)))
+
+(define (find-parent/editor editor)
+  (let loop ([editor editor])
+    (define ed-admin (send editor get-admin))
+    (cond
+      [(not ed-admin) #f]
+      [(is-a? ed-admin editor-snip-editor-admin<%>)
+       (define snip (send ed-admin get-snip))
+       (define snip-admin (send snip get-admin))
+       (loop (send snip-admin get-editor))]
+      [else
+       (define canvas (send editor get-canvas))
+       (and canvas (find-parent/window canvas))])))
+
+(define (find-parent/window win)
+  (let loop ([win win])
+    (cond
+      [(or (is-a? win frame%)
+           (is-a? win dialog%))
+       win]
+      [else
+       (define p (send win get-parent))
+       (and p (loop p))])))
+
+(define (monitor-a-file txt path eventspace)
+  ;; grab the monitoring event on the same event
+  ;; to facilitate testing
+  (define mod-time (file-or-directory-modify-seconds path))
+  (define evt (filesystem-change-evt path #f))
+  (define size (file-size path))
+  (channel-put filename-changed-chan (vector txt path eventspace mod-time size evt)))
+(define filename-changed-chan (make-channel))
+(define (un-monitor-a-file txt)
+  (channel-put unmonitor-chan txt))
+(define unmonitor-chan (make-channel))
+(void
+ (thread
+  (λ ()
+    (struct monitored (path evt mod-time size eventspace) #:transparent)
+    ;; state : hash[txt -o> monitored?]
+    (let loop ([state (hash)])
+      (apply
+       sync
+       (handle-evt
+        unmonitor-chan
+        (λ (txt)
+          (define old (hash-ref state txt #f))
+          (cond
+            [old
+             (filesystem-change-evt-cancel (monitored-evt old))
+             (loop (hash-remove state txt))]
+            [else (loop state)])))
+       (handle-evt
+        filename-changed-chan
+        (λ (txt+path+eventspace)
+          (match-define (vector txt path eventspace mod-time size evt)
+            txt+path+eventspace)
+          (cond
+            [evt
+             (define old (hash-ref state txt #f))
+             (when old (filesystem-change-evt-cancel (monitored-evt old)))
+             (loop (hash-set state
+                             txt
+                             (monitored path evt
+                                        mod-time size
+                                        eventspace)))]
+            [else
+             ;; failed to create an evt, so give up
+             ;; trying to monitor this file
+             (loop state)])))
+       (for/list ([(txt a-monitored) (in-hash state)])
+         (match-define (monitored path evt mod-time size eventspace)
+           a-monitored)
+         (handle-evt
+          evt
+          (λ (_)
+            (match-define (vector _1 _2 _3 can-track-file-level-changes?)
+              (system-type 'fs-change))
+            (cond
+              [(or can-track-file-level-changes?
+                   (< mod-time (file-or-directory-modify-seconds path))
+                   (not (= (file-size path) size)))
+               ;; the `or` above ensures that the file actually is changed,
+               ;; as it might not be on some platforms
+               (parameterize ([current-eventspace eventspace])
+                 (queue-callback
+                  (λ ()
+                    (send txt autoload-file-changed))))
+               (loop (hash-remove state txt))]
+              [else
+               ;; the file appears to not actually be modified.
+               ;; try to create a new evt to wait again
+               (define new-evt (filesystem-change-evt path #f))
+               (cond
+                 [evt
+                  (loop (hash-set state
+                                  txt
+                                  (monitored
+                                   path
+                                   new-evt
+                                   mod-time
+                                   size
+                                   eventspace)))]
+                 [else
+                  ;; we failed to create an evt; give up on
+                  ;; monitoring this file (can we do better?)
+                  (loop (hash-remove state txt))])])))))))))
+
   (define info<%> (interface (basic<%>)))
   (define info-mixin
     (mixin (basic<%>) (info<%>)

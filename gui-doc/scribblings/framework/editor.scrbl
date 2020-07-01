@@ -68,17 +68,36 @@
   or cancel was clicked.
   }
 
-  @defmethod*[(((load-file/gui-error (filename (or/c string? #f) #f) (format (or/c (quote guess) (quote standard) (quote text) (quote text-force-cr) (quote same) (quote copy)) (quote guess)) (show-errors? boolean? #t)) boolean?))]{
-    This method is an alternative to 
-    @method[editor<%> load-file]. Rather than showing errors via the original stdout, it
-    opens a dialog with an error message showing the error.
+  @defmethod[(load-file/gui-error [filename (or/c string? #f) #f]
+                                  [format (or/c 'guess 'standard 'text 'text-force-cr 'same 'copy) 'guess]
+                                  [show-errors? boolean? #t])
+             boolean?]{
 
-    The result indicates if an error happened (the error has
-    already been shown to the user). It returns @racket[#t] if
-    no error occurred and @racket[#f] if an error occurred.
+  Loads @racket[filename], much like
+  @method[editor<%> load-file]. Rather than showing errors via
+  the original stdout, however, it shows a dialog box when an
+  error occurs.
 
+  The result indicates if an error happened (the error has
+  already been shown to the user). It returns @racket[#t] if
+  no error occurred and @racket[#f] if an error occurred.
   }
-  @defmethod*[(((on-close) void?))]{
+
+ @defmethod[(revert/gui-error [show-errors? boolean? #t])
+            boolean?]{
+  Reverts the content of the editor to the file on the disk,
+  showing errors to the user via @method[editor:basic<%> load-file/gui-error].
+
+  The result indicates if an error happened (the error has
+  already been shown to the user). It returns @racket[#t] if
+  no error occurred and @racket[#f] if an error occurred.
+
+  If @method[editor<%> get-filename] returns @racket[#f] or
+  if the filename is a temporary filename, the buffer is unchanged
+  and the result is @racket[#f].
+  }
+
+  @defmethod[(on-close) void?]{
 
     This method is called when an editor is closed.
     Typically, this method is called when the frame
@@ -90,9 +109,10 @@
     See also @method[editor:basic<%> can-close?] and @method[editor:basic<%>
     close].
 
-    Does nothing.
+    Default: does nothing.
   }
-  @defmethod*[(((can-close?) boolean?))]{
+  @defmethod[(can-close?) boolean?]{
+
     This method is called to query the editor if is okay to
     close the editor. Although there is no visible effect
     associated with closing an editor, there may be some cleanup
@@ -102,7 +122,6 @@
     See also
     @method[editor:basic<%> on-close] and
     @method[editor:basic<%> close].
-
 
     Returns @racket[#t].
   }

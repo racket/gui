@@ -25,6 +25,7 @@
     save-file-out-of-date?
     save-file/gui-error
     load-file/gui-error
+    revert/gui-error
     on-close
     can-close?
     close
