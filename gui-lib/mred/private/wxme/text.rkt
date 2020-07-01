@@ -4339,9 +4339,9 @@
                      (set-snip-line! naya line)
                      
                      (when line
-                       (when (eq? (mline-snip line) snip)
+                       (when (object-or-false=? (mline-snip line) snip)
                          (set-mline-snip! line naya))
-                       (when (eq? (mline-last-snip line) snip)
+                       (when (object-or-false=? (mline-last-snip line) snip)
                          (set-mline-last-snip! line naya)))
                      
                      (send snip set-s-admin #f)
