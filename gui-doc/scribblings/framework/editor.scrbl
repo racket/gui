@@ -442,7 +442,9 @@
   The result of this mixin uses the same initialization arguments as the
   mixin's argument.
 
-  @defmethod*[#:mode augment (((on-save-file (filename path?) (format (one-of/c (quote guess) (quote standard) (quote text) (quote text-force-cr) (quote same) (quote copy)))) bool))]{
+ @defmethod[#:mode augment (on-save-file [filename path?]
+                                         [format (or/c 'guess 'standard 'text 'text-force-cr 'same 'copy)])
+            boolean?]{
 
     If a backup file has not been created this session for this file,
     deletes any existing backup file and copies the old save file into the
@@ -464,6 +466,40 @@
     is out of date.
   }
 }
+
+@definterface[editor:autoload<%> (editor:basic<%>)]{
+ This interface does not add any methods, but signals
+ that the given class was produced by @racket[editor:autoload-mixin].
+}
+@defmixin[editor:autoload-mixin (editor:basic<%>) (editor:autoload<%>)]{
+
+ The result of this mixin uses @racket[filesystem-change-evt] to track
+ changes to the file that this editor uses to save into, offering to
+ revert the buffer to match the file when the file changes.
+
+ @defmethod[#:mode override (set-filename [filename (or/c path-string? #f)]
+                                          [temporary? any/c #f])
+            void?]{
+  Tracks changes to the @racket[filename].
+ }
+
+ @defmethod[#:mode augment (on-close) void?]{
+  Uses @racket[filesystem-change-evt-cancel] to stop tracking changes.
+ }
+
+ @defmethod[#:mode augment (on-save-file [filename path?]
+                                         [format (or/c 'guess 'standard 'text 'text-force-cr 'same 'copy)])
+            void?]{
+  Temporarily disables tracking of the file so that saving doesn't trigger
+  the offer to revert the buffer.
+ }
+ @defmethod[#:mode augment (after-save-file [success? any/c]) void?]{
+  Re-enables tracking of the file after the disabled
+  change in @method[editor:autoload-mixin on-save-file].
+}
+}
+
+
 @definterface[editor:info<%> (editor:basic<%>)]{
   An @racket[editor<%>] matching this interface provides information about its
   lock state to its @racket[top-level-window<%>].
