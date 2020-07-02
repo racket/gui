@@ -789,6 +789,15 @@
       (stop-the-monitor)
       (inner (void) on-close))
 
+    (define/augment (on-save-file filename format)
+      (stop-the-monitor)
+      (inner (void) on-save-file filename format))
+
+    (define/augment (after-save-file success?)
+      (inner (void) after-save-file success?)
+      (unless (equal? #f (preferences:get 'framework:autoload))
+        (start-the-monitor #f)))
+
     (define/private (start-the-monitor _filename)
       (define filename
         (or _filename
@@ -825,7 +834,8 @@
           (begin-edit-sequence)
           (define failed?
             (with-handlers ([exn:fail? (λ (x) #t)])
-              (load-file filename 'guess #f)))
+              (load-file filename 'guess #f)
+              #f))
           (unless failed?
             (when (is-a? this text%)
               (send this set-position start start)))
@@ -920,7 +930,9 @@
   (channel-put filename-changed-chan (vector txt path eventspace mod-time size evt)))
 (define filename-changed-chan (make-channel))
 (define (un-monitor-a-file txt)
-  (channel-put unmonitor-chan txt))
+  (define c (make-channel))
+  (channel-put unmonitor-chan (cons c txt))
+  (channel-get c))
 (define unmonitor-chan (make-channel))
 (void
  (thread
@@ -932,11 +944,13 @@
        sync
        (handle-evt
         unmonitor-chan
-        (λ (txt)
+        (λ (c+txt)
+          (match-define (cons c txt) c+txt)
           (define old (hash-ref state txt #f))
           (cond
             [old
              (filesystem-change-evt-cancel (monitored-evt old))
+             (channel-put c (void))
              (loop (hash-remove state txt))]
             [else (loop state)])))
        (handle-evt
