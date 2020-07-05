@@ -636,7 +636,20 @@ Returns a list of canvases displaying the editor. An editor may be
  @racket[null] is returned.
 
 }
+@defmethod[(get-file-creator-and-type)
+           (values (or/c #f (and/c bytes? #rx#"^....$"))
+                   (or/c #f (and/c bytes? #rx#"^....$")))]{
+  Gets the file type and creator used by @method[editor<%> save-file]. See also
+  @method[editor<%> set-file-creator-and-type] and @racket[file-creator-and-type].
 
+  The first result is the creator; if it is @racket[#f], then the default is
+  used: @racket[#"mReD"]. The second result is the type; if it is @racket[#f], then
+  the default is used. The default is @racket[#"TEXT"] if the file is being saved in
+  text format and @racket[#"WXME"] if it is being saved in WXME foramt. See
+  @method[editor<%> load-file] for more information.
+
+  @history[#:added "1.49"]
+ }
 @defmethod[(get-dc)
            (or/c (is-a?/c dc<%>) #f)]{
 
@@ -2064,9 +2077,8 @@ The filename and format used to save the file can be retrieved with
 See also @method[editor<%> on-save-file], @method[editor<%>
  after-save-file], and @method[editor<%> can-save-file?].
 
-On Mac OS, the file's type signature is set to @racket["TEXT"]
- for a text-format file or @racket["WXME"] for a standard-format
- (binary) file.
+On Mac OS, the file's creator and type signature are set; see
+  @method[editor<%> get-file-creator-and-type] for more information.
 
 The @racket[show-errors?] argument is no longer used.
 
@@ -2231,6 +2243,19 @@ See also @method[editor<%> get-focus-snip].
 
 }
 
+@defmethod[(set-file-creator-and-type [creator (or/c #f (and/c bytes? #rx#"^....$"))]
+                                      [type (or/c #f (and/c bytes? #rx#"^....$"))])
+           void?]{
+  Sets the file type and creator used by
+  @method[editor<%> save-file] via a call to
+  @racket[file-creator-and-type] when the file is written. The
+  arguments (@racket[creator] and @racket[type]) must both
+  either be @racket[#f], or @racket[bytes?] that have exactly
+  four bytes. See also
+  @method[editor<%> get-file-creator-and-type].
+
+  @history[#:added "1.49"]
+ }
 
 @defmethod[(set-cursor [cursor (or/c (is-a?/c cursor%) #f)]
                        [override? any/c #t])

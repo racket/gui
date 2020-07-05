@@ -45,16 +45,12 @@ See @racket[begin-busy-cursor].
 }
 
 @defproc*[([(file-creator-and-type [filename path?]
-                                   [creator-string (lambda (s) (and (bytes? s)
-                                                                    (= 4 (bytes-length s))))]
-                                   [type-bytes (lambda (s) (and (bytes? s)
-                                                                 (= 4 (bytes-length s))))])
+                                   [creator-bytes (and/c bytes? #rx#"^....$")]
+                                   [type-bytes (and/c bytes? #rx#"^....$")])
             void?]
            [(file-creator-and-type [filename path?])
-            (values (lambda (s) (and (bytes? s)
-                                (= 4 (bytes-length s))))
-                    (lambda (s) (and (bytes? s)
-                                (= 4 (bytes-length s)))))])]{
+            (values (and/c bytes? #rx#"^....$")
+                    (and/c bytes? #rx#"^....$"))])]{
 
 Gets or sets the creator and type of a file in Mac OS.
 

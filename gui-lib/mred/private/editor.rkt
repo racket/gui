@@ -4,6 +4,7 @@
          racket/list
          racket/file
          racket/path
+         racket/contract
          (for-syntax racket/base)
          (prefix-in wx: "kernel.rkt")
          (prefix-in wx: racket/snip/private/style)
@@ -49,7 +50,9 @@
     get-canvas
     add-canvas remove-canvas
     auto-wrap get-max-view-size
-    save-file))
+    save-file
+    set-file-creator-and-type
+    get-file-creator-and-type))
 
 (define-local-member-name
   -format-filter
@@ -97,6 +100,35 @@
     (define active-canvas #f)
     (define auto-set-wrap? #f)
     (define use-text-mode? #t)
+
+    (define creator-and-type #f)
+    (define/private (set-creator-and-type-on-file file text?)
+      (define default-creator #"mReD")
+      (define default-type (if text? #"TEXT" #"WXME"))
+      (wx:file-creator-and-type file
+                                (if creator-and-type
+                                    (or (car creator-and-type) default-creator)
+                                    default-creator)
+                                (if creator-and-type
+                                    (or (cdr creator-and-type) default-type)
+                                    default-type)))
+    (define/public (set-file-creator-and-type creator type)
+      (define (length-is-four? b) (= 4 (bytes-length b)))
+      (define good-arg? (or/c #f (and/c bytes? #rx#"^....$")))
+      (unless (good-arg? creator)
+        (raise-argument-error (who->name '(method editor<%> set-file-creator-and-type))
+                              (format "~s" (contract-name good-arg?))
+                              0 creator type))
+      (unless (good-arg? type)
+        (raise-argument-error (who->name '(method editor<%> set-file-creator-and-type))
+                              (format "~s" (contract-name good-arg?))
+                              1 creator type))
+      (set! creator-and-type (cons creator type)))
+    (define/public (get-file-creator-and-type)
+      (cond
+        [creator-and-type (values (car creator-and-type) (cdr creator-and-type))]
+        [else (values #f #f)]))
+
     (private*
      [max-view-size
       (lambda ()
@@ -251,7 +283,7 @@
                        (set! port (open-output-file file
                                                     #:mode (if text-mode? 'text 'binary)
                                                     #:exists 'truncate/replace))
-                       (wx:file-creator-and-type file #"mReD" (if text? #"TEXT" #"WXME"))
+                       (set-creator-and-type-on-file file text?)
                        (wx:begin-busy-cursor)
                        (dynamic-wind
                          void
