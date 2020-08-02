@@ -23,7 +23,7 @@
 (try-exe (build-path console-bin-dir
                      (let ()
                        (define me (path-replace-suffix (find-exe) #""))
-                       (define ending (regexp-match #rx#"(?i:racket)([cs3mg]*)$" me))
+                       (define ending (regexp-match #rx#"(?i:racket)([cs3mgbc]*)$" me))
                        (define s2 (string-append "gracket-text" (bytes->string/utf-8 (cadr ending))))
                        (if (eq? (system-type) 'windows)
                            (string-append s2 ".exe")
