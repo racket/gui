@@ -4935,14 +4935,14 @@
               (loop (mline-next line)))))
         
         (let ([-changed?
-               (if (max-width . > . 0)
-                   (let ([wl? write-locked?]
-                         [fl? flow-locked?])
-                     ;; if any flow is updated, snip sizing methods will be called
-                     (set! write-locked? #t)
-                     (set! flow-locked? #t)
-                     
-                     (let ([w (- max-width padding-l padding-t CURSOR-WIDTH)])
+               (let ([w (- max-width padding-l padding-t CURSOR-WIDTH)])
+                 (if (w . > . 0)
+                     (let ([wl? write-locked?]
+                           [fl? flow-locked?])
+                       ;; if any flow is updated, snip sizing methods will be called
+                       (set! write-locked? #t)
+                       (set! flow-locked? #t)
+                       
                        (let loop ([-changed? #f])
                          (if (begin0
                               (mline-update-flow (unbox line-root-box) line-root-box this w dc
@@ -4963,8 +4963,8 @@
                              (begin
                                (set! flow-locked? fl?)
                                (set! write-locked? wl?)
-                               -changed?)))))
-                   #f)])
+                               -changed?))))
+                     #f))])
 
           (when (not (= max-width old-max-width))
             (set! max-width old-max-width))
