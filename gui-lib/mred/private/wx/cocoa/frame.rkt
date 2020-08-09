@@ -860,7 +860,8 @@
 (define (request-global-flush-suspend frame)
   (when (eq? frame front)
     (atomically
-     (tellv NSAnimationContext beginGrouping)
+     (unless global-suspend-at
+       (tellv NSAnimationContext beginGrouping))
      (set! global-suspend-at (send frame get-cocoa)))))
 
 (define (force-global-flush-resume)
