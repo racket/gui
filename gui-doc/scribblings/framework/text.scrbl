@@ -1346,6 +1346,11 @@
 
 @defmixin[text:ports-mixin (text:wide-snip<%>) (text:ports<%>)]{
 
+  The ports from this mixin accepts as special values (see
+  @racket[port-writes-special?]) markup from the
+  @racketmodname[simple-tree-text-markup/data] module, and renders
+  them with graphical boxes and clickable srcloc links.
+
   @defmethod*[#:mode augment (((can-insert? (start exact-integer?) (len exact-integer?)) boolean?))]{
     Returns the results of the @racket[inner] call, unless
     @method[text:ports<%> get-allow-edits] returns @racket[#f].

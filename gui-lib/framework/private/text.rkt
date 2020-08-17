@@ -16,6 +16,7 @@
          "text-search.rkt"
          "text-inline-overview.rkt"
          "text-sig.rkt"
+         "srcloc-snip.rkt"
          "sig.rkt")
 
 (provide text@)
@@ -30,7 +31,8 @@
           [frame : framework:frame^]
           [racket : framework:racket^]
           [number-snip : framework:number-snip^]
-          [finder : framework:finder^])
+          [finder : framework:finder^]
+          [srcloc-snip : framework:srcloc-snip^])
 
   (export text-ascii-art^
           text-autocomplete^
@@ -71,6 +73,7 @@
           framework:racket^
           framework:number-snip^
           (prefix finder: framework:finder^)
+          framework:srcloc-snip^
           )
   (export framework:text^)
   ((text-ascii-art^
@@ -96,4 +99,5 @@
    (prefix frame: framework:frame^)
    framework:racket^
    framework:number-snip^
-   (prefix finder: framework:finder^)))
+   (prefix finder: framework:finder^)
+   framework:srcloc-snip^))

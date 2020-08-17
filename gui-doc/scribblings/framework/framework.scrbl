@@ -112,6 +112,7 @@ the @secref["editor-snip"] section.
 @include-section["preferences.scrbl"]
 @include-section["preferences-text.scrbl"]
 @include-section["racket.scrbl"]
+@include-section["srcloc-snip.scrbl"]
 @include-section["text.scrbl"]
 @include-section["splash.scrbl"]
 @include-section["test.scrbl"]

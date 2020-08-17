@@ -557,6 +557,11 @@
   @defmethod*[(((get-editor) (is-a?/c editor<%>)))]{
     Returns the editor in this frame.
   }
+
+  @defmethod*[(((find-editor (predicate ((is-a?/c editor<%>) . -> . boolean?)))
+  			      (or/c (is-a?/c editor<%>) #f)))]{
+    Finds an editor matching the predicate, or returns @racket[#f] if there isn't any.
+  }
 }
 @defmixin[frame:editor-mixin (frame:standard-menus<%>) (frame:editor<%>)]{
   This mixin adds functionality to support an 

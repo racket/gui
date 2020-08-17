@@ -7,6 +7,7 @@
          "private/text-sig.rkt"
          "private/number-snip.rkt"
          "private/comment-box.rkt"
+         "private/srcloc-snip.rkt"
          "private/application.rkt"
          "private/version.rkt"
          "private/color-model.rkt"
@@ -55,6 +56,7 @@
           framework:color^
           framework:color-prefs^
           framework:comment-box^
+          framework:srcloc-snip^
           framework:finder^
           framework:group^ 
           framework:canvas^
@@ -67,7 +69,7 @@
    preferences@ early-init@
    application@ version@ color-model@ mode@ exit@ menu@
    number-snip@ autosave@ path-utils@ icon@ keymap@
-   editor@ pasteboard@ text@ color@ color-prefs@ comment-box@ 
+   editor@ pasteboard@ text@ color@ color-prefs@ comment-box@ srcloc-snip@
    finder@ group@ canvas@ panel@ frame@ handler@ racket@ main@))
 
 (define-unit/new-import-export framework@ (import mred^) (export framework^)
@@ -89,6 +91,7 @@
     (prefix color: framework:color^)
     (prefix color-prefs: framework:color-prefs^)
     (prefix comment-box: framework:comment-box^)
+    (prefix srcloc-snip: framework:srcloc-snip^)
     (prefix finder: framework:finder^)
     (prefix group: framework:group^)
     (prefix canvas: framework:canvas^)

@@ -19,7 +19,13 @@
     (snip%))
   (define-signature comment-box^ extends comment-box-class^
     (snipclass))
-  
+
+  (define-signature srcloc-snip-class^
+    (snip%))
+  (define-signature srcloc-snip^ extends srcloc-snip-class^
+    (snipclass
+     select-srcloc))
+
   (define-signature menu-class^
     (can-restore<%>
      can-restore-mixin
@@ -469,6 +475,7 @@
      (open (prefix color: color^))
      (open (prefix color-prefs: color-prefs^))
      (open (prefix comment-box: comment-box^))
+     (open (prefix srcloc-snip: srcloc-snip^))
      (open (prefix finder: finder^))
      (open (prefix group: group^))
      (open (prefix canvas: canvas^))
