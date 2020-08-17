@@ -52,6 +52,7 @@
  (prefix color: framework:color-class^)
  (prefix color-prefs: framework:color-prefs-class^)
  (prefix comment-box: framework:comment-box-class^)
+ (prefix srcloc-snip: framework:srcloc-snip-class^)
  (prefix finder: framework:finder-class^)
  (prefix group: framework:group-class^)
  (prefix canvas: framework:canvas-class^)

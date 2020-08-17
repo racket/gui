@@ -1401,7 +1401,9 @@
                      save
                      save-as
                      get-canvas
-                     get-editor))
+                     get-editor
+
+                     find-editor))
 
 (define editor-mixin
   (mixin (standard-menus<%>) (-editor<%>)
@@ -1629,7 +1631,11 @@
         (set! editor (make-editor))
         (send (get-canvas) set-editor editor))
       editor)
-    
+    (define/public (find-editor predicate)
+      (if (and editor
+               (predicate editor))
+          editor
+          #f))
     (cond
       [(and filename (file-exists? filename))
        (let ([ed (get-editor)])

@@ -18,6 +18,7 @@
                "2d-lib"
                "compatibility-lib"
                "tex-table"
+               "simple-tree-text-markup-lib"
                ("gui-i386-macosx" #:platform "i386-macosx")
                ("gui-x86_64-macosx" #:platform "x86_64-macosx" #:version "1.3")
                ("gui-ppc-macosx" #:platform "ppc-macosx")

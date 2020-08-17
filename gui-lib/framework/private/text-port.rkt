@@ -1,6 +1,8 @@
 #lang racket/base
 (require "sig.rkt"
          "text-sig.rkt"
+         (prefix-in base: racket/base)
+         simple-tree-text-markup/data
          racket/unit
          racket/class
          racket/match
@@ -14,7 +16,8 @@
           text-basic^
           (except text-mixed-in-classes^ keymap%)
           [prefix icon: framework:icon^]
-          [prefix editor: framework:editor^])
+          [prefix editor: framework:editor^]
+          [prefix srcloc-snip: framework:srcloc-snip^])
   (export text-port^)
 
   (define wide-snip<%>
@@ -63,6 +66,14 @@
       get-box-input-editor-snip%
       get-box-input-text%))
 
+  ;; class for snips embedded in markup
+  (define markup-text%
+    (wide-snip-mixin
+     (basic-mixin
+      (editor:standard-style-list-mixin
+       (editor:basic-mixin
+        text%)))))
+  
   (define-struct peeker (bytes skip-count pe resp-chan nack polling?) #:inspector (make-inspector))
   (define-struct committer (kr commit-peeker-evt done-evt resp-chan resp-nack))
 
@@ -334,7 +345,7 @@
     
       (define/public (get-box-input-editor-snip%) use-style-background-editor-snip%)
       (define/public (get-box-input-text%) input-box%)
-    
+
       ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
       ;;
       ;;  editor integration
@@ -720,23 +731,91 @@
       
         (define (out-close-proc)
           (void))
-      
+
+        (define (markup->framed-snip markup style)
+          (let* ([framed-text (new markup-text%)]
+                 [snip (new editor-snip% [editor framed-text])])
+            (send snip use-style-background #t)
+            (insert-markup markup framed-text style)
+            (send framed-text lock #t)
+            snip))
+
+        (define (insert-markup markup text style)
+          (send text change-style style)
+          (cond
+            ((string? markup)
+             (send text insert markup))
+            ((empty-markup? markup) (void))
+            ((horizontal-markup? markup)
+             (for-each (lambda (markup)
+                         (insert-markup markup text style))
+                       (horizontal-markup-markups markup)))
+            ((vertical-markup? markup)
+             (for-each (lambda (markup)
+                         (insert-markup markup text style)
+                         (send text insert #\newline))
+                       (vertical-markup-markups markup)))
+            ((srcloc-markup? markup)
+             (insert-srcloc-markup markup text style))
+            ((framed-markup? markup)
+             (send text insert (markup->framed-snip (framed-markup-markup markup) style)))))
+
+        (define (insert-srcloc-markup srcloc-markup text style)
+          (let ((start (send text get-end-position)))
+            (insert-markup (srcloc-markup-markup srcloc-markup) text style)
+            (let ([end (send text get-end-position)])
+              (send text set-clickback
+                    start end
+                    (lambda (t s e)
+                      (srcloc-snip:select-srcloc (srcloc-markup-srcloc srcloc-markup))))
+              (send text change-style
+                    (make-object style-delta% 'change-underline #t)
+                    start end #f))))
+        
         (define (make-write-special-proc style)
           (λ (special can-buffer? enable-breaks?)
-            (define str/snp (cond
-                              [(string? special) special]
-                              [(snip-special? special) special]
-                              [(is-a? special snip%) special]
-                              [else (format "~s" special)]))
-            (define to-send (cons str/snp style))
-            (cond
-              [(eq? (current-thread) (eventspace-handler-thread eventspace))
-               (define return-chan (make-channel))
-               (thread (λ () (channel-put write-chan (cons return-chan to-send))))
-               (do-insertion (channel-get return-chan) #f)]
-              [else
-               (channel-put write-chan (cons #f to-send))])
-            #t))
+            (define put-string-or-snip
+              (cond
+                [(eq? (current-thread) (eventspace-handler-thread eventspace))
+                 (define return-chan (make-channel))
+                 (lambda (str/snp)
+                   (thread (λ () (channel-put write-chan (cons return-chan (cons str/snp style)))))
+                   (do-insertion (channel-get return-chan) #f))]
+                [else
+                 (lambda (str/snp)
+                   (channel-put write-chan (cons #f (cons str/snp style))))]))
+
+            (define (put-special special)
+              (cond
+                [(string? special) (put-string-or-snip special)]
+                [(snip-special? special) (put-string-or-snip special)]
+                [(is-a? special snip%) (put-string-or-snip special)]
+                [(empty-markup? special) (void)]
+                [(horizontal-markup? special)
+                 (for-each (lambda (markup)
+                             (put-special markup))
+                           (horizontal-markup-markups special))]
+                [(vertical-markup? special)
+                 (for-each (lambda (markup)
+                             (put-special markup)
+                             (put-string-or-snip "\n"))
+                           (vertical-markup-markups special))]
+                [(srcloc-markup? special)
+                 (let* ([snip (new srcloc-snip:snip% [srcloc (srcloc-markup-srcloc special)])]
+                        [editor (send snip get-editor)])
+                   (insert-markup (srcloc-markup-markup special) editor style)
+                   (let ((end (send editor get-end-position)))
+                     (send editor change-style style 0 end #f)
+                     (send editor change-style
+                           (make-object style-delta% 'change-underline #t)
+                           0 end #f))
+                   (send snip activate-link)
+                   (put-string-or-snip snip))]
+                [(framed-markup? special)
+                 (put-string-or-snip (markup->framed-snip special style))]
+                [else (put-string-or-snip (format "~s" special))]))
+
+            (put-special special)))
       
         (let ([out-style (add-standard (get-out-style-delta))]
               [err-style (add-standard (get-err-style-delta))]
