@@ -12,7 +12,8 @@
            racket/contract
            racket/format
            racket/match
-           mrlib/panel-wob)
+           mrlib/panel-wob
+           file/sha1)
   
   (import mred^
           [prefix autosave: framework:autosave^]
@@ -926,8 +927,8 @@
   ;; to facilitate testing
   (define mod-time (file-or-directory-modify-seconds path))
   (define evt (filesystem-change-evt path #f))
-  (define size (file-size path))
-  (channel-put filename-changed-chan (vector txt path eventspace mod-time size evt)))
+  (define the-sha1 (call-with-input-file path (λ (port) (sha1 port))))
+  (channel-put filename-changed-chan (vector txt path eventspace mod-time the-sha1 evt)))
 (define filename-changed-chan (make-channel))
 (define (un-monitor-a-file txt)
   (define c (make-channel))
@@ -937,7 +938,7 @@
 (void
  (thread
   (λ ()
-    (struct monitored (path evt mod-time size eventspace) #:transparent)
+    (struct monitored (path evt mod-time the-sha1 eventspace) #:transparent)
     ;; state : hash[txt -o> monitored?]
     (let loop ([state (hash)])
       (apply
@@ -956,7 +957,7 @@
        (handle-evt
         filename-changed-chan
         (λ (txt+path+eventspace)
-          (match-define (vector txt path eventspace mod-time size evt)
+          (match-define (vector txt path eventspace mod-time the-sha1 evt)
             txt+path+eventspace)
           (cond
             [evt
@@ -965,33 +966,22 @@
              (loop (hash-set state
                              txt
                              (monitored path evt
-                                        mod-time size
+                                        mod-time the-sha1
                                         eventspace)))]
             [else
              ;; failed to create an evt, so give up
              ;; trying to monitor this file
              (loop state)])))
        (for/list ([(txt a-monitored) (in-hash state)])
-         (match-define (monitored path evt mod-time size eventspace)
+         (match-define (monitored path evt mod-time the-sha1 eventspace)
            a-monitored)
          (handle-evt
           evt
           (λ (_)
-            (match-define (vector _1 _2 _3 can-track-file-level-changes?)
-              (system-type 'fs-change))
             (cond
-              [(or can-track-file-level-changes?
-                   (< mod-time (file-or-directory-modify-seconds path))
-                   (not (= (file-size path) size)))
-               ;; the `or` above ensures that the file actually is changed,
-               ;; as it might not be on some platforms
-               (parameterize ([current-eventspace eventspace])
-                 (queue-callback
-                  (λ ()
-                    (send txt autoload-file-changed))))
-               (loop (hash-remove state txt))]
-              [else
-               ;; the file appears to not actually be modified.
+              [(or (mod-time . = . (file-or-directory-modify-seconds path))
+                   (equal? (call-with-input-file path sha1) the-sha1))
+               ;; the file appears to not actually be modified;
                ;; try to create a new evt to wait again
                (define new-evt (filesystem-change-evt path #f))
                (cond
@@ -1002,12 +992,21 @@
                                    path
                                    new-evt
                                    mod-time
-                                   size
+                                   the-sha1
                                    eventspace)))]
                  [else
                   ;; we failed to create an evt; give up on
                   ;; monitoring this file (can we do better?)
-                  (loop (hash-remove state txt))])])))))))))
+                  (loop (hash-remove state txt))])]
+              [else
+               ;; here we know that the modification time has changed
+               ;; or the content has a new hash so it seems pretty
+               ;; safe to reload the buffer.
+               (parameterize ([current-eventspace eventspace])
+                 (queue-callback
+                  (λ ()
+                    (send txt autoload-file-changed))))
+               (loop (hash-remove state txt))])))))))))
 
   (define info<%> (interface (basic<%>)))
   (define info-mixin
