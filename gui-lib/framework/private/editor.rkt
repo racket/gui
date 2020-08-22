@@ -953,7 +953,9 @@
              (filesystem-change-evt-cancel (monitored-evt old))
              (channel-put c (void))
              (loop (hash-remove state txt))]
-            [else (loop state)])))
+            [else
+             (channel-put c (void))
+             (loop state)])))
        (handle-evt
         filename-changed-chan
         (λ (txt+path+eventspace)
