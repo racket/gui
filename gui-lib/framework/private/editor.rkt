@@ -923,12 +923,14 @@
        (and p (loop p))])))
 
 (define (monitor-a-file txt path eventspace)
-  ;; grab the monitoring event on the same event
-  ;; to facilitate testing
-  (define mod-time (file-or-directory-modify-seconds path))
-  (define evt (filesystem-change-evt path #f))
-  (define the-sha1 (call-with-input-file path (λ (port) (sha1 port))))
-  (channel-put filename-changed-chan (vector txt path eventspace mod-time the-sha1 evt)))
+  (define-values (the-sha1 evt)
+    (with-handlers ([exn:fail:filesystem? (λ (x) (values #f #f))])
+      (values (call-with-input-file path (λ (port) (sha1 port)))
+              (filesystem-change-evt path #f))))
+  (when (and the-sha1 evt)
+    ;; when there is an error trying to get information about the
+    ;; path, then we just give up and don't monitor path.
+    (channel-put filename-changed-chan (vector txt path eventspace the-sha1 evt))))
 (define filename-changed-chan (make-channel))
 (define (un-monitor-a-file txt)
   (define c (make-channel))
@@ -938,7 +940,7 @@
 (void
  (thread
   (λ ()
-    (struct monitored (path evt mod-time the-sha1 eventspace) #:transparent)
+    (struct monitored (path evt the-sha1 eventspace) #:transparent)
     ;; state : hash[txt -o> monitored?]
     (let loop ([state (hash)])
       (apply
@@ -959,7 +961,7 @@
        (handle-evt
         filename-changed-chan
         (λ (txt+path+eventspace)
-          (match-define (vector txt path eventspace mod-time the-sha1 evt)
+          (match-define (vector txt path eventspace the-sha1 evt)
             txt+path+eventspace)
           (cond
             [evt
@@ -968,22 +970,27 @@
              (loop (hash-set state
                              txt
                              (monitored path evt
-                                        mod-time the-sha1
+                                        the-sha1
                                         eventspace)))]
             [else
              ;; failed to create an evt, so give up
              ;; trying to monitor this file
              (loop state)])))
        (for/list ([(txt a-monitored) (in-hash state)])
-         (match-define (monitored path evt mod-time the-sha1 eventspace)
+         (match-define (monitored path evt the-sha1 eventspace)
            a-monitored)
          (handle-evt
           evt
           (λ (_)
-            (cond
-              [(or (mod-time . = . (file-or-directory-modify-seconds path))
-                   (equal? (call-with-input-file path sha1) the-sha1))
-               ;; the file appears to not actually be modified;
+            (define state-of-file
+              (with-handlers ([exn:fail:filesystem? (λ (x) 'failed)])
+                (cond
+                  [(equal? the-sha1 (call-with-input-file path sha1))
+                   'unchanged]
+                  [else 'changed])))
+            (match state-of-file
+              ['unchanged
+               ;; this appears to be a spurious wakeup
                ;; try to create a new evt to wait again
                (define new-evt (filesystem-change-evt path #f))
                (cond
@@ -993,14 +1000,17 @@
                                   (monitored
                                    path
                                    new-evt
-                                   mod-time
                                    the-sha1
                                    eventspace)))]
                  [else
                   ;; we failed to create an evt; give up on
                   ;; monitoring this file (can we do better?)
                   (loop (hash-remove state txt))])]
-              [else
+              ['failed
+               ;; an exception was raised above so we don't notify,
+               ;; but also stop monitoring the file
+               (loop (hash-remove state txt))]
+              ['changed
                ;; here we know that the modification time has changed
                ;; or the content has a new hash so it seems pretty
                ;; safe to reload the buffer.
