@@ -554,6 +554,22 @@ See also @method[editor<%> dc-location-to-editor-location].
 
 }
 
+@defmethod[(enable-sha1) void?]{
+
+  Once this method has been called, any future calls to
+  @method[editor<%> load-file] or @method[editor<%> save-file]
+  will compute the sha1 (see
+  @secref["sha" #:doc '(lib "scribblings/reference/reference.scrbl")])
+  of the file that is loaded or saved.
+
+  Once the sha1 computation has been enabled, it cannot be disabled.
+
+  See also @method[editor<%> is-sha1-enabled?], @method[editor<%> get-file-sha1],
+  and @method[editor<%> update-sha1?].
+
+  @history[#:added "1.50"]
+}
+
 @defmethod[(end-edit-sequence)
            void?]{
 
@@ -636,6 +652,7 @@ Returns a list of canvases displaying the editor. An editor may be
  @racket[null] is returned.
 
 }
+
 @defmethod[(get-file-creator-and-type)
            (values (or/c #f (and/c bytes? #rx#"^....$"))
                    (or/c #f (and/c bytes? #rx#"^....$")))]{
@@ -708,6 +725,24 @@ If the editor is displayed in a single canvas, then the canvas's
 
 }}
 
+@defmethod[(get-file-sha1) (or/c bytes? #f)]{
+  Returns the sha1 (see @secref["sha" #:doc '(lib "scribblings/reference/reference.scrbl")])
+  of the most recently loaded or saved file
+  in this editor (but see @method[editor<%> update-sha1?]),
+  unless @method[editor<%> enable-sha1] was
+  never called or no file has been loaded or saved since it was
+  called, in which case this method returns @racket[#f].
+
+  This method's result will change only after
+  @method[editor<%> save-file] or @method[editor<%> load-file]
+  are called, and can be monitored via
+  @method[editor<%> after-save-file] and @method[editor<%> after-load-file].
+
+  See also @method[editor<%> is-sha1-enabled?].
+
+  @history[#:added "1.50"]
+ }
+
 @defmethod[(get-filename [temp (or/c (box/c any/c) #f) #f])
            (or/c path-string? #f)]{
 
@@ -767,7 +802,6 @@ See also @method[editor<%> set-inactive-caret-threshold] and
 Returns the main keymap currently used by the editor.
 
 }
-
 
 @defmethod[(get-load-overwrites-styles)
            boolean?]{
@@ -1115,6 +1149,19 @@ Returns @racket[#t] if the editor has been modified since the last
 Returns @racket[#t] if the editor is currently being printed through
 the @method[editor<%> print] method, @racket[#f] otherwise.}
 
+@defmethod[(is-sha1-enabled?) boolean]{
+  Returns @racket[#t] when this editor will track the sha1
+  (see @secref["sha" #:doc '(lib "scribblings/reference/reference.scrbl")])
+  of the contents of the file on disk and @racket[#f] otherwise.
+
+  If @method[editor<%> enable-sha1] has not been called, this method returns
+  @racket[#f] or, in other words, the computation of the sha1 is disabled
+  by default.
+
+  See also @method[editor<%> get-file-sha1] and @method[editor<%> update-sha1?].
+
+  @history[#:added "1.50"]
+ }
 
 @defmethod[(kill [time exact-integer? 0])
            void?]{
@@ -2529,6 +2576,18 @@ See @method[editor<%> set-undo-preserves-all-history] for more information.
 
 @history[#:added "1.1"]}
 
+@defmethod[(update-sha1? [path path-string?]) any/c]{
+
+  Called when updating the file's sha1 (so only if
+  @method[editor<%> enable-sha1] has been called); if this
+  method returns @racket[#f], then the sha1 is not updated
+  and the result of @method[editor<%> get-file-sha1] does not
+  change.
+
+  See also @method[editor<%> is-sha1-enabled?].
+
+  @history[#:added "1.50"]
+}
 
 @defmethod*[([(use-file-text-mode) boolean?]
              [(use-file-text-mode [on? any/c]) void?])]{

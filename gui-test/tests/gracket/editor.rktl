@@ -695,6 +695,24 @@
 (test #f 'undef-style<%> (impersonator? (send (new style-list%) basic-style)))
 
 ;; ----------------------------------------
+;; sha1 computing
+(let ([t (new text%)])
+  (test #f 'sha1-off-by-default.1 (send t is-sha1-enabled?))
+  (send t enable-sha1)
+  (test #t 'sha1-off-by-default.3 (send t is-sha1-enabled?))
+  (test #f 'sha1-off-by-default.4 (send t get-file-sha1))
+  (define sha1-test-file (build-path dir "sha1-test-file"))
+  (define sha1-test-file-content #"123\n")
+  (call-with-output-file sha1-test-file (λ (port) (display sha1-test-file-content port)))
+  (send t load-file sha1-test-file)
+  (test (sha1-bytes sha1-test-file-content) 'sha1-of-content (send t get-file-sha1))
+  (send t insert "0" 0 0)
+  (send t save-file)
+  (test (sha1-bytes (bytes-append #"0" sha1-test-file-content))
+        'sha1-of-content
+        (send t get-file-sha1)))
+
+;; ----------------------------------------
 
 (delete-directory/files dir #:must-exist? #f)
 

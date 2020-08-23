@@ -4,6 +4,7 @@
          racket/list
          racket/file
          racket/path
+         racket/port
          racket/contract
          (for-syntax racket/base)
          (prefix-in wx: "kernel.rkt")
@@ -52,7 +53,11 @@
     auto-wrap get-max-view-size
     save-file
     set-file-creator-and-type
-    get-file-creator-and-type))
+    get-file-creator-and-type
+    enable-sha1
+    is-sha1-enabled?
+    get-file-sha1
+    update-sha1?))
 
 (define-local-member-name
   -format-filter
@@ -128,6 +133,20 @@
       (cond
         [creator-and-type (values (car creator-and-type) (cdr creator-and-type))]
         [else (values #f #f)]))
+
+    ;; (or/c #f       -- don't compute sha1s
+    ;;       #t       -- compute sha1s (but we haven't loaded/saved a file yet so none yet)
+    ;;       bytes?)  -- the most recently loaded or saved file's sha1
+    (define compute-sha1-of-loaded-file #f)
+    (define/public (enable-sha1)
+      (unless compute-sha1-of-loaded-file
+        (set! compute-sha1-of-loaded-file #t)))
+    (define/public (is-sha1-enabled?) (and compute-sha1-of-loaded-file #t))
+    (define/public (get-file-sha1)
+      (cond
+        [(boolean? compute-sha1-of-loaded-file) #f]
+        [else compute-sha1-of-loaded-file]))
+    (define/public (update-sha1? path) #t)
 
     (private*
      [max-view-size
@@ -205,6 +224,13 @@
                    void
                    (lambda ()
                      (set! port (open-input-file file))
+                     (when (and compute-sha1-of-loaded-file (update-sha1? file))
+                       (define bp (open-output-bytes))
+                       (copy-port port bp)
+                       (close-input-port port)
+                       (define the-bytes (get-output-bytes bp))
+                       (set! port (open-input-bytes the-bytes))
+                       (set! compute-sha1-of-loaded-file (sha1-bytes the-bytes)))
                      (wx:begin-busy-cursor)
                      (super-begin-edit-sequence)
                      (dynamic-wind
@@ -275,21 +301,37 @@
                                          f-format)]
                       [text? (memq actual-format '(text text-force-cr))]
                       [text-mode? (and text? use-text-mode?)])
+                 (define (open-the-file-port-and-set-creator-and-type)
+                   (define file-port
+                     (open-output-file file
+                                       #:mode (if text-mode? 'text 'binary)
+                                       #:exists 'truncate/replace))
+                   (set-creator-and-type-on-file file text?)
+                   file-port)
                  (let ([port #f]
-                       [finished? #f])
+                       [finished? #f]
+                       [update-the-sha1? (and compute-sha1-of-loaded-file (update-sha1? file))])
                    (dynamic-wind
                      void
                      (lambda ()
-                       (set! port (open-output-file file
-                                                    #:mode (if text-mode? 'text 'binary)
-                                                    #:exists 'truncate/replace))
-                       (set-creator-and-type-on-file file text?)
+                       (set! port
+                             (if update-the-sha1?
+                                 (open-output-bytes)
+                                 (open-the-file-port-and-set-creator-and-type)))
                        (wx:begin-busy-cursor)
                        (dynamic-wind
                          void
                          (lambda ()
                            (super-save-port port format #t)
                            (close-output-port port)     ; close as soon as possible
+                           (when update-the-sha1?
+                             (define the-bytes (get-output-bytes port))
+                             (define file-port (open-the-file-port-and-set-creator-and-type))
+                             (dynamic-wind
+                              void
+                              (λ () (write-bytes the-bytes file-port))
+                              (λ () (close-output-port file-port)))
+                             (set! compute-sha1-of-loaded-file (sha1-bytes the-bytes)))
                            (unless (or (eq? format 'copy)
                                        (and (not (unbox temp-filename?-box))
                                             (equal? file old-filename)))
