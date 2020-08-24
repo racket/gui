@@ -474,29 +474,59 @@
 @defmixin[editor:autoload-mixin (editor:basic<%>) (editor:autoload<%>)]{
 
  The result of this mixin uses @racket[filesystem-change-evt] to track
- changes to the file that this editor uses to save into, offering to
+ changes to the file that this editor saves to, offering to
  revert the buffer to match the file when the file changes.
+
+ It strives to make sure that there is never a moment when
+ the file is unmonitored so there should be no races with
+ other processes. That said a call to
+ @method[editor:autoload-mixin set-filename] will disrupt the
+ connection.
+
+ The result of this mixin calls @method[editor<%> enable-sha1] during
+ initialization of the object.
+
+ The mixin uses @racket[editor:doing-autosave?] to avoid tracking
+ changes to autosave files (as autosaving also uses @method[editor<%> save-file]
+ and @method[editor<%> load-file]).
 
  @defmethod[#:mode override (set-filename [filename (or/c path-string? #f)]
                                           [temporary? any/c #f])
             void?]{
-  Tracks changes to the @racket[filename].
+  Disables the monitoring, unless the call is in the dynamic extent of
+  a call to @method[editor<%> load-file]
+  or @method[editor<%> save-file].
  }
 
  @defmethod[#:mode augment (on-close) void?]{
-  Uses @racket[filesystem-change-evt-cancel] to stop tracking changes.
+  Uses @racket[filesystem-change-evt-cancel] to stop tracking changes
+  to the file.
  }
 
  @defmethod[#:mode augment (on-save-file [filename path?]
                                          [format (or/c 'guess 'standard 'text 'text-force-cr 'same 'copy)])
             void?]{
-  Temporarily disables tracking of the file so that saving doesn't trigger
-  the offer to revert the buffer.
+  Establishes the monitoring of @racket[filename] and ties it to this @racket[editor<%>].
  }
  @defmethod[#:mode augment (after-save-file [success? any/c]) void?]{
-  Re-enables tracking of the file after the disabled
-  change in @method[editor:autoload-mixin on-save-file].
+  Uses the updated sha1 from @method[editor<%> get-file-sha1], now that the editor's content
+  and the file on the disk have been synchronized.
 }
+
+ @defmethod[#:mode augment (on-load-file [filename path?]
+                                         [format (or/c 'guess 'standard 'text 'text-force-cr 'same 'copy)])
+            void?]{
+  Establishes the monitoring of @racket[filename] and ties it to this @racket[editor<%>].
+ }
+ @defmethod[#:mode augment (after-load-file [success? any/c]) void?]{
+  Uses the updated sha1 from @method[editor<%> get-file-sha1], now that the editor's content
+  and the file on the disk have been synchronized.
+}
+
+ @defmethod[#:mode override (update-sha1? [path path-string?]) any/c]{
+  Returns @racket[#f] when @racket[(editor:doing-autosave?)] is @racket[#t];
+  otherwise returns the result of the super method.
+ }
 }
 
 
