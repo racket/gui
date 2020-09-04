@@ -4,6 +4,7 @@
          "private.rkt"
          racket/snip/private/private
          racket/snip/private/snip
+         racket/format
          "editor-data.rkt"
          "version.rkt"
          (only-in "cycle.rkt"
@@ -742,8 +743,9 @@
     (do-put-bytes s))
 
   (define/private (do-put-bytes orig-s)
+    (define orig-s-len (bytes-length orig-s))
     (define (single-string)
-      (if ((bytes-length orig-s) . < . 72)
+      (if (orig-s-len . < . 72)
           (let ([s (open-output-bytes)])
             (write orig-s s)
             (let* ([v (get-output-bytes s)]
@@ -767,28 +769,36 @@
          (hash-set! previously-written-bytes orig-s id)
          (send f write-bytes #"\n(")
          (send f write-bytes (string->bytes/utf-8 (number->string id)))
-         (let loop ([offset 0][remain (bytes-length orig-s)])
-           (unless (zero? remain)
-             (let lloop ([amt (min 50 remain)][retry? #t])
-               (let ([s (open-output-bytes)])
-                 (write (subbytes orig-s offset (+ offset amt)) s)
-                 (let* ([v (get-output-bytes s #t)]
-                        [len (bytes-length v)])
-                   (if (len . <= . 71)
-                       (if (and (len . < . 71)
-                                retry?
-                                (amt . < . remain))
-                           (lloop (add1 amt) #t)
-                           (begin
-                             (send f write-bytes #"\n ")
-                             (send f write-bytes v)
-                             (loop (+ offset amt) (- remain amt))))
-                       (lloop (quotient amt 2) #f)))))))
+         (define scratch-bytes (make-bytes 75 (char->integer #\space)))
+         (define scratch-len (bytes-length scratch-bytes))
+         (define scratch-prefix #"\n #\"")
+         (define scratch-starting-point (bytes-length scratch-prefix))
+         (bytes-copy! scratch-bytes 0 scratch-prefix)
+         (define (flush-out-pending-bytes scratch-offset)
+           (bytes-set! scratch-bytes scratch-offset (char->integer #\"))
+           (send f write-bytes (subbytes scratch-bytes 0 (+ scratch-offset 1))))
+
+         (let loop ([orig-s-offset 0]
+                    [scratch-offset scratch-starting-point])
+           (cond
+             [(< orig-s-offset orig-s-len)
+              (define the-bytes (vector-ref encoded-bytes (bytes-ref orig-s orig-s-offset)))
+              (define len (bytes-length the-bytes))
+              (cond
+                [(< (+ scratch-offset len) (- scratch-len 1))
+                 (bytes-copy! scratch-bytes scratch-offset the-bytes)
+                 (loop (+ orig-s-offset 1) (+ scratch-offset len))]
+                [else
+                 (flush-out-pending-bytes scratch-offset)
+                 (loop orig-s-offset scratch-starting-point)])]
+             [else
+              (unless (= scratch-offset scratch-starting-point)
+                (flush-out-pending-bytes scratch-offset))]))
          (send f write-bytes #"\n)")
          (set! col 1)]))
 
     (check-ok)
-    (do-put-number (bytes-length orig-s))
+    (do-put-number orig-s-len)
     (single-string)
     (set! items (add1 items))
     this)
@@ -841,5 +851,40 @@
     (show #"\n")
     (show #"            http://racket-lang.org/\n|#\n")
     (set! col 0)))
+
+(define encoded-bytes
+  (for/vector ([i (in-range 256)])
+    (define c (integer->char i))
+    (cond
+
+      ;; whitespace chars
+      [(equal? c #\backspace) #"\\b"]
+      [(equal? c #\tab) #"\\t"]
+      [(equal? c #\newline) #"\\n"]
+      [(equal? c #\space) #" "]
+      [(equal? c #\vtab) #"\\v"]
+      [(equal? c #\page) #"\\f"]
+      [(equal? c #\return) #"\\r"]
+
+      ;; bell
+      [(= i 7) #"\\a"]
+
+      ;; escape
+      [(= i 27) #"\\e"]
+
+      ;; chars where the `char-graphic?` case will produce the wrong answer
+      [(equal? c #\\) #"\\\\"]
+      [(equal? c #\") #"\\\""]
+
+      ;; a bunch of special cases that'll take less space
+      [(and (< i 128) ;; is ascii
+            (char-graphic? c))
+       (string->bytes/utf-8
+        (format "~a" c))]
+
+      ;; the default case, use hex printing
+      [else
+       (string->bytes/utf-8
+        (~a "\\x" (~r i #:base (list 'up 16) #:min-width 2 #:pad-string "0")))])))
 
 (set-editor-stream-out%! editor-stream-out%)

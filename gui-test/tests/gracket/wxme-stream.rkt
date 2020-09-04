@@ -95,8 +95,8 @@
         (bytes-append
          #"\n3 2.0 3 #\"hi\\0\"\n3 #\"bye\"\n80\n"
          #"(0\n"
-         #" #\"0123456789abcdefghij0123456789ABCD\"\n"
-         #" #\"EFGHIJ0123456789abcdefghij0123456\\\"89ABCDEFGHIJ\"\n"
+         #" #\"0123456789abcdefghij0123456789ABCDEFGHIJ0123456789abcdefghij0123456\\\"\"\n"
+         #" #\"89ABCDEFGHIJ\"\n"
          #")"))
 
 (define fbo3 (make-object editor-stream-out-bytes-base%))
@@ -321,7 +321,7 @@
       (define (check-em got expected)
         (unless (equal? got expected)
           (set! wrong-cnt (+ wrong-cnt 1))
-          (eprintf "failure!\n     index: ~a\n       got: ~s\n  expected: ~s\n  ~s\n"
+          (eprintf "failure!\n     index: ~a\n       got: ~s\n  expected: ~s\n     whats: ~s\n"
                    i
                    got
                    expected
@@ -422,6 +422,6 @@
 
 (for ([x (in-range 1000)])
   (in/out (contract-random-generate
-           (list/c what/c))))
+           (listof what/c))))
 
 (done)
