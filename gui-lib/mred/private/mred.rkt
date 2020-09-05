@@ -80,89 +80,89 @@
   (define-syntax propagate
     (lambda (stx)
       (syntax-case stx ()
-	[(_ n ...)
-	 (let ([ns (syntax->list (syntax (n ...)))])
-	   (with-syntax ([(k:n ...)
+	[(_ wx:n ...)
+	 (let ([ns (syntax->list (syntax (wx:n ...)))])
+	   (with-syntax ([(n ...)
 			  (map
 			   (lambda (n)
 			     (datum->syntax-object
 			      n
 			      (string->symbol
-			       (format 
-				"wx:~a"
-				(syntax-e n)))
+			       (regexp-replace #rx"^wx:"
+                                               (format "~a" (syntax-e n))
+                                               ""))
 			      #f))
 			   ns)])
 	     (syntax (begin
 		       ;; We can't just re-export, because kernel.rkt's
 		       ;;  exports are protected.
-		       (define n k:n) ...
+		       (define n wx:n) ...
 		       (provide n ...)))))])))
 
-  (propagate add-editor-keymap-functions
-	     add-text-keymap-functions
-	     add-pasteboard-keymap-functions
-	     begin-busy-cursor
-	     bell
-	     editor-data%
-	     editor-data-class%
-	     editor-data-class-list<%>
-	     check-for-break
-	     clipboard<%>
-	     clipboard-client%
-	     control-event%
-	     column-control-event%
-	     current-eventspace
-	     cursor%
-	     get-display-depth
-	     end-busy-cursor
-	     event%
-	     event-dispatch-handler
-	     eventspace?
-	     flush-display
-             get-current-mouse-state
-	     get-highlight-background-color
-             get-highlight-text-color
-             get-label-foreground-color
-             get-label-background-color
-	     get-the-editor-data-class-list
-	     is-busy?
-	     is-color-display?
-	     key-event%
-	     keymap%
-	     editor-admin%
-	     editor-set-x-selection-mode
-	     editor-snip-editor-admin<%>
-	     editor-stream-in%
-	     editor-stream-in-base%
-	     editor-stream-in-bytes-base%
-	     editor-stream-out%
-	     editor-stream-out-base%
-	     editor-stream-out-bytes-base%
-	     editor-wordbreak-map%
-	     mouse-event%
-	     read-editor-global-footer
-	     read-editor-global-header
-	     read-editor-version
-	     scroll-event%
-	     special-control-key
-	     special-option-key
-             any-control+alt-is-altgr
-             map-command-as-meta-key
-	     label->plain-label
-	     write-editor-global-footer
-	     write-editor-global-header
-	     write-editor-version
-	     queue-callback
-	     yield
-	     eventspace-shutdown?
-             eventspace-event-evt
-	     get-panel-background
-             graphical-system-type
+  (propagate wx:add-editor-keymap-functions
+             wx:add-text-keymap-functions
+             wx:add-pasteboard-keymap-functions
+             wx:begin-busy-cursor
+             wx:bell
+             wx:editor-data%
+             wx:editor-data-class%
+             wx:editor-data-class-list<%>
+             wx:check-for-break
+             wx:clipboard<%>
+             wx:clipboard-client%
+             wx:control-event%
+             wx:column-control-event%
+             wx:current-eventspace
+             wx:cursor%
+             wx:get-display-depth
+             wx:end-busy-cursor
+             wx:event%
+             wx:event-dispatch-handler
+             wx:eventspace?
+             wx:flush-display
+             wx:get-current-mouse-state
+             wx:get-highlight-background-color
+             wx:get-highlight-text-color
+             wx:get-label-foreground-color
+             wx:get-label-background-color
+             wx:get-the-editor-data-class-list
+             wx:is-busy?
+             wx:is-color-display?
+             wx:key-event%
+             wx:keymap%
+             wx:editor-admin%
+             wx:editor-set-x-selection-mode
+             wx:editor-snip-editor-admin<%>
+             wx:editor-stream-in%
+             wx:editor-stream-in-base%
+             wx:editor-stream-in-bytes-base%
+             wx:editor-stream-out%
+             wx:editor-stream-out-base%
+             wx:editor-stream-out-bytes-base%
+             wx:editor-wordbreak-map%
+             wx:mouse-event%
+             wx:read-editor-global-footer
+             wx:read-editor-global-header
+             wx:read-editor-version
+             wx:scroll-event%
+             wx:special-control-key
+             wx:special-option-key
+             wx:any-control+alt-is-altgr
+             wx:map-command-as-meta-key
+             wx:label->plain-label
+             wx:write-editor-global-footer
+             wx:write-editor-global-header
+             wx:write-editor-version
+             wx:queue-callback
+             wx:yield
+             wx:eventspace-shutdown?
+             wx:eventspace-event-evt
+             wx:get-panel-background
+             wx:graphical-system-type
 
-             the-editor-wordbreak-map
-             make-screen-bitmap
-             make-gl-bitmap)
+             wx:the-editor-wordbreak-map
+             wx:make-screen-bitmap
+             wx:make-gl-bitmap)
    
   (define the-clipboard (wx:get-the-clipboard))
   (define the-x-selection-clipboard (wx:get-the-x-selection))
