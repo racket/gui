@@ -489,11 +489,12 @@
                   searching-str 'forward position 'eof #t case-sensitive?))
           (cond
             [found-at-this-level
-             (let loop ([context (cdr (reverse context))])
+             (let loop ([context context]
+                        [acc found-at-this-level])
                (cond
-                 [(null? context) found-at-this-level]
-                 [else (cons (car context)
-                             (loop (cdr context)))]))]
+                 [(null? (cdr context)) acc]
+                 [else (loop (cdr context)
+                             (cons (car context) acc))]))]
             [(null? (cdr context)) #f]
             [else
              (define admin (send (car context) get-admin))
