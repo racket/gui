@@ -370,15 +370,6 @@
                    (set! new-search-bubbles (cons this-bubble new-search-bubbles))
 
                    (define next (do-search bubble-end))
-
-                   (when (> (let loop ([x bubble-start])
-                              (cond
-                                [(number? x) 1]
-                                [else (+ 1 (loop (cdr x)))]))
-                            3)
-                     ;; the check above is probably an invariant,
-                     ;; but I have lost track of what it means.
-                     (error 'framework/private/text.rkt "something is wrong"))
                 
                    (define next-before-caret-search-hit-count
                      (if (and next (search-result-compare < next sp))
@@ -475,7 +466,13 @@
           (send txt unhighlight-ranges/key 'plt:framework:search-bubbles))
         (set! all-txt-with-regions-to-clear (make-hasheq))
         (set! search-bubble-table (make-hash)))
-    
+
+      ;; do-search : context+search-position -> context+search-position
+      ;; does a search starting at `start` and returning the next
+      ;; ocurrence of the search string, possibly moving out into
+      ;; later editors
+      ;; the context+search-position is list the result of `find-string-embedded`,
+      ;; except it cannot be #f.
       (define/private (do-search start)
         (define context (list this))
         (define position
@@ -492,9 +489,9 @@
                   searching-str 'forward position 'eof #t case-sensitive?))
           (cond
             [found-at-this-level
-             (let loop ([context context])
+             (let loop ([context (cdr (reverse context))])
                (cond
-                 [(null? (cdr context)) found-at-this-level]
+                 [(null? context) found-at-this-level]
                  [else (cons (car context)
                              (loop (cdr context)))]))]
             [(null? (cdr context)) #f]
