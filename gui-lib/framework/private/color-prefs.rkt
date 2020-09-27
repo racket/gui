@@ -506,7 +506,6 @@
          (func panel)
          panel))))
   
-  ;; see docs
   (define (register-color-preference pref-name style-name color/sd 
                                      [white-on-black-color #f]
                                      [use-old-marshalling? #t]
@@ -527,7 +526,7 @@
         (set! color-scheme-colors
               (cons (list pref-name
                           color/sd
-                          (to-color white-on-black-color))
+                          (to-color white-on-black-color 'register-color-preference))
                     color-scheme-colors)))
       (preferences:set-un/marshall pref-name marshall-style-delta unmarshall-style-delta)
       (preferences:add-callback pref-name
@@ -538,12 +537,10 @@
   (define color-scheme-colors '())
   
   (define (set-default/color-scheme pref-sym black-on-white white-on-black)
-    (let ([bw-c (to-color black-on-white)]
-          [wb-c (to-color white-on-black)])
+    (let ([bw-c (to-color black-on-white 'set-default/color-scheme)]
+          [wb-c (to-color white-on-black 'set-default/color-scheme)])
       (set! color-scheme-colors
-            (cons (list pref-sym 
-                        (to-color black-on-white)
-                        (to-color white-on-black))
+            (cons (list pref-sym bw-c wb-c)
                   color-scheme-colors))
       
       (preferences:set-default pref-sym bw-c (λ (x) (is-a? x color%)))
@@ -563,7 +560,7 @@
      (make-object color% red green blue α)]
     [else #f]))
 
-  (define (to-color c)
+  (define (to-color c who)
     (cond
       [(is-a? c color%) c]
       [(is-a? c style-delta%)
@@ -580,8 +577,8 @@
              (send add get-b))))]
       [(string? c)
        (or (send the-color-database find-color c)
-           (error 'register-color-scheme 
-                  "did not find color ~s in the-color-database"
+           (error who
+                  "color not found in the-color-database\n  color: ~e"
                   c))]))
   
   (define (black-on-white) (do-colorization cadr))
@@ -1006,7 +1003,7 @@
                     black-on-white-color-scheme-name)
                 clr))]
        [(hash? val)
-        ;; this may return a bogus hash, but the preferesnces system will check
+        ;; this may return a bogus hash, but the preferences system will check
         ;; and revert this to the default pref in that case
         (for/hash ([(k v) (in-hash val)])
           (values 

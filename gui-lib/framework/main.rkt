@@ -30,7 +30,8 @@
                        framework/private/decorated-editor-snip))
 
 (require (for-doc racket/base scribble/manual framework/private/mapdesc
-                  setup/getinfo racket/pretty string-constants))
+                  setup/getinfo racket/pretty string-constants
+                  (for-label string-constants)))
 
 (provide-signature-elements
  (prefix application: framework:application-class^)
@@ -1842,7 +1843,9 @@
       void?)
   (pref-sym black-on-white-color white-on-black-color)
   @{Registers a preference whose value will be updated when the user clicks on
-    one of the color scheme default settings in the preferences dialog.
+    one of the color scheme default settings in the preferences dialog, but
+    does not give it a name that can be configured by a color scheme; consider using
+    @racket[color-prefs:add-color-scheme-entry] instead.
     
     Also calls @racket[preferences:set-default] and
     @racket[preferences:set-un/marshall] with appropriate arguments to register
@@ -1857,9 +1860,11 @@
   ((pref-name style-name color/sd)
    ((white-on-black-color #f)
     (background #f)))
-  @{This function registers a color preference and initializes the style list
-    returned from @racket[editor:get-standard-style-list].  In particular, it
-    calls @racket[preferences:set-default] and
+  @{This function registers a color preference but does not give it
+    a name that can be configured by a color scheme; consider using
+    @racket[color-prefs:add-color-scheme-entry] instead.
+
+    This function calls @racket[preferences:set-default] and
     @racket[preferences:set-un/marshall] to install the pref for
     @racket[pref-name], using @racket[color/sd] as the default color.  The
     preference is bound to a @racket[style-delta%], and initially the
@@ -1959,11 +1964,16 @@
        [result void?])
   (#f #f #f #f #f)
   @{Registers a new color or style named @racket[name] for use in the color schemes. 
-    If @racket[style] is provided, a new style is registered; if not a color is
+    If @racket[style] is not @racket[#f], a new style is registered; if not a color is
     registered.
 
-    The default values of all of the keyword arguments are @racket[#f], except
-    @racket[bold], which defaults to @racket['base] (if @racket[style] is not @racket[#f]).})
+    If a style is registered, the style is stored in the style list
+    returned from @racket[editor:get-standard-style-list].
+
+    Use @racket[color-prefs:lookup-in-color-scheme] to get the current value
+    of the entry.
+
+ })
  
  (proc-doc/names
   color-prefs:add-color-scheme-preferences-panel
@@ -1986,7 +1996,8 @@
     color scheme. Each hash table should have keys that specify
     details of the color scheme, as follows:
     @itemlist[@item{@racket['name]: must be either a string or a symbol;
-                     if it is a symbol and @racket[string-constant?], 
+                     it names the entire color scheme.
+                     If it is a symbol and @racket[string-constant?], 
                      it is passed to @racket[dynamic-string-constant]
                      to get the name; otherwise it is used as the name directly.
                      If absent, the name of the directory containing the @filepath{info.rkt}
@@ -1998,8 +2009,9 @@
                       to show an example of the color scheme. If absent, the string used in
                       the ``Classic'' color scheme is used.}
                @item{@racket['colors]: must be a non-empty list whose first position
-                      is a symbol, naming a color or style. The rest of the elements describe
-                      the style or color. In either case, an element may be a vector describing
+                      is a symbol, naming a color or style entry in the color scheme.
+                      The rest of the elements describe the style or color.
+                      In either case, an element may be a vector describing
                       a color, see below.
                       If the name corresponds to a style, then the list may also contain
 
@@ -2051,12 +2063,12 @@
   (name)
   @{Sets
     the current color scheme to the scheme named @racket[name], 
-    if @racket[name] is @racket[color-prefs:known-color-scheme-name?].
-    Otherwise, does nothing.})
+    if @racket[name] is one of the color schemes.
+    Otherwise, sets the color scheme to the default color scheme.})
  
  (proc-doc
   color-prefs:get-current-color-scheme-name
-  (-> color-prefs:color-scheme-style-name?)
+  (-> symbol?)
   @{Returns the current color scheme's name.})
  
  (proc-doc/names
@@ -2064,10 +2076,10 @@
   (-> any/c boolean?)
   (name)
   @{Returns @racket[#t] if the input is a @racket[symbol?] that names
-            a color or style that is part of the current color scheme.
+ a color or style that is an entry in the current color scheme.
             
-            In order to return @racket[#t], @racket[name] must have been
-            passed as the first argument to @racket[color-prefs:add-color-scheme-entry].})
+ In order to return @racket[#t], @racket[name] must have been
+ passed as the first argument to @racket[color-prefs:add-color-scheme-entry].})
  
  (proc-doc/names
   color-prefs:color-scheme-style-name?
