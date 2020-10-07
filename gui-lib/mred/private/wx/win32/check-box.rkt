@@ -20,6 +20,8 @@
 
   (define/override (get-flags) (bitwise-ior BS_AUTOCHECKBOX))
 
+  (define/override (get-event-type) 'check-box)
+
   (define/override (get-button-background)
     (GetSysColor COLOR_BTNFACE))
 

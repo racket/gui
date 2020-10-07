@@ -36,6 +36,7 @@
 
     (define/public (get-class) "PLTBUTTON")
     (define/public (get-flags) BS_PUSHBUTTON)
+    (define/public (get-event-type) 'button)
     
     (super-new [callback cb]
                [parent parent]
@@ -170,7 +171,7 @@
       (queue-window-event this (lambda ()
                                  (callback this
                                            (new control-event%
-                                                [event-type 'button]
+                                                [event-type (get-event-type)]
                                                 [time-stamp (current-milliseconds)])))))
 
     (define/public (set-border on?)
