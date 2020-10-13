@@ -16,6 +16,7 @@
                      "pict-lib"
                      "racket-doc"
                      "string-constants-doc"
+                     "simple-tree-text-markup-doc"
                      "xrepl-doc"))
 (define deps '("base"))
 (define update-implies '("gui-lib"))
