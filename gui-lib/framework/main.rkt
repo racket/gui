@@ -233,6 +233,17 @@
   (is-a?/c snip-class%)
   @{The @racket[snip-class%] object used by @racket[comment-box:snip%].})
 
+ (thing-doc
+  srcloc-snip:snipclass
+  (is-a?/c snip-class%)
+  @{The @racket[snip-class%] object used by @racket[srcloc-snip:snip%].})
+
+ (proc-doc/names
+  srcloc-snip:select-srcloc
+  (srcloc? . -> . void?)
+  (srcloc)
+  @{Finds the editor containing the specified srcloc and selects it.})
+ 
  (proc-doc/names
   version:add-spec
   (any/c any/c . -> . void?)
