@@ -617,13 +617,17 @@
    (lambda (key func) (send k map-function key func))
    (append
     (case (system-type)
-      [(windows) '(":c:c" ":c:x" ":c:v" ":c:k" ":c:z" ":c:a")]
+      [(windows unix) '(":c:c" ":c:x" ":c:v" ":c:k" ":c:z" ":c:a")]
       [(macos macosx) '(":d:c" ":d:x" ":d:v" ":d:k" ":d:z" ":d:a")]
+      ;; Old bindings for Unix imitate Emacs, along with start-of-line and end-of-line below:
+      #;
       [(unix) '(":m:w" ":c:w" ":c:y" ":c:k" ":c:s:_" ":m:a")])
     '(":middlebutton"))
    '("copy-clipboard" "cut-clipboard" "paste-clipboard" "delete-to-end-of-line"
      "undo" "select-all" "mouse-paste"))
   (send k map-function ":rightbuttonseq" "mouse-popup-menu")
+  ;; Old bindings for Unix:
+  #;
   (when (eq? (system-type) 'unix)
     (send k map-function ":c:a" "beginning-of-line")
     (send k map-function ":c:e" "end-of-line")))

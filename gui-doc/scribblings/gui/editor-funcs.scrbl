@@ -126,9 +126,7 @@ of the list should be the @racket[text%] object where the mouse was clicked
 for the popup menu and the position where the click happened. In that case,
 the @onscreen{Copy} and @onscreen{Cut} menus are enabled when the click
 lands on a snip that is not a @racket[string-snip%], and the corresponding
-callbacks will copy and cut that one snip.
-
-}
+callbacks will copy and cut that one snip.}
 
 @defparam[current-text-keymap-initializer proc ((is-a?/c keymap%) . -> . any/c)]{
 
@@ -141,10 +139,11 @@ The initializer takes a keymap object and returns nothing. The default
  initializer chains the given keymap to an internal keymap that
  implements standard text editor keyboard and mouse bindings for cut,
  copy, paste, undo, and select-all. The right mouse button is mapped
- to popup an edit menu when the button is released. On Unix,
- start-of-line (Ctl-A) and end-of-line (Ctl-E) are also mapped.
+ to popup an edit menu when the button is released.
 
-}
+@history[#:changed "1.51" @elem{Changed Unix keybindings in the default initializer
+                                to match Windows, dropping
+                                start-of-line and end-of-line bindings.}]}
 
 @defproc[(editor-set-x-selection-mode [on any/c])
          void?]{
