@@ -770,11 +770,22 @@ has been moved out).
   (-> number? number? np-atomic-shape? np-atomic-shape?)
   (cond
     [(ellipse? shape)
-     (make-ellipse (* x-scale (ellipse-width shape))
-                   (* y-scale (ellipse-height shape))
-                   (ellipse-angle shape)
-                   (ellipse-mode shape)
-                   (scale-color (ellipse-color shape) x-scale y-scale))]
+     (cond
+       [(= (ellipse-angle shape) 0)
+        (make-ellipse (* x-scale (ellipse-width shape))
+                      (* y-scale (ellipse-height shape))
+                      (ellipse-angle shape)
+                      (ellipse-mode shape)
+                      (scale-color (ellipse-color shape) x-scale y-scale))]
+       [else
+        (define-values (ew eh θ)
+          (scale-rotated-ellipse x-scale y-scale
+                                 (ellipse-width shape)
+                                 (ellipse-height shape)
+                                 (ellipse-angle shape)))
+        (make-ellipse ew eh θ
+                      (ellipse-mode shape)
+                      (scale-color (ellipse-color shape) x-scale y-scale))])]
     [(text? shape)
      ;; should probably do something different here so that
      ;; the y-scale is always greater than 1
@@ -811,6 +822,103 @@ has been moved out).
                (pen-cap color)
                (pen-join color))]
     [else color]))
+
+(define (scale-rotated-ellipse x-scale y-scale ew eh angle)
+  (define a (/ ew 2))
+  (define b (/ eh 2))
+  (define-values (A B C F) (ab-angle->ABCF a b angle))
+  (define SA (/ A x-scale x-scale))
+  (define SB (/ B x-scale y-scale))
+  (define SC (/ C y-scale y-scale))
+  (define-values (new-a new-b new-angle) (ABCF->ab-angle SA SB SC F))
+  (values (* 2 new-a)
+          (* 2 new-b)
+          new-angle))
+
+;; these functions use the General Ellipse form from wikipedia
+;; https://en.wikipedia.org/wiki/Ellipse#General_ellipse
+;; but here we know that x_0 and y_0 are 0 and thus so are D and E.
+(define (ab-angle->ABCF a b angle)
+  (define θ (degrees->radians angle))
+  (define A (+ (sqr (* a (sin θ))) (sqr (* b (cos θ)))))
+  (define B (* 2 (- (sqr b) (sqr a)) (sin θ) (cos θ)))
+  (define C (+  (sqr (* a (cos θ))) (sqr (* b (sin θ)))))
+  (define F (- (* a a b b)))
+  (values A B C F))
+
+(define (ABCF->ab-angle A B C F)
+  (define B2-4AC (- (sqr B) (* 4 A C)))
+  (define q (* 2 (* B2-4AC F)))
+  (define r (sqrt (+ (sqr (- A C)) (sqr B))))
+  (define (ab ±)
+    (/ (- (sqrt (* q (± (+ A C) r))))
+       B2-4AC))
+  (define a (ab +))
+  (define b (ab -))
+  (define angle
+    (cond
+      ;; this case isn't in wikipedia but I
+      ;; think it corresponds to a circle
+      ;; and so we can just pick any angle
+      ;; want in that case (and 0 is going
+      ;; to make more things equal)
+      [(and (= B 0) (= A C)) 0]
+
+      [(and (= B 0) (< A C)) 0]
+      [(and (= B 0) (< C A)) 90]
+      [else
+       (angle->proper-range
+        (radians->degrees
+         (atan (* (/ B) (- C A r)))))]))
+  (values a b angle))
+
+(module+ test
+  (define (roundtrip a b angle)
+    (define-values (A B C F) (ab-angle->ABCF a b angle))
+    (define-values (a-new b-new angle-new) (ABCF->ab-angle A B C F))
+    (list a-new b-new angle-new))
+
+  (check-within (roundtrip 1 1 0)   (list 1 1 0)    0.0001)
+  (check-within (roundtrip 10 10 0) (list 10 10 0)  0.0001)
+  (check-within (roundtrip 3 2 1)   (list 3 2 1)    0.0001)
+  (check-within (roundtrip 10 1 30) (list 10 1 30)  0.0001)
+  (check-within (roundtrip 3 2 30)  (list 3 2 30)   0.0001)
+  (check-within (roundtrip 3 2 45)  (list 3 2 45)   0.0001)
+
+  ;; this test makes sure that `angle->proper-range is called`
+  (check-within (roundtrip 3 10 33) (list 10 3 303) 0.0001)
+
+  )
+
+
+(define/contract (angle->proper-range α)
+  (-> real? (between/c 0 360))
+  (define θ (- α (* 360 (floor (/ α 360)))))
+  (cond [(negative? θ) (+ θ 360)]
+        [(>= θ 360)    (- θ 360)]
+        [else θ]))
+
+(module+ test
+  (require rackunit)
+  (check-equal? (angle->proper-range 1) 1)
+  (check-equal? (angle->proper-range 361) 1)
+  (check-equal? (angle->proper-range 1/2) 1/2)
+  (check-equal? (angle->proper-range -1) 359)
+  (check-equal? (angle->proper-range #e-1.5) #e358.5)
+  (check-equal? (angle->proper-range #e-.1) #e359.9)
+  
+  (check-equal? (angle->proper-range 1.0) 1.0)
+  (check-equal? (angle->proper-range 361.0) 1.0)
+  (check-equal? (angle->proper-range 0.5) 0.5)
+  (check-equal? (angle->proper-range -1.0) 359.0)
+  (check-equal? (angle->proper-range -1.5) 358.5)
+  (check-equal? (angle->proper-range -.1) 359.9)
+  (check-equal? (angle->proper-range #i-7.347880794884119e-016) 0.0)
+
+  (check-equal? (angle->proper-range 720) 0)
+  )
+
+  
 
 ;                                                                
 ;                                                                
