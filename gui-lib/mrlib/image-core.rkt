@@ -843,7 +843,7 @@ has been moved out).
   (define A (+ (sqr (* a (sin θ))) (sqr (* b (cos θ)))))
   (define B (* 2 (- (sqr b) (sqr a)) (sin θ) (cos θ)))
   (define C (+  (sqr (* a (cos θ))) (sqr (* b (sin θ)))))
-  (define F (- (* a a b b)))
+  (define F (* (* b a) (* b (- a))))
   (values A B C F))
 
 (define (ABCF->ab-angle A B C F)
