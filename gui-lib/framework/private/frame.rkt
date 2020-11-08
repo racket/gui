@@ -8,7 +8,6 @@
          "sig.rkt"
          "../preferences.rkt"
          "../gui-utils.rkt"
-         "bday.rkt"
          "gen-standard-menus.rkt"
          "interfaces.rkt"
          "srcloc-panel.rkt"
@@ -904,7 +903,7 @@
               (set! memory-canvases (remq this-frames-memory-canvas memory-canvases))))
       (send panel stretchable-width #f))
     
-    (define gc-canvas (new bday-click-canvas% [parent (get-info-panel)] [style '(border no-focus)]))
+    (define gc-canvas (new gc-off-canvas% [parent (get-info-panel)] [style '(border no-focus)]))
     (define/private (register-gc-blit)
       (let ([onb (icon:get-gc-on-bitmap)]
             [offb (icon:get-gc-off-bitmap)])
@@ -2790,18 +2789,11 @@
     (define/override (get-editor%) (text:searching-mixin (super get-editor%)))
     (super-new)))
 
-(define bday-click-canvas%
+(define gc-off-canvas%
   (class canvas%
     (inherit get-dc)
     (define/override (on-paint)
       (send (get-dc) draw-bitmap (icon:get-gc-off-bitmap) 0 0))
-    (define/override (on-event evt)
-      (cond
-        [(and (mrf-bday?)
-              (send evt button-up?))
-         (message-box (string-constant drscheme)
-                      (string-constant happy-birthday-matthew))]
-        [else (super on-event evt)]))
     (super-new)))
 
 (define pref-save-canvas%

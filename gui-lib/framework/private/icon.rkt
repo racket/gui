@@ -5,7 +5,6 @@
          racket/promise
          racket/class
          racket/runtime-path
-         "bday.rkt"
          "sig.rkt"
          mred/mred-sig
          mrlib/panel-wob)
@@ -87,16 +86,12 @@
   
   (define (get-gc-on-bitmap)
     (force
-     (if (mrf-bday?)
-         mrf-on-bitmap
-         (if (white-on-black-panel-scheme?)
-             gc-wob-on-bitmap
-             gc-on-bitmap))))
+     (if (white-on-black-panel-scheme?)
+         gc-wob-on-bitmap
+         gc-on-bitmap)))
   
   (define (get-gc-off-bitmap)
     (force
-     (if (mrf-bday?)
-         mrf-off-bitmap
-         (if (white-on-black-panel-scheme?)
-             gc-wob-off-bitmap
-             gc-off-bitmap)))))
+     (if (white-on-black-panel-scheme?)
+         gc-wob-off-bitmap
+         gc-off-bitmap))))
