@@ -1,5 +1,4 @@
 #lang racket/base
-
 #|
 
 This library is the part of the 2htdp/image 
@@ -121,8 +120,11 @@ has been moved out).
 
 ;; a np-atomic-shape is:
 ;;
-;;  - (make-ellipse width height angle mode color)
-(define-struct/reg-mk ellipse (width height angle mode color) #:transparent #:omit-define-syntaxes)
+;;  - (make-ellipse width height angle mode color (or/c #f angle))
+;;     width ≠ 0, height ≠ 0
+;;     (ellipse constructor makes rectangles when width/height is 0)
+(define-struct/reg-mk ellipse (width height angle mode color wedge)
+  #:transparent #:omit-define-syntaxes)
 ;;
 ;;  - (make-text string angle number color
 ;;               number (or/c #f string) family 
@@ -154,7 +156,7 @@ has been moved out).
 
 ;; a polygon is:
 ;;
-;;  - (make-polygon (listof vector) mode color)
+;;  - (make-polygon (listof pulled-point) mode color)
 (define-struct/reg-mk polygon (points mode color) #:transparent #:omit-define-syntaxes)
 
 ;; a line-segment is
@@ -513,7 +515,7 @@ has been moved out).
   (define lst (parse (fetch bytes)))
   (cond
     [(not lst)
-     (make-image (make-translate 50 50 (make-ellipse 100 100 0 'solid "black"))
+     (make-image (make-translate 50 50 (make-ellipse 100 100 0 'solid "black" #f))
                  (make-bb 100 100 100)
                  #f
                  #f)]
@@ -585,6 +587,26 @@ has been moved out).
                                                0 0)]
                            [else p])))
                      (apply constructor adjusted-points (cdr parsed-args))]
+                    [(and constructor
+                          (equal? tag 'struct:ellipse)
+                          (= arg-count 5))
+                     ;; some save files from older versions do not have the wedge
+                     ;; field for the ellipses, but it should be #f in that case
+                     ;; also, newer versions never build an ellipse with zero width
+                     ;; or height, so if we find one of those, make a rectangle instead
+                     (define-values (width height angle mode color) (apply values args))
+                     (cond
+                       [(or (= width 0) (= height 0))
+                        (construct-polygon
+                         (rotate-points
+                          (list (make-point 0 0)
+                                (make-point width 0)
+                                (make-point width height)
+                                (make-point 0 height))
+                          angle)
+                         mode color)]
+                       [else
+                        (constructor width height angle mode color #f)])]
                     [(and constructor (procedure-arity-includes? constructor arg-count))
                      (apply constructor parsed-args)]
                     [(and (eq? tag 'struct:bitmap)
@@ -769,23 +791,35 @@ has been moved out).
 (define/contract (scale-np-atomic x-scale y-scale shape)
   (-> number? number? np-atomic-shape? np-atomic-shape?)
   (cond
+    [(and (= 1 x-scale) (= 1 y-scale))
+     ;; a special case to avoid roundoff error that
+     ;; might happen in the subsequent cases (ellipse, especially)
+     shape]
     [(ellipse? shape)
+     (define eh (ellipse-height shape))
+     (define ew (ellipse-width shape))
      (cond
-       [(= (ellipse-angle shape) 0)
-        (make-ellipse (* x-scale (ellipse-width shape))
-                      (* y-scale (ellipse-height shape))
+       [(or (= (ellipse-angle shape) 0)
+            ;; if ew=eh, then this is a circle and the `scale-rotated-ellipse`
+            ;; function won't preserve the wedge's shape (if there is a wedge)
+            ;; so we need to avoid calling it (plus, it introduces possible
+            ;; rounding error, as it calls lots of fancy functions).
+            (= ew eh))
+        (make-ellipse (* x-scale ew)
+                      (* y-scale eh)
                       (ellipse-angle shape)
                       (ellipse-mode shape)
-                      (scale-color (ellipse-color shape) x-scale y-scale))]
+                      (scale-color (ellipse-color shape) x-scale y-scale)
+                      (ellipse-wedge shape))]
        [else
-        (define-values (ew eh θ)
+        (define-values (new-ew new-eh new-θ)
           (scale-rotated-ellipse x-scale y-scale
-                                 (ellipse-width shape)
-                                 (ellipse-height shape)
+                                 ew eh
                                  (ellipse-angle shape)))
-        (make-ellipse ew eh θ
+        (make-ellipse new-ew new-eh new-θ
                       (ellipse-mode shape)
-                      (scale-color (ellipse-color shape) x-scale y-scale))])]
+                      (scale-color (ellipse-color shape) x-scale y-scale)
+                      (ellipse-wedge shape))])]
     [(text? shape)
      ;; should probably do something different here so that
      ;; the y-scale is always greater than 1
@@ -801,17 +835,13 @@ has been moved out).
                 (text-weight shape)
                 (text-underline shape))]
     [(flip? shape)
-     (cond
-       [(and (= 1 x-scale) (= 1 y-scale))
-        shape]
-       [else
-        (let ([bitmap (flip-shape shape)])
-          (make-flip (flip-flipped? shape)
-                     (make-ibitmap (ibitmap-raw-bitmap bitmap)
-                                   (ibitmap-angle bitmap)
-                                   (* x-scale (ibitmap-x-scale bitmap))
-                                   (* y-scale (ibitmap-y-scale bitmap))
-                                   (ibitmap-cache bitmap))))])]))
+     (define bitmap (flip-shape shape))
+     (make-flip (flip-flipped? shape)
+                (make-ibitmap (ibitmap-raw-bitmap bitmap)
+                              (ibitmap-angle bitmap)
+                              (* x-scale (ibitmap-x-scale bitmap))
+                              (* y-scale (ibitmap-y-scale bitmap))
+                              (ibitmap-cache bitmap)))]))
 
 (define (scale-color color x-scale y-scale)
   (cond
@@ -826,36 +856,38 @@ has been moved out).
 (define (scale-rotated-ellipse x-scale y-scale ew eh angle)
   (define a (/ ew 2))
   (define b (/ eh 2))
-  (define-values (A B C F) (ab-angle->ABCF a b angle))
-  (define SA (/ A x-scale x-scale))
-  (define SB (/ B x-scale y-scale))
-  (define SC (/ C y-scale y-scale))
-  (define-values (new-a new-b new-angle) (ABCF->ab-angle SA SB SC F))
+  (define-values (new-a new-b new-angle)
+    (do-scale-rotated-ellipse a b angle x-scale y-scale))
   (values (* 2 new-a)
           (* 2 new-b)
           new-angle))
 
-;; these functions use the General Ellipse form from wikipedia
-;; https://en.wikipedia.org/wiki/Ellipse#General_ellipse
-;; but here we know that x_0 and y_0 are 0 and thus so are D and E.
-(define (ab-angle->ABCF a b angle)
-  (define θ (degrees->radians angle))
-  (define A (+ (sqr (* a (sin θ))) (sqr (* b (cos θ)))))
-  (define B (* 2 (- (sqr b) (sqr a)) (sin θ) (cos θ)))
-  (define C (+  (sqr (* a (cos θ))) (sqr (* b (sin θ)))))
-  (define F (* (* b a) (* b (- a))))
-  (values A B C F))
+;; probably inling and then applying various
+;; identities, one can improve this function
+;; probably inling and then applying various
+;; identities, one can improve this function
+(define (do-scale-rotated-ellipse a b angle x-scale y-scale)
+  (define a<b? (< a b))
+  (define angle>180? (> angle 180))
 
-(define (ABCF->ab-angle A B C F)
-  (define B2-4AC (- (sqr B) (* 4 A C)))
-  (define q (* 2 (* B2-4AC F)))
+  (define θ (degrees->radians angle))
+  (define F (* (* b a) (* b (- a))))
+  (define A (/ (+ (sqr (* a (sin θ))) (sqr (* b (cos θ))))
+               x-scale x-scale))
+  (define B (/ (* 2 (- (sqr b) (sqr a)) (sin θ) (cos θ))
+               x-scale y-scale))
+  (define C (/ (+ (sqr (* a (cos θ))) (sqr (* b (sin θ))))
+               y-scale y-scale))
+
+  (define B^2-4AC (/ (* 4 F) (sqr (* x-scale y-scale))))
+  (define q (* 2 B^2-4AC F))
   (define r (sqrt (+ (sqr (- A C)) (sqr B))))
   (define (ab ±)
     (/ (- (sqrt (* q (± (+ A C) r))))
-       B2-4AC))
-  (define a (ab +))
-  (define b (ab -))
-  (define angle
+       B^2-4AC))
+  (define _a (ab +))
+  (define _b (ab -))
+  (define _raw-angle
     (cond
       ;; this case isn't in wikipedia but I
       ;; think it corresponds to a circle
@@ -867,29 +899,15 @@ has been moved out).
       [(and (= B 0) (< A C)) 0]
       [(and (= B 0) (< C A)) 90]
       [else
-       (angle->proper-range
-        (radians->degrees
-         (atan (* (/ B) (- C A r)))))]))
-  (values a b angle))
+       (radians->degrees
+        (atan (* (/ (- C A r) B))))]))
 
-(module+ test
-  (define (roundtrip a b angle)
-    (define-values (A B C F) (ab-angle->ABCF a b angle))
-    (define-values (a-new b-new angle-new) (ABCF->ab-angle A B C F))
-    (list a-new b-new angle-new))
-
-  (check-within (roundtrip 1 1 0)   (list 1 1 0)    0.0001)
-  (check-within (roundtrip 10 10 0) (list 10 10 0)  0.0001)
-  (check-within (roundtrip 3 2 1)   (list 3 2 1)    0.0001)
-  (check-within (roundtrip 10 1 30) (list 10 1 30)  0.0001)
-  (check-within (roundtrip 3 2 30)  (list 3 2 30)   0.0001)
-  (check-within (roundtrip 3 2 45)  (list 3 2 45)   0.0001)
-
-  ;; this test makes sure that `angle->proper-range is called`
-  (check-within (roundtrip 3 10 33) (list 10 3 303) 0.0001)
-
-  )
-
+  (define _angle (if angle>180? (+ _raw-angle 180) _raw-angle))
+  (cond
+    [a<b?
+     (values _b _a (angle->proper-range (+ 90 _angle)))]
+    [else
+     (values _a _b (angle->proper-range _angle))]))
 
 (define/contract (angle->proper-range α)
   (-> real? (between/c 0 360))
@@ -918,7 +936,104 @@ has been moved out).
   (check-equal? (angle->proper-range 720) 0)
   )
 
-  
+(module+ test
+  (define (do-scale-rotated-ellipse/lst a b angle x-scale y-scale)
+    (call-with-values (λ () (do-scale-rotated-ellipse a b angle x-scale y-scale))
+                      list))
+  (check-within (do-scale-rotated-ellipse/lst 1 1 0 1 1)   (list 1 1 0)    0.0001)
+  (check-within (do-scale-rotated-ellipse/lst 10 10 0 1 1) (list 10 10 0)  0.0001)
+  (check-within (do-scale-rotated-ellipse/lst 3 2 1 1 1)   (list 3 2 1)    0.0001)
+  (check-within (do-scale-rotated-ellipse/lst 10 1 30 1 1) (list 10 1 30)  0.0001)
+  (check-within (do-scale-rotated-ellipse/lst 3 2 30 1 1)  (list 3 2 30)   0.0001)
+  (check-within (do-scale-rotated-ellipse/lst 3 2 45 1 1)  (list 3 2 45)   0.0001)
+  (check-within (do-scale-rotated-ellipse/lst 3 10 33 1 1) (list 3 10 33)  0.0001)
+  (check-within (do-scale-rotated-ellipse/lst 1 2 190 1 1) (list 1 2 190)  0.0001)
+
+  (check-within (do-scale-rotated-ellipse/lst 20 10 0 1 2)
+                (list 20 20 0)
+                0.001)
+  (check-within (do-scale-rotated-ellipse/lst 20 10 0 1/2 1)
+                (list 10 10 0)
+                0.001)
+  (check-within (do-scale-rotated-ellipse/lst 20 10 30 1/2 1)
+                (list 14.430004681646912
+                      6.930004681646913
+                      62.90876282222179)
+                0.001)
+  (check-within (do-scale-rotated-ellipse/lst 20 10 30 1 2)
+                (list 28.860009363293823
+                      13.860009363293827
+                      62.90876282222179)
+                0.001)
+  (check-within (do-scale-rotated-ellipse/lst 20 10 45 1 2)
+                (list 33.24506456314176
+                      12.03186112754533
+                      70.67009587295496)
+                0.001)
+)
+
+(define (rotate-points in-points θ)
+  (define cs (map pp->c in-points))
+  (define vectors (points->vectors cs))
+  (define rotated-vectors (map (λ (c) (rotate-c c θ)) vectors))
+  (define rotated-points (vectors->points rotated-vectors))
+  (for/list ([orig-point (in-list in-points)]
+             [rotated-point (in-list rotated-points)])
+    (cond
+      [(pulled-point? orig-point)
+       (make-pulled-point (pulled-point-lpull orig-point)
+                          (pulled-point-langle orig-point)
+                          (point-x rotated-point)
+                          (point-y rotated-point)
+                          (pulled-point-rpull orig-point)
+                          (pulled-point-rangle orig-point))]
+      [else rotated-point])))
+
+(define (rotate-c c θ)
+  (* (degrees->complex θ) c))
+
+(define (degrees->complex θ) 
+  (unless (and (<= 0 θ)
+               (< θ 360))
+    (error 'degrees->complex "~s" θ))
+  (case (and (integer? θ) (modulo θ 360))
+    [(0)    1+0i]
+    [(90)   0+1i]
+    [(180) -1+0i]
+    [(270)  0-1i]
+    [else (make-polar 1 (degrees->radians θ))]))
+
+(define (xy->c x y) (make-rectangular x (- y)))
+(define (c->xy c) 
+  (values (real-part c)
+          (- (imag-part c))))
+(define (pp->c p)
+  (cond
+    [(pulled-point? p) (xy->c (pulled-point-x p) (pulled-point-y p))]
+    [else (xy->c (point-x p) (point-y p))]))
+(define (c->point c) 
+  (let-values ([(x y) (c->xy c)])
+    (make-point x y)))
+
+(define (points->vectors orig-points)
+  (let loop ([points (cons 0 orig-points)])
+    (cond
+      [(null? (cdr points)) '()]
+      [else
+       (cons (- (cadr points) (car points))
+             (loop (cdr points)))])))
+
+(define (vectors->points vecs)
+  (let loop ([vecs vecs]
+             [p 0])
+    (cond
+      [(null? vecs) '()]
+      [else 
+       (let ([next-p (+ (car vecs) p)])
+         (cons (c->point next-p)
+               (loop (cdr vecs)
+                     next-p)))])))
+
 
 ;                                                                
 ;                                                                
@@ -1107,7 +1222,7 @@ has been moved out).
               [this-one (scale-np-atomic x-scale y-scale shape)])
          (render-np-atomic-shape this-one dc dx dy))]
       [else 
-       (error 'normalize-shape "unknown shape ~s\n" shape)])))
+       (error 'render-arbitrary-shape "unknown shape ~s\n" shape)])))
 
 (define/contract (render-poly/line-segment/curve-segment simple-shape dc dx dy)
   (-> (or/c polygon? line-segment? curve-segment?) any/c any/c any/c void?)
@@ -1170,20 +1285,29 @@ has been moved out).
 (define (render-np-atomic-shape np-atomic-shape dc dx dy)
   (cond
     [(ellipse? np-atomic-shape)
-     (let* ([path (new dc-path%)]
-            [ew (ellipse-width np-atomic-shape)]
-            [eh (ellipse-height np-atomic-shape)]
-            [θ (degrees->radians (ellipse-angle np-atomic-shape))]
-            [color (ellipse-color np-atomic-shape)]
-            [mode (ellipse-mode np-atomic-shape)])
-       (let-values ([(rotated-width rotated-height) (ellipse-rotated-size ew eh θ)])
-         (send path ellipse 0 0 ew eh)
-         (send path translate (- (/ ew 2)) (- (/ eh 2)))
-         (send path rotate θ)
-         (send dc set-pen (mode-color->pen mode color))
-         (send dc set-brush (mode-color->brush mode color))
-         (send dc set-smoothing (mode-color->smoothing mode color))
-         (send dc draw-path path dx dy)))]
+     (define path (new dc-path%))
+     (define ew (ellipse-width np-atomic-shape))
+     (define eh (ellipse-height np-atomic-shape))
+     (define θ (degrees->radians (ellipse-angle np-atomic-shape)))
+     (define color (ellipse-color np-atomic-shape))
+     (define mode (ellipse-mode np-atomic-shape))
+     (define wedge (ellipse-wedge np-atomic-shape))
+     (define cx (/ ew 2))
+     (define cy (/ eh 2))
+     (cond
+       [wedge
+        (send path move-to cx cy)
+        (send path arc 0 0 ew eh 0 (degrees->radians wedge))
+        (send path move-to cx cy)
+        (send path close)]
+       [else
+        (send path ellipse 0 0 ew eh)])
+     (send path translate (- cx) (- cy))
+     (send path rotate θ)
+     (send dc set-pen (mode-color->pen mode color))
+     (send dc set-brush (mode-color->brush mode color))
+     (send dc set-smoothing (mode-color->smoothing mode color))
+     (send dc draw-path path dx dy)]
     [(flip? np-atomic-shape) 
      (cond
        [(flip-flipped? np-atomic-shape)
@@ -1466,13 +1590,54 @@ the mask bitmap and the original bitmap are all together in a single bytes!
      (values (* (sin θ) eh)
              (* (cos θ) eh))]
     [else
-     (let* ([t1 (atan (/ eh ew (exact->inexact (tan θ))))]
-            ; a*cos(t1),b*sin(t1) is the point on *original* ellipse which gets rotated to top.
-            [t2 (atan (/ (* (- eh) (tan θ)) ew))] ; the original point rotated to right side.
-            [rotated-height (+ (* ew (sin θ) (cos t1)) (* eh (cos θ) (sin t1)))]
-            [rotated-width  (- (* ew (cos θ) (cos t2)) (* eh (sin θ) (sin t2)))])
-       (values (abs rotated-width)
-               (abs rotated-height)))]))
+     (define-values (top-t right-t) (ellipse-angle-of-topmost-and-rightmost-points ew eh θ))
+     (define rotated-height (* 2 (ellipse-t->y ew eh θ top-t)))
+     (define rotated-width  (* 2 (ellipse-t->x ew eh θ right-t)))
+     (values (abs rotated-width)
+             (abs rotated-height))]))
+
+(define (ellipse-angle-of-topmost-and-rightmost-points ew eh θ)
+  ; a*cos(t1),b*sin(t1) is the point on *original* ellipse which gets rotated to top.
+  (define t1 (atan (/ eh ew (exact->inexact (tan θ)))))
+  ; the original point rotated to right side.
+  (define t2 (atan (/ (* (- eh) (tan θ)) ew)))
+  (values t1 t2))
+
+;; given the ellipse width (ew), height (eh), rotation (θ) and the parameteric input (t)
+;; find the x and y coordinates of the corresponding point on the ellipse
+;; (with an extra - for the `y` to convert to computer coordinates)
+(define (ellipse-t->x ew eh θ t)
+  (define a (/ ew 2))
+  (define b (/ eh 2))
+  (- (* a (cos θ) (cos t)) (* b (sin θ) (sin t))))
+(define (ellipse-t->y ew eh θ t)
+  (define a (/ ew 2))
+  (define b (/ eh 2))
+  (- (+ (* a (sin θ) (cos t)) (* b (cos θ) (sin t)))))
+
+;; given the ellipse width (ew), height (eh) and rotation (θ)
+;; find the parameter (in radians) of the point that's the
+;; widest `x` point
+(define (ellipse-outermost-point-x ew eh θ)
+  (define a (/ ew 2))
+  (define b (/ eh 2))
+  (define cosθ (cos θ))
+  (if (= cosθ 0)
+      0
+      (atan (- (/ (* b (sin θ))
+                  (* a cosθ))))))
+
+;; given the ellipse width (ew), height (eh) and rotation (θ)
+;; find the parameter (in radians) of the point that's the
+;; tallest `y` point
+(define (ellipse-outermost-point-y ew eh θ)
+  (define sinθ (sin θ))
+  (define a (/ ew 2))
+  (define b (/ eh 2))
+  (if (= sinθ 0)
+      (/ pi 2)
+      (- (atan (- (/ (* b (cos θ))
+                     (* a sinθ)))))))
 
 (define (mode-color->smoothing mode color)
   (cond
@@ -1676,7 +1841,7 @@ the mask bitmap and the original bitmap are all together in a single bytes!
          make-translate translate? translate-dx translate-dy translate-shape
          make-scale scale? scale-x scale-y scale-shape
          make-crop crop? crop-points crop-shape
-         make-ellipse ellipse? ellipse-width ellipse-height ellipse-angle ellipse-mode ellipse-color
+         make-ellipse ellipse? ellipse-width ellipse-height ellipse-angle ellipse-mode ellipse-color ellipse-wedge
          make-text text? text-string text-angle text-y-scale text-color
          text-angle text-size text-face text-family text-style text-weight text-underline
          (contract-out [rename construct-polygon make-polygon
@@ -1698,8 +1863,20 @@ the mask bitmap and the original bitmap are all together in a single bytes!
          (rename-out [-make-color make-color]) 
          
          degrees->radians
+         angle->proper-range
          normalize-shape
          ellipse-rotated-size
+         (contract-out
+          [ellipse-t->x
+           (-> (and/c real? (not/c 0)) (and/c real? (not/c 0)) real? real?
+               real?)]
+          [ellipse-t->y
+           (-> (and/c real? (not/c 0)) (and/c real? (not/c 0)) real? real?
+               real?)]
+          [ellipse-outermost-point-y
+           (-> (and/c real? (not/c 0)) (and/c real? (not/c 0)) real? real?)]
+          [ellipse-outermost-point-x
+           (-> (and/c real? (not/c 0)) (and/c real? (not/c 0)) real? real?)])
          points->ltrb-values
 
          image?
@@ -1726,7 +1903,11 @@ the mask bitmap and the original bitmap are all together in a single bytes!
          (contract-out
           [definitely-same-image? (-> image? image? boolean?)])
          string->color-object/f
-         extra-2htdp/image-colors)
+         extra-2htdp/image-colors
+         rotate-points
+         rotate-c
+         c->xy xy->c
+         degrees->complex)
 
 ;; method names
 (provide get-shape get-bb get-pinhole get-normalized? get-normalized-shape)
