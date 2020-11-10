@@ -180,9 +180,9 @@
           (channel-put c (void))))
        (channel-get c)
        (case (system-type)
-         [(macos macosx) (test:keystroke #\a '(meta))]
-         [(unix) (test:keystroke #\a '(meta))]
-         [(windows) (test:keystroke #\a '(control))])
+         [(macos macosx) (test:keystroke 'left '(meta))]
+         [(unix) (test:keystroke 'left '(meta))]
+         [(windows) (test:keystroke 'left '(control))])
        (for-each test:keystroke (string->list (path->string tmp-file)))
        (test:keystroke #\return)
        (wait-for-frame tmp-file-name)
