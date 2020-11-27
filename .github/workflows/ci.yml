@@ -1,0 +1,32 @@
+name: Build and Test
+
+on: [push, pull_request]
+
+jobs:
+  build-test:
+    runs-on: ubuntu-18.04
+    container: racket/racket-ci:latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        vm: ['regular', 'CS']
+
+    steps:
+    - uses: actions/checkout@master
+    - uses: Bogdanp/setup-racket@v0.10
+      with:
+        architecture: 'x64'
+        distribution: 'minimal'
+        variant: ${{ matrix.vm }}
+        version: 'current'
+    - name: Setup local catalog
+      run: |
+        racket -l- pkg/dirs-catalog --immediate $PWD/local-catalog $PWD/gui $PWD/gui-lib $PWD/gui-test $PWD/gui-doc $PWD/tex-table
+        raco pkg config --set catalogs $PWD/local-catalog $(echo $(raco pkg config catalogs) | tr '\n' ' ')
+    - name: Install gui-test (depends on gui-lib)
+      run: raco pkg install --auto gui-test
+    - name: Run tests
+      run: |
+        xvfb-run racket -l tests/gracket/wxme
+        xvfb-run raco test -e -l tests/gracket/test
