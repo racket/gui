@@ -20,13 +20,16 @@ jobs:
         distribution: 'minimal'
         variant: ${{ matrix.vm }}
         version: 'current'
-    - name: Setup local catalog
+    - name: Install and setup
       run: |
-        racket -l- pkg/dirs-catalog --immediate $PWD/local-catalog $PWD/gui $PWD/gui-lib $PWD/gui-test $PWD/gui-doc $PWD/tex-table
-        raco pkg config --set catalogs $PWD/local-catalog $(echo $(raco pkg config catalogs) | tr '\n' ' ')
-    - name: Install gui-test (depends on gui-lib)
-      run: raco pkg install --auto gui-test
+        raco pkg install --auto -i --no-setup --skip-installed gui-test
+        racket -l- pkg/dirs-catalog --link --check-metadata pkgs-catalog .
+        echo file://`pwd`/pkgs-catalog/ > catalog-config.txt
+        raco pkg config catalogs >> catalog-config.txt
+        raco pkg config --set catalogs `cat catalog-config.txt`
+        raco pkg update -i --auto --no-setup gui-lib/ gui-doc/ gui/ tex-table/ gui-test/
+        raco setup --pkgs gui gui-lib gui-test tex-table
     - name: Run tests
       run: |
-        xvfb-run racket -l tests/gracket/wxme
-        xvfb-run raco test -e -l tests/gracket/test
+        xvfb-run -a racket -l tests/gracket/wxme
+        xvfb-run -a raco test -e -l tests/gracket/test
