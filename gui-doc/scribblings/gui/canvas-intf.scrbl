@@ -47,7 +47,7 @@ To draw onto a canvas, get its device context via @method[canvas<%>
        canvas's parent window shows through.}
 
  @item{Drawing can also occur at any time outside an @method[canvas<%>
-       on-paint] call form the windowing system, including from
+       on-paint] call from the windowing system, including from
        threads other than the @tech{handler thread} of the canvas's
        eventspace. Drawing outside an @method[canvas<%> on-paint]
        callback from the system is transient in the sense that
