@@ -22,6 +22,7 @@ jobs:
         version: 'current'
     - name: Install and setup
       run: |
+        raco pkg install compiler-lib
         raco pkg install --auto -i --no-setup --skip-installed gui-test
         racket -l- pkg/dirs-catalog --link --check-metadata pkgs-catalog .
         echo file://`pwd`/pkgs-catalog/ > catalog-config.txt
