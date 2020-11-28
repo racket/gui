@@ -26,6 +26,8 @@
 
 (application-preferences-handler (λ () (preferences:show-dialog)))
 
+(preferences:set-default 'framework:caret-blink-disable? #f boolean?)
+
 (preferences:set-default 'framework:editor-x-selection-mode #t boolean?)
 (when (equal? (system-type) 'unix)
   (preferences:add-callback

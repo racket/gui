@@ -4,6 +4,7 @@
          data/queue
          mred/mred-sig
          string-constants
+         "../preferences.rkt"
          "interfaces.rkt"
          "sig.rkt"
          "text-sig.rkt")
@@ -514,7 +515,11 @@
                get-style-list change-style
                position-line line-start-position
                get-filename get-end-position)
-    
+
+      (define/override (blink-caret)
+        (unless (preferences:get 'framework:caret-blink-disable?)
+          (super blink-caret)))
+
       (define/public (get-fixed-style)
         (send (get-style-list) find-named-style "Standard"))
 

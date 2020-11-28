@@ -513,7 +513,9 @@ the state transitions / contracts are:
                                'framework:column-guide-width
                                (string-constant maximum-char-width-guide-pref-check-box)
                                (λ (n) (and (exact-integer? n) (>= n 2))))
-
+                   (add-check editor-panel
+                              'framework:caret-blink-disable?
+                              (string-constant disable-caret-blinking))
                    (when (equal? (system-type) 'unix)
                      (add-check editor-panel
                                 'framework:editor-x-selection-mode
