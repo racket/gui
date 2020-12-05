@@ -39,9 +39,11 @@
                       (tellv cocoa setMaxValue: #:type _double* rng)
                       (tellv cocoa setDoubleValue: #:type _double* 0.0)
                       (tellv cocoa sizeToFit)
+                      ;; disable threaded animation to avoid a race initializing
+                      ;; a gauge, which can make the gauge appear to run backward:
+                      (tell cocoa setUsesThreadedAnimation: #:type _BOOL #f)
                       (when (memq 'vertical style)
                         (let ([r (tell #:type _NSRect cocoa frame)])
-                          (printf "height ~s\n" (NSSize-height (NSRect-size r)))
                           (tellv cocoa setFrame: 
                                  #:type _NSRect (make-NSRect
                                                  (NSRect-origin r)
