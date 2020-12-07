@@ -43,6 +43,7 @@
       (case (system-type)
         [(unix) ".plt-autosave-toc-save.rktd"]
         [else "PLT-autosave-toc-save.rktd"]))
+    (make-directory* base)
     (build-path base save-filename-path))
   
   (define autosave-timer%
