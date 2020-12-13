@@ -5334,16 +5334,30 @@
                           [fg (make-object color% (send dc get-text-foreground))]
                           [bg (make-object color% (send dc get-text-background))]
                           [bgmode (send dc get-text-mode)]
-                          [rgn (send dc get-clipping-region)])
+                          [rgn (send dc get-clipping-region)]
+                          [extra (if (integer? (send dc get-backing-scale))
+                                     0
+                                     ;; For a non-integer backing scale, the use of `->long`
+                                     ;; doesn't actually align to pixels. We don't change
+                                     ;; the alignment here, because the convention of aligning
+                                     ;; to integer *editor* coordinates has been wired in
+                                     ;; deeply, historically. Instead, we just extend the drawing
+                                     ;; area to compensate for different rounding that could
+                                     ;; otherwise leave update/clipping artifacts.
+                                     1)])
 
-                      (send dc set-clipping-rect (- left x) (- top y) width height)
+                      (send dc set-clipping-rect
+                            (- left x extra) (- top y extra)
+                            (+ width (* 2 extra)) (+ height (* 2 extra)))
 
                       (send dc suspend-flush)
 
                       (dynamic-wind
                           void
                           (lambda ()
-                            (do-redraw dc top bottom left right (- y) (- x) show-caret show-xsel? bg-color
+                            (do-redraw dc (- top extra) (+ bottom (* 2 extra))
+                                       (- left extra) (+ right 98 2 extra)
+                                       (- y) (- x) show-caret show-xsel? bg-color
                                        (and (not bg-color) fg)))
                           (lambda ()
                             (send dc set-clipping-region rgn)
