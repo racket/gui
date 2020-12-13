@@ -4,6 +4,7 @@
 	 racket/class
 	 racket/draw
 	 racket/draw/unsafe/bstr
+         file/resource
          "../../syntax.rkt"
          "../common/freeze.rkt"
          "../common/queue.rkt"
@@ -134,6 +135,15 @@
 (define-user32 TrackMouseEvent (_wfun _TRACKMOUSEEVENT-pointer -> (r : _BOOL)
                                       -> (unless r (failed 'TrackMouseEvent))))
 (define-user32 GetCursorPos (_wfun _POINT-pointer -> _BOOL))
+
+(define wheel-scale
+  (or (let ([s (get-resource "HKEY_CURRENT_USER" "Control Panel\\Desktop\\WheelScrollLines")])
+	(and s
+             (let ([n (string->number s)])
+               ;; A -1 value means "one screen per scroll" (and we don't try to do that, so far)
+               (and (exact-positive-integer? n)
+                    n))))
+      3))
 
 (defclass window% object%
   (init-field parent hwnd)
@@ -560,7 +570,7 @@
   (define/public (set-wheel-steps-mode mode) (set! wheel-steps-mode mode))
 
   (define/private (gen-wheels w msg lParam amt down up)
-    (let loop ([amt amt])
+    (let loop ([amt (* wheel-scale amt)])
       (cond
         [((abs amt) . < . WHEEL_DELTA)
          (case wheel-steps-mode
