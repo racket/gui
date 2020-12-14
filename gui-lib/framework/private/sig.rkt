@@ -1,6 +1,6 @@
 #lang racket/base
   
-  (require racket/unit "text-sig.rkt")
+  (require racket/unit "text-sig.rkt" "editor-sig.rkt")
   
   (provide (prefix-out framework: (except-out (all-defined-out) framework^))
            framework^)
@@ -150,40 +150,7 @@
      std-get-file 
      get-file
      put-file))
-  
-  (define-signature editor-class^
-    (basic<%>
-     standard-style-list<%>
-     keymap<%>
-     autowrap<%>
-     info<%>
-     file<%>
-     backup-autosave<%>
-     autoload<%>
-     basic-mixin
-     standard-style-list-mixin
-     keymap-mixin
-     autowrap-mixin
-     info-mixin
-     file-mixin
-     backup-autosave-mixin
-     autoload-mixin
-     font-size-message%))
-  (define-signature editor^ extends editor-class^
-    (get-standard-style-list
-     set-standard-style-list-pref-callbacks
-     set-standard-style-list-delta
-     set-default-font-color
-     get-default-color-style-name
-     add-after-user-keymap
-     get-current-preferred-font-size
-     set-current-preferred-font-size
-     font-size-pref->current-font-size
-     set-change-font-size-when-monitors-change?
-     get-change-font-size-when-monitors-change?
-     doing-autosave?
-     silent-cancel-on-save-file-out-of-date?))
-  
+
   (define-signature pasteboard-class^
     (basic%
      standard-style-list%
@@ -193,6 +160,13 @@
      info%))
   (define-signature pasteboard^ extends pasteboard-class^
     ())
+
+(define-signature editor-class^
+  ((open editor-misc-class^)
+   (open editor-autoload^)))
+
+(define-signature editor^ extends editor-class^
+  ((open editor-misc-functions^)))
   
 (define-signature text-class^
   ((open text-basic-class^)
@@ -213,7 +187,7 @@
   ((open text-basic-functions^)
    (open text-port-functions^)
    (open text-autocomplete-functions^)))
-  
+
   (define-signature canvas-class^
     (basic<%>
      color<%>

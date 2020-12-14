@@ -1,4 +1,6 @@
-#lang racket
+#lang racket/base
+(require racket/unit)
+
 (provide text-basic^
          text-basic-class^
          text-basic-functions^
