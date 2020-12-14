@@ -1615,6 +1615,24 @@
   @{A parameter that indicates whether or not we are currently saving
     the editor because of an autosave. See also
     @method[editor:backup-autosave<%> do-autosave].})
+ (parameter-doc
+  editor:silent-cancel-on-save-file-out-of-date?
+  (parameter/c boolean?)
+  autosaving?
+  @{A parameter that indicates how to handle the situation
+ where a save happens but the file saved on the disk is newer
+ than the last time this editor was saved.
+
+ If @racket[editor:silent-cancel-on-save-file-out-of-date?]'s value is
+ @racket[#true], then a save that might overwrite some other
+ change is silently ignored and no save actually happens
+ (via @method[editor:basic-mixin can-save-file?]). If it is
+ @racket[#false] (and @racket[editor:doing-autosave?] is also
+ @racket[#false]) then a dialog is opened to ask the user
+ what to do.
+
+ @history[#:added "1.53"]})
+
   (proc-doc/names
   editor:set-current-preferred-font-size
   (-> exact-nonnegative-integer? void?)

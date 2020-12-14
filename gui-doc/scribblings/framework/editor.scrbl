@@ -180,14 +180,18 @@
   This installs the global keymap @racket[keymap:get-global] to
   handle keyboard and mouse mappings not handled by @racket[keymap]. The
   global keymap is created when the framework is invoked.
-  @defmethod*[#:mode augment (((can-save-file? (filename string?) (format symbol?)) boolean?))]{
+
+  @defmethod[#:mode augment (can-save-file? (filename string?) (format symbol?)) boolean?]{
 
     Checks to see if the file on the disk has been modified out
     side of this editor, using
     @method[editor:basic<%> save-file-out-of-date?]. 
     If it has, this method prompts the user to be sure they want to save.
 
-  }
+  See also @racket[editor:doing-autosave?] and
+  @racket[editor:silent-cancel-on-save-file-out-of-date?].
+ }
+
   @defmethod*[#:mode augment (((after-save-file (success? boolean?)) void?))]{
 
     If the current filename is not a temporary filename, this method calls

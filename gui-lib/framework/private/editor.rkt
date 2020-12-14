@@ -171,7 +171,7 @@
       (define/augment (can-save-file? filename format)
         (define (ask-users-opinion)
           (cond
-            [(doing-autosave?)
+            [(or (silent-cancel-on-save-file-out-of-date?) (doing-autosave?))
              ;; opt for the effect of
              ;; clicking on the `cancel`
              ;; button
@@ -647,6 +647,7 @@
       remove-autosave))
 
   (define doing-autosave? (make-parameter #f))
+  (define silent-cancel-on-save-file-out-of-date? (make-parameter #f))
 
   (define backup-autosave-mixin
     (mixin (basic<%>) (backup-autosave<%> autosave:autosavable<%>)

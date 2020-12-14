@@ -181,7 +181,8 @@
      font-size-pref->current-font-size
      set-change-font-size-when-monitors-change?
      get-change-font-size-when-monitors-change?
-     doing-autosave?))
+     doing-autosave?
+     silent-cancel-on-save-file-out-of-date?))
   
   (define-signature pasteboard-class^
     (basic%
