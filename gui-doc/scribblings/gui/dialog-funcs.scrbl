@@ -265,9 +265,11 @@ before the dialog is created.
                                                   'default=1 'default=2 'default=3))
                                    '(no-default)]
                              [close-result any/c #f]
+                             [#:return-the-dialog? return-the-dialog? any/c #f]
                              [#:dialog-mixin dialog-mixin (make-mixin-contract dialog%) values])
-         (or/c 1 2 3 close-result)]{
-
+         (if/c return-the-dialog?
+               (is-a?/c dialog%)
+               (or/c 1 2 3 close-result))]{
 Displays a message to the user in a (modal) dialog, using
  @racket[parent] as the parent window if it is specified. The dialog's
  title is @racket[title]. The @racket[message] string can be arbitrarily
@@ -327,10 +329,20 @@ In addition, @racket[style] can contain @racket['caution],
  @racket['stop], or @racket['no-icon] to adjust the icon that appears
  n the dialog, the same for @racket[message-box].
 
-The class that implements the dialog provides a @racket[get-message]
- method that takes no arguments and returns the text of the message as
- a string. (The dialog is accessible through the
-@racket[get-top-level-windows] function.)
+If @racket[return-the-dialog?] is a true value, then the dialog
+ is not shown and is instead returned from @racket[message-box/custom].
+The dialog responds to these three additional messages (via @racket[send]):
+@itemlist[
+ @item{@racket[_get-message] This method takes no arguments
+   and returns the text of the message as
+   a string.}
+ @item{@racket[_set-message] This method accepts one string argument
+  and changes the message of the dialog to the given argument.}
+ @item{@racket[_show-and-return-results] This method accepts no arguments
+   and shows the dialog. It returns after the dialog closes, with the result that the
+   @racket[message-box/custom] would have returned if @racket[return-the-dialog?]
+   had been @racket[#false].}]
+The dialog is also accessible through the @racket[get-top-level-windows] function.
 
 The @racket[message-box/custom] function can be called in a thread
  other than the handler thread of the relevant eventspace (i.e., the eventspace of
@@ -338,7 +350,10 @@ The @racket[message-box/custom] function can be called in a thread
  current thread blocks while the dialog runs on the handler thread.
  
 The @racket[dialog-mixin] argument is applied to the class that implements the dialog
-before the dialog is created. 
+before the dialog is created.
+
+@history[#:changed "1.53" @list{Added the @racket[return-the-dialog?] argument
+           and the ability to change the dialog box's message.}]
 }
 
 @defproc[(message+check-box [title label-string?]
@@ -348,8 +363,11 @@ before the dialog is created.
                             [style (listof (or/c 'ok 'ok-cancel 'yes-no 
                                                  'caution 'stop 'no-icon 'checked))
                               '(ok)]
+                            [#:return-the-dialog? return-the-dialog? any/c #f]
                             [#:dialog-mixin dialog-mixin (make-mixin-contract dialog%) values])
-         (values (or/c 'ok 'cancel 'yes 'no) boolean?)]{
+         (if/c return-the-dialog?
+               (is-a?/c dialog%)
+               (values (or/c 'ok 'cancel 'yes 'no) boolean?))]{
 
 See also @racket[message+check-box/custom].
 
@@ -361,7 +379,15 @@ Like @racket[message-box], except that
        boolean indicating whether the box was checked; and}
  @item{@racket[style] can contain @racket['checked] to indicate that the check box
        should be initially checked.}
-]}
+ @item{If @racket[return-the-dialog?] is a true value, the resulting object
+   also has a public @racket[_set-check-label] method. That method
+   accepts a single, @racket[label-string?] argument and sets the
+   checkbox's label to that string.}
+]
+
+@history[#:changed "1.53" @list{Added the @racket[return-the-dialog?] argument and
+           the ability to change the dialog box's message and check label.}]
+}
 
 @defproc[(message+check-box/custom [title label-string?]
                                    [message string?]
