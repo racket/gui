@@ -40,14 +40,14 @@
     @method[editor:basic<%> run-after-edit-sequence]'s argument will be called.
 
   }
-  @defmethod*[(((get-top-level-window) (or/c #f (is-a?/c top-level-window<%>))))]{
+  @defmethod[(get-top-level-window) (or/c #f (is-a?/c top-level-window<%>))]{
     Returns the 
     @racket[top-level-window<%>]
     currently associated with this buffer.
 
-    This does not work for embedded editors.
-
-
+    Note that the result of this method may not currently be displaying this
+    editor (e.g., the editor may be for a tab that's not currently active in
+    DrRacket).
   }
   @defmethod*[(((save-file-out-of-date?) boolean?))]{
     Returns @racket[#t] if the file on disk has been modified, by some other program.
