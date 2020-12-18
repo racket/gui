@@ -158,11 +158,6 @@
          status]
         [else #t]))
       
-    (define/private (format-error-message exn)
-      (if (exn? exn)
-          (format "~a" (exn-message exn))
-          (format "uncaught exn: ~s" exn)))
-      
     (inherit refresh-delayed? 
              get-canvas
              get-admin)
@@ -364,6 +359,16 @@
         (finder:put-file f d)))
       
     (super-new)))
+
+(define (format-error-message exn)
+  (if (exn? exn)
+      (apply
+       string-append
+       (format "~a\n\ncontext:" (exn-message exn))
+       (for/list ([context (in-list (continuation-mark-set->context
+                                     (exn-continuation-marks exn)))])
+         (format "\n  ~s" context)))
+      (format "uncaught exn: ~s" exn)))
   
 (define standard-style-list (new style-list%))
 (define (get-standard-style-list) standard-style-list)
@@ -744,9 +749,7 @@
         "\n"
         (string-constant autosaving-turned-off)
         "\n\n"
-        (if (exn? exn)
-            (format "~a" (exn-message exn))
-            (format "~s" exn))
+        (format-error-message exn)
         "\n\n"
         (if (and (exn? exn)
                  (continuation-mark-set? (exn-continuation-marks exn)))
