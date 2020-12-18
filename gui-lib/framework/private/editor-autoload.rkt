@@ -16,10 +16,162 @@
 (export editor-autoload^)
 (init-depend mred^)
 
-(define-local-member-name autoload-file-changed)
-
 (define autoload<%>
   (interface (editor:basic<%>)))
+
+(define-local-member-name autoload-file-changed autoload-do-revert)
+
+;; open-dialogs : hash[tlw -o> (cons/c dialog boolean)]
+;; the dialogs that are currently being shown, paired with
+;; a boolean that indicates if the initial dialog has a checkbox
+(define open-dialogs (make-hash))
+
+;; pending-editors : hash[tlw -o> (listof editor<%>)]
+;; editors where we are waiting for a reply from the user
+(define pending-editors (make-hash))
+
+;; invariant:
+;;  (hash-ref pending-editors tlw '()) = (cons ed eds)
+;;    ⟺
+;;  (hash-ref open-dialogs tlw #f) ≠ #f
+
+
+;; only called if we have to ask the user about what to do,
+;; so we know that the `ask preference is set or window was dirty
+(define (handle-autoload-file-changed&need-dialog editor)
+  (define tlw (send editor get-top-level-window))
+  (define already-pending-editors (hash-ref pending-editors tlw '())) ;; when tlw=#f, this will be '()
+  (unless (member editor already-pending-editors)
+    (define all-pending-editors (cons editor already-pending-editors))
+    (when tlw (hash-set! pending-editors tlw all-pending-editors))
+    (cond
+      [(and (null? (cdr all-pending-editors))
+            (send (car all-pending-editors) is-modified?))
+       ;; first one => need to open the dialog, and it is dirty
+       (define dlg
+         (message-box/custom
+          (string-constant warning)
+          (get-autoload-warning-message all-pending-editors)
+          (string-constant revert)
+          (string-constant ignore)
+          #f
+          tlw
+          '(caution no-default)
+          2
+          #:return-the-dialog? #t
+          #:dialog-mixin frame:focus-table-mixin))
+       (when tlw
+         (hash-set! open-dialogs tlw (cons dlg #f))
+         (hash-set! pending-editors tlw (list editor)))
+       (define revert? (case (send dlg show-and-return-results)
+                         [(1) #t]
+                         [(2) #f]))
+       (handle-dialog-closed tlw editor revert?)]
+      [(null? (cdr all-pending-editors))
+       ;; first one => need to open the dialog, but it isn't dirty
+       (define dlg
+         (message+check-box/custom
+          (string-constant warning)
+          (get-autoload-warning-message all-pending-editors)
+          (string-constant dont-ask-again-always-current)
+          (string-constant revert)
+          (string-constant ignore)
+          #f
+          tlw
+          '(caution no-default)
+          2
+          #:return-the-dialog? #t
+          #:dialog-mixin frame:focus-table-mixin))
+       (when tlw
+         (hash-set! open-dialogs tlw (cons dlg #t))
+         (hash-set! pending-editors tlw (list editor)))
+       (define-values (button checked?) (send dlg show-and-return-results))
+       (when checked?
+         ;; setting the preference will start the monitor
+         ;; if `answer` is #t
+         (preferences:set 'framework:autoload revert?))
+       (define revert? (case button
+                         [(1) #t]
+                         [(2) #f]))
+       (handle-dialog-closed tlw editor revert?)]
+      [else
+       ;; dialog is already open, see if we need to tweak the text
+       ;; here we know that tlw ≠ #f
+       (match-define (cons dlg has-check?) (hash-ref open-dialogs tlw))
+       (hash-set! pending-editors tlw all-pending-editors)
+       (define any-existing-modified?
+         (for/or ([ed (in-list already-pending-editors)])
+           (send ed is-modified?)))
+       (define this-one-modified? (send editor is-modified?))
+       (when has-check? ;; here we know that at least one is clean
+         (when this-one-modified? ;; here we know that we are dirty
+           (unless any-existing-modified? ;; here we know we are the first dirty one
+             ;; which means we need to update the label of the checkbox
+             (send dlg set-check-label
+                   (string-constant
+                    dont-ask-again-always-current/clean-buffer)))))
+       (define new-dialog-message
+         (get-autoload-warning-message all-pending-editors))
+       (send dlg set-message new-dialog-message)])))
+
+(define (get-autoload-warning-message currently-pending-editors)
+  (define number-of-pending-editors (length currently-pending-editors))
+  (define all-dirty?
+    (for/and ([ed (in-list currently-pending-editors)])
+      (send ed is-modified?)))
+  (define any-dirty?
+    (for/or ([ed (in-list currently-pending-editors)])
+      (send ed is-modified?)))
+  (cond
+    [(not any-dirty?)
+     ;; none are dirty
+     (cond
+       [(= 1 number-of-pending-editors)
+        (format
+         (string-constant autoload-file-changed-on-disk/with-name)
+         (send (car currently-pending-editors) get-filename))]
+       [else
+        (apply
+         string-append
+         (string-constant autoload-files-changed-on-disk/with-name)
+         (for/list ([f (in-list currently-pending-editors)])
+           (format "\n  ~a" (send f get-filename))))])]
+    [all-dirty?
+     (cond
+       [(= 1 number-of-pending-editors)
+        (format
+         (string-constant autoload-file-changed-on-disk-editor-dirty/with-name)
+         (send (car currently-pending-editors) get-filename))]
+       [else
+        (apply
+         string-append
+         (string-constant autoload-files-changed-on-disk-editor-dirty/with-name)
+         (for/list ([f (in-list currently-pending-editors)])
+           (format "\n  ~a" (send f get-filename))))])]
+    [else
+     ;; mixture of clean and dirty .. in this case we know there isn't just one file
+     (apply
+      string-append
+      (string-constant autoload-files-changed-on-disk-editor-dirty&clean/with-name)
+      (for/list ([f (in-list currently-pending-editors)])
+        (format "\n  ~a~a"
+                (send f get-filename)
+                (if (send f is-modified?)
+                    " ◇"
+                    ""))))]))
+
+(define (handle-dialog-closed tlw editor revert?)
+  (cond
+    [tlw
+     (define all-pending-editors (hash-ref pending-editors tlw))
+     (hash-remove! open-dialogs tlw)
+     (hash-remove! pending-editors tlw)
+     (when revert?
+       (for ([ed (in-list all-pending-editors)])
+         (send ed autoload-do-revert)))]
+    [else
+     (when revert?
+       (send editor autoload-do-revert))]))
 
 (define autoload-mixin
   (mixin (editor:basic<%>) (autoload<%>)
@@ -100,71 +252,33 @@
     (preferences:add-callback 'framework:autoload pref-callback #t)
     
     (define/public (autoload-file-changed)
+      (define pref (preferences:get 'framework:autoload))
       (cond
-        [(ask-can-revert)
-         (define b (box #f))
-         (define filename (get-filename b))
-         (when (and filename
-                    (not (unbox b)))
-           (define start
-             (if (is-a? this text%)
-                 (send this get-start-position)
-                 #f))
-           (begin-edit-sequence)
-           (define failed?
-             (with-handlers ([exn:fail? (λ (x) #t)])
-               (load-file filename 'guess #f)
-               #f))
-           (unless failed?
-             (when (is-a? this text%)
-               (send this set-position start start)))
-           (end-edit-sequence))]
+        [(or (is-modified?) (equal? 'ask pref))
+         (handle-autoload-file-changed&need-dialog this)]
+        [pref
+         (autoload-do-revert)]
         [else
          (un-monitor-a-file this)]))
 
-    (define/private (ask-can-revert)
-      (cond
-        [(is-modified?)
-         (define button
-           (message-box/custom
-            (string-constant warning)
-            (string-constant autoload-file-changed-on-disk-editor-dirty)
-            (string-constant revert)
-            (string-constant ignore)
-            #f
-            (find-parent/editor this)
-            '(caution no-default)
-            2
-            #:dialog-mixin frame:focus-table-mixin))
-
-         (case button
-           [(1) #t]
-           [(2) #f])]
-        [else
-         (match (preferences:get 'framework:autoload)
-           [`ask
-            (define-values (button checked?)
-              (message+check-box/custom
-               (string-constant warning)
-               (string-constant autoload-file-changed-on-disk)
-               (string-constant dont-ask-again-always-current)
-               (string-constant revert)
-               (string-constant ignore)
-               #f
-               (find-parent/editor this)
-               '(caution no-default)
-               2
-               #:dialog-mixin frame:focus-table-mixin))
-            (define answer (case button
-                             [(1) #t]
-                             [(2) #f]))
-            (when checked?
-              ;; setting the preference will start the monitor
-              ;; if `answer` is #t
-              (preferences:set 'framework:autoload answer))
-            answer]
-           [#t #t]
-           [#f #f])]))
+    (define/public (autoload-do-revert)
+      (define b (box #f))
+      (define filename (get-filename b))
+      (when (and filename
+                 (not (unbox b)))
+        (define start
+          (if (is-a? this text%)
+              (send this get-start-position)
+              #f))
+        (begin-edit-sequence)
+        (define failed?
+          (with-handlers ([exn:fail? (λ (x) #t)])
+            (load-file filename 'guess #f)
+            #f))
+        (unless failed?
+          (when (is-a? this text%)
+            (send this set-position start start)))
+        (end-edit-sequence)))
 
     (super-new)
     (inherit enable-sha1)
