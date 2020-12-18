@@ -158,9 +158,10 @@
          (values msg-pnl #f btn-pnl btn-pnl 96 'right 'left 'top))]
       [else
        (define p (new horizontal-pane% [parent dlg] [alignment '(center top)]))
-       (let ([icon-msg (and icon-id (make-object message% icon-id p))]
-             [msg-pnl (new vertical-pane% [parent p])])
-         (values msg-pnl icon-msg dlg msg-pnl 0 'center 'center 'center))]))
+       (define icon-msg (and icon-id (make-object message% icon-id p)))
+       (define msg-pnl-parent (new vertical-panel% [parent p]))
+       (define msg-pnl (new vertical-panel% [parent msg-pnl-parent] [stretchable-height #f]))
+       (values msg-pnl icon-msg dlg msg-pnl-parent 0 'center 'center 'center)]))
   (define check-parent-panel
     (and check?
          (new vertical-pane% [parent cb-pnl]
