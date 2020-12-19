@@ -239,6 +239,7 @@
        [is-shown? (entry-point (lambda () (send wx is-shown?)))]
        [on-superwindow-show (lambda (visible?) (void))]
        [on-superwindow-enable (lambda (active?) (void))]
+       [on-superwindow-activate (λ (active?) (void))]
 
        [refresh (entry-point (lambda () (send wx refresh)))]
        

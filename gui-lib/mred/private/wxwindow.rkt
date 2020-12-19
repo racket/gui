@@ -35,6 +35,16 @@
           (lambda ()
             (parameterize ([wx:current-eventspace (send (get-top-level) get-eventspace)])
               (wx:queue-callback (entry-point (lambda () (on-visible))) wx:middle-queue-key)))]
+         [on-superwindow-activate
+          (lambda (on?)
+            (unless skip-sub-events?
+              (as-exit
+               (lambda ()
+                 (send (wx->proxy this) on-superwindow-activate on?)))))]
+         [queue-superwindow-activate
+          (lambda (on?)
+            (parameterize ([wx:current-eventspace (send (get-top-level) get-eventspace)])
+              (wx:queue-callback (entry-point (lambda () (on-superwindow-activate on?))) wx:middle-queue-key)))]
          [skip-subwindow-events?
           (case-lambda
             [() skip-sub-events?]

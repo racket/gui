@@ -402,6 +402,10 @@
         (lambda ()
           (send panel queue-active)
           (super on-active))]
+       [on-superwindow-activate
+        (lambda (on?)
+          (send panel queue-superwindow-activate on?)
+          (super on-superwindow-activate on?))]
 	
        [move (lambda (x y) (set! use-default-position? #f) (super move x y))]
        [center (lambda (dir)
@@ -608,7 +612,7 @@
     (class (make-window-glue% %)
       (init mred proxy)
       (init-rest args)
-      (inherit is-shown? get-mred queue-visible get-eventspace)
+      (inherit is-shown? get-mred queue-visible get-eventspace on-superwindow-activate)
       (define act-date/seconds 0)
       (define act-date/milliseconds 0)
       (define act-on? #f)
@@ -659,6 +663,7 @@
                        (queue-window-callback
                         this
                         (lambda () (send (get-mred) on-activate on?)))
+                       (on-superwindow-activate on?)
                        (as-exit
                         (lambda ()
                           (super on-activate on?)))))]
