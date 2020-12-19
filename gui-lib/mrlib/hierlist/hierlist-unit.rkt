@@ -181,7 +181,7 @@
           (inherit hide-caret
                    last-position set-position set-keymap
                    invalidate-bitmap-cache set-max-width
-                   get-view-size)
+                   get-extent)
           (rename-super [super-auto-wrap auto-wrap]
                         [super-on-default-event on-default-event])
           
@@ -229,7 +229,7 @@
                      (set! top_ 0)
                      (let ([wbox (box 0)]
                            [hbox (box 0)])
-                       (get-view-size wbox hbox)
+                       (get-extent wbox hbox)
                        (set! right (unbox wbox))
                        (set! bottom (unbox hbox))))
                    (send dc set-brush (if filled? black-xor transparent))
