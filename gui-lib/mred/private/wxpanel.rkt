@@ -598,6 +598,9 @@
        [on-active
         (lambda ()
           (for-each (lambda (c) (send c queue-active)) (get-children)))]
+       [on-superwindow-activate
+        (λ (on?)
+          (for-each (lambda (c) (send c queue-superwindow-activate on?)) (get-children)))]
 
        [get-window (lambda () (send (get-parent) get-window))]
        [set-size (lambda (x y w h) 
@@ -621,7 +624,11 @@
        [on-active
         (lambda ()
           (for-each (lambda (c) (send c queue-active)) (get-children))
-          (super-on-active))])
+          (super-on-active))]
+       [on-superwindow-activate
+        (λ (on?)
+          (for-each (lambda (c) (send c queue-superwindow-activate on?)) (get-children))
+          (super on-superwindow-activate on?))])
       (apply super-make-object args)))
 
   (define (wx-make-linear-panel% wx-panel%)

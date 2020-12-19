@@ -468,6 +468,19 @@ Does nothing.
 
 }}
 
+ @defmethod[(on-superwindow-activate [active? any/c])
+           void?]{
+  @methspec{
+   Called via the event queue whenever the containing @racket[top-level-window<%>]
+   is either activated or deactivated (see @method[top-level-window<%> on-activate]).
+  }
+
+  @methimpl{
+   Does nothing.
+  }
+  @history[#:added "1.54"]
+ }
+
 @defmethod[(on-superwindow-enable [enabled? any/c])
            void?]{
 
