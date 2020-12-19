@@ -394,6 +394,11 @@
          ;; called atomically (not expecting exceptions)
          (tellv content-cocoa setNeedsDisplay: #:type _BOOL #t)))
 
+     (define/public (worthwhile-to-paint?)
+       ;; since the OS may hide and show the window, just keep
+       ;; it up-to-date even when not shown
+       #t)
+
      (define/override (get-cocoa-content) content-cocoa)
 
      (define is-gl? (and (not is-combo?) (memq 'gl style)))

@@ -119,12 +119,12 @@
     (inherit request-canvas-flush-delay
              cancel-canvas-flush-delay
              queue-canvas-refresh-event
-             is-shown-to-root?
              on-paint
              queue-backing-flush
              get-dc
              get-canvas-background-for-backing
-             skip-pre-paint?)
+             skip-pre-paint?
+             worthwhile-to-paint?)
     
     ;; Avoid multiple queued paints, and also allow cancel
     ;; of queued paint:
@@ -148,7 +148,7 @@
           (when pq (set-box! pq #f)))
         (set! paint-queued #f)
         (cond
-         [(or (not b) (is-shown-to-root?))
+         [(or (not b) (worthwhile-to-paint?))
           (let ([dc (get-dc)])
             (send dc suspend-flush)
             (send dc ensure-ready)
@@ -163,7 +163,7 @@
             (send dc resume-flush)
             (queue-backing-flush))]
          [b ; => not shown to root
-          ;; invalidate dc so that it's refresh
+          ;; invalidate dc so that it's refreshed
           ;; when it's shown again
           (send (get-dc) reset-backing-retained)]))
       (when req

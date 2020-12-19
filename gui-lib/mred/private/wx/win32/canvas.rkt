@@ -92,7 +92,8 @@
               get-virtual-width get-virtual-height
               reset-auto-scroll
               refresh-for-autoscroll
-	      try-mouse)
+	      try-mouse
+              is-shown-to-root?)
 
      (define hscroll? (or (memq 'hscroll style)
                           (memq 'auto-hscroll style)))
@@ -357,6 +358,9 @@
                  ;; invesitigation.
                  #;
                  (ValidateRect canvas-hwnd #f)))))
+
+     (define/public (worthwhile-to-paint?)
+       (is-shown-to-root?))
 
      (define/public (make-compatible-bitmap w h)
        (send dc make-backing-bitmap w h))

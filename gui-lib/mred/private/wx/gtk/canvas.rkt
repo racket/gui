@@ -285,7 +285,8 @@
 	      reset-auto-scroll
               get-eventspace
 	      register-extra-gtk
-	      call-pre-on-event set-focus on-event)
+	      call-pre-on-event set-focus on-event
+              is-shown-to-root?)
 
      (define is-combo? (memq 'combo style))
      (define has-border? (or (memq 'border style)
@@ -640,6 +641,9 @@
        ;; called atomically
        (unless for-gl?
          (gtk_widget_queue_draw client-gtk)))
+
+     (define/public (worthwhile-to-paint?)
+       (is-shown-to-root?))
 
      (define/override (reset-child-dcs)
        (when (dc . is-a? . dc%)
