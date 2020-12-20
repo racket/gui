@@ -104,9 +104,17 @@
       (unless show?
         (set! in? #f)
         (set! down? #f)
-                (update-float #f)
+        (update-float #f)
         (refresh))
       (super on-superwindow-show show?))
+
+    (define/override (on-superwindow-activate active?)
+      (unless active?
+        (set! in? #f)
+        (set! down? #f)
+        (update-float #f)
+        (refresh))
+      (super on-superwindow-show active?))
 
     (define/override (on-event evt)
       (cond

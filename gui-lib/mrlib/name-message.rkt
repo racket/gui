@@ -123,6 +123,12 @@
                      menu void)])
             (send i enable #f))))
 
+    (define/override (on-superwindow-activate on?)
+      (unless on?
+        (when mouse-over?
+          (set! mouse-over? #f)
+          (refresh))))
+
     (define/override (on-event evt)
       (unless hidden?
         (define-values (max-x max-y) (get-size))

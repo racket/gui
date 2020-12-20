@@ -25,34 +25,42 @@
     
     (define mouse-in? #f)
     (define mouse-down? #f)
+    (define/private (set-mouse-in? new-in?)
+      (set-mouse-in-and-down? new-in? mouse-down?))
+    (define/private (set-mouse-down? new-down?)
+      (set-mouse-in-and-down? mouse-in? new-down?))
+    (define/private (set-mouse-in-and-down? new-in? new-down?)
+      (unless (and (equal? new-in? mouse-in?)
+                   (equal? new-down? mouse-down?))
+        (set! mouse-in? new-in?)
+        (set! mouse-down? new-down?)
+        (refresh)))
     
     (define/override (on-event evt)
       (cond
         [(send evt leaving?)
-         (set! mouse-in? #f)
+         (set-mouse-in? #f)
          (refresh)]
         [(send evt entering?)
-         (set! mouse-in? #t)
+         (set-mouse-in? #t)
          (refresh)]
         [(send evt button-down?)
-         (set! mouse-down? #t)
+         (set-mouse-down? #t)
          (refresh)]
         [(send evt button-up?)
-         (set! mouse-down? #f)
+         (set-mouse-down? #f)
          (refresh)
          (when mouse-in? 
            (callback))]
         [(send evt moving?)
-         (let ([new-mouse-in?
-                (and (<= 0
-                         (send evt get-x)
-                         (send icon get-width))
-                     (<= 0
-                         (send evt get-y)
-                         (send icon get-height)))])
-           (unless (equal? new-mouse-in? mouse-in?)
-             (set! mouse-in? new-mouse-in?)
-             (refresh)))]))
+         (define new-mouse-in?
+           (and (<= 0
+                    (send evt get-x)
+                    (send icon get-width))
+                (<= 0
+                    (send evt get-y)
+                    (send icon get-height))))
+         (set-mouse-in? new-mouse-in?)]))
     
     (define/override (on-paint)
       (let ([dc (get-dc)])
@@ -79,8 +87,11 @@
 
     (define/override (on-superwindow-show on?)
       (unless on?
-        (set! mouse-in? #f)
-        (set! mouse-down? #f)))
+        (set-mouse-in-and-down? #f #f)))
+
+    (define/override (on-superwindow-activate on?)
+      (unless on?
+        (set-mouse-in-and-down? #f #f)))
     
     (super-new [style '(transparent no-focus)])
     (min-width (+ horizontal-pad horizontal-pad (send icon get-width)))
