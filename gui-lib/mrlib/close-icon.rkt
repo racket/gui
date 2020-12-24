@@ -51,16 +51,7 @@
          (set-mouse-down? #f)
          (refresh)
          (when mouse-in? 
-           (callback))]
-        [(send evt moving?)
-         (define new-mouse-in?
-           (and (<= 0
-                    (send evt get-x)
-                    (send icon get-width))
-                (<= 0
-                    (send evt get-y)
-                    (send icon get-height))))
-         (set-mouse-in? new-mouse-in?)]))
+           (callback))]))
     
     (define/override (on-paint)
       (let ([dc (get-dc)])
