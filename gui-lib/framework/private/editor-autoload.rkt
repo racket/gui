@@ -86,13 +86,13 @@
          (hash-set! open-dialogs tlw (cons dlg #t))
          (hash-set! pending-editors tlw (list editor)))
        (define-values (button checked?) (send dlg show-and-return-results))
+       (define revert? (case button
+                         [(1) #t]
+                         [(2) #f]))
        (when checked?
          ;; setting the preference will start the monitor
          ;; if `answer` is #t
          (preferences:set 'framework:autoload revert?))
-       (define revert? (case button
-                         [(1) #t]
-                         [(2) #f]))
        (handle-dialog-closed tlw editor revert?)]
       [else
        ;; dialog is already open, see if we need to tweak the text
