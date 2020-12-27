@@ -47,7 +47,7 @@
                                       stream))
                (cond
                  [(bytes? got) got]
-                 [all-bytes?
+                 [text-only?
                   ;; here we just make an attempt to turn the special into
                   ;; something someone might recognize
                   (string->bytes/utf-8 (format "~s" got))]
