@@ -15,6 +15,15 @@
 (provide
  (protect-out tab-panel%))
 
+;; Implementing drag-and-drop reorderable tabs and close buttons with
+;; the native widget probably means working at a fairly low level,
+;; manually drawing things and handling button events. One possibility
+;; is to do something like this:
+;;   http://www.suodenjoki.dk/us/productions/articles/dragdroptab.htm
+;; A better possibility is to not try to use the native widget drawing at
+;; all, and just implement tabs from scratch with a drawing canvas, at
+;; least in 'no-border mode.
+
 (define TCIF_TEXT            #x0001)
 (define TCM_SETUNICODEFORMAT #x2005)
 (define TCM_FIRST            #x1300)
@@ -27,6 +36,14 @@
 (define TCM_DELETEALLITEMS (+ TCM_FIRST 9))
 (define TCM_GETCURFOCUS (+ TCM_FIRST 47))
 (define TCM_SETCURFOCUS (+ TCM_FIRST 48))
+(define TCM_SETEXTENDEDSTYLE (+ TCM_FIRST 52))
+(define TCM_GETEXTENDEDSTYLE (+ TCM_FIRST 53))
+
+(define TCS_EX_FLATSEPARATORS #x1)
+(define TCS_EX_REGISTERDROP #x2)
+
+(define TCS_FLATBUTTONS #x0008)
+(define TCS_BUTTONS #x0100)
 
 (define-cstruct _TCITEMW
   ([mask _UINT]
@@ -179,6 +196,9 @@
       (if (= i -1)
 	  (SendMessageW hwnd TCM_GETCURFOCUS 0 0)
 	  (SendMessageW hwnd TCM_SETCURFOCUS i 0)))
+
+    (define/public (on-choice-reorder mapping) (void))
+    (define/public (on-choice-close which) (void))
 
     (define/public (set-callback cb)
       (set! callback cb))))

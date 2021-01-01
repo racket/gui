@@ -136,7 +136,7 @@
   [-a _void (mouseEntered: [_id event]) 
       (unless (do-mouse-event wxb event 'enter 'check 'check 'check)
         (super-tell #:type _void mouseEntered: event))]
-  [-a _void (mouseExited: [_id event]) 
+  [-a _void (mouseExited: [_id event])
       (unless (do-mouse-event wxb event 'leave 'check 'check 'check)
         (super-tell #:type _void mouseExited: event))]
   [-a _void (rightMouseDown: [_id event]) 
@@ -394,7 +394,7 @@
 						modifier-cmd-key modifier-control-key))
       		      (define kc             (tell #:type _ushort event keyCode))
                       (define mods           (bitwise-and (<< modifiers -8) mask))
-                      (when (zero? code-offset)
+                      (when (zero? code-offset)<
                         (define s              (key-translate kc #:modifier-key-state mods
                                                               #:dead-key-state dead-key-state))
                         (define dead?          (= 0 (string-length s)))

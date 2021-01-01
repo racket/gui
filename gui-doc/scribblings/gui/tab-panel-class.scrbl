@@ -23,7 +23,7 @@ The @racket[tab-panel%] class does not implement the virtual
                  [callback ((is-a?/c tab-panel%) (is-a?/c control-event%)
                             . -> . any) 
                            (lambda (b e) (void))]
-                 [style (listof (or/c 'no-border 'deleted)) null]
+                 [style (listof (or/c 'no-border 'can-reorder 'can-close 'deleted)) null]
                  [font (is-a?/c font%) normal-control-font]
                  [enabled any/c #t]
                  [vert-margin spacing-integer? 0]
@@ -49,13 +49,21 @@ The @racket[callback] procedure is called (with the event type
  @indexed-racket['tab-panel]) when the user changes the tab selection.
 
 If the @racket[style] list includes @racket['no-border], no border is
- drawn around the panel content. @DeletedStyleNote[@racket[style] @racket[parent]]{tab panel}
+ drawn around the panel content.
+ If the @racket[style] list includes @racket['can-reorder], then the
+ user may be able to drag tabs to reorder them, in which case
+ @method[tab-panel% on-reorder] is called.
+ If the @racket[style] list includes @racket['can-close], then the
+ user may be able to click a close icon for a tab, in which case
+ @method[tab-panel% on-close-request] is called.
+ Currently, tab reordering or closing requires @racket['no-border]
+ on Mac OS and does not work on Windows.
+ @DeletedStyleNote[@racket[style] @racket[parent]]{tab panel}
 
 @FontKWs[@racket[font]] @WindowKWs[@racket[enabled]] @SubareaKWs[] @AreaKWs[]
 
-
-
-}
+@history[#:changed "1.55" @elem{Added the @racket['can-reorder] and
+                                @racket['can-close] styles.}]}
 
 @defmethod[(append [choice label-string?])
            void?]{
@@ -99,6 +107,30 @@ Returns the index (counting from 0) of the currently selected tab.  If
  the panel has no tabs, the result is @racket[#f].
 
 }
+
+@defmethod[#:mode pubment 
+           (on-reorder [former-indices (listof exact-nonnegative-integer?)])
+           void?]{
+
+Called when the user reorders tabs by dragging, which is enabled where
+available by including the @racket['can-reorder] style (possibly with
+@racket['no-border]) when creating the panel. The
+@racket[former-indices] list reports, for each new tab position, the
+position where the tab was located before reordering.
+
+@history[#:added "1.55"]}
+
+
+@defmethod[(on-close-request [index exact-nonnegative-integer?])
+           void?]{
+
+Called when the user clicks the close box in a tab, which is enabled
+where available by including the @racket['can-close] style (possibly
+with @racket['no-border]) when creating the panel. The @racket[index]
+argument identifies the tab to potentially close.
+
+@history[#:added "1.55"]}
+
 
 @defmethod[(set [choices (listof label-string?)])
            void?]{

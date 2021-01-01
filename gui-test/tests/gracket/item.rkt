@@ -583,6 +583,7 @@
 
 (define (big-frame h-radio? v-label? null-label? stretchy? font initially-disabled? 
                    alternate-init? msg-auto? panel-style)
+  (define closable-tabs? alternate-init?)
   (define f (make-frame (if use-dialogs?
 			    active-dialog%
 			    active-frame%)
@@ -613,7 +614,9 @@
   (define tp 
     (if #f
 	(make-object group-box-panel% "Sub" fp null (or font small-control-font))
-	(make-object tab-panel% '("Sub" "Panel") fp void '(no-border) ($ font))))
+	(make-object tab-panel% '("Sub" "Panel") fp void
+                     (append '(no-border can-reorder) (if closable-tabs? '(can-close) null))
+                     ($ font))))
 
   (when initially-disabled?
     (send tp enable #f))

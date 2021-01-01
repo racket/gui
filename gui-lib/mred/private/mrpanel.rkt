@@ -188,11 +188,13 @@
                                       (memq 'hide-hscroll style)))])
       (check-container-parent cwho parent)
       (check-style cwho #f (append '(border deleted)
-                                   (if can-canvas?
-                                       '(hscroll vscroll
-                                         auto-hscroll auto-vscroll 
-                                         hide-hscroll hide-vscroll)
-                                       null))
+                                   (cond
+                                     [can-canvas?
+                                      '(hscroll vscroll
+                                                auto-hscroll auto-vscroll 
+                                                hide-hscroll hide-vscroll)]
+                                     [(eq? who 'tab-panel) '(can-reorder can-close)]
+                                     [else null]))
                    style)
 
       (define (add-scrolls style)
@@ -321,20 +323,33 @@
     (define save-choices choices)
     (override* [get-initial-label (lambda () save-choices)])
 
+    ;; Between the time that tabs have been rearranged by dragging and a notification
+    ;; is been delivered via `on-reorder`, pretend that things are still in the old
+    ;; order by setting this list to a non-#f value:
+    (define external-mapping #f)
+    (define/private (external->internal i)
+      (if external-mapping
+          (for/first ([ext-i (in-list external-mapping)]
+                      [actual-i (in-naturals)]
+                      #:when (= ext-i i))
+            actual-i)
+          i))
+    (define/private (internal->external i)
+      (if external-mapping
+          (list-ref external-mapping i)
+          i))
+
     (let ([cwho '(constructor tab-panel)])
       (unless (and (list? choices) (andmap label-string? choices))
         (raise-argument-error (who->name cwho) "label-string?" choices))
       (check-callback cwho callback)
       (check-container-parent cwho parent)
-      (check-style cwho #f '(deleted no-border) style)
+      (check-style cwho #f '(deleted no-border can-reorder can-close) style)
       (check-font cwho font))
     (super-new [parent parent]
-               [style
-                (if (memq 'no-border style)
-                    (if (eq? (car style) 'no-border)
-                        (cdr style)
-                        (list (car style)))
-                    (cons 'border style))]
+               [style (if (memq 'no-border style)
+                          (remq 'no-border style)
+                          (cons 'border style))]
                [enabled enabled]
                [vert-margin vert-margin]
                [horiz-margin horiz-margin]
@@ -354,21 +369,24 @@
                 (check-label-string '(method tab-panel% append) n)
                 (let ([n (string->immutable-string n)])
                   (set! save-choices (list-append save-choices (list n)))
+                  (when external-mapping
+                    (set! external-mapping (append external-mapping (length external-mapping))))
                   (send (mred->wx this) append n))))]
      [get-selection (lambda () (and (pair? save-choices)
-                                    (send (mred->wx this) get-selection)))]
+                                    (internal->external (send (mred->wx this) get-selection))))]
      [set-selection (entry-point
                      (lambda (i)
                        (check-item 'set-selection i)
-                       (send (mred->wx this) set-selection i)))]
+                       (send (mred->wx this) set-selection (external->internal i))))]
      [delete (entry-point
               (lambda (i)
                 (check-item 'delete i)
-                (set! save-choices (let loop ([p 0][l save-choices])
-                                     (if (= p i)
-                                         (cdr l)
-                                         (cons (car l) (loop (add1 p) (cdr l))))))
-                (send (mred->wx this) delete i)))]
+                (let ([i (external->internal i)])
+                  (set! save-choices (let loop ([p 0] [l save-choices])
+                                       (if (= p i)
+                                           (cdr l)
+                                           (cons (car l) (loop (add1 p) (cdr l))))))
+                  (send (mred->wx this) delete i))))]
      [set-item-label (entry-point
                       (lambda (i s)
                         (check-item 'set-item-label i)
@@ -385,11 +403,27 @@
                        (raise-argument-error (who->name '(method tab-panel% set))
                                              "(listof label-string?)" l))
                      (set! save-choices (map string->immutable-string l))
+                     (set! external-mapping #f)
                      (send (mred->wx this) set l)))]
      [get-item-label (entry-point
                       (lambda (i)
                         (check-item 'get-item-label i)
-                        (list-ref save-choices i)))])
+                        (let ([i (external->internal i)])
+                          (list-ref save-choices i))))]
+
+     [do-on-choice-reorder (lambda (new-positions)
+                             ;; in atomic mode when we get here
+                             (set! save-choices (for/list ([i (in-list new-positions)])
+                                                  (list-ref save-choices i)))
+                             (set! external-mapping (for/list ([old-internal (in-list new-positions)])
+                                                      (internal->external old-internal)))
+                             (wx:queue-callback (lambda ()
+                                                  (set! external-mapping #f)
+                                                  (on-reorder new-positions))
+                                                wx:middle-queue-key))]
+     [on-close-request (lambda (which) (void))])
+    (pubment*
+     [on-reorder (lambda (new-positions) (inner (void) on-reorder new-positions))])
 
     (private*
      [check-item

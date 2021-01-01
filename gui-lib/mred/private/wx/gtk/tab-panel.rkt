@@ -23,15 +23,37 @@
 (define-gtk gtk_notebook_get_current_page (_fun _GtkWidget -> _int))
 (define-gtk gtk_notebook_set_current_page (_fun _GtkWidget _int -> _void))
 (define-gtk gtk_notebook_get_tab_label  (_fun _GtkWidget _GtkWidget -> _GtkWidget))
+(define-gtk gtk_notebook_set_tab_reorderable (_fun _GtkWidget _GtkWidget _gboolean -> _void))
 
 (define-gtk gtk_container_remove (_fun _GtkWidget _GtkWidget -> _void))
+
+(define text-close-label? #t)
+
+;; Used for test close label:
+(define-gtk gtk_label_new (_fun -> _GtkWidget))
+(define-gtk gtk_label_set_text (_fun _GtkWidget _string -> _void))
+(define-gtk gtk_label_set_use_markup (_fun _GtkWidget _gboolean -> _void))
+(define-gtk gtk_label_set_use_underline (_fun _GtkWidget _gboolean -> _void))
+
+;; Used for icon close label:
+(define-gtk gtk_button_new (_fun -> _GtkWidget))
+(define-gtk gtk_button_set_relief (_fun _GtkWidget _int -> _void))
+(define-gtk gtk_button_set_image (_fun _GtkWidget  _GtkWidget -> _void))
+(define-gtk gtk_image_new_from_stock (_fun _string _int -> _GtkWidget))
+(define GTK_STOCK_CLOSE "gtk-close")
+(define GTK_ICON_SIZE_MENU 1)
+(define GTK_RELIEF_NONE 2)
+
+(define-gtk gtk_widget_get_parent (_fun _GtkWidget -> _GtkWidget))
+(define-gtk gtk_widget_set_focus_on_click (_fun _GtkWidget _gboolean -> _void)
+  #:fail (lambda () (lambda (w focus?) (void))))
 
 (define-gtk gtk_widget_ref (_fun _GtkWidget -> _void)
   #:fail (lambda () g_object_ref))
 (define-gtk gtk_widget_unref (_fun _GtkWidget -> _void)
   #:fail (lambda () g_object_unref))
 
-(define-struct page (bin-gtk label-gtk))
+(define-struct page (bin-gtk label-gtk close-gtk))
 
 (define-signal-handler connect-changed "switch-page"
   (_fun _GtkWidget _pointer _int -> _void)
@@ -39,6 +61,20 @@
     (let ([wx (gtk->wx gtk)])
       (when wx
         (send wx page-changed i)))))
+
+(define-signal-handler connect-reordered "page-reordered"
+  (_fun _GtkWidget _pointer _int -> _void)
+  (lambda (gtk child i)
+    (let ([wx (gtk->wx gtk)])
+      (when wx
+        (send wx page-reordered child i)))))
+
+(define-signal-handler connect-clicked "clicked"
+  (_fun _GtkWidget _GtkWidget -> _void)
+  (lambda (button-gtk gtk)
+    (let ([wx (gtk->wx gtk)])
+      (when wx
+        (send wx queue-close-clicked (gtk_widget_get_parent button-gtk))))))
 
 (define tab-panel%
   (class (client-size-mixin (panel-container-mixin (panel-mixin window%)))
@@ -65,6 +101,8 @@
     (define client-gtk (gtk_fixed_new))
 
     (gtk_notebook_set_scrollable notebook-gtk #t)
+    (define can-reorder? (and (memq 'can-reorder style) #t))
+    (define can-close? (and (memq 'can-close style) #t))
 
     (super-new [parent parent]
                [gtk gtk]
@@ -82,7 +120,7 @@
     (define empty-bin-gtk (gtk_hbox_new #f 0))
     (define current-bin-gtk #f)
 
-    (define (select-bin bin-gtk)
+    (define/private (select-bin bin-gtk)
       (set! current-bin-gtk bin-gtk)
       ;; re-parenting can change the underlying window, so
       ;; make sure no freeze in places:
@@ -91,13 +129,48 @@
       ;; re-parenting can change the underlying window dc:
       (reset-child-dcs))
 
+    (define/private (maybe-add-close label-gtk)
+      (cond
+       [can-close?
+	(let ([hbox-gtk (gtk_hbox_new #f 0)]
+	      [close-gtk (gtk_button_new)])
+	  
+	  (cond
+	   [text-close-label?
+	    ;; abuse of multiply symbol?
+	    (define close-label-gtk (gtk_label_new))
+	    (gtk_label_set_text close-label-gtk "\xD7")
+	    (gtk_label_set_use_markup close-label-gtk #f)
+	    (gtk_label_set_use_underline close-label-gtk #f)
+	    (gtk_container_add close-gtk close-label-gtk)
+	    (gtk_widget_show close-label-gtk)]
+	   [else
+	    ;; looks heavy for most purposes:
+	    (define close-icon (gtk_image_new_from_stock GTK_STOCK_CLOSE
+							 GTK_ICON_SIZE_MENU))
+	    (gtk_button_set_image close-gtk close-icon)])
+	  
+	  (gtk_widget_set_focus_on_click close-gtk #f)
+	  (gtk_button_set_relief close-gtk GTK_RELIEF_NONE)
+	  (gtk_container_add hbox-gtk label-gtk)
+	  (gtk_container_add hbox-gtk close-gtk)
+	  (gtk_widget_show close-gtk)
+	  (gtk_widget_show label-gtk)
+	  (connect-clicked close-gtk gtk)
+	  hbox-gtk)]
+       [else label-gtk]))
+	
+
     (define pages
       (for/list ([lbl labels])
-        (let ([bin-gtk (gtk_hbox_new #f 0)]
-              [label-gtk (gtk_label_new_with_mnemonic lbl)])
-          (gtk_notebook_append_page notebook-gtk bin-gtk label-gtk)
+        (let* ([bin-gtk (gtk_hbox_new #f 0)]
+	       [label-gtk (gtk_label_new_with_mnemonic lbl)]
+	       [close-gtk (maybe-add-close label-gtk)])
+          (gtk_notebook_append_page notebook-gtk bin-gtk close-gtk)
+	  (when can-reorder?
+		(gtk_notebook_set_tab_reorderable notebook-gtk bin-gtk #t))
           (gtk_widget_show bin-gtk)
-          (make-page bin-gtk label-gtk))))
+          (make-page bin-gtk label-gtk close-gtk))))
 
     (define/private (install-empty-page)
       (gtk_notebook_append_page notebook-gtk empty-bin-gtk #f)
@@ -141,6 +214,33 @@
         (when callback-ok?
           (queue-window-event this (lambda () (do-callback))))))
     (connect-changed notebook-gtk)
+
+    (define/public (page-reordered child new-pos)
+      (unless (equal? child (list-ref pages new-pos))
+        (define old-pages (for/hash ([page (in-list pages)]
+                                     [i (in-naturals)])
+                            (values (page-bin-gtk page) (cons i page))))
+	(define move-page (cdr (hash-ref old-pages child)))
+        (define new-pages (let loop ([l pages] [i 0])
+                            (cond
+                              [(= i new-pos) (cons move-page (remove move-page l))]
+                              [(equal? (car l) move-page)
+                               (loop (cdr l) i)]
+                              [else
+                               (cons (car l) (loop (cdr l) (add1 i)))])))
+        (set! pages new-pages)
+        (on-choice-reorder (for/list ([page (in-list new-pages)])
+                             (car (hash-ref old-pages (page-bin-gtk page)))))))
+    (define/public (on-choice-reorder moved-mapping) (void))
+    (when can-reorder?
+      (connect-reordered notebook-gtk))
+
+    (define/public (queue-close-clicked close-gtk)
+      (for ([page (in-list pages)]
+	    [i (in-naturals)])
+	   (when (equal? close-gtk (page-close-gtk page))
+		 (queue-window-event this (lambda () (on-choice-close i))))))
+    (define/public (on-choice-close pos) (void))
     
     (define/override (get-client-gtk) client-gtk)
 
@@ -153,11 +253,14 @@
 
     (define/private (do-append lbl)
       (let ([page
-             (let ([bin-gtk (gtk_hbox_new #f 0)]
-                   [label-gtk (gtk_label_new_with_mnemonic lbl)])
-               (gtk_notebook_append_page notebook-gtk bin-gtk label-gtk)
+             (let* ([bin-gtk (gtk_hbox_new #f 0)]
+		    [label-gtk (gtk_label_new_with_mnemonic lbl)]
+		    [close-gtk (maybe-add-close label-gtk)])
+               (gtk_notebook_append_page notebook-gtk bin-gtk close-gtk)
+               (when can-reorder?
+                 (gtk_notebook_set_tab_reorderable notebook-gtk bin-gtk #t))
                (gtk_widget_show bin-gtk)
-               (make-page bin-gtk label-gtk))])
+               (make-page bin-gtk label-gtk close-gtk))])
         (set! pages (append pages (list page)))
         (when (null? (cdr pages))
           (swap-in (page-bin-gtk (car pages)))

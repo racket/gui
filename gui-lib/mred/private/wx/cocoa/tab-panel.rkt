@@ -65,7 +65,15 @@
   (-a _void (tabView: [_id cocoa] didSelectTabViewItem: [_id item-cocoa])
       (let ([wx (->wx wxb)])
         (when (and wx (send wx callbacks-enabled?))
-          (queue-window*-event wxb (lambda (wx) (send wx do-callback)))))))
+          (queue-window*-event wxb (lambda (wx) (send wx do-callback))))))
+  (-a _void (onCloseTabViewItem: item)
+      (let ([wx (->wx wxb)])
+        (when wx
+          (queue-window*-event wxb (lambda (wx) (send wx do-tab-close item))))))
+  (-a _void (onDropTabViewItem: item)
+      (let ([wx (->wx wxb)])
+        (when wx
+          (send wx check-reorder)))))
 
 ;; The MMTabBarView widget doesn't support disabling, so we have to
 ;; implement it. Also, we need to override a method to disable (for now)
@@ -79,7 +87,19 @@
             #f
             (super-tell hitTest: #:type _NSPoint pt))))
   (-a _BOOL (shouldStartDraggingAttachedTabBarButton: b withMouseDownEvent: evt)
-      #f))
+      (let ([wx (->wx wxb)])
+        (cond
+          [(and wx (send wx drag-enabled?))
+           (super-tell  #:type _BOOL shouldStartDraggingAttachedTabBarButton: b withMouseDownEvent: evt)]
+          [else #f]))))
+
+(define-objc-class RacketTabViewDelegate NSObject
+  []
+  (-a _BOOL (tabView: tv shouldCloseTabViewItem: item)
+      (tellv tv onCloseTabViewItem: item)
+      #f)
+  (-a _void (tabView: tv didMoveTabViewItem: item toIndex: pos)
+      (tellv tv onDropTabViewItem: item)))
 
 ;; A no-op mixin instead of `EnableMixin` for PSMTabBarControl:
 (define-objc-mixin (EmptyMixin Superclass)
@@ -99,7 +119,8 @@
         labels)
   (inherit get-cocoa register-as-child
            is-window-enabled?
-           block-mouse-events)
+           block-mouse-events
+           refresh)
 
   (define tabv-cocoa (as-objc-allocation
                       (tell (tell RacketTabView alloc) init)))
@@ -108,17 +129,22 @@
                      (tell (tell NSView alloc) init))
                     tabv-cocoa))
 
+  (define has-close? (and (memq 'can-close style) #t))
+
   (define control-cocoa
     (and (not (memq 'border style))
          (let ([i (as-objc-allocation
                    (tell (tell RacketPSMTabBarControl alloc)
                          initWithFrame: #:type _NSRect (make-NSRect (make-NSPoint 0 0)
                                                                     (make-NSSize 200 22))))])
+           (set-ivar! tabv-cocoa wxb (->wxb this))
            (tellv cocoa addSubview: i)
            (tellv cocoa addSubview: tabv-cocoa)
            (tellv tabv-cocoa setDelegate: i)
            (tellv tabv-cocoa setTabViewType: #:type _int NSNoTabsNoBorder)
            (tellv i setTabView: tabv-cocoa)
+           (let ([delegate (as-objc-allocation (tell (tell RacketTabViewDelegate alloc) init))])
+             (tellv i setDelegate: delegate))
            (tellv i setStyleNamed: #:type _NSString
                   (if use-mm?
                       (if (version-10.14-or-later?)
@@ -126,9 +152,11 @@
                           "Yosemite")
                       "Aqua"))
            ;; (tellv i setSizeCellsToFit: #:type _BOOL #t)
+           (if has-close?
+               (tellv i setOnlyShowCloseOnHover: #:type _BOOL #t)
+               (tellv i setDisableTabClose: #:type _BOOL #t))
            (when use-mm?
              (tellv i setResizeTabsToFitTotalWidth: #:type _BOOL #t))
-           (tellv i setDisableTabClose: #:type _BOOL #t)
            i)))
 
   (define item-cocoas
@@ -136,6 +164,8 @@
       (let ([item (as-objc-allocation
                    (tell (tell NSTabViewItem alloc) initWithIdentifier: #f))])
         (tellv item setLabel: #:type _NSString (label->plain-label lbl))
+        (when has-close?
+          (tellv item setHasCloseButton: #:type _BOOL #t))
         (tellv tabv-cocoa addTabViewItem: item)
         item)))
   (if control-cocoa
@@ -201,6 +231,8 @@
     (let ([item (as-objc-allocation
                  (tell (tell NSTabViewItem alloc) initWithIdentifier: #f))])
       (tellv item setLabel: #:type _NSString (label->plain-label lbl))
+      (when has-close?
+        (tellv item setHasCloseButton: #:type _BOOL #t))
       (tellv tabv-cocoa addTabViewItem: item)
       (set! item-cocoas (append item-cocoas (list item)))
       ;; Sometimes the sub-view for the tab buttons gets put in front
@@ -265,5 +297,33 @@
         (direct-set-selection n)))
 
   (define/override (maybe-register-as-child parent on?)
-    (register-as-child parent on?)))
+    (register-as-child parent on?))
 
+  (define is-drag-enabled? (and (memq 'can-reorder style)))
+  (define/public (drag-enabled?) is-drag-enabled?)
+  (define/public (check-reorder)
+    (define rev-mapping
+      (for/hash ([item-cocoa (in-list item-cocoas)]
+                 [i (in-naturals)])
+        (values (tell #:type _NSInteger tabv-cocoa indexOfTabViewItem: item-cocoa)
+                (cons i item-cocoa))))
+    (unless (for/and ([(k v) (in-hash rev-mapping)])
+              (= k (car v)))
+      (set! item-cocoas (for/list ([i (in-range (length item-cocoas))])
+                          (cdr (hash-ref rev-mapping i))))
+      (define moved-mapping
+        (for/list ([i (in-range (length item-cocoas))]) (car (hash-ref rev-mapping i))))
+      (refresh) ; seems to be needed sometimes to fix display
+      (on-choice-reorder moved-mapping)))
+  (define/public (on-choice-reorder new-positions)
+    (void))
+
+  (define/public (do-tab-close close-item-cocoa)
+    (define i (for/or ([item-cocoa (in-list item-cocoas)]
+                       [i (in-naturals)])
+                (and (equal? item-cocoa close-item-cocoa)
+                     i)))
+    (when i
+      (on-choice-close i)))
+  (define/public (on-choice-close pos)
+    (void)))

@@ -23,7 +23,8 @@
                         wx-grow-box-pane%
                         wx-canvas-panel%
                         wx-vertical-canvas-panel%
-                        wx-horizontal-canvas-panel%))
+                        wx-horizontal-canvas-panel%
+                        do-on-choice-reorder))
 
   (define wx:windowless-panel%
     (class object%
@@ -860,14 +861,22 @@
   ;; "horizontal" and "vertical."
   (define (wx-make-vertical-panel% wx-linear-panel%) (wx-make-horizontal/vertical-panel% wx-linear-panel% #f))
 
+  (define-local-member-name do-on-choice-reorder)
+  
   (define (wx-make-tab% %)
     (class %
-      (inherit gets-focus?)
+      (inherit gets-focus? get-mred)
       (super-new)
       (define/override (tabbing-position x y w h)
         ;; claim that the panel is short and starts above its client area:
         (list this x (- y 16) w 16))
-      (define/override (focus-on-self?) (gets-focus?))))
+      (define/override (focus-on-self?) (gets-focus?))
+      (define/override (on-choice-reorder new-positions)
+        (let ([mred (get-mred)])
+          (when mred (send mred do-on-choice-reorder new-positions))))
+      (define/override (on-choice-close pos)
+        (let ([mred (get-mred)])
+          (when mred (send mred on-close-request pos))))))
 
   (define wx-panel% (wx-make-panel% wx:panel%))
   (define wx-control-panel% (wx-make-panel% wx:panel% const-default-x-margin const-default-y-margin))
