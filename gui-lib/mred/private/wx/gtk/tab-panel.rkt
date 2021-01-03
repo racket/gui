@@ -30,8 +30,7 @@
 (define text-close-label? #t)
 
 ;; Used for test close label:
-(define-gtk gtk_label_new (_fun -> _GtkWidget))
-(define-gtk gtk_label_set_text (_fun _GtkWidget _string -> _void))
+(define-gtk gtk_label_new (_fun _string -> _GtkWidget))
 (define-gtk gtk_label_set_use_markup (_fun _GtkWidget _gboolean -> _void))
 (define-gtk gtk_label_set_use_underline (_fun _GtkWidget _gboolean -> _void))
 
@@ -138,8 +137,7 @@
 	  (cond
 	   [text-close-label?
 	    ;; abuse of multiply symbol?
-	    (define close-label-gtk (gtk_label_new))
-	    (gtk_label_set_text close-label-gtk "\xD7")
+	    (define close-label-gtk (gtk_label_new "\xD7"))
 	    (gtk_label_set_use_markup close-label-gtk #f)
 	    (gtk_label_set_use_underline close-label-gtk #f)
 	    (gtk_container_add close-gtk close-label-gtk)
