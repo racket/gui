@@ -9,7 +9,9 @@
          "wx.rkt"
          "wxpanel.rkt"
          "mrwindow.rkt"
-         "mrcontainer.rkt")
+         "mrcontainer.rkt"
+         "wxtabcanvas.rkt"
+         "gdi.rkt")
 
 (provide pane%
          vertical-pane%
@@ -21,7 +23,12 @@
          tab-panel%
          group-box-panel%)
 
-(define-local-member-name get-initial-label)
+(define-local-member-name
+  get-initial-label
+  as-plain-panel?
+  finish-wx
+  get-inner-getter
+  get-outer-getter)
 
 (define pane%
   (class (make-subarea% (make-container% area%))
@@ -169,7 +176,11 @@
           [stretchable-height no-val])
     (init-rest)
     (define wx #f)
-    (public* [get-initial-label (lambda () #f)])
+    (public* [get-initial-label (lambda () #f)]
+             [as-plain-panel? (lambda () #f)]
+             [finish-wx (lambda (proc) (proc this))]
+             [get-inner-getter (lambda () (lambda () wx))]
+             [get-outer-getter (lambda () (lambda () wx))])
     (let* ([who (cond ; yuck! - we do this to make h-p and v-p subclasses of p
                  [(is-a? this tab-panel%) 'tab-panel]
                  [(is-a? this group-box-panel%) 'group-box-panel]
@@ -193,7 +204,7 @@
                                       '(hscroll vscroll
                                                 auto-hscroll auto-vscroll 
                                                 hide-hscroll hide-vscroll)]
-                                     [(eq? who 'tab-panel) '(can-reorder can-close)]
+                                     [(eq? who 'tab-panel) '(can-reorder can-close flat-portable)]
                                      [else null]))
                    style)
 
@@ -210,26 +221,31 @@
       (as-entry
        (lambda ()
          (super-instantiate
-          ((lambda () (set! wx (make-object (case who
-                                              [(vertical-panel)
-                                               (if (as-canvas?)
-                                                   wx-vertical-canvas-panel%
-                                                   wx-vertical-panel%)]
-                                              [(tab-panel) wx-vertical-tab-panel%]
-                                              [(group-box-panel) wx-vertical-group-panel%]
-                                              [(horizontal-panel)
-                                               (if (as-canvas?)
-                                                   wx-horizontal-canvas-panel%
-                                                   wx-horizontal-panel%)]
-                                              [else (if (as-canvas?)
-                                                        wx-canvas-panel%
-                                                        wx-panel%)])
-                                            this this (mred->wx-container parent)
-                                            (cons 'transparent (add-scrolls style))
-                                            (get-initial-label)))
+          ((lambda () (set! wx (finish-wx
+                                (lambda (mred)
+                                  (make-object (case who
+                                                 [(vertical-panel)
+                                                  (if (as-canvas?)
+                                                      wx-vertical-canvas-panel%
+                                                      wx-vertical-panel%)]
+                                                 [(tab-panel)
+                                                  (if (as-plain-panel?)
+                                                      wx-vertical-panel%
+                                                      wx-vertical-tab-panel%)]
+                                                 [(group-box-panel) wx-vertical-group-panel%]
+                                                 [(horizontal-panel)
+                                                  (if (as-canvas?)
+                                                      wx-horizontal-canvas-panel%
+                                                      wx-horizontal-panel%)]
+                                                 [else (if (as-canvas?)
+                                                           wx-canvas-panel%
+                                                           wx-panel%)])
+                                               mred this (mred->wx-container parent)
+                                               (cons 'transparent (add-scrolls style))
+                                               (get-initial-label)))))
                    wx)
-           (lambda () wx)
-           (lambda () wx)
+           (get-inner-getter)
+           (get-outer-getter)
            (lambda () (check-container-ready cwho parent))
            #f parent #f)
           [enabled enabled]
@@ -304,10 +320,13 @@
              [get-orientation (λ () (send (mred->wx this) get-orientation))])))
 
 (define list-append append)
+(define always-use-tab-canvas? (and (getenv "PLT_FLAT_PORTABLE_TAB_PANEL") #t))
 
 (define tab-panel%
   (class vertical-panel%
-    (init choices parent [callback (lambda (b e) (void))] [style null] [font no-val]
+    (init choices parent [callback (lambda (b e) (void))])
+    (init-field [style null])
+    (init [font no-val]
           ;; inherited inits
           [enabled #t]
           [vert-margin no-val]
@@ -322,6 +341,55 @@
     (init-rest)
     (define save-choices choices)
     (override* [get-initial-label (lambda () save-choices)])
+
+    (define use-tab-canvas? (and (memq 'no-border style)
+                                 (or always-use-tab-canvas?
+                                     (memq 'flat-portable style)
+                                     (and (or (memq 'can-reorder style)
+                                              (memq 'can-close style))
+                                          (eq? 'windows (system-type))))))
+
+    (define tab-canvas #f)
+    (define outside #f)
+    (define inside #f)
+    (define init-font font)
+    
+    (define/override (as-plain-panel?) use-tab-canvas?)
+    (define/override (finish-wx proc)
+      (define wx (proc (if use-tab-canvas? #f this)))
+      (set! outside wx)
+      (cond
+        [use-tab-canvas?
+         (set! tab-canvas (make-object wx-tab-canvas%
+                                       save-choices
+                                       style
+                                       (if (eq? init-font no-val)
+                                           normal-control-font
+                                           init-font)
+                                       (lambda (index) (on-close-request index))
+                                       (lambda (new-positions) (on-reorder new-positions))
+                                       this this
+                                       wx
+                                       -1 -1
+                                       0 0
+                                       '(no-focus transparent)
+                                       #f))
+         (send tab-canvas skip-enter-leave-events #t)
+         (set! inside (make-object wx-vertical-panel%
+                                   this this
+                                   wx
+                                   '()
+                                   #f))
+         (send inside skip-subwindow-events? #t)
+         (send inside skip-enter-leave-events #t)
+         (send (send inside area-parent) add-child inside)
+         (send wx set-container inside)
+         (send tab-canvas set-sibling-client inside)]
+        [else
+         (set! inside wx)])
+      wx)
+    (define/override (get-inner-getter) (lambda () inside))
+    (define/override (get-outer-getter) (lambda () outside))
 
     ;; Between the time that tabs have been rearranged by dragging and a notification
     ;; is been delivered via `on-reorder`, pretend that things are still in the old
@@ -344,7 +412,7 @@
         (raise-argument-error (who->name cwho) "label-string?" choices))
       (check-callback cwho callback)
       (check-container-parent cwho parent)
-      (check-style cwho #f '(deleted no-border can-reorder can-close) style)
+      (check-style cwho #f '(deleted no-border can-reorder can-close flat-portable) style)
       (check-font cwho font))
     (super-new [parent parent]
                [style (if (memq 'no-border style)
@@ -360,8 +428,12 @@
                [min-height min-height]
                [stretchable-width stretchable-width]
                [stretchable-height stretchable-height])
-    (send (mred->wx this) set-callback (lambda (wx e) (callback (wx->mred wx) e)))
+    
+    (define/private (get-tab-widget)
+      (or tab-canvas (mred->wx this)))
 
+    (send (get-tab-widget) set-callback (lambda (wx e) (callback (wx->mred wx) e)))
+    
     (public*
      [get-number (lambda () (length save-choices))]
      [append (entry-point
@@ -371,13 +443,13 @@
                   (set! save-choices (list-append save-choices (list n)))
                   (when external-mapping
                     (set! external-mapping (append external-mapping (length external-mapping))))
-                  (send (mred->wx this) append n))))]
+                  (send (get-tab-widget) append n))))]
      [get-selection (lambda () (and (pair? save-choices)
-                                    (internal->external (send (mred->wx this) get-selection))))]
+                                    (internal->external (send (get-tab-widget) get-selection))))]
      [set-selection (entry-point
                      (lambda (i)
                        (check-item 'set-selection i)
-                       (send (mred->wx this) set-selection (external->internal i))))]
+                       (send (get-tab-widget) set-selection (external->internal i))))]
      [delete (entry-point
               (lambda (i)
                 (check-item 'delete i)
@@ -386,7 +458,7 @@
                                        (if (= p i)
                                            (cdr l)
                                            (cons (car l) (loop (add1 p) (cdr l))))))
-                  (send (mred->wx this) delete i))))]
+                  (send (get-tab-widget) delete i))))]
      [set-item-label (entry-point
                       (lambda (i s)
                         (check-item 'set-item-label i)
@@ -396,7 +468,7 @@
                                                (if (zero? i)
                                                    (cons s (cdr save-choices))
                                                    (cons (car save-choices) (loop (cdr save-choices) (sub1 i))))))
-                          (send (mred->wx this) set-label i s))))]
+                          (send (get-tab-widget) set-label i s))))]
      [set
       (entry-point (lambda (l)
                      (unless (and (list? l) (andmap label-string? l))
@@ -404,7 +476,7 @@
                                              "(listof label-string?)" l))
                      (set! save-choices (map string->immutable-string l))
                      (set! external-mapping #f)
-                     (send (mred->wx this) set l)))]
+                     (send (get-tab-widget) set l)))]
      [get-item-label (entry-point
                       (lambda (i)
                         (check-item 'get-item-label i)

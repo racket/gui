@@ -164,32 +164,36 @@
         ;; Look for a parent, and shift coordinates
         (let loop ([w orig-w])
           (if w
-              (if (is-a? w wx/proxy<%>)
-                  (if (eq? w orig-w)
-                      (k (wx->proxy w) e)
-                      (let ([bx (box (send e get-x))]
-                            [by (box (send e get-y))])
-                        (send orig-w client-to-screen bx by)
-                        (send w screen-to-client bx by)
-                        (let ([new-e (if (e . is-a? . wx:key-event%)
-                                         (instantiate wx:key-event% ()
-                                           [key-code (send e get-key-code)])
-                                         (instantiate wx:mouse-event% ()
-                                           [event-type (send e get-event-type)]
-                                           [left-down (send e get-left-down)]
-                                           [right-down (send e get-right-down)]
-                                           [middle-down (send e get-middle-down)]))])
-                          (when (e . is-a? . wx:key-event%)
-                            (send new-e set-key-release-code (send e get-key-release-code)))
-                          (send new-e set-time-stamp (send e get-time-stamp))
-                          (send new-e set-alt-down (send e get-alt-down))
-                          (send new-e set-control-down (send e get-control-down))
-                          (send new-e set-meta-down (send e get-meta-down))
-                          (send new-e set-shift-down (send e get-shift-down))
-                          (send new-e set-x (unbox bx))
-                          (send new-e set-y (unbox by))
-                          (k (wx->proxy w) new-e))))
-                  (loop (send w get-parent)))
+              (cond
+                [(is-a? w wx/client-adjacent<%>)
+                 (loop (send w get-sibling-client))]
+                [(is-a? w wx/proxy<%>)
+                 (if (eq? w orig-w)
+                     (k (wx->proxy w) e)
+                     (let ([bx (box (send e get-x))]
+                           [by (box (send e get-y))])
+                       (send orig-w client-to-screen bx by)
+                       (send w screen-to-client bx by)
+                       (let ([new-e (if (e . is-a? . wx:key-event%)
+                                        (instantiate wx:key-event% ()
+                                          [key-code (send e get-key-code)])
+                                        (instantiate wx:mouse-event% ()
+                                          [event-type (send e get-event-type)]
+                                          [left-down (send e get-left-down)]
+                                          [right-down (send e get-right-down)]
+                                          [middle-down (send e get-middle-down)]))])
+                         (when (e . is-a? . wx:key-event%)
+                           (send new-e set-key-release-code (send e get-key-release-code)))
+                         (send new-e set-time-stamp (send e get-time-stamp))
+                         (send new-e set-alt-down (send e get-alt-down))
+                         (send new-e set-control-down (send e get-control-down))
+                         (send new-e set-meta-down (send e get-meta-down))
+                         (send new-e set-shift-down (send e get-shift-down))
+                         (send new-e set-x (unbox bx))
+                         (send new-e set-y (unbox by))
+                         (k (wx->proxy w) new-e))))]
+                [else
+                 (loop (send w get-parent))])
               #f)))
       (define old-w -1)
       (define old-h -1)

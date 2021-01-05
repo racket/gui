@@ -23,7 +23,10 @@ The @racket[tab-panel%] class does not implement the virtual
                  [callback ((is-a?/c tab-panel%) (is-a?/c control-event%)
                             . -> . any) 
                            (lambda (b e) (void))]
-                 [style (listof (or/c 'no-border 'can-reorder 'can-close 'deleted)) null]
+                 [style (listof (or/c 'no-border
+                                      'can-reorder 'can-close 'flat-portable
+                                      'deleted))
+                        null]
                  [font (is-a?/c font%) normal-control-font]
                  [enabled any/c #t]
                  [vert-margin spacing-integer? 0]
@@ -52,18 +55,28 @@ If the @racket[style] list includes @racket['no-border], no border is
  drawn around the panel content.
  If the @racket[style] list includes @racket['can-reorder], then the
  user may be able to drag tabs to reorder them, in which case
- @method[tab-panel% on-reorder] is called.
+ @method[tab-panel% on-reorder] is called; reordering is always
+ enabled if @racket['no-border] is also included in @racket[style].
  If the @racket[style] list includes @racket['can-close], then the
  user may be able to click a close icon for a tab, in which case
- @method[tab-panel% on-close-request] is called.
- Currently, tab reordering or closing requires @racket['no-border]
- on Mac OS and does not work on Windows.
+ @method[tab-panel% on-close-request] is called; closing is always
+ enabled if @racket['no-border] is also included in @racket[style].
+ If the @racket[style] list includes @racket['flat-portable] or if
+ the @indexed-envvar{PLT_FLAT_PORTABLE_TAB_PANEL} environment variable
+ is defined when @racketmodname[racket/gui] is loaded, and if the
+ style list also includes @racket['no-border], then a
+ platform-independent implementation is used for the tab control;
+ the @racket['flat-portable] flag is
+ effectively always included in @racket[style] on Windows if either
+ @racket['can-reorder] or @racket['can-close] is included.
  @DeletedStyleNote[@racket[style] @racket[parent]]{tab panel}
 
 @FontKWs[@racket[font]] @WindowKWs[@racket[enabled]] @SubareaKWs[] @AreaKWs[]
 
 @history[#:changed "1.55" @elem{Added the @racket['can-reorder] and
-                                @racket['can-close] styles.}]}
+                                @racket['can-close] styles.}
+         #:changed "1.56" @elem{Added the @racket['flat-portable] style
+                                with reordering and closing support on Windows.}]}
 
 @defmethod[(append [choice label-string?])
            void?]{

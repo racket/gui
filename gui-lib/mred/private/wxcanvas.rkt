@@ -81,8 +81,10 @@
        (init parent x y w h style gl-config)
        (inherit get-top-level)
        (public*
-        [clear-margins (lambda () (void))])
+        [clear-margins (lambda () (void))]
+        [initialize-size (lambda () (void))])
        (super-make-object style parent x y w h (cons 'deleted style) "canvas" gl-config)
+       (initialize-size)
        (unless (memq 'deleted style)
          (send (get-top-level) show-control this #t)))))
 
@@ -203,7 +205,7 @@
        [set-y-margin (lambda (m)
                        (super set-y-margin m)
                        (when fixed-height? (update-size)))])
-      
+
       (super-make-object style parent x y w h (or name "") (cons 'deleted style) spp init-buffer)
       (unless (memq 'deleted style)
         (send (get-top-level) show-control this #t))

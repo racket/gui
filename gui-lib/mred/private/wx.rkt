@@ -6,6 +6,7 @@
 
   (provide (protect-out wx<%>
                         wx/proxy<%>
+                        wx/client-adjacent<%>
                         make-glue%
                         wx->mred
                         wx->proxy
@@ -18,10 +19,11 @@
   ;; The `make-glue%' mixin adds fields and methods to map 
   ;; wx (internal) objects to mred (external) objects.
   ;; Sometimes, multiple wx instances have one mred instance;
-  ;; hance proxies.
+  ;; hence proxies.
 
   (define wx<%> (interface () get-mred))
   (define wx/proxy<%> (interface (wx<%>) get-proxy))
+  (define wx/client-adjacent<%> (interface () get-sibling-client))
   
   (define (make-glue% %)
     (class* % (wx/proxy<%>)
