@@ -59,20 +59,24 @@ See the corresponding @racketidfont{get-} and @racketidfont{set-}
 @defmethod[(button-changed? [button (or/c 'left 'middle 'right 'any) 'any])
            boolean?]{
 
-Returns @racket[#t] if this was a mouse button press or release event,
+Returns @racket[#t] if this was a mouse button press or release event
+ (i.e., type @racket['left-down], @racket['left-up],
+ @racket['middle-down], @racket['middle-up],
+ @racket['right-down], or @racket['right-up]),
  @racket[#f] otherwise. See also
 @method[mouse-event% button-up?] and
 @method[mouse-event% button-down?].
 
 If @racket[button] is not @racket['any], then @racket[#t] is only returned
- if it is a release event for a specific button.
+ if it is a press or release event for a specific button.
 
 }
 
 @defmethod[(button-down? [button (or/c 'left 'middle 'right 'any) 'any])
            boolean?]{
 
-Returns @racket[#t] if the event is for a button press, @racket[#f]
+Returns @racket[#t] if the event is for a button press (i.e., type @racket['left-down],
+ @racket['middle-down], or @racket['right-down]), @racket[#f]
  otherwise.
 
 If @racket[button] is not @racket['any], then @racket[#t] is only returned
@@ -83,7 +87,8 @@ If @racket[button] is not @racket['any], then @racket[#t] is only returned
 @defmethod[(button-up? [button (or/c 'left 'middle 'right 'any) 'any])
            boolean?]{
 
-Returns @racket[#t] if the event is for a button release, @racket[#f]
+Returns @racket[#t] if the event is for a button release  (i.e., type @racket['left-up],
+ @racket['middle-up], or @racket['right-up]), @racket[#f]
  otherwise. (As noted in @|mousekeydiscuss|, button release events are
  sometimes dropped.)
 
@@ -95,15 +100,18 @@ If @racket[button] is not @racket['any], then @racket[#t] is only returned
 @defmethod[(dragging?)
            boolean?]{
 
-Returns @racket[#t] if this was a dragging event (motion while a button
- is pressed), @racket[#f] otherwise.
+Returns @racket[#t] if this was a dragging event: type @racket['motion] while a button
+ is pressed (as reported by @method[mouse-event get-left-down],
+ @method[mouse-event get-middle-down], or
+  or @method[mouse-event get-right-down]), @racket[#f] otherwise.
 
 }
 
 @defmethod[(entering?)
            boolean?]{
 
-Returns @racket[#t] if this event is for the mouse entering a window,
+Returns @racket[#t] if this event is for the mouse entering a window
+ (i.e., type @racket['enter]),
  @racket[#f] otherwise.
 
 When the mouse button is up, an enter/leave event notifies a window
@@ -235,7 +243,8 @@ Returns the y-position of the mouse at the time of the event in the
 @defmethod[(leaving?)
            boolean?]{
 
-Returns @racket[#t] if this event is for the mouse leaving a window,
+Returns @racket[#t] if this event is for the mouse leaving a window
+ (i.e., type @racket['leave]),
  @racket[#f] otherwise.
 
 See @method[mouse-event% entering?] for information about enter and
@@ -246,8 +255,8 @@ leave events while the mouse button is clicked.
 @defmethod[(moving?)
            boolean?]{
 
-Returns @racket[#t] if this was a moving event (whether a button is
- pressed is not), @racket[#f] otherwise.
+Returns @racket[#t] if this was a moving event (i.e., type @racket['motion]),
+ @racket[#f] otherwise.
 }
 
 
