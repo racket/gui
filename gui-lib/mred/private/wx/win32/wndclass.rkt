@@ -144,7 +144,8 @@
     (SetWindowLongPtrW hwnd GWLP_WNDPROC control_proc)))
 
 
-(define _DialogProc (_wfun _HWND _UINT _WPARAM _LPARAM -> _INT_PTR))
+(define _DialogProc (_wfun #:atomic? #t #:keep (box null)
+                           _HWND _UINT _WPARAM _LPARAM -> _INT_PTR))
 
 (define (dlgproc w msg wParam lParam)
   (if (= msg WM_DESTROY)
