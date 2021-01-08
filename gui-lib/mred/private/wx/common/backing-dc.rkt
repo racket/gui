@@ -208,6 +208,7 @@
                    (define w 0)
                    (define h 0)
 		   (define mx (make-cairo_matrix_t 0.0 0.0 0.0 0.0 0.0 0.0))
+                   (define save-mx (make-cairo_matrix_t 0.0 0.0 0.0 0.0 0.0 0.0))
 
                    (super-new)
 
@@ -226,7 +227,10 @@
 
                    (define/override (reset-clip cr)
                      (super reset-clip cr)
+                     (cairo_get_matrix cr save-mx)
+                     (cairo_set_matrix cr mx)
                      (cairo_rectangle cr 0 0 w h)
+                     (cairo_set_matrix cr save-mx)
                      (cairo_clip cr)))))))
 
 (define (backing-draw-bm bm cr w h [dx 0] [dy 0] [backing-scale 1.0])
