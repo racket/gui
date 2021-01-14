@@ -195,6 +195,7 @@
     (super-new [parent parent]
                [gtk gtk]
                [extra-gtks (list client-gtk)]
+               [connect-size-allocate? #f]
                [no-show? (memq 'deleted style)])
 
     ;; Start with a minimum size:
