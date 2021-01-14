@@ -6,7 +6,9 @@ This the source for the Racket packages: "gui", "gui-doc", "gui-lib", "gui-test"
 
 Contribute to Racket by submitting a [pull request], reporting an
 [issue], joining the [development mailing list], or visiting the
-IRC or Slack channels.
+IRC or Slack channels. See our [contributing guidelines] for a
+build guide and other important information you need to know to
+contribute.
 
 ### License
 
@@ -22,3 +24,4 @@ is licensed under the [Apache 2.0] license and the [MIT] license.
 [issue]: https://github.com/racket/gui/issues
 [development mailing list]: https://lists.racket-lang.org
 [LICENSE]: LICENSE
+[contributing guidelines]: https://github.com/racket/racket/blob/master/.github/CONTRIBUTING.md
