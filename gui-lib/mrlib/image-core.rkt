@@ -594,7 +594,7 @@ has been moved out).
                      ;; field for the ellipses, but it should be #f in that case
                      ;; also, newer versions never build an ellipse with zero width
                      ;; or height, so if we find one of those, make a rectangle instead
-                     (define-values (width height angle mode color) (apply values args))
+                     (define-values (width height angle mode color) (apply values parsed-args))
                      (cond
                        [(or (= width 0) (= height 0))
                         (construct-polygon
