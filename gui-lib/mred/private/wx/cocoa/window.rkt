@@ -81,6 +81,7 @@
 (import-protocol NSTextInput)
 
 (define current-insert-text (make-parameter #f))
+(define current-insert-text-timestamp (make-parameter 0.0))
 (define current-set-mark (make-parameter #f))
 
 (define NSDragOperationCopy 1)
@@ -181,8 +182,9 @@
             (let ([wx (->wx wxb)])
               (post-dummy-event) ;; to wake up in case of character palette insert 
               (when wx
-                (queue-window-event wx (lambda ()
-                                         (send wx key-event-as-string str)))))))]
+                (let ([ts (current-insert-text-timestamp)])
+                  (queue-window-event wx (lambda ()
+                                           (send wx key-event-as-string str ts))))))))]
 
   ;; for NSTextInput:
   [-a _BOOL (hasMarkedText) (get-saved-marked wxb)]
@@ -310,6 +312,7 @@
          ;; text and handle the event as usual, though probably we should
          ;; be doing something with it.
          (parameterize ([current-insert-text inserted-text]
+                        [current-insert-text-timestamp (tell #:type _double event timestamp)]
                         [current-set-mark set-mark])
            (let ([array (tell (tell NSArray alloc) 
                               initWithObjects: #:type _ptr-to-id event
@@ -910,7 +913,7 @@
     (define/public (pre-on-event w e) #f)
     (define/public (pre-on-char w e) #f)
 
-    (define/public (key-event-as-string s)
+    (define/public (key-event-as-string s timestamp)
       (dispatch-on-char (new key-event%
                              [key-code (string-ref s 0)]
                              [shift-down #f]
@@ -919,7 +922,7 @@
                              [alt-down #f]
                              [x 0]
                              [y 0]
-                             [time-stamp (current-milliseconds)] ; FIXME
+                             [time-stamp (->long (* timestamp 1000.0))]
                              [caps-down #f])
                         #f))
 

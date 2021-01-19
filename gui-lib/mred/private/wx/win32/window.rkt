@@ -79,6 +79,9 @@
 
 (define-user32 SetCursorPos (_wfun _int _int -> _BOOL))
 
+(define-kernel32 GetTickCount (_wfun -> _UDWORD))
+(define-user32 GetMessageTime (_wfun -> _UDWORD))
+
 (define-cstruct _NMHDR
   ([hwndFrom _HWND]
    [idFrom _pointer]
@@ -714,7 +717,7 @@
                     [control-down (bit? flags MK_CONTROL)]
                     [meta-down #f]
                     [alt-down #f]
-                    [time-stamp 0]
+                    [time-stamp (get-event-time-stamp)]
                     [caps-down #f]))])
         (if (eq? type 'leave)
             (let ([t (get-top-frame)])

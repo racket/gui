@@ -11,13 +11,15 @@
               generates-key-event?
 	      reset-key-mapping
               key-symbol-to-menu-key
-              any-control+alt-is-altgr))
+              any-control+alt-is-altgr
+              get-event-time-stamp))
 
 (define-user32 GetKeyState (_wfun _int -> _SHORT))
 (define-user32 MapVirtualKeyW (_wfun _UINT _UINT -> _UINT))
 (define-user32 VkKeyScanW (_wfun _WCHAR -> _SHORT))
 (define-user32 ToUnicode (_wfun _UINT _UINT _pointer _pointer _int _UINT -> _int))
 (define-user32 GetKeyboardState (_wfun _pointer -> _BOOL))
+(define-user32 GetMessageTime (_wfun -> _UDWORD))
 
 (define control+alt-always-as-altgr? #f)
 (define any-control+alt-is-altgr
@@ -289,7 +291,7 @@
                               [alt-down #f]
                               [x 0]
                               [y 0]
-                              [time-stamp 0]
+                              [time-stamp (get-event-time-stamp)]
                               [caps-down caps-down?]
 			      [control+meta-is-altgr (and control-down?
                                                           alt-down?
@@ -399,3 +401,6 @@
 		(hash-set! mapped-keys key mapped?)
 		mapped?]
 	       [else #f]))))
+
+(define (get-event-time-stamp)
+  (GetMessageTime))

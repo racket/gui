@@ -18,12 +18,13 @@
     (class canvas%
       (super-new)
       (define/override (on-event ev)
-        (printf "~a~a MOUSE ~a (~a,~a)\n  mods:~a~a~a~a~a~a~a~a\n  buttons:~a~a~a~a~a~a~a\n" 
+        (printf "~a~a MOUSE ~a (~a,~a)     @~a\n  mods:~a~a~a~a~a~a~a~a\n  buttons:~a~a~a~a~a~a~a\n"
                 (es-check)
                 iter
                 (send ev get-event-type)
                 (send ev get-x)
                 (send ev get-y)
+                (send ev get-time-stamp)
                 (if (send ev get-meta-down) " META" "")
                 (if (send ev get-control-down) " CTL" "")
                 (if (send ev get-alt-down) " ALT" "")
@@ -49,13 +50,14 @@
                     "")))
       (define/override (on-char ev)
         (set! iter (add1 iter))
-        (printf "~a~a KEY: ~a\n  rel-code: ~a\n  other-codes: ~a\n  mods:~a~a~a~a~a~a~a~a~a\n"
+        (printf "~a~a KEY: ~a     @~a\n  rel-code: ~a\n  other-codes: ~a\n  mods:~a~a~a~a~a~a~a~a~a\n"
                 (es-check)
                 iter
                 (let ([v (send ev get-key-code)])
                   (if (symbol? v)
                       v
                       (format "~s = ASCII ~a" (string v) (char->integer v))))
+                (send ev get-time-stamp)
                 (let ([v (send ev get-key-release-code)])
                   (if (symbol? v)
                       v
