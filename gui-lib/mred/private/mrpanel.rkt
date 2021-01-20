@@ -374,7 +374,6 @@
                                        0 0
                                        '(no-focus transparent)
                                        #f))
-         (send tab-canvas skip-enter-leave-events #t)
          (set! inside (make-object wx-vertical-panel%
                                    this this
                                    wx
