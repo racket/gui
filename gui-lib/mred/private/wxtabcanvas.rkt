@@ -435,7 +435,7 @@
                   (not left-down))
              (and button-up?-left
                   (or (not (<= 0 mouse-x cw))
-                      (not (<= 0 mouse-y cw)))))
+                      (not (<= 0 mouse-y ch)))))
          ;; this cannot just be `leaving?` because the mouse being
          ;; down grabs all events to the canvas. So: if the
          ;; button is down we don't believe the leaving event.
