@@ -338,7 +338,8 @@
       (define-values (tw th td ta) (send dc get-text-extent lab))
       (send dc draw-text lab
             (+ x-start horizontal-item-margin)
-            (+ top-item-margin (- orig-ascent (- th td))))
+            (+ top-item-margin (- orig-ascent (- th td)))
+            #t)
       (send dc set-clipping-region #f)
       (maybe-draw-fade-at-edge lab lab-space x-start tab-background-color)
       (when (can-close?)
