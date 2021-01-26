@@ -2,6 +2,7 @@
 (require ffi/unsafe
          ffi/unsafe/alloc
 	 racket/class
+	 racket/draw
          "../../lock.rkt"
          "../common/utils.rkt"
 	 "utils.rkt"
@@ -13,6 +14,7 @@
  (protect-out hInstance
               DefWindowProcW
               background-hbrush
+              background-hbrush-color
               set-hwnd-wx!
               hwnd->wx
               hwnd->ctlproc
@@ -245,6 +247,9 @@
 (define background-hbrush (let ([p (ptr-add #f (+ COLOR_BTNFACE 1))])
                             (cpointer-push-tag! p 'HBRUSH)
                             p))
+(define background-hbrush-color
+  (let ([c (GetSysColor COLOR_BTNFACE)])
+    (make-object color% (GetRValue c) (GetGValue c) (GetBValue c))))
 
 (define-kernel32 GetModuleFileNameW (_wfun #:save-errno 'windows _pointer _pointer _DWORD -> _DWORD))
 (define ERROR_INSUFFICIENT_BUFFER 122)

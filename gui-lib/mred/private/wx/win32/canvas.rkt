@@ -53,6 +53,11 @@
 
 (define CB_SHOWDROPDOWN #x014F)
 
+;; Since the Win32 layer doesn't buffer windows, and since
+;; panels always have the same color, we don't actually
+;; use transparent mode
+(define transparent? #f)
+
 (define-cstruct _SCROLLINFO
   ([cbSize _UINT]
    [fMask _UINT]
@@ -195,13 +200,13 @@
                             (lambda ()
                               (let* ([hbrush (if no-autoclear?
                                                  #f
-                                                 (if transparent?
+                                                 (if transparent-ish?
                                                      background-hbrush
                                                      (CreateSolidBrush bg-colorref)))])
                                 (when hbrush
                                   (let ([r (GetClientRect canvas-hwnd)])
                                     (FillRect hdc r hbrush))
-                                  (unless transparent?
+                                  (unless transparent-ish?
                                     (DeleteObject hbrush)))))])
                        (when transparent? (erase))
                        (unless (do-canvas-backing-flush hdc)
@@ -257,7 +262,7 @@
 	   0
 	   (default w msg wParam lParam)))
      
-     (set! dc (new dc% [canvas this] [transparent? (memq 'transparent style)]))
+     (set! dc (new dc% [canvas this] [transparent? transparent?]))
      (send dc start-backing-retained)
 
      (define/public (get-dc) dc)
@@ -380,15 +385,16 @@
             (InvalidateRect canvas-hwnd #f #f)))))
 
      (define no-autoclear? (memq 'no-autoclear style))
-     (define transparent? (memq 'transparent style))
+     (define transparent-ish? (memq 'transparent style))
      (define bg-col (make-object color% "white"))
      (define bg-colorref #xFFFFFF)
-     (define/public (get-canvas-background) (if transparent?
+     (define/public (get-canvas-background) (if transparent-ish?
                                                 #f
                                                 bg-col))
-     (define/public (get-canvas-background-for-backing) (and (not transparent?)
-                                                             (not no-autoclear?)
-                                                             bg-col))
+     (define/public (get-canvas-background-for-backing) (if transparent-ish?
+							    background-hbrush-color
+							    (and (not no-autoclear?)
+								 bg-col)))
      (define/public (set-canvas-background col)
        (atomically
         (set! bg-col col)
