@@ -682,7 +682,7 @@ Inserts @racket[snip] at @techlink{location} @math{(@racket[x],
  @racket[before]. (@|seesniporderdiscuss|) If @racket[before] is not
  provided or is @racket[#f], then @racket[snip] is inserted behind all
  other snips. If @racket[x] and @racket[y] are not provided, the snip
- is added at @math{(0, 0)}.
+ is added at the center of the pasteboard.
 
 }
 
