@@ -18,12 +18,26 @@
 
 ;; ----------------------------------------
 
-(import-class NSScrollView NSTableView NSTableColumn NSCell NSIndexSet)
+(import-class NSScrollView NSTableView NSTableColumn NSCell NSIndexSet NSFont)
 (import-protocol NSTableViewDataSource)
 
 (define NSLineBreakByTruncatingTail 4)
 
 (define during-selection-set? (make-parameter #f))
+
+;; 11.0 and up:
+(define NSTableViewStyleAutomatic 0)
+(define NSTableViewStyleFullWidth 1)
+(define NSTableViewStyleInset 2)
+(define NSTableViewStyleSourceList 3)
+(define NSTableViewStylePlain 4)
+
+(define default-cell-font
+  (and (version-11.0-or-later?)
+       (atomically
+        (let ([f (tell NSFont controlContentFontOfSize: #:type _CGFloat 0.0)])
+          (tellv f retain)
+          f))))
 
 (define-objc-class RacketTableView NSTableView
   #:mixins (FocusResponder KeyMouseResponder CursorDisplayer)
@@ -106,6 +120,9 @@
             (tellv (tell col headerCell) setStringValue: #:type _NSString title)
             col)))
       (init-font content-cocoa font)
+      (when (version-11.0-or-later?)
+        (tellv content-cocoa setStyle: #:type _NSInteger NSTableViewStyleFullWidth)
+        (tellv content-cocoa setIntercellSpacing: #:type _NSSize (make-NSSize 1.0 1.0)))
       (values content-cocoa cols)))
   (set-ivar! content-cocoa wxb (->wxb this))
 
@@ -168,7 +185,8 @@
 
   (def/public-unimplemented get-label-font)
 
-  (define cell-font (and font (font->NSFont font)))
+  (define cell-font (or (and font (font->NSFont font))
+                        default-cell-font))
   (when cell-font
     (tellv content-cocoa setRowHeight: #:type _CGFloat
            (+ (tell #:type _CGFloat cell-font defaultLineHeightForFont) 2)))

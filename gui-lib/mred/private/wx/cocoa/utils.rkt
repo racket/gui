@@ -32,7 +32,8 @@
               version-10.12-or-later?
               version-10.13-or-later?
               version-10.14-or-later?
-              version-10.15-or-later?)
+              version-10.15-or-later?
+              version-11.0-or-later?)
  with-autorelease
  call-with-autorelease
  define-mz)
@@ -107,3 +108,5 @@
   (NSAppKitVersionNumber . >= . 1671))
 (define (version-10.15-or-later?) ; Catalina
   (NSAppKitVersionNumber . >= . 1700))
+(define (version-11.0-or-later?) ; Big Sur
+  (NSAppKitVersionNumber . >= . 2000))
