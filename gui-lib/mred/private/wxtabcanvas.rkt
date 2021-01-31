@@ -519,7 +519,7 @@
 
     (define/private (update-mouse-over-drawing-state)
       (cond
-        [(and mouse-x mouse-y)
+        [(and mouse-x mouse-y mouse-entered?)
          (define-values (mouse-over-tab
                          mx-offset-in-tab
                          mouse-over-close?
