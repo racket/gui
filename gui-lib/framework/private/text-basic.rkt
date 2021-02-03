@@ -505,6 +505,8 @@
           (send dc set-brush old-brush)))
     
       (super-new)))
+
+  (define port-name-counter 0)
   
   (define other-basics-mixin
     (mixin (editor:basic<%> (class->interface text%)) ()
@@ -537,7 +539,10 @@
           (cond
             [(or (unbox b) (not n))
              (unless port-name-identifier
-               (set! port-name-identifier (string->uninterned-symbol port-name-unsaved-name))
+               (define our-number #f)
+               (set! our-number port-name-counter)
+               (set! port-name-counter (+ port-name-counter 1))
+               (set! port-name-identifier (string->symbol (format "~a-~a" our-number port-name-unsaved-name)))
                (register-port-name! port-name-identifier this))
              port-name-identifier]
             [else n])))
