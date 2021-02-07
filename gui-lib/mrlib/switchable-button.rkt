@@ -96,8 +96,9 @@
       (unless (equal? disabled? (not e?))
         (set! disabled? (not e?))
         (set! down? #f)
-        (set! in? #f)
-        (refresh)))
+        (update-float (and has-label? in? (not disabled?)))
+        (refresh))
+      (super enable e?))
     (define/override (is-enabled?) (not disabled?))
 
     (define/override (on-superwindow-show show?)
@@ -151,8 +152,10 @@
                        [notify-callback
                         (λ ()
                           (unless has-label?
-                            (unless (equal? (send float-window is-shown?) in?)
-                              (send float-window show in?)))
+                            (define float-should-be-shown? (and (not disabled?) in?))
+                            (unless (equal? (send float-window is-shown?)
+                                            float-should-be-shown?)
+                              (send float-window show float-should-be-shown?)))
                           (set! timer-running? #f))]))
     (define timer-running? #f)
 
@@ -289,7 +292,7 @@
       (unless (equal? has-label? h?)
         (set! has-label? h?)
         (update-sizes)
-        (update-float (and has-label? in?))
+        (update-float (and has-label? in? (not disabled?)))
         (refresh)))
     (define/public (get-label-visible) has-label?)
 
@@ -371,30 +374,39 @@
      disable-bm]
     [else #f]))
 
-#;
-(begin
+(module+ examples
   (define f (new frame% [label ""]))
   (define vp (new vertical-pane% [parent f]))
   (define p (new horizontal-panel% [parent vp] [alignment '(right top)]))
 
   (define label "Run")
-  (define bitmap (make-object bitmap% (build-path (collection-path "icons") "run.png") 'png/mask))
-  (define foot (make-object bitmap% (build-path (collection-path "icons") "foot.png") 'png/mask))
-  (define foot-up
-    (make-object bitmap% (build-path (collection-path "icons") "foot-up.png") 'png/mask))
+  (define bitmap (read-bitmap (collection-file-path "run.png" "icons")))
+  (define foot (read-bitmap (collection-file-path "foot.png" "icons")))
+  (define foot-up (read-bitmap (collection-file-path "foot-up.png" "icons")))
+  (define small-planet (read-bitmap (collection-file-path "small-planet.png" "icons")))
 
   (define b1 (new switchable-button% [parent p] [label label] [bitmap bitmap] [callback void]))
   (define b2 (new switchable-button% [parent p] [label label] [bitmap bitmap] [callback void]))
   (define b3 (new switchable-button% [parent p] [label "Step"] [bitmap foot]
                   [alternate-bitmap foot-up]
                   [callback void]))
+
+  ;; button with a callback that enables and disables like the debugger's step button
+  (define b4
+    (new switchable-button%
+         [label "Step"]
+         [bitmap small-planet]
+         [parent p]
+         [callback (λ (_) (send b4 enable #f) (send b4 enable #t))]
+         [min-width-includes-label? #t]))
+
   (define sb (new button% [parent p] [stretchable-width #t] [label "b"]))
+  (define state #t)
   (define swap-button
     (new button%
          [parent f]
          [label "swap"]
          [callback
-          (define state #t)
           (λ (a b)
             (set! state (not state))
             (send b1 set-label-visible state)
