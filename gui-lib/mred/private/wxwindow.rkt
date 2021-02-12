@@ -171,7 +171,8 @@
                  (if (eq? w orig-w)
                      (k (wx->proxy w) e)
                      (cond
-                       [(memq (send e get-event-type) '(enter leave))
+                       [(and (is-a? e wx:mouse-event%)
+                             (memq (send e get-event-type) '(enter leave)))
                         ;; suppress enter and leave events
                         #f]
                        [else
