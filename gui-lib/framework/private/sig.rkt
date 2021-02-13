@@ -11,7 +11,8 @@
     (make-repeating-decimal-snip
      make-fraction-snip
      is-number-snip?
-     get-number))
+     get-number
+     remove-decimal-looking-number-snips-on-insertion-mixin))
   (define-signature number-snip/int^ extends number-snip^
     ())
   

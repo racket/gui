@@ -227,6 +227,15 @@
   (-> number-snip:is-number-snip? real?)
   (ns)
   @{Returns the number that this @tech{number snip} displays.})
+
+ (proc-doc/names
+  number-snip:remove-decimal-looking-number-snips-on-insertion-mixin
+  (-> (subclass?/c text%) (subclass?/c text%))
+  (text%)
+  @{Overrides the @method[text% on-insert] and
+ @method[text% after-insert] to replace @racket[number-snip%]
+ objects that look like ASCII with their corresponding ASCII
+ text.})
  
  (thing-doc
   comment-box:snipclass

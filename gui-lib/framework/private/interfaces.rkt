@@ -12,7 +12,11 @@
          frame:text-info<%>
          text:ascii-art-enlarge-boxes<%>
          do-draw-single-line
-         draw-separator)
+         draw-separator
+         get-fully-computed-finite-decimal-string)
+
+;; for use in the number-snip% test suite
+(define-local-member-name get-fully-computed-finite-decimal-string)
 
 (define-local-member-name draw-separator do-draw-single-line)
 
