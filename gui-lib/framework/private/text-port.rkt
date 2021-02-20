@@ -3,9 +3,11 @@
          "text-sig.rkt"
          (prefix-in base: racket/base)
          simple-tree-text-markup/data
+         (only-in simple-tree-text-markup/construct markup-transform-image-data)
          racket/unit
          racket/class
          racket/match
+         racket/draw
          mred/mred-sig
          mrlib/interactive-value-port
          (prefix-in image-core: mrlib/image-core))
@@ -17,7 +19,8 @@
           (except text-mixed-in-classes^ keymap%)
           [prefix icon: framework:icon^]
           [prefix editor: framework:editor^]
-          [prefix srcloc-snip: framework:srcloc-snip^])
+          [prefix srcloc-snip: framework:srcloc-snip^]
+          [prefix text: text-misc^])
   (export text-port^)
 
   (define wide-snip<%>
@@ -68,11 +71,12 @@
 
   ;; class for snips embedded in markup
   (define markup-text%
-    (wide-snip-mixin
-     (basic-mixin
-      (editor:standard-style-list-mixin
-       (editor:basic-mixin
-        text%)))))
+    (text:foreground-color-mixin
+     (wide-snip-mixin
+      (basic-mixin
+       (editor:standard-style-list-mixin
+        (editor:basic-mixin
+         text%))))))
   
   (define-struct peeker (bytes skip-count pe resp-chan nack polling?) #:inspector (make-inspector))
   (define-struct committer (kr commit-peeker-evt done-evt resp-chan resp-nack))
@@ -523,7 +527,9 @@
              (do-insertion txts #f)
              (if async? (thread (λ () (sync signal))) (sync signal)))
            #f)))
-    
+
+      (inherit line-start-position position-line)
+      
       ;; do-insertion : (listof (cons (union string snip) style-delta)) boolean -> void
       ;; thread: eventspace main thread
       (define/private (do-insertion txts showing-input?)
@@ -538,50 +544,151 @@
             [(null? txts) (void)]
             [else 
              (define fst (car txts))
-             (define-values (str/snp style)
+
+             (define (markup->snip markup style framed?)
+               (let* ([text (new markup-text%)]
+                      [snip (new editor-snip% [editor text] [with-border? framed?])])
+                 (send snip use-style-background #t)
+                 (send text set-styles-sticky #f)
+                 (define start (send text get-end-position))
+                 (insert-markup markup text style #f)
+                 (send snip set-style style)
+                 (send text lock #t)
+                 snip))
+
+             (define (insert-markup markup text style inline?)
                (cond
-                 [(snip-special? (car fst))
-                  (define the-snip
-                    (snip-special->snip (car fst)))
-                  (if (exn:fail? the-snip)
-                      (values (apply
-                               string-append
-                               "error while rendering snip "
-                               (format "~s" (snip-special-name (car fst)))
-                               ":\n"
-                               (exn-message the-snip)
-                               "  context:\n"
-                               (for/list ([x (in-list (continuation-mark-set->context
-                                                       (exn-continuation-marks
-                                                        the-snip)))])
-                                 (format "   ~s\n" x)))
-                              (add-standard error-style-name))
-                      (values the-snip (cdr fst)))]
-                 [else (values (car fst) (cdr fst))]))
-           
-             (define inserted-count
-               (if (is-a? str/snp snip%)
-                   (send str/snp get-count)
-                   (string-length str/snp)))
-             (define old-insertion-point insertion-point)
-             (set! insertion-point (+ insertion-point inserted-count))
-             (set! unread-start-point (+ unread-start-point inserted-count))
-           
-             (insert (if (is-a? str/snp snip%)
-                         (let ([s (send str/snp copy)])
-                           (if (is-a? s snip%)
-                               s
-                               (new snip%)))
-                         str/snp)
-                     old-insertion-point
-                     old-insertion-point
-                     #t)
-           
-             ;; the idea here is that if you made a string snip, you
-             ;; could have made a string and gotten the style, so you
-             ;; must intend to have your own style.
-             (unless (is-a? str/snp string-snip%)
-               (change-style style old-insertion-point insertion-point))
+                 ((string? markup)
+                  (send text insert markup))
+                 ((empty-markup? markup) (void))
+                 ((horizontal-markup? markup)
+                  (for-each (lambda (markup)
+                              (insert-markup markup text style #t))
+                            (horizontal-markup-markups markup)))
+                 ((vertical-markup? markup)
+                  (if inline?
+                      (send text insert (markup->snip markup style #f))
+                      (for-each/between (lambda (markup)
+                                          (insert-markup markup text style #f))
+                                        (lambda () (send text insert #\newline))
+                                        (vertical-markup-markups markup))))
+                 ((srcloc-markup? markup)
+                  (insert-srcloc-markup markup text style))
+                 ((framed-markup? markup)
+                  (send text insert (markup->snip (framed-markup-markup markup) style #t)))
+                 ((image-markup? markup)
+                  (send text insert (image-markup->snip markup style)))))
+             
+             (define (image-markup->snip markup style)
+               (let ((data (image-markup-data markup)))
+                 (cond
+                   ((is-a? data snip%) data)
+                   ((snip-special? data)
+                    (define snip (snip-special->snip data))
+                    (if (exn:fail? snip)
+                        (markup->snip (image-markup-alt-markup markup) style #f)
+                        snip))
+                   (else
+                    (markup->snip (image-markup-alt-markup markup) style #f)))))
+             
+             (define (insert-srcloc-markup srcloc-markup text style)
+               (let ((start (send text get-end-position)))
+                 (insert-markup (srcloc-markup-markup srcloc-markup) text style #t)
+                 (let ([end (send text get-end-position)])
+                   (send text set-clickback
+                         start end
+                         (lambda (t s e)
+                           (srcloc-snip:select-srcloc (srcloc-markup-srcloc srcloc-markup))))
+                   (send text change-style
+                         (make-object style-delta% 'change-underline #t)
+                         start end #f))))
+             
+             ; like for-each, but with a thunk that gets called between elements
+             (define (for-each/between proc between list)
+               (let loop ((list list))
+                 (cond
+                   ((null? list) (void))
+                   ((null? (cdr list))
+                    (proc (car list)))
+                   (else
+                    (proc (car list))
+                    (between)
+                    (loop (cdr list))))))
+
+             (define (insert-str/snp! str/snp style)
+               (define inserted-count
+                 (if (is-a? str/snp snip%)
+                     (send str/snp get-count)
+                     (string-length str/snp)))
+               (define old-insertion-point insertion-point)
+               (set! insertion-point (+ insertion-point inserted-count))
+               (set! unread-start-point (+ unread-start-point inserted-count))
+               
+               (insert str/snp old-insertion-point old-insertion-point #t)
+               ;; the idea here is that if you made a string snip, you
+               ;; could have made a string and gotten the style, so you
+               ;; must intend to have your own style.
+               (unless (is-a? str/snp string-snip%)
+                 (change-style style old-insertion-point insertion-point)))
+
+             (define (insert-markup-top-level markup style)
+               (cond
+                 [(string? markup) (insert-str/snp! markup style)]
+                 [(empty-markup? markup) (void)]
+                 [(horizontal-markup? markup)
+                  (for-each (lambda (markup)
+                              (insert-markup-top-level markup style))
+                            (horizontal-markup-markups markup))]
+                 [(vertical-markup? markup)
+                  (define pos (get-end-position))
+                  (if (= pos (line-start-position (position-line pos))) ; at bol?
+                      (for-each/between (lambda (markup)
+                                          (insert-markup-top-level markup style))
+                                        (lambda () (insert-str/snp! "\n" style))
+                                        (vertical-markup-markups markup))
+                      (insert-str/snp! (markup->snip markup style #f) style))]
+                 [(srcloc-markup? markup)
+                  (let* ([snip (new srcloc-snip:snip% [srcloc (srcloc-markup-srcloc markup)])]
+                         [editor (send snip get-editor)])
+                    (insert-markup (srcloc-markup-markup markup) editor style #t)
+                    (let ((end (send editor get-end-position)))
+                      (send editor change-style style 0 end #f)
+                      (send editor change-style
+                            (make-object style-delta% 'change-underline #t)
+                            0 end #f))
+                    (send snip activate-link)
+                    (insert-str/snp! snip style))]
+                 [(framed-markup? markup)
+                  (insert-str/snp! (markup->snip (framed-markup-markup markup) style #t) style)]
+                 [(image-markup? markup)
+                  (insert-str/snp! (image-markup->snip markup style) style)]))
+             
+             (define thing (car fst))
+             (define style (cdr fst))
+             
+             (cond
+               [(snip-special? thing)
+                (define the-snip
+                  (snip-special->snip thing))
+                (if (exn:fail? the-snip)
+                    (insert-str/snp! (apply
+                                      string-append
+                                      "error while rendering snip "
+                                      (format "~s" (snip-special-name thing))
+                                      ":\n"
+                                      (exn-message the-snip)
+                                      "  context:\n"
+                                      (for/list ([x (in-list (continuation-mark-set->context
+                                                              (exn-continuation-marks
+                                                               the-snip)))])
+                                        (format "   ~s\n" x)))
+                                     (add-standard error-style-name))
+                    (insert-str/snp! the-snip style))]
+               [(string? thing) (insert-str/snp! thing style)]
+               [(markup? thing) (insert-markup-top-level thing style)]
+               [(is-a? thing snip%) (insert-str/snp! (send thing copy) style)]
+               [else (void)])
+             
              (loop (cdr txts))]))
         (set-styles-fixed sf?)
         (set! allow-edits? #f)
@@ -594,6 +701,7 @@
         (end-edit-sequence)
         (unless (null? txts)
           (after-io-insertion)))
+
     
       (define/public (after-io-insertion) (void))
 
@@ -731,50 +839,10 @@
       
         (define (out-close-proc)
           (void))
-
-        (define (markup->framed-snip markup style)
-          (let* ([framed-text (new markup-text%)]
-                 [snip (new editor-snip% [editor framed-text])])
-            (send snip use-style-background #t)
-            (insert-markup markup framed-text style)
-            (send framed-text lock #t)
-            snip))
-
-        (define (insert-markup markup text style)
-          (send text change-style style)
-          (cond
-            ((string? markup)
-             (send text insert markup))
-            ((empty-markup? markup) (void))
-            ((horizontal-markup? markup)
-             (for-each (lambda (markup)
-                         (insert-markup markup text style))
-                       (horizontal-markup-markups markup)))
-            ((vertical-markup? markup)
-             (for-each (lambda (markup)
-                         (insert-markup markup text style)
-                         (send text insert #\newline))
-                       (vertical-markup-markups markup)))
-            ((srcloc-markup? markup)
-             (insert-srcloc-markup markup text style))
-            ((framed-markup? markup)
-             (send text insert (markup->framed-snip (framed-markup-markup markup) style)))))
-
-        (define (insert-srcloc-markup srcloc-markup text style)
-          (let ((start (send text get-end-position)))
-            (insert-markup (srcloc-markup-markup srcloc-markup) text style)
-            (let ([end (send text get-end-position)])
-              (send text set-clickback
-                    start end
-                    (lambda (t s e)
-                      (srcloc-snip:select-srcloc (srcloc-markup-srcloc srcloc-markup))))
-              (send text change-style
-                    (make-object style-delta% 'change-underline #t)
-                    start end #f))))
         
         (define (make-write-special-proc style)
           (λ (special can-buffer? enable-breaks?)
-            (define put-string-or-snip
+            (define do-put
               (cond
                 [(eq? (current-thread) (eventspace-handler-thread eventspace))
                  (define return-chan (make-channel))
@@ -787,33 +855,11 @@
 
             (define (put-special special)
               (cond
-                [(string? special) (put-string-or-snip special)]
-                [(snip-special? special) (put-string-or-snip special)]
-                [(is-a? special snip%) (put-string-or-snip special)]
-                [(empty-markup? special) (void)]
-                [(horizontal-markup? special)
-                 (for-each (lambda (markup)
-                             (put-special markup))
-                           (horizontal-markup-markups special))]
-                [(vertical-markup? special)
-                 (for-each (lambda (markup)
-                             (put-special markup)
-                             (put-string-or-snip "\n"))
-                           (vertical-markup-markups special))]
-                [(srcloc-markup? special)
-                 (let* ([snip (new srcloc-snip:snip% [srcloc (srcloc-markup-srcloc special)])]
-                        [editor (send snip get-editor)])
-                   (insert-markup (srcloc-markup-markup special) editor style)
-                   (let ((end (send editor get-end-position)))
-                     (send editor change-style style 0 end #f)
-                     (send editor change-style
-                           (make-object style-delta% 'change-underline #t)
-                           0 end #f))
-                   (send snip activate-link)
-                   (put-string-or-snip snip))]
-                [(framed-markup? special)
-                 (put-string-or-snip (markup->framed-snip special style))]
-                [else (put-string-or-snip (format "~s" special))]))
+                [(string? special) (do-put special)]
+                [(snip-special? special) (do-put special)]
+                [(is-a? special snip%) (do-put special)]
+                [(markup? special) (do-put (markup-transform-image-data encode-image-data special))]
+                [else (do-put (format "~s" special))]))
 
             (put-special special)))
       
@@ -1004,6 +1050,38 @@
           (write-special (make-snip-special (send value copy)) port)])])
     (void))
 
+  (define (encode-image-data value)
+    (when (image-core:image? value)
+      (image-core:compute-image-cache value))
+    ; Note that image-core:image? is not an appropriate predicate here
+    ; to control serialization, as it just checks subtyping for
+    ; various classes and interfaces, which anyone could implement.
+    (cond
+      [(is-a? value snip%)
+       (define str (format "~s" value))
+       (cond
+         ;; special case these snips as they don't work properly
+         ;; without this and we aren't ready to break them yet
+         ;; and image-core:image? should be safe-- there is no user
+         ;; code in those images to fail
+         [(or (regexp-match? #rx"plot-snip%" str)
+              (regexp-match? #rx"pict3d%" str))
+          (send value copy)]
+         [else
+          (define special (make-snip-special (send value copy)))
+          (and (snip-special-name special)
+               special)])]
+      [(is-a? value bitmap%)
+       (make-object image-snip% value)]
+      [(record-dc-datum? value)
+       (with-handlers ((exn:fail? (lambda (e) #f)))
+         (let ((proc (recorded-datum->procedure (record-dc-datum-datum value)))
+               (bitmap (make-object bitmap% (record-dc-datum-width value) (record-dc-datum-height value))))
+           (let ((dc (new bitmap-dc% [bitmap bitmap] )))
+             (proc dc)
+             (make-object image-snip% bitmap))))]
+      [else #f]))
+  
   (define input-box<%>
     (interface ((class->interface text%))
       ))
