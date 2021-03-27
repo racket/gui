@@ -520,7 +520,38 @@
                         "delete-next-character"
                         "delete-previous-character")
                     edit event #t)))]
-         
+         [home-key          
+          (λ (edit event)
+            (let ([kmap (send edit get-keymap)])
+              (send kmap call-function
+                    (if (preferences:get 'framework:home/end-to-beginning/end-of-document?)
+                        "beginning-of-file"
+                        "beginning-of-line")
+                    edit event #t)))]
+         [end-key
+          (λ (edit event)
+            (let ([kmap (send edit get-keymap)])
+              (send kmap call-function
+                    (if (preferences:get 'framework:home/end-to-beginning/end-of-document?)
+                        "end-of-file"
+                        "end-of-line")
+                    edit event #t)))]
+         [shift-home-key          
+          (λ (edit event)
+            (let ([kmap (send edit get-keymap)])
+              (send kmap call-function
+                    (if (preferences:get 'framework:home/end-to-beginning/end-of-document?)
+                        "select-to-beginning-of-file"
+                        "select-to-beginning-of-line")
+                    edit event #t)))]
+         [shift-end-key
+          (λ (edit event)
+            (let ([kmap (send edit get-keymap)])
+              (send kmap call-function
+                    (if (preferences:get 'framework:home/end-to-beginning/end-of-document?)
+                        "select-to-end-of-file"
+                        "select-to-end-of-line")
+                    edit event #t)))]         
          [toggle-overwrite
           (λ (edit event)
             (when (preferences:get 'framework:overwrite-mode-keybindings)
@@ -813,6 +844,10 @@
         (add-m "select-click-line" select-click-line)
         
         (add "delete-key" delete-key)
+        (add "home-key" home-key)
+        (add "end-key" end-key)
+        (add "shift-home-key" shift-home-key)
+        (add "shift-end-key" shift-end-key)
         
         (add "mouse-popup-menu" mouse-popup-menu)
         
@@ -883,15 +918,15 @@
         
         (map "c:e" "end-of-line")
         (map "d:right" "end-of-line")
-        (map "end" "end-of-line")
-        (map "s:end" "select-to-end-of-line")
+        (map "end" "end-key")
+        (map "s:end" "shift-end-key")
         (map "s:c:e" "select-to-end-of-line")
         (map "s:d:right" "select-to-end-of-line")
         
         (map "c:a" "beginning-of-line")
         (map "d:left" "beginning-of-line")
-        (map "home" "beginning-of-line")
-        (map "s:home" "select-to-beginning-of-line")
+        (map "home" "home-key")
+        (map "s:home" "shift-home-key")
         (map "s:c:a" "select-to-beginning-of-line")
         (map "s:d:left" "select-to-beginning-of-line")
         
