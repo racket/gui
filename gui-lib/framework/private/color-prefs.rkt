@@ -9,6 +9,7 @@
            setup/collects
            string-constants
            racket/pretty
+           mrlib/panel-wob
            "../preferences.rkt"
            "sig.rkt"
            "srcloc-panel.rkt")
@@ -854,14 +855,16 @@
        (= (send c1 alpha) (send c2 alpha))))
 
 (define (get-current-color-scheme)
-  ;; if pref not recognized, return white-on-black color scheme
-  ;; so that if some color scheme goes away, we have
-  ;; some reasonable backup plan (and, if it comes back
+  ;; if pref not recognized, return a color scheme
+  ;; based on white-on-black-panel-scheme? so that
+  ;; if some color scheme goes away, we have some
+  ;; reasonable backup plan (and, if it comes back
   ;; we don't lose the prefs)
   (define pref-val (preferences:get 'framework:color-scheme))
   (define found-color-scheme (lookup-color-scheme pref-val))
   (cond
     [found-color-scheme found-color-scheme]
+    [(white-on-black-panel-scheme?) (cadr known-color-schemes)]
     [else (car known-color-schemes)]))
 
 (define (get-current-color-scheme-name)
