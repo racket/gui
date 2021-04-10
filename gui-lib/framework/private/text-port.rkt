@@ -1072,7 +1072,16 @@
           (and (snip-special-name special)
                special)])]
       [(is-a? value bitmap%)
-       (make-object image-snip% value)]
+       (define w (send value get-width))
+       (define h (send value get-height))
+       (define copy (make-object bitmap% w h
+                      (= (send value get-depth) 1)
+                      (send value has-alpha-channel?)
+                      (send value get-backing-scale)))
+       (define pixels (make-bytes (* w h 4)))
+       (send value get-argb-pixels 0 0 w h pixels)
+       (send copy set-argb-pixels 0 0 w h pixels)
+       (make-object image-snip% copy)]
       [(record-dc-datum? value)
        (with-handlers ((exn:fail? (lambda (e) #f)))
          (let ((proc (recorded-datum->procedure (record-dc-datum-datum value)))
