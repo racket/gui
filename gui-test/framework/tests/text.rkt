@@ -4,7 +4,8 @@
          "private/gui.rkt"
          rackunit
          racket/gui/base
-         framework)
+         framework
+         simple-tree-text-markup/data)
 
 (module+ test
   (with-private-prefs
@@ -649,7 +650,59 @@
          (send t undo)
          (loop)))
      (define after (get-colors))
-     (list before after))))
+     (list before after)))
+
+  (let ()
+    (define t (new (text:ports-mixin text:wide-snip%)))
+    (define op (send t get-out-port))
+    (write-special (horizontal-markup (list "a" "b" "c")) op)
+    (flush-output op)
+    (check-equal? (send t get-text) "abc"))
+
+  (let ()
+    (define t (new (text:ports-mixin text:wide-snip%)))
+    (define op (send t get-out-port))
+    (write-special (vertical-markup (list "a" "b" "c")) op)
+    (flush-output op)
+    (check-equal? (send t get-text) "a\nb\nc"))
+
+  (let ()
+    (define t (new (text:ports-mixin text:wide-snip%)))
+    (define op (send t get-out-port))
+    (write-special (framed-markup (horizontal-markup (list "a" "b" "c"))) op)
+    (flush-output op)
+    (check-true (is-a? (send t find-first-snip) editor-snip%))
+    (check-equal? (send (send (send t find-first-snip) get-editor) get-text) "abc"))
+
+  (let ()
+    (define t (new (text:ports-mixin text:wide-snip%)))
+    (define op (send t get-out-port))
+    (define w 4)
+    (define h 6)
+    (define bmp (make-bitmap w h))
+    (define pixels (make-bytes (* w h 4)))
+    (for ([x (in-range (bytes-length pixels))])
+      (bytes-set! pixels
+                  x
+                  (if (zero? (modulo x 4))
+                      255
+                      (modulo x 255))))
+    (send bmp set-argb-pixels 0 0 w h pixels)
+    (write-special (horizontal-markup (list "a" (image-markup bmp "x") "b")) op)
+    (flush-output op)
+    (check-equal? (send t get-text) "a.b")
+    (define image-snip (send (send t find-first-snip) next))
+    (check-true (is-a? image-snip image-snip%))
+    (define bmp2 (send image-snip get-bitmap))
+    (check-false (object=? bmp bmp2))
+    (check-equal? (send bmp2 get-width) w)
+    (check-equal? (send bmp2 get-height) h)
+    (define pixels2 (make-bytes (*  w h 4)))
+    (send bmp2 get-argb-pixels 0 0 w h pixels2)
+    (check-equal? pixels pixels2)
+    )
+
+  )
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
