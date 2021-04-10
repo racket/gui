@@ -922,9 +922,9 @@
   (check-equal? (edit-string "ABCDEF" 1 3 0 #t) "BCADEF")
   (check-equal? (edit-string "ABCDEF" 1 3 5 #f) "ABCDEBCF")
   (check-equal? (edit-string "ABCDEF" 1 3 5 #t) "ADEBCF")
-  (for ([i (in-range 100)])
+  (for ([i (in-range 10)])
     (random-check-edit-string))
-  (for ([i (in-range 100)])
+  (for ([i (in-range 10)])
     (check-move/copy+delete-property)))
 
 (define (ascii-art-enlarge-boxes before position overwrite? chars)
