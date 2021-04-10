@@ -16,6 +16,7 @@
                      "pconvert-lib"
                      "compatibility-lib"
                      "sandbox-lib"
+                     "simple-tree-text-markup-lib"
                      "pict-lib"
                      "pict-snip-lib"))
 (define update-implies '("gui-lib"))
