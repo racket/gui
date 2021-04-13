@@ -55,7 +55,8 @@
              reset-cr
              set-recording-limit
              get-recorded-command
-             get-clear-operator)
+             get-clear-operator
+	     get-clipping-region)
 
     (super-new)
 
@@ -141,9 +142,15 @@
 
     (define/override (erase)
       (super erase)
-      (when (= (get-clear-operator)
-               CAIRO_OPERATOR_CLEAR)
-        (set! nada? #t)))
+      (cond
+       [(and (= (get-clear-operator)
+		CAIRO_OPERATOR_CLEAR)
+	     (not (get-clipping-region)))
+        (set! nada? #t)]
+       [else
+	;; force drawing to a bitmap, so erase
+	;; will affect the recorded parts
+        (set-recording-limit -1)]))
 
     (define/public (clean-slate)
       (super erase)
@@ -211,6 +218,14 @@
                    (define save-mx (make-cairo_matrix_t 0.0 0.0 0.0 0.0 0.0 0.0))
 
                    (super-new)
+
+		   ;; disable cleraing operation so that it doesn't
+		   ;; paint black on a destination without alpha;
+		   ;; if there was any clearing within the recorded
+		   ;; image, it triggered bitmap mode instead of
+		   ;; getting here
+		   (define/override (get-clear-operator)
+		     CAIRO_OPERATOR_DEST)
 
                    (define/public (set-cr new-cr new-w new-h)
                      (set! cr new-cr)
