@@ -573,38 +573,39 @@
   (define/public (set-wheel-steps-mode mode) (set! wheel-steps-mode mode))
 
   (define/private (gen-wheels w msg lParam amt down up)
-    (let loop ([amt (* wheel-scale amt)])
+    (define wheel-delta (round (/ WHEEL_DELTA wheel-scale)))
+    (let loop ([amt amt])
       (cond
-        [((abs amt) . < . WHEEL_DELTA)
+        [((abs amt) . < . wheel-delta)
          (case wheel-steps-mode
            [(one integer) amt]
            [(fraction)
             (unless (zero? amt)
-              (do-key w msg down lParam #f #f void (/ amt (exact->inexact WHEEL_DELTA))))
+              (do-key w msg down lParam #f #f void (/ amt (exact->inexact wheel-delta))))
             0.0])]
         [(negative? amt)
          (case wheel-steps-mode
            [(one)
             (do-key w msg down lParam #f #f void 1.0)
-            (loop (+ amt WHEEL_DELTA))]
+            (loop (+ amt wheel-delta))]
            [(integer)
-            (define steps (quotient (- amt) WHEEL_DELTA))
+            (define steps (quotient (- amt) wheel-delta))
             (do-key w msg down lParam #f #f void (exact->inexact steps))
-            (loop (+ amt (* steps WHEEL_DELTA)))]
+            (loop (+ amt (* steps wheel-delta)))]
            [else
-            (do-key w msg down lParam #f #f void (/ (- amt) (exact->inexact WHEEL_DELTA)))
+            (do-key w msg down lParam #f #f void (/ (- amt) (exact->inexact wheel-delta)))
             0.0])]
         [else
          (case wheel-steps-mode
            [(one)
             (do-key w msg up lParam #f #f void 1.0)
-            (loop (- amt WHEEL_DELTA))]
+            (loop (- amt wheel-delta))]
            [(integer)
-            (define steps (quotient amt WHEEL_DELTA))
+            (define steps (quotient amt wheel-delta))
             (do-key w msg up lParam #f #f void (exact->inexact steps))
-            (loop (- amt (* steps WHEEL_DELTA)))]
+            (loop (- amt (* steps wheel-delta)))]
            [else
-            (do-key w msg up lParam #f #f void (/ amt (exact->inexact WHEEL_DELTA)))
+            (do-key w msg up lParam #f #f void (/ amt (exact->inexact wheel-delta)))
             0.0])])))
   
   (define/private (do-key w msg wParam lParam is-char? is-up? default wheel-steps)
