@@ -702,6 +702,32 @@
     (check-equal? pixels pixels2)
     )
 
+  (let ()
+    (define t (new (text:ports-mixin text:wide-snip%)))
+    (define op (send t get-out-port))
+    (write-special (horizontal-markup
+                    (list
+                     (number-markup 1/3 #:exact-prefix 'never #:inexact-prefix 'never #:fraction-view 'decimal)
+                     " "
+                     (number-markup 4/3 #:exact-prefix 'never #:inexact-prefix 'never #:fraction-view 'mixed)
+                     " "
+                     (number-markup 4/3 #:exact-prefix 'never #:inexact-prefix 'never #:fraction-view 'improper)
+                     " "
+                     (number-markup #i0.5 #:exact-prefix 'never #:inexact-prefix 'never #:fraction-view 'decimal)
+                     " "
+                     (number-markup #e0.5 #:exact-prefix 'never #:inexact-prefix 'never #:fraction-view 'decimal)))
+                   op)
+    (flush-output op)
+    (check-equal? (send t get-text) "0.3 1 1/3 4/3 #i0.5 #e0.5")
+    (define snip1 (send t find-first-snip))
+    (check-true (number-snip:is-number-snip? snip1))
+    (check-equal? (send snip1 get-text 0 10 #t) "0.3")
+    (define snip2 (send (send snip1 next) next))
+    (check-true (number-snip:is-number-snip? snip2))
+    (check-equal? (send snip2 get-text 0 10 #t) "1 1/3")
+    (define snip3 (send (send snip2 next) next))
+    (check-true (number-snip:is-number-snip? snip3))
+    (check-equal? (send snip3 get-text 0 10 #t) "4/3"))
   )
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

@@ -4,15 +4,53 @@
            "interfaces.rkt"
            mred/mred-sig
            racket/class
+           racket/pretty
            "../preferences.rkt"
            string-constants
-           file/convertible)
+           file/convertible
+           simple-tree-text-markup/text)
   
   (import mred^)
   (export (rename framework:number-snip/int^
                   [-snip-class% snip-class%]))
   (init-depend mred^)
-  
+
+  (define (number->string/snip number
+                               #:exact-prefix [exact-prefix 'never] #:inexact-prefix [inexact-prefix 'never]
+                               #:fraction-view [fraction-view #f])
+    (let ([fraction-view (or fraction-view (preferences:get 'framework:fraction-snip-style))])
+      (cond
+        [(or (inexact? number)
+             (integer? number)
+             (not (real? number)))
+         (number-markup->string number
+                                #:exact-prefix exact-prefix #:inexact-prefix inexact-prefix
+                                #:fraction-view fraction-view)]
+        [else
+         (case fraction-view
+           [(#f)
+            (make-fraction-snip number (eq? exact-prefix 'always))]
+           [(mixed improper)
+            (define snip (make-fraction-snip number (eq? exact-prefix 'always)))
+            (send snip set-fraction-view fraction-view)
+            snip]
+           [(decimal)
+            (make-repeating-decimal-snip number (or (eq? exact-prefix 'always)
+                                                    (eq? exact-prefix 'when-necessary)))])])))
+
+  (define (make-pretty-print-size #:exact-prefix [exact-prefix 'never] #:inexact-prefix [inexact-prefix 'never]
+                                  #:fraction-view [fraction-view #f])
+    (lambda (number display? port)
+      (let ([fraction-view (or fraction-view (preferences:get 'framework:fraction-snip-style))])
+        (cond
+          [(or (inexact? number)
+               (integer? number)
+               (not (real? number)))
+           (string-length (number-markup->string number
+                                                 #:exact-prefix exact-prefix #:inexact-prefix inexact-prefix
+                                                 #:fraction-view fraction-view))]
+          [else 1]))))
+    
   ;; make-repeating-decimal-snip : number boolean -> snip
   (define (make-repeating-decimal-snip number e-prefix?)
     (new number-snip%
