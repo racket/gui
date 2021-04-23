@@ -8,7 +8,9 @@
   (define-signature number-snip-class^ 
     (snip-class%))
   (define-signature number-snip^ extends number-snip-class^
-    (make-repeating-decimal-snip
+    (number->string/snip
+     make-pretty-print-size
+     make-repeating-decimal-snip
      make-fraction-snip
      is-number-snip?
      get-number
