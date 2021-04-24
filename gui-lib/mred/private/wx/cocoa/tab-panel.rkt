@@ -143,8 +143,9 @@
            (tellv tabv-cocoa setDelegate: i)
            (tellv tabv-cocoa setTabViewType: #:type _int NSNoTabsNoBorder)
            (tellv i setTabView: tabv-cocoa)
-           (let ([delegate (as-objc-allocation (tell (tell RacketTabViewDelegate alloc) init))])
-             (tellv i setDelegate: delegate))
+           (when use-mm?
+             (let ([delegate (as-objc-allocation (tell (tell RacketTabViewDelegate alloc) init))])
+               (tellv i setDelegate: delegate)))
            (tellv i setStyleNamed: #:type _NSString
                   (if use-mm?
                       (if (version-10.14-or-later?)
@@ -152,7 +153,8 @@
                           "Yosemite")
                       "Aqua"))
            ;; (tellv i setSizeCellsToFit: #:type _BOOL #t)
-           (if has-close?
+           (if (and has-close?
+                    use-mm?)
                (tellv i setOnlyShowCloseOnHover: #:type _BOOL #t)
                (tellv i setDisableTabClose: #:type _BOOL #t))
            (when use-mm?
@@ -164,7 +166,8 @@
       (let ([item (as-objc-allocation
                    (tell (tell NSTabViewItem alloc) initWithIdentifier: #f))])
         (tellv item setLabel: #:type _NSString (label->plain-label lbl))
-        (when has-close?
+        (when (and has-close?
+                   use-mm?)
           (tellv item setHasCloseButton: #:type _BOOL #t))
         (tellv tabv-cocoa addTabViewItem: item)
         item)))
@@ -231,7 +234,8 @@
     (let ([item (as-objc-allocation
                  (tell (tell NSTabViewItem alloc) initWithIdentifier: #f))])
       (tellv item setLabel: #:type _NSString (label->plain-label lbl))
-      (when has-close?
+      (when (and has-close?
+                 use-mm?)
         (tellv item setHasCloseButton: #:type _BOOL #t))
       (tellv tabv-cocoa addTabViewItem: item)
       (set! item-cocoas (append item-cocoas (list item)))
