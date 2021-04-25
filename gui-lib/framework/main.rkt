@@ -2167,11 +2167,13 @@
  (proc-doc
   color-prefs:register-color-scheme-entry-change-callback
   (->i ([name color-prefs:known-color-scheme-name?]
-        [fn (name)
-            (-> (if (color-prefs:color-scheme-style-name? name)
-                    (is-a?/c style-delta%)
-                    (is-a?/c color%))
-                any)])
+        [fn (name weak?)
+            (if weak?
+                (procedure-arity-includes/c 1)
+                (-> (if (color-prefs:color-scheme-style-name? name)
+                        (is-a?/c style-delta%)
+                        (is-a?/c color%))
+                    any))])
        ([weak? boolean?])
        [result void?])
   (#f)
