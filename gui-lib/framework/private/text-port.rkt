@@ -1044,7 +1044,8 @@
          ;; and image-core:image? should be safe-- there is no user
          ;; code in those images to fail
          [(or (regexp-match? #rx"plot-snip%" str)
-              (regexp-match? #rx"pict3d%" str))
+              (regexp-match? #rx"pict3d%" str)
+              (regexp-match? #rx"struct:object:dynamic-snip%" str)) ;; this is for frtime and only in the release (not in git head)
           (write-special (send value copy) port)]
          [else
           (write-special (make-snip-special (send value copy)) port)])])
