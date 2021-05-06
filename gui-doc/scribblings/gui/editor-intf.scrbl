@@ -1666,12 +1666,19 @@ Provides a way to add arbitrary graphics to an editor's @techlink{display}.  Thi
  method is called just before and just after every painting of the
  editor.
 
+The @racket[dx] and @racket[dy] arguments specify the drawing
+ coordinates in @racket[dc] for the editor's top-left corner. That is,
+ to draw at a particular position in editor coordinates, add
+ @racket[dx] and @racket[dy] to get @racket[dc] drawing coordinates.
+
 The @racket[before?] argument is @racket[#t] when the method is called just
  before painting the contents of the editor or @racket[#f] when it is
  called after painting. The @racket[left], @racket[top], @racket[right], and
  @racket[bottom] arguments specify which region of the editor is being
- repainted, in editor coordinates. To get the coordinates for
- @racket[dc], offset editor coordinates by adding (@racket[dx], @racket[dy]).
+ repainted, in editor coordinates, in case it is useful to optimize for drawing
+ into only that subregion. (Since @racket[left], @racket[top], @racket[right], and
+ @racket[bottom] are in editor coordinates, add @racket[dx] or @racket[dy]
+ to get the corresponding @racket[dc] region.)
  See @|drawcaretdiscuss| for information about @racket[draw-caret].
 
 The @method[editor<%> on-paint] method, together with the snips'
