@@ -393,7 +393,7 @@
                     (- left-to-get (bytes-length v))
                     (do-skip-whitespace))]
              [else (fail)]))]
-        [(member first-byte (map char->integer (string->list "0123456789")))
+        [(<= (char->integer #\0) first-byte (char->integer #\9))
          ;; read an id and use it to find a previously read byte string
          (define id
            (let loop ([n (- first-byte (char->integer #\0))])
