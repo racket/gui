@@ -370,46 +370,69 @@
                   [(<= (char->integer #\0) c (char->integer #\9))
                    (loop (+ (* (or n 0) 10) (- c (char->integer #\0))))]
                   [else (fail)]))]))
-         (let loop ([accum null]
-                    [left-to-get orig-len]
-                    [first-char-to-consider first-char-post-id])
-           (when (or is-bad? (negative? left-to-get)) (fail))
-           (cond
-             [(= first-char-to-consider (char->integer #\)))
-              ;; got all of the byte strings
-              (unless (zero? left-to-get) (fail))
-              (inc-item-count)
-              (define the-bytes (apply bytes-append (reverse accum)))
-              (when id (hash-set! previously-read-bytes id the-bytes))
-              the-bytes]
-             [(= first-char-to-consider (char->integer #\#))
-              ;; another byte string still to get
-              (unless (equal? (send f read-byte) (char->integer #\"))
-                (fail))
-              (define v (get-single-line-bytes (min left-to-get 16) #t))
-              (when is-bad? (fail))
-              (unless ((bytes-length v) . <= . left-to-get) (fail))
-              (loop (cons v accum)
-                    (- left-to-get (bytes-length v))
-                    (do-skip-whitespace))]
-             [else (fail)]))]
+         (cond
+           [(= first-char-post-id (char->integer #\#))
+            ;; this is for an older format where the bytes were chopped up
+            ;; into multiple lines with bytes-encoded bytes on each line
+            (let loop ([accum null]
+                       [left-to-get orig-len]
+                       [first-char-to-consider first-char-post-id])
+              (when (or is-bad? (negative? left-to-get)) (fail))
+              (cond
+                [(= first-char-to-consider (char->integer #\)))
+                 ;; got all of the byte strings
+                 (unless (zero? left-to-get) (fail))
+                 (inc-item-count)
+                 (define the-bytes (apply bytes-append (reverse accum)))
+                 (when id (hash-set! previously-read-bytes id the-bytes))
+                 the-bytes]
+                [(= first-char-to-consider (char->integer #\#))
+                 ;; another byte string still to get
+                 (unless (equal? (send f read-byte) (char->integer #\"))
+                   (fail))
+                 (define v (get-single-line-bytes (min left-to-get 16) #t))
+                 (when is-bad? (fail))
+                 (unless ((bytes-length v) . <= . left-to-get) (fail))
+                 (loop (cons v accum)
+                       (- left-to-get (bytes-length v))
+                       (do-skip-whitespace))]
+                [else (fail)]))]
+           [(<= (char->integer #\0) first-char-post-id (char->integer #\9))
+            (define size (fetch-number first-char-post-id fail))
+            (define the-bytes (make-bytes size))
+            (define amt-read (send f read-bytes the-bytes 0 size))
+            (unless (= size amt-read)
+              (fail))
+            (unless (equal? (send f read-byte) (char->integer #\newline))
+              (fail))
+            (unless (equal? (send f read-byte) (char->integer #\)))
+              (fail))
+            (inc-item-count)
+            (when id (hash-set! previously-read-bytes id the-bytes))
+            the-bytes]
+           [else (fail)])]
         [(<= (char->integer #\0) first-byte (char->integer #\9))
          ;; read an id and use it to find a previously read byte string
-         (define id
-           (let loop ([n (- first-byte (char->integer #\0))])
-             (define b (send f read-byte))
-             (cond
-               [(not b) n]
-               [(char-whitespace? (integer->char b))
-                n]
-               [(<= (char->integer #\0) b (char->integer #\9))
-                (loop (+ (* n 10) (- b (char->integer #\0))))]
-               [else (fail)])))
+         (define id (fetch-number first-byte fail))
          (inc-item-count)
          (hash-ref previously-read-bytes id
                    (λ () (fail)))]
         [else (fail)])))
 
+  ;; reads a natural number from `f` where `first-byte` is
+  ;; expected to be the first digit; also consumes one character
+  ;; after the number, which must be whitespace
+  (define/private (fetch-number first-byte fail)
+    (let loop ([n (- first-byte (char->integer #\0))])
+      (define b (send f read-byte))
+      (cond
+        [(not b) n]
+        [(char-whitespace? (integer->char b))
+         n]
+        [(<= (char->integer #\0) b (char->integer #\9))
+         (loop (+ (* n 10) (- b (char->integer #\0))))]
+        [else (fail)])))
+  
   (define/private (get-single-line-bytes orig-len extra-whitespace-ok?)
     (define (fail)
       (set! is-bad? #t)
@@ -657,7 +680,8 @@
         (send f tell)
         (let ([pos (send f tell)])
           (when (not (equal? (hash-ref pos-map items pos) pos))
-            (error "again"))
+            (error 'tell
+                   "internal error: underlying editor-stream-in-base% changed in an unexpected way"))
           (hash-set! pos-map items pos)
           items)))
 
@@ -769,32 +793,46 @@
          (hash-set! previously-written-bytes orig-s id)
          (send f write-bytes #"\n(")
          (send f write-bytes (string->bytes/utf-8 (number->string id)))
-         (define scratch-bytes (make-bytes 75 (char->integer #\space)))
-         (define scratch-len (bytes-length scratch-bytes))
-         (define scratch-prefix #"\n #\"")
-         (define scratch-starting-point (bytes-length scratch-prefix))
-         (bytes-copy! scratch-bytes 0 scratch-prefix)
-         (define (flush-out-pending-bytes scratch-offset)
-           (bytes-set! scratch-bytes scratch-offset (char->integer #\"))
-           (send f write-bytes (subbytes scratch-bytes 0 (+ scratch-offset 1))))
 
-         (let loop ([orig-s-offset 0]
-                    [scratch-offset scratch-starting-point])
-           (cond
-             [(< orig-s-offset orig-s-len)
-              (define the-bytes (vector-ref encoded-bytes (bytes-ref orig-s orig-s-offset)))
-              (define len (bytes-length the-bytes))
-              (cond
-                [(< (+ scratch-offset len) (- scratch-len 1))
-                 (bytes-copy! scratch-bytes scratch-offset the-bytes)
-                 (loop (+ orig-s-offset 1) (+ scratch-offset len))]
-                [else
-                 (flush-out-pending-bytes scratch-offset)
-                 (loop orig-s-offset scratch-starting-point)])]
-             [else
-              (unless (= scratch-offset scratch-starting-point)
-                (flush-out-pending-bytes scratch-offset))]))
-         (send f write-bytes #"\n)")
+         (when #t
+           (send f write-bytes #" ")
+           (send f write-bytes (string->bytes/utf-8 (number->string (bytes-length orig-s))))
+           (send f write-bytes #"\n")
+           (send f write-bytes orig-s)
+           (send f write-bytes #"\n)"))
+
+         (when #f
+           ;; this code produces a less efficient writing (and one
+           ;; that is hard to read in efficiently) as compared to the
+           ;; `(when #t ..)` above. but wxme format files used this,
+           ;; so code in the reader reads data in this format
+           (define scratch-bytes (make-bytes 75 (char->integer #\space)))
+           (define scratch-len (bytes-length scratch-bytes))
+           (define scratch-prefix #"\n #\"")
+           (define scratch-starting-point (bytes-length scratch-prefix))
+           (bytes-copy! scratch-bytes 0 scratch-prefix)
+           (define (flush-out-pending-bytes scratch-offset)
+             (bytes-set! scratch-bytes scratch-offset (char->integer #\"))
+             (send f write-bytes (subbytes scratch-bytes 0 (+ scratch-offset 1))))
+
+           (let loop ([orig-s-offset 0]
+                      [scratch-offset scratch-starting-point])
+             (cond
+               [(< orig-s-offset orig-s-len)
+                (define the-bytes (vector-ref encoded-bytes (bytes-ref orig-s orig-s-offset)))
+                (define len (bytes-length the-bytes))
+                (cond
+                  [(< (+ scratch-offset len) (- scratch-len 1))
+                   (bytes-copy! scratch-bytes scratch-offset the-bytes)
+                   (loop (+ orig-s-offset 1) (+ scratch-offset len))]
+                  [else
+                   (flush-out-pending-bytes scratch-offset)
+                   (loop orig-s-offset scratch-starting-point)])]
+               [else
+                (unless (= scratch-offset scratch-starting-point)
+                  (flush-out-pending-bytes scratch-offset))]))
+           (send f write-bytes #"\n)"))
+
          (set! col 1)]))
 
     (check-ok)

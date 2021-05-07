@@ -94,9 +94,9 @@
 (expect (send fbo2 get-bytes) 
         (bytes-append
          #"\n3 2.0 3 #\"hi\\0\"\n3 #\"bye\"\n80\n"
-         #"(0\n"
-         #" #\"0123456789abcdefghij0123456789ABCDEFGHIJ0123456789abcdefghij0123456\\\"\"\n"
-         #" #\"89ABCDEFGHIJ\"\n"
+         #"(0 80\n"
+         #"0123456789abcdefghij0123456789ABCDEFGHIJ0123456789abcdefghij0123456\"89ABCDEFGHIJ"
+         #"\n"
          #")"))
 
 (define fbo3 (make-object editor-stream-out-bytes-base%))
@@ -176,6 +176,56 @@
                                ;; this is in the new format, with an id at
                                ;; the start of the bytes
                                #" 23 (0 #\"0123456789ABCDEFappl\" #\"e!\\0\" ) 88")))
+  (define fi2 (make-object editor-stream-in% fbi2))
+
+  (expect (send fi2 ok?) #t)
+  (expect (send fi2 tell) 0)
+  (expect (let ([b (box 0)]) (send fi2 get b) (unbox b)) 1)
+  (expect (send fi2 ok?) #t)
+  (expect (send fi2 tell) 1)
+  (expect (let ([b (box 0)]) (send fi2 get b) (unbox b)) 2)
+  (expect (send fi2 ok?) #t)
+  (expect (let ([b (box 0.0)]) (send fi2 get b) (unbox b)) 4.0)
+  (expect (send fi2 ok?) #t)
+  (expect (send fi2 tell) 3)
+  (expect (send fi2 get-unterminated-bytes) #"hi")
+  (expect (send fi2 ok?) #t)
+  (expect (send fi2 tell) 5)
+  (expect (send fi2 get-unterminated-bytes) #"hi\"")
+  (expect (send fi2 ok?) #t)
+  (expect (send fi2 get-bytes) #"0123456789ABCDEFapple!")
+  (expect (send fi2 ok?) #t)
+  (expect (send fi2 tell) 9)
+
+  (send fi2 jump-to 3)
+  (expect (send fi2 tell) 3)
+  (expect (send fi2 get-unterminated-bytes) #"hi")
+  (send fi2 skip 4)
+  (expect (let ([b (box 0)]) (send fi2 get b) (unbox b)) 88)
+  (expect (send fi2 ok?) #t)
+  (expect (send fi2 tell) 10)
+
+  (send fi2 jump-to 3)
+  (send fi2 set-boundary 2)
+  (expect (send fi2 get-unterminated-bytes) #"hi")
+  (send fi2 jump-to 3)
+  (expect (send fi2 ok?) #t)
+  (expect (send fi2 tell) 3)
+  (send fi2 set-boundary 1)
+  (expect (with-handlers ([values (lambda (exn) #"")])
+            (send fi2 get-unterminated-bytes))
+          #"")
+  (expect (send fi2 ok?) #f))
+
+;; this is a duplicate of the previous test, but using a newer format
+;; for the underlying data
+(let ()
+  (define fbi2 (make-object editor-stream-in-bytes-base%
+                 (bytes-append #"1 ; comment \n 2 "
+                               #"#| | x # #|  |# q |# 4.0"
+                               #" 2 #\"hi\""
+                               #" 3 #\"hi\\\"\""
+                               #" 23 (0 23\n0123456789ABCDEFapple!\0\n) 88")))
   (define fi2 (make-object editor-stream-in% fbi2))
 
   (expect (send fi2 ok?) #t)
