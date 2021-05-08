@@ -45,9 +45,12 @@ Like @method[editor-stream-in% get-unterminated-bytes], but the last
 }
 
 @defmethod[(get-exact)
-           exact-integer?]{
+           (or/c exact-integer? (and/c real? inexact?))]{
 
-Returns the next integer value in the stream.
+  Returns the next number value in the stream. Despite the
+  name, this method may return an inexact number, but only if
+  the next element in the stream was actually written as an
+  inexact number.
 
 }
 

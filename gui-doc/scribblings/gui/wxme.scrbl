@@ -217,10 +217,11 @@ obtain the ``special'' result from the @tech{WXME}-decoding port.}
 Represents a @tech{WXME} input stream for use by
 @racket[snip-reader<%>] instances.
 
-@defmethod[(read-integer [what any/c]) exact-integer?]{
+@defmethod[(read-integer [what any/c]) (or/c (integer-in (- (expt 2 31)) (expt 2 31))
+                                             (and/c real? inexact?))]{
 
-Reads an exact integer, analogous to @method[editor-stream-in%
-get-exact].
+Like @method[editor-stream-in% get-exact], returns either an
+exact integer or an inexact real.
 
 The @racket[what] field describes what is being read, for
 error-message purposes, in case the stream does not continue with an

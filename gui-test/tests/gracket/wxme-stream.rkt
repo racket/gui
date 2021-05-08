@@ -309,6 +309,28 @@
   (expect four (+ three the-allowed-delta)))
 
 (let ()
+  ;; test that both inexacts and exacts written to the
+  ;; stream come back from the `get-exact` method
+  (define fbo2 (make-object editor-stream-out-bytes-base%))
+  (define fo (make-object editor-stream-out% fbo2))
+
+  (void (send fo put 2))
+  (send fbo2 get-bytes)
+  (void (send fo put 2.0))
+  (send fbo2 get-bytes)
+
+  (define fbi2 (make-object editor-stream-in-bytes-base%
+                 (send fbo2 get-bytes)))
+  (define fi2 (make-object editor-stream-in% fbi2))
+
+  (define n1 (send fi2 get-exact))
+  (define n2 (send fi2 get-exact))
+  (expect (exact? n1) #t)
+  (expect (= n1 2) #t)
+  (expect (exact? n2) #f)
+  (expect (= n1 2) #t))
+
+(let ()
   (define (wash-it b)
     (define out-base (new editor-stream-out-bytes-base%))
     (define out-stream (make-object editor-stream-out% out-base))
