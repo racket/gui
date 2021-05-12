@@ -27,13 +27,13 @@ and compares a bunch of properties of them
   (set! tests (+ tests 1))
   (define t (new text%))
   (send t insert is)
-  (define sp (open-output-string))
-  (void (send t save-port sp))
-  (define wp (wxme-port->port (open-input-string (get-output-string sp))))
+  (define bp (open-output-bytes))
+  (void (send t save-port bp))
+  (define wp (wxme-port->port (open-input-bytes (get-output-bytes bp))))
   (define wxme-is (read-char-or-special wp))
   
   (define t2 (new text%))
-  (send t2 insert-port (open-input-string (get-output-string sp)))
+  (send t2 insert-port (open-input-bytes (get-output-bytes bp)))
   (define copy-is (send t2 find-first-snip))
   
   (define (warn . args)
