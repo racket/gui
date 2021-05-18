@@ -77,4 +77,4 @@
    (list "-A" (path->string (find-system-path 'addon-dir)))))
 
 (define (config-flags)
-  (list "-C" (path->string (find-config-dir))))
+  (list "-G" (path->string (find-config-dir))))
