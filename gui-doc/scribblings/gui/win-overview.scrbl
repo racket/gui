@@ -818,7 +818,7 @@ An @deftech{eventspace} is a context for processing GUI
  all windows when a modal dialog is shown.)
 
 
-@subsection{Event Types and Priorities}
+@subsection[#:tag "Event_Types_and_Priorities"]{Event Types and Priorities}
 
 @section-index["events" "timer"]
 @section-index["events" "explicitly queued"]

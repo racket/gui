@@ -552,7 +552,9 @@ The @racket[menu] is popped up within the window at position
 @defmethod[(refresh)
            void?]{
 
-Enqueues an event to repaint the window.
+Enqueues a window-refresh event to repaint the window; see
+@secref["Event_Types_and_Priorities"] for more information
+on the event's priority.
 
 }
 
