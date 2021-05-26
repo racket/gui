@@ -184,7 +184,8 @@
                         ;; shift/AltGr state:
                         (let ([k (MapVirtualKeyW sc 1)])
                           (if (zero? k)
-                              (values (integer->char id) #f #f #f)
+			      (let ([id (surrogate->char id)])
+                                (values (and id (integer->char id)) #f #f #f))
                               (for/fold ([id id][s #f][a #f][sa #f]) ([o (in-vector (get-other-key-codes))]
                                                                       [j (in-naturals)])
                                 (if (= (bitwise-and o #xFF) k)
@@ -404,3 +405,20 @@
 
 (define (get-event-time-stamp)
   (GetMessageTime))
+
+(define saved-surrogate-high #f)
+(define (surrogate->char id)
+  (cond
+   [(<= #xD800 id #xDBFF)
+    (set! saved-surrogate-high id)
+    #f]
+   [(<= #xDC00 id #xDFFF)
+    (cond
+     [saved-surrogate-high
+      (begin0
+       (+ #x10000
+	  (arithmetic-shift (bitwise-and saved-surrogate-high #x3FF) 10)
+	  (bitwise-and id #x3FF))
+       (set! saved-surrogate-high #f))]
+     [else #f])]
+   [else id]))
