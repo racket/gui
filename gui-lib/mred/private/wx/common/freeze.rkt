@@ -43,7 +43,11 @@
     #;(internal-error (format "constrained-reply not within an unfreeze point for ~s" thunk))
     fail-result]
    [(not (eq? (current-thread) (eventspace-handler-thread es)))
-    (internal-error "wrong eventspace for constrained event handling\n")
+    ;; Some events don't get dispatched where expected on Mac OS. For example,
+    ;; a char-down and char-up event might be dequeued where the char-down event
+    ;; closed a window, and then the char-up event can be dispatched to
+    ;; a different window. So, don't complain in this case, either.
+    #;(internal-error "wrong eventspace for constrained event handling\n")
     fail-result]
    [else
     (try-atomic thunk default)]))
