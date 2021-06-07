@@ -5,7 +5,8 @@
          rackunit
          racket/gui/base
          framework
-         simple-tree-text-markup/data)
+         (prefix-in c: simple-tree-text-markup/construct)
+         (prefix-in d: simple-tree-text-markup/data))
 
 (module+ test
   (with-private-prefs
@@ -655,21 +656,21 @@
   (let ()
     (define t (new (text:ports-mixin text:wide-snip%)))
     (define op (send t get-out-port))
-    (write-special (horizontal-markup (list "a" "b" "c")) op)
+    (write-special (d:horizontal-markup (list "a" "b" "c")) op)
     (flush-output op)
     (check-equal? (send t get-text) "abc"))
 
   (let ()
     (define t (new (text:ports-mixin text:wide-snip%)))
     (define op (send t get-out-port))
-    (write-special (vertical-markup (list "a" "b" "c")) op)
+    (write-special (d:vertical-markup (list "a" "b" "c")) op)
     (flush-output op)
     (check-equal? (send t get-text) "a\nb\nc"))
 
   (let ()
     (define t (new (text:ports-mixin text:wide-snip%)))
     (define op (send t get-out-port))
-    (write-special (framed-markup (horizontal-markup (list "a" "b" "c"))) op)
+    (write-special (d:framed-markup (d:horizontal-markup (list "a" "b" "c"))) op)
     (flush-output op)
     (check-true (is-a? (send t find-first-snip) editor-snip%))
     (check-equal? (send (send (send t find-first-snip) get-editor) get-text) "abc"))
@@ -688,7 +689,7 @@
                       255
                       (modulo x 255))))
     (send bmp set-argb-pixels 0 0 w h pixels)
-    (write-special (horizontal-markup (list "a" (image-markup bmp "x") "b")) op)
+    (write-special (d:horizontal-markup (list "a" (d:image-markup bmp "x") "b")) op)
     (flush-output op)
     (check-equal? (send t get-text) "a.b")
     (define image-snip (send (send t find-first-snip) next))
@@ -705,17 +706,44 @@
   (let ()
     (define t (new (text:ports-mixin text:wide-snip%)))
     (define op (send t get-out-port))
-    (write-special (horizontal-markup
+    (write-special (d:horizontal-markup
                     (list
-                     (number-markup 1/3 #:exact-prefix 'never #:inexact-prefix 'never #:fraction-view 'decimal)
+                     (c:number-markup 1/3 #:exact-prefix 'never #:inexact-prefix 'never #:fraction-view 'decimal)
                      " "
-                     (number-markup 4/3 #:exact-prefix 'never #:inexact-prefix 'never #:fraction-view 'mixed)
+                     (c:number-markup 4/3 #:exact-prefix 'never #:inexact-prefix 'never #:fraction-view 'mixed)
                      " "
-                     (number-markup 4/3 #:exact-prefix 'never #:inexact-prefix 'never #:fraction-view 'improper)
+                     (c:number-markup 4/3 #:exact-prefix 'never #:inexact-prefix 'never #:fraction-view 'improper)
                      " "
-                     (number-markup #i0.5 #:exact-prefix 'never #:inexact-prefix 'never #:fraction-view 'decimal)
+                     (c:number-markup #i0.5 #:exact-prefix 'never #:inexact-prefix 'never #:fraction-view 'decimal)
                      " "
-                     (number-markup #e0.5 #:exact-prefix 'never #:inexact-prefix 'never #:fraction-view 'decimal)))
+                     (c:number-markup #e0.5 #:exact-prefix 'never #:inexact-prefix 'never #:fraction-view 'decimal)))
+                   op)
+    (flush-output op)
+    (check-equal? (send t get-text) "0.3 1 1/3 4/3 0.5 0.5")
+    (define snip1 (send t find-first-snip))
+    (check-true (number-snip:is-number-snip? snip1))
+    (check-equal? (send snip1 get-text 0 10 #t) "0.3")
+    (define snip2 (send (send snip1 next) next))
+    (check-true (number-snip:is-number-snip? snip2))
+    (check-equal? (send snip2 get-text 0 10 #t) "1 1/3")
+    (define snip3 (send (send snip2 next) next))
+    (check-true (number-snip:is-number-snip? snip3))
+    (check-equal? (send snip3 get-text 0 10 #t) "4/3"))
+
+  (let ()
+    (define t (new (text:ports-mixin text:wide-snip%)))
+    (define op (send t get-out-port))
+    (write-special (d:horizontal-markup
+                    (list
+                     (c:number-markup 1/3 #:exact-prefix 'never #:inexact-prefix 'never #:fraction-view 'decimal)
+                     " "
+                     (c:number-markup 4/3 #:exact-prefix 'never #:inexact-prefix 'never #:fraction-view 'mixed)
+                     " "
+                     (c:number-markup 4/3 #:exact-prefix 'never #:inexact-prefix 'never #:fraction-view 'improper)
+                     " "
+                     (c:number-markup #i0.5 #:exact-prefix 'never #:inexact-prefix 'always #:fraction-view 'decimal)
+                     " "
+                     (c:number-markup #e0.5 #:exact-prefix 'always #:inexact-prefix 'never #:fraction-view 'decimal)))
                    op)
     (flush-output op)
     (check-equal? (send t get-text) "0.3 1 1/3 4/3 #i0.5 #e0.5")
