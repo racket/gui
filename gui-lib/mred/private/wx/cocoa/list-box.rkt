@@ -43,16 +43,12 @@
   #:mixins (FocusResponder KeyMouseResponder CursorDisplayer)
   [wxb]
   [-a _id (preparedCellAtColumn: [_NSInteger column] row: [_NSInteger row])
-      (let ([wx (->wx wxb)])
-        (tell
-         (let ([c (tell (tell NSCell alloc) initTextCell: #:type _NSString 
-                        (if wx (send wx get-cell column row) "???"))]
-               [font (and wx (send wx get-cell-font))])
-           (tellv c setLineBreakMode: #:type _NSUInteger NSLineBreakByTruncatingTail)
-           (when font
-             (tellv c setFont: font))
-           c)
-         autorelease))]
+      (define wx (->wx wxb))
+      (define font (and wx (send wx get-cell-font)))
+      (define cell (super-tell preparedCellAtColumn: #:type _NSInteger column row: #:type _NSInteger row))
+      (tellv cell setLineBreakMode: #:type _NSUInteger NSLineBreakByTruncatingTail)
+      (when font (tellv cell setFont: font))
+      cell]
   [-a _void (doubleClicked: [_id sender])
       (queue-window*-event wxb (lambda (wx) (send wx clicked 'list-box-dclick)))]
   [-a _void (tableViewSelectionDidChange: [_id aNotification])
