@@ -1220,6 +1220,7 @@
       (send canvas get-dc-and-offset fx fy)]))
 
   (define/override (get-view fx fy fh fw [full? #f])
+    (define A-VERY-BIG-NUMBER 1e50)
     (cond
      [(not canvas)
       (when fx (set-box! fx 0))
@@ -1230,8 +1231,8 @@
         (and m (send m get-printing)))
       (when fx (set-box! fx 0))
       (when fy (set-box! fy 0))
-      (when fh (set-box! fh 10000))
-      (when fw (set-box! fw 10000))]
+      (when fh (set-box! fh A-VERY-BIG-NUMBER))
+      (when fw (set-box! fw A-VERY-BIG-NUMBER))]
      [else
       (send canvas get-view fx fy fh fw full?)]))
 
