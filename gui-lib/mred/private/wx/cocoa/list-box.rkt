@@ -42,17 +42,6 @@
 (define-objc-class RacketTableView NSTableView
   #:mixins (FocusResponder KeyMouseResponder CursorDisplayer)
   [wxb]
-  [-a _id (preparedCellAtColumn: [_NSInteger column] row: [_NSInteger row])
-      (let ([wx (->wx wxb)])
-        (tell
-         (let ([c (tell (tell NSCell alloc) initTextCell: #:type _NSString 
-                        (if wx (send wx get-cell column row) "???"))]
-               [font (and wx (send wx get-cell-font))])
-           (tellv c setLineBreakMode: #:type _NSUInteger NSLineBreakByTruncatingTail)
-           (when font
-             (tellv c setFont: font))
-           c)
-         autorelease))]
   [-a _void (doubleClicked: [_id sender])
       (queue-window*-event wxb (lambda (wx) (send wx clicked 'list-box-dclick)))]
   [-a _void (tableViewSelectionDidChange: [_id aNotification])
@@ -70,13 +59,16 @@
   [-a _NSInteger (numberOfRowsInTableView: [_id view])
       (let ([wx (->wx wxb)])
         (send wx number))]
-  [-a _NSString (tableView: [_id aTableView]
-                            objectValueForTableColumn: [_id aTableColumn]
-                            row: [_NSInteger rowIndex])
-      (let ([wx (->wx wxb)])
-        (if wx
-            (send wx get-cell aTableColumn rowIndex)
-            "???"))])
+  [-a _id (tableView: [_id aTableView]
+                      objectValueForTableColumn: [_id aTableColumn]
+                      row: [_NSInteger rowIndex])
+      (define wx (->wx wxb))
+      (define text (if wx (send wx get-cell aTableColumn rowIndex) "???"))
+      (define cell (tell (tell NSCell alloc) initTextCell: #:type _NSString text))
+      (define font (and wx (send wx get-cell-font)))
+      (tellv cell setLineBreakMode: #:type _NSUInteger NSLineBreakByTruncatingTail)
+      (when font (tellv cell setFont: font))
+      (tell cell autorelease)])
 
 (define (remove-nth data i)
   (cond
