@@ -192,6 +192,8 @@
 
        [set-cursor (lambda (c) (send e set-cursor c #t))]
        [set-focus (lambda () (when (object? c) (send c set-focus)))]
+
+       [has-focus? (lambda () (send c has-focus?))]
 	
        [place-children
         (lambda (children-info width height)
