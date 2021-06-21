@@ -4,7 +4,9 @@
 @defclass/title[column-control-event% control-event% ()]{
 
 A @racket[column-control-event%] object contains information about a
- event on an @racket[list-box%] column header.
+ event on an @racket[list-box%] column header. Except on Windows,
+ the @racket['clickable-headers] style must be specified when
+ creating a @racket[list-box%] for column events to be generated.
 
 @defconstructor[([column exact-nonnegative-integer?]
                  [event-type (or/c 'list-box-column)]

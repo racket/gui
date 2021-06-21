@@ -81,7 +81,9 @@ The @racket[columns] list determines the number of columns in the list
  also includes @racket['clickable-headers], then a click on a header
  triggers a call to @racket[callback] with a
  @racket[column-control-event%] argument whose event type is
- @indexed-racket['list-box-column].
+ @indexed-racket['list-box-column]; for historical reasons,
+ @racket['clickable-headers] has no effect on Windows and
+ header clicks are always reported.
 
 The @racket[style] specification must include exactly one of the
  following:
