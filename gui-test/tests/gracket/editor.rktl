@@ -713,6 +713,21 @@
         (send t get-file-sha1)))
 
 ;; ----------------------------------------
+;; image-snip equality
+
+(let ()
+  (define i1
+    (make-object image-snip%
+                 (collection-file-path "recycle.png" "icons")))
+  (test #t 'equal-image-self (equal? i1 i1))
+  (define i2
+    (make-object (class image-snip%
+                   (super-new))
+                 (collection-file-path "recycle.png" "icons")))
+  (test #t 'equal-image-sub (equal? i1 i2))
+  (test #t 'equal-sub-image (equal? i2 i1)))
+
+;; ----------------------------------------
 
 (delete-directory/files dir #:must-exist? #f)
 
