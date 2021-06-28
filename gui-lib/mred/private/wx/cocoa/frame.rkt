@@ -129,11 +129,14 @@
                           ;; but we're trying to fix up a case where Cocoa seems
                           ;; to be confused:
                           (tellv parent resignMainWindow)))))))
-              (set! front wx)
-              (send wx install-wait-cursor)
-              (send wx install-mb)
-              (queue-window-event wx (lambda ()
-                                       (send wx on-activate #t)))))))
+              ;; Redirect to sheet, if any, which is needed when the parent
+              ;; window is clicked while the sheet is visible:
+              (let ([wx (or (send wx get-sheet) wx)])
+                (set! front wx)
+                (send wx install-wait-cursor)
+                (send wx install-mb)
+                (queue-window-event wx (lambda ()
+                                         (send wx on-activate #t))))))))
       ;; If the fake root became main (because no other windows exist),
       ;; we need to hide it again to avoid it getting stuck in the window list.
       (when (and root-fake-frame (ptr-equal? self (send root-fake-frame get-cocoa)))

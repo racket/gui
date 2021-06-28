@@ -14,4 +14,4 @@
     (super-new [is-dialog? #t])
 
     ;; #t result avoids children sheets
-    (define/override (get-sheet) #t)))
+    (define/override (get-sheet) this)))
