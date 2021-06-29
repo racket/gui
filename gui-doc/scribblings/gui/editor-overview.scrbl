@@ -777,7 +777,7 @@ Thus, disabling an @racket[editor-canvas%] object (using
 
 A second supported pattern is reading an editor in a background thread
  while the editor may be manipulated in other threads. Since no
- @techlink{location}-independent reads introduce locks, the such reads in
+ @techlink{location}-independent reads introduce locks, such reads in
  the background thread will not impair other threads. However, other
  threads may interfere with the background thread, causing it to
  receive erroneous or out-of-date content information. This one-sided
