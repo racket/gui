@@ -875,7 +875,12 @@ Although a programmer has no direct control over the order in which
 @subsection[#:tag "espacethreads"]{Eventspaces and Threads}
 
 When a new eventspace is created, a corresponding @tech{handler
- thread} is created for the eventspace. When the system dispatches an
+ thread} is created for the eventspace. The initial eventspace does
+ not create a new handler thread, but instead uses the thread where
+ @racketmodname[racket/gui/base] is instaniated as the initial
+ eventspace's handler thread; see also @secref["Startup_Actions"].
+
+When the system dispatches an
  event for an eventspace, it always does so in the eventspace's
  handler thread. A handler procedure can create new threads that run
  indefinitely, but as long as the handler thread is running a handler
@@ -891,6 +896,14 @@ When a handler thread shows a dialog, the dialog's @method[dialog%
  semaphore from a non-handler thread is equivalent to calling
  @racket[semaphore-wait].
 
+Windowing functions and methods from @racketmodname[racket/gui/base]
+ can be called in any thread, but beware of creating race conditions
+ among the threads or with the handler thread. Graphical objects are
+ thread-safe, but callbacks or other event handlers might see changing
+ object states if graphical elements are manipulated in multiple
+ threads. Editor classes have more significant thread constraints; see
+ @secref["editorthreads"].
+ 
 
 @subsection[#:tag "currenteventspace"]{Creating and Setting the Eventspace}
 
@@ -924,8 +937,12 @@ An eventspace is a @techlink[#:doc reference-doc]{synchronizable
  @racket[sync]. As a synchronizable event, an eventspace is in a
  blocking state when a frame is visible, a timer is active, a callback
  is queued, or a @racket[menu-bar%] is created with a @racket['root]
- parent. (Note that the blocking state of an eventspace is unrelated
- to whether an event is ready for dispatching.)
+ parent. Note that the blocking state of an eventspace is unrelated to
+ whether an event is ready for dispatching. Note also that an
+ eventspace is not necessarily in a blocking state while an event is
+ being handled, timer is firing, or callback is being run, and an
+ eventspace may be left in a block state if its @tech{handler thread}
+ has terminated.
 
 @subsection[#:tag "evtcontjump"]{Continuations and Event Dispatch}
 

@@ -1,7 +1,7 @@
 #lang scribble/doc
 @(require "common.rkt" (for-label racket/gui/dynamic))
 
-@title{Startup Actions}
+@title[#:tag "Startup_Actions"]{Startup Actions}
 
 The @racketmodname[racket/gui/base] module can be instantiated only
 once per operating-system process, because it sets hooks in the Racket
@@ -11,7 +11,7 @@ exception. Furthermore, on Mac OS, the sole instantiation of
 @racketmodname[racket/gui/base] must be in the process's original
 @tech[#:doc '(lib "scribblings/reference/reference.scrbl")]{place}.
 
-Loading @racketmodname[racket/gui/base] sets two parameters:
+Instantiating @racketmodname[racket/gui/base] sets two parameters:
 
 @itemlist[
 
@@ -36,3 +36,6 @@ Loading @racketmodname[racket/gui/base] sets two parameters:
 
 ]
 
+The thread where @racketmodname[racket/gui/base] is instantiated also
+becomes the @tech{handler thread} for the initial eventspace. See also
+@secref["espacethreads"].
