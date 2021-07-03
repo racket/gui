@@ -23,7 +23,8 @@
                   editor-snip%)
          "wordbreak.rkt"
          "stream.rkt"
-         "wx.rkt")
+         "wx.rkt"
+         racket/draw/private/region)
 
 (provide text%
          add-text-keymap-functions
@@ -5345,10 +5346,18 @@
                                      ;; area to compensate for different rounding that could
                                      ;; otherwise leave update/clipping artifacts.
                                      1)])
-
-                      (send dc set-clipping-rect
-                            (- left x extra) (- top y extra)
-                            (+ width (* 2 extra)) (+ height (* 2 extra)))
+                      (cond
+                        [rgn
+                         (define new-rgn (new region% [dc dc]))
+                         (send new-rgn set-rectangle
+                               (- left x extra) (- top y extra)
+                               (+ width (* 2 extra)) (+ height (* 2 extra)))
+                         (send new-rgn intersect rgn)
+                         (send dc set-clipping-region new-rgn)]
+                        [else
+                         (send dc set-clipping-rect
+                               (- left x extra) (- top y extra)
+                               (+ width (* 2 extra)) (+ height (* 2 extra)))])
 
                       (send dc suspend-flush)
 
