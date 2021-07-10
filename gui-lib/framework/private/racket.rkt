@@ -761,12 +761,21 @@
                (and snd-end
                     (let ([snd-start (get-backward-sexp snd-end)])
                       (and snd-start
-                           (equal? (get-text snd-start snd-end)
-                                   "...")
+                           (text-is-ellipsis? (get-text snd-start snd-end))
                            (let ([thrd-start (get-forward-sexp snd-end)])
                              (and (or (not thrd-start)
                                       (not (= (position-paragraph thrd-start)
                                               (position-paragraph snd-start)))))))))))))
+
+    (define/private (text-is-ellipsis? text)
+      (define pref (preferences:get 'framework:tabify))
+      (define ht (car pref))
+      (define ...-reg (and (> (length pref) 5) (list-ref pref 5)))
+      (hash-ref
+       ht
+       (with-handlers ((exn:fail:read? (λ (x) #f)))
+         (read (open-input-string text)))
+       (λ () (and ...-reg (regexp-match ...-reg text)))))
 
     (define/private (first-sexp-is-keyword? contains)
       (let ([fst-end (get-forward-sexp contains)])
@@ -2292,8 +2301,9 @@
       (values  (pick-out 'begin all-keywords null)
                (pick-out 'define all-keywords null)
                (pick-out 'lambda all-keywords null)
-               (pick-out 'for/fold all-keywords null))))
-  (define-values (begin-keywords define-keywords lambda-keywords for/fold-keywords)
+               (pick-out 'for/fold all-keywords null)
+               (pick-out '... all-keywords null))))
+  (define-values (begin-keywords define-keywords lambda-keywords for/fold-keywords ellipses-keywords)
     (get-keywords (car (preferences:get 'framework:tabify))))
   (define ((add-button-callback keyword-type keyword-symbol list-box) button command)
     (define new-one
@@ -2395,8 +2405,13 @@
                  'for/fold
                  for/fold-keywords
                  (λ (x) (update-pref 4 x))))
+  (define-values (ellipses-list-box ellipses-regexp-text)
+    (make-column "Ellipses"
+                 '...
+                 ellipses-keywords
+                 (λ (x) (update-pref 5 x))))
   (define (update-list-boxes hash-table)
-    (define-values (begin-keywords define-keywords lambda-keywords for/fold-keywords) 
+    (define-values (begin-keywords define-keywords lambda-keywords for/fold-keywords ellipses-keywords) 
       (get-keywords hash-table))
     (define (reset list-box keywords)
       (send list-box clear)
@@ -2405,6 +2420,7 @@
     (reset define-list-box define-keywords)
     (reset lambda-list-box lambda-keywords)
     (reset for/fold-list-box for/fold-keywords)
+    (reset ellipses-list-box ellipses-keywords)
     #t)
   (define update-gui
     (λ (pref)
@@ -2412,7 +2428,10 @@
       (send begin-regexp-text set-value (or (object-name (list-ref pref 1)) ""))
       (send define-regexp-text set-value (or (object-name (list-ref pref 2)) ""))
       (send lambda-regexp-text set-value (or (object-name (list-ref pref 3)) ""))
-      (send for/fold-regexp-text set-value (or (object-name (list-ref pref 4)) ""))))
+      (send for/fold-regexp-text set-value (or (object-name (list-ref pref 4)) ""))
+      (send ellipses-regexp-text set-value (or (and (> (length pref) 5)
+                                                    (object-name (list-ref pref 5)))
+                                               ""))))
   (preferences:add-callback 'framework:tabify (λ (p v) (update-gui v)))
   (update-gui (preferences:get 'framework:tabify))
   main-panel)

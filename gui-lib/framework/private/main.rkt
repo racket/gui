@@ -392,6 +392,8 @@
 (preferences:set-default 'framework:fixup-open-parens #f boolean?)
 (preferences:set-default 'framework:paren-match #t boolean?)
 (let ([defaults-ht (make-hasheq)])
+  (for-each (λ (x) (hash-set! defaults-ht x '...))
+            '(... … ...+ …+ ::...))
   (for-each (λ (x) (hash-set! defaults-ht x 'for/fold))
             '(for/fold for/fold: for*/fold for*/fold:
               for/lists for/lists: for*/lists for*/lists:))
@@ -480,8 +482,9 @@
   (preferences:set-default 
    'framework:tabify
    (list defaults-ht #rx"^begin" #rx"^def" #rx"^(for\\*?(/|$)|with-)" #f)
-   (list/c (hash/c symbol? (or/c 'for/fold 'define 'begin 'lambda) #:flat? #t)
-           (or/c #f regexp?) (or/c #f regexp?) (or/c #f regexp?) (or/c #f regexp?)))
+   (cons/c (hash/c symbol? (or/c 'for/fold 'define 'begin 'lambda '...) #:flat? #t)
+           (or/c (list/c (or/c #f regexp?) (or/c #f regexp?) (or/c #f regexp?) (or/c #f regexp?))
+                 (list/c (or/c #f regexp?) (or/c #f regexp?) (or/c #f regexp?) (or/c #f regexp?) (or/c #f regexp?)))))
   
   (define old-style-pred? (listof (list/c symbol? symbol?)))
   (define new-style-pred?
