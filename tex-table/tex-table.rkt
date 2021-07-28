@@ -165,7 +165,7 @@
     ("bowtie" "⋈")
     ("subseteq" "⊆")
     ("supseteq" "⊇")
-    ("cong" "≌")
+    ("cong" "≅")
     ("sqsubsetb" "⊏")
     ("sqsupsetb" "⊐")
     ("neq" #;"≠" "≠")
