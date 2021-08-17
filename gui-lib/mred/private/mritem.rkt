@@ -2,6 +2,7 @@
 
 (require racket/class
          racket/list
+         (only-in racket/draw/private/color color%)
          (prefix-in wx: "kernel.rkt")
          "lock.rkt"
          "const.rkt"
@@ -108,6 +109,7 @@
           ;; init argument *after* all of its parent arguments, which
           ;; normally can't happen.
           [font no-val]
+          [color no-val]
           [enabled #t]
           [vert-margin no-val]
           [horiz-margin no-val]
@@ -132,6 +134,11 @@
                    (super set-label l)
                    (when do-auto-resize?
                      (do-auto-resize))))])
+    (public*
+     [set-label-color (entry-point
+                       (lambda (c)
+                         (check-instance '(method message% set-label-color) color% "color%" #f c)
+                         (send (mred->wx this) set-label-color c)))])
     (private*
      [strip-amp (lambda (s) (if (string? s)
                                 (regexp-replace* #rx"&(.)" s "\\1")
@@ -183,7 +190,7 @@
                                        zero-bitmap]
                                       [else label])
                                      label)
-                                 -1 -1 style (no-val->#f font))])
+                                 -1 -1 style (no-val->#f font) (no-val->#f color))])
              ;; Record dx & dy:
              (let ([w (box 0)] [h (box 0)])
                (send m get-size w h)

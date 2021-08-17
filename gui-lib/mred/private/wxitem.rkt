@@ -246,7 +246,6 @@
 			  (super-make-object mred proxy style parent cb label x y w h (cons 'deleted style) font)))
 
   (define wx-message% (class (make-window-glue% (make-simple-control% wx:message%))
-                        (init mred proxy parent label x y style font)
+                        (init mred proxy parent label x y style font [color #f])
 			(override* [gets-focus? (lambda () #f)])
-			(super-make-object mred proxy style parent label x y (cons 'deleted style) font))))
-
+			(super-make-object mred proxy style parent label x y (cons 'deleted style) font color))))
