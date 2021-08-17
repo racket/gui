@@ -7,7 +7,7 @@
                ["icons" #:version "1.3"]
                ["base" #:version "8.2.0.1"]
                "syntax-color-lib"
-               ["draw-lib" #:version "1.14"]
+               ["draw-lib" #:version "1.18"]
                ["snip-lib" #:version "1.2"]
                "wxme-lib"
                "pict-lib"
