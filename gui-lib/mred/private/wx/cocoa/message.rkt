@@ -9,14 +9,15 @@
           "item.rkt"
           "utils.rkt"
           "types.rkt"
-          "image.rkt")
+          "image.rkt"
+          "color.rkt")
 
-(provide 
+(provide
  (protect-out message%))
 
 ;; ----------------------------------------
 
-(import-class NSTextField NSImageView NSWorkspace NSRunningApplication)
+(import-class NSTextField NSImageView NSWorkspace NSRunningApplication NSColor)
 
 (define _OSType _uint32)
 
@@ -38,7 +39,7 @@
                (tell (tell NSWorkspace sharedWorkspace)
                      iconForFileType:
                      (NSFileTypeForHFSTypeCode id))))])
-    (tellv icon retain) 
+    (tellv icon retain)
     (tellv icon setSize: #:type _NSSize (make-NSSize 64 64))
     (unless (eq? label 'app)
       ;; Add badge:
@@ -48,7 +49,7 @@
                                                                 (make-NSSize 32 32))
                fromRect: #:type _NSRect (make-NSRect (make-NSPoint 0 0)
                                                      (make-NSSize 64 64))
-               operation: #:type _int 2 ; NSCompositeSourceOver 
+               operation: #:type _int 2 ; NSCompositeSourceOver
                fraction: #:type _CGFloat 1.0)
         (tellv icon unlockFocus)))
     icon))
@@ -73,9 +74,9 @@
 (defclass message% item%
   (init parent label
         x y
-        style font)
+        style font color)
   (inherit get-cocoa init-font)
-  
+
   (super-new [parent parent]
              [cocoa (let* ([label (cond
                                    [(string? label) label]
@@ -90,6 +91,8 @@
                       (cond
                        [(string? label)
                         (init-font cocoa font)
+                        (when color
+                          (tellv cocoa setTextColor: (color->NSColor color)))
                         (tellv cocoa setSelectable: #:type _BOOL #f)
                         (tellv cocoa setEditable: #:type _BOOL #f)
                         (tellv cocoa setBordered: #:type _BOOL #f)
@@ -100,7 +103,7 @@
                         (tellv cocoa setImage: (if (label . is-a? . bitmap%)
                                                    (bitmap->image label)
                                                    label))
-                        (tellv cocoa setFrame: #:type _NSRect 
+                        (tellv cocoa setFrame: #:type _NSRect
                                (make-NSRect (make-NSPoint 0 0)
                                             (if (label . is-a? . bitmap%)
                                                 (make-NSSize (send label get-width)
@@ -123,5 +126,7 @@
     (tellv (get-cocoa) sizeToFit)
     #t)
 
-  (def/public-unimplemented get-font))
+  (define/public (set-label-color c)
+    (tellv (get-cocoa) setTextColor: (color->NSColor c)))
 
+  (def/public-unimplemented get-font))

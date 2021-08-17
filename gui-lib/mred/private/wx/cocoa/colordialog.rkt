@@ -7,13 +7,13 @@
          "utils.rkt"
          "types.rkt"
          "queue.rkt"
-         "frame.rkt")
+         "frame.rkt"
+         "color.rkt")
 
-(provide 
+(provide
  (protect-out get-color-from-user))
 
-(import-class NSColorPanel
-              NSColor)
+(import-class NSColorPanel)
 
 (define-cocoa NSDeviceRGBColorSpace _id)
 
@@ -42,8 +42,4 @@
     (let ([p (tell NSColorPanel sharedColorPanel)]
           [color mode])
       (atomically
-       (tellv p setColor: (tell NSColor
-                                colorWithDeviceRed: #:type _CGFloat (/ (color-red color) 255.0)
-                                green: #:type _CGFloat (/ (color-green color) 255.0)
-                                blue: #:type _CGFloat (/ (color-blue color) 255.0)
-                                alpha: #:type _CGFloat 1.0))))]))
+       (tellv p setColor: (color->NSColor color))))]))
