@@ -41,6 +41,7 @@
     (init parent label
           x y
           style font)
+    (init-field color)
 
     (define bitmap? (label . is-a? . bitmap%))
 
@@ -93,4 +94,25 @@
     (define/public (set-preferred-size) #f)
 
     (define/override (get-setimage-message)
-      STM_SETIMAGE)))
+      STM_SETIMAGE)
+
+    (define/override (control-will-color hdc)
+      (cond
+        [color
+         (define bg-color (GetPixel hdc 0 0))
+         (define fg-color
+           (COLORREF-alpha-blend
+            (make-COLORREF
+             (send color red)
+             (send color green)
+             (send color blue))
+            bg-color
+            (send color alpha)))
+         (SetBkColor hdc bg-color)
+         (SetTextColor hdc fg-color)
+         (cast (GetSysColorBrush COLOR_WINDOW) _HBRUSH _LRESULT)]
+        [else #f]))
+
+    (define/public (set-label-color c)
+      (set! color c)
+      (InvalidateRect (get-hwnd) #f #f))))

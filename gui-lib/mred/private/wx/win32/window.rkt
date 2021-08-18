@@ -259,11 +259,18 @@
 	 [(= msg WM_INPUTLANGCHANGE)
 	  (reset-key-mapping)
 	  0]
+          [(= msg WM_CTLCOLORSTATIC)
+           (define control-hwnd (cast lParam _LPARAM _HWND))
+           (define maybe-wx (any-hwnd->wx control-hwnd))
+           (cond
+             [(and maybe-wx (send maybe-wx control-will-color (cast wParam _WPARAM _HDC))) => values]
+             [else (default w msg wParam lParam)])]
          [else
           (default w msg wParam lParam)])))
 
   (define/public (is-command? cmd) #f)
   (define/public (control-scrolled) #f)
+  (define/public (control-will-color hdc) #f)
 
   (define/public (do-command cmd control-hwnd)
     (void))
