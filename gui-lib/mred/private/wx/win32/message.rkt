@@ -44,6 +44,7 @@
     (init-field color)
 
     (define bitmap? (label . is-a? . bitmap%))
+    (define text-label? (string? label))
 
     (define/public (get-class) "PLTSTATIC")
     
@@ -98,7 +99,7 @@
 
     (define/override (control-will-color hdc)
       (cond
-        [color
+        [(and text-label? color)
          (define bg-color (GetPixel hdc 0 0))
          (define fg-color
            (COLORREF-alpha-blend
@@ -113,7 +114,12 @@
          (cast (GetSysColorBrush COLOR_WINDOW) _HBRUSH _LRESULT)]
         [else #f]))
 
+    (define/override (set-label label)
+      (set! text-label? (string? label))
+      (super set-label label))
+
     (define/public (get-label-color) color)
     (define/public (set-label-color c)
-      (set! color c)
-      (InvalidateRect (get-hwnd) #f #f))))
+      (when text-label?
+        (set! color c)
+        (InvalidateRect (get-hwnd) #f #f)))))

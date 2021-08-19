@@ -62,6 +62,8 @@
   (init-field color)
   (inherit set-auto-size get-gtk)
 
+  (define text-label? (string? label))
+
   (super-new [parent parent]
              [gtk (cond
                     [(or (string? label) (not label))
@@ -91,6 +93,7 @@
   (set-auto-size)
 
   (define/override (set-label s)
+    (set! text-label? (string? s))
     (cond
       [(string? s)
        (gtk_label_set_text_with_mnemonic (get-gtk) (mnemonic-string s))]
@@ -102,8 +105,9 @@
 
   (define/public (get-label-color) color)
   (define/public (set-label-color c)
-    (set! color c)
-    (do-set-label-color (get-gtk) c))
+    (when text-label?
+      (set! color c)
+      (do-set-label-color (get-gtk) c)))
 
   (define/public (set-preferred-size)
     (gtk_widget_set_size_request (get-gtk) -1 -1)

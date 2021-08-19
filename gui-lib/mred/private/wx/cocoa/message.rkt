@@ -78,6 +78,8 @@
   (init-field color)
   (inherit get-cocoa init-font)
 
+  (define text-label? (string? label))
+
   (super-new [parent parent]
              [cocoa (let* ([label (cond
                                    [(string? label) label]
@@ -115,6 +117,7 @@
              [no-show? (memq 'deleted style)])
 
   (define/override (set-label label)
+    (set! text-label? (string? label))
     (cond
      [(string? label)
       (tellv (get-cocoa) setStringValue: #:type _NSString (strip-mnemonic label))]
@@ -129,7 +132,8 @@
 
   (define/public (get-label-color) color)
   (define/public (set-label-color c)
-    (set! color c)
-    (tellv (get-cocoa) setTextColor: (color->NSColor c)))
+    (when text-label?
+      (set! color c)
+      (tellv (get-cocoa) setTextColor: (color->NSColor c))))
 
   (def/public-unimplemented get-font))
