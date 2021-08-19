@@ -135,6 +135,9 @@
                    (when do-auto-resize?
                      (do-auto-resize))))])
     (public*
+     [get-label-color (entry-point
+                       (lambda ()
+                         (send (mred->wx this) get-label-color)))]
      [set-label-color (entry-point
                        (lambda (c)
                          (check-instance '(method message% set-label-color) color% "color%" #f c)

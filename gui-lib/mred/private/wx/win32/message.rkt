@@ -113,6 +113,7 @@
          (cast (GetSysColorBrush COLOR_WINDOW) _HBRUSH _LRESULT)]
         [else #f]))
 
+    (define/public (get-label-color) color)
     (define/public (set-label-color c)
       (set! color c)
       (InvalidateRect (get-hwnd) #f #f))))

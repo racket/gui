@@ -58,7 +58,8 @@
 (defclass message% item%
   (init parent label
         x y
-        style font color)
+        style font)
+  (init-field color)
   (inherit set-auto-size get-gtk)
 
   (super-new [parent parent]
@@ -99,7 +100,9 @@
           (gtk_image_set_from_pixbuf (get-gtk) pixbuf)
           (release-pixbuf pixbuf)))]))
 
+  (define/public (get-label-color) color)
   (define/public (set-label-color c)
+    (set! color c)
     (do-set-label-color (get-gtk) c))
 
   (define/public (set-preferred-size)

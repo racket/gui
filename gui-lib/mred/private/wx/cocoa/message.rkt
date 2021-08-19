@@ -74,7 +74,8 @@
 (defclass message% item%
   (init parent label
         x y
-        style font color)
+        style font)
+  (init-field color)
   (inherit get-cocoa init-font)
 
   (super-new [parent parent]
@@ -126,7 +127,9 @@
     (tellv (get-cocoa) sizeToFit)
     #t)
 
+  (define/public (get-label-color) color)
   (define/public (set-label-color c)
+    (set! color c)
     (tellv (get-cocoa) setTextColor: (color->NSColor c)))
 
   (def/public-unimplemented get-font))
