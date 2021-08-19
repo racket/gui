@@ -16,7 +16,7 @@ A message control is a static line of text or a static bitmap. The
                                (is-a?/c panel%) (is-a?/c pane%))]
                  [style (listof (or/c 'deleted)) null]
                  [font (is-a?/c font%) normal-control-font]
-                 [color (is-a?/c color%) _unset]
+                 [color (or/c #f (is-a?/c color%)) #f]
                  [enabled any/c #t]
                  [vert-margin spacing-integer? 2]
                  [horiz-margin spacing-integer? 2]
@@ -76,14 +76,14 @@ Otherwise, sets the bitmap label for a bitmap message.
 
 }
 
-@defmethod[(set-label-color [color color%]) void?]{
+@defmethod[(set-label-color [color (is-a?/c color%)]) void?]{
   Sets the label's text color to @racket[color].  This method has no
   effect if the label is a symbol or a bitmap.
 
   @history[#:added "1.58"]
 }
 
-@defmethod[(get-label-color) (or/c #f color%)]{
+@defmethod[(get-label-color) (or/c #f (is-a?/c color%))]{
   Returns the current user-specified label color or @racket[#f] if the
   system default is used.
 
