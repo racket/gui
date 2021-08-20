@@ -7,7 +7,7 @@
                ["icons" #:version "1.3"]
                ["base" #:version "8.2.0.1"]
                "syntax-color-lib"
-               ["draw-lib" #:version "1.13"]
+               ["draw-lib" #:version "1.18"]
                ["snip-lib" #:version "1.2"]
                "wxme-lib"
                "pict-lib"
@@ -33,4 +33,4 @@
 
 (define pkg-authors '(mflatt robby))
 
-(define version "1.57")
+(define version "1.58")

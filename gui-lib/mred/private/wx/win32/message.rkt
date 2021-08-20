@@ -41,8 +41,10 @@
     (init parent label
           x y
           style font)
+    (init-field color)
 
     (define bitmap? (label . is-a? . bitmap%))
+    (define text-label? (string? label))
 
     (define/public (get-class) "PLTSTATIC")
     
@@ -93,4 +95,31 @@
     (define/public (set-preferred-size) #f)
 
     (define/override (get-setimage-message)
-      STM_SETIMAGE)))
+      STM_SETIMAGE)
+
+    (define/override (control-will-color hdc)
+      (cond
+        [(and text-label? color)
+         (define bg-color (GetPixel hdc 0 0))
+         (define fg-color
+           (COLORREF-alpha-blend
+            (make-COLORREF
+             (send color red)
+             (send color green)
+             (send color blue))
+            bg-color
+            (send color alpha)))
+         (SetBkColor hdc bg-color)
+         (SetTextColor hdc fg-color)
+         (cast (GetSysColorBrush COLOR_WINDOW) _HBRUSH _LRESULT)]
+        [else #f]))
+
+    (define/override (set-label label)
+      (set! text-label? (string? label))
+      (super set-label label))
+
+    (define/public (get-color) color)
+    (define/public (set-color c)
+      (when text-label?
+        (set! color c)
+        (InvalidateRect (get-hwnd) #f #f)))))

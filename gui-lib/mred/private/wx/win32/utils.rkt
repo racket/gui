@@ -25,7 +25,8 @@
               GetWindowLongPtrW
               SetWindowLongPtrW
               SendMessageW SendMessageW/str SendMessageW/ptr
-              GetSysColor GetRValue GetGValue GetBValue make-COLORREF
+              GetSysColor GetRValue GetGValue GetBValue make-COLORREF COLORREF-alpha-blend
+              GetSysColorBrush
               CreateBitmap
               CreateCompatibleBitmap
               DeleteObject
@@ -46,7 +47,10 @@
               RemoveMenu
               SelectObject
               WideCharToMultiByte
-	      GetDeviceCaps
+              SetTextColor
+              GetBkColor SetBkColor
+              GetPixel
+        GetDeviceCaps
 	      strip-&
 	      ->screen
 	      ->screen*
@@ -100,6 +104,7 @@
   #:c-id SendMessageW)
 
 (define-user32 GetSysColor (_wfun _int -> _DWORD))
+(define-user32 GetSysColorBrush (_wfun _int -> _HBRUSH))
 
 (define (GetRValue v) (bitwise-and v #xFF))
 (define (GetGValue v) (bitwise-and (arithmetic-shift v -8) #xFF))
@@ -108,6 +113,20 @@
                                r
                                (arithmetic-shift g 8)
                                (arithmetic-shift b 16)))
+(define (COLORREF-alpha-blend fg bg fg-alpha)
+  (cond
+    [(= fg-alpha 1.0) fg]
+    [else
+     (define bg-alpha (- 1.0 fg-alpha))
+     (make-COLORREF
+      (clamp-color-val (+ (* (GetRValue fg) fg-alpha)
+                          (* (GetRValue bg) bg-alpha)))
+      (clamp-color-val (+ (* (GetGValue fg) fg-alpha)
+                          (* (GetGValue bg) bg-alpha)))
+      (clamp-color-val (+ (* (GetBValue fg) fg-alpha)
+                          (* (GetBValue bg) bg-alpha))))]))
+(define (clamp-color-val v)
+  (modulo (inexact->exact (truncate v)) 256))
 
 (define-user32 MoveWindow(_wfun _HWND _int _int _int _int _BOOL -> (r : _BOOL)
                                 -> (unless r (failed 'MoveWindow))))
@@ -203,3 +222,8 @@
 	   (if (exact? x)
 	       (floor (/ (* x 96) screen-dpi))
 	       (/ (* x 96) screen-dpi)))))
+
+(define-gdi32 SetTextColor (_wfun _HDC _COLORREF -> _COLORREF))
+(define-gdi32 GetBkColor (_wfun _HDC -> _COLORREF))
+(define-gdi32 SetBkColor (_wfun _HDC _COLORREF -> _COLORREF))
+(define-gdi32 GetPixel (_wfun _HDC _int _int -> _COLORREF))
