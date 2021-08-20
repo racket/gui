@@ -103,8 +103,8 @@
           (gtk_image_set_from_pixbuf (get-gtk) pixbuf)
           (release-pixbuf pixbuf)))]))
 
-  (define/public (get-label-color) color)
-  (define/public (set-label-color c)
+  (define/public (get-color) color)
+  (define/public (set-color c)
     (when text-label?
       (set! color c)
       (do-set-label-color (get-gtk) c)))

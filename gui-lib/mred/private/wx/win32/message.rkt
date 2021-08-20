@@ -118,8 +118,8 @@
       (set! text-label? (string? label))
       (super set-label label))
 
-    (define/public (get-label-color) color)
-    (define/public (set-label-color c)
+    (define/public (get-color) color)
+    (define/public (set-color c)
       (when text-label?
         (set! color c)
         (InvalidateRect (get-hwnd) #f #f)))))

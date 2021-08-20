@@ -2,6 +2,7 @@
 
 (require racket/class
          racket/list
+         (only-in racket/draw the-color-database)
          (only-in racket/draw/private/color color%)
          (prefix-in wx: "kernel.rkt")
          "lock.rkt"
@@ -102,6 +103,11 @@
 
 (define zero-bitmap #f)
 
+(define (maybe-find-color c)
+  (if (string? c)
+      (send the-color-database find-color c)
+      c))
+
 (define message%
   (class* basic-control% ()
     (init label parent [style null]
@@ -135,13 +141,14 @@
                    (when do-auto-resize?
                      (do-auto-resize))))])
     (public*
-     [get-label-color (entry-point
-                       (lambda ()
-                         (send (mred->wx this) get-label-color)))]
-     [set-label-color (entry-point
-                       (lambda (c)
-                         (check-instance '(method message% set-label-color) color% "color%" #f c)
-                         (send (mred->wx this) set-label-color c)))])
+     [get-color (entry-point
+                 (lambda ()
+                   (send (mred->wx this) get-color)))]
+     [set-color (entry-point
+                 (lambda (c)
+                   (unless (or (not c) (string? c) (is-a? c color%))
+                     (raise-argument-error (who->name '(method message% set-color)) "(or/c #f string? (is-a?/c color%))" c))
+                   (send (mred->wx this) set-color (maybe-find-color c))))])
     (private*
      [strip-amp (lambda (s) (if (string? s)
                                 (regexp-replace* #rx"&(.)" s "\\1")
@@ -193,7 +200,7 @@
                                        zero-bitmap]
                                       [else label])
                                      label)
-                                 -1 -1 style (no-val->#f font) (no-val->#f color))])
+                                 -1 -1 style (no-val->#f font) (maybe-find-color (no-val->#f color)))])
              ;; Record dx & dy:
              (let ([w (box 0)] [h (box 0)])
                (send m get-size w h)
