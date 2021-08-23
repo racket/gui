@@ -52,7 +52,8 @@
   (define color-alpha-attr (pango_attr_foreground_alpha_new
                             (color-component->gtk (* (color-alpha c) 255))))
   (pango_attr_list_insert attrs color-attr)
-  (pango_attr_list_insert attrs color-alpha-attr)
+  (when color-alpha-attr
+    (pango_attr_list_insert attrs color-alpha-attr))
   (gtk_label_set_attributes label attrs))
 
 (defclass message% item%
