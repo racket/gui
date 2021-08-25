@@ -76,13 +76,11 @@
              ;; no setting => search for some known commands
              [cmd (or cmd
                       (ormap find-executable-path
-                             '("aplay" "play" "esdplay" "sndfile-play"
+                             '("paplay" "aplay" "play" "esdplay" "sndfile-play"
                                "audioplay"))
                       (error 'play-sound
                              "not supported on this machine ~a"
                              "(no default, and no known command found)"))]
-             [>null (open-output-file "/dev/null" 'append)]
-             [<null (open-input-file "/dev/null")]
              [bufsize 500]) ; maximum number of chars from stderr that we show
         (lambda (f async?)
           (define file (path->string (expand-path f)))
@@ -96,8 +94,12 @@
                                                (regexp-replace*
                                                 #rx"([$\"\\])" file "\\\\\\1")
                                                "\"")))))
+          (define >null (open-output-file "/dev/null" 'append))
+          (define <null (open-input-file "/dev/null"))
           (define-values (p pout pin perr)
             (apply subprocess >null <null #f cmd+args))
+          (close-output-port >null)
+          (close-input-port <null)
           (define buf (make-bytes bufsize))
           (define (follow)
             ;; buf holds the tail (`bufsize' chars) of the error output
@@ -105,6 +107,7 @@
               (let ([n (read-bytes! buf perr i)])
                 (cond
                   [(eof-object? n)
+                   (close-input-port perr)
                    (let ([c (begin (subprocess-wait p) (subprocess-status p))])
                      (if (zero? c)
                        #t ; success => don't show error output

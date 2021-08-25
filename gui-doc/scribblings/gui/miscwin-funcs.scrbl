@@ -355,7 +355,7 @@ On Mac OS, Quicktime is used to play sounds; most sound
  with OS 7.5 and up) is required.
 
 On Unix, the function invokes an external sound-playing program---looking
-  by default for a few known programs (@exec{aplay}, @exec{play},
+  by default for a few known programs (@exec{paplay}, @exec{aplay}, @exec{play},
   @exec{esdplay}, @exec{sndfile-play}, @exec{audioplay}). A
   play command can be defined through the @ResourceFirst{playcmd}
   preference (see @|mrprefsdiscuss|). The preference can hold a
