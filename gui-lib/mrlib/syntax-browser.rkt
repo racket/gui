@@ -23,9 +23,9 @@ needed to really make this work:
   (provide
    (contract-out
     [render-syntax/snip
-     (-> syntax? (is-a?/c snip%))]
+     (->* (syntax?) (#:summary-width (or/c (integer-in 3 #f) +inf.0 #f)) (is-a?/c snip%))]
     [render-syntax/window
-     (-> syntax? void?)])
+     (->* (syntax?) (#:summary-width (or/c (integer-in 3 #f) +inf.0 #f)) void?)])
    render-syntax-subtitle-color-style-name
    render-syntax-focused-syntax-color-style-name
    snip-class)
@@ -40,9 +40,11 @@ needed to really make this work:
       (define/augment (after-set-position)
         (hide-caret (= (get-start-position) (get-end-position))))
       (super-new)))
-  
-  (define (render-syntax/window syntax)
-    (define es (render-syntax/snip syntax))
+
+(define default-width 32)
+
+  (define (render-syntax/window syntax #:summary-width [summary-width default-width])
+    (define es (render-syntax/snip syntax summary-width))
     (define f (new frame% [label "frame"] [width 850] [height 500]))
     (define mb (new menu-bar% [parent f]))
     (define edit-menu (new menu% [label "Edit"] [parent mb]))
@@ -52,13 +54,18 @@ needed to really make this work:
     (send t insert es)
     (send f show #t))
 
-  (define (render-syntax/snip stx) (make-object syntax-snip% stx))
+  (define (render-syntax/snip stx #:summary-width [summary-width default-width])
+    (new syntax-snip%
+         [main-stx stx]
+         [summary-width summary-width]))
   
   (define syntax-snipclass%
     (class snip-class%
       (define/override (read stream)
-        (make-object syntax-snip%
-          (unmarshall-syntax (:read (open-input-bytes (send stream get-bytes))))))
+        (new syntax-snip%
+             [main-stx (unmarshall-syntax (:read (open-input-bytes (send stream get-bytes))))]
+             ;; we don't save this in the stream to avoid having a new version of the snip data
+             [summary-width default-width]))
       (super-new)))
   
   (define snip-class (new syntax-snipclass%))
@@ -73,13 +80,15 @@ needed to really make this work:
   (define syntax-snip%
     (class expandable-snip%
       (init-field main-stx)
+      (init summary-width)
+      (define _summary-width summary-width)
       
       (unless (syntax? main-stx)
         (error 'syntax-snip% "got non-syntax object"))
       
       (define/public (get-syntax) main-stx)
       
-      (define/override (copy) (make-object syntax-snip% main-stx))
+      (define/override (copy) (new syntax-snip% [main-stx main-stx] [summary-width _summary-width]))
       (define/override (write stream)
         (send stream put (string->bytes/utf-8 (format "~s" (marshall-syntax main-stx)))))
       
@@ -168,7 +177,7 @@ needed to really make this work:
         (let loop ([obj obj])
           (cond
             [(pair? obj) (cons (loop (car obj)) (loop (cdr obj)))]
-            [(syntax? obj) (make-object syntax-snip% obj)]
+            [(syntax? obj) (new syntax-snip% [main-stx obj] [summary-width _summary-width])]
             [(hash? obj)
              (for/hash ([(k v) (in-hash obj)])
                (values (loop k) (loop v)))]
@@ -255,7 +264,9 @@ needed to really make this work:
            (show-border details-shown?)
            (set-tight-text-fit (not details-shown?)))))
 
-      (send summary-t insert (format "~s" main-stx))
+      (send summary-t insert
+            (parameterize ([print-syntax-width (or summary-width (print-syntax-width))])
+              (format "~s" main-stx)))
       (change-the-style summary-t plain-color-style-name
                         0 (send summary-t last-position))
 
