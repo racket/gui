@@ -15,6 +15,8 @@
  characters) of the syntax object that is shown before the
  triangle is turned down. If it is @racket[#f], the value of
  the @racket[print-syntax-width] parameter is used.
+
+ @history[#:changed "1.59" @list{Added @racket[summary-width] argument and changed default width to 32.}]
 }
 
 @defproc[(render-syntax/window [stx syntax?]
@@ -22,6 +24,8 @@
          void?]{
  Uses @racket[render-syntax/snip]'s result, together with a frame
  and editor-canvas to show @racket[stx].
+
+ @history[#:changed "1.59" @list{Added @racket[summary-width] argument and changed default width to 32.}]
 }
 
 @defthing[snip-class (is-a?/c snip-class%)]{
