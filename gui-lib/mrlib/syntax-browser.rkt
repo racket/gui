@@ -266,10 +266,7 @@ needed to really make this work:
 
       (send summary-t insert
             (parameterize ([print-syntax-width (or summary-width (print-syntax-width))])
-              (printf ">> ~s\n" (print-syntax-width))
-              (let ([ans (format "~s" main-stx)])
-                (printf "~s\n" ans)
-                ans)))
+              (format "~s" main-stx)))
       (change-the-style summary-t plain-color-style-name
                         0 (send summary-t last-position))
 
