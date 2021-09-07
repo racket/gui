@@ -6,7 +6,7 @@
 @defmodule[mrlib/syntax-browser]
 
 @defproc[(render-syntax/snip [stx syntax?]
-                             [#:summary-width summary-width (or/c #f (integer-in 3 #f) +inf.0) 32])
+                             [#:summary-width summary-width (or/c #f 0 (integer-in 3 #f) +inf.0) 32])
          (is-a?/c snip%)]{
  Constructs a @racket[snip%] object that displays information
  about @racket[stx].
@@ -20,7 +20,7 @@
 }
 
 @defproc[(render-syntax/window [stx syntax?]
-                               [#:summary-width summary-width (or/c #f (integer-in 3 #f) +inf.0) 32])
+                               [#:summary-width summary-width (or/c #f 0 (integer-in 3 #f) +inf.0) 32])
          void?]{
  Uses @racket[render-syntax/snip]'s result, together with a frame
  and editor-canvas to show @racket[stx].
