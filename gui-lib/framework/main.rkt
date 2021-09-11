@@ -1577,6 +1577,13 @@
     @racket[open-input-text-editor] and then uses @racket[read] to parse the
     range of the buffer.})
 
+ (thing-doc
+  racket:default-paren-matches
+  (listof (list/c symbol? symbol?))
+  @{The default parentheses that are matched when using @racket[racket:text-mode-mixin].
+
+ @history[#:added "1.60"]})
+
  (proc-doc/names
   racket:add-preferences-panel
   (-> void?)

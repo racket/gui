@@ -1378,9 +1378,12 @@
 
     (super-new (get-token (wrap-get-token module-lexer/waived (λ () tabify-pref)))
                (token-sym->style short-sym->style-name)
-               (matches '((|(| |)|)
-                          (|[| |]|)
-                          (|{| |}|))))))
+               (matches default-paren-matches))))
+
+(define default-paren-matches
+  '((|(| |)|)
+    (|[| |]|)
+    (|{| |}|)))
 
 (define (wrap-get-token get-token- get-tabify-pref)
   (define wrapped-get-token

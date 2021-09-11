@@ -407,7 +407,9 @@
      short-sym->pref-name
      short-sym->style-name
      
-     text-balanced?))
+     text-balanced?
+
+     default-paren-matches))
   
   (define-signature main-class^ ())
   (define-signature main^ extends main-class^ ())

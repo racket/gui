@@ -413,8 +413,16 @@
   Sets the @racket[get-token] function used to color the contents
   of the editor.
 
-  See @method[color:text<%> start-colorer]'s @racket[get-token] argument
-  for the contract on this method's @racket[get-token] argument.
+  See @method[color:text<%> start-colorer]'s @racket[_get-token] argument
+  for the contract on this method's @racket[_get-token] argument.
+ }
+ @defmethod[(set-matches [matches (listof (list/c symbol? symbol?))]) void?]{
+  Sets the matching parentheses pairs for this editor.
+
+  See @method[color:text<%> start-colorer]'s @racket[_pairs] argument
+  for more information about this argument.
+
+  @history[#:added "1.60"]
  }
 }
 

@@ -1361,7 +1361,7 @@ added get-regions
 
 (define -text% (text-mixin text:keymap%))
 
-(define -text-mode<%> (interface () set-get-token))
+(define -text-mode<%> (interface () set-get-token set-matches))
 
 (define text-mode-mixin
   (mixin (mode:surrogate-text<%>) (-text-mode<%>)
@@ -1381,6 +1381,9 @@ added get-regions
 
     (define/public (set-get-token _get-token)
       (set! get-token _get-token))
+
+    (define/public (set-matches _matches)
+      (set! matches _matches))
     
     (super-new)))
 
