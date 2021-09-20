@@ -499,11 +499,11 @@
     panel)
 
   ;; add-to-preferences-panel : string (vertical-panel -> void) -> void
-  (define (add-to-preferences-panel panel-name func)
+  (define (add-to-preferences-panel panel-name func #:style [style '()])
     (preferences:add-panel
      (list (string-constant preferences-colors) panel-name)
      (λ (parent)
-       (let ([panel (new-vertical-panel% (parent parent))])
+       (let ([panel (new-vertical-panel% (parent parent) [style style])])
          (func panel)
          panel))))
   
