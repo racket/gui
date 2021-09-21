@@ -24,8 +24,8 @@ The @racket[tab-panel%] class does not implement the virtual
                             . -> . any) 
                            (lambda (b e) (void))]
                  [style (listof (or/c 'no-border
-                                      'can-reorder 'can-close 'flat-portable
-                                      'deleted))
+                                      'can-reorder 'can-close 'new-button
+                                      'flat-portable 'deleted))
                         null]
                  [font (is-a?/c font%) normal-control-font]
                  [enabled any/c #t]
@@ -69,6 +69,11 @@ If the @racket[style] list includes @racket['no-border], no border is
  the @racket['flat-portable] flag is
  effectively always included in @racket[style] on Windows if either
  @racket['can-reorder] or @racket['can-close] is included.
+ If the @racket[style] list includes @racket['new-button] and the
+ platform-independent implementation is used for the tab control,
+ then a new tab button is added to the right of the last tab to allow
+ inserting new tabs. If the new tab button is clicked,
+ @method[tab-panel% on-new-request] is called.
  @DeletedStyleNote[@racket[style] @racket[parent]]{tab panel}
 
 @FontKWs[@racket[font]] @WindowKWs[@racket[enabled]] @SubareaKWs[] @AreaKWs[]
@@ -76,7 +81,8 @@ If the @racket[style] list includes @racket['no-border], no border is
 @history[#:changed "1.55" @elem{Added the @racket['can-reorder] and
                                 @racket['can-close] styles.}
          #:changed "1.56" @elem{Added the @racket['flat-portable] style
-                                with reordering and closing support on Windows.}]}
+                                with reordering and closing support on Windows.}
+         #:changed "1.62" @elem{Added the @racket['new-button] style.}]}
 
 @defmethod[(append [choice label-string?])
            void?]{
@@ -143,6 +149,15 @@ with @racket['no-border]) when creating the panel. The @racket[index]
 argument identifies the tab to potentially close.
 
 @history[#:added "1.55"]}
+
+
+@defmethod[(on-new-request)
+           void?]{
+
+Called when the user clicks the new tab button in a tab panel, which
+is enabled where available by including the @racket['new-button] style.
+
+@history[#:added "1.62"]}
 
 
 @defmethod[(set [choices (listof label-string?)])
