@@ -204,7 +204,7 @@
                                       '(hscroll vscroll
                                                 auto-hscroll auto-vscroll 
                                                 hide-hscroll hide-vscroll)]
-                                     [(eq? who 'tab-panel) '(can-reorder can-close flat-portable)]
+                                     [(eq? who 'tab-panel) '(can-reorder can-close flat-portable new-button)]
                                      [else null]))
                    style)
 
@@ -367,6 +367,7 @@
                                            normal-control-font
                                            init-font)
                                        (lambda (index) (on-close-request index))
+                                       (lambda () (on-new-request))
                                        (lambda (new-positions) (on-reorder new-positions))
                                        this this
                                        wx
@@ -411,7 +412,7 @@
         (raise-argument-error (who->name cwho) "label-string?" choices))
       (check-callback cwho callback)
       (check-container-parent cwho parent)
-      (check-style cwho #f '(deleted no-border can-reorder can-close flat-portable) style)
+      (check-style cwho #f '(deleted no-border can-reorder can-close flat-portable new-button) style)
       (check-font cwho font))
     (super-new [parent parent]
                [style (if (memq 'no-border style)
@@ -492,7 +493,8 @@
                                                   (set! external-mapping #f)
                                                   (on-reorder new-positions))
                                                 wx:middle-queue-key))]
-     [on-close-request (lambda (which) (void))])
+     [on-close-request (lambda (which) (void))]
+     [on-new-request (lambda () (void))])
     (pubment*
      [on-reorder (lambda (new-positions) (inner (void) on-reorder new-positions))])
 

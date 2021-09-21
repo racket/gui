@@ -17,7 +17,7 @@
 (define wx-tab-canvas%
   (class* wx-canvas% (wx/client-adjacent<%>)
     (init choices)
-    (init-field style font on-close-request on-reorder)
+    (init-field style font on-close-request on-new-request on-reorder)
     (init-rest init-args)
     (apply super-make-object init-args)
 
@@ -26,6 +26,7 @@
 
     (define/private (can-reorder?) (member 'can-reorder style))
     (define/private (can-close?) (member 'can-close style))
+    (define/private (has-new-button?) (member 'new-button style))
 
     ;; ----------------------------------------
 
@@ -68,7 +69,7 @@
         (set! items (hash-set items i v))
         (show-or-hide-scroll-thumb)
         (update-mouse-over-drawing-state)
-        (set-clicked-in #f #f #f)
+        (set-clicked-in #f #f #f #f)
         (refresh)))
     (define/private (set-items is)
       (define new-items
@@ -79,13 +80,13 @@
         (set! items new-items)
         (show-or-hide-scroll-thumb)
         (update-mouse-over-drawing-state)
-        (set-clicked-in #f #f #f)
+        (set-clicked-in #f #f #f #f)
         (refresh)))
     (define/private (delete-item n)
       (set! items (delete-item/hash items n))
       (show-or-hide-scroll-thumb)
       (update-mouse-over-drawing-state)
-      (set-clicked-in #f #f #f)
+      (set-clicked-in #f #f #f #f)
       (refresh))
 
     (define/private (reorder-items! former-indices)
@@ -131,15 +132,21 @@
     ;; (or/c #f 'left 'right)
     (define mouse-over-thumb #f)
 
+    ;; boolean
+    (define mouse-over-new-button? #f)
+
     (define/private (set-mouse-over new-mouse-over
                                     new-mouse-over-close?
-                                    new-mouse-over-thumb)
+                                    new-mouse-over-thumb
+                                    new-mouse-over-new-button?)
       (unless (and (equal? mouse-over new-mouse-over)
                    (equal? mouse-over-close? new-mouse-over-close?)
-                   (equal? mouse-over-thumb new-mouse-over-thumb))
+                   (equal? mouse-over-thumb new-mouse-over-thumb)
+                   (equal? mouse-over-new-button? new-mouse-over-new-button?))
         (set! mouse-over new-mouse-over)
         (set! mouse-over-close? new-mouse-over-close?)
         (set! mouse-over-thumb new-mouse-over-thumb)
+        (set! mouse-over-new-button? new-mouse-over-new-button?)
         (refresh)))
 
     ;; (or/c #f (integer-in 0 (number-of-items)))
@@ -161,13 +168,18 @@
     ;; when not #f, scroll-offset should also not be #f
     (define clicked-thumb #f)
 
-    (define/private (set-clicked-in new-clicked-in new-clicked-in-offset new-clicked-thumb)
+    ; (or/c #t #f)
+    (define clicked-new-button #f)
+
+    (define/private (set-clicked-in new-clicked-in new-clicked-in-offset new-clicked-thumb new-clicked-new-button)
       (unless (and (equal? clicked-in new-clicked-in)
                    (equal? clicked-in-offset new-clicked-in-offset)
-                   (equal? clicked-thumb new-clicked-thumb))
+                   (equal? clicked-thumb new-clicked-thumb)
+                   (equal? clicked-new-button new-clicked-new-button))
         (set! clicked-in new-clicked-in)
         (set! clicked-in-offset new-clicked-in-offset)
         (set! clicked-thumb new-clicked-thumb)
+        (set! clicked-new-button new-clicked-new-button)
         (refresh)
         (maybe-start/stop-thumb-timer)))
     
@@ -225,6 +237,12 @@
             (unless (< cw sp)     ;; entirely to the right of being visible
               (draw-ith-item i sp)))))
 
+      (when (has-new-button?)
+        (define sp (natural-left-position (number-of-items)))
+          (unless (< (+ sp tw) 0) ;; entirely to the left of being visible
+            (unless (< cw sp)     ;; entirely to the right of being visible
+              (draw-new-button (number-of-items) sp))))
+
       ;; 2.
       (draw-lines-between-items)
 
@@ -238,6 +256,43 @@
 
       (disable-cache))
 
+    (define/private (draw-new-button i x-start)
+      (define dc (get-dc))
+      (define new-icon-start (+ x-start horizontal-item-margin))
+      (define-values (cw ch) (get-client-size))
+      (define cx (+ new-icon-start (/ size-of-new-icon-circle 2)))
+      (define cy (/ ch 2))
+
+      (define text-and-close-foreground-color (text-and-close-icon-bright-color))
+      
+      (define new-circle-color
+        (cond
+          [mouse-over-new-button?
+           (mouse-over-close-circle-color)]
+          [else (natural-tab-color)]))
+        
+      (when new-circle-color
+        (send dc set-brush new-circle-color 'solid)
+        (send dc set-pen "black" 1 'transparent)
+        (send dc draw-ellipse
+              (- cx (/ size-of-new-icon-circle 2))
+              (- cy (/ size-of-new-icon-circle 2))
+              size-of-new-icon-circle
+              size-of-new-icon-circle))
+      
+      (send dc set-pen text-and-close-foreground-color 1 'solid)
+      (send dc draw-line
+            (- cx (/ size-of-new-icon-x 2))
+            cy
+            (+ cx (/ size-of-new-icon-x 2))
+            cy)
+      (send dc draw-line
+            cx
+            (+ cy (/ size-of-new-icon-x 2))
+            cx
+            (- cy (/ size-of-new-icon-x 2)))
+      (void))
+    
     (define/private (draw-scroll-thumbs)
       (define dc (get-dc))
       (send dc set-pen "black" 1 'transparent)
@@ -444,9 +499,9 @@
          ;; to consider the mouse as having left the window, so we
          ;; use the `x` and `y` coordinates to determine if we're
          ;; outside the window when we do see the up event
-         (set-mouse-over #f #f #f)
+         (set-mouse-over #f #f #f #f)
          (set-mouse-entered? #f)
-         (set-clicked-in #f #f #f)]
+         (set-clicked-in #f #f #f #f)]
         [entering?
          (set-mouse-entered? #t)])
 
@@ -454,7 +509,8 @@
         (define-values (mouse-over-tab
                         mx-offset-in-tab
                         mouse-over-close?
-                        mouse-over-thumb)
+                        mouse-over-thumb
+                        mouse-over-new-button?)
           (mouse->info mouse-x mouse-y))
         (cond
           [button-down?-left
@@ -470,49 +526,58 @@
              [(can-reorder?)
               (set-clicked-in mouse-over-tab
                               (and (not mouse-over-close?) mx-offset-in-tab)
-                              mouse-over-thumb)]
+                              mouse-over-thumb
+                              mouse-over-new-button?)]
              [else
               (set-clicked-in (and mouse-over-close? mouse-over-tab)
                               #f
-                              mouse-over-thumb)])
-           (set-mouse-over #f #f #f)]
+                              mouse-over-thumb
+                              mouse-over-new-button?)])
+           (set-mouse-over #f #f #f #f)]
           [(and left-down dragging?)
            ;; maybe this next line needs to refresh only when
            ;; we are dragging a tab, not all the time?
            (unless (equal? last-mouse-x mouse-x) (refresh))
            (cond
              [mouse-over-thumb
-              (set-clicked-in #f #f mouse-over-thumb)]
+              (set-clicked-in #f #f mouse-over-thumb #f)]
              [else
               (set-mouse-over #f
                               (and mouse-over-close?
                                    (equal? clicked-in mouse-over-tab))
-                              #f)])]
+                              #f
+                              mouse-over-new-button?)])]
+          [(and button-up?-left clicked-in)
+           (cond
+             [clicked-in-offset
+              (define n (number-of-items))
+              (define to-tab (or mouse-over-tab (if (mouse-x . <= . 0)
+                                                    0
+                                                    (sub1 n))))
+              (define former-indices (reordered-list n clicked-in to-tab))
+              (when former-indices
+                (reorder-items! former-indices)
+                (set! the-callback
+                      (λ ()
+                        (on-reorder former-indices))))]
+             [else
+              (when (and mouse-over-close?
+                         (equal? clicked-in mouse-over-tab))
+                (define index clicked-in)
+                (set! the-callback
+                      (λ ()
+                        (on-close-request index))))])
+           (set-clicked-in #f #f #f #f)
+           (set-mouse-over mouse-over-tab mouse-over-close? mouse-over-thumb mouse-over-new-button?)]
           [button-up?-left
-           (when clicked-in
-             (cond
-               [clicked-in-offset
-                (define n (number-of-items))
-                (define to-tab (or mouse-over-tab (if (mouse-x . <= . 0)
-                                                      0
-                                                      (sub1 n))))
-                (define former-indices (reordered-list n clicked-in to-tab))
-                (when former-indices
-                  (reorder-items! former-indices)
-                  (set! the-callback
-                        (λ ()
-                          (on-reorder former-indices))))]
-               [else
-                (when (and mouse-over-close?
-                           (equal? clicked-in mouse-over-tab))
-                  (define index clicked-in)
-                  (set! the-callback
-                        (λ ()
-                          (on-close-request index))))]))
-           (set-clicked-in #f #f #f)
-           (set-mouse-over mouse-over-tab mouse-over-close? mouse-over-thumb)]
+           (when mouse-over-new-button?
+             (set! the-callback
+                   (λ ()
+                     (on-new-request))))
+           (set-clicked-in #f #f #f #f)
+           (set-mouse-over mouse-over-tab mouse-over-close? mouse-over-thumb mouse-over-new-button?)]
           [else
-           (set-mouse-over mouse-over-tab mouse-over-close? mouse-over-thumb)]))
+           (set-mouse-over mouse-over-tab mouse-over-close? mouse-over-thumb mouse-over-new-button?)]))
 
 
       (the-callback))
@@ -523,11 +588,12 @@
          (define-values (mouse-over-tab
                          mx-offset-in-tab
                          mouse-over-close?
-                         mouse-over-thumb)
+                         mouse-over-thumb
+                         mouse-over-new-button?)
            (mouse->info mouse-x mouse-y))
-         (set-mouse-over mouse-over-tab mouse-over-close? mouse-over-thumb)]
+         (set-mouse-over mouse-over-tab mouse-over-close? mouse-over-thumb mouse-over-new-button?)]
         [else
-         (set-mouse-over #f #f #f)]))
+         (set-mouse-over #f #f #f #f)]))
 
     ;; -----
     ;; scrolling-related event handling
@@ -649,10 +715,17 @@
         ['compute-it
          (compute-width-of-tab)]
         [(? number? n) n]))
+    (define (new-button-width)
+      (if (has-new-button?)
+          (+ horizontal-item-margin
+             size-of-new-icon-circle
+             horizontal-item-margin)
+          0))
     (define/private (compute-width-of-tab)
       (define-values (cw ch) (get-client-size))
       (define dc (get-dc))
-      (define shrinking-required-size (/ cw (number-of-items)))
+      (define shrinking-required-size (- (/ cw (number-of-items))
+                                         (/ (new-button-width) (number-of-items))))
 
       ;; this is the maximum size that a tab will ever be
       (define unconstrained-tab-size (* (send (send dc get-font) get-point-size) 12))
@@ -715,9 +788,9 @@
       (define tab-candidate-i (floor (/ mx (width-of-tab))))
       (cond
         [(and scroll-offset (<= 0 mx-in-canvas-coordinates sw))
-         (values #f #f #f 'left)]
+         (values #f #f #f 'left #f)]
         [(and scroll-offset (<= (- cw sw) mx-in-canvas-coordinates cw))
-         (values #f #f #f 'right)]
+         (values #f #f #f 'right #f)]
         [(<= 0 tab-candidate-i (- (number-of-items) 1))
          (define mx-offset-in-tab (- mx-in-canvas-coordinates (natural-left-position tab-candidate-i)))
          (define start-of-cross (get-start-of-cross-x-offset))
@@ -732,9 +805,16 @@
                 (<= (- (/ ch 2) size-of-close-icon-circle)
                     my
                     (+ (/ ch 2) size-of-close-icon-circle))))
-         (values tab-candidate-i mx-offset-in-tab (and in-close-x in-close-y) #f)]
+         (values tab-candidate-i mx-offset-in-tab (and in-close-x in-close-y) #f #f)]
+        [(and (= tab-candidate-i (number-of-items))
+              (>= mx (+ (* tab-candidate-i (width-of-tab))
+                        horizontal-item-margin))
+              (<= mx (+ (* tab-candidate-i (width-of-tab))
+                        horizontal-item-margin
+                        size-of-new-icon-circle)))
+         (values #f #f #f #f #t)]
         [else
-         (values #f #f #f #f)]))
+         (values #f #f #f #f #f)]))
 
     (let ()
       (define dc (get-dc))
@@ -762,6 +842,9 @@
 
 (define size-of-close-icon-x 6)
 (define size-of-close-icon-circle 12)
+
+(define size-of-new-icon-x 8)
+(define size-of-new-icon-circle 16)
 
 ;; in msec
 (define thumb-timer-interval 30)
