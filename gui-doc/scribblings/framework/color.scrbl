@@ -18,7 +18,9 @@
                                                  exact-nonnegative-integer?
                                                  (not/c dont-stop?)
                                                  (values any/c 
-                                                         symbol? 
+                                                         (or/c symbol?
+                                                               (and/c (hash/c symbol? any/c)
+                                                                      immutable?))
                                                          (or/c symbol? #f)
                                                          (or/c exact-positive-integer? #f)
                                                          (or/c exact-positive-integer? #f)
@@ -28,76 +30,145 @@
              void?]{
     Starts tokenizing the buffer for coloring and parenthesis matching.
 
-    The @racket[token-sym->style] argument will be passed the first return
-    symbol from @racket[get-token], and it should return the style-name that
-    the token should be colored.
+    The main argument is @racket[get-token]. It accepts either three
+    arguments or only the first of these three:
 
-  The @racket[get-token] argument's contract above is just
-  the basic checks it should satisfy; it is also expected to
-  satisfy the @racket[lexer/c] contract, which attempts to
-  also check the invariants described here.
+    @itemlist[
 
-  The arguments to @racket[get-token] are an input port and
-  optionally an offset and mode value. When it accepts just an
-  input port, @racket[get-token] should return the next token
-  as 5 values:
+     @item{@racket[_input-port] --- An input port to parse from. The
+       port is not necessarily the same for every call to
+       @racket[get-token].}
 
-    @itemize[
-    @item{This value is intended to represent the textual
-      component of the token. If the second value returned by
-      @racket[get-token] is @racket['symbol] and this value is a string
-      then the value is used to differentiate between symbols and keywords
-      for the purpose of coloring and formatting, configurable from DrRacket's
-    preference's editing menu.}
-    @item{A symbol describing the type of the token.  This symbol is
-      transformed into a style-name via the @racket[token-sym->style] argument.
-      The symbols @racket['white-space] and @racket['comment] have special
-      meaning and should always be returned for white space and comment tokens
-      respectively.  The symbol @racket['no-color] can be used to indicate that
-      although the token is not white space, it should not be colored.  The
-      symbol @racket['eof] must be used to indicate when all the tokens have
-      been consumed.}
-    @item{A symbol indicating how the token should be treated by the paren
-      matcher or @racket[#f].  This symbol should be in the pairs argument.}
-    @item{The starting position of the token (or @racket[#f] if eof); this
-          number is relative to the third result of @racket[port-next-location]
-          when applied to the input port that gets passed to @racket[get-token].}
-    @item{The ending position of the token (or @racket[#f] if eof); this 
-          is also relative to the port's location, just like the previous value.}]
+     @item{@racket[_offset] --- An integer that can be added to the
+       position of @racket[_input-port] to obtain an absolute coordinate
+       within a text stream.}
 
-    When @racket[get-token] accepts an offset and mode value in addition to an
-    input port, it must also return two extra results.
-    The offset given to @racket[get-token] can be added
-    to the position of the input port to obtain absolute coordinates within a
-    text stream. The extra two results are
-    @itemize[@item{a backup distance;
-    The backup distance returned by @racket[get-token] indicates the
-    maximum number of characters to back up (counting from the start of the
-    token) and for re-parsing after a change to the editor within the token's
-    region.}
-    @item{a new mode; 
-    The mode argument allows @racket[get-token] to communicate
-    information from earlier parsing to later.  When @racket[get-token] is
-    called for the beginning on a stream, the mode argument is @racket[#f];
-    thereafter, the mode returned for the previous token is provided to
-    @racket[get-token] for the next token. 
+     @item{@racket[_mode] --- An arbitrary value that is @racket[#f]
+       when @racket[_input-port] represents the start of the input
+       stream, and otherwise is the last result of @racket[get-token]
+       as returned for the just-preceding token.
+
+       The @racket[_mode] value is intended to record the state of
+       parsing in a way that allows it to be restarted mid-stream. The
+       @racket[_mode] value should not be a mutable value; if part of
+       the input stream is re-tokenized, the @racket[_mode] saved from
+       the immediately preceding token is given again to the
+       @racket[get-token] function.}
+
+    ]
+
+    The @racket[get-token] function produces either 7 results or the
+    first 5 of these results, depending on how many arguments
+    @racket[get-token] accepts:
+
+    @itemlist[
+
+      @item{@racket[_token] --- A value intended to represent the
+            textual component of the token. This value is ignored by
+            @method[color:text<%> start-colorer].}
+
+      @item{@racket[_attribs] --- Either a symbol or a hash table with
+            symbol keys. Except for @racket['eof], a symbol by itself
+            is treated the same as a hash table that maps
+            @racket['type] to the symbol. A @racket[get-token] that
+            accepts only a single argument must always produce just a
+            symbol for @racket[_attribs].
+
+            The symbol @racket['eof] (not a hash table) must be
+            returned as @racket[_attribs] to indicate when all the
+            tokens have been consumed.
+
+            The value of @racket['color] in @racket[_attribs] is
+            passed to @racket[token-sym->style], which returns a style
+            name that that is used to ``color'' the token. If
+            @racket['color] is not mapped by @racket[_attribs], then
+            the value of @racket['type] is used, instead. In addition,
+            if @racket['comment?] is mapped to a true value, then the
+            token's color is adjusted to de-emphasize it relative to
+            surrounding text.
+
+            Certain values for @racket['type] in @racket[_attribs] are
+            treated specially. The symbols @racket['white-space] and
+            @racket['comment] should always be used for whitespace and
+            comment tokens, respectively. The symbol
+            @racket['no-color] can be used to indicate that although
+            the token is not whitespace, it should not be colored.
+
+            These and other keys in @racket[_attribs] can be used by
+            tools that call @method[color:text<%>
+            classify-position*].}
+
+       @item{@racket[_paren] --- A symbol indicating how the token
+            should be treated by the parenthesis matcher, or
+            @racket[#f] if the token does not correspond to an open or
+            close parentheses. A @racket[_parens] symbol should be one
+            of the symbols in the @racket[pairs] argument.
+
+            Parenthesis matching uses this symbol in combination with
+            @racket[_parens] to determine matching pairs and to enable
+            navigation options that take matches into account.
+
+            For example, suppose pairs is @racket['((|(| |)|) (|[|
+            |]|) (begin end))]. This means that there are three kinds
+            of parentheses. Any token that has @racket['begin] as its
+            @racket[_paren] value will act as an open for matching
+            tokens that have @racket['end] as @racket[_paren].
+            Similarly, any token with @racket['|]|] will act as a
+            closing match for tokens with @racket['|[|]. When trying
+            to correct a mismatched closing parenthesis, each closing
+            symbol in pairs will be converted to a string and tried as
+            a closing parenthesis.}
+            
+      @item{@racket[_start] --- The starting position of the token (or
+            @racket[#f] for an end-of-file). This number is relative
+            to the third result of @racket[(port-next-location
+            _input-port)].}
+
+      @item{@racket[__end] --- The ending position of the token (or
+            @racket[#f] for an end-of-file). This is number is also
+            relative to the port's location, like @racket[_start].}
+
+      @item{@racket[_backup] --- A backup distance, which indicates
+            the maximum number of characters to back up (counting from
+            the start of the token) and for re-parsing after a change
+            to the editor within the token's region. A
+            @racket[_backup] is typically @racket[0].}
+
+      @item{@racket[_mode] (the new one) --- A value that is passed to
+            a later call to @racket[get-token] to continue parsing the
+            input program.
     
-    If the mode result is a @racket[dont-stop] struct, then the value inside
-    the struct is considered the new mode, and the colorer is guaranteed
-    not to be interrupted until at least the next call to this tokenizing
-    function that does not return a @racket[dont-stop] struct (unless, of course,
-    it returns an eof token, in which case the new mode result is ignored).
-    This is useful, for example, when a lexer has to read ahead in the buffer
-    to decide on the tokens at this point; then that read-ahead will be 
-    inconsistent if an edit happens; returning a @racket[dont-stop]
-    struct ensures that no changes to the buffer happen.
-    
-    The mode should not be a mutable
-    value; if part of the stream is re-tokenized, the mode saved from the
-    immediately preceding token is given again to the @racket[get-token]
-    function.}]
+            If @racket[_mode] is a @racket[dont-stop] structure, then
+            the value inside the structure is considered the new
+            @racket[_mode], and the colorer is guaranteed not to be
+            interrupted until at least the next call to
+            @racket[get-token] that does not return a
+            @racket[dont-stop] structure (unless, of course, it
+            returns an @racket['eof] value for @racket[_attribs], in
+            which case the new @racket[_mode] result is ignored). A
+            @racket[dont-stop] result is useful, for example, when a
+            lexer has to read ahead in @racket[_input-port] to decide
+            on the tokens at this point; that read-ahead will be
+            inconsistent if an edit happens, so a @racket[dont-stop]
+            structure ensures that no changes to the buffer happen
+            between calls.
 
-    The @racket[get-token] function must obey the following invariants:
+            As mentioned above, the @racket[_mode] result should not
+            be a mutable value. Also, it should be comparable with
+            @racket[equal?] to short-circuit reparsing when
+            @racket[get-token] returns the same results for an input
+            position.}
+
+    ]
+
+    The @racket[token-sym->style] and @racket[parens] arguments are
+    used as described above with the @racket[_attribs] and
+    @racket[_paren] results, respectively.
+
+  The @racket[get-token] argument's contract above reflects just
+  the basic constraints it should satisfy. It is also expected to
+  satisfy the @racket[lexer*/c] contract, which attempts to
+  check the following additional invariants:
     @itemize[
     @item{Every position in the buffer must be accounted for in exactly one
     token, and every token must have a non-zero width. Accordingly,
@@ -125,17 +196,6 @@
       would result in a single string token modifying previous tokens.  To
       handle these situations, @racket[get-token] can treat the first line as a
       single token, or it can precisely track backup distances.}]
-
-    The @racket[pairs] argument is a list of different kinds of matching
-    parens.  The second value returned by @racket[get-token] is compared to
-    this list to see how the paren matcher should treat the token.  An example:
-    Suppose pairs is @racket['((|(| |)|) (|[| |]|) (begin end))].  This means
-    that there are three kinds of parens.  Any token which has @racket['begin]
-    as its second return value will act as an open for matching tokens with
-    @racket['end].  Similarly any token with @racket['|]|] will act as a
-    closing match for tokens with @racket['|[|].  When trying to correct a
-    mismatched closing parenthesis, each closing symbol in pairs will be
-    converted to a string and tried as a closing parenthesis.
     
     The @racket[get-token] function is usually be implemented with a lexer using the 
     @racket[parser-tools/lex] library, but can be implemented directly.
@@ -156,6 +216,8 @@
                               0
                               (not mode))]))]
     
+
+  @history[#:changed "1.61" @elem{Added support for hash-table @racket[_attribs] results.}]
   }
   @defmethod[(stop-colorer [clear-colors? boolean? #t]) void?]{
     Stops coloring and paren matching the buffer.
@@ -363,11 +425,26 @@
   @defmethod[(classify-position [position exact-nonnegative-integer?])
              (or/c symbol? #f)]{
 
-    Return a symbol for the lexer-determined token type for the token that
-    contains the item after @racket[position].
+    Return a symbol for the lexer-determined token type for the token
+    that contains the item after @racket[position]. Using
+    @method[color:text<%> classify-position] is the same as using
+    @method[color:text<%> classify-position] and checking for a
+    @racket['type] value.
 
     Must only be called while the tokenizer is started.
   }
+
+  @defmethod[(classify-position* [position exact-nonnegative-integer?])
+             (or/c (and/c (hash/c symbol? any/c) immutable?) #f)]{
+
+    Return a hash table for the lexer-determined token attributes for
+    the token that contains the item after @racket[position]. The
+    result is @racket[#f] if no attributes are available for the
+    position.
+
+    Must only be called while the tokenizer is started.
+
+   @history[#:added "1.61"]}
 
   @defmethod[(get-token-range [position exact-nonnegative-integer?]) 
              (values (or/c #f exact-nonnegative-integer?)
