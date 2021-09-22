@@ -1327,7 +1327,7 @@
   (interface ()
     ))
 
-(define module-lexer/waived (waive-option module-lexer))
+(define module-lexer/waived (waive-option module-lexer*))
 
 (define text-mode-mixin
   (mixin (color:text-mode<%> mode:surrogate-text<%>) (-text-mode<%>)
