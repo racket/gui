@@ -239,9 +239,9 @@
 
       (when (has-new-button?)
         (define sp (natural-left-position (number-of-items)))
-          (unless (< (+ sp tw) 0) ;; entirely to the left of being visible
-            (unless (< cw sp)     ;; entirely to the right of being visible
-              (draw-new-button (number-of-items) sp))))
+        (unless (< (+ sp tw) 0) ;; entirely to the left of being visible
+          (unless (< cw sp)     ;; entirely to the right of being visible
+            (draw-new-button (number-of-items) sp))))
 
       ;; 2.
       (draw-lines-between-items)
@@ -735,8 +735,10 @@
 
     (define/private (white-on-black-panel-scheme?) #f)
 
+    ;; also include the size of the new button if present
     (define/private (min-size-of-all-tabs-together)
-      (* (number-of-items) (get-min-tab-width)))
+      (+ (* (number-of-items) (get-min-tab-width))
+         (new-button-width)))
 
     (define/private (scroll-offset-rightmost)
       (define-values (cw ch) (get-client-size))
