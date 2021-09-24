@@ -258,7 +258,7 @@
 
     (define/private (draw-new-button i x-start)
       (define dc (get-dc))
-      (define new-icon-start (+ x-start horizontal-item-margin))
+      (define new-icon-start (+ x-start new-button-margin))
       (define-values (cw ch) (get-client-size))
       (define cx (+ new-icon-start (/ size-of-new-icon-circle 2)))
       (define cy (/ ch 2))
@@ -717,9 +717,9 @@
         [(? number? n) n]))
     (define (new-button-width)
       (if (has-new-button?)
-          (+ horizontal-item-margin
+          (+ new-button-margin
              size-of-new-icon-circle
-             horizontal-item-margin)
+             new-button-margin)
           0))
     (define/private (compute-width-of-tab)
       (define-values (cw ch) (get-client-size))
@@ -808,9 +808,9 @@
          (values tab-candidate-i mx-offset-in-tab (and in-close-x in-close-y) #f #f)]
         [(and (= tab-candidate-i (number-of-items))
               (>= mx (+ (* tab-candidate-i (width-of-tab))
-                        horizontal-item-margin))
+                        new-button-margin))
               (<= mx (+ (* tab-candidate-i (width-of-tab))
-                        horizontal-item-margin
+                        new-button-margin
                         size-of-new-icon-circle)))
          (values #f #f #f #f #t)]
         [else
@@ -837,6 +837,7 @@
 (define horizontal-item-margin 10)
 (define top-item-margin 5)
 (define bottom-item-margin 3)
+(define new-button-margin (/ horizontal-item-margin 2))
 
 (define end-of-label-horizontal-gradient-amount 16)
 
