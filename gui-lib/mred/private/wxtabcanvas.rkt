@@ -168,7 +168,7 @@
     ;; when not #f, scroll-offset should also not be #f
     (define clicked-thumb #f)
 
-    ; (or/c #t #f)
+    ; boolean
     (define clicked-new-button #f)
 
     (define/private (set-clicked-in new-clicked-in new-clicked-in-offset new-clicked-thumb new-clicked-new-button)
@@ -267,6 +267,8 @@
       
       (define new-circle-color
         (cond
+          [clicked-new-button
+           (mouse-down-over-close-circle-color)]
           [mouse-over-new-button?
            (mouse-over-close-circle-color)]
           [else (natural-tab-color)]))
@@ -808,7 +810,9 @@
                     my
                     (+ (/ ch 2) size-of-close-icon-circle))))
          (values tab-candidate-i mx-offset-in-tab (and in-close-x in-close-y) #f #f)]
-        [(and (= tab-candidate-i (number-of-items))
+        [(and (has-new-button?)
+              (not clicked-in)
+              (= tab-candidate-i (number-of-items))
               (>= mx (+ (* tab-candidate-i (width-of-tab))
                         new-button-margin))
               (<= mx (+ (* tab-candidate-i (width-of-tab))
