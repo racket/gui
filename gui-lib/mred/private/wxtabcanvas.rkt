@@ -267,8 +267,10 @@
       
       (define new-circle-color
         (cond
-          [clicked-new-button
+          [(and clicked-new-button mouse-over-new-button?)
            (mouse-down-over-close-circle-color)]
+          [clicked-new-button
+           (selected-tab-color)]
           [mouse-over-new-button?
            (mouse-over-close-circle-color)]
           [else (natural-tab-color)]))
@@ -535,7 +537,7 @@
                               #f
                               mouse-over-thumb
                               mouse-over-new-button?)])
-           (set-mouse-over #f #f #f #f)]
+           (set-mouse-over mouse-over-tab mouse-over-close? mouse-over-thumb mouse-over-new-button?)]
           [(and left-down dragging?)
            ;; maybe this next line needs to refresh only when
            ;; we are dragging a tab, not all the time?
@@ -817,7 +819,11 @@
                         new-button-margin))
               (<= mx (+ (* tab-candidate-i (width-of-tab))
                         new-button-margin
-                        size-of-new-icon-circle)))
+                        size-of-new-icon-circle))
+              ; need to check the height as well for the case where the mouse button was held down
+              ; oven the new button and re-enters the widget
+              (>= my (/ (- ch size-of-new-icon-circle) 2))
+              (<= my (- ch (/ (- ch size-of-new-icon-circle) 2))))
          (values #f #f #f #f #t)]
         [else
          (values #f #f #f #f #f)]))
