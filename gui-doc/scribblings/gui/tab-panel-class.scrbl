@@ -25,7 +25,7 @@ The @racket[tab-panel%] class does not implement the virtual
                            (lambda (b e) (void))]
                  [style (listof (or/c 'no-border
                                       'can-reorder 'can-close 'new-button
-				      'flat-portable 'deleted))
+                                      'flat-portable 'deleted))
                         null]
                  [font (is-a?/c font%) normal-control-font]
                  [enabled any/c #t]
