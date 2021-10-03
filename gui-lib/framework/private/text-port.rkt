@@ -1266,11 +1266,16 @@
                        (λ (v)
                          (let* ([nth (at-peek-n data (- kr 1))]
                                 [nth-pos (cdr nth)])
+                           (define ch (car nth))
                            (set! position
-                                 (if (eof-object? (car nth))
+                                 (if (eof-object? ch)
                                      nth-pos
-                                     (list (car nth-pos)
-                                           (+ 1 (cadr nth-pos))
+                                     (list (if (eqv? ch (char->integer #\newline))
+                                               (add1 (car nth-pos))
+                                               (car nth-pos))
+                                           (if (eqv? ch (char->integer #\newline))
+                                               0
+                                               (+ 1 (cadr nth-pos)))
                                            (+ 1 (caddr nth-pos))))))
                          (set! data (at-dequeue-n data kr))
                          (semaphore-post peeker-sema)
