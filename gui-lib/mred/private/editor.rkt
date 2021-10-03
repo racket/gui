@@ -755,7 +755,7 @@
           [color (mk-menu "Color")]
           [background (mk-menu "Background")])
 
-                                        ; Font menu
+      ;; Font menu
       (for-each (lambda (l f)
                   (mk l family
                       (lambda (e)
@@ -767,7 +767,7 @@
                                            (when f
                                              (send e change-style (font->delta f))))))
 
-                                        ; Size menu
+      ;; Size menu
       (let ([bigger (make-object menu% "Bigger" size)]
             [smaller (make-object menu% "Smaller" size)]
             [add-change-size
@@ -811,39 +811,50 @@
       (let ([mk-cg (lambda (cmd arg)
                      (lambda (e) (send e change-style (make-object wx:style-delta% cmd arg))))])
 
-                                        ; Style
+        ;; Style
         (for-each (lambda (name s)
                     (mk name style (mk-cg 'change-style s)))
                   '("Normal" "Italic" "Slant")
                   '(normal italic slant))
 
-                                        ; Weight
+        ;; Weight
         (for-each (lambda (name s)
                     (mk name weight (mk-cg 'change-weight s)))
                   '("Normal" "Bold" "Light")
                   '(normal bold light))
 
-                                        ; Underline
+        ;; Underline
         (mk "No Underline" underline (mk-cg 'change-underline #f))
         (mk "Underline" underline (mk-cg 'change-underline #t))
         (mk "Toggle" underline (lambda (e) (send e change-style (make-object wx:style-delta% 'change-toggle-underline))))
 
-                                        ; Alignment
+        ;; Alignment
         (for-each (lambda (name s)
                     (mk name alignment (mk-cg 'change-alignment s)))
                   '("Top" "Center" "Bottom")
                   '(top center bottom))
 
         (let ([colors '("Black" "White" "Red" "Orange" "Yellow" "Green" "Blue" "Purple" "Cyan" "Magenta" "Gray")])
+          (define (add-transparency parent-m get-mult get-add)
+            (define m (make-object menu% "Opacity" parent-m))
+            (for ([i (in-inclusive-range 0 100 10)])
+              (mk (format "~a%" i) m (lambda (e)
+                                       (define d (make-object wx:style-delta%))
+                                       (send (get-mult d) set-a 0.0)
+                                       (send (get-add d) set-a (/ i 100.0))
+                                       (send e change-style d)))))
 
-                                        ; Colors
+          ;; Colors
           (for-each (lambda (c)
                       (mk c color (lambda (e) (let ([d (make-object wx:style-delta%)])
                                                 (send d set-delta-foreground c)
                                                 (send e change-style d)))))
                     colors)
+          (add-transparency color
+                            (lambda (d) (send d get-foreground-mult))
+                            (lambda (d) (send d get-foreground-add)))
 
-                                        ; Background
+          ;; Background
           (mk "Transparent" background (lambda (e) (let ([d (make-object wx:style-delta%)])
                                                      (send d set-transparent-text-backing-on #t)
                                                      (send e change-style d))))
@@ -851,4 +862,7 @@
                       (mk c background (lambda (e) (let ([d (make-object wx:style-delta%)])
                                                      (send d set-delta-background c)
                                                      (send e change-style d)))))
-                    colors))))))
+                    colors)
+          (add-transparency background
+                            (lambda (d) (send d get-background-mult))
+                            (lambda (d) (send d get-background-add))))))))

@@ -439,15 +439,9 @@ added get-regions
       (define style-name (token-sym->style color-type))
       (define base-color (send (get-style-list) find-named-style style-name))
       (define color (if (and (hash? attribs) (hash-ref attribs 'comment? #f))
-                        ;; FIXME: temporary simulation of fading text, should
-                        ;; look right only on a white background. Probably
-                        ;; `style%` should support foreground alpha.
-                        (let ([c (send base-color get-foreground)]
-                              [d (new style-delta%)])
-                          (define (s n) (- 255 (quotient (- 255 n) 2)))
-                          (send d set-delta-foreground (make-color (s (send c red))
-                                                                   (s (send c green))
-                                                                   (s (send c blue))))
+                        (let ([d (new style-delta%)])
+                          ;; 50% transparency:
+                          (send (send d get-foreground-mult) set-a 0.5)
                           (send (get-style-list) find-or-create-style base-color d))
                         base-color))
       (cond

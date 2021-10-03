@@ -7,5 +7,5 @@
 (define MRED-READER-STR #"#reader(lib\"read.ss\"\"wxme\")")
 (define MRED-START-STR #"WXME")
 (define MRED-FORMAT-STR #"01")
-(define MRED-VERSION-STR #"10")
-(define MRED-VERSION-RX #rx"^(?:0[1-9])|(?:10)$")
+(define MRED-VERSION-STR #"11")
+(define MRED-VERSION-RX #rx"^(?:0[1-9])|(?:1[0-1])$")

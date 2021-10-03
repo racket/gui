@@ -8,7 +8,7 @@
                ["base" #:version "8.2.0.1"]
                "syntax-color-lib"
                ["draw-lib" #:version "1.18"]
-               ["snip-lib" #:version "1.2"]
+               ["snip-lib" #:version "1.3"]
                "wxme-lib"
                "pict-lib"
                "scheme-lib"
@@ -33,4 +33,4 @@
 
 (define pkg-authors '(mflatt robby))
 
-(define version "1.62")
+(define version "1.63")
