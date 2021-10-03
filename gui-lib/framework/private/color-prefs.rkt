@@ -160,22 +160,12 @@
                  (λ (color-button evt)
                    (define pref (get-from-pref-sym))
                    (define orig-add (send pref get-foreground-add))
-                   (define orig-mult (send pref get-foreground-mult))
-                   (define (avg x y z) (/ (+ x y z) 3))
-                   (define (pin-between lo x hi) (min (max lo x) hi))
-                   (define orig-α
-                     (- 1 (pin-between 0
-                                       (avg (send orig-mult get-r)
-                                            (send orig-mult get-g)
-                                            (send orig-mult get-b))
-                                       1)))
-                   (define (to-byte v) (pin-between 0 (inexact->exact (round v)) 255))
                    (define color
                      (make-object color%
-                       (to-byte (- 255 (/ (- 255 (send orig-add get-r)) orig-α)))
-                       (to-byte (- 255 (/ (- 255 (send orig-add get-g)) orig-α)))
-                       (to-byte (- 255 (/ (- 255 (send orig-add get-b)) orig-α)))
-                       orig-α))
+                                  (send orig-add get-r)
+                                  (send orig-add get-g)
+                                  (send orig-add get-b)
+                                  (send orig-add get-a)))
                    (define users-choice
                      (get-color-from-user
                       (format (string-constant syntax-coloring-choose-color) example-text)
@@ -185,15 +175,7 @@
                    (when users-choice
                      (update-style-delta
                       (λ (delta)
-                        (define new-α (send users-choice alpha))
-                        (define α*users-choice
-                          (make-object color%
-                            (to-byte (- 255 (* (- 255 (send users-choice red)) new-α)))
-                            (to-byte (- 255 (* (- 255 (send users-choice green)) new-α)))
-                            (to-byte (- 255 (* (- 255 (send users-choice blue)) new-α)))))
-                        (send delta set-delta-foreground α*users-choice)
-                        (define new-mult (send delta get-foreground-mult))
-                        (send new-mult set (- 1 new-α) (- 1 new-α) (- 1 new-α))))))])))
+                        (send delta set-delta-foreground users-choice)))))])))
 
     (define background-color-button
       (and (>= (get-display-depth) 8)
@@ -209,7 +191,8 @@
                           [color (make-object color%
                                    (send add get-r)
                                    (send add get-g)
-                                   (send add get-b))]
+                                   (send add get-b)
+                                   (send add get-a))]
                           [users-choice
                            (get-color-from-user
                             (format (string-constant syntax-coloring-choose-color) example-text)
@@ -249,19 +232,65 @@
        (send underline-check set-value (send sd get-underlined-on))
        (send smoothing-menu set-selection (smoothing->index (send sd get-smoothing-on)))))
     (void))
+
+  (define (add/mult-get c)
+    (list (send c get-r)
+          (send c get-g)
+          (send c get-b)
+          (send c get-a)))
+
+  (define (add/mult-set c v)
+    (send c set (car v) (cadr v) (caddr v) (cadddr v)))
+
+  (define (avg x y z) (/ (+ x y z) 3))
+  (define (pin-between lo x hi) (min (max lo x) hi))
+  (define (to-byte v) (pin-between 0 (inexact->exact (round v)) 255))
   
-  (define (add/mult-set m v)
+  (define (encoded-add-get a)
+    ;; for historical reasons, the alpha component is
+    ;; encoded in a combination of `add` and `mult`;
+    ;; we just get the add part of the encoding here
+    (let ([r (send a get-r)]
+          [g (send a get-g)]
+          [b (send a get-b)]
+          [α (send a get-a)])
+      (list 
+       (to-byte (- 255 (* (- 255 r) α)))
+       (to-byte (- 255 (* (- 255 g) α)))
+       (to-byte (- 255 (* (- 255 b) α))))))
+  
+  (define (encoded-add-set m v)
+    ;; still in encoded form, to be fixed up by `mult-set`
     (send m set (car v) (cadr v) (caddr v)))
-  
-  (define (add/mult-get m)
-    (let ([b1 (box 0)]
-          [b2 (box 0)]
-          [b3 (box 0)])
-      (send m get b1 b2 b3)
-      (map unbox (list b1 b2 b3))))
+
+  (define (encoded-mult-get m a)
+    ;; encodes part of `a`; we can only represent
+    ;; style deltas that fit into the encoding, which corresponds
+    ;; to a `set-delta-foreground` or `set-delta-background`
+    (let ([α (send a get-a)])
+      (list (- 1 α) (- 1 α) (- 1 α))))
+
+  (define (encoded-mult-set m a v)
+    ;; updates both `m` and `a`, assuming that first part of
+    ;; encoding has been installed in `a`:
+    (let ([α (- 1 (pin-between 0
+                               (avg (car v) (cadr v) (caddr v))
+                               1))]
+          [r (send a get-r)]
+          [g (send a get-g)]
+          [b (send a get-b)])
+      (send m set 0.0 0.0 0.0 0.0)
+      (if (zero? α)
+          (send a set 0 0 0 0.0)
+          (send a set
+                (to-byte (- 255 (/ (- 255 r) α)))
+                (to-byte (- 255 (/ (- 255 g) α)))
+                (to-byte (- 255 (/ (- 255 b) α)))
+                α))))
   
   (define style-delta-get/set
-    (let ([lo3n (λ (x) (and (list? x) (= (length x) 3) (andmap number? x)))])
+    (let ([lo3n (λ (x) (and (list? x) (= (length x) 3) (andmap number? x)))]
+          [lo4n (λ (x) (and (list? x) (= (length x) 4) (andmap number? x)))])
       (list (list (λ (x) (send x get-alignment-off))
                   (λ (x v) (send x set-alignment-off v))
                   (λ (x) (memq x '(base top center bottom))))
@@ -270,12 +299,15 @@
                   (λ (x v) (send x set-alignment-on v))
                   (λ (x) (memq x '(base top center bottom))))
             
-            (list (λ (x) (add/mult-get (send x get-background-add)))
-                  (λ (x v) (add/mult-set (send x get-background-add) v))
+            ;; encoded form is replaced later by direct form, if present:
+            (list (λ (x) (encoded-add-get (send x get-background-add)))
+                  (λ (x v) (encoded-add-set (send x get-background-add) v))
                   lo3n)
-            
-            (list (λ (x) (add/mult-get (send x get-background-mult)))
-                  (λ (x v) (add/mult-set (send x get-background-mult) v))
+
+            ;; encoded form is replaced later by direct form, if present:
+            (list (λ (x) (encoded-mult-get (send x get-background-mult) (send x get-background-add)))
+                  ;; setter relies on `add-set` running first:
+                  (λ (x v) (encoded-mult-set (send x get-background-mult) (send x get-background-add) v))
                   lo3n)
             
             (list (λ (x) (send x get-face))
@@ -286,12 +318,15 @@
                   (λ (x v) (send x set-family v))
                   (λ (x) (memq x '(base default decorative roman script swiss modern symbol system))))
             
-            (list (λ (x) (add/mult-get (send x get-foreground-add)))
-                  (λ (x v) (add/mult-set (send x get-foreground-add) v))
+            ;; encoded form is replaced later by direct form, if present:
+            (list (λ (x) (encoded-add-get (send x get-foreground-add)))
+                  (λ (x v) (encoded-add-set (send x get-foreground-add) v))
                   lo3n)
-            
-            (list (λ (x) (add/mult-get (send x get-foreground-mult)))
-                  (λ (x v) (add/mult-set (send x get-foreground-mult) v))
+
+            ;; encoded form is replaced later by direct form, if present:
+            (list (λ (x) (encoded-mult-get (send x get-foreground-mult) (send x get-foreground-add)))
+                  ;; setter relies on `add-set` running first:
+                  (λ (x v) (encoded-mult-set (send x get-foreground-mult) (send x get-foreground-add) v))
                   lo3n)
             
             (list (λ (x) (send x get-size-add))
@@ -324,7 +359,23 @@
             
             (list (λ (x) (send x get-weight-on))
                   (λ (x v) (send x set-weight-on v))
-                  (λ (x) (memq x '(base normal bold light)))))))
+                  (λ (x) (memq x '(base normal bold light))))
+
+            ;; replaces whatever is read through the encoded form:
+            (list (λ (x) (add/mult-get (send x get-background-add)))
+                  (λ (x v) (add/mult-set (send x get-background-add) v))
+                  lo4n)
+            (list (λ (x) (add/mult-get (send x get-background-mult)))
+                  (λ (x v) (add/mult-set (send x get-background-mult) v))
+                  lo4n)
+
+            ;; replaces whatever is read through the encoded form:
+            (list (λ (x) (add/mult-get (send x get-foreground-add)))
+                  (λ (x v) (add/mult-set (send x get-foreground-add) v))
+                  lo4n)
+            (list (λ (x) (add/mult-get (send x get-foreground-mult)))
+                  (λ (x v) (add/mult-set (send x get-foreground-mult) v))
+                  lo4n))))
   
   (define (marshall-style-delta style)
     (map (λ (fs) ((car fs) style)) style-delta-get/set))
@@ -346,6 +397,12 @@
                           (cdr info)))])))
       
       style))
+
+  (define (unmarshall-style-delta-with-background info)
+    (define style (unmarshall-style-delta info))
+    (send style set-transparent-text-backing-on #f)
+    (send style set-transparent-text-backing-off #t)
+    style)
   
   (define (make-style-delta color bold underline? italic? #:background [background #f])
     (define sd (make-object style-delta%))
@@ -529,7 +586,9 @@
                           color/sd
                           (to-color white-on-black-color 'register-color-preference))
                     color-scheme-colors)))
-      (preferences:set-un/marshall pref-name marshall-style-delta unmarshall-style-delta)
+      (preferences:set-un/marshall pref-name marshall-style-delta (if background
+                                                                      unmarshall-style-delta-with-background
+                                                                      unmarshall-style-delta))
       (preferences:add-callback pref-name
                                 (λ (sym v)
                                   (editor:set-standard-style-list-delta style-name v)))
@@ -996,7 +1055,9 @@
         (hash (if (preferences:get 'framework:white-on-black?)
                   white-on-black-color-scheme-name
                   black-on-white-color-scheme-name)
-              (unmarshall-style-delta val))]
+              (if background
+                  (unmarshall-style-delta-with-background val)
+                  (unmarshall-style-delta val)))]
        [(unmarshall-color val)
         => 
         (λ (clr)
@@ -1012,7 +1073,9 @@
           (values 
            k 
            (if style-name
-               (unmarshall-style-delta v)
+               (if background
+                   (unmarshall-style-delta-with-background v)
+                   (unmarshall-style-delta v))
                (and (vector? v)
                     (= (vector-length v) 4)
                     (make-object color% 
