@@ -30,18 +30,21 @@
   (inherit get-cocoa init-font register-as-child)
 
   (super-new [parent parent]
-             [cocoa 
-              (let ([cocoa 
+             [cocoa
+              (let ([cocoa
                      (as-objc-allocation
-                      (tell (tell RacketPopUpButton alloc) 
+                      (tell (tell RacketPopUpButton alloc)
                             initWithFrame: #:type _NSRect (make-NSRect (make-init-point x y)
                                                                        (make-NSSize w h))
                             pullsDown: #:type _BOOL #f))])
+                (define menu (tell cocoa menu))
                 (for ([lbl (in-list choices)]
                       [i (in-naturals)])
-                  (tellv cocoa 
-                         insertItemWithTitle: #:type _NSString lbl 
-                         atIndex: #:type _NSInteger i))
+                  (tell menu
+                        insertItemWithTitle: #:type _NSString lbl
+                        action: #:type _SEL #f
+                        keyEquivalent: #:type _NSString ""
+                        atIndex: #:type _NSInteger i))
                 (init-font cocoa font)
                 (tellv cocoa sizeToFit)
                 (tellv cocoa setTarget: cocoa)
@@ -65,9 +68,12 @@
   (define/public (clear)
     (tellv (get-cocoa) removeAllItems))
   (define/public (append lbl)
-    (tellv (get-cocoa)
-           insertItemWithTitle: #:type _NSString lbl 
-           atIndex: #:type _NSInteger (number)))
+    (define menu (tell (get-cocoa) menu))
+    (tell menu
+          insertItemWithTitle: #:type _NSString lbl
+          action: #:type _SEL #f
+          keyEquivalent: #:type _NSString ""
+          atIndex: #:type _NSInteger (number)))
   (define/public (delete i)
     (tellv (get-cocoa) removeItemAtIndex: #:type _NSInteger i))
 
