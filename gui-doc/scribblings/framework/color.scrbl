@@ -217,7 +217,7 @@
                               (not mode))]))]
     
 
-  @history[#:changed "1.61" @elem{Added support for hash-table @racket[_attribs] results.}]
+  @history[#:changed "1.63" @elem{Added support for hash-table @racket[_attribs] results.}]
   }
   @defmethod[(stop-colorer [clear-colors? boolean? #t]) void?]{
     Stops coloring and paren matching the buffer.
@@ -444,7 +444,7 @@
 
     Must only be called while the tokenizer is started.
 
-   @history[#:added "1.61"]}
+   @history[#:added "1.63"]}
 
   @defmethod[(get-token-range [position exact-nonnegative-integer?]) 
              (values (or/c #f exact-nonnegative-integer?)
