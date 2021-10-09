@@ -10,3 +10,6 @@
 (define pkg-desc "Graphical user interface toolkit")
 
 (define pkg-authors '(mflatt robby))
+
+(define license
+  '(Apache-2.0 OR MIT))

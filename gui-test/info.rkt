@@ -24,3 +24,6 @@
 (define pkg-desc "tests for \"gui\"")
 
 (define pkg-authors '(mflatt robby))
+
+(define license
+  '(Apache-2.0 OR MIT))
