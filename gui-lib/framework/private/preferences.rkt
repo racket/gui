@@ -601,6 +601,12 @@ the state transitions / contracts are:
      (update-auto-load-rb (preferences:get 'framework:autoload))
      (preferences:add-callback 'framework:autoload (λ (p v) (update-auto-load-rb v)))
 
+     (unless (equal? (system-type) 'unix)
+       (define (bool->pref b) (if b 'std 'common))
+       (define (pref->bool p) (equal? p 'std))
+       (add-check editor-panel 'framework:file-dialogs (string-constant use-platform-specific-file-dialogs)
+                  bool->pref pref->bool))
+
      (add-check editor-panel 'framework:show-status-line (string-constant show-status-line))
      ;; does this not belong here?
      ;; (add-check editor-panel 'drracket:show-line-numbers (string-constant show-line-numbers)
