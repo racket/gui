@@ -647,8 +647,3 @@
 (exit:insert-on-callback
  (λ ()
    (send (group:get-the-frame-group) on-close-all)))
-
-;; reset these -- they are only for the test suite.
-;; they do not need to be set across starting up and shutting down
-;; the application.
-;(preferences:set 'framework:file-dialogs 'std)
