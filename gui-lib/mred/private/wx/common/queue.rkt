@@ -659,3 +659,18 @@
               (lambda (s skip evt v)
                 (filter v))))
            (orig))))))
+
+;; Similar to `current-get-interaction-input-port`, but for contexts
+;; that don't use a port directly:
+(current-get-interaction-evt
+ (let ([orig (current-get-interaction-evt)])
+   (lambda ()
+     (let ([e (thread-cell-ref handler-thread-of)])
+       (if e
+           (choice-evt (orig)
+                       (wrap-evt (eventspace-event-evt e)
+                                 (lambda (v)
+                                   (lambda ()
+                                     (parameterize ([current-eventspace e])
+                                       (yield))))))
+           (orig))))))
