@@ -1965,12 +1965,12 @@
 (send keymap chain-to-keymap non-paren-keymap #f)
 (define (get-keymap) keymap)
 (define (get-paren-keymap) paren-keymap)
-(define (get-non-paren-keymap) paren-keymap)
+(define (get-non-paren-keymap) non-paren-keymap)
 
 (define (adjust-alt-as-meta on?)
-  (send keymap remove-chained-keymap alt-as-meta-keymap)
+  (send non-paren-keymap remove-chained-keymap alt-as-meta-keymap)
   (when on?
-    (send keymap chain-to-keymap alt-as-meta-keymap #f)))
+    (send non-paren-keymap chain-to-keymap alt-as-meta-keymap #f)))
 (preferences:add-callback 'framework:alt-as-meta
                           (λ (p v) (adjust-alt-as-meta v)))
 (adjust-alt-as-meta (preferences:get 'framework:alt-as-meta))

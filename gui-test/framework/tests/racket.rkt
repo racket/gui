@@ -15,7 +15,8 @@
     (magic-square-bracket-tests)
     (insert-return-tests)
     (test-message-send)
-    (auto-parens-tests)))
+    (auto-parens-tests)
+    (ensure-new-racket-mode-parameter-preserves-alt-as-meta-keys)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
@@ -713,3 +714,14 @@
                                '(escape #\))   ; '((new key-event% [key-code #\)] [meta-down #t]))
                                '(["(define before (list 1 2 3 4)" ""]
                                  ["(define before (list 1 2 3 4)" ""]))))
+
+(define (ensure-new-racket-mode-parameter-preserves-alt-as-meta-keys)
+  (define alt-as-meta-before (preferences:get 'framework:alt-as-meta))
+  (define mode (new racket:text-mode% [include-paren-keymap? #f]))
+  (preferences:set 'framework:alt-as-meta #t)
+  (define t (new racket:text%))
+  (define keys-with-default-mode (send (send t get-keymap) get-map-function-table))
+  (send t set-surrogate mode)
+  (define keys-without-paren (send (send t get-keymap) get-map-function-table))
+  (check-equal? keys-with-default-mode keys-without-paren)
+  (preferences:set 'framework:alt-as-meta alt-as-meta-before))
