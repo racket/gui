@@ -30,7 +30,7 @@
 ;; ----------------------------------------
 ;; We use the "user data" field of an HWND to
 ;;  store a weak pointer back to the Racket object.
-;;  The weak pointer must be wrapped in an immuable cell.
+;;  The weak pointer must be wrapped in an immutable cell.
 ;;  In addition, if we need to save a control's old
 ;;  ctlproc, we put it in the same immutable cell.
 
