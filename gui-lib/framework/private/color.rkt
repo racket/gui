@@ -439,10 +439,12 @@ added get-regions
       (define style-name (token-sym->style color-type))
       (define base-color (send (get-style-list) find-named-style style-name))
       (define color (if (and (hash? attribs) (hash-ref attribs 'comment? #f))
-                        (let ([d (new style-delta%)])
+                        (let ([d (new style-delta%)]
+                              [base-color (or base-color (send (get-style-list) find-named-style "Standard"))])
                           ;; 50% transparency:
                           (send (send d get-foreground-mult) set-a 0.5)
-                          (send (get-style-list) find-or-create-style base-color d))
+                          (and base-color
+                               (send (get-style-list) find-or-create-style base-color d)))
                         base-color))
       (cond
         [(do-spell-check? (attribs->type attribs))
