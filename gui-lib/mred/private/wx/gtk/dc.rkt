@@ -59,7 +59,7 @@
     (define sf
       (if gtk3?
 	  (if gtk
-	      (->screen (gtk_widget_get_scale_factor gtk))
+	      (->screen (exact->inexact (gtk_widget_get_scale_factor gtk)))
 	      (display-bitmap-resolution 0 (lambda () 1.0)))
 	  (->screen 1.0)))
     (define/private (scale x)
@@ -146,7 +146,7 @@
     (super-make-object w h #f #t
 		       (if gtk3?
 			   (if gtk
-			       (->screen (gtk_widget_get_scale_factor gtk))
+			       (->screen (exact->inexact (gtk_widget_get_scale_factor gtk)))
 			       (display-bitmap-resolution 0 (lambda () 1.0)))
 			   (->screen 1.0)))))
 
