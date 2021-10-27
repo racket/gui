@@ -27,6 +27,7 @@
                 (tell NSSavePanel savePanel)
                 (tell NSOpenPanel openPanel)))]
         [parent (and parent
+                     (not (version-12.0-or-later?))
                      (not (send parent get-sheet))
                      parent)])
 
