@@ -73,7 +73,8 @@
           insertItemWithTitle: #:type _NSString lbl
           action: #:type _SEL #f
           keyEquivalent: #:type _NSString ""
-          atIndex: #:type _NSInteger (number)))
+          atIndex: #:type _NSInteger (number))
+    (void))
   (define/public (delete i)
     (tellv (get-cocoa) removeItemAtIndex: #:type _NSInteger i))
 
