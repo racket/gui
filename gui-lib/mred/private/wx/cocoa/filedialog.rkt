@@ -12,7 +12,16 @@
 (provide (protect-out file-selector))
 
 (import-class NSOpenPanel NSSavePanel NSURL NSArray
-              NSMenu NSMenuItem)
+              NSMenu NSMenuItem
+              NSTimer NSRunLoop)
+
+(define-appkit NSModalPanelRunLoopMode _id)
+
+;; used for fixup-panel-showing;
+(define-objc-class RacketFileDialogDelegate NSObject
+  [ns]
+  [-a _void (windowDidMove: sender)
+      (tellv ns setAlphaValue: #:type _CGFloat 1.0)])
 
 (define (nsurl->string url)
   (string->path (tell #:type _NSString url path)))
@@ -27,7 +36,7 @@
                 (tell NSSavePanel savePanel)
                 (tell NSOpenPanel openPanel)))]
         [parent (and parent
-                     (not (version-12.0-or-later?))
+                     ; (not (version-12.0-or-later?))
                      (not (send parent get-sheet))
                      parent)])
 
@@ -103,6 +112,12 @@
                   [orig-mb (tell app mainMenu)])
               (when orig-mb
                 (tellv app setMainMenu: (make-standard-menu-bar)))
+              (define finish-timer
+                (cond
+                  [(and parent
+                        (version-12.0-or-later?))
+                   (fixup-panel-showing ns)]
+                  [else void]))
               (when parent
                 (tellv ns beginSheetModalForWindow: (send parent get-cocoa-window)
                        completionHandler: #:type _pointer (and completion
@@ -120,7 +135,8 @@
                    ;; (and this works despite the docs's claim that
                    ;; `runModalForWindow:` centers its argument).
                    (begin
-                     (if (version-10.15-or-later?)
+                     (if (and (version-10.15-or-later?)
+                              (not (version-12.0-or-later?)))
                          (tell ns runModal)
                          (tell app runModalForWindow: ns))
                      (set-box! completion #f)
@@ -131,7 +147,8 @@
                (when parent (tell app endSheet: ns))
                (when orig-mb (tellv app setMainMenu: orig-mb))
                (when front (tellv (send front get-cocoa-window)
-                                  makeKeyAndOrderFront: #f)))))])
+                                  makeKeyAndOrderFront: #f))
+               (finish-timer))))])
       (begin0
        (if (zero? result)
            #f
@@ -179,3 +196,31 @@
                            keyEquivalent: #:type _NSString ""))
   (tellv mb addItem: edit-item)
   mb)
+
+;; Hack: On Monterey, a file dialog with a parent is first centered
+;; and made visible, and then the sheet animation happens. Defeat that
+;; initial visibility by setting the window's alpha to 0. Set alpha to
+;; 1 when the window is moved, presumably to its sheet position. For the
+;; very unlikely case that the sheet position is centered on the screen,
+;; so no move happens, start a backup timer to show the window.
+;; A second problem is that a save dialog doesn't get the keyboard focus
+;; in the file-name text field. It would be nice if the timer could do
+;; something about that, but I didn't find anything that worked.
+(define (fixup-panel-showing ns)
+  (define timer-keep (box null))
+  (tellv ns setAlphaValue: #:type _CGFloat 0.0)
+  (tellv ns center)
+  (define delegate (tell RacketFileDialogDelegate alloc))
+  (set-ivar! delegate ns ns)
+  (tellv ns setDelegate: delegate)
+  (define timer (tell NSTimer timerWithTimeInterval: #:type _double 2.0
+                      repeats: #:type _BOOL #f
+                      block: #:type _pointer (objc-block (_fun #:keep timer-keep #:atomic? #t _pointer -> _void)
+                                                         (lambda (timer)
+                                                           (tellv ns setAlphaValue: #:type _CGFloat 1.0)
+                                                           (void))
+                                                         #:keep timer-keep)))
+  (tellv (tell NSRunLoop currentRunLoop) addTimer: timer forMode: NSModalPanelRunLoopMode)
+  (lambda ()
+    (tellv timer invalidate)
+    (set! timer-keep null)))
