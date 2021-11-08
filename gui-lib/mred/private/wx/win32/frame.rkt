@@ -767,7 +767,8 @@
                 (eq? mode 'both))
         (atomically
          (set! big-hicon hicon)
-         (SendMessageW hwnd WM_SETICON 1 (cast hicon _HICON _LPARAM))))))
+         (SendMessageW hwnd WM_SETICON 1 (cast hicon _HICON _LPARAM))))
+      (void)))
 
   (define/public (set-title s)
     (atomically
