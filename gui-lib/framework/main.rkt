@@ -1631,8 +1631,10 @@
 
  (proc-doc/names
   racket:map-paren-keybinding-functions
-  (-> (is-a?/c keymap%) char? char? void?)
-  (keymap open close)
+  (->* ((is-a?/c keymap%) char? char?)
+       (#:alt-as-meta-keymap (or/c #f (is-a?/c keymap%)))
+       void?)
+  ((keymap open close) ([alt-as-meta-keymap #f]))
   @{Binds a number of parenthesis-related keystrokes:
 
  @itemlist[
@@ -1649,6 +1651,9 @@
     @racket["non-clever-close-paren"], and}
  @item{if @racket[open] is @racket[#\[], binds @racket["~g:c:["] to
     @racket["non-clever-open-square-bracket"].}]
+
+  The @racket[alt-as-meta-keymap] argument is treated as
+  @racket[keymap:setup-global] treats it.
 
  @history[#:added "1.64"]})
 
@@ -1715,13 +1720,17 @@
   racket:setup-keymap
   (((is-a?/c keymap%))
    (#:alt-as-meta-keymap (or/c #f (is-a?/c keymap%))
-    #:paren-keymap (or/c #f (is-a?/c keymap%)))
+    #:paren-keymap (or/c #f (is-a?/c keymap%))
+    #:paren-alt-as-meta-keymap (or/c #f (is-a?/c keymap%)))
    . ->* . void?)
-  ((keymap) ([alt-as-meta-keymap #f] [paren-keymap #f]))
+  ((keymap) ([alt-as-meta-keymap #f] [paren-keymap #f] [paren-alt-as-meta-keymap #f]))
   @{Initializes @racket[keymap] with Racket-mode keybindings.
 
     The @racket[alt-as-meta-keymap] argument is treated the same as
-    for @racket[keymap:setup-global].
+    for @racket[keymap:setup-global]. The
+    @racket[paren-alt-as-meta-keymap] argument is similar, but matched
+    up with @racket[paren-keymap] and used only when @racket[paren-keymap]
+    is not @racket[#f].
 
     The @racket[paren-keymap] is
     filled with the keybindings that are bound to parentheses in
@@ -1734,7 +1743,7 @@
      @racket[#\"] and @racket[#\"].
 
     @history[#:changed "1.40" @elem{Added the @racket[#:alt-as-meta-keymap] argument.}
-             #:changed "1.64" @elem{Added the @racket[#:paren-keymap] argument.}]})
+             #:changed "1.64" @elem{Added the @racket[#:paren-keymap] and @racket[paren-alt-as-meta-keymap] arguments.}]})
 
  (parameter-doc
   editor:doing-autosave?

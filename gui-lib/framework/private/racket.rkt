@@ -1524,7 +1524,8 @@
        (cons open-char
              (if (= (string-length close) 1)
                  (string-ref close 0)
-                 close))]))
+                 close))]
+      [else #f]))
 
   ;; Inserts the open parens character and, if the resulting token
   ;; type satisfies checkp, then go ahead and insert the close parens
@@ -1689,7 +1690,7 @@
   (add-non-clever-fn "non-clever-open-square-bracket" #\[ #\]))
 
 (define (map-paren-keybinding-functions keymap opener closer
-                             #:alt-as-meta-keymap [alt-as-meta-keymap #f])
+                                        #:alt-as-meta-keymap [alt-as-meta-keymap #f])
 
   (define (map-meta key func)
     (keymap:send-map-function-meta keymap key func #:alt-as-meta-keymap alt-as-meta-keymap))
@@ -1710,7 +1711,8 @@
 
 (define (setup-keymap keymap
                       #:alt-as-meta-keymap [alt-as-meta-keymap #f]
-                      #:paren-keymap [paren-keymap #f])
+                      #:paren-keymap [paren-keymap #f]
+                      #:paren-alt-as-meta-keymap [paren-alt-as-meta-keymap #f])
   (define (add-function name f)
     (send keymap add-function name f)
     (when alt-as-meta-keymap
@@ -1720,7 +1722,7 @@
     (add-function name (λ (edit event) (f edit (send edit get-start-position)))))
 
   (add-paren-keybinding-functions keymap)
-  (when alt-as-meta-keymap (add-paren-keybinding-functions alt-as-meta-keymap))
+  (when alt-as-meta-keymap (add-paren-keybinding-functions paren-alt-as-meta-keymap))
   (when paren-keymap (add-paren-keybinding-functions paren-keymap))
 
   (add-pos-function "remove-sexp" (λ (e p) (send e remove-sexp p)))
@@ -1934,17 +1936,17 @@
   ;(map-meta "c:m" "mark-matching-parenthesis")
   ; this keybinding doesn't interact with the paren colorer
 
-  (map-paren-keybinding-functions keymap #\( #\) #:alt-as-meta-keymap alt-as-meta-keymap)
-  (map-paren-keybinding-functions keymap #\[ #\] #:alt-as-meta-keymap alt-as-meta-keymap)
-  (map-paren-keybinding-functions keymap #\{ #\} #:alt-as-meta-keymap alt-as-meta-keymap)
-  (map-paren-keybinding-functions keymap #\" #\" #:alt-as-meta-keymap alt-as-meta-keymap)
-  (map-paren-keybinding-functions keymap #\| #\| #:alt-as-meta-keymap alt-as-meta-keymap)
-  (when paren-keymap
-    (map-paren-keybinding-functions paren-keymap #\( #\))
-    (map-paren-keybinding-functions paren-keymap #\[ #\])
-    (map-paren-keybinding-functions paren-keymap #\{ #\})
-    (map-paren-keybinding-functions paren-keymap #\" #\")
-    (map-paren-keybinding-functions paren-keymap #\| #\|))
+  (define (map-paren-keys keymap alt-as-meta-keymap)
+    (map-paren-keybinding-functions keymap #\( #\) #:alt-as-meta-keymap alt-as-meta-keymap)
+    (map-paren-keybinding-functions keymap #\[ #\] #:alt-as-meta-keymap alt-as-meta-keymap)
+    (map-paren-keybinding-functions keymap #\{ #\} #:alt-as-meta-keymap alt-as-meta-keymap)
+    (map-paren-keybinding-functions keymap #\" #\" #:alt-as-meta-keymap alt-as-meta-keymap)
+    (map-paren-keybinding-functions keymap #\| #\| #:alt-as-meta-keymap alt-as-meta-keymap))
+  (cond
+    [paren-keymap
+     (map-paren-keys paren-keymap paren-alt-as-meta-keymap)]
+    [else
+     (map-paren-keys keymap alt-as-meta-keymap)])
 
   (map "~c:backspace" "maybe-delete-empty-brace-pair")
 
@@ -1960,7 +1962,11 @@
 (define non-paren-keymap (new keymap:aug-keymap%))
 (define paren-keymap (new keymap:aug-keymap%))
 (define alt-as-meta-keymap (make-object keymap:aug-keymap%))
-(setup-keymap non-paren-keymap #:alt-as-meta-keymap alt-as-meta-keymap #:paren-keymap paren-keymap)
+(define paren-alt-as-meta-keymap (make-object keymap:aug-keymap%))
+(setup-keymap non-paren-keymap
+              #:alt-as-meta-keymap alt-as-meta-keymap
+              #:paren-keymap paren-keymap
+              #:paren-alt-as-meta-keymap paren-alt-as-meta-keymap)
 (send keymap chain-to-keymap paren-keymap #f)
 (send keymap chain-to-keymap non-paren-keymap #f)
 (define (get-keymap) keymap)
@@ -1969,8 +1975,10 @@
 
 (define (adjust-alt-as-meta on?)
   (send non-paren-keymap remove-chained-keymap alt-as-meta-keymap)
+  (send paren-keymap remove-chained-keymap paren-alt-as-meta-keymap)
   (when on?
-    (send non-paren-keymap chain-to-keymap alt-as-meta-keymap #f)))
+    (send non-paren-keymap chain-to-keymap alt-as-meta-keymap #f)
+    (send paren-keymap chain-to-keymap paren-alt-as-meta-keymap #f)))
 (preferences:add-callback 'framework:alt-as-meta
                           (λ (p v) (adjust-alt-as-meta v)))
 (adjust-alt-as-meta (preferences:get 'framework:alt-as-meta))
