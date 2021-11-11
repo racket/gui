@@ -1621,7 +1621,7 @@
  @history[#:added "1.64"]})
 
  (proc-doc/names
-  racket:add-paren-keybinding-functions
+  racket:add-pairs-keybinding-functions
   (-> (is-a?/c keymap%) void?)
   (keymap)
   @{Adds keybindings that are intended to be bound to parenthesis characters
@@ -1630,7 +1630,7 @@
  @history[#:added "1.64"]})
 
  (proc-doc/names
-  racket:map-paren-keybinding-functions
+  racket:map-pairs-keybinding-functions
   (->* ((is-a?/c keymap%) char? char?)
        (#:alt-as-meta-keymap (or/c #f (is-a?/c keymap%)))
        void?)
@@ -1639,20 +1639,22 @@
 
  @itemlist[
  @item{binds the keystroke of the character @racket[open] to
-    the function named @racket["maybe-insert-matching-paren-pair"], unless it is
+    a function named @racket[(format "maybe-insert-~a~a-pair" open close)], unless @racket[open] is
     @racket[#\[], in which case it is mapped to @racket["maybe-insert-[]-pair-maybe-fixup-[]"],}
   @item{binds @racket[close] to @racket["balance-parens"]
     unless @racket[open] and @racket[close] are the same character,}
-  @item{binds @racket[open] with the meta key modifier to @racket["insert-matching-paren-pair"],}
+  @item{binds @racket[open] with the meta key modifier to @racket[(format "insert-~a~a-pair" open close)],}
   @item{binds @racket[close] with the meta key modifier to
    to @racket["balance-parens-forward"] unless the opening and closing characters are the same,}
   @item{binds @racket[close], but with the prefix
-    @racket["~g:c:"] (e.g., @racket["~g:c:)"]) to
-    @racket["non-clever-close-paren"], and}
+    @racket["~g:c:"] (e.g., @racket["~g:c:)"]) to the keystroke with the name
+    @racket[(format "non-clever-~a" close)], and}
  @item{if @racket[open] is @racket[#\[], binds @racket["~g:c:["] to
     @racket["non-clever-open-square-bracket"].}]
 
-  The @racket[alt-as-meta-keymap] argument is treated as
+ If any of these functions are no present in @racket[keymap], they are also added to it.
+
+ The @racket[alt-as-meta-keymap] argument is treated as
   @racket[keymap:setup-global] treats it.
 
  @history[#:added "1.64"]})
@@ -1735,7 +1737,7 @@
     The @racket[paren-keymap] is
     filled with the keybindings that are bound to parentheses in
     the default racket keymap, which is done by calling
-    @racket[racket:map-paren-keybinding-functions] with the keymap
+    @racket[racket:map-pairs-keybinding-functions] with the keymap
     and the characters @racket[#\[] and @racket[#\]],
      @racket[#\(] and @racket[#\)],
      @racket[#\{] and @racket[#\}],

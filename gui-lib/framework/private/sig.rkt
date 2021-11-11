@@ -401,8 +401,8 @@
      get-paren-keymap
      get-non-paren-keymap
      setup-keymap
-     add-paren-keybinding-functions
-     map-paren-keybinding-functions
+     add-pairs-keybinding-functions
+     map-pairs-keybinding-functions
      add-preferences-panel
      add-coloring-preferences-panel
      

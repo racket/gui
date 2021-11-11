@@ -717,7 +717,7 @@
 
 (define (ensure-new-racket-mode-parameter-preserves-alt-as-meta-keys)
   (define alt-as-meta-before (preferences:get 'framework:alt-as-meta))
-  (define mode (new racket:text-mode% [include-paren-keymap? #f]))
+  (define mode (new racket:text-mode% [include-paren-keymap? #t]))
   (preferences:set 'framework:alt-as-meta #t)
   (define t (new racket:text%))
   (define keys-with-default-mode (send (send t get-keymap) get-map-function-table))

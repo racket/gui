@@ -37,7 +37,7 @@
 (init-depend mred^ framework:keymap^ framework:color^ framework:mode^
              framework:text^ framework:editor^)
 
-(define-local-member-name 
+(define-local-member-name
   stick-to-next-sexp?
   get-private-racket-container-keymap)
 
@@ -46,7 +46,7 @@
     ("[" . "]")
     ("{" . "}")))
 
-(define text-balanced? 
+(define text-balanced?
   (lambda (text [start 0] [in-end #f])
     (let* ([end (or in-end (send text last-position))]
            [port (open-input-text-editor text start end)])
@@ -79,7 +79,7 @@
     (init-field left-bracket right-bracket saved-snips)
     (define/public (get-saved-snips) saved-snips)
     (field [sizing-text (format "~a   ~a" left-bracket right-bracket)])
-    
+
     (define/public (read-special file line col pos)
       (let ([text (make-object text:basic%)])
         (for-each
@@ -91,7 +91,7 @@
          #f
          (read (open-input-text-editor text))
          (list file line col pos 1))))
-    
+
     (define/override get-text
       (lambda (offset num [flattened? #f])
         (if flattened?
@@ -100,13 +100,13 @@
                           (send snip get-text 0 (send snip get-count) flattened?))
                         saved-snips))
             (super get-text offset num flattened?))))
-    
+
     (define/override (copy)
       (instantiate sexp-snip% ()
         (left-bracket left-bracket)
         (right-bracket right-bracket)
         (saved-snips saved-snips)))
-    
+
     (define/override (write stream-out)
       (send stream-out put (bytes (char->integer left-bracket)))
       (send stream-out put (bytes (char->integer right-bracket)))
@@ -120,7 +120,7 @@
              (send stream-out put (string->bytes/utf-8 (send snipclass get-classname)))
              (send snip write stream-out))
            (loop (cdr snips))])))
-    
+
     (define/override (draw dc x y left top right bottom dx dy draw-caret)
       (send dc draw-text sizing-text x y)
       (let-values ([(lpw lph lpa lpd) (send dc get-text-extent (string left-bracket))]
@@ -135,7 +135,7 @@
           (send dc draw-rectangle dt1x dty 2 2)
           (send dc draw-rectangle dt2x dty 2 2)
           (send dc draw-rectangle dt3x dty 2 2))))
-    
+
     (inherit get-style)
     (define/override (get-extent dc x y wb hb descentb spaceb lspaceb rspaceb)
       (let-values ([(w h d a) (send dc get-text-extent sizing-text (send (get-style) get-font))])
@@ -182,7 +182,7 @@
   (when (and (is-a? text -text<%>)
              (not (send text is-stopped?)))
     (let* ([on-it-box (box #f)]
-           [click-pos 
+           [click-pos
             (call-with-values
              (λ ()
                (send text dc-location-to-editor-location
@@ -212,10 +212,10 @@
              (let ([left-pos (min pos other-pos)]
                    [right-pos (max pos other-pos)])
                (make-collapse-item text left-pos right-pos menu))))]
-        [else 
+        [else
          ;; clicking on some other text -> collapse containing sexp
          (let ([up-sexp (send text find-up-sexp click-pos)])
-           (when up-sexp 
+           (when up-sexp
              (let ([fwd (send text get-forward-sexp up-sexp)])
                (when fwd
                  (make-collapse-item text up-sexp fwd menu)))))]))))
@@ -266,7 +266,7 @@
                       null]
                      [else (cons (send snip copy) (loop (send snip next)))]))])
       (send text delete left-pos right-pos)
-      (send text insert (instantiate sexp-snip% () 
+      (send text insert (instantiate sexp-snip% ()
                           (left-bracket left-bracket)
                           (right-bracket right-bracket)
                           (saved-snips snips))
@@ -319,7 +319,7 @@
             (hash-colon-keyword ,(make-object color% 151 69 43))
             (parenthesis ,(make-object color% 151 69 43))
             (other ,(make-object color% "white")))])
-    (map 
+    (map
      (λ (line)
        (let ([new (assoc (car line) new-entries)])
          (if new
@@ -355,7 +355,7 @@
      (for-each
       (λ (line)
         (let ([sym (car line)])
-          (color-prefs:build-color-selection-panel 
+          (color-prefs:build-color-selection-panel
            parent
            (short-sym->pref-name sym)
            (short-sym->style-name sym)
@@ -388,7 +388,7 @@
     find-down-sexp
     down-sexp
     remove-parens-forward
-    
+
     select-forward-sexp
     select-backward-sexp
     select-up-sexp
@@ -397,7 +397,7 @@
     mark-matching-parenthesis
     get-tab-size
     set-tab-size
-    
+
     introduce-let-ans
     move-sexp-out
     kill-enclosing-parens
@@ -421,7 +421,7 @@
 (define (get-wordbreak-map) wordbreak-map)
 (init-wordbreak-map wordbreak-map)
 
-(define matching-parenthesis-style 
+(define matching-parenthesis-style
   (let ([matching-parenthesis-delta (make-object style-delta% 'change-bold)]
         [style-list (editor:get-standard-style-list)])
     (send matching-parenthesis-delta set-delta-foreground "forest green")
@@ -471,18 +471,18 @@
              skip-whitespace
              insert-close-paren
              classify-position)
-    
+
     (inherit get-styles-fixed)
     (inherit has-focus? find-snip split-snip
              position-location get-dc)
-    
+
     (define private-racket-container-keymap (new keymap:aug-keymap%))
     (define/public (get-private-racket-container-keymap) private-racket-container-keymap)
-    
+
     (define/override (get-keymaps)
-      (editor:add-after-user-keymap private-racket-container-keymap 
+      (editor:add-after-user-keymap private-racket-container-keymap
                                     (super get-keymaps)))
-    
+
     (define/override (get-word-at current-pos)
       (let ([no-word ""])
         (cond
@@ -491,25 +491,25 @@
           [else
            (let ([type (classify-position (max 0 (- current-pos 1)))])
              (cond
-               [(memq type '(symbol keyword)) 
+               [(memq type '(symbol keyword))
                 (get-text (look-for-non-symbol/non-kwd (max 0 (- current-pos 1)))
                           current-pos)]
                [else no-word]))])))
-    
+
     (define/private (look-for-non-symbol/non-kwd start)
       (let loop ([i start])
         (cond
-          [(< i 0) 
+          [(< i 0)
            0]
           [(memq (classify-position i) '(symbol keyword))
            (loop (- i 1))]
           [else
            (+ i 1)])))
-    
+
     (define/public (get-limit pos) 0)
-    
+
     (define/public (balance-parens key-event [smart-skip #f])
-      (insert-close-paren (get-start-position) 
+      (insert-close-paren (get-start-position)
                           (send key-event get-key-code)
                           (preferences:get 'framework:paren-match)
                           (preferences:get 'framework:fixup-parens)
@@ -517,7 +517,7 @@
                               (and (preferences:get 'framework:automatic-parens)
                                    (not (in-string/comment? this))
                                    'adjacent))))
-    
+
     (define/public (tabify-on-return?) #t)
     (define/public (tabify [pos (get-start-position)])
       (define amt (compute-amount-to-indent pos))
@@ -529,8 +529,8 @@
           (delete end curr-offset)
           (insert (make-string amt #\space) end)))
       (when amt (do-indent amt)))
-    
-      (define/private (find-offset start-pos)
+
+    (define/private (find-offset start-pos)
         (define tab-char? #f)
         (define end-pos
           (let loop ([p start-pos])
@@ -584,7 +584,7 @@
                            '(comment string error)))))
          (define end (if is-tabbable? (paragraph-start-position para) 0))
          (define limit (get-limit pos))
-         
+
          ;; "contains" is the start of the initial sub-S-exp
          ;;  in the S-exp that contains "pos". If pos is outside
          ;;  all S-exps, this will be the start of the initial
@@ -595,7 +595,7 @@
                #f))
          (define contain-para (and contains
                                    (position-paragraph contains)))
-         
+
          ;; last is the start of the S-exp just before "pos"
          (define last
            (if contains
@@ -605,7 +605,7 @@
                      (backward-match end limit)))
                #f))
          (define last-para (and last (position-paragraph last)))
-         
+
          ;; last2 is the start of the S-exp just before the one before "pos"
          (define last2
            (if last
@@ -614,7 +614,7 @@
                      p
                      (backward-match last limit)))
                #f))
-         
+
          (define (visual-offset pos)
            (let loop ([p (sub1 pos)])
              (if (= p -1)
@@ -627,7 +627,7 @@
                         (+ o (- 8 (modulo o 8))))]
                      [(char=? c #\newline) 0]
                      [else (add1 (loop (sub1 p)))])))))
-         
+
          (define (get-proc)
            (define id-end (get-forward-sexp contains))
            (and (and id-end (> id-end contains))
@@ -649,16 +649,16 @@
          (define (for/fold-style?)
            (define proc-name (get-proc))
            (equal? proc-name 'for/fold))
-         
+
          (define (indent-first-arg start)
            (define-values (gwidth curr-offset tab-char?) (find-offset start))
            gwidth)
-         
+
          (when (and is-tabbable?
                     (not (char=? (get-character (sub1 end))
                                  #\newline)))
            (insert #\newline (paragraph-start-position para)))
-         
+
          (define amt-to-indent
            (cond
              [(not is-tabbable?)
@@ -751,7 +751,7 @@
                       [(< i fst-end)
                        (and (equal? #\- (get-character i)) (loop (+ i 1)))]
                       [else #t]))))))
-    
+
     ;; returns #t if `contains' is at a position on a line with an sexp, an ellipsis and nothing else.
     ;; otherwise, returns #f
     (define/private (second-sexp-is-ellipsis? contains)
@@ -774,17 +774,17 @@
              (let ([fst-start (get-backward-sexp fst-end)])
                (and fst-start
                     (equal? (classify-position fst-start) 'hash-colon-keyword))))))
-    
+
     (define/public (tabify-selection [start-pos (get-start-position)]
                                      [end-pos (get-end-position)])
-      (unless (is-stopped?) 
+      (unless (is-stopped?)
         (define first-para (position-paragraph start-pos))
         (define end-para (position-paragraph end-pos))
         (define tabifying-multiple-paras? (not (= first-para end-para)))
         (with-handlers ([exn:break?
                          (λ (x) #t)])
           (dynamic-wind
-           (λ () 
+           (λ ()
              (when (< first-para end-para)
                (begin-busy-cursor))
              (begin-edit-sequence))
@@ -804,7 +804,7 @@
              (when (and (>= (position-paragraph start-pos) end-para)
                         (<= (skip-whitespace (get-start-position) 'backward #f)
                             (paragraph-start-position first-para)))
-               (set-position 
+               (set-position
                 (let loop ([new-pos (get-start-position)])
                   (if (let ([next (get-character new-pos)])
                         (and (char-whitespace? next)
@@ -815,7 +815,7 @@
              (end-edit-sequence)
              (when (< first-para end-para)
                (end-busy-cursor)))))))
-    
+
     (define/public (tabify-all) (tabify-selection 0 (last-position)))
     (define/public (insert-return)
       (begin-edit-sequence #t #f)
@@ -840,7 +840,7 @@
                (loop (add1 new-pos))
                new-pos))))
       (end-edit-sequence))
-    
+
     (define/public (calc-last-para last-pos)
       (let ([last-para (position-paragraph last-pos #t)])
         (if (and (> last-pos 0)
@@ -851,27 +851,27 @@
                          (- last-para 1)
                          last-para)))
             last-para)))
-    
-    (define/public (comment-out-selection [start-pos (get-start-position)] 
+
+    (define/public (comment-out-selection [start-pos (get-start-position)]
                                           [end-pos (get-end-position)])
-      (begin-edit-sequence) 
-      (let ([first-pos-is-first-para-pos? 
-             (= (paragraph-start-position (position-paragraph start-pos)) 
-                start-pos)]) 
-        (let* ([first-para (position-paragraph start-pos)] 
-               [last-para (calc-last-para end-pos)]) 
-          (let para-loop ([curr-para first-para]) 
-            (when (<= curr-para last-para) 
-              (let ([first-on-para (paragraph-start-position curr-para)]) 
-                (insert #\; first-on-para) 
-                (para-loop (add1 curr-para)))))) 
-        (when first-pos-is-first-para-pos? 
-          (set-position 
-           (paragraph-start-position (position-paragraph (get-start-position))) 
-           (get-end-position)))) 
-      (end-edit-sequence) 
-      #t) 
-    
+      (begin-edit-sequence)
+      (let ([first-pos-is-first-para-pos?
+             (= (paragraph-start-position (position-paragraph start-pos))
+                start-pos)])
+        (let* ([first-para (position-paragraph start-pos)]
+               [last-para (calc-last-para end-pos)])
+          (let para-loop ([curr-para first-para])
+            (when (<= curr-para last-para)
+              (let ([first-on-para (paragraph-start-position curr-para)])
+                (insert #\; first-on-para)
+                (para-loop (add1 curr-para))))))
+        (when first-pos-is-first-para-pos?
+          (set-position
+           (paragraph-start-position (position-paragraph (get-start-position)))
+           (get-end-position))))
+      (end-edit-sequence)
+      #t)
+
     (define/public (box-comment-out-selection [_start-pos 'start]
                                               [_end-pos 'end])
       (let ([start-pos (if (eq? _start-pos 'start)
@@ -899,7 +899,7 @@
           (set-position start-pos start-pos))
         (end-edit-sequence)
         #t))
-    
+
     ;; uncomment-box/selection : -> void
     ;; uncomments a comment box, if the focus is inside one.
     ;; otherwise, calls uncomment selection to uncomment
@@ -910,19 +910,19 @@
       (let ([focus-snip (get-focus-snip)])
         (cond
           [(not focus-snip) (uncomment-selection)]
-          [(is-a? focus-snip comment-box:snip%) 
-           (extract-contents 
+          [(is-a? focus-snip comment-box:snip%)
+           (extract-contents
             (get-snip-position focus-snip)
             focus-snip)]
           [else (uncomment-selection)]))
       (end-edit-sequence)
       #t)
-    
+
     (define/public (uncomment-selection [start-pos (get-start-position)]
                                         [end-pos (get-end-position)])
       (let ([snip-before (find-snip start-pos 'before-or-none)]
             [snip-after (find-snip start-pos 'after-or-none)])
-          
+
         (begin-edit-sequence)
         (cond
           [(and (= start-pos end-pos)
@@ -955,7 +955,7 @@
                    (para-loop (add1 curr-para))))))])
         (end-edit-sequence))
       #t)
-    
+
     ;; extract-contents : number (is-a?/c comment-box:snip%) -> void
     ;; copies the contents of the comment-box-snip out of the snip
     ;; and into this editor as `pos'. Deletes the comment box snip
@@ -977,24 +977,24 @@
       '("'" "," ",@" "`" "#'" "#," "#`" "#,@"
         "#&" "#;" "#hash" "#hasheq" "#ci" "#cs"))
     (define stick-to-patterns-union
-      (regexp (string-append 
+      (regexp (string-append
                "^("
                (string-join (map regexp-quote stick-to-patterns) "|")
                ")")))
     (define stick-to-patterns-union-anchored
-      (regexp (string-append 
+      (regexp (string-append
                "^("
                (string-join (map regexp-quote stick-to-patterns) "|")
                ")$")))
-    (define stick-to-max-pattern-length 
+    (define stick-to-max-pattern-length
       (apply max (map string-length stick-to-patterns)))
     (define/public (stick-to-next-sexp? start-pos)
       ;; Optimization: speculatively check whether the string will
       ;; match the patterns; at time of writing, forward-match can be
       ;; really expensive.
-      (define snippet 
-        (get-text start-pos 
-                  (min (last-position) 
+      (define snippet
+        (get-text start-pos
+                  (min (last-position)
                        (+ start-pos stick-to-max-pattern-length))))
       (and (regexp-match stick-to-patterns-union snippet)
            (let ([end-pos (forward-match start-pos (last-position))])
@@ -1002,15 +1002,15 @@
                   (regexp-match stick-to-patterns-union-anchored
                                 (get-text start-pos end-pos))
                   #t))))
-      
-    (define/public (get-forward-sexp start-pos) 
+
+    (define/public (get-forward-sexp start-pos)
       ;; loop to work properly with quote, etc.
       (let loop ([one-forward (forward-match start-pos (last-position))])
         (cond
           [(and one-forward (not (= 0 one-forward)))
            (let ([bw (backward-match one-forward 0)])
              (cond
-               [(and bw 
+               [(and bw
                      (stick-to-next-sexp? bw))
                 (let ([two-forward (forward-match one-forward (last-position))])
                   (if two-forward
@@ -1019,30 +1019,30 @@
                [else
                 one-forward]))]
           [else one-forward])))
-    
+
     (define/public (remove-sexp start-pos)
       (let ([end-pos (get-forward-sexp start-pos)])
-        (if end-pos 
+        (if end-pos
             (kill 0 start-pos end-pos)
             (bell)))
       #t)
     (define/public (forward-sexp start-pos)
       (let ([end-pos (get-forward-sexp start-pos)])
-        (if end-pos 
+        (if end-pos
             (set-position end-pos)
             (bell))
         #t))
     (define/public (flash-forward-sexp start-pos)
       (let ([end-pos (get-forward-sexp start-pos)])
-        (if end-pos 
+        (if end-pos
             (flash-on end-pos (add1 end-pos))
-            (bell)) 
+            (bell))
         #t))
     (define/public (get-backward-sexp start-pos)
       (let* ([limit (get-limit start-pos)]
              [end-pos (backward-match start-pos limit)]
              [min-pos (backward-containing-sexp start-pos limit)])
-        (if (and end-pos 
+        (if (and end-pos
                  (or (not min-pos)
                      (end-pos . >= . min-pos)))
             ;; Can go backward, but check for preceding quote, unquote, etc.
@@ -1072,7 +1072,7 @@
       (let* ([limit-pos (get-limit start-pos)]
              [exp-pos
               (backward-containing-sexp start-pos limit-pos)])
-          
+
         (if (and exp-pos (> exp-pos limit-pos))
             (let* ([in-start-pos (skip-whitespace exp-pos 'backward #t)]
                    [paren-pos
@@ -1085,7 +1085,7 @@
               (let ([poss (let loop ([parens (racket-paren:get-paren-pairs)])
                             (cond
                               [(null? parens) null]
-                              [else 
+                              [else
                                (let ([pos (paren-pos (car parens))])
                                  (if pos
                                      (cons pos (loop (cdr parens)))
@@ -1123,7 +1123,7 @@
              [paren? (or (char=? first-char #\()
                          (char=? first-char #\[)
                          (char=? first-char #\{))]
-             [closer (and paren? 
+             [closer (and paren?
                           (get-forward-sexp pos))])
         (if (and paren? closer)
             (begin (begin-edit-sequence #t #f)
@@ -1132,7 +1132,7 @@
                    (end-edit-sequence))
             (bell))
         #t))
-    
+
     (define/private (select-text f forward?)
       (define start-pos (get-start-position))
       (define end-pos (get-end-position))
@@ -1144,7 +1144,7 @@
             (if (= (get-extend-end-position) end-pos)
                 (f start-pos)
                 (f end-pos))))
-      (if new-pos 
+      (if new-pos
           (extend-position new-pos)
           (bell))
           #t)
@@ -1153,7 +1153,7 @@
     (define/public (select-backward-sexp) (select-text (λ (x) (get-backward-sexp x)) #f))
     (define/public (select-up-sexp) (select-text (λ (x) (find-up-sexp x)) #f))
     (define/public (select-down-sexp) (select-text (λ (x) (find-down-sexp x)) #t))
-    
+
     (define/public (introduce-let-ans pos)
       (dynamic-wind
        (λ () (begin-edit-sequence))
@@ -1169,9 +1169,9 @@
               (insert before-text pos pos)
               (let ([blank-line-pos (+ end-l (string-length after-text) (string-length before-text))])
                 (set-position blank-line-pos blank-line-pos))
-              (tabify-selection 
+              (tabify-selection
                pos
-               (+ end-l 
+               (+ end-l
                   (string-length before-text)
                   (string-length after-text)
                   (string-length after-text2)))]
@@ -1179,7 +1179,7 @@
               (bell)])))
        (λ ()
          (end-edit-sequence))))
-    
+
     (define/public (move-sexp-out begin-inner)
       (begin-edit-sequence #t #f)
       (let ([end-inner (get-forward-sexp begin-inner)]
@@ -1195,7 +1195,7 @@
                [else (bell)]))]
           [else (bell)]))
       (end-edit-sequence))
-    
+
     (define/public (kill-enclosing-parens begin-inner)
       (begin-edit-sequence #t #f)
       (define begin-outer (find-up-sexp begin-inner))
@@ -1210,7 +1210,7 @@
             [else (bell)])]
         [else (bell)])
       (end-edit-sequence))
-    
+
     ;; change the parens following the cursor from () to [] or vice versa
     (define/public (toggle-round-square-parens start-pos)
       (begin-edit-sequence #t #f)
@@ -1227,17 +1227,17 @@
                        [(_ _) (bell)])]
               [else (bell)]))
       (end-edit-sequence))
-    
-    ;; replace-char-at-posn: natural-number string -> 
+
+    ;; replace-char-at-posn: natural-number string ->
     ;;   replace the char at the given posn with the given string.
     ;;
-    ;; this abstraction exists because the duplicated code in toggle-round-square-parens was 
+    ;; this abstraction exists because the duplicated code in toggle-round-square-parens was
     ;; just a little too much for comfort
     (define (replace-char-at-posn posn str)
       ;; insertions are performed before deletions in order to preserve the location of the cursor
       (insert str (+ posn 1) (+ posn 1))
       (delete posn (+ posn 1)))
-    
+
     (inherit get-fixed-style)
     (define/public (mark-matching-parenthesis pos)
       (let ([open-parens (map car (racket-paren:get-paren-pairs))]
@@ -1257,7 +1257,7 @@
                   [else
                    (change-style matching-parenthesis-style pos (+ pos 1))
                    (change-style matching-parenthesis-style (- end 1) end)])))))))
-    
+
     ;; get-snips/rev: start end -> (listof snip)
     ;; Returns a list of the snips in reverse order between
     ;; start and end.
@@ -1274,7 +1274,7 @@
           [else
            (loop (cons (send a-snip copy) snips/rev)
                  (send a-snip next))])))
-    
+
     (define/public (transpose-sexp pos)
       (let ([start-1 (get-backward-sexp pos)])
         (if (not start-1)
@@ -1301,20 +1301,20 @@
     (define tab-size 8)
     (define/public (get-tab-size) tab-size)
     (define/public (set-tab-size s) (set! tab-size s))
-    
+
     (define/override (get-start-of-line pos)
       (define para (position-paragraph pos))
       (define para-start (paragraph-start-position para))
       (define para-end (paragraph-end-position para))
-      (define first-non-whitespace 
+      (define first-non-whitespace
         (let loop ([i para-start])
           (cond
             [(= i para-end) #f]
             [(char-whitespace? (get-character i))
              (loop (+ i 1))]
             [else i])))
-      (define new-pos 
-        (cond 
+      (define new-pos
+        (cond
           [(not first-non-whitespace) para-start]
           [(= pos para-start) first-non-whitespace]
           [(<= pos first-non-whitespace) para-start]
@@ -1331,26 +1331,26 @@
 
 (define text-mode-mixin
   (mixin (color:text-mode<%> mode:surrogate-text<%>) (-text-mode<%>)
-    
+
     (define saved-wordbreak-map #f)
 
     (init [include-paren-keymap? #t])
     (define keymap-to-add (if include-paren-keymap? keymap non-paren-keymap))
-    
+
     (define/override (on-disable-surrogate text)
       (keymap:remove-chained-keymap text keymap-to-add)
       (send text set-wordbreak-map saved-wordbreak-map)
       (super on-disable-surrogate text))
-    
+
     (define/override (on-enable-surrogate text)
       (send text begin-edit-sequence)
       (super on-enable-surrogate text)
       (send (send text get-private-racket-container-keymap) chain-to-keymap
             keymap-to-add
             #f)
-      
+
       (set! saved-wordbreak-map (send text get-wordbreak-map))
-      
+
       (send text set-load-overwrites-styles #f)
       (send text set-wordbreak-map wordbreak-map)
       (let ([bw (box 0)]
@@ -1362,14 +1362,14 @@
           (send text set-tabs null (send text get-tab-size) #f)))
       (send text set-styles-fixed #t)
       (send text end-edit-sequence))
-    
+
     (define tabify-pref (preferences:get 'framework:tabify))
     (define tabify-pref-callback (lambda (k v) (set! tabify-pref v)))
     (preferences:add-callback
      'framework:tabify
      tabify-pref-callback
      #t)
-    
+
     (define/override (put-file text sup directory default-name)
       ;; don't call the surrogate's super, since it sets the default extension
       (cond
@@ -1430,7 +1430,7 @@
    ht
    (with-handlers ((exn:fail:read? (λ (x) #f)))
      (read (open-input-string text)))
-   (λ () 
+   (λ ()
      (cond
        [(and beg-reg (regexp-match? beg-reg text)) 'begin]
        [(and def-reg (regexp-match? def-reg text)) 'define]
@@ -1476,7 +1476,7 @@
   (and (member the-class sym-list) #t))
 
 ;; determines if the cursor is currently sitting in a string
-;; literal or a comment. 
+;; literal or a comment.
 (define (in-string/comment? text)
   (in-position? text '(comment string)))
 
@@ -1504,140 +1504,125 @@
 
 (define text-mode% (text-mode-mixin color:text-mode%))
 
-(define (add-paren-keybinding-functions keymap)
+;; Inserts the open parens character and, if the resulting token
+;; type satisfies checkp, then go ahead and insert the close parens
+;; and set the cursor between them.
+;; When space-between?, adds a space between the braces and places
+;; the cursor after the space.
+;; checkp: (or/c #f symbol (symbol -> boolean))
+;;  When checkp is #f, always inserts both open and close braces
+;;  When checkp is a symbol, only inserts the closing brace if
+;;    the tokenizer identifies open-brace as that type of token
+;;    having inserted it
+;;  When checkp is a predicate, only inserts the closing brace if
+;;    the token type of the inserted open-brace satisfies if
+(define (insert-brace-pair text open-brace close-brace [checkp #f] [space-between? #f])
+  (define selection-start (send text get-start-position))
+  (define selection-end (send text get-end-position))
+  (define open-len (if (string? open-brace) (string-length open-brace) 1))
+  (send text begin-edit-sequence #t #f)
+  (send text insert open-brace selection-start)
+  (define tok-type (send text classify-position selection-start))
+  (when (or (not checkp)
+            (and (symbol? checkp) (eq? checkp tok-type))
+            (and (procedure? checkp) (checkp tok-type)))
+    (define hash-before?  ; tweak to detect and correctly close block comments #| ... |#
+      ; Notice: This is racket-specific and despite the name of the file we should instead rely
+      ; on the lexer alone so as to be language-agnostic.
+      ; Currently though the lexer does not provide enough information about the comment type.
+      (and (< 0 selection-start)
+           (string=? "#" (send text get-text (- selection-start 1) selection-start))))
+    (send text set-position (+ selection-end open-len))
+    (when space-between? (send text insert " "))
+    (send text insert close-brace)
+    (when (and (char? open-brace) (char=? #\| open-brace) hash-before?)
+      (send text insert #\#))
+    (send text set-position (+ selection-start open-len (if space-between? 1 0))))
+  (send text end-edit-sequence))
+
+;; only insert a pair if automatic-parens preference is on, depending
+;; on other analyses of the state of the text (e.g. auto-parens shouldn't
+;; affect typing literal characters inside a string constant, etc.)
+(define (maybe-insert-brace-pair text open-brace close-brace)
+  (define open-parens
+    (for/list ([x (racket-paren:get-paren-pairs)]) (string-ref (car x) 0)))
+  (cond
+    [(not (preferences:get 'framework:automatic-parens))
+     (define startpos (send text get-start-position))
+     (if (and (send text get-overwrite-mode)
+              (= startpos (send text get-end-position)))
+         (send text insert open-brace startpos (add1 startpos))
+         (send text insert open-brace))]
+
+    [else  ; automatic-parens is enabled
+     (define c (immediately-following-cursor text))
+     (define cur-token
+       (send text classify-position (send text get-start-position)))
+     (cond
+       ; insert paren pair if it results valid parenthesis token...
+       [(member open-brace open-parens)
+        (insert-brace-pair text open-brace close-brace 'parenthesis)]
+
+       ; ASSUME: from here on, open-brace is either "  or  |
+       [else
+        ;(printf "tok ~a~n" cur-token)
+        (match cur-token
+          [(or 'error #f) (insert-brace-pair text open-brace close-brace 'error)]
+          ['constant (insert-brace-pair text open-brace close-brace
+                                        (λ (t) (not (equal? t 'constant))))]
+          [(or 'symbol 'comment)
+           (cond
+             [(and c (char=? #\| open-brace) (string=? c "|"))   ;; smart skip
+              (send text set-position (+ 1 (send text get-end-position)))
+              (define d (immediately-following-cursor text))
+              (when (and d (string=? d "#"))   ; a block comment?
+                (send text set-position (+ 1 (send text get-end-position))))]
+             [(in-position? text '(comment)) (send text insert open-brace)]
+             [else (insert-brace-pair text open-brace close-brace)])]
+          ['string
+           (cond
+             [(not (char=? #\" open-brace))
+              (insert-brace-pair text open-brace close-brace
+                                 (λ (t) (not (or (equal? 'comment t) (equal? 'string t)))))]
+             [else
+              (define start-position (send text get-start-position))
+              (define end-position (send text get-end-position))
+              (cond
+                ; smart skip a " if it is the immediately following character (c)
+                [(and c (string=? c "\""))
+                 (send text set-position (+ 1 end-position))]
+
+                ; there is no current selection - split the string in two
+                [(= start-position end-position)
+                 (insert-brace-pair text #\" #\" #f #t)]
+
+                ; there is a selection - split the selected text off as a
+                ; separate string from the surrounding in an intelligent way
+                ; and retain selection of the split-out string
+                [else (define selection-length (- end-position start-position))
+                      (insert-brace-pair text "\" \"" "\" \"")
+                      (define cur-position (send text get-start-position))
+                      (send text set-position
+                            (- cur-position 1)
+                            (+ cur-position selection-length 1))])])]
+          [_  (insert-brace-pair text open-brace close-brace
+                                 (λ (t) (not (equal? 'comment t))))])])]))
+
+
+
+(define (|maybe-insert-[]-pair-maybe-fixup-[]| text)
+  (cond
+    [(or (not (preferences:get 'framework:fixup-open-parens))
+         (send text is-stopped?))
+     (maybe-insert-brace-pair text #\[ #\])]
+    [else
+     (insert-paren text)]))
+
+
+(define (add-pairs-keybinding-functions keymap)
   (define (add-function name f) (send keymap add-function name f))
   (define (add-edit-function name f)
-    (add-function name (λ (edit event) (f edit))))
-
-  
-  (define (insert-matching-paren-pair text event)
-    (define open+close (get-matched-pair text event))
-    (when open+close
-      (insert-brace-pair text (car open+close) (cdr open+close))))
-
-  (define (get-matched-pair text event)
-    (define open-char (send event get-key-code))
-    (cond
-      [open-char
-       (define open (string (send event get-key-code)))
-       (define close (or (send text get-matching-paren-string open) open))
-       (cons open-char
-             (if (= (string-length close) 1)
-                 (string-ref close 0)
-                 close))]
-      [else #f]))
-
-  ;; Inserts the open parens character and, if the resulting token
-  ;; type satisfies checkp, then go ahead and insert the close parens
-  ;; and set the cursor between them.
-  ;; When space-between?, adds a space between the braces and places
-  ;; the cursor after the space.
-  ;; checkp: (or/c #f symbol (symbol -> boolean))
-  ;;  When checkp is #f, always inserts both open and close braces
-  ;;  When checkp is a symbol, only inserts the closing brace if 
-  ;;    the tokenizer identifies open-brace as that type of token
-  ;;    having inserted it
-  ;;  When checkp is a predicate, only inserts the closing brace if
-  ;;    the token type of the inserted open-brace satisfies it
-  (define (insert-brace-pair text open-brace close-brace [checkp #f] [space-between? #f])
-    (define selection-start (send text get-start-position))
-    (define selection-end (send text get-end-position))
-    (define open-len (if (string? open-brace) (string-length open-brace) 1))
-    (send text begin-edit-sequence #t #f)
-    (send text insert open-brace selection-start)
-    (define tok-type (send text classify-position selection-start))
-    (when (or (not checkp)
-              (and (symbol? checkp) (eq? checkp tok-type))
-              (and (procedure? checkp) (checkp tok-type)))
-      (define hash-before?  ; tweak to detect and correctly close block comments #| ... |#
-        ; Notice: This is racket-specific and despite the name of the file we should instead rely
-        ; on the lexer alone so as to be language-agnostic.
-        ; Currently though the lexer does not provide enough information about the comment type.
-        (and (< 0 selection-start)
-             (string=? "#" (send text get-text (- selection-start 1) selection-start))))
-      (send text set-position (+ selection-end open-len))
-      (when space-between? (send text insert " "))
-      (send text insert close-brace)
-      (when (and (char? open-brace) (char=? #\| open-brace) hash-before?) 
-        (send text insert #\#))
-      (send text set-position (+ selection-start open-len (if space-between? 1 0))))
-    (send text end-edit-sequence))
-
-  (define (maybe-insert-matching-paren-pair text event)
-    (define open+close (get-matched-pair text event))
-    (when open+close
-      (maybe-insert-brace-pair text (car open+close) (cdr open+close))))
-
-  ;; only insert a pair if automatic-parens preference is on, depending
-  ;; on other analyses of the state of the text (e.g. auto-parens shouldn't
-  ;; affect typing literal characters inside a string constant, etc.)
-  (define (maybe-insert-brace-pair text open-brace close-brace)
-    (define open-parens 
-      (for/list ([x (racket-paren:get-paren-pairs)]) (string-ref (car x) 0)))
-    (cond
-      [(not (preferences:get 'framework:automatic-parens))
-       (define startpos (send text get-start-position))
-       (if (and (send text get-overwrite-mode) 
-                (= startpos (send text get-end-position)))
-           (send text insert open-brace startpos (add1 startpos))
-           (send text insert open-brace))]
-    
-      [else  ; automatic-parens is enabled
-       (define c (immediately-following-cursor text))
-       (define cur-token 
-         (send text classify-position (send text get-start-position)))
-       (cond
-         ; insert paren pair if it results valid parenthesis token...
-         [(member open-brace open-parens) 
-          (insert-brace-pair text open-brace close-brace 'parenthesis)]
-         
-         ; ASSUME: from here on, open-brace is either "  or  |
-         [else
-          ;(printf "tok ~a~n" cur-token)
-          (match cur-token
-            [(or 'error #f) (insert-brace-pair text open-brace close-brace 'error)]
-            ['constant (insert-brace-pair text open-brace close-brace 
-                                          (λ (t) (not (equal? t 'constant))))]
-            [(or 'symbol 'comment)
-             (cond
-               [(and c (char=? #\| open-brace) (string=? c "|"))   ;; smart skip
-                (send text set-position (+ 1 (send text get-end-position)))
-                (define d (immediately-following-cursor text))
-                (when (and d (string=? d "#"))   ; a block comment?
-                  (send text set-position (+ 1 (send text get-end-position))))]
-               [(in-position? text '(comment)) (send text insert open-brace)]
-               [else (insert-brace-pair text open-brace close-brace)])]
-            ['string
-             (cond
-               [(not (char=? #\" open-brace))
-                (insert-brace-pair text open-brace close-brace
-                                   (λ (t) (not (or (equal? 'comment t) (equal? 'string t)))))]
-               [else 
-                (define start-position (send text get-start-position))
-                (define end-position (send text get-end-position))
-                (cond
-                  ; smart skip a " if it is the immediately following character (c)
-                  [(and c (string=? c "\"")) 
-                   (send text set-position (+ 1 end-position))]
-                  
-                  ; there is no current selection - split the string in two
-                  [(= start-position end-position)
-                   (insert-brace-pair text #\" #\" #f #t)]
-                  
-                  ; there is a selection - split the selected text off as a
-                  ; separate string from the surrounding in an intelligent way
-                  ; and retain selection of the split-out string
-                  [else (define selection-length (- end-position start-position))
-                        (insert-brace-pair text "\" \"" "\" \"")
-                        (define cur-position (send text get-start-position))
-                        (send text set-position 
-                              (- cur-position 1)
-                              (+ cur-position selection-length 1))])])]
-            [_  (insert-brace-pair text open-brace close-brace
-                                   (λ (t) (not (equal? 'comment t))))])])]))
-
-
-
+    (add-function name (λ (text event) (f text))))
   (add-function "balance-parens" (λ (edit event) (send edit balance-parens event)))
   (add-function "balance-parens-forward" (λ (edit event) (send edit balance-parens event 'forward)))
 
@@ -1646,67 +1631,78 @@
   (add-edit-function "insert-{}-pair" (λ (text) (insert-brace-pair text #\{ #\})))
   (add-edit-function "insert-\"\"-pair" (λ (text) (insert-brace-pair text #\" #\")))
   (add-edit-function "insert-||-pair" (λ (text) (insert-brace-pair text #\| #\|)))
-  (add-function "insert-matching-paren-pair" insert-matching-paren-pair)
-  
+
   (add-edit-function "maybe-insert-()-pair" (λ (text) (maybe-insert-brace-pair text #\( #\))))
   (add-edit-function "maybe-insert-[]-pair" (λ (text) (maybe-insert-brace-pair text #\[ #\])))
   (add-edit-function "maybe-insert-{}-pair" (λ (text) (maybe-insert-brace-pair text #\{ #\})))
   (add-edit-function "maybe-insert-\"\"-pair" (λ (text) (maybe-insert-brace-pair text #\" #\")))
   (add-edit-function "maybe-insert-||-pair" (λ (text) (maybe-insert-brace-pair text #\| #\|)))
-  (add-function "maybe-insert-matching-paren-pair" maybe-insert-matching-paren-pair)
 
-  (add-edit-function "maybe-insert-[]-pair-maybe-fixup-[]"
-                     (λ (text)
-                       (cond
-                         [(or (not (preferences:get 'framework:fixup-open-parens))
-                              (send text is-stopped?))
-                          (maybe-insert-brace-pair text #\[ #\])]
-                         [else 
-                          (insert-paren text)])))
+  (add-edit-function "maybe-insert-[]-pair-maybe-fixup-[]" |maybe-insert-[]-pair-maybe-fixup-[]|)
 
   (define (add-non-clever-fn name char closer)
-    (add-edit-function
-     name
-     (λ (e)
-       (send e begin-edit-sequence)
-       (define start (send e get-start-position))
-       (define stop (send e get-end-position))
-       (send e insert char start stop)
-       (when (and closer (preferences:get 'framework:automatic-parens))
-         (send e insert closer (+ start 1) (+ start 1)))
-       (send e end-edit-sequence))))
-  (add-function "non-clever-close-paren"
-                (λ (e evt)
-                  (define char (send evt get-key-code))
-                  (when (char? char)
-                    (send e begin-edit-sequence)
-                    (define start (send e get-start-position))
-                    (define stop (send e get-end-position))
-                    (send e insert char start stop)
-                    (send e end-edit-sequence))))
+    (send keymap add-function
+          name
+          (non-clever-fn char closer)))
+  (add-function "non-clever-close-paren"non-clever-close-paren)
   (add-non-clever-fn "non-clever-close-square-bracket" #\] #f)
+  (add-non-clever-fn "non-clever-close-]" #\] #f)
   (add-non-clever-fn "non-clever-close-curley-bracket" #\} #f)
+  (add-non-clever-fn "non-clever-close-}" #\} #f)
   (add-non-clever-fn "non-clever-close-round-paren" #\) #f)
+  (add-non-clever-fn "non-clever-close-)" #\) #f)
   (add-non-clever-fn "non-clever-open-square-bracket" #\[ #\]))
 
-(define (map-paren-keybinding-functions keymap opener closer
+(define (non-clever-close-paren e evt)
+  (define char (send evt get-key-code))
+  (when (char? char)
+    (send e begin-edit-sequence)
+    (define start (send e get-start-position))
+    (define stop (send e get-end-position))
+    (send e insert char start stop)
+    (send e end-edit-sequence)))
+
+(define (non-clever-fn char closer)
+  (λ (text evt)
+    (send text begin-edit-sequence)
+    (define start (send text get-start-position))
+    (define stop (send text get-end-position))
+    (send text insert char start stop)
+    (when (and closer (preferences:get 'framework:automatic-parens))
+      (send text insert closer (+ start 1) (+ start 1)))
+    (send text end-edit-sequence)))
+
+(define (map-pairs-keybinding-functions keymap opener closer
                                         #:alt-as-meta-keymap [alt-as-meta-keymap #f])
 
-  (define (map-meta key func)
+  (define (map-meta key func proc)
+    (map-it! func proc)
     (keymap:send-map-function-meta keymap key func #:alt-as-meta-keymap alt-as-meta-keymap))
-  (define (map key func) (send keymap map-function key func))
+  (define (map-key key func proc)
+    (map-it! func proc)
+    (send keymap map-function key func))
+  (define (map-it! func proc)
+    (unless (send keymap is-function-added? func)
+      (send keymap add-function func proc))
+    (when alt-as-meta-keymap
+      (unless (send alt-as-meta-keymap is-function-added? func)
+        (send alt-as-meta-keymap add-function func proc))))
 
   (cond
     [(equal? opener #\[)
-     (map "[" "maybe-insert-[]-pair-maybe-fixup-[]")
-     (map "~g:c:[" "non-clever-open-square-bracket")]
+     (map-key "[" "maybe-insert-[]-pair-maybe-fixup-[]" (λ (txt evt) (|maybe-insert-[]-pair-maybe-fixup-[]| txt)))
+     (map-key "~g:c:[" "non-clever-open-square-bracket" (non-clever-fn #\[ #\]))]
     [else
-     (map (string opener) "maybe-insert-matching-paren-pair")])
-  (map-meta (string opener) "insert-matching-paren-pair")
+     (map-key (string opener) (format "maybe-insert-~a~a-pair" opener closer)
+              (λ (text event)
+                (maybe-insert-brace-pair text opener closer)))])
+  (map-meta (string opener) (format "insert-~a~a-pair" opener closer)
+            (λ (text evt)
+              (insert-brace-pair text opener closer)))
   (unless (equal? opener closer)
-    (map (string closer) "balance-parens")
-    (map-meta (string closer) "balance-parens-forward")
-    (map (string-append "~g:c:" (string closer)) "non-clever-close-paren")))
+    (map-key (string closer) "balance-parens" (λ (edit event) (send edit balance-parens event)))
+    (map-meta (string closer) "balance-parens-forward" (λ (edit event) (send edit balance-parens event 'forward)))
+    (map-key (string-append "~g:c:" (string closer)) "non-clever-close-paren" non-clever-close-paren)))
 
 
 (define (setup-keymap keymap
@@ -1721,9 +1717,9 @@
   (define (add-pos-function name f)
     (add-function name (λ (edit event) (f edit (send edit get-start-position)))))
 
-  (add-paren-keybinding-functions keymap)
-  (when alt-as-meta-keymap (add-paren-keybinding-functions paren-alt-as-meta-keymap))
-  (when paren-keymap (add-paren-keybinding-functions paren-keymap))
+  (add-pairs-keybinding-functions keymap)
+  (when alt-as-meta-keymap (add-pairs-keybinding-functions paren-alt-as-meta-keymap))
+  (when paren-keymap (add-pairs-keybinding-functions paren-keymap))
 
   (add-pos-function "remove-sexp" (λ (e p) (send e remove-sexp p)))
   (add-pos-function "forward-sexp" (λ (e p) (send e forward-sexp p)))
@@ -1744,7 +1740,7 @@
                     (lambda (e p) (send e kill-enclosing-parens p)))
   (add-pos-function "toggle-round-square-parens"
                     (lambda (e p) (send e toggle-round-square-parens p)))
-  
+
   (add-edit-function "select-forward-sexp"
                      (λ (x) (send x select-forward-sexp)))
   (add-edit-function "select-backward-sexp"
@@ -1859,9 +1855,9 @@
       (send edit set-position selection-start)
       (send edit insert "(λ ("))
     (send edit end-edit-sequence))
-  
+
   (add-edit-function "insert-lambda-template" insert-lambda-template)
-  
+
   (define (map-meta key func)
     (keymap:send-map-function-meta keymap key func #:alt-as-meta-keymap alt-as-meta-keymap))
   (define (map key func)
@@ -1880,34 +1876,34 @@
   (map "d:return" "do-return")
 
   (map "leftbuttondouble" "paren-double-select")
-  
+
   (map-meta "up" "up-sexp")
   (map-meta "c:u" "up-sexp")
   (map "a:up" "up-sexp")
   (map-meta "s:up" "select-up-sexp")
   (map "a:s:up" "select-up-sexp")
   (map-meta "s:c:u" "select-up-sexp")
-  
+
   (map-meta "down" "down-sexp")
   (map "a:down" "down-sexp")
   (map-meta "s:down" "select-down-sexp")
   (map "a:s:down" "select-down-sexp")
   (map-meta "s:c:down" "select-down-sexp")
-  
+
   (map-meta "right" "forward-sexp")
   (map "a:right" "forward-sexp")
   (map "m:right" "forward-sexp")
   (map-meta "s:right" "select-forward-sexp")
   (map "a:s:right" "select-forward-sexp")
   (map "m:s:right" "select-forward-sexp")
-  
+
   (map-meta "left" "backward-sexp")
   (map "a:left" "backward-sexp")
   (map "m:left" "backward-sexp")
   (map-meta "s:left" "select-backward-sexp")
   (map "a:s:left" "select-backward-sexp")
   (map "m:s:left" "select-backward-sexp")
-  
+
   (map-meta "return" "do-return")
   (map-meta "s:return" "do-return")
   (map-meta "s:c:return" "do-return")
@@ -1916,32 +1912,32 @@
   (map-meta "c:a:return" "do-return")
   (map-meta "c:s:a:return" "do-return")
   (map-meta "c:return" "do-return")
-  
+
   (map-meta "c:semicolon" "comment-out")
   (map-meta "c:=" "uncomment")
   (map-meta "c:k" "remove-sexp")
-  
+
   (map-meta "c:f" "forward-sexp")
   (map-meta "s:c:f" "select-forward-sexp")
-  
+
   (map-meta "c:b" "backward-sexp")
   (map-meta "s:c:b" "select-backward-sexp")
-  
+
   (map-meta "c:p" "flash-backward-sexp")
   (map-meta "s:c:n" "flash-forward-sexp")
-  
+
   (map-meta "c:space" "select-forward-sexp")
   (map-meta "c:t" "transpose-sexp")
-  
+
   ;(map-meta "c:m" "mark-matching-parenthesis")
   ; this keybinding doesn't interact with the paren colorer
 
   (define (map-paren-keys keymap alt-as-meta-keymap)
-    (map-paren-keybinding-functions keymap #\( #\) #:alt-as-meta-keymap alt-as-meta-keymap)
-    (map-paren-keybinding-functions keymap #\[ #\] #:alt-as-meta-keymap alt-as-meta-keymap)
-    (map-paren-keybinding-functions keymap #\{ #\} #:alt-as-meta-keymap alt-as-meta-keymap)
-    (map-paren-keybinding-functions keymap #\" #\" #:alt-as-meta-keymap alt-as-meta-keymap)
-    (map-paren-keybinding-functions keymap #\| #\| #:alt-as-meta-keymap alt-as-meta-keymap))
+    (map-pairs-keybinding-functions keymap #\( #\) #:alt-as-meta-keymap alt-as-meta-keymap)
+    (map-pairs-keybinding-functions keymap #\[ #\] #:alt-as-meta-keymap alt-as-meta-keymap)
+    (map-pairs-keybinding-functions keymap #\{ #\} #:alt-as-meta-keymap alt-as-meta-keymap)
+    (map-pairs-keybinding-functions keymap #\" #\" #:alt-as-meta-keymap alt-as-meta-keymap)
+    (map-pairs-keybinding-functions keymap #\| #\| #:alt-as-meta-keymap alt-as-meta-keymap))
   (cond
     [paren-keymap
      (map-paren-keys paren-keymap paren-alt-as-meta-keymap)]
@@ -1989,7 +1985,7 @@
 (define (insert-paren text)
   (let* ([pos (send text get-start-position)]
          [real-char #\[]
-         [change-to (λ (i c) 
+         [change-to (λ (i c)
                       ;(printf "change-to, case ~a\n" i)
                       (set! real-char c))]
          [start-pos (send text get-start-position)]
@@ -2020,7 +2016,7 @@
              (cond
                [backward-match
                 ;; there is an expression before this, at this layer
-                (define before-whitespace-pos2 
+                (define before-whitespace-pos2
                   (send text skip-whitespace backward-match 'backward #t))
                 (define backward-match2 (send text backward-match before-whitespace-pos2 0))
                 (cond
@@ -2036,7 +2032,7 @@
                 (define b-w-p-char (send text get-character (- before-whitespace-pos 1)))
                 (cond
                   [(equal? b-w-p-char #\()
-                   (define second-before-whitespace-pos (send text skip-whitespace 
+                   (define second-before-whitespace-pos (send text skip-whitespace
                                                               (- before-whitespace-pos 1)
                                                               'backward
                                                               #t))
@@ -2056,7 +2052,7 @@
                       (void)]
                      [else
                       ;; go back one more sexp in the same row, looking for `let loop' pattern
-                      (define second-before-whitespace-pos2 (send text skip-whitespace 
+                      (define second-before-whitespace-pos2 (send text skip-whitespace
                                                                   second-backwards-match
                                                                   'backward
                                                                   #t))
@@ -2088,9 +2084,9 @@
                         [else
                          ;; otherwise, round.
                          (change-to 4 #\()])])]
-                  [else 
+                  [else
                    (change-to 5 #\()])]
-               [else 
+               [else
                 (change-to 6 #\()]))])))
     (send text delete pos (+ pos 1) #f)
     (send text end-edit-sequence)
@@ -2111,7 +2107,7 @@
 ;; find-keyword-and-distance : -> (union #f (cons string number))
 (define (find-keyword-and-distance before-whitespace-pos text)
   ;; searches backwards for the keyword in the sequence at this level.
-  ;; if found, it counts how many sexps back it was 
+  ;; if found, it counts how many sexps back it was
   (let loop ([pos before-whitespace-pos]
              [n 0])
     (let ([backward-match (send text backward-match pos 0)])
@@ -2130,7 +2126,7 @@
            (and keyword
                 (list keyword (- n 1))))]))))
 
-;; beginning-of-sequence? : text number -> boolean 
+;; beginning-of-sequence? : text number -> boolean
 ;; determines if this position is at the beginning of a sequence
 ;; that begins with a parenthesis.
 (define (beginning-of-sequence? text start)
@@ -2138,7 +2134,7 @@
     (cond
       [(zero? before-space) #t]
       [else
-       (equal? (send text get-character (- before-space 1)) 
+       (equal? (send text get-character (- before-space 1))
                #\()])))
 
 (define (text-between-equal? str text start end)
@@ -2168,25 +2164,25 @@
 
 (define (add-preferences-panel)
   (preferences:add-panel
-   (list (string-constant editor-prefs-panel-label) 
+   (list (string-constant editor-prefs-panel-label)
          (string-constant indenting-prefs-panel-label))
    make-indenting-prefs-panel)
   (preferences:add-panel
-   (list (string-constant editor-prefs-panel-label) 
+   (list (string-constant editor-prefs-panel-label)
          (string-constant square-bracket-prefs-panel-label))
    make-square-bracket-prefs-panel))
 
 (define (make-square-bracket-prefs-panel p)
   (define main-panel (make-object vertical-panel% p))
   (define boxes-panel (new-horizontal-panel% [parent main-panel]))
-  
+
   (define (mk-list-box sym keyword-type pref->string get-new-one)
     (letrec ([vp (new-vertical-panel% [parent boxes-panel])]
-             [_ (new message% 
+             [_ (new message%
                      [label (format (string-constant x-like-keywords) keyword-type)]
                      [parent vp])]
              [lb
-              (new list-box% 
+              (new list-box%
                    [label #f]
                    [parent vp]
                    [choices (map pref->string (preferences:get sym))]
@@ -2198,22 +2194,22 @@
               (new button%
                    [label (string-constant add-keyword)]
                    [parent bp]
-                   [callback 
+                   [callback
                     (λ (x y)
                       (let ([new-one (get-new-one)])
                         (when new-one
-                          (preferences:set sym (append (preferences:get sym) 
+                          (preferences:set sym (append (preferences:get sym)
                                                        (list new-one))))))])]
              [remove-button
               (new button%
                    [label (string-constant remove-keyword)]
                    [parent bp]
-                   [callback 
+                   [callback
                     (λ (x y)
                       (let ([n (send lb get-selections)])
                         (when (pair? n)
-                          (preferences:set 
-                           sym 
+                          (preferences:set
+                           sym
                            (let loop ([i 0]
                                       [prefs (preferences:get sym)])
                              (cond
@@ -2225,7 +2221,7 @@
                             [(= 0 (send lb get-number))
                              (send remove-button enable #f)]
                             [else
-                             (send lb set-selection 
+                             (send lb set-selection
                                    (if (= (car n) (send lb get-number))
                                        (- (send lb get-number) 1)
                                        (car n)))]))))])])
@@ -2235,7 +2231,7 @@
                                 (λ (p v)
                                   (send lb clear)
                                   (for-each (λ (x) (send lb append (pref->string x))) v)))))
-  
+
   (define (get-new-simple-keyword label)
     (λ ()
       (let ([new-one
@@ -2247,34 +2243,34 @@
         (and new-one
              (let ([parsed (with-handlers ((exn:fail:read? (λ (x) #f)))
                              (read (open-input-string new-one)))])
-               
+
                (and (symbol? parsed)
                     (symbol->string parsed)))))))
-  
+
   (define (get-new-cond-keyword)
     (define f (new dialog% [label (format (string-constant enter-new-keyword) "Cond")]))
     (define tb (keymap:call/text-keymap-initializer
                 (λ ()
-                  (new text-field% 
+                  (new text-field%
                        [parent f]
                        [label #f]))))
     (define number-panel (new-horizontal-panel% [parent f] [stretchable-height #f]))
-    (define number-label (new message% 
+    (define number-label (new message%
                               [parent number-panel]
                               [label (string-constant skip-subexpressions)]))
     (define number
       (keymap:call/text-keymap-initializer
        (λ ()
-         (new text-field% 
+         (new text-field%
               [parent number-panel]
               [init-value "1"]
               [min-width 50]
               [label #f]))))
-    
+
     (define answers #f)
-    (define bp (new-horizontal-panel% 
-                    [parent f] 
-                    [stretchable-height #f]
+    (define bp (new-horizontal-panel%
+                [parent f]
+                [stretchable-height #f]
                     [alignment '(right center)]))
     (define (confirm-callback b e)
       (let ([n (string->number (send number get-value))]
@@ -2284,44 +2280,44 @@
                    (symbol? sym))
           (set! answers (list (symbol->string sym) n)))
         (send f show #f)))
-    
+
     (define (cancel-callback b e)
       (send f show #f))
-    
+
     (define-values (ok-button cancel-button)
-      (gui-utils:ok/cancel-buttons bp confirm-callback cancel-callback 
+      (gui-utils:ok/cancel-buttons bp confirm-callback cancel-callback
                                    (string-constant ok) (string-constant cancel)))
     (send tb focus)
     (send f show #t)
     answers)
-  
+
   (mk-list-box 'framework:square-bracket:letrec "Letrec" values (get-new-simple-keyword "Letrec"))
-  (mk-list-box 'framework:square-bracket:local 
-               "Local" 
+  (mk-list-box 'framework:square-bracket:local
+               "Local"
                values
                (get-new-simple-keyword "Local"))
-  (mk-list-box 'framework:square-bracket:for/fold 
-               "For/fold" 
+  (mk-list-box 'framework:square-bracket:for/fold
+               "For/fold"
                values
                (get-new-simple-keyword "For/fold"))
-  (mk-list-box 'framework:square-bracket:cond/offset 
-               "Cond" 
+  (mk-list-box 'framework:square-bracket:cond/offset
+               "Cond"
                (λ (l) (format "~a (~a)" (car l) (cadr l)))
                get-new-cond-keyword)
-  
-  (define check-box (new check-box% 
+
+  (define check-box (new check-box%
                          [parent main-panel]
                          [label (string-constant fixup-open-brackets)]
                          [value (preferences:get 'framework:fixup-open-parens)]
-                         [callback 
+                         [callback
                           (λ (x y)
-                            (preferences:set 'framework:fixup-open-parens 
+                            (preferences:set 'framework:fixup-open-parens
                                              (send check-box get-value)))]))
   (preferences:add-callback
    'framework:fixup-open-parens
    (λ (p v)
      (send check-box set-value v)))
-  
+
   main-panel)
 
 (define (make-indenting-prefs-panel p)
@@ -2331,8 +2327,8 @@
       (define (pick-out wanted in out)
         (cond
           [(null? in) (sort out string<?)]
-          [else (if (eq? wanted (cadr (car in))) 
-                    (pick-out wanted (cdr in) 
+          [else (if (eq? wanted (cadr (car in)))
+                    (pick-out wanted (cdr in)
                               (cons (format "~s" (car (car in))) out))
                     (pick-out wanted (cdr in) out))]))
       (values  (pick-out 'begin all-keywords null)
@@ -2364,12 +2360,12 @@
              (hash-set! ht parsed keyword-symbol)
              (preferences:set 'framework:tabify pref)
              (update-list-boxes ht))]
-          [else (message-box 
+          [else (message-box
                  (string-constant error)
                  (format (string-constant expected-a-symbol) new-one))]))))
   (define ((delete-callback list-box) button command)
     (define selections (send list-box get-selections))
-    (define symbols 
+    (define symbols
       (map (λ (x) (read (open-input-string (send list-box get-string x)))) selections))
     (for-each (λ (x) (send list-box delete x)) (reverse selections))
     (define pref (preferences:get 'framework:tabify))
@@ -2382,12 +2378,12 @@
     (make-object message% (format (string-constant x-like-keywords) string) vert)
     (define box (make-object list-box% #f keywords vert void '(multiple)))
     (define button-panel (make-object horizontal-panel% vert))
-    (define text (new text-field% 
+    (define text (new text-field%
                       (label (string-constant indenting-prefs-extra-regexp))
-                      (callback (λ (tf evt) 
+                      (callback (λ (tf evt)
                                   (define str (send tf get-value))
                                   (cond
-                                    [(equal? str "") 
+                                    [(equal? str "")
                                      (bang-regexp #f)]
                                     [else
                                      (with-handlers ([exn:fail?
@@ -2400,7 +2396,7 @@
                          button-panel (add-button-callback string symbol box)))
     (define delete-button (make-object button% (string-constant remove-keyword)
                             button-panel (delete-callback box)))
-    (send* button-panel 
+    (send* button-panel
       (set-alignment 'center 'center)
       (stretchable-height #f))
     (send add-button min-width (send delete-button get-width))
@@ -2421,14 +2417,14 @@
                    (cons x (cdr pref))
                    (cons (car pref) (loop (cdr pref) (sub1 sel)))))])
         (preferences:set 'framework:tabify pref))))
-  (define-values (begin-list-box begin-regexp-text) 
+  (define-values (begin-list-box begin-regexp-text)
     (make-column "Begin"
                  'begin
                  begin-keywords
                  (λ (x) (update-pref 1 x))))
-  (define-values (define-list-box define-regexp-text) 
-    (make-column "Define" 
-                 'define 
+  (define-values (define-list-box define-regexp-text)
+    (make-column "Define"
+                 'define
                  define-keywords
                  (λ (x) (update-pref 2 x))))
   (define-values (lambda-list-box lambda-regexp-text)
@@ -2442,7 +2438,7 @@
                  for/fold-keywords
                  (λ (x) (update-pref 4 x))))
   (define (update-list-boxes hash-table)
-    (define-values (begin-keywords define-keywords lambda-keywords for/fold-keywords) 
+    (define-values (begin-keywords define-keywords lambda-keywords for/fold-keywords)
       (get-keywords hash-table))
     (define (reset list-box keywords)
       (send list-box clear)
