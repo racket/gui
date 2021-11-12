@@ -275,8 +275,23 @@
                          (send txt paragraph-end-position para))])
     (char-whitespace? (send txt get-character x))))
 
-;; note: this might change the number of characters in the text, if
-;; it chooses to break right after a {; the result accounts for that.
+;; note: if "Disable" is changed below, this function might change the
+;; number of characters in the text, if it chooses to break right
+;; after a {, like this:
+;;   a long line that has @formatted{text} inside
+;;  =>
+;;   a long line that has @formatted{
+;;    text} inside
+;; Unfortunately, reindenting later might need to take the space back,
+;; and that doesn't currently happen:
+;;   a long line that has @formatted{
+;;    text} inside
+;;  =>
+;;   a long line that has @formatted{ text} inside
+;;                               ----^
+;; It's a problem that the space is not removed, in case the text
+;; started that way, but we reduce the problem for now by not introducing
+;; space like that.
 (define (break-paragraphs txt start-position end-position width)
   (define δ 0)
 
@@ -306,6 +321,8 @@
          (define linebreak-candidate?
            (and (is-text? txt pos)
                 (or is-whitespace?
+                    ;; Disable breaking right after `{`:
+                    #;
                     (and (pos . > . 0)
                          (equal? 'parenthesis (send txt classify-position (- pos 1)))
                          (equal? #\{ (send txt get-character (- pos 1)))))))
