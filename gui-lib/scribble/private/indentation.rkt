@@ -131,7 +131,7 @@
         [(is-text? txt pos)
          pos]
         [else
-         (define containing-start (send txt find-up-sexp pos))
+         (define containing-start (find-up-sexp txt pos))
          (define pos-para (send txt position-paragraph pos))
          (cond
            [(not containing-start)
@@ -199,12 +199,12 @@
      ;;
      ;; #f means no limit
      (define-values (start-sexp-boundary end-sexp-boundary)
-       (let ([first-container (send txt find-up-sexp pos)])
+       (let ([first-container (find-up-sexp txt pos)])
          (cond
            [first-container
             (define start-sexp-boundary
               (let loop ([pos pos])
-                (define container (send txt find-up-sexp pos))
+                (define container (find-up-sexp txt pos))
                 (cond
                   [container
                    (define paren (send txt get-character container))
@@ -348,7 +348,7 @@
   (define classified (send txt classify-position pos))
   (or (equal? classified 'text)
       (and (equal? classified 'white-space)
-           (let ([backward (send txt find-up-sexp pos)])
+           (let ([backward (find-up-sexp txt pos)])
              (and backward
                   (equal? (send txt get-character backward) #\{)
                   (equal? (send txt classify-position backward)
@@ -409,7 +409,7 @@
   (cond
     [para-start-skip-space
      (define char-classify (send txt classify-position para-start-skip-space))
-     (define prev-posi (send txt find-up-sexp para-start-skip-space))
+     (define prev-posi (find-up-sexp txt para-start-skip-space))
      (cond
        [prev-posi
         (define this-para (send txt position-paragraph prev-posi))
@@ -518,7 +518,7 @@
 ;;the beginning of the line it appears
 (define (count-parens txt posi)
   (define count 0)
-  (do ([p posi (send txt find-up-sexp p)]);backward-containing-sexp p 0)])
+  (do ([p posi (find-up-sexp txt p)]);backward-containing-sexp p 0)])
     ((not p) count)
     (cond [(equal? #\{ (send txt get-character p)) (set! count (add1 count))]
           [(equal? #\[ (send txt get-character p))
@@ -576,7 +576,15 @@
         (send text insert (make-string amount #\space) posi))))
   #t)
 
-
+;; similar to the one in `racket:text%`:
+(define (find-up-sexp t start-pos)
+  (define exp-pos (send t backward-containing-sexp start-pos 0))
+  (cond
+    [exp-pos
+     (define in-start-pos (send t skip-whitespace exp-pos 'backward #t))
+     (define-values (s e) (send t get-token-range (sub1 in-start-pos)))
+     s]
+    [else #f]))
 
 (define/contract (insert-them t . strs)
   (->* ((is-a?/c text%)) #:rest (*list/c (and/c string? #rx"\n$") string?) void?)
