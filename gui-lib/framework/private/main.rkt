@@ -5,7 +5,8 @@
          "sig.rkt"
          "../preferences.rkt"
          mred/mred-sig
-         mrlib/panel-wob)
+         mrlib/panel-wob
+         syntax-color/racket-indentation)
 
 (import mred^
         [prefix preferences: framework:preferences^]
@@ -391,95 +392,10 @@
 (preferences:set-default 'framework:fixup-parens #t boolean?)
 (preferences:set-default 'framework:fixup-open-parens #f boolean?)
 (preferences:set-default 'framework:paren-match #t boolean?)
-(let ([defaults-ht (make-hasheq)])
-  (for-each (λ (x) (hash-set! defaults-ht x 'for/fold))
-            '(for/fold for/fold: for*/fold for*/fold:
-              for/lists for/lists: for*/lists for*/lists:))
-  (for-each (λ (x) (hash-set! defaults-ht x 'define))
-            '(struct
-              local
-                     
-              struct: define-struct: define-typed-struct define-struct/exec:
-              define: pdefine:
-              define-type define-predicate
-              match-define match-define-values))
-  (for-each (λ (x) (hash-set! defaults-ht x 'begin))
-            '(case-lambda case-lambda: pcase-lambda:
-               match-lambda match-lambda*
-               syntax-parser
-               cond
-               delay
-               unit compound-unit compound-unit/sig
-               public private override require
-               inherit sequence
-               ;; Explicitly indent these with- constructs using begin-like style
-               ;; for otherwise they will be captured by the regexp of lambda-like style
-               with-output-to-string with-output-to-bytes
-               with-module-reading-parameterization))
-  (for-each (λ (x) (hash-set! defaults-ht x 'lambda))
-            `(
-              cases
-                 instantiate super-instantiate
-               syntax/loc quasisyntax/loc
-               datum-case
-               match match* match-let match-let* match-letrec
-               
-               λ lambda let let* letrec recur
-               lambda/kw
-               letrec-values
-               with-syntax with-syntax*
-               with-continuation-mark
-               module module* module+
-               match match-let match-let* match-letrec
-               let/cc let/ec letcc catch
-               let-syntax letrec-syntax fluid-let-syntax letrec-syntaxes+values
-               
-               let: letrec: let*:
-               let-values: letrec-values: let*-values:
-               let/cc: let/ec:
-               lambda: λ:
-               plambda: opt-lambda: popt-lambda:
-
-               splicing-let splicing-letrec splicing-let-values
-               splicing-letrec-values splicing-let-syntax
-               splicing-letrec-syntax splicing-let-syntaxes
-               splicing-letrec-syntaxes splicing-letrec-syntaxes+values
-               splicing-local splicing-parameterize splicing-syntax-parameterize
-
-               do:
-               
-               kernel-syntax-case
-               syntax-case syntax-case* syntax-rules syntax-id-rules
-               syntax-parse
-               let-signature fluid-let
-               let-struct let-macro let-values let*-values
-               case when unless 
-               let-enumerate
-               class class* class-asi class-asi* class*/names
-               class100 class100* class100-asi class100-asi* class100*/names
-               rec
-               make-object mixin
-               define-some do opt-lambda
-               send* with-method
-               define-record
-               catch shared
-               unit/sig unit/lang
-               with-handlers
-               interface
-               parameterize parameterize* syntax-parameterize
-               call-with-input-file call-with-input-file* with-input-from-file
-               with-input-from-string
-               with-input-from-port call-with-output-file
-               with-output-to-file with-output-to-port 
-
-	       for-all
-
-               big-bang
-               
-               type-case))
+(let ([defaults-ht (car racket-tabify-default-table)])
   (preferences:set-default 
    'framework:tabify
-   (list defaults-ht #rx"^begin" #rx"^def" #rx"^(for\\*?(/|$)|with-)" #f)
+   racket-tabify-default-table
    (list/c (hash/c symbol? (or/c 'for/fold 'define 'begin 'lambda) #:flat? #t)
            (or/c #f regexp?) (or/c #f regexp?) (or/c #f regexp?) (or/c #f regexp?)))
   

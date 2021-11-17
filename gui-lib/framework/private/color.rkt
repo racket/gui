@@ -14,6 +14,7 @@ added get-regions
          syntax-color/paren-tree
          syntax-color/default-lexer
          syntax-color/lexer-contract
+         syntax-color/color-textoid
          string-constants
          "../preferences.rkt"
          "sig.rkt"
@@ -65,7 +66,7 @@ added get-regions
       attribs))
 
 (define -text<%>
-  (interface (text:basic<%>)
+  (interface (text:basic<%> color-textoid<%>)
     start-colorer
     stop-colorer
     force-stop-colorer
@@ -83,15 +84,19 @@ added get-regions
     on-lexer-valid
 
     get-matching-paren-string
-    
-    skip-whitespace
-    backward-match
-    backward-containing-sexp
-    forward-match
+
+    ;; Thse are in color-textoid<%>:
+    ;;  skip-whitespace
+    ;;  backward-match
+    ;;  backward-containing-sexp
+    ;;  forward-match
+    ;;  classify-position
+    ;;  classify-position*
+    ;;  get-token-range
+    ;;  get-backward-navigation-limit
+
     insert-close-paren
-    classify-position
-    get-token-range
-    
+
     set-spell-check-strings
     get-spell-check-strings
     set-spell-check-text
@@ -958,6 +963,8 @@ added get-regions
         (cond
           ((or (eq? x 'open) (eq? x 'beginning)) #f)
           (else x))))
+
+    (define/public (get-backward-navigation-limit pos) 0)
     
     (define/private (internal-backward-match position cutoff)
       (when stopped?

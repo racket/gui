@@ -1,9 +1,10 @@
 #lang scribble/doc
 @(require scribble/manual scribble/extract)
-@(require (for-label framework scheme/gui syntax-color/lexer-contract syntax-color/racket-lexer))
+@(require (for-label framework scheme/gui syntax-color/lexer-contract syntax-color/racket-lexer
+                     syntax-color/color-textoid))
 @title{Color}
 
-@definterface[color:text<%> (text:basic<%>)]{
+@definterface[color:text<%> (text:basic<%> [#:no-inherit color-textoid<%>])]{
   This interface describes how coloring is stopped and started for text
   that knows how to color itself.  It also describes how to query the
   lexical and s-expression structure of the text.
@@ -455,6 +456,13 @@
 
     This method must be called only when the tokenizer is started.
   }
+
+  @defmethod[(get-backward-navigation-limit (start exact-integer?))
+             exact-integer?]{
+    Returns a limit for backward-matching parenthesis starting at position
+    @racket[start].
+
+   @history[#:added "1.65"]}
 
   @defmethod[#:mode pubment (on-lexer-valid [valid? boolean?]) any]{
     This method is an observer for when the lexer is working.  It is called

@@ -6,7 +6,7 @@
                "data-lib"
                ["icons" #:version "1.3"]
                ["base" #:version "8.3.0.3"]
-               "syntax-color-lib"
+               ["syntax-color-lib" #:version "1.3"]
                ["draw-lib" #:version "1.18"]
                ["snip-lib" #:version "1.3"]
                "wxme-lib"
@@ -33,7 +33,7 @@
 
 (define pkg-authors '(mflatt robby))
 
-(define version "1.64")
+(define version "1.65")
 
 (define license
   '(Apache-2.0 OR MIT))

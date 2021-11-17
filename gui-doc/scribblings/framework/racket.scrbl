@@ -49,6 +49,11 @@
     @racket[start].
   }
 
+  @defmethod*[#:mode override
+              (((get-backward-navigation-limit (start exact-integer?)) exact-integer?))]{
+    Calls @method[racket:text<%> get-limit].
+  }
+
   @defmethod*[(((balance-parens (key-event (is-a?/c key-event%))) void?))]{
     This function is called when the user types a close parenthesis in the
     @racket[text%].  If the close parenthesis that the user inserted does not

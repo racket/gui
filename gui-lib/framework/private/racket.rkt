@@ -8,6 +8,8 @@
          racket/string
          mred/mred-sig
          syntax-color/module-lexer
+         syntax-color/racket-indentation
+         syntax-color/racket-navigation
          "collapsed-snipclass-helpers.rkt"
          "sig.rkt"
          "srcloc-panel.rkt"
@@ -507,6 +509,7 @@
            (+ i 1)])))
 
     (define/public (get-limit pos) 0)
+    (define/override (get-backward-navigation-limit pos) (get-limit pos))
 
     (define/public (balance-parens key-event [smart-skip #f])
       (insert-close-paren (get-start-position)
@@ -1004,21 +1007,7 @@
                   #t))))
 
     (define/public (get-forward-sexp start-pos)
-      ;; loop to work properly with quote, etc.
-      (let loop ([one-forward (forward-match start-pos (last-position))])
-        (cond
-          [(and one-forward (not (= 0 one-forward)))
-           (let ([bw (backward-match one-forward 0)])
-             (cond
-               [(and bw
-                     (stick-to-next-sexp? bw))
-                (let ([two-forward (forward-match one-forward (last-position))])
-                  (if two-forward
-                      (loop two-forward)
-                      one-forward))]
-               [else
-                one-forward]))]
-          [else one-forward])))
+      (racket-forward-sexp this start-pos))
 
     (define/public (remove-sexp start-pos)
       (let ([end-pos (get-forward-sexp start-pos)])
@@ -1039,23 +1028,7 @@
             (bell))
         #t))
     (define/public (get-backward-sexp start-pos)
-      (let* ([limit (get-limit start-pos)]
-             [end-pos (backward-match start-pos limit)]
-             [min-pos (backward-containing-sexp start-pos limit)])
-        (if (and end-pos
-                 (or (not min-pos)
-                     (end-pos . >= . min-pos)))
-            ;; Can go backward, but check for preceding quote, unquote, etc.
-            (let loop ([end-pos end-pos])
-              (let ([next-end-pos (backward-match end-pos limit)])
-                (if (and next-end-pos
-                         (or (not min-pos)
-                             (end-pos . >= . min-pos))
-                         (stick-to-next-sexp? next-end-pos))
-                    (loop next-end-pos)
-                    end-pos)))
-            ;; can't go backward at all:
-            #f)))
+      (racket-backward-sexp this start-pos))
     (define/public (flash-backward-sexp start-pos)
       (let ([end-pos (get-backward-sexp start-pos)])
         (if end-pos
@@ -1069,31 +1042,7 @@
             (bell))
         #t))
     (define/public (find-up-sexp start-pos)
-      (let* ([limit-pos (get-limit start-pos)]
-             [exp-pos
-              (backward-containing-sexp start-pos limit-pos)])
-
-        (if (and exp-pos (> exp-pos limit-pos))
-            (let* ([in-start-pos (skip-whitespace exp-pos 'backward #t)]
-                   [paren-pos
-                    (λ (paren-pair)
-                      (find-string
-                       (car paren-pair)
-                       'backward
-                       in-start-pos
-                       limit-pos))])
-              (let ([poss (let loop ([parens (racket-paren:get-paren-pairs)])
-                            (cond
-                              [(null? parens) null]
-                              [else
-                               (let ([pos (paren-pos (car parens))])
-                                 (if pos
-                                     (cons pos (loop (cdr parens)))
-                                     (loop (cdr parens))))]))])
-                (if (null? poss) ;; all finds failed
-                    #f
-                    (- (apply max poss) 1)))) ;; subtract one to move outside the paren
-            #f)))
+      (racket-up-sexp this start-pos))
     (define/public (up-sexp start-pos)
       (let ([exp-pos (find-up-sexp start-pos)])
         (if exp-pos
@@ -1101,16 +1050,7 @@
             (bell))
         #t))
     (define/public (find-down-sexp start-pos)
-      (let loop ([pos start-pos])
-        (let ([next-pos (get-forward-sexp pos)])
-          (if (and next-pos (> next-pos pos))
-              (let ([back-pos
-                     (backward-containing-sexp (sub1 next-pos) pos)])
-                (if (and back-pos
-                         (> back-pos pos))
-                    back-pos
-                    (loop next-pos)))
-              #f))))
+      (racket-down-sexp this start-pos))
     (define/public (down-sexp start-pos)
       (let ([pos (find-down-sexp start-pos)])
         (if pos
@@ -1421,22 +1361,7 @@
 ;; get-head-sexp-type-from-prefs : string (list ht regexp regexp regexp)
 ;;                              -> (or/c #f 'lambda 'define 'begin 'for/fold)
 (define (get-head-sexp-type-from-prefs text pref)
-  (define ht (car pref))
-  (define beg-reg (list-ref pref 1))
-  (define def-reg (list-ref pref 2))
-  (define lam-reg (list-ref pref 3))
-  (define for/fold-reg (list-ref pref 4))
-  (hash-ref
-   ht
-   (with-handlers ((exn:fail:read? (λ (x) #f)))
-     (read (open-input-string text)))
-   (λ ()
-     (cond
-       [(and beg-reg (regexp-match? beg-reg text)) 'begin]
-       [(and def-reg (regexp-match? def-reg text)) 'define]
-       [(and lam-reg (regexp-match? lam-reg text)) 'lambda]
-       [(and for/fold-reg (regexp-match? for/fold-reg text)) 'for/fold]
-       [else #f]))))
+  ((racket-tabify-table->head-sexp-type pref) text))
 
 
 ;; in-position? : text (list symbol) -> boolean

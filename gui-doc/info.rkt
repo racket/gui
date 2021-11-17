@@ -7,10 +7,10 @@
                      "at-exp-lib"
                      "draw-doc"
                      "draw-lib"
-                     "scribble-lib"
+                     ["scribble-lib" #:version "1.42"]
                      "snip-lib"
                      "string-constants-lib"
-                     "syntax-color-lib"
+                     ["syntax-color-lib" #:version "1.3"]
                      "wxme-lib"
                      "gui-lib"
                      "pict-lib"

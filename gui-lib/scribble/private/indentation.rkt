@@ -3,7 +3,8 @@
          racket/gui/base
          racket/contract
          string-constants
-         framework)
+         framework
+         syntax-color/racket-navigation)
 
 (provide determine-spaces paragraph-indentation keystrokes)
 
@@ -576,15 +577,8 @@
         (send text insert (make-string amount #\space) posi))))
   #t)
 
-;; similar to the one in `racket:text%`:
 (define (find-up-sexp t start-pos)
-  (define exp-pos (send t backward-containing-sexp start-pos 0))
-  (cond
-    [exp-pos
-     (define in-start-pos (send t skip-whitespace exp-pos 'backward #t))
-     (define-values (s e) (send t get-token-range (sub1 in-start-pos)))
-     s]
-    [else #f]))
+  (racket-up-sexp t start-pos))
 
 (define/contract (insert-them t . strs)
   (->* ((is-a?/c text%)) #:rest (*list/c (and/c string? #rx"\n$") string?) void?)
@@ -1079,8 +1073,8 @@
                 (string-append
                  "#lang scribble/base\n"
                  "\n"
-                 "jflkda fkfjdkla f fjdklsa @figure-ref{\n"
-                 " looping-constructs-sample}.\n"))
+                 "jflkda fkfjdkla f fjdklsa @figure-ref{" ; used to allow a line break here
+                 "looping-constructs-sample}.\n"))
 
   (check-equal? (let ([t (new racket:text%)])
                   (send t insert "#lang scribble/base\n\ntest1\n     test2\n\t\ttest3\n")
@@ -1227,4 +1221,6 @@
     (send t set-position (string-length before-newline) (string-length before-newline))
     (reindent-paragraph t 'whatever-not-an-evt)
     (check-equal? (send t get-text)
-                  (string-append before-newline "\n " after-newline))))
+                  ;; the "" here used to be "\n ", but that kind of breaking
+                  ;; is now disallowed:
+                  (string-append before-newline "" after-newline))))
