@@ -330,7 +330,11 @@
 (define (exiting-run-loop x y z)
   (when sleeping?
     (if already-exited?
-        (unsafe-signal-received)
+        (begin
+          ;; should get out of the event loop:
+          (post-dummy-event)
+          ;; for good measure, alow let the scheduler know:
+          (unsafe-signal-received))
         (set! already-exited? #t))))
 (let ([o (CFRunLoopObserverCreate #f kCFRunLoopExit #t 0 exiting-run-loop #f)])
   (CFRunLoopAddObserver (CFRunLoopGetMain) o kCFRunLoopCommonModes))
