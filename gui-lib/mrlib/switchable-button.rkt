@@ -85,7 +85,7 @@
           (make-dull-mask alternate-bitmap)))
 
     (inherit get-dc min-width min-height get-client-size refresh
-	     client->screen)
+	     client->screen get-top-level-window)
 
     (define down? #f)
     (define in? #f)
@@ -173,6 +173,7 @@
                 (unless float-window
                   (set! float-window (new frame%
                                           [label ""]
+                                          [parent (get-top-level-window)]
                                           [style '(no-caption no-resize-border float)]
                                           [stretchable-width #f]
                                           [stretchable-height #f]))

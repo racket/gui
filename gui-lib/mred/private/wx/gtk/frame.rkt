@@ -27,7 +27,8 @@
 	      display-count
               display-bitmap-resolution
               location->window
-              get-current-mouse-state))
+              get-current-mouse-state
+              gtk_window_set_transient_for))
 
 ;; ----------------------------------------
 
@@ -97,6 +98,8 @@
 
 (define-gtk gtk_layout_new (_fun (_pointer = #f) (_pointer = #f) -> _GtkWidget))
 (define-gtk gtk_layout_put (_fun _GtkWidget _GtkWidget _int _int -> _void))
+
+(define-gtk gtk_window_set_transient_for (_fun _GtkWidget _GtkWidget -> _void))
 
 (define-signal-handler connect-delete "delete-event"
   (_fun _GtkWidget -> _gboolean)
@@ -184,6 +187,9 @@
                  (gtk_window_new (if floating?
 				     GTK_WINDOW_POPUP
 				     GTK_WINDOW_TOPLEVEL))))
+    (when (and parent wayland?)
+      (gtk_window_set_transient_for gtk (send parent get-gtk)))
+
     (when (memq 'no-caption style)
       (gtk_window_set_decorated gtk #f))
     (when floating?

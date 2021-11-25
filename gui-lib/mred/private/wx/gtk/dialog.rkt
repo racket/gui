@@ -18,7 +18,6 @@
 (define GDK_WINDOW_TYPE_HINT_DIALOG 1)
 
 (define-gtk gtk_window_set_position (_fun _GtkWidget _int -> _void))
-(define-gtk gtk_window_set_transient_for (_fun _GtkWidget _GtkWidget -> _void))
 (define-gtk gtk_window_set_type_hint (_fun _GtkWidget _int -> _void))
 
 (define dialog% 
