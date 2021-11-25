@@ -32,7 +32,7 @@ title bar.  If the dialog's label is changed (see
 @method[window<%> set-label]), the title bar is updated.
 
 The @racket[parent] argument can be @racket[#f] or an existing
- frame. On Windows, if @racket[parent] is an existing frame, the
+ frame or dialog. On Windows, if @racket[parent] is not @racket[#f], the
  new dialog is always on top of its parent. On Windows and Unix, a
  dialog is iconized when its parent is iconized.
 

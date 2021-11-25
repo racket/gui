@@ -23,8 +23,7 @@
          get-top-level-focus-window
          get-top-level-edit-target-window
          send-message-to-window
-         (protect-out check-top-level-parent/false
-                      check-frame-parent/false))
+         (protect-out check-top-level-parent/false))
 
 (define top-level-window<%>
   (interface (area-container-window<%>)
@@ -165,7 +164,7 @@
              do-create-status-line do-set-status-text)
     (let ([cwho '(constructor frame)])
       (check-label-string cwho label)
-      (check-frame-parent/false cwho parent)
+      (check-top-level-parent/false cwho parent)
       (check-init-dimension cwho width)
       (check-init-dimension cwho height)
       (check-init-position cwho x)
@@ -335,10 +334,6 @@
 (define (check-top-level-parent/false who p)
   (unless (or (not p) (is-a? p frame%) (is-a? p dialog%))
     (raise-argument-error (who->name who) "(or/c (is-a?/c frame%) (is-a?/c dialog%) #f)" p)))
-
-(define (check-frame-parent/false who p)
-  (unless (or (not p) (is-a? p frame%))
-    (raise-argument-error (who->name who) "(or/c (is-a?/c frame%) #f)" p)))
 
 (define root-menu-frame
   (and (current-eventspace-has-menu-root?)

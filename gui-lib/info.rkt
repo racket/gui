@@ -33,7 +33,7 @@
 
 (define pkg-authors '(mflatt robby))
 
-(define version "1.65")
+(define version "1.66")
 
 (define license
   '(Apache-2.0 OR MIT))

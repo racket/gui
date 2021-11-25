@@ -8,7 +8,7 @@ A frame is a top-level container window. It has a title bar (which
  status line.
 
 @defconstructor[([label label-string?]
-                 [parent (or/c (is-a?/c frame%) #f) #f]
+                 [parent (or/c (is-a?/c frame%) (is-a?/c dialog) #f) #f]
                  [width (or/c dimension-integer? #f) #f]
                  [height (or/c dimension-integer? #f) #f]
                  [x (or/c position-integer? #f) #f]
@@ -34,7 +34,7 @@ bar. If the frame's label is changed (see @method[window<%>
 set-label]), the title bar is updated.
 
 The @racket[parent] argument can be @racket[#f] or an existing
-frame. On Windows, if @racket[parent] is an existing frame,
+frame or dialog. On Windows, if @racket[parent] is not @racket[#f],
 the new frame is always on top of its parent.
 On Windows and Unix (for many window managers), a
 frame is iconized when its parent is iconized.
@@ -102,9 +102,11 @@ Even if the frame is not shown, a few notification events may be
 
 @WindowKWs[@racket[enabled]] @AreaContKWs[] @AreaKWs[]
 
-@history[#:changed "6.0.0.6" @elem{Added @racket['fullscreen-button]
-                                   and @racket['fullscreen-aux] options 
-                                   for @racket[style].}]
+@history[#:changed "1.1" @elem{Added @racket['fullscreen-button]
+                               and @racket['fullscreen-aux] options 
+                               for @racket[style].}
+        #:changed "1.66" @elem{Allow a @racket[dialog%] instance
+                               as @racket[parent].}]
 
 }
 
