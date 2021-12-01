@@ -576,8 +576,9 @@ the state transitions / contracts are:
      (make-recent-items-slider editor-panel)
      (add-check editor-panel
                 'framework:autosaving-on? 
-                (string-constant auto-save-files))
-     (add-check editor-panel 'framework:backup-files? (string-constant backup-files))
+                (string-constant backup-unsaved-files))
+     (add-check editor-panel 'framework:backup-files? (string-constant first-change-files))
+
      (define auto-load-rb
        (new radio-box%
             [label (string-constant autoload-automatically-reload)]
