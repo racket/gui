@@ -169,7 +169,7 @@
                                  poll-fd-count)])
     (let ([to (ptr-ref timeout _int)])
       (when (to . >= . 0)
-        (unsafe-poll-ctx-milliseconds-wakeup fds (+ (current-inexact-milliseconds) to))))
+        (unsafe-poll-ctx-milliseconds-wakeup fds (+ (current-inexact-monotonic-milliseconds) to))))
     (if (n . > . poll-fd-count)
         (begin
           (set! poll-fds (malloc _GPollFD n))
