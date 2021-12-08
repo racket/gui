@@ -867,11 +867,14 @@
     (define/public (get-client-handle) (get-container-gtk))
 
     (define/public (popup-menu m x y)
-      (let ([gx (box x)]
-            [gy (box y)])
-        (client-to-screen gx gy)
-        (send m popup (unbox gx) (unbox gy)
-              (lambda (thunk) (queue-window-event this thunk)))))
+      (if wayland?
+          (send m popup x y (get-gtk)
+                (lambda (thunk) (queue-window-event this thunk)))
+          (let ([gx (box x)]
+                [gy (box y)])
+            (client-to-screen gx gy)
+            (send m popup (unbox gx) (unbox gy) #f
+                  (lambda (thunk) (queue-window-event this thunk))))))
 
     (define/public (center a b) (void))
     (define/public (refresh) (refresh-all-children))
