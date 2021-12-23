@@ -395,7 +395,8 @@ added get-regions
                                     (dont-stop-val new-lexer-mode/cont)
                                     new-lexer-mode/cont))
          (define next-ok-to-stop? (not (dont-stop? new-lexer-mode/cont)))
-         (check-colorer-results-match-port-before-and-afters
+         (check-colorer-results-match-port-before-and-after
+          'color:text<%>
           (attribs->type attribs) pos-before new-token-start new-token-end pos-after)
          (cond
            [(eq? 'eof attribs) 
