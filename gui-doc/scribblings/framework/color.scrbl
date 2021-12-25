@@ -20,8 +20,7 @@
                                                  (not/c dont-stop?)
                                                  (values any/c 
                                                          (or/c symbol?
-                                                               (and/c (hash/c symbol? any/c)
-                                                                      immutable?))
+                                                               (hash/c symbol? any/c #:immutable #t))
                                                          (or/c symbol? #f)
                                                          (or/c exact-positive-integer? #f)
                                                          (or/c exact-positive-integer? #f)
