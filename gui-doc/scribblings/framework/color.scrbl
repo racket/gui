@@ -11,7 +11,8 @@
   @defmethod[(start-colorer (token-sym->style (-> symbol? string?)) 
                             (get-token (or/c (-> input-port? 
                                                  (values any/c 
-                                                         symbol? 
+                                                         (or/c symbol?
+                                                               (hash/c symbol? any/c #:immutable #t))
                                                          (or/c symbol? #f)
                                                          (or/c exact-positive-integer? #f)
                                                          (or/c exact-positive-integer? #f)))
