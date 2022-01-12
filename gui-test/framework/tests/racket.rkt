@@ -186,7 +186,14 @@
   (check-equal? (test-indentation "(a b c d\n---)")
                 "(a b c d\n ---)")
   (check-equal? (test-indentation "[---- \"β\"\na")
-                "[---- \"β\"\n a"))
+                "[---- \"β\"\n a")
+
+  (check-equal? (test-indentation "\"\n            a\"")
+                "\"\n            a\"")
+  (check-equal? (test-indentation "\"\n a\"")
+                "\"\n a\"")
+  (check-equal? (test-indentation "\"\na\"")
+                "\"\na\""))
 
 
 (define (run-magic-square-bracket before)
