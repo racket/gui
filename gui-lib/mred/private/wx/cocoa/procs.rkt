@@ -178,12 +178,11 @@
 ;; Text & highlight color
 
 (import-class NSColor)
-
-(define-cocoa NSDeviceRGBColorSpace _id)
+(import-class NSColorSpace)
 
 (define (get-color get)
   (let ([hi (as-objc-allocation-with-retain
-             (tell (get) colorUsingColorSpaceName: NSDeviceRGBColorSpace))]
+             (tell (get) colorUsingColorSpace: (tell NSColorSpace deviceRGBColorSpace)))]
         [as-color (lambda (v)
                     (inexact->exact (floor (* 255.0 v))))])
     (begin0
