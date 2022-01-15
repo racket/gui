@@ -24,7 +24,8 @@
          "tab-panel.rkt"
          "window.rkt"
          "key.rkt"
-         "procs.rkt")
+         "procs.rkt"
+         (only-in "../common/default-procs.rkt" luminance))
 (provide (protect-out platform-values))
 
 (define (platform-values)
@@ -68,6 +69,7 @@
    flush-display
    get-current-mouse-state
    fill-private-color
+   white-on-black-panel-scheme?
    cancel-quit
    get-control-font-face
    get-control-font-size
@@ -97,4 +99,12 @@
    check-for-break
    key-symbol-to-menu-key
    needs-grow-box-spacer?
-   graphical-system-type))
+   graphical-system-type
+   white-on-black-panel-scheme?))
+
+(define (white-on-black-panel-scheme?)
+  ;; if the background and foreground are the same
+  ;; color, probably something has gone wrong;
+  ;; in that case we want to return #f.
+  (< (luminance (get-label-background-color))
+     (luminance (get-label-foreground-color))))

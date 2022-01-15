@@ -85,5 +85,6 @@
                 check-for-break
                 key-symbol-to-menu-key
                 needs-grow-box-spacer?
-                graphical-system-type)
+                graphical-system-type
+                white-on-black-panel-scheme?)
   ((dynamic-require platform-lib 'platform-values)))

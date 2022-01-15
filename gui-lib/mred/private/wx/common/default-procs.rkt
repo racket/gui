@@ -6,7 +6,8 @@
          any-control+alt-is-altgr
          file-creator-and-type
          get-panel-background
-         fill-private-color)
+         fill-private-color
+         luminance)
 
 (define special-control-key? #f)
 (define special-control-key
@@ -37,3 +38,12 @@
 (define (fill-private-color dc col)
   (send dc set-background col)
   (send dc clear))
+
+(define (luminance c)
+  ;; from https://en.wikipedia.org/wiki/Relative_luminance
+  (define r (/ (send c red) 255))
+  (define g (/ (send c green) 255))
+  (define b (/ (send c blue) 255))
+  (+ (* .2126 r)
+     (* .7152 g)
+     (* .0722 b)))

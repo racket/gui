@@ -20,6 +20,7 @@
          "sound.rkt"
          "keycode.rkt"
          "font.rkt"
+         "queue.rkt"
          "../../lock.rkt"
          "../common/handlers.rkt"
          (except-in "../common/default-procs.rkt"
@@ -71,7 +72,8 @@
  key-symbol-to-menu-key
  needs-grow-box-spacer?
  get-current-mouse-state
- graphical-system-type)
+ graphical-system-type
+ white-on-black-panel-scheme?)
 
 (import-class NSScreen NSCursor NSMenu NSEvent)
 
@@ -210,6 +212,34 @@
                    (tell NSColor windowBackgroundColor)
                    ;; Seems like accurate than other option for Mojave:
                    (tell NSColor controlBackgroundColor)))))
+
+(define-appkit NSAppearanceNameAqua _id #:fail (λ () #f))
+(define-appkit NSAppearanceNameDarkAqua _id #:fail (λ () #f))
+(import-class NSArray)
+
+(define (white-on-black-panel-scheme?)
+  (cond
+    [(version-10.14-or-later?)
+     (equal?
+      NSAppearanceNameDarkAqua
+      (atomically
+       (tell (tell app effectiveAppearance)
+             bestMatchFromAppearancesWithNames:
+             (tell NSArray
+                   arrayWithObjects:
+                   #:type
+                   (_list i _id)
+                   (list NSAppearanceNameAqua
+                         NSAppearanceNameDarkAqua)
+                   count:
+                   #:type _NSUInteger
+                   2))))]
+    [else
+     ;; if the background and foreground are the same
+     ;; color, probably something has gone wrong;
+     ;; in that case we want to return #f.
+     (< (luminance (get-label-background-color))
+        (luminance (get-label-foreground-color)))]))
 
 (define (get-highlight-text-color)
   #f)
