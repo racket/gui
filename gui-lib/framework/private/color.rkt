@@ -78,7 +78,6 @@ added get-regions
     
     reset-region
     reset-regions
-    get-regions
     
     is-lexer-valid?
     on-lexer-valid
@@ -94,6 +93,7 @@ added get-regions
     ;;  classify-position*
     ;;  get-token-range
     ;;  get-backward-navigation-limit
+    ;;  get-regions
 
     insert-close-paren
 
