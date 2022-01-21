@@ -349,6 +349,35 @@
             (cons (bytes->path (car x)) (cdr x)))
           l))))
 
+(preferences:set-default 'framework:recently-closed-tabs 
+                         null 
+                         (λ (x) (and (list? x) 
+                                     (andmap
+                                      (λ (x) 
+                                        (and (list? x)
+                                             (= 3 (length x))
+                                             (path? (car x))
+                                             (number? (cadr x))
+                                             (number? (caddr x))))
+                                      x))))
+
+(preferences:set-un/marshall
+ 'framework:recently-closed-tabs
+ (λ (l) (map (λ (ele) (cons (path->bytes (car ele)) (cdr ele))) l))
+ (λ (l) 
+   (let/ec k
+     (unless (list? l)
+       (k '()))
+     (map (λ (x)
+            (unless (and (list? x)
+                         (= 3 (length x))
+                         (bytes? (car x))
+                         (number? (cadr x))
+                         (number? (caddr x)))
+              (k '()))
+            (cons (bytes->path (car x)) (cdr x)))
+          l))))
+
 (preferences:set-default 'framework:last-directory 
                          (find-system-path 'doc-dir) 
                          (λ (x) (or (not x) path-string?)))
