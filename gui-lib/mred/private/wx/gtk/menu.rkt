@@ -140,7 +140,8 @@
       => (lambda (win)
            (gtk_menu_popup_at_rect gtk win
                                    (make-GdkRectangle x y 1 1)
-                                   1 1 #f))]
+                                   1 1
+                                   (synthesize-click-event win x y recent-event-time)))]
      [else
       (gtk_menu_popup gtk
                       #f
@@ -328,3 +329,20 @@
               (cdr items)]
              [else (cons (car items)
                          (loop (cdr items)))])))))
+
+;; ----------------------------------------
+
+(define (synthesize-click-event win x y recent-time)
+  (and wayland?
+       (make-GdkEventButton GDK_BUTTON_PRESS
+			    win
+			    1 ; send_event
+			    recent-time
+			    (exact->inexact x)
+			    (exact->inexact y)
+			    #f
+			    0 ; state
+			    1 ; button
+			    #f ; device
+			    (exact->inexact x)
+			    (exact->inexact y))))
