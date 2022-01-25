@@ -72,7 +72,7 @@
                                  [axes _pointer] ; array of _double
                                  [state _uint]
                                  [button _uint]
-                                 [device _GdkDevice]
+                                 [device (_or-null _GdkDevice)]
                                  [x_root _double]
                                  [y_root _double]))
 
