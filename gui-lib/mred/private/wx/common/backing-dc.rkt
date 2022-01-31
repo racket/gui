@@ -77,13 +77,14 @@
 
     ;; called with a procedure that is applied to a bitmap;
     ;;  returns #f if there's nothing to flush
-    (define/public (on-backing-flush proc)
+    (define/public (on-backing-flush proc [nothing-to-draw-proc void])
       (cond
        [(not retained-cr) #f]
        [(positive? retained-counter) 
-        (unless nada?
-          (proc (or (get-recorded-command)
-                    (internal-get-bitmap))))
+        (if nada?
+	    (nothing-to-draw-proc)
+            (proc (or (get-recorded-command)
+                      (internal-get-bitmap))))
         #t]
        [else 
         (reset-backing-retained proc)

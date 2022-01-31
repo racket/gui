@@ -29,6 +29,9 @@
 (define-gdi32 BitBlt (_wfun _pointer _int _int _int _int _pointer _int _int _DWORD -> _BOOL))
 (define SRCCOPY #X00cc0020)
 
+(define-user32 FillRect (_wfun _HDC _RECT-pointer _HBRUSH -> (r : _int)
+                               -> (when (zero? r) (failed 'FillRect))))
+
 (define hwnd-param (make-parameter #f))
 
 (define need-clip-text-workaround? #t)
@@ -122,7 +125,7 @@
     (define/override (cancel-delay req)
       (cancel-flush-delay req))))
 
-(define (do-backing-flush canvas dc hdc)
+(define (do-backing-flush canvas dc hdc clear-hbrush)
   (send dc on-backing-flush
         (lambda (bm)
           (let ([w (box 0)]
@@ -131,6 +134,8 @@
 	    (define sw (->screen (unbox w)))
 	    (define sh (->screen (unbox h)))
 	    (define r (make-RECT 0 0 sw sh))
+	    (when clear-hbrush
+	      (FillRect hdc r clear-hbrush))
 	    (define clip-type
 	      (if need-clip-refresh-workaround?
 		  (GetClipBox hdc r)
@@ -170,7 +175,13 @@
 		(backing-draw-bm bm cr (->normal sw) (->normal sh)
 				 0 0
 				 (->screen 1.0))
-		(cairo_destroy cr))])))))
+		(cairo_destroy cr))])))
+	(if clear-hbrush
+	    (lambda ()
+	      (define r (make-RECT 0 0 0 0))
+	      (GetClipBox hdc r)
+	      (FillRect hdc r clear-hbrush))
+	    void)))
 
 (define (request-flush-delay canvas)
   (do-request-flush-delay 

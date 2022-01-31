@@ -53,11 +53,6 @@
 
 (define CB_SHOWDROPDOWN #x014F)
 
-;; Since the Win32 layer doesn't buffer windows, and since
-;; panels always have the same color, we don't actually
-;; use transparent mode
-(define transparent? #f)
-
 (define-cstruct _SCROLLINFO
   ([cbSize _UINT]
    [fMask _UINT]
@@ -105,6 +100,8 @@
      (define vscroll? (or (memq 'vscroll style)
                           (memq 'auto-vscroll style)))
      (define for-gl? (memq 'gl style))
+     (define no-autoclear? (memq 'no-autoclear style))
+     (define transparent? (memq 'transparent style))
 
      (define panel-hwnd
        (and (memq 'combo style)
@@ -200,17 +197,16 @@
                             (lambda ()
                               (let* ([hbrush (if no-autoclear?
                                                  #f
-                                                 (if transparent-ish?
+                                                 (if transparent?
                                                      background-hbrush
                                                      (CreateSolidBrush bg-colorref)))])
                                 (when hbrush
                                   (let ([r (GetClientRect canvas-hwnd)])
                                     (FillRect hdc r hbrush))
-                                  (unless transparent-ish?
+                                  (unless transparent?
                                     (DeleteObject hbrush)))))])
-                       (when transparent? (erase))
                        (unless (do-canvas-backing-flush hdc)
-                         (unless transparent? (erase))
+                         (erase)
                          (queue-paint)))))
              (EndPaint w ps)))
          0]
@@ -346,14 +342,15 @@
      (define/public (schedule-periodic-backing-flush)
        (void))
      (define/public (do-canvas-backing-flush hdc)
+       (define clear-hbrush (and transparent? background-hbrush))
        (if hdc
-           (do-backing-flush this dc hdc)
+           (do-backing-flush this dc hdc clear-hbrush)
            (if (positive? paint-suspended)
                ;; suspended => try again later
                (schedule-periodic-backing-flush)
                ;; not suspended
                (let ([hdc (GetDC canvas-hwnd)])
-                 (do-backing-flush this dc hdc)
+                 (do-backing-flush this dc hdc clear-hbrush)
                  (ReleaseDC canvas-hwnd hdc)
                  ;; We'd like to validate the region that
                  ;; we just updated, so we can potentially
@@ -384,14 +381,12 @@
             (set! suspended-refresh? #f)
             (InvalidateRect canvas-hwnd #f #f)))))
 
-     (define no-autoclear? (memq 'no-autoclear style))
-     (define transparent-ish? (memq 'transparent style))
      (define bg-col (make-object color% "white"))
      (define bg-colorref #xFFFFFF)
-     (define/public (get-canvas-background) (if transparent-ish?
+     (define/public (get-canvas-background) (if transparent?
                                                 #f
                                                 bg-col))
-     (define/public (get-canvas-background-for-backing) (if transparent-ish?
+     (define/public (get-canvas-background-for-backing) (if transparent?
 							    background-hbrush-color
 							    (and (not no-autoclear?)
 								 bg-col)))
