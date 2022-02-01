@@ -327,7 +327,7 @@ The @racket[style] list must contain exactly one of @racket['default=1],
 
 In addition, @racket[style] can contain @racket['caution],
  @racket['stop], or @racket['no-icon] to adjust the icon that appears
- n the dialog, the same for @racket[message-box].
+ in the dialog, the same for @racket[message-box].
 
 If @racket[return-the-dialog?] is a true value, then the dialog
  is not shown and is instead returned from @racket[message-box/custom].
