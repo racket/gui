@@ -3,6 +3,7 @@
          racket/draw/private/dc
          racket/draw/private/bitmap-dc
          racket/draw/private/bitmap
+         racket/draw/private/color
          racket/draw/private/local
          racket/draw/private/record-dc
          racket/draw/unsafe/cairo
@@ -39,6 +40,8 @@
   cancel-delay
   end-delay)
 
+(define black-color (send the-color-database find-color "black"))
+
 (define backing-dc%
   (class (record-dc-mixin (dc-mixin bitmap-dc-backend%))
     (init transparent?)
@@ -63,6 +66,14 @@
     (set-recording-limit (if transparent? 1024 -1))
 
     (define/override (ok?) #t)
+
+    (define/override (draw-bitmap src dest-x dest-y [style 'solid] [color black-color] [mask #f])
+      (when (and (src . is-a? . bitmap%)
+                 ((* (send src get-width) (send src get-height))
+                  . > . (* 32 32)))
+        ;; disable recording
+        (set-recording-limit -1))
+      (super draw-bitmap src dest-x dest-y style color mask))
 
     ;; Override this method to get the right size
     (define/public (get-backing-size xb yb)
