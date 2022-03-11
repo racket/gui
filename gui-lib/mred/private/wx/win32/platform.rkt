@@ -69,7 +69,6 @@
    flush-display
    get-current-mouse-state
    fill-private-color
-   white-on-black-panel-scheme?
    cancel-quit
    get-control-font-face
    get-control-font-size
