@@ -664,9 +664,10 @@
                     (send text insert replacement)
                     (send text end-edit-sequence))))))]
          
+         [roman-letters "abgdezhji klmnxopr stufqyw"]
          [greek-letters "αβγδεζηθι κλμνξοπρςστυφχψω"]
          [Greek-letters "ΑΒΓΔΕΖΗΘΙ ΚΛΜΝΞΟΠΡ ΣΤΥΦΧΨΩ"]
-         ;; don't have a capital ς, just comes out as \u03A2 (or junk) 
+         ;; ς is Σ in word-final position, so it has no capital ("just comes out as \u03A2 (or junk)")
          
          
          [find-beginning-of-line
@@ -827,11 +828,10 @@
                (λ (greek-chars shift?)
                  (let loop ([i 0])
                    (when (< i (string-length greek-chars))
-                     (let ([greek-char (string-ref greek-chars i)])
-                       (unless (equal? greek-char #\space)
-                         (let ([roman-char
-                                (integer->char
-                                 (+ (char->integer #\a) i))])
+                     (let ([greek-char (string-ref greek-chars i)]
+                           [roman-char (string-ref roman-letters i)])
+                       (unless (or (equal? greek-char #\space)
+                                   (equal? roman-char #\space))
                            (map (format "a:g;~a~a" 
                                         (if shift? "s:" "")
                                         roman-char)
@@ -843,7 +843,7 @@
                            (map (format "c:x;c:g;~a~a"
                                         (if shift? "s:" "")
                                         roman-char)
-                                (format "insert ~a" greek-char)))))
+                                (format "insert ~a" greek-char))))
                      (loop (+ i 1)))))])
           (setup-mappings greek-letters #f)
           (setup-mappings Greek-letters #t))
