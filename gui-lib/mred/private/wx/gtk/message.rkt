@@ -27,7 +27,7 @@
 (define-gtk gtk_label_new (_fun _string -> _GtkWidget))
 (define-gtk gtk_label_set_text_with_mnemonic (_fun _GtkWidget _string -> _void))
 (define-gtk gtk_label_set_attributes (_fun _GtkWidget _pointer -> _void))
-(define-gtk gtk_image_new_from_stock (_fun _string _int -> _GtkWidget))
+(define-gtk gtk_image_new_from_icon_name (_fun _string _int -> _GtkWidget))
 (define-gtk gtk_misc_set_alignment (_fun _GtkWidget _float _float -> _void))
 (define-gtk gtk_image_set_from_pixbuf (_fun _GtkWidget _GdkPixbuf -> _void))
 
@@ -76,9 +76,9 @@
                     [(symbol? label)
                      (as-gtk-allocation
                       (case label
-                        [(caution) (gtk_image_new_from_stock "gtk-dialog-warning" icon-size)]
-                        [(stop) (gtk_image_new_from_stock "gtk-dialog-error" icon-size)]
-                        [else (gtk_image_new_from_stock "gtk-dialog-question" icon-size)]))]
+                        [(caution) (gtk_image_new_from_icon_name "dialog-warning" icon-size)]
+                        [(stop) (gtk_image_new_from_icon_name "dialog-error" icon-size)]
+                        [else (gtk_image_new_from_icon_name "dialog-question" icon-size)]))]
                     [else
                      (define pixbuf (bitmap->pixbuf label (->screen 1.0)))
                      (begin0
