@@ -25,6 +25,7 @@
                ("gui-aarch64-macosx" #:platform "aarch64-macosx")
                ("gui-win32-i386" #:platform "win32\\i386")
                ("gui-win32-x86_64" #:platform "win32\\x86_64")
+               ("gui-win32-arm64" #:platform "win32\\arm64")
                ("gui-x86_64-linux-natipkg" #:platform "x86_64-linux-natipkg")))
 (define build-deps '("at-exp-lib"
                      "rackunit-lib"))

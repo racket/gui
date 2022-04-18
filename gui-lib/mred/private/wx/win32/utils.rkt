@@ -87,8 +87,7 @@
          (GetLastError)))
 
 (define is-win64?
-  (equal? "win32\\x86_64" 
-	  (path->string (system-library-subpath #f))))
+  (eqv? 64 (system-type 'word)))
 
 (define GetWindowLongPtrW
   (get-ffi-obj (if is-win64? 'GetWindowLongPtrW 'GetWindowLongW) user32-lib
