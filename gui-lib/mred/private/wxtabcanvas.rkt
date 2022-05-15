@@ -726,10 +726,14 @@
              new-button-margin)
           0))
     (define/private (compute-width-of-tab)
-      (define-values (cw ch) (get-client-size))
+      (define-values (cw _ch) (get-client-size))
       (define dc (get-dc))
-      (define shrinking-required-size (- (/ cw (number-of-items))
-                                         (/ (new-button-width) (number-of-items))))
+      (define n-items (number-of-items))
+      (define shrinking-required-size
+        (if (zero? n-items)
+            (- cw (new-button-width))
+            (- (/ cw n-items)
+               (/ (new-button-width) n-items))))
 
       ;; this is the maximum size that a tab will ever be
       (define unconstrained-tab-size (* (send (send dc get-font) get-point-size) 12))
