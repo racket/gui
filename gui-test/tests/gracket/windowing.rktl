@@ -1069,6 +1069,7 @@
 (define (panel-tests frame% show? #:shorter? [shorter? shorter?])
   (define (panel-test % win? 
                       #:choices? [choices? #f]
+                      #:choices [choices '("A" "B")]
                       #:label? [label? #f]
                       #:margin [m 0]
                       #:style [style '()])
@@ -1076,7 +1077,7 @@
            [panel (if %
                       (cond
                        [choices?
-                        (new % [parent frame] [choices '("A" "B")] [style style])]
+                        (new % [parent frame] [choices choices] [style style])]
                        [label?
                         (new % [parent frame] [label "Stuff"])]
                        [else (new % [parent frame])])
@@ -1105,6 +1106,10 @@
     (panel-test horizontal-panel% #t)
     (panel-test tab-panel% #t #:choices? #t))
   (panel-test tab-panel% #t #:choices? #t #:style '(no-border))
+  (unless shorter?
+    (panel-test tab-panel% #t #:choices? #t #:choices '() #:style '(no-border))
+    (panel-test tab-panel% #t #:choices? #t #:style '(no-border flat-portable))
+    (panel-test tab-panel% #t #:choices? #t #:choices '() #:style '(no-border flat-portable)))
   (panel-test group-box-panel% #t #:label? #t #:margin 2))
 
 (panel-tests dialog% #f)
