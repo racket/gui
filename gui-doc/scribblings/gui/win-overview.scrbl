@@ -898,12 +898,28 @@ When a handler thread shows a dialog, the dialog's @method[dialog%
 
 Windowing functions and methods from @racketmodname[racket/gui/base]
  can be called in any thread, but beware of creating race conditions
- among the threads or with the handler thread. Graphical objects are
- thread-safe, but callbacks or other event handlers might see changing
- object states if graphical elements are manipulated in multiple
- threads. Editor classes have more significant thread constraints; see
- @secref["editorthreads"].
- 
+ among the threads or with the handler thread:
+
+@itemlist[
+
+ @item{Although graphical objects are thread-safe, callbacks or other
+       event handlers might see changing object states if graphical
+       elements are manipulated in multiple threads.}
+
+ @item{Editor classes have specific threading constraints. See
+       @secref["editorthreads"].}
+
+]
+
+Because it's easy to create confusing race conditions by manipulating
+GUI elements in a non-handler thread (while callbacks might run in the
+handler thread), it's best to instead perform all GUI setup and
+manipulations in the handler thread. The @racket[queue-callback]
+function can be helpful to schedule work in the handler thread from
+any other thread. When already running in the handler thread, use
+@racket[yield] to wait on non-GUI events while allowing GUI events to
+proceed.
+
 
 @subsection[#:tag "currenteventspace"]{Creating and Setting the Eventspace}
 
