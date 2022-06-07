@@ -63,7 +63,12 @@
 
     (super-new)
 
-    (set-recording-limit (if transparent? 1024 -1))
+    (set-recording-limit (if (and transparent?
+                                  ;; Windows doesn't buffer the screen for us, so
+                                  ;; always stick to a backing store
+                                  (not (eq? 'windows (system-type))))
+                             1024
+                             -1))
 
     (define/override (ok?) #t)
 

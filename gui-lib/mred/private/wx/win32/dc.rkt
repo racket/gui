@@ -98,7 +98,7 @@
 	    v)))
 
     (define/override (make-backing-bitmap w h)
-      (if (send canvas get-canvas-background)
+      (if (send canvas get-canvas-background-for-backing)
           (make-object win32-bitmap% w h (send canvas get-hwnd))
 	  (make-object bitmap% w h #f #t (->screen 1.0))))
 
@@ -125,7 +125,7 @@
     (define/override (cancel-delay req)
       (cancel-flush-delay req))))
 
-(define (do-backing-flush canvas dc hdc clear-hbrush)
+(define (do-backing-flush canvas dc hdc blit-clear-hbrush nada-clear-hbrush)
   (send dc on-backing-flush
         (lambda (bm)
           (let ([w (box 0)]
@@ -134,8 +134,8 @@
 	    (define sw (->screen (unbox w)))
 	    (define sh (->screen (unbox h)))
 	    (define r (make-RECT 0 0 sw sh))
-	    (when clear-hbrush
-	      (FillRect hdc r clear-hbrush))
+	    (when blit-clear-hbrush
+	      (FillRect hdc r blit-clear-hbrush))
 	    (define clip-type
 	      (if need-clip-refresh-workaround?
 		  (GetClipBox hdc r)
@@ -176,11 +176,11 @@
 				 0 0
 				 (->screen 1.0))
 		(cairo_destroy cr))])))
-	(if clear-hbrush
+	(if nada-clear-hbrush
 	    (lambda ()
 	      (define r (make-RECT 0 0 0 0))
 	      (GetClipBox hdc r)
-	      (FillRect hdc r clear-hbrush))
+	      (FillRect hdc r nada-clear-hbrush))
 	    void)))
 
 (define (request-flush-delay canvas)

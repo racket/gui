@@ -206,6 +206,10 @@
                                   (unless transparent?
                                     (DeleteObject hbrush)))))])
                        (unless (do-canvas-backing-flush hdc)
+                         ;; Is it better to erase here, to reflect that the screen is not
+                         ;; yet updated, or just leave it alone, which might reduce flicker.
+                         ;; For now, this doesn't seem to be a source of flickering, so we
+                         ;; leave it in place.
                          (erase)
                          (queue-paint)))))
              (EndPaint w ps)))
@@ -344,13 +348,13 @@
      (define/public (do-canvas-backing-flush hdc)
        (define clear-hbrush (and transparent? background-hbrush))
        (if hdc
-           (do-backing-flush this dc hdc clear-hbrush)
+           (do-backing-flush this dc hdc #f clear-hbrush)
            (if (positive? paint-suspended)
                ;; suspended => try again later
                (schedule-periodic-backing-flush)
                ;; not suspended
                (let ([hdc (GetDC canvas-hwnd)])
-                 (do-backing-flush this dc hdc clear-hbrush)
+                 (do-backing-flush this dc hdc #f clear-hbrush)
                  (ReleaseDC canvas-hwnd hdc)
                  ;; We'd like to validate the region that
                  ;; we just updated, so we can potentially
