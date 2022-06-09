@@ -877,7 +877,7 @@ Although a programmer has no direct control over the order in which
 When a new eventspace is created, a corresponding @tech{handler
  thread} is created for the eventspace. The initial eventspace does
  not create a new handler thread, but instead uses the thread where
- @racketmodname[racket/gui/base] is instaniated as the initial
+ @racketmodname[racket/gui/base] is instantiated as the initial
  eventspace's handler thread; see also @secref["Startup_Actions"].
 
 When the system dispatches an
