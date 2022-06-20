@@ -44,7 +44,7 @@ needed to really make this work:
 (define default-width 32)
 
   (define (render-syntax/window syntax #:summary-width [summary-width default-width])
-    (define es (render-syntax/snip syntax summary-width))
+    (define es (render-syntax/snip syntax #:summary-width summary-width))
     (define f (new frame% [label "frame"] [width 850] [height 500]))
     (define mb (new menu-bar% [parent f]))
     (define edit-menu (new menu% [label "Edit"] [parent mb]))
