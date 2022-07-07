@@ -25,6 +25,6 @@ library for GRacket. It re-exports the @racketmodname[racket/init] and
  the users home directory if it exists, rather than their 
  @racket[(find-system-path 'init-file)]. Unlike 
  @racketmodname[racket/interactive], this library does not
- start @racketmodname[xrepl].
+ start @racketmodname[xrepl #:indirect].
 
  @history[#:added "1.27"]}
