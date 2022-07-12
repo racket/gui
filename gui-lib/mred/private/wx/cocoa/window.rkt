@@ -183,8 +183,7 @@
               (post-dummy-event) ;; to wake up in case of character palette insert 
               (when wx
                 (let ([ts (current-insert-text-timestamp)])
-                  (queue-window-event wx (lambda ()
-                                           (send wx key-event-as-string str ts))))))))]
+                  (send wx key-event-as-string str ts))))))]
 
   ;; for NSTextInput:
   [-a _BOOL (hasMarkedText) (get-saved-marked wxb)]
@@ -201,7 +200,7 @@
                  (make-NSRange (car s) (cdr s))))
           (make-NSRange 0 0))]
   [-a _void (setMarkedText: [_NSStringOrAttributed aString] selectedRange: [_NSRange selRange])
-      ;; We interpreter a call to `setMarkedText:' as meaning that the
+      ;; We interpret a call to `setMarkedText:' as meaning that the
       ;; key is a dead key for composing some other character.
       (let ([m (current-set-mark)]) (when m (set-box! m #t)))
       ;; At the same time, we need to remember the text:
@@ -914,17 +913,21 @@
     (define/public (pre-on-char w e) #f)
 
     (define/public (key-event-as-string s timestamp)
-      (dispatch-on-char (new key-event%
-                             [key-code (string-ref s 0)]
-                             [shift-down #f]
-                             [control-down #f]
-                             [meta-down #f]
-                             [alt-down #f]
-                             [x 0]
-                             [y 0]
-                             [time-stamp (->long (* timestamp 1000.0))]
-                             [caps-down #f])
-                        #f))
+      (for ([i (in-range (string-length s))])
+        (queue-window-event
+         this
+         (lambda ()
+           (dispatch-on-char (new key-event%
+                                  [key-code (string-ref s i)]
+                                  [shift-down #f]
+                                  [control-down #f]
+                                  [meta-down #f]
+                                  [alt-down #f]
+                                  [x 0]
+                                  [y 0]
+                                  [time-stamp (->long (* timestamp 1000.0))]
+                                  [caps-down #f])
+                             #f)))))
 
     (define/public (post-mouse-down) (void))
 
