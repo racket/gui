@@ -68,10 +68,12 @@
 (expect (mline-get-line m20) 1)
 (expect (mline-get-position m00) 0)
 (expect (mline-get-position m20) 0)
-(void (mline-set-length m00 5))
-(void (mline-set-length m20 20))
+(void (mline-set-length m00 5 4))
+(void (mline-set-length m20 20 8))
 (expect (mline-get-position m00) 0)
 (expect (mline-get-position m20) 5)
+(expect (mline-get-grapheme-position m20) 4)
+(expect (mline-grapheme-len m20) 8)
 
 (mline-check-consistent (unbox root-box))
 
@@ -81,21 +83,24 @@
 (define m5 (mline-insert m20 root-box #t))
 (mline-check-consistent (unbox root-box))
 
-(void (mline-set-length m5 10))
+(void (mline-set-length m5 10 8))
 
 (expect (mline-get-position m00) 0)
 (expect (mline-get-position m5) 5)
 (expect (mline-get-position m20) 15)
+(expect (mline-get-grapheme-position m20) 12)
 
 (mline-delete m5 root-box)
 (expect (mline-get-position m20) 5)
+(expect (mline-get-grapheme-position m20) 4)
 
 (set! m5 (mline-insert m20 root-box #t))
-(void (mline-set-length m5 8))
+(void (mline-set-length m5 8 7))
 
 (expect (mline-get-position m00) 0)
 (expect (mline-get-position m5) 5)
 (expect (mline-get-position m20) 13)
+(expect (mline-get-grapheme-position m20) 11)
 
 (mline-delete m5 root-box)
 
@@ -121,7 +126,7 @@
 
 (define m05 (mline-insert m00 root-box #f))
 
-(void (mline-set-length m05 2))
+(void (mline-set-length m05 2 2))
 
 (expect (mline-get-line m00) 0)
 (expect (mline-get-line m05) 1)
@@ -609,6 +614,37 @@
             (fast-string-search thing-to-search-for text-to-search-in)
             #:extra-stuff (list thing-to-search-for thing-to-search-in))))
 
+;; ----------------------------------------
+;; Graphemes
+
+(let ()
+  (define t (new text%))
+  (send t insert "he\u300llo")
+  (expect (send t position-grapheme 5) 4)
+  (expect (send t grapheme-position 5) 6)
+  (send t insert "a" 1)
+  (expect (send t position-grapheme 0) 0)
+  (expect (send t position-grapheme 1) 1)
+  (expect (send t position-grapheme 2) 2)
+  (expect (send t position-grapheme 5) 4)
+  (expect (send t grapheme-position 5) 6)
+  (expect (send t last-position) 7)
+  (send t set-position 4)
+  (send t delete)
+  (expect (send t last-position) 5)
+  (send t insert "e\u300")
+  (expect (send t last-position) 7)
+  (expect (send t grapheme-position 6) 7)
+  (expect (send t position-grapheme 2) 2)
+  (expect (send t position-grapheme 3) 2)
+  (expect (send t position-grapheme 4) 3)
+  (expect (send t position-grapheme 7) 6)
+  (send t insert "\n" 1)
+  (expect (send t last-position) 8)
+  (expect (send t position-grapheme 8) 7)
+  (expect (send t position-grapheme 3) 3)
+  (expect (send t position-grapheme 5) 4))
+  
 ;; ----------------------------------------
 
 ;; Insert very long strings to test max-string-length handling

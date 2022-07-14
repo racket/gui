@@ -24,7 +24,8 @@
          "wordbreak.rkt"
          "stream.rkt"
          "wx.rkt"
-         racket/draw/private/region)
+         racket/draw/private/region
+         racket/snip/private/grapheme)
 
 (provide text%
          add-text-keymap-functions
@@ -1105,7 +1106,9 @@
                                  start)]
                               [(eq? 'line kind)
                                (line-start-position (position-line start posateol?))]
-                              [else (max 0 (sub1 start))]))])
+                              [else
+                               (grapheme-position
+                                (max 0 (sub1 (position-grapheme start))))]))])
                       (let-values ([(start end)
                                     (if extend?
                                         (if leftshrink?
@@ -1133,7 +1136,9 @@
                                  end)]
                               [(eq? 'line kind)
                                (line-end-position (position-line end posateol?))]
-                              [else (add1 end)]))])
+                              [else
+                               (grapheme-position
+                                (add1 (position-grapheme end)))]))])
                       (let-values ([(start end)
                                     (if extend?
                                         (if rightshrink?
@@ -1849,19 +1854,34 @@
      [([string? str] 
        [exact-nonnegative-integer? start] 
        [(make-alts exact-nonnegative-integer? (symbol-in same)) [end 'same]]
-       [any? [scroll-ok? #t]])
-      (do-insert #f str #f start end scroll-ok?)]
+       [any? [scroll-ok? #t]]
+       [any? [join-graphemes? #f]])
+      (if join-graphemes?
+          (do-insert-graphemes str start end scroll-ok?)
+          (do-insert #f str #f start end scroll-ok?))]
      [([exact-nonnegative-integer? len] 
-       [string? str])
+       [string? str]
+       [any? [join-graphemes? #f]])
       (check-len str len)
-      (do-insert #f (substring str 0 len) #f startpos endpos #t)]
+      (let ([str (if (= len (string-length str))
+                     str
+                     (substring str 0 len))])
+        (if join-graphemes?
+            (do-insert-graphemes str startpos endpos #t)
+            (do-insert #f str #f startpos endpos #t)))]
      [([exact-nonnegative-integer? len] 
        [string? str] 
        [exact-nonnegative-integer? start] 
        [(make-alts exact-nonnegative-integer? (symbol-in same)) [end 'same]]
-       [any? [scroll-ok? #t]])
+       [any? [scroll-ok? #t]]
+       [any? [join-graphemes? #f]])
       (check-len str len)
-      (do-insert #f (substring str 0 len) #f start end scroll-ok?)]
+      (let ([str (if (= len (string-length str))
+                     str
+                     (substring str 0 len))])
+        (if join-graphemes?
+            (do-insert-graphemes str startpos endpos #t)
+            (do-insert #f str #f start end scroll-ok?)))]
      [([snip% snip])
       (do-insert snip #f #f startpos endpos #t)]
      [([snip% snip]
@@ -1885,9 +1905,46 @@
           [ifs? insert-force-streak?])
       (end-streaks '(delayed))
       (set! insert-force-streak? streak?)
-      (do-insert #f (string ch) #f start end #t)
+
+      (cond
+        [(char-iso-control? ch)
+         ;; shortcut for character that never joins, especially #\newline
+         (do-insert #f (string ch) #f start end #t)]
+        [else
+         (do-insert-graphemes (string ch) start end #t)])
+
       (set! insert-force-streak? ifs?)
       (set! typing-streak? #t)))
+
+  (define/private (do-insert-graphemes str start end scroll-ok?)
+    ;; maybe join characters to form a grapheme; we limit
+    ;; the search for a grapheme to one surrounding snip on
+    ;; the grounds that this makes sense when graphemes are
+    ;; already joined
+    (let loop ([s str] [start start] [end (if (eq? end 'same) start (max start end))])
+      (define pre-s (do-find-snip start 'before))
+      (define pre-pos (get-snip-position pre-s))
+      (define pre-count (snip->count pre-s))
+      (define txt (send pre-s get-text 0 (- start pre-pos)))
+      (cond
+        [(grapheme-spans? txt 0 (- start pre-pos)
+                          s 0 (string-length s))
+         (loop (string-append (string (string-ref txt (- start pre-pos 1))) s)
+               (sub1 start)
+               end)]
+        [else
+         (define post-s (do-find-snip end 'after))
+         (define post-pos (get-snip-position post-s))
+         (define post-count (snip->count post-s))
+         (define txt (send post-s get-text 0 post-count))
+         (cond
+           [(grapheme-spans? s 0 (string-length s)
+                             txt (- end post-pos) post-count)
+            (loop (string-append s (string (string-ref txt (- end post-pos))))
+                  start
+                  (add1 end))]
+           [else
+            (do-insert #f s #f start end #t)])])))
 
   (define/private (do-delete start end with-undo? [scroll-ok? #t])
     (assert (consistent-snip-lines 'do-delete))
@@ -1896,7 +1953,10 @@
                     (if (eq? end 'back)
                         (if (zero? start)
                             (values 0 0 #f)
-                            (values (sub1 start) start #t))
+                            (values (grapheme-position
+                                     (sub1 (position-grapheme start)))
+                                    start
+                                    #t))
                         (values start end (and (= start startpos)
                                                (= end endpos))))])
         (end-streaks '(delayed))
@@ -2776,9 +2836,10 @@
                               [s2 (if (equal? #\return (string-ref s1 (sub1 len)))
                                       (substring s1 0 (sub1 len))
                                       s1)])
-                         (insert (regexp-replace* #rx"\r\n" 
-                                                  (if saved-cr? (string-append "\r" s2) s2)
-                                                  "\n"))
+                         (let ([str (regexp-replace* #rx"\r\n" 
+                                                     (if saved-cr? (string-append "\r" s2) s2)
+                                                     "\n")])
+                           (insert (string-length str) str #t))
                          (loop (not (eq? s1 s2))))))))
                #f])])
         
@@ -3083,26 +3144,27 @@
                              (- x))))
              0]
             [else
-              ;; binary search for position within snip:
-              (let loop ([range c]
-                         [i (quotient c 2)]
-                         [offset 0])
-                (let ([dl (send snip partial-offset dc X Y (+ offset i))])
-                  (if (dl . > . x)
-                      (loop i (quotient i 2) offset)
-                      (let ([dr (send snip partial-offset dc X Y (+ offset i 1))])
-                        (if (dr . <= . x)
-                            (let ([range (- range i)])
-                              (loop range (quotient range 2) (+ offset i)))
-                            (begin
-                              (when how-close
-                                (set-box! how-close
-                                          (if ((- dr x) . < . (- x dl))
-                                              (- dr x)
-                                              (- dl x))))
-                              (set! write-locked? wl?)
-                              (set! flow-locked? fl?)
-                              (+ i offset)))))))])))]))
+             ;; binary search for grapheme position within snip, returning character position:
+             (let ([c (snip->grapheme-count snip)])
+               (let loop ([range c]
+                          [i (quotient c 2)]
+                          [offset 0])
+                 (let ([dl (send snip partial-offset dc X Y (send snip grapheme-position (+ offset i)))])
+                   (if (dl . > . x)
+                       (loop i (quotient i 2) offset)
+                       (let ([dr (send snip partial-offset dc X Y (send snip grapheme-position (+ offset i 1)))])
+                         (if (dr . <= . x)
+                             (let ([range (- range i)])
+                               (loop range (quotient range 2) (+ offset i)))
+                             (begin
+                               (when how-close
+                                 (set-box! how-close
+                                           (if ((- dr x) . < . (- x dl))
+                                               (- dr x)
+                                               (- dl x))))
+                               (set! write-locked? wl?)
+                               (set! flow-locked? fl?)
+                               (send snip grapheme-position (+ i offset)))))))))])))]))
 
   (def/public (find-line [real? y] [maybe-box? [onit? #f]])
     (when onit?
@@ -3160,6 +3222,30 @@
                        (mline-prev line)
                        line)])
         (mline-get-line line))]))
+
+  (def/public (position-grapheme [exact-nonnegative-integer? start]
+                                 [any? [eog? #f]])
+    (cond
+     [(not (check-recalc (max-width . > . 0) #f #t)) 0]
+     [(start . <= . 0) 0]
+     [(start . >= . len)
+      (+ (mline-get-grapheme-position last-line)
+         (mline-grapheme-len last-line))]
+     [else
+      (let* ([line (mline-find-position (unbox line-root-box) start)])
+        (let loop ([pos (mline-get-position line)]
+                   [grapheme-pos (mline-get-grapheme-position line)]
+                   [snip (mline-snip line)])
+          (cond
+            [(= pos start) grapheme-pos]
+            [(not snip) grapheme-pos]
+            [else
+             (define c (snip->count snip))
+             (cond
+               [(>= start (+ pos c))
+                (loop (+ pos c) (+ grapheme-pos (snip->grapheme-count snip)) (snip->next snip))]
+               [else
+                (+ grapheme-pos (send snip position-grapheme (- start pos)))])])))]))
 
   
   (def/public-final (get-snip-position-and-location [snip% thesnip] [maybe-box? pos] 
@@ -3407,6 +3493,29 @@
                                  [any? [visible-only? #t]])
     (do-line-position #f i visible-only?))
 
+  (def/public (grapheme-position [exact-nonnegative-integer? start]
+                                 [any? [eog? #f]])
+    (cond
+     [(not (check-recalc (max-width . > . 0) #f #t)) 0]
+     [(start . <= . 0) 0]
+     [(start . >= . (+ (mline-get-grapheme-position last-line)
+                       (mline-grapheme-len last-line)))
+      len]
+     [else
+      (let* ([line (mline-find-grapheme-position (unbox line-root-box) start)])
+        (let loop ([pos (mline-get-position line)]
+                   [grapheme-pos (mline-get-grapheme-position line)]
+                   [snip (mline-snip line)])
+          (cond
+            [(= grapheme-pos start) pos]
+            [(not snip) pos]
+            [else
+             (define c (snip->grapheme-count snip))
+             (cond
+               [(>= start (+ grapheme-pos c))
+                (loop (+ pos (snip->count snip)) (+ grapheme-pos c) (snip->next snip))]
+               [else
+                (+ pos (send snip grapheme-position (- start grapheme-pos)))])])))]))
 
   (def/public (line-length [exact-nonnegative-integer? i])
     (cond

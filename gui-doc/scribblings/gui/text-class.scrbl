@@ -415,7 +415,7 @@ See @|timediscuss| for a discussion of the @racket[time] argument. If
 Deletes the specified range or the currently selected text (when no
  range is provided) in the editor. If @racket[start] is
  @racket['start], then the starting selection @techlink{position} is
- used; if @racket[end] is @racket['back], then only the character
+ used; if @racket[end] is @racket['back], then only the @tech{grapheme}
  preceding @racket[start] is deleted.  If @racket[scroll-ok?] is not
  @racket[#f] and @racket[start] is the same as the current caret
  @techlink{position}, then the editor's @techlink{display} may be
@@ -426,7 +426,9 @@ Deletes the specified range or the currently selected text (when no
  system in response to other method
  calls} @elem{@method[text% on-delete]} @elem{content deletion}]
 
-}
+@history[#:changed "1.67" @elem{Changed @racket['back] to delete a
+                                grapheme instead of a character.}]}
+
 
 @defmethod[(do-copy [start exact-nonnegative-integer?]
                     [end exact-nonnegative-integer?]
@@ -1115,6 +1117,16 @@ Returns the wordbreaking map that is used by the standard wordbreaking
 }
 
 
+@defmethod[(grapheme-position [n exact-nonnegative-integer?])
+           exact-nonnegative-integer?]{
+
+Returns the number of @tech{items} in the editor that form the first
+@racket[n] @tech{graphemes}; or, equivalently, converts from an
+@tech{grapheme}-based position to a @tech{item}-based position.
+
+@history[#:added "1.67"]}
+
+
 @defmethod[(hide-caret [hide? any/c])
            void?]{
 
@@ -1134,20 +1146,23 @@ See also @method[text% caret-hidden?] and @method[editor<%> lock].
             ([(insert [str string?]
                       [start exact-nonnegative-integer?]
                       [end (or/c exact-nonnegative-integer? 'same) 'same]
-                      [scroll-ok? any/c #t])
+                      [scroll-ok? any/c #t]
+                      [join-graphemes? any/c #f])
               void?]
              [(insert [n (and/c exact-nonnegative-integer?
                                 (<=/c (string-length str)))]
                       [str string?]
                       [start exact-nonnegative-integer?]
                       [end (or/c exact-nonnegative-integer? 'same) 'same]
-                      [scroll-ok? any/c #t])
+                      [scroll-ok? any/c #t]
+                      [join-graphemes? any/c #f])
               void?]
              [(insert [str string?])
               void?]
              [(insert [n (and/c exact-nonnegative-integer?
                                 (<=/c (string-length str)))]
-                      [str string?])
+                      [str string?]
+                      [join-graphemes? any/c #f])
               void?]
              [(insert [snip (is-a?/c snip%)]
                       [start exact-nonnegative-integer?]
@@ -1193,6 +1208,18 @@ If @racket[scroll-ok?] is not @racket[#f] and @racket[start] is the
  same as the current selection's start @techlink{position}, then the
  editor's @techlink{display} is scrolled to show the new selection
  @techlink{position}.
+
+If @racket[join-graphemes?] is provided and not @racket[#f] or if a
+ character is provided to insert, then if characters before or after
+ the inserted content would form a @tech{grapheme} that spans the
+ start or end of the inserted content, those characters are
+ effectively added to the start and end of the inserted content, and
+ the insertion range is adjusted to cover the absorbed characters. As
+ a result, the grapheme-forming characters will be reliably placed in
+ the same @tech{snip} so that the grapheme renders properly. That
+ adjustment may effectively change the @tech{style} of the inserted
+ content or of existing content that is involved with newly formed
+ grapheme clusters
 
 See also @method[text% get-styles-sticky].
 
@@ -1376,7 +1403,7 @@ If @racket[extend?] is not @racket[#f], the selection range is
 The possible values for @racket[kind] are:
 
 @itemize[
-@item{@racket['simple] --- move one item or line}
+@item{@racket['simple] --- move one @tech{grapheme} or line}
 @item{@racket['word] --- works with @racket['right] or @racket['left]}
 @item{@racket['page] --- works with @racket['up] or @racket['down]}
 @item{@racket['line] --- works with @racket['right] or @racket['left]; moves to the start or end of the line}
@@ -1384,7 +1411,8 @@ The possible values for @racket[kind] are:
 
 See also @method[text% set-position].
 
-}
+@history[#:changed "1.67" @elem{Changed @racket['simple] mode to move
+                                left or right by a grapheme instead of an item.}]}
 
 
 @defmethod[#:mode pubment 
@@ -1430,14 +1458,15 @@ Handles the following:
 
  @item{Any other character in the range @racket[(integer->char 32)] to
  @racket[(integer->char 255)] --- inserts the character into the
- editor.}
+ editor (in @tech{grapheme}-joining mode; see @method[text% insert]).}
 
 ]
 
 Note that an editor's @racket[editor-canvas%] normally handles mouse
  wheel events (see also @method[editor-canvas% on-char] ).
 
-}
+@history[#:changed "1.67" @elem{Changed character inserting to use
+                                grapheme-joining mode.}]}
 
 
 @defmethod[#:mode override 
@@ -1712,6 +1741,17 @@ See @|timediscuss| for a discussion of the @racket[time] argument. If
  @|MismatchExn|.
 
 }
+
+
+@defmethod[(position-grapheme [n exact-nonnegative-integer?])
+           exact-nonnegative-integer?]{
+
+Returns the number of @tech{graphemes} within the editor formed by the
+first @racket[n] @tech{items}; or, equivalently, converts from an
+@tech{item}-based position to a @tech{grapheme}-based position.
+
+@history[#:added "1.67"]}
+
 
 @defmethod[(position-line [start exact-nonnegative-integer?]
                           [at-eol? any/c #f])
