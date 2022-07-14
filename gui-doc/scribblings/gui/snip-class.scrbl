@@ -206,12 +206,35 @@ Returns the administrator for this snip. (The administrator can be
 }
 
 @defmethod[(get-count)
-           (integer-in 0 100000)]{
+           exact-nonnegative-integer?]{
 
 Returns the snip's @techlink{count} (i.e., number of @techlink{item}s
  within the snip).
 
 }
+
+@defmethod[(get-grapheme-count)
+           exact-nonnegative-integer?]{
+
+Returns the number of @techlink{graphemes} in the snip, which is
+usually the same result as @method[snip<%> get-count], but can be
+smaller with multiple consecutive @tech{items} form a grapheme.
+
+@history[#:added "1.67"]}
+
+
+@defmethod[(grapheme-position [n exact-nonnegative-integer?])
+           exact-nonnegative-integer?]{
+
+Returns the number of @tech{items} in the snip that form the first
+@racket[n] @tech{graphemes}; or, equivalently, converts from an
+@tech{grapheme}-based position to a @tech{item}-based position.
+
+When @method[snip<%> get-count] is the same as @method[snip<%>
+get-grapheme-count], this method returns @racket[n].
+
+@history[#:added "1.67"]}
+
 
 @defmethod[(get-extent [dc (is-a?/c dc<%>)]
                        [x real?]
@@ -617,6 +640,19 @@ The @racket[own-it?] argument is @racket[#t] if the snip owns the
 Does nothing.
 
 }}
+
+
+@defmethod[(position-grapheme [n exact-nonnegative-integer?])
+           exact-nonnegative-integer?]{
+
+Returns the number of @tech{graphemes} within the snip formed by the
+first @racket[n] @tech{items}; or, equivalently, converts from an
+@tech{item}-based position to a @tech{grapheme}-based position.
+
+When @method[snip<%> get-count] is the same as @method[snip<%>
+get-grapheme-count], this method returns @racket[n].
+
+@history[#:added "1.67"]}
 
 
 @defmethod[(partial-offset [dc (is-a?/c dc<%>)]

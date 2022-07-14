@@ -28,11 +28,13 @@
            delete
            find-line
            find-position
+           find-grapheme-position
            find-scroll
            find-location
            find-paragraph
            get-line
            get-position
+           get-grapheme-position
            get-scroll
            get-location
            get-paragraph
@@ -85,13 +87,13 @@
                            flags paragraph
                            
                            ;; relative values:
-                           line pos scroll parno y
+                           line pos grapheme-pos scroll parno y
                            
                            max-width
 
                            snip last-snip scroll-snip
                            
-                           len numscrolls
+                           len grapheme-len numscrolls
                            last-h last-w ;; height/width of last snip in line
                            h w ;; height/width of line
                            bottombase topbase ;; bottom baseline, top baseline (relative)
@@ -103,10 +105,10 @@
 (define (create-mline)
   (make-mline #f #f NIL NIL NIL
               (bitwise-ior BLACK MAX-W-HERE CALC-HERE) #f
-              0 0 0 0 0.0
+              0 0 0 0 0 0.0
               0.0
               #f #f #f
-              0 1
+              0 0 1
               0.0 0.0
               0.0 0.0
               0.0 0.0))
@@ -118,6 +120,7 @@
 
 (define (mline-destroy! m)
   ;; Doesn't need to to anything, but this may be helpful for debugging
+  #;
   (begin
     (set-mline-prev! m 'BAD)
     (set-mline-parent! m 'BAD)
@@ -127,6 +130,7 @@
     (set-mline-paragraph! m 'BAD)
     (set-mline-line! m 'BAD)
     (set-mline-pos! m 'BAD)
+    (set-mline-grapheme-pos! m 'BAD)
     (set-mline-scroll! m 'BAD)
     (set-mline-parno! m 'BAD)
     (set-mline-y! m 'BAD)
@@ -135,6 +139,7 @@
     (set-mline-last-snip! m 'BAD)
     (set-mline-scroll-snip! m 'BAD)
     (set-mline-len! m 'BAD)
+    (set-mline-grapheme-len! m 'BAD)
     (set-mline-numscrolls! m 'BAD)
     (set-mline-last-h! m 'BAD)
     (set-mline-last-w! m 'BAD)
@@ -197,6 +202,7 @@
     ;; Adjust relative values:
     (set-mline-line! newchild (- (mline-line newchild) (+ (mline-line mline) 1)))
     (set-mline-pos! newchild (- (mline-pos newchild) (+ (mline-pos mline) (mline-len mline))))
+    (set-mline-grapheme-pos! newchild (- (mline-grapheme-pos newchild) (+ (mline-grapheme-pos mline) (mline-grapheme-len mline))))
     (set-mline-scroll! newchild (- (mline-scroll newchild) (+ (mline-scroll mline) (mline-numscrolls mline))))
     (set-mline-y! newchild (- (mline-y newchild) (+ (mline-y mline) (mline-h mline))))
     (set-mline-parno! newchild (- (mline-parno newchild) (+ (mline-parno mline) (starts-paragraph mline))))))
@@ -206,6 +212,7 @@
     ;; Adjust relative values:
     (set-mline-line! oldchild (+ (mline-line oldchild) (+ (mline-line mline) 1)))
     (set-mline-pos! oldchild (+ (mline-pos oldchild) (+ (mline-pos mline) (mline-len mline))))
+    (set-mline-grapheme-pos! oldchild (+ (mline-grapheme-pos oldchild) (+ (mline-grapheme-pos mline) (mline-grapheme-len mline))))
     (set-mline-scroll! oldchild (+ (mline-scroll oldchild) (+ (mline-scroll mline) (mline-numscrolls mline))))
     (set-mline-y! oldchild (+ (mline-y oldchild) (+ (mline-y mline) (mline-h mline))))
     (set-mline-parno! oldchild (+ (mline-parno oldchild) (+ (mline-parno mline) (starts-paragraph mline))))))
@@ -375,6 +382,7 @@
 
   ;; adjust ancestor offsets
   (let ([len (mline-len mline)]
+        [grapheme-len (mline-grapheme-len mline)]
         [numscrolls (mline-numscrolls mline)]
         [h (mline-h mline)])
     (let loop ([v mline])
@@ -385,6 +393,7 @@
               (let ([v parent])
                 (set-mline-line! v (- (mline-line v) 1))
                 (set-mline-pos! v (- (mline-pos v) len))
+                (set-mline-grapheme-pos! v (- (mline-grapheme-pos v) grapheme-len))
                 (set-mline-scroll! v (- (mline-scroll v) numscrolls))
                 (set-mline-y! v (- (mline-y v) h))
                 (set-mline-parno! v (- (mline-parno v) (starts-paragraph mline)))
@@ -402,6 +411,7 @@
                            (let ([x parent])
                              (set-mline-line! x (- (mline-line x) 1))
                              (set-mline-pos! x (- (mline-pos x) (mline-len v)))
+                             (set-mline-grapheme-pos! x (- (mline-grapheme-pos x) (mline-grapheme-len v)))
                              (set-mline-scroll! x (- (mline-scroll x) (mline-numscrolls v)))
                              (set-mline-y! x (- (mline-y x) (mline-h v)))
                              (set-mline-parno! x (- (mline-parno x) (starts-paragraph v)))
@@ -437,6 +447,7 @@
 
               (set-mline-line! v (mline-line mline))
               (set-mline-pos! v (mline-pos mline))
+              (set-mline-grapheme-pos! v (mline-grapheme-pos mline))
               (set-mline-scroll! v (mline-scroll mline))
               (set-mline-y! v (mline-y mline))
               (set-mline-parno! v (mline-parno mline))
@@ -551,6 +562,9 @@
 (define (find-position mline pos)
   (search mline pos mline-pos mline-len))
 
+(define (find-grapheme-position mline pos)
+  (search mline pos mline-grapheme-pos mline-grapheme-len))
+
 (define (find-scroll mline scroll)
   (search mline scroll mline-scroll mline-numscrolls))
 
@@ -577,6 +591,9 @@
 (define (get-position mline)
   (sum mline mline-pos mline-len))
 
+(define (get-grapheme-position mline)
+  (sum mline mline-grapheme-pos mline-grapheme-len))
+
 (define (get-scroll mline)
   (sum mline mline-scroll mline-numscrolls))
 
@@ -601,13 +618,19 @@
 
 ;; ----------------------------------------
 
-(define (adjust mline new-val val-sel val-mut! sel mut!)
+(define (adjust mline new-val val-sel val-mut! new-val2 val-sel2 val-mut2! sel mut! sel2 mut2!)
   (define delta (- new-val (val-sel mline)))
+  (define delta2 (if new-val2 (- new-val2 (val-sel2 mline)) 0))
   (define val-changed? 
     (cond
-      [(= (val-sel mline) new-val) #f]
+      [(and (= (val-sel mline) new-val)
+            (or (not val-sel2)
+                (= (val-sel2 mline) new-val2)))
+       #f]
       [else
        (val-mut! mline new-val)
+       (when new-val2
+         (val-mut2! mline new-val2))
        #t]))
   (or (let loop ([node mline])
         (let ([parent (mline-parent node)])
@@ -616,29 +639,38 @@
             [else
              (if (eq? node (mline-left parent))
                  (cond
-                   [(= delta 0)
+                   [(and (= delta 0)
+                         (= delta2 0))
                     (loop parent)]
                    [else
                     (mut! parent (+ delta (sel parent)))
+                    (when sel2
+                      (mut2! parent (+ delta2 (sel2 parent))))
                     (loop parent)
                     #t])
                  (loop parent))])))
       val-changed?))
 
-(define (set-length mline len)
+(define (set-length mline len grapheme-len)
   (adjust mline
-          len mline-len set-mline-len! 
-          mline-pos set-mline-pos!))
+          len mline-len set-mline-len!
+          grapheme-len mline-grapheme-len set-mline-grapheme-len!
+          mline-pos set-mline-pos!
+          mline-grapheme-pos set-mline-grapheme-pos!))
 
 (define (set-scroll-length mline numscrolls)
   (adjust mline
           numscrolls mline-numscrolls set-mline-numscrolls!
-          mline-scroll set-mline-scroll!))
+          #f #f #f
+          mline-scroll set-mline-scroll!
+          #f #f))
 
 (define (set-height mline h)
   (adjust mline
           h mline-h set-mline-h!
-          mline-y set-mline-y!))
+          #f #f #f
+          mline-y set-mline-y!
+          #f #f))
 
 (define (set-paragraph-ends mline)
   (let ([next (mline-next mline)])
@@ -663,24 +695,25 @@
       (set-starts-paragraph mline #f)])))
 
 (define (calc-line-length mline)
-  (let ([l
-         (let ([nexts (snip->next (mline-last-snip mline))])
-           (let loop ([asnip (mline-snip mline)][l 0])
-             (if (eq? asnip nexts)
-                 l
-                 (let ([l (+ l (snip->count asnip))])
-                   (when (has-flag? (snip->flags asnip) WIDTH-DEPENDS-ON-X)
-                     (send asnip size-cache-invalid))
-                   (loop (snip->next asnip) l)))))])
-
-    (when (not (= l (mline-len mline)))
-      (set-length mline l)))
+  (define-values (l gl)
+    (let ([nexts (snip->next (mline-last-snip mline))])
+      (let loop ([asnip (mline-snip mline)] [l 0] [gl 0])
+        (if (eq? asnip nexts)
+            (values l gl)
+            (let ([l (+ l (snip->count asnip))]
+                  [gl (+ gl (snip->grapheme-count asnip))])
+              (when (has-flag? (snip->flags asnip) WIDTH-DEPENDS-ON-X)
+                (send asnip size-cache-invalid))
+              (loop (snip->next asnip) l gl))))))
+  (when (or (not (= l (mline-len mline)))
+            (not (= gl (mline-grapheme-len mline))))
+    (set-length mline l gl))
   (set-paragraph-ends mline))
 
-;; A scalable variant of `calc-line-lengt`, but doesn't
+;; A scalable variant of `calc-line-length`, but doesn't
 ;; check WIDTH-DEPENDS-ON-X flags:
 (define (adjust-line-length mline delta)
-  (set-length mline (+ (mline-len mline) delta))
+  (set-length mline (+ (mline-len mline) delta) (+ (mline-grapheme-len mline) delta)) ;; FIXME
   (set-paragraph-ends mline))
 
 (define (set-starts-paragraph mline starts?)

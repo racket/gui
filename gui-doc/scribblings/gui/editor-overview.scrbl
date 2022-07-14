@@ -225,6 +225,40 @@ When an editor is drawn into a display, each snip and position has a
  editor. Locations in an editor are only meaningful when the editor is
  displayed.
 
+@subsection[#:tag "graphemes"]{Characters, Graphemes, and Source Locations}
+
+For historical reasons, an @tech{item} corresponds to a Racket
+ character in an editor with text. Some things that a user would
+ perceive as a character are composed of multiple Racket characters,
+ however, such as a pirate-flag emoji (which uses a four-character
+ encoding) or ``e'' plus an accent modifier (which also has a single
+ character representation, but might be represented through those two
+ characters). A @deftech{grapheme} is an approximation to a
+ user-perceived character as defined by the Unicode grapheme-cluster
+ specification.
+
+Racket provides support for graphemes though functions like
+ @racket[string-grapheme-count] and @racket[char-grapheme-step].
+ Source locations are intended to be count by graphemes instead of
+ characters, and to support such source locations, port line and
+ position counting as enabled by @racket[port-count-lines!] tracks
+ graphemes.
+
+Working with graphemes in a text editor requires extra care. Methods
+ like @xmethod[text% grapheme-position] and @xmethod[text%
+ position-grapheme] convert between item and grapheme indices, but
+ most operations are based in item positions, and they are generally
+ not constrained to preserve grapheme-cluster sequences. A grapheme
+ cluster that is within a single snip will render as a single
+ grapheme, but a grapheme cluster that spans a snip boundary will be
+ rendered as two partial graphemes. The @xmethod[text% insert] method
+ takes optional arguments to trigger the detection of grapheme
+ sequences that would span the existing and inserted content and
+ ensure that the sequences are kept together.
+
+A small number of @racket[text%] methods are grapheme-sensitive by
+ default: @method[text% delete], @method[text% insert] of a character,
+ and @method[text% move-position].
 
 @subsection[#:tag "editoradministrators"]{Administrators}
 
