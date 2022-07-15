@@ -1318,7 +1318,7 @@
 
   ;; ----------------------------------------
 
-  (define/private (do-insert isnip str snipsl start end scroll-ok?)
+  (define/private (do-insert isnip str snipsl start end scroll-ok? force-keep-caret?)
     (assert (consistent-snip-lines 'do-insert))
     (unless (or write-locked?
                 s-user-locked?
@@ -1327,8 +1327,9 @@
             [str (and str (positive? (string-length str)) str)])
         ;; turn off pending style, if it doesn't apply
         (when caret-style
-          (when (or (not (equal? end start)) (not (= startpos start)))
-            (set! caret-style #f)))
+          (unless force-keep-caret?
+            (when (or (not (or (eq? end 'same) (equal? end start))) (not (= startpos start)))
+              (set! caret-style #f))))
         (let ([deleted? (and (not (eq? end 'same))
                              (start . < . end)
                              (begin
@@ -1669,14 +1670,19 @@
                     (let loop ([pos (- start s)] [snip snip] [size (+ addlen s)])
                       (cond
                        [(size . > . MAX-COUNT-FOR-SNIP)
-                        (define half (quotient size 2))
-                        
-                        (define intm-snip
-                          (split-one half snip #f))
-                        
-                        (define-values (next-snip next-pos)
-                          (loop pos intm-snip half))
-                        (loop next-pos next-snip (- size half))]
+                        (define half (send snip grapheme-position
+                                           (send snip position-grapheme (quotient size 2))))
+                        (cond
+                          [(< 0 half size)
+                           (define intm-snip
+                             (split-one half snip #f))
+                           
+                           (define-values (next-snip next-pos)
+                             (loop pos intm-snip half))
+                           (loop next-pos next-snip (- size half))]
+                          [else
+                           ;; split wouldn't make anything smaller, susprisingly, so give up
+                           (values snip s)])]
                        [else
                         (define new-snip (split-one* size snip))
                         (values (snip->next new-snip) (+ pos size))]))
@@ -1754,24 +1760,26 @@
                                         (set-mline-snip! line (mline-snip old-line))
 
                                         ;; retarget snips moved to new line:
-                                        (define delta
-                                          (let loop ([c-snip (mline-snip old-line)] [delta 0])
+                                        (define-values (delta grapheme-delta)
+                                          (let loop ([c-snip (mline-snip old-line)] [delta 0] [grapheme-delta 0])
                                             (cond
                                              [(eq? c-snip snip)
-                                              (+ delta (snip->count snip))]
+                                              (values (+ delta (snip->count snip))
+                                                      (+ grapheme-delta (snip->grapheme-count snip)))]
                                              [else
                                               (set-snip-line! c-snip line)
                                               (loop (snip->next c-snip)
-                                                    (+ delta (snip->count c-snip)))])))
+                                                    (+ delta (snip->count c-snip))
+                                                    (+ grapheme-delta (snip->grapheme-count c-snip)))])))
                                         
                                         (set-mline-snip! old-line (snip->next snip))
 
-                                        (mline-adjust-line-length old-line (- delta))
+                                        (mline-adjust-line-length old-line (- delta) (- grapheme-delta))
                                         (mline-mark-recalculate old-line)
                                         (when (max-width . > . 0)
                                           (mline-mark-check-flow old-line))
 
-                                        (mline-adjust-line-length line delta)
+                                        (mline-adjust-line-length line delta grapheme-delta)
                                         (mline-mark-recalculate line)
                                         (when (max-width . > . 0)
                                           (mline-mark-check-flow line)))
@@ -1850,7 +1858,7 @@
     (case-args
      args
      [([string? str])
-      (do-insert #f str #f startpos endpos #t)]
+      (do-insert #f str #f startpos endpos #t #f)]
      [([string? str] 
        [exact-nonnegative-integer? start] 
        [(make-alts exact-nonnegative-integer? (symbol-in same)) [end 'same]]
@@ -1858,7 +1866,7 @@
        [any? [join-graphemes? #f]])
       (if join-graphemes?
           (do-insert-graphemes str start end scroll-ok?)
-          (do-insert #f str #f start end scroll-ok?))]
+          (do-insert #f str #f start end scroll-ok? #f))]
      [([exact-nonnegative-integer? len] 
        [string? str]
        [any? [join-graphemes? #f]])
@@ -1868,7 +1876,7 @@
                      (substring str 0 len))])
         (if join-graphemes?
             (do-insert-graphemes str startpos endpos #t)
-            (do-insert #f str #f startpos endpos #t)))]
+            (do-insert #f str #f startpos endpos #t #f)))]
      [([exact-nonnegative-integer? len] 
        [string? str] 
        [exact-nonnegative-integer? start] 
@@ -1881,14 +1889,14 @@
                      (substring str 0 len))])
         (if join-graphemes?
             (do-insert-graphemes str startpos endpos #t)
-            (do-insert #f str #f start end scroll-ok?)))]
+            (do-insert #f str #f start end scroll-ok? #f)))]
      [([snip% snip])
-      (do-insert snip #f #f startpos endpos #t)]
+      (do-insert snip #f #f startpos endpos #t #f)]
      [([snip% snip]
        [exact-nonnegative-integer? [start startpos]]
        [(make-alts exact-nonnegative-integer? (symbol-in same)) [end 'same]]
        [any? [scroll-ok? #t]])
-      (do-insert snip #f #f start end scroll-ok?)]
+      (do-insert snip #f #f start end scroll-ok? #f)]
      [([char? ch])
       (do-insert-char ch startpos endpos)]
      [([char? ch] 
@@ -1898,7 +1906,7 @@
      (method-name 'text% 'insert)))
 
   (define/public (do-insert-snips snips pos)
-    (do-insert #f #f snips pos pos #t))
+    (do-insert #f #f snips pos pos #t #f))
 
   (define/private (do-insert-char ch start end)
     (let ([streak? typing-streak?]
@@ -1909,7 +1917,7 @@
       (cond
         [(char-iso-control? ch)
          ;; shortcut for character that never joins, especially #\newline
-         (do-insert #f (string ch) #f start end #t)]
+         (do-insert #f (string ch) #f start end #t #f)]
         [else
          (do-insert-graphemes (string ch) start end #t)])
 
@@ -1921,6 +1929,8 @@
     ;; the search for a grapheme to one surrounding snip on
     ;; the grounds that this makes sense when graphemes are
     ;; already joined
+    (define keep-caret? (and (= start startpos)
+                             (or (eq? end 'same) (eqv? end start))))
     (let loop ([s str] [start start] [end (if (eq? end 'same) start (max start end))])
       (define pre-s (do-find-snip start 'before))
       (define pre-pos (get-snip-position pre-s))
@@ -1944,7 +1954,7 @@
                   start
                   (add1 end))]
            [else
-            (do-insert #f s #f start end #t)])])))
+            (do-insert #f s #f start end #t keep-caret?)])])))
 
   (define/private (do-delete start end with-undo? [scroll-ok? #t])
     (assert (consistent-snip-lines 'do-delete))
@@ -2908,11 +2918,11 @@
   (define/override (do-read-insert snip)
     (if (list? snip)
         (let ([oldlen len])
-          (do-insert #f #f snip startpos startpos #t)
+          (do-insert #f #f snip startpos startpos #t #f)
           (set! read-insert (+ read-insert (- len oldlen)))
           #t)
         (let ([addpos (snip->count snip)])
-          (do-insert snip #f #f startpos startpos #t)
+          (do-insert snip #f #f startpos startpos #t #f)
           (set! read-insert (+ addpos read-insert))
           #t)))
 

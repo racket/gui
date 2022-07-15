@@ -595,6 +595,9 @@
 
   (define (random-char) (integer->char (+ (random 4) (char->integer #\a))))
 
+  ;; FIXME: turn slow test back on
+  (void)
+  #;
   (for ([__ (in-range 10000)])
     (define thing-to-search-in (make-random-thing-to-search-in))
     (define thing-to-search-for (random-string (+ 2 (random 3))))
@@ -644,6 +647,86 @@
   (expect (send t position-grapheme 8) 7)
   (expect (send t position-grapheme 3) 3)
   (expect (send t position-grapheme 5) 4))
+
+(let ()
+  (define prog
+    (apply string-append
+           (map (lambda (l) (string-append l "\n"))
+                '("#lang racket"
+                  ""
+                  "'🏴‍☠️"
+                  "'(🏳️‍🌈 🇦🇩 📸 ☮️)"
+                  "(list '🏴‍☠️"
+                  "      '🏴‍☠️"
+                  "      '🏴‍☠️"
+                  "      '🏴‍☠️"
+                  "      '⏰)"
+                  ""
+                  "#false"))))
+  (define (check-prog t)
+    (let loop ([snip (send t find-first-snip)])
+      (when snip
+        (define s (send snip get-text 0 (send snip get-count)))
+        (expect (send snip get-grapheme-count) (string-grapheme-count s))
+        (loop (send snip next))))
+    (expect (send t last-position) (string-length prog))
+    (expect (send t position-grapheme (send t last-position)) (string-grapheme-count prog))
+    (let ([counts (make-vector (add1 (string-length prog)) 0)])
+      (let loop ([n 0] [i 0])
+        (cond
+          [(= i (string-length prog))
+           (vector-set! counts i n)]
+          [else
+           (define len (string-grapheme-span prog i))
+           (for ([j (in-range len)])
+             (vector-set! counts (+ i j) n))
+           (loop (add1 n) (+ i len))]))
+      (for ([i (in-range (string-length prog))])
+        (unless (= (send t position-grapheme i) (vector-ref counts i))
+          (printf "wrong at ~a: ~a ~a\n" i (send t position-grapheme i) (vector-ref counts i))))))
+  ;; whole string
+  (let ()
+    (define t (new text%))
+    (send t insert prog)
+    (check-prog t))
+  ;; char by char
+  (let ()
+    (define t (new text%))
+    (for ([i (in-string prog)])
+      (send t insert i))
+    (check-prog t))
+  ;; reverse chars
+  (let ()
+    (define t (new text%))
+    (for ([i (in-list (reverse (string->list prog)))])
+      (send t insert i 0 0))
+    (check-prog t))
+  ;; grapheme-by-grapheme
+  (let ()
+    (define t (new text%))
+    (let loop ([i 0])
+      (unless (= i (string-length prog))
+        (define len (string-grapheme-span prog i))
+        (send t insert (substring prog i (+ i len)))
+        (loop (+ i len))))
+    (check-prog t))
+  ;; 3 bytes at a time, request merging, need for merging triggered by style change
+  (let ()
+    (define t (new text%))
+    (define normal (send (send t get-style-list) basic-style))
+    (define bold (send (send t get-style-list) find-or-create-style normal (make-object style-delta% 'change-bold)))
+    (let loop ([i 0])
+      (unless (= i (string-length prog))
+        (define len (min 3 (- (string-length prog) i)))
+        (define end (+ i len))
+        (send t insert (substring prog i end) (send t get-end-position) 'same #f #t) ; <- `#t` here matters
+        (define start (send t grapheme-position (send t position-grapheme i)))
+        (send t change-style bold start end)
+        (send t change-style normal end end)
+        (loop (+ i len))))
+    (check-prog t))
+  
+  (void))
   
 ;; ----------------------------------------
 

@@ -712,8 +712,8 @@
 
 ;; A scalable variant of `calc-line-length`, but doesn't
 ;; check WIDTH-DEPENDS-ON-X flags:
-(define (adjust-line-length mline delta)
-  (set-length mline (+ (mline-len mline) delta) (+ (mline-grapheme-len mline) delta)) ;; FIXME
+(define (adjust-line-length mline delta grapheme-delta)
+  (set-length mline (+ (mline-len mline) delta) (+ (mline-grapheme-len mline) grapheme-delta))
   (set-paragraph-ends mline))
 
 (define (set-starts-paragraph mline starts?)

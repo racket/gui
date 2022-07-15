@@ -213,7 +213,9 @@
                get-styles-fixed
                set-styles-fixed
                auto-wrap
-               get-autowrap-bitmap-width)
+               get-autowrap-bitmap-width
+               grapheme-position
+               position-grapheme)
     
       ;; private field
       (define eventspace (current-eventspace))
@@ -316,9 +318,9 @@
         (set! unread-start-point (+ unread-start-point len))
         (let ([before-allowed? allow-edits?])
           (set! allow-edits? #t)
-          (insert str start start #f)
+          (insert str start start #f #t)
           (when style
-            (change-style (add-standard style) start (+ start len)))
+            (change-style (add-standard style) (grapheme-position (position-grapheme start)) (+ start len)))
           (set! allow-edits? before-allowed?)))
       
       (define/public-final (get-in-port)
@@ -634,13 +636,15 @@
                (define old-insertion-point insertion-point)
                (set! insertion-point (+ insertion-point inserted-count))
                (set! unread-start-point (+ unread-start-point inserted-count))
-               
-               (insert str/snp old-insertion-point old-insertion-point #t)
+
+               (if (string? str/snp)
+                   (insert str/snp old-insertion-point old-insertion-point #t #t)
+                   (insert str/snp old-insertion-point old-insertion-point #t))
                ;; the idea here is that if you made a string snip, you
                ;; could have made a string and gotten the style, so you
                ;; must intend to have your own style.
                (unless (is-a? str/snp string-snip%)
-                 (change-style style old-insertion-point insertion-point)))
+                 (change-style style (grapheme-position (position-grapheme old-insertion-point)) insertion-point)))
 
              (define (insert-markup-top-level markup style)
                (cond
