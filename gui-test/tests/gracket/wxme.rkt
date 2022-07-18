@@ -595,9 +595,6 @@
 
   (define (random-char) (integer->char (+ (random 4) (char->integer #\a))))
 
-  ;; FIXME: turn slow test back on
-  (void)
-  #;
   (for ([__ (in-range 10000)])
     (define thing-to-search-in (make-random-thing-to-search-in))
     (define thing-to-search-for (random-string (+ 2 (random 3))))
@@ -727,7 +724,27 @@
     (check-prog t))
   
   (void))
-  
+
+(let ()
+  ;; Regression test for a style change that involves a split
+  ;; where the number of split-off characters matches the delta
+  ;; between chars and graphemes
+  (define t (new text%))
+
+  (define normal (send (send t get-style-list) basic-style))
+  (define bold (send (send t get-style-list) find-or-create-style normal (make-object style-delta% 'change-bold)))
+  (define underline (send (send t get-style-list) find-or-create-style normal (make-object style-delta% 'change-underline)))
+
+  (send t insert "(ความกว้าง 500)")
+  (send t change-style underline 0 10)
+  (send t change-style bold 1 1)
+  (expect (for/list ([i (in-range (send t last-position))])
+            (send t position-grapheme i))
+          '(0 1 2 3 4 5 6 6 7 8 9 10 11 12 13))
+  (expect (for/list ([i (in-range (send t last-position))])
+            (send t grapheme-position i))
+          '(0 1 2 3 4 5 6 8 9 10 11 12 13 14 15)))
+
 ;; ----------------------------------------
 
 ;; Insert very long strings to test max-string-length handling
