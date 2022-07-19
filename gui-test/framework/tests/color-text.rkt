@@ -2,10 +2,15 @@
 (require rackunit framework
          syntax-color/racket-lexer)
 
-(define (get-colors t)
+(define (get-colors t #:grapheme? [grapheme? #t])
   (define colors '())
   (define range-start #f)
   (define pending #f)
+  (define (add-to-colors pending start end)
+    (set! colors (cons (list pending
+                             (if grapheme? (send t position-grapheme start) start)
+                             (if grapheme? (send t position-grapheme end) end))
+                       colors)))
   (for ([i (in-range (+ (send t last-position) 1))])
     (define p (send t classify-position i))
     (cond
@@ -14,12 +19,11 @@
        (set! range-start i)]
       [(and range-start (equal? pending p)) (void)]
       [(and range-start (not (equal? pending p)))
-       (set! colors (cons (list pending range-start i) colors))
+       (add-to-colors pending range-start i)
        (set! pending p)
        (set! range-start i)]))
   (when pending
-    (set! colors (cons (list pending range-start (send t last-position))
-                       colors)))
+    (add-to-colors pending range-start (send t last-position)))
   (reverse colors))
 
 (define (token-sym->style s)
@@ -31,22 +35,71 @@
         racket-lexer
         '((|(| |)|) (|[| |]|) (|{| |}|))))
 
+(define (read-a-grapheme p)
+  (define chars
+    (let loop ([state 0])
+      (define next-char (peek-char p))
+      (cond
+        [(eof-object? next-char) '()]
+        [else
+         (define-values (grapheme-terminated? new-state) (char-grapheme-step next-char state))
+         (cond
+           [grapheme-terminated?
+            (if (zero? new-state)
+                (list (read-char p))
+                '())]
+           [else
+            (cons (read-char p)
+                  (loop new-state))])])))
+  (cond
+    [(null? chars) eof]
+    [else chars]))
+
+(check-equal? (read-a-grapheme (open-input-string "")) eof)
+(check-equal? (read-a-grapheme (open-input-string "a")) (list #\a))
+(check-equal? (read-a-grapheme (open-input-string "\r\n")) (list #\return #\newline))
+(check-equal? (read-a-grapheme (open-input-string "\n\r")) (list #\newline))
+(check-equal? (read-a-grapheme (open-input-string "\n\r")) (list #\newline))
+(check-equal? (let ([p (open-input-string "\r\n\n\r\na")])
+                (list (read-a-grapheme p)
+                      (read-a-grapheme p)
+                      (read-a-grapheme p)
+                      (read-a-grapheme p)
+                      (read-a-grapheme p)
+                      (read-a-grapheme p)))
+              (list (list #\return #\newline)
+                    (list #\newline)
+                    (list #\return #\newline)
+                    (list #\a)
+                    eof
+                    eof))
+(check-equal? (read-a-grapheme (open-input-string "🏴‍☠️"))
+              (string->list "\U1f3f4\u200d\u2620\ufe0f"))
+(check-equal? (let ([p (open-input-string "\"🏴‍☠️\"")])
+                (list (read-a-grapheme p)
+                      (read-a-grapheme p)
+                      (read-a-grapheme p)))
+              (list (list #\")
+                    (string->list "\U1f3f4\u200d\u2620\ufe0f")
+                    (list #\")))
+
 (define (backing-up-lexer port offset mode)
   (define-values (line col pos) (port-next-location port))
-  (define c (read-char port))
+  (define c (read-a-grapheme port))
   (cond
     [(eof-object? c)
      (values "eof" 'eof #f #f #f #f #f)]
     [else
      (define peek-port (peeking-input-port port))
-     (read-char peek-port)
-     (define the-color (read-char peek-port))
-     (values (string c)
-             (case the-color
-               [(#\a) 'symbol]
-               [(#\b) 'parenthesis]
-               [(#\c) 'constant]
-               [else 'no-color])
+     (port-count-lines! peek-port)
+     (read-a-grapheme peek-port)
+     (define the-color (read-a-grapheme peek-port))
+     (values (apply string c)
+             (match the-color
+               [(list #\a) 'symbol]
+               [(list #\b) 'parenthesis]
+               [(list #\c) 'constant]
+               [_ 'no-color])
              #f
              pos
              (+ pos 1)
@@ -186,6 +239,41 @@
   (send t thaw-colorer)
 
   (check-equal? (get-colors t) correct-result))
+
+(let ()
+  (define t (new color:text%))
+  (start-racket-colorer t)
+  (send t insert "\"🏴‍☠️\"")
+  (send t freeze-colorer)
+  (send t thaw-colorer)
+
+  (check-equal? (get-colors t #:grapheme? #f) (list '(string 0 6))))
+
+(let ()
+  (define t (new color:text%))
+  (start-racket-colorer t)
+  (send t insert "\"🏴‍☠️\"")
+  (send t freeze-colorer)
+  (send t thaw-colorer)
+
+  (check-equal? (get-colors t) (list '(string 0 3))))
+
+(let ()
+  (define t (new color:text%))
+  (start-racket-colorer t)
+  (send t insert "(define 🏴‍☠️ 1)🏴‍☠️")
+  (send t freeze-colorer)
+  (send t thaw-colorer)
+
+  (check-equal? (get-colors t)
+                '((parenthesis 0 1)
+                  (symbol 1 7)
+                  (white-space 7 8)
+                  (symbol 8 9)
+                  (white-space 9 10)
+                  (constant 10 11)
+                  (parenthesis 11 12)
+                  (symbol 12 13))))
 
 (let ()
   (define t (new color:text%))
