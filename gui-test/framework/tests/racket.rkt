@@ -111,24 +111,26 @@
 ;;
 ;; testing highlight-range method
 ;;
+;
 
-
-(define (text-balanced? number str start end)
+(define (text-balanced? str start end)
   (define t (new racket:text%))
   (send t insert str)
   (racket:text-balanced? t start end))
 
 (define (test-text-balanced)
-  (check-equal? (text-balanced? 0 "" 0 #f) #f)
-  (check-equal? (text-balanced? 1 "  \n " 0 #f) #f)
-  (check-equal? (text-balanced? 2 "foo)" 0 #f) #t)
-  (check-equal? (text-balanced? 3 "(foo" 0 #f) #f)
-  (check-equal? (text-balanced? 4 "(foo)" 0 #f) #t)
-  (check-equal? (text-balanced? 5 "(foo 'bar))" 0 #f) #t)
-  (check-equal? (text-balanced? 6 "(foo) bar ([buz])" 0 #f) #t)
-  (check-equal? (text-balanced? 7 "(foo]" 0 #f) #t)
-  (check-equal? (text-balanced? 8 "{foo} ((bar) [5.9])" 0 #f) #t)
-  (check-equal? (text-balanced? 9 "#(1 2 . 3)" 0 #f) #t))
+  (check-equal? (text-balanced? "" 0 #f) #f)
+  (check-equal? (text-balanced? "  \n " 0 #f) #f)
+  (check-equal? (text-balanced? "foo)" 0 #f) #t)
+  (check-equal? (text-balanced? "(foo" 0 #f) #f)
+  (check-equal? (text-balanced? "(foo)" 0 #f) #t)
+  (check-equal? (text-balanced? "(🏴‍☠️)" 0 6) #t)
+  (check-equal? (text-balanced? "(🏴‍☠️)" 0 #f) #t)
+  (check-equal? (text-balanced? "(foo 'bar))" 0 #f) #t)
+  (check-equal? (text-balanced? "(foo) bar ([buz])" 0 #f) #t)
+  (check-equal? (text-balanced? "(foo]" 0 #f) #t)
+  (check-equal? (text-balanced? "{foo} ((bar) [5.9])" 0 #f) #t)
+  (check-equal? (text-balanced? "#(1 2 . 3)" 0 #f) #t))
 
 (define (test-indentation before)
   (define t (new racket:text%))
@@ -142,6 +144,7 @@
 (define (indentation-tests)
   (check-equal? (test-indentation "a") "a")
   (check-equal? (test-indentation "(a\n b)") "(a\n b)")
+  (check-equal? (test-indentation "(🏴‍☠️\n b)") "(🏴‍☠️\n b)")
   (check-equal? (test-indentation "(a\nb)") "(a\n b)")
   (check-equal? (test-indentation "(a b\nc)") "(a b\n   c)")
   (check-equal? (test-indentation "(a ...\nb)") "(a ...\n b)")
@@ -285,6 +288,8 @@
                 "]")
   (check-equal? (do-message-send "(" 1 (λ (t) (send t insert-close-paren 1 #\] #t #t #f)))
                 "()")
+  (check-equal? (do-message-send "(🏴‍☠️" 6 (λ (t) (send t insert-close-paren (send t grapheme-position 2) #\] #t #t #f)))
+                "(🏴‍☠️)")
   (check-equal? (do-message-send "(" 1 (λ (t) (send t insert-close-paren 1 #\] #f #f #f)))
                 "(]")
   (check-equal? (do-message-send "" 0 (λ (t) (send t insert-close-paren 0 #\] #t #t 'forward)))
@@ -299,6 +304,8 @@
   ;; test tabify call
   (check-equal? (do-message-send "(1\n 2\n 3)" 1 (λ (t) (send t kill-enclosing-parens 1)))
                 "1\n2\n3")
+  (check-equal? (do-message-send "(1\n 🏴‍☠️\n 3)" 1 (λ (t) (send t kill-enclosing-parens 1)))
+                "1\n🏴‍☠️\n3")
 
   (check-equal? (do-message-send "abc" 1 (λ (t) (send t backward-containing-sexp 1 3))
                                  #:check-result? #t)
@@ -448,6 +455,12 @@
                              #\(              ; key(s) pressed
                              '(["abcd(" "efg"]  ; result state sep by cursor, no auto-parens
                                ["abcd(" ")efg"])) ; result state with auto-parens
+
+  (test-parens-behavior/full 'open-parens
+                             "ab🏴‍☠️cd" "" "efg"  ; editor state: before, selected, after
+                             #\(              ; key(s) pressed
+                             '(["ab🏴‍☠️cd(" "efg"]  ; result state sep by cursor, no auto-parens
+                               ["ab🏴‍☠️cd(" ")efg"]))
 
   (test-parens-behavior/full 'open-parens-before-string
                              "abcd" "" "\"efg\""
