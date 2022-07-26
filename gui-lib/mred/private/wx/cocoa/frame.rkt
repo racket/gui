@@ -401,7 +401,10 @@
                   (tell (tell NSApplication sharedApplication)
                         endSheet: cocoa))))
             (when (is-shown?) ; otherwise, `deminiaturize' can show the window
-              (tellv cocoa deminiaturize: #f)
+	      (unless (version-13.0-or-later?)
+	        ;; In Ventura, `deminiaturize` appears to queue a callback
+		;; that will re-show the frame:
+                (tellv cocoa deminiaturize: #f))
               (define fs? (fullscreened?))
               (set! unshown-fullscreen? fs?)
               (tellv cocoa setReleasedWhenClosed: #:type _BOOL #f)
