@@ -1098,20 +1098,26 @@
       (when (object? position-canvas)
         (define edit (get-info-editor))
         (define (make-one pos)
+          (define pos-grapheme (send edit position-grapheme pos))
           (define (line-numbers)
-            (define line (send edit position-paragraph pos))
-            (define col (find-col edit line pos))
+            (define para (send edit position-paragraph pos))
+            (define col (find-col edit para pos))
+            (define para-start (send edit paragraph-start-position para))
+            (define para-start-grapheme (send edit position-grapheme para-start))
+            (define col-grapheme (- col
+                                    (- (- pos pos-grapheme)
+                                       (- para-start para-start-grapheme))))
             (format "~a:~a"
-                    (add1 line)
+                    (add1 para)
                     (if offset?
-                        (add1 col)
-                        col)))
+                        (add1 col-grapheme)
+                        col-grapheme)))
           (cond
             [(and line-numbers? character-offsets?)
-             (format "~a@~a" pos (line-numbers))]
+             (format "~a@~a" pos-grapheme (line-numbers))]
             [line-numbers?
              (line-numbers)]
-            [else (format "~a" pos)]))
+            [else (format "~a" pos-grapheme)]))
         (cond
           [edit
            (unless (send position-canvas is-shown?)
