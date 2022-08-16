@@ -1063,7 +1063,8 @@
        (λ (p v)
          (editor-position-changed-offset/numbers
           v
-          (preferences:get 'framework:display-line-numbers))
+          (preferences:get 'framework:display-line-numbers)
+          (preferences:get 'framework:display-character-offsets?))
          #t)))
     (define remove-second
       (preferences:add-callback
@@ -1071,28 +1072,45 @@
        (λ (p v)
          (editor-position-changed-offset/numbers
           (preferences:get 'framework:col-offsets)
+          v
+          (preferences:get 'framework:display-character-offsets?))
+         #t)))
+    (define remove-third
+      (preferences:add-callback
+       'framework:display-character-offsets?
+       (λ (p v)
+         (editor-position-changed-offset/numbers
+          (preferences:get 'framework:col-offsets)
+          (preferences:get 'framework:display-line-numbers)
           v)
          #t)))
     (define/augment (on-close)
       (remove-first)
       (remove-second)
+      (remove-third)
       (inner (void) on-close))
     [define last-start #f]
     [define last-end #f]
     [define last-params #f]
-    (define/private (editor-position-changed-offset/numbers offset? line-numbers?)
+    (define/private (editor-position-changed-offset/numbers offset?
+                                                            line-numbers?
+                                                            character-offsets?)
       (when (object? position-canvas)
         (define edit (get-info-editor))
         (define (make-one pos)
+          (define (line-numbers)
+            (define line (send edit position-paragraph pos))
+            (define col (find-col edit line pos))
+            (format "~a:~a"
+                    (add1 line)
+                    (if offset?
+                        (add1 col)
+                        col)))
           (cond
+            [(and line-numbers? character-offsets?)
+             (format "~a@~a" pos (line-numbers))]
             [line-numbers?
-             (define line (send edit position-paragraph pos))
-             (define col (find-col edit line pos))
-             (format "~a:~a"
-                     (add1 line)
-                     (if offset?
-                         (add1 col)
-                         col))]
+             (line-numbers)]
             [else (format "~a" pos)]))
         (cond
           [edit
@@ -1100,19 +1118,21 @@
              (send position-canvas show #t))
            (define start (send edit get-start-position))
            (define end (send edit get-end-position))
+           (define this-params (list offset? line-numbers? character-offsets?))
            (unless (and last-start
-                        (equal? last-params (list offset? line-numbers?))
+                        (equal? last-params this-params)
                         (= last-start start)
                         (= last-end end))
-             (set! last-params (list offset? line-numbers?))
+             (set! last-params this-params)
              (set! last-start start)
              (set! last-end end)
              (change-position-edit-contents
               (if (= start end)
                   (make-one start)
-                  (string-append (make-one start)
-                                 "-"
-                                 (make-one end)))))]
+                  (string-append
+                   (make-one start)
+                   (if (and line-numbers? character-offsets?) " - " "-")
+                   (make-one end)))))]
           [else
            (when (send position-canvas is-shown?)
              (send position-canvas show #f))])))
@@ -1206,7 +1226,8 @@
     (define/public (editor-position-changed)
       (editor-position-changed-offset/numbers
        (preferences:get 'framework:col-offsets)
-       (preferences:get 'framework:display-line-numbers)))
+       (preferences:get 'framework:display-line-numbers)
+       (preferences:get 'framework:display-character-offsets?)))
     (define/public (overwrite-status-changed)
       (let ([info-edit (get-info-editor)]
             [failed
@@ -1356,16 +1377,17 @@
         [(send evt button-down?)
          (define menu (new popup-menu%))
          (define line-numbers? (preferences:get 'framework:display-line-numbers))
+         (define character-offsets? (preferences:get 'framework:display-character-offsets?))
          (new checkable-menu-item%
               [parent menu]
               [label (string-constant show-line-and-column-numbers)]
-              [callback (λ (x y) (preferences:set 'framework:display-line-numbers #t))]
+              [callback (λ (x y) (preferences:set 'framework:display-line-numbers (not line-numbers?)))]
               [checked line-numbers?])
          (new checkable-menu-item%
               [parent menu]
               [label (string-constant show-character-offsets)]
-              [callback (λ (x y) (preferences:set 'framework:display-line-numbers #f))]
-              [checked (not line-numbers?)])
+              [callback (λ (x y) (preferences:set 'framework:display-character-offsets? (not character-offsets?)))]
+              [checked character-offsets?])
          (extra-menu-items menu)
          (popup-menu menu 
                      (+ 1 (send evt get-x))

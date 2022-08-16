@@ -380,6 +380,7 @@
 (preferences:set-default 'framework:verify-change-format #f boolean?)
 (preferences:set-default 'framework:auto-set-wrap? #f boolean?)
 (preferences:set-default 'framework:display-line-numbers #t boolean?)
+(preferences:set-default 'framework:display-character-offsets? #f boolean?)
 (preferences:set-default 'framework:show-status-line #t boolean?)
 (preferences:set-default 'framework:col-offsets #f boolean?)
 
