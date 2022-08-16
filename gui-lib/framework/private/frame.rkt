@@ -1081,40 +1081,38 @@
     [define last-end #f]
     [define last-params #f]
     (define/private (editor-position-changed-offset/numbers offset? line-numbers?)
-      (let* ([edit (get-info-editor)]
-             [make-one
-              (λ (pos)
-                (if line-numbers?
-                    (let* ([line (send edit position-paragraph pos)]
-                           [col (find-col edit line pos)])
-                      (format "~a:~a"
-                              (add1 line)
-                              (if offset?
-                                  (add1 col)
-                                  col)))
-                    (format "~a" pos)))])
+      (when (object? position-canvas)
+        (define edit (get-info-editor))
+        (define (make-one pos)
+          (cond
+            [line-numbers?
+             (define line (send edit position-paragraph pos))
+             (define col (find-col edit line pos))
+             (format "~a:~a"
+                     (add1 line)
+                     (if offset?
+                         (add1 col)
+                         col))]
+            [else (format "~a" pos)]))
         (cond
-          [(not (object? position-canvas))
-           (void)]
           [edit
            (unless (send position-canvas is-shown?)
              (send position-canvas show #t))
-           (let ([start (send edit get-start-position)]
-                 [end (send edit get-end-position)])
-             (unless (and last-start
-                          (equal? last-params (list offset? line-numbers?))
-                          (= last-start start)
-                          (= last-end end))
-               (set! last-params (list offset? line-numbers?))
-               (set! last-start start)
-               (set! last-end end)
-               (when (object? position-canvas)
-                 (change-position-edit-contents
-                  (if (= start end)
-                      (make-one start)
-                      (string-append (make-one start)
-                                     "-"
-                                     (make-one end)))))))]
+           (define start (send edit get-start-position))
+           (define end (send edit get-end-position))
+           (unless (and last-start
+                        (equal? last-params (list offset? line-numbers?))
+                        (= last-start start)
+                        (= last-end end))
+             (set! last-params (list offset? line-numbers?))
+             (set! last-start start)
+             (set! last-end end)
+             (change-position-edit-contents
+              (if (= start end)
+                  (make-one start)
+                  (string-append (make-one start)
+                                 "-"
+                                 (make-one end)))))]
           [else
            (when (send position-canvas is-shown?)
              (send position-canvas show #f))])))
@@ -1356,22 +1354,22 @@
     (define/override (on-subwindow-event receiver evt)
       (cond
         [(send evt button-down?)
-         (let ([menu (new popup-menu%)]
-               [line-numbers? (preferences:get 'framework:display-line-numbers)])
-           (new checkable-menu-item%
-                [parent menu]
-                [label (string-constant show-line-and-column-numbers)]
-                [callback (λ (x y) (preferences:set 'framework:display-line-numbers #t))]
-                [checked line-numbers?])
-           (new checkable-menu-item%
-                [parent menu]
-                [label (string-constant show-character-offsets)]
-                [callback (λ (x y) (preferences:set 'framework:display-line-numbers #f))]
-                [checked (not line-numbers?)])
-           (extra-menu-items menu)
-           (popup-menu menu 
-                       (+ 1 (send evt get-x))
-                       (+ 1 (send evt get-y))))
+         (define menu (new popup-menu%))
+         (define line-numbers? (preferences:get 'framework:display-line-numbers))
+         (new checkable-menu-item%
+              [parent menu]
+              [label (string-constant show-line-and-column-numbers)]
+              [callback (λ (x y) (preferences:set 'framework:display-line-numbers #t))]
+              [checked line-numbers?])
+         (new checkable-menu-item%
+              [parent menu]
+              [label (string-constant show-character-offsets)]
+              [callback (λ (x y) (preferences:set 'framework:display-line-numbers #f))]
+              [checked (not line-numbers?)])
+         (extra-menu-items menu)
+         (popup-menu menu 
+                     (+ 1 (send evt get-x))
+                     (+ 1 (send evt get-y)))
          #t]
         [else
          (super on-subwindow-event receiver evt)]))
