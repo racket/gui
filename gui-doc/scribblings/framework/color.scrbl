@@ -429,8 +429,8 @@
     Return a symbol for the lexer-determined token type for the token
     that contains the item after @racket[position]. Using
     @method[color:text<%> classify-position] is the same as using
-    @method[color:text<%> classify-position] and checking for a
-    @racket['type] value.
+    @method[color:text<%> classify-position*] and checking for a
+    @racket['type] value in the resulting hash.
 
     Must only be called while the tokenizer is started.
   }
