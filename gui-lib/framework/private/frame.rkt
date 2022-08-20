@@ -528,20 +528,20 @@
         (refresh)))
     (inherit get-client-size get-dc)
     (define/override (on-paint)
-      (let* ([dc (get-dc)]
-             [draw
-              (λ (str bg-color bg-style line-color line-style)
-                (send dc set-font small-control-font)
-                (let-values ([(w h) (get-client-size)]
-                             [(tw th _1 _2) (send dc get-text-extent str)])
-                  (send dc set-pen (send the-pen-list find-or-create-pen line-color 1 line-style))
-                  (send dc set-brush (send the-brush-list find-or-create-brush bg-color bg-style))
-                  (send dc draw-rectangle 0 0 w h)
-                  (send dc draw-text str
-                        (- (/ w 2) (/ tw 2))
-                        (- (/ h 2) (/ th 2)))))])
-        (when locked?
-          (draw locked-message "yellow" 'solid "black" 'solid))))
+      (define dc (get-dc))
+      (define (draw str bg-color bg-style line-color line-style)
+        (send dc set-font small-control-font)
+        (define-values (w h) (get-client-size))
+        (define-values (tw th _1 _2) (send dc get-text-extent str #f 'grapheme))
+        (send dc set-pen (send the-pen-list find-or-create-pen line-color 1 line-style))
+        (send dc set-brush (send the-brush-list find-or-create-brush bg-color bg-style))
+        (send dc draw-rectangle 0 0 w h)
+        (send dc draw-text str
+              (- (/ w 2) (/ tw 2))
+              (- (/ h 2) (/ th 2))
+              'grapheme))
+      (when locked?
+        (draw locked-message "yellow" 'solid "black" 'solid)))
     
     (inherit get-parent min-width min-height stretchable-width stretchable-height)
     (define/private (setup-sizes)
@@ -993,18 +993,18 @@
       (update-client-width str)
       (refresh))
     (define/private (update-client-width str)
-      (let ([dc (get-dc)])
-        (let-values ([(cw _4) (get-client-size)]
-                     [(tw _1 _2 _3) (send dc get-text-extent str normal-control-font)])
-          (when (< cw tw)
-            (min-client-width (inexact->exact (ceiling tw)))))))
+      (define dc (get-dc))
+      (define-values (cw _4) (get-client-size))
+      (define-values (tw _1 _2 _3) (send dc get-text-extent str normal-control-font 'grapheme))
+      (when (< cw tw)
+        (min-client-width (inexact->exact (ceiling tw)))))
     (define/override (on-paint)
       (define dc (get-dc))
       (send dc set-font normal-control-font)
       (send dc set-text-foreground (get-label-foreground-color))
       (define-values (cw ch) (get-client-size))
       (define-values (tw th _1 _2) (send dc get-text-extent str))
-      (send dc draw-text str 0 (/ (- ch th) 2)))
+      (send dc draw-text str 0 (/ (- ch th) 2) 'grapheme))
     (define/override (on-event evt)
       (when button-up
         (when (send evt button-up?)

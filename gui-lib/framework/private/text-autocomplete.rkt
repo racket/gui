@@ -573,12 +573,12 @@ designates the character that triggers autocompletion
                             (+ menu-padding-y y dy))))]
                  [else
                   (let ([c (car pc)])
-                    (let-values ([(w h d a) (send dc get-text-extent c)])
+                    (let-values ([(w h d a) (send dc get-text-extent c #f 'grapheme)])
                       (when (= item-number highlighted-menu-item)
                         (send dc set-pen "black" 1 'transparent)
                         (send dc set-brush (send editor get-autocomplete-selected-color) 'solid)
                         (send dc draw-rectangle (+ mx dx 1) (+ dy y menu-padding-y 1) (- tw 2) (- h 1)))
-                      (send dc draw-text c (+ mx dx menu-padding-x) (+ menu-padding-y y dy))
+                      (send dc draw-text c (+ mx dx menu-padding-x) (+ menu-padding-y y dy) 'grapheme)
                       (loop (add1 item-number) (+ y h) (cdr pc))))]))])
           (send dc set-pen old-pen)
           (send dc set-brush old-brush)
