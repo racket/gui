@@ -201,12 +201,13 @@ These three parts are illustrated by a simple word processor. The
 
 Each selectable entity in an editor is an @deftech{item}. In a
  pasteboard, all selection and dragging operations work on snips, so
- there is a one-to-one correspondence between snips and items.  In an
+ there is a one-to-one correspondence between snips and items. In an
  editor, one snip contains one or more consecutive items, and every
  item belongs to some snip. For example, in a simple text editor, each
  character is an item, but multiple adjacent characters may be grouped
  into a single snip. The number of items in a snip is the snip's
- @deftech{count}.
+ @deftech{count}. (Multi-character graphemes complicate this picture
+ somewhat; see @secref["graphemes"].)
 
 Each place where the insertion point can appear in a text editor is a
  @deftech{position}. A text editor with @math{n} items contains
@@ -227,12 +228,12 @@ When an editor is drawn into a display, each snip and position has a
 
 @subsection[#:tag "graphemes"]{Characters, Graphemes, and Source Locations}
 
-For historical reasons, an @tech{item} corresponds to a Racket
- character in an editor with text. Some things that a user would
- perceive as a character are composed of multiple Racket characters,
- however, such as a pirate-flag emoji (which uses a four-character
- encoding) or ``e'' plus an accent modifier (which also has a single
- character representation, but might be represented through those two
+Internally, a @tech{item} corresponds to a Racket character in a text
+ editor. Some things that a user would perceive as a character are
+ composed of multiple Racket characters, however, such as a
+ pirate-flag emoji (which uses a four-character encoding) or ``e''
+ plus an accent modifier (which also has a single character
+ representation, but might be represented through those two
  characters). A @deftech{grapheme} is an approximation to a
  user-perceived character as defined by the Unicode grapheme-cluster
  specification.
@@ -244,21 +245,48 @@ Racket provides support for graphemes though functions like
  position counting as enabled by @racket[port-count-lines!] tracks
  graphemes.
 
-Working with graphemes in a text editor requires extra care. Methods
- like @xmethod[text% grapheme-position] and @xmethod[text%
- position-grapheme] convert between item and grapheme indices, but
- most operations are based in item positions, and they are generally
- not constrained to preserve grapheme-cluster sequences. A grapheme
- cluster that is within a single snip will render as a single
- grapheme, but a grapheme cluster that spans a snip boundary will be
- rendered as two partial graphemes. The @xmethod[text% insert] method
- takes optional arguments to trigger the detection of grapheme
- sequences that would span the existing and inserted content and
- ensure that the sequences are kept together.
+By default, most editor methods work in terms of @deftech{grapheme
+ positions} instead of (character) @tech{positions}. Method names of
+ @racket[text%] that end with @racketidfont{/char} work in terms of
+ character positions, instead. Unless otherwise specified, the
+ implementation of each grapheme-based @racket[text%] method converts
+ grapheme positions to character positions and calls the corresponding
+ @racketidfont{/char} method, converting a result character position
+ back to a grapheme position as needed.
 
-A small number of @racket[text%] methods are grapheme-sensitive by
- default: @method[text% delete], @method[text% insert] of a character,
- and @method[text% move-position].
+All methods of @racket[snip%] work in terms of character positions,
+ and a @racket[text%] object's internal state uses character
+ positions. It is possible, for example, for the selection range in a
+ @racket[text%] object to start or end in the middle of a grapheme.
+ Also grapheme cluster that is within a single snip will render as a
+ single grapheme, but a grapheme cluster that spans a snip boundary
+ will be rendered as two partial graphemes.
+
+Event-handling methods, such as inserting a character or moving the
+ selection, stay aligned to graphemes, and so a user should perceive
+ an @tech{item} as a @tech{grapheme}. As character-based content is
+ loaded into an editor or received via keyboard events, characters
+ forming a grapheme might be added to an editor piecewise; the
+ @xmethod[text% insert] method takes optional arguments to trigger the
+ detection of grapheme sequences that would span the existing and
+ inserted content and ensure that the sequences are kept together.
+
+The @xmethod[text% char-to-grapheme-position] and @xmethod[text%
+ grapheme-to-char-position] methods convert between grapheme and
+ character positions. When converting a character position to a
+ grapheme, a position that represents the start of a range is
+ ``rounded'' toward the start of a grapheme, while a position that
+ represents the end of a range is ``rounded'' toward the end.
+
+Grapheme handling can be disabled for a @racket[text%] object by
+ calling @method[text% use-char-as-grapheme] with a true value. In
+ that case, @xmethod[text% char-to-grapheme-position] and
+ @xmethod[text% grapheme-to-char-position] become identity functions,
+ and method names without @racketidfont{/char} behave like the
+ corresponding methods with a @racketidfont{/char} suffix. Snips
+ within the text editor still report potentially different character
+ and grapheme counts, however, and may draw a grapheme differently
+ than the sequence of its characters.
 
 @subsection[#:tag "editoradministrators"]{Administrators}
 
@@ -605,7 +633,7 @@ For this reason, @techlink{position}-setting and
 @section[#:tag "editorflattened"]{Flattened Text}
 
 In plain text editors, there is a simple correlation between
- @techlink{position}s and characters. In an @racket[editor<%>] object,
+ @techlink{position}s and characters (if not @tech{graphemes}). In an @racket[editor<%>] object,
  this is not true much of the time, but it is still sometimes useful
  to just ``get the text'' of an editor.
 
@@ -613,7 +641,7 @@ Text can be extracted from an editor in either of two forms:
 
 @itemize[
 
- @item{@deftech{Simple text}, where there is one character per
+ @item{@deftech{Simple flattened text}, where there is one character per
  @techlink{item}. @techlink{Item}s that are characters are mapped to
  themselves, and all other @techlink{item}s are mapped to a
  period. Line breaks are represented by newline characters
@@ -630,6 +658,10 @@ Text can be extracted from an editor in either of two forms:
  to a linear sequence of characters.}
 
 ]
+
+Note that flattened text from an editor content includes all
+characters, where a @tech{grapheme} within an editor can be
+represented by multiple characters.
 
 @section[#:tag "drawcaretinfo"]{Caret Ownership}
 

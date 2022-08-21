@@ -670,7 +670,7 @@
                                                                      (or
                                                                       (send s-style-list map-index-to-style f style-index (unbox list-id))
                                                                       (send s-style-list basic-style)))
-                                                               (let* ([zero-length? (zero? (snip->count snip))]
+                                                               (let* ([zero-length? (zero? (snip->char-count snip))]
                                                                       [accum
                                                                        (if zero-length?
                                                                            ;; A 0-length snip is a bug in the input, but 
@@ -1598,7 +1598,7 @@
     (string->bytes/utf-8
      (let ([out (open-output-string)])
        (for-each (lambda (snip)
-                   (let ([s (send snip get-text 0 (snip->count snip) #t)])
+                   (let ([s (send snip get-text 0 (snip->char-count snip) #t)])
                      (display s out)))
                  (reverse copy-buffer))
        (let ([s (get-output-string out)])
