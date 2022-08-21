@@ -28,8 +28,10 @@
   (define password-string-snip%
     (class wx:string-snip%
       (inherit get-count
+               get-grapheme-count
                get-style
-               get-text)
+               get-text
+               char-to-grapheme-position)
       (super-new)
 
       (define delta 3)
@@ -39,7 +41,7 @@
                
       (define/override (get-extent dc x y [w #f] [h #f] [descent #f] [space #f] [lspace #f] [rspace #f])
         (let ([s (get-size)])
-          (when w (set-box! w (* (max 1.0 (- s hdelta hdelta)) (get-count))))
+          (when w (set-box! w (* (max 1.0 (- s hdelta hdelta)) (get-grapheme-count))))
           (when h (set-box! h (+ s 2.0)))
           (when descent (set-box! descent 1.0))
           (when space (set-box! space 1.0))
@@ -47,7 +49,7 @@
           (when rspace (set-box! rspace 0.0))))
       (define/override (partial-offset dc x y pos)
         (let ([s (get-size)])
-          (* (max 1.0 (- s hdelta hdelta)) pos)))
+          (* (max 1.0 (- s hdelta hdelta)) (char-to-grapheme-position pos))))
       (define/override (draw dc x y left top right bottom dx dy draw-caret)
         (let ([s (get-size)]
               [b (send dc get-brush)]
@@ -56,7 +58,7 @@
           (send dc set-pen no-pen)
           (send dc set-brush black-brush)
           (send dc set-smoothing 'aligned)
-          (for/fold ([x x]) ([i (in-range (get-count))])
+          (for/fold ([x x]) ([i (in-range (get-grapheme-count))])
             (send dc draw-ellipse (- (+ x delta) hdelta) (+ y delta 1) (- s delta delta) (- s delta delta))
             (+ x (- s hdelta hdelta)))
           (send dc set-pen p)

@@ -306,8 +306,7 @@ added get-regions
     (inherit change-style begin-edit-sequence end-edit-sequence highlight-range
              get-style-list in-edit-sequence? get-start-position get-end-position
              local-edit-sequence? get-styles-fixed has-focus?
-             get-fixed-style get-text
-             position-grapheme grapheme-position)
+             get-fixed-style get-text)
     
     (define lexers-all-valid? #t)
     (define/private (update-lexer-state-observers)
@@ -387,16 +386,10 @@ added get-regions
                 [(defer) ((+ start-time 20.0) . <= . (current-inexact-milliseconds))]))
          #f]
         [else
-         (define in-start-grapheme (position-grapheme in-start-pos))
          (define-values (_line1 _col1 pos-before) (port-next-location in))
-         (define-values (lexeme attribs paren new-token-start-grapheme new-token-end-grapheme
+         (define-values (lexeme attribs paren new-token-start new-token-end
                                 backup-delta new-lexer-mode/cont)
-           (get-token in in-start-grapheme lexer-mode))
-         ;; port counting is in 1-based graphemes, while but we want 1-based positions after here
-         (define new-token-start (and new-token-start-grapheme
-                                      (+ 1 (- (grapheme-position (+ in-start-grapheme new-token-start-grapheme -1)) in-start-pos))))
-         (define new-token-end (and new-token-end-grapheme
-                                    (+ 1 (- (grapheme-position (+ in-start-grapheme new-token-end-grapheme -1)) in-start-pos))))
+           (get-token in in-start-pos lexer-mode))
          (define-values (_line2 _col2 pos-after) (port-next-location in))
          (define new-lexer-mode (if (dont-stop? new-lexer-mode/cont)
                                     (dont-stop-val new-lexer-mode/cont)
@@ -404,7 +397,7 @@ added get-regions
          (define next-ok-to-stop? (not (dont-stop? new-lexer-mode/cont)))
          (check-colorer-results-match-port-before-and-after
           'color:text<%>
-          (attribs->type attribs) pos-before new-token-start-grapheme new-token-end-grapheme pos-after)
+          (attribs->type attribs) pos-before new-token-start new-token-end pos-after)
          (cond
            [(eq? 'eof attribs) 
             (set-lexer-state-up-to-date?! ls #t)

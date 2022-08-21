@@ -8,8 +8,8 @@
   (define pending #f)
   (define (add-to-colors pending start end)
     (set! colors (cons (list pending
-                             (if grapheme? (send t position-grapheme start) start)
-                             (if grapheme? (send t position-grapheme end) end))
+                             (if grapheme? start (send t grapheme-to-char-position start))
+                             (if grapheme? end (send t grapheme-to-char-position end)))
                        colors)))
   (for ([i (in-range (+ (send t last-position) 1))])
     (define p (send t classify-position i))

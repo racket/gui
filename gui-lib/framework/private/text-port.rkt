@@ -188,6 +188,7 @@
     (mixin (wide-snip<%>) (ports<%>)
       (inherit begin-edit-sequence
                change-style
+               change-style/char
                delete
                end-edit-sequence
                find-snip
@@ -214,8 +215,8 @@
                set-styles-fixed
                auto-wrap
                get-autowrap-bitmap-width
-               grapheme-position
-               position-grapheme)
+               char-to-grapheme-position
+               grapheme-to-char-position)
     
       ;; private field
       (define eventspace (current-eventspace))
@@ -320,7 +321,7 @@
           (set! allow-edits? #t)
           (insert str start start #f #t)
           (when style
-            (change-style (add-standard style) (grapheme-position (position-grapheme start)) (+ start len)))
+            (change-style/char (add-standard style) (grapheme-to-char-position (char-to-grapheme-position start)) (+ start len)))
           (set! allow-edits? before-allowed?)))
       
       (define/public-final (get-in-port)
@@ -644,7 +645,7 @@
                ;; could have made a string and gotten the style, so you
                ;; must intend to have your own style.
                (unless (is-a? str/snp string-snip%)
-                 (change-style style (grapheme-position (position-grapheme old-insertion-point)) insertion-point)))
+                 (change-style/char style (char-to-grapheme-position (grapheme-to-char-position old-insertion-point)) insertion-point)))
 
              (define (insert-markup-top-level markup style)
                (cond

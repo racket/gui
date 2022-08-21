@@ -69,6 +69,23 @@ Called when the snip's editor's method is called, @racket[recursive?]
 }
 
 
+@defmethod[(char-to-grapheme-position [n exact-nonnegative-integer?]
+                                      [end? any/c #f])
+           exact-nonnegative-integer?]{
+
+Returns the number of @tech{graphemes} within the snip formed by the
+first @racket[n] @tech{items}, rounding up if @racket[n] corresponds
+to an incomplete grapheme cluster; or, equivalently, converts from an
+<@tech{item}-based position to a @tech{grapheme}-based position.
+
+When @method[snip<%> get-count] is the same as @method[snip<%>
+get-grapheme-count], this method returns @racket[n].
+
+See also @secref["graphemes"].
+
+@history[#:added "1.4"]}
+
+
 @defmethod[(copy)
            (is-a?/c snip%)]{
 
@@ -211,6 +228,12 @@ Returns the administrator for this snip. (The administrator can be
 Returns the snip's @techlink{count} (i.e., number of @techlink{item}s
  within the snip).
 
+Beware that for a @racket[string-snip%] instances, the result of
+ @method[snip<%> get-count] is the number of characters in the snip,
+ not the number of @tech{graphemes}.
+
+See also @secref["graphemes"].
+
 }
 
 @defmethod[(get-grapheme-count)
@@ -220,10 +243,12 @@ Returns the number of @techlink{graphemes} in the snip, which is
 usually the same result as @method[snip<%> get-count], but can be
 smaller with multiple consecutive @tech{items} form a grapheme.
 
-@history[#:added "1.67"]}
+See also @secref["graphemes"].
+
+@history[#:added "1.4"]}
 
 
-@defmethod[(grapheme-position [n exact-nonnegative-integer?])
+@defmethod[(grapheme-to-char-position [n exact-nonnegative-integer?])
            exact-nonnegative-integer?]{
 
 Returns the number of @tech{items} in the snip that form the first
@@ -233,7 +258,9 @@ Returns the number of @tech{items} in the snip that form the first
 When @method[snip<%> get-count] is the same as @method[snip<%>
 get-grapheme-count], this method returns @racket[n].
 
-@history[#:added "1.67"]}
+See also @secref["graphemes"].
+
+@history[#:added "1.4"]}
 
 
 @defmethod[(get-extent [dc (is-a?/c dc<%>)]
@@ -642,19 +669,6 @@ Does nothing.
 }}
 
 
-@defmethod[(position-grapheme [n exact-nonnegative-integer?])
-           exact-nonnegative-integer?]{
-
-Returns the number of @tech{graphemes} within the snip formed by the
-first @racket[n] @tech{items}; or, equivalently, converts from an
-@tech{item}-based position to a @tech{grapheme}-based position.
-
-When @method[snip<%> get-count] is the same as @method[snip<%>
-get-grapheme-count], this method returns @racket[n].
-
-@history[#:added "1.67"]}
-
-
 @defmethod[(partial-offset [dc (is-a?/c dc<%>)]
                            [x real?]
                            [y real?]
@@ -751,15 +765,17 @@ The snip's (new) editor is usually internally locked for reading when
 }
 
 
-@defmethod[(set-count [c (integer-in 1 100000)])
+@defmethod[(set-count [c exact-nonnegative-integer?])
            void?]{
 @methspec{
 
 Sets the snip's @techlink{count} (i.e., the number of @techlink{item}s
- within the snip).
+ within the snip) to @racket[(max 1 c)]. The snip's @tech{grapheme} count is
+ set to be equal to its character count.
 
-The snip's @techlink{count} may be changed by the system (in extreme cases to
- maintain consistency) without calling this method.
+The snip's @techlink{count} may be changed by the system (in extreme
+ cases to maintain consistency) without calling this method or
+ @method[snip% set-char-and-grapheme-count].
 
 }
 @methimpl{
@@ -768,6 +784,28 @@ Sets the snip's @techlink{count} and notifies the snip's administrator
  that the snip's size has changed.
 
 }}
+
+
+@defmethod[(set-char-and-grapheme-count [char-c exact-nonnegative-integer?]
+                                        [grapheme-c exact-nonnegative-integer?])
+           void?]{
+@methspec{
+
+Sets the snip's @techlink{count} to @racket[(max 1 char-c)] and its
+ @tech{grapheme} count to @racket[(max 1 grapheme-c)].
+
+The snip's @techlink{count} may be changed by the system (in extreme cases to
+ maintain consistency) without calling this method or @method[snip% set-count].
+
+}
+@methimpl{
+
+Sets the snip's @techlink{count} and notifies the snip's administrator
+ that the snip's size has changed.
+
+}
+
+@history[#:added "1.4"]}
 
 
 @defmethod[(set-flags [flags (listof symbol?)])

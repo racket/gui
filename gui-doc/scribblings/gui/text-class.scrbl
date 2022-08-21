@@ -1,6 +1,18 @@
 #lang scribble/doc
 @(require "common.rkt")
 
+@(define see-grapheme
+   @elem{For information about the @racketidfont{/char} variant,
+         which has the same arguments and result, see @secref["graphemes"].})
+
+@(define see-grapheme/separate
+   @elem{Unlike most @racketidfont{/char} variants, the implementation of the
+         @racketidfont{/char} variant is separate and does not call the
+         non-@racketidfont{/char} variant. See also @secref["graphemes"].})
+
+
+@(define same @elem{....})
+
 @defclass/title[text% object% (editor<%>)]{
 
 A @racket[text%] object is a standard text editor. A text editor is
@@ -32,13 +44,15 @@ A new @racket[style-list%] object is created for the new editor.  See
 }
 
 
-@defmethod[#:mode pubment 
-           (after-change-style [start exact-nonnegative-integer?]
-                               [len exact-nonnegative-integer?])
-           void?]{
+@defmethod*[#:mode pubment 
+            ([(after-change-style [start exact-nonnegative-integer?]
+                                  [len exact-nonnegative-integer?])
+             void?]
+             [(after-change-style/char ...) #,same])]{
 @methspec{
 
-Called after the style is changed for a given range (and after the
+Both the non-@racketidfont{/char} method and @racketidfont{/char} method
+ are called after the style is changed for a given range (and after the
  @techlink{display} is refreshed; use @method[text% on-change-style]
  and @method[editor<%> begin-edit-sequence] to avoid extra refreshes
  when @method[text% after-change-style] modifies the editor).
@@ -46,19 +60,27 @@ Called after the style is changed for a given range (and after the
 See also @method[text% can-change-style?] and @method[editor<%>
  on-edit-sequence].
 
-No internals locks are set when this method is called.
+No internal locks are set when this method is called.
 
 }
 @methimpl{
 
 Does nothing.
 
-}}
+@see-grapheme/separate
 
-@defmethod[#:mode pubment 
-           (after-delete [start exact-nonnegative-integer?]
-                         [len exact-nonnegative-integer?])
-           void?]{
+}
+
+@history[#:changed "1.68" @elem{Added @method[text% after-change-style/char].}]
+
+}
+
+@defmethod*[#:mode pubment 
+            ([(after-delete [start exact-nonnegative-integer?]
+                            [len exact-nonnegative-integer?])
+              void?]
+             [(after-delete/char ...)
+              #,same])]{
 @methspec{
 
 Called after a given range is deleted from the editor (and after the
@@ -74,7 +96,11 @@ The @racket[start] argument specifies the starting @techlink{position}
 See also @method[text% can-delete?] and @method[editor<%>
  on-edit-sequence].
 
-No internals locks are set when this method is called.
+No internal locks are set when this method is called.
+
+@see-grapheme/separate
+
+@history[#:changed "1.68" @elem{Added @method[text% after-delete/char].}]
 
 }
 @methimpl{
@@ -83,13 +109,16 @@ Does nothing.
 
 }}
 
-@defmethod[#:mode pubment 
-           (after-insert [start exact-nonnegative-integer?]
-                         [len exact-nonnegative-integer?])
-           void?]{
+@defmethod*[#:mode pubment 
+            ([(after-insert [start exact-nonnegative-integer?]
+                            [len exact-nonnegative-integer?])
+              void?]
+             [(after-insert/char ...)
+              #,same])]{
 @methspec{
 
-Called after @techlink{item}s are inserted into the editor (and after
+Both the non-@racketidfont{/char} method and @racketidfont{/char} method
+ are called after @techlink{item}s are inserted into the editor (and after
  the @techlink{display} is refreshed; use @method[text% on-insert] and
  @method[editor<%> begin-edit-sequence] to avoid extra refreshes when
  @method[text% after-insert] modifies the editor).
@@ -101,14 +130,20 @@ The @racket[start] argument specifies the @techlink{position} of the insert. The
 See also @method[text% can-insert?] and @method[editor<%>
  on-edit-sequence].
 
-No internals locks are set when this method is called.
+No internal locks are set when this method is called.
 
 }
 @methimpl{
 
 Does nothing.
 
-}}
+@see-grapheme/separate
+
+}
+
+@history[#:changed "1.68" @elem{Added @method[text% after-insert/char].}]
+
+}
 
 @defmethod[#:mode pubment 
            (after-merge-snips [pos exact-nonnegative-integer?])
@@ -123,6 +158,9 @@ The @racket[pos] argument specifies the @techlink{position} within the editor
  @racket[pos]).
 
 See also @method[snip% merge-with].
+
+This method receives a character position, not a @tech{grapheme
+ position}. See also @secref["graphemes"].
 
 }
 @methimpl{
@@ -188,6 +226,9 @@ Called after a snip in the editor is split into two, either through a
 The @racket[pos] argument specifies the @techlink{position} within the editor
  where a snip was split.
 
+This method receives a character position, not a @tech{grapheme
+ position}. See also @secref["graphemes"].
+
 }
 @methimpl{
 
@@ -195,25 +236,34 @@ Does nothing.
 
 }}
 
-@defmethod[(call-clickback [start exact-nonnegative-integer?]
-                           [end exact-nonnegative-integer?])
-           void?]{
+@defmethod*[([(call-clickback [start exact-nonnegative-integer?]
+                              [end exact-nonnegative-integer?])
+              void?]
+             [(call-clickback/char ...)
+              #,same])]{
 
 Simulates a user click that invokes a clickback, if the given range of
  @techlink{position}s is within a clickback's region. See also
  @|clickbackdiscuss|.
 
+@see-grapheme
+
+@history[#:changed "1.68" @elem{Added @method[text% call-clickback/char].}]
+
 }
 
-@defmethod[#:mode pubment 
-           (can-change-style? [start exact-nonnegative-integer?]
+@defmethod*[#:mode pubment 
+            ([(can-change-style? [start exact-nonnegative-integer?]
                               [len exact-nonnegative-integer?])
-           boolean?]{
+              boolean?]
+             [(can-change-style?/char ...)
+              #,same])]{
 
 @methspec{
 
-Called before the style is changed in a given range of the editor. If
- the return value is @racket[#f], then the style change will be
+Both the non-@racketidfont{/char} method and @racketidfont{/char} method
+ are called before the style is changed in a given range of the editor. If
+ the return value of either is @racket[#f], then the style change will be
  aborted.
 
 The editor is internally locked for writing during a call to this
@@ -228,18 +278,26 @@ See also @method[text% on-change-style], @method[text%
 
 Returns @racket[#t].
 
-}
+@see-grapheme/separate
+
 }
 
-@defmethod[#:mode pubment 
-           (can-delete? [start exact-nonnegative-integer?]
-                        [len exact-nonnegative-integer?])
-           boolean?]{
+@history[#:changed "1.68" @elem{Added @method[text% can-change-style?/char].}]
+
+}
+
+@defmethod*[#:mode pubment 
+            ([(can-delete? [start exact-nonnegative-integer?]
+                           [len exact-nonnegative-integer?])
+              boolean?]
+             [(can-delete?/char ...)
+              #,same])]{
 @methspec{
 
-Called before a range is deleted from the editor.
-If the return value is @racket[#f], then the
-delete will be aborted.
+Both the non-@racketidfont{/char} method and @racketidfont{/char} method
+ are called before a range is deleted from the editor.
+ If the return value from either is @racket[#f], then the
+ delete will be aborted.
 
 The @racket[start] argument specifies the starting @techlink{position}
  of the range to delete. The @racket[len] argument specifies number of
@@ -258,16 +316,25 @@ See also @method[text% on-delete], @method[text% after-delete], and
 
 Returns @racket[#t].
 
-}}
+@see-grapheme/separate
 
-@defmethod[#:mode pubment 
-           (can-insert? [start exact-nonnegative-integer?]
-                        [len exact-nonnegative-integer?])
-           boolean?]{
+}
+
+@history[#:changed "1.68" @elem{Added @method[text% can-delete?/char].}]
+
+}
+
+@defmethod*[#:mode pubment 
+            ([(can-insert? [start exact-nonnegative-integer?]
+                           [len exact-nonnegative-integer?])
+              boolean?]
+             [(can-insert?/char ...)
+              #,same])]{
 @methspec{
 
-Called before @techlink{item}s are inserted into the editor.  If the
- return value is @racket[#f], then the insert will be aborted.
+Both the non-@racketidfont{/char} method and @racketidfont{/char} method
+ are called before @techlink{item}s are inserted into the editor.  If the
+ return value from either is @racket[#f], then the insert will be aborted.
 
 The @racket[start] argument specifies the @techlink{position} of the potential
  insert. The @racket[len] argument specifies the total length (in
@@ -285,7 +352,13 @@ See also @method[text% on-insert], @method[text% after-insert], and
 
 Returns @racket[#t].
 
-}}
+@see-grapheme/separate
+
+}
+
+@history[#:changed "1.68" @elem{Added @method[text% can-insert?/char].}]
+
+}
 
 
 @defmethod[#:mode pubment 
@@ -332,7 +405,9 @@ See also @method[text% hide-caret].
                             [start (or/c exact-nonnegative-integer? 'start) 'start]
                             [end (or/c exact-nonnegative-integer? 'end) 'end]
                             [counts-as-mod? any/c #t])
-              void?])]{
+              void?]
+             [(change-style/char ...)
+              #,same])]{
 
 Changes the style for a region in the editor by applying a style delta
  or installing a specific style.  If @racket[start] is @racket['start]
@@ -352,15 +427,35 @@ To change a large collection of snips from one style to another style,
 
 When @racket[style] is provided: @InStyleListNote[@racket[style]]
 
+@see-grapheme
+
+@history[#:changed "1.68" @elem{Added @method[text% change-style/char].}]
+
 }
 
+@defmethod[(char-to-grapheme-position [n exact-nonnegative-integer?]
+                                      [end? any/c #f])
+           exact-nonnegative-integer?]{
 
-@defmethod[#:mode extend
-           (copy [extend? any/c #f]
-                 [time exact-integer? 0]
-                 [start (or/c exact-nonnegative-integer? 'start) 'start]
-                 [end (or/c exact-nonnegative-integer? 'end) 'end])
-           void?]{
+Returns the number of @tech{graphemes} within the editor formed by the
+first @racket[n] @tech{items}; or, equivalently, converts from an
+@tech{item}-based position to a @tech{grapheme}-based position.
+If @racket[end?] is true, then the number of graphemes is rounded up
+when @racket[n] is within a grapheme cluster.
+
+See also @secref["graphemes"].
+
+@history[#:added "1.68"]}
+
+
+@defmethod*[#:mode extend
+            ([(copy [extend? any/c #f]
+                    [time exact-integer? 0]
+                    [start (or/c exact-nonnegative-integer? 'start) 'start]
+                    [end (or/c exact-nonnegative-integer? 'end) 'end])
+              void?]
+             [(copy/char ...)
+              #,same])]{
 
 Copies specified range of text into the clipboard. If @racket[extend?] is
  not @racket[#f], the old clipboard contents are appended. If
@@ -370,6 +465,10 @@ Copies specified range of text into the clipboard. If @racket[extend?] is
 See @|timediscuss| for a discussion of the @racket[time] argument. If
  @racket[time] is outside the platform-specific range of times,
  @|MismatchExn|.
+
+@see-grapheme
+
+@history[#:changed "1.68" @elem{Added @method[text% copy/char].}]
 
 }
 
@@ -386,12 +485,14 @@ In addition to the default @xmethod[editor<%> copy-self-to] work,
 }
 
 
-@defmethod[#:mode override
-           (cut [extend? any/c #f]
-                [time exact-integer? 0]
-                [start (or/c exact-nonnegative-integer? 'start) 'start]
-                [end (or/c exact-nonnegative-integer? 'end) 'end])
-           void?]{
+@defmethod*[#:mode override
+            ([(cut [extend? any/c #f]
+                   [time exact-integer? 0]
+                   [start (or/c exact-nonnegative-integer? 'start) 'start]
+                   [end (or/c exact-nonnegative-integer? 'end) 'end])
+              void?]
+             [(cut/char ...)
+              #,same])]{
 
 Copies and then deletes the specified range. If @racket[extend?] is not
  @racket[#f], the old clipboard contents are appended. If @racket[start] is
@@ -402,6 +503,10 @@ See @|timediscuss| for a discussion of the @racket[time] argument. If
  @racket[time] is outside the platform-specific range of times,
  @|MismatchExn|.
 
+@see-grapheme
+
+@history[#:changed "1.68" @elem{Added @method[text% cut/char].}]
+
 }
 
 
@@ -410,31 +515,40 @@ See @|timediscuss| for a discussion of the @racket[time] argument. If
                       [scroll-ok? any/c #t])
               void?]
              [(delete)
-              void?])]{
+              void?]
+             [(delete/char ...)
+              #,same])]{
 
 Deletes the specified range or the currently selected text (when no
  range is provided) in the editor. If @racket[start] is
  @racket['start], then the starting selection @techlink{position} is
  used; if @racket[end] is @racket['back], then only the @tech{grapheme}
- preceding @racket[start] is deleted.  If @racket[scroll-ok?] is not
+ preceding @racket[start] is deleted (including when @method[text% delete/char]
+ is called).  If @racket[scroll-ok?] is not
  @racket[#f] and @racket[start] is the same as the current caret
  @techlink{position}, then the editor's @techlink{display} may be
  scrolled to show the new selection @techlink{position}.
-
 
 @MonitorMethod[@elem{The content of an editor} @elem{the
  system in response to other method
  calls} @elem{@method[text% on-delete]} @elem{content deletion}]
 
-@history[#:changed "1.67" @elem{Changed @racket['back] to delete a
-                                grapheme instead of a character.}]}
+@see-grapheme
+
+@history[#:changed "1.68" @elem{Changed @racket['back] to delete a
+                                grapheme instead of a character
+                                and added @method[text% delete/char].}]
+
+}
 
 
-@defmethod[(do-copy [start exact-nonnegative-integer?]
-                    [end exact-nonnegative-integer?]
-                    [time exact-integer?]
-                    [extend? any/c])
-           void?]{
+@defmethod*[([(do-copy [start exact-nonnegative-integer?]
+                       [end exact-nonnegative-integer?]
+                       [time exact-integer?]
+                       [extend? any/c])
+              void?]
+             [(do-copy/char ...)
+              #,same])]{
 @methspec{
 
 Called to copy a region of the editor into the clipboard.  This method
@@ -445,6 +559,10 @@ See @|timediscuss| for a discussion of the @racket[time] argument. If
  @racket[time] is outside the platform-specific range of times,
  @|MismatchExn|.
 
+@see-grapheme
+
+@history[#:changed "1.68" @elem{Added @method[text% do-copy/char].}]
+
 }
 @methimpl{
 
@@ -454,9 +572,11 @@ Copy the data from @racket[start] to @racket[end], extending the current
 }}
 
 
-@defmethod[(do-paste [start exact-nonnegative-integer?]
-                     [time exact-integer?])
-           void?]{
+@defmethod*[([(do-paste [start exact-nonnegative-integer?]
+                        [time exact-integer?])
+              void?]
+             [(do-paste/char ...)
+              #,same])]{
 @methspec{
 
 Called to paste the current contents of the clipboard into the editor.
@@ -467,6 +587,10 @@ See @|timediscuss| for a discussion of the @racket[time] argument. If
  @racket[time] is outside the platform-specific range of times,
  @|MismatchExn|.
 
+@see-grapheme
+
+@history[#:changed "1.68" @elem{Added @method[text% do-paste/char].}]
+
 }
 @methimpl{
 
@@ -475,9 +599,11 @@ Pastes into the @techlink{position} @racket[start].
 }}
 
 
-@defmethod[(do-paste-x-selection [start exact-nonnegative-integer?]
-                                 [time exact-integer?])
-           void?]{
+@defmethod*[([(do-paste-x-selection [start exact-nonnegative-integer?]
+                                    [time exact-integer?])
+               void?]
+             [(do-paste-x-selection/char ...)
+              #,same])]{
 @methspec{
 
 Called to paste the current contents of the X11 selection on Unix (or the
@@ -488,6 +614,10 @@ Called to paste the current contents of the X11 selection on Unix (or the
 See @|timediscuss| for a discussion of the @racket[time] argument. If
  @racket[time] is outside the platform-specific range of times,
  @|MismatchExn|.
+
+@see-grapheme
+
+@history[#:changed "1.68" @elem{Added @method[text% do-paste-x-selection/char].}]
 
 }
 @methimpl{
@@ -506,7 +636,8 @@ See also @method[text% delete].
 
 }
 
-@defmethod[(extend-position [pos exact-nonnegative-integer?]) void?]{
+@defmethod*[([(extend-position [pos exact-nonnegative-integer?]) void?]
+             [(extend-position/char ...) #,same])]{
   Updates the selection (see @method[text% set-position]) based on 
   the result of @method[text% get-extend-end-position], 
   @method[text% get-extend-start-position], and @racket[pos].
@@ -518,6 +649,10 @@ See also @method[text% delete].
   
   Use this method to implement shift-modified movement keys in order to
   properly extend the selection.
+
+  @see-grapheme
+
+  @history[#:changed "1.68" @elem{Added @method[text% extend-position/char].}]
 }
 
 @defmethod[(find-line [y real?]
@@ -537,13 +672,20 @@ Given a @techlink{location} in the editor, returns the line at the
 }
 
 
-@defmethod[(find-newline [direction (or/c 'forward 'backward) 'forward]
-                         [start (or/c exact-nonnegative-integer? 'start) 'start]
-                         [end (or/c exact-nonnegative-integer? 'eof) 'eof])
-           (or/c exact-nonnegative-integer? #f)]{
+@defmethod*[([(find-newline [direction (or/c 'forward 'backward) 'forward]
+                            [start (or/c exact-nonnegative-integer? 'start) 'start]
+                            [end (or/c exact-nonnegative-integer? 'eof) 'eof])
+              (or/c exact-nonnegative-integer? #f)]
+             [(find-newline/char ...) #,same])]{
 
 Like @method[text% find-string], but specifically finds a paragraph
-break (possibly more efficiently than searching text).}
+break (possibly more efficiently than searching text).
+
+@see-grapheme
+
+@history[#:changed "1.68" @elem{Added @method[text% find-newline/char].}]
+
+}
 
 
 @defmethod[(find-next-non-string-snip [after (or/c (is-a?/c snip%) #f)])
@@ -558,12 +700,13 @@ Given a snip, returns the next snip in the editor (after the given
 }
 
 
-@defmethod[(find-position [x real?]
-                          [y real?]
-                          [at-eol (or/c (box/c any/c) #f) #f]
-                          [on-it (or/c (box/c any/c) #f) #f]
-                          [edge-close (or/c (box/c real?) #f) #f])
-           exact-nonnegative-integer?]{
+@defmethod*[([(find-position [x real?]
+                             [y real?]
+                             [at-eol (or/c (box/c any/c) #f) #f]
+                             [on-it (or/c (box/c any/c) #f) #f]
+                             [edge-close (or/c (box/c real?) #f) #f])
+              exact-nonnegative-integer?]
+             [(find-position/char ...) #,same])]{
 
 Given a @techlink{location} in the editor, returns the @techlink{position} at the
  @techlink{location}.
@@ -584,15 +727,20 @@ See @|ateoldiscuss| for a discussion of the @racket[at-eol] argument.
 
 @|OVD| @|FCA|
 
+@see-grapheme
+
+@history[#:changed "1.68" @elem{Added @method[text% find-position/char].}]
+
 }
 
 
-@defmethod[(find-position-in-line [line exact-nonnegative-integer?]
-                                  [x real?]
-                                  [at-eol (or/c (box/c any/c) #f) #f]
-                                  [on-it (or/c (box/c any/c) #f) #f]
-                                  [edge-close (or/c (box/c real?) #f) #f])
-           exact-nonnegative-integer?]{
+@defmethod*[([(find-position-in-line [line exact-nonnegative-integer?]
+                                     [x real?]
+                                     [at-eol (or/c (box/c any/c) #f) #f]
+                                     [on-it (or/c (box/c any/c) #f) #f]
+                                     [edge-close (or/c (box/c real?) #f) #f])
+              exact-nonnegative-integer?]
+             [(find-position-in-line/char ...) #,same])]{
 
 Given a @techlink{location} within a line of the editor, returns the
  @techlink{position} at the @techlink{location}. @|LineNumbering|
@@ -606,13 +754,18 @@ See @method[text% find-position] for a discussion of
 
 @|OVD| @|FCA|
 
+@see-grapheme
+
+@history[#:changed "1.68" @elem{Added @method[text% find-position-in-line/char].}]
+
 }
 
 
-@defmethod[(find-snip [pos exact-nonnegative-integer?]
-                      [direction (or/c 'before-or-none 'before 'after 'after-or-none)]
-                      [s-pos (or/c (box/c exact-nonnegative-integer?) #f) #f])
-           (or/c (is-a?/c snip%) #f)]{
+@defmethod*[([(find-snip [pos exact-nonnegative-integer?]
+                         [direction (or/c 'before-or-none 'before 'after 'after-or-none)]
+                         [s-pos (or/c (box/c exact-nonnegative-integer?) #f) #f])
+              (or/c (is-a?/c snip%) #f)]
+             [(find-snip/char ...) #,same])]{
 
 Returns the snip at a given @techlink{position}, or @racket[#f] if an appropriate
  snip cannot be found.
@@ -638,16 +791,19 @@ can be any of the following:
 
 @boxisfillnull[@racket[s-pos] @elem{the @techlink{position} where the returned snip starts}]
 
+@history[#:changed "1.68" @elem{Added @method[text% find-snip/char].}]
+
 }
 
 
-@defmethod[(find-string [str non-empty-string?]
+@defmethod*[([(find-string [str non-empty-string?]
                         [direction (or/c 'forward 'backward) 'forward]
                         [start (or/c exact-nonnegative-integer? 'start) 'start]
                         [end (or/c exact-nonnegative-integer? 'eof) 'eof]
                         [get-start? any/c #t]
                         [case-sensitive? any/c #t])
-           (or/c exact-nonnegative-integer? #f)]{
+              (or/c exact-nonnegative-integer? #f)]
+           [(find-string/char ...) #,same])]{
 
 Finds an exact-match string in the editor and returns its @techlink{position}. 
  If the string is not found, @racket[#f] is returned.
@@ -670,14 +826,18 @@ The @racket[start] and @racket[end] arguments set the starting and ending
 If @racket[case-sensitive?] is @racket[#f], then an uppercase and lowercase
  of each alphabetic character are treated as equivalent.
 
+@see-grapheme
+
+@history[#:changed "1.68" @elem{Added @method[text% find-string/char].}]
+
 }
 
-@defmethod[(find-string-embedded [str non-empty-string?]
-                                 [direction (or/c 'forward 'backward) 'forward]
-                                 [start (or/c exact-nonnegative-integer? 'start) 'start]
-                                 [end (or/c exact-nonnegative-integer? 'eof) 'eof]
-                                 [get-start? any/c #t]
-                                 [case-sensitive? any/c #t])
+@defmethod*[([(find-string-embedded [str non-empty-string?]
+                                    [direction (or/c 'forward 'backward) 'forward]
+                                    [start (or/c exact-nonnegative-integer? 'start) 'start]
+                                    [end (or/c exact-nonnegative-integer? 'eof) 'eof]
+                                    [get-start? any/c #t]
+                                    [case-sensitive? any/c #t])
            (or/c exact-nonnegative-integer? 
                  #f
                  (cons/c
@@ -686,29 +846,39 @@ If @racket[case-sensitive?] is @racket[#f], then an uppercase and lowercase
                    nested-editor-search-result
                    (or/c (cons/c (is-a?/c editor<%>)
                                  nested-editor-search-result)
-                         exact-nonnegative-integer?))))]{
+                         exact-nonnegative-integer?))))]
+             [(find-string-embedded/char ...) #,same])]{
   Like @method[text% find-string], but also searches in embedded editors,
        returning a series of cons pairs whose @racket[car] positions
        are the editors on the path to the editor where the search
        string occurred and whose final @racket[cdr] position is the 
        search result position.
+
+@see-grapheme
+
+@history[#:changed "1.68" @elem{Added @method[text% find-string-embedded/char].}]
 }
                                                 
-@defmethod[(find-string-all [str non-empty-string?]
-                            [direction (or/c 'forward 'backward) 'forward]
-                            [start (or/c exact-nonnegative-integer? 'start) 'start]
-                            [end (or/c exact-nonnegative-integer? 'eof) 'eof]
-                            [get-start? any/c #t]
-                            [case-sensitive any/c #t])
-           (listof exact-nonnegative-integer?)]{
+@defmethod*[([(find-string-all [str non-empty-string?]
+                               [direction (or/c 'forward 'backward) 'forward]
+                               [start (or/c exact-nonnegative-integer? 'start) 'start]
+                               [end (or/c exact-nonnegative-integer? 'eof) 'eof]
+                               [get-start? any/c #t]
+                               [case-sensitive any/c #t])
+              (listof exact-nonnegative-integer?)]
+             [(find-string-all/char ...) #,same])]{
 
 Finds all occurrences of a string using @method[text% find-string]. If
  no occurrences are found, the empty list is returned.  The arguments
  are the same as for @method[text% find-string].
 
+@see-grapheme
+
+@history[#:changed "1.68" @elem{Added @method[text% find-string-all/char].}]
+
 }
 
-@defmethod[(find-string-embedded-all [str non-empty-string?]
+@defmethod*[([(find-string-embedded-all [str non-empty-string?]
                                      [direction (or/c 'forward 'backward) 'forward]
                                      [start (or/c exact-nonnegative-integer? 'start) 'start]
                                      [end (or/c exact-nonnegative-integer? 'eof) 'eof]
@@ -721,16 +891,22 @@ Finds all occurrences of a string using @method[text% find-string]. If
                            nested-editor-search-result
                            (or/c (cons/c (is-a?/c editor<%>)
                                          nested-editor-search-result)
-                                 (listof exact-nonnegative-integer?))))))]{
+                                 (listof exact-nonnegative-integer?))))))]
+            [(find-string-embedded-all/char ...) #,same])]{
 Like @method[text% find-string-embedded], but also searches in embedded
 editors, returning search  results a list of the editors that contain
 the matches.
+
+@see-grapheme
+
+@history[#:changed "1.68" @elem{Added @method[text% find-string-embedded-all/char].}]
 }
 
-@defmethod[(find-wordbreak [start (or/c (box/c exact-nonnegative-integer?) #f)]
-                           [end (or/c (box/c exact-nonnegative-integer?) #f)]
-                           [reason (or/c 'caret 'line 'selection 'user1 'user2)])
-           void?]{
+@defmethod*[([(find-wordbreak [start (or/c (box/c exact-nonnegative-integer?) #f)]
+                              [end (or/c (box/c exact-nonnegative-integer?) #f)]
+                              [reason (or/c 'caret 'line 'selection 'user1 'user2)])
+              void?]
+             [(find-wordbreak/char ...) #,same])]{
 
 Finds wordbreaks in the editor using the current wordbreak procedure.
  See also @method[text% set-wordbreak-func].
@@ -769,6 +945,9 @@ The actual handling of @racket[reason] is controlled by the current
  the word, but the comma should stay on the same line as the word (and
  thus counts in the same ``line word'').
 
+@see-grapheme
+
+@history[#:changed "1.68" @elem{Added @method[text% find-wordbreak/char].}]
 }
 
 
@@ -782,12 +961,13 @@ Turns off the hiliting and shows the normal selection range again; see
 }
 
 
-@defmethod[(flash-on [start exact-nonnegative-integer?]
-                     [end exact-nonnegative-integer?]
-                     [at-eol? any/c #f]
-                     [scroll? any/c #t]
-                     [timeout exact-nonnegative-integer? 500])
-           void?]{
+@defmethod*[([(flash-on [start exact-nonnegative-integer?]
+                        [end exact-nonnegative-integer?]
+                        [at-eol? any/c #f]
+                        [scroll? any/c #t]
+                        [timeout exact-nonnegative-integer? 500])
+              void?]
+             [(flash-on/char ...) #,same])]{
 
 Temporarily hilites a region in the editor without changing the
  current selection.
@@ -799,6 +979,10 @@ See @|ateoldiscuss| for a discussion of the @racket[at-eol?] argument. If
  given number of milliseconds.
 
 See also  @method[text% flash-off].
+
+@see-grapheme
+
+@history[#:changed "1.68" @elem{Added @method[text% flash-on/char].}]
 
 }
 
@@ -830,37 +1014,59 @@ See also @method[text% set-between-threshold].
 }
 
 
-@defmethod[(get-character [start exact-nonnegative-integer?])
-           char?]{
+@defmethod*[([(get-character [start exact-nonnegative-integer?])
+              char?]
+             [(get-character/char ...) #,same])]{
 
 Returns the character following the @techlink{position}
  @racket[start]. The character corresponds to getting non-flattened
- text from the editor.
+ text from the editor. Note that a single character is always returned
+ even though @method[text% get-character] receives a @tech{grapheme position}.
 
 If @racket[start] is greater than or equal to the last
  @techlink{position}, @racket[#\nul] is returned.
 
+@see-grapheme
+
+@history[#:changed "1.68" @elem{Added @method[text% get-character/char].}]
 }
 
 
-@defmethod[(get-end-position)
-           exact-nonnegative-integer?]{
+@defmethod*[([(get-end-position)
+              exact-nonnegative-integer?]
+             [(get-end-position/char ...) #,same])]{
 
 Returns the ending @techlink{position} of the current selection. See
- also @method[text% get-position].
+ also @method[text% get-position]. If nothing is selected and the
+ insertion point is in the middle of a grapheme cluster, the result of
+ @method[text get-end-position] is rounded down instead of up (while
+ @method[text% get-end-position/char] never rounds).
 
+@see-grapheme/separate
+
+@history[#:changed "1.68" @elem{Added @method[text% get-end-position/char].}]
 }
 
-@defmethod[(get-extend-start-position) exact-nonnegative-integer?]{
+@defmethod*[([(get-extend-start-position) exact-nonnegative-integer?]
+             [(get-extend-start-position/char ...) #,same])]{
   Returns the beginning of the ``extend'' region if the selection
   is currently being extended via, e.g., shift and a cursor movement key; 
   otherwise returns the same value as @method[text% get-start-position].
+
+@see-grapheme
+
+@history[#:changed "1.68" @elem{Added @method[text% get-extend-start-position/char].}]
 }
 
-@defmethod[(get-extend-end-position) exact-nonnegative-integer?]{
+@defmethod*[([(get-extend-end-position) exact-nonnegative-integer?]
+             [(get-extend-end-position/char ...) #,same])]{
   Returns the beginning of the ``extend'' region if the selection
   is currently being extended via, e.g., shift and a cursor movement key; 
   otherwise returns the same value as @method[text% get-end-position].
+
+@see-grapheme
+
+@history[#:changed "1.68" @elem{Added @method[text% get-extend-end-position/char].}]
 }
 
 @defmethod[(get-file-format)
@@ -902,13 +1108,18 @@ sides (in that order).
 See also @method[text% set-padding].}
 
 
-@defmethod[(get-position [start (or/c (box/c exact-nonnegative-integer?) #f)]
-                         [end (or/c (box/c exact-nonnegative-integer?) #f) #f])
-           void?]{
+@defmethod*[([(get-position [start (or/c (box/c exact-nonnegative-integer?) #f)]
+                            [end (or/c (box/c exact-nonnegative-integer?) #f) #f])
+              void?]
+             [(get-position/char ...) #,same])]{
 
 Returns the current selection range in @techlink{position}s.  If
 nothing is selected, the @racket[start] and @racket[end] will be
 the same number and that number will be where the insertion point is.
+In particular, if nothing is selected and the insertion point is in
+the middle of a grapheme cluster, the @racket[end] position for
+@method[text get-position] is rounded down instead of up (while
+@method[text% get-position/char] never rounds).
 
 See also @method[text% get-start-position] 
 and @method[text% get-end-position].
@@ -916,12 +1127,16 @@ and @method[text% get-end-position].
 @boxisfillnull[@racket[start] @elem{the starting @techlink{position} of the selection}]
 @boxisfillnull[@racket[end] @elem{the ending @techlink{position} of the selection}]
 
+@see-grapheme/separate
+
+@history[#:changed "1.68" @elem{Added @method[text% get-position/char].}]
 }
 
 
-@defmethod[(get-region-data [start exact-nonnegative-integer?]
-                            [end exact-nonnegative-integer?])
-           (or/c (is-a?/c editor-data%) #f)]{
+@defmethod*[([(get-region-data [start exact-nonnegative-integer?]
+                               [end exact-nonnegative-integer?])
+              (or/c (is-a?/c editor-data%) #f)]
+             [(get-region-data/char ...) #,same])]{
 
 Gets extra data associated with a given region. See
  @|editordatadiscuss| for more information.
@@ -934,6 +1149,9 @@ This method is meant to be overridden; the default @method[text%
  set-region-data] method does not store information to be retrieved by
  this method.
 
+@see-grapheme/separate
+
+@history[#:changed "1.68" @elem{Added @method[text% get-region-data/char].}]
 }
 
 
@@ -951,20 +1169,25 @@ Returns an inexact number that increments every time the editor is
 }
 
 
-@defmethod[(get-snip-position [snip (is-a?/c snip%)])
-           (or/c exact-nonnegative-integer? #f)]{
+@defmethod*[([(get-snip-position [snip (is-a?/c snip%)])
+              (or/c exact-nonnegative-integer? #f)]
+             [(get-snip-position/char ...) #,same])]{
 
 Returns the starting @techlink{position} of a given snip or
  @racket[#f] if the snip is not in this editor.
 
+@see-grapheme
+
+@history[#:changed "1.68" @elem{Added @method[text% get-snip-position/char].}]
 }
 
-@defmethod[#:mode public-final
-           (get-snip-position-and-location [snip (is-a?/c snip%)]
-                                           [pos (or/c (box/c exact-nonnegative-integer?) #f)]
-                                           [x (or/c (box/c real?) #f) #f]
-                                           [y (or/c (box/c real?) #f) #f])
-           boolean?]{
+@defmethod*[#:mode public-final
+            ([(get-snip-position-and-location [snip (is-a?/c snip%)]
+                                              [pos (or/c (box/c exact-nonnegative-integer?) #f)]
+                                              [x (or/c (box/c real?) #f) #f]
+                                              [y (or/c (box/c real?) #f) #f])
+              boolean?]
+             [(get-snip-position-and-location/char ...) #,same])]{
 
 Gets a snip's @techlink{position} and top left @techlink{location} in editor
  coordinates.  The return value is @racket[#t] if the snip is found,
@@ -976,15 +1199,22 @@ Gets a snip's @techlink{position} and top left @techlink{location} in editor
 
 When @techlink{location} information is requested: @|OVD| @|FCA|
 
+@see-grapheme
+
+@history[#:changed "1.68" @elem{Added @method[text% get-snip-position-and-location/char].}]
 }
 
 
-@defmethod[(get-start-position)
-           exact-nonnegative-integer?]{
+@defmethod*[([(get-start-position)
+              exact-nonnegative-integer?]
+             [(get-start-position/char ...) #,same])]{
 
 Returns the starting @techlink{position} of the current selection. See also
  @method[text% get-position].
 
+@see-grapheme/separate
+
+@history[#:changed "1.68" @elem{Added @method[text% get-start-position/char].}]
 }
 
 
@@ -1030,23 +1260,32 @@ See also
 }
 
 
-@defmethod[(get-text [start exact-nonnegative-integer? 0]
-                     [end (or/c exact-nonnegative-integer? 'eof) 'eof]
-                     [flattened? any/c #f]
-                     [force-cr? any/c #f])
-           string?]{
+@defmethod*[([(get-text [start exact-nonnegative-integer? 0]
+                        [end (or/c exact-nonnegative-integer? 'eof) 'eof]
+                        [flattened? any/c #f]
+                        [force-cr? any/c #f])
+              string?]
+             [(get-text/char ...) #,same])]{
 
 Gets the text from @racket[start] to @racket[end]. If @racket[end] is
  @racket['eof], then the contents are returned from @racket[start] until the
  end of the editor.
 
-If @racket[flattened?] is not @racket[#f], then flattened text is returned.
- See @|textdiscuss| for a discussion of flattened vs. non-flattened
- text.
+If @racket[flattened?] is not @racket[#f], then flattened text is
+ returned. See @|textdiscuss| for a discussion of flattened vs.
+ non-flattened text. Note that the result of @method[text% get-text]
+ may have more characters that the specified @tech{grapheme} range
+ even when @racket[flattened?] is true, while the result of
+ @method[text% get-text/char] will have the same number of character
+ as the specified character range.
 
 If @racket[force-cr?] is not @racket[#f] and @racket[flattened?] is not
  @racket[#f], then automatic newlines (from word-wrapping) are
  written into the return string as real newlines.
+
+@see-grapheme
+
+@history[#:changed "1.68" @elem{Added @method[text% get-text/char].}]
 
 }
 
@@ -1086,10 +1325,11 @@ If the editor is displayed by multiple canvases and @racket[all?] is
 }
 
 
-@defmethod[(get-visible-position-range [start (or/c (box/c exact-nonnegative-integer?) #f)]
-                                       [end (or/c (box/c exact-nonnegative-integer?) #f)]
-                                       [all? any/c #t])
-           void?]{
+@defmethod*[([(get-visible-position-range [start (or/c (box/c exact-nonnegative-integer?) #f)]
+                                          [end (or/c (box/c exact-nonnegative-integer?) #f)]
+                                          [all? any/c #t])
+              void?]
+             [(get-visible-position-range/char ...) #,same])]{
 
 Returns the range of @techlink{position}s that are currently visible (or
  partially visible) to the user.
@@ -1104,6 +1344,10 @@ If the editor is displayed by multiple canvases and @racket[all?] is
 
 @|OVD| @|FCA|
 
+@see-grapheme
+
+@history[#:changed "1.68" @elem{Added @method[text% get-visible-position-range/char].}]
+
 }
 
 
@@ -1117,14 +1361,16 @@ Returns the wordbreaking map that is used by the standard wordbreaking
 }
 
 
-@defmethod[(grapheme-position [n exact-nonnegative-integer?])
+@defmethod[(grapheme-to-char-position [n exact-nonnegative-integer?])
            exact-nonnegative-integer?]{
 
 Returns the number of @tech{items} in the editor that form the first
 @racket[n] @tech{graphemes}; or, equivalently, converts from an
 @tech{grapheme}-based position to a @tech{item}-based position.
 
-@history[#:added "1.67"]}
+See also @secref["graphemes"].
+
+@history[#:added "1.68"]}
 
 
 @defmethod[(hide-caret [hide? any/c])
@@ -1176,11 +1422,13 @@ See also @method[text% caret-hidden?] and @method[editor<%> lock].
              [(insert [char char?]
                       [start exact-nonnegative-integer?]
                       [end (or/c exact-nonnegative-integer? 'same) 'same])
-              void?])]{
+              void?]
+             [(insert/char ...) #,same])]{
 
 Inserts text or a snip into @this-obj[] at @techlink{position}
  @racket[start].  If @racket[n] is provided, the only the first
- @racket[n] characters of @racket[str] are inserted. 
+ @racket[n] characters of @racket[str] are inserted. The argument
+ @racket[n] always refers to characters, not @tech{graphemes}.
 
 When a @racket[snip] is provided: The snip cannot be inserted into
  multiple editors or multiple times within a single editor. As the
@@ -1223,6 +1471,10 @@ If @racket[join-graphemes?] is provided and not @racket[#f] or if a
 
 See also @method[text% get-styles-sticky].
 
+@see-grapheme
+
+@history[#:changed "1.68" @elem{Added @method[text% insert/char].}]
+
 }
 
 
@@ -1232,7 +1484,8 @@ See also @method[text% get-styles-sticky].
              [(kill [time exact-integer?]
                     [start exact-nonnegative-integer?]
                     [end exact-nonnegative-integer?])
-              void?])]{
+              void?]
+             [(kill/char ...) #,same])]{
 
 Cuts the text in the given region. If @racket[start] and @racket[end]
  are not supplied, then the selected region plus all whitespace to the
@@ -1242,6 +1495,10 @@ Cuts the text in the given region. If @racket[start] and @racket[end]
 See @|timediscuss| for a discussion of the @racket[time] argument. If
  @racket[time] is outside the platform-specific range of times,
  @|MismatchExn|.
+
+@see-grapheme
+
+@history[#:changed "1.68" @elem{Added @method[text% kill/char].}]
 
 }
 
@@ -1270,17 +1527,23 @@ Returns the number of the last paragraph in the editor. Paragraphs are
 
 }
 
-@defmethod[(last-position)
-           exact-nonnegative-integer?]{
+@defmethod*[([(last-position)
+              exact-nonnegative-integer?]
+             [(last-position/char ...) #,same])]{
 
 Returns the last selection @techlink{position} in the editor. This is
  also the number of @techlink{item}s in the editor.
 
+@see-grapheme
+
+@history[#:changed "1.68" @elem{Added @method[text% last-position/char].}]
+
 }
 
-@defmethod[(line-end-position [line exact-nonnegative-integer?]
-                              [visible? any/c #t])
-           exact-nonnegative-integer?]{
+@defmethod*[([(line-end-position [line exact-nonnegative-integer?]
+                                 [visible? any/c #t])
+              exact-nonnegative-integer?]
+             [(line-end-position/char ...) #,same])]{
 
 Returns the last @techlink{position} of a given line. @|LineNumbering|
 
@@ -1297,17 +1560,25 @@ If the line ends with @tech{invisible} @techlink{item}s (such as a
 
 @|FCAMW| @|EVD|
 
+@see-grapheme
+
+@history[#:changed "1.68" @elem{Added @method[text% line-end-position/char].}]
+
 }
 
 
-@defmethod[(line-length [i exact-nonnegative-integer?])
-           exact-nonnegative-integer?]{
+@defmethod*[([(line-length [i exact-nonnegative-integer?])
+              exact-nonnegative-integer?]
+             [(line-length/char ...) #,same])]{
 
 Returns the number of @techlink{item}s in a given
 line. @|LineNumbering|
 
 @|FCAMW| @|EVD|
 
+@see-grapheme/separate
+
+@history[#:changed "1.68" @elem{Added @method[text% line-length/char].}]
 }
 
 
@@ -1337,9 +1608,10 @@ Returns the paragraph number of the paragraph containing the line.
 
 }
 
-@defmethod[(line-start-position [line exact-nonnegative-integer?]
-                                [visible? any/c #t])
-           exact-nonnegative-integer?]{
+@defmethod*[([(line-start-position [line exact-nonnegative-integer?]
+                                   [visible? any/c #t])
+              exact-nonnegative-integer?]
+             [(line-start-position/char ...) #,same])]{
 
 Returns the first @techlink{position} of the given line. @|LineNumbering|
 
@@ -1372,6 +1644,10 @@ then this method ignores the editor's maximum width and any automatic
  uses the line breaks from the most recent display of the
  editor. (Insertions or deletions since the display shift line breaks
  within the editor in the same way as @techlink{item}s.)
+
+@see-grapheme
+
+@history[#:changed "1.68" @elem{Added @method[text% line-start-position/char].}]
 
 }
 
@@ -1415,14 +1691,16 @@ See also @method[text% set-position].
                                 left or right by a grapheme instead of an item.}]}
 
 
-@defmethod[#:mode pubment 
-           (on-change-style [start exact-nonnegative-integer?]
-                            [len exact-nonnegative-integer?])
-           void?]{
+@defmethod*[#:mode pubment 
+            ([(on-change-style [start exact-nonnegative-integer?]
+                               [len exact-nonnegative-integer?])
+              void?]
+             [(on-change-style/char ...) #,same])]{
 
 @methspec{
 
-Called before the style is changed in a given range of the editor,
+Both the non-@racketidfont{/char} method and @racketidfont{/char} method
+ are called before the style is changed in a given range of the editor,
  after @method[text% can-change-style?] is called to verify that the
  change is ok. The @method[text% after-change-style] method is
  guaranteed to be called after the change has completed.
@@ -1438,7 +1716,10 @@ See also @method[editor<%> on-edit-sequence].
 
 Does nothing.
 
+@see-grapheme/separate
 }
+
+@history[#:changed "1.68" @elem{Added @method[text% on-change-style/char].}]
 }
 
 
@@ -1494,13 +1775,15 @@ Tracks clicks on a clickback (see @method[text% set-clickback]) of
 }
 
 
-@defmethod[#:mode pubment 
-           (on-delete [start exact-nonnegative-integer?]
-                      [len exact-nonnegative-integer?])
-           void?]{
+@defmethod*[#:mode pubment 
+            ([(on-delete [start exact-nonnegative-integer?]
+                         [len exact-nonnegative-integer?])
+              void?]
+             [(on-delete/char ...) #,same])]{
 @methspec{
 
-Called before a range is deleted from the editor, after @method[text%
+Both the non-@racketidfont{/char} method and @racketidfont{/char} method
+ are called before a range is deleted from the editor, after @method[text%
  can-delete?] is called to verify that the deletion is ok. The
  @method[text% after-delete] method is guaranteed to be called after
  the delete has completed.
@@ -1522,16 +1805,23 @@ See also @method[editor<%> on-edit-sequence].
 
 Does nothing.
 
-}}
+@see-grapheme/separate
+
+}
+
+@history[#:changed "1.68" @elem{Added @method[text% on-delete/char].}]
+}
 
 
-@defmethod[#:mode pubment 
-           (on-insert [start exact-nonnegative-integer?]
-                      [len exact-nonnegative-integer?])
-           void?]{
+@defmethod*[#:mode pubment 
+            ([(on-insert [start exact-nonnegative-integer?]
+                         [len exact-nonnegative-integer?])
+              void?]
+             [(on-insert/char ...) #,same])]{
 @methspec{
 
-Called before @techlink{item}s are inserted into the editor, after
+Both the non-@racketidfont{/char} method and @racketidfont{/char} method
+ are called before @techlink{item}s are inserted into the editor, after
  @method[text% can-insert?] is called to verify that the insertion is
  ok. The @method[text% after-insert] method is guaranteed to be called
  after the insert has completed.
@@ -1551,7 +1841,12 @@ See also @method[editor<%> on-edit-sequence].
 
 Does nothing.
 
-}}
+@history[#:changed "1.68" @elem{Added @method[text% on-delete/char].}]
+
+}
+
+@history[#:changed "1.68" @elem{Added @method[text% on-insert/char].}]
+}
 
 
 @defmethod[(on-new-string-snip)
@@ -1635,9 +1930,10 @@ Returns the ending line of a given paragraph. @|ParagraphNumbering| @|LineNumber
 }
 
 
-@defmethod[(paragraph-end-position [paragraph exact-nonnegative-integer?]
-                                   [visible? any/c #t])
-           exact-nonnegative-integer?]{
+@defmethod*[([(paragraph-end-position [paragraph exact-nonnegative-integer?]
+                                      [visible? any/c #t])
+              exact-nonnegative-integer?]
+             [(paragraph-end-position/char ...) #,same])]{
 
 Returns the ending @techlink{position} of a given paragraph. @|ParagraphNumbering|
 
@@ -1648,6 +1944,10 @@ If there are fewer than @math{@racket[paragraph]-1} paragraphs, the
 If the paragraph ends with @tech{invisible} @techlink{item}s (such as a newline)
  and @racket[visible?] is not @racket[#f], the first @techlink{position}
  before the @tech{invisible} @techlink{item}s is returned.
+
+@see-grapheme
+
+@history[#:changed "1.68" @elem{Added @method[text% paragraph-end-position/char].}]
 
 }
 
@@ -1664,9 +1964,10 @@ is greater than the highest-numbered paragraph, then the editor's end
 }
 
 
-@defmethod[(paragraph-start-position [paragraph exact-nonnegative-integer?]
-                                     [visible? any/c #t])
-           exact-nonnegative-integer?]{
+@defmethod*[([(paragraph-start-position [paragraph exact-nonnegative-integer?]
+                                        [visible? any/c #t])
+              exact-nonnegative-integer?]
+             [(paragraph-start-position/char ...) #,same])]{
 
 Returns the starting @techlink{position} of a given paragraph. @|ParagraphNumbering|
 
@@ -1677,14 +1978,18 @@ If the paragraph starts with @tech{invisible} @techlink{item}s and @racket[visib
  not @racket[#f], the first @techlink{position} past the @tech{invisible} @techlink{item}s is
  returned.
 
+@see-grapheme
+
+@history[#:changed "1.68" @elem{Added @method[text% paragraph-start-position/char].}]
 }
 
 
-@defmethod[#:mode override
-           (paste [time exact-integer? 0]
-                  [start (or/c exact-nonnegative-integer? 'start 'end) 'start]
-                  [end (or/c exact-nonnegative-integer? 'same) 'same])
-           void?]{
+@defmethod*[#:mode override
+            ([(paste [time exact-integer? 0]
+                     [start (or/c exact-nonnegative-integer? 'start 'end) 'start]
+                     [end (or/c exact-nonnegative-integer? 'same) 'same])
+              void?]
+             [(paste/char ...) #,same])]{
 
 Pastes into the specified range. If @racket[start] is @racket['start],
  then the current selection start @techlink{position} is used. If
@@ -1698,6 +2003,9 @@ See @|timediscuss| for a discussion of the @racket[time] argument. If
  @racket[time] is outside the platform-specific range of times,
  @|MismatchExn|.
 
+@see-grapheme
+
+@history[#:changed "1.68" @elem{Added @method[text% paste/char].}]
 }
 
 
@@ -1722,11 +2030,12 @@ If the previous operation on the editor was not a paste, calling
 }
 
 
-@defmethod[#:mode override
-           (paste-x-selection [time exact-integer? 0]
-                              [start (or/c exact-nonnegative-integer? 'start 'end) 'start]
-                              [end (or/c exact-nonnegative-integer? 'same) 'same])
-           void?]{
+@defmethod*[#:mode override
+            ([(paste-x-selection [time exact-integer? 0]
+                                 [start (or/c exact-nonnegative-integer? 'start 'end) 'start]
+                                 [end (or/c exact-nonnegative-integer? 'same) 'same])
+              void?]
+             [(paste-x-selection/char ...) #,same])]{
 
 Pastes into the specified range. If @racket[start] is @racket['start],
  then the current selection start @techlink{position} is used. If
@@ -1740,22 +2049,16 @@ See @|timediscuss| for a discussion of the @racket[time] argument. If
  @racket[time] is outside the platform-specific range of times,
  @|MismatchExn|.
 
+@see-grapheme
+
+@history[#:changed "1.68" @elem{Added @method[text% paste-x-selection/char].}]
 }
 
 
-@defmethod[(position-grapheme [n exact-nonnegative-integer?])
-           exact-nonnegative-integer?]{
-
-Returns the number of @tech{graphemes} within the editor formed by the
-first @racket[n] @tech{items}; or, equivalently, converts from an
-@tech{item}-based position to a @tech{grapheme}-based position.
-
-@history[#:added "1.67"]}
-
-
-@defmethod[(position-line [start exact-nonnegative-integer?]
-                          [at-eol? any/c #f])
-           exact-nonnegative-integer?]{
+@defmethod*[([(position-line [start exact-nonnegative-integer?]
+                             [at-eol? any/c #f])
+              exact-nonnegative-integer?]
+             [(position-line/char ...) #,same])]{
 
 Returns the line number of the line containing a given @techlink{position}. @|LineNumbering|
 
@@ -1765,16 +2068,21 @@ See @|ateoldiscuss| for a discussion of @racket[at-eol?].
 
 @|FCAMW| @|EVD|
 
+@see-grapheme
+
+@history[#:changed "1.68" @elem{Added @method[text% position-line/char].}]
+
 }
 
 
-@defmethod[(position-location [start exact-nonnegative-integer?]
-                              [x (or/c (box/c real?) #f) #f]
-                              [y (or/c (box/c real?) #f) #f]
-                              [top? any/c #t]
-                              [at-eol? any/c #f]
-                              [whole-line? any/c #f])
-           void?]{
+@defmethod*[([(position-location [start exact-nonnegative-integer?]
+                                 [x (or/c (box/c real?) #f) #f]
+                                 [y (or/c (box/c real?) #f) #f]
+                                 [top? any/c #t]
+                                 [at-eol? any/c #f]
+                                 [whole-line? any/c #f])
+              void?]
+             [(position-location/char ...) #,same])]{
 
 Returns the @techlink{location} of a given @techlink{position}. See also @method[text% position-locations].
 
@@ -1796,32 +2104,46 @@ maximum bottom @techlink{location} for the whole line is returned in @racket[y].
 
 @|OVD| @|FCA|
 
+@see-grapheme
+
+@history[#:changed "1.68" @elem{Added @method[text% position-location/char].}]
+
 }
 
 
-@defmethod[(position-locations [start exact-nonnegative-integer?]
-                               [top-x (or/c (box/c real?) #f) #f]
-                               [top-y (or/c (box/c real?) #f) #f]
-                               [bottom-x (or/c (box/c real?) #f) #f]
-                               [bottom-y (or/c (box/c real?) #f) #f]
-                               [at-eol? any/c #f]
-                               [whole-line? any/c #f])
-           void?]{
+@defmethod*[([(position-locations [start exact-nonnegative-integer?]
+                                  [top-x (or/c (box/c real?) #f) #f]
+                                  [top-y (or/c (box/c real?) #f) #f]
+                                  [bottom-x (or/c (box/c real?) #f) #f]
+                                  [bottom-y (or/c (box/c real?) #f) #f]
+                                  [at-eol? any/c #f]
+                                  [whole-line? any/c #f])
+              void?]
+             [(position-locations/char ...) #,same])]{
 
 Like @method[text% position-location], but returns both the ``top''
 and ``bottom'' results at once.
 
 @|OVD| @|FCA|
 
+@see-grapheme
+
+@history[#:changed "1.68" @elem{Added @method[text% position-locations/char].}]
+
 }
 
-@defmethod[(position-paragraph [start exact-nonnegative-integer?]
-                               [at-eol? any/c #f])
-           exact-nonnegative-integer?]{
+@defmethod*[([(position-paragraph [start exact-nonnegative-integer?]
+                                  [at-eol? any/c #f])
+              exact-nonnegative-integer?]
+             [(position-paragraph/char ...) #,same])]{
 
 See @|ateoldiscuss| for a discussion of @racket[at-eol?].
 
 Returns the paragraph number of the paragraph containing a given @techlink{position}.
+
+@see-grapheme
+
+@history[#:changed "1.68" @elem{Added @method[text% position-paragraph/char].}]
 
 }
 
@@ -2128,10 +2450,11 @@ See also @method[text% scroll-to-position].
 }
 
 
-@defmethod[(set-region-data [start exact-nonnegative-integer?]
-                            [end exact-nonnegative-integer?]
-                            [data (is-a?/c editor-data%)])
-           void?]{
+@defmethod*[([(set-region-data [start exact-nonnegative-integer?]
+                               [end exact-nonnegative-integer?]
+                               [data (is-a?/c editor-data%)])
+              void?]
+             [(set-region-data/char ...) #,same])]{
 
 @methspec{
 
@@ -2140,7 +2463,12 @@ Sets extra data associated with a given region. See
  information.
 
 This method is meant to be overridden in combination with
- @method[text% get-region-data] .
+ @method[text% get-region-data].
+
+@see-grapheme/separate
+
+@history[#:changed "1.68" @elem{Added @method[text% set-region-data/char].}]
+
 
 }
 @methimpl{
@@ -2186,9 +2514,10 @@ Setting tabs is disallowed when the editor is internally locked for
                                    . -> . any)])
            void?]{
 
-Sets the word-breaking function for the editor.  For information about
- the arguments to the word-breaking function, see @method[text%
- find-wordbreak].
+Sets the word-breaking function for the editor. The second and third
+ arguments are character @tech{positions}, not @tech{grapheme
+ positions}. For information about the symbol argument, see
+ @method[text% find-wordbreak].
 
 The standard wordbreaking function uses the editor's
  @racket[editor-wordbreak-map%] object to determine which characters
@@ -2218,8 +2547,9 @@ If @racket[map] is @racket[#f], then the standard map
 }
 
 
-@defmethod[(split-snip [pos exact-nonnegative-integer?])
-           void?]{
+@defmethod*[([(split-snip [pos exact-nonnegative-integer?])
+              void?]
+             [(split-snip/char ...) #,same])]{
 
 Given a @techlink{position}, splits the snip that includes the
  @techlink{position} (if any) so that the @techlink{position} is
@@ -2229,19 +2559,27 @@ Given a @techlink{position}, splits the snip that includes the
 Splitting a snip is disallowed when the editor is internally locked
  for reflowing (see also @|lockdiscuss|).
 
+@see-grapheme
+
+@history[#:changed "1.68" @elem{Added @method[text% split-snip/char].}]
 }
 
 
-@defmethod[#:mode extend
-           (write-to-file [stream (is-a?/c editor-stream-out%)]
-                          [start exact-nonnegative-integer? 0]
-                          [end (or/c exact-nonnegative-integer? 'eof) 'eof])
-           boolean?]{
+@defmethod*[#:mode extend
+            ([(write-to-file [stream (is-a?/c editor-stream-out%)]
+                             [start exact-nonnegative-integer? 0]
+                             [end (or/c exact-nonnegative-integer? 'eof) 'eof])
+              boolean?]
+             [(write-to-file/char ...) #,same])]{
 
 If @racket[start] is 0 and @racket[end] is @racket['eof] negative,
  then the entire contents are written to the stream. If @racket[end]
  is @racket['eof], then the contents are written from @racket[start]
  until the end of the editor. Otherwise, the contents of the given
  range are written.
+
+@see-grapheme
+
+@history[#:changed "1.68" @elem{Added @method[text% write-to-file/char].}]
 
 }}
