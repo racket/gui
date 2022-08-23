@@ -277,7 +277,7 @@
   (define initial-line-base 0.0) ; inverse descent from first line
   (define reported-padding (vector 0.0 0.0 0.0 0.0))
 
-  (define external-grapheme=char? #t)
+  (define external-grapheme=char? #f)
 
   (define/public use-char-as-grapheme
     (case-lambda
