@@ -188,7 +188,6 @@
     (mixin (wide-snip<%>) (ports<%>)
       (inherit begin-edit-sequence
                change-style
-               change-style/char
                delete
                end-edit-sequence
                find-snip
@@ -215,8 +214,8 @@
                set-styles-fixed
                auto-wrap
                get-autowrap-bitmap-width
-               char-to-grapheme-position
-               grapheme-to-char-position)
+               grapheme-position
+               position-grapheme)
     
       ;; private field
       (define eventspace (current-eventspace))
@@ -265,15 +264,15 @@
     
       (define/private (amt-of-space str/snp)
         (cond
-          [(string? str/snp) (string-grapheme-count str/snp)]
+          [(string? str/snp) (string-length str/snp)]
           [(is-a? str/snp snip%)
-           (send str/snp get-grapheme-count)]))
+           (send str/snp get-count)]))
     
       (define/public-final (get-insertion-point) insertion-point)
       (define/public-final (set-insertion-point ip) (set! insertion-point ip))
       (define/public-final (get-unread-start-point)
         unread-start-point)
-      (define/public-final (set-unread-start-point u)
+      (define/public-final (set-unread-start-point u) 
         (unless (<= u (last-position))
           (error 'set-unread-start-point "~e is too large, last-position is ~e"
                  unread-start-point 
@@ -313,15 +312,15 @@
       (define/public-final (insert/io str start [style #f])
         (unless (<= start insertion-point)
           (error 'insert/io "expected start (~a) <= insertion-point (~a)"
-                 start (string-grapheme-count str) insertion-point))
-        (define len (string-grapheme-count str))
+                 start (string-length str) insertion-point))
+        (define len (string-length str))
         (set! insertion-point (+ insertion-point len))
         (set! unread-start-point (+ unread-start-point len))
         (let ([before-allowed? allow-edits?])
           (set! allow-edits? #t)
           (insert str start start #f #t)
           (when style
-            (change-style/char (add-standard style) (grapheme-to-char-position (char-to-grapheme-position start)) (+ start len)))
+            (change-style (add-standard style) (grapheme-position (position-grapheme start)) (+ start len)))
           (set! allow-edits? before-allowed?)))
       
       (define/public-final (get-in-port)
@@ -632,8 +631,8 @@
              (define (insert-str/snp! str/snp style)
                (define inserted-count
                  (if (is-a? str/snp snip%)
-                     (send str/snp get-grapheme-count)
-                     (string-grapheme-count str/snp)))
+                     (send str/snp get-count)
+                     (string-length str/snp)))
                (define old-insertion-point insertion-point)
                (set! insertion-point (+ insertion-point inserted-count))
                (set! unread-start-point (+ unread-start-point inserted-count))
@@ -645,7 +644,7 @@
                ;; could have made a string and gotten the style, so you
                ;; must intend to have your own style.
                (unless (is-a? str/snp string-snip%)
-                 (change-style/char style (char-to-grapheme-position (grapheme-to-char-position old-insertion-point)) insertion-point)))
+                 (change-style style (grapheme-position (position-grapheme old-insertion-point)) insertion-point)))
 
              (define (insert-markup-top-level markup style)
                (cond

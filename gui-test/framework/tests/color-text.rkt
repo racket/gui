@@ -2,14 +2,14 @@
 (require rackunit framework
          syntax-color/racket-lexer)
 
-(define (get-colors t #:grapheme? [grapheme? #t])
+(define (get-colors t)
   (define colors '())
   (define range-start #f)
   (define pending #f)
   (define (add-to-colors pending start end)
     (set! colors (cons (list pending
-                             (if grapheme? start (send t grapheme-to-char-position start))
-                             (if grapheme? end (send t grapheme-to-char-position end)))
+                             start
+                             end)
                        colors)))
   (for ([i (in-range (+ (send t last-position) 1))])
     (define p (send t classify-position i))
@@ -247,16 +247,7 @@
   (send t freeze-colorer)
   (send t thaw-colorer)
 
-  (check-equal? (get-colors t #:grapheme? #f) (list '(string 0 6))))
-
-(let ()
-  (define t (new color:text%))
-  (start-racket-colorer t)
-  (send t insert "\"🏴‍☠️\"")
-  (send t freeze-colorer)
-  (send t thaw-colorer)
-
-  (check-equal? (get-colors t) (list '(string 0 3))))
+  (check-equal? (get-colors t) (list '(string 0 6))))
 
 (let ()
   (define t (new color:text%))
@@ -269,11 +260,11 @@
                 '((parenthesis 0 1)
                   (symbol 1 7)
                   (white-space 7 8)
-                  (symbol 8 9)
-                  (white-space 9 10)
-                  (constant 10 11)
-                  (parenthesis 11 12)
-                  (symbol 12 13))))
+                  (symbol 8 12)
+                  (white-space 12 13)
+                  (constant 13 14)
+                  (parenthesis 14 15)
+                  (symbol 15 19))))
 
 (let ()
   (define t (new color:text%))

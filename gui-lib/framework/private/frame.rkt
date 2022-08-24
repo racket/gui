@@ -1101,6 +1101,7 @@
           (define (line-numbers)
             (define para (send edit position-paragraph pos))
             (define col (find-col edit para pos))
+            (define para-start (send edit paragraph-start-position para))
             (format "~a:~a"
                     (add1 para)
                     (if offset?

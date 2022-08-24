@@ -245,7 +245,7 @@
 
   (define delay-refresh 0)
 
-  (define len 0) ; total length in "characters" == number of char positions - 1
+  (define len 0) ; total length in "characters" == number of positions - 1
 
   (define startpos 0)
   (define endpos 0)
@@ -277,13 +277,6 @@
   (define initial-line-base 0.0) ; inverse descent from first line
   (define reported-padding (vector 0.0 0.0 0.0 0.0))
 
-  (define external-grapheme=char? #t)
-
-  (define/public use-char-as-grapheme
-    (case-lambda
-      [() external-grapheme=char?]
-      [(on?) (set! external-grapheme=char? #t)]))
-
   (define/public (get-s-snips) snips)
   (define/public (get-s-last-snip) last-snip)
   (define/public (get-s-total-width) total-width)
@@ -300,7 +293,7 @@
       (unless (eq? snips (mline-snip first-line))
         (error who "bad start snip"))
       (let sloop ([snip snip][snip-num snip-num])
-        (when (zero? (snip->char-count snip))
+        (when (zero? (snip->count snip))
           (unless (zero? len)
             (error who "snip count is 0 at ~s" snip-num)))
         (unless (eq? line (snip->line snip))
@@ -405,7 +398,7 @@
       ;; copy parameters, such as tab settings: */
       (send m set-tabs (vector->list tabs) tab-space tab-space-in-units?)
       (super copy-self-to m)
-      (when (zero? (send m last-position/char))
+      (when (zero? (send m last-position))
         ;; make sure only snip in m has a good style (since we called
         ;; (send m->style-list copy) in copy-self-to).
         (let* ([sname (default-style-name)]
@@ -452,7 +445,7 @@
                                     (or (and s-caret-snip (send event dragging?)
                                              (let-boxes ([x 0.0]
                                                          [y 0.0])
-                                                 (get-snip-position-and-location/char s-caret-snip #f x y)
+                                                 (get-snip-position-and-location s-caret-snip #f x y)
                                                (let ([c (send s-caret-snip adjust-cursor dc
                                                               (- x scrollx) (- y scrolly)
                                                               x y event)])
@@ -461,22 +454,22 @@
                                         (let-boxes ([onit? #f]
                                                     [how-close 0.0]
                                                     [pos 0])
-                                            (set-box! pos (find-position/char x y #f onit? how-close))
+                                            (set-box! pos (find-position x y #f onit? how-close))
                                           ;; FIXME: the following refinement of `onit?' seems pointless
                                           (let ([onit? (and onit?
                                                             (not (zero? how-close))
                                                             ((abs how-close) . > . between-threshold))])
                                             (let ([snip (and onit?
-                                                             (do-find-snip/char pos 'after))])
+                                                             (do-find-snip pos 'after))])
                                               (and snip
                                                    (let-boxes ([x 0.0] [y 0.0])
-                                                       (get-snip-position-and-location/char snip #f x y)
+                                                       (get-snip-position-and-location snip #f x y)
                                                      (let ([c (send snip adjust-cursor dc (- x scrollx) (- y scrolly) 
                                                                     x y event)])
                                                        c))))))))
                                s-custom-cursor
                                (if (x . >= . 0)
-                                   (let ([cb? (find-clickback (find-position/char x y #f) y)])
+                                   (let ([cb? (find-clickback (find-position x y #f) y)])
                                      (if cb? arrow i-beam))
                                    i-beam))
                            (end-sequence-lock))))))))))
@@ -502,8 +495,8 @@
           (let ([snip
                  (let-boxes ([how-close 0.0]
                              [now 0])
-                       (set-box! now (find-position/char x y #f #f how-close))
-                     (let* ([snip (do-find-snip/char now 'after)]
+                       (set-box! now (find-position x y #f #f how-close))
+                     (let* ([snip (do-find-snip now 'after)]
                             [onit? (or (and (not (zero? how-close))
                                             ((abs how-close) . > . between-threshold))
                                        (has-flag? (snip->flags snip)
@@ -526,18 +519,18 @@
             (when (and prev-mouse-snip
                        (not (eq? snip prev-mouse-snip)))
               (let-boxes ([x 0.0] [y 0.0])
-                  (get-snip-position-and-location/char prev-mouse-snip #f x y)
+                  (get-snip-position-and-location prev-mouse-snip #f x y)
                 (send prev-mouse-snip on-goodbye-event dc (- x scrollx) (- y scrolly) x y event)))
             (set! prev-mouse-snip #f)
             (if (and s-caret-snip (has-flag? (snip->flags s-caret-snip) HANDLES-EVENTS))
                 (let-boxes ([x 0.0] [y 0.0])
-                    (get-snip-position-and-location/char s-caret-snip #f x y)
+                    (get-snip-position-and-location s-caret-snip #f x y)
                   (send s-caret-snip on-event dc (- x scrollx) (- y scrolly) x y event))
                 (begin
                   (when (and snip
                              (has-flag? (snip->flags snip) HANDLES-ALL-MOUSE-EVENTS))
                     (let-boxes ([x 0.0] [y 0.0])
-                        (get-snip-position-and-location/char snip #f x y)
+                        (get-snip-position-and-location snip #f x y)
                       (set! prev-mouse-snip snip)
                       (send snip on-event dc (- x scrollx) (- y scrolly) x y event)))
                   (on-local-event event)))))))
@@ -555,7 +548,7 @@
             (let-boxes ([now 0]
                         [ateol? #f]
                         [how-close 0.0])
-                (set-box! now (find-position/char x y ateol? #f how-close))
+                (set-box! now (find-position x y ateol? #f how-close))
               (let ([now (if (and (how-close . > . 0)
                                   (how-close . <= . between-threshold))
                              (add1 now)
@@ -581,16 +574,16 @@
                                 (set! dragstart startpos)
                                 (set! dragstart endpos)))
                           (if (now . < . dragstart)
-                              (set-position-bias-scroll/char 'start-only now dragstart ateol?)
-                              (set-position-bias-scroll/char 'end-only dragstart now ateol?)))))]
+                              (set-position-bias-scroll 'start-only now dragstart ateol?)
+                              (set-position-bias-scroll 'end-only dragstart now ateol?)))))]
                  [(send event dragging?)
                   (cond
                    [dragging?
                     (if (now . < . dragstart)
                         (when (or (not (= startpos now)) (not (= endpos dragstart)))
-                          (set-position-bias-scroll/char 'start-only now dragstart ateol?))
+                          (set-position-bias-scroll 'start-only now dragstart ateol?))
                         (when (or (not (= endpos now)) (not (= startpos dragstart)))
-                          (set-position-bias-scroll/char 'end-only dragstart now ateol?)))]
+                          (set-position-bias-scroll 'end-only dragstart now ateol?)))]
                    [tracking?
                     (let ([cb (if (x . >= . 0)
                                   (find-clickback now y)
@@ -628,7 +621,7 @@
                       [dc #f])
               (set-box! dc (send s-admin get-dc scrollx scrolly))
             (let-boxes ([x 0.0] [y 0.0])
-                (get-snip-position-and-location/char s-caret-snip #f x y)
+                (get-snip-position-and-location s-caret-snip #f x y)
               (send s-caret-snip on-char dc (- x scrollx) (- y scrolly) x y event)))
           (let ([code (send event get-key-code)])
             (when (and (not (eq? 'release code))
@@ -646,8 +639,8 @@
       (let ([code (send event get-key-code)]
             [ins (lambda (ch)
                    (if (and overwrite-mode? (= endpos startpos))
-                       (insert/char ch startpos (add1 startpos))
-                       (insert/char ch)))])
+                       (insert ch startpos (add1 startpos))
+                       (insert ch)))])
         (case code
           [(#\backspace)
            (cond
@@ -655,16 +648,14 @@
                    (= endpos startpos)
                    (not (zero? startpos)))
               (begin-edit-sequence)
-              (insert/char #\space (- startpos 1) startpos)
-              (set-position/char (- startpos 1) (- startpos 1))
+              (insert #\space (- startpos 1) startpos)
+              (set-position (- startpos 1) (- startpos 1))
               (end-edit-sequence)]
              [else (delete)])]
           [(#\rubout)
            (if (= endpos startpos)
                (when (endpos . < . len)
-                 (delete/char endpos (grapheme-to-char-position
-                                      (add1 (char-to-grapheme-position endpos))
-                                      #t)))
+                 (delete endpos (add1 endpos)))
                (delete))]
           [(right left up down home end prior next)
            (move-position code (send event get-shift-down))]
@@ -738,58 +729,31 @@
   (def/public (can-insert? [exact-nonnegative-integer? start]
                            [exact-nonnegative-integer? len])
     #t)
-  (def/public (can-insert?/char [exact-nonnegative-integer? start]
-                                [exact-nonnegative-integer? len])
-    #t)
   (def/public (on-insert [exact-nonnegative-integer? start]
                          [exact-nonnegative-integer? len])
     (void))
-  (def/public (on-insert/char [exact-nonnegative-integer? start]
-                              [exact-nonnegative-integer? len])
-    (void))
   (def/public (after-insert [exact-nonnegative-integer? start]
                             [exact-nonnegative-integer? len])
-    (void))
-  (def/public (after-insert/char [exact-nonnegative-integer? start]
-                                 [exact-nonnegative-integer? len])
     (void))
 
   (def/public (can-delete? [exact-nonnegative-integer? start]
                            [exact-nonnegative-integer? len])
     #t)
-  (def/public (can-delete?/char [exact-nonnegative-integer? start]
-                                [exact-nonnegative-integer? len])
-    #t)
   (def/public (on-delete [exact-nonnegative-integer? start]
                          [exact-nonnegative-integer? len])
     (void))
-  (def/public (on-delete/char [exact-nonnegative-integer? start]
-                              [exact-nonnegative-integer? len])
-    (void))
   (def/public (after-delete [exact-nonnegative-integer? start]
                             [exact-nonnegative-integer? len])
-    (void))
-  (def/public (after-delete/char [exact-nonnegative-integer? start]
-                                 [exact-nonnegative-integer? len])
     (void))
 
   (def/public (can-change-style? [exact-nonnegative-integer? start]
                                  [exact-nonnegative-integer? len])
     #t)
-  (def/public (can-change-style?/char [exact-nonnegative-integer? start]
-                                      [exact-nonnegative-integer? len])
-    #t)
   (def/public (on-change-style [exact-nonnegative-integer? start]
                                [exact-nonnegative-integer? len])
     (void))
-  (def/public (on-change-style/char [exact-nonnegative-integer? start]
-                                    [exact-nonnegative-integer? len])
-    (void))
   (def/public (after-change-style [exact-nonnegative-integer? start]
                                   [exact-nonnegative-integer? len])
-    (void))
-  (def/public (after-change-style/char [exact-nonnegative-integer? start]
-                                       [exact-nonnegative-integer? len])
     (void))
 
   (def/public (after-set-position) (void))
@@ -863,66 +827,29 @@
 
   (def/public (recalculate) (void))
   
-  (def/public (get-position/char [maybe-box? start] [maybe-box? [end #f]])
+  (def/public (get-position [maybe-box? start] [maybe-box? [end #f]])
     (when start (set-box! start startpos))
     (when end (set-box! end endpos)))
-  (def/public (get-position [maybe-box? start] [maybe-box? [end #f]])
-    (cond
-      [(eqv? startpos endpos)
-       (define pos (char-to-grapheme-position startpos))
-       (when start (set-box! start pos))
-       (when end (set-box! end pos))]
-      [else
-       (when start (set-box! start  (char-to-grapheme-position startpos #t)))
-       (when end (set-box! end (char-to-grapheme-position endpos #t)))]))
+  
+  (def/public (get-start-position) startpos)
+  (def/public (get-end-position) endpos)
 
-  (define/private (grapheme-to-char-position* start)
-    (if (exact-nonnegative-integer? start)
-        (grapheme-to-char-position start)
-        start))
-  (define/private (char-to-grapheme-position* start [end-of-grapheme? #f])
-    (if (exact-nonnegative-integer? start)
-        (char-to-grapheme-position start end-of-grapheme?)
-        start))
-
-  ;; Temporary for transition from first attempt:
-  (def/public (grapheme-position [exact-nonnegative-integer? start]) start)
-  (def/public (position-grapheme [exact-nonnegative-integer? start]) start)
-
-  (def/public (get-start-position/char) startpos)
-  (def/public (get-end-position/char) endpos)
-  (def/public (get-start-position) (char-to-grapheme-position startpos))
-  (def/public (get-end-position) (char-to-grapheme-position endpos (not (eq? startpos endpos))))
-
-  (def/public (set-position/char [exact-nonnegative-integer? start]
-                                 [(make-alts exact-nonnegative-integer? (make-literal 'same)) [end 'same]]
-                                 [any? [ateol? #f]]
-                                 [any? [scroll? #t]]
-                                 [(symbol-in default x local) [seltype 'default]])
-    (do-set-position/char #f 'none start end ateol? scroll? seltype #f))
   (def/public (set-position [exact-nonnegative-integer? start]
                             [(make-alts exact-nonnegative-integer? (make-literal 'same)) [end 'same]]
                             [any? [ateol? #f]]
                             [any? [scroll? #t]]
                             [(symbol-in default x local) [seltype 'default]])
-    (set-position/char (grapheme-to-char-position* start) (grapheme-to-char-position* end) ateol? scroll? seltype))
+    (do-set-position #f 'none start end ateol? scroll? seltype #f))
 
-  (def/public (set-position-bias-scroll/char [symbol? bias]
-                                             [exact-nonnegative-integer? start]
-                                             [(make-alts exact-nonnegative-integer? (make-literal 'same)) [end 'same]]
-                                             [any? [ateol? #f]]
-                                             [any? [scroll? #t]]
-                                             [(symbol-in default x local) [seltype 'default]])
-    (do-set-position/char #f bias start end ateol? scroll? seltype #f))
   (def/public (set-position-bias-scroll [symbol? bias]
                                         [exact-nonnegative-integer? start]
                                         [(make-alts exact-nonnegative-integer? (make-literal 'same)) [end 'same]]
                                         [any? [ateol? #f]]
                                         [any? [scroll? #t]]
                                         [(symbol-in default x local) [seltype 'default]])
-    (set-position-bias-scroll/char bias (grapheme-to-char-position start) (grapheme-to-char-position* end) ateol? scroll? seltype))
+    (do-set-position #f bias start end ateol? scroll? seltype #f))
 
-  (define/private (do-set-position/char setflash? bias start end ateol? scroll? seltype dont-end-cursor?)
+  (define/private (do-set-position setflash? bias start end ateol? scroll? seltype dont-end-cursor?)
     (unless flow-locked?
       (when (and (not setflash?)
                  (or (not flash?) (not flashautoreset?) (not flashdirectoff?)))
@@ -939,10 +866,10 @@
                 (and ateol?
                      (= end start)
                      (let-values ([(snip s-pos)
-                                   (find-snip/pos/char start 'before)])
+                                   (find-snip/pos start 'before)])
                        (and (has-flag? (snip->flags snip) NEWLINE) 
                             (not (has-flag? (snip->flags snip) INVISIBLE))
-                            (= start (+ s-pos (snip->char-count snip))))))])
+                            (= start (+ s-pos (snip->count snip))))))])
           (let-values ([(oldstart oldend oldateol?)
                         (if flash?
                             (values flashstartpos flashendpos flashposateol?)
@@ -1013,7 +940,7 @@
                                              (values start end bias)])])
                                (let ([was-blinked? caret-blinked?])
                                  (set! caret-blinked? #f)
-                                 (if (scroll-to-position/refresh/char scroll-start posateol? #t scroll-end bias)
+                                 (if (scroll-to-position/refresh scroll-start posateol? #t scroll-end bias)
                                      #t
                                      (begin
                                        (set! caret-blinked? was-blinked?)
@@ -1042,11 +969,11 @@
               (when (and changed-pos? (not setflash?))
                 (after-set-position))))))))
 
-  (define/private (scroll-to-position/refresh/char start
-                                                   [ateol? #f]
-                                                   [refresh? #t]
-                                                   [end 'same]
-                                                   [bias 'none])
+  (define/private (scroll-to-position/refresh start
+                                              [ateol? #f]
+                                              [refresh? #t]
+                                              [end 'same]
+                                              [bias 'none])
     (and 
      (not flow-locked?)
      (let ([end (if (eq? end 'same) start (max start end))])
@@ -1067,8 +994,8 @@
          (let-boxes ([topx 0.0] [topy 0.0]
                      [botx 0.0] [boty 0.0])
              (begin
-               (position-location/char start topx topy #t ateol? #t)
-               (position-location/char end botx boty #f ateol? #t))
+               (position-location start topx topy #t ateol? #t)
+               (position-location end botx boty #f ateol? #t))
            (let-values ([(topx botx)
                          (if (botx . < . topx)
                              ;; when the end position is to the left of the start position 
@@ -1076,16 +1003,11 @@
                              (values topx botx))])
              (scroll-editor-to topx topy (- botx topx) (- boty topy) refresh? bias)))]))))
 
-  (def/public (scroll-to-position/char [exact-nonnegative-integer? start]
-                                       [any? [ateol? #f]]
-                                       [(make-alts exact-nonnegative-integer? (make-literal 'same)) [end 'same]]
-                                       [(symbol-in start end none) [bias 'none]])
-    (scroll-to-position/refresh/char start ateol? #t end bias))
   (def/public (scroll-to-position [exact-nonnegative-integer? start]
                                   [any? [ateol? #f]]
                                   [(make-alts exact-nonnegative-integer? (make-literal 'same)) [end 'same]]
                                   [(symbol-in start end none) [bias 'none]])
-    (scroll-to-position/refresh/char (grapheme-to-char-position start) ateol? #t (grapheme-to-char-position* end) bias))
+    (scroll-to-position/refresh start ateol? #t end bias))
 
   (define/private (get-visible-X-range start end all? find)
     (when (check-recalc #t #f)
@@ -1099,19 +1021,15 @@
           (when end
             (set-box! end (find (+ x w) (+ y h))))))))
 
-  (def/public (get-visible-position-range/char [maybe-box? start] [maybe-box? end] [any? [all? #t]])
-    (get-visible-X-range start end all? (lambda (x y) (find-position/char x y))))
   (def/public (get-visible-position-range [maybe-box? start] [maybe-box? end] [any? [all? #t]])
-    (get-visible-position-range/char start end all?)
-    (when start (set-box! start (char-to-grapheme-position (unbox start))))
-    (when end (set-box! end (char-to-grapheme-position (unbox end) #t))))
+    (get-visible-X-range start end all? (lambda (x y) (find-position x y))))
 
   (def/public (get-visible-line-range [maybe-box? start] [maybe-box? end] [any? [all? #t]])
     (get-visible-X-range start end all? (lambda (x y) (find-line y))))
 
   ;; ----------------------------------------
 
-  (def/public (extend-position/char [exact-nonnegative-integer? dest])
+  (def/public (extend-position [exact-nonnegative-integer? dest])
     (cond
       [extend-streak?
        (values extendstartpos extendendpos)]
@@ -1131,9 +1049,7 @@
          (values extendstartpos dest 'end)]
         [else
          (values extendstartpos extendendpos 'none)]))
-    (do-set-position/char #f bias start end #f #t 'default #t))
-  (def/public (extend-position [exact-nonnegative-integer? dest])
-    (extend-position/char (grapheme-to-char-position dest)))
+    (do-set-position #f bias start end #f #t 'default #t))
   
   (def/public (move-position [(make-alts symbol? char?) code]
                              [any? [extend-selection? #f]]
@@ -1165,18 +1081,18 @@
             (cond
              [(eq? 'home code)
               (if leftshrink?
-                  (set-position-bias-scroll/char 'start-only extendstart extendend)
-                  (set-position-bias-scroll/char 'start-only 0 (if extend? extendend 0)))]
+                  (set-position-bias-scroll 'start-only extendstart extendend)
+                  (set-position-bias-scroll 'start-only 0 (if extend? extendend 0)))]
              [(eq? 'end code)
               (if rightshrink?
-                  (set-position-bias-scroll/char 'end-only extendstart extendend)
-                  (set-position-bias-scroll/char 'end-only (if extend? extendstart len) len))]
+                  (set-position-bias-scroll 'end-only extendstart extendend)
+                  (set-position-bias-scroll 'end-only (if extend? extendstart len) len))]
              [(eq? 'left code)
               (if (and (not (eq? 'line kind))
                        (not (eq? 'word kind))
                        (not extend?)
                        (not (= endpos startpos)))
-                  (set-position/char startpos)
+                  (set-position startpos)
                   (begin
                     ;; pick a starting place
                     (let ([start 
@@ -1186,13 +1102,13 @@
                              (cond
                               [(eq? 'word kind)
                                (let-boxes ([start start])
-                                   (find-wordbreak/char start #f 'caret)
+                                   (find-wordbreak start #f 'caret)
                                  start)]
                               [(eq? 'line kind)
-                               (line-start-position/char (position-line/char start posateol?))]
+                               (line-start-position (position-line start posateol?))]
                               [else
-                               (grapheme-to-char-position
-                                (max 0 (sub1 (char-to-grapheme-position start))))]))])
+                               (grapheme-position
+                                (max 0 (sub1 (position-grapheme start))))]))])
                       (let-values ([(start end)
                                     (if extend?
                                         (if leftshrink?
@@ -1200,13 +1116,13 @@
                                               (values startpos start))
                                             (values start endpos))
                                         (values start start))])
-                        (set-position-bias-scroll/char 'start-only start end)))))]
+                        (set-position-bias-scroll 'start-only start end)))))]
              [(eq? 'right code)
               (if (and (not (eq? 'line kind))
                        (not (eq? 'word kind))
                        (not extend?)
                        (not (= endpos startpos)))
-                  (set-position/char endpos endpos #t)
+                  (set-position endpos endpos #t)
                   (begin
                     ;; pick a starting place
                     (let ([end
@@ -1216,13 +1132,13 @@
                              (cond
                               [(eq? 'word kind)
                                (let-boxes ([end end])
-                                   (find-wordbreak/char #f end 'caret)
+                                   (find-wordbreak #f end 'caret)
                                  end)]
                               [(eq? 'line kind)
-                               (line-end-position/char (position-line/char end posateol?))]
+                               (line-end-position (position-line end posateol?))]
                               [else
-                               (grapheme-to-char-position
-                                (add1 (char-to-grapheme-position end)))]))])
+                               (grapheme-position
+                                (add1 (position-grapheme end)))]))])
                       (let-values ([(start end)
                                     (if extend?
                                         (if rightshrink?
@@ -1230,7 +1146,7 @@
                                               (values end endpos))
                                             (values startpos end))
                                         (values end end))])
-                        (set-position-bias-scroll/char 'end-only start end #t)))))]
+                        (set-position-bias-scroll 'end-only start end #t)))))]
              [(or (eq? 'up code) (eq? 'down code))
               (let ([special-scroll? (eq? 'page kind)]) ;; used when paging
                 (let-values ([(start end ateol? special-scroll?
@@ -1242,9 +1158,9 @@
                                                    startpos)])
                                     (let-boxes ([vcl vcursorloc])
                                         (when (not vcursor?)
-                                          (position-location/char start vcl #f #t posateol? #t))
+                                          (position-location start vcl #f #t posateol? #t))
                                       (set! vcursorloc vcl)
-                                      (let ([cline (position-line/char start posateol?)])
+                                      (let ([cline (position-line start posateol?)])
                                         (let-values ([(i scroll-left scroll-top scroll-width scroll-height)
                                                       (if (eq? 'page kind)
                                                           ;; the current top line should become the next-to bottom line.
@@ -1282,7 +1198,7 @@
                                                           (values (- cline 1) 0.0 0.0 0.0 0.0))])
                                           (let-boxes ([start 0] [ateol? #f])
                                               (if (i . >= . 0)
-                                                  (set-box! start (find-position-in-line/char i vcursorloc ateol?))
+                                                  (set-box! start (find-position-in-line i vcursorloc ateol?))
                                                   (begin (set-box! start 0) (set-box! ateol? #f)))
                                             (let-values ([(start end special-scroll?)
                                                           (if extend?
@@ -1306,9 +1222,9 @@
                                                  endpos)])
                                     (let-boxes ([vcl vcursorloc])
                                         (when (not vcursor?)
-                                          (position-location/char end vcl #f #t posateol? #t))
+                                          (position-location end vcl #f #t posateol? #t))
                                       (set! vcursorloc vcl)
-                                      (let ([cline (position-line/char end posateol?)])
+                                      (let ([cline (position-line end posateol?)])
                                         (let-values ([(i scroll-left scroll-top scroll-width scroll-height)
                                                       (if (eq? 'page kind)
                                                           (let-boxes ([scroll-left 0.0] [vy 0.0]
@@ -1346,7 +1262,7 @@
                                           (let-values ([(end ateol?)
                                                         (if (i . <= . (sub1 num-valid-lines))
                                                             (let-boxes ([ateol? #f] [end 0])
-                                                                (set-box! end (find-position-in-line/char i vcursorloc ateol?))
+                                                                (set-box! end (find-position-in-line i vcursorloc ateol?))
                                                               (values end ateol?))
                                                             (values len #f))])
                                             (let-values ([(start end special-scroll?)
@@ -1369,7 +1285,7 @@
                     (begin-edit-sequence))
                   
                   ;; scroll only if !special-scroll
-                  (set-position-bias-scroll/char bias start end ateol? (not special-scroll?))
+                  (set-position-bias-scroll bias start end ateol? (not special-scroll?))
 
                   (when special-scroll?
                     ;; special scrolling intructions:
@@ -1394,10 +1310,8 @@
         (set! extendendpos endpos)
         (set! extendstartpos startpos))))
 
-  (def/public (get-extend-start-position/char) (if (or extend-streak? anchor-streak?) extendstartpos startpos))
-  (def/public (get-extend-end-position/char) (if (or extend-streak? anchor-streak?) extendendpos endpos))
-  (def/public (get-extend-start-position) (char-to-grapheme-position (get-extend-start-position/char)))
-  (def/public (get-extend-end-position) (char-to-grapheme-position (get-extend-end-position/char) #t))
+  (def/public (get-extend-start-position) (if (or extend-streak? anchor-streak?) extendstartpos startpos))
+  (def/public (get-extend-end-position) (if (or extend-streak? anchor-streak?) extendendpos endpos))
   
   (def/public (get-anchor)
     anchor-streak?)
@@ -1424,7 +1338,7 @@
                                    (set! need-x-copy? #t)))
                                (when (or isnip str snipsl)
                                  (begin-edit-sequence))
-                               (delete/char start end scroll-ok?)
+                               (delete start end scroll-ok?)
                                (when ALLOW-X-STYLE-SELECTION?
                                  (when (not (in-edit-sequence?))
                                    (set! need-x-copy? #f)))
@@ -1432,7 +1346,7 @@
           (when (or isnip str snipsl)
             (set! write-locked? #t)
             (let ([success-finish
-                   (lambda (addlen grapheme-addlen inserted-line?)
+                   (lambda (addlen inserted-line?)
                      (set! initial-style-needed? #f)
                      (set! revision-count (add1 revision-count))
 
@@ -1474,7 +1388,7 @@
                        (when (and scroll? scroll-ok?)
                          (set! delay-refresh (add1 delay-refresh))
                          (parameterize ([in-delayed-refresh #f])
-                           (scroll-to-position/refresh/char startpos))
+                           (scroll-to-position/refresh startpos))
                          (set! delay-refresh (sub1 delay-refresh)))
 
                        (set! changed? #t)
@@ -1495,8 +1409,7 @@
 
                        (assert (consistent-snip-lines 'pre-after-insert))
                        
-                       (after-insert/char start addlen)
-                       (after-insert (char-to-grapheme-position start) (if external-grapheme=char? addlen grapheme-addlen))))]
+                       (after-insert start addlen)))]
                   [fail-finish
                    (lambda ()
                      (set! write-locked? #f)
@@ -1510,33 +1423,26 @@
       (assert (consistent-snip-lines 'post-do-insert))))
   
   (define/private (insert-snips snipsl start success-finish fail-finish)
-    (let-values ([(addlen grapheme-addlen)
-                  (for/fold ([addlen 0]
-                             [grapheme-addlen 0])
-                            ([isnip (in-list snipsl)]
-                             #:when addlen)
-                    (let ([c (snip->char-count isnip)]
-                          [gc (snip->grapheme-count isnip)])
-                      (if (and (positive? c)
-                               (not (send isnip is-owned?)))
-                          (values (+ addlen c)
-                                  (+ grapheme-addlen gc))
-                          (values #f #f))))])
-      (define grapheme-start (char-to-grapheme-position start))
+    (let ([addlen (for/fold ([addlen 0])
+                      ([isnip (in-list snipsl)]
+                       #:when addlen)
+                    (let ([c (snip->count isnip)])
+                      (and (positive? c)
+                           (not (send isnip is-owned?))
+                           (+ addlen c))))])
+
       (if (or (not addlen)
               (zero? addlen)
-              (not (can-insert?/char start addlen))
-              (not (can-insert? grapheme-start grapheme-addlen)))
+              (not (can-insert? start addlen)))
           (fail-finish)
           (begin
-            (on-insert/char start addlen)
-            (on-insert grapheme-start (if external-grapheme=char? addlen grapheme-addlen))
+            (on-insert start addlen)
 
             (set! flow-locked? #t)
 
             ;; make sure on-insert didn't do something bad to the snips:
             (if (not (for/and ([isnip (in-list snipsl)])
-                       (and (positive? (snip->char-count isnip))
+                       (and (positive? (snip->count isnip))
                             (not (send isnip is-owned?)))))
 
                 (fail-finish)
@@ -1547,7 +1453,7 @@
                            [snipsl snipsl])
 
                   (if (null? snipsl)
-                      (success-finish addlen (if external-grapheme=char? addlen grapheme-addlen) inserted-line?)
+                      (success-finish addlen inserted-line?)
                       (let ([isnip (car snipsl)])
                         (when (and (has-flag? (snip->flags isnip) NEWLINE)
                                    (not (has-flag? (snip->flags isnip) HARD-NEWLINE)))
@@ -1575,7 +1481,7 @@
                                           (let* ([gsnip (if (not did-one?)
                                                             (begin
                                                               (make-snipset start start)
-                                                              (do-find-snip/char start 'after-or-none))
+                                                              (do-find-snip start 'after-or-none))
                                                             before-snip)]
                                                  [before-snip (or before-snip gsnip)]
                                                  [inserted-new-line?
@@ -1649,7 +1555,7 @@
                           (mline-calc-line-length (snip->line isnip))
                           (mline-mark-recalculate (snip->line isnip))
 
-                          (set! len (+ len (snip->char-count isnip)))
+                          (set! len (+ len (snip->count isnip)))
                           
                           (snip-set-admin isnip snip-admin)
 
@@ -1665,14 +1571,10 @@
 
   (define/private (insert-string str start success-finish fail-finish)
     (let ([addlen (string-length str)])
-      (define grapheme-start (char-to-grapheme-position start))
-      (define grapheme-addlen (string-grapheme-count str))
-      (if (or (not (can-insert?/char start addlen))
-              (not (can-insert? grapheme-start (if external-grapheme=char? addlen grapheme-addlen))))
+      (if (not (can-insert? start addlen))
           (fail-finish)
           (begin
-            (on-insert/char start addlen)
-            (on-insert grapheme-start (if external-grapheme=char? addlen grapheme-addlen))
+            (on-insert start addlen)      
     
             (set! flow-locked? #t)
 
@@ -1691,13 +1593,13 @@
 
                               (let-values ([(gsnip s-pos)
                                             (if (positive? start)
-                                                (find-snip/pos/char start 'before)
+                                                (find-snip/pos start 'before)
                                                 (values #f 0))])
                                 (let-values ([(snip s-pos)
                                               (if (or (not gsnip)
                                                       (and caret-style (not (eq? caret-style (snip->style gsnip))))
                                                       (not (has-flag? (snip->flags gsnip) IS-TEXT))
-                                                      ((+ (snip->char-count gsnip) addlen) . > . MAX-COUNT-FOR-SNIP)
+                                                      ((+ (snip->count gsnip) addlen) . > . MAX-COUNT-FOR-SNIP)
                                                       (and (not sticky-styles?)
                                                            (not (eq? (snip->style gsnip) (get-default-style)))))
                                                   
@@ -1768,8 +1670,8 @@
                     (let loop ([pos (- start s)] [snip snip] [size (+ addlen s)])
                       (cond
                        [(size . > . MAX-COUNT-FOR-SNIP)
-                        (define half (send snip grapheme-to-char-position
-                                           (send snip char-to-grapheme-position (quotient size 2))))
+                        (define half (send snip grapheme-position
+                                           (send snip position-grapheme (quotient size 2))))
                         (cond
                           [(< 0 half size)
                            (define intm-snip
@@ -1784,7 +1686,7 @@
                        [else
                         (define new-snip (split-one* size snip))
                         (values (snip->next new-snip) (+ pos size))]))
-                    (find-snip/pos/char start 'after)]
+                    (find-snip/pos start 'after)]
                    [else (values snip s)]))
 
                 ;; If the inserted text contains any newlines or tabs,
@@ -1799,19 +1701,19 @@
                            [cnt 0]
                            [inserted-line (and inserted-line?
                                                (snip->line initial-snip))]
-                           [sniplen (- (snip->char-count initial-snip) s)])
+                           [sniplen (- (snip->count initial-snip) s)])
                   (cond
                    [(= i addlen)
                     (set! first-line (mline-first (unbox line-root-box)))
                     (set! last-line (mline-last (unbox line-root-box)))
                     (set! len (+ len addlen))
-                    (assert (= (last-position/char) (+ (mline-get-position last-line)
-                                                       (mline-len last-line))))
+                    (assert (= (last-position) (+ (mline-get-position last-line)
+                                                  (mline-len last-line))))
                     (when inserted-line
                       ;; The last added line could have snips with WIDTH-DEPENDS-ON-X,
                       ;; but we've only called `adjust-line-length` so far.
                       (mline-calc-line-length inserted-line))
-                    (success-finish addlen grapheme-addlen (and inserted-line #t))]
+                    (success-finish addlen (and inserted-line #t))]
                    [(= cnt sniplen)
                     ;; move to next snip
                     (define snip (snip->next the-snip))
@@ -1823,7 +1725,7 @@
                           i
                           0
                           inserted-line
-                          (snip->char-count snip))]
+                          (snip->count snip))]
                    [else
                     (when (equal? (string-ref str sp) #\return)
                       (string-set! str sp #\newline))
@@ -1862,12 +1764,12 @@
                                           (let loop ([c-snip (mline-snip old-line)] [delta 0] [grapheme-delta 0])
                                             (cond
                                              [(eq? c-snip snip)
-                                              (values (+ delta (snip->char-count snip))
+                                              (values (+ delta (snip->count snip))
                                                       (+ grapheme-delta (snip->grapheme-count snip)))]
                                              [else
                                               (set-snip-line! c-snip line)
                                               (loop (snip->next c-snip)
-                                                    (+ delta (snip->char-count c-snip))
+                                                    (+ delta (snip->count c-snip))
                                                     (+ grapheme-delta (snip->grapheme-count c-snip)))])))
                                         
                                         (set-mline-snip! old-line (snip->next snip))
@@ -1895,7 +1797,7 @@
                                 ;; convert a tab to a tab-snip%
                                 (let ([tabsnip (let ([ts (on-new-tab-snip)])
                                                  (if (or (send ts is-owned?)
-                                                         (positive? (snip->char-count ts)))
+                                                         (positive? (snip->count ts)))
                                                      ;; uh-oh
                                                      (new tab-snip%)
                                                      ts))])
@@ -1938,7 +1840,7 @@
                                   (if newline?
                                       (snip->line (or snip new-snip))
                                       inserted-line)
-                                  (if (= i addlen) 0 (snip->char-count snip))))))]
+                                  (if (= i addlen) 0 (snip->count snip))))))]
                      
                      [else
                       (loop the-snip the-s
@@ -1952,7 +1854,7 @@
                                     len)
                             str)))
 
-  (define/public (insert/char . args)
+  (define/override (insert . args)
     (case-args
      args
      [([string? str])
@@ -2001,43 +1903,6 @@
        [exact-nonnegative-integer? start] 
        [(make-alts exact-nonnegative-integer? (symbol-in same)) [end 'same]])
       (do-insert-char ch start end)]
-     (method-name 'text% 'insert/char)))
-
-  (define/override (insert . args)
-    (case-args
-     args
-     [([string? str])
-      (insert/char str)]
-     [([string? str] 
-       [exact-nonnegative-integer? start] 
-       [(make-alts exact-nonnegative-integer? (symbol-in same)) [end 'same]]
-       [any? [scroll-ok? #t]]
-       [any? [join-graphemes? #f]])
-      (insert/char str (grapheme-to-char-position start) (grapheme-to-char-position* end) scroll-ok? join-graphemes?)]
-     [([exact-nonnegative-integer? len] 
-       [string? str]
-       [any? [join-graphemes? #f]])
-      (insert/char len str join-graphemes?)]
-     [([exact-nonnegative-integer? len] 
-       [string? str] 
-       [exact-nonnegative-integer? start] 
-       [(make-alts exact-nonnegative-integer? (symbol-in same)) [end 'same]]
-       [any? [scroll-ok? #t]]
-       [any? [join-graphemes? #f]])
-      (insert/char len str (grapheme-to-char-position start) (grapheme-to-char-position* end) scroll-ok? join-graphemes?)]
-     [([snip% snip])
-      (insert/char snip)]
-     [([snip% snip]
-       [exact-nonnegative-integer? [start startpos]]
-       [(make-alts exact-nonnegative-integer? (symbol-in same)) [end 'same]]
-       [any? [scroll-ok? #t]])
-      (insert/char snip (grapheme-to-char-position start) (grapheme-to-char-position* end) scroll-ok?)]
-     [([char? ch])
-      (insert/char ch)]
-     [([char? ch] 
-       [exact-nonnegative-integer? start] 
-       [(make-alts exact-nonnegative-integer? (symbol-in same)) [end 'same]])
-      (insert/char ch (grapheme-to-char-position start) (grapheme-to-char-position* end))]
      (method-name 'text% 'insert)))
 
   (define/public (do-insert-snips snips pos)
@@ -2060,58 +1925,50 @@
       (set! typing-streak? #t)))
 
   (define/private (do-insert-graphemes str start end scroll-ok?)
-    (cond
-      [external-grapheme=char? (do-insert #f str #f start end scroll-ok? #f)]
-      [else
-       ;; maybe join characters to form a grapheme; we limit
-       ;; the search for a grapheme to one surrounding snip on
-       ;; the grounds that this makes sense when graphemes are
-       ;; already joined
-       (define keep-caret? (and (= start startpos)
-                                (or (eq? end 'same) (eqv? end start))))
-       (let loop ([s str] [start start] [end (if (eq? end 'same) start (max start end))])
-         (define pre-s (do-find-snip/char start 'before))
-         (define pre-pos (get-snip-position/char pre-s))
-         (define pre-count (snip->char-count pre-s))
-         (define txt (send pre-s get-text 0 (- start pre-pos)))
+    ;; maybe join characters to form a grapheme; we limit
+    ;; the search for a grapheme to one surrounding snip on
+    ;; the grounds that this makes sense when graphemes are
+    ;; already joined
+    (define keep-caret? (and (= start startpos)
+                             (or (eq? end 'same) (eqv? end start))))
+    (let loop ([s str] [start start] [end (if (eq? end 'same) start (max start end))])
+      (define pre-s (do-find-snip start 'before))
+      (define pre-pos (get-snip-position pre-s))
+      (define pre-count (snip->count pre-s))
+      (define txt (send pre-s get-text 0 (- start pre-pos)))
+      (cond
+        [(grapheme-spans? txt 0 (- start pre-pos)
+                          s 0 (string-length s))
+         (loop (string-append (string (string-ref txt (- start pre-pos 1))) s)
+               (sub1 start)
+               end)]
+        [else
+         (define post-s (do-find-snip end 'after))
+         (define post-pos (get-snip-position post-s))
+         (define post-count (snip->count post-s))
+         (define txt (send post-s get-text 0 post-count))
          (cond
-           [(grapheme-spans? txt 0 (- start pre-pos)
-                             s 0 (string-length s))
-            (loop (string-append (string (string-ref txt (- start pre-pos 1))) s)
-                  (sub1 start)
-                  end)]
+           [(grapheme-spans? s 0 (string-length s)
+                             txt (- end post-pos) post-count)
+            (loop (string-append s (string (string-ref txt (- end post-pos))))
+                  start
+                  (add1 end))]
            [else
-            (define post-s (do-find-snip/char end 'after))
-            (define post-pos (get-snip-position/char post-s))
-            (define post-count (snip->char-count post-s))
-            (define txt (send post-s get-text 0 post-count))
-            (cond
-              [(grapheme-spans? s 0 (string-length s)
-                                txt (- end post-pos) post-count)
-               (loop (string-append s (string (string-ref txt (- end post-pos))))
-                     start
-                     (add1 end))]
-              [else
-               (do-insert #f s #f start end scroll-ok? keep-caret?)])]))]))
+            (do-insert #f s #f start end #t keep-caret?)])])))
 
   (define/private (do-delete start end with-undo? [scroll-ok? #t])
     (assert (consistent-snip-lines 'do-delete))
     (unless (or write-locked? s-user-locked?)
-      (let-values ([(start end grapheme-start grapheme-end set-caret-style?)
+      (let-values ([(start end set-caret-style?)
                     (if (eq? end 'back)
                         (if (zero? start)
-                            (values 0 0 0 0 #f)
-                            (let* ([grapheme-end (char-to-grapheme-position start #t)]
-                                   [grapheme-start (sub1 grapheme-end)])
-                            (values (grapheme-to-char-position grapheme-start)
+                            (values 0 0 #f)
+                            (values (grapheme-position
+                                     (sub1 (position-grapheme start)))
                                     start
-                                    grapheme-start
-                                    grapheme-end
-                                    #t)))
-                        (let ([grapheme-start (char-to-grapheme-position start)]
-                              [grapheme-end (char-to-grapheme-position end #t)])
-                          (values start end grapheme-start grapheme-end (and (= start startpos)
-                                                                             (= end endpos)))))])
+                                    #t))
+                        (values start end (and (= start startpos)
+                                               (= end endpos))))])
         (end-streaks '(delayed))
         (unless (or (start . >= . end)
                     (start . < . 0)
@@ -2126,20 +1983,18 @@
 
             (set! write-locked? #t)
 
-            (if (or (not (can-delete?/char start (- end start)))
-                    (not (can-delete? grapheme-start (- grapheme-end grapheme-start))))
+            (if (not (can-delete? start (- end start)))
                 (set! write-locked? #f)
                 (begin
-                  (on-delete/char start (- end start))
-                  (on-delete grapheme-start (- grapheme-end grapheme-start))
+                  (on-delete start (- end start))
 
                   (set! flow-locked? #t)
 
                   (make-snipset start end)
                   (set! revision-count (add1 revision-count))
 
-                  (let* ([start-snip (do-find-snip/char start 'before-or-none)]
-                         [end-snip (do-find-snip/char end 'before)]
+                  (let* ([start-snip (do-find-snip start 'before-or-none)]
+                         [end-snip (do-find-snip end 'before)]
                          [with-undo? (and with-undo?
                                           (zero? s-noundomode))]
                          [rec (if with-undo?
@@ -2305,7 +2160,7 @@
                           (when (and scroll-ok? (= start startpos))
                             (set! delay-refresh (add1 delay-refresh))
                             (parameterize ([in-delayed-refresh #f])
-                              (scroll-to-position/refresh/char startpos))
+                              (scroll-to-position/refresh startpos))
                             (set! delay-refresh (sub1 delay-refresh)))
 
                           (set! changed? #t)
@@ -2327,15 +2182,14 @@
                           (unless s-modified?
                             (set-modified #t))
 
-                          (after-delete/char start dellen)
-                          (after-delete grapheme-start (- grapheme-end grapheme-start))
+                          (after-delete start dellen)
 
                           (when update-cursor?
                             (when s-admin
                               (send s-admin update-cursor))))))))))))
       (assert (consistent-snip-lines 'post-do-delete))))
 
-  (define/public (delete/char . args)
+  (define/public (delete . args)
     (case-args
      args
      [()
@@ -2345,7 +2199,7 @@
         (end-streaks '(delayed))
         (set! delete-force-streak? dstreak?)
         
-        (delete/char startpos (if (= startpos endpos) 'back endpos))
+        (delete startpos (if (= startpos endpos) 'back endpos))
 
         (set! delete-force-streak? dfs?)
         (set! deletion-streak? streak?))]
@@ -2353,17 +2207,6 @@
        [(make-alts exact-nonnegative-integer? (symbol-in back)) [end 'back]]
        [any? [scroll-ok? #t]])
       (do-delete (if (symbol? start) startpos start) end #t scroll-ok?)]
-     (method-name 'text% 'delete/char)))
-
-  (define/public (delete . args)
-    (case-args
-     args
-     [()
-      (delete/char)]
-     [([(make-alts exact-nonnegative-integer? (symbol-in start)) start]
-       [(make-alts exact-nonnegative-integer? (symbol-in back)) [end 'back]]
-       [any? [scroll-ok? #t]])
-      (delete/char (grapheme-to-char-position start) (grapheme-to-char-position* end) scroll-ok?)]
      (method-name 'text% 'delete)))
 
   (def/public (erase)
@@ -2374,9 +2217,9 @@
   
   ;; ----------------------------------------
 
-  (def/public (cut/char [any? [extend? #f]] [exact-integer? [time 0]]
-                        [(make-alts exact-nonnegative-integer? (symbol-in start)) [start 'start]]
-                        [(make-alts exact-nonnegative-integer? (symbol-in end)) [end 'end]])
+  (def/override (cut [any? [extend? #f]] [exact-integer? [time 0]]
+                     [(make-alts exact-nonnegative-integer? (symbol-in start)) [start 'start]]
+                     [(make-alts exact-nonnegative-integer? (symbol-in end)) [end 'end]])
     (let* ([start (if (symbol? start)
                       startpos
                       start)]
@@ -2385,17 +2228,13 @@
                     end)]
            [end (min end len)])
       (unless (start . >= . end)
-        (copy/char extend? time start end)
+        (copy extend? time start end)
         (delete start end))))
-  (def/override (cut [any? [extend? #f]] [exact-integer? [time 0]]
-                     [(make-alts exact-nonnegative-integer? (symbol-in start)) [start 'start]]
-                     [(make-alts exact-nonnegative-integer? (symbol-in end)) [end 'end]])
-    (cut/char extend? time (char-to-grapheme-position* start) (char-to-grapheme-position* end #t)))
 
-  (def/public (do-copy/char [exact-nonnegative-integer? startp] 
-                            [exact-nonnegative-integer? endp] 
-                            [exact-integer? time] 
-                            [bool? extend?])
+  (def/public (do-copy [exact-nonnegative-integer? startp] 
+                       [exact-nonnegative-integer? endp] 
+                       [exact-integer? time] 
+                       [bool? extend?])
     (let ([startp (max startp 0)]
           [endp (min endp len)])
       (unless (endp . <= . startp)
@@ -2404,10 +2243,10 @@
   
         (let ([sl (or (and extend? copy-style-list)
                       s-style-list)])
-          (set-common-copy-region-data! (get-region-data/char startp endp))
+          (set-common-copy-region-data! (get-region-data startp endp))
 
-          (let ([start (do-find-snip/char startp 'after)]
-                [end (do-find-snip/char endp 'after-or-none)]
+          (let ([start (do-find-snip startp 'after)]
+                [end (do-find-snip endp 'after-or-none)]
                 [wl? write-locked?]
                 [fl? flow-locked?])
 
@@ -2428,15 +2267,9 @@
 
             (install-copy-buffer time sl))))))
 
-  (def/public (do-copy [exact-nonnegative-integer? startp] 
-                       [exact-nonnegative-integer? endp] 
-                       [exact-integer? time] 
-                       [bool? extend?])
-    (do-copy/char (grapheme-to-char-position startp) (grapheme-to-char-position endp) time extend?))
-
-  (def/public (copy/char [any? [extend? #f]] [exact-integer? [time 0]]
-                         [(make-alts exact-nonnegative-integer? (symbol-in start)) [start 'start]]
-                         [(make-alts exact-nonnegative-integer? (symbol-in end)) [end 'end]])
+  (def/override (copy [any? [extend? #f]] [exact-integer? [time 0]]
+                      [(make-alts exact-nonnegative-integer? (symbol-in start)) [start 'start]]
+                      [(make-alts exact-nonnegative-integer? (symbol-in end)) [end 'end]])
     (let* ([start (if (symbol? start)
                       startpos
                       start)]
@@ -2448,14 +2281,10 @@
         (begin-copy-buffer)
         (unless extend?
           (free-old-copies))
-        (do-copy/char start end time extend?)
+        (do-copy start end time extend?)
         (end-copy-buffer))))
-  (def/override (copy [any? [extend? #f]] [exact-integer? [time 0]]
-                      [(make-alts exact-nonnegative-integer? (symbol-in start)) [start 'start]]
-                      [(make-alts exact-nonnegative-integer? (symbol-in end)) [end 'end]])
-    (copy/char extend? time (grapheme-to-char-position* start) (grapheme-to-char-position* end)))
 
-  (define/private (do-generic-paste/char cb start time)
+  (define/private (do-generic-paste cb start time)
     (set! read-insert start)
     (set! read-insert-start start)
     (let ([orig-len len])
@@ -2464,15 +2293,11 @@
         (set! prev-paste-start start)
         (set! prev-paste-end (+ start delta)))))
 
-  (define/public (do-paste/char start time)
-    (do-generic-paste/char the-clipboard start time))
   (define/public (do-paste start time)
-    (do-paste/char (grapheme-to-char-position start) time))
+    (do-generic-paste the-clipboard start time))
 
-  (define/public (do-paste-x-selection/char start time)
-    (do-generic-paste/char the-x-selection-clipboard start time))
   (define/public (do-paste-x-selection start time)
-    (do-paste-x-selection/char (grapheme-to-char-position start) time))
+    (do-generic-paste the-x-selection-clipboard start time))
 
   (define/private (generic-paste x-sel? time start end)
     (let* ([end (if (symbol? end)
@@ -2493,41 +2318,33 @@
           (delete start end))
 
         (if x-sel?
-            (do-paste-x-selection/char start time)
-            (do-paste/char start time))
+            (do-paste-x-selection start time)
+            (do-paste start time))
 
         (let ([save-prev-paste prev-paste-start])
           (end-edit-sequence)
           (set! prev-paste-start save-prev-paste)))))
 
-  (def/public (paste/char [exact-integer? [time 0]]
-                          [(make-alts exact-nonnegative-integer? (symbol-in start end)) [start 'start]]
-                          [(make-alts exact-nonnegative-integer? (symbol-in same)) [end 'same]])
-    (generic-paste #f time start end))
   (def/override (paste [exact-integer? [time 0]]
                        [(make-alts exact-nonnegative-integer? (symbol-in start end)) [start 'start]]
                        [(make-alts exact-nonnegative-integer? (symbol-in same)) [end 'same]])
-    (paste/char time (grapheme-to-char-position* start) (grapheme-to-char-position* end)))
+    (generic-paste #f time start end))
 
-  (def/public (paste-x-selection/char [exact-integer? [time 0]]
-                                      [(make-alts exact-nonnegative-integer? (symbol-in start end)) [start 'start]]
-                                      [(make-alts exact-nonnegative-integer? (symbol-in same)) [end 'same]])
-    (generic-paste #t time start end))
   (def/override (paste-x-selection [exact-integer? [time 0]]
                                    [(make-alts exact-nonnegative-integer? (symbol-in start end)) [start 'start]]
                                    [(make-alts exact-nonnegative-integer? (symbol-in same)) [end 'same]])
-    (paste-x-selection/char time (grapheme-to-char-position* start) (grapheme-to-char-position* end)))
+    (generic-paste #t time start end))
   
   (define/override (insert-paste-snip snip data)
-    (let ([addpos (snip->char-count snip)])
+    (let ([addpos (snip->count snip)])
       (insert snip read-insert)
       (when data
-        (let ([snip (do-find-snip/char read-insert 'after)])
+        (let ([snip (do-find-snip read-insert 'after)])
           (set-snip-data snip data)))
       (set! read-insert (+ read-insert addpos))))
 
   (define/public (paste-region-data data)
-    (set-region-data/char read-insert-start read-insert data))
+    (set-region-data read-insert-start read-insert data))
 
   (define/override (insert-paste-string str)
     (let* ([str (if (eq? 'windows (system-type))
@@ -2566,29 +2383,29 @@
       (begin-edit-sequence)
       (let-values ([(start end)
                     (if (symbol? start)
-                        (let ([newend (paragraph-end-position/char (position-paragraph/char endpos posateol?))])
+                        (let ([newend (paragraph-end-position (position-paragraph endpos posateol?))])
                           (if (= newend startpos)
-                              (set-position/char startpos (+ startpos 1) #f #t 'local)
+                              (set-position startpos (+ startpos 1) #f #t 'local)
                               (begin
-                                (set-position/char startpos newend #f #t 'local)
+                                (set-position startpos newend #f #t 'local)
                                 
-                                (let ([text (get-text/char startpos endpos)])
+                                (let ([text (get-text startpos endpos)])
                                   (let loop ([i (- endpos startpos)])
                                     (if (zero? i)
                                         ;; line has all spaces: move one more
-                                        (set-position/char startpos (+ endpos 1) #f #t 'local)
+                                        (set-position startpos (+ endpos 1) #f #t 'local)
                                         (let ([i (sub1 i)])
                                           (when (char-whitespace? (string-ref text i))
                                             (loop i))))))))
                           (values startpos endpos))
                         (values start end))])
 
-        (cut/char streak? time start end)
+        (cut streak? time start end)
         (end-edit-sequence)
 
         (set! kill-streak? #t))))
 
-  (define/public (kill/char . args)
+  (define/override (kill . args)
     (case-args
      args
      [([exact-integer? [time 0]])
@@ -2597,21 +2414,10 @@
        [exact-nonnegative-integer? start]
        [exact-nonnegative-integer? end])
       (do-kill time start end)]
-     (method-name 'text% 'kill/char)))
-
-  (define/override (kill . args)
-    (case-args
-     args
-     [([exact-integer? [time 0]])
-      (kill/char time)]
-     [([exact-integer? time]
-       [exact-nonnegative-integer? start]
-       [exact-nonnegative-integer? end])
-      (kill/char time (grapheme-to-char-position start) (grapheme-to-char-position end))]
      (method-name 'text% 'kill)))
 
   (def/override (select-all)
-    (set-position/char 0 len))
+    (set-position 0 len))
 
   (define/override (really-can-edit? op)
     (cond
@@ -2631,7 +2437,7 @@
 
   ;; ----------------------------------------
 
-  (def/public (split-snip/char [exact-nonnegative-integer? pos])
+  (def/public (split-snip [exact-nonnegative-integer? pos])
     (unless (or flow-locked?
                 (pos . <= . 0)
                 (pos . >= . len))
@@ -2643,19 +2449,16 @@
         (set! write-locked? wl?)
         (set! flow-locked? #f))))
 
-  (def/public (split-snip [exact-nonnegative-integer? pos])
-    (split-snip/char (grapheme-to-char-position pos)))
-
   (def/public (get-revision-number)
     revision-count)
 
   (def/override (get-flattened-text)
-    (get-text/char 0 'eof #t #f))
+    (get-text 0 'eof #t #f))
 
-  (def/public (get-text/char [exact-nonnegative-integer? [start 0]]
-                             [(make-alts exact-nonnegative-integer? (symbol-in eof)) [end 'eof]]
-                             [any? [flat? #f]]
-                             [any? [force-cr? #f]])
+  (def/public (get-text [exact-nonnegative-integer? [start 0]]
+                        [(make-alts exact-nonnegative-integer? (symbol-in eof)) [end 'eof]]
+                        [any? [flat? #f]]
+                        [any? [force-cr? #f]])
     (if read-locked? 
         ""
         (let* ([end (if (eq? end 'eof)
@@ -2673,11 +2476,11 @@
                 (set! write-locked? #t)
                 (set! flow-locked? #t)
 
-                (let-values ([(snip s-pos) (find-snip/pos/char start 'after)])
+                (let-values ([(snip s-pos) (find-snip/pos start 'after)])
                   (let loop ([snip snip]
                              [offset (- start s-pos)]
                              [count count])
-                    (let ([num (min (- (snip->char-count snip) offset)
+                    (let ([num (min (- (snip->count snip) offset)
                                     count)])
                       (if (not flat?)
                           (display (send-generic snip snip%-get-text offset num #f) p)
@@ -2696,34 +2499,25 @@
                             (loop (snip->next snip)
                                   0
                                   count)))))))))))
-
-  (def/public (get-text [exact-nonnegative-integer? [start 0]]
-                        [(make-alts exact-nonnegative-integer? (symbol-in eof)) [end 'eof]]
-                        [any? [flat? #f]]
-                        [any? [force-cr? #f]])
-    (get-text/char (grapheme-to-char-position start) (grapheme-to-char-position* end) flat? force-cr?))
   
-  (def/public (get-character/char [exact-nonnegative-integer? start])
+  (def/public (get-character [exact-nonnegative-integer? start])
     (if read-locked?
         #\nul
-        (let-values ([(snip s-pos) (find-snip/pos/char (max 0 (min start len)) 'after)])
+        (let-values ([(snip s-pos) (find-snip/pos (max 0 (min start len)) 'after)])
           (let ([delta (- start s-pos)])
-            (if (delta . >= . (snip->char-count snip))
+            (if (delta . >= . (snip->count snip))
                 #\nul
                 (let ([buffer (make-string 1)])
                   (send snip get-text! buffer delta 1 0)
                   (string-ref buffer 0)))))))
 
-  (def/public (get-character [exact-nonnegative-integer? start])
-    (get-character/char (grapheme-to-char-position start)))
-
   ;; ----------------------------------------
 
-  (def/public (set-clickback/char [exact-nonnegative-integer? start]
-                                  [exact-nonnegative-integer? end]
-                                  [procedure? f]
-                                  [(make-or-false style-delta%) [c-delta #f]]
-                                  [any? [call-on-down? #f]])
+  (def/public (set-clickback [exact-nonnegative-integer? start]
+                             [exact-nonnegative-integer? end]
+                             [procedure? f]
+                             [(make-or-false style-delta%) [c-delta #f]]
+                             [any? [call-on-down? #f]])
     (let ([delta (make-object style-delta%)])
       (when c-delta
         (send delta copy c-delta))
@@ -2737,41 +2531,26 @@
                                 null)])
         (set! clickbacks (cons cb clickbacks)))))
 
-  (def/public (set-clickback [exact-nonnegative-integer? start]
-                             [exact-nonnegative-integer? end]
-                             [procedure? f]
-                             [(make-or-false style-delta%) [c-delta #f]]
-                             [any? [call-on-down? #f]])
-    (set-clickback/char (grapheme-to-char-position start) (grapheme-to-char-position end) f c-delta call-on-down?))
-
-
   (define/public (add-back-clickback cb)
     (set! clickbacks (cons cb clickbacks)))
 
-  (def/public (remove-clickback/char [exact-nonnegative-integer? start]
-                                     [exact-nonnegative-integer? end])
+  (def/public (remove-clickback [exact-nonnegative-integer? start]
+                                [exact-nonnegative-integer? end])
     (set! clickbacks
           (filter (lambda (cb)
                     (not (and (= start (clickback-start cb))
                               (= end (clickback-end cb)))))
                   clickbacks)))
 
-  (def/public (remove-clickback [exact-nonnegative-integer? start]
-                                [exact-nonnegative-integer? end])
-    (remove-clickback/char (grapheme-to-char-position start) (grapheme-to-char-position end)))
-    
-  (def/public (call-clickback/char [exact-nonnegative-integer? start]
-                                   [exact-nonnegative-integer? end])
+  (def/public (call-clickback [exact-nonnegative-integer? start]
+                              [exact-nonnegative-integer? end])
     (for-each (lambda (cb)
                 (when (and ((clickback-start cb) . <= . start)
                            ((clickback-end cb) . >= . end))
                   ((clickback-f cb)  this (clickback-start cb)  (clickback-end cb))))
               clickbacks))
 
-  (def/public (call-clickback [exact-nonnegative-integer? start]
-                              [exact-nonnegative-integer? end])
-    (call-clickback/char (grapheme-to-char-position start) (grapheme-to-char-position end)))
-
+  
   (define/private (adjust-clickbacks start end d rec)
     (when (pair? clickbacks)
       (set! clickbacks
@@ -2813,8 +2592,8 @@
                   ((clickback-end c) . > . start)
                   ;; we're in the right horizontal region, but maybe the mouse
                   ;; is above or below the clickback
-                  (let ([start (do-find-snip/char (clickback-start c) 'after)]
-                        [end (do-find-snip/char (clickback-end c) 'before)])
+                  (let ([start (do-find-snip (clickback-start c) 'after)]
+                        [end (do-find-snip (clickback-end c) 'before)])
                     (and start
                          end
                          (let-boxes ([top 0.0]
@@ -2848,7 +2627,7 @@
         (s-start-intercept)
         
         (begin-edit-sequence)
-        (flash-on/char (clickback-start c) (clickback-end c) #f #f 0)
+        (flash-on (clickback-start c) (clickback-end c) #f #f 0)
         (do-change-style (clickback-start c) (clickback-end c) #f (clickback-delta c) #f #f)
         (end-edit-sequence)
 
@@ -2861,12 +2640,12 @@
 
   ;; ----------------------------------------
 
-  (def/public (flash-on/char [exact-nonnegative-integer? start]
-                             [exact-nonnegative-integer? end]
-                             [any? [ateol? #f]]
-                             [any? [scroll? #t]]
-                             [exact-nonnegative-integer? [timeout 500]])
-    (do-set-position/char #t 'none start end ateol? scroll? 'default #f)
+  (def/public (flash-on [exact-nonnegative-integer? start]
+                        [exact-nonnegative-integer? end]
+                        [any? [ateol? #f]]
+                        [any? [scroll? #t]]
+                        [exact-nonnegative-integer? [timeout 500]])
+    (do-set-position #t 'none start end ateol? scroll? 'default #f)
     (when (timeout . > . 0)
       (set! flashautoreset? #t)
       (when flash-timer
@@ -2875,27 +2654,20 @@
       (send flash-timer start timeout))
     (set! flashscroll? scroll?))
 
-  (def/public (flash-on [exact-nonnegative-integer? start]
-                        [exact-nonnegative-integer? end]
-                        [any? [ateol? #f]]
-                        [any? [scroll? #t]]
-                        [exact-nonnegative-integer? [timeout 500]])
-    (flash-on/char (grapheme-to-char-position start) (grapheme-to-char-position end) ateol? scroll? timeout))
-
   (def/public (flash-off)
     (when flash?
       (set! flashautoreset? #t)
       (set! flashdirectoff? #t)
-      (do-set-position/char #f 'none startpos endpos posateol? flashscroll? 'default #f)))
+      (do-set-position #f 'none startpos endpos posateol? flashscroll? 'default #f)))
 
   ;; ----------------------------------------
 
   (def/public (set-wordbreak-func [procedure? f])
     (set! word-break f))
 
-  (def/public (find-wordbreak/char [(make-or-false (make-box exact-nonnegative-integer?)) start] 
-                                   [(make-or-false (make-box exact-nonnegative-integer?)) end] 
-                                   [(symbol-in caret line selection user1 user2) reason])
+  (def/public (find-wordbreak [(make-or-false (make-box exact-nonnegative-integer?)) start] 
+                              [(make-or-false (make-box exact-nonnegative-integer?)) end] 
+                              [(symbol-in caret line selection user1 user2) reason])
     (unless read-locked?
       (let ([oldstart (if start (unbox start) 0)]
             [oldend (if end (unbox end) 0)])
@@ -2905,15 +2677,6 @@
           (set-box! start oldstart))
         (when (and end ((unbox end) . < . oldend))
           (set-box! end oldend)))))
-
-  (def/public (find-wordbreak [(make-or-false (make-box exact-nonnegative-integer?)) start] 
-                              [(make-or-false (make-box exact-nonnegative-integer?)) end] 
-                              [(symbol-in caret line selection user1 user2) reason])
-    (when start (set-box! start (grapheme-to-char-position (unbox start))))
-    (when end (set-box! end (grapheme-to-char-position (unbox end))))
-    (find-wordbreak/char start end reason)
-    (when start (set-box! start (char-to-grapheme-position (unbox start))))
-    (when end (set-box! end (char-to-grapheme-position (unbox end) #t))))
 
   (def/public (get-wordbreak-map)
     word-break-map)
@@ -3086,7 +2849,7 @@
                          (let ([str (regexp-replace* #rx"\r\n" 
                                                      (if saved-cr? (string-append "\r" s2) s2)
                                                      "\n")])
-                           (insert/char (string-length str) str #t))
+                           (insert (string-length str) str #t))
                          (loop (not (eq? s1 s2))))))))
                #f])])
         
@@ -3112,7 +2875,7 @@
       (let ([fileerr?
              (cond
               [(or (eq? 'text format) (eq? 'text-force-cr format))
-               (display (get-text/char 0 'eof #t (eq? format 'text-force-cr)) f)
+               (display (get-text 0 'eof #t (eq? format 'text-force-cr)) f)
                #f]
               [else
                (let* ([b (make-object editor-stream-out-file-base% f)]
@@ -3143,22 +2906,13 @@
 
             result))))
 
-  (define/public (read-from-file/char . args)
+  (define/override (read-from-file . args)
     (case-args
      args
      [([editor-stream-in% f] [exact-nonnegative-integer? start] [any? [overwritestyle? #f]])
       (do-read-from-file f start overwritestyle?)]
      [([editor-stream-in% f] [any? [overwritestyle? #f]])
       (do-read-from-file f 'start overwritestyle?)]
-     (method-name 'text% 'read-from-file/char)))
-
-  (define/override (read-from-file . args)
-    (case-args
-     args
-     [([editor-stream-in% f] [exact-nonnegative-integer? start] [any? [overwritestyle? #f]])
-      (read-from-file/char f (grapheme-to-char-position start) overwritestyle?)]
-     [([editor-stream-in% f] [any? [overwritestyle? #f]])
-      (read-from-file/char f overwritestyle?)]
      (method-name 'text% 'read-from-file)))
 
   (define/override (do-read-insert snip)
@@ -3167,29 +2921,25 @@
           (do-insert #f #f snip startpos startpos #t #f)
           (set! read-insert (+ read-insert (- len oldlen)))
           #t)
-        (let ([addpos (snip->char-count snip)])
+        (let ([addpos (snip->count snip)])
           (do-insert snip #f #f startpos startpos #t #f)
           (set! read-insert (+ addpos read-insert))
           #t)))
 
-  (def/public (write-to-file/char [editor-stream-out% f]
-                                  [exact-nonnegative-integer? [start 0]]
-                                  [(make-alts exact-nonnegative-integer? (symbol-in eof)) [end 'eof]])
+  (def/override (write-to-file [editor-stream-out% f]
+                               [exact-nonnegative-integer? [start 0]]
+                               [(make-alts exact-nonnegative-integer? (symbol-in eof)) [end 'eof]])
     (if read-locked?
         #f
         (let ([end (max (if (eq? end 'eof)
                             len
                             end)
                         start)])
-          (let ([start-snip (if (zero? len) #f (do-find-snip/char start 'after))]
-                [end-snip (if (zero? len) #f (do-find-snip/char end 'after-or-none))])
+          (let ([start-snip (if (zero? len) #f (do-find-snip start 'after))]
+                [end-snip (if (zero? len) #f (do-find-snip end 'after-or-none))])
             (and (do-write-headers-footers f #t)
                  (write-snips-to-file f s-style-list #f start-snip end-snip #f this)
                  (do-write-headers-footers f #f))))))
-  (def/override (write-to-file [editor-stream-out% f]
-                               [exact-nonnegative-integer? [start 0]]
-                               [(make-alts exact-nonnegative-integer? (symbol-in eof)) [end 'eof]])
-    (write-to-file/char f (grapheme-to-char-position start)  (grapheme-to-char-position* end)))
 
   (def/public (get-file-format) file-format)
   (def/public (set-file-format [(symbol-in standard text text-force-cr) format])
@@ -3216,20 +2966,10 @@
 
   ;; ----------------------------------------
 
-  (def/public (get-region-data/char [exact-nonnegative-integer? start]
-                                    [exact-nonnegative-integer? end])
-    (get-region-data (char-to-grapheme-position start)
-                     (char-to-grapheme-position end #t)))
   (def/public (get-region-data [exact-nonnegative-integer? start]
                                [exact-nonnegative-integer? end])
     #f)
 
-  (def/public (set-region-data/char [exact-nonnegative-integer? start]
-                                    [exact-nonnegative-integer? end]
-                                    [editor-data% d])
-    (set-region-data (char-to-grapheme-position start)
-                     (char-to-grapheme-position end #t)
-                     d))
   (def/public (set-region-data [exact-nonnegative-integer? start]
                                [exact-nonnegative-integer? end]
                                [editor-data% d])
@@ -3269,7 +3009,7 @@
 
   ;; ----------------------------------------
 
-  (define/private (do-find-position-in-line/char internal? i x ateol?-box onit?-box how-close-box)
+  (define/private (do-find-position-in-line internal? i x ateol?-box onit?-box how-close-box)
     (when onit?-box
       (set-box! onit?-box #f))
     (when ateol?-box
@@ -3286,14 +3026,14 @@
       (let* ([line (mline-find-line (unbox line-root-box) i)]
              [x (- x padding-l (mline-get-left-location line max-line-width))])
         (if (x . <= . 0)
-            (find-first-visible-position/char line)
+            (find-first-visible-position line)
             (let ([p (mline-get-position line)])
               (let-values ([(snip s-pos p)
                             (if (x . >= . (mline-w line))
                                 ;; snip == the last one
                                 (let ([snip (mline-last-snip line)])
                                   (values snip
-                                          (+ p (- (mline-len line) (snip->char-count snip)))
+                                          (+ p (- (mline-len line) (snip->count snip)))
                                           (+ p (mline-len line))))
                                 (begin
                                   (when onit?-box
@@ -3318,20 +3058,20 @@
                                               (loop (snip->next snip)
                                                     (+ X w)
                                                     (- x w)
-                                                    (+ p (snip->char-count snip)))
+                                                    (+ p (snip->count snip)))
                                               ;; found the right snip
                                               (let ([s-pos p]
-                                                    [p (+ p (do-find-position-in-snip/char dc X topy snip x how-close-box w))])
+                                                    [p (+ p (do-find-position-in-snip dc X topy snip x how-close-box w))])
                                                 (set! write-locked? wl?)
                                                 (set! flow-locked? fl?)
                                                 (values snip s-pos p)))))))))])
 
                 ;; back up over invisibles
-                (let ([atsnipend? (- (- p s-pos) (snip->char-count snip))])
+                (let ([atsnipend? (- (- p s-pos) (snip->count snip))])
                   (let-boxes ([p p]
                               [snip snip])
                       (when atsnipend?
-                        (find-last-visible-position/char line p snip))
+                        (find-last-visible-position line p snip))
                     (when (and ateol?-box 
                                atsnipend?
                                snip 
@@ -3339,7 +3079,7 @@
                       (set-box! ateol?-box #t))
                     p))))))]))
 
-  (define/private (find-first-visible-position/char line [snip #f])
+  (define/private (find-first-visible-position line [snip #f])
     (if read-locked?
         0
         (let* ([snip (or snip (mline-snip line))]
@@ -3354,10 +3094,10 @@
               ;; so go to the beginning of the line anyway
               startp]
              [(has-flag? (snip->flags snip) INVISIBLE)
-              (loop (snip->next snip) (+ p (snip->char-count snip)))]
+              (loop (snip->next snip) (+ p (snip->count snip)))]
              [else p])))))
 
-  (define/private (find-last-visible-position/char line p-box [snip-box #f])
+  (define/private (find-last-visible-position line p-box [snip-box #f])
     (unless read-locked?
       (let ([snip (or (if snip-box
                           (unbox snip-box)
@@ -3367,7 +3107,7 @@
         (let loop ([p p]
                    [snip snip])
           (let ([p (if (has-flag? (snip->flags snip) INVISIBLE)
-                       (- p (snip->char-count snip))
+                       (- p (snip->count snip))
                        p)])
             (if (eq? snip (mline-snip line))
                 (begin
@@ -3376,21 +3116,15 @@
                     (set-box! snip-box snip)))
                 (loop p (snip->prev snip))))))))
 
-  (def/public (find-position-in-line/char [exact-nonnegative-integer? i]
-                                          [real? x]
-                                          [maybe-box? [ateol? #f]]
-                                          [maybe-box? [onit? #f]]
-                                          [maybe-box? [how-close #f]])
-    (do-find-position-in-line/char #f i x ateol? onit? how-close))
   (def/public (find-position-in-line [exact-nonnegative-integer? i]
                                      [real? x]
                                      [maybe-box? [ateol? #f]]
                                      [maybe-box? [onit? #f]]
                                      [maybe-box? [how-close #f]])
-    (do-find-position-in-line/char #f (grapheme-to-char-position i) x ateol? onit? how-close))
+    (do-find-position-in-line #f i x ateol? onit? how-close))
 
   ;; snip-width : (or/c real? #f) -- only #f when how-close is also #f.
-  (define/private (do-find-position-in-snip/char dc X Y snip x how-close snip-width)
+  (define/private (do-find-position-in-snip dc X Y snip x how-close snip-width)
     (cond
      [read-locked? 0]
      [(x . < . 0)
@@ -3402,7 +3136,7 @@
             [fl? flow-locked?])
         (set! write-locked? #t)
         (set! flow-locked? #t)
-        (let ([c (snip->char-count snip)])
+        (let ([c (snip->count snip)])
           (cond
             [((or snip-width (send snip partial-offset dc X Y c)) . <= . x)
              (when how-close
@@ -3425,10 +3159,10 @@
                (let loop ([range c]
                           [i (quotient c 2)]
                           [offset 0])
-                 (let ([dl (send snip partial-offset dc X Y (send snip grapheme-to-char-position (+ offset i)))])
+                 (let ([dl (send snip partial-offset dc X Y (send snip grapheme-position (+ offset i)))])
                    (if (dl . > . x)
                        (loop i (quotient i 2) offset)
-                       (let ([dr (send snip partial-offset dc X Y (send snip grapheme-to-char-position (+ offset i 1)))])
+                       (let ([dr (send snip partial-offset dc X Y (send snip grapheme-position (+ offset i 1)))])
                          (if (dr . <= . x)
                              (let ([range (- range i)])
                                (loop range (quotient range 2) (+ offset i)))
@@ -3440,7 +3174,7 @@
                                                (- dl x))))
                                (set! write-locked? wl?)
                                (set! flow-locked? fl?)
-                               (send snip grapheme-to-char-position (+ i offset)))))))))])))]))
+                               (send snip grapheme-position (+ i offset)))))))))])))]))
 
   (def/public (find-line [real? y] [maybe-box? [onit? #f]])
     (when onit?
@@ -3457,10 +3191,10 @@
           (set-box! onit? #t))
         (mline-get-line (mline-find-location (unbox line-root-box) y))])))
 
-  (def/public (find-position/char [real? x] [real? y]
-                                  [maybe-box? [ateol? #f]]
-                                  [maybe-box? [onit? #f]]
-                                  [maybe-box? [how-close #f]])
+  (def/public (find-position [real? x] [real? y]
+                             [maybe-box? [ateol? #f]]
+                             [maybe-box? [onit? #f]]
+                             [maybe-box? [how-close #f]])
     (if read-locked?
         0
         (begin
@@ -3478,18 +3212,13 @@
                   (when how-close
                     (set-box! how-close 100.0))
                   len)
-                (let ([p (find-position-in-line/char i x ateol? onit? how-close)])
+                (let ([p (find-position-in-line i x ateol? onit? how-close)])
                   (when onit?
                     (set-box! onit? (and (unbox online) (unbox onit?))))
                   p))))))
-  (def/public (find-position [real? x] [real? y]
-                             [maybe-box? [ateol? #f]]
-                             [maybe-box? [onit? #f]]
-                             [maybe-box? [how-close #f]])
-    (char-to-grapheme-position (find-position/char x y ateol? onit? how-close)))
 
-  (def/public (position-line/char [exact-nonnegative-integer? start]
-                                  [any? [eol? #f]])
+  (def/public (position-line [exact-nonnegative-integer? start]
+                             [any? [eol? #f]])
     (cond
      [(not (check-recalc (max-width . > . 0) #f #t)) 0]
      [(start . <= . 0) 0]
@@ -3503,18 +3232,11 @@
                        (mline-prev line)
                        line)])
         (mline-get-line line))]))
-  (def/public (position-line [exact-nonnegative-integer? start]
-                             [any? [eol? #f]])
-    (position-line/char (grapheme-to-char-position start) eol?))
 
-  (define/private (grapheme=char?)
-    (or external-grapheme=char?
-        (mline-grapheme=char? last-line)))
-
-  (def/public (char-to-grapheme-position [exact-nonnegative-integer? start]
-                                         [any? [eog? #f]])
+  (def/public (position-grapheme [exact-nonnegative-integer? start]
+                                 [any? [eog? #f]])
     (cond
-     [(grapheme=char?) start]
+     [(not (check-recalc (max-width . > . 0) #f #t)) 0]
      [(start . <= . 0) 0]
      [(start . >= . len)
       (+ (mline-get-grapheme-position last-line)
@@ -3528,16 +3250,16 @@
             [(= pos start) grapheme-pos]
             [(not snip) grapheme-pos]
             [else
-             (define c (snip->char-count snip))
+             (define c (snip->count snip))
              (cond
                [(>= start (+ pos c))
                 (loop (+ pos c) (+ grapheme-pos (snip->grapheme-count snip)) (snip->next snip))]
                [else
-                (+ grapheme-pos (send snip char-to-grapheme-position (- start pos)))])])))]))
+                (+ grapheme-pos (send snip position-grapheme (- start pos)))])])))]))
 
   
-  (def/public-final (get-snip-position-and-location/char [snip% thesnip] [maybe-box? pos] 
-                                                         [maybe-box? [x #f]] [maybe-box? [y #f]])
+  (def/public-final (get-snip-position-and-location [snip% thesnip] [maybe-box? pos] 
+                                                    [maybe-box? [x #f]] [maybe-box? [y #f]])
     (cond
      [(not (check-recalc (or x y) #f))
       #f]
@@ -3554,22 +3276,16 @@
                 (when pos
                   (set-box! pos p))
                 (when (or x y)
-                  (position-location/char p x y))
+                  (position-location p x y))
                 #t)
               (loop (snip->next snip)
-                    (+ p (snip->char-count snip))))))]
+                    (+ p (snip->count snip))))))]
      [else #t]))
-
-  (def/public-final (get-snip-position-and-location [snip% thesnip] [maybe-box? pos] 
-                                                    [maybe-box? [x #f]] [maybe-box? [y #f]])
-    (begin0
-      (get-snip-position-and-location/char thesnip pos x y)
-      (when pos (set-box! pos (char-to-grapheme-position (unbox pos))))))
 
   (def/override (get-snip-location [snip% thesnip] [maybe-box? [x #f]] [maybe-box? [y #f]] [any? [bottom-right? #f]])
     (let ([x (or x (and bottom-right? (box 0.0)))]
           [y (or y (and bottom-right? (box 0.0)))])
-      (if (get-snip-position-and-location/char thesnip #f x y)
+      (if (get-snip-position-and-location thesnip #f x y)
           (if bottom-right?
               (let ([wl? write-locked?]
                     [fl? flow-locked?])
@@ -3591,22 +3307,19 @@
               #t)
           #f)))
 
-  (def/public (get-snip-position/char [snip% thesnip])
+  (def/public (get-snip-position [snip% thesnip])
     (let-boxes ([pos 0])
-        (unless (get-snip-position-and-location/char thesnip pos)
+        (unless (get-snip-position-and-location thesnip pos)
           (set-box! pos #f))
       pos))
-
-  (def/public (get-snip-position [snip% thesnip])
-    (char-to-grapheme-position* (get-snip-position/char thesnip)))
   
-  (def/public (position-locations/char [exact-nonnegative-integer? start]
-                                       [maybe-box? [tx #f]]
-                                       [maybe-box? [ty #f]]
-                                       [maybe-box? [bx #f]]
-                                       [maybe-box? [by #f]]
-                                       [any? [eol? #f]]
-                                       [any? [whole-line? #f]])
+  (def/public (position-locations [exact-nonnegative-integer? start]
+                                  [maybe-box? [tx #f]]
+                                  [maybe-box? [ty #f]]
+                                  [maybe-box? [bx #f]]
+                                  [maybe-box? [by #f]]
+                                  [any? [eol? #f]]
+                                  [any? [whole-line? #f]])
     (when (check-recalc #t #f)
 
       ;; handle boundary cases first:
@@ -3650,7 +3363,7 @@
                          #f)
                        last-line))]
               [else
-               (let ([line (mline-find-line (unbox line-root-box) (position-line/char start eol?))])
+               (let ([line (mline-find-line (unbox line-root-box) (position-line start eol?))])
                  (if whole-line?
                      (begin
                        (when (or by ty)
@@ -3682,10 +3395,10 @@
                                          [start start]
                                          [horiz horiz]
                                          [dc #f])
-                                (if (or (start . > . (snip->char-count snip))
+                                (if (or (start . > . (snip->count snip))
                                         (and (or whole-line? (positive? start))
-                                             (= start (snip->char-count snip))))
-                                    (let* ([start (- start (snip->char-count snip))]
+                                             (= start (snip->count snip))))
+                                    (let* ([start (- start (snip->count snip))]
                                            [dc (or dc (send s-admin get-dc))])
                                       (let-boxes ([v 1.0])
                                           (when dc
@@ -3732,25 +3445,7 @@
 
                   (set! write-locked? wl?)
                   (set! flow-locked? fl?)))))))))
-  (def/public (position-locations [exact-nonnegative-integer? start]
-                                  [maybe-box? [tx #f]]
-                                  [maybe-box? [ty #f]]
-                                  [maybe-box? [bx #f]]
-                                  [maybe-box? [by #f]]
-                                  [any? [eol? #f]]
-                                  [any? [whole-line? #f]])
-    (position-locations/char (grapheme-to-char-position start) tx ty bx by eol? whole-line?))
 
-  (def/public (position-location/char [exact-nonnegative-integer? start]
-                                      [maybe-box? [x #f]]
-                                      [maybe-box? [y #f]]
-                                      [any? [top? #t]]
-                                      [any? [eol? #f]]
-                                      [any? [whole-line? #f]])
-    (position-locations/char start
-                             (if top? x #f) (if top? y #f)
-                             (if top? #f x) (if top? #f y)
-                             eol? whole-line?))
   (def/public (position-location [exact-nonnegative-integer? start]
                                  [maybe-box? [x #f]]
                                  [maybe-box? [y #f]]
@@ -3791,33 +3486,27 @@
                   [line (mline-find-line (unbox line-root-box) i)])
              (if start?
                  (if visible-only?
-                     (find-first-visible-position/char line)
+                     (find-first-visible-position line)
                      (mline-get-position line))
                  (let ([p (+ (mline-get-position line) (mline-len line))])
                    (if visible-only?
                        (let-boxes ([p p])
-                           (find-last-visible-position/char line p)
+                           (find-last-visible-position line p)
                          p)
                        p))))]))
 
-  (def/public (line-start-position/char [exact-nonnegative-integer? i]
-                                        [any? [visible-only? #t]])
-    (do-line-position #t i visible-only?))
   (def/public (line-start-position [exact-nonnegative-integer? i]
                                    [any? [visible-only? #t]])
-    (char-to-grapheme-position (line-start-position/char i visible-only?)))
+    (do-line-position #t i visible-only?))
 
-  (def/public (line-end-position/char [exact-nonnegative-integer? i]
-                                      [any? [visible-only? #t]])
-    (do-line-position #f i visible-only?))
   (def/public (line-end-position [exact-nonnegative-integer? i]
                                  [any? [visible-only? #t]])
-    (char-to-grapheme-position (line-end-position/char i visible-only?)))
+    (do-line-position #f i visible-only?))
 
-  (def/public (grapheme-to-char-position [exact-nonnegative-integer? start]
-                                         [any? [eog? #f]])
+  (def/public (grapheme-position [exact-nonnegative-integer? start]
+                                 [any? [eog? #f]])
     (cond
-     [(grapheme=char?) start]
+     [(not (check-recalc (max-width . > . 0) #f #t)) 0]
      [(start . <= . 0) 0]
      [(start . >= . (+ (mline-get-grapheme-position last-line)
                        (mline-grapheme-len last-line)))
@@ -3834,9 +3523,9 @@
              (define c (snip->grapheme-count snip))
              (cond
                [(>= start (+ grapheme-pos c))
-                (loop (+ pos (snip->char-count snip)) (+ grapheme-pos c) (snip->next snip))]
+                (loop (+ pos (snip->count snip)) (+ grapheme-pos c) (snip->next snip))]
                [else
-                (+ pos (send snip grapheme-to-char-position (- start grapheme-pos)))])])))]))
+                (+ pos (send snip grapheme-position (- start grapheme-pos)))])])))]))
 
   (def/public (line-length [exact-nonnegative-integer? i])
     (cond
@@ -3845,19 +3534,10 @@
      [(i . < . 0) 0]
      [(i . >= . num-valid-lines) 0]
      [else (let ([line (mline-find-line (unbox line-root-box) i)])
-             (mline-grapheme-len line))]))
-
-  (def/public (line-length/char [exact-nonnegative-integer? i])
-    (cond
-     [(not (check-recalc (max-width . > . 0) #f #t))
-      0]
-     [(i . < . 0) 0]
-     [(i . >= . num-valid-lines) 0]
-     [else (let ([line (mline-find-line (unbox line-root-box) i)])
              (mline-len line))]))
 
-  (def/public (position-paragraph/char [exact-nonnegative-integer? i]
-                                       [any? [at-eol? #f]])
+  (def/public (position-paragraph [exact-nonnegative-integer? i]
+                                  [any? [at-eol? #f]])
     (cond
      [(not (check-recalc #f #f #t)) 0]
      [else (let ([delta (if (and (i . >= . len) extra-line?)
@@ -3866,12 +3546,9 @@
                  [i (max 0 (min i len))])
              (let ([line (mline-find-position (unbox line-root-box) i)])
                (+ (mline-get-paragraph line) delta)))]))
-  (def/public (position-paragraph [exact-nonnegative-integer? i]
-                                  [any? [at-eol? #f]])
-    (position-paragraph/char (grapheme-to-char-position i) at-eol?))
 
-  (def/public (paragraph-start-position/char [exact-nonnegative-integer? i]
-                                             [any? [visible-only? #t]])
+  (def/public (paragraph-start-position [exact-nonnegative-integer? i]
+                                        [any? [visible-only? #t]])
     (if (not (check-recalc #f #f #t))
         0
         (if (i . > . (+ (last-paragraph) (if extra-line? -1 0)))
@@ -3888,14 +3565,11 @@
                                     l)))
                           l)])
               (if visible-only?
-                  (find-first-visible-position/char l)
+                  (find-first-visible-position l)
                   (mline-get-position l))))))
-  (def/public (paragraph-start-position [exact-nonnegative-integer? i]
-                                        [any? [visible-only? #t]])
-    (char-to-grapheme-position (paragraph-start-position/char i visible-only?)))
 
-  (def/public (paragraph-end-position/char [exact-nonnegative-integer? i]
-                                           [any? [visible-only? #t]])
+  (def/public (paragraph-end-position [exact-nonnegative-integer? i]
+                                      [any? [visible-only? #t]])
     (if (not (check-recalc #f #f #t))
         0
         (if (i . > . (+ (last-paragraph) (if extra-line? -1 0)))
@@ -3915,14 +3589,10 @@
                   (let ([p (+ (mline-get-position l) (mline-len l))])
                     (if visible-only?
                         (let-boxes ([p p])
-                            (find-last-visible-position/char l p)
+                            (find-last-visible-position l p)
                           p)
                         p))
                   l)))))
-
-  (def/public (paragraph-end-position [exact-nonnegative-integer? i]
-                                      [any? [visible-only? #t]])
-    (char-to-grapheme-position (paragraph-end-position/char i visible-only?)))
 
   (def/public (line-paragraph [exact-nonnegative-integer? i])
     (cond
@@ -3958,8 +3628,7 @@
                      l))
                last-line)))))
 
-  (def/public (last-position/char) len)
-  (def/public (last-position) (char-to-grapheme-position (last-position/char)))
+  (def/public (last-position) len)
   
   (public [/last-line last-line])
   (define (/last-line)
@@ -4039,102 +3708,58 @@
 
   ;; ----------------------------------------
 
-  (def/public (find-string/char [string? str]
-                                [(symbol-in forward backward) [direction 'forward]]
-                                [(make-alts exact-nonnegative-integer? (symbol-in start)) [start 'start]]
-                                [(make-alts exact-nonnegative-integer? (symbol-in eof)) [end 'eof]]
-                                [any? [bos? #t]]
-                                [any? [case-sens? #t]])
-    (if (check-recalc #f #f)
-        (do-find-string-all str direction start end #t bos? case-sens? #f)
-        #f))
   (def/public (find-string [string? str]
                            [(symbol-in forward backward) [direction 'forward]]
                            [(make-alts exact-nonnegative-integer? (symbol-in start)) [start 'start]]
                            [(make-alts exact-nonnegative-integer? (symbol-in eof)) [end 'eof]]
                            [any? [bos? #t]]
                            [any? [case-sens? #t]])
-    (char-to-grapheme-position*
-     (find-string/char str direction (grapheme-to-char-position* start) (grapheme-to-char-position* end) bos? case-sens?)))
-
-  (def/public (find-string-all/char [string? str]
-                                    [(symbol-in forward backward) [direction 'forward]]
-                                    [(make-alts exact-nonnegative-integer? (symbol-in start)) [start 'start]]
-                                    [(make-alts exact-nonnegative-integer? (symbol-in eof)) [end 'eof]]
-                                    [any? [bos? #t]]
-                                    [any? [case-sens? #t]])
     (if (check-recalc #f #f)
-        (do-find-string-all str direction start end #f bos? case-sens? #f)
-        null))
+        (do-find-string-all str direction start end #t bos? case-sens? #f)
+        #f))
+
   (def/public (find-string-all [string? str]
                                [(symbol-in forward backward) [direction 'forward]]
                                [(make-alts exact-nonnegative-integer? (symbol-in start)) [start 'start]]
                                [(make-alts exact-nonnegative-integer? (symbol-in eof)) [end 'eof]]
                                [any? [bos? #t]]
                                [any? [case-sens? #t]])
-    (map
-     (lambda (p) (char-to-grapheme-position* p))
-     (find-string-all/char str direction (grapheme-to-char-position* start) (grapheme-to-char-position* end) bos? case-sens?)))
-
-  
-  (def/public (find-string-embedded/char [string? str]
-                                         [(symbol-in forward backward) [direction 'forward]]
-                                         [(make-alts exact-nonnegative-integer? (symbol-in start)) [start 'start]]
-                                         [(make-alts exact-nonnegative-integer? (symbol-in eof)) [end 'eof]]
-                                         [any? [bos? #t]]
-                                         [any? [case-sens? #t]])
     (if (check-recalc #f #f)
-        (do-find-string-all str direction start end #t bos? case-sens? #t)
-        #f))
+        (do-find-string-all str direction start end #f bos? case-sens? #f)
+        null))
+  
   (def/public (find-string-embedded [string? str]
                                     [(symbol-in forward backward) [direction 'forward]]
                                     [(make-alts exact-nonnegative-integer? (symbol-in start)) [start 'start]]
                                     [(make-alts exact-nonnegative-integer? (symbol-in eof)) [end 'eof]]
                                     [any? [bos? #t]]
                                     [any? [case-sens? #t]])
-    (embedded-char-result-to-grapheme-result
-     this
-     (find-string-embedded/char str direction (grapheme-to-char-position* start) (grapheme-to-char-position* end) bos? case-sens?)))
-
-  (define/private (embedded-char-result-to-grapheme-result e r)
-    (cond
-      [(not r) #f]
-      [(exact-nonnegative-integer? r) (send e grapheme-to-char-position r)]
-      [else (cons (car r)
-                  (embedded-char-result-to-grapheme-result (car r) (cdr r)))]))
-
-
-  (def/public (find-string-embedded-all/char [string? str]
-                                             [(symbol-in forward backward) [direction 'forward]]
-                                             [(make-alts exact-nonnegative-integer? (symbol-in start)) [start 'start]]
-                                             [(make-alts exact-nonnegative-integer? (symbol-in eof)) [end 'eof]]
-                                             [any? [bos? #t]]
-                                             [any? [case-sens? #t]])
     (if (check-recalc #f #f)
-        (do-find-string-all str direction start end #f bos? case-sens? #t)
-        null))
+        (do-find-string-all str direction start end #t bos? case-sens? #t)
+        #f))
+
   (def/public (find-string-embedded-all [string? str]
                                         [(symbol-in forward backward) [direction 'forward]]
                                         [(make-alts exact-nonnegative-integer? (symbol-in start)) [start 'start]]
                                         [(make-alts exact-nonnegative-integer? (symbol-in eof)) [end 'eof]]
                                         [any? [bos? #t]]
                                         [any? [case-sens? #t]])
-    (map (lambda (r)
-           (embedded-char-result-to-grapheme-result this r))
-         (find-string-embedded-all/char str direction (grapheme-to-char-position* start) (grapheme-to-char-position* end) bos? case-sens?)))
+    (if (check-recalc #f #f)
+        (do-find-string-all str direction start end #f bos? case-sens? #t)
+        null))
 
-  (def/public (find-newline/char [(symbol-in forward backward) [direction 'forward]]
-                                 [(make-alts exact-nonnegative-integer? (symbol-in start)) [start 'start]]
-                                 [(make-alts exact-nonnegative-integer? (symbol-in eof)) [end 'eof]])
-    (let* ([para (position-paragraph/char (if (symbol? start)
-                                              startpos
-                                              start)
-                                          (eq? direction 'backward))]
+  (def/public (find-newline [(symbol-in forward backward) [direction 'forward]]
+                            [(make-alts exact-nonnegative-integer? (symbol-in start)) [start 'start]]
+                            [(make-alts exact-nonnegative-integer? (symbol-in eof)) [end 'eof]])
+    (let* ([para (position-paragraph (if (symbol? start)
+                                         startpos
+                                         start)
+                                     (eq? direction 'backward))]
            [pos (if (eq? direction 'backward)
-                    (paragraph-start-position/char para)
+                    (paragraph-start-position para)
                     (if (para . >= . (last-paragraph))
                         len
-                        (paragraph-start-position/char (add1 para))))]
+                        (paragraph-start-position (add1 para))))]
            [end (if (symbol? end) len end)])
       (if (eq? direction 'forward)
           (if (pos . > . end)
@@ -4144,12 +3769,6 @@
               #f
               pos))))
 
-  (def/public (find-newline [(symbol-in forward backward) [direction 'forward]]
-                            [(make-alts exact-nonnegative-integer? (symbol-in start)) [start 'start]]
-                            [(make-alts exact-nonnegative-integer? (symbol-in eof)) [end 'eof]])
-    (char-to-grapheme-position*
-     (find-newline/char direction (grapheme-to-char-position* start) (grapheme-to-char-position* end))))
-
   ;; this is only public for the test suite
   ; (do-find-string-all is bound by define-local-member-name)
   (define/public (do-find-string-all _word direction
@@ -4157,12 +3776,12 @@
                                      just-one? beginning-of-match? case-sens? recur-inside?)
     (define end 
       (cond
-        [(equal? _end 'eof) (if (equal? direction 'forward) (last-position/char) 0)]
+        [(equal? _end 'eof) (if (equal? direction 'forward) (last-position) 0)]
         [else _end]))
     (define start
       (cond
         [(equal? _start 'start)
-         (get-start-position/char)]
+         (get-start-position)]
         [else _start]))
     (define forward? (equal? direction 'forward))
     (define word
@@ -4185,7 +3804,7 @@
            m
            (+ m (string-length word)))]
       [else
-       (define len (last-position/char))
+       (define len (last-position))
        (if beginning-of-match?
            (- len m)
            (- len m (string-length word)))]))
@@ -4202,7 +3821,7 @@
     (define latest-snip-len #f)
     (define latest-snip-position #f)
     (define latest-snip #f)
-    (define last-pos (last-position/char))
+    (define last-pos (last-position))
     
     (define start (if forward? _start (- last-pos _start)))
     (define end (if forward? _end (- last-pos _end)))
@@ -4220,15 +3839,15 @@
            (cond
              [(not latest-snip)
               (define fst (find-first-snip))
-              (values fst (and fst 0) (and fst (snip->char-count fst)))]
+              (values fst (and fst 0) (and fst (send fst get-count)))]
              [forward?
-              (define next (snip->next latest-snip))
+              (define next (send latest-snip next))
               (values next
                       (and next (+ latest-snip-position latest-snip-len))
-                      (and next (snip->char-count next)))]
+                      (and next (send next get-count)))]
              [else
-              (define prev (snip->prev latest-snip))
-              (define pc (and prev (snip->char-count prev)))
+              (define prev (send latest-snip previous))
+              (define pc (and prev (send prev get-count)))
               (values prev
                       (and prev (- latest-snip-position pc))
                       pc)]))
@@ -4241,10 +3860,10 @@
             (set! latest-snip-len guess-snip-len)]
            [else
             (define b (box #f))
-            (set! latest-snip (find-snip/char i 'after-or-none b))
+            (set! latest-snip (find-snip i 'after-or-none b))
             (when latest-snip
               (set! latest-snip-position (unbox b))
-              (set! latest-snip-len (snip->char-count latest-snip)))])
+              (set! latest-snip-len (send latest-snip get-count)))])
          
          (when (or (not latest-snip-str)
                    (< (string-length latest-snip-str)
@@ -4261,7 +3880,7 @@
               (define ed (send snip get-editor))
               (cond
                 [(is-a? ed text%)
-                 (define lp (send ed last-position/char))
+                 (define lp (send ed last-position))
                  (define result
                    (send ed do-find-string _word 
                          (if forward? 0 lp) (if forward? lp 0)
@@ -4365,8 +3984,6 @@
       (let* ([start (max 0 (min len start))]
              [end (min end len)])
         (unless (start . > . end)
-          (define grapheme-start (char-to-grapheme-position start))
-          (define grapheme-end (char-to-grapheme-position end #t))
           (let ([new-style (if (and (not new-style) (not delta))
                                (or (get-default-style)
                                    (send s-style-list basic-style))
@@ -4378,18 +3995,16 @@
                       (cond
                        [new-style new-style]
                        [caret-style (send s-style-list find-or-create-style caret-style delta)]
-                       [else (let ([gsnip (do-find-snip/char start 'before)])
+                       [else (let ([gsnip (do-find-snip start 'before)])
                                (send s-style-list find-or-create-style (snip->style gsnip) delta))])))]
              [else
               (set! write-locked? #t)
 
-              (if (or (not (can-change-style?/char start (- end start)))
-                      (not (can-change-style? grapheme-start (- grapheme-end grapheme-start))))
+              (if (not (can-change-style? start (- end start)))
                   (set! write-locked? #f)
                   
                   (begin
-                    (on-change-style/char start (- end start))
-                    (on-change-style grapheme-start (- grapheme-end grapheme-start))
+                    (on-change-style start (- end start))
                     
                     (set! flow-locked? #t)
 
@@ -4400,7 +4015,7 @@
                                       (begin
                                         (set! initial-style-needed? #f)
                                         (values snips #f))
-                                      (values (do-find-snip/char start 'after) (do-find-snip/char end 'after-or-none)))]
+                                      (values (do-find-snip start 'after) (do-find-snip end 'after-or-none)))]
                                  [(rec)
                                   (and (zero? s-noundomode)
                                        (make-object style-change-record% start end 
@@ -4435,7 +4050,7 @@
                                             p
                                             prev-style
                                             prev-style-pos
-                                            (+ p (snip->char-count gsnip))
+                                            (+ p (snip->count gsnip))
                                             (snip->next gsnip))))
                                   (let ([prev-style
                                          (if (and rec prev-style)
@@ -4447,7 +4062,7 @@
                                           extra-check-pos
                                           prev-style
                                           prev-style-pos
-                                          (+ p (snip->char-count gsnip))
+                                          (+ p (snip->count gsnip))
                                           (snip->next gsnip)))))
                             ;; All snips changed
                             (begin
@@ -4488,26 +4103,19 @@
                                     (check-merge-snips start)
                                     (check-merge-snips end)))
 
-                              (after-change-style/char start (- end start))
-                              (after-change-style grapheme-start (- grapheme-end grapheme-start))))))))]))))
+                              (after-change-style start (- end start))))))))]))))
       (assert (consistent-snip-lines 'post-do-change-style))))
 
-  (def/public (change-style/char [(make-or-false (make-alts style<%> style-delta%)) st]
-                                 [(make-alts exact-nonnegative-integer? (symbol-in start)) [start 'start]]
-                                 [(make-alts exact-nonnegative-integer? (symbol-in end)) [end 'end]]
-                                 [any? [counts-as-mod? #t]])
+  (def/public (change-style [(make-or-false (make-alts style<%> style-delta%)) st]
+                            [(make-alts exact-nonnegative-integer? (symbol-in start)) [start 'start]]
+                            [(make-alts exact-nonnegative-integer? (symbol-in end)) [end 'end]]
+                            [any? [counts-as-mod? #t]])
     (do-change-style (if (symbol? start) startpos start)
                      (if (symbol? end) (if (symbol? start) endpos len) end)
                      (and (st . is-a? . style<%>) st)
                      (and (st . is-a? . style-delta%) st)
                      1
                      counts-as-mod?))
-
-  (def/public (change-style [(make-or-false (make-alts style<%> style-delta%)) st]
-                            [(make-alts exact-nonnegative-integer? (symbol-in start)) [start 'start]]
-                            [(make-alts exact-nonnegative-integer? (symbol-in end)) [end 'end]]
-                            [any? [counts-as-mod? #t]])
-    (change-style/char st (grapheme-to-char-position* start) (grapheme-to-char-position* end) counts-as-mod?))
 
   (def/override (set-style-list [style-list% new-list])
     (unless write-locked?
@@ -4609,7 +4217,7 @@
                   [y 0.0]
                   [ok? #t])
           (when snip
-            (set-box! ok? (get-snip-position-and-location/char snip #f x y)))
+            (set-box! ok? (get-snip-position-and-location snip #f x y)))
         (cond
          [(not ok?) #f]
          [(scroll-editor-to (+ x localx) (+ y localy) w h refresh? bias)
@@ -4633,7 +4241,7 @@
     (do-scroll-to snip localx localy w h refresh? bias))
 
   (def/override (resized [snip% snip] [any? redraw-now?])
-    (when (get-snip-position-and-location/char snip #f #f #f)
+    (when (get-snip-position-and-location snip #f #f #f)
 
       (let ([line (snip->line snip)])
         (mline-mark-recalculate line)
@@ -4672,10 +4280,10 @@
       (on-focus (not snip))))
 
   (def/override (release-snip [snip% snip])
-    (let ([pos (get-snip-position/char snip)])
+    (let ([pos (get-snip-position snip)])
       (and pos
            (begin
-             (do-delete pos (+ pos (snip->char-count snip)) #f #f)
+             (do-delete pos (+ pos (snip->count snip)) #f #f)
              (when (and (not (snip->admin snip))
                         (has-flag? (snip->flags snip) OWNED))
                (set-snip-flags! snip (remove-flag (snip->flags snip) OWNED)))
@@ -4754,7 +4362,7 @@
     (set! snips (new string-snip%))
     (set-snip-style! snips (or (get-default-style)
                                (send s-style-list basic-style)))
-    (set-snip-char-count! snips 0)
+    (set-snip-count! snips 0)
     (send snips set-s-admin snip-admin)
 
     (let ([line (create-mline)])
@@ -4783,14 +4391,14 @@
         (set! last-snip snip)))
 
   (define/private (insert-snip before snip)
-    (if (and (eq? snips last-snip) (zero? (snip->char-count snips)))
+    (if (and (eq? snips last-snip) (zero? (snip->count snips)))
         (append-snip snip)
         (begin
           (splice-snip snip (snip->prev before) before)
           (set! snip-count (add1 snip-count)))))
   
   (define/private (append-snip snip)
-    (if (and (eq? snips last-snip) (zero? (snip->char-count snips))) 
+    (if (and (eq? snips last-snip) (zero? (snip->count snips))) 
         ;; get rid of empty snip
         (begin
           (set! snips snip)
@@ -4819,7 +4427,7 @@
     (set-snip-flags! snip (remove-flag (snip->flags snip) CAN-DISOWN)))
   
   (define/private (snip-set-admin snip a)
-    (let ([orig-count (snip->char-count snip)]
+    (let ([orig-count (snip->count snip)]
           [line (snip->line snip)]
           [orig-admin (snip->admin snip)]
           [wl? write-locked?]
@@ -4846,7 +4454,7 @@
                   [a
                    ;; snip didn't accept membership into this editor; give up on it
                    (let ([naya (new snip%)])
-                     (set-snip-char-count! naya orig-count)
+                     (set-snip-count! naya orig-count)
                      (splice-snip naya (snip->prev snip) (snip->next snip))
                      (set-snip-line! naya line)
                      
@@ -4865,13 +4473,13 @@
                  snip)])
 
         ;; force count to be consistent:
-        (when (and a (not (= (snip->char-count snip) orig-count)))
-          (set-snip-char-count! snip orig-count))
+        (when (and a (not (= (snip->count snip) orig-count)))
+          (set-snip-count! snip orig-count))
 
         snip)))
 
   (define/private (snip-split snip pos a-ptr b-ptr)
-    (let ([c (snip->char-count snip)]
+    (let ([c (snip->count snip)]
           [nl? (has-flag? (snip->flags snip) NEWLINE)]
           [hnl? (has-flag? (snip->flags snip) HARD-NEWLINE)]
           [orig snip])
@@ -4916,8 +4524,8 @@
         (set-snip-flags! orig (remove-flag (snip->flags orig) CAN-SPLIT))
 
         ;; make sure that count is right
-        (set-snip-char-count! a pos)
-        (set-snip-char-count! b (- c pos))
+        (set-snip-count! a pos)
+        (set-snip-count! b (- c pos))
 
         ;; make sure that NEWLINE & HARD-NEWLINE is consistent:
         (when nl?
@@ -4929,7 +4537,7 @@
 
     (define/private (split-one* amt snip)
       (if (or (= 0 amt)
-              (= amt (snip->char-count snip)))
+              (= amt (snip->count snip)))
           snip
           (split-one amt snip #f)))
 
@@ -4972,19 +4580,19 @@
   (define/private (make-snipset start end) 
     ;; BEWARE: `len' may not be up-to-date
     (when (positive? start)
-      (let-values ([(snip s-pos) (find-snip/pos/char start 'after-or-none)])
+      (let-values ([(snip s-pos) (find-snip/pos start 'after-or-none)])
         (when snip
           (unless (= s-pos start)
             (split-one (- start s-pos) snip #f)))))
     (when (positive? end)
-      (let-values ([(snip s-pos) (find-snip/pos/char end 'before)])
-        (unless (= (+ s-pos (snip->char-count snip)) end)
+      (let-values ([(snip s-pos) (find-snip/pos end 'before)])
+        (unless (= (+ s-pos (snip->count snip)) end)
           (split-one (- end s-pos) snip #f)))))
 
   (define/private (insert-text-snip start style)
     (let* ([snip (on-new-string-snip)]
            [snip (if (or (send snip is-owned?)
-                         (positive? (snip->char-count snip)))
+                         (positive? (snip->count snip)))
                      ;; uh-oh; resort to string-snip%
                      (new string-snip%)
                      snip)]
@@ -4999,11 +4607,11 @@
                           (set-snip-style! snip style)
                           (send snip set-s-admin snip-admin))
                         snip))])
-        (set-snip-char-count! snip 0)
+        (set-snip-count! snip 0)
         
-        (let-values ([(gsnip s-pos) (find-snip/pos/char start 'before-or-none)])
+        (let-values ([(gsnip s-pos) (find-snip/pos start 'before-or-none)])
           (if (and gsnip
-                   (= (+ (snip->char-count gsnip) s-pos) start)
+                   (= (+ (snip->count gsnip) s-pos) start)
                    (has-flag? (snip->flags gsnip) NEWLINE)
                    (not (has-flag? (snip->flags gsnip) HARD-NEWLINE)))
               (begin
@@ -5016,7 +4624,7 @@
                 (set-snip-line! snip (snip->line gsnip))
                 (set-mline-last-snip! (snip->line snip) snip)
                 snip)
-              (let-values ([(gsnip s-pos) (find-snip/pos/char start 'after-or-none)])
+              (let-values ([(gsnip s-pos) (find-snip/pos start 'after-or-none)])
                 (cond
                  [(not gsnip)
                   (append-snip snip)
@@ -5040,8 +4648,8 @@
 
   (define/private (check-merge-snips start)
     (when (let loop ([did-something? #f])
-            (let-values ([(snip1 s-pos1) (find-snip/pos/char start 'before)]
-                         [(snip2 s-pos2) (find-snip/pos/char start 'after)])
+            (let-values ([(snip1 s-pos1) (find-snip/pos start 'before)]
+                         [(snip2 s-pos2) (find-snip/pos start 'after)])
               (if (eq? snip1 snip2)
                   did-something?
                   (if (not (and (snip->snipclass snip1)
@@ -5052,17 +4660,17 @@
                                 (not (has-flag? (snip->flags snip1) NEWLINE))
                                 (has-flag? (snip->flags snip1) CAN-APPEND)
                                 (has-flag? (snip->flags snip2) CAN-APPEND)
-                                ((+ (snip->char-count snip1) (snip->char-count snip2)) . < . MAX-COUNT-FOR-SNIP)
+                                ((+ (snip->count snip1) (snip->count snip2)) . < . MAX-COUNT-FOR-SNIP)
                                 (eq? (snip->line snip1) (snip->line snip2))))
                           did-something?
                           (cond
-                           [(zero? (snip->char-count snip1))
+                           [(zero? (snip->count snip1))
                             (when (eq? (mline-snip (snip->line snip1)) snip1)
                               (set-mline-snip! (snip->line snip1) snip2))
                             (delete-snip snip1)
                             (set-snip-flags! snip1 (remove-flag (snip->flags snip1) OWNED))
                             (loop #t)]
-                           [(zero? (snip->char-count snip2))
+                           [(zero? (snip->count snip2))
                             (when (eq? (mline-last-snip (snip->line snip2)) snip2)
                               (set-mline-last-snip! (snip->line snip2) snip1)
                               (mline-mark-recalculate (snip->line snip1)) ; need last-w updated
@@ -5071,7 +4679,7 @@
                             (set-snip-flags! snip2 (remove-flag (snip->flags snip2) OWNED))
                             (loop #t)]
                            [else
-                            (let ([c (+ (snip->char-count snip1) (snip->char-count snip2))]
+                            (let ([c (+ (snip->count snip1) (snip->count snip2))]
                                   [prev (snip->prev snip1)]
                                   [next (snip->next snip2)]
                                   [line (snip->line snip1)])
@@ -5114,7 +4722,7 @@
                                           (set! snip-count (add1 snip-count))
                                           
                                           ;; make sure that count is right:
-                                          (set-snip-char-count! naya c)
+                                          (set-snip-count! naya c)
 
                                           (set! revision-count (add1 revision-count))
 
@@ -5148,27 +4756,20 @@
         #f
         snips))
   
-  (define/private (do-find-snip/char p direction)
+  (define/private (do-find-snip p direction)
     ;; BEWARE: `len' may not be up-to-date
-    (let-values ([(snip pos) (find-snip/pos/char p direction)])
-      snip))
-
-  (def/public (find-snip/char [exact-nonnegative-integer? p]
-                              [(symbol-in before-or-none before after after-or-none) direction]
-                              [maybe-box? [s-pos #f]])
-    ;; BEWARE: `len' may not be up-to-date
-    (let-values ([(snip pos) (find-snip/pos/char p direction)])
-      (when s-pos (set-box! s-pos pos))
+    (let-values ([(snip pos) (find-snip/pos p direction)])
       snip))
 
   (def/public (find-snip [exact-nonnegative-integer? p]
                          [(symbol-in before-or-none before after after-or-none) direction]
                          [maybe-box? [s-pos #f]])
-    (define s (find-snip/char (grapheme-to-char-position p) direction s-pos))
-    (when s-pos (set-box! s-pos (char-to-grapheme-position (unbox s-pos))))
-    s)
+    ;; BEWARE: `len' may not be up-to-date
+    (let-values ([(snip pos) (find-snip/pos p direction)])
+      (when s-pos (set-box! s-pos pos))
+      snip))
 
-  (define/private (find-snip/pos/char p direction)
+  (define/private (find-snip/pos p direction)
     ;; BEWARE: `len' may not be up-to-date
     (cond
      [(and (eq? direction 'before-or-none) (zero? p))
@@ -5189,15 +4790,15 @@
                                 ;; back up one:
                                 (let ([snip (snip->prev snip)])
                                   (values snip
-                                          (- pos (snip->char-count snip))
-                                          (+ p (snip->char-count snip))))
+                                          (- pos (snip->count snip))
+                                          (+ p (snip->count snip))))
                                 (values snip pos p)))])
 
               (let loop ([snip snip]
                          [pos pos]
                          [p p])
                 (if snip
-                    (let ([p (- p (snip->char-count snip))])
+                    (let ([p (- p (snip->count snip))])
                       (cond
                        [(or (and (eq? direction 'on)
                                  (zero? p))
@@ -5212,9 +4813,9 @@
                              (p . < . 0))
                         (values #f 0)]
                        [else
-                        (loop (snip->next snip) (+ pos (snip->char-count snip)) p)]))
+                        (loop (snip->next snip) (+ pos (snip->count snip)) p)]))
                     (if (not (eq? direction 'after-or-none))
-                        (values last-snip (- pos (snip->char-count last-snip)))
+                        (values last-snip (- pos (snip->count last-snip)))
                         (values #f 0)))))))]))
 
   (def/public (find-next-non-string-snip [(make-or-false snip%) snip])
@@ -5365,10 +4966,10 @@
                       (let ([_total-width (- _total-width w)])
                         ;; get best breaking position:
                         ;; (0.1 is hopefully a positive value smaller than any character)
-                        (let ([origc (do-find-position-in-snip/char dc _total-width Y snip (- maxw _total-width 0.1) #f #f)])
+                        (let ([origc (do-find-position-in-snip dc _total-width Y snip (- maxw _total-width 0.1) #f #f)])
                           ;; get legal breaking position before optimal:
                           (let-boxes ([b (+ p origc 1)])
-                              (find-wordbreak/char b #f 'line)
+                              (find-wordbreak b #f 'line)
                             (let ([c (min (- b p) origc)])
                               (let ([p
                                      (if (c . <= . 0)
@@ -5404,7 +5005,7 @@
                                           [else
                                            ;; overflow: we have to break the word anyway
                                            (if (zero? origc)
-                                               (if (and (= (snip->char-count snip) 1)
+                                               (if (and (= (snip->count snip) 1)
                                                         (snip->next snip)
                                                         (has-flag? (snip->flags (snip->next snip)) NEWLINE))
                                                    ;; don't insert a break before a real newline
@@ -5416,7 +5017,7 @@
                                     p ;; the result
                                     (begin
                                       (make-snipset p p)
-                                      (let ([snip (find-snip/char p 'before)])
+                                      (let ([snip (find-snip p 'before)])
                                         (when (snip->next snip)
                                           (set-snip-flags! snip (add-flag (snip->flags snip) NEWLINE)))
                                         (set! refresh-all? #t)
@@ -5425,7 +5026,7 @@
                         (set! the-first-snip? #f)
                         (set! first-underflow? #f)
                         (loop (snip->next snip)
-                              (+ p (snip->char-count snip))
+                              (+ p (snip->count snip))
                               _total-width))))))
             (done snip)))))
 
@@ -5650,8 +5251,8 @@
 
                   (cond
                    [(not (= delayedscroll -1))
-                    (when (scroll-to-position/refresh/char delayedscroll delayedscrollateol? #f
-                                                           delayedscrollend delayedscrollbias)
+                    (when (scroll-to-position/refresh delayedscroll delayedscrollateol? #f
+                                                      delayedscrollend delayedscrollbias)
                       (set! refresh-all? #t))]
                    [delayedscrollbox?
                     (set! delayedscrollbox? #f)
@@ -5685,12 +5286,12 @@
                                             (if (not refresh-unset?)
                                                 (let ([top (if (refresh-start . > . -1)
                                                                (let-boxes ([fy 0.0])
-                                                                   (position-location/char refresh-start #f fy #t #t #t)
+                                                                   (position-location refresh-start #f fy #t #t #t)
                                                                  (max top fy))
                                                                top)]
                                                       [bottom (if (refresh-end . > . -1)
                                                                   (let-boxes ([fy 0.0])
-                                                                      (position-location/char refresh-end #f fy #f #f #t)
+                                                                      (position-location refresh-end #f fy #f #f #t)
                                                                     (min bottom fy))
                                                                   bottom)])
                                                   (values left (if (not refresh-box-unset?)
@@ -6028,14 +5629,14 @@
                                                 tleftx tstarty trightx tendy
                                                 dx dy
                                                 (if (pair? show-caret)
-                                                    (cons p (+ p (snip->char-count snip)))
+                                                    (cons p (+ p (snip->count snip)))
                                                     (if (eq? snip s-caret-snip)
                                                         show-caret
                                                         (if (and maybe-hilite?
                                                                  (-endpos . > . p)
-                                                                 (-startpos . < . (+ p (snip->char-count snip))))
+                                                                 (-startpos . < . (+ p (snip->count snip))))
                                                             (cons (max 0 (- -startpos p))
-                                                                  (min (snip->char-count snip) (- -endpos p)))
+                                                                  (min (snip->count snip) (- -endpos p)))
                                                             'no-caret))))))
 
                                       ;; the rules for hiliting are surprisingly complicated:
@@ -6048,18 +5649,18 @@
                                                            (and (show-caret . showcaret>= . s-inactive-caret-threshold)
                                                                 (not (= -endpos -startpos))))))
                                               (if pos-at-eol?
-                                                  (= -startpos (+ p (snip->char-count snip)))
-                                                  (or (and (-startpos . < . (+ p (snip->char-count snip)))
+                                                  (= -startpos (+ p (snip->count snip)))
+                                                  (or (and (-startpos . < . (+ p (snip->count snip)))
                                                            (-endpos . >= . p)
                                                            (or (= -endpos -startpos) (-endpos . > . p)))
-                                                      (and (= (+ p (snip->char-count snip)) len)
+                                                      (and (= (+ p (snip->count snip)) len)
                                                            (= len -startpos))))
                                               (or (not (has-flag? (snip->flags snip) NEWLINE))
                                                   ;; end of line:
-                                                  (or (not (= -startpos (+ p (snip->char-count snip))))
+                                                  (or (not (= -startpos (+ p (snip->count snip))))
                                                       (and (= -endpos -startpos) pos-at-eol?)
                                                       (and (not (= -endpos -startpos)) 
-                                                           (-startpos . < . (+ p (snip->char-count snip))))))
+                                                           (-startpos . < . (+ p (snip->count snip))))))
                                               (or (not (eq? snip first))
                                                   ;; beginning of line:
                                                   (or (not (= p -endpos))
@@ -6075,7 +5676,7 @@
                                                                          x)
                                                                      (+ x (send snip partial-offset dc x ycounter
                                                                                 (- -startpos p))))]
-                                                          [(hxe bottom) (if (-endpos . >= . (+ p (snip->char-count snip)))
+                                                          [(hxe bottom) (if (-endpos . >= . (+ p (snip->count snip)))
                                                                             (if (has-flag? (snip->flags snip) NEWLINE)
                                                                                 (if (= -startpos -endpos)
                                                                                     (values hxs bottom)
@@ -6091,12 +5692,12 @@
                                                                 (values hxs hxe down bottom)
                                                                 (values hsxs hxe (min down hsys) (max hsye bottom)))])
                                                 (sloop (snip->next snip)
-                                                       (+ p (snip->char-count snip))
+                                                       (+ p (snip->count snip))
                                                        (+ x w)
                                                        #t hsxs hsxe hsys hsye
                                                        old-style)))
                                             (sloop (snip->next snip)
-                                                   (+ p (snip->char-count snip))
+                                                   (+ p (snip->count snip))
                                                    (+ x w)
                                                    hilite-some? hsxs hsxe hsys hsye
                                                    old-style))))))))))
@@ -6275,7 +5876,7 @@
                              (zero? (mline-starts-paragraph l)))
                     (mline-mark-check-flow l)
                     (loop (mline-next l)))))
-              (need-refresh (paragraph-start-position/char i) (paragraph-end-position/char i)))
+              (need-refresh (paragraph-start-position i) (paragraph-end-position i)))
 
           (refresh-by-line-demand)))))
   
@@ -6287,7 +5888,7 @@
           
           (set-paragraph-alignment! p align)
 
-          (need-refresh (paragraph-start-position/char i) (paragraph-end-position/char i))
+          (need-refresh (paragraph-start-position i) (paragraph-end-position i))
 
           (refresh-by-line-demand)))))
 
@@ -6345,7 +5946,7 @@
     (let ([len (mline-len line)])
       (and (<= 1 len 2)
            (let* ([pos (mline-get-position line)]
-                  [s (get-text/char pos (+ pos len))])
+                  [s (get-text pos (+ pos len))])
              (or (equal? s "\f")
                  (equal? s "\f\n"))))))
 

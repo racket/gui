@@ -124,7 +124,7 @@
   (check-equal? (text-balanced? "foo)" 0 #f) #t)
   (check-equal? (text-balanced? "(foo" 0 #f) #f)
   (check-equal? (text-balanced? "(foo)" 0 #f) #t)
-  (check-equal? (text-balanced? "(🏴‍☠️)" 0 3) #t)
+  (check-equal? (text-balanced? "(🏴‍☠️)" 0 6) #t)
   (check-equal? (text-balanced? "(🏴‍☠️)" 0 #f) #t)
   (check-equal? (text-balanced? "(foo 'bar))" 0 #f) #t)
   (check-equal? (text-balanced? "(foo) bar ([buz])" 0 #f) #t)
@@ -368,8 +368,8 @@
                                    keys
                                    final-states)
   (define initial-text (string-append init-text-before init-text-selected init-text-after))
-  (define initial-start-pos (string-grapheme-count init-text-before))
-  (define initial-end-pos (+ initial-start-pos (string-grapheme-count init-text-selected)))
+  (define initial-start-pos (string-length init-text-before))
+  (define initial-end-pos (+ initial-start-pos (string-length init-text-selected)))
   (for ([auto? (in-list '(#f #t))]
         [final-pair (in-list final-states)])
     (cond
@@ -379,12 +379,12 @@
                          (list initial-start-pos initial-end-pos)
                          keys
                          auto?)
-        (list (string-grapheme-count (car final-pair))
-              (string-grapheme-count (string-append (car final-pair)
-                                                    (cadr final-pair)))
+        (list (string-length (car final-pair))
+              (string-length (string-append (car final-pair)
+                                            (cadr final-pair)))
               (apply string-append final-pair)))]
       [else
-       (define final-pos (string-grapheme-count (car final-pair)))
+       (define final-pos (string-length (car final-pair)))
        (check-equal?
         (run-auto-parens initial-text
                          (list initial-start-pos initial-end-pos)

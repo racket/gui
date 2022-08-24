@@ -1764,7 +1764,7 @@
     (let ([p (open-output-string)])
       (let loop ([s snips])
         (when s
-          (display (send s get-text 0 (snip->char-count s) #t) p)
+          (display (send s get-text 0 (snip->count s) #t) p)
           (loop (snip->next s))))
       (get-output-string p)))
 

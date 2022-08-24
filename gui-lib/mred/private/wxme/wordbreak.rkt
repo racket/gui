@@ -50,19 +50,19 @@
         (when startp
           (let* ([start (unbox startp)]
                  [pstart start]
-                 [lstart (send win find-newline/char 'backward start 0)]
+                 [lstart (send win find-newline 'backward start 0)]
                  [lstart (if lstart
                              (if (eq? 'caret reason)
                                  (or (and (positive? lstart)
-                                          (send win find-newline/char 'backward (sub1 lstart) 0))
+                                          (send win find-newline 'backward (sub1 lstart) 0))
                                      0)
                                  lstart)
                              0)]
-                 [lend (min (+ start 1) (send win last-position/char))]
+                 [lend (min (+ start 1) (send win last-position))]
                  [tstart (if ((- start lstart) . > . MAX-DIST-TRY)
                              (- start MAX-DIST-TRY)
                              lstart)]
-                 [text (send win get-text/char tstart lend)]
+                 [text (send win get-text tstart lend)]
                  [start (- start tstart)]
                  [pstart (- pstart tstart)])
 
@@ -107,24 +107,24 @@
                                    phase2-complete?
                                    (+ start (- tstart lstart))
                                    (+ pstart (- tstart lstart))
-                                   (send win get-text/char lstart lend)
+                                   (send win get-text lstart lend)
                                    lstart)
                             (set-box! startp (+ start tstart))))))))))
         
         (when endp
           (let* ([end (unbox endp)]
                  [lstart end]
-                 [lend (send win find-newline/char 'forward end)]
+                 [lend (send win find-newline 'forward end)]
                  [lend (if lend
                            (if (eq? 'caret reason)
-                               (or (send win find-newline/char 'forward (+ lend 1))
-                                   (send win last-position/char))
+                               (or (send win find-newline 'forward (+ lend 1))
+                                   (send win last-position))
                                lend)
-                           (send win last-position/char))]
+                           (send win last-position))]
                  [tend (if ((- lend end) . > . MAX-DIST-TRY)
                            (+ end MAX-DIST-TRY)
                            lend)]
-                 [text (send win get-text/char lstart tend)]
+                 [text (send win get-text lstart tend)]
                  [end (- end lstart)]
                  [lend (- lend lstart)]
                  [tend (- tend lstart)])
@@ -149,7 +149,7 @@
                       (loop (add1 end))
                       (if (and (= tend end) (not (= lend tend)))
                           (ploop phase1-complete?
-                                 (send win get-text/char lstart (+ lstart lend))
+                                 (send win get-text lstart (+ lstart lend))
                                  lend
                                  end)
                           (set-box! endp (+ end lstart)))))))))))))

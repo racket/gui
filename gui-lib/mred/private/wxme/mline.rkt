@@ -39,7 +39,6 @@
            get-location
            get-paragraph
            get-paragraph-style
-           grapheme=char?
            set-length
            set-scroll-length
            set-height
@@ -617,21 +616,12 @@
           (let ([pstart (find-paragraph root p)])
             (mline-paragraph pstart))))))
 
-(define (grapheme=char? mline)
-  (and (eqv? (mline-len mline)
-             (mline-grapheme-len mline))
-       (eqv? (mline-pos mline)
-             (mline-grapheme-pos mline))
-       (let ([parent (mline-parent mline)])
-         (or (eq? parent NIL)
-             (grapheme=char? parent)))))
-
 ;; ----------------------------------------
 
 (define (adjust mline new-val val-sel val-mut! new-val2 val-sel2 val-mut2! sel mut! sel2 mut2!)
   (define delta (- new-val (val-sel mline)))
   (define delta2 (if new-val2 (- new-val2 (val-sel2 mline)) 0))
-  (define val-changed?
+  (define val-changed? 
     (cond
       [(and (= (val-sel mline) new-val)
             (or (not val-sel2)
@@ -710,7 +700,7 @@
       (let loop ([asnip (mline-snip mline)] [l 0] [gl 0])
         (if (eq? asnip nexts)
             (values l gl)
-            (let ([l (+ l (snip->char-count asnip))]
+            (let ([l (+ l (snip->count asnip))]
                   [gl (+ gl (snip->grapheme-count asnip))])
               (when (has-flag? (snip->flags asnip) WIDTH-DEPENDS-ON-X)
                 (send asnip size-cache-invalid))
