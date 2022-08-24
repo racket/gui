@@ -220,7 +220,7 @@ Returns the number of @techlink{graphemes} in the snip, which is
 usually the same result as @method[snip<%> get-count], but can be
 smaller with multiple consecutive @tech{items} form a grapheme.
 
-@history[#:added "1.67"]}
+@history[#:added "1.4"]}
 
 
 @defmethod[(grapheme-position [n exact-nonnegative-integer?])
@@ -233,7 +233,7 @@ Returns the number of @tech{items} in the snip that form the first
 When @method[snip<%> get-count] is the same as @method[snip<%>
 get-grapheme-count], this method returns @racket[n].
 
-@history[#:added "1.67"]}
+@history[#:added "1.4"]}
 
 
 @defmethod[(get-extent [dc (is-a?/c dc<%>)]
@@ -652,7 +652,7 @@ first @racket[n] @tech{items}; or, equivalently, converts from an
 When @method[snip<%> get-count] is the same as @method[snip<%>
 get-grapheme-count], this method returns @racket[n].
 
-@history[#:added "1.67"]}
+@history[#:added "1.4"]}
 
 
 @defmethod[(partial-offset [dc (is-a?/c dc<%>)]
