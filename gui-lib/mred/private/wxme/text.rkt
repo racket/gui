@@ -3839,15 +3839,15 @@
            (cond
              [(not latest-snip)
               (define fst (find-first-snip))
-              (values fst (and fst 0) (and fst (send fst get-count)))]
+              (values fst (and fst 0) (and fst (snip->count fst)))]
              [forward?
-              (define next (send latest-snip next))
+              (define next (snip->next latest-snip))
               (values next
                       (and next (+ latest-snip-position latest-snip-len))
-                      (and next (send next get-count)))]
+                      (and next (snip->count next)))]
              [else
-              (define prev (send latest-snip previous))
-              (define pc (and prev (send prev get-count)))
+              (define prev (snip->prev latest-snip))
+              (define pc (and prev (snip->count prev)))
               (values prev
                       (and prev (- latest-snip-position pc))
                       pc)]))
@@ -3863,7 +3863,7 @@
             (set! latest-snip (find-snip i 'after-or-none b))
             (when latest-snip
               (set! latest-snip-position (unbox b))
-              (set! latest-snip-len (send latest-snip get-count)))])
+              (set! latest-snip-len (snip->count latest-snip)))])
          
          (when (or (not latest-snip-str)
                    (< (string-length latest-snip-str)
@@ -3895,13 +3895,13 @@
                             (define this-one (loop inner-snip))
                             (if just-one?
                                 (or this-one
-                                    (inner-loop (send inner-snip next)))
+                                    (inner-loop (snip->next inner-snip)))
                                 (if this-one
                                     (cons this-one
-                                          (inner-loop (send inner-snip next)))
-                                    (inner-loop (send inner-snip next))))]
+                                          (inner-loop (snip->next inner-snip)))
+                                    (inner-loop (snip->next inner-snip))))]
                            [(not inner-snip) (if just-one? #f '())]
-                           [else (inner-loop (send inner-snip next))])))
+                           [else (inner-loop (snip->next inner-snip))])))
                  (and inner-result 
                       (pair? inner-result) 
                       (cons ed inner-result))]))]
