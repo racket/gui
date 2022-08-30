@@ -411,11 +411,10 @@
       (if single-column?
           (void (SendMessageW hwnd LB_SETTOPINDEX i 0))
           (let ([c (SendMessageW hwnd LVM_GETCOUNTPERPAGE 0 0)])
-            (unless (= c i)
-              (if (> (SendMessageW hwnd LVM_GETTOPINDEX 0 0)
-                     i)
-                  (void (SendMessageW hwnd LVM_ENSUREVISIBLE i 0))
-                  (void (SendMessageW hwnd LVM_ENSUREVISIBLE (sub1 (min num (+ i c))) 0)))))))
+            (if (> (SendMessageW hwnd LVM_GETTOPINDEX 0 0)
+                   i)
+                (void (SendMessageW hwnd LVM_ENSUREVISIBLE i 0))
+                (void (SendMessageW hwnd LVM_ENSUREVISIBLE (sub1 (min num (+ i c))) 0))))))
 
     (define/public (get-first-item)
       (SendMessageW hwnd (if single-column? LB_GETTOPINDEX LVM_GETTOPINDEX) 0 0))
