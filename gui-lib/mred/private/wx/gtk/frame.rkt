@@ -611,10 +611,10 @@
        (define scale (gdk_screen_get_monitor_scale_factor
                       (gdk_screen_get_default)
                       num))
-       (make-GdkRectangle (/ (GdkRectangle-x r) scale)
-                          (/ (GdkRectangle-y r) scale)
-                          (/ (GdkRectangle-width r) scale)
-                          (/ (GdkRectangle-height r) scale))]
+       (make-GdkRectangle (floor (inexact->exact (/ (GdkRectangle-x r) scale)))
+                          (floor (inexact->exact (/ (GdkRectangle-y r) scale)))
+                          (floor (inexact->exact (/ (GdkRectangle-width r) scale)))
+                          (floor (inexact->exact (/ (GdkRectangle-height r) scale))))]
       [else r])))
 
 (define (display-origin x y all? num fail)
