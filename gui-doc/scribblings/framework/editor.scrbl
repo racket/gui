@@ -160,7 +160,9 @@
 
    If the second result is a @racket[text%] object, then the
    first result will be a position in the editor and
-   otherwise the first result will be @racket[#f]. 
+   otherwise the first result will be @racket[#f]. The position
+   is found by calling @method[text% find-position], using
+   @racket[#f] as the @racket[_at-eol?] argument.
 
    The @racket[editor<%>] object will always be the nearest
    enclosing editor containing the point (@racket[x], @racket[y]).
