@@ -290,7 +290,10 @@
         (channel-put box-read-chan (cons eof (position->line-col-pos unread-start-point))))
       (define/public-final (clear-input-port) (channel-put clear-input-chan (void)))
       (define/public-final (clear-box-input-port) (channel-put box-clear-input-chan (void)))
-      (define/public-final (clear-output-ports) 
+
+      (define output-ports-clear-count 0)
+      (define/public-final (clear-output-ports)
+        (set! output-ports-clear-count (add1 output-ports-clear-count))
         (channel-put clear-output-chan (void))
         (init-output-ports))
     
@@ -525,9 +528,11 @@
       ;; thread: any thread, except the eventspace main thread
       (define/private (queue-insertion txts signal #:async? [async? #f])
         (parameterize ([current-eventspace eventspace])
+          (define current-clear-count output-ports-clear-count)
           (queue-callback
            (λ ()
-             (do-insertion txts #f)
+             (when (= current-clear-count output-ports-clear-count)
+               (do-insertion txts #f))
              (if async? (thread (λ () (sync signal))) (sync signal)))
            #f)))
 
