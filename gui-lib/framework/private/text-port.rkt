@@ -290,9 +290,18 @@
         (channel-put box-read-chan (cons eof (position->line-col-pos unread-start-point))))
       (define/public-final (clear-input-port) (channel-put clear-input-chan (void)))
       (define/public-final (clear-box-input-port) (channel-put box-clear-input-chan (void)))
-      (define/public-final (clear-output-ports) 
-        (channel-put clear-output-chan (void))
+      (define/public-final (clear-output-ports)
+        (set! clear-counter (+ clear-counter 1))
+        (channel-put clear-output-chan clear-counter)
         (init-output-ports))
+
+      ;; clear-counter : natural?
+      ;; this is incremented each time `clear-output-ports` is called; each queue'd
+      ;; insertion checks to make sure that it has the same value of clear-counter
+      ;; as the current value, and just drops its insertions if it doesn't. This
+      ;; makes killing the interactions window in DrRacket more responsive when
+      ;; there is a lot of output pending
+      (define clear-counter 0)
     
       ;; delete/io: number number -> void
       (define/public-final (delete/io start end)
@@ -508,7 +517,7 @@
       (define flush-chan/diy (make-channel))
       (define flush-chan/queue (make-channel))
     
-      ;; clear-output-chan : (channel void)
+      ;; clear-output-chan : (channel natural?)
       (define clear-output-chan (make-channel))
     
       ;; write-chan : (channel (cons (union snip bytes) style))
@@ -519,15 +528,19 @@
       ;;                               (channel ...)))
       (define readers-chan (make-channel))
     
-      ;; queue-insertion : (listof (cons (union string snip) style)) evt -> void
+      ;; queue-insertion : (listof (cons (union string snip) style)) evt natural? -> void
       ;; txt is in the reverse order of the things to be inserted.
       ;; the evt is waited on when the text has actually been inserted
       ;; thread: any thread, except the eventspace main thread
-      (define/private (queue-insertion txts signal #:async? [async? #f])
+      ;; the `queue-time-clear-counter` argument is the clear-counter from the
+      ;; time that this IO was produced; if it isn't the same as the counter
+      ;; at the time we're going to insert, we just skip the insertion.
+      (define/private (queue-insertion txts signal queue-time-clear-counter #:async? [async? #f])
         (parameterize ([current-eventspace eventspace])
           (queue-callback
            (λ ()
-             (do-insertion txts #f)
+             (when (= queue-time-clear-counter clear-counter)
+               (do-insertion txts #f))
              (if async? (thread (λ () (sync signal))) (sync signal)))
            #f)))
 
@@ -731,7 +744,8 @@
         (define (output-buffer-thread)
           (let loop (;; text-to-insert : (queue (cons (union snip bytes) style))
                      [text-to-insert (empty-at-queue)]
-                     [last-flush (current-inexact-milliseconds)])
+                     [last-flush (current-inexact-milliseconds)]
+                     [clear-counter 0])
             (sync
              (if (at-queue-empty? text-to-insert)
                  never-evt
@@ -742,8 +756,8 @@
                       (split-queue converter text-to-insert))
                     ;; we always queue the work here since the
                     ;; always event means no one waits for the callback
-                    (queue-insertion viable-bytes always-evt)
-                    (loop remaining-queue (current-inexact-milliseconds)))))
+                    (queue-insertion viable-bytes always-evt clear-counter)
+                    (loop remaining-queue (current-inexact-milliseconds) clear-counter))))
              (handle-evt
               flush-chan/diy
               (λ (return-evt/to-insert-chan)
@@ -759,7 +773,7 @@
                        (set! remaining-queue next-remaining-queue)
                        (list viable-bytes)])))
                 (channel-put return-evt/to-insert-chan viable-bytess)
-                (loop remaining-queue (current-inexact-milliseconds))))
+                (loop remaining-queue (current-inexact-milliseconds) clear-counter)))
              (handle-evt
               flush-chan/queue
               (λ (return-evt/to-insert-chan)
@@ -769,17 +783,17 @@
                     (split-queue converter q))
                   (cond
                     [flush-keep-trying?
-                     (queue-insertion viable-bytes always-evt)
+                     (queue-insertion viable-bytes always-evt clear-counter)
                      (loop next-remaining-queue)]
                     [else
                      (set! remaining-queue next-remaining-queue)
-                     (queue-insertion viable-bytes return-evt/to-insert-chan #:async? #t)
+                     (queue-insertion viable-bytes return-evt/to-insert-chan clear-counter #:async? #t)
                      #f]))
-                (loop remaining-queue (current-inexact-milliseconds))))
+                (loop remaining-queue (current-inexact-milliseconds) clear-counter)))
              (handle-evt
               clear-output-chan
-              (λ (_)
-                (loop (empty-at-queue) (current-inexact-milliseconds))))
+              (λ (new-counter)
+                (loop (empty-at-queue) (current-inexact-milliseconds) new-counter)))
              (handle-evt
               write-chan
               (λ (pr-pr)
@@ -793,7 +807,8 @@
                      (loop new-text-to-insert
                            (if (at-queue-empty? text-to-insert)
                                (current-inexact-milliseconds)
-                               last-flush))]
+                               last-flush)
+                           clear-counter)]
                     [else
                      (define-values (viable-bytes remaining-queue flush-keep-trying?)
                        (split-queue converter new-text-to-insert))
@@ -802,9 +817,9 @@
                         (channel-put return-chan viable-bytes)]
                        [else
                         (define chan (make-channel))
-                        (queue-insertion viable-bytes (channel-put-evt chan (void)))
+                        (queue-insertion viable-bytes (channel-put-evt chan (void)) clear-counter)
                         (channel-get chan)])
-                     (loop remaining-queue (current-inexact-milliseconds))])))))))
+                     (loop remaining-queue (current-inexact-milliseconds) clear-counter)])))))))
         (thread output-buffer-thread))
     
       (field [in-port-args #f]
