@@ -1935,7 +1935,7 @@
       (define pre-s (do-find-snip start 'before))
       (define pre-pos (get-snip-position pre-s))
       (define pre-count (snip->count pre-s))
-      (define txt (send pre-s get-text 0 (- start pre-pos)))
+      (define txt (send pre-s get-text 0 (- start pre-pos) #f))
       (cond
         [(grapheme-spans? txt 0 (- start pre-pos)
                           s 0 (string-length s))
@@ -1946,7 +1946,7 @@
          (define post-s (do-find-snip end 'after))
          (define post-pos (get-snip-position post-s))
          (define post-count (snip->count post-s))
-         (define txt (send post-s get-text 0 post-count))
+         (define txt (send post-s get-text 0 post-count #f))
          (cond
            [(grapheme-spans? s 0 (string-length s)
                              txt (- end post-pos) post-count)
