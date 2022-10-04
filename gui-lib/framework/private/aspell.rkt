@@ -21,14 +21,15 @@
   '("/usr/bin" 
     "/bin"
     "/usr/local/bin"
-    "/opt/local/bin/"))
+    "/opt/local/bin/"
+    "/opt/homebrew/bin/"))
 
 (define (find-aspell-binary-path)
   (define aspell (if (eq? (system-type) 'windows) "aspell.exe" "aspell"))
   (define ispell (if (eq? (system-type) 'windows) "ispell.exe" "ispell"))
   (or (find-executable-path aspell)
       (find-executable-path ispell)
-      (for/or ([cp aspell-candidate-paths])
+      (for/or ([cp (in-list aspell-candidate-paths)])
         (define c1 (build-path cp aspell))
         (define c2 (build-path cp ispell))
         (or (and (file-exists? c1)
