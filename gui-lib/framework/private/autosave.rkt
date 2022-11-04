@@ -336,7 +336,29 @@
              (let ([tmp-name (and (file-exists? orig-name)
                                   (make-temporary-file "autosave-repair~a" orig-name))])
                (when (file-exists? orig-name)
-                 (delete-file orig-name))
+                 (let loop ([i 0])
+                   (cond
+                     [(= i 100)
+                      ;; here we either have a LOT of renamed files or something
+                      ;; is going wrong; just give up on the original file
+                      (delete-file orig-name)]
+                     [else
+                      (define-values (base name dir) (split-path orig-name))
+                      (define split-name-m (regexp-match #rx#"^(.*)([.][^.]*)$" (path->bytes name)))
+                      (define new-suffix (string->bytes/utf-8 (format "~a~a" "-autorec" (if (= i 0) "" i))))
+                      (define renamed-candidate
+                        (if split-name-m
+                            (bytes-append (list-ref split-name-m 0)
+                                          new-suffix
+                                          #"."
+                                          (list-ref split-name-m 1))
+                            (bytes-append (path->bytes name) new-suffix)))
+                      (define full-candidate (build-path base (bytes->path renamed-candidate)))
+                      (cond
+                        [(file-exists? full-candidate)
+                         (loop (+ i 1))]
+                        [else
+                         (rename-file-or-directory orig-name full-candidate)])])))
                (copy-file autosave-name orig-name)
                (delete-file autosave-name)
                (when tmp-name
