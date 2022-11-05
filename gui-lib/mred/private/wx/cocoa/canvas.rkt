@@ -507,7 +507,7 @@
      (define/override (set-size x y w h)
        (do-set-size x y w h))
 
-     (define tr 0)
+     (define tr #f)
 
      (define/override (show on?)
        ;; FIXME: what if we're in the middle of an on-paint?
