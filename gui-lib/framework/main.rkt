@@ -532,13 +532,19 @@
  
  (proc-doc/names
   autosave:restore-autosave-files/gui
-  (-> void?)
-  ()
+  (->* () ((or/c #f (listof (list/c (or/c #f absolute-path?) absolute-path?)))) void?)
+  (() ((table #f)))
   @{Opens a GUI to ask the user about recovering any autosave files left around
-    from crashes and things.
+    from crashes or other catastrophic failures.
+
+If @racket[table] is not supplied, then the file in
+@racket[autosave:current-toc-path] is consulted to find the files to restore.
+If it is supplied, then it is used to find the files to recover. Each inner
+list names the original file and the autosave file. If the original file
+was never saved, then the first element of the list is @racket[#f].
     
     This function doesn't return until the user has finished restoring the
-    autosave files.  (It uses yield to handle events however.)})
+    autosave files. It uses @racket[yield] to handle events, however.)})
 
  (proc-doc/names
   exit:exiting?
