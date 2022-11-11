@@ -114,8 +114,10 @@
        (wait-for-recover-gone f))))
   (in-scratch-directory
    (call-with-output-file "x.rkt" void)
+   (call-with-output-file "y.rkt" void)
    (autosave:restore-autosave-files/gui
-    (list (list #f (build-path (current-directory) "x.rkt"))))
+    (list (list #f (build-path (current-directory) "x.rkt"))
+          (list #f (build-path (current-directory) "y.rkt"))))
    (yield t)
    (void)))
 

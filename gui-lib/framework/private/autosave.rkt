@@ -169,7 +169,8 @@
       (unless (null? filtered-table)
         (define dlg
           (new (frame:focus-table-mixin dialog%)
-               (label (string-constant recover-autosave-files-frame-title))))
+               (label (string-constant recover-autosave-files-frame-title))
+               [width 600]))
         (define t
           (new (text:foreground-color-mixin
                 (editor:standard-style-list-mixin text:basic%))
@@ -194,8 +195,9 @@
         (send t set-position 0 0)
         (send t lock #t)
 
+        (define only-one? (= 1 (length filtered-table)))
         (for ([table-entry (in-list filtered-table)])
-          (add-table-line vp dlg details-parent table-entry))
+          (add-table-line vp dlg details-parent table-entry only-one?))
         (new button%
           [label (string-constant autosave-done)]
           [parent vp]
@@ -213,7 +215,7 @@
     ;;               -> (list/c (or/c #f path?) path?)
     ;;               -> void?
     ;; adds in a line to the overview table showing this pair of files.
-    (define (add-table-line area-container dlg show-details-parent table-entry)
+    (define (add-table-line area-container dlg show-details-parent table-entry show-details-initially/no-details-button?)
       (match-define (list orig-file backup-file) table-entry)
       (define hp (new-horizontal-panel%
                   (parent area-container)
@@ -240,12 +242,15 @@
                         (label (path->string backup-file))
                         (stretchable-width #t)
                         (parent msg2-panel)))
+      (define (details-callback)
+        (show-files table-entry show-details-parent dlg))
       (define details
-        (new button%
-             [label (string-constant autosave-details)]
-             [parent hp]
-             [callback
-              (λ (x y) (show-files table-entry show-details-parent dlg))]))
+        (and (not show-details-initially/no-details-button?)
+             (new button%
+                  [label (string-constant autosave-details)]
+                  [parent hp]
+                  [callback
+                   (λ (x y) (details-callback))])))
       (define delete
         (new button%
           [label (string-constant autosave-delete-button)]
@@ -270,11 +275,13 @@
                                           #:quote-amp? #f)))))]))
       (define (disable-line)
         (send recover enable #f)
-        (send details enable #f)
+        (when details (send details enable #f))
         (send delete enable #f))
       (define w (max (send msg1-label get-width) (send msg2-label get-width)))
       (send msg1-label min-width w)
       (send msg2-label min-width w)
+      (when show-details-initially/no-details-button?
+        (details-callback))
       (void))
 
     ;; delete-autosave : (list (union #f string[filename]) string[filename]) -> boolean
