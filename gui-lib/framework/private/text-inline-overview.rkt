@@ -211,11 +211,23 @@
                      (- top-paragraph bitmap-first-visible-paragraph))
                   (+ extra-blue-parts-margin (send primary-bmp get-width))
                   visible-height)
+            (define top-region-to-skip
+              (if (<= bitmap-y-coordinate top (+ bitmap-y-coordinate view-height))
+                  (- top bitmap-y-coordinate)
+                  0))
+            (define bottom-region-to-skip
+              (if (<= bitmap-y-coordinate bottom (+ bitmap-y-coordinate view-height))
+                  (- (+ bitmap-y-coordinate view-height) bottom)
+                  0))
             (send dc draw-bitmap-section primary-bmp
                   (+ dx bitmap-x-coordinate)
-                  (+ dy bitmap-y-coordinate)
-                  0 bitmap-first-visible-paragraph
-                  (send primary-bmp get-width) view-height)
+                  (+ dy bitmap-y-coordinate top-region-to-skip)
+                  0
+                  (+ bitmap-first-visible-paragraph top-region-to-skip)
+                  (send primary-bmp get-width)
+                  (- view-height
+                     top-region-to-skip
+                     bottom-region-to-skip))
 
             (send dc set-brush old-brush)
             (send dc set-pen old-pen))))
