@@ -524,10 +524,6 @@
       ;; send output to the editor
       (define write-chan (make-channel))
     
-      ;; readers-chan : (channel (list (channel (union byte snip))
-      ;;                               (channel ...)))
-      (define readers-chan (make-channel))
-    
       ;; queue-insertion : (listof (cons (union string snip) style)) evt natural? -> void
       ;; txt is in the reverse order of the things to be inserted.
       ;; the evt is waited on when the text has actually been inserted
