@@ -304,7 +304,8 @@
                                        autosave-file
                                        (if (exn? exn)
                                            (format "~a" (exn-message exn))
-                                           (format "~s" exn))))
+                                           (format "~s" exn)))
+                               #:dialog-mixin frame:focus-table-mixin)
                               #f)])
              (delete-file autosave-file)
              #t)))
