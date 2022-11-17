@@ -2,6 +2,7 @@
 (provide text-inline-overview@)
 
 (require racket/unit
+         racket/match
          mred/mred-sig
          racket/class
          "../preferences.rkt"
@@ -183,6 +184,12 @@
           (union-invalid ps pe)
           (maybe-queue-do-a-little-work?)))
 
+      (define arrows '())
+      (define/public (set-inline-overview-arrows _arrows)
+        (unless (equal? arrows _arrows)
+          (set! arrows _arrows)
+          (invalidate-entire-overview-region #f)))
+
       (define last-time-on-paint-called #f)
       (define/override (on-paint before? dc left top right bottom dx dy draw-caret)
         (super on-paint before? dc left top right bottom dx dy draw-caret)
@@ -229,8 +236,24 @@
                      top-region-to-skip
                      bottom-region-to-skip))
 
+            (for ([arrow (in-list arrows)])
+              (match-define (list pos-start pos-end pen) arrow)
+              (define-values (x1 y1) (pos->xy pos-start))
+              (define-values (x2 y2) (pos->xy pos-end))
+              (send dc set-pen pen)
+              (send dc draw-line
+                    (+ dx bitmap-x-coordinate x1)
+                    (+ dy bitmap-y-coordinate y1)
+                    (+ dx bitmap-x-coordinate x2)
+                    (+ dy bitmap-y-coordinate y2)))
+
             (send dc set-brush old-brush)
             (send dc set-pen old-pen))))
+
+      (define/private (pos->xy pos)
+        (define para (position-paragraph pos))
+        (define para-start (paragraph-start-position para))
+        (values (- pos para-start) para))
 
       (define/override (after-scroll-to)
         (when enabled?
