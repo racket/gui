@@ -341,7 +341,6 @@
       (send t hide-caret #t)
       (send t lock #t))
 
-    (define show-files-frame% frame:basic%)
     (define show-files-text% (text:foreground-color-mixin
                               text:keymap%))
 
