@@ -36,9 +36,25 @@
 (define (wait-for-recover-gone f1)
   (let loop ()
     (define f2 (get-top-level-focus-window))
-    (when (equal? f1 f2)
-      (sleep 0.01)
-      (loop))))
+    (cond
+      [(equal? f1 f2)
+       (sleep 0.01)
+       (loop)]
+      [(not f2) (void)]
+      [else
+       (pretty-write
+        (let loop ([w f2])
+          (cond
+            [(is-a? w area-container<%>)
+             (for/list ([w (in-list (send w get-children))])
+               (loop w))]
+            [(is-a? w message%) (vector "message%" (send w get-label))]
+            [(is-a? w button%) (vector "button%" (send w get-label))]
+            [(and (is-a? w editor-canvas%) (is-a? (send w get-editor) text%))
+             (vector "tet%" (send (send w get-editor) get-text))]
+            [else w]))
+        (current-error-port))
+       (error 'wait-for-recover-gone "a frame that's not the recovery frame")])))
 
 (define (fetch-content fn)
   (define sp (open-output-string))
