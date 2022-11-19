@@ -6,8 +6,8 @@
 (define-syntax (in-scratch-directory stx)
   (syntax-case stx ()
     [(_ e1 e2 ...)
-     #'(in-scratch-directory/proc
-        (λ () e1 e2 ...))]))
+     #`(in-scratch-directory/proc
+        #,(syntax/loc stx (λ () e1 e2 ...)))]))
 
 (define (in-scratch-directory/proc body)
   (define d
@@ -23,38 +23,48 @@
 
 (define (wait-for-recover)
   (let loop ()
-    (define f (get-top-level-focus-window))
-    (cond
-      [(and f
-            (equal? (string-constant recover-autosave-files-frame-title)
-                    (send f get-label)))
-       f]
-      [else
-       (sleep .01)
-       (loop)])))
+    (define chan (make-channel))
+    (queue-callback
+     (λ ()
+       (define f (get-top-level-focus-window))
+       (channel-put
+        chan
+        (and f
+             (equal? (string-constant recover-autosave-files-frame-title)
+                     (send f get-label)))))
+     #f)
+    (or (channel-get chan)
+        (loop))))
 
 (define (wait-for-recover-gone f1)
   (let loop ()
-    (define f2 (get-top-level-focus-window))
-    (cond
-      [(equal? f1 f2)
-       (sleep 0.01)
-       (loop)]
-      [(not f2) (void)]
-      [else
-       (pretty-write
-        (let loop ([w f2])
-          (cond
-            [(is-a? w area-container<%>)
-             (for/list ([w (in-list (send w get-children))])
-               (loop w))]
-            [(is-a? w message%) (vector "message%" (send w get-label))]
-            [(is-a? w button%) (vector "button%" (send w get-label))]
-            [(and (is-a? w editor-canvas%) (is-a? (send w get-editor) text%))
-             (vector "tet%" (send (send w get-editor) get-text))]
-            [else w]))
-        (current-error-port))
-       (error 'wait-for-recover-gone "a frame that's not the recovery frame")])))
+    (define keep-going-chan (make-channel))
+    (queue-callback
+     (λ ()
+       (define f2 (get-top-level-focus-window))
+       (cond
+         [(equal? f1 f2)
+          (channel-put keep-going-chan #t)]
+         [(not f2) (channel-put keep-going-chan #f)]
+         [else
+          ;; this is some debugging code; we don't expect any
+          ;; new windows to show up, so printout what it is
+          (pretty-write
+           (let loop ([w f2])
+             (cond
+               [(is-a? w area-container<%>)
+                (for/list ([w (in-list (send w get-children))])
+                  (loop w))]
+               [(is-a? w message%) (vector "message%" (send w get-label))]
+               [(is-a? w button%) (vector "button%" (send w get-label))]
+               [(and (is-a? w editor-canvas%) (is-a? (send w get-editor) text%))
+                (vector "tet%" (send (send w get-editor) get-text))]
+               [else w]))
+           (current-error-port))
+          (error 'wait-for-recover-gone "a frame that's not the recovery frame")]))
+     #f)
+    (when (channel-get keep-going-chan)
+      (loop))))
 
 (define (fetch-content fn)
   (define sp (open-output-string))
