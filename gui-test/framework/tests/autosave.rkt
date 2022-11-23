@@ -26,7 +26,7 @@
     (define chan (make-channel))
     (queue-callback
      (λ ()
-       (define f (get-top-level-focus-window))
+       (define f (test:get-active-top-level-window))
        (channel-put
         chan
         (and f
@@ -41,7 +41,7 @@
     (define keep-going-chan (make-channel))
     (queue-callback
      (λ ()
-       (define f2 (get-top-level-focus-window))
+       (define f2 (test:get-active-top-level-window))
        (cond
          [(equal? f1 f2)
           (channel-put keep-going-chan #t)]
