@@ -188,7 +188,8 @@
       (define/public (set-inline-overview-arrows _arrows)
         (unless (equal? arrows _arrows)
           (set! arrows _arrows)
-          (invalidate-entire-overview-region #f)))
+          (when (get-admin)
+            (invalidate-entire-overview-region #f))))
 
       (define last-time-on-paint-called #f)
       (define/override (on-paint before? dc left top right bottom dx dy draw-caret)
