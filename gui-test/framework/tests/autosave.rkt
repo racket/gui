@@ -71,7 +71,7 @@
   (call-with-input-file fn (λ (p) (copy-port p sp)))
   (get-output-string sp))
 
-;; test that the window opens
+(printf "framework/tests/autosave.rkt: test that the window opens\n")
 (let ()
   (define t
     (thread
@@ -86,7 +86,7 @@
    (yield t)
    (void)))
 
-;; test that the window opens and no files change when we just click "done"
+(printf "framework/tests/autosave.rkt: test that the window opens and no files change when we just click ”done“\n")
 (let ()
   (define t
     (thread
@@ -106,7 +106,7 @@
    (void)))
 
 
-;; test that the window opens with a variety of items
+(printf "framework/tests/autosave.rkt: test that the window opens with a variety of items\n")
 (let ()
   (define t
     (thread
@@ -129,7 +129,7 @@
    (yield t)
    (void)))
 
-;; test that we can click on the details button
+(printf "framework/tests/autosave.rkt: test that we can click on the details button\n")
 (let ()
   (define t
     (thread
@@ -147,7 +147,7 @@
    (yield t)
    (void)))
 
-;; test that we can restore a file
+(printf "framework/tests/autosave.rkt: test that we can restore a file\n")
 (let ()
   (define t
     (thread
