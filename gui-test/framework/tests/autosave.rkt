@@ -71,98 +71,99 @@
   (call-with-input-file fn (λ (p) (copy-port p sp)))
   (get-output-string sp))
 
-(printf "framework/tests/autosave.rkt: test that the window opens\n")
-(let ()
-  (define t
-    (thread
-     (λ ()
-       (define f (wait-for-recover))
-       (test:button-push (string-constant autosave-done))
-       (wait-for-recover-gone f))))
-  (in-scratch-directory
-   (call-with-output-file "x.rkt" void)
-   (autosave:restore-autosave-files/gui
-    (list (list #f (build-path (current-directory) "x.rkt"))))
-   (yield t)
-   (void)))
+(parameterize ([test:use-focus-table #t])
+  (printf "framework/tests/autosave.rkt: test that the window opens\n")
+  (let ()
+    (define t
+      (thread
+       (λ ()
+         (define f (wait-for-recover))
+         (test:button-push (string-constant autosave-done))
+         (wait-for-recover-gone f))))
+    (in-scratch-directory
+     (call-with-output-file "x.rkt" void)
+     (autosave:restore-autosave-files/gui
+      (list (list #f (build-path (current-directory) "x.rkt"))))
+     (yield t)
+     (void)))
 
-(printf "framework/tests/autosave.rkt: test that the window opens and no files change when we just click ”done“\n")
-(let ()
-  (define t
-    (thread
-     (λ ()
-       (define f (wait-for-recover))
-       (test:button-push (string-constant autosave-done))
-       (wait-for-recover-gone f))))
-  (in-scratch-directory
-   (call-with-output-file "x.rkt" (λ (p) (displayln "x.rkt" p)))
-   (call-with-output-file "y.rkt" (λ (p) (displayln "y.rkt" p)))
-   (autosave:restore-autosave-files/gui
-    (list (list (build-path (current-directory) "x.rkt")
-                (build-path (current-directory) "y.rkt"))))
-   (yield t)
-   (check-equal? (fetch-content "x.rkt") "x.rkt\n")
-   (check-equal? (fetch-content "y.rkt") "y.rkt\n")
-   (void)))
+  (printf "framework/tests/autosave.rkt: test that the window opens and no files change when we just click ”done“\n")
+  (let ()
+    (define t
+      (thread
+       (λ ()
+         (define f (wait-for-recover))
+         (test:button-push (string-constant autosave-done))
+         (wait-for-recover-gone f))))
+    (in-scratch-directory
+     (call-with-output-file "x.rkt" (λ (p) (displayln "x.rkt" p)))
+     (call-with-output-file "y.rkt" (λ (p) (displayln "y.rkt" p)))
+     (autosave:restore-autosave-files/gui
+      (list (list (build-path (current-directory) "x.rkt")
+                  (build-path (current-directory) "y.rkt"))))
+     (yield t)
+     (check-equal? (fetch-content "x.rkt") "x.rkt\n")
+     (check-equal? (fetch-content "y.rkt") "y.rkt\n")
+     (void)))
 
 
-(printf "framework/tests/autosave.rkt: test that the window opens with a variety of items\n")
-(let ()
-  (define t
-    (thread
-     (λ ()
-       (define f (wait-for-recover))
-       (test:button-push (string-constant autosave-done))
-       (wait-for-recover-gone f))))
-  (in-scratch-directory
-   (call-with-output-file "x.rkt" void)
-   (call-with-output-file "y.rkt" void)
-   (call-with-output-file "z.rkt" void)
-   (call-with-output-file "a.rkt" void)
-   (call-with-output-file "b.rkt" void)
-   (call-with-output-file "c.rkt" void)
-   (autosave:restore-autosave-files/gui
-    (list (list #f (build-path (current-directory) "x.rkt"))
-          (list (build-path (current-directory) "z.rkt") (build-path (current-directory) "c.rkt"))
-          (list #f (build-path (current-directory) "y.rkt"))
-          (list (build-path (current-directory) "a.rkt") (build-path (current-directory) "b.rkt"))))
-   (yield t)
-   (void)))
+  (printf "framework/tests/autosave.rkt: test that the window opens with a variety of items\n")
+  (let ()
+    (define t
+      (thread
+       (λ ()
+         (define f (wait-for-recover))
+         (test:button-push (string-constant autosave-done))
+         (wait-for-recover-gone f))))
+    (in-scratch-directory
+     (call-with-output-file "x.rkt" void)
+     (call-with-output-file "y.rkt" void)
+     (call-with-output-file "z.rkt" void)
+     (call-with-output-file "a.rkt" void)
+     (call-with-output-file "b.rkt" void)
+     (call-with-output-file "c.rkt" void)
+     (autosave:restore-autosave-files/gui
+      (list (list #f (build-path (current-directory) "x.rkt"))
+            (list (build-path (current-directory) "z.rkt") (build-path (current-directory) "c.rkt"))
+            (list #f (build-path (current-directory) "y.rkt"))
+            (list (build-path (current-directory) "a.rkt") (build-path (current-directory) "b.rkt"))))
+     (yield t)
+     (void)))
 
-(printf "framework/tests/autosave.rkt: test that we can click on the details button\n")
-(let ()
-  (define t
-    (thread
-     (λ ()
-       (define f (wait-for-recover))
-       (test:button-push (string-constant autosave-details))
-       (test:button-push (string-constant autosave-done))
-       (wait-for-recover-gone f))))
-  (in-scratch-directory
-   (call-with-output-file "x.rkt" void)
-   (call-with-output-file "y.rkt" void)
-   (autosave:restore-autosave-files/gui
-    (list (list #f (build-path (current-directory) "x.rkt"))
-          (list #f (build-path (current-directory) "y.rkt"))))
-   (yield t)
-   (void)))
+  (printf "framework/tests/autosave.rkt: test that we can click on the details button\n")
+  (let ()
+    (define t
+      (thread
+       (λ ()
+         (define f (wait-for-recover))
+         (test:button-push (string-constant autosave-details))
+         (test:button-push (string-constant autosave-done))
+         (wait-for-recover-gone f))))
+    (in-scratch-directory
+     (call-with-output-file "x.rkt" void)
+     (call-with-output-file "y.rkt" void)
+     (autosave:restore-autosave-files/gui
+      (list (list #f (build-path (current-directory) "x.rkt"))
+            (list #f (build-path (current-directory) "y.rkt"))))
+     (yield t)
+     (void)))
 
-(printf "framework/tests/autosave.rkt: test that we can restore a file\n")
-(let ()
-  (define t
-    (thread
-     (λ ()
-       (define f (wait-for-recover))
-       (test:button-push (string-constant autosave-recover))
-       (test:button-push (string-constant autosave-done))
-       (wait-for-recover-gone f))))
-  (in-scratch-directory
-   (call-with-output-file "x.rkt" (λ (p) (displayln "x.rkt" p)))
-   (call-with-output-file "y.rkt" (λ (p) (displayln "y.rkt" p)))
-   (autosave:restore-autosave-files/gui
-    (list (list (build-path (current-directory) "x.rkt")
-                (build-path (current-directory) "y.rkt"))))
-   (yield t)
-   (check-false (file-exists? "y.rkt"))
-   (check-equal? (fetch-content "x.rkt") "y.rkt\n")
-   ))
+  (printf "framework/tests/autosave.rkt: test that we can restore a file\n")
+  (let ()
+    (define t
+      (thread
+       (λ ()
+         (define f (wait-for-recover))
+         (test:button-push (string-constant autosave-recover))
+         (test:button-push (string-constant autosave-done))
+         (wait-for-recover-gone f))))
+    (in-scratch-directory
+     (call-with-output-file "x.rkt" (λ (p) (displayln "x.rkt" p)))
+     (call-with-output-file "y.rkt" (λ (p) (displayln "y.rkt" p)))
+     (autosave:restore-autosave-files/gui
+      (list (list (build-path (current-directory) "x.rkt")
+                  (build-path (current-directory) "y.rkt"))))
+     (yield t)
+     (check-false (file-exists? "y.rkt"))
+     (check-equal? (fetch-content "x.rkt") "y.rkt\n")))
+  )
