@@ -202,33 +202,31 @@
   
   (define output-port (mk-port plain-style))
   (define error-port (mk-port error-style))
-  
+
+  ;; accessed and mutated only on the handler thread of `orig-eventspace`
   (define completed-successfully? #f)
   
   (define installer-cust (make-custodian))
-    
+  (thread
+   (lambda ()
+     (sync (make-custodian-box installer-cust #t))
+     (parameterize ([current-eventspace inst-eventspace])
+       (queue-callback
+        (λ ()
+          (send kill-button enable #f)
+          (when close-button (send close-button enable #t))
+          (set! currently-can-close? #t)
+          (semaphore-post can-close-sema))))
+     (parameterize ([current-eventspace orig-eventspace])
+       (queue-callback
+        (lambda ()
+          (unless completed-successfully?
+            (cleanup-thunk)))))))
+
   (parameterize ([current-custodian installer-cust])
     (parameterize ([current-eventspace (make-eventspace)])
       (queue-callback
        (lambda ()
-         
-         (let ([installer-thread (current-thread)])
-           (parameterize ([current-custodian orig-custodian])
-             (thread
-              (lambda ()
-                (sync (make-custodian-box installer-cust #t))
-                (parameterize ([current-eventspace inst-eventspace])
-                  (queue-callback
-                   (λ () 
-                     (send kill-button enable #f)
-                     (when close-button (send close-button enable #t))
-                     (set! currently-can-close? #t)
-                     (semaphore-post can-close-sema))))
-                (unless completed-successfully? 
-                  (parameterize ([current-eventspace orig-eventspace])
-                    (queue-callback
-                     (lambda ()
-                       (cleanup-thunk)))))))))
          
          (let/ec k
            (parameterize ([current-output-port output-port]
