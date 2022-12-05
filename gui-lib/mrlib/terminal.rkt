@@ -216,7 +216,7 @@
            (parameterize ([current-custodian orig-custodian])
              (thread
               (lambda ()
-                (thread-wait installer-thread)
+                (sync (make-custodian-box installer-cust #t))
                 (parameterize ([current-eventspace inst-eventspace])
                   (queue-callback
                    (λ () 
