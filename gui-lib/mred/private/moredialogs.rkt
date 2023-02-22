@@ -7,6 +7,7 @@
            "check.rkt"
            "wx.rkt"
            "helper.rkt"
+           "panel-wob.rkt"
            "mrtop.rkt"
            "mrcanvas.rkt"
            "mritem.rkt"
@@ -355,7 +356,13 @@
               (send ok-button enable ok?)
               (send alpha set-field-background
                     (send wx:the-color-database find-color
-                          (if ok? "white" "pink")))))
+                          (if ok?
+                              (if (white-on-black-panel-scheme?)
+                                  "black"
+                                  "white")
+                              (if (white-on-black-panel-scheme?)
+                                  "firebrick"
+                                  "pink"))))))
           (define bp (make-object horizontal-pane% f))
           (define (get-current-color)
             (make-object wx:color% 
