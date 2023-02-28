@@ -34,7 +34,6 @@ jobs:
         uses: Bogdanp/setup-racket@v1.9.1
         with:
           version: current
-          packages: resyntax
           local_catalogs: $GITHUB_WORKSPACE
           dest: '"${HOME}/racketdist-current-CS"'
           sudo: never
@@ -44,6 +43,8 @@ jobs:
           raco pkg update --auto --no-setup gui gui-lib gui-doc tex-table gui-test
       - name: Install local packages
         run: raco setup --pkgs gui gui-lib gui-doc tex-table gui-test
+      - name: Install Resyntax
+        run: raco pkg install --auto resyntax
       - name: Analyze changed files
         run: xvfb-run racket -l- resyntax/cli analyze --local-git-repository . "origin/${GITHUB_BASE_REF}" --output-as-github-review --output-to-file ./resyntax-review.json
       - name: Upload analysis artifact
