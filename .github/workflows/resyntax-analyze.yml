@@ -41,7 +41,7 @@ jobs:
       - name: Register local packages
         run: |
           raco pkg install -i --auto --no-setup --skip-installed gui-test
-          raco pkg update --auto --no-setup gui gui-lib gui-doc tex-table
+          raco pkg update --auto --no-setup gui gui-lib gui-doc tex-table gui-test
       - name: Install local packages
         run: raco setup --pkgs gui gui-lib gui-doc tex-table gui-test
       - name: Analyze changed files
