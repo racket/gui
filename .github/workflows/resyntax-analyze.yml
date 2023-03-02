@@ -34,15 +34,12 @@ jobs:
         uses: Bogdanp/setup-racket@v1.9.1
         with:
           version: current
+          distribution: minimal
           local_catalogs: $GITHUB_WORKSPACE
           dest: '"${HOME}/racketdist-current-CS"'
           sudo: never
-      - name: Register local packages not already installed
-        run: raco pkg install -i --auto --no-setup --skip-installed gui-test
-      - name: Update already-installed local packages
-        run: raco pkg update --auto --no-setup gui gui-lib gui-doc tex-table gui-test
       - name: Install local packages
-        run: raco setup --pkgs gui gui-lib gui-doc tex-table gui-test
+        run: raco pkg install --auto gui gui-lib gui-doc tex-table gui-test
       - name: Install Resyntax
         run: raco pkg install --auto resyntax
       - name: Analyze changed files
