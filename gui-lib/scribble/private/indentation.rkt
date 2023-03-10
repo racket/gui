@@ -274,7 +274,9 @@
 (define (empty-para? txt para)
   (for/and ([x (in-range (send txt paragraph-start-position para)
                          (send txt paragraph-end-position para))])
-    (char-whitespace? (send txt get-character x))))
+    (or (char-whitespace? (send txt get-character x))
+        (let ([cp (send txt classify-position x)])
+          (eq? cp 'comment)))))
 
 ;; note: if "Disable" is changed below, this function might change the
 ;; number of characters in the text, if it chooses to break right
