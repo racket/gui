@@ -40,4 +40,5 @@
          application-quit-handler
          application-about-handler
          application-pref-handler
-         application-start-empty-handler)
+         application-start-empty-handler
+         application-dark-mode-handler)

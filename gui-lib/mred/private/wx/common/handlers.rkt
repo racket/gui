@@ -6,6 +6,7 @@
               application-quit-handler
               application-about-handler
               application-pref-handler
+              application-dark-mode-handler
               
               nothing-application-pref-handler
               nothing-application-about-handler))
@@ -63,3 +64,10 @@
   (case-lambda
    [(proc) (set! aph proc)]
    [() aph]))
+
+(define (nothing-application-dark-mode-handler) (void))
+(define admh nothing-application-dark-mode-handler)
+(define application-dark-mode-handler
+  (case-lambda
+   [(proc) (set! admh proc)]
+   [() admh]))
