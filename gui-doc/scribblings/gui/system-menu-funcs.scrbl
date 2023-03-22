@@ -1,5 +1,6 @@
 #lang scribble/doc
-@(require "common.rkt")
+@(require "common.rkt"
+          (for-label mrlib/panel-wob))
 
 @title{System Menus}
 
@@ -151,4 +152,23 @@ The default handler re-queues the handler event when the application
 If the current eventspace is not the initial eventspace, this
 procedure returns @racket[void] (when called with zero arguments)
 or has no effect (when called with a handler).
+}
+
+@defproc*[([(application-dark-mode-handler)
+            (-> any)]
+           [(application-dark-mode-handler [handler-thunk (-> any)])
+            void?])]{
+
+ When the current @tech{eventspace} is the initial
+ eventspace this procedure retrieves or installs a thunk that
+ is called under Mac OS when the OS switches to or from dark mode.
+ See also @racket[white-on-black-panel-scheme?].
+
+ The default handler does nothing.
+
+ If the current eventspace is not the initial eventspace,
+ this procedure returns @racket[void] (when called with zero
+ arguments) or has no effect (when called with a handler).
+
+ @history[#:added "1.68"]
 }

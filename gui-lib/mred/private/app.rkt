@@ -11,6 +11,7 @@
            application-quit-handler
            application-file-handler
            application-start-empty-handler
+           application-dark-mode-handler
            current-eventspace-has-standard-menus?
            current-eventspace-has-menu-root?
            eventspace-handler-thread)
@@ -103,6 +104,18 @@
 		    0
 		    (lambda (v) (unless v (wx:cancel-quit)) v)
                     void)]))
+
+  (define application-dark-mode-handler
+    (case-lambda
+      [() (or (and (wx:main-eventspace? (wx:current-eventspace))
+                   (app-handler-orig (wx:application-dark-mode-handler)))
+              void)]
+      [(proc)
+       (set-handler! 'application-dark-mode-handler proc
+                     wx:application-dark-mode-handler
+                     0
+                     values
+                     void)]))
 
   (define saved-files null)
 

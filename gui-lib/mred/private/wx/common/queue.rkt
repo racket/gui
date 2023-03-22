@@ -59,6 +59,7 @@
               queue-about-event
               queue-file-event
               queue-start-empty-event
+              queue-dark-mode-event
 
               begin-busy-cursor
               end-busy-cursor
@@ -603,6 +604,10 @@
   ;; called in event-pump thread
   (queue-event main-eventspace (application-start-empty-handler)
                'med))
+
+(define (queue-dark-mode-event)
+  ;; called in event-pump thread
+  (queue-event main-eventspace (application-dark-mode-handler) 'med))
 
 (define (begin-busy-cursor) 
   (let ([e (current-eventspace)])

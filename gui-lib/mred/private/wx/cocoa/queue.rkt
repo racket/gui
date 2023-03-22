@@ -90,8 +90,19 @@
   [-a _void (applicationDidFinishLaunching: [_id notification])
       ;; Create an empty windows menu for right clicking in the dock
       (tell app setWindowsMenu: (tell (tell NSMenu alloc) init))
+      (when (version-10.9-or-later?)
+        (tell app addObserver:
+              self
+              forKeyPath: #:type _NSString "effectiveAppearance"
+              options: #f
+              context: #f))
       (unless got-file?
         (queue-start-empty-event))]
+  [-a _void (observeValueForKeyPath: [_NSString keyPath] ofObject: ofObject change: change context: context)
+      ;; we add an observer only for "effectiveAppearance",
+      ;; so no check is needed to know why we got here
+      (queue-dark-mode-event)
+      (void)]
   [-a _BOOL (applicationShouldHandleReopen: [_id app] hasVisibleWindows: [_BOOL has-visible?])
       ;; If we have any visible windows, return #t to do the default thing.
       ;; Otherwise return #f, because we don't want any invisible windows resurrected.

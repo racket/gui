@@ -12,6 +12,7 @@ application-file-handler
 application-preferences-handler
 application-quit-handler
 application-start-empty-handler
+application-dark-mode-handler
 area-container-window<%>
 area-container<%>
 area<%>
