@@ -289,6 +289,11 @@
 	       
               (set! pending-redraws? #f)))]
 
+       [request-refresh-all-canvas-children
+        (λ ()
+          (when panel
+            (send panel request-refresh-all-canvas-children)))]
+
        [correct-size
         (lambda (frame-w frame-h)
           (if (not panel)

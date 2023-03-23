@@ -7,6 +7,7 @@
            "helper.rkt"
            "check.rkt"
            "wx.rkt"
+           "wxcanvas.rkt"
            "wxwindow.rkt"
            "wxitem.rkt"
            "wxcontainer.rkt")
@@ -328,7 +329,17 @@
                              (child-info-x-min (car kid-info)))))
            (lambda (y-accum kid-info first?)
              (max y-accum (+ (* 2 (border))
-                             (child-info-y-min (car kid-info)))))))])
+                             (child-info-y-min (car kid-info)))))))]
+
+       ;; request that all children that are canvases refresh their content
+       [request-refresh-all-canvas-children
+        (λ ()
+          (for ([child (in-list children)])
+            (cond
+              [(is-a? child wx-basic-panel<%>)
+               (send child request-refresh-all-canvas-children)]
+              [(is-a? child wx-canvas%)
+               (send child queue-paint)])))])
 	       
       (override*
        [force-redraw

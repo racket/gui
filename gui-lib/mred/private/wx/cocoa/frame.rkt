@@ -48,6 +48,18 @@
 ;;  problems.
 (define all-windows (make-hash))
 
+(set-queue-events-to-refresh-all-canvases!
+ (let ([queue-events-to-refresh-all-canvases
+        (λ ()
+          (atomically
+           (for ([b (in-hash-values all-windows)])
+             (define frame (weak-box-value b))
+             (when frame
+               (queue-event
+                (send frame get-eventspace)
+                (λ () (send frame request-refresh-all-canvas-children)))))))])
+   queue-events-to-refresh-all-canvases))
+
 ;; called in atomic mode
 (define (send-screen-change-notifications flags)
   (reset-menu-bar!)
