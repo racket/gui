@@ -187,14 +187,16 @@
      (cond
        [(version-11.0-or-later?)
         (define ans #f)
+        (define keep (box null))
         (tell (tell app effectiveAppearance)
               performAsCurrentDrawingAppearance:
               #:type _pointer
               (objc-block
-               (_fun #:atomic? #t #:keep (box null) _pointer -> _void)
+               (_fun #:atomic? #t #:keep keep _pointer -> _void)
                (λ (blk)
                  (set! ans (tell (get) colorUsingColorSpace: (tell NSColorSpace deviceRGBColorSpace))))
-               #:keep (box null)))
+               #:keep keep))
+        (void/reference-sink keep)
         ans]
        [else
         (tell (get) colorUsingColorSpace: (tell NSColorSpace deviceRGBColorSpace))])))
