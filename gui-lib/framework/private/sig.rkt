@@ -379,7 +379,8 @@
      register-color-scheme-entry-change-callback
      add-color-scheme-entry
      register-info-based-color-schemes
-     get-color-scheme-names))
+     get-color-scheme-names
+     get-inverted-base-color-scheme))
   
   (define-signature racket-class^
     (text<%>

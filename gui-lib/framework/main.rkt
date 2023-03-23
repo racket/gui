@@ -2190,6 +2190,16 @@ was never saved, then the first element of the list is @racket[#f].
                @item{@racket['white-on-black-base?]: must be a boolean indicating if this
                       color-scheme is based on an inverted color scheme. If absent, it
                       is @racket[#f].}
+              @item{@racket['inverted-base-name]: must be a
+               symbol or @racket[#f]. If it is a symbol, the symbol
+               indicates the name of a color scheme that corresponds to the
+               present scheme, but in the inverted color mode. If absent,
+               it defaults to @racket[#f]. When a color scheme has an
+               inverted color scheme named, that color scheme must have the
+               opposite boolean in its @racket['white-on-black-base?] field
+               and, under Mac OS, switching to and from dark mode will
+               switch between the two color schemes. Note that both schemes
+               must name the opposite mode color scheme.}
                @item{@racket['example]: must be a string and is used in the preferences dialog
                       to show an example of the color scheme. If absent, the string used in
                       the ``Classic'' color scheme is used.}
@@ -2240,7 +2250,10 @@ was never saved, then the first element of the list is @racket[#f].
     is called, it logs the active set of color names and style names to the @tt{color-scheme}
     logger at the info level. So, for example, starting up DrRacket like this:
     @tt{racket -W info@"@"color-scheme -l drracket} will print out the styles used in your
-    version of DrRacket.})
+    version of DrRacket.
+
+@history[#:changed "1.68" @list{Added @racket['inverted-base-name].}]
+})
  
  (proc-doc/names
   color-prefs:set-current-color-scheme
@@ -2265,6 +2278,17 @@ was never saved, then the first element of the list is @racket[#f].
             
  In order to return @racket[#t], @racket[name] must have been
  passed as the first argument to @racket[color-prefs:add-color-scheme-entry].})
+
+ (proc-doc/names
+  color-prefs:get-inverted-base-color-scheme
+  (-> symbol? (or/c #f symbol?))
+  (name)
+  @{
+Returns the inverted-base color scheme name
+of color scheme named @racket[name], if it has one.
+
+@history[#:added "1.68"]
+})
  
  (proc-doc/names
   color-prefs:color-scheme-style-name?

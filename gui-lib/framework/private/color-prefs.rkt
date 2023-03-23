@@ -683,7 +683,7 @@
    "      (list (function cos -5 5) (function log -5 5)))\n"
    "\"an unclosed string is an error"))
 
-(struct color-scheme (name button-label white-on-black-base? mapping example) #:transparent)
+(struct color-scheme (name button-label white-on-black-base? mapping example inverted-base-name) #:transparent)
 (define black-on-white-color-scheme-name 'classic)
 (define white-on-black-color-scheme-name 'white-on-black)
 (define known-color-schemes
@@ -691,10 +691,12 @@
   ;; and the second must the white-on-black color scheme
   (list (color-scheme black-on-white-color-scheme-name
                       (string-constant classic-color-scheme)
-                      #f (make-hash) default-example)
+                      #f (make-hash) default-example
+                      white-on-black-color-scheme-name)
         (color-scheme white-on-black-color-scheme-name
                       (string-constant white-on-black-color-scheme)
-                      #t (make-hash) default-example)))
+                      #t (make-hash) default-example
+                      black-on-white-color-scheme-name)))
 
 (define color-change-callbacks (make-hash))
 
@@ -737,16 +739,22 @@
                                         (format "~a" d)
                                         (format "~s" d)))))
            (define white-on-black-base? (hash-ref one-scheme 'white-on-black-base? #f))
+           (define inverted-base-name (hash-ref one-scheme 'inverted-base-name #f))
            (define mapping (hash-ref one-scheme 'colors '()))
            (define example (hash-ref one-scheme 'example default-example))
-           (register-color-scheme (if (symbol? name)
-                                      (if (string-constant? name)
-                                          (dynamic-string-constant name)
-                                          (symbol->string name))
-                                      name)
+           (define (tidy-name name)
+             (if (symbol? name)
+                 (if (string-constant? name)
+                     (dynamic-string-constant name)
+                     (symbol->string name))
+                 name))
+           (register-color-scheme (tidy-name name)
                                   white-on-black-base?
                                   mapping
-                                  example))]
+                                  example
+                                  #:inverted-base-name
+                                  (and inverted-base-name
+                                       (tidy-name inverted-base-name))))]
         [else
          (when cs-info
            (log-color-scheme-warning
@@ -754,6 +762,7 @@
             (pretty-format (contract-name info-file-result-check?))
             dir
             (pretty-format cs-info)))])))
+  (check/fix-inverted-base-names)
   ;; the color-scheme saved in the user's preferences may not be known
   ;; until after the code above executes, which would mean that the 
   ;; color scheme in effect up to that point may be wrong. So fix that here:
@@ -764,7 +773,8 @@
 ;; props = (or/c 'bold 'italic 'underline 
 ;;              
 ;; called based on the contents of info.rkt files
-(define (register-color-scheme scheme-name white-on-black-base? mapping example)
+(define (register-color-scheme scheme-name white-on-black-base? mapping example
+                               #:inverted-base-name [inverted-base-name #f])
   (define (good-line? line)
     (or (set-member? known-color-names (car line))
         (set-member? known-style-names (car line))))
@@ -792,7 +802,58 @@
                               (props->color (cdr line))]
                              [(set-member? known-style-names name)
                               (props->style-delta (cdr line))]))))
-                  example)))))
+                  example
+                  (cond
+                    [(symbol? inverted-base-name)
+                     inverted-base-name]
+                    [(not inverted-base-name) #f]
+                    [else
+                     (string->symbol inverted-base-name)]))))))
+
+(define (check/fix-inverted-base-names)
+  (define name->scheme
+    (for/hash ([a-color-scheme (in-list known-color-schemes)])
+      (values (color-scheme-name a-color-scheme)
+              a-color-scheme)))
+  (set! known-color-schemes
+        (for/list ([a-color-scheme (in-list known-color-schemes)])
+          (match-define (color-scheme name button-label white-on-black-base?
+                                      mapping example inverted-base-name)
+            a-color-scheme)
+          (let/ec escape
+            (define (fail why-fmt . args)
+              (log-error (apply format why-fmt args))
+              (escape (color-scheme name button-label white-on-black-base?
+                                    mapping example #f)))
+            (when inverted-base-name
+              (define inverted (hash-ref name->scheme inverted-base-name #f))
+              (unless inverted (fail "color scheme named ~s has an inverted-base-name ~s but that color scheme does not exist"
+                                     name inverted-base-name))
+              (unless (equal? (not (color-scheme-white-on-black-base? inverted))
+                              white-on-black-base?)
+                (fail "color scheme named ~s has ~s and so does its inverted-base-name color scheme, ~s"
+                      name
+                      (if white-on-black-base?
+                          "a white on black base"
+                          "a black on white base")
+                      inverted-base-name)))
+            a-color-scheme))))
+
+(define (get-inverted-base-color-scheme cs-name)
+  (define cs (lookup-color-scheme cs-name))
+  (cond
+    [cs
+     (define inverted-base-name (color-scheme-inverted-base-name cs))
+     (cond
+       [inverted-base-name
+        (define inverted-base (lookup-color-scheme inverted-base-name))
+        (cond
+          [(equal? (white-on-black-panel-scheme?)
+                   (color-scheme-white-on-black-base? inverted-base))
+           inverted-base-name]
+          [else #f])]
+       [else #f])]
+    [else #f]))
 
 (define color-vector/c
   (or/c (vector/c byte? byte? byte? #:flat? #t)

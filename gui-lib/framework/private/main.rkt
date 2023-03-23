@@ -564,3 +564,12 @@
 (exit:insert-on-callback
  (λ ()
    (send (group:get-the-frame-group) on-close-all)))
+
+(application-dark-mode-handler
+ (λ ()
+   (define inverted-name
+     (color-prefs:get-inverted-base-color-scheme
+      (color-prefs:get-current-color-scheme-name)))
+   (when inverted-name
+     (color-prefs:set-current-color-scheme
+      inverted-name))))
