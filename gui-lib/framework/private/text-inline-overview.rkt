@@ -183,6 +183,17 @@
           (union-invalid ps pe)
           (maybe-queue-do-a-little-work?)))
 
+      (define style-has-changed-callback-pending? #f)
+      (define/override (style-has-changed s)
+        (unless style-has-changed-callback-pending?
+          (set! style-has-changed-callback-pending? #t)
+          (queue-callback
+           (λ ()
+             (set! style-has-changed-callback-pending? #f)
+             (reset-entire-overview))
+           #f))
+        (super style-has-changed s))
+
       (define last-time-on-paint-called #f)
       (define/override (on-paint before? dc left top right bottom dx dy draw-caret)
         (super on-paint before? dc left top right bottom dx dy draw-caret)
