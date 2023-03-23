@@ -30,7 +30,8 @@
               try-to-sync-refresh
               try-to-flush
               sync-cocoa-events
-              set-screen-changed-callback!)
+              set-screen-changed-callback!
+              set-queue-events-to-refresh-all-canvases!)
 
  ;; from common/queue:
  current-eventspace
@@ -102,6 +103,7 @@
       ;; we add an observer only for "effectiveAppearance",
       ;; so no check is needed to know why we got here
       (queue-dark-mode-event)
+      (queue-events-to-refresh-all-canvases)
       (void)]
   [-a _BOOL (applicationShouldHandleReopen: [_id app] hasVisibleWindows: [_BOOL has-visible?])
       ;; If we have any visible windows, return #t to do the default thing.
@@ -120,6 +122,10 @@
       (try-dock-to-front)]
   [-a _void (retrySelfToFront: o)
       (tellv app activateIgnoringOtherApps: #:type _BOOL #t)])
+
+(define queue-events-to-refresh-all-canvases void)
+(define (set-queue-events-to-refresh-all-canvases! f)
+  (set! queue-events-to-refresh-all-canvases f))
 
 (define fixup-window-locations void)
 (define (set-fixup-window-locations! f) (set! fixup-window-locations f))
