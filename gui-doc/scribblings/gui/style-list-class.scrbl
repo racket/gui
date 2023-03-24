@@ -148,6 +148,28 @@ The callback @racket[f] replaces any callback for which it is
  retained as long as the opaque key produced by @method[style-list%
  notify-on-change] is reachable.}
 
+ @defmethod[(begin-style-change-sequence) void?]{
+
+  Bracket changes to styles contained in a
+  @racket[style-list%] with
+  @method[style-list% begin-style-change-sequence] and
+  @method[style-list% end-style-change-sequence] to avoid extra work
+  during the style changes.
+
+  Call to @method[style-list% begin-style-change-sequence] and
+  @method[style-list% end-style-change-sequence] can be nested
+  arbitrarily; changes to styles are not propagated to the
+  @racket[editor<%>]s that use this @racket[style-list%] until
+  the last call to @method[style-list% end-style-change-sequence] and
+  redundant calls are skipped at that point.
+
+  @history[#:added "1.5"]
+ }
+ @defmethod[(end-style-change-sequence) void?]{
+  Call to match calls to @method[style-list% begin-style-change-sequence].
+
+  @history[#:added "1.5"]
+ }
 
 @defmethod[(number)
            exact-nonnegative-integer?]{

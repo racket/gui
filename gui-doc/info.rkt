@@ -8,7 +8,7 @@
                      "draw-doc"
                      "draw-lib"
                      ["scribble-lib" #:version "1.42"]
-                     "snip-lib"
+                     ["snip-lib" #:version "1.5"]
                      "string-constants-lib"
                      ["syntax-color-lib" #:version "1.3"]
                      "wxme-lib"
