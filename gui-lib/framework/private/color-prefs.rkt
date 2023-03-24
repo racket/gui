@@ -1013,18 +1013,32 @@
       (if new-wob
           (white-on-black)
           (black-on-white)))
-    (for ([(color-name fns) (in-hash color-change-callbacks)])
-      (for ([fn/b (in-list fns)])
+    (define style-lists-begun
+      (for*/list ([(color-name fns+sls) (in-hash color-change-callbacks)]
+                  [fn+sl (in-list fns+sls)])
+        (define sl/b (cdr fn+sl))
+        (define sl (if (weak-box? sl/b)
+                       (weak-box-value sl/b)
+                       sl/b))
+        (and sl (send sl begin-style-change-sequence) sl)))
+    (for ([(color-name fns+sls) (in-hash color-change-callbacks)])
+      (for ([fn/b (in-list (map car fns+sls))])
         (define fn (if (weak-box? fn/b) (weak-box-value fn/b) fn/b))
         (when fn
-          (fn (lookup-in-color-scheme color-name)))))))
+          (fn (lookup-in-color-scheme color-name)))))
+    (for ([style-list (in-list style-lists-begun)])
+      (when style-list
+        (send style-list end-style-change-sequence)))))
 
 (define (get-available-color-schemes) 
   (for/list ([(name a-color-scheme) (in-hash known-color-schemes)])
     name))
 
-(define (register-color-scheme-entry-change-callback color fn [weak? #f])
-  (define wb/f (if weak? (make-weak-box fn) fn))
+(define (register-color-scheme-entry-change-callback color fn [weak? #f]
+                                                     #:style-list [style-list #f])
+  (define wb/f (if weak?
+                   (cons (make-weak-box fn) (make-weak-box style-list))
+                   (cons fn style-list)))
   ;; so we know which callbacks to call when a color scheme change happens
   (hash-set! color-change-callbacks 
              color
@@ -1037,11 +1051,11 @@
      (λ (pref ht)
        (define fn
          (cond
-           [(weak-box? wb/f)
-            (define fn (weak-box-value wb/f))
+           [(weak-box? (car wb/f))
+            (define fn (weak-box-value (car wb/f)))
             (unless fn (remover))
             fn]
-           [else wb/f]))
+           [else (car wb/f)]))
        (when fn
          (fn (lookup-in-color-scheme/given-mapping 
               color
@@ -1049,11 +1063,13 @@
               (get-current-color-scheme)))))))
   (void))
 
+;; we remove elements of the list when the function isn't reachable anymore
+;; if the style-list isn't reachable we'll keep the function in there.
 (define (remove-gones lst)
-  (for/list ([x (in-list lst)]
-             #:when (or (not (weak-box? x))
-                        (weak-box-value x)))
-    x))
+  (for/list ([fn+sl (in-list lst)]
+             #:when (or (not (weak-box? (car fn+sl)))
+                        (weak-box-value (car fn+sl))))
+    fn+sl))
 
 (define (known-color-scheme-name? n) 
   (or (set-member? known-color-names n) 
@@ -1148,7 +1164,8 @@
     (register-color-scheme-entry-change-callback
      name
      (λ (sd)
-       (editor:set-standard-style-list-delta style-name sd)))
+       (editor:set-standard-style-list-delta style-name sd))
+     #:style-list (editor:get-standard-style-list))
     (define init-value (lookup-in-color-scheme name))
     (editor:set-standard-style-list-delta style-name init-value)))
 

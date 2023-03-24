@@ -2344,16 +2344,26 @@ of color scheme named @racket[name], if it has one.
                         (is-a?/c style-delta%)
                         (is-a?/c color%))
                     any))])
-       ([weak? boolean?])
+       ([weak? boolean?]
+        #:style-list [style-list (or/c #f (is-a?/c style-list%))])
        [result void?])
-  (#f)
+  (#f #f)
   @{Registers a callback that is invoked whenever the color mapped by
     @racket[name] changes. Changes may happen due to calls to
     @racket[color-prefs:set-in-color-scheme] or due to calls to 
     @racket[color-prefs:set-current-color-scheme].
     
     If @racket[weak?] is @racket[#t], the @racket[fn] argument is held
-    onto weakly; otherwise it is held onto strongly.})
+    onto weakly; otherwise it is held onto strongly.
+
+    If @racket[style-list] is not @racket[#f] then calls to all of the
+    registered callbacks (including @racket[fn]) are bracketed
+    by calls to @method[style-list% begin-style-change-sequence]
+    and @method[style-list% end-style-change-sequence] for the given
+    @racket[style-list%].
+
+    @history[#:changed "1.68" @list{added the @racket[style-list] argument}]
+})
  
  (proc-doc
   color-prefs:get-color-scheme-names
