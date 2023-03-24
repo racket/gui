@@ -253,6 +253,59 @@
 (define s2-modern (send sl2 convert s-modern))
 (expect (send s2-modern get-family) 'modern)
 
+(let ()
+  (define changes '())
+  (define t%
+    (class text%
+      (define/override (style-has-changed s)
+        (set! changes (cons s changes)))
+      (super-new)))
+  (define sl (new style-list%))
+  (define t (new t%))
+  (send t set-style-list sl)
+  (define d1 (new style-delta%))
+  (send d1 set-weight-on 'bold)
+  (define d2 (new style-delta%))
+  (send d2 set-underlined-on #t)
+  (expect changes '())
+  (define named-style1 (send sl new-named-style "named-style1" (send sl basic-style)))
+  (define named-style2 (send sl new-named-style "named-style2" (send sl basic-style)))
+  (set! changes '())
+
+  (send named-style1 set-delta d1)
+  (expect changes (list #f named-style1))
+  (set! changes '())
+
+  (send named-style2 set-delta d1)
+  (expect changes (list #f named-style2))
+  (set! changes '())
+
+  (send sl begin-style-change-sequence)
+  (send named-style1 set-delta d2)
+  (expect changes '())
+  (send named-style2 set-delta d2)
+  (expect changes '())
+  (send sl end-style-change-sequence)
+  (expect (car changes) #f)
+  (expect (length changes) 3)
+  (expect (and (member named-style1 changes) #t) #t)
+  (expect (and (member named-style2 changes) #t) #t)
+  (set! changes '())
+
+  (send sl begin-style-change-sequence)
+  (send sl begin-style-change-sequence)
+  (send named-style1 set-delta d1)
+  (expect changes '())
+  (send named-style2 set-delta d1)
+  (expect changes '())
+  (send sl end-style-change-sequence)
+  (send sl end-style-change-sequence)
+  (expect (length changes) 3)
+  (expect (and (pair? changes) (equal? (car changes) #f)) #t)
+  (expect (and (member named-style1 changes) #t) #t)
+  (expect (and (member named-style2 changes) #t) #t)
+  (set! changes '()))
+
 ;; ----------------------------------------
 ;; Lines, positions, paragraphs
 
