@@ -16,6 +16,7 @@
           [prefix icon: framework:icon^]
           [prefix finder: framework:finder^]
           [prefix color-model: framework:color-model^]
+          [prefix color-prefs: framework:color-prefs^]
           [prefix editor: framework:editor^])
   (export text-basic^)
   (init-depend framework:editor^)
@@ -26,11 +27,17 @@
   (define-struct range ([start #:mutable] 
                         [end #:mutable]
                         caret-space?
-                        style color 
+                        style
+                        color #;(or/c (is-a?/c color%) color-prefs:color-scheme-color-name?)
                         adjust-on-insert/delete?
                         key
                         [rectangles #:mutable]) #:inspector #f)
-  (define-struct rectangle (left top right bottom style color) #:inspector #f)
+  (define-struct rectangle (left
+                            top right bottom
+                            style
+                            color #;(or/c (is-a?/c color%) color-prefs:color-scheme-color-name?)
+                            )
+    #:inspector #f)
 
   (define (build-rectangle left top right bottom style color [info (λ () "")])
     (unless (or (symbol? right) (symbol? left))
@@ -326,10 +333,15 @@
                  "expected priority argument to be either 'high or 'low, got: ~e"
                  priority))
         (unless (or (is-a? in-color color%)
+                    (color-prefs:color-scheme-color-name? in-color)
                     (and (string? in-color)
                          (send the-color-database find-color in-color)))
           (error 'highlight-range
-                 "expected a color or a string in the-color-database for the third argument, got ~e" 
+                 (string-append
+                  "wrong third argument;\n"
+                  "  expected: (or/c string? (is-a?/c color%) color-prefs:color-scheme-color-name?)\n"
+                  "            where the string is mapped in `the-color-database`\n"
+                  "  third argument: ~e")
                  in-color))
         (unless (memq style '(rectangle hollow-ellipse ellipse dot))
           (error 'highlight-range
@@ -340,9 +352,9 @@
             (error 'highlight-range
                    "when the style is 'dot, the start and end regions must be the same")))
       
-        (define color (if (is-a? in-color color%)
-                          in-color
-                          (send the-color-database find-color in-color)))
+        (define color (if (string? in-color)
+                          (send the-color-database find-color in-color)
+                          in-color))
         (define l (make-range start end caret-space? style color adjust-on-insert/delete? key #f))
         (if (eq? priority 'high)
             (enqueue! ranges-deq l)
@@ -354,9 +366,12 @@
             (unhighlight-range start end color caret-space? style))))
         
       (define/public (unhighlight-range start end in-color [caret-space? #f] [style 'rectangle])
-        (define color (if (is-a? in-color color%)
-                          in-color
-                          (send the-color-database find-color in-color)))
+        (define color (cond
+                        [(is-a? in-color color%)
+                         in-color]
+                        [(string? in-color)
+                         (send the-color-database find-color in-color)]
+                        [else in-color]))
         (unhighlight-ranges
          (λ (r-start r-end r-color r-caret-space? r-style r-adjust-on-insert/delete? r-key)
            (and (equal? start r-start)
@@ -454,28 +469,32 @@
                              (<= top top-margin bottom-margin bottom)))
                 (define width (if (right . <= . left) 0 (- right left)))
                 (define height (if (bottom . <= . top) 0 (- bottom top)))
-                (define color (let ([rc (rectangle-color rectangle)])
+                (define color (let* ([rc (rectangle-color rectangle)]
+                                     [rc-color-obj
+                                      (if (is-a? rc color%)
+                                          rc
+                                          (color-prefs:lookup-in-color-scheme rc))])
                                 (cond
-                                  [(not (= 1 (send rc alpha))) rc]
-                                  [(and last-color (eq? last-color rc))
-                                   rc]
-                                  [rc
+                                  [(not (= 1 (send rc-color-obj alpha))) rc-color-obj]
+                                  [(and last-color (eq? last-color rc-color-obj))
+                                   rc-color-obj]
+                                  [rc-color-obj
                                    (set! last-color #f)
-                                   (send dc try-color rc highlight-tmp-color)
+                                   (send dc try-color rc-color-obj highlight-tmp-color)
                                    (if (<= (color-model:rgb-color-distance
-                                            (send rc red)
-                                            (send rc green)
-                                            (send rc blue)
+                                            (send rc-color-obj red)
+                                            (send rc-color-obj green)
+                                            (send rc-color-obj blue)
                                             (send highlight-tmp-color red)
                                             (send highlight-tmp-color green)
                                             (send highlight-tmp-color blue))
                                            18)
-                                       (begin (set! last-color rc)
-                                              rc)
+                                       (begin (set! last-color rc-color-obj)
+                                              rc-color-obj)
                                        #f)]
                                   [else 
                                    (set! last-color #f)
-                                   rc])))
+                                   rc-color-obj])))
                 (when color
                   (case (rectangle-style rectangle)
                     [(dot)

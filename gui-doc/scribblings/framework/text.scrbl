@@ -8,7 +8,9 @@
   functionality needed by the framework.
   @defmethod[(highlight-range [start exact-nonnegative-integer?]
                               [end exact-nonnegative-integer?]
-                              [color (or/c string? (is-a?/c color%))]
+                              [color (or/c string?
+                                           (is-a?/c color%)
+                                           color-prefs:color-scheme-color-name?)]
                               [caret-space boolean? #f]
                               [priority (or/c 'high 'low) 'low]
                               [style (or/c 'rectangle 'ellipse 'hollow-ellipse 'dot) 'rectangle]
@@ -20,12 +22,17 @@
     This function highlights a region of text in the buffer.
 
     The range between @racket[start] and @racket[end] will be highlighted with
-    the given @racket[color], if the style is @racket['rectangle] (the default).  If
-    the style is @racket['ellipse], then an ellipse is drawn around the range
+    the given @racket[color]. If the @racket[color] is a
+    @racket[color-prefs:color-scheme-color-name?] then the color is looked up
+    each time the rectangle is drawn, so that changes to the color scheme are
+    reflected in the highlighted range.
+
+    If the style is @racket['rectangle] (the default), then the highlighted region
+    is drawn as a rectangle.
+    If the style is @racket['ellipse], then an ellipse is drawn around the range
     in the editor, using the color.  If the style is @racket['hollow-ellipse],
     then the outline of an ellipse is drawn around the range in the editor,
     using the color.
-
     If the style is @racket['dot], then @racket[start] and @racket[end] must be
     the same, and a dot is drawn at the bottom of that position in the editor.
 
@@ -67,12 +74,17 @@
     @method[text:basic<%> unhighlight-ranges/key], or
     @method[text:basic<%> unhighlight-ranges]
     must be called directly to remove the highlighting.
+
+    @history[#:changed "1.68" @list{Allow the @racket[color] argument to be
+                @racket[color-prefs:color-scheme-color-name?]}]
   }
 
   @defmethod[(unhighlight-range
               (start exact-nonnegative-integer?)
               (end exact-nonnegative-integer?)
-              (color (or/c string? (is-a?/c color%)))
+              (color (or/c string?
+                           (is-a?/c color%)
+                           color-prefs:color-scheme-color-name?))
               (caret-space boolean? #f)
               (style (or/c 'rectangle 'ellipse 'hollow-ellipse) 'rectangle))
              void?]{
@@ -85,6 +97,9 @@
     If you expect to call this method many times (when there are many 
     ranges set)
     consider instead calling @method[text:basic<%> unhighlight-ranges].
+
+  @history[#:changed "1.68" @list{Allow the @racket[color] argument to be
+              @racket[color-prefs:color-scheme-color-name?]}]
   }
 
   @defmethod[(unhighlight-ranges/key [key any/c]) void?]{
