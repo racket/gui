@@ -28,7 +28,8 @@
               display-bitmap-resolution
               location->window
               get-current-mouse-state
-              gtk_window_set_transient_for))
+              gtk_window_set_transient_for
+              tell-all-frames-request-refresh-all-canvas-children))
 
 ;; ----------------------------------------
 
@@ -674,7 +675,17 @@
            (maybe GDK_MOD1_MASK 'alt)
            (maybe GDK_META_MASK 'meta))))
 
+(define (tell-all-frames-request-refresh-all-canvas-children)
+  (tell-all-frames-something
+   (λ (f)
+     (send f request-refresh-all-canvas-children))))
+
 (define (tell-all-frames-signal-changed n)
+  (tell-all-frames-something
+   (λ (f)
+     (send f display-changed))))
+
+(define (tell-all-frames-something proc)
   (define frames (for/list ([f (in-hash-keys all-frames)]) f))
   (for ([f (in-hash-keys all-frames)])
     (define e (send f get-eventspace))
@@ -682,7 +693,7 @@
       (parameterize ([current-eventspace e])
         (queue-callback
          (λ () 
-           (send f display-changed)))))))
+           (proc f)))))))
 
 (define-signal-handler 
   connect-monitor-changed-signal
