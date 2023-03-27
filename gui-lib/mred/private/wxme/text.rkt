@@ -87,9 +87,8 @@
        'solid)]))
 
 (define outline-pen (send the-pen-list find-or-create-pen "BLACK" 0 'transparent))
-(define outline-inactive-pen (send the-pen-list find-or-create-pen (get-highlight-background-color) 1 'solid))
-(define outline-brush (send the-brush-list find-or-create-brush (get-highlight-background-color) 'solid))
-(define outline-nonowner-brush outline-brush)
+(define (outline-inactive-pen) (send the-pen-list find-or-create-pen (get-highlight-background-color) 1 'solid))
+(define (outline-brush) (send the-brush-list find-or-create-brush (get-highlight-background-color) 'solid))
 (define clear-brush (send the-brush-list find-or-create-brush "WHITE" 'solid))
 
 (define (showcaret>= a b)
@@ -5724,7 +5723,7 @@
                                                   (if show-outline-for-inactive?
                                                       (let ([first-hilite? (-startpos . >= . pcounter)]
                                                             [last-hilite? (-endpos . <= . (+ pcounter (mline-len line)))])
-                                                        (send dc set-pen outline-inactive-pen)
+                                                        (send dc set-pen (outline-inactive-pen))
                                                         (let ([prevwasfirst
                                                                (cond
                                                                 [first-hilite?
@@ -5745,13 +5744,13 @@
                                                       prevwasfirst)
                                                   (let ([save-brush (send dc get-brush)])
                                                     (send dc set-pen outline-pen)
-                                                    (send dc set-brush outline-brush)
+                                                    (send dc set-brush (outline-brush))
                                                     
                                                     (send dc draw-rectangle (+ hsxs dx) (+ hsys dy) 
                                                           (max 0.0 (- hsxe hsxs)) (max 0.0 (- hsye hsys)))
                                                     (when ALLOW-X-STYLE-SELECTION?
                                                       (when show-xsel?
-                                                        (send dc set-brush outline-nonowner-brush)
+                                                        (send dc set-brush (outline-brush))
                                                         (send dc draw-rectangle (+ hsxs dx) (+ hsys dy) 
                                                               (max 0.0 (- hsxe hsxs)) (max 0.0 (- hsye hsys)))))
                                                     (send dc set-brush save-brush)
