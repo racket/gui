@@ -786,8 +786,6 @@ added get-regions
     (define clear-old-locations void)
     
     (define mismatch-color (make-object color% "PINK"))
-    (define/private (get-match-color) 
-      (color-prefs:lookup-in-color-scheme 'framework:paren-match-color))
     
     ;; See docs
     ;; String Symbol -> (U String False)
@@ -807,15 +805,19 @@ added get-regions
     
     ;; higlight : number number number (or/c color any)
     ;;   if color is a color, then it uses that color to higlight
-    ;;   Otherwise, it treats it like a boolean, where a true value  
+    ;;   if color is a color-prefs:color-scheme-color-name?, ditto
+    ;;   Otherwise, it must be a boolean, where #t
     ;;   means the normal paren color and #f means an error color. 
     ;; numbers are expected to have zero be start-pos.
     (define/private (highlight ls start end caret-pos color [priority 'low])
       (let* ([start-pos (lexer-state-start-pos ls)]
              [off (highlight-range (+ start-pos start) (+ start-pos end)
-                                   (if (is-a? color color%)
-                                       color
-                                       (if color mismatch-color (get-match-color)))
+                                   (cond
+                                     [(is-a? color color%) color]
+                                     [(color-prefs:color-scheme-color-name? color) color]
+                                     [(boolean? color)
+                                      (if color mismatch-color 'framework:paren-match-color)]
+                                     [else (error 'highlight "unknown color ~s" color)])
                                    (= caret-pos (+ start-pos start))
                                    priority)])
         (set! clear-old-locations
@@ -870,14 +872,14 @@ added get-regions
                       (when (and (not (f-match-false-error ls start-f end-f error-f))
                                  start-f end-f)
                         (if error-f
-                            (highlight ls start-f end-f here error-f)
+                            (highlight ls start-f end-f here (and error-f #t))
                             (highlight-nested-region ls start-f end-f here))))
                     (let-values  (((start-b end-b error-b)
                                    (send (lexer-state-parens ls) match-backward 
                                          (- here (lexer-state-start-pos ls)))))
                       (when (and start-b end-b)
                         (if error-b
-                            (highlight ls start-b end-b here error-b)
+                            (highlight ls start-b end-b here (and error-b #t))
                             (highlight-nested-region ls start-b end-b here)))))))))
           (end-edit-sequence)
           (set! in-match-parens? #f))))
@@ -1367,7 +1369,7 @@ added get-regions
                  'low))))
   (cons (list 'basic-grey
               (string-constant paren-color-basic-grey)
-              (vector (color-prefs:lookup-in-color-scheme 'framework:paren-match-color))
+              (vector 'framework:paren-match-color)
               'high)
         parenthesis-color-table))
 
