@@ -8,6 +8,7 @@
               _WORD
               _DWORD
               _UDWORD
+              _UINT32
               _ATOM
               _WPARAM
               _LPARAM
@@ -34,6 +35,7 @@
               _HFONT
               _HBITMAP
               _HANDLE
+              _HSTRING
 
               _COLORREF
 
@@ -57,6 +59,7 @@
 (define _WORD _int16)
 (define _DWORD _int32)
 (define _UDWORD _uint32)
+(define _UINT32 _uint32)
 (define _ATOM _int)
 (define _UINT_PTR _uintptr)
 (define _WPARAM _intptr) ; supposed to be _UINT_PTR, but we have some sign mismatch
@@ -81,6 +84,7 @@
 (define _HFONT (_cpointer/null 'HFONT))
 (define _HBITMAP (_cpointer/null 'HBITMAP))
 (define _HANDLE (_cpointer/null 'HANDLE))
+(define _HSTRING (_cpointer/null 'HSTRING))
 
 (define _COLORREF _DWORD)
 
