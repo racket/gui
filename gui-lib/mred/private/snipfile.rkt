@@ -364,12 +364,12 @@
             (insert))
 	(set! pos (+ (string-length s) pos)))
       (define (flush-text)
-	(let ([cnt (peek-bytes-avail!* raw-buffer 0 #f in)])
+	(let ([cnt (peek-bytes-avail!** raw-buffer 0 #f in)])
 	  (when (positive? cnt)
 	    (let-values ([(got used status) (bytes-convert cvt raw-buffer 0 cnt utf8-buffer)])
 	      (cond
 	       [(positive? got) 
-		(read-bytes-avail!* raw-buffer in 0 used)
+                (read-bytes! raw-buffer in 0 used)
 		(show (bytes->string/utf-8 utf8-buffer #\? 0 got))
 		(flush-text)]
 	       [(eq? status 'error) 
@@ -412,4 +412,11 @@
 		     (add1 pos))))
 	 void
 	 (add1 pos)))
-      port)))
+      port))
+
+  (define (peek-bytes-avail!** bstr skip progress-evt in)
+    (let loop ([got 0])
+      (define cnt (peek-bytes-avail!* bstr (+ skip got) progress-evt in got))
+      (if (zero? cnt)
+          got
+          (loop (+ got cnt))))))

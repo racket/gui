@@ -376,6 +376,24 @@
   (test #\a    'snips-joined4 char1)
   (test "bcd" 'snips-joined5 chars))
 
+(let ()
+  (define t (new text%))
+  (define p (open-output-text-editor t))
+  (displayln "abc" p)
+  (close-output-port p)
+  (test "abc\n" 'wrote-text (send t get-text)))
+
+(let ()
+  (define t (new text%))
+  (define bts1 #"a\302")
+  (define bts2 #"\267 \302\267")
+  (define p (open-output-text-editor t))
+  (write-bytes bts1 p)
+  (flush-output p)
+  (write-bytes bts2 p)
+  (close-output-port p)
+  (test "a· ·" 'unicode-code-point-broken-up (send t get-text)))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;                            Snips and Streams                               ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
