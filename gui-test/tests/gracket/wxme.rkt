@@ -2,6 +2,7 @@
 (require racket/class
          racket/contract
          racket/file
+         racket/draw
          (only-in racket/gui/base
                   color% 
                   font%
@@ -797,6 +798,34 @@
   (expect (for/list ([i (in-range (send t last-position))])
             (send t grapheme-position i))
           '(0 1 2 3 4 5 6 8 9 10 11 12 13 14 15)))
+
+(let ()
+  ;; these strings are picked in a way to make the final insert
+  ;; shift a buffer content leaving #\uFE0F just after the content
+  (define pre0 "xx")
+  (define pre1 "\ufe0f\ufe0f\ufe0f")
+  (define pre (string-append pre0 pre1))
+  (define str "\u200d\u2620\ufe0f")
+
+  (define s (make-object string-snip% pre0))
+  (send s insert pre1 (string-length pre1) (string-length pre1))
+  (send s insert str (string-length str) (string-length pre))
+  (define s2
+    (let ([a (box #f)]
+          [b (box #f)])
+      (send s split (string-length pre) a b)
+      (unbox b)))
+
+  (send s2 insert "z" 1 (string-length str))
+
+  (define bm (make-object bitmap% 10 10))
+  (define dc (send bm make-dc))
+
+  (expect
+   (let ([w (box 0)])
+     (send s2 get-extent dc 0 0 w)
+     (unbox w))
+   (send s2 partial-offset dc 0 0 (add1 (string-length str)))))
 
 ;; ----------------------------------------
 
