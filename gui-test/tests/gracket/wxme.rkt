@@ -827,6 +827,24 @@
      (unbox w))
    (send s2 partial-offset dc 0 0 (add1 (string-length str)))))
 
+(let ()
+  (define bts '(#"\360\237\217\264" #"\342\200\215" #"\342\230\240" #"\357\270\217"))
+  (define txt (new text%))
+  (send txt set-styles-sticky #f)
+  (send txt insert "az")
+  (for ([b (in-list bts)]
+        [i (in-naturals)])
+    (send txt insert (bytes->string/utf-8 b)
+          (- (send txt last-position) 1)
+          (- (send txt last-position) 1)
+          #t #t)
+    (when (= i 1)
+      (send txt change-style (make-object style-delta% 'change-bold) 1 2)))
+  (expect (for/list ([i (in-list '(0 1 2 3))])
+            (send txt grapheme-position i))
+          '(0 1 5 6)))
+
+
 ;; ----------------------------------------
 
 ;; Insert very long strings to test max-string-length handling
