@@ -354,7 +354,7 @@
       (define (show s)
         (define (insert)
           (send text begin-edit-sequence)
-          (send text insert s pos)
+          (send text insert s pos 'same #t #t)
           (send text end-edit-sequence))
         (if (and eventspace
                  (and (not (eq? (current-thread) 
