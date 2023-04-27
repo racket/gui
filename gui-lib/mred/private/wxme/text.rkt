@@ -1923,14 +1923,16 @@
       (set! insert-force-streak? ifs?)
       (set! typing-streak? #t)))
 
-  (define/private (do-insert-graphemes str start end scroll-ok?)
+  (define/private (do-insert-graphemes str start-in end-in scroll-ok?)
     ;; maybe join characters to form a grapheme; we limit
     ;; the search for a grapheme to one surrounding snip on
     ;; the grounds that this makes sense when graphemes are
     ;; already joined
+    (define start (max 0 (min start-in len)))
+    (define end (if (eq? end-in 'same) start (max start (min end-in len))))
     (define keep-caret? (and (= start startpos)
                              (or (eq? end 'same) (eqv? end start))))
-    (let loop ([s str] [start start] [end (if (eq? end 'same) start (max start end))])
+    (let loop ([s str] [start start] [end end])
       (define pre-s (do-find-snip start 'before))
       (define pre-pos (get-snip-position pre-s))
       (define pre-count (snip->count pre-s))

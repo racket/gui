@@ -394,6 +394,26 @@
   (close-output-port p)
   (test "a· ·" 'unicode-code-point-broken-up (send t get-text)))
 
+(let ()
+  (define t (new text%))
+  (send t set-styles-sticky #f)
+  (define bts #"\360\237\217\264\342\200\215\342\230\240\357\270\217")
+  (define p (open-output-text-editor t))
+  (write-bytes bts p)
+  (close-output-port p)
+  (test 1 'pirate-flag-all-at-once (send t last-position)))
+
+(let ()
+  (define t (new text%))
+  (define bts #"\360\237\217\264\342\200\215\342\230\240\357\270\217")
+  (define p (open-output-text-editor t))
+  (for ([b (in-bytes bts)])
+    (write-byte b p)
+    (flush-output p))
+  (close-output-port p)
+  (test 1 'pirate-flag-piece-by-piece (send t last-position)))
+
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;                            Snips and Streams                               ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
