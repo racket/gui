@@ -401,7 +401,7 @@
   (define p (open-output-text-editor t))
   (write-bytes bts p)
   (close-output-port p)
-  (test 1 'pirate-flag-all-at-once (send t last-position)))
+  (test 1 'pirate-flag-all-at-once (send t position-grapheme (send t last-position))))
 
 (let ()
   (define t (new text%))
@@ -411,7 +411,7 @@
     (write-byte b p)
     (flush-output p))
   (close-output-port p)
-  (test 1 'pirate-flag-piece-by-piece (send t last-position)))
+  (test 1 'pirate-flag-piece-by-piece (send t position-grapheme (send t last-position))))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
