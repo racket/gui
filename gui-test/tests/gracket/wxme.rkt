@@ -838,7 +838,7 @@
           (- (send txt last-position) 1)
           (- (send txt last-position) 1)
           #t #t)
-    (when (= i 1)
+    (when (= i 0)
       (send txt change-style (make-object style-delta% 'change-bold) 1 2)))
   (expect (for/list ([i (in-list '(0 1 2 3))])
             (send txt grapheme-position i))

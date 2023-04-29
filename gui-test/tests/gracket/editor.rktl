@@ -413,6 +413,22 @@
   (close-output-port p)
   (test 1 'pirate-flag-piece-by-piece (send t position-grapheme (send t last-position))))
 
+(let ()
+  (define bts '(#"\360\237\217\264" #"\342\200\215" #"\342\230\240" #"\357\270\217"))
+  (define txt (new text%))
+  (send txt set-styles-sticky #f)
+  (send txt insert "az")
+  (for ([b (in-list bts)]
+        [i (in-naturals)])
+    (define p (open-output-text-editor txt (- (send txt last-position) 1)))
+    (write-bytes b p)
+    (close-output-port p)
+    (when (= i 0)
+      (send txt change-style (make-object style-delta% 'change-bold) 1 2)))
+  (test '(0 1 5 6)
+        'pirate-flag-char-by-char
+        (for/list ([i (in-list '(0 1 2 3))])
+          (send txt grapheme-position i))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;                            Snips and Streams                               ;;
